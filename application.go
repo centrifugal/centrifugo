@@ -28,18 +28,18 @@ func newApplication(engine string) (*application, error) {
 	}, nil
 }
 
-func (app *application) addConnection(cl *client) error {
-	return app.hub.add(cl)
+func (app *application) addConnection(c *connection) error {
+	return app.hub.add(c)
 }
 
-func (app *application) removeConnection(cl *client) error {
-	return app.hub.remove(cl)
+func (app *application) removeConnection(c *connection) error {
+	return app.hub.remove(c)
 }
 
-func (app *application) addAdminConnection(cl *adminClient) error {
-	return app.adminHub.add(cl)
+func (app *application) addAdminConnection(c *connection) error {
+	return app.adminHub.add(c)
 }
 
-func (app *application) removeAdminConnection(cl *adminClient) error {
-	return app.adminHub.remove(cl)
+func (app *application) removeAdminConnection(c *connection) error {
+	return app.adminHub.remove(c)
 }

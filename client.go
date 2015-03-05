@@ -10,6 +10,12 @@ import (
 	"sockjs-go/sockjs"
 )
 
+type connection interface {
+	getUid() string
+	getProject() string
+	getUser() string
+}
+
 type client struct {
 	sync.Mutex
 	session         sockjs.Session
@@ -35,6 +41,18 @@ func newClient(session sockjs.Session, closeChannel chan struct{}) (*client, err
 		session:      session,
 		closeChannel: closeChannel,
 	}, nil
+}
+
+func (c *client) getUid() string {
+	return c.uid
+}
+
+func (c *client) getProject() string {
+	return c.project
+}
+
+func (c *client) getUser() string {
+	return c.user
 }
 
 type Parameters map[string]interface{}
