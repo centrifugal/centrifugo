@@ -1,5 +1,9 @@
 package main
 
+import (
+	"errors"
+)
+
 var (
 	ErrInvalidClientMessage = errors.New("invalid client message")
 	ErrInvalidApiMessage    = errors.New("invalid API message")

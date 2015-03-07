@@ -2,12 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 	"sync"
 
+	"centrifugo/sockjs"
 	"github.com/nu7hatch/gouuid"
-	"sockjs-go/sockjs"
 )
 
 type connection interface {
@@ -55,11 +54,11 @@ func (c *client) getUser() string {
 	return c.user
 }
 
-type Parameters map[string]interface{}
+type params map[string]interface{}
 
 type clientCommand struct {
 	Method string
-	Params Parameters
+	Params params
 	Uid    string
 }
 
@@ -165,15 +164,15 @@ func (c *client) handleCommand(command clientCommand) (response, error) {
 	return resp, nil
 }
 
-func (c *client) handleConnect(params Parameters) (response, error) {
+func (c *client) handleConnect(ps params) (response, error) {
 	return response{}, nil
 }
 
-func (c *client) handleSubscribe(params Parameters) (response, error) {
+func (c *client) handleSubscribe(ps params) (response, error) {
 	return response{}, nil
 }
 
-func (c *client) handlePublish(params Parameters) (response, error) {
+func (c *client) handlePublish(ps params) (response, error) {
 	return response{}, nil
 }
 

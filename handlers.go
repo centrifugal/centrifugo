@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
-	"sockjs-go/sockjs"
+	"centrifugo/sockjs"
+	"github.com/julienschmidt/httprouter"
 )
 
 func newClientConnectionHandler() http.Handler {
@@ -50,4 +52,8 @@ func clientConnectionHandler(session sockjs.Session) {
 		}
 		break
 	}
+}
+
+func apiHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	fmt.Fprintf(w, "%s\n", ps.ByName("projectId"))
 }

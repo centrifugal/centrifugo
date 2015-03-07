@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -45,11 +46,18 @@ func main() {
 
 			fmt.Printf("%v", viper.AllSettings())
 
-			http.Handle("/", http.FileServer(http.Dir("web/")))
-			http.Handle("/connection/", newClientConnectionHandler())
+			router := httprouter.New()
+
+			sockJSHandler := newClientConnectionHandler()
+			router.Handler("GET", "/connection/*path", sockJSHandler)
+			router.Handler("POST", "/connection/*path", sockJSHandler)
+			router.Handler("OPTIONS", "/connection/*path", sockJSHandler)
+			router.GET("/api/:projectId", apiHandler)
+			router.Handler("GET", "/", http.FileServer(http.Dir("web/")))
+			router.ServeFiles("/static/*filepath", http.Dir("web/"))
 
 			addr := viper.GetString("address") + ":" + viper.GetString("port")
-			if err := http.ListenAndServe(addr, nil); err != nil {
+			if err := http.ListenAndServe(addr, router); err != nil {
 				log.Fatal("ListenAndServe: ", err)
 			}
 		},
