@@ -10,9 +10,9 @@ import (
 )
 
 type connection interface {
-	getUid() string
-	getProject() string
-	getUser() string
+	GetUid() string
+	GetProject() string
+	GetUser() string
 }
 
 type client struct {
@@ -42,15 +42,15 @@ func newClient(session sockjs.Session, closeChannel chan struct{}) (*client, err
 	}, nil
 }
 
-func (c *client) getUid() string {
+func (c *client) GetUid() string {
 	return c.uid
 }
 
-func (c *client) getProject() string {
+func (c *client) GetProject() string {
 	return c.project
 }
 
-func (c *client) getUser() string {
+func (c *client) GetUser() string {
 	return c.user
 }
 

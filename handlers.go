@@ -10,11 +10,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func newClientConnectionHandler() http.Handler {
-	return sockjs.NewHandler("/connection", sockjs.DefaultOptions, clientConnectionHandler)
+func newClientConnectionHandler(app *application) http.Handler {
+	return sockjs.NewHandler("/connection", sockjs.DefaultOptions, app.clientConnectionHandler)
 }
 
-func clientConnectionHandler(session sockjs.Session) {
+func (app *application) clientConnectionHandler(session sockjs.Session) {
 	log.Println("new sockjs session established")
 	var closedSession = make(chan struct{})
 	defer func() {
@@ -54,6 +54,6 @@ func clientConnectionHandler(session sockjs.Session) {
 	}
 }
 
-func apiHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Fprintf(w, "%s\n", ps.ByName("projectId"))
+func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	fmt.Fprintf(w, "%s\n", ps.ByName("projectKey"))
 }

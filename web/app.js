@@ -16,7 +16,7 @@ $(function() {
             'xhr-polling',
             'iframe-xhr-polling',
             'jsonp-polling'
-        ],		
+        ],
 		project: "test",
 		debug: true,
 		insecure: true

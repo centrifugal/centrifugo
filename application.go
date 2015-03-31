@@ -8,8 +8,8 @@ import (
 
 type application struct {
 	uid          string
-	hub          interface{}
-	adminHub     interface{}
+	hub          *hub
+	adminHub     *adminHub
 	nodes        map[string]interface{}
 	engine       string
 	revisionTime time.Time
@@ -22,24 +22,10 @@ func newApplication(engine string) (*application, error) {
 		return nil, err
 	}
 	return &application{
-		uid:    uid,
-		nodes:  make(map[string]interface{}),
-		engine: engine,
+		uid:      uid.String(),
+		nodes:    make(map[string]interface{}),
+		engine:   engine,
+		hub:      newHub(),
+		adminHub: newAdminHub(),
 	}, nil
-}
-
-func (app *application) addConnection(c *connection) error {
-	return app.hub.add(c)
-}
-
-func (app *application) removeConnection(c *connection) error {
-	return app.hub.remove(c)
-}
-
-func (app *application) addAdminConnection(c *connection) error {
-	return app.adminHub.add(c)
-}
-
-func (app *application) removeAdminConnection(c *connection) error {
-	return app.adminHub.remove(c)
 }

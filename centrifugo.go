@@ -46,13 +46,18 @@ func main() {
 
 			fmt.Printf("%v", viper.AllSettings())
 
+			app, err := newApplication("memory")
+			if err != nil {
+				log.Panic(err)
+			}
+
 			router := httprouter.New()
 
-			sockJSHandler := newClientConnectionHandler()
+			sockJSHandler := newClientConnectionHandler(app)
 			router.Handler("GET", "/connection/*path", sockJSHandler)
 			router.Handler("POST", "/connection/*path", sockJSHandler)
 			router.Handler("OPTIONS", "/connection/*path", sockJSHandler)
-			router.GET("/api/:projectId", apiHandler)
+			router.GET("/api/:projectKey", app.apiHandler)
 			router.Handler("GET", "/", http.FileServer(http.Dir("web/")))
 			router.ServeFiles("/static/*filepath", http.Dir("web/"))
 
