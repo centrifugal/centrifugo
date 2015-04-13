@@ -20,6 +20,7 @@ func main() {
 	var address string
 	var debug bool
 	var name string
+	var web string
 	var configFile string
 
 	var rootCmd = &cobra.Command{
@@ -43,6 +44,7 @@ func main() {
 			viper.BindPFlag("address", cmd.Flags().Lookup("address"))
 			viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
+			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
 
 			fmt.Printf("%v", viper.AllSettings())
 
@@ -53,13 +55,26 @@ func main() {
 
 			router := httprouter.New()
 
+			// register SockJS endpoints
 			sockJSHandler := newClientConnectionHandler(app)
 			router.Handler("GET", "/connection/*path", sockJSHandler)
 			router.Handler("POST", "/connection/*path", sockJSHandler)
 			router.Handler("OPTIONS", "/connection/*path", sockJSHandler)
+
+			// register HTTP API endpoint
 			router.GET("/api/:projectKey", app.apiHandler)
-			router.Handler("GET", "/", http.FileServer(http.Dir("web/")))
-			router.ServeFiles("/static/*filepath", http.Dir("web/"))
+
+			// register admin web interface API endpoints
+			router.POST("/auth/", app.authHandler)
+			router.GET("/info/", app.infoHandler)
+			router.POST("/actions/", app.actionsHandler)
+
+			// optionally serve admin web interface application
+			webDir := viper.GetString("web")
+			if webDir != "" {
+				router.Handler("GET", "/", http.FileServer(http.Dir(webDir)))
+				router.ServeFiles("/public/*filepath", http.Dir(webDir))
+			}
 
 			addr := viper.GetString("address") + ":" + viper.GetString("port")
 			if err := http.ListenAndServe(addr, router); err != nil {
@@ -72,5 +87,6 @@ func main() {
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "debug")
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
+	rootCmd.Flags().StringVarP(&web, "web", "w", "", "optional path to web interface application")
 	rootCmd.Execute()
 }

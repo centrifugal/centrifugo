@@ -57,3 +57,15 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	fmt.Fprintf(w, "%s\n", ps.ByName("projectKey"))
 }
+
+func (app *application) authHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	fmt.Fprintf(w, "auth\n")
+}
+
+func (app *application) infoHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	fmt.Fprintf(w, "info\n")
+}
+
+func (app *application) actionsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	fmt.Fprintf(w, "actions\n")
+}

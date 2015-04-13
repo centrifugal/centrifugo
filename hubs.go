@@ -7,15 +7,20 @@ import (
 // hub manages client connections
 type hub struct {
 	sync.Mutex
+
+	// registry to hold active connections
+	// as map[of projects]map[of user IDs]map[unique connection IDs]
 	connections map[string]map[string]map[string]connection
 }
 
+// newHub initializes hub
 func newHub() *hub {
 	return &hub{
 		connections: make(map[string]map[string]map[string]connection),
 	}
 }
 
+// add adds connection into hub connections registry
 func (h *hub) add(c connection) error {
 	h.Lock()
 	defer h.Unlock()
@@ -36,6 +41,7 @@ func (h *hub) add(c connection) error {
 	return nil
 }
 
+// remove removes connection from hub connections registry
 func (h *hub) remove(c connection) error {
 	h.Lock()
 	defer h.Unlock()
@@ -72,15 +78,20 @@ func (h *hub) remove(c connection) error {
 // adminHub manages admin connections from web interface
 type adminHub struct {
 	sync.Mutex
+
+	// registry to hold active admin connections
+	// as map[unique admin connection IDs]
 	connections map[string]connection
 }
 
+// newAdmin hub initializes new adminHub
 func newAdminHub() *adminHub {
 	return &adminHub{
 		connections: make(map[string]connection),
 	}
 }
 
+// add adds connection to adminHub connections registry
 func (h *adminHub) add(c connection) error {
 	h.Lock()
 	defer h.Unlock()
@@ -88,6 +99,7 @@ func (h *adminHub) add(c connection) error {
 	return nil
 }
 
+// remove removes connection from adminHub connections registry
 func (h *adminHub) remove(c connection) error {
 	h.Lock()
 	defer h.Unlock()
