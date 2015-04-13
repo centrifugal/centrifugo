@@ -5,8 +5,8 @@ import (
 	"log"
 	"sync"
 
-	"centrifugo/sockjs"
 	"github.com/nu7hatch/gouuid"
+	"gopkg.in/centrifugal/sockjs-go.v2/sockjs"
 )
 
 type connection interface {

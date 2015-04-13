@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"centrifugo/sockjs"
 	"github.com/julienschmidt/httprouter"
+	"gopkg.in/centrifugal/sockjs-go.v2/sockjs"
 )
 
 func newClientConnectionHandler(app *application) http.Handler {
