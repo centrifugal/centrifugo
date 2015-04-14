@@ -7,6 +7,7 @@ import (
 var (
 	ErrInvalidClientMessage = errors.New("invalid client message")
 	ErrInvalidApiMessage    = errors.New("invalid API message")
+	ErrInvalidToken         = errors.New("invalid token")
 	ErrUnauthorized         = errors.New("unauthorized")
 	ErrMethodNotFound       = errors.New("method not found")
 	ErrPermissionDenied     = errors.New("permission denied")

@@ -19,7 +19,7 @@ type application struct {
 	engine       string
 	revisionTime time.Time
 	name         string
-	structure    structure
+	structure    *structure
 }
 
 func newApplication(engine string) (*application, error) {
@@ -37,7 +37,7 @@ func newApplication(engine string) (*application, error) {
 	}, nil
 }
 
-func (app *application) setStructure(s structure) {
+func (app *application) setStructure(s *structure) {
 	app.Lock()
 	defer app.Unlock()
 	app.structure = s

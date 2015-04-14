@@ -7,9 +7,9 @@ import (
 // response represents an answer Centrifuge sends
 // to client or API request commands
 type response struct {
-	Body   interface{}
-	Error  string
-	Method string
+	Body   interface{} `json:"body"`
+	Error  error       `json:"error"`
+	Method string      `json:"method"`
 }
 
 // multiResponse is a slice of responses in execution

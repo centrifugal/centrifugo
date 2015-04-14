@@ -57,17 +57,14 @@ func main() {
 				log.Panic(err)
 			}
 
-			var s structure
-			viper.MarshalKey("structure", &s)
+			// get and initialize structure
+			var pl projectList
+			viper.MarshalKey("structure", &pl)
+			s := &structure{
+				ProjectList: pl,
+			}
+			s.initialize()
 
-			//var pl projectList
-			//for _, val := range viper.Get("structure").([]interface{}) {
-			//	fmt.Printf("%#v\n\n", val)
-			//	var p project
-			//	mapstructure.Decode(val, &p)
-			//	fmt.Printf("%#v\n\n", p)
-			//	//pl = append(pl, p)
-			//}
 			app.setStructure(s)
 
 			router := httprouter.New()

@@ -1,5 +1,9 @@
 package main
 
+import (
+	"sync"
+)
+
 // ChannelOptions represent channel specific configuration for namespace or project in a whole
 type ChannelOptions struct {
 	Watch           bool  `json:"watch"`
@@ -34,14 +38,38 @@ type namespace struct {
 // namespaceList represents several namespaces within the project
 type namespaceList []namespace
 
+type projectList []project
+
 // structure contains some helper structures and methods to work with projects in namespaces
 // in a fast and comfortable way
 type structure struct {
-	ProjectList  []project
+	sync.Mutex
+	ProjectList  projectList
 	ProjectMap   map[string]project
 	NamespaceMap map[string]map[string]namespace
 }
 
-func (s *structure) getProjectByKey(projectKey string) (project, bool) {
+// initialize initializes structure fields using project list from configuration file
+func (s *structure) initialize() {
+	s.Lock()
+	defer s.Unlock()
+	projectMap := map[string]project{}
+	namespaceMap := map[string]map[string]namespace{}
+	for _, p := range s.ProjectList {
+		projectMap[p.Name] = p
+		namespaceMap[p.Name] = map[string]namespace{}
+		for _, n := range p.Namespaces {
+			namespaceMap[p.Name][n.Name] = n
+		}
+	}
+	s.ProjectMap = projectMap
+	s.NamespaceMap = namespaceMap
+}
 
+func (s *structure) getProjectByKey(projectKey string) (*project, bool) {
+	project, ok := s.ProjectMap[projectKey]
+	if !ok {
+		return nil, false
+	}
+	return &project, true
 }

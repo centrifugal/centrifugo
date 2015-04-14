@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"strconv"
 	"sync"
 
 	"github.com/mitchellh/mapstructure"
@@ -18,26 +19,28 @@ type connection interface {
 
 type client struct {
 	sync.Mutex
+	app             *application
 	session         sockjs.Session
 	uid             string
 	project         string
 	user            string
 	timestamp       int
 	token           string
-	defaultInfo     map[string]interface{}
+	info            interface{}
 	channelInfo     map[string]interface{}
 	isAuthenticated bool
-	channels        map[string]string
+	channels        map[string]bool
 	closeChannel    chan struct{}
 }
 
-func newClient(session sockjs.Session, closeChannel chan struct{}) (*client, error) {
+func newClient(app *application, session sockjs.Session, closeChannel chan struct{}) (*client, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
 	return &client{
 		uid:          uid.String(),
+		app:          app,
 		session:      session,
 		closeChannel: closeChannel,
 	}, nil
@@ -171,6 +174,9 @@ type connectCommand struct {
 	Token     string
 }
 
+// handleConnect handles connect command from client - client must send this
+// command immediately after establishing Websocket or SockJS connection with
+// Centrifuge
 func (c *client) handleConnect(ps Params) (response, error) {
 
 	resp := response{
@@ -199,24 +205,67 @@ func (c *client) handleConnect(ps Params) (response, error) {
 	timestamp := cmd.Timestamp
 	token := cmd.Token
 
-	project, exists := app.getProjectByKey(projectKey)
+	project, exists := c.app.structure.getProjectByKey(projectKey)
 	if !exists {
 		return resp, ErrProjectNotFound
 	}
 
-	log.Println(project)
+	isValid := checkClientToken(project.Secret, projectKey, user, timestamp, info, token)
+	if !isValid {
+		log.Println("invalid token for user", user)
+		return resp, ErrInvalidToken
+	}
 
+	ts, err := strconv.Atoi(timestamp)
+	if err != nil {
+		log.Println(err)
+		return resp, ErrInvalidClientMessage
+	}
+
+	c.timestamp = ts
+	c.user = user
+	c.project = projectKey
+
+	var defaultInfo interface{}
+	err = json.Unmarshal([]byte(info), &defaultInfo)
+	if err != nil {
+		log.Println(err)
+		defaultInfo = map[string]interface{}{}
+	}
+
+	c.isAuthenticated = true
+	c.info = defaultInfo
+
+	// initialize presence ping
+
+	// add connection to application hub
+
+	body := map[string]interface{}{
+		"client":  c.uid,
+		"expired": false,
+		"ttl":     nil,
+	}
+	resp.Body = body
 	return resp, nil
 }
 
+// handleSubscribe handles subscribe command - clients send this when subscribe
+// on channel, if channel if private then we must validate provided sign here before
+// actually subscribe client on channel
 func (c *client) handleSubscribe(ps Params) (response, error) {
 	return response{}, nil
 }
 
+// handlePublish handles publish command - clients can publish messages into channels
+// themselves if `publish` allowed by channel options. In most cases clients not
+// allowed to publish into channels directly - web application publishes messages
+// itself via HTTP API or Redis.
 func (c *client) handlePublish(ps Params) (response, error) {
 	return response{}, nil
 }
 
+// printIsAuthenticated prints if client authenticated - this is just for debugging
+// during development
 func (c *client) printIsAuthenticated() {
 	log.Println(c.isAuthenticated)
 }

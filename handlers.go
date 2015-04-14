@@ -23,7 +23,7 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 		log.Println("sockjs session closed")
 	}()
 
-	client, err := newClient(session, closedSession)
+	client, err := newClient(app, session, closedSession)
 	if err != nil {
 		log.Println(err)
 		return
@@ -48,6 +48,7 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 			err = client.handleMessage(msg)
 			if err != nil {
 				log.Println(err)
+				session.Close(3000, err.Error())
 			}
 			continue
 		}
