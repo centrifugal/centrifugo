@@ -327,12 +327,60 @@ func (c *client) handleSubscribe(ps Params) (response, error) {
 	return resp, nil
 }
 
+type publishCommand struct {
+	Channel string
+	Data    interface{}
+}
+
 // handlePublish handles publish command - clients can publish messages into channels
 // themselves if `publish` allowed by channel options. In most cases clients not
 // allowed to publish into channels directly - web application publishes messages
 // itself via HTTP API or Redis.
 func (c *client) handlePublish(ps Params) (response, error) {
-	return response{}, nil
+
+	resp := response{
+		Body:   nil,
+		Error:  nil,
+		Method: "publish",
+	}
+
+	var cmd publishCommand
+	err := mapstructure.Decode(ps, &cmd)
+	if err != nil {
+		return resp, ErrInvalidClientMessage
+	}
+
+	project, exists := c.app.structure.getProjectByKey(c.project)
+	if !exists {
+		return resp, ErrProjectNotFound
+	}
+	log.Println(project)
+
+	channel := cmd.Channel
+
+	body := map[string]interface{}{
+		"channel": channel,
+		"status":  false,
+	}
+
+	// TODO: check that client subscribed on this channel
+
+	channelOptions := c.app.structure.getChannelOptions(c.project, channel)
+	log.Println(channelOptions)
+
+	// TODO: check that publishing allowed
+
+	info := c.getInfo()
+
+	status, err := c.app.processPublish(project, channel, cmd.Data, info)
+	body["status"] = status
+	resp.Body = body
+
+	if err != nil {
+		resp.Error = err
+	}
+
+	return resp, nil
 }
 
 // printIsAuthenticated prints if client authenticated - this is just for debugging

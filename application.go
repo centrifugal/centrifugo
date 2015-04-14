@@ -43,6 +43,10 @@ func (app *application) setStructure(s *structure) {
 	app.structure = s
 }
 
+func (app *application) processPublish(p *project, channel string, data, info interface{}) (bool, error) {
+	return true, nil
+}
+
 func getApplicationName() string {
 	name := viper.GetString("name")
 	if name != "" {
