@@ -174,6 +174,10 @@ func (c *client) handleCommand(command clientCommand) (response, error) {
 	return resp, nil
 }
 
+func (c *client) handlePing(ps Params) (response, error) {
+	return response{}, nil
+}
+
 type connectCommand struct {
 	Project   string
 	User      string
@@ -258,6 +262,18 @@ func (c *client) handleConnect(ps Params) (response, error) {
 	return resp, nil
 }
 
+type refreshCommand struct {
+	Project   string
+	User      string
+	Timestamp string
+	Info      string
+	Token     string
+}
+
+func (c *client) handleRefresh(ps Params) (response, error) {
+	return response{}, nil
+}
+
 type subscribeCommand struct {
 	Channel string
 	Client  string
@@ -327,6 +343,14 @@ func (c *client) handleSubscribe(ps Params) (response, error) {
 	return resp, nil
 }
 
+type unsubscribeCommand struct {
+	Channel string
+}
+
+func (c *client) handleUnsubscribe(ps Params) (response, error) {
+	return response{}, nil
+}
+
 type publishCommand struct {
 	Channel string
 	Data    interface{}
@@ -381,6 +405,22 @@ func (c *client) handlePublish(ps Params) (response, error) {
 	}
 
 	return resp, nil
+}
+
+type presenceCommand struct {
+	Channel string
+}
+
+func (c *client) handlePresence(ps Params) (response, error) {
+	return response{}, nil
+}
+
+type historyCommand struct {
+	Channel string
+}
+
+func (c *client) handleHistory(ps Params) (response, error) {
+	return response{}, nil
 }
 
 // printIsAuthenticated prints if client authenticated - this is just for debugging
