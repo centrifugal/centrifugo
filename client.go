@@ -8,6 +8,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
+	"github.com/spf13/viper"
 	"gopkg.in/centrifugal/sockjs-go.v2/sockjs"
 )
 
@@ -56,6 +57,13 @@ func (c *client) GetProject() string {
 
 func (c *client) GetUser() string {
 	return c.user
+}
+
+func (c *client) getInfo() map[string]interface{} {
+
+	// TODO: implement this
+
+	return map[string]interface{}{}
 }
 
 type Params map[string]interface{}
@@ -235,10 +243,11 @@ func (c *client) handleConnect(ps Params) (response, error) {
 
 	c.isAuthenticated = true
 	c.info = defaultInfo
+	c.channels = map[string]bool{}
 
-	// initialize presence ping
+	// TODO: initialize presence ping
 
-	// add connection to application hub
+	// TODO: add connection to application hub
 
 	body := map[string]interface{}{
 		"client":  c.uid,
@@ -249,11 +258,73 @@ func (c *client) handleConnect(ps Params) (response, error) {
 	return resp, nil
 }
 
+type subscribeCommand struct {
+	Channel string
+	Client  string
+	Info    string
+	Sign    string
+}
+
 // handleSubscribe handles subscribe command - clients send this when subscribe
 // on channel, if channel if private then we must validate provided sign here before
 // actually subscribe client on channel
 func (c *client) handleSubscribe(ps Params) (response, error) {
-	return response{}, nil
+	resp := response{
+		Body:   nil,
+		Error:  nil,
+		Method: "subscribe",
+	}
+
+	var cmd subscribeCommand
+	err := mapstructure.Decode(ps, &cmd)
+	if err != nil {
+		return resp, ErrInvalidClientMessage
+	}
+
+	project, exists := c.app.structure.getProjectByKey(c.project)
+	if !exists {
+		return resp, ErrProjectNotFound
+	}
+	log.Println(project)
+
+	channel := cmd.Channel
+	if channel == "" {
+		return resp, ErrInvalidClientMessage
+	}
+
+	if len(channel) > viper.GetInt("max_channel_length") {
+		resp.Error = ErrLimitExceeded
+		return resp, nil
+	}
+
+	body := map[string]string{
+		"channel": channel,
+	}
+	resp.Body = body
+
+	// TODO: check allowed users
+
+	channelOptions := c.app.structure.getChannelOptions(c.project, channel)
+	log.Println(channelOptions)
+
+	// TODO: check anonymous access
+
+	if isPrivateChannel(channel) {
+		// TODO: check provided sign
+	}
+
+	// TODO: add subscription using engine
+
+	c.channels[channel] = true
+
+	info := c.getInfo()
+	log.Println(info)
+
+	// TODO: add presence info for this channel
+
+	// TODO: send join/leave message
+
+	return resp, nil
 }
 
 // handlePublish handles publish command - clients can publish messages into channels

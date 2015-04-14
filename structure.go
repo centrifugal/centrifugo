@@ -73,3 +73,11 @@ func (s *structure) getProjectByKey(projectKey string) (*project, bool) {
 	}
 	return &project, true
 }
+
+func (s *structure) getChannelOptions(projectKey, channel string) *ChannelOptions {
+	project, exists := s.getProjectByKey(projectKey)
+	if !exists {
+		return nil
+	}
+	return &project.ChannelOptions
+}

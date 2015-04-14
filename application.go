@@ -57,3 +57,10 @@ func getApplicationName() string {
 	}
 	return hostname + "_" + port
 }
+
+func isPrivateChannel(channel string) bool {
+
+	// TODO: implement this
+
+	return false
+}
