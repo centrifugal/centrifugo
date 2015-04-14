@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
 	"gopkg.in/centrifugal/sockjs-go.v2/sockjs"
 )
@@ -54,12 +55,11 @@ func (c *client) GetUser() string {
 	return c.user
 }
 
-type params map[string]interface{}
+type Params map[string]interface{}
 
 type clientCommand struct {
 	Method string
-	Params params
-	Uid    string
+	Params Params
 }
 
 type clientCommands []clientCommand
@@ -160,19 +160,60 @@ func (c *client) handleCommand(command clientCommand) (response, error) {
 	}
 
 	resp.Method = method
-	resp.Uid = command.Uid
 	return resp, nil
 }
 
-func (c *client) handleConnect(ps params) (response, error) {
+type connectCommand struct {
+	Project   string
+	User      string
+	Timestamp string
+	Info      string
+	Token     string
+}
+
+func (c *client) handleConnect(ps Params) (response, error) {
+
+	resp := response{
+		Body:   nil,
+		Error:  nil,
+		Method: "connect",
+	}
+
+	if c.isAuthenticated {
+		resp.Body = c.uid
+		return resp, nil
+	}
+
+	var cmd connectCommand
+	err := mapstructure.Decode(ps, &cmd)
+	if err != nil {
+		return resp, ErrInvalidClientMessage
+	}
+
+	projectKey := cmd.Project
+	user := cmd.User
+	info := cmd.Info
+	if info == "" {
+		info = "{}"
+	}
+	timestamp := cmd.Timestamp
+	token := cmd.Token
+
+	project, exists := app.getProjectByKey(projectKey)
+	if !exists {
+		return resp, ErrProjectNotFound
+	}
+
+	log.Println(project)
+
+	return resp, nil
+}
+
+func (c *client) handleSubscribe(ps Params) (response, error) {
 	return response{}, nil
 }
 
-func (c *client) handleSubscribe(ps params) (response, error) {
-	return response{}, nil
-}
-
-func (c *client) handlePublish(ps params) (response, error) {
+func (c *client) handlePublish(ps Params) (response, error) {
 	return response{}, nil
 }
 

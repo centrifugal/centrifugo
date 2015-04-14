@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -63,7 +64,13 @@ func (app *application) authHandler(w http.ResponseWriter, r *http.Request, ps h
 }
 
 func (app *application) infoHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Fprintf(w, "info\n")
+	info := map[string]interface{}{
+		"version":   VERSION,
+		"structure": app.structure,
+		"engine":    app.engine,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(info)
 }
 
 func (app *application) actionsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

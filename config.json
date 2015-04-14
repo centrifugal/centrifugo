@@ -1,3 +1,16 @@
 {
-  "debug": true
+  "password": "password",
+  "cookie_secret": "cookie_secret",
+  "structure": [
+    {
+      "name": "development",
+      "secret": "secret",
+      "namespaces": [
+        {
+          "name": "publish",
+          "publish": true
+        }
+      ]
+    }
+  ]
 }

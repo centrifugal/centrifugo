@@ -10,6 +10,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	VERSION = "0.8.0"
+)
+
 func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
@@ -46,12 +50,25 @@ func main() {
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
 
-			fmt.Printf("%v", viper.AllSettings())
+			fmt.Printf("%v\n", viper.AllSettings())
 
 			app, err := newApplication("memory")
 			if err != nil {
 				log.Panic(err)
 			}
+
+			var s structure
+			viper.MarshalKey("structure", &s)
+
+			//var pl projectList
+			//for _, val := range viper.Get("structure").([]interface{}) {
+			//	fmt.Printf("%#v\n\n", val)
+			//	var p project
+			//	mapstructure.Decode(val, &p)
+			//	fmt.Printf("%#v\n\n", p)
+			//	//pl = append(pl, p)
+			//}
+			app.setStructure(s)
 
 			router := httprouter.New()
 
@@ -73,7 +90,7 @@ func main() {
 			webDir := viper.GetString("web")
 			if webDir != "" {
 				router.Handler("GET", "/", http.FileServer(http.Dir(webDir)))
-				router.ServeFiles("/public/*filepath", http.Dir(webDir))
+				router.Handler("GET", "/public/*filepath", http.FileServer(http.Dir(webDir)))
 			}
 
 			addr := viper.GetString("address") + ":" + viper.GetString("port")
