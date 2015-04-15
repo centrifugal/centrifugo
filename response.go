@@ -12,9 +12,17 @@ type response struct {
 	Method string      `json:"method"`
 }
 
+func newResponse(method string) *response {
+	return &response{
+		Body:   nil,
+		Error:  nil,
+		Method: method,
+	}
+}
+
 // multiResponse is a slice of responses in execution
 // order - from first executed to last one
-type multiResponse []response
+type multiResponse []*response
 
 // toJson converts response into JSON
 func (r *response) toJson() ([]byte, error) {
