@@ -37,6 +37,9 @@ func main() {
 			viper.SetDefault("cookie_secret", "cookie_secret")
 			viper.SetDefault("api_secret", "api_secret")
 			viper.SetDefault("max_channel_length", 255)
+			viper.SetDefault("channel_prefix", "centrifugo")
+			viper.SetDefault("presence_ping_interval", 25)
+			viper.SetDefault("presence_expire_interval", 60)
 
 			viper.SetConfigFile(configFile)
 			viper.ReadInConfig()
@@ -56,6 +59,7 @@ func main() {
 			if err != nil {
 				log.Panic(err)
 			}
+			app.initialize()
 
 			// get and initialize structure
 			var pl projectList

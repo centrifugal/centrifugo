@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/nu7hatch/gouuid"
 	"github.com/spf13/viper"
@@ -12,14 +11,32 @@ import (
 
 type application struct {
 	sync.Mutex
-	uid          string
-	hub          *hub
-	adminHub     *adminHub
-	nodes        map[string]interface{}
-	engine       string
-	revisionTime time.Time
-	name         string
-	structure    *structure
+
+	// unique id for this application (node)
+	uid string
+	// hub to manage client connections
+	hub *hub
+	// adminHub to manage admin connections
+	adminHub *adminHub
+	// nodes is a map with information about nodes known
+	nodes map[string]interface{}
+	// engine to use - in memory or redis
+	engine string
+	// name of this node - based on hostname and port
+	name string
+	// reference to structure to work with projects and namespaces
+	structure *structure
+
+	// prefix before each channel
+	channelPrefix string
+	// channel name for admin messages
+	adminChannel string
+	// channel name for internal control messages between nodes
+	controlChannel string
+	// in seconds, how often connected clients must update presence info
+	presencePingInterval int
+	// in seconds, how long to consider presence info valid after receiving presence ping
+	presenceExpireInterval int
 }
 
 func newApplication(engine string) (*application, error) {
@@ -35,6 +52,15 @@ func newApplication(engine string) (*application, error) {
 		adminHub: newAdminHub(),
 		name:     getApplicationName(),
 	}, nil
+}
+
+// initialize used to set configuration dependent application properties
+func (app *application) initialize() {
+	app.channelPrefix = viper.GetString("channel_prefix")
+	app.adminChannel = app.channelPrefix + "." + "admin"
+	app.controlChannel = app.channelPrefix + "." + "control"
+	app.presencePingInterval = viper.GetInt("presence_ping_interval")
+	app.presenceExpireInterval = viper.GetInt("presence_expire_interval")
 }
 
 func (app *application) setStructure(s *structure) {
