@@ -16,4 +16,5 @@ var (
 	ErrInternalServerError  = errors.New("internal server error")
 	ErrLimitExceeded        = errors.New("limit exceeded")
 	ErrNotAvailable         = errors.New("not available")
+	ErrConnectionExpired    = errors.New("connection expired")
 )

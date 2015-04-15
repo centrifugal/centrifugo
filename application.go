@@ -44,7 +44,24 @@ func (app *application) setStructure(s *structure) {
 }
 
 func (app *application) processPublish(p *project, channel string, data, info interface{}) (bool, error) {
+
+	// TODO: implement this
+
 	return true, nil
+}
+
+func (app *application) processPresence(p *project, channel string) (interface{}, error) {
+
+	// TODO: implement this
+
+	return map[string]interface{}{}, nil
+}
+
+func (app *application) processHistory(p *project, channel string) (interface{}, error) {
+
+	// TODO: implement this
+
+	return map[string]interface{}{}, nil
 }
 
 func getApplicationName() string {

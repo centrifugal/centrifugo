@@ -174,16 +174,19 @@ func (c *client) handleCommand(command clientCommand) (response, error) {
 	return resp, nil
 }
 
+// handlePing handles ping command from client - this is necessary sometimes
+// for example, in the past Heroku closed websocket connection after some time
+// of inactive period when no messages with payload travelled over wire
+// (despite of heartbeat frames existence)
 func (c *client) handlePing(ps Params) (response, error) {
-	return response{}, nil
-}
 
-type connectCommand struct {
-	Project   string
-	User      string
-	Timestamp string
-	Info      string
-	Token     string
+	resp := response{
+		Body:   "pong",
+		Error:  nil,
+		Method: "ping",
+	}
+
+	return resp, nil
 }
 
 // handleConnect handles connect command from client - client must send this
@@ -262,23 +265,58 @@ func (c *client) handleConnect(ps Params) (response, error) {
 	return resp, nil
 }
 
-type refreshCommand struct {
-	Project   string
-	User      string
-	Timestamp string
-	Info      string
-	Token     string
-}
-
 func (c *client) handleRefresh(ps Params) (response, error) {
-	return response{}, nil
-}
 
-type subscribeCommand struct {
-	Channel string
-	Client  string
-	Info    string
-	Sign    string
+	resp := response{
+		Body:   nil,
+		Error:  nil,
+		Method: "refresh",
+	}
+
+	var cmd refreshCommand
+	err := mapstructure.Decode(ps, &cmd)
+	if err != nil {
+		return resp, ErrInvalidClientMessage
+	}
+
+	projectKey := cmd.Project
+	user := cmd.User
+	info := cmd.Info
+	if info == "" {
+		info = "{}"
+	}
+	timestamp := cmd.Timestamp
+	token := cmd.Token
+
+	project, exists := c.app.structure.getProjectByKey(projectKey)
+	if !exists {
+		return resp, ErrProjectNotFound
+	}
+
+	isValid := checkClientToken(project.Secret, projectKey, user, timestamp, info, token)
+	if !isValid {
+		log.Println("invalid refresh token for user", user)
+		return resp, ErrInvalidToken
+	}
+
+	ts, err := strconv.Atoi(timestamp)
+	if err != nil {
+		log.Println(err)
+		return resp, ErrInvalidClientMessage
+	}
+
+	if 1 > 0 { // TODO: properly check new timestamp
+		c.timestamp = ts
+	} else {
+		return resp, ErrConnectionExpired
+	}
+
+	// return connection's time to live to the client
+	body := map[string]interface{}{
+		"ttl": nil,
+	}
+	resp.Body = body
+	return resp, nil
 }
 
 // handleSubscribe handles subscribe command - clients send this when subscribe
@@ -338,22 +376,56 @@ func (c *client) handleSubscribe(ps Params) (response, error) {
 
 	// TODO: add presence info for this channel
 
-	// TODO: send join/leave message
+	// TODO: send join message
 
 	return resp, nil
 }
 
-type unsubscribeCommand struct {
-	Channel string
-}
-
 func (c *client) handleUnsubscribe(ps Params) (response, error) {
-	return response{}, nil
-}
 
-type publishCommand struct {
-	Channel string
-	Data    interface{}
+	resp := response{
+		Body:   nil,
+		Error:  nil,
+		Method: "unsubscribe",
+	}
+
+	var cmd unsubscribeCommand
+	err := mapstructure.Decode(ps, &cmd)
+	if err != nil {
+		return resp, ErrInvalidClientMessage
+	}
+
+	project, exists := c.app.structure.getProjectByKey(c.project)
+	if !exists {
+		return resp, ErrProjectNotFound
+	}
+	log.Println(project)
+
+	channel := cmd.Channel
+	if channel == "" {
+		return resp, ErrInvalidClientMessage
+	}
+
+	body := map[string]string{
+		"channel": channel,
+	}
+	resp.Body = body
+
+	channelOptions := c.app.structure.getChannelOptions(c.project, channel)
+	log.Println(channelOptions)
+
+	// TODO: remove subscription using engine
+
+	_, ok := c.channels[channel]
+	if ok {
+		delete(c.channels, channel)
+
+		// TODO: remove presence using engine
+
+		// send leave message into channel
+	}
+
+	return resp, nil
 }
 
 // handlePublish handles publish command - clients can publish messages into channels
@@ -407,20 +479,92 @@ func (c *client) handlePublish(ps Params) (response, error) {
 	return resp, nil
 }
 
-type presenceCommand struct {
-	Channel string
-}
-
+// handlePresence handles presence command - it shows which clients
+// are subscribed on channel at this moment. This method also checks if
+// presence information turned on for channel (based on channel options
+// for namespace or project)
 func (c *client) handlePresence(ps Params) (response, error) {
-	return response{}, nil
+
+	resp := response{
+		Body:   nil,
+		Error:  nil,
+		Method: "presence",
+	}
+
+	var cmd presenceCommand
+	err := mapstructure.Decode(ps, &cmd)
+	if err != nil {
+		return resp, ErrInvalidClientMessage
+	}
+
+	project, exists := c.app.structure.getProjectByKey(c.project)
+	if !exists {
+		return resp, ErrProjectNotFound
+	}
+	log.Println(project)
+
+	channel := cmd.Channel
+
+	channelOptions := c.app.structure.getChannelOptions(c.project, channel)
+	log.Println(channelOptions)
+
+	// TODO: check that presence enabled
+
+	data, err := c.app.processPresence(project, channel)
+	if err != nil {
+		resp.Error = ErrInternalServerError
+		return resp, nil
+	}
+
+	body := map[string]interface{}{
+		"data": data,
+	}
+	resp.Body = body
+	return resp, nil
 }
 
-type historyCommand struct {
-	Channel string
-}
-
+// handleHistory handles history command - it shows last M messages published
+// into channel. M is history size and can be configured for project or namespace
+// via channel options. Also this method checks that history available for channel
+// (also determined by channel options flag)
 func (c *client) handleHistory(ps Params) (response, error) {
-	return response{}, nil
+
+	resp := response{
+		Body:   nil,
+		Error:  nil,
+		Method: "history",
+	}
+
+	var cmd historyCommand
+	err := mapstructure.Decode(ps, &cmd)
+	if err != nil {
+		return resp, ErrInvalidClientMessage
+	}
+
+	project, exists := c.app.structure.getProjectByKey(c.project)
+	if !exists {
+		return resp, ErrProjectNotFound
+	}
+	log.Println(project)
+
+	channel := cmd.Channel
+
+	channelOptions := c.app.structure.getChannelOptions(c.project, channel)
+	log.Println(channelOptions)
+
+	// TODO: check that history enabled
+
+	data, err := c.app.processHistory(project, channel)
+	if err != nil {
+		resp.Error = ErrInternalServerError
+		return resp, nil
+	}
+
+	body := map[string]interface{}{
+		"data": data,
+	}
+	resp.Body = body
+	return resp, nil
 }
 
 // printIsAuthenticated prints if client authenticated - this is just for debugging
