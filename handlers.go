@@ -49,6 +49,7 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 			if err != nil {
 				log.Println(err)
 				session.Close(3000, err.Error())
+				break
 			}
 			continue
 		}
@@ -67,7 +68,7 @@ func (app *application) authHandler(w http.ResponseWriter, r *http.Request, ps h
 func (app *application) infoHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	info := map[string]interface{}{
 		"version":   VERSION,
-		"structure": app.structure,
+		"structure": app.structure.ProjectList,
 		"engine":    app.engine,
 	}
 	w.Header().Set("Content-Type", "application/json")

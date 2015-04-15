@@ -56,16 +56,21 @@ func newApplication(engine string) (*application, error) {
 
 // initialize used to set configuration dependent application properties
 func (app *application) initialize() {
+	app.Lock()
+	defer app.Unlock()
 	app.channelPrefix = viper.GetString("channel_prefix")
 	app.adminChannel = app.channelPrefix + "." + "admin"
 	app.controlChannel = app.channelPrefix + "." + "control"
 	app.presencePingInterval = viper.GetInt("presence_ping_interval")
 	app.presenceExpireInterval = viper.GetInt("presence_expire_interval")
-}
 
-func (app *application) setStructure(s *structure) {
-	app.Lock()
-	defer app.Unlock()
+	// get and initialize structure
+	var pl projectList
+	viper.MarshalKey("structure", &pl)
+	s := &structure{
+		ProjectList: pl,
+	}
+	s.initialize()
 	app.structure = s
 }
 

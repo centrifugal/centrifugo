@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/cobra"
@@ -16,6 +19,22 @@ const (
 
 func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+}
+
+func handleSignals(app *application) {
+	sigc := make(chan os.Signal, 1)
+	signal.Notify(sigc, syscall.SIGHUP)
+	for {
+		sig := <-sigc
+		log.Println("signal received:", sig)
+		switch sig {
+		case syscall.SIGHUP:
+			// reload application configuration on SIGHUP
+			log.Println("reload configuration")
+			viper.ReadInConfig()
+			app.initialize()
+		}
+	}
 }
 
 func main() {
@@ -61,15 +80,7 @@ func main() {
 			}
 			app.initialize()
 
-			// get and initialize structure
-			var pl projectList
-			viper.MarshalKey("structure", &pl)
-			s := &structure{
-				ProjectList: pl,
-			}
-			s.initialize()
-
-			app.setStructure(s)
+			go handleSignals(app)
 
 			router := httprouter.New()
 
