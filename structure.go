@@ -66,6 +66,7 @@ func (s *structure) initialize() {
 	s.NamespaceMap = namespaceMap
 }
 
+// getProjectByKey searches for a project with specified key in structure
 func (s *structure) getProjectByKey(projectKey string) (*project, bool) {
 	project, ok := s.ProjectMap[projectKey]
 	if !ok {
@@ -74,10 +75,19 @@ func (s *structure) getProjectByKey(projectKey string) (*project, bool) {
 	return &project, true
 }
 
-func (s *structure) getChannelOptions(projectKey, channel string) *ChannelOptions {
+// getChannelOptions searches for channel options for specified project and namespace
+func (s *structure) getChannelOptions(projectKey, namespaceName string) *ChannelOptions {
 	project, exists := s.getProjectByKey(projectKey)
 	if !exists {
 		return nil
 	}
-	return &project.ChannelOptions
+	if namespaceName == "" {
+		return &project.ChannelOptions
+	} else {
+		namespace, exists := s.NamespaceMap[projectKey][namespaceName]
+		if !exists {
+			return nil
+		}
+		return &namespace.ChannelOptions
+	}
 }

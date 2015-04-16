@@ -61,6 +61,10 @@ func main() {
 			viper.SetDefault("channel_prefix", "centrifugo")
 			viper.SetDefault("presence_ping_interval", 25)
 			viper.SetDefault("presence_expire_interval", 60)
+			viper.SetDefault("private_channel_prefix", "$")
+			viper.SetDefault("namespace_channel_boundary", ":")
+			viper.SetDefault("user_channel_boundary", "#")
+			viper.SetDefault("user_channel_separator", ",")
 
 			viper.SetConfigFile(configFile)
 			viper.ReadInConfig()

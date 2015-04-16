@@ -399,7 +399,7 @@ func (c *client) handleSubscribe(ps Params) (*response, error) {
 
 	// TODO: check anonymous access
 
-	if isPrivateChannel(channel) {
+	if c.app.isPrivateChannel(channel) {
 		// TODO: check provided sign
 	}
 

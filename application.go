@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,18 +19,21 @@ type application struct {
 
 	// unique id for this application (node)
 	uid string
+	// name of this node - based on hostname and port
+	name string
+	// nodes is a map with information about nodes known
+	nodes map[string]interface{}
+
 	// hub to manage client connections
 	connectionHub *connectionHub
 	// hub to manage client subscriptions
 	subscriptionHub *subscriptionHub
 	// hub to manage admin connections
 	adminConnectionHub *adminConnectionHub
-	// nodes is a map with information about nodes known
-	nodes map[string]interface{}
+
 	// engine to use - in memory or redis
 	engine engine
-	// name of this node - based on hostname and port
-	name string
+
 	// reference to structure to work with projects and namespaces
 	structure *structure
 
@@ -39,10 +43,20 @@ type application struct {
 	adminChannel string
 	// channel name for internal control messages between nodes
 	controlChannel string
+
 	// in seconds, how often connected clients must update presence info
 	presencePingInterval int
 	// in seconds, how long to consider presence info valid after receiving presence ping
 	presenceExpireInterval int
+
+	// prefix in channel name which indicates that channel is private
+	privateChannelPrefix string
+	// string separator which must be put after namespace part in channel name
+	namespaceChannelBoundary string
+	// string separator which must be set before allowed users part in channel name
+	userChannelBoundary string
+	// separates allowed users in user part of channel name
+	userChannelSeparator string
 }
 
 func newApplication() (*application, error) {
@@ -68,6 +82,10 @@ func (app *application) initialize() {
 	app.controlChannel = app.channelPrefix + "." + "control"
 	app.presencePingInterval = viper.GetInt("presence_ping_interval")
 	app.presenceExpireInterval = viper.GetInt("presence_expire_interval")
+	app.privateChannelPrefix = viper.GetString("private_channel_prefix")
+	app.namespaceChannelBoundary = viper.GetString("namespace_channel_boundary")
+	app.userChannelBoundary = viper.GetString("user_channel_boundary")
+	app.userChannelSeparator = viper.GetString("user_channel_separator")
 	app.name = getApplicationName()
 
 	// get and initialize structure
@@ -110,8 +128,8 @@ func (app *application) handleControlMessage(message string) error {
 	return nil
 }
 
-// handleAdminMessage handles messages from admin channel - those messages must
-// be delivered to all admins connected to this node
+// handleAdminMessage handles messages from admin channel - those messages
+// must be delivered to all admins connected to this node
 func (app *application) handleAdminMessage(message string) error {
 	return app.adminConnectionHub.broadcast(message)
 }
@@ -207,9 +225,20 @@ func (app *application) getProjectByKey(projectKey string) (*project, bool) {
 	return app.structure.getProjectByKey(projectKey)
 }
 
+func (app *application) extractNamespaceName(channel string) string {
+	channel = strings.TrimPrefix(channel, app.privateChannelPrefix)
+	parts := strings.SplitN(channel, app.namespaceChannelBoundary, 2)
+	if len(parts) >= 2 {
+		return parts[0]
+	} else {
+		return ""
+	}
+}
+
 // getChannelOptions returns channel options for channel using structure
 func (app *application) getChannelOptions(projectKey, channel string) *ChannelOptions {
-	return app.structure.getChannelOptions(projectKey, channel)
+	namespaceName := app.extractNamespaceName(channel)
+	return app.structure.getChannelOptions(projectKey, namespaceName)
 }
 
 // getPresence proxies presence extraction to engine
@@ -222,6 +251,29 @@ func (app *application) getPresence(projectKey, channel string) (interface{}, er
 func (app *application) getHistory(projectKey, channel string) (interface{}, error) {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	return app.engine.getHistory(projectChannel)
+}
+
+// isPrivateChannel checks if channel private and therefore subscription
+// request on it must be properly signed on web application backend
+func (app *application) isPrivateChannel(channel string) bool {
+	return strings.HasPrefix(channel, app.privateChannelPrefix)
+}
+
+// isUserAllowed checks if user can subscribe on channel - as channel
+// can contain special part in the end to indicate which users allowed
+// to subscribe on it
+func (app *application) isUserAllowed(channel, user string) bool {
+	if !strings.Contains(channel, app.userChannelBoundary) {
+		return true
+	}
+	parts := strings.Split(channel, app.userChannelBoundary)
+	allowedUsers := strings.Split(parts[len(parts)-1], app.userChannelSeparator)
+	for _, allowedUser := range allowedUsers {
+		if user == allowedUser {
+			return true
+		}
+	}
+	return false
 }
 
 // getApplicationName returns a name for this node. If no name provided
@@ -239,11 +291,4 @@ func getApplicationName() string {
 		hostname = "?"
 	}
 	return hostname + "_" + port
-}
-
-func isPrivateChannel(channel string) bool {
-
-	// TODO: implement this
-
-	return false
 }
