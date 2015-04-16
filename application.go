@@ -1,9 +1,14 @@
 package main
 
+// TODO: use interfaces instead of app reference in client and engine
+
 import (
+	"encoding/json"
 	"log"
 	"os"
+	"strconv"
 	"sync"
+	"time"
 
 	"github.com/nu7hatch/gouuid"
 	"github.com/spf13/viper"
@@ -82,19 +87,103 @@ func (app *application) setEngine(e engine) {
 	app.engine = e
 }
 
-func (app *application) processPublish(p *project, channel string, data, info interface{}) (bool, error) {
+func (app *application) handleMessage(channel, message string) error {
+	switch channel {
+	case app.controlChannel:
+		return app.handleControlMessage(message)
+	case app.adminChannel:
+		return app.handleAdminMessage(message)
+	default:
+		return app.handleClientMessage(channel, message)
+	}
+}
+
+func (app *application) handleControlMessage(message string) error {
 
 	// TODO: implement this
 
-	return true, nil
+	return nil
 }
 
-// getEngineChannel returns a name of channel used by engine - as
+func (app *application) handleAdminMessage(message string) error {
+	return app.adminConnectionHub.broadcast(message)
+}
+
+func (app *application) handleClientMessage(channel, message string) error {
+	return app.subscriptionHub.broadcast(channel, message)
+}
+
+func (app *application) publishClientMessage(p *project, channel string, data, clientInfo interface{}) error {
+
+	uid, err := uuid.NewV4()
+	if err != nil {
+		return err
+	}
+
+	byteMessage, err := json.Marshal(map[string]interface{}{
+		"uid":       uid.String(),
+		"timestamp": strconv.FormatInt(time.Now().Unix(), 10),
+		"client":    clientInfo,
+		"channel":   channel,
+		"data":      data,
+	})
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	message := string(byteMessage)
+
+	channelOptions := app.getChannelOptions(p.Name, channel)
+	if channelOptions.Watch {
+		// TODO: send admin message
+		log.Println("publish admin message must be implemented here")
+	}
+
+	projectChannel := app.getProjectChannel(p.Name, channel)
+	err = app.engine.publish(projectChannel, message)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	if channelOptions.History {
+		// TODO: add message to history
+		log.Println("adding message in history must be implemented here")
+	}
+
+	return nil
+}
+
+// getProjectChannel returns internal name of channel - as
 // every project can have channels with the same name we should distinguish
 // between them. This also prevents collapses with admin and control
 // channel names
-func (app *application) getEngineChannel(projectKey, channel string) string {
+func (app *application) getProjectChannel(projectKey, channel string) string {
 	return app.channelPrefix + "." + projectKey + "." + channel
+}
+
+func (app *application) addSubscription(projectKey, channel string, c connection) error {
+	projectChannel := app.getProjectChannel(projectKey, channel)
+	err := app.engine.subscribe(projectChannel)
+	if err != nil {
+		return err
+	}
+	return app.subscriptionHub.add(projectChannel, c)
+}
+
+func (app *application) removeSubscription(projectKey, channel string, c connection) error {
+	projectChannel := app.getProjectChannel(projectKey, channel)
+	err := app.engine.unsubscribe(projectChannel)
+	if err != nil {
+		return err
+	}
+	return app.subscriptionHub.remove(projectChannel, c)
+}
+
+func (app *application) getSubscriptions(projectKey, channel string) map[string]connection {
+	projectChannel := app.getProjectChannel(projectKey, channel)
+	return app.subscriptionHub.get(projectChannel)
 }
 
 // getProjectByKey returns a project by project key (name) using structure
@@ -109,14 +198,14 @@ func (app *application) getChannelOptions(projectKey, channel string) *ChannelOp
 
 // getPresence proxies presence extraction to engine
 func (app *application) getPresence(projectKey, channel string) (interface{}, error) {
-	engineChannel := app.getEngineChannel(projectKey, channel)
-	return app.engine.getPresence(engineChannel)
+	projectChannel := app.getProjectChannel(projectKey, channel)
+	return app.engine.getPresence(projectChannel)
 }
 
 // getHistory proxies history extraction to engine
 func (app *application) getHistory(projectKey, channel string) (interface{}, error) {
-	engineChannel := app.getEngineChannel(projectKey, channel)
-	return app.engine.getHistory(engineChannel)
+	projectChannel := app.getProjectChannel(projectKey, channel)
+	return app.engine.getHistory(projectChannel)
 }
 
 func getApplicationName() string {

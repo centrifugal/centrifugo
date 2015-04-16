@@ -14,23 +14,23 @@ func (e *memoryEngine) getName() string {
 	return "In memory – single node only"
 }
 
-func (e *memoryEngine) publishMessage(channel, message string) error {
+func (e *memoryEngine) publish(channel, message string) error {
+	return e.app.handleMessage(channel, message)
+}
+
+func (e *memoryEngine) subscribe(channel string) error {
 	return nil
 }
 
-func (e *memoryEngine) addSubscription(channel string, c *connection) error {
+func (e *memoryEngine) unsubscribe(channel string) error {
 	return nil
 }
 
-func (e *memoryEngine) removeSubscription(channel string, c *connection) error {
+func (e *memoryEngine) addPresence(channel string, c connection) error {
 	return nil
 }
 
-func (e *memoryEngine) addPresence(channel string, c *connection) error {
-	return nil
-}
-
-func (e *memoryEngine) removePresence(channel string, c *connection) error {
+func (e *memoryEngine) removePresence(channel string, c connection) error {
 	return nil
 }
 

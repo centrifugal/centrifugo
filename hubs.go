@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"sync"
 )
 
@@ -91,6 +92,18 @@ func newSubscriptionHub() *subscriptionHub {
 	}
 }
 
+// get returns connections subscribed on channel
+func (h *subscriptionHub) get(channel string) map[string]connection {
+	h.Lock()
+	defer h.Unlock()
+
+	subscriptions, ok := h.subscriptions[channel]
+	if !ok {
+		return map[string]connection{}
+	}
+	return subscriptions
+}
+
 // add adds connection into subscriptionHub subscriptions registry
 func (h *subscriptionHub) add(channel string, c connection) error {
 	h.Lock()
@@ -132,6 +145,19 @@ func (h *subscriptionHub) remove(channel string, c connection) error {
 	return nil
 }
 
+func (h *subscriptionHub) broadcast(channel, message string) error {
+	h.Lock()
+	defer h.Unlock()
+	channelSubscriptions := h.get(channel)
+	for _, c := range channelSubscriptions {
+		err := c.Send(message)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+	return nil
+}
+
 // adminConnectionHub manages admin connections from web interface
 type adminConnectionHub struct {
 	sync.Mutex
@@ -161,5 +187,17 @@ func (h *adminConnectionHub) remove(c connection) error {
 	h.Lock()
 	defer h.Unlock()
 	delete(h.connections, c.GetUid())
+	return nil
+}
+
+func (h *adminConnectionHub) broadcast(message string) error {
+	h.Lock()
+	defer h.Unlock()
+	for _, c := range h.connections {
+		err := c.Send(message)
+		if err != nil {
+			log.Println(err)
+		}
+	}
 	return nil
 }

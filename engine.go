@@ -8,8 +8,8 @@ type engine interface {
 	// getName returns a name of concrete engine implementation
 	getName() string
 
-	// publishMessage allows to send message into channel
-	publishMessage(channel, message string) error
+	// publish allows to send message into channel
+	publish(channel, message string) error
 
 	//publishControlMessage(message string) error
 	//publishAdminMessage(message string) error
@@ -17,15 +17,15 @@ type engine interface {
 	//handleControlMessage(message string) error
 	//handleAdminMessage(message string) error
 
-	// addSubscription registers subscription on channel from client's connection
-	addSubscription(channel string, c *connection) error
-	// removeSubscription unregisters subscription
-	removeSubscription(channel string, c *connection) error
+	// subscribe on channel
+	subscribe(channel string) error
+	// unsubscribe from channel
+	unsubscribe(channel string) error
 
 	// addPresence sets or updates presence information for connection
-	addPresence(channel string, c *connection) error
+	addPresence(channel string, c connection) error
 	// removePresence removes presence information for connection
-	removePresence(channel string, c *connection) error
+	removePresence(channel string, c connection) error
 	// getPresence returns actual presence information for channel
 	getPresence(channel string) (interface{}, error)
 

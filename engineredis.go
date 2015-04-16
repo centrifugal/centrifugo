@@ -14,23 +14,23 @@ func (e *redisEngine) getName() string {
 	return "Redis"
 }
 
-func (e *redisEngine) publishMessage(channel, message string) error {
+func (e *redisEngine) publish(channel, message string) error {
 	return nil
 }
 
-func (e *redisEngine) addSubscription(channel string, c *connection) error {
+func (e *redisEngine) subscribe(channel string) error {
 	return nil
 }
 
-func (e *redisEngine) removeSubscription(channel string, c *connection) error {
+func (e *redisEngine) unsubscribe(channel string) error {
 	return nil
 }
 
-func (e *redisEngine) addPresence(channel string, c *connection) error {
+func (e *redisEngine) addPresence(channel string, c connection) error {
 	return nil
 }
 
-func (e *redisEngine) removePresence(channel string, c *connection) error {
+func (e *redisEngine) removePresence(channel string, c connection) error {
 	return nil
 }
 

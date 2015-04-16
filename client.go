@@ -16,6 +16,7 @@ type connection interface {
 	GetUid() string
 	GetProject() string
 	GetUser() string
+	Send(message string) error
 }
 
 type client struct {
@@ -442,14 +443,14 @@ func (c *client) handlePublish(ps Params) (*response, error) {
 
 	// TODO: check that publishing allowed
 
-	info := c.getInfo()
+	clientInfo := c.getInfo()
 
-	status, err := c.app.processPublish(project, channel, cmd.Data, info)
+	err = c.app.publishClientMessage(project, channel, cmd.Data, clientInfo)
 	if err != nil {
 		log.Println(err)
 		resp.Error = ErrInternalServerError
 	} else {
-		body["status"] = status
+		body["status"] = true
 		resp.Body = body
 	}
 
