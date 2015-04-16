@@ -133,21 +133,24 @@ func (h *subscriptionHub) remove(channel string, c connection) error {
 	return nil
 }
 
+// broadcast sends message to all clients subscribed on channel
 func (h *subscriptionHub) broadcast(channel, message string) error {
 	h.Lock()
 	defer h.Unlock()
+
+	// get connections currently subscribed on channel
 	channelSubscriptions, ok := h.subscriptions[channel]
 	if !ok {
 		return nil
 	}
-	log.Println(9)
+
+	// iterate over them and send message individually
 	for _, c := range channelSubscriptions {
 		err := c.Send(message)
 		if err != nil {
 			log.Println(err)
 		}
 	}
-	log.Println(10)
 	return nil
 }
 
@@ -183,6 +186,7 @@ func (h *adminConnectionHub) remove(c connection) error {
 	return nil
 }
 
+// broadcast sends message to all connected admins
 func (h *adminConnectionHub) broadcast(message string) error {
 	h.Lock()
 	defer h.Unlock()

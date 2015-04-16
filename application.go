@@ -80,12 +80,15 @@ func (app *application) initialize() {
 	app.structure = s
 }
 
+// setEngine binds engine to application
 func (app *application) setEngine(e engine) {
 	app.Lock()
 	defer app.Unlock()
 	app.engine = e
 }
 
+// handleMessage called when new message of any type received by this node.
+// It looks at channel and decides which message handler to call
 func (app *application) handleMessage(channel, message string) error {
 	switch channel {
 	case app.controlChannel:
@@ -97,6 +100,9 @@ func (app *application) handleMessage(channel, message string) error {
 	}
 }
 
+// handleControlMessage handles messages from control channel - control
+// messages used for internal communication between nodes to share state
+// or commands
 func (app *application) handleControlMessage(message string) error {
 
 	// TODO: implement this
@@ -104,14 +110,20 @@ func (app *application) handleControlMessage(message string) error {
 	return nil
 }
 
+// handleAdminMessage handles messages from admin channel - those messages must
+// be delivered to all admins connected to this node
 func (app *application) handleAdminMessage(message string) error {
 	return app.adminConnectionHub.broadcast(message)
 }
 
+// handleClientMessage handles messages published by web application or client
+// into channel. The goal of this method to deliver this message to all clients
+// on this node subscribed on channel
 func (app *application) handleClientMessage(channel, message string) error {
 	return app.subscriptionHub.broadcast(channel, message)
 }
 
+// publishClientMessage publishes message to all clients subscribed on channel
 func (app *application) publishClientMessage(p *project, channel string, data, clientInfo interface{}) error {
 
 	uid, err := uuid.NewV4()
@@ -168,6 +180,8 @@ func (app *application) getProjectChannel(projectKey, channel string) string {
 	return app.channelPrefix + "." + projectKey + "." + channel
 }
 
+// addSubscription registers subscription of connection on channel in both
+// engine and subscriptionHub
 func (app *application) addSubscription(projectKey, channel string, c connection) error {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	err := app.engine.subscribe(projectChannel)
@@ -177,6 +191,8 @@ func (app *application) addSubscription(projectKey, channel string, c connection
 	return app.subscriptionHub.add(projectChannel, c)
 }
 
+// removeSubscription removes subscription of connection on channel
+// from both engine and subscriptionHub
 func (app *application) removeSubscription(projectKey, channel string, c connection) error {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	err := app.engine.unsubscribe(projectChannel)
@@ -208,6 +224,8 @@ func (app *application) getHistory(projectKey, channel string) (interface{}, err
 	return app.engine.getHistory(projectChannel)
 }
 
+// getApplicationName returns a name for this node. If no name provided
+// in configuration then it constructs node name based on hostname and port
 func getApplicationName() string {
 	name := viper.GetString("name")
 	if name != "" {
