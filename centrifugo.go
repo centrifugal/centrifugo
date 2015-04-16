@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	//"net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/cobra"
@@ -101,6 +103,22 @@ func main() {
 			router.POST("/auth/", app.authHandler)
 			router.GET("/info/", app.infoHandler)
 			router.POST("/actions/", app.actionsHandler)
+
+			//if viper.GetBool("debug") {
+			//	router.HandlerFunc("GET", "/debug/pprof/*path", http.HandlerFunc(pprof.Index))
+			//}
+
+			tick := time.Tick(10 * time.Second)
+			go func() {
+				for {
+					select {
+					case <-tick:
+						for ch, val := range app.subscriptionHub.subscriptions {
+							fmt.Printf("%s: %d\n", ch, len(val))
+						}
+					}
+				}
+			}()
 
 			// optionally serve admin web interface application
 			webDir := viper.GetString("web")

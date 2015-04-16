@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/centrifugal/sockjs-go.v2/sockjs"
@@ -29,15 +28,15 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 		return
 	}
 
-	tick := time.Tick(20 * time.Second)
-
 	go func() {
 		for {
 			select {
 			case <-closedSession:
+				err = client.clean()
+				if err != nil {
+					log.Println(err)
+				}
 				return
-			case <-tick:
-				client.printIsAuthenticated()
 			}
 		}
 	}()

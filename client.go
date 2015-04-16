@@ -68,6 +68,39 @@ func (c *client) Send(message string) error {
 	return err
 }
 
+func (c *client) clean() error {
+
+	// TODO: stop presence ping
+
+	projectKey := c.project
+
+	if projectKey != "" {
+		// TODO: remove from connectionHub
+		log.Println("remove from connectionHub must be implemented")
+	}
+
+	if projectKey != "" && len(c.channels) > 0 {
+		for channel, _ := range c.channels {
+
+			// TODO: remove presence in channel
+
+			err := c.app.removeSubscription(projectKey, channel, c)
+			if err != nil {
+				log.Println(err)
+			}
+
+			channelOptions := c.app.getChannelOptions(projectKey, channel)
+			if channelOptions.JoinLeave {
+				// TODO: send leave message in channel
+				log.Println("sending leave message must be implemented")
+			}
+		}
+	}
+
+	// TODO: check that client and sockjs session garbage collected
+	return nil
+}
+
 func (c *client) getInfo() map[string]interface{} {
 
 	// TODO: implement this
