@@ -4,24 +4,24 @@ import (
 	"sync"
 )
 
-// hub manages client connections
-type hub struct {
+// connectionHub manages client connections
+type connectionHub struct {
 	sync.Mutex
 
 	// registry to hold active connections
-	// as map[of projects]map[of user IDs]map[unique connection IDs]
+	// as map[of projects]map[of user IDs]map[unique connection IDs]connection
 	connections map[string]map[string]map[string]connection
 }
 
-// newHub initializes hub
-func newHub() *hub {
-	return &hub{
+// newConnectionHub initializes connectionHub
+func newConnectionHub() *connectionHub {
+	return &connectionHub{
 		connections: make(map[string]map[string]map[string]connection),
 	}
 }
 
-// add adds connection into hub connections registry
-func (h *hub) add(c connection) error {
+// add adds connection into connectionHub connections registry
+func (h *connectionHub) add(c connection) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -41,8 +41,8 @@ func (h *hub) add(c connection) error {
 	return nil
 }
 
-// remove removes connection from hub connections registry
-func (h *hub) remove(c connection) error {
+// remove removes connection from connectionHub connections registry
+func (h *connectionHub) remove(c connection) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -75,32 +75,89 @@ func (h *hub) remove(c connection) error {
 	return nil
 }
 
-// adminHub manages admin connections from web interface
-type adminHub struct {
+// subscriptionHub manages client subscriptions on channels
+type subscriptionHub struct {
+	sync.Mutex
+
+	// registry to hold active subscriptions of clients on channels
+	// as map[of engine channel]map[of connection UID]*connection
+	subscriptions map[string]map[string]connection
+}
+
+// newSubscriptionHub initializes subscriptionHub
+func newSubscriptionHub() *subscriptionHub {
+	return &subscriptionHub{
+		subscriptions: make(map[string]map[string]connection),
+	}
+}
+
+// add adds connection into subscriptionHub subscriptions registry
+func (h *subscriptionHub) add(channel string, c connection) error {
+	h.Lock()
+	defer h.Unlock()
+
+	uid := c.GetUid()
+
+	_, ok := h.subscriptions[channel]
+	if !ok {
+		h.subscriptions[channel] = make(map[string]connection)
+	}
+	h.subscriptions[channel][uid] = c
+	return nil
+}
+
+// remove removes connection from connectionHub connections registry
+func (h *subscriptionHub) remove(channel string, c connection) error {
+	h.Lock()
+	defer h.Unlock()
+
+	uid := c.GetUid()
+
+	// try to find subscription to delete, return early if not found
+	if _, ok := h.subscriptions[channel]; !ok {
+		return nil
+	}
+	if _, ok := h.subscriptions[channel][uid]; !ok {
+		return nil
+	}
+
+	// actually remove subscription from hub
+	delete(h.subscriptions[channel], uid)
+
+	// clean up map if it's needed
+	if len(h.subscriptions[channel]) == 0 {
+		delete(h.subscriptions, channel)
+	}
+
+	return nil
+}
+
+// adminConnectionHub manages admin connections from web interface
+type adminConnectionHub struct {
 	sync.Mutex
 
 	// registry to hold active admin connections
-	// as map[unique admin connection IDs]
+	// as map[unique admin connection IDs]*connection
 	connections map[string]connection
 }
 
-// newAdmin hub initializes new adminHub
-func newAdminHub() *adminHub {
-	return &adminHub{
+// newAdminConnectionHub initializes new adminHub
+func newAdminConnectionHub() *adminConnectionHub {
+	return &adminConnectionHub{
 		connections: make(map[string]connection),
 	}
 }
 
-// add adds connection to adminHub connections registry
-func (h *adminHub) add(c connection) error {
+// add adds connection to adminConnectionHub connections registry
+func (h *adminConnectionHub) add(c connection) error {
 	h.Lock()
 	defer h.Unlock()
 	h.connections[c.GetUid()] = c
 	return nil
 }
 
-// remove removes connection from adminHub connections registry
-func (h *adminHub) remove(c connection) error {
+// remove removes connection from adminConnectionHub connections registry
+func (h *adminConnectionHub) remove(c connection) error {
 	h.Lock()
 	defer h.Unlock()
 	delete(h.connections, c.GetUid())

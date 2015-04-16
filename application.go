@@ -15,9 +15,11 @@ type application struct {
 	// unique id for this application (node)
 	uid string
 	// hub to manage client connections
-	hub *hub
-	// adminHub to manage admin connections
-	adminHub *adminHub
+	connectionHub *connectionHub
+	// hub to manage client subscriptions
+	subscriptionHub *subscriptionHub
+	// hub to manage admin connections
+	adminConnectionHub *adminConnectionHub
 	// nodes is a map with information about nodes known
 	nodes map[string]interface{}
 	// engine to use - in memory or redis
@@ -45,10 +47,11 @@ func newApplication() (*application, error) {
 		return nil, err
 	}
 	return &application{
-		uid:      uid.String(),
-		nodes:    make(map[string]interface{}),
-		hub:      newHub(),
-		adminHub: newAdminHub(),
+		uid:                uid.String(),
+		nodes:              make(map[string]interface{}),
+		connectionHub:      newConnectionHub(),
+		subscriptionHub:    newSubscriptionHub(),
+		adminConnectionHub: newAdminConnectionHub(),
 	}, nil
 }
 
