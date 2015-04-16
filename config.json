@@ -7,8 +7,9 @@
       "secret": "secret",
       "namespaces": [
         {
-          "name": "publish",
-          "publish": true
+          "name": "public",
+          "publish": true,
+          "watch": true
         }
       ]
     }

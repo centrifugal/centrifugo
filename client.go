@@ -60,6 +60,14 @@ func (c *client) GetUser() string {
 	return c.user
 }
 
+func (c *client) Send(message string) error {
+	err := c.session.Send(message)
+	if err != nil {
+		c.session.Close(3000, "error sending message")
+	}
+	return err
+}
+
 func (c *client) getInfo() map[string]interface{} {
 
 	// TODO: implement this
@@ -160,10 +168,20 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 	switch method {
 	case "connect":
 		resp, err = c.handleConnect(params)
+	case "refresh":
+		resp, err = c.handleRefresh(params)
 	case "subscribe":
 		resp, err = c.handleSubscribe(params)
+	case "unsubscribe":
+		resp, err = c.handleUnsubscribe(params)
 	case "publish":
 		resp, err = c.handlePublish(params)
+	case "ping":
+		resp, err = c.handlePing(params)
+	case "presence":
+		resp, err = c.handlePresence(params)
+	case "history":
+		resp, err = c.handleHistory(params)
 	default:
 		return nil, ErrMethodNotFound
 	}
@@ -352,7 +370,11 @@ func (c *client) handleSubscribe(ps Params) (*response, error) {
 		// TODO: check provided sign
 	}
 
-	// TODO: add subscription using engine
+	err = c.app.addSubscription(c.project, channel, c)
+	if err != nil {
+		log.Println(err)
+		return resp, ErrInternalServerError
+	}
 
 	c.channels[channel] = true
 

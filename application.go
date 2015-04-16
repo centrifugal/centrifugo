@@ -3,7 +3,6 @@ package main
 // TODO: use interfaces instead of app reference in client and engine
 
 import (
-	"encoding/json"
 	"log"
 	"os"
 	"strconv"
@@ -120,19 +119,15 @@ func (app *application) publishClientMessage(p *project, channel string, data, c
 		return err
 	}
 
-	byteMessage, err := json.Marshal(map[string]interface{}{
+	message := map[string]interface{}{
 		"uid":       uid.String(),
 		"timestamp": strconv.FormatInt(time.Now().Unix(), 10),
 		"client":    clientInfo,
 		"channel":   channel,
 		"data":      data,
-	})
-	if err != nil {
-		log.Println(err)
-		return err
 	}
 
-	message := string(byteMessage)
+	log.Println(message)
 
 	channelOptions := app.getChannelOptions(p.Name, channel)
 	if channelOptions.Watch {
@@ -141,7 +136,17 @@ func (app *application) publishClientMessage(p *project, channel string, data, c
 	}
 
 	projectChannel := app.getProjectChannel(p.Name, channel)
-	err = app.engine.publish(projectChannel, message)
+
+	resp := newResponse("message")
+	resp.Body = message
+
+	byteMessage, err := resp.toJson()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	err = app.engine.publish(projectChannel, string(byteMessage))
 	if err != nil {
 		log.Println(err)
 		return err
@@ -179,11 +184,6 @@ func (app *application) removeSubscription(projectKey, channel string, c connect
 		return err
 	}
 	return app.subscriptionHub.remove(projectChannel, c)
-}
-
-func (app *application) getSubscriptions(projectKey, channel string) map[string]connection {
-	projectChannel := app.getProjectChannel(projectKey, channel)
-	return app.subscriptionHub.get(projectChannel)
 }
 
 // getProjectByKey returns a project by project key (name) using structure
