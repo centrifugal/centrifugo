@@ -74,10 +74,14 @@ func main() {
 
 			fmt.Printf("%v\n", viper.AllSettings())
 
-			app, err := newApplication("memory")
+			app, err := newApplication()
 			if err != nil {
 				log.Panic(err)
 			}
+
+			e := newMemoryEngine(app)
+			app.setEngine(e)
+
 			app.initialize()
 
 			go handleSignals(app)

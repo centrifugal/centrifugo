@@ -21,7 +21,7 @@ type application struct {
 	// nodes is a map with information about nodes known
 	nodes map[string]interface{}
 	// engine to use - in memory or redis
-	engine string
+	engine engine
 	// name of this node - based on hostname and port
 	name string
 	// reference to structure to work with projects and namespaces
@@ -39,7 +39,7 @@ type application struct {
 	presenceExpireInterval int
 }
 
-func newApplication(engine string) (*application, error) {
+func newApplication() (*application, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -47,10 +47,8 @@ func newApplication(engine string) (*application, error) {
 	return &application{
 		uid:      uid.String(),
 		nodes:    make(map[string]interface{}),
-		engine:   engine,
 		hub:      newHub(),
 		adminHub: newAdminHub(),
-		name:     getApplicationName(),
 	}, nil
 }
 
@@ -63,6 +61,7 @@ func (app *application) initialize() {
 	app.controlChannel = app.channelPrefix + "." + "control"
 	app.presencePingInterval = viper.GetInt("presence_ping_interval")
 	app.presenceExpireInterval = viper.GetInt("presence_expire_interval")
+	app.name = getApplicationName()
 
 	// get and initialize structure
 	var pl projectList
@@ -74,6 +73,12 @@ func (app *application) initialize() {
 	app.structure = s
 }
 
+func (app *application) setEngine(e engine) {
+	app.Lock()
+	defer app.Unlock()
+	app.engine = e
+}
+
 func (app *application) processPublish(p *project, channel string, data, info interface{}) (bool, error) {
 
 	// TODO: implement this
@@ -81,18 +86,34 @@ func (app *application) processPublish(p *project, channel string, data, info in
 	return true, nil
 }
 
-func (app *application) processPresence(p *project, channel string) (interface{}, error) {
-
-	// TODO: implement this
-
-	return map[string]interface{}{}, nil
+// getEngineChannel returns a name of channel used by engine - as
+// every project can have channels with the same name we should distinguish
+// between them. This also prevents collapses with admin and control
+// channel names
+func (app *application) getEngineChannel(projectKey, channel string) string {
+	return app.channelPrefix + "." + projectKey + "." + channel
 }
 
-func (app *application) processHistory(p *project, channel string) (interface{}, error) {
+// getProjectByKey returns a project by project key (name) using structure
+func (app *application) getProjectByKey(projectKey string) (*project, bool) {
+	return app.structure.getProjectByKey(projectKey)
+}
 
-	// TODO: implement this
+// getChannelOptions returns channel options for channel using structure
+func (app *application) getChannelOptions(projectKey, channel string) *ChannelOptions {
+	return app.structure.getChannelOptions(projectKey, channel)
+}
 
-	return map[string]interface{}{}, nil
+// getPresence proxies presence extraction to engine
+func (app *application) getPresence(projectKey, channel string) (interface{}, error) {
+	engineChannel := app.getEngineChannel(projectKey, channel)
+	return app.engine.getPresence(engineChannel)
+}
+
+// getHistory proxies history extraction to engine
+func (app *application) getHistory(projectKey, channel string) (interface{}, error) {
+	engineChannel := app.getEngineChannel(projectKey, channel)
+	return app.engine.getHistory(engineChannel)
 }
 
 func getApplicationName() string {

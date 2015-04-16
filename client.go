@@ -211,7 +211,7 @@ func (c *client) handleConnect(ps Params) (*response, error) {
 	timestamp := cmd.Timestamp
 	token := cmd.Token
 
-	project, exists := c.app.structure.getProjectByKey(projectKey)
+	project, exists := c.app.getProjectByKey(projectKey)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -275,7 +275,7 @@ func (c *client) handleRefresh(ps Params) (*response, error) {
 	timestamp := cmd.Timestamp
 	token := cmd.Token
 
-	project, exists := c.app.structure.getProjectByKey(projectKey)
+	project, exists := c.app.getProjectByKey(projectKey)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -319,7 +319,7 @@ func (c *client) handleSubscribe(ps Params) (*response, error) {
 		return nil, ErrInvalidClientMessage
 	}
 
-	project, exists := c.app.structure.getProjectByKey(c.project)
+	project, exists := c.app.getProjectByKey(c.project)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -342,7 +342,7 @@ func (c *client) handleSubscribe(ps Params) (*response, error) {
 
 	// TODO: check allowed users
 
-	channelOptions := c.app.structure.getChannelOptions(c.project, channel)
+	channelOptions := c.app.getChannelOptions(c.project, channel)
 	log.Println(channelOptions)
 
 	// TODO: check anonymous access
@@ -375,7 +375,7 @@ func (c *client) handleUnsubscribe(ps Params) (*response, error) {
 		return nil, ErrInvalidClientMessage
 	}
 
-	project, exists := c.app.structure.getProjectByKey(c.project)
+	project, exists := c.app.getProjectByKey(c.project)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -391,7 +391,7 @@ func (c *client) handleUnsubscribe(ps Params) (*response, error) {
 	}
 	resp.Body = body
 
-	channelOptions := c.app.structure.getChannelOptions(c.project, channel)
+	channelOptions := c.app.getChannelOptions(c.project, channel)
 	log.Println(channelOptions)
 
 	// TODO: remove subscription using engine
@@ -422,7 +422,7 @@ func (c *client) handlePublish(ps Params) (*response, error) {
 		return nil, ErrInvalidClientMessage
 	}
 
-	project, exists := c.app.structure.getProjectByKey(c.project)
+	project, exists := c.app.getProjectByKey(c.project)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -437,7 +437,7 @@ func (c *client) handlePublish(ps Params) (*response, error) {
 
 	// TODO: check that client subscribed on this channel
 
-	channelOptions := c.app.structure.getChannelOptions(c.project, channel)
+	channelOptions := c.app.getChannelOptions(c.project, channel)
 	log.Println(channelOptions)
 
 	// TODO: check that publishing allowed
@@ -470,7 +470,7 @@ func (c *client) handlePresence(ps Params) (*response, error) {
 		return nil, ErrInvalidClientMessage
 	}
 
-	project, exists := c.app.structure.getProjectByKey(c.project)
+	project, exists := c.app.getProjectByKey(c.project)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -478,12 +478,12 @@ func (c *client) handlePresence(ps Params) (*response, error) {
 
 	channel := cmd.Channel
 
-	channelOptions := c.app.structure.getChannelOptions(c.project, channel)
+	channelOptions := c.app.getChannelOptions(c.project, channel)
 	log.Println(channelOptions)
 
 	// TODO: check that presence enabled
 
-	data, err := c.app.processPresence(project, channel)
+	data, err := c.app.getPresence(c.project, channel)
 	if err != nil {
 		resp.Error = ErrInternalServerError
 		return resp, nil
@@ -510,7 +510,7 @@ func (c *client) handleHistory(ps Params) (*response, error) {
 		return nil, ErrInvalidClientMessage
 	}
 
-	project, exists := c.app.structure.getProjectByKey(c.project)
+	project, exists := c.app.getProjectByKey(c.project)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -518,12 +518,12 @@ func (c *client) handleHistory(ps Params) (*response, error) {
 
 	channel := cmd.Channel
 
-	channelOptions := c.app.structure.getChannelOptions(c.project, channel)
+	channelOptions := c.app.getChannelOptions(c.project, channel)
 	log.Println(channelOptions)
 
 	// TODO: check that history enabled
 
-	data, err := c.app.processHistory(project, channel)
+	data, err := c.app.getHistory(c.project, channel)
 	if err != nil {
 		resp.Error = ErrInternalServerError
 		return resp, nil
