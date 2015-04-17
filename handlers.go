@@ -57,11 +57,6 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 	}
 }
 
-type jsonApiRequest struct {
-	Sign string
-	Data string
-}
-
 func getCommandsFromApiMessage(msgBytes []byte, msgType string) ([]apiCommand, error) {
 	var commands []apiCommand
 	switch msgType {
@@ -81,6 +76,11 @@ func getCommandsFromApiMessage(msgBytes []byte, msgType string) ([]apiCommand, e
 		}
 	}
 	return commands, nil
+}
+
+type jsonApiRequest struct {
+	Sign string
+	Data string
 }
 
 func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

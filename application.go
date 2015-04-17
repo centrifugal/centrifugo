@@ -26,9 +26,9 @@ type application struct {
 	nodes map[string]interface{}
 
 	// hub to manage client connections
-	connectionHub *connectionHub
+	clientConnectionHub *clientConnectionHub
 	// hub to manage client subscriptions
-	subscriptionHub *subscriptionHub
+	clientSubscriptionHub *clientSubscriptionHub
 	// hub to manage admin connections
 	adminConnectionHub *adminConnectionHub
 
@@ -66,11 +66,11 @@ func newApplication() (*application, error) {
 		return nil, err
 	}
 	return &application{
-		uid:                uid.String(),
-		nodes:              make(map[string]interface{}),
-		connectionHub:      newConnectionHub(),
-		subscriptionHub:    newSubscriptionHub(),
-		adminConnectionHub: newAdminConnectionHub(),
+		uid:                   uid.String(),
+		nodes:                 make(map[string]interface{}),
+		clientConnectionHub:   newClientConnectionHub(),
+		clientSubscriptionHub: newClientSubscriptionHub(),
+		adminConnectionHub:    newAdminConnectionHub(),
 	}, nil
 }
 
@@ -179,7 +179,7 @@ func (app *application) handleAdminMessage(message string) error {
 // into channel. The goal of this method to deliver this message to all clients
 // on this node subscribed on channel
 func (app *application) handleClientMessage(channel, message string) error {
-	return app.subscriptionHub.broadcast(channel, message)
+	return app.clientSubscriptionHub.broadcast(channel, message)
 }
 
 // publishControlMessage publishes message into control channel so all running
@@ -275,25 +275,32 @@ func (app *application) getProjectChannel(projectKey, channel string) string {
 }
 
 // addSubscription registers subscription of connection on channel in both
-// engine and subscriptionHub
-func (app *application) addSubscription(projectKey, channel string, c connection) error {
+// engine and clientSubscriptionHub
+func (app *application) addSubscription(projectKey, channel string, c clientConnection) error {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	err := app.engine.subscribe(projectChannel)
 	if err != nil {
 		return err
 	}
-	return app.subscriptionHub.add(projectChannel, c)
+	return app.clientSubscriptionHub.add(projectChannel, c)
 }
 
 // removeSubscription removes subscription of connection on channel
-// from both engine and subscriptionHub
-func (app *application) removeSubscription(projectKey, channel string, c connection) error {
+// from both engine and clientSubscriptionHub
+func (app *application) removeSubscription(projectKey, channel string, c clientConnection) error {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	err := app.engine.unsubscribe(projectChannel)
 	if err != nil {
 		return err
 	}
-	return app.subscriptionHub.remove(projectChannel, c)
+	return app.clientSubscriptionHub.remove(projectChannel, c)
+}
+
+func (app *application) unsubscribeUserFromChannel(user, channel string) error {
+
+	// TODO: implement this
+
+	return nil
 }
 
 // getProjectByKey returns a project by project key (name) using structure

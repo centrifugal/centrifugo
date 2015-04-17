@@ -117,7 +117,7 @@ func main() {
 				for {
 					select {
 					case <-tick:
-						for ch, val := range app.subscriptionHub.subscriptions {
+						for ch, val := range app.clientSubscriptionHub.subscriptions {
 							fmt.Printf("%s: %d\n", ch, len(val))
 						}
 					}

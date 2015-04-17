@@ -5,51 +5,51 @@ import (
 	"sync"
 )
 
-// connectionHub manages client connections
-type connectionHub struct {
+// clientConnectionHub manages client connections
+type clientConnectionHub struct {
 	sync.Mutex
 
 	// registry to hold active connections
 	// as map[of projects]map[of user IDs]map[unique connection IDs]connection
-	connections map[string]map[string]map[string]connection
+	connections map[string]map[string]map[string]clientConnection
 }
 
-// newConnectionHub initializes connectionHub
-func newConnectionHub() *connectionHub {
-	return &connectionHub{
-		connections: make(map[string]map[string]map[string]connection),
+// newClientConnectionHub initializes connectionHub
+func newClientConnectionHub() *clientConnectionHub {
+	return &clientConnectionHub{
+		connections: make(map[string]map[string]map[string]clientConnection),
 	}
 }
 
-// add adds connection into connectionHub connections registry
-func (h *connectionHub) add(c connection) error {
+// add adds connection into clientConnectionHub connections registry
+func (h *clientConnectionHub) add(c clientConnection) error {
 	h.Lock()
 	defer h.Unlock()
 
-	uid := c.GetUid()
-	user := c.GetUser()
-	project := c.GetProject()
+	uid := c.getUid()
+	user := c.getUser()
+	project := c.getProject()
 
 	_, ok := h.connections[project]
 	if !ok {
-		h.connections[project] = make(map[string]map[string]connection)
+		h.connections[project] = make(map[string]map[string]clientConnection)
 	}
 	_, ok = h.connections[project][user]
 	if !ok {
-		h.connections[project][user] = make(map[string]connection)
+		h.connections[project][user] = make(map[string]clientConnection)
 	}
 	h.connections[project][user][uid] = c
 	return nil
 }
 
-// remove removes connection from connectionHub connections registry
-func (h *connectionHub) remove(c connection) error {
+// remove removes connection from clientConnectionHub connections registry
+func (h *clientConnectionHub) remove(c clientConnection) error {
 	h.Lock()
 	defer h.Unlock()
 
-	uid := c.GetUid()
-	user := c.GetUser()
-	project := c.GetProject()
+	uid := c.getUid()
+	user := c.getUser()
+	project := c.getProject()
 
 	// try to find connection to delete, return early if not found
 	if _, ok := h.connections[project]; !ok {
@@ -76,43 +76,43 @@ func (h *connectionHub) remove(c connection) error {
 	return nil
 }
 
-// subscriptionHub manages client subscriptions on channels
-type subscriptionHub struct {
+// clientSubscriptionHub manages client subscriptions on channels
+type clientSubscriptionHub struct {
 	sync.Mutex
 
 	// registry to hold active subscriptions of clients on channels
 	// as map[of engine channel]map[of connection UID]*connection
-	subscriptions map[string]map[string]connection
+	subscriptions map[string]map[string]clientConnection
 }
 
-// newSubscriptionHub initializes subscriptionHub
-func newSubscriptionHub() *subscriptionHub {
-	return &subscriptionHub{
-		subscriptions: make(map[string]map[string]connection),
+// newClientSubscriptionHub initializes subscriptionHub
+func newClientSubscriptionHub() *clientSubscriptionHub {
+	return &clientSubscriptionHub{
+		subscriptions: make(map[string]map[string]clientConnection),
 	}
 }
 
-// add adds connection into subscriptionHub subscriptions registry
-func (h *subscriptionHub) add(channel string, c connection) error {
+// add adds connection into clientSubscriptionHub subscriptions registry
+func (h *clientSubscriptionHub) add(channel string, c clientConnection) error {
 	h.Lock()
 	defer h.Unlock()
 
-	uid := c.GetUid()
+	uid := c.getUid()
 
 	_, ok := h.subscriptions[channel]
 	if !ok {
-		h.subscriptions[channel] = make(map[string]connection)
+		h.subscriptions[channel] = make(map[string]clientConnection)
 	}
 	h.subscriptions[channel][uid] = c
 	return nil
 }
 
-// remove removes connection from connectionHub connections registry
-func (h *subscriptionHub) remove(channel string, c connection) error {
+// remove removes connection from clientSubscriptionHub subscriptions registry
+func (h *clientSubscriptionHub) remove(channel string, c clientConnection) error {
 	h.Lock()
 	defer h.Unlock()
 
-	uid := c.GetUid()
+	uid := c.getUid()
 
 	// try to find subscription to delete, return early if not found
 	if _, ok := h.subscriptions[channel]; !ok {
@@ -134,7 +134,7 @@ func (h *subscriptionHub) remove(channel string, c connection) error {
 }
 
 // broadcast sends message to all clients subscribed on channel
-func (h *subscriptionHub) broadcast(channel, message string) error {
+func (h *clientSubscriptionHub) broadcast(channel, message string) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -146,7 +146,7 @@ func (h *subscriptionHub) broadcast(channel, message string) error {
 
 	// iterate over them and send message individually
 	for _, c := range channelSubscriptions {
-		err := c.Send(message)
+		err := c.send(message)
 		if err != nil {
 			log.Println(err)
 		}
@@ -160,29 +160,29 @@ type adminConnectionHub struct {
 
 	// registry to hold active admin connections
 	// as map[unique admin connection IDs]*connection
-	connections map[string]connection
+	connections map[string]adminConnection
 }
 
 // newAdminConnectionHub initializes new adminHub
 func newAdminConnectionHub() *adminConnectionHub {
 	return &adminConnectionHub{
-		connections: make(map[string]connection),
+		connections: make(map[string]adminConnection),
 	}
 }
 
 // add adds connection to adminConnectionHub connections registry
-func (h *adminConnectionHub) add(c connection) error {
+func (h *adminConnectionHub) add(c adminConnection) error {
 	h.Lock()
 	defer h.Unlock()
-	h.connections[c.GetUid()] = c
+	h.connections[c.getUid()] = c
 	return nil
 }
 
 // remove removes connection from adminConnectionHub connections registry
-func (h *adminConnectionHub) remove(c connection) error {
+func (h *adminConnectionHub) remove(c adminConnection) error {
 	h.Lock()
 	defer h.Unlock()
-	delete(h.connections, c.GetUid())
+	delete(h.connections, c.getUid())
 	return nil
 }
 
@@ -191,7 +191,7 @@ func (h *adminConnectionHub) broadcast(message string) error {
 	h.Lock()
 	defer h.Unlock()
 	for _, c := range h.connections {
-		err := c.Send(message)
+		err := c.send(message)
 		if err != nil {
 			log.Println(err)
 		}

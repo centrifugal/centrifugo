@@ -12,13 +12,6 @@ import (
 	"gopkg.in/centrifugal/sockjs-go.v2/sockjs"
 )
 
-type connection interface {
-	GetUid() string
-	GetProject() string
-	GetUser() string
-	Send(message string) error
-}
-
 type client struct {
 	sync.Mutex
 	app             *application
@@ -48,19 +41,19 @@ func newClient(app *application, session sockjs.Session, closeChannel chan struc
 	}, nil
 }
 
-func (c *client) GetUid() string {
+func (c *client) getUid() string {
 	return c.uid
 }
 
-func (c *client) GetProject() string {
+func (c *client) getProject() string {
 	return c.project
 }
 
-func (c *client) GetUser() string {
+func (c *client) getUser() string {
 	return c.user
 }
 
-func (c *client) Send(message string) error {
+func (c *client) send(message string) error {
 	err := c.session.Send(message)
 	if err != nil {
 		c.session.Close(3000, "error sending message")
