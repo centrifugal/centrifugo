@@ -6,7 +6,10 @@ type clientConnection interface {
 	getUid() string
 	getProject() string
 	getUser() string
+	getChannels() []string
 	send(message string) error
+	unsubscribe(channel string) error
+	close(reason string) error
 }
 
 // adminConnection is an interface abstracting all methods used

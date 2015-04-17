@@ -53,12 +53,38 @@ func (c *client) getUser() string {
 	return c.user
 }
 
+func (c *client) getChannels() []string {
+	keys := make([]string, 0, len(c.channels))
+	for k := range c.channels {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func (c *client) unsubscribe(channel string) error {
+	cmd := &unsubscribeClientCommand{
+		Channel: channel,
+	}
+	resp, err := c.handleUnsubscribe(cmd)
+	if err != nil {
+		return err
+	}
+	if resp.Error != nil {
+		return resp.Error
+	}
+	return nil
+}
+
 func (c *client) send(message string) error {
 	err := c.session.Send(message)
 	if err != nil {
 		c.session.Close(3000, "error sending message")
 	}
 	return err
+}
+
+func (c *client) close(reason string) error {
+	return c.session.Close(3000, reason)
 }
 
 func (c *client) clean() error {
@@ -186,21 +212,56 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 
 	switch method {
 	case "connect":
-		resp, err = c.handleConnect(params)
+		var cmd connectClientCommand
+		err = mapstructure.Decode(params, &cmd)
+		if err != nil {
+			return nil, ErrInvalidClientMessage
+		}
+		resp, err = c.handleConnect(&cmd)
 	case "refresh":
-		resp, err = c.handleRefresh(params)
+		var cmd refreshClientCommand
+		err = mapstructure.Decode(params, &cmd)
+		if err != nil {
+			return nil, ErrInvalidClientMessage
+		}
+		resp, err = c.handleRefresh(&cmd)
 	case "subscribe":
-		resp, err = c.handleSubscribe(params)
+		var cmd subscribeClientCommand
+		err = mapstructure.Decode(params, &cmd)
+		if err != nil {
+			return nil, ErrInvalidClientMessage
+		}
+		resp, err = c.handleSubscribe(&cmd)
 	case "unsubscribe":
-		resp, err = c.handleUnsubscribe(params)
+		var cmd unsubscribeClientCommand
+		err = mapstructure.Decode(params, &cmd)
+		if err != nil {
+			return nil, ErrInvalidClientMessage
+		}
+		resp, err = c.handleUnsubscribe(&cmd)
 	case "publish":
-		resp, err = c.handlePublish(params)
+		var cmd publishClientCommand
+		err = mapstructure.Decode(params, &cmd)
+		if err != nil {
+			return nil, ErrInvalidClientMessage
+		}
+		resp, err = c.handlePublish(&cmd)
 	case "ping":
-		resp, err = c.handlePing(params)
+		resp, err = c.handlePing()
 	case "presence":
-		resp, err = c.handlePresence(params)
+		var cmd presenceClientCommand
+		err = mapstructure.Decode(params, &cmd)
+		if err != nil {
+			return nil, ErrInvalidClientMessage
+		}
+		resp, err = c.handlePresence(&cmd)
 	case "history":
-		resp, err = c.handleHistory(params)
+		var cmd historyClientCommand
+		err = mapstructure.Decode(params, &cmd)
+		if err != nil {
+			return nil, ErrInvalidClientMessage
+		}
+		resp, err = c.handleHistory(&cmd)
 	default:
 		return nil, ErrMethodNotFound
 	}
@@ -215,7 +276,7 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 // for example, in the past Heroku closed websocket connection after some time
 // of inactive period when no messages with payload travelled over wire
 // (despite of heartbeat frames existence)
-func (c *client) handlePing(ps Params) (*response, error) {
+func (c *client) handlePing() (*response, error) {
 	resp := newResponse("ping")
 	resp.Body = "pong"
 	return resp, nil
@@ -224,19 +285,13 @@ func (c *client) handlePing(ps Params) (*response, error) {
 // handleConnect handles connect command from client - client must send this
 // command immediately after establishing Websocket or SockJS connection with
 // Centrifuge
-func (c *client) handleConnect(ps Params) (*response, error) {
+func (c *client) handleConnect(cmd *connectClientCommand) (*response, error) {
 
 	resp := newResponse("connect")
 
 	if c.isAuthenticated {
 		resp.Body = c.uid
 		return resp, nil
-	}
-
-	var cmd connectClientCommand
-	err := mapstructure.Decode(ps, &cmd)
-	if err != nil {
-		return nil, ErrInvalidClientMessage
 	}
 
 	projectKey := cmd.Project
@@ -293,15 +348,9 @@ func (c *client) handleConnect(ps Params) (*response, error) {
 	return resp, nil
 }
 
-func (c *client) handleRefresh(ps Params) (*response, error) {
+func (c *client) handleRefresh(cmd *refreshClientCommand) (*response, error) {
 
 	resp := newResponse("refresh")
-
-	var cmd refreshClientCommand
-	err := mapstructure.Decode(ps, &cmd)
-	if err != nil {
-		return nil, ErrInvalidClientMessage
-	}
 
 	projectKey := cmd.Project
 	user := cmd.User
@@ -346,15 +395,9 @@ func (c *client) handleRefresh(ps Params) (*response, error) {
 // handleSubscribe handles subscribe command - clients send this when subscribe
 // on channel, if channel if private then we must validate provided sign here before
 // actually subscribe client on channel
-func (c *client) handleSubscribe(ps Params) (*response, error) {
+func (c *client) handleSubscribe(cmd *subscribeClientCommand) (*response, error) {
 
 	resp := newResponse("subscribe")
-
-	var cmd subscribeClientCommand
-	err := mapstructure.Decode(ps, &cmd)
-	if err != nil {
-		return nil, ErrInvalidClientMessage
-	}
 
 	project, exists := c.app.getProjectByKey(c.project)
 	if !exists {
@@ -388,7 +431,7 @@ func (c *client) handleSubscribe(ps Params) (*response, error) {
 		// TODO: check provided sign
 	}
 
-	err = c.app.addSubscription(c.project, channel, c)
+	err := c.app.addSubscription(c.project, channel, c)
 	if err != nil {
 		log.Println(err)
 		return resp, ErrInternalServerError
@@ -406,15 +449,9 @@ func (c *client) handleSubscribe(ps Params) (*response, error) {
 	return resp, nil
 }
 
-func (c *client) handleUnsubscribe(ps Params) (*response, error) {
+func (c *client) handleUnsubscribe(cmd *unsubscribeClientCommand) (*response, error) {
 
 	resp := newResponse("unsubscribe")
-
-	var cmd unsubscribeClientCommand
-	err := mapstructure.Decode(ps, &cmd)
-	if err != nil {
-		return nil, ErrInvalidClientMessage
-	}
 
 	project, exists := c.app.getProjectByKey(c.project)
 	if !exists {
@@ -435,7 +472,7 @@ func (c *client) handleUnsubscribe(ps Params) (*response, error) {
 	channelOptions := c.app.getChannelOptions(c.project, channel)
 	log.Println(channelOptions)
 
-	err = c.app.removeSubscription(c.project, channel, c)
+	err := c.app.removeSubscription(c.project, channel, c)
 	if err != nil {
 		log.Println(err)
 		return resp, ErrInternalServerError
@@ -457,15 +494,9 @@ func (c *client) handleUnsubscribe(ps Params) (*response, error) {
 // themselves if `publish` allowed by channel options. In most cases clients not
 // allowed to publish into channels directly - web application publishes messages
 // itself via HTTP API or Redis.
-func (c *client) handlePublish(ps Params) (*response, error) {
+func (c *client) handlePublish(cmd *publishClientCommand) (*response, error) {
 
 	resp := newResponse("publish")
-
-	var cmd publishClientCommand
-	err := mapstructure.Decode(ps, &cmd)
-	if err != nil {
-		return nil, ErrInvalidClientMessage
-	}
 
 	project, exists := c.app.getProjectByKey(c.project)
 	if !exists {
@@ -489,7 +520,7 @@ func (c *client) handlePublish(ps Params) (*response, error) {
 
 	info := c.getInfo()
 
-	err = c.app.publishClientMessage(project, channel, cmd.Data, info)
+	err := c.app.publishClientMessage(project, channel, cmd.Data, info)
 	if err != nil {
 		log.Println(err)
 		resp.Error = ErrInternalServerError
@@ -505,15 +536,9 @@ func (c *client) handlePublish(ps Params) (*response, error) {
 // are subscribed on channel at this moment. This method also checks if
 // presence information turned on for channel (based on channel options
 // for namespace or project)
-func (c *client) handlePresence(ps Params) (*response, error) {
+func (c *client) handlePresence(cmd *presenceClientCommand) (*response, error) {
 
 	resp := newResponse("presence")
-
-	var cmd presenceClientCommand
-	err := mapstructure.Decode(ps, &cmd)
-	if err != nil {
-		return nil, ErrInvalidClientMessage
-	}
 
 	project, exists := c.app.getProjectByKey(c.project)
 	if !exists {
@@ -545,15 +570,9 @@ func (c *client) handlePresence(ps Params) (*response, error) {
 // into channel. M is history size and can be configured for project or namespace
 // via channel options. Also this method checks that history available for channel
 // (also determined by channel options flag)
-func (c *client) handleHistory(ps Params) (*response, error) {
+func (c *client) handleHistory(cmd *historyClientCommand) (*response, error) {
 
 	resp := newResponse("history")
-
-	var cmd historyClientCommand
-	err := mapstructure.Decode(ps, &cmd)
-	if err != nil {
-		return nil, ErrInvalidClientMessage
-	}
 
 	project, exists := c.app.getProjectByKey(c.project)
 	if !exists {
