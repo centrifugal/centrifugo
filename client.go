@@ -54,9 +54,11 @@ func (c *client) getUser() string {
 }
 
 func (c *client) getChannels() []string {
-	keys := make([]string, 0, len(c.channels))
+	keys := make([]string, len(c.channels))
+	i := 0
 	for k := range c.channels {
-		keys = append(keys, k)
+		keys[i] = k
+		i += 1
 	}
 	return keys
 }
