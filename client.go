@@ -108,15 +108,6 @@ func (c *client) getInfo() map[string]interface{} {
 	return map[string]interface{}{}
 }
 
-type Params map[string]interface{}
-
-type clientCommand struct {
-	Method string
-	Params Params
-}
-
-type clientCommands []clientCommand
-
 func getMessageType(msgBytes []byte) (string, error) {
 	var f interface{}
 	err := json.Unmarshal(msgBytes, &f)
@@ -189,8 +180,10 @@ func (c *client) handleCommands(commands []clientCommand) error {
 }
 
 func (c *client) handleCommand(command clientCommand) (*response, error) {
+
 	var err error
 	var resp *response
+
 	method := command.Method
 	params := command.Params
 
@@ -222,7 +215,6 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 		return nil, err
 	}
 
-	resp.Method = method
 	return resp, nil
 }
 
@@ -248,7 +240,7 @@ func (c *client) handleConnect(ps Params) (*response, error) {
 		return resp, nil
 	}
 
-	var cmd connectCommand
+	var cmd connectClientCommand
 	err := mapstructure.Decode(ps, &cmd)
 	if err != nil {
 		return nil, ErrInvalidClientMessage
@@ -312,7 +304,7 @@ func (c *client) handleRefresh(ps Params) (*response, error) {
 
 	resp := newResponse("refresh")
 
-	var cmd refreshCommand
+	var cmd refreshClientCommand
 	err := mapstructure.Decode(ps, &cmd)
 	if err != nil {
 		return nil, ErrInvalidClientMessage
@@ -365,7 +357,7 @@ func (c *client) handleSubscribe(ps Params) (*response, error) {
 
 	resp := newResponse("subscribe")
 
-	var cmd subscribeCommand
+	var cmd subscribeClientCommand
 	err := mapstructure.Decode(ps, &cmd)
 	if err != nil {
 		return nil, ErrInvalidClientMessage
@@ -425,7 +417,7 @@ func (c *client) handleUnsubscribe(ps Params) (*response, error) {
 
 	resp := newResponse("unsubscribe")
 
-	var cmd unsubscribeCommand
+	var cmd unsubscribeClientCommand
 	err := mapstructure.Decode(ps, &cmd)
 	if err != nil {
 		return nil, ErrInvalidClientMessage
@@ -450,7 +442,11 @@ func (c *client) handleUnsubscribe(ps Params) (*response, error) {
 	channelOptions := c.app.getChannelOptions(c.project, channel)
 	log.Println(channelOptions)
 
-	// TODO: remove subscription using engine
+	err = c.app.removeSubscription(c.project, channel, c)
+	if err != nil {
+		log.Println(err)
+		return resp, ErrInternalServerError
+	}
 
 	_, ok := c.channels[channel]
 	if ok {
@@ -472,7 +468,7 @@ func (c *client) handlePublish(ps Params) (*response, error) {
 
 	resp := newResponse("publish")
 
-	var cmd publishCommand
+	var cmd publishClientCommand
 	err := mapstructure.Decode(ps, &cmd)
 	if err != nil {
 		return nil, ErrInvalidClientMessage
@@ -520,7 +516,7 @@ func (c *client) handlePresence(ps Params) (*response, error) {
 
 	resp := newResponse("presence")
 
-	var cmd presenceCommand
+	var cmd presenceClientCommand
 	err := mapstructure.Decode(ps, &cmd)
 	if err != nil {
 		return nil, ErrInvalidClientMessage
@@ -560,7 +556,7 @@ func (c *client) handleHistory(ps Params) (*response, error) {
 
 	resp := newResponse("history")
 
-	var cmd historyCommand
+	var cmd historyClientCommand
 	err := mapstructure.Decode(ps, &cmd)
 	if err != nil {
 		return nil, ErrInvalidClientMessage

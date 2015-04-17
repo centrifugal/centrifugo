@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
 	"github.com/spf13/viper"
 )
@@ -74,6 +75,23 @@ func newApplication() (*application, error) {
 	}, nil
 }
 
+// getApplicationName returns a name for this node. If no name provided
+// in configuration then it constructs node name based on hostname and port
+func getApplicationName() string {
+	name := viper.GetString("name")
+	if name != "" {
+		return name
+	}
+	port := viper.GetString("port")
+	var hostname string
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Println(err)
+		hostname = "?"
+	}
+	return hostname + "_" + port
+}
+
 // initialize used to set configuration dependent application properties
 func (app *application) initialize() {
 	app.Lock()
@@ -125,6 +143,29 @@ func (app *application) handleMessage(channel, message string) error {
 func (app *application) handleControlMessage(message string) error {
 
 	// TODO: implement this
+	var cmd controlCommand
+	err := json.Unmarshal([]byte(message), &cmd)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	if cmd.Uid == app.uid {
+		// sent by this node
+		return nil
+	}
+
+	method := cmd.Method
+	switch method {
+	case "ping":
+		err = app.handlePingControlMessage(cmd.Params)
+	case "unsubscribe":
+		err = app.handleUnsubscribeControlMessage(cmd.Params)
+	case "disconnect":
+		err = app.handleDisconnectControlMessage(cmd.Params)
+	default:
+		log.Println("unknown control message method", method)
+	}
 
 	return nil
 }
@@ -211,6 +252,18 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 		log.Println("adding message in history must be implemented here")
 	}
 
+	return nil
+}
+
+func (app *application) handlePingControlMessage(params Params) error {
+	return nil
+}
+
+func (app *application) handleUnsubscribeControlMessage(params Params) error {
+	return nil
+}
+
+func (app *application) handleDisconnectControlMessage(params Params) error {
 	return nil
 }
 
@@ -318,19 +371,89 @@ func (app *application) isUserAllowed(channel, user string) bool {
 	return false
 }
 
-// getApplicationName returns a name for this node. If no name provided
-// in configuration then it constructs node name based on hostname and port
-func getApplicationName() string {
-	name := viper.GetString("name")
-	if name != "" {
-		return name
+func (app *application) handleApiCommand(p *project, command apiCommand) (*response, error) {
+
+	var err error
+	var resp *response
+
+	method := command.Method
+	params := command.Params
+
+	switch method {
+	case "publish":
+		resp, err = app.handlePublishCommand(p, params)
+	case "unsubscribe":
+		resp, err = app.handleUnsubscribeCommand(p, params)
+	case "disconnect":
+		resp, err = app.handleDisconnectCommand(p, params)
+	case "presence":
+		resp, err = app.handlePresenceCommand(p, params)
+	case "history":
+		resp, err = app.handleHistoryCommand(p, params)
+	default:
+		return nil, ErrMethodNotFound
 	}
-	port := viper.GetString("port")
-	var hostname string
-	hostname, err := os.Hostname()
 	if err != nil {
-		log.Println(err)
-		hostname = "?"
+		return nil, err
 	}
-	return hostname + "_" + port
+
+	return resp, nil
+}
+
+func (app *application) handlePublishCommand(p *project, ps Params) (*response, error) {
+	resp := newResponse("publish")
+	var cmd publishApiCommand
+	err := mapstructure.Decode(ps, &cmd)
+	if err != nil {
+		return nil, ErrInvalidApiMessage
+	}
+	channel := cmd.Channel
+	data := cmd.Data
+	err = app.publishClientMessage(p, channel, data, nil)
+	if err != nil {
+		resp.Error = ErrInternalServerError
+	}
+	return resp, nil
+}
+
+func (app *application) handleUnsubscribeCommand(p *project, ps Params) (*response, error) {
+	return newResponse("unsubscribe"), nil
+}
+
+func (app *application) handleDisconnectCommand(p *project, ps Params) (*response, error) {
+	return newResponse("disconnect"), nil
+}
+
+func (app *application) handlePresenceCommand(p *project, ps Params) (*response, error) {
+	resp := newResponse("presence")
+	var cmd presenceApiCommand
+	err := mapstructure.Decode(ps, &cmd)
+	if err != nil {
+		return nil, ErrInvalidApiMessage
+	}
+	channel := cmd.Channel
+	presence, err := app.getPresence(p.Name, channel)
+	if err != nil {
+		resp.Error = ErrInternalServerError
+		return resp, nil
+	}
+	resp.Body = presence
+	return resp, nil
+}
+
+func (app *application) handleHistoryCommand(p *project, ps Params) (*response, error) {
+	resp := newResponse("history")
+	var cmd historyApiCommand
+	err := mapstructure.Decode(ps, &cmd)
+	if err != nil {
+		return nil, ErrInvalidApiMessage
+	}
+	channel := cmd.Channel
+	history, err := app.getHistory(p.Name, channel)
+	if err != nil {
+		resp.Error = ErrInternalServerError
+		return resp, nil
+	}
+	resp.Body = history
+	return resp, nil
 }
