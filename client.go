@@ -498,9 +498,9 @@ func (c *client) handlePublish(ps Params) (*response, error) {
 
 	// TODO: check that publishing allowed
 
-	clientInfo := c.getInfo()
+	info := c.getInfo()
 
-	err = c.app.publishClientMessage(project, channel, cmd.Data, clientInfo)
+	err = c.app.publishClientMessage(project, channel, cmd.Data, info)
 	if err != nil {
 		log.Println(err)
 		resp.Error = ErrInternalServerError

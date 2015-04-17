@@ -10,7 +10,6 @@ type ChannelOptions struct {
 	Publish         bool  `json:"publish"`
 	Anonymous       bool  `json:"anonymous"`
 	Presence        bool  `json:"presence"`
-	History         bool  `json:"history"`
 	HistorySize     int64 `mapstructure:"history_size" json:"history_size"`
 	HistoryLifetime int64 `mapstructure:"history_lifetime" json:"history_lifetime"`
 	JoinLeave       bool  `mapstructure:"join_leave" json:"join_leave"`
@@ -23,7 +22,6 @@ type ChannelOptions struct {
 type project struct {
 	Name               string        `json:"name"`
 	Secret             string        `json:"secret"`
-	ConnectionCheck    bool          `mapstructure:"connection_check" json:"connection_check"`
 	ConnectionLifetime int64         `mapstructure:"connection_lifetime" json:"connection_lifetime"`
 	Namespaces         namespaceList `json:"namespaces"`
 	ChannelOptions     `mapstructure:",squash"`

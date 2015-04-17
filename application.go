@@ -142,7 +142,7 @@ func (app *application) handleClientMessage(channel, message string) error {
 }
 
 // publishClientMessage publishes message to all clients subscribed on channel
-func (app *application) publishClientMessage(p *project, channel string, data, clientInfo interface{}) error {
+func (app *application) publishClientMessage(p *project, channel string, data, info interface{}) error {
 
 	uid, err := uuid.NewV4()
 	if err != nil {
@@ -152,7 +152,7 @@ func (app *application) publishClientMessage(p *project, channel string, data, c
 	message := map[string]interface{}{
 		"uid":       uid.String(),
 		"timestamp": strconv.FormatInt(time.Now().Unix(), 10),
-		"client":    clientInfo,
+		"info":      info,
 		"channel":   channel,
 		"data":      data,
 	}
@@ -182,7 +182,7 @@ func (app *application) publishClientMessage(p *project, channel string, data, c
 		return err
 	}
 
-	if channelOptions.History {
+	if channelOptions.HistorySize > 0 {
 		// TODO: add message to history
 		log.Println("adding message in history must be implemented here")
 	}
