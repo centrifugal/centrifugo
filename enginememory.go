@@ -1,5 +1,9 @@
 package main
 
+import (
+	"sync"
+)
+
 type memoryEngine struct {
 	app *application
 }
@@ -26,11 +30,11 @@ func (e *memoryEngine) unsubscribe(channel string) error {
 	return nil
 }
 
-func (e *memoryEngine) addPresence(channel string, c connection) error {
+func (e *memoryEngine) addPresence(channel, uid string, info interface{}) error {
 	return nil
 }
 
-func (e *memoryEngine) removePresence(channel string, c connection) error {
+func (e *memoryEngine) removePresence(channel, uid string) error {
 	return nil
 }
 
@@ -44,4 +48,16 @@ func (e *memoryEngine) addHistoryMessage(channel string, message string) error {
 
 func (e *memoryEngine) getHistory(channel string) (interface{}, error) {
 	return map[string]interface{}{}, nil
+}
+
+type memoryPresenceHub struct {
+	sync.Mutex
+
+	presence map[string]map[string]interface{}
+}
+
+func newMemoryPresenceHub() *memoryPresenceHub {
+	return &memoryPresenceHub{
+		presence: make(map[string]map[string]interface{}),
+	}
 }

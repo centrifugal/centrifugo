@@ -26,11 +26,11 @@ func (e *redisEngine) unsubscribe(channel string) error {
 	return nil
 }
 
-func (e *redisEngine) addPresence(channel string, c connection) error {
+func (e *redisEngine) addPresence(channel, uid string, info interface{}) error {
 	return nil
 }
 
-func (e *redisEngine) removePresence(channel string, c connection) error {
+func (e *redisEngine) removePresence(channel, uid string) error {
 	return nil
 }
 
