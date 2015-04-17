@@ -21,10 +21,10 @@ type engine interface {
 	// removePresence removes presence information for connection with uid
 	removePresence(channel, uid string) error
 	// getPresence returns actual presence information for channel
-	getPresence(channel string) (interface{}, error)
+	getPresence(channel string) (map[string]interface{}, error)
 
 	// addHistoryMessage adds message into channel history and takes care about history size
-	addHistoryMessage(channel string, message string) error
+	addHistoryMessage(channel string, message interface{}) error
 	// getHistory returns history messages for channel
-	getHistory(channel string) (interface{}, error)
+	getHistory(channel string) ([]interface{}, error)
 }

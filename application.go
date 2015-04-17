@@ -241,14 +241,32 @@ func (app *application) getChannelOptions(projectKey, channel string) *ChannelOp
 	return app.structure.getChannelOptions(projectKey, namespaceName)
 }
 
+// addPresence proxies presence adding to engine
+func (app *application) addPresence(projectKey, channel, uid string, info interface{}) error {
+	projectChannel := app.getProjectChannel(projectKey, channel)
+	return app.engine.addPresence(projectChannel, uid, info)
+}
+
+// removePresence proxies presence removing to engine
+func (app *application) removePresence(projectKey, channel, uid string) error {
+	projectChannel := app.getProjectChannel(projectKey, channel)
+	return app.engine.removePresence(projectChannel, uid)
+}
+
 // getPresence proxies presence extraction to engine
-func (app *application) getPresence(projectKey, channel string) (interface{}, error) {
+func (app *application) getPresence(projectKey, channel string) (map[string]interface{}, error) {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	return app.engine.getPresence(projectChannel)
 }
 
+// addHistoryMessage proxies history message adding to engine
+func (app *application) addHistoryMessage(projectKey, channel string, message interface{}) error {
+	projectChannel := app.getProjectChannel(projectKey, channel)
+	return app.engine.addHistoryMessage(projectChannel, message)
+}
+
 // getHistory proxies history extraction to engine
-func (app *application) getHistory(projectKey, channel string) (interface{}, error) {
+func (app *application) getHistory(projectKey, channel string) ([]interface{}, error) {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	return app.engine.getHistory(projectChannel)
 }

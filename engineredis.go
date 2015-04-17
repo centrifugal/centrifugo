@@ -34,14 +34,14 @@ func (e *redisEngine) removePresence(channel, uid string) error {
 	return nil
 }
 
-func (e *redisEngine) getPresence(channel string) (interface{}, error) {
+func (e *redisEngine) getPresence(channel string) (map[string]interface{}, error) {
 	return map[string]interface{}{}, nil
 }
 
-func (e *redisEngine) addHistoryMessage(channel string, message string) error {
+func (e *redisEngine) addHistoryMessage(channel string, message interface{}) error {
 	return nil
 }
 
-func (e *redisEngine) getHistory(channel string) (interface{}, error) {
-	return map[string]interface{}{}, nil
+func (e *redisEngine) getHistory(channel string) ([]interface{}, error) {
+	return []interface{}{}, nil
 }
