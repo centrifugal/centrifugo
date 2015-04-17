@@ -591,9 +591,3 @@ func (c *client) handleHistory(ps Params) (*response, error) {
 	resp.Body = body
 	return resp, nil
 }
-
-// printIsAuthenticated prints if client authenticated - this is just for debugging
-// during development
-func (c *client) printIsAuthenticated() {
-	log.Println(c.isAuthenticated)
-}

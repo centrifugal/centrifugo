@@ -3,6 +3,7 @@ package main
 // TODO: use interfaces instead of app reference in client and engine
 
 import (
+	"encoding/json"
 	"log"
 	"os"
 	"strconv"
@@ -141,7 +142,30 @@ func (app *application) handleClientMessage(channel, message string) error {
 	return app.subscriptionHub.broadcast(channel, message)
 }
 
-// publishClientMessage publishes message to all clients subscribed on channel
+// publishControlMessage publishes message into control channel so all running
+// nodes will receive it and will process it
+func (app *application) publishControlMessage(messageData map[string]interface{}) error {
+	message, err := json.Marshal(messageData)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return app.engine.publish(app.controlChannel, string(message))
+}
+
+// publishAdminMessage publishes message into admin channel so all running
+// nodes will receive it and send to admins connected
+func (app *application) publishAdminMessage(messageData map[string]interface{}) error {
+	message, err := json.Marshal(messageData)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return app.engine.publish(app.adminChannel, string(message))
+}
+
+// publishClientMessage publishes message into channel so all running nodes
+// will receive it and will send to all clients on node subscribed on channel
 func (app *application) publishClientMessage(p *project, channel string, data, info interface{}) error {
 
 	uid, err := uuid.NewV4()
