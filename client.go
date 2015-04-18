@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"sync"
 
-	"centrifugo/logger"
+	"github.com/centrifugal/centrifugo/logger"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"centrifugo/logger"
+	"github.com/centrifugal/centrifugo/logger"
 
 	"github.com/nu7hatch/gouuid"
 	"github.com/spf13/viper"

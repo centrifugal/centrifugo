@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"centrifugo/logger"
+	"github.com/centrifugal/centrifugo/logger"
 
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/centrifugal/sockjs-go.v2/sockjs"
@@ -85,8 +85,7 @@ type jsonApiRequest struct {
 }
 
 func timeTrack(start time.Time, name string) {
-	elapsed := time.Since(start)
-	logger.INFO.Printf("%s %s\n", name, elapsed)
+	logger.DEBUG.Printf("%s %s\n", name, time.Since(start))
 }
 
 func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

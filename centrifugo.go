@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"centrifugo/logger"
+	"github.com/centrifugal/centrifugo/logger"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/cobra"
