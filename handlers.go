@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"centrifugo/logger"
 
@@ -83,7 +84,14 @@ type jsonApiRequest struct {
 	Data string
 }
 
+func timeTrack(start time.Time, name string) {
+	elapsed := time.Since(start)
+	logger.INFO.Printf("%s %s\n", name, elapsed)
+}
+
 func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	defer timeTrack(time.Now(), "api call completed in")
+
 	projectKey := ps.ByName("projectKey")
 	contentType := r.Header.Get("Content-Type")
 
@@ -188,5 +196,6 @@ func (app *application) infoHandler(w http.ResponseWriter, r *http.Request, ps h
 }
 
 func (app *application) actionsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	defer timeTrack(time.Now(), "api call")
 	fmt.Fprintf(w, "actions\n")
 }

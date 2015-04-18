@@ -5,6 +5,7 @@ import (
 	//"net/http/pprof"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -21,17 +22,7 @@ const (
 
 func setupLogging() {
 
-	logLevelMatches := map[string]logger.Level{
-		"debug":    logger.LevelDebug,
-		"info":     logger.LevelInfo,
-		"warn":     logger.LevelWarn,
-		"error":    logger.LevelError,
-		"critical": logger.LevelCritical,
-		"fatal":    logger.LevelFatal,
-		"none":     logger.LevelNone,
-	}
-
-	logLevel, ok := logLevelMatches[viper.GetString("logging")]
+	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString("logging"))]
 	if !ok {
 		logLevel = logger.LevelInfo
 	}
@@ -40,7 +31,7 @@ func setupLogging() {
 
 	if viper.IsSet("logfile") && viper.GetString("logfile") != "" {
 		logger.SetLogFile(viper.GetString("logfile"))
-		// do not log into stdout when log file used
+		// do not log into stdout when log file provided
 		logger.SetStdoutThreshold(logger.LevelNone)
 	}
 }

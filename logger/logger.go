@@ -59,6 +59,16 @@ var (
 	outputThreshold Level = DefaultStdoutThreshold
 )
 
+var LevelMatches = map[string]Level{
+	"DEBUG":    LevelDebug,
+	"INFO":     LevelInfo,
+	"WARN":     LevelWarn,
+	"ERROR":    LevelError,
+	"CRITICAL": LevelCritical,
+	"FATAL":    LevelFatal,
+	"NONE":     LevelNone,
+}
+
 func init() {
 	initialize()
 }
