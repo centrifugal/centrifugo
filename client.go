@@ -124,9 +124,14 @@ func (c *client) clean() error {
 
 func (c *client) getInfo() map[string]interface{} {
 
-	// TODO: implement this
+	info := map[string]interface{}{
+		"user":         c.user,
+		"client":       c.uid,
+		"default_info": c.info,
+		"channel_info": map[string]interface{}{}, // TODO: implement channel_info
+	}
 
-	return map[string]interface{}{}
+	return info
 }
 
 func getMessageType(msgBytes []byte) (string, error) {
@@ -401,12 +406,6 @@ func (c *client) handleSubscribe(cmd *subscribeClientCommand) (*response, error)
 
 	resp := newResponse("subscribe")
 
-	project, exists := c.app.getProjectByKey(c.project)
-	if !exists {
-		return nil, ErrProjectNotFound
-	}
-	log.Println(project)
-
 	channel := cmd.Channel
 	if channel == "" {
 		return nil, ErrInvalidClientMessage
@@ -425,9 +424,11 @@ func (c *client) handleSubscribe(cmd *subscribeClientCommand) (*response, error)
 	// TODO: check allowed users
 
 	channelOptions := c.app.getChannelOptions(c.project, channel)
-	log.Println(channelOptions)
 
-	// TODO: check anonymous access
+	if !channelOptions.Anonymous && c.user == "" {
+		resp.Error = ErrPermissionDenied
+		return resp, nil
+	}
 
 	if c.app.isPrivateChannel(channel) {
 		// TODO: check provided sign
@@ -442,9 +443,12 @@ func (c *client) handleSubscribe(cmd *subscribeClientCommand) (*response, error)
 	c.channels[channel] = true
 
 	info := c.getInfo()
-	log.Println(info)
 
-	// TODO: add presence info for this channel
+	err = c.app.addPresence(c.project, channel, c.uid, info)
+	if err != nil {
+		log.Println(err)
+		return nil, ErrInternalServerError
+	}
 
 	// TODO: send join message
 
@@ -454,12 +458,6 @@ func (c *client) handleSubscribe(cmd *subscribeClientCommand) (*response, error)
 func (c *client) handleUnsubscribe(cmd *unsubscribeClientCommand) (*response, error) {
 
 	resp := newResponse("unsubscribe")
-
-	project, exists := c.app.getProjectByKey(c.project)
-	if !exists {
-		return nil, ErrProjectNotFound
-	}
-	log.Println(project)
 
 	channel := cmd.Channel
 	if channel == "" {
@@ -504,9 +502,14 @@ func (c *client) handlePublish(cmd *publishClientCommand) (*response, error) {
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
-	log.Println(project)
 
 	channel := cmd.Channel
+	data := cmd.Data
+
+	if channel == "" || data == "" {
+		log.Println("channel and data required")
+		return nil, ErrInvalidClientMessage
+	}
 
 	body := map[string]interface{}{
 		"channel": channel,
@@ -522,7 +525,7 @@ func (c *client) handlePublish(cmd *publishClientCommand) (*response, error) {
 
 	info := c.getInfo()
 
-	err := c.app.publishClientMessage(project, channel, cmd.Data, info)
+	err := c.app.publishClientMessage(project, channel, data, info)
 	if err != nil {
 		log.Println(err)
 		resp.Error = ErrInternalServerError
@@ -542,18 +545,19 @@ func (c *client) handlePresence(cmd *presenceClientCommand) (*response, error) {
 
 	resp := newResponse("presence")
 
-	project, exists := c.app.getProjectByKey(c.project)
-	if !exists {
-		return nil, ErrProjectNotFound
-	}
-	log.Println(project)
-
 	channel := cmd.Channel
 
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	log.Println(channelOptions)
+	if channel == "" {
+		log.Println("channel required")
+		return nil, ErrInvalidClientMessage
+	}
 
-	// TODO: check that presence enabled
+	channelOptions := c.app.getChannelOptions(c.project, channel)
+
+	if !channelOptions.Presence {
+		resp.Error = ErrNotAvailable
+		return resp, nil
+	}
 
 	data, err := c.app.getPresence(c.project, channel)
 	if err != nil {
@@ -576,18 +580,19 @@ func (c *client) handleHistory(cmd *historyClientCommand) (*response, error) {
 
 	resp := newResponse("history")
 
-	project, exists := c.app.getProjectByKey(c.project)
-	if !exists {
-		return nil, ErrProjectNotFound
-	}
-	log.Println(project)
-
 	channel := cmd.Channel
 
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	log.Println(channelOptions)
+	if channel == "" {
+		log.Println("channel required")
+		return nil, ErrInvalidClientMessage
+	}
 
-	// TODO: check that history enabled
+	channelOptions := c.app.getChannelOptions(c.project, channel)
+
+	if channelOptions.HistorySize == 0 {
+		resp.Error = ErrNotAvailable
+		return resp, nil
+	}
 
 	data, err := c.app.getHistory(c.project, channel)
 	if err != nil {

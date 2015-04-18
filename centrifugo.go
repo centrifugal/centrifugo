@@ -101,7 +101,7 @@ func main() {
 			router.Handler("OPTIONS", "/connection/*path", sockJSHandler)
 
 			// register HTTP API endpoint
-			router.GET("/api/:projectKey", app.apiHandler)
+			router.POST("/api/:projectKey", app.apiHandler)
 
 			// register admin web interface API endpoints
 			router.POST("/auth/", app.authHandler)

@@ -16,11 +16,11 @@ func newClientConnectionHandler(app *application) http.Handler {
 }
 
 func (app *application) clientConnectionHandler(session sockjs.Session) {
-	log.Println("new sockjs session established")
+	log.Println("new client session established")
 	var closedSession = make(chan struct{})
 	defer func() {
 		close(closedSession)
-		log.Println("sockjs session closed")
+		log.Println("client session closed")
 	}()
 
 	client, err := newClient(app, session, closedSession)
@@ -44,7 +44,6 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 
 	for {
 		if msg, err := session.Recv(); err == nil {
-			log.Println(msg)
 			err = client.handleMessage(msg)
 			if err != nil {
 				log.Println(err)
