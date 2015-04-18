@@ -4,12 +4,13 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"centrifugo/logger"
 
 	"github.com/nu7hatch/gouuid"
 	"github.com/spf13/viper"
@@ -85,7 +86,7 @@ func getApplicationName() string {
 	var hostname string
 	hostname, err := os.Hostname()
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		hostname = "?"
 	}
 	return hostname + "_" + port
@@ -145,7 +146,7 @@ func (app *application) handleControlMessage(message string) error {
 	var cmd controlCommand
 	err := json.Unmarshal([]byte(message), &cmd)
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		return err
 	}
 
@@ -163,7 +164,7 @@ func (app *application) handleControlMessage(message string) error {
 	case "disconnect":
 		err = app.handleDisconnectControlMessage(cmd.Params)
 	default:
-		log.Println("unknown control message method", method)
+		logger.ERROR.Println("unknown control message method", method)
 	}
 
 	return nil
@@ -187,7 +188,7 @@ func (app *application) handleClientMessage(channel, message string) error {
 func (app *application) publishControlMessage(messageData map[string]interface{}) error {
 	message, err := json.Marshal(messageData)
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		return err
 	}
 	return app.engine.publish(app.controlChannel, string(message))
@@ -225,11 +226,11 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 		}
 		messageBytes, err := resp.toJson()
 		if err != nil {
-			log.Println(err)
+			logger.ERROR.Println(err)
 		} else {
 			err = app.publishAdminMessage(string(messageBytes))
 			if err != nil {
-				log.Println(err)
+				logger.ERROR.Println(err)
 			}
 		}
 	}
@@ -241,19 +242,19 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 
 	byteMessage, err := resp.toJson()
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		return err
 	}
 
 	err = app.engine.publish(projectChannel, string(byteMessage))
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		return err
 	}
 
 	if channelOptions.HistorySize > 0 {
 		// TODO: add message to history
-		log.Println("adding message in history must be implemented here")
+		logger.ERROR.Println("adding message in history must be implemented here")
 	}
 
 	return nil

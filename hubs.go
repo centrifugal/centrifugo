@@ -1,8 +1,9 @@
 package main
 
 import (
-	"log"
 	"sync"
+
+	"centrifugo/logger"
 )
 
 // clientConnectionHub manages client connections
@@ -148,7 +149,7 @@ func (h *clientSubscriptionHub) broadcast(channel, message string) error {
 	for _, c := range channelSubscriptions {
 		err := c.send(message)
 		if err != nil {
-			log.Println(err)
+			logger.ERROR.Println(err)
 		}
 	}
 	return nil
@@ -193,7 +194,7 @@ func (h *adminConnectionHub) broadcast(message string) error {
 	for _, c := range h.connections {
 		err := c.send(message)
 		if err != nil {
-			log.Println(err)
+			logger.ERROR.Println(err)
 		}
 	}
 	return nil

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"centrifugo/logger"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -20,7 +20,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 		var cmd publishApiCommand
 		err := mapstructure.Decode(params, &cmd)
 		if err != nil {
-			log.Println(err)
+			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
 		}
 		resp, err = app.handlePublishCommand(p, &cmd)
@@ -28,7 +28,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 		var cmd unsubscribeApiCommand
 		err := mapstructure.Decode(params, &cmd)
 		if err != nil {
-			log.Println(err)
+			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
 		}
 		resp, err = app.handleUnsubscribeCommand(p, &cmd)
@@ -36,7 +36,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 		var cmd disconnectApiCommand
 		err := mapstructure.Decode(params, &cmd)
 		if err != nil {
-			log.Println(err)
+			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
 		}
 		resp, err = app.handleDisconnectCommand(p, &cmd)
@@ -44,7 +44,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 		var cmd presenceApiCommand
 		err := mapstructure.Decode(params, &cmd)
 		if err != nil {
-			log.Println(err)
+			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
 		}
 		resp, err = app.handlePresenceCommand(p, &cmd)
@@ -52,7 +52,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 		var cmd historyApiCommand
 		err := mapstructure.Decode(params, &cmd)
 		if err != nil {
-			log.Println(err)
+			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
 		}
 		resp, err = app.handleHistoryCommand(p, &cmd)
@@ -74,7 +74,7 @@ func (app *application) handlePublishCommand(p *project, cmd *publishApiCommand)
 	channel := cmd.Channel
 	data := cmd.Data
 	if channel == "" || data == "" {
-		log.Println("channel and data required")
+		logger.ERROR.Println("channel and data required")
 		return nil, ErrInvalidApiMessage
 	}
 
@@ -96,7 +96,7 @@ func (app *application) handleUnsubscribeCommand(p *project, cmd *unsubscribeApi
 	user := cmd.User
 
 	if user == "" {
-		log.Println("user required")
+		logger.ERROR.Println("user required")
 		return nil, ErrInvalidApiMessage
 	}
 
@@ -120,7 +120,7 @@ func (app *application) handleDisconnectCommand(p *project, cmd *disconnectApiCo
 	user := cmd.User
 
 	if user == "" {
-		log.Println("user required")
+		logger.ERROR.Println("user required")
 		return nil, ErrInvalidApiMessage
 	}
 
@@ -137,7 +137,7 @@ func (app *application) handlePresenceCommand(p *project, cmd *presenceApiComman
 	channel := cmd.Channel
 
 	if channel == "" {
-		log.Println("channel required")
+		logger.ERROR.Println("channel required")
 		return nil, ErrInvalidApiMessage
 	}
 
@@ -159,7 +159,7 @@ func (app *application) handleHistoryCommand(p *project, cmd *historyApiCommand)
 	channel := cmd.Channel
 
 	if channel == "" {
-		log.Println("channel required")
+		logger.ERROR.Println("channel required")
 		return nil, ErrInvalidApiMessage
 	}
 

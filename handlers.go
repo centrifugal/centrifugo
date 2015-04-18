@@ -3,9 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
+
+	"centrifugo/logger"
 
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/centrifugal/sockjs-go.v2/sockjs"
@@ -16,16 +17,16 @@ func newClientConnectionHandler(app *application) http.Handler {
 }
 
 func (app *application) clientConnectionHandler(session sockjs.Session) {
-	log.Println("new client session established")
+	logger.INFO.Println("new client session established")
 	var closedSession = make(chan struct{})
 	defer func() {
 		close(closedSession)
-		log.Println("client session closed")
+		logger.INFO.Println("client session closed")
 	}()
 
 	client, err := newClient(app, session, closedSession)
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		return
 	}
 
@@ -35,7 +36,7 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 			case <-closedSession:
 				err = client.clean()
 				if err != nil {
-					log.Println(err)
+					logger.ERROR.Println(err)
 				}
 				return
 			}
@@ -46,7 +47,7 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 		if msg, err := session.Recv(); err == nil {
 			err = client.handleMessage(msg)
 			if err != nil {
-				log.Println(err)
+				logger.ERROR.Println(err)
 				session.Close(3000, err.Error())
 				break
 			}
@@ -95,7 +96,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps ht
 		var decoder = json.NewDecoder(r.Body)
 		err := decoder.Decode(&req)
 		if err != nil {
-			log.Println(err)
+			logger.ERROR.Println(err)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
@@ -108,20 +109,20 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps ht
 	}
 
 	if sign == "" {
-		log.Println("no sign found in API request")
+		logger.ERROR.Println("no sign found in API request")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
 	if encodedData == "" {
-		log.Println("no data found in API request")
+		logger.ERROR.Println("no data found in API request")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
 	project, exists := app.getProjectByKey(projectKey)
 	if !exists {
-		log.Println("no project found with key", projectKey)
+		logger.ERROR.Println("no project found with key", projectKey)
 		http.Error(w, "Project not found", http.StatusNotFound)
 		return
 	}
@@ -130,7 +131,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps ht
 
 	isValid := checkApiSign(secret, projectKey, encodedData, sign)
 	if !isValid {
-		log.Println("invalid sign")
+		logger.ERROR.Println("invalid sign")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -138,14 +139,14 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps ht
 	msgBytes := []byte(encodedData)
 	msgType, err := getMessageType(msgBytes)
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
 	commands, err := getCommandsFromApiMessage(msgBytes, msgType)
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -155,7 +156,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps ht
 	for _, command := range commands {
 		resp, err := app.handleApiCommand(project, command)
 		if err != nil {
-			log.Println(err)
+			logger.ERROR.Println(err)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
@@ -163,7 +164,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps ht
 	}
 	jsonResp, err := mr.toJson()
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

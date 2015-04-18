@@ -2,9 +2,10 @@ package main
 
 import (
 	"encoding/json"
-	"log"
 	"strconv"
 	"sync"
+
+	"centrifugo/logger"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
@@ -97,7 +98,7 @@ func (c *client) clean() error {
 
 	if projectKey != "" {
 		// TODO: remove from connectionHub
-		log.Println("remove from connectionHub must be implemented")
+		logger.ERROR.Println("remove from connectionHub must be implemented")
 	}
 
 	if projectKey != "" && len(c.channels) > 0 {
@@ -107,13 +108,13 @@ func (c *client) clean() error {
 
 			err := c.app.removeSubscription(projectKey, channel, c)
 			if err != nil {
-				log.Println(err)
+				logger.ERROR.Println(err)
 			}
 
 			channelOptions := c.app.getChannelOptions(projectKey, channel)
 			if channelOptions.JoinLeave {
 				// TODO: send leave message in channel
-				log.Println("sending leave message must be implemented")
+				logger.ERROR.Println("sending leave message must be implemented")
 			}
 		}
 	}
@@ -317,13 +318,13 @@ func (c *client) handleConnect(cmd *connectClientCommand) (*response, error) {
 
 	isValid := checkClientToken(project.Secret, projectKey, user, timestamp, info, token)
 	if !isValid {
-		log.Println("invalid token for user", user)
+		logger.ERROR.Println("invalid token for user", user)
 		return nil, ErrInvalidToken
 	}
 
 	ts, err := strconv.Atoi(timestamp)
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		return nil, ErrInvalidClientMessage
 	}
 
@@ -334,7 +335,7 @@ func (c *client) handleConnect(cmd *connectClientCommand) (*response, error) {
 	var defaultInfo interface{}
 	err = json.Unmarshal([]byte(info), &defaultInfo)
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		defaultInfo = map[string]interface{}{}
 	}
 
@@ -375,13 +376,13 @@ func (c *client) handleRefresh(cmd *refreshClientCommand) (*response, error) {
 
 	isValid := checkClientToken(project.Secret, projectKey, user, timestamp, info, token)
 	if !isValid {
-		log.Println("invalid refresh token for user", user)
+		logger.ERROR.Println("invalid refresh token for user", user)
 		return nil, ErrInvalidToken
 	}
 
 	ts, err := strconv.Atoi(timestamp)
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		return nil, ErrInvalidClientMessage
 	}
 
@@ -436,7 +437,7 @@ func (c *client) handleSubscribe(cmd *subscribeClientCommand) (*response, error)
 
 	err := c.app.addSubscription(c.project, channel, c)
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		return resp, ErrInternalServerError
 	}
 
@@ -446,7 +447,7 @@ func (c *client) handleSubscribe(cmd *subscribeClientCommand) (*response, error)
 
 	err = c.app.addPresence(c.project, channel, c.uid, info)
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		return nil, ErrInternalServerError
 	}
 
@@ -470,11 +471,11 @@ func (c *client) handleUnsubscribe(cmd *unsubscribeClientCommand) (*response, er
 	resp.Body = body
 
 	channelOptions := c.app.getChannelOptions(c.project, channel)
-	log.Println(channelOptions)
+	logger.ERROR.Println(channelOptions)
 
 	err := c.app.removeSubscription(c.project, channel, c)
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		return resp, ErrInternalServerError
 	}
 
@@ -507,7 +508,7 @@ func (c *client) handlePublish(cmd *publishClientCommand) (*response, error) {
 	data := cmd.Data
 
 	if channel == "" || data == "" {
-		log.Println("channel and data required")
+		logger.ERROR.Println("channel and data required")
 		return nil, ErrInvalidClientMessage
 	}
 
@@ -532,7 +533,7 @@ func (c *client) handlePublish(cmd *publishClientCommand) (*response, error) {
 
 	err := c.app.publishClientMessage(project, channel, data, info)
 	if err != nil {
-		log.Println(err)
+		logger.ERROR.Println(err)
 		resp.Error = ErrInternalServerError
 	} else {
 		body["status"] = true
@@ -553,7 +554,7 @@ func (c *client) handlePresence(cmd *presenceClientCommand) (*response, error) {
 	channel := cmd.Channel
 
 	if channel == "" {
-		log.Println("channel required")
+		logger.ERROR.Println("channel required")
 		return nil, ErrInvalidClientMessage
 	}
 
@@ -588,7 +589,7 @@ func (c *client) handleHistory(cmd *historyClientCommand) (*response, error) {
 	channel := cmd.Channel
 
 	if channel == "" {
-		log.Println("channel required")
+		logger.ERROR.Println("channel required")
 		return nil, ErrInvalidClientMessage
 	}
 

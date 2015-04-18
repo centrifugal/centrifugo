@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"net/http"
 	//"net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"centrifugo/logger"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/cobra"
@@ -19,8 +19,30 @@ const (
 	VERSION = "0.8.0"
 )
 
-func init() {
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+func setupLogging() {
+
+	logLevelMatches := map[string]logger.Level{
+		"debug":    logger.LevelDebug,
+		"info":     logger.LevelInfo,
+		"warn":     logger.LevelWarn,
+		"error":    logger.LevelError,
+		"critical": logger.LevelCritical,
+		"fatal":    logger.LevelFatal,
+		"none":     logger.LevelNone,
+	}
+
+	logLevel, ok := logLevelMatches[viper.GetString("logging")]
+	if !ok {
+		logLevel = logger.LevelInfo
+	}
+	logger.SetLogThreshold(logLevel)
+	logger.SetStdoutThreshold(logLevel)
+
+	if viper.IsSet("logfile") && viper.GetString("logfile") != "" {
+		logger.SetLogFile(viper.GetString("logfile"))
+		// do not log into stdout when log file used
+		logger.SetStdoutThreshold(logger.LevelNone)
+	}
 }
 
 func handleSignals(app *application) {
@@ -28,13 +50,14 @@ func handleSignals(app *application) {
 	signal.Notify(sigc, syscall.SIGHUP)
 	for {
 		sig := <-sigc
-		log.Println("signal received:", sig)
+		logger.INFO.Println("signal received:", sig)
 		switch sig {
 		case syscall.SIGHUP:
 			// reload application configuration on SIGHUP
-			log.Println("reload configuration")
+			logger.INFO.Println("reload configuration")
 			viper.ReadInConfig()
 			app.initialize()
+			setupLogging()
 		}
 	}
 }
@@ -47,6 +70,8 @@ func main() {
 	var name string
 	var web string
 	var configFile string
+	var logging string
+	var logFile string
 
 	var rootCmd = &cobra.Command{
 		Use:   "",
@@ -67,7 +92,6 @@ func main() {
 			viper.SetDefault("user_channel_separator", ",")
 
 			viper.SetConfigFile(configFile)
-			viper.ReadInConfig()
 
 			viper.SetEnvPrefix("centrifuge")
 			viper.BindEnv("structure", "engine", "insecure", "password", "cookie_secret", "api_secret")
@@ -77,12 +101,21 @@ func main() {
 			viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
+			viper.BindPFlag("logging", cmd.Flags().Lookup("logging"))
+			viper.BindPFlag("logfile", cmd.Flags().Lookup("logfile"))
 
-			fmt.Printf("%v\n", viper.AllSettings())
+			err := viper.ReadInConfig()
+			if err != nil {
+				panic("unable to locate config file")
+			}
+			setupLogging()
+
+			logger.INFO.Println("Using config file:", viper.ConfigFileUsed())
+			logger.DEBUG.Printf("%v\n", viper.AllSettings())
 
 			app, err := newApplication()
 			if err != nil {
-				log.Panic(err)
+				panic(err)
 			}
 
 			e := newMemoryEngine(app)
@@ -118,7 +151,7 @@ func main() {
 					select {
 					case <-tick:
 						for ch, val := range app.clientSubscriptionHub.subscriptions {
-							fmt.Printf("%s: %d\n", ch, len(val))
+							logger.INFO.Printf("%s: %d\n", ch, len(val))
 						}
 					}
 				}
@@ -133,7 +166,7 @@ func main() {
 
 			addr := viper.GetString("address") + ":" + viper.GetString("port")
 			if err := http.ListenAndServe(addr, router); err != nil {
-				log.Fatal("ListenAndServe: ", err)
+				logger.FATAL.Fatalln("ListenAndServe:", err)
 			}
 		},
 	}
@@ -143,5 +176,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
 	rootCmd.Flags().StringVarP(&web, "web", "w", "", "optional path to web interface application")
+	rootCmd.Flags().StringVarP(&logging, "logging", "l", "info", "set the log level: debug, info, error, critical, fatal or none")
+	rootCmd.Flags().StringVarP(&logFile, "logfile", "f", "", "log file")
 	rootCmd.Execute()
 }
