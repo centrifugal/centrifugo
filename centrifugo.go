@@ -110,7 +110,7 @@ func main() {
 			}
 			setupLogging()
 
-			logger.INFO.Println("Using config file:", viper.ConfigFileUsed())
+			logger.INFO.Println("using config file:", viper.ConfigFileUsed())
 			logger.DEBUG.Printf("%v\n", viper.AllSettings())
 
 			app, err := newApplication()
@@ -172,11 +172,11 @@ func main() {
 	}
 	rootCmd.Flags().StringVarP(&port, "port", "p", "8000", "port")
 	rootCmd.Flags().StringVarP(&address, "address", "a", "localhost", "address")
-	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "debug")
+	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "debug mode - please, do not use it in production")
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
 	rootCmd.Flags().StringVarP(&web, "web", "w", "", "optional path to web interface application")
 	rootCmd.Flags().StringVarP(&logging, "logging", "l", "info", "set the log level: debug, info, error, critical, fatal or none")
-	rootCmd.Flags().StringVarP(&logFile, "logfile", "f", "", "log file")
+	rootCmd.Flags().StringVarP(&logFile, "logfile", "f", "", "optional log file - if not specified all logs go to STDOUT")
 	rootCmd.Execute()
 }
