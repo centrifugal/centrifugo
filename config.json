@@ -10,7 +10,8 @@
         {
           "name": "public",
           "publish": true,
-          "watch": true
+          "watch": true,
+          "presence": true
         }
       ]
     }

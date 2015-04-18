@@ -218,6 +218,10 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 	}
 
 	channelOptions := app.getChannelOptions(p.Name, channel)
+	if channelOptions == nil {
+		return ErrNamespaceNotFound
+	}
+
 	if channelOptions.Watch {
 		resp := newResponse("message")
 		resp.Body = map[string]interface{}{
@@ -258,6 +262,20 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 	}
 
 	return nil
+}
+
+func (app *application) publishJoinLeaveMessage(projectKey, channel, method string, info map[string]interface{}) error {
+	projectChannel := app.getProjectChannel(projectKey, channel)
+	resp := newResponse(method)
+	resp.Body = map[string]interface{}{
+		"channel": channel,
+		"data":    info,
+	}
+	byteMessage, err := resp.toJson()
+	if err != nil {
+		return err
+	}
+	return app.engine.publish(projectChannel, string(byteMessage))
 }
 
 func (app *application) handlePingControlMessage(params Params) error {

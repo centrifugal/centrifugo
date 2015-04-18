@@ -20,6 +20,20 @@ func newResponse(method string) *response {
 	}
 }
 
+func (r *response) MarshalJSON() ([]byte, error) {
+	var err interface{}
+	if r.Error != nil {
+		err = r.Error.Error()
+	} else {
+		err = nil
+	}
+	return json.Marshal(map[string]interface{}{
+		"body":   r.Body,
+		"error":  err,
+		"method": r.Method,
+	})
+}
+
 // multiResponse is a slice of responses in execution
 // order - from first executed to last one
 type multiResponse []*response

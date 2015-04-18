@@ -96,27 +96,22 @@ func (c *client) clean() error {
 
 	projectKey := c.project
 
-	if projectKey != "" {
-		// TODO: remove from connectionHub
-		logger.ERROR.Println("remove from connectionHub must be implemented")
-	}
-
 	if projectKey != "" && len(c.channels) > 0 {
+		// unsubscribe from all channels
 		for channel, _ := range c.channels {
-
-			// TODO: remove presence in channel
-
-			err := c.app.removeSubscription(projectKey, channel, c)
+			cmd := &unsubscribeClientCommand{
+				Channel: channel,
+			}
+			_, err := c.handleUnsubscribe(cmd)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
-
-			channelOptions := c.app.getChannelOptions(projectKey, channel)
-			if channelOptions.JoinLeave {
-				// TODO: send leave message in channel
-				logger.ERROR.Println("sending leave message must be implemented")
-			}
 		}
+	}
+
+	if projectKey != "" {
+		// TODO: remove from connectionHub
+		logger.ERROR.Println("remove from connectionHub must be implemented")
 	}
 
 	// TODO: check that client and sockjs session garbage collected
@@ -202,6 +197,8 @@ func (c *client) handleCommands(commands []clientCommand) error {
 	if err != nil {
 		return err
 	}
+	logger.ERROR.Printf("%#v\n", mr)
+	logger.ERROR.Println(string(jsonResp))
 	err = c.session.Send(string(jsonResp))
 	return err
 }
@@ -425,6 +422,10 @@ func (c *client) handleSubscribe(cmd *subscribeClientCommand) (*response, error)
 	// TODO: check allowed users
 
 	channelOptions := c.app.getChannelOptions(c.project, channel)
+	if channelOptions == nil {
+		resp.Error = ErrNamespaceNotFound
+		return resp, nil
+	}
 
 	if !channelOptions.Anonymous && c.user == "" {
 		resp.Error = ErrPermissionDenied
@@ -451,7 +452,12 @@ func (c *client) handleSubscribe(cmd *subscribeClientCommand) (*response, error)
 		return nil, ErrInternalServerError
 	}
 
-	// TODO: send join message
+	if channelOptions.JoinLeave {
+		err = c.app.publishJoinLeaveMessage(c.project, channel, "join", c.getInfo())
+		if err != nil {
+			logger.ERROR.Println(err)
+		}
+	}
 
 	return resp, nil
 }
@@ -471,7 +477,10 @@ func (c *client) handleUnsubscribe(cmd *unsubscribeClientCommand) (*response, er
 	resp.Body = body
 
 	channelOptions := c.app.getChannelOptions(c.project, channel)
-	logger.ERROR.Println(channelOptions)
+	if channelOptions == nil {
+		resp.Error = ErrNamespaceNotFound
+		return resp, nil
+	}
 
 	err := c.app.removeSubscription(c.project, channel, c)
 	if err != nil {
@@ -485,7 +494,12 @@ func (c *client) handleUnsubscribe(cmd *unsubscribeClientCommand) (*response, er
 
 		// TODO: remove presence using engine
 
-		// send leave message into channel
+		if channelOptions.JoinLeave {
+			err = c.app.publishJoinLeaveMessage(c.project, channel, "leave", c.getInfo())
+			if err != nil {
+				logger.ERROR.Println(err)
+			}
+		}
 	}
 
 	return resp, nil
@@ -516,6 +530,7 @@ func (c *client) handlePublish(cmd *publishClientCommand) (*response, error) {
 		"channel": channel,
 		"status":  false,
 	}
+	resp.Body = body
 
 	if _, ok := c.channels[channel]; !ok {
 		resp.Error = ErrPermissionDenied
@@ -523,6 +538,10 @@ func (c *client) handlePublish(cmd *publishClientCommand) (*response, error) {
 	}
 
 	channelOptions := c.app.getChannelOptions(c.project, channel)
+	if channelOptions == nil {
+		resp.Error = ErrNamespaceNotFound
+		return resp, nil
+	}
 
 	if !channelOptions.Publish {
 		resp.Error = ErrPermissionDenied
@@ -536,8 +555,10 @@ func (c *client) handlePublish(cmd *publishClientCommand) (*response, error) {
 		logger.ERROR.Println(err)
 		resp.Error = ErrInternalServerError
 	} else {
-		body["status"] = true
-		resp.Body = body
+		resp.Body = map[string]interface{}{
+			"channel": channel,
+			"status":  true,
+		}
 	}
 
 	return resp, nil
@@ -558,7 +579,17 @@ func (c *client) handlePresence(cmd *presenceClientCommand) (*response, error) {
 		return nil, ErrInvalidClientMessage
 	}
 
+	body := map[string]interface{}{
+		"channel": channel,
+	}
+
+	resp.Body = body
+
 	channelOptions := c.app.getChannelOptions(c.project, channel)
+	if channelOptions == nil {
+		resp.Error = ErrNamespaceNotFound
+		return resp, nil
+	}
 
 	if !channelOptions.Presence {
 		resp.Error = ErrNotAvailable
@@ -571,10 +602,10 @@ func (c *client) handlePresence(cmd *presenceClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	body := map[string]interface{}{
-		"data": data,
+	resp.Body = map[string]interface{}{
+		"channel": channel,
+		"data":    data,
 	}
-	resp.Body = body
 	return resp, nil
 }
 
@@ -593,7 +624,17 @@ func (c *client) handleHistory(cmd *historyClientCommand) (*response, error) {
 		return nil, ErrInvalidClientMessage
 	}
 
+	body := map[string]interface{}{
+		"channel": channel,
+	}
+
+	resp.Body = body
+
 	channelOptions := c.app.getChannelOptions(c.project, channel)
+	if channelOptions == nil {
+		resp.Error = ErrNamespaceNotFound
+		return resp, nil
+	}
 
 	if channelOptions.HistorySize == 0 {
 		resp.Error = ErrNotAvailable
@@ -606,9 +647,9 @@ func (c *client) handleHistory(cmd *historyClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	body := map[string]interface{}{
-		"data": data,
+	resp.Body = map[string]interface{}{
+		"channel": channel,
+		"data":    data,
 	}
-	resp.Body = body
 	return resp, nil
 }

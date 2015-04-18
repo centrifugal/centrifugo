@@ -21,7 +21,6 @@ const (
 )
 
 func setupLogging() {
-
 	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString("logging"))]
 	if !ok {
 		logLevel = logger.LevelInfo

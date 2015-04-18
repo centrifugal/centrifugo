@@ -78,6 +78,12 @@ func (app *application) handlePublishCommand(p *project, cmd *publishApiCommand)
 		return nil, ErrInvalidApiMessage
 	}
 
+	channelOptions := app.getChannelOptions(p.Name, channel)
+	if channelOptions == nil {
+		resp.Error = ErrNamespaceNotFound
+		return resp, nil
+	}
+
 	err := app.publishClientMessage(p, channel, data, nil)
 	if err != nil {
 		resp.Error = ErrInternalServerError
@@ -98,6 +104,14 @@ func (app *application) handleUnsubscribeCommand(p *project, cmd *unsubscribeApi
 	if user == "" {
 		logger.ERROR.Println("user required")
 		return nil, ErrInvalidApiMessage
+	}
+
+	if channel != "" {
+		channelOptions := app.getChannelOptions(p.Name, channel)
+		if channelOptions == nil {
+			resp.Error = ErrNamespaceNotFound
+			return resp, nil
+		}
 	}
 
 	err := app.unsubscribeUserFromChannel(user, channel)
@@ -141,13 +155,33 @@ func (app *application) handlePresenceCommand(p *project, cmd *presenceApiComman
 		return nil, ErrInvalidApiMessage
 	}
 
+	body := map[string]interface{}{
+		"channel": channel,
+	}
+
+	resp.Body = body
+
+	channelOptions := app.getChannelOptions(p.Name, channel)
+	if channelOptions == nil {
+		resp.Error = ErrNamespaceNotFound
+		return resp, nil
+	}
+
+	if !channelOptions.Presence {
+		resp.Error = ErrNotAvailable
+		return resp, nil
+	}
+
 	presence, err := app.getPresence(p.Name, channel)
 	if err != nil {
 		resp.Error = ErrInternalServerError
 		return resp, nil
 	}
 
-	resp.Body = presence
+	resp.Body = map[string]interface{}{
+		"channel": channel,
+		"data":    presence,
+	}
 	return resp, nil
 }
 
@@ -163,12 +197,32 @@ func (app *application) handleHistoryCommand(p *project, cmd *historyApiCommand)
 		return nil, ErrInvalidApiMessage
 	}
 
+	body := map[string]interface{}{
+		"channel": channel,
+	}
+
+	resp.Body = body
+
+	channelOptions := app.getChannelOptions(p.Name, channel)
+	if channelOptions == nil {
+		resp.Error = ErrNamespaceNotFound
+		return resp, nil
+	}
+
+	if channelOptions.HistorySize <= 0 {
+		resp.Error = ErrNotAvailable
+		return resp, nil
+	}
+
 	history, err := app.getHistory(p.Name, channel)
 	if err != nil {
 		resp.Error = ErrInternalServerError
 		return resp, nil
 	}
 
-	resp.Body = history
+	resp.Body = map[string]interface{}{
+		"channel": channel,
+		"data":    history,
+	}
 	return resp, nil
 }
