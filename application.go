@@ -195,13 +195,8 @@ func (app *application) publishControlMessage(messageData map[string]interface{}
 
 // publishAdminMessage publishes message into admin channel so all running
 // nodes will receive it and send to admins connected
-func (app *application) publishAdminMessage(messageData map[string]interface{}) error {
-	message, err := json.Marshal(messageData)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	return app.engine.publish(app.adminChannel, string(message))
+func (app *application) publishAdminMessage(message string) error {
+	return app.engine.publish(app.adminChannel, message)
 }
 
 // publishClientMessage publishes message into channel so all running nodes
@@ -221,12 +216,22 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 		"data":      data,
 	}
 
-	log.Println(message)
-
 	channelOptions := app.getChannelOptions(p.Name, channel)
 	if channelOptions.Watch {
-		// TODO: send admin message
-		log.Println("publish admin message must be implemented here")
+		resp := newResponse("message")
+		resp.Body = map[string]interface{}{
+			"project": p.Name,
+			"message": message,
+		}
+		messageBytes, err := resp.toJson()
+		if err != nil {
+			log.Println(err)
+		} else {
+			err = app.publishAdminMessage(string(messageBytes))
+			if err != nil {
+				log.Println(err)
+			}
+		}
 	}
 
 	projectChannel := app.getProjectChannel(p.Name, channel)

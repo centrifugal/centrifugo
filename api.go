@@ -6,7 +6,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// handleApiCommand dispatches API command into correct handler method
+// handleApiCommand builds API command and dispatches it into correct handler method
 func (app *application) handleApiCommand(p *project, command apiCommand) (*response, error) {
 
 	var err error

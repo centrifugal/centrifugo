@@ -516,12 +516,17 @@ func (c *client) handlePublish(cmd *publishClientCommand) (*response, error) {
 		"status":  false,
 	}
 
-	// TODO: check that client subscribed on this channel
+	if _, ok := c.channels[channel]; !ok {
+		resp.Error = ErrPermissionDenied
+		return resp, nil
+	}
 
 	channelOptions := c.app.getChannelOptions(c.project, channel)
-	log.Println(channelOptions)
 
-	// TODO: check that publishing allowed
+	if !channelOptions.Publish {
+		resp.Error = ErrPermissionDenied
+		return resp, nil
+	}
 
 	info := c.getInfo()
 
