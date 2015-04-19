@@ -298,6 +298,17 @@ func (app *application) getProjectChannel(projectKey, channel string) string {
 	return app.channelPrefix + "." + projectKey + "." + channel
 }
 
+// addConnection registers authenticated connection in clientConnectionHub
+// this allows to make operations with user connection on demand
+func (app *application) addConnection(c clientConnection) error {
+	return app.clientConnectionHub.add(c)
+}
+
+// removeConnection removes client connection from connection registry
+func (app *application) removeConnection(c clientConnection) error {
+	return app.clientConnectionHub.remove(c)
+}
+
 // addSubscription registers subscription of connection on channel in both
 // engine and clientSubscriptionHub
 func (app *application) addSubscription(projectKey, channel string, c clientConnection) error {

@@ -195,6 +195,5 @@ func (app *application) infoHandler(w http.ResponseWriter, r *http.Request, ps h
 }
 
 func (app *application) actionsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	defer timeTrack(time.Now(), "api call")
 	fmt.Fprintf(w, "actions\n")
 }

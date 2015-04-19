@@ -68,7 +68,7 @@ func (c *client) unsubscribe(channel string) error {
 	cmd := &unsubscribeClientCommand{
 		Channel: channel,
 	}
-	resp, err := c.handleUnsubscribe(cmd)
+	resp, err := c.handleUnsubscribeCommand(cmd)
 	if err != nil {
 		return err
 	}
@@ -102,7 +102,7 @@ func (c *client) clean() error {
 			cmd := &unsubscribeClientCommand{
 				Channel: channel,
 			}
-			_, err := c.handleUnsubscribe(cmd)
+			_, err := c.handleUnsubscribeCommand(cmd)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -110,8 +110,10 @@ func (c *client) clean() error {
 	}
 
 	if projectKey != "" {
-		// TODO: remove from connectionHub
-		logger.ERROR.Println("remove from connectionHub must be implemented")
+		err := c.app.removeConnection(c)
+		if err != nil {
+			logger.ERROR.Println(err)
+		}
 	}
 
 	// TODO: check that client and sockjs session garbage collected
@@ -197,8 +199,6 @@ func (c *client) handleCommands(commands []clientCommand) error {
 	if err != nil {
 		return err
 	}
-	logger.ERROR.Printf("%#v\n", mr)
-	logger.ERROR.Println(string(jsonResp))
 	err = c.session.Send(string(jsonResp))
 	return err
 }
@@ -222,51 +222,51 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handleConnect(&cmd)
+		resp, err = c.handleConnectCommand(&cmd)
 	case "refresh":
 		var cmd refreshClientCommand
 		err = mapstructure.Decode(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handleRefresh(&cmd)
+		resp, err = c.handleRefreshCommand(&cmd)
 	case "subscribe":
 		var cmd subscribeClientCommand
 		err = mapstructure.Decode(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handleSubscribe(&cmd)
+		resp, err = c.handleSubscribeCommand(&cmd)
 	case "unsubscribe":
 		var cmd unsubscribeClientCommand
 		err = mapstructure.Decode(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handleUnsubscribe(&cmd)
+		resp, err = c.handleUnsubscribeCommand(&cmd)
 	case "publish":
 		var cmd publishClientCommand
 		err = mapstructure.Decode(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handlePublish(&cmd)
+		resp, err = c.handlePublishCommand(&cmd)
 	case "ping":
-		resp, err = c.handlePing()
+		resp, err = c.handlePingCommand()
 	case "presence":
 		var cmd presenceClientCommand
 		err = mapstructure.Decode(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handlePresence(&cmd)
+		resp, err = c.handlePresenceCommand(&cmd)
 	case "history":
 		var cmd historyClientCommand
 		err = mapstructure.Decode(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handleHistory(&cmd)
+		resp, err = c.handleHistoryCommand(&cmd)
 	default:
 		return nil, ErrMethodNotFound
 	}
@@ -277,20 +277,20 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 	return resp, nil
 }
 
-// handlePing handles ping command from client - this is necessary sometimes
+// handlePingCommand handles ping command from client - this is necessary sometimes
 // for example, in the past Heroku closed websocket connection after some time
 // of inactive period when no messages with payload travelled over wire
 // (despite of heartbeat frames existence)
-func (c *client) handlePing() (*response, error) {
+func (c *client) handlePingCommand() (*response, error) {
 	resp := newResponse("ping")
 	resp.Body = "pong"
 	return resp, nil
 }
 
-// handleConnect handles connect command from client - client must send this
+// handleConnectCommand handles connect command from client - client must send this
 // command immediately after establishing Websocket or SockJS connection with
 // Centrifuge
-func (c *client) handleConnect(cmd *connectClientCommand) (*response, error) {
+func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, error) {
 
 	resp := newResponse("connect")
 
@@ -340,9 +340,13 @@ func (c *client) handleConnect(cmd *connectClientCommand) (*response, error) {
 	c.info = defaultInfo
 	c.channels = map[string]bool{}
 
-	// TODO: initialize presence ping
+	err = c.app.addConnection(c)
+	if err != nil {
+		logger.ERROR.Println(err)
+		return nil, ErrInternalServerError
+	}
 
-	// TODO: add connection to application hub
+	// TODO: initialize presence ping
 
 	body := map[string]interface{}{
 		"client":  c.uid,
@@ -353,7 +357,9 @@ func (c *client) handleConnect(cmd *connectClientCommand) (*response, error) {
 	return resp, nil
 }
 
-func (c *client) handleRefresh(cmd *refreshClientCommand) (*response, error) {
+// handleRefreshCommand handle refresh command to update connection with new
+// timestamp - this is only required when connection lifetime project option set.
+func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, error) {
 
 	resp := newResponse("refresh")
 
@@ -397,10 +403,10 @@ func (c *client) handleRefresh(cmd *refreshClientCommand) (*response, error) {
 	return resp, nil
 }
 
-// handleSubscribe handles subscribe command - clients send this when subscribe
+// handleSubscribeCommand handles subscribe command - clients send this when subscribe
 // on channel, if channel if private then we must validate provided sign here before
 // actually subscribe client on channel
-func (c *client) handleSubscribe(cmd *subscribeClientCommand) (*response, error) {
+func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response, error) {
 
 	resp := newResponse("subscribe")
 
@@ -462,7 +468,9 @@ func (c *client) handleSubscribe(cmd *subscribeClientCommand) (*response, error)
 	return resp, nil
 }
 
-func (c *client) handleUnsubscribe(cmd *unsubscribeClientCommand) (*response, error) {
+// handleUnsubscribeCommand handles unsubscribe command from client - it allows to
+// unsubscribe connection from channel
+func (c *client) handleUnsubscribeCommand(cmd *unsubscribeClientCommand) (*response, error) {
 
 	resp := newResponse("unsubscribe")
 
@@ -490,9 +498,13 @@ func (c *client) handleUnsubscribe(cmd *unsubscribeClientCommand) (*response, er
 
 	_, ok := c.channels[channel]
 	if ok {
+
 		delete(c.channels, channel)
 
-		// TODO: remove presence using engine
+		err = c.app.removePresence(c.project, channel, c.uid)
+		if err != nil {
+			logger.ERROR.Println(err)
+		}
 
 		if channelOptions.JoinLeave {
 			err = c.app.publishJoinLeaveMessage(c.project, channel, "leave", c.getInfo())
@@ -505,11 +517,11 @@ func (c *client) handleUnsubscribe(cmd *unsubscribeClientCommand) (*response, er
 	return resp, nil
 }
 
-// handlePublish handles publish command - clients can publish messages into channels
-// themselves if `publish` allowed by channel options. In most cases clients not
+// handlePublishCommand handles publish command - clients can publish messages into
+// channels themselves if `publish` allowed by channel options. In most cases clients not
 // allowed to publish into channels directly - web application publishes messages
 // itself via HTTP API or Redis.
-func (c *client) handlePublish(cmd *publishClientCommand) (*response, error) {
+func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, error) {
 
 	resp := newResponse("publish")
 
@@ -564,11 +576,11 @@ func (c *client) handlePublish(cmd *publishClientCommand) (*response, error) {
 	return resp, nil
 }
 
-// handlePresence handles presence command - it shows which clients
+// handlePresenceCommand handles presence command - it shows which clients
 // are subscribed on channel at this moment. This method also checks if
 // presence information turned on for channel (based on channel options
 // for namespace or project)
-func (c *client) handlePresence(cmd *presenceClientCommand) (*response, error) {
+func (c *client) handlePresenceCommand(cmd *presenceClientCommand) (*response, error) {
 
 	resp := newResponse("presence")
 
@@ -609,11 +621,11 @@ func (c *client) handlePresence(cmd *presenceClientCommand) (*response, error) {
 	return resp, nil
 }
 
-// handleHistory handles history command - it shows last M messages published
+// handleHistoryCommand handles history command - it shows last M messages published
 // into channel. M is history size and can be configured for project or namespace
 // via channel options. Also this method checks that history available for channel
 // (also determined by channel options flag)
-func (c *client) handleHistory(cmd *historyClientCommand) (*response, error) {
+func (c *client) handleHistoryCommand(cmd *historyClientCommand) (*response, error) {
 
 	resp := newResponse("history")
 
