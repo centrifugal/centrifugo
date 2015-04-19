@@ -151,7 +151,6 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 	if msgType == "" {
-		logger.ERROR.Println(err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
