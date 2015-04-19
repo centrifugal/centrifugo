@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/centrifugal/centrifugo/logger"
 
@@ -28,7 +29,7 @@ type client struct {
 	closeChannel    chan struct{}
 }
 
-func newClient(app *application, s session, closeChannel chan struct{}) (*client, error) {
+func newClient(app *application, s session) (*client, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -37,7 +38,7 @@ func newClient(app *application, s session, closeChannel chan struct{}) (*client
 		uid:          uid.String(),
 		app:          app,
 		session:      s,
-		closeChannel: closeChannel,
+		closeChannel: make(chan struct{}),
 	}, nil
 }
 
@@ -115,7 +116,6 @@ func (c *client) clean() error {
 		}
 	}
 
-	// TODO: check that client and sockjs session garbage collected
 	return nil
 }
 
@@ -129,6 +129,21 @@ func (c *client) getInfo() map[string]interface{} {
 	}
 
 	return info
+}
+
+func (c *client) startPresencePing() {
+	tick := time.Tick(time.Duration(c.app.presencePingInterval) * time.Second)
+	for {
+		select {
+		case <-tick:
+			logger.INFO.Println("presence ping tick")
+		case <-c.closeChannel:
+			logger.INFO.Println("return from pressence ping")
+			return
+		}
+
+	}
+	select {}
 }
 
 func getMessageType(msgBytes []byte) (string, error) {
@@ -346,6 +361,7 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	}
 
 	// TODO: initialize presence ping
+	go c.startPresencePing()
 
 	body := map[string]interface{}{
 		"client":  c.uid,

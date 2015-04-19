@@ -25,7 +25,7 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 		logger.INFO.Println("client session closed")
 	}()
 
-	client, err := newClient(app, session, closedSession)
+	client, err := newClient(app, session)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return
