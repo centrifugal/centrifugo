@@ -158,7 +158,7 @@ func getMessageType(msgBytes []byte) (string, error) {
 	case []interface{}:
 		return "array", nil
 	default:
-		return "", ErrInvalidClientMessage
+		return "", nil
 	}
 }
 
@@ -187,7 +187,10 @@ func (c *client) handleMessage(msg string) error {
 	msgBytes := []byte(msg)
 	msgType, err := getMessageType(msgBytes)
 	if err != nil {
-		return err
+		return ErrInvalidClientMessage
+	}
+	if msgType == "" {
+		return ErrInvalidClientMessage
 	}
 
 	commands, err := getCommandsFromClientMessage(msgBytes, msgType)
