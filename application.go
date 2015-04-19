@@ -331,9 +331,40 @@ func (app *application) removeSubscription(projectKey, channel string, c clientC
 	return app.clientSubscriptionHub.remove(projectChannel, c)
 }
 
-func (app *application) unsubscribeUserFromChannel(user, channel string) error {
+func (app *application) unsubscribeUserFromChannel(projectKey, user, channel string) error {
 
-	// TODO: implement this
+	userConnections := app.clientConnectionHub.getUserConnections(projectKey, user)
+
+	for _, c := range userConnections {
+		var channels []string
+		if channel == "" {
+			// unsubscribe from all channels
+			channels = c.getChannels()
+		} else {
+			channels = []string{channel}
+		}
+
+		for _, channel := range channels {
+			err := c.unsubscribe(channel)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (app *application) disconnectUser(projectKey, user string) error {
+
+	userConnections := app.clientConnectionHub.getUserConnections(projectKey, user)
+
+	for _, c := range userConnections {
+		err := c.close("default")
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

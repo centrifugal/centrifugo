@@ -129,7 +129,7 @@ func main() {
 			// register admin web interface API endpoints
 			router.POST("/auth/", app.authHandler)
 			router.GET("/info/", app.infoHandler)
-			router.POST("/actions/", app.actionsHandler)
+			router.POST("/action/", app.actionHandler)
 
 			//if viper.GetBool("debug") {
 			//	router.HandlerFunc("GET", "/debug/pprof/*path", http.HandlerFunc(pprof.Index))

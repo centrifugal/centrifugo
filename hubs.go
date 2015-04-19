@@ -77,6 +77,22 @@ func (h *clientConnectionHub) remove(c clientConnection) error {
 	return nil
 }
 
+func (h *clientConnectionHub) getUserConnections(projectKey, user string) map[string]clientConnection {
+	h.Lock()
+	defer h.Unlock()
+
+	_, ok := h.connections[projectKey]
+	if !ok {
+		return map[string]clientConnection{}
+	}
+
+	userConnections, ok := h.connections[projectKey][user]
+	if !ok {
+		return map[string]clientConnection{}
+	}
+	return userConnections
+}
+
 // clientSubscriptionHub manages client subscriptions on channels
 type clientSubscriptionHub struct {
 	sync.Mutex

@@ -194,6 +194,74 @@ func (app *application) infoHandler(w http.ResponseWriter, r *http.Request, ps h
 	json.NewEncoder(w).Encode(info)
 }
 
-func (app *application) actionsHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Fprintf(w, "actions\n")
+func (app *application) actionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	projectKey := r.FormValue("project")
+	method := r.FormValue("method")
+
+	project, exists := app.getProjectByKey(projectKey)
+	if !exists {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	var resp *response
+	var err error
+
+	switch method {
+	case "publish":
+		channel := r.FormValue("channel")
+		data := r.FormValue("data")
+		if data == "" {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		fmt.Println(channel)
+		var decodedData interface{}
+		err := json.Unmarshal([]byte(data), &decodedData)
+		if err != nil {
+			logger.ERROR.Println(err)
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		cmd := &publishApiCommand{
+			Channel: channel,
+			Data:    decodedData,
+		}
+		resp, err = app.handlePublishCommand(project, cmd)
+	case "unsubscribe":
+		channel := r.FormValue("channel")
+		user := r.FormValue("user")
+		cmd := &unsubscribeApiCommand{
+			Channel: channel,
+			User:    user,
+		}
+		resp, err = app.handleUnsubscribeCommand(project, cmd)
+	case "disconnect":
+		user := r.FormValue("user")
+		cmd := &disconnectApiCommand{
+			User: user,
+		}
+		resp, err = app.handleDisconnectCommand(project, cmd)
+	case "presence":
+		channel := r.FormValue("channel")
+		cmd := &presenceApiCommand{
+			Channel: channel,
+		}
+		resp, err = app.handlePresenceCommand(project, cmd)
+	case "history":
+		channel := r.FormValue("channel")
+		cmd := &historyApiCommand{
+			Channel: channel,
+		}
+		resp, err = app.handleHistoryCommand(project, cmd)
+	}
+
+	if err != nil {
+		logger.ERROR.Println(err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }

@@ -114,7 +114,7 @@ func (app *application) handleUnsubscribeCommand(p *project, cmd *unsubscribeApi
 		}
 	}
 
-	err := app.unsubscribeUserFromChannel(user, channel)
+	err := app.unsubscribeUserFromChannel(p.Name, user, channel)
 	if err != nil {
 		resp.Error = ErrInternalServerError
 		return resp, nil
@@ -136,6 +136,12 @@ func (app *application) handleDisconnectCommand(p *project, cmd *disconnectApiCo
 	if user == "" {
 		logger.ERROR.Println("user required")
 		return nil, ErrInvalidApiMessage
+	}
+
+	err := app.disconnectUser(p.Name, user)
+	if err != nil {
+		resp.Error = ErrInternalServerError
+		return resp, nil
 	}
 
 	// TODO: send control disconnect message
