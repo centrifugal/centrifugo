@@ -10,13 +10,12 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
 	"github.com/spf13/viper"
-	"gopkg.in/centrifugal/sockjs-go.v2/sockjs"
 )
 
 type client struct {
 	sync.Mutex
 	app             *application
-	session         sockjs.Session
+	session         session
 	uid             string
 	project         string
 	user            string
@@ -29,7 +28,7 @@ type client struct {
 	closeChannel    chan struct{}
 }
 
-func newClient(app *application, session sockjs.Session, closeChannel chan struct{}) (*client, error) {
+func newClient(app *application, s session, closeChannel chan struct{}) (*client, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -37,7 +36,7 @@ func newClient(app *application, session sockjs.Session, closeChannel chan struc
 	return &client{
 		uid:          uid.String(),
 		app:          app,
-		session:      session,
+		session:      s,
 		closeChannel: closeChannel,
 	}, nil
 }
