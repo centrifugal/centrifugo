@@ -58,10 +58,18 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 	}
 }
 
-func getCommandsFromApiMessage(msgBytes []byte, msgType string) ([]apiCommand, error) {
+var (
+	arrayJsonPrefix  = byte('[')
+	objectJsonPrefix = byte('{')
+)
+
+func getCommandsFromApiMessage(msgBytes []byte) ([]apiCommand, error) {
 	var commands []apiCommand
-	switch msgType {
-	case "map":
+
+	firstByte := msgBytes[0]
+
+	switch firstByte {
+	case objectJsonPrefix:
 		// single command request
 		var command apiCommand
 		err := json.Unmarshal(msgBytes, &command)
@@ -69,12 +77,14 @@ func getCommandsFromApiMessage(msgBytes []byte, msgType string) ([]apiCommand, e
 			return nil, err
 		}
 		commands = append(commands, command)
-	case "array":
+	case arrayJsonPrefix:
 		// array of commands received
 		err := json.Unmarshal(msgBytes, &commands)
 		if err != nil {
 			return nil, err
 		}
+	default:
+		return nil, ErrInvalidApiMessage
 	}
 	return commands, nil
 }
@@ -144,18 +154,8 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps ht
 	}
 
 	msgBytes := []byte(encodedData)
-	msgType, err := getMessageType(msgBytes)
-	if err != nil {
-		logger.ERROR.Println(err)
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-	if msgType == "" {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
 
-	commands, err := getCommandsFromApiMessage(msgBytes, msgType)
+	commands, err := getCommandsFromApiMessage(msgBytes)
 	if err != nil {
 		logger.ERROR.Println(err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)

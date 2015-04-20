@@ -146,26 +146,11 @@ func (c *client) startPresencePing() {
 	select {}
 }
 
-func getMessageType(msgBytes []byte) (string, error) {
-	var f interface{}
-	err := json.Unmarshal(msgBytes, &f)
-	if err != nil {
-		return "", err
-	}
-	switch f.(type) {
-	case map[string]interface{}:
-		return "map", nil
-	case []interface{}:
-		return "array", nil
-	default:
-		return "", nil
-	}
-}
-
-func getCommandsFromClientMessage(msgBytes []byte, msgType string) ([]clientCommand, error) {
+func getCommandsFromClientMessage(msgBytes []byte) ([]clientCommand, error) {
 	var commands []clientCommand
-	switch msgType {
-	case "map":
+	firstByte := msgBytes[0]
+	switch firstByte {
+	case objectJsonPrefix:
 		// single command request
 		var command clientCommand
 		err := json.Unmarshal(msgBytes, &command)
@@ -173,7 +158,7 @@ func getCommandsFromClientMessage(msgBytes []byte, msgType string) ([]clientComm
 			return nil, err
 		}
 		commands = append(commands, command)
-	case "array":
+	case arrayJsonPrefix:
 		// array of commands received
 		err := json.Unmarshal(msgBytes, &commands)
 		if err != nil {
@@ -184,16 +169,12 @@ func getCommandsFromClientMessage(msgBytes []byte, msgType string) ([]clientComm
 }
 
 func (c *client) handleMessage(msg string) error {
+	if msg == "" {
+		logger.ERROR.Println("empty client message received")
+		return ErrInvalidClientMessage
+	}
 	msgBytes := []byte(msg)
-	msgType, err := getMessageType(msgBytes)
-	if err != nil {
-		return ErrInvalidClientMessage
-	}
-	if msgType == "" {
-		return ErrInvalidClientMessage
-	}
-
-	commands, err := getCommandsFromClientMessage(msgBytes, msgType)
+	commands, err := getCommandsFromClientMessage(msgBytes)
 	if err != nil {
 		return err
 	}
