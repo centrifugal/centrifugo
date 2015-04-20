@@ -184,14 +184,9 @@ func (app *application) handleClientMessage(channel, message string) error {
 }
 
 // publishControlMessage publishes message into control channel so all running
-// nodes will receive it and will process it
-func (app *application) publishControlMessage(messageData map[string]interface{}) error {
-	message, err := json.Marshal(messageData)
-	if err != nil {
-		logger.ERROR.Println(err)
-		return err
-	}
-	return app.engine.publish(app.controlChannel, string(message))
+// nodes will receive and handle it
+func (app *application) publishControlMessage(message string) error {
+	return app.engine.publish(app.controlChannel, message)
 }
 
 // publishAdminMessage publishes message into admin channel so all running
@@ -331,6 +326,8 @@ func (app *application) removeSubscription(projectKey, channel string, c clientC
 	return app.clientSubscriptionHub.remove(projectChannel, c)
 }
 
+// unsubscribeUserFromChannel allows to unsubscribe user...wait for it...from channel! If channel
+// is an empty string then user will be unsubscribed from all channels
 func (app *application) unsubscribeUserFromChannel(projectKey, user, channel string) error {
 
 	userConnections := app.clientConnectionHub.getUserConnections(projectKey, user)
@@ -355,6 +352,7 @@ func (app *application) unsubscribeUserFromChannel(projectKey, user, channel str
 	return nil
 }
 
+// disconnectUser closes client connections of user
 func (app *application) disconnectUser(projectKey, user string) error {
 
 	userConnections := app.clientConnectionHub.getUserConnections(projectKey, user)
@@ -374,6 +372,8 @@ func (app *application) getProjectByKey(projectKey string) (*project, bool) {
 	return app.structure.getProjectByKey(projectKey)
 }
 
+// extractNamespaceName returns namespace name from channel name if exists or
+// empty string
 func (app *application) extractNamespaceName(channel string) string {
 	channel = strings.TrimPrefix(channel, app.privateChannelPrefix)
 	parts := strings.SplitN(channel, app.namespaceChannelBoundary, 2)

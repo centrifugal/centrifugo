@@ -102,3 +102,25 @@ type presenceApiCommand struct {
 type historyApiCommand struct {
 	Channel string
 }
+
+// pingControlCommand allows nodes to know about each other - node sends this
+// control command periodically
+type pingControlCommand struct {
+	Uid  string
+	Name string
+}
+
+// unsubscribeControlCommand required when node received unsubscribe API command -
+// node unsubscribes user from channel and then send this control command so other
+// nodes could unsubscribe user too
+type unsubscribeControlCommand struct {
+	Project string
+	User    string
+	Channel string
+}
+
+// disconnectControlCommand required to disconnect user from all nodes
+type disconnectControlCommand struct {
+	Project string
+	User    string
+}
