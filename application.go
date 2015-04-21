@@ -63,9 +63,9 @@ type application struct {
 }
 
 type nodeInfo struct {
-	Uid       string
-	Name      string
-	UpdatedAt time.Time
+	Uid       string    `json:"uid"`
+	Name      string    `json:"name"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 func newApplication() (*application, error) {
@@ -73,13 +73,36 @@ func newApplication() (*application, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &application{
+	app := &application{
 		uid:                   uid.String(),
 		nodes:                 make(map[string]*nodeInfo),
 		clientConnectionHub:   newClientConnectionHub(),
 		clientSubscriptionHub: newClientSubscriptionHub(),
 		adminConnectionHub:    newAdminConnectionHub(),
-	}, nil
+	}
+	go app.sendPingMessage()
+	go app.cleanNodeInfo()
+	return app, nil
+}
+
+func (app *application) sendPingMessage() {
+	tick := time.Tick(10 * time.Second)
+	for {
+		select {
+		case <-tick:
+			logger.INFO.Println("time to send ping message")
+		}
+	}
+}
+
+func (app *application) cleanNodeInfo() {
+	tick := time.Tick(17 * time.Second)
+	for {
+		select {
+		case <-tick:
+			logger.INFO.Println("time to clean node info")
+		}
+	}
 }
 
 // getApplicationName returns a name for this node. If no name provided
