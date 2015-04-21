@@ -389,11 +389,11 @@ func (app *application) handlePingControlCommand(cmd *pingControlCommand) error 
 }
 
 func (app *application) handleUnsubscribeControlCommand(cmd *unsubscribeControlCommand) error {
-	return nil
+	return app.unsubscribeUserFromChannel(cmd.Project, cmd.User, cmd.Channel)
 }
 
 func (app *application) handleDisconnectControlCommand(cmd *disconnectControlCommand) error {
-	return nil
+	return app.disconnectUser(cmd.Project, cmd.User)
 }
 
 // getProjectChannel returns internal name of channel - as
