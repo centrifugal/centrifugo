@@ -6,13 +6,26 @@ import (
 
 // ChannelOptions represent channel specific configuration for namespace or project in a whole
 type ChannelOptions struct {
-	Watch           bool  `json:"watch"`
-	Publish         bool  `json:"publish"`
-	Anonymous       bool  `json:"anonymous"`
-	Presence        bool  `json:"presence"`
-	HistorySize     int64 `mapstructure:"history_size" json:"history_size"`
+	// Watch determines if message published into channel will be sent into admin channel
+	Watch bool `json:"watch"`
+
+	// Publish determines if client can publish messages into channel directly
+	Publish bool `json:"publish"`
+
+	// Anonymous determines is anonymous access (with empty user ID) allowed or not
+	Anonymous bool `json:"anonymous"`
+
+	// Presence turns on(off) presence information for channels
+	Presence bool `json:"presence"`
+
+	// HistorySize determines max amount of history messages for channel, 0 means no history for channel
+	HistorySize int64 `mapstructure:"history_size" json:"history_size"`
+
+	// HistoryLifetime determines time in seconds until expiration for history messages
 	HistoryLifetime int64 `mapstructure:"history_lifetime" json:"history_lifetime"`
-	JoinLeave       bool  `mapstructure:"join_leave" json:"join_leave"`
+
+	// JoinLeave turns on(off) join/leave messages for channels
+	JoinLeave bool `mapstructure:"join_leave" json:"join_leave"`
 }
 
 // project represents single project
@@ -20,16 +33,28 @@ type ChannelOptions struct {
 // but it's recommended to have separate Centrifuge installation
 // for every project (maybe except copy of your project for development)
 type project struct {
-	Name               string        `json:"name"`
-	Secret             string        `json:"secret"`
-	ConnectionLifetime int64         `mapstructure:"connection_lifetime" json:"connection_lifetime"`
-	Namespaces         namespaceList `json:"namespaces"`
-	ChannelOptions     `mapstructure:",squash"`
+	// Name is unique project name, used as project key for client connections and API requests
+	Name string `json:"name"`
+
+	// Secret is a secret key for project, used to sign API requests and client connection tokens
+	Secret string `json:"secret"`
+
+	// ConnectionLifetime determines time until connection expire, 0 means no connection expire at all
+	ConnectionLifetime int64 `mapstructure:"connection_lifetime" json:"connection_lifetime"`
+
+	// Namespaces - list of namespaces for project for custom channel options
+	Namespaces namespaceList `json:"namespaces"`
+
+	// ChannelOptions - default project channel options
+	ChannelOptions `mapstructure:",squash"`
 }
 
 // namespace allows to create channels with different channel options within the project
 type namespace struct {
-	Name           string `json:"name"`
+	// Name is a unique namespace name in project
+	Name string `json:"name"`
+
+	// ChannelOptions for namespace determine channel options for channels belonging to this namespace
 	ChannelOptions `mapstructure:",squash"`
 }
 
