@@ -47,6 +47,10 @@ type application struct {
 	// channel name for internal control messages between nodes
 	controlChannel string
 
+	// in seconds, how often node must send ping control message
+	nodePingInterval int
+	// in seconds, how often node must try to clean node info
+	nodeInfoCleanInterval int
 	// in seconds, how often connected clients must update presence info
 	presencePingInterval int
 	// in seconds, how long to consider presence info valid after receiving presence ping
@@ -86,12 +90,9 @@ func newApplication() (*application, error) {
 }
 
 func (app *application) sendPingMessage() {
-	tick := time.Tick(10 * time.Second)
 	for {
-		select {
-		case <-tick:
-			logger.INFO.Println("time to send ping message")
-		}
+		logger.INFO.Println("time to send ping message")
+		time.Sleep(time.Duration(app.nodePingInterval) * time.Second)
 	}
 }
 
@@ -129,6 +130,8 @@ func (app *application) initialize() {
 	app.channelPrefix = viper.GetString("channel_prefix")
 	app.adminChannel = app.channelPrefix + "." + "admin"
 	app.controlChannel = app.channelPrefix + "." + "control"
+	app.nodePingInterval = viper.GetInt("node_ping_interval")
+	app.nodeInfoCleanInterval = viper.GetInt("node_info_clean_interval")
 	app.presencePingInterval = viper.GetInt("presence_ping_interval")
 	app.presenceExpireInterval = viper.GetInt("presence_expire_interval")
 	app.privateChannelPrefix = viper.GetString("private_channel_prefix")
@@ -323,6 +326,55 @@ func (app *application) publishJoinLeaveMessage(projectKey, channel, method stri
 		return err
 	}
 	return app.engine.publish(projectChannel, string(byteMessage))
+}
+
+func (app *application) publishPingControlMessage() error {
+	message := map[string]interface{}{
+		"uid":    app.uid,
+		"method": "ping",
+		"params": map[string]string{
+			"uid":  app.uid,
+			"name": app.name,
+		},
+	}
+	messageBytes, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+	return app.publishControlMessage(string(messageBytes))
+}
+
+func (app *application) publishUnsubscribeControlMessage(projectKey, user, channel string) error {
+	message := map[string]interface{}{
+		"uid":    app.uid,
+		"method": "unsubscribe",
+		"params": map[string]string{
+			"project": projectKey,
+			"user":    user,
+			"channel": channel,
+		},
+	}
+	messageBytes, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+	return app.publishControlMessage(string(messageBytes))
+}
+
+func (app *application) publishDisconnectControlMessage(projectKey, user string) error {
+	message := map[string]interface{}{
+		"uid":    app.uid,
+		"method": "disconnect",
+		"params": map[string]string{
+			"project": projectKey,
+			"user":    user,
+		},
+	}
+	messageBytes, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+	return app.publishControlMessage(string(messageBytes))
 }
 
 // handlePingControlCommand updates information about known nodes

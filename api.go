@@ -120,7 +120,11 @@ func (app *application) handleUnsubscribeCommand(p *project, cmd *unsubscribeApi
 		return resp, nil
 	}
 
-	// TODO: send control unsubscribe message
+	err = app.publishUnsubscribeControlMessage(p.Name, user, channel)
+	if err != nil {
+		resp.Error = ErrInternalServerError
+		return resp, nil
+	}
 
 	return resp, nil
 }
@@ -144,7 +148,11 @@ func (app *application) handleDisconnectCommand(p *project, cmd *disconnectApiCo
 		return resp, nil
 	}
 
-	// TODO: send control disconnect message
+	err = app.publishDisconnectControlMessage(p.Name, user)
+	if err != nil {
+		resp.Error = ErrInternalServerError
+		return resp, nil
+	}
 
 	return resp, nil
 }

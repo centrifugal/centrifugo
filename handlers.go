@@ -59,8 +59,8 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 }
 
 var (
-	arrayJsonPrefix  = byte('[')
-	objectJsonPrefix = byte('{')
+	arrayJsonPrefix  byte = '['
+	objectJsonPrefix byte = '{'
 )
 
 func getCommandsFromApiMessage(msgBytes []byte) ([]apiCommand, error) {
