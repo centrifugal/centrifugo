@@ -12,6 +12,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/logger"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
 	"github.com/spf13/viper"
 )
@@ -24,7 +25,7 @@ type application struct {
 	// name of this node - based on hostname and port
 	name string
 	// nodes is a map with information about nodes known
-	nodes map[string]interface{}
+	nodes map[string]*nodeInfo
 
 	// hub to manage client connections
 	clientConnectionHub *clientConnectionHub
@@ -61,6 +62,12 @@ type application struct {
 	userChannelSeparator string
 }
 
+type nodeInfo struct {
+	Uid       string
+	Name      string
+	UpdatedAt time.Time
+}
+
 func newApplication() (*application, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
@@ -68,7 +75,7 @@ func newApplication() (*application, error) {
 	}
 	return &application{
 		uid:                   uid.String(),
-		nodes:                 make(map[string]interface{}),
+		nodes:                 make(map[string]*nodeInfo),
 		clientConnectionHub:   newClientConnectionHub(),
 		clientSubscriptionHub: newClientSubscriptionHub(),
 		adminConnectionHub:    newAdminConnectionHub(),
@@ -142,7 +149,6 @@ func (app *application) handleMessage(channel, message string) error {
 // or commands
 func (app *application) handleControlMessage(message string) error {
 
-	// TODO: implement this
 	var cmd controlCommand
 	err := json.Unmarshal([]byte(message), &cmd)
 	if err != nil {
@@ -156,15 +162,36 @@ func (app *application) handleControlMessage(message string) error {
 	}
 
 	method := cmd.Method
+	params := cmd.Params
+
 	switch method {
 	case "ping":
-		err = app.handlePingControlMessage(cmd.Params)
+		var cmd pingControlCommand
+		err := mapstructure.Decode(params, &cmd)
+		if err != nil {
+			logger.ERROR.Println(err)
+			return ErrInvalidControlMessage
+		}
+		return app.handlePingControlCommand(&cmd)
 	case "unsubscribe":
-		err = app.handleUnsubscribeControlMessage(cmd.Params)
+		var cmd unsubscribeControlCommand
+		err := mapstructure.Decode(params, &cmd)
+		if err != nil {
+			logger.ERROR.Println(err)
+			return ErrInvalidControlMessage
+		}
+		return app.handleUnsubscribeControlCommand(&cmd)
 	case "disconnect":
-		err = app.handleDisconnectControlMessage(cmd.Params)
+		var cmd disconnectControlCommand
+		err := mapstructure.Decode(params, &cmd)
+		if err != nil {
+			logger.ERROR.Println(err)
+			return ErrInvalidControlMessage
+		}
+		return app.handleDisconnectControlCommand(&cmd)
 	default:
 		logger.ERROR.Println("unknown control message method", method)
+		return ErrInvalidControlMessage
 	}
 
 	return nil
@@ -259,6 +286,8 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 	return nil
 }
 
+// publishJoinLeaveMessage allows to publish join message into channel when
+// someone subscribes on it or leave message when someone unsubscribed from channel
 func (app *application) publishJoinLeaveMessage(projectKey, channel, method string, info map[string]interface{}) error {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	resp := newResponse(method)
@@ -273,15 +302,22 @@ func (app *application) publishJoinLeaveMessage(projectKey, channel, method stri
 	return app.engine.publish(projectChannel, string(byteMessage))
 }
 
-func (app *application) handlePingControlMessage(params Params) error {
+// handlePingControlCommand updates information about known nodes
+func (app *application) handlePingControlCommand(cmd *pingControlCommand) error {
+	info := &nodeInfo{
+		Uid:       cmd.Uid,
+		Name:      cmd.Name,
+		UpdatedAt: time.Now(),
+	}
+	app.nodes[cmd.Uid] = info
 	return nil
 }
 
-func (app *application) handleUnsubscribeControlMessage(params Params) error {
+func (app *application) handleUnsubscribeControlCommand(cmd *unsubscribeControlCommand) error {
 	return nil
 }
 
-func (app *application) handleDisconnectControlMessage(params Params) error {
+func (app *application) handleDisconnectControlCommand(cmd *disconnectControlCommand) error {
 	return nil
 }
 
@@ -329,9 +365,7 @@ func (app *application) removeSubscription(projectKey, channel string, c clientC
 // unsubscribeUserFromChannel allows to unsubscribe user...wait for it...from channel! If channel
 // is an empty string then user will be unsubscribed from all channels
 func (app *application) unsubscribeUserFromChannel(projectKey, user, channel string) error {
-
 	userConnections := app.clientConnectionHub.getUserConnections(projectKey, user)
-
 	for _, c := range userConnections {
 		var channels []string
 		if channel == "" {
@@ -348,22 +382,18 @@ func (app *application) unsubscribeUserFromChannel(projectKey, user, channel str
 			}
 		}
 	}
-
 	return nil
 }
 
 // disconnectUser closes client connections of user
 func (app *application) disconnectUser(projectKey, user string) error {
-
 	userConnections := app.clientConnectionHub.getUserConnections(projectKey, user)
-
 	for _, c := range userConnections {
 		err := c.close("default")
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
