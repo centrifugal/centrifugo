@@ -409,6 +409,11 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 
 	resp := newResponse("subscribe")
 
+	project, exists := c.app.getProjectByKey(c.project)
+	if !exists {
+		return nil, ErrProjectNotFound
+	}
+
 	channel := cmd.Channel
 	if channel == "" {
 		return nil, ErrInvalidClientMessage
@@ -424,7 +429,10 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 	}
 	resp.Body = body
 
-	// TODO: check allowed users
+	if !c.app.isUserAllowed(channel, c.user) {
+		resp.Error = ErrPermissionDenied
+		return resp, nil
+	}
 
 	channelOptions := c.app.getChannelOptions(c.project, channel)
 	if channelOptions == nil {
@@ -438,7 +446,12 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 	}
 
 	if c.app.isPrivateChannel(channel) {
-		// TODO: check provided sign
+		// private channel - subscription must be properly signed
+		isValid := checkChannelSign(project.Secret, cmd.Client, channel, cmd.Info, cmd.Sign)
+		if !isValid {
+			resp.Error = ErrPermissionDenied
+			return resp, nil
+		}
 	}
 
 	err := c.app.addSubscription(c.project, channel, c)
