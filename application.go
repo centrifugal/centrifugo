@@ -49,8 +49,11 @@ type application struct {
 
 	// in seconds, how often node must send ping control message
 	nodePingInterval int
-	// in seconds, how often node must try to clean node info
+	// in seconds, how often node must clean information about other running nodes
 	nodeInfoCleanInterval int
+	// in seconds, how many seconds node info considered actual
+	nodeInfoMaxDelay int
+
 	// in seconds, how often connected clients must update presence info
 	presencePingInterval int
 	// in seconds, how long to consider presence info valid after receiving presence ping
@@ -67,9 +70,10 @@ type application struct {
 }
 
 type nodeInfo struct {
-	Uid       string    `json:"uid"`
-	Name      string    `json:"name"`
-	UpdatedAt time.Time `json:"-"`
+	sync.Mutex
+	Uid       string `json:"uid"`
+	Name      string `json:"name"`
+	UpdatedAt int64  `json:"-"`
 }
 
 func newApplication() (*application, error) {
@@ -91,18 +95,22 @@ func newApplication() (*application, error) {
 
 func (app *application) sendPingMessage() {
 	for {
-		logger.INFO.Println("time to send ping message")
+		err := app.publishPingControlMessage()
+		if err != nil {
+			logger.CRITICAL.Println(err)
+		}
 		time.Sleep(time.Duration(app.nodePingInterval) * time.Second)
 	}
 }
 
 func (app *application) cleanNodeInfo() {
-	tick := time.Tick(17 * time.Second)
 	for {
-		select {
-		case <-tick:
-			logger.INFO.Println("time to clean node info")
+		for uid, info := range app.nodes {
+			if time.Now().Unix()-info.UpdatedAt > int64(app.nodeInfoMaxDelay) {
+				delete(app.nodes, uid)
+			}
 		}
+		time.Sleep(time.Duration(app.nodeInfoCleanInterval) * time.Second)
 	}
 }
 
@@ -131,7 +139,8 @@ func (app *application) initialize() {
 	app.adminChannel = app.channelPrefix + "." + "admin"
 	app.controlChannel = app.channelPrefix + "." + "control"
 	app.nodePingInterval = viper.GetInt("node_ping_interval")
-	app.nodeInfoCleanInterval = viper.GetInt("node_info_clean_interval")
+	app.nodeInfoCleanInterval = app.nodePingInterval * 3
+	app.nodeInfoMaxDelay = app.nodePingInterval*2 + 1
 	app.presencePingInterval = viper.GetInt("presence_ping_interval")
 	app.presenceExpireInterval = viper.GetInt("presence_expire_interval")
 	app.privateChannelPrefix = viper.GetString("private_channel_prefix")
@@ -382,7 +391,7 @@ func (app *application) handlePingControlCommand(cmd *pingControlCommand) error 
 	info := &nodeInfo{
 		Uid:       cmd.Uid,
 		Name:      cmd.Name,
-		UpdatedAt: time.Now(),
+		UpdatedAt: time.Now().Unix(),
 	}
 	app.nodes[cmd.Uid] = info
 	return nil
