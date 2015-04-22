@@ -70,7 +70,6 @@ type application struct {
 }
 
 type nodeInfo struct {
-	sync.Mutex
 	Uid       string `json:"uid"`
 	Name      string `json:"name"`
 	UpdatedAt int64  `json:"-"`

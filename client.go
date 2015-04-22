@@ -334,6 +334,24 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 		defaultInfo = map[string]interface{}{}
 	}
 
+	var ttl interface{}
+	var timeToExpire int64 = 0
+	ttl = nil
+	connectionLifetime := project.ConnectionLifetime
+	if connectionLifetime > 0 {
+		ttl = connectionLifetime
+		timeToExpire := int64(ts) + connectionLifetime - time.Now().Unix()
+		if timeToExpire <= 0 {
+			body := map[string]interface{}{
+				"client":  nil,
+				"expired": true,
+				"ttl":     connectionLifetime,
+			}
+			resp.Body = body
+			return resp, nil
+		}
+	}
+
 	c.isAuthenticated = true
 	c.info = defaultInfo
 	c.channels = map[string]bool{}
@@ -347,10 +365,15 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	// TODO: initialize presence ping
 	go c.startPresencePing()
 
+	if timeToExpire > 0 {
+		// TODO: set expire timeout
+		logger.CRITICAL.Println("expire timeout must be set")
+	}
+
 	body := map[string]interface{}{
 		"client":  c.uid,
 		"expired": false,
-		"ttl":     nil,
+		"ttl":     ttl,
 	}
 	resp.Body = body
 	return resp, nil
@@ -388,15 +411,25 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 		return nil, ErrInvalidClientMessage
 	}
 
-	if 1 > 0 { // TODO: properly check new timestamp
-		c.timestamp = ts
+	var ttl interface{}
+
+	connectionLifetime := project.ConnectionLifetime
+	if connectionLifetime == 0 {
+		ttl = nil
 	} else {
-		return nil, ErrConnectionExpired
+		timeToExpire := int64(ts) + connectionLifetime - time.Now().Unix()
+		if timeToExpire > 0 {
+			c.timestamp = ts
+			// TODO: remove current and set new expire timeout
+		} else {
+			return nil, ErrConnectionExpired
+		}
+		ttl = connectionLifetime
 	}
 
 	// return connection's time to live to the client
 	body := map[string]interface{}{
-		"ttl": nil,
+		"ttl": ttl,
 	}
 	resp.Body = body
 	return resp, nil
