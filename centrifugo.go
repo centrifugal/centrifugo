@@ -59,9 +59,17 @@ func main() {
 	var debug bool
 	var name string
 	var web string
+	var engn string
 	var configFile string
 	var logLevel string
 	var logFile string
+
+	var redisHost string
+	var redisPort string
+	var redisPassword string
+	var redisDb string
+	var redisUrl string
+	var redisApi bool
 
 	var rootCmd = &cobra.Command{
 		Use:   "",
@@ -71,10 +79,12 @@ func main() {
 
 			viper.SetDefault("password", "")
 			viper.SetDefault("cookie_secret", "cookie_secret")
-			viper.SetDefault("api_secret", "api_secret")
 			viper.SetDefault("max_channel_length", 255)
+			viper.SetDefault("max_api_commands", 100)
+			viper.SetDefault("max_client_commands", 100)
 			viper.SetDefault("channel_prefix", "centrifugo")
 			viper.SetDefault("node_ping_interval", 5)
+			viper.SetDefault("expired_connection_close_delay", 10)
 			viper.SetDefault("presence_ping_interval", 25)
 			viper.SetDefault("presence_expire_interval", 60)
 			viper.SetDefault("private_channel_prefix", "$")
@@ -85,15 +95,22 @@ func main() {
 			viper.SetConfigFile(configFile)
 
 			viper.SetEnvPrefix("centrifuge")
-			viper.BindEnv("structure", "engine", "insecure", "password", "cookie_secret", "api_secret")
+			viper.BindEnv("structure", "engine", "insecure", "password", "cookie_secret")
 
 			viper.BindPFlag("port", cmd.Flags().Lookup("port"))
 			viper.BindPFlag("address", cmd.Flags().Lookup("address"))
 			viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
+			viper.BindPFlag("engine", cmd.Flags().Lookup("engine"))
 			viper.BindPFlag("log_level", cmd.Flags().Lookup("log_level"))
 			viper.BindPFlag("log_file", cmd.Flags().Lookup("log_file"))
+			viper.BindPFlag("redis_host", cmd.Flags().Lookup("redis_host"))
+			viper.BindPFlag("redis_port", cmd.Flags().Lookup("redis_port"))
+			viper.BindPFlag("redis_password", cmd.Flags().Lookup("redis_password"))
+			viper.BindPFlag("redis_db", cmd.Flags().Lookup("redis_db"))
+			viper.BindPFlag("redis_url", cmd.Flags().Lookup("redis_url"))
+			viper.BindPFlag("redis_api", cmd.Flags().Lookup("redis_api"))
 
 			err := viper.ReadInConfig()
 			if err != nil {
@@ -167,7 +184,14 @@ func main() {
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
 	rootCmd.Flags().StringVarP(&web, "web", "w", "", "optional path to web interface application")
-	rootCmd.Flags().StringVarP(&logLevel, "log_level", "l", "info", "set the log level: debug, info, error, critical, fatal or none")
-	rootCmd.Flags().StringVarP(&logFile, "log_file", "f", "", "optional log file - if not specified all logs go to STDOUT")
+	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
+	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "info", "set the log level: debug, info, error, critical, fatal or none")
+	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified all logs go to STDOUT")
+	rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisPort, "redis_port", "", "6379", "redis port (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisPassword, "redis_password", "", "", "redis auth password (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisDb, "redis_db", "", "0", "redis database (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisUrl, "redis_url", "", "", "redis connection URL (Redis engine)")
+	rootCmd.Flags().BoolVarP(&redisApi, "redis_api", "", false, "enable Redis API listener (Redis engine)")
 	rootCmd.Execute()
 }
