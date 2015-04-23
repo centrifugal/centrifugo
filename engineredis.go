@@ -11,14 +11,19 @@ import (
 type redisEngine struct {
 	app  *application
 	pool *redis.Pool
+	psc  redis.PubSubConn
 }
 
 func newRedisEngine(app *application, host, port, password, db, url string, api bool) *redisEngine {
 	server := host + ":" + port
 	pool := newPool(server, password, db)
+	conn := pool.Get()
+	psc := redis.PubSubConn{conn}
+	psc.Subscribe("test")
 	return &redisEngine{
 		app:  app,
 		pool: pool,
+		psc:  psc,
 	}
 }
 

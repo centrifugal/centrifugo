@@ -87,9 +87,12 @@ func newApplication() (*application, error) {
 		clientSubscriptionHub: newClientSubscriptionHub(),
 		adminConnectionHub:    newAdminConnectionHub(),
 	}
+	return app, nil
+}
+
+func (app *application) startPeriodicTasks() {
 	go app.sendPingMessage()
 	go app.cleanNodeInfo()
-	return app, nil
 }
 
 func (app *application) sendPingMessage() {

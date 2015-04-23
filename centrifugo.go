@@ -148,6 +148,7 @@ func main() {
 			logger.DEBUG.Printf("%v\n", viper.AllSettings())
 
 			app.initialize()
+			app.startPeriodicTasks()
 
 			go handleSignals(app)
 
