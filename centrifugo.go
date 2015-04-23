@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
+	//"time"
 
 	"github.com/centrifugal/centrifugo/logger"
 
@@ -143,6 +143,7 @@ func main() {
 				panic("unknown engine: " + viper.GetString("engine"))
 			}
 			app.setEngine(e)
+
 			logger.INFO.Println("engine:", viper.GetString("engine"))
 			logger.DEBUG.Printf("%v\n", viper.AllSettings())
 
@@ -166,21 +167,25 @@ func main() {
 			router.GET("/info/", app.infoHandler)
 			router.POST("/action/", app.actionHandler)
 
-			//if viper.GetBool("debug") {
-			//	router.HandlerFunc("GET", "/debug/pprof/*path", http.HandlerFunc(pprof.Index))
-			//}
+			/*
+				if viper.GetBool("debug") {
+					router.HandlerFunc("GET", "/debug/pprof/*path", http.HandlerFunc(pprof.Index))
+				}
+			*/
 
-			tick := time.Tick(10 * time.Second)
-			go func() {
-				for {
-					select {
-					case <-tick:
-						for ch, val := range app.clientSubscriptionHub.subscriptions {
-							logger.INFO.Printf("%s: %d\n", ch, len(val))
+			/*
+				tick := time.Tick(10 * time.Second)
+				go func() {
+					for {
+						select {
+						case <-tick:
+							for ch, val := range app.clientSubscriptionHub.subscriptions {
+								logger.INFO.Printf("%s: %d\n", ch, len(val))
+							}
 						}
 					}
-				}
-			}()
+				}()
+			*/
 
 			// optionally serve admin web interface application
 			webDir := viper.GetString("web")

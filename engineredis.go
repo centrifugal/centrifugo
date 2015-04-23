@@ -1,24 +1,55 @@
 package main
 
+import (
+	"time"
+
+	"github.com/centrifugal/centrifugo/logger"
+
+	"github.com/garyburd/redigo/redis"
+)
+
 type redisEngine struct {
-	app      *application
-	host     string
-	port     string
-	password string
-	db       string
-	url      string
-	api      bool
+	app  *application
+	pool *redis.Pool
 }
 
 func newRedisEngine(app *application, host, port, password, db, url string, api bool) *redisEngine {
+	server := host + ":" + port
+	pool := newPool(server, password, db)
 	return &redisEngine{
-		app:      app,
-		host:     host,
-		port:     port,
-		password: password,
-		db:       db,
-		url:      url,
-		api:      api,
+		app:  app,
+		pool: pool,
+	}
+}
+
+func newPool(server, password, db string) *redis.Pool {
+	return &redis.Pool{
+		MaxIdle:     3,
+		IdleTimeout: 240 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.Dial("tcp", server)
+			if err != nil {
+				logger.CRITICAL.Println(err)
+				return nil, err
+			}
+			if password != "" {
+				if _, err := c.Do("AUTH", password); err != nil {
+					c.Close()
+					logger.CRITICAL.Println(err)
+					return nil, err
+				}
+			}
+			if _, err := c.Do("SELECT", db); err != nil {
+				c.Close()
+				logger.CRITICAL.Println(err)
+				return nil, err
+			}
+			return c, err
+		},
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			_, err := c.Do("PING")
+			return err
+		},
 	}
 }
 
