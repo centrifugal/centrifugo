@@ -21,15 +21,15 @@ const (
 )
 
 func setupLogging() {
-	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString("logging"))]
+	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString("log_level"))]
 	if !ok {
 		logLevel = logger.LevelInfo
 	}
 	logger.SetLogThreshold(logLevel)
 	logger.SetStdoutThreshold(logLevel)
 
-	if viper.IsSet("logfile") && viper.GetString("logfile") != "" {
-		logger.SetLogFile(viper.GetString("logfile"))
+	if viper.IsSet("log_file") && viper.GetString("log_file") != "" {
+		logger.SetLogFile(viper.GetString("log_file"))
 		// do not log into stdout when log file provided
 		logger.SetStdoutThreshold(logger.LevelNone)
 	}
@@ -60,7 +60,7 @@ func main() {
 	var name string
 	var web string
 	var configFile string
-	var logging string
+	var logLevel string
 	var logFile string
 
 	var rootCmd = &cobra.Command{
@@ -92,8 +92,8 @@ func main() {
 			viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
-			viper.BindPFlag("logging", cmd.Flags().Lookup("logging"))
-			viper.BindPFlag("logfile", cmd.Flags().Lookup("logfile"))
+			viper.BindPFlag("log_level", cmd.Flags().Lookup("log_level"))
+			viper.BindPFlag("log_file", cmd.Flags().Lookup("log_file"))
 
 			err := viper.ReadInConfig()
 			if err != nil {
@@ -167,7 +167,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
 	rootCmd.Flags().StringVarP(&web, "web", "w", "", "optional path to web interface application")
-	rootCmd.Flags().StringVarP(&logging, "logging", "l", "info", "set the log level: debug, info, error, critical, fatal or none")
-	rootCmd.Flags().StringVarP(&logFile, "logfile", "f", "", "optional log file - if not specified all logs go to STDOUT")
+	rootCmd.Flags().StringVarP(&logLevel, "log_level", "l", "info", "set the log level: debug, info, error, critical, fatal or none")
+	rootCmd.Flags().StringVarP(&logFile, "log_file", "f", "", "optional log file - if not specified all logs go to STDOUT")
 	rootCmd.Execute()
 }
