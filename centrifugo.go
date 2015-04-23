@@ -119,15 +119,32 @@ func main() {
 			setupLogging()
 
 			logger.INFO.Println("using config file:", viper.ConfigFileUsed())
-			logger.DEBUG.Printf("%v\n", viper.AllSettings())
 
 			app, err := newApplication()
 			if err != nil {
 				panic(err)
 			}
 
-			e := newMemoryEngine(app)
+			var e engine
+			switch viper.GetString("engine") {
+			case "memory":
+				e = newMemoryEngine(app)
+			case "redis":
+				e = newRedisEngine(
+					app,
+					viper.GetString("redis_host"),
+					viper.GetString("redis_port"),
+					viper.GetString("redis_password"),
+					viper.GetString("redis_db"),
+					viper.GetString("redis_url"),
+					viper.GetBool("redis_api"),
+				)
+			default:
+				panic("unknown engine: " + viper.GetString("engine"))
+			}
 			app.setEngine(e)
+			logger.INFO.Println("engine:", viper.GetString("engine"))
+			logger.DEBUG.Printf("%v\n", viper.AllSettings())
 
 			app.initialize()
 
