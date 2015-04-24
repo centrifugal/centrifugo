@@ -116,16 +116,24 @@ func (c *client) clean() error {
 		}
 	}
 
+	close(c.closeChannel)
+
 	return nil
 }
 
-func (c *client) getInfo() map[string]interface{} {
+func (c *client) getInfo(channel string) map[string]interface{} {
+
+	var channelInfo interface{}
+	channelInfo, ok := c.channelInfo[channel]
+	if !ok {
+		channelInfo = nil
+	}
 
 	info := map[string]interface{}{
 		"user":         c.user,
 		"client":       c.uid,
 		"default_info": c.info,
-		"channel_info": map[string]interface{}{}, // TODO: implement channel_info
+		"channel_info": channelInfo,
 	}
 
 	return info
@@ -141,9 +149,7 @@ func (c *client) startPresencePing() {
 			logger.INFO.Println("return from pressence ping")
 			return
 		}
-
 	}
-	select {}
 }
 
 func getCommandsFromClientMessage(msgBytes []byte) ([]clientCommand, error) {
@@ -485,6 +491,16 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 			resp.Error = ErrPermissionDenied
 			return resp, nil
 		}
+		if cmd.Info != "" {
+			var info interface{}
+			err := json.Unmarshal([]byte(cmd.Info), &info)
+			if err != nil {
+				logger.ERROR.Panicln(err)
+			} else {
+				c.channelInfo[channel] = info
+			}
+		}
+
 	}
 
 	err := c.app.addSubscription(c.project, channel, c)
@@ -495,7 +511,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 
 	c.channels[channel] = true
 
-	info := c.getInfo()
+	info := c.getInfo(channel)
 
 	err = c.app.addPresence(c.project, channel, c.uid, info)
 	if err != nil {
@@ -504,7 +520,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 	}
 
 	if channelOptions.JoinLeave {
-		err = c.app.publishJoinLeaveMessage(c.project, channel, "join", c.getInfo())
+		err = c.app.publishJoinLeaveMessage(c.project, channel, "join", info)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
@@ -552,7 +568,7 @@ func (c *client) handleUnsubscribeCommand(cmd *unsubscribeClientCommand) (*respo
 		}
 
 		if channelOptions.JoinLeave {
-			err = c.app.publishJoinLeaveMessage(c.project, channel, "leave", c.getInfo())
+			err = c.app.publishJoinLeaveMessage(c.project, channel, "leave", c.getInfo(channel))
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -605,7 +621,7 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 		return resp, nil
 	}
 
-	info := c.getInfo()
+	info := c.getInfo(channel)
 
 	err := c.app.publishClientMessage(project, channel, data, info)
 	if err != nil {

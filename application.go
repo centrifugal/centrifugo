@@ -90,7 +90,7 @@ func newApplication() (*application, error) {
 	return app, nil
 }
 
-func (app *application) startPeriodicTasks() {
+func (app *application) run() {
 	go app.sendPingMessage()
 	go app.cleanNodeInfo()
 }

@@ -4,7 +4,6 @@ package main
 // application to publish message, handle subscriptions, save or retreive
 // presence and history data
 type engine interface {
-
 	// getName returns a name of concrete engine implementation
 	getName() string
 
