@@ -316,8 +316,10 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 	}
 
 	if channelOptions.HistorySize > 0 {
-		// TODO: add message to history
-		logger.ERROR.Println("adding message in history must be implemented here")
+		err := app.addHistoryMessage(p.Name, projectChannel, message)
+		if err != nil {
+			logger.ERROR.Println(err)
+		}
 	}
 
 	return nil

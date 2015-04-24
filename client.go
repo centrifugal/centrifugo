@@ -361,6 +361,7 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	c.isAuthenticated = true
 	c.info = defaultInfo
 	c.channels = map[string]bool{}
+	c.channelInfo = map[string]interface{}{}
 
 	err = c.app.addConnection(c)
 	if err != nil {
