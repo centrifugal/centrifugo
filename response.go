@@ -20,6 +20,7 @@ func newResponse(method string) *response {
 	}
 }
 
+// specific MarshalJSON implementation for response to correctly serialize error
 func (r *response) MarshalJSON() ([]byte, error) {
 	var err interface{}
 	if r.Error != nil {

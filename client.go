@@ -23,8 +23,8 @@ type client struct {
 	timestamp       int
 	token           string
 	info            interface{}
-	channelInfo     map[string]interface{}
 	isAuthenticated bool
+	channelInfo     map[string]interface{}
 	channels        map[string]bool
 	closeChannel    chan struct{}
 }
