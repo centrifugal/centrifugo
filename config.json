@@ -1,7 +1,7 @@
 {
   "password": "password",
-  "log_level": "debug",
   "cookie_secret": "cookie_secret",
+  "log_level": "debug",
   "structure": [
     {
       "name": "development",

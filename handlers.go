@@ -32,6 +32,8 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 		return
 	}
 
+	go client.sendMessages()
+
 	go func() {
 		for {
 			select {
@@ -229,9 +231,11 @@ func (app *application) Authenticated(h httprouter.Handle) httprouter.Handle {
 
 func (app *application) infoHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	info := map[string]interface{}{
-		"version":   VERSION,
-		"structure": app.structure.ProjectList,
-		"engine":    app.engine.getName(),
+		"version":    VERSION,
+		"structure":  app.structure.ProjectList,
+		"engine":     app.engine.getName(),
+		"node_name":  app.name,
+		"node_count": len(app.nodes) + 1,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(info)

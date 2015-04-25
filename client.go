@@ -26,6 +26,7 @@ type client struct {
 	isAuthenticated bool
 	channelInfo     map[string]interface{}
 	channels        map[string]bool
+	messageChannel  chan string
 	closeChannel    chan struct{}
 }
 
@@ -35,11 +36,26 @@ func newClient(app *application, s session) (*client, error) {
 		return nil, err
 	}
 	return &client{
-		uid:          uid.String(),
-		app:          app,
-		session:      s,
-		closeChannel: make(chan struct{}),
+		uid:            uid.String(),
+		app:            app,
+		session:        s,
+		messageChannel: make(chan string, 256),
+		closeChannel:   make(chan struct{}),
 	}, nil
+}
+
+func (c *client) sendMessages() {
+	for {
+		select {
+		case message := <-c.messageChannel:
+			err := c.session.Send(message)
+			if err != nil {
+				c.session.Close(3000, "error sending message")
+			}
+		case <-c.closeChannel:
+			return
+		}
+	}
 }
 
 func (c *client) getUid() string {
@@ -78,12 +94,18 @@ func (c *client) unsubscribe(channel string) error {
 	return nil
 }
 
+func (c *client) presence() error {
+	return nil
+}
+
 func (c *client) send(message string) error {
-	err := c.session.Send(message)
-	if err != nil {
+	select {
+	case c.messageChannel <- message:
+		return nil
+	default:
 		c.session.Close(3000, "error sending message")
+		return ErrInternalServerError
 	}
-	return err
 }
 
 func (c *client) close(reason string) error {
@@ -91,8 +113,6 @@ func (c *client) close(reason string) error {
 }
 
 func (c *client) clean() error {
-
-	// TODO: stop presence ping
 
 	projectKey := c.project
 
@@ -137,19 +157,6 @@ func (c *client) getInfo(channel string) map[string]interface{} {
 	}
 
 	return info
-}
-
-func (c *client) startPresencePing() {
-	tick := time.Tick(time.Duration(c.app.presencePingInterval) * time.Second)
-	for {
-		select {
-		case <-tick:
-			logger.INFO.Println("presence ping tick")
-		case <-c.closeChannel:
-			logger.INFO.Println("return from pressence ping")
-			return
-		}
-	}
 }
 
 func getCommandsFromClientMessage(msgBytes []byte) ([]clientCommand, error) {
@@ -368,9 +375,6 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 		logger.ERROR.Println(err)
 		return nil, ErrInternalServerError
 	}
-
-	// TODO: initialize presence ping
-	go c.startPresencePing()
 
 	if timeToExpire > 0 {
 		// TODO: set expire timeout

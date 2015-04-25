@@ -11,12 +11,12 @@ import (
 	"github.com/nu7hatch/gouuid"
 )
 
+// adminClient is a wrapper over admin websocket connection
 type adminClient struct {
 	app *application
 	uid string
-	// The websocket connection.
-	ws *websocket.Conn
-	// Buffered channel of outbound messages.
+	ws  *websocket.Conn
+	// buffered channel of outbound messages.
 	s chan []byte
 }
 
@@ -46,6 +46,7 @@ func (c *adminClient) send(message string) error {
 	return nil
 }
 
+// writer reads from channel and sends received messages to admin
 func (c *adminClient) writer() {
 	for message := range c.s {
 		err := c.ws.WriteMessage(websocket.TextMessage, message)
@@ -56,6 +57,7 @@ func (c *adminClient) writer() {
 	c.ws.Close()
 }
 
+// handleMessage handles message received from admin connection
 func (c *adminClient) handleMessage(message []byte) (*response, error) {
 
 	var err error
@@ -85,6 +87,8 @@ func (c *adminClient) handleMessage(message []byte) (*response, error) {
 	return resp, err
 }
 
+// handleAuthCommand checks provided token and adds admin connection into application
+// registry if token correct
 func (c *adminClient) handleAuthCommand(cmd *authAdminCommand) (*response, error) {
 	token := cmd.Token
 	if token == "" {
