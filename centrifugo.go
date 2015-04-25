@@ -78,7 +78,8 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			viper.SetDefault("password", "")
-			viper.SetDefault("cookie_secret", "cookie_secret")
+			viper.SetDefault("secret", "secret")
+			viper.RegisterAlias("cookie_secret", "secret")
 			viper.SetDefault("max_channel_length", 255)
 			viper.SetDefault("max_api_commands", 100)
 			viper.SetDefault("max_client_commands", 100)
@@ -165,8 +166,8 @@ func main() {
 
 			// register admin web interface API endpoints
 			router.POST("/auth/", app.authHandler)
-			router.GET("/info/", app.infoHandler)
-			router.POST("/action/", app.actionHandler)
+			router.GET("/info/", app.Authenticated(app.infoHandler))
+			router.POST("/action/", app.Authenticated(app.actionHandler))
 
 			/*
 				if viper.GetBool("debug") {

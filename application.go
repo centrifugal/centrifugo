@@ -27,6 +27,11 @@ type application struct {
 	// nodes is a map with information about nodes known
 	nodes map[string]*nodeInfo
 
+	// admin password
+	password string
+	// secret key to generate auth token for admin
+	secret string
+
 	// hub to manage client connections
 	clientConnectionHub *clientConnectionHub
 	// hub to manage client subscriptions
@@ -137,6 +142,8 @@ func getApplicationName() string {
 func (app *application) initialize() {
 	app.Lock()
 	defer app.Unlock()
+	app.password = viper.GetString("password")
+	app.secret = viper.GetString("secret")
 	app.channelPrefix = viper.GetString("channel_prefix")
 	app.adminChannel = app.channelPrefix + "." + "admin"
 	app.controlChannel = app.channelPrefix + "." + "control"

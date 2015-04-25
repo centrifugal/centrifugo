@@ -2,13 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/centrifugal/centrifugo/logger"
 
+	"github.com/gorilla/securecookie"
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/centrifugal/sockjs-go.v2/sockjs"
 )
@@ -184,15 +184,53 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps ht
 	w.Write(jsonResp)
 }
 
+const (
+	tokenKey   = "token"
+	tokenValue = "authorized"
+)
+
 func (app *application) authHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	fmt.Fprintf(w, "auth\n")
+	password := r.FormValue("password")
+	if password == app.password {
+		w.Header().Set("Content-Type", "application/json")
+		s := securecookie.New([]byte(app.secret), nil)
+		token, err := s.Encode(tokenKey, tokenValue)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		resp := map[string]string{
+			"token": token,
+		}
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+	http.Error(w, "Bad Request", http.StatusBadRequest)
+}
+
+func (app *application) Authenticated(h httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader != "" {
+			token := strings.TrimPrefix(authHeader, "Token ")
+			s := securecookie.New([]byte(app.secret), nil)
+			var val string
+			if err := s.Decode(tokenKey, token, &val); err == nil {
+				if val == tokenValue {
+					h(w, r, ps)
+					return
+				}
+			}
+		}
+		w.WriteHeader(401)
+	}
 }
 
 func (app *application) infoHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	info := map[string]interface{}{
 		"version":   VERSION,
 		"structure": app.structure.ProjectList,
-		"engine":    app.engine,
+		"engine":    app.engine.getName(),
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(info)
@@ -219,7 +257,6 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request, ps
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		fmt.Println(channel)
 		var decodedData interface{}
 		err := json.Unmarshal([]byte(data), &decodedData)
 		if err != nil {
