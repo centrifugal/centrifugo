@@ -12,6 +12,11 @@ type apiCommand struct {
 	Params Params
 }
 
+type adminCommand struct {
+	Method string
+	Params Params
+}
+
 type controlCommand struct {
 	// unique node ID which sent this control command
 	Uid string
@@ -123,4 +128,8 @@ type unsubscribeControlCommand struct {
 type disconnectControlCommand struct {
 	Project string
 	User    string
+}
+
+type authAdminCommand struct {
+	Token string
 }

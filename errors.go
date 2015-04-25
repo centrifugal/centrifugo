@@ -8,6 +8,7 @@ var (
 	ErrInvalidClientMessage  = errors.New("invalid client message")
 	ErrInvalidApiMessage     = errors.New("invalid API message")
 	ErrInvalidControlMessage = errors.New("invalid control message")
+	ErrInvalidAdminMessage   = errors.New("invalid admin message")
 	ErrInvalidToken          = errors.New("invalid token")
 	ErrUnauthorized          = errors.New("unauthorized")
 	ErrMethodNotFound        = errors.New("method not found")

@@ -168,7 +168,7 @@ func main() {
 			router.POST("/auth/", app.authHandler)
 			router.GET("/info/", app.Authenticated(app.infoHandler))
 			router.POST("/action/", app.Authenticated(app.actionHandler))
-
+			router.Handler("GET", "/socket", wsHandler{app: app})
 			/*
 				if viper.GetBool("debug") {
 					router.HandlerFunc("GET", "/debug/pprof/*path", http.HandlerFunc(pprof.Index))

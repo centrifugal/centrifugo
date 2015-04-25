@@ -9,6 +9,7 @@ import (
 	"github.com/centrifugal/centrifugo/logger"
 
 	"github.com/gorilla/securecookie"
+	"github.com/gorilla/websocket"
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/centrifugal/sockjs-go.v2/sockjs"
 )
@@ -305,4 +306,50 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request, ps
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+}
+
+var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
+
+type wsHandler struct {
+	app *application
+}
+
+func (wsh wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
+	}
+	c, err := newAdminClient(wsh.app, ws)
+	if err != nil {
+		return
+	}
+	logger.INFO.Print("new admin session established")
+	defer func() {
+		err := wsh.app.removeAdminConnection(c)
+		if err != nil {
+			logger.ERROR.Println(err)
+		}
+		logger.INFO.Println("admin session closed")
+	}()
+	go c.writer()
+	for {
+		_, message, err := c.ws.ReadMessage()
+		if err != nil {
+			break
+		}
+		resp, err := c.handleMessage(message)
+		if err != nil {
+			break
+		}
+		msgBytes, err := resp.toJson()
+		if err != nil {
+			break
+		} else {
+			err := c.send(string(msgBytes))
+			if err != nil {
+				break
+			}
+		}
+	}
+	c.ws.Close()
 }

@@ -567,3 +567,11 @@ func (app *application) isUserAllowed(channel, user string) bool {
 	}
 	return false
 }
+
+func (app *application) addAdminConnection(c adminConnection) error {
+	return app.adminConnectionHub.add(c)
+}
+
+func (app *application) removeAdminConnection(c adminConnection) error {
+	return app.adminConnectionHub.remove(c)
+}
