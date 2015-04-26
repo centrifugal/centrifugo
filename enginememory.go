@@ -22,6 +22,10 @@ func (e *memoryEngine) getName() string {
 	return "In memory – single node only"
 }
 
+func (e *memoryEngine) initialize() error {
+	return nil
+}
+
 func (e *memoryEngine) publish(channel, message string) error {
 	return e.app.handleMessage(channel, message)
 }

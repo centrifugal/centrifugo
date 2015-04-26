@@ -7,6 +7,9 @@ type engine interface {
 	// getName returns a name of concrete engine implementation
 	getName() string
 
+	// initialize provides a way to make additional engine startup work
+	initialize() error
+
 	// publish allows to send message into channel
 	publish(channel, message string) error
 

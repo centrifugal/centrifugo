@@ -62,6 +62,10 @@ func (e *redisEngine) getName() string {
 	return "Redis"
 }
 
+func (e *redisEngine) initialize() error {
+	return nil
+}
+
 func (e *redisEngine) publish(channel, message string) error {
 	return nil
 }

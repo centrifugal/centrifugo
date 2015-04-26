@@ -141,6 +141,10 @@ func main() {
 				panic("unknown engine: " + viper.GetString("engine"))
 			}
 			app.setEngine(e)
+			err = e.initialize()
+			if err != nil {
+				panic(err)
+			}
 
 			logger.INFO.Println("engine:", viper.GetString("engine"))
 			logger.DEBUG.Printf("%v\n", viper.AllSettings())
