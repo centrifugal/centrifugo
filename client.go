@@ -455,7 +455,7 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 	var ttl interface{}
 
 	connectionLifetime := project.ConnectionLifetime
-	if connectionLifetime == 0 {
+	if connectionLifetime <= 0 {
 		ttl = nil
 	} else {
 		timeToExpire := int64(ts) + connectionLifetime - time.Now().Unix()
@@ -746,7 +746,7 @@ func (c *client) handleHistoryCommand(cmd *historyClientCommand) (*response, err
 		return resp, nil
 	}
 
-	if channelOptions.HistorySize == 0 {
+	if channelOptions.HistorySize <= 0 {
 		resp.Error = ErrNotAvailable
 		return resp, nil
 	}
