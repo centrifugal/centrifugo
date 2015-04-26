@@ -58,6 +58,34 @@ func (c *client) sendMessages() {
 	}
 }
 
+func (c *client) updateChannelPresence(channel string) {
+	channelOptions := c.app.getChannelOptions(c.project, channel)
+	if channelOptions == nil {
+		return
+	}
+	if !channelOptions.Presence {
+		return
+	}
+	c.app.addPresence(c.project, channel, c.uid, c.getInfo(channel))
+}
+
+func (c *client) updatePresence() {
+	for channel := range c.channels {
+		c.updateChannelPresence(channel)
+	}
+}
+
+func (c *client) presencePing() {
+	for {
+		select {
+		case <-c.closeChannel:
+			return
+		case <-time.After(time.Duration(c.app.presencePingInterval) * time.Second):
+		}
+		c.updatePresence()
+	}
+}
+
 func (c *client) getUid() string {
 	return c.uid
 }
@@ -370,6 +398,8 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	c.channels = map[string]bool{}
 	c.channelInfo = map[string]interface{}{}
 
+	go c.presencePing()
+
 	err = c.app.addConnection(c)
 	if err != nil {
 		logger.ERROR.Println(err)
@@ -518,10 +548,12 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 
 	info := c.getInfo(channel)
 
-	err = c.app.addPresence(c.project, channel, c.uid, info)
-	if err != nil {
-		logger.ERROR.Println(err)
-		return nil, ErrInternalServerError
+	if channelOptions.Presence {
+		err = c.app.addPresence(c.project, channel, c.uid, info)
+		if err != nil {
+			logger.ERROR.Println(err)
+			return nil, ErrInternalServerError
+		}
 	}
 
 	if channelOptions.JoinLeave {

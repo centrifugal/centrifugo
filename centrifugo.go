@@ -80,8 +80,6 @@ func main() {
 			viper.SetDefault("secret", "secret")
 			viper.RegisterAlias("cookie_secret", "secret")
 			viper.SetDefault("max_channel_length", 255)
-			viper.SetDefault("max_api_commands", 100)
-			viper.SetDefault("max_client_commands", 100)
 			viper.SetDefault("channel_prefix", "centrifugo")
 			viper.SetDefault("node_ping_interval", 5)
 			viper.SetDefault("expired_connection_close_delay", 10)
