@@ -19,7 +19,6 @@ func newRedisEngine(app *application, host, port, password, db, url string, api 
 	pool := newPool(server, password, db)
 	conn := pool.Get()
 	psc := redis.PubSubConn{conn}
-	psc.Subscribe("test")
 	return &redisEngine{
 		app:  app,
 		pool: pool,
@@ -63,19 +62,36 @@ func (e *redisEngine) getName() string {
 }
 
 func (e *redisEngine) initialize() error {
+	e.psc.Subscribe(e.app.adminChannel)
+	e.psc.Subscribe(e.app.controlChannel)
+	go func() {
+		for {
+			switch n := e.psc.Receive().(type) {
+			case redis.Message:
+				e.app.handleMessage(n.Channel, string(n.Data))
+			case redis.PMessage:
+			case redis.Subscription:
+			case error:
+				logger.ERROR.Printf("error: %v\n", n)
+			}
+		}
+	}()
 	return nil
 }
 
 func (e *redisEngine) publish(channel, message string) error {
-	return nil
+	conn := e.pool.Get()
+	defer conn.Close()
+	_, err := conn.Do("PUBLISH", channel, message)
+	return err
 }
 
 func (e *redisEngine) subscribe(channel string) error {
-	return nil
+	return e.psc.Subscribe(channel)
 }
 
 func (e *redisEngine) unsubscribe(channel string) error {
-	return nil
+	return e.psc.Unsubscribe(channel)
 }
 
 func (e *redisEngine) addPresence(channel, uid string, info interface{}) error {

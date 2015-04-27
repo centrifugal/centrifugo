@@ -140,17 +140,18 @@ func main() {
 			default:
 				panic("unknown engine: " + viper.GetString("engine"))
 			}
-			app.setEngine(e)
-			err = e.initialize()
-			if err != nil {
-				panic(err)
-			}
 
 			logger.INFO.Println("engine:", viper.GetString("engine"))
 			logger.DEBUG.Printf("%v\n", viper.AllSettings())
 
+			app.setEngine(e)
 			app.initialize()
 			app.run()
+
+			err = e.initialize()
+			if err != nil {
+				panic(err)
+			}
 
 			go handleSignals(app)
 
