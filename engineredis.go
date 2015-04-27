@@ -62,8 +62,14 @@ func (e *redisEngine) getName() string {
 }
 
 func (e *redisEngine) initialize() error {
-	e.psc.Subscribe(e.app.adminChannel)
-	e.psc.Subscribe(e.app.controlChannel)
+	err := e.psc.Subscribe(e.app.adminChannel)
+	if err != nil {
+		return err
+	}
+	err = e.psc.Subscribe(e.app.controlChannel)
+	if err != nil {
+		return err
+	}
 	go func() {
 		for {
 			switch n := e.psc.Receive().(type) {
