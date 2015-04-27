@@ -9,20 +9,18 @@ import (
 )
 
 type redisEngine struct {
-	app  *application
-	pool *redis.Pool
-	psc  redis.PubSubConn
+	app       *application
+	pool      *redis.Pool
+	psc       redis.PubSubConn
+	connected bool
 }
 
 func newRedisEngine(app *application, host, port, password, db, url string, api bool) *redisEngine {
 	server := host + ":" + port
 	pool := newPool(server, password, db)
-	conn := pool.Get()
-	psc := redis.PubSubConn{conn}
 	return &redisEngine{
 		app:  app,
 		pool: pool,
-		psc:  psc,
 	}
 }
 
@@ -61,27 +59,66 @@ func (e *redisEngine) getName() string {
 	return "Redis"
 }
 
+func (e *redisEngine) receive() {
+	for {
+		switch n := e.psc.Receive().(type) {
+		case redis.Message:
+			e.app.handleMessage(n.Channel, string(n.Data))
+		case redis.Subscription:
+		case error:
+			logger.ERROR.Printf("error: %v\n", n)
+			e.psc.Close()
+			e.connected = false
+			return
+		}
+	}
+}
+
 func (e *redisEngine) initialize() error {
+	err := e.initializePubSub()
+	if err != nil {
+		return err
+	}
+	go e.checkConnectionStatus()
+	return nil
+}
+
+func (e *redisEngine) checkConnectionStatus() {
+	for {
+		time.Sleep(time.Second)
+		if e.connected {
+			continue
+		}
+		err := e.initializePubSub()
+		if err != nil {
+			logger.ERROR.Println(err)
+			continue
+		}
+		logger.INFO.Println("NOW CONNECTED")
+		e.connected = true
+	}
+}
+
+func (e *redisEngine) initializePubSub() error {
+	e.psc = redis.PubSubConn{e.pool.Get()}
 	err := e.psc.Subscribe(e.app.adminChannel)
 	if err != nil {
+		e.psc.Close()
 		return err
 	}
 	err = e.psc.Subscribe(e.app.controlChannel)
 	if err != nil {
+		e.psc.Close()
 		return err
 	}
-	go func() {
-		for {
-			switch n := e.psc.Receive().(type) {
-			case redis.Message:
-				e.app.handleMessage(n.Channel, string(n.Data))
-			case redis.PMessage:
-			case redis.Subscription:
-			case error:
-				logger.ERROR.Printf("error: %v\n", n)
-			}
+	for channel := range e.app.clientSubscriptionHub.getChannels() {
+		err = e.psc.Subscribe(channel)
+		if err != nil {
+			e.psc.Close()
+			return err
 		}
-	}()
+	}
+	go e.receive()
 	return nil
 }
 

@@ -146,12 +146,13 @@ func main() {
 
 			app.setEngine(e)
 			app.initialize()
-			app.run()
 
 			err = e.initialize()
 			if err != nil {
 				panic(err)
 			}
+
+			app.run()
 
 			go handleSignals(app)
 

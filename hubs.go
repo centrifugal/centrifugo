@@ -109,6 +109,18 @@ func newClientSubscriptionHub() *clientSubscriptionHub {
 	}
 }
 
+func (h *clientSubscriptionHub) getChannels() []string {
+	h.Lock()
+	defer h.Unlock()
+	channels := make([]string, len(h.subscriptions))
+	i := 0
+	for ch := range h.subscriptions {
+		channels[i] = ch
+		i += 1
+	}
+	return channels
+}
+
 // add adds connection into clientSubscriptionHub subscriptions registry
 func (h *clientSubscriptionHub) add(channel string, c clientConnection) error {
 	h.Lock()
