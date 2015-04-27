@@ -90,7 +90,7 @@ func (e *redisEngine) getPresence(channel string) (map[string]interface{}, error
 	return map[string]interface{}{}, nil
 }
 
-func (e *redisEngine) addHistoryMessage(channel string, message interface{}, size, lifetime int) error {
+func (e *redisEngine) addHistoryMessage(channel string, message interface{}, size, lifetime int64) error {
 	return nil
 }
 

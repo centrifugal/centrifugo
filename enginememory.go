@@ -1,8 +1,11 @@
 package main
 
 import (
+	"container/heap"
 	"sync"
 	"time"
+
+	"github.com/centrifugal/centrifugo/priority"
 )
 
 type memoryEngine struct {
@@ -24,7 +27,8 @@ func (e *memoryEngine) getName() string {
 }
 
 func (e *memoryEngine) initialize() error {
-	return nil
+	err := e.historyHub.initialize()
+	return err
 }
 
 func (e *memoryEngine) publish(channel, message string) error {
@@ -51,7 +55,7 @@ func (e *memoryEngine) getPresence(channel string) (map[string]interface{}, erro
 	return e.presenceHub.get(channel)
 }
 
-func (e *memoryEngine) addHistoryMessage(channel string, message interface{}, size, lifetime int) error {
+func (e *memoryEngine) addHistoryMessage(channel string, message interface{}, size, lifetime int64) error {
 	return e.historyHub.add(channel, message, size, lifetime)
 }
 
@@ -120,43 +124,101 @@ type historyItem struct {
 	expireAt int64
 }
 
-func (i presenceItem) isExpired() {
+func (i historyItem) isExpired() bool {
 	return i.expireAt < time.Now().Unix()
 }
 
 type memoryHistoryHub struct {
 	sync.Mutex
-	history map[string]historyItem
+	history   map[string]historyItem
+	queue     priority.Queue
+	nextCheck int64
 }
 
 func newMemoryHistoryHub() *memoryHistoryHub {
 	return &memoryHistoryHub{
-		history: make(map[string]historyItem),
+		history:   make(map[string]historyItem),
+		queue:     priority.MakeQueue(),
+		nextCheck: 0,
 	}
 }
 
-func (h *memoryHistoryHub) add(channel string, message interface{}, size, lifetime int) error {
+func (h *memoryHistoryHub) initialize() error {
+	go h.expire()
+	return nil
+}
+
+func (h *memoryHistoryHub) expire() {
+	for {
+		time.Sleep(time.Second)
+		h.Lock()
+		if h.nextCheck == 0 || h.nextCheck > time.Now().Unix() {
+			h.Unlock()
+			continue
+		}
+		for h.queue.Len() > 0 {
+			item := heap.Pop(&h.queue).(*priority.Item)
+			expireAt := item.Priority
+			if expireAt > time.Now().Unix() {
+				heap.Push(&h.queue, item)
+				break
+			}
+			channel := item.Value
+			hItem, ok := h.history[channel]
+			if !ok {
+				continue
+			}
+			if hItem.expireAt <= expireAt {
+				delete(h.history, channel)
+			}
+		}
+		h.nextCheck = h.nextCheck + 300
+		h.Unlock()
+	}
+}
+
+func (h *memoryHistoryHub) add(channel string, message interface{}, size, lifetime int64) error {
 	h.Lock()
 	defer h.Unlock()
+
+	_, ok := h.history[channel]
+	if size <= 0 {
+		delete(h.history, channel)
+		return nil
+	}
 
 	var expireAt int64
 	if lifetime <= 0 {
 		expireAt = 0
 	} else {
-		expireAt = time.Now().Unix() + int64(lifetime)
+		expireAt = time.Now().Unix() + lifetime
 	}
 
-	_, ok := h.history[channel]
-	if !ok && size > 0 {
+	if expireAt > 0 {
+		heap.Push(&h.queue, &priority.Item{Value: channel, Priority: expireAt})
+	}
+
+	if !ok {
 		h.history[channel] = historyItem{
-			messages: []interface{}{},
+			messages: []interface{}{message},
+			expireAt: expireAt,
+		}
+	} else {
+		messages := h.history[channel].messages
+		messages = append([]interface{}{message}, messages...)
+		if int64(len(messages)) > size {
+			messages = messages[0:size]
+		}
+		h.history[channel] = historyItem{
+			messages: messages,
 			expireAt: expireAt,
 		}
 	}
-	h.history[channel].messages = append([]interface{}{message}, h.history[channel].messages...)
-	if len(h.history[channel].messages > size) {
-		h.history[channel].messages = h.history[channel].messages[0:size]
+
+	if h.nextCheck == 0 || h.nextCheck > expireAt {
+		h.nextCheck = expireAt
 	}
+
 	return nil
 }
 
@@ -164,10 +226,15 @@ func (h *memoryHistoryHub) get(channel string) ([]interface{}, error) {
 	h.Lock()
 	defer h.Unlock()
 
-	history, ok := h.history[channel]
+	hItem, ok := h.history[channel]
 	if !ok {
 		// return empty slice
 		return []interface{}{}, nil
 	}
-	return history, nil
+	if hItem.isExpired() {
+		// return empty slice
+		delete(h.history, channel)
+		return []interface{}{}, nil
+	}
+	return hItem.messages, nil
 }
