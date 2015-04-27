@@ -2,6 +2,7 @@ package main
 
 import (
 	"sync"
+	"time"
 )
 
 type memoryEngine struct {
@@ -50,8 +51,8 @@ func (e *memoryEngine) getPresence(channel string) (map[string]interface{}, erro
 	return e.presenceHub.get(channel)
 }
 
-func (e *memoryEngine) addHistoryMessage(channel string, message interface{}) error {
-	return e.historyHub.add(channel, message)
+func (e *memoryEngine) addHistoryMessage(channel string, message interface{}, size, lifetime int) error {
+	return e.historyHub.add(channel, message, size, lifetime)
 }
 
 func (e *memoryEngine) getHistory(channel string) ([]interface{}, error) {
@@ -114,26 +115,48 @@ func (h *memoryPresenceHub) get(channel string) (map[string]interface{}, error) 
 	return presence, nil
 }
 
+type historyItem struct {
+	messages []interface{}
+	expireAt int64
+}
+
+func (i presenceItem) isExpired() {
+	return i.expireAt < time.Now().Unix()
+}
+
 type memoryHistoryHub struct {
 	sync.Mutex
-	history map[string][]interface{}
+	history map[string]historyItem
 }
 
 func newMemoryHistoryHub() *memoryHistoryHub {
 	return &memoryHistoryHub{
-		history: make(map[string][]interface{}),
+		history: make(map[string]historyItem),
 	}
 }
 
-func (h *memoryHistoryHub) add(channel string, message interface{}) error {
+func (h *memoryHistoryHub) add(channel string, message interface{}, size, lifetime int) error {
 	h.Lock()
 	defer h.Unlock()
 
-	_, ok := h.history[channel]
-	if !ok {
-		h.history[channel] = []interface{}{}
+	var expireAt int64
+	if lifetime <= 0 {
+		expireAt = 0
+	} else {
+		expireAt = time.Now().Unix() + int64(lifetime)
 	}
-	h.history[channel] = append(h.history[channel], message)
+
+	_, ok := h.history[channel]
+	if !ok && size > 0 {
+		h.history[channel] = historyItem{
+			messages: []interface{}{},
+			expireAt: expireAt,
+		}
+	}
+	h.history[channel].messages = append([]interface{}{message}, h.history[channel].messages...)
+	if len(h.history[channel].messages > size) {
+		h.history[channel].messages = h.history[channel].messages[0:size]
+	}
 	return nil
 }
 
