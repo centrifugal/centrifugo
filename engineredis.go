@@ -141,6 +141,10 @@ func (e *redisEngine) getSetKey(channel string) string {
 	return e.app.channelPrefix + ".presence.set." + channel
 }
 
+func (e *redisEngine) getHistoryKey(channel string) string {
+	return e.app.channelPrefix + ".history.list." + channel
+}
+
 func (e *redisEngine) addPresence(channel, uid string, info interface{}) error {
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -231,11 +235,30 @@ func (e *redisEngine) getPresence(channel string) (map[string]interface{}, error
 func (e *redisEngine) addHistoryMessage(channel string, message interface{}, size, lifetime int64) error {
 	conn := e.pool.Get()
 	defer conn.Close()
-	return nil
+	if size <= 0 {
+		return nil
+	}
+	historyKey := e.getHistoryKey(channel)
+	messageJson, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+	conn.Send("MULTI")
+	conn.Send("LPUSH", historyKey, messageJson)
+	conn.Send("LTRIM", historyKey, 0, size-1)
+	if lifetime <= 0 {
+		conn.Send("PERSIST", historyKey)
+	} else {
+		conn.Send("EXPIRE", historyKey, lifetime)
+	}
+	_, err = conn.Do("EXEC")
+	return err
 }
 
 func (e *redisEngine) getHistory(channel string) ([]interface{}, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
-	return []interface{}{}, nil
+	historyKey := e.getHistoryKey(channel)
+	values, err := redis.Values(conn.Do("LRANGE", historyKey, 0, -1))
+	return values, err
 }
