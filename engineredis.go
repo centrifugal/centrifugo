@@ -59,7 +59,46 @@ func (e *redisEngine) getName() string {
 	return "Redis"
 }
 
-func (e *redisEngine) receive() {
+func (e *redisEngine) initialize() error {
+	go e.initializePubSub()
+	go e.checkConnectionStatus()
+	return nil
+}
+
+func (e *redisEngine) checkConnectionStatus() {
+	for {
+		time.Sleep(time.Second)
+		if e.connected {
+			continue
+		}
+		go e.initializePubSub()
+	}
+}
+
+func (e *redisEngine) initializePubSub() {
+	e.connected = true
+	e.psc = redis.PubSubConn{e.pool.Get()}
+	defer e.psc.Close()
+	err := e.psc.Subscribe(e.app.adminChannel)
+	if err != nil {
+		e.connected = false
+		e.psc.Close()
+		return
+	}
+	err = e.psc.Subscribe(e.app.controlChannel)
+	if err != nil {
+		e.connected = false
+		e.psc.Close()
+		return
+	}
+	for _, channel := range e.app.clientSubscriptionHub.getChannels() {
+		err = e.psc.Subscribe(channel)
+		if err != nil {
+			e.connected = false
+			e.psc.Close()
+			return
+		}
+	}
 	for {
 		switch n := e.psc.Receive().(type) {
 		case redis.Message:
@@ -72,54 +111,6 @@ func (e *redisEngine) receive() {
 			return
 		}
 	}
-}
-
-func (e *redisEngine) initialize() error {
-	err := e.initializePubSub()
-	if err != nil {
-		return err
-	}
-	go e.checkConnectionStatus()
-	return nil
-}
-
-func (e *redisEngine) checkConnectionStatus() {
-	for {
-		time.Sleep(time.Second)
-		if e.connected {
-			continue
-		}
-		err := e.initializePubSub()
-		if err != nil {
-			logger.ERROR.Println(err)
-			continue
-		}
-		logger.INFO.Println("NOW CONNECTED")
-		e.connected = true
-	}
-}
-
-func (e *redisEngine) initializePubSub() error {
-	e.psc = redis.PubSubConn{e.pool.Get()}
-	err := e.psc.Subscribe(e.app.adminChannel)
-	if err != nil {
-		e.psc.Close()
-		return err
-	}
-	err = e.psc.Subscribe(e.app.controlChannel)
-	if err != nil {
-		e.psc.Close()
-		return err
-	}
-	for channel := range e.app.clientSubscriptionHub.getChannels() {
-		err = e.psc.Subscribe(channel)
-		if err != nil {
-			e.psc.Close()
-			return err
-		}
-	}
-	go e.receive()
-	return nil
 }
 
 func (e *redisEngine) publish(channel, message string) error {
