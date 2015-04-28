@@ -8,6 +8,9 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+// redisEngine uses Redis datastructures and PUB/SUB to manage Centrifuge logic.
+// This engine allows to scale Centrifuge - you can run several Centrifuge instances
+// connected to the same Redis and load balance clients between instances.
 type redisEngine struct {
 	app       *application
 	pool      *redis.Pool
