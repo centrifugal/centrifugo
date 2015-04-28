@@ -177,7 +177,7 @@ func (app *application) setEngine(e engine) {
 
 // handleMessage called when new message of any type received by this node.
 // It looks at channel and decides which message handler to call
-func (app *application) handleMessage(channel, message string) error {
+func (app *application) handleMessage(channel string, message []byte) error {
 	switch channel {
 	case app.controlChannel:
 		return app.handleControlMessage(message)
@@ -191,10 +191,10 @@ func (app *application) handleMessage(channel, message string) error {
 // handleControlMessage handles messages from control channel - control
 // messages used for internal communication between nodes to share state
 // or commands
-func (app *application) handleControlMessage(message string) error {
+func (app *application) handleControlMessage(message []byte) error {
 
 	var cmd controlCommand
-	err := json.Unmarshal([]byte(message), &cmd)
+	err := json.Unmarshal(message, &cmd)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return err
@@ -243,26 +243,26 @@ func (app *application) handleControlMessage(message string) error {
 
 // handleAdminMessage handles messages from admin channel - those messages
 // must be delivered to all admins connected to this node
-func (app *application) handleAdminMessage(message string) error {
-	return app.adminConnectionHub.broadcast(message)
+func (app *application) handleAdminMessage(message []byte) error {
+	return app.adminConnectionHub.broadcast(string(message))
 }
 
 // handleClientMessage handles messages published by web application or client
 // into channel. The goal of this method to deliver this message to all clients
 // on this node subscribed on channel
-func (app *application) handleClientMessage(channel, message string) error {
-	return app.clientSubscriptionHub.broadcast(channel, message)
+func (app *application) handleClientMessage(channel string, message []byte) error {
+	return app.clientSubscriptionHub.broadcast(channel, string(message))
 }
 
 // publishControlMessage publishes message into control channel so all running
 // nodes will receive and handle it
-func (app *application) publishControlMessage(message string) error {
+func (app *application) publishControlMessage(message []byte) error {
 	return app.engine.publish(app.controlChannel, message)
 }
 
 // publishAdminMessage publishes message into admin channel so all running
 // nodes will receive it and send to admins connected
-func (app *application) publishAdminMessage(message string) error {
+func (app *application) publishAdminMessage(message []byte) error {
 	return app.engine.publish(app.adminChannel, message)
 }
 
@@ -298,7 +298,7 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 		if err != nil {
 			logger.ERROR.Println(err)
 		} else {
-			err = app.publishAdminMessage(string(messageBytes))
+			err = app.publishAdminMessage(messageBytes)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -316,7 +316,7 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 		return err
 	}
 
-	err = app.engine.publish(projectChannel, string(byteMessage))
+	err = app.engine.publish(projectChannel, byteMessage)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return err
@@ -345,7 +345,7 @@ func (app *application) publishJoinLeaveMessage(projectKey, channel, method stri
 	if err != nil {
 		return err
 	}
-	return app.engine.publish(projectChannel, string(byteMessage))
+	return app.engine.publish(projectChannel, byteMessage)
 }
 
 func (app *application) publishPingControlMessage() error {
@@ -361,7 +361,7 @@ func (app *application) publishPingControlMessage() error {
 	if err != nil {
 		return err
 	}
-	return app.publishControlMessage(string(messageBytes))
+	return app.publishControlMessage(messageBytes)
 }
 
 func (app *application) publishUnsubscribeControlMessage(projectKey, user, channel string) error {
@@ -378,7 +378,7 @@ func (app *application) publishUnsubscribeControlMessage(projectKey, user, chann
 	if err != nil {
 		return err
 	}
-	return app.publishControlMessage(string(messageBytes))
+	return app.publishControlMessage(messageBytes)
 }
 
 func (app *application) publishDisconnectControlMessage(projectKey, user string) error {
@@ -394,7 +394,7 @@ func (app *application) publishDisconnectControlMessage(projectKey, user string)
 	if err != nil {
 		return err
 	}
-	return app.publishControlMessage(string(messageBytes))
+	return app.publishControlMessage(messageBytes)
 }
 
 // handlePingControlCommand updates information about known nodes

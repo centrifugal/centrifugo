@@ -102,7 +102,7 @@ func (e *redisEngine) initializePubSub() {
 	for {
 		switch n := e.psc.Receive().(type) {
 		case redis.Message:
-			e.app.handleMessage(n.Channel, string(n.Data))
+			e.app.handleMessage(n.Channel, n.Data)
 		case redis.Subscription:
 		case error:
 			logger.ERROR.Printf("error: %v\n", n)
@@ -113,7 +113,7 @@ func (e *redisEngine) initializePubSub() {
 	}
 }
 
-func (e *redisEngine) publish(channel, message string) error {
+func (e *redisEngine) publish(channel string, message []byte) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 	_, err := conn.Do("PUBLISH", channel, message)

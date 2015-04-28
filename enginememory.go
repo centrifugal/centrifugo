@@ -31,7 +31,7 @@ func (e *memoryEngine) initialize() error {
 	return err
 }
 
-func (e *memoryEngine) publish(channel, message string) error {
+func (e *memoryEngine) publish(channel string, message []byte) error {
 	return e.app.handleMessage(channel, message)
 }
 

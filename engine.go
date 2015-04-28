@@ -11,7 +11,7 @@ type engine interface {
 	initialize() error
 
 	// publish allows to send message into channel
-	publish(channel, message string) error
+	publish(channel string, message []byte) error
 
 	// subscribe on channel
 	subscribe(channel string) error
