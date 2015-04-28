@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/centrifugal/centrifugo/logger"
@@ -131,22 +133,109 @@ func (e *redisEngine) unsubscribe(channel string) error {
 	return e.psc.Unsubscribe(channel)
 }
 
+func (e *redisEngine) getHashKey(channel string) string {
+	return e.app.channelPrefix + ".presence.hash." + channel
+}
+
+func (e *redisEngine) getSetKey(channel string) string {
+	return e.app.channelPrefix + ".presence.set." + channel
+}
+
 func (e *redisEngine) addPresence(channel, uid string, info interface{}) error {
-	return nil
+	conn := e.pool.Get()
+	defer conn.Close()
+	infoJson, err := json.Marshal(info)
+	if err != nil {
+		return err
+	}
+	expireAt := time.Now().Unix() + e.app.presenceExpireInterval
+	hashKey := e.getHashKey(channel)
+	setKey := e.getSetKey(channel)
+	conn.Send("MULTI")
+	conn.Send("ZADD", setKey, expireAt, uid)
+	conn.Send("HSET", hashKey, uid, infoJson)
+	_, err = conn.Do("EXEC")
+	return err
 }
 
 func (e *redisEngine) removePresence(channel, uid string) error {
-	return nil
+	conn := e.pool.Get()
+	defer conn.Close()
+	hashKey := e.getHashKey(channel)
+	setKey := e.getSetKey(channel)
+	conn.Send("MULTI")
+	conn.Send("HDEL", hashKey, uid)
+	conn.Send("ZREM", setKey, uid)
+	_, err := conn.Do("EXEC")
+	return err
+}
+
+func mapStringInterface(result interface{}, err error) (map[string]interface{}, error) {
+	values, err := redis.Values(result, err)
+	if err != nil {
+		return nil, err
+	}
+	if len(values)%2 != 0 {
+		return nil, errors.New("mapStringInterface expects even number of values result")
+	}
+	m := make(map[string]interface{}, len(values)/2)
+	for i := 0; i < len(values); i += 2 {
+		key, okKey := values[i].([]byte)
+		value, okValue := values[i+1].([]byte)
+		if !okKey || !okValue {
+			return nil, errors.New("ScanMap key not a bulk string value")
+		}
+		var f interface{}
+		err = json.Unmarshal(value, &f)
+		if err != nil {
+			return nil, errors.New("can not unmarshal value to interface")
+		}
+		m[string(key)] = f
+	}
+	return m, nil
 }
 
 func (e *redisEngine) getPresence(channel string) (map[string]interface{}, error) {
-	return map[string]interface{}{}, nil
+	conn := e.pool.Get()
+	defer conn.Close()
+	now := time.Now().Unix()
+	hashKey := e.getHashKey(channel)
+	setKey := e.getSetKey(channel)
+	reply, err := conn.Do("ZRANGEBYSCORE", setKey, 0, now)
+	if err != nil {
+		return nil, err
+	}
+	expiredKeys, err := redis.Strings(reply, nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(expiredKeys) > 0 {
+		conn.Send("MULTI")
+		conn.Send("ZREMRANGEBYSCORE", setKey, 0, now)
+		for _, key := range expiredKeys {
+			conn.Send("HDEL", hashKey, key)
+		}
+		_, err = conn.Do("EXEC")
+		if err != nil {
+			return nil, err
+		}
+	}
+	reply, err = conn.Do("HGETALL", hashKey)
+	if err != nil {
+		return nil, err
+	}
+	presence, err := mapStringInterface(reply, nil)
+	return presence, err
 }
 
 func (e *redisEngine) addHistoryMessage(channel string, message interface{}, size, lifetime int64) error {
+	conn := e.pool.Get()
+	defer conn.Close()
 	return nil
 }
 
 func (e *redisEngine) getHistory(channel string) ([]interface{}, error) {
+	conn := e.pool.Get()
+	defer conn.Close()
 	return []interface{}{}, nil
 }

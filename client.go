@@ -708,6 +708,7 @@ func (c *client) handlePresenceCommand(cmd *presenceClientCommand) (*response, e
 
 	data, err := c.app.getPresence(c.project, channel)
 	if err != nil {
+		logger.ERROR.Println(err)
 		resp.Error = ErrInternalServerError
 		return resp, nil
 	}

@@ -53,16 +53,16 @@ type application struct {
 	controlChannel string
 
 	// in seconds, how often node must send ping control message
-	nodePingInterval int
+	nodePingInterval int64
 	// in seconds, how often node must clean information about other running nodes
-	nodeInfoCleanInterval int
+	nodeInfoCleanInterval int64
 	// in seconds, how many seconds node info considered actual
-	nodeInfoMaxDelay int
+	nodeInfoMaxDelay int64
 
 	// in seconds, how often connected clients must update presence info
-	presencePingInterval int
+	presencePingInterval int64
 	// in seconds, how long to consider presence info valid after receiving presence ping
-	presenceExpireInterval int
+	presenceExpireInterval int64
 
 	// prefix in channel name which indicates that channel is private
 	privateChannelPrefix string
@@ -147,11 +147,11 @@ func (app *application) initialize() {
 	app.channelPrefix = viper.GetString("channel_prefix")
 	app.adminChannel = app.channelPrefix + "." + "admin"
 	app.controlChannel = app.channelPrefix + "." + "control"
-	app.nodePingInterval = viper.GetInt("node_ping_interval")
+	app.nodePingInterval = int64(viper.GetInt("node_ping_interval"))
 	app.nodeInfoCleanInterval = app.nodePingInterval * 3
 	app.nodeInfoMaxDelay = app.nodePingInterval*2 + 1
-	app.presencePingInterval = viper.GetInt("presence_ping_interval")
-	app.presenceExpireInterval = viper.GetInt("presence_expire_interval")
+	app.presencePingInterval = int64(viper.GetInt("presence_ping_interval"))
+	app.presenceExpireInterval = int64(viper.GetInt("presence_expire_interval"))
 	app.privateChannelPrefix = viper.GetString("private_channel_prefix")
 	app.namespaceChannelBoundary = viper.GetString("namespace_channel_boundary")
 	app.userChannelBoundary = viper.GetString("user_channel_boundary")
