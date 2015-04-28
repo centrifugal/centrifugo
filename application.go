@@ -323,7 +323,7 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 	}
 
 	if channelOptions.HistorySize > 0 {
-		err := app.addHistoryMessage(p.Name, projectChannel, message)
+		err := app.addHistoryMessage(p.Name, channel, message, channelOptions.HistorySize, channelOptions.HistoryLifetime)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
@@ -534,9 +534,9 @@ func (app *application) getPresence(projectKey, channel string) (map[string]inte
 }
 
 // addHistoryMessage proxies history message adding to engine
-func (app *application) addHistoryMessage(projectKey, channel string, message interface{}) error {
+func (app *application) addHistoryMessage(projectKey, channel string, message interface{}, size, lifetime int64) error {
 	projectChannel := app.getProjectChannel(projectKey, channel)
-	return app.engine.addHistoryMessage(projectChannel, message)
+	return app.engine.addHistoryMessage(projectChannel, message, size, lifetime)
 }
 
 // getHistory proxies history extraction to engine

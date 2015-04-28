@@ -12,7 +12,9 @@
           "publish": true,
           "watch": true,
           "presence": true,
-          "join_leave": true
+          "join_leave": true,
+          "history_size": 3,
+          "history_lifetime": 10
         }
       ]
     }

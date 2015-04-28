@@ -26,7 +26,7 @@ type engine interface {
 	getPresence(channel string) (map[string]interface{}, error)
 
 	// addHistoryMessage adds message into channel history and takes care about history size
-	addHistoryMessage(channel string, message interface{}) error
+	addHistoryMessage(channel string, message interface{}, size, lifetime int64) error
 	// getHistory returns history messages for channel
 	getHistory(channel string) ([]interface{}, error)
 }
