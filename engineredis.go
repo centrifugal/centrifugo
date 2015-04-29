@@ -8,16 +8,19 @@ import (
 	"github.com/centrifugal/centrifugo/logger"
 
 	"github.com/garyburd/redigo/redis"
+	"github.com/mitchellh/mapstructure"
 )
 
 // redisEngine uses Redis datastructures and PUB/SUB to manage Centrifuge logic.
 // This engine allows to scale Centrifuge - you can run several Centrifuge instances
 // connected to the same Redis and load balance clients between instances.
 type redisEngine struct {
-	app       *application
-	pool      *redis.Pool
-	psc       redis.PubSubConn
-	connected bool
+	app      *application
+	pool     *redis.Pool
+	psc      redis.PubSubConn
+	api      bool
+	inPubSub bool
+	inApi    bool
 }
 
 func newRedisEngine(app *application, host, port, password, db, url string, api bool) *redisEngine {
@@ -26,6 +29,7 @@ func newRedisEngine(app *application, host, port, password, db, url string, api 
 	return &redisEngine{
 		app:  app,
 		pool: pool,
+		api:  api,
 	}
 }
 
@@ -66,6 +70,9 @@ func (e *redisEngine) getName() string {
 
 func (e *redisEngine) initialize() error {
 	go e.initializePubSub()
+	if e.api {
+		go e.initializeApi()
+	}
 	go e.checkConnectionStatus()
 	return nil
 }
@@ -73,33 +80,90 @@ func (e *redisEngine) initialize() error {
 func (e *redisEngine) checkConnectionStatus() {
 	for {
 		time.Sleep(time.Second)
-		if e.connected {
+		if !e.inPubSub {
+			go e.initializePubSub()
+		}
+		if e.api && !e.inApi {
+			go e.initializeApi()
+		}
+	}
+}
+
+type redisApiRequest struct {
+	Project string
+	Data    []map[string]interface{}
+}
+
+func (e *redisEngine) initializeApi() {
+	e.inApi = true
+	conn := e.pool.Get()
+	defer conn.Close()
+	defer func() {
+		e.inApi = false
+	}()
+	apiKey := e.app.channelPrefix + "." + "api"
+	for {
+		reply, err := conn.Do("BLPOP", apiKey, 0)
+		if err != nil {
+			logger.ERROR.Println(err)
+			return
+		}
+		a, err := mapStringInterface(reply, nil)
+		if err != nil {
+			logger.ERROR.Println(err)
 			continue
 		}
-		go e.initializePubSub()
+		body, ok := a[apiKey]
+		if !ok {
+			continue
+		}
+		var request redisApiRequest
+		err = mapstructure.Decode(body, &request)
+		if err != nil {
+			logger.ERROR.Println(err)
+			continue
+		}
+		project, exists := e.app.getProjectByKey(request.Project)
+		if !exists {
+			logger.ERROR.Println("no project found with key", request.Project)
+			continue
+		}
+
+		var commands []apiCommand
+		err = mapstructure.Decode(request.Data, &commands)
+		if err != nil {
+			logger.ERROR.Println(err)
+			continue
+		}
+		for _, command := range commands {
+			_, err := e.app.handleApiCommand(project, command)
+			if err != nil {
+				logger.ERROR.Println(err)
+			}
+		}
 	}
 }
 
 func (e *redisEngine) initializePubSub() {
-	e.connected = true
+	e.inPubSub = true
 	e.psc = redis.PubSubConn{e.pool.Get()}
 	defer e.psc.Close()
+	defer func() {
+		e.inPubSub = false
+	}()
 	err := e.psc.Subscribe(e.app.adminChannel)
 	if err != nil {
-		e.connected = false
 		e.psc.Close()
 		return
 	}
 	err = e.psc.Subscribe(e.app.controlChannel)
 	if err != nil {
-		e.connected = false
 		e.psc.Close()
 		return
 	}
 	for _, channel := range e.app.clientSubscriptionHub.getChannels() {
 		err = e.psc.Subscribe(channel)
 		if err != nil {
-			e.connected = false
 			e.psc.Close()
 			return
 		}
@@ -112,7 +176,6 @@ func (e *redisEngine) initializePubSub() {
 		case error:
 			logger.ERROR.Printf("error: %v\n", n)
 			e.psc.Close()
-			e.connected = false
 			return
 		}
 	}
