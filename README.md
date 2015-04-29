@@ -8,7 +8,7 @@ Why:
 
 What's left:
 
-* redis engine API channel
+* insecure mode
 * metrics
 * tests
 * deploy (Dockerfile, rpm) 
