@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"net"
+	"net/url"
 	"time"
 
 	"github.com/centrifugal/centrifugo/logger"
@@ -23,7 +25,31 @@ type redisEngine struct {
 	inApi    bool
 }
 
-func newRedisEngine(app *application, host, port, password, db, url string, api bool) *redisEngine {
+func newRedisEngine(app *application, host, port, password, db, redisUrl string, api bool) *redisEngine {
+	if redisUrl != "" {
+		u, err := url.Parse(redisUrl)
+		if err != nil {
+			panic(err)
+		}
+		if u.User != nil {
+			var ok bool
+			password, ok = u.User.Password()
+			if !ok {
+				password = ""
+			}
+		}
+		host, port, err = net.SplitHostPort(u.Host)
+		if err != nil {
+			panic(err)
+		}
+		path := u.Path
+		if path != "" {
+			db = path[1:]
+		}
+		if db == "" {
+			db = "0"
+		}
+	}
 	server := host + ":" + port
 	pool := newPool(server, password, db)
 	return &redisEngine{
