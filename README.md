@@ -8,8 +8,7 @@ Why:
 
 What's left:
 
-* memory engine presence and history
-* redis engine
+* redis engine API channel
 * metrics
 * tests
 * deploy (Dockerfile, rpm) 
