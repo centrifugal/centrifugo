@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+// client represents clien connection to Centrifuge - at moment this can be Websocket
+// or SockJS connection.
 type client struct {
 	sync.Mutex
 	app             *application
@@ -45,6 +47,7 @@ func newClient(app *application, s session) (*client, error) {
 	}, nil
 }
 
+// sendMessages waits for messages from messageChannel and sends them to client
 func (c *client) sendMessages() {
 	for {
 		select {
@@ -59,6 +62,8 @@ func (c *client) sendMessages() {
 	}
 }
 
+// updateChannelPresence updates client presence info for channel so it
+// won't expire until client disconnect
 func (c *client) updateChannelPresence(channel string) {
 	channelOptions := c.app.getChannelOptions(c.project, channel)
 	if channelOptions == nil {
@@ -70,12 +75,14 @@ func (c *client) updateChannelPresence(channel string) {
 	c.app.addPresence(c.project, channel, c.uid, c.getInfo(channel))
 }
 
+// updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
 	for channel := range c.channels {
 		c.updateChannelPresence(channel)
 	}
 }
 
+// presencePing periodically updates presence info
 func (c *client) presencePing() {
 	for {
 		select {
@@ -123,10 +130,6 @@ func (c *client) unsubscribe(channel string) error {
 	return nil
 }
 
-func (c *client) presence() error {
-	return nil
-}
-
 func (c *client) send(message string) error {
 	select {
 	case c.messageChannel <- message:
@@ -141,6 +144,8 @@ func (c *client) close(reason string) error {
 	return c.session.Close(3000, reason)
 }
 
+// clean called when connection was closed to make different clean up
+// actions for a client
 func (c *client) clean() error {
 
 	projectKey := c.project
@@ -243,6 +248,7 @@ func (c *client) handleCommands(commands []clientCommand) error {
 	return err
 }
 
+// handleCommand dispatches clientCommand into correct command handler
 func (c *client) handleCommand(command clientCommand) (*response, error) {
 
 	var err error
