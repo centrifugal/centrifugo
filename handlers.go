@@ -10,15 +10,14 @@ import (
 
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/websocket"
-	"github.com/julienschmidt/httprouter"
-	"gopkg.in/centrifugal/sockjs-go.v2/sockjs"
+	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
 func newClientConnectionHandler(app *application) http.Handler {
 	return sockjs.NewHandler("/connection", sockjs.DefaultOptions, app.clientConnectionHandler)
 }
 
-func (app *application) clientConnectionHandler(session sockjs.Session) {
+func (app *application) clientConnectionHandler(s sockjs.Session) {
 	logger.INFO.Println("new client session established")
 	var closedSession = make(chan struct{})
 	defer func() {
@@ -26,7 +25,7 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 		logger.INFO.Println("client session closed")
 	}()
 
-	client, err := newClient(app, session)
+	client, err := newClient(app, s)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return
@@ -48,11 +47,11 @@ func (app *application) clientConnectionHandler(session sockjs.Session) {
 	}()
 
 	for {
-		if msg, err := session.Recv(); err == nil {
+		if msg, err := s.Recv(); err == nil {
 			err = client.handleMessage(msg)
 			if err != nil {
 				logger.ERROR.Println(err)
-				session.Close(3000, err.Error())
+				s.Close(3000, err.Error())
 				break
 			}
 			continue
@@ -101,10 +100,10 @@ func timeTrack(start time.Time, name string) {
 	logger.DEBUG.Printf("%s %s\n", name, time.Since(start))
 }
 
-func (app *application) apiHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 	defer timeTrack(time.Now(), "api call completed in")
 
-	projectKey := ps.ByName("projectKey")
+	projectKey := r.URL.Path[len("/api/"):]
 	contentType := r.Header.Get("Content-Type")
 
 	var sign string
@@ -192,7 +191,7 @@ const (
 	tokenValue = "authorized"
 )
 
-func (app *application) authHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (app *application) authHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	if password == app.password {
 		w.Header().Set("Content-Type", "application/json")
@@ -211,8 +210,8 @@ func (app *application) authHandler(w http.ResponseWriter, r *http.Request, ps h
 	http.Error(w, "Bad Request", http.StatusBadRequest)
 }
 
-func (app *application) Authenticated(h httprouter.Handle) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (app *application) Authenticated(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader != "" {
 			token := strings.TrimPrefix(authHeader, "Token ")
@@ -220,7 +219,7 @@ func (app *application) Authenticated(h httprouter.Handle) httprouter.Handle {
 			var val string
 			if err := s.Decode(tokenKey, token, &val); err == nil {
 				if val == tokenValue {
-					h(w, r, ps)
+					h(w, r)
 					return
 				}
 			}
@@ -229,7 +228,7 @@ func (app *application) Authenticated(h httprouter.Handle) httprouter.Handle {
 	}
 }
 
-func (app *application) infoHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
 	info := map[string]interface{}{
 		"version":    VERSION,
 		"structure":  app.structure.ProjectList,
@@ -241,7 +240,7 @@ func (app *application) infoHandler(w http.ResponseWriter, r *http.Request, ps h
 	json.NewEncoder(w).Encode(info)
 }
 
-func (app *application) actionHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 	projectKey := r.FormValue("project")
 	method := r.FormValue("method")
 
@@ -314,22 +313,18 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request, ps
 
 var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 
-type wsHandler struct {
-	app *application
-}
-
-func (wsh wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (app *application) adminWsConnectionHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
-	c, err := newAdminClient(wsh.app, ws)
+	c, err := newAdminClient(app, ws)
 	if err != nil {
 		return
 	}
 	logger.INFO.Print("new admin session established")
 	defer func() {
-		err := wsh.app.removeAdminConnection(c)
+		err := app.removeAdminConnection(c)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
@@ -356,4 +351,72 @@ func (wsh wsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	c.ws.Close()
+}
+
+type wsConnection struct {
+	ws *websocket.Conn
+	// buffered channel of outbound messages.
+	s chan []byte
+}
+
+func (conn wsConnection) Send(message string) error {
+	conn.s <- []byte(message)
+	return nil
+}
+
+func (conn wsConnection) Close(status uint32, reason string) error {
+	return conn.ws.Close()
+}
+
+// writer reads from channel and sends received messages into connection
+func (conn *wsConnection) writer() {
+	for message := range conn.s {
+		err := conn.ws.WriteMessage(websocket.TextMessage, message)
+		if err != nil {
+			break
+		}
+	}
+	conn.ws.Close()
+}
+
+func (app *application) wsConnectionHandler(w http.ResponseWriter, r *http.Request) {
+
+	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
+	if _, ok := err.(websocket.HandshakeError); ok {
+		http.Error(w, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
+		return
+	} else if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer ws.Close()
+
+	conn := wsConnection{
+		ws: ws,
+		s:  make(chan []byte, 256),
+	}
+
+	c, err := newClient(app, conn)
+	if err != nil {
+		return
+	}
+	logger.INFO.Print("new client session established")
+	defer func() {
+		c.clean()
+		logger.INFO.Println("client session closed")
+	}()
+	go c.sendMessages()
+	go conn.writer()
+	for {
+		_, message, err := conn.ws.ReadMessage()
+		if err != nil {
+			break
+		}
+		err = c.handleMessage(string(message))
+		if err != nil {
+			logger.ERROR.Println(err)
+			conn.ws.Close()
+			break
+		}
+	}
 }

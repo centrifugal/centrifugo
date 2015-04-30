@@ -10,7 +10,6 @@ import (
 
 	"github.com/centrifugal/centrifugo/logger"
 
-	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -156,37 +155,29 @@ func main() {
 
 			go handleSignals(app)
 
-			router := httprouter.New()
+			http.HandleFunc("/connection/websocket", app.wsConnectionHandler)
 
 			// register SockJS endpoints
 			sockJSHandler := newClientConnectionHandler(app)
-			router.Handler("GET", "/connection/*path", sockJSHandler)
-			router.Handler("POST", "/connection/*path", sockJSHandler)
-			router.Handler("OPTIONS", "/connection/*path", sockJSHandler)
+			http.Handle("/connection/", sockJSHandler)
 
 			// register HTTP API endpoint
-			router.POST("/api/:projectKey", app.apiHandler)
+			http.HandleFunc("/api/", app.apiHandler)
 
 			// register admin web interface API endpoints
-			router.POST("/auth/", app.authHandler)
-			router.GET("/info/", app.Authenticated(app.infoHandler))
-			router.POST("/action/", app.Authenticated(app.actionHandler))
-			router.Handler("GET", "/socket", wsHandler{app: app})
-			/*
-				if viper.GetBool("debug") {
-					router.HandlerFunc("GET", "/debug/pprof/*path", http.HandlerFunc(pprof.Index))
-				}
-			*/
+			http.HandleFunc("/auth/", app.authHandler)
+			http.HandleFunc("/info/", app.Authenticated(app.infoHandler))
+			http.HandleFunc("/action/", app.Authenticated(app.actionHandler))
+			http.HandleFunc("/socket", app.adminWsConnectionHandler)
 
 			// optionally serve admin web interface application
 			webDir := viper.GetString("web")
 			if webDir != "" {
-				router.Handler("GET", "/", http.FileServer(http.Dir(webDir)))
-				router.Handler("GET", "/public/*filepath", http.FileServer(http.Dir(webDir)))
+				http.Handle("/", http.FileServer(http.Dir(webDir)))
 			}
 
 			addr := viper.GetString("address") + ":" + viper.GetString("port")
-			if err := http.ListenAndServe(addr, router); err != nil {
+			if err := http.ListenAndServe(addr, nil); err != nil {
 				logger.FATAL.Fatalln("ListenAndServe:", err)
 			}
 		},
