@@ -215,13 +215,12 @@ func getCommandsFromClientMessage(msgBytes []byte) ([]clientCommand, error) {
 	return commands, nil
 }
 
-func (c *client) handleMessage(msg string) error {
-	if msg == "" {
+func (c *client) handleMessage(msg []byte) error {
+	if len(msg) == 0 {
 		logger.ERROR.Println("empty client message received")
 		return ErrInvalidClientMessage
 	}
-	msgBytes := []byte(msg)
-	commands, err := getCommandsFromClientMessage(msgBytes)
+	commands, err := getCommandsFromClientMessage(msg)
 	if err != nil {
 		return err
 	}
