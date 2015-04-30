@@ -48,7 +48,7 @@ func (app *application) clientConnectionHandler(s sockjs.Session) {
 
 	for {
 		if msg, err := s.Recv(); err == nil {
-			err = client.handleMessage(msg)
+			err = client.handleMessage([]byte(msg))
 			if err != nil {
 				logger.ERROR.Println(err)
 				s.Close(3000, err.Error())
@@ -360,7 +360,11 @@ type wsConnection struct {
 }
 
 func (conn wsConnection) Send(message string) error {
-	conn.s <- []byte(message)
+	select {
+	case conn.s <- []byte(message):
+	default:
+		conn.ws.Close()
+	}
 	return nil
 }
 
@@ -405,14 +409,17 @@ func (app *application) wsConnectionHandler(w http.ResponseWriter, r *http.Reque
 		c.clean()
 		logger.INFO.Println("client session closed")
 	}()
+
 	go c.sendMessages()
+
 	go conn.writer()
+
 	for {
 		_, message, err := conn.ws.ReadMessage()
 		if err != nil {
 			break
 		}
-		err = c.handleMessage(string(message))
+		err = c.handleMessage(message)
 		if err != nil {
 			logger.ERROR.Println(err)
 			conn.ws.Close()
