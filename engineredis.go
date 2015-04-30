@@ -46,9 +46,9 @@ func newRedisEngine(app *application, host, port, password, db, redisUrl string,
 		if path != "" {
 			db = path[1:]
 		}
-		if db == "" {
-			db = "0"
-		}
+	}
+	if db == "" {
+		db = "0"
 	}
 	server := host + ":" + port
 	pool := newPool(server, password, db)
