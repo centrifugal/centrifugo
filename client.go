@@ -28,6 +28,7 @@ type client struct {
 	channels        map[string]bool
 	messageChannel  chan string
 	closeChannel    chan struct{}
+	expireTimer     *time.Timer
 }
 
 func newClient(app *application, s session) (*client, error) {
@@ -326,6 +327,33 @@ func (c *client) handlePingCommand() (*response, error) {
 	return resp, nil
 }
 
+func (c *client) expire() {
+	timer := time.Tick(time.Duration(c.app.expiredConnectionCloseDelay) * time.Second)
+	select {
+	case <-timer:
+	case <-c.closeChannel:
+		return
+	}
+
+	project, exists := c.app.getProjectByKey(c.project)
+	if !exists {
+		return
+	}
+
+	if project.ConnectionLifetime <= 0 {
+		return
+	}
+
+	timeToExpire := int64(c.timestamp) + project.ConnectionLifetime - time.Now().Unix()
+	if timeToExpire > 0 {
+		// connection was succesfully refreshed
+		return
+	}
+
+	c.close("expired")
+	return
+}
+
 // handleConnectCommand handles connect command from client - client must send this
 // command immediately after establishing Websocket or SockJS connection with
 // Centrifuge
@@ -407,8 +435,8 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	}
 
 	if timeToExpire > 0 {
-		// TODO: set expire timeout
-		logger.CRITICAL.Println("expire timeout must be set")
+		duration := time.Duration(timeToExpire) * time.Second
+		c.expireTimer = time.AfterFunc(duration, c.expire)
 	}
 
 	body := map[string]interface{}{
@@ -456,12 +484,18 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 
 	connectionLifetime := project.ConnectionLifetime
 	if connectionLifetime <= 0 {
+		// connection check disabled
 		ttl = nil
 	} else {
 		timeToExpire := int64(ts) + connectionLifetime - time.Now().Unix()
 		if timeToExpire > 0 {
+			// connection refreshed, update client timestamp and set new expiration timeout
 			c.timestamp = ts
-			// TODO: remove current and set new expire timeout
+			if c.expireTimer != nil {
+				c.expireTimer.Stop()
+			}
+			duration := time.Duration(timeToExpire) * time.Second
+			c.expireTimer = time.AfterFunc(duration, c.expire)
 		} else {
 			return nil, ErrConnectionExpired
 		}

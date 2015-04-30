@@ -64,6 +64,10 @@ type application struct {
 	// in seconds, how long to consider presence info valid after receiving presence ping
 	presenceExpireInterval int64
 
+	// in seconds, an interval given to client to refresh its connection in the end of
+	// connection lifetime
+	expiredConnectionCloseDelay int64
+
 	// prefix in channel name which indicates that channel is private
 	privateChannelPrefix string
 	// string separator which must be put after namespace part in channel name
@@ -156,6 +160,7 @@ func (app *application) initialize() {
 	app.namespaceChannelBoundary = viper.GetString("namespace_channel_boundary")
 	app.userChannelBoundary = viper.GetString("user_channel_boundary")
 	app.userChannelSeparator = viper.GetString("user_channel_separator")
+	app.expiredConnectionCloseDelay = int64(viper.GetInt("expired_connection_close_delay"))
 	app.name = getApplicationName()
 
 	// get and initialize structure
