@@ -59,6 +59,8 @@ type application struct {
 	nodeInfoCleanInterval int64
 	// in seconds, how many seconds node info considered actual
 	nodeInfoMaxDelay int64
+	// in seconds, how often to publish node info into admin channel
+	nodeInfoPublishInterval int64
 
 	// in seconds, how often connected clients must update presence info
 	presencePingInterval int64
@@ -109,6 +111,7 @@ func newApplication() (*application, error) {
 func (app *application) run() {
 	go app.sendPingMessage()
 	go app.cleanNodeInfo()
+	go app.publishNodeInfo()
 }
 
 func (app *application) sendPingMessage() {
@@ -129,6 +132,26 @@ func (app *application) cleanNodeInfo() {
 			}
 		}
 		time.Sleep(time.Duration(app.nodeInfoCleanInterval) * time.Second)
+	}
+}
+
+func (app *application) publishNodeInfo() {
+	for {
+		message := map[string]interface{}{
+			"method": "node",
+			"body": map[string]interface{}{
+				"uid":     app.uid,
+				"name":    app.name,
+				"nodes":   len(app.nodes) + 1,
+				"metrics": map[string]interface{}{},
+			},
+		}
+		messageJson, _ := json.Marshal(message)
+		err := app.publishAdminMessage(messageJson)
+		if err != nil {
+			logger.ERROR.Println(err)
+		}
+		time.Sleep(time.Duration(app.nodeInfoPublishInterval) * time.Second)
 	}
 }
 
@@ -168,6 +191,7 @@ func (app *application) initialize() {
 	app.userChannelBoundary = viper.GetString("user_channel_boundary")
 	app.userChannelSeparator = viper.GetString("user_channel_separator")
 	app.expiredConnectionCloseDelay = int64(viper.GetInt("expired_connection_close_delay"))
+	app.nodeInfoPublishInterval = int64(viper.GetInt("node_info_publish_interval"))
 	app.insecure = viper.GetBool("insecure")
 	if app.insecure {
 		logger.WARN.Println("application initialized in INSECURE MODE")

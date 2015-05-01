@@ -83,6 +83,7 @@ func main() {
 			viper.SetDefault("max_channel_length", 255)
 			viper.SetDefault("channel_prefix", "centrifugo")
 			viper.SetDefault("node_ping_interval", 5)
+			viper.SetDefault("node_info_publish_interval", 10)
 			viper.SetDefault("expired_connection_close_delay", 10)
 			viper.SetDefault("presence_ping_interval", 25)
 			viper.SetDefault("presence_expire_interval", 60)

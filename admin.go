@@ -41,6 +41,7 @@ func (c *adminClient) send(message string) error {
 	select {
 	case c.writeChannel <- []byte(message):
 	default:
+		logger.ERROR.Println("can't write into admin ws connection write channel")
 		return ErrInternalServerError
 	}
 	return nil
