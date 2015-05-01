@@ -8,7 +8,6 @@ Why:
 
 What's left:
 
-* insecure mode
 * metrics
 * tests
 * deploy (Dockerfile, rpm) 
