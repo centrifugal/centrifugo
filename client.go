@@ -22,7 +22,7 @@ type client struct {
 	uid             string
 	project         string
 	user            string
-	timestamp       int
+	timestamp       int64
 	token           string
 	info            interface{}
 	isAuthenticated bool
@@ -349,7 +349,7 @@ func (c *client) expire() {
 		return
 	}
 
-	timeToExpire := int64(c.timestamp) + project.ConnectionLifetime - time.Now().Unix()
+	timeToExpire := c.timestamp + project.ConnectionLifetime - time.Now().Unix()
 	if timeToExpire > 0 {
 		// connection was succesfully refreshed
 		return
@@ -377,32 +377,46 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	if info == "" {
 		info = "{}"
 	}
-	timestamp := cmd.Timestamp
-	token := cmd.Token
+
+	var timestamp string
+	var token string
+	if !c.app.insecure {
+		timestamp = cmd.Timestamp
+		token = cmd.Token
+	} else {
+		timestamp = ""
+		token = ""
+	}
 
 	project, exists := c.app.getProjectByKey(projectKey)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
 
-	isValid := checkClientToken(project.Secret, projectKey, user, timestamp, info, token)
-	if !isValid {
-		logger.ERROR.Println("invalid token for user", user)
-		return nil, ErrInvalidToken
+	if !c.app.insecure {
+		isValid := checkClientToken(project.Secret, projectKey, user, timestamp, info, token)
+		if !isValid {
+			logger.ERROR.Println("invalid token for user", user)
+			return nil, ErrInvalidToken
+		}
 	}
 
-	ts, err := strconv.Atoi(timestamp)
-	if err != nil {
-		logger.ERROR.Println(err)
-		return nil, ErrInvalidClientMessage
+	if !c.app.insecure {
+		ts, err := strconv.Atoi(timestamp)
+		if err != nil {
+			logger.ERROR.Println(err)
+			return nil, ErrInvalidClientMessage
+		}
+		c.timestamp = int64(ts)
+	} else {
+		c.timestamp = time.Now().Unix()
 	}
 
-	c.timestamp = ts
 	c.user = user
 	c.project = projectKey
 
 	var defaultInfo interface{}
-	err = json.Unmarshal([]byte(info), &defaultInfo)
+	err := json.Unmarshal([]byte(info), &defaultInfo)
 	if err != nil {
 		logger.ERROR.Println(err)
 		defaultInfo = map[string]interface{}{}
@@ -412,9 +426,9 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	var timeToExpire int64 = 0
 	ttl = nil
 	connectionLifetime := project.ConnectionLifetime
-	if connectionLifetime > 0 {
+	if connectionLifetime > 0 && !c.app.insecure {
 		ttl = connectionLifetime
-		timeToExpire := int64(ts) + connectionLifetime - time.Now().Unix()
+		timeToExpire := c.timestamp + connectionLifetime - time.Now().Unix()
 		if timeToExpire <= 0 {
 			body := map[string]interface{}{
 				"client":  nil,
@@ -495,7 +509,7 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 		timeToExpire := int64(ts) + connectionLifetime - time.Now().Unix()
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
-			c.timestamp = ts
+			c.timestamp = int64(ts)
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
@@ -553,7 +567,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 		return resp, nil
 	}
 
-	if !channelOptions.Anonymous && c.user == "" {
+	if !channelOptions.Anonymous && c.user == "" && !c.app.insecure {
 		resp.Error = ErrPermissionDenied
 		return resp, nil
 	}
@@ -692,7 +706,7 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 		return resp, nil
 	}
 
-	if !channelOptions.Publish {
+	if !channelOptions.Publish && !c.app.insecure {
 		resp.Error = ErrPermissionDenied
 		return resp, nil
 	}

@@ -61,6 +61,7 @@ func main() {
 	var configFile string
 	var logLevel string
 	var logFile string
+	var insecure bool
 
 	var redisHost string
 	var redisPort string
@@ -88,11 +89,15 @@ func main() {
 			viper.SetDefault("namespace_channel_boundary", ":")
 			viper.SetDefault("user_channel_boundary", "#")
 			viper.SetDefault("user_channel_separator", ",")
+			viper.SetDefault("insecure", false)
 
 			viper.SetConfigFile(configFile)
 
 			viper.SetEnvPrefix("centrifuge")
-			viper.BindEnv("structure", "engine", "insecure", "password", "cookie_secret")
+			viper.BindEnv("engine")
+			viper.BindEnv("insecure")
+			viper.BindEnv("password")
+			viper.BindEnv("secret")
 
 			viper.BindPFlag("port", cmd.Flags().Lookup("port"))
 			viper.BindPFlag("address", cmd.Flags().Lookup("address"))
@@ -100,6 +105,7 @@ func main() {
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
 			viper.BindPFlag("engine", cmd.Flags().Lookup("engine"))
+			viper.BindPFlag("insecure", cmd.Flags().Lookup("insecure"))
 			viper.BindPFlag("log_level", cmd.Flags().Lookup("log_level"))
 			viper.BindPFlag("log_file", cmd.Flags().Lookup("log_file"))
 			viper.BindPFlag("redis_host", cmd.Flags().Lookup("redis_host"))
@@ -189,6 +195,7 @@ func main() {
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
 	rootCmd.Flags().StringVarP(&web, "web", "w", "", "optional path to web interface application")
 	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
+	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure mode")
 	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "info", "set the log level: debug, info, error, critical, fatal or none")
 	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified all logs go to STDOUT")
 	rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")

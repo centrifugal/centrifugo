@@ -76,6 +76,11 @@ type application struct {
 	userChannelBoundary string
 	// separates allowed users in user part of channel name
 	userChannelSeparator string
+
+	// insecure turns on insecure mode - when it's on then no authentication
+	// required at all when connecting to Centrifuge, this can be suitable for
+	// demonstration or personal usage
+	insecure bool
 }
 
 type nodeInfo struct {
@@ -161,6 +166,11 @@ func (app *application) initialize() {
 	app.userChannelBoundary = viper.GetString("user_channel_boundary")
 	app.userChannelSeparator = viper.GetString("user_channel_separator")
 	app.expiredConnectionCloseDelay = int64(viper.GetInt("expired_connection_close_delay"))
+	app.insecure = viper.GetBool("insecure")
+	if app.insecure {
+		logger.WARN.Println("application initialized in INSECURE MODE")
+	}
+
 	app.name = getApplicationName()
 
 	// get and initialize structure
