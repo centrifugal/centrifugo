@@ -12,11 +12,10 @@ import (
 
 // adminClient is a wrapper over admin websocket connection
 type adminClient struct {
-	app *application
-	uid string
-	ws  *websocket.Conn
-	// buffered channel of outbound messages.
-	s            chan []byte
+	app          *application
+	uid          string
+	ws           *websocket.Conn
+	writeChannel chan []byte
 	closeChannel chan struct{}
 }
 
@@ -29,7 +28,7 @@ func newAdminClient(app *application, ws *websocket.Conn) (*adminClient, error) 
 		uid:          uid.String(),
 		app:          app,
 		ws:           ws,
-		s:            make(chan []byte, 256),
+		writeChannel: make(chan []byte, 256),
 		closeChannel: make(chan struct{}),
 	}, nil
 }
@@ -40,7 +39,7 @@ func (c *adminClient) getUid() string {
 
 func (c *adminClient) send(message string) error {
 	select {
-	case c.s <- []byte(message):
+	case c.writeChannel <- []byte(message):
 	default:
 		return ErrInternalServerError
 	}
@@ -51,7 +50,7 @@ func (c *adminClient) send(message string) error {
 func (c *adminClient) writer() {
 	for {
 		select {
-		case message := <-c.s:
+		case message := <-c.writeChannel:
 			err := c.ws.WriteMessage(websocket.TextMessage, message)
 			if err != nil {
 				return

@@ -2,7 +2,7 @@ package main
 
 import (
 	"net/http"
-	_ "net/http/pprof"
+	//_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"strings"
@@ -75,6 +75,8 @@ func main() {
 		Long:  "Centrifuge in GO",
 		Run: func(cmd *cobra.Command, args []string) {
 
+			viper.SetConfigFile(configFile)
+
 			viper.SetDefault("password", "")
 			viper.SetDefault("secret", "secret")
 			viper.RegisterAlias("cookie_secret", "secret")
@@ -89,8 +91,6 @@ func main() {
 			viper.SetDefault("user_channel_boundary", "#")
 			viper.SetDefault("user_channel_separator", ",")
 			viper.SetDefault("insecure", false)
-
-			viper.SetConfigFile(configFile)
 
 			viper.SetEnvPrefix("centrifuge")
 			viper.BindEnv("engine")

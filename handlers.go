@@ -357,14 +357,14 @@ func (app *application) adminWsConnectionHandler(w http.ResponseWriter, r *http.
 }
 
 type wsConnection struct {
-	ws *websocket.Conn
-	// buffered channel of outbound messages.
-	s chan []byte
+	ws           *websocket.Conn
+	writeChannel chan []byte // buffered channel of outbound messages.
 }
 
 func (conn wsConnection) Send(message string) error {
+
 	select {
-	case conn.s <- []byte(message):
+	case conn.writeChannel <- []byte(message):
 	default:
 		conn.ws.Close()
 	}
@@ -379,7 +379,7 @@ func (conn wsConnection) Close(status uint32, reason string) error {
 func (conn *wsConnection) writer(closeChannel chan struct{}) {
 	for {
 		select {
-		case message := <-conn.s:
+		case message := <-conn.writeChannel:
 			err := conn.ws.WriteMessage(websocket.TextMessage, message)
 			if err != nil {
 				return
@@ -403,8 +403,8 @@ func (app *application) wsConnectionHandler(w http.ResponseWriter, r *http.Reque
 	defer ws.Close()
 
 	conn := wsConnection{
-		ws: ws,
-		s:  make(chan []byte, 256),
+		ws:           ws,
+		writeChannel: make(chan []byte, 256),
 	}
 
 	c, err := newClient(app, conn)

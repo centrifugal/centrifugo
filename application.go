@@ -1,6 +1,6 @@
 package main
 
-// TODO: use interfaces instead of app reference in client and engine
+// TODO: maybe use interfaces instead of app reference in client and engine?
 
 import (
 	"encoding/json"
@@ -21,15 +21,9 @@ type application struct {
 
 	// unique id for this application (node)
 	uid string
-	// name of this node - based on hostname and port
-	name string
+
 	// nodes is a map with information about nodes known
 	nodes map[string]*nodeInfo
-
-	// admin password
-	password string
-	// secret key to generate auth token for admin
-	secret string
 
 	// hub to manage client connections
 	clientConnectionHub *clientConnectionHub
@@ -43,6 +37,14 @@ type application struct {
 
 	// reference to structure to work with projects and namespaces
 	structure *structure
+
+	// name of this node - provided explicitly by configuration option
+	// or constructed from hostname and port
+	name string
+	// admin password
+	password string
+	// secret key to generate auth token for admin
+	secret string
 
 	// prefix before each channel
 	channelPrefix string
@@ -76,9 +78,10 @@ type application struct {
 	// separates allowed users in user part of channel name
 	userChannelSeparator string
 
-	// insecure turns on insecure mode - when it's on then no authentication
-	// required at all when connecting to Centrifuge, this can be suitable for
-	// demonstration or personal usage
+	// insecure turns on insecure mode - when it's turned on then no authentication
+	// required at all when connecting to Centrifuge, anonymous access and publish
+	// allowed for all channels, no connection check performed. This can be suitable
+	// for demonstration or personal usage
 	insecure bool
 }
 
