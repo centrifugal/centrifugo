@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/centrifugal/centrifugo/logger"
-
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"
@@ -17,7 +16,8 @@ type adminClient struct {
 	uid string
 	ws  *websocket.Conn
 	// buffered channel of outbound messages.
-	s chan []byte
+	s            chan []byte
+	closeChannel chan struct{}
 }
 
 func newAdminClient(app *application, ws *websocket.Conn) (*adminClient, error) {
@@ -26,10 +26,11 @@ func newAdminClient(app *application, ws *websocket.Conn) (*adminClient, error) 
 		return nil, err
 	}
 	return &adminClient{
-		uid: uid.String(),
-		app: app,
-		ws:  ws,
-		s:   make(chan []byte, 256),
+		uid:          uid.String(),
+		app:          app,
+		ws:           ws,
+		s:            make(chan []byte, 256),
+		closeChannel: make(chan struct{}),
 	}, nil
 }
 
@@ -48,13 +49,17 @@ func (c *adminClient) send(message string) error {
 
 // writer reads from channel and sends received messages to admin
 func (c *adminClient) writer() {
-	for message := range c.s {
-		err := c.ws.WriteMessage(websocket.TextMessage, message)
-		if err != nil {
-			break
+	for {
+		select {
+		case message := <-c.s:
+			err := c.ws.WriteMessage(websocket.TextMessage, message)
+			if err != nil {
+				return
+			}
+		case <-c.closeChannel:
+			return
 		}
 	}
-	c.ws.Close()
 }
 
 // handleMessage handles message received from admin connection

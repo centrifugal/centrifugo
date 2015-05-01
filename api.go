@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/centrifugal/centrifugo/logger"
-
 	"github.com/mitchellh/mapstructure"
 )
 

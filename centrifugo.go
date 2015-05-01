@@ -2,14 +2,13 @@ package main
 
 import (
 	"net/http"
-	//"net/http/pprof"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 
 	"github.com/centrifugal/centrifugo/logger"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

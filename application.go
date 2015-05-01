@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/logger"
-
 	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
 	"github.com/spf13/viper"

@@ -324,13 +324,16 @@ func (app *application) adminWsConnectionHandler(w http.ResponseWriter, r *http.
 	}
 	logger.INFO.Print("new admin session established")
 	defer func() {
+		close(c.closeChannel)
 		err := app.removeAdminConnection(c)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
 		logger.INFO.Println("admin session closed")
 	}()
+
 	go c.writer()
+
 	for {
 		_, message, err := c.ws.ReadMessage()
 		if err != nil {
@@ -373,14 +376,18 @@ func (conn wsConnection) Close(status uint32, reason string) error {
 }
 
 // writer reads from channel and sends received messages into connection
-func (conn *wsConnection) writer() {
-	for message := range conn.s {
-		err := conn.ws.WriteMessage(websocket.TextMessage, message)
-		if err != nil {
-			break
+func (conn *wsConnection) writer(closeChannel chan struct{}) {
+	for {
+		select {
+		case message := <-conn.s:
+			err := conn.ws.WriteMessage(websocket.TextMessage, message)
+			if err != nil {
+				return
+			}
+		case <-closeChannel:
+			return
 		}
 	}
-	conn.ws.Close()
 }
 
 func (app *application) wsConnectionHandler(w http.ResponseWriter, r *http.Request) {
@@ -412,7 +419,7 @@ func (app *application) wsConnectionHandler(w http.ResponseWriter, r *http.Reque
 
 	go c.sendMessages()
 
-	go conn.writer()
+	go conn.writer(c.closeChannel)
 
 	for {
 		_, message, err := conn.ws.ReadMessage()
