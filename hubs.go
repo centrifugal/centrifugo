@@ -22,6 +22,28 @@ func newClientConnectionHub() *clientConnectionHub {
 	}
 }
 
+func (h *clientConnectionHub) getClientsCount() int {
+	h.Lock()
+	defer h.Unlock()
+	total := 0
+	for _, userConnections := range h.connections {
+		for _, clientConnections := range userConnections {
+			total += len(clientConnections)
+		}
+	}
+	return total
+}
+
+func (h *clientConnectionHub) getUniqueClientsCount() int {
+	h.Lock()
+	defer h.Unlock()
+	total := 0
+	for _, userConnections := range h.connections {
+		total += len(userConnections)
+	}
+	return total
+}
+
 // add adds connection into clientConnectionHub connections registry
 func (h *clientConnectionHub) add(c clientConnection) error {
 	h.Lock()
@@ -107,6 +129,12 @@ func newClientSubscriptionHub() *clientSubscriptionHub {
 	return &clientSubscriptionHub{
 		subscriptions: make(map[string]map[string]clientConnection),
 	}
+}
+
+func (h *clientSubscriptionHub) getChannelsCount() int {
+	h.Lock()
+	defer h.Unlock()
+	return len(h.subscriptions)
 }
 
 func (h *clientSubscriptionHub) getChannels() []string {

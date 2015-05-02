@@ -609,10 +609,28 @@ func (app *application) isUserAllowed(channel, user string) bool {
 	return false
 }
 
+// register admin connection in adminConnectionHub
 func (app *application) addAdminConnection(c adminConnection) error {
 	return app.adminConnectionHub.add(c)
 }
 
+// unregister admin connection from adminConnectionHub
 func (app *application) removeAdminConnection(c adminConnection) error {
 	return app.adminConnectionHub.remove(c)
+}
+
+// getChannelsCount returns total amount of active channels on this node
+func (app *application) getChannelsCount() int {
+	return app.clientSubscriptionHub.getChannelsCount()
+}
+
+// getClientsCount returns total amount of client connections to this node
+func (app *application) getClientsCount() int {
+	return app.clientConnectionHub.getClientsCount()
+}
+
+// getUniqueChannelsCount returns total amount of unique client
+// connections to this node
+func (app *application) getUniqueChannelsCount() int {
+	return app.clientConnectionHub.getUniqueClientsCount()
 }
