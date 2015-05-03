@@ -2,7 +2,7 @@ package libcentrifugo
 
 import (
 	"net/http"
-	_ "net/http/pprof"
+	//_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"strings"
