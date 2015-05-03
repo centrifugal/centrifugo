@@ -77,7 +77,9 @@ func (c *client) updateChannelPresence(channel string) {
 
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
-	for channel := range c.channels {
+	c.Lock()
+	defer c.Unlock()
+	for _, channel := range c.getChannels() {
 		c.updateChannelPresence(channel)
 	}
 }
@@ -117,6 +119,8 @@ func (c *client) getChannels() []string {
 }
 
 func (c *client) unsubscribe(channel string) error {
+	c.Lock()
+	defer c.Unlock()
 	cmd := &unsubscribeClientCommand{
 		Channel: channel,
 	}
@@ -147,7 +151,8 @@ func (c *client) close(reason string) error {
 // clean called when connection was closed to make different clean up
 // actions for a client
 func (c *client) clean() error {
-
+	c.Lock()
+	defer c.Unlock()
 	projectKey := c.project
 
 	if projectKey != "" && len(c.channels) > 0 {
@@ -230,6 +235,8 @@ func (c *client) handleMessage(msg []byte) error {
 }
 
 func (c *client) handleCommands(commands []clientCommand) error {
+	c.Lock()
+	defer c.Unlock()
 	var err error
 	var mr multiResponse
 	for _, command := range commands {

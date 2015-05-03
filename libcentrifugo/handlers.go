@@ -18,37 +18,23 @@ func newClientConnectionHandler(app *application) http.Handler {
 }
 
 func (app *application) clientConnectionHandler(s sockjs.Session) {
-	logger.INFO.Println("new client session established")
-	var closedSession = make(chan struct{})
-	defer func() {
-		close(closedSession)
-		logger.INFO.Println("client session closed")
-	}()
 
-	client, err := newClient(app, s)
+	c, err := newClient(app, s)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return
 	}
-
-	go client.sendMessages()
-
-	go func() {
-		for {
-			select {
-			case <-closedSession:
-				err = client.clean()
-				if err != nil {
-					logger.ERROR.Println(err)
-				}
-				return
-			}
-		}
+	defer func() {
+		c.clean()
+		logger.INFO.Println("client session closed")
 	}()
+	logger.INFO.Println("new client session established")
+
+	go c.sendMessages()
 
 	for {
 		if msg, err := s.Recv(); err == nil {
-			err = client.handleMessage([]byte(msg))
+			err = c.handleMessage([]byte(msg))
 			if err != nil {
 				logger.ERROR.Println(err)
 				s.Close(3000, err.Error())
@@ -229,6 +215,8 @@ func (app *application) Authenticated(h http.HandlerFunc) http.HandlerFunc {
 }
 
 func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
+	app.nodesMutex.Lock()
+	defer app.nodesMutex.Unlock()
 	info := map[string]interface{}{
 		"version":   VERSION,
 		"structure": app.structure.ProjectList,

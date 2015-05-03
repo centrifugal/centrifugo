@@ -22,11 +22,13 @@ type application struct {
 	// unique id for this application (node)
 	uid string
 
-	//
+	// started is unix time of node start
 	started int64
 
 	// nodes is a map with information about nodes known
 	nodes map[string]*nodeInfo
+	// nodesMutex allows to synchronize access to nodes
+	nodesMutex sync.Mutex
 
 	// hub to manage client connections
 	clientConnectionHub *clientConnectionHub
@@ -131,11 +133,13 @@ func (app *application) sendPingMessage() {
 
 func (app *application) cleanNodeInfo() {
 	for {
+		app.nodesMutex.Lock()
 		for uid, info := range app.nodes {
 			if time.Now().Unix()-info.Updated > int64(app.nodeInfoMaxDelay) {
 				delete(app.nodes, uid)
 			}
 		}
+		app.nodesMutex.Unlock()
 		time.Sleep(time.Duration(app.nodeInfoCleanInterval) * time.Second)
 	}
 }
@@ -374,7 +378,6 @@ func (app *application) publishJoinLeaveMessage(projectKey, channel, method stri
 }
 
 func (app *application) publishPingControlMessage() error {
-
 	cmd := &pingControlCommand{
 		Uid:      app.uid,
 		Name:     app.name,
@@ -445,7 +448,9 @@ func (app *application) handlePingControlCommand(cmd *pingControlCommand) error 
 		Started:  cmd.Started,
 		Updated:  time.Now().Unix(),
 	}
+	app.nodesMutex.Lock()
 	app.nodes[cmd.Uid] = info
+	app.nodesMutex.Unlock()
 	return nil
 }
 
