@@ -4,19 +4,13 @@ import (
 	"testing"
 )
 
-const (
-	secretKey   = "secret"
-	projectKey  = "project"
-	user        = "user"
-	timestamp   = "1430669930"
-	info        = "{}"
-	encodedData = "{}"
-	client      = "client"
-	channel     = "channel"
-	channelData = "{}"
-)
-
 func TestGenerateClientToken(t *testing.T) {
+	var (
+		secretKey  = "secret"
+		projectKey = "project"
+		user       = "user"
+		timestamp  = "1430669930"
+	)
 	tokenWithInfo := generateClientToken(secretKey, projectKey, user, timestamp, "{}")
 	if len(tokenWithInfo) != 64 {
 		t.Error("sha256 token length must be 64")
@@ -31,7 +25,14 @@ func TestGenerateClientToken(t *testing.T) {
 }
 
 func TestCheckClientToken(t *testing.T) {
-	providedToken := "token"
+	var (
+		secretKey     = "secret"
+		projectKey    = "project"
+		user          = "user"
+		timestamp     = "1430669930"
+		info          = "{}"
+		providedToken = "token"
+	)
 	result := checkClientToken(secretKey, projectKey, user, timestamp, info, providedToken)
 	if result {
 		t.Error("provided token is wrong, but check passed")
@@ -44,6 +45,11 @@ func TestCheckClientToken(t *testing.T) {
 }
 
 func TestGenerateApiSign(t *testing.T) {
+	var (
+		secretKey   = "secret"
+		projectKey  = "project"
+		encodedData = "{}"
+	)
 	sign := generateApiSign(secretKey, projectKey, encodedData)
 	if len(sign) != 64 {
 		t.Error("sha256 sign length must be 64")
@@ -51,7 +57,12 @@ func TestGenerateApiSign(t *testing.T) {
 }
 
 func TestCheckApiSign(t *testing.T) {
-	providedSign := "sign"
+	var (
+		secretKey    = "secret"
+		projectKey   = "project"
+		encodedData  = "{}"
+		providedSign = "sign"
+	)
 	result := checkApiSign(secretKey, projectKey, encodedData, providedSign)
 	if result {
 		t.Error("provided sign is wrong, but check passed")
@@ -64,14 +75,26 @@ func TestCheckApiSign(t *testing.T) {
 }
 
 func TestGenerateChannelSign(t *testing.T) {
-	sign := generateChannelSign(secretKey, clientId, channel, channelData)
+	var (
+		secretKey   = "secret"
+		client      = "client"
+		channel     = "channel"
+		channelData = "{}"
+	)
+	sign := generateChannelSign(secretKey, client, channel, channelData)
 	if len(sign) != 64 {
 		t.Error("sha256 sign length must be 64")
 	}
 }
 
 func TestCheckChannelSign(t *testing.T) {
-	providedSign := "sign"
+	var (
+		secretKey    = "secret"
+		client       = "client"
+		channel      = "channel"
+		channelData  = "{}"
+		providedSign = "sign"
+	)
 	result := checkChannelSign(secretKey, client, channel, channelData, providedSign)
 	if result {
 		t.Error("provided sign is wrong, but check passed")
