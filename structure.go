@@ -72,7 +72,7 @@ type structure struct {
 	NamespaceMap map[string]map[string]namespace
 }
 
-// initialize initializes structure fields using project list from configuration file
+// initialize initializes structure fields based on project list
 func (s *structure) initialize() {
 	s.Lock()
 	defer s.Unlock()

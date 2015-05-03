@@ -22,6 +22,9 @@ type application struct {
 	// unique id for this application (node)
 	uid string
 
+	//
+	started int64
+
 	// nodes is a map with information about nodes known
 	nodes map[string]*nodeInfo
 
@@ -59,8 +62,6 @@ type application struct {
 	nodeInfoCleanInterval int64
 	// in seconds, how many seconds node info considered actual
 	nodeInfoMaxDelay int64
-	// in seconds, how often to publish node info into admin channel
-	nodeInfoPublishInterval int64
 
 	// in seconds, how often connected clients must update presence info
 	presencePingInterval int64
@@ -88,9 +89,13 @@ type application struct {
 }
 
 type nodeInfo struct {
-	Uid       string `json:"uid"`
-	Name      string `json:"name"`
-	UpdatedAt int64  `json:"-"`
+	Uid      string `json:"uid"`
+	Name     string `json:"name"`
+	Clients  int    `json:"clients"`
+	Unique   int    `json:"unique"`
+	Channels int    `json:"channels"`
+	Started  int64  `json:"started"`
+	Updated  int64  `json:"-"`
 }
 
 func newApplication() (*application, error) {
@@ -104,6 +109,7 @@ func newApplication() (*application, error) {
 		clientConnectionHub:   newClientConnectionHub(),
 		clientSubscriptionHub: newClientSubscriptionHub(),
 		adminConnectionHub:    newAdminConnectionHub(),
+		started:               time.Now().Unix(),
 	}
 	return app, nil
 }
@@ -111,7 +117,6 @@ func newApplication() (*application, error) {
 func (app *application) run() {
 	go app.sendPingMessage()
 	go app.cleanNodeInfo()
-	go app.publishNodeInfo()
 }
 
 func (app *application) sendPingMessage() {
@@ -127,31 +132,11 @@ func (app *application) sendPingMessage() {
 func (app *application) cleanNodeInfo() {
 	for {
 		for uid, info := range app.nodes {
-			if time.Now().Unix()-info.UpdatedAt > int64(app.nodeInfoMaxDelay) {
+			if time.Now().Unix()-info.Updated > int64(app.nodeInfoMaxDelay) {
 				delete(app.nodes, uid)
 			}
 		}
 		time.Sleep(time.Duration(app.nodeInfoCleanInterval) * time.Second)
-	}
-}
-
-func (app *application) publishNodeInfo() {
-	for {
-		message := map[string]interface{}{
-			"method": "node",
-			"body": map[string]interface{}{
-				"uid":     app.uid,
-				"name":    app.name,
-				"nodes":   len(app.nodes) + 1,
-				"metrics": map[string]interface{}{},
-			},
-		}
-		messageJson, _ := json.Marshal(message)
-		err := app.publishAdminMessage(messageJson)
-		if err != nil {
-			logger.ERROR.Println(err)
-		}
-		time.Sleep(time.Duration(app.nodeInfoPublishInterval) * time.Second)
 	}
 }
 
@@ -191,7 +176,6 @@ func (app *application) initialize() {
 	app.userChannelBoundary = viper.GetString("user_channel_boundary")
 	app.userChannelSeparator = viper.GetString("user_channel_separator")
 	app.expiredConnectionCloseDelay = int64(viper.GetInt("expired_connection_close_delay"))
-	app.nodeInfoPublishInterval = int64(viper.GetInt("node_info_publish_interval"))
 	app.insecure = viper.GetBool("insecure")
 	if app.insecure {
 		logger.WARN.Println("application initialized in INSECURE MODE")
@@ -390,13 +374,25 @@ func (app *application) publishJoinLeaveMessage(projectKey, channel, method stri
 }
 
 func (app *application) publishPingControlMessage() error {
+
+	cmd := &pingControlCommand{
+		Uid:      app.uid,
+		Name:     app.name,
+		Clients:  app.getClientsCount(),
+		Unique:   app.getUniqueChannelsCount(),
+		Channels: app.getChannelsCount(),
+		Started:  app.started,
+	}
+
+	err := app.handlePingControlCommand(cmd)
+	if err != nil {
+		logger.ERROR.Println(err)
+	}
+
 	message := map[string]interface{}{
 		"uid":    app.uid,
 		"method": "ping",
-		"params": map[string]string{
-			"uid":  app.uid,
-			"name": app.name,
-		},
+		"params": cmd,
 	}
 	messageBytes, err := json.Marshal(message)
 	if err != nil {
@@ -441,9 +437,13 @@ func (app *application) publishDisconnectControlMessage(projectKey, user string)
 // handlePingControlCommand updates information about known nodes
 func (app *application) handlePingControlCommand(cmd *pingControlCommand) error {
 	info := &nodeInfo{
-		Uid:       cmd.Uid,
-		Name:      cmd.Name,
-		UpdatedAt: time.Now().Unix(),
+		Uid:      cmd.Uid,
+		Name:     cmd.Name,
+		Clients:  cmd.Clients,
+		Unique:   cmd.Unique,
+		Channels: cmd.Channels,
+		Started:  cmd.Started,
+		Updated:  time.Now().Unix(),
 	}
 	app.nodes[cmd.Uid] = info
 	return nil

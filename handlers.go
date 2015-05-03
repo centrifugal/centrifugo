@@ -230,11 +230,11 @@ func (app *application) Authenticated(h http.HandlerFunc) http.HandlerFunc {
 
 func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
 	info := map[string]interface{}{
-		"version":    VERSION,
-		"structure":  app.structure.ProjectList,
-		"engine":     app.engine.getName(),
-		"node_name":  app.name,
-		"node_count": len(app.nodes) + 1,
+		"version":   VERSION,
+		"structure": app.structure.ProjectList,
+		"engine":    app.engine.getName(),
+		"node_name": app.name,
+		"nodes":     app.nodes,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(info)
