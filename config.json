@@ -1,6 +1,6 @@
 {
   "password": "password",
-  "cookie_secret": "cookie_secret",
+  "secret": "secret",
   "log_level": "debug",
   "structure": [
     {
