@@ -42,9 +42,13 @@ func handleSignals(app *application) {
 		case syscall.SIGHUP:
 			// reload application configuration on SIGHUP
 			logger.INFO.Println("reload configuration")
-			viper.ReadInConfig()
-			app.initialize()
+			err := viper.ReadInConfig()
+			if err != nil {
+				logger.CRITICAL.Println("unable to locate config file")
+				return
+			}
 			setupLogging()
+			app.initialize()
 		}
 	}
 }
@@ -118,14 +122,15 @@ func Main() {
 			if err != nil {
 				panic("unable to locate config file")
 			}
-			setupLogging()
 
+			setupLogging()
 			logger.INFO.Println("using config file:", viper.ConfigFileUsed())
 
 			app, err := newApplication()
 			if err != nil {
 				panic(err)
 			}
+			app.initialize()
 
 			var e engine
 			switch viper.GetString("engine") {
@@ -149,7 +154,6 @@ func Main() {
 			logger.DEBUG.Printf("%v\n", viper.AllSettings())
 
 			app.setEngine(e)
-			app.initialize()
 
 			err = e.initialize()
 			if err != nil {

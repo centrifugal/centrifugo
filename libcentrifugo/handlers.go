@@ -179,9 +179,9 @@ const (
 
 func (app *application) authHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
-	if password == app.password {
+	if password == app.config.password {
 		w.Header().Set("Content-Type", "application/json")
-		s := securecookie.New([]byte(app.secret), nil)
+		s := securecookie.New([]byte(app.config.secret), nil)
 		token, err := s.Encode(tokenKey, tokenValue)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -201,7 +201,7 @@ func (app *application) Authenticated(h http.HandlerFunc) http.HandlerFunc {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader != "" {
 			token := strings.TrimPrefix(authHeader, "Token ")
-			s := securecookie.New([]byte(app.secret), nil)
+			s := securecookie.New([]byte(app.config.secret), nil)
 			var val string
 			if err := s.Decode(tokenKey, token, &val); err == nil {
 				if val == tokenValue {
@@ -221,7 +221,7 @@ func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
 		"version":   VERSION,
 		"structure": app.structure.ProjectList,
 		"engine":    app.engine.getName(),
-		"node_name": app.name,
+		"node_name": app.config.name,
 		"nodes":     app.nodes,
 	}
 	w.Header().Set("Content-Type", "application/json")

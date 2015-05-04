@@ -105,7 +105,7 @@ func (c *adminClient) handleAuthCommand(cmd *authAdminCommand) (*response, error
 		return nil, ErrUnauthorized
 	}
 
-	s := securecookie.New([]byte(c.app.secret), nil)
+	s := securecookie.New([]byte(c.app.config.secret), nil)
 	var val string
 	err := s.Decode(tokenKey, token, &val)
 	if err != nil {

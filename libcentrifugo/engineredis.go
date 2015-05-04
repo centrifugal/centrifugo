@@ -127,7 +127,7 @@ func (e *redisEngine) initializeApi() {
 	defer func() {
 		e.inApi = false
 	}()
-	apiKey := e.app.channelPrefix + "." + "api"
+	apiKey := e.app.config.channelPrefix + "." + "api"
 	for {
 		reply, err := conn.Do("BLPOP", apiKey, 0)
 		if err != nil {
@@ -177,12 +177,12 @@ func (e *redisEngine) initializePubSub() {
 	defer func() {
 		e.inPubSub = false
 	}()
-	err := e.psc.Subscribe(e.app.adminChannel)
+	err := e.psc.Subscribe(e.app.config.adminChannel)
 	if err != nil {
 		e.psc.Close()
 		return
 	}
-	err = e.psc.Subscribe(e.app.controlChannel)
+	err = e.psc.Subscribe(e.app.config.controlChannel)
 	if err != nil {
 		e.psc.Close()
 		return
@@ -223,15 +223,15 @@ func (e *redisEngine) unsubscribe(channel string) error {
 }
 
 func (e *redisEngine) getHashKey(channel string) string {
-	return e.app.channelPrefix + ".presence.hash." + channel
+	return e.app.config.channelPrefix + ".presence.hash." + channel
 }
 
 func (e *redisEngine) getSetKey(channel string) string {
-	return e.app.channelPrefix + ".presence.set." + channel
+	return e.app.config.channelPrefix + ".presence.set." + channel
 }
 
 func (e *redisEngine) getHistoryKey(channel string) string {
-	return e.app.channelPrefix + ".history.list." + channel
+	return e.app.config.channelPrefix + ".history.list." + channel
 }
 
 func (e *redisEngine) addPresence(channel, uid string, info interface{}) error {
@@ -241,7 +241,7 @@ func (e *redisEngine) addPresence(channel, uid string, info interface{}) error {
 	if err != nil {
 		return err
 	}
-	expireAt := time.Now().Unix() + e.app.presenceExpireInterval
+	expireAt := time.Now().Unix() + e.app.config.presenceExpireInterval
 	hashKey := e.getHashKey(channel)
 	setKey := e.getSetKey(channel)
 	conn.Send("MULTI")

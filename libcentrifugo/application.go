@@ -4,7 +4,6 @@ package libcentrifugo
 
 import (
 	"encoding/json"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,7 +12,6 @@ import (
 	"github.com/centrifugal/centrifugo/logger"
 	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
-	"github.com/spf13/viper"
 )
 
 type application struct {
@@ -43,51 +41,8 @@ type application struct {
 	// reference to structure to work with projects and namespaces
 	structure *structure
 
-	// name of this node - provided explicitly by configuration option
-	// or constructed from hostname and port
-	name string
-	// admin password
-	password string
-	// secret key to generate auth token for admin
-	secret string
-
-	// prefix before each channel
-	channelPrefix string
-	// channel name for admin messages
-	adminChannel string
-	// channel name for internal control messages between nodes
-	controlChannel string
-
-	// in seconds, how often node must send ping control message
-	nodePingInterval int64
-	// in seconds, how often node must clean information about other running nodes
-	nodeInfoCleanInterval int64
-	// in seconds, how many seconds node info considered actual
-	nodeInfoMaxDelay int64
-
-	// in seconds, how often connected clients must update presence info
-	presencePingInterval int64
-	// in seconds, how long to consider presence info valid after receiving presence ping
-	presenceExpireInterval int64
-
-	// in seconds, an interval given to client to refresh its connection in the end of
-	// connection lifetime
-	expiredConnectionCloseDelay int64
-
-	// prefix in channel name which indicates that channel is private
-	privateChannelPrefix string
-	// string separator which must be put after namespace part in channel name
-	namespaceChannelBoundary string
-	// string separator which must be set before allowed users part in channel name
-	userChannelBoundary string
-	// separates allowed users in user part of channel name
-	userChannelSeparator string
-
-	// insecure turns on insecure mode - when it's turned on then no authentication
-	// required at all when connecting to Centrifuge, anonymous access and publish
-	// allowed for all channels, no connection check performed. This can be suitable
-	// for demonstration or personal usage
-	insecure bool
+	// config for application
+	config *config
 }
 
 type nodeInfo struct {
@@ -127,7 +82,7 @@ func (app *application) sendPingMessage() {
 		if err != nil {
 			logger.CRITICAL.Println(err)
 		}
-		time.Sleep(time.Duration(app.nodePingInterval) * time.Second)
+		time.Sleep(time.Duration(app.config.nodePingInterval) * time.Second)
 	}
 }
 
@@ -135,66 +90,27 @@ func (app *application) cleanNodeInfo() {
 	for {
 		app.nodesMutex.Lock()
 		for uid, info := range app.nodes {
-			if time.Now().Unix()-info.Updated > int64(app.nodeInfoMaxDelay) {
+			if time.Now().Unix()-info.Updated > int64(app.config.nodeInfoMaxDelay) {
 				delete(app.nodes, uid)
 			}
 		}
 		app.nodesMutex.Unlock()
-		time.Sleep(time.Duration(app.nodeInfoCleanInterval) * time.Second)
+		time.Sleep(time.Duration(app.config.nodeInfoCleanInterval) * time.Second)
 	}
-}
-
-// getApplicationName returns a name for this node. If no name provided
-// in configuration then it constructs node name based on hostname and port
-func getApplicationName() string {
-	name := viper.GetString("name")
-	if name != "" {
-		return name
-	}
-	port := viper.GetString("port")
-	var hostname string
-	hostname, err := os.Hostname()
-	if err != nil {
-		logger.ERROR.Println(err)
-		hostname = "?"
-	}
-	return hostname + "_" + port
 }
 
 // initialize used to set configuration dependent application properties
 func (app *application) initialize() {
 	app.Lock()
 	defer app.Unlock()
-	app.password = viper.GetString("password")
-	app.secret = viper.GetString("secret")
-	app.channelPrefix = viper.GetString("channel_prefix")
-	app.adminChannel = app.channelPrefix + "." + "admin"
-	app.controlChannel = app.channelPrefix + "." + "control"
-	app.nodePingInterval = int64(viper.GetInt("node_ping_interval"))
-	app.nodeInfoCleanInterval = app.nodePingInterval * 3
-	app.nodeInfoMaxDelay = app.nodePingInterval*2 + 1
-	app.presencePingInterval = int64(viper.GetInt("presence_ping_interval"))
-	app.presenceExpireInterval = int64(viper.GetInt("presence_expire_interval"))
-	app.privateChannelPrefix = viper.GetString("private_channel_prefix")
-	app.namespaceChannelBoundary = viper.GetString("namespace_channel_boundary")
-	app.userChannelBoundary = viper.GetString("user_channel_boundary")
-	app.userChannelSeparator = viper.GetString("user_channel_separator")
-	app.expiredConnectionCloseDelay = int64(viper.GetInt("expired_connection_close_delay"))
-	app.insecure = viper.GetBool("insecure")
-	if app.insecure {
+	app.config = newConfig()
+	app.structure = getStructureFromConfig()
+	if app.config.insecure {
 		logger.WARN.Println("application initialized in INSECURE MODE")
 	}
-
-	app.name = getApplicationName()
-
-	// get and initialize structure
-	var pl projectList
-	viper.MarshalKey("structure", &pl)
-	s := &structure{
-		ProjectList: pl,
+	if app.structure.ProjectList == nil {
+		logger.FATAL.Println("structure not found")
 	}
-	s.initialize()
-	app.structure = s
 }
 
 // setEngine binds engine to application
@@ -208,9 +124,9 @@ func (app *application) setEngine(e engine) {
 // It looks at channel and decides which message handler to call
 func (app *application) handleMessage(channel string, message []byte) error {
 	switch channel {
-	case app.controlChannel:
+	case app.config.controlChannel:
 		return app.handleControlMessage(message)
-	case app.adminChannel:
+	case app.config.adminChannel:
 		return app.handleAdminMessage(message)
 	default:
 		return app.handleClientMessage(channel, message)
@@ -286,13 +202,13 @@ func (app *application) handleClientMessage(channel string, message []byte) erro
 // publishControlMessage publishes message into control channel so all running
 // nodes will receive and handle it
 func (app *application) publishControlMessage(message []byte) error {
-	return app.engine.publish(app.controlChannel, message)
+	return app.engine.publish(app.config.controlChannel, message)
 }
 
 // publishAdminMessage publishes message into admin channel so all running
 // nodes will receive it and send to admins connected
 func (app *application) publishAdminMessage(message []byte) error {
-	return app.engine.publish(app.adminChannel, message)
+	return app.engine.publish(app.config.adminChannel, message)
 }
 
 // publishClientMessage publishes message into channel so all running nodes
@@ -380,7 +296,7 @@ func (app *application) publishJoinLeaveMessage(projectKey, channel, method stri
 func (app *application) publishPingControlMessage() error {
 	cmd := &pingControlCommand{
 		Uid:      app.uid,
-		Name:     app.name,
+		Name:     app.config.name,
 		Clients:  app.getClientsCount(),
 		Unique:   app.getUniqueChannelsCount(),
 		Channels: app.getChannelsCount(),
@@ -467,7 +383,7 @@ func (app *application) handleDisconnectControlCommand(cmd *disconnectControlCom
 // between them. This also prevents collapses with admin and control
 // channel names
 func (app *application) getProjectChannel(projectKey, channel string) string {
-	return app.channelPrefix + "." + projectKey + "." + channel
+	return app.config.channelPrefix + "." + projectKey + "." + channel
 }
 
 // addConnection registers authenticated connection in clientConnectionHub
@@ -546,8 +462,8 @@ func (app *application) getProjectByKey(projectKey string) (*project, bool) {
 // extractNamespaceName returns namespace name from channel name if exists or
 // empty string
 func (app *application) extractNamespaceName(channel string) string {
-	channel = strings.TrimPrefix(channel, app.privateChannelPrefix)
-	parts := strings.SplitN(channel, app.namespaceChannelBoundary, 2)
+	channel = strings.TrimPrefix(channel, app.config.privateChannelPrefix)
+	parts := strings.SplitN(channel, app.config.namespaceChannelBoundary, 2)
 	if len(parts) >= 2 {
 		return parts[0]
 	} else {
@@ -594,18 +510,18 @@ func (app *application) getHistory(projectKey, channel string) ([]interface{}, e
 // isPrivateChannel checks if channel private and therefore subscription
 // request on it must be properly signed on web application backend
 func (app *application) isPrivateChannel(channel string) bool {
-	return strings.HasPrefix(channel, app.privateChannelPrefix)
+	return strings.HasPrefix(channel, app.config.privateChannelPrefix)
 }
 
 // isUserAllowed checks if user can subscribe on channel - as channel
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it
 func (app *application) isUserAllowed(channel, user string) bool {
-	if !strings.Contains(channel, app.userChannelBoundary) {
+	if !strings.Contains(channel, app.config.userChannelBoundary) {
 		return true
 	}
-	parts := strings.Split(channel, app.userChannelBoundary)
-	allowedUsers := strings.Split(parts[len(parts)-1], app.userChannelSeparator)
+	parts := strings.Split(channel, app.config.userChannelBoundary)
+	allowedUsers := strings.Split(parts[len(parts)-1], app.config.userChannelSeparator)
 	for _, allowedUser := range allowedUsers {
 		if user == allowedUser {
 			return true

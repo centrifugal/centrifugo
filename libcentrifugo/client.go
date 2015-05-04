@@ -90,7 +90,7 @@ func (c *client) presencePing() {
 		select {
 		case <-c.closeChannel:
 			return
-		case <-time.After(time.Duration(c.app.presencePingInterval) * time.Second):
+		case <-time.After(time.Duration(c.app.config.presencePingInterval) * time.Second):
 		}
 		c.updatePresence()
 	}
@@ -340,7 +340,7 @@ func (c *client) handlePingCommand() (*response, error) {
 }
 
 func (c *client) expire() {
-	timer := time.Tick(time.Duration(c.app.expiredConnectionCloseDelay) * time.Second)
+	timer := time.Tick(time.Duration(c.app.config.expiredConnectionCloseDelay) * time.Second)
 	select {
 	case <-timer:
 	case <-c.closeChannel:
@@ -387,7 +387,7 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 
 	var timestamp string
 	var token string
-	if !c.app.insecure {
+	if !c.app.config.insecure {
 		timestamp = cmd.Timestamp
 		token = cmd.Token
 	} else {
@@ -400,7 +400,7 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 		return nil, ErrProjectNotFound
 	}
 
-	if !c.app.insecure {
+	if !c.app.config.insecure {
 		isValid := checkClientToken(project.Secret, projectKey, user, timestamp, info, token)
 		if !isValid {
 			logger.ERROR.Println("invalid token for user", user)
@@ -408,7 +408,7 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 		}
 	}
 
-	if !c.app.insecure {
+	if !c.app.config.insecure {
 		ts, err := strconv.Atoi(timestamp)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -433,7 +433,7 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	var timeToExpire int64 = 0
 	ttl = nil
 	connectionLifetime := project.ConnectionLifetime
-	if connectionLifetime > 0 && !c.app.insecure {
+	if connectionLifetime > 0 && !c.app.config.insecure {
 		ttl = connectionLifetime
 		timeToExpire := c.timestamp + connectionLifetime - time.Now().Unix()
 		if timeToExpire <= 0 {
@@ -574,7 +574,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 		return resp, nil
 	}
 
-	if !channelOptions.Anonymous && c.user == "" && !c.app.insecure {
+	if !channelOptions.Anonymous && c.user == "" && !c.app.config.insecure {
 		resp.Error = ErrPermissionDenied
 		return resp, nil
 	}
@@ -713,7 +713,7 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 		return resp, nil
 	}
 
-	if !channelOptions.Publish && !c.app.insecure {
+	if !channelOptions.Publish && !c.app.config.insecure {
 		resp.Error = ErrPermissionDenied
 		return resp, nil
 	}
