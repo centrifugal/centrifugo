@@ -15,7 +15,7 @@ import (
 )
 
 type application struct {
-	sync.Mutex
+	sync.RWMutex
 
 	// unique id for this application (node)
 	uid string
@@ -82,20 +82,32 @@ func (app *application) sendPingMessage() {
 		if err != nil {
 			logger.CRITICAL.Println(err)
 		}
-		time.Sleep(time.Duration(app.config.nodePingInterval) * time.Second)
+		app.RLock()
+		interval := app.config.nodePingInterval
+		app.RUnlock()
+		time.Sleep(time.Duration(interval) * time.Second)
 	}
 }
 
 func (app *application) cleanNodeInfo() {
 	for {
+		app.RLock()
+		delay := app.config.nodeInfoMaxDelay
+		app.RUnlock()
+
 		app.nodesMutex.Lock()
 		for uid, info := range app.nodes {
-			if time.Now().Unix()-info.Updated > int64(app.config.nodeInfoMaxDelay) {
+			if time.Now().Unix()-info.Updated > delay {
 				delete(app.nodes, uid)
 			}
 		}
 		app.nodesMutex.Unlock()
-		time.Sleep(time.Duration(app.config.nodeInfoCleanInterval) * time.Second)
+
+		app.RLock()
+		interval := app.config.nodeInfoCleanInterval
+		app.RUnlock()
+
+		time.Sleep(time.Duration(interval) * time.Second)
 	}
 }
 
@@ -202,12 +214,16 @@ func (app *application) handleClientMessage(channel string, message []byte) erro
 // publishControlMessage publishes message into control channel so all running
 // nodes will receive and handle it
 func (app *application) publishControlMessage(message []byte) error {
+	app.RLock()
+	defer app.RUnlock()
 	return app.engine.publish(app.config.controlChannel, message)
 }
 
 // publishAdminMessage publishes message into admin channel so all running
 // nodes will receive it and send to admins connected
 func (app *application) publishAdminMessage(message []byte) error {
+	app.RLock()
+	defer app.RUnlock()
 	return app.engine.publish(app.config.adminChannel, message)
 }
 
@@ -294,6 +310,8 @@ func (app *application) publishJoinLeaveMessage(projectKey, channel, method stri
 }
 
 func (app *application) publishPingControlMessage() error {
+	app.RLock()
+	defer app.RUnlock()
 	cmd := &pingControlCommand{
 		Uid:      app.uid,
 		Name:     app.config.name,
@@ -383,6 +401,8 @@ func (app *application) handleDisconnectControlCommand(cmd *disconnectControlCom
 // between them. This also prevents collapses with admin and control
 // channel names
 func (app *application) getProjectChannel(projectKey, channel string) string {
+	app.RLock()
+	defer app.RUnlock()
 	return app.config.channelPrefix + "." + projectKey + "." + channel
 }
 
@@ -456,6 +476,8 @@ func (app *application) disconnectUser(projectKey, user string) error {
 
 // getProjectByKey returns a project by project key (name) using structure
 func (app *application) getProjectByKey(projectKey string) (*project, bool) {
+	app.RLock()
+	defer app.RUnlock()
 	return app.structure.getProjectByKey(projectKey)
 }
 
@@ -473,6 +495,8 @@ func (app *application) extractNamespaceName(channel string) string {
 
 // getChannelOptions returns channel options for channel using structure
 func (app *application) getChannelOptions(projectKey, channel string) *ChannelOptions {
+	app.RLock()
+	defer app.RUnlock()
 	namespaceName := app.extractNamespaceName(channel)
 	return app.structure.getChannelOptions(projectKey, namespaceName)
 }
@@ -510,6 +534,8 @@ func (app *application) getHistory(projectKey, channel string) ([]interface{}, e
 // isPrivateChannel checks if channel private and therefore subscription
 // request on it must be properly signed on web application backend
 func (app *application) isPrivateChannel(channel string) bool {
+	app.RLock()
+	defer app.RUnlock()
 	return strings.HasPrefix(channel, app.config.privateChannelPrefix)
 }
 
@@ -517,6 +543,8 @@ func (app *application) isPrivateChannel(channel string) bool {
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it
 func (app *application) isUserAllowed(channel, user string) bool {
+	app.RLock()
+	defer app.RUnlock()
 	if !strings.Contains(channel, app.config.userChannelBoundary) {
 		return true
 	}

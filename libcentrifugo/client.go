@@ -87,10 +87,13 @@ func (c *client) updatePresence() {
 // presencePing periodically updates presence info
 func (c *client) presencePing() {
 	for {
+		c.app.RLock()
+		interval := c.app.config.presencePingInterval
+		c.app.RUnlock()
 		select {
 		case <-c.closeChannel:
 			return
-		case <-time.After(time.Duration(c.app.config.presencePingInterval) * time.Second):
+		case <-time.After(time.Duration(interval) * time.Second):
 		}
 		c.updatePresence()
 	}

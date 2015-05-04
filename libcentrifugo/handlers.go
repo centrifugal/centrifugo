@@ -201,7 +201,9 @@ func (app *application) Authenticated(h http.HandlerFunc) http.HandlerFunc {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader != "" {
 			token := strings.TrimPrefix(authHeader, "Token ")
+			app.RLock()
 			s := securecookie.New([]byte(app.config.secret), nil)
+			app.RUnlock()
 			var val string
 			if err := s.Decode(tokenKey, token, &val); err == nil {
 				if val == tokenValue {
@@ -217,6 +219,8 @@ func (app *application) Authenticated(h http.HandlerFunc) http.HandlerFunc {
 func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
 	app.nodesMutex.Lock()
 	defer app.nodesMutex.Unlock()
+	app.RLock()
+	defer app.RUnlock()
 	info := map[string]interface{}{
 		"version":   VERSION,
 		"structure": app.structure.ProjectList,
