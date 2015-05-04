@@ -13,7 +13,11 @@ import (
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
-func newClientConnectionHandler(app *application) http.Handler {
+func newClientConnectionHandler(app *application, sockjsUrl string) http.Handler {
+	if sockjsUrl != "" {
+		logger.INFO.Println("using SockJS url", sockjsUrl)
+		sockjs.DefaultOptions.SockJSURL = sockjsUrl
+	}
 	return sockjs.NewHandler("/connection", sockjs.DefaultOptions, app.clientConnectionHandler)
 }
 
