@@ -1,20 +1,18 @@
 package libcentrifugo
 
-type Params map[string]interface{}
-
 type clientCommand struct {
 	Method string
-	Params Params
+	Params map[string]interface{}
 }
 
 type apiCommand struct {
 	Method string
-	Params Params
+	Params map[string]interface{}
 }
 
 type adminCommand struct {
 	Method string
-	Params Params
+	Params map[string]interface{}
 }
 
 type controlCommand struct {
@@ -22,7 +20,7 @@ type controlCommand struct {
 	Uid string
 
 	Method string
-	Params Params
+	Params map[string]interface{}
 }
 
 // connectClientCommand is a command to authorize connection - it contains project key
