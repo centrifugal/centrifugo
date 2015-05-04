@@ -306,6 +306,7 @@ func (app *application) adminWsConnectionHandler(w http.ResponseWriter, r *http.
 	if err != nil {
 		return
 	}
+	defer ws.Close()
 	c, err := newAdminClient(app, ws)
 	if err != nil {
 		return
@@ -323,7 +324,7 @@ func (app *application) adminWsConnectionHandler(w http.ResponseWriter, r *http.
 	go c.writer()
 
 	for {
-		_, message, err := c.ws.ReadMessage()
+		_, message, err := ws.ReadMessage()
 		if err != nil {
 			break
 		}
@@ -341,7 +342,6 @@ func (app *application) adminWsConnectionHandler(w http.ResponseWriter, r *http.
 			}
 		}
 	}
-	c.ws.Close()
 }
 
 type wsConnection struct {

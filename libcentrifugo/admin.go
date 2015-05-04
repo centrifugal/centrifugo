@@ -10,16 +10,21 @@ import (
 	"github.com/nu7hatch/gouuid"
 )
 
+// use interface to mimic websocket connection write method we use here
+type adminSession interface {
+	WriteMessage(int, []byte) error
+}
+
 // adminClient is a wrapper over admin websocket connection
 type adminClient struct {
 	app          *application
 	uid          string
-	ws           *websocket.Conn
+	session      adminSession
 	writeChannel chan []byte
 	closeChannel chan struct{}
 }
 
-func newAdminClient(app *application, ws *websocket.Conn) (*adminClient, error) {
+func newAdminClient(app *application, s adminSession) (*adminClient, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -27,7 +32,7 @@ func newAdminClient(app *application, ws *websocket.Conn) (*adminClient, error) 
 	return &adminClient{
 		uid:          uid.String(),
 		app:          app,
-		ws:           ws,
+		session:      s,
 		writeChannel: make(chan []byte, 256),
 		closeChannel: make(chan struct{}),
 	}, nil
@@ -52,7 +57,7 @@ func (c *adminClient) writer() {
 	for {
 		select {
 		case message := <-c.writeChannel:
-			err := c.ws.WriteMessage(websocket.TextMessage, message)
+			err := c.session.WriteMessage(websocket.TextMessage, message)
 			if err != nil {
 				return
 			}
