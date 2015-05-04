@@ -185,21 +185,9 @@ func (h *memoryHistoryHub) add(channel string, message interface{}, size, lifeti
 	defer h.Unlock()
 
 	_, ok := h.history[channel]
-	if size <= 0 {
-		delete(h.history, channel)
-		return nil
-	}
 
-	var expireAt int64
-	if lifetime <= 0 {
-		expireAt = 0
-	} else {
-		expireAt = time.Now().Unix() + lifetime
-	}
-
-	if expireAt > 0 {
-		heap.Push(&h.queue, &priority.Item{Value: channel, Priority: expireAt})
-	}
+	expireAt := time.Now().Unix() + lifetime
+	heap.Push(&h.queue, &priority.Item{Value: channel, Priority: expireAt})
 
 	if !ok {
 		h.history[channel] = historyItem{

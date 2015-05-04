@@ -222,7 +222,7 @@ func (app *application) handleHistoryCommand(p *project, cmd *historyApiCommand)
 		return resp, nil
 	}
 
-	if channelOptions.HistorySize <= 0 {
+	if channelOptions.HistorySize <= 0 || channelOptions.HistoryLifetime <= 0 {
 		resp.Error = ErrNotAvailable
 		return resp, nil
 	}

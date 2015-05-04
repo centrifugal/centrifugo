@@ -324,9 +324,7 @@ func (e *redisEngine) getPresence(channel string) (map[string]interface{}, error
 func (e *redisEngine) addHistoryMessage(channel string, message interface{}, size, lifetime int64) error {
 	conn := e.pool.Get()
 	defer conn.Close()
-	if size <= 0 {
-		return nil
-	}
+
 	historyKey := e.getHistoryKey(channel)
 	messageJson, err := json.Marshal(message)
 	if err != nil {
@@ -335,11 +333,7 @@ func (e *redisEngine) addHistoryMessage(channel string, message interface{}, siz
 	conn.Send("MULTI")
 	conn.Send("LPUSH", historyKey, messageJson)
 	conn.Send("LTRIM", historyKey, 0, size-1)
-	if lifetime <= 0 {
-		conn.Send("PERSIST", historyKey)
-	} else {
-		conn.Send("EXPIRE", historyKey, lifetime)
-	}
+	conn.Send("EXPIRE", historyKey, lifetime)
 	_, err = conn.Do("EXEC")
 	return err
 }

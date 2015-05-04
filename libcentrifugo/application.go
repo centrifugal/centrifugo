@@ -283,7 +283,7 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 		return err
 	}
 
-	if channelOptions.HistorySize > 0 {
+	if channelOptions.HistorySize > 0 && channelOptions.HistoryLifetime > 0 {
 		err := app.addHistoryMessage(p.Name, channel, message, channelOptions.HistorySize, channelOptions.HistoryLifetime)
 		if err != nil {
 			logger.ERROR.Println(err)
