@@ -11,7 +11,6 @@ rm -rf BUILDS/$1/*
 
 gox -os="linux darwin freebsd windows" -output="./BUILDS/$1/centrifugo-$1-{{.OS}}_{{.Arch}}/centrifugo"
 
-
 cd BUILDS/$1
 
 for i in */; do
