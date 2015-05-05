@@ -6,8 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/centrifugal/centrifugo/logger"
-
+	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/websocket"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"

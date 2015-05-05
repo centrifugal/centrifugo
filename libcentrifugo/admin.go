@@ -3,7 +3,7 @@ package libcentrifugo
 import (
 	"encoding/json"
 
-	"github.com/centrifugal/centrifugo/logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"

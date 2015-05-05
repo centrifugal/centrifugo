@@ -8,7 +8,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/centrifugal/centrifugo/logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

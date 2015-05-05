@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
 )

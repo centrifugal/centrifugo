@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/priority"
+	"github.com/centrifugal/centrifugo/libcentrifugo/priority"
 )
 
 // memoryEngine allows to run Centrifuge without using Redis at all. All data managed inside process
