@@ -18,4 +18,4 @@ Build rpm:
 ./build.sh 0.0.1
 ```
 
-As argument to `build.sh` you should specify Centrifugo version or release binary downloaded above.
+As argument to `build.sh` you should specify Centrifugo version of release binary downloaded above.
