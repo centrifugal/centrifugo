@@ -94,7 +94,6 @@ func Main() {
 			viper.SetDefault("namespace_channel_boundary", ":")
 			viper.SetDefault("user_channel_boundary", "#")
 			viper.SetDefault("user_channel_separator", ",")
-			viper.SetDefault("insecure", false)
 			viper.SetDefault("sockjs_url", "https://cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js")
 
 			viper.SetEnvPrefix("centrifuge")

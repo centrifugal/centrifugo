@@ -89,5 +89,5 @@ fi
 %attr(0755,%{centrifugo_user},%{centrifugo_group}) %dir %{_localstatedir}/log/%{name}
 %attr(0755,%{centrifugo_user},%{centrifugo_group}) %dir %{_localstatedir}/lib/%{name}
 %{_initrddir}/centrifugo
-%{_sysconfdir}/centrifugo/config.json
-%{_sysconfdir}/security/limits.d/%{name}.nofiles.conf
+%config(noreplace) %{_sysconfdir}/centrifugo/config.json
+%config(noreplace) %{_sysconfdir}/security/limits.d/%{name}.nofiles.conf
