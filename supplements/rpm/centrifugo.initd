@@ -1,0 +1,105 @@
+#!/bin/bash
+#
+# /etc/init.d/centrifugo
+#
+# Startup script for centrifugo
+#
+# chkconfig: 2345 20 80
+# description: Starts and stops centrifugo
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+prog="centrifugo"
+prog_bin="/usr/sbin/$prog"
+desc="centrifugo real-time messaging server"
+
+CENTRIFUGO_OUT_FILE="/var/log/centrifugo/centrifugo.out"
+CENTRIFUGO_CONFIG_FILE="/etc/centrifugo/config.json"
+
+[ -e /etc/sysconfig/centrifugo ] && . /etc/sysconfig/centrifugo
+
+lockfile="/var/lock/subsys/centrifugo"
+
+if ! [ -f $prog_bin ]; then
+  echo "$prog binary not found."
+  exit 5
+fi
+
+start() {
+  [ -x $prog_bin ] || exit 5
+  if ! [ -f $CENTRIFUGO_CONFIG_FILE ]; then
+    echo "configuration file not found $CENTRIFUGO_CONFIG_FILE"
+    exit 6
+  fi
+  echo -n $"Starting $prog: "
+  daemon --user centrifugo "nohup $prog_bin --config=$CENTRIFUGO_CONFIG_FILE >>$CENTRIFUGO_OUT_FILE 2>&1 &"
+  retval=$?
+  echo
+  [ $retval -eq 0 ] && touch $lockfile
+  return $retval
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    killproc $prog -TERM
+    retval=$?
+    if [ $retval -eq 0 ]; then
+        if [ "$CONSOLETYPE" != "serial" ]; then
+           echo -en "\\033[16G"
+        fi
+        while rh_status_q
+        do
+            sleep 1
+            echo -n $"."
+        done
+        rm -f $lockfile
+    fi
+    echo
+    return $retval
+}
+
+restart() {
+    stop
+    start
+}
+
+reload() {
+    echo -n $"Reloading $prog: "
+    killproc $prog_bin -HUP
+    sleep 1
+    RETVAL=$?
+    echo
+}
+
+rh_status() {
+  status $prog
+}
+
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
+case "$1" in
+    start)
+        rh_status_q && exit 0
+        $1
+        ;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart)
+        $1
+        ;;
+    reload)
+        rh_status_q || exit 7
+        $1
+        ;;
+    status|status_q)
+        rh_$1
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|reload|status|restart}"
+        exit 2
+esac
