@@ -1,6 +1,7 @@
 package libcentrifugo
 
 import (
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -207,5 +208,16 @@ func Main() {
 	rootCmd.Flags().StringVarP(&redisDb, "redis_db", "", "0", "redis database (Redis engine)")
 	rootCmd.Flags().StringVarP(&redisUrl, "redis_url", "", "", "redis connection URL (Redis engine)")
 	rootCmd.Flags().BoolVarP(&redisApi, "redis_api", "", false, "enable Redis API listener (Redis engine)")
+
+	var version = &cobra.Command{
+		Use:   "version",
+		Short: "Centrifugo version number",
+		Long:  `Print the version number of Centrifugo`,
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("Centrifugo v%s\n", VERSION)
+		},
+	}
+	rootCmd.AddCommand(version)
+
 	rootCmd.Execute()
 }
