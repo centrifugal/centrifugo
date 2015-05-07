@@ -70,9 +70,9 @@ func Main() {
 	var redisHost string
 	var redisPort string
 	var redisPassword string
-	var redisDb string
-	var redisUrl string
-	var redisApi bool
+	var redisDB string
+	var redisURL string
+	var redisAPI bool
 
 	var rootCmd = &cobra.Command{
 		Use:   "",
@@ -205,9 +205,9 @@ func Main() {
 	rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")
 	rootCmd.Flags().StringVarP(&redisPort, "redis_port", "", "6379", "redis port (Redis engine)")
 	rootCmd.Flags().StringVarP(&redisPassword, "redis_password", "", "", "redis auth password (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisDb, "redis_db", "", "0", "redis database (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisUrl, "redis_url", "", "", "redis connection URL (Redis engine)")
-	rootCmd.Flags().BoolVarP(&redisApi, "redis_api", "", false, "enable Redis API listener (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisDB, "redis_db", "", "0", "redis database (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisURL, "redis_url", "", "", "redis connection URL (Redis engine)")
+	rootCmd.Flags().BoolVarP(&redisAPI, "redis_api", "", false, "enable Redis API listener (Redis engine)")
 
 	var version = &cobra.Command{
 		Use:   "version",

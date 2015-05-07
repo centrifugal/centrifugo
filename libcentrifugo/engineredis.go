@@ -21,12 +21,12 @@ type redisEngine struct {
 	psc      redis.PubSubConn
 	api      bool
 	inPubSub bool
-	inApi    bool
+	inAPI    bool
 }
 
-func newRedisEngine(app *application, host, port, password, db, redisUrl string, api bool) *redisEngine {
-	if redisUrl != "" {
-		u, err := url.Parse(redisUrl)
+func newRedisEngine(app *application, host, port, password, db, redisURL string, api bool) *redisEngine {
+	if redisURL != "" {
+		u, err := url.Parse(redisURL)
 		if err != nil {
 			panic(err)
 		}
@@ -108,7 +108,7 @@ func (e *redisEngine) checkConnectionStatus() {
 		if !e.inPubSub {
 			go e.initializePubSub()
 		}
-		if e.api && !e.inApi {
+		if e.api && !e.inAPI {
 			go e.initializeApi()
 		}
 	}
@@ -120,11 +120,11 @@ type redisApiRequest struct {
 }
 
 func (e *redisEngine) initializeApi() {
-	e.inApi = true
+	e.inAPI = true
 	conn := e.pool.Get()
 	defer conn.Close()
 	defer func() {
-		e.inApi = false
+		e.inAPI = false
 	}()
 	apiKey := e.app.config.channelPrefix + "." + "api"
 	for {
