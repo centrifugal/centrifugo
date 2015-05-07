@@ -1,4 +1,4 @@
-An attempt to move Centrifuge from Python to Go
+Centrifuge in Go
 
 Why:
 
@@ -10,6 +10,5 @@ What's left:
 
 * metrics
 * tests
-* deploy (Dockerfile, rpm) 
 * documentation
 * compare with python version (cpu, memory, performance etc)
