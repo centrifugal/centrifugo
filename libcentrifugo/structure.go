@@ -29,8 +29,8 @@ type ChannelOptions struct {
 }
 
 // project represents single project
-// note that although Centrifuge can work with several projects
-// but it's recommended to have separate Centrifuge installation
+// note that although Centrifugo can work with several projects
+// but it's recommended to have separate Centrifugo installation
 // for every project (maybe except copy of your project for development)
 type project struct {
 	// Name is unique project name, used as project key for client connections and API requests
