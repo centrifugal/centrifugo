@@ -17,11 +17,11 @@ type adminSession interface {
 
 // adminClient is a wrapper over admin websocket connection
 type adminClient struct {
-	app          *application
-	uid          string
-	session      adminSession
-	writeChannel chan []byte
-	closeChannel chan struct{}
+	app       *application
+	uid       string
+	session   adminSession
+	writeChan chan []byte
+	closeChan chan struct{}
 }
 
 func newAdminClient(app *application, s adminSession) (*adminClient, error) {
@@ -30,11 +30,11 @@ func newAdminClient(app *application, s adminSession) (*adminClient, error) {
 		return nil, err
 	}
 	return &adminClient{
-		uid:          uid.String(),
-		app:          app,
-		session:      s,
-		writeChannel: make(chan []byte, 256),
-		closeChannel: make(chan struct{}),
+		uid:       uid.String(),
+		app:       app,
+		session:   s,
+		writeChan: make(chan []byte, 256),
+		closeChan: make(chan struct{}),
 	}, nil
 }
 
@@ -44,7 +44,7 @@ func (c *adminClient) getUid() string {
 
 func (c *adminClient) send(message string) error {
 	select {
-	case c.writeChannel <- []byte(message):
+	case c.writeChan <- []byte(message):
 	default:
 		logger.ERROR.Println("can't write into admin ws connection write channel")
 		return ErrInternalServerError
@@ -56,12 +56,12 @@ func (c *adminClient) send(message string) error {
 func (c *adminClient) writer() {
 	for {
 		select {
-		case message := <-c.writeChannel:
+		case message := <-c.writeChan:
 			err := c.session.WriteMessage(websocket.TextMessage, message)
 			if err != nil {
 				return
 			}
-		case <-c.closeChannel:
+		case <-c.closeChan:
 			return
 		}
 	}

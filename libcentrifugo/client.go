@@ -27,8 +27,8 @@ type client struct {
 	isAuthenticated bool
 	channelInfo     map[string]interface{}
 	channels        map[string]bool
-	messageChannel  chan string
-	closeChannel    chan struct{}
+	messageChan     chan string
+	closeChan       chan struct{}
 	expireTimer     *time.Timer
 }
 
@@ -38,24 +38,24 @@ func newClient(app *application, s session) (*client, error) {
 		return nil, err
 	}
 	return &client{
-		uid:            uid.String(),
-		app:            app,
-		session:        s,
-		messageChannel: make(chan string, 256),
-		closeChannel:   make(chan struct{}),
+		uid:         uid.String(),
+		app:         app,
+		session:     s,
+		messageChan: make(chan string, 256),
+		closeChan:   make(chan struct{}),
 	}, nil
 }
 
-// sendMessages waits for messages from messageChannel and sends them to client
+// sendMessages waits for messages from messageChan and sends them to client
 func (c *client) sendMessages() {
 	for {
 		select {
-		case message := <-c.messageChannel:
+		case message := <-c.messageChan:
 			err := c.session.Send(message)
 			if err != nil {
 				c.session.Close(3000, "error sending message")
 			}
-		case <-c.closeChannel:
+		case <-c.closeChan:
 			return
 		}
 	}
@@ -90,7 +90,7 @@ func (c *client) presencePing() {
 		interval := c.app.config.presencePingInterval
 		c.app.RUnlock()
 		select {
-		case <-c.closeChannel:
+		case <-c.closeChan:
 			return
 		case <-time.After(time.Duration(interval) * time.Second):
 		}
@@ -138,7 +138,7 @@ func (c *client) unsubscribe(channel string) error {
 
 func (c *client) send(message string) error {
 	select {
-	case c.messageChannel <- message:
+	case c.messageChan <- message:
 		return nil
 	default:
 		c.session.Close(3000, "error sending message")
@@ -177,7 +177,7 @@ func (c *client) clean() error {
 		}
 	}
 
-	close(c.closeChannel)
+	close(c.closeChan)
 
 	return nil
 }
@@ -345,7 +345,7 @@ func (c *client) expire() {
 	timer := time.Tick(time.Duration(c.app.config.expiredConnectionCloseDelay) * time.Second)
 	select {
 	case <-timer:
-	case <-c.closeChannel:
+	case <-c.closeChan:
 		return
 	}
 

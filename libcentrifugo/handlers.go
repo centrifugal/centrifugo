@@ -320,7 +320,7 @@ func (app *application) adminWsConnectionHandler(w http.ResponseWriter, r *http.
 	}
 	logger.INFO.Print("new admin session established")
 	defer func() {
-		close(c.closeChannel)
+		close(c.closeChan)
 		err := app.removeAdminConnection(c)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -352,14 +352,14 @@ func (app *application) adminWsConnectionHandler(w http.ResponseWriter, r *http.
 }
 
 type wsConnection struct {
-	ws           *websocket.Conn
-	writeChannel chan []byte // buffered channel of outbound messages.
+	ws        *websocket.Conn
+	writeChan chan []byte // buffered channel of outbound messages.
 }
 
 func (conn wsConnection) Send(message string) error {
 
 	select {
-	case conn.writeChannel <- []byte(message):
+	case conn.writeChan <- []byte(message):
 	default:
 		conn.ws.Close()
 	}
@@ -371,15 +371,15 @@ func (conn wsConnection) Close(status uint32, reason string) error {
 }
 
 // writer reads from channel and sends received messages into connection
-func (conn *wsConnection) writer(closeChannel chan struct{}) {
+func (conn *wsConnection) writer(closeChan chan struct{}) {
 	for {
 		select {
-		case message := <-conn.writeChannel:
+		case message := <-conn.writeChan:
 			err := conn.ws.WriteMessage(websocket.TextMessage, message)
 			if err != nil {
 				return
 			}
-		case <-closeChannel:
+		case <-closeChan:
 			return
 		}
 	}
@@ -398,8 +398,8 @@ func (app *application) wsConnectionHandler(w http.ResponseWriter, r *http.Reque
 	defer ws.Close()
 
 	conn := wsConnection{
-		ws:           ws,
-		writeChannel: make(chan []byte, 256),
+		ws:        ws,
+		writeChan: make(chan []byte, 256),
 	}
 
 	c, err := newClient(app, conn)
@@ -414,7 +414,7 @@ func (app *application) wsConnectionHandler(w http.ResponseWriter, r *http.Reque
 
 	go c.sendMessages()
 
-	go conn.writer(c.closeChannel)
+	go conn.writer(c.closeChan)
 
 	for {
 		_, message, err := conn.ws.ReadMessage()
