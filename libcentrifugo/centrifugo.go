@@ -121,7 +121,7 @@ func Main() {
 
 			err := viper.ReadInConfig()
 			if err != nil {
-				panic("unable to locate config file")
+				logger.FATAL.Fatalln("unable to locate config file")
 			}
 
 			setupLogging()
@@ -129,7 +129,7 @@ func Main() {
 
 			app, err := newApplication()
 			if err != nil {
-				panic(err)
+				logger.FATAL.Fatalln(err)
 			}
 			app.initialize()
 
@@ -148,7 +148,7 @@ func Main() {
 					viper.GetBool("redis_api"),
 				)
 			default:
-				panic("unknown engine: " + viper.GetString("engine"))
+				logger.FATAL.Fatalln("unknown engine: " + viper.GetString("engine"))
 			}
 
 			logger.INFO.Println("engine:", viper.GetString("engine"))
@@ -158,7 +158,7 @@ func Main() {
 
 			err = e.initialize()
 			if err != nil {
-				panic(err)
+				logger.FATAL.Fatalln(err)
 			}
 
 			app.run()

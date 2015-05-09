@@ -28,7 +28,7 @@ func newRedisEngine(app *application, host, port, password, db, redisURL string,
 	if redisURL != "" {
 		u, err := url.Parse(redisURL)
 		if err != nil {
-			panic(err)
+			logger.FATAL.Fatalln(err)
 		}
 		if u.User != nil {
 			var ok bool
@@ -39,7 +39,7 @@ func newRedisEngine(app *application, host, port, password, db, redisURL string,
 		}
 		host, port, err = net.SplitHostPort(u.Host)
 		if err != nil {
-			panic(err)
+			logger.FATAL.Fatalln(err)
 		}
 		path := u.Path
 		if path != "" {
