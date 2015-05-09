@@ -12,8 +12,8 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// redisEngine uses Redis datastructures and PUB/SUB to manage Centrifuge logic.
-// This engine allows to scale Centrifuge - you can run several Centrifuge instances
+// redisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.
+// This engine allows to scale Centrifugo - you can run several Centrifugo instances
 // connected to the same Redis and load balance clients between instances.
 type redisEngine struct {
 	app      *application

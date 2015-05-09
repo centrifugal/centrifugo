@@ -77,7 +77,7 @@ func Main() {
 	var rootCmd = &cobra.Command{
 		Use:   "",
 		Short: "Centrifugo",
-		Long:  "Centrifuge in GO",
+		Long:  "Centrifuge + GO = Centrifugo – harder, better, faster, stronger",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			viper.SetConfigFile(configFile)
@@ -97,7 +97,7 @@ func Main() {
 			viper.SetDefault("user_channel_separator", ",")
 			viper.SetDefault("sockjs_url", "https://cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js")
 
-			viper.SetEnvPrefix("centrifuge")
+			viper.SetEnvPrefix("centrifugo")
 			viper.BindEnv("engine")
 			viper.BindEnv("insecure")
 			viper.BindEnv("password")

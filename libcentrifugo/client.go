@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// client represents clien connection to Centrifuge - at moment this can be Websocket
+// client represents clien connection to Centrifugo - at moment this can be Websocket
 // or SockJS connection.
 type client struct {
 	sync.Mutex
@@ -370,7 +370,7 @@ func (c *client) expire() {
 
 // handleConnectCommand handles connect command from client - client must send this
 // command immediately after establishing Websocket or SockJS connection with
-// Centrifuge
+// Centrifugo
 func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, error) {
 
 	resp := newResponse("connect")

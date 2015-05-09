@@ -49,7 +49,7 @@ type config struct {
 	userChannelSeparator string
 
 	// insecure turns on insecure mode - when it's turned on then no authentication
-	// required at all when connecting to Centrifuge, anonymous access and publish
+	// required at all when connecting to Centrifugo, anonymous access and publish
 	// allowed for all channels, no connection check performed. This can be suitable
 	// for demonstration or personal usage
 	insecure bool

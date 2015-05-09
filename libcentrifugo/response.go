@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 )
 
-// response represents an answer Centrifuge sends
+// response represents an answer Centrifugo sends
 // to client or API request commands
 type response struct {
 	Body   interface{} `json:"body"`
