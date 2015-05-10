@@ -2,7 +2,7 @@
   "password": "password",
   "secret": "secret",
   "log_level": "debug",
-  "structure": [
+  "projects": [
     {
       "name": "development",
       "secret": "secret",

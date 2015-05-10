@@ -96,7 +96,7 @@ func newConfig() *config {
 
 func getStructureFromConfig() *structure {
 	var pl projectList
-	viper.MarshalKey("structure", &pl)
+	viper.MarshalKey("projects", &pl)
 	s := &structure{
 		ProjectList: pl,
 	}
