@@ -439,7 +439,7 @@ func (app *application) removeSubscription(projectKey, channel string, c clientC
 	return app.clientSubscriptionHub.remove(projectChannel, c)
 }
 
-// unsubscribeUserFromChannel allows to unsubscribe user...wait for it...from channel! If channel
+// unsubscribeUserFromChannel unsubscribes user from channel on this node. If channel
 // is an empty string then user will be unsubscribed from all channels
 func (app *application) unsubscribeUserFromChannel(projectKey, user, channel string) error {
 	userConnections := app.clientConnectionHub.getUserConnections(projectKey, user)
@@ -466,7 +466,7 @@ func (app *application) unsubscribeUserFromChannel(projectKey, user, channel str
 func (app *application) disconnectUser(projectKey, user string) error {
 	userConnections := app.clientConnectionHub.getUserConnections(projectKey, user)
 	for _, c := range userConnections {
-		err := c.close("default")
+		err := c.close("disconnect")
 		if err != nil {
 			return err
 		}
