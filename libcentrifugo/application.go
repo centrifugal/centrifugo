@@ -116,7 +116,7 @@ func (app *application) initialize() {
 	app.Lock()
 	defer app.Unlock()
 	app.config = newConfig()
-	app.structure = getStructureFromConfig()
+	app.structure = structureFromConfig(nil)
 	if app.config.insecure {
 		logger.WARN.Println("application initialized in INSECURE MODE")
 	}

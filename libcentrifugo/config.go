@@ -1,6 +1,7 @@
 package libcentrifugo
 
 import (
+	"errors"
 	"os"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
@@ -94,9 +95,24 @@ func newConfig() *config {
 	return cfg
 }
 
-func getStructureFromConfig() *structure {
+func validateConfig(f string) error {
+	v := viper.New()
+	v.SetConfigFile(f)
+	err := v.ReadInConfig()
+	if err != nil {
+		return errors.New("unable to locate config file")
+	}
+	structure := structureFromConfig(v)
+	return structure.validate()
+}
+
+func structureFromConfig(v *viper.Viper) *structure {
 	var pl projectList
-	viper.MarshalKey("projects", &pl)
+	if v == nil {
+		viper.MarshalKey("projects", &pl)
+	} else {
+		v.MarshalKey("projects", &pl)
+	}
 	s := &structure{
 		ProjectList: pl,
 	}

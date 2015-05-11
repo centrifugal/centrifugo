@@ -18,6 +18,8 @@ const (
 	VERSION = "0.0.1"
 )
 
+var configFile string
+
 func setupLogging() {
 	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString("log_level"))]
 	if !ok {
@@ -42,7 +44,9 @@ func handleSignals(app *application) {
 		switch sig {
 		case syscall.SIGHUP:
 			// reload application configuration on SIGHUP
-			logger.INFO.Println("reload configuration")
+			// note that you should run checkconfig before reloading configuration
+			// as Viper exits when encounters parsing errors
+			logger.INFO.Println("reloading configuration")
 			err := viper.ReadInConfig()
 			if err != nil {
 				logger.CRITICAL.Println("unable to locate config file")
@@ -62,7 +66,6 @@ func Main() {
 	var name string
 	var web string
 	var engn string
-	var configFile string
 	var logLevel string
 	var logFile string
 	var insecure bool
@@ -79,8 +82,6 @@ func Main() {
 		Short: "Centrifugo",
 		Long:  "Centrifuge + GO = Centrifugo – harder, better, faster, stronger",
 		Run: func(cmd *cobra.Command, args []string) {
-
-			viper.SetConfigFile(configFile)
 
 			viper.SetDefault("password", "password")
 			viper.SetDefault("secret", "secret")
@@ -119,11 +120,16 @@ func Main() {
 			viper.BindPFlag("redis_url", cmd.Flags().Lookup("redis_url"))
 			viper.BindPFlag("redis_api", cmd.Flags().Lookup("redis_api"))
 
-			err := viper.ReadInConfig()
+			err := validateConfig(configFile)
+			if err != nil {
+				logger.FATAL.Fatalln(err)
+			}
+
+			viper.SetConfigFile(configFile)
+			err = viper.ReadInConfig()
 			if err != nil {
 				logger.FATAL.Fatalln("unable to locate config file")
 			}
-
 			setupLogging()
 			logger.INFO.Println("using config file:", viper.ConfigFileUsed())
 
@@ -217,7 +223,23 @@ func Main() {
 			fmt.Printf("Centrifugo v%s\n", VERSION)
 		},
 	}
-	rootCmd.AddCommand(version)
 
+	var checkConfigFile string
+
+	var checkConfig = &cobra.Command{
+		Use:   "checkconfig",
+		Short: "Check configuration file",
+		Long:  `Check Centrifugo configuration file`,
+		Run: func(cmd *cobra.Command, args []string) {
+			err := validateConfig(checkConfigFile)
+			if err != nil {
+				logger.FATAL.Fatalln(err)
+			}
+		},
+	}
+	checkConfig.Flags().StringVarP(&checkConfigFile, "config", "c", "config.json", "path to config file to check")
+
+	rootCmd.AddCommand(version)
+	rootCmd.AddCommand(checkConfig)
 	rootCmd.Execute()
 }

@@ -89,6 +89,13 @@ func (s *structure) initialize() {
 	s.NamespaceMap = namespaceMap
 }
 
+// validate validates structure and return error if problems found
+func (s *structure) validate() error {
+	s.Lock()
+	defer s.Unlock()
+	return nil
+}
+
 // getProjectByKey searches for a project with specified key in structure
 func (s *structure) getProjectByKey(projectKey string) (*project, bool) {
 	project, ok := s.ProjectMap[projectKey]
