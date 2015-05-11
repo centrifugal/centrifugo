@@ -342,12 +342,10 @@ func (c *client) handlePingCommand() (*response, error) {
 }
 
 func (c *client) expire() {
-	timer := time.Tick(time.Duration(c.app.config.expiredConnectionCloseDelay) * time.Second)
-	select {
-	case <-timer:
-	case <-c.closeChan:
-		return
-	}
+	c.Lock()
+	defer c.Unlock()
+
+	logger.INFO.Println("START RUNNING EXPIRE")
 
 	project, exists := c.app.getProjectByKey(c.project)
 	if !exists {
@@ -463,7 +461,7 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	}
 
 	if timeToExpire > 0 {
-		duration := time.Duration(timeToExpire) * time.Second
+		duration := time.Duration(timeToExpire+c.app.config.expiredConnectionCloseDelay) * time.Second
 		c.expireTimer = time.AfterFunc(duration, c.expire)
 	}
 
@@ -522,7 +520,7 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
-			duration := time.Duration(timeToExpire) * time.Second
+			duration := time.Duration(timeToExpire+c.app.config.expiredConnectionCloseDelay) * time.Second
 			c.expireTimer = time.AfterFunc(duration, c.expire)
 		} else {
 			return nil, ErrConnectionExpired
