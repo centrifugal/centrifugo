@@ -60,16 +60,23 @@ stop() {
 }
 
 restart() {
+    configtest || return $?
     stop
+    sleep 1
     start
 }
 
 reload() {
+    configtest || return $?
     echo -n $"Reloading $prog: "
     killproc $prog_bin -HUP
     sleep 1
     RETVAL=$?
     echo
+}
+
+configtest() {
+  $prog_bin checkconfig -c $CENTRIFUGO_CONFIG_FILE
 }
 
 rh_status() {
@@ -89,7 +96,7 @@ case "$1" in
         rh_status_q || exit 0
         $1
         ;;
-    restart)
+    restart|configtest)
         $1
         ;;
     reload)
@@ -100,6 +107,6 @@ case "$1" in
         rh_$1
         ;;
     *)
-        echo $"Usage: $0 {start|stop|reload|status|restart}"
+        echo $"Usage: $0 {start|stop|reload|status|restart|configtest}"
         exit 2
 esac
