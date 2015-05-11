@@ -345,8 +345,6 @@ func (c *client) expire() {
 	c.Lock()
 	defer c.Unlock()
 
-	logger.INFO.Println("START RUNNING EXPIRE")
-
 	project, exists := c.app.getProjectByKey(c.project)
 	if !exists {
 		return
