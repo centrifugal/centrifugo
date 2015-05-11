@@ -1,6 +1,4 @@
 {
-  "password": "password",
-  "secret": "secret",
   "log_level": "debug",
   "projects": [
     {

@@ -82,7 +82,7 @@ func Main() {
 
 			viper.SetConfigFile(configFile)
 
-			viper.SetDefault("password", "")
+			viper.SetDefault("password", "password")
 			viper.SetDefault("secret", "secret")
 			viper.RegisterAlias("cookie_secret", "secret")
 			viper.SetDefault("max_channel_length", 255)
