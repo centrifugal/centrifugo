@@ -1,6 +1,8 @@
 package libcentrifugo
 
 import (
+	"errors"
+	"regexp"
 	"sync"
 )
 
@@ -89,10 +91,51 @@ func (s *structure) initialize() {
 	s.NamespaceMap = namespaceMap
 }
 
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 // validate validates structure and return error if problems found
 func (s *structure) validate() error {
 	s.Lock()
 	defer s.Unlock()
+	var projectNames []string
+	errPrefix := "config error: "
+	pattern := "^[-a-zA-Z0-9_]{2,}$"
+	for _, p := range s.ProjectList {
+		match, _ := regexp.MatchString(pattern, p.Name)
+		if !match {
+			return errors.New(errPrefix + "wrong project name – " + p.Name)
+		}
+		if p.Secret == "" {
+			return errors.New(errPrefix + "secret required for project – " + p.Name)
+		}
+		if stringInSlice(p.Name, projectNames) {
+			return errors.New(errPrefix + "project name must be unique – " + p.Name)
+		}
+		projectNames = append(projectNames, p.Name)
+
+		if p.Namespaces == nil {
+			continue
+		}
+		var namespaceNames []string
+		for _, n := range p.Namespaces {
+			match, _ := regexp.MatchString(pattern, n.Name)
+			if !match {
+				return errors.New(errPrefix + "wrong namespace name – " + n.Name)
+			}
+			if stringInSlice(n.Name, namespaceNames) {
+				return errors.New(errPrefix + "namespace name must be unique for project – " + n.Name)
+			}
+			namespaceNames = append(namespaceNames, n.Name)
+		}
+
+	}
 	return nil
 }
 
