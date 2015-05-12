@@ -215,7 +215,7 @@ func Main() {
 	rootCmd.Flags().StringVarP(&redisURL, "redis_url", "", "", "redis connection URL (Redis engine)")
 	rootCmd.Flags().BoolVarP(&redisAPI, "redis_api", "", false, "enable Redis API listener (Redis engine)")
 
-	var version = &cobra.Command{
+	var versionCmd = &cobra.Command{
 		Use:   "version",
 		Short: "Centrifugo version number",
 		Long:  `Print the version number of Centrifugo`,
@@ -226,7 +226,7 @@ func Main() {
 
 	var checkConfigFile string
 
-	var checkConfig = &cobra.Command{
+	var checkConfigCmd = &cobra.Command{
 		Use:   "checkconfig",
 		Short: "Check configuration file",
 		Long:  `Check Centrifugo configuration file`,
@@ -237,9 +237,25 @@ func Main() {
 			}
 		},
 	}
-	checkConfig.Flags().StringVarP(&checkConfigFile, "config", "c", "config.json", "path to config file to check")
+	checkConfigCmd.Flags().StringVarP(&checkConfigFile, "config", "c", "config.json", "path to config file to check")
 
-	rootCmd.AddCommand(version)
-	rootCmd.AddCommand(checkConfig)
+	var outputConfigFile string
+
+	var generateConfigCmd = &cobra.Command{
+		Use:   "genconfig",
+		Short: "Generate simple configuration file to start with",
+		Long:  `Generate simple configuration file to start with`,
+		Run: func(cmd *cobra.Command, args []string) {
+			err := generateConfig(outputConfigFile)
+			if err != nil {
+				logger.FATAL.Fatalln(err)
+			}
+		},
+	}
+	generateConfigCmd.Flags().StringVarP(&outputConfigFile, "config", "c", "config.json", "path to output config file")
+
+	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(checkConfigCmd)
+	rootCmd.AddCommand(generateConfigCmd)
 	rootCmd.Execute()
 }
