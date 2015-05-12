@@ -1,5 +1,7 @@
 {
   "log_level": "debug",
+  "password": "password",
+  "secret": "secret",
   "projects": [
     {
       "name": "development",

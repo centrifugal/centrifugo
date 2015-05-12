@@ -83,9 +83,9 @@ func Main() {
 		Long:  "Centrifuge + GO = Centrifugo – harder, better, faster, stronger",
 		Run: func(cmd *cobra.Command, args []string) {
 
-			viper.SetDefault("password", "password")
-			viper.SetDefault("secret", "secret")
-			viper.RegisterAlias("cookie_secret", "secret")
+			viper.SetDefault("password", "")
+			viper.SetDefault("secret", "")
+			viper.RegisterAlias("cookie_secret", "")
 			viper.SetDefault("max_channel_length", 255)
 			viper.SetDefault("channel_prefix", "centrifugo")
 			viper.SetDefault("node_ping_interval", 5)

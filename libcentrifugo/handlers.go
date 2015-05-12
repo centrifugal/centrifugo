@@ -182,6 +182,11 @@ const (
 
 func (app *application) authHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
+	if app.config.password == "" || app.config.secret == "" {
+		logger.ERROR.Println("password and secret must be set in configuration")
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
 	if password == app.config.password {
 		w.Header().Set("Content-Type", "application/json")
 		s := securecookie.New([]byte(app.config.secret), nil)
