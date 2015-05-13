@@ -579,6 +579,10 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 
 	if c.app.isPrivateChannel(channel) {
 		// private channel - subscription must be properly signed
+		if c.uid != cmd.Client {
+			resp.Error = ErrPermissionDenied
+			return resp, nil
+		}
 		isValid := checkChannelSign(project.Secret, cmd.Client, channel, cmd.Info, cmd.Sign)
 		if !isValid {
 			resp.Error = ErrPermissionDenied
