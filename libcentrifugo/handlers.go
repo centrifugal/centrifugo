@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/websocket"
@@ -137,7 +138,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	secret := project.Secret
 
-	isValid := checkApiSign(secret, projectKey, encodedData, sign)
+	isValid := auth.CheckApiSign(secret, projectKey, encodedData, sign)
 	if !isValid {
 		logger.ERROR.Println("invalid sign")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)

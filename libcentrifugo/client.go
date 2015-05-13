@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
@@ -399,7 +400,7 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	}
 
 	if !c.app.config.insecure {
-		isValid := checkClientToken(project.Secret, projectKey, user, timestamp, info, token)
+		isValid := auth.CheckClientToken(project.Secret, projectKey, user, timestamp, info, token)
 		if !isValid {
 			logger.ERROR.Println("invalid token for user", user)
 			return nil, ErrInvalidToken
@@ -492,7 +493,7 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 		return nil, ErrProjectNotFound
 	}
 
-	isValid := checkClientToken(project.Secret, projectKey, user, timestamp, info, token)
+	isValid := auth.CheckClientToken(project.Secret, projectKey, user, timestamp, info, token)
 	if !isValid {
 		logger.ERROR.Println("invalid refresh token for user", user)
 		return nil, ErrInvalidToken
@@ -583,7 +584,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 			resp.Error = ErrPermissionDenied
 			return resp, nil
 		}
-		isValid := checkChannelSign(project.Secret, cmd.Client, channel, cmd.Info, cmd.Sign)
+		isValid := auth.CheckChannelSign(project.Secret, cmd.Client, channel, cmd.Info, cmd.Sign)
 		if !isValid {
 			resp.Error = ErrPermissionDenied
 			return resp, nil
