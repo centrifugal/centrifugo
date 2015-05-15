@@ -15,6 +15,7 @@ prog_bin="/usr/sbin/$prog"
 desc="centrifugo real-time messaging server"
 
 CENTRIFUGO_OUT_FILE="/var/log/centrifugo/centrifugo.out"
+CENTRIFUGO_LOG_FILE="/var/log/centrifugo/centrifugo.log"
 CENTRIFUGO_CONFIG_FILE="/etc/centrifugo/config.json"
 
 [ -e /etc/sysconfig/centrifugo ] && . /etc/sysconfig/centrifugo
@@ -33,7 +34,7 @@ start() {
     exit 6
   fi
   echo -n $"Starting $prog: "
-  daemon --user centrifugo "nohup $prog_bin --config=$CENTRIFUGO_CONFIG_FILE >>$CENTRIFUGO_OUT_FILE 2>&1 &"
+  daemon --user centrifugo "nohup $prog_bin --config=$CENTRIFUGO_CONFIG_FILE --log_file=$CENTRIFUGO_LOG_FILE >>$CENTRIFUGO_OUT_FILE 2>&1 &"
   retval=$?
   echo
   [ $retval -eq 0 ] && touch $lockfile
