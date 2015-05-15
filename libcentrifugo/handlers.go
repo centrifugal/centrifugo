@@ -30,9 +30,8 @@ func (app *application) clientConnectionHandler(s sockjs.Session) {
 	}
 	defer func() {
 		c.clean()
-		logger.INFO.Println("client session closed")
 	}()
-	logger.INFO.Println("new client session established")
+	logger.INFO.Println("new SockJS client session established")
 
 	go c.sendMessages()
 
@@ -86,12 +85,7 @@ type jsonApiRequest struct {
 	Data string
 }
 
-func timeTrack(start time.Time, name string) {
-	logger.DEBUG.Printf("%s %s\n", name, time.Since(start))
-}
-
 func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
-	defer timeTrack(time.Now(), "api call completed in")
 
 	projectKey := r.URL.Path[len("/api/"):]
 	contentType := r.Header.Get("Content-Type")
@@ -205,8 +199,8 @@ func (app *application) authHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Bad Request", http.StatusBadRequest)
 }
 
-func (app *application) Authenticated(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (app *application) Authenticated(h http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader != "" {
 			token := strings.TrimPrefix(authHeader, "Token ")
@@ -216,13 +210,31 @@ func (app *application) Authenticated(h http.HandlerFunc) http.HandlerFunc {
 			var val string
 			if err := s.Decode(tokenKey, token, &val); err == nil {
 				if val == tokenValue {
-					h(w, r)
+					h.ServeHTTP(w, r)
 					return
 				}
 			}
 		}
 		w.WriteHeader(401)
 	}
+	return http.HandlerFunc(fn)
+}
+
+func (app *application) Logged(h http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		addr := r.Header.Get("X-Real-IP")
+		if addr == "" {
+			addr = r.Header.Get("X-Forwarded-For")
+			if addr == "" {
+				addr = r.RemoteAddr
+			}
+		}
+		h.ServeHTTP(w, r)
+		logger.INFO.Printf("%s %s from %s completed in %s\n", r.Method, r.URL.Path, addr, time.Since(start))
+		return
+	}
+	return http.HandlerFunc(fn)
 }
 
 func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
@@ -324,14 +336,13 @@ func (app *application) adminWsConnectionHandler(w http.ResponseWriter, r *http.
 	if err != nil {
 		return
 	}
-	logger.INFO.Print("new admin session established")
+	logger.DEBUG.Println("new admin session established")
 	defer func() {
 		close(c.closeChan)
 		err := app.removeAdminConnection(c)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
-		logger.INFO.Println("admin session closed")
 	}()
 
 	go c.writer()
@@ -412,10 +423,9 @@ func (app *application) wsConnectionHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return
 	}
-	logger.INFO.Print("new client session established")
+	logger.INFO.Println("new raw Websocket client session established")
 	defer func() {
 		c.clean()
-		logger.INFO.Println("client session closed")
 	}()
 
 	go c.sendMessages()

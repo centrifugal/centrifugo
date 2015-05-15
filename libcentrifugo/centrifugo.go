@@ -171,20 +171,21 @@ func Main() {
 
 			go handleSignals(app)
 
-			http.HandleFunc("/connection/websocket", app.wsConnectionHandler)
+			// register raw Websocket endpoint
+			http.Handle("/connection/websocket", app.Logged(http.HandlerFunc(app.wsConnectionHandler)))
 
 			// register SockJS endpoints
 			sockJSHandler := newClientConnectionHandler(app, viper.GetString("sockjs_url"))
-			http.Handle("/connection/", sockJSHandler)
+			http.Handle("/connection/", app.Logged(sockJSHandler))
 
 			// register HTTP API endpoint
-			http.HandleFunc("/api/", app.apiHandler)
+			http.Handle("/api/", app.Logged(http.HandlerFunc(app.apiHandler)))
 
 			// register admin web interface API endpoints
-			http.HandleFunc("/auth/", app.authHandler)
-			http.HandleFunc("/info/", app.Authenticated(app.infoHandler))
-			http.HandleFunc("/action/", app.Authenticated(app.actionHandler))
-			http.HandleFunc("/socket", app.adminWsConnectionHandler)
+			http.Handle("/auth/", app.Logged(http.HandlerFunc(app.authHandler)))
+			http.Handle("/info/", app.Logged(app.Authenticated(http.HandlerFunc(app.infoHandler))))
+			http.Handle("/action/", app.Logged(app.Authenticated(http.HandlerFunc(app.actionHandler))))
+			http.Handle("/socket", app.Logged(http.HandlerFunc(app.adminWsConnectionHandler)))
 
 			// optionally serve admin web interface application
 			webDir := viper.GetString("web")
