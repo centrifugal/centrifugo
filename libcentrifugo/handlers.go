@@ -13,15 +13,15 @@ import (
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
-func newClientConnectionHandler(app *application, sockjsUrl string) http.Handler {
+func newSockJSHandler(app *application, sockjsUrl string) http.Handler {
 	if sockjsUrl != "" {
 		logger.INFO.Println("using SockJS url", sockjsUrl)
 		sockjs.DefaultOptions.SockJSURL = sockjsUrl
 	}
-	return sockjs.NewHandler("/connection", sockjs.DefaultOptions, app.clientConnectionHandler)
+	return sockjs.NewHandler("/connection", sockjs.DefaultOptions, app.sockJSHandler)
 }
 
-func (app *application) clientConnectionHandler(s sockjs.Session) {
+func (app *application) sockJSHandler(s sockjs.Session) {
 
 	c, err := newClient(app, s)
 	if err != nil {
@@ -31,7 +31,7 @@ func (app *application) clientConnectionHandler(s sockjs.Session) {
 	defer func() {
 		c.clean()
 	}()
-	logger.INFO.Println("new SockJS client session established")
+	logger.INFO.Printf("new SockJS client session established with uid %s\n", c.getUid())
 
 	go c.sendMessages()
 
@@ -46,6 +46,84 @@ func (app *application) clientConnectionHandler(s sockjs.Session) {
 			continue
 		}
 		break
+	}
+}
+
+type wsConnection struct {
+	ws        *websocket.Conn
+	writeChan chan []byte // buffered channel of outbound messages.
+}
+
+func (conn wsConnection) Send(message string) error {
+
+	select {
+	case conn.writeChan <- []byte(message):
+	default:
+		conn.ws.Close()
+	}
+	return nil
+}
+
+func (conn wsConnection) Close(status uint32, reason string) error {
+	return conn.ws.Close()
+}
+
+// writer reads from channel and sends received messages into connection
+func (conn *wsConnection) writer(closeChan chan struct{}) {
+	for {
+		select {
+		case message := <-conn.writeChan:
+			err := conn.ws.WriteMessage(websocket.TextMessage, message)
+			if err != nil {
+				return
+			}
+		case <-closeChan:
+			return
+		}
+	}
+}
+
+func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+
+	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
+	if _, ok := err.(websocket.HandshakeError); ok {
+		http.Error(w, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
+		return
+	} else if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer ws.Close()
+
+	conn := wsConnection{
+		ws:        ws,
+		writeChan: make(chan []byte, 256),
+	}
+
+	c, err := newClient(app, conn)
+	if err != nil {
+		return
+	}
+	logger.INFO.Printf("new raw Websocket client session established with uid %s\n", c.getUid())
+	defer func() {
+		c.clean()
+	}()
+
+	go c.sendMessages()
+
+	go conn.writer(c.closeChan)
+
+	for {
+		_, message, err := conn.ws.ReadMessage()
+		if err != nil {
+			break
+		}
+		err = c.handleMessage(message)
+		if err != nil {
+			logger.ERROR.Println(err)
+			conn.ws.Close()
+			break
+		}
 	}
 }
 
@@ -326,7 +404,7 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 
 var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 
-func (app *application) adminWsConnectionHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) adminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
@@ -336,7 +414,7 @@ func (app *application) adminWsConnectionHandler(w http.ResponseWriter, r *http.
 	if err != nil {
 		return
 	}
-	logger.DEBUG.Println("new admin session established")
+	logger.INFO.Printf("new admin session established with uid %s\n", c.getUid())
 	defer func() {
 		close(c.closeChan)
 		err := app.removeAdminConnection(c)
@@ -364,84 +442,6 @@ func (app *application) adminWsConnectionHandler(w http.ResponseWriter, r *http.
 			if err != nil {
 				break
 			}
-		}
-	}
-}
-
-type wsConnection struct {
-	ws        *websocket.Conn
-	writeChan chan []byte // buffered channel of outbound messages.
-}
-
-func (conn wsConnection) Send(message string) error {
-
-	select {
-	case conn.writeChan <- []byte(message):
-	default:
-		conn.ws.Close()
-	}
-	return nil
-}
-
-func (conn wsConnection) Close(status uint32, reason string) error {
-	return conn.ws.Close()
-}
-
-// writer reads from channel and sends received messages into connection
-func (conn *wsConnection) writer(closeChan chan struct{}) {
-	for {
-		select {
-		case message := <-conn.writeChan:
-			err := conn.ws.WriteMessage(websocket.TextMessage, message)
-			if err != nil {
-				return
-			}
-		case <-closeChan:
-			return
-		}
-	}
-}
-
-func (app *application) wsConnectionHandler(w http.ResponseWriter, r *http.Request) {
-
-	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
-	if _, ok := err.(websocket.HandshakeError); ok {
-		http.Error(w, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
-		return
-	} else if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	defer ws.Close()
-
-	conn := wsConnection{
-		ws:        ws,
-		writeChan: make(chan []byte, 256),
-	}
-
-	c, err := newClient(app, conn)
-	if err != nil {
-		return
-	}
-	logger.INFO.Println("new raw Websocket client session established")
-	defer func() {
-		c.clean()
-	}()
-
-	go c.sendMessages()
-
-	go conn.writer(c.closeChan)
-
-	for {
-		_, message, err := conn.ws.ReadMessage()
-		if err != nil {
-			break
-		}
-		err = c.handleMessage(message)
-		if err != nil {
-			logger.ERROR.Println(err)
-			conn.ws.Close()
-			break
 		}
 	}
 }

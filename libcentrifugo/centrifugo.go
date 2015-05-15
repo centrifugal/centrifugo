@@ -172,11 +172,10 @@ func Main() {
 			go handleSignals(app)
 
 			// register raw Websocket endpoint
-			http.Handle("/connection/websocket", app.Logged(http.HandlerFunc(app.wsConnectionHandler)))
+			http.Handle("/connection/websocket", app.Logged(http.HandlerFunc(app.rawWebsocketHandler)))
 
 			// register SockJS endpoints
-			sockJSHandler := newClientConnectionHandler(app, viper.GetString("sockjs_url"))
-			http.Handle("/connection/", app.Logged(sockJSHandler))
+			http.Handle("/connection/", app.Logged(newSockJSHandler(app, viper.GetString("sockjs_url"))))
 
 			// register HTTP API endpoint
 			http.Handle("/api/", app.Logged(http.HandlerFunc(app.apiHandler)))
@@ -185,7 +184,7 @@ func Main() {
 			http.Handle("/auth/", app.Logged(http.HandlerFunc(app.authHandler)))
 			http.Handle("/info/", app.Logged(app.Authenticated(http.HandlerFunc(app.infoHandler))))
 			http.Handle("/action/", app.Logged(app.Authenticated(http.HandlerFunc(app.actionHandler))))
-			http.Handle("/socket", app.Logged(http.HandlerFunc(app.adminWsConnectionHandler)))
+			http.Handle("/socket", app.Logged(http.HandlerFunc(app.adminWebsocketHandler)))
 
 			// optionally serve admin web interface application
 			webDir := viper.GetString("web")
@@ -194,13 +193,14 @@ func Main() {
 			}
 
 			addr := viper.GetString("address") + ":" + viper.GetString("port")
+			logger.INFO.Printf("start serving on %s\n", addr)
 			if err := http.ListenAndServe(addr, nil); err != nil {
 				logger.FATAL.Fatalln("ListenAndServe:", err)
 			}
 		},
 	}
 	rootCmd.Flags().StringVarP(&port, "port", "p", "8000", "port")
-	rootCmd.Flags().StringVarP(&address, "address", "a", "localhost", "address")
+	rootCmd.Flags().StringVarP(&address, "address", "a", "127.0.0.1", "address")
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "debug mode - please, do not use it in production")
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
