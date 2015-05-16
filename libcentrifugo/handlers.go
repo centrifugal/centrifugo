@@ -31,7 +31,7 @@ func (app *application) sockJSHandler(s sockjs.Session) {
 	defer func() {
 		c.clean()
 	}()
-	logger.INFO.Printf("new SockJS client session established with uid %s\n", c.getUid())
+	logger.INFO.Printf("new SockJS session established with uid %s\n", c.getUid())
 
 	go c.sendMessages()
 
@@ -104,7 +104,7 @@ func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return
 	}
-	logger.INFO.Printf("new raw Websocket client session established with uid %s\n", c.getUid())
+	logger.INFO.Printf("new raw Websocket session established with uid %s\n", c.getUid())
 	defer func() {
 		c.clean()
 	}()

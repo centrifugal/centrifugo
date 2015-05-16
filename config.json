@@ -1,5 +1,4 @@
 {
-  "log_level": "debug",
   "password": "password",
   "secret": "secret",
   "projects": [
@@ -9,13 +8,14 @@
       "namespaces": [
         {
           "name": "public",
+          "anonymous": true,
           "publish": true,
           "watch": true,
           "presence": true,
           "join_leave": true,
           "history_size": 10,
           "history_lifetime": 30
-        }   
+        }
       ]
     }
   ]

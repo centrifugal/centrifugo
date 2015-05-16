@@ -199,8 +199,8 @@ func Main() {
 			}
 		},
 	}
-	rootCmd.Flags().StringVarP(&port, "port", "p", "8000", "port")
-	rootCmd.Flags().StringVarP(&address, "address", "a", "127.0.0.1", "address")
+	rootCmd.Flags().StringVarP(&port, "port", "p", "8000", "port to bind to")
+	rootCmd.Flags().StringVarP(&address, "address", "a", "127.0.0.1", "address to listen on")
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "debug mode - please, do not use it in production")
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
