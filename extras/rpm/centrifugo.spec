@@ -1,7 +1,8 @@
 %define debug_package %{nil}
-%define centrifugo_user  %{name}
-%define centrifugo_group %{name}
-%define centrifugo_data  %{_localstatedir}/lib/%{name}
+%define application_user  %{name}
+%define application_group %{name}
+%define application_data  %{_localstatedir}/lib/%{name}
+%define __prefix /opt
 
 Name:      centrifugo
 Version:   %{version}
@@ -10,8 +11,6 @@ Summary:   Real-time messaging server
 License:   MIT
 URL:       https://github.com/centrifugal/centrifugo
 Group:     Apps/sys
-Source0:   https://github.com/centrifugal/%{name}/releases/download/v%{version}/%{name}-%{version}-linux-amd64.tar.gz
-Source1:   %{name}.initd
 Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-%(%{__id_u} -n)
 Packager:  Alexandr Emelin <frvzmb@gmail.com>
 Requires(pre): shadow-utils
@@ -43,6 +42,8 @@ echo  %{buildroot}
 install -d -m 755 %{buildroot}/%{_sbindir}
 install    -m 755 %{_builddir}/%{name}-%{version}-linux-amd64/centrifugo %{buildroot}/%{_sbindir}
 
+install -d -m 755 %{buildroot}%{__prefix}/%{name}
+cp -rf %_sourcedir/web %{buildroot}%{__prefix}/%{name}/web
 
 install -d -m 755 %{buildroot}/%{_localstatedir}/log/%{name}
 install -d -m 755 %{buildroot}/%{_localstatedir}/lib/%{name}
@@ -63,8 +64,8 @@ install    -m 644 %_sourcedir/%{name}.config.json %{buildroot}/%{_sysconfdir}/%{
 rm -rf %{buildroot}
 
 %pre
-getent group %{centrifugo_group} >/dev/null || groupadd -r %{centrifugo_group}
-getent passwd %{centrifugo_user} >/dev/null || /usr/sbin/useradd --comment "centrifugo Daemon User" --shell /bin/bash -M -r -g %{centrifugo_group} --home %{centrifugo_data} %{centrifugo_user}
+getent group %{application_group} >/dev/null || groupadd -r %{application_group}
+getent passwd %{application_user} >/dev/null || /usr/sbin/useradd --comment "centrifugo Daemon User" --shell /bin/bash -M -r -g %{application_group} --home %{application_data} %{application_user}
 
 %post
 chkconfig --add %{name}
@@ -77,10 +78,11 @@ fi
 
 %files
 %defattr(-,root,root)
-%{_sbindir}/centrifugo
-%attr(0755,%{centrifugo_user},%{centrifugo_group}) %dir %{_localstatedir}/log/%{name}
-%attr(0755,%{centrifugo_user},%{centrifugo_group}) %dir %{_localstatedir}/lib/%{name}
-%{_initrddir}/centrifugo
-%config(noreplace) %{_sysconfdir}/centrifugo/config.json
+%{_sbindir}/%{name}
+%attr(0755,%{application_user},%{application_group}) %dir %{_localstatedir}/log/%{name}
+%attr(0755,%{application_user},%{application_group}) %dir %{_localstatedir}/lib/%{name}
+%{_initrddir}/%{name}
+%{__prefix}/%{name}
+%config(noreplace) %{_sysconfdir}/%{name}/config.json
 %config(noreplace) %{_sysconfdir}/security/limits.d/%{name}.nofiles.conf
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
