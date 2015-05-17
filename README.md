@@ -1,11 +1,15 @@
 Centrifuge + Go = Centrifugo – harder, better, faster, stronger.
 
-First pre-realease already [available](https://github.com/centrifugal/centrifugo/releases)
+Centrifugo is a real-time messaging server. This is a successor of 
+[Centrifuge](https://github.com/centrifugal/centrifugo) written in Go 
+language instead of Python.
 
-There is also work in progress under [new documentation](http://fzambia.gitbooks.io/centrifugal/content/)
+To undestand what is it for and how it works – please, read 
+[documentation](http://fzambia.gitbooks.io/centrifugal/content/) of 
+Centrifugal organization.
 
-What's left:
+Releases available as single executable files – just 
+[download](https://github.com/centrifugal/centrifugo/releases) archive for you platform,  
+unpack it and you are done. 
 
-* metrics
-* tests
-* compare with python version (cpu, memory, performance etc)
+Centrifugo server distributed under MIT license.
