@@ -248,11 +248,6 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonResp)
 }
 
-const (
-	tokenKey   = "token"
-	tokenValue = "authorized"
-)
-
 func (app *application) authHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	if app.config.password == "" || app.config.secret == "" {
@@ -262,8 +257,10 @@ func (app *application) authHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if password == app.config.password {
 		w.Header().Set("Content-Type", "application/json")
+		app.RLock()
 		s := securecookie.New([]byte(app.config.secret), nil)
-		token, err := s.Encode(tokenKey, tokenValue)
+		app.RUnlock()
+		token, err := s.Encode(AuthTokenKey, AuthTokenValue)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -282,15 +279,10 @@ func (app *application) Authenticated(h http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader != "" {
 			token := strings.TrimPrefix(authHeader, "Token ")
-			app.RLock()
-			s := securecookie.New([]byte(app.config.secret), nil)
-			app.RUnlock()
-			var val string
-			if err := s.Decode(tokenKey, token, &val); err == nil {
-				if val == tokenValue {
-					h.ServeHTTP(w, r)
-					return
-				}
+			err := app.checkAuthToken(token)
+			if err == nil {
+				h.ServeHTTP(w, r)
+				return
 			}
 		}
 		w.WriteHeader(401)

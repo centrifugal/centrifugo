@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
+	"github.com/gorilla/securecookie"
 	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
 )
@@ -582,4 +583,37 @@ func (app *application) getClientsCount() int {
 // connections to this node
 func (app *application) getUniqueChannelsCount() int {
 	return app.clientConnectionHub.getUniqueClientsCount()
+}
+
+const (
+	AuthTokenKey   = "token"
+	AuthTokenValue = "authorized"
+)
+
+func (app *application) checkAuthToken(token string) error {
+
+	app.RLock()
+	secret := app.config.secret
+	app.RUnlock()
+
+	if secret == "" {
+		logger.ERROR.Println("provide secret in configuration")
+		return ErrUnauthorized
+	}
+
+	if token == "" {
+		return ErrUnauthorized
+	}
+
+	s := securecookie.New([]byte(secret), nil)
+	var val string
+	err := s.Decode(AuthTokenKey, token, &val)
+	if err != nil {
+		return ErrUnauthorized
+	}
+
+	if val != AuthTokenValue {
+		return ErrUnauthorized
+	}
+	return nil
 }

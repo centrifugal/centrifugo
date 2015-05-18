@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
-	"github.com/gorilla/securecookie"
 	"github.com/gorilla/websocket"
 	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
@@ -100,19 +99,9 @@ func (c *adminClient) handleMessage(message []byte) (*response, error) {
 // handleAuthCommand checks provided token and adds admin connection into application
 // registry if token correct
 func (c *adminClient) handleAuthCommand(cmd *authAdminCommand) (*response, error) {
-	token := cmd.Token
-	if token == "" {
-		return nil, ErrUnauthorized
-	}
 
-	s := securecookie.New([]byte(c.app.config.secret), nil)
-	var val string
-	err := s.Decode(tokenKey, token, &val)
+	err := c.app.checkAuthToken(cmd.Token)
 	if err != nil {
-		return nil, ErrUnauthorized
-	}
-
-	if val != tokenValue {
 		return nil, ErrUnauthorized
 	}
 
