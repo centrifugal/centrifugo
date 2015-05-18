@@ -45,7 +45,7 @@ type project struct {
 	ConnectionLifetime int64 `mapstructure:"connection_lifetime" json:"connection_lifetime"`
 
 	// Namespaces - list of namespaces for project for custom channel options
-	Namespaces namespaceList `json:"namespaces"`
+	Namespaces []namespace `json:"namespaces"`
 
 	// ChannelOptions - default project channel options
 	ChannelOptions `mapstructure:",squash"`
@@ -60,16 +60,11 @@ type namespace struct {
 	ChannelOptions `mapstructure:",squash"`
 }
 
-// namespaceList represents several namespaces within the project
-type namespaceList []namespace
-
-type projectList []project
-
 // structure contains some helper structures and methods to work with projects in namespaces
 // in a fast and comfortable way
 type structure struct {
 	sync.Mutex
-	ProjectList  projectList
+	ProjectList  []project
 	ProjectMap   map[string]project
 	NamespaceMap map[string]map[string]namespace
 }

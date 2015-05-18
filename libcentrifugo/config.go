@@ -20,10 +20,11 @@ type config struct {
 	// name of this node - provided explicitly by configuration option
 	// or constructed from hostname and port
 	name string
-	// admin password
-	password string
-	// secret key to generate auth token for admin
-	secret string
+
+	// admin web interface password
+	webPassword string
+	// secret key to generate auth token for admin web interface endpoints
+	webSecret string
 
 	// prefix before each channel
 	channelPrefix string
@@ -84,8 +85,8 @@ func getApplicationName() string {
 func newConfig() *config {
 	cfg := &config{}
 	cfg.name = getApplicationName()
-	cfg.password = viper.GetString("password")
-	cfg.secret = viper.GetString("secret")
+	cfg.webPassword = viper.GetString("web_password")
+	cfg.webSecret = viper.GetString("web_secret")
 	cfg.channelPrefix = viper.GetString("channel_prefix")
 	cfg.adminChannel = cfg.channelPrefix + "." + "admin"
 	cfg.controlChannel = cfg.channelPrefix + "." + "control"
@@ -215,16 +216,75 @@ func validateConfig(f string) error {
 	return structure.validate()
 }
 
+func getGlobalProject(v *viper.Viper) (*project, bool) {
+	p := &project{}
+
+	// TODO: the same as for structureFromConfig function
+	if v == nil {
+		if !viper.IsSet("project_name") || viper.GetString("project_name") == "" {
+			return nil, false
+		}
+		p.Name = viper.GetString("project_name")
+		p.Secret = viper.GetString("project_secret")
+		p.ConnectionLifetime = int64(viper.GetInt("project_connection_lifetime"))
+		p.Anonymous = viper.GetBool("project_anonymous")
+		p.Watch = viper.GetBool("project_watch")
+		p.Publish = viper.GetBool("project_publish")
+		p.JoinLeave = viper.GetBool("project_join_leave")
+		p.Presence = viper.GetBool("project_presence")
+		p.HistorySize = int64(viper.GetInt("project_history_size"))
+		p.HistoryLifetime = int64(viper.GetInt("project_history_lifetime"))
+	} else {
+		if !v.IsSet("project_name") || v.GetString("project_name") == "" {
+			return nil, false
+		}
+		p.Name = v.GetString("project_name")
+		p.Secret = v.GetString("project_secret")
+		p.ConnectionLifetime = int64(v.GetInt("project_connection_lifetime"))
+		p.Anonymous = v.GetBool("project_anonymous")
+		p.Watch = v.GetBool("project_watch")
+		p.Publish = v.GetBool("project_publish")
+		p.JoinLeave = v.GetBool("project_join_leave")
+		p.Presence = v.GetBool("project_presence")
+		p.HistorySize = int64(v.GetInt("project_history_size"))
+		p.HistoryLifetime = int64(v.GetInt("project_history_lifetime"))
+	}
+
+	var nl []namespace
+	if v == nil {
+		viper.MarshalKey("project_namespaces", &nl)
+	} else {
+		v.MarshalKey("project_namespaces", &nl)
+	}
+	p.Namespaces = nl
+
+	return p, true
+}
+
 func structureFromConfig(v *viper.Viper) *structure {
-	var pl projectList
+	// TODO: as viper does not have exported global config instance
+	// we need to use nil when application wants to use global viper
+	// config - this must be improved using our own global viper instance
+
+	var pl []project
+
 	if v == nil {
 		viper.MarshalKey("projects", &pl)
 	} else {
 		v.MarshalKey("projects", &pl)
 	}
+
+	// top level project configuration
+	p, exists := getGlobalProject(v)
+	if exists {
+		// add global project to project list
+		pl = append([]project{*p}, pl...)
+	}
+
 	s := &structure{
 		ProjectList: pl,
 	}
+
 	s.initialize()
 	return s
 }

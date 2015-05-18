@@ -1,6 +1,6 @@
 {
-  "password": "password",
-  "secret": "secret",
+  "web_password": "password",
+  "web_secret": "secret",
   "projects": [
     {
       "name": "development",

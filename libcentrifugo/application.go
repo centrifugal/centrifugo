@@ -122,7 +122,7 @@ func (app *application) initialize() {
 		logger.WARN.Println("application initialized in INSECURE MODE")
 	}
 	if app.structure.ProjectList == nil {
-		logger.FATAL.Println("structure not found")
+		logger.FATAL.Println("project structure not found, please configure at least one project")
 	}
 }
 
@@ -593,7 +593,7 @@ const (
 func (app *application) checkAuthToken(token string) error {
 
 	app.RLock()
-	secret := app.config.secret
+	secret := app.config.webSecret
 	app.RUnlock()
 
 	if secret == "" {

@@ -250,15 +250,15 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) authHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
-	if app.config.password == "" || app.config.secret == "" {
-		logger.ERROR.Println("password and secret must be set in configuration")
+	if app.config.webPassword == "" || app.config.webSecret == "" {
+		logger.ERROR.Println("web_password and web_secret must be set in configuration")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	if password == app.config.password {
+	if password == app.config.webPassword {
 		w.Header().Set("Content-Type", "application/json")
 		app.RLock()
-		s := securecookie.New([]byte(app.config.secret), nil)
+		s := securecookie.New([]byte(app.config.webSecret), nil)
 		app.RUnlock()
 		token, err := s.Encode(AuthTokenKey, AuthTokenValue)
 		if err != nil {
