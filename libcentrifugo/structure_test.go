@@ -12,7 +12,7 @@ func getTestChannelOptions() ChannelOptions {
 }
 
 func getTestProject(name string) project {
-	var ns namespaceList
+	var ns []namespace
 	ns = append(ns, getTestNamespace("test"))
 	return project{
 		Name:           name,
@@ -30,7 +30,7 @@ func getTestNamespace(name string) namespace {
 }
 
 func getTestStructure() *structure {
-	var pl projectList
+	var pl []project
 	pl = append(pl, getTestProject("test1"))
 	pl = append(pl, getTestProject("test2"))
 	s := &structure{
