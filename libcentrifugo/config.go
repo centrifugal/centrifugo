@@ -117,23 +117,17 @@ func pathExists(path string) (bool, error) {
 }
 
 var jsonConfigTemplate = `{
-  "projects": [
-    {
-      "name": "{{.Name}}",
-      "secret": "{{.Secret}}"
-    }
-  ]
+  "project_name": "{{.Name}}",
+  "project_secret": "{{.Secret}}"
 }
 `
 
-var tomlConfigTemplate = `[[projects]]
-    name = {{.Name}}
-    secret = {{.Secret}}
+var tomlConfigTemplate = `project_name = {{.Name}}
+project_secret = {{.Secret}}
 `
 
-var yamlConfigTemplate = `projects:
-  - name: {{.Name}}
-    secret: {{.Secret}}
+var yamlConfigTemplate = `project_name: {{.Name}}
+project_secret: {{.Secret}}
 `
 
 func generateConfig(f string) error {
