@@ -1,3 +1,0 @@
-[submodule "extras/web"]
-	path = extras/web
-	url = git@github.com:centrifugal/web.git
