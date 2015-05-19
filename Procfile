@@ -1,1 +1,1 @@
-web: centrifugo --config=config.json --port=$PORT --web=./extras/heroku/web/app
+web: centrifugo --config=config.json --port=$PORT --web=./extras/web/app
