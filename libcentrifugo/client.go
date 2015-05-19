@@ -333,9 +333,8 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 }
 
 // handlePingCommand handles ping command from client - this is necessary sometimes
-// for example, in the past Heroku closed websocket connection after some time
+// for example Heroku closes websocket connection after 55 seconds
 // of inactive period when no messages with payload travelled over wire
-// (despite of heartbeat frames existence)
 func (c *client) handlePingCommand() (*response, error) {
 	resp := newResponse("ping")
 	resp.Body = "pong"

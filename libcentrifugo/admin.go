@@ -90,6 +90,8 @@ func (c *adminClient) handleMessage(message []byte) (*response, error) {
 			return nil, ErrInvalidAdminMessage
 		}
 		resp, err = c.handleAuthCommand(&cmd)
+	case "ping":
+		resp, err = c.handlePingCommand()
 	default:
 		return nil, ErrInvalidAdminMessage
 	}
@@ -113,5 +115,12 @@ func (c *adminClient) handleAuthCommand(cmd *authAdminCommand) (*response, error
 
 	resp := newResponse("auth")
 	resp.Body = true
+	return resp, nil
+}
+
+// handlePingCommand handles ping command from admin client
+func (c *adminClient) handlePingCommand() (*response, error) {
+	resp := newResponse("ping")
+	resp.Body = "pong"
 	return resp, nil
 }
