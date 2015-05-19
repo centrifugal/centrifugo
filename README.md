@@ -11,4 +11,8 @@ Releases available as single executable files – just
 [download](https://github.com/centrifugal/centrifugo/releases) archive for you platform,  
 unpack it and you are done. 
 
+Try [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo`). Or deploy your own Centrifugo instance in one click:
+
+[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/centrifugal/centrifugo)
+
 Centrifugo server distributed under MIT license.
