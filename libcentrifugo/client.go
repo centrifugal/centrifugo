@@ -418,9 +418,13 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	c.project = projectKey
 
 	var defaultInfo interface{}
-	err := json.Unmarshal([]byte(info), &defaultInfo)
-	if err != nil {
-		defaultInfo = map[string]interface{}{}
+	if info == "" {
+		defaultInfo = nil
+	} else {
+		err := json.Unmarshal([]byte(info), &defaultInfo)
+		if err != nil {
+			defaultInfo = nil
+		}
 	}
 
 	var ttl interface{}
@@ -448,7 +452,7 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 
 	go c.presencePing()
 
-	err = c.app.addConnection(c)
+	err := c.app.addConnection(c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil, ErrInternalServerError
@@ -584,9 +588,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 		if cmd.Info != "" {
 			var info interface{}
 			err := json.Unmarshal([]byte(cmd.Info), &info)
-			if err != nil {
-				c.channelInfo[channel] = map[string]interface{}{}
-			} else {
+			if err == nil {
 				c.channelInfo[channel] = info
 			}
 		}
