@@ -585,7 +585,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 			var info interface{}
 			err := json.Unmarshal([]byte(cmd.Info), &info)
 			if err != nil {
-				logger.ERROR.Panicln(err)
+				c.channelInfo[channel] = map[string]interface{}{}
 			} else {
 				c.channelInfo[channel] = info
 			}
