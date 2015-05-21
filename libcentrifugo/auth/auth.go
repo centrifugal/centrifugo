@@ -13,9 +13,6 @@ func GenerateClientToken(secretKey, projectKey, user, timestamp, info string) st
 	token.Write([]byte(projectKey))
 	token.Write([]byte(user))
 	token.Write([]byte(timestamp))
-	if info == "" {
-		info = "{}"
-	}
 	token.Write([]byte(info))
 	return fmt.Sprintf("%02x", token.Sum(nil))
 }

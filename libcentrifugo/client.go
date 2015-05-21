@@ -379,9 +379,6 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	projectKey := cmd.Project
 	user := cmd.User
 	info := cmd.Info
-	if info == "" {
-		info = "{}"
-	}
 
 	var timestamp string
 	var token string
@@ -423,7 +420,6 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	var defaultInfo interface{}
 	err := json.Unmarshal([]byte(info), &defaultInfo)
 	if err != nil {
-		logger.ERROR.Println(err)
 		defaultInfo = map[string]interface{}{}
 	}
 
@@ -481,9 +477,6 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 	projectKey := cmd.Project
 	user := cmd.User
 	info := cmd.Info
-	if info == "" {
-		info = "{}"
-	}
 	timestamp := cmd.Timestamp
 	token := cmd.Token
 

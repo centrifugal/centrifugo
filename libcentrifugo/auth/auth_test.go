@@ -15,13 +15,6 @@ func TestGenerateClientToken(t *testing.T) {
 	if len(tokenWithInfo) != 64 {
 		t.Error("sha256 token length must be 64")
 	}
-	tokenWithoutInfo := GenerateClientToken(secretKey, projectKey, user, timestamp, "")
-	if len(tokenWithoutInfo) != 64 {
-		t.Error("sha256 token length must be 64")
-	}
-	if tokenWithInfo != tokenWithoutInfo {
-		t.Error("token with empty info must be equal to token where info is empty object")
-	}
 }
 
 func TestCheckClientToken(t *testing.T) {
