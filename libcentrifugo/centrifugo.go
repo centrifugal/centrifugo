@@ -6,6 +6,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 
@@ -83,6 +84,7 @@ func Main() {
 		Long:  "Centrifuge + GO = Centrifugo – harder, better, faster, stronger",
 		Run: func(cmd *cobra.Command, args []string) {
 
+			viper.SetDefault("gomaxprocs", 0)
 			viper.SetDefault("web_password", "")
 			viper.SetDefault("web_secret", "")
 			viper.RegisterAlias("cookie_secret", "")
@@ -152,6 +154,16 @@ func Main() {
 				logger.FATAL.Fatalln("unable to locate config file")
 			}
 			setupLogging()
+
+			if os.Getenv("GOMAXPROCS") == "" {
+				if viper.IsSet("gomaxprocs") && viper.GetInt("gomaxprocs") > 0 {
+					runtime.GOMAXPROCS(viper.GetInt("gomaxprocs"))
+				} else {
+					runtime.GOMAXPROCS(runtime.NumCPU())
+				}
+			}
+
+			logger.INFO.Println("GOMAXPROCS set to", runtime.GOMAXPROCS(0))
 			logger.INFO.Println("using config file:", viper.ConfigFileUsed())
 
 			app, err := newApplication()
