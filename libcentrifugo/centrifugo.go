@@ -3,7 +3,6 @@ package libcentrifugo
 import (
 	"fmt"
 	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
@@ -16,7 +15,7 @@ import (
 )
 
 const (
-	VERSION = "0.0.1"
+	VERSION = "0.1.0"
 )
 
 var configFile string
