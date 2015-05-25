@@ -204,7 +204,7 @@ func validateConfig(f string) error {
 	v.SetConfigFile(f)
 	err := v.ReadInConfig()
 	if err != nil {
-		return errors.New("unable to locate config file")
+		return errors.New("unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
 	}
 	structure := structureFromConfig(v)
 	return structure.validate()
