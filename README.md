@@ -1,7 +1,7 @@
 Centrifuge + Go = Centrifugo – harder, better, faster, stronger.
 
 Centrifugo is a real-time messaging server. This is a successor of 
-[Centrifuge](https://github.com/centrifugal/centrifugo).
+[Centrifuge](https://github.com/centrifugal/centrifuge).
 
 To undestand what is it for and how it works – please, read 
 [documentation](http://fzambia.gitbooks.io/centrifugal/content/) of 
