@@ -112,7 +112,14 @@ func (h *clientConnectionHub) getUserConnections(projectKey, user string) map[st
 	if !ok {
 		return map[string]clientConnection{}
 	}
-	return userConnections
+
+	var conns map[string]clientConnection
+	conns = make(map[string]clientConnection, len(userConnections))
+	for k, v := range userConnections {
+		conns[k] = v
+	}
+
+	return conns
 }
 
 // clientSubscriptionHub manages client subscriptions on channels
