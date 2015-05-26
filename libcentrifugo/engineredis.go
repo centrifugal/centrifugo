@@ -287,7 +287,32 @@ func mapStringInterface(result interface{}, err error) (map[string]interface{}, 
 	return m, nil
 }
 
-func (e *redisEngine) getPresence(channel string) (map[string]interface{}, error) {
+func mapStringClientInfo(result interface{}, err error) (map[string]ClientInfo, error) {
+	values, err := redis.Values(result, err)
+	if err != nil {
+		return nil, err
+	}
+	if len(values)%2 != 0 {
+		return nil, errors.New("mapStringInterface expects even number of values result")
+	}
+	m := make(map[string]ClientInfo, len(values)/2)
+	for i := 0; i < len(values); i += 2 {
+		key, okKey := values[i].([]byte)
+		value, okValue := values[i+1].([]byte)
+		if !okKey || !okValue {
+			return nil, errors.New("ScanMap key not a bulk string value")
+		}
+		var f ClientInfo
+		err = json.Unmarshal(value, &f)
+		if err != nil {
+			return nil, errors.New("can not unmarshal value to interface")
+		}
+		m[string(key)] = f
+	}
+	return m, nil
+}
+
+func (e *redisEngine) getPresence(channel string) (map[string]ClientInfo, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 	now := time.Now().Unix()
@@ -316,7 +341,7 @@ func (e *redisEngine) getPresence(channel string) (map[string]interface{}, error
 	if err != nil {
 		return nil, err
 	}
-	presence, err := mapStringInterface(reply, nil)
+	presence, err := mapStringClientInfo(reply, nil)
 	return presence, err
 }
 

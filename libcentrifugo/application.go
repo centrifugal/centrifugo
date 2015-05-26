@@ -516,7 +516,7 @@ func (app *application) removePresence(projectKey, channel, uid string) error {
 }
 
 // getPresence proxies presence extraction to engine
-func (app *application) getPresence(projectKey, channel string) (map[string]interface{}, error) {
+func (app *application) getPresence(projectKey, channel string) (map[string]ClientInfo, error) {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	return app.engine.getPresence(projectChannel)
 }

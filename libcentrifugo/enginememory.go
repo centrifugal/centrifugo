@@ -54,7 +54,7 @@ func (e *memoryEngine) removePresence(channel, uid string) error {
 	return e.presenceHub.remove(channel, uid)
 }
 
-func (e *memoryEngine) getPresence(channel string) (map[string]interface{}, error) {
+func (e *memoryEngine) getPresence(channel string) (map[string]ClientInfo, error) {
 	return e.presenceHub.get(channel)
 }
 
@@ -68,22 +68,22 @@ func (e *memoryEngine) getHistory(channel string) ([]Message, error) {
 
 type memoryPresenceHub struct {
 	sync.Mutex
-	presence map[string]map[string]interface{}
+	presence map[string]map[string]ClientInfo
 }
 
 func newMemoryPresenceHub() *memoryPresenceHub {
 	return &memoryPresenceHub{
-		presence: make(map[string]map[string]interface{}),
+		presence: make(map[string]map[string]ClientInfo),
 	}
 }
 
-func (h *memoryPresenceHub) add(channel, uid string, info interface{}) error {
+func (h *memoryPresenceHub) add(channel, uid string, info ClientInfo) error {
 	h.Lock()
 	defer h.Unlock()
 
 	_, ok := h.presence[channel]
 	if !ok {
-		h.presence[channel] = make(map[string]interface{})
+		h.presence[channel] = make(map[string]ClientInfo)
 	}
 	h.presence[channel][uid] = info
 	return nil
@@ -110,14 +110,14 @@ func (h *memoryPresenceHub) remove(channel, uid string) error {
 	return nil
 }
 
-func (h *memoryPresenceHub) get(channel string) (map[string]interface{}, error) {
+func (h *memoryPresenceHub) get(channel string) (map[string]ClientInfo, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	presence, ok := h.presence[channel]
 	if !ok {
 		// return empty map
-		return map[string]interface{}{}, nil
+		return map[string]ClientInfo{}, nil
 	}
 	return presence, nil
 }
