@@ -77,14 +77,15 @@ func (app *application) handlePublishCommand(p *project, cmd *publishApiCommand)
 		return nil, ErrInvalidApiMessage
 	}
 
-	channelOptions := app.getChannelOptions(p.Name, channel)
-	if channelOptions == nil {
+	chOpts := app.getChannelOptions(p.Name, channel)
+	if chOpts == nil {
 		resp.Error = ErrNamespaceNotFound
 		return resp, nil
 	}
 
-	err := app.publishClientMessage(p, channel, data, nil)
+	err := app.publishClientMessage(p, channel, chOpts, data, nil)
 	if err != nil {
+		logger.ERROR.Println(err)
 		resp.Error = ErrInternalServerError
 	}
 

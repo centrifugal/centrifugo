@@ -230,7 +230,7 @@ func (app *application) publishAdminMessage(message []byte) error {
 
 // publishClientMessage publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel
-func (app *application) publishClientMessage(p *project, channel string, data, info interface{}) error {
+func (app *application) publishClientMessage(p *project, channel string, chOpts *ChannelOptions, data, info interface{}) error {
 
 	uid, err := uuid.NewV4()
 	if err != nil {
@@ -245,12 +245,7 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 		"data":      data,
 	}
 
-	channelOptions := app.getChannelOptions(p.Name, channel)
-	if channelOptions == nil {
-		return ErrNamespaceNotFound
-	}
-
-	if channelOptions.Watch {
+	if chOpts.Watch {
 		resp := newResponse("message")
 		resp.Body = map[string]interface{}{
 			"project": p.Name,
@@ -274,18 +269,16 @@ func (app *application) publishClientMessage(p *project, channel string, data, i
 
 	byteMessage, err := resp.toJson()
 	if err != nil {
-		logger.ERROR.Println(err)
 		return err
 	}
 
 	err = app.engine.publish(projectChannel, byteMessage)
 	if err != nil {
-		logger.ERROR.Println(err)
 		return err
 	}
 
-	if channelOptions.HistorySize > 0 && channelOptions.HistoryLifetime > 0 {
-		err := app.addHistoryMessage(p.Name, channel, message, channelOptions.HistorySize, channelOptions.HistoryLifetime)
+	if chOpts.HistorySize > 0 && chOpts.HistoryLifetime > 0 {
+		err := app.addHistoryMessage(p.Name, channel, message, chOpts.HistorySize, chOpts.HistoryLifetime)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}

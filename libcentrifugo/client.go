@@ -704,20 +704,20 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 		return resp, nil
 	}
 
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	if channelOptions == nil {
+	chOpts := c.app.getChannelOptions(c.project, channel)
+	if chOpts == nil {
 		resp.Error = ErrNamespaceNotFound
 		return resp, nil
 	}
 
-	if !channelOptions.Publish && !c.app.config.insecure {
+	if !chOpts.Publish && !c.app.config.insecure {
 		resp.Error = ErrPermissionDenied
 		return resp, nil
 	}
 
 	info := c.getInfo(channel)
 
-	err := c.app.publishClientMessage(project, channel, data, info)
+	err := c.app.publishClientMessage(project, channel, chOpts, data, info)
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Error = ErrInternalServerError
