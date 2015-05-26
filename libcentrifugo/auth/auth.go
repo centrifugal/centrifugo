@@ -21,7 +21,7 @@ func GenerateClientToken(secretKey, projectKey, user, timestamp, info string) st
 // comparing it with generated one
 func CheckClientToken(secretKey, projectKey, user, timestamp, info, providedToken string) bool {
 	token := GenerateClientToken(secretKey, projectKey, user, timestamp, info)
-	return token == providedToken
+	return hmac.Equal([]byte(token), []byte(providedToken))
 }
 
 // GenerateApiSign generates sign which is used to sign HTTP API requests
@@ -36,7 +36,7 @@ func GenerateApiSign(secretKey, projectKey, encodedData string) string {
 // comparing it with generated one
 func CheckApiSign(secretKey, projectKey, encodedData, providedSign string) bool {
 	sign := GenerateApiSign(secretKey, projectKey, encodedData)
-	return sign == providedSign
+	return hmac.Equal([]byte(sign), []byte(providedSign))
 }
 
 // GenerateChannelSign generates sign which is used to prove permission of
@@ -53,5 +53,5 @@ func GenerateChannelSign(secretKey, client, channel, channelData string) string 
 // sign comparing it with generated one
 func CheckChannelSign(secretKey, client, channel, channelData, providedSign string) bool {
 	sign := GenerateChannelSign(secretKey, client, channel, channelData)
-	return sign == providedSign
+	return hmac.Equal([]byte(sign), []byte(providedSign))
 }
