@@ -228,21 +228,29 @@ func (app *application) publishAdminMessage(message []byte) error {
 	return app.engine.publish(app.config.adminChannel, message)
 }
 
+type Message struct {
+	Uid       string      `json:"uid"`
+	Timestamp string      `json:"timestamp"`
+	Info      *ClientInfo `json:"info"`
+	Channel   string      `json:"channel"`
+	Data      interface{} `json:"data"`
+}
+
 // publishClientMessage publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel
-func (app *application) publishClientMessage(p *project, channel string, chOpts *ChannelOptions, data, info interface{}) error {
+func (app *application) publishClientMessage(p *project, channel string, chOpts *ChannelOptions, data interface{}, info *ClientInfo) error {
 
 	uid, err := uuid.NewV4()
 	if err != nil {
 		return err
 	}
 
-	message := map[string]interface{}{
-		"uid":       uid.String(),
-		"timestamp": strconv.FormatInt(time.Now().Unix(), 10),
-		"info":      info,
-		"channel":   channel,
-		"data":      data,
+	message := Message{
+		Uid:       uid.String(),
+		Timestamp: strconv.FormatInt(time.Now().Unix(), 10),
+		Info:      info,
+		Channel:   channel,
+		Data:      data,
 	}
 
 	if chOpts.Watch {
@@ -289,7 +297,7 @@ func (app *application) publishClientMessage(p *project, channel string, chOpts 
 
 // publishJoinLeaveMessage allows to publish join message into channel when
 // someone subscribes on it or leave message when someone unsubscribed from channel
-func (app *application) publishJoinLeaveMessage(projectKey, channel, method string, info map[string]interface{}) error {
+func (app *application) publishJoinLeaveMessage(projectKey, channel, method string, info ClientInfo) error {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	resp := newResponse(method)
 	resp.Body = map[string]interface{}{
@@ -496,7 +504,7 @@ func (app *application) getChannelOptions(projectKey, channel string) *ChannelOp
 }
 
 // addPresence proxies presence adding to engine
-func (app *application) addPresence(projectKey, channel, uid string, info interface{}) error {
+func (app *application) addPresence(projectKey, channel, uid string, info ClientInfo) error {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	return app.engine.addPresence(projectChannel, uid, info)
 }
@@ -514,13 +522,13 @@ func (app *application) getPresence(projectKey, channel string) (map[string]inte
 }
 
 // addHistoryMessage proxies history message adding to engine
-func (app *application) addHistoryMessage(projectKey, channel string, message interface{}, size, lifetime int64) error {
+func (app *application) addHistoryMessage(projectKey, channel string, message Message, size, lifetime int64) error {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	return app.engine.addHistoryMessage(projectChannel, message, size, lifetime)
 }
 
 // getHistory proxies history extraction to engine
-func (app *application) getHistory(projectKey, channel string) ([]interface{}, error) {
+func (app *application) getHistory(projectKey, channel string) ([]Message, error) {
 	projectChannel := app.getProjectChannel(projectKey, channel)
 	return app.engine.getHistory(projectChannel)
 }

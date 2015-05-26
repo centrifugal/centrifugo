@@ -46,7 +46,7 @@ func (e *memoryEngine) unsubscribe(channel string) error {
 	return nil
 }
 
-func (e *memoryEngine) addPresence(channel, uid string, info interface{}) error {
+func (e *memoryEngine) addPresence(channel, uid string, info ClientInfo) error {
 	return e.presenceHub.add(channel, uid, info)
 }
 
@@ -58,11 +58,11 @@ func (e *memoryEngine) getPresence(channel string) (map[string]interface{}, erro
 	return e.presenceHub.get(channel)
 }
 
-func (e *memoryEngine) addHistoryMessage(channel string, message interface{}, size, lifetime int64) error {
+func (e *memoryEngine) addHistoryMessage(channel string, message Message, size, lifetime int64) error {
 	return e.historyHub.add(channel, message, size, lifetime)
 }
 
-func (e *memoryEngine) getHistory(channel string) ([]interface{}, error) {
+func (e *memoryEngine) getHistory(channel string) ([]Message, error) {
 	return e.historyHub.get(channel)
 }
 
@@ -123,7 +123,7 @@ func (h *memoryPresenceHub) get(channel string) (map[string]interface{}, error) 
 }
 
 type historyItem struct {
-	messages []interface{}
+	messages []Message
 	expireAt int64
 }
 
@@ -180,7 +180,7 @@ func (h *memoryHistoryHub) expire() {
 	}
 }
 
-func (h *memoryHistoryHub) add(channel string, message interface{}, size, lifetime int64) error {
+func (h *memoryHistoryHub) add(channel string, message Message, size, lifetime int64) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -191,12 +191,12 @@ func (h *memoryHistoryHub) add(channel string, message interface{}, size, lifeti
 
 	if !ok {
 		h.history[channel] = historyItem{
-			messages: []interface{}{message},
+			messages: []Message{message},
 			expireAt: expireAt,
 		}
 	} else {
 		messages := h.history[channel].messages
-		messages = append([]interface{}{message}, messages...)
+		messages = append([]Message{message}, messages...)
 		if int64(len(messages)) > size {
 			messages = messages[0:size]
 		}
@@ -213,19 +213,19 @@ func (h *memoryHistoryHub) add(channel string, message interface{}, size, lifeti
 	return nil
 }
 
-func (h *memoryHistoryHub) get(channel string) ([]interface{}, error) {
+func (h *memoryHistoryHub) get(channel string) ([]Message, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	hItem, ok := h.history[channel]
 	if !ok {
 		// return empty slice
-		return []interface{}{}, nil
+		return []Message{}, nil
 	}
 	if hItem.isExpired() {
 		// return empty slice
 		delete(h.history, channel)
-		return []interface{}{}, nil
+		return []Message{}, nil
 	}
 	return hItem.messages, nil
 }

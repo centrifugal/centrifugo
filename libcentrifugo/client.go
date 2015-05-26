@@ -24,13 +24,22 @@ type client struct {
 	user            string
 	timestamp       int64
 	token           string
-	info            interface{}
+	info            []byte
 	isAuthenticated bool
-	channelInfo     map[string]interface{}
+	channelInfo     map[string][]byte
 	channels        map[string]bool
 	messageChan     chan string
 	closeChan       chan struct{}
 	expireTimer     *time.Timer
+}
+
+// ClientInfo contains information about client to use in message
+// meta information, presence information, join/leave events etc.
+type ClientInfo struct {
+	User        string           `json:"user"`
+	Client      string           `json:"client"`
+	DefaultInfo *json.RawMessage `json:"default_info"`
+	ChannelInfo *json.RawMessage `json:"channel_info"`
 }
 
 func newClient(app *application, s session) (*client, error) {
@@ -183,22 +192,31 @@ func (c *client) clean() error {
 	return nil
 }
 
-func (c *client) getInfo(channel string) map[string]interface{} {
-
-	var channelInfo interface{}
+func (c *client) getInfo(channel string) ClientInfo {
 	channelInfo, ok := c.channelInfo[channel]
 	if !ok {
-		channelInfo = nil
+		channelInfo = []byte{}
 	}
-
-	info := map[string]interface{}{
-		"user":         c.user,
-		"client":       c.uid,
-		"default_info": c.info,
-		"channel_info": channelInfo,
+	var rawDefaultInfo *json.RawMessage
+	var rawChannelInfo *json.RawMessage
+	if len(c.info) > 0 {
+		raw := json.RawMessage(c.info)
+		rawDefaultInfo = &raw
+	} else {
+		rawDefaultInfo = nil
 	}
-
-	return info
+	if len(channelInfo) > 0 {
+		raw := json.RawMessage(channelInfo)
+		rawChannelInfo = &raw
+	} else {
+		rawChannelInfo = nil
+	}
+	return ClientInfo{
+		User:        c.user,
+		Client:      c.uid,
+		DefaultInfo: rawDefaultInfo,
+		ChannelInfo: rawChannelInfo,
+	}
 }
 
 func getCommandsFromClientMessage(msgBytes []byte) ([]clientCommand, error) {
@@ -417,16 +435,6 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	c.user = user
 	c.project = projectKey
 
-	var defaultInfo interface{}
-	if info == "" {
-		defaultInfo = nil
-	} else {
-		err := json.Unmarshal([]byte(info), &defaultInfo)
-		if err != nil {
-			defaultInfo = nil
-		}
-	}
-
 	var ttl interface{}
 	var timeToExpire int64 = 0
 	ttl = nil
@@ -446,9 +454,9 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	}
 
 	c.isAuthenticated = true
-	c.info = defaultInfo
+	c.info = []byte(info)
 	c.channels = map[string]bool{}
-	c.channelInfo = map[string]interface{}{}
+	c.channelInfo = map[string][]byte{}
 
 	go c.presencePing()
 
@@ -512,6 +520,7 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
 			c.timestamp = int64(ts)
+			c.info = []byte(info)
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
@@ -585,14 +594,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 			resp.Err(ErrPermissionDenied)
 			return resp, nil
 		}
-		if cmd.Info != "" {
-			var info interface{}
-			err := json.Unmarshal([]byte(cmd.Info), &info)
-			if err == nil {
-				c.channelInfo[channel] = info
-			}
-		}
-
+		c.channelInfo[channel] = []byte(cmd.Info)
 	}
 
 	err := c.app.addSubscription(c.project, channel, c)
@@ -717,7 +719,7 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 
 	info := c.getInfo(channel)
 
-	err := c.app.publishClientMessage(project, channel, chOpts, data, info)
+	err := c.app.publishClientMessage(project, channel, chOpts, data, &info)
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)
