@@ -237,7 +237,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		mr = append(mr, resp)
 	}
-	jsonResp, err := mr.toJson()
+	jsonResp, err := json.Marshal(mr)
 	if err != nil {
 		logger.ERROR.Println(err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -426,7 +426,7 @@ func (app *application) adminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		if err != nil {
 			break
 		}
-		msgBytes, err := resp.toJson()
+		msgBytes, err := json.Marshal(resp)
 		if err != nil {
 			break
 		} else {

@@ -79,14 +79,14 @@ func (app *application) handlePublishCommand(p *project, cmd *publishApiCommand)
 
 	chOpts := app.getChannelOptions(p.Name, channel)
 	if chOpts == nil {
-		resp.Error = ErrNamespaceNotFound
+		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
 	err := app.publishClientMessage(p, channel, chOpts, data, nil)
 	if err != nil {
 		logger.ERROR.Println(err)
-		resp.Error = ErrInternalServerError
+		resp.Err(ErrInternalServerError)
 	}
 
 	return resp, nil
@@ -109,20 +109,20 @@ func (app *application) handleUnsubscribeCommand(p *project, cmd *unsubscribeApi
 	if channel != "" {
 		channelOptions := app.getChannelOptions(p.Name, channel)
 		if channelOptions == nil {
-			resp.Error = ErrNamespaceNotFound
+			resp.Err(ErrNamespaceNotFound)
 			return resp, nil
 		}
 	}
 
 	err := app.unsubscribeUserFromChannel(p.Name, user, channel)
 	if err != nil {
-		resp.Error = ErrInternalServerError
+		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 
 	err = app.publishUnsubscribeControlMessage(p.Name, user, channel)
 	if err != nil {
-		resp.Error = ErrInternalServerError
+		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 
@@ -144,13 +144,13 @@ func (app *application) handleDisconnectCommand(p *project, cmd *disconnectApiCo
 
 	err := app.disconnectUser(p.Name, user)
 	if err != nil {
-		resp.Error = ErrInternalServerError
+		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 
 	err = app.publishDisconnectControlMessage(p.Name, user)
 	if err != nil {
-		resp.Error = ErrInternalServerError
+		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 
@@ -177,18 +177,18 @@ func (app *application) handlePresenceCommand(p *project, cmd *presenceApiComman
 
 	channelOptions := app.getChannelOptions(p.Name, channel)
 	if channelOptions == nil {
-		resp.Error = ErrNamespaceNotFound
+		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
 	if !channelOptions.Presence {
-		resp.Error = ErrNotAvailable
+		resp.Err(ErrNotAvailable)
 		return resp, nil
 	}
 
 	presence, err := app.getPresence(p.Name, channel)
 	if err != nil {
-		resp.Error = ErrInternalServerError
+		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 
@@ -219,18 +219,18 @@ func (app *application) handleHistoryCommand(p *project, cmd *historyApiCommand)
 
 	channelOptions := app.getChannelOptions(p.Name, channel)
 	if channelOptions == nil {
-		resp.Error = ErrNamespaceNotFound
+		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
 	if channelOptions.HistorySize <= 0 || channelOptions.HistoryLifetime <= 0 {
-		resp.Error = ErrNotAvailable
+		resp.Err(ErrNotAvailable)
 		return resp, nil
 	}
 
 	history, err := app.getHistory(p.Name, channel)
 	if err != nil {
-		resp.Error = ErrInternalServerError
+		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 

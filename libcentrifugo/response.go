@@ -1,15 +1,26 @@
 package libcentrifugo
 
-import (
-	"encoding/json"
-)
-
 // response represents an answer Centrifugo sends
 // to client or API request commands
 type response struct {
-	Body   interface{}
-	Error  error
-	Method string
+	Body   interface{} `json:"body"`
+	Error  *string     `json:"error"`
+	Method string      `json:"method"`
+	err    error
+}
+
+// Err set an error message on the response
+// and updates the 'err' field in the response.
+// Overrides any previous set error.
+func (r *response) Err(err error) {
+	if err == nil {
+		r.Error = nil
+		r.err = nil
+		return
+	}
+	e := err.Error()
+	r.Error = &e
+	r.err = err
 }
 
 func newResponse(method string) *response {
@@ -18,31 +29,6 @@ func newResponse(method string) *response {
 	}
 }
 
-// specific MarshalJSON implementation for response to correctly serialize error
-func (r *response) MarshalJSON() ([]byte, error) {
-	var err interface{}
-	if r.Error != nil {
-		err = r.Error.Error()
-	} else {
-		err = nil
-	}
-	return json.Marshal(map[string]interface{}{
-		"body":   r.Body,
-		"error":  err,
-		"method": r.Method,
-	})
-}
-
 // multiResponse is a slice of responses in execution
 // order - from first executed to last one
 type multiResponse []*response
-
-// toJson converts response into JSON
-func (r *response) toJson() ([]byte, error) {
-	return json.Marshal(r)
-}
-
-// toJson converts multiResponse into JSON
-func (mr *multiResponse) toJson() ([]byte, error) {
-	return json.Marshal(mr)
-}

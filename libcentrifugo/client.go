@@ -131,8 +131,8 @@ func (c *client) unsubscribe(channel string) error {
 	if err != nil {
 		return err
 	}
-	if resp.Error != nil {
-		return resp.Error
+	if resp.err != nil {
+		return resp.err
 	}
 	return nil
 }
@@ -249,7 +249,7 @@ func (c *client) handleCommands(commands []clientCommand) error {
 		}
 		mr = append(mr, resp)
 	}
-	jsonResp, err := mr.toJson()
+	jsonResp, err := json.Marshal(mr)
 	if err != nil {
 		return err
 	}
@@ -549,7 +549,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 	}
 
 	if len(channel) > viper.GetInt("max_channel_length") {
-		resp.Error = ErrLimitExceeded
+		resp.Err(ErrLimitExceeded)
 		return resp, nil
 	}
 
@@ -559,30 +559,30 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 	resp.Body = body
 
 	if !c.app.isUserAllowed(channel, c.user) {
-		resp.Error = ErrPermissionDenied
+		resp.Err(ErrPermissionDenied)
 		return resp, nil
 	}
 
 	channelOptions := c.app.getChannelOptions(c.project, channel)
 	if channelOptions == nil {
-		resp.Error = ErrNamespaceNotFound
+		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
 	if !channelOptions.Anonymous && c.user == "" && !c.app.config.insecure {
-		resp.Error = ErrPermissionDenied
+		resp.Err(ErrPermissionDenied)
 		return resp, nil
 	}
 
 	if c.app.isPrivateChannel(channel) {
 		// private channel - subscription must be properly signed
 		if c.uid != cmd.Client {
-			resp.Error = ErrPermissionDenied
+			resp.Err(ErrPermissionDenied)
 			return resp, nil
 		}
 		isValid := auth.CheckChannelSign(project.Secret, cmd.Client, channel, cmd.Info, cmd.Sign)
 		if !isValid {
-			resp.Error = ErrPermissionDenied
+			resp.Err(ErrPermissionDenied)
 			return resp, nil
 		}
 		if cmd.Info != "" {
@@ -641,7 +641,7 @@ func (c *client) handleUnsubscribeCommand(cmd *unsubscribeClientCommand) (*respo
 
 	channelOptions := c.app.getChannelOptions(c.project, channel)
 	if channelOptions == nil {
-		resp.Error = ErrNamespaceNotFound
+		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
@@ -700,18 +700,18 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 	resp.Body = body
 
 	if _, ok := c.channels[channel]; !ok {
-		resp.Error = ErrPermissionDenied
+		resp.Err(ErrPermissionDenied)
 		return resp, nil
 	}
 
 	chOpts := c.app.getChannelOptions(c.project, channel)
 	if chOpts == nil {
-		resp.Error = ErrNamespaceNotFound
+		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
 	if !chOpts.Publish && !c.app.config.insecure {
-		resp.Error = ErrPermissionDenied
+		resp.Err(ErrPermissionDenied)
 		return resp, nil
 	}
 
@@ -720,7 +720,7 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 	err := c.app.publishClientMessage(project, channel, chOpts, data, info)
 	if err != nil {
 		logger.ERROR.Println(err)
-		resp.Error = ErrInternalServerError
+		resp.Err(ErrInternalServerError)
 	} else {
 		resp.Body = map[string]interface{}{
 			"channel": channel,
@@ -754,19 +754,19 @@ func (c *client) handlePresenceCommand(cmd *presenceClientCommand) (*response, e
 
 	channelOptions := c.app.getChannelOptions(c.project, channel)
 	if channelOptions == nil {
-		resp.Error = ErrNamespaceNotFound
+		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
 	if !channelOptions.Presence {
-		resp.Error = ErrNotAvailable
+		resp.Err(ErrNotAvailable)
 		return resp, nil
 	}
 
 	data, err := c.app.getPresence(c.project, channel)
 	if err != nil {
 		logger.ERROR.Println(err)
-		resp.Error = ErrInternalServerError
+		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 
@@ -800,18 +800,18 @@ func (c *client) handleHistoryCommand(cmd *historyClientCommand) (*response, err
 
 	channelOptions := c.app.getChannelOptions(c.project, channel)
 	if channelOptions == nil {
-		resp.Error = ErrNamespaceNotFound
+		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
 	if channelOptions.HistorySize <= 0 || channelOptions.HistoryLifetime <= 0 {
-		resp.Error = ErrNotAvailable
+		resp.Err(ErrNotAvailable)
 		return resp, nil
 	}
 
 	data, err := c.app.getHistory(c.project, channel)
 	if err != nil {
-		resp.Error = ErrInternalServerError
+		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 

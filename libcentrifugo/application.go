@@ -251,7 +251,7 @@ func (app *application) publishClientMessage(p *project, channel string, chOpts 
 			"project": p.Name,
 			"message": message,
 		}
-		messageBytes, err := resp.toJson()
+		messageBytes, err := json.Marshal(resp)
 		if err != nil {
 			logger.ERROR.Println(err)
 		} else {
@@ -267,7 +267,7 @@ func (app *application) publishClientMessage(p *project, channel string, chOpts 
 	resp := newResponse("message")
 	resp.Body = message
 
-	byteMessage, err := resp.toJson()
+	byteMessage, err := json.Marshal(resp)
 	if err != nil {
 		return err
 	}
@@ -296,7 +296,7 @@ func (app *application) publishJoinLeaveMessage(projectKey, channel, method stri
 		"channel": channel,
 		"data":    info,
 	}
-	byteMessage, err := resp.toJson()
+	byteMessage, err := json.Marshal(resp)
 	if err != nil {
 		return err
 	}
