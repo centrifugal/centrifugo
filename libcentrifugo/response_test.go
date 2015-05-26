@@ -35,6 +35,7 @@ func TestMultiResponse(t *testing.T) {
 	mr = append(mr, resp2)
 	marshalledResponse, err := mr.toJson()
 	assert.Equal(t, nil, err)
+	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":null"))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"method\":\"test1\""))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"method\":\"test2\""))
 }
