@@ -14,6 +14,7 @@ func TestResponse(t *testing.T) {
 	marshalledResponse, err := json.Marshal(resp)
 	assert.Equal(t, nil, err)
 
+	assert.Equal(t, false, resp.Err(nil))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":null"))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"body\":null"))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"method\":\"test\""))
@@ -23,6 +24,9 @@ func TestResponse(t *testing.T) {
 	resp.Body = "test body"
 	marshalledResponse, err = json.Marshal(resp)
 	t.Log(string(marshalledResponse))
+	assert.Equal(t, true, resp.Err(nil))
+	// We test two times to ensure that it hasn't been reset
+	assert.Equal(t, true, resp.Err(nil))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":\"test error\""))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"body\":\"test body\""))

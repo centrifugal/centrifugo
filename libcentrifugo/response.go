@@ -6,21 +6,26 @@ type response struct {
 	Body   interface{} `json:"body"`
 	Error  *string     `json:"error"`
 	Method string      `json:"method"`
-	err    error
+	err    error       // Use response.Err() to set.
 }
 
 // Err set an error message on the response
 // and updates the 'err' field in the response.
-// Overrides any previous set error.
-func (r *response) Err(err error) {
-	if err == nil {
-		r.Error = nil
-		r.err = nil
-		return
+// If an error has already been set it will be kept.
+// Will return true if an error has been set previously,
+// or if an error is sent.
+func (r *response) Err(err error) bool {
+	if r.err != nil {
+		return true
 	}
+	if err == nil {
+		return false
+	}
+	//TODO: Add logging here? (klauspost)
 	e := err.Error()
 	r.Error = &e
 	r.err = err
+	return true
 }
 
 func newResponse(method string) *response {
