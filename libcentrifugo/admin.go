@@ -5,7 +5,6 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/gorilla/websocket"
-	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
 )
 
@@ -84,7 +83,7 @@ func (c *adminClient) handleMessage(message []byte) (*response, error) {
 	switch method {
 	case "auth":
 		var cmd authAdminCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidAdminMessage

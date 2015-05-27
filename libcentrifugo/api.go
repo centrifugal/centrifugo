@@ -1,8 +1,9 @@
 package libcentrifugo
 
 import (
+	"encoding/json"
+
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
-	"github.com/mitchellh/mapstructure"
 )
 
 // handleApiCommand builds API command and dispatches it into correct handler method
@@ -17,7 +18,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 	switch method {
 	case "publish":
 		var cmd publishApiCommand
-		err := mapstructure.Decode(params, &cmd)
+		err := json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
@@ -25,7 +26,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 		resp, err = app.handlePublishCommand(p, &cmd)
 	case "unsubscribe":
 		var cmd unsubscribeApiCommand
-		err := mapstructure.Decode(params, &cmd)
+		err := json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
@@ -33,7 +34,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 		resp, err = app.handleUnsubscribeCommand(p, &cmd)
 	case "disconnect":
 		var cmd disconnectApiCommand
-		err := mapstructure.Decode(params, &cmd)
+		err := json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
@@ -41,7 +42,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 		resp, err = app.handleDisconnectCommand(p, &cmd)
 	case "presence":
 		var cmd presenceApiCommand
-		err := mapstructure.Decode(params, &cmd)
+		err := json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
@@ -49,7 +50,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 		resp, err = app.handlePresenceCommand(p, &cmd)
 	case "history":
 		var cmd historyApiCommand
-		err := mapstructure.Decode(params, &cmd)
+		err := json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
@@ -72,7 +73,7 @@ func (app *application) handlePublishCommand(p *project, cmd *publishApiCommand)
 
 	channel := cmd.Channel
 	data := cmd.Data
-	if channel == "" || data == "" {
+	if channel == "" || len(data) == 0 {
 		logger.ERROR.Println("channel and data required")
 		return nil, ErrInvalidApiMessage
 	}

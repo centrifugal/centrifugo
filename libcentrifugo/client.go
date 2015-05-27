@@ -8,7 +8,6 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
-	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
 	"github.com/spf13/viper"
 )
@@ -291,35 +290,35 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 	switch method {
 	case "connect":
 		var cmd connectClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
 		resp, err = c.handleConnectCommand(&cmd)
 	case "refresh":
 		var cmd refreshClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
 		resp, err = c.handleRefreshCommand(&cmd)
 	case "subscribe":
 		var cmd subscribeClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
 		resp, err = c.handleSubscribeCommand(&cmd)
 	case "unsubscribe":
 		var cmd unsubscribeClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
 		resp, err = c.handleUnsubscribeCommand(&cmd)
 	case "publish":
 		var cmd publishClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
@@ -328,14 +327,14 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 		resp, err = c.handlePingCommand()
 	case "presence":
 		var cmd presenceClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
 		resp, err = c.handlePresenceCommand(&cmd)
 	case "history":
 		var cmd historyClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
@@ -690,7 +689,7 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 	channel := cmd.Channel
 	data := cmd.Data
 
-	if channel == "" || data == "" {
+	if channel == "" || len(data) == 0 {
 		logger.ERROR.Println("channel and data required")
 		return nil, ErrInvalidClientMessage
 	}

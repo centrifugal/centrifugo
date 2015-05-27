@@ -11,7 +11,6 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/gorilla/securecookie"
-	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
 )
 
@@ -169,7 +168,7 @@ func (app *application) handleControlMessage(message []byte) error {
 	switch method {
 	case "ping":
 		var cmd pingControlCommand
-		err := mapstructure.Decode(params, &cmd)
+		err := json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return ErrInvalidControlMessage
@@ -177,7 +176,7 @@ func (app *application) handleControlMessage(message []byte) error {
 		return app.handlePingControlCommand(&cmd)
 	case "unsubscribe":
 		var cmd unsubscribeControlCommand
-		err := mapstructure.Decode(params, &cmd)
+		err := json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return ErrInvalidControlMessage
@@ -185,7 +184,7 @@ func (app *application) handleControlMessage(message []byte) error {
 		return app.handleUnsubscribeControlCommand(&cmd)
 	case "disconnect":
 		var cmd disconnectControlCommand
-		err := mapstructure.Decode(params, &cmd)
+		err := json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return ErrInvalidControlMessage
@@ -229,28 +228,30 @@ func (app *application) publishAdminMessage(message []byte) error {
 }
 
 type Message struct {
-	Uid       string      `json:"uid"`
-	Timestamp string      `json:"timestamp"`
-	Info      *ClientInfo `json:"info"`
-	Channel   string      `json:"channel"`
-	Data      interface{} `json:"data"`
+	Uid       string           `json:"uid"`
+	Timestamp string           `json:"timestamp"`
+	Info      *ClientInfo      `json:"info"`
+	Channel   string           `json:"channel"`
+	Data      *json.RawMessage `json:"data"`
 }
 
 // publishClientMessage publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel
-func (app *application) publishClientMessage(p *project, channel string, chOpts *ChannelOptions, data interface{}, info *ClientInfo) error {
+func (app *application) publishClientMessage(p *project, channel string, chOpts *ChannelOptions, data []byte, info *ClientInfo) error {
 
 	uid, err := uuid.NewV4()
 	if err != nil {
 		return err
 	}
 
+	raw := json.RawMessage(data)
+
 	message := Message{
 		Uid:       uid.String(),
 		Timestamp: strconv.FormatInt(time.Now().Unix(), 10),
 		Info:      info,
 		Channel:   channel,
-		Data:      data,
+		Data:      &raw,
 	}
 
 	if chOpts.Watch {

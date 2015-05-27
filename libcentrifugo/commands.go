@@ -1,18 +1,22 @@
 package libcentrifugo
 
+import (
+	"encoding/json"
+)
+
 type clientCommand struct {
 	Method string
-	Params map[string]interface{}
+	Params json.RawMessage
 }
 
 type apiCommand struct {
 	Method string
-	Params map[string]interface{}
+	Params json.RawMessage
 }
 
 type adminCommand struct {
 	Method string
-	Params map[string]interface{}
+	Params json.RawMessage
 }
 
 type controlCommand struct {
@@ -20,7 +24,7 @@ type controlCommand struct {
 	Uid string
 
 	Method string
-	Params map[string]interface{}
+	Params json.RawMessage
 }
 
 // connectClientCommand is a command to authorize connection - it contains project key
@@ -64,7 +68,7 @@ type unsubscribeClientCommand struct {
 // publishClientCommand is used to publish messages into channel
 type publishClientCommand struct {
 	Channel string
-	Data    interface{}
+	Data    json.RawMessage
 }
 
 // presenceClientCommand is used to get presence (actual channel subscriptions)
@@ -81,7 +85,7 @@ type historyClientCommand struct {
 // publishApiCommand is used to publish messages into channel
 type publishApiCommand struct {
 	Channel string
-	Data    interface{}
+	Data    json.RawMessage
 }
 
 // unsubscribeApiCommand is used to unsubscribe user from channel
