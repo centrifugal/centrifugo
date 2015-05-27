@@ -293,7 +293,7 @@ func mapStringClientInfo(result interface{}, err error) (map[string]ClientInfo, 
 		return nil, err
 	}
 	if len(values)%2 != 0 {
-		return nil, errors.New("mapStringInterface expects even number of values result")
+		return nil, errors.New("mapStringClientInfo expects even number of values result")
 	}
 	m := make(map[string]ClientInfo, len(values)/2)
 	for i := 0; i < len(values); i += 2 {
@@ -305,7 +305,7 @@ func mapStringClientInfo(result interface{}, err error) (map[string]ClientInfo, 
 		var f ClientInfo
 		err = json.Unmarshal(value, &f)
 		if err != nil {
-			return nil, errors.New("can not unmarshal value to interface")
+			return nil, errors.New("can not unmarshal value to ClientInfo")
 		}
 		m[string(key)] = f
 	}
