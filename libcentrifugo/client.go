@@ -9,7 +9,6 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/nu7hatch/gouuid"
-	"github.com/spf13/viper"
 )
 
 // client represents clien connection to Centrifugo - at moment this can be Websocket
@@ -556,7 +555,11 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 		return nil, ErrInvalidClientMessage
 	}
 
-	if len(channel) > viper.GetInt("max_channel_length") {
+	c.app.RLock()
+	maxChannelLength := c.app.config.maxChannelLength
+	c.app.RUnlock()
+
+	if len(channel) > maxChannelLength {
 		resp.Err(ErrLimitExceeded)
 		return resp, nil
 	}
