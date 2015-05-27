@@ -108,8 +108,8 @@ func (app *application) handleUnsubscribeCommand(p *project, cmd *unsubscribeApi
 	}
 
 	if channel != "" {
-		channelOptions := app.getChannelOptions(p.Name, channel)
-		if channelOptions == nil {
+		chOpts := app.getChannelOptions(p.Name, channel)
+		if chOpts == nil {
 			resp.Err(ErrNamespaceNotFound)
 			return resp, nil
 		}
@@ -176,13 +176,13 @@ func (app *application) handlePresenceCommand(p *project, cmd *presenceApiComman
 
 	resp.Body = body
 
-	channelOptions := app.getChannelOptions(p.Name, channel)
-	if channelOptions == nil {
+	chOpts := app.getChannelOptions(p.Name, channel)
+	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
-	if !channelOptions.Presence {
+	if !chOpts.Presence {
 		resp.Err(ErrNotAvailable)
 		return resp, nil
 	}
@@ -218,13 +218,13 @@ func (app *application) handleHistoryCommand(p *project, cmd *historyApiCommand)
 
 	resp.Body = body
 
-	channelOptions := app.getChannelOptions(p.Name, channel)
-	if channelOptions == nil {
+	chOpts := app.getChannelOptions(p.Name, channel)
+	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
-	if channelOptions.HistorySize <= 0 || channelOptions.HistoryLifetime <= 0 {
+	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
 		resp.Err(ErrNotAvailable)
 		return resp, nil
 	}

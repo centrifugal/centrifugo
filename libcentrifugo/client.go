@@ -73,11 +73,11 @@ func (c *client) sendMessages() {
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
 func (c *client) updateChannelPresence(channel string) {
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	if channelOptions == nil {
+	chOpts := c.app.getChannelOptions(c.project, channel)
+	if chOpts == nil {
 		return
 	}
-	if !channelOptions.Presence {
+	if !chOpts.Presence {
 		return
 	}
 	c.app.addPresence(c.project, channel, c.uid, c.getInfo(channel))
@@ -571,13 +571,13 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 		return resp, nil
 	}
 
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	if channelOptions == nil {
+	chOpts := c.app.getChannelOptions(c.project, channel)
+	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
-	if !channelOptions.Anonymous && c.user == "" && !c.app.config.insecure {
+	if !chOpts.Anonymous && c.user == "" && !c.app.config.insecure {
 		resp.Err(ErrPermissionDenied)
 		return resp, nil
 	}
@@ -606,7 +606,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 
 	info := c.getInfo(channel)
 
-	if channelOptions.Presence {
+	if chOpts.Presence {
 		err = c.app.addPresence(c.project, channel, c.uid, info)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -614,7 +614,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 		}
 	}
 
-	if channelOptions.JoinLeave {
+	if chOpts.JoinLeave {
 		err = c.app.publishJoinLeaveMessage(c.project, channel, "join", info)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -640,8 +640,8 @@ func (c *client) handleUnsubscribeCommand(cmd *unsubscribeClientCommand) (*respo
 	}
 	resp.Body = body
 
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	if channelOptions == nil {
+	chOpts := c.app.getChannelOptions(c.project, channel)
+	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
@@ -662,7 +662,7 @@ func (c *client) handleUnsubscribeCommand(cmd *unsubscribeClientCommand) (*respo
 			logger.ERROR.Println(err)
 		}
 
-		if channelOptions.JoinLeave {
+		if chOpts.JoinLeave {
 			err = c.app.publishJoinLeaveMessage(c.project, channel, "leave", c.getInfo(channel))
 			if err != nil {
 				logger.ERROR.Println(err)
@@ -753,13 +753,13 @@ func (c *client) handlePresenceCommand(cmd *presenceClientCommand) (*response, e
 
 	resp.Body = body
 
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	if channelOptions == nil {
+	chOpts := c.app.getChannelOptions(c.project, channel)
+	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
-	if !channelOptions.Presence {
+	if !chOpts.Presence {
 		resp.Err(ErrNotAvailable)
 		return resp, nil
 	}
@@ -799,13 +799,13 @@ func (c *client) handleHistoryCommand(cmd *historyClientCommand) (*response, err
 
 	resp.Body = body
 
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	if channelOptions == nil {
+	chOpts := c.app.getChannelOptions(c.project, channel)
+	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
-	if channelOptions.HistorySize <= 0 || channelOptions.HistoryLifetime <= 0 {
+	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
 		resp.Err(ErrNotAvailable)
 		return resp, nil
 	}
