@@ -22,7 +22,7 @@ type client struct {
 	User          string
 	timestamp     int64
 	token         string
-	Info          []byte
+	defaultInfo   []byte
 	authenticated bool
 	channelInfo   map[string][]byte
 	Channels      map[string]bool
@@ -197,8 +197,8 @@ func (c *client) info(channel string) ClientInfo {
 	}
 	var rawDefaultInfo *json.RawMessage
 	var rawChannelInfo *json.RawMessage
-	if len(c.Info) > 0 {
-		raw := json.RawMessage(c.Info)
+	if len(c.defaultInfo) > 0 {
+		raw := json.RawMessage(c.defaultInfo)
 		rawDefaultInfo = &raw
 	} else {
 		rawDefaultInfo = nil
@@ -452,7 +452,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	}
 
 	c.authenticated = true
-	c.Info = []byte(info)
+	c.defaultInfo = []byte(info)
 	c.Channels = map[string]bool{}
 	c.channelInfo = map[string][]byte{}
 
@@ -518,7 +518,7 @@ func (c *client) refreshCmd(cmd *refreshClientCommand) (*response, error) {
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
 			c.timestamp = int64(ts)
-			c.Info = []byte(info)
+			c.defaultInfo = []byte(info)
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
