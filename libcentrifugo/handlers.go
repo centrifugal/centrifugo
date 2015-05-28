@@ -344,16 +344,9 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		var decodedData interface{}
-		err := json.Unmarshal([]byte(data), &decodedData)
-		if err != nil {
-			logger.ERROR.Println(err)
-			http.Error(w, "Bad Request", http.StatusBadRequest)
-			return
-		}
 		cmd := &publishApiCommand{
 			Channel: channel,
-			Data:    decodedData,
+			Data:    []byte(data),
 		}
 		resp, err = app.handlePublishCommand(project, cmd)
 	case "unsubscribe":

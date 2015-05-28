@@ -8,9 +8,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
-	"github.com/mitchellh/mapstructure"
 	"github.com/nu7hatch/gouuid"
-	"github.com/spf13/viper"
 )
 
 // client represents clien connection to Centrifugo - at moment this can be Websocket
@@ -24,13 +22,22 @@ type client struct {
 	user            string
 	timestamp       int64
 	token           string
-	info            interface{}
+	info            []byte
 	isAuthenticated bool
-	channelInfo     map[string]interface{}
+	channelInfo     map[string][]byte
 	channels        map[string]bool
 	messageChan     chan string
 	closeChan       chan struct{}
 	expireTimer     *time.Timer
+}
+
+// ClientInfo contains information about client to use in message
+// meta information, presence information, join/leave events etc.
+type ClientInfo struct {
+	User        string           `json:"user"`
+	Client      string           `json:"client"`
+	DefaultInfo *json.RawMessage `json:"default_info"`
+	ChannelInfo *json.RawMessage `json:"channel_info"`
 }
 
 func newClient(app *application, s session) (*client, error) {
@@ -65,11 +72,11 @@ func (c *client) sendMessages() {
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
 func (c *client) updateChannelPresence(channel string) {
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	if channelOptions == nil {
+	chOpts := c.app.getChannelOptions(c.project, channel)
+	if chOpts == nil {
 		return
 	}
-	if !channelOptions.Presence {
+	if !chOpts.Presence {
 		return
 	}
 	c.app.addPresence(c.project, channel, c.uid, c.getInfo(channel))
@@ -183,22 +190,31 @@ func (c *client) clean() error {
 	return nil
 }
 
-func (c *client) getInfo(channel string) map[string]interface{} {
-
-	var channelInfo interface{}
+func (c *client) getInfo(channel string) ClientInfo {
 	channelInfo, ok := c.channelInfo[channel]
 	if !ok {
-		channelInfo = nil
+		channelInfo = []byte{}
 	}
-
-	info := map[string]interface{}{
-		"user":         c.user,
-		"client":       c.uid,
-		"default_info": c.info,
-		"channel_info": channelInfo,
+	var rawDefaultInfo *json.RawMessage
+	var rawChannelInfo *json.RawMessage
+	if len(c.info) > 0 {
+		raw := json.RawMessage(c.info)
+		rawDefaultInfo = &raw
+	} else {
+		rawDefaultInfo = nil
 	}
-
-	return info
+	if len(channelInfo) > 0 {
+		raw := json.RawMessage(channelInfo)
+		rawChannelInfo = &raw
+	} else {
+		rawChannelInfo = nil
+	}
+	return ClientInfo{
+		User:        c.user,
+		Client:      c.uid,
+		DefaultInfo: rawDefaultInfo,
+		ChannelInfo: rawChannelInfo,
+	}
 }
 
 func getCommandsFromClientMessage(msgBytes []byte) ([]clientCommand, error) {
@@ -273,35 +289,35 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 	switch method {
 	case "connect":
 		var cmd connectClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
 		resp, err = c.handleConnectCommand(&cmd)
 	case "refresh":
 		var cmd refreshClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
 		resp, err = c.handleRefreshCommand(&cmd)
 	case "subscribe":
 		var cmd subscribeClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
 		resp, err = c.handleSubscribeCommand(&cmd)
 	case "unsubscribe":
 		var cmd unsubscribeClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
 		resp, err = c.handleUnsubscribeCommand(&cmd)
 	case "publish":
 		var cmd publishClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
@@ -310,14 +326,14 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 		resp, err = c.handlePingCommand()
 	case "presence":
 		var cmd presenceClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
 		resp, err = c.handlePresenceCommand(&cmd)
 	case "history":
 		var cmd historyClientCommand
-		err = mapstructure.Decode(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
@@ -417,16 +433,6 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	c.user = user
 	c.project = projectKey
 
-	var defaultInfo interface{}
-	if info == "" {
-		defaultInfo = nil
-	} else {
-		err := json.Unmarshal([]byte(info), &defaultInfo)
-		if err != nil {
-			defaultInfo = nil
-		}
-	}
-
 	var ttl interface{}
 	var timeToExpire int64 = 0
 	ttl = nil
@@ -446,9 +452,9 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	}
 
 	c.isAuthenticated = true
-	c.info = defaultInfo
+	c.info = []byte(info)
 	c.channels = map[string]bool{}
-	c.channelInfo = map[string]interface{}{}
+	c.channelInfo = map[string][]byte{}
 
 	go c.presencePing()
 
@@ -512,6 +518,7 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
 			c.timestamp = int64(ts)
+			c.info = []byte(info)
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
@@ -548,7 +555,11 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 		return nil, ErrInvalidClientMessage
 	}
 
-	if len(channel) > viper.GetInt("max_channel_length") {
+	c.app.RLock()
+	maxChannelLength := c.app.config.maxChannelLength
+	c.app.RUnlock()
+
+	if len(channel) > maxChannelLength {
 		resp.Err(ErrLimitExceeded)
 		return resp, nil
 	}
@@ -563,13 +574,13 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 		return resp, nil
 	}
 
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	if channelOptions == nil {
+	chOpts := c.app.getChannelOptions(c.project, channel)
+	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
-	if !channelOptions.Anonymous && c.user == "" && !c.app.config.insecure {
+	if !chOpts.Anonymous && c.user == "" && !c.app.config.insecure {
 		resp.Err(ErrPermissionDenied)
 		return resp, nil
 	}
@@ -585,14 +596,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 			resp.Err(ErrPermissionDenied)
 			return resp, nil
 		}
-		if cmd.Info != "" {
-			var info interface{}
-			err := json.Unmarshal([]byte(cmd.Info), &info)
-			if err == nil {
-				c.channelInfo[channel] = info
-			}
-		}
-
+		c.channelInfo[channel] = []byte(cmd.Info)
 	}
 
 	err := c.app.addSubscription(c.project, channel, c)
@@ -605,7 +609,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 
 	info := c.getInfo(channel)
 
-	if channelOptions.Presence {
+	if chOpts.Presence {
 		err = c.app.addPresence(c.project, channel, c.uid, info)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -613,7 +617,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 		}
 	}
 
-	if channelOptions.JoinLeave {
+	if chOpts.JoinLeave {
 		err = c.app.publishJoinLeaveMessage(c.project, channel, "join", info)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -639,8 +643,8 @@ func (c *client) handleUnsubscribeCommand(cmd *unsubscribeClientCommand) (*respo
 	}
 	resp.Body = body
 
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	if channelOptions == nil {
+	chOpts := c.app.getChannelOptions(c.project, channel)
+	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
@@ -661,7 +665,7 @@ func (c *client) handleUnsubscribeCommand(cmd *unsubscribeClientCommand) (*respo
 			logger.ERROR.Println(err)
 		}
 
-		if channelOptions.JoinLeave {
+		if chOpts.JoinLeave {
 			err = c.app.publishJoinLeaveMessage(c.project, channel, "leave", c.getInfo(channel))
 			if err != nil {
 				logger.ERROR.Println(err)
@@ -688,7 +692,7 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 	channel := cmd.Channel
 	data := cmd.Data
 
-	if channel == "" || data == "" {
+	if channel == "" || len(data) == 0 {
 		logger.ERROR.Println("channel and data required")
 		return nil, ErrInvalidClientMessage
 	}
@@ -717,7 +721,7 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 
 	info := c.getInfo(channel)
 
-	err := c.app.publishClientMessage(project, channel, chOpts, data, info)
+	err := c.app.publishClientMessage(project, channel, chOpts, data, &info)
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)
@@ -752,13 +756,13 @@ func (c *client) handlePresenceCommand(cmd *presenceClientCommand) (*response, e
 
 	resp.Body = body
 
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	if channelOptions == nil {
+	chOpts := c.app.getChannelOptions(c.project, channel)
+	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
-	if !channelOptions.Presence {
+	if !chOpts.Presence {
 		resp.Err(ErrNotAvailable)
 		return resp, nil
 	}
@@ -798,13 +802,13 @@ func (c *client) handleHistoryCommand(cmd *historyClientCommand) (*response, err
 
 	resp.Body = body
 
-	channelOptions := c.app.getChannelOptions(c.project, channel)
-	if channelOptions == nil {
+	chOpts := c.app.getChannelOptions(c.project, channel)
+	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
-	if channelOptions.HistorySize <= 0 || channelOptions.HistoryLifetime <= 0 {
+	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
 		resp.Err(ErrNotAvailable)
 		return resp, nil
 	}

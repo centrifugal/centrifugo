@@ -233,7 +233,7 @@ func (e *redisEngine) getHistoryKey(channel string) string {
 	return e.app.config.channelPrefix + ".history.list." + channel
 }
 
-func (e *redisEngine) addPresence(channel, uid string, info interface{}) error {
+func (e *redisEngine) addPresence(channel, uid string, info ClientInfo) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 	infoJson, err := json.Marshal(info)
@@ -287,7 +287,32 @@ func mapStringInterface(result interface{}, err error) (map[string]interface{}, 
 	return m, nil
 }
 
-func (e *redisEngine) getPresence(channel string) (map[string]interface{}, error) {
+func mapStringClientInfo(result interface{}, err error) (map[string]ClientInfo, error) {
+	values, err := redis.Values(result, err)
+	if err != nil {
+		return nil, err
+	}
+	if len(values)%2 != 0 {
+		return nil, errors.New("mapStringClientInfo expects even number of values result")
+	}
+	m := make(map[string]ClientInfo, len(values)/2)
+	for i := 0; i < len(values); i += 2 {
+		key, okKey := values[i].([]byte)
+		value, okValue := values[i+1].([]byte)
+		if !okKey || !okValue {
+			return nil, errors.New("ScanMap key not a bulk string value")
+		}
+		var f ClientInfo
+		err = json.Unmarshal(value, &f)
+		if err != nil {
+			return nil, errors.New("can not unmarshal value to ClientInfo")
+		}
+		m[string(key)] = f
+	}
+	return m, nil
+}
+
+func (e *redisEngine) getPresence(channel string) (map[string]ClientInfo, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 	now := time.Now().Unix()
@@ -316,11 +341,11 @@ func (e *redisEngine) getPresence(channel string) (map[string]interface{}, error
 	if err != nil {
 		return nil, err
 	}
-	presence, err := mapStringInterface(reply, nil)
+	presence, err := mapStringClientInfo(reply, nil)
 	return presence, err
 }
 
-func (e *redisEngine) addHistoryMessage(channel string, message interface{}, size, lifetime int64) error {
+func (e *redisEngine) addHistoryMessage(channel string, message Message, size, lifetime int64) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 
@@ -337,10 +362,35 @@ func (e *redisEngine) addHistoryMessage(channel string, message interface{}, siz
 	return err
 }
 
-func (e *redisEngine) getHistory(channel string) ([]interface{}, error) {
+func sliceOfMessages(result interface{}, err error) ([]Message, error) {
+	values, err := redis.Values(result, err)
+	if err != nil {
+		return nil, err
+	}
+	msgs := make([]Message, len(values))
+	for i := 0; i < len(values); i += 1 {
+		value, okValue := values[i].([]byte)
+		if !okValue {
+			return nil, errors.New("error getting Message value")
+		}
+		var m Message
+		err = json.Unmarshal(value, &m)
+		if err != nil {
+			return nil, errors.New("can not unmarshal value to Message")
+		}
+		msgs[i] = m
+	}
+	return msgs, nil
+}
+
+func (e *redisEngine) getHistory(channel string) ([]Message, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 	historyKey := e.getHistoryKey(channel)
-	values, err := redis.Values(conn.Do("LRANGE", historyKey, 0, -1))
-	return values, err
+	reply, err := conn.Do("LRANGE", historyKey, 0, -1)
+	if err != nil {
+		return nil, err
+	}
+	history, err := sliceOfMessages(reply, nil)
+	return history, err
 }

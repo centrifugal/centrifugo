@@ -32,6 +32,8 @@ type config struct {
 	adminChannel string
 	// channel name for internal control messages between nodes
 	controlChannel string
+	// maximum length of channel name
+	maxChannelLength int
 
 	// in seconds, how often node must send ping control message
 	nodePingInterval int64
@@ -90,6 +92,7 @@ func newConfig() *config {
 	cfg.channelPrefix = viper.GetString("channel_prefix")
 	cfg.adminChannel = cfg.channelPrefix + "." + "admin"
 	cfg.controlChannel = cfg.channelPrefix + "." + "control"
+	cfg.maxChannelLength = viper.GetInt("max_channel_length")
 	cfg.nodePingInterval = int64(viper.GetInt("node_ping_interval"))
 	cfg.nodeInfoCleanInterval = cfg.nodePingInterval * 3
 	cfg.nodeInfoMaxDelay = cfg.nodePingInterval*2 + 1
