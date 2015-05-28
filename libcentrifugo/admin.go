@@ -16,8 +16,8 @@ type adminSession interface {
 // adminClient is a wrapper over admin websocket connection
 type adminClient struct {
 	app       *application
-	uid       string
-	session   adminSession
+	Uid       string
+	sess      adminSession
 	writeChan chan []byte
 	closeChan chan struct{}
 }
@@ -28,16 +28,16 @@ func newAdminClient(app *application, s adminSession) (*adminClient, error) {
 		return nil, err
 	}
 	return &adminClient{
-		uid:       uid.String(),
+		Uid:       uid.String(),
 		app:       app,
-		session:   s,
+		sess:      s,
 		writeChan: make(chan []byte, 256),
 		closeChan: make(chan struct{}),
 	}, nil
 }
 
-func (c *adminClient) getUid() string {
-	return c.uid
+func (c *adminClient) uid() string {
+	return c.Uid
 }
 
 func (c *adminClient) send(message string) error {
@@ -55,7 +55,7 @@ func (c *adminClient) writer() {
 	for {
 		select {
 		case message := <-c.writeChan:
-			err := c.session.WriteMessage(websocket.TextMessage, message)
+			err := c.sess.WriteMessage(websocket.TextMessage, message)
 			if err != nil {
 				return
 			}
@@ -88,25 +88,25 @@ func (c *adminClient) handleMessage(message []byte) (*response, error) {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidAdminMessage
 		}
-		resp, err = c.handleAuthCommand(&cmd)
+		resp, err = c.authCmd(&cmd)
 	case "ping":
-		resp, err = c.handlePingCommand()
+		resp, err = c.pingCmd()
 	default:
 		return nil, ErrInvalidAdminMessage
 	}
 	return resp, err
 }
 
-// handleAuthCommand checks provided token and adds admin connection into application
+// authCmd checks provided token and adds admin connection into application
 // registry if token correct
-func (c *adminClient) handleAuthCommand(cmd *authAdminCommand) (*response, error) {
+func (c *adminClient) authCmd(cmd *authAdminCommand) (*response, error) {
 
 	err := c.app.checkAuthToken(cmd.Token)
 	if err != nil {
 		return nil, ErrUnauthorized
 	}
 
-	err = c.app.addAdminConnection(c)
+	err = c.app.addAdminConn(c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil, ErrInternalServerError
@@ -117,8 +117,8 @@ func (c *adminClient) handleAuthCommand(cmd *authAdminCommand) (*response, error
 	return resp, nil
 }
 
-// handlePingCommand handles ping command from admin client
-func (c *adminClient) handlePingCommand() (*response, error) {
+// pingCmd handles ping command from admin client
+func (c *adminClient) pingCmd() (*response, error) {
 	resp := newResponse("ping")
 	resp.Body = "pong"
 	return resp, nil

@@ -26,14 +26,14 @@ type application struct {
 	// nodes is a map with information about nodes known
 	nodes map[string]*nodeInfo
 	// nodesMutex allows to synchronize access to nodes
-	nodesMutex sync.Mutex
+	nodesMu sync.Mutex
 
 	// hub to manage client connections
-	clientConnectionHub *clientConnectionHub
+	connHub *clientHub
 	// hub to manage client subscriptions
-	clientSubscriptionHub *clientSubscriptionHub
+	subs *subHub
 	// hub to manage admin connections
-	adminConnectionHub *adminConnectionHub
+	admins *adminHub
 
 	// engine to use - in memory or redis
 	engine engine
@@ -61,24 +61,24 @@ func newApplication() (*application, error) {
 		return nil, err
 	}
 	app := &application{
-		uid:                   uid.String(),
-		nodes:                 make(map[string]*nodeInfo),
-		clientConnectionHub:   newClientConnectionHub(),
-		clientSubscriptionHub: newClientSubscriptionHub(),
-		adminConnectionHub:    newAdminConnectionHub(),
-		started:               time.Now().Unix(),
+		uid:     uid.String(),
+		nodes:   make(map[string]*nodeInfo),
+		connHub: newClientHub(),
+		subs:    newSubHub(),
+		admins:  newAdminHub(),
+		started: time.Now().Unix(),
 	}
 	return app, nil
 }
 
 func (app *application) run() {
-	go app.sendPingMessage()
+	go app.sendPingMsg()
 	go app.cleanNodeInfo()
 }
 
-func (app *application) sendPingMessage() {
+func (app *application) sendPingMsg() {
 	for {
-		err := app.publishPingControlMessage()
+		err := app.pubPing()
 		if err != nil {
 			logger.CRITICAL.Println(err)
 		}
@@ -95,13 +95,13 @@ func (app *application) cleanNodeInfo() {
 		delay := app.config.nodeInfoMaxDelay
 		app.RUnlock()
 
-		app.nodesMutex.Lock()
+		app.nodesMu.Lock()
 		for uid, info := range app.nodes {
 			if time.Now().Unix()-info.Updated > delay {
 				delete(app.nodes, uid)
 			}
 		}
-		app.nodesMutex.Unlock()
+		app.nodesMu.Unlock()
 
 		app.RLock()
 		interval := app.config.nodeInfoCleanInterval
@@ -132,23 +132,23 @@ func (app *application) setEngine(e engine) {
 	app.engine = e
 }
 
-// handleMessage called when new message of any type received by this node.
+// handleMsg called when new message of any type received by this node.
 // It looks at channel and decides which message handler to call
-func (app *application) handleMessage(channel string, message []byte) error {
+func (app *application) handleMsg(channel string, message []byte) error {
 	switch channel {
 	case app.config.controlChannel:
-		return app.handleControlMessage(message)
+		return app.controlMsg(message)
 	case app.config.adminChannel:
-		return app.handleAdminMessage(message)
+		return app.adminMsg(message)
 	default:
-		return app.handleClientMessage(channel, message)
+		return app.clientMsg(channel, message)
 	}
 }
 
-// handleControlMessage handles messages from control channel - control
+// controlMsg handles messages from control channel - control
 // messages used for internal communication between nodes to share state
 // or commands
-func (app *application) handleControlMessage(message []byte) error {
+func (app *application) controlMsg(message []byte) error {
 
 	var cmd controlCommand
 	err := json.Unmarshal(message, &cmd)
@@ -173,7 +173,7 @@ func (app *application) handleControlMessage(message []byte) error {
 			logger.ERROR.Println(err)
 			return ErrInvalidControlMessage
 		}
-		return app.handlePingControlCommand(&cmd)
+		return app.pingCmd(&cmd)
 	case "unsubscribe":
 		var cmd unsubscribeControlCommand
 		err := json.Unmarshal(params, &cmd)
@@ -181,7 +181,7 @@ func (app *application) handleControlMessage(message []byte) error {
 			logger.ERROR.Println(err)
 			return ErrInvalidControlMessage
 		}
-		return app.handleUnsubscribeControlCommand(&cmd)
+		return app.unsubscribeCmd(&cmd)
 	case "disconnect":
 		var cmd disconnectControlCommand
 		err := json.Unmarshal(params, &cmd)
@@ -189,39 +189,38 @@ func (app *application) handleControlMessage(message []byte) error {
 			logger.ERROR.Println(err)
 			return ErrInvalidControlMessage
 		}
-		return app.handleDisconnectControlCommand(&cmd)
+		return app.disconnectUser(cmd.Project, cmd.User)
 	default:
 		logger.ERROR.Println("unknown control message method", method)
 		return ErrInvalidControlMessage
 	}
-
-	return nil
+	panic("unreachable")
 }
 
-// handleAdminMessage handles messages from admin channel - those messages
+// adminMsg handles messages from admin channel - those messages
 // must be delivered to all admins connected to this node
-func (app *application) handleAdminMessage(message []byte) error {
-	return app.adminConnectionHub.broadcast(string(message))
+func (app *application) adminMsg(message []byte) error {
+	return app.admins.broadcast(string(message))
 }
 
-// handleClientMessage handles messages published by web application or client
+// clientMsg handles messages published by web application or client
 // into channel. The goal of this method to deliver this message to all clients
 // on this node subscribed on channel
-func (app *application) handleClientMessage(channel string, message []byte) error {
-	return app.clientSubscriptionHub.broadcast(channel, string(message))
+func (app *application) clientMsg(channel string, message []byte) error {
+	return app.subs.broadcast(channel, string(message))
 }
 
-// publishControlMessage publishes message into control channel so all running
+// pubControl publishes message into control channel so all running
 // nodes will receive and handle it
-func (app *application) publishControlMessage(message []byte) error {
+func (app *application) pubControl(message []byte) error {
 	app.RLock()
 	defer app.RUnlock()
 	return app.engine.publish(app.config.controlChannel, message)
 }
 
-// publishAdminMessage publishes message into admin channel so all running
+// pubAdmin publishes message into admin channel so all running
 // nodes will receive it and send to admins connected
-func (app *application) publishAdminMessage(message []byte) error {
+func (app *application) pubAdmin(message []byte) error {
 	app.RLock()
 	defer app.RUnlock()
 	return app.engine.publish(app.config.adminChannel, message)
@@ -235,9 +234,9 @@ type Message struct {
 	Data      *json.RawMessage `json:"data"`
 }
 
-// publishClientMessage publishes message into channel so all running nodes
+// pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel
-func (app *application) publishClientMessage(p *project, channel string, chOpts *ChannelOptions, data []byte, info *ClientInfo) error {
+func (app *application) pubClient(p *project, channel string, chOpts *ChannelOptions, data []byte, info *ClientInfo) error {
 
 	uid, err := uuid.NewV4()
 	if err != nil {
@@ -264,14 +263,14 @@ func (app *application) publishClientMessage(p *project, channel string, chOpts 
 		if err != nil {
 			logger.ERROR.Println(err)
 		} else {
-			err = app.publishAdminMessage(messageBytes)
+			err = app.pubAdmin(messageBytes)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
 		}
 	}
 
-	projectChannel := app.getProjectChannel(p.Name, channel)
+	projectChannel := app.projectChannel(p.Name, channel)
 
 	resp := newResponse("message")
 	resp.Body = message
@@ -287,7 +286,7 @@ func (app *application) publishClientMessage(p *project, channel string, chOpts 
 	}
 
 	if chOpts.HistorySize > 0 && chOpts.HistoryLifetime > 0 {
-		err := app.addHistoryMessage(p.Name, channel, message, chOpts.HistorySize, chOpts.HistoryLifetime)
+		err := app.addHistory(p.Name, channel, message, chOpts.HistorySize, chOpts.HistoryLifetime)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
@@ -296,10 +295,10 @@ func (app *application) publishClientMessage(p *project, channel string, chOpts 
 	return nil
 }
 
-// publishJoinLeaveMessage allows to publish join message into channel when
+// pubJoinLeave allows to publish join message into channel when
 // someone subscribes on it or leave message when someone unsubscribed from channel
-func (app *application) publishJoinLeaveMessage(projectKey, channel, method string, info ClientInfo) error {
-	projectChannel := app.getProjectChannel(projectKey, channel)
+func (app *application) pubJoinLeave(projectKey, channel, method string, info ClientInfo) error {
+	projectChannel := app.projectChannel(projectKey, channel)
 	resp := newResponse(method)
 	resp.Body = map[string]interface{}{
 		"channel": channel,
@@ -312,19 +311,19 @@ func (app *application) publishJoinLeaveMessage(projectKey, channel, method stri
 	return app.engine.publish(projectChannel, byteMessage)
 }
 
-func (app *application) publishPingControlMessage() error {
+func (app *application) pubPing() error {
 	app.RLock()
 	defer app.RUnlock()
 	cmd := &pingControlCommand{
 		Uid:      app.uid,
 		Name:     app.config.name,
-		Clients:  app.getClientsCount(),
-		Unique:   app.getUniqueChannelsCount(),
-		Channels: app.getChannelsCount(),
+		Clients:  app.nClients(),
+		Unique:   app.nUniqueClients(),
+		Channels: app.nChannels(),
 		Started:  app.started,
 	}
 
-	err := app.handlePingControlCommand(cmd)
+	err := app.pingCmd(cmd)
 	if err != nil {
 		logger.ERROR.Println(err)
 	}
@@ -338,10 +337,10 @@ func (app *application) publishPingControlMessage() error {
 	if err != nil {
 		return err
 	}
-	return app.publishControlMessage(messageBytes)
+	return app.pubControl(messageBytes)
 }
 
-func (app *application) publishUnsubscribeControlMessage(projectKey, user, channel string) error {
+func (app *application) pubUnsub(projectKey, user, channel string) error {
 	message := map[string]interface{}{
 		"uid":    app.uid,
 		"method": "unsubscribe",
@@ -355,10 +354,10 @@ func (app *application) publishUnsubscribeControlMessage(projectKey, user, chann
 	if err != nil {
 		return err
 	}
-	return app.publishControlMessage(messageBytes)
+	return app.pubControl(messageBytes)
 }
 
-func (app *application) publishDisconnectControlMessage(projectKey, user string) error {
+func (app *application) pubDisconnect(projectKey, user string) error {
 	message := map[string]interface{}{
 		"uid":    app.uid,
 		"method": "disconnect",
@@ -371,11 +370,11 @@ func (app *application) publishDisconnectControlMessage(projectKey, user string)
 	if err != nil {
 		return err
 	}
-	return app.publishControlMessage(messageBytes)
+	return app.pubControl(messageBytes)
 }
 
-// handlePingControlCommand updates information about known nodes
-func (app *application) handlePingControlCommand(cmd *pingControlCommand) error {
+// pingCmd updates information about known nodes
+func (app *application) pingCmd(cmd *pingControlCommand) error {
 	info := &nodeInfo{
 		Uid:      cmd.Uid,
 		Name:     cmd.Name,
@@ -385,72 +384,73 @@ func (app *application) handlePingControlCommand(cmd *pingControlCommand) error 
 		Started:  cmd.Started,
 		Updated:  time.Now().Unix(),
 	}
-	app.nodesMutex.Lock()
+	app.nodesMu.Lock()
 	app.nodes[cmd.Uid] = info
-	app.nodesMutex.Unlock()
+	app.nodesMu.Unlock()
 	return nil
 }
 
-func (app *application) handleUnsubscribeControlCommand(cmd *unsubscribeControlCommand) error {
-	return app.unsubscribeUserFromChannel(cmd.Project, cmd.User, cmd.Channel)
+func (app *application) unsubscribeCmd(cmd *unsubscribeControlCommand) error {
+	return app.unsubUser(cmd.Project, cmd.User, cmd.Channel)
 }
 
-func (app *application) handleDisconnectControlCommand(cmd *disconnectControlCommand) error {
+/*
+func (app *application) disconnectCmd(cmd *disconnectControlCommand) error {
 	return app.disconnectUser(cmd.Project, cmd.User)
 }
-
-// getProjectChannel returns internal name of channel - as
+*/
+// projectChannel returns internal name of channel - as
 // every project can have channels with the same name we should distinguish
 // between them. This also prevents collapses with admin and control
 // channel names
-func (app *application) getProjectChannel(projectKey, channel string) string {
+func (app *application) projectChannel(projectKey, channel string) string {
 	app.RLock()
 	defer app.RUnlock()
 	return app.config.channelPrefix + "." + projectKey + "." + channel
 }
 
-// addConnection registers authenticated connection in clientConnectionHub
+// addConn registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand
-func (app *application) addConnection(c clientConnection) error {
-	return app.clientConnectionHub.add(c)
+func (app *application) addConn(c clientConn) error {
+	return app.connHub.add(c)
 }
 
-// removeConnection removes client connection from connection registry
-func (app *application) removeConnection(c clientConnection) error {
-	return app.clientConnectionHub.remove(c)
+// removeConn removes client connection from connection registry
+func (app *application) removeConn(c clientConn) error {
+	return app.connHub.remove(c)
 }
 
-// addSubscription registers subscription of connection on channel in both
+// addSub registers subscription of connection on channel in both
 // engine and clientSubscriptionHub
-func (app *application) addSubscription(projectKey, channel string, c clientConnection) error {
-	projectChannel := app.getProjectChannel(projectKey, channel)
+func (app *application) addSub(projectKey, channel string, c clientConn) error {
+	projectChannel := app.projectChannel(projectKey, channel)
 	err := app.engine.subscribe(projectChannel)
 	if err != nil {
 		return err
 	}
-	return app.clientSubscriptionHub.add(projectChannel, c)
+	return app.subs.add(projectChannel, c)
 }
 
-// removeSubscription removes subscription of connection on channel
+// removeSub removes subscription of connection on channel
 // from both engine and clientSubscriptionHub
-func (app *application) removeSubscription(projectKey, channel string, c clientConnection) error {
-	projectChannel := app.getProjectChannel(projectKey, channel)
+func (app *application) removeSub(projectKey, channel string, c clientConn) error {
+	projectChannel := app.projectChannel(projectKey, channel)
 	err := app.engine.unsubscribe(projectChannel)
 	if err != nil {
 		return err
 	}
-	return app.clientSubscriptionHub.remove(projectChannel, c)
+	return app.subs.remove(projectChannel, c)
 }
 
-// unsubscribeUserFromChannel unsubscribes user from channel on this node. If channel
+// unsubUser unsubscribes user from channel on this node. If channel
 // is an empty string then user will be unsubscribed from all channels
-func (app *application) unsubscribeUserFromChannel(projectKey, user, channel string) error {
-	userConnections := app.clientConnectionHub.getUserConnections(projectKey, user)
+func (app *application) unsubUser(projectKey, user, channel string) error {
+	userConnections := app.connHub.userConnections(projectKey, user)
 	for _, c := range userConnections {
 		var channels []string
 		if channel == "" {
 			// unsubscribe from all channels
-			channels = c.getChannels()
+			channels = c.channels()
 		} else {
 			channels = []string{channel}
 		}
@@ -467,7 +467,7 @@ func (app *application) unsubscribeUserFromChannel(projectKey, user, channel str
 
 // disconnectUser closes client connections of user
 func (app *application) disconnectUser(projectKey, user string) error {
-	userConnections := app.clientConnectionHub.getUserConnections(projectKey, user)
+	userConnections := app.connHub.userConnections(projectKey, user)
 	for _, c := range userConnections {
 		err := c.close("disconnect")
 		if err != nil {
@@ -477,16 +477,16 @@ func (app *application) disconnectUser(projectKey, user string) error {
 	return nil
 }
 
-// getProjectByKey returns a project by project key (name) using structure
-func (app *application) getProjectByKey(projectKey string) (*project, bool) {
+// projectByKey returns a project by project key (name) using structure
+func (app *application) projectByKey(projectKey string) (*project, bool) {
 	app.RLock()
 	defer app.RUnlock()
-	return app.structure.getProjectByKey(projectKey)
+	return app.structure.projByKey(projectKey)
 }
 
-// extractNamespaceName returns namespace name from channel name if exists or
+// channelNamespace returns namespace name from channel name if exists or
 // empty string
-func (app *application) extractNamespaceName(channel string) string {
+func (app *application) channelNamespace(channel string) string {
 	channel = strings.TrimPrefix(channel, app.config.privateChannelPrefix)
 	parts := strings.SplitN(channel, app.config.namespaceChannelBoundary, 2)
 	if len(parts) >= 2 {
@@ -496,56 +496,56 @@ func (app *application) extractNamespaceName(channel string) string {
 	}
 }
 
-// getChannelOptions returns channel options for channel using structure
-func (app *application) getChannelOptions(projectKey, channel string) *ChannelOptions {
+// channelOpts returns channel options for channel using structure
+func (app *application) channelOpts(projectKey, channel string) *ChannelOptions {
 	app.RLock()
 	defer app.RUnlock()
-	namespaceName := app.extractNamespaceName(channel)
-	return app.structure.getChannelOptions(projectKey, namespaceName)
+	namespaceName := app.channelNamespace(channel)
+	return app.structure.channelOpts(projectKey, namespaceName)
 }
 
 // addPresence proxies presence adding to engine
 func (app *application) addPresence(projectKey, channel, uid string, info ClientInfo) error {
-	projectChannel := app.getProjectChannel(projectKey, channel)
+	projectChannel := app.projectChannel(projectKey, channel)
 	return app.engine.addPresence(projectChannel, uid, info)
 }
 
 // removePresence proxies presence removing to engine
 func (app *application) removePresence(projectKey, channel, uid string) error {
-	projectChannel := app.getProjectChannel(projectKey, channel)
+	projectChannel := app.projectChannel(projectKey, channel)
 	return app.engine.removePresence(projectChannel, uid)
 }
 
 // getPresence proxies presence extraction to engine
-func (app *application) getPresence(projectKey, channel string) (map[string]ClientInfo, error) {
-	projectChannel := app.getProjectChannel(projectKey, channel)
-	return app.engine.getPresence(projectChannel)
+func (app *application) presence(projectKey, channel string) (map[string]ClientInfo, error) {
+	projectChannel := app.projectChannel(projectKey, channel)
+	return app.engine.presence(projectChannel)
 }
 
-// addHistoryMessage proxies history message adding to engine
-func (app *application) addHistoryMessage(projectKey, channel string, message Message, size, lifetime int64) error {
-	projectChannel := app.getProjectChannel(projectKey, channel)
+// addHistory proxies history message adding to engine
+func (app *application) addHistory(projectKey, channel string, message Message, size, lifetime int64) error {
+	projectChannel := app.projectChannel(projectKey, channel)
 	return app.engine.addHistoryMessage(projectChannel, message, size, lifetime)
 }
 
 // getHistory proxies history extraction to engine
-func (app *application) getHistory(projectKey, channel string) ([]Message, error) {
-	projectChannel := app.getProjectChannel(projectKey, channel)
-	return app.engine.getHistory(projectChannel)
+func (app *application) history(projectKey, channel string) ([]Message, error) {
+	projectChannel := app.projectChannel(projectKey, channel)
+	return app.engine.history(projectChannel)
 }
 
-// isPrivateChannel checks if channel private and therefore subscription
+// privateCh checks if channel private and therefore subscription
 // request on it must be properly signed on web application backend
-func (app *application) isPrivateChannel(channel string) bool {
+func (app *application) privateChannel(channel string) bool {
 	app.RLock()
 	defer app.RUnlock()
 	return strings.HasPrefix(channel, app.config.privateChannelPrefix)
 }
 
-// isUserAllowed checks if user can subscribe on channel - as channel
+// userAllowed checks if user can subscribe on channel - as channel
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it
-func (app *application) isUserAllowed(channel, user string) bool {
+func (app *application) userAllowed(channel, user string) bool {
 	app.RLock()
 	defer app.RUnlock()
 	if !strings.Contains(channel, app.config.userChannelBoundary) {
@@ -561,30 +561,30 @@ func (app *application) isUserAllowed(channel, user string) bool {
 	return false
 }
 
-// register admin connection in adminConnectionHub
-func (app *application) addAdminConnection(c adminConnection) error {
-	return app.adminConnectionHub.add(c)
+// addAdminConn registers an admin connection in adminConnectionHub
+func (app *application) addAdminConn(c adminConn) error {
+	return app.admins.add(c)
 }
 
-// unregister admin connection from adminConnectionHub
-func (app *application) removeAdminConnection(c adminConnection) error {
-	return app.adminConnectionHub.remove(c)
+// removeAdminConn admin connection from adminConnectionHub
+func (app *application) removeAdminConn(c adminConn) error {
+	return app.admins.remove(c)
 }
 
-// getChannelsCount returns total amount of active channels on this node
-func (app *application) getChannelsCount() int {
-	return app.clientSubscriptionHub.getChannelsCount()
+// nChannels returns total amount of active channels on this node
+func (app *application) nChannels() int {
+	return app.subs.nChannels()
 }
 
-// getClientsCount returns total amount of client connections to this node
-func (app *application) getClientsCount() int {
-	return app.clientConnectionHub.getClientsCount()
+// nClients returns total amount of client connections to this node
+func (app *application) nClients() int {
+	return app.connHub.nClients()
 }
 
-// getUniqueChannelsCount returns total amount of unique client
+// nUniqueClients returns total amount of unique client
 // connections to this node
-func (app *application) getUniqueChannelsCount() int {
-	return app.clientConnectionHub.getUniqueClientsCount()
+func (app *application) nUniqueClients() int {
+	return app.connHub.nUniqueClients()
 }
 
 const (

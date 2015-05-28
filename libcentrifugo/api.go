@@ -7,7 +7,7 @@ import (
 )
 
 // handleApiCommand builds API command and dispatches it into correct handler method
-func (app *application) handleApiCommand(p *project, command apiCommand) (*response, error) {
+func (app *application) apiCmd(p *project, command apiCommand) (*response, error) {
 
 	var err error
 	var resp *response
@@ -23,7 +23,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
 		}
-		resp, err = app.handlePublishCommand(p, &cmd)
+		resp, err = app.publishCmd(p, &cmd)
 	case "unsubscribe":
 		var cmd unsubscribeApiCommand
 		err := json.Unmarshal(params, &cmd)
@@ -31,7 +31,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
 		}
-		resp, err = app.handleUnsubscribeCommand(p, &cmd)
+		resp, err = app.unsubcribeCmd(p, &cmd)
 	case "disconnect":
 		var cmd disconnectApiCommand
 		err := json.Unmarshal(params, &cmd)
@@ -39,7 +39,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
 		}
-		resp, err = app.handleDisconnectCommand(p, &cmd)
+		resp, err = app.disconnectCmd(p, &cmd)
 	case "presence":
 		var cmd presenceApiCommand
 		err := json.Unmarshal(params, &cmd)
@@ -47,7 +47,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
 		}
-		resp, err = app.handlePresenceCommand(p, &cmd)
+		resp, err = app.presenceCmd(p, &cmd)
 	case "history":
 		var cmd historyApiCommand
 		err := json.Unmarshal(params, &cmd)
@@ -55,7 +55,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
 		}
-		resp, err = app.handleHistoryCommand(p, &cmd)
+		resp, err = app.historyCmd(p, &cmd)
 	default:
 		return nil, ErrMethodNotFound
 	}
@@ -67,7 +67,7 @@ func (app *application) handleApiCommand(p *project, command apiCommand) (*respo
 }
 
 // handlePublishCommand publishes data into channel
-func (app *application) handlePublishCommand(p *project, cmd *publishApiCommand) (*response, error) {
+func (app *application) publishCmd(p *project, cmd *publishApiCommand) (*response, error) {
 
 	resp := newResponse("publish")
 
@@ -78,13 +78,13 @@ func (app *application) handlePublishCommand(p *project, cmd *publishApiCommand)
 		return nil, ErrInvalidApiMessage
 	}
 
-	chOpts := app.getChannelOptions(p.Name, channel)
+	chOpts := app.channelOpts(p.Name, channel)
 	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
-	err := app.publishClientMessage(p, channel, chOpts, data, nil)
+	err := app.pubClient(p, channel, chOpts, data, nil)
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)
@@ -95,7 +95,7 @@ func (app *application) handlePublishCommand(p *project, cmd *publishApiCommand)
 
 // handleUnsubscribeCommand unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes
-func (app *application) handleUnsubscribeCommand(p *project, cmd *unsubscribeApiCommand) (*response, error) {
+func (app *application) unsubcribeCmd(p *project, cmd *unsubscribeApiCommand) (*response, error) {
 
 	resp := newResponse("unsubscribe")
 
@@ -108,20 +108,20 @@ func (app *application) handleUnsubscribeCommand(p *project, cmd *unsubscribeApi
 	}
 
 	if channel != "" {
-		chOpts := app.getChannelOptions(p.Name, channel)
+		chOpts := app.channelOpts(p.Name, channel)
 		if chOpts == nil {
 			resp.Err(ErrNamespaceNotFound)
 			return resp, nil
 		}
 	}
 
-	err := app.unsubscribeUserFromChannel(p.Name, user, channel)
+	err := app.unsubUser(p.Name, user, channel)
 	if err != nil {
 		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 
-	err = app.publishUnsubscribeControlMessage(p.Name, user, channel)
+	err = app.pubUnsub(p.Name, user, channel)
 	if err != nil {
 		resp.Err(ErrInternalServerError)
 		return resp, nil
@@ -132,7 +132,7 @@ func (app *application) handleUnsubscribeCommand(p *project, cmd *unsubscribeApi
 
 // handleDisconnectCommand disconnects project's user and sends disconnect
 // control message to other nodes
-func (app *application) handleDisconnectCommand(p *project, cmd *disconnectApiCommand) (*response, error) {
+func (app *application) disconnectCmd(p *project, cmd *disconnectApiCommand) (*response, error) {
 
 	resp := newResponse("disconnect")
 
@@ -149,7 +149,7 @@ func (app *application) handleDisconnectCommand(p *project, cmd *disconnectApiCo
 		return resp, nil
 	}
 
-	err = app.publishDisconnectControlMessage(p.Name, user)
+	err = app.pubDisconnect(p.Name, user)
 	if err != nil {
 		resp.Err(ErrInternalServerError)
 		return resp, nil
@@ -159,7 +159,7 @@ func (app *application) handleDisconnectCommand(p *project, cmd *disconnectApiCo
 }
 
 // handlePresenceCommand returns response with presense information for project channel
-func (app *application) handlePresenceCommand(p *project, cmd *presenceApiCommand) (*response, error) {
+func (app *application) presenceCmd(p *project, cmd *presenceApiCommand) (*response, error) {
 
 	resp := newResponse("presence")
 
@@ -176,7 +176,7 @@ func (app *application) handlePresenceCommand(p *project, cmd *presenceApiComman
 
 	resp.Body = body
 
-	chOpts := app.getChannelOptions(p.Name, channel)
+	chOpts := app.channelOpts(p.Name, channel)
 	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
@@ -187,7 +187,7 @@ func (app *application) handlePresenceCommand(p *project, cmd *presenceApiComman
 		return resp, nil
 	}
 
-	presence, err := app.getPresence(p.Name, channel)
+	presence, err := app.presence(p.Name, channel)
 	if err != nil {
 		resp.Err(ErrInternalServerError)
 		return resp, nil
@@ -201,7 +201,7 @@ func (app *application) handlePresenceCommand(p *project, cmd *presenceApiComman
 }
 
 // handleHistoryCommand returns response with history information for project channel
-func (app *application) handleHistoryCommand(p *project, cmd *historyApiCommand) (*response, error) {
+func (app *application) historyCmd(p *project, cmd *historyApiCommand) (*response, error) {
 
 	resp := newResponse("history")
 
@@ -218,7 +218,7 @@ func (app *application) handleHistoryCommand(p *project, cmd *historyApiCommand)
 
 	resp.Body = body
 
-	chOpts := app.getChannelOptions(p.Name, channel)
+	chOpts := app.channelOpts(p.Name, channel)
 	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
@@ -229,7 +229,7 @@ func (app *application) handleHistoryCommand(p *project, cmd *historyApiCommand)
 		return resp, nil
 	}
 
-	history, err := app.getHistory(p.Name, channel)
+	history, err := app.history(p.Name, channel)
 	if err != nil {
 		resp.Err(ErrInternalServerError)
 		return resp, nil

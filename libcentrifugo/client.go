@@ -15,20 +15,20 @@ import (
 // or SockJS connection.
 type client struct {
 	sync.Mutex
-	app             *application
-	session         session
-	uid             string
-	project         string
-	user            string
-	timestamp       int64
-	token           string
-	info            []byte
-	isAuthenticated bool
-	channelInfo     map[string][]byte
-	channels        map[string]bool
-	messageChan     chan string
-	closeChan       chan struct{}
-	expireTimer     *time.Timer
+	app           *application
+	sess          session
+	Uid           string
+	Project       string
+	User          string
+	timestamp     int64
+	token         string
+	defaultInfo   []byte
+	authenticated bool
+	channelInfo   map[string][]byte
+	Channels      map[string]bool
+	messageChan   chan string
+	closeChan     chan struct{}
+	expireTimer   *time.Timer
 }
 
 // ClientInfo contains information about client to use in message
@@ -46,9 +46,9 @@ func newClient(app *application, s session) (*client, error) {
 		return nil, err
 	}
 	return &client{
-		uid:         uid.String(),
+		Uid:         uid.String(),
 		app:         app,
-		session:     s,
+		sess:        s,
 		messageChan: make(chan string, 256),
 		closeChan:   make(chan struct{}),
 	}, nil
@@ -59,9 +59,9 @@ func (c *client) sendMessages() {
 	for {
 		select {
 		case message := <-c.messageChan:
-			err := c.session.Send(message)
+			err := c.sess.Send(message)
 			if err != nil {
-				c.session.Close(3000, "error sending message")
+				c.sess.Close(3000, "error sending message")
 			}
 		case <-c.closeChan:
 			return
@@ -72,21 +72,21 @@ func (c *client) sendMessages() {
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
 func (c *client) updateChannelPresence(channel string) {
-	chOpts := c.app.getChannelOptions(c.project, channel)
+	chOpts := c.app.channelOpts(c.Project, channel)
 	if chOpts == nil {
 		return
 	}
 	if !chOpts.Presence {
 		return
 	}
-	c.app.addPresence(c.project, channel, c.uid, c.getInfo(channel))
+	c.app.addPresence(c.Project, channel, c.Uid, c.info(channel))
 }
 
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
 	c.Lock()
 	defer c.Unlock()
-	for _, channel := range c.getChannels() {
+	for _, channel := range c.channels() {
 		c.updateChannelPresence(channel)
 	}
 }
@@ -106,22 +106,22 @@ func (c *client) presencePing() {
 	}
 }
 
-func (c *client) getUid() string {
-	return c.uid
+func (c *client) uid() string {
+	return c.Uid
 }
 
-func (c *client) getProject() string {
-	return c.project
+func (c *client) project() string {
+	return c.Project
 }
 
-func (c *client) getUser() string {
-	return c.user
+func (c *client) user() string {
+	return c.User
 }
 
-func (c *client) getChannels() []string {
-	keys := make([]string, len(c.channels))
+func (c *client) channels() []string {
+	keys := make([]string, len(c.Channels))
 	i := 0
-	for k := range c.channels {
+	for k := range c.Channels {
 		keys[i] = k
 		i += 1
 	}
@@ -134,7 +134,7 @@ func (c *client) unsubscribe(channel string) error {
 	cmd := &unsubscribeClientCommand{
 		Channel: channel,
 	}
-	resp, err := c.handleUnsubscribeCommand(cmd)
+	resp, err := c.unsubscribeCmd(cmd)
 	if err != nil {
 		return err
 	}
@@ -149,13 +149,13 @@ func (c *client) send(message string) error {
 	case c.messageChan <- message:
 		return nil
 	default:
-		c.session.Close(3000, "error sending message")
+		c.sess.Close(3000, "error sending message")
 		return ErrInternalServerError
 	}
 }
 
 func (c *client) close(reason string) error {
-	return c.session.Close(3000, reason)
+	return c.sess.Close(3000, reason)
 }
 
 // clean called when connection was closed to make different clean up
@@ -163,15 +163,15 @@ func (c *client) close(reason string) error {
 func (c *client) clean() error {
 	c.Lock()
 	defer c.Unlock()
-	projectKey := c.project
+	projectKey := c.Project
 
-	if projectKey != "" && len(c.channels) > 0 {
+	if projectKey != "" && len(c.Channels) > 0 {
 		// unsubscribe from all channels
-		for channel, _ := range c.channels {
+		for channel, _ := range c.Channels {
 			cmd := &unsubscribeClientCommand{
 				Channel: channel,
 			}
-			_, err := c.handleUnsubscribeCommand(cmd)
+			_, err := c.unsubscribeCmd(cmd)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -179,7 +179,7 @@ func (c *client) clean() error {
 	}
 
 	if projectKey != "" {
-		err := c.app.removeConnection(c)
+		err := c.app.removeConn(c)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
@@ -190,15 +190,15 @@ func (c *client) clean() error {
 	return nil
 }
 
-func (c *client) getInfo(channel string) ClientInfo {
+func (c *client) info(channel string) ClientInfo {
 	channelInfo, ok := c.channelInfo[channel]
 	if !ok {
 		channelInfo = []byte{}
 	}
 	var rawDefaultInfo *json.RawMessage
 	var rawChannelInfo *json.RawMessage
-	if len(c.info) > 0 {
-		raw := json.RawMessage(c.info)
+	if len(c.defaultInfo) > 0 {
+		raw := json.RawMessage(c.defaultInfo)
 		rawDefaultInfo = &raw
 	} else {
 		rawDefaultInfo = nil
@@ -210,14 +210,14 @@ func (c *client) getInfo(channel string) ClientInfo {
 		rawChannelInfo = nil
 	}
 	return ClientInfo{
-		User:        c.user,
-		Client:      c.uid,
+		User:        c.User,
+		Client:      c.Uid,
 		DefaultInfo: rawDefaultInfo,
 		ChannelInfo: rawChannelInfo,
 	}
 }
 
-func getCommandsFromClientMessage(msgBytes []byte) ([]clientCommand, error) {
+func cmdFromClientMsg(msgBytes []byte) ([]clientCommand, error) {
 	var commands []clientCommand
 	firstByte := msgBytes[0]
 	switch firstByte {
@@ -239,12 +239,12 @@ func getCommandsFromClientMessage(msgBytes []byte) ([]clientCommand, error) {
 	return commands, nil
 }
 
-func (c *client) handleMessage(msg []byte) error {
+func (c *client) message(msg []byte) error {
 	if len(msg) == 0 {
 		logger.ERROR.Println("empty client message received")
 		return ErrInvalidClientMessage
 	}
-	commands, err := getCommandsFromClientMessage(msg)
+	commands, err := cmdFromClientMsg(msg)
 	if err != nil {
 		return err
 	}
@@ -259,7 +259,7 @@ func (c *client) handleCommands(commands []clientCommand) error {
 	var err error
 	var mr multiResponse
 	for _, command := range commands {
-		resp, err := c.handleCommand(command)
+		resp, err := c.handleCmd(command)
 		if err != nil {
 			return err
 		}
@@ -269,12 +269,12 @@ func (c *client) handleCommands(commands []clientCommand) error {
 	if err != nil {
 		return err
 	}
-	err = c.session.Send(string(jsonResp))
+	err = c.sess.Send(string(jsonResp))
 	return err
 }
 
 // handleCommand dispatches clientCommand into correct command handler
-func (c *client) handleCommand(command clientCommand) (*response, error) {
+func (c *client) handleCmd(command clientCommand) (*response, error) {
 
 	var err error
 	var resp *response
@@ -282,7 +282,7 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 	method := command.Method
 	params := command.Params
 
-	if method != "connect" && !c.isAuthenticated {
+	if method != "connect" && !c.authenticated {
 		return nil, ErrUnauthorized
 	}
 
@@ -293,51 +293,51 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handleConnectCommand(&cmd)
+		resp, err = c.connectCmd(&cmd)
 	case "refresh":
 		var cmd refreshClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handleRefreshCommand(&cmd)
+		resp, err = c.refreshCmd(&cmd)
 	case "subscribe":
 		var cmd subscribeClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handleSubscribeCommand(&cmd)
+		resp, err = c.subscribeCmd(&cmd)
 	case "unsubscribe":
 		var cmd unsubscribeClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handleUnsubscribeCommand(&cmd)
+		resp, err = c.unsubscribeCmd(&cmd)
 	case "publish":
 		var cmd publishClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handlePublishCommand(&cmd)
+		resp, err = c.publishCmd(&cmd)
 	case "ping":
-		resp, err = c.handlePingCommand()
+		resp, err = c.pingCmd()
 	case "presence":
 		var cmd presenceClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handlePresenceCommand(&cmd)
+		resp, err = c.presenceCmd(&cmd)
 	case "history":
 		var cmd historyClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidClientMessage
 		}
-		resp, err = c.handleHistoryCommand(&cmd)
+		resp, err = c.historyCmd(&cmd)
 	default:
 		return nil, ErrMethodNotFound
 	}
@@ -348,10 +348,10 @@ func (c *client) handleCommand(command clientCommand) (*response, error) {
 	return resp, nil
 }
 
-// handlePingCommand handles ping command from client - this is necessary sometimes
+// pingCmd handles ping command from client - this is necessary sometimes
 // for example Heroku closes websocket connection after 55 seconds
 // of inactive period when no messages with payload travelled over wire
-func (c *client) handlePingCommand() (*response, error) {
+func (c *client) pingCmd() (*response, error) {
 	resp := newResponse("ping")
 	resp.Body = "pong"
 	return resp, nil
@@ -361,16 +361,16 @@ func (c *client) expire() {
 	c.Lock()
 	defer c.Unlock()
 
-	project, exists := c.app.getProjectByKey(c.project)
+	project, exists := c.app.projectByKey(c.Project)
 	if !exists {
 		return
 	}
 
-	if project.ConnectionLifetime <= 0 {
+	if project.ConnLifetime <= 0 {
 		return
 	}
 
-	timeToExpire := c.timestamp + project.ConnectionLifetime - time.Now().Unix()
+	timeToExpire := c.timestamp + project.ConnLifetime - time.Now().Unix()
 	if timeToExpire > 0 {
 		// connection was succesfully refreshed
 		return
@@ -380,15 +380,15 @@ func (c *client) expire() {
 	return
 }
 
-// handleConnectCommand handles connect command from client - client must send this
+// connectCmd handles connect command from client - client must send this
 // command immediately after establishing Websocket or SockJS connection with
 // Centrifugo
-func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, error) {
+func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 
 	resp := newResponse("connect")
 
-	if c.isAuthenticated {
-		resp.Body = c.uid
+	if c.authenticated {
+		resp.Body = c.Uid
 		return resp, nil
 	}
 
@@ -406,7 +406,7 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 		token = ""
 	}
 
-	project, exists := c.app.getProjectByKey(projectKey)
+	project, exists := c.app.projectByKey(projectKey)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -430,13 +430,13 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 		c.timestamp = time.Now().Unix()
 	}
 
-	c.user = user
-	c.project = projectKey
+	c.User = user
+	c.Project = projectKey
 
 	var ttl interface{}
 	var timeToExpire int64 = 0
 	ttl = nil
-	connectionLifetime := project.ConnectionLifetime
+	connectionLifetime := project.ConnLifetime
 	if connectionLifetime > 0 && !c.app.config.insecure {
 		ttl = connectionLifetime
 		timeToExpire := c.timestamp + connectionLifetime - time.Now().Unix()
@@ -451,14 +451,14 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 		}
 	}
 
-	c.isAuthenticated = true
-	c.info = []byte(info)
-	c.channels = map[string]bool{}
+	c.authenticated = true
+	c.defaultInfo = []byte(info)
+	c.Channels = map[string]bool{}
 	c.channelInfo = map[string][]byte{}
 
 	go c.presencePing()
 
-	err := c.app.addConnection(c)
+	err := c.app.addConn(c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil, ErrInternalServerError
@@ -470,7 +470,7 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	}
 
 	body := map[string]interface{}{
-		"client":  c.uid,
+		"client":  c.Uid,
 		"expired": false,
 		"ttl":     ttl,
 	}
@@ -478,9 +478,9 @@ func (c *client) handleConnectCommand(cmd *connectClientCommand) (*response, err
 	return resp, nil
 }
 
-// handleRefreshCommand handle refresh command to update connection with new
+// refreshCmd handle refresh command to update connection with new
 // timestamp - this is only required when connection lifetime project option set.
-func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, error) {
+func (c *client) refreshCmd(cmd *refreshClientCommand) (*response, error) {
 
 	resp := newResponse("refresh")
 
@@ -490,7 +490,7 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 	timestamp := cmd.Timestamp
 	token := cmd.Token
 
-	project, exists := c.app.getProjectByKey(projectKey)
+	project, exists := c.app.projectByKey(projectKey)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -509,7 +509,7 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 
 	var ttl interface{}
 
-	connectionLifetime := project.ConnectionLifetime
+	connectionLifetime := project.ConnLifetime
 	if connectionLifetime <= 0 {
 		// connection check disabled
 		ttl = nil
@@ -518,7 +518,7 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
 			c.timestamp = int64(ts)
-			c.info = []byte(info)
+			c.defaultInfo = []byte(info)
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
@@ -538,14 +538,14 @@ func (c *client) handleRefreshCommand(cmd *refreshClientCommand) (*response, err
 	return resp, nil
 }
 
-// handleSubscribeCommand handles subscribe command - clients send this when subscribe
+// subscribeCmd handles subscribe command - clients send this when subscribe
 // on channel, if channel if private then we must validate provided sign here before
 // actually subscribe client on channel
-func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response, error) {
+func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 
 	resp := newResponse("subscribe")
 
-	project, exists := c.app.getProjectByKey(c.project)
+	project, exists := c.app.projectByKey(c.Project)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -569,25 +569,25 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 	}
 	resp.Body = body
 
-	if !c.app.isUserAllowed(channel, c.user) {
+	if !c.app.userAllowed(channel, c.User) {
 		resp.Err(ErrPermissionDenied)
 		return resp, nil
 	}
 
-	chOpts := c.app.getChannelOptions(c.project, channel)
+	chOpts := c.app.channelOpts(c.Project, channel)
 	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
-	if !chOpts.Anonymous && c.user == "" && !c.app.config.insecure {
+	if !chOpts.Anonymous && c.User == "" && !c.app.config.insecure {
 		resp.Err(ErrPermissionDenied)
 		return resp, nil
 	}
 
-	if c.app.isPrivateChannel(channel) {
+	if c.app.privateChannel(channel) {
 		// private channel - subscription must be properly signed
-		if c.uid != cmd.Client {
+		if c.Uid != cmd.Client {
 			resp.Err(ErrPermissionDenied)
 			return resp, nil
 		}
@@ -599,18 +599,18 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 		c.channelInfo[channel] = []byte(cmd.Info)
 	}
 
-	err := c.app.addSubscription(c.project, channel, c)
+	err := c.app.addSub(c.Project, channel, c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return resp, ErrInternalServerError
 	}
 
-	c.channels[channel] = true
+	c.Channels[channel] = true
 
-	info := c.getInfo(channel)
+	info := c.info(channel)
 
 	if chOpts.Presence {
-		err = c.app.addPresence(c.project, channel, c.uid, info)
+		err = c.app.addPresence(c.Project, channel, c.Uid, info)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInternalServerError
@@ -618,7 +618,7 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 	}
 
 	if chOpts.JoinLeave {
-		err = c.app.publishJoinLeaveMessage(c.project, channel, "join", info)
+		err = c.app.pubJoinLeave(c.Project, channel, "join", info)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
@@ -627,9 +627,9 @@ func (c *client) handleSubscribeCommand(cmd *subscribeClientCommand) (*response,
 	return resp, nil
 }
 
-// handleUnsubscribeCommand handles unsubscribe command from client - it allows to
+// unsubscribeCmd handles unsubscribe command from client - it allows to
 // unsubscribe connection from channel
-func (c *client) handleUnsubscribeCommand(cmd *unsubscribeClientCommand) (*response, error) {
+func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error) {
 
 	resp := newResponse("unsubscribe")
 
@@ -643,30 +643,30 @@ func (c *client) handleUnsubscribeCommand(cmd *unsubscribeClientCommand) (*respo
 	}
 	resp.Body = body
 
-	chOpts := c.app.getChannelOptions(c.project, channel)
+	chOpts := c.app.channelOpts(c.Project, channel)
 	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
 	}
 
-	err := c.app.removeSubscription(c.project, channel, c)
+	err := c.app.removeSub(c.Project, channel, c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return resp, ErrInternalServerError
 	}
 
-	_, ok := c.channels[channel]
+	_, ok := c.Channels[channel]
 	if ok {
 
-		delete(c.channels, channel)
+		delete(c.Channels, channel)
 
-		err = c.app.removePresence(c.project, channel, c.uid)
+		err = c.app.removePresence(c.Project, channel, c.Uid)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
 
 		if chOpts.JoinLeave {
-			err = c.app.publishJoinLeaveMessage(c.project, channel, "leave", c.getInfo(channel))
+			err = c.app.pubJoinLeave(c.Project, channel, "leave", c.info(channel))
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -676,15 +676,15 @@ func (c *client) handleUnsubscribeCommand(cmd *unsubscribeClientCommand) (*respo
 	return resp, nil
 }
 
-// handlePublishCommand handles publish command - clients can publish messages into
+// publishCmd handles publish command - clients can publish messages into
 // channels themselves if `publish` allowed by channel options. In most cases clients not
 // allowed to publish into channels directly - web application publishes messages
 // itself via HTTP API or Redis.
-func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, error) {
+func (c *client) publishCmd(cmd *publishClientCommand) (*response, error) {
 
 	resp := newResponse("publish")
 
-	project, exists := c.app.getProjectByKey(c.project)
+	project, exists := c.app.projectByKey(c.Project)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -703,12 +703,12 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 	}
 	resp.Body = body
 
-	if _, ok := c.channels[channel]; !ok {
+	if _, ok := c.Channels[channel]; !ok {
 		resp.Err(ErrPermissionDenied)
 		return resp, nil
 	}
 
-	chOpts := c.app.getChannelOptions(c.project, channel)
+	chOpts := c.app.channelOpts(c.Project, channel)
 	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
@@ -719,9 +719,9 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 		return resp, nil
 	}
 
-	info := c.getInfo(channel)
+	info := c.info(channel)
 
-	err := c.app.publishClientMessage(project, channel, chOpts, data, &info)
+	err := c.app.pubClient(project, channel, chOpts, data, &info)
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)
@@ -735,11 +735,11 @@ func (c *client) handlePublishCommand(cmd *publishClientCommand) (*response, err
 	return resp, nil
 }
 
-// handlePresenceCommand handles presence command - it shows which clients
+// presenceCmd handles presence command - it shows which clients
 // are subscribed on channel at this moment. This method also checks if
 // presence information turned on for channel (based on channel options
 // for namespace or project)
-func (c *client) handlePresenceCommand(cmd *presenceClientCommand) (*response, error) {
+func (c *client) presenceCmd(cmd *presenceClientCommand) (*response, error) {
 
 	resp := newResponse("presence")
 
@@ -756,7 +756,7 @@ func (c *client) handlePresenceCommand(cmd *presenceClientCommand) (*response, e
 
 	resp.Body = body
 
-	chOpts := c.app.getChannelOptions(c.project, channel)
+	chOpts := c.app.channelOpts(c.Project, channel)
 	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
@@ -767,7 +767,7 @@ func (c *client) handlePresenceCommand(cmd *presenceClientCommand) (*response, e
 		return resp, nil
 	}
 
-	data, err := c.app.getPresence(c.project, channel)
+	data, err := c.app.presence(c.Project, channel)
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)
@@ -781,11 +781,11 @@ func (c *client) handlePresenceCommand(cmd *presenceClientCommand) (*response, e
 	return resp, nil
 }
 
-// handleHistoryCommand handles history command - it shows last M messages published
+// historyCmd handles history command - it shows last M messages published
 // into channel. M is history size and can be configured for project or namespace
 // via channel options. Also this method checks that history available for channel
 // (also determined by channel options flag)
-func (c *client) handleHistoryCommand(cmd *historyClientCommand) (*response, error) {
+func (c *client) historyCmd(cmd *historyClientCommand) (*response, error) {
 
 	resp := newResponse("history")
 
@@ -802,7 +802,7 @@ func (c *client) handleHistoryCommand(cmd *historyClientCommand) (*response, err
 
 	resp.Body = body
 
-	chOpts := c.app.getChannelOptions(c.project, channel)
+	chOpts := c.app.channelOpts(c.Project, channel)
 	if chOpts == nil {
 		resp.Err(ErrNamespaceNotFound)
 		return resp, nil
@@ -813,7 +813,7 @@ func (c *client) handleHistoryCommand(cmd *historyClientCommand) (*response, err
 		return resp, nil
 	}
 
-	data, err := c.app.getHistory(c.project, channel)
+	data, err := c.app.history(c.Project, channel)
 	if err != nil {
 		resp.Err(ErrInternalServerError)
 		return resp, nil

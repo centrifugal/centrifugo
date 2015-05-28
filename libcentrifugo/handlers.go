@@ -31,13 +31,13 @@ func (app *application) sockJSHandler(s sockjs.Session) {
 	defer func() {
 		c.clean()
 	}()
-	logger.INFO.Printf("new SockJS session established with uid %s\n", c.getUid())
+	logger.INFO.Printf("new SockJS session established with uid %s\n", c.uid())
 
 	go c.sendMessages()
 
 	for {
 		if msg, err := s.Recv(); err == nil {
-			err = c.handleMessage([]byte(msg))
+			err = c.message([]byte(msg))
 			if err != nil {
 				logger.ERROR.Println(err)
 				s.Close(3000, err.Error())
@@ -49,12 +49,12 @@ func (app *application) sockJSHandler(s sockjs.Session) {
 	}
 }
 
-type wsConnection struct {
+type wsConn struct {
 	ws        *websocket.Conn
 	writeChan chan []byte // buffered channel of outbound messages.
 }
 
-func (conn wsConnection) Send(message string) error {
+func (conn wsConn) Send(message string) error {
 
 	select {
 	case conn.writeChan <- []byte(message):
@@ -64,12 +64,12 @@ func (conn wsConnection) Send(message string) error {
 	return nil
 }
 
-func (conn wsConnection) Close(status uint32, reason string) error {
+func (conn wsConn) Close(status uint32, reason string) error {
 	return conn.ws.Close()
 }
 
 // writer reads from channel and sends received messages into connection
-func (conn *wsConnection) writer(closeChan chan struct{}) {
+func (conn *wsConn) writer(closeChan chan struct{}) {
 	for {
 		select {
 		case message := <-conn.writeChan:
@@ -95,7 +95,7 @@ func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	}
 	defer ws.Close()
 
-	conn := wsConnection{
+	conn := wsConn{
 		ws:        ws,
 		writeChan: make(chan []byte, 256),
 	}
@@ -104,7 +104,7 @@ func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return
 	}
-	logger.INFO.Printf("new raw Websocket session established with uid %s\n", c.getUid())
+	logger.INFO.Printf("new raw Websocket session established with uid %s\n", c.uid())
 	defer func() {
 		c.clean()
 	}()
@@ -118,7 +118,7 @@ func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 		if err != nil {
 			break
 		}
-		err = c.handleMessage(message)
+		err = c.message(message)
 		if err != nil {
 			logger.ERROR.Println(err)
 			conn.ws.Close()
@@ -132,7 +132,7 @@ var (
 	objectJsonPrefix byte = '{'
 )
 
-func getCommandsFromApiMessage(msgBytes []byte) ([]apiCommand, error) {
+func msgToCommands(msgBytes []byte) ([]apiCommand, error) {
 	var commands []apiCommand
 
 	firstByte := msgBytes[0]
@@ -201,7 +201,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project, exists := app.getProjectByKey(projectKey)
+	project, exists := app.projectByKey(projectKey)
 	if !exists {
 		logger.ERROR.Println("no project found with key", projectKey)
 		http.Error(w, "Project not found", http.StatusNotFound)
@@ -219,7 +219,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	msgBytes := []byte(encodedData)
 
-	commands, err := getCommandsFromApiMessage(msgBytes)
+	commands, err := msgToCommands(msgBytes)
 	if err != nil {
 		logger.ERROR.Println(err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -229,7 +229,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 	var mr multiResponse
 
 	for _, command := range commands {
-		resp, err := app.handleApiCommand(project, command)
+		resp, err := app.apiCmd(project, command)
 		if err != nil {
 			logger.ERROR.Println(err)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -308,14 +308,14 @@ func (app *application) Logged(h http.Handler) http.Handler {
 }
 
 func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
-	app.nodesMutex.Lock()
-	defer app.nodesMutex.Unlock()
+	app.nodesMu.Lock()
+	defer app.nodesMu.Unlock()
 	app.RLock()
 	defer app.RUnlock()
 	info := map[string]interface{}{
 		"version":   VERSION,
 		"structure": app.structure.ProjectList,
-		"engine":    app.engine.getName(),
+		"engine":    app.engine.name(),
 		"node_name": app.config.name,
 		"nodes":     app.nodes,
 	}
@@ -327,7 +327,7 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 	projectKey := r.FormValue("project")
 	method := r.FormValue("method")
 
-	project, exists := app.getProjectByKey(projectKey)
+	project, exists := app.projectByKey(projectKey)
 	if !exists {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -348,7 +348,7 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 			Channel: channel,
 			Data:    []byte(data),
 		}
-		resp, err = app.handlePublishCommand(project, cmd)
+		resp, err = app.publishCmd(project, cmd)
 	case "unsubscribe":
 		channel := r.FormValue("channel")
 		user := r.FormValue("user")
@@ -356,25 +356,25 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 			Channel: channel,
 			User:    user,
 		}
-		resp, err = app.handleUnsubscribeCommand(project, cmd)
+		resp, err = app.unsubcribeCmd(project, cmd)
 	case "disconnect":
 		user := r.FormValue("user")
 		cmd := &disconnectApiCommand{
 			User: user,
 		}
-		resp, err = app.handleDisconnectCommand(project, cmd)
+		resp, err = app.disconnectCmd(project, cmd)
 	case "presence":
 		channel := r.FormValue("channel")
 		cmd := &presenceApiCommand{
 			Channel: channel,
 		}
-		resp, err = app.handlePresenceCommand(project, cmd)
+		resp, err = app.presenceCmd(project, cmd)
 	case "history":
 		channel := r.FormValue("channel")
 		cmd := &historyApiCommand{
 			Channel: channel,
 		}
-		resp, err = app.handleHistoryCommand(project, cmd)
+		resp, err = app.historyCmd(project, cmd)
 	}
 
 	if err != nil {
@@ -399,10 +399,10 @@ func (app *application) adminWebsocketHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		return
 	}
-	logger.INFO.Printf("new admin session established with uid %s\n", c.getUid())
+	logger.INFO.Printf("new admin session established with uid %s\n", c.uid())
 	defer func() {
 		close(c.closeChan)
-		err := app.removeAdminConnection(c)
+		err := app.removeAdminConn(c)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}

@@ -33,7 +33,7 @@ func newTestAdminClient() (*adminClient, error) {
 func TestAdminClient(t *testing.T) {
 	c, err := newTestAdminClient()
 	assert.Equal(t, nil, err)
-	assert.NotEqual(t, c.getUid(), "")
+	assert.NotEqual(t, c.uid(), "")
 	err = c.send("message")
 	assert.Equal(t, nil, err)
 }
