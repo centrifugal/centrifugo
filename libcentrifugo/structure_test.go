@@ -53,11 +53,11 @@ func TestStructureInitialize(t *testing.T) {
 func TestGetProjectByKey(t *testing.T) {
 	s := getTestStructure()
 	s.initialize()
-	_, found := s.getProjectByKey("test3")
+	_, found := s.projByKey("test3")
 	if found {
 		t.Error("found project that does not exist")
 	}
-	_, found = s.getProjectByKey("test2")
+	_, found = s.projByKey("test2")
 	if !found {
 		t.Error("project not found")
 	}
@@ -66,15 +66,15 @@ func TestGetProjectByKey(t *testing.T) {
 func TestGetChannelOptions(t *testing.T) {
 	s := getTestStructure()
 	s.initialize()
-	options := s.getChannelOptions("test1", "test")
+	options := s.channelOpts("test1", "test")
 	if options == nil {
 		t.Error("namespace channel options not found")
 	}
-	options = s.getChannelOptions("test1", "")
+	options = s.channelOpts("test1", "")
 	if options == nil {
 		t.Error("project channel options not found")
 	}
-	options = s.getChannelOptions("test1", "notexist")
+	options = s.channelOpts("test1", "notexist")
 	if options != nil {
 		t.Error("found channel options for namespace that does not exist")
 	}

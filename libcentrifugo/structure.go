@@ -42,7 +42,7 @@ type project struct {
 	Secret string `json:"secret"`
 
 	// ConnectionLifetime determines time until connection expire, 0 means no connection expire at all
-	ConnectionLifetime int64 `mapstructure:"connection_lifetime" json:"connection_lifetime"`
+	Lifetime int64 `mapstructure:"connection_lifetime" json:"connection_lifetime"`
 
 	// Namespaces - list of namespaces for project for custom channel options
 	Namespaces []namespace `json:"namespaces"`
@@ -135,7 +135,7 @@ func (s *structure) validate() error {
 }
 
 // getProjectByKey searches for a project with specified key in structure
-func (s *structure) getProjectByKey(projectKey string) (*project, bool) {
+func (s *structure) projByKey(projectKey string) (*project, bool) {
 	project, ok := s.ProjectMap[projectKey]
 	if !ok {
 		return nil, false
@@ -144,8 +144,8 @@ func (s *structure) getProjectByKey(projectKey string) (*project, bool) {
 }
 
 // getChannelOptions searches for channel options for specified project and namespace
-func (s *structure) getChannelOptions(projectKey, namespaceName string) *ChannelOptions {
-	project, exists := s.getProjectByKey(projectKey)
+func (s *structure) channelOpts(projectKey, namespaceName string) *ChannelOptions {
+	project, exists := s.projByKey(projectKey)
 	if !exists {
 		return nil
 	}

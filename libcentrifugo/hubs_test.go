@@ -8,19 +8,19 @@ import (
 
 type testClientConnection struct{}
 
-func (c *testClientConnection) getUid() string {
+func (c *testClientConnection) uid() string {
 	return "test uid"
 }
 
-func (c *testClientConnection) getProject() string {
+func (c *testClientConnection) project() string {
 	return "test project"
 }
 
-func (c *testClientConnection) getUser() string {
+func (c *testClientConnection) user() string {
 	return "test user"
 }
 
-func (c *testClientConnection) getChannels() []string {
+func (c *testClientConnection) channels() []string {
 	return []string{"test"}
 }
 
@@ -37,21 +37,21 @@ func (c *testClientConnection) close(reason string) error {
 }
 
 func TestClientConnectionHub(t *testing.T) {
-	h := newClientConnectionHub()
+	h := newClientHub()
 	c := &testClientConnection{}
 	h.add(c)
 	assert.Equal(t, len(h.connections), 1)
-	conns := h.getUserConnections("test project", "test user")
+	conns := h.userConnections("test project", "test user")
 	assert.Equal(t, 1, len(conns))
-	assert.Equal(t, 1, h.getClientsCount())
-	assert.Equal(t, 1, h.getUniqueClientsCount())
+	assert.Equal(t, 1, h.nClients())
+	assert.Equal(t, 1, h.nUniqueClients())
 	h.remove(c)
 	assert.Equal(t, len(h.connections), 0)
 	assert.Equal(t, 1, len(conns))
 }
 
-func getTestClientSubscriptionHub() *clientSubscriptionHub {
-	return newClientSubscriptionHub()
+func getTestClientSubscriptionHub() *subHub {
+	return newSubHub()
 }
 
 func TestClientSubscriptionHub(t *testing.T) {
@@ -59,8 +59,8 @@ func TestClientSubscriptionHub(t *testing.T) {
 	c := &testClientConnection{}
 	h.add("test1", c)
 	h.add("test2", c)
-	assert.Equal(t, 2, h.getChannelsCount())
-	channels := h.getChannels()
+	assert.Equal(t, 2, h.nChannels())
+	channels := h.channels()
 	assert.Equal(t, stringInSlice("test1", channels), true)
 	assert.Equal(t, stringInSlice("test2", channels), true)
 	err := h.broadcast("test1", "message")

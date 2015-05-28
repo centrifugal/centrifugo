@@ -88,7 +88,7 @@ func newPool(server, password, db string) *redis.Pool {
 	}
 }
 
-func (e *redisEngine) getName() string {
+func (e *redisEngine) name() string {
 	return "Redis"
 }
 
@@ -147,14 +147,14 @@ func (e *redisEngine) initializeApi() {
 			logger.ERROR.Println(err)
 			continue
 		}
-		project, exists := e.app.getProjectByKey(req.Project)
+		project, exists := e.app.projByKey(req.Project)
 		if !exists {
 			logger.ERROR.Println("no project found with key", req.Project)
 			continue
 		}
 
 		for _, command := range req.Data {
-			_, err := e.app.handleApiCommand(project, command)
+			_, err := e.app.apiCmd(project, command)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -179,7 +179,7 @@ func (e *redisEngine) initializePubSub() {
 		e.psc.Close()
 		return
 	}
-	for _, channel := range e.app.clientSubscriptionHub.getChannels() {
+	for _, channel := range e.app.subs.channels() {
 		err = e.psc.Subscribe(channel)
 		if err != nil {
 			e.psc.Close()
@@ -189,7 +189,7 @@ func (e *redisEngine) initializePubSub() {
 	for {
 		switch n := e.psc.Receive().(type) {
 		case redis.Message:
-			e.app.handleMessage(n.Channel, n.Data)
+			e.app.handleMsg(n.Channel, n.Data)
 		case redis.Subscription:
 		case error:
 			logger.ERROR.Printf("error: %v\n", n)
@@ -300,7 +300,7 @@ func mapStringClientInfo(result interface{}, err error) (map[string]ClientInfo, 
 	return m, nil
 }
 
-func (e *redisEngine) getPresence(channel string) (map[string]ClientInfo, error) {
+func (e *redisEngine) presence(channel string) (map[string]ClientInfo, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 	now := time.Now().Unix()
@@ -371,7 +371,7 @@ func sliceOfMessages(result interface{}, err error) ([]Message, error) {
 	return msgs, nil
 }
 
-func (e *redisEngine) getHistory(channel string) ([]Message, error) {
+func (e *redisEngine) history(channel string) ([]Message, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 	historyKey := e.getHistoryKey(channel)
