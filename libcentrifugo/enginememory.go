@@ -25,7 +25,7 @@ func newMemoryEngine(app *application) *memoryEngine {
 	}
 }
 
-func (e *memoryEngine) getName() string {
+func (e *memoryEngine) name() string {
 	return "In memory – single node only"
 }
 
@@ -35,7 +35,7 @@ func (e *memoryEngine) initialize() error {
 }
 
 func (e *memoryEngine) publish(channel string, message []byte) error {
-	return e.app.handleMessage(channel, message)
+	return e.app.handleMsg(channel, message)
 }
 
 func (e *memoryEngine) subscribe(channel string) error {
@@ -54,7 +54,7 @@ func (e *memoryEngine) removePresence(channel, uid string) error {
 	return e.presenceHub.remove(channel, uid)
 }
 
-func (e *memoryEngine) getPresence(channel string) (map[string]ClientInfo, error) {
+func (e *memoryEngine) presence(channel string) (map[string]ClientInfo, error) {
 	return e.presenceHub.get(channel)
 }
 
@@ -62,7 +62,7 @@ func (e *memoryEngine) addHistoryMessage(channel string, message Message, size, 
 	return e.historyHub.add(channel, message, size, lifetime)
 }
 
-func (e *memoryEngine) getHistory(channel string) ([]Message, error) {
+func (e *memoryEngine) history(channel string) ([]Message, error) {
 	return e.historyHub.get(channel)
 }
 

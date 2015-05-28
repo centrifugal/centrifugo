@@ -7,22 +7,22 @@ import (
 )
 
 // clientConnectionHub manages client connections
-type clientConnectionHub struct {
+type clientHub struct {
 	sync.RWMutex
 
 	// registry to hold active connections
 	// as map[of projects]map[of user IDs]map[unique connection IDs]connection
-	connections map[string]map[string]map[string]clientConnection
+	connections map[string]map[string]map[string]clientConn
 }
 
-// newClientConnectionHub initializes connectionHub
-func newClientConnectionHub() *clientConnectionHub {
-	return &clientConnectionHub{
-		connections: make(map[string]map[string]map[string]clientConnection),
+// newClientHub initializes connectionHub
+func newClientHub() *clientHub {
+	return &clientHub{
+		connections: make(map[string]map[string]map[string]clientConn),
 	}
 }
 
-func (h *clientConnectionHub) getClientsCount() int {
+func (h *clientHub) nClients() int {
 	h.RLock()
 	defer h.RUnlock()
 	total := 0
@@ -34,7 +34,7 @@ func (h *clientConnectionHub) getClientsCount() int {
 	return total
 }
 
-func (h *clientConnectionHub) getUniqueClientsCount() int {
+func (h *clientHub) nUniqueClients() int {
 	h.RLock()
 	defer h.RUnlock()
 	total := 0
@@ -45,34 +45,34 @@ func (h *clientConnectionHub) getUniqueClientsCount() int {
 }
 
 // add adds connection into clientConnectionHub connections registry
-func (h *clientConnectionHub) add(c clientConnection) error {
+func (h *clientHub) add(c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
-	uid := c.getUid()
-	user := c.getUser()
-	project := c.getProject()
+	uid := c.uid()
+	user := c.user()
+	project := c.project()
 
 	_, ok := h.connections[project]
 	if !ok {
-		h.connections[project] = make(map[string]map[string]clientConnection)
+		h.connections[project] = make(map[string]map[string]clientConn)
 	}
 	_, ok = h.connections[project][user]
 	if !ok {
-		h.connections[project][user] = make(map[string]clientConnection)
+		h.connections[project][user] = make(map[string]clientConn)
 	}
 	h.connections[project][user][uid] = c
 	return nil
 }
 
 // remove removes connection from clientConnectionHub connections registry
-func (h *clientConnectionHub) remove(c clientConnection) error {
+func (h *clientHub) remove(c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
-	uid := c.getUid()
-	user := c.getUser()
-	project := c.getProject()
+	uid := c.uid()
+	user := c.user()
+	project := c.project()
 
 	// try to find connection to delete, return early if not found
 	if _, ok := h.connections[project]; !ok {
@@ -99,22 +99,22 @@ func (h *clientConnectionHub) remove(c clientConnection) error {
 	return nil
 }
 
-func (h *clientConnectionHub) getUserConnections(projectKey, user string) map[string]clientConnection {
+func (h *clientHub) userConnections(projectKey, user string) map[string]clientConn {
 	h.RLock()
 	defer h.RUnlock()
 
 	_, ok := h.connections[projectKey]
 	if !ok {
-		return map[string]clientConnection{}
+		return map[string]clientConn{}
 	}
 
 	userConnections, ok := h.connections[projectKey][user]
 	if !ok {
-		return map[string]clientConnection{}
+		return map[string]clientConn{}
 	}
 
-	var conns map[string]clientConnection
-	conns = make(map[string]clientConnection, len(userConnections))
+	var conns map[string]clientConn
+	conns = make(map[string]clientConn, len(userConnections))
 	for k, v := range userConnections {
 		conns[k] = v
 	}
@@ -122,34 +122,34 @@ func (h *clientConnectionHub) getUserConnections(projectKey, user string) map[st
 	return conns
 }
 
-// clientSubscriptionHub manages client subscriptions on channels
-type clientSubscriptionHub struct {
+// subHub manages client subscriptions on channels
+type subHub struct {
 	sync.RWMutex
 
 	// registry to hold active subscriptions of clients on channels
 	// as map[of engine channel]map[of connection UID]*connection
-	subscriptions map[string]map[string]clientConnection
+	subs map[string]map[string]clientConn
 }
 
-// newClientSubscriptionHub initializes subscriptionHub
-func newClientSubscriptionHub() *clientSubscriptionHub {
-	return &clientSubscriptionHub{
-		subscriptions: make(map[string]map[string]clientConnection),
+// newSubHub initializes subscriptionHub
+func newSubHub() *subHub {
+	return &subHub{
+		subs: make(map[string]map[string]clientConn),
 	}
 }
 
-func (h *clientSubscriptionHub) getChannelsCount() int {
+func (h *subHub) nChannels() int {
 	h.RLock()
 	defer h.RUnlock()
-	return len(h.subscriptions)
+	return len(h.subs)
 }
 
-func (h *clientSubscriptionHub) getChannels() []string {
+func (h *subHub) channels() []string {
 	h.RLock()
 	defer h.RUnlock()
-	channels := make([]string, len(h.subscriptions))
+	channels := make([]string, len(h.subs))
 	i := 0
-	for ch := range h.subscriptions {
+	for ch := range h.subs {
 		channels[i] = ch
 		i += 1
 	}
@@ -157,53 +157,53 @@ func (h *clientSubscriptionHub) getChannels() []string {
 }
 
 // add adds connection into clientSubscriptionHub subscriptions registry
-func (h *clientSubscriptionHub) add(channel string, c clientConnection) error {
+func (h *subHub) add(channel string, c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
-	uid := c.getUid()
+	uid := c.uid()
 
-	_, ok := h.subscriptions[channel]
+	_, ok := h.subs[channel]
 	if !ok {
-		h.subscriptions[channel] = make(map[string]clientConnection)
+		h.subs[channel] = make(map[string]clientConn)
 	}
-	h.subscriptions[channel][uid] = c
+	h.subs[channel][uid] = c
 	return nil
 }
 
 // remove removes connection from clientSubscriptionHub subscriptions registry
-func (h *clientSubscriptionHub) remove(channel string, c clientConnection) error {
+func (h *subHub) remove(channel string, c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
-	uid := c.getUid()
+	uid := c.uid()
 
 	// try to find subscription to delete, return early if not found
-	if _, ok := h.subscriptions[channel]; !ok {
+	if _, ok := h.subs[channel]; !ok {
 		return nil
 	}
-	if _, ok := h.subscriptions[channel][uid]; !ok {
+	if _, ok := h.subs[channel][uid]; !ok {
 		return nil
 	}
 
 	// actually remove subscription from hub
-	delete(h.subscriptions[channel], uid)
+	delete(h.subs[channel], uid)
 
 	// clean up map if it's needed
-	if len(h.subscriptions[channel]) == 0 {
-		delete(h.subscriptions, channel)
+	if len(h.subs[channel]) == 0 {
+		delete(h.subs, channel)
 	}
 
 	return nil
 }
 
 // broadcast sends message to all clients subscribed on channel
-func (h *clientSubscriptionHub) broadcast(channel, message string) error {
+func (h *subHub) broadcast(channel, message string) error {
 	h.RLock()
 	defer h.RUnlock()
 
 	// get connections currently subscribed on channel
-	channelSubscriptions, ok := h.subscriptions[channel]
+	channelSubscriptions, ok := h.subs[channel]
 	if !ok {
 		return nil
 	}
@@ -219,39 +219,39 @@ func (h *clientSubscriptionHub) broadcast(channel, message string) error {
 }
 
 // adminConnectionHub manages admin connections from web interface
-type adminConnectionHub struct {
+type adminHub struct {
 	sync.RWMutex
 
 	// registry to hold active admin connections
 	// as map[unique admin connection IDs]*connection
-	connections map[string]adminConnection
+	connections map[string]adminConn
 }
 
-// newAdminConnectionHub initializes new adminHub
-func newAdminConnectionHub() *adminConnectionHub {
-	return &adminConnectionHub{
-		connections: make(map[string]adminConnection),
+// newAdminHub initializes new adminHub
+func newAdminHub() *adminHub {
+	return &adminHub{
+		connections: make(map[string]adminConn),
 	}
 }
 
 // add adds connection to adminConnectionHub connections registry
-func (h *adminConnectionHub) add(c adminConnection) error {
+func (h *adminHub) add(c adminConn) error {
 	h.Lock()
 	defer h.Unlock()
-	h.connections[c.getUid()] = c
+	h.connections[c.uid()] = c
 	return nil
 }
 
 // remove removes connection from adminConnectionHub connections registry
-func (h *adminConnectionHub) remove(c adminConnection) error {
+func (h *adminHub) remove(c adminConn) error {
 	h.Lock()
 	defer h.Unlock()
-	delete(h.connections, c.getUid())
+	delete(h.connections, c.uid())
 	return nil
 }
 
 // broadcast sends message to all connected admins
-func (h *adminConnectionHub) broadcast(message string) error {
+func (h *adminHub) broadcast(message string) error {
 	h.RLock()
 	defer h.RUnlock()
 	for _, c := range h.connections {

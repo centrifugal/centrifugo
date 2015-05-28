@@ -223,7 +223,7 @@ func getGlobalProject(v *viper.Viper) (*project, bool) {
 		}
 		p.Name = viper.GetString("project_name")
 		p.Secret = viper.GetString("project_secret")
-		p.ConnectionLifetime = int64(viper.GetInt("project_connection_lifetime"))
+		p.Lifetime = int64(viper.GetInt("project_connection_lifetime"))
 		p.Anonymous = viper.GetBool("project_anonymous")
 		p.Watch = viper.GetBool("project_watch")
 		p.Publish = viper.GetBool("project_publish")
@@ -237,7 +237,7 @@ func getGlobalProject(v *viper.Viper) (*project, bool) {
 		}
 		p.Name = v.GetString("project_name")
 		p.Secret = v.GetString("project_secret")
-		p.ConnectionLifetime = int64(v.GetInt("project_connection_lifetime"))
+		p.Lifetime = int64(v.GetInt("project_connection_lifetime"))
 		p.Anonymous = v.GetBool("project_anonymous")
 		p.Watch = v.GetBool("project_watch")
 		p.Publish = v.GetBool("project_publish")
