@@ -43,7 +43,28 @@ func TestClientConnectionHub(t *testing.T) {
 	assert.Equal(t, len(h.connections), 1)
 	conns := h.getUserConnections("test project", "test user")
 	assert.Equal(t, 1, len(conns))
+	assert.Equal(t, 1, h.getClientsCount())
+	assert.Equal(t, 1, h.getUniqueClientsCount())
 	h.remove(c)
 	assert.Equal(t, len(h.connections), 0)
 	assert.Equal(t, 1, len(conns))
+}
+
+func getTestClientSubscriptionHub() *clientSubscriptionHub {
+	return newClientSubscriptionHub()
+}
+
+func TestClientSubscriptionHub(t *testing.T) {
+	h := getTestClientSubscriptionHub()
+	c := &testClientConnection{}
+	h.add("test1", c)
+	h.add("test2", c)
+	assert.Equal(t, 2, h.getChannelsCount())
+	channels := h.getChannels()
+	assert.Equal(t, stringInSlice("test1", channels), true)
+	assert.Equal(t, stringInSlice("test2", channels), true)
+	err := h.broadcast("test1", "message")
+	assert.Equal(t, err, nil)
+	h.remove("test1", c)
+	h.remove("test2", c)
 }
