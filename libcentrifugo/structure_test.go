@@ -53,11 +53,11 @@ func TestStructureInitialize(t *testing.T) {
 func TestGetProjectByKey(t *testing.T) {
 	s := getTestStructure()
 	s.initialize()
-	_, found := s.projByKey("test3")
+	_, found := s.projectByKey("test3")
 	if found {
 		t.Error("found project that does not exist")
 	}
-	_, found = s.projByKey("test2")
+	_, found = s.projectByKey("test2")
 	if !found {
 		t.Error("project not found")
 	}

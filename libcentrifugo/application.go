@@ -481,7 +481,7 @@ func (app *application) disconnectUser(projectKey, user string) error {
 func (app *application) projectByKey(projectKey string) (*project, bool) {
 	app.RLock()
 	defer app.RUnlock()
-	return app.structure.projByKey(projectKey)
+	return app.structure.projectByKey(projectKey)
 }
 
 // channelNamespace returns namespace name from channel name if exists or

@@ -63,7 +63,7 @@ type namespace struct {
 // structure contains some helper structures and methods to work with projects in namespaces
 // in a fast and comfortable way
 type structure struct {
-	sync.Mutex
+	sync.RWMutex
 	ProjectList  []project
 	ProjectMap   map[string]project
 	NamespaceMap map[string]map[string]namespace
@@ -134,8 +134,10 @@ func (s *structure) validate() error {
 	return nil
 }
 
-// getProjectByKey searches for a project with specified key in structure
-func (s *structure) projByKey(projectKey string) (*project, bool) {
+// projectByKey searches for a project with specified key in structure
+func (s *structure) projectByKey(projectKey string) (*project, bool) {
+	s.RLock()
+	defer s.RUnlock()
 	project, ok := s.ProjectMap[projectKey]
 	if !ok {
 		return nil, false
@@ -143,9 +145,11 @@ func (s *structure) projByKey(projectKey string) (*project, bool) {
 	return &project, true
 }
 
-// getChannelOptions searches for channel options for specified project and namespace
+// channelOpts searches for channel options for specified project and namespace
 func (s *structure) channelOpts(projectKey, namespaceName string) *ChannelOptions {
-	project, exists := s.projByKey(projectKey)
+	s.RLock()
+	defer s.RUnlock()
+	project, exists := s.projectByKey(projectKey)
 	if !exists {
 		return nil
 	}
