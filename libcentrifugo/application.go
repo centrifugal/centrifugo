@@ -47,7 +47,7 @@ type application struct {
 
 type nodeInfo struct {
 	Uid      string `json:"uid"`
-	Name     string `json:"name"`
+	Name     userID `json:"name"`
 	Clients  int    `json:"clients"`
 	Unique   int    `json:"unique"`
 	Channels int    `json:"channels"`
@@ -230,13 +230,13 @@ type Message struct {
 	Uid       string           `json:"uid"`
 	Timestamp string           `json:"timestamp"`
 	Info      *ClientInfo      `json:"info"`
-	Channel   string           `json:"channel"`
+	Channel   channelID        `json:"channel"`
 	Data      *json.RawMessage `json:"data"`
 }
 
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel
-func (app *application) pubClient(p *project, channel string, chOpts *ChannelOptions, data []byte, info *ClientInfo) error {
+func (app *application) pubClient(p *project, channel channelID, chOpts *ChannelOptions, data []byte, info *ClientInfo) error {
 
 	uid, err := uuid.NewV4()
 	if err != nil {
@@ -297,7 +297,7 @@ func (app *application) pubClient(p *project, channel string, chOpts *ChannelOpt
 
 // pubJoinLeave allows to publish join message into channel when
 // someone subscribes on it or leave message when someone unsubscribed from channel
-func (app *application) pubJoinLeave(projectKey, channel, method string, info ClientInfo) error {
+func (app *application) pubJoinLeave(projectKey projectID, channel channelID, method string, info ClientInfo) error {
 	projectChannel := app.projectChannel(projectKey, channel)
 	resp := newResponse(method)
 	resp.Body = map[string]interface{}{
@@ -316,7 +316,7 @@ func (app *application) pubPing() error {
 	defer app.RUnlock()
 	cmd := &pingControlCommand{
 		Uid:      app.uid,
-		Name:     app.config.name,
+		Name:     userID(app.config.name),
 		Clients:  app.nClients(),
 		Unique:   app.nUniqueClients(),
 		Channels: app.nChannels(),
@@ -340,11 +340,11 @@ func (app *application) pubPing() error {
 	return app.pubControl(messageBytes)
 }
 
-func (app *application) pubUnsub(projectKey, user, channel string) error {
+func (app *application) pubUnsub(projectKey projectID, user userID, channel channelID) error {
 	message := map[string]interface{}{
 		"uid":    app.uid,
 		"method": "unsubscribe",
-		"params": map[string]string{
+		"params": map[string]interface{}{
 			"project": projectKey,
 			"user":    user,
 			"channel": channel,
@@ -357,11 +357,11 @@ func (app *application) pubUnsub(projectKey, user, channel string) error {
 	return app.pubControl(messageBytes)
 }
 
-func (app *application) pubDisconnect(projectKey, user string) error {
+func (app *application) pubDisconnect(projectKey projectID, user userID) error {
 	message := map[string]interface{}{
 		"uid":    app.uid,
 		"method": "disconnect",
-		"params": map[string]string{
+		"params": map[string]interface{}{
 			"project": projectKey,
 			"user":    user,
 		},
@@ -403,10 +403,10 @@ func (app *application) disconnectCmd(cmd *disconnectControlCommand) error {
 // every project can have channels with the same name we should distinguish
 // between them. This also prevents collapses with admin and control
 // channel names
-func (app *application) projectChannel(projectKey, channel string) string {
+func (app *application) projectChannel(projectKey projectID, channel channelID) string {
 	app.RLock()
 	defer app.RUnlock()
-	return app.config.channelPrefix + "." + projectKey + "." + channel
+	return app.config.channelPrefix + "." + string(projectKey) + "." + string(channel)
 }
 
 // addConn registers authenticated connection in clientConnectionHub
@@ -422,7 +422,7 @@ func (app *application) removeConn(c clientConn) error {
 
 // addSub registers subscription of connection on channel in both
 // engine and clientSubscriptionHub
-func (app *application) addSub(projectKey, channel string, c clientConn) error {
+func (app *application) addSub(projectKey projectID, channel channelID, c clientConn) error {
 	projectChannel := app.projectChannel(projectKey, channel)
 	err := app.engine.subscribe(projectChannel)
 	if err != nil {
@@ -433,7 +433,7 @@ func (app *application) addSub(projectKey, channel string, c clientConn) error {
 
 // removeSub removes subscription of connection on channel
 // from both engine and clientSubscriptionHub
-func (app *application) removeSub(projectKey, channel string, c clientConn) error {
+func (app *application) removeSub(projectKey projectID, channel channelID, c clientConn) error {
 	projectChannel := app.projectChannel(projectKey, channel)
 	err := app.engine.unsubscribe(projectChannel)
 	if err != nil {
@@ -444,15 +444,15 @@ func (app *application) removeSub(projectKey, channel string, c clientConn) erro
 
 // unsubUser unsubscribes user from channel on this node. If channel
 // is an empty string then user will be unsubscribed from all channels
-func (app *application) unsubUser(projectKey, user, channel string) error {
+func (app *application) unsubUser(projectKey projectID, user userID, channel channelID) error {
 	userConnections := app.connHub.userConnections(projectKey, user)
 	for _, c := range userConnections {
-		var channels []string
+		var channels []channelID
 		if channel == "" {
 			// unsubscribe from all channels
 			channels = c.channels()
 		} else {
-			channels = []string{channel}
+			channels = []channelID{channel}
 		}
 
 		for _, channel := range channels {
@@ -466,7 +466,7 @@ func (app *application) unsubUser(projectKey, user, channel string) error {
 }
 
 // disconnectUser closes client connections of user
-func (app *application) disconnectUser(projectKey, user string) error {
+func (app *application) disconnectUser(projectKey projectID, user userID) error {
 	userConnections := app.connHub.userConnections(projectKey, user)
 	for _, c := range userConnections {
 		err := c.close("disconnect")
@@ -478,7 +478,7 @@ func (app *application) disconnectUser(projectKey, user string) error {
 }
 
 // projectByKey returns a project by project key (name) using structure
-func (app *application) projectByKey(projectKey string) (*project, bool) {
+func (app *application) projectByKey(projectKey projectID) (*project, bool) {
 	app.RLock()
 	defer app.RUnlock()
 	return app.structure.projectByKey(projectKey)
@@ -486,75 +486,75 @@ func (app *application) projectByKey(projectKey string) (*project, bool) {
 
 // channelNamespace returns namespace name from channel name if exists or
 // empty string
-func (app *application) channelNamespace(channel string) string {
-	channel = strings.TrimPrefix(channel, app.config.privateChannelPrefix)
-	parts := strings.SplitN(channel, app.config.namespaceChannelBoundary, 2)
+func (app *application) channelNamespace(channel channelID) namespaceID {
+	cTrim := strings.TrimPrefix(string(channel), app.config.privateChannelPrefix)
+	parts := strings.SplitN(cTrim, app.config.namespaceChannelBoundary, 2)
 	if len(parts) >= 2 {
-		return parts[0]
+		return namespaceID(parts[0])
 	} else {
 		return ""
 	}
 }
 
 // channelOpts returns channel options for channel using structure
-func (app *application) channelOpts(projectKey, channel string) *ChannelOptions {
+func (app *application) channelOpts(p projectID, c channelID) *ChannelOptions {
 	app.RLock()
 	defer app.RUnlock()
-	namespaceName := app.channelNamespace(channel)
-	return app.structure.channelOpts(projectKey, namespaceName)
+	namespaceName := app.channelNamespace(c)
+	return app.structure.channelOpts(p, namespaceName)
 }
 
 // addPresence proxies presence adding to engine
-func (app *application) addPresence(projectKey, channel, uid string, info ClientInfo) error {
+func (app *application) addPresence(projectKey projectID, channel channelID, uid string, info ClientInfo) error {
 	projectChannel := app.projectChannel(projectKey, channel)
 	return app.engine.addPresence(projectChannel, uid, info)
 }
 
 // removePresence proxies presence removing to engine
-func (app *application) removePresence(projectKey, channel, uid string) error {
+func (app *application) removePresence(projectKey projectID, channel channelID, uid string) error {
 	projectChannel := app.projectChannel(projectKey, channel)
 	return app.engine.removePresence(projectChannel, uid)
 }
 
 // getPresence proxies presence extraction to engine
-func (app *application) presence(projectKey, channel string) (map[string]ClientInfo, error) {
+func (app *application) presence(projectKey projectID, channel channelID) (map[string]ClientInfo, error) {
 	projectChannel := app.projectChannel(projectKey, channel)
 	return app.engine.presence(projectChannel)
 }
 
 // addHistory proxies history message adding to engine
-func (app *application) addHistory(projectKey, channel string, message Message, size, lifetime int64) error {
+func (app *application) addHistory(projectKey projectID, channel channelID, message Message, size, lifetime int64) error {
 	projectChannel := app.projectChannel(projectKey, channel)
 	return app.engine.addHistoryMessage(projectChannel, message, size, lifetime)
 }
 
 // getHistory proxies history extraction to engine
-func (app *application) history(projectKey, channel string) ([]Message, error) {
+func (app *application) history(projectKey projectID, channel channelID) ([]Message, error) {
 	projectChannel := app.projectChannel(projectKey, channel)
 	return app.engine.history(projectChannel)
 }
 
 // privateCh checks if channel private and therefore subscription
 // request on it must be properly signed on web application backend
-func (app *application) privateChannel(channel string) bool {
+func (app *application) privateChannel(channel channelID) bool {
 	app.RLock()
 	defer app.RUnlock()
-	return strings.HasPrefix(channel, app.config.privateChannelPrefix)
+	return strings.HasPrefix(string(channel), app.config.privateChannelPrefix)
 }
 
 // userAllowed checks if user can subscribe on channel - as channel
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it
-func (app *application) userAllowed(channel, user string) bool {
+func (app *application) userAllowed(channel channelID, user userID) bool {
 	app.RLock()
 	defer app.RUnlock()
-	if !strings.Contains(channel, app.config.userChannelBoundary) {
+	if !strings.Contains(string(channel), app.config.userChannelBoundary) {
 		return true
 	}
-	parts := strings.Split(channel, app.config.userChannelBoundary)
+	parts := strings.Split(string(channel), app.config.userChannelBoundary)
 	allowedUsers := strings.Split(parts[len(parts)-1], app.config.userChannelSeparator)
 	for _, allowedUser := range allowedUsers {
-		if user == allowedUser {
+		if string(user) == allowedUser {
 			return true
 		}
 	}

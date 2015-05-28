@@ -36,7 +36,7 @@ type ChannelOptions struct {
 // for every project (maybe except copy of your project for development)
 type project struct {
 	// Name is unique project name, used as project key for client connections and API requests
-	Name string `json:"name"`
+	Name projectID `json:"name"`
 
 	// Secret is a secret key for project, used to sign API requests and client connection tokens
 	Secret string `json:"secret"`
@@ -54,30 +54,37 @@ type project struct {
 // namespace allows to create channels with different channel options within the project
 type namespace struct {
 	// Name is a unique namespace name in project
-	Name string `json:"name"`
+	Name namespaceID `json:"name"`
 
 	// ChannelOptions for namespace determine channel options for channels belonging to this namespace
 	ChannelOptions `mapstructure:",squash"`
 }
+
+type (
+	namespaceID string // Namespace ID
+	projectID   string // Project ID
+	channelID   string // Channel ID
+	userID      string // User ID
+)
 
 // structure contains some helper structures and methods to work with projects in namespaces
 // in a fast and comfortable way
 type structure struct {
 	sync.RWMutex
 	ProjectList  []project
-	ProjectMap   map[string]project
-	NamespaceMap map[string]map[string]namespace
+	ProjectMap   map[projectID]project
+	NamespaceMap map[projectID]map[namespaceID]namespace
 }
 
 // initialize initializes structure fields based on project list
 func (s *structure) initialize() {
 	s.Lock()
 	defer s.Unlock()
-	projectMap := map[string]project{}
-	namespaceMap := map[string]map[string]namespace{}
+	projectMap := map[projectID]project{}
+	namespaceMap := map[projectID]map[namespaceID]namespace{}
 	for _, p := range s.ProjectList {
 		projectMap[p.Name] = p
-		namespaceMap[p.Name] = map[string]namespace{}
+		namespaceMap[p.Name] = map[namespaceID]namespace{}
 		for _, n := range p.Namespaces {
 			namespaceMap[p.Name][n.Name] = n
 		}
@@ -103,31 +110,33 @@ func (s *structure) validate() error {
 	errPrefix := "config error: "
 	pattern := "^[-a-zA-Z0-9_]{2,}$"
 	for _, p := range s.ProjectList {
-		match, _ := regexp.MatchString(pattern, p.Name)
+		name := string(p.Name)
+		match, _ := regexp.MatchString(pattern, name)
 		if !match {
-			return errors.New(errPrefix + "wrong project name – " + p.Name)
+			return errors.New(errPrefix + "wrong project name – " + name)
 		}
 		if p.Secret == "" {
-			return errors.New(errPrefix + "secret required for project – " + p.Name)
+			return errors.New(errPrefix + "secret required for project – " + name)
 		}
-		if stringInSlice(p.Name, projectNames) {
-			return errors.New(errPrefix + "project name must be unique – " + p.Name)
+		if stringInSlice(name, projectNames) {
+			return errors.New(errPrefix + "project name must be unique – " + name)
 		}
-		projectNames = append(projectNames, p.Name)
+		projectNames = append(projectNames, name)
 
 		if p.Namespaces == nil {
 			continue
 		}
 		var namespaceNames []string
 		for _, n := range p.Namespaces {
-			match, _ := regexp.MatchString(pattern, n.Name)
+			name := string(n.Name)
+			match, _ := regexp.MatchString(pattern, name)
 			if !match {
-				return errors.New(errPrefix + "wrong namespace name – " + n.Name)
+				return errors.New(errPrefix + "wrong namespace name – " + name)
 			}
-			if stringInSlice(n.Name, namespaceNames) {
-				return errors.New(errPrefix + "namespace name must be unique for project – " + n.Name)
+			if stringInSlice(name, namespaceNames) {
+				return errors.New(errPrefix + "namespace name must be unique for project – " + name)
 			}
-			namespaceNames = append(namespaceNames, n.Name)
+			namespaceNames = append(namespaceNames, name)
 		}
 
 	}
@@ -146,7 +155,7 @@ func (s *structure) projectByKey(projectKey string) (*project, bool) {
 }
 
 // channelOpts searches for channel options for specified project and namespace
-func (s *structure) channelOpts(projectKey, namespaceName string) *ChannelOptions {
+func (s *structure) channelOpts(projectKey projectID, namespaceName namespaceID) *ChannelOptions {
 	s.RLock()
 	defer s.RUnlock()
 	project, exists := s.projectByKey(projectKey)

@@ -6,15 +6,15 @@ type clientConn interface {
 	// uid returns unique connection id
 	uid() string
 	// project returns connection project key
-	project() string
+	project() projectID
 	// user return user ID associated with connection
-	user() string
+	user() userID
 	// channels returns a slice of channels connection subscribed to
-	channels() []string
+	channels() []channelID
 	// send allows to send message to connection client
 	send(message string) error
 	// unsubscribe allows to unsubscribe connection from channel
-	unsubscribe(channel string) error
+	unsubscribe(channel channelID) error
 	// close closes client's connection
 	close(reason string) error
 }
