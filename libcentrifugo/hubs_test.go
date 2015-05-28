@@ -12,23 +12,23 @@ func (c *testClientConnection) uid() string {
 	return "test uid"
 }
 
-func (c *testClientConnection) project() string {
+func (c *testClientConnection) project() projectID {
 	return "test project"
 }
 
-func (c *testClientConnection) user() string {
+func (c *testClientConnection) user() userID {
 	return "test user"
 }
 
-func (c *testClientConnection) channels() []string {
-	return []string{"test"}
+func (c *testClientConnection) channels() []channelID {
+	return []channelID{"test"}
 }
 
 func (c *testClientConnection) send(message string) error {
 	return nil
 }
 
-func (c *testClientConnection) unsubscribe(channel string) error {
+func (c *testClientConnection) unsubscribe(channel channelID) error {
 	return nil
 }
 

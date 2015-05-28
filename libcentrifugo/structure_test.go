@@ -11,7 +11,7 @@ func getTestChannelOptions() ChannelOptions {
 	}
 }
 
-func getTestProject(name string) project {
+func getTestProject(name projectID) project {
 	var ns []namespace
 	ns = append(ns, getTestNamespace("test"))
 	return project{
@@ -22,7 +22,7 @@ func getTestProject(name string) project {
 	}
 }
 
-func getTestNamespace(name string) namespace {
+func getTestNamespace(name namespaceID) namespace {
 	return namespace{
 		Name:           name,
 		ChannelOptions: getTestChannelOptions(),

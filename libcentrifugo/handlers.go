@@ -165,7 +165,7 @@ type jsonApiRequest struct {
 
 func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 
-	projectKey := r.URL.Path[len("/api/"):]
+	projectKey := projectID(r.URL.Path[len("/api/"):])
 	contentType := r.Header.Get("Content-Type")
 
 	var sign string
@@ -210,7 +210,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	secret := project.Secret
 
-	isValid := auth.CheckApiSign(secret, projectKey, encodedData, sign)
+	isValid := auth.CheckApiSign(secret, string(projectKey), encodedData, sign)
 	if !isValid {
 		logger.ERROR.Println("invalid sign")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -324,7 +324,7 @@ func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
-	projectKey := r.FormValue("project")
+	projectKey := projectID(r.FormValue("project"))
 	method := r.FormValue("method")
 
 	project, exists := app.projectByKey(projectKey)
@@ -338,7 +338,7 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch method {
 	case "publish":
-		channel := r.FormValue("channel")
+		channel := channelID(r.FormValue("channel"))
 		data := r.FormValue("data")
 		if data == "" {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -350,27 +350,27 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err = app.publishCmd(project, cmd)
 	case "unsubscribe":
-		channel := r.FormValue("channel")
-		user := r.FormValue("user")
+		channel := channelID(r.FormValue("channel"))
+		user := userID(r.FormValue("user"))
 		cmd := &unsubscribeApiCommand{
 			Channel: channel,
 			User:    user,
 		}
 		resp, err = app.unsubcribeCmd(project, cmd)
 	case "disconnect":
-		user := r.FormValue("user")
+		user := userID(r.FormValue("user"))
 		cmd := &disconnectApiCommand{
 			User: user,
 		}
 		resp, err = app.disconnectCmd(project, cmd)
 	case "presence":
-		channel := r.FormValue("channel")
+		channel := channelID(r.FormValue("channel"))
 		cmd := &presenceApiCommand{
 			Channel: channel,
 		}
 		resp, err = app.presenceCmd(project, cmd)
 	case "history":
-		channel := r.FormValue("channel")
+		channel := channelID(r.FormValue("channel"))
 		cmd := &historyApiCommand{
 			Channel: channel,
 		}
