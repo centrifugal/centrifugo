@@ -17,7 +17,7 @@ type adminSession interface {
 type adminClient struct {
 	app       *application
 	Uid       string
-	ses       adminSession
+	sess      adminSession
 	writeChan chan []byte
 	closeChan chan struct{}
 }
@@ -30,7 +30,7 @@ func newAdminClient(app *application, s adminSession) (*adminClient, error) {
 	return &adminClient{
 		Uid:       uid.String(),
 		app:       app,
-		ses:       s,
+		sess:      s,
 		writeChan: make(chan []byte, 256),
 		closeChan: make(chan struct{}),
 	}, nil
@@ -55,7 +55,7 @@ func (c *adminClient) writer() {
 	for {
 		select {
 		case message := <-c.writeChan:
-			err := c.ses.WriteMessage(websocket.TextMessage, message)
+			err := c.sess.WriteMessage(websocket.TextMessage, message)
 			if err != nil {
 				return
 			}
