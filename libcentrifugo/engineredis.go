@@ -9,7 +9,6 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/garyburd/redigo/redis"
-	"github.com/mitchellh/mapstructure"
 )
 
 // redisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.
@@ -116,7 +115,7 @@ func (e *redisEngine) checkConnectionStatus() {
 
 type redisApiRequest struct {
 	Project string
-	Data    []map[string]interface{}
+	Data    []apiCommand
 }
 
 func (e *redisEngine) initializeApi() {
@@ -133,7 +132,7 @@ func (e *redisEngine) initializeApi() {
 			logger.ERROR.Println(err)
 			return
 		}
-		a, err := mapStringInterface(reply, nil)
+		a, err := mapStringByte(reply, nil)
 		if err != nil {
 			logger.ERROR.Println(err)
 			continue
@@ -142,25 +141,19 @@ func (e *redisEngine) initializeApi() {
 		if !ok {
 			continue
 		}
-		var request redisApiRequest
-		err = mapstructure.Decode(body, &request)
+		var req redisApiRequest
+		err = json.Unmarshal(body, &req)
 		if err != nil {
 			logger.ERROR.Println(err)
 			continue
 		}
-		project, exists := e.app.getProjectByKey(request.Project)
+		project, exists := e.app.getProjectByKey(req.Project)
 		if !exists {
-			logger.ERROR.Println("no project found with key", request.Project)
+			logger.ERROR.Println("no project found with key", req.Project)
 			continue
 		}
 
-		var commands []apiCommand
-		err = mapstructure.Decode(request.Data, &commands)
-		if err != nil {
-			logger.ERROR.Println(err)
-			continue
-		}
-		for _, command := range commands {
+		for _, command := range req.Data {
 			_, err := e.app.handleApiCommand(project, command)
 			if err != nil {
 				logger.ERROR.Println(err)
@@ -262,27 +255,22 @@ func (e *redisEngine) removePresence(channel, uid string) error {
 	return err
 }
 
-func mapStringInterface(result interface{}, err error) (map[string]interface{}, error) {
+func mapStringByte(result interface{}, err error) (map[string][]byte, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err
 	}
 	if len(values)%2 != 0 {
-		return nil, errors.New("mapStringInterface expects even number of values result")
+		return nil, errors.New("mapStringByte expects even number of values result")
 	}
-	m := make(map[string]interface{}, len(values)/2)
+	m := make(map[string][]byte, len(values)/2)
 	for i := 0; i < len(values); i += 2 {
 		key, okKey := values[i].([]byte)
 		value, okValue := values[i+1].([]byte)
 		if !okKey || !okValue {
 			return nil, errors.New("ScanMap key not a bulk string value")
 		}
-		var f interface{}
-		err = json.Unmarshal(value, &f)
-		if err != nil {
-			return nil, errors.New("can not unmarshal value to interface")
-		}
-		m[string(key)] = f
+		m[string(key)] = value
 	}
 	return m, nil
 }
