@@ -41,8 +41,8 @@ type project struct {
 	// Secret is a secret key for project, used to sign API requests and client connection tokens
 	Secret string `json:"secret"`
 
-	// ConnectionLifetime determines time until connection expire, 0 means no connection expire at all
-	Lifetime int64 `mapstructure:"connection_lifetime" json:"connection_lifetime"`
+	// ConnLifetime determines time until connection expire, 0 means no connection expire at all
+	ConnLifetime int64 `mapstructure:"connection_lifetime" json:"connection_lifetime"`
 
 	// Namespaces - list of namespaces for project for custom channel options
 	Namespaces []namespace `json:"namespaces"`

@@ -201,7 +201,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project, exists := app.projByKey(projectKey)
+	project, exists := app.projectByKey(projectKey)
 	if !exists {
 		logger.ERROR.Println("no project found with key", projectKey)
 		http.Error(w, "Project not found", http.StatusNotFound)
@@ -327,7 +327,7 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 	projectKey := r.FormValue("project")
 	method := r.FormValue("method")
 
-	project, exists := app.projByKey(projectKey)
+	project, exists := app.projectByKey(projectKey)
 	if !exists {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return

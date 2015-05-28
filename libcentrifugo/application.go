@@ -477,16 +477,16 @@ func (app *application) disconnectUser(projectKey, user string) error {
 	return nil
 }
 
-// projByKey returns a project by project key (name) using structure
-func (app *application) projByKey(projectKey string) (*project, bool) {
+// projectByKey returns a project by project key (name) using structure
+func (app *application) projectByKey(projectKey string) (*project, bool) {
 	app.RLock()
 	defer app.RUnlock()
 	return app.structure.projByKey(projectKey)
 }
 
-// channelNs returns namespace name from channel name if exists or
+// channelNamespace returns namespace name from channel name if exists or
 // empty string
-func (app *application) channelNs(channel string) string {
+func (app *application) channelNamespace(channel string) string {
 	channel = strings.TrimPrefix(channel, app.config.privateChannelPrefix)
 	parts := strings.SplitN(channel, app.config.namespaceChannelBoundary, 2)
 	if len(parts) >= 2 {
@@ -500,7 +500,7 @@ func (app *application) channelNs(channel string) string {
 func (app *application) channelOpts(projectKey, channel string) *ChannelOptions {
 	app.RLock()
 	defer app.RUnlock()
-	namespaceName := app.channelNs(channel)
+	namespaceName := app.channelNamespace(channel)
 	return app.structure.channelOpts(projectKey, namespaceName)
 }
 
@@ -536,7 +536,7 @@ func (app *application) history(projectKey, channel string) ([]Message, error) {
 
 // privateCh checks if channel private and therefore subscription
 // request on it must be properly signed on web application backend
-func (app *application) privateCh(channel string) bool {
+func (app *application) privateChannel(channel string) bool {
 	app.RLock()
 	defer app.RUnlock()
 	return strings.HasPrefix(channel, app.config.privateChannelPrefix)

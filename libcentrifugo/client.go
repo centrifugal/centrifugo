@@ -16,7 +16,7 @@ import (
 type client struct {
 	sync.Mutex
 	app           *application
-	ses           session
+	sess          session
 	Uid           string
 	Project       string
 	User          string
@@ -48,7 +48,7 @@ func newClient(app *application, s session) (*client, error) {
 	return &client{
 		Uid:         uid.String(),
 		app:         app,
-		ses:         s,
+		sess:        s,
 		messageChan: make(chan string, 256),
 		closeChan:   make(chan struct{}),
 	}, nil
@@ -59,9 +59,9 @@ func (c *client) sendMessages() {
 	for {
 		select {
 		case message := <-c.messageChan:
-			err := c.ses.Send(message)
+			err := c.sess.Send(message)
 			if err != nil {
-				c.ses.Close(3000, "error sending message")
+				c.sess.Close(3000, "error sending message")
 			}
 		case <-c.closeChan:
 			return
@@ -149,13 +149,13 @@ func (c *client) send(message string) error {
 	case c.messageChan <- message:
 		return nil
 	default:
-		c.ses.Close(3000, "error sending message")
+		c.sess.Close(3000, "error sending message")
 		return ErrInternalServerError
 	}
 }
 
 func (c *client) close(reason string) error {
-	return c.ses.Close(3000, reason)
+	return c.sess.Close(3000, reason)
 }
 
 // clean called when connection was closed to make different clean up
@@ -269,7 +269,7 @@ func (c *client) handleCommands(commands []clientCommand) error {
 	if err != nil {
 		return err
 	}
-	err = c.ses.Send(string(jsonResp))
+	err = c.sess.Send(string(jsonResp))
 	return err
 }
 
@@ -361,16 +361,16 @@ func (c *client) expire() {
 	c.Lock()
 	defer c.Unlock()
 
-	project, exists := c.app.projByKey(c.Project)
+	project, exists := c.app.projectByKey(c.Project)
 	if !exists {
 		return
 	}
 
-	if project.Lifetime <= 0 {
+	if project.ConnLifetime <= 0 {
 		return
 	}
 
-	timeToExpire := c.timestamp + project.Lifetime - time.Now().Unix()
+	timeToExpire := c.timestamp + project.ConnLifetime - time.Now().Unix()
 	if timeToExpire > 0 {
 		// connection was succesfully refreshed
 		return
@@ -406,7 +406,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 		token = ""
 	}
 
-	project, exists := c.app.projByKey(projectKey)
+	project, exists := c.app.projectByKey(projectKey)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -436,7 +436,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	var ttl interface{}
 	var timeToExpire int64 = 0
 	ttl = nil
-	connectionLifetime := project.Lifetime
+	connectionLifetime := project.ConnLifetime
 	if connectionLifetime > 0 && !c.app.config.insecure {
 		ttl = connectionLifetime
 		timeToExpire := c.timestamp + connectionLifetime - time.Now().Unix()
@@ -490,7 +490,7 @@ func (c *client) refreshCmd(cmd *refreshClientCommand) (*response, error) {
 	timestamp := cmd.Timestamp
 	token := cmd.Token
 
-	project, exists := c.app.projByKey(projectKey)
+	project, exists := c.app.projectByKey(projectKey)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -509,7 +509,7 @@ func (c *client) refreshCmd(cmd *refreshClientCommand) (*response, error) {
 
 	var ttl interface{}
 
-	connectionLifetime := project.Lifetime
+	connectionLifetime := project.ConnLifetime
 	if connectionLifetime <= 0 {
 		// connection check disabled
 		ttl = nil
@@ -545,7 +545,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 
 	resp := newResponse("subscribe")
 
-	project, exists := c.app.projByKey(c.Project)
+	project, exists := c.app.projectByKey(c.Project)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
@@ -585,7 +585,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	if c.app.privateCh(channel) {
+	if c.app.privateChannel(channel) {
 		// private channel - subscription must be properly signed
 		if c.Uid != cmd.Client {
 			resp.Err(ErrPermissionDenied)
@@ -684,7 +684,7 @@ func (c *client) publishCmd(cmd *publishClientCommand) (*response, error) {
 
 	resp := newResponse("publish")
 
-	project, exists := c.app.projByKey(c.Project)
+	project, exists := c.app.projectByKey(c.Project)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}

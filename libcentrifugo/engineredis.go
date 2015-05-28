@@ -147,7 +147,7 @@ func (e *redisEngine) initializeApi() {
 			logger.ERROR.Println(err)
 			continue
 		}
-		project, exists := e.app.projByKey(req.Project)
+		project, exists := e.app.projectByKey(req.Project)
 		if !exists {
 			logger.ERROR.Println("no project found with key", req.Project)
 			continue
