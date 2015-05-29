@@ -128,13 +128,13 @@ type subHub struct {
 
 	// registry to hold active subscriptions of clients on channels
 	// as map[of engine channel]map[of connection UID]*connection
-	subs map[Channel]map[ConnID]clientConn
+	subs map[ChannelID]map[ConnID]clientConn
 }
 
 // newSubHub initializes subscriptionHub
 func newSubHub() *subHub {
 	return &subHub{
-		subs: make(map[Channel]map[ConnID]clientConn),
+		subs: make(map[ChannelID]map[ConnID]clientConn),
 	}
 }
 
@@ -144,10 +144,10 @@ func (h *subHub) nChannels() int {
 	return len(h.subs)
 }
 
-func (h *subHub) channels() []Channel {
+func (h *subHub) channels() []ChannelID {
 	h.RLock()
 	defer h.RUnlock()
-	channels := make([]Channel, len(h.subs))
+	channels := make([]ChannelID, len(h.subs))
 	i := 0
 	for ch := range h.subs {
 		channels[i] = ch
@@ -157,7 +157,7 @@ func (h *subHub) channels() []Channel {
 }
 
 // add adds connection into clientSubscriptionHub subscriptions registry
-func (h *subHub) add(ch Channel, c clientConn) error {
+func (h *subHub) add(ch ChannelID, c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -172,7 +172,7 @@ func (h *subHub) add(ch Channel, c clientConn) error {
 }
 
 // remove removes connection from clientSubscriptionHub subscriptions registry
-func (h *subHub) remove(ch Channel, c clientConn) error {
+func (h *subHub) remove(ch ChannelID, c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -198,7 +198,7 @@ func (h *subHub) remove(ch Channel, c clientConn) error {
 }
 
 // broadcast sends message to all clients subscribed on channel
-func (h *subHub) broadcast(ch Channel, message string) error {
+func (h *subHub) broadcast(ch ChannelID, message string) error {
 	h.RLock()
 	defer h.RUnlock()
 
@@ -224,13 +224,13 @@ type adminHub struct {
 
 	// registry to hold active admin connections
 	// as map[unique admin connection IDs]*connection
-	connections map[string]adminConn
+	connections map[ConnID]adminConn
 }
 
 // newAdminHub initializes new adminHub
 func newAdminHub() *adminHub {
 	return &adminHub{
-		connections: make(map[string]adminConn),
+		connections: make(map[ConnID]adminConn),
 	}
 }
 

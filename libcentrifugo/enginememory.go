@@ -34,50 +34,50 @@ func (e *memoryEngine) initialize() error {
 	return err
 }
 
-func (e *memoryEngine) publish(ch Channel, message []byte) error {
+func (e *memoryEngine) publish(ch ChannelID, message []byte) error {
 	return e.app.handleMsg(ch, message)
 }
 
-func (e *memoryEngine) subscribe(ch Channel) error {
+func (e *memoryEngine) subscribe(ch ChannelID) error {
 	return nil
 }
 
-func (e *memoryEngine) unsubscribe(ch Channel) error {
+func (e *memoryEngine) unsubscribe(ch ChannelID) error {
 	return nil
 }
 
-func (e *memoryEngine) addPresence(ch Channel, uid ConnID, info ClientInfo) error {
+func (e *memoryEngine) addPresence(ch ChannelID, uid ConnID, info ClientInfo) error {
 	return e.presenceHub.add(ch, uid, info)
 }
 
-func (e *memoryEngine) removePresence(ch Channel, uid ConnID) error {
+func (e *memoryEngine) removePresence(ch ChannelID, uid ConnID) error {
 	return e.presenceHub.remove(ch, uid)
 }
 
-func (e *memoryEngine) presence(ch Channel) (map[ConnID]ClientInfo, error) {
+func (e *memoryEngine) presence(ch ChannelID) (map[ConnID]ClientInfo, error) {
 	return e.presenceHub.get(ch)
 }
 
-func (e *memoryEngine) addHistoryMessage(ch Channel, message Message, size, lifetime int64) error {
+func (e *memoryEngine) addHistoryMessage(ch ChannelID, message Message, size, lifetime int64) error {
 	return e.historyHub.add(ch, message, size, lifetime)
 }
 
-func (e *memoryEngine) history(ch Channel) ([]Message, error) {
+func (e *memoryEngine) history(ch ChannelID) ([]Message, error) {
 	return e.historyHub.get(ch)
 }
 
 type memoryPresenceHub struct {
 	sync.Mutex
-	presence map[Channel]map[ConnID]ClientInfo
+	presence map[ChannelID]map[ConnID]ClientInfo
 }
 
 func newMemoryPresenceHub() *memoryPresenceHub {
 	return &memoryPresenceHub{
-		presence: make(map[Channel]map[ConnID]ClientInfo),
+		presence: make(map[ChannelID]map[ConnID]ClientInfo),
 	}
 }
 
-func (h *memoryPresenceHub) add(ch Channel, uid ConnID, info ClientInfo) error {
+func (h *memoryPresenceHub) add(ch ChannelID, uid ConnID, info ClientInfo) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -89,7 +89,7 @@ func (h *memoryPresenceHub) add(ch Channel, uid ConnID, info ClientInfo) error {
 	return nil
 }
 
-func (h *memoryPresenceHub) remove(ch Channel, uid ConnID) error {
+func (h *memoryPresenceHub) remove(ch ChannelID, uid ConnID) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -110,7 +110,7 @@ func (h *memoryPresenceHub) remove(ch Channel, uid ConnID) error {
 	return nil
 }
 
-func (h *memoryPresenceHub) get(ch Channel) (map[ConnID]ClientInfo, error) {
+func (h *memoryPresenceHub) get(ch ChannelID) (map[ConnID]ClientInfo, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -134,14 +134,14 @@ func (i historyItem) isExpired() bool {
 
 type memoryHistoryHub struct {
 	sync.Mutex // FIXME: Change to RWLock
-	history    map[Channel]historyItem
+	history    map[ChannelID]historyItem
 	queue      priority.Queue
 	nextCheck  int64
 }
 
 func newMemoryHistoryHub() *memoryHistoryHub {
 	return &memoryHistoryHub{
-		history:   make(map[Channel]historyItem),
+		history:   make(map[ChannelID]historyItem),
 		queue:     priority.MakeQueue(),
 		nextCheck: 0,
 	}
@@ -167,7 +167,7 @@ func (h *memoryHistoryHub) expire() {
 				heap.Push(&h.queue, item)
 				break
 			}
-			channel := Channel(item.Value)
+			channel := ChannelID(item.Value)
 			hItem, ok := h.history[channel]
 			if !ok {
 				continue
@@ -181,7 +181,7 @@ func (h *memoryHistoryHub) expire() {
 	}
 }
 
-func (h *memoryHistoryHub) add(ch Channel, message Message, size, lifetime int64) error {
+func (h *memoryHistoryHub) add(ch ChannelID, message Message, size, lifetime int64) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -214,7 +214,7 @@ func (h *memoryHistoryHub) add(ch Channel, message Message, size, lifetime int64
 	return nil
 }
 
-func (h *memoryHistoryHub) get(ch Channel) ([]Message, error) {
+func (h *memoryHistoryHub) get(ch ChannelID) ([]Message, error) {
 	h.Lock()
 	defer h.Unlock()
 

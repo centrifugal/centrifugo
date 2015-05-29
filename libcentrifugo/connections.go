@@ -23,7 +23,7 @@ type clientConn interface {
 // by application to interact with admin connection
 type adminConn interface {
 	// uid returns unique admin connection id
-	uid() string
+	uid() ConnID
 	// send allows to send message to admin
 	send(message string) error
 }
