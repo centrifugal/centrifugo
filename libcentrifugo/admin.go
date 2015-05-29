@@ -66,13 +66,13 @@ func (c *adminClient) writer() {
 }
 
 // handleMessage handles message received from admin connection
-func (c *adminClient) handleMessage(message []byte) (*response, error) {
+func (c *adminClient) handleMessage(msg []byte) (*response, error) {
 
 	var err error
 	var resp *response
 
 	var command adminCommand
-	err = json.Unmarshal(message, &command)
+	err = json.Unmarshal(msg, &command)
 	if err != nil {
 		return nil, err
 	}

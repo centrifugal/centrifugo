@@ -29,9 +29,9 @@ type config struct {
 	// prefix before each channel
 	channelPrefix string
 	// channel name for admin messages
-	adminChannel string
+	adminChannel Channel
 	// channel name for internal control messages between nodes
-	controlChannel string
+	controlChannel Channel
 	// maximum length of channel name
 	maxChannelLength int
 
@@ -90,8 +90,8 @@ func newConfig() *config {
 	cfg.webPassword = viper.GetString("web_password")
 	cfg.webSecret = viper.GetString("web_secret")
 	cfg.channelPrefix = viper.GetString("channel_prefix")
-	cfg.adminChannel = cfg.channelPrefix + "." + "admin"
-	cfg.controlChannel = cfg.channelPrefix + "." + "control"
+	cfg.adminChannel = Channel(cfg.channelPrefix + "." + "admin")
+	cfg.controlChannel = Channel(cfg.channelPrefix + "." + "control")
 	cfg.maxChannelLength = viper.GetInt("max_channel_length")
 	cfg.nodePingInterval = int64(viper.GetInt("node_ping_interval"))
 	cfg.nodeInfoCleanInterval = cfg.nodePingInterval * 3
@@ -221,7 +221,7 @@ func getGlobalProject(v *viper.Viper) (*project, bool) {
 		if !viper.IsSet("project_name") || viper.GetString("project_name") == "" {
 			return nil, false
 		}
-		p.Name = viper.GetString("project_name")
+		p.Name = ProjectKey(viper.GetString("project_name"))
 		p.Secret = viper.GetString("project_secret")
 		p.ConnLifetime = int64(viper.GetInt("project_connection_lifetime"))
 		p.Anonymous = viper.GetBool("project_anonymous")
@@ -235,7 +235,7 @@ func getGlobalProject(v *viper.Viper) (*project, bool) {
 		if !v.IsSet("project_name") || v.GetString("project_name") == "" {
 			return nil, false
 		}
-		p.Name = v.GetString("project_name")
+		p.Name = ProjectKey(v.GetString("project_name"))
 		p.Secret = v.GetString("project_secret")
 		p.ConnLifetime = int64(v.GetInt("project_connection_lifetime"))
 		p.Anonymous = v.GetBool("project_anonymous")

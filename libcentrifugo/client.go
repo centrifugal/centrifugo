@@ -17,15 +17,15 @@ type client struct {
 	sync.Mutex
 	app           *application
 	sess          session
-	Uid           string
-	Project       string
-	User          string
+	Uid           ConnID
+	Project       ProjectKey
+	User          UserID
 	timestamp     int64
 	token         string
 	defaultInfo   []byte
 	authenticated bool
-	channelInfo   map[string][]byte
-	Channels      map[string]bool
+	channelInfo   map[Channel][]byte
+	Channels      map[Channel]bool
 	messageChan   chan string
 	closeChan     chan struct{}
 	expireTimer   *time.Timer
@@ -34,8 +34,8 @@ type client struct {
 // ClientInfo contains information about client to use in message
 // meta information, presence information, join/leave events etc.
 type ClientInfo struct {
-	User        string           `json:"user"`
-	Client      string           `json:"client"`
+	User        UserID           `json:"user"`
+	Client      ConnID           `json:"client"`
 	DefaultInfo *json.RawMessage `json:"default_info"`
 	ChannelInfo *json.RawMessage `json:"channel_info"`
 }
@@ -46,7 +46,7 @@ func newClient(app *application, s session) (*client, error) {
 		return nil, err
 	}
 	return &client{
-		Uid:         uid.String(),
+		Uid:         ConnID(uid.String()),
 		app:         app,
 		sess:        s,
 		messageChan: make(chan string, 256),
@@ -71,15 +71,15 @@ func (c *client) sendMessages() {
 
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
-func (c *client) updateChannelPresence(channel string) {
-	chOpts := c.app.channelOpts(c.Project, channel)
+func (c *client) updateChannelPresence(ch Channel) {
+	chOpts := c.app.channelOpts(c.Project, ch)
 	if chOpts == nil {
 		return
 	}
 	if !chOpts.Presence {
 		return
 	}
-	c.app.addPresence(c.Project, channel, c.Uid, c.info(channel))
+	c.app.addPresence(c.Project, ch, c.Uid, c.info(ch))
 }
 
 // updatePresence updates presence info for all client channels
@@ -106,20 +106,20 @@ func (c *client) presencePing() {
 	}
 }
 
-func (c *client) uid() string {
+func (c *client) uid() ConnID {
 	return c.Uid
 }
 
-func (c *client) project() string {
+func (c *client) project() ProjectKey {
 	return c.Project
 }
 
-func (c *client) user() string {
+func (c *client) user() UserID {
 	return c.User
 }
 
-func (c *client) channels() []string {
-	keys := make([]string, len(c.Channels))
+func (c *client) channels() []Channel {
+	keys := make([]Channel, len(c.Channels))
 	i := 0
 	for k := range c.Channels {
 		keys[i] = k
@@ -128,11 +128,11 @@ func (c *client) channels() []string {
 	return keys
 }
 
-func (c *client) unsubscribe(channel string) error {
+func (c *client) unsubscribe(ch Channel) error {
 	c.Lock()
 	defer c.Unlock()
 	cmd := &unsubscribeClientCommand{
-		Channel: channel,
+		Channel: ch,
 	}
 	resp, err := c.unsubscribeCmd(cmd)
 	if err != nil {
@@ -163,9 +163,9 @@ func (c *client) close(reason string) error {
 func (c *client) clean() error {
 	c.Lock()
 	defer c.Unlock()
-	projectKey := c.Project
+	pk := c.Project
 
-	if projectKey != "" && len(c.Channels) > 0 {
+	if pk != "" && len(c.Channels) > 0 {
 		// unsubscribe from all channels
 		for channel, _ := range c.Channels {
 			cmd := &unsubscribeClientCommand{
@@ -178,7 +178,7 @@ func (c *client) clean() error {
 		}
 	}
 
-	if projectKey != "" {
+	if pk != "" {
 		err := c.app.removeConn(c)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -190,8 +190,8 @@ func (c *client) clean() error {
 	return nil
 }
 
-func (c *client) info(channel string) ClientInfo {
-	channelInfo, ok := c.channelInfo[channel]
+func (c *client) info(ch Channel) ClientInfo {
+	channelInfo, ok := c.channelInfo[ch]
 	if !ok {
 		channelInfo = []byte{}
 	}
@@ -392,7 +392,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	projectKey := cmd.Project
+	pk := cmd.Project
 	user := cmd.User
 	info := cmd.Info
 
@@ -406,13 +406,13 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 		token = ""
 	}
 
-	project, exists := c.app.projectByKey(projectKey)
+	project, exists := c.app.projectByKey(pk)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
 
 	if !c.app.config.insecure {
-		isValid := auth.CheckClientToken(project.Secret, projectKey, user, timestamp, info, token)
+		isValid := auth.CheckClientToken(project.Secret, string(pk), string(user), timestamp, info, token)
 		if !isValid {
 			logger.ERROR.Println("invalid token for user", user)
 			return nil, ErrInvalidToken
@@ -431,7 +431,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	}
 
 	c.User = user
-	c.Project = projectKey
+	c.Project = pk
 
 	var ttl interface{}
 	var timeToExpire int64 = 0
@@ -453,8 +453,8 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 
 	c.authenticated = true
 	c.defaultInfo = []byte(info)
-	c.Channels = map[string]bool{}
-	c.channelInfo = map[string][]byte{}
+	c.Channels = map[Channel]bool{}
+	c.channelInfo = map[Channel][]byte{}
 
 	go c.presencePing()
 
@@ -484,18 +484,18 @@ func (c *client) refreshCmd(cmd *refreshClientCommand) (*response, error) {
 
 	resp := newResponse("refresh")
 
-	projectKey := cmd.Project
+	pk := cmd.Project
 	user := cmd.User
 	info := cmd.Info
 	timestamp := cmd.Timestamp
 	token := cmd.Token
 
-	project, exists := c.app.projectByKey(projectKey)
+	project, exists := c.app.projectByKey(pk)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
 
-	isValid := auth.CheckClientToken(project.Secret, projectKey, user, timestamp, info, token)
+	isValid := auth.CheckClientToken(project.Secret, string(pk), string(user), timestamp, info, token)
 	if !isValid {
 		logger.ERROR.Println("invalid refresh token for user", user)
 		return nil, ErrInvalidToken
@@ -564,7 +564,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	body := map[string]string{
+	body := map[string]interface{}{
 		"channel": channel,
 	}
 	resp.Body = body
@@ -587,11 +587,11 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 
 	if c.app.privateChannel(channel) {
 		// private channel - subscription must be properly signed
-		if c.Uid != cmd.Client {
+		if string(c.Uid) != string(cmd.Client) {
 			resp.Err(ErrPermissionDenied)
 			return resp, nil
 		}
-		isValid := auth.CheckChannelSign(project.Secret, cmd.Client, channel, cmd.Info, cmd.Sign)
+		isValid := auth.CheckChannelSign(project.Secret, string(cmd.Client), string(channel), cmd.Info, cmd.Sign)
 		if !isValid {
 			resp.Err(ErrPermissionDenied)
 			return resp, nil
@@ -638,7 +638,7 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 		return nil, ErrInvalidClientMessage
 	}
 
-	body := map[string]string{
+	body := map[string]interface{}{
 		"channel": channel,
 	}
 	resp.Body = body

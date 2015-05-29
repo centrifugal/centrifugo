@@ -165,7 +165,7 @@ type jsonApiRequest struct {
 
 func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 
-	projectKey := r.URL.Path[len("/api/"):]
+	pk := ProjectKey(r.URL.Path[len("/api/"):])
 	contentType := r.Header.Get("Content-Type")
 
 	var sign string
@@ -201,16 +201,16 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project, exists := app.projectByKey(projectKey)
+	project, exists := app.projectByKey(pk)
 	if !exists {
-		logger.ERROR.Println("no project found with key", projectKey)
+		logger.ERROR.Println("no project found with key", pk)
 		http.Error(w, "Project not found", http.StatusNotFound)
 		return
 	}
 
 	secret := project.Secret
 
-	isValid := auth.CheckApiSign(secret, projectKey, encodedData, sign)
+	isValid := auth.CheckApiSign(secret, string(pk), encodedData, sign)
 	if !isValid {
 		logger.ERROR.Println("invalid sign")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -324,10 +324,10 @@ func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
-	projectKey := r.FormValue("project")
+	pk := ProjectKey(r.FormValue("project"))
 	method := r.FormValue("method")
 
-	project, exists := app.projectByKey(projectKey)
+	project, exists := app.projectByKey(pk)
 	if !exists {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -338,7 +338,7 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch method {
 	case "publish":
-		channel := r.FormValue("channel")
+		channel := Channel(r.FormValue("channel"))
 		data := r.FormValue("data")
 		if data == "" {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -350,27 +350,27 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err = app.publishCmd(project, cmd)
 	case "unsubscribe":
-		channel := r.FormValue("channel")
-		user := r.FormValue("user")
+		channel := Channel(r.FormValue("channel"))
+		user := UserID(r.FormValue("user"))
 		cmd := &unsubscribeApiCommand{
 			Channel: channel,
 			User:    user,
 		}
 		resp, err = app.unsubcribeCmd(project, cmd)
 	case "disconnect":
-		user := r.FormValue("user")
+		user := UserID(r.FormValue("user"))
 		cmd := &disconnectApiCommand{
 			User: user,
 		}
 		resp, err = app.disconnectCmd(project, cmd)
 	case "presence":
-		channel := r.FormValue("channel")
+		channel := Channel(r.FormValue("channel"))
 		cmd := &presenceApiCommand{
 			Channel: channel,
 		}
 		resp, err = app.presenceCmd(project, cmd)
 	case "history":
-		channel := r.FormValue("channel")
+		channel := Channel(r.FormValue("channel"))
 		cmd := &historyApiCommand{
 			Channel: channel,
 		}

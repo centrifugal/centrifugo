@@ -4,17 +4,17 @@ package libcentrifugo
 // by application to interact with client connection
 type clientConn interface {
 	// uid returns unique connection id
-	uid() string
+	uid() ConnID
 	// project returns connection project key
-	project() string
+	project() ProjectKey
 	// user return user ID associated with connection
-	user() string
+	user() UserID
 	// channels returns a slice of channels connection subscribed to
-	channels() []string
+	channels() []Channel
 	// send allows to send message to connection client
 	send(message string) error
 	// unsubscribe allows to unsubscribe connection from channel
-	unsubscribe(channel string) error
+	unsubscribe(ch Channel) error
 	// close closes client's connection
 	close(reason string) error
 }
