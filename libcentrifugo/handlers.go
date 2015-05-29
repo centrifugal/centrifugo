@@ -338,7 +338,7 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch method {
 	case "publish":
-		channel := ChannelID(r.FormValue("channel"))
+		channel := Channel(r.FormValue("channel"))
 		data := r.FormValue("data")
 		if data == "" {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -350,7 +350,7 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err = app.publishCmd(project, cmd)
 	case "unsubscribe":
-		channel := ChannelID(r.FormValue("channel"))
+		channel := Channel(r.FormValue("channel"))
 		user := UserID(r.FormValue("user"))
 		cmd := &unsubscribeApiCommand{
 			Channel: channel,
@@ -364,13 +364,13 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		resp, err = app.disconnectCmd(project, cmd)
 	case "presence":
-		channel := ChannelID(r.FormValue("channel"))
+		channel := Channel(r.FormValue("channel"))
 		cmd := &presenceApiCommand{
 			Channel: channel,
 		}
 		resp, err = app.presenceCmd(project, cmd)
 	case "history":
-		channel := ChannelID(r.FormValue("channel"))
+		channel := Channel(r.FormValue("channel"))
 		cmd := &historyApiCommand{
 			Channel: channel,
 		}

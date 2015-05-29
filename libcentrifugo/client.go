@@ -24,8 +24,8 @@ type client struct {
 	token         string
 	defaultInfo   []byte
 	authenticated bool
-	channelInfo   map[ChannelID][]byte
-	Channels      map[ChannelID]bool
+	channelInfo   map[Channel][]byte
+	Channels      map[Channel]bool
 	messageChan   chan string
 	closeChan     chan struct{}
 	expireTimer   *time.Timer
@@ -71,7 +71,7 @@ func (c *client) sendMessages() {
 
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
-func (c *client) updateChannelPresence(channel ChannelID) {
+func (c *client) updateChannelPresence(channel Channel) {
 	chOpts := c.app.channelOpts(c.Project, channel)
 	if chOpts == nil {
 		return
@@ -118,8 +118,8 @@ func (c *client) user() UserID {
 	return c.User
 }
 
-func (c *client) channels() []ChannelID {
-	keys := make([]ChannelID, len(c.Channels))
+func (c *client) channels() []Channel {
+	keys := make([]Channel, len(c.Channels))
 	i := 0
 	for k := range c.Channels {
 		keys[i] = k
@@ -128,7 +128,7 @@ func (c *client) channels() []ChannelID {
 	return keys
 }
 
-func (c *client) unsubscribe(channel ChannelID) error {
+func (c *client) unsubscribe(channel Channel) error {
 	c.Lock()
 	defer c.Unlock()
 	cmd := &unsubscribeClientCommand{
@@ -190,7 +190,7 @@ func (c *client) clean() error {
 	return nil
 }
 
-func (c *client) info(channel ChannelID) ClientInfo {
+func (c *client) info(channel Channel) ClientInfo {
 	channelInfo, ok := c.channelInfo[channel]
 	if !ok {
 		channelInfo = []byte{}
@@ -453,8 +453,8 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 
 	c.authenticated = true
 	c.defaultInfo = []byte(info)
-	c.Channels = map[ChannelID]bool{}
-	c.channelInfo = map[ChannelID][]byte{}
+	c.Channels = map[Channel]bool{}
+	c.channelInfo = map[Channel][]byte{}
 
 	go c.presencePing()
 

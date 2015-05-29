@@ -128,13 +128,13 @@ type subHub struct {
 
 	// registry to hold active subscriptions of clients on channels
 	// as map[of engine channel]map[of connection UID]*connection
-	subs map[ChannelID]map[ConnID]clientConn
+	subs map[Channel]map[ConnID]clientConn
 }
 
 // newSubHub initializes subscriptionHub
 func newSubHub() *subHub {
 	return &subHub{
-		subs: make(map[ChannelID]map[ConnID]clientConn),
+		subs: make(map[Channel]map[ConnID]clientConn),
 	}
 }
 
@@ -144,10 +144,10 @@ func (h *subHub) nChannels() int {
 	return len(h.subs)
 }
 
-func (h *subHub) channels() []ChannelID {
+func (h *subHub) channels() []Channel {
 	h.RLock()
 	defer h.RUnlock()
-	channels := make([]ChannelID, len(h.subs))
+	channels := make([]Channel, len(h.subs))
 	i := 0
 	for ch := range h.subs {
 		channels[i] = ch
@@ -157,7 +157,7 @@ func (h *subHub) channels() []ChannelID {
 }
 
 // add adds connection into clientSubscriptionHub subscriptions registry
-func (h *subHub) add(channel ChannelID, c clientConn) error {
+func (h *subHub) add(channel Channel, c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -172,7 +172,7 @@ func (h *subHub) add(channel ChannelID, c clientConn) error {
 }
 
 // remove removes connection from clientSubscriptionHub subscriptions registry
-func (h *subHub) remove(channel ChannelID, c clientConn) error {
+func (h *subHub) remove(channel Channel, c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -198,7 +198,7 @@ func (h *subHub) remove(channel ChannelID, c clientConn) error {
 }
 
 // broadcast sends message to all clients subscribed on channel
-func (h *subHub) broadcast(channel ChannelID, message string) error {
+func (h *subHub) broadcast(channel Channel, message string) error {
 	h.RLock()
 	defer h.RUnlock()
 

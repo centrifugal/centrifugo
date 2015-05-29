@@ -11,22 +11,22 @@ type engine interface {
 	initialize() error
 
 	// publish allows to send message into channel
-	publish(channel ChannelID, message []byte) error
+	publish(channel Channel, message []byte) error
 
 	// subscribe on channel
-	subscribe(channel ChannelID) error
+	subscribe(channel Channel) error
 	// unsubscribe from channel
-	unsubscribe(channel ChannelID) error
+	unsubscribe(channel Channel) error
 
 	// addPresence sets or updates presence info for connection with uid
-	addPresence(channel ChannelID, uid ConnID, info ClientInfo) error
+	addPresence(channel Channel, uid ConnID, info ClientInfo) error
 	// removePresence removes presence information for connection with uid
-	removePresence(channel ChannelID, uid ConnID) error
+	removePresence(channel Channel, uid ConnID) error
 	// getPresence returns actual presence information for channel
-	presence(channel ChannelID) (map[ConnID]ClientInfo, error)
+	presence(channel Channel) (map[ConnID]ClientInfo, error)
 
 	// addHistoryMessage adds message into channel history and takes care about history size
-	addHistoryMessage(channel ChannelID, message Message, size, lifetime int64) error
+	addHistoryMessage(channel Channel, message Message, size, lifetime int64) error
 	// getHistory returns history messages for channel
-	history(channel ChannelID) ([]Message, error)
+	history(channel Channel) ([]Message, error)
 }

@@ -34,50 +34,50 @@ func (e *memoryEngine) initialize() error {
 	return err
 }
 
-func (e *memoryEngine) publish(channel ChannelID, message []byte) error {
+func (e *memoryEngine) publish(channel Channel, message []byte) error {
 	return e.app.handleMsg(channel, message)
 }
 
-func (e *memoryEngine) subscribe(channel ChannelID) error {
+func (e *memoryEngine) subscribe(channel Channel) error {
 	return nil
 }
 
-func (e *memoryEngine) unsubscribe(channel ChannelID) error {
+func (e *memoryEngine) unsubscribe(channel Channel) error {
 	return nil
 }
 
-func (e *memoryEngine) addPresence(channel ChannelID, uid ConnID, info ClientInfo) error {
+func (e *memoryEngine) addPresence(channel Channel, uid ConnID, info ClientInfo) error {
 	return e.presenceHub.add(channel, uid, info)
 }
 
-func (e *memoryEngine) removePresence(channel ChannelID, uid ConnID) error {
+func (e *memoryEngine) removePresence(channel Channel, uid ConnID) error {
 	return e.presenceHub.remove(channel, uid)
 }
 
-func (e *memoryEngine) presence(channel ChannelID) (map[ConnID]ClientInfo, error) {
+func (e *memoryEngine) presence(channel Channel) (map[ConnID]ClientInfo, error) {
 	return e.presenceHub.get(channel)
 }
 
-func (e *memoryEngine) addHistoryMessage(channel ChannelID, message Message, size, lifetime int64) error {
+func (e *memoryEngine) addHistoryMessage(channel Channel, message Message, size, lifetime int64) error {
 	return e.historyHub.add(channel, message, size, lifetime)
 }
 
-func (e *memoryEngine) history(channel ChannelID) ([]Message, error) {
+func (e *memoryEngine) history(channel Channel) ([]Message, error) {
 	return e.historyHub.get(channel)
 }
 
 type memoryPresenceHub struct {
 	sync.Mutex
-	presence map[ChannelID]map[ConnID]ClientInfo
+	presence map[Channel]map[ConnID]ClientInfo
 }
 
 func newMemoryPresenceHub() *memoryPresenceHub {
 	return &memoryPresenceHub{
-		presence: make(map[ChannelID]map[ConnID]ClientInfo),
+		presence: make(map[Channel]map[ConnID]ClientInfo),
 	}
 }
 
-func (h *memoryPresenceHub) add(channel ChannelID, uid ConnID, info ClientInfo) error {
+func (h *memoryPresenceHub) add(channel Channel, uid ConnID, info ClientInfo) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -89,7 +89,7 @@ func (h *memoryPresenceHub) add(channel ChannelID, uid ConnID, info ClientInfo) 
 	return nil
 }
 
-func (h *memoryPresenceHub) remove(channel ChannelID, uid ConnID) error {
+func (h *memoryPresenceHub) remove(channel Channel, uid ConnID) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -110,7 +110,7 @@ func (h *memoryPresenceHub) remove(channel ChannelID, uid ConnID) error {
 	return nil
 }
 
-func (h *memoryPresenceHub) get(channel ChannelID) (map[ConnID]ClientInfo, error) {
+func (h *memoryPresenceHub) get(channel Channel) (map[ConnID]ClientInfo, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -134,14 +134,14 @@ func (i historyItem) isExpired() bool {
 
 type memoryHistoryHub struct {
 	sync.Mutex // FIXME: Change to RWLock
-	history    map[ChannelID]historyItem
+	history    map[Channel]historyItem
 	queue      priority.Queue
 	nextCheck  int64
 }
 
 func newMemoryHistoryHub() *memoryHistoryHub {
 	return &memoryHistoryHub{
-		history:   make(map[ChannelID]historyItem),
+		history:   make(map[Channel]historyItem),
 		queue:     priority.MakeQueue(),
 		nextCheck: 0,
 	}
@@ -167,7 +167,7 @@ func (h *memoryHistoryHub) expire() {
 				heap.Push(&h.queue, item)
 				break
 			}
-			channel := ChannelID(item.Value)
+			channel := Channel(item.Value)
 			hItem, ok := h.history[channel]
 			if !ok {
 				continue
@@ -181,7 +181,7 @@ func (h *memoryHistoryHub) expire() {
 	}
 }
 
-func (h *memoryHistoryHub) add(channel ChannelID, message Message, size, lifetime int64) error {
+func (h *memoryHistoryHub) add(channel Channel, message Message, size, lifetime int64) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -214,7 +214,7 @@ func (h *memoryHistoryHub) add(channel ChannelID, message Message, size, lifetim
 	return nil
 }
 
-func (h *memoryHistoryHub) get(channel ChannelID) ([]Message, error) {
+func (h *memoryHistoryHub) get(channel Channel) ([]Message, error) {
 	h.Lock()
 	defer h.Unlock()
 

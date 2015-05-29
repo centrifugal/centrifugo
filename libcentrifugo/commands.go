@@ -54,7 +54,7 @@ type refreshClientCommand struct {
 // It can only be sent by client after successfull connect.
 // It also can have Client, Info and Sign properties when channel is private.
 type subscribeClientCommand struct {
-	Channel ChannelID
+	Channel Channel
 	Client  UserID
 	Info    string
 	Sign    string
@@ -62,35 +62,35 @@ type subscribeClientCommand struct {
 
 // unsubscribeClientCommand is used to unsubscribe from channel
 type unsubscribeClientCommand struct {
-	Channel ChannelID
+	Channel Channel
 }
 
 // publishClientCommand is used to publish messages into channel
 type publishClientCommand struct {
-	Channel ChannelID
+	Channel Channel
 	Data    json.RawMessage
 }
 
 // presenceClientCommand is used to get presence (actual channel subscriptions)
 // information for channel
 type presenceClientCommand struct {
-	Channel ChannelID
+	Channel Channel
 }
 
 // historyClientCommand is used to get history information for channel
 type historyClientCommand struct {
-	Channel ChannelID
+	Channel Channel
 }
 
 // publishApiCommand is used to publish messages into channel
 type publishApiCommand struct {
-	Channel ChannelID
+	Channel Channel
 	Data    json.RawMessage
 }
 
 // unsubscribeApiCommand is used to unsubscribe user from channel
 type unsubscribeApiCommand struct {
-	Channel ChannelID
+	Channel Channel
 	User    UserID
 }
 
@@ -102,12 +102,12 @@ type disconnectApiCommand struct {
 // presenceApiCommand is used to get presence (actual channel subscriptions)
 // information for channel
 type presenceApiCommand struct {
-	Channel ChannelID
+	Channel Channel
 }
 
 // historyApiCommand is used to get history information for channel
 type historyApiCommand struct {
-	Channel ChannelID
+	Channel Channel
 }
 
 // pingControlCommand allows nodes to know about each other - node sends this
@@ -127,7 +127,7 @@ type pingControlCommand struct {
 type unsubscribeControlCommand struct {
 	Project ProjectKey
 	User    UserID
-	Channel ChannelID
+	Channel Channel
 }
 
 // disconnectControlCommand required to disconnect user from all nodes

@@ -10,11 +10,11 @@ type clientConn interface {
 	// user return user ID associated with connection
 	user() UserID
 	// channels returns a slice of channels connection subscribed to
-	channels() []ChannelID
+	channels() []Channel
 	// send allows to send message to connection client
 	send(message string) error
 	// unsubscribe allows to unsubscribe connection from channel
-	unsubscribe(channel ChannelID) error
+	unsubscribe(channel Channel) error
 	// close closes client's connection
 	close(reason string) error
 }

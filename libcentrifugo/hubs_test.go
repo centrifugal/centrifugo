@@ -20,15 +20,15 @@ func (c *testClientConnection) user() UserID {
 	return "test user"
 }
 
-func (c *testClientConnection) channels() []ChannelID {
-	return []ChannelID{"test"}
+func (c *testClientConnection) channels() []Channel {
+	return []Channel{"test"}
 }
 
 func (c *testClientConnection) send(message string) error {
 	return nil
 }
 
-func (c *testClientConnection) unsubscribe(channel ChannelID) error {
+func (c *testClientConnection) unsubscribe(channel Channel) error {
 	return nil
 }
 

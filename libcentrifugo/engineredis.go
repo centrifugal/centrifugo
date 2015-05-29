@@ -189,7 +189,7 @@ func (e *redisEngine) initializePubSub() {
 	for {
 		switch n := e.psc.Receive().(type) {
 		case redis.Message:
-			e.app.handleMsg(ChannelID(n.Channel), n.Data)
+			e.app.handleMsg(Channel(n.Channel), n.Data)
 		case redis.Subscription:
 		case error:
 			logger.ERROR.Printf("error: %v\n", n)
@@ -199,34 +199,34 @@ func (e *redisEngine) initializePubSub() {
 	}
 }
 
-func (e *redisEngine) publish(channel ChannelID, message []byte) error {
+func (e *redisEngine) publish(channel Channel, message []byte) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 	_, err := conn.Do("PUBLISH", channel, message)
 	return err
 }
 
-func (e *redisEngine) subscribe(channel ChannelID) error {
+func (e *redisEngine) subscribe(channel Channel) error {
 	return e.psc.Subscribe(channel)
 }
 
-func (e *redisEngine) unsubscribe(channel ChannelID) error {
+func (e *redisEngine) unsubscribe(channel Channel) error {
 	return e.psc.Unsubscribe(channel)
 }
 
-func (e *redisEngine) getHashKey(channel ChannelID) string {
+func (e *redisEngine) getHashKey(channel Channel) string {
 	return e.app.config.channelPrefix + ".presence.hash." + string(channel)
 }
 
-func (e *redisEngine) getSetKey(channel ChannelID) string {
+func (e *redisEngine) getSetKey(channel Channel) string {
 	return e.app.config.channelPrefix + ".presence.set." + string(channel)
 }
 
-func (e *redisEngine) getHistoryKey(channel ChannelID) string {
+func (e *redisEngine) getHistoryKey(channel Channel) string {
 	return e.app.config.channelPrefix + ".history.list." + string(channel)
 }
 
-func (e *redisEngine) addPresence(channel ChannelID, uid ConnID, info ClientInfo) error {
+func (e *redisEngine) addPresence(channel Channel, uid ConnID, info ClientInfo) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 	infoJson, err := json.Marshal(info)
@@ -243,7 +243,7 @@ func (e *redisEngine) addPresence(channel ChannelID, uid ConnID, info ClientInfo
 	return err
 }
 
-func (e *redisEngine) removePresence(channel ChannelID, uid ConnID) error {
+func (e *redisEngine) removePresence(channel Channel, uid ConnID) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 	hashKey := e.getHashKey(channel)
@@ -300,7 +300,7 @@ func mapStringClientInfo(result interface{}, err error) (map[ConnID]ClientInfo, 
 	return m, nil
 }
 
-func (e *redisEngine) presence(channel ChannelID) (map[ConnID]ClientInfo, error) {
+func (e *redisEngine) presence(channel Channel) (map[ConnID]ClientInfo, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 	now := time.Now().Unix()
@@ -332,7 +332,7 @@ func (e *redisEngine) presence(channel ChannelID) (map[ConnID]ClientInfo, error)
 	return mapStringClientInfo(reply, nil)
 }
 
-func (e *redisEngine) addHistoryMessage(channel ChannelID, message Message, size, lifetime int64) error {
+func (e *redisEngine) addHistoryMessage(channel Channel, message Message, size, lifetime int64) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 
@@ -370,7 +370,7 @@ func sliceOfMessages(result interface{}, err error) ([]Message, error) {
 	return msgs, nil
 }
 
-func (e *redisEngine) history(channel ChannelID) ([]Message, error) {
+func (e *redisEngine) history(channel Channel) ([]Message, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 	historyKey := e.getHistoryKey(channel)
