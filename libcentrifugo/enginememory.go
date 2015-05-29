@@ -67,7 +67,7 @@ func (e *memoryEngine) history(chID ChannelID) ([]Message, error) {
 }
 
 type memoryPresenceHub struct {
-	sync.Mutex
+	sync.RWMutex
 	presence map[ChannelID]map[ConnID]ClientInfo
 }
 
@@ -111,16 +111,21 @@ func (h *memoryPresenceHub) remove(chID ChannelID, uid ConnID) error {
 }
 
 func (h *memoryPresenceHub) get(chID ChannelID) (map[ConnID]ClientInfo, error) {
-	h.Lock()
-	defer h.Unlock()
+	h.RLock()
+	defer h.RUnlock()
 
 	presence, ok := h.presence[chID]
 	if !ok {
 		// return empty map
 		return map[ConnID]ClientInfo{}, nil
 	}
-	// FIXME: Return copy, since we release the lock
-	return presence, nil
+
+	var data map[ConnID]ClientInfo
+	data = make(map[ConnID]ClientInfo, len(presence))
+	for k, v := range presence {
+		data[k] = v
+	}
+	return data, nil
 }
 
 type historyItem struct {
@@ -133,10 +138,10 @@ func (i historyItem) isExpired() bool {
 }
 
 type memoryHistoryHub struct {
-	sync.Mutex // FIXME: Change to RWLock
-	history    map[ChannelID]historyItem
-	queue      priority.Queue
-	nextCheck  int64
+	sync.RWMutex
+	history   map[ChannelID]historyItem
+	queue     priority.Queue
+	nextCheck int64
 }
 
 func newMemoryHistoryHub() *memoryHistoryHub {
@@ -215,8 +220,8 @@ func (h *memoryHistoryHub) add(chID ChannelID, message Message, size, lifetime i
 }
 
 func (h *memoryHistoryHub) get(chID ChannelID) ([]Message, error) {
-	h.Lock()
-	defer h.Unlock()
+	h.RLock()
+	defer h.RUnlock()
 
 	hItem, ok := h.history[chID]
 	if !ok {
