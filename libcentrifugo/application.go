@@ -134,14 +134,14 @@ func (app *application) setEngine(e engine) {
 
 // handleMsg called when new message of any type received by this node.
 // It looks at channel and decides which message handler to call
-func (app *application) handleMsg(ch Channel, message []byte) error {
-	switch ch {
+func (app *application) handleMsg(chID ChannelID, message []byte) error {
+	switch chID {
 	case app.config.controlChannel:
 		return app.controlMsg(message)
 	case app.config.adminChannel:
 		return app.adminMsg(message)
 	default:
-		return app.clientMsg(ch, message)
+		return app.clientMsg(chID, message)
 	}
 }
 
@@ -206,8 +206,8 @@ func (app *application) adminMsg(message []byte) error {
 // clientMsg handles messages published by web application or client
 // into channel. The goal of this method to deliver this message to all clients
 // on this node subscribed on channel
-func (app *application) clientMsg(channel Channel, message []byte) error {
-	return app.subs.broadcast(channel, string(message))
+func (app *application) clientMsg(chID ChannelID, message []byte) error {
+	return app.subs.broadcast(chID, string(message))
 }
 
 // pubControl publishes message into control channel so all running
@@ -270,7 +270,7 @@ func (app *application) pubClient(p *project, ch Channel, chOpts *ChannelOptions
 		}
 	}
 
-	projectChannel := app.projectChannel(p.Name, ch)
+	chID := app.channelID(p.Name, ch)
 
 	resp := newResponse("message")
 	resp.Body = message
@@ -280,7 +280,7 @@ func (app *application) pubClient(p *project, ch Channel, chOpts *ChannelOptions
 		return err
 	}
 
-	err = app.engine.publish(projectChannel, byteMessage)
+	err = app.engine.publish(chID, byteMessage)
 	if err != nil {
 		return err
 	}
@@ -298,7 +298,7 @@ func (app *application) pubClient(p *project, ch Channel, chOpts *ChannelOptions
 // pubJoinLeave allows to publish join message into channel when
 // someone subscribes on it or leave message when someone unsubscribed from channel
 func (app *application) pubJoinLeave(pk ProjectKey, ch Channel, method string, info ClientInfo) error {
-	projectChannel := app.projectChannel(pk, ch)
+	chID := app.channelID(pk, ch)
 	resp := newResponse(method)
 	resp.Body = map[string]interface{}{
 		"channel": ch,
@@ -308,7 +308,7 @@ func (app *application) pubJoinLeave(pk ProjectKey, ch Channel, method string, i
 	if err != nil {
 		return err
 	}
-	return app.engine.publish(projectChannel, byteMessage)
+	return app.engine.publish(chID, byteMessage)
 }
 
 func (app *application) pubPing() error {
@@ -394,19 +394,14 @@ func (app *application) unsubscribeCmd(cmd *unsubscribeControlCommand) error {
 	return app.unsubUser(cmd.Project, cmd.User, cmd.Channel)
 }
 
-/*
-func (app *application) disconnectCmd(cmd *disconnectControlCommand) error {
-	return app.disconnectUser(cmd.Project, cmd.User)
-}
-*/
-// projectChannel returns internal name of channel - as
+// channelID returns internal name of channel ChannelID - as
 // every project can have channels with the same name we should distinguish
 // between them. This also prevents collapses with admin and control
 // channel names
-func (app *application) projectChannel(pk ProjectKey, ch Channel) Channel {
+func (app *application) channelID(pk ProjectKey, ch Channel) ChannelID {
 	app.RLock()
 	defer app.RUnlock()
-	return Channel(app.config.channelPrefix + "." + string(pk) + "." + string(ch))
+	return ChannelID(app.config.channelPrefix + "." + string(pk) + "." + string(ch))
 }
 
 // addConn registers authenticated connection in clientConnectionHub
@@ -423,23 +418,23 @@ func (app *application) removeConn(c clientConn) error {
 // addSub registers subscription of connection on channel in both
 // engine and clientSubscriptionHub
 func (app *application) addSub(pk ProjectKey, ch Channel, c clientConn) error {
-	projectChannel := app.projectChannel(pk, ch)
-	err := app.engine.subscribe(projectChannel)
+	chID := app.channelID(pk, ch)
+	err := app.engine.subscribe(chID)
 	if err != nil {
 		return err
 	}
-	return app.subs.add(projectChannel, c)
+	return app.subs.add(chID, c)
 }
 
 // removeSub removes subscription of connection on channel
 // from both engine and clientSubscriptionHub
 func (app *application) removeSub(pk ProjectKey, ch Channel, c clientConn) error {
-	projectChannel := app.projectChannel(pk, ch)
-	err := app.engine.unsubscribe(projectChannel)
+	chID := app.channelID(pk, ch)
+	err := app.engine.unsubscribe(chID)
 	if err != nil {
 		return err
 	}
-	return app.subs.remove(projectChannel, c)
+	return app.subs.remove(chID, c)
 }
 
 // unsubUser unsubscribes user from channel on this node. If channel
@@ -506,35 +501,35 @@ func (app *application) channelOpts(p ProjectKey, c Channel) *ChannelOptions {
 
 // addPresence proxies presence adding to engine
 func (app *application) addPresence(pk ProjectKey, ch Channel, uid ConnID, info ClientInfo) error {
-	projectChannel := app.projectChannel(pk, ch)
-	return app.engine.addPresence(projectChannel, uid, info)
+	chID := app.channelID(pk, ch)
+	return app.engine.addPresence(chID, uid, info)
 }
 
 // removePresence proxies presence removing to engine
 func (app *application) removePresence(pk ProjectKey, ch Channel, uid ConnID) error {
-	projectChannel := app.projectChannel(pk, ch)
-	return app.engine.removePresence(projectChannel, uid)
+	chID := app.channelID(pk, ch)
+	return app.engine.removePresence(chID, uid)
 }
 
 // getPresence proxies presence extraction to engine
 func (app *application) presence(pk ProjectKey, ch Channel) (map[ConnID]ClientInfo, error) {
-	projectChannel := app.projectChannel(pk, ch)
-	return app.engine.presence(projectChannel)
+	chID := app.channelID(pk, ch)
+	return app.engine.presence(chID)
 }
 
 // addHistory proxies history message adding to engine
 func (app *application) addHistory(pk ProjectKey, ch Channel, message Message, size, lifetime int64) error {
-	projectChannel := app.projectChannel(pk, ch)
-	return app.engine.addHistoryMessage(projectChannel, message, size, lifetime)
+	chID := app.channelID(pk, ch)
+	return app.engine.addHistoryMessage(chID, message, size, lifetime)
 }
 
 // getHistory proxies history extraction to engine
 func (app *application) history(pk ProjectKey, ch Channel) ([]Message, error) {
-	projectChannel := app.projectChannel(pk, ch)
-	return app.engine.history(projectChannel)
+	chID := app.channelID(pk, ch)
+	return app.engine.history(chID)
 }
 
-// privateCh checks if channel private and therefore subscription
+// privateChannel checks if channel private and therefore subscription
 // request on it must be properly signed on web application backend
 func (app *application) privateChannel(ch Channel) bool {
 	app.RLock()

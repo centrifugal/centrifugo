@@ -29,9 +29,9 @@ type config struct {
 	// prefix before each channel
 	channelPrefix string
 	// channel name for admin messages
-	adminChannel Channel
+	adminChannel ChannelID
 	// channel name for internal control messages between nodes
-	controlChannel Channel
+	controlChannel ChannelID
 	// maximum length of channel name
 	maxChannelLength int
 
@@ -90,8 +90,8 @@ func newConfig() *config {
 	cfg.webPassword = viper.GetString("web_password")
 	cfg.webSecret = viper.GetString("web_secret")
 	cfg.channelPrefix = viper.GetString("channel_prefix")
-	cfg.adminChannel = Channel(cfg.channelPrefix + "." + "admin")
-	cfg.controlChannel = Channel(cfg.channelPrefix + "." + "control")
+	cfg.adminChannel = ChannelID(cfg.channelPrefix + "." + "admin")
+	cfg.controlChannel = ChannelID(cfg.channelPrefix + "." + "control")
 	cfg.maxChannelLength = viper.GetInt("max_channel_length")
 	cfg.nodePingInterval = int64(viper.GetInt("node_ping_interval"))
 	cfg.nodeInfoCleanInterval = cfg.nodePingInterval * 3

@@ -63,7 +63,8 @@ type namespace struct {
 type (
 	NamespaceKey string // Namespace ID
 	ProjectKey   string // Project ID
-	Channel      string // Channel ID
+	Channel      string // Channel
+	ChannelID    string // Channel ID
 	UserID       string // User ID
 	ConnID       string // Connection ID
 )
