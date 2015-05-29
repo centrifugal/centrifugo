@@ -36,7 +36,7 @@ type ChannelOptions struct {
 // for every project (maybe except copy of your project for development)
 type project struct {
 	// Name is unique project name, used as project key for client connections and API requests
-	Name projectID `json:"name"`
+	Name ProjectKey `json:"name"`
 
 	// Secret is a secret key for project, used to sign API requests and client connection tokens
 	Secret string `json:"secret"`
@@ -54,17 +54,17 @@ type project struct {
 // namespace allows to create channels with different channel options within the project
 type namespace struct {
 	// Name is a unique namespace name in project
-	Name namespaceID `json:"name"`
+	Name NamespaceKey `json:"name"`
 
 	// ChannelOptions for namespace determine channel options for channels belonging to this namespace
 	ChannelOptions `mapstructure:",squash"`
 }
 
 type (
-	namespaceID string // Namespace ID
-	projectID   string // Project ID
-	channelID   string // Channel ID
-	userID      string // User ID
+	NamespaceKey string // Namespace ID
+	ProjectKey   string // Project ID
+	ChannelID    string // Channel ID
+	UserID       string // User ID
 )
 
 // structure contains some helper structures and methods to work with projects in namespaces
@@ -72,19 +72,19 @@ type (
 type structure struct {
 	sync.RWMutex
 	ProjectList  []project
-	ProjectMap   map[projectID]project
-	NamespaceMap map[projectID]map[namespaceID]namespace
+	ProjectMap   map[ProjectKey]project
+	NamespaceMap map[ProjectKey]map[NamespaceKey]namespace
 }
 
 // initialize initializes structure fields based on project list
 func (s *structure) initialize() {
 	s.Lock()
 	defer s.Unlock()
-	projectMap := map[projectID]project{}
-	namespaceMap := map[projectID]map[namespaceID]namespace{}
+	projectMap := map[ProjectKey]project{}
+	namespaceMap := map[ProjectKey]map[NamespaceKey]namespace{}
 	for _, p := range s.ProjectList {
 		projectMap[p.Name] = p
-		namespaceMap[p.Name] = map[namespaceID]namespace{}
+		namespaceMap[p.Name] = map[NamespaceKey]namespace{}
 		for _, n := range p.Namespaces {
 			namespaceMap[p.Name][n.Name] = n
 		}
@@ -144,7 +144,7 @@ func (s *structure) validate() error {
 }
 
 // projectByKey searches for a project with specified key in structure
-func (s *structure) projectByKey(projectKey projectID) (*project, bool) {
+func (s *structure) projectByKey(projectKey ProjectKey) (*project, bool) {
 	s.RLock()
 	defer s.RUnlock()
 	project, ok := s.ProjectMap[projectKey]
@@ -155,7 +155,7 @@ func (s *structure) projectByKey(projectKey projectID) (*project, bool) {
 }
 
 // channelOpts searches for channel options for specified project and namespace
-func (s *structure) channelOpts(projectKey projectID, namespaceName namespaceID) *ChannelOptions {
+func (s *structure) channelOpts(projectKey ProjectKey, namespaceName NamespaceKey) *ChannelOptions {
 	s.RLock()
 	defer s.RUnlock()
 	project, exists := s.projectByKey(projectKey)

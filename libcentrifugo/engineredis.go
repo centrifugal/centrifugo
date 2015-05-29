@@ -114,7 +114,7 @@ func (e *redisEngine) checkConnectionStatus() {
 }
 
 type redisApiRequest struct {
-	Project projectID
+	Project ProjectKey
 	Data    []apiCommand
 }
 

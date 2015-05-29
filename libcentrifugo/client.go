@@ -18,14 +18,14 @@ type client struct {
 	app           *application
 	sess          session
 	Uid           string
-	Project       projectID
-	User          userID
+	Project       ProjectKey
+	User          UserID
 	timestamp     int64
 	token         string
 	defaultInfo   []byte
 	authenticated bool
-	channelInfo   map[channelID][]byte
-	Channels      map[channelID]bool
+	channelInfo   map[ChannelID][]byte
+	Channels      map[ChannelID]bool
 	messageChan   chan string
 	closeChan     chan struct{}
 	expireTimer   *time.Timer
@@ -34,7 +34,7 @@ type client struct {
 // ClientInfo contains information about client to use in message
 // meta information, presence information, join/leave events etc.
 type ClientInfo struct {
-	User        userID           `json:"user"`
+	User        UserID           `json:"user"`
 	Client      string           `json:"client"`
 	DefaultInfo *json.RawMessage `json:"default_info"`
 	ChannelInfo *json.RawMessage `json:"channel_info"`
@@ -71,7 +71,7 @@ func (c *client) sendMessages() {
 
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
-func (c *client) updateChannelPresence(channel channelID) {
+func (c *client) updateChannelPresence(channel ChannelID) {
 	chOpts := c.app.channelOpts(c.Project, channel)
 	if chOpts == nil {
 		return
@@ -110,16 +110,16 @@ func (c *client) uid() string {
 	return c.Uid
 }
 
-func (c *client) project() projectID {
+func (c *client) project() ProjectKey {
 	return c.Project
 }
 
-func (c *client) user() userID {
+func (c *client) user() UserID {
 	return c.User
 }
 
-func (c *client) channels() []channelID {
-	keys := make([]channelID, len(c.Channels))
+func (c *client) channels() []ChannelID {
+	keys := make([]ChannelID, len(c.Channels))
 	i := 0
 	for k := range c.Channels {
 		keys[i] = k
@@ -128,7 +128,7 @@ func (c *client) channels() []channelID {
 	return keys
 }
 
-func (c *client) unsubscribe(channel channelID) error {
+func (c *client) unsubscribe(channel ChannelID) error {
 	c.Lock()
 	defer c.Unlock()
 	cmd := &unsubscribeClientCommand{
@@ -190,7 +190,7 @@ func (c *client) clean() error {
 	return nil
 }
 
-func (c *client) info(channel channelID) ClientInfo {
+func (c *client) info(channel ChannelID) ClientInfo {
 	channelInfo, ok := c.channelInfo[channel]
 	if !ok {
 		channelInfo = []byte{}
@@ -453,8 +453,8 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 
 	c.authenticated = true
 	c.defaultInfo = []byte(info)
-	c.Channels = map[channelID]bool{}
-	c.channelInfo = map[channelID][]byte{}
+	c.Channels = map[ChannelID]bool{}
+	c.channelInfo = map[ChannelID][]byte{}
 
 	go c.presencePing()
 

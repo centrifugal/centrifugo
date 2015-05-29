@@ -12,13 +12,13 @@ type clientHub struct {
 
 	// registry to hold active connections
 	// as map[of projects]map[of user IDs]map[unique connection IDs]connection
-	connections map[projectID]map[userID]map[string]clientConn
+	connections map[ProjectKey]map[UserID]map[string]clientConn
 }
 
 // newClientHub initializes connectionHub
 func newClientHub() *clientHub {
 	return &clientHub{
-		connections: make(map[projectID]map[userID]map[string]clientConn),
+		connections: make(map[ProjectKey]map[UserID]map[string]clientConn),
 	}
 }
 
@@ -55,7 +55,7 @@ func (h *clientHub) add(c clientConn) error {
 
 	_, ok := h.connections[project]
 	if !ok {
-		h.connections[project] = make(map[userID]map[string]clientConn)
+		h.connections[project] = make(map[UserID]map[string]clientConn)
 	}
 	_, ok = h.connections[project][user]
 	if !ok {
@@ -99,7 +99,7 @@ func (h *clientHub) remove(c clientConn) error {
 	return nil
 }
 
-func (h *clientHub) userConnections(projectKey projectID, user userID) map[string]clientConn {
+func (h *clientHub) userConnections(projectKey ProjectKey, user UserID) map[string]clientConn {
 	h.RLock()
 	defer h.RUnlock()
 

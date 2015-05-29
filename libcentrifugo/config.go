@@ -221,7 +221,7 @@ func getGlobalProject(v *viper.Viper) (*project, bool) {
 		if !viper.IsSet("project_name") || viper.GetString("project_name") == "" {
 			return nil, false
 		}
-		p.Name = projectID(viper.GetString("project_name"))
+		p.Name = ProjectKey(viper.GetString("project_name"))
 		p.Secret = viper.GetString("project_secret")
 		p.ConnLifetime = int64(viper.GetInt("project_connection_lifetime"))
 		p.Anonymous = viper.GetBool("project_anonymous")
@@ -235,7 +235,7 @@ func getGlobalProject(v *viper.Viper) (*project, bool) {
 		if !v.IsSet("project_name") || v.GetString("project_name") == "" {
 			return nil, false
 		}
-		p.Name = projectID(v.GetString("project_name"))
+		p.Name = ProjectKey(v.GetString("project_name"))
 		p.Secret = v.GetString("project_secret")
 		p.ConnLifetime = int64(v.GetInt("project_connection_lifetime"))
 		p.Anonymous = v.GetBool("project_anonymous")
