@@ -6,7 +6,7 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
-// handleApiCommand builds API command and dispatches it into correct handler method
+// apiCmd builds API command and dispatches it into correct handler method
 func (app *application) apiCmd(p *project, command apiCommand) (*response, error) {
 
 	var err error
@@ -66,7 +66,7 @@ func (app *application) apiCmd(p *project, command apiCommand) (*response, error
 	return resp, nil
 }
 
-// handlePublishCommand publishes data into channel
+// publishCmd publishes data into channel
 func (app *application) publishCmd(p *project, cmd *publishApiCommand) (*response, error) {
 
 	resp := newResponse("publish")
@@ -93,7 +93,7 @@ func (app *application) publishCmd(p *project, cmd *publishApiCommand) (*respons
 	return resp, nil
 }
 
-// handleUnsubscribeCommand unsubscribes project's user from channel and sends
+// unsubscribeCmd unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes
 func (app *application) unsubcribeCmd(p *project, cmd *unsubscribeApiCommand) (*response, error) {
 
@@ -130,7 +130,7 @@ func (app *application) unsubcribeCmd(p *project, cmd *unsubscribeApiCommand) (*
 	return resp, nil
 }
 
-// handleDisconnectCommand disconnects project's user and sends disconnect
+// disconnectCmd disconnects project's user and sends disconnect
 // control message to other nodes
 func (app *application) disconnectCmd(p *project, cmd *disconnectApiCommand) (*response, error) {
 
@@ -158,7 +158,7 @@ func (app *application) disconnectCmd(p *project, cmd *disconnectApiCommand) (*r
 	return resp, nil
 }
 
-// handlePresenceCommand returns response with presense information for project channel
+// presenceCmd returns response with presense information for project channel
 func (app *application) presenceCmd(p *project, cmd *presenceApiCommand) (*response, error) {
 
 	resp := newResponse("presence")
@@ -200,7 +200,7 @@ func (app *application) presenceCmd(p *project, cmd *presenceApiCommand) (*respo
 	return resp, nil
 }
 
-// handleHistoryCommand returns response with history information for project channel
+// historyCmd returns response with history information for project channel
 func (app *application) historyCmd(p *project, cmd *historyApiCommand) (*response, error) {
 
 	resp := newResponse("history")

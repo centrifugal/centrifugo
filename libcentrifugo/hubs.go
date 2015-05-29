@@ -6,7 +6,7 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
-// clientConnectionHub manages client connections
+// clientHub manages client connections
 type clientHub struct {
 	sync.RWMutex
 
@@ -22,6 +22,7 @@ func newClientHub() *clientHub {
 	}
 }
 
+// nClients returns total number of client connections
 func (h *clientHub) nClients() int {
 	h.RLock()
 	defer h.RUnlock()
@@ -34,6 +35,7 @@ func (h *clientHub) nClients() int {
 	return total
 }
 
+// nUniqueClients returns a number of unique users connected
 func (h *clientHub) nUniqueClients() int {
 	h.RLock()
 	defer h.RUnlock()
@@ -99,6 +101,7 @@ func (h *clientHub) remove(c clientConn) error {
 	return nil
 }
 
+// userConnections returns all connections of user with UserID in project
 func (h *clientHub) userConnections(pk ProjectKey, user UserID) map[ConnID]clientConn {
 	h.RLock()
 	defer h.RUnlock()
@@ -138,12 +141,14 @@ func newSubHub() *subHub {
 	}
 }
 
+// nChannels returns a total number of different channels
 func (h *subHub) nChannels() int {
 	h.RLock()
 	defer h.RUnlock()
 	return len(h.subs)
 }
 
+// channels returns a slice of all active channels
 func (h *subHub) channels() []ChannelID {
 	h.RLock()
 	defer h.RUnlock()
@@ -218,7 +223,7 @@ func (h *subHub) broadcast(chID ChannelID, message string) error {
 	return nil
 }
 
-// adminConnectionHub manages admin connections from web interface
+// adminHub manages admin connections from web interface
 type adminHub struct {
 	sync.RWMutex
 

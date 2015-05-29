@@ -273,7 +273,7 @@ func (c *client) handleCommands(commands []clientCommand) error {
 	return err
 }
 
-// handleCommand dispatches clientCommand into correct command handler
+// handleCmd dispatches clientCommand into correct command handler
 func (c *client) handleCmd(command clientCommand) (*response, error) {
 
 	var err error

@@ -25,7 +25,7 @@ type application struct {
 
 	// nodes is a map with information about nodes known
 	nodes map[string]*nodeInfo
-	// nodesMutex allows to synchronize access to nodes
+	// nodesMu allows to synchronize access to nodes
 	nodesMu sync.Mutex
 
 	// hub to manage client connections
@@ -226,6 +226,7 @@ func (app *application) pubAdmin(message []byte) error {
 	return app.engine.publish(app.config.adminChannel, message)
 }
 
+// Message represents client message
 type Message struct {
 	Uid       string           `json:"uid"`
 	Timestamp string           `json:"timestamp"`
@@ -511,7 +512,7 @@ func (app *application) removePresence(pk ProjectKey, ch Channel, uid ConnID) er
 	return app.engine.removePresence(chID, uid)
 }
 
-// getPresence proxies presence extraction to engine
+// presence proxies presence extraction to engine
 func (app *application) presence(pk ProjectKey, ch Channel) (map[ConnID]ClientInfo, error) {
 	chID := app.channelID(pk, ch)
 	return app.engine.presence(chID)
@@ -523,7 +524,7 @@ func (app *application) addHistory(pk ProjectKey, ch Channel, message Message, s
 	return app.engine.addHistoryMessage(chID, message, size, lifetime)
 }
 
-// getHistory proxies history extraction to engine
+// history proxies history extraction to engine
 func (app *application) history(pk ProjectKey, ch Channel) ([]Message, error) {
 	chID := app.channelID(pk, ch)
 	return app.engine.history(chID)
@@ -587,6 +588,7 @@ const (
 	AuthTokenValue = "authorized"
 )
 
+// checkAuthToken checks admin connection token which Centrifugo returns after admin login
 func (app *application) checkAuthToken(token string) error {
 
 	app.RLock()

@@ -136,6 +136,7 @@ type disconnectControlCommand struct {
 	User    UserID
 }
 
+// authAdminCommand required to authorize admin connection
 type authAdminCommand struct {
 	Token string
 }
