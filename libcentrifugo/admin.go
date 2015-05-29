@@ -16,7 +16,7 @@ type adminSession interface {
 // adminClient is a wrapper over admin websocket connection
 type adminClient struct {
 	app       *application
-	Uid       string
+	Uid       ConnID
 	sess      adminSession
 	writeChan chan []byte
 	closeChan chan struct{}
@@ -28,7 +28,7 @@ func newAdminClient(app *application, s adminSession) (*adminClient, error) {
 		return nil, err
 	}
 	return &adminClient{
-		Uid:       uid.String(),
+		Uid:       ConnID(uid.String()),
 		app:       app,
 		sess:      s,
 		writeChan: make(chan []byte, 256),
@@ -36,7 +36,7 @@ func newAdminClient(app *application, s adminSession) (*adminClient, error) {
 	}, nil
 }
 
-func (c *adminClient) uid() string {
+func (c *adminClient) uid() ConnID {
 	return c.Uid
 }
 

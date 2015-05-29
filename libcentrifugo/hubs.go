@@ -224,13 +224,13 @@ type adminHub struct {
 
 	// registry to hold active admin connections
 	// as map[unique admin connection IDs]*connection
-	connections map[string]adminConn
+	connections map[ConnID]adminConn
 }
 
 // newAdminHub initializes new adminHub
 func newAdminHub() *adminHub {
 	return &adminHub{
-		connections: make(map[string]adminConn),
+		connections: make(map[ConnID]adminConn),
 	}
 }
 
