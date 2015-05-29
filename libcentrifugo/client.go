@@ -17,7 +17,7 @@ type client struct {
 	sync.Mutex
 	app           *application
 	sess          session
-	Uid           string
+	Uid           ConnID
 	Project       ProjectKey
 	User          UserID
 	timestamp     int64
@@ -35,7 +35,7 @@ type client struct {
 // meta information, presence information, join/leave events etc.
 type ClientInfo struct {
 	User        UserID           `json:"user"`
-	Client      string           `json:"client"`
+	Client      ConnID           `json:"client"`
 	DefaultInfo *json.RawMessage `json:"default_info"`
 	ChannelInfo *json.RawMessage `json:"channel_info"`
 }
@@ -46,7 +46,7 @@ func newClient(app *application, s session) (*client, error) {
 		return nil, err
 	}
 	return &client{
-		Uid:         uid.String(),
+		Uid:         ConnID(uid.String()),
 		app:         app,
 		sess:        s,
 		messageChan: make(chan string, 256),
@@ -106,7 +106,7 @@ func (c *client) presencePing() {
 	}
 }
 
-func (c *client) uid() string {
+func (c *client) uid() ConnID {
 	return c.Uid
 }
 
@@ -587,7 +587,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 
 	if c.app.privateChannel(channel) {
 		// private channel - subscription must be properly signed
-		if c.Uid != string(cmd.Client) {
+		if string(c.Uid) != string(cmd.Client) {
 			resp.Err(ErrPermissionDenied)
 			return resp, nil
 		}

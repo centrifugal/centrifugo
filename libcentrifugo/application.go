@@ -134,7 +134,7 @@ func (app *application) setEngine(e engine) {
 
 // handleMsg called when new message of any type received by this node.
 // It looks at channel and decides which message handler to call
-func (app *application) handleMsg(channel string, message []byte) error {
+func (app *application) handleMsg(channel ChannelID, message []byte) error {
 	switch channel {
 	case app.config.controlChannel:
 		return app.controlMsg(message)
@@ -206,7 +206,7 @@ func (app *application) adminMsg(message []byte) error {
 // clientMsg handles messages published by web application or client
 // into channel. The goal of this method to deliver this message to all clients
 // on this node subscribed on channel
-func (app *application) clientMsg(channel string, message []byte) error {
+func (app *application) clientMsg(channel ChannelID, message []byte) error {
 	return app.subs.broadcast(channel, string(message))
 }
 
@@ -403,10 +403,10 @@ func (app *application) disconnectCmd(cmd *disconnectControlCommand) error {
 // every project can have channels with the same name we should distinguish
 // between them. This also prevents collapses with admin and control
 // channel names
-func (app *application) projectChannel(pk ProjectKey, channel ChannelID) string {
+func (app *application) projectChannel(pk ProjectKey, channel ChannelID) ChannelID {
 	app.RLock()
 	defer app.RUnlock()
-	return app.config.channelPrefix + "." + string(pk) + "." + string(channel)
+	return ChannelID(app.config.channelPrefix + "." + string(pk) + "." + string(channel))
 }
 
 // addConn registers authenticated connection in clientConnectionHub
@@ -505,19 +505,19 @@ func (app *application) channelOpts(p ProjectKey, c ChannelID) *ChannelOptions {
 }
 
 // addPresence proxies presence adding to engine
-func (app *application) addPresence(pk ProjectKey, channel ChannelID, uid string, info ClientInfo) error {
+func (app *application) addPresence(pk ProjectKey, channel ChannelID, uid ConnID, info ClientInfo) error {
 	projectChannel := app.projectChannel(pk, channel)
 	return app.engine.addPresence(projectChannel, uid, info)
 }
 
 // removePresence proxies presence removing to engine
-func (app *application) removePresence(pk ProjectKey, channel ChannelID, uid string) error {
+func (app *application) removePresence(pk ProjectKey, channel ChannelID, uid ConnID) error {
 	projectChannel := app.projectChannel(pk, channel)
 	return app.engine.removePresence(projectChannel, uid)
 }
 
 // getPresence proxies presence extraction to engine
-func (app *application) presence(pk ProjectKey, channel ChannelID) (map[string]ClientInfo, error) {
+func (app *application) presence(pk ProjectKey, channel ChannelID) (map[ConnID]ClientInfo, error) {
 	projectChannel := app.projectChannel(pk, channel)
 	return app.engine.presence(projectChannel)
 }

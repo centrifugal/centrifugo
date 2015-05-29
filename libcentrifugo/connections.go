@@ -4,7 +4,7 @@ package libcentrifugo
 // by application to interact with client connection
 type clientConn interface {
 	// uid returns unique connection id
-	uid() string
+	uid() ConnID
 	// project returns connection project key
 	project() ProjectKey
 	// user return user ID associated with connection

@@ -65,6 +65,7 @@ type (
 	ProjectKey   string // Project ID
 	ChannelID    string // Channel ID
 	UserID       string // User ID
+	ConnID       string // Connection ID
 )
 
 // structure contains some helper structures and methods to work with projects in namespaces
