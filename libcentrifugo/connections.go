@@ -14,7 +14,7 @@ type clientConn interface {
 	// send allows to send message to connection client
 	send(message string) error
 	// unsubscribe allows to unsubscribe connection from channel
-	unsubscribe(channel Channel) error
+	unsubscribe(ch Channel) error
 	// close closes client's connection
 	close(reason string) error
 }

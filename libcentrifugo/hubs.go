@@ -157,53 +157,53 @@ func (h *subHub) channels() []Channel {
 }
 
 // add adds connection into clientSubscriptionHub subscriptions registry
-func (h *subHub) add(channel Channel, c clientConn) error {
+func (h *subHub) add(ch Channel, c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
 	uid := c.uid()
 
-	_, ok := h.subs[channel]
+	_, ok := h.subs[ch]
 	if !ok {
-		h.subs[channel] = make(map[ConnID]clientConn)
+		h.subs[ch] = make(map[ConnID]clientConn)
 	}
-	h.subs[channel][uid] = c
+	h.subs[ch][uid] = c
 	return nil
 }
 
 // remove removes connection from clientSubscriptionHub subscriptions registry
-func (h *subHub) remove(channel Channel, c clientConn) error {
+func (h *subHub) remove(ch Channel, c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
 	uid := c.uid()
 
 	// try to find subscription to delete, return early if not found
-	if _, ok := h.subs[channel]; !ok {
+	if _, ok := h.subs[ch]; !ok {
 		return nil
 	}
-	if _, ok := h.subs[channel][uid]; !ok {
+	if _, ok := h.subs[ch][uid]; !ok {
 		return nil
 	}
 
 	// actually remove subscription from hub
-	delete(h.subs[channel], uid)
+	delete(h.subs[ch], uid)
 
 	// clean up map if it's needed
-	if len(h.subs[channel]) == 0 {
-		delete(h.subs, channel)
+	if len(h.subs[ch]) == 0 {
+		delete(h.subs, ch)
 	}
 
 	return nil
 }
 
 // broadcast sends message to all clients subscribed on channel
-func (h *subHub) broadcast(channel Channel, message string) error {
+func (h *subHub) broadcast(ch Channel, message string) error {
 	h.RLock()
 	defer h.RUnlock()
 
 	// get connections currently subscribed on channel
-	channelSubscriptions, ok := h.subs[channel]
+	channelSubscriptions, ok := h.subs[ch]
 	if !ok {
 		return nil
 	}

@@ -199,34 +199,34 @@ func (e *redisEngine) initializePubSub() {
 	}
 }
 
-func (e *redisEngine) publish(channel Channel, message []byte) error {
+func (e *redisEngine) publish(ch Channel, message []byte) error {
 	conn := e.pool.Get()
 	defer conn.Close()
-	_, err := conn.Do("PUBLISH", channel, message)
+	_, err := conn.Do("PUBLISH", ch, message)
 	return err
 }
 
-func (e *redisEngine) subscribe(channel Channel) error {
-	return e.psc.Subscribe(channel)
+func (e *redisEngine) subscribe(ch Channel) error {
+	return e.psc.Subscribe(ch)
 }
 
-func (e *redisEngine) unsubscribe(channel Channel) error {
-	return e.psc.Unsubscribe(channel)
+func (e *redisEngine) unsubscribe(ch Channel) error {
+	return e.psc.Unsubscribe(ch)
 }
 
-func (e *redisEngine) getHashKey(channel Channel) string {
-	return e.app.config.channelPrefix + ".presence.hash." + string(channel)
+func (e *redisEngine) getHashKey(ch Channel) string {
+	return e.app.config.channelPrefix + ".presence.hash." + string(ch)
 }
 
-func (e *redisEngine) getSetKey(channel Channel) string {
-	return e.app.config.channelPrefix + ".presence.set." + string(channel)
+func (e *redisEngine) getSetKey(ch Channel) string {
+	return e.app.config.channelPrefix + ".presence.set." + string(ch)
 }
 
-func (e *redisEngine) getHistoryKey(channel Channel) string {
-	return e.app.config.channelPrefix + ".history.list." + string(channel)
+func (e *redisEngine) getHistoryKey(ch Channel) string {
+	return e.app.config.channelPrefix + ".history.list." + string(ch)
 }
 
-func (e *redisEngine) addPresence(channel Channel, uid ConnID, info ClientInfo) error {
+func (e *redisEngine) addPresence(ch Channel, uid ConnID, info ClientInfo) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 	infoJson, err := json.Marshal(info)
@@ -234,8 +234,8 @@ func (e *redisEngine) addPresence(channel Channel, uid ConnID, info ClientInfo) 
 		return err
 	}
 	expireAt := time.Now().Unix() + e.app.config.presenceExpireInterval
-	hashKey := e.getHashKey(channel)
-	setKey := e.getSetKey(channel)
+	hashKey := e.getHashKey(ch)
+	setKey := e.getSetKey(ch)
 	conn.Send("MULTI")
 	conn.Send("ZADD", setKey, expireAt, uid)
 	conn.Send("HSET", hashKey, uid, infoJson)
@@ -243,11 +243,11 @@ func (e *redisEngine) addPresence(channel Channel, uid ConnID, info ClientInfo) 
 	return err
 }
 
-func (e *redisEngine) removePresence(channel Channel, uid ConnID) error {
+func (e *redisEngine) removePresence(ch Channel, uid ConnID) error {
 	conn := e.pool.Get()
 	defer conn.Close()
-	hashKey := e.getHashKey(channel)
-	setKey := e.getSetKey(channel)
+	hashKey := e.getHashKey(ch)
+	setKey := e.getSetKey(ch)
 	conn.Send("MULTI")
 	conn.Send("HDEL", hashKey, uid)
 	conn.Send("ZREM", setKey, uid)
@@ -300,12 +300,12 @@ func mapStringClientInfo(result interface{}, err error) (map[ConnID]ClientInfo, 
 	return m, nil
 }
 
-func (e *redisEngine) presence(channel Channel) (map[ConnID]ClientInfo, error) {
+func (e *redisEngine) presence(ch Channel) (map[ConnID]ClientInfo, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 	now := time.Now().Unix()
-	hashKey := e.getHashKey(channel)
-	setKey := e.getSetKey(channel)
+	hashKey := e.getHashKey(ch)
+	setKey := e.getSetKey(ch)
 	reply, err := conn.Do("ZRANGEBYSCORE", setKey, 0, now)
 	if err != nil {
 		return nil, err
@@ -332,11 +332,11 @@ func (e *redisEngine) presence(channel Channel) (map[ConnID]ClientInfo, error) {
 	return mapStringClientInfo(reply, nil)
 }
 
-func (e *redisEngine) addHistoryMessage(channel Channel, message Message, size, lifetime int64) error {
+func (e *redisEngine) addHistoryMessage(ch Channel, message Message, size, lifetime int64) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 
-	historyKey := e.getHistoryKey(channel)
+	historyKey := e.getHistoryKey(ch)
 	messageJson, err := json.Marshal(message)
 	if err != nil {
 		return err
@@ -370,10 +370,10 @@ func sliceOfMessages(result interface{}, err error) ([]Message, error) {
 	return msgs, nil
 }
 
-func (e *redisEngine) history(channel Channel) ([]Message, error) {
+func (e *redisEngine) history(ch Channel) ([]Message, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
-	historyKey := e.getHistoryKey(channel)
+	historyKey := e.getHistoryKey(ch)
 	reply, err := conn.Do("LRANGE", historyKey, 0, -1)
 	if err != nil {
 		return nil, err

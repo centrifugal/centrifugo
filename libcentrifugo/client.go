@@ -71,15 +71,15 @@ func (c *client) sendMessages() {
 
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
-func (c *client) updateChannelPresence(channel Channel) {
-	chOpts := c.app.channelOpts(c.Project, channel)
+func (c *client) updateChannelPresence(ch Channel) {
+	chOpts := c.app.channelOpts(c.Project, ch)
 	if chOpts == nil {
 		return
 	}
 	if !chOpts.Presence {
 		return
 	}
-	c.app.addPresence(c.Project, channel, c.Uid, c.info(channel))
+	c.app.addPresence(c.Project, ch, c.Uid, c.info(ch))
 }
 
 // updatePresence updates presence info for all client channels
@@ -128,11 +128,11 @@ func (c *client) channels() []Channel {
 	return keys
 }
 
-func (c *client) unsubscribe(channel Channel) error {
+func (c *client) unsubscribe(ch Channel) error {
 	c.Lock()
 	defer c.Unlock()
 	cmd := &unsubscribeClientCommand{
-		Channel: channel,
+		Channel: ch,
 	}
 	resp, err := c.unsubscribeCmd(cmd)
 	if err != nil {
@@ -190,8 +190,8 @@ func (c *client) clean() error {
 	return nil
 }
 
-func (c *client) info(channel Channel) ClientInfo {
-	channelInfo, ok := c.channelInfo[channel]
+func (c *client) info(ch Channel) ClientInfo {
+	channelInfo, ok := c.channelInfo[ch]
 	if !ok {
 		channelInfo = []byte{}
 	}
