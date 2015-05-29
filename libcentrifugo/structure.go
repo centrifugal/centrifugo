@@ -126,17 +126,17 @@ func (s *structure) validate() error {
 		if p.Namespaces == nil {
 			continue
 		}
-		var namespaceNames []string
+		var nss []string
 		for _, n := range p.Namespaces {
 			name := string(n.Name)
 			match, _ := regexp.MatchString(pattern, name)
 			if !match {
 				return errors.New(errPrefix + "wrong namespace name – " + name)
 			}
-			if stringInSlice(name, namespaceNames) {
+			if stringInSlice(name, nss) {
 				return errors.New(errPrefix + "namespace name must be unique for project – " + name)
 			}
-			namespaceNames = append(namespaceNames, name)
+			nss = append(nss, name)
 		}
 
 	}
@@ -144,10 +144,10 @@ func (s *structure) validate() error {
 }
 
 // projectByKey searches for a project with specified key in structure
-func (s *structure) projectByKey(projectKey ProjectKey) (*project, bool) {
+func (s *structure) projectByKey(pk ProjectKey) (*project, bool) {
 	s.RLock()
 	defer s.RUnlock()
-	project, ok := s.ProjectMap[projectKey]
+	project, ok := s.ProjectMap[pk]
 	if !ok {
 		return nil, false
 	}
@@ -155,17 +155,17 @@ func (s *structure) projectByKey(projectKey ProjectKey) (*project, bool) {
 }
 
 // channelOpts searches for channel options for specified project and namespace
-func (s *structure) channelOpts(projectKey ProjectKey, namespaceName NamespaceKey) *ChannelOptions {
+func (s *structure) channelOpts(pk ProjectKey, ns NamespaceKey) *ChannelOptions {
 	s.RLock()
 	defer s.RUnlock()
-	project, exists := s.projectByKey(projectKey)
+	project, exists := s.projectByKey(pk)
 	if !exists {
 		return nil
 	}
-	if namespaceName == "" {
+	if ns == "" {
 		return &project.ChannelOptions
 	} else {
-		namespace, exists := s.NamespaceMap[projectKey][namespaceName]
+		namespace, exists := s.NamespaceMap[pk][ns]
 		if !exists {
 			return nil
 		}

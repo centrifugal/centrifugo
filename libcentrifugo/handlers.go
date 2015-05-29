@@ -165,7 +165,7 @@ type jsonApiRequest struct {
 
 func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 
-	projectKey := ProjectKey(r.URL.Path[len("/api/"):])
+	pk := ProjectKey(r.URL.Path[len("/api/"):])
 	contentType := r.Header.Get("Content-Type")
 
 	var sign string
@@ -201,16 +201,16 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project, exists := app.projectByKey(projectKey)
+	project, exists := app.projectByKey(pk)
 	if !exists {
-		logger.ERROR.Println("no project found with key", projectKey)
+		logger.ERROR.Println("no project found with key", pk)
 		http.Error(w, "Project not found", http.StatusNotFound)
 		return
 	}
 
 	secret := project.Secret
 
-	isValid := auth.CheckApiSign(secret, string(projectKey), encodedData, sign)
+	isValid := auth.CheckApiSign(secret, string(pk), encodedData, sign)
 	if !isValid {
 		logger.ERROR.Println("invalid sign")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -324,10 +324,10 @@ func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
-	projectKey := ProjectKey(r.FormValue("project"))
+	pk := ProjectKey(r.FormValue("project"))
 	method := r.FormValue("method")
 
-	project, exists := app.projectByKey(projectKey)
+	project, exists := app.projectByKey(pk)
 	if !exists {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return

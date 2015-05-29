@@ -163,9 +163,9 @@ func (c *client) close(reason string) error {
 func (c *client) clean() error {
 	c.Lock()
 	defer c.Unlock()
-	projectKey := c.Project
+	pk := c.Project
 
-	if projectKey != "" && len(c.Channels) > 0 {
+	if pk != "" && len(c.Channels) > 0 {
 		// unsubscribe from all channels
 		for channel, _ := range c.Channels {
 			cmd := &unsubscribeClientCommand{
@@ -178,7 +178,7 @@ func (c *client) clean() error {
 		}
 	}
 
-	if projectKey != "" {
+	if pk != "" {
 		err := c.app.removeConn(c)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -392,7 +392,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	projectKey := cmd.Project
+	pk := cmd.Project
 	user := cmd.User
 	info := cmd.Info
 
@@ -406,13 +406,13 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 		token = ""
 	}
 
-	project, exists := c.app.projectByKey(projectKey)
+	project, exists := c.app.projectByKey(pk)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
 
 	if !c.app.config.insecure {
-		isValid := auth.CheckClientToken(project.Secret, string(projectKey), string(user), timestamp, info, token)
+		isValid := auth.CheckClientToken(project.Secret, string(pk), string(user), timestamp, info, token)
 		if !isValid {
 			logger.ERROR.Println("invalid token for user", user)
 			return nil, ErrInvalidToken
@@ -431,7 +431,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	}
 
 	c.User = user
-	c.Project = projectKey
+	c.Project = pk
 
 	var ttl interface{}
 	var timeToExpire int64 = 0
@@ -484,18 +484,18 @@ func (c *client) refreshCmd(cmd *refreshClientCommand) (*response, error) {
 
 	resp := newResponse("refresh")
 
-	projectKey := cmd.Project
+	pk := cmd.Project
 	user := cmd.User
 	info := cmd.Info
 	timestamp := cmd.Timestamp
 	token := cmd.Token
 
-	project, exists := c.app.projectByKey(projectKey)
+	project, exists := c.app.projectByKey(pk)
 	if !exists {
 		return nil, ErrProjectNotFound
 	}
 
-	isValid := auth.CheckClientToken(project.Secret, string(projectKey), string(user), timestamp, info, token)
+	isValid := auth.CheckClientToken(project.Secret, string(pk), string(user), timestamp, info, token)
 	if !isValid {
 		logger.ERROR.Println("invalid refresh token for user", user)
 		return nil, ErrInvalidToken

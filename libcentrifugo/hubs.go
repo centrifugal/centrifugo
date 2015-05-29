@@ -99,16 +99,16 @@ func (h *clientHub) remove(c clientConn) error {
 	return nil
 }
 
-func (h *clientHub) userConnections(projectKey ProjectKey, user UserID) map[string]clientConn {
+func (h *clientHub) userConnections(pk ProjectKey, user UserID) map[string]clientConn {
 	h.RLock()
 	defer h.RUnlock()
 
-	_, ok := h.connections[projectKey]
+	_, ok := h.connections[pk]
 	if !ok {
 		return map[string]clientConn{}
 	}
 
-	userConnections, ok := h.connections[projectKey][user]
+	userConnections, ok := h.connections[pk][user]
 	if !ok {
 		return map[string]clientConn{}
 	}
