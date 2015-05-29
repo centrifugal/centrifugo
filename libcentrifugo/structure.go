@@ -144,7 +144,7 @@ func (s *structure) validate() error {
 }
 
 // projectByKey searches for a project with specified key in structure
-func (s *structure) projectByKey(projectKey string) (*project, bool) {
+func (s *structure) projectByKey(projectKey projectID) (*project, bool) {
 	s.RLock()
 	defer s.RUnlock()
 	project, ok := s.ProjectMap[projectKey]
