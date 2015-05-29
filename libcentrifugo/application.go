@@ -134,7 +134,7 @@ func (app *application) setEngine(e engine) {
 
 // handleMsg called when new message of any type received by this node.
 // It looks at channel and decides which message handler to call
-func (app *application) handleMsg(ch Channel, message []byte) error {
+func (app *application) handleMsg(ch ChannelID, message []byte) error {
 	switch ch {
 	case app.config.controlChannel:
 		return app.controlMsg(message)
@@ -206,7 +206,7 @@ func (app *application) adminMsg(message []byte) error {
 // clientMsg handles messages published by web application or client
 // into channel. The goal of this method to deliver this message to all clients
 // on this node subscribed on channel
-func (app *application) clientMsg(channel Channel, message []byte) error {
+func (app *application) clientMsg(channel ChannelID, message []byte) error {
 	return app.subs.broadcast(channel, string(message))
 }
 
@@ -403,10 +403,10 @@ func (app *application) disconnectCmd(cmd *disconnectControlCommand) error {
 // every project can have channels with the same name we should distinguish
 // between them. This also prevents collapses with admin and control
 // channel names
-func (app *application) projectChannel(pk ProjectKey, ch Channel) Channel {
+func (app *application) projectChannel(pk ProjectKey, ch Channel) ChannelID {
 	app.RLock()
 	defer app.RUnlock()
-	return Channel(app.config.channelPrefix + "." + string(pk) + "." + string(ch))
+	return ChannelID(app.config.channelPrefix + "." + string(pk) + "." + string(ch))
 }
 
 // addConn registers authenticated connection in clientConnectionHub
