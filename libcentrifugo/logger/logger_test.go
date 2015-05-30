@@ -18,7 +18,11 @@ func TestLevels(t *testing.T) {
 	assert.Equal(t, outputThreshold, LevelWarn)
 }
 
-func TestFlag(t *testing.T) {
+func TestSetLogFile(t *testing.T) {
+	SetLogFile("/tmp/testing")
+}
+
+func TestSetLogFlag(t *testing.T) {
 	SetLogFlag(log.Ldate)
 	assert.Equal(t, Flag, log.Ldate)
 }

@@ -6,39 +6,49 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testClientConnection struct{}
+type testClientConn struct{}
 
-func (c *testClientConnection) uid() ConnID {
+func (c *testClientConn) uid() ConnID {
 	return "test uid"
 }
 
-func (c *testClientConnection) project() ProjectKey {
+func (c *testClientConn) project() ProjectKey {
 	return "test project"
 }
 
-func (c *testClientConnection) user() UserID {
+func (c *testClientConn) user() UserID {
 	return "test user"
 }
 
-func (c *testClientConnection) channels() []Channel {
+func (c *testClientConn) channels() []Channel {
 	return []Channel{"test"}
 }
 
-func (c *testClientConnection) send(message string) error {
+func (c *testClientConn) send(message string) error {
 	return nil
 }
 
-func (c *testClientConnection) unsubscribe(channel Channel) error {
+func (c *testClientConn) unsubscribe(channel Channel) error {
 	return nil
 }
 
-func (c *testClientConnection) close(reason string) error {
+func (c *testClientConn) close(reason string) error {
 	return nil
 }
 
-func TestClientConnectionHub(t *testing.T) {
+type testAdminConn struct{}
+
+func (c *testAdminConn) uid() ConnID {
+	return "test uid"
+}
+
+func (c *testAdminConn) send(message string) error {
+	return nil
+}
+
+func TestClientHub(t *testing.T) {
 	h := newClientHub()
-	c := &testClientConnection{}
+	c := &testClientConn{}
 	h.add(c)
 	assert.Equal(t, len(h.connections), 1)
 	conns := h.userConnections("test project", "test user")
@@ -50,22 +60,34 @@ func TestClientConnectionHub(t *testing.T) {
 	assert.Equal(t, 1, len(conns))
 }
 
-func getTestClientSubscriptionHub() *subHub {
-	return newSubHub()
-}
-
-func TestClientSubscriptionHub(t *testing.T) {
-	h := getTestClientSubscriptionHub()
-	c := &testClientConnection{}
+func TestSubHub(t *testing.T) {
+	h := newSubHub()
+	c := &testClientConn{}
 	h.add("test1", c)
 	h.add("test2", c)
 	assert.Equal(t, 2, h.nChannels())
-	// FIXME(klauspost): Need to test in channel array
-	// channels := h.channels()
-	//assert.Equal(t, stringInSlice("test1", channels), true)
-	//assert.Equal(t, stringInSlice("test2", channels), true)
+	channels := []string{}
+	for _, ch := range h.channels() {
+		channels = append(channels, string(ch))
+	}
+	assert.Equal(t, stringInSlice("test1", channels), true)
+	assert.Equal(t, stringInSlice("test2", channels), true)
 	err := h.broadcast("test1", "message")
 	assert.Equal(t, err, nil)
 	h.remove("test1", c)
 	h.remove("test2", c)
+	assert.Equal(t, len(h.subs), 0)
+}
+
+func TestAdminHub(t *testing.T) {
+	h := newAdminHub()
+	c := &testAdminConn{}
+	err := h.add(c)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, len(h.connections), 1)
+	err = h.broadcast("message")
+	assert.Equal(t, err, nil)
+	err = h.remove(c)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, len(h.connections), 0)
 }

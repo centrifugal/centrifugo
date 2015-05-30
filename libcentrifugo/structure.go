@@ -156,21 +156,21 @@ func (s *structure) projectByKey(pk ProjectKey) (*project, bool) {
 	return &project, true
 }
 
-// channelOpts searches for channel options for specified project and namespace
-func (s *structure) channelOpts(pk ProjectKey, ns NamespaceKey) *ChannelOptions {
+// channelOpts searches for channel options for specified project key and namespace key
+func (s *structure) channelOpts(pk ProjectKey, ns NamespaceKey) (ChannelOptions, error) {
 	s.RLock()
 	defer s.RUnlock()
 	project, exists := s.projectByKey(pk)
 	if !exists {
-		return nil
+		return ChannelOptions{}, ErrProjectNotFound
 	}
-	if ns == "" {
-		return &project.ChannelOptions
+	if ns == NamespaceKey("") {
+		return project.ChannelOptions, nil
 	} else {
 		namespace, exists := s.NamespaceMap[pk][ns]
 		if !exists {
-			return nil
+			return ChannelOptions{}, ErrNamespaceNotFound
 		}
-		return &namespace.ChannelOptions
+		return namespace.ChannelOptions, nil
 	}
 }

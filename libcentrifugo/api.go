@@ -78,13 +78,13 @@ func (app *application) publishCmd(p *project, cmd *publishApiCommand) (*respons
 		return nil, ErrInvalidApiMessage
 	}
 
-	chOpts := app.channelOpts(p.Name, channel)
-	if chOpts == nil {
-		resp.Err(ErrNamespaceNotFound)
+	chOpts, err := app.channelOpts(p.Name, channel)
+	if err != nil {
+		resp.Err(err)
 		return resp, nil
 	}
 
-	err := app.pubClient(p, channel, chOpts, data, nil)
+	err = app.pubClient(p, channel, chOpts, data, nil)
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)
@@ -108,9 +108,9 @@ func (app *application) unsubcribeCmd(p *project, cmd *unsubscribeApiCommand) (*
 	}
 
 	if channel != "" {
-		chOpts := app.channelOpts(p.Name, channel)
-		if chOpts == nil {
-			resp.Err(ErrNamespaceNotFound)
+		_, err := app.channelOpts(p.Name, channel)
+		if err != nil {
+			resp.Err(err)
 			return resp, nil
 		}
 	}
@@ -176,9 +176,9 @@ func (app *application) presenceCmd(p *project, cmd *presenceApiCommand) (*respo
 
 	resp.Body = body
 
-	chOpts := app.channelOpts(p.Name, channel)
-	if chOpts == nil {
-		resp.Err(ErrNamespaceNotFound)
+	chOpts, err := app.channelOpts(p.Name, channel)
+	if err != nil {
+		resp.Err(err)
 		return resp, nil
 	}
 
@@ -218,9 +218,9 @@ func (app *application) historyCmd(p *project, cmd *historyApiCommand) (*respons
 
 	resp.Body = body
 
-	chOpts := app.channelOpts(p.Name, channel)
-	if chOpts == nil {
-		resp.Err(ErrNamespaceNotFound)
+	chOpts, err := app.channelOpts(p.Name, channel)
+	if err != nil {
+		resp.Err(err)
 		return resp, nil
 	}
 

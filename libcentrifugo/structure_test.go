@@ -2,12 +2,17 @@ package libcentrifugo
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func getTestChannelOptions() ChannelOptions {
 	return ChannelOptions{
-		Watch:   true,
-		Publish: true,
+		Watch:           true,
+		Publish:         true,
+		Presence:        true,
+		HistorySize:     1,
+		HistoryLifetime: 1,
 	}
 }
 
@@ -36,12 +41,12 @@ func getTestStructure() *structure {
 	s := &structure{
 		ProjectList: pl,
 	}
+	s.initialize()
 	return s
 }
 
 func TestStructureInitialize(t *testing.T) {
 	s := getTestStructure()
-	s.initialize()
 	if len(s.ProjectMap) != 2 {
 		t.Error("malformed project map")
 	}
@@ -52,30 +57,26 @@ func TestStructureInitialize(t *testing.T) {
 
 func TestGetProjectByKey(t *testing.T) {
 	s := getTestStructure()
-	s.initialize()
+
 	_, found := s.projectByKey("test3")
-	if found {
-		t.Error("found project that does not exist")
-	}
+	assert.Equal(t, false, found, "found project that does not exist")
+
 	_, found = s.projectByKey("test2")
-	if !found {
-		t.Error("project not found")
-	}
+	assert.Equal(t, true, found)
 }
 
 func TestGetChannelOptions(t *testing.T) {
 	s := getTestStructure()
-	s.initialize()
-	options := s.channelOpts("test1", "test")
-	if options == nil {
-		t.Error("namespace channel options not found")
-	}
-	options = s.channelOpts("test1", "")
-	if options == nil {
-		t.Error("project channel options not found")
-	}
-	options = s.channelOpts("test1", "notexist")
-	if options != nil {
-		t.Error("found channel options for namespace that does not exist")
-	}
+
+	_, err := s.channelOpts("wrong_project_key", "test")
+	assert.Equal(t, ErrProjectNotFound, err)
+
+	_, err = s.channelOpts("test1", "test")
+	assert.Equal(t, nil, err)
+
+	_, err = s.channelOpts("test1", "")
+	assert.Equal(t, nil, err)
+
+	_, err = s.channelOpts("test1", "wrongnamespacekey")
+	assert.Equal(t, ErrNamespaceNotFound, err)
 }

@@ -72,8 +72,8 @@ func (c *client) sendMessages() {
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
 func (c *client) updateChannelPresence(ch Channel) {
-	chOpts := c.app.channelOpts(c.Project, ch)
-	if chOpts == nil {
+	chOpts, err := c.app.channelOpts(c.Project, ch)
+	if err != nil {
 		return
 	}
 	if !chOpts.Presence {
@@ -574,9 +574,9 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	chOpts := c.app.channelOpts(c.Project, channel)
-	if chOpts == nil {
-		resp.Err(ErrNamespaceNotFound)
+	chOpts, err := c.app.channelOpts(c.Project, channel)
+	if err != nil {
+		resp.Err(err)
 		return resp, nil
 	}
 
@@ -599,7 +599,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 		c.channelInfo[channel] = []byte(cmd.Info)
 	}
 
-	err := c.app.addSub(c.Project, channel, c)
+	err = c.app.addSub(c.Project, channel, c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return resp, ErrInternalServerError
@@ -643,13 +643,13 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 	}
 	resp.Body = body
 
-	chOpts := c.app.channelOpts(c.Project, channel)
-	if chOpts == nil {
-		resp.Err(ErrNamespaceNotFound)
+	chOpts, err := c.app.channelOpts(c.Project, channel)
+	if err != nil {
+		resp.Err(err)
 		return resp, nil
 	}
 
-	err := c.app.removeSub(c.Project, channel, c)
+	err = c.app.removeSub(c.Project, channel, c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return resp, ErrInternalServerError
@@ -708,9 +708,9 @@ func (c *client) publishCmd(cmd *publishClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	chOpts := c.app.channelOpts(c.Project, channel)
-	if chOpts == nil {
-		resp.Err(ErrNamespaceNotFound)
+	chOpts, err := c.app.channelOpts(c.Project, channel)
+	if err != nil {
+		resp.Err(err)
 		return resp, nil
 	}
 
@@ -721,7 +721,7 @@ func (c *client) publishCmd(cmd *publishClientCommand) (*response, error) {
 
 	info := c.info(channel)
 
-	err := c.app.pubClient(project, channel, chOpts, data, &info)
+	err = c.app.pubClient(project, channel, chOpts, data, &info)
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)
@@ -756,9 +756,9 @@ func (c *client) presenceCmd(cmd *presenceClientCommand) (*response, error) {
 
 	resp.Body = body
 
-	chOpts := c.app.channelOpts(c.Project, channel)
-	if chOpts == nil {
-		resp.Err(ErrNamespaceNotFound)
+	chOpts, err := c.app.channelOpts(c.Project, channel)
+	if err != nil {
+		resp.Err(err)
 		return resp, nil
 	}
 
@@ -802,9 +802,9 @@ func (c *client) historyCmd(cmd *historyClientCommand) (*response, error) {
 
 	resp.Body = body
 
-	chOpts := c.app.channelOpts(c.Project, channel)
-	if chOpts == nil {
-		resp.Err(ErrNamespaceNotFound)
+	chOpts, err := c.app.channelOpts(c.Project, channel)
+	if err != nil {
+		resp.Err(err)
 		return resp, nil
 	}
 

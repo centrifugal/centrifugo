@@ -237,7 +237,7 @@ type Message struct {
 
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel
-func (app *application) pubClient(p *project, ch Channel, chOpts *ChannelOptions, data []byte, info *ClientInfo) error {
+func (app *application) pubClient(p *project, ch Channel, chOpts ChannelOptions, data []byte, info *ClientInfo) error {
 
 	uid, err := uuid.NewV4()
 	if err != nil {
@@ -480,24 +480,23 @@ func (app *application) projectByKey(pk ProjectKey) (*project, bool) {
 	return app.structure.projectByKey(pk)
 }
 
-// channelNamespace returns namespace name from channel name if exists or
-// empty string
-func (app *application) channelNamespace(ch Channel) NamespaceKey {
+// namespaceKey returns namespace key from channel name if exists
+func (app *application) namespaceKey(ch Channel) NamespaceKey {
 	cTrim := strings.TrimPrefix(string(ch), app.config.privateChannelPrefix)
 	parts := strings.SplitN(cTrim, app.config.namespaceChannelBoundary, 2)
 	if len(parts) >= 2 {
 		return NamespaceKey(parts[0])
 	} else {
-		return ""
+		return NamespaceKey("")
 	}
 }
 
 // channelOpts returns channel options for channel using structure
-func (app *application) channelOpts(p ProjectKey, c Channel) *ChannelOptions {
+func (app *application) channelOpts(pk ProjectKey, ch Channel) (ChannelOptions, error) {
 	app.RLock()
 	defer app.RUnlock()
-	ns := app.channelNamespace(c)
-	return app.structure.channelOpts(p, ns)
+	nk := app.namespaceKey(ch)
+	return app.structure.channelOpts(pk, nk)
 }
 
 // addPresence proxies presence adding to engine
