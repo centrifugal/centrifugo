@@ -17,4 +17,6 @@ Try [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo
 
 Centrifugo server distributed under MIT license.
 
+Simplified scheme:
+
 ![scheme](https://raw.githubusercontent.com/centrifugal/documentation/master/assets/images/scheme.png)
