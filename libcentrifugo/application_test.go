@@ -49,3 +49,11 @@ func TestUserAllowed(t *testing.T) {
 	assert.Equal(t, true, app.userAllowed("channel#1,2", "2"))
 	assert.Equal(t, false, app.userAllowed("channel#1,2", "3"))
 }
+
+func TestNamespaceKey(t *testing.T) {
+	app := testApp()
+	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns:channel"))
+	assert.Equal(t, NamespaceKey(""), app.namespaceKey("channel"))
+	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns:channel:opa"))
+	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns::channel"))
+}

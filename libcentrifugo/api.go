@@ -115,13 +115,13 @@ func (app *application) unsubcribeCmd(p *project, cmd *unsubscribeApiCommand) (*
 		}
 	}
 
-	err := app.unsubUser(p.Name, user, channel)
+	err := app.unsubscribeUser(p.Name, user, channel)
 	if err != nil {
 		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 
-	err = app.pubUnsub(p.Name, user, channel)
+	err = app.pubUnsubscribe(p.Name, user, channel)
 	if err != nil {
 		resp.Err(ErrInternalServerError)
 		return resp, nil

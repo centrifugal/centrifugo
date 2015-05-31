@@ -24,7 +24,7 @@ type controlCommand struct {
 	Uid string
 
 	Method string
-	Params json.RawMessage
+	Params *json.RawMessage
 }
 
 // connectClientCommand is a command to authorize connection - it contains project key

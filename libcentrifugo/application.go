@@ -168,7 +168,7 @@ func (app *application) controlMsg(message []byte) error {
 	switch method {
 	case "ping":
 		var cmd pingControlCommand
-		err := json.Unmarshal(params, &cmd)
+		err := json.Unmarshal(*params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return ErrInvalidControlMessage
@@ -176,15 +176,15 @@ func (app *application) controlMsg(message []byte) error {
 		return app.pingCmd(&cmd)
 	case "unsubscribe":
 		var cmd unsubscribeControlCommand
-		err := json.Unmarshal(params, &cmd)
+		err := json.Unmarshal(*params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return ErrInvalidControlMessage
 		}
-		return app.unsubscribeCmd(&cmd)
+		return app.unsubscribeUser(cmd.Project, cmd.User, cmd.Channel)
 	case "disconnect":
 		var cmd disconnectControlCommand
-		err := json.Unmarshal(params, &cmd)
+		err := json.Unmarshal(*params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return ErrInvalidControlMessage
@@ -212,10 +212,24 @@ func (app *application) clientMsg(chID ChannelID, message []byte) error {
 
 // pubControl publishes message into control channel so all running
 // nodes will receive and handle it
-func (app *application) pubControl(message []byte) error {
+func (app *application) pubControl(method string, params []byte) error {
+
+	raw := json.RawMessage(params)
+
+	message := controlCommand{
+		Uid:    app.uid,
+		Method: method,
+		Params: &raw,
+	}
+
+	messageBytes, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+
 	app.RLock()
 	defer app.RUnlock()
-	return app.engine.publish(app.config.controlChannel, message)
+	return app.engine.publish(app.config.controlChannel, messageBytes)
 }
 
 // pubAdmin publishes message into admin channel so all running
@@ -312,6 +326,8 @@ func (app *application) pubJoinLeave(pk ProjectKey, ch Channel, method string, i
 	return app.engine.publish(chID, byteMessage)
 }
 
+// pubPing sends control ping message to all nodes - this message
+// contains information about current node
 func (app *application) pubPing() error {
 	app.RLock()
 	defer app.RUnlock()
@@ -329,52 +345,50 @@ func (app *application) pubPing() error {
 		logger.ERROR.Println(err)
 	}
 
-	message := map[string]interface{}{
-		"uid":    app.uid,
-		"method": "ping",
-		"params": cmd,
-	}
-	messageBytes, err := json.Marshal(message)
+	cmdBytes, err := json.Marshal(cmd)
 	if err != nil {
 		return err
 	}
-	return app.pubControl(messageBytes)
+
+	return app.pubControl("ping", cmdBytes)
 }
 
-func (app *application) pubUnsub(pk ProjectKey, user UserID, ch Channel) error {
-	message := map[string]interface{}{
-		"uid":    app.uid,
-		"method": "unsubscribe",
-		"params": map[string]interface{}{
-			"project": pk,
-			"user":    user,
-			"channel": ch,
-		},
+// pubUnsubscribe publishes unsubscribe control message to all nodes – so all
+// nodes could unsubscribe user from channel
+func (app *application) pubUnsubscribe(pk ProjectKey, user UserID, ch Channel) error {
+
+	cmd := &unsubscribeControlCommand{
+		Project: pk,
+		User:    user,
+		Channel: ch,
 	}
-	messageBytes, err := json.Marshal(message)
+
+	cmdBytes, err := json.Marshal(cmd)
 	if err != nil {
 		return err
 	}
-	return app.pubControl(messageBytes)
+
+	return app.pubControl("unsubscribe", cmdBytes)
 }
 
+// pubDisconnect publishes disconnect control message to all nodes – so all
+// nodes could disconnect user from Centrifugo
 func (app *application) pubDisconnect(pk ProjectKey, user UserID) error {
-	message := map[string]interface{}{
-		"uid":    app.uid,
-		"method": "disconnect",
-		"params": map[string]interface{}{
-			"project": pk,
-			"user":    user,
-		},
+
+	cmd := &disconnectControlCommand{
+		Project: pk,
+		User:    user,
 	}
-	messageBytes, err := json.Marshal(message)
+
+	cmdBytes, err := json.Marshal(cmd)
 	if err != nil {
 		return err
 	}
-	return app.pubControl(messageBytes)
+
+	return app.pubControl("disconnect", cmdBytes)
 }
 
-// pingCmd updates information about known nodes
+// pingCmd handles ping control command i.e. updates information about known nodes
 func (app *application) pingCmd(cmd *pingControlCommand) error {
 	info := &nodeInfo{
 		Uid:      cmd.Uid,
@@ -389,10 +403,6 @@ func (app *application) pingCmd(cmd *pingControlCommand) error {
 	app.nodes[cmd.Uid] = info
 	app.nodesMu.Unlock()
 	return nil
-}
-
-func (app *application) unsubscribeCmd(cmd *unsubscribeControlCommand) error {
-	return app.unsubUser(cmd.Project, cmd.User, cmd.Channel)
 }
 
 // channelID returns internal name of channel ChannelID - as
@@ -438,9 +448,9 @@ func (app *application) removeSub(pk ProjectKey, ch Channel, c clientConn) error
 	return app.subs.remove(chID, c)
 }
 
-// unsubUser unsubscribes user from channel on this node. If channel
+// unsubscribeUser unsubscribes user from channel on this node. If channel
 // is an empty string then user will be unsubscribed from all channels
-func (app *application) unsubUser(pk ProjectKey, user UserID, channel Channel) error {
+func (app *application) unsubscribeUser(pk ProjectKey, user UserID, channel Channel) error {
 	userConnections := app.connHub.userConnections(pk, user)
 	for _, c := range userConnections {
 		var channels []Channel
