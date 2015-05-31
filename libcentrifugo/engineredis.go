@@ -23,7 +23,7 @@ type redisEngine struct {
 	inAPI    bool
 }
 
-func newRedisEngine(app *application, host, port, password, db, redisURL string, api bool) *redisEngine {
+func newRedisEngine(app *application, host, port, password, db, redisURL string, api bool, psize int) *redisEngine {
 	if redisURL != "" {
 		u, err := url.Parse(redisURL)
 		if err != nil {
@@ -49,7 +49,7 @@ func newRedisEngine(app *application, host, port, password, db, redisURL string,
 		db = "0"
 	}
 	server := host + ":" + port
-	pool := newPool(server, password, db)
+	pool := newPool(server, password, db, psize)
 	return &redisEngine{
 		app:  app,
 		pool: pool,
@@ -57,9 +57,11 @@ func newRedisEngine(app *application, host, port, password, db, redisURL string,
 	}
 }
 
-func newPool(server, password, db string) *redis.Pool {
+func newPool(server, password, db string, psize int) *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:     3,
+		MaxActive:   psize,
+		Wait:        true,
 		IdleTimeout: 240 * time.Second,
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.Dial("tcp", server)
@@ -125,7 +127,9 @@ func (e *redisEngine) initializeApi() {
 	defer func() {
 		e.inAPI = false
 	}()
+	e.app.RLock()
 	apiKey := e.app.config.channelPrefix + "." + "api"
+	e.app.RUnlock()
 	for {
 		reply, err := conn.Do("BLPOP", apiKey, 0)
 		if err != nil {
@@ -169,12 +173,16 @@ func (e *redisEngine) initializePubSub() {
 	defer func() {
 		e.inPubSub = false
 	}()
-	err := e.psc.Subscribe(e.app.config.adminChannel)
+	e.app.RLock()
+	adminChannel := e.app.config.adminChannel
+	controlChannel := e.app.config.controlChannel
+	e.app.RUnlock()
+	err := e.psc.Subscribe(adminChannel)
 	if err != nil {
 		e.psc.Close()
 		return
 	}
-	err = e.psc.Subscribe(e.app.config.controlChannel)
+	err = e.psc.Subscribe(controlChannel)
 	if err != nil {
 		e.psc.Close()
 		return
@@ -215,25 +223,34 @@ func (e *redisEngine) unsubscribe(chID ChannelID) error {
 }
 
 func (e *redisEngine) getHashKey(chID ChannelID) string {
+	e.app.RLock()
+	defer e.app.RUnlock()
 	return e.app.config.channelPrefix + ".presence.hash." + string(chID)
 }
 
 func (e *redisEngine) getSetKey(chID ChannelID) string {
+	e.app.RLock()
+	defer e.app.RUnlock()
 	return e.app.config.channelPrefix + ".presence.set." + string(chID)
 }
 
 func (e *redisEngine) getHistoryKey(chID ChannelID) string {
+	e.app.RLock()
+	defer e.app.RUnlock()
 	return e.app.config.channelPrefix + ".history.list." + string(chID)
 }
 
 func (e *redisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) error {
+	e.app.RLock()
+	presenceExpireInterval := e.app.config.presenceExpireInterval
+	e.app.RUnlock()
 	conn := e.pool.Get()
 	defer conn.Close()
 	infoJson, err := json.Marshal(info)
 	if err != nil {
 		return err
 	}
-	expireAt := time.Now().Unix() + e.app.config.presenceExpireInterval
+	expireAt := time.Now().Unix() + presenceExpireInterval
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
 	conn.Send("MULTI")

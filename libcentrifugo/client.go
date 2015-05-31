@@ -649,12 +649,6 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 		return resp, nil
 	}
 
-	err = c.app.removeSub(c.Project, channel, c)
-	if err != nil {
-		logger.ERROR.Println(err)
-		return resp, ErrInternalServerError
-	}
-
 	_, ok := c.Channels[channel]
 	if ok {
 
@@ -671,6 +665,12 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 				logger.ERROR.Println(err)
 			}
 		}
+	}
+
+	err = c.app.removeSub(c.Project, channel, c)
+	if err != nil {
+		logger.ERROR.Println(err)
+		return resp, ErrInternalServerError
 	}
 
 	return resp, nil
