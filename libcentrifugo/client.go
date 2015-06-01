@@ -388,8 +388,8 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	resp := newResponse("connect")
 
 	if c.authenticated {
-		resp.Body = c.Uid
-		return resp, nil
+		logger.ERROR.Println("wrong connect message: client already authenticated")
+		return nil, ErrInvalidClientMessage
 	}
 
 	pk := cmd.Project
