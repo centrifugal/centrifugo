@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
+	"github.com/klauspost/shutdown"
 )
 
 // clientHub manages client connections
@@ -17,9 +18,34 @@ type clientHub struct {
 
 // newClientHub initializes connectionHub
 func newClientHub() *clientHub {
-	return &clientHub{
+	h := clientHub{
 		connections: make(map[ProjectKey]map[UserID]map[ConnID]clientConn),
 	}
+	// Flush all connections on shutdown stage 1.
+	// Also removes presence for all users
+	shutdown.FirstFunc(func(interface{}) {
+		var wg sync.WaitGroup
+		h.RLock()
+		for _, uc := range h.connections {
+			for _, user := range uc {
+				wg.Add(len(user))
+				for _, cc := range user {
+					go func(cc clientConn) {
+						cc.flush()
+						for _, ch := range cc.channels() {
+							cc.unsubscribe(ch)
+						}
+						cc.close("shutting down")
+						wg.Done()
+					}(cc)
+				}
+			}
+		}
+		h.RUnlock()
+		wg.Wait()
+	}, nil)
+
+	return &h
 }
 
 // nClients returns total number of client connections
@@ -136,9 +162,10 @@ type subHub struct {
 
 // newSubHub initializes subscriptionHub
 func newSubHub() *subHub {
-	return &subHub{
+	h := &subHub{
 		subs: make(map[ChannelID]map[ConnID]clientConn),
 	}
+	return h
 }
 
 // nChannels returns a total number of different channels
@@ -234,9 +261,23 @@ type adminHub struct {
 
 // newAdminHub initializes new adminHub
 func newAdminHub() *adminHub {
-	return &adminHub{
-		connections: make(map[ConnID]adminConn),
-	}
+	h := adminHub{connections: make(map[ConnID]adminConn)}
+	// Send shutdown message to all admins
+	shutdown.FirstFunc(func(interface{}) {
+		var wg sync.WaitGroup
+		h.RLock()
+		wg.Add(len(h.connections))
+		for _, conn := range h.connections {
+			go func(ac adminConn) {
+				ac.send("shutting down")
+				ac.flush()
+				wg.Done()
+			}(conn)
+		}
+		h.RUnlock()
+		wg.Wait()
+	}, nil)
+	return &h
 }
 
 // add adds connection to adminConnectionHub connections registry

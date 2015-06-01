@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
+	"github.com/klauspost/shutdown"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -204,27 +205,28 @@ func Main() {
 
 			app.run()
 
+			shutdown.OnSignal(0, os.Interrupt, syscall.SIGTERM)
 			go handleSignals(app)
 
 			// register raw Websocket endpoint
-			http.Handle("/connection/websocket", app.Logged(http.HandlerFunc(app.rawWebsocketHandler)))
+			http.Handle("/connection/websocket", app.Logged(shutdown.WrapHandler(http.HandlerFunc(app.rawWebsocketHandler))))
 
 			// register SockJS endpoints
-			http.Handle("/connection/", app.Logged(newSockJSHandler(app, viper.GetString("sockjs_url"))))
+			http.Handle("/connection/", app.Logged(shutdown.WrapHandler(newSockJSHandler(app, viper.GetString("sockjs_url")))))
 
 			// register HTTP API endpoint
-			http.Handle("/api/", app.Logged(http.HandlerFunc(app.apiHandler)))
+			http.Handle("/api/", app.Logged(shutdown.WrapHandler(http.HandlerFunc(app.apiHandler))))
 
 			// register admin web interface API endpoints
-			http.Handle("/auth/", app.Logged(http.HandlerFunc(app.authHandler)))
-			http.Handle("/info/", app.Logged(app.Authenticated(http.HandlerFunc(app.infoHandler))))
-			http.Handle("/action/", app.Logged(app.Authenticated(http.HandlerFunc(app.actionHandler))))
-			http.Handle("/socket", app.Logged(http.HandlerFunc(app.adminWebsocketHandler)))
+			http.Handle("/auth/", app.Logged(shutdown.WrapHandler(http.HandlerFunc(app.authHandler))))
+			http.Handle("/info/", app.Logged(shutdown.WrapHandler(app.Authenticated(http.HandlerFunc(app.infoHandler)))))
+			http.Handle("/action/", app.Logged(shutdown.WrapHandler(app.Authenticated(http.HandlerFunc(app.actionHandler)))))
+			http.Handle("/socket", app.Logged(shutdown.WrapHandler(http.HandlerFunc(app.adminWebsocketHandler))))
 
 			// optionally serve admin web interface application
 			webDir := viper.GetString("web")
 			if webDir != "" {
-				http.Handle("/", http.FileServer(http.Dir(webDir)))
+				http.Handle("/", shutdown.WrapHandler(http.FileServer(http.Dir(webDir))))
 			}
 
 			addr := viper.GetString("address") + ":" + viper.GetString("port")
