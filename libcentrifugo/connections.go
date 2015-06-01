@@ -17,6 +17,8 @@ type clientConn interface {
 	unsubscribe(ch Channel) error
 	// close closes client's connection
 	close(reason string) error
+	// flushes outgoing messages
+	flush()
 }
 
 // adminConnection is an interface abstracting all methods used
@@ -26,4 +28,6 @@ type adminConn interface {
 	uid() ConnID
 	// send allows to send message to admin
 	send(message string) error
+	// flushes outgoing messages
+	flush()
 }

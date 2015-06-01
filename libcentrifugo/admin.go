@@ -65,6 +65,11 @@ func (c *adminClient) writer() {
 	}
 }
 
+// TODO: Implement
+func (c *adminClient) flush() {
+	return
+}
+
 // handleMessage handles message received from admin connection
 func (c *adminClient) handleMessage(msg []byte) (*response, error) {
 

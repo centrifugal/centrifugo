@@ -10,6 +10,7 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/websocket"
+	"github.com/klauspost/shutdown"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
@@ -60,7 +61,6 @@ func (conn wsConn) Close(status uint32, reason string) error {
 }
 
 func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
-
 	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(w, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
@@ -87,11 +87,16 @@ func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 		if err != nil {
 			break
 		}
-		err = c.message(message)
-		if err != nil {
-			logger.ERROR.Println(err)
-			conn.ws.Close()
-			break
+		// If shutdown has been started, drop the message
+		// TODO: Is there a better way to handle that?
+		if shutdown.Lock() {
+			err = c.message(message)
+			if err != nil {
+				logger.ERROR.Println(err)
+				conn.ws.Close()
+				break
+			}
+			shutdown.Unlock()
 		}
 	}
 }

@@ -99,6 +99,11 @@ func (c *client) sendMsgTimeout(msg string) error {
 	return nil
 }
 
+// TODO: Implement
+func (c *client) flush() {
+	return
+}
+
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
 func (c *client) updateChannelPresence(ch Channel) {
