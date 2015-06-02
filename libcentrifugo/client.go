@@ -11,6 +11,10 @@ import (
 	"github.com/nu7hatch/gouuid"
 )
 
+const (
+	CloseStatus = 3000
+)
+
 // client represents clien connection to Centrifugo - at moment this can be Websocket
 // or SockJS connection.
 type client struct {
@@ -61,7 +65,7 @@ func (c *client) sendMessages() {
 		case message := <-c.messageChan:
 			err := c.sess.Send(message)
 			if err != nil {
-				c.sess.Close(3000, "error sending message")
+				c.sess.Close(CloseStatus, "error sending message")
 			}
 		case <-c.closeChan:
 			return
@@ -149,13 +153,13 @@ func (c *client) send(message string) error {
 	case c.messageChan <- message:
 		return nil
 	default:
-		c.sess.Close(3000, "error sending message")
+		c.sess.Close(CloseStatus, "error sending message")
 		return ErrInternalServerError
 	}
 }
 
 func (c *client) close(reason string) error {
-	return c.sess.Close(3000, reason)
+	return c.sess.Close(CloseStatus, reason)
 }
 
 // clean called when connection was closed to make different clean up

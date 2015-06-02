@@ -40,7 +40,7 @@ func (app *application) sockJSHandler(s sockjs.Session) {
 			err = c.message([]byte(msg))
 			if err != nil {
 				logger.ERROR.Println(err)
-				s.Close(3000, err.Error())
+				s.Close(CloseStatus, "error receiving message")
 				break
 			}
 			continue
