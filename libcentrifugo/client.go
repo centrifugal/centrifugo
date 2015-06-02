@@ -30,9 +30,10 @@ type client struct {
 	authenticated bool
 	channelInfo   map[Channel][]byte
 	Channels      map[Channel]bool
-	messageChan   chan string
+	messageQueue  *stringQueue
 	closeChan     chan struct{}
 	expireTimer   *time.Timer
+	sendTimeout   time.Duration // Timeout for sending a single message
 }
 
 // ClientInfo contains information about client to use in message
@@ -50,27 +51,46 @@ func newClient(app *application, s session) (*client, error) {
 		return nil, err
 	}
 	return &client{
-		Uid:         ConnID(uid.String()),
-		app:         app,
-		sess:        s,
-		messageChan: make(chan string, 256),
-		closeChan:   make(chan struct{}),
+		Uid:          ConnID(uid.String()),
+		app:          app,
+		sess:         s,
+		messageQueue: newStringQueue(),
+		closeChan:    make(chan struct{}),
+		sendTimeout:  time.Second * 10,
 	}, nil
 }
 
 // sendMessages waits for messages from messageChan and sends them to client
 func (c *client) sendMessages() {
 	for {
-		select {
-		case message := <-c.messageChan:
-			err := c.sess.Send(message)
-			if err != nil {
-				c.sess.Close(CloseStatus, "error sending message")
+		msg, ok := c.messageQueue.wait()
+		if !ok {
+			if c.messageQueue.closed() {
+				return
 			}
-		case <-c.closeChan:
-			return
+			continue
+		}
+		err := c.sendMsgTimeout(msg)
+		if err != nil {
+			c.sess.Close(CloseStatus, "error sending message")
 		}
 	}
+}
+
+func (c *client) sendMsgTimeout(msg string) error {
+	to := time.After(time.Second)
+	sent := make(chan error)
+	go func() {
+		sent <- c.sess.Send(msg)
+	}()
+	select {
+	case err := <-sent:
+		return err
+	case <-to:
+		return ErrSendTimeout
+	}
+	panic("unreachable")
+	return nil
 }
 
 // updateChannelPresence updates client presence info for channel so it
@@ -149,16 +169,15 @@ func (c *client) unsubscribe(ch Channel) error {
 }
 
 func (c *client) send(message string) error {
-	select {
-	case c.messageChan <- message:
-		return nil
-	default:
-		c.sess.Close(CloseStatus, "error sending message")
-		return ErrInternalServerError
+	ok := c.messageQueue.add(message)
+	if !ok {
+		return ErrClientClosed
 	}
+	return nil
 }
 
 func (c *client) close(reason string) error {
+	c.messageQueue.close()
 	return c.sess.Close(CloseStatus, reason)
 }
 
@@ -190,6 +209,7 @@ func (c *client) clean() error {
 	}
 
 	close(c.closeChan)
+	c.messageQueue.close()
 
 	return nil
 }

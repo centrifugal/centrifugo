@@ -19,4 +19,6 @@ var (
 	ErrLimitExceeded         = errors.New("limit exceeded")
 	ErrNotAvailable          = errors.New("not available")
 	ErrConnectionExpired     = errors.New("connection expired")
+	ErrSendTimeout           = errors.New("send timeout")
+	ErrClientClosed          = errors.New("client is closed")
 )
