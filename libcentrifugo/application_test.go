@@ -1,10 +1,38 @@
 package libcentrifugo
 
 import (
+	"fmt"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+type testSession struct {
+	n      int64
+	closed bool
+}
+
+func (t *testSession) Send(msg string) error {
+	atomic.AddInt64(&t.n, 1)
+	return nil
+}
+
+func (t *testSession) Close(status uint32, reason string) error {
+	t.closed = true
+	return nil
+}
+
+func (app *application) newTestHandler(b *testing.B, s *testSession) *client {
+	c, err := newClient(app, s)
+	if err != nil {
+		b.Fatal(err)
+	}
+	go c.sendMessages()
+
+	return c
+}
 
 func newTestConfig() *config {
 	return &config{
@@ -13,6 +41,7 @@ func newTestConfig() *config {
 		privateChannelPrefix:     "$",
 		userChannelBoundary:      "#",
 		userChannelSeparator:     ",",
+		maxChannelLength:         256,
 	}
 }
 
@@ -56,4 +85,79 @@ func TestNamespaceKey(t *testing.T) {
 	assert.Equal(t, NamespaceKey(""), app.namespaceKey("channel"))
 	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns:channel:opa"))
 	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns::channel"))
+}
+
+func createUsers(users, chanUser, totChannels int) []*testClientConn {
+	uC := make([]*testClientConn, users)
+	for i := range uC {
+		c := newTestUserCC()
+		c.Uid = UserID(fmt.Sprintf("uid-%d", i))
+		c.Cid = ConnID(fmt.Sprintf("cid-%d", i))
+		c.PK = ProjectKey("test1")
+		c.Channels = make([]Channel, chanUser)
+		for j := 0; j < chanUser; j++ {
+			c.Channels[j] = Channel(fmt.Sprintf("chan-%d", (j+i*chanUser)%totChannels))
+		}
+		uC[i] = c
+	}
+	return uC
+}
+
+func BenchmarkSendReceive(b *testing.B) {
+	totChannels := 200
+	app, _ := newApplication()
+	app.config = newTestConfig()
+	app.setEngine(newMemoryEngine(app))
+	app.structure = getTestStructure()
+	app.config.insecure = true
+	pk := ProjectKey("test1")
+	conns := createUsers(50, 10, totChannels)
+	for _, c := range conns {
+		c.sess = &testSession{}
+		cli := app.newTestHandler(b, c.sess)
+		cmd := connectClientCommand{
+			Project: c.PK,
+			User:    c.Uid,
+		}
+		cli.connectCmd(&cmd)
+		for _, ch := range c.Channels {
+			cmd := subscribeClientCommand{
+				Channel: ch,
+				Client:  c.user(),
+			}
+			resp, err := cli.subscribeCmd(&cmd)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if resp.err != nil {
+				b.Fatal(resp.err)
+			}
+		}
+	}
+	b.ResetTimer()
+	tn := time.Now()
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			ch := app.channelID(pk, Channel(fmt.Sprintf("chan-%d", i%totChannels)))
+			err := app.clientMsg(ch, []byte("message"))
+			if err != nil {
+				b.Fatal(err)
+			}
+			i++
+		}
+	})
+	// TODO: Flush
+	dur := time.Since(tn)
+	b.StopTimer()
+	time.Sleep(time.Second)
+	total := 0
+	for _, user := range conns {
+		total += int(atomic.AddInt64(&user.sess.n, 0))
+	}
+	b.Logf("Chans:%d, Clnts:%d Msgs:%d Rcvd:%d", app.nChannels(), app.nClients(), b.N, total)
+	if dur > time.Millisecond*10 {
+		b.Logf("%d messages/sec", total*int(time.Second)/int(dur))
+	}
+
 }
