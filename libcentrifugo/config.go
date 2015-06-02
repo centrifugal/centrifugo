@@ -51,6 +51,10 @@ type config struct {
 	// connection lifetime
 	expiredConnectionCloseDelay int64
 
+	// in seconds, how long time the node may take to send a message
+	// to a client before disconnecting the client.
+	messageSendTimeout int64
+
 	// prefix in channel name which indicates that channel is private
 	privateChannelPrefix string
 	// string separator which must be put after namespace part in channel name
@@ -98,6 +102,7 @@ func newConfig() *config {
 	cfg.nodeInfoMaxDelay = cfg.nodePingInterval*2 + 1
 	cfg.presencePingInterval = int64(viper.GetInt("presence_ping_interval"))
 	cfg.presenceExpireInterval = int64(viper.GetInt("presence_expire_interval"))
+	cfg.messageSendTimeout = int64(viper.GetInt("message_send_timeout"))
 	cfg.privateChannelPrefix = viper.GetString("private_channel_prefix")
 	cfg.namespaceChannelBoundary = viper.GetString("namespace_channel_boundary")
 	cfg.userChannelBoundary = viper.GetString("user_channel_boundary")

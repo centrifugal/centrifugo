@@ -78,7 +78,9 @@ func (c *client) sendMessages() {
 }
 
 func (c *client) sendMsgTimeout(msg string) error {
-	to := time.After(time.Second)
+	c.app.RLock()
+	to := time.After(time.Second * time.Duration(c.app.config.messageSendTimeout))
+	c.app.RUnlock()
 	sent := make(chan error)
 	go func() {
 		sent <- c.sess.Send(msg)
