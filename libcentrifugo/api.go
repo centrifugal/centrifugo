@@ -18,7 +18,7 @@ func (app *application) apiCmd(p *project, command apiCommand) (*response, error
 	switch method {
 	case "publish":
 		var cmd publishApiCommand
-		err := json.Unmarshal(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
@@ -26,7 +26,7 @@ func (app *application) apiCmd(p *project, command apiCommand) (*response, error
 		resp, err = app.publishCmd(p, &cmd)
 	case "unsubscribe":
 		var cmd unsubscribeApiCommand
-		err := json.Unmarshal(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
@@ -34,7 +34,7 @@ func (app *application) apiCmd(p *project, command apiCommand) (*response, error
 		resp, err = app.unsubcribeCmd(p, &cmd)
 	case "disconnect":
 		var cmd disconnectApiCommand
-		err := json.Unmarshal(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
@@ -42,7 +42,7 @@ func (app *application) apiCmd(p *project, command apiCommand) (*response, error
 		resp, err = app.disconnectCmd(p, &cmd)
 	case "presence":
 		var cmd presenceApiCommand
-		err := json.Unmarshal(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
@@ -50,7 +50,7 @@ func (app *application) apiCmd(p *project, command apiCommand) (*response, error
 		resp, err = app.presenceCmd(p, &cmd)
 	case "history":
 		var cmd historyApiCommand
-		err := json.Unmarshal(params, &cmd)
+		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidApiMessage
