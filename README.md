@@ -20,3 +20,6 @@ Centrifugo server distributed under MIT license.
 Simplified scheme:
 
 ![scheme](https://raw.githubusercontent.com/centrifugal/documentation/master/assets/images/scheme.png)
+
+
+[![Join the chat at https://gitter.im/centrifugal/centrifugo](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/centrifugal/centrifugo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
