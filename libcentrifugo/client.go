@@ -18,7 +18,7 @@ const (
 // client represents clien connection to Centrifugo - at moment this can be Websocket
 // or SockJS connection.
 type client struct {
-	sync.Mutex
+	sync.RWMutex
 	app           *application
 	sess          session
 	Uid           ConnID
@@ -123,12 +123,14 @@ func (c *client) user() UserID {
 }
 
 func (c *client) channels() []Channel {
+	c.RLock()
 	keys := make([]Channel, len(c.Channels))
 	i := 0
 	for k := range c.Channels {
 		keys[i] = k
 		i += 1
 	}
+	c.RUnlock()
 	return keys
 }
 
