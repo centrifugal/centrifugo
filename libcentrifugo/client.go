@@ -8,6 +8,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/stringqueue"
 	"github.com/nu7hatch/gouuid"
 )
 
@@ -30,9 +31,10 @@ type client struct {
 	authenticated bool
 	channelInfo   map[Channel][]byte
 	Channels      map[Channel]bool
-	messageChan   chan string
+	messages      stringqueue.StringQueue
 	closeChan     chan struct{}
 	expireTimer   *time.Timer
+	sendTimeout   time.Duration // Timeout for sending a single message
 }
 
 // ClientInfo contains information about client to use in message
@@ -53,24 +55,45 @@ func newClient(app *application, s session) (*client, error) {
 		Uid:         ConnID(uid.String()),
 		app:         app,
 		sess:        s,
-		messageChan: make(chan string, 256),
+		messages:    stringqueue.New(),
 		closeChan:   make(chan struct{}),
+		sendTimeout: time.Second * 10,
 	}, nil
 }
 
 // sendMessages waits for messages from messageChan and sends them to client
 func (c *client) sendMessages() {
 	for {
-		select {
-		case message := <-c.messageChan:
-			err := c.sess.Send(message)
-			if err != nil {
-				c.sess.Close(CloseStatus, "error sending message")
+		msg, ok := c.messages.Wait()
+		if !ok {
+			if c.messages.Closed() {
+				return
 			}
-		case <-c.closeChan:
-			return
+			continue
+		}
+		err := c.sendMsgTimeout(msg)
+		if err != nil {
+			c.sess.Close(CloseStatus, "error sending message")
 		}
 	}
+}
+
+func (c *client) sendMsgTimeout(msg string) error {
+	c.app.RLock()
+	to := time.After(time.Second * time.Duration(c.app.config.messageSendTimeout))
+	c.app.RUnlock()
+	sent := make(chan error)
+	go func() {
+		sent <- c.sess.Send(msg)
+	}()
+	select {
+	case err := <-sent:
+		return err
+	case <-to:
+		return ErrSendTimeout
+	}
+	panic("unreachable")
+	return nil
 }
 
 // updateChannelPresence updates client presence info for channel so it
@@ -151,16 +174,15 @@ func (c *client) unsubscribe(ch Channel) error {
 }
 
 func (c *client) send(message string) error {
-	select {
-	case c.messageChan <- message:
-		return nil
-	default:
-		c.sess.Close(CloseStatus, "error sending message")
-		return ErrInternalServerError
+	ok := c.messages.Add(message)
+	if !ok {
+		return ErrClientClosed
 	}
+	return nil
 }
 
 func (c *client) close(reason string) error {
+	c.messages.Close()
 	return c.sess.Close(CloseStatus, reason)
 }
 
@@ -192,6 +214,7 @@ func (c *client) clean() error {
 	}
 
 	close(c.closeChan)
+	c.messages.Close()
 
 	return nil
 }
