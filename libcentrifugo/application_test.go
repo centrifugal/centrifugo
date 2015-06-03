@@ -29,8 +29,6 @@ func (app *application) newTestHandler(b *testing.B, s *testSession) *client {
 	if err != nil {
 		b.Fatal(err)
 	}
-	go c.sendMessages()
-
 	return c
 }
 
