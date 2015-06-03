@@ -88,8 +88,8 @@ func (c *client) updateChannelPresence(ch Channel) {
 
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
-	c.Lock()
-	defer c.Unlock()
+	c.RLock()
+	defer c.RUnlock()
 	for _, channel := range c.channels() {
 		c.updateChannelPresence(channel)
 	}
