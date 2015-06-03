@@ -8,6 +8,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/stringqueue"
 	"github.com/nu7hatch/gouuid"
 )
 
@@ -30,7 +31,7 @@ type client struct {
 	authenticated bool
 	channelInfo   map[Channel][]byte
 	Channels      map[Channel]bool
-	messageQueue  *stringQueue
+	messages      stringqueue.StringQueue
 	closeChan     chan struct{}
 	expireTimer   *time.Timer
 	sendTimeout   time.Duration // Timeout for sending a single message
@@ -51,21 +52,21 @@ func newClient(app *application, s session) (*client, error) {
 		return nil, err
 	}
 	return &client{
-		Uid:          ConnID(uid.String()),
-		app:          app,
-		sess:         s,
-		messageQueue: newStringQueue(),
-		closeChan:    make(chan struct{}),
-		sendTimeout:  time.Second * 10,
+		Uid:         ConnID(uid.String()),
+		app:         app,
+		sess:        s,
+		messages:    stringqueue.New(),
+		closeChan:   make(chan struct{}),
+		sendTimeout: time.Second * 10,
 	}, nil
 }
 
 // sendMessages waits for messages from messageChan and sends them to client
 func (c *client) sendMessages() {
 	for {
-		msg, ok := c.messageQueue.wait()
+		msg, ok := c.messages.Wait()
 		if !ok {
-			if c.messageQueue.closed() {
+			if c.messages.Closed() {
 				return
 			}
 			continue
@@ -171,7 +172,7 @@ func (c *client) unsubscribe(ch Channel) error {
 }
 
 func (c *client) send(message string) error {
-	ok := c.messageQueue.add(message)
+	ok := c.messages.Add(message)
 	if !ok {
 		return ErrClientClosed
 	}
@@ -179,7 +180,7 @@ func (c *client) send(message string) error {
 }
 
 func (c *client) close(reason string) error {
-	c.messageQueue.close()
+	c.messages.Close()
 	return c.sess.Close(CloseStatus, reason)
 }
 
@@ -211,7 +212,7 @@ func (c *client) clean() error {
 	}
 
 	close(c.closeChan)
-	c.messageQueue.close()
+	c.messages.Close()
 
 	return nil
 }

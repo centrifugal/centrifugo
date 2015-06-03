@@ -1,11 +1,46 @@
-package libcentrifugo
+package stringqueue
 
 import (
 	"sync"
 )
 
-// Unbounded queue.
-// Inspired by http://blog.dubbelboer.com/2015/04/25/go-faster-queue.html
+// StringQueue is an unbounded queue of strings.
+// The queue is goroutine safe.
+// Inspired by http://blog.dubbelboer.com/2015/04/25/go-faster-queue.html (MIT)
+type StringQueue interface {
+	// Add a string to the back of the queue
+	// will return false if the queue is closed.
+	// In that case the string is dropped.
+	Add(i string) bool
+
+	// Remove will remove a string from the queue.
+	// If false is returned, it either means 1) there were no items on the queue
+	// or 2) the queue is closed.
+	Remove() (string, bool)
+
+	// Close the queue and discard all entried in the queue
+	// all goroutines in wait() will return
+	Close()
+
+	// Closed returns true if the queue has been closed
+	// The call cannot guarantee that the queue hasn't been
+	// closed while the function returns, so only "true" has a definite meaning.
+	Closed() bool
+
+	// Wait for a string to be added or queue to be closed.
+	// If there is items on the queue the first will
+	// be returned immediately.
+	// Will return "", false if the queue is closed.
+	// Otherwise the return value of "remove" is returned.
+	Wait() (string, bool)
+
+	// Cap returns the capacity (without allocations)
+	Cap() int
+
+	// Len returns the current length of the queue.
+	Len() int
+}
+
 type stringQueue struct {
 	mu       sync.RWMutex
 	cond     *sync.Cond
@@ -16,7 +51,8 @@ type stringQueue struct {
 	isClosed bool
 }
 
-func newStringQueue() *stringQueue {
+// NewStringQueue returns a new string queue with initial capacity of 2.
+func New() StringQueue {
 	sq := &stringQueue{
 		nodes: make([]string, 2),
 	}
@@ -39,10 +75,10 @@ func (q *stringQueue) resize(n int) {
 	q.nodes = nodes
 }
 
-// add a string to the back of the queue
+// Add a string to the back of the queue
 // will return false if the queue is closed.
 // In that case the string is dropped.
-func (q *stringQueue) add(i string) bool {
+func (q *stringQueue) Add(i string) bool {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if q.isClosed {
@@ -60,9 +96,9 @@ func (q *stringQueue) add(i string) bool {
 	return true
 }
 
-// close the queue and discard all entried in the queue
+// Close the queue and discard all entried in the queue
 // all goroutines in wait() will return
-func (q *stringQueue) close() {
+func (q *stringQueue) Close() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	q.isClosed = true
@@ -71,10 +107,10 @@ func (q *stringQueue) close() {
 	q.cond.Broadcast()
 }
 
-// closed returns true if the queue has been closed
+// Closed returns true if the queue has been closed
 // The call cannot guarantee that the queue hasn't been
 // closed while the function returns, so only "true" has a definite meaning.
-func (q *stringQueue) closed() bool {
+func (q *stringQueue) Closed() bool {
 	q.mu.RLock()
 	c := q.isClosed
 	q.mu.RUnlock()
@@ -86,7 +122,7 @@ func (q *stringQueue) closed() bool {
 // be returned immediately.
 // Will return "", false if the queue is closed.
 // Otherwise the return value of "remove" is returned.
-func (q *stringQueue) wait() (string, bool) {
+func (q *stringQueue) Wait() (string, bool) {
 	q.mu.Lock()
 	if q.isClosed {
 		q.mu.Unlock()
@@ -94,17 +130,17 @@ func (q *stringQueue) wait() (string, bool) {
 	}
 	if q.cnt != 0 {
 		q.mu.Unlock()
-		return q.remove()
+		return q.Remove()
 	}
 	q.cond.Wait()
 	q.mu.Unlock()
-	return q.remove()
+	return q.Remove()
 }
 
-// remove will remove a string from the queue.
+// Remove will remove a string from the queue.
 // If false is returned, it either means 1) there were no items on the queue
 // or 2) the queue is closed.
-func (q *stringQueue) remove() (string, bool) {
+func (q *stringQueue) Remove() (string, bool) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if q.cnt == 0 {
@@ -122,7 +158,7 @@ func (q *stringQueue) remove() (string, bool) {
 }
 
 // Return the capacity (without allocations)
-func (q *stringQueue) cap() int {
+func (q *stringQueue) Cap() int {
 	q.mu.RLock()
 	c := cap(q.nodes)
 	q.mu.RUnlock()
@@ -130,7 +166,7 @@ func (q *stringQueue) cap() int {
 }
 
 // Return the current length of the queue.
-func (q *stringQueue) len() int {
+func (q *stringQueue) Len() int {
 	q.mu.RLock()
 	l := q.cnt
 	q.mu.RUnlock()
