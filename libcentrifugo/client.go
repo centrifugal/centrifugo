@@ -75,6 +75,7 @@ func (c *client) sendMessages() {
 		}
 		err := c.sendMsgTimeout(msg)
 		if err != nil {
+			logger.INFO.Println("error sending to", c.uid(), err.Error())
 			c.sess.Close(CloseStatus, "error sending message")
 		}
 	}
