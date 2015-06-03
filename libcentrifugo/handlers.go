@@ -33,8 +33,6 @@ func (app *application) sockJSHandler(s sockjs.Session) {
 	}()
 	logger.INFO.Printf("new SockJS session established with uid %s\n", c.uid())
 
-	go c.sendMessages()
-
 	for {
 		if msg, err := s.Recv(); err == nil {
 			err = c.message([]byte(msg))

@@ -51,14 +51,16 @@ func newClient(app *application, s session) (*client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &client{
+	c := client{
 		Uid:         ConnID(uid.String()),
 		app:         app,
 		sess:        s,
 		messages:    stringqueue.New(),
 		closeChan:   make(chan struct{}),
 		sendTimeout: time.Second * 10,
-	}, nil
+	}
+	go c.sendMessages()
+	return &c, nil
 }
 
 // sendMessages waits for messages from messageChan and sends them to client
