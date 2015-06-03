@@ -50,37 +50,15 @@ func (app *application) sockJSHandler(s sockjs.Session) {
 }
 
 type wsConn struct {
-	ws        *websocket.Conn
-	writeChan chan []byte // buffered channel of outbound messages.
+	ws *websocket.Conn
 }
 
 func (conn wsConn) Send(message string) error {
-
-	select {
-	case conn.writeChan <- []byte(message):
-	default:
-		conn.ws.Close()
-	}
-	return nil
+	return conn.ws.WriteMessage(websocket.TextMessage, []byte(message))
 }
 
 func (conn wsConn) Close(status uint32, reason string) error {
 	return conn.ws.Close()
-}
-
-// writer reads from channel and sends received messages into connection
-func (conn *wsConn) writer(closeChan chan struct{}) {
-	for {
-		select {
-		case message := <-conn.writeChan:
-			err := conn.ws.WriteMessage(websocket.TextMessage, message)
-			if err != nil {
-				return
-			}
-		case <-closeChan:
-			return
-		}
-	}
 }
 
 func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
@@ -96,8 +74,7 @@ func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	defer ws.Close()
 
 	conn := wsConn{
-		ws:        ws,
-		writeChan: make(chan []byte, 256),
+		ws: ws,
 	}
 
 	c, err := newClient(app, conn)
@@ -105,13 +82,7 @@ func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	logger.INFO.Printf("new raw Websocket session established with uid %s\n", c.uid())
-	defer func() {
-		c.clean()
-	}()
-
-	go c.sendMessages()
-
-	go conn.writer(c.closeChan)
+	defer c.clean()
 
 	for {
 		_, message, err := conn.ws.ReadMessage()
