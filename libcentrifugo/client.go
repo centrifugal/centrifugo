@@ -439,19 +439,16 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	c.User = user
 	c.Project = pk
 
-	var ttl interface{}
+	body := &connectBody{}
+
 	var timeToExpire int64 = 0
-	ttl = nil
-	connectionLifetime := project.ConnLifetime
-	if connectionLifetime > 0 && !c.app.config.insecure {
-		ttl = connectionLifetime
-		timeToExpire := c.timestamp + connectionLifetime - time.Now().Unix()
+
+	connLifetime := project.ConnLifetime
+	if connLifetime > 0 && !c.app.config.insecure {
+		timeToExpire := c.timestamp + connLifetime - time.Now().Unix()
 		if timeToExpire <= 0 {
-			body := map[string]interface{}{
-				"client":  nil,
-				"expired": true,
-				"ttl":     connectionLifetime,
-			}
+			body.Expired = true
+			body.TTL = &connLifetime
 			resp.Body = body
 			return resp, nil
 		}
@@ -475,10 +472,9 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 		c.expireTimer = time.AfterFunc(duration, c.expire)
 	}
 
-	body := map[string]interface{}{
-		"client":  c.Uid,
-		"expired": false,
-		"ttl":     ttl,
+	body.Client = &c.Uid
+	if connLifetime > 0 {
+		body.TTL = &connLifetime
 	}
 	resp.Body = body
 	return resp, nil
@@ -513,14 +509,12 @@ func (c *client) refreshCmd(cmd *refreshClientCommand) (*response, error) {
 		return nil, ErrInvalidClientMessage
 	}
 
-	var ttl interface{}
+	body := &refreshBody{}
 
-	connectionLifetime := project.ConnLifetime
-	if connectionLifetime <= 0 {
-		// connection check disabled
-		ttl = nil
-	} else {
-		timeToExpire := int64(ts) + connectionLifetime - time.Now().Unix()
+	connLifetime := project.ConnLifetime
+	if connLifetime > 0 {
+		// connection check enabled
+		timeToExpire := int64(ts) + connLifetime - time.Now().Unix()
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
 			c.timestamp = int64(ts)
@@ -533,12 +527,7 @@ func (c *client) refreshCmd(cmd *refreshClientCommand) (*response, error) {
 		} else {
 			return nil, ErrConnectionExpired
 		}
-		ttl = connectionLifetime
-	}
-
-	// return connection's time to live to the client
-	body := map[string]interface{}{
-		"ttl": ttl,
+		body.TTL = &connLifetime
 	}
 	resp.Body = body
 	return resp, nil
@@ -570,8 +559,8 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	body := map[string]interface{}{
-		"channel": channel,
+	body := &subscribeBody{
+		Channel: channel,
 	}
 	resp.Body = body
 
@@ -644,8 +633,8 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 		return nil, ErrInvalidClientMessage
 	}
 
-	body := map[string]interface{}{
-		"channel": channel,
+	body := &unsubscribeBody{
+		Channel: channel,
 	}
 	resp.Body = body
 
@@ -703,9 +692,9 @@ func (c *client) publishCmd(cmd *publishClientCommand) (*response, error) {
 		return nil, ErrInvalidClientMessage
 	}
 
-	body := map[string]interface{}{
-		"channel": channel,
-		"status":  false,
+	body := &publishBody{
+		Channel: channel,
+		Status:  false,
 	}
 	resp.Body = body
 
@@ -732,10 +721,8 @@ func (c *client) publishCmd(cmd *publishClientCommand) (*response, error) {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)
 	} else {
-		resp.Body = map[string]interface{}{
-			"channel": channel,
-			"status":  true,
-		}
+		// message successfully sent
+		body.Status = true
 	}
 
 	return resp, nil
@@ -756,8 +743,8 @@ func (c *client) presenceCmd(cmd *presenceClientCommand) (*response, error) {
 		return nil, ErrInvalidClientMessage
 	}
 
-	body := map[string]interface{}{
-		"channel": channel,
+	body := &presenceBody{
+		Channel: channel,
 	}
 
 	resp.Body = body
@@ -773,17 +760,15 @@ func (c *client) presenceCmd(cmd *presenceClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	data, err := c.app.presence(c.Project, channel)
+	presence, err := c.app.presence(c.Project, channel)
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 
-	resp.Body = map[string]interface{}{
-		"channel": channel,
-		"data":    data,
-	}
+	body.Data = presence
+
 	return resp, nil
 }
 
@@ -802,8 +787,8 @@ func (c *client) historyCmd(cmd *historyClientCommand) (*response, error) {
 		return nil, ErrInvalidClientMessage
 	}
 
-	body := map[string]interface{}{
-		"channel": channel,
+	body := &historyBody{
+		Channel: channel,
 	}
 
 	resp.Body = body
@@ -819,15 +804,13 @@ func (c *client) historyCmd(cmd *historyClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	data, err := c.app.history(c.Project, channel)
+	history, err := c.app.history(c.Project, channel)
 	if err != nil {
 		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 
-	resp.Body = map[string]interface{}{
-		"channel": channel,
-		"data":    data,
-	}
+	body.Data = history
+
 	return resp, nil
 }

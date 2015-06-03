@@ -270,9 +270,9 @@ func (app *application) pubClient(p *project, ch Channel, chOpts ChannelOptions,
 
 	if chOpts.Watch {
 		resp := newResponse("message")
-		resp.Body = map[string]interface{}{
-			"project": p.Name,
-			"message": message,
+		resp.Body = &adminMessageBody{
+			Project: p.Name,
+			Message: message,
 		}
 		messageBytes, err := json.Marshal(resp)
 		if err != nil {
@@ -315,9 +315,9 @@ func (app *application) pubClient(p *project, ch Channel, chOpts ChannelOptions,
 func (app *application) pubJoinLeave(pk ProjectKey, ch Channel, method string, info ClientInfo) error {
 	chID := app.channelID(pk, ch)
 	resp := newResponse(method)
-	resp.Body = map[string]interface{}{
-		"channel": ch,
-		"data":    info,
+	resp.Body = &joinLeaveBody{
+		Channel: ch,
+		Data:    info,
 	}
 	byteMessage, err := json.Marshal(resp)
 	if err != nil {

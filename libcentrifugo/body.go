@@ -21,9 +21,9 @@ type joinLeaveBody struct {
 }
 
 type connectBody struct {
-	Client  ConnID `json:"client"`
-	Expired bool   `json:"expired"`
-	TTL     *int64 `json:"ttl"`
+	Client  *ConnID `json:"client"`
+	Expired bool    `json:"expired"`
+	TTL     *int64  `json:"ttl"`
 }
 
 type refreshBody struct {

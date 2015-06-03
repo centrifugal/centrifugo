@@ -170,8 +170,8 @@ func (app *application) presenceCmd(p *project, cmd *presenceApiCommand) (*respo
 		return nil, ErrInvalidApiMessage
 	}
 
-	body := map[string]interface{}{
-		"channel": channel,
+	body := &presenceBody{
+		Channel: channel,
 	}
 
 	resp.Body = body
@@ -193,10 +193,8 @@ func (app *application) presenceCmd(p *project, cmd *presenceApiCommand) (*respo
 		return resp, nil
 	}
 
-	resp.Body = map[string]interface{}{
-		"channel": channel,
-		"data":    presence,
-	}
+	body.Data = presence
+
 	return resp, nil
 }
 
@@ -212,8 +210,8 @@ func (app *application) historyCmd(p *project, cmd *historyApiCommand) (*respons
 		return nil, ErrInvalidApiMessage
 	}
 
-	body := map[string]interface{}{
-		"channel": channel,
+	body := &historyBody{
+		Channel: channel,
 	}
 
 	resp.Body = body
@@ -235,9 +233,7 @@ func (app *application) historyCmd(p *project, cmd *historyApiCommand) (*respons
 		return resp, nil
 	}
 
-	resp.Body = map[string]interface{}{
-		"channel": channel,
-		"data":    history,
-	}
+	body.Data = history
+
 	return resp, nil
 }
