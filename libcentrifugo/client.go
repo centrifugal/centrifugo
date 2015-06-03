@@ -300,7 +300,7 @@ func (c *client) handleCommands(commands []clientCommand) error {
 	if err != nil {
 		return err
 	}
-	err = c.sess.Send(string(jsonResp))
+	err = c.send(string(jsonResp))
 	return err
 }
 
