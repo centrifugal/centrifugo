@@ -33,6 +33,7 @@ type client struct {
 	Channels      map[Channel]bool
 	messages      stringqueue.StringQueue
 	closeChan     chan struct{}
+	sendFinished  chan struct{} // Will be closed when sendMessages() returns
 	expireTimer   *time.Timer
 	sendTimeout   time.Duration // Timeout for sending a single message
 }
@@ -52,12 +53,13 @@ func newClient(app *application, s session) (*client, error) {
 		return nil, err
 	}
 	c := client{
-		Uid:         ConnID(uid.String()),
-		app:         app,
-		sess:        s,
-		messages:    stringqueue.New(),
-		closeChan:   make(chan struct{}),
-		sendTimeout: time.Second * 10,
+		Uid:          ConnID(uid.String()),
+		app:          app,
+		sess:         s,
+		messages:     stringqueue.New(),
+		closeChan:    make(chan struct{}),
+		sendFinished: make(chan struct{}),
+		sendTimeout:  time.Second * 10,
 	}
 	go c.sendMessages()
 	return &c, nil
@@ -65,6 +67,7 @@ func newClient(app *application, s session) (*client, error) {
 
 // sendMessages waits for messages from messageChan and sends them to client
 func (c *client) sendMessages() {
+	defer close(c.sendFinished)
 	for {
 		msg, ok := c.messages.Wait()
 		if !ok {
@@ -73,10 +76,12 @@ func (c *client) sendMessages() {
 			}
 			continue
 		}
+		//time.Sleep(time.Millisecond * 100)
 		err := c.sendMsgTimeout(msg)
 		if err != nil {
 			logger.INFO.Println("error sending to", c.uid(), err.Error())
 			c.sess.Close(CloseStatus, "error sending message")
+			return
 		}
 	}
 }
@@ -99,9 +104,25 @@ func (c *client) sendMsgTimeout(msg string) error {
 	return nil
 }
 
-// TODO: Implement
+// flush any remaining messages on the queue
 func (c *client) flush() {
-	return
+	if c.messages.Closed() {
+		logger.INFO.Println("client was already closed")
+	}
+	// Close and get remaining
+	msgs := c.messages.CloseRemaining()
+
+	logger.INFO.Printf("Flushing %d messages", len(msgs))
+	// wait for sendMessages to return
+	<-c.sendFinished
+	for _, msg := range msgs {
+		err := c.sendMsgTimeout(msg)
+		if err != nil {
+			logger.INFO.Println("error sending to", c.uid(), err.Error())
+			c.sess.Close(CloseStatus, "error sending message")
+			return
+		}
+	}
 }
 
 // updateChannelPresence updates client presence info for channel so it

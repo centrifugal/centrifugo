@@ -210,10 +210,10 @@ func Main() {
 			go handleSignals(app)
 
 			// register raw Websocket endpoint
-			http.Handle("/connection/websocket", app.Logged(shutdown.WrapHandler(http.HandlerFunc(app.rawWebsocketHandler))))
+			http.Handle("/connection/websocket", app.Logged(http.HandlerFunc(app.rawWebsocketHandler)))
 
 			// register SockJS endpoints
-			http.Handle("/connection/", app.Logged(shutdown.WrapHandler(newSockJSHandler(app, viper.GetString("sockjs_url")))))
+			http.Handle("/connection/", app.Logged(newSockJSHandler(app, viper.GetString("sockjs_url"))))
 
 			// register HTTP API endpoint
 			http.Handle("/api/", app.Logged(shutdown.WrapHandler(http.HandlerFunc(app.apiHandler))))

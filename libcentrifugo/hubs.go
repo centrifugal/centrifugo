@@ -32,9 +32,6 @@ func newClientHub() *clientHub {
 				for _, cc := range user {
 					go func(cc clientConn) {
 						cc.flush()
-						for _, ch := range cc.channels() {
-							cc.unsubscribe(ch)
-						}
 						cc.close("shutting down")
 						wg.Done()
 					}(cc)

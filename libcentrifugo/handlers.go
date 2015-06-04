@@ -36,11 +36,14 @@ func (app *application) sockJSHandler(s sockjs.Session) {
 
 	for {
 		if msg, err := s.Recv(); err == nil {
-			err = c.message([]byte(msg))
+			if shutdown.Lock() {
+				err = c.message([]byte(msg))
+				shutdown.Unlock()
+			}
 			if err != nil {
 				logger.ERROR.Println(err)
 				s.Close(CloseStatus, "error receiving message")
-				break
+				return
 			}
 			continue
 		}
@@ -85,18 +88,18 @@ func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	for {
 		_, message, err := conn.ws.ReadMessage()
 		if err != nil {
-			break
+			return
 		}
 		// If shutdown has been started, drop the message
 		// TODO: Is there a better way to handle that?
 		if shutdown.Lock() {
 			err = c.message(message)
+			shutdown.Unlock()
 			if err != nil {
 				logger.ERROR.Println(err)
 				conn.ws.Close()
-				break
+				return
 			}
-			shutdown.Unlock()
 		}
 	}
 }
