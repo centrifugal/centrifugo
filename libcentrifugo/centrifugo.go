@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/klauspost/shutdown"
@@ -206,7 +207,21 @@ func Main() {
 
 			app.run()
 
+			// Catch shutdown signals
 			shutdown.OnSignal(0, os.Interrupt, syscall.SIGTERM)
+
+			// Pre-shutdown: Give 10 seconds for all ongoing commands to be executed
+			shutdown.SetTimeoutN(shutdown.Preshutdown, time.Second*10)
+
+			// Shutdown Stage 1: Give 5 seconds to unsubscribe all users
+			shutdown.SetTimeoutN(shutdown.Stage1, time.Second*5)
+
+			// Shutdown Stage 2: Give 30 seconds to flush all outgoing messages
+			shutdown.SetTimeoutN(shutdown.Stage2, time.Second*30)
+
+			// Log shutdown to info
+			shutdown.Logger = logger.INFO
+
 			go handleSignals(app)
 
 			// register raw Websocket endpoint

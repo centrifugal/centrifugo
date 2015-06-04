@@ -21,9 +21,29 @@ func newClientHub() *clientHub {
 	h := clientHub{
 		connections: make(map[ProjectKey]map[UserID]map[ConnID]clientConn),
 	}
-	// Flush all connections on shutdown stage 1.
-	// Also removes presence for all users
+	// Stage 1: Remove all users from all their channels
 	shutdown.FirstFunc(func(interface{}) {
+		var wg sync.WaitGroup
+		h.RLock()
+		for _, uc := range h.connections {
+			for _, user := range uc {
+				wg.Add(len(user))
+				for _, cc := range user {
+					go func(cc clientConn) {
+						for _, ch := range cc.channels() {
+							cc.unsubscribe(ch)
+						}
+						wg.Done()
+					}(cc)
+				}
+			}
+		}
+		h.RUnlock()
+		wg.Wait()
+	}, nil)
+
+	// Stage 2: Flush all messages to connections on shutdown.
+	shutdown.SecondFunc(func(interface{}) {
 		var wg sync.WaitGroup
 		h.RLock()
 		for _, uc := range h.connections {
@@ -41,7 +61,6 @@ func newClientHub() *clientHub {
 		h.RUnlock()
 		wg.Wait()
 	}, nil)
-
 	return &h
 }
 

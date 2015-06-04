@@ -76,7 +76,6 @@ func (c *client) sendMessages() {
 			}
 			continue
 		}
-		//time.Sleep(time.Millisecond * 100)
 		err := c.sendMsgTimeout(msg)
 		if err != nil {
 			logger.INFO.Println("error sending to", c.uid(), err.Error())
@@ -107,7 +106,7 @@ func (c *client) sendMsgTimeout(msg string) error {
 // flush any remaining messages on the queue
 func (c *client) flush() {
 	if c.messages.Closed() {
-		logger.INFO.Println("client was already closed")
+		return
 	}
 	// Close and get remaining
 	msgs := c.messages.CloseRemaining()
@@ -118,8 +117,6 @@ func (c *client) flush() {
 	for _, msg := range msgs {
 		err := c.sendMsgTimeout(msg)
 		if err != nil {
-			logger.INFO.Println("error sending to", c.uid(), err.Error())
-			c.sess.Close(CloseStatus, "error sending message")
 			return
 		}
 	}
