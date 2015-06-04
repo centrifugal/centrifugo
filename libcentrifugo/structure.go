@@ -146,14 +146,14 @@ func (s *structure) validate() error {
 }
 
 // projectByKey searches for a project with specified key in structure
-func (s *structure) projectByKey(pk ProjectKey) (*project, bool) {
+func (s *structure) projectByKey(pk ProjectKey) (project, bool) {
 	s.RLock()
 	defer s.RUnlock()
-	project, ok := s.ProjectMap[pk]
+	p, ok := s.ProjectMap[pk]
 	if !ok {
-		return nil, false
+		return project{}, false
 	}
-	return &project, true
+	return p, true
 }
 
 // channelOpts searches for channel options for specified project key and namespace key

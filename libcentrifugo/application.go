@@ -251,7 +251,7 @@ type Message struct {
 
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel
-func (app *application) pubClient(p *project, ch Channel, chOpts ChannelOptions, data []byte, info *ClientInfo) error {
+func (app *application) pubClient(p project, ch Channel, chOpts ChannelOptions, data []byte, info *ClientInfo) error {
 
 	uid, err := uuid.NewV4()
 	if err != nil {
@@ -484,7 +484,7 @@ func (app *application) disconnectUser(pk ProjectKey, user UserID) error {
 }
 
 // projectByKey returns a project by project key (name) using structure
-func (app *application) projectByKey(pk ProjectKey) (*project, bool) {
+func (app *application) projectByKey(pk ProjectKey) (project, bool) {
 	app.RLock()
 	defer app.RUnlock()
 	return app.structure.projectByKey(pk)
@@ -605,7 +605,7 @@ func (app *application) checkAuthToken(token string) error {
 	app.RUnlock()
 
 	if secret == "" {
-		logger.ERROR.Println("provide secret in configuration")
+		logger.ERROR.Println("provide web_secret in configuration")
 		return ErrUnauthorized
 	}
 
