@@ -20,6 +20,7 @@ type adminClient struct {
 	sess      adminSession
 	writeChan chan []byte
 	closeChan chan struct{}
+	flushChan chan chan struct{}
 }
 
 func newAdminClient(app *application, s adminSession) (*adminClient, error) {
@@ -33,6 +34,7 @@ func newAdminClient(app *application, s adminSession) (*adminClient, error) {
 		sess:      s,
 		writeChan: make(chan []byte, 256),
 		closeChan: make(chan struct{}),
+		flushChan: make(chan chan struct{}),
 	}, nil
 }
 
@@ -59,15 +61,37 @@ func (c *adminClient) writer() {
 			if err != nil {
 				return
 			}
+		case n := <-c.flushChan:
+			defer close(n)
+			close(c.writeChan)
+			for {
+				message, ok := <-c.writeChan
+				if !ok {
+					return
+				}
+				err := c.sess.WriteMessage(websocket.TextMessage, message)
+				if err != nil {
+					return
+				}
+			}
 		case <-c.closeChan:
 			return
 		}
 	}
 }
 
-// TODO: Implement
+// Flush all remaining messages
 func (c *adminClient) flush() {
-	return
+	// Check if already closed
+	select {
+	case <-c.closeChan:
+		return
+	default:
+	}
+	flushed := make(chan struct{})
+	c.flushChan <- flushed
+	// Wait for channel to be closed by writer()
+	<-flushed
 }
 
 // handleMessage handles message received from admin connection

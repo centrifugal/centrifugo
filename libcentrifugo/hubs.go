@@ -279,7 +279,7 @@ type adminHub struct {
 func newAdminHub() *adminHub {
 	h := adminHub{connections: make(map[ConnID]adminConn)}
 	// Send shutdown message to all admins
-	shutdown.FirstFunc(func(interface{}) {
+	shutdown.SecondFunc(func(interface{}) {
 		var wg sync.WaitGroup
 		h.RLock()
 		wg.Add(len(h.connections))

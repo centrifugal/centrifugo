@@ -66,6 +66,10 @@ func (c *testClientConn) close(reason string) error {
 	return nil
 }
 
+func (c *testClientConn) flush() {
+	return
+}
+
 type testAdminConn struct{}
 
 func (c *testAdminConn) uid() ConnID {
@@ -74,6 +78,10 @@ func (c *testAdminConn) uid() ConnID {
 
 func (c *testAdminConn) send(message string) error {
 	return nil
+}
+
+func (c *testAdminConn) flush() {
+	return
 }
 
 func TestClientHub(t *testing.T) {
