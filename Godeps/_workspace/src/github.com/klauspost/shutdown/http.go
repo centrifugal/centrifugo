@@ -12,6 +12,7 @@ func WrapHandler(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		if !Lock() {
 			w.WriteHeader(http.StatusServiceUnavailable)
+			return
 		}
 		h.ServeHTTP(w, r)
 		Unlock()

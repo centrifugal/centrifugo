@@ -38,7 +38,7 @@
 		},
 		{
 			"ImportPath": "github.com/klauspost/shutdown",
-			"Rev": "739c0f8a7d898f3f7b0eab98c524ded037c0ab53"
+			"Rev": "42011fc73027ad413e7e01b37ffc5889ef9839c8"
 		},
 		{
 			"ImportPath": "github.com/kr/pretty",
