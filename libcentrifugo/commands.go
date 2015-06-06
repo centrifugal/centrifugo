@@ -114,7 +114,7 @@ type historyApiCommand struct {
 // control command periodically
 type pingControlCommand struct {
 	Uid      string
-	Name     UserID
+	Name     string
 	Clients  int
 	Unique   int
 	Channels int

@@ -47,7 +47,7 @@ type application struct {
 
 type nodeInfo struct {
 	Uid      string `json:"uid"`
-	Name     UserID `json:"name"`
+	Name     string `json:"name"`
 	Clients  int    `json:"clients"`
 	Unique   int    `json:"unique"`
 	Channels int    `json:"channels"`
@@ -333,7 +333,7 @@ func (app *application) pubPing() error {
 	defer app.RUnlock()
 	cmd := &pingControlCommand{
 		Uid:      app.uid,
-		Name:     UserID(app.config.name),
+		Name:     app.config.name,
 		Clients:  app.nClients(),
 		Unique:   app.nUniqueClients(),
 		Channels: app.nChannels(),
