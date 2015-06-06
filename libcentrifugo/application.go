@@ -247,11 +247,12 @@ type Message struct {
 	Info      *ClientInfo      `json:"info"`
 	Channel   Channel          `json:"channel"`
 	Data      *json.RawMessage `json:"data"`
+	Client    ConnID           `json:"client"`
 }
 
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel
-func (app *application) pubClient(p project, ch Channel, chOpts ChannelOptions, data []byte, info *ClientInfo) error {
+func (app *application) pubClient(p project, ch Channel, chOpts ChannelOptions, data []byte, client ConnID, info *ClientInfo) error {
 
 	uid, err := uuid.NewV4()
 	if err != nil {
@@ -266,6 +267,7 @@ func (app *application) pubClient(p project, ch Channel, chOpts ChannelOptions, 
 		Info:      info,
 		Channel:   ch,
 		Data:      &raw,
+		Client:    client,
 	}
 
 	if chOpts.Watch {

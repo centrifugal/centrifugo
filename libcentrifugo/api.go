@@ -84,7 +84,7 @@ func (app *application) publishCmd(p project, cmd *publishApiCommand) (*response
 		return resp, nil
 	}
 
-	err = app.pubClient(p, channel, chOpts, data, nil)
+	err = app.pubClient(p, channel, chOpts, data, cmd.Client, nil)
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)

@@ -86,6 +86,7 @@ type historyClientCommand struct {
 type publishApiCommand struct {
 	Channel Channel
 	Data    json.RawMessage
+	Client  ConnID
 }
 
 // unsubscribeApiCommand is used to unsubscribe user from channel

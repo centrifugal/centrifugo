@@ -742,7 +742,7 @@ func (c *client) publishCmd(cmd *publishClientCommand) (*response, error) {
 
 	info := c.info(channel)
 
-	err = c.app.pubClient(project, channel, chOpts, data, &info)
+	err = c.app.pubClient(project, channel, chOpts, data, c.Uid, &info)
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)
