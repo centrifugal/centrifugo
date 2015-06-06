@@ -40,6 +40,7 @@ func newTestConfig() *config {
 		userChannelBoundary:      "#",
 		userChannelSeparator:     ",",
 		maxChannelLength:         256,
+		messageSendTimeout:       1,
 	}
 }
 
