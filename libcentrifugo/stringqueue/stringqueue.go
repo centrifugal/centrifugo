@@ -51,10 +51,14 @@ type stringQueue struct {
 	isClosed bool
 }
 
-// NewStringQueue returns a new string queue with initial capacity of 2.
+const (
+	initialCapacity = 2
+)
+
+// NewStringQueue returns a new string queue with initial capacity.
 func New() StringQueue {
 	sq := &stringQueue{
-		nodes: make([]string, 2),
+		nodes: make([]string, initialCapacity),
 	}
 	sq.cond = sync.NewCond(&sq.mu)
 	return sq
@@ -150,7 +154,7 @@ func (q *stringQueue) Remove() (string, bool) {
 	q.head = (q.head + 1) % len(q.nodes)
 	q.cnt--
 
-	if n := len(q.nodes) / 2; n > 2 && q.cnt <= n {
+	if n := len(q.nodes) / 2; n >= 2 && q.cnt <= n {
 		q.resize(n)
 	}
 
