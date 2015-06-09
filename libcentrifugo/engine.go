@@ -3,12 +3,9 @@ package libcentrifugo
 // engine is an interface with all methods that can be used by client or
 // application to publish message, handle subscriptions, save or retrieve
 // presence and history data
-type engine interface {
+type Engine interface {
 	// getName returns a name of concrete engine implementation
 	name() string
-
-	// initialize provides a way to make additional engine startup work
-	initialize() error
 
 	// publish allows to send message into channel
 	publish(chID ChannelID, message []byte) error

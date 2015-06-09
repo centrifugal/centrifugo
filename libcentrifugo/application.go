@@ -39,13 +39,13 @@ type Application struct {
 	admins *adminHub
 
 	// engine to use - in memory or redis
-	engine engine
+	engine Engine
 
 	// reference to structure to work with projects and namespaces
-	structure *structure
+	structure *Structure
 
 	// config for application
-	config *config
+	config *Config
 }
 
 type nodeInfo struct {
@@ -60,7 +60,7 @@ type nodeInfo struct {
 
 // NewApplication returns new Application instance, the only required argument is
 // config, structure and engine must be set via corresponding methods.
-func NewApplication(c *config) (*Application, error) {
+func NewApplication(c *Config) (*Application, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -119,21 +119,21 @@ func (app *Application) cleanNodeInfo() {
 }
 
 // SetConfig binds config to application
-func (app *Application) SetConfig(c *config) {
+func (app *Application) SetConfig(c *Config) {
 	app.Lock()
 	defer app.Unlock()
 	app.config = c
 }
 
 // SetEngine binds structure to application
-func (app *Application) SetStructure(s *structure) {
+func (app *Application) SetStructure(s *Structure) {
 	app.Lock()
 	defer app.Unlock()
 	app.structure = s
 }
 
 // SetEngine binds engine to application
-func (app *Application) SetEngine(e engine) {
+func (app *Application) SetEngine(e Engine) {
 	app.Lock()
 	defer app.Unlock()
 	app.engine = e

@@ -13,15 +13,15 @@ import (
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
-// newSockJSHandler returns SockJS handler bind to `/connection` prefix
-// SockJS handler has several handlers inside responsible for various tasks -
-// SockJS server info, websocket, HTTP streaming and polling transports.
-func newSockJSHandler(app *Application, sockjsUrl string) http.Handler {
+// NewSockJSHandler returns SockJS handler bind to sockjsPrefix url prefix.
+// SockJS handler has several handlers inside responsible for various tasks
+// according to SockJS protocol.
+func NewSockJSHandler(app *Application, sockjsPrefix, sockjsUrl string) http.Handler {
 	if sockjsUrl != "" {
 		logger.INFO.Println("using SockJS url", sockjsUrl)
 		sockjs.DefaultOptions.SockJSURL = sockjsUrl
 	}
-	return sockjs.NewHandler("/connection", sockjs.DefaultOptions, app.sockJSHandler)
+	return sockjs.NewHandler(sockjsPrefix, sockjs.DefaultOptions, app.sockJSHandler)
 }
 
 // sockJSHandler called when new client connection comes to SockJS endpoint.
@@ -65,8 +65,8 @@ func (conn wsConn) Close(status uint32, reason string) error {
 	return conn.ws.Close()
 }
 
-// rawWebsocketHandler called when new client connection comes to raw Websocket endpoint.
-func (app *Application) rawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+// RawWebsocketHandler called when new client connection comes to raw Websocket endpoint.
+func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
 	if _, ok := err.(websocket.HandshakeError); ok {
@@ -140,7 +140,7 @@ type jsonApiRequest struct {
 }
 
 // apiHandler is responsible for receiving API commands over HTTP.
-func (app *Application) apiHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) ApiHandler(w http.ResponseWriter, r *http.Request) {
 
 	pk := ProjectKey(r.URL.Path[len("/api/"):])
 	contentType := r.Header.Get("Content-Type")
@@ -295,7 +295,7 @@ func (app *Application) infoHandler(w http.ResponseWriter, r *http.Request) {
 	defer app.RUnlock()
 	info := map[string]interface{}{
 		"version":   VERSION,
-		"structure": app.structure.ProjectList,
+		"structure": app.structure.projectList,
 		"engine":    app.engine.name(),
 		"node_name": app.config.name,
 		"nodes":     app.nodes,

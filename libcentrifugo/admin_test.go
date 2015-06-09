@@ -12,8 +12,8 @@ func (s *testAdminSession) WriteMessage(int, []byte) error {
 	return nil
 }
 
-func newAdminTestConfig() *config {
-	return &config{
+func newAdminTestConfig() *Config {
+	return &Config{
 		webSecret: "secret",
 	}
 }

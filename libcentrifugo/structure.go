@@ -69,31 +69,30 @@ type (
 	ConnID       string // Connection ID
 )
 
-// structure contains some helper structures and methods to work with projects in namespaces
-// in a fast and comfortable way
-type structure struct {
+// Structure contains project structure related fields - it allows to work with Projects and Namespaces.
+type Structure struct {
 	sync.RWMutex
-	ProjectList  []Project
+	projectList  []Project
 	projectMap   map[ProjectKey]Project
 	namespaceMap map[ProjectKey]map[NamespaceKey]Namespace
 }
 
 // NewStructure allows to create fully initialized structure from a slice of Projects.
-func NewStructure(pl []Project) *structure {
-	s := &structure{
-		ProjectList: pl,
+func NewStructure(pl []Project) *Structure {
+	s := &Structure{
+		projectList: pl,
 	}
 	s.initialize()
 	return s
 }
 
 // initialize initializes structure fields based on its project list.
-func (s *structure) initialize() {
+func (s *Structure) initialize() {
 	s.Lock()
 	defer s.Unlock()
 	pm := map[ProjectKey]Project{}
 	nm := map[ProjectKey]map[NamespaceKey]Namespace{}
-	for _, p := range s.ProjectList {
+	for _, p := range s.projectList {
 		pm[p.Name] = p
 		nm[p.Name] = map[NamespaceKey]Namespace{}
 		for _, n := range p.Namespaces {
@@ -114,13 +113,13 @@ func stringInSlice(a string, list []string) bool {
 }
 
 // validate validates structure and return error if problems found
-func (s *structure) validate() error {
+func (s *Structure) Validate() error {
 	s.Lock()
 	defer s.Unlock()
 	var projectNames []string
 	errPrefix := "config error: "
 	pattern := "^[-a-zA-Z0-9_]{2,}$"
-	for _, p := range s.ProjectList {
+	for _, p := range s.projectList {
 		name := string(p.Name)
 		match, _ := regexp.MatchString(pattern, name)
 		if !match {
@@ -155,7 +154,7 @@ func (s *structure) validate() error {
 }
 
 // projectByKey searches for a project with specified key in structure
-func (s *structure) projectByKey(pk ProjectKey) (Project, bool) {
+func (s *Structure) projectByKey(pk ProjectKey) (Project, bool) {
 	s.RLock()
 	defer s.RUnlock()
 	p, ok := s.projectMap[pk]
@@ -166,7 +165,7 @@ func (s *structure) projectByKey(pk ProjectKey) (Project, bool) {
 }
 
 // channelOpts searches for channel options for specified project key and namespace key
-func (s *structure) channelOpts(pk ProjectKey, nk NamespaceKey) (ChannelOptions, error) {
+func (s *Structure) channelOpts(pk ProjectKey, nk NamespaceKey) (ChannelOptions, error) {
 	s.RLock()
 	defer s.RUnlock()
 	p, exists := s.projectByKey(pk)

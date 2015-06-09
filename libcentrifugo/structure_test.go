@@ -34,7 +34,7 @@ func getTestNamespace(name NamespaceKey) Namespace {
 	}
 }
 
-func getTestStructure() *structure {
+func getTestStructure() *Structure {
 	var pl []Project
 	pl = append(pl, getTestProject("test1"))
 	pl = append(pl, getTestProject("test2"))

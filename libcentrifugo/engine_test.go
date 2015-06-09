@@ -10,10 +10,6 @@ func (e *testEngine) name() string {
 	return "test engine"
 }
 
-func (e *testEngine) initialize() error {
-	return nil
-}
-
 func (e *testEngine) publish(chID ChannelID, message []byte) error {
 	return nil
 }

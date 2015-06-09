@@ -11,58 +11,55 @@ import (
 // memoryEngine allows to run Centrifugo without using Redis at all. All data managed inside process
 // memory. With this engine you can only run single Centrifugo node. If you need to scale you should
 // use Redis engine instead.
-type memoryEngine struct {
+type MemoryEngine struct {
 	app         *Application
 	presenceHub *memoryPresenceHub
 	historyHub  *memoryHistoryHub
 }
 
-func newMemoryEngine(app *Application) *memoryEngine {
-	return &memoryEngine{
+func NewMemoryEngine(app *Application) *MemoryEngine {
+	e := &MemoryEngine{
 		app:         app,
 		presenceHub: newMemoryPresenceHub(),
 		historyHub:  newMemoryHistoryHub(),
 	}
+	e.historyHub.initialize()
+	return e
 }
 
-func (e *memoryEngine) name() string {
+func (e *MemoryEngine) name() string {
 	return "In memory – single node only"
 }
 
-func (e *memoryEngine) initialize() error {
-	err := e.historyHub.initialize()
-	return err
-}
-
-func (e *memoryEngine) publish(chID ChannelID, message []byte) error {
+func (e *MemoryEngine) publish(chID ChannelID, message []byte) error {
 	return e.app.handleMsg(chID, message)
 }
 
-func (e *memoryEngine) subscribe(chID ChannelID) error {
+func (e *MemoryEngine) subscribe(chID ChannelID) error {
 	return nil
 }
 
-func (e *memoryEngine) unsubscribe(chID ChannelID) error {
+func (e *MemoryEngine) unsubscribe(chID ChannelID) error {
 	return nil
 }
 
-func (e *memoryEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) error {
+func (e *MemoryEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) error {
 	return e.presenceHub.add(chID, uid, info)
 }
 
-func (e *memoryEngine) removePresence(chID ChannelID, uid ConnID) error {
+func (e *MemoryEngine) removePresence(chID ChannelID, uid ConnID) error {
 	return e.presenceHub.remove(chID, uid)
 }
 
-func (e *memoryEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
+func (e *MemoryEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 	return e.presenceHub.get(chID)
 }
 
-func (e *memoryEngine) addHistoryMessage(chID ChannelID, message Message, size, lifetime int64) error {
+func (e *MemoryEngine) addHistoryMessage(chID ChannelID, message Message, size, lifetime int64) error {
 	return e.historyHub.add(chID, message, size, lifetime)
 }
 
-func (e *memoryEngine) history(chID ChannelID) ([]Message, error) {
+func (e *MemoryEngine) history(chID ChannelID) ([]Message, error) {
 	return e.historyHub.get(chID)
 }
 
@@ -152,9 +149,8 @@ func newMemoryHistoryHub() *memoryHistoryHub {
 	}
 }
 
-func (h *memoryHistoryHub) initialize() error {
+func (h *memoryHistoryHub) initialize() {
 	go h.expire()
-	return nil
 }
 
 func (h *memoryHistoryHub) expire() {

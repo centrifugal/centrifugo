@@ -16,7 +16,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-type config struct {
+// Config contains Application configuration options.
+type Config struct {
 	// name of this node - provided explicitly by configuration option
 	// or constructed from hostname and port
 	name string
@@ -88,8 +89,8 @@ func getApplicationName() string {
 	return hostname + "_" + port
 }
 
-func newConfig() *config {
-	cfg := &config{}
+func newConfig() *Config {
+	cfg := &Config{}
 	cfg.name = getApplicationName()
 	cfg.webPassword = viper.GetString("web_password")
 	cfg.webSecret = viper.GetString("web_secret")
@@ -214,8 +215,8 @@ func validateConfig(f string) error {
 	if err != nil {
 		return errors.New("unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
 	}
-	structure := structureFromConfig(v)
-	return structure.validate()
+	s := structureFromConfig(v)
+	return s.Validate()
 }
 
 func getGlobalProject(v *viper.Viper) (*Project, bool) {
@@ -263,7 +264,7 @@ func getGlobalProject(v *viper.Viper) (*Project, bool) {
 	return p, true
 }
 
-func structureFromConfig(v *viper.Viper) *structure {
+func structureFromConfig(v *viper.Viper) *Structure {
 	// TODO: as viper does not have exported global config instance
 	// we need to use nil when application wants to use global viper
 	// config - this must be improved using our own global viper instance

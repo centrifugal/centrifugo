@@ -14,7 +14,7 @@ import (
 // redisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.
 // This engine allows to scale Centrifugo - you can run several Centrifugo instances
 // connected to the same Redis and load balance clients between instances.
-type redisEngine struct {
+type RedisEngine struct {
 	app      *Application
 	pool     *redis.Pool
 	psc      redis.PubSubConn
@@ -23,7 +23,7 @@ type redisEngine struct {
 	inAPI    bool
 }
 
-func newRedisEngine(app *Application, host, port, password, db, redisURL string, api bool, psize int) *redisEngine {
+func NewRedisEngine(app *Application, host, port, password, db, redisURL string, api bool, psize int) *RedisEngine {
 	if redisURL != "" {
 		u, err := url.Parse(redisURL)
 		if err != nil {
@@ -50,11 +50,20 @@ func newRedisEngine(app *Application, host, port, password, db, redisURL string,
 	}
 	server := host + ":" + port
 	pool := newPool(server, password, db, psize)
-	return &redisEngine{
+
+	e := &RedisEngine{
 		app:  app,
 		pool: pool,
 		api:  api,
 	}
+
+	go e.initializePubSub()
+	if e.api {
+		go e.initializeApi()
+	}
+	go e.checkConnectionStatus()
+
+	return e
 }
 
 func newPool(server, password, db string, psize int) *redis.Pool {
@@ -90,20 +99,11 @@ func newPool(server, password, db string, psize int) *redis.Pool {
 	}
 }
 
-func (e *redisEngine) name() string {
+func (e *RedisEngine) name() string {
 	return "Redis"
 }
 
-func (e *redisEngine) initialize() error {
-	go e.initializePubSub()
-	if e.api {
-		go e.initializeApi()
-	}
-	go e.checkConnectionStatus()
-	return nil
-}
-
-func (e *redisEngine) checkConnectionStatus() {
+func (e *RedisEngine) checkConnectionStatus() {
 	for {
 		time.Sleep(time.Second)
 		if !e.inPubSub {
@@ -120,7 +120,7 @@ type redisApiRequest struct {
 	Data    []apiCommand
 }
 
-func (e *redisEngine) initializeApi() {
+func (e *RedisEngine) initializeApi() {
 	e.inAPI = true
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -166,7 +166,7 @@ func (e *redisEngine) initializeApi() {
 	}
 }
 
-func (e *redisEngine) initializePubSub() {
+func (e *RedisEngine) initializePubSub() {
 	e.inPubSub = true
 	e.psc = redis.PubSubConn{e.pool.Get()}
 	defer e.psc.Close()
@@ -207,40 +207,40 @@ func (e *redisEngine) initializePubSub() {
 	}
 }
 
-func (e *redisEngine) publish(chID ChannelID, message []byte) error {
+func (e *RedisEngine) publish(chID ChannelID, message []byte) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 	_, err := conn.Do("PUBLISH", chID, message)
 	return err
 }
 
-func (e *redisEngine) subscribe(chID ChannelID) error {
+func (e *RedisEngine) subscribe(chID ChannelID) error {
 	return e.psc.Subscribe(chID)
 }
 
-func (e *redisEngine) unsubscribe(chID ChannelID) error {
+func (e *RedisEngine) unsubscribe(chID ChannelID) error {
 	return e.psc.Unsubscribe(chID)
 }
 
-func (e *redisEngine) getHashKey(chID ChannelID) string {
+func (e *RedisEngine) getHashKey(chID ChannelID) string {
 	e.app.RLock()
 	defer e.app.RUnlock()
 	return e.app.config.channelPrefix + ".presence.hash." + string(chID)
 }
 
-func (e *redisEngine) getSetKey(chID ChannelID) string {
+func (e *RedisEngine) getSetKey(chID ChannelID) string {
 	e.app.RLock()
 	defer e.app.RUnlock()
 	return e.app.config.channelPrefix + ".presence.set." + string(chID)
 }
 
-func (e *redisEngine) getHistoryKey(chID ChannelID) string {
+func (e *RedisEngine) getHistoryKey(chID ChannelID) string {
 	e.app.RLock()
 	defer e.app.RUnlock()
 	return e.app.config.channelPrefix + ".history.list." + string(chID)
 }
 
-func (e *redisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) error {
+func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) error {
 	e.app.RLock()
 	presenceExpireInterval := e.app.config.presenceExpireInterval
 	e.app.RUnlock()
@@ -260,7 +260,7 @@ func (e *redisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) e
 	return err
 }
 
-func (e *redisEngine) removePresence(chID ChannelID, uid ConnID) error {
+func (e *RedisEngine) removePresence(chID ChannelID, uid ConnID) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 	hashKey := e.getHashKey(chID)
@@ -317,7 +317,7 @@ func mapStringClientInfo(result interface{}, err error) (map[ConnID]ClientInfo, 
 	return m, nil
 }
 
-func (e *redisEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
+func (e *RedisEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 	now := time.Now().Unix()
@@ -349,7 +349,7 @@ func (e *redisEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 	return mapStringClientInfo(reply, nil)
 }
 
-func (e *redisEngine) addHistoryMessage(chID ChannelID, message Message, size, lifetime int64) error {
+func (e *RedisEngine) addHistoryMessage(chID ChannelID, message Message, size, lifetime int64) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 
@@ -387,7 +387,7 @@ func sliceOfMessages(result interface{}, err error) ([]Message, error) {
 	return msgs, nil
 }
 
-func (e *redisEngine) history(chID ChannelID) ([]Message, error) {
+func (e *RedisEngine) history(chID ChannelID) ([]Message, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 	historyKey := e.getHistoryKey(chID)

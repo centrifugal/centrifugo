@@ -182,12 +182,12 @@ func Main() {
 
 			app.SetStructure(s)
 
-			var e engine
+			var e Engine
 			switch viper.GetString("engine") {
 			case "memory":
-				e = newMemoryEngine(app)
+				e = NewMemoryEngine(app)
 			case "redis":
-				e = newRedisEngine(
+				e = NewRedisEngine(
 					app,
 					viper.GetString("redis_host"),
 					viper.GetString("redis_port"),
@@ -206,18 +206,13 @@ func Main() {
 
 			app.SetEngine(e)
 
-			err = e.initialize()
-			if err != nil {
-				logger.FATAL.Fatalln(err)
-			}
-
 			app.Run()
 
 			app.RLock()
 			if app.config.insecure {
 				logger.WARN.Println("application initialized in INSECURE MODE")
 			}
-			if app.structure.ProjectList == nil {
+			if app.structure.projectList == nil {
 				logger.FATAL.Println("project structure not found, please configure at least one project")
 			}
 			app.RUnlock()
@@ -225,13 +220,13 @@ func Main() {
 			go handleSignals(app)
 
 			// register raw Websocket endpoint
-			http.Handle("/connection/websocket", app.Logged(http.HandlerFunc(app.rawWebsocketHandler)))
+			http.Handle("/connection/websocket", app.Logged(http.HandlerFunc(app.RawWebsocketHandler)))
 
 			// register SockJS endpoints
-			http.Handle("/connection/", app.Logged(newSockJSHandler(app, viper.GetString("sockjs_url"))))
+			http.Handle("/connection/", app.Logged(NewSockJSHandler(app, "/connection", viper.GetString("sockjs_url"))))
 
 			// register HTTP API endpoint
-			http.Handle("/api/", app.Logged(http.HandlerFunc(app.apiHandler)))
+			http.Handle("/api/", app.Logged(http.HandlerFunc(app.ApiHandler)))
 
 			// register admin web interface API endpoints
 			http.Handle("/auth/", app.Logged(http.HandlerFunc(app.authHandler)))

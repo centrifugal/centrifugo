@@ -32,8 +32,8 @@ func (app *Application) newTestHandler(b *testing.B, s *testSession) *client {
 	return c
 }
 
-func newTestConfig() *config {
-	return &config{
+func newTestConfig() *Config {
+	return &Config{
 		channelPrefix:            "testPrefix",
 		namespaceChannelBoundary: ":",
 		privateChannelPrefix:     "$",
@@ -104,7 +104,7 @@ func createUsers(users, chanUser, totChannels int) []*testClientConn {
 func BenchmarkSendReceive(b *testing.B) {
 	totChannels := 200
 	app, _ := NewApplication(newTestConfig())
-	app.SetEngine(newMemoryEngine(app))
+	app.SetEngine(NewMemoryEngine(app))
 	app.SetStructure(getTestStructure())
 	app.config.insecure = true
 	pk := ProjectKey("test1")
