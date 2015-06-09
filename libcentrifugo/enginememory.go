@@ -12,12 +12,12 @@ import (
 // memory. With this engine you can only run single Centrifugo node. If you need to scale you should
 // use Redis engine instead.
 type memoryEngine struct {
-	app         *application
+	app         *Application
 	presenceHub *memoryPresenceHub
 	historyHub  *memoryHistoryHub
 }
 
-func newMemoryEngine(app *application) *memoryEngine {
+func newMemoryEngine(app *Application) *memoryEngine {
 	return &memoryEngine{
 		app:         app,
 		presenceHub: newMemoryPresenceHub(),

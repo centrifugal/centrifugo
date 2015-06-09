@@ -15,7 +15,7 @@ import (
 // This engine allows to scale Centrifugo - you can run several Centrifugo instances
 // connected to the same Redis and load balance clients between instances.
 type redisEngine struct {
-	app      *application
+	app      *Application
 	pool     *redis.Pool
 	psc      redis.PubSubConn
 	api      bool
@@ -23,7 +23,7 @@ type redisEngine struct {
 	inAPI    bool
 }
 
-func newRedisEngine(app *application, host, port, password, db, redisURL string, api bool, psize int) *redisEngine {
+func newRedisEngine(app *Application, host, port, password, db, redisURL string, api bool, psize int) *redisEngine {
 	if redisURL != "" {
 		u, err := url.Parse(redisURL)
 		if err != nil {

@@ -18,8 +18,8 @@ func newAdminTestConfig() *config {
 	}
 }
 
-func newAdminTestApplication() *application {
-	app, _ := newApplication(newAdminTestConfig())
+func newAdminTestApplication() *Application {
+	app, _ := NewApplication(newAdminTestConfig())
 	return app
 }
 

@@ -15,14 +15,14 @@ type adminSession interface {
 
 // adminClient is a wrapper over admin websocket connection
 type adminClient struct {
-	app       *application
+	app       *Application
 	Uid       ConnID
 	sess      adminSession
 	writeChan chan []byte
 	closeChan chan struct{}
 }
 
-func newAdminClient(app *application, s adminSession) (*adminClient, error) {
+func newAdminClient(app *Application, s adminSession) (*adminClient, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
 		return nil, err

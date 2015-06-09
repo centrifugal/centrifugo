@@ -35,7 +35,7 @@ func setupLogging() {
 	}
 }
 
-func handleSignals(app *application) {
+func handleSignals(app *Application) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP)
 	for {
@@ -55,13 +55,13 @@ func handleSignals(app *application) {
 			setupLogging()
 			c := newConfig()
 			s := structureFromConfig(nil)
-			app.setConfig(c)
-			app.setStructure(s)
-			app.initialize()
+			app.SetConfig(c)
+			app.SetStructure(s)
 		}
 	}
 }
 
+// Main runs Centrifugo as a service.
 func Main() {
 
 	var port string
@@ -175,12 +175,12 @@ func Main() {
 			c := newConfig()
 			s := structureFromConfig(nil)
 
-			app, err := newApplication(c)
+			app, err := NewApplication(c)
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
 
-			app.setStructure(s)
+			app.SetStructure(s)
 
 			var e engine
 			switch viper.GetString("engine") {
@@ -204,16 +204,23 @@ func Main() {
 			logger.INFO.Println("engine:", viper.GetString("engine"))
 			logger.DEBUG.Printf("%v\n", viper.AllSettings())
 
-			app.setEngine(e)
+			app.SetEngine(e)
 
 			err = e.initialize()
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
 
-			app.initialize()
+			app.Run()
 
-			app.run()
+			app.RLock()
+			if app.config.insecure {
+				logger.WARN.Println("application initialized in INSECURE MODE")
+			}
+			if app.structure.ProjectList == nil {
+				logger.FATAL.Println("project structure not found, please configure at least one project")
+			}
+			app.RUnlock()
 
 			go handleSignals(app)
 

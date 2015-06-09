@@ -24,7 +24,7 @@ func (t *testSession) Close(status uint32, reason string) error {
 	return nil
 }
 
-func (app *application) newTestHandler(b *testing.B, s *testSession) *client {
+func (app *Application) newTestHandler(b *testing.B, s *testSession) *client {
 	c, err := newClient(app, s)
 	if err != nil {
 		b.Fatal(err)
@@ -44,10 +44,10 @@ func newTestConfig() *config {
 	}
 }
 
-func testApp() *application {
-	app, _ := newApplication(newTestConfig())
-	app.setEngine(newTestEngine())
-	app.structure = getTestStructure()
+func testApp() *Application {
+	app, _ := NewApplication(newTestConfig())
+	app.SetEngine(newTestEngine())
+	app.SetStructure(getTestStructure())
 	return app
 }
 
@@ -103,9 +103,9 @@ func createUsers(users, chanUser, totChannels int) []*testClientConn {
 
 func BenchmarkSendReceive(b *testing.B) {
 	totChannels := 200
-	app, _ := newApplication(newTestConfig())
-	app.setEngine(newMemoryEngine(app))
-	app.structure = getTestStructure()
+	app, _ := NewApplication(newTestConfig())
+	app.SetEngine(newMemoryEngine(app))
+	app.SetStructure(getTestStructure())
 	app.config.insecure = true
 	pk := ProjectKey("test1")
 	conns := createUsers(50, 10, totChannels)

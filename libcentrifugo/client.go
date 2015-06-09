@@ -20,7 +20,7 @@ const (
 // or SockJS connection.
 type client struct {
 	sync.RWMutex
-	app           *application
+	app           *Application
 	sess          session
 	Uid           ConnID
 	Project       ProjectKey
@@ -46,7 +46,7 @@ type ClientInfo struct {
 	ChannelInfo *json.RawMessage `json:"channel_info"`
 }
 
-func newClient(app *application, s session) (*client, error) {
+func newClient(app *Application, s session) (*client, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
 		return nil, err

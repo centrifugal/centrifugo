@@ -16,7 +16,7 @@ import (
 // newSockJSHandler returns SockJS handler bind to `/connection` prefix
 // SockJS handler has several handlers inside responsible for various tasks -
 // SockJS server info, websocket, HTTP streaming and polling transports.
-func newSockJSHandler(app *application, sockjsUrl string) http.Handler {
+func newSockJSHandler(app *Application, sockjsUrl string) http.Handler {
 	if sockjsUrl != "" {
 		logger.INFO.Println("using SockJS url", sockjsUrl)
 		sockjs.DefaultOptions.SockJSURL = sockjsUrl
@@ -25,7 +25,7 @@ func newSockJSHandler(app *application, sockjsUrl string) http.Handler {
 }
 
 // sockJSHandler called when new client connection comes to SockJS endpoint.
-func (app *application) sockJSHandler(s sockjs.Session) {
+func (app *Application) sockJSHandler(s sockjs.Session) {
 
 	c, err := newClient(app, s)
 	if err != nil {
@@ -66,7 +66,7 @@ func (conn wsConn) Close(status uint32, reason string) error {
 }
 
 // rawWebsocketHandler called when new client connection comes to raw Websocket endpoint.
-func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) rawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
 	if _, ok := err.(websocket.HandshakeError); ok {
@@ -140,7 +140,7 @@ type jsonApiRequest struct {
 }
 
 // apiHandler is responsible for receiving API commands over HTTP.
-func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	pk := ProjectKey(r.URL.Path[len("/api/"):])
 	contentType := r.Header.Get("Content-Type")
@@ -226,7 +226,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // authHandler allows to get admin web interface token.
-func (app *application) authHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) authHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	if app.config.webPassword == "" || app.config.webSecret == "" {
 		logger.ERROR.Println("web_password and web_secret must be set in configuration")
@@ -253,7 +253,7 @@ func (app *application) authHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // Authenticated middleware checks that request contains valid auth token in headers.
-func (app *application) Authenticated(h http.Handler) http.Handler {
+func (app *Application) Authenticated(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader != "" {
@@ -270,7 +270,7 @@ func (app *application) Authenticated(h http.Handler) http.Handler {
 }
 
 // Logged middleware logs request.
-func (app *application) Logged(h http.Handler) http.Handler {
+func (app *Application) Logged(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		addr := r.Header.Get("X-Real-IP")
@@ -288,7 +288,7 @@ func (app *application) Logged(h http.Handler) http.Handler {
 }
 
 // infoHahdler allows to get actual information about Centrifugo nodes running.
-func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) infoHandler(w http.ResponseWriter, r *http.Request) {
 	app.nodesMu.Lock()
 	defer app.nodesMu.Unlock()
 	app.RLock()
@@ -305,7 +305,7 @@ func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // actionHandler allows to call API commands via submitting a form.
-func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) actionHandler(w http.ResponseWriter, r *http.Request) {
 	pk := ProjectKey(r.FormValue("project"))
 	method := r.FormValue("method")
 
@@ -372,7 +372,7 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 
 // adminWebsocketHandler handles admin websocket connections.
-func (app *application) adminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) adminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
