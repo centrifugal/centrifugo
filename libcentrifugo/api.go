@@ -7,7 +7,7 @@ import (
 )
 
 // apiCmd builds API command and dispatches it into correct handler method
-func (app *application) apiCmd(p project, command apiCommand) (*response, error) {
+func (app *application) apiCmd(p Project, command apiCommand) (*response, error) {
 
 	var err error
 	var resp *response
@@ -67,7 +67,7 @@ func (app *application) apiCmd(p project, command apiCommand) (*response, error)
 }
 
 // publishCmd publishes data into channel
-func (app *application) publishCmd(p project, cmd *publishApiCommand) (*response, error) {
+func (app *application) publishCmd(p Project, cmd *publishApiCommand) (*response, error) {
 
 	resp := newResponse("publish")
 
@@ -95,7 +95,7 @@ func (app *application) publishCmd(p project, cmd *publishApiCommand) (*response
 
 // unsubscribeCmd unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes
-func (app *application) unsubcribeCmd(p project, cmd *unsubscribeApiCommand) (*response, error) {
+func (app *application) unsubcribeCmd(p Project, cmd *unsubscribeApiCommand) (*response, error) {
 
 	resp := newResponse("unsubscribe")
 
@@ -132,7 +132,7 @@ func (app *application) unsubcribeCmd(p project, cmd *unsubscribeApiCommand) (*r
 
 // disconnectCmd disconnects project's user and sends disconnect
 // control message to other nodes
-func (app *application) disconnectCmd(p project, cmd *disconnectApiCommand) (*response, error) {
+func (app *application) disconnectCmd(p Project, cmd *disconnectApiCommand) (*response, error) {
 
 	resp := newResponse("disconnect")
 
@@ -159,7 +159,7 @@ func (app *application) disconnectCmd(p project, cmd *disconnectApiCommand) (*re
 }
 
 // presenceCmd returns response with presense information for project channel
-func (app *application) presenceCmd(p project, cmd *presenceApiCommand) (*response, error) {
+func (app *application) presenceCmd(p Project, cmd *presenceApiCommand) (*response, error) {
 
 	resp := newResponse("presence")
 
@@ -199,7 +199,7 @@ func (app *application) presenceCmd(p project, cmd *presenceApiCommand) (*respon
 }
 
 // historyCmd returns response with history information for project channel
-func (app *application) historyCmd(p project, cmd *historyApiCommand) (*response, error) {
+func (app *application) historyCmd(p Project, cmd *historyApiCommand) (*response, error) {
 
 	resp := newResponse("history")
 

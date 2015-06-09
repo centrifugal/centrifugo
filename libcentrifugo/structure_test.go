@@ -16,10 +16,10 @@ func getTestChannelOptions() ChannelOptions {
 	}
 }
 
-func getTestProject(name ProjectKey) project {
-	var ns []namespace
+func getTestProject(name ProjectKey) Project {
+	var ns []Namespace
 	ns = append(ns, getTestNamespace("test"))
-	return project{
+	return Project{
 		Name:           name,
 		Secret:         "secret",
 		ChannelOptions: getTestChannelOptions(),
@@ -27,30 +27,27 @@ func getTestProject(name ProjectKey) project {
 	}
 }
 
-func getTestNamespace(name NamespaceKey) namespace {
-	return namespace{
+func getTestNamespace(name NamespaceKey) Namespace {
+	return Namespace{
 		Name:           name,
 		ChannelOptions: getTestChannelOptions(),
 	}
 }
 
 func getTestStructure() *structure {
-	var pl []project
+	var pl []Project
 	pl = append(pl, getTestProject("test1"))
 	pl = append(pl, getTestProject("test2"))
-	s := &structure{
-		ProjectList: pl,
-	}
-	s.initialize()
+	s := NewStructure(pl)
 	return s
 }
 
 func TestStructureInitialize(t *testing.T) {
 	s := getTestStructure()
-	if len(s.ProjectMap) != 2 {
+	if len(s.projectMap) != 2 {
 		t.Error("malformed project map")
 	}
-	if len(s.NamespaceMap) != 2 {
+	if len(s.namespaceMap) != 2 {
 		t.Error("malformed namespace map")
 	}
 }

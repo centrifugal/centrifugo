@@ -30,11 +30,11 @@ type ChannelOptions struct {
 	JoinLeave bool `mapstructure:"join_leave" json:"join_leave"`
 }
 
-// project represents single project
-// note that although Centrifugo can work with several projects
+// Project represents single project that uses Centrifugo.
+// Note that although Centrifugo can work with several projects
 // but it's recommended to have separate Centrifugo installation
-// for every project (maybe except copy of your project for development)
-type project struct {
+// for every project (maybe except copy of your project for development).
+type Project struct {
 	// Name is unique project name, used as project key for client connections and API requests
 	Name ProjectKey `json:"name"`
 
@@ -45,14 +45,14 @@ type project struct {
 	ConnLifetime int64 `mapstructure:"connection_lifetime" json:"connection_lifetime"`
 
 	// Namespaces - list of namespaces for project for custom channel options
-	Namespaces []namespace `json:"namespaces"`
+	Namespaces []Namespace `json:"namespaces"`
 
 	// ChannelOptions - default project channel options
 	ChannelOptions `mapstructure:",squash"`
 }
 
-// namespace allows to create channels with different channel options within the project
-type namespace struct {
+// Namespace allows to create channels with different channel options within the Project
+type Namespace struct {
 	// Name is a unique namespace name in project
 	Name NamespaceKey `json:"name"`
 
@@ -73,26 +73,35 @@ type (
 // in a fast and comfortable way
 type structure struct {
 	sync.RWMutex
-	ProjectList  []project
-	ProjectMap   map[ProjectKey]project
-	NamespaceMap map[ProjectKey]map[NamespaceKey]namespace
+	ProjectList  []Project
+	projectMap   map[ProjectKey]Project
+	namespaceMap map[ProjectKey]map[NamespaceKey]Namespace
 }
 
-// initialize initializes structure fields based on project list
+// NewStructure allows to create fully initialized structure from a slice of Projects.
+func NewStructure(pl []Project) *structure {
+	s := &structure{
+		ProjectList: pl,
+	}
+	s.initialize()
+	return s
+}
+
+// initialize initializes structure fields based on its project list.
 func (s *structure) initialize() {
 	s.Lock()
 	defer s.Unlock()
-	projectMap := map[ProjectKey]project{}
-	namespaceMap := map[ProjectKey]map[NamespaceKey]namespace{}
+	pm := map[ProjectKey]Project{}
+	nm := map[ProjectKey]map[NamespaceKey]Namespace{}
 	for _, p := range s.ProjectList {
-		projectMap[p.Name] = p
-		namespaceMap[p.Name] = map[NamespaceKey]namespace{}
+		pm[p.Name] = p
+		nm[p.Name] = map[NamespaceKey]Namespace{}
 		for _, n := range p.Namespaces {
-			namespaceMap[p.Name][n.Name] = n
+			nm[p.Name][n.Name] = n
 		}
 	}
-	s.ProjectMap = projectMap
-	s.NamespaceMap = namespaceMap
+	s.projectMap = pm
+	s.namespaceMap = nm
 }
 
 func stringInSlice(a string, list []string) bool {
@@ -146,31 +155,31 @@ func (s *structure) validate() error {
 }
 
 // projectByKey searches for a project with specified key in structure
-func (s *structure) projectByKey(pk ProjectKey) (project, bool) {
+func (s *structure) projectByKey(pk ProjectKey) (Project, bool) {
 	s.RLock()
 	defer s.RUnlock()
-	p, ok := s.ProjectMap[pk]
+	p, ok := s.projectMap[pk]
 	if !ok {
-		return project{}, false
+		return Project{}, false
 	}
 	return p, true
 }
 
 // channelOpts searches for channel options for specified project key and namespace key
-func (s *structure) channelOpts(pk ProjectKey, ns NamespaceKey) (ChannelOptions, error) {
+func (s *structure) channelOpts(pk ProjectKey, nk NamespaceKey) (ChannelOptions, error) {
 	s.RLock()
 	defer s.RUnlock()
-	project, exists := s.projectByKey(pk)
+	p, exists := s.projectByKey(pk)
 	if !exists {
 		return ChannelOptions{}, ErrProjectNotFound
 	}
-	if ns == NamespaceKey("") {
-		return project.ChannelOptions, nil
+	if nk == NamespaceKey("") {
+		return p.ChannelOptions, nil
 	} else {
-		namespace, exists := s.NamespaceMap[pk][ns]
+		n, exists := s.namespaceMap[pk][nk]
 		if !exists {
 			return ChannelOptions{}, ErrNamespaceNotFound
 		}
-		return namespace.ChannelOptions, nil
+		return n.ChannelOptions, nil
 	}
 }

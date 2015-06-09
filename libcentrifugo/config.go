@@ -218,8 +218,8 @@ func validateConfig(f string) error {
 	return structure.validate()
 }
 
-func getGlobalProject(v *viper.Viper) (*project, bool) {
-	p := &project{}
+func getGlobalProject(v *viper.Viper) (*Project, bool) {
+	p := &Project{}
 
 	// TODO: the same as for structureFromConfig function
 	if v == nil {
@@ -252,7 +252,7 @@ func getGlobalProject(v *viper.Viper) (*project, bool) {
 		p.HistoryLifetime = int64(v.GetInt("project_history_lifetime"))
 	}
 
-	var nl []namespace
+	var nl []Namespace
 	if v == nil {
 		viper.MarshalKey("project_namespaces", &nl)
 	} else {
@@ -268,7 +268,7 @@ func structureFromConfig(v *viper.Viper) *structure {
 	// we need to use nil when application wants to use global viper
 	// config - this must be improved using our own global viper instance
 
-	var pl []project
+	var pl []Project
 
 	if v == nil {
 		viper.MarshalKey("projects", &pl)
@@ -280,13 +280,10 @@ func structureFromConfig(v *viper.Viper) *structure {
 	p, exists := getGlobalProject(v)
 	if exists {
 		// add global project to project list
-		pl = append([]project{*p}, pl...)
+		pl = append([]Project{*p}, pl...)
 	}
 
-	s := &structure{
-		ProjectList: pl,
-	}
+	s := NewStructure(pl)
 
-	s.initialize()
 	return s
 }
