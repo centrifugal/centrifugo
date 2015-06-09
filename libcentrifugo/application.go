@@ -55,7 +55,7 @@ type nodeInfo struct {
 	Updated  int64  `json:"-"`
 }
 
-func newApplication() (*application, error) {
+func newApplication(c *config) (*application, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -67,6 +67,7 @@ func newApplication() (*application, error) {
 		subs:    newSubHub(),
 		admins:  newAdminHub(),
 		started: time.Now().Unix(),
+		config:  c,
 	}
 	return app, nil
 }
@@ -111,18 +112,30 @@ func (app *application) cleanNodeInfo() {
 	}
 }
 
-// initialize used to set configuration dependent application properties
+// initialize used to make various actions after application instance fully configured
 func (app *application) initialize() {
-	app.Lock()
-	defer app.Unlock()
-	app.config = newConfig()
-	app.structure = structureFromConfig(nil)
+	app.RLock()
+	defer app.RUnlock()
 	if app.config.insecure {
 		logger.WARN.Println("application initialized in INSECURE MODE")
 	}
 	if app.structure.ProjectList == nil {
 		logger.FATAL.Println("project structure not found, please configure at least one project")
 	}
+}
+
+// setConfig binds config to application
+func (app *application) setConfig(c *config) {
+	app.Lock()
+	defer app.Unlock()
+	app.config = c
+}
+
+// setEngine binds structure to application
+func (app *application) setStructure(s *structure) {
+	app.Lock()
+	defer app.Unlock()
+	app.structure = s
 }
 
 // setEngine binds engine to application

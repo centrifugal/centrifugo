@@ -19,8 +19,7 @@ func newAdminTestConfig() *config {
 }
 
 func newAdminTestApplication() *application {
-	app, _ := newApplication()
-	app.config = newAdminTestConfig()
+	app, _ := newApplication(newAdminTestConfig())
 	return app
 }
 

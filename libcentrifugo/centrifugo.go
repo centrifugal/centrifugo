@@ -53,6 +53,10 @@ func handleSignals(app *application) {
 				return
 			}
 			setupLogging()
+			c := newConfig()
+			s := structureFromConfig(nil)
+			app.setConfig(c)
+			app.setStructure(s)
 			app.initialize()
 		}
 	}
@@ -168,11 +172,15 @@ func Main() {
 			logger.INFO.Println("GOMAXPROCS set to", runtime.GOMAXPROCS(0))
 			logger.INFO.Println("using config file:", viper.ConfigFileUsed())
 
-			app, err := newApplication()
+			c := newConfig()
+			s := structureFromConfig(nil)
+
+			app, err := newApplication(c)
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
-			app.initialize()
+
+			app.setStructure(s)
 
 			var e engine
 			switch viper.GetString("engine") {
@@ -202,6 +210,8 @@ func Main() {
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
+
+			app.initialize()
 
 			app.run()
 

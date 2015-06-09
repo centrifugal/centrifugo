@@ -45,8 +45,7 @@ func newTestConfig() *config {
 }
 
 func testApp() *application {
-	app, _ := newApplication()
-	app.config = newTestConfig()
+	app, _ := newApplication(newTestConfig())
 	app.setEngine(newTestEngine())
 	app.structure = getTestStructure()
 	return app
@@ -104,8 +103,7 @@ func createUsers(users, chanUser, totChannels int) []*testClientConn {
 
 func BenchmarkSendReceive(b *testing.B) {
 	totChannels := 200
-	app, _ := newApplication()
-	app.config = newTestConfig()
+	app, _ := newApplication(newTestConfig())
 	app.setEngine(newMemoryEngine(app))
 	app.structure = getTestStructure()
 	app.config.insecure = true
