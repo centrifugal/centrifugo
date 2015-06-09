@@ -13,6 +13,9 @@ import (
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
+// newSockJSHandler returns SockJS handler bind to `/connection` prefix
+// SockJS handler has several handlers inside responsible for various tasks -
+// SockJS server info, websocket, HTTP streaming and polling transports.
 func newSockJSHandler(app *application, sockjsUrl string) http.Handler {
 	if sockjsUrl != "" {
 		logger.INFO.Println("using SockJS url", sockjsUrl)
@@ -21,6 +24,7 @@ func newSockJSHandler(app *application, sockjsUrl string) http.Handler {
 	return sockjs.NewHandler("/connection", sockjs.DefaultOptions, app.sockJSHandler)
 }
 
+// sockJSHandler called when new client connection comes to SockJS endpoint.
 func (app *application) sockJSHandler(s sockjs.Session) {
 
 	c, err := newClient(app, s)
@@ -47,6 +51,8 @@ func (app *application) sockJSHandler(s sockjs.Session) {
 	}
 }
 
+// wsConn is a struct to fit SockJS session interface so client will accept
+// it as its sess
 type wsConn struct {
 	ws *websocket.Conn
 }
@@ -59,6 +65,7 @@ func (conn wsConn) Close(status uint32, reason string) error {
 	return conn.ws.Close()
 }
 
+// rawWebsocketHandler called when new client connection comes to raw Websocket endpoint.
 func (app *application) rawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
@@ -132,6 +139,7 @@ type jsonApiRequest struct {
 	Data string
 }
 
+// apiHandler is responsible for receiving API commands over HTTP.
 func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	pk := ProjectKey(r.URL.Path[len("/api/"):])
@@ -217,6 +225,7 @@ func (app *application) apiHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonResp)
 }
 
+// authHandler allows to get admin web interface token.
 func (app *application) authHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 	if app.config.webPassword == "" || app.config.webSecret == "" {
@@ -243,6 +252,7 @@ func (app *application) authHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Bad Request", http.StatusBadRequest)
 }
 
+// Authenticated middleware checks that request contains valid auth token in headers.
 func (app *application) Authenticated(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
@@ -259,6 +269,7 @@ func (app *application) Authenticated(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+// Logged middleware logs request.
 func (app *application) Logged(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -276,6 +287,7 @@ func (app *application) Logged(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+// infoHahdler allows to get actual information about Centrifugo nodes running.
 func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
 	app.nodesMu.Lock()
 	defer app.nodesMu.Unlock()
@@ -292,6 +304,7 @@ func (app *application) infoHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(info)
 }
 
+// actionHandler allows to call API commands via submitting a form.
 func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 	pk := ProjectKey(r.FormValue("project"))
 	method := r.FormValue("method")
@@ -358,6 +371,7 @@ func (app *application) actionHandler(w http.ResponseWriter, r *http.Request) {
 
 var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 
+// adminWebsocketHandler handles admin websocket connections.
 func (app *application) adminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
