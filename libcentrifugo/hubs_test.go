@@ -85,7 +85,7 @@ func (c *testAdminConn) flush() {
 }
 
 func TestClientHub(t *testing.T) {
-	h := newClientHub()
+	h := newClientHub(application{})
 	c := newTestUserCC()
 	h.add(c)
 	assert.Equal(t, len(h.connections), 1)

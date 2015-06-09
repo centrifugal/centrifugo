@@ -17,7 +17,7 @@ type clientHub struct {
 }
 
 // newClientHub initializes connectionHub
-func newClientHub() *clientHub {
+func newClientHub(app application) *clientHub {
 	h := clientHub{
 		connections: make(map[ProjectKey]map[UserID]map[ConnID]clientConn),
 	}
@@ -45,6 +45,14 @@ func newClientHub() *clientHub {
 	// Stage 2: Flush all messages to connections on shutdown.
 	shutdown.SecondFunc(func(interface{}) {
 		var wg sync.WaitGroup
+
+		// If flushClientsShutdown is set, just return
+		app.RLock()
+		if app.config == nil || !app.config.flushClientsShutdown {
+			app.RUnlock()
+			return
+		}
+		app.RUnlock()
 		h.RLock()
 		for _, uc := range h.connections {
 			for _, user := range uc {

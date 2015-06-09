@@ -69,6 +69,11 @@ type config struct {
 	// allowed for all channels, no connection check performed. This can be suitable
 	// for demonstration or personal usage
 	insecure bool
+
+	// flushClientsShutdown will flush all pending messages to clients
+	// before shutting down and disconnecting them.
+	// If true no messages are lost, but shutdown may take longer.
+	flushClientsShutdown bool
 }
 
 // getApplicationName returns a name for this node. If no name provided
@@ -108,6 +113,7 @@ func newConfig() *config {
 	cfg.userChannelBoundary = viper.GetString("user_channel_boundary")
 	cfg.userChannelSeparator = viper.GetString("user_channel_separator")
 	cfg.expiredConnectionCloseDelay = int64(viper.GetInt("expired_connection_close_delay"))
+	cfg.flushClientsShutdown = viper.GetBool("flush_client_shutdown")
 	cfg.insecure = viper.GetBool("insecure")
 	return cfg
 }

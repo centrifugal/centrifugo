@@ -63,11 +63,11 @@ func newApplication() (*application, error) {
 	app := &application{
 		uid:     uid.String(),
 		nodes:   make(map[string]*nodeInfo),
-		connHub: newClientHub(),
 		subs:    newSubHub(),
 		admins:  newAdminHub(),
 		started: time.Now().Unix(),
 	}
+	app.connHub = newClientHub(*app)
 	return app, nil
 }
 

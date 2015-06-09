@@ -102,6 +102,7 @@ func Main() {
 			viper.SetDefault("user_channel_boundary", "#")
 			viper.SetDefault("user_channel_separator", ",")
 			viper.SetDefault("sockjs_url", "https://cdn.jsdelivr.net/sockjs/1.0/sockjs.min.js")
+			viper.SetDefault("flush_client_shutdown", false)
 
 			viper.SetDefault("project_name", "")
 			viper.SetDefault("project_secret", "")
