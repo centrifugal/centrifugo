@@ -14,6 +14,9 @@ import (
 	"github.com/nu7hatch/gouuid"
 )
 
+// Application is a heart of Centrifugo – it internally manages connection, subscription
+// and admin hubs, maintains information about other Centrifugo nodes, keeps references to
+// config, engine and structure.
 type Application struct {
 	sync.RWMutex
 
@@ -55,6 +58,8 @@ type nodeInfo struct {
 	Updated  int64  `json:"-"`
 }
 
+// NewApplication returns new Application instance, the only required argument is
+// config, structure and engine must be set via corresponding methods.
 func NewApplication(c *config) (*Application, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
@@ -72,6 +77,7 @@ func NewApplication(c *config) (*Application, error) {
 	return app, nil
 }
 
+// Run starts all periodic Application tasks. At moment must be called once on start after engine and structure set.
 func (app *Application) Run() {
 	go app.sendPingMsg()
 	go app.cleanNodeInfo()
@@ -112,21 +118,21 @@ func (app *Application) cleanNodeInfo() {
 	}
 }
 
-// setConfig binds config to application
+// SetConfig binds config to application
 func (app *Application) SetConfig(c *config) {
 	app.Lock()
 	defer app.Unlock()
 	app.config = c
 }
 
-// setEngine binds structure to application
+// SetEngine binds structure to application
 func (app *Application) SetStructure(s *structure) {
 	app.Lock()
 	defer app.Unlock()
 	app.structure = s
 }
 
-// setEngine binds engine to application
+// SetEngine binds engine to application
 func (app *Application) SetEngine(e engine) {
 	app.Lock()
 	defer app.Unlock()
