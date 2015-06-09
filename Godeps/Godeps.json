@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/centrifugal/centrifugo",
-	"GoVersion": "go1.4.2",
+	"GoVersion": "go1.4.2 windows/amd64",
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
@@ -31,6 +31,14 @@
 		{
 			"ImportPath": "github.com/gorilla/websocket",
 			"Rev": "1551221275a7bd42978745a376b2531f791d88f3"
+		},
+		{
+			"ImportPath": "github.com/inconshreveable/mousetrap",
+			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+		},
+		{
+			"ImportPath": "github.com/klauspost/shutdown",
+			"Rev": "42011fc73027ad413e7e01b37ffc5889ef9839c8"
 		},
 		{
 			"ImportPath": "github.com/kr/pretty",

@@ -22,6 +22,10 @@ type StringQueue interface {
 	// all goroutines in wait() will return
 	Close()
 
+	// CloseRemaining will close the queue and return all entried in the queue.
+	// All goroutines in wait() will return
+	CloseRemaining() []string
+
 	// Closed returns true if the queue has been closed
 	// The call cannot guarantee that the queue hasn't been
 	// closed while the function returns, so only "true" has a definite meaning.
@@ -100,8 +104,8 @@ func (q *stringQueue) Add(i string) bool {
 	return true
 }
 
-// Close the queue and discard all entried in the queue
-// all goroutines in wait() will return
+// Close the queue and discard all entried in the queue.
+// All goroutines in wait() will return
 func (q *stringQueue) Close() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -109,6 +113,27 @@ func (q *stringQueue) Close() {
 	q.cnt = 0
 	q.nodes = nil
 	q.cond.Broadcast()
+}
+
+// CloseRemaining will close the queue and return all entried in the queue.
+// All goroutines in wait() will return
+func (q *stringQueue) CloseRemaining() []string {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.isClosed {
+		return []string{}
+	}
+	rem := make([]string, 0, q.cnt)
+	for q.cnt > 0 {
+		i := q.nodes[q.head]
+		q.head = (q.head + 1) % len(q.nodes)
+		q.cnt--
+		rem = append(rem, i)
+	}
+	q.isClosed = true
+	q.nodes = nil
+	q.cond.Broadcast()
+	return rem
 }
 
 // Closed returns true if the queue has been closed
