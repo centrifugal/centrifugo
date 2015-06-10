@@ -92,11 +92,9 @@ func (app *Application) Shutdown(timeout time.Duration) {
 	app.Lock()
 	app.shutdown = true
 	app.Unlock()
-	go func() {
-		time.AfterFunc(timeout, func() {
-			os.Exit(1)
-		})
-	}()
+	go time.AfterFunc(timeout, func() {
+		os.Exit(1)
+	})
 	app.connHub.shutdown()
 	os.Exit(1)
 }
