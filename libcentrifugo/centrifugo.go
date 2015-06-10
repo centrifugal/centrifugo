@@ -60,7 +60,11 @@ func handleSignals(app *Application) {
 			app.SetStructure(s)
 		case syscall.SIGINT, os.Interrupt:
 			logger.INFO.Println("shutting down")
-			app.Shutdown(5 * time.Second)
+			go time.AfterFunc(5*time.Second, func() {
+				os.Exit(1)
+			})
+			app.Shutdown()
+			os.Exit(130)
 		}
 	}
 }

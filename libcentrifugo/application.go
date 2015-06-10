@@ -4,7 +4,6 @@ package libcentrifugo
 
 import (
 	"encoding/json"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -87,16 +86,13 @@ func (app *Application) Run() {
 	go app.cleanNodeInfo()
 }
 
-// Shutdown sets shutdown flag and tries to do as much clean up as possible until timeout
-func (app *Application) Shutdown(timeout time.Duration) {
+// Shutdown sets shutdown flag and does various connection clean ups (at moment only unsubscribes
+// all clients from all channels and disconnects them).
+func (app *Application) Shutdown() {
 	app.Lock()
 	app.shutdown = true
 	app.Unlock()
-	go time.AfterFunc(timeout, func() {
-		os.Exit(1)
-	})
 	app.connHub.shutdown()
-	os.Exit(1)
 }
 
 func (app *Application) sendPingMsg() {
