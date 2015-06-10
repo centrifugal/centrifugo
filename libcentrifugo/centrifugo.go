@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/spf13/cobra"
@@ -37,7 +38,7 @@ func setupLogging() {
 
 func handleSignals(app *Application) {
 	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, syscall.SIGHUP)
+	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt)
 	for {
 		sig := <-sigc
 		logger.INFO.Println("signal received:", sig)
@@ -57,6 +58,9 @@ func handleSignals(app *Application) {
 			s := structureFromConfig(nil)
 			app.SetConfig(c)
 			app.SetStructure(s)
+		case syscall.SIGINT, os.Interrupt:
+			logger.INFO.Println("shutting down")
+			app.Shutdown(5 * time.Second)
 		}
 	}
 }
@@ -220,13 +224,13 @@ func Main() {
 			go handleSignals(app)
 
 			// register raw Websocket endpoint
-			http.Handle("/connection/websocket", app.Logged(http.HandlerFunc(app.RawWebsocketHandler)))
+			http.Handle("/connection/websocket", app.Logged(app.WrapShutdown(http.HandlerFunc(app.RawWebsocketHandler))))
 
 			// register SockJS endpoints
-			http.Handle("/connection/", app.Logged(NewSockJSHandler(app, "/connection", viper.GetString("sockjs_url"))))
+			http.Handle("/connection/", app.Logged(app.WrapShutdown(NewSockJSHandler(app, "/connection", viper.GetString("sockjs_url")))))
 
 			// register HTTP API endpoint
-			http.Handle("/api/", app.Logged(http.HandlerFunc(app.ApiHandler)))
+			http.Handle("/api/", app.Logged(app.WrapShutdown(http.HandlerFunc(app.ApiHandler))))
 
 			// register admin web interface API endpoints
 			http.Handle("/auth/", app.Logged(http.HandlerFunc(app.authHandler)))

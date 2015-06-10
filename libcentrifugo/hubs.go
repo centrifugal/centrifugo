@@ -22,6 +22,28 @@ func newClientHub() *clientHub {
 	}
 }
 
+// shutdown unsubscribes users from all channels and disconnects them
+func (h *clientHub) shutdown() {
+	var wg sync.WaitGroup
+	h.RLock()
+	for _, uc := range h.connections {
+		for _, user := range uc {
+			wg.Add(len(user))
+			for _, cc := range user {
+				go func(cc clientConn) {
+					for _, ch := range cc.channels() {
+						cc.unsubscribe(ch)
+					}
+					cc.close("shutting down")
+					wg.Done()
+				}(cc)
+			}
+		}
+	}
+	h.RUnlock()
+	wg.Wait()
+}
+
 // nClients returns total number of client connections
 func (h *clientHub) nClients() int {
 	h.RLock()

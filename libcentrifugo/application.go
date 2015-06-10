@@ -4,6 +4,7 @@ package libcentrifugo
 
 import (
 	"encoding/json"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,32 +21,35 @@ import (
 type Application struct {
 	sync.RWMutex
 
-	// unique id for this application (node)
+	// unique id for this application (node).
 	uid string
 
-	// started is unix time of node start
+	// started is unix time of node start.
 	started int64
 
-	// nodes is a map with information about nodes known
+	// nodes is a map with information about nodes known.
 	nodes map[string]*nodeInfo
-	// nodesMu allows to synchronize access to nodes
+	// nodesMu allows to synchronize access to nodes.
 	nodesMu sync.Mutex
 
-	// hub to manage client connections
+	// hub to manage client connections.
 	connHub *clientHub
-	// hub to manage client subscriptions
+	// hub to manage client subscriptions.
 	subs *subHub
-	// hub to manage admin connections
+	// hub to manage admin connections.
 	admins *adminHub
 
-	// engine to use - in memory or redis
+	// engine to use - in memory or redis.
 	engine Engine
 
-	// reference to structure to work with projects and namespaces
+	// reference to structure to work with projects and namespaces.
 	structure *Structure
 
-	// config for application
+	// config for application.
 	config *Config
+
+	// shuttdown is a flag which is only true when application is going to shut down.
+	shutdown bool
 }
 
 type nodeInfo struct {
@@ -81,6 +85,20 @@ func NewApplication(c *Config) (*Application, error) {
 func (app *Application) Run() {
 	go app.sendPingMsg()
 	go app.cleanNodeInfo()
+}
+
+// Shutdown sets shutdown flag and tries to do as much clean up as possible until timeout
+func (app *Application) Shutdown(timeout time.Duration) {
+	app.Lock()
+	app.shutdown = true
+	app.Unlock()
+	go func() {
+		time.AfterFunc(timeout, func() {
+			os.Exit(1)
+		})
+	}()
+	app.connHub.shutdown()
+	os.Exit(1)
 }
 
 func (app *Application) sendPingMsg() {

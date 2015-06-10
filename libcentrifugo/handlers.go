@@ -269,6 +269,22 @@ func (app *Application) Authenticated(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
+// WrapShutdown will return an http Handler.
+// If Application in shutdown it will return http.StatusServiceUnavailable.
+func (app *Application) WrapShutdown(h http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		app.RLock()
+		shutdown := app.shutdown
+		app.RUnlock()
+		if shutdown {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		h.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
+}
+
 // Logged middleware logs request.
 func (app *Application) Logged(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
