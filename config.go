@@ -1,6 +1,3 @@
-// Copyright 2015 Alexandr Emelin and Centrifugal team.
-// Use of this source code is governed by a MIT license.
-
 package main
 
 import (
@@ -20,6 +17,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// newConfig creates new libcentrifugo.Config using viper.
 func newConfig() *libcentrifugo.Config {
 	cfg := &libcentrifugo.Config{}
 	cfg.Version = VERSION
@@ -62,7 +60,7 @@ func getApplicationName() string {
 	return hostname + "_" + port
 }
 
-// exists returns whether the given file or directory exists or not
+// pathExists returns whether the given file or directory exists or not
 func pathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -88,6 +86,7 @@ var yamlConfigTemplate = `project_name: {{.Name}}
 project_secret: {{.Secret}}
 `
 
+// generateConfig generates configuration file at provided path.
 func generateConfig(f string) error {
 	exists, err := pathExists(f)
 	if err != nil {
@@ -157,6 +156,7 @@ func generateConfig(f string) error {
 	return nil
 }
 
+// validateConfig validates config file located at provided path.
 func validateConfig(f string) error {
 	v := viper.New()
 	v.SetConfigFile(f)
