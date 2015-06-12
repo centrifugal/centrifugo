@@ -1,3 +1,4 @@
+// Package auth provides functions to generate and check Centrifugo tokens and signs.
 package auth
 
 import (

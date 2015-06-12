@@ -14,7 +14,7 @@ func (s *testAdminSession) WriteMessage(int, []byte) error {
 
 func newAdminTestConfig() *Config {
 	return &Config{
-		webSecret: "secret",
+		WebSecret: "secret",
 	}
 }
 
@@ -48,7 +48,7 @@ func TestAdminClientMessageHandling(t *testing.T) {
 	assert.NotEqual(t, nil, err)
 	unknownMsg := "{\"method\":\"unknown\", \"params\": {}}"
 	_, err = c.handleMessage([]byte(unknownMsg))
-	assert.Equal(t, ErrInvalidAdminMessage, err)
+	assert.Equal(t, ErrInvalidMessage, err)
 	emptyAuthMethod := "{\"method\":\"auth\", \"params\": {}}"
 	_, err = c.handleMessage([]byte(emptyAuthMethod))
 	assert.Equal(t, ErrUnauthorized, err)

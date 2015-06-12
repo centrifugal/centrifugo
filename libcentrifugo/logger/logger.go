@@ -1,3 +1,4 @@
+// Package logger provides a logger for Centrifugo server.
 // This is an adapted code from Steve Francia's jWalterWeatherman
 // library - see https://github.com/spf13/jWalterWeatherman
 package logger

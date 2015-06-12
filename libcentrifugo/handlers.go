@@ -13,6 +13,35 @@ import (
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
+func DefaultMux(app *Application, prefix, webDir, sockjsURL string) *http.ServeMux {
+
+	mux := http.NewServeMux()
+
+	// register raw Websocket endpoint
+	mux.Handle(prefix+"/connection/websocket", app.Logged(app.WrapShutdown(http.HandlerFunc(app.RawWebsocketHandler))))
+
+	// register SockJS endpoints
+	sjsh := NewSockJSHandler(app, prefix+"/connection", sockjsURL)
+	mux.Handle(prefix+"/connection/", app.Logged(app.WrapShutdown(sjsh)))
+
+	// register HTTP API endpoint
+	mux.Handle(prefix+"/api/", app.Logged(app.WrapShutdown(http.HandlerFunc(app.ApiHandler))))
+
+	// register admin web interface API endpoints
+	mux.Handle(prefix+"/auth/", app.Logged(http.HandlerFunc(app.AuthHandler)))
+	mux.Handle(prefix+"/info/", app.Logged(app.Authenticated(http.HandlerFunc(app.InfoHandler))))
+	mux.Handle(prefix+"/action/", app.Logged(app.Authenticated(http.HandlerFunc(app.ActionHandler))))
+	mux.Handle(prefix+"/socket", app.Logged(http.HandlerFunc(app.AdminWebsocketHandler)))
+
+	// optionally serve admin web interface application
+	if webDir != "" {
+		webPrefix := prefix + "/"
+		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webDir))))
+	}
+
+	return mux
+}
+
 // NewSockJSHandler returns SockJS handler bind to sockjsPrefix url prefix.
 // SockJS handler has several handlers inside responsible for various tasks
 // according to SockJS protocol.
@@ -127,7 +156,7 @@ func msgToCommands(msgBytes []byte) ([]apiCommand, error) {
 			return nil, err
 		}
 	default:
-		return nil, ErrInvalidApiMessage
+		return nil, ErrInvalidMessage
 	}
 	return commands, nil
 }
@@ -223,18 +252,18 @@ func (app *Application) ApiHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonResp)
 }
 
-// authHandler allows to get admin web interface token.
-func (app *Application) authHandler(w http.ResponseWriter, r *http.Request) {
+// AuthHandler allows to get admin web interface token.
+func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
-	if app.config.webPassword == "" || app.config.webSecret == "" {
+	if app.config.WebPassword == "" || app.config.WebSecret == "" {
 		logger.ERROR.Println("web_password and web_secret must be set in configuration")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	if password == app.config.webPassword {
+	if password == app.config.WebPassword {
 		w.Header().Set("Content-Type", "application/json")
 		app.RLock()
-		s := securecookie.New([]byte(app.config.webSecret), nil)
+		s := securecookie.New([]byte(app.config.WebSecret), nil)
 		app.RUnlock()
 		token, err := s.Encode(AuthTokenKey, AuthTokenValue)
 		if err != nil {
@@ -301,25 +330,25 @@ func (app *Application) Logged(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-// infoHahdler allows to get actual information about Centrifugo nodes running.
-func (app *Application) infoHandler(w http.ResponseWriter, r *http.Request) {
+// InfoHahdler allows to get actual information about Centrifugo nodes running.
+func (app *Application) InfoHandler(w http.ResponseWriter, r *http.Request) {
 	app.nodesMu.Lock()
 	defer app.nodesMu.Unlock()
 	app.RLock()
 	defer app.RUnlock()
 	info := map[string]interface{}{
-		"version":   VERSION,
+		"version":   app.config.Version,
 		"structure": app.structure.projectList,
 		"engine":    app.engine.name(),
-		"node_name": app.config.name,
+		"node_name": app.config.Name,
 		"nodes":     app.nodes,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(info)
 }
 
-// actionHandler allows to call API commands via submitting a form.
-func (app *Application) actionHandler(w http.ResponseWriter, r *http.Request) {
+// ActionHandler allows to call API commands via submitting a form.
+func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
 	pk := ProjectKey(r.FormValue("project"))
 	method := r.FormValue("method")
 
@@ -385,8 +414,8 @@ func (app *Application) actionHandler(w http.ResponseWriter, r *http.Request) {
 
 var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 
-// adminWebsocketHandler handles admin websocket connections.
-func (app *Application) adminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+// AdminWebsocketHandler handles admin websocket connections.
+func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return

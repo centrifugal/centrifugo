@@ -128,7 +128,7 @@ func (e *RedisEngine) initializeApi() {
 		e.inAPI = false
 	}()
 	e.app.RLock()
-	apiKey := e.app.config.channelPrefix + "." + "api"
+	apiKey := e.app.config.ChannelPrefix + "." + "api"
 	e.app.RUnlock()
 	for {
 		reply, err := conn.Do("BLPOP", apiKey, 0)
@@ -174,8 +174,8 @@ func (e *RedisEngine) initializePubSub() {
 		e.inPubSub = false
 	}()
 	e.app.RLock()
-	adminChannel := e.app.config.adminChannel
-	controlChannel := e.app.config.controlChannel
+	adminChannel := e.app.config.AdminChannel
+	controlChannel := e.app.config.ControlChannel
 	e.app.RUnlock()
 	err := e.psc.Subscribe(adminChannel)
 	if err != nil {
@@ -225,24 +225,24 @@ func (e *RedisEngine) unsubscribe(chID ChannelID) error {
 func (e *RedisEngine) getHashKey(chID ChannelID) string {
 	e.app.RLock()
 	defer e.app.RUnlock()
-	return e.app.config.channelPrefix + ".presence.hash." + string(chID)
+	return e.app.config.ChannelPrefix + ".presence.hash." + string(chID)
 }
 
 func (e *RedisEngine) getSetKey(chID ChannelID) string {
 	e.app.RLock()
 	defer e.app.RUnlock()
-	return e.app.config.channelPrefix + ".presence.set." + string(chID)
+	return e.app.config.ChannelPrefix + ".presence.set." + string(chID)
 }
 
 func (e *RedisEngine) getHistoryKey(chID ChannelID) string {
 	e.app.RLock()
 	defer e.app.RUnlock()
-	return e.app.config.channelPrefix + ".history.list." + string(chID)
+	return e.app.config.ChannelPrefix + ".history.list." + string(chID)
 }
 
 func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) error {
 	e.app.RLock()
-	presenceExpireInterval := e.app.config.presenceExpireInterval
+	presenceExpireInterval := e.app.config.PresenceExpireInterval
 	e.app.RUnlock()
 	conn := e.pool.Get()
 	defer conn.Close()

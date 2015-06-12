@@ -1,3 +1,4 @@
+// Package stringqueue provides string queue for libcentrifugo package client messages.
 package stringqueue
 
 import (

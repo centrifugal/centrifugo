@@ -83,7 +83,7 @@ func (c *client) sendMessages() {
 
 func (c *client) sendMsgTimeout(msg string) error {
 	c.app.RLock()
-	to := time.After(time.Second * time.Duration(c.app.config.messageSendTimeout))
+	to := time.After(time.Second * time.Duration(c.app.config.MessageSendTimeout))
 	c.app.RUnlock()
 	sent := make(chan error)
 	go func() {
@@ -124,7 +124,7 @@ func (c *client) updatePresence() {
 func (c *client) presencePing() {
 	for {
 		c.app.RLock()
-		interval := c.app.config.presencePingInterval
+		interval := c.app.config.PresencePingInterval
 		c.app.RUnlock()
 		select {
 		case <-c.closeChan:
@@ -275,7 +275,7 @@ func cmdFromClientMsg(msgBytes []byte) ([]clientCommand, error) {
 func (c *client) message(msg []byte) error {
 	if len(msg) == 0 {
 		logger.ERROR.Println("empty client message received")
-		return ErrInvalidClientMessage
+		return ErrInvalidMessage
 	}
 	commands, err := cmdFromClientMsg(msg)
 	if err != nil {
@@ -324,35 +324,35 @@ func (c *client) handleCmd(command clientCommand) (*response, error) {
 		var cmd connectClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidClientMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = c.connectCmd(&cmd)
 	case "refresh":
 		var cmd refreshClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidClientMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = c.refreshCmd(&cmd)
 	case "subscribe":
 		var cmd subscribeClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidClientMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = c.subscribeCmd(&cmd)
 	case "unsubscribe":
 		var cmd unsubscribeClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidClientMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = c.unsubscribeCmd(&cmd)
 	case "publish":
 		var cmd publishClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidClientMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = c.publishCmd(&cmd)
 	case "ping":
@@ -361,14 +361,14 @@ func (c *client) handleCmd(command clientCommand) (*response, error) {
 		var cmd presenceClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidClientMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = c.presenceCmd(&cmd)
 	case "history":
 		var cmd historyClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidClientMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = c.historyCmd(&cmd)
 	default:
@@ -422,16 +422,21 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 
 	if c.authenticated {
 		logger.ERROR.Println("wrong connect message: client already authenticated")
-		return nil, ErrInvalidClientMessage
+		return nil, ErrInvalidMessage
 	}
 
 	pk := cmd.Project
 	user := cmd.User
 	info := cmd.Info
 
+	c.app.RLock()
+	insecure := c.app.config.Insecure
+	closeDelay := c.app.config.ExpiredConnectionCloseDelay
+	c.app.RUnlock()
+
 	var timestamp string
 	var token string
-	if !c.app.config.insecure {
+	if !insecure {
 		timestamp = cmd.Timestamp
 		token = cmd.Token
 	} else {
@@ -444,7 +449,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 		return nil, ErrProjectNotFound
 	}
 
-	if !c.app.config.insecure {
+	if !insecure {
 		isValid := auth.CheckClientToken(project.Secret, string(pk), string(user), timestamp, info, token)
 		if !isValid {
 			logger.ERROR.Println("invalid token for user", user)
@@ -452,11 +457,11 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 		}
 	}
 
-	if !c.app.config.insecure {
+	if !insecure {
 		ts, err := strconv.Atoi(timestamp)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidClientMessage
+			return nil, ErrInvalidMessage
 		}
 		c.timestamp = int64(ts)
 	} else {
@@ -471,7 +476,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	var timeToExpire int64 = 0
 
 	connLifetime := project.ConnLifetime
-	if connLifetime > 0 && !c.app.config.insecure {
+	if connLifetime > 0 && !insecure {
 		timeToExpire := c.timestamp + connLifetime - time.Now().Unix()
 		if timeToExpire <= 0 {
 			body.Expired = true
@@ -495,7 +500,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	}
 
 	if timeToExpire > 0 {
-		duration := time.Duration(timeToExpire+c.app.config.expiredConnectionCloseDelay) * time.Second
+		duration := time.Duration(timeToExpire+closeDelay) * time.Second
 		c.expireTimer = time.AfterFunc(duration, c.expire)
 	}
 
@@ -533,7 +538,7 @@ func (c *client) refreshCmd(cmd *refreshClientCommand) (*response, error) {
 	ts, err := strconv.Atoi(timestamp)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return nil, ErrInvalidClientMessage
+		return nil, ErrInvalidMessage
 	}
 
 	body := &refreshBody{}
@@ -549,7 +554,7 @@ func (c *client) refreshCmd(cmd *refreshClientCommand) (*response, error) {
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
-			duration := time.Duration(timeToExpire+c.app.config.expiredConnectionCloseDelay) * time.Second
+			duration := time.Duration(timeToExpire+c.app.config.ExpiredConnectionCloseDelay) * time.Second
 			c.expireTimer = time.AfterFunc(duration, c.expire)
 		} else {
 			return nil, ErrConnectionExpired
@@ -574,11 +579,12 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 
 	channel := cmd.Channel
 	if channel == "" {
-		return nil, ErrInvalidClientMessage
+		return nil, ErrInvalidMessage
 	}
 
 	c.app.RLock()
-	maxChannelLength := c.app.config.maxChannelLength
+	maxChannelLength := c.app.config.MaxChannelLength
+	insecure := c.app.config.Insecure
 	c.app.RUnlock()
 
 	if len(channel) > maxChannelLength {
@@ -602,7 +608,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	if !chOpts.Anonymous && c.User == "" && !c.app.config.insecure {
+	if !chOpts.Anonymous && c.User == "" && !insecure {
 		resp.Err(ErrPermissionDenied)
 		return resp, nil
 	}
@@ -657,7 +663,7 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 
 	channel := cmd.Channel
 	if channel == "" {
-		return nil, ErrInvalidClientMessage
+		return nil, ErrInvalidMessage
 	}
 
 	body := &unsubscribeBody{
@@ -706,18 +712,8 @@ func (c *client) publishCmd(cmd *publishClientCommand) (*response, error) {
 
 	resp := newResponse("publish")
 
-	project, exists := c.app.projectByKey(c.Project)
-	if !exists {
-		return nil, ErrProjectNotFound
-	}
-
 	channel := cmd.Channel
 	data := cmd.Data
-
-	if channel == "" || len(data) == 0 {
-		logger.ERROR.Println("channel and data required")
-		return nil, ErrInvalidClientMessage
-	}
 
 	body := &publishBody{
 		Channel: channel,
@@ -730,27 +726,16 @@ func (c *client) publishCmd(cmd *publishClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	chOpts, err := c.app.channelOpts(c.Project, channel)
+	info := c.info(channel)
+
+	err := c.app.Publish(c.Project, channel, data, c.Uid, &info, true)
 	if err != nil {
 		resp.Err(err)
 		return resp, nil
 	}
 
-	if !chOpts.Publish && !c.app.config.insecure {
-		resp.Err(ErrPermissionDenied)
-		return resp, nil
-	}
-
-	info := c.info(channel)
-
-	err = c.app.pubClient(project, channel, chOpts, data, c.Uid, &info)
-	if err != nil {
-		logger.ERROR.Println(err)
-		resp.Err(ErrInternalServerError)
-	} else {
-		// message successfully sent
-		body.Status = true
-	}
+	// message successfully sent
+	body.Status = true
 
 	return resp, nil
 }
@@ -765,32 +750,15 @@ func (c *client) presenceCmd(cmd *presenceClientCommand) (*response, error) {
 
 	channel := cmd.Channel
 
-	if channel == "" {
-		logger.ERROR.Println("channel required")
-		return nil, ErrInvalidClientMessage
-	}
-
 	body := &presenceBody{
 		Channel: channel,
 	}
 
 	resp.Body = body
 
-	chOpts, err := c.app.channelOpts(c.Project, channel)
+	presence, err := c.app.Presence(c.Project, channel)
 	if err != nil {
 		resp.Err(err)
-		return resp, nil
-	}
-
-	if !chOpts.Presence {
-		resp.Err(ErrNotAvailable)
-		return resp, nil
-	}
-
-	presence, err := c.app.presence(c.Project, channel)
-	if err != nil {
-		logger.ERROR.Println(err)
-		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 
@@ -809,31 +777,15 @@ func (c *client) historyCmd(cmd *historyClientCommand) (*response, error) {
 
 	channel := cmd.Channel
 
-	if channel == "" {
-		logger.ERROR.Println("channel required")
-		return nil, ErrInvalidClientMessage
-	}
-
 	body := &historyBody{
 		Channel: channel,
 	}
 
 	resp.Body = body
 
-	chOpts, err := c.app.channelOpts(c.Project, channel)
+	history, err := c.app.History(c.Project, channel)
 	if err != nil {
 		resp.Err(err)
-		return resp, nil
-	}
-
-	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
-		resp.Err(ErrNotAvailable)
-		return resp, nil
-	}
-
-	history, err := c.app.history(c.Project, channel)
-	if err != nil {
-		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 

@@ -21,7 +21,7 @@ func (app *Application) apiCmd(p Project, command apiCommand) (*response, error)
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidApiMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = app.publishCmd(p, &cmd)
 	case "unsubscribe":
@@ -29,7 +29,7 @@ func (app *Application) apiCmd(p Project, command apiCommand) (*response, error)
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidApiMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = app.unsubcribeCmd(p, &cmd)
 	case "disconnect":
@@ -37,7 +37,7 @@ func (app *Application) apiCmd(p Project, command apiCommand) (*response, error)
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidApiMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = app.disconnectCmd(p, &cmd)
 	case "presence":
@@ -45,7 +45,7 @@ func (app *Application) apiCmd(p Project, command apiCommand) (*response, error)
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidApiMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = app.presenceCmd(p, &cmd)
 	case "history":
@@ -53,7 +53,7 @@ func (app *Application) apiCmd(p Project, command apiCommand) (*response, error)
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidApiMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = app.historyCmd(p, &cmd)
 	default:
@@ -73,21 +73,11 @@ func (app *Application) publishCmd(p Project, cmd *publishApiCommand) (*response
 
 	channel := cmd.Channel
 	data := cmd.Data
-	if channel == "" || len(data) == 0 {
-		logger.ERROR.Println("channel and data required")
-		return nil, ErrInvalidApiMessage
-	}
 
-	chOpts, err := app.channelOpts(p.Name, channel)
+	err := app.Publish(p.Name, channel, data, cmd.Client, nil, false)
 	if err != nil {
 		resp.Err(err)
 		return resp, nil
-	}
-
-	err = app.pubClient(p, channel, chOpts, data, cmd.Client, nil)
-	if err != nil {
-		logger.ERROR.Println(err)
-		resp.Err(ErrInternalServerError)
 	}
 
 	return resp, nil
@@ -102,28 +92,9 @@ func (app *Application) unsubcribeCmd(p Project, cmd *unsubscribeApiCommand) (*r
 	channel := cmd.Channel
 	user := cmd.User
 
-	if user == "" {
-		logger.ERROR.Println("user required")
-		return nil, ErrInvalidApiMessage
-	}
-
-	if channel != "" {
-		_, err := app.channelOpts(p.Name, channel)
-		if err != nil {
-			resp.Err(err)
-			return resp, nil
-		}
-	}
-
-	err := app.unsubscribeUser(p.Name, user, channel)
+	err := app.Unsubscribe(p.Name, user, channel)
 	if err != nil {
-		resp.Err(ErrInternalServerError)
-		return resp, nil
-	}
-
-	err = app.pubUnsubscribe(p.Name, user, channel)
-	if err != nil {
-		resp.Err(ErrInternalServerError)
+		resp.Err(err)
 		return resp, nil
 	}
 
@@ -138,20 +109,9 @@ func (app *Application) disconnectCmd(p Project, cmd *disconnectApiCommand) (*re
 
 	user := cmd.User
 
-	if user == "" {
-		logger.ERROR.Println("user required")
-		return nil, ErrInvalidApiMessage
-	}
-
-	err := app.disconnectUser(p.Name, user)
+	err := app.Disconnect(p.Name, user)
 	if err != nil {
-		resp.Err(ErrInternalServerError)
-		return resp, nil
-	}
-
-	err = app.pubDisconnect(p.Name, user)
-	if err != nil {
-		resp.Err(ErrInternalServerError)
+		resp.Err(err)
 		return resp, nil
 	}
 
@@ -165,31 +125,15 @@ func (app *Application) presenceCmd(p Project, cmd *presenceApiCommand) (*respon
 
 	channel := cmd.Channel
 
-	if channel == "" {
-		logger.ERROR.Println("channel required")
-		return nil, ErrInvalidApiMessage
-	}
-
 	body := &presenceBody{
 		Channel: channel,
 	}
 
 	resp.Body = body
 
-	chOpts, err := app.channelOpts(p.Name, channel)
+	presence, err := app.Presence(p.Name, channel)
 	if err != nil {
 		resp.Err(err)
-		return resp, nil
-	}
-
-	if !chOpts.Presence {
-		resp.Err(ErrNotAvailable)
-		return resp, nil
-	}
-
-	presence, err := app.presence(p.Name, channel)
-	if err != nil {
-		resp.Err(ErrInternalServerError)
 		return resp, nil
 	}
 
@@ -205,29 +149,13 @@ func (app *Application) historyCmd(p Project, cmd *historyApiCommand) (*response
 
 	channel := cmd.Channel
 
-	if channel == "" {
-		logger.ERROR.Println("channel required")
-		return nil, ErrInvalidApiMessage
-	}
-
 	body := &historyBody{
 		Channel: channel,
 	}
 
 	resp.Body = body
 
-	chOpts, err := app.channelOpts(p.Name, channel)
-	if err != nil {
-		resp.Err(err)
-		return resp, nil
-	}
-
-	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
-		resp.Err(ErrNotAvailable)
-		return resp, nil
-	}
-
-	history, err := app.history(p.Name, channel)
+	history, err := app.History(p.Name, channel)
 	if err != nil {
 		resp.Err(ErrInternalServerError)
 		return resp, nil

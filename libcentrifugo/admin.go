@@ -86,13 +86,13 @@ func (c *adminClient) handleMessage(msg []byte) (*response, error) {
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidAdminMessage
+			return nil, ErrInvalidMessage
 		}
 		resp, err = c.authCmd(&cmd)
 	case "ping":
 		resp, err = c.pingCmd()
 	default:
-		return nil, ErrInvalidAdminMessage
+		return nil, ErrInvalidMessage
 	}
 	return resp, err
 }

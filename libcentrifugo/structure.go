@@ -61,12 +61,18 @@ type Namespace struct {
 }
 
 type (
-	NamespaceKey string // Namespace ID
-	ProjectKey   string // Project ID
-	Channel      string // Channel
-	ChannelID    string // Channel ID
-	UserID       string // User ID
-	ConnID       string // Connection ID
+	// ProjectKey is a name of project.
+	ProjectKey string
+	// NamespaceKey is a name of namespace unique for project.
+	NamespaceKey string
+	// Channel is a string channel name, can be the same for different projects.
+	Channel string
+	// ChannelID is unique channel identificator in Centrifugo.
+	ChannelID string
+	// UserID is web application user ID as string.
+	UserID string // User ID
+	// ConnID is a unique connection ID.
+	ConnID string
 )
 
 // Structure contains project structure related fields - it allows to work with Projects and Namespaces.
