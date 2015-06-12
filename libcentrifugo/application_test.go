@@ -33,15 +33,7 @@ func (app *Application) newTestHandler(b *testing.B, s *testSession) *client {
 }
 
 func newTestConfig() *Config {
-	return &Config{
-		ChannelPrefix:            "testPrefix",
-		NamespaceChannelBoundary: ":",
-		PrivateChannelPrefix:     "$",
-		UserChannelBoundary:      "#",
-		UserChannelSeparator:     ",",
-		MaxChannelLength:         256,
-		MessageSendTimeout:       1,
-	}
+	return DefaultConfig
 }
 
 func testApp() *Application {
@@ -64,7 +56,7 @@ func TestChannelID(t *testing.T) {
 	app := testApp()
 	p, _ := app.projectByKey("test1")
 	chID := app.channelID(p.Name, "channel")
-	assert.Equal(t, chID, ChannelID("testPrefix.test1.channel"))
+	assert.Equal(t, chID, ChannelID(defaultChannelPrefix+".test1.channel"))
 }
 
 func TestUserAllowed(t *testing.T) {

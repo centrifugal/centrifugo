@@ -67,3 +67,33 @@ type Config struct {
 	// for demonstration or personal usage
 	Insecure bool
 }
+
+const (
+	defaultName             = "libcentrifugo"
+	defaultChannelPrefix    = "libcentrifugo"
+	defaultNodePingInterval = 5
+)
+
+// DefaultConfig is Config initialized with default values for all fields.
+var DefaultConfig = &Config{
+	Version:                     "-",
+	Name:                        defaultName,
+	WebPassword:                 "",
+	WebSecret:                   "",
+	ChannelPrefix:               defaultChannelPrefix,
+	AdminChannel:                ChannelID(defaultChannelPrefix + ".admin"),
+	ControlChannel:              ChannelID(defaultChannelPrefix + ".control"),
+	MaxChannelLength:            255,
+	NodePingInterval:            int64(defaultNodePingInterval),
+	NodeInfoCleanInterval:       int64(defaultNodePingInterval) * 3,
+	NodeInfoMaxDelay:            int64(defaultNodePingInterval)*2 + 1,
+	PresencePingInterval:        int64(25),
+	PresenceExpireInterval:      int64(60),
+	MessageSendTimeout:          int64(60),
+	PrivateChannelPrefix:        "$",
+	NamespaceChannelBoundary:    ":",
+	UserChannelBoundary:         "#",
+	UserChannelSeparator:        ",",
+	ExpiredConnectionCloseDelay: int64(10),
+	Insecure:                    false,
+}
