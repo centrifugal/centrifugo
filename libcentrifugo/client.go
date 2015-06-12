@@ -96,7 +96,6 @@ func (c *client) sendMsgTimeout(msg string) error {
 		return ErrSendTimeout
 	}
 	panic("unreachable")
-	return nil
 }
 
 // updateChannelPresence updates client presence info for channel so it
@@ -150,13 +149,13 @@ func (c *client) user() UserID {
 
 func (c *client) channels() []Channel {
 	c.RLock()
+	defer c.RUnlock()
 	keys := make([]Channel, len(c.Channels))
 	i := 0
 	for k := range c.Channels {
 		keys[i] = k
 		i += 1
 	}
-	c.RUnlock()
 	return keys
 }
 
@@ -195,6 +194,7 @@ func (c *client) close(reason string) error {
 func (c *client) clean() error {
 	c.Lock()
 	defer c.Unlock()
+
 	pk := c.Project
 
 	if pk != "" && len(c.Channels) > 0 {
