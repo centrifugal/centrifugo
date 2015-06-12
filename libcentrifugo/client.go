@@ -185,6 +185,8 @@ func (c *client) send(message string) error {
 }
 
 func (c *client) close(reason string) error {
+	// TODO: better locking for client - at moment we close message queue in 2 places, here and in clean() method
+	c.messages.Close()
 	return c.sess.Close(CloseStatus, reason)
 }
 

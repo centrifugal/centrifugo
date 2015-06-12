@@ -1,7 +1,5 @@
 package libcentrifugo
 
-// TODO: maybe use interfaces instead of app reference in client and engine?
-
 import (
 	"encoding/json"
 	"strconv"
