@@ -185,7 +185,6 @@ func (c *client) send(message string) error {
 }
 
 func (c *client) close(reason string) error {
-	c.messages.Close()
 	return c.sess.Close(CloseStatus, reason)
 }
 

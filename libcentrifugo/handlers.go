@@ -32,9 +32,7 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 		logger.ERROR.Println(err)
 		return
 	}
-	defer func() {
-		c.clean()
-	}()
+	defer c.clean()
 	logger.INFO.Printf("new SockJS session established with uid %s\n", c.uid())
 
 	for {
@@ -42,7 +40,7 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 			err = c.message([]byte(msg))
 			if err != nil {
 				logger.ERROR.Println(err)
-				s.Close(CloseStatus, "error receiving message")
+				s.Close(CloseStatus, "error handling message")
 				break
 			}
 			continue
@@ -97,7 +95,7 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 		err = c.message(message)
 		if err != nil {
 			logger.ERROR.Println(err)
-			conn.ws.Close()
+			conn.Close(CloseStatus, "error handling message")
 			break
 		}
 	}
