@@ -284,7 +284,27 @@ type Message struct {
 	Client    ConnID           `json:"client"`
 }
 
-// Publish sends a message into project channel with provided data, client and client info.
+func newMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) (Message, error) {
+	uid, err := uuid.NewV4()
+	if err != nil {
+		return Message{}, err
+	}
+
+	raw := json.RawMessage(data)
+
+	message := Message{
+		Uid:       uid.String(),
+		Timestamp: strconv.FormatInt(time.Now().Unix(), 10),
+		Info:      info,
+		Channel:   ch,
+		Data:      &raw,
+		Client:    client,
+	}
+	return message, nil
+}
+
+// Publish sends a message to all clients subscribed on project channel with provided data, client
+// and client info.
 func (app *Application) Publish(pk ProjectKey, ch Channel, data []byte, client ConnID, info *ClientInfo) error {
 
 	if string(ch) == "" || len(data) == 0 {
@@ -350,20 +370,9 @@ func (app *Application) publish(pk ProjectKey, ch Channel, data []byte, client C
 // will receive it and will send to all clients on node subscribed on channel
 func (app *Application) pubClient(pk ProjectKey, ch Channel, chOpts ChannelOptions, data []byte, client ConnID, info *ClientInfo) error {
 
-	uid, err := uuid.NewV4()
+	message, err := newMessage(ch, data, client, info)
 	if err != nil {
 		return err
-	}
-
-	raw := json.RawMessage(data)
-
-	message := Message{
-		Uid:       uid.String(),
-		Timestamp: strconv.FormatInt(time.Now().Unix(), 10),
-		Info:      info,
-		Channel:   ch,
-		Data:      &raw,
-		Client:    client,
 	}
 
 	if chOpts.Watch {
