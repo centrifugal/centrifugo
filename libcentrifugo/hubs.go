@@ -10,14 +10,21 @@ import (
 type clientHub struct {
 	sync.RWMutex
 
+	conns map[ConnID]clientConn
+
 	// registry to hold active connections grouped by project and user ID
-	connections map[ProjectKey]map[UserID]map[ConnID]clientConn
+	connections map[ProjectKey]map[UserID]map[ConnID]bool
+
+	// registry to hold active subscriptions of clients on channels
+	subs map[ChannelID]map[ConnID]bool
 }
 
 // newClientHub initializes connectionHub
 func newClientHub() *clientHub {
 	return &clientHub{
-		connections: make(map[ProjectKey]map[UserID]map[ConnID]clientConn),
+		conns:       make(map[ConnID]clientConn),
+		connections: make(map[ProjectKey]map[UserID]map[ConnID]bool),
+		subs:        make(map[ChannelID]map[ConnID]bool),
 	}
 }
 
@@ -28,7 +35,11 @@ func (h *clientHub) shutdown() {
 	for _, uc := range h.connections {
 		for _, user := range uc {
 			wg.Add(len(user))
-			for _, cc := range user {
+			for uid, _ := range user {
+				cc, ok := h.conns[uid]
+				if !ok {
+					continue
+				}
 				go func(cc clientConn) {
 					for _, ch := range cc.channels() {
 						cc.unsubscribe(ch)
@@ -76,15 +87,17 @@ func (h *clientHub) add(c clientConn) error {
 	user := c.user()
 	project := c.project()
 
+	h.conns[uid] = c
+
 	_, ok := h.connections[project]
 	if !ok {
-		h.connections[project] = make(map[UserID]map[ConnID]clientConn)
+		h.connections[project] = make(map[UserID]map[ConnID]bool)
 	}
 	_, ok = h.connections[project][user]
 	if !ok {
-		h.connections[project][user] = make(map[ConnID]clientConn)
+		h.connections[project][user] = make(map[ConnID]bool)
 	}
-	h.connections[project][user][uid] = c
+	h.connections[project][user][uid] = true
 	return nil
 }
 
@@ -96,6 +109,8 @@ func (h *clientHub) remove(c clientConn) error {
 	uid := c.uid()
 	user := c.user()
 	project := c.project()
+
+	delete(h.conns, uid)
 
 	// try to find connection to delete, return early if not found
 	if _, ok := h.connections[project]; !ok {
@@ -139,37 +154,26 @@ func (h *clientHub) userConnections(pk ProjectKey, user UserID) map[ConnID]clien
 
 	var conns map[ConnID]clientConn
 	conns = make(map[ConnID]clientConn, len(userConnections))
-	for k, v := range userConnections {
-		conns[k] = v
+	for uid, _ := range userConnections {
+		c, ok := h.conns[uid]
+		if !ok {
+			continue
+		}
+		conns[uid] = c
 	}
 
 	return conns
 }
 
-// subHub manages client subscriptions on channels
-type subHub struct {
-	sync.RWMutex
-
-	// registry to hold active subscriptions of clients on channels
-	subs map[ChannelID]map[ConnID]clientConn
-}
-
-// newSubHub initializes subscriptionHub
-func newSubHub() *subHub {
-	return &subHub{
-		subs: make(map[ChannelID]map[ConnID]clientConn),
-	}
-}
-
 // nChannels returns a total number of different channels
-func (h *subHub) nChannels() int {
+func (h *clientHub) nChannels() int {
 	h.RLock()
 	defer h.RUnlock()
 	return len(h.subs)
 }
 
 // channels returns a slice of all active channels
-func (h *subHub) channels() []ChannelID {
+func (h *clientHub) channels() []ChannelID {
 	h.RLock()
 	defer h.RUnlock()
 	channels := make([]ChannelID, len(h.subs))
@@ -182,26 +186,30 @@ func (h *subHub) channels() []ChannelID {
 }
 
 // add adds connection into clientSubscriptionHub subscriptions registry
-func (h *subHub) add(chID ChannelID, c clientConn) error {
+func (h *clientHub) addSub(chID ChannelID, c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
 	uid := c.uid()
 
+	h.conns[uid] = c
+
 	_, ok := h.subs[chID]
 	if !ok {
-		h.subs[chID] = make(map[ConnID]clientConn)
+		h.subs[chID] = make(map[ConnID]bool)
 	}
-	h.subs[chID][uid] = c
+	h.subs[chID][uid] = true
 	return nil
 }
 
 // remove removes connection from clientSubscriptionHub subscriptions registry
-func (h *subHub) remove(chID ChannelID, c clientConn) error {
+func (h *clientHub) removeSub(chID ChannelID, c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
 	uid := c.uid()
+
+	delete(h.conns, uid)
 
 	// try to find subscription to delete, return early if not found
 	if _, ok := h.subs[chID]; !ok {
@@ -223,7 +231,7 @@ func (h *subHub) remove(chID ChannelID, c clientConn) error {
 }
 
 // broadcast sends message to all clients subscribed on channel
-func (h *subHub) broadcast(chID ChannelID, message string) error {
+func (h *clientHub) broadcast(chID ChannelID, message string) error {
 	h.RLock()
 	defer h.RUnlock()
 
@@ -234,7 +242,11 @@ func (h *subHub) broadcast(chID ChannelID, message string) error {
 	}
 
 	// iterate over them and send message individually
-	for _, c := range channelSubscriptions {
+	for uid, _ := range channelSubscriptions {
+		c, ok := h.conns[uid]
+		if !ok {
+			continue
+		}
 		err := c.send(message)
 		if err != nil {
 			logger.ERROR.Println(err)

@@ -187,7 +187,7 @@ func (e *RedisEngine) initializePubSub() {
 		e.psc.Close()
 		return
 	}
-	for _, chID := range e.app.subs.channels() {
+	for _, chID := range e.app.conns.channels() {
 		err = e.psc.Subscribe(chID)
 		if err != nil {
 			e.psc.Close()
