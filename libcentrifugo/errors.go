@@ -18,4 +18,5 @@ var (
 	ErrConnectionExpired   = errors.New("connection expired")
 	ErrSendTimeout         = errors.New("send timeout")
 	ErrClientClosed        = errors.New("client is closed")
+	ErrRejected            = errors.New("command rejected")
 )

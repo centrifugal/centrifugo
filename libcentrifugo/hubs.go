@@ -10,8 +10,7 @@ import (
 type clientHub struct {
 	sync.RWMutex
 
-	// registry to hold active connections
-	// as map[of projects]map[of user IDs]map[unique connection IDs]connection
+	// registry to hold active connections grouped by project and user ID
 	connections map[ProjectKey]map[UserID]map[ConnID]clientConn
 }
 
@@ -152,7 +151,6 @@ type subHub struct {
 	sync.RWMutex
 
 	// registry to hold active subscriptions of clients on channels
-	// as map[of engine channel]map[of connection UID]*connection
 	subs map[ChannelID]map[ConnID]clientConn
 }
 

@@ -217,6 +217,10 @@ func (c *client) clean() error {
 		}
 	}
 
+	if pk != "" && c.app.mediator != nil {
+		c.app.mediator.Disconnect(c.Project, c.info(Channel("")))
+	}
+
 	close(c.closeChan)
 	c.messages.Close()
 
@@ -224,9 +228,15 @@ func (c *client) clean() error {
 }
 
 func (c *client) info(ch Channel) ClientInfo {
-	channelInfo, ok := c.channelInfo[ch]
-	if !ok {
+	var channelInfo []byte
+	var ok bool
+	if string(ch) == "" {
 		channelInfo = []byte{}
+	} else {
+		channelInfo, ok = c.channelInfo[ch]
+		if !ok {
+			channelInfo = []byte{}
+		}
 	}
 	var rawDefaultInfo *json.RawMessage
 	var rawChannelInfo *json.RawMessage
@@ -491,6 +501,13 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	c.Channels = map[Channel]bool{}
 	c.channelInfo = map[Channel][]byte{}
 
+	if c.app.mediator != nil {
+		ok := c.app.mediator.Connect(c.Project, c.info(Channel("")))
+		if !ok {
+			return nil, ErrRejected
+		}
+	}
+
 	go c.presencePing()
 
 	err := c.app.addConn(c)
@@ -627,15 +644,23 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 		c.channelInfo[channel] = []byte(cmd.Info)
 	}
 
+	c.Channels[channel] = true
+
+	info := c.info(channel)
+
+	if c.app.mediator != nil {
+		ok := c.app.mediator.Subscribe(c.Project, channel, info)
+		if !ok {
+			resp.Err(ErrRejected)
+			return resp, nil
+		}
+	}
+
 	err = c.app.addSub(c.Project, channel, c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return resp, ErrInternalServerError
 	}
-
-	c.Channels[channel] = true
-
-	info := c.info(channel)
 
 	if chOpts.Presence {
 		err = c.app.addPresence(c.Project, channel, c.Uid, info)
@@ -677,6 +702,8 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 		return resp, nil
 	}
 
+	info := c.info(channel)
+
 	_, ok := c.Channels[channel]
 	if ok {
 
@@ -688,7 +715,7 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 		}
 
 		if chOpts.JoinLeave {
-			err = c.app.pubJoinLeave(c.Project, channel, "leave", c.info(channel))
+			err = c.app.pubJoinLeave(c.Project, channel, "leave", info)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -699,6 +726,10 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 	if err != nil {
 		logger.ERROR.Println(err)
 		return resp, ErrInternalServerError
+	}
+
+	if c.app.mediator != nil {
+		c.app.mediator.Unsubscribe(c.Project, channel, info)
 	}
 
 	return resp, nil
@@ -728,7 +759,7 @@ func (c *client) publishCmd(cmd *publishClientCommand) (*response, error) {
 
 	info := c.info(channel)
 
-	err := c.app.Publish(c.Project, channel, data, c.Uid, &info, true)
+	err := c.app.publish(c.Project, channel, data, c.Uid, &info, true)
 	if err != nil {
 		resp.Err(err)
 		return resp, nil

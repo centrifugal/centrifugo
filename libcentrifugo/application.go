@@ -46,6 +46,9 @@ type Application struct {
 	// config for application.
 	config *Config
 
+	// mediator allows integrate libcentrifugo Application with external go code.
+	mediator Mediator
+
 	// shuttdown is a flag which is only true when application is going to shut down.
 	shutdown bool
 }
@@ -157,6 +160,13 @@ func (app *Application) SetEngine(e Engine) {
 	app.Lock()
 	defer app.Unlock()
 	app.engine = e
+}
+
+// SetMediator binds mediator to application
+func (app *Application) SetMediator(m Mediator) {
+	app.Lock()
+	defer app.Unlock()
+	app.mediator = m
 }
 
 // handleMsg called when new message of any type received by this node.
@@ -278,9 +288,30 @@ type Message struct {
 }
 
 // Publish sends a message into project channel with provided data, client and client info.
-// If asClient argument is true then internally this method will check client permission to
+func (app *Application) Publish(pk ProjectKey, ch Channel, data []byte, client ConnID, info *ClientInfo) error {
+
+	if string(ch) == "" || len(data) == 0 {
+		return ErrInvalidMessage
+	}
+
+	chOpts, err := app.channelOpts(pk, ch)
+	if err != nil {
+		return err
+	}
+
+	err = app.pubClient(pk, ch, chOpts, data, client, info)
+	if err != nil {
+		logger.ERROR.Println(err)
+		return ErrInternalServerError
+	}
+
+	return nil
+}
+
+// publish sends a message into project channel with provided data, client and client info.
+// If fromClient argument is true then internally this method will check client permission to
 // publish into this channel.
-func (app *Application) Publish(pk ProjectKey, ch Channel, data []byte, client ConnID, info *ClientInfo, asClient bool) error {
+func (app *Application) publish(pk ProjectKey, ch Channel, data []byte, client ConnID, info *ClientInfo, fromClient bool) error {
 
 	if string(ch) == "" || len(data) == 0 {
 		return ErrInvalidMessage
@@ -295,8 +326,18 @@ func (app *Application) Publish(pk ProjectKey, ch Channel, data []byte, client C
 	insecure := app.config.Insecure
 	app.RUnlock()
 
-	if asClient && !chOpts.Publish && !insecure {
+	if fromClient && !chOpts.Publish && !insecure {
 		return ErrPermissionDenied
+	}
+
+	if app.mediator != nil {
+		// If mediator is set then we don't need to publish message
+		// immediately as mediator will decide itself what to do with it.
+		ok := app.mediator.Message(pk, ch, data, client, info, fromClient)
+		if !ok {
+			return ErrRejected
+		}
+		return nil
 	}
 
 	err = app.pubClient(pk, ch, chOpts, data, client, info)

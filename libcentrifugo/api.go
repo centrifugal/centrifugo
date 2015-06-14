@@ -74,7 +74,7 @@ func (app *Application) publishCmd(p Project, cmd *publishApiCommand) (*response
 	channel := cmd.Channel
 	data := cmd.Data
 
-	err := app.Publish(p.Name, channel, data, cmd.Client, nil, false)
+	err := app.publish(p.Name, channel, data, cmd.Client, nil, false)
 	if err != nil {
 		resp.Err(err)
 		return resp, nil
