@@ -80,21 +80,21 @@ func TestClientHub(t *testing.T) {
 	h := newClientHub()
 	c := newTestUserCC()
 	h.add(c)
-	assert.Equal(t, len(h.connections), 1)
+	assert.Equal(t, len(h.users), 1)
 	conns := h.userConnections("test project", "test user")
 	assert.Equal(t, 1, len(conns))
 	assert.Equal(t, 1, h.nClients())
 	assert.Equal(t, 1, h.nUniqueClients())
 	h.remove(c)
-	assert.Equal(t, len(h.connections), 0)
+	assert.Equal(t, len(h.users), 0)
 	assert.Equal(t, 1, len(conns))
 }
 
 func TestSubHub(t *testing.T) {
-	h := newSubHub()
+	h := newClientHub()
 	c := newTestUserCC()
-	h.add("test1", c)
-	h.add("test2", c)
+	h.addSub("test1", c)
+	h.addSub("test2", c)
 	assert.Equal(t, 2, h.nChannels())
 	channels := []string{}
 	for _, ch := range h.channels() {
@@ -104,8 +104,8 @@ func TestSubHub(t *testing.T) {
 	assert.Equal(t, stringInSlice("test2", channels), true)
 	err := h.broadcast("test1", "message")
 	assert.Equal(t, err, nil)
-	h.remove("test1", c)
-	h.remove("test2", c)
+	h.removeSub("test1", c)
+	h.removeSub("test2", c)
 	assert.Equal(t, len(h.subs), 0)
 }
 
@@ -122,9 +122,9 @@ func TestAdminHub(t *testing.T) {
 	assert.Equal(t, len(h.connections), 0)
 }
 
-func setupSubHub(users, chanUser, totChannels int) (*subHub, []*testClientConn) {
+func setupHub(users, chanUser, totChannels int) (*clientHub, []*testClientConn) {
 	uC := make([]*testClientConn, users)
-	h := newSubHub()
+	h := newClientHub()
 	for i := range uC {
 		c := newTestUserCC()
 		c.Uid = UserID(fmt.Sprintf("uid-%d", i))
@@ -132,7 +132,7 @@ func setupSubHub(users, chanUser, totChannels int) (*subHub, []*testClientConn) 
 		c.Channels = make([]Channel, 0)
 		for j := 0; j < chanUser; j++ {
 			ch := ChannelID(fmt.Sprintf("chan-%d", (j+i*chanUser)%totChannels))
-			h.add(ch, c)
+			h.addSub(ch, c)
 		}
 		uC[i] = c
 	}
@@ -141,7 +141,7 @@ func setupSubHub(users, chanUser, totChannels int) (*subHub, []*testClientConn) 
 
 func BenchmarkSubHubBroadCast(b *testing.B) {
 	totChannels := 100
-	h, conns := setupSubHub(50, 10, totChannels)
+	h, conns := setupHub(50, 10, totChannels)
 	b.ResetTimer()
 	tn := time.Now()
 	b.RunParallel(func(pb *testing.PB) {

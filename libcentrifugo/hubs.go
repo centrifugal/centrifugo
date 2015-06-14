@@ -12,8 +12,8 @@ type clientHub struct {
 
 	conns map[ConnID]clientConn
 
-	// registry to hold active connections grouped by project and user ID
-	connections map[ProjectKey]map[UserID]map[ConnID]bool
+	// registry to hold active user connections grouped by project
+	users map[ProjectKey]map[UserID]map[ConnID]bool
 
 	// registry to hold active subscriptions of clients on channels
 	subs map[ChannelID]map[ConnID]bool
@@ -22,9 +22,9 @@ type clientHub struct {
 // newClientHub initializes connectionHub
 func newClientHub() *clientHub {
 	return &clientHub{
-		conns:       make(map[ConnID]clientConn),
-		connections: make(map[ProjectKey]map[UserID]map[ConnID]bool),
-		subs:        make(map[ChannelID]map[ConnID]bool),
+		conns: make(map[ConnID]clientConn),
+		users: make(map[ProjectKey]map[UserID]map[ConnID]bool),
+		subs:  make(map[ChannelID]map[ConnID]bool),
 	}
 }
 
@@ -32,7 +32,7 @@ func newClientHub() *clientHub {
 func (h *clientHub) shutdown() {
 	var wg sync.WaitGroup
 	h.RLock()
-	for _, uc := range h.connections {
+	for _, uc := range h.users {
 		for _, user := range uc {
 			wg.Add(len(user))
 			for uid, _ := range user {
@@ -54,30 +54,6 @@ func (h *clientHub) shutdown() {
 	wg.Wait()
 }
 
-// nClients returns total number of client connections
-func (h *clientHub) nClients() int {
-	h.RLock()
-	defer h.RUnlock()
-	total := 0
-	for _, userConnections := range h.connections {
-		for _, clientConnections := range userConnections {
-			total += len(clientConnections)
-		}
-	}
-	return total
-}
-
-// nUniqueClients returns a number of unique users connected
-func (h *clientHub) nUniqueClients() int {
-	h.RLock()
-	defer h.RUnlock()
-	total := 0
-	for _, userConnections := range h.connections {
-		total += len(userConnections)
-	}
-	return total
-}
-
 // add adds connection into clientConnectionHub connections registry
 func (h *clientHub) add(c clientConn) error {
 	h.Lock()
@@ -89,15 +65,15 @@ func (h *clientHub) add(c clientConn) error {
 
 	h.conns[uid] = c
 
-	_, ok := h.connections[project]
+	_, ok := h.users[project]
 	if !ok {
-		h.connections[project] = make(map[UserID]map[ConnID]bool)
+		h.users[project] = make(map[UserID]map[ConnID]bool)
 	}
-	_, ok = h.connections[project][user]
+	_, ok = h.users[project][user]
 	if !ok {
-		h.connections[project][user] = make(map[ConnID]bool)
+		h.users[project][user] = make(map[ConnID]bool)
 	}
-	h.connections[project][user][uid] = true
+	h.users[project][user][uid] = true
 	return nil
 }
 
@@ -113,25 +89,25 @@ func (h *clientHub) remove(c clientConn) error {
 	delete(h.conns, uid)
 
 	// try to find connection to delete, return early if not found
-	if _, ok := h.connections[project]; !ok {
+	if _, ok := h.users[project]; !ok {
 		return nil
 	}
-	if _, ok := h.connections[project][user]; !ok {
+	if _, ok := h.users[project][user]; !ok {
 		return nil
 	}
-	if _, ok := h.connections[project][user][uid]; !ok {
+	if _, ok := h.users[project][user][uid]; !ok {
 		return nil
 	}
 
 	// actually remove connection from hub
-	delete(h.connections[project][user], uid)
+	delete(h.users[project][user], uid)
 
 	// clean up map if it's needed
-	if len(h.connections[project][user]) == 0 {
-		delete(h.connections[project], user)
+	if len(h.users[project][user]) == 0 {
+		delete(h.users[project], user)
 	}
-	if len(h.connections[project]) == 0 {
-		delete(h.connections, project)
+	if len(h.users[project]) == 0 {
+		delete(h.users, project)
 	}
 
 	return nil
@@ -142,12 +118,12 @@ func (h *clientHub) userConnections(pk ProjectKey, user UserID) map[ConnID]clien
 	h.RLock()
 	defer h.RUnlock()
 
-	_, ok := h.connections[pk]
+	_, ok := h.users[pk]
 	if !ok {
 		return map[ConnID]clientConn{}
 	}
 
-	userConnections, ok := h.connections[pk][user]
+	userConnections, ok := h.users[pk][user]
 	if !ok {
 		return map[ConnID]clientConn{}
 	}
@@ -163,6 +139,30 @@ func (h *clientHub) userConnections(pk ProjectKey, user UserID) map[ConnID]clien
 	}
 
 	return conns
+}
+
+// nClients returns total number of client connections
+func (h *clientHub) nClients() int {
+	h.RLock()
+	defer h.RUnlock()
+	total := 0
+	for _, userConnections := range h.users {
+		for _, clientConnections := range userConnections {
+			total += len(clientConnections)
+		}
+	}
+	return total
+}
+
+// nUniqueClients returns a number of unique users connected
+func (h *clientHub) nUniqueClients() int {
+	h.RLock()
+	defer h.RUnlock()
+	total := 0
+	for _, userConnections := range h.users {
+		total += len(userConnections)
+	}
+	return total
 }
 
 // nChannels returns a total number of different channels
@@ -230,6 +230,17 @@ func (h *clientHub) removeSub(chID ChannelID, c clientConn) error {
 	return nil
 }
 
+func (h *clientHub) send(cid ConnID, message string) error {
+	h.RLock()
+	defer h.RUnlock()
+	c, ok := h.conns[cid]
+	if !ok {
+		return nil
+	}
+	err := c.send(message)
+	return err
+}
+
 // broadcast sends message to all clients subscribed on channel
 func (h *clientHub) broadcast(chID ChannelID, message string) error {
 	h.RLock()
@@ -243,11 +254,7 @@ func (h *clientHub) broadcast(chID ChannelID, message string) error {
 
 	// iterate over them and send message individually
 	for uid, _ := range channelSubscriptions {
-		c, ok := h.conns[uid]
-		if !ok {
-			continue
-		}
-		err := c.send(message)
+		err := h.send(uid, message)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}

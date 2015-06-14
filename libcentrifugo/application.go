@@ -31,7 +31,7 @@ type Application struct {
 	nodesMu sync.Mutex
 
 	// hub to manage client connections.
-	conns *clientHub
+	clients *clientHub
 	// hub to manage admin connections.
 	admins *adminHub
 
@@ -71,7 +71,7 @@ func NewApplication(c *Config) (*Application, error) {
 	app := &Application{
 		uid:     uid.String(),
 		nodes:   make(map[string]*nodeInfo),
-		conns:   newClientHub(),
+		clients: newClientHub(),
 		admins:  newAdminHub(),
 		started: time.Now().Unix(),
 		config:  c,
@@ -97,7 +97,7 @@ func (app *Application) Shutdown() {
 	app.Lock()
 	app.shutdown = true
 	app.Unlock()
-	app.conns.shutdown()
+	app.clients.shutdown()
 }
 
 func (app *Application) sendPingMsg() {
@@ -241,7 +241,7 @@ func (app *Application) adminMsg(message []byte) error {
 // into channel. The goal of this method to deliver this message to all clients
 // on this node subscribed on channel
 func (app *Application) clientMsg(chID ChannelID, message []byte) error {
-	return app.conns.broadcast(chID, string(message))
+	return app.clients.broadcast(chID, string(message))
 }
 
 // pubControl publishes message into control channel so all running
@@ -516,12 +516,12 @@ func (app *Application) channelID(pk ProjectKey, ch Channel) ChannelID {
 // addConn registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand
 func (app *Application) addConn(c clientConn) error {
-	return app.conns.add(c)
+	return app.clients.add(c)
 }
 
 // removeConn removes client connection from connection registry
 func (app *Application) removeConn(c clientConn) error {
-	return app.conns.remove(c)
+	return app.clients.remove(c)
 }
 
 // addSub registers subscription of connection on channel in both
@@ -532,7 +532,7 @@ func (app *Application) addSub(pk ProjectKey, ch Channel, c clientConn) error {
 	if err != nil {
 		return err
 	}
-	return app.conns.addSub(chID, c)
+	return app.clients.addSub(chID, c)
 }
 
 // removeSub removes subscription of connection on channel
@@ -543,7 +543,7 @@ func (app *Application) removeSub(pk ProjectKey, ch Channel, c clientConn) error
 	if err != nil {
 		return err
 	}
-	return app.conns.removeSub(chID, c)
+	return app.clients.removeSub(chID, c)
 }
 
 // Unsubscribe unsubscribes project user from channel, if channel is equal to empty
@@ -577,7 +577,7 @@ func (app *Application) Unsubscribe(pk ProjectKey, user UserID, ch Channel) erro
 // unsubscribeUser unsubscribes user from channel on this node. If channel
 // is an empty string then user will be unsubscribed from all channels
 func (app *Application) unsubscribeUser(pk ProjectKey, user UserID, ch Channel) error {
-	userConnections := app.conns.userConnections(pk, user)
+	userConnections := app.clients.userConnections(pk, user)
 	for _, c := range userConnections {
 		var channels []Channel
 		if string(ch) == "" {
@@ -620,7 +620,7 @@ func (app *Application) Disconnect(pk ProjectKey, user UserID) error {
 
 // disconnectUser closes client connections of user on current node
 func (app *Application) disconnectUser(pk ProjectKey, user UserID) error {
-	userConnections := app.conns.userConnections(pk, user)
+	userConnections := app.clients.userConnections(pk, user)
 	for _, c := range userConnections {
 		err := c.close("disconnect")
 		if err != nil {
@@ -763,18 +763,18 @@ func (app *Application) removeAdminConn(c adminConn) error {
 
 // nChannels returns total amount of active channels on this node
 func (app *Application) nChannels() int {
-	return app.conns.nChannels()
+	return app.clients.nChannels()
 }
 
 // nClients returns total amount of client connections to this node
 func (app *Application) nClients() int {
-	return app.conns.nClients()
+	return app.clients.nClients()
 }
 
 // nUniqueClients returns total amount of unique client
 // connections to this node
 func (app *Application) nUniqueClients() int {
-	return app.conns.nUniqueClients()
+	return app.clients.nUniqueClients()
 }
 
 const (
