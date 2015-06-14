@@ -291,7 +291,10 @@ func (c *client) message(msg []byte) error {
 	if err != nil {
 		return err
 	}
-
+	if len(commands) == 0 {
+		logger.ERROR.Println("no commands in message")
+		return ErrInvalidMessage
+	}
 	err = c.handleCommands(commands)
 	return err
 }
