@@ -84,6 +84,55 @@ func testSubscribeCmd(channel string) clientCommand {
 	return cmd
 }
 
+func testUnsubscribeCmd(channel string) clientCommand {
+	unsubscribeCmd := unsubscribeClientCommand{
+		Channel: Channel(channel),
+	}
+	cmdBytes, _ := json.Marshal(unsubscribeCmd)
+	cmd := clientCommand{
+		Method: "unsubscribe",
+		Params: cmdBytes,
+	}
+	return cmd
+}
+
+func testPresenceCmd(channel string) clientCommand {
+	presenceCmd := presenceClientCommand{
+		Channel: Channel(channel),
+	}
+	cmdBytes, _ := json.Marshal(presenceCmd)
+	cmd := clientCommand{
+		Method: "presence",
+		Params: cmdBytes,
+	}
+	return cmd
+}
+
+func testHistoryCmd(channel string) clientCommand {
+	historyCmd := historyClientCommand{
+		Channel: Channel(channel),
+	}
+	cmdBytes, _ := json.Marshal(historyCmd)
+	cmd := clientCommand{
+		Method: "history",
+		Params: cmdBytes,
+	}
+	return cmd
+}
+
+func testPublishCmd(channel string) clientCommand {
+	publishCmd := publishClientCommand{
+		Channel: Channel(channel),
+		Data:    []byte("{}"),
+	}
+	cmdBytes, _ := json.Marshal(publishCmd)
+	cmd := clientCommand{
+		Method: "publish",
+		Params: cmdBytes,
+	}
+	return cmd
+}
+
 func TestClientConnect(t *testing.T) {
 	app := testApp()
 	c, err := newClient(app, &testSession{})
@@ -115,6 +164,16 @@ func TestClientConnect(t *testing.T) {
 	assert.Equal(t, true, c.authenticated)
 	ts, err := strconv.Atoi(timestamp)
 	assert.Equal(t, int64(ts), c.timestamp)
+
+	clientInfo := c.info(Channel(""))
+	assert.Equal(t, UserID("user1"), clientInfo.User)
+
+	assert.Equal(t, 1, len(app.clients.conns))
+
+	err = c.clean()
+	assert.Equal(t, nil, err)
+
+	assert.Equal(t, 0, len(app.clients.conns))
 }
 
 func TestClientSubscribe(t *testing.T) {
@@ -127,4 +186,72 @@ func TestClientSubscribe(t *testing.T) {
 	err = c.handleCommands(cmds)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(c.channels()))
+
+	assert.Equal(t, 1, len(app.clients.subs))
+
+	err = c.clean()
+	assert.Equal(t, nil, err)
+
+	assert.Equal(t, 0, len(app.clients.subs))
+}
+
+func TestClientUnsubscribe(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+
+	cmds = []clientCommand{testUnsubscribeCmd("test")}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+
+	cmds = []clientCommand{testSubscribeCmd("test"), testUnsubscribeCmd("test")}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+
+	assert.Equal(t, 0, len(app.clients.subs))
+}
+
+func TestClientPresence(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp)}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+
+	resp, err := c.handleCmd(testPresenceCmd("test"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, ErrPermissionDenied, resp.err)
+
+	_, _ = c.handleCmd(testSubscribeCmd("test"))
+	resp, err = c.handleCmd(testPresenceCmd("test"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nil, resp.err)
+}
+
+func TestClientHistory(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp)}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+
+	resp, err := c.handleCmd(testHistoryCmd("test"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, ErrPermissionDenied, resp.err)
+
+	_, _ = c.handleCmd(testSubscribeCmd("test"))
+	resp, err = c.handleCmd(testHistoryCmd("test"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nil, resp.err)
 }

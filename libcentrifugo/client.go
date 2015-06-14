@@ -790,6 +790,11 @@ func (c *client) presenceCmd(cmd *presenceClientCommand) (*response, error) {
 
 	resp.Body = body
 
+	if _, ok := c.Channels[channel]; !ok {
+		resp.Err(ErrPermissionDenied)
+		return resp, nil
+	}
+
 	presence, err := c.app.Presence(c.Project, channel)
 	if err != nil {
 		resp.Err(err)
@@ -816,6 +821,11 @@ func (c *client) historyCmd(cmd *historyClientCommand) (*response, error) {
 	}
 
 	resp.Body = body
+
+	if _, ok := c.Channels[channel]; !ok {
+		resp.Err(ErrPermissionDenied)
+		return resp, nil
+	}
 
 	history, err := c.app.History(c.Project, channel)
 	if err != nil {
