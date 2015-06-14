@@ -60,6 +60,10 @@ type Config struct {
 	UserChannelBoundary string
 	// UserChannelSeparator separates allowed users in user part of channel name.
 	UserChannelSeparator string
+	// ClientChannelBoundary is a string separator which must be set before client
+	// connection ID in channel name so only client with this ID can subscribe on
+	// that channel.
+	ClientChannelBoundary string
 
 	// Insecure turns on insecure mode - when it's turned on then no authentication
 	// required at all when connecting to Centrifugo, anonymous access and publish
@@ -90,10 +94,11 @@ var DefaultConfig = &Config{
 	PresencePingInterval:        int64(25),
 	PresenceExpireInterval:      int64(60),
 	MessageSendTimeout:          int64(60),
-	PrivateChannelPrefix:        "$",
-	NamespaceChannelBoundary:    ":",
-	UserChannelBoundary:         "#",
-	UserChannelSeparator:        ",",
+	PrivateChannelPrefix:        "$", // so private channel will look like "$gossips"
+	NamespaceChannelBoundary:    ":", // so namespace "public" can be used "public:news"
+	ClientChannelBoundary:       "&", // so client channel is sth like "client&7a37e561-c720-4608-52a8-a964a9db7a8a"
+	UserChannelBoundary:         "#", // so user limited channel is "user#2694" where "2696" is user ID
+	UserChannelSeparator:        ",", // so several users limited channel is "dialog#2694,3019"
 	ExpiredConnectionCloseDelay: int64(10),
 	Insecure:                    false,
 }

@@ -69,6 +69,13 @@ func TestUserAllowed(t *testing.T) {
 	assert.Equal(t, false, app.userAllowed("channel#1,2", "3"))
 }
 
+func TestClientAllowed(t *testing.T) {
+	app := testApp()
+	assert.Equal(t, true, app.clientAllowed("channel&67330d48-f668-4916-758b-f4eb1dd5b41d", ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
+	assert.Equal(t, true, app.clientAllowed("channel", ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
+	assert.Equal(t, false, app.clientAllowed("channel&long-client-id", ConnID("wrong-client-id")))
+}
+
 func TestNamespaceKey(t *testing.T) {
 	app := testApp()
 	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns:channel"))

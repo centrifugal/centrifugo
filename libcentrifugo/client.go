@@ -614,7 +614,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 	}
 	resp.Body = body
 
-	if !c.app.userAllowed(channel, c.User) {
+	if !c.app.userAllowed(channel, c.User) || !c.app.clientAllowed(channel, c.Uid) {
 		resp.Err(ErrPermissionDenied)
 		return resp, nil
 	}

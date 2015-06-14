@@ -760,6 +760,23 @@ func (app *Application) userAllowed(ch Channel, user UserID) bool {
 	return false
 }
 
+// clientAllowed checks if client can subscribe on channel - as channel
+// can contain special part in the end to indicate which client allowed
+// to subscribe on it
+func (app *Application) clientAllowed(ch Channel, client ConnID) bool {
+	app.RLock()
+	defer app.RUnlock()
+	if !strings.Contains(string(ch), app.config.ClientChannelBoundary) {
+		return true
+	}
+	parts := strings.Split(string(ch), app.config.ClientChannelBoundary)
+	allowedClient := parts[len(parts)-1]
+	if string(client) == allowedClient {
+		return true
+	}
+	return false
+}
+
 // addAdminConn registers an admin connection in adminConnectionHub
 func (app *Application) addAdminConn(c adminConn) error {
 	return app.admins.add(c)
