@@ -55,7 +55,7 @@ type refreshClientCommand struct {
 // It also can have Client, Info and Sign properties when channel is private.
 type subscribeClientCommand struct {
 	Channel Channel
-	Client  UserID
+	Client  ConnID
 	Info    string
 	Sign    string
 }

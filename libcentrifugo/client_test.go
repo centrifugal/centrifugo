@@ -72,6 +72,25 @@ func testConnectCmd(timestamp string) clientCommand {
 	return cmd
 }
 
+func testChannelSign(client ConnID, ch Channel) string {
+	return auth.GenerateChannelSign("secret", string(client), string(ch), "")
+}
+
+func testSubscribePrivateCmd(ch Channel, client ConnID) clientCommand {
+	subscribeCmd := subscribeClientCommand{
+		Channel: Channel(ch),
+		Client:  client,
+		Info:    "",
+		Sign:    testChannelSign(client, ch),
+	}
+	cmdBytes, _ := json.Marshal(subscribeCmd)
+	cmd := clientCommand{
+		Method: "subscribe",
+		Params: cmdBytes,
+	}
+	return cmd
+}
+
 func testSubscribeCmd(channel string) clientCommand {
 	subscribeCmd := subscribeClientCommand{
 		Channel: Channel(channel),
@@ -129,6 +148,14 @@ func testPublishCmd(channel string) clientCommand {
 	cmd := clientCommand{
 		Method: "publish",
 		Params: cmdBytes,
+	}
+	return cmd
+}
+
+func testPingCmd() clientCommand {
+	cmd := clientCommand{
+		Method: "ping",
+		Params: []byte{},
 	}
 	return cmd
 }
@@ -195,6 +222,25 @@ func TestClientSubscribe(t *testing.T) {
 	assert.Equal(t, 0, len(app.clients.subs))
 }
 
+func TestClientSubscribePrivate(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp)}
+	_ = c.handleCommands(cmds)
+
+	resp, err := c.handleCmd(testSubscribeCmd("$test"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, ErrPermissionDenied, resp.err)
+
+	resp, err = c.handleCmd(testSubscribePrivateCmd("$test", c.Uid))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nil, resp.err)
+
+}
+
 func TestClientUnsubscribe(t *testing.T) {
 	app := testApp()
 	c, err := newClient(app, &testSession{})
@@ -252,6 +298,21 @@ func TestClientHistory(t *testing.T) {
 
 	_, _ = c.handleCmd(testSubscribeCmd("test"))
 	resp, err = c.handleCmd(testHistoryCmd("test"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nil, resp.err)
+}
+
+func TestClientPing(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp)}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+
+	resp, err := c.handleCmd(testPingCmd())
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.err)
 }

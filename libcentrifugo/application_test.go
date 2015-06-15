@@ -119,7 +119,6 @@ func BenchmarkSendReceive(b *testing.B) {
 		for _, ch := range c.Channels {
 			cmd := subscribeClientCommand{
 				Channel: ch,
-				Client:  c.user(),
 			}
 			resp, err := cli.subscribeCmd(&cmd)
 			if err != nil {
