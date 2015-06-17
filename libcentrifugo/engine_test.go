@@ -34,7 +34,7 @@ func (e *testEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 	return map[ConnID]ClientInfo{}, nil
 }
 
-func (e *testEngine) addHistoryMessage(chID ChannelID, message Message, size, lifetime int64) error {
+func (e *testEngine) addHistory(chID ChannelID, message Message, size, lifetime int64) error {
 	return nil
 }
 

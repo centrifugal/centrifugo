@@ -349,7 +349,7 @@ func (e *RedisEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 	return mapStringClientInfo(reply, nil)
 }
 
-func (e *RedisEngine) addHistoryMessage(chID ChannelID, message Message, size, lifetime int64) error {
+func (e *RedisEngine) addHistory(chID ChannelID, message Message, size, lifetime int64) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 

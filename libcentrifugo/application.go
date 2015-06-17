@@ -705,7 +705,7 @@ func (app *Application) Presence(pk ProjectKey, ch Channel) (map[ConnID]ClientIn
 // addHistory proxies history message adding to engine
 func (app *Application) addHistory(pk ProjectKey, ch Channel, message Message, size, lifetime int64) error {
 	chID := app.channelID(pk, ch)
-	return app.engine.addHistoryMessage(chID, message, size, lifetime)
+	return app.engine.addHistory(chID, message, size, lifetime)
 }
 
 // History returns a slice of last messages published into project channel.

@@ -55,7 +55,7 @@ func (e *MemoryEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 	return e.presenceHub.get(chID)
 }
 
-func (e *MemoryEngine) addHistoryMessage(chID ChannelID, message Message, size, lifetime int64) error {
+func (e *MemoryEngine) addHistory(chID ChannelID, message Message, size, lifetime int64) error {
 	return e.historyHub.add(chID, message, size, lifetime)
 }
 
