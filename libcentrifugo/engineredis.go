@@ -256,6 +256,8 @@ func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) e
 	conn.Send("MULTI")
 	conn.Send("ZADD", setKey, expireAt, uid)
 	conn.Send("HSET", hashKey, uid, infoJson)
+	conn.Send("EXPIRE", setKey, presenceExpireInterval)
+	conn.Send("EXPIRE", hashKey, presenceExpireInterval)
 	_, err = conn.Do("EXEC")
 	return err
 }
