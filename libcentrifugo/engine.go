@@ -22,7 +22,7 @@ type Engine interface {
 	// getPresence returns actual presence information for channel
 	presence(chID ChannelID) (map[ConnID]ClientInfo, error)
 
-	// addHistoryMessage adds message into channel history and takes care about history size
+	// addHistory adds message into channel history and takes care about history size
 	addHistory(chID ChannelID, message Message, size, lifetime int64) error
 	// getHistory returns history messages for channel
 	history(chID ChannelID) ([]Message, error)
