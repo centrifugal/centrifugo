@@ -1,6 +1,6 @@
 package libcentrifugo
 
-// clientConnection is an interface abstracting all methods used
+// clientConn is an interface abstracting all methods used
 // by application to interact with client connection
 type clientConn interface {
 	// uid returns unique connection id
@@ -19,7 +19,7 @@ type clientConn interface {
 	close(reason string) error
 }
 
-// adminConnection is an interface abstracting all methods used
+// adminConn is an interface abstracting all methods used
 // by application to interact with admin connection
 type adminConn interface {
 	// uid returns unique admin connection id

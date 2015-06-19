@@ -11,7 +11,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
-// redisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.
+// RedisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.
 // This engine allows to scale Centrifugo - you can run several Centrifugo instances
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
@@ -23,6 +23,7 @@ type RedisEngine struct {
 	inAPI    bool
 }
 
+// NewRedisEngine initializes Redis Engine.
 func NewRedisEngine(app *Application, host, port, password, db, redisURL string, api bool, psize int) *RedisEngine {
 	if redisURL != "" {
 		u, err := url.Parse(redisURL)

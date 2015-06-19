@@ -8,7 +8,7 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/priority"
 )
 
-// memoryEngine allows to run Centrifugo without using Redis at all. All data managed inside process
+// MemoryEngine allows to run Centrifugo without using Redis at all. All data managed inside process
 // memory. With this engine you can only run single Centrifugo node. If you need to scale you should
 // use Redis engine instead.
 type MemoryEngine struct {
@@ -17,6 +17,7 @@ type MemoryEngine struct {
 	historyHub  *memoryHistoryHub
 }
 
+// NewMemoryEngine initializes Memory Engine.
 func NewMemoryEngine(app *Application) *MemoryEngine {
 	e := &MemoryEngine{
 		app:         app,

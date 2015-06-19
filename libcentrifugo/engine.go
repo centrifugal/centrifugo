@@ -1,6 +1,6 @@
 package libcentrifugo
 
-// engine is an interface with all methods that can be used by client or
+// Engine is an interface with all methods that can be used by client or
 // application to publish message, handle subscriptions, save or retrieve
 // presence and history data
 type Engine interface {

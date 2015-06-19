@@ -13,6 +13,7 @@ import (
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
+// DefaultMux returns a mux including set of default handlers for Centrifugo server.
 func DefaultMux(app *Application, prefix, webDir, sockjsURL string) *http.ServeMux {
 
 	mux := http.NewServeMux()
