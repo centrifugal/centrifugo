@@ -217,26 +217,20 @@ func (c *client) clean() error {
 		}
 	}
 
-	if pk != "" && c.app.mediator != nil {
-		c.app.mediator.Disconnect(c.Project, c.info(Channel("")))
-	}
-
 	close(c.closeChan)
 	c.messages.Close()
+
+	if pk != "" && c.app.mediator != nil {
+		c.app.mediator.Disconnect(pk, c.Uid, c.User)
+	}
 
 	return nil
 }
 
 func (c *client) info(ch Channel) ClientInfo {
-	var channelInfo []byte
-	var ok bool
-	if string(ch) == "" {
+	channelInfo, ok := c.channelInfo[ch]
+	if !ok {
 		channelInfo = []byte{}
-	} else {
-		channelInfo, ok = c.channelInfo[ch]
-		if !ok {
-			channelInfo = []byte{}
-		}
 	}
 	var rawDefaultInfo *json.RawMessage
 	var rawChannelInfo *json.RawMessage
@@ -504,19 +498,16 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	c.Channels = map[Channel]bool{}
 	c.channelInfo = map[Channel][]byte{}
 
-	if c.app.mediator != nil {
-		ok := c.app.mediator.Connect(c.Project, c.info(Channel("")))
-		if !ok {
-			return nil, ErrRejected
-		}
-	}
-
 	go c.presencePing()
 
 	err := c.app.addConn(c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil, ErrInternalServerError
+	}
+
+	if c.app.mediator != nil {
+		c.app.mediator.Connect(c.Project, c.Uid, c.User)
 	}
 
 	if timeToExpire > 0 {
@@ -651,14 +642,6 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 
 	info := c.info(channel)
 
-	if c.app.mediator != nil {
-		ok := c.app.mediator.Subscribe(c.Project, channel, info)
-		if !ok {
-			resp.Err(ErrRejected)
-			return resp, nil
-		}
-	}
-
 	err = c.app.addSub(c.Project, channel, c)
 	if err != nil {
 		logger.ERROR.Println(err)
@@ -678,6 +661,10 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
+	}
+
+	if c.app.mediator != nil {
+		c.app.mediator.Subscribe(c.Project, channel, c.Uid, c.User)
 	}
 
 	return resp, nil
@@ -732,7 +719,7 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 	}
 
 	if c.app.mediator != nil {
-		c.app.mediator.Unsubscribe(c.Project, channel, info)
+		c.app.mediator.Unsubscribe(c.Project, channel, c.Uid, c.User)
 	}
 
 	return resp, nil

@@ -303,8 +303,7 @@ func newMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) (Messa
 	return message, nil
 }
 
-// Publish sends a message to all clients subscribed on project channel with provided data, client
-// and client info.
+// Publish sends a message to all clients subscribed on project channel with provided data, client and ClientInfo.
 func (app *Application) Publish(pk ProjectKey, ch Channel, data []byte, client ConnID, info *ClientInfo) error {
 
 	if string(ch) == "" || len(data) == 0 {
@@ -350,11 +349,10 @@ func (app *Application) publish(pk ProjectKey, ch Channel, data []byte, client C
 	if app.mediator != nil {
 		// If mediator is set then we don't need to publish message
 		// immediately as mediator will decide itself what to do with it.
-		ok := app.mediator.Message(pk, ch, data, client, info, fromClient)
-		if !ok {
-			return ErrRejected
+		pass := app.mediator.Message(pk, ch, data, client, info)
+		if !pass {
+			return nil
 		}
-		return nil
 	}
 
 	err = app.pubClient(pk, ch, chOpts, data, client, info)
