@@ -1,3 +1,8 @@
+v0.2.1
+======
+
+* set expire on presence hash and set keys in Redis Engine. This prevents staling presence keys in Redis.
+
 v0.2.0
 ======
 
