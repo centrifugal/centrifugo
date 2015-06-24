@@ -6,20 +6,21 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
-// clientHub manages client connections
+// clientHub manages client connections.
 type clientHub struct {
 	sync.RWMutex
 
+	// match ConnID with actual client connection.
 	conns map[ConnID]clientConn
 
-	// registry to hold active user connections grouped by project
+	// registry to hold active user connections grouped by project.
 	users map[ProjectKey]map[UserID]map[ConnID]bool
 
-	// registry to hold active subscriptions of clients on channels
+	// registry to hold active subscriptions of clients on channels.
 	subs map[ChannelID]map[ConnID]bool
 }
 
-// newClientHub initializes connectionHub
+// newClientHub initializes clientHub.
 func newClientHub() *clientHub {
 	return &clientHub{
 		conns: make(map[ConnID]clientConn),
@@ -28,7 +29,7 @@ func newClientHub() *clientHub {
 	}
 }
 
-// shutdown unsubscribes users from all channels and disconnects them
+// shutdown unsubscribes users from all channels and disconnects them.
 func (h *clientHub) shutdown() {
 	var wg sync.WaitGroup
 	h.RLock()
@@ -54,7 +55,7 @@ func (h *clientHub) shutdown() {
 	wg.Wait()
 }
 
-// add adds connection into clientConnectionHub connections registry
+// add adds connection into clientHub connections registry.
 func (h *clientHub) add(c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
@@ -77,7 +78,7 @@ func (h *clientHub) add(c clientConn) error {
 	return nil
 }
 
-// remove removes connection from clientConnectionHub connections registry
+// remove removes connection from clientHub connections registry.
 func (h *clientHub) remove(c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
@@ -88,7 +89,7 @@ func (h *clientHub) remove(c clientConn) error {
 
 	delete(h.conns, uid)
 
-	// try to find connection to delete, return early if not found
+	// try to find connection to delete, return early if not found.
 	if _, ok := h.users[project]; !ok {
 		return nil
 	}
@@ -99,10 +100,10 @@ func (h *clientHub) remove(c clientConn) error {
 		return nil
 	}
 
-	// actually remove connection from hub
+	// actually remove connection from hub.
 	delete(h.users[project][user], uid)
 
-	// clean up users map if it's needed
+	// clean up users map if it's needed.
 	if len(h.users[project][user]) == 0 {
 		delete(h.users[project], user)
 	}
@@ -113,7 +114,7 @@ func (h *clientHub) remove(c clientConn) error {
 	return nil
 }
 
-// userConnections returns all connections of user with UserID in project
+// userConnections returns all connections of user with UserID in project.
 func (h *clientHub) userConnections(pk ProjectKey, user UserID) map[ConnID]clientConn {
 	h.RLock()
 	defer h.RUnlock()
@@ -141,7 +142,7 @@ func (h *clientHub) userConnections(pk ProjectKey, user UserID) map[ConnID]clien
 	return conns
 }
 
-// add adds connection into clientSubscriptionHub subscriptions registry
+// addSub adds connection into clientHub subscriptions registry.
 func (h *clientHub) addSub(chID ChannelID, c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
@@ -158,7 +159,7 @@ func (h *clientHub) addSub(chID ChannelID, c clientConn) error {
 	return nil
 }
 
-// remove removes connection from clientSubscriptionHub subscriptions registry
+// removeSub removes connection from clientHub subscriptions registry.
 func (h *clientHub) removeSub(chID ChannelID, c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
@@ -167,7 +168,7 @@ func (h *clientHub) removeSub(chID ChannelID, c clientConn) error {
 
 	delete(h.conns, uid)
 
-	// try to find subscription to delete, return early if not found
+	// try to find subscription to delete, return early if not found.
 	if _, ok := h.subs[chID]; !ok {
 		return nil
 	}
@@ -175,10 +176,10 @@ func (h *clientHub) removeSub(chID ChannelID, c clientConn) error {
 		return nil
 	}
 
-	// actually remove subscription from hub
+	// actually remove subscription from hub.
 	delete(h.subs[chID], uid)
 
-	// clean up subs map if it's needed
+	// clean up subs map if it's needed.
 	if len(h.subs[chID]) == 0 {
 		delete(h.subs, chID)
 	}
@@ -211,7 +212,7 @@ func (h *clientHub) broadcast(chID ChannelID, message string) error {
 	return nil
 }
 
-// nClients returns total number of client connections
+// nClients returns total number of client connections.
 func (h *clientHub) nClients() int {
 	h.RLock()
 	defer h.RUnlock()
@@ -224,7 +225,7 @@ func (h *clientHub) nClients() int {
 	return total
 }
 
-// nUniqueClients returns a number of unique users connected
+// nUniqueClients returns a number of unique users connected.
 func (h *clientHub) nUniqueClients() int {
 	h.RLock()
 	defer h.RUnlock()
@@ -235,14 +236,14 @@ func (h *clientHub) nUniqueClients() int {
 	return total
 }
 
-// nChannels returns a total number of different channels
+// nChannels returns a total number of different channels.
 func (h *clientHub) nChannels() int {
 	h.RLock()
 	defer h.RUnlock()
 	return len(h.subs)
 }
 
-// channels returns a slice of all active channels
+// channels returns a slice of all active channels.
 func (h *clientHub) channels() []ChannelID {
 	h.RLock()
 	defer h.RUnlock()
@@ -255,23 +256,22 @@ func (h *clientHub) channels() []ChannelID {
 	return channels
 }
 
-// adminHub manages admin connections from web interface
+// adminHub manages admin connections from web interface.
 type adminHub struct {
 	sync.RWMutex
 
-	// registry to hold active admin connections
-	// as map[unique admin connection IDs]*connection
+	// Registry to hold active admin connections.
 	connections map[ConnID]adminConn
 }
 
-// newAdminHub initializes new adminHub
+// newAdminHub initializes new adminHub.
 func newAdminHub() *adminHub {
 	return &adminHub{
 		connections: make(map[ConnID]adminConn),
 	}
 }
 
-// add adds connection to adminConnectionHub connections registry
+// add adds connection to adminHub connections registry.
 func (h *adminHub) add(c adminConn) error {
 	h.Lock()
 	defer h.Unlock()
@@ -279,7 +279,7 @@ func (h *adminHub) add(c adminConn) error {
 	return nil
 }
 
-// remove removes connection from adminConnectionHub connections registry
+// remove removes connection from adminHub connections registry.
 func (h *adminHub) remove(c adminConn) error {
 	h.Lock()
 	defer h.Unlock()
@@ -287,7 +287,7 @@ func (h *adminHub) remove(c adminConn) error {
 	return nil
 }
 
-// broadcast sends message to all connected admins
+// broadcast sends message to all connected admins.
 func (h *adminHub) broadcast(message string) error {
 	h.RLock()
 	defer h.RUnlock()
