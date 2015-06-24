@@ -5,11 +5,13 @@ import (
 )
 
 type clientCommand struct {
+	UID    string `json:"uid"`
 	Method string
 	Params json.RawMessage
 }
 
 type apiCommand struct {
+	UID    string `json:"uid"`
 	Method string
 	Params json.RawMessage
 }

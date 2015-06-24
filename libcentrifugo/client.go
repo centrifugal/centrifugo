@@ -303,6 +303,7 @@ func (c *client) handleCommands(commands []clientCommand) error {
 		if err != nil {
 			return err
 		}
+		resp.UID = command.UID
 		mr = append(mr, resp)
 	}
 	jsonResp, err := json.Marshal(mr)

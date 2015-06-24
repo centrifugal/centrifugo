@@ -63,6 +63,8 @@ func (app *Application) apiCmd(p Project, command apiCommand) (*response, error)
 		return nil, err
 	}
 
+	resp.UID = command.UID
+
 	return resp, nil
 }
 

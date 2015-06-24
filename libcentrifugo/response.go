@@ -3,6 +3,7 @@ package libcentrifugo
 // response represents an answer Centrifugo sends
 // to client or API request commands
 type response struct {
+	UID    string      `json:"uid,omitempty"`
 	Body   interface{} `json:"body"`
 	Error  *string     `json:"error"`
 	Method string      `json:"method"`

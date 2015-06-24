@@ -18,10 +18,12 @@ func TestResponse(t *testing.T) {
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":null"))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"body\":null"))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"method\":\"test\""))
+	assert.Equal(t, false, strings.Contains(string(marshalledResponse), "\"id\""))
 
 	resp = newResponse("test")
 	resp.Err(errors.New("test error"))
 	resp.Body = "test body"
+	resp.UID = "test uid"
 	marshalledResponse, err = json.Marshal(resp)
 	t.Log(string(marshalledResponse))
 	assert.Equal(t, true, resp.Err(nil))
@@ -31,6 +33,7 @@ func TestResponse(t *testing.T) {
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":\"test error\""))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"body\":\"test body\""))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"method\":\"test\""))
+	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"uid\":\"test uid\""))
 }
 
 func TestMultiResponse(t *testing.T) {
