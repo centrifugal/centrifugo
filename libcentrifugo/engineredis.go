@@ -91,6 +91,7 @@ func newPool(server, password, db string, psize int) *redis.Pool {
 				logger.CRITICAL.Println(err)
 				return nil, err
 			}
+			logger.INFO.Printf("connected to Redis: %s, database %s, pool size %d\n", server, db, psize)
 			return c, err
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
