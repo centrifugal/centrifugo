@@ -235,7 +235,7 @@ func TestClientSubscribePrivate(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, ErrPermissionDenied, resp.err)
 
-	resp, err = c.handleCmd(testSubscribePrivateCmd("$test", c.Uid))
+	resp, err = c.handleCmd(testSubscribePrivateCmd("$test", c.UID))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.err)
 

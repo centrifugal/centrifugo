@@ -22,7 +22,7 @@ type client struct {
 	sync.RWMutex
 	app           *Application
 	sess          session
-	Uid           ConnID
+	UID           ConnID
 	Project       ProjectKey
 	User          UserID
 	timestamp     int64
@@ -34,7 +34,6 @@ type client struct {
 	messages      stringqueue.StringQueue
 	closeChan     chan struct{}
 	expireTimer   *time.Timer
-	sendTimeout   time.Duration // Timeout for sending a single message
 }
 
 // ClientInfo contains information about client to use in message
@@ -52,12 +51,11 @@ func newClient(app *Application, s session) (*client, error) {
 		return nil, err
 	}
 	c := client{
-		Uid:         ConnID(uid.String()),
-		app:         app,
-		sess:        s,
-		messages:    stringqueue.New(),
-		closeChan:   make(chan struct{}),
-		sendTimeout: time.Second * 10,
+		UID:       ConnID(uid.String()),
+		app:       app,
+		sess:      s,
+		messages:  stringqueue.New(),
+		closeChan: make(chan struct{}),
 	}
 	go c.sendMessages()
 	return &c, nil
@@ -108,7 +106,7 @@ func (c *client) updateChannelPresence(ch Channel) {
 	if !chOpts.Presence {
 		return
 	}
-	c.app.addPresence(c.Project, ch, c.Uid, c.info(ch))
+	c.app.addPresence(c.Project, ch, c.UID, c.info(ch))
 }
 
 // updatePresence updates presence info for all client channels
@@ -136,7 +134,7 @@ func (c *client) presencePing() {
 }
 
 func (c *client) uid() ConnID {
-	return c.Uid
+	return c.UID
 }
 
 func (c *client) project() ProjectKey {
@@ -221,7 +219,7 @@ func (c *client) clean() error {
 	c.messages.Close()
 
 	if pk != "" && c.app.mediator != nil {
-		c.app.mediator.Disconnect(pk, c.Uid, c.User)
+		c.app.mediator.Disconnect(pk, c.UID, c.User)
 	}
 
 	return nil
@@ -248,7 +246,7 @@ func (c *client) info(ch Channel) ClientInfo {
 	}
 	return ClientInfo{
 		User:        c.User,
-		Client:      c.Uid,
+		Client:      c.UID,
 		DefaultInfo: rawDefaultInfo,
 		ChannelInfo: rawChannelInfo,
 	}
@@ -508,7 +506,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	}
 
 	if c.app.mediator != nil {
-		c.app.mediator.Connect(c.Project, c.Uid, c.User)
+		c.app.mediator.Connect(c.Project, c.UID, c.User)
 	}
 
 	if timeToExpire > 0 {
@@ -516,7 +514,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 		c.expireTimer = time.AfterFunc(duration, c.expire)
 	}
 
-	body.Client = &c.Uid
+	body.Client = &c.UID
 	if connLifetime > 0 {
 		body.TTL = &connLifetime
 	}
@@ -609,7 +607,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 	}
 	resp.Body = body
 
-	if !c.app.userAllowed(channel, c.User) || !c.app.clientAllowed(channel, c.Uid) {
+	if !c.app.userAllowed(channel, c.User) || !c.app.clientAllowed(channel, c.UID) {
 		resp.Err(ErrPermissionDenied)
 		return resp, nil
 	}
@@ -627,7 +625,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 
 	if c.app.privateChannel(channel) {
 		// private channel - subscription must be properly signed
-		if string(c.Uid) != string(cmd.Client) {
+		if string(c.UID) != string(cmd.Client) {
 			resp.Err(ErrPermissionDenied)
 			return resp, nil
 		}
@@ -650,7 +648,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 	}
 
 	if chOpts.Presence {
-		err = c.app.addPresence(c.Project, channel, c.Uid, info)
+		err = c.app.addPresence(c.Project, channel, c.UID, info)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInternalServerError
@@ -665,7 +663,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 	}
 
 	if c.app.mediator != nil {
-		c.app.mediator.Subscribe(c.Project, channel, c.Uid, c.User)
+		c.app.mediator.Subscribe(c.Project, channel, c.UID, c.User)
 	}
 
 	return resp, nil
@@ -700,7 +698,7 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 
 		delete(c.Channels, channel)
 
-		err = c.app.removePresence(c.Project, channel, c.Uid)
+		err = c.app.removePresence(c.Project, channel, c.UID)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
@@ -720,7 +718,7 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 	}
 
 	if c.app.mediator != nil {
-		c.app.mediator.Unsubscribe(c.Project, channel, c.Uid, c.User)
+		c.app.mediator.Unsubscribe(c.Project, channel, c.UID, c.User)
 	}
 
 	return resp, nil
@@ -750,7 +748,7 @@ func (c *client) publishCmd(cmd *publishClientCommand) (*response, error) {
 
 	info := c.info(channel)
 
-	err := c.app.publish(c.Project, channel, data, c.Uid, &info, true)
+	err := c.app.publish(c.Project, channel, data, c.UID, &info, true)
 	if err != nil {
 		resp.Err(err)
 		return resp, nil
