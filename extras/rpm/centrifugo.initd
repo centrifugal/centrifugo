@@ -33,6 +33,7 @@ start() {
     echo "configuration file not found $CENTRIFUGO_CONFIG_FILE"
     exit 6
   fi
+  configtest || return $?
   echo -n $"Starting $prog: "
   daemon --user centrifugo --check=$prog_bin "nohup $prog_bin --config=$CENTRIFUGO_CONFIG_FILE --log_file=$CENTRIFUGO_LOG_FILE >>$CENTRIFUGO_OUT_FILE 2>&1 &"
   retval=$?
