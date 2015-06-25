@@ -1,6 +1,7 @@
 package libcentrifugo
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync/atomic"
 	"testing"
@@ -82,6 +83,67 @@ func TestNamespaceKey(t *testing.T) {
 	assert.Equal(t, NamespaceKey(""), app.namespaceKey("channel"))
 	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns:channel:opa"))
 	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns::channel"))
+}
+
+func testPingControlCmd(uid string) []byte {
+	params := json.RawMessage([]byte("{}"))
+	cmd := controlCommand{
+		UID:    uid,
+		Method: "ping",
+		Params: &params,
+	}
+	cmdBytes, _ := json.Marshal(cmd)
+	return cmdBytes
+}
+
+func testUnsubscribeControlCmd(uid string) []byte {
+	params := json.RawMessage([]byte("{}"))
+	cmd := controlCommand{
+		UID:    uid,
+		Method: "unsubscribe",
+		Params: &params,
+	}
+	cmdBytes, _ := json.Marshal(cmd)
+	return cmdBytes
+}
+
+func testDisconnectControlCmd(uid string) []byte {
+	params := json.RawMessage([]byte("{}"))
+	cmd := controlCommand{
+		UID:    uid,
+		Method: "disconnect",
+		Params: &params,
+	}
+	cmdBytes, _ := json.Marshal(cmd)
+	return cmdBytes
+}
+
+func testWrongControlCmd(uid string) []byte {
+	params := json.RawMessage([]byte("{}"))
+	cmd := controlCommand{
+		UID:    uid,
+		Method: "wrong",
+		Params: &params,
+	}
+	cmdBytes, _ := json.Marshal(cmd)
+	return cmdBytes
+}
+
+func TestControlMessages(t *testing.T) {
+	app := testApp()
+	// command from this node
+	cmd := testPingControlCmd(app.uid)
+	err := app.controlMsg(cmd)
+	assert.Equal(t, nil, err)
+	cmd = testPingControlCmd("another_node")
+	err = app.controlMsg(cmd)
+	assert.Equal(t, nil, err)
+	err = app.controlMsg(testWrongControlCmd("another node"))
+	assert.Equal(t, ErrInvalidMessage, err)
+	err = app.controlMsg(testUnsubscribeControlCmd("another node"))
+	assert.Equal(t, nil, err)
+	err = app.controlMsg(testDisconnectControlCmd("another node"))
+	assert.Equal(t, nil, err)
 }
 
 func createUsers(users, chanUser, totChannels int) []*testClientConn {

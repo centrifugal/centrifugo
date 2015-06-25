@@ -23,7 +23,7 @@ type adminCommand struct {
 
 type controlCommand struct {
 	// unique node ID which sent this control command
-	Uid string
+	UID string
 
 	Method string
 	Params *json.RawMessage

@@ -191,7 +191,7 @@ func (app *Application) controlMsg(message []byte) error {
 		return err
 	}
 
-	if cmd.Uid == app.uid {
+	if cmd.UID == app.uid {
 		// sent by this node
 		return nil
 	}
@@ -251,7 +251,7 @@ func (app *Application) pubControl(method string, params []byte) error {
 	raw := json.RawMessage(params)
 
 	message := controlCommand{
-		Uid:    app.uid,
+		UID:    app.uid,
 		Method: method,
 		Params: &raw,
 	}
