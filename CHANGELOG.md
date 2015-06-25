@@ -1,4 +1,4 @@
-v0.2.2  (unreleased)
+v0.2.2
 ======
 
 * Add TLS support. New flags are:

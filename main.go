@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	VERSION = "0.2.1"
+	VERSION = "0.2.2"
 )
 
 var configFile string
@@ -220,13 +220,13 @@ func Main() {
 
 			logger.INFO.Println("engine:", viper.GetString("engine"))
 			logger.DEBUG.Printf("%v\n", viper.AllSettings())
-			logger.INFO.Println("Use SSL:", useSSL)
-			if useSSL {
-				if sslCert == "" {
+			logger.INFO.Println("Use SSL:", viper.GetBool("ssl"))
+			if viper.GetBool("ssl") {
+				if viper.GetString("ssl_cert") == "" {
 					logger.FATAL.Println("No SSL certificate provided")
 					os.Exit(1)
 				}
-				if sslKey == "" {
+				if viper.GetString("ssl_key") == "" {
 					logger.FATAL.Println("No SSL certificate key provided")
 					os.Exit(1)
 				}
