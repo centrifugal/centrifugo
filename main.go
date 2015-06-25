@@ -82,6 +82,9 @@ func Main() {
 	var logLevel string
 	var logFile string
 	var insecure bool
+	var useSSL bool
+	var sslCert string
+	var sslKey string
 
 	var redisHost string
 	var redisPort string
@@ -150,6 +153,9 @@ func Main() {
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
 			viper.BindPFlag("engine", cmd.Flags().Lookup("engine"))
 			viper.BindPFlag("insecure", cmd.Flags().Lookup("insecure"))
+			viper.BindPFlag("ssl", cmd.Flags().Lookup("ssl"))
+			viper.BindPFlag("ssl_cert", cmd.Flags().Lookup("ssl_cert"))
+			viper.BindPFlag("ssl_key", cmd.Flags().Lookup("ssl_key"))
 			viper.BindPFlag("log_level", cmd.Flags().Lookup("log_level"))
 			viper.BindPFlag("log_file", cmd.Flags().Lookup("log_file"))
 			viper.BindPFlag("redis_host", cmd.Flags().Lookup("redis_host"))
@@ -214,7 +220,17 @@ func Main() {
 
 			logger.INFO.Println("engine:", viper.GetString("engine"))
 			logger.DEBUG.Printf("%v\n", viper.AllSettings())
-
+			logger.INFO.Println("Use SSL:", useSSL)
+			if useSSL {
+				if sslCert == "" {
+					logger.FATAL.Println("No SSL certificate provided")
+					os.Exit(1)
+				}
+				if sslKey == "" {
+					logger.FATAL.Println("No SSL certificate key provided")
+					os.Exit(1)
+				}
+			}
 			app.SetEngine(e)
 
 			app.Run()
@@ -225,9 +241,14 @@ func Main() {
 
 			addr := viper.GetString("address") + ":" + viper.GetString("port")
 			logger.INFO.Printf("start serving on %s\n", addr)
-
-			if err := http.ListenAndServe(addr, mux); err != nil {
-				logger.FATAL.Fatalln("ListenAndServe:", err)
+			if useSSL {
+				if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
+					logger.FATAL.Fatalln("ListenAndServe:", err)
+				}
+			} else {
+				if err := http.ListenAndServe(addr, mux); err != nil {
+					logger.FATAL.Fatalln("ListenAndServe:", err)
+				}
 			}
 		},
 	}
@@ -239,6 +260,9 @@ func Main() {
 	rootCmd.Flags().StringVarP(&web, "web", "w", "", "optional path to web interface application")
 	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
 	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure mode")
+	rootCmd.Flags().BoolVarP(&useSSL, "ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
+	rootCmd.Flags().StringVarP(&sslCert, "ssl_cert", "", "", "path to an X509 certificate file")
+	rootCmd.Flags().StringVarP(&sslKey, "ssl_key", "", "", "path to an X509 certificate key")
 	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "info", "set the log level: debug, info, error, critical, fatal or none")
 	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified all logs go to STDOUT")
 	rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")
