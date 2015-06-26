@@ -90,6 +90,14 @@ func TestClientHub(t *testing.T) {
 	assert.Equal(t, 1, len(conns))
 }
 
+func TestShutdown(t *testing.T) {
+	h := newClientHub()
+	c := newTestUserCC()
+	h.add(c)
+	assert.Equal(t, len(h.users), 1)
+	h.shutdown()
+}
+
 func TestSubHub(t *testing.T) {
 	h := newClientHub()
 	c := newTestUserCC()

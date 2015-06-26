@@ -77,3 +77,9 @@ func TestGetChannelOptions(t *testing.T) {
 	_, err = s.channelOpts("test1", "wrongnamespacekey")
 	assert.Equal(t, ErrNamespaceNotFound, err)
 }
+
+func TestValidate(t *testing.T) {
+	s := getTestStructure()
+	err := s.Validate()
+	assert.Equal(t, nil, err)
+}
