@@ -26,7 +26,7 @@ func DefaultMux(app *Application, prefix, webDir, sockjsURL string) *http.ServeM
 	mux.Handle(prefix+"/connection/", app.Logged(app.WrapShutdown(sjsh)))
 
 	// register HTTP API endpoint
-	mux.Handle(prefix+"/api/", app.Logged(app.WrapShutdown(http.HandlerFunc(app.ApiHandler))))
+	mux.Handle(prefix+"/api/", app.Logged(app.WrapShutdown(http.HandlerFunc(app.APIHandler))))
 
 	// register admin web interface API endpoints
 	mux.Handle(prefix+"/auth/", app.Logged(http.HandlerFunc(app.AuthHandler)))
@@ -168,7 +168,7 @@ type jsonApiRequest struct {
 }
 
 // ApiHandler is responsible for receiving API commands over HTTP.
-func (app *Application) ApiHandler(w http.ResponseWriter, r *http.Request) {
+func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 
 	pk := ProjectKey(r.URL.Path[len("/api/"):])
 	contentType := r.Header.Get("Content-Type")

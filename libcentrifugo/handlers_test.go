@@ -54,13 +54,13 @@ func TestAPIHandler(t *testing.T) {
 	// nil body
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", server.URL+"/api/test", nil)
-	app.ApiHandler(rec, req)
+	app.APIHandler(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 
 	// empty body
 	rec = httptest.NewRecorder()
 	req, _ = http.NewRequest("POST", server.URL+"/api/test", strings.NewReader(""))
-	app.ApiHandler(rec, req)
+	app.APIHandler(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 
 	// project not found
@@ -71,7 +71,7 @@ func TestAPIHandler(t *testing.T) {
 	req, _ = http.NewRequest("POST", server.URL+"/api/wrong_project", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
-	app.ApiHandler(rec, req)
+	app.APIHandler(rec, req)
 	assert.Equal(t, http.StatusNotFound, rec.Code)
 
 	// wrong sign
@@ -79,7 +79,7 @@ func TestAPIHandler(t *testing.T) {
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
-	app.ApiHandler(rec, req)
+	app.APIHandler(rec, req)
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 
 	// valid request
@@ -92,7 +92,7 @@ func TestAPIHandler(t *testing.T) {
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
-	app.ApiHandler(rec, req)
+	app.APIHandler(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
 
 	// request with unknown method
@@ -105,6 +105,6 @@ func TestAPIHandler(t *testing.T) {
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
-	app.ApiHandler(rec, req)
+	app.APIHandler(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
