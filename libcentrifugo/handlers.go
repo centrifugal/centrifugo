@@ -167,7 +167,7 @@ type jsonApiRequest struct {
 	Data string
 }
 
-// ApiHandler is responsible for receiving API commands over HTTP.
+// APIHandler is responsible for receiving API commands over HTTP.
 func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 
 	pk := ProjectKey(r.URL.Path[len("/api/"):])
