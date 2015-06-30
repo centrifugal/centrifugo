@@ -15,8 +15,6 @@ Try [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo
 
 [![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/centrifugal/centrifugo)
 
-Centrifugo server distributed under MIT license.
-
 Highlights:
 * Fast server capable to serve lots of simultanious connections
 * Sha-256 HMAC-based authorization
@@ -28,7 +26,8 @@ Highlights:
 * Administrative web interface
 * Scale to several machines with Redis
 * Ready to deploy (docker, rpm, Nginx configuration)
-* Easily integrates with existing web site - no need to rewrite your code
+* Easily integrates with existing application - no need to rewrite your backend code
+* MIT license
 
 Simplified scheme:
 
