@@ -5,10 +5,19 @@
   "logo": "https://avatars1.githubusercontent.com/u/6236442?v=3&s=200",
   "keywords": ["go", "pubsub", "websocket", "real-time", "sockjs", "redis"],
   "env": {
-    "CENTRIFUGO_WEB_PASSWORD": "password",
-    "CENTRIFUGO_WEB_SECRET": "secret",
+    "CENTRIFUGO_WEB_PASSWORD": {
+      "description": "Web Password",
+      "generator": "secret"
+      },
+    "CENTRIFUGO_WEB_SECRET": {
+      "description": "Web Secret",
+      "generator": "secret"
+    },
     "CENTRIFUGO_PROJECT_NAME": "project_name",
-    "CENTRIFUGO_PROJECT_SECRET": "project_secret",
+    "CENTRIFUGO_PROJECT_SECRET": {
+      "description": "Project Secret",
+      "generator": "secret"
+    },
     "CENTRIFUGO_PROJECT_CONNECTION_LIFETIME": "0",
     "CENTRIFUGO_PROJECT_PUBLISH": "0",
     "CENTRIFUGO_PROJECT_WATCH": "0",
