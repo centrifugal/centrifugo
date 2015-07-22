@@ -3,7 +3,7 @@ Centrifuge + Go = Centrifugo – harder, better, faster, stronger.
 Centrifugo is a real-time messaging server. This is a successor of 
 [Centrifuge](https://github.com/centrifugal/centrifuge). Please note that it can be used in conjuction with your application backend written in any language - Python, Ruby, Perl, PHP, Javascript, Java, Objective-C etc.
 
-To undestand what is it for and how it works – please, read 
+To understand what is it for and how it works – please, read 
 [documentation](http://fzambia.gitbooks.io/centrifugal/content/) of 
 Centrifugal organization.
 
@@ -17,7 +17,7 @@ Try [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo
 
 Highlights:
 * Fast server capable to serve lots of simultanious connections
-* Sha-256 HMAC-based authorization
+* SHA-256 HMAC-based authorization
 * HTTP API to communicate from your application backend (publish messages in channels etc.). API clients for Python, Ruby, PHP. Simple to implement new one.
 * Javascript client to connect from web browser over SockJS or pure Websocket protocol
 * Presence, history and join/leave events for channels
