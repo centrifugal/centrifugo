@@ -57,13 +57,12 @@ func NewRedisEngine(app *Application, host, port, password, db, redisURL string,
 		pool: pool,
 		api:  api,
 	}
-
+	logger.INFO.Printf("Redis engine: %s, database %s, pool size %d\n", server, db, psize)
 	go e.initializePubSub()
 	if e.api {
 		go e.initializeApi()
 	}
 	go e.checkConnectionStatus()
-
 	return e
 }
 
@@ -91,7 +90,6 @@ func newPool(server, password, db string, psize int) *redis.Pool {
 				logger.CRITICAL.Println(err)
 				return nil, err
 			}
-			logger.INFO.Printf("connected to Redis: %s, database %s, pool size %d\n", server, db, psize)
 			return c, err
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
@@ -217,10 +215,12 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte) error {
 }
 
 func (e *RedisEngine) subscribe(chID ChannelID) error {
+	logger.DEBUG.Println("subscribe on Redis channel", chID)
 	return e.psc.Subscribe(chID)
 }
 
 func (e *RedisEngine) unsubscribe(chID ChannelID) error {
+	logger.DEBUG.Println("unsubscribe from Redis channel", chID)
 	return e.psc.Unsubscribe(chID)
 }
 

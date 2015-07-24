@@ -535,22 +535,28 @@ func (app *Application) removeConn(c clientConn) error {
 // engine and clientSubscriptionHub
 func (app *Application) addSub(pk ProjectKey, ch Channel, c clientConn) error {
 	chID := app.channelID(pk, ch)
-	err := app.engine.subscribe(chID)
+	first, err := app.clients.addSub(chID, c)
 	if err != nil {
 		return err
 	}
-	return app.clients.addSub(chID, c)
+	if first {
+		return app.engine.subscribe(chID)
+	}
+	return nil
 }
 
 // removeSub removes subscription of connection on channel
 // from both engine and clientSubscriptionHub
 func (app *Application) removeSub(pk ProjectKey, ch Channel, c clientConn) error {
 	chID := app.channelID(pk, ch)
-	err := app.engine.unsubscribe(chID)
+	empty, err := app.clients.removeSub(chID, c)
 	if err != nil {
 		return err
 	}
-	return app.clients.removeSub(chID, c)
+	if empty {
+		return app.engine.unsubscribe(chID)
+	}
+	return nil
 }
 
 // Unsubscribe unsubscribes project user from channel, if channel is equal to empty

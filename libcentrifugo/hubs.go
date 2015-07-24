@@ -143,7 +143,7 @@ func (h *clientHub) userConnections(pk ProjectKey, user UserID) map[ConnID]clien
 }
 
 // addSub adds connection into clientHub subscriptions registry.
-func (h *clientHub) addSub(chID ChannelID, c clientConn) error {
+func (h *clientHub) addSub(chID ChannelID, c clientConn) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -156,11 +156,15 @@ func (h *clientHub) addSub(chID ChannelID, c clientConn) error {
 		h.subs[chID] = make(map[ConnID]bool)
 	}
 	h.subs[chID][uid] = true
-	return nil
+	if !ok {
+		return true, nil
+	} else {
+		return false, nil
+	}
 }
 
 // removeSub removes connection from clientHub subscriptions registry.
-func (h *clientHub) removeSub(chID ChannelID, c clientConn) error {
+func (h *clientHub) removeSub(chID ChannelID, c clientConn) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -170,10 +174,10 @@ func (h *clientHub) removeSub(chID ChannelID, c clientConn) error {
 
 	// try to find subscription to delete, return early if not found.
 	if _, ok := h.subs[chID]; !ok {
-		return nil
+		return true, nil
 	}
 	if _, ok := h.subs[chID][uid]; !ok {
-		return nil
+		return true, nil
 	}
 
 	// actually remove subscription from hub.
@@ -182,9 +186,10 @@ func (h *clientHub) removeSub(chID ChannelID, c clientConn) error {
 	// clean up subs map if it's needed.
 	if len(h.subs[chID]) == 0 {
 		delete(h.subs, chID)
+		return true, nil
 	}
 
-	return nil
+	return false, nil
 }
 
 // broadcast sends message to all clients subscribed on channel.

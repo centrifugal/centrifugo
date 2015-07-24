@@ -1,3 +1,11 @@
+v0.2.3
+======
+
+Critical bug fix for Redis Engine!
+
+* fixed bug when entire server could unsubscribe from Redis channel when client closed its connection.
+
+
 v0.2.2
 ======
 
