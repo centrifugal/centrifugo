@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net"
 	"net/url"
-	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
@@ -16,7 +15,6 @@ import (
 // This engine allows to scale Centrifugo - you can run several Centrifugo instances
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
-	sync.RWMutex
 	app      *Application
 	pool     *redis.Pool
 	psc      redis.PubSubConn
