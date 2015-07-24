@@ -20,8 +20,8 @@ cp centrifugo.initd ~/rpmbuild/SOURCES/centrifugo.initd
 cp centrifugo.nofiles.conf ~/rpmbuild/SOURCES/centrifugo.nofiles.conf
 cp centrifugo.logrotate ~/rpmbuild/SOURCES/centrifugo.logrotate
 cp centrifugo.config.json ~/rpmbuild/SOURCES/centrifugo.config.json
-rm -rf ~/rpmbuild/SOURCES/web
-cp -r ./centrifuge-web/app/ ~/rpmbuild/SOURCES/web
+rm -rf ~/rpmbuild/SOURCES/centrifugo-web
+cp -r ./centrifuge-web/app/ ~/rpmbuild/SOURCES/centrifugo-web
 rm -rf ./centrifuge-web
 
 rpmbuild -bb ~/rpmbuild/SPECS/centrifugo.spec --define "version $1" --define "release `date +%s`"
