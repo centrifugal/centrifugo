@@ -72,8 +72,13 @@ chkconfig --add %{name}
 
 %preun
 if [ $1 = 0 ]; then
-  service %{name} stop > /dev/null 2>&1
+  service %{name} stop > /dev/null 2>&1 || :
   chkconfig --del %{name}
+fi
+
+%postun
+if [ $1 -ge 1 ] ; then
+  service %{name} condrestart >/dev/null 2>&1 || :
 fi
 
 %files
