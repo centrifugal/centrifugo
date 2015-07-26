@@ -108,7 +108,10 @@ case "$1" in
     status|status_q)
         rh_$1
         ;;
+    condrestart)
+        rh_status_q && restart || exit 0
+        ;;
     *)
-        echo $"Usage: $0 {start|stop|reload|status|restart|configtest}"
+        echo $"Usage: $0 {start|stop|reload|status|restart|configtest|condrestart}"
         exit 2
 esac

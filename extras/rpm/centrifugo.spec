@@ -43,7 +43,7 @@ install -d -m 755 %{buildroot}/%{_sbindir}
 install    -m 755 %{_builddir}/%{name}-%{version}-linux-amd64/centrifugo %{buildroot}/%{_sbindir}
 
 install -d -m 755 %{buildroot}%{__prefix}/%{name}
-cp -rf %_sourcedir/web %{buildroot}%{__prefix}/%{name}/web
+cp -rf %_sourcedir/%{name}-web %{buildroot}%{__prefix}/%{name}/web
 
 install -d -m 755 %{buildroot}/%{_localstatedir}/log/%{name}
 install -d -m 755 %{buildroot}/%{_localstatedir}/lib/%{name}
@@ -72,8 +72,13 @@ chkconfig --add %{name}
 
 %preun
 if [ $1 = 0 ]; then
-  service %{name} stop > /dev/null 2>&1
+  service %{name} stop > /dev/null 2>&1 || :
   chkconfig --del %{name}
+fi
+
+%postun
+if [ $1 -ge 1 ] ; then
+  service %{name} condrestart >/dev/null 2>&1 || :
 fi
 
 %files
