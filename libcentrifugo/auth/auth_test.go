@@ -41,7 +41,7 @@ func TestGenerateApiSign(t *testing.T) {
 	var (
 		secretKey   = "secret"
 		projectKey  = "project"
-		encodedData = "{}"
+		encodedData = []byte("{}")
 	)
 	sign := GenerateApiSign(secretKey, projectKey, encodedData)
 	if len(sign) != 64 {
@@ -53,7 +53,7 @@ func TestCheckApiSign(t *testing.T) {
 	var (
 		secretKey    = "secret"
 		projectKey   = "project"
-		encodedData  = "{}"
+		encodedData  = []byte("{}")
 		providedSign = "sign"
 	)
 	result := CheckApiSign(secretKey, projectKey, encodedData, providedSign)

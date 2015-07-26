@@ -35,20 +35,20 @@ func CheckClientToken(secretKey, projectKey, user, timestamp, info, providedToke
 }
 
 // GenerateApiSign generates sign which is used to sign HTTP API requests
-func GenerateApiSign(secretKey, projectKey, encodedData string) string {
+func GenerateApiSign(secretKey, projectKey string, data []byte) string {
 	sign := hmac.New(sha256.New, []byte(secretKey))
 	sign.Write([]byte(projectKey))
-	sign.Write([]byte(encodedData))
+	sign.Write(data)
 	return fmt.Sprintf("%02x", sign.Sum(nil))
 }
 
 // CheckApiSign validates correctness of provided (in HTTP API request) sign
 // comparing it with generated one
-func CheckApiSign(secretKey, projectKey, encodedData, providedSign string) bool {
+func CheckApiSign(secretKey, projectKey string, data []byte, providedSign string) bool {
 	if len(providedSign) != HMACLength {
 		return false
 	}
-	sign := GenerateApiSign(secretKey, projectKey, encodedData)
+	sign := GenerateApiSign(secretKey, projectKey, data)
 	return hmac.Equal([]byte(sign), []byte(providedSign))
 }
 
