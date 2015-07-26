@@ -1,6 +1,7 @@
 package libcentrifugo
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -82,11 +83,11 @@ func TestAPIHandler(t *testing.T) {
 	app.APIHandler(rec, req)
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 
-	// valid request
+	// valid form urlencoded request
 	rec = httptest.NewRecorder()
 	values = url.Values{}
 	data := "{\"method\":\"publish\",\"params\":{\"channel\": \"test\", \"data\":{}}}"
-	sign := auth.GenerateApiSign("secret", "test1", data)
+	sign := auth.GenerateApiSign("secret", "test1", []byte(data))
 	values.Set("sign", sign)
 	values.Add("data", data)
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", strings.NewReader(values.Encode()))
@@ -95,11 +96,21 @@ func TestAPIHandler(t *testing.T) {
 	app.APIHandler(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
 
+	// valid JSON request
+	rec = httptest.NewRecorder()
+	data = "{\"method\":\"publish\",\"params\":{\"channel\": \"test\", \"data\":{}}}"
+	sign = auth.GenerateApiSign("secret", "test1", []byte(data))
+	req, _ = http.NewRequest("POST", server.URL+"/api/test1", bytes.NewBuffer([]byte(data)))
+	req.Header.Add("X-API-Sign", sign)
+	req.Header.Add("Content-Type", "application/json")
+	app.APIHandler(rec, req)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
 	// request with unknown method
 	rec = httptest.NewRecorder()
 	values = url.Values{}
 	data = "{\"method\":\"unknown\",\"params\":{\"channel\": \"test\", \"data\":{}}}"
-	sign = auth.GenerateApiSign("secret", "test1", data)
+	sign = auth.GenerateApiSign("secret", "test1", []byte(data))
 	values.Set("sign", sign)
 	values.Add("data", data)
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", strings.NewReader(values.Encode()))

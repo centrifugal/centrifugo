@@ -2,6 +2,7 @@ package libcentrifugo
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -136,23 +137,23 @@ var (
 	objectJsonPrefix byte = '{'
 )
 
-func msgToCommands(msgBytes []byte) ([]apiCommand, error) {
+func cmdFromAPIMsg(msg []byte) ([]apiCommand, error) {
 	var commands []apiCommand
 
-	firstByte := msgBytes[0]
+	firstByte := msg[0]
 
 	switch firstByte {
 	case objectJsonPrefix:
 		// single command request
 		var command apiCommand
-		err := json.Unmarshal(msgBytes, &command)
+		err := json.Unmarshal(msg, &command)
 		if err != nil {
 			return nil, err
 		}
 		commands = append(commands, command)
 	case arrayJsonPrefix:
 		// array of commands received
-		err := json.Unmarshal(msgBytes, &commands)
+		err := json.Unmarshal(msg, &commands)
 		if err != nil {
 			return nil, err
 		}
@@ -162,11 +163,6 @@ func msgToCommands(msgBytes []byte) ([]apiCommand, error) {
 	return commands, nil
 }
 
-type jsonApiRequest struct {
-	Sign string
-	Data string
-}
-
 // APIHandler is responsible for receiving API commands over HTTP.
 func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -174,24 +170,23 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 
 	var sign string
-	var encodedData string
+	var data []byte
+	var err error
 
 	if strings.HasPrefix(strings.ToLower(contentType), "application/json") {
 		// json request
-		var req jsonApiRequest
-		var decoder = json.NewDecoder(r.Body)
-		err := decoder.Decode(&req)
+		sign = r.Header.Get("X-API-Sign")
+		defer r.Body.Close()
+		data, err = ioutil.ReadAll(r.Body)
 		if err != nil {
 			logger.ERROR.Println(err)
-			http.Error(w, "Bad Request", http.StatusBadRequest)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		sign = req.Sign
-		encodedData = req.Data
 	} else {
 		// application/x-www-form-urlencoded request
 		sign = r.FormValue("sign")
-		encodedData = r.FormValue("data")
+		data = []byte(r.FormValue("data"))
 	}
 
 	if sign == "" {
@@ -200,7 +195,7 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if encodedData == "" {
+	if len(data) == 0 {
 		logger.ERROR.Println("no data found in API request")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -215,16 +210,14 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 
 	secret := project.Secret
 
-	isValid := auth.CheckApiSign(secret, string(pk), encodedData, sign)
+	isValid := auth.CheckApiSign(secret, string(pk), data, sign)
 	if !isValid {
 		logger.ERROR.Println("invalid sign")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	msgBytes := []byte(encodedData)
-
-	commands, err := msgToCommands(msgBytes)
+	commands, err := cmdFromAPIMsg(data)
 	if err != nil {
 		logger.ERROR.Println(err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
