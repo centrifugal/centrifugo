@@ -1,11 +1,11 @@
 package libcentrifugo
 
-type presenceBody struct {
+type PresenceBody struct {
 	Channel Channel               `json:"channel"`
 	Data    map[ConnID]ClientInfo `json:"data"`
 }
 
-type historyBody struct {
+type HistoryBody struct {
 	Channel Channel   `json:"channel"`
 	Data    []Message `json:"data"`
 }

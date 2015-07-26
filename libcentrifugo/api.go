@@ -127,7 +127,7 @@ func (app *Application) presenceCmd(p Project, cmd *presenceApiCommand) (*respon
 
 	channel := cmd.Channel
 
-	body := &presenceBody{
+	body := &PresenceBody{
 		Channel: channel,
 	}
 
@@ -151,7 +151,7 @@ func (app *Application) historyCmd(p Project, cmd *historyApiCommand) (*response
 
 	channel := cmd.Channel
 
-	body := &historyBody{
+	body := &HistoryBody{
 		Channel: channel,
 	}
 

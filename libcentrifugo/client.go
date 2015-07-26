@@ -770,7 +770,7 @@ func (c *client) presenceCmd(cmd *presenceClientCommand) (*response, error) {
 
 	channel := cmd.Channel
 
-	body := &presenceBody{
+	body := &PresenceBody{
 		Channel: channel,
 	}
 
@@ -802,7 +802,7 @@ func (c *client) historyCmd(cmd *historyClientCommand) (*response, error) {
 
 	channel := cmd.Channel
 
-	body := &historyBody{
+	body := &HistoryBody{
 		Channel: channel,
 	}
 
