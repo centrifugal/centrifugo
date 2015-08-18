@@ -168,7 +168,7 @@ func (e *RedisEngine) initializeApi() {
 
 func (e *RedisEngine) initializePubSub() {
 	e.inPubSub = true
-	e.psc = redis.PubSubConn{e.pool.Get()}
+	e.psc = redis.PubSubConn{Conn: e.pool.Get()}
 	defer e.psc.Close()
 	defer func() {
 		e.inPubSub = false
