@@ -8,15 +8,6 @@
 			"Rev": "056c9bc7be7190eaa7715723883caffa5f8fa3e4"
 		},
 		{
-			"ImportPath": "github.com/armon/consul-api",
-			"Rev": "dcfedd50ed5334f96adee43fc88518a4f095e15c"
-		},
-		{
-			"ImportPath": "github.com/coreos/go-etcd/etcd",
-			"Comment": "v2.0.0-7-g73a8ef7",
-			"Rev": "73a8ef737e8ea002281a28b4cb92a1de121ad4c6"
-		},
-		{
 			"ImportPath": "github.com/garyburd/redigo/internal",
 			"Rev": "535138d7bcd717d6531c701ef5933d98b1866257"
 		},
@@ -73,29 +64,6 @@
 		{
 			"ImportPath": "github.com/spf13/viper",
 			"Rev": "9fca10189b1307bba68b2cd487dd93da0bfbda06"
-		},
-		{
-			"ImportPath": "github.com/xordataexchange/crypt/backend",
-			"Comment": "v0.0.2-15-g93de656",
-			"Rev": "93de65664ef094aa5acff4f5201ac17580370af7"
-		},
-		{
-			"ImportPath": "github.com/xordataexchange/crypt/config",
-			"Comment": "v0.0.2-15-g93de656",
-			"Rev": "93de65664ef094aa5acff4f5201ac17580370af7"
-		},
-		{
-			"ImportPath": "github.com/xordataexchange/crypt/encoding/secconf",
-			"Comment": "v0.0.2-15-g93de656",
-			"Rev": "93de65664ef094aa5acff4f5201ac17580370af7"
-		},
-		{
-			"ImportPath": "golang.org/x/crypto/cast5",
-			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
-		},
-		{
-			"ImportPath": "golang.org/x/crypto/openpgp",
-			"Rev": "74f810a0152f4c50a16195f6b9ff44afc35594e8"
 		},
 		{
 			"ImportPath": "gopkg.in/igm/sockjs-go.v2/sockjs",
