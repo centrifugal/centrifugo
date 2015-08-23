@@ -9,11 +9,15 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 )
+
+// Asserts that cookieError and MultiError are Error implementations.
+var _ Error = cookieError{}
+var _ Error = MultiError{}
 
 var testCookies = []interface{}{
 	map[string]string{"foo": "bar"},
@@ -24,18 +28,6 @@ var testStrings = []string{"foo", "bar", "baz"}
 
 func TestSecureCookie(t *testing.T) {
 	// TODO test too old / too new timestamps
-	compareMaps := func(m1, m2 map[string]interface{}) error {
-		if len(m1) != len(m2) {
-			return errors.New("different maps")
-		}
-		for k, v := range m1 {
-			if m2[k] != v {
-				return fmt.Errorf("Different value for key %v: expected %v, got %v", k, m2[k], v)
-			}
-		}
-		return nil
-	}
-
 	s1 := New([]byte("12345"), []byte("1234567890123456"))
 	s2 := New([]byte("54321"), []byte("6543210987654321"))
 	value := map[string]interface{}{
@@ -56,7 +48,7 @@ func TestSecureCookie(t *testing.T) {
 		if err2 != nil {
 			t.Fatalf("%v: %v", err2, encoded)
 		}
-		if err := compareMaps(dst, value); err != nil {
+		if !reflect.DeepEqual(dst, value) {
 			t.Fatalf("Expected %v, got %v.", value, dst)
 		}
 		dst2 := make(map[string]interface{})
@@ -64,6 +56,33 @@ func TestSecureCookie(t *testing.T) {
 		if err3 == nil {
 			t.Fatalf("Expected failure decoding.")
 		}
+		err4, ok := err3.(Error)
+		if !ok {
+			t.Fatalf("Expected error to implement Error, got: %#v", err3)
+		}
+		if !err4.IsDecode() {
+			t.Fatalf("Expected DecodeError, got: %#v", err4)
+		}
+
+		// Test other error type flags.
+		if err4.IsUsage() {
+			t.Fatalf("Expected IsUsage() == false, got: %#v", err4)
+		}
+		if err4.IsInternal() {
+			t.Fatalf("Expected IsInternal() == false, got: %#v", err4)
+		}
+	}
+}
+
+func TestSecureCookieNilKey(t *testing.T) {
+	s1 := New(nil, nil)
+	value := map[string]interface{}{
+		"foo": "bar",
+		"baz": 128,
+	}
+	_, err := s1.Encode("sid", value)
+	if err != errHashKeyNotSet {
+		t.Fatal("Wrong error returned:", err)
 	}
 }
 
@@ -81,9 +100,18 @@ func TestDecodeInvalid(t *testing.T) {
 	s := New([]byte("12345"), nil)
 	var dst string
 	for i, v := range invalidCookies {
-		err := s.Decode("name", base64.StdEncoding.EncodeToString([]byte(v)), &dst)
-		if err == nil {
-			t.Fatalf("%d: expected failure decoding", i)
+		for _, enc := range []*base64.Encoding{
+			base64.StdEncoding,
+			base64.URLEncoding,
+		} {
+			err := s.Decode("name", enc.EncodeToString([]byte(v)), &dst)
+			if err == nil {
+				t.Fatalf("%d: expected failure decoding", i)
+			}
+			err2, ok := err.(Error)
+			if !ok || !err2.IsDecode() {
+				t.Fatalf("%d: Expected IsDecode(), got: %#v", i, err)
+			}
 		}
 	}
 }
@@ -101,7 +129,7 @@ func TestAuthentication(t *testing.T) {
 	}
 }
 
-func TestEncription(t *testing.T) {
+func TestEncryption(t *testing.T) {
 	block, err := aes.NewCipher([]byte("1234567890123456"))
 	if err != nil {
 		t.Fatalf("Block could not be created")
@@ -121,18 +149,41 @@ func TestEncription(t *testing.T) {
 	}
 }
 
-func TestSerialization(t *testing.T) {
+func TestGobSerialization(t *testing.T) {
 	var (
+		sz           GobEncoder
 		serialized   []byte
 		deserialized map[string]string
 		err          error
 	)
 	for _, value := range testCookies {
-		if serialized, err = serialize(value); err != nil {
+		if serialized, err = sz.Serialize(value); err != nil {
 			t.Error(err)
 		} else {
 			deserialized = make(map[string]string)
-			if err = deserialize(serialized, &deserialized); err != nil {
+			if err = sz.Deserialize(serialized, &deserialized); err != nil {
+				t.Error(err)
+			}
+			if fmt.Sprintf("%v", deserialized) != fmt.Sprintf("%v", value) {
+				t.Errorf("Expected %v, got %v.", value, deserialized)
+			}
+		}
+	}
+}
+
+func TestJSONSerialization(t *testing.T) {
+	var (
+		sz           JSONEncoder
+		serialized   []byte
+		deserialized map[string]string
+		err          error
+	)
+	for _, value := range testCookies {
+		if serialized, err = sz.Serialize(value); err != nil {
+			t.Error(err)
+		} else {
+			deserialized = make(map[string]string)
+			if err = sz.Deserialize(serialized, &deserialized); err != nil {
 				t.Error(err)
 			}
 			if fmt.Sprintf("%v", deserialized) != fmt.Sprintf("%v", value) {
@@ -163,6 +214,16 @@ func TestMultiError(t *testing.T) {
 		if strings.Index(err.Error(), "hash key is not set") == -1 {
 			t.Errorf("Expected missing hash key error, got %s.", err.Error())
 		}
+		ourErr, ok := err.(Error)
+		if !ok || !ourErr.IsUsage() {
+			t.Fatalf("Expected error to be a usage error; got %#v", err)
+		}
+		if ourErr.IsDecode() {
+			t.Errorf("Expected error NOT to be a decode error; got %#v", ourErr)
+		}
+		if ourErr.IsInternal() {
+			t.Errorf("Expected error NOT to be an internal error; got %#v", ourErr)
+		}
 	}
 }
 
@@ -186,6 +247,9 @@ func TestMissingKey(t *testing.T) {
 	err := s1.Decode("sid", "value", &dst)
 	if err != errHashKeyNotSet {
 		t.Fatalf("Expected %#v, got %#v", errHashKeyNotSet, err)
+	}
+	if err2, ok := err.(Error); !ok || !err2.IsUsage() {
+		t.Errorf("Expected missing hash key to be IsUsage(); was %#v", err)
 	}
 }
 

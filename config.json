@@ -5,7 +5,6 @@
     {
       "name": "development",
       "secret": "secret",
-      "publish": true,
       "namespaces": [
         {
           "name": "public",
