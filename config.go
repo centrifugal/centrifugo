@@ -163,7 +163,12 @@ func validateConfig(f string) error {
 	v.SetConfigFile(f)
 	err := v.ReadInConfig()
 	if err != nil {
-		return errors.New("unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
+		switch err.(type) {
+		case viper.ConfigParseError:
+			return err
+		default:
+			return errors.New("Unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
+		}
 	}
 	s := structureFromConfig(v)
 	return s.Validate()

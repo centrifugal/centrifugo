@@ -72,7 +72,7 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/viper",
-			"Rev": "be782f3fee037d2db69c1c8af0e985e81e1ac273"
+			"Rev": "9fca10189b1307bba68b2cd487dd93da0bfbda06"
 		},
 		{
 			"ImportPath": "github.com/xordataexchange/crypt/backend",

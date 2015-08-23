@@ -49,7 +49,7 @@ func DefaultMux(app *Application, prefix, webDir, sockjsURL string) *http.ServeM
 // according to SockJS protocol.
 func NewSockJSHandler(app *Application, sockjsPrefix, sockjsUrl string) http.Handler {
 	if sockjsUrl != "" {
-		logger.INFO.Println("using SockJS url", sockjsUrl)
+		logger.INFO.Println("Using SockJS url", sockjsUrl)
 		sockjs.DefaultOptions.SockJSURL = sockjsUrl
 	}
 	return sockjs.NewHandler(sockjsPrefix, sockjs.DefaultOptions, app.sockJSHandler)
@@ -64,7 +64,7 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 		return
 	}
 	defer c.clean()
-	logger.INFO.Printf("new SockJS session established with uid %s\n", c.uid())
+	logger.INFO.Printf("New SockJS session established with uid %s\n", c.uid())
 
 	for {
 		if msg, err := s.Recv(); err == nil {
@@ -115,7 +115,7 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return
 	}
-	logger.INFO.Printf("new raw Websocket session established with uid %s\n", c.uid())
+	logger.INFO.Printf("New raw Websocket session established with uid %s\n", c.uid())
 	defer c.clean()
 
 	for {
@@ -419,7 +419,7 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		return
 	}
-	logger.INFO.Printf("new admin session established with uid %s\n", c.uid())
+	logger.INFO.Printf("New admin session established with uid %s\n", c.uid())
 	defer func() {
 		close(c.closeChan)
 		err := app.removeAdminConn(c)
