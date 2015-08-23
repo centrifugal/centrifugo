@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/websocket"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/websocket"
 )
 
 // WebSocketReadBufSize is a parameter that is used for WebSocket Upgrader.

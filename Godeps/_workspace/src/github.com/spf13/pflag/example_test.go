@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	flag "github.com/spf13/pflag"
+	flag "github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/pflag"
 )
 
 // Example 1: A single string flag called "species" with default value "gopher".

@@ -22,7 +22,7 @@ import (
 	"os"
 	"strings"
 
-	flag "github.com/spf13/pflag"
+	flag "github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/pflag"
 )
 
 // Command is just that, a command for your application.
@@ -743,20 +743,20 @@ func (c *Command) InheritedFlags() *flag.FlagSet {
 
 	local := flag.NewFlagSet(c.Name(), flag.ContinueOnError)
 
-        var rmerge func(x *Command)
+	var rmerge func(x *Command)
 
-        rmerge = func(x *Command) {
-                if x.HasPersistentFlags() {
-                        x.PersistentFlags().VisitAll(func(f *flag.Flag) {
-                                if local.Lookup(f.Name) == nil {
-                                        local.AddFlag(f)
-                                }
-                        })
-                }
-                if x.HasParent() {
-                        rmerge(x.parent)
-                }
-        }
+	rmerge = func(x *Command) {
+		if x.HasPersistentFlags() {
+			x.PersistentFlags().VisitAll(func(f *flag.Flag) {
+				if local.Lookup(f.Name) == nil {
+					local.AddFlag(f)
+				}
+			})
+		}
+		if x.HasParent() {
+			rmerge(x.parent)
+		}
+	}
 
 	if c.HasParent() {
 		rmerge(c.parent)

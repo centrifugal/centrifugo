@@ -30,11 +30,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kr/pretty"
-	"github.com/mitchellh/mapstructure"
-	"github.com/spf13/cast"
-	jww "github.com/spf13/jwalterweatherman"
-	"github.com/spf13/pflag"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/kr/pretty"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/mitchellh/mapstructure"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/cast"
+	jww "github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/jwalterweatherman"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/pflag"
 )
 
 var v *Viper

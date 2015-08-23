@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	jww "github.com/spf13/jwalterweatherman"
+	jww "github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/jwalterweatherman"
 )
 
 func ToTimeE(i interface{}) (tim time.Time, err error) {

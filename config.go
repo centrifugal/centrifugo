@@ -11,13 +11,12 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/viper" // newConfig creates new libcentrifugo.Config using viper.
 	"github.com/centrifugal/centrifugo/libcentrifugo"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
-	"github.com/nu7hatch/gouuid"
-	"github.com/spf13/viper"
 )
 
-// newConfig creates new libcentrifugo.Config using viper.
 func newConfig() *libcentrifugo.Config {
 	cfg := &libcentrifugo.Config{}
 	cfg.Version = VERSION

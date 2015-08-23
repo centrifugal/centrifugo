@@ -2,8 +2,8 @@ package yaml_test
 
 import (
 	"errors"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/gopkg.in/yaml.v2"
 	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
 	"math"
 	"net"
 	"reflect"

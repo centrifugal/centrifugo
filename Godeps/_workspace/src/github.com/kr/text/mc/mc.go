@@ -10,8 +10,8 @@
 package main
 
 import (
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/kr/text/colwriter"
 	"github.com/kr/pty"
-	"github.com/kr/text/colwriter"
 	"io"
 	"log"
 	"os"
