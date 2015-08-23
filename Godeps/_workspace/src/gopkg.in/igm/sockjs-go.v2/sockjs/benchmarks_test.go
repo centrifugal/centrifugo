@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"testing"
@@ -79,4 +80,15 @@ func BenchmarkMessages(b *testing.B) {
 	}
 	wg.Wait()
 	server.Close()
+}
+
+func BenchmarkHandler_ParseSessionID(b *testing.B) {
+	h := handler{prefix: "/prefix"}
+	url, _ := url.Parse("http://server:80/prefix/server/session/whatever")
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		h.parseSessionID(url)
+	}
 }

@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"sync"
 	"time"
 )
 
-var entropy *rand.Rand
+var (
+	entropy      *rand.Rand
+	entropyMutex sync.Mutex
+)
 
 func init() {
 	entropy = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -71,7 +75,7 @@ func (options *Options) info(rw http.ResponseWriter, req *http.Request) {
 			Websocket:    options.Websocket,
 			CookieNeeded: options.JSessionID != nil,
 			Origins:      []string{"*:*"},
-			Entropy:      entropy.Int31(),
+			Entropy:      generateEntropy(),
 		})
 	case "OPTIONS":
 		rw.Header().Set("Access-Control-Allow-Methods", "OPTIONS, GET")
@@ -100,4 +104,11 @@ func (options *Options) cookie(rw http.ResponseWriter, req *http.Request) {
 	if options.JSessionID != nil { // cookie is needed
 		options.JSessionID(rw, req)
 	}
+}
+
+func generateEntropy() int32 {
+	entropyMutex.Lock()
+	entropy := entropy.Int31()
+	entropyMutex.Unlock()
+	return entropy
 }

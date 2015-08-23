@@ -30,11 +30,11 @@ func TestHandler_Create(t *testing.T) {
 
 func TestHandler_ParseSessionId(t *testing.T) {
 	h := handler{prefix: "/prefix"}
-	url, _ := url.Parse("http://server:port/prefix/server/session/whatever")
+	url, _ := url.Parse("http://server:80/prefix/server/session/whatever")
 	if session, err := h.parseSessionID(url); session != "session" || err != nil {
 		t.Errorf("Wrong session parsed, got '%s' expected '%s' with error = '%v'", session, "session", err)
 	}
-	url, _ = url.Parse("http://server:port/asdasd/server/session/whatever")
+	url, _ = url.Parse("http://server:80/asdasd/server/session/whatever")
 	if _, err := h.parseSessionID(url); err == nil {
 		t.Errorf("Should return error")
 	}

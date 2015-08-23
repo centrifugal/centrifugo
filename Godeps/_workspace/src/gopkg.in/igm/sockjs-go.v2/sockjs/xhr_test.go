@@ -116,6 +116,7 @@ func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
 	rw := newClosableRecorder()
 	close(rw.closeNotifCh)
 	h.xhrPoll(rw, req)
+	time.Sleep(1 * time.Millisecond)
 	sess.Lock()
 	if sess.state != sessionClosed {
 		t.Errorf("Session should be closed")

@@ -9,6 +9,11 @@ import (
 	"sync"
 )
 
+var (
+	prefixRegexp   = make(map[string]*regexp.Regexp)
+	prefixRegexpMu sync.Mutex // protects prefixRegexp
+)
+
 type handler struct {
 	prefix      string
 	options     Options
@@ -87,7 +92,15 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (h *handler) parseSessionID(url *url.URL) (string, error) {
-	session := regexp.MustCompile(h.prefix + "/(?P<server>[^/.]+)/(?P<session>[^/.]+)/.*")
+	// cache compiled regexp objects for most used prefixes
+	prefixRegexpMu.Lock()
+	session, ok := prefixRegexp[h.prefix]
+	if !ok {
+		session = regexp.MustCompile(h.prefix + "/(?P<server>[^/.]+)/(?P<session>[^/.]+)/.*")
+		prefixRegexp[h.prefix] = session
+	}
+	prefixRegexpMu.Unlock()
+
 	matches := session.FindStringSubmatch(url.Path)
 	if len(matches) == 3 {
 		return matches[2], nil

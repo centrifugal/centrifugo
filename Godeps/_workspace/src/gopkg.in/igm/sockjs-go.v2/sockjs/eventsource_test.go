@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestHandler_EventSource(t *testing.T) {
@@ -12,6 +13,7 @@ func TestHandler_EventSource(t *testing.T) {
 	h := newTestHandler()
 	h.options.ResponseLimit = 1024
 	go func() {
+		time.Sleep(1 * time.Millisecond)
 		h.sessionsMux.Lock()
 		defer h.sessionsMux.Unlock()
 		sess := h.sessions["session"]
@@ -63,6 +65,7 @@ func TestHandler_EventSourceConnectionInterrupted(t *testing.T) {
 	rw := newClosableRecorder()
 	close(rw.closeNotifCh)
 	h.eventSource(rw, req)
+	time.Sleep(1 * time.Millisecond)
 	sess.Lock()
 	if sess.state != sessionClosed {
 		t.Errorf("Session should be closed")
