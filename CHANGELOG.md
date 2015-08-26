@@ -1,3 +1,9 @@
+v0.2.4
+======
+
+* HTTP API endpoint now can handle json requests. Used in client written in Go at moment. Old behaviour have not changed, so this is absolutely optional.
+* dependency packages updated to latest versions - websocket, securecookie, sockjs-go.
+
 v0.2.3
 ======
 
