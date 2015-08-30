@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/websocket"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
-	"github.com/gorilla/websocket"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestDefaultMux(t *testing.T) {

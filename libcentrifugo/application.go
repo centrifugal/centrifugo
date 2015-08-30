@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/securecookie"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
-	"github.com/gorilla/securecookie"
-	"github.com/nu7hatch/gouuid"
 )
 
 // Application is a heart of Centrifugo – it internally manages connection, subscription

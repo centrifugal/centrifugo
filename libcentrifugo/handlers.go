@@ -7,13 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/websocket"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/gopkg.in/igm/sockjs-go.v2/sockjs" // DefaultMux returns a mux including set of default handlers for Centrifugo server.
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
-	"github.com/gorilla/websocket"
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
-// DefaultMux returns a mux including set of default handlers for Centrifugo server.
 func DefaultMux(app *Application, prefix, webDir, sockjsURL string) *http.ServeMux {
 
 	mux := http.NewServeMux()

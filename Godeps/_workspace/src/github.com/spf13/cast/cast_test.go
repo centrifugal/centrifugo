@@ -10,7 +10,7 @@ import (
 
 	"html/template"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
 func TestToInt(t *testing.T) {

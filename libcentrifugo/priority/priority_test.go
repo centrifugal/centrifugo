@@ -4,7 +4,7 @@ import (
 	"container/heap"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
 func TestQueue(t *testing.T) {

@@ -1,6 +1,9 @@
 {
 	"ImportPath": "github.com/centrifugal/centrifugo",
 	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
@@ -64,6 +67,10 @@
 		{
 			"ImportPath": "github.com/spf13/viper",
 			"Rev": "9fca10189b1307bba68b2cd487dd93da0bfbda06"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Rev": "dab07ac62d4905d3e48d17dc549c684ac3b7c15a"
 		},
 		{
 			"ImportPath": "gopkg.in/igm/sockjs-go.v2/sockjs",
