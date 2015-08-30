@@ -70,6 +70,30 @@ func TestUserAllowed(t *testing.T) {
 	assert.Equal(t, false, app.userAllowed("channel#1,2", "3"))
 }
 
+func TestSetConfig(t *testing.T) {
+	app := testApp()
+	c := newTestConfig()
+	app.SetConfig(c)
+}
+
+func TestAdminAuthToken(t *testing.T) {
+	app := testApp()
+	// first without secret set
+	token, err := app.adminAuthToken()
+	assert.Equal(t, nil, err)
+	assert.True(t, len(token) > 0)
+	err = app.checkAdminAuthToken("")
+	assert.Equal(t, ErrUnauthorized, err)
+	err = app.checkAdminAuthToken(token)
+	assert.Equal(t, ErrUnauthorized, err)
+	// now with secret set
+	app.config.WebSecret = "test"
+	token, err = app.adminAuthToken()
+	assert.Equal(t, nil, err)
+	err = app.checkAdminAuthToken(token)
+	assert.Equal(t, nil, err)
+}
+
 func TestClientAllowed(t *testing.T) {
 	app := testApp()
 	assert.Equal(t, true, app.clientAllowed("channel&67330d48-f668-4916-758b-f4eb1dd5b41d", ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
@@ -131,6 +155,7 @@ func testWrongControlCmd(uid string) []byte {
 
 func TestControlMessages(t *testing.T) {
 	app := testApp()
+	app.Run()
 	// command from this node
 	cmd := testPingControlCmd(app.uid)
 	err := app.controlMsg(cmd)

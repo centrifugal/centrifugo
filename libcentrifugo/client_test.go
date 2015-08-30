@@ -55,6 +55,22 @@ func TestClientMessage(t *testing.T) {
 	assert.Equal(t, ErrUnauthorized, err)
 }
 
+func TestSingleObjectMessage(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	nonConnectFirstCmd := clientCommand{
+		Method: "subscribe",
+		Params: []byte("{}"),
+	}
+
+	cmdBytes, err := json.Marshal(nonConnectFirstCmd)
+	assert.Equal(t, nil, err)
+	err = c.message(cmdBytes)
+	assert.Equal(t, ErrUnauthorized, err)
+}
+
 func testConnectCmd(timestamp string) clientCommand {
 	token := auth.GenerateClientToken("secret", "test1", "user1", timestamp, "")
 	connectCmd := connectClientCommand{
@@ -67,6 +83,23 @@ func testConnectCmd(timestamp string) clientCommand {
 	cmdBytes, _ := json.Marshal(connectCmd)
 	cmd := clientCommand{
 		Method: "connect",
+		Params: cmdBytes,
+	}
+	return cmd
+}
+
+func testRefreshCmd(timestamp string) clientCommand {
+	token := auth.GenerateClientToken("secret", "test1", "user1", timestamp, "")
+	refreshCmd := refreshClientCommand{
+		Project:   ProjectKey("test1"),
+		Timestamp: timestamp,
+		User:      UserID("user1"),
+		Info:      "",
+		Token:     token,
+	}
+	cmdBytes, _ := json.Marshal(refreshCmd)
+	cmd := clientCommand{
+		Method: "refresh",
 		Params: cmdBytes,
 	}
 	return cmd
@@ -201,6 +234,42 @@ func TestClientConnect(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	assert.Equal(t, 0, len(app.clients.conns))
+}
+
+func TestClientRefresh(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+
+	cmds = []clientCommand{testRefreshCmd(timestamp)}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+}
+
+func TestClientPublish(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+
+	cmd := testPublishCmd("not_subscribed_on_this")
+	resp, err := c.handleCmd(cmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, ErrPermissionDenied, resp.err)
+
+	cmd = testPublishCmd("test")
+	resp, err = c.handleCmd(cmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nil, resp.err)
 }
 
 func TestClientSubscribe(t *testing.T) {
