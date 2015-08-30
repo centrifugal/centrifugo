@@ -4,7 +4,7 @@ package libcentrifugo
 // application to publish message, handle subscriptions, save or retrieve
 // presence and history data
 type Engine interface {
-	// getName returns a name of concrete engine implementation
+	// name returns a name of concrete engine implementation
 	name() string
 
 	// publish allows to send message into channel
@@ -19,11 +19,11 @@ type Engine interface {
 	addPresence(chID ChannelID, uid ConnID, info ClientInfo) error
 	// removePresence removes presence information for connection with uid
 	removePresence(chID ChannelID, uid ConnID) error
-	// getPresence returns actual presence information for channel
+	// presence returns actual presence information for channel
 	presence(chID ChannelID) (map[ConnID]ClientInfo, error)
 
 	// addHistory adds message into channel history and takes care about history size
 	addHistory(chID ChannelID, message Message, size, lifetime int64) error
-	// getHistory returns history messages for channel
+	// history returns a slice of history messages for channel
 	history(chID ChannelID) ([]Message, error)
 }
