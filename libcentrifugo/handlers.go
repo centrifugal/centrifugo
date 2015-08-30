@@ -9,7 +9,6 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
-	"github.com/gorilla/securecookie"
 	"github.com/gorilla/websocket"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
@@ -256,10 +255,7 @@ func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if password == app.config.WebPassword {
 		w.Header().Set("Content-Type", "application/json")
-		app.RLock()
-		s := securecookie.New([]byte(app.config.WebSecret), nil)
-		app.RUnlock()
-		token, err := s.Encode(AuthTokenKey, AuthTokenValue)
+		token, err := app.adminAuthToken()
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -279,7 +275,7 @@ func (app *Application) Authenticated(h http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader != "" {
 			token := strings.TrimPrefix(authHeader, "Token ")
-			err := app.checkAuthToken(token)
+			err := app.checkAdminAuthToken(token)
 			if err == nil {
 				h.ServeHTTP(w, r)
 				return

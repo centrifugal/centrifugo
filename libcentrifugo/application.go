@@ -812,8 +812,16 @@ const (
 	AuthTokenValue = "authorized"
 )
 
-// checkAuthToken checks admin connection token which Centrifugo returns after admin login
-func (app *Application) checkAuthToken(token string) error {
+func (app *Application) adminAuthToken() (string, error) {
+	app.RLock()
+	secret := app.config.WebSecret
+	app.RUnlock()
+	s := securecookie.New([]byte(secret), nil)
+	return s.Encode(AuthTokenKey, AuthTokenValue)
+}
+
+// checkAdminAuthToken checks admin connection token which Centrifugo returns after admin login
+func (app *Application) checkAdminAuthToken(token string) error {
 
 	app.RLock()
 	secret := app.config.WebSecret

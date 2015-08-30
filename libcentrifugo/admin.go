@@ -101,7 +101,7 @@ func (c *adminClient) handleMessage(msg []byte) (*response, error) {
 // registry if token correct
 func (c *adminClient) authCmd(cmd *authAdminCommand) (*response, error) {
 
-	err := c.app.checkAuthToken(cmd.Token)
+	err := c.app.checkAdminAuthToken(cmd.Token)
 	if err != nil {
 		return nil, ErrUnauthorized
 	}
