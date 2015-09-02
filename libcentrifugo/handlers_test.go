@@ -2,6 +2,7 @@ package libcentrifugo
 
 import (
 	"bytes"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -118,4 +119,140 @@ func TestAPIHandler(t *testing.T) {
 	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
 	app.APIHandler(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestAuthHandler(t *testing.T) {
+	app := testApp()
+	r := httptest.NewRecorder()
+
+	// no web secret in config
+	values := url.Values{}
+	values.Set("password", "pass")
+	req, _ := http.NewRequest("POST", "/auth/", strings.NewReader(values.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	app.AuthHandler(r, req)
+	assert.Equal(t, http.StatusBadRequest, r.Code)
+
+	c := newTestConfig()
+	c.WebPassword = "password"
+	c.WebSecret = "secret"
+	app.SetConfig(c)
+
+	// wrong password
+	r = httptest.NewRecorder()
+	values.Set("password", "wrong_pass")
+	req, _ = http.NewRequest("POST", "/auth/", strings.NewReader(values.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	app.AuthHandler(r, req)
+	assert.Equal(t, http.StatusBadRequest, r.Code)
+	body, _ := ioutil.ReadAll(r.Body)
+	assert.Equal(t, false, strings.Contains(string(body), "token"))
+
+	// correct password
+	r = httptest.NewRecorder()
+	values.Set("password", "password")
+	req, _ = http.NewRequest("POST", "/auth/", strings.NewReader(values.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	app.AuthHandler(r, req)
+	assert.Equal(t, http.StatusOK, r.Code)
+	body, _ = ioutil.ReadAll(r.Body)
+	assert.Equal(t, true, strings.Contains(string(body), "token"))
+}
+
+func TestInfoHandler(t *testing.T) {
+	app := testApp()
+	r := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/info/", nil)
+	app.InfoHandler(r, req)
+	body, _ := ioutil.ReadAll(r.Body)
+	assert.Equal(t, true, strings.Contains(string(body), "nodes"))
+	assert.Equal(t, true, strings.Contains(string(body), "node_name"))
+	assert.Equal(t, true, strings.Contains(string(body), "version"))
+	assert.Equal(t, true, strings.Contains(string(body), "structure"))
+	assert.Equal(t, true, strings.Contains(string(body), "engine"))
+}
+
+func TestActionHandler(t *testing.T) {
+	app := testApp()
+
+	r := httptest.NewRecorder()
+	values := url.Values{}
+	values.Set("project", "test")
+	values.Set("method", "publish")
+	req, _ := http.NewRequest("POST", "/action/", strings.NewReader(values.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	app.ActionHandler(r, req)
+	assert.Equal(t, http.StatusBadRequest, r.Code)
+
+	r = httptest.NewRecorder()
+	values = url.Values{}
+	values.Set("project", "test1")
+	values.Set("method", "wrong_method")
+	req, _ = http.NewRequest("POST", "/action/", strings.NewReader(values.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	app.ActionHandler(r, req)
+	assert.Equal(t, http.StatusBadRequest, r.Code)
+
+	r = httptest.NewRecorder()
+	values = url.Values{}
+	values.Set("project", "test1")
+	values.Set("method", "publish")
+	values.Set("channel", "test")
+	values.Set("data", "")
+	req, _ = http.NewRequest("POST", "/action/", strings.NewReader(values.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	app.ActionHandler(r, req)
+	assert.Equal(t, http.StatusBadRequest, r.Code)
+
+	r = httptest.NewRecorder()
+	values = url.Values{}
+	values.Set("project", "test1")
+	values.Set("method", "publish")
+	values.Set("channel", "test")
+	values.Set("data", "{}")
+	req, _ = http.NewRequest("POST", "/action/", strings.NewReader(values.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	app.ActionHandler(r, req)
+	assert.Equal(t, http.StatusOK, r.Code)
+
+	r = httptest.NewRecorder()
+	values = url.Values{}
+	values.Set("project", "test1")
+	values.Set("method", "unsubscribe")
+	values.Set("user", "test")
+	values.Set("channel", "test")
+	req, _ = http.NewRequest("POST", "/action/", strings.NewReader(values.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	app.ActionHandler(r, req)
+	assert.Equal(t, http.StatusOK, r.Code)
+
+	r = httptest.NewRecorder()
+	values = url.Values{}
+	values.Set("project", "test1")
+	values.Set("method", "disconnect")
+	values.Set("user", "test")
+	req, _ = http.NewRequest("POST", "/action/", strings.NewReader(values.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	app.ActionHandler(r, req)
+	assert.Equal(t, http.StatusOK, r.Code)
+
+	r = httptest.NewRecorder()
+	values = url.Values{}
+	values.Set("project", "test1")
+	values.Set("method", "presence")
+	values.Set("channel", "test")
+	req, _ = http.NewRequest("POST", "/action/", strings.NewReader(values.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	app.ActionHandler(r, req)
+	assert.Equal(t, http.StatusOK, r.Code)
+
+	r = httptest.NewRecorder()
+	values = url.Values{}
+	values.Set("project", "test1")
+	values.Set("method", "history")
+	values.Set("channel", "test")
+	req, _ = http.NewRequest("POST", "/action/", strings.NewReader(values.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	app.ActionHandler(r, req)
+	assert.Equal(t, http.StatusOK, r.Code)
 }

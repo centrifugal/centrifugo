@@ -389,6 +389,9 @@ func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
 			Channel: channel,
 		}
 		resp, err = app.historyCmd(project, cmd)
+	default:
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
 	}
 
 	if err != nil {
