@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/garyburd/redigo/redis"
@@ -15,6 +16,7 @@ import (
 // This engine allows to scale Centrifugo - you can run several Centrifugo instances
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
+	sync.RWMutex
 	app      *Application
 	pool     *redis.Pool
 	psc      redis.PubSubConn
@@ -58,6 +60,7 @@ func NewRedisEngine(app *Application, host, port, password, db, redisURL string,
 		api:  api,
 	}
 	logger.INFO.Printf("Redis engine: %s, database %s, pool size %d\n", server, db, psize)
+	e.psc = redis.PubSubConn{Conn: e.pool.Get()}
 	go e.initializePubSub()
 	if e.api {
 		go e.initializeApi()
@@ -106,10 +109,15 @@ func (e *RedisEngine) name() string {
 func (e *RedisEngine) checkConnectionStatus() {
 	for {
 		time.Sleep(time.Second)
-		if !e.inPubSub {
+		e.RLock()
+		inPubSub := e.inPubSub
+		inAPI := e.inAPI
+		e.RUnlock()
+		if !inPubSub {
+			e.psc = redis.PubSubConn{Conn: e.pool.Get()}
 			go e.initializePubSub()
 		}
-		if e.api && !e.inAPI {
+		if e.api && !inAPI {
 			go e.initializeApi()
 		}
 	}
@@ -121,11 +129,15 @@ type redisApiRequest struct {
 }
 
 func (e *RedisEngine) initializeApi() {
+	e.Lock()
 	e.inAPI = true
+	e.Unlock()
 	conn := e.pool.Get()
 	defer conn.Close()
 	defer func() {
+		e.Lock()
 		e.inAPI = false
+		e.Unlock()
 	}()
 	e.app.RLock()
 	apiKey := e.app.config.ChannelPrefix + "." + "api"
@@ -171,11 +183,14 @@ func (e *RedisEngine) initializeApi() {
 }
 
 func (e *RedisEngine) initializePubSub() {
-	e.inPubSub = true
-	e.psc = redis.PubSubConn{Conn: e.pool.Get()}
 	defer e.psc.Close()
+	e.Lock()
+	e.inPubSub = true
+	e.Unlock()
 	defer func() {
+		e.Lock()
 		e.inPubSub = false
+		e.Unlock()
 	}()
 	e.app.RLock()
 	adminChannel := e.app.config.AdminChannel

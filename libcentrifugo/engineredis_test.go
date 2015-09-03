@@ -65,10 +65,9 @@ func dial() testRedisConn {
 }
 
 func testRedisEngine() *RedisEngine {
-	app, _ := NewApplication(newTestConfig())
+	app := testApp()
 	e := NewRedisEngine(app, testRedisHost, testRedisPort, testRedisPassword, testRedisDB, testRedisURL, true, testRedisPoolSize)
 	app.SetEngine(e)
-	app.SetStructure(getTestStructure())
 	return e
 }
 
