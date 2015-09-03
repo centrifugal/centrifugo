@@ -151,6 +151,10 @@ func (e *RedisEngine) initializeApi() {
 			logger.ERROR.Println(err)
 			continue
 		}
+		if req.Project == "" {
+			logger.ERROR.Println("project key required")
+			continue
+		}
 		project, exists := e.app.projectByKey(req.Project)
 		if !exists {
 			logger.ERROR.Println("no project found with key", req.Project)
