@@ -47,6 +47,26 @@ func TestRawWsHandler(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 }
 
+func TestAdminWebsocketHandler(t *testing.T) {
+	app := testApp()
+	mux := DefaultMux(app, "", "path/to/web", "sockjs url")
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	url := "ws" + server.URL[4:]
+	conn, resp, err := websocket.DefaultDialer.Dial(url+"/socket", nil)
+	data := map[string]interface{}{
+		"method": "ping",
+		"params": map[string]string{},
+	}
+	conn.WriteJSON(data)
+	var response interface{}
+	conn.ReadJSON(&response)
+	conn.Close()
+	assert.Equal(t, nil, err)
+	assert.NotEqual(t, nil, conn)
+	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
+}
+
 func TestAPIHandler(t *testing.T) {
 	app := testApp()
 	mux := DefaultMux(app, "", "path/to/web", "sockjs url")
