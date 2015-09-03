@@ -30,6 +30,8 @@ func TestMemoryEngine(t *testing.T) {
 	h, err := e.history(ChannelID("channel"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
+	err = e.removePresence(ChannelID("channel"), "uid")
+	assert.Equal(t, nil, err)
 }
 
 func TestMemoryPresenceHub(t *testing.T) {
