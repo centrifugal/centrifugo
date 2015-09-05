@@ -8,7 +8,8 @@ import (
 )
 
 func testMemoryEngine() *MemoryEngine {
-	app, _ := NewApplication(newTestConfig())
+	c := newTestConfig()
+	app, _ := NewApplication(&c)
 	e := NewMemoryEngine(app)
 	app.SetEngine(e)
 	return e

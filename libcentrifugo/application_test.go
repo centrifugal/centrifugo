@@ -35,12 +35,13 @@ func (app *Application) newTestHandler(b *testing.B, s *testSession) *client {
 	return c
 }
 
-func newTestConfig() *Config {
-	return DefaultConfig
+func newTestConfig() Config {
+	return *DefaultConfig
 }
 
 func testApp() *Application {
-	app, _ := NewApplication(newTestConfig())
+	c := newTestConfig()
+	app, _ := NewApplication(&c)
 	app.SetEngine(newTestEngine())
 	app.SetStructure(getTestStructure())
 	return app
@@ -124,25 +125,36 @@ func TestUserAllowed(t *testing.T) {
 func TestSetConfig(t *testing.T) {
 	app := testApp()
 	c := newTestConfig()
-	app.SetConfig(c)
+	app.SetConfig(&c)
 }
 
 func TestAdminAuthToken(t *testing.T) {
 	app := testApp()
 	// first without secret set
+	err := app.checkAdminAuthToken("")
+	assert.Equal(t, ErrUnauthorized, err)
+
+	// no web secret set
 	token, err := app.adminAuthToken()
-	assert.Equal(t, nil, err)
-	assert.True(t, len(token) > 0)
+	if err == nil {
+		println(app.config.WebSecret)
+		println(token)
+	}
+	assert.Equal(t, ErrInternalServerError, err)
+
+	app.Lock()
+	app.config.WebSecret = "secret"
+	app.Unlock()
+
 	err = app.checkAdminAuthToken("")
 	assert.Equal(t, ErrUnauthorized, err)
-	err = app.checkAdminAuthToken(token)
-	assert.Equal(t, ErrUnauthorized, err)
-	// now with secret set
-	app.config.WebSecret = "test"
+
 	token, err = app.adminAuthToken()
 	assert.Equal(t, nil, err)
+	assert.True(t, len(token) > 0)
 	err = app.checkAdminAuthToken(token)
 	assert.Equal(t, nil, err)
+
 }
 
 func TestClientAllowed(t *testing.T) {
@@ -240,7 +252,8 @@ func createUsers(users, chanUser, totChannels int) []*testClientConn {
 
 func BenchmarkSendReceive(b *testing.B) {
 	totChannels := 200
-	app, _ := NewApplication(newTestConfig())
+	conf := newTestConfig()
+	app, _ := NewApplication(&conf)
 	app.SetEngine(NewMemoryEngine(app))
 	app.SetStructure(getTestStructure())
 	app.config.Insecure = true

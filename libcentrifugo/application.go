@@ -816,6 +816,10 @@ func (app *Application) adminAuthToken() (string, error) {
 	app.RLock()
 	secret := app.config.WebSecret
 	app.RUnlock()
+	if secret == "" {
+		logger.ERROR.Println("provide web_secret in configuration")
+		return "", ErrInternalServerError
+	}
 	s := securecookie.New([]byte(secret), nil)
 	return s.Encode(AuthTokenKey, AuthTokenValue)
 }

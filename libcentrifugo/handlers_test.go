@@ -157,9 +157,9 @@ func TestAPIHandler(t *testing.T) {
 
 func TestAuthHandler(t *testing.T) {
 	app := testApp()
-	r := httptest.NewRecorder()
 
 	// no web secret in config
+	r := httptest.NewRecorder()
 	values := url.Values{}
 	values.Set("password", "pass")
 	req, _ := http.NewRequest("POST", "/auth/", strings.NewReader(values.Encode()))
@@ -167,10 +167,10 @@ func TestAuthHandler(t *testing.T) {
 	app.AuthHandler(r, req)
 	assert.Equal(t, http.StatusBadRequest, r.Code)
 
-	c := newTestConfig()
-	c.WebPassword = "password"
-	c.WebSecret = "secret"
-	app.SetConfig(c)
+	app.Lock()
+	app.config.WebPassword = "password"
+	app.config.WebSecret = "secret"
+	app.Unlock()
 
 	// wrong password
 	r = httptest.NewRecorder()
