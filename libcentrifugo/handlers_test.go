@@ -2,6 +2,7 @@ package libcentrifugo
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -68,17 +69,31 @@ func TestAdminWebsocketHandler(t *testing.T) {
 }
 
 func BenchmarkAPIHandler(b *testing.B) {
-	app := testAppWithClients(1, 100)
-	data := "{\"method\":\"publish\",\"params\":{\"channel\": \"test\", \"data\":{}}}"
-	sign := auth.GenerateApiSign("secret", "test1", []byte(data))
+	app := testMemoryAppWithClients(1, 100)
+	nCommands := 1000
+	b.Logf("num channels: %v, num clients: %v, num unique clients %v, num commands: %v", app.clients.nChannels(), app.clients.nClients(), app.clients.nUniqueClients(), nCommands)
+	commands := make([]map[string]interface{}, nCommands)
+	command := map[string]interface{}{
+		"method": "publish",
+		"params": map[string]interface{}{
+			"channel": "channel-0",
+			"data":    map[string]bool{"benchmarking": true},
+		},
+	}
+	for i := 0; i < nCommands; i++ {
+		commands[i] = command
+	}
+	jsonData, _ := json.Marshal(commands)
+	sign := auth.GenerateApiSign("secret", "test1", jsonData)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		rec := httptest.NewRecorder()
-		req, _ := http.NewRequest("POST", "/api/test1", bytes.NewBuffer([]byte(data)))
+		req, _ := http.NewRequest("POST", "/api/test1", bytes.NewBuffer(jsonData))
 		req.Header.Add("X-API-Sign", sign)
 		req.Header.Add("Content-Type", "application/json")
 		app.APIHandler(rec, req)
 	}
+	b.StopTimer()
 }
 
 func TestAPIHandler(t *testing.T) {

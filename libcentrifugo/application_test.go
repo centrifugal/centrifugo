@@ -47,6 +47,14 @@ func testApp() *Application {
 	return app
 }
 
+func testMemoryApp() *Application {
+	c := newTestConfig()
+	app, _ := NewApplication(&c)
+	app.SetEngine(NewMemoryEngine(app))
+	app.SetStructure(getTestStructure())
+	return app
+}
+
 func newTestClient(app *Application) *client {
 	uid, _ := uuid.NewV4()
 	s := &testSession{}
@@ -90,8 +98,8 @@ func createTestClients(app *Application, nChannels, nChannelClients int) {
 	}
 }
 
-func testAppWithClients(nChannels, nChannelClients int) *Application {
-	app := testApp()
+func testMemoryAppWithClients(nChannels, nChannelClients int) *Application {
+	app := testMemoryApp()
 	createTestClients(app, nChannels, nChannelClients)
 	return app
 }
