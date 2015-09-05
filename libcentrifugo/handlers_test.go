@@ -67,6 +67,20 @@ func TestAdminWebsocketHandler(t *testing.T) {
 	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
 }
 
+func BenchmarkAPIHandler(b *testing.B) {
+	app := testAppWithClients(1, 100)
+	data := "{\"method\":\"publish\",\"params\":{\"channel\": \"test\", \"data\":{}}}"
+	sign := auth.GenerateApiSign("secret", "test1", []byte(data))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		rec := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/test1", bytes.NewBuffer([]byte(data)))
+		req.Header.Add("X-API-Sign", sign)
+		req.Header.Add("Content-Type", "application/json")
+		app.APIHandler(rec, req)
+	}
+}
+
 func TestAPIHandler(t *testing.T) {
 	app := testApp()
 	mux := DefaultMux(app, "", "path/to/web", "sockjs url")

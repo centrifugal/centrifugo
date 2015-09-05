@@ -79,3 +79,13 @@ func TestStringQueueClose(t *testing.T) {
 	assert.Equal(t, true, q.Closed())
 
 }
+
+func BenchmarkQueueAdd(b *testing.B) {
+	q := New()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		q.Add("test")
+	}
+	b.StopTimer()
+	q.Close()
+}

@@ -7,7 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/centrifugal/centrifugo/libcentrifugo/stringqueue"
 )
 
 type testSession struct {
@@ -41,6 +43,55 @@ func testApp() *Application {
 	app, _ := NewApplication(newTestConfig())
 	app.SetEngine(newTestEngine())
 	app.SetStructure(getTestStructure())
+	return app
+}
+
+func newTestClient(app *Application) *client {
+	uid, _ := uuid.NewV4()
+	s := &testSession{}
+	c := client{
+		UID:       ConnID(uid.String()),
+		app:       app,
+		sess:      s,
+		messages:  stringqueue.New(),
+		closeChan: make(chan struct{}),
+	}
+	return &c
+}
+
+func createTestClients(app *Application, nChannels, nChannelClients int) {
+	app.config.Insecure = true
+	for i := 0; i < nChannelClients; i++ {
+		c := newTestClient(app)
+		cmd := connectClientCommand{
+			Project: ProjectKey("test1"),
+			User:    UserID(fmt.Sprintf("user-%d", i)),
+		}
+		resp, err := c.connectCmd(&cmd)
+		if err != nil {
+			panic(err)
+		}
+		if resp.err != nil {
+			panic(resp.err)
+		}
+		for j := 0; j < nChannels; j++ {
+			cmd := subscribeClientCommand{
+				Channel: Channel(fmt.Sprintf("channel-%d", j)),
+			}
+			resp, err = c.subscribeCmd(&cmd)
+			if err != nil {
+				panic(err)
+			}
+			if resp.err != nil {
+				panic(resp.err)
+			}
+		}
+	}
+}
+
+func testAppWithClients(nChannels, nChannelClients int) *Application {
+	app := testApp()
+	createTestClients(app, nChannels, nChannelClients)
 	return app
 }
 
