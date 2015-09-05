@@ -1,0 +1,10 @@
+sudo: false
+language: go
+go:
+  - 1.4
+  - 1.5
+services:
+  - redis-server  
+before_install:
+  - go get golang.org/x/tools/cmd/cover
+script: go test ./... -v -cover
