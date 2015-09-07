@@ -7,9 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/stretchr/testify/assert"
-	"github.com/centrifugal/centrifugo/libcentrifugo/stringqueue"
 )
 
 type testSession struct {
@@ -56,16 +54,9 @@ func testMemoryApp() *Application {
 }
 
 func newTestClient(app *Application) *client {
-	uid, _ := uuid.NewV4()
 	s := &testSession{}
-	c := client{
-		UID:       ConnID(uid.String()),
-		app:       app,
-		sess:      s,
-		messages:  stringqueue.New(),
-		closeChan: make(chan struct{}),
-	}
-	return &c
+	c, _ := newClient(app, s)
+	return c
 }
 
 func createTestClients(app *Application, nChannels, nChannelClients int) {
