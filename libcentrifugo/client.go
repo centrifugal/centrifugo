@@ -81,17 +81,25 @@ func (c *client) sendMessages() {
 
 func (c *client) sendMsgTimeout(msg string) error {
 	c.app.RLock()
-	to := time.After(time.Second * time.Duration(c.app.config.MessageSendTimeout))
+	sendTimeout := c.app.config.MessageSendTimeout
 	c.app.RUnlock()
-	sent := make(chan error)
-	go func() {
-		sent <- c.sess.Send(msg)
-	}()
-	select {
-	case err := <-sent:
-		return err
-	case <-to:
-		return ErrSendTimeout
+	if sendTimeout > 0 {
+		// Send to client's session with provided timeout.
+		to := time.After(time.Second * time.Duration(sendTimeout))
+		sent := make(chan error)
+		go func() {
+			sent <- c.sess.Send(msg)
+		}()
+		select {
+		case err := <-sent:
+			return err
+		case <-to:
+			return ErrSendTimeout
+		}
+	} else {
+		// Do not use any timeout when sending, it's recommended to keep
+		// Centrifugo behind proper configured reversed proxy.
+		return c.sess.Send(msg)
 	}
 	panic("unreachable")
 }
