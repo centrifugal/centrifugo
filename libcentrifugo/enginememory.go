@@ -67,9 +67,7 @@ func (e *MemoryEngine) history(chID ChannelID) ([]Message, error) {
 
 func (e *MemoryEngine) channels(pk ProjectKey) ([]Channel, error) {
 	chIDs := e.app.clients.channels()
-	e.app.RLock()
-	prefix := e.app.config.ChannelPrefix + "." + string(pk) + "."
-	e.app.RUnlock()
+	prefix := e.app.channelIDPrefix(pk)
 	channels := []Channel{}
 	for _, chID := range chIDs {
 		if strings.HasPrefix(string(chID), prefix) {
