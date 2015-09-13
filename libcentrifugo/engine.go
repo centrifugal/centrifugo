@@ -26,4 +26,7 @@ type Engine interface {
 	addHistory(chID ChannelID, message Message, size, lifetime int64) error
 	// history returns a slice of history messages for channel
 	history(chID ChannelID) ([]Message, error)
+
+	// channels returns slice of currently acrtive channels for project.
+	channels(pk ProjectKey) ([]Channel, error)
 }
