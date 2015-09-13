@@ -12,6 +12,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/cobra"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/viper"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/gopkg.in/igm/sockjs-go.v2/sockjs"
 	"github.com/centrifugal/centrifugo/libcentrifugo"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
@@ -242,7 +243,21 @@ func Main() {
 
 			go handleSignals(app)
 
-			mux := libcentrifugo.DefaultMux(app, viper.GetString("prefix"), viper.GetString("web"), viper.GetString("sockjs_url"))
+			sockjsOpts := sockjs.DefaultOptions
+
+			sockjsUrl := viper.GetString("sockjs_url")
+			if sockjsUrl != "" {
+				logger.INFO.Println("Using SockJS url", sockjsUrl)
+				sockjsOpts.SockJSURL = sockjsUrl
+			}
+
+			muxOpts := libcentrifugo.MuxOptions{
+				Prefix:        viper.GetString("prefix"),
+				WebDir:        viper.GetString("web"),
+				SockjsOptions: sockjsOpts,
+			}
+
+			mux := libcentrifugo.DefaultMux(app, muxOpts)
 
 			addr := viper.GetString("address") + ":" + viper.GetString("port")
 			logger.INFO.Printf("Start serving on %s\n", addr)

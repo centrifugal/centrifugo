@@ -18,7 +18,7 @@ import (
 
 func TestDefaultMux(t *testing.T) {
 	app := testApp()
-	mux := DefaultMux(app, "", "path/to/web", "sockjs url")
+	mux := DefaultMux(app, DefaultMuxOptions)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	resp, err := http.Get(server.URL + "/connection/info")
@@ -33,7 +33,7 @@ func TestDefaultMux(t *testing.T) {
 
 func TestRawWsHandler(t *testing.T) {
 	app := testApp()
-	mux := DefaultMux(app, "", "path/to/web", "sockjs url")
+	mux := DefaultMux(app, DefaultMuxOptions)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -50,7 +50,7 @@ func TestRawWsHandler(t *testing.T) {
 
 func TestAdminWebsocketHandler(t *testing.T) {
 	app := testApp()
-	mux := DefaultMux(app, "", "path/to/web", "sockjs url")
+	mux := DefaultMux(app, DefaultMuxOptions)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -98,7 +98,7 @@ func BenchmarkAPIHandler(b *testing.B) {
 
 func TestAPIHandler(t *testing.T) {
 	app := testApp()
-	mux := DefaultMux(app, "", "path/to/web", "sockjs url")
+	mux := DefaultMux(app, DefaultMuxOptions)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 

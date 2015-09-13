@@ -8,20 +8,36 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/websocket"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/gopkg.in/igm/sockjs-go.v2/sockjs" // DefaultMux returns a mux including set of default handlers for Centrifugo server.
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/gopkg.in/igm/sockjs-go.v2/sockjs"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
-func DefaultMux(app *Application, prefix, webDir, sockjsURL string) *http.ServeMux {
+// MuxOptions contain various options for DefaultMux.
+type MuxOptions struct {
+	Prefix        string
+	WebDir        string
+	SockjsOptions sockjs.Options
+}
+
+// DefaultMuxOptions contain default SockJS options.
+var DefaultMuxOptions = MuxOptions{
+	SockjsOptions: sockjs.DefaultOptions,
+}
+
+// DefaultMux returns a mux including set of default handlers for Centrifugo server.
+func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 
 	mux := http.NewServeMux()
+
+	prefix := muxOpts.Prefix
+	webDir := muxOpts.WebDir
 
 	// register raw Websocket endpoint
 	mux.Handle(prefix+"/connection/websocket", app.Logged(app.WrapShutdown(http.HandlerFunc(app.RawWebsocketHandler))))
 
 	// register SockJS endpoints
-	sjsh := NewSockJSHandler(app, prefix+"/connection", sockjsURL)
+	sjsh := NewSockJSHandler(app, prefix+"/connection", muxOpts.SockjsOptions)
 	mux.Handle(prefix+"/connection/", app.Logged(app.WrapShutdown(sjsh)))
 
 	// register HTTP API endpoint
@@ -45,12 +61,8 @@ func DefaultMux(app *Application, prefix, webDir, sockjsURL string) *http.ServeM
 // NewSockJSHandler returns SockJS handler bind to sockjsPrefix url prefix.
 // SockJS handler has several handlers inside responsible for various tasks
 // according to SockJS protocol.
-func NewSockJSHandler(app *Application, sockjsPrefix, sockjsUrl string) http.Handler {
-	if sockjsUrl != "" {
-		logger.INFO.Println("Using SockJS url", sockjsUrl)
-		sockjs.DefaultOptions.SockJSURL = sockjsUrl
-	}
-	return sockjs.NewHandler(sockjsPrefix, sockjs.DefaultOptions, app.sockJSHandler)
+func NewSockJSHandler(app *Application, sockjsPrefix string, sockjsOpts sockjs.Options) http.Handler {
+	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, app.sockJSHandler)
 }
 
 // sockJSHandler called when new client connection comes to SockJS endpoint.
