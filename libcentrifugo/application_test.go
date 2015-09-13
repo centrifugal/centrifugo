@@ -53,6 +53,14 @@ func testMemoryApp() *Application {
 	return app
 }
 
+func testRedisApp() *Application {
+	c := newTestConfig()
+	app, _ := NewApplication(&c)
+	app.SetEngine(testRedisEngine(app))
+	app.SetStructure(getTestStructure())
+	return app
+}
+
 func newTestClient(app *Application) *client {
 	s := &testSession{}
 	c, _ := newClient(app, s)

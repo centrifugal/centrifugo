@@ -64,17 +64,17 @@ func dial() testRedisConn {
 	return testRedisConn{c}
 }
 
-func testRedisEngine() *RedisEngine {
-	app := testApp()
+func testRedisEngine(app *Application) *RedisEngine {
 	e := NewRedisEngine(app, testRedisHost, testRedisPort, testRedisPassword, testRedisDB, testRedisURL, true, testRedisPoolSize)
-	app.SetEngine(e)
 	return e
 }
 
 func TestRedisEngine(t *testing.T) {
 	c := dial()
 	defer c.close()
-	e := testRedisEngine()
+	app := testApp()
+	e := testRedisEngine(app)
+	app.SetEngine(e)
 	assert.Equal(t, e.name(), "Redis")
 	assert.Equal(t, nil, e.publish(ChannelID("channel"), []byte("{}")))
 	assert.Equal(t, nil, e.subscribe(ChannelID("channel")))
@@ -94,4 +94,17 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 	_, err = c.Conn.Do("LPUSH", apiKey, []byte("{\"project\": \"test1\"}"))
 	assert.Equal(t, nil, err)
+}
+
+func TestRedisChannels(t *testing.T) {
+	c := dial()
+	defer c.close()
+	app := testRedisApp()
+	channels, err := app.engine.channels(ProjectKey("test1"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 0, len(channels))
+	createTestClients(app, 10, 1)
+	channels, err = app.engine.channels(ProjectKey("test1"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 10, len(channels))
 }

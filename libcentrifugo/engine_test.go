@@ -41,3 +41,7 @@ func (e *testEngine) addHistory(chID ChannelID, message Message, size, lifetime 
 func (e *testEngine) history(chID ChannelID) ([]Message, error) {
 	return []Message{}, nil
 }
+
+func (e *testEngine) channels(pk ProjectKey) ([]Channel, error) {
+	return []Channel{}, nil
+}
