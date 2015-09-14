@@ -10,6 +10,10 @@ type HistoryBody struct {
 	Data    []Message `json:"data"`
 }
 
+type ChannelsBody struct {
+	Data []Channel `json:"data"`
+}
+
 type adminMessageBody struct {
 	Project ProjectKey `json:"project"`
 	Message Message    `json:"message"`

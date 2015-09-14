@@ -88,3 +88,14 @@ func TestMemoryHistoryHub(t *testing.T) {
 	hist, err = h.get(ch1)
 	assert.Equal(t, 0, len(hist))
 }
+
+func TestMemoryChannels(t *testing.T) {
+	app := testMemoryApp()
+	channels, err := app.engine.channels(ProjectKey("test1"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 0, len(channels))
+	createTestClients(app, 10, 1)
+	channels, err = app.engine.channels(ProjectKey("test1"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 10, len(channels))
+}

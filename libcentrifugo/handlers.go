@@ -401,6 +401,8 @@ func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
 			Channel: channel,
 		}
 		resp, err = app.historyCmd(project, cmd)
+	case "channels":
+		resp, err = app.channelsCmd(project)
 	default:
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return

@@ -510,14 +510,18 @@ func (app *Application) pingCmd(cmd *pingControlCommand) error {
 	return nil
 }
 
+func (app *Application) channelIDPrefix(pk ProjectKey) string {
+	app.RLock()
+	defer app.RUnlock()
+	return app.config.ChannelPrefix + "." + string(pk) + "."
+}
+
 // channelID returns internal name of channel ChannelID - as
 // every project can have channels with the same name we should distinguish
 // between them. This also prevents collapses with admin and control
 // channel names
 func (app *Application) channelID(pk ProjectKey, ch Channel) ChannelID {
-	app.RLock()
-	defer app.RUnlock()
-	return ChannelID(app.config.ChannelPrefix + "." + string(pk) + "." + string(ch))
+	return ChannelID(app.channelIDPrefix(pk) + string(ch))
 }
 
 // addConn registers authenticated connection in clientConnectionHub
