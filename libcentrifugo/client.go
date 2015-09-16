@@ -99,7 +99,7 @@ func (c *client) sendMsgTimeout(msg string) error {
 		}
 	} else {
 		// Do not use any timeout when sending, it's recommended to keep
-		// Centrifugo behind proper configured reversed proxy.
+		// Centrifugo behind properly configured reverse proxy.
 		return c.sess.Send(msg)
 	}
 	panic("unreachable")
