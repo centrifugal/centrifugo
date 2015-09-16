@@ -17,7 +17,8 @@ const (
 )
 
 // client represents clien connection to Centrifugo - at moment this can be Websocket
-// or SockJS connection.
+// or SockJS connection. It abstracts away protocol of incoming connection having
+// session interface. Session allows to Send messages via connection and to Close connection.
 type client struct {
 	sync.RWMutex
 	app           *Application
@@ -26,7 +27,6 @@ type client struct {
 	Project       ProjectKey
 	User          UserID
 	timestamp     int64
-	token         string
 	defaultInfo   []byte
 	authenticated bool
 	channelInfo   map[Channel][]byte
@@ -45,6 +45,7 @@ type ClientInfo struct {
 	ChannelInfo *json.RawMessage `json:"channel_info"`
 }
 
+// newClient creates new ready to communicate client.
 func newClient(app *Application, s session) (*client, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
@@ -61,7 +62,7 @@ func newClient(app *Application, s session) (*client, error) {
 	return &c, nil
 }
 
-// sendMessages waits for messages from messageChan and sends them to client
+// sendMessages waits for messages from queue and sends them to client.
 func (c *client) sendMessages() {
 	for {
 		msg, ok := c.messages.Wait()
