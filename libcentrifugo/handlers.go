@@ -105,56 +105,57 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 // wsConn is a struct to fit SockJS session interface so client will accept
 // it as its sess
 type wsConn struct {
-	app     *Application
-	ws      *websocket.Conn
-	closeCh chan struct{}
-	created time.Time
+	app          *Application
+	ws           *websocket.Conn
+	closeCh      chan struct{}
+	created      time.Time
+	pingInterval time.Duration
+	ping         *time.Timer
 }
 
-func newWSConn(app *Application, ws *websocket.Conn) wsConn {
-	conn := wsConn{
-		app:     app,
-		ws:      ws,
-		closeCh: make(chan struct{}),
-		created: time.Now(),
+func newWSConn(app *Application, ws *websocket.Conn) *wsConn {
+	app.RLock()
+	interval := app.config.PingInterval
+	app.RUnlock()
+	conn := &wsConn{
+		app:          app,
+		ws:           ws,
+		closeCh:      make(chan struct{}),
+		pingInterval: interval,
+		ping:         time.NewTimer(interval),
 	}
 	go conn.Ping()
 	return conn
 }
 
-func (conn wsConn) Ping() {
-	conn.app.RLock()
-	interval := conn.app.config.PingInterval
-	conn.app.RUnlock()
-	if interval == 0 {
-		return
-	}
-	ch := make(chan struct{}, 1)
-	conn.app.ping.Register <- ch
-	canSend := false
+func (conn *wsConn) Ping() {
 	for {
 		select {
-		case _, ok := <-ch:
+		case _, ok := <-conn.ping.C:
 			if !ok {
 				conn.ws.Close()
 				return
 			}
-			if canSend || time.Now().Sub(conn.created) > interval {
-				conn.ws.WriteMessage(websocket.PingMessage, []byte("ping"))
-				canSend = true
-			}
+			conn.ws.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(conn.pingInterval/2))
+			conn.ping = time.NewTimer(conn.pingInterval)
 		case <-conn.closeCh:
-			conn.app.ping.Unregister <- ch
+			conn.ping.Stop()
 			return
 		}
 	}
 }
 
-func (conn wsConn) Send(message string) error {
-	return conn.ws.WriteMessage(websocket.TextMessage, []byte(message))
+func (conn *wsConn) Send(message string) error {
+	select {
+	case <-conn.closeCh:
+		return nil
+	default:
+		conn.ping.Reset(conn.pingInterval)
+		return conn.ws.WriteMessage(websocket.TextMessage, []byte(message))
+	}
 }
 
-func (conn wsConn) Close(status uint32, reason string) error {
+func (conn *wsConn) Close(status uint32, reason string) error {
 	return conn.ws.Close()
 }
 
