@@ -10,6 +10,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/securecookie"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
+	"github.com/centrifugal/centrifugo/libcentrifugo/broadcast"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
@@ -47,8 +48,11 @@ type Application struct {
 	// mediator allows integrate libcentrifugo Application with external go code.
 	mediator Mediator
 
-	// shuttdown is a flag which is only true when application is going to shut down.
+	// shutdown is a flag which is only true when application is going to shut down.
 	shutdown bool
+
+	// ping allows connections to subscribe on ping events.
+	ping *broadcast.Hub
 }
 
 type nodeInfo struct {
@@ -75,6 +79,7 @@ func NewApplication(c *Config) (*Application, error) {
 		admins:  newAdminHub(),
 		started: time.Now().Unix(),
 		config:  c,
+		ping:    broadcast.NewHub(),
 	}
 	return app, nil
 }
@@ -87,7 +92,8 @@ func (app *Application) Run() {
 		logger.WARN.Println("libcentrifugo: application in INSECURE MODE")
 	}
 	app.RUnlock()
-	go app.sendPingMsg()
+	go app.sendPing()
+	go app.sendNodePingMsg()
 	go app.cleanNodeInfo()
 }
 
@@ -100,7 +106,23 @@ func (app *Application) Shutdown() {
 	app.clients.shutdown()
 }
 
-func (app *Application) sendPingMsg() {
+func (app *Application) sendPing() {
+	go app.ping.Run()
+	for {
+		app.RLock()
+		interval := app.config.PingInterval
+		app.RUnlock()
+		if interval > 0 {
+			time.Sleep(interval)
+			app.ping.Broadcast <- struct{}{}
+		} else {
+			// Sleep for a while to prevent busy looping
+			time.Sleep(time.Duration(5) * time.Second)
+		}
+	}
+}
+
+func (app *Application) sendNodePingMsg() {
 	for {
 		err := app.pubPing()
 		if err != nil {
@@ -109,7 +131,7 @@ func (app *Application) sendPingMsg() {
 		app.RLock()
 		interval := app.config.NodePingInterval
 		app.RUnlock()
-		time.Sleep(time.Duration(interval) * time.Second)
+		time.Sleep(interval)
 	}
 }
 
@@ -121,7 +143,7 @@ func (app *Application) cleanNodeInfo() {
 
 		app.nodesMu.Lock()
 		for uid, info := range app.nodes {
-			if time.Now().Unix()-info.Updated > delay {
+			if time.Now().Unix()-info.Updated > int64(delay.Seconds()) {
 				delete(app.nodes, uid)
 			}
 		}
@@ -131,7 +153,7 @@ func (app *Application) cleanNodeInfo() {
 		interval := app.config.NodeInfoCleanInterval
 		app.RUnlock()
 
-		time.Sleep(time.Duration(interval) * time.Second)
+		time.Sleep(interval)
 	}
 }
 

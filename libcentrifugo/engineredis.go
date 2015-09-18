@@ -271,7 +271,7 @@ func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) e
 	if err != nil {
 		return err
 	}
-	expireAt := time.Now().Unix() + presenceExpireInterval
+	expireAt := time.Now().Unix() + int64(presenceExpireInterval.Seconds())
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
 	conn.Send("MULTI")

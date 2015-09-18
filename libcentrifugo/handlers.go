@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"net/http/pprof"
 	"strings"
 	"time"
 
@@ -32,6 +33,17 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 
 	prefix := muxOpts.Prefix
 	webDir := muxOpts.WebDir
+
+	app.RLock()
+	debug := app.config.Debug
+	app.RUnlock()
+
+	if debug {
+		mux.Handle(prefix+"/debug/pprof/", http.HandlerFunc(pprof.Index))
+		mux.Handle(prefix+"/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+		mux.Handle(prefix+"/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+		mux.Handle(prefix+"/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+	}
 
 	// register raw Websocket endpoint
 	mux.Handle(prefix+"/connection/websocket", app.Logged(app.WrapShutdown(http.HandlerFunc(app.RawWebsocketHandler))))
@@ -93,7 +105,49 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 // wsConn is a struct to fit SockJS session interface so client will accept
 // it as its sess
 type wsConn struct {
-	ws *websocket.Conn
+	app     *Application
+	ws      *websocket.Conn
+	closeCh chan struct{}
+	created time.Time
+}
+
+func newWSConn(app *Application, ws *websocket.Conn) wsConn {
+	conn := wsConn{
+		app:     app,
+		ws:      ws,
+		closeCh: make(chan struct{}),
+		created: time.Now(),
+	}
+	go conn.Ping()
+	return conn
+}
+
+func (conn wsConn) Ping() {
+	conn.app.RLock()
+	interval := conn.app.config.PingInterval
+	conn.app.RUnlock()
+	if interval == 0 {
+		return
+	}
+	ch := make(chan struct{}, 1)
+	conn.app.ping.Register <- ch
+	canSend := false
+	for {
+		select {
+		case _, ok := <-ch:
+			if !ok {
+				conn.ws.Close()
+				return
+			}
+			if canSend || time.Now().Sub(conn.created) > interval {
+				conn.ws.WriteMessage(websocket.PingMessage, []byte("ping"))
+				canSend = true
+			}
+		case <-conn.closeCh:
+			conn.app.ping.Unregister <- ch
+			return
+		}
+	}
 }
 
 func (conn wsConn) Send(message string) error {
@@ -117,9 +171,8 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	}
 	defer ws.Close()
 
-	conn := wsConn{
-		ws: ws,
-	}
+	conn := newWSConn(app, ws)
+	defer close(conn.closeCh)
 
 	c, err := newClient(app, conn)
 	if err != nil {
