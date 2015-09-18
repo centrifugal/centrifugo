@@ -122,26 +122,19 @@ func newWSConn(app *Application, ws *websocket.Conn) *wsConn {
 		ws:           ws,
 		closeCh:      make(chan struct{}),
 		pingInterval: interval,
-		ping:         time.NewTimer(interval),
 	}
-	go conn.Ping()
+	conn.ping = time.AfterFunc(conn.pingInterval, conn.Ping)
 	return conn
 }
 
 func (conn *wsConn) Ping() {
-	for {
-		select {
-		case _, ok := <-conn.ping.C:
-			if !ok {
-				conn.ws.Close()
-				return
-			}
-			conn.ws.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(conn.pingInterval/2))
-			conn.ping = time.NewTimer(conn.pingInterval)
-		case <-conn.closeCh:
-			conn.ping.Stop()
-			return
-		}
+	select {
+	case <-conn.closeCh:
+		conn.ping.Stop()
+		return
+	default:
+		conn.ws.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(conn.pingInterval/2))
+		conn.ping = time.AfterFunc(conn.pingInterval, conn.Ping)
 	}
 }
 
@@ -150,7 +143,6 @@ func (conn *wsConn) Send(message string) error {
 	case <-conn.closeCh:
 		return nil
 	default:
-		conn.ping.Reset(conn.pingInterval)
 		return conn.ws.WriteMessage(websocket.TextMessage, []byte(message))
 	}
 }
