@@ -105,23 +105,17 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 // wsConn is a struct to fit SockJS session interface so client will accept
 // it as its sess
 type wsConn struct {
-	app          *Application
 	ws           *websocket.Conn
 	closeCh      chan struct{}
-	created      time.Time
 	pingInterval time.Duration
 	ping         *time.Timer
 }
 
-func newWSConn(app *Application, ws *websocket.Conn) *wsConn {
-	app.RLock()
-	interval := app.config.PingInterval
-	app.RUnlock()
+func newWSConn(ws *websocket.Conn, pingInterval time.Duration) *wsConn {
 	conn := &wsConn{
-		app:          app,
 		ws:           ws,
 		closeCh:      make(chan struct{}),
-		pingInterval: interval,
+		pingInterval: pingInterval,
 	}
 	conn.ping = time.AfterFunc(conn.pingInterval, conn.Ping)
 	return conn
@@ -164,7 +158,11 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	}
 	defer ws.Close()
 
-	conn := newWSConn(app, ws)
+	app.RLock()
+	interval := app.config.PingInterval
+	app.RUnlock()
+
+	conn := newWSConn(ws, interval)
 	defer close(conn.closeCh)
 
 	c, err := newClient(app, conn)
