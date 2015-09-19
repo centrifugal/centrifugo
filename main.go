@@ -252,6 +252,9 @@ func Main() {
 				logger.INFO.Println("Using SockJS url", sockjsUrl)
 				sockjsOpts.SockJSURL = sockjsUrl
 			}
+			if c.PingInterval < time.Second {
+				logger.FATAL.Fatalln("Ping interval can not be less than one second.")
+			}
 			sockjsOpts.HeartbeatDelay = c.PingInterval
 
 			muxOpts := libcentrifugo.MuxOptions{
