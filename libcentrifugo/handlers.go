@@ -108,7 +108,7 @@ type wsConn struct {
 	ws           *websocket.Conn
 	closeCh      chan struct{}
 	pingInterval time.Duration
-	ping         *time.Timer
+	pingTimer    *time.Timer
 }
 
 func newWSConn(ws *websocket.Conn, pingInterval time.Duration) *wsConn {
@@ -117,18 +117,23 @@ func newWSConn(ws *websocket.Conn, pingInterval time.Duration) *wsConn {
 		closeCh:      make(chan struct{}),
 		pingInterval: pingInterval,
 	}
-	conn.ping = time.AfterFunc(conn.pingInterval, conn.Ping)
+	conn.pingTimer = time.AfterFunc(conn.pingInterval, conn.ping)
 	return conn
 }
 
-func (conn *wsConn) Ping() {
+func (conn *wsConn) ping() {
 	select {
 	case <-conn.closeCh:
-		conn.ping.Stop()
+		conn.pingTimer.Stop()
 		return
 	default:
-		conn.ws.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(conn.pingInterval/2))
-		conn.ping = time.AfterFunc(conn.pingInterval, conn.Ping)
+		err := conn.ws.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(conn.pingInterval/2))
+		if err != nil {
+			conn.ws.Close()
+			conn.pingTimer.Stop()
+			return
+		}
+		conn.pingTimer = time.AfterFunc(conn.pingInterval, conn.ping)
 	}
 }
 
