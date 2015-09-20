@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/viper" // newConfig creates new libcentrifugo.Config using viper.
@@ -21,24 +22,26 @@ func newConfig() *libcentrifugo.Config {
 	cfg := &libcentrifugo.Config{}
 	cfg.Version = VERSION
 	cfg.Name = getApplicationName()
+	cfg.Debug = viper.GetBool("debug")
 	cfg.WebPassword = viper.GetString("web_password")
 	cfg.WebSecret = viper.GetString("web_secret")
 	cfg.ChannelPrefix = viper.GetString("channel_prefix")
 	cfg.AdminChannel = libcentrifugo.ChannelID(cfg.ChannelPrefix + "." + "admin")
 	cfg.ControlChannel = libcentrifugo.ChannelID(cfg.ChannelPrefix + "." + "control")
 	cfg.MaxChannelLength = viper.GetInt("max_channel_length")
-	cfg.NodePingInterval = int64(viper.GetInt("node_ping_interval"))
+	cfg.PingInterval = time.Duration(viper.GetInt("ping_interval")) * time.Second
+	cfg.NodePingInterval = time.Duration(viper.GetInt("node_ping_interval")) * time.Second
 	cfg.NodeInfoCleanInterval = cfg.NodePingInterval * 3
-	cfg.NodeInfoMaxDelay = cfg.NodePingInterval*2 + 1
-	cfg.PresencePingInterval = int64(viper.GetInt("presence_ping_interval"))
-	cfg.PresenceExpireInterval = int64(viper.GetInt("presence_expire_interval"))
-	cfg.MessageSendTimeout = int64(viper.GetInt("message_send_timeout"))
+	cfg.NodeInfoMaxDelay = cfg.NodePingInterval*2 + 1*time.Second
+	cfg.PresencePingInterval = time.Duration(viper.GetInt("presence_ping_interval")) * time.Second
+	cfg.PresenceExpireInterval = time.Duration(viper.GetInt("presence_expire_interval")) * time.Second
+	cfg.MessageSendTimeout = time.Duration(viper.GetInt("message_send_timeout")) * time.Second
 	cfg.PrivateChannelPrefix = viper.GetString("private_channel_prefix")
 	cfg.NamespaceChannelBoundary = viper.GetString("namespace_channel_boundary")
 	cfg.UserChannelBoundary = viper.GetString("user_channel_boundary")
 	cfg.UserChannelSeparator = viper.GetString("user_channel_separator")
 	cfg.ClientChannelBoundary = viper.GetString("client_channel_boundary")
-	cfg.ExpiredConnectionCloseDelay = int64(viper.GetInt("expired_connection_close_delay"))
+	cfg.ExpiredConnectionCloseDelay = time.Duration(viper.GetInt("expired_connection_close_delay")) * time.Second
 	cfg.Insecure = viper.GetBool("insecure")
 	return cfg
 }

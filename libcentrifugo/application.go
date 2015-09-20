@@ -47,7 +47,7 @@ type Application struct {
 	// mediator allows integrate libcentrifugo Application with external go code.
 	mediator Mediator
 
-	// shuttdown is a flag which is only true when application is going to shut down.
+	// shutdown is a flag which is only true when application is going to shut down.
 	shutdown bool
 }
 
@@ -87,7 +87,7 @@ func (app *Application) Run() {
 		logger.WARN.Println("libcentrifugo: application in INSECURE MODE")
 	}
 	app.RUnlock()
-	go app.sendPingMsg()
+	go app.sendNodePingMsg()
 	go app.cleanNodeInfo()
 }
 
@@ -100,7 +100,7 @@ func (app *Application) Shutdown() {
 	app.clients.shutdown()
 }
 
-func (app *Application) sendPingMsg() {
+func (app *Application) sendNodePingMsg() {
 	for {
 		err := app.pubPing()
 		if err != nil {
@@ -109,7 +109,7 @@ func (app *Application) sendPingMsg() {
 		app.RLock()
 		interval := app.config.NodePingInterval
 		app.RUnlock()
-		time.Sleep(time.Duration(interval) * time.Second)
+		time.Sleep(interval)
 	}
 }
 
@@ -121,7 +121,7 @@ func (app *Application) cleanNodeInfo() {
 
 		app.nodesMu.Lock()
 		for uid, info := range app.nodes {
-			if time.Now().Unix()-info.Updated > delay {
+			if time.Now().Unix()-info.Updated > int64(delay.Seconds()) {
 				delete(app.nodes, uid)
 			}
 		}
@@ -131,7 +131,7 @@ func (app *Application) cleanNodeInfo() {
 		interval := app.config.NodeInfoCleanInterval
 		app.RUnlock()
 
-		time.Sleep(time.Duration(interval) * time.Second)
+		time.Sleep(interval)
 	}
 }
 

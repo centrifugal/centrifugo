@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"net/http/pprof"
 	"strings"
 	"time"
 
@@ -32,6 +33,17 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 
 	prefix := muxOpts.Prefix
 	webDir := muxOpts.WebDir
+
+	app.RLock()
+	debug := app.config.Debug
+	app.RUnlock()
+
+	if debug {
+		mux.Handle(prefix+"/debug/pprof/", http.HandlerFunc(pprof.Index))
+		mux.Handle(prefix+"/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+		mux.Handle(prefix+"/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+		mux.Handle(prefix+"/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+	}
 
 	// register raw Websocket endpoint
 	mux.Handle(prefix+"/connection/websocket", app.Logged(app.WrapShutdown(http.HandlerFunc(app.RawWebsocketHandler))))
@@ -93,14 +105,48 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 // wsConn is a struct to fit SockJS session interface so client will accept
 // it as its sess
 type wsConn struct {
-	ws *websocket.Conn
+	ws           *websocket.Conn
+	closeCh      chan struct{}
+	pingInterval time.Duration
+	pingTimer    *time.Timer
 }
 
-func (conn wsConn) Send(message string) error {
-	return conn.ws.WriteMessage(websocket.TextMessage, []byte(message))
+func newWSConn(ws *websocket.Conn, pingInterval time.Duration) *wsConn {
+	conn := &wsConn{
+		ws:           ws,
+		closeCh:      make(chan struct{}),
+		pingInterval: pingInterval,
+	}
+	conn.pingTimer = time.AfterFunc(conn.pingInterval, conn.ping)
+	return conn
 }
 
-func (conn wsConn) Close(status uint32, reason string) error {
+func (conn *wsConn) ping() {
+	select {
+	case <-conn.closeCh:
+		conn.pingTimer.Stop()
+		return
+	default:
+		err := conn.ws.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(conn.pingInterval/2))
+		if err != nil {
+			conn.ws.Close()
+			conn.pingTimer.Stop()
+			return
+		}
+		conn.pingTimer = time.AfterFunc(conn.pingInterval, conn.ping)
+	}
+}
+
+func (conn *wsConn) Send(message string) error {
+	select {
+	case <-conn.closeCh:
+		return nil
+	default:
+		return conn.ws.WriteMessage(websocket.TextMessage, []byte(message))
+	}
+}
+
+func (conn *wsConn) Close(status uint32, reason string) error {
 	return conn.ws.Close()
 }
 
@@ -117,9 +163,12 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	}
 	defer ws.Close()
 
-	conn := wsConn{
-		ws: ws,
-	}
+	app.RLock()
+	interval := app.config.PingInterval
+	app.RUnlock()
+
+	conn := newWSConn(ws, interval)
+	defer close(conn.closeCh)
 
 	c, err := newClient(app, conn)
 	if err != nil {

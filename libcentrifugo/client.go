@@ -86,7 +86,7 @@ func (c *client) sendMsgTimeout(msg string) error {
 	c.app.RUnlock()
 	if sendTimeout > 0 {
 		// Send to client's session with provided timeout.
-		to := time.After(time.Second * time.Duration(sendTimeout))
+		to := time.After(sendTimeout)
 		sent := make(chan error)
 		go func() {
 			sent <- c.sess.Send(msg)
@@ -136,7 +136,7 @@ func (c *client) presencePing() {
 		select {
 		case <-c.closeChan:
 			return
-		case <-time.After(time.Duration(interval) * time.Second):
+		case <-time.After(interval):
 		}
 		c.updatePresence()
 	}
@@ -519,7 +519,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	}
 
 	if timeToExpire > 0 {
-		duration := time.Duration(timeToExpire+closeDelay) * time.Second
+		duration := closeDelay + time.Duration(timeToExpire)*time.Second
 		c.expireTimer = time.AfterFunc(duration, c.expire)
 	}
 
@@ -573,7 +573,10 @@ func (c *client) refreshCmd(cmd *refreshClientCommand) (*response, error) {
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
-			duration := time.Duration(timeToExpire+c.app.config.ExpiredConnectionCloseDelay) * time.Second
+			c.app.RLock()
+			closeDelay := c.app.config.ExpiredConnectionCloseDelay
+			c.app.RUnlock()
+			duration := time.Duration(timeToExpire)*time.Second + closeDelay
 			c.expireTimer = time.AfterFunc(duration, c.expire)
 		} else {
 			return nil, ErrConnectionExpired
