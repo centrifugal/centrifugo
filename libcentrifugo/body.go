@@ -15,8 +15,7 @@ type ChannelsBody struct {
 }
 
 type adminMessageBody struct {
-	Project ProjectKey `json:"project"`
-	Message Message    `json:"message"`
+	Message Message `json:"message"`
 }
 
 type joinLeaveBody struct {

@@ -61,9 +61,9 @@ func handleSignals(app *libcentrifugo.Application) {
 			}
 			setupLogging()
 			c := newConfig()
-			s := structureFromConfig(nil)
+			//s := structureFromConfig(nil)
 			app.SetConfig(c)
-			app.SetStructure(s)
+			//app.SetStructure(s)
 			logger.INFO.Println("Configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt:
 			logger.INFO.Println("Shutting down")
@@ -198,14 +198,14 @@ func Main() {
 			logger.INFO.Println("Using config file:", viper.ConfigFileUsed())
 
 			c := newConfig()
-			s := structureFromConfig(nil)
+			//s := structureFromConfig(nil)
 
 			app, err := libcentrifugo.NewApplication(c)
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
 
-			app.SetStructure(s)
+			//app.SetStructure(s)
 
 			var e libcentrifugo.Engine
 			switch viper.GetString("engine") {

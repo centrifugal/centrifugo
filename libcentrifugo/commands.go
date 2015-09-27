@@ -35,7 +35,6 @@ type controlCommand struct {
 // when connect parameters generated and HMAC token to prove correctness of all those
 // parameters
 type connectClientCommand struct {
-	Project   ProjectKey
 	User      UserID
 	Timestamp string
 	Info      string
@@ -45,7 +44,6 @@ type connectClientCommand struct {
 // refreshClientCommand is used to prolong connection lifetime when connection check
 // mechanism is enabled. It can only be sent by client after successfull connect.
 type refreshClientCommand struct {
-	Project   ProjectKey
 	User      UserID
 	Timestamp string
 	Info      string
@@ -128,15 +126,13 @@ type pingControlCommand struct {
 // node unsubscribes user from channel and then send this control command so other
 // nodes could unsubscribe user too
 type unsubscribeControlCommand struct {
-	Project ProjectKey
 	User    UserID
 	Channel Channel
 }
 
 // disconnectControlCommand required to disconnect user from all nodes
 type disconnectControlCommand struct {
-	Project ProjectKey
-	User    UserID
+	User UserID
 }
 
 // authAdminCommand required to authorize admin connection

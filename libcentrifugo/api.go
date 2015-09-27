@@ -7,7 +7,7 @@ import (
 )
 
 // apiCmd builds API command and dispatches it into correct handler method
-func (app *Application) apiCmd(p Project, command apiCommand) (*response, error) {
+func (app *Application) apiCmd(command apiCommand) (*response, error) {
 
 	var err error
 	var resp *response
@@ -23,7 +23,7 @@ func (app *Application) apiCmd(p Project, command apiCommand) (*response, error)
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidMessage
 		}
-		resp, err = app.publishCmd(p, &cmd)
+		resp, err = app.publishCmd(&cmd)
 	case "unsubscribe":
 		var cmd unsubscribeApiCommand
 		err = json.Unmarshal(params, &cmd)
@@ -31,7 +31,7 @@ func (app *Application) apiCmd(p Project, command apiCommand) (*response, error)
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidMessage
 		}
-		resp, err = app.unsubcribeCmd(p, &cmd)
+		resp, err = app.unsubcribeCmd(&cmd)
 	case "disconnect":
 		var cmd disconnectApiCommand
 		err = json.Unmarshal(params, &cmd)
@@ -39,7 +39,7 @@ func (app *Application) apiCmd(p Project, command apiCommand) (*response, error)
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidMessage
 		}
-		resp, err = app.disconnectCmd(p, &cmd)
+		resp, err = app.disconnectCmd(&cmd)
 	case "presence":
 		var cmd presenceApiCommand
 		err = json.Unmarshal(params, &cmd)
@@ -47,7 +47,7 @@ func (app *Application) apiCmd(p Project, command apiCommand) (*response, error)
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidMessage
 		}
-		resp, err = app.presenceCmd(p, &cmd)
+		resp, err = app.presenceCmd(&cmd)
 	case "history":
 		var cmd historyApiCommand
 		err = json.Unmarshal(params, &cmd)
@@ -55,9 +55,9 @@ func (app *Application) apiCmd(p Project, command apiCommand) (*response, error)
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidMessage
 		}
-		resp, err = app.historyCmd(p, &cmd)
+		resp, err = app.historyCmd(&cmd)
 	case "channels":
-		resp, err = app.channelsCmd(p)
+		resp, err = app.channelsCmd()
 	default:
 		return nil, ErrMethodNotFound
 	}
@@ -71,11 +71,11 @@ func (app *Application) apiCmd(p Project, command apiCommand) (*response, error)
 }
 
 // publishCmd publishes data into channel
-func (app *Application) publishCmd(p Project, cmd *publishApiCommand) (*response, error) {
+func (app *Application) publishCmd(cmd *publishApiCommand) (*response, error) {
 	resp := newResponse("publish")
 	channel := cmd.Channel
 	data := cmd.Data
-	err := app.publish(p.Name, channel, data, cmd.Client, nil, false)
+	err := app.publish(channel, data, cmd.Client, nil, false)
 	if err != nil {
 		resp.Err(err)
 		return resp, nil
@@ -85,11 +85,11 @@ func (app *Application) publishCmd(p Project, cmd *publishApiCommand) (*response
 
 // unsubscribeCmd unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes
-func (app *Application) unsubcribeCmd(p Project, cmd *unsubscribeApiCommand) (*response, error) {
+func (app *Application) unsubcribeCmd(cmd *unsubscribeApiCommand) (*response, error) {
 	resp := newResponse("unsubscribe")
 	channel := cmd.Channel
 	user := cmd.User
-	err := app.Unsubscribe(p.Name, user, channel)
+	err := app.Unsubscribe(user, channel)
 	if err != nil {
 		resp.Err(err)
 		return resp, nil
@@ -99,10 +99,10 @@ func (app *Application) unsubcribeCmd(p Project, cmd *unsubscribeApiCommand) (*r
 
 // disconnectCmd disconnects project's user and sends disconnect
 // control message to other nodes
-func (app *Application) disconnectCmd(p Project, cmd *disconnectApiCommand) (*response, error) {
+func (app *Application) disconnectCmd(cmd *disconnectApiCommand) (*response, error) {
 	resp := newResponse("disconnect")
 	user := cmd.User
-	err := app.Disconnect(p.Name, user)
+	err := app.Disconnect(user)
 	if err != nil {
 		resp.Err(err)
 		return resp, nil
@@ -111,14 +111,14 @@ func (app *Application) disconnectCmd(p Project, cmd *disconnectApiCommand) (*re
 }
 
 // presenceCmd returns response with presense information for project channel
-func (app *Application) presenceCmd(p Project, cmd *presenceApiCommand) (*response, error) {
+func (app *Application) presenceCmd(cmd *presenceApiCommand) (*response, error) {
 	resp := newResponse("presence")
 	channel := cmd.Channel
 	body := &PresenceBody{
 		Channel: channel,
 	}
 	resp.Body = body
-	presence, err := app.Presence(p.Name, channel)
+	presence, err := app.Presence(channel)
 	if err != nil {
 		resp.Err(err)
 		return resp, nil
@@ -128,14 +128,14 @@ func (app *Application) presenceCmd(p Project, cmd *presenceApiCommand) (*respon
 }
 
 // historyCmd returns response with history information for project channel
-func (app *Application) historyCmd(p Project, cmd *historyApiCommand) (*response, error) {
+func (app *Application) historyCmd(cmd *historyApiCommand) (*response, error) {
 	resp := newResponse("history")
 	channel := cmd.Channel
 	body := &HistoryBody{
 		Channel: channel,
 	}
 	resp.Body = body
-	history, err := app.History(p.Name, channel)
+	history, err := app.History(channel)
 	if err != nil {
 		resp.Err(err)
 		return resp, nil
@@ -145,11 +145,11 @@ func (app *Application) historyCmd(p Project, cmd *historyApiCommand) (*response
 }
 
 // channelsCmd returns active channels for project.
-func (app *Application) channelsCmd(p Project) (*response, error) {
+func (app *Application) channelsCmd() (*response, error) {
 	resp := newResponse("channels")
 	body := &ChannelsBody{}
 	resp.Body = body
-	channels, err := app.engine.channels(p.Name)
+	channels, err := app.engine.channels()
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)

@@ -28,5 +28,5 @@ type Engine interface {
 	history(chID ChannelID) ([]Message, error)
 
 	// channels returns slice of currently active channels for project.
-	channels(pk ProjectKey) ([]Channel, error)
+	channels() ([]Channel, error)
 }

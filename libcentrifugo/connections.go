@@ -5,8 +5,6 @@ package libcentrifugo
 type clientConn interface {
 	// uid returns unique connection id
 	uid() ConnID
-	// project returns connection project key
-	project() ProjectKey
 	// user return user ID associated with connection
 	user() UserID
 	// channels returns a slice of channels connection subscribed to

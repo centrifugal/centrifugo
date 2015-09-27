@@ -225,7 +225,6 @@ func cmdFromAPIMsg(msg []byte) ([]apiCommand, error) {
 // APIHandler is responsible for receiving API commands over HTTP.
 func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 
-	pk := ProjectKey(r.URL.Path[len("/api/"):])
 	contentType := r.Header.Get("Content-Type")
 
 	var sign string
@@ -260,16 +259,17 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project, exists := app.projectByKey(pk)
-	if !exists {
-		logger.ERROR.Println("no project found with key", pk)
-		http.Error(w, "Project not found", http.StatusNotFound)
+	app.RLock()
+	secret := app.config.Secret
+	app.RUnlock()
+
+	if secret == "" {
+		logger.ERROR.Println("no secret set in config")
+		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	secret := project.Secret
-
-	isValid := auth.CheckApiSign(secret, string(pk), data, sign)
+	isValid := auth.CheckApiSign(secret, data, sign)
 	if !isValid {
 		logger.ERROR.Println("invalid sign")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -286,7 +286,7 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 	var mr multiResponse
 
 	for _, command := range commands {
-		resp, err := app.apiCmd(project, command)
+		resp, err := app.apiCmd(command)
 		if err != nil {
 			logger.ERROR.Println(err)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -308,12 +308,18 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 // AuthHandler allows to get admin web interface token.
 func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
-	if app.config.WebPassword == "" || app.config.WebSecret == "" {
+
+	app.RLock()
+	webPassword := app.config.WebPassword
+	webSecret := app.config.WebSecret
+	app.RUnlock()
+
+	if webPassword == "" || webSecret == "" {
 		logger.ERROR.Println("web_password and web_secret must be set in configuration")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	if password == app.config.WebPassword {
+	if password == webPassword {
 		w.Header().Set("Content-Type", "application/json")
 		token, err := app.adminAuthToken()
 		if err != nil {
@@ -387,11 +393,14 @@ func (app *Application) InfoHandler(w http.ResponseWriter, r *http.Request) {
 	app.RLock()
 	defer app.RUnlock()
 	info := map[string]interface{}{
-		"version":   app.config.Version,
-		"structure": app.structure.projectList,
-		"engine":    app.engine.name(),
-		"node_name": app.config.Name,
-		"nodes":     app.nodes,
+		"version":             app.config.Version,
+		"secret":              app.config.Secret,
+		"connection_lifetime": app.config.ConnLifetime,
+		"channel_options":     app.config.ChannelOptions,
+		"namespaces":          app.config.Namespaces,
+		"engine":              app.engine.name(),
+		"node_name":           app.config.Name,
+		"nodes":               app.nodes,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(info)
@@ -399,14 +408,8 @@ func (app *Application) InfoHandler(w http.ResponseWriter, r *http.Request) {
 
 // ActionHandler allows to call API commands via submitting a form.
 func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
-	pk := ProjectKey(r.FormValue("project"))
-	method := r.FormValue("method")
 
-	project, exists := app.projectByKey(pk)
-	if !exists {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
+	method := r.FormValue("method")
 
 	var resp *response
 	var err error
@@ -423,7 +426,7 @@ func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
 			Channel: channel,
 			Data:    []byte(data),
 		}
-		resp, err = app.publishCmd(project, cmd)
+		resp, err = app.publishCmd(cmd)
 	case "unsubscribe":
 		channel := Channel(r.FormValue("channel"))
 		user := UserID(r.FormValue("user"))
@@ -431,27 +434,27 @@ func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
 			Channel: channel,
 			User:    user,
 		}
-		resp, err = app.unsubcribeCmd(project, cmd)
+		resp, err = app.unsubcribeCmd(cmd)
 	case "disconnect":
 		user := UserID(r.FormValue("user"))
 		cmd := &disconnectApiCommand{
 			User: user,
 		}
-		resp, err = app.disconnectCmd(project, cmd)
+		resp, err = app.disconnectCmd(cmd)
 	case "presence":
 		channel := Channel(r.FormValue("channel"))
 		cmd := &presenceApiCommand{
 			Channel: channel,
 		}
-		resp, err = app.presenceCmd(project, cmd)
+		resp, err = app.presenceCmd(cmd)
 	case "history":
 		channel := Channel(r.FormValue("channel"))
 		cmd := &historyApiCommand{
 			Channel: channel,
 		}
-		resp, err = app.historyCmd(project, cmd)
+		resp, err = app.historyCmd(cmd)
 	case "channels":
-		resp, err = app.channelsCmd(project)
+		resp, err = app.channelsCmd()
 	default:
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return

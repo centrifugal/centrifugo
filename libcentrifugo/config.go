@@ -1,6 +1,8 @@
 package libcentrifugo
 
 import (
+	"errors"
+	"regexp"
 	"time"
 )
 
@@ -80,6 +82,73 @@ type Config struct {
 	// allowed for all channels, no connection check performed. This can be suitable
 	// for demonstration or personal usage
 	Insecure bool
+
+	// Secret is a secret key, used to sign API requests and client connection tokens.
+	Secret string
+
+	// ConnLifetime determines time until connection expire, 0 means no connection expire at all.
+	ConnLifetime time.Duration
+
+	// ChannelOptions embedded to config.
+	ChannelOptions
+
+	// Namespaces - list of namespaces for custom channel options.
+	Namespaces []Namespace
+
+	// helper map for fast search by namespace name.
+	namespaceMap map[NamespaceKey]Namespace
+}
+
+// initialize initializes helper Config fields.
+func (c *Config) initialize() {
+	nm := map[NamespaceKey]Namespace{}
+	for _, n := range c.Namespaces {
+		nm[n.Name] = n
+	}
+	c.namespaceMap = nm
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
+// Validate validates config and returns error if problems found
+func (c *Config) Validate() error {
+	errPrefix := "config error: "
+	pattern := "^[-a-zA-Z0-9_]{2,}$"
+
+	var nss []string
+	for _, n := range c.Namespaces {
+		name := string(n.Name)
+		match, _ := regexp.MatchString(pattern, name)
+		if !match {
+			return errors.New(errPrefix + "wrong namespace name – " + name)
+		}
+		if stringInSlice(name, nss) {
+			return errors.New(errPrefix + "namespace name must be unique")
+		}
+		nss = append(nss, name)
+	}
+
+	return nil
+}
+
+// channelOpts searches for channel options for specified project key and namespace key
+func (c *Config) channelOpts(nk NamespaceKey) (ChannelOptions, error) {
+	if nk == NamespaceKey("") {
+		return c.ChannelOptions, nil
+	} else {
+		n, ok := c.namespaceMap[nk]
+		if !ok {
+			return ChannelOptions{}, ErrNamespaceNotFound
+		}
+		return n.ChannelOptions, nil
+	}
 }
 
 const (

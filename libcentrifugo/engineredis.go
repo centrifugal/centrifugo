@@ -124,8 +124,7 @@ func (e *RedisEngine) checkConnectionStatus() {
 }
 
 type redisApiRequest struct {
-	Project ProjectKey
-	Data    []apiCommand
+	Data []apiCommand
 }
 
 func (e *RedisEngine) initializeApi() {
@@ -163,18 +162,9 @@ func (e *RedisEngine) initializeApi() {
 			logger.ERROR.Println(err)
 			continue
 		}
-		if req.Project == "" {
-			logger.ERROR.Println("project key required")
-			continue
-		}
-		project, exists := e.app.projectByKey(req.Project)
-		if !exists {
-			logger.ERROR.Println("no project found with key", req.Project)
-			continue
-		}
 
 		for _, command := range req.Data {
-			_, err := e.app.apiCmd(project, command)
+			_, err := e.app.apiCmd(command)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -443,10 +433,10 @@ func sliceOfChannels(result interface{}, prefix string, err error) ([]Channel, e
 }
 
 // Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
-func (e *RedisEngine) channels(pk ProjectKey) ([]Channel, error) {
+func (e *RedisEngine) channels() ([]Channel, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
-	prefix := e.app.channelIDPrefix(pk)
+	prefix := e.app.channelIDPrefix()
 	reply, err := conn.Do("PUBSUB", "CHANNELS", prefix+"*")
 	if err != nil {
 		println(err.Error())
