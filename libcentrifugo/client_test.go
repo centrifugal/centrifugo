@@ -16,8 +16,7 @@ func TestUnauthenticatedClient(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.NotEqual(t, "", c.uid())
 
-	// project and user not set before connect command success
-	assert.Equal(t, ProjectKey(""), c.project())
+	// user not set before connect command success
 	assert.Equal(t, UserID(""), c.user())
 
 	assert.Equal(t, false, c.authenticated)
@@ -72,9 +71,8 @@ func TestSingleObjectMessage(t *testing.T) {
 }
 
 func testConnectCmd(timestamp string) clientCommand {
-	token := auth.GenerateClientToken("secret", "test1", "user1", timestamp, "")
+	token := auth.GenerateClientToken("secret", "user1", timestamp, "")
 	connectCmd := connectClientCommand{
-		Project:   ProjectKey("test1"),
 		Timestamp: timestamp,
 		User:      UserID("user1"),
 		Info:      "",
@@ -89,9 +87,8 @@ func testConnectCmd(timestamp string) clientCommand {
 }
 
 func testRefreshCmd(timestamp string) clientCommand {
-	token := auth.GenerateClientToken("secret", "test1", "user1", timestamp, "")
+	token := auth.GenerateClientToken("secret", "user1", timestamp, "")
 	refreshCmd := refreshClientCommand{
-		Project:   ProjectKey("test1"),
 		Timestamp: timestamp,
 		User:      UserID("user1"),
 		Info:      "",
@@ -200,14 +197,6 @@ func TestClientConnect(t *testing.T) {
 
 	var cmd clientCommand
 	var cmds []clientCommand
-
-	cmd = clientCommand{
-		Method: "connect",
-		Params: []byte("{}"),
-	}
-	cmds = []clientCommand{cmd}
-	err = c.handleCommands(cmds)
-	assert.Equal(t, ErrProjectNotFound, err)
 
 	cmd = clientCommand{
 		Method: "connect",

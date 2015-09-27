@@ -94,18 +94,6 @@ type Config struct {
 
 	// Namespaces - list of namespaces for custom channel options.
 	Namespaces []Namespace
-
-	// helper map for fast search by namespace name.
-	namespaceMap map[NamespaceKey]Namespace
-}
-
-// initialize initializes helper Config fields.
-func (c *Config) initialize() {
-	nm := map[NamespaceKey]Namespace{}
-	for _, n := range c.Namespaces {
-		nm[n.Name] = n
-	}
-	c.namespaceMap = nm
 }
 
 func stringInSlice(a string, list []string) bool {
@@ -143,11 +131,12 @@ func (c *Config) channelOpts(nk NamespaceKey) (ChannelOptions, error) {
 	if nk == NamespaceKey("") {
 		return c.ChannelOptions, nil
 	} else {
-		n, ok := c.namespaceMap[nk]
-		if !ok {
-			return ChannelOptions{}, ErrNamespaceNotFound
+		for _, n := range c.Namespaces {
+			if n.Name == nk {
+				return n.ChannelOptions, nil
+			}
 		}
-		return n.ChannelOptions, nil
+		return ChannelOptions{}, ErrNamespaceNotFound
 	}
 }
 

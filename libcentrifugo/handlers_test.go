@@ -84,7 +84,7 @@ func BenchmarkAPIHandler(b *testing.B) {
 		commands[i] = command
 	}
 	jsonData, _ := json.Marshal(commands)
-	sign := auth.GenerateApiSign("secret", "test1", jsonData)
+	sign := auth.GenerateApiSign("secret", jsonData)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		rec := httptest.NewRecorder()
@@ -114,20 +114,12 @@ func TestAPIHandler(t *testing.T) {
 	app.APIHandler(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 
-	// project not found
+	// wrong sign
 	values := url.Values{}
 	values.Set("sign", "wrong")
 	values.Add("data", "data")
 	rec = httptest.NewRecorder()
-	req, _ = http.NewRequest("POST", server.URL+"/api/wrong_project", strings.NewReader(values.Encode()))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
-	app.APIHandler(rec, req)
-	assert.Equal(t, http.StatusNotFound, rec.Code)
-
-	// wrong sign
-	rec = httptest.NewRecorder()
-	req, _ = http.NewRequest("POST", server.URL+"/api/test1", strings.NewReader(values.Encode()))
+	req, _ = http.NewRequest("POST", server.URL+"/api/", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
 	app.APIHandler(rec, req)
@@ -137,7 +129,7 @@ func TestAPIHandler(t *testing.T) {
 	rec = httptest.NewRecorder()
 	values = url.Values{}
 	data := "{\"method\":\"publish\",\"params\":{\"channel\": \"test\", \"data\":{}}}"
-	sign := auth.GenerateApiSign("secret", "test1", []byte(data))
+	sign := auth.GenerateApiSign("secret", []byte(data))
 	values.Set("sign", sign)
 	values.Add("data", data)
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", strings.NewReader(values.Encode()))
@@ -149,7 +141,7 @@ func TestAPIHandler(t *testing.T) {
 	// valid JSON request
 	rec = httptest.NewRecorder()
 	data = "{\"method\":\"publish\",\"params\":{\"channel\": \"test\", \"data\":{}}}"
-	sign = auth.GenerateApiSign("secret", "test1", []byte(data))
+	sign = auth.GenerateApiSign("secret", []byte(data))
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", bytes.NewBuffer([]byte(data)))
 	req.Header.Add("X-API-Sign", sign)
 	req.Header.Add("Content-Type", "application/json")
@@ -160,7 +152,7 @@ func TestAPIHandler(t *testing.T) {
 	rec = httptest.NewRecorder()
 	values = url.Values{}
 	data = "{\"method\":\"unknown\",\"params\":{\"channel\": \"test\", \"data\":{}}}"
-	sign = auth.GenerateApiSign("secret", "test1", []byte(data))
+	sign = auth.GenerateApiSign("secret", []byte(data))
 	values.Set("sign", sign)
 	values.Add("data", data)
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", strings.NewReader(values.Encode()))
@@ -217,7 +209,8 @@ func TestInfoHandler(t *testing.T) {
 	assert.Equal(t, true, strings.Contains(string(body), "nodes"))
 	assert.Equal(t, true, strings.Contains(string(body), "node_name"))
 	assert.Equal(t, true, strings.Contains(string(body), "version"))
-	assert.Equal(t, true, strings.Contains(string(body), "structure"))
+	assert.Equal(t, true, strings.Contains(string(body), "channel_options"))
+	assert.Equal(t, true, strings.Contains(string(body), "namespaces"))
 	assert.Equal(t, true, strings.Contains(string(body), "engine"))
 }
 

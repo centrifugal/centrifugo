@@ -100,11 +100,11 @@ func TestRedisChannels(t *testing.T) {
 	c := dial()
 	defer c.close()
 	app := testRedisApp()
-	channels, err := app.engine.channels(ProjectKey("test1"))
+	channels, err := app.engine.channels()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(channels))
 	createTestClients(app, 10, 1)
-	channels, err = app.engine.channels(ProjectKey("test1"))
+	channels, err = app.engine.channels()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 10, len(channels))
 }

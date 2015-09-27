@@ -10,7 +10,6 @@ import (
 
 type testClientConn struct {
 	Cid      ConnID
-	PK       ProjectKey
 	Uid      UserID
 	Channels []Channel
 
@@ -22,17 +21,12 @@ type testClientConn struct {
 func newTestUserCC() *testClientConn {
 	return &testClientConn{
 		Cid:      "test uid",
-		PK:       "test project",
 		Uid:      "test user",
 		Channels: []Channel{"test"},
 	}
 }
 func (c *testClientConn) uid() ConnID {
 	return c.Cid
-}
-
-func (c *testClientConn) project() ProjectKey {
-	return c.PK
 }
 
 func (c *testClientConn) user() UserID {
@@ -81,7 +75,7 @@ func TestClientHub(t *testing.T) {
 	c := newTestUserCC()
 	h.add(c)
 	assert.Equal(t, len(h.users), 1)
-	conns := h.userConnections("test project", "test user")
+	conns := h.userConnections("test user")
 	assert.Equal(t, 1, len(conns))
 	assert.Equal(t, 1, h.nClients())
 	assert.Equal(t, 1, h.nUniqueClients())
