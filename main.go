@@ -61,9 +61,7 @@ func handleSignals(app *libcentrifugo.Application) {
 			}
 			setupLogging()
 			c := newConfig()
-			//s := structureFromConfig(nil)
 			app.SetConfig(c)
-			//app.SetStructure(s)
 			logger.INFO.Println("Configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt:
 			logger.INFO.Println("Shutting down")
@@ -127,32 +125,30 @@ func Main() {
 			viper.SetDefault("client_channel_boundary", "&")
 			viper.SetDefault("sockjs_url", "https://cdn.jsdelivr.net/sockjs/1.0/sockjs.min.js")
 
-			viper.SetDefault("project_name", "")
-			viper.SetDefault("project_secret", "")
-			viper.SetDefault("project_connection_lifetime", false)
-			viper.SetDefault("project_watch", false)
-			viper.SetDefault("project_publish", false)
-			viper.SetDefault("project_anonymous", false)
-			viper.SetDefault("project_presence", false)
-			viper.SetDefault("project_history_size", 0)
-			viper.SetDefault("project_history_lifetime", 0)
-			viper.SetDefault("project_namespaces", "")
+			viper.SetDefault("secret", "")
+			viper.SetDefault("connection_lifetime", 0)
+			viper.SetDefault("watch", false)
+			viper.SetDefault("publish", false)
+			viper.SetDefault("anonymous", false)
+			viper.SetDefault("presence", false)
+			viper.SetDefault("history_size", 0)
+			viper.SetDefault("history_lifetime", 0)
+			viper.SetDefault("namespaces", "")
 
 			viper.SetEnvPrefix("centrifugo")
 			viper.BindEnv("engine")
 			viper.BindEnv("insecure")
 			viper.BindEnv("web_password")
 			viper.BindEnv("web_secret")
-			viper.BindEnv("project_name")
-			viper.BindEnv("project_secret")
-			viper.BindEnv("project_connection_lifetime")
-			viper.BindEnv("project_watch")
-			viper.BindEnv("project_publish")
-			viper.BindEnv("project_anonymous")
-			viper.BindEnv("project_join_leave")
-			viper.BindEnv("project_presence")
-			viper.BindEnv("project_history_size")
-			viper.BindEnv("project_history_lifetime")
+			viper.BindEnv("secret")
+			viper.BindEnv("connection_lifetime")
+			viper.BindEnv("watch")
+			viper.BindEnv("publish")
+			viper.BindEnv("anonymous")
+			viper.BindEnv("join_leave")
+			viper.BindEnv("presence")
+			viper.BindEnv("history_size")
+			viper.BindEnv("history_lifetime")
 
 			viper.BindPFlag("port", cmd.Flags().Lookup("port"))
 			viper.BindPFlag("address", cmd.Flags().Lookup("address"))
@@ -174,16 +170,18 @@ func Main() {
 			viper.BindPFlag("redis_api", cmd.Flags().Lookup("redis_api"))
 			viper.BindPFlag("redis_pool", cmd.Flags().Lookup("redis_pool"))
 
-			err := validateConfig(configFile)
+			viper.SetConfigFile(configFile)
+
+			err := viper.ReadInConfig()
 			if err != nil {
-				logger.FATAL.Fatalln(err)
+				switch err.(type) {
+				case viper.ConfigParseError:
+					logger.FATAL.Fatalf("Error parsing configuration: %s\n", err)
+				default:
+					logger.FATAL.Fatalln("Unable to locate config file")
+				}
 			}
 
-			viper.SetConfigFile(configFile)
-			err = viper.ReadInConfig()
-			if err != nil {
-				logger.FATAL.Fatalln("Unable to locate config file")
-			}
 			setupLogging()
 
 			if os.Getenv("GOMAXPROCS") == "" {
@@ -198,14 +196,15 @@ func Main() {
 			logger.INFO.Println("Using config file:", viper.ConfigFileUsed())
 
 			c := newConfig()
-			//s := structureFromConfig(nil)
+			err = c.Validate()
+			if err != nil {
+				logger.FATAL.Fatalln(err)
+			}
 
 			app, err := libcentrifugo.NewApplication(c)
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
-
-			//app.SetStructure(s)
 
 			var e libcentrifugo.Engine
 			switch viper.GetString("engine") {

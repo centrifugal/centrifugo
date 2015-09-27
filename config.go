@@ -179,7 +179,10 @@ func namespacesFromConfig(v *viper.Viper) []libcentrifugo.Namespace {
 	// TODO: as viper does not have exported global config instance
 	// we need to use nil when application wants to use global viper
 	// config - this must be improved using our own global viper instance
-	var ns []libcentrifugo.Namespace
+	ns := []libcentrifugo.Namespace{}
+	if !viper.IsSet("namespaces") {
+		return ns
+	}
 	if v == nil {
 		viper.MarshalKey("namespaces", &ns)
 	} else {
