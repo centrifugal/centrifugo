@@ -14,34 +14,41 @@ type ChannelsBody struct {
 	Data []Channel `json:"data"`
 }
 
-type adminMessageBody struct {
-	Message Message `json:"message"`
-}
-
-type joinLeaveBody struct {
+type JoinLeaveBody struct {
 	Channel Channel    `json:"channel"`
 	Data    ClientInfo `json:"data"`
 }
 
-type connectBody struct {
+type ConnectBody struct {
+	Version string  `json:"version"`
 	Client  *ConnID `json:"client"`
 	Expired bool    `json:"expired"`
 	TTL     *int64  `json:"ttl"`
 }
 
-type refreshBody struct {
+type RefreshBody struct {
 	TTL *int64 `json:"ttl"`
 }
 
-type subscribeBody struct {
-	Channel Channel `json:"channel"`
-}
-
-type unsubscribeBody struct {
-	Channel Channel `json:"channel"`
-}
-
-type publishBody struct {
+type SubscribeBody struct {
 	Channel Channel `json:"channel"`
 	Status  bool    `json:"status"`
+}
+
+type UnsubscribeBody struct {
+	Channel Channel `json:"channel"`
+	Status  bool    `json:"status"`
+}
+
+type PublishBody struct {
+	Channel Channel `json:"channel"`
+	Status  bool    `json:"status"`
+}
+
+type PingBody struct {
+	Data string `json:"data"`
+}
+
+type adminMessageBody struct {
+	Message Message `json:"message"`
 }

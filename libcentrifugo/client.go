@@ -440,6 +440,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	insecure := c.app.config.Insecure
 	closeDelay := c.app.config.ExpiredConnectionCloseDelay
 	connLifetime := int64(c.app.config.ConnLifetime.Seconds())
+	version := c.app.config.Version
 	c.app.RUnlock()
 
 	var timestamp string
@@ -474,6 +475,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 	c.User = user
 
 	body := &connectBody{}
+	body.Version = version
 
 	var timeToExpire int64 = 0
 
@@ -659,6 +661,8 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 		c.app.mediator.Subscribe(channel, c.UID, c.User)
 	}
 
+	body.Status = true
+
 	return resp, nil
 }
 
@@ -713,6 +717,8 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 	if c.app.mediator != nil {
 		c.app.mediator.Unsubscribe(channel, c.UID, c.User)
 	}
+
+	body.Status = true
 
 	return resp, nil
 }
