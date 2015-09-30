@@ -185,7 +185,7 @@ func testPublishCmd(channel string) clientCommand {
 func testPingCmd() clientCommand {
 	cmd := clientCommand{
 		Method: "ping",
-		Params: []byte{},
+		Params: []byte("{}"),
 	}
 	return cmd
 }

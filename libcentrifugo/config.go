@@ -6,6 +6,42 @@ import (
 	"time"
 )
 
+// ChannelOptions represent channel specific configuration for namespace or project in a whole
+type ChannelOptions struct {
+	// Watch determines if message published into channel will be sent into admin channel
+	Watch bool `json:"watch"`
+
+	// Publish determines if client can publish messages into channel directly
+	Publish bool `json:"publish"`
+
+	// Anonymous determines is anonymous access (with empty user ID) allowed or not
+	Anonymous bool `json:"anonymous"`
+
+	// Presence turns on(off) presence information for channels
+	Presence bool `json:"presence"`
+
+	// HistorySize determines max amount of history messages for channel, 0 means no history for channel
+	HistorySize int `mapstructure:"history_size" json:"history_size"`
+
+	// HistoryLifetime determines time in seconds until expiration for history messages
+	HistoryLifetime time.Duration `mapstructure:"history_lifetime" json:"history_lifetime"`
+
+	// JoinLeave turns on(off) join/leave messages for channels
+	JoinLeave bool `mapstructure:"join_leave" json:"join_leave"`
+}
+
+// NamespaceKey is a name of namespace unique for project.
+type NamespaceKey string
+
+// Namespace allows to create channels with different channel options within the Project
+type Namespace struct {
+	// Name is a unique namespace name.
+	Name NamespaceKey `json:"name"`
+
+	// ChannelOptions for namespace determine channel options for channels belonging to this namespace.
+	ChannelOptions `mapstructure:",squash"`
+}
+
 // Config contains Application configuration options.
 type Config struct {
 	// Version is a version of node as string, in most cases this will
@@ -130,7 +166,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// channelOpts searches for channel options for specified project key and namespace key
+// channelOpts searches for channel options for specified namespace key.
 func (c *Config) channelOpts(nk NamespaceKey) (ChannelOptions, error) {
 	if nk == NamespaceKey("") {
 		return c.ChannelOptions, nil

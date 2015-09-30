@@ -6,7 +6,7 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
-// apiCmd builds API command and dispatches it into correct handler method
+// apiCmd builds API command and dispatches it into correct handler method.
 func (app *Application) apiCmd(command apiCommand) (*response, error) {
 
 	var err error
@@ -58,6 +58,8 @@ func (app *Application) apiCmd(command apiCommand) (*response, error) {
 		resp, err = app.historyCmd(&cmd)
 	case "channels":
 		resp, err = app.channelsCmd()
+	case "stats":
+		resp, err = app.statsCmd()
 	default:
 		return nil, ErrMethodNotFound
 	}
@@ -70,7 +72,7 @@ func (app *Application) apiCmd(command apiCommand) (*response, error) {
 	return resp, nil
 }
 
-// publishCmd publishes data into channel
+// publishCmd publishes data into channel.
 func (app *Application) publishCmd(cmd *publishApiCommand) (*response, error) {
 	resp := newResponse("publish")
 	channel := cmd.Channel
@@ -84,7 +86,7 @@ func (app *Application) publishCmd(cmd *publishApiCommand) (*response, error) {
 }
 
 // unsubscribeCmd unsubscribes project's user from channel and sends
-// unsubscribe control message to other nodes
+// unsubscribe control message to other nodes.
 func (app *Application) unsubcribeCmd(cmd *unsubscribeApiCommand) (*response, error) {
 	resp := newResponse("unsubscribe")
 	channel := cmd.Channel
@@ -97,8 +99,8 @@ func (app *Application) unsubcribeCmd(cmd *unsubscribeApiCommand) (*response, er
 	return resp, nil
 }
 
-// disconnectCmd disconnects project's user and sends disconnect
-// control message to other nodes
+// disconnectCmd disconnects user by its ID and sends disconnect
+// control message to other nodes so they could also disconnect this user.
 func (app *Application) disconnectCmd(cmd *disconnectApiCommand) (*response, error) {
 	resp := newResponse("disconnect")
 	user := cmd.User
@@ -110,7 +112,7 @@ func (app *Application) disconnectCmd(cmd *disconnectApiCommand) (*response, err
 	return resp, nil
 }
 
-// presenceCmd returns response with presense information for project channel
+// presenceCmd returns response with presense information for channel.
 func (app *Application) presenceCmd(cmd *presenceApiCommand) (*response, error) {
 	resp := newResponse("presence")
 	channel := cmd.Channel
@@ -127,7 +129,7 @@ func (app *Application) presenceCmd(cmd *presenceApiCommand) (*response, error) 
 	return resp, nil
 }
 
-// historyCmd returns response with history information for project channel
+// historyCmd returns response with history information for channel.
 func (app *Application) historyCmd(cmd *historyApiCommand) (*response, error) {
 	resp := newResponse("history")
 	channel := cmd.Channel
@@ -144,7 +146,7 @@ func (app *Application) historyCmd(cmd *historyApiCommand) (*response, error) {
 	return resp, nil
 }
 
-// channelsCmd returns active channels for project.
+// channelsCmd returns active channels.
 func (app *Application) channelsCmd() (*response, error) {
 	resp := newResponse("channels")
 	body := &ChannelsBody{}
@@ -156,5 +158,13 @@ func (app *Application) channelsCmd() (*response, error) {
 		return resp, nil
 	}
 	body.Data = channels
+	return resp, nil
+}
+
+// statsCmd returns active node stats.
+func (app *Application) statsCmd() (*response, error) {
+	resp := newResponse("stats")
+	//body := &StatsBody{}
+	resp.Body = app.nodes
 	return resp, nil
 }

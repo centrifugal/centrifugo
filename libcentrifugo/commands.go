@@ -4,6 +4,17 @@ import (
 	"encoding/json"
 )
 
+type (
+	// Channel is a string channel name.
+	Channel string
+	// ChannelID is unique channel identificator in Centrifugo.
+	ChannelID string
+	// UserID is web application user ID as string.
+	UserID string
+	// ConnID is a unique connection ID.
+	ConnID string
+)
+
 type clientCommand struct {
 	UID    string `json:"uid"`
 	Method string
@@ -29,11 +40,10 @@ type controlCommand struct {
 	Params *json.RawMessage
 }
 
-// connectClientCommand is a command to authorize connection - it contains project key
-// to bind connection to a specific project, user ID in web application, additional
-// connection information as JSON string, timestamp with unix seconds on moment
-// when connect parameters generated and HMAC token to prove correctness of all those
-// parameters
+// connectClientCommand is a command to authorize connection - it contains user ID
+// in web application, additional connection information as JSON string, timestamp
+// with unix seconds on moment when connect parameters generated and HMAC token to
+// prove correctness of all those parameters
 type connectClientCommand struct {
 	User      UserID
 	Timestamp string
