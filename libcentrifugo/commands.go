@@ -82,6 +82,11 @@ type historyClientCommand struct {
 	Channel Channel
 }
 
+// pingClientCommand is used to ping server
+type pingClientCommand struct {
+	Data string
+}
+
 // publishApiCommand is used to publish messages into channel
 type publishApiCommand struct {
 	Channel Channel

@@ -364,7 +364,12 @@ func (c *client) handleCmd(command clientCommand) (*response, error) {
 		}
 		resp, err = c.publishCmd(&cmd)
 	case "ping":
-		resp, err = c.pingCmd()
+		var cmd pingClientCommand
+		err = json.Unmarshal(params, &cmd)
+		if err != nil {
+			return nil, ErrInvalidMessage
+		}
+		resp, err = c.pingCmd(&cmd)
 	case "presence":
 		var cmd presenceClientCommand
 		err = json.Unmarshal(params, &cmd)
@@ -392,9 +397,11 @@ func (c *client) handleCmd(command clientCommand) (*response, error) {
 // pingCmd handles ping command from client - this is necessary sometimes
 // for example Heroku closes websocket connection after 55 seconds
 // of inactive period when no messages with payload travelled over wire
-func (c *client) pingCmd() (*response, error) {
+func (c *client) pingCmd(cmd *pingClientCommand) (*response, error) {
 	resp := newResponse("ping")
-	resp.Body = "pong"
+	resp.Body = &PingBody{
+		Data: cmd.Data,
+	}
 	return resp, nil
 }
 
@@ -474,7 +481,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 
 	c.User = user
 
-	body := &connectBody{}
+	body := &ConnectBody{}
 	body.Version = version
 
 	var timeToExpire int64 = 0
@@ -546,7 +553,7 @@ func (c *client) refreshCmd(cmd *refreshClientCommand) (*response, error) {
 		return nil, ErrInvalidMessage
 	}
 
-	body := &refreshBody{}
+	body := &RefreshBody{}
 
 	c.app.RLock()
 	closeDelay := c.app.config.ExpiredConnectionCloseDelay
@@ -597,7 +604,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*response, error) {
 		return resp, nil
 	}
 
-	body := &subscribeBody{
+	body := &SubscribeBody{
 		Channel: channel,
 	}
 	resp.Body = body
@@ -677,7 +684,7 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*response, error
 		return nil, ErrInvalidMessage
 	}
 
-	body := &unsubscribeBody{
+	body := &UnsubscribeBody{
 		Channel: channel,
 	}
 	resp.Body = body
@@ -734,9 +741,8 @@ func (c *client) publishCmd(cmd *publishClientCommand) (*response, error) {
 	channel := cmd.Channel
 	data := cmd.Data
 
-	body := &publishBody{
+	body := &PublishBody{
 		Channel: channel,
-		Status:  false,
 	}
 	resp.Body = body
 

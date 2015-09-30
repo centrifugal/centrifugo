@@ -409,7 +409,7 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 func (app *Application) pubJoinLeave(ch Channel, method string, info ClientInfo) error {
 	chID := app.channelID(ch)
 	resp := newResponse(method)
-	resp.Body = &joinLeaveBody{
+	resp.Body = &JoinLeaveBody{
 		Channel: ch,
 		Data:    info,
 	}
