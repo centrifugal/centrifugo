@@ -64,8 +64,8 @@ type Metrics struct {
 	NumMsgSent        int64 `json:"num_msg_sent"`
 	NumAPIRequests    int64 `json:"num_api_requests"`
 	NumClientRequests int64 `json:"num_client_requests"`
-	TimeAPI           int   `json:"time_api"`
-	TimeClient        int   `json:"time_client"`
+	TimeAPIMean       int64 `json:"time_api_mean"`
+	TimeClientMean    int64 `json:"time_client_mean"`
 }
 
 type metricsRegistry struct {
@@ -85,8 +85,8 @@ func NewMetricsRegistry() *metricsRegistry {
 		numMsgSent:        metrics.NewCounter(),
 		numAPIRequests:    metrics.NewCounter(),
 		numClientRequests: metrics.NewCounter(),
-		timeAPI:           metrics.NewTimer(),
-		timeClient:        metrics.NewTimer(),
+		timeAPI:           metrics.NewCustomTimer(metrics.NewHistogram(metrics.NewExpDecaySample(1028, 2)), metrics.NewMeter()),
+		timeClient:        metrics.NewCustomTimer(metrics.NewHistogram(metrics.NewExpDecaySample(1028, 2)), metrics.NewMeter()),
 		metrics:           &Metrics{},
 	}
 }
@@ -156,8 +156,8 @@ func (app *Application) updateMetrics() {
 		app.metrics.metrics.NumMsgSent = app.metrics.numMsgSent.Count()
 		app.metrics.metrics.NumAPIRequests = app.metrics.numAPIRequests.Count()
 		app.metrics.metrics.NumClientRequests = app.metrics.numClientRequests.Count()
-		app.metrics.metrics.TimeAPI = int(app.metrics.timeAPI.Mean())
-		app.metrics.metrics.TimeClient = int(app.metrics.timeClient.Mean())
+		app.metrics.metrics.TimeAPIMean = int64(app.metrics.timeAPI.Mean())
+		app.metrics.metrics.TimeClientMean = int64(app.metrics.timeClient.Mean())
 		app.metrics.Unlock()
 
 		app.metrics.numMsgPublished.Clear()
