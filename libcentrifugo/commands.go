@@ -129,13 +129,7 @@ type historyApiCommand struct {
 // pingControlCommand allows nodes to know about each other - node sends this
 // control command periodically
 type pingControlCommand struct {
-	Uid      string
-	Name     string
-	Clients  int
-	Unique   int
-	Channels int
-	Started  int64
-	Metrics  Metrics
+	Info NodeInfo
 }
 
 // unsubscribeControlCommand required when node received unsubscribe API command -

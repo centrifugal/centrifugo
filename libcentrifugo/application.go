@@ -50,17 +50,22 @@ type Application struct {
 	// shutdown is a flag which is only true when application is going to shut down.
 	shutdown bool
 
+	// metrics holds various counters and timers different parts of Centrifugo update.
 	metrics *metricsRegistry
 }
 
+type Stats struct {
+	Nodes    []NodeInfo `json:"nodes"`
+	Interval int64      `json:"interval"`
+}
+
 type Metrics struct {
-	NumGoroutine      int
-	NumMsgPublished   int64
-	NumMsgSent        int64
-	NumAPIRequests    int64
-	NumClientRequests int64
-	TimeAPI           float64
-	TimeClient        float64
+	NumMsgPublished   int64 `json:"num_msg_published"`
+	NumMsgSent        int64 `json:"num_msg_sent"`
+	NumAPIRequests    int64 `json:"num_api_requests"`
+	NumClientRequests int64 `json:"num_client_requests"`
+	TimeAPI           int   `json:"time_api"`
+	TimeClient        int   `json:"time_client"`
 }
 
 type metricsRegistry struct {
@@ -87,12 +92,13 @@ func NewMetricsRegistry() *metricsRegistry {
 }
 
 type NodeInfo struct {
-	Uid      string `json:"uid"`
-	Name     string `json:"name"`
-	Clients  int    `json:"clients"`
-	Unique   int    `json:"unique"`
-	Channels int    `json:"channels"`
-	Started  int64  `json:"started"`
+	Uid        string `json:"uid"`
+	Name       string `json:"name"`
+	Goroutines int    `json:"num_goroutine"`
+	Clients    int    `json:"num_clients"`
+	Unique     int    `json:"num_unique_clients"`
+	Channels   int    `json:"num_channels"`
+	Started    int64  `json:"started"`
 	Metrics
 	updated int64 `json:"-"`
 }
@@ -146,13 +152,12 @@ func (app *Application) updateMetrics() {
 		time.Sleep(interval)
 
 		app.metrics.Lock()
-		app.metrics.metrics.NumGoroutine = runtime.NumGoroutine()
 		app.metrics.metrics.NumMsgPublished = app.metrics.numMsgPublished.Count()
 		app.metrics.metrics.NumMsgSent = app.metrics.numMsgSent.Count()
 		app.metrics.metrics.NumAPIRequests = app.metrics.numAPIRequests.Count()
 		app.metrics.metrics.NumClientRequests = app.metrics.numClientRequests.Count()
-		app.metrics.metrics.TimeAPI = app.metrics.timeAPI.Mean()
-		app.metrics.metrics.TimeClient = app.metrics.timeClient.Mean()
+		app.metrics.metrics.TimeAPI = int(app.metrics.timeAPI.Mean())
+		app.metrics.metrics.TimeClient = int(app.metrics.timeClient.Mean())
 		app.metrics.Unlock()
 
 		app.metrics.numMsgPublished.Clear()
@@ -219,6 +224,26 @@ func (app *Application) SetMediator(m Mediator) {
 	app.Lock()
 	defer app.Unlock()
 	app.mediator = m
+}
+
+func (app *Application) stats() Stats {
+	app.nodesMu.Lock()
+	nodes := make([]NodeInfo, len(app.nodes))
+	i := 0
+	for _, info := range app.nodes {
+		nodes[i] = info
+		i++
+	}
+	app.nodesMu.Unlock()
+
+	app.RLock()
+	interval := app.config.NodeMetricsInterval
+	app.RUnlock()
+
+	return Stats{
+		Interval: int64(interval.Seconds()),
+		Nodes:    nodes,
+	}
 }
 
 // handleMsg called when new message of any type received by this node.
@@ -466,6 +491,8 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 		}
 	}
 
+	app.metrics.numMsgPublished.Inc(1)
+
 	return nil
 }
 
@@ -490,14 +517,19 @@ func (app *Application) pubJoinLeave(ch Channel, method string, info ClientInfo)
 func (app *Application) pubPing() error {
 	app.RLock()
 	defer app.RUnlock()
-	cmd := &pingControlCommand{
-		Uid:      app.uid,
-		Name:     app.config.Name,
-		Clients:  app.nClients(),
-		Unique:   app.nUniqueClients(),
-		Channels: app.nChannels(),
-		Started:  app.started,
+	app.metrics.RLock()
+	info := NodeInfo{
+		Uid:        app.uid,
+		Name:       app.config.Name,
+		Clients:    app.nClients(),
+		Unique:     app.nUniqueClients(),
+		Channels:   app.nChannels(),
+		Started:    app.started,
+		Goroutines: runtime.NumGoroutine(),
+		Metrics:    *app.metrics.metrics,
 	}
+	cmd := &pingControlCommand{Info: info}
+	app.metrics.RUnlock()
 
 	err := app.pingCmd(cmd)
 	if err != nil {
@@ -547,18 +579,10 @@ func (app *Application) pubDisconnect(user UserID) error {
 
 // pingCmd handles ping control command i.e. updates information about known nodes
 func (app *Application) pingCmd(cmd *pingControlCommand) error {
-	info := NodeInfo{
-		Uid:      cmd.Uid,
-		Name:     cmd.Name,
-		Clients:  cmd.Clients,
-		Unique:   cmd.Unique,
-		Channels: cmd.Channels,
-		Started:  cmd.Started,
-		Metrics:  cmd.Metrics,
-		updated:  time.Now().Unix(),
-	}
+	info := cmd.Info
+	info.updated = time.Now().Unix()
 	app.nodesMu.Lock()
-	app.nodes[cmd.Uid] = info
+	app.nodes[info.Uid] = info
 	app.nodesMu.Unlock()
 	return nil
 }

@@ -225,6 +225,9 @@ func cmdFromAPIMsg(msg []byte) ([]apiCommand, error) {
 // APIHandler is responsible for receiving API commands over HTTP.
 func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 
+	app.metrics.numAPIRequests.Inc(1)
+	defer app.metrics.timeAPI.UpdateSince(time.Now())
+
 	contentType := r.Header.Get("Content-Type")
 
 	var sign string
@@ -409,6 +412,9 @@ func (app *Application) InfoHandler(w http.ResponseWriter, r *http.Request) {
 // ActionHandler allows to call API commands via submitting a form.
 func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
 
+	app.metrics.numAPIRequests.Inc(1)
+	defer app.metrics.timeAPI.UpdateSince(time.Now())
+
 	method := r.FormValue("method")
 
 	var resp *response
@@ -455,6 +461,8 @@ func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
 		resp, err = app.historyCmd(cmd)
 	case "channels":
 		resp, err = app.channelsCmd()
+	case "stats":
+		resp, err = app.statsCmd()
 	default:
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return

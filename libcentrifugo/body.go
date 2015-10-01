@@ -49,6 +49,10 @@ type PingBody struct {
 	Data string `json:"data"`
 }
 
+type StatsBody struct {
+	Data Stats `json:"data"`
+}
+
 type adminMessageBody struct {
 	Message Message `json:"message"`
 }

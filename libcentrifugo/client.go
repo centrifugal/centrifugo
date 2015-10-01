@@ -88,6 +88,7 @@ func (c *client) sendMsgTimeout(msg string) error {
 		to := time.After(sendTimeout)
 		sent := make(chan error)
 		go func() {
+			c.app.metrics.numMsgSent.Inc(1)
 			sent <- c.sess.Send(msg)
 		}()
 		select {
@@ -99,6 +100,7 @@ func (c *client) sendMsgTimeout(msg string) error {
 	} else {
 		// Do not use any timeout when sending, it's recommended to keep
 		// Centrifugo behind properly configured reverse proxy.
+		c.app.metrics.numMsgSent.Inc(1)
 		return c.sess.Send(msg)
 	}
 	panic("unreachable")
@@ -277,6 +279,9 @@ func cmdFromClientMsg(msgBytes []byte) ([]clientCommand, error) {
 }
 
 func (c *client) message(msg []byte) error {
+	c.app.metrics.numClientRequests.Inc(1)
+	defer c.app.metrics.timeClient.UpdateSince(time.Now())
+
 	if len(msg) == 0 {
 		logger.ERROR.Println("empty client message received")
 		return ErrInvalidMessage

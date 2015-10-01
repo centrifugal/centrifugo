@@ -164,7 +164,8 @@ func (app *Application) channelsCmd() (*response, error) {
 // statsCmd returns active node stats.
 func (app *Application) statsCmd() (*response, error) {
 	resp := newResponse("stats")
-	//body := &StatsBody{}
-	resp.Body = app.nodes
+	body := &StatsBody{}
+	body.Data = app.stats()
+	resp.Body = body
 	return resp, nil
 }
