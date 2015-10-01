@@ -81,6 +81,8 @@ type Config struct {
 	// NodeInfoMaxDelay is an interval in seconds – how many seconds node info
 	// considered actual.
 	NodeInfoMaxDelay time.Duration
+	// NodeMetricsInterval detects interval node will use to aggregate metrics.
+	NodeMetricsInterval time.Duration
 
 	// PresencePingInterval is an interval how often connected clients
 	// must update presence info.
@@ -197,18 +199,19 @@ var DefaultConfig = &Config{
 	AdminChannel:                ChannelID(defaultChannelPrefix + ".admin"),
 	ControlChannel:              ChannelID(defaultChannelPrefix + ".control"),
 	MaxChannelLength:            255,
-	PingInterval:                time.Duration(25) * time.Second,
-	NodePingInterval:            time.Duration(defaultNodePingInterval) * time.Second,
-	NodeInfoCleanInterval:       time.Duration(defaultNodePingInterval) * 3 * time.Second,
-	NodeInfoMaxDelay:            time.Duration(defaultNodePingInterval)*2*time.Second + 1*time.Second,
-	PresencePingInterval:        time.Duration(25) * time.Second,
-	PresenceExpireInterval:      time.Duration(60) * time.Second,
-	MessageSendTimeout:          time.Duration(0) * time.Second,
+	PingInterval:                25 * time.Second,
+	NodePingInterval:            defaultNodePingInterval * time.Second,
+	NodeInfoCleanInterval:       defaultNodePingInterval * 3 * time.Second,
+	NodeInfoMaxDelay:            defaultNodePingInterval*2*time.Second + 1*time.Second,
+	NodeMetricsInterval:         60 * time.Second,
+	PresencePingInterval:        25 * time.Second,
+	PresenceExpireInterval:      60 * time.Second,
+	MessageSendTimeout:          0,
 	PrivateChannelPrefix:        "$", // so private channel will look like "$gossips"
 	NamespaceChannelBoundary:    ":", // so namespace "public" can be used "public:news"
 	ClientChannelBoundary:       "&", // so client channel is sth like "client&7a37e561-c720-4608-52a8-a964a9db7a8a"
 	UserChannelBoundary:         "#", // so user limited channel is "user#2694" where "2696" is user ID
 	UserChannelSeparator:        ",", // so several users limited channel is "dialog#2694,3019"
-	ExpiredConnectionCloseDelay: time.Duration(10) * time.Second,
+	ExpiredConnectionCloseDelay: 10 * time.Second,
 	Insecure:                    false,
 }

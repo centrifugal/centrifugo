@@ -31,6 +31,7 @@ func newConfig() *libcentrifugo.Config {
 	cfg.NodePingInterval = time.Duration(viper.GetInt("node_ping_interval")) * time.Second
 	cfg.NodeInfoCleanInterval = cfg.NodePingInterval * 3
 	cfg.NodeInfoMaxDelay = cfg.NodePingInterval*2 + 1*time.Second
+	cfg.NodeMetricsInterval = time.Duration(viper.GetInt("node_metrics_interval")) * time.Second
 	cfg.PresencePingInterval = time.Duration(viper.GetInt("presence_ping_interval")) * time.Second
 	cfg.PresenceExpireInterval = time.Duration(viper.GetInt("presence_expire_interval")) * time.Second
 	cfg.MessageSendTimeout = time.Duration(viper.GetInt("message_send_timeout")) * time.Second

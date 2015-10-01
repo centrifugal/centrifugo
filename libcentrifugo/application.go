@@ -3,6 +3,7 @@ package libcentrifugo
 
 import (
 	"encoding/json"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -11,6 +12,8 @@ import (
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/securecookie"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
+
+	"github.com/rcrowley/go-metrics"
 )
 
 // Application is a heart of Centrifugo – it internally manages connection, subscription
@@ -26,7 +29,7 @@ type Application struct {
 	started int64
 
 	// nodes is a map with information about nodes known.
-	nodes map[string]*nodeInfo
+	nodes map[string]NodeInfo
 	// nodesMu allows to synchronize access to nodes.
 	nodesMu sync.Mutex
 
@@ -46,16 +49,52 @@ type Application struct {
 
 	// shutdown is a flag which is only true when application is going to shut down.
 	shutdown bool
+
+	metrics *metricsRegistry
 }
 
-type nodeInfo struct {
+type Metrics struct {
+	NumGoroutine      int
+	NumMsgPublished   int64
+	NumMsgSent        int64
+	NumAPIRequests    int64
+	NumClientRequests int64
+	TimeAPI           float64
+	TimeClient        float64
+}
+
+type metricsRegistry struct {
+	sync.RWMutex
+	numMsgPublished   metrics.Counter
+	numMsgSent        metrics.Counter
+	numAPIRequests    metrics.Counter
+	numClientRequests metrics.Counter
+	timeAPI           metrics.Timer
+	timeClient        metrics.Timer
+	metrics           *Metrics
+}
+
+func NewMetricsRegistry() *metricsRegistry {
+	return &metricsRegistry{
+		numMsgPublished:   metrics.NewCounter(),
+		numMsgSent:        metrics.NewCounter(),
+		numAPIRequests:    metrics.NewCounter(),
+		numClientRequests: metrics.NewCounter(),
+		timeAPI:           metrics.NewTimer(),
+		timeClient:        metrics.NewTimer(),
+		metrics:           &Metrics{},
+	}
+}
+
+type NodeInfo struct {
 	Uid      string `json:"uid"`
 	Name     string `json:"name"`
 	Clients  int    `json:"clients"`
 	Unique   int    `json:"unique"`
 	Channels int    `json:"channels"`
 	Started  int64  `json:"started"`
-	Updated  int64  `json:"-"`
+	Metrics
+	updated int64 `json:"-"`
 }
 
 // NewApplication returns new Application instance, the only required argument is
@@ -67,11 +106,12 @@ func NewApplication(c *Config) (*Application, error) {
 	}
 	app := &Application{
 		uid:     uid.String(),
-		nodes:   make(map[string]*nodeInfo),
+		nodes:   make(map[string]NodeInfo),
 		clients: newClientHub(),
 		admins:  newAdminHub(),
 		started: time.Now().Unix(),
 		config:  c,
+		metrics: NewMetricsRegistry(),
 	}
 	return app, nil
 }
@@ -86,6 +126,7 @@ func (app *Application) Run() {
 	app.RUnlock()
 	go app.sendNodePingMsg()
 	go app.cleanNodeInfo()
+	go app.updateMetrics()
 }
 
 // Shutdown sets shutdown flag and does various connection clean ups (at moment only unsubscribes
@@ -95,6 +136,30 @@ func (app *Application) Shutdown() {
 	app.shutdown = true
 	app.Unlock()
 	app.clients.shutdown()
+}
+
+func (app *Application) updateMetrics() {
+	for {
+		app.RLock()
+		interval := app.config.NodeMetricsInterval
+		app.RUnlock()
+		time.Sleep(interval)
+
+		app.metrics.Lock()
+		app.metrics.metrics.NumGoroutine = runtime.NumGoroutine()
+		app.metrics.metrics.NumMsgPublished = app.metrics.numMsgPublished.Count()
+		app.metrics.metrics.NumMsgSent = app.metrics.numMsgSent.Count()
+		app.metrics.metrics.NumAPIRequests = app.metrics.numAPIRequests.Count()
+		app.metrics.metrics.NumClientRequests = app.metrics.numClientRequests.Count()
+		app.metrics.metrics.TimeAPI = app.metrics.timeAPI.Mean()
+		app.metrics.metrics.TimeClient = app.metrics.timeClient.Mean()
+		app.metrics.Unlock()
+
+		app.metrics.numMsgPublished.Clear()
+		app.metrics.numMsgSent.Clear()
+		app.metrics.numAPIRequests.Clear()
+		app.metrics.numClientRequests.Clear()
+	}
 }
 
 func (app *Application) sendNodePingMsg() {
@@ -118,7 +183,7 @@ func (app *Application) cleanNodeInfo() {
 
 		app.nodesMu.Lock()
 		for uid, info := range app.nodes {
-			if time.Now().Unix()-info.Updated > int64(delay.Seconds()) {
+			if time.Now().Unix()-info.updated > int64(delay.Seconds()) {
 				delete(app.nodes, uid)
 			}
 		}
@@ -482,14 +547,15 @@ func (app *Application) pubDisconnect(user UserID) error {
 
 // pingCmd handles ping control command i.e. updates information about known nodes
 func (app *Application) pingCmd(cmd *pingControlCommand) error {
-	info := &nodeInfo{
+	info := NodeInfo{
 		Uid:      cmd.Uid,
 		Name:     cmd.Name,
 		Clients:  cmd.Clients,
 		Unique:   cmd.Unique,
 		Channels: cmd.Channels,
 		Started:  cmd.Started,
-		Updated:  time.Now().Unix(),
+		Metrics:  cmd.Metrics,
+		updated:  time.Now().Unix(),
 	}
 	app.nodesMu.Lock()
 	app.nodes[cmd.Uid] = info

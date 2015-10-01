@@ -135,6 +135,7 @@ type pingControlCommand struct {
 	Unique   int
 	Channels int
 	Started  int64
+	Metrics  Metrics
 }
 
 // unsubscribeControlCommand required when node received unsubscribe API command -
