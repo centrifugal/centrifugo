@@ -61,16 +61,20 @@ type Stats struct {
 
 type Metrics struct {
 	NumMsgPublished   int64 `json:"num_msg_published"`
+	NumMsgQueued      int64 `json:"num_msg_queued"`
 	NumMsgSent        int64 `json:"num_msg_sent"`
 	NumAPIRequests    int64 `json:"num_api_requests"`
 	NumClientRequests int64 `json:"num_client_requests"`
 	TimeAPIMean       int64 `json:"time_api_mean"`
 	TimeClientMean    int64 `json:"time_client_mean"`
+	TimeAPIMax        int64 `json:"time_api_max"`
+	TimeClientMax     int64 `json:"time_client_max"`
 }
 
 type metricsRegistry struct {
 	sync.RWMutex
 	numMsgPublished   metrics.Counter
+	numMsgQueued      metrics.Counter
 	numMsgSent        metrics.Counter
 	numAPIRequests    metrics.Counter
 	numClientRequests metrics.Counter
@@ -82,6 +86,7 @@ type metricsRegistry struct {
 func NewMetricsRegistry() *metricsRegistry {
 	return &metricsRegistry{
 		numMsgPublished:   metrics.NewCounter(),
+		numMsgQueued:      metrics.NewCounter(),
 		numMsgSent:        metrics.NewCounter(),
 		numAPIRequests:    metrics.NewCounter(),
 		numClientRequests: metrics.NewCounter(),
@@ -153,11 +158,14 @@ func (app *Application) updateMetrics() {
 
 		app.metrics.Lock()
 		app.metrics.metrics.NumMsgPublished = app.metrics.numMsgPublished.Count()
+		app.metrics.metrics.NumMsgQueued = app.metrics.numMsgQueued.Count()
 		app.metrics.metrics.NumMsgSent = app.metrics.numMsgSent.Count()
 		app.metrics.metrics.NumAPIRequests = app.metrics.numAPIRequests.Count()
 		app.metrics.metrics.NumClientRequests = app.metrics.numClientRequests.Count()
 		app.metrics.metrics.TimeAPIMean = int64(app.metrics.timeAPI.Mean())
 		app.metrics.metrics.TimeClientMean = int64(app.metrics.timeClient.Mean())
+		app.metrics.metrics.TimeAPIMax = int64(app.metrics.timeAPI.Max())
+		app.metrics.metrics.TimeClientMax = int64(app.metrics.timeClient.Max())
 		app.metrics.Unlock()
 
 		app.metrics.numMsgPublished.Clear()

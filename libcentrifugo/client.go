@@ -184,6 +184,7 @@ func (c *client) send(message string) error {
 	if !ok {
 		return ErrClientClosed
 	}
+	c.app.metrics.numMsgQueued.Inc(1)
 	return nil
 }
 
