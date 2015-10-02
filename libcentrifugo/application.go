@@ -169,6 +169,7 @@ func (app *Application) updateMetrics() {
 		app.metrics.Unlock()
 
 		app.metrics.numMsgPublished.Clear()
+		app.metrics.numMsgQueued.Clear()
 		app.metrics.numMsgSent.Clear()
 		app.metrics.numAPIRequests.Clear()
 		app.metrics.numClientRequests.Clear()
