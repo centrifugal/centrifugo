@@ -29,7 +29,7 @@
 		},
 		{
 			"ImportPath": "github.com/gorilla/websocket",
-			"Rev": "b6ab76f1fe9803ee1d59e7e5b2a797c1fe897ce5"
+			"Rev": "13e4d0621caa4d77fd9aa470ef6d7ab63d1a5e41"
 		},
 		{
 			"ImportPath": "github.com/kr/pretty",
