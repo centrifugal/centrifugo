@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"code.google.com/p/go.net/websocket"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/code.google.com/p/go.net/websocket"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 )
 

@@ -6,6 +6,11 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "code.google.com/p/go.net/websocket",
+			"Comment": "null-190",
+			"Rev": "69996db1c92211d9aea524512fe7feda6555200e"
+		},
+		{
 			"ImportPath": "github.com/BurntSushi/toml",
 			"Comment": "v0.1.0-21-g056c9bc",
 			"Rev": "056c9bc7be7190eaa7715723883caffa5f8fa3e4"
@@ -47,6 +52,10 @@
 		{
 			"ImportPath": "github.com/nu7hatch/gouuid",
 			"Rev": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
+		},
+		{
+			"ImportPath": "github.com/rcrowley/go-metrics",
+			"Rev": "dee209f2455f101a5e4e593dea94872d2c62d85d"
 		},
 		{
 			"ImportPath": "github.com/spf13/cast",
