@@ -14,18 +14,18 @@ type clientHub struct {
 	conns map[ConnID]clientConn
 
 	// registry to hold active client connections grouped by UserID.
-	users map[UserID]map[ConnID]bool
+	users map[UserID]map[ConnID]struct{}
 
 	// registry to hold active subscriptions of clients on channels.
-	subs map[ChannelID]map[ConnID]bool
+	subs map[ChannelID]map[ConnID]struct{}
 }
 
 // newClientHub initializes clientHub.
 func newClientHub() *clientHub {
 	return &clientHub{
 		conns: make(map[ConnID]clientConn),
-		users: make(map[UserID]map[ConnID]bool),
-		subs:  make(map[ChannelID]map[ConnID]bool),
+		users: make(map[UserID]map[ConnID]struct{}),
+		subs:  make(map[ChannelID]map[ConnID]struct{}),
 	}
 }
 
@@ -65,9 +65,9 @@ func (h *clientHub) add(c clientConn) error {
 
 	_, ok := h.users[user]
 	if !ok {
-		h.users[user] = make(map[ConnID]bool)
+		h.users[user] = make(map[ConnID]struct{})
 	}
-	h.users[user][uid] = true
+	h.users[user][uid] = struct{}{}
 	return nil
 }
 
@@ -134,9 +134,9 @@ func (h *clientHub) addSub(chID ChannelID, c clientConn) (bool, error) {
 
 	_, ok := h.subs[chID]
 	if !ok {
-		h.subs[chID] = make(map[ConnID]bool)
+		h.subs[chID] = make(map[ConnID]struct{})
 	}
-	h.subs[chID][uid] = true
+	h.subs[chID][uid] = struct{}{}
 	if !ok {
 		return true, nil
 	} else {
