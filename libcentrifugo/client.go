@@ -524,7 +524,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*response, error) {
 		c.expireTimer = time.AfterFunc(duration, c.expire)
 	}
 
-	body.Client = &c.UID
+	body.Client = c.UID
 	if connLifetime > 0 {
 		body.TTL = &connLifetime
 	}
