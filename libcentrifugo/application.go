@@ -104,7 +104,7 @@ type NodeInfo struct {
 	Channels   int    `json:"num_channels"`
 	Started    int64  `json:"started"`
 	Metrics
-	updated int64 `json:"-"`
+	updated int64
 }
 
 // NewApplication returns new Application instance, the only required argument is
