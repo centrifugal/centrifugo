@@ -24,7 +24,7 @@ type ChannelOptions struct {
 	HistorySize int `mapstructure:"history_size" json:"history_size"`
 
 	// HistoryLifetime determines time in seconds until expiration for history messages
-	HistoryLifetime time.Duration `mapstructure:"history_lifetime" json:"history_lifetime"`
+	HistoryLifetime int `mapstructure:"history_lifetime" json:"history_lifetime"`
 
 	// JoinLeave turns on(off) join/leave messages for channels
 	JoinLeave bool `mapstructure:"join_leave" json:"join_leave"`

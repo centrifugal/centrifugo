@@ -747,8 +747,6 @@ func (c *client) publishCmd(cmd *PublishClientCommand) (*response, error) {
 	channel := cmd.Channel
 	data := cmd.Data
 
-	logger.DEBUG.Println(data)
-
 	body := &PublishBody{
 		Channel: channel,
 	}
