@@ -20,10 +20,10 @@ type JoinLeaveBody struct {
 }
 
 type ConnectBody struct {
-	Version string  `json:"version"`
-	Client  *ConnID `json:"client"`
-	Expired bool    `json:"expired"`
-	TTL     *int64  `json:"ttl"`
+	Version string `json:"version"`
+	Client  ConnID `json:"client"`
+	Expired bool   `json:"expired"`
+	TTL     *int64 `json:"ttl"`
 }
 
 type RefreshBody struct {

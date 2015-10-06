@@ -64,7 +64,7 @@ func createTestClients(app *Application, nChannels, nChannelClients int) {
 	app.config.Insecure = true
 	for i := 0; i < nChannelClients; i++ {
 		c := newTestClient(app)
-		cmd := connectClientCommand{
+		cmd := ConnectClientCommand{
 			User: UserID(fmt.Sprintf("user-%d", i)),
 		}
 		resp, err := c.connectCmd(&cmd)
@@ -75,7 +75,7 @@ func createTestClients(app *Application, nChannels, nChannelClients int) {
 			panic(resp.err)
 		}
 		for j := 0; j < nChannels; j++ {
-			cmd := subscribeClientCommand{
+			cmd := SubscribeClientCommand{
 				Channel: Channel(fmt.Sprintf("channel-%d", j)),
 			}
 			resp, err = c.subscribeCmd(&cmd)
@@ -248,12 +248,12 @@ func BenchmarkSendReceive(b *testing.B) {
 	for _, c := range conns {
 		c.sess = &testSession{}
 		cli := app.newTestHandler(b, c.sess)
-		cmd := connectClientCommand{
+		cmd := ConnectClientCommand{
 			User: c.Uid,
 		}
 		cli.connectCmd(&cmd)
 		for _, ch := range c.Channels {
-			cmd := subscribeClientCommand{
+			cmd := SubscribeClientCommand{
 				Channel: ch,
 			}
 			resp, err := cli.subscribeCmd(&cmd)
