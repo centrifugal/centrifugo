@@ -44,7 +44,7 @@ type controlCommand struct {
 // in web application, additional connection information as JSON string, timestamp
 // with unix seconds on moment when connect parameters generated and HMAC token to
 // prove correctness of all those parameters
-type connectClientCommand struct {
+type ConnectClientCommand struct {
 	User      UserID
 	Timestamp string
 	Info      string
@@ -53,7 +53,7 @@ type connectClientCommand struct {
 
 // refreshClientCommand is used to prolong connection lifetime when connection check
 // mechanism is enabled. It can only be sent by client after successfull connect.
-type refreshClientCommand struct {
+type RefreshClientCommand struct {
 	User      UserID
 	Timestamp string
 	Info      string
@@ -63,7 +63,7 @@ type refreshClientCommand struct {
 // subscribeClientCommand is used to subscribe on channel.
 // It can only be sent by client after successfull connect.
 // It also can have Client, Info and Sign properties when channel is private.
-type subscribeClientCommand struct {
+type SubscribeClientCommand struct {
 	Channel Channel
 	Client  ConnID
 	Info    string
@@ -71,29 +71,29 @@ type subscribeClientCommand struct {
 }
 
 // unsubscribeClientCommand is used to unsubscribe from channel
-type unsubscribeClientCommand struct {
+type UnsubscribeClientCommand struct {
 	Channel Channel
 }
 
 // publishClientCommand is used to publish messages into channel
-type publishClientCommand struct {
+type PublishClientCommand struct {
 	Channel Channel
 	Data    json.RawMessage
 }
 
 // presenceClientCommand is used to get presence (actual channel subscriptions)
 // information for channel
-type presenceClientCommand struct {
+type PresenceClientCommand struct {
 	Channel Channel
 }
 
 // historyClientCommand is used to get history information for channel
-type historyClientCommand struct {
+type HistoryClientCommand struct {
 	Channel Channel
 }
 
 // pingClientCommand is used to ping server
-type pingClientCommand struct {
+type PingClientCommand struct {
 	Data string
 }
 
