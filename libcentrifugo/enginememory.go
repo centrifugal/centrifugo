@@ -168,6 +168,7 @@ func (h *memoryHistoryHub) initialize() {
 }
 
 func (h *memoryHistoryHub) expire() {
+	var nextCheck int64
 	for {
 		time.Sleep(time.Second)
 		h.Lock()
@@ -175,11 +176,13 @@ func (h *memoryHistoryHub) expire() {
 			h.Unlock()
 			continue
 		}
+		nextCheck = 0
 		for h.queue.Len() > 0 {
 			item := heap.Pop(&h.queue).(*priority.Item)
 			expireAt := item.Priority
 			if expireAt > time.Now().Unix() {
 				heap.Push(&h.queue, item)
+				nextCheck = expireAt
 				break
 			}
 			chID := ChannelID(item.Value)
@@ -191,7 +194,7 @@ func (h *memoryHistoryHub) expire() {
 				delete(h.history, chID)
 			}
 		}
-		h.nextCheck = h.nextCheck + 300
+		h.nextCheck = nextCheck
 		h.Unlock()
 	}
 }
@@ -204,7 +207,6 @@ func (h *memoryHistoryHub) add(chID ChannelID, message Message, size, lifetime i
 
 	expireAt := time.Now().Unix() + lifetime
 	heap.Push(&h.queue, &priority.Item{Value: string(chID), Priority: expireAt})
-
 	if !ok {
 		h.history[chID] = historyItem{
 			messages: []Message{message},
