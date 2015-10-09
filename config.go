@@ -44,7 +44,7 @@ func newConfig() *libcentrifugo.Config {
 	cfg.Insecure = viper.GetBool("insecure")
 
 	cfg.Secret = viper.GetString("secret")
-	cfg.ConnLifetime = time.Duration(viper.GetInt("connection_lifetime")) * time.Second
+	cfg.ConnLifetime = int64(viper.GetInt("connection_lifetime"))
 
 	cfg.Watch = viper.GetBool("watch")
 	cfg.Publish = viper.GetBool("publish")
