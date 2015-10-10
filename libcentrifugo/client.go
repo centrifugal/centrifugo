@@ -416,7 +416,7 @@ func (c *client) expire() {
 	defer c.Unlock()
 
 	c.app.RLock()
-	connLifetime := int64(c.app.config.ConnLifetime.Seconds())
+	connLifetime := c.app.config.ConnLifetime
 	c.app.RUnlock()
 
 	if connLifetime <= 0 {
@@ -452,7 +452,7 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*response, error) {
 	secret := c.app.config.Secret
 	insecure := c.app.config.Insecure
 	closeDelay := c.app.config.ExpiredConnectionCloseDelay
-	connLifetime := int64(c.app.config.ConnLifetime.Seconds())
+	connLifetime := c.app.config.ConnLifetime
 	version := c.app.config.Version
 	c.app.RUnlock()
 
@@ -563,7 +563,7 @@ func (c *client) refreshCmd(cmd *RefreshClientCommand) (*response, error) {
 
 	c.app.RLock()
 	closeDelay := c.app.config.ExpiredConnectionCloseDelay
-	connLifetime := int64(c.app.config.ConnLifetime.Seconds())
+	connLifetime := c.app.config.ConnLifetime
 	c.app.RUnlock()
 
 	if connLifetime > 0 {

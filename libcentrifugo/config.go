@@ -125,7 +125,7 @@ type Config struct {
 	Secret string
 
 	// ConnLifetime determines time until connection expire, 0 means no connection expire at all.
-	ConnLifetime time.Duration
+	ConnLifetime int64
 
 	// ChannelOptions embedded to config.
 	ChannelOptions
