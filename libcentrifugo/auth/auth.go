@@ -4,7 +4,7 @@ package auth
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"fmt"
+	"encoding/hex"
 )
 
 // Centrifugo uses sha256 as digest algorithm for HMAC tokens and signs
@@ -20,7 +20,7 @@ func GenerateClientToken(secret, user, timestamp, info string) string {
 	token.Write([]byte(user))
 	token.Write([]byte(timestamp))
 	token.Write([]byte(info))
-	return fmt.Sprintf("%02x", token.Sum(nil))
+	return hex.EncodeToString(token.Sum(nil))
 }
 
 // CheckClientToken validates correctness of provided (by client connection) token
@@ -37,7 +37,7 @@ func CheckClientToken(secret, user, timestamp, info, providedToken string) bool 
 func GenerateApiSign(secret string, data []byte) string {
 	sign := hmac.New(sha256.New, []byte(secret))
 	sign.Write(data)
-	return fmt.Sprintf("%02x", sign.Sum(nil))
+	return hex.EncodeToString(sign.Sum(nil))
 }
 
 // CheckApiSign validates correctness of provided (in HTTP API request) sign
@@ -57,7 +57,7 @@ func GenerateChannelSign(secret, client, channel, channelData string) string {
 	sign.Write([]byte(client))
 	sign.Write([]byte(channel))
 	sign.Write([]byte(channelData))
-	return fmt.Sprintf("%02x", sign.Sum(nil))
+	return hex.EncodeToString(sign.Sum(nil))
 }
 
 // CheckChannelSign validates a correctness of provided (in subscribe client command)
