@@ -1,7 +1,7 @@
 Centrifuge + Go = Centrifugo – harder, better, faster, stronger.
 
 Centrifugo is a real-time messaging server. This is a successor of 
-[Centrifuge](https://github.com/centrifugal/centrifuge). Please note that it can be used in conjuction with your application backend written in any language - Python, Ruby, Perl, PHP, Javascript, Java, Objective-C etc.
+[Centrifuge](https://github.com/centrifugal/centrifuge). Please note that it can be used in conjunction with your application backend written in any language - Python, Ruby, Perl, PHP, Javascript, Java, Objective-C etc.
 
 To understand what is it for and how it works – please, read 
 [documentation](http://fzambia.gitbooks.io/centrifugal/content/) of 
