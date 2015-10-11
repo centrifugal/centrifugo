@@ -489,6 +489,8 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*response, error) {
 
 	body := &ConnectBody{}
 	body.Version = version
+	body.Expires = connLifetime > 0
+	body.TTL = connLifetime
 
 	var timeToExpire int64 = 0
 
@@ -496,7 +498,6 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*response, error) {
 		timeToExpire := c.timestamp + connLifetime - time.Now().Unix()
 		if timeToExpire <= 0 {
 			body.Expired = true
-			body.TTL = &connLifetime
 			resp.Body = body
 			return resp, nil
 		}
@@ -525,15 +526,12 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*response, error) {
 	}
 
 	body.Client = c.UID
-	if connLifetime > 0 {
-		body.TTL = &connLifetime
-	}
 	resp.Body = body
 	return resp, nil
 }
 
 // refreshCmd handle refresh command to update connection with new
-// timestamp - this is only required when connection lifetime project option set.
+// timestamp - this is only required when connection lifetime option set.
 func (c *client) refreshCmd(cmd *RefreshClientCommand) (*response, error) {
 
 	resp := newResponse("refresh")
@@ -559,12 +557,17 @@ func (c *client) refreshCmd(cmd *RefreshClientCommand) (*response, error) {
 		return nil, ErrInvalidMessage
 	}
 
-	body := &RefreshBody{}
-
 	c.app.RLock()
 	closeDelay := c.app.config.ExpiredConnectionCloseDelay
 	connLifetime := c.app.config.ConnLifetime
+	version := c.app.config.Version
 	c.app.RUnlock()
+
+	body := &ConnectBody{}
+	body.Version = version
+	body.Expires = connLifetime > 0
+	body.TTL = connLifetime
+	body.Client = c.UID
 
 	if connLifetime > 0 {
 		// connection check enabled
@@ -579,9 +582,8 @@ func (c *client) refreshCmd(cmd *RefreshClientCommand) (*response, error) {
 			duration := time.Duration(timeToExpire)*time.Second + closeDelay
 			c.expireTimer = time.AfterFunc(duration, c.expire)
 		} else {
-			return nil, ErrConnectionExpired
+			body.Expired = true
 		}
-		body.TTL = &connLifetime
 	}
 	resp.Body = body
 	return resp, nil
