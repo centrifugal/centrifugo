@@ -117,3 +117,23 @@ func TestAPIHistory(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.err)
 }
+
+func TestAPIChannels(t *testing.T) {
+	app := testApp()
+	resp, err := app.channelsCmd()
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nil, resp.err)
+	app = testMemoryApp()
+	createTestClients(app, 10, 1)
+	resp, err = app.channelsCmd()
+	assert.Equal(t, nil, err)
+	body := resp.Body.(*ChannelsBody)
+	assert.Equal(t, 10, len(body.Data))
+}
+
+func TestAPIStats(t *testing.T) {
+	app := testApp()
+	resp, err := app.statsCmd()
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nil, resp.err)
+}

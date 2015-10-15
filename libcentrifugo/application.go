@@ -70,6 +70,7 @@ type Metrics struct {
 	TimeClientMean    int64 `json:"time_client_mean"`
 	TimeAPIMax        int64 `json:"time_api_max"`
 	TimeClientMax     int64 `json:"time_client_max"`
+	Updated           int64 `json:"updated"`
 }
 
 type metricsRegistry struct {
@@ -112,18 +113,18 @@ type NodeInfo struct {
 
 // NewApplication returns new Application instance, the only required argument is
 // config, structure and engine must be set via corresponding methods.
-func NewApplication(c *Config) (*Application, error) {
+func NewApplication(config *Config) (*Application, error) {
 	uid, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
 	app := &Application{
 		uid:     uid.String(),
-		nodes:   make(map[string]NodeInfo),
+		config:  config,
 		clients: newClientHub(),
 		admins:  newAdminHub(),
+		nodes:   make(map[string]NodeInfo),
 		started: time.Now().Unix(),
-		config:  c,
 		metrics: NewMetricsRegistry(),
 	}
 	return app, nil
@@ -168,6 +169,7 @@ func (app *Application) updateMetrics() {
 		app.metrics.metrics.TimeClientMean = int64(app.metrics.timeClient.Mean())
 		app.metrics.metrics.TimeAPIMax = int64(app.metrics.timeAPI.Max())
 		app.metrics.metrics.TimeClientMax = int64(app.metrics.timeClient.Max())
+		app.metrics.metrics.Updated = time.Now().Unix()
 		app.metrics.Unlock()
 
 		app.metrics.numMsgPublished.Clear()

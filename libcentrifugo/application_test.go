@@ -205,6 +205,15 @@ func testWrongControlCmd(uid string) []byte {
 	return cmdBytes
 }
 
+func TestPublish(t *testing.T) {
+	app := testApp()
+	app = testMemoryApp()
+	createTestClients(app, 10, 1)
+	data, _ := json.Marshal(map[string]string{"test": "publish"})
+	err := app.Publish(Channel("channel-0"), data, ConnID(""), nil)
+	assert.Equal(t, nil, err)
+}
+
 func TestControlMessages(t *testing.T) {
 	app := testApp()
 	app.Run()
