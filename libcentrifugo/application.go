@@ -15,9 +15,9 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
-// Application is a heart of Centrifugo – it internally manages connection, subscription
-// and admin hubs, maintains information about other Centrifugo nodes, keeps references to
-// config, engine and structure.
+// Application is a heart of Centrifugo – it internally manages client and admin hubs,
+// maintains information about other Centrifugo nodes, keeps references to
+// config, engine, metrics etc.
 type Application struct {
 	sync.RWMutex
 
@@ -29,11 +29,13 @@ type Application struct {
 
 	// nodes is a map with information about nodes known.
 	nodes map[string]NodeInfo
+
 	// nodesMu allows to synchronize access to nodes.
 	nodesMu sync.Mutex
 
 	// hub to manage client connections.
 	clients *clientHub
+
 	// hub to manage admin connections.
 	admins *adminHub
 
@@ -95,6 +97,7 @@ func NewMetricsRegistry() *metricsRegistry {
 	}
 }
 
+// NodeInfo contains information and statistics about Centrifugo node.
 type NodeInfo struct {
 	Uid        string `json:"uid"`
 	Name       string `json:"name"`
@@ -131,7 +134,7 @@ func NewApplication(c *Config) (*Application, error) {
 func (app *Application) Run() {
 	app.RLock()
 	if app.config.Insecure {
-		logger.WARN.Println("libcentrifugo: application in INSECURE MODE")
+		logger.WARN.Println("application running in INSECURE MODE")
 	}
 	app.RUnlock()
 	go app.sendNodePingMsg()
@@ -210,7 +213,7 @@ func (app *Application) cleanNodeInfo() {
 	}
 }
 
-// SetConfig binds config to application
+// SetConfig binds config to application.
 func (app *Application) SetConfig(c *Config) {
 	app.Lock()
 	defer app.Unlock()
@@ -220,18 +223,37 @@ func (app *Application) SetConfig(c *Config) {
 	}
 }
 
-// SetEngine binds engine to application
+// SetEngine binds engine to application.
 func (app *Application) SetEngine(e Engine) {
 	app.Lock()
 	defer app.Unlock()
 	app.engine = e
 }
 
-// SetMediator binds mediator to application
+// SetMediator binds mediator to application.
 func (app *Application) SetMediator(m Mediator) {
 	app.Lock()
 	defer app.Unlock()
 	app.mediator = m
+}
+
+func (app *Application) channels() ([]Channel, error) {
+	app.RLock()
+	controlChID := app.config.ControlChannel
+	adminChID := app.config.AdminChannel
+	app.RUnlock()
+	chIDs, err := app.engine.channels()
+	if err != nil {
+		return []Channel{}, err
+	}
+	prefix := app.channelIDPrefix()
+	channels := make([]Channel, 0, len(chIDs))
+	for _, chID := range chIDs {
+		if strings.HasPrefix(string(chID), prefix) && chID != controlChID && chID != adminChID {
+			channels = append(channels, Channel(string(chID)[len(prefix):]))
+		}
+	}
+	return channels, nil
 }
 
 func (app *Application) stats() Stats {
@@ -255,7 +277,7 @@ func (app *Application) stats() Stats {
 }
 
 // handleMsg called when new message of any type received by this node.
-// It looks at channel and decides which message handler to call
+// It looks at channel and decides which message handler to call.
 func (app *Application) handleMsg(chID ChannelID, message []byte) error {
 	switch chID {
 	case app.config.ControlChannel:
@@ -269,7 +291,7 @@ func (app *Application) handleMsg(chID ChannelID, message []byte) error {
 
 // controlMsg handles messages from control channel - control
 // messages used for internal communication between nodes to share state
-// or commands
+// or commands.
 func (app *Application) controlMsg(message []byte) error {
 
 	var cmd controlCommand
@@ -280,7 +302,7 @@ func (app *Application) controlMsg(message []byte) error {
 	}
 
 	if cmd.UID == app.uid {
-		// sent by this node
+		// Sent by this node.
 		return nil
 	}
 
@@ -320,20 +342,20 @@ func (app *Application) controlMsg(message []byte) error {
 }
 
 // adminMsg handles messages from admin channel - those messages
-// must be delivered to all admins connected to this node
+// must be delivered to all admins connected to this node.
 func (app *Application) adminMsg(message []byte) error {
 	return app.admins.broadcast(string(message))
 }
 
 // clientMsg handles messages published by web application or client
 // into channel. The goal of this method to deliver this message to all clients
-// on this node subscribed on channel
+// on this node subscribed on channel.
 func (app *Application) clientMsg(chID ChannelID, message []byte) error {
 	return app.clients.broadcast(chID, string(message))
 }
 
 // pubControl publishes message into control channel so all running
-// nodes will receive and handle it
+// nodes will receive and handle it.
 func (app *Application) pubControl(method string, params []byte) error {
 
 	raw := json.RawMessage(params)
@@ -355,14 +377,14 @@ func (app *Application) pubControl(method string, params []byte) error {
 }
 
 // pubAdmin publishes message into admin channel so all running
-// nodes will receive it and send to admins connected
+// nodes will receive it and send to admins connected.
 func (app *Application) pubAdmin(message []byte) error {
 	app.RLock()
 	defer app.RUnlock()
 	return app.engine.publish(app.config.AdminChannel, message)
 }
 
-// Message represents client message
+// Message represents client message.
 type Message struct {
 	UID       string           `json:"uid"`
 	Timestamp string           `json:"timestamp"`
@@ -453,7 +475,7 @@ func (app *Application) publish(ch Channel, data []byte, client ConnID, info *Cl
 }
 
 // pubClient publishes message into channel so all running nodes
-// will receive it and will send to all clients on node subscribed on channel
+// will receive it and will send to all clients on node subscribed on channel.
 func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte, client ConnID, info *ClientInfo) error {
 
 	message, err := newMessage(ch, data, client, info)
@@ -505,7 +527,7 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 }
 
 // pubJoinLeave allows to publish join message into channel when
-// someone subscribes on it or leave message when someone unsubscribed from channel
+// someone subscribes on it or leave message when someone unsubscribed from channel.
 func (app *Application) pubJoinLeave(ch Channel, method string, info ClientInfo) error {
 	chID := app.channelID(ch)
 	resp := newResponse(method)
@@ -521,7 +543,7 @@ func (app *Application) pubJoinLeave(ch Channel, method string, info ClientInfo)
 }
 
 // pubPing sends control ping message to all nodes - this message
-// contains information about current node
+// contains information about current node.
 func (app *Application) pubPing() error {
 	app.RLock()
 	defer app.RUnlock()
@@ -553,7 +575,7 @@ func (app *Application) pubPing() error {
 }
 
 // pubUnsubscribe publishes unsubscribe control message to all nodes – so all
-// nodes could unsubscribe user from channel
+// nodes could unsubscribe user from channel.
 func (app *Application) pubUnsubscribe(user UserID, ch Channel) error {
 
 	cmd := &unsubscribeControlCommand{
@@ -570,7 +592,7 @@ func (app *Application) pubUnsubscribe(user UserID, ch Channel) error {
 }
 
 // pubDisconnect publishes disconnect control message to all nodes – so all
-// nodes could disconnect user from Centrifugo
+// nodes could disconnect user from Centrifugo.
 func (app *Application) pubDisconnect(user UserID) error {
 
 	cmd := &disconnectControlCommand{
@@ -585,7 +607,7 @@ func (app *Application) pubDisconnect(user UserID) error {
 	return app.pubControl("disconnect", cmdBytes)
 }
 
-// pingCmd handles ping control command i.e. updates information about known nodes
+// pingCmd handles ping control command i.e. updates information about known nodes.
 func (app *Application) pingCmd(cmd *pingControlCommand) error {
 	info := cmd.Info
 	info.updated = time.Now().Unix()
@@ -607,18 +629,18 @@ func (app *Application) channelID(ch Channel) ChannelID {
 }
 
 // addConn registers authenticated connection in clientConnectionHub
-// this allows to make operations with user connection on demand
+// this allows to make operations with user connection on demand.
 func (app *Application) addConn(c clientConn) error {
 	return app.clients.add(c)
 }
 
-// removeConn removes client connection from connection registry
+// removeConn removes client connection from connection registry.
 func (app *Application) removeConn(c clientConn) error {
 	return app.clients.remove(c)
 }
 
 // addSub registers subscription of connection on channel in both
-// engine and clientSubscriptionHub
+// engine and clientSubscriptionHub.
 func (app *Application) addSub(ch Channel, c clientConn) error {
 	chID := app.channelID(ch)
 	first, err := app.clients.addSub(chID, c)
@@ -632,7 +654,7 @@ func (app *Application) addSub(ch Channel, c clientConn) error {
 }
 
 // removeSub removes subscription of connection on channel
-// from both engine and clientSubscriptionHub
+// from both engine and clientSubscriptionHub.
 func (app *Application) removeSub(ch Channel, c clientConn) error {
 	chID := app.channelID(ch)
 	empty, err := app.clients.removeSub(chID, c)
@@ -660,12 +682,12 @@ func (app *Application) Unsubscribe(user UserID, ch Channel) error {
 		}
 	}
 
-	// first unsubscribe on this node
+	// First unsubscribe on this node.
 	err := app.unsubscribeUser(user, ch)
 	if err != nil {
 		return ErrInternalServerError
 	}
-	// second send unsubscribe control message to other nodes
+	// Second send unsubscribe control message to other nodes.
 	err = app.pubUnsubscribe(user, ch)
 	if err != nil {
 		return ErrInternalServerError
@@ -674,7 +696,7 @@ func (app *Application) Unsubscribe(user UserID, ch Channel) error {
 }
 
 // unsubscribeUser unsubscribes user from channel on this node. If channel
-// is an empty string then user will be unsubscribed from all channels
+// is an empty string then user will be unsubscribed from all channels.
 func (app *Application) unsubscribeUser(user UserID, ch Channel) error {
 	userConnections := app.clients.userConnections(user)
 	for _, c := range userConnections {
@@ -717,7 +739,7 @@ func (app *Application) Disconnect(user UserID) error {
 	return nil
 }
 
-// disconnectUser closes client connections of user on current node
+// disconnectUser closes client connections of user on current node.
 func (app *Application) disconnectUser(user UserID) error {
 	userConnections := app.clients.userConnections(user)
 	for _, c := range userConnections {
@@ -729,7 +751,7 @@ func (app *Application) disconnectUser(user UserID) error {
 	return nil
 }
 
-// namespaceKey returns namespace key from channel name if exists
+// namespaceKey returns namespace key from channel name if exists.
 func (app *Application) namespaceKey(ch Channel) NamespaceKey {
 	cTrim := strings.TrimPrefix(string(ch), app.config.PrivateChannelPrefix)
 	parts := strings.SplitN(cTrim, app.config.NamespaceChannelBoundary, 2)
@@ -740,7 +762,7 @@ func (app *Application) namespaceKey(ch Channel) NamespaceKey {
 	}
 }
 
-// channelOpts returns channel options for channel using current application structure
+// channelOpts returns channel options for channel using current application structure.
 func (app *Application) channelOpts(ch Channel) (ChannelOptions, error) {
 	app.RLock()
 	defer app.RUnlock()
@@ -748,13 +770,13 @@ func (app *Application) channelOpts(ch Channel) (ChannelOptions, error) {
 	return app.config.channelOpts(nk)
 }
 
-// addPresence proxies presence adding to engine
+// addPresence proxies presence adding to engine.
 func (app *Application) addPresence(ch Channel, uid ConnID, info ClientInfo) error {
 	chID := app.channelID(ch)
 	return app.engine.addPresence(chID, uid, info)
 }
 
-// removePresence proxies presence removing to engine
+// removePresence proxies presence removing to engine.
 func (app *Application) removePresence(ch Channel, uid ConnID) error {
 	chID := app.channelID(ch)
 	return app.engine.removePresence(chID, uid)
@@ -785,7 +807,7 @@ func (app *Application) Presence(ch Channel) (map[ConnID]ClientInfo, error) {
 	return presence, nil
 }
 
-// addHistory proxies history message adding to engine
+// addHistory proxies history message adding to engine.
 func (app *Application) addHistory(ch Channel, message Message, size, lifetime int64) error {
 	chID := app.channelID(ch)
 	return app.engine.addHistory(chID, message, size, lifetime)
@@ -817,7 +839,7 @@ func (app *Application) History(ch Channel) ([]Message, error) {
 }
 
 // privateChannel checks if channel private and therefore subscription
-// request on it must be properly signed on web application backend
+// request on it must be properly signed on web application backend.
 func (app *Application) privateChannel(ch Channel) bool {
 	app.RLock()
 	defer app.RUnlock()
@@ -826,7 +848,7 @@ func (app *Application) privateChannel(ch Channel) bool {
 
 // userAllowed checks if user can subscribe on channel - as channel
 // can contain special part in the end to indicate which users allowed
-// to subscribe on it
+// to subscribe on it.
 func (app *Application) userAllowed(ch Channel, user UserID) bool {
 	app.RLock()
 	defer app.RUnlock()
@@ -845,7 +867,7 @@ func (app *Application) userAllowed(ch Channel, user UserID) bool {
 
 // clientAllowed checks if client can subscribe on channel - as channel
 // can contain special part in the end to indicate which client allowed
-// to subscribe on it
+// to subscribe on it.
 func (app *Application) clientAllowed(ch Channel, client ConnID) bool {
 	app.RLock()
 	defer app.RUnlock()
@@ -860,28 +882,27 @@ func (app *Application) clientAllowed(ch Channel, client ConnID) bool {
 	return false
 }
 
-// addAdminConn registers an admin connection in adminConnectionHub
+// addAdminConn registers an admin connection in adminConnectionHub.
 func (app *Application) addAdminConn(c adminConn) error {
 	return app.admins.add(c)
 }
 
-// removeAdminConn admin connection from adminConnectionHub
+// removeAdminConn admin connection from adminConnectionHub.
 func (app *Application) removeAdminConn(c adminConn) error {
 	return app.admins.remove(c)
 }
 
-// nChannels returns total amount of active channels on this node
+// nChannels returns total amount of active channels on this node.
 func (app *Application) nChannels() int {
 	return app.clients.nChannels()
 }
 
-// nClients returns total amount of client connections to this node
+// nClients returns total amount of client connections to this node.
 func (app *Application) nClients() int {
 	return app.clients.nClients()
 }
 
-// nUniqueClients returns total amount of unique client
-// connections to this node
+// nUniqueClients returns total amount of unique client connections to this node.
 func (app *Application) nUniqueClients() int {
 	return app.clients.nUniqueClients()
 }
@@ -903,7 +924,7 @@ func (app *Application) adminAuthToken() (string, error) {
 	return s.Encode(AuthTokenKey, AuthTokenValue)
 }
 
-// checkAdminAuthToken checks admin connection token which Centrifugo returns after admin login
+// checkAdminAuthToken checks admin connection token which Centrifugo returns after admin login.
 func (app *Application) checkAdminAuthToken(token string) error {
 
 	app.RLock()

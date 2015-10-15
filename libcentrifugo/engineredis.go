@@ -411,29 +411,25 @@ func (e *RedisEngine) history(chID ChannelID) ([]Message, error) {
 	return sliceOfMessages(reply, nil)
 }
 
-func sliceOfChannels(result interface{}, prefix string, err error) ([]Channel, error) {
+func sliceOfChannelIDs(result interface{}, prefix string, err error) ([]ChannelID, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err
 	}
-	channels := make([]Channel, len(values))
+	channels := make([]ChannelID, len(values))
 	for i := 0; i < len(values); i += 1 {
 		value, okValue := values[i].([]byte)
 		if !okValue {
 			return nil, errors.New("error getting ChannelID value")
 		}
-		chID := string(value)
-		if len(chID) <= len(prefix) {
-			return nil, errors.New("malformed ChannelID returned from Redis")
-		}
-		channel := chID[len(prefix):]
-		channels[i] = Channel(channel)
+		chID := ChannelID(value)
+		channels[i] = chID
 	}
 	return channels, nil
 }
 
 // Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
-func (e *RedisEngine) channels() ([]Channel, error) {
+func (e *RedisEngine) channels() ([]ChannelID, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 	prefix := e.app.channelIDPrefix()
@@ -442,5 +438,5 @@ func (e *RedisEngine) channels() ([]Channel, error) {
 		println(err.Error())
 		return nil, err
 	}
-	return sliceOfChannels(reply, prefix, nil)
+	return sliceOfChannelIDs(reply, prefix, nil)
 }

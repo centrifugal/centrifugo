@@ -42,6 +42,6 @@ func (e *testEngine) history(chID ChannelID) ([]Message, error) {
 	return []Message{}, nil
 }
 
-func (e *testEngine) channels() ([]Channel, error) {
-	return []Channel{}, nil
+func (e *testEngine) channels() ([]ChannelID, error) {
+	return []ChannelID{}, nil
 }

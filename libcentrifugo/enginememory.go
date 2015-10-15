@@ -2,7 +2,6 @@ package libcentrifugo
 
 import (
 	"container/heap"
-	"strings"
 	"sync"
 	"time"
 
@@ -65,16 +64,8 @@ func (e *MemoryEngine) history(chID ChannelID) ([]Message, error) {
 	return e.historyHub.get(chID)
 }
 
-func (e *MemoryEngine) channels() ([]Channel, error) {
-	chIDs := e.app.clients.channels()
-	prefix := e.app.channelIDPrefix()
-	channels := []Channel{}
-	for _, chID := range chIDs {
-		if strings.HasPrefix(string(chID), prefix) {
-			channels = append(channels, Channel(string(chID)[len(prefix):]))
-		}
-	}
-	return channels, nil
+func (e *MemoryEngine) channels() ([]ChannelID, error) {
+	return e.app.clients.channels(), nil
 }
 
 type memoryPresenceHub struct {

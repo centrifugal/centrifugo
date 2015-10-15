@@ -151,7 +151,7 @@ func (app *Application) channelsCmd() (*response, error) {
 	resp := newResponse("channels")
 	body := &ChannelsBody{}
 	resp.Body = body
-	channels, err := app.engine.channels()
+	channels, err := app.channels()
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp.Err(ErrInternalServerError)
