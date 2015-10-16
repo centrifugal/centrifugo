@@ -77,26 +77,38 @@ func NewSockJSHandler(app *Application, sockjsPrefix string, sockjsOpts sockjs.O
 	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, app.sockJSHandler)
 }
 
-type sockjsSessionWrapper struct {
-	sess sockjs.Session
+type sockjsConn struct {
+	sess    sockjs.Session
+	closeCh chan struct{}
 }
 
-func (w *sockjsSessionWrapper) Send(msg []byte) error {
-	return w.sess.Send(string(msg))
+func newSockjsConn(sess sockjs.Session) *sockjsConn {
+	return &sockjsConn{
+		sess:    sess,
+		closeCh: make(chan struct{}),
+	}
 }
 
-func (w *sockjsSessionWrapper) Close(status uint32, reason string) error {
-	return w.sess.Close(status, reason)
+func (conn *sockjsConn) Send(msg []byte) error {
+	select {
+	case <-conn.closeCh:
+		return nil
+	default:
+		return conn.sess.Send(string(msg))
+	}
+}
+
+func (conn *sockjsConn) Close(status uint32, reason string) error {
+	return conn.sess.Close(status, reason)
 }
 
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (app *Application) sockJSHandler(s sockjs.Session) {
 
-	sessWrap := &sockjsSessionWrapper{
-		sess: s,
-	}
+	conn := newSockjsConn(s)
+	defer close(conn.closeCh)
 
-	c, err := newClient(app, sessWrap)
+	c, err := newClient(app, conn)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return
