@@ -56,8 +56,8 @@ type Application struct {
 }
 
 type Stats struct {
-	Nodes    []NodeInfo `json:"nodes"`
-	Interval int64      `json:"interval"`
+	Nodes           []NodeInfo `json:"nodes"`
+	MetricsInterval int64      `json:"metrics_interval"`
 }
 
 type Metrics struct {
@@ -72,7 +72,6 @@ type Metrics struct {
 	TimeClientMean    int64 `json:"time_client_mean"`
 	TimeAPIMax        int64 `json:"time_api_max"`
 	TimeClientMax     int64 `json:"time_client_max"`
-	Updated           int64 `json:"updated"`
 }
 
 type metricsRegistry struct {
@@ -112,7 +111,7 @@ type NodeInfo struct {
 	Clients    int    `json:"num_clients"`
 	Unique     int    `json:"num_unique_clients"`
 	Channels   int    `json:"num_channels"`
-	Started    int64  `json:"started"`
+	Started    int64  `json:"started_at"`
 	Metrics
 	updated int64
 }
@@ -177,7 +176,6 @@ func (app *Application) updateMetrics() {
 		app.metrics.metrics.TimeClientMax = int64(app.metrics.timeClient.Max())
 		app.metrics.metrics.BytesClientIn = app.metrics.bytesClientIn.Count()
 		app.metrics.metrics.BytesClientOut = app.metrics.bytesClientOut.Count()
-		app.metrics.metrics.Updated = time.Now().Unix()
 		app.metrics.Unlock()
 
 		app.metrics.numMsgPublished.Clear()
@@ -283,8 +281,8 @@ func (app *Application) stats() Stats {
 	app.RUnlock()
 
 	return Stats{
-		Interval: int64(interval.Seconds()),
-		Nodes:    nodes,
+		MetricsInterval: int64(interval.Seconds()),
+		Nodes:           nodes,
 	}
 }
 
