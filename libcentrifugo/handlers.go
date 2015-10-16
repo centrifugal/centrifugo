@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/websocket"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/gopkg.in/igm/sockjs-go.v2/sockjs"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
+	"github.com/centrifugal/centrifugo/sockjs-go/sockjs"
 )
 
 // MuxOptions contain various options for DefaultMux.
@@ -90,7 +90,7 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 
 	for {
 		if msg, err := s.Recv(); err == nil {
-			err = c.message([]byte(msg))
+			err = c.message(msg)
 			if err != nil {
 				logger.ERROR.Println(err)
 				s.Close(CloseStatus, "error handling message")
@@ -137,12 +137,12 @@ func (conn *wsConn) ping() {
 	}
 }
 
-func (conn *wsConn) Send(message string) error {
+func (conn *wsConn) Send(message []byte) error {
 	select {
 	case <-conn.closeCh:
 		return nil
 	default:
-		return conn.ws.WriteMessage(websocket.TextMessage, []byte(message))
+		return conn.ws.WriteMessage(websocket.TextMessage, message)
 	}
 }
 

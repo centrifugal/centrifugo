@@ -66,6 +66,8 @@ type Metrics struct {
 	NumMsgSent        int64 `json:"num_msg_sent"`
 	NumAPIRequests    int64 `json:"num_api_requests"`
 	NumClientRequests int64 `json:"num_client_requests"`
+	BytesClientIn     int64 `json:"bytes_client_in"`
+	BytesClientOut    int64 `json:"bytes_client_out"`
 	TimeAPIMean       int64 `json:"time_api_mean"`
 	TimeClientMean    int64 `json:"time_client_mean"`
 	TimeAPIMax        int64 `json:"time_api_max"`
@@ -80,6 +82,8 @@ type metricsRegistry struct {
 	numMsgSent        metrics.Counter
 	numAPIRequests    metrics.Counter
 	numClientRequests metrics.Counter
+	bytesClientIn     metrics.Counter
+	bytesClientOut    metrics.Counter
 	timeAPI           metrics.Timer
 	timeClient        metrics.Timer
 	metrics           *Metrics
@@ -92,6 +96,8 @@ func NewMetricsRegistry() *metricsRegistry {
 		numMsgSent:        metrics.NewCounter(),
 		numAPIRequests:    metrics.NewCounter(),
 		numClientRequests: metrics.NewCounter(),
+		bytesClientIn:     metrics.NewCounter(),
+		bytesClientOut:    metrics.NewCounter(),
 		timeAPI:           metrics.NewCustomTimer(metrics.NewHistogram(metrics.NewExpDecaySample(1028, 2)), metrics.NewMeter()),
 		timeClient:        metrics.NewCustomTimer(metrics.NewHistogram(metrics.NewExpDecaySample(1028, 2)), metrics.NewMeter()),
 		metrics:           &Metrics{},
@@ -169,6 +175,8 @@ func (app *Application) updateMetrics() {
 		app.metrics.metrics.TimeClientMean = int64(app.metrics.timeClient.Mean())
 		app.metrics.metrics.TimeAPIMax = int64(app.metrics.timeAPI.Max())
 		app.metrics.metrics.TimeClientMax = int64(app.metrics.timeClient.Max())
+		app.metrics.metrics.BytesClientIn = app.metrics.bytesClientIn.Count()
+		app.metrics.metrics.BytesClientOut = app.metrics.bytesClientOut.Count()
 		app.metrics.metrics.Updated = time.Now().Unix()
 		app.metrics.Unlock()
 
@@ -177,6 +185,8 @@ func (app *Application) updateMetrics() {
 		app.metrics.numMsgSent.Clear()
 		app.metrics.numAPIRequests.Clear()
 		app.metrics.numClientRequests.Clear()
+		app.metrics.bytesClientIn.Clear()
+		app.metrics.bytesClientOut.Clear()
 	}
 }
 
@@ -353,7 +363,7 @@ func (app *Application) adminMsg(message []byte) error {
 // into channel. The goal of this method to deliver this message to all clients
 // on this node subscribed on channel.
 func (app *Application) clientMsg(chID ChannelID, message []byte) error {
-	return app.clients.broadcast(chID, string(message))
+	return app.clients.broadcast(chID, message)
 }
 
 // pubControl publishes message into control channel so all running

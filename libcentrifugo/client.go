@@ -30,7 +30,7 @@ type client struct {
 	authenticated bool
 	channelInfo   map[Channel][]byte
 	Channels      map[Channel]bool
-	messages      stringqueue.StringQueue
+	messages      stringqueue.ByteQueue
 	closeChan     chan struct{}
 	expireTimer   *time.Timer
 }
@@ -79,7 +79,7 @@ func (c *client) sendMessages() {
 	}
 }
 
-func (c *client) sendMsgTimeout(msg string) error {
+func (c *client) sendMsgTimeout(msg []byte) error {
 	c.app.RLock()
 	sendTimeout := c.app.config.MessageSendTimeout
 	c.app.RUnlock()
@@ -89,6 +89,7 @@ func (c *client) sendMsgTimeout(msg string) error {
 		sent := make(chan error)
 		go func() {
 			c.app.metrics.numMsgSent.Inc(1)
+			c.app.metrics.bytesClientOut.Inc(int64(len(msg)))
 			sent <- c.sess.Send(msg)
 		}()
 		select {
@@ -101,6 +102,7 @@ func (c *client) sendMsgTimeout(msg string) error {
 		// Do not use any timeout when sending, it's recommended to keep
 		// Centrifugo behind properly configured reverse proxy.
 		c.app.metrics.numMsgSent.Inc(1)
+		c.app.metrics.bytesClientOut.Inc(int64(len(msg)))
 		return c.sess.Send(msg)
 	}
 	panic("unreachable")
@@ -179,7 +181,7 @@ func (c *client) unsubscribe(ch Channel) error {
 	return nil
 }
 
-func (c *client) send(message string) error {
+func (c *client) send(message []byte) error {
 	ok := c.messages.Add(message)
 	if !ok {
 		return ErrClientClosed
@@ -281,6 +283,7 @@ func cmdFromClientMsg(msgBytes []byte) ([]clientCommand, error) {
 
 func (c *client) message(msg []byte) error {
 	c.app.metrics.numClientRequests.Inc(1)
+	c.app.metrics.bytesClientIn.Inc(int64(len(msg)))
 	defer c.app.metrics.timeClient.UpdateSince(time.Now())
 
 	if len(msg) == 0 {
@@ -316,7 +319,7 @@ func (c *client) handleCommands(commands []clientCommand) error {
 	if err != nil {
 		return err
 	}
-	err = c.send(string(jsonResp))
+	err = c.send(jsonResp)
 	return err
 }
 

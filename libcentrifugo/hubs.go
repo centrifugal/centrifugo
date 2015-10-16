@@ -174,7 +174,7 @@ func (h *clientHub) removeSub(chID ChannelID, c clientConn) (bool, error) {
 }
 
 // broadcast sends message to all clients subscribed on channel.
-func (h *clientHub) broadcast(chID ChannelID, message string) error {
+func (h *clientHub) broadcast(chID ChannelID, message []byte) error {
 	h.RLock()
 	defer h.RUnlock()
 

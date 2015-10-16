@@ -10,7 +10,7 @@ type clientConn interface {
 	// channels returns a slice of channels connection subscribed to.
 	channels() []Channel
 	// send allows to send message to connection client.
-	send(message string) error
+	send(message []byte) error
 	// unsubscribe allows to unsubscribe connection from channel.
 	unsubscribe(ch Channel) error
 	// close closes client's connection.
