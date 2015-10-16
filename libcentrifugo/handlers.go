@@ -11,7 +11,7 @@ import (
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/websocket"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
-	"github.com/centrifugal/centrifugo/sockjs-go/sockjs"
+	"github.com/centrifugal/centrifugo/libcentrifugo/sockjs"
 )
 
 // MuxOptions contain various options for DefaultMux.
