@@ -75,6 +75,9 @@ func (c *client) sendMessages() {
 		if err != nil {
 			logger.INFO.Println("error sending to", c.uid(), err.Error())
 			c.sess.Close(CloseStatus, "error sending message")
+		} else {
+			c.app.metrics.numMsgSent.Inc(1)
+			c.app.metrics.bytesClientOut.Inc(int64(len(msg)))
 		}
 	}
 }
@@ -88,8 +91,6 @@ func (c *client) sendMsgTimeout(msg []byte) error {
 		to := time.After(sendTimeout)
 		sent := make(chan error)
 		go func() {
-			c.app.metrics.numMsgSent.Inc(1)
-			c.app.metrics.bytesClientOut.Inc(int64(len(msg)))
 			sent <- c.sess.Send(msg)
 		}()
 		select {
@@ -101,8 +102,6 @@ func (c *client) sendMsgTimeout(msg []byte) error {
 	} else {
 		// Do not use any timeout when sending, it's recommended to keep
 		// Centrifugo behind properly configured reverse proxy.
-		c.app.metrics.numMsgSent.Inc(1)
-		c.app.metrics.bytesClientOut.Inc(int64(len(msg)))
 		return c.sess.Send(msg)
 	}
 	panic("unreachable")
