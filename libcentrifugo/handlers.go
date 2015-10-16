@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/websocket"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/gopkg.in/igm/sockjs-go.v2/sockjs"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
-	"github.com/centrifugal/centrifugo/libcentrifugo/sockjs"
 )
 
 // MuxOptions contain various options for DefaultMux.
@@ -77,10 +77,26 @@ func NewSockJSHandler(app *Application, sockjsPrefix string, sockjsOpts sockjs.O
 	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, app.sockJSHandler)
 }
 
+type sockjsSessionWrapper struct {
+	sess sockjs.Session
+}
+
+func (w *sockjsSessionWrapper) Send(msg []byte) error {
+	return w.sess.Send(string(msg))
+}
+
+func (w *sockjsSessionWrapper) Close(status uint32, reason string) error {
+	return w.sess.Close(status, reason)
+}
+
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (app *Application) sockJSHandler(s sockjs.Session) {
 
-	c, err := newClient(app, s)
+	sessWrap := &sockjsSessionWrapper{
+		sess: s,
+	}
+
+	c, err := newClient(app, sessWrap)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return
@@ -90,7 +106,7 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 
 	for {
 		if msg, err := s.Recv(); err == nil {
-			err = c.message(msg)
+			err = c.message([]byte(msg))
 			if err != nil {
 				logger.ERROR.Println(err)
 				s.Close(CloseStatus, "error handling message")
@@ -515,7 +531,7 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		if err != nil {
 			break
 		} else {
-			err := c.send(string(msgBytes))
+			err := c.send(msgBytes)
 			if err != nil {
 				break
 			}

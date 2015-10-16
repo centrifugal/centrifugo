@@ -356,7 +356,7 @@ func (app *Application) controlMsg(message []byte) error {
 // adminMsg handles messages from admin channel - those messages
 // must be delivered to all admins connected to this node.
 func (app *Application) adminMsg(message []byte) error {
-	return app.admins.broadcast(string(message))
+	return app.admins.broadcast(message)
 }
 
 // clientMsg handles messages published by web application or client

@@ -13,7 +13,7 @@ type testClientConn struct {
 	Uid      UserID
 	Channels []Channel
 
-	Messages []string
+	Messages [][]byte
 	Closed   bool
 	sess     *testSession
 }
@@ -37,7 +37,7 @@ func (c *testClientConn) channels() []Channel {
 	return c.Channels
 }
 
-func (c *testClientConn) send(message string) error {
+func (c *testClientConn) send(message []byte) error {
 	c.Messages = append(c.Messages, message)
 	return nil
 }
@@ -104,7 +104,7 @@ func TestSubHub(t *testing.T) {
 	}
 	assert.Equal(t, stringInSlice("test1", channels), true)
 	assert.Equal(t, stringInSlice("test2", channels), true)
-	err := h.broadcast("test1", "message")
+	err := h.broadcast("test1", []byte("message"))
 	assert.Equal(t, err, nil)
 	h.removeSub("test1", c)
 	h.removeSub("test2", c)
@@ -117,7 +117,7 @@ func TestAdminHub(t *testing.T) {
 	err := h.add(c)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(h.connections), 1)
-	err = h.broadcast("message")
+	err = h.broadcast([]byte("message"))
 	assert.Equal(t, err, nil)
 	err = h.remove(c)
 	assert.Equal(t, err, nil)
@@ -150,7 +150,7 @@ func BenchmarkSubHubBroadCast(b *testing.B) {
 		i := 0
 		for pb.Next() {
 			ch := ChannelID(fmt.Sprintf("chan-%d", i%totChannels))
-			h.broadcast(ch, fmt.Sprintf("message %d", i))
+			h.broadcast(ch, []byte(fmt.Sprintf("message %d", i)))
 			i++
 		}
 	})

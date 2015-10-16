@@ -8,8 +8,8 @@ import (
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
-	"github.com/centrifugal/centrifugo/libcentrifugo/stringqueue"
 )
 
 const (
@@ -30,7 +30,7 @@ type client struct {
 	authenticated bool
 	channelInfo   map[Channel][]byte
 	Channels      map[Channel]bool
-	messages      stringqueue.ByteQueue
+	messages      bytequeue.ByteQueue
 	closeChan     chan struct{}
 	expireTimer   *time.Timer
 }
@@ -54,7 +54,7 @@ func newClient(app *Application, s session) (*client, error) {
 		UID:       ConnID(uid.String()),
 		app:       app,
 		sess:      s,
-		messages:  stringqueue.New(),
+		messages:  bytequeue.New(),
 		closeChan: make(chan struct{}),
 	}
 	go c.sendMessages()

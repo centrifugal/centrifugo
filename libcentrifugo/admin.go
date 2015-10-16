@@ -40,9 +40,9 @@ func (c *adminClient) uid() ConnID {
 	return c.UID
 }
 
-func (c *adminClient) send(message string) error {
+func (c *adminClient) send(message []byte) error {
 	select {
-	case c.writeChan <- []byte(message):
+	case c.writeChan <- message:
 	default:
 		logger.ERROR.Println("can't write into admin ws connection write channel")
 		return ErrInternalServerError

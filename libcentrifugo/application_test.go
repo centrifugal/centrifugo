@@ -15,7 +15,7 @@ type testSession struct {
 	closed bool
 }
 
-func (t *testSession) Send(msg string) error {
+func (t *testSession) Send(msg []byte) error {
 	atomic.AddInt64(&t.n, 1)
 	return nil
 }

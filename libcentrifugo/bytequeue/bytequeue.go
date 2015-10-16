@@ -1,11 +1,11 @@
-// Package stringqueue provides []byte queue for libcentrifugo package client messages.
-package stringqueue
+// Package bytequeue provides []byte queue for libcentrifugo package client messages.
+package bytequeue
 
 import (
 	"sync"
 )
 
-// ByteQueue is an unbounded queue of []bytes.
+// ByteQueue is an unbounded queue of []byte.
 // The queue is goroutine safe.
 // Inspired by http://blog.dubbelboer.com/2015/04/25/go-faster-queue.html (MIT)
 type ByteQueue interface {

@@ -23,5 +23,5 @@ type adminConn interface {
 	// uid returns unique admin connection id.
 	uid() ConnID
 	// send allows to send message to admin connection.
-	send(message string) error
+	send(message []byte) error
 }

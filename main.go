@@ -12,9 +12,9 @@ import (
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/cobra"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/viper"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/gopkg.in/igm/sockjs-go.v2/sockjs"
 	"github.com/centrifugal/centrifugo/libcentrifugo"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
-	"github.com/centrifugal/centrifugo/libcentrifugo/sockjs"
 )
 
 const (

@@ -1,4 +1,4 @@
-package stringqueue
+package bytequeue
 
 import (
 	"strconv"
@@ -15,19 +15,19 @@ func TestStringQueueResize(t *testing.T) {
 
 	i := 0
 	for i < initialCapacity {
-		q.Add(strconv.Itoa(i))
+		q.Add([]byte(strconv.Itoa(i)))
 		i++
 	}
 	assert.Equal(t, initialCapacity, q.Cap())
-	q.Add("resize here")
+	q.Add([]byte("resize here"))
 	assert.Equal(t, initialCapacity*2, q.Cap())
 	q.Remove()
 	// back to initial capacity
 	assert.Equal(t, initialCapacity, q.Cap())
 
-	q.Add("new resize here")
+	q.Add([]byte("new resize here"))
 	assert.Equal(t, initialCapacity*2, q.Cap())
-	q.Add("one more item, no resize must happen")
+	q.Add([]byte("one more item, no resize must happen"))
 	assert.Equal(t, initialCapacity*2, q.Cap())
 
 	assert.Equal(t, initialCapacity+2, q.Len())
@@ -35,24 +35,24 @@ func TestStringQueueResize(t *testing.T) {
 
 func TestStringQueueWait(t *testing.T) {
 	q := New()
-	q.Add("1")
-	q.Add("2")
+	q.Add([]byte("1"))
+	q.Add([]byte("2"))
 
 	s, ok := q.Wait()
 	assert.Equal(t, true, ok)
-	assert.Equal(t, "1", s)
+	assert.Equal(t, "1", string(s))
 
 	s, ok = q.Wait()
 	assert.Equal(t, true, ok)
-	assert.Equal(t, "2", s)
+	assert.Equal(t, "2", string(s))
 
 	go func() {
-		q.Add("3")
+		q.Add([]byte("3"))
 	}()
 
 	s, ok = q.Wait()
 	assert.Equal(t, true, ok)
-	assert.Equal(t, "3", s)
+	assert.Equal(t, "3", string(s))
 
 }
 
@@ -63,11 +63,11 @@ func TestStringQueueClose(t *testing.T) {
 	_, ok := q.Remove()
 	assert.Equal(t, false, ok)
 
-	q.Add("1")
-	q.Add("2")
+	q.Add([]byte("1"))
+	q.Add([]byte("2"))
 	q.Close()
 
-	ok = q.Add("3")
+	ok = q.Add([]byte("3"))
 	assert.Equal(t, false, ok)
 
 	_, ok = q.Wait()
@@ -84,7 +84,7 @@ func BenchmarkQueueAdd(b *testing.B) {
 	q := New()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		q.Add("test")
+		q.Add([]byte("test"))
 	}
 	b.StopTimer()
 	q.Close()

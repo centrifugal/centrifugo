@@ -268,7 +268,7 @@ func (h *adminHub) remove(c adminConn) error {
 }
 
 // broadcast sends message to all connected admins.
-func (h *adminHub) broadcast(message string) error {
+func (h *adminHub) broadcast(message []byte) error {
 	h.RLock()
 	defer h.RUnlock()
 	for _, c := range h.connections {
