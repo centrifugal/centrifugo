@@ -57,7 +57,7 @@ func handleSignals(app *libcentrifugo.Application) {
 					logger.CRITICAL.Printf("Error parsing configuration: %s\n", err)
 					continue
 				default:
-					logger.CRITICAL.Println("Unable to locate config file")
+					logger.CRITICAL.Println("No config file found")
 					continue
 				}
 			}
@@ -177,11 +177,13 @@ func Main() {
 
 			viper.SetConfigFile(configFile)
 
+			logger.INFO.Printf("Process PID: %d", os.Getpid())
+
 			absConfPath, err := filepath.Abs(configFile)
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
-			logger.INFO.Println("Config file:", absConfPath)
+			logger.INFO.Println("Config file search path:", absConfPath)
 
 			err = viper.ReadInConfig()
 			if err != nil {
@@ -189,7 +191,7 @@ func Main() {
 				case viper.ConfigParseError:
 					logger.FATAL.Fatalf("Error parsing configuration: %s\n", err)
 				default:
-					logger.FATAL.Fatalln("Unable to locate config file")
+					logger.WARN.Println("No config file found")
 				}
 			}
 
@@ -214,6 +216,13 @@ func Main() {
 			app, err := libcentrifugo.NewApplication(c)
 			if err != nil {
 				logger.FATAL.Fatalln(err)
+			}
+
+			if c.Insecure {
+				logger.WARN.Println("application running in INSECURE client mode")
+			}
+			if c.InsecureAPI {
+				logger.WARN.Println("application running in INSECURE API mode")
 			}
 
 			var e libcentrifugo.Engine
@@ -249,14 +258,7 @@ func Main() {
 				}
 			}
 			app.SetEngine(e)
-
 			app.Run()
-			if c.Insecure {
-				logger.WARN.Println("application running in INSECURE client mode")
-			}
-			if c.InsecureAPI {
-				logger.WARN.Println("application running in INSECURE API mode")
-			}
 
 			go handleSignals(app)
 

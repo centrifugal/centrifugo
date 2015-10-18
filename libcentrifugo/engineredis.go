@@ -435,7 +435,6 @@ func (e *RedisEngine) channels() ([]ChannelID, error) {
 	prefix := e.app.channelIDPrefix()
 	reply, err := conn.Do("PUBSUB", "CHANNELS", prefix+"*")
 	if err != nil {
-		println(err.Error())
 		return nil, err
 	}
 	return sliceOfChannelIDs(reply, prefix, nil)
