@@ -219,6 +219,9 @@ func TestClientConnect(t *testing.T) {
 
 	assert.Equal(t, 1, len(app.clients.conns))
 
+	assert.NotEqual(t, "", c.uid(), "uid must be already set")
+	assert.NotEqual(t, "", c.user(), "user must be already set")
+
 	err = c.clean()
 	assert.Equal(t, nil, err)
 
@@ -273,6 +276,7 @@ func TestClientSubscribe(t *testing.T) {
 	assert.Equal(t, 1, len(c.channels()))
 
 	assert.Equal(t, 1, len(app.clients.subs))
+	assert.Equal(t, 1, len(c.channels()))
 
 	err = c.clean()
 	assert.Equal(t, nil, err)
@@ -318,6 +322,22 @@ func TestClientUnsubscribe(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	assert.Equal(t, 0, len(app.clients.subs))
+}
+
+func TestClientUnsubscribeExternal(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+
+	err = c.unsubscribe(Channel("test"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 0, len(app.clients.subs))
+	assert.Equal(t, 0, len(c.channels()))
 }
 
 func TestClientPresence(t *testing.T) {

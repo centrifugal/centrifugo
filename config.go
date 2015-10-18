@@ -11,11 +11,12 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/viper" // newConfig creates new libcentrifugo.Config using viper.
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/viper"
 	"github.com/centrifugal/centrifugo/libcentrifugo"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
+// newConfig creates new libcentrifugo.Config using viper.
 func newConfig() *libcentrifugo.Config {
 	cfg := &libcentrifugo.Config{}
 	cfg.Version = VERSION
@@ -42,6 +43,7 @@ func newConfig() *libcentrifugo.Config {
 	cfg.ClientChannelBoundary = viper.GetString("client_channel_boundary")
 	cfg.ExpiredConnectionCloseDelay = time.Duration(viper.GetInt("expired_connection_close_delay")) * time.Second
 	cfg.Insecure = viper.GetBool("insecure")
+	cfg.InsecureAPI = viper.GetBool("insecure_api")
 
 	cfg.Secret = viper.GetString("secret")
 	cfg.ConnLifetime = int64(viper.GetInt("connection_lifetime"))

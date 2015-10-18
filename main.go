@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -74,7 +76,6 @@ func handleSignals(app *libcentrifugo.Application) {
 	}
 }
 
-// Main runs Centrifugo as a service.
 func Main() {
 
 	var port string
@@ -86,6 +87,7 @@ func Main() {
 	var logLevel string
 	var logFile string
 	var insecure bool
+	var insecureAPI bool
 	var useSSL bool
 	var sslCert string
 	var sslKey string
@@ -139,6 +141,7 @@ func Main() {
 			viper.SetEnvPrefix("centrifugo")
 			viper.BindEnv("engine")
 			viper.BindEnv("insecure")
+			viper.BindEnv("insecure_api")
 			viper.BindEnv("web_password")
 			viper.BindEnv("web_secret")
 			viper.BindEnv("secret")
@@ -158,6 +161,7 @@ func Main() {
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
 			viper.BindPFlag("engine", cmd.Flags().Lookup("engine"))
 			viper.BindPFlag("insecure", cmd.Flags().Lookup("insecure"))
+			viper.BindPFlag("insecure_api", cmd.Flags().Lookup("insecure_api"))
 			viper.BindPFlag("ssl", cmd.Flags().Lookup("ssl"))
 			viper.BindPFlag("ssl_cert", cmd.Flags().Lookup("ssl_cert"))
 			viper.BindPFlag("ssl_key", cmd.Flags().Lookup("ssl_key"))
@@ -173,7 +177,13 @@ func Main() {
 
 			viper.SetConfigFile(configFile)
 
-			err := viper.ReadInConfig()
+			absConfPath, err := filepath.Abs(configFile)
+			if err != nil {
+				logger.FATAL.Fatalln(err)
+			}
+			logger.INFO.Println("Config file:", absConfPath)
+
+			err = viper.ReadInConfig()
 			if err != nil {
 				switch err.(type) {
 				case viper.ConfigParseError:
@@ -194,7 +204,6 @@ func Main() {
 			}
 
 			logger.INFO.Println("GOMAXPROCS set to", runtime.GOMAXPROCS(0))
-			logger.INFO.Println("Using config file:", viper.ConfigFileUsed())
 
 			c := newConfig()
 			err = c.Validate()
@@ -242,6 +251,12 @@ func Main() {
 			app.SetEngine(e)
 
 			app.Run()
+			if c.Insecure {
+				logger.WARN.Println("application running in INSECURE client mode")
+			}
+			if c.InsecureAPI {
+				logger.WARN.Println("application running in INSECURE API mode")
+			}
 
 			go handleSignals(app)
 
@@ -265,7 +280,7 @@ func Main() {
 
 			mux := libcentrifugo.DefaultMux(app, muxOpts)
 
-			addr := viper.GetString("address") + ":" + viper.GetString("port")
+			addr := net.JoinHostPort(viper.GetString("address"), viper.GetString("port"))
 			logger.INFO.Printf("Start serving on %s\n", addr)
 			if useSSL {
 				if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
@@ -285,7 +300,8 @@ func Main() {
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
 	rootCmd.Flags().StringVarP(&web, "web", "w", "", "optional path to web interface application")
 	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
-	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure mode")
+	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure client mode")
+	rootCmd.Flags().BoolVarP(&insecureAPI, "insecure_api", "", false, "use insecure API mode")
 	rootCmd.Flags().BoolVarP(&useSSL, "ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
 	rootCmd.Flags().StringVarP(&sslCert, "ssl_cert", "", "", "path to an X509 certificate file")
 	rootCmd.Flags().StringVarP(&sslKey, "ssl_key", "", "", "path to an X509 certificate key")

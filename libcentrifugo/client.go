@@ -228,6 +228,8 @@ func (c *client) clean() error {
 		c.app.mediator.Disconnect(c.UID, c.User)
 	}
 
+	c.authenticated = false
+
 	return nil
 }
 

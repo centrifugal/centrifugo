@@ -118,8 +118,13 @@ type Config struct {
 	// Insecure turns on insecure mode - when it's turned on then no authentication
 	// required at all when connecting to Centrifugo, anonymous access and publish
 	// allowed for all channels, no connection check performed. This can be suitable
-	// for demonstration or personal usage
+	// for demonstration or personal usage.
 	Insecure bool
+	// InsecureAPI turns on insecure mode for HTTP API calls. This means that no
+	// API sign required when sending commands. This can be useful if you don't want
+	// to sign every request - for example if you closed API endpoint with firewall
+	// or you want to play with API commands from command line using CURL.
+	InsecureAPI bool
 
 	// Secret is a secret key, used to sign API requests and client connection tokens.
 	Secret string

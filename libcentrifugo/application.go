@@ -138,11 +138,6 @@ func NewApplication(config *Config) (*Application, error) {
 // Run performs all startup actions. At moment must be called once on start after engine and
 // structure set.
 func (app *Application) Run() {
-	app.RLock()
-	if app.config.Insecure {
-		logger.WARN.Println("application running in INSECURE MODE")
-	}
-	app.RUnlock()
 	go app.sendNodePingMsg()
 	go app.cleanNodeInfo()
 	go app.updateMetrics()

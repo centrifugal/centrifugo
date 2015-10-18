@@ -278,7 +278,12 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 		data = []byte(r.FormValue("data"))
 	}
 
-	if sign == "" {
+	app.RLock()
+	secret := app.config.Secret
+	insecure := app.config.InsecureAPI
+	app.RUnlock()
+
+	if sign == "" && !insecure {
 		logger.ERROR.Println("no sign found in API request")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -290,21 +295,18 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.RLock()
-	secret := app.config.Secret
-	app.RUnlock()
-
-	if secret == "" {
-		logger.ERROR.Println("no secret set in config")
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-
-	isValid := auth.CheckApiSign(secret, data, sign)
-	if !isValid {
-		logger.ERROR.Println("invalid sign")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+	if !insecure {
+		if secret == "" {
+			logger.ERROR.Println("no secret set in config")
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		isValid := auth.CheckApiSign(secret, data, sign)
+		if !isValid {
+			logger.ERROR.Println("invalid sign")
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 	}
 
 	commands, err := cmdFromAPIMsg(data)
