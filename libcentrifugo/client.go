@@ -499,7 +499,7 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*response, error) {
 	var timeToExpire int64 = 0
 
 	if connLifetime > 0 && !insecure {
-		timeToExpire := c.timestamp + connLifetime - time.Now().Unix()
+		timeToExpire = c.timestamp + connLifetime - time.Now().Unix()
 		if timeToExpire <= 0 {
 			body.Expired = true
 			resp.Body = body
