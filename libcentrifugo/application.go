@@ -120,7 +120,10 @@ func (app *Application) updateMetrics() {
 		var mem runtime.MemStats
 		runtime.ReadMemStats(&mem)
 
-		cpu := cpuUsage()
+		cpu, err := cpuUsage()
+		if err != nil {
+			logger.DEBUG.Println(err)
+		}
 
 		app.metrics.Lock()
 		app.metrics.metrics.CPU = cpu

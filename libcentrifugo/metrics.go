@@ -2,6 +2,7 @@ package libcentrifugo
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"os/exec"
 	"strconv"
@@ -9,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
-	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
 type Metrics struct {
@@ -57,21 +57,22 @@ func NewMetricsRegistry() *metricsRegistry {
 	}
 }
 
-func cpuUsage() int64 {
+// cpuUsage is the simplest possible method to extract CPU usage info on most of platforms
+// Centrifugo runs. I have not found a more sophisticated cross platform way to extract
+// this info without using CGO.
+func cpuUsage() (int64, error) {
 	cmd := exec.Command("ps", "aux")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
 	if err != nil {
-		logger.DEBUG.Println(err)
-		return 0
+		return 0, err
 	}
 	currentPID := os.Getpid()
 	for {
 		line, err := out.ReadString('\n')
 		if err != nil {
-			logger.DEBUG.Println(err)
-			return 0
+			return 0, err
 		}
 		tokens := strings.Split(line, " ")
 		ft := make([]string, 0)
@@ -89,11 +90,9 @@ func cpuUsage() int64 {
 		}
 		cpu, err := strconv.ParseFloat(ft[2], 64)
 		if err != nil {
-			logger.DEBUG.Println(err)
-			return 0
+			return 0, err
 		}
-		return int64(cpu)
+		return int64(cpu), nil
 	}
-	logger.DEBUG.Println("no cpu info found")
-	return 0
+	return 0, errors.New("no cpu info found")
 }
