@@ -7,12 +7,12 @@ one application. You don't need to use `project key` anymore. Changes resulted i
 configuration file format. The only required option is `secret` now. See updated documentation 
 to see how to set `secret`.
 
-As this is v1 release I'll try to be more careful about backwards compatibility with libraries in 
-future. But all backwards incompatibilities here means that all you need to to is update related Centrifugal libraries you are using and slightly change configuration file.
+As this is v1 release I'll try to be more careful about backwards compatibility with libraries in future.
 
 Changes in this release are:
 
 * works with single project only. No more `project key`. `secret` the only required configuration option.
+* web interface is now embedded, this means that downloading binary release you get possibility to run Centrifugo web interface just providing `--web` flag when starting process.
 * when `secret` set via environment variable `CENTRIFUGO_SECRET` then configuration file is not required anymore. But when Centrifugo configured via environment variables it's not possible to reload configuration sending HUP signal to process.
 * new `stats` command to export various stats and metrics over API call.
 * new `insecure_api` option to turn on insecure HTTP API mode. Read more [in docs chapter](https://fzambia.gitbooks.io/centrifugal/content/mixed/insecure_mode.html).
@@ -29,7 +29,28 @@ Also if you are interested take a look at [centrifuge-go](https://github.com/cen
 How to migrate
 --------------
 
-Use new versions of Centrifugal libraries. Project key not needed in client connection parameters, in client token generation, in HTTP API client initialization.
+* Use new versions of Centrifugal libraries. Project key not needed in client connection parameters, in client token generation, in HTTP API client initialization.
+* `--web` is now a boolean flag. Previously it was used to set path to admin web interface. Now it indicates whether or not Centrifugo must serve web interface. To provide path to custom web application directory use `--web_path` string option.
+
+I.e. before v1 you started Centrifugo like this to use web interface:
+
+```
+centrifugo --config=config.json --web=/path/to/web/app
+```
+
+Now all you need to do is run:
+
+```
+centrifugo --config=config.json --web
+```
+
+And no need to download web interface repository at all! Just run command above and check http://localhost:8000.
+
+If you don't want to use embedded web interface you can still specify path to your own web interface directory:
+
+```
+centrifugo --config=config.json --web --web_path=/path/to/web/app
+```
 
 
 v0.3.0

@@ -17,7 +17,9 @@ import (
 // MuxOptions contain various options for DefaultMux.
 type MuxOptions struct {
 	Prefix        string
-	WebDir        string
+	Web           bool
+	WebPath       string
+	WebFS         http.FileSystem
 	SockjsOptions sockjs.Options
 }
 
@@ -32,7 +34,9 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	prefix := muxOpts.Prefix
-	webDir := muxOpts.WebDir
+	web := muxOpts.Web
+	webPath := muxOpts.WebPath
+	webFS := muxOpts.WebFS
 
 	app.RLock()
 	debug := app.config.Debug
@@ -59,12 +63,18 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 	mux.Handle(prefix+"/auth/", app.Logged(http.HandlerFunc(app.AuthHandler)))
 	mux.Handle(prefix+"/info/", app.Logged(app.Authenticated(http.HandlerFunc(app.InfoHandler))))
 	mux.Handle(prefix+"/action/", app.Logged(app.Authenticated(http.HandlerFunc(app.ActionHandler))))
-	mux.Handle(prefix+"/socket", app.Logged(http.HandlerFunc(app.AdminWebsocketHandler)))
 
-	// optionally serve admin web interface application
-	if webDir != "" {
-		webPrefix := prefix + "/"
-		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webDir))))
+	// optionally serve admin web interface
+	if web {
+		mux.Handle(prefix+"/socket", app.Logged(http.HandlerFunc(app.AdminWebsocketHandler)))
+
+		if webPath != "" {
+			webPrefix := prefix + "/"
+			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webPath))))
+		} else if webFS != nil {
+			webPrefix := prefix + "/"
+			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(webFS)))
+		}
 	}
 
 	return mux

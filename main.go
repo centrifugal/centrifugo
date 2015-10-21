@@ -67,7 +67,7 @@ func handleSignals(app *libcentrifugo.Application) {
 			logger.INFO.Println("Configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt:
 			logger.INFO.Println("Shutting down")
-			go time.AfterFunc(5*time.Second, func() {
+			go time.AfterFunc(20*time.Second, func() {
 				os.Exit(1)
 			})
 			app.Shutdown()
@@ -82,7 +82,8 @@ func Main() {
 	var address string
 	var debug bool
 	var name string
-	var web string
+	var web bool
+	var webPath string
 	var engn string
 	var logLevel string
 	var logFile string
@@ -109,9 +110,10 @@ func Main() {
 			viper.SetDefault("gomaxprocs", 0)
 			viper.SetDefault("debug", false)
 			viper.SetDefault("prefix", "")
+			viper.SetDefault("web", false)
+			viper.SetDefault("web_path", "")
 			viper.SetDefault("web_password", "")
 			viper.SetDefault("web_secret", "")
-			viper.RegisterAlias("cookie_secret", "web_secret")
 			viper.SetDefault("max_channel_length", 255)
 			viper.SetDefault("channel_prefix", "centrifugo")
 			viper.SetDefault("node_ping_interval", 5)
@@ -159,6 +161,7 @@ func Main() {
 			viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
+			viper.BindPFlag("web_path", cmd.Flags().Lookup("web_path"))
 			viper.BindPFlag("engine", cmd.Flags().Lookup("engine"))
 			viper.BindPFlag("insecure", cmd.Flags().Lookup("insecure"))
 			viper.BindPFlag("insecure_api", cmd.Flags().Lookup("insecure_api"))
@@ -177,6 +180,7 @@ func Main() {
 
 			viper.SetConfigFile(configFile)
 
+			logger.INFO.Printf("Centrifugo version: %s", VERSION)
 			logger.INFO.Printf("Process PID: %d", os.Getpid())
 
 			absConfPath, err := filepath.Abs(configFile)
@@ -274,9 +278,16 @@ func Main() {
 			}
 			sockjsOpts.HeartbeatDelay = c.PingInterval
 
+			var webFS http.FileSystem
+			if viper.GetBool("web") {
+				webFS = assetFS()
+			}
+
 			muxOpts := libcentrifugo.MuxOptions{
 				Prefix:        viper.GetString("prefix"),
-				WebDir:        viper.GetString("web"),
+				Web:           viper.GetBool("web"),
+				WebPath:       viper.GetString("web_path"),
+				WebFS:         webFS,
 				SockjsOptions: sockjsOpts,
 			}
 
@@ -300,7 +311,8 @@ func Main() {
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "debug mode - please, do not use it in production")
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
-	rootCmd.Flags().StringVarP(&web, "web", "w", "", "optional path to web interface application")
+	rootCmd.Flags().BoolVarP(&web, "web", "w", false, "serve admin web interface application")
+	rootCmd.Flags().StringVarP(&webPath, "web_path", "", "", "optional path to web interface application")
 	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
 	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolVarP(&insecureAPI, "insecure_api", "", false, "use insecure API mode")
