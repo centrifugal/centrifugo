@@ -11,7 +11,6 @@ import (
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/securecookie"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
@@ -60,49 +59,6 @@ type Stats struct {
 	MetricsInterval int64      `json:"metrics_interval"`
 }
 
-type Metrics struct {
-	NumMsgPublished   int64 `json:"num_msg_published"`
-	NumMsgQueued      int64 `json:"num_msg_queued"`
-	NumMsgSent        int64 `json:"num_msg_sent"`
-	NumAPIRequests    int64 `json:"num_api_requests"`
-	NumClientRequests int64 `json:"num_client_requests"`
-	BytesClientIn     int64 `json:"bytes_client_in"`
-	BytesClientOut    int64 `json:"bytes_client_out"`
-	TimeAPIMean       int64 `json:"time_api_mean"`
-	TimeClientMean    int64 `json:"time_client_mean"`
-	TimeAPIMax        int64 `json:"time_api_max"`
-	TimeClientMax     int64 `json:"time_client_max"`
-}
-
-type metricsRegistry struct {
-	sync.RWMutex
-	numMsgPublished   metrics.Counter
-	numMsgQueued      metrics.Counter
-	numMsgSent        metrics.Counter
-	numAPIRequests    metrics.Counter
-	numClientRequests metrics.Counter
-	bytesClientIn     metrics.Counter
-	bytesClientOut    metrics.Counter
-	timeAPI           metrics.Timer
-	timeClient        metrics.Timer
-	metrics           *Metrics
-}
-
-func NewMetricsRegistry() *metricsRegistry {
-	return &metricsRegistry{
-		numMsgPublished:   metrics.NewCounter(),
-		numMsgQueued:      metrics.NewCounter(),
-		numMsgSent:        metrics.NewCounter(),
-		numAPIRequests:    metrics.NewCounter(),
-		numClientRequests: metrics.NewCounter(),
-		bytesClientIn:     metrics.NewCounter(),
-		bytesClientOut:    metrics.NewCounter(),
-		timeAPI:           metrics.NewCustomTimer(metrics.NewHistogram(metrics.NewExpDecaySample(1028, 2)), metrics.NewMeter()),
-		timeClient:        metrics.NewCustomTimer(metrics.NewHistogram(metrics.NewExpDecaySample(1028, 2)), metrics.NewMeter()),
-		metrics:           &Metrics{},
-	}
-}
-
 // NodeInfo contains information and statistics about Centrifugo node.
 type NodeInfo struct {
 	Uid        string `json:"uid"`
@@ -112,6 +68,8 @@ type NodeInfo struct {
 	Unique     int    `json:"num_unique_clients"`
 	Channels   int    `json:"num_channels"`
 	Started    int64  `json:"started_at"`
+	Gomaxprocs int    `json:"gomaxprocs"`
+	NumCPU     int    `json:"num_cpu"`
 	Metrics
 	updated int64
 }
@@ -159,7 +117,14 @@ func (app *Application) updateMetrics() {
 		app.RUnlock()
 		time.Sleep(interval)
 
+		var mem runtime.MemStats
+		runtime.ReadMemStats(&mem)
+
+		cpu := cpuUsage()
+
 		app.metrics.Lock()
+		app.metrics.metrics.CPU = cpu
+		app.metrics.metrics.MemSys = int64(mem.Sys)
 		app.metrics.metrics.NumMsgPublished = app.metrics.numMsgPublished.Count()
 		app.metrics.metrics.NumMsgQueued = app.metrics.numMsgQueued.Count()
 		app.metrics.metrics.NumMsgSent = app.metrics.numMsgSent.Count()
@@ -561,6 +526,8 @@ func (app *Application) pubPing() error {
 		Channels:   app.nChannels(),
 		Started:    app.started,
 		Goroutines: runtime.NumGoroutine(),
+		NumCPU:     runtime.NumCPU(),
+		Gomaxprocs: runtime.GOMAXPROCS(-1),
 		Metrics:    *app.metrics.metrics,
 	}
 	cmd := &pingControlCommand{Info: info}
