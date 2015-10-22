@@ -16,6 +16,10 @@
 			"Rev": "056c9bc7be7190eaa7715723883caffa5f8fa3e4"
 		},
 		{
+			"ImportPath": "github.com/elazarl/go-bindata-assetfs",
+			"Rev": "d5cac425555ca5cf00694df246e04f05e6a55150"
+		},
+		{
 			"ImportPath": "github.com/garyburd/redigo/internal",
 			"Rev": "535138d7bcd717d6531c701ef5933d98b1866257"
 		},
