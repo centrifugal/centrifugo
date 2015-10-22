@@ -50,7 +50,9 @@ func TestRawWsHandler(t *testing.T) {
 
 func TestAdminWebsocketHandler(t *testing.T) {
 	app := testApp()
-	mux := DefaultMux(app, DefaultMuxOptions)
+	opts := DefaultMuxOptions
+	opts.Web = true
+	mux := DefaultMux(app, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
