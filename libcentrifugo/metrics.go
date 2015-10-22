@@ -12,20 +12,47 @@ import (
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/rcrowley/go-metrics"
 )
 
+// Metrics contains various Centrifugo statistic and metric information aggregated
+// once in a configurable interval.
 type Metrics struct {
-	NumMsgPublished   int64 `json:"num_msg_published"`
-	NumMsgQueued      int64 `json:"num_msg_queued"`
-	NumMsgSent        int64 `json:"num_msg_sent"`
-	NumAPIRequests    int64 `json:"num_api_requests"`
+	// NumMsgPublished is how many messages were published into channels.
+	NumMsgPublished int64 `json:"num_msg_published"`
+
+	// NumMsgQueued is how many messages were put into client queues.
+	NumMsgQueued int64 `json:"num_msg_queued"`
+
+	// NumMsgSent is how many messages were actually sent into client connections.
+	NumMsgSent int64 `json:"num_msg_sent"`
+
+	// NumAPIRequests shows amount of requests to server API.
+	NumAPIRequests int64 `json:"num_api_requests"`
+
+	// NumClientRequests shows amount of requests to client API.
 	NumClientRequests int64 `json:"num_client_requests"`
-	BytesClientIn     int64 `json:"bytes_client_in"`
-	BytesClientOut    int64 `json:"bytes_client_out"`
-	TimeAPIMean       int64 `json:"time_api_mean"`
-	TimeClientMean    int64 `json:"time_client_mean"`
-	TimeAPIMax        int64 `json:"time_api_max"`
-	TimeClientMax     int64 `json:"time_client_max"`
-	MemSys            int64 `json:"memory_sys"`
-	CPU               int64 `json:"cpu_usage"`
+
+	// BytesClientIn shows amount of data in bytes coming into client API.
+	BytesClientIn int64 `json:"bytes_client_in"`
+
+	// BytesClientOut shows amount of data in bytes coming out if client API.
+	BytesClientOut int64 `json:"bytes_client_out"`
+
+	// TimeAPIMean shows mean response time in nanoseconds to API requests.
+	TimeAPIMean int64 `json:"time_api_mean"`
+
+	// TimeClientMean shows mean response time in nanoseconds to client requests.
+	TimeClientMean int64 `json:"time_client_mean"`
+
+	// TimeAPIMax shows maximum response time to API request.
+	TimeAPIMax int64 `json:"time_api_max"`
+
+	// TimeClientMax shows maximum response time to client request.
+	TimeClientMax int64 `json:"time_client_max"`
+
+	// MemSys shows system memory usage in bytes.
+	MemSys int64 `json:"memory_sys"`
+
+	// CPU shows cpu usage in percents.
+	CPU int64 `json:"cpu_usage"`
 }
 
 type metricsRegistry struct {
@@ -42,7 +69,7 @@ type metricsRegistry struct {
 	metrics           *Metrics
 }
 
-func NewMetricsRegistry() *metricsRegistry {
+func newMetricsRegistry() *metricsRegistry {
 	return &metricsRegistry{
 		numMsgPublished:   metrics.NewCounter(),
 		numMsgQueued:      metrics.NewCounter(),

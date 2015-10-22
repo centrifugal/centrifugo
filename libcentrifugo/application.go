@@ -88,7 +88,7 @@ func NewApplication(config *Config) (*Application, error) {
 		admins:  newAdminHub(),
 		nodes:   make(map[string]NodeInfo),
 		started: time.Now().Unix(),
-		metrics: NewMetricsRegistry(),
+		metrics: newMetricsRegistry(),
 	}
 	return app, nil
 }
