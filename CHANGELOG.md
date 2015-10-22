@@ -1,35 +1,33 @@
 v1.0.0
 ======
 
-I have a bad and a good news for you. Let's start with good one. Centrifugo is still real-time messaging server and just got v1 release. The bad – I've broken backwards compatibility with previous versions. Actually there is just one change that ruins compatibility – starting
-from this release Centrifugo won't support multiple registered projects. It will work with only
-one application. You don't need to use `project key` anymore. Changes resulted in simplified
-configuration file format. The only required option is `secret` now. See updated documentation 
-to see how to set `secret`.
+A bad and a good news for you. Let's start with a good one. Centrifugo is still real-time messaging server and just got v1.0 release. The bad – it is not fully backwards compatible with previous versions. Actually there is just two changes that ruin compatibility and must be adapted at your side.
 
-As this is v1 release I'll try to be more careful about backwards compatibility with libraries in future.
+Starting from this release Centrifugo won't support multiple registered projects. It will work with only one application. You don't need to use `project key` anymore. Changes resulted in simplified
+configuration file format. The only required option is `secret` now. See updated documentation 
+to see how to set `secret`. Also cheanges opened a way for exporting Centrifugo node statistics via HTTP API `stats` command.
+
+As this is v1 release we'll try to be more careful about backwards compatibility with libraries in future. But as we are trying to make a good software required changes will be done if needed.
 
 Changes in this release are:
 
-* works with single project only. No more `project key`. `secret` the only required configuration option.
-* web interface is now embedded, this means that downloading binary release you get possibility to run Centrifugo web interface just providing `--web` flag when starting process.
-* when `secret` set via environment variable `CENTRIFUGO_SECRET` then configuration file is not required anymore. But when Centrifugo configured via environment variables it's not possible to reload configuration sending HUP signal to process.
-* new `stats` command to export various stats and metrics over API call.
+* Centrifugo now works with single project only. No more `project key`. `secret` the only required configuration option.
+* web interface is now embedded, this means that when downloading release you get possibility to run Centrifugo web interface just providing `--web` flag to `centrifugo` when starting process.
+* when `secret` set via environment variable `CENTRIFUGO_SECRET` then configuration file is not required anymore. But note, that when Centrifugo configured via environment variables it's not possible to reload configuration sending HUP signal to process.
+* new `stats` command added to export various node stats and metrics via HTTP API call.
 * new `insecure_api` option to turn on insecure HTTP API mode. Read more [in docs chapter](https://fzambia.gitbooks.io/centrifugal/content/mixed/insecure_mode.html).
-* minor clean-ups in client protocol. As protocol incapsulated in javascript client library you only need to update it.
+* minor clean-ups in client protocol. But as protocol incapsulated in javascript client library you only need to update it.
 
-I've updated and released all API and client libraries I support. centrifuge-js, Cent, Adjacent. API clients for Ruby and PHP will be updated in near future.
-
-Admin web interface was also updated to support changes introduced here.
+[Documentation](https://fzambia.gitbooks.io/centrifugal/content/) was updated to fit all these release notes. Also all API and client libraries were updated – Javascript browser client (`centrifuge-js`), Python API client (`cent`), Django helper module (`adjacent`). API clients for Ruby (`centrifuge-ruby`) and PHP (`phpcent`) too. Admin web interface was also updated to support changes introduced here.
 
 There are 2 new API libraries: [gocent](https://github.com/centrifugal/gocent) and [jscent](https://github.com/centrifugal/jscent). First for Go language. And second for NodeJS.
 
-Also if you are interested take a look at [centrifuge-go](https://github.com/centrifugal/centrifuge-go) experimental Centrifugo client for Go language.
+Also if you are interested take a look at [centrifuge-go](https://github.com/centrifugal/centrifuge-go) – experimental Centrifugo client for Go language. It allows to connect to Centrifugo from non-browser environment. Also it can be used as a reference to make client in another language (I still hoping that clients to use from Android and IOS apps appear one day).
 
 How to migrate
 --------------
 
-* Use new versions of Centrifugal libraries. Project key not needed in client connection parameters, in client token generation, in HTTP API client initialization.
+* Use new versions of Centrifugal libraries - browser client and API client. Project key not needed in client connection parameters, in client token generation, in HTTP API client initialization.
 * `--web` is now a boolean flag. Previously it was used to set path to admin web interface. Now it indicates whether or not Centrifugo must serve web interface. To provide path to custom web application directory use `--web_path` string option.
 
 I.e. before v1 you started Centrifugo like this to use web interface:
