@@ -20,10 +20,8 @@ import (
 )
 
 const (
-	VERSION = "0.3.0"
+	VERSION = "1.0.0"
 )
-
-var configFile string
 
 func setupLogging() {
 	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString("log_level"))]
@@ -67,7 +65,7 @@ func handleSignals(app *libcentrifugo.Application) {
 			logger.INFO.Println("Configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt:
 			logger.INFO.Println("Shutting down")
-			go time.AfterFunc(20*time.Second, func() {
+			go time.AfterFunc(10*time.Second, func() {
 				os.Exit(1)
 			})
 			app.Shutdown()
@@ -77,6 +75,8 @@ func handleSignals(app *libcentrifugo.Application) {
 }
 
 func Main() {
+
+	var configFile string
 
 	var port string
 	var address string
@@ -104,7 +104,7 @@ func Main() {
 	var rootCmd = &cobra.Command{
 		Use:   "",
 		Short: "Centrifugo",
-		Long:  "Centrifuge + GO = Centrifugo – harder, better, faster, stronger",
+		Long:  "Centrifugo. Real-time messaging (Websockets or SockJS) server in Go.",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			viper.SetDefault("gomaxprocs", 0)
@@ -209,7 +209,7 @@ func Main() {
 				}
 			}
 
-			logger.INFO.Println("GOMAXPROCS set to", runtime.GOMAXPROCS(0))
+			logger.INFO.Println("GOMAXPROCS:", runtime.GOMAXPROCS(0))
 
 			c := newConfig()
 			err = c.Validate()
@@ -245,7 +245,7 @@ func Main() {
 					viper.GetInt("redis_pool"),
 				)
 			default:
-				logger.FATAL.Fatalln("unknown engine: " + viper.GetString("engine"))
+				logger.FATAL.Fatalln("Unknown engine: " + viper.GetString("engine"))
 			}
 
 			logger.INFO.Println("Engine:", viper.GetString("engine"))
@@ -268,9 +268,12 @@ func Main() {
 
 			sockjsOpts := sockjs.DefaultOptions
 
+			// Override sockjs url. It's important to use the same SockJS library version
+			// on client and server sides, otherwise SockJS will report version mismatch
+			// and won't work.
 			sockjsUrl := viper.GetString("sockjs_url")
 			if sockjsUrl != "" {
-				logger.INFO.Println("Using SockJS url", sockjsUrl)
+				logger.INFO.Println("SockJS url:", sockjsUrl)
 				sockjsOpts.SockJSURL = sockjsUrl
 			}
 			if c.PingInterval < time.Second {
