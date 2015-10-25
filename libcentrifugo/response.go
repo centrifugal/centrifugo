@@ -38,3 +38,67 @@ func newResponse(method string) *response {
 // multiResponse is a slice of responses in execution
 // order - from first executed to last one
 type multiResponse []*response
+
+// PresenseBody represents body of response in case of successful presence command.
+type PresenceBody struct {
+	Channel Channel               `json:"channel"`
+	Data    map[ConnID]ClientInfo `json:"data"`
+}
+
+// HistoryBody represents body of response in case of successful history command.
+type HistoryBody struct {
+	Channel Channel   `json:"channel"`
+	Data    []Message `json:"data"`
+}
+
+// ChannelsBody represents body of response in case of successful channels command.
+type ChannelsBody struct {
+	Data []Channel `json:"data"`
+}
+
+// JoinLeaveBody represents body of response when join or leave async response sent to client.
+type JoinLeaveBody struct {
+	Channel Channel    `json:"channel"`
+	Data    ClientInfo `json:"data"`
+}
+
+// ConnectBody represents body of response in case of successful connect command.
+type ConnectBody struct {
+	Version string `json:"version"`
+	Client  ConnID `json:"client"`
+	Expires bool   `json:"expires"`
+	Expired bool   `json:"expired"`
+	TTL     int64  `json:"ttl"`
+}
+
+// SubscribeBody represents body of response in case of successful subscribe command.
+type SubscribeBody struct {
+	Channel Channel `json:"channel"`
+	Status  bool    `json:"status"`
+}
+
+// UnsubscribeBody represents body of response in case of successful unsubscribe command.
+type UnsubscribeBody struct {
+	Channel Channel `json:"channel"`
+	Status  bool    `json:"status"`
+}
+
+// PublishBody represents body of response in case of successful publish command.
+type PublishBody struct {
+	Channel Channel `json:"channel"`
+	Status  bool    `json:"status"`
+}
+
+// PingBody represents body of response in case of successful ping command.
+type PingBody struct {
+	Data string `json:"data"`
+}
+
+// StatsBody represents body of response in case of successful stats command.
+type StatsBody struct {
+	Data Stats `json:"data"`
+}
+
+type adminMessageBody struct {
+	Message Message `json:"message"`
+}

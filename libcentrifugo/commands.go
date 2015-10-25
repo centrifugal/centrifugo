@@ -4,6 +4,17 @@ import (
 	"encoding/json"
 )
 
+type (
+	// Channel is a string channel name.
+	Channel string
+	// ChannelID is unique channel identificator in Centrifugo.
+	ChannelID string
+	// UserID is web application user ID as string.
+	UserID string
+	// ConnID is a unique connection ID.
+	ConnID string
+)
+
 type clientCommand struct {
 	UID    string `json:"uid"`
 	Method string
@@ -29,13 +40,11 @@ type controlCommand struct {
 	Params *json.RawMessage
 }
 
-// connectClientCommand is a command to authorize connection - it contains project key
-// to bind connection to a specific project, user ID in web application, additional
-// connection information as JSON string, timestamp with unix seconds on moment
-// when connect parameters generated and HMAC token to prove correctness of all those
-// parameters
-type connectClientCommand struct {
-	Project   ProjectKey
+// connectClientCommand is a command to authorize connection - it contains user ID
+// in web application, additional connection information as JSON string, timestamp
+// with unix seconds on moment when connect parameters generated and HMAC token to
+// prove correctness of all those parameters
+type ConnectClientCommand struct {
 	User      UserID
 	Timestamp string
 	Info      string
@@ -44,8 +53,7 @@ type connectClientCommand struct {
 
 // refreshClientCommand is used to prolong connection lifetime when connection check
 // mechanism is enabled. It can only be sent by client after successfull connect.
-type refreshClientCommand struct {
-	Project   ProjectKey
+type RefreshClientCommand struct {
 	User      UserID
 	Timestamp string
 	Info      string
@@ -55,7 +63,7 @@ type refreshClientCommand struct {
 // subscribeClientCommand is used to subscribe on channel.
 // It can only be sent by client after successfull connect.
 // It also can have Client, Info and Sign properties when channel is private.
-type subscribeClientCommand struct {
+type SubscribeClientCommand struct {
 	Channel Channel
 	Client  ConnID
 	Info    string
@@ -63,25 +71,30 @@ type subscribeClientCommand struct {
 }
 
 // unsubscribeClientCommand is used to unsubscribe from channel
-type unsubscribeClientCommand struct {
+type UnsubscribeClientCommand struct {
 	Channel Channel
 }
 
 // publishClientCommand is used to publish messages into channel
-type publishClientCommand struct {
+type PublishClientCommand struct {
 	Channel Channel
 	Data    json.RawMessage
 }
 
 // presenceClientCommand is used to get presence (actual channel subscriptions)
 // information for channel
-type presenceClientCommand struct {
+type PresenceClientCommand struct {
 	Channel Channel
 }
 
 // historyClientCommand is used to get history information for channel
-type historyClientCommand struct {
+type HistoryClientCommand struct {
 	Channel Channel
+}
+
+// pingClientCommand is used to ping server
+type PingClientCommand struct {
+	Data string
 }
 
 // publishApiCommand is used to publish messages into channel
@@ -116,27 +129,20 @@ type historyApiCommand struct {
 // pingControlCommand allows nodes to know about each other - node sends this
 // control command periodically
 type pingControlCommand struct {
-	Uid      string
-	Name     string
-	Clients  int
-	Unique   int
-	Channels int
-	Started  int64
+	Info NodeInfo
 }
 
 // unsubscribeControlCommand required when node received unsubscribe API command -
 // node unsubscribes user from channel and then send this control command so other
 // nodes could unsubscribe user too
 type unsubscribeControlCommand struct {
-	Project ProjectKey
 	User    UserID
 	Channel Channel
 }
 
 // disconnectControlCommand required to disconnect user from all nodes
 type disconnectControlCommand struct {
-	Project ProjectKey
-	User    UserID
+	User UserID
 }
 
 // authAdminCommand required to authorize admin connection

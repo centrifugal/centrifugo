@@ -35,7 +35,7 @@ func TestAdminClient(t *testing.T) {
 	go c.writer()
 	assert.Equal(t, nil, err)
 	assert.NotEqual(t, c.uid(), "")
-	err = c.send("message")
+	err = c.send([]byte("message"))
 	assert.Equal(t, nil, err)
 }
 

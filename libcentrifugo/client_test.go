@@ -16,8 +16,7 @@ func TestUnauthenticatedClient(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.NotEqual(t, "", c.uid())
 
-	// project and user not set before connect command success
-	assert.Equal(t, ProjectKey(""), c.project())
+	// user not set before connect command success
 	assert.Equal(t, UserID(""), c.user())
 
 	assert.Equal(t, false, c.authenticated)
@@ -72,9 +71,8 @@ func TestSingleObjectMessage(t *testing.T) {
 }
 
 func testConnectCmd(timestamp string) clientCommand {
-	token := auth.GenerateClientToken("secret", "test1", "user1", timestamp, "")
-	connectCmd := connectClientCommand{
-		Project:   ProjectKey("test1"),
+	token := auth.GenerateClientToken("secret", "user1", timestamp, "")
+	connectCmd := ConnectClientCommand{
 		Timestamp: timestamp,
 		User:      UserID("user1"),
 		Info:      "",
@@ -89,9 +87,8 @@ func testConnectCmd(timestamp string) clientCommand {
 }
 
 func testRefreshCmd(timestamp string) clientCommand {
-	token := auth.GenerateClientToken("secret", "test1", "user1", timestamp, "")
-	refreshCmd := refreshClientCommand{
-		Project:   ProjectKey("test1"),
+	token := auth.GenerateClientToken("secret", "user1", timestamp, "")
+	refreshCmd := RefreshClientCommand{
 		Timestamp: timestamp,
 		User:      UserID("user1"),
 		Info:      "",
@@ -110,7 +107,7 @@ func testChannelSign(client ConnID, ch Channel) string {
 }
 
 func testSubscribePrivateCmd(ch Channel, client ConnID) clientCommand {
-	subscribeCmd := subscribeClientCommand{
+	subscribeCmd := SubscribeClientCommand{
 		Channel: Channel(ch),
 		Client:  client,
 		Info:    "",
@@ -125,7 +122,7 @@ func testSubscribePrivateCmd(ch Channel, client ConnID) clientCommand {
 }
 
 func testSubscribeCmd(channel string) clientCommand {
-	subscribeCmd := subscribeClientCommand{
+	subscribeCmd := SubscribeClientCommand{
 		Channel: Channel(channel),
 	}
 	cmdBytes, _ := json.Marshal(subscribeCmd)
@@ -137,7 +134,7 @@ func testSubscribeCmd(channel string) clientCommand {
 }
 
 func testUnsubscribeCmd(channel string) clientCommand {
-	unsubscribeCmd := unsubscribeClientCommand{
+	unsubscribeCmd := UnsubscribeClientCommand{
 		Channel: Channel(channel),
 	}
 	cmdBytes, _ := json.Marshal(unsubscribeCmd)
@@ -149,7 +146,7 @@ func testUnsubscribeCmd(channel string) clientCommand {
 }
 
 func testPresenceCmd(channel string) clientCommand {
-	presenceCmd := presenceClientCommand{
+	presenceCmd := PresenceClientCommand{
 		Channel: Channel(channel),
 	}
 	cmdBytes, _ := json.Marshal(presenceCmd)
@@ -161,7 +158,7 @@ func testPresenceCmd(channel string) clientCommand {
 }
 
 func testHistoryCmd(channel string) clientCommand {
-	historyCmd := historyClientCommand{
+	historyCmd := HistoryClientCommand{
 		Channel: Channel(channel),
 	}
 	cmdBytes, _ := json.Marshal(historyCmd)
@@ -173,7 +170,7 @@ func testHistoryCmd(channel string) clientCommand {
 }
 
 func testPublishCmd(channel string) clientCommand {
-	publishCmd := publishClientCommand{
+	publishCmd := PublishClientCommand{
 		Channel: Channel(channel),
 		Data:    []byte("{}"),
 	}
@@ -188,7 +185,7 @@ func testPublishCmd(channel string) clientCommand {
 func testPingCmd() clientCommand {
 	cmd := clientCommand{
 		Method: "ping",
-		Params: []byte{},
+		Params: []byte("{}"),
 	}
 	return cmd
 }
@@ -200,14 +197,6 @@ func TestClientConnect(t *testing.T) {
 
 	var cmd clientCommand
 	var cmds []clientCommand
-
-	cmd = clientCommand{
-		Method: "connect",
-		Params: []byte("{}"),
-	}
-	cmds = []clientCommand{cmd}
-	err = c.handleCommands(cmds)
-	assert.Equal(t, ErrProjectNotFound, err)
 
 	cmd = clientCommand{
 		Method: "connect",
@@ -229,6 +218,9 @@ func TestClientConnect(t *testing.T) {
 	assert.Equal(t, UserID("user1"), clientInfo.User)
 
 	assert.Equal(t, 1, len(app.clients.conns))
+
+	assert.NotEqual(t, "", c.uid(), "uid must be already set")
+	assert.NotEqual(t, "", c.user(), "user must be already set")
 
 	err = c.clean()
 	assert.Equal(t, nil, err)
@@ -284,6 +276,7 @@ func TestClientSubscribe(t *testing.T) {
 	assert.Equal(t, 1, len(c.channels()))
 
 	assert.Equal(t, 1, len(app.clients.subs))
+	assert.Equal(t, 1, len(c.channels()))
 
 	err = c.clean()
 	assert.Equal(t, nil, err)
@@ -329,6 +322,22 @@ func TestClientUnsubscribe(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	assert.Equal(t, 0, len(app.clients.subs))
+}
+
+func TestClientUnsubscribeExternal(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+
+	err = c.unsubscribe(Channel("test"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 0, len(app.clients.subs))
+	assert.Equal(t, 0, len(c.channels()))
 }
 
 func TestClientPresence(t *testing.T) {

@@ -6,9 +6,18 @@
 	],
 	"Deps": [
 		{
+			"ImportPath": "code.google.com/p/go.net/websocket",
+			"Comment": "null-190",
+			"Rev": "69996db1c92211d9aea524512fe7feda6555200e"
+		},
+		{
 			"ImportPath": "github.com/BurntSushi/toml",
 			"Comment": "v0.1.0-21-g056c9bc",
 			"Rev": "056c9bc7be7190eaa7715723883caffa5f8fa3e4"
+		},
+		{
+			"ImportPath": "github.com/elazarl/go-bindata-assetfs",
+			"Rev": "d5cac425555ca5cf00694df246e04f05e6a55150"
 		},
 		{
 			"ImportPath": "github.com/garyburd/redigo/internal",
@@ -24,7 +33,7 @@
 		},
 		{
 			"ImportPath": "github.com/gorilla/websocket",
-			"Rev": "b6ab76f1fe9803ee1d59e7e5b2a797c1fe897ce5"
+			"Rev": "13e4d0621caa4d77fd9aa470ef6d7ab63d1a5e41"
 		},
 		{
 			"ImportPath": "github.com/kr/pretty",
@@ -47,6 +56,10 @@
 		{
 			"ImportPath": "github.com/nu7hatch/gouuid",
 			"Rev": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
+		},
+		{
+			"ImportPath": "github.com/rcrowley/go-metrics",
+			"Rev": "dee209f2455f101a5e4e593dea94872d2c62d85d"
 		},
 		{
 			"ImportPath": "github.com/spf13/cast",

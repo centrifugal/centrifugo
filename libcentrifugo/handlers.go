@@ -17,7 +17,9 @@ import (
 // MuxOptions contain various options for DefaultMux.
 type MuxOptions struct {
 	Prefix        string
-	WebDir        string
+	Web           bool
+	WebPath       string
+	WebFS         http.FileSystem
 	SockjsOptions sockjs.Options
 }
 
@@ -32,7 +34,9 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	prefix := muxOpts.Prefix
-	webDir := muxOpts.WebDir
+	web := muxOpts.Web
+	webPath := muxOpts.WebPath
+	webFS := muxOpts.WebFS
 
 	app.RLock()
 	debug := app.config.Debug
@@ -59,12 +63,18 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 	mux.Handle(prefix+"/auth/", app.Logged(http.HandlerFunc(app.AuthHandler)))
 	mux.Handle(prefix+"/info/", app.Logged(app.Authenticated(http.HandlerFunc(app.InfoHandler))))
 	mux.Handle(prefix+"/action/", app.Logged(app.Authenticated(http.HandlerFunc(app.ActionHandler))))
-	mux.Handle(prefix+"/socket", app.Logged(http.HandlerFunc(app.AdminWebsocketHandler)))
 
-	// optionally serve admin web interface application
-	if webDir != "" {
-		webPrefix := prefix + "/"
-		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webDir))))
+	// optionally serve admin web interface
+	if web {
+		mux.Handle(prefix+"/socket", app.Logged(http.HandlerFunc(app.AdminWebsocketHandler)))
+
+		if webPath != "" {
+			webPrefix := prefix + "/"
+			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webPath))))
+		} else if webFS != nil {
+			webPrefix := prefix + "/"
+			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(webFS)))
+		}
 	}
 
 	return mux
@@ -77,10 +87,38 @@ func NewSockJSHandler(app *Application, sockjsPrefix string, sockjsOpts sockjs.O
 	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, app.sockJSHandler)
 }
 
+type sockjsConn struct {
+	sess    sockjs.Session
+	closeCh chan struct{}
+}
+
+func newSockjsConn(sess sockjs.Session) *sockjsConn {
+	return &sockjsConn{
+		sess:    sess,
+		closeCh: make(chan struct{}),
+	}
+}
+
+func (conn *sockjsConn) Send(msg []byte) error {
+	select {
+	case <-conn.closeCh:
+		return nil
+	default:
+		return conn.sess.Send(string(msg))
+	}
+}
+
+func (conn *sockjsConn) Close(status uint32, reason string) error {
+	return conn.sess.Close(status, reason)
+}
+
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (app *Application) sockJSHandler(s sockjs.Session) {
 
-	c, err := newClient(app, s)
+	conn := newSockjsConn(s)
+	defer close(conn.closeCh)
+
+	c, err := newClient(app, conn)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return
@@ -137,12 +175,12 @@ func (conn *wsConn) ping() {
 	}
 }
 
-func (conn *wsConn) Send(message string) error {
+func (conn *wsConn) Send(message []byte) error {
 	select {
 	case <-conn.closeCh:
 		return nil
 	default:
-		return conn.ws.WriteMessage(websocket.TextMessage, []byte(message))
+		return conn.ws.WriteMessage(websocket.TextMessage, message)
 	}
 }
 
@@ -225,7 +263,9 @@ func cmdFromAPIMsg(msg []byte) ([]apiCommand, error) {
 // APIHandler is responsible for receiving API commands over HTTP.
 func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 
-	pk := ProjectKey(r.URL.Path[len("/api/"):])
+	app.metrics.numAPIRequests.Inc(1)
+	defer app.metrics.timeAPI.UpdateSince(time.Now())
+
 	contentType := r.Header.Get("Content-Type")
 
 	var sign string
@@ -248,7 +288,12 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 		data = []byte(r.FormValue("data"))
 	}
 
-	if sign == "" {
+	app.RLock()
+	secret := app.config.Secret
+	insecure := app.config.InsecureAPI
+	app.RUnlock()
+
+	if sign == "" && !insecure {
 		logger.ERROR.Println("no sign found in API request")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -260,20 +305,18 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project, exists := app.projectByKey(pk)
-	if !exists {
-		logger.ERROR.Println("no project found with key", pk)
-		http.Error(w, "Project not found", http.StatusNotFound)
-		return
-	}
-
-	secret := project.Secret
-
-	isValid := auth.CheckApiSign(secret, string(pk), data, sign)
-	if !isValid {
-		logger.ERROR.Println("invalid sign")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
+	if !insecure {
+		if secret == "" {
+			logger.ERROR.Println("no secret set in config")
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		isValid := auth.CheckApiSign(secret, data, sign)
+		if !isValid {
+			logger.ERROR.Println("invalid sign")
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 	}
 
 	commands, err := cmdFromAPIMsg(data)
@@ -286,7 +329,7 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 	var mr multiResponse
 
 	for _, command := range commands {
-		resp, err := app.apiCmd(project, command)
+		resp, err := app.apiCmd(command)
 		if err != nil {
 			logger.ERROR.Println(err)
 			http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -308,12 +351,18 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 // AuthHandler allows to get admin web interface token.
 func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
-	if app.config.WebPassword == "" || app.config.WebSecret == "" {
+
+	app.RLock()
+	webPassword := app.config.WebPassword
+	webSecret := app.config.WebSecret
+	app.RUnlock()
+
+	if webPassword == "" || webSecret == "" {
 		logger.ERROR.Println("web_password and web_secret must be set in configuration")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	if password == app.config.WebPassword {
+	if password == webPassword {
 		w.Header().Set("Content-Type", "application/json")
 		token, err := app.adminAuthToken()
 		if err != nil {
@@ -387,11 +436,14 @@ func (app *Application) InfoHandler(w http.ResponseWriter, r *http.Request) {
 	app.RLock()
 	defer app.RUnlock()
 	info := map[string]interface{}{
-		"version":   app.config.Version,
-		"structure": app.structure.projectList,
-		"engine":    app.engine.name(),
-		"node_name": app.config.Name,
-		"nodes":     app.nodes,
+		"version":             app.config.Version,
+		"secret":              app.config.Secret,
+		"connection_lifetime": app.config.ConnLifetime,
+		"channel_options":     app.config.ChannelOptions,
+		"namespaces":          app.config.Namespaces,
+		"engine":              app.engine.name(),
+		"node_name":           app.config.Name,
+		"nodes":               app.nodes,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(info)
@@ -399,14 +451,11 @@ func (app *Application) InfoHandler(w http.ResponseWriter, r *http.Request) {
 
 // ActionHandler allows to call API commands via submitting a form.
 func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
-	pk := ProjectKey(r.FormValue("project"))
-	method := r.FormValue("method")
 
-	project, exists := app.projectByKey(pk)
-	if !exists {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
+	app.metrics.numAPIRequests.Inc(1)
+	defer app.metrics.timeAPI.UpdateSince(time.Now())
+
+	method := r.FormValue("method")
 
 	var resp *response
 	var err error
@@ -423,7 +472,7 @@ func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
 			Channel: channel,
 			Data:    []byte(data),
 		}
-		resp, err = app.publishCmd(project, cmd)
+		resp, err = app.publishCmd(cmd)
 	case "unsubscribe":
 		channel := Channel(r.FormValue("channel"))
 		user := UserID(r.FormValue("user"))
@@ -431,27 +480,29 @@ func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
 			Channel: channel,
 			User:    user,
 		}
-		resp, err = app.unsubcribeCmd(project, cmd)
+		resp, err = app.unsubcribeCmd(cmd)
 	case "disconnect":
 		user := UserID(r.FormValue("user"))
 		cmd := &disconnectApiCommand{
 			User: user,
 		}
-		resp, err = app.disconnectCmd(project, cmd)
+		resp, err = app.disconnectCmd(cmd)
 	case "presence":
 		channel := Channel(r.FormValue("channel"))
 		cmd := &presenceApiCommand{
 			Channel: channel,
 		}
-		resp, err = app.presenceCmd(project, cmd)
+		resp, err = app.presenceCmd(cmd)
 	case "history":
 		channel := Channel(r.FormValue("channel"))
 		cmd := &historyApiCommand{
 			Channel: channel,
 		}
-		resp, err = app.historyCmd(project, cmd)
+		resp, err = app.historyCmd(cmd)
 	case "channels":
-		resp, err = app.channelsCmd(project)
+		resp, err = app.channelsCmd()
+	case "stats":
+		resp, err = app.statsCmd()
 	default:
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
@@ -504,7 +555,7 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		if err != nil {
 			break
 		} else {
-			err := c.send(string(msgBytes))
+			err := c.send(msgBytes)
 			if err != nil {
 				break
 			}

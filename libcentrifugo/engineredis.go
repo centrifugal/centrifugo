@@ -124,8 +124,7 @@ func (e *RedisEngine) checkConnectionStatus() {
 }
 
 type redisApiRequest struct {
-	Project ProjectKey
-	Data    []apiCommand
+	Data []apiCommand
 }
 
 func (e *RedisEngine) initializeApi() {
@@ -163,18 +162,9 @@ func (e *RedisEngine) initializeApi() {
 			logger.ERROR.Println(err)
 			continue
 		}
-		if req.Project == "" {
-			logger.ERROR.Println("project key required")
-			continue
-		}
-		project, exists := e.app.projectByKey(req.Project)
-		if !exists {
-			logger.ERROR.Println("no project found with key", req.Project)
-			continue
-		}
 
 		for _, command := range req.Data {
-			_, err := e.app.apiCmd(project, command)
+			_, err := e.app.apiCmd(command)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -421,36 +411,31 @@ func (e *RedisEngine) history(chID ChannelID) ([]Message, error) {
 	return sliceOfMessages(reply, nil)
 }
 
-func sliceOfChannels(result interface{}, prefix string, err error) ([]Channel, error) {
+func sliceOfChannelIDs(result interface{}, prefix string, err error) ([]ChannelID, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err
 	}
-	channels := make([]Channel, len(values))
+	channels := make([]ChannelID, len(values))
 	for i := 0; i < len(values); i += 1 {
 		value, okValue := values[i].([]byte)
 		if !okValue {
 			return nil, errors.New("error getting ChannelID value")
 		}
-		chID := string(value)
-		if len(chID) <= len(prefix) {
-			return nil, errors.New("malformed ChannelID returned from Redis")
-		}
-		channel := chID[len(prefix):]
-		channels[i] = Channel(channel)
+		chID := ChannelID(value)
+		channels[i] = chID
 	}
 	return channels, nil
 }
 
 // Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
-func (e *RedisEngine) channels(pk ProjectKey) ([]Channel, error) {
+func (e *RedisEngine) channels() ([]ChannelID, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
-	prefix := e.app.channelIDPrefix(pk)
+	prefix := e.app.channelIDPrefix()
 	reply, err := conn.Do("PUBSUB", "CHANNELS", prefix+"*")
 	if err != nil {
-		println(err.Error())
 		return nil, err
 	}
-	return sliceOfChannels(reply, prefix, nil)
+	return sliceOfChannelIDs(reply, prefix, nil)
 }

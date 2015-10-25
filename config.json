@@ -1,22 +1,17 @@
 {
   "web_password": "password",
   "web_secret": "secret",
-  "projects": [
+  "secret": "secret",
+  "namespaces": [
     {
-      "name": "development",
-      "secret": "secret",
-      "namespaces": [
-        {
-          "name": "public",
-          "anonymous": true,
-          "publish": true,
-          "watch": true,
-          "presence": true,
-          "join_leave": true,
-          "history_size": 10,
-          "history_lifetime": 30
-        }
-      ]
-    }
+      "name": "public",
+      "anonymous": true,
+      "publish": true,
+      "watch": true,
+      "presence": true,
+      "join_leave": true,
+      "history_size": 10,
+      "history_lifetime": 30
+    }  
   ]
 }

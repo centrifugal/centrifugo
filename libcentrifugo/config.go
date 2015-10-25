@@ -1,8 +1,46 @@
 package libcentrifugo
 
 import (
+	"errors"
+	"regexp"
 	"time"
 )
+
+// ChannelOptions represent channel specific configuration for namespace or project in a whole
+type ChannelOptions struct {
+	// Watch determines if message published into channel will be sent into admin channel
+	Watch bool `json:"watch"`
+
+	// Publish determines if client can publish messages into channel directly
+	Publish bool `json:"publish"`
+
+	// Anonymous determines is anonymous access (with empty user ID) allowed or not
+	Anonymous bool `json:"anonymous"`
+
+	// Presence turns on(off) presence information for channels
+	Presence bool `json:"presence"`
+
+	// HistorySize determines max amount of history messages for channel, 0 means no history for channel
+	HistorySize int `mapstructure:"history_size" json:"history_size"`
+
+	// HistoryLifetime determines time in seconds until expiration for history messages
+	HistoryLifetime int `mapstructure:"history_lifetime" json:"history_lifetime"`
+
+	// JoinLeave turns on(off) join/leave messages for channels
+	JoinLeave bool `mapstructure:"join_leave" json:"join_leave"`
+}
+
+// NamespaceKey is a name of namespace unique for project.
+type NamespaceKey string
+
+// Namespace allows to create channels with different channel options within the Project
+type Namespace struct {
+	// Name is a unique namespace name.
+	Name NamespaceKey `json:"name"`
+
+	// ChannelOptions for namespace determine channel options for channels belonging to this namespace.
+	ChannelOptions `mapstructure:",squash"`
+}
 
 // Config contains Application configuration options.
 type Config struct {
@@ -43,6 +81,8 @@ type Config struct {
 	// NodeInfoMaxDelay is an interval in seconds – how many seconds node info
 	// considered actual.
 	NodeInfoMaxDelay time.Duration
+	// NodeMetricsInterval detects interval node will use to aggregate metrics.
+	NodeMetricsInterval time.Duration
 
 	// PresencePingInterval is an interval how often connected clients
 	// must update presence info.
@@ -78,8 +118,73 @@ type Config struct {
 	// Insecure turns on insecure mode - when it's turned on then no authentication
 	// required at all when connecting to Centrifugo, anonymous access and publish
 	// allowed for all channels, no connection check performed. This can be suitable
-	// for demonstration or personal usage
+	// for demonstration or personal usage.
 	Insecure bool
+	// InsecureAPI turns on insecure mode for HTTP API calls. This means that no
+	// API sign required when sending commands. This can be useful if you don't want
+	// to sign every request - for example if you closed API endpoint with firewall
+	// or you want to play with API commands from command line using CURL.
+	InsecureAPI bool
+
+	// Secret is a secret key, used to sign API requests and client connection tokens.
+	Secret string
+
+	// ConnLifetime determines time until connection expire, 0 means no connection expire at all.
+	ConnLifetime int64
+
+	// ChannelOptions embedded to config.
+	ChannelOptions
+
+	// Namespaces - list of namespaces for custom channel options.
+	Namespaces []Namespace
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
+// Validate validates config and returns error if problems found
+func (c *Config) Validate() error {
+	errPrefix := "config error: "
+	pattern := "^[-a-zA-Z0-9_]{2,}$"
+
+	if c.Secret == "" {
+		return errors.New(errPrefix + "secret required")
+	}
+
+	var nss []string
+	for _, n := range c.Namespaces {
+		name := string(n.Name)
+		match, _ := regexp.MatchString(pattern, name)
+		if !match {
+			return errors.New(errPrefix + "wrong namespace name – " + name)
+		}
+		if stringInSlice(name, nss) {
+			return errors.New(errPrefix + "namespace name must be unique")
+		}
+		nss = append(nss, name)
+	}
+
+	return nil
+}
+
+// channelOpts searches for channel options for specified namespace key.
+func (c *Config) channelOpts(nk NamespaceKey) (ChannelOptions, error) {
+	if nk == NamespaceKey("") {
+		return c.ChannelOptions, nil
+	} else {
+		for _, n := range c.Namespaces {
+			if n.Name == nk {
+				return n.ChannelOptions, nil
+			}
+		}
+		return ChannelOptions{}, ErrNamespaceNotFound
+	}
 }
 
 const (
@@ -99,18 +204,19 @@ var DefaultConfig = &Config{
 	AdminChannel:                ChannelID(defaultChannelPrefix + ".admin"),
 	ControlChannel:              ChannelID(defaultChannelPrefix + ".control"),
 	MaxChannelLength:            255,
-	PingInterval:                time.Duration(25) * time.Second,
-	NodePingInterval:            time.Duration(defaultNodePingInterval) * time.Second,
-	NodeInfoCleanInterval:       time.Duration(defaultNodePingInterval) * 3 * time.Second,
-	NodeInfoMaxDelay:            time.Duration(defaultNodePingInterval)*2*time.Second + 1*time.Second,
-	PresencePingInterval:        time.Duration(25) * time.Second,
-	PresenceExpireInterval:      time.Duration(60) * time.Second,
-	MessageSendTimeout:          time.Duration(0) * time.Second,
+	PingInterval:                25 * time.Second,
+	NodePingInterval:            defaultNodePingInterval * time.Second,
+	NodeInfoCleanInterval:       defaultNodePingInterval * 3 * time.Second,
+	NodeInfoMaxDelay:            defaultNodePingInterval*2*time.Second + 1*time.Second,
+	NodeMetricsInterval:         60 * time.Second,
+	PresencePingInterval:        25 * time.Second,
+	PresenceExpireInterval:      60 * time.Second,
+	MessageSendTimeout:          0,
 	PrivateChannelPrefix:        "$", // so private channel will look like "$gossips"
 	NamespaceChannelBoundary:    ":", // so namespace "public" can be used "public:news"
 	ClientChannelBoundary:       "&", // so client channel is sth like "client&7a37e561-c720-4608-52a8-a964a9db7a8a"
 	UserChannelBoundary:         "#", // so user limited channel is "user#2694" where "2696" is user ID
 	UserChannelSeparator:        ",", // so several users limited channel is "dialog#2694,3019"
-	ExpiredConnectionCloseDelay: time.Duration(10) * time.Second,
+	ExpiredConnectionCloseDelay: 10 * time.Second,
 	Insecure:                    false,
 }

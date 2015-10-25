@@ -14,6 +14,8 @@ type Engine interface {
 	subscribe(chID ChannelID) error
 	// unsubscribe from channel
 	unsubscribe(chID ChannelID) error
+	// channels returns slice of currently active channels IDs (with one or more subscribers).
+	channels() ([]ChannelID, error)
 
 	// addPresence sets or updates presence info for connection with uid
 	addPresence(chID ChannelID, uid ConnID, info ClientInfo) error
@@ -26,7 +28,4 @@ type Engine interface {
 	addHistory(chID ChannelID, message Message, size, lifetime int64) error
 	// history returns a slice of history messages for channel
 	history(chID ChannelID) ([]Message, error)
-
-	// channels returns slice of currently active channels for project.
-	channels(pk ProjectKey) ([]Channel, error)
 }

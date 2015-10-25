@@ -14,10 +14,7 @@ RUN curl -sSL "$DOWNLOAD" -o /tmp/centrifugo.zip && \
 RUN groupadd -r centrifugo && useradd -r -g centrifugo centrifugo
 
 RUN mkdir /centrifugo && chown centrifugo:centrifugo /centrifugo && \
-    mkdir /var/log/centrifugo && chown centrifugo:centrifugo /var/log/centrifugo && \
-    mkdir -p /opt/centrifugo/web
-
-ADD extras/web/app /opt/centrifugo/web
+    mkdir /var/log/centrifugo && chown centrifugo:centrifugo /var/log/centrifugo
 
 VOLUME ["/centrifugo", "/var/log/centrifugo"]
 

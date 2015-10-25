@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
@@ -18,10 +20,8 @@ import (
 )
 
 const (
-	VERSION = "0.3.0"
+	VERSION = "1.0.0"
 )
-
-var configFile string
 
 func setupLogging() {
 	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString("log_level"))]
@@ -55,19 +55,17 @@ func handleSignals(app *libcentrifugo.Application) {
 					logger.CRITICAL.Printf("Error parsing configuration: %s\n", err)
 					continue
 				default:
-					logger.CRITICAL.Println("Unable to locate config file")
+					logger.CRITICAL.Println("No config file found")
 					continue
 				}
 			}
 			setupLogging()
 			c := newConfig()
-			s := structureFromConfig(nil)
 			app.SetConfig(c)
-			app.SetStructure(s)
 			logger.INFO.Println("Configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt:
 			logger.INFO.Println("Shutting down")
-			go time.AfterFunc(5*time.Second, func() {
+			go time.AfterFunc(10*time.Second, func() {
 				os.Exit(1)
 			})
 			app.Shutdown()
@@ -76,18 +74,21 @@ func handleSignals(app *libcentrifugo.Application) {
 	}
 }
 
-// Main runs Centrifugo as a service.
 func Main() {
+
+	var configFile string
 
 	var port string
 	var address string
 	var debug bool
 	var name string
-	var web string
+	var web bool
+	var webPath string
 	var engn string
 	var logLevel string
 	var logFile string
 	var insecure bool
+	var insecureAPI bool
 	var useSSL bool
 	var sslCert string
 	var sslKey string
@@ -103,21 +104,23 @@ func Main() {
 	var rootCmd = &cobra.Command{
 		Use:   "",
 		Short: "Centrifugo",
-		Long:  "Centrifuge + GO = Centrifugo – harder, better, faster, stronger",
+		Long:  "Centrifugo. Real-time messaging (Websockets or SockJS) server in Go.",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			viper.SetDefault("gomaxprocs", 0)
 			viper.SetDefault("debug", false)
 			viper.SetDefault("prefix", "")
+			viper.SetDefault("web", false)
+			viper.SetDefault("web_path", "")
 			viper.SetDefault("web_password", "")
 			viper.SetDefault("web_secret", "")
-			viper.RegisterAlias("cookie_secret", "web_secret")
 			viper.SetDefault("max_channel_length", 255)
 			viper.SetDefault("channel_prefix", "centrifugo")
 			viper.SetDefault("node_ping_interval", 5)
 			viper.SetDefault("message_send_timeout", 0)
 			viper.SetDefault("ping_interval", 25)
-			viper.SetDefault("expired_connection_close_delay", 10)
+			viper.SetDefault("node_metrics_interval", 60)
+			viper.SetDefault("expired_connection_close_delay", 25)
 			viper.SetDefault("presence_ping_interval", 25)
 			viper.SetDefault("presence_expire_interval", 60)
 			viper.SetDefault("private_channel_prefix", "$")
@@ -127,40 +130,41 @@ func Main() {
 			viper.SetDefault("client_channel_boundary", "&")
 			viper.SetDefault("sockjs_url", "https://cdn.jsdelivr.net/sockjs/1.0/sockjs.min.js")
 
-			viper.SetDefault("project_name", "")
-			viper.SetDefault("project_secret", "")
-			viper.SetDefault("project_connection_lifetime", false)
-			viper.SetDefault("project_watch", false)
-			viper.SetDefault("project_publish", false)
-			viper.SetDefault("project_anonymous", false)
-			viper.SetDefault("project_presence", false)
-			viper.SetDefault("project_history_size", 0)
-			viper.SetDefault("project_history_lifetime", 0)
-			viper.SetDefault("project_namespaces", "")
+			viper.SetDefault("secret", "")
+			viper.SetDefault("connection_lifetime", 0)
+			viper.SetDefault("watch", false)
+			viper.SetDefault("publish", false)
+			viper.SetDefault("anonymous", false)
+			viper.SetDefault("presence", false)
+			viper.SetDefault("history_size", 0)
+			viper.SetDefault("history_lifetime", 0)
+			viper.SetDefault("namespaces", "")
 
 			viper.SetEnvPrefix("centrifugo")
 			viper.BindEnv("engine")
 			viper.BindEnv("insecure")
+			viper.BindEnv("insecure_api")
 			viper.BindEnv("web_password")
 			viper.BindEnv("web_secret")
-			viper.BindEnv("project_name")
-			viper.BindEnv("project_secret")
-			viper.BindEnv("project_connection_lifetime")
-			viper.BindEnv("project_watch")
-			viper.BindEnv("project_publish")
-			viper.BindEnv("project_anonymous")
-			viper.BindEnv("project_join_leave")
-			viper.BindEnv("project_presence")
-			viper.BindEnv("project_history_size")
-			viper.BindEnv("project_history_lifetime")
+			viper.BindEnv("secret")
+			viper.BindEnv("connection_lifetime")
+			viper.BindEnv("watch")
+			viper.BindEnv("publish")
+			viper.BindEnv("anonymous")
+			viper.BindEnv("join_leave")
+			viper.BindEnv("presence")
+			viper.BindEnv("history_size")
+			viper.BindEnv("history_lifetime")
 
 			viper.BindPFlag("port", cmd.Flags().Lookup("port"))
 			viper.BindPFlag("address", cmd.Flags().Lookup("address"))
 			viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
+			viper.BindPFlag("web_path", cmd.Flags().Lookup("web_path"))
 			viper.BindPFlag("engine", cmd.Flags().Lookup("engine"))
 			viper.BindPFlag("insecure", cmd.Flags().Lookup("insecure"))
+			viper.BindPFlag("insecure_api", cmd.Flags().Lookup("insecure_api"))
 			viper.BindPFlag("ssl", cmd.Flags().Lookup("ssl"))
 			viper.BindPFlag("ssl_cert", cmd.Flags().Lookup("ssl_cert"))
 			viper.BindPFlag("ssl_key", cmd.Flags().Lookup("ssl_key"))
@@ -174,16 +178,27 @@ func Main() {
 			viper.BindPFlag("redis_api", cmd.Flags().Lookup("redis_api"))
 			viper.BindPFlag("redis_pool", cmd.Flags().Lookup("redis_pool"))
 
-			err := validateConfig(configFile)
+			viper.SetConfigFile(configFile)
+
+			logger.INFO.Printf("Centrifugo version: %s", VERSION)
+			logger.INFO.Printf("Process PID: %d", os.Getpid())
+
+			absConfPath, err := filepath.Abs(configFile)
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
+			logger.INFO.Println("Config file search path:", absConfPath)
 
-			viper.SetConfigFile(configFile)
 			err = viper.ReadInConfig()
 			if err != nil {
-				logger.FATAL.Fatalln("Unable to locate config file")
+				switch err.(type) {
+				case viper.ConfigParseError:
+					logger.FATAL.Fatalf("Error parsing configuration: %s\n", err)
+				default:
+					logger.WARN.Println("No config file found")
+				}
 			}
+
 			setupLogging()
 
 			if os.Getenv("GOMAXPROCS") == "" {
@@ -194,18 +209,25 @@ func Main() {
 				}
 			}
 
-			logger.INFO.Println("GOMAXPROCS set to", runtime.GOMAXPROCS(0))
-			logger.INFO.Println("Using config file:", viper.ConfigFileUsed())
+			logger.INFO.Println("GOMAXPROCS:", runtime.GOMAXPROCS(0))
 
 			c := newConfig()
-			s := structureFromConfig(nil)
+			err = c.Validate()
+			if err != nil {
+				logger.FATAL.Fatalln(err)
+			}
 
 			app, err := libcentrifugo.NewApplication(c)
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
 
-			app.SetStructure(s)
+			if c.Insecure {
+				logger.WARN.Println("application running in INSECURE client mode")
+			}
+			if c.InsecureAPI {
+				logger.WARN.Println("application running in INSECURE API mode")
+			}
 
 			var e libcentrifugo.Engine
 			switch viper.GetString("engine") {
@@ -223,7 +245,7 @@ func Main() {
 					viper.GetInt("redis_pool"),
 				)
 			default:
-				logger.FATAL.Fatalln("unknown engine: " + viper.GetString("engine"))
+				logger.FATAL.Fatalln("Unknown engine: " + viper.GetString("engine"))
 			}
 
 			logger.INFO.Println("Engine:", viper.GetString("engine"))
@@ -240,16 +262,18 @@ func Main() {
 				}
 			}
 			app.SetEngine(e)
-
 			app.Run()
 
 			go handleSignals(app)
 
 			sockjsOpts := sockjs.DefaultOptions
 
+			// Override sockjs url. It's important to use the same SockJS library version
+			// on client and server sides, otherwise SockJS will report version mismatch
+			// and won't work.
 			sockjsUrl := viper.GetString("sockjs_url")
 			if sockjsUrl != "" {
-				logger.INFO.Println("Using SockJS url", sockjsUrl)
+				logger.INFO.Println("SockJS url:", sockjsUrl)
 				sockjsOpts.SockJSURL = sockjsUrl
 			}
 			if c.PingInterval < time.Second {
@@ -257,15 +281,22 @@ func Main() {
 			}
 			sockjsOpts.HeartbeatDelay = c.PingInterval
 
+			var webFS http.FileSystem
+			if viper.GetBool("web") {
+				webFS = assetFS()
+			}
+
 			muxOpts := libcentrifugo.MuxOptions{
 				Prefix:        viper.GetString("prefix"),
-				WebDir:        viper.GetString("web"),
+				Web:           viper.GetBool("web"),
+				WebPath:       viper.GetString("web_path"),
+				WebFS:         webFS,
 				SockjsOptions: sockjsOpts,
 			}
 
 			mux := libcentrifugo.DefaultMux(app, muxOpts)
 
-			addr := viper.GetString("address") + ":" + viper.GetString("port")
+			addr := net.JoinHostPort(viper.GetString("address"), viper.GetString("port"))
 			logger.INFO.Printf("Start serving on %s\n", addr)
 			if useSSL {
 				if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
@@ -283,9 +314,11 @@ func Main() {
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "debug mode - please, do not use it in production")
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
-	rootCmd.Flags().StringVarP(&web, "web", "w", "", "optional path to web interface application")
+	rootCmd.Flags().BoolVarP(&web, "web", "w", false, "serve admin web interface application")
+	rootCmd.Flags().StringVarP(&webPath, "web_path", "", "", "optional path to web interface application")
 	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
-	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure mode")
+	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure client mode")
+	rootCmd.Flags().BoolVarP(&insecureAPI, "insecure_api", "", false, "use insecure API mode")
 	rootCmd.Flags().BoolVarP(&useSSL, "ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
 	rootCmd.Flags().StringVarP(&sslCert, "ssl_cert", "", "", "path to an X509 certificate file")
 	rootCmd.Flags().StringVarP(&sslKey, "ssl_key", "", "", "path to an X509 certificate key")

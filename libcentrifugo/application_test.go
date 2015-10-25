@@ -15,7 +15,7 @@ type testSession struct {
 	closed bool
 }
 
-func (t *testSession) Send(msg string) error {
+func (t *testSession) Send(msg []byte) error {
 	atomic.AddInt64(&t.n, 1)
 	return nil
 }
@@ -33,15 +33,10 @@ func (app *Application) newTestHandler(b *testing.B, s *testSession) *client {
 	return c
 }
 
-func newTestConfig() Config {
-	return *DefaultConfig
-}
-
 func testApp() *Application {
 	c := newTestConfig()
 	app, _ := NewApplication(&c)
 	app.SetEngine(newTestEngine())
-	app.SetStructure(getTestStructure())
 	return app
 }
 
@@ -49,7 +44,6 @@ func testMemoryApp() *Application {
 	c := newTestConfig()
 	app, _ := NewApplication(&c)
 	app.SetEngine(NewMemoryEngine(app))
-	app.SetStructure(getTestStructure())
 	return app
 }
 
@@ -57,7 +51,6 @@ func testRedisApp() *Application {
 	c := newTestConfig()
 	app, _ := NewApplication(&c)
 	app.SetEngine(testRedisEngine(app))
-	app.SetStructure(getTestStructure())
 	return app
 }
 
@@ -71,9 +64,8 @@ func createTestClients(app *Application, nChannels, nChannelClients int) {
 	app.config.Insecure = true
 	for i := 0; i < nChannelClients; i++ {
 		c := newTestClient(app)
-		cmd := connectClientCommand{
-			Project: ProjectKey("test1"),
-			User:    UserID(fmt.Sprintf("user-%d", i)),
+		cmd := ConnectClientCommand{
+			User: UserID(fmt.Sprintf("user-%d", i)),
 		}
 		resp, err := c.connectCmd(&cmd)
 		if err != nil {
@@ -83,7 +75,7 @@ func createTestClients(app *Application, nChannels, nChannelClients int) {
 			panic(resp.err)
 		}
 		for j := 0; j < nChannels; j++ {
-			cmd := subscribeClientCommand{
+			cmd := SubscribeClientCommand{
 				Channel: Channel(fmt.Sprintf("channel-%d", j)),
 			}
 			resp, err = c.subscribeCmd(&cmd)
@@ -103,20 +95,10 @@ func testMemoryAppWithClients(nChannels, nChannelClients int) *Application {
 	return app
 }
 
-func TestProjectByKey(t *testing.T) {
-	app := testApp()
-	p, found := app.projectByKey("nonexistent")
-	assert.Equal(t, found, false)
-	p, found = app.projectByKey("test1")
-	assert.Equal(t, found, true)
-	assert.Equal(t, p.Name, ProjectKey("test1"))
-}
-
 func TestChannelID(t *testing.T) {
 	app := testApp()
-	p, _ := app.projectByKey("test1")
-	chID := app.channelID(p.Name, "channel")
-	assert.Equal(t, chID, ChannelID(defaultChannelPrefix+".test1.channel"))
+	chID := app.channelID("channel")
+	assert.Equal(t, chID, ChannelID(defaultChannelPrefix+".channel.channel"))
 }
 
 func TestUserAllowed(t *testing.T) {
@@ -223,6 +205,15 @@ func testWrongControlCmd(uid string) []byte {
 	return cmdBytes
 }
 
+func TestPublish(t *testing.T) {
+	app := testApp()
+	app = testMemoryApp()
+	createTestClients(app, 10, 1)
+	data, _ := json.Marshal(map[string]string{"test": "publish"})
+	err := app.Publish(Channel("channel-0"), data, ConnID(""), nil)
+	assert.Equal(t, nil, err)
+}
+
 func TestControlMessages(t *testing.T) {
 	app := testApp()
 	app.Run()
@@ -247,7 +238,6 @@ func createUsers(users, chanUser, totChannels int) []*testClientConn {
 		c := newTestUserCC()
 		c.Uid = UserID(fmt.Sprintf("uid-%d", i))
 		c.Cid = ConnID(fmt.Sprintf("cid-%d", i))
-		c.PK = ProjectKey("test1")
 		c.Channels = make([]Channel, chanUser)
 		for j := 0; j < chanUser; j++ {
 			c.Channels[j] = Channel(fmt.Sprintf("chan-%d", (j+i*chanUser)%totChannels))
@@ -262,20 +252,17 @@ func BenchmarkSendReceive(b *testing.B) {
 	conf := newTestConfig()
 	app, _ := NewApplication(&conf)
 	app.SetEngine(NewMemoryEngine(app))
-	app.SetStructure(getTestStructure())
 	app.config.Insecure = true
-	pk := ProjectKey("test1")
 	conns := createUsers(50, 10, totChannels)
 	for _, c := range conns {
 		c.sess = &testSession{}
 		cli := app.newTestHandler(b, c.sess)
-		cmd := connectClientCommand{
-			Project: c.PK,
-			User:    c.Uid,
+		cmd := ConnectClientCommand{
+			User: c.Uid,
 		}
 		cli.connectCmd(&cmd)
 		for _, ch := range c.Channels {
-			cmd := subscribeClientCommand{
+			cmd := SubscribeClientCommand{
 				Channel: ch,
 			}
 			resp, err := cli.subscribeCmd(&cmd)
@@ -292,7 +279,7 @@ func BenchmarkSendReceive(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
-			ch := app.channelID(pk, Channel(fmt.Sprintf("chan-%d", i%totChannels)))
+			ch := app.channelID(Channel(fmt.Sprintf("chan-%d", i%totChannels)))
 			err := app.clientMsg(ch, []byte("message"))
 			if err != nil {
 				b.Fatal(err)

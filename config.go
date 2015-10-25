@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,11 +11,12 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/viper" // newConfig creates new libcentrifugo.Config using viper.
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/viper"
 	"github.com/centrifugal/centrifugo/libcentrifugo"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
+// newConfig creates new libcentrifugo.Config using viper.
 func newConfig() *libcentrifugo.Config {
 	cfg := &libcentrifugo.Config{}
 	cfg.Version = VERSION
@@ -33,6 +32,7 @@ func newConfig() *libcentrifugo.Config {
 	cfg.NodePingInterval = time.Duration(viper.GetInt("node_ping_interval")) * time.Second
 	cfg.NodeInfoCleanInterval = cfg.NodePingInterval * 3
 	cfg.NodeInfoMaxDelay = cfg.NodePingInterval*2 + 1*time.Second
+	cfg.NodeMetricsInterval = time.Duration(viper.GetInt("node_metrics_interval")) * time.Second
 	cfg.PresencePingInterval = time.Duration(viper.GetInt("presence_ping_interval")) * time.Second
 	cfg.PresenceExpireInterval = time.Duration(viper.GetInt("presence_expire_interval")) * time.Second
 	cfg.MessageSendTimeout = time.Duration(viper.GetInt("message_send_timeout")) * time.Second
@@ -43,6 +43,20 @@ func newConfig() *libcentrifugo.Config {
 	cfg.ClientChannelBoundary = viper.GetString("client_channel_boundary")
 	cfg.ExpiredConnectionCloseDelay = time.Duration(viper.GetInt("expired_connection_close_delay")) * time.Second
 	cfg.Insecure = viper.GetBool("insecure")
+	cfg.InsecureAPI = viper.GetBool("insecure_api")
+
+	cfg.Secret = viper.GetString("secret")
+	cfg.ConnLifetime = int64(viper.GetInt("connection_lifetime"))
+
+	cfg.Watch = viper.GetBool("watch")
+	cfg.Publish = viper.GetBool("publish")
+	cfg.Anonymous = viper.GetBool("anonymous")
+	cfg.Presence = viper.GetBool("presence")
+	cfg.HistorySize = viper.GetInt("history_size")
+	cfg.HistoryLifetime = viper.GetInt("history_lifetime")
+	cfg.JoinLeave = viper.GetBool("join_leave")
+	cfg.Namespaces = namespacesFromConfig(nil)
+
 	return cfg
 }
 
@@ -76,17 +90,14 @@ func pathExists(path string) (bool, error) {
 }
 
 var jsonConfigTemplate = `{
-  "project_name": "{{.Name}}",
-  "project_secret": "{{.Secret}}"
+  "secret": "{{.Secret}}"
 }
 `
 
-var tomlConfigTemplate = `project_name = {{.Name}}
-project_secret = {{.Secret}}
+var tomlConfigTemplate = `secret = {{.Secret}}
 `
 
-var yamlConfigTemplate = `project_name: {{.Name}}
-project_secret: {{.Secret}}
+var yamlConfigTemplate = `secret: {{.Secret}}
 `
 
 // generateConfig generates configuration file at provided path.
@@ -129,19 +140,10 @@ func generateConfig(f string) error {
 		return err
 	}
 
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter your project name: ")
-	name, _, err := reader.ReadLine()
-	if err != nil {
-		return err
-	}
-
 	var output bytes.Buffer
 	t.Execute(&output, struct {
-		Name   string
 		Secret string
 	}{
-		strings.Trim(string(name), " "),
 		uid.String(),
 	})
 
@@ -172,78 +174,24 @@ func validateConfig(f string) error {
 			return errors.New("Unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
 		}
 	}
-	s := structureFromConfig(v)
-	return s.Validate()
+	c := newConfig()
+	return c.Validate()
 }
 
-func getGlobalProject(v *viper.Viper) (*libcentrifugo.Project, bool) {
-	p := &libcentrifugo.Project{}
-
-	// TODO: the same as for structureFromConfig function
-	if v == nil {
-		if !viper.IsSet("project_name") || viper.GetString("project_name") == "" {
-			return nil, false
-		}
-		p.Name = libcentrifugo.ProjectKey(viper.GetString("project_name"))
-		p.Secret = viper.GetString("project_secret")
-		p.ConnLifetime = int64(viper.GetInt("project_connection_lifetime"))
-		p.Anonymous = viper.GetBool("project_anonymous")
-		p.Watch = viper.GetBool("project_watch")
-		p.Publish = viper.GetBool("project_publish")
-		p.JoinLeave = viper.GetBool("project_join_leave")
-		p.Presence = viper.GetBool("project_presence")
-		p.HistorySize = int64(viper.GetInt("project_history_size"))
-		p.HistoryLifetime = int64(viper.GetInt("project_history_lifetime"))
-	} else {
-		if !v.IsSet("project_name") || v.GetString("project_name") == "" {
-			return nil, false
-		}
-		p.Name = libcentrifugo.ProjectKey(v.GetString("project_name"))
-		p.Secret = v.GetString("project_secret")
-		p.ConnLifetime = int64(v.GetInt("project_connection_lifetime"))
-		p.Anonymous = v.GetBool("project_anonymous")
-		p.Watch = v.GetBool("project_watch")
-		p.Publish = v.GetBool("project_publish")
-		p.JoinLeave = v.GetBool("project_join_leave")
-		p.Presence = v.GetBool("project_presence")
-		p.HistorySize = int64(v.GetInt("project_history_size"))
-		p.HistoryLifetime = int64(v.GetInt("project_history_lifetime"))
-	}
-
-	var nl []libcentrifugo.Namespace
-	if v == nil {
-		viper.MarshalKey("project_namespaces", &nl)
-	} else {
-		v.MarshalKey("project_namespaces", &nl)
-	}
-	p.Namespaces = nl
-
-	return p, true
-}
-
-func structureFromConfig(v *viper.Viper) *libcentrifugo.Structure {
+func namespacesFromConfig(v *viper.Viper) []libcentrifugo.Namespace {
 	// TODO: as viper does not have exported global config instance
 	// we need to use nil when application wants to use global viper
 	// config - this must be improved using our own global viper instance
-
-	var pl []libcentrifugo.Project
-
+	ns := []libcentrifugo.Namespace{}
+	if !viper.IsSet("namespaces") {
+		return ns
+	}
 	if v == nil {
-		viper.MarshalKey("projects", &pl)
+		viper.MarshalKey("namespaces", &ns)
 	} else {
-		v.MarshalKey("projects", &pl)
+		v.MarshalKey("namespaces", &ns)
 	}
-
-	// top level project configuration
-	p, exists := getGlobalProject(v)
-	if exists {
-		// add global project to project list
-		pl = append([]libcentrifugo.Project{*p}, pl...)
-	}
-
-	s := libcentrifugo.NewStructure(pl)
-
-	return s
+	return ns
 }
 
 func stringInSlice(a string, list []string) bool {
