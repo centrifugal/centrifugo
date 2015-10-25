@@ -1,7 +1,7 @@
 v1.0.0
 ======
 
-A bad and a good news here. Let's start with a good one. Centrifugo is still real-time messaging server and just got v1.0 release. The bad – it is not fully backwards compatible with previous versions. Actually there are just two changes that ruin compatibility.
+A bad and a good news here. Let's start with a good one. Centrifugo is still real-time messaging server and just got v1.0 release. The bad – it is not fully backwards compatible with previous versions. Actually there are three changes that ruin compatibility. If you don't use web interface and private channels then there is only one change. But it affects all stack - Centrifugo itself, client library and API library.
 
 Starting from this release Centrifugo won't support multiple registered projects. It will work with only one application. You don't need to use `project key` anymore. Changes resulted in simplified
 configuration file format. The only required option is `secret` now. See updated documentation 
@@ -17,6 +17,7 @@ Highlights of this release are:
 * new `stats` command added to export various node stats and metrics via HTTP API call. Look its response example [in docs chapter](https://fzambia.gitbooks.io/centrifugal/content/server/api.html).
 * new `insecure_api` option to turn on insecure HTTP API mode. Read more [in docs chapter](https://fzambia.gitbooks.io/centrifugal/content/mixed/insecure_mode.html).
 * minor clean-ups in client protocol. But as protocol incapsulated in javascript client library you only need to update centrifuge-js.
+* release built using Go 1.5.1
 
 [Documentation](https://fzambia.gitbooks.io/centrifugal/content/) was updated to fit all these release notes. Also all API and client libraries were updated – Javascript browser client (`centrifuge-js`), Python API client (`cent`), Django helper module (`adjacent`). API clients for Ruby (`centrifuge-ruby`) and PHP (`phpcent`) too. Admin web interface was also updated to support changes introduced here.
 
@@ -28,6 +29,7 @@ How to migrate
 --------------
 
 * Use new versions of Centrifugal libraries - browser client and API client. Project key not needed in client connection parameters, in client token generation, in HTTP API client initialization.
+* Another backwards incompatible change related to private channel subscriptions. Actually this is not related to Centrifugo but to Javascript client but it's better to write about it here. Centrifuge-js now sends JSON (`application/json`) request instead of `application/x-www-form-urlencoded` when client wants to subscribe on private channel. See [in docs](https://fzambia.gitbooks.io/centrifugal/content/mixed/private_channels.html) how to deal with JSON in this case.
 * `--web` is now a boolean flag. Previously it was used to set path to admin web interface. Now it indicates whether or not Centrifugo must serve web interface. To provide path to custom web application directory use `--web_path` string option.
 
 I.e. before v1 you started Centrifugo like this to use web interface:
