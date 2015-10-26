@@ -153,10 +153,6 @@ func (c *Config) Validate() error {
 	errPrefix := "config error: "
 	pattern := "^[-a-zA-Z0-9_]{2,}$"
 
-	if c.Secret == "" {
-		return errors.New(errPrefix + "secret required")
-	}
-
 	var nss []string
 	for _, n := range c.Namespaces {
 		name := string(n.Name)
