@@ -33,6 +33,7 @@ type client struct {
 	messages      bytequeue.ByteQueue
 	closeChan     chan struct{}
 	expireTimer   *time.Timer
+	presenceTimer *time.Timer
 }
 
 // ClientInfo contains information about client to use in message
@@ -122,11 +123,15 @@ func (c *client) updateChannelPresence(ch Channel) {
 
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
+	c.app.RLock()
+	presenceInterval := c.app.config.PresencePingInterval
+	c.app.RUnlock()
 	c.RLock()
 	defer c.RUnlock()
 	for _, channel := range c.channels() {
 		c.updateChannelPresence(channel)
 	}
+	time.AfterFunc(presenceInterval, c.updatePresence)
 }
 
 // presencePing periodically updates presence info
@@ -226,6 +231,14 @@ func (c *client) clean() error {
 
 	if c.authenticated && c.app.mediator != nil {
 		c.app.mediator.Disconnect(c.UID, c.User)
+	}
+
+	if c.expireTimer != nil {
+		c.expireTimer.Stop()
+	}
+
+	if c.presenceTimer != nil {
+		c.presenceTimer.Stop()
 	}
 
 	c.authenticated = false
@@ -458,6 +471,7 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*response, error) {
 	closeDelay := c.app.config.ExpiredConnectionCloseDelay
 	connLifetime := c.app.config.ConnLifetime
 	version := c.app.config.Version
+	presenceInterval := c.app.config.PresencePingInterval
 	c.app.RUnlock()
 
 	var timestamp string
@@ -512,7 +526,7 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*response, error) {
 	c.Channels = map[Channel]bool{}
 	c.channelInfo = map[Channel][]byte{}
 
-	go c.presencePing()
+	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
 
 	err := c.app.addConn(c)
 	if err != nil {
