@@ -141,6 +141,7 @@ func Main() {
 			viper.SetDefault("namespaces", "")
 
 			viper.SetEnvPrefix("centrifugo")
+			viper.BindEnv("debug")
 			viper.BindEnv("engine")
 			viper.BindEnv("insecure")
 			viper.BindEnv("insecure_api")
