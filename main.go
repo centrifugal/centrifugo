@@ -120,6 +120,7 @@ func Main() {
 			viper.SetDefault("message_send_timeout", 0)
 			viper.SetDefault("ping_interval", 25)
 			viper.SetDefault("node_metrics_interval", 60)
+			viper.SetDefault("stale_connection_close_delay", 25)
 			viper.SetDefault("expired_connection_close_delay", 25)
 			viper.SetDefault("presence_ping_interval", 25)
 			viper.SetDefault("presence_expire_interval", 60)

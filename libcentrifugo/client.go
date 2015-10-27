@@ -32,6 +32,7 @@ type client struct {
 	Channels      map[Channel]bool
 	messages      bytequeue.ByteQueue
 	closeChan     chan struct{}
+	staleTimer    *time.Timer
 	expireTimer   *time.Timer
 	presenceTimer *time.Timer
 }
@@ -59,6 +60,12 @@ func newClient(app *Application, s session) (*client, error) {
 		closeChan: make(chan struct{}),
 	}
 	go c.sendMessages()
+	app.RLock()
+	staleCloseDelay := app.config.StaleConnectionCloseDelay
+	app.RUnlock()
+	if staleCloseDelay > 0 {
+		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
+	}
 	return &c, nil
 }
 
@@ -106,6 +113,17 @@ func (c *client) sendMsgTimeout(msg []byte) error {
 		return c.sess.Send(msg)
 	}
 	panic("unreachable")
+}
+
+// closeUnauthenticated closes connection if it's not authenticated yet.
+// At moment used to close connections which have not sent valid connect command
+// in a reasonable time interval after actually connected to Centrifugo.
+func (c *client) closeUnauthenticated() {
+	c.RLock()
+	defer c.RUnlock()
+	if !c.authenticated {
+		c.close("stale")
+	}
 }
 
 // updateChannelPresence updates client presence info for channel so it
@@ -510,6 +528,10 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*response, error) {
 	c.defaultInfo = []byte(info)
 	c.Channels = map[Channel]bool{}
 	c.channelInfo = map[Channel][]byte{}
+
+	if c.staleTimer != nil {
+		c.staleTimer.Stop()
+	}
 
 	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
 

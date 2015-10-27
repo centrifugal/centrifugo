@@ -95,6 +95,9 @@ type Config struct {
 	// refresh its connection in the end of connection lifetime.
 	ExpiredConnectionCloseDelay time.Duration
 
+	// StaleConnectionCloseDelay
+	StaleConnectionCloseDelay time.Duration
+
 	// MessageSendTimeout is an interval how long time the node
 	// may take to send a message to a client before disconnecting the client.
 	MessageSendTimeout time.Duration
@@ -213,6 +216,7 @@ var DefaultConfig = &Config{
 	ClientChannelBoundary:       "&", // so client channel is sth like "client&7a37e561-c720-4608-52a8-a964a9db7a8a"
 	UserChannelBoundary:         "#", // so user limited channel is "user#2694" where "2696" is user ID
 	UserChannelSeparator:        ",", // so several users limited channel is "dialog#2694,3019"
-	ExpiredConnectionCloseDelay: 10 * time.Second,
+	ExpiredConnectionCloseDelay: 25 * time.Second,
+	StaleConnectionCloseDelay:   25 * time.Second,
 	Insecure:                    false,
 }

@@ -42,6 +42,7 @@ func newConfig() *libcentrifugo.Config {
 	cfg.UserChannelSeparator = viper.GetString("user_channel_separator")
 	cfg.ClientChannelBoundary = viper.GetString("client_channel_boundary")
 	cfg.ExpiredConnectionCloseDelay = time.Duration(viper.GetInt("expired_connection_close_delay")) * time.Second
+	cfg.StaleConnectionCloseDelay = time.Duration(viper.GetInt("stale_connection_close_delay")) * time.Second
 	cfg.Insecure = viper.GetBool("insecure")
 	cfg.InsecureAPI = viper.GetBool("insecure_api")
 
