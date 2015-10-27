@@ -131,22 +131,7 @@ func (c *client) updatePresence() {
 	for _, channel := range c.channels() {
 		c.updateChannelPresence(channel)
 	}
-	time.AfterFunc(presenceInterval, c.updatePresence)
-}
-
-// presencePing periodically updates presence info
-func (c *client) presencePing() {
-	for {
-		c.app.RLock()
-		interval := c.app.config.PresencePingInterval
-		c.app.RUnlock()
-		select {
-		case <-c.closeChan:
-			return
-		case <-time.After(interval):
-		}
-		c.updatePresence()
-	}
+	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
 }
 
 func (c *client) uid() ConnID {
