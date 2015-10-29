@@ -1,3 +1,9 @@
+Benchmark script
+================
+
+Subscribe clients on channel `test` and then publish message into this channel. Measure time until
+all messages received by subscribed clients.
+
 To run benchmark.go allow `publish` into channel and execute:
 
 ```json
@@ -8,8 +14,19 @@ To run benchmark.go allow `publish` into channel and execute:
 
 ```
 
-And run:
+run with 4000 max clients incrementing client amount by 1000 and repeat measuremrents 50 times:
 
 ```bash
 go run benchmark.go ws://localhost:8000/connection/websocket secret 4000 1000 50
+```
+
+Connections script
+==================
+
+Create N subscribed (on channel `test`) clients and keep them connected until interrupted.
+
+run with 4000 connected subscribed clients:
+
+```bash
+go run connections.go ws://localhost:8000/connection/websocket secret 4000
 ```
