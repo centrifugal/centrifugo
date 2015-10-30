@@ -141,34 +141,61 @@ func (e *RedisEngine) initializeApi() {
 	e.app.RLock()
 	apiKey := e.app.config.ChannelPrefix + "." + "api"
 	e.app.RUnlock()
+
+	done := make(chan struct{})
+	bodies := make(chan []byte, 256)
+	defer close(done)
+
+	go func() {
+		for {
+			select {
+			case body, ok := <-bodies:
+				if !ok {
+					return
+				}
+				var req redisApiRequest
+				err := json.Unmarshal(body, &req)
+				if err != nil {
+					logger.ERROR.Println(err)
+					continue
+				}
+				for _, command := range req.Data {
+					_, err := e.app.apiCmd(command)
+					if err != nil {
+						logger.ERROR.Println(err)
+					}
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
+
 	for {
 		reply, err := conn.Do("BLPOP", apiKey, 0)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return
 		}
-		a, err := mapStringByte(reply, nil)
+
+		values, err := redis.Values(reply, nil)
 		if err != nil {
 			logger.ERROR.Println(err)
-			continue
+			return
 		}
-		body, ok := a[apiKey]
-		if !ok {
-			continue
-		}
-		var req redisApiRequest
-		err = json.Unmarshal(body, &req)
-		if err != nil {
-			logger.ERROR.Println(err)
+		if len(values) != 2 {
+			logger.ERROR.Println("Wrong reply from Redis in BLPOP - expecting 2 values")
 			continue
 		}
 
-		for _, command := range req.Data {
-			_, err := e.app.apiCmd(command)
-			if err != nil {
-				logger.ERROR.Println(err)
-			}
+		body, okValue := values[1].([]byte)
+
+		if !okValue {
+			logger.ERROR.Println("Wrong reply from Redis in BLPOP - can not value convert to bytes")
+			continue
 		}
+
+		bodies <- body
 	}
 }
 
@@ -283,26 +310,6 @@ func (e *RedisEngine) removePresence(chID ChannelID, uid ConnID) error {
 	conn.Send("ZREM", setKey, uid)
 	_, err := conn.Do("EXEC")
 	return err
-}
-
-func mapStringByte(result interface{}, err error) (map[string][]byte, error) {
-	values, err := redis.Values(result, err)
-	if err != nil {
-		return nil, err
-	}
-	if len(values)%2 != 0 {
-		return nil, errors.New("mapStringByte expects even number of values result")
-	}
-	m := make(map[string][]byte, len(values)/2)
-	for i := 0; i < len(values); i += 2 {
-		key, okKey := values[i].([]byte)
-		value, okValue := values[i+1].([]byte)
-		if !okKey || !okValue {
-			return nil, errors.New("ScanMap key not a bulk string value")
-		}
-		m[string(key)] = value
-	}
-	return m, nil
 }
 
 func mapStringClientInfo(result interface{}, err error) (map[ConnID]ClientInfo, error) {
