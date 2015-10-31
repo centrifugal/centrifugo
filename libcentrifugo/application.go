@@ -733,12 +733,11 @@ func (app *Application) disconnectUser(user UserID) error {
 // namespaceKey returns namespace key from channel name if exists.
 func (app *Application) namespaceKey(ch Channel) NamespaceKey {
 	cTrim := strings.TrimPrefix(string(ch), app.config.PrivateChannelPrefix)
-	parts := strings.SplitN(cTrim, app.config.NamespaceChannelBoundary, 2)
-	if len(parts) >= 2 {
+	if strings.Contains(cTrim, app.config.NamespaceChannelBoundary) {
+		parts := strings.SplitN(cTrim, app.config.NamespaceChannelBoundary, 1)
 		return NamespaceKey(parts[0])
-	} else {
-		return NamespaceKey("")
 	}
+	return NamespaceKey("")
 }
 
 // channelOpts returns channel options for channel using current application structure.

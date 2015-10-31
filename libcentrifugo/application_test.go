@@ -161,6 +161,15 @@ func TestNamespaceKey(t *testing.T) {
 	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns::channel"))
 }
 
+func BenchmarkNamespaceKey(b *testing.B) {
+	app := testApp()
+	ch := Channel("test")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		app.namespaceKey(ch)
+	}
+}
+
 func testPingControlCmd(uid string) []byte {
 	params := json.RawMessage([]byte("{}"))
 	cmd := controlCommand{
