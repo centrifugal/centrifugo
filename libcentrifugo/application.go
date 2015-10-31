@@ -734,7 +734,7 @@ func (app *Application) disconnectUser(user UserID) error {
 func (app *Application) namespaceKey(ch Channel) NamespaceKey {
 	cTrim := strings.TrimPrefix(string(ch), app.config.PrivateChannelPrefix)
 	if strings.Contains(cTrim, app.config.NamespaceChannelBoundary) {
-		parts := strings.SplitN(cTrim, app.config.NamespaceChannelBoundary, 1)
+		parts := strings.SplitN(cTrim, app.config.NamespaceChannelBoundary, 2)
 		return NamespaceKey(parts[0])
 	}
 	return NamespaceKey("")
