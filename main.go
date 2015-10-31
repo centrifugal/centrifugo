@@ -264,7 +264,10 @@ func Main() {
 				}
 			}
 			app.SetEngine(e)
-			app.Run()
+			err = app.Run()
+			if err != nil {
+				logger.FATAL.Fatalln(err)
+			}
 
 			go handleSignals(app)
 

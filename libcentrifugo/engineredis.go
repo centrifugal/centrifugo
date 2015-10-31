@@ -25,6 +25,39 @@ type RedisEngine struct {
 	inAPI    bool
 }
 
+func newPool(server, password, db string, psize int) *redis.Pool {
+	return &redis.Pool{
+		MaxIdle:     3,
+		MaxActive:   psize,
+		Wait:        true,
+		IdleTimeout: 240 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.Dial("tcp", server)
+			if err != nil {
+				logger.CRITICAL.Println(err)
+				return nil, err
+			}
+			if password != "" {
+				if _, err := c.Do("AUTH", password); err != nil {
+					c.Close()
+					logger.CRITICAL.Println(err)
+					return nil, err
+				}
+			}
+			if _, err := c.Do("SELECT", db); err != nil {
+				c.Close()
+				logger.CRITICAL.Println(err)
+				return nil, err
+			}
+			return c, err
+		},
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			_, err := c.Do("PING")
+			return err
+		},
+	}
+}
+
 // NewRedisEngine initializes Redis Engine.
 func NewRedisEngine(app *Application, host, port, password, db, redisURL string, api bool, psize int) *RedisEngine {
 	if redisURL != "" {
@@ -61,49 +94,23 @@ func NewRedisEngine(app *Application, host, port, password, db, redisURL string,
 	}
 	logger.INFO.Printf("Redis engine: %s, database %s, pool size %d\n", server, db, psize)
 	e.psc = redis.PubSubConn{Conn: e.pool.Get()}
-	go e.initializePubSub()
-	if e.api {
-		go e.initializeApi()
-	}
-	go e.checkConnectionStatus()
 	return e
-}
-
-func newPool(server, password, db string, psize int) *redis.Pool {
-	return &redis.Pool{
-		MaxIdle:     3,
-		MaxActive:   psize,
-		Wait:        true,
-		IdleTimeout: 240 * time.Second,
-		Dial: func() (redis.Conn, error) {
-			c, err := redis.Dial("tcp", server)
-			if err != nil {
-				logger.CRITICAL.Println(err)
-				return nil, err
-			}
-			if password != "" {
-				if _, err := c.Do("AUTH", password); err != nil {
-					c.Close()
-					logger.CRITICAL.Println(err)
-					return nil, err
-				}
-			}
-			if _, err := c.Do("SELECT", db); err != nil {
-				c.Close()
-				logger.CRITICAL.Println(err)
-				return nil, err
-			}
-			return c, err
-		},
-		TestOnBorrow: func(c redis.Conn, t time.Time) error {
-			_, err := c.Do("PING")
-			return err
-		},
-	}
 }
 
 func (e *RedisEngine) name() string {
 	return "Redis"
+}
+
+func (e *RedisEngine) run() error {
+	e.RLock()
+	api := e.api
+	e.RUnlock()
+	go e.initializePubSub()
+	if api {
+		go e.initializeApi()
+	}
+	go e.checkConnectionStatus()
+	return nil
 }
 
 func (e *RedisEngine) checkConnectionStatus() {

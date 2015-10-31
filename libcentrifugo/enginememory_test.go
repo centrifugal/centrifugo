@@ -17,6 +17,8 @@ func testMemoryEngine() *MemoryEngine {
 
 func TestMemoryEngine(t *testing.T) {
 	e := testMemoryEngine()
+	err := e.run()
+	assert.Equal(t, nil, err)
 	assert.NotEqual(t, nil, e.historyHub)
 	assert.NotEqual(t, nil, e.presenceHub)
 	assert.NotEqual(t, e.name(), "")

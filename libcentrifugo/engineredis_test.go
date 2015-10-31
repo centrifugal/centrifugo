@@ -74,6 +74,8 @@ func TestRedisEngine(t *testing.T) {
 	defer c.close()
 	app := testApp()
 	e := testRedisEngine(app)
+	err := e.run()
+	assert.Equal(t, nil, err)
 	app.SetEngine(e)
 	assert.Equal(t, e.name(), "Redis")
 	assert.Equal(t, nil, e.publish(ChannelID("channel"), []byte("{}")))

@@ -95,10 +95,14 @@ func NewApplication(config *Config) (*Application, error) {
 
 // Run performs all startup actions. At moment must be called once on start after engine and
 // structure set.
-func (app *Application) Run() {
+func (app *Application) Run() error {
+	if err := app.engine.run(); err != nil {
+		return err
+	}
 	go app.sendNodePingMsg()
 	go app.cleanNodeInfo()
 	go app.updateMetrics()
+	return nil
 }
 
 // Shutdown sets shutdown flag and does various connection clean ups (at moment only unsubscribes

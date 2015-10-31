@@ -32,6 +32,10 @@ func (e *MemoryEngine) name() string {
 	return "In memory – single node only"
 }
 
+func (e *MemoryEngine) run() error {
+	return nil
+}
+
 func (e *MemoryEngine) publish(chID ChannelID, message []byte) error {
 	return e.app.handleMsg(chID, message)
 }
