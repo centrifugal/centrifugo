@@ -95,7 +95,8 @@ type Config struct {
 	// refresh its connection in the end of connection lifetime.
 	ExpiredConnectionCloseDelay time.Duration
 
-	// StaleConnectionCloseDelay
+	// StaleConnectionCloseDelay is an interval in seconds after which
+	// connection will be closed if still not authenticated.
 	StaleConnectionCloseDelay time.Duration
 
 	// MessageSendTimeout is an interval how long time the node
