@@ -102,6 +102,10 @@ type Config struct {
 	// may take to send a message to a client before disconnecting the client.
 	MessageSendTimeout time.Duration
 
+	// MaxClientQueueSize is a maximum size of client's message queue in bytes.
+	// After this queue size exceeded Centrifugo closes client's connection.
+	MaxClientQueueSize int
+
 	// PrivateChannelPrefix is a prefix in channel name which indicates that
 	// channel is private.
 	PrivateChannelPrefix string
@@ -218,5 +222,6 @@ var DefaultConfig = &Config{
 	UserChannelSeparator:        ",", // so several users limited channel is "dialog#2694,3019"
 	ExpiredConnectionCloseDelay: 25 * time.Second,
 	StaleConnectionCloseDelay:   25 * time.Second,
+	MaxClientQueueSize:          10000000, // 10MB by default
 	Insecure:                    false,
 }

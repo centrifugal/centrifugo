@@ -35,11 +35,14 @@ type ByteQueue interface {
 	// Otherwise the return value of "remove" is returned.
 	Wait() ([]byte, bool)
 
-	// Cap returns the capacity (without allocations)
+	// Cap returns the capacity (without allocations).
 	Cap() int
 
 	// Len returns the current length of the queue.
 	Len() int
+
+	// Size returns the current size of the queue in bytes.
+	Size() int
 }
 
 type byteQueue struct {
@@ -49,6 +52,7 @@ type byteQueue struct {
 	head     int
 	tail     int
 	cnt      int
+	size     int
 	isClosed bool
 }
 
@@ -86,6 +90,7 @@ func (q *byteQueue) resize(n int) {
 func (q *byteQueue) Add(i []byte) bool {
 	q.mu.Lock()
 	defer q.mu.Unlock()
+	q.size += len(i)
 	if q.isClosed {
 		return false
 	}
@@ -109,6 +114,7 @@ func (q *byteQueue) Close() {
 	q.isClosed = true
 	q.cnt = 0
 	q.nodes = nil
+	q.size = 0
 	q.cond.Broadcast()
 }
 
@@ -154,6 +160,7 @@ func (q *byteQueue) Remove() ([]byte, bool) {
 	i := q.nodes[q.head]
 	q.head = (q.head + 1) % len(q.nodes)
 	q.cnt--
+	q.size -= len(i)
 
 	if n := len(q.nodes) / 2; n >= 2 && q.cnt <= n {
 		q.resize(n)
@@ -176,4 +183,12 @@ func (q *byteQueue) Len() int {
 	l := q.cnt
 	q.mu.RUnlock()
 	return l
+}
+
+// Return the current size of the queue.
+func (q *byteQueue) Size() int {
+	q.mu.RLock()
+	s := q.size
+	q.mu.RUnlock()
+	return s
 }

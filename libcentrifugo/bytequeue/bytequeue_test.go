@@ -7,7 +7,7 @@ import (
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
-func TestStringQueueResize(t *testing.T) {
+func TestByteQueueResize(t *testing.T) {
 	q := New()
 	assert.Equal(t, 0, q.Len())
 	assert.Equal(t, initialCapacity, q.Cap())
@@ -33,7 +33,17 @@ func TestStringQueueResize(t *testing.T) {
 	assert.Equal(t, initialCapacity+2, q.Len())
 }
 
-func TestStringQueueWait(t *testing.T) {
+func TestByteQueueSize(t *testing.T) {
+	q := New()
+	assert.Equal(t, 0, q.Size())
+	q.Add([]byte("1"))
+	q.Add([]byte("2"))
+	assert.Equal(t, 2, q.Size())
+	q.Remove()
+	assert.Equal(t, 1, q.Size())
+}
+
+func TestByteQueueWait(t *testing.T) {
 	q := New()
 	q.Add([]byte("1"))
 	q.Add([]byte("2"))
@@ -56,7 +66,7 @@ func TestStringQueueWait(t *testing.T) {
 
 }
 
-func TestStringQueueClose(t *testing.T) {
+func TestByteQueueClose(t *testing.T) {
 	q := New()
 
 	// test removing from empty queue

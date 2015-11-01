@@ -122,6 +122,7 @@ func Main() {
 			viper.SetDefault("node_metrics_interval", 60)
 			viper.SetDefault("stale_connection_close_delay", 25)
 			viper.SetDefault("expired_connection_close_delay", 25)
+			viper.SetDefault("max_client_queue_size", 10000000)
 			viper.SetDefault("presence_ping_interval", 25)
 			viper.SetDefault("presence_expire_interval", 60)
 			viper.SetDefault("private_channel_prefix", "$")

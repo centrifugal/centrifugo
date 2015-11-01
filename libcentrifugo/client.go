@@ -35,6 +35,7 @@ type client struct {
 	staleTimer    *time.Timer
 	expireTimer   *time.Timer
 	presenceTimer *time.Timer
+	maxQueueSize  int
 }
 
 // ClientInfo contains information about client to use in message
@@ -62,6 +63,7 @@ func newClient(app *Application, s session) (*client, error) {
 	go c.sendMessages()
 	app.RLock()
 	staleCloseDelay := app.config.StaleConnectionCloseDelay
+	c.maxQueueSize = app.config.MaxClientQueueSize
 	app.RUnlock()
 	if staleCloseDelay > 0 {
 		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
@@ -194,6 +196,10 @@ func (c *client) send(message []byte) error {
 		return ErrClientClosed
 	}
 	c.app.metrics.numMsgQueued.Inc(1)
+	if c.messages.Size() > c.maxQueueSize {
+		c.close("slow")
+		return ErrClientClosed
+	}
 	return nil
 }
 
