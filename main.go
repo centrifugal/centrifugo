@@ -147,6 +147,7 @@ func Main() {
 			viper.BindEnv("engine")
 			viper.BindEnv("insecure")
 			viper.BindEnv("insecure_api")
+			viper.BindEnv("web")
 			viper.BindEnv("web_password")
 			viper.BindEnv("web_secret")
 			viper.BindEnv("secret")
