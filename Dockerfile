@@ -1,6 +1,6 @@
 FROM centos:7
 
-ENV VERSION 1.0.0
+ENV VERSION 1.1.0
 
 ENV DOWNLOAD https://github.com/centrifugal/centrifugo/releases/download/v$VERSION/centrifugo-$VERSION-linux-amd64.zip
 
