@@ -1,3 +1,13 @@
+v1.1.0
+======
+
+No backwards incompatible changes here.
+
+* support enabling web interface over environment variable CENTRIFUGO_WEB
+* close client's connection after its message queue exceeds 10MB (default, can be modified using `max_client_queue_size` configuration file option)
+* fix theoretical server crash on start when reading from redis API queue
+
+
 v1.0.0
 ======
 

@@ -223,6 +223,6 @@ var DefaultConfig = &Config{
 	UserChannelSeparator:        ",", // so several users limited channel is "dialog#2694,3019"
 	ExpiredConnectionCloseDelay: 25 * time.Second,
 	StaleConnectionCloseDelay:   25 * time.Second,
-	MaxClientQueueSize:          10000000, // 10MB by default
+	MaxClientQueueSize:          10485760, // 10MB by default
 	Insecure:                    false,
 }
