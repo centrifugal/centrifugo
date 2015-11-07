@@ -70,22 +70,31 @@ func TestAdminWebsocketHandler(t *testing.T) {
 	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
 }
 
-func BenchmarkAPIHandler(b *testing.B) {
-	app := testMemoryAppWithClients(1, 100)
-	nCommands := 1000
-	b.Logf("num channels: %v, num clients: %v, num unique clients %v, num commands: %v", app.clients.nChannels(), app.clients.nClients(), app.clients.nUniqueClients(), nCommands)
-	commands := make([]map[string]interface{}, nCommands)
+func getNPublishJson(channel string, n int) []byte {
+	commands := make([]map[string]interface{}, n)
 	command := map[string]interface{}{
 		"method": "publish",
 		"params": map[string]interface{}{
-			"channel": "channel-0",
+			"channel": channel,
 			"data":    map[string]bool{"benchmarking": true},
 		},
 	}
-	for i := 0; i < nCommands; i++ {
+	for i := 0; i < n; i++ {
 		commands[i] = command
 	}
 	jsonData, _ := json.Marshal(commands)
+	return jsonData
+}
+
+func BenchmarkAPIHandler(b *testing.B) {
+	sent := make(chan bool)
+	nChannels := 1
+	nClients := 1000
+	nCommands := 1000
+	nMessages := nClients * nCommands
+	app := testMemoryAppWithClientsSynchronized(nChannels, nClients, nMessages, sent)
+	b.Logf("num channels: %v, num clients: %v, num unique clients %v, num commands: %v", app.clients.nChannels(), app.clients.nClients(), app.clients.nUniqueClients(), nCommands)
+	jsonData := getNPublishJson("channel-0", nCommands)
 	sign := auth.GenerateApiSign("secret", jsonData)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -94,6 +103,8 @@ func BenchmarkAPIHandler(b *testing.B) {
 		req.Header.Add("X-API-Sign", sign)
 		req.Header.Add("Content-Type", "application/json")
 		app.APIHandler(rec, req)
+		// Every nMessages sent to clients we will receive value from this channel.
+		<-sent
 	}
 	b.StopTimer()
 }

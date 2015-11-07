@@ -10,13 +10,27 @@ import (
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
+type messageCounter struct {
+	sent  chan bool
+	n     int64
+	total int64
+}
+
 type testSession struct {
-	n      int64
-	closed bool
+	counter *messageCounter
+	n       int64
+	closed  bool
 }
 
 func (t *testSession) Send(msg []byte) error {
 	atomic.AddInt64(&t.n, 1)
+	var val int64
+	if t.counter != nil {
+		val = atomic.AddInt64(&t.counter.n, 1)
+	}
+	if t.counter != nil && t.counter.sent != nil && val%t.counter.total == 0 {
+		t.counter.sent <- true
+	}
 	return nil
 }
 
@@ -60,6 +74,12 @@ func newTestClient(app *Application) *client {
 	return c
 }
 
+func newSynchronizedTestClient(app *Application, counter *messageCounter) *client {
+	s := &testSession{counter: counter}
+	c, _ := newClient(app, s)
+	return c
+}
+
 func createTestClients(app *Application, nChannels, nChannelClients int) {
 	app.config.Insecure = true
 	for i := 0; i < nChannelClients; i++ {
@@ -89,9 +109,45 @@ func createTestClients(app *Application, nChannels, nChannelClients int) {
 	}
 }
 
-func testMemoryAppWithClients(nChannels, nChannelClients int) *Application {
+func createTestClientsSynchronized(app *Application, nChannels, nChannelClients int, nMessages int, sent chan bool) {
+	app.config.Insecure = true
+	counter := &messageCounter{total: int64(nMessages), sent: sent}
+	for i := 0; i < nChannelClients; i++ {
+		c := newSynchronizedTestClient(app, counter)
+		cmd := ConnectClientCommand{
+			User: UserID(fmt.Sprintf("user-%d", i)),
+		}
+		resp, err := c.connectCmd(&cmd)
+		if err != nil {
+			panic(err)
+		}
+		if resp.err != nil {
+			panic(resp.err)
+		}
+		for j := 0; j < nChannels; j++ {
+			cmd := SubscribeClientCommand{
+				Channel: Channel(fmt.Sprintf("channel-%d", j)),
+			}
+			resp, err = c.subscribeCmd(&cmd)
+			if err != nil {
+				panic(err)
+			}
+			if resp.err != nil {
+				panic(resp.err)
+			}
+		}
+	}
+}
+
+func testMemoryAppWithClients(nChannels int, nChannelClients int) *Application {
 	app := testMemoryApp()
 	createTestClients(app, nChannels, nChannelClients)
+	return app
+}
+
+func testMemoryAppWithClientsSynchronized(nChannels int, nChannelClients int, nMessages int, sent chan bool) *Application {
+	app := testMemoryApp()
+	createTestClientsSynchronized(app, nChannels, nChannelClients, nMessages, sent)
 	return app
 }
 
