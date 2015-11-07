@@ -35,6 +35,7 @@ type client struct {
 	staleTimer    *time.Timer
 	expireTimer   *time.Timer
 	presenceTimer *time.Timer
+	sendTimeout   time.Duration
 	maxQueueSize  int
 }
 
@@ -64,6 +65,7 @@ func newClient(app *Application, s session) (*client, error) {
 	app.RLock()
 	staleCloseDelay := app.config.StaleConnectionCloseDelay
 	c.maxQueueSize = app.config.MaxClientQueueSize
+	c.sendTimeout = app.config.MessageSendTimeout
 	app.RUnlock()
 	if staleCloseDelay > 0 {
 		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
@@ -93,9 +95,7 @@ func (c *client) sendMessages() {
 }
 
 func (c *client) sendMsgTimeout(msg []byte) error {
-	c.app.RLock()
-	sendTimeout := c.app.config.MessageSendTimeout
-	c.app.RUnlock()
+	sendTimeout := c.sendTimeout // No lock here as sendTimeout immutable while client exists.
 	if sendTimeout > 0 {
 		// Send to client's session with provided timeout.
 		to := time.After(sendTimeout)
