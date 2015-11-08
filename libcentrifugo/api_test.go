@@ -59,7 +59,7 @@ func TestAPICmd(t *testing.T) {
 
 func TestAPIPublish(t *testing.T) {
 	app := testApp()
-	cmd := &publishApiCommand{
+	cmd := &publishAPICommand{
 		Channel: "channel",
 		Data:    []byte("null"),
 	}
@@ -70,7 +70,7 @@ func TestAPIPublish(t *testing.T) {
 
 func TestAPIUnsubscribe(t *testing.T) {
 	app := testApp()
-	cmd := &unsubscribeApiCommand{
+	cmd := &unsubscribeAPICommand{
 		User:    "test user",
 		Channel: "channel",
 	}
@@ -79,7 +79,7 @@ func TestAPIUnsubscribe(t *testing.T) {
 	assert.Equal(t, nil, resp.err)
 
 	// unsubscribe from all channels
-	cmd = &unsubscribeApiCommand{
+	cmd = &unsubscribeAPICommand{
 		User:    "test user",
 		Channel: "",
 	}
@@ -90,7 +90,7 @@ func TestAPIUnsubscribe(t *testing.T) {
 
 func TestAPIDisconnect(t *testing.T) {
 	app := testApp()
-	cmd := &disconnectApiCommand{
+	cmd := &disconnectAPICommand{
 		User: "test user",
 	}
 	resp, err := app.disconnectCmd(cmd)
@@ -100,7 +100,7 @@ func TestAPIDisconnect(t *testing.T) {
 
 func TestAPIPresence(t *testing.T) {
 	app := testApp()
-	cmd := &presenceApiCommand{
+	cmd := &presenceAPICommand{
 		Channel: "channel",
 	}
 	resp, err := app.presenceCmd(cmd)
@@ -110,7 +110,7 @@ func TestAPIPresence(t *testing.T) {
 
 func TestAPIHistory(t *testing.T) {
 	app := testApp()
-	cmd := &historyApiCommand{
+	cmd := &historyAPICommand{
 		Channel: "channel",
 	}
 	resp, err := app.historyCmd(cmd)

@@ -468,7 +468,7 @@ func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		cmd := &publishApiCommand{
+		cmd := &publishAPICommand{
 			Channel: channel,
 			Data:    []byte(data),
 		}
@@ -476,26 +476,26 @@ func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
 	case "unsubscribe":
 		channel := Channel(r.FormValue("channel"))
 		user := UserID(r.FormValue("user"))
-		cmd := &unsubscribeApiCommand{
+		cmd := &unsubscribeAPICommand{
 			Channel: channel,
 			User:    user,
 		}
 		resp, err = app.unsubcribeCmd(cmd)
 	case "disconnect":
 		user := UserID(r.FormValue("user"))
-		cmd := &disconnectApiCommand{
+		cmd := &disconnectAPICommand{
 			User: user,
 		}
 		resp, err = app.disconnectCmd(cmd)
 	case "presence":
 		channel := Channel(r.FormValue("channel"))
-		cmd := &presenceApiCommand{
+		cmd := &presenceAPICommand{
 			Channel: channel,
 		}
 		resp, err = app.presenceCmd(cmd)
 	case "history":
 		channel := Channel(r.FormValue("channel"))
-		cmd := &historyApiCommand{
+		cmd := &historyAPICommand{
 			Channel: channel,
 		}
 		resp, err = app.historyCmd(cmd)

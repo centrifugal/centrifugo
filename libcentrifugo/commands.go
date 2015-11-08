@@ -98,31 +98,31 @@ type PingClientCommand struct {
 }
 
 // publishApiCommand is used to publish messages into channel
-type publishApiCommand struct {
+type publishAPICommand struct {
 	Channel Channel
 	Data    json.RawMessage
 	Client  ConnID
 }
 
 // unsubscribeApiCommand is used to unsubscribe user from channel
-type unsubscribeApiCommand struct {
+type unsubscribeAPICommand struct {
 	Channel Channel
 	User    UserID
 }
 
 // disconnectApiCommand is used to disconnect user
-type disconnectApiCommand struct {
+type disconnectAPICommand struct {
 	User UserID
 }
 
 // presenceApiCommand is used to get presence (actual channel subscriptions)
 // information for channel
-type presenceApiCommand struct {
+type presenceAPICommand struct {
 	Channel Channel
 }
 
 // historyApiCommand is used to get history information for channel
-type historyApiCommand struct {
+type historyAPICommand struct {
 	Channel Channel
 }
 

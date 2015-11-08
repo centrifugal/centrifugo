@@ -17,7 +17,7 @@ func (app *Application) apiCmd(command apiCommand) (*response, error) {
 
 	switch method {
 	case "publish":
-		var cmd publishApiCommand
+		var cmd publishAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -25,7 +25,7 @@ func (app *Application) apiCmd(command apiCommand) (*response, error) {
 		}
 		resp, err = app.publishCmd(&cmd)
 	case "unsubscribe":
-		var cmd unsubscribeApiCommand
+		var cmd unsubscribeAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -33,7 +33,7 @@ func (app *Application) apiCmd(command apiCommand) (*response, error) {
 		}
 		resp, err = app.unsubcribeCmd(&cmd)
 	case "disconnect":
-		var cmd disconnectApiCommand
+		var cmd disconnectAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -41,7 +41,7 @@ func (app *Application) apiCmd(command apiCommand) (*response, error) {
 		}
 		resp, err = app.disconnectCmd(&cmd)
 	case "presence":
-		var cmd presenceApiCommand
+		var cmd presenceAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -49,7 +49,7 @@ func (app *Application) apiCmd(command apiCommand) (*response, error) {
 		}
 		resp, err = app.presenceCmd(&cmd)
 	case "history":
-		var cmd historyApiCommand
+		var cmd historyAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -73,7 +73,7 @@ func (app *Application) apiCmd(command apiCommand) (*response, error) {
 }
 
 // publishCmd publishes data into channel.
-func (app *Application) publishCmd(cmd *publishApiCommand) (*response, error) {
+func (app *Application) publishCmd(cmd *publishAPICommand) (*response, error) {
 	resp := newResponse("publish")
 	channel := cmd.Channel
 	data := cmd.Data
@@ -87,7 +87,7 @@ func (app *Application) publishCmd(cmd *publishApiCommand) (*response, error) {
 
 // unsubscribeCmd unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes.
-func (app *Application) unsubcribeCmd(cmd *unsubscribeApiCommand) (*response, error) {
+func (app *Application) unsubcribeCmd(cmd *unsubscribeAPICommand) (*response, error) {
 	resp := newResponse("unsubscribe")
 	channel := cmd.Channel
 	user := cmd.User
@@ -101,7 +101,7 @@ func (app *Application) unsubcribeCmd(cmd *unsubscribeApiCommand) (*response, er
 
 // disconnectCmd disconnects user by its ID and sends disconnect
 // control message to other nodes so they could also disconnect this user.
-func (app *Application) disconnectCmd(cmd *disconnectApiCommand) (*response, error) {
+func (app *Application) disconnectCmd(cmd *disconnectAPICommand) (*response, error) {
 	resp := newResponse("disconnect")
 	user := cmd.User
 	err := app.Disconnect(user)
@@ -113,7 +113,7 @@ func (app *Application) disconnectCmd(cmd *disconnectApiCommand) (*response, err
 }
 
 // presenceCmd returns response with presense information for channel.
-func (app *Application) presenceCmd(cmd *presenceApiCommand) (*response, error) {
+func (app *Application) presenceCmd(cmd *presenceAPICommand) (*response, error) {
 	resp := newResponse("presence")
 	channel := cmd.Channel
 	body := &PresenceBody{
@@ -130,7 +130,7 @@ func (app *Application) presenceCmd(cmd *presenceApiCommand) (*response, error) 
 }
 
 // historyCmd returns response with history information for channel.
-func (app *Application) historyCmd(cmd *historyApiCommand) (*response, error) {
+func (app *Application) historyCmd(cmd *historyAPICommand) (*response, error) {
 	resp := newResponse("history")
 	channel := cmd.Channel
 	body := &HistoryBody{
