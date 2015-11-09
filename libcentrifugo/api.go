@@ -24,6 +24,14 @@ func (app *Application) apiCmd(command apiCommand) (*response, error) {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = app.publishCmd(&cmd)
+	case "broadcast":
+		var cmd broadcastAPICommand
+		err = json.Unmarshal(params, &cmd)
+		if err != nil {
+			logger.ERROR.Println(err)
+			return nil, ErrInvalidMessage
+		}
+		resp, err = app.broadcastCmd(&cmd)
 	case "unsubscribe":
 		var cmd unsubscribeAPICommand
 		err = json.Unmarshal(params, &cmd)
@@ -91,6 +99,11 @@ func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error
 	channels := cmd.Channels
 	data := cmd.Data
 	var err error
+	if len(channels) == 0 {
+		logger.ERROR.Println("channels required for broadcast")
+		resp.Err(ErrInvalidMessage)
+		return resp, nil
+	}
 	for _, channel := range channels {
 		err = app.publish(channel, data, cmd.Client, nil, false)
 		if err != nil {

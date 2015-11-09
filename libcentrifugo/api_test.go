@@ -25,6 +25,14 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, ErrInvalidMessage, resp.err)
 
 	cmd = apiCommand{
+		Method: "broadcast",
+		Params: []byte("{}"),
+	}
+	resp, err = app.apiCmd(cmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, ErrInvalidMessage, resp.err)
+
+	cmd = apiCommand{
 		Method: "unsubscribe",
 		Params: []byte("{}"),
 	}
@@ -66,6 +74,38 @@ func TestAPIPublish(t *testing.T) {
 	resp, err := app.publishCmd(cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.err)
+	cmd = &publishAPICommand{
+		Channel: "nonexistentnamespace:channel-2",
+		Data:    []byte("null"),
+	}
+	resp, err = app.publishCmd(cmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, ErrNamespaceNotFound, resp.err)
+}
+
+func TestAPIBroadcast(t *testing.T) {
+	app := testApp()
+	cmd := &broadcastAPICommand{
+		Channels: []Channel{"channel-1", "channel-2"},
+		Data:     []byte("null"),
+	}
+	resp, err := app.broadcastCmd(cmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nil, resp.err)
+	cmd = &broadcastAPICommand{
+		Channels: []Channel{"channel-1", "nonexistentnamespace:channel-2"},
+		Data:     []byte("null"),
+	}
+	resp, err = app.broadcastCmd(cmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, ErrNamespaceNotFound, resp.err)
+	cmd = &broadcastAPICommand{
+		Channels: []Channel{},
+		Data:     []byte("null"),
+	}
+	resp, err = app.broadcastCmd(cmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, ErrInvalidMessage, resp.err)
 }
 
 func TestAPIUnsubscribe(t *testing.T) {
