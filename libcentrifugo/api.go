@@ -85,6 +85,22 @@ func (app *Application) publishCmd(cmd *publishAPICommand) (*response, error) {
 	return resp, nil
 }
 
+// broadcastCmd publishes data into multiple channels.
+func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error) {
+	resp := newResponse("broadcast")
+	channels := cmd.Channels
+	data := cmd.Data
+	var err error
+	for _, channel := range channels {
+		err = app.publish(channel, data, cmd.Client, nil, false)
+		if err != nil {
+			resp.Err(err)
+			return resp, nil
+		}
+	}
+	return resp, nil
+}
+
 // unsubscribeCmd unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes.
 func (app *Application) unsubcribeCmd(cmd *unsubscribeAPICommand) (*response, error) {

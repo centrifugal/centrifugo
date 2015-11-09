@@ -33,7 +33,7 @@ type adminCommand struct {
 }
 
 type controlCommand struct {
-	// unique node ID which sent this control command
+	// unique node ID which sent this control command.
 	UID string
 
 	Method string
@@ -43,7 +43,7 @@ type controlCommand struct {
 // connectClientCommand is a command to authorize connection - it contains user ID
 // in web application, additional connection information as JSON string, timestamp
 // with unix seconds on moment when connect parameters generated and HMAC token to
-// prove correctness of all those parameters
+// prove correctness of all those parameters.
 type ConnectClientCommand struct {
 	User      UserID
 	Timestamp string
@@ -70,82 +70,89 @@ type SubscribeClientCommand struct {
 	Sign    string
 }
 
-// unsubscribeClientCommand is used to unsubscribe from channel
+// unsubscribeClientCommand is used to unsubscribe from channel.
 type UnsubscribeClientCommand struct {
 	Channel Channel
 }
 
-// publishClientCommand is used to publish messages into channel
+// publishClientCommand is used to publish messages into channel.
 type PublishClientCommand struct {
 	Channel Channel
 	Data    json.RawMessage
 }
 
-// presenceClientCommand is used to get presence (actual channel subscriptions)
+// presenceClientCommand is used to get presence (actual channel subscriptions).
 // information for channel
 type PresenceClientCommand struct {
 	Channel Channel
 }
 
-// historyClientCommand is used to get history information for channel
+// historyClientCommand is used to get history information for channel.
 type HistoryClientCommand struct {
 	Channel Channel
 }
 
-// pingClientCommand is used to ping server
+// pingClientCommand is used to ping server.
 type PingClientCommand struct {
 	Data string
 }
 
-// publishApiCommand is used to publish messages into channel
+// publishApiCommand is used to publish messages into channel.
 type publishAPICommand struct {
 	Channel Channel
 	Data    json.RawMessage
 	Client  ConnID
 }
 
-// unsubscribeApiCommand is used to unsubscribe user from channel
+// broadcastApiCommand is used to publish messages into multiple channels.
+type broadcastAPICommand struct {
+	Channels []Channel
+	Data     json.RawMessage
+	Client   ConnID
+}
+
+// unsubscribeApiCommand is used to unsubscribe user from channel.
 type unsubscribeAPICommand struct {
 	Channel Channel
 	User    UserID
 }
 
-// disconnectApiCommand is used to disconnect user
+// disconnectApiCommand is used to disconnect user.
 type disconnectAPICommand struct {
 	User UserID
 }
 
 // presenceApiCommand is used to get presence (actual channel subscriptions)
-// information for channel
+// information for channel.
 type presenceAPICommand struct {
 	Channel Channel
 }
 
-// historyApiCommand is used to get history information for channel
+// historyApiCommand is used to get history information for channel.
 type historyAPICommand struct {
 	Channel Channel
 }
 
 // pingControlCommand allows nodes to know about each other - node sends this
-// control command periodically
+// control command periodically.
 type pingControlCommand struct {
 	Info NodeInfo
 }
 
 // unsubscribeControlCommand required when node received unsubscribe API command -
 // node unsubscribes user from channel and then send this control command so other
-// nodes could unsubscribe user too
+// nodes could unsubscribe user too.
 type unsubscribeControlCommand struct {
 	User    UserID
 	Channel Channel
 }
 
-// disconnectControlCommand required to disconnect user from all nodes
+// disconnectControlCommand required to disconnect user from all nodes.
 type disconnectControlCommand struct {
 	User UserID
 }
 
-// authAdminCommand required to authorize admin connection
+// authAdminCommand required to authorize admin connection.
 type authAdminCommand struct {
 	Token string
 }
