@@ -107,6 +107,7 @@ func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error
 	for _, channel := range channels {
 		err = app.publish(channel, data, cmd.Client, nil, false)
 		if err != nil {
+			logger.ERROR.Println("Error publishing into channel", string(channel))
 			resp.Err(err)
 			return resp, nil
 		}
