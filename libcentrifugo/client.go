@@ -86,7 +86,8 @@ func (c *client) sendMessages() {
 		err := c.sendMsgTimeout(msg)
 		if err != nil {
 			logger.INFO.Println("error sending to", c.uid(), err.Error())
-			c.sess.Close(CloseStatus, "error sending message")
+			c.close("error sending message")
+			return
 		} else {
 			c.app.metrics.numMsgSent.Inc(1)
 			c.app.metrics.bytesClientOut.Inc(int64(len(msg)))
@@ -206,7 +207,11 @@ func (c *client) send(message []byte) error {
 func (c *client) close(reason string) error {
 	// TODO: better locking for client - at moment we close message queue in 2 places, here and in clean() method
 	c.messages.Close()
-	return c.sess.Close(CloseStatus, reason)
+	err := c.sess.Close(CloseStatus, reason)
+	if err != nil {
+		logger.ERROR.Println(err)
+	}
+	return err
 }
 
 // clean called when connection was closed to make different clean up
@@ -214,6 +219,13 @@ func (c *client) close(reason string) error {
 func (c *client) clean() error {
 	c.Lock()
 	defer c.Unlock()
+
+	select {
+	case <-c.closeChan:
+		return nil
+	default:
+		close(c.closeChan)
+	}
 
 	if len(c.Channels) > 0 {
 		// unsubscribe from all channels
@@ -235,7 +247,6 @@ func (c *client) clean() error {
 		}
 	}
 
-	close(c.closeChan)
 	c.messages.Close()
 
 	if c.authenticated && c.app.mediator != nil {
