@@ -114,44 +114,47 @@ func (app *Application) Shutdown() {
 	app.clients.shutdown()
 }
 
+func (app *Application) updateMetricsOnce() {
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+
+	cpu, err := cpuUsage()
+	if err != nil {
+		logger.DEBUG.Println(err)
+	}
+
+	app.metrics.Lock()
+	app.metrics.metrics.CPU = cpu
+	app.metrics.metrics.MemSys = int64(mem.Sys)
+	app.metrics.metrics.NumMsgPublished = app.metrics.numMsgPublished.Count()
+	app.metrics.metrics.NumMsgQueued = app.metrics.numMsgQueued.Count()
+	app.metrics.metrics.NumMsgSent = app.metrics.numMsgSent.Count()
+	app.metrics.metrics.NumAPIRequests = app.metrics.numAPIRequests.Count()
+	app.metrics.metrics.NumClientRequests = app.metrics.numClientRequests.Count()
+	app.metrics.metrics.TimeAPIMean = int64(app.metrics.timeAPI.Mean())
+	app.metrics.metrics.TimeClientMean = int64(app.metrics.timeClient.Mean())
+	app.metrics.metrics.TimeAPIMax = int64(app.metrics.timeAPI.Max())
+	app.metrics.metrics.TimeClientMax = int64(app.metrics.timeClient.Max())
+	app.metrics.metrics.BytesClientIn = app.metrics.bytesClientIn.Count()
+	app.metrics.metrics.BytesClientOut = app.metrics.bytesClientOut.Count()
+	app.metrics.Unlock()
+
+	app.metrics.numMsgPublished.Clear()
+	app.metrics.numMsgQueued.Clear()
+	app.metrics.numMsgSent.Clear()
+	app.metrics.numAPIRequests.Clear()
+	app.metrics.numClientRequests.Clear()
+	app.metrics.bytesClientIn.Clear()
+	app.metrics.bytesClientOut.Clear()
+}
+
 func (app *Application) updateMetrics() {
 	for {
 		app.RLock()
 		interval := app.config.NodeMetricsInterval
 		app.RUnlock()
 		time.Sleep(interval)
-
-		var mem runtime.MemStats
-		runtime.ReadMemStats(&mem)
-
-		cpu, err := cpuUsage()
-		if err != nil {
-			logger.DEBUG.Println(err)
-		}
-
-		app.metrics.Lock()
-		app.metrics.metrics.CPU = cpu
-		app.metrics.metrics.MemSys = int64(mem.Sys)
-		app.metrics.metrics.NumMsgPublished = app.metrics.numMsgPublished.Count()
-		app.metrics.metrics.NumMsgQueued = app.metrics.numMsgQueued.Count()
-		app.metrics.metrics.NumMsgSent = app.metrics.numMsgSent.Count()
-		app.metrics.metrics.NumAPIRequests = app.metrics.numAPIRequests.Count()
-		app.metrics.metrics.NumClientRequests = app.metrics.numClientRequests.Count()
-		app.metrics.metrics.TimeAPIMean = int64(app.metrics.timeAPI.Mean())
-		app.metrics.metrics.TimeClientMean = int64(app.metrics.timeClient.Mean())
-		app.metrics.metrics.TimeAPIMax = int64(app.metrics.timeAPI.Max())
-		app.metrics.metrics.TimeClientMax = int64(app.metrics.timeClient.Max())
-		app.metrics.metrics.BytesClientIn = app.metrics.bytesClientIn.Count()
-		app.metrics.metrics.BytesClientOut = app.metrics.bytesClientOut.Count()
-		app.metrics.Unlock()
-
-		app.metrics.numMsgPublished.Clear()
-		app.metrics.numMsgQueued.Clear()
-		app.metrics.numMsgSent.Clear()
-		app.metrics.numAPIRequests.Clear()
-		app.metrics.numClientRequests.Clear()
-		app.metrics.bytesClientIn.Clear()
-		app.metrics.bytesClientOut.Clear()
+		app.updateMetricsOnce()
 	}
 }
 

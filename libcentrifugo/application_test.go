@@ -271,11 +271,17 @@ func testWrongControlCmd(uid string) []byte {
 }
 
 func TestPublish(t *testing.T) {
-	app := testApp()
-	app = testMemoryApp()
+	app := testMemoryApp()
 	createTestClients(app, 10, 1)
 	data, _ := json.Marshal(map[string]string{"test": "publish"})
 	err := app.Publish(Channel("channel-0"), data, ConnID(""), nil)
+	assert.Equal(t, nil, err)
+}
+
+func TestPublishJoinLeave(t *testing.T) {
+	app := testMemoryApp()
+	createTestClients(app, 10, 1)
+	err := app.pubJoinLeave(Channel("channel-0"), "join", ClientInfo{})
 	assert.Equal(t, nil, err)
 }
 
@@ -295,6 +301,17 @@ func TestControlMessages(t *testing.T) {
 	assert.Equal(t, nil, err)
 	err = app.controlMsg(testDisconnectControlCmd("another node"))
 	assert.Equal(t, nil, err)
+}
+
+func TestUpdateMetrics(t *testing.T) {
+	app := testMemoryApp()
+	createTestClients(app, 10, 1)
+	data, _ := json.Marshal(map[string]string{"test": "publish"})
+	err := app.Publish(Channel("channel-0"), data, ConnID(""), nil)
+	assert.Equal(t, nil, err)
+	app.config.NodeMetricsInterval = 1 * time.Millisecond
+	app.updateMetricsOnce()
+	assert.Equal(t, int64(1), app.metrics.metrics.NumMsgPublished)
 }
 
 func createUsers(users, chanUser, totChannels int) []*testClientConn {

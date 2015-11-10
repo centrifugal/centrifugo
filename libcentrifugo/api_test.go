@@ -25,12 +25,26 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, ErrInvalidMessage, resp.err)
 
 	cmd = apiCommand{
+		Method: "publish",
+		Params: []byte("test"),
+	}
+	_, err = app.apiCmd(cmd)
+	assert.Equal(t, ErrInvalidMessage, err)
+
+	cmd = apiCommand{
 		Method: "broadcast",
 		Params: []byte("{}"),
 	}
 	resp, err = app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, ErrInvalidMessage, resp.err)
+
+	cmd = apiCommand{
+		Method: "broadcast",
+		Params: []byte("test"),
+	}
+	_, err = app.apiCmd(cmd)
+	assert.Equal(t, ErrInvalidMessage, err)
 
 	cmd = apiCommand{
 		Method: "unsubscribe",
@@ -41,12 +55,26 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, ErrInvalidMessage, resp.err)
 
 	cmd = apiCommand{
+		Method: "unsubscribe",
+		Params: []byte("test"),
+	}
+	_, err = app.apiCmd(cmd)
+	assert.Equal(t, ErrInvalidMessage, err)
+
+	cmd = apiCommand{
 		Method: "disconnect",
 		Params: []byte("{}"),
 	}
 	resp, err = app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, ErrInvalidMessage, resp.err)
+
+	cmd = apiCommand{
+		Method: "disconnect",
+		Params: []byte("test"),
+	}
+	_, err = app.apiCmd(cmd)
+	assert.Equal(t, ErrInvalidMessage, err)
 
 	cmd = apiCommand{
 		Method: "presence",
@@ -57,12 +85,42 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, ErrInvalidMessage, resp.err)
 
 	cmd = apiCommand{
+		Method: "presence",
+		Params: []byte("test"),
+	}
+	_, err = app.apiCmd(cmd)
+	assert.Equal(t, ErrInvalidMessage, err)
+
+	cmd = apiCommand{
 		Method: "history",
 		Params: []byte("{}"),
 	}
-	_, err = app.apiCmd(cmd)
+	resp, err = app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, ErrInvalidMessage, resp.err)
+
+	cmd = apiCommand{
+		Method: "history",
+		Params: []byte("test"),
+	}
+	_, err = app.apiCmd(cmd)
+	assert.Equal(t, ErrInvalidMessage, err)
+
+	cmd = apiCommand{
+		Method: "channels",
+		Params: []byte("{}"),
+	}
+	resp, err = app.apiCmd(cmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nil, resp.err)
+
+	cmd = apiCommand{
+		Method: "stats",
+		Params: []byte("{}"),
+	}
+	resp, err = app.apiCmd(cmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nil, resp.err)
 }
 
 func TestAPIPublish(t *testing.T) {
