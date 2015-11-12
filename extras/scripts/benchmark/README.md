@@ -19,14 +19,3 @@ run with 4000 max clients incrementing client amount by 1000 and repeat measurem
 ```bash
 go run benchmark.go ws://localhost:8000/connection/websocket secret 4000 1000 50
 ```
-
-Connections script
-==================
-
-Create N subscribed (on channel `test`) clients and keep them connected until interrupted.
-
-run with 4000 connected subscribed clients:
-
-```bash
-go run connections.go ws://localhost:8000/connection/websocket secret 4000
-```
