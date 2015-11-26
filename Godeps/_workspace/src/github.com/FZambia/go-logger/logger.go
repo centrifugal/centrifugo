@@ -45,7 +45,7 @@ var (
 	OutHandle  io.Writer = os.Stdout
 	BothHandle io.Writer = io.MultiWriter(LogHandle, OutHandle)
 
-	Flag int = log.Ldate | log.Ltime | log.Lshortfile
+	Flag int = log.Ldate | log.Ltime
 
 	NotePads []*NotePad = []*NotePad{debug, info, warn, err, critical, fatal}
 

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/garyburd/redigo/redis"
-	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
 // RedisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.

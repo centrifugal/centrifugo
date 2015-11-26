@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/centrifugal/centrifugo",
-	"GoVersion": "go1.4.2",
+	"GoVersion": "go1.5.1",
 	"Packages": [
 		"./..."
 	],
@@ -14,6 +14,10 @@
 			"ImportPath": "github.com/BurntSushi/toml",
 			"Comment": "v0.1.0-21-g056c9bc",
 			"Rev": "056c9bc7be7190eaa7715723883caffa5f8fa3e4"
+		},
+		{
+			"ImportPath": "github.com/FZambia/go-logger",
+			"Rev": "1e47f2709a6dc3366a17490c863c0b3e5f218cda"
 		},
 		{
 			"ImportPath": "github.com/elazarl/go-bindata-assetfs",

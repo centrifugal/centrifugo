@@ -22,10 +22,10 @@
 package main
 
 import (
-	"github.com/elazarl/go-bindata-assetfs"
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/elazarl/go-bindata-assetfs"
 	"io"
 	"io/ioutil"
 	"os"
@@ -477,23 +477,23 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"app/index.html": appIndexHtml,
-	"app/public/bootstrap/css/bootstrap.min.css": appPublicBootstrapCssBootstrapMinCss,
-	"app/public/bootstrap/fonts/glyphicons-halflings-regular.eot": appPublicBootstrapFontsGlyphiconsHalflingsRegularEot,
-	"app/public/bootstrap/fonts/glyphicons-halflings-regular.svg": appPublicBootstrapFontsGlyphiconsHalflingsRegularSvg,
-	"app/public/bootstrap/fonts/glyphicons-halflings-regular.ttf": appPublicBootstrapFontsGlyphiconsHalflingsRegularTtf,
-	"app/public/bootstrap/fonts/glyphicons-halflings-regular.woff": appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff,
+	"app/index.html":                                                appIndexHtml,
+	"app/public/bootstrap/css/bootstrap.min.css":                    appPublicBootstrapCssBootstrapMinCss,
+	"app/public/bootstrap/fonts/glyphicons-halflings-regular.eot":   appPublicBootstrapFontsGlyphiconsHalflingsRegularEot,
+	"app/public/bootstrap/fonts/glyphicons-halflings-regular.svg":   appPublicBootstrapFontsGlyphiconsHalflingsRegularSvg,
+	"app/public/bootstrap/fonts/glyphicons-halflings-regular.ttf":   appPublicBootstrapFontsGlyphiconsHalflingsRegularTtf,
+	"app/public/bootstrap/fonts/glyphicons-halflings-regular.woff":  appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff,
 	"app/public/bootstrap/fonts/glyphicons-halflings-regular.woff2": appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff2,
-	"app/public/bundle/bundle.css": appPublicBundleBundleCss,
-	"app/public/bundle/bundle.js": appPublicBundleBundleJs,
-	"app/public/bundle/bundle.js.map": appPublicBundleBundleJsMap,
-	"app/public/images/bg.png": appPublicImagesBgPng,
-	"app/public/images/favicon.ico": appPublicImagesFaviconIco,
-	"app/public/images/loading-bars.svg": appPublicImagesLoadingBarsSvg,
-	"app/public/images/login-bg.jpg": appPublicImagesLoginBgJpg,
-	"app/public/images/logo-login.svg": appPublicImagesLogoLoginSvg,
-	"app/public/images/logo.svg": appPublicImagesLogoSvg,
-	"app/robots.txt": appRobotsTxt,
+	"app/public/bundle/bundle.css":                                  appPublicBundleBundleCss,
+	"app/public/bundle/bundle.js":                                   appPublicBundleBundleJs,
+	"app/public/bundle/bundle.js.map":                               appPublicBundleBundleJsMap,
+	"app/public/images/bg.png":                                      appPublicImagesBgPng,
+	"app/public/images/favicon.ico":                                 appPublicImagesFaviconIco,
+	"app/public/images/loading-bars.svg":                            appPublicImagesLoadingBarsSvg,
+	"app/public/images/login-bg.jpg":                                appPublicImagesLoginBgJpg,
+	"app/public/images/logo-login.svg":                              appPublicImagesLogoLoginSvg,
+	"app/public/images/logo.svg":                                    appPublicImagesLogoSvg,
+	"app/robots.txt":                                                appRobotsTxt,
 }
 
 // AssetDir returns the file names below a certain
@@ -535,6 +535,7 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
 	"app": &bintree{nil, map[string]*bintree{
 		"index.html": &bintree{appIndexHtml, map[string]*bintree{}},
@@ -544,25 +545,25 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"bootstrap.min.css": &bintree{appPublicBootstrapCssBootstrapMinCss, map[string]*bintree{}},
 				}},
 				"fonts": &bintree{nil, map[string]*bintree{
-					"glyphicons-halflings-regular.eot": &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularEot, map[string]*bintree{}},
-					"glyphicons-halflings-regular.svg": &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularSvg, map[string]*bintree{}},
-					"glyphicons-halflings-regular.ttf": &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularTtf, map[string]*bintree{}},
-					"glyphicons-halflings-regular.woff": &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff, map[string]*bintree{}},
+					"glyphicons-halflings-regular.eot":   &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularEot, map[string]*bintree{}},
+					"glyphicons-halflings-regular.svg":   &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularSvg, map[string]*bintree{}},
+					"glyphicons-halflings-regular.ttf":   &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularTtf, map[string]*bintree{}},
+					"glyphicons-halflings-regular.woff":  &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff, map[string]*bintree{}},
 					"glyphicons-halflings-regular.woff2": &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff2, map[string]*bintree{}},
 				}},
 			}},
 			"bundle": &bintree{nil, map[string]*bintree{
-				"bundle.css": &bintree{appPublicBundleBundleCss, map[string]*bintree{}},
-				"bundle.js": &bintree{appPublicBundleBundleJs, map[string]*bintree{}},
+				"bundle.css":    &bintree{appPublicBundleBundleCss, map[string]*bintree{}},
+				"bundle.js":     &bintree{appPublicBundleBundleJs, map[string]*bintree{}},
 				"bundle.js.map": &bintree{appPublicBundleBundleJsMap, map[string]*bintree{}},
 			}},
 			"images": &bintree{nil, map[string]*bintree{
-				"bg.png": &bintree{appPublicImagesBgPng, map[string]*bintree{}},
-				"favicon.ico": &bintree{appPublicImagesFaviconIco, map[string]*bintree{}},
+				"bg.png":           &bintree{appPublicImagesBgPng, map[string]*bintree{}},
+				"favicon.ico":      &bintree{appPublicImagesFaviconIco, map[string]*bintree{}},
 				"loading-bars.svg": &bintree{appPublicImagesLoadingBarsSvg, map[string]*bintree{}},
-				"login-bg.jpg": &bintree{appPublicImagesLoginBgJpg, map[string]*bintree{}},
-				"logo-login.svg": &bintree{appPublicImagesLogoLoginSvg, map[string]*bintree{}},
-				"logo.svg": &bintree{appPublicImagesLogoSvg, map[string]*bintree{}},
+				"login-bg.jpg":     &bintree{appPublicImagesLoginBgJpg, map[string]*bintree{}},
+				"logo-login.svg":   &bintree{appPublicImagesLogoLoginSvg, map[string]*bintree{}},
+				"logo.svg":         &bintree{appPublicImagesLogoSvg, map[string]*bintree{}},
 			}},
 		}},
 		"robots.txt": &bintree{appRobotsTxt, map[string]*bintree{}},
@@ -615,7 +616,6 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-
 
 func assetFS() *assetfs.AssetFS {
 	for k := range _bintree.Children {

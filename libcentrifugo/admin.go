@@ -3,9 +3,9 @@ package libcentrifugo
 import (
 	"encoding/json"
 
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/websocket"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
-	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
 // use interface to mimic websocket connection write method we use here
