@@ -633,7 +633,8 @@ func (c *client) refreshCmd(cmd *RefreshClientCommand) (*response, error) {
 
 // subscribeCmd handles subscribe command - clients send this when subscribe
 // on channel, if channel if private then we must validate provided sign here before
-// actually subscribe client on channel
+// actually subscribe client on channel. Optionally we can send missed messages to
+// client if it provided last message id seen in channel.
 func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*response, error) {
 
 	resp := newResponse("subscribe")
@@ -704,6 +705,38 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*response, error) {
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInternalServerError
+		}
+	}
+
+	// TODO: check channel option here.
+	if cmd.Last != "" {
+		// Client provided last message if seen in channel. Try to restore missed messages
+		// automatically from history (we suppose here that history configured wisely).
+		messages, err := c.app.History(channel)
+		if err != nil {
+			logger.ERROR.Printf("can't restore messages for channel %s: %s", string(channel), err)
+			body.Messages = []Message{}
+		} else {
+			position := -1
+			for index, msg := range messages {
+				if msg.UID == cmd.Last {
+					position = index
+					break
+				}
+			}
+			if position > -1 {
+				// Last uid provided found in history. Set restored flag which means that
+				// Centrifugo thinks missed messages fully restored.
+				body.Messages = messages[position:len(messages)]
+				body.Restored = true
+			} else {
+				// Last uid provided not found in history messages. This means that client
+				// most probably missed too many messages (maybe wrong last uid provided but
+				// it's not a normal case). So we try to compensate as many as we can. But
+				// restored flag stays false so we do not give a guarantee all missed messages
+				// restored successfully.
+				body.Messages = messages
+			}
 		}
 	}
 

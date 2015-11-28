@@ -66,6 +66,7 @@ type RefreshClientCommand struct {
 type SubscribeClientCommand struct {
 	Channel Channel
 	Client  ConnID
+	Last    string
 	Info    string
 	Sign    string
 }
