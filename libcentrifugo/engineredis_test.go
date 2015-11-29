@@ -110,3 +110,17 @@ func TestRedisChannels(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 10, len(channels))
 }
+
+func TestRedisLastMessageID(t *testing.T) {
+	c := dial()
+	defer c.close()
+	app := testRedisApp()
+	chID := ChannelID("test")
+	uid, err := app.engine.lastMessageID(chID)
+	assert.Equal(t, MessageID(""), uid)
+	assert.Equal(t, nil, err)
+	err = app.engine.addLastMessageID(chID, "123")
+	assert.Equal(t, nil, err)
+	uid, err = app.engine.lastMessageID(chID)
+	assert.Equal(t, MessageID("123"), uid)
+}

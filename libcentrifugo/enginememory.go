@@ -12,9 +12,11 @@ import (
 // memory. With this engine you can only run single Centrifugo node. If you need to scale you should
 // use Redis engine instead.
 type MemoryEngine struct {
+	sync.RWMutex
 	app         *Application
 	presenceHub *memoryPresenceHub
 	historyHub  *memoryHistoryHub
+	lastMessage map[ChannelID]MessageID
 }
 
 // NewMemoryEngine initializes Memory Engine.
@@ -23,6 +25,7 @@ func NewMemoryEngine(app *Application) *MemoryEngine {
 		app:         app,
 		presenceHub: newMemoryPresenceHub(),
 		historyHub:  newMemoryHistoryHub(),
+		lastMessage: make(map[ChannelID]MessageID),
 	}
 	e.historyHub.initialize()
 	return e
@@ -70,6 +73,23 @@ func (e *MemoryEngine) history(chID ChannelID) ([]Message, error) {
 
 func (e *MemoryEngine) channels() ([]ChannelID, error) {
 	return e.app.clients.channels(), nil
+}
+
+func (e *MemoryEngine) addLastMessageID(ch ChannelID, uid MessageID) error {
+	e.Lock()
+	defer e.Unlock()
+	e.lastMessage[ch] = uid
+	return nil
+}
+
+func (e *MemoryEngine) lastMessageID(ch ChannelID) (MessageID, error) {
+	e.RLock()
+	defer e.RUnlock()
+	id, ok := e.lastMessage[ch]
+	if !ok {
+		return MessageID(""), nil
+	}
+	return id, nil
 }
 
 type memoryPresenceHub struct {

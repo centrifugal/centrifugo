@@ -49,3 +49,11 @@ func (e *testEngine) history(chID ChannelID) ([]Message, error) {
 func (e *testEngine) channels() ([]ChannelID, error) {
 	return []ChannelID{}, nil
 }
+
+func (e *testEngine) addLastMessageID(ch ChannelID, uid MessageID) error {
+	return nil
+}
+
+func (e *testEngine) lastMessageID(ch ChannelID) (MessageID, error) {
+	return MessageID(""), nil
+}

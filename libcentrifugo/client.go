@@ -708,34 +708,43 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*response, error) {
 		}
 	}
 
-	// TODO: check channel option here.
-	if cmd.Last != "" {
-		// Client provided last message if seen in channel. Try to restore missed messages
-		// automatically from history (we suppose here that history configured wisely).
-		messages, err := c.app.History(channel)
-		if err != nil {
-			logger.ERROR.Printf("can't restore messages for channel %s: %s", string(channel), err)
-			body.Messages = []Message{}
-		} else {
-			position := -1
-			for index, msg := range messages {
-				if msg.UID == cmd.Last {
-					position = index
-					break
+	if chOpts.Recover {
+		if cmd.Last != "" {
+			// Client provided last message if seen in channel. Try to recover missed messages
+			// automatically from history (we suppose here that history configured wisely).
+			messages, err := c.app.History(channel)
+			if err != nil {
+				logger.ERROR.Printf("can't recover messages for channel %s: %s", string(channel), err)
+				body.Messages = []Message{}
+			} else {
+				position := -1
+				for index, msg := range messages {
+					if msg.UID == cmd.Last {
+						position = index
+						break
+					}
+				}
+				if position > -1 {
+					// Last uid provided found in history. Set recovered flag which means that
+					// Centrifugo thinks missed messages fully recovered.
+					body.Messages = messages[0:position]
+					body.Recovered = true
+				} else {
+					// Last uid provided not found in history messages. This means that client
+					// most probably missed too many messages (maybe wrong last uid provided but
+					// it's not a normal case). So we try to compensate as many as we can. But
+					// recovered flag stays false so we do not give a guarantee all missed messages
+					// recovered successfully.
+					body.Messages = messages
 				}
 			}
-			if position > -1 {
-				// Last uid provided found in history. Set restored flag which means that
-				// Centrifugo thinks missed messages fully restored.
-				body.Messages = messages[position:len(messages)]
-				body.Restored = true
+		} else {
+			channelID := c.app.channelID(channel)
+			lastMessageID, err := c.app.engine.lastMessageID(channelID)
+			if err != nil {
+				logger.ERROR.Println(err)
 			} else {
-				// Last uid provided not found in history messages. This means that client
-				// most probably missed too many messages (maybe wrong last uid provided but
-				// it's not a normal case). So we try to compensate as many as we can. But
-				// restored flag stays false so we do not give a guarantee all missed messages
-				// restored successfully.
-				body.Messages = messages
+				body.Last = lastMessageID
 			}
 		}
 	}

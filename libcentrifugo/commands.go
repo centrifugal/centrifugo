@@ -13,6 +13,8 @@ type (
 	UserID string
 	// ConnID is a unique connection ID.
 	ConnID string
+	// MessageID is a unique message ID
+	MessageID string
 )
 
 type clientCommand struct {
@@ -66,7 +68,7 @@ type RefreshClientCommand struct {
 type SubscribeClientCommand struct {
 	Channel Channel
 	Client  ConnID
-	Last    string
+	Last    MessageID
 	Info    string
 	Sign    string
 }

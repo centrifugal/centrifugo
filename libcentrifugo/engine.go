@@ -20,6 +20,11 @@ type Engine interface {
 	// channels returns slice of currently active channels IDs (with one or more subscribers).
 	channels() ([]ChannelID, error)
 
+	// addLastMessageID allows to set(or update) last message id for channel.
+	addLastMessageID(ch ChannelID, uid MessageID) error
+	// lastMessageID returns last message id for channel.
+	lastMessageID(ch ChannelID) (MessageID, error)
+
 	// addPresence sets or updates presence info for connection with uid.
 	addPresence(chID ChannelID, uid ConnID, info ClientInfo) error
 	// removePresence removes presence information for connection with uid.

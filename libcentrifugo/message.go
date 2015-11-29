@@ -10,7 +10,7 @@ import (
 
 // Message represents client message.
 type Message struct {
-	UID       string           `json:"uid"`
+	UID       MessageID        `json:"uid"`
 	Timestamp string           `json:"timestamp"`
 	Info      *ClientInfo      `json:"info"`
 	Channel   Channel          `json:"channel"`
@@ -27,7 +27,7 @@ func newMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) (Messa
 	raw := json.RawMessage(data)
 
 	message := Message{
-		UID:       uid.String(),
+		UID:       MessageID(uid.String()),
 		Timestamp: strconv.FormatInt(time.Now().Unix(), 10),
 		Info:      info,
 		Channel:   ch,

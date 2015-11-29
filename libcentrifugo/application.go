@@ -465,9 +465,15 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 	}
 
 	if chOpts.HistorySize > 0 && chOpts.HistoryLifetime > 0 {
-		err := app.addHistory(ch, message, int64(chOpts.HistorySize), int64(chOpts.HistoryLifetime))
+		err = app.addHistory(ch, message, int64(chOpts.HistorySize), int64(chOpts.HistoryLifetime))
 		if err != nil {
 			logger.ERROR.Println(err)
+		}
+		if chOpts.Recover {
+			err = app.engine.addLastMessageID(chID, message.UID)
+			if err != nil {
+				logger.ERROR.Println(err)
+			}
 		}
 	}
 

@@ -73,10 +73,11 @@ type ConnectBody struct {
 
 // SubscribeBody represents body of response in case of successful subscribe command.
 type SubscribeBody struct {
-	Channel  Channel   `json:"channel"`
-	Status   bool      `json:"status"`
-	Messages []Message `json:"messages"`
-	Restored bool      `json:"restored"`
+	Channel   Channel   `json:"channel"`
+	Status    bool      `json:"status"`
+	Last      MessageID `json:"last"`
+	Messages  []Message `json:"messages"`
+	Recovered bool      `json:"recovered"`
 }
 
 // UnsubscribeBody represents body of response in case of successful unsubscribe command.
