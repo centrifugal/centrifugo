@@ -157,6 +157,7 @@ func Main() {
 			viper.BindEnv("anonymous")
 			viper.BindEnv("join_leave")
 			viper.BindEnv("presence")
+			viper.BindEnv("recover")
 			viper.BindEnv("history_size")
 			viper.BindEnv("history_lifetime")
 
