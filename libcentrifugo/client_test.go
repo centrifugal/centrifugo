@@ -3,6 +3,7 @@ package libcentrifugo
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -393,4 +394,96 @@ func TestClientPing(t *testing.T) {
 	resp, err := c.handleCmd(testPingCmd())
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.err)
+}
+
+func testSubscribeLastCmd(channel string, last MessageID) clientCommand {
+	subscribeCmd := SubscribeClientCommand{
+		Channel: Channel(channel),
+		Last:    last,
+	}
+	cmdBytes, _ := json.Marshal(subscribeCmd)
+	cmd := clientCommand{
+		Method: "subscribe",
+		Params: cmdBytes,
+	}
+	return cmd
+}
+
+func TestSubscribeRecover(t *testing.T) {
+	app := testMemoryApp()
+	app.config.Recover = true
+	app.config.HistoryLifetime = 30
+	app.config.HistorySize = 5
+
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+
+	data, _ := json.Marshal(map[string]string{"input": "test"})
+	err = app.Publish(Channel("test"), data, ConnID(""), nil)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, int64(1), app.metrics.numMsgPublished.Count())
+
+	messages, _ := app.History(Channel("test"))
+	assert.Equal(t, 1, len(messages))
+	message := messages[0]
+	last := message.UID
+
+	// test setting last message uid when no uid provided
+	c, _ = newClient(app, &testSession{})
+	cmds = []clientCommand{testConnectCmd(timestamp)}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+	subscribeCmd := testSubscribeCmd("test")
+	resp, err := c.handleCmd(subscribeCmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, last, resp.Body.(*SubscribeBody).Last)
+
+	// publish 2 messages since last
+	data, _ = json.Marshal(map[string]string{"input": "test1"})
+	err = app.Publish(Channel("test"), data, ConnID(""), nil)
+	assert.Equal(t, nil, err)
+	data, _ = json.Marshal(map[string]string{"input": "test2"})
+	err = app.Publish(Channel("test"), data, ConnID(""), nil)
+	assert.Equal(t, nil, err)
+
+	assert.Equal(t, int64(3), app.metrics.numMsgPublished.Count())
+
+	// test normal recover
+	c, _ = newClient(app, &testSession{})
+	cmds = []clientCommand{testConnectCmd(timestamp)}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+	subscribeLastCmd := testSubscribeLastCmd("test", last)
+	resp, err = c.handleCmd(subscribeLastCmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(resp.Body.(*SubscribeBody).Messages))
+	assert.Equal(t, true, resp.Body.(*SubscribeBody).Recovered)
+	assert.Equal(t, MessageID(""), resp.Body.(*SubscribeBody).Last)
+	messages = resp.Body.(*SubscribeBody).Messages
+	m0, _ := messages[0].Data.MarshalJSON()
+	m1, _ := messages[1].Data.MarshalJSON()
+	// in reversed order in history
+	assert.Equal(t, strings.Contains(string(m0), "test2"), true)
+	assert.Equal(t, strings.Contains(string(m1), "test1"), true)
+
+	// test part recover - when Centrifugo can not recover all missed messages
+	for i := 0; i < 10; i++ {
+		data, _ = json.Marshal(map[string]string{"input": "test1"})
+		err = app.Publish(Channel("test"), data, ConnID(""), nil)
+		assert.Equal(t, nil, err)
+	}
+	c, _ = newClient(app, &testSession{})
+	cmds = []clientCommand{testConnectCmd(timestamp)}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+	subscribeLastCmd = testSubscribeLastCmd("test", last)
+	resp, err = c.handleCmd(subscribeLastCmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 5, len(resp.Body.(*SubscribeBody).Messages))
+	assert.Equal(t, false, resp.Body.(*SubscribeBody).Recovered)
 }
