@@ -1,5 +1,11 @@
 package libcentrifugo
 
+type historyOptions struct {
+	Size     int64
+	Lifetime int64
+	Recover  bool
+}
+
 // Engine is an interface with all methods that can be used by client or
 // application to publish message, handle subscriptions, save or retrieve
 // presence and history data.
@@ -20,11 +26,6 @@ type Engine interface {
 	// channels returns slice of currently active channels IDs (with one or more subscribers).
 	channels() ([]ChannelID, error)
 
-	// addLastMessageID allows to set(or update) last message id for channel.
-	addLastMessageID(ch ChannelID, uid MessageID) error
-	// lastMessageID returns last message id for channel.
-	lastMessageID(ch ChannelID) (MessageID, error)
-
 	// addPresence sets or updates presence info for connection with uid.
 	addPresence(chID ChannelID, uid ConnID, info ClientInfo) error
 	// removePresence removes presence information for connection with uid.
@@ -33,7 +34,9 @@ type Engine interface {
 	presence(chID ChannelID) (map[ConnID]ClientInfo, error)
 
 	// addHistory adds message into channel history and takes care about history size.
-	addHistory(chID ChannelID, message Message, size, lifetime int64) error
+	addHistory(chID ChannelID, message Message, opts historyOptions) error
 	// history returns a slice of history messages for channel.
 	history(chID ChannelID) ([]Message, error)
+	// lastMessageID returns last message id for channel.
+	lastMessageID(chID ChannelID) (MessageID, error)
 }
