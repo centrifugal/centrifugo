@@ -60,12 +60,16 @@ func (e *MemoryEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 	return e.presenceHub.get(chID)
 }
 
-func (e *MemoryEngine) addHistory(chID ChannelID, message Message, size, lifetime int64) error {
-	return e.historyHub.add(chID, message, size, lifetime)
+func (e *MemoryEngine) addHistory(chID ChannelID, message Message, opts historyOptions) error {
+	return e.historyHub.add(chID, message, opts)
 }
 
 func (e *MemoryEngine) history(chID ChannelID) ([]Message, error) {
 	return e.historyHub.get(chID)
+}
+
+func (e *MemoryEngine) lastMessageID(ch ChannelID) (MessageID, error) {
+	return e.historyHub.lastMessageID(ch)
 }
 
 func (e *MemoryEngine) channels() ([]ChannelID, error) {
@@ -145,16 +149,18 @@ func (i historyItem) isExpired() bool {
 
 type memoryHistoryHub struct {
 	sync.RWMutex
-	history   map[ChannelID]historyItem
-	queue     priority.Queue
-	nextCheck int64
+	lastMessage map[ChannelID]MessageID
+	history     map[ChannelID]historyItem
+	queue       priority.Queue
+	nextCheck   int64
 }
 
 func newMemoryHistoryHub() *memoryHistoryHub {
 	return &memoryHistoryHub{
-		history:   make(map[ChannelID]historyItem),
-		queue:     priority.MakeQueue(),
-		nextCheck: 0,
+		lastMessage: make(map[ChannelID]MessageID),
+		history:     make(map[ChannelID]historyItem),
+		queue:       priority.MakeQueue(),
+		nextCheck:   0,
 	}
 }
 
@@ -194,13 +200,13 @@ func (h *memoryHistoryHub) expire() {
 	}
 }
 
-func (h *memoryHistoryHub) add(chID ChannelID, message Message, size, lifetime int64) error {
+func (h *memoryHistoryHub) add(chID ChannelID, message Message, opts historyOptions) error {
 	h.Lock()
 	defer h.Unlock()
 
 	_, ok := h.history[chID]
 
-	expireAt := time.Now().Unix() + lifetime
+	expireAt := time.Now().Unix() + opts.Lifetime
 	heap.Push(&h.queue, &priority.Item{Value: string(chID), Priority: expireAt})
 	if !ok {
 		h.history[chID] = historyItem{
@@ -210,8 +216,8 @@ func (h *memoryHistoryHub) add(chID ChannelID, message Message, size, lifetime i
 	} else {
 		messages := h.history[chID].messages
 		messages = append([]Message{message}, messages...)
-		if int64(len(messages)) > size {
-			messages = messages[0:size]
+		if int64(len(messages)) > opts.Size {
+			messages = messages[0:opts.Size]
 		}
 		h.history[chID] = historyItem{
 			messages: messages,
@@ -222,6 +228,8 @@ func (h *memoryHistoryHub) add(chID ChannelID, message Message, size, lifetime i
 	if h.nextCheck == 0 || h.nextCheck > expireAt {
 		h.nextCheck = expireAt
 	}
+
+	h.lastMessage[chID] = message.UID
 
 	return nil
 }
@@ -241,4 +249,14 @@ func (h *memoryHistoryHub) get(chID ChannelID) ([]Message, error) {
 		return []Message{}, nil
 	}
 	return hItem.messages, nil
+}
+
+func (h *memoryHistoryHub) lastMessageID(chID ChannelID) (MessageID, error) {
+	h.RLock()
+	defer h.RUnlock()
+	id, ok := h.lastMessage[chID]
+	if !ok {
+		return MessageID(""), nil
+	}
+	return id, nil
 }

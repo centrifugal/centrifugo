@@ -85,7 +85,7 @@ func TestRedisEngine(t *testing.T) {
 	p, err := e.presence(ChannelID("channel"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(p))
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, 1, 1))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, historyOptions{1, 1, false}))
 	h, err := e.history(ChannelID("channel"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
@@ -109,4 +109,20 @@ func TestRedisChannels(t *testing.T) {
 	channels, err = app.engine.channels()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 10, len(channels))
+}
+
+func TestRedisLastMessageID(t *testing.T) {
+	c := dial()
+	defer c.close()
+	app := testRedisApp()
+	ch := Channel("test")
+	chID := app.channelID(ch)
+	uid, err := app.engine.lastMessageID(chID)
+	assert.Equal(t, MessageID(""), uid)
+	message, _ := newMessage(ch, []byte("{}"), ConnID(""), nil)
+	err = app.addHistory(ch, message, historyOptions{10, 10, true})
+	assert.Equal(t, nil, err)
+	uid, err = app.engine.lastMessageID(chID)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, message.UID, uid)
 }

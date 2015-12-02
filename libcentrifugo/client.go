@@ -631,9 +631,37 @@ func (c *client) refreshCmd(cmd *RefreshClientCommand) (*response, error) {
 	return resp, nil
 }
 
+func recoverMessages(last MessageID, messages []Message) ([]Message, bool) {
+	if last == MessageID("") {
+		// Client wants to recover messages but it seems that there were no
+		// messages in history before, so client missed all messages which
+		// exist now.
+		return messages, false
+	}
+	position := -1
+	for index, msg := range messages {
+		if msg.UID == last {
+			position = index
+			break
+		}
+	}
+	if position > -1 {
+		// Last uid provided found in history. Set recovered flag which means that
+		// Centrifugo thinks missed messages fully recovered.
+		return messages[0:position], true
+	}
+	// Last id provided not found in history messages. This means that client
+	// most probably missed too many messages (maybe wrong last uid provided but
+	// it's not a normal case). So we try to compensate as many as we can. But
+	// recovered flag stays false so we do not give a guarantee all missed messages
+	// recovered successfully.
+	return messages, false
+}
+
 // subscribeCmd handles subscribe command - clients send this when subscribe
 // on channel, if channel if private then we must validate provided sign here before
-// actually subscribe client on channel
+// actually subscribe client on channel. Optionally we can send missed messages to
+// client if it provided last message id seen in channel.
 func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*response, error) {
 
 	resp := newResponse("subscribe")
@@ -704,6 +732,32 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*response, error) {
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInternalServerError
+		}
+	}
+
+	if chOpts.Recover {
+		if cmd.Recover {
+			// Client provided subscribe request with recover flag on. Try to recover missed messages
+			// automatically from history (we suppose here that history configured wisely) based on
+			// provided last message id value.
+			messages, err := c.app.History(channel)
+			if err != nil {
+				logger.ERROR.Printf("can't recover messages for channel %s: %s", string(channel), err)
+				body.Messages = []Message{}
+			} else {
+				recoveredMessages, recovered := recoverMessages(cmd.Last, messages)
+				body.Messages = recoveredMessages
+				body.Recovered = recovered
+			}
+		} else {
+			// Client don't want to recover messages yet, we just return last message id to him here.
+			channelID := c.app.channelID(channel)
+			lastMessageID, err := c.app.engine.lastMessageID(channelID)
+			if err != nil {
+				logger.ERROR.Println(err)
+			} else {
+				body.Last = lastMessageID
+			}
 		}
 	}
 
