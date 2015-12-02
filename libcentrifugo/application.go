@@ -465,15 +465,14 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 	}
 
 	if chOpts.HistorySize > 0 && chOpts.HistoryLifetime > 0 {
-		err = app.addHistory(ch, message, int64(chOpts.HistorySize), int64(chOpts.HistoryLifetime))
+		historyOpts := historyOptions{
+			Size:     int64(chOpts.HistorySize),
+			Lifetime: int64(chOpts.HistoryLifetime),
+			Recover:  chOpts.Recover,
+		}
+		err = app.addHistory(ch, message, historyOpts)
 		if err != nil {
 			logger.ERROR.Println(err)
-		}
-		if chOpts.Recover {
-			err = app.engine.addLastMessageID(chID, message.UID)
-			if err != nil {
-				logger.ERROR.Println(err)
-			}
 		}
 	}
 
@@ -765,9 +764,9 @@ func (app *Application) Presence(ch Channel) (map[ConnID]ClientInfo, error) {
 }
 
 // addHistory proxies history message adding to engine.
-func (app *Application) addHistory(ch Channel, message Message, size, lifetime int64) error {
+func (app *Application) addHistory(ch Channel, message Message, opts historyOptions) error {
 	chID := app.channelID(ch)
-	return app.engine.addHistory(chID, message, size, lifetime)
+	return app.engine.addHistory(chID, message, opts)
 }
 
 // History returns a slice of last messages published into project channel.

@@ -382,7 +382,7 @@ func (e *RedisEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 	return mapStringClientInfo(reply, nil)
 }
 
-func (e *RedisEngine) addHistory(chID ChannelID, message Message, size, lifetime int64) error {
+func (e *RedisEngine) addHistory(chID ChannelID, message Message, opts historyOptions) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 
@@ -391,10 +391,14 @@ func (e *RedisEngine) addHistory(chID ChannelID, message Message, size, lifetime
 	if err != nil {
 		return err
 	}
+
 	conn.Send("MULTI")
 	conn.Send("LPUSH", historyKey, messageJson)
-	conn.Send("LTRIM", historyKey, 0, size-1)
-	conn.Send("EXPIRE", historyKey, lifetime)
+	conn.Send("LTRIM", historyKey, 0, opts.Size-1)
+	conn.Send("EXPIRE", historyKey, opts.Lifetime)
+	if opts.Recover {
+		conn.Send("SET", e.getLastMessageIDKey(chID), message.UID)
+	}
 	_, err = conn.Do("EXEC")
 	return err
 }
@@ -458,13 +462,6 @@ func (e *RedisEngine) channels() ([]ChannelID, error) {
 		return nil, err
 	}
 	return sliceOfChannelIDs(reply, prefix, nil)
-}
-
-func (e *RedisEngine) addLastMessageID(ch ChannelID, uid MessageID) error {
-	conn := e.pool.Get()
-	defer conn.Close()
-	err := conn.Send("SET", e.getLastMessageIDKey(ch), uid)
-	return err
 }
 
 func (e *RedisEngine) lastMessageID(ch ChannelID) (MessageID, error) {
