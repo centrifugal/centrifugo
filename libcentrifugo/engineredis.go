@@ -396,9 +396,7 @@ func (e *RedisEngine) addHistory(chID ChannelID, message Message, opts historyOp
 	conn.Send("LPUSH", historyKey, messageJson)
 	conn.Send("LTRIM", historyKey, 0, opts.Size-1)
 	conn.Send("EXPIRE", historyKey, opts.Lifetime)
-	if opts.Recover {
-		conn.Send("SET", e.getLastMessageIDKey(chID), message.UID)
-	}
+	conn.Send("SET", e.getLastMessageIDKey(chID), message.UID)
 	_, err = conn.Do("EXEC")
 	return err
 }
