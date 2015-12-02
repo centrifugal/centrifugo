@@ -633,7 +633,10 @@ func (c *client) refreshCmd(cmd *RefreshClientCommand) (*response, error) {
 
 func recoverMessages(last MessageID, messages []Message) ([]Message, bool) {
 	if last == MessageID("") {
-		return messages, true
+		// Client wants to recover messages but it seems that there were no
+		// messages in history before, so client missed all messages which
+		// exist now.
+		return messages, false
 	}
 	position := -1
 	for index, msg := range messages {
