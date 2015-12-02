@@ -69,6 +69,7 @@ type SubscribeClientCommand struct {
 	Channel Channel
 	Client  ConnID
 	Last    MessageID
+	Recover bool
 	Info    string
 	Sign    string
 }

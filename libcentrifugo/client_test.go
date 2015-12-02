@@ -396,10 +396,11 @@ func TestClientPing(t *testing.T) {
 	assert.Equal(t, nil, resp.err)
 }
 
-func testSubscribeLastCmd(channel string, last MessageID) clientCommand {
+func testSubscribeRecoverCmd(channel string, last MessageID, rec bool) clientCommand {
 	subscribeCmd := SubscribeClientCommand{
 		Channel: Channel(channel),
 		Last:    last,
+		Recover: rec,
 	}
 	cmdBytes, _ := json.Marshal(subscribeCmd)
 	cmd := clientCommand{
@@ -453,12 +454,23 @@ func TestSubscribeRecover(t *testing.T) {
 
 	assert.Equal(t, int64(3), app.metrics.numMsgPublished.Count())
 
+	// test no messages recovered when recover is false in subscribe cmd
+	c, _ = newClient(app, &testSession{})
+	cmds = []clientCommand{testConnectCmd(timestamp)}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+	subscribeLastCmd := testSubscribeRecoverCmd("test", last, false)
+	resp, err = c.handleCmd(subscribeLastCmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 0, len(resp.Body.(*SubscribeBody).Messages))
+	assert.NotEqual(t, last, resp.Body.(*SubscribeBody).Last)
+
 	// test normal recover
 	c, _ = newClient(app, &testSession{})
 	cmds = []clientCommand{testConnectCmd(timestamp)}
 	err = c.handleCommands(cmds)
 	assert.Equal(t, nil, err)
-	subscribeLastCmd := testSubscribeLastCmd("test", last)
+	subscribeLastCmd = testSubscribeRecoverCmd("test", last, true)
 	resp, err = c.handleCmd(subscribeLastCmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(resp.Body.(*SubscribeBody).Messages))
@@ -481,7 +493,7 @@ func TestSubscribeRecover(t *testing.T) {
 	cmds = []clientCommand{testConnectCmd(timestamp)}
 	err = c.handleCommands(cmds)
 	assert.Equal(t, nil, err)
-	subscribeLastCmd = testSubscribeLastCmd("test", last)
+	subscribeLastCmd = testSubscribeRecoverCmd("test", last, true)
 	resp, err = c.handleCmd(subscribeLastCmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 5, len(resp.Body.(*SubscribeBody).Messages))

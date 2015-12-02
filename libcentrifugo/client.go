@@ -631,6 +631,30 @@ func (c *client) refreshCmd(cmd *RefreshClientCommand) (*response, error) {
 	return resp, nil
 }
 
+func recoverMessages(last MessageID, messages []Message) ([]Message, bool) {
+	if last == MessageID("") {
+		return messages, true
+	}
+	position := -1
+	for index, msg := range messages {
+		if msg.UID == last {
+			position = index
+			break
+		}
+	}
+	if position > -1 {
+		// Last uid provided found in history. Set recovered flag which means that
+		// Centrifugo thinks missed messages fully recovered.
+		return messages[0:position], true
+	}
+	// Last id provided not found in history messages. This means that client
+	// most probably missed too many messages (maybe wrong last uid provided but
+	// it's not a normal case). So we try to compensate as many as we can. But
+	// recovered flag stays false so we do not give a guarantee all missed messages
+	// recovered successfully.
+	return messages, false
+}
+
 // subscribeCmd handles subscribe command - clients send this when subscribe
 // on channel, if channel if private then we must validate provided sign here before
 // actually subscribe client on channel. Optionally we can send missed messages to
@@ -709,36 +733,21 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*response, error) {
 	}
 
 	if chOpts.Recover {
-		if cmd.Last != "" {
-			// Client provided last message if seen in channel. Try to recover missed messages
-			// automatically from history (we suppose here that history configured wisely).
+		if cmd.Recover {
+			// Client provided subscribe request with recover flag on. Try to recover missed messages
+			// automatically from history (we suppose here that history configured wisely) based on
+			// provided last message id value.
 			messages, err := c.app.History(channel)
 			if err != nil {
 				logger.ERROR.Printf("can't recover messages for channel %s: %s", string(channel), err)
 				body.Messages = []Message{}
 			} else {
-				position := -1
-				for index, msg := range messages {
-					if msg.UID == cmd.Last {
-						position = index
-						break
-					}
-				}
-				if position > -1 {
-					// Last uid provided found in history. Set recovered flag which means that
-					// Centrifugo thinks missed messages fully recovered.
-					body.Messages = messages[0:position]
-					body.Recovered = true
-				} else {
-					// Last uid provided not found in history messages. This means that client
-					// most probably missed too many messages (maybe wrong last uid provided but
-					// it's not a normal case). So we try to compensate as many as we can. But
-					// recovered flag stays false so we do not give a guarantee all missed messages
-					// recovered successfully.
-					body.Messages = messages
-				}
+				recoveredMessages, recovered := recoverMessages(cmd.Last, messages)
+				body.Messages = recoveredMessages
+				body.Recovered = recovered
 			}
 		} else {
+			// Client don't want to recover messages yet, we just return last message id to him here.
 			channelID := c.app.channelID(channel)
 			lastMessageID, err := c.app.engine.lastMessageID(channelID)
 			if err != nil {
