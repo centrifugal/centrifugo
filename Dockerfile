@@ -2,11 +2,15 @@ FROM centos:7
 
 ENV VERSION 1.1.0
 
+ENV CENTRIFUGO_SHA256 634de2249f7117f016385220cf855487ea2f29bc077509c8c4af952ee47b434a
+
 ENV DOWNLOAD https://github.com/centrifugal/centrifugo/releases/download/v$VERSION/centrifugo-$VERSION-linux-amd64.zip
 
 RUN curl -sSL "$DOWNLOAD" -o /tmp/centrifugo.zip && \
+    echo "${CENTRIFUGO_SHA256}  /tmp/centrifugo.zip" | sha256sum -c - && \
     yum install -y unzip && \
     unzip -jo /tmp/centrifugo.zip -d /tmp/ && \
+    yum remove -y unzip && \
     mv /tmp/centrifugo /usr/bin/centrifugo && \
     rm -f /tmp/centrifugo.zip && \
     echo "centrifugo - nofile 65536" >> /etc/security/limits.d/centrifugo.nofiles.conf

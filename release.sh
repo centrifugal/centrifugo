@@ -17,7 +17,13 @@ gox -os="linux darwin freebsd windows" -output="./BUILDS/$1/centrifugo-$1-{{.OS}
 
 cd BUILDS/$1
 
+touch sha256sum.txt
+
 for i in */; do
   zip -r "${i%/}.zip" "$i"
+  shasum -a 256 "${i%/}.zip" >> sha256sum.txt
   rm -r $i
 done
+
+echo "SHA 256 sum for Dockerfile:"
+cat sha256sum.txt | grep "linux-amd64"
