@@ -1,9 +1,9 @@
-Centrifuge + Go = Centrifugo – harder, better, faster, stronger.
-
 Centrifugo is a real-time messaging server. This is a successor of 
 [Centrifuge](https://github.com/centrifugal/centrifuge). Please note that it can be used in conjunction with your application backend written in any language - Python, Ruby, Perl, PHP, Javascript, Java, Objective-C etc.
 
-To understand what is it for and how it works – please, read 
+In a nutshell this is a server running near your application and keeping lots of persistent Websocket or SockJS connections from your application clients (from web browsers or other environments). When some event happens you can broadcast it to all interested clients using Centrifugo API.
+
+To get more information what is it for and how it works – please, read 
 [documentation](http://fzambia.gitbooks.io/centrifugal/content/) of 
 Centrifugal organization.
 
@@ -16,16 +16,19 @@ Try [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo
 [![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/centrifugal/centrifugo)
 
 Highlights:
-* Fast server capable to serve lots of simultanious connections
-* SHA-256 HMAC-based authorization
-* HTTP API to communicate from your application backend (publish messages in channels etc.). API clients for Python, Ruby, PHP. Simple to implement new one.
+* Fast server capable to serve thousands of simultanious connections
+* HTTP API to communicate from your application backend (publish messages in channels etc.). API clients for Python, Ruby, PHP, Go, NodeJS. Simple to implement new one
 * Javascript client to connect from web browser over SockJS or pure Websocket protocol
-* Presence, history and join/leave events for channels
-* Flexible configuration of channels via namespaces
-* Different types of channels - private, user limited, client limited channels
-* Administrative web interface
 * Scale to several machines with Redis
-* Ready to deploy (docker, rpm, Nginx configuration)
+* SHA-256 HMAC-based authorization
+* Different types of channels – private, user limited, client limited channels
+* Flexible configuration of channels via namespaces
+* Presence information for channels (show all clients in channel)
+* History information for channels (last messages sent into channels)
+* Join/leave events for channels (client goes online/offline)
+* Recover missed messages after network disconnect
+* Built-in administrative web interface
+* Ready to deploy (docker image, rpm, Nginx configuration)
 * Easily integrates with existing application - no need to rewrite your backend code
 * MIT license
 
