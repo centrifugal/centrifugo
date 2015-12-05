@@ -1,3 +1,14 @@
+v1.2.0 (not released yet)
+=========================
+
+No backwards incompatible changes here.
+
+* New `recover` option to automatically recover missed messages based on last message ID. See [pull request](https://github.com/centrifugal/centrifugo/pull/42) and [chapter in docs](https://fzambia.gitbooks.io/centrifugal/content/server/recover.html) for more information. Note that you need centrifuge-js >= v1.1.0 to use new `recover` option
+* New `broadcast` API method to send the same data into many channels. See [issue](https://github.com/centrifugal/centrifugo/issues/41) and updated [API description in docs](https://fzambia.gitbooks.io/centrifugal/content/server/api.html)
+* Dockerfile now checks SHA256 sum when downloading release zip archive.
+* release built using Go 1.5.2
+
+
 v1.1.0
 ======
 
