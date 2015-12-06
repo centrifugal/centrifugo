@@ -1,5 +1,5 @@
-v1.2.0 (not released yet)
-=========================
+v1.2.0
+======
 
 No backwards incompatible changes here.
 

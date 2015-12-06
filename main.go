@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	VERSION = "1.1.0"
+	VERSION = "1.2.0"
 )
 
 func setupLogging() {
@@ -140,6 +140,7 @@ func Main() {
 			viper.SetDefault("presence", false)
 			viper.SetDefault("history_size", 0)
 			viper.SetDefault("history_lifetime", 0)
+			viper.SetDefault("recover", false)
 			viper.SetDefault("namespaces", "")
 
 			viper.SetEnvPrefix("centrifugo")
