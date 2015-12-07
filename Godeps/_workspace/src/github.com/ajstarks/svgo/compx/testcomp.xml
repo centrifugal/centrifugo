@@ -1,0 +1,69 @@
+<!-- compx test pattern -->
+<components gutter="20" top="20" left="20" gc="black">
+  <legend row="3" col="0" width="200" height="120">
+    <litem color="rgb(0,0,0)">Component</litem>
+    <litem color="rgb(127,127,127)">Another Thing</litem>
+  </legend>
+  <legend row="4" col="1" width="200" height="120">
+    <litem color="rgb(0,127,0)" type="line">Public</litem>
+    <litem color="rgb(127,127,127)" type="line">Confidential</litem>
+    <litem color="rgb(0,0,127)" type="line">Restricted</litem>
+    <litem color="rgb(127,0,0)" type="line">Highly Restricted</litem>
+  </legend>
+  <note row="0" col="4" width="200" height="120" size="16" align="middle">
+    <nitem align="center" color="red">Note</nitem>
+    <nitem align="left">This is the test pattern for compx</nitem>
+    <nitem>for best results, set the width to be</nitem>
+    <nitem>at least 1300</nitem>
+    <nitem></nitem>
+    <nitem align="right" color="red">the management</nitem>
+  </note>
+  <note row="5" col="0" width="200" height="120" size="30">
+    <nitem>Here is another Note</nitem>
+    <nitem color="blue">This one is bigger</nitem>
+  </note>
+  <note>
+    <nitem>a stupid note</nitem>
+    <nitem>you did not specify anything</nitem>
+  </note>
+  <group brow="0" bcol="0" erow="4" ecol="3" width="200" height="120" color="lightgray"/>
+  <group brow="2" bcol="0" erow="2" ecol="4" width="200" height="120" color="lightsteelblue"/>
+  <group brow="0" bcol="3" erow="4" ecol="3" width="200" height="120" color="gray"/>
+  <comp id="screen" name="Tablet" row="3" col="4" width="200" height="120" sw="Dignus Here" os="Widget/OS" shape="screen"/>
+  <comp id="face" name="Face it" row="0" col="3" width="200" height="120" shape="face"></comp>
+  <comp id="role" name="A Role" row="4" col="3" width="200" height="120" shape="role" color="steelblue" />
+  <comp id="center" name="Envelope" row="2" col="2" width="200" height="120" shape="message" os="message" color="maroon" />
+  <comp id="dummy" name="Widget" row="4" col="4" width="200" height="120" sw="Dignus\nHere" os="Widget/OS" />
+  <comp id="cloud" name="Internet" row="4" col="0" width="200" height="120" sw="C" os="mid" color="gray" shape="cloud" />
+  <comp id="null" name="Nameless" row="1" col="0" width="200" height="60" sw="foo" shape="plain">
+    <connect mark="d" sloc="s" dloc="n" dest="west" />
+  </comp>
+  <comp id="north" name="North" row="0" col="2" width="200" height="120" sw="N" os="top" shape="db">
+    <connect mark="d" dest="center" sloc="ssw" dloc="nnw" color="rgb(127,0,0)">[1]</connect>
+    <connect mark="d" dest="center" sloc="s" dloc="n" color="rgb(127,0,0)">[2]</connect>
+    <connect mark="d" dest="center" sloc="sse" dloc="nne" color="rgb(127,0,0)">[3]</connect>
+    <connect mark="d" dest="east" sloc="e" dloc="n">North to East</connect>
+  </comp>
+  <comp id="west" name="West" row="2" col="0" width="200" height="120" sw="W" os="left" shape="server">
+    <connect mark="d" dest="center" sloc="ne" dloc="nw" color="rgb(0,0,127)">[4]</connect>
+    <connect mark="d" dest="center" sloc="ene" dloc="wnw" color="rgb(0,0,127)">[5]</connect>
+    <connect mark="d" dest="center" sloc="e" dloc="w" color="rgb(0,0,127)">[6]</connect>
+    <connect mark="d" dest="center" sloc="ese" dloc="wsw" color="rgb(0,0,127)">[7]</connect>
+    <connect mark="d" dest="center" sloc="se" dloc="sw" color="rgb(0,0,127)">[8]</connect>
+    <connect mark="d" dest="north" sloc="n" dloc="w">West to North</connect>
+  </comp>
+  <comp id="south" name="South" row="4" col="2" width="200" height="120" sw="S" os="bottom" color="gray" shape="folder">
+    <connect mark="d" dest="center" sloc="nnw" dloc="ssw" color="rgb(0,127,0)">[9]</connect>
+    <connect mark="d" dest="center" sloc="n" dloc="s" color="rgb(0,127,0)">[10]</connect>
+    <connect mark="d" dest="center" sloc="nne" dloc="sse" color="rgb(0,127,0)">[11]</connect>
+    <connect mark="d" dest="west" sloc="w" dloc="s">South to West</connect>
+  </comp>
+  <comp id="east" name="East" row="2" col="4" width="200" height="120" sw="E" os="right" shape="desktop">
+    <connect mark="d" dest="center" sloc="nw" dloc="ne" color="rgb(0,0,127)">[12]</connect>
+    <connect mark="d" dest="center" sloc="wnw" dloc="ene" color="rgb(0,0,127)">[13]</connect>
+    <connect mark="d" dest="center" sloc="w" dloc="e" color="rgb(0,0,127)">[14]</connect>
+    <connect mark="d" dest="center" sloc="wsw" dloc="ese" color="rgb(0,0,127)">[15]</connect>
+    <connect mark="d" dest="center" sloc="sw" dloc="se" color="rgb(0,0,127)">[16]</connect>
+    <connect mark="d" dest="south" sloc="s" dloc="e">East to South</connect>
+  </comp>
+</components>

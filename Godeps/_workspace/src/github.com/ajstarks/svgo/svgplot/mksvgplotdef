@@ -1,0 +1,24 @@
+#!/bin/sh
+rm f??*.svg
+gopts="-bx=50 -by=20 -width=460 -height=130 -pw=400 -ph=90 -barsize=3 -fontsize=11"
+data="test.d"
+# opt
+svgplot $gopts -showbg -connect=f    -label=showbg  $data  > f00.svg
+svgplot $gopts -connect              -label=connect $data  > f01.svg
+svgplot $gopts -showbar -connect=f   -label=showbar $data  > f02.svg
+svgplot $gopts -area -connect=f      -label=area $data  > f03.svg
+svgplot $gopts -showdot -connect=f   -label=showdot $data  > f04.svg
+svgplot $gopts -showx    -label=showx   $data  > f05.svg
+svgplot $gopts -showy    -label=showy   $data  > f06.svg
+svgplot $gopts -showfile -label=showfile  $data  > f07.svg
+# attr
+svgplot $gopts -bgcolor=lightsteelblue   -label=bgcolor   $data > f08.svg
+svgplot $gopts -linecolor=red            -label=linecolor $data > f09.svg
+svgplot $gopts -barcolor=red -showbar -connect=f  -label=barcolor  $data > f10.svg
+svgplot $gopts -areacolor=red  -area -connect=f   -label=hcolor  $data > f11.svg
+svgplot $gopts -showdot -dotcolor=red -connect=f  -label=dotcolor  $data > f12.svg
+svgplot $gopts -label=labelcolor -labelcolor=red $data > f13.svg
+svgplot $gopts -label=fontsize  $data > f14.svg
+svgplot $gopts -font=Courier -label="font" $data > f15.svg
+svgrid -h 1200 -w 1024 -r=f -x=50 -y=50 -g 10 -c 8 f??.svg > svgplotdef.svg
+

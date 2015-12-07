@@ -22,16 +22,16 @@
 package main
 
 import (
-	"github.com/elazarl/go-bindata-assetfs"
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/elazarl/go-bindata-assetfs"
 	"io"
-	"strings"
-	"os"
-	"time"
 	"io/ioutil"
+	"os"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 func bindataRead(data []byte, name string) ([]byte, error) {
@@ -60,9 +60,9 @@ type asset struct {
 }
 
 type bindataFileInfo struct {
-	name string
-	size int64
-	mode os.FileMode
+	name    string
+	size    int64
+	mode    os.FileMode
 	modTime time.Time
 }
 
@@ -101,7 +101,7 @@ func appIndexHtml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/index.html", size: 701, mode: os.FileMode(420), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -121,7 +121,7 @@ func appPublicBootstrapCssBootstrapMinCss() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/bootstrap/css/bootstrap.min.css", size: 118202, mode: os.FileMode(493), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -141,7 +141,7 @@ func appPublicBootstrapFontsGlyphiconsHalflingsRegularEot() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/bootstrap/fonts/glyphicons-halflings-regular.eot", size: 20127, mode: os.FileMode(493), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -161,7 +161,7 @@ func appPublicBootstrapFontsGlyphiconsHalflingsRegularSvg() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/bootstrap/fonts/glyphicons-halflings-regular.svg", size: 108738, mode: os.FileMode(493), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -181,7 +181,7 @@ func appPublicBootstrapFontsGlyphiconsHalflingsRegularTtf() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/bootstrap/fonts/glyphicons-halflings-regular.ttf", size: 45404, mode: os.FileMode(493), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -201,7 +201,7 @@ func appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/bootstrap/fonts/glyphicons-halflings-regular.woff", size: 23424, mode: os.FileMode(493), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -221,7 +221,7 @@ func appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff2() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/bootstrap/fonts/glyphicons-halflings-regular.woff2", size: 18028, mode: os.FileMode(493), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -241,7 +241,7 @@ func appPublicBundleBundleCss() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/bundle/bundle.css", size: 4027, mode: os.FileMode(420), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -261,7 +261,7 @@ func appPublicBundleBundleJs() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/bundle/bundle.js", size: 717859, mode: os.FileMode(420), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -281,7 +281,7 @@ func appPublicBundleBundleJsMap() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/bundle/bundle.js.map", size: 1472346, mode: os.FileMode(420), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -301,7 +301,7 @@ func appPublicImagesBgPng() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/images/bg.png", size: 82610, mode: os.FileMode(420), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -321,7 +321,7 @@ func appPublicImagesFaviconIco() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/images/favicon.ico", size: 32038, mode: os.FileMode(420), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -341,7 +341,7 @@ func appPublicImagesLoadingBarsSvg() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/images/loading-bars.svg", size: 1758, mode: os.FileMode(420), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -361,7 +361,7 @@ func appPublicImagesLoginBgJpg() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/images/login-bg.jpg", size: 64514, mode: os.FileMode(420), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -381,7 +381,7 @@ func appPublicImagesLogoLoginSvg() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/images/logo-login.svg", size: 2155, mode: os.FileMode(420), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -401,7 +401,7 @@ func appPublicImagesLogoSvg() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/public/images/logo.svg", size: 2093, mode: os.FileMode(420), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -421,7 +421,7 @@ func appRobotsTxt() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "app/robots.txt", size: 26, mode: os.FileMode(420), modTime: time.Unix(1449133448, 0)}
-	a := &asset{bytes: bytes, info:  info}
+	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
@@ -444,7 +444,7 @@ func Asset(name string) ([]byte, error) {
 // It simplifies safe initialization of global variables.
 func MustAsset(name string) []byte {
 	a, err := Asset(name)
-	if (err != nil) {
+	if err != nil {
 		panic("asset: Asset(" + name + "): " + err.Error())
 	}
 
@@ -477,23 +477,23 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"app/index.html": appIndexHtml,
-	"app/public/bootstrap/css/bootstrap.min.css": appPublicBootstrapCssBootstrapMinCss,
-	"app/public/bootstrap/fonts/glyphicons-halflings-regular.eot": appPublicBootstrapFontsGlyphiconsHalflingsRegularEot,
-	"app/public/bootstrap/fonts/glyphicons-halflings-regular.svg": appPublicBootstrapFontsGlyphiconsHalflingsRegularSvg,
-	"app/public/bootstrap/fonts/glyphicons-halflings-regular.ttf": appPublicBootstrapFontsGlyphiconsHalflingsRegularTtf,
-	"app/public/bootstrap/fonts/glyphicons-halflings-regular.woff": appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff,
+	"app/index.html":                                                appIndexHtml,
+	"app/public/bootstrap/css/bootstrap.min.css":                    appPublicBootstrapCssBootstrapMinCss,
+	"app/public/bootstrap/fonts/glyphicons-halflings-regular.eot":   appPublicBootstrapFontsGlyphiconsHalflingsRegularEot,
+	"app/public/bootstrap/fonts/glyphicons-halflings-regular.svg":   appPublicBootstrapFontsGlyphiconsHalflingsRegularSvg,
+	"app/public/bootstrap/fonts/glyphicons-halflings-regular.ttf":   appPublicBootstrapFontsGlyphiconsHalflingsRegularTtf,
+	"app/public/bootstrap/fonts/glyphicons-halflings-regular.woff":  appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff,
 	"app/public/bootstrap/fonts/glyphicons-halflings-regular.woff2": appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff2,
-	"app/public/bundle/bundle.css": appPublicBundleBundleCss,
-	"app/public/bundle/bundle.js": appPublicBundleBundleJs,
-	"app/public/bundle/bundle.js.map": appPublicBundleBundleJsMap,
-	"app/public/images/bg.png": appPublicImagesBgPng,
-	"app/public/images/favicon.ico": appPublicImagesFaviconIco,
-	"app/public/images/loading-bars.svg": appPublicImagesLoadingBarsSvg,
-	"app/public/images/login-bg.jpg": appPublicImagesLoginBgJpg,
-	"app/public/images/logo-login.svg": appPublicImagesLogoLoginSvg,
-	"app/public/images/logo.svg": appPublicImagesLogoSvg,
-	"app/robots.txt": appRobotsTxt,
+	"app/public/bundle/bundle.css":                                  appPublicBundleBundleCss,
+	"app/public/bundle/bundle.js":                                   appPublicBundleBundleJs,
+	"app/public/bundle/bundle.js.map":                               appPublicBundleBundleJsMap,
+	"app/public/images/bg.png":                                      appPublicImagesBgPng,
+	"app/public/images/favicon.ico":                                 appPublicImagesFaviconIco,
+	"app/public/images/loading-bars.svg":                            appPublicImagesLoadingBarsSvg,
+	"app/public/images/login-bg.jpg":                                appPublicImagesLoginBgJpg,
+	"app/public/images/logo-login.svg":                              appPublicImagesLogoLoginSvg,
+	"app/public/images/logo.svg":                                    appPublicImagesLogoSvg,
+	"app/robots.txt":                                                appRobotsTxt,
 }
 
 // AssetDir returns the file names below a certain
@@ -532,107 +532,90 @@ func AssetDir(name string) ([]string, error) {
 }
 
 type bintree struct {
-	Func func() (*asset, error)
+	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
 	"app": &bintree{nil, map[string]*bintree{
-		"index.html": &bintree{appIndexHtml, map[string]*bintree{
-		}},
+		"index.html": &bintree{appIndexHtml, map[string]*bintree{}},
 		"public": &bintree{nil, map[string]*bintree{
 			"bootstrap": &bintree{nil, map[string]*bintree{
 				"css": &bintree{nil, map[string]*bintree{
-					"bootstrap.min.css": &bintree{appPublicBootstrapCssBootstrapMinCss, map[string]*bintree{
-					}},
+					"bootstrap.min.css": &bintree{appPublicBootstrapCssBootstrapMinCss, map[string]*bintree{}},
 				}},
 				"fonts": &bintree{nil, map[string]*bintree{
-					"glyphicons-halflings-regular.eot": &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularEot, map[string]*bintree{
-					}},
-					"glyphicons-halflings-regular.svg": &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularSvg, map[string]*bintree{
-					}},
-					"glyphicons-halflings-regular.ttf": &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularTtf, map[string]*bintree{
-					}},
-					"glyphicons-halflings-regular.woff": &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff, map[string]*bintree{
-					}},
-					"glyphicons-halflings-regular.woff2": &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff2, map[string]*bintree{
-					}},
+					"glyphicons-halflings-regular.eot":   &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularEot, map[string]*bintree{}},
+					"glyphicons-halflings-regular.svg":   &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularSvg, map[string]*bintree{}},
+					"glyphicons-halflings-regular.ttf":   &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularTtf, map[string]*bintree{}},
+					"glyphicons-halflings-regular.woff":  &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff, map[string]*bintree{}},
+					"glyphicons-halflings-regular.woff2": &bintree{appPublicBootstrapFontsGlyphiconsHalflingsRegularWoff2, map[string]*bintree{}},
 				}},
 			}},
 			"bundle": &bintree{nil, map[string]*bintree{
-				"bundle.css": &bintree{appPublicBundleBundleCss, map[string]*bintree{
-				}},
-				"bundle.js": &bintree{appPublicBundleBundleJs, map[string]*bintree{
-				}},
-				"bundle.js.map": &bintree{appPublicBundleBundleJsMap, map[string]*bintree{
-				}},
+				"bundle.css":    &bintree{appPublicBundleBundleCss, map[string]*bintree{}},
+				"bundle.js":     &bintree{appPublicBundleBundleJs, map[string]*bintree{}},
+				"bundle.js.map": &bintree{appPublicBundleBundleJsMap, map[string]*bintree{}},
 			}},
 			"images": &bintree{nil, map[string]*bintree{
-				"bg.png": &bintree{appPublicImagesBgPng, map[string]*bintree{
-				}},
-				"favicon.ico": &bintree{appPublicImagesFaviconIco, map[string]*bintree{
-				}},
-				"loading-bars.svg": &bintree{appPublicImagesLoadingBarsSvg, map[string]*bintree{
-				}},
-				"login-bg.jpg": &bintree{appPublicImagesLoginBgJpg, map[string]*bintree{
-				}},
-				"logo-login.svg": &bintree{appPublicImagesLogoLoginSvg, map[string]*bintree{
-				}},
-				"logo.svg": &bintree{appPublicImagesLogoSvg, map[string]*bintree{
-				}},
+				"bg.png":           &bintree{appPublicImagesBgPng, map[string]*bintree{}},
+				"favicon.ico":      &bintree{appPublicImagesFaviconIco, map[string]*bintree{}},
+				"loading-bars.svg": &bintree{appPublicImagesLoadingBarsSvg, map[string]*bintree{}},
+				"login-bg.jpg":     &bintree{appPublicImagesLoginBgJpg, map[string]*bintree{}},
+				"logo-login.svg":   &bintree{appPublicImagesLogoLoginSvg, map[string]*bintree{}},
+				"logo.svg":         &bintree{appPublicImagesLogoSvg, map[string]*bintree{}},
 			}},
 		}},
-		"robots.txt": &bintree{appRobotsTxt, map[string]*bintree{
-		}},
+		"robots.txt": &bintree{appRobotsTxt, map[string]*bintree{}},
 	}},
 }}
 
 // RestoreAsset restores an asset under the given directory
 func RestoreAsset(dir, name string) error {
-        data, err := Asset(name)
-        if err != nil {
-                return err
-        }
-        info, err := AssetInfo(name)
-        if err != nil {
-                return err
-        }
-        err = os.MkdirAll(_filePath(dir, filepath.Dir(name)), os.FileMode(0755))
-        if err != nil {
-                return err
-        }
-        err = ioutil.WriteFile(_filePath(dir, name), data, info.Mode())
-        if err != nil {
-                return err
-        }
-        err = os.Chtimes(_filePath(dir, name), info.ModTime(), info.ModTime())
-        if err != nil {
-                return err
-        }
-        return nil
+	data, err := Asset(name)
+	if err != nil {
+		return err
+	}
+	info, err := AssetInfo(name)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(_filePath(dir, filepath.Dir(name)), os.FileMode(0755))
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(_filePath(dir, name), data, info.Mode())
+	if err != nil {
+		return err
+	}
+	err = os.Chtimes(_filePath(dir, name), info.ModTime(), info.ModTime())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // RestoreAssets restores an asset under the given directory recursively
 func RestoreAssets(dir, name string) error {
-        children, err := AssetDir(name)
-        // File
-        if err != nil {
-                return RestoreAsset(dir, name)
-        }
-        // Dir
-        for _, child := range children {
-                err = RestoreAssets(dir, filepath.Join(name, child))
-                if err != nil {
-                        return err
-                }
-        }
-        return nil
+	children, err := AssetDir(name)
+	// File
+	if err != nil {
+		return RestoreAsset(dir, name)
+	}
+	// Dir
+	for _, child := range children {
+		err = RestoreAssets(dir, filepath.Join(name, child))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func _filePath(dir, name string) string {
-        cannonicalName := strings.Replace(name, "\\", "/", -1)
-        return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
+	cannonicalName := strings.Replace(name, "\\", "/", -1)
+	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-
 
 func assetFS() *assetfs.AssetFS {
 	for k := range _bintree.Children {
