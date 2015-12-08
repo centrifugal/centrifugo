@@ -202,10 +202,11 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	defer ws.Close()
 
 	app.RLock()
-	interval := app.config.PingInterval
+	pingInterval := app.config.PingInterval
 	app.RUnlock()
+	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
 
-	conn := newWSConn(ws, interval)
+	conn := newWSConn(ws, pingInterval)
 	defer close(conn.closeCh)
 
 	c, err := newClient(app, conn)
@@ -214,6 +215,9 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	}
 	logger.INFO.Printf("New raw Websocket session established with uid %s\n", c.uid())
 	defer c.clean()
+
+	ws.SetReadDeadline(time.Now().Add(pongWait))
+	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
 		_, message, err := conn.ws.ReadMessage()
