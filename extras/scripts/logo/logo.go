@@ -38,22 +38,26 @@ func segment(x, y, radius, startAngle, endAngle, width float64) string {
 	return strings.Join(parts, " ")
 }
 
-func main() {
+const (
+	canvasSize        int     = 500
+	startAngle        float64 = 4.0
+	endAngle          float64 = 86.0
+	outerWidthProp    float64 = 0.14
+	innerWidthProp    float64 = 0.12
+	innerOuterGapProp float64 = 0.04
+)
 
-	canvasSize := 500
+func main() {
 
 	centerX := float64(canvasSize / 2)
 	centerY := float64(canvasSize / 2)
 
-	startAngle := 4.0
-	endAngle := 86.0
-
 	outerRadius := float64(canvasSize) / 2
-	outerWidth := 70.0
+	outerWidth := outerWidthProp * float64(canvasSize)
 	outerFill := "fill:#e74c3c;"
 
-	innerRadius := float64(canvasSize)/2 - outerWidth - 20.0
-	innerWidth := 60.0
+	innerRadius := float64(canvasSize)/2 - outerWidth - innerOuterGapProp*float64(canvasSize)
+	innerWidth := innerWidthProp * float64(canvasSize)
 	innerFill := "fill:#2980b9;"
 
 	rotate := func(angle int) string {
