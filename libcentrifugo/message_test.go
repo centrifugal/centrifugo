@@ -16,7 +16,7 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"channel\":\"test\""))
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"data\":{}"))
-	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"client\":\"\""))
+	assert.Equal(t, false, strings.Contains(string(msgBytes), "\"client\":\"\"")) // empty field must be omitted
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"timestamp\":"))
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"uid\":"))
 }
