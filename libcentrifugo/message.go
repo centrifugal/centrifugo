@@ -12,10 +12,10 @@ import (
 type Message struct {
 	UID       MessageID        `json:"uid"`
 	Timestamp string           `json:"timestamp"`
-	Info      *ClientInfo      `json:"info"`
+	Info      *ClientInfo      `json:"info,omitempty"`
 	Channel   Channel          `json:"channel"`
 	Data      *json.RawMessage `json:"data"`
-	Client    ConnID           `json:"client"`
+	Client    ConnID           `json:"client,omitempty"`
 }
 
 func newMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) (Message, error) {

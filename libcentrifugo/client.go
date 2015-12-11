@@ -44,8 +44,8 @@ type client struct {
 type ClientInfo struct {
 	User        UserID           `json:"user"`
 	Client      ConnID           `json:"client"`
-	DefaultInfo *json.RawMessage `json:"default_info"`
-	ChannelInfo *json.RawMessage `json:"channel_info"`
+	DefaultInfo *json.RawMessage `json:"default_info,omitempty"`
+	ChannelInfo *json.RawMessage `json:"channel_info,omitempty"`
 }
 
 // newClient creates new ready to communicate client.
