@@ -333,7 +333,28 @@ func (c *client) message(msg []byte) error {
 		return ErrInvalidMessage
 	}
 	err = c.handleCommands(commands)
+	if err != nil {
+		disconnectErr := c.disconnect("error handling message")
+		if disconnectErr != nil {
+			logger.ERROR.Println(disconnectErr)
+		}
+		// Sleep for a while to give client a chance to receive disconnect
+		// message and process it. Connection will be closed then.
+		time.Sleep(time.Second)
+	}
 	return err
+}
+
+func (c *client) disconnect(reason string) error {
+	resp := newResponse("disconnect")
+	resp.Body = &DisconnectBody{
+		Reason: reason,
+	}
+	jsonResp, err := json.Marshal(resp)
+	if err != nil {
+		return err
+	}
+	return c.send(jsonResp)
 }
 
 func (c *client) handleCommands(commands []clientCommand) error {
