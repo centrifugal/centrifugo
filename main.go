@@ -84,6 +84,7 @@ func Main() {
 	var name string
 	var web bool
 	var webPath string
+	var insecureWeb bool
 	var engn string
 	var logLevel string
 	var logFile string
@@ -92,6 +93,8 @@ func Main() {
 	var useSSL bool
 	var sslCert string
 	var sslKey string
+	var apiPort string
+	var adminPort string
 
 	var redisHost string
 	var redisPort string
@@ -151,6 +154,7 @@ func Main() {
 			viper.BindEnv("web")
 			viper.BindEnv("web_password")
 			viper.BindEnv("web_secret")
+			viper.BindEnv("insecure_web")
 			viper.BindEnv("secret")
 			viper.BindEnv("connection_lifetime")
 			viper.BindEnv("watch")
@@ -168,6 +172,7 @@ func Main() {
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
 			viper.BindPFlag("web_path", cmd.Flags().Lookup("web_path"))
+			viper.BindPFlag("insecure_web", cmd.Flags().Lookup("insecure_web"))
 			viper.BindPFlag("engine", cmd.Flags().Lookup("engine"))
 			viper.BindPFlag("insecure", cmd.Flags().Lookup("insecure"))
 			viper.BindPFlag("insecure_api", cmd.Flags().Lookup("insecure_api"))
@@ -328,9 +333,12 @@ func Main() {
 	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
 	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolVarP(&insecureAPI, "insecure_api", "", false, "use insecure API mode")
+	rootCmd.Flags().BoolVarP(&insecureWeb, "insecure_web", "", false, "use insecure web mode – no web password and web secret required for web interface")
 	rootCmd.Flags().BoolVarP(&useSSL, "ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
 	rootCmd.Flags().StringVarP(&sslCert, "ssl_cert", "", "", "path to an X509 certificate file")
 	rootCmd.Flags().StringVarP(&sslKey, "ssl_key", "", "", "path to an X509 certificate key")
+	rootCmd.Flags().StringVarP(&apiPort, "api_port", "", "8000", "port to bind api endpoints to (optional until this is required by your deploy setup)")
+	rootCmd.Flags().StringVarP(&adminPort, "admin_port", "", "8000", "port to bind admin endpoints to (optional until this is required by your deploy setup)")
 	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "info", "set the log level: debug, info, error, critical, fatal or none")
 	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified all logs go to STDOUT")
 	rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")

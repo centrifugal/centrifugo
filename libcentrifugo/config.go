@@ -154,6 +154,11 @@ type Config struct {
 	// to sign every request - for example if you closed API endpoint with firewall
 	// or you want to play with API commands from command line using CURL.
 	InsecureAPI bool
+	// InsecureWeb turns on insecure mode for admin web interface handler endpoints. This
+	// means that no web password and web secret will be used to protect access to web admin
+	// resources. Use this in development or protect admin resources with firewall rules
+	// in production.
+	InsecureWeb bool
 
 	// Secret is a secret key, used to sign API requests and client connection tokens.
 	Secret string
