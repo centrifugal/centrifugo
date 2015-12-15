@@ -76,6 +76,8 @@ type Config struct {
 	// Debug turns on application debug mode.
 	Debug bool
 
+	// Web shows if admin web interface enabled or not
+	Web bool
 	// WebPassword is an admin web interface password.
 	WebPassword string
 	// WebSecret is a secret to generate auth token for admin web interface.

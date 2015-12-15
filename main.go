@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -70,6 +71,19 @@ func handleSignals(app *libcentrifugo.Application) {
 			})
 			app.Shutdown()
 			os.Exit(130)
+		}
+	}
+}
+
+func listenHTTP(mux http.Handler, addr string, useSSL bool, sslCert, sslKey string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if useSSL {
+		if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
+			logger.FATAL.Fatalln("ListenAndServe:", err)
+		}
+	} else {
+		if err := http.ListenAndServe(addr, mux); err != nil {
+			logger.FATAL.Fatalln("ListenAndServe:", err)
 		}
 	}
 }
@@ -167,6 +181,8 @@ func Main() {
 			viper.BindEnv("history_lifetime")
 
 			viper.BindPFlag("port", cmd.Flags().Lookup("port"))
+			viper.BindPFlag("api_port", cmd.Flags().Lookup("api_port"))
+			viper.BindPFlag("admin_port", cmd.Flags().Lookup("admin_port"))
 			viper.BindPFlag("address", cmd.Flags().Lookup("address"))
 			viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
@@ -239,6 +255,9 @@ func Main() {
 			if c.InsecureAPI {
 				logger.WARN.Println("application running in INSECURE API mode")
 			}
+			if c.InsecureWeb {
+				logger.WARN.Println("application running in INSECURE web mode")
+			}
 
 			var e libcentrifugo.Engine
 			switch viper.GetString("engine") {
@@ -300,27 +319,52 @@ func Main() {
 				webFS = assetFS()
 			}
 
-			muxOpts := libcentrifugo.MuxOptions{
-				Prefix:        viper.GetString("prefix"),
-				Web:           viper.GetBool("web"),
-				WebPath:       viper.GetString("web_path"),
-				WebFS:         webFS,
-				SockjsOptions: sockjsOpts,
-			}
+			var clientPort = viper.GetString("port")
+			var apiPort = viper.GetString("api_port")
+			var adminPort = viper.GetString("admin_port")
 
-			mux := libcentrifugo.DefaultMux(app, muxOpts)
+			// portToHandlerFlags contains mapping between ports and handler flags
+			// to serve on this port.
+			portToHandlerFlags := map[string]libcentrifugo.HandlerFlag{}
 
-			addr := net.JoinHostPort(viper.GetString("address"), viper.GetString("port"))
-			logger.INFO.Printf("Start serving on %s\n", addr)
-			if useSSL {
-				if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
-				}
-			} else {
-				if err := http.ListenAndServe(addr, mux); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
-				}
+			var portFlags libcentrifugo.HandlerFlag
+
+			portFlags = portToHandlerFlags[clientPort]
+			portFlags |= libcentrifugo.HandlerRawWS | libcentrifugo.HandlerSockJS
+			portToHandlerFlags[clientPort] = portFlags
+
+			portFlags = portToHandlerFlags[apiPort]
+			portFlags |= libcentrifugo.HandlerAPI
+			portToHandlerFlags[apiPort] = portFlags
+
+			portFlags = portToHandlerFlags[adminPort]
+			portFlags |= libcentrifugo.HandlerAdmin
+			if viper.GetBool("debug") {
+				portFlags |= libcentrifugo.HandlerDebug
 			}
+			portToHandlerFlags[adminPort] = portFlags
+
+			var wg sync.WaitGroup
+			// Iterate over port to flags mapping and start HTTP servers
+			// on separate ports serving handlers specified in flags.
+			for handlerPort, handlerFlags := range portToHandlerFlags {
+				muxOpts := libcentrifugo.MuxOptions{
+					Prefix:        viper.GetString("prefix"),
+					Web:           viper.GetBool("web"),
+					WebPath:       viper.GetString("web_path"),
+					WebFS:         webFS,
+					HandlerFlags:  handlerFlags,
+					SockjsOptions: sockjsOpts,
+				}
+				mux := libcentrifugo.DefaultMux(app, muxOpts)
+
+				addr := net.JoinHostPort(viper.GetString("address"), handlerPort)
+
+				logger.INFO.Printf("Start serving %s endpoints on %s\n", handlerFlags, addr)
+				wg.Add(1)
+				go listenHTTP(mux, addr, useSSL, sslCert, sslKey, &wg)
+			}
+			wg.Wait()
 		},
 	}
 	rootCmd.Flags().StringVarP(&port, "port", "p", "8000", "port to bind to")

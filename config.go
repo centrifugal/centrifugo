@@ -22,6 +22,7 @@ func newConfig() *libcentrifugo.Config {
 	cfg.Version = VERSION
 	cfg.Name = getApplicationName()
 	cfg.Debug = viper.GetBool("debug")
+	cfg.Web = viper.GetBool("web")
 	cfg.WebPassword = viper.GetString("web_password")
 	cfg.WebSecret = viper.GetString("web_secret")
 	cfg.ChannelPrefix = viper.GetString("channel_prefix")
