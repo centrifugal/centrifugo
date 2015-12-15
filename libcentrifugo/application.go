@@ -884,8 +884,13 @@ func (app *Application) adminAuthToken() (string, error) {
 func (app *Application) checkAdminAuthToken(token string) error {
 
 	app.RLock()
+	insecure := app.config.InsecureWeb
 	secret := app.config.WebSecret
 	app.RUnlock()
+
+	if insecure {
+		return nil
+	}
 
 	if secret == "" {
 		logger.ERROR.Println("provide web_secret in configuration")

@@ -48,7 +48,7 @@ func TestRawWsHandler(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 }
 
-func TestAdminWebsocketHandlerUnavailable(t *testing.T) {
+func TestAdminWebsocketHandlerNotFound(t *testing.T) {
 	app := testApp()
 	opts := DefaultMuxOptions
 	opts.Web = true
@@ -57,7 +57,7 @@ func TestAdminWebsocketHandlerUnavailable(t *testing.T) {
 	defer server.Close()
 	url := "ws" + server.URL[4:]
 	_, resp, _ := websocket.DefaultDialer.Dial(url+"/socket", nil)
-	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
 
 func TestAdminWebsocketHandler(t *testing.T) {

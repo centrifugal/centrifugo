@@ -399,9 +399,17 @@ func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	app.RLock()
+	insecure := app.config.InsecureWeb
 	webPassword := app.config.WebPassword
 	webSecret := app.config.WebSecret
 	app.RUnlock()
+
+	if insecure {
+		w.Header().Set("Content-Type", "application/json")
+		resp := map[string]string{"token": "insecure"}
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
 
 	if webPassword == "" || webSecret == "" {
 		logger.ERROR.Println("web_password and web_secret must be set in configuration")
@@ -572,7 +580,7 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 	web := app.config.Web
 	app.RUnlock()
 	if !web {
-		w.WriteHeader(http.StatusServiceUnavailable)
+		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	ws, err := upgrader.Upgrade(w, r, nil)
