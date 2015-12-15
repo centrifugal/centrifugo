@@ -348,7 +348,8 @@ func (c *client) message(msg []byte) error {
 func (c *client) disconnect(reason string) error {
 	resp := newResponse("disconnect")
 	resp.Body = &DisconnectBody{
-		Reason: reason,
+		Reason:    reason,
+		Reconnect: false,
 	}
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {

@@ -95,7 +95,8 @@ type PublishBody struct {
 // DisconnectBody represents body of disconnect response when we want to tell
 // client to disconnect and stop reconnecting.
 type DisconnectBody struct {
-	Reason string `json:"reason"`
+	Reason    string `json:"reason"`
+	Reconnect bool   `json:"reconnect"`
 }
 
 // PingBody represents body of response in case of successful ping command.
