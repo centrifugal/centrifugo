@@ -250,13 +250,13 @@ func Main() {
 			}
 
 			if c.Insecure {
-				logger.WARN.Println("application running in INSECURE client mode")
+				logger.WARN.Println("Running in INSECURE client mode")
 			}
 			if c.InsecureAPI {
-				logger.WARN.Println("application running in INSECURE API mode")
+				logger.WARN.Println("Running in INSECURE API mode")
 			}
 			if c.InsecureWeb {
-				logger.WARN.Println("application running in INSECURE web mode")
+				logger.WARN.Println("Running in INSECURE web mode")
 			}
 
 			var e libcentrifugo.Engine
