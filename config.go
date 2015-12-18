@@ -22,6 +22,7 @@ func newConfig() *libcentrifugo.Config {
 	cfg.Version = VERSION
 	cfg.Name = getApplicationName()
 	cfg.Debug = viper.GetBool("debug")
+	cfg.Web = viper.GetBool("web")
 	cfg.WebPassword = viper.GetString("web_password")
 	cfg.WebSecret = viper.GetString("web_secret")
 	cfg.ChannelPrefix = viper.GetString("channel_prefix")
@@ -46,6 +47,7 @@ func newConfig() *libcentrifugo.Config {
 	cfg.MaxClientQueueSize = viper.GetInt("max_client_queue_size")
 	cfg.Insecure = viper.GetBool("insecure")
 	cfg.InsecureAPI = viper.GetBool("insecure_api")
+	cfg.InsecureWeb = viper.GetBool("insecure_web")
 
 	cfg.Secret = viper.GetString("secret")
 	cfg.ConnLifetime = int64(viper.GetInt("connection_lifetime"))

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -74,6 +75,19 @@ func handleSignals(app *libcentrifugo.Application) {
 	}
 }
 
+func listenHTTP(mux http.Handler, addr string, useSSL bool, sslCert, sslKey string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if useSSL {
+		if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
+			logger.FATAL.Fatalln("ListenAndServe:", err)
+		}
+	} else {
+		if err := http.ListenAndServe(addr, mux); err != nil {
+			logger.FATAL.Fatalln("ListenAndServe:", err)
+		}
+	}
+}
+
 func Main() {
 
 	var configFile string
@@ -84,6 +98,7 @@ func Main() {
 	var name string
 	var web bool
 	var webPath string
+	var insecureWeb bool
 	var engn string
 	var logLevel string
 	var logFile string
@@ -92,6 +107,8 @@ func Main() {
 	var useSSL bool
 	var sslCert string
 	var sslKey string
+	var apiPort string
+	var adminPort string
 
 	var redisHost string
 	var redisPort string
@@ -151,6 +168,7 @@ func Main() {
 			viper.BindEnv("web")
 			viper.BindEnv("web_password")
 			viper.BindEnv("web_secret")
+			viper.BindEnv("insecure_web")
 			viper.BindEnv("secret")
 			viper.BindEnv("connection_lifetime")
 			viper.BindEnv("watch")
@@ -163,11 +181,14 @@ func Main() {
 			viper.BindEnv("history_lifetime")
 
 			viper.BindPFlag("port", cmd.Flags().Lookup("port"))
+			viper.BindPFlag("api_port", cmd.Flags().Lookup("api_port"))
+			viper.BindPFlag("admin_port", cmd.Flags().Lookup("admin_port"))
 			viper.BindPFlag("address", cmd.Flags().Lookup("address"))
 			viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
 			viper.BindPFlag("web_path", cmd.Flags().Lookup("web_path"))
+			viper.BindPFlag("insecure_web", cmd.Flags().Lookup("insecure_web"))
 			viper.BindPFlag("engine", cmd.Flags().Lookup("engine"))
 			viper.BindPFlag("insecure", cmd.Flags().Lookup("insecure"))
 			viper.BindPFlag("insecure_api", cmd.Flags().Lookup("insecure_api"))
@@ -229,10 +250,13 @@ func Main() {
 			}
 
 			if c.Insecure {
-				logger.WARN.Println("application running in INSECURE client mode")
+				logger.WARN.Println("Running in INSECURE client mode")
 			}
 			if c.InsecureAPI {
-				logger.WARN.Println("application running in INSECURE API mode")
+				logger.WARN.Println("Running in INSECURE API mode")
+			}
+			if c.InsecureWeb {
+				logger.WARN.Println("Running in INSECURE web mode")
 			}
 
 			var e libcentrifugo.Engine
@@ -295,27 +319,52 @@ func Main() {
 				webFS = assetFS()
 			}
 
-			muxOpts := libcentrifugo.MuxOptions{
-				Prefix:        viper.GetString("prefix"),
-				Web:           viper.GetBool("web"),
-				WebPath:       viper.GetString("web_path"),
-				WebFS:         webFS,
-				SockjsOptions: sockjsOpts,
-			}
+			var clientPort = viper.GetString("port")
+			var apiPort = viper.GetString("api_port")
+			var adminPort = viper.GetString("admin_port")
 
-			mux := libcentrifugo.DefaultMux(app, muxOpts)
+			// portToHandlerFlags contains mapping between ports and handler flags
+			// to serve on this port.
+			portToHandlerFlags := map[string]libcentrifugo.HandlerFlag{}
 
-			addr := net.JoinHostPort(viper.GetString("address"), viper.GetString("port"))
-			logger.INFO.Printf("Start serving on %s\n", addr)
-			if useSSL {
-				if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
-				}
-			} else {
-				if err := http.ListenAndServe(addr, mux); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
-				}
+			var portFlags libcentrifugo.HandlerFlag
+
+			portFlags = portToHandlerFlags[clientPort]
+			portFlags |= libcentrifugo.HandlerRawWS | libcentrifugo.HandlerSockJS
+			portToHandlerFlags[clientPort] = portFlags
+
+			portFlags = portToHandlerFlags[apiPort]
+			portFlags |= libcentrifugo.HandlerAPI
+			portToHandlerFlags[apiPort] = portFlags
+
+			portFlags = portToHandlerFlags[adminPort]
+			portFlags |= libcentrifugo.HandlerAdmin
+			if viper.GetBool("debug") {
+				portFlags |= libcentrifugo.HandlerDebug
 			}
+			portToHandlerFlags[adminPort] = portFlags
+
+			var wg sync.WaitGroup
+			// Iterate over port to flags mapping and start HTTP servers
+			// on separate ports serving handlers specified in flags.
+			for handlerPort, handlerFlags := range portToHandlerFlags {
+				muxOpts := libcentrifugo.MuxOptions{
+					Prefix:        viper.GetString("prefix"),
+					Web:           viper.GetBool("web"),
+					WebPath:       viper.GetString("web_path"),
+					WebFS:         webFS,
+					HandlerFlags:  handlerFlags,
+					SockjsOptions: sockjsOpts,
+				}
+				mux := libcentrifugo.DefaultMux(app, muxOpts)
+
+				addr := net.JoinHostPort(viper.GetString("address"), handlerPort)
+
+				logger.INFO.Printf("Start serving %s endpoints on %s\n", handlerFlags, addr)
+				wg.Add(1)
+				go listenHTTP(mux, addr, useSSL, sslCert, sslKey, &wg)
+			}
+			wg.Wait()
 		},
 	}
 	rootCmd.Flags().StringVarP(&port, "port", "p", "8000", "port to bind to")
@@ -328,9 +377,12 @@ func Main() {
 	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
 	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolVarP(&insecureAPI, "insecure_api", "", false, "use insecure API mode")
+	rootCmd.Flags().BoolVarP(&insecureWeb, "insecure_web", "", false, "use insecure web mode – no web password and web secret required for web interface")
 	rootCmd.Flags().BoolVarP(&useSSL, "ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
 	rootCmd.Flags().StringVarP(&sslCert, "ssl_cert", "", "", "path to an X509 certificate file")
 	rootCmd.Flags().StringVarP(&sslKey, "ssl_key", "", "", "path to an X509 certificate key")
+	rootCmd.Flags().StringVarP(&apiPort, "api_port", "", "8000", "port to bind api endpoints to (optional until this is required by your deploy setup)")
+	rootCmd.Flags().StringVarP(&adminPort, "admin_port", "", "8000", "port to bind admin endpoints to (optional until this is required by your deploy setup)")
 	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "info", "set the log level: debug, info, error, critical, fatal or none")
 	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified all logs go to STDOUT")
 	rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")

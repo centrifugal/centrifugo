@@ -48,8 +48,21 @@ func TestRawWsHandler(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 }
 
+func TestAdminWebsocketHandlerNotFound(t *testing.T) {
+	app := testApp()
+	opts := DefaultMuxOptions
+	opts.Web = true
+	mux := DefaultMux(app, opts)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	url := "ws" + server.URL[4:]
+	_, resp, _ := websocket.DefaultDialer.Dial(url+"/socket", nil)
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
 func TestAdminWebsocketHandler(t *testing.T) {
 	app := testApp()
+	app.config.Web = true // admin websocket available only if web enabled at moment
 	opts := DefaultMuxOptions
 	opts.Web = true
 	mux := DefaultMux(app, opts)
@@ -68,6 +81,7 @@ func TestAdminWebsocketHandler(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.NotEqual(t, nil, conn)
 	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
+
 }
 
 func getNPublishJson(channel string, n int) []byte {
