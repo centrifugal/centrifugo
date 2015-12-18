@@ -394,6 +394,8 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonResp)
 }
 
+const insecureWebToken = "insecure"
+
 // AuthHandler allows to get admin web interface token.
 func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
@@ -406,7 +408,7 @@ func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 
 	if insecure {
 		w.Header().Set("Content-Type", "application/json")
-		resp := map[string]string{"token": "insecure"}
+		resp := map[string]string{"token": insecureWebToken}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
