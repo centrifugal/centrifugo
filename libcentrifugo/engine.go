@@ -35,8 +35,7 @@ type Engine interface {
 
 	// addHistory adds message into channel history and takes care about history size.
 	addHistory(chID ChannelID, message Message, opts historyOptions) error
-	// history returns a slice of history messages for channel.
-	history(chID ChannelID) ([]Message, error)
-	// lastMessageID returns last message id for channel.
-	lastMessageID(chID ChannelID) (MessageID, error)
+	// history returns a slice of history messages for channel, limit sets maximum amount
+	// of history messages to return. If limit is 0 then all history messages must be returned.
+	history(chID ChannelID, limit int64) ([]Message, error)
 }

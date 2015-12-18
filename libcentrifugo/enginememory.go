@@ -64,12 +64,8 @@ func (e *MemoryEngine) addHistory(chID ChannelID, message Message, opts historyO
 	return e.historyHub.add(chID, message, opts)
 }
 
-func (e *MemoryEngine) history(chID ChannelID) ([]Message, error) {
-	return e.historyHub.get(chID)
-}
-
-func (e *MemoryEngine) lastMessageID(ch ChannelID) (MessageID, error) {
-	return e.historyHub.lastMessageID(ch)
+func (e *MemoryEngine) history(chID ChannelID, limit int64) ([]Message, error) {
+	return e.historyHub.get(chID, limit)
 }
 
 func (e *MemoryEngine) channels() ([]ChannelID, error) {
@@ -149,18 +145,16 @@ func (i historyItem) isExpired() bool {
 
 type memoryHistoryHub struct {
 	sync.RWMutex
-	lastMessage map[ChannelID]MessageID
-	history     map[ChannelID]historyItem
-	queue       priority.Queue
-	nextCheck   int64
+	history   map[ChannelID]historyItem
+	queue     priority.Queue
+	nextCheck int64
 }
 
 func newMemoryHistoryHub() *memoryHistoryHub {
 	return &memoryHistoryHub{
-		lastMessage: make(map[ChannelID]MessageID),
-		history:     make(map[ChannelID]historyItem),
-		queue:       priority.MakeQueue(),
-		nextCheck:   0,
+		history:   make(map[ChannelID]historyItem),
+		queue:     priority.MakeQueue(),
+		nextCheck: 0,
 	}
 }
 
@@ -229,12 +223,10 @@ func (h *memoryHistoryHub) add(chID ChannelID, message Message, opts historyOpti
 		h.nextCheck = expireAt
 	}
 
-	h.lastMessage[chID] = message.UID
-
 	return nil
 }
 
-func (h *memoryHistoryHub) get(chID ChannelID) ([]Message, error) {
+func (h *memoryHistoryHub) get(chID ChannelID, limit int64) ([]Message, error) {
 	h.RLock()
 	defer h.RUnlock()
 
@@ -248,15 +240,9 @@ func (h *memoryHistoryHub) get(chID ChannelID) ([]Message, error) {
 		delete(h.history, chID)
 		return []Message{}, nil
 	}
-	return hItem.messages, nil
-}
-
-func (h *memoryHistoryHub) lastMessageID(chID ChannelID) (MessageID, error) {
-	h.RLock()
-	defer h.RUnlock()
-	id, ok := h.lastMessage[chID]
-	if !ok {
-		return MessageID(""), nil
+	if limit == 0 || limit > int64(len(hItem.messages)) {
+		return hItem.messages, nil
+	} else {
+		return hItem.messages[:limit], nil
 	}
-	return id, nil
 }

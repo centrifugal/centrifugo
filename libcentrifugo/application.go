@@ -787,11 +787,23 @@ func (app *Application) History(ch Channel) ([]Message, error) {
 
 	chID := app.channelID(ch)
 
-	history, err := app.engine.history(chID)
+	history, err := app.engine.history(chID, 0)
 	if err != nil {
 		return []Message{}, ErrInternalServerError
 	}
 	return history, nil
+}
+
+func (app *Application) lastMessageID(ch Channel) (MessageID, error) {
+	chID := app.channelID(ch)
+	history, err := app.engine.history(chID, 1)
+	if err != nil {
+		return MessageID(""), err
+	}
+	if len(history) == 0 {
+		return MessageID(""), nil
+	}
+	return history[0].UID, nil
 }
 
 // privateChannel checks if channel private and therefore subscription

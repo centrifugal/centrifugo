@@ -285,12 +285,6 @@ func (e *RedisEngine) getHistoryKey(chID ChannelID) string {
 	return e.app.config.ChannelPrefix + ".history.list." + string(chID)
 }
 
-func (e *RedisEngine) getLastMessageIDKey(chID ChannelID) string {
-	e.app.RLock()
-	defer e.app.RUnlock()
-	return e.app.config.ChannelPrefix + ".last_message_id." + string(chID)
-}
-
 func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) error {
 	e.app.RLock()
 	presenceExpireInterval := e.app.config.PresenceExpireInterval
@@ -396,7 +390,6 @@ func (e *RedisEngine) addHistory(chID ChannelID, message Message, opts historyOp
 	conn.Send("LPUSH", historyKey, messageJson)
 	conn.Send("LTRIM", historyKey, 0, opts.Size-1)
 	conn.Send("EXPIRE", historyKey, opts.Lifetime)
-	conn.Send("SET", e.getLastMessageIDKey(chID), message.UID)
 	_, err = conn.Do("EXEC")
 	return err
 }
@@ -422,11 +415,15 @@ func sliceOfMessages(result interface{}, err error) ([]Message, error) {
 	return msgs, nil
 }
 
-func (e *RedisEngine) history(chID ChannelID) ([]Message, error) {
+func (e *RedisEngine) history(chID ChannelID, limit int64) ([]Message, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
+	var rangeBound int = -1
+	if limit > 0 {
+		rangeBound = int(limit)
+	}
 	historyKey := e.getHistoryKey(chID)
-	reply, err := conn.Do("LRANGE", historyKey, 0, -1)
+	reply, err := conn.Do("LRANGE", historyKey, 0, rangeBound)
 	if err != nil {
 		return nil, err
 	}
@@ -460,21 +457,4 @@ func (e *RedisEngine) channels() ([]ChannelID, error) {
 		return nil, err
 	}
 	return sliceOfChannelIDs(reply, prefix, nil)
-}
-
-func (e *RedisEngine) lastMessageID(ch ChannelID) (MessageID, error) {
-	conn := e.pool.Get()
-	defer conn.Close()
-	reply, err := conn.Do("GET", e.getLastMessageIDKey(ch))
-	if err != nil {
-		return MessageID(""), err
-	}
-	if reply == nil {
-		return MessageID(""), nil
-	}
-	strVal, err := redis.String(reply, err)
-	if err != nil {
-		return MessageID(""), err
-	}
-	return MessageID(strVal), nil
 }

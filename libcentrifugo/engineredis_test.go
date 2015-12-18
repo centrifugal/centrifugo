@@ -86,7 +86,7 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(p))
 	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, historyOptions{1, 1, false}))
-	h, err := e.history(ChannelID("channel"))
+	h, err := e.history(ChannelID("channel"), 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 	err = e.removePresence(ChannelID("channel"), "uid")
@@ -96,6 +96,8 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 	_, err = c.Conn.Do("LPUSH", apiKey, []byte("{\"project\": \"test1\"}"))
 	assert.Equal(t, nil, err)
+
+	// TODO: test history limit
 }
 
 func TestRedisChannels(t *testing.T) {
@@ -109,20 +111,4 @@ func TestRedisChannels(t *testing.T) {
 	channels, err = app.engine.channels()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 10, len(channels))
-}
-
-func TestRedisLastMessageID(t *testing.T) {
-	c := dial()
-	defer c.close()
-	app := testRedisApp()
-	ch := Channel("test")
-	chID := app.channelID(ch)
-	uid, err := app.engine.lastMessageID(chID)
-	assert.Equal(t, MessageID(""), uid)
-	message, _ := newMessage(ch, []byte("{}"), ConnID(""), nil)
-	err = app.addHistory(ch, message, historyOptions{10, 10, true})
-	assert.Equal(t, nil, err)
-	uid, err = app.engine.lastMessageID(chID)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, message.UID, uid)
 }

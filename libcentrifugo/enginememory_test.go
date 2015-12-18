@@ -30,7 +30,7 @@ func TestMemoryEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(p))
 	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, historyOptions{1, 1, false}))
-	h, err := e.history(ChannelID("channel"))
+	h, err := e.history(ChannelID("channel"), 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 	err = e.removePresence(ChannelID("channel"), "uid")
@@ -78,17 +78,28 @@ func TestMemoryHistoryHub(t *testing.T) {
 	h.add(ch1, Message{}, historyOptions{1, 1, false})
 	h.add(ch2, Message{}, historyOptions{2, 1, false})
 	h.add(ch2, Message{}, historyOptions{2, 1, false})
-	hist, err := h.get(ch1)
+	hist, err := h.get(ch1, 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(hist))
-	hist, err = h.get(ch2)
+	hist, err = h.get(ch2, 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(hist))
 	time.Sleep(2 * time.Second)
+
 	// test that history cleaned up by periodic task
 	assert.Equal(t, 0, len(h.history))
-	hist, err = h.get(ch1)
+	hist, err = h.get(ch1, 0)
 	assert.Equal(t, 0, len(hist))
+
+	// test history messages limit
+	h.add(ch1, Message{}, historyOptions{10, 1, false})
+	h.add(ch1, Message{}, historyOptions{10, 1, false})
+	h.add(ch1, Message{}, historyOptions{10, 1, false})
+	h.add(ch1, Message{}, historyOptions{10, 1, false})
+	hist, err = h.get(ch1, 0)
+	assert.Equal(t, 4, len(hist))
+	hist, err = h.get(ch1, 1)
+	assert.Equal(t, 1, len(hist))
 }
 
 func TestMemoryChannels(t *testing.T) {
@@ -100,18 +111,4 @@ func TestMemoryChannels(t *testing.T) {
 	channels, err = app.engine.channels()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 10, len(channels))
-}
-
-func TestMemoryLastMessageID(t *testing.T) {
-	app := testMemoryApp()
-	ch := Channel("test")
-	chID := app.channelID(ch)
-	uid, err := app.engine.lastMessageID(chID)
-	assert.Equal(t, MessageID(""), uid)
-	message, _ := newMessage(ch, []byte("{}"), ConnID(""), nil)
-	err = app.addHistory(ch, message, historyOptions{10, 10, true})
-	assert.Equal(t, nil, err)
-	uid, err = app.engine.lastMessageID(chID)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, message.UID, uid)
 }

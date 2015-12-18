@@ -773,8 +773,7 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*response, error) {
 			}
 		} else {
 			// Client don't want to recover messages yet, we just return last message id to him here.
-			channelID := c.app.channelID(channel)
-			lastMessageID, err := c.app.engine.lastMessageID(channelID)
+			lastMessageID, err := c.app.lastMessageID(channel)
 			if err != nil {
 				logger.ERROR.Println(err)
 			} else {
