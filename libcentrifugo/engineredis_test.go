@@ -78,26 +78,50 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 	app.SetEngine(e)
 	assert.Equal(t, e.name(), "Redis")
+
+	// test pub/sub operations
 	assert.Equal(t, nil, e.publish(ChannelID("channel"), []byte("{}")))
 	assert.Equal(t, nil, e.subscribe(ChannelID("channel")))
 	assert.Equal(t, nil, e.unsubscribe(ChannelID("channel")))
+
+	// test adding presence
 	assert.Equal(t, nil, e.addPresence(ChannelID("channel"), "uid", ClientInfo{}))
+
+	// test getting presence
 	p, err := e.presence(ChannelID("channel"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(p))
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, historyOptions{1, 1, false}))
-	h, err := e.history(ChannelID("channel"), 0)
+
+	// test adding history
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1}))
+	h, err := e.history(ChannelID("channel"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
+
+	// test history limit
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1}))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1}))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1}))
+	h, err = e.history(ChannelID("channel"), historyOpts{Limit: 2})
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(h))
+
+	// test history limit greater than history size
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1}))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1}))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1}))
+	h, err = e.history(ChannelID("channel"), historyOpts{Limit: 2})
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 1, len(h))
+
+	// test removing presence
 	err = e.removePresence(ChannelID("channel"), "uid")
 	assert.Equal(t, nil, err)
+
+	// test API
 	apiKey := e.app.config.ChannelPrefix + "." + "api"
 	_, err = c.Conn.Do("LPUSH", apiKey, []byte("{}"))
 	assert.Equal(t, nil, err)
-	_, err = c.Conn.Do("LPUSH", apiKey, []byte("{\"project\": \"test1\"}"))
-	assert.Equal(t, nil, err)
-
-	// TODO: test history limit
 }
 
 func TestRedisChannels(t *testing.T) {

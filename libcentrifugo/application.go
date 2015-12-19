@@ -465,10 +465,9 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 	}
 
 	if chOpts.HistorySize > 0 && chOpts.HistoryLifetime > 0 {
-		historyOpts := historyOptions{
-			Size:     int64(chOpts.HistorySize),
-			Lifetime: int64(chOpts.HistoryLifetime),
-			Recover:  chOpts.Recover,
+		historyOpts := addHistoryOpts{
+			Size:     chOpts.HistorySize,
+			Lifetime: chOpts.HistoryLifetime,
 		}
 		err = app.addHistory(ch, message, historyOpts)
 		if err != nil {
@@ -764,7 +763,7 @@ func (app *Application) Presence(ch Channel) (map[ConnID]ClientInfo, error) {
 }
 
 // addHistory proxies history message adding to engine.
-func (app *Application) addHistory(ch Channel, message Message, opts historyOptions) error {
+func (app *Application) addHistory(ch Channel, message Message, opts addHistoryOpts) error {
 	chID := app.channelID(ch)
 	return app.engine.addHistory(chID, message, opts)
 }
@@ -787,7 +786,7 @@ func (app *Application) History(ch Channel) ([]Message, error) {
 
 	chID := app.channelID(ch)
 
-	history, err := app.engine.history(chID, 0)
+	history, err := app.engine.history(chID, historyOpts{})
 	if err != nil {
 		return []Message{}, ErrInternalServerError
 	}
@@ -796,7 +795,7 @@ func (app *Application) History(ch Channel) ([]Message, error) {
 
 func (app *Application) lastMessageID(ch Channel) (MessageID, error) {
 	chID := app.channelID(ch)
-	history, err := app.engine.history(chID, 1)
+	history, err := app.engine.history(chID, historyOpts{Limit: 1})
 	if err != nil {
 		return MessageID(""), err
 	}

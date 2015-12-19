@@ -361,6 +361,23 @@ func TestClientPresence(t *testing.T) {
 	assert.Equal(t, nil, resp.err)
 }
 
+func TestClientUpdatePresence(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp), testSubscribeCmd("test1"), testSubscribeCmd("test2")}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(c.channels()))
+
+	assert.NotEqual(t, nil, c.presenceTimer)
+	timer := c.presenceTimer
+	c.updatePresence()
+	assert.NotEqual(t, timer, c.presenceTimer)
+}
+
 func TestClientHistory(t *testing.T) {
 	app := testApp()
 	c, err := newClient(app, &testSession{})

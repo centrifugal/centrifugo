@@ -60,12 +60,12 @@ func (e *MemoryEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 	return e.presenceHub.get(chID)
 }
 
-func (e *MemoryEngine) addHistory(chID ChannelID, message Message, opts historyOptions) error {
+func (e *MemoryEngine) addHistory(chID ChannelID, message Message, opts addHistoryOpts) error {
 	return e.historyHub.add(chID, message, opts)
 }
 
-func (e *MemoryEngine) history(chID ChannelID, limit int64) ([]Message, error) {
-	return e.historyHub.get(chID, limit)
+func (e *MemoryEngine) history(chID ChannelID, opts historyOpts) ([]Message, error) {
+	return e.historyHub.get(chID, opts)
 }
 
 func (e *MemoryEngine) channels() ([]ChannelID, error) {
@@ -194,13 +194,13 @@ func (h *memoryHistoryHub) expire() {
 	}
 }
 
-func (h *memoryHistoryHub) add(chID ChannelID, message Message, opts historyOptions) error {
+func (h *memoryHistoryHub) add(chID ChannelID, message Message, opts addHistoryOpts) error {
 	h.Lock()
 	defer h.Unlock()
 
 	_, ok := h.history[chID]
 
-	expireAt := time.Now().Unix() + opts.Lifetime
+	expireAt := time.Now().Unix() + int64(opts.Lifetime)
 	heap.Push(&h.queue, &priority.Item{Value: string(chID), Priority: expireAt})
 	if !ok {
 		h.history[chID] = historyItem{
@@ -210,7 +210,7 @@ func (h *memoryHistoryHub) add(chID ChannelID, message Message, opts historyOpti
 	} else {
 		messages := h.history[chID].messages
 		messages = append([]Message{message}, messages...)
-		if int64(len(messages)) > opts.Size {
+		if len(messages) > opts.Size {
 			messages = messages[0:opts.Size]
 		}
 		h.history[chID] = historyItem{
@@ -226,7 +226,7 @@ func (h *memoryHistoryHub) add(chID ChannelID, message Message, opts historyOpti
 	return nil
 }
 
-func (h *memoryHistoryHub) get(chID ChannelID, limit int64) ([]Message, error) {
+func (h *memoryHistoryHub) get(chID ChannelID, opts historyOpts) ([]Message, error) {
 	h.RLock()
 	defer h.RUnlock()
 
@@ -240,9 +240,9 @@ func (h *memoryHistoryHub) get(chID ChannelID, limit int64) ([]Message, error) {
 		delete(h.history, chID)
 		return []Message{}, nil
 	}
-	if limit == 0 || limit > int64(len(hItem.messages)) {
+	if opts.Limit == 0 || opts.Limit >= len(hItem.messages) {
 		return hItem.messages, nil
 	} else {
-		return hItem.messages[:limit], nil
+		return hItem.messages[:opts.Limit], nil
 	}
 }

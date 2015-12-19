@@ -376,7 +376,7 @@ func (e *RedisEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 	return mapStringClientInfo(reply, nil)
 }
 
-func (e *RedisEngine) addHistory(chID ChannelID, message Message, opts historyOptions) error {
+func (e *RedisEngine) addHistory(chID ChannelID, message Message, opts addHistoryOpts) error {
 	conn := e.pool.Get()
 	defer conn.Close()
 
@@ -415,12 +415,12 @@ func sliceOfMessages(result interface{}, err error) ([]Message, error) {
 	return msgs, nil
 }
 
-func (e *RedisEngine) history(chID ChannelID, limit int64) ([]Message, error) {
+func (e *RedisEngine) history(chID ChannelID, opts historyOpts) ([]Message, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 	var rangeBound int = -1
-	if limit > 0 {
-		rangeBound = int(limit)
+	if opts.Limit > 0 {
+		rangeBound = opts.Limit - 1 // Redis includes last index into result
 	}
 	historyKey := e.getHistoryKey(chID)
 	reply, err := conn.Do("LRANGE", historyKey, 0, rangeBound)
