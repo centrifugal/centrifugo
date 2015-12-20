@@ -35,7 +35,7 @@ func (h *clientHub) shutdown() {
 	h.RLock()
 	for _, user := range h.users {
 		wg.Add(len(user))
-		for uid, _ := range user {
+		for uid := range user {
 			cc, ok := h.conns[uid]
 			if !ok {
 				continue
@@ -112,7 +112,7 @@ func (h *clientHub) userConnections(user UserID) map[ConnID]clientConn {
 
 	var conns map[ConnID]clientConn
 	conns = make(map[ConnID]clientConn, len(userConnections))
-	for uid, _ := range userConnections {
+	for uid := range userConnections {
 		c, ok := h.conns[uid]
 		if !ok {
 			continue
@@ -139,9 +139,8 @@ func (h *clientHub) addSub(chID ChannelID, c clientConn) (bool, error) {
 	h.subs[chID][uid] = struct{}{}
 	if !ok {
 		return true, nil
-	} else {
-		return false, nil
 	}
+	return false, nil
 }
 
 // removeSub removes connection from clientHub subscriptions registry.
@@ -185,7 +184,7 @@ func (h *clientHub) broadcast(chID ChannelID, message []byte) error {
 	}
 
 	// iterate over them and send message individually
-	for uid, _ := range channelSubscriptions {
+	for uid := range channelSubscriptions {
 		c, ok := h.conns[uid]
 		if !ok {
 			continue
@@ -231,7 +230,7 @@ func (h *clientHub) channels() []ChannelID {
 	i := 0
 	for ch := range h.subs {
 		channels[i] = ch
-		i += 1
+		i++
 	}
 	return channels
 }

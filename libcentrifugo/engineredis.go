@@ -107,7 +107,7 @@ func (e *RedisEngine) run() error {
 	e.RUnlock()
 	go e.initializePubSub()
 	if api {
-		go e.initializeApi()
+		go e.initializeAPI()
 	}
 	go e.checkConnectionStatus()
 	return nil
@@ -125,16 +125,16 @@ func (e *RedisEngine) checkConnectionStatus() {
 			go e.initializePubSub()
 		}
 		if e.api && !inAPI {
-			go e.initializeApi()
+			go e.initializeAPI()
 		}
 	}
 }
 
-type redisApiRequest struct {
+type redisAPIRequest struct {
 	Data []apiCommand
 }
 
-func (e *RedisEngine) initializeApi() {
+func (e *RedisEngine) initializeAPI() {
 	e.Lock()
 	e.inAPI = true
 	e.Unlock()
@@ -160,7 +160,7 @@ func (e *RedisEngine) initializeApi() {
 				if !ok {
 					return
 				}
-				var req redisApiRequest
+				var req redisAPIRequest
 				err := json.Unmarshal(body, &req)
 				if err != nil {
 					logger.ERROR.Println(err)
@@ -297,7 +297,7 @@ func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) e
 	e.app.RUnlock()
 	conn := e.pool.Get()
 	defer conn.Close()
-	infoJson, err := json.Marshal(info)
+	infoJSON, err := json.Marshal(info)
 	if err != nil {
 		return err
 	}
@@ -306,7 +306,7 @@ func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) e
 	setKey := e.getSetKey(chID)
 	conn.Send("MULTI")
 	conn.Send("ZADD", setKey, expireAt, uid)
-	conn.Send("HSET", hashKey, uid, infoJson)
+	conn.Send("HSET", hashKey, uid, infoJSON)
 	conn.Send("EXPIRE", setKey, presenceExpireInterval)
 	conn.Send("EXPIRE", hashKey, presenceExpireInterval)
 	_, err = conn.Do("EXEC")
@@ -387,13 +387,13 @@ func (e *RedisEngine) addHistory(chID ChannelID, message Message, opts historyOp
 	defer conn.Close()
 
 	historyKey := e.getHistoryKey(chID)
-	messageJson, err := json.Marshal(message)
+	messageJSON, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}
 
 	conn.Send("MULTI")
-	conn.Send("LPUSH", historyKey, messageJson)
+	conn.Send("LPUSH", historyKey, messageJSON)
 	conn.Send("LTRIM", historyKey, 0, opts.Size-1)
 	conn.Send("EXPIRE", historyKey, opts.Lifetime)
 	conn.Send("SET", e.getLastMessageIDKey(chID), message.UID)
@@ -407,7 +407,7 @@ func sliceOfMessages(result interface{}, err error) ([]Message, error) {
 		return nil, err
 	}
 	msgs := make([]Message, len(values))
-	for i := 0; i < len(values); i += 1 {
+	for i := 0; i < len(values); i++ {
 		value, okValue := values[i].([]byte)
 		if !okValue {
 			return nil, errors.New("error getting Message value")
@@ -439,7 +439,7 @@ func sliceOfChannelIDs(result interface{}, prefix string, err error) ([]ChannelI
 		return nil, err
 	}
 	channels := make([]ChannelID, len(values))
-	for i := 0; i < len(values); i += 1 {
+	for i := 0; i < len(values); i++ {
 		value, okValue := values[i].([]byte)
 		if !okValue {
 			return nil, errors.New("error getting ChannelID value")

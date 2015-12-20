@@ -102,7 +102,7 @@ func cpuUsage() (int64, error) {
 			return 0, err
 		}
 		tokens := strings.Split(line, " ")
-		ft := make([]string, 0)
+		var ft []string
 		for _, t := range tokens {
 			if t != "" && t != "\t" {
 				ft = append(ft, t)

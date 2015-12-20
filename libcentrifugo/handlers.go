@@ -14,17 +14,23 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 )
 
+// HandlerFlag is a bit mask of handlers that must be enabled in mux.
 type HandlerFlag int
 
 const (
+	// HandlerRawWS enables Raw Websocket handler.
 	HandlerRawWS HandlerFlag = 1 << iota
+	// HandlerSockJS enables SockJS handler.
 	HandlerSockJS
+	// HandlerAPI enables API handler.
 	HandlerAPI
+	// HandlerAdmin enables admin handlers - admin websocket, web interface endpoints.
 	HandlerAdmin
+	// HandlerDebug enables debug handlers.
 	HandlerDebug
 )
 
-var handlerText map[HandlerFlag]string = map[HandlerFlag]string{
+var handlerText = map[HandlerFlag]string{
 	HandlerRawWS:  "raw websocket",
 	HandlerSockJS: "SockJS",
 	HandlerAPI:    "API",
@@ -276,8 +282,8 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 }
 
 var (
-	arrayJsonPrefix  byte = '['
-	objectJsonPrefix byte = '{'
+	arrayJSONPrefix  byte = '['
+	objectJSONPrefix byte = '{'
 )
 
 func cmdFromAPIMsg(msg []byte) ([]apiCommand, error) {
@@ -286,7 +292,7 @@ func cmdFromAPIMsg(msg []byte) ([]apiCommand, error) {
 	firstByte := msg[0]
 
 	switch firstByte {
-	case objectJsonPrefix:
+	case objectJSONPrefix:
 		// single command request
 		var command apiCommand
 		err := json.Unmarshal(msg, &command)
@@ -294,7 +300,7 @@ func cmdFromAPIMsg(msg []byte) ([]apiCommand, error) {
 			return nil, err
 		}
 		commands = append(commands, command)
-	case arrayJsonPrefix:
+	case arrayJSONPrefix:
 		// array of commands received
 		err := json.Unmarshal(msg, &commands)
 		if err != nil {
@@ -485,7 +491,7 @@ func (app *Application) Logged(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-// InfoHahdler allows to get actual information about Centrifugo nodes running.
+// InfoHandler allows to get actual information about Centrifugo nodes running.
 func (app *Application) InfoHandler(w http.ResponseWriter, r *http.Request) {
 	app.nodesMu.Lock()
 	defer app.nodesMu.Unlock()

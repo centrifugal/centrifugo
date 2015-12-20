@@ -53,6 +53,7 @@ type Application struct {
 	metrics *metricsRegistry
 }
 
+// Stats contains state and metrics information from running Centrifugo nodes.
 type Stats struct {
 	Nodes           []NodeInfo `json:"nodes"`
 	MetricsInterval int64      `json:"metrics_interval"`
@@ -60,7 +61,7 @@ type Stats struct {
 
 // NodeInfo contains information and statistics about Centrifugo node.
 type NodeInfo struct {
-	Uid        string `json:"uid"`
+	UID        string `json:"uid"`
 	Name       string `json:"name"`
 	Goroutines int    `json:"num_goroutine"`
 	Clients    int    `json:"num_clients"`
@@ -504,7 +505,7 @@ func (app *Application) pubPing() error {
 	defer app.RUnlock()
 	app.metrics.RLock()
 	info := NodeInfo{
-		Uid:        app.uid,
+		UID:        app.uid,
 		Name:       app.config.Name,
 		Clients:    app.nClients(),
 		Unique:     app.nUniqueClients(),
@@ -569,7 +570,7 @@ func (app *Application) pingCmd(cmd *pingControlCommand) error {
 	info := cmd.Info
 	info.updated = time.Now().Unix()
 	app.nodesMu.Lock()
-	app.nodes[info.Uid] = info
+	app.nodes[info.UID] = info
 	app.nodesMu.Unlock()
 	return nil
 }
@@ -864,7 +865,9 @@ func (app *Application) nUniqueClients() int {
 }
 
 const (
-	AuthTokenKey   = "token"
+	// AuthTokenKey is a key for admin authorization token.
+	AuthTokenKey = "token"
+	// AuthTokenValue is a value for secure admin authorization token.
 	AuthTokenValue = "authorized"
 )
 

@@ -318,8 +318,8 @@ func createUsers(users, chanUser, totChannels int) []*testClientConn {
 	uC := make([]*testClientConn, users)
 	for i := range uC {
 		c := newTestUserCC()
-		c.Uid = UserID(fmt.Sprintf("uid-%d", i))
-		c.Cid = ConnID(fmt.Sprintf("cid-%d", i))
+		c.UID = UserID(fmt.Sprintf("uid-%d", i))
+		c.CID = ConnID(fmt.Sprintf("cid-%d", i))
 		c.Channels = make([]Channel, chanUser)
 		for j := 0; j < chanUser; j++ {
 			c.Channels[j] = Channel(fmt.Sprintf("chan-%d", (j+i*chanUser)%totChannels))
@@ -340,7 +340,7 @@ func BenchmarkSendReceive(b *testing.B) {
 		c.sess = &testSession{}
 		cli := app.newTestHandler(b, c.sess)
 		cmd := ConnectClientCommand{
-			User: c.Uid,
+			User: c.UID,
 		}
 		cli.connectCmd(&cmd)
 		for _, ch := range c.Channels {

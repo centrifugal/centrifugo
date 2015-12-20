@@ -21,6 +21,7 @@ import (
 )
 
 const (
+	// VERSION determines version of Centrifugo server.
 	VERSION = "1.2.0"
 )
 
@@ -88,6 +89,7 @@ func listenHTTP(mux http.Handler, addr string, useSSL bool, sslCert, sslKey stri
 	}
 }
 
+// Main starts Centrifugo server.
 func Main() {
 
 	var configFile string
@@ -304,10 +306,10 @@ func Main() {
 			// Override sockjs url. It's important to use the same SockJS library version
 			// on client and server sides, otherwise SockJS will report version mismatch
 			// and won't work.
-			sockjsUrl := viper.GetString("sockjs_url")
-			if sockjsUrl != "" {
-				logger.INFO.Println("SockJS url:", sockjsUrl)
-				sockjsOpts.SockJSURL = sockjsUrl
+			sockjsURL := viper.GetString("sockjs_url")
+			if sockjsURL != "" {
+				logger.INFO.Println("SockJS url:", sockjsURL)
+				sockjsOpts.SockJSURL = sockjsURL
 			}
 			if c.PingInterval < time.Second {
 				logger.FATAL.Fatalln("Ping interval can not be less than one second.")

@@ -13,6 +13,7 @@ import (
 )
 
 const (
+	// CloseStatus is status code set when closing client connections.
 	CloseStatus = 3000
 )
 
@@ -88,10 +89,9 @@ func (c *client) sendMessages() {
 			logger.INFO.Println("error sending to", c.uid(), err.Error())
 			c.close("error sending message")
 			return
-		} else {
-			c.app.metrics.numMsgSent.Inc(1)
-			c.app.metrics.bytesClientOut.Inc(int64(len(msg)))
 		}
+		c.app.metrics.numMsgSent.Inc(1)
+		c.app.metrics.bytesClientOut.Inc(int64(len(msg)))
 	}
 }
 
@@ -170,7 +170,7 @@ func (c *client) channels() []Channel {
 	i := 0
 	for k := range c.Channels {
 		keys[i] = k
-		i += 1
+		i++
 	}
 	return keys
 }
@@ -229,7 +229,7 @@ func (c *client) clean() error {
 
 	if len(c.Channels) > 0 {
 		// unsubscribe from all channels
-		for channel, _ := range c.Channels {
+		for channel := range c.Channels {
 			cmd := &UnsubscribeClientCommand{
 				Channel: channel,
 			}
@@ -297,7 +297,7 @@ func cmdFromClientMsg(msgBytes []byte) ([]clientCommand, error) {
 	var commands []clientCommand
 	firstByte := msgBytes[0]
 	switch firstByte {
-	case objectJsonPrefix:
+	case objectJSONPrefix:
 		// single command request
 		var command clientCommand
 		err := json.Unmarshal(msgBytes, &command)
@@ -305,7 +305,7 @@ func cmdFromClientMsg(msgBytes []byte) ([]clientCommand, error) {
 			return nil, err
 		}
 		commands = append(commands, command)
-	case arrayJsonPrefix:
+	case arrayJSONPrefix:
 		// array of commands received
 		err := json.Unmarshal(msgBytes, &commands)
 		if err != nil {
@@ -552,7 +552,7 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*response, error) {
 	body.Expires = connLifetime > 0
 	body.TTL = connLifetime
 
-	var timeToExpire int64 = 0
+	var timeToExpire int64
 
 	if connLifetime > 0 && !insecure {
 		timeToExpire = c.timestamp + connLifetime - time.Now().Unix()

@@ -209,14 +209,13 @@ func (c *Config) Validate() error {
 func (c *Config) channelOpts(nk NamespaceKey) (ChannelOptions, error) {
 	if nk == NamespaceKey("") {
 		return c.ChannelOptions, nil
-	} else {
-		for _, n := range c.Namespaces {
-			if n.Name == nk {
-				return n.ChannelOptions, nil
-			}
-		}
-		return ChannelOptions{}, ErrNamespaceNotFound
 	}
+	for _, n := range c.Namespaces {
+		if n.Name == nk {
+			return n.ChannelOptions, nil
+		}
+	}
+	return ChannelOptions{}, ErrNamespaceNotFound
 }
 
 const (

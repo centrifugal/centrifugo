@@ -15,25 +15,25 @@ type testMediator struct {
 }
 
 func (m *testMediator) Connect(client ConnID, user UserID) {
-	m.connect += 1
+	m.connect++
 }
 
 func (m *testMediator) Subscribe(ch Channel, client ConnID, user UserID) {
-	m.subscribe += 1
+	m.subscribe++
 }
 
 func (m *testMediator) Unsubscribe(ch Channel, client ConnID, user UserID) {
-	m.unsubscribe += 1
+	m.unsubscribe++
 	return
 }
 
 func (m *testMediator) Disconnect(client ConnID, user UserID) {
-	m.disconnect += 1
+	m.disconnect++
 	return
 }
 
 func (m *testMediator) Message(ch Channel, data []byte, client ConnID, info *ClientInfo) bool {
-	m.message += 1
+	m.message++
 	return false
 }
 

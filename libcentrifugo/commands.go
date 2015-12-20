@@ -42,7 +42,7 @@ type controlCommand struct {
 	Params *json.RawMessage
 }
 
-// connectClientCommand is a command to authorize connection - it contains user ID
+// ConnectClientCommand is a command to authorize connection - it contains user ID
 // in web application, additional connection information as JSON string, timestamp
 // with unix seconds on moment when connect parameters generated and HMAC token to
 // prove correctness of all those parameters.
@@ -53,7 +53,7 @@ type ConnectClientCommand struct {
 	Token     string
 }
 
-// refreshClientCommand is used to prolong connection lifetime when connection check
+// RefreshClientCommand is used to prolong connection lifetime when connection check
 // mechanism is enabled. It can only be sent by client after successfull connect.
 type RefreshClientCommand struct {
 	User      UserID
@@ -62,7 +62,7 @@ type RefreshClientCommand struct {
 	Token     string
 }
 
-// subscribeClientCommand is used to subscribe on channel.
+// SubscribeClientCommand is used to subscribe on channel.
 // It can only be sent by client after successfull connect.
 // It also can have Client, Info and Sign properties when channel is private.
 type SubscribeClientCommand struct {
@@ -74,29 +74,29 @@ type SubscribeClientCommand struct {
 	Sign    string
 }
 
-// unsubscribeClientCommand is used to unsubscribe from channel.
+// UnsubscribeClientCommand is used to unsubscribe from channel.
 type UnsubscribeClientCommand struct {
 	Channel Channel
 }
 
-// publishClientCommand is used to publish messages into channel.
+// PublishClientCommand is used to publish messages into channel.
 type PublishClientCommand struct {
 	Channel Channel
 	Data    json.RawMessage
 }
 
-// presenceClientCommand is used to get presence (actual channel subscriptions).
+// PresenceClientCommand is used to get presence (actual channel subscriptions).
 // information for channel
 type PresenceClientCommand struct {
 	Channel Channel
 }
 
-// historyClientCommand is used to get history information for channel.
+// HistoryClientCommand is used to get history information for channel.
 type HistoryClientCommand struct {
 	Channel Channel
 }
 
-// pingClientCommand is used to ping server.
+// PingClientCommand is used to ping server.
 type PingClientCommand struct {
 	Data string
 }

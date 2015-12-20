@@ -39,7 +39,7 @@ func newResponse(method string) *response {
 // order - from first executed to last one
 type multiResponse []*response
 
-// PresenseBody represents body of response in case of successful presence command.
+// PresenceBody represents body of response in case of successful presence command.
 type PresenceBody struct {
 	Channel Channel               `json:"channel"`
 	Data    map[ConnID]ClientInfo `json:"data"`
