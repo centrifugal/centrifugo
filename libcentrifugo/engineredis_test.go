@@ -79,9 +79,13 @@ func TestRedisEngine(t *testing.T) {
 	app.SetEngine(e)
 	assert.Equal(t, e.name(), "Redis")
 
-	// test pub/sub operations
-	assert.Equal(t, nil, e.publish(ChannelID("channel"), []byte("{}")))
+	hasActiveSubscribers, err := e.publish(ChannelID("channel"), []byte("{}"))
+	assert.False(t, hasActiveSubscribers)
+	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, e.subscribe(ChannelID("channel")))
+	// Now we've subscribed...
+	hasActiveSubscribers, err = e.publish(ChannelID("channel"), []byte("{}"))
+	assert.True(t, hasActiveSubscribers)
 	assert.Equal(t, nil, e.unsubscribe(ChannelID("channel")))
 
 	// test adding presence

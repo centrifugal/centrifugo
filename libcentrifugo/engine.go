@@ -12,6 +12,10 @@ type addHistoryOpts struct {
 	// Lifetime is maximum amount of seconds history messages should exist
 	// before expiring and most probably being deleted (to prevent memory leaks).
 	Lifetime int
+	// OnlySaveIfActive hints to the engine that there were no actual subscribers
+	// connected when message was published, and that it can skip saving if there is
+	// no unexpired history for the channel (i.e. no subscribers active within history_lifetime)
+	OnlySaveIfActive bool
 }
 
 // Engine is an interface with all methods that can be used by client or
@@ -25,7 +29,10 @@ type Engine interface {
 	run() error
 
 	// publish allows to send message into channel.
-	publish(chID ChannelID, message []byte) error
+	// Returns whether or not it sent to any active subscribers with `true` indicating
+	// at least one subscriber was published to.
+	// If engine has no efficient way to know that, it should always return true.
+	publish(chID ChannelID, message []byte) (bool, error)
 
 	// subscribe on channel.
 	subscribe(chID ChannelID) error

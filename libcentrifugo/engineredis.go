@@ -250,11 +250,11 @@ func (e *RedisEngine) initializePubSub() {
 	}
 }
 
-func (e *RedisEngine) publish(chID ChannelID, message []byte) error {
+func (e *RedisEngine) publish(chID ChannelID, message []byte) (bool, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
-	_, err := conn.Do("PUBLISH", chID, message)
-	return err
+	numSubscribers, err := redis.Int(conn.Do("PUBLISH", chID, message))
+	return numSubscribers > 0, err
 }
 
 func (e *RedisEngine) subscribe(chID ChannelID) error {

@@ -353,7 +353,8 @@ func (app *Application) pubControl(method string, params []byte) error {
 
 	app.RLock()
 	defer app.RUnlock()
-	return app.engine.publish(app.config.ControlChannel, messageBytes)
+	_, err = app.engine.publish(app.config.ControlChannel, messageBytes)
+	return err
 }
 
 // pubAdmin publishes message into admin channel so all running
@@ -361,7 +362,8 @@ func (app *Application) pubControl(method string, params []byte) error {
 func (app *Application) pubAdmin(message []byte) error {
 	app.RLock()
 	defer app.RUnlock()
-	return app.engine.publish(app.config.AdminChannel, message)
+	_, err := app.engine.publish(app.config.AdminChannel, message)
+	return err
 }
 
 // Publish sends a message to all clients subscribed on channel with provided data, client and ClientInfo.
@@ -460,7 +462,7 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 		return err
 	}
 
-	err = app.engine.publish(chID, byteMessage)
+	_, err = app.engine.publish(chID, byteMessage)
 	if err != nil {
 		return err
 	}
@@ -494,7 +496,8 @@ func (app *Application) pubJoinLeave(ch Channel, method string, info ClientInfo)
 	if err != nil {
 		return err
 	}
-	return app.engine.publish(chID, byteMessage)
+	_, err = app.engine.publish(chID, byteMessage)
+	return err
 }
 
 // pubPing sends control ping message to all nodes - this message

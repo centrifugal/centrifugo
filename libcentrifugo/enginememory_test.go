@@ -15,6 +15,31 @@ func testMemoryEngine() *MemoryEngine {
 	return e
 }
 
+type TestConn struct {
+	Uid      ConnID
+	UserID   UserID
+	Channels []Channel
+}
+
+func (t *TestConn) uid() ConnID {
+	return t.Uid
+}
+func (t *TestConn) user() UserID {
+	return t.UserID
+}
+func (t *TestConn) channels() []Channel {
+	return t.Channels
+}
+func (t *TestConn) send(message []byte) error {
+	return nil
+}
+func (t *TestConn) unsubscribe(ch Channel) error {
+	return nil
+}
+func (t *TestConn) close(reason string) error {
+	return nil
+}
+
 func TestMemoryEngine(t *testing.T) {
 	e := testMemoryEngine()
 	err := e.run()
@@ -22,15 +47,41 @@ func TestMemoryEngine(t *testing.T) {
 	assert.NotEqual(t, nil, e.historyHub)
 	assert.NotEqual(t, nil, e.presenceHub)
 	assert.NotEqual(t, e.name(), "")
-	assert.Equal(t, nil, e.publish(ChannelID("channel"), []byte("{}")))
+
+	hasActiveSubscribers, err := e.publish(ChannelID("channel"), []byte("{}"))
+	assert.False(t, hasActiveSubscribers) // No subscribers connected yet
+	assert.Equal(t, nil, err)
+
 	assert.Equal(t, nil, e.subscribe(ChannelID("channel")))
+
+	// Memory engine is actually tightly coupled to application hubs in implementation
+	// so calling subscribe on the engine alone is actually a no-op since Application already
+	// knows about the subscription.
+	// In order to test publish works after subscription is added, we actually need to inject a
+	// fake subscription into the Application hub
+	fakeConn := &TestConn{"test", "test", []Channel{"channel"}}
+	e.app.clients.addSub(ChannelID("channel"), fakeConn)
+
+	// Now we've subscribed...
+	hasActiveSubscribers, err = e.publish(ChannelID("channel"), []byte("{}"))
+	assert.True(t, hasActiveSubscribers)
+	assert.Equal(t, nil, err)
+
 	assert.Equal(t, nil, e.unsubscribe(ChannelID("channel")))
+
+	// Same dance to manually remove sub from app hub
+	e.app.clients.removeSub(ChannelID("channel"), fakeConn)
+
+	// Now we've unsubscribed again..
+	hasActiveSubscribers, err = e.publish(ChannelID("channel"), []byte("{}"))
+	assert.False(t, hasActiveSubscribers)
+
 	assert.Equal(t, nil, e.addPresence(ChannelID("channel"), "uid", ClientInfo{}))
 	p, err := e.presence(ChannelID("channel"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(p))
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1}))
-	h, err := e.history(ChannelID("channel"), historyOpts{})
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1, false}))
+	h, err := e.history(ChannelID("channel"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 	err = e.removePresence(ChannelID("channel"), "uid")
@@ -74,11 +125,11 @@ func TestMemoryHistoryHub(t *testing.T) {
 	assert.Equal(t, 0, len(h.history))
 	ch1 := ChannelID("channel1")
 	ch2 := ChannelID("channel2")
-	h.add(ch1, Message{}, addHistoryOpts{1, 1})
-	h.add(ch1, Message{}, addHistoryOpts{1, 1})
-	h.add(ch2, Message{}, addHistoryOpts{2, 1})
-	h.add(ch2, Message{}, addHistoryOpts{2, 1})
-	hist, err := h.get(ch1, historyOpts{})
+	h.add(ch1, Message{}, addHistoryOpts{1, 1, false})
+	h.add(ch1, Message{}, addHistoryOpts{1, 1, false})
+	h.add(ch2, Message{}, addHistoryOpts{2, 1, false})
+	h.add(ch2, Message{}, addHistoryOpts{2, 1, false})
+	hist, err := h.get(ch1)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(hist))
 	hist, err = h.get(ch2, historyOpts{})

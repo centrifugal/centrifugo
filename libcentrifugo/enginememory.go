@@ -36,8 +36,11 @@ func (e *MemoryEngine) run() error {
 	return nil
 }
 
-func (e *MemoryEngine) publish(chID ChannelID, message []byte) error {
-	return e.app.handleMsg(chID, message)
+func (e *MemoryEngine) publish(chID ChannelID, message []byte) (bool, error) {
+	if !e.app.clients.hasSubscribers(chID) {
+		return false, nil
+	}
+	return true, e.app.handleMsg(chID, message)
 }
 
 func (e *MemoryEngine) subscribe(chID ChannelID) error {
