@@ -386,8 +386,15 @@ func (e *RedisEngine) addHistory(chID ChannelID, message Message, opts addHistor
 		return err
 	}
 
+	pushCommand := "LPUSH"
+
+	if opts.OnlySaveIfActive {
+		pushCommand = "LPUSHX"
+	}
+
 	conn.Send("MULTI")
-	conn.Send("LPUSH", historyKey, messageJSON)
+	conn.Send(pushCommand, historyKey, messageJSON)
+	// All below commands are a simple no-op in redis if the key doesn't exist
 	conn.Send("LTRIM", historyKey, 0, opts.Size-1)
 	conn.Send("EXPIRE", historyKey, opts.Lifetime)
 	_, err = conn.Do("EXEC")

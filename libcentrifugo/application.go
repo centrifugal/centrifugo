@@ -430,7 +430,6 @@ func (app *Application) publish(ch Channel, data []byte, client ConnID, info *Cl
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel.
 func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte, client ConnID, info *ClientInfo) error {
-
 	message, err := newMessage(ch, data, client, info)
 	if err != nil {
 		return err
@@ -462,15 +461,16 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 		return err
 	}
 
-	_, err = app.engine.publish(chID, byteMessage)
+	hasCurrentSubscribers, err := app.engine.publish(chID, byteMessage)
 	if err != nil {
 		return err
 	}
 
 	if chOpts.HistorySize > 0 && chOpts.HistoryLifetime > 0 {
 		histOpts := addHistoryOpts{
-			Size:     chOpts.HistorySize,
-			Lifetime: chOpts.HistoryLifetime,
+			Size:             chOpts.HistorySize,
+			Lifetime:         chOpts.HistoryLifetime,
+			OnlySaveIfActive: (chOpts.OnlySaveIfActive && !hasCurrentSubscribers),
 		}
 		err = app.addHistory(ch, message, histOpts)
 		if err != nil {

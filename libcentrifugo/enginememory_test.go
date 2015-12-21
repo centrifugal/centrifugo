@@ -128,7 +128,7 @@ func TestMemoryHistoryHub(t *testing.T) {
 	h.add(ch1, Message{}, addHistoryOpts{1, 1, false})
 	h.add(ch1, Message{}, addHistoryOpts{1, 1, false})
 	h.add(ch2, Message{}, addHistoryOpts{2, 1, false})
-	h.add(ch2, Message{}, addHistoryOpts{2, 1, false})
+	h.add(ch2, Message{}, addHistoryOpts{2, 1, true}) // Test that adding only if active works when it's active
 	hist, err := h.get(ch1)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(hist))
@@ -157,6 +157,12 @@ func TestMemoryHistoryHub(t *testing.T) {
 	h.add(ch1, Message{}, addHistoryOpts{1, 1})
 	hist, err = h.get(ch1, historyOpts{Limit: 2})
 	assert.Equal(t, 1, len(hist))
+
+	// Now test adding history for inactive channel is a no-op if OnlySaveIfActvie is true
+	h.add(ch2, Message{}, addHistoryOpts{2, 10, true})
+	assert.Equal(t, 0, len(h.history))
+	hist, err = h.get(ch2)
+	assert.Equal(t, 0, len(hist))
 }
 
 func TestMemoryChannels(t *testing.T) {

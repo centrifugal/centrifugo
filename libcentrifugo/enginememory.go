@@ -203,6 +203,11 @@ func (h *memoryHistoryHub) add(chID ChannelID, message Message, opts addHistoryO
 
 	_, ok := h.history[chID]
 
+	if opts.OnlySaveIfActive && !ok {
+		// No active history for this channel so don't bother storing at all
+		return nil
+	}
+
 	expireAt := time.Now().Unix() + int64(opts.Lifetime)
 	heap.Push(&h.queue, &priority.Item{Value: string(chID), Priority: expireAt})
 	if !ok {

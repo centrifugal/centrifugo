@@ -88,6 +88,10 @@ func TestRedisEngine(t *testing.T) {
 	assert.True(t, hasActiveSubscribers)
 	assert.Equal(t, nil, e.unsubscribe(ChannelID("channel")))
 
+	// Now we've unsubscribed again..
+	hasActiveSubscribers, err = e.publish(ChannelID("channel"), []byte("{}"))
+	assert.False(t, hasActiveSubscribers)
+
 	// test adding presence
 	assert.Equal(t, nil, e.addPresence(ChannelID("channel"), "uid", ClientInfo{}))
 
@@ -95,6 +99,10 @@ func TestRedisEngine(t *testing.T) {
 	p, err := e.presence(ChannelID("channel"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(p))
+
+	// test removing presence
+	err = e.removePresence(ChannelID("channel"), "uid")
+	assert.Equal(t, nil, err)
 
 	// test adding history
 	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1}))
@@ -115,12 +123,26 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1}))
 	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1}))
 	h, err = e.history(ChannelID("channel"), historyOpts{Limit: 2})
+
+	// OnlySaveIfActive tests
+	// 1. add history with OnlySaveIfActive = true should be a no-op if history is empty
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{2, 5, true}))
+	h, err = e.history(ChannelID("channel"))
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 0, len(h))
+
+	// 2. add history with OnlySaveIfActive = false should always work
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{2, 5, false}))
+	h, err = e.history(ChannelID("channel"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 
-	// test removing presence
-	err = e.removePresence(ChannelID("channel"), "uid")
+	// 3. add with OnlySaveIfActive = true should work immediately since there should be something in history
+	// for 5 seconds from above
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{2, 5, true}))
+	h, err = e.history(ChannelID("channel"))
 	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(h))
 
 	// test API
 	apiKey := e.app.config.ChannelPrefix + "." + "api"
