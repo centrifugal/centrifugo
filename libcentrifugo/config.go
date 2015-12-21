@@ -53,7 +53,7 @@ type ChannelOptions struct {
 	// OnlySaveIfActive enables an optimization where history is only saved for channels that have at
 	// least one active subscriber. This can give a huge memory saving, with only minor edgecases that are
 	// different from without it as noted on https://github.com/centrifugal/centrifugo/issues/50.
-	OnlySaveIfActive bool `json:"only_save_if_active"`
+	OnlySaveIfActive bool `mapstructure:"only_save_if_active" json:"only_save_if_active"`
 }
 
 // NamespaceKey is a name of namespace unique for project.
