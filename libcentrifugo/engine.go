@@ -1,9 +1,17 @@
 package libcentrifugo
 
-type historyOptions struct {
-	Size     int64
-	Lifetime int64
-	Recover  bool
+type historyOpts struct {
+	// Limit sets the max amount of messages that must be returned.
+	// 0 means no limit - i.e. return all history messages.
+	Limit int
+}
+
+type addHistoryOpts struct {
+	// Size is maximum size of channel history that engine must maintain.
+	Size int
+	// Lifetime is maximum amount of seconds history messages should exist
+	// before expiring and most probably being deleted (to prevent memory leaks).
+	Lifetime int
 }
 
 // Engine is an interface with all methods that can be used by client or
@@ -34,9 +42,8 @@ type Engine interface {
 	presence(chID ChannelID) (map[ConnID]ClientInfo, error)
 
 	// addHistory adds message into channel history and takes care about history size.
-	addHistory(chID ChannelID, message Message, opts historyOptions) error
-	// history returns a slice of history messages for channel.
-	history(chID ChannelID) ([]Message, error)
-	// lastMessageID returns last message id for channel.
-	lastMessageID(chID ChannelID) (MessageID, error)
+	addHistory(chID ChannelID, message Message, opts addHistoryOpts) error
+	// history returns a slice of history messages for channel, limit sets maximum amount
+	// of history messages to return.
+	history(chID ChannelID, opts historyOpts) ([]Message, error)
 }
