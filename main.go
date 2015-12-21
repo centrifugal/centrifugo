@@ -160,6 +160,7 @@ func Main() {
 			viper.SetDefault("history_size", 0)
 			viper.SetDefault("history_lifetime", 0)
 			viper.SetDefault("recover", false)
+			viper.SetDefault("only_save_if_active", false)
 			viper.SetDefault("namespaces", "")
 
 			viper.SetEnvPrefix("centrifugo")
@@ -181,6 +182,7 @@ func Main() {
 			viper.BindEnv("recover")
 			viper.BindEnv("history_size")
 			viper.BindEnv("history_lifetime")
+			viper.BindEnv("only_save_if_active")
 
 			viper.BindPFlag("port", cmd.Flags().Lookup("port"))
 			viper.BindPFlag("api_port", cmd.Flags().Lookup("api_port"))
