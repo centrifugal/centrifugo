@@ -105,42 +105,42 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	// test adding history
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1}))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1, false}))
 	h, err := e.history(ChannelID("channel"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 
 	// test history limit
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1}))
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1}))
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1}))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1, false}))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1, false}))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{4, 1, false}))
 	h, err = e.history(ChannelID("channel"), historyOpts{Limit: 2})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(h))
 
 	// test history limit greater than history size
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1}))
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1}))
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1}))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1, false}))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1, false}))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1, false}))
 	h, err = e.history(ChannelID("channel"), historyOpts{Limit: 2})
 
-	// OnlySaveIfActive tests
+	// OnlySaveIfActive tests - new channel to avoid conflicts with test above
 	// 1. add history with OnlySaveIfActive = true should be a no-op if history is empty
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{2, 5, true}))
-	h, err = e.history(ChannelID("channel"))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel-2"), Message{}, addHistoryOpts{2, 5, true}))
+	h, err = e.history(ChannelID("channel-2"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(h))
 
 	// 2. add history with OnlySaveIfActive = false should always work
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{2, 5, false}))
-	h, err = e.history(ChannelID("channel"))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel-2"), Message{}, addHistoryOpts{2, 5, false}))
+	h, err = e.history(ChannelID("channel-2"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 
 	// 3. add with OnlySaveIfActive = true should work immediately since there should be something in history
 	// for 5 seconds from above
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{2, 5, true}))
-	h, err = e.history(ChannelID("channel"))
+	assert.Equal(t, nil, e.addHistory(ChannelID("channel-2"), Message{}, addHistoryOpts{2, 5, true}))
+	h, err = e.history(ChannelID("channel-2"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(h))
 
