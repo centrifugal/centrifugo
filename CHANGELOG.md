@@ -1,3 +1,20 @@
+v1.3.0 (not released yet)
+=========================
+
+Something can change before release. Feel free to write your thoughts (issue or just email) about points below.
+
+Possible backwards incompatibility here (in client side code) - see first point.
+
+* omit fields in message JSON if field contains empty value: `client` on top level, `info` on top level, `default_info` in `info` object, `channel_info` in `info` object. This can require adapting your client side code a bit if you rely on these keys in message but for most cases this should not affect your application - but I strongly suggest to test before updating. This change allows to reduce message size.
+* new option `--admin_port` to bind admin websocket and web interface to separate port. #44
+* new option `--api_port` to bind API endpoint to separate port. #44
+* new option `--insecure_web` to use web interface without setting `web_password` and `web_secret` (for use in development or when you protected web interface by firewall rules). #44
+* new channel option `history_drop_inactive` to drastically reduce resource usage (engine memory, messages travelling around) when you use message history. See #50
+* refactor `last_event_id` related stuff to prevent memory leaks on large amout of channels.
+* send special disconnect message to client when we don't want it to reconnect to Centrifugo (at moment to client sending malformed message). 
+* pong wait handler for raw websocket to detect non responding clients.
+
+
 v1.2.0
 ======
 
