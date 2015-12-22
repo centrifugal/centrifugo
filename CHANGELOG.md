@@ -5,7 +5,7 @@ Something can change before release. Feel free to write your thoughts (issue or 
 
 Possible backwards incompatibility here (in client side code) - see first point.
 
-* omit fields in message JSON if field contains empty value: `client` on top level, `info` on top level, `default_info` in `info` object, `channel_info` in `info` object. This can require adapting your client side code a bit if you rely on these keys in message but for most cases this should not affect your application - but I strongly suggest to test before updating. This change allows to reduce message size.
+* omit fields in message JSON if field contains empty value: `client` on top level, `info` on top level, `default_info` in `info` object, `channel_info` in `info` object. This also affects top level data in join/leave messages and presence data – i.e. `default_info` and `channel_info` keys not included in JSON when empty. This can require adapting your client side code a bit if you rely on these keys but for most cases this should not affect your application. But we strongly suggest to test before updating. This change allows to reduce message size. See migration notes below for more details.
 * new option `--admin_port` to bind admin websocket and web interface to separate port. #44
 * new option `--api_port` to bind API endpoint to separate port. #44
 * new option `--insecure_web` to use web interface without setting `web_password` and `web_secret` (for use in development or when you protected web interface by firewall rules). #44
@@ -13,6 +13,66 @@ Possible backwards incompatibility here (in client side code) - see first point.
 * refactor `last_event_id` related stuff to prevent memory leaks on large amout of channels.
 * send special disconnect message to client when we don't want it to reconnect to Centrifugo (at moment to client sending malformed message). 
 * pong wait handler for raw websocket to detect non responding clients.
+
+How to migrate
+--------------
+
+Message before:
+
+```javascript
+{
+	"uid":"442586d4-688c-4a0d-52ad-d0a13d201dfc",
+	"timestamp":"1450817253",
+	"info": null,
+	"channel":"$public:chat",
+	"data":{"input":"1"},
+	"client":""
+}
+```
+
+Message now:
+
+```javascript
+{
+	"uid":"442586d4-688c-4a0d-52ad-d0a13d201dfc",
+	"timestamp":"1450817253",
+	"channel":"$public:chat",
+	"data":{"input":"1"},
+}
+```
+
+I.e. not using empty `client` and `info` keys. If those keys are non empty then they present in message.
+
+Join message before:
+
+```javascript
+{
+	"user":"2694",
+	"client":"93615872-4e45-4da2-4733-55c955133436",
+	"default_info": null,
+	"channel_info":null
+}
+```
+
+Join message now:
+
+```javascript
+{
+	"user":"2694",
+	"client":"93615872-4e45-4da2-4733-55c955133436"
+}
+```
+
+If "default_info" or "channel_info" exist then they would be included:
+
+```javascript
+{
+	"user":"2694",
+	"client":"93615872-4e45-4da2-4733-55c955133436",
+	"default_info": {"username": "FZambia"},
+	"channel_info": {"extra": "some data here"}
+}
+```
 
 
 v1.2.0
