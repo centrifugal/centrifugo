@@ -3,6 +3,7 @@ package libcentrifugo
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/url"
 	"sync"
@@ -17,12 +18,24 @@ import (
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
 	sync.RWMutex
-	app      *Application
-	pool     *redis.Pool
-	psc      redis.PubSubConn
-	api      bool
-	inPubSub bool
-	inAPI    bool
+	app          *Application
+	pool         *redis.Pool
+	psc          redis.PubSubConn
+	api          bool
+	inPubSub     bool
+	inAPI        bool
+	numApiShards int
+}
+
+type RedisEngineConfig struct {
+	Host         string
+	Port         string
+	Password     string
+	DB           string
+	URL          string
+	PoolSize     int
+	API          bool
+	NumAPIShards int
 }
 
 func newPool(server, password, db string, psize int) *redis.Pool {
@@ -59,9 +72,19 @@ func newPool(server, password, db string, psize int) *redis.Pool {
 }
 
 // NewRedisEngine initializes Redis Engine.
-func NewRedisEngine(app *Application, host, port, password, db, redisURL string, api bool, psize int) *RedisEngine {
-	if redisURL != "" {
-		u, err := url.Parse(redisURL)
+func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
+	host := conf.Host
+	port := conf.Port
+	password := conf.Password
+
+	db := "0"
+	if conf.DB != "" {
+		db = conf.DB
+	}
+
+	// If URL set then prefer it over other parameters.
+	if conf.URL != "" {
+		u, err := url.Parse(conf.URL)
 		if err != nil {
 			logger.FATAL.Fatalln(err)
 		}
@@ -81,18 +104,22 @@ func NewRedisEngine(app *Application, host, port, password, db, redisURL string,
 			db = path[1:]
 		}
 	}
-	if db == "" {
-		db = "0"
-	}
+
 	server := host + ":" + port
-	pool := newPool(server, password, db, psize)
+
+	pool := newPool(server, password, db, conf.PoolSize)
 
 	e := &RedisEngine{
-		app:  app,
-		pool: pool,
-		api:  api,
+		app:          app,
+		pool:         pool,
+		api:          conf.API,
+		numApiShards: conf.NumAPIShards,
 	}
-	logger.INFO.Printf("Redis engine: %s, database %s, pool size %d\n", server, db, psize)
+	usingPassword := "no"
+	if password != "" {
+		usingPassword = "yes"
+	}
+	logger.INFO.Printf("Redis engine: %s, database %s, pool size %d, using password: %s\n", server, db, conf.PoolSize, usingPassword)
 	e.psc = redis.PubSubConn{Conn: e.pool.Get()}
 	return e
 }
@@ -150,36 +177,52 @@ func (e *RedisEngine) initializeAPI() {
 	e.app.RUnlock()
 
 	done := make(chan struct{})
-	bodies := make(chan []byte, 256)
 	defer close(done)
 
-	go func() {
-		for {
-			select {
-			case body, ok := <-bodies:
-				if !ok {
-					return
-				}
-				var req redisAPIRequest
-				err := json.Unmarshal(body, &req)
-				if err != nil {
-					logger.ERROR.Println(err)
-					continue
-				}
-				for _, command := range req.Data {
-					_, err := e.app.apiCmd(command)
+	popParams := []interface{}{apiKey}
+	workQueues := make(map[string]chan []byte)
+	workQueues[apiKey] = make(chan []byte, 256)
+
+	for i := 0; i < e.numApiShards; i++ {
+		queueKey := fmt.Sprintf("%s.%d", apiKey, i)
+		popParams = append(popParams, queueKey)
+		workQueues[queueKey] = make(chan []byte, 256)
+	}
+
+	// Add timeout param
+	popParams = append(popParams, 0)
+
+	// Start a worker for each queue
+	for name, ch := range workQueues {
+		go func(name string, in <-chan []byte) {
+			logger.INFO.Printf("Starting worker for API queue %s", name)
+			for {
+				select {
+				case body, ok := <-in:
+					if !ok {
+						return
+					}
+					var req redisAPIRequest
+					err := json.Unmarshal(body, &req)
 					if err != nil {
 						logger.ERROR.Println(err)
+						continue
 					}
+					for _, command := range req.Data {
+						_, err := e.app.apiCmd(command)
+						if err != nil {
+							logger.ERROR.Println(err)
+						}
+					}
+				case <-done:
+					return
 				}
-			case <-done:
-				return
 			}
-		}
-	}()
+		}(name, ch)
+	}
 
 	for {
-		reply, err := conn.Do("BLPOP", apiKey, 0)
+		reply, err := conn.Do("BLPOP", popParams...)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return
@@ -195,14 +238,21 @@ func (e *RedisEngine) initializeAPI() {
 			continue
 		}
 
-		body, okValue := values[1].([]byte)
-
-		if !okValue {
-			logger.ERROR.Println("Wrong reply from Redis in BLPOP - can not value convert to bytes")
+		queue, okQ := values[0].([]byte)
+		body, okVal := values[1].([]byte)
+		if !okQ || !okVal {
+			logger.ERROR.Println("Wrong reply from Redis in BLPOP - can not convert value")
 			continue
 		}
 
-		bodies <- body
+		// Pick worker based on queue
+		q, ok := workQueues[string(queue)]
+		if !ok {
+			logger.ERROR.Println("Got message from a queue we didn't even know about!")
+			continue
+		}
+
+		q <- body
 	}
 }
 
