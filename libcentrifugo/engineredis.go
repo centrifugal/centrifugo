@@ -18,13 +18,24 @@ import (
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
 	sync.RWMutex
-	app           *Application
-	pool          *redis.Pool
-	psc           redis.PubSubConn
-	api           bool
-	inPubSub      bool
-	inAPI         bool
-	nPubApiShards int
+	app          *Application
+	pool         *redis.Pool
+	psc          redis.PubSubConn
+	api          bool
+	inPubSub     bool
+	inAPI        bool
+	numApiShards int
+}
+
+type RedisEngineConfig struct {
+	Host         string
+	Port         string
+	Password     string
+	DB           string
+	URL          string
+	PoolSize     int
+	API          bool
+	NumAPIShards int
 }
 
 func newPool(server, password, db string, psize int) *redis.Pool {
@@ -61,9 +72,19 @@ func newPool(server, password, db string, psize int) *redis.Pool {
 }
 
 // NewRedisEngine initializes Redis Engine.
-func NewRedisEngine(app *Application, host, port, password, db, redisURL string, api bool, psize, nPubApiShards int) *RedisEngine {
-	if redisURL != "" {
-		u, err := url.Parse(redisURL)
+func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
+	host := conf.Host
+	port := conf.Port
+	password := conf.Password
+
+	db := "0"
+	if conf.DB != "" {
+		db = conf.DB
+	}
+
+	// If URL set then prefer it over other parameters.
+	if conf.URL != "" {
+		u, err := url.Parse(conf.URL)
 		if err != nil {
 			logger.FATAL.Fatalln(err)
 		}
@@ -83,19 +104,22 @@ func NewRedisEngine(app *Application, host, port, password, db, redisURL string,
 			db = path[1:]
 		}
 	}
-	if db == "" {
-		db = "0"
-	}
+
 	server := host + ":" + port
-	pool := newPool(server, password, db, psize)
+
+	pool := newPool(server, password, db, conf.PoolSize)
 
 	e := &RedisEngine{
-		app:           app,
-		pool:          pool,
-		api:           api,
-		nPubApiShards: nPubApiShards,
+		app:          app,
+		pool:         pool,
+		api:          conf.API,
+		numApiShards: conf.NumAPIShards,
 	}
-	logger.INFO.Printf("Redis engine: %s, database %s, pool size %d\n", server, db, psize)
+	usingPassword := "no"
+	if password != "" {
+		usingPassword = "yes"
+	}
+	logger.INFO.Printf("Redis engine: %s, database %s, pool size %d, using password: %s\n", server, db, conf.PoolSize, usingPassword)
 	e.psc = redis.PubSubConn{Conn: e.pool.Get()}
 	return e
 }
@@ -159,8 +183,8 @@ func (e *RedisEngine) initializeAPI() {
 	workQueues := make(map[string]chan []byte)
 	workQueues[apiKey] = make(chan []byte, 256)
 
-	for i := 0; i < e.nPubApiShards; i++ {
-		queueKey := fmt.Sprintf("%s.pub.%d", apiKey, i)
+	for i := 0; i < e.numApiShards; i++ {
+		queueKey := fmt.Sprintf("%s.%d", apiKey, i)
 		popParams = append(popParams, queueKey)
 		workQueues[queueKey] = make(chan []byte, 256)
 	}

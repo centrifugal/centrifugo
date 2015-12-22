@@ -16,13 +16,13 @@ type testRedisConn struct {
 }
 
 const (
-	testRedisHost          = "127.0.0.1"
-	testRedisPort          = "6379"
-	testRedisPassword      = ""
-	testRedisDB            = "9"
-	testRedisURL           = "redis://:@127.0.0.1:6379/9"
-	testRedisPoolSize      = 5
-	testRedisNPubApiShards = 4
+	testRedisHost         = "127.0.0.1"
+	testRedisPort         = "6379"
+	testRedisPassword     = ""
+	testRedisDB           = "9"
+	testRedisURL          = "redis://:@127.0.0.1:6379/9"
+	testRedisPoolSize     = 5
+	testRedisNumAPIShards = 4
 )
 
 func (t testRedisConn) close() error {
@@ -67,7 +67,17 @@ func dial() testRedisConn {
 }
 
 func testRedisEngine(app *Application) *RedisEngine {
-	e := NewRedisEngine(app, testRedisHost, testRedisPort, testRedisPassword, testRedisDB, testRedisURL, true, testRedisPoolSize, testRedisNPubApiShards)
+	redisConf := &RedisEngineConfig{
+		Host:         testRedisHost,
+		Port:         testRedisPort,
+		Password:     testRedisPassword,
+		DB:           testRedisDB,
+		URL:          testRedisURL,
+		PoolSize:     testRedisPoolSize,
+		API:          true,
+		NumAPIShards: testRedisNumAPIShards,
+	}
+	e := NewRedisEngine(app, redisConf)
 	return e
 }
 
@@ -151,9 +161,9 @@ func TestRedisEngine(t *testing.T) {
 	_, err = c.Conn.Do("LPUSH", apiKey, []byte("{}"))
 	assert.Equal(t, nil, err)
 
-	// test Publish API
-	for i := 0; i < testRedisNPubApiShards; i++ {
-		queueKey := fmt.Sprintf("%s.pub.%d", apiKey, i)
+	// test API shards
+	for i := 0; i < testRedisNumAPIShards; i++ {
+		queueKey := fmt.Sprintf("%s.%d", apiKey, i)
 		_, err = c.Conn.Do("LPUSH", queueKey, []byte("{}"))
 		assert.Equal(t, nil, err)
 	}

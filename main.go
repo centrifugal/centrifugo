@@ -208,7 +208,7 @@ func Main() {
 			viper.BindPFlag("redis_url", cmd.Flags().Lookup("redis_url"))
 			viper.BindPFlag("redis_api", cmd.Flags().Lookup("redis_api"))
 			viper.BindPFlag("redis_pool", cmd.Flags().Lookup("redis_pool"))
-			viper.BindPFlag("redis_api_num_pub_shards", cmd.Flags().Lookup("redis_api_num_pub_shards"))
+			viper.BindPFlag("redis_api_num_shards", cmd.Flags().Lookup("redis_api_num_shards"))
 
 			viper.SetConfigFile(configFile)
 
@@ -269,17 +269,17 @@ func Main() {
 			case "memory":
 				e = libcentrifugo.NewMemoryEngine(app)
 			case "redis":
-				e = libcentrifugo.NewRedisEngine(
-					app,
-					viper.GetString("redis_host"),
-					viper.GetString("redis_port"),
-					viper.GetString("redis_password"),
-					viper.GetString("redis_db"),
-					viper.GetString("redis_url"),
-					viper.GetBool("redis_api"),
-					viper.GetInt("redis_pool"),
-					viper.GetInt("redis_api_num_pub_shards"),
-				)
+				redisConf := &libcentrifugo.RedisEngineConfig{
+					Host:         viper.GetString("redis_host"),
+					Port:         viper.GetString("redis_port"),
+					Password:     viper.GetString("redis_password"),
+					DB:           viper.GetString("redis_db"),
+					URL:          viper.GetString("redis_url"),
+					PoolSize:     viper.GetInt("redis_pool"),
+					API:          viper.GetBool("redis_api"),
+					NumAPIShards: viper.GetInt("redis_api_num_shards"),
+				}
+				e = libcentrifugo.NewRedisEngine(app, redisConf)
 			default:
 				logger.FATAL.Fatalln("Unknown engine: " + viper.GetString("engine"))
 			}
@@ -398,7 +398,7 @@ func Main() {
 	rootCmd.Flags().StringVarP(&redisURL, "redis_url", "", "", "redis connection URL (Redis engine)")
 	rootCmd.Flags().BoolVarP(&redisAPI, "redis_api", "", false, "enable Redis API listener (Redis engine)")
 	rootCmd.Flags().IntVarP(&redisPool, "redis_pool", "", 256, "Redis pool size (Redis engine)")
-	rootCmd.Flags().IntVarP(&redisPool, "redis_api_num_pub_shards", "", 0, "Number of shards for redis publish queue (Redis engine)")
+	rootCmd.Flags().IntVarP(&redisPool, "redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
 
 	var versionCmd = &cobra.Command{
 		Use:   "version",
