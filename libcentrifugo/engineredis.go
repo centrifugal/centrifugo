@@ -388,7 +388,7 @@ func (e *RedisEngine) addHistory(chID ChannelID, message Message, opts addHistor
 
 	pushCommand := "LPUSH"
 
-	if opts.OnlySaveIfActive {
+	if opts.DropInactive {
 		pushCommand = "LPUSHX"
 	}
 

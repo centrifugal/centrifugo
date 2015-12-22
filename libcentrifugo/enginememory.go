@@ -203,7 +203,7 @@ func (h *memoryHistoryHub) add(chID ChannelID, message Message, opts addHistoryO
 
 	_, ok := h.history[chID]
 
-	if opts.OnlySaveIfActive && !ok {
+	if opts.DropInactive && !ok {
 		// No active history for this channel so don't bother storing at all
 		return nil
 	}

@@ -124,20 +124,20 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1, false}))
 	h, err = e.history(ChannelID("channel"), historyOpts{Limit: 2})
 
-	// OnlySaveIfActive tests - new channel to avoid conflicts with test above
-	// 1. add history with OnlySaveIfActive = true should be a no-op if history is empty
+	// HistoryDropInactive tests - new channel to avoid conflicts with test above
+	// 1. add history with DropInactive = true should be a no-op if history is empty
 	assert.Equal(t, nil, e.addHistory(ChannelID("channel-2"), Message{}, addHistoryOpts{2, 5, true}))
 	h, err = e.history(ChannelID("channel-2"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(h))
 
-	// 2. add history with OnlySaveIfActive = false should always work
+	// 2. add history with DropInactive = false should always work
 	assert.Equal(t, nil, e.addHistory(ChannelID("channel-2"), Message{}, addHistoryOpts{2, 5, false}))
 	h, err = e.history(ChannelID("channel-2"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 
-	// 3. add with OnlySaveIfActive = true should work immediately since there should be something in history
+	// 3. add with DropInactive = true should work immediately since there should be something in history
 	// for 5 seconds from above
 	assert.Equal(t, nil, e.addHistory(ChannelID("channel-2"), Message{}, addHistoryOpts{2, 5, true}))
 	h, err = e.history(ChannelID("channel-2"), historyOpts{})

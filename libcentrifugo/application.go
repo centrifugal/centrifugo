@@ -468,9 +468,9 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 
 	if chOpts.HistorySize > 0 && chOpts.HistoryLifetime > 0 {
 		histOpts := addHistoryOpts{
-			Size:             chOpts.HistorySize,
-			Lifetime:         chOpts.HistoryLifetime,
-			OnlySaveIfActive: (chOpts.OnlySaveIfActive && !hasCurrentSubscribers),
+			Size:         chOpts.HistorySize,
+			Lifetime:     chOpts.HistoryLifetime,
+			DropInactive: (chOpts.HistoryDropInactive && !hasCurrentSubscribers),
 		}
 		err = app.addHistory(ch, message, histOpts)
 		if err != nil {

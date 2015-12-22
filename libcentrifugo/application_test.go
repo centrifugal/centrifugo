@@ -284,7 +284,7 @@ func TestPublish(t *testing.T) {
 	// Set custom options for default namespace
 	c.ChannelOptions.HistoryLifetime = 10
 	c.ChannelOptions.HistorySize = 2
-	c.ChannelOptions.OnlySaveIfActive = true
+	c.ChannelOptions.HistoryDropInactive = true
 
 	app := testMemoryAppWithConfig(&c)
 	createTestClients(app, 10, 1)

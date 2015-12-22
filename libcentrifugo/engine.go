@@ -12,10 +12,10 @@ type addHistoryOpts struct {
 	// Lifetime is maximum amount of seconds history messages should exist
 	// before expiring and most probably being deleted (to prevent memory leaks).
 	Lifetime int
-	// OnlySaveIfActive hints to the engine that there were no actual subscribers
+	// DropInactive hints to the engine that there were no actual subscribers
 	// connected when message was published, and that it can skip saving if there is
 	// no unexpired history for the channel (i.e. no subscribers active within history_lifetime)
-	OnlySaveIfActive bool
+	DropInactive bool
 }
 
 // Engine is an interface with all methods that can be used by client or
