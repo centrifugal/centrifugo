@@ -250,11 +250,11 @@ func (e *RedisEngine) initializePubSub() {
 	}
 }
 
-func (e *RedisEngine) publish(chID ChannelID, message []byte) error {
+func (e *RedisEngine) publish(chID ChannelID, message []byte) (bool, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
-	_, err := conn.Do("PUBLISH", chID, message)
-	return err
+	numSubscribers, err := redis.Int(conn.Do("PUBLISH", chID, message))
+	return numSubscribers > 0, err
 }
 
 func (e *RedisEngine) subscribe(chID ChannelID) error {
@@ -386,8 +386,15 @@ func (e *RedisEngine) addHistory(chID ChannelID, message Message, opts addHistor
 		return err
 	}
 
+	pushCommand := "LPUSH"
+
+	if opts.DropInactive {
+		pushCommand = "LPUSHX"
+	}
+
 	conn.Send("MULTI")
-	conn.Send("LPUSH", historyKey, messageJSON)
+	conn.Send(pushCommand, historyKey, messageJSON)
+	// All below commands are a simple no-op in redis if the key doesn't exist
 	conn.Send("LTRIM", historyKey, 0, opts.Size-1)
 	conn.Send("EXPIRE", historyKey, opts.Lifetime)
 	_, err = conn.Do("EXEC")

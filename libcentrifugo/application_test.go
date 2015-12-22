@@ -55,8 +55,15 @@ func testApp() *Application {
 }
 
 func testMemoryApp() *Application {
-	c := newTestConfig()
-	app, _ := NewApplication(&c)
+	return testMemoryAppWithConfig(nil)
+}
+
+func testMemoryAppWithConfig(c *Config) *Application {
+	if c == nil {
+		conf := newTestConfig()
+		c = &conf
+	}
+	app, _ := NewApplication(c)
 	app.SetEngine(NewMemoryEngine(app))
 	return app
 }
@@ -271,11 +278,33 @@ func testWrongControlCmd(uid string) []byte {
 }
 
 func TestPublish(t *testing.T) {
-	app := testMemoryApp()
+	// Custom config
+	c := newTestConfig()
+
+	// Set custom options for default namespace
+	c.ChannelOptions.HistoryLifetime = 10
+	c.ChannelOptions.HistorySize = 2
+	c.ChannelOptions.HistoryDropInactive = true
+
+	app := testMemoryAppWithConfig(&c)
 	createTestClients(app, 10, 1)
 	data, _ := json.Marshal(map[string]string{"test": "publish"})
 	err := app.Publish(Channel("channel-0"), data, ConnID(""), nil)
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
+
+	// Check publish to subscribed channels did result in saved history
+	hist, err := app.History(Channel("channel-0"))
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(hist))
+
+	// Publishing to a channel no one is subscribed to should be a no-op
+	err = app.Publish(Channel("some-other-channel"), data, ConnID(""), nil)
+	assert.Nil(t, err)
+
+	hist, err = app.History(Channel("some-other-channel"))
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(hist))
+
 }
 
 func TestPublishJoinLeave(t *testing.T) {

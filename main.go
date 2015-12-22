@@ -22,7 +22,7 @@ import (
 
 const (
 	// VERSION determines version of Centrifugo server.
-	VERSION = "1.2.0"
+	VERSION = "1.2.1"
 )
 
 func setupLogging() {
@@ -160,6 +160,7 @@ func Main() {
 			viper.SetDefault("history_size", 0)
 			viper.SetDefault("history_lifetime", 0)
 			viper.SetDefault("recover", false)
+			viper.SetDefault("history_drop_inactive", false)
 			viper.SetDefault("namespaces", "")
 
 			viper.SetEnvPrefix("centrifugo")
@@ -181,6 +182,7 @@ func Main() {
 			viper.BindEnv("recover")
 			viper.BindEnv("history_size")
 			viper.BindEnv("history_lifetime")
+			viper.BindEnv("history_drop_inactive")
 
 			viper.BindPFlag("port", cmd.Flags().Lookup("port"))
 			viper.BindPFlag("api_port", cmd.Flags().Lookup("api_port"))

@@ -49,6 +49,11 @@ type ChannelOptions struct {
 	// from history and must be used with reasonable HistorySize and HistoryLifetime
 	// configuration.
 	Recover bool `json:"recover"`
+
+	// HistoryDropInactive enables an optimization where history is only saved for channels that have at
+	// least one active subscriber. This can give a huge memory saving, with only minor edgecases that are
+	// different from without it as noted on https://github.com/centrifugal/centrifugo/issues/50.
+	HistoryDropInactive bool `mapstructure:"history_drop_inactive" json:"history_drop_inactive"`
 }
 
 // NamespaceKey is a name of namespace unique for project.

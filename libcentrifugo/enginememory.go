@@ -36,8 +36,11 @@ func (e *MemoryEngine) run() error {
 	return nil
 }
 
-func (e *MemoryEngine) publish(chID ChannelID, message []byte) error {
-	return e.app.handleMsg(chID, message)
+func (e *MemoryEngine) publish(chID ChannelID, message []byte) (bool, error) {
+	if !e.app.clients.hasSubscribers(chID) {
+		return false, nil
+	}
+	return true, e.app.handleMsg(chID, message)
 }
 
 func (e *MemoryEngine) subscribe(chID ChannelID) error {
@@ -199,6 +202,11 @@ func (h *memoryHistoryHub) add(chID ChannelID, message Message, opts addHistoryO
 	defer h.Unlock()
 
 	_, ok := h.history[chID]
+
+	if opts.DropInactive && !ok {
+		// No active history for this channel so don't bother storing at all
+		return nil
+	}
 
 	expireAt := time.Now().Unix() + int64(opts.Lifetime)
 	heap.Push(&h.queue, &priority.Item{Value: string(chID), Priority: expireAt})

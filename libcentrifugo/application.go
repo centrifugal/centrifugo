@@ -353,7 +353,8 @@ func (app *Application) pubControl(method string, params []byte) error {
 
 	app.RLock()
 	defer app.RUnlock()
-	return app.engine.publish(app.config.ControlChannel, messageBytes)
+	_, err = app.engine.publish(app.config.ControlChannel, messageBytes)
+	return err
 }
 
 // pubAdmin publishes message into admin channel so all running
@@ -361,7 +362,8 @@ func (app *Application) pubControl(method string, params []byte) error {
 func (app *Application) pubAdmin(message []byte) error {
 	app.RLock()
 	defer app.RUnlock()
-	return app.engine.publish(app.config.AdminChannel, message)
+	_, err := app.engine.publish(app.config.AdminChannel, message)
+	return err
 }
 
 // Publish sends a message to all clients subscribed on channel with provided data, client and ClientInfo.
@@ -428,7 +430,6 @@ func (app *Application) publish(ch Channel, data []byte, client ConnID, info *Cl
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel.
 func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte, client ConnID, info *ClientInfo) error {
-
 	message, err := newMessage(ch, data, client, info)
 	if err != nil {
 		return err
@@ -460,15 +461,16 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 		return err
 	}
 
-	err = app.engine.publish(chID, byteMessage)
+	hasCurrentSubscribers, err := app.engine.publish(chID, byteMessage)
 	if err != nil {
 		return err
 	}
 
 	if chOpts.HistorySize > 0 && chOpts.HistoryLifetime > 0 {
 		histOpts := addHistoryOpts{
-			Size:     chOpts.HistorySize,
-			Lifetime: chOpts.HistoryLifetime,
+			Size:         chOpts.HistorySize,
+			Lifetime:     chOpts.HistoryLifetime,
+			DropInactive: (chOpts.HistoryDropInactive && !hasCurrentSubscribers),
 		}
 		err = app.addHistory(ch, message, histOpts)
 		if err != nil {
@@ -494,7 +496,8 @@ func (app *Application) pubJoinLeave(ch Channel, method string, info ClientInfo)
 	if err != nil {
 		return err
 	}
-	return app.engine.publish(chID, byteMessage)
+	_, err = app.engine.publish(chID, byteMessage)
+	return err
 }
 
 // pubPing sends control ping message to all nodes - this message
