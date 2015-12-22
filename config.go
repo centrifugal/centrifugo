@@ -59,6 +59,7 @@ func newConfig() *libcentrifugo.Config {
 	cfg.JoinLeave = viper.GetBool("join_leave")
 	cfg.HistorySize = viper.GetInt("history_size")
 	cfg.HistoryLifetime = viper.GetInt("history_lifetime")
+	cfg.OnlySaveIfActive = viper.GetBool("history_drop_inactive")
 	cfg.Recover = viper.GetBool("recover")
 	cfg.Namespaces = namespacesFromConfig(nil)
 

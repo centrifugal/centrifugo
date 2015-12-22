@@ -14,8 +14,8 @@ func (e *testEngine) run() error {
 	return nil
 }
 
-func (e *testEngine) publish(chID ChannelID, message []byte) error {
-	return nil
+func (e *testEngine) publish(chID ChannelID, message []byte) (bool, error) {
+	return true, nil
 }
 
 func (e *testEngine) subscribe(chID ChannelID) error {
