@@ -2,6 +2,7 @@ package libcentrifugo
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -15,12 +16,13 @@ type testRedisConn struct {
 }
 
 const (
-	testRedisHost     = "127.0.0.1"
-	testRedisPort     = "6379"
-	testRedisPassword = ""
-	testRedisDB       = "9"
-	testRedisURL      = "redis://:@127.0.0.1:6379/9"
-	testRedisPoolSize = 5
+	testRedisHost          = "127.0.0.1"
+	testRedisPort          = "6379"
+	testRedisPassword      = ""
+	testRedisDB            = "9"
+	testRedisURL           = "redis://:@127.0.0.1:6379/9"
+	testRedisPoolSize      = 5
+	testRedisNPubApiShards = 4
 )
 
 func (t testRedisConn) close() error {
@@ -65,7 +67,7 @@ func dial() testRedisConn {
 }
 
 func testRedisEngine(app *Application) *RedisEngine {
-	e := NewRedisEngine(app, testRedisHost, testRedisPort, testRedisPassword, testRedisDB, testRedisURL, true, testRedisPoolSize)
+	e := NewRedisEngine(app, testRedisHost, testRedisPort, testRedisPassword, testRedisDB, testRedisURL, true, testRedisPoolSize, testRedisNPubApiShards)
 	return e
 }
 
@@ -148,6 +150,13 @@ func TestRedisEngine(t *testing.T) {
 	apiKey := e.app.config.ChannelPrefix + "." + "api"
 	_, err = c.Conn.Do("LPUSH", apiKey, []byte("{}"))
 	assert.Equal(t, nil, err)
+
+	// test Publish API
+	for i := 0; i < testRedisNPubApiShards; i++ {
+		queueKey := fmt.Sprintf("%s.pub.%d", apiKey, i)
+		_, err = c.Conn.Do("LPUSH", queueKey, []byte("{}"))
+		assert.Equal(t, nil, err)
+	}
 }
 
 func TestRedisChannels(t *testing.T) {
