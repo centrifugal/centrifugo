@@ -13,6 +13,18 @@ import (
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/garyburd/redigo/redis"
 )
 
+const (
+	// RedisSubscribeChannelSize is the size for the internal buffered channels RedisEngine
+	// uses to synchronize subscribe/unsubscribe. It allows for effective batching during bulk re-subscriptions,
+	// and allows large volume of incoming subscriptions to not block when PubSub connection is reconnecting.
+	// Two channels of this size will be allocated, one for Subscribe and one for Unsubscribe
+	RedisSubscribeChannelSize = 4096
+	// Maximum number of channels to include in a single subscribe call. Redis documentation doesn't specify a
+	// maximum allowed but we think it probably makes sense to keep a sane limit given how many subscriptions a single
+	// Centrifugo instance might be handling
+	RedisSubscribeBatchLimit = 2048
+)
+
 // RedisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.
 // This engine allows to scale Centrifugo - you can run several Centrifugo instances
 // connected to the same Redis and load balance clients between instances.
@@ -22,9 +34,9 @@ type RedisEngine struct {
 	pool         *redis.Pool
 	psc          redis.PubSubConn
 	api          bool
-	inPubSub     bool
-	inAPI        bool
 	numApiShards int
+	subCh        chan subRequest
+	unSubCh      chan subRequest
 }
 
 type RedisEngineConfig struct {
@@ -36,6 +48,41 @@ type RedisEngineConfig struct {
 	PoolSize     int
 	API          bool
 	NumAPIShards int
+}
+
+// subRequest is an internal request to subscribe or unsubscribe from one or more channels
+type subRequest struct {
+	Channel ChannelID
+	err     *chan error
+}
+
+// newSubRequest creates a new request to subscribe or unsubscribe form a channel.
+// If the caller cares about response they should set wantResponse and then call
+// result() on the request once it has been pushed to the appropriate chan.
+func newSubRequest(chID ChannelID, wantResponse bool) subRequest {
+	r := subRequest{
+		Channel: chID,
+	}
+	if wantResponse {
+		eChan := make(chan error)
+		r.err = &eChan
+	}
+	return r
+}
+
+func (sr *subRequest) done(err error) {
+	if sr.err == nil {
+		return
+	}
+	*(sr.err) <- err
+}
+
+func (sr *subRequest) result() error {
+	if sr.err == nil {
+		// No waiting, as caller didn't care about response
+		return nil
+	}
+	return <-*(sr.err)
 }
 
 func newPool(server, password, db string, psize int) *redis.Pool {
@@ -121,6 +168,8 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 	}
 	logger.INFO.Printf("Redis engine: %s, database %s, pool size %d, using password: %s\n", server, db, conf.PoolSize, usingPassword)
 	e.psc = redis.PubSubConn{Conn: e.pool.Get()}
+	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
+	e.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
 	return e
 }
 
@@ -132,46 +181,34 @@ func (e *RedisEngine) run() error {
 	e.RLock()
 	api := e.api
 	e.RUnlock()
-	go e.initializePubSub()
+	go e.runForever(func() {
+		e.runPubSub()
+	})
 	if api {
-		go e.initializeAPI()
+		go e.runForever(func() {
+			e.runAPI()
+		})
 	}
-	go e.checkConnectionStatus()
 	return nil
-}
-
-func (e *RedisEngine) checkConnectionStatus() {
-	for {
-		time.Sleep(time.Second)
-		e.RLock()
-		inPubSub := e.inPubSub
-		inAPI := e.inAPI
-		e.RUnlock()
-		if !inPubSub {
-			e.psc = redis.PubSubConn{Conn: e.pool.Get()}
-			go e.initializePubSub()
-		}
-		if e.api && !inAPI {
-			go e.initializeAPI()
-		}
-	}
 }
 
 type redisAPIRequest struct {
 	Data []apiCommand
 }
 
-func (e *RedisEngine) initializeAPI() {
-	e.Lock()
-	e.inAPI = true
-	e.Unlock()
+// runForever simple keeps another function running indefinitely
+// the reason this loop is not inside the function itself is so that defer
+// can be used to cleanup nicely (defers only run at function return not end of block scope)
+func (e *RedisEngine) runForever(fn func()) {
+	for {
+		fn()
+	}
+}
+
+func (e *RedisEngine) runAPI() {
 	conn := e.pool.Get()
 	defer conn.Close()
-	defer func() {
-		e.Lock()
-		e.inAPI = false
-		e.Unlock()
-	}()
+
 	e.app.RLock()
 	apiKey := e.app.config.ChannelPrefix + "." + "api"
 	e.app.RUnlock()
@@ -256,45 +293,119 @@ func (e *RedisEngine) initializeAPI() {
 	}
 }
 
-func (e *RedisEngine) initializePubSub() {
+// fillBatchFromChan attempts to read items from a subRequest channel and append them to split
+// until it either hits maxSize or would have to block. If batch is empty and chan is empty then
+// batch might end up being zero length.
+func fillBatchFromChan(ch <-chan subRequest, batch *[]subRequest, chIDs *[]interface{}, maxSize int) {
+	for len(*batch) < maxSize {
+		select {
+		case req := <-ch:
+			*batch = append(*batch, req)
+			*chIDs = append(*chIDs, req.Channel)
+		default:
+			return
+		}
+	}
+}
+
+func (e *RedisEngine) runPubSub() {
 	defer e.psc.Close()
-	e.Lock()
-	e.inPubSub = true
-	e.Unlock()
-	defer func() {
-		e.Lock()
-		e.inPubSub = false
-		e.Unlock()
-	}()
 	e.app.RLock()
 	adminChannel := e.app.config.AdminChannel
 	controlChannel := e.app.config.ControlChannel
 	e.app.RUnlock()
-	err := e.psc.Subscribe(adminChannel)
-	if err != nil {
-		e.psc.Close()
-		return
-	}
-	err = e.psc.Subscribe(controlChannel)
-	if err != nil {
-		e.psc.Close()
-		return
-	}
-	for _, chID := range e.app.clients.channels() {
-		err = e.psc.Subscribe(chID)
-		if err != nil {
-			e.psc.Close()
-			return
+
+	done := make(chan struct{})
+	defer close(done)
+
+	// Run subscriber routine
+	go func() {
+		logger.INFO.Println("Starting RedisEngine Subscriber")
+
+		defer func() {
+			logger.INFO.Println("Stopping RedisEngine Subscriber")
+		}()
+		for {
+			select {
+			case <-done:
+				return
+			case r := <-e.subCh:
+				// Something to subscribe
+				chIDs := []interface{}{r.Channel}
+				batch := []subRequest{r}
+
+				logger.INFO.Println("RedisEngine Filling Sub batch")
+				// Try to gather as many others as we can without waiting
+				fillBatchFromChan(e.subCh, &batch, &chIDs, RedisSubscribeBatchLimit)
+				logger.INFO.Printf("RedisEngine got Sub batch length: %d\n", len(chIDs))
+				// Send them all
+				err := e.psc.Subscribe(chIDs...)
+				if err != nil {
+					// Subscribe error is fatal
+					logger.ERROR.Printf("RedisEngine Subscriber error: %v\n", err)
+
+					for i := range batch {
+						logger.INFO.Printf("RedisEngine failing Sub batch length: %d\n", len(batch))
+						batch[i].done(err)
+					}
+
+					// Close conn, this should cause Receive to return with err below
+					// and whole runPubSub method to restart
+					e.psc.Close()
+					return
+				}
+				for i := range batch {
+					logger.INFO.Printf("RedisEngine success Sub batch length: %d\n", len(batch))
+					batch[i].done(nil)
+				}
+			case r := <-e.unSubCh:
+				// Something to subscribe
+				chIDs := []interface{}{r.Channel}
+				batch := []subRequest{r}
+				// Try to gather as many others as we can without waiting
+				fillBatchFromChan(e.unSubCh, &batch, &chIDs, RedisSubscribeBatchLimit)
+				// Send them all
+				err := e.psc.Unsubscribe(chIDs...)
+				if err != nil {
+					// Subscribe error is fatal
+					logger.ERROR.Printf("RedisEngine Unsubscriber error: %v\n", err)
+
+					for i := range batch {
+						batch[i].done(err)
+					}
+
+					// Close conn, this should cause Receive to return with err below
+					// and whole runPubSub method to restart
+					e.psc.Close()
+					return
+				}
+				for i := range batch {
+					batch[i].done(nil)
+				}
+			}
 		}
+	}()
+
+	// Subscribe to channels we need in bulk.
+	// We don't care if they fail since conn will be closed and we'll retry
+	// if they do anyway.
+	// This saves a lot of allocating of pointless chans...
+	r := newSubRequest(adminChannel, false)
+	e.subCh <- r
+	r = newSubRequest(controlChannel, false)
+	e.subCh <- r
+	for _, chID := range e.app.clients.channels() {
+		r = newSubRequest(chID, false)
+		e.subCh <- r
 	}
+
 	for {
 		switch n := e.psc.Receive().(type) {
 		case redis.Message:
 			e.app.handleMsg(ChannelID(n.Channel), n.Data)
 		case redis.Subscription:
 		case error:
-			logger.ERROR.Printf("error: %v\n", n)
-			e.psc.Close()
+			logger.ERROR.Printf("RedisEngine Receiver error: %v\n", n)
 			return
 		}
 	}
@@ -308,13 +419,21 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte) (bool, error) {
 }
 
 func (e *RedisEngine) subscribe(chID ChannelID) error {
-	logger.DEBUG.Println("subscribe on Redis channel", chID)
-	return e.psc.Subscribe(chID)
+	logger.INFO.Println("subscribe on Redis channel", chID)
+	r := newSubRequest(chID, true)
+	e.subCh <- r
+	logger.INFO.Println("waiting on Redis sub", chID)
+	err := r.result()
+
+	logger.INFO.Println("got on Redis sub", chID, err)
+	return err
 }
 
 func (e *RedisEngine) unsubscribe(chID ChannelID) error {
 	logger.DEBUG.Println("unsubscribe from Redis channel", chID)
-	return e.psc.Unsubscribe(chID)
+	r := newSubRequest(chID, true)
+	e.unSubCh <- r
+	return r.result()
 }
 
 func (e *RedisEngine) getHashKey(chID ChannelID) string {
