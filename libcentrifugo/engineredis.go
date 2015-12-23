@@ -32,7 +32,6 @@ type RedisEngine struct {
 	sync.RWMutex
 	app          *Application
 	pool         *redis.Pool
-	psc          redis.PubSubConn
 	api          bool
 	numApiShards int
 	subCh        chan subRequest
@@ -167,7 +166,6 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 		usingPassword = "yes"
 	}
 	logger.INFO.Printf("Redis engine: %s, database %s, pool size %d, using password: %s\n", server, db, conf.PoolSize, usingPassword)
-	e.psc = redis.PubSubConn{Conn: e.pool.Get()}
 	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
 	e.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
 	return e
@@ -309,7 +307,9 @@ func fillBatchFromChan(ch <-chan subRequest, batch *[]subRequest, chIDs *[]inter
 }
 
 func (e *RedisEngine) runPubSub() {
-	defer e.psc.Close()
+	conn := redis.PubSubConn{Conn: e.pool.Get()}
+	defer conn.Close()
+
 	e.app.RLock()
 	adminChannel := e.app.config.AdminChannel
 	controlChannel := e.app.config.ControlChannel
@@ -334,28 +334,24 @@ func (e *RedisEngine) runPubSub() {
 				chIDs := []interface{}{r.Channel}
 				batch := []subRequest{r}
 
-				logger.INFO.Println("RedisEngine Filling Sub batch")
 				// Try to gather as many others as we can without waiting
 				fillBatchFromChan(e.subCh, &batch, &chIDs, RedisSubscribeBatchLimit)
-				logger.INFO.Printf("RedisEngine got Sub batch length: %d\n", len(chIDs))
 				// Send them all
-				err := e.psc.Subscribe(chIDs...)
+				err := conn.Subscribe(chIDs...)
 				if err != nil {
 					// Subscribe error is fatal
 					logger.ERROR.Printf("RedisEngine Subscriber error: %v\n", err)
 
 					for i := range batch {
-						logger.INFO.Printf("RedisEngine failing Sub batch length: %d\n", len(batch))
 						batch[i].done(err)
 					}
 
 					// Close conn, this should cause Receive to return with err below
 					// and whole runPubSub method to restart
-					e.psc.Close()
+					conn.Close()
 					return
 				}
 				for i := range batch {
-					logger.INFO.Printf("RedisEngine success Sub batch length: %d\n", len(batch))
 					batch[i].done(nil)
 				}
 			case r := <-e.unSubCh:
@@ -365,7 +361,7 @@ func (e *RedisEngine) runPubSub() {
 				// Try to gather as many others as we can without waiting
 				fillBatchFromChan(e.unSubCh, &batch, &chIDs, RedisSubscribeBatchLimit)
 				// Send them all
-				err := e.psc.Unsubscribe(chIDs...)
+				err := conn.Unsubscribe(chIDs...)
 				if err != nil {
 					// Subscribe error is fatal
 					logger.ERROR.Printf("RedisEngine Unsubscriber error: %v\n", err)
@@ -376,7 +372,7 @@ func (e *RedisEngine) runPubSub() {
 
 					// Close conn, this should cause Receive to return with err below
 					// and whole runPubSub method to restart
-					e.psc.Close()
+					conn.Close()
 					return
 				}
 				for i := range batch {
@@ -400,7 +396,7 @@ func (e *RedisEngine) runPubSub() {
 	}
 
 	for {
-		switch n := e.psc.Receive().(type) {
+		switch n := conn.Receive().(type) {
 		case redis.Message:
 			e.app.handleMsg(ChannelID(n.Channel), n.Data)
 		case redis.Subscription:
@@ -419,14 +415,10 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte) (bool, error) {
 }
 
 func (e *RedisEngine) subscribe(chID ChannelID) error {
-	logger.INFO.Println("subscribe on Redis channel", chID)
+	logger.DEBUG.Println("subscribe on Redis channel", chID)
 	r := newSubRequest(chID, true)
 	e.subCh <- r
-	logger.INFO.Println("waiting on Redis sub", chID)
-	err := r.result()
-
-	logger.INFO.Println("got on Redis sub", chID, err)
-	return err
+	return r.result()
 }
 
 func (e *RedisEngine) unsubscribe(chID ChannelID) error {
