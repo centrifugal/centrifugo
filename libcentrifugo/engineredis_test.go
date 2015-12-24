@@ -173,6 +173,8 @@ func TestRedisChannels(t *testing.T) {
 	c := dial()
 	defer c.close()
 	app := testRedisApp()
+	err := app.Run()
+	assert.Nil(t, err)
 	channels, err := app.engine.channels()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(channels))
