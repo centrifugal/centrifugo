@@ -119,6 +119,7 @@ func Main() {
 	var redisURL string
 	var redisAPI bool
 	var redisPool int
+	var redisAPINumShards int
 
 	var rootCmd = &cobra.Command{
 		Use:   "",
@@ -398,7 +399,7 @@ func Main() {
 	rootCmd.Flags().StringVarP(&redisURL, "redis_url", "", "", "redis connection URL (Redis engine)")
 	rootCmd.Flags().BoolVarP(&redisAPI, "redis_api", "", false, "enable Redis API listener (Redis engine)")
 	rootCmd.Flags().IntVarP(&redisPool, "redis_pool", "", 256, "Redis pool size (Redis engine)")
-	rootCmd.Flags().IntVarP(&redisPool, "redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
+	rootCmd.Flags().IntVarP(&redisAPINumShards, "redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
 
 	var versionCmd = &cobra.Command{
 		Use:   "version",

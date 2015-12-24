@@ -38,14 +38,25 @@ type RedisEngine struct {
 	unSubCh      chan subRequest
 }
 
+// RedisEngineConfig is struct with Redis Engine options.
 type RedisEngineConfig struct {
-	Host         string
-	Port         string
-	Password     string
-	DB           string
-	URL          string
-	PoolSize     int
-	API          bool
+	// Host is Redis server host.
+	Host string
+	// Port is Redis server port.
+	Port string
+	// Password is password to use when connecting to Redis database. If empty then password not used.
+	Password string
+	// DB is Redis database number as string. If empty then database 0 used.
+	DB string
+	// URL to redis server in format redis://:password@hostname:port/db_number
+	URL string
+	// PoolSize is a size of Redis connection pool.
+	PoolSize int
+	// API enables listening for API queues to publish API commands into Centrifugo via pushing
+	// commands into Redis queue.
+	API bool
+	// NumAPIShards is a number of sharded API queues in Redis to increase volume of commands
+	// (most probably publish) that Centrifugo instance can process.
 	NumAPIShards int
 }
 
@@ -117,6 +128,13 @@ func newPool(server, password, db string, psize int) *redis.Pool {
 	}
 }
 
+func yesno(condition bool) string {
+	if condition {
+		return "yes"
+	}
+	return "no"
+}
+
 // NewRedisEngine initializes Redis Engine.
 func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 	host := conf.Host
@@ -161,11 +179,13 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 		api:          conf.API,
 		numApiShards: conf.NumAPIShards,
 	}
-	usingPassword := "no"
-	if password != "" {
-		usingPassword = "yes"
+	usingPassword := yesno(password != "")
+	apiEnabled := yesno(conf.API)
+	var shardsSuffix string
+	if conf.API {
+		shardsSuffix = fmt.Sprintf(", num shard queues: %d", conf.NumAPIShards)
 	}
-	logger.INFO.Printf("Redis engine: %s, database %s, pool size %d, using password: %s\n", server, db, conf.PoolSize, usingPassword)
+	logger.INFO.Printf("Redis engine: %s/%s, pool: %d, using password: %s, API enabled: %s%s\n", server, db, conf.PoolSize, usingPassword, apiEnabled, shardsSuffix)
 	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
 	e.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
 	return e
