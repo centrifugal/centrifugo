@@ -6,12 +6,13 @@ Something can change before release. Feel free to write your thoughts (issue or 
 Possible backwards incompatibility here (in client side code) - see first point.
 
 * omit fields in message JSON if field contains empty value: `client` on top level, `info` on top level, `default_info` in `info` object, `channel_info` in `info` object. This also affects top level data in join/leave messages and presence data – i.e. `default_info` and `channel_info` keys not included in JSON when empty. This can require adapting your client side code a bit if you rely on these keys but for most cases this should not affect your application. But we strongly suggest to test before updating. This change allows to reduce message size. See migration notes below for more details.
-* new option `--admin_port` to bind admin websocket and web interface to separate port. #44
-* new option `--api_port` to bind API endpoint to separate port. #44
-* new option `--insecure_web` to use web interface without setting `web_password` and `web_secret` (for use in development or when you protected web interface by firewall rules). #44
-* new channel option `history_drop_inactive` to drastically reduce resource usage (engine memory, messages travelling around) when you use message history. See #50
-* new Redis engine option `--redis_api_num_shards`. This option sets a number of Redis shard queues Centrifugo will use in addition to standard `centrifugo.api` queue. This allows to increase amount of messages you can publish into Centrifugo and preserve message order in channels. See #52 and documentation for more details.
-* refactor `last_event_id` related stuff to prevent memory leaks on large amout of channels.
+* new option `--admin_port` to bind admin websocket and web interface to separate port. [#44](https://github.com/centrifugal/centrifugo/issues/44)
+* new option `--api_port` to bind API endpoint to separate port. [#44](https://github.com/centrifugal/centrifugo/issues/44)
+* new option `--insecure_web` to use web interface without setting `web_password` and `web_secret` (for use in development or when you protected web interface by firewall rules). [#44](https://github.com/centrifugal/centrifugo/issues/44)
+* new channel option `history_drop_inactive` to drastically reduce resource usage (engine memory, messages travelling around) when you use message history. See [#50](https://github.com/centrifugal/centrifugo/issues/50)
+* new Redis engine option `--redis_api_num_shards`. This option sets a number of Redis shard queues Centrifugo will use in addition to standard `centrifugo.api` queue. This allows to increase amount of messages you can publish into Centrifugo and preserve message order in channels. See [#52](https://github.com/centrifugal/centrifugo/issues/52) and documentation for more details.
+* fix race condition resulting in client disconnections on high channel subscribe/unsubscribe rate. [#54](https://github.com/centrifugal/centrifugo/issues/54)
+* refactor `last_event_id` related stuff to prevent memory leaks on large amout of channels. [#48](https://github.com/centrifugal/centrifugo/issues/48)
 * send special disconnect message to client when we don't want it to reconnect to Centrifugo (at moment to client sending malformed message). 
 * pong wait handler for raw websocket to detect non responding clients.
 
