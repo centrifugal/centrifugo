@@ -1,7 +1,5 @@
-v1.3.0 (not released yet)
-=========================
-
-Something can change before release. Feel free to write your thoughts (issue or just email) about points below.
+v1.3.0
+======
 
 Possible backwards incompatibility here (in client side code) - see first point.
 
@@ -15,6 +13,8 @@ Possible backwards incompatibility here (in client side code) - see first point.
 * refactor `last_event_id` related stuff to prevent memory leaks on large amout of channels. [#48](https://github.com/centrifugal/centrifugo/issues/48)
 * send special disconnect message to client when we don't want it to reconnect to Centrifugo (at moment to client sending malformed message). 
 * pong wait handler for raw websocket to detect non responding clients.
+
+Also it's recommended to update javascipt client to latest version as it has some useful changes (see its changelog).
 
 How to migrate
 --------------
