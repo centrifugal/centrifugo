@@ -334,22 +334,29 @@ func (c *client) message(msg []byte) error {
 	}
 	err = c.handleCommands(commands)
 	if err != nil {
-		disconnectErr := c.disconnect("error handling message")
+		reconnect := false
+		if err == ErrInternalServerError {
+			// In case of any internal server error we give client an advice to reconnect.
+			reconnect = true
+		}
+		disconnectErr := c.disconnect("error handling message", reconnect)
 		if disconnectErr != nil {
 			logger.ERROR.Println(disconnectErr)
 		}
-		// Sleep for a while to give client a chance to receive disconnect
-		// message and process it. Connection will be closed then.
-		time.Sleep(time.Second)
+		if !reconnect {
+			// Sleep for a while to give client a chance to receive disconnect
+			// message and process it. Connection will be closed then.
+			time.Sleep(time.Second)
+		}
 	}
 	return err
 }
 
-func (c *client) disconnect(reason string) error {
+func (c *client) disconnect(reason string, reconnect bool) error {
 	resp := newResponse("disconnect")
 	resp.Body = &DisconnectBody{
 		Reason:    reason,
-		Reconnect: false,
+		Reconnect: reconnect,
 	}
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
