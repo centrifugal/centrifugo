@@ -9,7 +9,7 @@ Centrifugal organization.
 
 Releases available as single executable files – just 
 [download](https://github.com/centrifugal/centrifugo/releases) archive for your platform,  
-unpack it and you are done. See also [Docker image](https://registry.hub.docker.com/u/fzambia/centrifugo/).
+unpack it and you are done. See also [Docker image](https://hub.docker.com/r/centrifugo/centrifugo/).
 
 Try [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo`). Or deploy your own Centrifugo instance in one click:
 
