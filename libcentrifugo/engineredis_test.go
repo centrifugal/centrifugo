@@ -178,7 +178,7 @@ func TestRedisChannels(t *testing.T) {
 	channels, err := app.engine.channels()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(channels))
-	createTestClients(app, 10, 1)
+	createTestClients(app, 10, 1, nil)
 	channels, err = app.engine.channels()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 10, len(channels))

@@ -3,33 +3,20 @@ package libcentrifugo
 import (
 	"encoding/json"
 	"fmt"
-	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/stretchr/testify/assert"
 )
 
-type messageCounter struct {
-	sent  chan bool
-	n     int64
-	total int64
-}
-
 type testSession struct {
-	counter *messageCounter
-	n       int64
-	closed  bool
+	sink   chan []byte
+	closed bool
 }
 
 func (t *testSession) Send(msg []byte) error {
-	atomic.AddInt64(&t.n, 1)
-	var val int64
-	if t.counter != nil {
-		val = atomic.AddInt64(&t.counter.n, 1)
-	}
-	if t.counter != nil && t.counter.sent != nil && val%t.counter.total == 0 {
-		t.counter.sent <- true
+	if t.sink != nil {
+		t.sink <- msg
 	}
 	return nil
 }
@@ -37,14 +24,6 @@ func (t *testSession) Send(msg []byte) error {
 func (t *testSession) Close(status uint32, reason string) error {
 	t.closed = true
 	return nil
-}
-
-func (app *Application) newTestHandler(b *testing.B, s *testSession) *client {
-	c, err := newClient(app, s)
-	if err != nil {
-		b.Fatal(err)
-	}
-	return c
 }
 
 func testApp() *Application {
@@ -69,58 +48,32 @@ func testMemoryAppWithConfig(c *Config) *Application {
 }
 
 func testRedisApp() *Application {
-	c := newTestConfig()
-	app, _ := NewApplication(&c)
+	return testRedisAppWithConfig(nil)
+}
+
+func testRedisAppWithConfig(c *Config) *Application {
+	if c == nil {
+		conf := newTestConfig()
+		c = &conf
+	}
+	app, _ := NewApplication(c)
 	app.SetEngine(testRedisEngine(app))
 	return app
 }
 
-func newTestClient(app *Application) *client {
-	s := &testSession{}
-	c, _ := newClient(app, s)
+func newTestClient(app *Application, sess session) *client {
+	c, _ := newClient(app, sess)
 	return c
 }
 
-func newSynchronizedTestClient(app *Application, counter *messageCounter) *client {
-	s := &testSession{counter: counter}
-	c, _ := newClient(app, s)
-	return c
-}
-
-func createTestClients(app *Application, nChannels, nChannelClients int) {
+func createTestClients(app *Application, nChannels, nChannelClients int, sink chan []byte) {
 	app.config.Insecure = true
 	for i := 0; i < nChannelClients; i++ {
-		c := newTestClient(app)
-		cmd := ConnectClientCommand{
-			User: UserID(fmt.Sprintf("user-%d", i)),
+		sess := &testSession{}
+		if sink != nil {
+			sess.sink = sink
 		}
-		resp, err := c.connectCmd(&cmd)
-		if err != nil {
-			panic(err)
-		}
-		if resp.err != nil {
-			panic(resp.err)
-		}
-		for j := 0; j < nChannels; j++ {
-			cmd := SubscribeClientCommand{
-				Channel: Channel(fmt.Sprintf("channel-%d", j)),
-			}
-			resp, err = c.subscribeCmd(&cmd)
-			if err != nil {
-				panic(err)
-			}
-			if resp.err != nil {
-				panic(resp.err)
-			}
-		}
-	}
-}
-
-func createTestClientsSynchronized(app *Application, nChannels, nChannelClients int, nMessages int, sent chan bool) {
-	app.config.Insecure = true
-	counter := &messageCounter{total: int64(nMessages), sent: sent}
-	for i := 0; i < nChannelClients; i++ {
-		c := newSynchronizedTestClient(app, counter)
+		c := newTestClient(app, sess)
 		cmd := ConnectClientCommand{
 			User: UserID(fmt.Sprintf("user-%d", i)),
 		}
@@ -148,13 +101,13 @@ func createTestClientsSynchronized(app *Application, nChannels, nChannelClients 
 
 func testMemoryAppWithClients(nChannels int, nChannelClients int) *Application {
 	app := testMemoryApp()
-	createTestClients(app, nChannels, nChannelClients)
+	createTestClients(app, nChannels, nChannelClients, nil)
 	return app
 }
 
-func testMemoryAppWithClientsSynchronized(nChannels int, nChannelClients int, nMessages int, sent chan bool) *Application {
+func testMemoryAppWithClientsSink(nChannels int, nChannelClients int, sink chan []byte) *Application {
 	app := testMemoryApp()
-	createTestClientsSynchronized(app, nChannels, nChannelClients, nMessages, sent)
+	createTestClients(app, nChannels, nChannelClients, sink)
 	return app
 }
 
@@ -287,7 +240,7 @@ func TestPublish(t *testing.T) {
 	c.ChannelOptions.HistoryDropInactive = true
 
 	app := testMemoryAppWithConfig(&c)
-	createTestClients(app, 10, 1)
+	createTestClients(app, 10, 1, nil)
 	data, _ := json.Marshal(map[string]string{"test": "publish"})
 	err := app.Publish(Channel("channel-0"), data, ConnID(""), nil)
 	assert.Nil(t, err)
@@ -309,7 +262,7 @@ func TestPublish(t *testing.T) {
 
 func TestPublishJoinLeave(t *testing.T) {
 	app := testMemoryApp()
-	createTestClients(app, 10, 1)
+	createTestClients(app, 10, 1, nil)
 	err := app.pubJoinLeave(Channel("channel-0"), "join", ClientInfo{})
 	assert.Equal(t, nil, err)
 }
@@ -334,81 +287,11 @@ func TestControlMessages(t *testing.T) {
 
 func TestUpdateMetrics(t *testing.T) {
 	app := testMemoryApp()
-	createTestClients(app, 10, 1)
+	createTestClients(app, 10, 1, nil)
 	data, _ := json.Marshal(map[string]string{"test": "publish"})
 	err := app.Publish(Channel("channel-0"), data, ConnID(""), nil)
 	assert.Equal(t, nil, err)
 	app.config.NodeMetricsInterval = 1 * time.Millisecond
 	app.updateMetricsOnce()
 	assert.Equal(t, int64(1), app.metrics.metrics.NumMsgPublished)
-}
-
-func createUsers(users, chanUser, totChannels int) []*testClientConn {
-	uC := make([]*testClientConn, users)
-	for i := range uC {
-		c := newTestUserCC()
-		c.UID = UserID(fmt.Sprintf("uid-%d", i))
-		c.CID = ConnID(fmt.Sprintf("cid-%d", i))
-		c.Channels = make([]Channel, chanUser)
-		for j := 0; j < chanUser; j++ {
-			c.Channels[j] = Channel(fmt.Sprintf("chan-%d", (j+i*chanUser)%totChannels))
-		}
-		uC[i] = c
-	}
-	return uC
-}
-
-func BenchmarkSendReceive(b *testing.B) {
-	totChannels := 200
-	conf := newTestConfig()
-	app, _ := NewApplication(&conf)
-	app.SetEngine(NewMemoryEngine(app))
-	app.config.Insecure = true
-	conns := createUsers(50, 10, totChannels)
-	for _, c := range conns {
-		c.sess = &testSession{}
-		cli := app.newTestHandler(b, c.sess)
-		cmd := ConnectClientCommand{
-			User: c.UID,
-		}
-		cli.connectCmd(&cmd)
-		for _, ch := range c.Channels {
-			cmd := SubscribeClientCommand{
-				Channel: ch,
-			}
-			resp, err := cli.subscribeCmd(&cmd)
-			if err != nil {
-				b.Fatal(err)
-			}
-			if resp.err != nil {
-				b.Fatal(resp.err)
-			}
-		}
-	}
-	b.ResetTimer()
-	tn := time.Now()
-	b.RunParallel(func(pb *testing.PB) {
-		i := 0
-		for pb.Next() {
-			ch := app.channelID(Channel(fmt.Sprintf("chan-%d", i%totChannels)))
-			err := app.clientMsg(ch, []byte("message"))
-			if err != nil {
-				b.Fatal(err)
-			}
-			i++
-		}
-	})
-	// TODO: Flush
-	dur := time.Since(tn)
-	b.StopTimer()
-	time.Sleep(time.Second)
-	total := 0
-	for _, user := range conns {
-		total += int(atomic.AddInt64(&user.sess.n, 0))
-	}
-	b.Logf("Chans:%d, Clnts:%d Msgs:%d Rcvd:%d", app.nChannels(), app.nClients(), b.N, total)
-	if dur > time.Millisecond*10 {
-		b.Logf("%d messages/sec", total*int(time.Second)/int(dur))
-	}
-
 }

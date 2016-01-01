@@ -101,15 +101,16 @@ func getNPublishJSON(channel string, n int) []byte {
 }
 
 func BenchmarkAPIHandler(b *testing.B) {
-	sent := make(chan bool)
 	nChannels := 1
 	nClients := 1000
 	nCommands := 1000
 	nMessages := nClients * nCommands
-	app := testMemoryAppWithClientsSynchronized(nChannels, nClients, nMessages, sent)
+	sink := make(chan []byte, nMessages)
+	app := testMemoryAppWithClientsSink(nChannels, nClients, sink)
 	b.Logf("num channels: %v, num clients: %v, num unique clients %v, num commands: %v", app.clients.nChannels(), app.clients.nClients(), app.clients.nUniqueClients(), nCommands)
 	jsonData := getNPublishJSON("channel-0", nCommands)
 	sign := auth.GenerateApiSign("secret", jsonData)
+	done := make(chan struct{})
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		rec := httptest.NewRecorder()
@@ -117,8 +118,19 @@ func BenchmarkAPIHandler(b *testing.B) {
 		req.Header.Add("X-API-Sign", sign)
 		req.Header.Add("Content-Type", "application/json")
 		app.APIHandler(rec, req)
-		// Every nMessages sent to clients we will receive value from this channel.
-		<-sent
+		go func() {
+			count := 0
+			for {
+				select {
+				case <-sink:
+					count++
+				}
+				if count == nMessages {
+					close(done)
+				}
+			}
+		}()
+		<-done
 	}
 	b.StopTimer()
 }

@@ -222,7 +222,7 @@ func TestAPIChannels(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.err)
 	app = testMemoryApp()
-	createTestClients(app, 10, 1)
+	createTestClients(app, 10, 1, nil)
 	resp, err = app.channelsCmd()
 	assert.Equal(t, nil, err)
 	body := resp.Body.(*ChannelsBody)
