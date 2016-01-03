@@ -128,8 +128,6 @@ func generateConfig(f string) error {
 		return errors.New("output config file must have one of supported extensions: " + strings.Join(supportedExts, ", "))
 	}
 
-	uid := uuid.NewV4().String()
-
 	var t *template.Template
 
 	switch ext {
@@ -148,7 +146,7 @@ func generateConfig(f string) error {
 	t.Execute(&output, struct {
 		Secret string
 	}{
-		uid.String(),
+		uuid.NewV4().String(),
 	})
 
 	err = ioutil.WriteFile(f, output.Bytes(), 0644)
