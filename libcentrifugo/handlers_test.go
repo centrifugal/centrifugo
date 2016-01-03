@@ -106,7 +106,9 @@ func BenchmarkAPIHandler(b *testing.B) {
 	nCommands := 1000
 	nMessages := nClients * nCommands
 	sink := make(chan []byte, nMessages)
-	app := testMemoryAppWithClientsSink(nChannels, nClients, sink)
+	app := testMemoryApp()
+	app.config.ClientQueueInitialCapacity = 2
+	createTestClients(app, nChannels, nClients, sink)
 	b.Logf("num channels: %v, num clients: %v, num unique clients %v, num commands: %v", app.clients.nChannels(), app.clients.nClients(), app.clients.nUniqueClients(), nCommands)
 	jsonData := getNPublishJSON("channel-0", nCommands)
 	sign := auth.GenerateApiSign("secret", jsonData)

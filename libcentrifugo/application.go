@@ -10,7 +10,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/securecookie"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
+	"github.com/satori/go.uuid"
 )
 
 // Application is a heart of Centrifugo – it internally manages client and admin hubs,
@@ -77,12 +77,8 @@ type NodeInfo struct {
 // NewApplication returns new Application instance, the only required argument is
 // config, structure and engine must be set via corresponding methods.
 func NewApplication(config *Config) (*Application, error) {
-	uid, err := uuid.NewV4()
-	if err != nil {
-		return nil, err
-	}
 	app := &Application{
-		uid:     uid.String(),
+		uid:     uuid.NewV4().String(),
 		config:  config,
 		clients: newClientHub(),
 		admins:  newAdminHub(),
@@ -430,10 +426,8 @@ func (app *Application) publish(ch Channel, data []byte, client ConnID, info *Cl
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel.
 func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte, client ConnID, info *ClientInfo) error {
-	message, err := newMessage(ch, data, client, info)
-	if err != nil {
-		return err
-	}
+
+	message := newMessage(ch, data, client, info)
 
 	if chOpts.Watch {
 		resp := newResponse("message")

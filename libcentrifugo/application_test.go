@@ -105,12 +105,6 @@ func testMemoryAppWithClients(nChannels int, nChannelClients int) *Application {
 	return app
 }
 
-func testMemoryAppWithClientsSink(nChannels int, nChannelClients int, sink chan []byte) *Application {
-	app := testMemoryApp()
-	createTestClients(app, nChannels, nChannelClients, sink)
-	return app
-}
-
 func TestChannelID(t *testing.T) {
 	app := testApp()
 	chID := app.channelID("channel")
