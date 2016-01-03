@@ -10,7 +10,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/securecookie"
-	"github.com/satori/go.uuid"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/satori/go.uuid"
 )
 
 // Application is a heart of Centrifugo – it internally manages client and admin hubs,
