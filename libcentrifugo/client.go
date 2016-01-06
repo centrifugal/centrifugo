@@ -188,7 +188,11 @@ func (c *client) unsubscribe(ch Channel) error {
 	if resp.err != nil {
 		return resp.err
 	}
-	return nil
+	respJSON, err := json.Marshal(resp)
+	if err != nil {
+		return err
+	}
+	return c.send(respJSON)
 }
 
 func (c *client) send(message []byte) error {
@@ -716,6 +720,11 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*response, error) {
 	}
 	resp.Body = body
 
+	if _, ok := c.Channels[channel]; ok {
+		resp.Err(ErrAlreadySubscribed)
+		return resp, nil
+	}
+
 	if !c.app.userAllowed(channel, c.User) || !c.app.clientAllowed(channel, c.UID) {
 		resp.Err(ErrPermissionDenied)
 		return resp, nil
@@ -790,10 +799,12 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*response, error) {
 	}
 
 	if chOpts.JoinLeave {
-		err = c.app.pubJoinLeave(channel, "join", info)
-		if err != nil {
-			logger.ERROR.Println(err)
-		}
+		go func() {
+			err = c.app.pubJoinLeave(channel, "join", info)
+			if err != nil {
+				logger.ERROR.Println(err)
+			}
+		}()
 	}
 
 	if c.app.mediator != nil {
@@ -845,16 +856,17 @@ func (c *client) unsubscribeCmd(cmd *UnsubscribeClientCommand) (*response, error
 				logger.ERROR.Println(err)
 			}
 		}
-	}
 
-	err = c.app.removeSub(channel, c)
-	if err != nil {
-		logger.ERROR.Println(err)
-		return resp, ErrInternalServerError
-	}
+		err = c.app.removeSub(channel, c)
+		if err != nil {
+			logger.ERROR.Println(err)
+			return resp, ErrInternalServerError
+		}
 
-	if c.app.mediator != nil {
-		c.app.mediator.Unsubscribe(channel, c.UID, c.User)
+		if c.app.mediator != nil {
+			c.app.mediator.Unsubscribe(channel, c.UID, c.User)
+		}
+
 	}
 
 	body.Status = true

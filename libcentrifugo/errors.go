@@ -20,6 +20,9 @@ var (
 	// ErrInternalServerError means server error, if returned this is a signal that
 	// something went wrong with Centrifugo itself.
 	ErrInternalServerError = errors.New("internal server error")
+	// ErrAlreadySubscribed returned when client wants to subscribe on channel
+	// it already subscribed to.
+	ErrAlreadySubscribed = errors.New("already subscribed")
 	// ErrLimitExceeded says that some sort of limit exceeded, server logs should give
 	// more detailed information.
 	ErrLimitExceeded = errors.New("limit exceeded")
