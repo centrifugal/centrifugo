@@ -38,6 +38,7 @@ func (h *clientHub) shutdown() {
 		for uid := range user {
 			cc, ok := h.conns[uid]
 			if !ok {
+				wg.Done()
 				continue
 			}
 			go func(cc clientConn) {
@@ -149,8 +150,6 @@ func (h *clientHub) removeSub(chID ChannelID, c clientConn) (bool, error) {
 	defer h.Unlock()
 
 	uid := c.uid()
-
-	delete(h.conns, uid)
 
 	// try to find subscription to delete, return early if not found.
 	if _, ok := h.subs[chID]; !ok {
