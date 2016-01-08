@@ -14,7 +14,6 @@ func TestResponse(t *testing.T) {
 	marshalledResponse, err := json.Marshal(resp)
 	assert.Equal(t, nil, err)
 
-	resp.Err(nil)
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":null"))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"body\":null"))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"method\":\"test\""))
