@@ -344,10 +344,7 @@ func (c *client) message(msg []byte) error {
 			// Any other error results in disconnect without reconnect.
 			reconnect = true
 		}
-		disconnectErr := c.disconnect(err.Error(), reconnect)
-		if disconnectErr != nil {
-			logger.ERROR.Println(disconnectErr)
-		}
+		c.disconnect(err.Error(), reconnect)
 		if !reconnect {
 			// Sleep for a while to give client a chance to receive disconnect
 			// message and process it. Connection will be closed then.
