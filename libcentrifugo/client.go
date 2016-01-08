@@ -341,9 +341,10 @@ func (c *client) message(msg []byte) error {
 		reconnect := false
 		if err == ErrInternalServerError {
 			// In case of any internal server error we give client an advice to reconnect.
+			// Any other error results in disconnect without reconnect.
 			reconnect = true
 		}
-		disconnectErr := c.disconnect("error handling message", reconnect)
+		disconnectErr := c.disconnect(err.Error(), reconnect)
 		if disconnectErr != nil {
 			logger.ERROR.Println(disconnectErr)
 		}
@@ -711,7 +712,7 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*clientResponse, err
 	c.app.RUnlock()
 
 	if len(channel) > maxChannelLength {
-		resp.Err(clientError{ErrLimitExceeded, errorTypeClient, errorAdviceFix})
+		resp.Err(clientError{ErrLimitExceeded, errorAdviceFix})
 		return resp, nil
 	}
 
@@ -721,35 +722,35 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*clientResponse, err
 	resp.Body = body
 
 	if _, ok := c.Channels[channel]; ok {
-		resp.Err(clientError{ErrAlreadySubscribed, errorTypeClient, errorAdviceFix})
+		resp.Err(clientError{ErrAlreadySubscribed, errorAdviceFix})
 		return resp, nil
 	}
 
 	if !c.app.userAllowed(channel, c.User) || !c.app.clientAllowed(channel, c.UID) {
-		resp.Err(clientError{ErrPermissionDenied, errorTypeClient, errorAdviceFix})
+		resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
 		return resp, nil
 	}
 
 	chOpts, err := c.app.channelOpts(channel)
 	if err != nil {
-		resp.Err(clientError{err, errorTypeClient, errorAdviceFix})
+		resp.Err(clientError{err, errorAdviceFix})
 		return resp, nil
 	}
 
 	if !chOpts.Anonymous && c.User == "" && !insecure {
-		resp.Err(clientError{ErrPermissionDenied, errorTypeClient, errorAdviceFix})
+		resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
 		return resp, nil
 	}
 
 	if c.app.privateChannel(channel) {
 		// private channel - subscription must be properly signed
 		if string(c.UID) != string(cmd.Client) {
-			resp.Err(clientError{ErrPermissionDenied, errorTypeClient, errorAdviceFix})
+			resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
 			return resp, nil
 		}
 		isValid := auth.CheckChannelSign(secret, string(cmd.Client), string(channel), cmd.Info, cmd.Sign)
 		if !isValid {
-			resp.Err(clientError{ErrPermissionDenied, errorTypeClient, errorAdviceFix})
+			resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
 			return resp, nil
 		}
 		c.channelInfo[channel] = []byte(cmd.Info)
@@ -834,7 +835,7 @@ func (c *client) unsubscribeCmd(cmd *UnsubscribeClientCommand) (*clientResponse,
 
 	chOpts, err := c.app.channelOpts(channel)
 	if err != nil {
-		resp.Err(clientError{err, errorTypeClient, errorAdviceFix})
+		resp.Err(clientError{err, errorAdviceFix})
 		return resp, nil
 	}
 
@@ -860,7 +861,7 @@ func (c *client) unsubscribeCmd(cmd *UnsubscribeClientCommand) (*clientResponse,
 		err = c.app.removeSub(channel, c)
 		if err != nil {
 			logger.ERROR.Println(err)
-			resp.Err(clientError{ErrInternalServerError, errorTypeServer, errorAdviceNone})
+			resp.Err(clientError{ErrInternalServerError, errorAdviceNone})
 			return resp, nil
 		}
 
@@ -892,7 +893,7 @@ func (c *client) publishCmd(cmd *PublishClientCommand) (*clientResponse, error) 
 	resp.Body = body
 
 	if _, ok := c.Channels[channel]; !ok {
-		resp.Err(clientError{ErrPermissionDenied, errorTypeClient, errorAdviceFix})
+		resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
 		return resp, nil
 	}
 
@@ -900,7 +901,7 @@ func (c *client) publishCmd(cmd *PublishClientCommand) (*clientResponse, error) 
 
 	err := c.app.publish(channel, data, c.UID, &info, true)
 	if err != nil {
-		resp.Err(clientError{err, errorTypeServer, errorAdviceRetry})
+		resp.Err(clientError{err, errorAdviceRetry})
 		return resp, nil
 	}
 
@@ -927,13 +928,13 @@ func (c *client) presenceCmd(cmd *PresenceClientCommand) (*clientResponse, error
 	resp.Body = body
 
 	if _, ok := c.Channels[channel]; !ok {
-		resp.Err(clientError{ErrPermissionDenied, errorTypeClient, errorAdviceFix})
+		resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
 		return resp, nil
 	}
 
 	presence, err := c.app.Presence(channel)
 	if err != nil {
-		resp.Err(clientError{err, errorTypeServer, errorAdviceRetry})
+		resp.Err(clientError{err, errorAdviceRetry})
 		return resp, nil
 	}
 
@@ -959,13 +960,13 @@ func (c *client) historyCmd(cmd *HistoryClientCommand) (*clientResponse, error) 
 	resp.Body = body
 
 	if _, ok := c.Channels[channel]; !ok {
-		resp.Err(clientError{ErrPermissionDenied, errorTypeClient, errorAdviceFix})
+		resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
 		return resp, nil
 	}
 
 	history, err := c.app.History(channel)
 	if err != nil {
-		resp.Err(clientError{err, errorTypeServer, errorAdviceRetry})
+		resp.Err(clientError{err, errorAdviceRetry})
 		return resp, nil
 	}
 

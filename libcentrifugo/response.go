@@ -1,26 +1,15 @@
 package libcentrifugo
 
-type errorType string
-
-const (
-	errorTypeServer  errorType = "server"
-	errorTypeClient  errorType = "client"
-	errorTypeNetwork errorType = "network"
-)
-
 type errorAdvice string
 
 const (
-	errorAdviceNone       errorAdvice = "none"
-	errorAdviceFix        errorAdvice = "fix"
-	errorAdviceRetry      errorAdvice = "retry"
-	errorAdviceReconnect  errorAdvice = "reconnect"
-	errorAdviceDisconnect errorAdvice = "disconnect"
+	errorAdviceNone  errorAdvice = ""
+	errorAdviceFix   errorAdvice = "fix"
+	errorAdviceRetry errorAdvice = "retry"
 )
 
 type clientError struct {
 	err         error
-	ErrorType   errorType   `json:"error_type,omitempty"`
 	ErrorAdvice errorAdvice `json:"error_advice,omitempty"`
 }
 
@@ -30,16 +19,18 @@ type clientResponse struct {
 	UID    string      `json:"uid,omitempty"`
 	Body   interface{} `json:"body"`
 	Method string      `json:"method"`
-	Error  *string     `json:"error"` // Use clientResponse.Err() to set.
+	Error  string      `json:"error,omitempty"` // Use clientResponse.Err() to set.
 	clientError
 }
 
+// clientMessageResponse uses strong type for body instead of interface{} - helps to
+// reduce allocations when marshaling.
 type clientMessageResponse struct {
 	clientResponse
 	Body Message `json:"body"`
 }
 
-// newClientMessage
+// newClientMessage returns initialized client message response.
 func newClientMessage() *clientMessageResponse {
 	return &clientMessageResponse{
 		clientResponse: clientResponse{
@@ -59,12 +50,13 @@ func newClientResponse(method string) *clientResponse {
 // Err set a client error on the client response and updates the 'err'
 // field in the response. If an error has already been set it will be kept.
 func (r *clientResponse) Err(err clientError) {
-	if r.err != nil {
+	if r.clientError.err != nil {
+		// error already set.
 		return
 	}
-	e := err.err.Error()
 	r.clientError = err
-	r.Error = &e
+	e := err.err.Error()
+	r.Error = e
 }
 
 // multiClientResponse is a slice of responses in execution order - from first

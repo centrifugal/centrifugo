@@ -20,3 +20,16 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"timestamp\":"))
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"uid\":"))
 }
+
+func BenchmarkMsgMarshal(b *testing.B) {
+	msg, _ := newMessage(Channel("test"), []byte("{}"), "", nil)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		resp := newClientMessage()
+		resp.Body = msg
+		_, err := json.Marshal(resp)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
