@@ -6,16 +6,18 @@ type historyOpts struct {
 	Limit int
 }
 
-type addHistoryOpts struct {
-	// Size is maximum size of channel history that engine must maintain.
-	Size int
-	// Lifetime is maximum amount of seconds history messages should exist
+type publishOpts struct {
+	// Message is Message being published
+	Message Message
+	// HistorySize is maximum size of channel history that engine must maintain.
+	HistorySize int
+	// HistoryLifetime is maximum amount of seconds history messages should exist
 	// before expiring and most probably being deleted (to prevent memory leaks).
-	Lifetime int
-	// DropInactive hints to the engine that there were no actual subscribers
+	HistoryLifetime int
+	// HistoryDropInactive hints to the engine that there were no actual subscribers
 	// connected when message was published, and that it can skip saving if there is
 	// no unexpired history for the channel (i.e. no subscribers active within history_lifetime)
-	DropInactive bool
+	HistoryDropInactive bool
 }
 
 // Engine is an interface with all methods that can be used by client or
@@ -29,10 +31,9 @@ type Engine interface {
 	run() error
 
 	// publish allows to send message into channel.
-	// Returns whether or not it sent to any active subscribers with `true` indicating
-	// at least one subscriber was published to.
-	// If engine has no efficient way to know that, it should always return true.
-	publish(chID ChannelID, message []byte) (bool, error)
+	// If publishOpts is nil message must be just sent into provided channel
+	// and no additional work must be done.
+	publish(chID ChannelID, message []byte, opts *publishOpts) error
 
 	// subscribe on channel.
 	subscribe(chID ChannelID) error
@@ -48,8 +49,6 @@ type Engine interface {
 	// presence returns actual presence information for channel.
 	presence(chID ChannelID) (map[ConnID]ClientInfo, error)
 
-	// addHistory adds message into channel history and takes care about history size.
-	addHistory(chID ChannelID, message Message, opts addHistoryOpts) error
 	// history returns a slice of history messages for channel, limit sets maximum amount
 	// of history messages to return.
 	history(chID ChannelID, opts historyOpts) ([]Message, error)

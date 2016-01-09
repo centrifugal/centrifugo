@@ -427,11 +427,37 @@ func (e *RedisEngine) runPubSub() {
 	}
 }
 
-func (e *RedisEngine) publish(chID ChannelID, message []byte) (bool, error) {
+func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts) error {
 	conn := e.pool.Get()
 	defer conn.Close()
+
 	numSubscribers, err := redis.Int(conn.Do("PUBLISH", chID, message))
-	return numSubscribers > 0, err
+	if err != nil {
+		return err
+	}
+
+	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
+		historyKey := e.getHistoryKey(chID)
+
+		dropInactive := opts.HistoryDropInactive && !(numSubscribers > 0)
+
+		pushCommand := "LPUSH"
+		if dropInactive {
+			pushCommand = "LPUSHX"
+		}
+
+		conn.Send("MULTI")
+		conn.Send(pushCommand, historyKey, message)
+		// All below commands are a simple no-op in redis if the key doesn't exist
+		conn.Send("LTRIM", historyKey, 0, opts.HistorySize-1)
+		conn.Send("EXPIRE", historyKey, opts.HistoryLifetime)
+		_, err = conn.Do("EXEC")
+		if err != nil {
+			logger.ERROR.Println(err)
+		}
+	}
+
+	return nil
 }
 
 func (e *RedisEngine) subscribe(chID ChannelID) error {
@@ -555,31 +581,6 @@ func (e *RedisEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 		return nil, err
 	}
 	return mapStringClientInfo(reply, nil)
-}
-
-func (e *RedisEngine) addHistory(chID ChannelID, message Message, opts addHistoryOpts) error {
-	conn := e.pool.Get()
-	defer conn.Close()
-
-	historyKey := e.getHistoryKey(chID)
-	messageJSON, err := json.Marshal(message)
-	if err != nil {
-		return err
-	}
-
-	pushCommand := "LPUSH"
-
-	if opts.DropInactive {
-		pushCommand = "LPUSHX"
-	}
-
-	conn.Send("MULTI")
-	conn.Send(pushCommand, historyKey, messageJSON)
-	// All below commands are a simple no-op in redis if the key doesn't exist
-	conn.Send("LTRIM", historyKey, 0, opts.Size-1)
-	conn.Send("EXPIRE", historyKey, opts.Lifetime)
-	_, err = conn.Do("EXEC")
-	return err
 }
 
 func sliceOfMessages(result interface{}, err error) ([]Message, error) {

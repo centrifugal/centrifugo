@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/priority"
 )
 
@@ -36,8 +37,22 @@ func (e *MemoryEngine) run() error {
 	return nil
 }
 
-func (e *MemoryEngine) publish(chID ChannelID, message []byte) (bool, error) {
-	return e.app.clients.hasSubscribers(chID), e.app.handleMsg(chID, message)
+func (e *MemoryEngine) publish(chID ChannelID, message []byte, opts *publishOpts) error {
+	hasCurrentSubscribers := e.app.clients.hasSubscribers(chID)
+
+	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
+		histOpts := addHistoryOpts{
+			Size:         opts.HistorySize,
+			Lifetime:     opts.HistoryLifetime,
+			DropInactive: (opts.HistoryDropInactive && !hasCurrentSubscribers),
+		}
+		err := e.historyHub.add(chID, opts.Message, histOpts)
+		if err != nil {
+			logger.ERROR.Println(err)
+		}
+	}
+
+	return e.app.handleMsg(chID, message)
 }
 
 func (e *MemoryEngine) subscribe(chID ChannelID) error {
@@ -58,10 +73,6 @@ func (e *MemoryEngine) removePresence(chID ChannelID, uid ConnID) error {
 
 func (e *MemoryEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 	return e.presenceHub.get(chID)
-}
-
-func (e *MemoryEngine) addHistory(chID ChannelID, message Message, opts addHistoryOpts) error {
-	return e.historyHub.add(chID, message, opts)
 }
 
 func (e *MemoryEngine) history(chID ChannelID, opts historyOpts) ([]Message, error) {
@@ -156,6 +167,18 @@ func newMemoryHistoryHub() *memoryHistoryHub {
 		queue:     priority.MakeQueue(),
 		nextCheck: 0,
 	}
+}
+
+type addHistoryOpts struct {
+	// Size is maximum size of channel history that engine must maintain.
+	Size int
+	// Lifetime is maximum amount of seconds history messages should exist
+	// before expiring and most probably being deleted (to prevent memory leaks).
+	Lifetime int
+	// DropInactive hints to the engine that there were no actual subscribers
+	// connected when message was published, and that it can skip saving if there is
+	// no unexpired history for the channel (i.e. no subscribers active within history_lifetime)
+	DropInactive bool
 }
 
 func (h *memoryHistoryHub) initialize() {
