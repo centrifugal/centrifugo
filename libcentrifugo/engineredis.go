@@ -456,36 +456,41 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 		_, err = e.pubScript.Do(conn, chID, message, "0")
 	} else {
 		// publish message into channel and add history message.
-		_, err = e.pubScript.Do(conn, chID, message, "1", opts.HistorySize, opts.HistoryLifetime, opts.HistoryDropInactive)
+		if opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
+			historyKey := e.getHistoryKey(chID)
+			_, err = e.pubScript.Do(conn, chID, message, "1", historyKey, opts.HistorySize, opts.HistoryLifetime, opts.HistoryDropInactive)
+		} else {
+			_, err = e.pubScript.Do(conn, chID, message, "0")
+		}
 	}
 	return err
 
 	/*
-			numSubscribers, err := redis.Int(conn.Do("PUBLISH", chID, message))
+		numSubscribers, err := redis.Int(conn.Do("PUBLISH", chID, message))
+		if err != nil {
+			return err
+		}
+
+		if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
+			historyKey := e.getHistoryKey(chID)
+
+			dropInactive := opts.HistoryDropInactive && !(numSubscribers > 0)
+
+			pushCommand := "LPUSH"
+			if dropInactive {
+				pushCommand = "LPUSHX"
+			}
+
+			conn.Send("MULTI")
+			conn.Send(pushCommand, historyKey, message)
+			// All below commands are a simple no-op in redis if the key doesn't exist
+			conn.Send("LTRIM", historyKey, 0, opts.HistorySize-1)
+			conn.Send("EXPIRE", historyKey, opts.HistoryLifetime)
+			_, err = conn.Do("EXEC")
 			if err != nil {
-				return err
+				logger.ERROR.Println(err)
 			}
-
-			if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
-				historyKey := e.getHistoryKey(chID)
-
-				dropInactive := opts.HistoryDropInactive && !(numSubscribers > 0)
-
-				pushCommand := "LPUSH"
-				if dropInactive {
-					pushCommand = "LPUSHX"
-				}
-
-				conn.Send("MULTI")
-				conn.Send(pushCommand, historyKey, message)
-				// All below commands are a simple no-op in redis if the key doesn't exist
-				conn.Send("LTRIM", historyKey, 0, opts.HistorySize-1)
-				conn.Send("EXPIRE", historyKey, opts.HistoryLifetime)
-				_, err = conn.Do("EXEC")
-				if err != nil {
-					logger.ERROR.Println(err)
-				}
-			}
+		}
 
 		return nil
 	*/
