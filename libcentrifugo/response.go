@@ -9,8 +9,8 @@ const (
 )
 
 type clientError struct {
-	err         error
-	ErrorAdvice errorAdvice `json:"error_advice,omitempty"`
+	err    error
+	Advice errorAdvice `json:"advice,omitempty"`
 }
 
 // clientResponse represents an answer Centrifugo sends to client request
