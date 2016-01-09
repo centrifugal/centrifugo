@@ -326,9 +326,17 @@ func Main() {
 				webFS = assetFS()
 			}
 
-			var clientPort = viper.GetString("port")
-			var apiPort = viper.GetString("api_port")
-			var adminPort = viper.GetString("admin_port")
+			clientPort := viper.GetString("port")
+
+			apiPort := viper.GetString("api_port")
+			if apiPort == "" {
+				apiPort = clientPort
+			}
+
+			adminPort := viper.GetString("admin_port")
+			if adminPort == "" {
+				adminPort = clientPort
+			}
 
 			// portToHandlerFlags contains mapping between ports and handler flags
 			// to serve on this port.
@@ -388,8 +396,8 @@ func Main() {
 	rootCmd.Flags().BoolVarP(&useSSL, "ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
 	rootCmd.Flags().StringVarP(&sslCert, "ssl_cert", "", "", "path to an X509 certificate file")
 	rootCmd.Flags().StringVarP(&sslKey, "ssl_key", "", "", "path to an X509 certificate key")
-	rootCmd.Flags().StringVarP(&apiPort, "api_port", "", "8000", "port to bind api endpoints to (optional until this is required by your deploy setup)")
-	rootCmd.Flags().StringVarP(&adminPort, "admin_port", "", "8000", "port to bind admin endpoints to (optional until this is required by your deploy setup)")
+	rootCmd.Flags().StringVarP(&apiPort, "api_port", "", "", "port to bind api endpoints to (optional until this is required by your deploy setup)")
+	rootCmd.Flags().StringVarP(&adminPort, "admin_port", "", "", "port to bind admin endpoints to (optional until this is required by your deploy setup)")
 	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "info", "set the log level: debug, info, error, critical, fatal or none")
 	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified all logs go to STDOUT")
 	rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")
