@@ -1,3 +1,10 @@
+v1.3.1
+======
+
+* fix port configuration introduced in v1.3.0: `--port` should override default values for `admin_port` and `api_port`
+* use the same (http/https) scheme for Sockjs default iframe script source.
+* fix possible deadlock in shutdown
+
 v1.3.0
 ======
 
