@@ -178,14 +178,14 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 local n = redis.call("publish", KEYS[1], KEYS[2])
 if KEYS[3] == "1" then
   local m = 0
-  if ARGV[4] == "1" and n == 0 then
-    m = redis.call("lpushx", ARGV[1], KEYS[2])
+  if ARGV[5] == "1" and n == 0 then
+    m = redis.call("lpushx", ARGV[1], ARGV[2])
   else
-    m = redis.call("lpush", ARGV[1], KEYS[2])
+    m = redis.call("lpush", ARGV[1], ARGV[2])
   end
   if m > 0 then
-    redis.call("ltrim", ARGV[1], 0, ARGV[2])
-    redis.call("expire", ARGV[1], ARGV[3])
+    redis.call("ltrim", ARGV[1], 0, ARGV[3])
+    redis.call("expire", ARGV[1], ARGV[4])
   end
 end
 return n
@@ -457,8 +457,13 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 	} else {
 		// publish message into channel and add history message.
 		if opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
+			messageJSON, err := json.Marshal(opts.Message)
+			if err != nil {
+				logger.ERROR.Println(err)
+				return nil
+			}
 			historyKey := e.getHistoryKey(chID)
-			_, err = e.pubScript.Do(conn, chID, message, "1", historyKey, opts.HistorySize, opts.HistoryLifetime, opts.HistoryDropInactive)
+			_, err = e.pubScript.Do(conn, chID, message, "1", historyKey, messageJSON, opts.HistorySize, opts.HistoryLifetime, opts.HistoryDropInactive)
 		} else {
 			_, err = e.pubScript.Do(conn, chID, message, "0")
 		}
@@ -474,6 +479,12 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 		if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
 			historyKey := e.getHistoryKey(chID)
 
+			messageJSON, err := json.Marshal(opts.Message)
+			if err != nil {
+				logger.ERROR.Println(err)
+				return nil
+			}
+
 			dropInactive := opts.HistoryDropInactive && !(numSubscribers > 0)
 
 			pushCommand := "LPUSH"
@@ -482,7 +493,7 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 			}
 
 			conn.Send("MULTI")
-			conn.Send(pushCommand, historyKey, message)
+			conn.Send(pushCommand, historyKey, messageJSON)
 			// All below commands are a simple no-op in redis if the key doesn't exist
 			conn.Send("LTRIM", historyKey, 0, opts.HistorySize-1)
 			conn.Send("EXPIRE", historyKey, opts.HistoryLifetime)
