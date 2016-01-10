@@ -111,7 +111,7 @@ func TestRedisEngine(t *testing.T) {
 	err = e.removePresence(ChannelID("channel"), "uid")
 	assert.Equal(t, nil, err)
 
-	msg := Message{}
+	msg := Message{UID: MessageID("test UID")}
 	msgJSON, _ := json.Marshal(msg)
 
 	// test adding history
@@ -119,6 +119,7 @@ func TestRedisEngine(t *testing.T) {
 	h, err := e.history(ChannelID("channel"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
+	assert.Equal(t, h[0].UID, MessageID("test UID"))
 
 	// test history limit
 	assert.Equal(t, nil, e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 4, 1, false}))
