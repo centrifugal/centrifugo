@@ -48,8 +48,7 @@ func TestMemoryEngine(t *testing.T) {
 	assert.NotEqual(t, nil, e.presenceHub)
 	assert.NotEqual(t, e.name(), "")
 
-	hasActiveSubscribers, err := e.publish(ChannelID("channel"), []byte("{}"))
-	assert.False(t, hasActiveSubscribers) // No subscribers connected yet
+	err = e.publish(ChannelID("channel"), []byte("{}"), nil)
 	assert.Equal(t, nil, err)
 
 	assert.Equal(t, nil, e.subscribe(ChannelID("channel")))
@@ -63,8 +62,7 @@ func TestMemoryEngine(t *testing.T) {
 	e.app.clients.addSub(ChannelID("channel"), fakeConn)
 
 	// Now we've subscribed...
-	hasActiveSubscribers, err = e.publish(ChannelID("channel"), []byte("{}"))
-	assert.True(t, hasActiveSubscribers)
+	err = e.publish(ChannelID("channel"), []byte("{}"), nil)
 	assert.Equal(t, nil, err)
 
 	assert.Equal(t, nil, e.unsubscribe(ChannelID("channel")))
@@ -72,20 +70,14 @@ func TestMemoryEngine(t *testing.T) {
 	// Same dance to manually remove sub from app hub
 	e.app.clients.removeSub(ChannelID("channel"), fakeConn)
 
-	// Now we've unsubscribed again..
-	hasActiveSubscribers, err = e.publish(ChannelID("channel"), []byte("{}"))
-	assert.False(t, hasActiveSubscribers)
-
 	assert.Equal(t, nil, e.addPresence(ChannelID("channel"), "uid", ClientInfo{}))
 	p, err := e.presence(ChannelID("channel"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(p))
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1, false}))
-	h, err := e.history(ChannelID("channel"), historyOpts{})
-	assert.Equal(t, nil, err)
-	assert.Equal(t, 1, len(h))
 	err = e.removePresence(ChannelID("channel"), "uid")
 	assert.Equal(t, nil, err)
+
+	// TODO: test history (FZambia)
 }
 
 func TestMemoryPresenceHub(t *testing.T) {
