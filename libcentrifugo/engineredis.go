@@ -174,18 +174,28 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 
 	pool := newPool(server, password, db, conf.PoolSize)
 
+	// pubScriptSource contains lua script we register in Redis to call when publishing
+	// It allows to publish message into channel and optionally add message to history
+	// list maintaining history size and expiration time.
+	// KEYS[1] - history list key - if empty string then no history operations required
+	// ARGV[1] - channel to publish message to
+	// ARGV[2] - message payload
+	// ARGV[3] - history message payload (optional)
+	// ARGV[4] - history size (optional)
+	// ARGV[5] - history lifetime (optional)
+	// ARGV[6] - history drop inactive flag - "0" or "1" (optional)
 	pubScriptSource := `
-local n = redis.call("publish", KEYS[1], KEYS[2])
-if KEYS[3] == "1" then
+local n = redis.call("publish", ARGV[1], ARGV[2])
+if KEYS[1] ~= "" then
   local m = 0
-  if ARGV[5] == "1" and n == 0 then
-    m = redis.call("lpushx", ARGV[1], ARGV[2])
+  if ARGV[6] == "1" and n == 0 then
+    m = redis.call("lpushx", KEYS[1], ARGV[3])
   else
-    m = redis.call("lpush", ARGV[1], ARGV[2])
+    m = redis.call("lpush", KEYS[1], ARGV[3])
   end
   if m > 0 then
-    redis.call("ltrim", ARGV[1], 0, ARGV[3])
-    redis.call("expire", ARGV[1], ARGV[4])
+    redis.call("ltrim", KEYS[1], 0, ARGV[4])
+    redis.call("expire", KEYS[1], ARGV[5])
   end
 end
 return n
@@ -196,7 +206,7 @@ return n
 		pool:         pool,
 		api:          conf.API,
 		numApiShards: conf.NumAPIShards,
-		pubScript:    redis.NewScript(3, pubScriptSource),
+		pubScript:    redis.NewScript(1, pubScriptSource),
 	}
 	usingPassword := yesno(password != "")
 	apiEnabled := yesno(conf.API)
@@ -453,7 +463,7 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 	var err error
 	if opts == nil {
 		// just publish message into channel.
-		_, err = e.pubScript.Do(conn, chID, message, "0")
+		_, err = e.pubScript.Do(conn, "", chID, message)
 	} else {
 		// publish message into channel and add history message.
 		if opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
@@ -462,10 +472,9 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 				logger.ERROR.Println(err)
 				return nil
 			}
-			historyKey := e.getHistoryKey(chID)
-			_, err = e.pubScript.Do(conn, chID, message, "1", historyKey, messageJSON, opts.HistorySize, opts.HistoryLifetime, opts.HistoryDropInactive)
+			_, err = e.pubScript.Do(conn, e.getHistoryKey(chID), chID, message, messageJSON, opts.HistorySize, opts.HistoryLifetime, opts.HistoryDropInactive)
 		} else {
-			_, err = e.pubScript.Do(conn, chID, message, "0")
+			_, err = e.pubScript.Do(conn, "", chID, message)
 		}
 	}
 	return err
