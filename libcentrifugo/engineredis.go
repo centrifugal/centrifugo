@@ -175,15 +175,16 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 	pool := newPool(server, password, db, conf.PoolSize)
 
 	// pubScriptSource contains lua script we register in Redis to call when publishing
-	// It allows to publish message into channel and optionally add message to history
-	// list maintaining history size and expiration time.
-	// KEYS[1] - history list key - if empty string then no history operations required
+	// client message. It publishes message into channel and adds message to history
+	// list maintaining history size and expiration time. This is an optimization to make
+	// 1 round trip to Redis instead of 2.
+	// KEYS[1] - history list key
 	// ARGV[1] - channel to publish message to
 	// ARGV[2] - message payload
-	// ARGV[3] - history message payload (optional)
-	// ARGV[4] - history size (optional)
-	// ARGV[5] - history lifetime (optional)
-	// ARGV[6] - history drop inactive flag - "0" or "1" (optional)
+	// ARGV[3] - history message payload
+	// ARGV[4] - history size
+	// ARGV[5] - history lifetime
+	// ARGV[6] - history drop inactive flag - "0" or "1"
 	pubScriptSource := `
 local n = redis.call("publish", ARGV[1], ARGV[2])
 if KEYS[1] ~= "" then
@@ -463,7 +464,7 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 	var err error
 	if opts == nil {
 		// just publish message into channel.
-		_, err = e.pubScript.Do(conn, "", chID, message)
+		_, err = conn.Do("PUBLISH", chID, message)
 	} else {
 		// publish message into channel and add history message.
 		if opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
@@ -474,7 +475,7 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 			}
 			_, err = e.pubScript.Do(conn, e.getHistoryKey(chID), chID, message, messageJSON, opts.HistorySize, opts.HistoryLifetime, opts.HistoryDropInactive)
 		} else {
-			_, err = e.pubScript.Do(conn, "", chID, message)
+			_, err = conn.Do("PUBLISH", chID, message)
 		}
 	}
 	return err
