@@ -187,17 +187,15 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 	// ARGV[6] - history drop inactive flag - "0" or "1"
 	pubScriptSource := `
 local n = redis.call("publish", ARGV[1], ARGV[2])
-if KEYS[1] ~= "" then
-  local m = 0
-  if ARGV[6] == "1" and n == 0 then
-    m = redis.call("lpushx", KEYS[1], ARGV[3])
-  else
-    m = redis.call("lpush", KEYS[1], ARGV[3])
-  end
-  if m > 0 then
-    redis.call("ltrim", KEYS[1], 0, ARGV[4])
-    redis.call("expire", KEYS[1], ARGV[5])
-  end
+local m = 0
+if ARGV[6] == "1" and n == 0 then
+  m = redis.call("lpushx", KEYS[1], ARGV[3])
+else
+  m = redis.call("lpush", KEYS[1], ARGV[3])
+end
+if m > 0 then
+  redis.call("ltrim", KEYS[1], 0, ARGV[4])
+  redis.call("expire", KEYS[1], ARGV[5])
 end
 return n
 	`
