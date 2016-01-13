@@ -14,7 +14,6 @@ func TestResponse(t *testing.T) {
 	marshalledResponse, err := json.Marshal(resp)
 	assert.Equal(t, nil, err)
 
-	assert.Equal(t, false, resp.Err(nil))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":null"))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"body\":null"))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"method\":\"test\""))
@@ -26,14 +25,17 @@ func TestResponse(t *testing.T) {
 	resp.UID = "test uid"
 	marshalledResponse, err = json.Marshal(resp)
 	t.Log(string(marshalledResponse))
-	assert.Equal(t, true, resp.Err(nil))
-	// We test two times to ensure that it hasn't been reset
-	assert.Equal(t, true, resp.Err(nil))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":\"test error\""))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"body\":\"test body\""))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"method\":\"test\""))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"uid\":\"test uid\""))
+
+	resp = newResponse("test")
+	resp.Err(errors.New("error1"))
+	resp.Err(errors.New("error2"))
+	marshalledResponse, err = json.Marshal(resp)
+	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":\"error1\""))
 }
 
 func TestMultiResponse(t *testing.T) {
@@ -48,4 +50,13 @@ func TestMultiResponse(t *testing.T) {
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":null"))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"method\":\"test1\""))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"method\":\"test2\""))
+}
+
+func TestClientResponse(t *testing.T) {
+	resp := newClientResponse("test")
+	resp.Err(clientError{errors.New("error1"), errorAdviceFix})
+	resp.Err(clientError{errors.New("error2"), errorAdviceFix})
+	marshalledResponse, err := json.Marshal(resp)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":\"error1\""))
 }

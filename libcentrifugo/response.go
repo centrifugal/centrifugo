@@ -1,7 +1,69 @@
 package libcentrifugo
 
-// response represents an answer Centrifugo sends
-// to client or API request commands
+type errorAdvice string
+
+const (
+	errorAdviceNone  errorAdvice = ""
+	errorAdviceFix   errorAdvice = "fix"
+	errorAdviceRetry errorAdvice = "retry"
+)
+
+type clientError struct {
+	err    error
+	Advice errorAdvice `json:"advice,omitempty"`
+}
+
+// clientResponse represents an answer Centrifugo sends to client request
+// commands or protocol messages sent to client asynchronously.
+type clientResponse struct {
+	UID    string      `json:"uid,omitempty"`
+	Body   interface{} `json:"body"`
+	Method string      `json:"method"`
+	Error  string      `json:"error,omitempty"` // Use clientResponse.Err() to set.
+	clientError
+}
+
+// clientMessageResponse uses strong type for body instead of interface{} - helps to
+// reduce allocations when marshaling.
+type clientMessageResponse struct {
+	clientResponse
+	Body Message `json:"body"`
+}
+
+// newClientMessage returns initialized client message response.
+func newClientMessage() *clientMessageResponse {
+	return &clientMessageResponse{
+		clientResponse: clientResponse{
+			Method: "message",
+		},
+	}
+}
+
+// newClientResponse returns client response initialized with provided method.
+// Setting other client response fields is a caller responsibility.
+func newClientResponse(method string) *clientResponse {
+	return &clientResponse{
+		Method: method,
+	}
+}
+
+// Err set a client error on the client response and updates the 'err'
+// field in the response. If an error has already been set it will be kept.
+func (r *clientResponse) Err(err clientError) {
+	if r.clientError.err != nil {
+		// error already set.
+		return
+	}
+	r.clientError = err
+	e := err.err.Error()
+	r.Error = e
+}
+
+// multiClientResponse is a slice of responses in execution order - from first
+// executed to last one
+type multiClientResponse []*clientResponse
+
+// response represents an answer Centrifugo sends to API request commands
 type response struct {
 	UID    string      `json:"uid,omitempty"`
 	Body   interface{} `json:"body"`
@@ -10,23 +72,17 @@ type response struct {
 	err    error       // Use response.Err() to set.
 }
 
-// Err set an error message on the response
-// and updates the 'err' field in the response.
-// If an error has already been set it will be kept.
-// Will return true if an error has been set previously,
-// or if an error is sent.
-func (r *response) Err(err error) bool {
+// Err set an error message on the response and updates the 'err' field in
+// the response. If an error has already been set it will be kept.
+func (r *response) Err(err error) {
 	if r.err != nil {
-		return true
+		return
 	}
-	if err == nil {
-		return false
-	}
-	//TODO: Add logging here? (klauspost)
+	// TODO: Add logging here? (klauspost)
 	e := err.Error()
 	r.Error = &e
 	r.err = err
-	return true
+	return
 }
 
 func newResponse(method string) *response {

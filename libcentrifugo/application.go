@@ -436,7 +436,7 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 	}
 
 	if chOpts.Watch {
-		resp := newResponse("message")
+		resp := newClientResponse("message")
 		resp.Body = &adminMessageBody{
 			Message: message,
 		}
@@ -453,7 +453,7 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 
 	chID := app.channelID(ch)
 
-	resp := newResponse("message")
+	resp := newClientMessage()
 	resp.Body = message
 
 	byteMessage, err := json.Marshal(resp)
@@ -487,7 +487,7 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 // someone subscribes on it or leave message when someone unsubscribed from channel.
 func (app *Application) pubJoinLeave(ch Channel, method string, info ClientInfo) error {
 	chID := app.channelID(ch)
-	resp := newResponse(method)
+	resp := newClientResponse(method)
 	resp.Body = &JoinLeaveBody{
 		Channel: ch,
 		Data:    info,
