@@ -107,7 +107,10 @@ func BenchmarkAPIHandler(b *testing.B) {
 	nMessages := nClients * nCommands
 	sink := make(chan []byte, nMessages)
 	app := testMemoryApp()
-	app.config.ClientQueueInitialCapacity = 2
+
+	// Use very large initial capacity so that queue resizes do not affect benchmark.
+	app.config.ClientQueueInitialCapacity = 1000
+
 	createTestClients(app, nChannels, nClients, sink)
 	b.Logf("num channels: %v, num clients: %v, num unique clients %v, num commands: %v", app.clients.nChannels(), app.clients.nClients(), app.clients.nUniqueClients(), nCommands)
 	jsonData := getNPublishJSON("channel-0", nCommands)
