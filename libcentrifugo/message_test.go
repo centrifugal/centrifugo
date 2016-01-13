@@ -21,7 +21,7 @@ func TestMessage(t *testing.T) {
 }
 
 func BenchmarkMsgMarshal(b *testing.B) {
-	msg, _ := newMessage(Channel("test"), []byte("{}"), "", nil)
+	msg := newMessage(Channel("test"), []byte("{}"), "", nil)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		resp := newClientMessage()

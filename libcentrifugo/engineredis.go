@@ -477,42 +477,6 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 		}
 	}
 	return err
-
-	/*
-		numSubscribers, err := redis.Int(conn.Do("PUBLISH", chID, message))
-		if err != nil {
-			return err
-		}
-
-		if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
-			historyKey := e.getHistoryKey(chID)
-
-			messageJSON, err := json.Marshal(opts.Message)
-			if err != nil {
-				logger.ERROR.Println(err)
-				return nil
-			}
-
-			dropInactive := opts.HistoryDropInactive && !(numSubscribers > 0)
-
-			pushCommand := "LPUSH"
-			if dropInactive {
-				pushCommand = "LPUSHX"
-			}
-
-			conn.Send("MULTI")
-			conn.Send(pushCommand, historyKey, messageJSON)
-			// All below commands are a simple no-op in redis if the key doesn't exist
-			conn.Send("LTRIM", historyKey, 0, opts.HistorySize-1)
-			conn.Send("EXPIRE", historyKey, opts.HistoryLifetime)
-			_, err = conn.Do("EXEC")
-			if err != nil {
-				logger.ERROR.Println(err)
-			}
-		}
-
-		return nil
-	*/
 }
 
 func (e *RedisEngine) subscribe(chID ChannelID) error {
