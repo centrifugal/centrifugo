@@ -9,8 +9,7 @@ import (
 )
 
 func TestMessage(t *testing.T) {
-	msg, err := newMessage(Channel("test"), []byte("{}"), "", nil)
-	assert.Equal(t, nil, err)
+	msg := newMessage(Channel("test"), []byte("{}"), "", nil)
 	assert.Equal(t, msg.Channel, Channel("test"))
 	msgBytes, err := json.Marshal(msg)
 	assert.Equal(t, nil, err)

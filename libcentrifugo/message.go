@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/satori/go.uuid"
 )
 
 // Message represents client message.
@@ -18,21 +18,14 @@ type Message struct {
 	Client    ConnID           `json:"client,omitempty"`
 }
 
-func newMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) (Message, error) {
-	uid, err := uuid.NewV4()
-	if err != nil {
-		return Message{}, err
-	}
-
+func newMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) Message {
 	raw := json.RawMessage(data)
-
-	message := Message{
-		UID:       MessageID(uid.String()),
+	return Message{
+		UID:       MessageID(uuid.NewV4().String()),
 		Timestamp: strconv.FormatInt(time.Now().Unix(), 10),
 		Info:      info,
 		Channel:   ch,
 		Data:      &raw,
 		Client:    client,
 	}
-	return message, nil
 }

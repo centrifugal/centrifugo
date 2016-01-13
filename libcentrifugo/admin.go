@@ -5,7 +5,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/gorilla/websocket"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/satori/go.uuid"
 )
 
 // use interface to mimic websocket connection write method we use here
@@ -23,12 +23,8 @@ type adminClient struct {
 }
 
 func newAdminClient(app *Application, s adminSession) (*adminClient, error) {
-	uid, err := uuid.NewV4()
-	if err != nil {
-		return nil, err
-	}
 	return &adminClient{
-		UID:       ConnID(uid.String()),
+		UID:       ConnID(uuid.NewV4().String()),
 		app:       app,
 		sess:      s,
 		writeChan: make(chan []byte, 256),

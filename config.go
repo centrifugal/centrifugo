@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/satori/go.uuid"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/viper"
 	"github.com/centrifugal/centrifugo/libcentrifugo"
 )
@@ -44,7 +44,8 @@ func newConfig() *libcentrifugo.Config {
 	cfg.ClientChannelBoundary = viper.GetString("client_channel_boundary")
 	cfg.ExpiredConnectionCloseDelay = time.Duration(viper.GetInt("expired_connection_close_delay")) * time.Second
 	cfg.StaleConnectionCloseDelay = time.Duration(viper.GetInt("stale_connection_close_delay")) * time.Second
-	cfg.MaxClientQueueSize = viper.GetInt("max_client_queue_size")
+	cfg.ClientQueueMaxSize = viper.GetInt("client_queue_max_size")
+	cfg.ClientQueueInitialCapacity = viper.GetInt("client_queue_initial_capacity")
 	cfg.Insecure = viper.GetBool("insecure")
 	cfg.InsecureAPI = viper.GetBool("insecure_api")
 	cfg.InsecureWeb = viper.GetBool("insecure_web")
@@ -127,11 +128,6 @@ func generateConfig(f string) error {
 		return errors.New("output config file must have one of supported extensions: " + strings.Join(supportedExts, ", "))
 	}
 
-	uid, err := uuid.NewV4()
-	if err != nil {
-		return err
-	}
-
 	var t *template.Template
 
 	switch ext {
@@ -150,7 +146,7 @@ func generateConfig(f string) error {
 	t.Execute(&output, struct {
 		Secret string
 	}{
-		uid.String(),
+		uuid.NewV4().String(),
 	})
 
 	err = ioutil.WriteFile(f, output.Bytes(), 0644)

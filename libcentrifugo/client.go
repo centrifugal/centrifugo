@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nu7hatch/gouuid"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/satori/go.uuid"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
 )
@@ -51,23 +51,20 @@ type ClientInfo struct {
 
 // newClient creates new ready to communicate client.
 func newClient(app *Application, s session) (*client, error) {
-	uid, err := uuid.NewV4()
-	if err != nil {
-		return nil, err
-	}
 	c := client{
-		UID:       ConnID(uid.String()),
+		UID:       ConnID(uuid.NewV4().String()),
 		app:       app,
 		sess:      s,
-		messages:  bytequeue.New(),
 		closeChan: make(chan struct{}),
 	}
-	go c.sendMessages()
 	app.RLock()
 	staleCloseDelay := app.config.StaleConnectionCloseDelay
-	c.maxQueueSize = app.config.MaxClientQueueSize
+	queueInitialCapacity := app.config.ClientQueueInitialCapacity
+	c.maxQueueSize = app.config.ClientQueueMaxSize
 	c.sendTimeout = app.config.MessageSendTimeout
 	app.RUnlock()
+	c.messages = bytequeue.New(queueInitialCapacity)
+	go c.sendMessages()
 	if staleCloseDelay > 0 {
 		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
 	}

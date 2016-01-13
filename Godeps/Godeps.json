@@ -63,12 +63,12 @@
 			"Rev": "442e588f213303bec7936deba67901f8fc8f18b1"
 		},
 		{
-			"ImportPath": "github.com/nu7hatch/gouuid",
-			"Rev": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
-		},
-		{
 			"ImportPath": "github.com/rcrowley/go-metrics",
 			"Rev": "dee209f2455f101a5e4e593dea94872d2c62d85d"
+		},
+		{
+			"ImportPath": "github.com/satori/go.uuid",
+			"Rev": "08f0718b61e95ddba0ade3346725fe0e4bf28ca6"
 		},
 		{
 			"ImportPath": "github.com/spf13/cast",

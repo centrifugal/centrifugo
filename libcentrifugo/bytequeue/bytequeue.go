@@ -46,24 +46,22 @@ type ByteQueue interface {
 }
 
 type byteQueue struct {
-	mu       sync.RWMutex
-	cond     *sync.Cond
-	nodes    [][]byte
-	head     int
-	tail     int
-	cnt      int
-	size     int
-	isClosed bool
+	mu      sync.RWMutex
+	cond    *sync.Cond
+	nodes   [][]byte
+	head    int
+	tail    int
+	cnt     int
+	size    int
+	closed  bool
+	initCap int
 }
 
-const (
-	initialCapacity = 2
-)
-
 // New ByteQueue returns a new []byte queue with initial capacity.
-func New() ByteQueue {
+func New(initialCapacity int) ByteQueue {
 	sq := &byteQueue{
-		nodes: make([][]byte, initialCapacity),
+		initCap: initialCapacity,
+		nodes:   make([][]byte, initialCapacity),
 	}
 	sq.cond = sync.NewCond(&sq.mu)
 	return sq
@@ -89,9 +87,8 @@ func (q *byteQueue) resize(n int) {
 // In that case the []byte is dropped.
 func (q *byteQueue) Add(i []byte) bool {
 	q.mu.Lock()
-	defer q.mu.Unlock()
-	q.size += len(i)
-	if q.isClosed {
+	if q.closed {
+		q.mu.Unlock()
 		return false
 	}
 	if q.cnt == len(q.nodes) {
@@ -101,8 +98,10 @@ func (q *byteQueue) Add(i []byte) bool {
 	}
 	q.nodes[q.tail] = i
 	q.tail = (q.tail + 1) % len(q.nodes)
+	q.size += len(i)
 	q.cnt++
 	q.cond.Signal()
+	q.mu.Unlock()
 	return true
 }
 
@@ -111,7 +110,7 @@ func (q *byteQueue) Add(i []byte) bool {
 func (q *byteQueue) Close() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
-	q.isClosed = true
+	q.closed = true
 	q.cnt = 0
 	q.nodes = nil
 	q.size = 0
@@ -123,7 +122,7 @@ func (q *byteQueue) Close() {
 // closed while the function returns, so only "true" has a definite meaning.
 func (q *byteQueue) Closed() bool {
 	q.mu.RLock()
-	c := q.isClosed
+	c := q.closed
 	q.mu.RUnlock()
 	return c
 }
@@ -135,7 +134,7 @@ func (q *byteQueue) Closed() bool {
 // Otherwise the return value of "remove" is returned.
 func (q *byteQueue) Wait() ([]byte, bool) {
 	q.mu.Lock()
-	if q.isClosed {
+	if q.closed {
 		q.mu.Unlock()
 		return []byte{}, false
 	}
@@ -153,8 +152,8 @@ func (q *byteQueue) Wait() ([]byte, bool) {
 // or 2) the queue is closed.
 func (q *byteQueue) Remove() ([]byte, bool) {
 	q.mu.Lock()
-	defer q.mu.Unlock()
 	if q.cnt == 0 {
+		q.mu.Unlock()
 		return []byte{}, false
 	}
 	i := q.nodes[q.head]
@@ -162,10 +161,11 @@ func (q *byteQueue) Remove() ([]byte, bool) {
 	q.cnt--
 	q.size -= len(i)
 
-	if n := len(q.nodes) / 2; n >= 2 && q.cnt <= n {
+	if n := len(q.nodes) / 2; n >= q.initCap && q.cnt <= n {
 		q.resize(n)
 	}
 
+	q.mu.Unlock()
 	return i, true
 }
 

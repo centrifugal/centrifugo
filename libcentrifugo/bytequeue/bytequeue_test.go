@@ -8,7 +8,8 @@ import (
 )
 
 func TestByteQueueResize(t *testing.T) {
-	q := New()
+	initialCapacity := 2
+	q := New(initialCapacity)
 	assert.Equal(t, 0, q.Len())
 	assert.Equal(t, initialCapacity, q.Cap())
 	assert.Equal(t, false, q.Closed())
@@ -34,7 +35,8 @@ func TestByteQueueResize(t *testing.T) {
 }
 
 func TestByteQueueSize(t *testing.T) {
-	q := New()
+	initialCapacity := 2
+	q := New(initialCapacity)
 	assert.Equal(t, 0, q.Size())
 	q.Add([]byte("1"))
 	q.Add([]byte("2"))
@@ -44,7 +46,8 @@ func TestByteQueueSize(t *testing.T) {
 }
 
 func TestByteQueueWait(t *testing.T) {
-	q := New()
+	initialCapacity := 2
+	q := New(initialCapacity)
 	q.Add([]byte("1"))
 	q.Add([]byte("2"))
 
@@ -67,7 +70,8 @@ func TestByteQueueWait(t *testing.T) {
 }
 
 func TestByteQueueClose(t *testing.T) {
-	q := New()
+	initialCapacity := 2
+	q := New(initialCapacity)
 
 	// test removing from empty queue
 	_, ok := q.Remove()
@@ -91,10 +95,43 @@ func TestByteQueueClose(t *testing.T) {
 }
 
 func BenchmarkQueueAdd(b *testing.B) {
-	q := New()
+	q := New(2)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		q.Add([]byte("test"))
+	}
+	b.StopTimer()
+	q.Close()
+}
+
+func addAndConsume(q ByteQueue, n int) {
+	// Add to queue and consume in another goroutine.
+	done := make(chan struct{})
+	go func() {
+		count := 0
+		for {
+			_, ok := q.Wait()
+			if !ok {
+				continue
+			}
+			count++
+			if count == n {
+				close(done)
+				break
+			}
+		}
+	}()
+	for i := 0; i < n; i++ {
+		q.Add([]byte("test"))
+	}
+	<-done
+}
+
+func BenchmarkQueueAddConsume(b *testing.B) {
+	q := New(2)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		addAndConsume(q, 10000)
 	}
 	b.StopTimer()
 	q.Close()
