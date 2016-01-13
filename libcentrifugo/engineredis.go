@@ -36,6 +36,7 @@ type RedisEngine struct {
 	numApiShards int
 	subCh        chan subRequest
 	unSubCh      chan subRequest
+	pubScript    *redis.Script
 }
 
 // RedisEngineConfig is struct with Redis Engine options.
@@ -173,11 +174,38 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 
 	pool := newPool(server, password, db, conf.PoolSize)
 
+	// pubScriptSource contains lua script we register in Redis to call when publishing
+	// client message. It publishes message into channel and adds message to history
+	// list maintaining history size and expiration time. This is an optimization to make
+	// 1 round trip to Redis instead of 2.
+	// KEYS[1] - history list key
+	// ARGV[1] - channel to publish message to
+	// ARGV[2] - message payload
+	// ARGV[3] - history message payload
+	// ARGV[4] - history size
+	// ARGV[5] - history lifetime
+	// ARGV[6] - history drop inactive flag - "0" or "1"
+	pubScriptSource := `
+local n = redis.call("publish", ARGV[1], ARGV[2])
+local m = 0
+if ARGV[6] == "1" and n == 0 then
+  m = redis.call("lpushx", KEYS[1], ARGV[3])
+else
+  m = redis.call("lpush", KEYS[1], ARGV[3])
+end
+if m > 0 then
+  redis.call("ltrim", KEYS[1], 0, ARGV[4])
+  redis.call("expire", KEYS[1], ARGV[5])
+end
+return n
+	`
+
 	e := &RedisEngine{
 		app:          app,
 		pool:         pool,
 		api:          conf.API,
 		numApiShards: conf.NumAPIShards,
+		pubScript:    redis.NewScript(1, pubScriptSource),
 	}
 	usingPassword := yesno(password != "")
 	apiEnabled := yesno(conf.API)
@@ -427,11 +455,64 @@ func (e *RedisEngine) runPubSub() {
 	}
 }
 
-func (e *RedisEngine) publish(chID ChannelID, message []byte) (bool, error) {
+func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts) error {
 	conn := e.pool.Get()
 	defer conn.Close()
-	numSubscribers, err := redis.Int(conn.Do("PUBLISH", chID, message))
-	return numSubscribers > 0, err
+
+	var err error
+	if opts == nil {
+		// just publish message into channel.
+		_, err = conn.Do("PUBLISH", chID, message)
+	} else {
+		// publish message into channel and add history message.
+		if opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
+			messageJSON, err := json.Marshal(opts.Message)
+			if err != nil {
+				logger.ERROR.Println(err)
+				return nil
+			}
+			_, err = e.pubScript.Do(conn, e.getHistoryKey(chID), chID, message, messageJSON, opts.HistorySize, opts.HistoryLifetime, opts.HistoryDropInactive)
+		} else {
+			_, err = conn.Do("PUBLISH", chID, message)
+		}
+	}
+	return err
+
+	/*
+		numSubscribers, err := redis.Int(conn.Do("PUBLISH", chID, message))
+		if err != nil {
+			return err
+		}
+
+		if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
+			historyKey := e.getHistoryKey(chID)
+
+			messageJSON, err := json.Marshal(opts.Message)
+			if err != nil {
+				logger.ERROR.Println(err)
+				return nil
+			}
+
+			dropInactive := opts.HistoryDropInactive && !(numSubscribers > 0)
+
+			pushCommand := "LPUSH"
+			if dropInactive {
+				pushCommand = "LPUSHX"
+			}
+
+			conn.Send("MULTI")
+			conn.Send(pushCommand, historyKey, messageJSON)
+			// All below commands are a simple no-op in redis if the key doesn't exist
+			conn.Send("LTRIM", historyKey, 0, opts.HistorySize-1)
+			conn.Send("EXPIRE", historyKey, opts.HistoryLifetime)
+			_, err = conn.Do("EXEC")
+			if err != nil {
+				logger.ERROR.Println(err)
+			}
+		}
+
+		return nil
+	*/
 }
 
 func (e *RedisEngine) subscribe(chID ChannelID) error {
@@ -555,31 +636,6 @@ func (e *RedisEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 		return nil, err
 	}
 	return mapStringClientInfo(reply, nil)
-}
-
-func (e *RedisEngine) addHistory(chID ChannelID, message Message, opts addHistoryOpts) error {
-	conn := e.pool.Get()
-	defer conn.Close()
-
-	historyKey := e.getHistoryKey(chID)
-	messageJSON, err := json.Marshal(message)
-	if err != nil {
-		return err
-	}
-
-	pushCommand := "LPUSH"
-
-	if opts.DropInactive {
-		pushCommand = "LPUSHX"
-	}
-
-	conn.Send("MULTI")
-	conn.Send(pushCommand, historyKey, messageJSON)
-	// All below commands are a simple no-op in redis if the key doesn't exist
-	conn.Send("LTRIM", historyKey, 0, opts.Size-1)
-	conn.Send("EXPIRE", historyKey, opts.Lifetime)
-	_, err = conn.Do("EXEC")
-	return err
 }
 
 func sliceOfMessages(result interface{}, err error) ([]Message, error) {

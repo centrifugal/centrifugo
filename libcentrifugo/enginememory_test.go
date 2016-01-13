@@ -1,6 +1,7 @@
 package libcentrifugo
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -48,8 +49,7 @@ func TestMemoryEngine(t *testing.T) {
 	assert.NotEqual(t, nil, e.presenceHub)
 	assert.NotEqual(t, e.name(), "")
 
-	hasActiveSubscribers, err := e.publish(ChannelID("channel"), []byte("{}"))
-	assert.False(t, hasActiveSubscribers) // No subscribers connected yet
+	err = e.publish(ChannelID("channel"), []byte("{}"), nil)
 	assert.Equal(t, nil, err)
 
 	assert.Equal(t, nil, e.subscribe(ChannelID("channel")))
@@ -63,8 +63,7 @@ func TestMemoryEngine(t *testing.T) {
 	e.app.clients.addSub(ChannelID("channel"), fakeConn)
 
 	// Now we've subscribed...
-	hasActiveSubscribers, err = e.publish(ChannelID("channel"), []byte("{}"))
-	assert.True(t, hasActiveSubscribers)
+	err = e.publish(ChannelID("channel"), []byte("{}"), nil)
 	assert.Equal(t, nil, err)
 
 	assert.Equal(t, nil, e.unsubscribe(ChannelID("channel")))
@@ -72,20 +71,56 @@ func TestMemoryEngine(t *testing.T) {
 	// Same dance to manually remove sub from app hub
 	e.app.clients.removeSub(ChannelID("channel"), fakeConn)
 
-	// Now we've unsubscribed again..
-	hasActiveSubscribers, err = e.publish(ChannelID("channel"), []byte("{}"))
-	assert.False(t, hasActiveSubscribers)
-
 	assert.Equal(t, nil, e.addPresence(ChannelID("channel"), "uid", ClientInfo{}))
 	p, err := e.presence(ChannelID("channel"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(p))
-	assert.Equal(t, nil, e.addHistory(ChannelID("channel"), Message{}, addHistoryOpts{1, 1, false}))
+	err = e.removePresence(ChannelID("channel"), "uid")
+	assert.Equal(t, nil, err)
+
+	msg := Message{UID: MessageID("test UID")}
+	msgJSON, _ := json.Marshal(msg)
+
+	// test adding history
+	assert.Equal(t, nil, e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 4, 1, false}))
 	h, err := e.history(ChannelID("channel"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
-	err = e.removePresence(ChannelID("channel"), "uid")
+	assert.Equal(t, h[0].UID, MessageID("test UID"))
+
+	// test history limit
+	assert.Equal(t, nil, e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 4, 1, false}))
+	assert.Equal(t, nil, e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 4, 1, false}))
+	assert.Equal(t, nil, e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 4, 1, false}))
+	h, err = e.history(ChannelID("channel"), historyOpts{Limit: 2})
 	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(h))
+
+	// test history limit greater than history size
+	assert.Equal(t, nil, e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 1, 1, false}))
+	assert.Equal(t, nil, e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 1, 1, false}))
+	assert.Equal(t, nil, e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 1, 1, false}))
+	h, err = e.history(ChannelID("channel"), historyOpts{Limit: 2})
+
+	// HistoryDropInactive tests - new channel to avoid conflicts with test above
+	// 1. add history with DropInactive = true should be a no-op if history is empty
+	assert.Equal(t, nil, e.publish(ChannelID("channel-2"), msgJSON, &publishOpts{msg, 2, 5, true}))
+	h, err = e.history(ChannelID("channel-2"), historyOpts{})
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 0, len(h))
+
+	// 2. add history with DropInactive = false should always work
+	assert.Equal(t, nil, e.publish(ChannelID("channel-2"), msgJSON, &publishOpts{msg, 2, 5, false}))
+	h, err = e.history(ChannelID("channel-2"), historyOpts{})
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 1, len(h))
+
+	// 3. add with DropInactive = true should work immediately since there should be something in history
+	// for 5 seconds from above
+	assert.Equal(t, nil, e.publish(ChannelID("channel-2"), msgJSON, &publishOpts{msg, 2, 5, true}))
+	h, err = e.history(ChannelID("channel-2"), historyOpts{})
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(h))
 }
 
 func TestMemoryPresenceHub(t *testing.T) {

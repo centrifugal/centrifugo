@@ -352,18 +352,18 @@ func (app *Application) pubControl(method string, params []byte) error {
 	}
 
 	app.RLock()
-	defer app.RUnlock()
-	_, err = app.engine.publish(app.config.ControlChannel, messageBytes)
-	return err
+	controlChannel := app.config.ControlChannel
+	app.RUnlock()
+	return app.engine.publish(controlChannel, messageBytes, nil)
 }
 
 // pubAdmin publishes message into admin channel so all running
 // nodes will receive it and send to admins connected.
 func (app *Application) pubAdmin(message []byte) error {
 	app.RLock()
-	defer app.RUnlock()
-	_, err := app.engine.publish(app.config.AdminChannel, message)
-	return err
+	adminChannel := app.config.AdminChannel
+	app.RUnlock()
+	return app.engine.publish(adminChannel, message, nil)
 }
 
 // Publish sends a message to all clients subscribed on channel with provided data, client and ClientInfo.
@@ -461,21 +461,16 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 		return err
 	}
 
-	hasCurrentSubscribers, err := app.engine.publish(chID, byteMessage)
-	if err != nil {
-		return err
+	pubOpts := &publishOpts{
+		Message:             message,
+		HistorySize:         chOpts.HistorySize,
+		HistoryLifetime:     chOpts.HistoryLifetime,
+		HistoryDropInactive: chOpts.HistoryDropInactive,
 	}
 
-	if chOpts.HistorySize > 0 && chOpts.HistoryLifetime > 0 {
-		histOpts := addHistoryOpts{
-			Size:         chOpts.HistorySize,
-			Lifetime:     chOpts.HistoryLifetime,
-			DropInactive: (chOpts.HistoryDropInactive && !hasCurrentSubscribers),
-		}
-		err = app.addHistory(ch, message, histOpts)
-		if err != nil {
-			logger.ERROR.Println(err)
-		}
+	err = app.engine.publish(chID, byteMessage, pubOpts)
+	if err != nil {
+		return err
 	}
 
 	app.metrics.numMsgPublished.Inc(1)
@@ -496,8 +491,7 @@ func (app *Application) pubJoinLeave(ch Channel, method string, info ClientInfo)
 	if err != nil {
 		return err
 	}
-	_, err = app.engine.publish(chID, byteMessage)
-	return err
+	return app.engine.publish(chID, byteMessage, nil)
 }
 
 // pubPing sends control ping message to all nodes - this message
@@ -764,12 +758,6 @@ func (app *Application) Presence(ch Channel) (map[ConnID]ClientInfo, error) {
 		return map[ConnID]ClientInfo{}, ErrInternalServerError
 	}
 	return presence, nil
-}
-
-// addHistory proxies history message adding to engine.
-func (app *Application) addHistory(ch Channel, message Message, opts addHistoryOpts) error {
-	chID := app.channelID(ch)
-	return app.engine.addHistory(chID, message, opts)
 }
 
 // History returns a slice of last messages published into project channel.
