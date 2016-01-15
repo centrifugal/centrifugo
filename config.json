@@ -11,7 +11,8 @@
       "presence": true,
       "join_leave": true,
       "history_size": 10,
-      "history_lifetime": 30
+      "history_lifetime": 30,
+      "recover": true
     }  
   ]
 }

@@ -1,3 +1,14 @@
+v1.3.2
+======
+
+This release built using go 1.5.3 and [includes security fix in Go lang](https://groups.google.com/forum/#!topic/golang-announce/MEATuOi_ei4)
+
+* empty errors not included in client response (**this requires using last Javascript client version**)
+* optimization in Redis engine when using history - one round trip to Redis to publish message and save it into history instead of two. This was done over registering lua script on server start.
+* client errors improvements - include error advice when error occurred (fix or retry at moment)
+
+Also note that Javascript client will be fully refreshed soon. See [this pull request](https://github.com/centrifugal/centrifuge-js/pull/7)
+
 v1.3.1
 ======
 
