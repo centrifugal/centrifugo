@@ -2,6 +2,7 @@ package libcentrifugo
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -301,6 +302,45 @@ func TestClientSubscribePrivate(t *testing.T) {
 	resp, err = c.handleCmd(testSubscribePrivateCmd("$test", c.UID))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.err)
+
+}
+
+func TestClientSubscribeLimits(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp)}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+
+	// generate long channel and try to subscribe on it.
+	b := make([]string, 1000)
+	for i := 0; i < 1000; i++ {
+		b[i] = "a"
+	}
+	ch := strings.Join(b, "")
+
+	resp, err := c.subscribeCmd(&SubscribeClientCommand{Channel: Channel(ch)})
+	assert.Equal(t, nil, err)
+	assert.Equal(t, ErrLimitExceeded, resp.err)
+	assert.Equal(t, 0, len(c.channels()))
+
+	c.app.config.ClientChannelLimit = 10
+
+	for i := 0; i < 10; i++ {
+		resp, err := c.subscribeCmd(&SubscribeClientCommand{Channel: Channel(fmt.Sprintf("test%d", i))})
+		assert.Equal(t, nil, err)
+		assert.Equal(t, nil, resp.err)
+		assert.Equal(t, i+1, len(c.channels()))
+	}
+
+	// one more to exceed limit.
+	resp, err = c.subscribeCmd(&SubscribeClientCommand{Channel: Channel("test")})
+	assert.Equal(t, nil, err)
+	assert.Equal(t, ErrLimitExceeded, resp.err)
+	assert.Equal(t, 10, len(c.channels()))
 
 }
 

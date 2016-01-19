@@ -141,6 +141,9 @@ type Config struct {
 	// consumption per client connection grows with this option.
 	ClientQueueInitialCapacity int
 
+	// ClientChannelLimit sets upper limit of channels each client can subscribe to.
+	ClientChannelLimit int
+
 	// PrivateChannelPrefix is a prefix in channel name which indicates that
 	// channel is private.
 	PrivateChannelPrefix string
@@ -263,5 +266,6 @@ var DefaultConfig = &Config{
 	StaleConnectionCloseDelay:   25 * time.Second,
 	ClientQueueMaxSize:          10485760, // 10MB by default
 	ClientQueueInitialCapacity:  2,
+	ClientChannelLimit:          100,
 	Insecure:                    false,
 }
