@@ -51,6 +51,9 @@ type Application struct {
 
 	// metrics holds various counters and timers different parts of Centrifugo update.
 	metrics *metricsRegistry
+
+	// chIDPrefix added before every channel name to make ChannelID
+	chIDPrefix string
 }
 
 // Stats contains state and metrics information from running Centrifugo nodes.
@@ -74,17 +77,20 @@ type NodeInfo struct {
 	updated int64
 }
 
+const channelIDClientSuffix = ".channel."
+
 // NewApplication returns new Application instance, the only required argument is
 // config, structure and engine must be set via corresponding methods.
 func NewApplication(config *Config) (*Application, error) {
 	app := &Application{
-		uid:     uuid.NewV4().String(),
-		config:  config,
-		clients: newClientHub(),
-		admins:  newAdminHub(),
-		nodes:   make(map[string]NodeInfo),
-		started: time.Now().Unix(),
-		metrics: newMetricsRegistry(),
+		uid:        uuid.NewV4().String(),
+		config:     config,
+		clients:    newClientHub(),
+		admins:     newAdminHub(),
+		nodes:      make(map[string]NodeInfo),
+		started:    time.Now().Unix(),
+		metrics:    newMetricsRegistry(),
+		chIDPrefix: config.ChannelPrefix + channelIDClientSuffix,
 	}
 	return app, nil
 }
@@ -194,6 +200,7 @@ func (app *Application) SetConfig(c *Config) {
 	app.Lock()
 	defer app.Unlock()
 	app.config = c
+	app.chIDPrefix = c.ChannelPrefix + channelIDClientSuffix
 	if app.config.Insecure {
 		logger.WARN.Println("libcentrifugo: application in INSECURE MODE")
 	}
@@ -568,7 +575,7 @@ func (app *Application) pingCmd(cmd *pingControlCommand) error {
 func (app *Application) channelIDPrefix() string {
 	app.RLock()
 	defer app.RUnlock()
-	return app.config.ChannelPrefix + ".channel."
+	return app.chIDPrefix
 }
 
 // channelID returns internal name of channel.
