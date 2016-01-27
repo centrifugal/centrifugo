@@ -513,7 +513,7 @@ func (e *RedisEngine) getHistoryKey(chID ChannelID) string {
 
 func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) error {
 	e.app.RLock()
-	presenceExpireInterval := e.app.config.PresenceExpireInterval
+	presenceExpireSeconds := e.app.config.PresenceExpireInterval.Seconds()
 	e.app.RUnlock()
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -521,14 +521,14 @@ func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) e
 	if err != nil {
 		return err
 	}
-	expireAt := time.Now().Unix() + int64(presenceExpireInterval.Seconds())
+	expireAt := time.Now().Unix() + int64(presenceExpireSeconds)
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
 	conn.Send("MULTI")
 	conn.Send("ZADD", setKey, expireAt, uid)
 	conn.Send("HSET", hashKey, uid, infoJSON)
-	conn.Send("EXPIRE", setKey, presenceExpireInterval)
-	conn.Send("EXPIRE", hashKey, presenceExpireInterval)
+	conn.Send("EXPIRE", setKey, presenceExpireSeconds)
+	conn.Send("EXPIRE", hashKey, presenceExpireSeconds)
 	_, err = conn.Do("EXEC")
 	return err
 }
