@@ -289,3 +289,65 @@ func TestUpdateMetrics(t *testing.T) {
 	app.updateMetricsOnce()
 	assert.Equal(t, int64(1), app.metrics.metrics.NumMsgPublished)
 }
+
+// BenchmarkReceiveBroadcast measures how fast we can broadcast messages received
+// from engine into client channels in case of reasonably large different channel
+// amount.
+func BenchmarkReceiveBroadcast(b *testing.B) {
+	nChannels := 1000
+	nClients := 1000
+	nCommands := 10000
+	nMessages := nCommands * nClients
+	sink := make(chan []byte, nMessages)
+	app := testMemoryApp()
+	// Use very large initial capacity so that queue resizes do not affect benchmark.
+	app.config.ClientQueueInitialCapacity = 4000
+	app.config.ClientChannelLimit = 1000
+	createTestClients(app, nChannels, nClients, sink)
+
+	type received struct {
+		ch   ChannelID
+		data []byte
+	}
+
+	var inputData []received
+
+	for i := 0; i < nCommands; i++ {
+		suffix := i % nChannels
+		ch := Channel(fmt.Sprintf("channel-%d", suffix))
+		msg := newMessage(ch, []byte("{}"), "", nil)
+		resp := newClientMessage()
+		resp.Body = msg
+		jsonData, _ := json.Marshal(resp)
+		inputData = append(inputData, received{app.channelID(ch), jsonData})
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+
+		done := make(chan struct{})
+
+		go func() {
+			count := 0
+			for {
+				select {
+				case <-sink:
+					count++
+				}
+				if count == nMessages {
+					close(done)
+					return
+				}
+			}
+		}()
+
+		go func() {
+			for _, item := range inputData {
+				app.handleMsg(item.ch, item.data)
+			}
+		}()
+
+		<-done
+	}
+	b.StopTimer()
+}

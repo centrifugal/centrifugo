@@ -115,14 +115,9 @@ func BenchmarkAPIHandler(b *testing.B) {
 	b.Logf("num channels: %v, num clients: %v, num unique clients %v, num commands: %v", app.clients.nChannels(), app.clients.nClients(), app.clients.nUniqueClients(), nCommands)
 	jsonData := getNPublishJSON("channel-0", nCommands)
 	sign := auth.GenerateApiSign("secret", jsonData)
-	done := make(chan struct{})
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		rec := httptest.NewRecorder()
-		req, _ := http.NewRequest("POST", "/api/test1", bytes.NewBuffer(jsonData))
-		req.Header.Add("X-API-Sign", sign)
-		req.Header.Add("Content-Type", "application/json")
-		app.APIHandler(rec, req)
+		done := make(chan struct{})
 		go func() {
 			count := 0
 			for {
@@ -132,9 +127,15 @@ func BenchmarkAPIHandler(b *testing.B) {
 				}
 				if count == nMessages {
 					close(done)
+					return
 				}
 			}
 		}()
+		rec := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/api/test1", bytes.NewBuffer(jsonData))
+		req.Header.Add("X-API-Sign", sign)
+		req.Header.Add("Content-Type", "application/json")
+		app.APIHandler(rec, req)
 		<-done
 	}
 	b.StopTimer()
