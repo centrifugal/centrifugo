@@ -1,3 +1,12 @@
+v1.3.3
+======
+
+No backwards incompatible changes here
+
+* fix automatic presence expire in Redis engine - could lead to small memory leaks in Redis when using presence. Also could result in wrong presence information after non-graceful Centrifugo node shutdown.
+* configurable limit for amount of channels each client can subscribe to. Default `100`. Can be changed using `client_channel_limit` configuration option.
+
+
 v1.3.2
 ======
 
