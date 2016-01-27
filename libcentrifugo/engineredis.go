@@ -23,6 +23,9 @@ const (
 	// maximum allowed but we think it probably makes sense to keep a sane limit given how many subscriptions a single
 	// Centrifugo instance might be handling
 	RedisSubscribeBatchLimit = 2048
+	// RedisMessageProcessChannelSize sets buffer size of channel to which we send all messages received from
+	// Redis PUB/SUB connection to process them in another goroutine.
+	RedisMessageProcessChannelSize = 4096
 )
 
 // RedisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.
@@ -36,6 +39,7 @@ type RedisEngine struct {
 	numApiShards int
 	subCh        chan subRequest
 	unSubCh      chan subRequest
+	msgCh        chan redis.Message
 	pubScript    *redis.Script
 }
 
@@ -216,6 +220,7 @@ return n
 	logger.INFO.Printf("Redis engine: %s/%s, pool: %d, using password: %s, API enabled: %s%s\n", server, db, conf.PoolSize, usingPassword, apiEnabled, shardsSuffix)
 	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
 	e.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
+	e.msgCh = make(chan redis.Message, RedisMessageProcessChannelSize)
 	return e
 }
 
@@ -235,6 +240,17 @@ func (e *RedisEngine) run() error {
 			e.runAPI()
 		})
 	}
+
+	// run Redis Message processing goroutine.
+	go func() {
+		for msg := range e.msgCh {
+			err := e.app.handleMsg(ChannelID(msg.Channel), msg.Data)
+			if err != nil {
+				logger.ERROR.Printf("RedisEngine message process error: %v\n", err)
+			}
+		}
+	}()
+
 	return nil
 }
 
@@ -446,7 +462,7 @@ func (e *RedisEngine) runPubSub() {
 	for {
 		switch n := conn.Receive().(type) {
 		case redis.Message:
-			e.app.handleMsg(ChannelID(n.Channel), n.Data)
+			e.msgCh <- n
 		case redis.Subscription:
 		case error:
 			logger.ERROR.Printf("RedisEngine Receiver error: %v\n", n)
