@@ -76,7 +76,7 @@ if [ $1 = 0 ]; then
 fi
 
 %postun
-if [ $1 -ge 1 ] ; then
+if [ $1 == 1 ] ; then
   service %{name} condrestart >/dev/null 2>&1 || :
 fi
 
