@@ -42,6 +42,11 @@ func TestClientMessage(t *testing.T) {
 	err = c.message([]byte("wroooong"))
 	assert.NotEqual(t, nil, err)
 
+	// client request exceeds allowed size
+	b := make([]byte, 1024*65)
+	err = c.message(b)
+	assert.Equal(t, ErrLimitExceeded, err)
+
 	var cmds []clientCommand
 
 	nonConnectFirstCmd := clientCommand{

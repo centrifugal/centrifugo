@@ -44,6 +44,7 @@ func newConfig() *libcentrifugo.Config {
 	cfg.ClientChannelBoundary = viper.GetString("client_channel_boundary")
 	cfg.ExpiredConnectionCloseDelay = time.Duration(viper.GetInt("expired_connection_close_delay")) * time.Second
 	cfg.StaleConnectionCloseDelay = time.Duration(viper.GetInt("stale_connection_close_delay")) * time.Second
+	cfg.ClientRequestMaxSize = viper.GetInt("client_request_max_size")
 	cfg.ClientQueueMaxSize = viper.GetInt("client_queue_max_size")
 	cfg.ClientQueueInitialCapacity = viper.GetInt("client_queue_initial_capacity")
 	cfg.ClientChannelLimit = viper.GetInt("client_channel_limit")

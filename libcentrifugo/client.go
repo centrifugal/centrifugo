@@ -22,22 +22,23 @@ const (
 // session interface. Session allows to Send messages via connection and to Close connection.
 type client struct {
 	sync.RWMutex
-	app           *Application
-	sess          session
-	UID           ConnID
-	User          UserID
-	timestamp     int64
-	defaultInfo   []byte
-	authenticated bool
-	channelInfo   map[Channel][]byte
-	Channels      map[Channel]bool
-	messages      bytequeue.ByteQueue
-	closeChan     chan struct{}
-	staleTimer    *time.Timer
-	expireTimer   *time.Timer
-	presenceTimer *time.Timer
-	sendTimeout   time.Duration
-	maxQueueSize  int
+	app            *Application
+	sess           session
+	UID            ConnID
+	User           UserID
+	timestamp      int64
+	defaultInfo    []byte
+	authenticated  bool
+	channelInfo    map[Channel][]byte
+	Channels       map[Channel]bool
+	messages       bytequeue.ByteQueue
+	closeChan      chan struct{}
+	staleTimer     *time.Timer
+	expireTimer    *time.Timer
+	presenceTimer  *time.Timer
+	sendTimeout    time.Duration
+	maxQueueSize   int
+	maxRequestSize int
 }
 
 // ClientInfo contains information about client to use in message
@@ -61,6 +62,7 @@ func newClient(app *Application, s session) (*client, error) {
 	staleCloseDelay := app.config.StaleConnectionCloseDelay
 	queueInitialCapacity := app.config.ClientQueueInitialCapacity
 	c.maxQueueSize = app.config.ClientQueueMaxSize
+	c.maxRequestSize = app.config.ClientRequestMaxSize
 	c.sendTimeout = app.config.MessageSendTimeout
 	app.RUnlock()
 	c.messages = bytequeue.New(queueInitialCapacity)
@@ -325,6 +327,11 @@ func (c *client) message(msg []byte) error {
 		logger.ERROR.Println("empty client message received")
 		return ErrInvalidMessage
 	}
+	if len(msg) > c.maxRequestSize {
+		logger.ERROR.Println("client request exceeds max request size limit")
+		return ErrLimitExceeded
+	}
+
 	commands, err := cmdFromClientMsg(msg)
 	if err != nil {
 		return err

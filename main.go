@@ -143,6 +143,7 @@ func Main() {
 			viper.SetDefault("stale_connection_close_delay", 25)
 			viper.SetDefault("expired_connection_close_delay", 25)
 			viper.SetDefault("client_channel_limit", 100)
+			viper.SetDefault("client_request_max_size", 65536)  // 64KB
 			viper.SetDefault("client_queue_max_size", 10485760) // 10MB
 			viper.RegisterAlias("max_client_queue_size", "client_queue_max_size")
 			viper.SetDefault("client_queue_initial_capacity", 2)

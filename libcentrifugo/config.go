@@ -131,6 +131,8 @@ type Config struct {
 	// may take to send a message to a client before disconnecting the client.
 	MessageSendTimeout time.Duration
 
+	// ClientRequestMaxSize sets maximum size in bytes of allowed client request.
+	ClientRequestMaxSize int
 	// ClientQueueMaxSize is a maximum size of client's message queue in bytes.
 	// After this queue size exceeded Centrifugo closes client's connection.
 	ClientQueueMaxSize int
@@ -264,6 +266,7 @@ var DefaultConfig = &Config{
 	UserChannelSeparator:        ",", // so several users limited channel is "dialog#2694,3019"
 	ExpiredConnectionCloseDelay: 25 * time.Second,
 	StaleConnectionCloseDelay:   25 * time.Second,
+	ClientRequestMaxSize:        65536,    // 64KB by default
 	ClientQueueMaxSize:          10485760, // 10MB by default
 	ClientQueueInitialCapacity:  2,
 	ClientChannelLimit:          100,
