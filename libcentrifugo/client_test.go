@@ -489,7 +489,7 @@ func TestSubscribeRecover(t *testing.T) {
 	data, _ := json.Marshal(map[string]string{"input": "test"})
 	err = app.Publish(Channel("test"), data, ConnID(""), nil)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, int64(1), app.metrics.numMsgPublished.Count())
+	assert.Equal(t, int64(1), app.metrics.NumMsgPublished.LoadRaw())
 
 	messages, _ := app.History(Channel("test"))
 	assert.Equal(t, 1, len(messages))
@@ -514,7 +514,7 @@ func TestSubscribeRecover(t *testing.T) {
 	err = app.Publish(Channel("test"), data, ConnID(""), nil)
 	assert.Equal(t, nil, err)
 
-	assert.Equal(t, int64(3), app.metrics.numMsgPublished.Count())
+	assert.Equal(t, int64(3), app.metrics.NumMsgPublished.LoadRaw())
 
 	// test no messages recovered when recover is false in subscribe cmd
 	c, _ = newClient(app, &testSession{})

@@ -287,7 +287,9 @@ func TestUpdateMetrics(t *testing.T) {
 	assert.Equal(t, nil, err)
 	app.config.NodeMetricsInterval = 1 * time.Millisecond
 	app.updateMetricsOnce()
-	assert.Equal(t, int64(1), app.metrics.metrics.NumMsgPublished)
+
+	// Absolute metrics should be updated
+	assert.Equal(t, int64(1), app.metrics.NumMsgPublished.LoadRaw())
 }
 
 // BenchmarkReceiveBroadcast measures how fast we can broadcast messages received

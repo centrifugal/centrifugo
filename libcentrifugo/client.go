@@ -89,8 +89,8 @@ func (c *client) sendMessages() {
 			c.close("error sending message")
 			return
 		}
-		c.app.metrics.numMsgSent.Inc(1)
-		c.app.metrics.bytesClientOut.Inc(int64(len(msg)))
+		c.app.metrics.NumMsgSent.Inc()
+		c.app.metrics.BytesClientOut.Add(int64(len(msg)))
 	}
 }
 
@@ -199,7 +199,7 @@ func (c *client) send(message []byte) error {
 	if !ok {
 		return ErrClientClosed
 	}
-	c.app.metrics.numMsgQueued.Inc(1)
+	c.app.metrics.NumMsgQueued.Inc()
 	if c.messages.Size() > c.maxQueueSize {
 		c.close("slow")
 		return ErrClientClosed
@@ -319,9 +319,8 @@ func cmdFromClientMsg(msgBytes []byte) ([]clientCommand, error) {
 }
 
 func (c *client) message(msg []byte) error {
-	c.app.metrics.numClientRequests.Inc(1)
-	c.app.metrics.bytesClientIn.Inc(int64(len(msg)))
-	defer c.app.metrics.timeClient.UpdateSince(time.Now())
+	c.app.metrics.NumClientRequests.Inc()
+	c.app.metrics.BytesClientIn.Add(int64(len(msg)))
 
 	if len(msg) == 0 {
 		logger.ERROR.Println("empty client message received")
