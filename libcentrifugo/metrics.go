@@ -1,7 +1,5 @@
 package libcentrifugo
 
-//go:generate stringer -type=MetricID
-
 import (
 	"bytes"
 	"encoding/json"
