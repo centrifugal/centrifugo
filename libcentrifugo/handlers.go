@@ -563,6 +563,8 @@ func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
 		resp, err = app.channelsCmd()
 	case "stats":
 		resp, err = app.statsCmd()
+	case "counters":
+		resp, err = app.countersCmd()
 	default:
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return

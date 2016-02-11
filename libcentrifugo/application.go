@@ -229,6 +229,24 @@ func (app *Application) stats() Stats {
 	}
 }
 
+func (app *Application) counters() NodeInfo {
+	app.nodesMu.Lock()
+	info, ok := app.nodes[app.uid]
+	if !ok {
+		logger.WARN.Println("counters called but no local node info yet, returning garbage")
+	}
+	app.nodesMu.Unlock()
+
+	// Note that info is a _copy_ of the NodeInfo in the map since it is not a map of pointer
+	// so we can update it's metrics embedded struct without changing app.nodes.
+	// If you're curious, play with https://play.golang.org/p/DsXUYIKuo3
+	// NodeInfo contains the periodic summary Metrics we provide to other nodes and `stats` calls,
+	// we want the raw counters from the live metrics for this node.
+	info.Metrics = *app.metrics.GetRawCounts()
+
+	return info
+}
+
 // handleMsg called when new message of any type received by this node.
 // It looks at channel and decides which message handler to call.
 func (app *Application) handleMsg(chID ChannelID, message []byte) error {

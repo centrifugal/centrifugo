@@ -166,6 +166,11 @@ type StatsBody struct {
 	Data Stats `json:"data"`
 }
 
+// CountersBody represents body of response in case of successful counters command.
+type CountersBody struct {
+	Data NodeInfo `json:"data"`
+}
+
 type adminMessageBody struct {
 	Message Message `json:"message"`
 }

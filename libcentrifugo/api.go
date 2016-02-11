@@ -68,6 +68,8 @@ func (app *Application) apiCmd(command apiCommand) (*response, error) {
 		resp, err = app.channelsCmd()
 	case "stats":
 		resp, err = app.statsCmd()
+	case "counters":
+		resp, err = app.countersCmd()
 	default:
 		return nil, ErrMethodNotFound
 	}
@@ -196,6 +198,15 @@ func (app *Application) statsCmd() (*response, error) {
 	resp := newResponse("stats")
 	body := &StatsBody{}
 	body.Data = app.stats()
+	resp.Body = body
+	return resp, nil
+}
+
+// countersCmd returns simple counter metrics which update in real time for the current node only.
+func (app *Application) countersCmd() (*response, error) {
+	resp := newResponse("counters")
+	body := &CountersBody{}
+	body.Data = app.counters()
 	resp.Body = body
 	return resp, nil
 }
