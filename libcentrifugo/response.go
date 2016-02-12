@@ -166,8 +166,8 @@ type StatsBody struct {
 	Data Stats `json:"data"`
 }
 
-// CountersBody represents body of response in case of successful counters command.
-type CountersBody struct {
+// NodeBody represents body of response in case of successful node command.
+type NodeBody struct {
 	Data NodeInfo `json:"data"`
 }
 

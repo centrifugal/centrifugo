@@ -229,11 +229,11 @@ func (app *Application) stats() Stats {
 	}
 }
 
-func (app *Application) counters() NodeInfo {
+func (app *Application) node() NodeInfo {
 	app.nodesMu.Lock()
 	info, ok := app.nodes[app.uid]
 	if !ok {
-		logger.WARN.Println("counters called but no local node info yet, returning garbage")
+		logger.WARN.Println("node called but no local node info yet, returning garbage")
 	}
 	app.nodesMu.Unlock()
 
