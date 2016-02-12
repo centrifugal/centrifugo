@@ -1,0 +1,8 @@
+/var/log/centrifugo/centrifugo.log {
+    daily
+    rotate 7
+    missingok
+    dateext
+    copytruncate
+    compress
+}

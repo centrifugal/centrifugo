@@ -1,0 +1,17 @@
+[Unit]
+Description=Centrifugo is real-time messaging server
+Documentation=https://github.com/centrifugal/centrifugo
+After=network.target
+
+[Service]
+User=centrifugo
+Group=centrifugo
+LimitNOFILE=65536
+EnvironmentFile=-/etc/default/centrifugo
+ExecStart=/bin/sh -c "/usr/bin/centrifugo --config=/etc/centrifugo/config.json --log_file=/var/log/centrifugo/centrifugo.log ${CENTRIFUGO_OPTS}"
+KillMode=control-group
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+Alias=centrifugo.service
