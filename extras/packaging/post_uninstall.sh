@@ -5,6 +5,11 @@ function disable_systemd {
     rm -f /lib/systemd/system/centrifugo.service
 }
 
+function disable_upstart {
+	rm -f /etc/init/centrifugo.conf
+    initctl reload-configuration
+}
+
 function disable_update_rcd {
     update-rc.d -f centrifugo remove
     rm -f /etc/init.d/centrifugo
@@ -18,7 +23,7 @@ function disable_chkconfig {
 if [[ -f /etc/redhat-release ]]; then
     # RHEL-variant logic
     if [[ "$1" = "0" ]]; then
-	# InfluxDB is no longer installed, remove from init system
+	# Centrifugo is no longer installed, remove from init system
 	rm -f /etc/default/centrifugo
 	
 	which systemctl &>/dev/null
@@ -39,8 +44,13 @@ elif [[ -f /etc/lsb-release ]]; then
 	if [[ $? -eq 0 ]]; then
 	    disable_systemd
 	else
+		if [[ `/sbin/init --version` =~ upstart ]]; then
+		# Assuming upstart
+		disable_upstart
+		else
 	    # Assuming sysv
 	    disable_update_rcd
+		fi
 	fi
     fi
 elif [[ -f /etc/os-release ]]; then
@@ -48,7 +58,7 @@ elif [[ -f /etc/os-release ]]; then
     if [[ $ID = "amzn" ]]; then
 	# Amazon Linux logic
 	if [[ "$1" = "0" ]]; then
-	    # InfluxDB is no longer installed, remove from init system
+	    # Centrifugo is no longer installed, remove from init system
 	    rm -f /etc/default/centrifugo
 	    disable_chkconfig
 	fi

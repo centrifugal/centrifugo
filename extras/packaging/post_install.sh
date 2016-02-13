@@ -16,6 +16,11 @@ function install_systemd {
     systemctl enable centrifugo
 }
 
+function install_upstart {
+    cp -f $SCRIPT_DIR/centrifugo.upstart /etc/init/centrifugo.conf
+    initctl reload-configuration
+}
+
 function install_update_rcd {
     update-rc.d centrifugo defaults
 }
@@ -37,6 +42,11 @@ if [[ ! -f /etc/default/centrifugo ]]; then
     touch /etc/default/centrifugo
 fi
 
+# Generate config with unique secret key, if it doesn't exist
+if [[ ! -f /etc/centrifugo/config.json ]]; then
+    /usr/bin/centrifugo genconfig -c /etc/centrifugo/config.json
+fi    
+
 # Distribution-specific logic
 if [[ -f /etc/redhat-release ]]; then
     # RHEL-variant logic
@@ -54,9 +64,14 @@ elif [[ -f /etc/debian_version ]]; then
     if [[ $? -eq 0 ]]; then
 	install_systemd
     else
-	# Assuming sysv
-	install_init
-	install_update_rcd
+        if [[ `/sbin/init --version` =~ upstart ]]; then
+	    # Assuming upstart
+        install_upstart
+        else
+        # Assuming sysv
+    	install_init
+    	install_update_rcd
+        fi
     fi
 elif [[ -f /etc/os-release ]]; then
     source /etc/os-release
