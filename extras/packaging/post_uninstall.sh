@@ -13,10 +13,7 @@ function disable_upstart {
 }
 
 function disable_update_rcd {
-	which service &>/dev/null
-	if [[ $? -eq 0 ]]; then	
-		service centrifugo stop || :
-	fi
+	service centrifugo stop || :
     update-rc.d -f centrifugo remove
     rm -f /etc/init.d/centrifugo
 }
@@ -41,7 +38,7 @@ if [[ -f /etc/redhat-release ]]; then
 	    disable_chkconfig
 	fi
     fi
-elif [[ -f /etc/lsb-release ]]; then
+elif [[ -f /etc/debian_version ]]; then
     # Debian/Ubuntu logic
     if [[ "$1" != "upgrade" ]]; then
 	# Remove/purge
@@ -51,7 +48,8 @@ elif [[ -f /etc/lsb-release ]]; then
 	if [[ $? -eq 0 ]]; then
 	    disable_systemd
 	else
-		if [[ `/sbin/init --version` =~ upstart ]]; then
+        /sbin/init --version >/dev/null 2>/dev/null
+        if [[ $? -eq 0 && `/sbin/init --version` =~ upstart ]]; then
 		# Assuming upstart
 		disable_upstart
 		else

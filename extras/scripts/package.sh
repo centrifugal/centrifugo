@@ -1,4 +1,12 @@
 #!/bin/sh
+# 
+# Debian 7: 
+# Debian 8: 
+# Ubuntu 14.04: upstart
+# Ubuntu 16.04: 
+# Centos 6: sysv
+# Centos 7: systemd
+#
 if [ "$1" = "" ]
 then
   echo "Usage: $0 <version> <iteration>"

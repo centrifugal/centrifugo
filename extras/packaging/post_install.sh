@@ -38,6 +38,14 @@ if [[ $? -ne 0 ]]; then
     useradd --system -U -M centrifugo -s /bin/false -d $DATA_DIR
 fi
 
+if [ ! -d $DATA_DIR ]; then
+    mkdir -p $DATA_DIR
+fi    
+
+if [ ! -d $LOG_DIR ]; then
+    mkdir -p $LOG_DIR
+fi
+
 chown -R -L centrifugo:centrifugo $DATA_DIR
 chown -R -L centrifugo:centrifugo $LOG_DIR
 
@@ -68,7 +76,8 @@ elif [[ -f /etc/debian_version ]]; then
     if [[ $? -eq 0 ]]; then
 	install_systemd
     else
-        if [[ `/sbin/init --version` =~ upstart ]]; then
+        /sbin/init --version >/dev/null 2>/dev/null
+        if [[ $? -eq 0 && `/sbin/init --version` =~ upstart ]]; then
 	    # Assuming upstart
         install_upstart
         else
