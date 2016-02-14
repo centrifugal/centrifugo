@@ -33,14 +33,14 @@ packagecloud:
 
 packagecloud-deb:
 	# PACKAGECLOUD_TOKEN env must be set
-	package_cloud push FZambia/centrifugo/debian/wheezy PACKAGES/deb/*.deb
-	package_cloud push FZambia/centrifugo/debian/jessie PACKAGES/deb/*.deb
+	package_cloud push FZambia/centrifugo/debian/wheezy PACKAGES/*.deb
+	package_cloud push FZambia/centrifugo/debian/jessie PACKAGES/*.deb
 
-	package_cloud push FZambia/centrifugo/ubuntu/precise PACKAGES/deb/*.deb
-	package_cloud push FZambia/centrifugo/ubuntu/trusty PACKAGES/deb/*.deb
-	package_cloud push FZambia/centrifugo/ubuntu/xenial PACKAGES/deb/*.deb
+	package_cloud push FZambia/centrifugo/ubuntu/precise PACKAGES/*.deb
+	package_cloud push FZambia/centrifugo/ubuntu/trusty PACKAGES/*.deb
+	package_cloud push FZambia/centrifugo/ubuntu/xenial PACKAGES/*.deb
 
 packagecloud-rpm:
 	# PACKAGECLOUD_TOKEN env must be set
-	package_cloud push FZambia/centrifugo/el/7 PACKAGES/rpm/*.rpm
-	package_cloud push FZambia/centrifugo/el/6 PACKAGES/rpm/*.rpm
+	package_cloud push FZambia/centrifugo/el/7 PACKAGES/*.rpm
+	package_cloud push FZambia/centrifugo/el/6 PACKAGES/*.rpm

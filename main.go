@@ -20,11 +20,6 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo"
 )
 
-const (
-	// VERSION determines version of Centrifugo server.
-	VERSION = "1.3.3"
-)
-
 func setupLogging() {
 	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString("log_level"))]
 	if !ok {

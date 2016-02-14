@@ -172,14 +172,14 @@ mkdir -p PACKAGES/deb
 fpm -s dir -t rpm $COMMON_FPM_ARGS --description "$DESCRIPTION" \
     --rpm-compression bzip2 \
     --rpm-os linux \
-    -p PACKAGES/rpm/ \
+    -p PACKAGES/ \
     -a amd64 .
 
 echo "Start building deb package"
 
 fpm -s dir -t deb $COMMON_FPM_ARGS --description "$DESCRIPTION" \
     --deb-compression bzip2 \
-    -p PACKAGES/deb/ \
+    -p PACKAGES/ \
     -a amd64 .
 
 echo "Packaging complete!"

@@ -1,21 +1,28 @@
 #!/bin/bash
 
 function disable_systemd {
+	systemctl stop centrifugo || :
     systemctl disable centrifugo
     rm -f /lib/systemd/system/centrifugo.service
 }
 
 function disable_upstart {
+	initctl stop centrifugo || :
 	rm -f /etc/init/centrifugo.conf
     initctl reload-configuration
 }
 
 function disable_update_rcd {
+	which service &>/dev/null
+	if [[ $? -eq 0 ]]; then	
+		service centrifugo stop || :
+	fi
     update-rc.d -f centrifugo remove
     rm -f /etc/init.d/centrifugo
 }
 
 function disable_chkconfig {
+	service centrifugo stop || :
     chkconfig --del centrifugo
     rm -f /etc/init.d/centrifugo
 }
