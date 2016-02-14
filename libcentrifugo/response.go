@@ -166,6 +166,11 @@ type StatsBody struct {
 	Data Stats `json:"data"`
 }
 
+// NodeBody represents body of response in case of successful node command.
+type NodeBody struct {
+	Data NodeInfo `json:"data"`
+}
+
 type adminMessageBody struct {
 	Message Message `json:"message"`
 }

@@ -50,7 +50,7 @@ type Application struct {
 	shutdown bool
 
 	// metrics holds various counters and timers different parts of Centrifugo update.
-	metrics *metricsRegistry
+	metrics *Metrics
 
 	// chIDPrefix added before every channel name to make ChannelID
 	chIDPrefix string
@@ -89,7 +89,7 @@ func NewApplication(config *Config) (*Application, error) {
 		admins:     newAdminHub(),
 		nodes:      make(map[string]NodeInfo),
 		started:    time.Now().Unix(),
-		metrics:    newMetricsRegistry(),
+		metrics:    &Metrics{},
 		chIDPrefix: config.ChannelPrefix + channelIDClientSuffix,
 	}
 	return app, nil
@@ -117,37 +117,7 @@ func (app *Application) Shutdown() {
 }
 
 func (app *Application) updateMetricsOnce() {
-	var mem runtime.MemStats
-	runtime.ReadMemStats(&mem)
-
-	cpu, err := cpuUsage()
-	if err != nil {
-		logger.DEBUG.Println(err)
-	}
-
-	app.metrics.Lock()
-	app.metrics.metrics.CPU = cpu
-	app.metrics.metrics.MemSys = int64(mem.Sys)
-	app.metrics.metrics.NumMsgPublished = app.metrics.numMsgPublished.Count()
-	app.metrics.metrics.NumMsgQueued = app.metrics.numMsgQueued.Count()
-	app.metrics.metrics.NumMsgSent = app.metrics.numMsgSent.Count()
-	app.metrics.metrics.NumAPIRequests = app.metrics.numAPIRequests.Count()
-	app.metrics.metrics.NumClientRequests = app.metrics.numClientRequests.Count()
-	app.metrics.metrics.TimeAPIMean = int64(app.metrics.timeAPI.Mean())
-	app.metrics.metrics.TimeClientMean = int64(app.metrics.timeClient.Mean())
-	app.metrics.metrics.TimeAPIMax = int64(app.metrics.timeAPI.Max())
-	app.metrics.metrics.TimeClientMax = int64(app.metrics.timeClient.Max())
-	app.metrics.metrics.BytesClientIn = app.metrics.bytesClientIn.Count()
-	app.metrics.metrics.BytesClientOut = app.metrics.bytesClientOut.Count()
-	app.metrics.Unlock()
-
-	app.metrics.numMsgPublished.Clear()
-	app.metrics.numMsgQueued.Clear()
-	app.metrics.numMsgSent.Clear()
-	app.metrics.numAPIRequests.Clear()
-	app.metrics.numClientRequests.Clear()
-	app.metrics.bytesClientIn.Clear()
-	app.metrics.bytesClientOut.Clear()
+	app.metrics.UpdateSnapshot()
 }
 
 func (app *Application) updateMetrics() {
@@ -257,6 +227,24 @@ func (app *Application) stats() Stats {
 		MetricsInterval: int64(interval.Seconds()),
 		Nodes:           nodes,
 	}
+}
+
+func (app *Application) node() NodeInfo {
+	app.nodesMu.Lock()
+	info, ok := app.nodes[app.uid]
+	if !ok {
+		logger.WARN.Println("node called but no local node info yet, returning garbage")
+	}
+	app.nodesMu.Unlock()
+
+	// Note that info is a _copy_ of the NodeInfo in the map since it is not a map of pointer
+	// so we can update it's metrics embedded struct without changing app.nodes.
+	// If you're curious, play with https://play.golang.org/p/DsXUYIKuo3
+	// NodeInfo contains the periodic summary Metrics we provide to other nodes and `stats` calls,
+	// we want the raw counters from the live metrics for this node.
+	info.Metrics = *app.metrics.GetRawCounts()
+
+	return info
 }
 
 // handleMsg called when new message of any type received by this node.
@@ -474,7 +462,7 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 		return err
 	}
 
-	app.metrics.numMsgPublished.Inc(1)
+	app.metrics.NumMsgPublished.Inc()
 
 	return nil
 }
@@ -500,7 +488,6 @@ func (app *Application) pubJoinLeave(ch Channel, method string, info ClientInfo)
 func (app *Application) pubPing() error {
 	app.RLock()
 	defer app.RUnlock()
-	app.metrics.RLock()
 	info := NodeInfo{
 		UID:        app.uid,
 		Name:       app.config.Name,
@@ -511,10 +498,9 @@ func (app *Application) pubPing() error {
 		Goroutines: runtime.NumGoroutine(),
 		NumCPU:     runtime.NumCPU(),
 		Gomaxprocs: runtime.GOMAXPROCS(-1),
-		Metrics:    *app.metrics.metrics,
+		Metrics:    *app.metrics,
 	}
 	cmd := &pingControlCommand{Info: info}
-	app.metrics.RUnlock()
 
 	err := app.pingCmd(cmd)
 	if err != nil {
