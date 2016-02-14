@@ -1,8 +1,8 @@
 [Unit]
 Description=Centrifugo real-time messaging server
 Documentation=https://github.com/centrifugal/centrifugo
-# start once the network and logging subsystems are available
-After=syslog.target network.target
+# start once the network subsystem available
+After=network.target
 
 [Service]
 User=centrifugo
@@ -14,9 +14,8 @@ ExecReload=/bin/sh -c "/bin/kill -HUP $MAINPID; sleep 1;"
 KillMode=control-group
 RestartSec=1
 Restart=on-failure
-StandardOutput=syslog
-StandardError=syslog
-SyslogIdentifier=centrifugo
+StandardOutput=/var/log/centrifugo/centrifugo.log
+StandardError=/var/log/centrifugo/centrifugo.log
 
 [Install]
 WantedBy=multi-user.target

@@ -87,7 +87,7 @@ make_dir_tree() {
 # do_build builds the code. The version and commit must be passed in.
 do_build() {
     echo "Start building binary in $TMP_BINARIES_DIR"
-	gox -os="linux" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/{{.Dir}}"
+    gox -os="linux" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/{{.Dir}}"
     echo "Binary build completed successfully."
 }
 
@@ -137,13 +137,6 @@ fi
 
 echo "upstart script copied to $TMP_WORK_DIR/$SCRIPT_DIR/scripts"
 
-#cp $SAMPLE_CONFIGURATION $TMP_WORK_DIR/$CONFIG_DIR/config.json
-#if [ $? -ne 0 ]; then
-#    echo "Failed to copy $SAMPLE_CONFIGURATION to packaging directory -- aborting."
-#    cleanup_exit 1
-#fi
-#echo "config sample copied to $TMP_WORK_DIR/$CONFIG_DIR/config.json"
-
 install -m 644 $LOGROTATE $TMP_WORK_DIR/$LOGROTATE_DIR/centrifugo
 if [ $? -ne 0 ]; then
     echo "Failed to copy logrotate configuration to packaging directory -- aborting."
@@ -172,15 +165,21 @@ COMMON_FPM_ARGS="\
 
 echo "Start building rpm package"
 
+rm -r ./PACKAGES
+mkdir -p PACKAGES/rpm
+mkdir -p PACKAGES/deb
+
 fpm -s dir -t rpm $COMMON_FPM_ARGS --description "$DESCRIPTION" \
     --rpm-compression bzip2 \
     --rpm-os linux \
+    -p PACKAGES/rpm/ \
     -a amd64 .
 
 echo "Start building deb package"
 
 fpm -s dir -t deb $COMMON_FPM_ARGS --description "$DESCRIPTION" \
     --deb-compression bzip2 \
+    -p PACKAGES/deb/ \
     -a amd64 .
 
 echo "Packaging complete!"

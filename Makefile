@@ -15,13 +15,16 @@ prepare:
 test:
 	go test ./... -cover
 
+web:
+	./extras/scripts/update_web.sh
+
 bindata:
-	go-bindata-assetfs -prefix="extras/web" extras/web/app/...
+	go-bindata-assetfs -prefix="extras" extras/web/...
 	mv bindata_assetfs.go bindata.go
 	gofmt -w bindata.go	
 	godep save -r ./...
 
-packages:
+package:
 	./extras/scripts/package.sh $(VERSION) $(ITERATION)
 
 packagecloud:
@@ -30,14 +33,14 @@ packagecloud:
 
 packagecloud-deb:
 	# PACKAGECLOUD_TOKEN env must be set
-	package_cloud push FZambia/centrifugo/debian/wheezy *.deb
-	package_cloud push FZambia/centrifugo/debian/jessie *.deb
+	package_cloud push FZambia/centrifugo/debian/wheezy PACKAGES/deb/*.deb
+	package_cloud push FZambia/centrifugo/debian/jessie PACKAGES/deb/*.deb
 
-	package_cloud push FZambia/centrifugo/ubuntu/precise *.deb
-	package_cloud push FZambia/centrifugo/ubuntu/trusty *.deb
-	package_cloud push FZambia/centrifugo/ubuntu/xenial *.deb
+	package_cloud push FZambia/centrifugo/ubuntu/precise PACKAGES/deb/*.deb
+	package_cloud push FZambia/centrifugo/ubuntu/trusty PACKAGES/deb/*.deb
+	package_cloud push FZambia/centrifugo/ubuntu/xenial PACKAGES/deb/*.deb
 
 packagecloud-rpm:
 	# PACKAGECLOUD_TOKEN env must be set
-	package_cloud push FZambia/centrifugo/el/7 *.rpm
-	package_cloud push FZambia/centrifugo/el/6 *.rpm
+	package_cloud push FZambia/centrifugo/el/7 PACKAGES/rpm/*.rpm
+	package_cloud push FZambia/centrifugo/el/6 PACKAGES/rpm/*.rpm
