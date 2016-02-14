@@ -22,16 +22,18 @@ CENTRIFUGO_OPTS=
 # Process name
 NAME=centrifugo
 
-# User and group
 USER=centrifugo
 GROUP=centrifugo
 
 # Daemon name, where is the actual executable
 # If the daemon is not there, then exit.
-DAEMON=/usr/sbin/centrifugo
+DAEMON=/usr/bin/centrifugo
 
 # Configuration file
 CONFIG=/etc/centrifugo/config.json
+
+# Max open files
+OPEN_FILE_LIMIT=65536
 
 # Logging
 if [ -z "$STDOUT" ]; then
@@ -60,17 +62,24 @@ if ! [ -x $DAEMON ]; then
 fi
 
 start() {
-  if ! [ -f $CONFIG ]; then
-    echo "configuration file not found $CONFIG"
-    exit 6
-  fi
-  configtest || return $?
-  echo -n $"Starting $NAME: "
-  daemon --user centrifugo --check=$DAEMON "nohup $DAEMON --config=$CONFIG $CENTRIFUGO_OPTS >>$STDOUT 2>&1 &"
-  retval=$?
-  echo
-  [ $retval -eq 0 ] && touch $lockfile
-  return $retval
+    if ! [ -f $CONFIG ]; then
+        echo "configuration file not found $CONFIG"
+        exit 6
+    fi
+
+    # Bump the file limits, before launching the daemon.
+    ulimit -n $OPEN_FILE_LIMIT
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+
+    configtest || return $?
+    echo -n $"Starting $NAME: "
+    daemon --user centrifugo --check=$DAEMON "nohup $DAEMON --config=$CONFIG $CENTRIFUGO_OPTS >>$STDOUT 2>&1 &"
+    retval=$?
+    echo
+    [ $retval -eq 0 ] && touch $lockfile
+    return $retval
 }
 
 stop() {

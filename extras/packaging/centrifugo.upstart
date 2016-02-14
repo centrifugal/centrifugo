@@ -4,7 +4,8 @@
 #   sudo service centrifugo start
 #
 
-description "Centrifugo real-time messaging server startup script"
+description "Centrifugo real-time messaging server"
+
 author "Alexandr Emelin <frvzmb@gmail.com>"
 
 start on runlevel [2345]
@@ -22,7 +23,7 @@ setgid centrifugo
 limit nofile 65536 65536
 
 script
-  CONFIG=/etc/centrifugo/config.json	
+  CONFIG=/etc/centrifugo/config.json
   CENTRIFUGO_OPTS=
 
   if [ -f /etc/default/centrifugo ]; then

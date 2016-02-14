@@ -1,9 +1,18 @@
 #!/bin/sh
 if [ "$1" = "" ]
 then
-  echo "Usage: $0 <version>"
+  echo "Usage: $0 <version> <iteration>"
   exit
 fi
+
+if [ "$2" = "" ]
+then
+  echo "Usage: $0 <version> <iteration>"
+  exit
+fi
+
+VERSION=$1
+ITERATION=$2
 
 INSTALL_DIR=/usr/bin
 LOG_DIR=/var/log/centrifugo
@@ -14,6 +23,7 @@ SCRIPT_DIR=/usr/lib/centrifugo
 
 SAMPLE_CONFIGURATION=extras/packaging/config.json
 INITD_SCRIPT=extras/packaging/initd.sh
+INITD_EL6_SCRIPT=extras/packaging/initd.el6.sh
 UPSTART_SCRIPT=extras/packaging/centrifugo.upstart
 SYSTEMD_SCRIPT=extras/packaging/centrifugo.service
 POSTINSTALL_SCRIPT=extras/packaging/post_install.sh
@@ -28,12 +38,11 @@ NAME=centrifugo
 LICENSE=MIT
 URL="https://github.com/centrifugal/centrifugo"
 MAINTAINER="frvzmb@gmail.com"
-VENDOR=Centrifugo
+VENDOR=centrifugo
 DESCRIPTION="Real-time messaging server"
-VERSION=$1
-ITERATION=`date +%s`
 
-echo "Build in tmp directory: $TMP_WORK_DIR"
+echo "Start packaging, version: $VERSION, iteration: $ITERATION"
+echo "TMP directory: $TMP_WORK_DIR"
 
 # check_gopath checks the GOPATH env variable set
 check_gopath() {
@@ -104,6 +113,14 @@ fi
 
 echo "initd script copied to $TMP_WORK_DIR/$SCRIPT_DIR/scripts"
 
+cp $INITD_EL6_SCRIPT $TMP_WORK_DIR/$SCRIPT_DIR/scripts/initd.el6.sh
+if [ $? -ne 0 ]; then
+    echo "Failed to copy initd.el6.sh script to packaging directory ($TMP_WORK_DIR/$SCRIPT_DIR/) -- aborting."
+    cleanup_exit 1
+fi
+
+echo "initd.el6 script copied to $TMP_WORK_DIR/$SCRIPT_DIR/scripts"
+
 cp $SYSTEMD_SCRIPT $TMP_WORK_DIR/$SCRIPT_DIR/scripts/centrifugo.service
 if [ $? -ne 0 ]; then
     echo "Failed to copy systemd script to packaging directory -- aborting."
@@ -146,20 +163,26 @@ COMMON_FPM_ARGS="\
 --category Network \
 --license $LICENSE \
 --maintainer $MAINTAINER \
+--force \
 --after-install $POSTINSTALL_SCRIPT \
 --before-install $PREINSTALL_SCRIPT \
 --after-remove $POSTUNINSTALL_SCRIPT \
 --config-files $CONFIG_DIR \
 --config-files $LOGROTATE_DIR "
 
-echo "start building rpm package"
+echo "Start building rpm package"
+
 fpm -s dir -t rpm $COMMON_FPM_ARGS --description "$DESCRIPTION" \
-    --rpm-os linux -a amd64 .
+    --rpm-compression bzip2 \
+    --rpm-os linux \
+    -a amd64 .
 
-echo "start building deb package"
+echo "Start building deb package"
+
 fpm -s dir -t deb $COMMON_FPM_ARGS --description "$DESCRIPTION" \
-    --deb-compression bzip2 -a amd64 .
+    --deb-compression bzip2 \
+    -a amd64 .
 
-echo "packaging complete!"
+echo "Packaging complete!"
 
 cleanup_exit 0

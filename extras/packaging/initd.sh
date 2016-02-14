@@ -57,7 +57,7 @@ fi
 
 # Logging
 if [ -z "$STDOUT" ]; then
-    STDOUT=/dev/null
+    STDOUT=/var/log/centrifugo/centrifugo.log
 fi
 
 if [ ! -f "$STDOUT" ]; then
@@ -127,9 +127,75 @@ function log_success_msg() {
     echo "$@" "[ OK ]"
 }
 
+start() {
+    # Check if config file exist
+    if [ ! -r $CONFIG ]; then
+        log_failure_msg "config file doesn't exist (or you don't have permission to view)"
+        exit 4
+    fi
+
+    # Checked the PID file exists and check the actual status of process
+    if [ -e $PIDFILE ]; then
+    PID="$(pgrep -f $PIDFILE)"
+    if test ! -z $PID && kill -0 "$PID" &>/dev/null; then
+    # If the status is SUCCESS then don't need to start again.
+            log_failure_msg "$NAME is running"
+            exit 0 # Exit
+        fi
+    # if PID file does not exist, check if writable
+    else
+        su -s /bin/sh -c "touch $PIDFILE" $USER > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+            log_failure_msg "$PIDFILE not writable, check permissions"
+            exit 5
+        fi
+    fi
+
+    # Bump the file limits, before launching the daemon. These will carry over to
+    # launched processes.
+    ulimit -n $OPEN_FILE_LIMIT
+    if [ $? -ne 0 ]; then
+        log_failure_msg "set open file limit to $OPEN_FILE_LIMIT"
+        exit 1
+    fi
+
+    if which start-stop-daemon > /dev/null 2>&1; then
+        start-stop-daemon --chuid $GROUP:$USER --start --quiet --pidfile $PIDFILE --exec $DAEMON -- -c $CONFIG $CENTRIFUGO_OPTS >>$STDOUT 2>>&1 &
+    else
+        su -s /bin/sh -c "nohup $DAEMON -c $CONFIG $CENTRIFUGO_OPTS >>$STDOUT 2>>&1 &" $USER
+    fi
+    retval=$?
+    echo
+    return $retval
+}
+
+stop() {
+    echo -n $"Stopping $NAME"
+    if [ -e $PIDFILE ]; then
+    PID="$(pgrep -f $PIDFILE)"
+    if test ! -z $PID && kill -0 "$PID" &>/dev/null; then
+            if killproc -p $PIDFILE SIGTERM && /bin/rm -rf $PIDFILE; then
+                log_success_msg "$NAME was stopped"
+                return 0
+            else
+                log_failure_msg "$NAME failed to stop"
+                return 1
+            fi
+        fi
+    else
+        log_failure_msg "$NAME is not running"
+        return 1
+    fi    
+}
+
+restart() {
+    configtest || return $?
+    $0 stop && sleep 1 && $0 start
+}
+
 reload() {
     configtest || return $?
-    echo -n $"Reloading $DAEMON: "
+    echo -n $"Reloading $NAME: "
     kill -HUP $(cat /var/run/centrifugo/centrifugo.pid)
     sleep 1
     RETVAL=$?
@@ -140,103 +206,51 @@ configtest() {
     $DAEMON checkconfig -c $CONFIG
 }
 
-case $1 in
-    start)
-        # Check if config file exist
-        if [ ! -r $CONFIG ]; then
-            log_failure_msg "config file doesn't exist (or you don't have permission to view)"
-            exit 4
-        fi
-
-        # Checked the PID file exists and check the actual status of process
-        if [ -e $PIDFILE ]; then
-	    PID="$(pgrep -f $PIDFILE)"
-	    if test ! -z $PID && kill -0 "$PID" &>/dev/null; then
-		# If the status is SUCCESS then don't need to start again.
-                log_failure_msg "$NAME process is running"
-                exit 0 # Exit
-            fi
-        # if PID file does not exist, check if writable
+status() {
+    if [ -e $PIDFILE ]; then
+        PID="$(pgrep -f $PIDFILE)"
+        if test ! -z $PID && test -d "/proc/$PID" &>/dev/null; then
+            log_success_msg "$NAME is running"
+            exit 0
         else
-            su -s /bin/sh -c "touch $PIDFILE" $USER > /dev/null 2>&1
-            if [ $? -ne 0 ]; then
-                log_failure_msg "$PIDFILE not writable, check permissions"
-                exit 5
-            fi
-        fi
-
-        # Bump the file limits, before launching the daemon. These will carry over to
-        # launched processes.
-        ulimit -n $OPEN_FILE_LIMIT
-        if [ $? -ne 0 ]; then
-            log_failure_msg "set open file limit to $OPEN_FILE_LIMIT"
+            log_failure_msg "$NAME is not running"
             exit 1
         fi
+    else
+        log_failure_msg "$NAME is not running"
+        exit 3
+    fi
+}
 
-        log_success_msg "Starting the process" "$NAME"
-        if which start-stop-daemon > /dev/null 2>&1; then
-            start-stop-daemon --chuid $GROUP:$USER --start --quiet --pidfile $PIDFILE --exec $DAEMON -- -pidfile $PIDFILE -config $CONFIG $CENTRIFUGO_OPTS >>$STDOUT 2>>$STDERR &
-        else
-            su -s /bin/sh -c "nohup $DAEMON -pidfile $PIDFILE -config $CONFIG $CENTRIFUGO_OPTS >>$STDOUT 2>>$STDERR &" $USER
-        fi
-        log_success_msg "$NAME process was started"
-        ;;
+status_q() {
+    status >/dev/null 2>&1
+}
 
-    stop)
-        # Stop the daemon.
-        if [ -e $PIDFILE ]; then
-	    PID="$(pgrep -f $PIDFILE)"
-	    if test ! -z $PID && kill -0 "$PID" &>/dev/null; then
-                if killproc -p $PIDFILE SIGTERM && /bin/rm -rf $PIDFILE; then
-                    log_success_msg "$NAME process was stopped"
-                else
-                    log_failure_msg "$NAME failed to stop service"
-                fi
-            fi
-        else
-            log_failure_msg "$NAME process is not running"
-        fi
-        ;;
-
-    restart)
-        # Restart the daemon.
-        $0 stop && sleep 1 && $0 start
-        ;;
-
-    status)
-        # Check the status of the process.
-        if [ -e $PIDFILE ]; then
-	    PID="$(pgrep -f $PIDFILE)"
-	    if test ! -z $PID && test -d "/proc/$PID" &>/dev/null; then
-                log_success_msg "$NAME Process is running"
-                exit 0
-            else
-                log_failure_msg "$NAME Process is not running"
-                exit 1
-            fi
-        else
-            log_failure_msg "$NAME Process is not running"
-            exit 3
-        fi
-        ;;
-
-    configtest)
+case $1 in
+    start)
+        status_q && exit 0
         $1
         ;;
-
+    stop)
+        status_q || exit 0
+        $1
+        ;;
+    restart|configtest)
+        $1
+        ;;
+    status)
+        $1
+        ;;
     reload)
         $0 status || exit 7
         $1
         ;;        
-
     version)
         $DAEMON version
         ;;
-
     condrestart)
         $0 status && $0 restart || exit 0
         ;;
-
     *)
         # For invalid arguments, print the usage message.
         echo "Usage: $0 {start|stop|restart|condrestart|reload|configtest|status|version}"

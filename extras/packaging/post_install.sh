@@ -4,11 +4,15 @@ BIN_DIR=/usr/bin
 DATA_DIR=/var/lib/centrifugo
 LOG_DIR=/var/log/centrifugo
 SCRIPT_DIR=/usr/lib/centrifugo/scripts
-LOGROTATE_DIR=/etc/logrotate.d
 
 function install_init {
     cp -f $SCRIPT_DIR/initd.sh /etc/init.d/centrifugo
     chmod +x /etc/init.d/centrifugo
+}
+
+function install_initel6 {
+    cp -f $SCRIPT_DIR/initd.el6.sh /etc/init.d/centrifugo
+    chmod +x /etc/init.d/centrifugo    
 }
 
 function install_systemd {
@@ -55,7 +59,7 @@ if [[ -f /etc/redhat-release ]]; then
 	install_systemd
     else
 	# Assuming sysv
-	install_init
+	install_initel6
 	install_chkconfig
     fi
 elif [[ -f /etc/debian_version ]]; then
