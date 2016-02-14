@@ -41,5 +41,9 @@ echo "SHA 256 sum for Dockerfile: $CHECKSUM"
 sed -e "s;%version%;$1;g" -e "s;%checksum%;$CHECKSUM;g" $DOCKERFILE_TEMPLATE > $DOCKERFILE
 echo "Centos 7 Dockerfile updated"
 
-echo "Done!"
+echo "Done! Now what you should do:"
+echo "1) Write CHANGELOG.md if needed"
+echo "2) Commit and push changes"
+echo "3) Create and push tag v$1"
+echo "4) Upload binaries from BUILDS/$1 to Github tag release"
 

@@ -11,5 +11,5 @@ deploy:
   - provider: script
     script: extras/scripts/travis_packagecloud.sh
     on:
-      branch: packaging 
+      tags: true 
       go: 1.5.3
