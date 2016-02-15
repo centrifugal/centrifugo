@@ -37,7 +37,7 @@ func setupLogging() {
 
 func handleSignals(app *libcentrifugo.Application) {
 	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt)
+	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
 		sig := <-sigc
 		logger.INFO.Println("Signal received:", sig)
@@ -60,7 +60,7 @@ func handleSignals(app *libcentrifugo.Application) {
 			c := newConfig()
 			app.SetConfig(c)
 			logger.INFO.Println("Configuration successfully reloaded")
-		case syscall.SIGINT, os.Interrupt:
+		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
 			logger.INFO.Println("Shutting down")
 			go time.AfterFunc(10*time.Second, func() {
 				os.Exit(1)

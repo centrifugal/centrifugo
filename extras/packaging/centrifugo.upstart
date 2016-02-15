@@ -30,5 +30,5 @@ script
     . /etc/default/centrifugo
   fi
 
-  exec /usr/bin/centrifugo --config=$CONFIG $CENTRIFUGO_OPTS
+  exec /usr/bin/centrifugo -c $CONFIG $CENTRIFUGO_OPTS
 end script

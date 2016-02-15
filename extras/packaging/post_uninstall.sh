@@ -28,8 +28,6 @@ if [[ -f /etc/redhat-release ]]; then
     # RHEL-variant logic
     if [[ "$1" = "0" ]]; then
 	# Centrifugo is no longer installed, remove from init system
-	rm -f /etc/default/centrifugo
-	
 	which systemctl &>/dev/null
 	if [[ $? -eq 0 ]]; then
 	    disable_systemd
@@ -37,13 +35,12 @@ if [[ -f /etc/redhat-release ]]; then
 	    # Assuming sysv
 	    disable_chkconfig
 	fi
+	rm -f /etc/default/centrifugo
     fi
 elif [[ -f /etc/debian_version ]]; then
     # Debian/Ubuntu logic
     if [[ "$1" != "upgrade" ]]; then
 	# Remove/purge
-	rm -f /etc/default/centrifugo
-	
 	which systemctl &>/dev/null
 	if [[ $? -eq 0 ]]; then
 	    disable_systemd
@@ -57,6 +54,7 @@ elif [[ -f /etc/debian_version ]]; then
 	    disable_update_rcd
 		fi
 	fi
+	rm -f /etc/default/centrifugo
     fi
 elif [[ -f /etc/os-release ]]; then
     source /etc/os-release
@@ -64,8 +62,8 @@ elif [[ -f /etc/os-release ]]; then
 	# Amazon Linux logic
 	if [[ "$1" = "0" ]]; then
 	    # Centrifugo is no longer installed, remove from init system
-	    rm -f /etc/default/centrifugo
 	    disable_chkconfig
+	    rm -f /etc/default/centrifugo
 	fi
     fi
 fi

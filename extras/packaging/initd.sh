@@ -100,23 +100,12 @@ fail() {
     log_failure_msg "${NAME}" "$1"
 }
 
-# Display informational message.
-info() {
-    log_daemon_msg "${NAME}" "$1"
-}
-
 # Display success message.
 ok() {
     log_success_msg "${NAME}" "$1"
 }
 
-###
 # Reloads the service.
-#
-# RETURN:
-#   0 - successfully reloaded
-#   1 - reloading failed
-###
 reload_service()
 {
     start-stop-daemon --stop --signal HUP --pidfile $PIDFILE
@@ -127,13 +116,7 @@ reload_service()
     fi    
 }
 
-###
 # Starts the service.
-#
-# RETURN:
-#   0 - successfully started
-#   1 - starting failed
-###
 start_service()
 {
     # Check if config file exist
@@ -156,13 +139,7 @@ start_service()
     fi
 }
 
-###
 # Stops the service.
-#
-# RETURN:
-#   0 - successfully stopped
-#   1 - stopping failed
-###
 stop_service() {
     start-stop-daemon --stop --signal QUIT --retry=TERM/30/KILL/5 --pidfile $PIDFILE
     if [ $? -ne 0 ]; then
@@ -171,11 +148,6 @@ stop_service() {
         ok "stopped"
     fi    
 }
-
-# Load the VERBOSE setting and other rcS variables plus any script defaults.
-for INCLUDE in /lib/init/vars.sh /etc/default/${NAME}
-    do [ -r "${INCLUDE}" ] && . "${INCLUDE}"
-done
 
 # Load the LSB log_* functions.
 INCLUDE=/lib/lsb/init-functions
@@ -222,11 +194,6 @@ then
 fi
 
 # Determine the service's status.
-#
-#   0 = Program is running
-#   1 = Program is not running and the PID file exists.
-#   3 = Porgram is not running.
-#   4 = Unable to determine status.
 start-stop-daemon --status --pidfile "${PIDFILE}" 2>/dev/null 1>/dev/null
 readonly STATUS=$?
 
@@ -263,19 +230,9 @@ case $1 in
         fi
         start_service || die ${EC_RESTART_START_FAILED}
         ;;
-
     configtest)
         $1
         ;;
-
-    # Print service status.
-    #
-    # This can be invoked by any user and has different exit codes:
-    #   0 - running and OK
-    #   1 - dead and /var/run PID file exists
-    #   2 - dead and /var/lock lock file exists
-    #   3 - not running
-    #   4 - unknown        
     status)
         status_of_proc "${DAEMON}" "${NAME}" || exit $?
         ;;

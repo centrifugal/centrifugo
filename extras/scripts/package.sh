@@ -1,9 +1,9 @@
 #!/bin/sh
 # 
-# Debian 7: 
-# Debian 8: 
+# Debian 7: lsb sysv
+# Debian 8: systemd
 # Ubuntu 14.04: upstart
-# Ubuntu 16.04: 
+# Ubuntu 16.04: systemd
 # Centos 6: sysv
 # Centos 7: systemd
 #

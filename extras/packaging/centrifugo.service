@@ -10,11 +10,10 @@ Group=centrifugo
 LimitNOFILE=65536
 Environment="CONFIG=/etc/centrifugo/config.json"
 EnvironmentFile=/etc/default/centrifugo
-#ExecStart=/bin/sh -c "/usr/bin/centrifugo --config=${CONFIG} ${CENTRIFUGO_OPTS}"
-#ExecReload=/bin/sh -c "/bin/kill -HUP $MAINPID"
-ExecStart=/usr/bin/centrifugo --config=/etc/centrifugo/config.json
+ExecStartPre=/usr/bin/centrifugo checkconfig -c $CONFIG
+ExecStart=/usr/bin/centrifugo -c $CONFIG $CENTRIFUGO_OPTS
 ExecReload=/bin/kill -HUP $MAINPID
-ExecStop=/bin/kill -INT $MAINPID
+ExecStop=/bin/kill -SIGTERM $MAINPID
 TimeoutStopSec=10
 KillMode=control-group
 RestartSec=1
