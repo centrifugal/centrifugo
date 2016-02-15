@@ -1,21 +1,27 @@
 [Unit]
 Description=Centrifugo real-time messaging server
 Documentation=https://github.com/centrifugal/centrifugo
-# start once the network subsystem available
-After=network.target
+# start once the network and logging subsystems available
+After=network.target syslog.target
 
 [Service]
 User=centrifugo
 Group=centrifugo
 LimitNOFILE=65536
+Environment="CONFIG=/etc/centrifugo/config.json"
 EnvironmentFile=/etc/default/centrifugo
-ExecStart=/bin/sh -c "/usr/bin/centrifugo --config=/etc/centrifugo/config.json ${CENTRIFUGO_OPTS}"
-ExecReload=/bin/sh -c "/bin/kill -HUP $MAINPID; sleep 1;"
+#ExecStart=/bin/sh -c "/usr/bin/centrifugo --config=${CONFIG} ${CENTRIFUGO_OPTS}"
+#ExecReload=/bin/sh -c "/bin/kill -HUP $MAINPID"
+ExecStart=/usr/bin/centrifugo --config=/etc/centrifugo/config.json
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStop=/bin/kill -INT $MAINPID
+TimeoutStopSec=10
 KillMode=control-group
 RestartSec=1
 Restart=on-failure
-StandardOutput=/var/log/centrifugo/centrifugo.log
-StandardError=/var/log/centrifugo/centrifugo.log
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=centrifugo
 
 [Install]
 WantedBy=multi-user.target

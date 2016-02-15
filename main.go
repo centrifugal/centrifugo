@@ -66,7 +66,7 @@ func handleSignals(app *libcentrifugo.Application) {
 				os.Exit(1)
 			})
 			app.Shutdown()
-			os.Exit(130)
+			os.Exit(0)
 		}
 	}
 }
