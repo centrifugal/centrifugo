@@ -1,8 +1,4 @@
 # Upstart configuration file for centrifugo
-# Control with:
-#
-#   sudo service centrifugo start
-#
 
 description "Centrifugo real-time messaging server"
 

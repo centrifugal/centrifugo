@@ -50,7 +50,6 @@ VENDOR=centrifugo
 DESCRIPTION="Real-time messaging server"
 
 echo "Start packaging, version: $VERSION, iteration: $ITERATION"
-echo "TMP directory: $TMP_WORK_DIR"
 
 # check_gopath checks the GOPATH env variable set
 check_gopath() {
@@ -94,9 +93,9 @@ make_dir_tree() {
 
 # do_build builds the code. The version and commit must be passed in.
 do_build() {
-    echo "Start building binary in $TMP_BINARIES_DIR"
+    echo "Start building binary"
     gox -os="linux" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/{{.Dir}}"
-    echo "Binary build completed successfully."
+    echo "Binary build completed successfully"
 }
 
 check_gopath
@@ -111,7 +110,7 @@ if [ $? -ne 0 ]; then
     cleanup_exit 1
 fi
 
-echo "Centrifugo binary copied to $TMP_WORK_DIR/$INSTALL_DIR/"
+echo "centrifugo binary copied to $TMP_WORK_DIR/$INSTALL_DIR/"
 
 cp $INITD_SCRIPT $TMP_WORK_DIR/$SCRIPT_DIR/scripts/initd.sh
 if [ $? -ne 0 ]; then
@@ -174,8 +173,7 @@ COMMON_FPM_ARGS="\
 echo "Start building rpm package"
 
 rm -r ./PACKAGES
-mkdir -p PACKAGES/rpm
-mkdir -p PACKAGES/deb
+mkdir -p PACKAGES
 
 fpm -s dir -t rpm $COMMON_FPM_ARGS --description "$DESCRIPTION" \
     --rpm-compression bzip2 \

@@ -75,7 +75,7 @@ start() {
 
     configtest || return $?
     echo -n $"Starting $NAME: "
-    daemon --user centrifugo --check=$DAEMON "nohup $DAEMON --config=$CONFIG $CENTRIFUGO_OPTS >>$STDOUT 2>&1 &"
+    daemon --user centrifugo --check=$DAEMON "nohup $DAEMON -c $CONFIG $CENTRIFUGO_OPTS >>$STDOUT 2>&1 &"
     retval=$?
     echo
     [ $retval -eq 0 ] && touch $lockfile
