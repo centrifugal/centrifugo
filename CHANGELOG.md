@@ -1,3 +1,15 @@
+v1.4.0 (not released yet)
+=========================
+
+No backwards incompatible changes here for most usage scenarios, but look carefully on notes below.
+
+* Timers in metrics marked as deprecated. `time_api_mean`, `time_client_mean`, `time_api_max`, `time_client_max` now return 0. This was made because timer's implementation used `Timer` from `go-metrics` library not suits very well for Centrifugo needs - so values were mostly useless in practice. So we decided to get rid of them for now to not confuse our users.
+* New `node` API method to get information from single node. That information will contain counters without aggregation over minute interval (what `stats` method does by default). So it can be useful if your metric aggregation system aggregates counters over time period itself. Also note that to use this method you should send API request to each Centrifugo node separately - as this method return current raw statistics about node. See [issue](https://github.com/centrifugal/centrifugo/issues/68) for motivation description.
+* Centrifugo now handles SIGTERM in addition to SIGINT and makes `shutdown` when this signal received. During shutdown Centrifugo returns 503 status code on requests to handlers and closes client connections. If shutdown finished without errors in 10 seconds interval then Centrifugo exits with status code 0 (instead of 130 before, this fixes behaviour behind `systemd` after SIGTERM received).
+* Maximum limit in bytes for client request added. Can be changed using `client_request_max_size` config option. By default 65536 bytes (64kb).
+* Packages for 64-bit Debian, Centos and Ubuntu [hosted on packagecloud.io](https://packagecloud.io/FZambia/centrifugo). If you are using Debian 7 or 8, Centos 6 or 7, Ubuntu 14.04 or Ubuntu 16.04 - you can find packages for those linux distribution following to packagecloud.
+
+
 v1.3.3
 ======
 
