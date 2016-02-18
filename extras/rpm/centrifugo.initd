@@ -8,34 +8,65 @@
 # description: Starts and stops centrifugo
 
 # Source function library.
-. /etc/rc.d/init.d/functions
+if [ -f /etc/init.d/functions ] ; then
+    . /etc/init.d/functions
+elif [ -f /etc/rc.d/init.d/functions ] ; then
+    . /etc/rc.d/init.d/functions
+else
+    exit 1
+fi
 
-prog="centrifugo"
-prog_bin="/usr/sbin/$prog"
-desc="centrifugo real-time messaging server"
+# Daemon options
+CENTRIFUGO_OPTS=
 
-CENTRIFUGO_OUT_FILE="/var/log/centrifugo/centrifugo.out"
-CENTRIFUGO_LOG_FILE="/var/log/centrifugo/centrifugo.log"
-CENTRIFUGO_CONFIG_FILE="/etc/centrifugo/config.json"
+# Process name
+NAME=centrifugo
+
+# User and group
+USER=centrifugo
+GROUP=centrifugo
+
+# Daemon name, where is the actual executable
+# If the daemon is not there, then exit.
+DAEMON=/usr/sbin/centrifugo
+
+# Configuration file
+CONFIG=/etc/centrifugo/config.json
+
+# Logging
+if [ -z "$STDOUT" ]; then
+    STDOUT=/var/log/centrifugo/centrifugo.log
+fi
+
+if [ ! -f "$STDOUT" ]; then
+    mkdir -p $(dirname $STDOUT)
+fi
+
+if [ -z "$STDERR" ]; then
+    STDERR=/var/log/centrifugo/centrifugo.log
+fi
+
+if [ ! -f "$STDERR" ]; then
+    mkdir -p $(dirname $STDERR)
+fi
 
 [ -e /etc/sysconfig/centrifugo ] && . /etc/sysconfig/centrifugo
 
 lockfile="/var/lock/subsys/centrifugo"
 
-if ! [ -f $prog_bin ]; then
-  echo "$prog binary not found."
+if ! [ -x $DAEMON ]; then
+  echo "$DAEMON binary not found."
   exit 5
 fi
 
 start() {
-  [ -x $prog_bin ] || exit 5
-  if ! [ -f $CENTRIFUGO_CONFIG_FILE ]; then
-    echo "configuration file not found $CENTRIFUGO_CONFIG_FILE"
+  if ! [ -f $CONFIG ]; then
+    echo "configuration file not found $CONFIG"
     exit 6
   fi
   configtest || return $?
-  echo -n $"Starting $prog: "
-  daemon --user centrifugo --check=$prog_bin "nohup $prog_bin --config=$CENTRIFUGO_CONFIG_FILE --log_file=$CENTRIFUGO_LOG_FILE >>$CENTRIFUGO_OUT_FILE 2>&1 &"
+  echo -n $"Starting $NAME: "
+  daemon --user centrifugo --check=$DAEMON "nohup $DAEMON --config=$CONFIG $CENTRIFUGO_OPTS >>$STDOUT 2>&1 &"
   retval=$?
   echo
   [ $retval -eq 0 ] && touch $lockfile
@@ -43,8 +74,8 @@ start() {
 }
 
 stop() {
-    echo -n $"Stopping $prog: "
-    killproc $prog -TERM
+    echo -n $"Stopping $NAME: "
+    killproc $NAME -TERM
     retval=$?
     if [ $retval -eq 0 ]; then
         if [ "$CONSOLETYPE" != "serial" ]; then
@@ -70,19 +101,19 @@ restart() {
 
 reload() {
     configtest || return $?
-    echo -n $"Reloading $prog: "
-    killproc $prog_bin -HUP
+    echo -n $"Reloading $NAME: "
+    killproc $DAEMON -HUP
     sleep 1
     RETVAL=$?
     echo
 }
 
 configtest() {
-  $prog_bin checkconfig -c $CENTRIFUGO_CONFIG_FILE
+    $DAEMON checkconfig -c $CONFIG
 }
 
 rh_status() {
-  status $prog
+    status $NAME
 }
 
 rh_status_q() {

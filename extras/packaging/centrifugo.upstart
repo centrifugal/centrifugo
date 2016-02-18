@@ -1,0 +1,30 @@
+# Upstart configuration file for centrifugo
+
+description "Centrifugo real-time messaging server"
+
+author "Alexandr Emelin <frvzmb@gmail.com>"
+
+start on runlevel [2345]
+
+# Always restart the runner if it dies / exits
+respawn
+
+# Log to /var/log/upstart/
+console log
+
+# Run the process as centrifugo:centrifugo
+setuid centrifugo
+setgid centrifugo
+
+limit nofile 65536 65536
+
+script
+  CONFIG=/etc/centrifugo/config.json
+  CENTRIFUGO_OPTS=
+
+  if [ -f /etc/default/centrifugo ]; then
+    . /etc/default/centrifugo
+  fi
+
+  exec /usr/bin/centrifugo -c $CONFIG $CENTRIFUGO_OPTS
+end script
