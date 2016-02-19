@@ -1,5 +1,5 @@
-v1.4.0 (not released yet)
-=========================
+v1.4.0
+======
 
 No backwards incompatible changes here for most usage scenarios, but look carefully on notes below.
 

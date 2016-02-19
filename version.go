@@ -2,5 +2,5 @@ package main
 
 const (
 	// VERSION of Centrifugo server.
-	VERSION = "1.3.3"
+	VERSION = "1.4.0"
 )
