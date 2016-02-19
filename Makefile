@@ -1,5 +1,5 @@
 VERSION := $(shell git describe --tags | sed -e 's/^v//g' | awk -F "-" '{print $$1}')
-ITERATION := $(shell git describe --tags | awk -F "-" '{print $$2}')	
+ITERATION := $(shell git describe --tags --long | awk -F "-" '{print $$2}')
 
 all: release
 
