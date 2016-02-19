@@ -322,23 +322,39 @@ func (c *client) message(msg []byte) error {
 	c.app.metrics.NumClientRequests.Inc()
 	c.app.metrics.BytesClientIn.Add(int64(len(msg)))
 
+	// Interval to sleep before closing connection to give client a chance to receive
+	// disconnect message and process it. Connection will be closed then.
+	waitBeforeClose := time.Second
+
 	if len(msg) == 0 {
-		logger.ERROR.Println("empty client message received")
+		logger.ERROR.Println("empty client request received")
+		c.disconnect(ErrInvalidMessage.Error(), false)
+		time.Sleep(waitBeforeClose)
 		return ErrInvalidMessage
-	}
-	if len(msg) > c.maxRequestSize {
+	} else if len(msg) > c.maxRequestSize {
 		logger.ERROR.Println("client request exceeds max request size limit")
+		c.disconnect(ErrLimitExceeded.Error(), false)
+		time.Sleep(waitBeforeClose)
 		return ErrLimitExceeded
 	}
 
 	commands, err := cmdFromClientMsg(msg)
 	if err != nil {
-		return err
-	}
-	if len(commands) == 0 {
-		logger.ERROR.Println("no commands in message")
+		logger.ERROR.Println(err)
+		c.disconnect(ErrInvalidMessage.Error(), false)
+		time.Sleep(waitBeforeClose)
 		return ErrInvalidMessage
 	}
+
+	if len(commands) == 0 {
+		// Nothing to do - in normal workflow such commands should never come.
+		// Let's be strict here to prevent client sending useless messages.
+		logger.ERROR.Println("got request from client without commands")
+		c.disconnect(ErrInvalidMessage.Error(), false)
+		time.Sleep(waitBeforeClose)
+		return ErrInvalidMessage
+	}
+
 	err = c.handleCommands(commands)
 	if err != nil {
 		reconnect := false
@@ -349,9 +365,7 @@ func (c *client) message(msg []byte) error {
 		}
 		c.disconnect(err.Error(), reconnect)
 		if !reconnect {
-			// Sleep for a while to give client a chance to receive disconnect
-			// message and process it. Connection will be closed then.
-			time.Sleep(time.Second)
+			time.Sleep(waitBeforeClose)
 		}
 	}
 	return err
