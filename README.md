@@ -8,8 +8,12 @@ To get more information what is it for and how it works – please, read
 Centrifugal organization.
 
 Releases available as single executable files – just 
-[download](https://github.com/centrifugal/centrifugo/releases) archive for your platform,  
-unpack it and you are done. See also [Docker image](https://hub.docker.com/r/centrifugo/centrifugo/) and [packages for 64-bit Debian, Centos and Ubuntu](https://packagecloud.io/FZambia/centrifugo).
+[download latest release](https://github.com/centrifugal/centrifugo/releases) for your platform,  
+unpack it and run.
+
+See official [Docker image](https://hub.docker.com/r/centrifugo/centrifugo/).
+
+There are also [packages for 64-bit Debian, Centos and Ubuntu](https://packagecloud.io/FZambia/centrifugo).
 
 Try [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo`). Or deploy your own Centrifugo instance in one click:
 
