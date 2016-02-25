@@ -112,7 +112,7 @@ func TestJSONMarshal(t *testing.T) {
 	}
 
 	// But Raw snapshot should include raw totals
-	raw := m.GetRawCounts()
+	raw := m.GetRaw()
 	expectedRaw := fmt.Sprintf(`{"num_msg_published":42,`+
 		`"num_msg_queued":42,`+
 		`"num_msg_sent":84,`+
@@ -166,7 +166,7 @@ func TestJSONMarshal(t *testing.T) {
 
 	// But Raw should still have all the totals (need to redefine it though since cpu and mem might change
 	// during UpdateSnapshot above)
-	raw = m.GetRawCounts()
+	raw = m.GetRaw()
 	expectedRaw = fmt.Sprintf(`{"num_msg_published":42,`+
 		`"num_msg_queued":42,`+
 		`"num_msg_sent":84,`+
