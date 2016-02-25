@@ -73,8 +73,8 @@ type NodeInfo struct {
 	Started    int64  `json:"started_at"`
 	Gomaxprocs int    `json:"gomaxprocs"`
 	NumCPU     int    `json:"num_cpu"`
-	Metrics    *Metrics
-	updated    int64
+	*Metrics
+	updated int64
 }
 
 const channelIDClientSuffix = ".channel."
