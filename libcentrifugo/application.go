@@ -73,8 +73,8 @@ type NodeInfo struct {
 	Started    int64  `json:"started_at"`
 	Gomaxprocs int    `json:"gomaxprocs"`
 	NumCPU     int    `json:"num_cpu"`
-	Metrics
-	updated int64
+	Metrics    *Metrics
+	updated    int64
 }
 
 const channelIDClientSuffix = ".channel."
@@ -238,11 +238,11 @@ func (app *Application) node() NodeInfo {
 	app.nodesMu.Unlock()
 
 	// Note that info is a _copy_ of the NodeInfo in the map since it is not a map of pointer
-	// so we can update it's metrics embedded struct without changing app.nodes.
+	// so we can update it's metrics field without changing app.nodes.
 	// If you're curious, play with https://play.golang.org/p/DsXUYIKuo3
 	// NodeInfo contains the periodic summary Metrics we provide to other nodes and `stats` calls,
 	// we want the raw counters from the live metrics for this node.
-	info.Metrics = *app.metrics.GetRawCounts()
+	info.Metrics = app.metrics.GetRawCounts()
 
 	return info
 }
@@ -498,7 +498,7 @@ func (app *Application) pubPing() error {
 		Goroutines: runtime.NumGoroutine(),
 		NumCPU:     runtime.NumCPU(),
 		Gomaxprocs: runtime.GOMAXPROCS(-1),
-		Metrics:    *app.metrics,
+		Metrics:    app.metrics,
 	}
 	cmd := &pingControlCommand{Info: info}
 
