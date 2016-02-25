@@ -40,27 +40,37 @@ type Metrics struct {
 	BytesClientOut metricCounter `json:"bytes_client_out"`
 
 	// TimeAPIMean shows mean response time in nanoseconds to API requests. DEPRECATED will return 0
-	TimeAPIMean int64 `json:"time_api_mean"`
+	TimeAPIMean metricGauge `json:"time_api_mean"`
 
 	// TimeClientMean shows mean response time in nanoseconds to client requests. DEPRECATED will return 0
-	TimeClientMean int64 `json:"time_client_mean"`
+	TimeClientMean metricGauge `json:"time_client_mean"`
 
 	// TimeAPIMax shows maximum response time to API request. DEPRECATED will return 0
-	TimeAPIMax int64 `json:"time_api_max"`
+	TimeAPIMax metricGauge `json:"time_api_max"`
 
 	// TimeClientMax shows maximum response time to client request. DEPRECATED will return 0
-	TimeClientMax int64 `json:"time_client_max"`
+	TimeClientMax metricGauge `json:"time_client_max"`
 
 	// MemSys shows system memory usage in bytes.
-	MemSys int64 `json:"memory_sys"`
+	MemSys metricGauge `json:"memory_sys"`
 
 	// CPU shows cpu usage in percents.
-	CPU int64 `json:"cpu_usage"`
+	CPU metricGauge `json:"cpu_usage"`
 
 	// mu protects from multiple processes updating snapshot values at once
 	// but raw counters may still increment atomically while held so it's not a strict
 	// point-in-time snapshot of all values.
 	mu sync.Mutex
+}
+
+// metricGauge is a wrapper around a single int that allows us to ensure that JSON
+// Marshal access it atomically.
+type metricGauge struct {
+	value int64
+}
+
+func (g metricGauge) MarshalJSON() ([]byte, error) {
+	return json.Marshal(atomic.LoadInt64(&g.value))
 }
 
 type metricCounter struct {
@@ -148,13 +158,13 @@ func (m *Metrics) UpdateSnapshot() {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 
-	m.MemSys = int64(mem.Sys)
+	atomic.StoreInt64(&m.MemSys.value, int64(mem.Sys))
 
 	cpu, err := cpuUsage()
 	if err != nil {
 		logger.DEBUG.Println(err)
 	}
-	m.CPU = cpu
+	atomic.StoreInt64(&m.CPU.value, int64(cpu))
 
 	// Would love to not have to list these explicitly but every alternative is slow
 	// or hacky (code generation)

@@ -86,7 +86,7 @@ func TestJSONMarshal(t *testing.T) {
 		`"time_api_max":0,`+
 		`"time_client_max":0,`+
 		`"memory_sys":%d,`+
-		`"cpu_usage":%d}`, m.MemSys, m.CPU)
+		`"cpu_usage":%d}`, m.MemSys.value, m.CPU.value)
 
 	jsonBytes, err := json.Marshal(m)
 	if err != nil {
@@ -126,7 +126,7 @@ func TestJSONMarshal(t *testing.T) {
 		`"time_api_max":0,`+
 		`"time_client_max":0,`+
 		`"memory_sys":%d,`+
-		`"cpu_usage":%d}`, raw.MemSys, raw.CPU)
+		`"cpu_usage":%d}`, raw.MemSys.value, raw.CPU.value)
 
 	rawJsonBytes, err := json.Marshal(raw)
 	if err != nil {
@@ -154,7 +154,7 @@ func TestJSONMarshal(t *testing.T) {
 		`"time_api_max":0,`+
 		`"time_client_max":0,`+
 		`"memory_sys":%d,`+
-		`"cpu_usage":%d}`, m.MemSys, m.CPU)
+		`"cpu_usage":%d}`, m.MemSys.value, m.CPU.value)
 
 	jsonBytes, err = json.Marshal(m)
 	if err != nil {
@@ -180,7 +180,7 @@ func TestJSONMarshal(t *testing.T) {
 		`"time_api_max":0,`+
 		`"time_client_max":0,`+
 		`"memory_sys":%d,`+
-		`"cpu_usage":%d}`, raw.MemSys, raw.CPU)
+		`"cpu_usage":%d}`, raw.MemSys.value, raw.CPU.value)
 	rawJsonBytes, err = json.Marshal(raw)
 	if err != nil {
 		t.Fatalf("JSON Marshal failed: ", err)
