@@ -242,7 +242,7 @@ func (app *Application) node() NodeInfo {
 	// If you're curious, play with https://play.golang.org/p/DsXUYIKuo3
 	// NodeInfo contains the periodic summary Metrics we provide to other nodes and `stats` calls,
 	// we want the raw counters from the live metrics for this node.
-	info.Metrics = *app.metrics.GetRawCounts()
+	info.Metrics = *app.metrics.GetRaw()
 
 	return info
 }
@@ -498,7 +498,7 @@ func (app *Application) pubPing() error {
 		Goroutines: runtime.NumGoroutine(),
 		NumCPU:     runtime.NumCPU(),
 		Gomaxprocs: runtime.GOMAXPROCS(-1),
-		Metrics:    *app.metrics,
+		Metrics:    *app.metrics.GetSnapshot(),
 	}
 	cmd := &pingControlCommand{Info: info}
 

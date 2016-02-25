@@ -88,6 +88,16 @@ func (c *metricCounter) cloneRaw() *metricCounter {
 	}
 }
 
+// cloneSnapshot creates a read-only copy of a counter by loading it's raw value
+func (c *metricCounter) cloneSnapshot() *metricCounter {
+	return &metricCounter{
+		value:             c.LoadRaw(),
+		lastIntervalValue: c.lastIntervalValue,
+		lastIntervalDelta: c.lastIntervalDelta,
+		marshalRaw:        false,
+	}
+}
+
 // MarshalJSON converts a counter struct into a single JSON int representing
 // the last interval delta since that is what we report in general.
 // See marshalRaw definition for more detail
@@ -167,11 +177,31 @@ func (m *Metrics) UpdateSnapshot() {
 	m.BytesClientOut.updateDelta()
 }
 
-// Get RawCounts returns a copy of the current raw counter values.
+// GetSnapshot returns a copy of the current snapshot counter values.
+func (m *Metrics) GetSnapshot() *Metrics {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m2 := Metrics{
+		NumMsgPublished:   *m.NumMsgPublished.cloneSnapshot(),
+		NumMsgQueued:      *m.NumMsgQueued.cloneSnapshot(),
+		NumMsgSent:        *m.NumMsgSent.cloneSnapshot(),
+		NumAPIRequests:    *m.NumAPIRequests.cloneSnapshot(),
+		NumClientRequests: *m.NumClientRequests.cloneSnapshot(),
+		BytesClientIn:     *m.BytesClientIn.cloneSnapshot(),
+		BytesClientOut:    *m.BytesClientOut.cloneSnapshot(),
+		MemSys:            m.MemSys,
+		CPU:               m.CPU,
+	}
+
+	return &m2
+}
+
+// GetRaw returns a copy of the current raw counter values.
 // The returned value is another instance of Metrics but you should treat it
 // as read-only. The only valid operations are to access the raw count values,
 // or more likely to marshal it to JSON
-func (m *Metrics) GetRawCounts() *Metrics {
+func (m *Metrics) GetRaw() *Metrics {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
