@@ -286,7 +286,7 @@ var (
 	objectJSONPrefix byte = '{'
 )
 
-func cmdFromAPIMsg(msg []byte) ([]apiCommand, error) {
+func cmdFromRequestMsg(msg []byte) ([]apiCommand, error) {
 	var commands []apiCommand
 
 	firstByte := msg[0]
@@ -370,7 +370,7 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	commands, err := cmdFromAPIMsg(data)
+	commands, err := cmdFromRequestMsg(data)
 	if err != nil {
 		logger.ERROR.Println(err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -600,13 +600,14 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		return
 	}
-	logger.INFO.Printf("New admin session established with uid %s\n", c.uid())
+	logger.INFO.Printf("New admin session established with uid %s", c.uid())
 	defer func() {
 		close(c.closeChan)
 		err := app.removeAdminConn(c)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
+		logger.INFO.Printf("Admin session completed, uid %s", c.uid())
 	}()
 
 	go c.writer()
@@ -616,18 +617,9 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		if err != nil {
 			break
 		}
-		resp, err := c.handleMessage(message)
+		err = c.message(message)
 		if err != nil {
 			break
-		}
-		msgBytes, err := json.Marshal(resp)
-		if err != nil {
-			break
-		} else {
-			err := c.send(msgBytes)
-			if err != nil {
-				break
-			}
 		}
 	}
 }

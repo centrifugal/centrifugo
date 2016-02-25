@@ -424,24 +424,6 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 
 	message := newMessage(ch, data, client, info)
 
-	if chOpts.Watch {
-		resp := newClientResponse("message")
-		resp.Body = &adminMessageBody{
-			Message: message,
-		}
-		messageBytes, err := json.Marshal(resp)
-		if err != nil {
-			logger.ERROR.Println(err)
-		} else {
-			err = app.pubAdmin(messageBytes)
-			if err != nil {
-				logger.ERROR.Println(err)
-			}
-		}
-	}
-
-	chID := app.channelID(ch)
-
 	resp := newClientMessage()
 	resp.Body = message
 
@@ -450,12 +432,21 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 		return err
 	}
 
+	if chOpts.Watch {
+		err = app.pubAdmin(byteMessage)
+		if err != nil {
+			logger.ERROR.Println(err)
+		}
+	}
+
 	pubOpts := &publishOpts{
 		Message:             message,
 		HistorySize:         chOpts.HistorySize,
 		HistoryLifetime:     chOpts.HistoryLifetime,
 		HistoryDropInactive: chOpts.HistoryDropInactive,
 	}
+
+	chID := app.channelID(ch)
 
 	err = app.engine.publish(chID, byteMessage, pubOpts)
 	if err != nil {
