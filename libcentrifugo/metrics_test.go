@@ -30,7 +30,7 @@ func AssertSameCounts(t *testing.T, when string, got, expected metricCounter) {
 
 func TestMetrics(t *testing.T) {
 
-	m := Metrics{}
+	m := metricsRegistry{}
 
 	m.NumMsgPublished.Inc()
 	m.NumMsgPublished.Inc()
@@ -38,31 +38,31 @@ func TestMetrics(t *testing.T) {
 	m.NumClientRequests.Add(10)
 
 	// Deltas should all be zero as we didn't update yet
-	AssertSameCounts(t, "Before update", m.NumMsgPublished, metricCounter{2, 0, 0, false})
-	AssertSameCounts(t, "Before update", m.NumClientRequests, metricCounter{10, 0, 0, false})
+	AssertSameCounts(t, "Before update", m.NumMsgPublished, metricCounter{2, 0, 0})
+	AssertSameCounts(t, "Before update", m.NumClientRequests, metricCounter{10, 0, 0})
 
 	// Now update
 	m.UpdateSnapshot()
 
-	AssertSameCounts(t, "After update", m.NumMsgPublished, metricCounter{2, 2, 2, false})
-	AssertSameCounts(t, "After update", m.NumClientRequests, metricCounter{10, 10, 10, false})
+	AssertSameCounts(t, "After update", m.NumMsgPublished, metricCounter{2, 2, 2})
+	AssertSameCounts(t, "After update", m.NumClientRequests, metricCounter{10, 10, 10})
 
 	// More increments
 	m.NumMsgPublished.Inc()
 	m.NumClientRequests.Inc()
 
-	AssertSameCounts(t, "After second update", m.NumMsgPublished, metricCounter{3, 2, 2, false})
-	AssertSameCounts(t, "After second update", m.NumClientRequests, metricCounter{11, 10, 10, false})
+	AssertSameCounts(t, "After second update", m.NumMsgPublished, metricCounter{3, 2, 2})
+	AssertSameCounts(t, "After second update", m.NumClientRequests, metricCounter{11, 10, 10})
 
 	// Second update
 	m.UpdateSnapshot()
 
-	AssertSameCounts(t, "After second update", m.NumMsgPublished, metricCounter{3, 3, 1, false})
-	AssertSameCounts(t, "After second update", m.NumClientRequests, metricCounter{11, 11, 1, false})
+	AssertSameCounts(t, "After second update", m.NumMsgPublished, metricCounter{3, 3, 1})
+	AssertSameCounts(t, "After second update", m.NumClientRequests, metricCounter{11, 11, 1})
 }
 
 func TestJSONMarshal(t *testing.T) {
-	m := Metrics{}
+	m := &metricsRegistry{}
 	m.NumMsgPublished.Add(42)
 	m.NumMsgQueued.Add(42)
 	m.NumMsgSent.Add(42)
@@ -88,7 +88,7 @@ func TestJSONMarshal(t *testing.T) {
 		`"memory_sys":%d,`+
 		`"cpu_usage":%d}`, m.MemSys.value, m.CPU.value)
 
-	jsonBytes, err := json.Marshal(m)
+	jsonBytes, err := json.Marshal(m.GetRawMetrics())
 	if err != nil {
 		t.Fatalf("JSON Marshal failed: ", err)
 	}
@@ -103,7 +103,7 @@ func TestJSONMarshal(t *testing.T) {
 	m.BytesClientIn.Add(42)
 
 	// Now snapshot should be just the same since we've not updated
-	jsonBytes, err = json.Marshal(m)
+	jsonBytes, err = json.Marshal(m.GetSnapshotMetrics())
 	if err != nil {
 		t.Fatalf("JSON Marshal failed: ", err)
 	}
@@ -112,7 +112,7 @@ func TestJSONMarshal(t *testing.T) {
 	}
 
 	// But Raw snapshot should include raw totals
-	raw := m.GetRawCounts()
+	raw := m.GetRawMetrics()
 	expectedRaw := fmt.Sprintf(`{"num_msg_published":42,`+
 		`"num_msg_queued":42,`+
 		`"num_msg_sent":84,`+
@@ -126,7 +126,7 @@ func TestJSONMarshal(t *testing.T) {
 		`"time_api_max":0,`+
 		`"time_client_max":0,`+
 		`"memory_sys":%d,`+
-		`"cpu_usage":%d}`, raw.MemSys.value, raw.CPU.value)
+		`"cpu_usage":%d}`, raw.MemSys, raw.CPU)
 
 	rawJsonBytes, err := json.Marshal(raw)
 	if err != nil {
@@ -156,7 +156,7 @@ func TestJSONMarshal(t *testing.T) {
 		`"memory_sys":%d,`+
 		`"cpu_usage":%d}`, m.MemSys.value, m.CPU.value)
 
-	jsonBytes, err = json.Marshal(m)
+	jsonBytes, err = json.Marshal(m.GetSnapshotMetrics())
 	if err != nil {
 		t.Fatalf("JSON Marshal failed: ", err)
 	}
@@ -166,7 +166,7 @@ func TestJSONMarshal(t *testing.T) {
 
 	// But Raw should still have all the totals (need to redefine it though since cpu and mem might change
 	// during UpdateSnapshot above)
-	raw = m.GetRawCounts()
+	raw = m.GetRawMetrics()
 	expectedRaw = fmt.Sprintf(`{"num_msg_published":42,`+
 		`"num_msg_queued":42,`+
 		`"num_msg_sent":84,`+
@@ -180,7 +180,7 @@ func TestJSONMarshal(t *testing.T) {
 		`"time_api_max":0,`+
 		`"time_client_max":0,`+
 		`"memory_sys":%d,`+
-		`"cpu_usage":%d}`, raw.MemSys.value, raw.CPU.value)
+		`"cpu_usage":%d}`, raw.MemSys, raw.CPU)
 	rawJsonBytes, err = json.Marshal(raw)
 	if err != nil {
 		t.Fatalf("JSON Marshal failed: ", err)

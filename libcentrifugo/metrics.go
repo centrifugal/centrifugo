@@ -2,7 +2,6 @@ package libcentrifugo
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"os"
 	"os/exec"
@@ -19,48 +18,66 @@ import (
 // once in a configurable interval.
 type Metrics struct {
 	// NumMsgPublished is how many messages were published into channels.
-	NumMsgPublished metricCounter `json:"num_msg_published"`
+	NumMsgPublished int64 `json:"num_msg_published"`
 
 	// NumMsgQueued is how many messages were put into client queues.
-	NumMsgQueued metricCounter `json:"num_msg_queued"`
+	NumMsgQueued int64 `json:"num_msg_queued"`
 
 	// NumMsgSent is how many messages were actually sent into client connections.
-	NumMsgSent metricCounter `json:"num_msg_sent"`
+	NumMsgSent int64 `json:"num_msg_sent"`
 
 	// NumAPIRequests shows amount of requests to server API.
-	NumAPIRequests metricCounter `json:"num_api_requests"`
+	NumAPIRequests int64 `json:"num_api_requests"`
 
 	// NumClientRequests shows amount of requests to client API.
-	NumClientRequests metricCounter `json:"num_client_requests"`
+	NumClientRequests int64 `json:"num_client_requests"`
 
 	// BytesClientIn shows amount of data in bytes coming into client API.
-	BytesClientIn metricCounter `json:"bytes_client_in"`
+	BytesClientIn int64 `json:"bytes_client_in"`
 
 	// BytesClientOut shows amount of data in bytes coming out if client API.
-	BytesClientOut metricCounter `json:"bytes_client_out"`
+	BytesClientOut int64 `json:"bytes_client_out"`
 
-	// TimeAPIMean shows mean response time in nanoseconds to API requests. DEPRECATED will return 0
-	TimeAPIMean metricGauge `json:"time_api_mean"`
+	// TimeAPIMean shows mean response time in nanoseconds to API requests. DEPRECATED!
+	TimeAPIMean int64 `json:"time_api_mean"`
 
-	// TimeClientMean shows mean response time in nanoseconds to client requests. DEPRECATED will return 0
-	TimeClientMean metricGauge `json:"time_client_mean"`
+	// TimeClientMean shows mean response time in nanoseconds to client requests. DEPRECATED!
+	TimeClientMean int64 `json:"time_client_mean"`
 
-	// TimeAPIMax shows maximum response time to API request. DEPRECATED will return 0
-	TimeAPIMax metricGauge `json:"time_api_max"`
+	// TimeAPIMax shows maximum response time to API request. DEPRECATED!
+	TimeAPIMax int64 `json:"time_api_max"`
 
-	// TimeClientMax shows maximum response time to client request. DEPRECATED will return 0
-	TimeClientMax metricGauge `json:"time_client_max"`
+	// TimeClientMax shows maximum response time to client request. DEPRECATED!
+	TimeClientMax int64 `json:"time_client_max"`
 
 	// MemSys shows system memory usage in bytes.
-	MemSys metricGauge `json:"memory_sys"`
+	MemSys int64 `json:"memory_sys"`
 
 	// CPU shows cpu usage in percents.
-	CPU metricGauge `json:"cpu_usage"`
+	CPU int64 `json:"cpu_usage"`
+}
 
+// metricsRegistry contains various Centrifugo statistic and metric information aggregated
+// once in a configurable interval.
+type metricsRegistry struct {
 	// mu protects from multiple processes updating snapshot values at once
 	// but raw counters may still increment atomically while held so it's not a strict
 	// point-in-time snapshot of all values.
 	mu sync.Mutex
+
+	NumMsgPublished   metricCounter
+	NumMsgQueued      metricCounter
+	NumMsgSent        metricCounter
+	NumAPIRequests    metricCounter
+	NumClientRequests metricCounter
+	BytesClientIn     metricCounter
+	BytesClientOut    metricCounter
+	TimeAPIMean       metricGauge // Deprecated
+	TimeClientMean    metricGauge // Deprecated
+	TimeAPIMax        metricGauge // Deprecated
+	TimeClientMax     metricGauge // Deprecated
+	MemSys            metricGauge
+	CPU               metricGauge
 }
 
 // metricGauge is a wrapper around a single int that allows us to ensure that JSON
@@ -69,50 +86,14 @@ type metricGauge struct {
 	value int64
 }
 
-func (g metricGauge) MarshalJSON() ([]byte, error) {
-	return json.Marshal(atomic.LoadInt64(&g.value))
+func (g *metricGauge) Load() int64 {
+	return atomic.LoadInt64(&g.value)
 }
 
 type metricCounter struct {
 	value             int64
 	lastIntervalValue int64
 	lastIntervalDelta int64
-	// marshalRaw indicates that JSON Marshalling should dump the raw counter rather than
-	// the last interval delta. Note that if this is true then this struct is a read-only
-	// snapshot and doesn't need to use atomic.LoadInt64 to read the raw values.
-	marshalRaw bool
-}
-
-// cloneRaw creates a read-only copy of a counter by loading it's raw value
-// and copying it's last interval values.
-// It is only safe to do while holding counter's parent Metrics mutex to ensure that last
-// interval values are not being updated.
-// The cloned counter is marked to be marshaled to JSON with the raw value rather than delta.
-// Any attempt to mutate the cloned counter will panic.
-func (c *metricCounter) cloneRaw() *metricCounter {
-	return &metricCounter{
-		value:             c.LoadRaw(),
-		lastIntervalValue: c.lastIntervalValue,
-		lastIntervalDelta: c.lastIntervalDelta,
-		marshalRaw:        true,
-	}
-}
-
-// MarshalJSON converts a counter struct into a single JSON int representing
-// the last interval delta since that is what we report in general.
-// See marshalRaw definition for more detail
-func (c metricCounter) MarshalJSON() ([]byte, error) {
-	if c.marshalRaw {
-		// No need for atomic load - marshalRaw should only be set
-		// on a read-only copy anyway
-		return json.Marshal(c.value)
-	}
-	return json.Marshal(c.lastIntervalDelta)
-}
-
-func (c metricCounter) UnmarshalJSON(bs []byte) error {
-	// We shouldn't need to Unmarshal raw counters ever
-	return json.Unmarshal(bs, &c.lastIntervalDelta)
 }
 
 func (c *metricCounter) LoadRaw() int64 {
@@ -120,7 +101,7 @@ func (c *metricCounter) LoadRaw() int64 {
 }
 
 func (c *metricCounter) LastIn() int64 {
-	return atomic.LoadInt64(&c.value)
+	return atomic.LoadInt64(&c.lastIntervalDelta)
 }
 
 // Inc is equivalent to Add(name, 1)
@@ -133,9 +114,6 @@ func (c *metricCounter) Inc() int64 {
 // Add calls happen strictly after init such that no lock is needed to lookup
 // the counter in read-only map.
 func (c *metricCounter) Add(n int64) int64 {
-	if c.marshalRaw {
-		panic("Attempt to modify a counter that has been cloned as a read-only raw value copy")
-	}
 	return atomic.AddInt64(&c.value, n)
 }
 
@@ -147,7 +125,7 @@ func (c *metricCounter) updateDelta() {
 	c.lastIntervalValue = now
 }
 
-func (m *Metrics) UpdateSnapshot() {
+func (m *metricsRegistry) UpdateSnapshot() {
 	// We update under a lock to ensure that no other process is also updating
 	// snapshot nor dumping the values. Other processes CAN still atomically increment raw
 	// values while we go though - we don't guarantee counter values are point-in-time consistent
@@ -177,27 +155,41 @@ func (m *Metrics) UpdateSnapshot() {
 	m.BytesClientOut.updateDelta()
 }
 
-// Get RawCounts returns a copy of the current raw counter values.
-// The returned value is another instance of Metrics but you should treat it
-// as read-only. The only valid operations are to access the raw count values,
-// or more likely to marshal it to JSON
-func (m *Metrics) GetRawCounts() *Metrics {
+// GetRawMetrics returns Metrics with raw counter values.
+func (m *metricsRegistry) GetRawMetrics() *Metrics {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m2 := Metrics{
-		NumMsgPublished:   *m.NumMsgPublished.cloneRaw(),
-		NumMsgQueued:      *m.NumMsgQueued.cloneRaw(),
-		NumMsgSent:        *m.NumMsgSent.cloneRaw(),
-		NumAPIRequests:    *m.NumAPIRequests.cloneRaw(),
-		NumClientRequests: *m.NumClientRequests.cloneRaw(),
-		BytesClientIn:     *m.BytesClientIn.cloneRaw(),
-		BytesClientOut:    *m.BytesClientOut.cloneRaw(),
-		MemSys:            m.MemSys,
-		CPU:               m.CPU,
+	return &Metrics{
+		NumMsgPublished:   m.NumMsgPublished.LoadRaw(),
+		NumMsgQueued:      m.NumMsgQueued.LoadRaw(),
+		NumMsgSent:        m.NumMsgSent.LoadRaw(),
+		NumAPIRequests:    m.NumAPIRequests.LoadRaw(),
+		NumClientRequests: m.NumClientRequests.LoadRaw(),
+		BytesClientIn:     m.BytesClientIn.LoadRaw(),
+		BytesClientOut:    m.BytesClientOut.LoadRaw(),
+		MemSys:            m.MemSys.Load(),
+		CPU:               m.CPU.Load(),
 	}
+}
 
-	return &m2
+// GetSnapshotMetrics returns Metrics with snapshoted over time interval
+// counter values.
+func (m *metricsRegistry) GetSnapshotMetrics() *Metrics {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return &Metrics{
+		NumMsgPublished:   m.NumMsgPublished.LastIn(),
+		NumMsgQueued:      m.NumMsgQueued.LastIn(),
+		NumMsgSent:        m.NumMsgSent.LastIn(),
+		NumAPIRequests:    m.NumAPIRequests.LastIn(),
+		NumClientRequests: m.NumClientRequests.LastIn(),
+		BytesClientIn:     m.BytesClientIn.LastIn(),
+		BytesClientOut:    m.BytesClientOut.LastIn(),
+		MemSys:            m.MemSys.Load(),
+		CPU:               m.CPU.Load(),
+	}
 }
 
 // cpuUsage is the simplest possible method to extract CPU usage info on most of platforms
