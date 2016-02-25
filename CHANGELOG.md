@@ -1,3 +1,9 @@
+v1.4.1
+======
+
+* fix race condition resulting in server crash (see [#74](https://github.com/centrifugal/centrifugo/issues/74) for details)
+
+
 v1.4.0
 ======
 
