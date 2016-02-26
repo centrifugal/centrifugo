@@ -59,12 +59,13 @@ type Metrics struct {
 
 // metricsRegistry contains various Centrifugo statistic and metric information aggregated
 // once in a configurable interval.
+// NOTE: it's is critical that each metricCounter/metricGauge member is aligned to 8-byte boundary.
+// (See sync/atomic documentation). If not it works fine for 64 bit architecture but panics on any
+// atomic op on 32 bit.
+// sync.Mutex just happens to be 2 32 bit ints in current (1.6) go implementation so works if it is first,
+// but we should not rely on that implementation detail for correctness.
+// Add any members to the END of this struct unless they are guaranteed 64bit width (i.e. (u)int64 or 2 x (u)int32 etc.)
 type metricsRegistry struct {
-	// mu protects from multiple processes updating snapshot values at once
-	// but raw counters may still increment atomically while held so it's not a strict
-	// point-in-time snapshot of all values.
-	mu sync.Mutex
-
 	NumMsgPublished   metricCounter
 	NumMsgQueued      metricCounter
 	NumMsgSent        metricCounter
@@ -72,28 +73,33 @@ type metricsRegistry struct {
 	NumClientRequests metricCounter
 	BytesClientIn     metricCounter
 	BytesClientOut    metricCounter
-	TimeAPIMean       metricGauge // Deprecated
-	TimeClientMean    metricGauge // Deprecated
-	TimeAPIMax        metricGauge // Deprecated
-	TimeClientMax     metricGauge // Deprecated
-	MemSys            metricGauge
-	CPU               metricGauge
+	TimeAPIMean       int64 // Deprecated
+	TimeClientMean    int64 // Deprecated
+	TimeAPIMax        int64 // Deprecated
+	TimeClientMax     int64 // Deprecated
+	MemSys            int64
+	CPU               int64
+
+	// mu protects from multiple processes updating snapshot values at once
+	// but raw counters may still increment atomically while held so it's not a strict
+	// point-in-time snapshot of all values.
+	mu sync.Mutex
 }
 
-// metricGauge is a wrapper around a single int that allows us to ensure that JSON
-// Marshal access it atomically.
-type metricGauge struct {
-	value int64
-}
-
-func (g *metricGauge) Load() int64 {
-	return atomic.LoadInt64(&g.value)
-}
-
+// metricCounter is a wrapper around a set of ints that count things.
+// It encapsulates both absolute monotonic counters (incremented atomically),
+// and periodic delta which is updated every app.config.NodeMetricsInterval.
+// Since value is operated on atomically, and this struct is a non-pointer member of metricsRegistry,
+// it's critical that no fields are added that cause consecutive instances to break 8-byte alignment.
+// See comment on metricsRegistry for more.
 type metricCounter struct {
 	value             int64
 	lastIntervalValue int64
 	lastIntervalDelta int64
+	// Prevent false-sharing of consecutive counters in the parent registry
+	// run go test -test.cpu 1,2,4,8 -test.bench=Atomic -test.run XXX
+	// On my machine (quad core/8HT macbook) this is consistently ~40% faster with 8 threads.
+	_padding [5]int64
 }
 
 func (c *metricCounter) LoadRaw() int64 {
@@ -130,8 +136,9 @@ func (c *metricCounter) updateDelta() {
 
 func (m *metricsRegistry) UpdateSnapshot() {
 	// We update under a lock to ensure that no other process is also updating
-	// snapshot nor dumping the values. Other processes CAN still atomically increment raw
-	// values while we go though - we don't guarantee counter values are point-in-time consistent
+	// snapshot nor copying the values with GetRawMetrics/GetSnapshotMetrics.
+	// Other processes CAN still atomically increment raw counter values while we
+	// go though - we don't guarantee counter values are point-in-time consistent
 	// with each other
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -139,13 +146,13 @@ func (m *metricsRegistry) UpdateSnapshot() {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 
-	atomic.StoreInt64(&m.MemSys.value, int64(mem.Sys))
+	m.MemSys = int64(mem.Sys)
 
 	cpu, err := cpuUsage()
 	if err != nil {
 		logger.DEBUG.Println(err)
 	}
-	atomic.StoreInt64(&m.CPU.value, int64(cpu))
+	m.CPU = int64(cpu)
 
 	// Would love to not have to list these explicitly but every alternative is slow
 	// or hacky (code generation)
@@ -158,7 +165,7 @@ func (m *metricsRegistry) UpdateSnapshot() {
 	m.BytesClientOut.updateDelta()
 }
 
-// GetRawMetrics returns Metrics with raw counter values.
+// GetRawMetrics returns a read-only copy of the raw counter values.
 func (m *metricsRegistry) GetRawMetrics() *Metrics {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -171,13 +178,13 @@ func (m *metricsRegistry) GetRawMetrics() *Metrics {
 		NumClientRequests: m.NumClientRequests.LoadRaw(),
 		BytesClientIn:     m.BytesClientIn.LoadRaw(),
 		BytesClientOut:    m.BytesClientOut.LoadRaw(),
-		MemSys:            m.MemSys.Load(),
-		CPU:               m.CPU.Load(),
+		MemSys:            atomic.LoadInt64(&m.MemSys),
+		CPU:               atomic.LoadInt64(&m.CPU),
 	}
 }
 
-// GetSnapshotMetrics returns Metrics with snapshoted over time interval
-// counter values.
+// GetSnapshotMetrics returns a read-only copy of the deltas over the last
+// metrics interval.
 func (m *metricsRegistry) GetSnapshotMetrics() *Metrics {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -190,8 +197,8 @@ func (m *metricsRegistry) GetSnapshotMetrics() *Metrics {
 		NumClientRequests: m.NumClientRequests.LastIn(),
 		BytesClientIn:     m.BytesClientIn.LastIn(),
 		BytesClientOut:    m.BytesClientOut.LastIn(),
-		MemSys:            m.MemSys.Load(),
-		CPU:               m.CPU.Load(),
+		MemSys:            atomic.LoadInt64(&m.MemSys),
+		CPU:               atomic.LoadInt64(&m.CPU),
 	}
 }
 
