@@ -59,12 +59,14 @@ type Metrics struct {
 
 // metricsRegistry contains various Centrifugo statistic and metric information aggregated
 // once in a configurable interval.
-// NOTE: it's is critical that each metricCounter/metricGauge member is aligned to 8-byte boundary.
-// (See sync/atomic documentation). If not it works fine for 64 bit architecture but panics on any
-// atomic op on 32 bit.
-// sync.Mutex just happens to be 2 32 bit ints in current (1.6) go implementation so works if it is first,
-// but we should not rely on that implementation detail for correctness.
-// Add any members to the END of this struct unless they are guaranteed 64bit width (i.e. (u)int64 or 2 x (u)int32 etc.)
+// NOTE: it's is critical that each metricCounter/int64 member is aligned to 8-byte boundary.
+// See sync/atomic documentation under "bugs".
+// If they are not aligned it works fine for 64 bit architecture but panics on any atomic op on 32
+// bit or ARM.
+// sync.Mutex just happens to be 2 32 bit ints in current (1.6) go implementation so it does work if
+// it is first, but we should not rely on that implementation detail for correctness.
+// Add any new members to the END of this struct unless they can guarantee 64 bit alignment
+// (i.e. (u)int64 or 2 x (u)int32 etc.)
 type metricsRegistry struct {
 	NumMsgPublished   metricCounter
 	NumMsgQueued      metricCounter
@@ -86,12 +88,13 @@ type metricsRegistry struct {
 	mu sync.Mutex
 }
 
-// metricCounter is a wrapper around a set of ints that count things.
-// It encapsulates both absolute monotonic counters (incremented atomically),
-// and periodic delta which is updated every app.config.NodeMetricsInterval.
-// Since value is operated on atomically, and this struct is a non-pointer member of metricsRegistry,
-// it's critical that no fields are added that cause consecutive instances to break 8-byte alignment.
-// See comment on metricsRegistry for more.
+// metricCounter is a wrapper around a set of int64s that count things.
+// It encapsulates both absolute monotonic counter (incremented atomically),
+// and periodic delta which is updated every `app.config.NodeMetricsInterval`.
+// Since raw counter is operated on atomically, and this struct is a non-pointer member of metricsRegistry,
+// it's critical that not only does value field remain 8-byte aligned, but that total struct size is always
+// a multiple of 8 bytes.
+// See comment on metricsRegistry for more on alignment.
 type metricCounter struct {
 	value             int64
 	lastIntervalValue int64
@@ -119,15 +122,12 @@ func (c *metricCounter) Inc() int64 {
 }
 
 // Add adds the given number to the counter and returns the new value.
-// Note that we assume all Register calls occur during init and all
-// Add calls happen strictly after init such that no lock is needed to lookup
-// the counter in read-only map.
 func (c *metricCounter) Add(n int64) int64 {
 	return atomic.AddInt64(&c.value, n)
 }
 
 // updateDelta updates the delta value for last interval based on current value and previous value.
-// It is not threadsafe and should only be called by Metrics.UpdateSnapshot which is serialised by Mutex.
+// It is not thread-safe and should only be called by Metrics.UpdateSnapshot which is serialised by Mutex.
 func (c *metricCounter) updateDelta() {
 	now := atomic.LoadInt64(&c.value)
 	c.lastIntervalDelta = now - c.lastIntervalValue
@@ -154,8 +154,6 @@ func (m *metricsRegistry) UpdateSnapshot() {
 	}
 	m.CPU = int64(cpu)
 
-	// Would love to not have to list these explicitly but every alternative is slow
-	// or hacky (code generation)
 	m.NumMsgPublished.updateDelta()
 	m.NumMsgQueued.updateDelta()
 	m.NumMsgSent.updateDelta()
