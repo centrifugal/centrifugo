@@ -100,8 +100,11 @@ func (c *metricCounter) LoadRaw() int64 {
 	return atomic.LoadInt64(&c.value)
 }
 
+// LastIn allows to get last interval value for counter, note
+// that we don't do this atomically because all operations on delta
+// happens under mutex in UpdateSnapshot and GetSnapshotMetrics methods.
 func (c *metricCounter) LastIn() int64 {
-	return atomic.LoadInt64(&c.lastIntervalDelta)
+	return c.lastIntervalDelta
 }
 
 // Inc is equivalent to Add(name, 1)
