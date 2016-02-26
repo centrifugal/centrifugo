@@ -101,7 +101,7 @@ type metricCounter struct {
 	lastIntervalDelta int64
 	// Prevent false-sharing of consecutive counters in the parent registry
 	// run go test -test.cpu 1,2,4,8 -test.bench=Atomic -test.run XXX
-	// On my machine (quad core/8HT macbook) this is consistently ~40% faster with 8 threads.
+	// On my machine (quad core/8HT macbook) this is consistently ~60% faster with 8 threads.
 	_padding [5]int64
 }
 

@@ -205,42 +205,30 @@ type metricCounterWithPad struct {
 	_padding                                    [5]int64 // pad rest of 64byte cache line
 }
 
-func doCountingNoPad(wg *sync.WaitGroup, period, n int) {
-	// Flip which counter we increment every `period` iterations
-	// so each goroutine is  out of sync with which atomic int they are working on
-	idx := 0
+func doCountingNoPad(wg *sync.WaitGroup, n int) {
 	for i := 0; i < n; i++ {
-		atomic.AddInt64(&noPad[idx].value, 1)
-		if i%period == 0 {
-			idx = (idx + 1) % 2
-		}
+		atomic.AddInt64(&noPad[0].value, 1)
+		atomic.AddInt64(&noPad[1].value, 1)
 	}
 	wg.Done()
 }
 
-func doCountingWithPad(wg *sync.WaitGroup, period, n int) {
-	// Flip which counter we increment every `period` iterations
-	// so each goroutine is  out of sync with which atomic int they are working on
-	idx := 0
+func doCountingWithPad(wg *sync.WaitGroup, n int) {
 	for i := 0; i < n; i++ {
-		atomic.AddInt64(&withPad[idx].value, 1)
-		if i%period == 0 {
-			idx = (idx + 1) % 2
-		}
+		atomic.AddInt64(&withPad[0].value, 1)
+		atomic.AddInt64(&withPad[1].value, 1)
 	}
 	wg.Done()
 }
 
 var noPad [2]metricCounterNoPad
 var withPad [2]metricCounterWithPad
-var primes = []int{2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89}
 
 func BenchmarkAtomicCounterNoPad(b *testing.B) {
 	var wg sync.WaitGroup
 	for i := 0; i < runtime.GOMAXPROCS(-1); i++ {
 		wg.Add(1)
-		// Give each gorouting a distinct, prime period
-		go doCountingNoPad(&wg, primes[i%len(primes)], b.N)
+		go doCountingNoPad(&wg, b.N)
 	}
 	wg.Wait()
 }
@@ -249,8 +237,7 @@ func BenchmarkAtomicCounterWithPad(b *testing.B) {
 	var wg sync.WaitGroup
 	for i := 0; i < runtime.GOMAXPROCS(-1); i++ {
 		wg.Add(1)
-		// Alternate which counter each goroutine is working on
-		go doCountingWithPad(&wg, primes[i%len(primes)], b.N)
+		go doCountingWithPad(&wg, b.N)
 	}
 	wg.Wait()
 }
