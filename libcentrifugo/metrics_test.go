@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"runtime"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/stretchr/testify/assert"
@@ -38,27 +41,27 @@ func TestMetrics(t *testing.T) {
 	m.NumClientRequests.Add(10)
 
 	// Deltas should all be zero as we didn't update yet
-	AssertSameCounts(t, "Before update", m.NumMsgPublished, metricCounter{2, 0, 0})
-	AssertSameCounts(t, "Before update", m.NumClientRequests, metricCounter{10, 0, 0})
+	AssertSameCounts(t, "Before update", m.NumMsgPublished, metricCounter{2, 0, 0, [5]int64{}})
+	AssertSameCounts(t, "Before update", m.NumClientRequests, metricCounter{10, 0, 0, [5]int64{}})
 
 	// Now update
 	m.UpdateSnapshot()
 
-	AssertSameCounts(t, "After update", m.NumMsgPublished, metricCounter{2, 2, 2})
-	AssertSameCounts(t, "After update", m.NumClientRequests, metricCounter{10, 10, 10})
+	AssertSameCounts(t, "After update", m.NumMsgPublished, metricCounter{2, 2, 2, [5]int64{}})
+	AssertSameCounts(t, "After update", m.NumClientRequests, metricCounter{10, 10, 10, [5]int64{}})
 
 	// More increments
 	m.NumMsgPublished.Inc()
 	m.NumClientRequests.Inc()
 
-	AssertSameCounts(t, "After second update", m.NumMsgPublished, metricCounter{3, 2, 2})
-	AssertSameCounts(t, "After second update", m.NumClientRequests, metricCounter{11, 10, 10})
+	AssertSameCounts(t, "After second update", m.NumMsgPublished, metricCounter{3, 2, 2, [5]int64{}})
+	AssertSameCounts(t, "After second update", m.NumClientRequests, metricCounter{11, 10, 10, [5]int64{}})
 
 	// Second update
 	m.UpdateSnapshot()
 
-	AssertSameCounts(t, "After second update", m.NumMsgPublished, metricCounter{3, 3, 1})
-	AssertSameCounts(t, "After second update", m.NumClientRequests, metricCounter{11, 11, 1})
+	AssertSameCounts(t, "After second update", m.NumMsgPublished, metricCounter{3, 3, 1, [5]int64{}})
+	AssertSameCounts(t, "After second update", m.NumClientRequests, metricCounter{11, 11, 1, [5]int64{}})
 }
 
 func TestJSONMarshal(t *testing.T) {
@@ -86,7 +89,7 @@ func TestJSONMarshal(t *testing.T) {
 		`"time_api_max":0,`+
 		`"time_client_max":0,`+
 		`"memory_sys":%d,`+
-		`"cpu_usage":%d}`, m.MemSys.value, m.CPU.value)
+		`"cpu_usage":%d}`, m.MemSys, m.CPU)
 
 	jsonBytes, err := json.Marshal(m.GetRawMetrics())
 	if err != nil {
@@ -154,7 +157,7 @@ func TestJSONMarshal(t *testing.T) {
 		`"time_api_max":0,`+
 		`"time_client_max":0,`+
 		`"memory_sys":%d,`+
-		`"cpu_usage":%d}`, m.MemSys.value, m.CPU.value)
+		`"cpu_usage":%d}`, m.MemSys, m.CPU)
 
 	jsonBytes, err = json.Marshal(m.GetSnapshotMetrics())
 	if err != nil {
@@ -188,4 +191,53 @@ func TestJSONMarshal(t *testing.T) {
 	if !bytes.Equal(rawJsonBytes, []byte(expectedRaw)) {
 		t.Errorf("After second update raw count JSON Marshal returned:\n\t%s\n  expected:\n\t%s", rawJsonBytes, expectedRaw)
 	}
+}
+
+/***********************************
+ * Atomic false sharing benchmarks
+ ***********************************/
+
+type metricCounterNoPad struct {
+	value, lastIntervalValue, lastIntervalDelta int64
+}
+type metricCounterWithPad struct {
+	value, lastIntervalValue, lastIntervalDelta int64
+	_padding                                    [5]int64 // pad rest of 64byte cache line
+}
+
+func doCountingNoPad(wg *sync.WaitGroup, n int) {
+	for i := 0; i < n; i++ {
+		atomic.AddInt64(&noPad[0].value, 1)
+		atomic.AddInt64(&noPad[1].value, 1)
+	}
+	wg.Done()
+}
+
+func doCountingWithPad(wg *sync.WaitGroup, n int) {
+	for i := 0; i < n; i++ {
+		atomic.AddInt64(&withPad[0].value, 1)
+		atomic.AddInt64(&withPad[1].value, 1)
+	}
+	wg.Done()
+}
+
+var noPad [2]metricCounterNoPad
+var withPad [2]metricCounterWithPad
+
+func BenchmarkAtomicCounterNoPad(b *testing.B) {
+	var wg sync.WaitGroup
+	for i := 0; i < runtime.GOMAXPROCS(-1); i++ {
+		wg.Add(1)
+		go doCountingNoPad(&wg, b.N)
+	}
+	wg.Wait()
+}
+
+func BenchmarkAtomicCounterWithPad(b *testing.B) {
+	var wg sync.WaitGroup
+	for i := 0; i < runtime.GOMAXPROCS(-1); i++ {
+		wg.Add(1)
+		go doCountingWithPad(&wg, b.N)
+	}
+	wg.Wait()
 }
