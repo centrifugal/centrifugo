@@ -111,8 +111,6 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 		if web {
 			// register admin web interface API endpoints
 			mux.Handle(prefix+"/auth/", app.Logged(http.HandlerFunc(app.AuthHandler)))
-			mux.Handle(prefix+"/info/", app.Logged(app.Authenticated(http.HandlerFunc(app.InfoHandler))))
-			mux.Handle(prefix+"/action/", app.Logged(app.Authenticated(http.HandlerFunc(app.ActionHandler))))
 
 			// serve web interface single-page application
 			if webPath != "" {
@@ -488,96 +486,6 @@ func (app *Application) Logged(h http.Handler) http.Handler {
 		return
 	}
 	return http.HandlerFunc(fn)
-}
-
-// InfoHandler allows to get actual information about Centrifugo nodes running.
-func (app *Application) InfoHandler(w http.ResponseWriter, r *http.Request) {
-	app.nodesMu.Lock()
-	defer app.nodesMu.Unlock()
-	app.RLock()
-	defer app.RUnlock()
-	info := map[string]interface{}{
-		"version":             app.config.Version,
-		"secret":              app.config.Secret,
-		"connection_lifetime": app.config.ConnLifetime,
-		"channel_options":     app.config.ChannelOptions,
-		"namespaces":          app.config.Namespaces,
-		"engine":              app.engine.name(),
-		"node_name":           app.config.Name,
-		"nodes":               app.nodes,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(info)
-}
-
-// ActionHandler allows to call API commands via submitting a form.
-func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
-
-	app.metrics.NumAPIRequests.Inc()
-
-	method := r.FormValue("method")
-
-	var resp *response
-	var err error
-
-	switch method {
-	case "publish":
-		channel := Channel(r.FormValue("channel"))
-		data := r.FormValue("data")
-		if data == "" {
-			http.Error(w, "Bad Request", http.StatusBadRequest)
-			return
-		}
-		cmd := &publishAPICommand{
-			Channel: channel,
-			Data:    []byte(data),
-		}
-		resp, err = app.publishCmd(cmd)
-	case "unsubscribe":
-		channel := Channel(r.FormValue("channel"))
-		user := UserID(r.FormValue("user"))
-		cmd := &unsubscribeAPICommand{
-			Channel: channel,
-			User:    user,
-		}
-		resp, err = app.unsubcribeCmd(cmd)
-	case "disconnect":
-		user := UserID(r.FormValue("user"))
-		cmd := &disconnectAPICommand{
-			User: user,
-		}
-		resp, err = app.disconnectCmd(cmd)
-	case "presence":
-		channel := Channel(r.FormValue("channel"))
-		cmd := &presenceAPICommand{
-			Channel: channel,
-		}
-		resp, err = app.presenceCmd(cmd)
-	case "history":
-		channel := Channel(r.FormValue("channel"))
-		cmd := &historyAPICommand{
-			Channel: channel,
-		}
-		resp, err = app.historyCmd(cmd)
-	case "channels":
-		resp, err = app.channelsCmd()
-	case "stats":
-		resp, err = app.statsCmd()
-	case "node":
-		resp, err = app.nodeCmd()
-	default:
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-
-	if err != nil {
-		logger.ERROR.Println(err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
 }
 
 var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
