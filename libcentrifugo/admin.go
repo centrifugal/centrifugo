@@ -43,18 +43,15 @@ func (c *adminClient) uid() ConnID {
 }
 
 func (c *adminClient) send(message []byte) error {
-	c.RLock()
-	watch := c.watch
-	c.RUnlock()
-	if !watch {
+	if !c.watch {
 		// At moment we only use this method to send asynchronous
-		// messages to admin client when new message published into channel
-		// and admin watch option was set to true. If we introduce another
-		// types of asynchronous admin messages coming from admin hub broadcast
-		// then we will need to refactor this – it seems that we then need to
-		// know a type of message coming to decide what to do with it on broadcast
-		// level, for example 1-byte prefix meaning message type (what @banks
-		// actually suggested).
+		// messages to admin client when new message published into channel with
+		// watch option enabled and admin watch option was set to true in connection
+		// params. If we introduce another types of asynchronous admin messages coming
+		// from admin hub broadcast then we will need to refactor this – it seems that
+		// we then need to know a type of message coming to decide what to do with it
+		// on broadcast level, for example 1-byte prefix meaning message type (what
+		// @banks actually suggested).
 		return nil
 	}
 	return c.write(message)
@@ -134,6 +131,7 @@ func (c *adminClient) message(msg []byte) error {
 
 		c.Unlock()
 
+		resp.UID = command.UID
 		mr = append(mr, resp)
 	}
 
