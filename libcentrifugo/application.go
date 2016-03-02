@@ -738,6 +738,7 @@ func (app *Application) Presence(ch Channel) (map[ConnID]ClientInfo, error) {
 
 	presence, err := app.engine.presence(chID)
 	if err != nil {
+		logger.ERROR.Println(err)
 		return map[ConnID]ClientInfo{}, ErrInternalServerError
 	}
 	return presence, nil
@@ -763,6 +764,7 @@ func (app *Application) History(ch Channel) ([]Message, error) {
 
 	history, err := app.engine.history(chID, historyOpts{})
 	if err != nil {
+		logger.ERROR.Println(err)
 		return []Message{}, ErrInternalServerError
 	}
 	return history, nil

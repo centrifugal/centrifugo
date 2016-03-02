@@ -230,8 +230,10 @@ redis.call("zrem", KEYS[1], ARGV[1])
 	presenceSource := `
 local expired = redis.call("zrangebyscore", KEYS[1], "0", ARGV[1])
 if #expired > 0 then
-	redis.call("zremrangebyscore", KEYS[1], "0", ARGV[1])
-	for key in t do redis.call("hdel", KEYS[2], key) end
+  redis.call("zremrangebyscore", KEYS[1], "0", ARGV[1])
+  for num = 1, #expired do
+    redis.call("hdel", "centrifugo.presence.hash.centrifugo.channel.$public:chat", expired[num])
+  end
 end
 return redis.call("hgetall", KEYS[2])
 	`
