@@ -30,13 +30,16 @@ const (
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
 	sync.RWMutex
-	app          *Application
-	pool         *redis.Pool
-	api          bool
-	numApiShards int
-	subCh        chan subRequest
-	unSubCh      chan subRequest
-	pubScript    *redis.Script
+	app               *Application
+	pool              *redis.Pool
+	api               bool
+	numApiShards      int
+	subCh             chan subRequest
+	unSubCh           chan subRequest
+	pubScript         *redis.Script
+	addPresenceScript *redis.Script
+	remPresenceScript *redis.Script
+	presenceScript    *redis.Script
 }
 
 // RedisEngineConfig is struct with Redis Engine options.
@@ -200,12 +203,50 @@ end
 return n
 	`
 
+	// KEYS[1] - presence set key
+	// KEYS[2] - presence hash key
+	// ARGV[1] - key expire seconds
+	// ARGV[2] - expire at for set member
+	// ARGV[3] - uid
+	// ARGV[4] - info payload
+	addPresenceSource := `
+redis.call("zadd", KEYS[1], ARGV[2], ARGV[3])
+redis.call("hset", KEYS[2], ARGV[3], ARGV[4])
+redis.call("expire", KEYS[1], ARGV[1])
+redis.call("expire", KEYS[2], ARGV[1])
+	`
+
+	// KEYS[1] - presence set key
+	// KEYS[2] - presence hash key
+	// ARGV[1] - uid
+	remPresenceSource := `
+redis.call("hdel", KEYS[2], ARGV[1])
+redis.call("zrem", KEYS[1], ARGV[1])
+	`
+
+	// KEYS[1] - presence set key
+	// KEYS[2] - presence hash key
+	// ARGV[1] - now string
+	presenceSource := `
+local expired = redis.call("zrangebyscore", KEYS[1], "0", ARGV[1])
+if #expired > 0 then
+  for num = 1, #expired do
+    redis.call("hdel", KEYS[2], expired[num])
+  end
+  redis.call("zremrangebyscore", KEYS[1], "0", ARGV[1])
+end
+return redis.call("hgetall", KEYS[2])
+	`
+
 	e := &RedisEngine{
-		app:          app,
-		pool:         pool,
-		api:          conf.API,
-		numApiShards: conf.NumAPIShards,
-		pubScript:    redis.NewScript(1, pubScriptSource),
+		app:               app,
+		pool:              pool,
+		api:               conf.API,
+		numApiShards:      conf.NumAPIShards,
+		pubScript:         redis.NewScript(1, pubScriptSource),
+		addPresenceScript: redis.NewScript(2, addPresenceSource),
+		remPresenceScript: redis.NewScript(2, remPresenceSource),
+		presenceScript:    redis.NewScript(2, presenceSource),
 	}
 	usingPassword := yesno(password != "")
 	apiEnabled := yesno(conf.API)
@@ -254,6 +295,7 @@ func (e *RedisEngine) runForever(fn func()) {
 func (e *RedisEngine) runAPI() {
 	conn := e.pool.Get()
 	defer conn.Close()
+	defer logger.INFO.Println("return from runAPI")
 
 	e.app.RLock()
 	apiKey := e.app.config.ChannelPrefix + "." + "api"
@@ -357,6 +399,7 @@ func fillBatchFromChan(ch <-chan subRequest, batch *[]subRequest, chIDs *[]inter
 func (e *RedisEngine) runPubSub() {
 	conn := redis.PubSubConn{Conn: e.pool.Get()}
 	defer conn.Close()
+	defer logger.INFO.Println("return from runPubSub")
 
 	e.app.RLock()
 	adminChannel := e.app.config.AdminChannel
@@ -513,7 +556,7 @@ func (e *RedisEngine) getHistoryKey(chID ChannelID) string {
 
 func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) error {
 	e.app.RLock()
-	presenceExpireSeconds := e.app.config.PresenceExpireInterval.Seconds()
+	presenceExpireSeconds := int(e.app.config.PresenceExpireInterval.Seconds())
 	e.app.RUnlock()
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -524,12 +567,7 @@ func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) e
 	expireAt := time.Now().Unix() + int64(presenceExpireSeconds)
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
-	conn.Send("MULTI")
-	conn.Send("ZADD", setKey, expireAt, uid)
-	conn.Send("HSET", hashKey, uid, infoJSON)
-	conn.Send("EXPIRE", setKey, presenceExpireSeconds)
-	conn.Send("EXPIRE", hashKey, presenceExpireSeconds)
-	_, err = conn.Do("EXEC")
+	_, err = e.addPresenceScript.Do(conn, setKey, hashKey, presenceExpireSeconds, expireAt, uid, infoJSON)
 	return err
 }
 
@@ -538,10 +576,7 @@ func (e *RedisEngine) removePresence(chID ChannelID, uid ConnID) error {
 	defer conn.Close()
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
-	conn.Send("MULTI")
-	conn.Send("HDEL", hashKey, uid)
-	conn.Send("ZREM", setKey, uid)
-	_, err := conn.Do("EXEC")
+	_, err := e.remPresenceScript.Do(conn, setKey, hashKey, uid)
 	return err
 }
 
@@ -573,29 +608,10 @@ func mapStringClientInfo(result interface{}, err error) (map[ConnID]ClientInfo, 
 func (e *RedisEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
-	now := time.Now().Unix()
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
-	reply, err := conn.Do("ZRANGEBYSCORE", setKey, 0, now)
-	if err != nil {
-		return nil, err
-	}
-	expiredKeys, err := redis.Strings(reply, nil)
-	if err != nil {
-		return nil, err
-	}
-	if len(expiredKeys) > 0 {
-		conn.Send("MULTI")
-		conn.Send("ZREMRANGEBYSCORE", setKey, 0, now)
-		for _, key := range expiredKeys {
-			conn.Send("HDEL", hashKey, key)
-		}
-		_, err = conn.Do("EXEC")
-		if err != nil {
-			return nil, err
-		}
-	}
-	reply, err = conn.Do("HGETALL", hashKey)
+	now := int(time.Now().Unix())
+	reply, err := e.presenceScript.Do(conn, setKey, hashKey, now)
 	if err != nil {
 		return nil, err
 	}
