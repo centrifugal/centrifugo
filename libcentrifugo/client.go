@@ -95,6 +95,11 @@ func (c *client) sendMessages() {
 }
 
 func (c *client) sendMsgTimeout(msg []byte) error {
+	select {
+	case <-c.closeChan:
+		return nil
+	default:
+	}
 	sendTimeout := c.sendTimeout // No lock here as sendTimeout immutable while client exists.
 	if sendTimeout > 0 {
 		// Send to client's session with provided timeout.
@@ -210,11 +215,8 @@ func (c *client) send(message []byte) error {
 func (c *client) close(reason string) error {
 	// TODO: better locking for client - at moment we close message queue in 2 places, here and in clean() method
 	c.messages.Close()
-	err := c.sess.Close(CloseStatus, reason)
-	if err != nil {
-		logger.ERROR.Println(err)
-	}
-	return err
+	c.sess.Close(CloseStatus, reason)
+	return nil
 }
 
 // clean called when connection was closed to make different clean up
