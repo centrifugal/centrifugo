@@ -115,8 +115,11 @@ func newPool(server, password, db string, psize int) *redis.Pool {
 		},
 	}
 
+	var lastMu sync.Mutex
+	var lastMaster string
+
 	return &redis.Pool{
-		MaxIdle:     3,
+		MaxIdle:     10,
 		MaxActive:   psize,
 		Wait:        true,
 		IdleTimeout: 240 * time.Second,
@@ -125,7 +128,13 @@ func newPool(server, password, db string, psize int) *redis.Pool {
 			if err != nil {
 				return nil, err
 			}
-			c, err := redis.Dial("tcp", masterAddr)
+			lastMu.Lock()
+			if masterAddr != lastMaster {
+				logger.INFO.Printf("Redis master found: %s", masterAddr)
+				lastMaster = masterAddr
+			}
+			lastMu.Unlock()
+			c, err := redis.DialTimeout("tcp", masterAddr, time.Second, 3*time.Second, time.Second)
 			if err != nil {
 				logger.CRITICAL.Println(err)
 				return nil, err
@@ -324,7 +333,8 @@ func (e *RedisEngine) runForever(fn func()) {
 func (e *RedisEngine) runAPI() {
 	conn := e.pool.Get()
 	defer conn.Close()
-	defer logger.INFO.Println("return from runAPI")
+	logger.INFO.Println("Enter runAPI")
+	defer logger.INFO.Println("Return from runAPI")
 
 	e.app.RLock()
 	apiKey := e.app.config.ChannelPrefix + "." + "api"
@@ -428,7 +438,8 @@ func fillBatchFromChan(ch <-chan subRequest, batch *[]subRequest, chIDs *[]inter
 func (e *RedisEngine) runPubSub() {
 	conn := redis.PubSubConn{Conn: e.pool.Get()}
 	defer conn.Close()
-	defer logger.INFO.Println("return from runPubSub")
+	logger.INFO.Println("Enter runPubSub")
+	defer logger.INFO.Println("Return from runPubSub")
 
 	e.app.RLock()
 	adminChannel := e.app.config.AdminChannel
@@ -678,6 +689,7 @@ func (e *RedisEngine) history(chID ChannelID, opts historyOpts) ([]Message, erro
 	historyKey := e.getHistoryKey(chID)
 	reply, err := conn.Do("LRANGE", historyKey, 0, rangeBound)
 	if err != nil {
+		logger.ERROR.Printf("%#v", err)
 		return nil, err
 	}
 	return sliceOfMessages(reply, nil)
