@@ -131,7 +131,7 @@ func Main() {
 			viper.SetDefault("web_secret", "")
 			viper.SetDefault("max_channel_length", 255)
 			viper.SetDefault("channel_prefix", "centrifugo")
-			viper.SetDefault("node_ping_interval", 5)
+			viper.SetDefault("node_ping_interval", 3)
 			viper.SetDefault("message_send_timeout", 0)
 			viper.SetDefault("ping_interval", 25)
 			viper.SetDefault("node_metrics_interval", 60)
@@ -270,14 +270,17 @@ func Main() {
 				e = libcentrifugo.NewMemoryEngine(app)
 			case "redis":
 				redisConf := &libcentrifugo.RedisEngineConfig{
-					Host:         viper.GetString("redis_host"),
-					Port:         viper.GetString("redis_port"),
-					Password:     viper.GetString("redis_password"),
-					DB:           viper.GetString("redis_db"),
-					URL:          viper.GetString("redis_url"),
-					PoolSize:     viper.GetInt("redis_pool"),
-					API:          viper.GetBool("redis_api"),
-					NumAPIShards: viper.GetInt("redis_api_num_shards"),
+					Host:           viper.GetString("redis_host"),
+					Port:           viper.GetString("redis_port"),
+					Password:       viper.GetString("redis_password"),
+					DB:             viper.GetString("redis_db"),
+					URL:            viper.GetString("redis_url"),
+					PoolSize:       viper.GetInt("redis_pool"),
+					API:            viper.GetBool("redis_api"),
+					NumAPIShards:   viper.GetInt("redis_api_num_shards"),
+					ConnectTimeout: time.Second,
+					ReadTimeout:    time.Duration(viper.GetInt("node_ping_interval")*3+1) * time.Second,
+					WriteTimeout:   time.Second,
 				}
 				e = libcentrifugo.NewRedisEngine(app, redisConf)
 			default:
