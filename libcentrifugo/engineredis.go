@@ -62,6 +62,14 @@ type RedisEngineConfig struct {
 	// NumAPIShards is a number of sharded API queues in Redis to increase volume of commands
 	// (most probably publish) that Centrifugo instance can process.
 	NumAPIShards int
+
+	// Timeout on read operations. Note that at moment it should be greater than node
+	// ping interval in order to prevent timing out Pubsub connection's Receive call.
+	ReadTimeout time.Duration
+	// Timeout on write operations
+	WriteTimeout time.Duration
+	// Timeout on connect operation
+	ConnectTimeout time.Duration
 }
 
 // subRequest is an internal request to subscribe or unsubscribe from one or more channels
@@ -99,7 +107,7 @@ func (sr *subRequest) result() error {
 	return <-*(sr.err)
 }
 
-func newPool(server, password, db string, psize int) *redis.Pool {
+func newPool(server, password, db string, psize int, connectTimeout, readTimeout, writeTimeout time.Duration) *redis.Pool {
 
 	sentinel := &redis.Sentinel{
 		Addrs:      []string{":26379", ":26380", ":26381"},
@@ -118,8 +126,13 @@ func newPool(server, password, db string, psize int) *redis.Pool {
 	var lastMu sync.Mutex
 	var lastMaster string
 
+	maxIdle := 10
+	if psize < maxIdle {
+		maxIdle = psize
+	}
+
 	return &redis.Pool{
-		MaxIdle:     10,
+		MaxIdle:     maxIdle,
 		MaxActive:   psize,
 		Wait:        true,
 		IdleTimeout: 240 * time.Second,
@@ -134,7 +147,7 @@ func newPool(server, password, db string, psize int) *redis.Pool {
 				lastMaster = masterAddr
 			}
 			lastMu.Unlock()
-			c, err := redis.DialTimeout("tcp", masterAddr, time.Second, 3*time.Second, time.Second)
+			c, err := redis.DialTimeout("tcp", server, connectTimeout, readTimeout, writeTimeout)
 			if err != nil {
 				logger.CRITICAL.Println(err)
 				return nil, err
@@ -213,7 +226,7 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 
 	server := host + ":" + port
 
-	pool := newPool(server, password, db, conf.PoolSize)
+	pool := newPool(server, password, db, conf.PoolSize, conf.ConnectTimeout, conf.ReadTimeout, conf.WriteTimeout)
 
 	// pubScriptSource contains lua script we register in Redis to call when publishing
 	// client message. It publishes message into channel and adds message to history
