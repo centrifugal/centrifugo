@@ -354,7 +354,7 @@ func (e *RedisEngine) blpopTimeout() int {
 		// No read timeout - we can block frever in BLOP.
 		timeout = 0
 	} else {
-		timeout := int(e.config.ReadTimeout.Seconds() / 2)
+		timeout = int(readTimeout.Seconds() / 2)
 		if timeout == 0 {
 			timeout = 1
 		}
