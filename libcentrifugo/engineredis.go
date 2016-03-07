@@ -31,6 +31,7 @@ const (
 type RedisEngine struct {
 	sync.RWMutex
 	app               *Application
+	config            *RedisEngineConfig
 	pool              *redis.Pool
 	api               bool
 	numApiShards      int
@@ -291,6 +292,7 @@ return redis.call("hgetall", KEYS[2])
 
 	e := &RedisEngine{
 		app:               app,
+		config:            conf,
 		pool:              pool,
 		api:               conf.API,
 		numApiShards:      conf.NumAPIShards,
@@ -343,6 +345,23 @@ func (e *RedisEngine) runForever(fn func()) {
 	}
 }
 
+func (e *RedisEngine) blpopTimeout() int {
+	var timeout int
+	e.RLock()
+	readTimeout := e.config.ReadTimeout
+	e.RUnlock()
+	if readTimeout == 0 {
+		// No read timeout - we can block frever in BLOP.
+		timeout = 0
+	} else {
+		timeout := int(e.config.ReadTimeout.Seconds() / 2)
+		if timeout == 0 {
+			timeout = 1
+		}
+	}
+	return timeout
+}
+
 func (e *RedisEngine) runAPI() {
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -366,8 +385,10 @@ func (e *RedisEngine) runAPI() {
 		workQueues[queueKey] = make(chan []byte, 256)
 	}
 
-	// Add timeout param
-	popParams = append(popParams, 0)
+	// Add timeout param, it must be less than connection ReadTimeout to prevent
+	// timeout errors. Below we handle situation when BLPOP block timeout fired
+	// (ErrNil returned) and call BLPOP again.
+	popParams = append(popParams, e.blpopTimeout())
 
 	// Start a worker for each queue
 	for name, ch := range workQueues {
@@ -407,6 +428,9 @@ func (e *RedisEngine) runAPI() {
 
 		values, err := redis.Values(reply, nil)
 		if err != nil {
+			if err == redis.ErrNil {
+				continue
+			}
 			logger.ERROR.Println(err)
 			return
 		}
