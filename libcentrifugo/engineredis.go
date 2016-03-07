@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/FZambia/redigo/redis"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
-	"github.com/centrifugal/redigo/redis"
 )
 
 const (
