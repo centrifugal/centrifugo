@@ -148,7 +148,7 @@ func newPool(server, password, db string, psize int, connectTimeout, readTimeout
 				lastMaster = masterAddr
 			}
 			lastMu.Unlock()
-			c, err := redis.DialTimeout("tcp", server, connectTimeout, readTimeout, writeTimeout)
+			c, err := redis.DialTimeout("tcp", masterAddr, connectTimeout, readTimeout, writeTimeout)
 			if err != nil {
 				logger.CRITICAL.Println(err)
 				return nil, err
