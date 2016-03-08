@@ -9,8 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FZambia/redigo/redis"
+	"github.com/FZambia/go-sentinel"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/garyburd/redigo/redis"
 )
 
 const (
@@ -110,11 +111,11 @@ func (sr *subRequest) result() error {
 
 func newPool(server, password, db string, psize int, connectTimeout, readTimeout, writeTimeout time.Duration) *redis.Pool {
 
-	sentinel := &redis.Sentinel{
+	sntnl := &sentinel.Sentinel{
 		Addrs:      []string{":26379", ":26380", ":26381"},
 		MasterName: "mymaster",
 		Dial: func(addr string) (redis.Conn, error) {
-			timeout := 500 * time.Millisecond
+			timeout := 300 * time.Millisecond
 			c, err := redis.DialTimeout("tcp", addr, timeout, timeout, timeout)
 			if err != nil {
 				logger.CRITICAL.Println(err)
@@ -122,6 +123,11 @@ func newPool(server, password, db string, psize int, connectTimeout, readTimeout
 			}
 			return c, nil
 		},
+	}
+
+	err := sntnl.Discover()
+	if err != nil {
+		logger.ERROR.Println(err)
 	}
 
 	var lastMu sync.Mutex
@@ -138,13 +144,13 @@ func newPool(server, password, db string, psize int, connectTimeout, readTimeout
 		Wait:        true,
 		IdleTimeout: 240 * time.Second,
 		Dial: func() (redis.Conn, error) {
-			masterAddr, err := sentinel.MasterAddr()
+			masterAddr, err := sntnl.MasterAddr()
 			if err != nil {
 				return nil, err
 			}
 			lastMu.Lock()
 			if masterAddr != lastMaster {
-				logger.INFO.Printf("Redis master found: %s", masterAddr)
+				logger.INFO.Printf("Redis master discovered: %s", masterAddr)
 				lastMaster = masterAddr
 			}
 			lastMu.Unlock()
@@ -168,14 +174,7 @@ func newPool(server, password, db string, psize int, connectTimeout, readTimeout
 			return c, err
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
-			if !redis.TestRole(c, "master") {
-				return errors.New("Failed role check")
-			} else {
-				return nil
-			}
-		},
-		TestOnReturn: func(c redis.Conn) error {
-			if !redis.TestRole(c, "master") {
+			if !sntnl.TestRole(c, "master") {
 				return errors.New("Failed role check")
 			} else {
 				return nil
@@ -365,8 +364,8 @@ func (e *RedisEngine) blpopTimeout() int {
 func (e *RedisEngine) runAPI() {
 	conn := e.pool.Get()
 	defer conn.Close()
-	logger.INFO.Println("Enter runAPI")
-	defer logger.INFO.Println("Return from runAPI")
+	logger.DEBUG.Println("Enter runAPI")
+	defer logger.DEBUG.Println("Return from runAPI")
 
 	e.app.RLock()
 	apiKey := e.app.config.ChannelPrefix + "." + "api"
@@ -475,8 +474,8 @@ func fillBatchFromChan(ch <-chan subRequest, batch *[]subRequest, chIDs *[]inter
 func (e *RedisEngine) runPubSub() {
 	conn := redis.PubSubConn{Conn: e.pool.Get()}
 	defer conn.Close()
-	logger.INFO.Println("Enter runPubSub")
-	defer logger.INFO.Println("Return from runPubSub")
+	logger.DEBUG.Println("Enter runPubSub")
+	defer logger.DEBUG.Println("Return from runPubSub")
 
 	e.app.RLock()
 	adminChannel := e.app.config.AdminChannel
