@@ -65,6 +65,11 @@ type RedisEngineConfig struct {
 	// (most probably publish) that Centrifugo instance can process.
 	NumAPIShards int
 
+	// MasterName is a name of Redis instance master Sentinel monitors.
+	MasterName string
+	// SentinelAddrs is a slice of Sentinel addresses.
+	SentinelAddrs []string
+
 	// Timeout on read operations. Note that at moment it should be greater than node
 	// ping interval in order to prevent timing out Pubsub connection's Receive call.
 	ReadTimeout time.Duration
@@ -109,89 +114,8 @@ func (sr *subRequest) result() error {
 	return <-*(sr.err)
 }
 
-func newPool(server, password, db string, psize int, connectTimeout, readTimeout, writeTimeout time.Duration) *redis.Pool {
+func newPool(conf *RedisEngineConfig) *redis.Pool {
 
-	sntnl := &sentinel.Sentinel{
-		Addrs:      []string{":26379", ":26380", ":26381"},
-		MasterName: "mymaster",
-		Dial: func(addr string) (redis.Conn, error) {
-			timeout := 300 * time.Millisecond
-			c, err := redis.DialTimeout("tcp", addr, timeout, timeout, timeout)
-			if err != nil {
-				logger.CRITICAL.Println(err)
-				return nil, err
-			}
-			return c, nil
-		},
-	}
-
-	err := sntnl.Discover()
-	if err != nil {
-		logger.ERROR.Println(err)
-	}
-
-	var lastMu sync.Mutex
-	var lastMaster string
-
-	maxIdle := 10
-	if psize < maxIdle {
-		maxIdle = psize
-	}
-
-	return &redis.Pool{
-		MaxIdle:     maxIdle,
-		MaxActive:   psize,
-		Wait:        true,
-		IdleTimeout: 240 * time.Second,
-		Dial: func() (redis.Conn, error) {
-			masterAddr, err := sntnl.MasterAddr()
-			if err != nil {
-				return nil, err
-			}
-			lastMu.Lock()
-			if masterAddr != lastMaster {
-				logger.INFO.Printf("Redis master discovered: %s", masterAddr)
-				lastMaster = masterAddr
-			}
-			lastMu.Unlock()
-			c, err := redis.DialTimeout("tcp", masterAddr, connectTimeout, readTimeout, writeTimeout)
-			if err != nil {
-				logger.CRITICAL.Println(err)
-				return nil, err
-			}
-			if password != "" {
-				if _, err := c.Do("AUTH", password); err != nil {
-					c.Close()
-					logger.CRITICAL.Println(err)
-					return nil, err
-				}
-			}
-			if _, err := c.Do("SELECT", db); err != nil {
-				c.Close()
-				logger.CRITICAL.Println(err)
-				return nil, err
-			}
-			return c, err
-		},
-		TestOnBorrow: func(c redis.Conn, t time.Time) error {
-			if !sentinel.TestRole(c, "master") {
-				return errors.New("Failed role check")
-			} else {
-				return nil
-			}
-		},
-	}
-}
-
-func yesno(condition bool) string {
-	if condition {
-		return "yes"
-	}
-	return "no"
-}
-
-// NewRedisEngine initializes Redis Engine.
-func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 	host := conf.Host
 	port := conf.Port
 	password := conf.Password
@@ -224,9 +148,111 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 		}
 	}
 
-	server := host + ":" + port
+	serverAddr := net.JoinHostPort(host, port)
+	useSentinel := conf.MasterName != "" && len(conf.SentinelAddrs) > 0
 
-	pool := newPool(server, password, db, conf.PoolSize, conf.ConnectTimeout, conf.ReadTimeout, conf.WriteTimeout)
+	usingPassword := yesno(password != "")
+	apiEnabled := yesno(conf.API)
+	var shardsSuffix string
+	if conf.API {
+		shardsSuffix = fmt.Sprintf(", num shard queues: %d", conf.NumAPIShards)
+	}
+	if !useSentinel {
+		logger.INFO.Printf("Redis engine: %s/%s, pool: %d, using password: %s, API enabled: %s%s\n", serverAddr, db, conf.PoolSize, usingPassword, apiEnabled, shardsSuffix)
+	} else {
+		logger.INFO.Printf("Redis engine: Sentinel for name: %s, db: %s, pool: %d, using password: %s, API enabled: %s%s\n", conf.MasterName, db, conf.PoolSize, usingPassword, apiEnabled, shardsSuffix)
+	}
+
+	var lastMu sync.Mutex
+	var lastMaster string
+
+	maxIdle := 10
+	if conf.PoolSize < maxIdle {
+		maxIdle = conf.PoolSize
+	}
+
+	var sntnl *sentinel.Sentinel
+	if useSentinel {
+		sntnl = &sentinel.Sentinel{
+			Addrs:      conf.SentinelAddrs,
+			MasterName: conf.MasterName,
+			Dial: func(addr string) (redis.Conn, error) {
+				timeout := 300 * time.Millisecond
+				c, err := redis.DialTimeout("tcp", addr, timeout, timeout, timeout)
+				if err != nil {
+					logger.CRITICAL.Println(err)
+					return nil, err
+				}
+				return c, nil
+			},
+		}
+	}
+
+	return &redis.Pool{
+		MaxIdle:     maxIdle,
+		MaxActive:   conf.PoolSize,
+		Wait:        true,
+		IdleTimeout: 240 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			var err error
+			if useSentinel {
+				serverAddr, err = sntnl.MasterAddr()
+				if err != nil {
+					return nil, err
+				}
+				lastMu.Lock()
+				if serverAddr != lastMaster {
+					logger.INFO.Printf("Redis master discovered: %s", serverAddr)
+					lastMaster = serverAddr
+				}
+				lastMu.Unlock()
+			}
+
+			c, err := redis.DialTimeout("tcp", serverAddr, conf.ConnectTimeout, conf.ReadTimeout, conf.WriteTimeout)
+			if err != nil {
+				logger.CRITICAL.Println(err)
+				return nil, err
+			}
+
+			if password != "" {
+				if _, err := c.Do("AUTH", password); err != nil {
+					c.Close()
+					logger.CRITICAL.Println(err)
+					return nil, err
+				}
+			}
+
+			if db != "0" {
+				if _, err := c.Do("SELECT", db); err != nil {
+					c.Close()
+					logger.CRITICAL.Println(err)
+					return nil, err
+				}
+			}
+
+			return c, err
+		},
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			if !sentinel.TestRole(c, "master") {
+				return errors.New("Failed role check")
+			} else {
+				return nil
+			}
+		},
+	}
+}
+
+func yesno(condition bool) string {
+	if condition {
+		return "yes"
+	}
+	return "no"
+}
+
+// NewRedisEngine initializes Redis Engine.
+func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
+
+	pool := newPool(conf)
 
 	// pubScriptSource contains lua script we register in Redis to call when publishing
 	// client message. It publishes message into channel and adds message to history
@@ -300,13 +326,6 @@ return redis.call("hgetall", KEYS[2])
 		remPresenceScript: redis.NewScript(2, remPresenceSource),
 		presenceScript:    redis.NewScript(2, presenceSource),
 	}
-	usingPassword := yesno(password != "")
-	apiEnabled := yesno(conf.API)
-	var shardsSuffix string
-	if conf.API {
-		shardsSuffix = fmt.Sprintf(", num shard queues: %d", conf.NumAPIShards)
-	}
-	logger.INFO.Printf("Redis engine: %s/%s, pool: %d, using password: %s, API enabled: %s%s\n", server, db, conf.PoolSize, usingPassword, apiEnabled, shardsSuffix)
 	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
 	e.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
 	return e

@@ -115,6 +115,8 @@ func Main() {
 	var redisAPI bool
 	var redisPool int
 	var redisAPINumShards int
+	var redisMasterName string
+	var redisSentinels string
 
 	var rootCmd = &cobra.Command{
 		Use:   "",
@@ -150,6 +152,9 @@ func Main() {
 			viper.SetDefault("user_channel_separator", ",")
 			viper.SetDefault("client_channel_boundary", "&")
 			viper.SetDefault("sockjs_url", "//cdn.jsdelivr.net/sockjs/1.0/sockjs.min.js")
+
+			viper.SetDefault("redis_connect_timeout", 1)
+			viper.SetDefault("redis_write_timeout", 1)
 
 			viper.SetDefault("secret", "")
 			viper.SetDefault("connection_lifetime", 0)
@@ -209,6 +214,8 @@ func Main() {
 			viper.BindPFlag("redis_api", cmd.Flags().Lookup("redis_api"))
 			viper.BindPFlag("redis_pool", cmd.Flags().Lookup("redis_pool"))
 			viper.BindPFlag("redis_api_num_shards", cmd.Flags().Lookup("redis_api_num_shards"))
+			viper.BindPFlag("redis_master_name", cmd.Flags().Lookup("redis_master_name"))
+			viper.BindPFlag("redis_sentinels", cmd.Flags().Lookup("redis_sentinels"))
 
 			viper.SetConfigFile(configFile)
 
@@ -269,6 +276,30 @@ func Main() {
 			case "memory":
 				e = libcentrifugo.NewMemoryEngine(app)
 			case "redis":
+				masterName := viper.GetString("redis_master_name")
+				sentinels := viper.GetString("redis_sentinels")
+				if masterName != "" && sentinels == "" {
+					logger.FATAL.Fatalf("Provide at least one Sentinel address")
+				}
+
+				sentinelAddrs := []string{}
+				if sentinels != "" {
+					for _, addr := range strings.Split(sentinels, ",") {
+						addr := strings.TrimSpace(addr)
+						if addr == "" {
+							continue
+						}
+						if _, _, err := net.SplitHostPort(addr); err != nil {
+							logger.FATAL.Fatalf("Malformed Sentinel address: %s", addr)
+						}
+						sentinelAddrs = append(sentinelAddrs, addr)
+					}
+				}
+
+				if len(sentinelAddrs) > 0 && masterName == "" {
+					logger.FATAL.Fatalln("Redis master name required when Sentinel used")
+				}
+
 				redisConf := &libcentrifugo.RedisEngineConfig{
 					Host:           viper.GetString("redis_host"),
 					Port:           viper.GetString("redis_port"),
@@ -278,9 +309,11 @@ func Main() {
 					PoolSize:       viper.GetInt("redis_pool"),
 					API:            viper.GetBool("redis_api"),
 					NumAPIShards:   viper.GetInt("redis_api_num_shards"),
-					ConnectTimeout: time.Second,
+					MasterName:     masterName,
+					SentinelAddrs:  sentinelAddrs,
+					ConnectTimeout: time.Duration(viper.GetInt("redis_connect_timeout")) * time.Second,
 					ReadTimeout:    time.Duration(viper.GetInt("node_ping_interval")*3+1) * time.Second,
-					WriteTimeout:   time.Second,
+					WriteTimeout:   time.Duration(viper.GetInt("redis_write_timeout")) * time.Second,
 				}
 				e = libcentrifugo.NewRedisEngine(app, redisConf)
 			default:
@@ -410,6 +443,8 @@ func Main() {
 	rootCmd.Flags().BoolVarP(&redisAPI, "redis_api", "", false, "enable Redis API listener (Redis engine)")
 	rootCmd.Flags().IntVarP(&redisPool, "redis_pool", "", 256, "Redis pool size (Redis engine)")
 	rootCmd.Flags().IntVarP(&redisAPINumShards, "redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisMasterName, "redis_master_name", "", "", "Name of Redis master Sentinel monitors (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisSentinels, "redis_sentinels", "", "", "Comma separated list of Sentinels (Redis engine)")
 
 	var versionCmd = &cobra.Command{
 		Use:   "version",
