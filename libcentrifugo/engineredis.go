@@ -248,10 +248,15 @@ func newPool(conf *RedisEngineConfig) *redis.Pool {
 			return c, err
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
-			if !sentinel.TestRole(c, "master") {
-				return errors.New("Failed role check")
+			if useSentinel {
+				if !sentinel.TestRole(c, "master") {
+					return errors.New("Failed master role check")
+				} else {
+					return nil
+				}
 			} else {
-				return nil
+				_, err := c.Do("PING")
+				return err
 			}
 		},
 	}
