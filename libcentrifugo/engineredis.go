@@ -186,6 +186,21 @@ func newPool(conf *RedisEngineConfig) *redis.Pool {
 				return c, nil
 			},
 		}
+
+		// Periodically discover new Sentinels.
+		go func() {
+			if err := sntnl.Discover(); err != nil {
+				logger.ERROR.Println(err)
+			}
+			for {
+				select {
+				case <-time.After(30 * time.Second):
+					if err := sntnl.Discover(); err != nil {
+						logger.ERROR.Println(err)
+					}
+				}
+			}
+		}()
 	}
 
 	return &redis.Pool{

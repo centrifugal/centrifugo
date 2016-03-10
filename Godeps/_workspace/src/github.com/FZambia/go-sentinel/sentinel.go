@@ -217,8 +217,8 @@ func (s *Sentinel) doUntilSuccess(f func(redis.Conn) (interface{}, error)) (inte
 
 	for _, addr := range addrs {
 		conn := s.get(addr)
-		defer conn.Close()
 		reply, err := f(conn)
+		conn.Close()
 		if err != nil {
 			lastErr = err
 			s.mu.Lock()

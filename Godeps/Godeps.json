@@ -16,7 +16,7 @@
 		},
 		{
 			"ImportPath": "github.com/FZambia/go-sentinel",
-			"Rev": "2b379e3e43fffffe173fdbc3808c3b2255381c93"
+			"Rev": "0f83ebcca2c77cb324938a77cc5bc78a70e2295c"
 		},
 		{
 			"ImportPath": "github.com/ajstarks/svgo",
