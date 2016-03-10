@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FZambia/go-sentinel"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-sentinel"
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/garyburd/redigo/redis"
 )
 
@@ -174,7 +174,7 @@ func newPool(server, password, db string, psize int, connectTimeout, readTimeout
 			return c, err
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
-			if !sntnl.TestRole(c, "master") {
+			if !sentinel.TestRole(c, "master") {
 				return errors.New("Failed role check")
 			} else {
 				return nil
