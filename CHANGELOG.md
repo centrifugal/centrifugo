@@ -1,3 +1,10 @@
+v1.4.1
+======
+
+* fix server crash on 32-bit architectures (due to [this](https://golang.org/src/sync/atomic/doc.go?s=1207:1656#L36)), see more details in [#74](https://github.com/centrifugal/centrifugo/issues/74).
+* fix compatibility with gocent introduced in v1.4.0
+
+
 v1.4.0
 ======
 

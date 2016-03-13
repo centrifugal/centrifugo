@@ -15,6 +15,10 @@
 			"Rev": "1e47f2709a6dc3366a17490c863c0b3e5f218cda"
 		},
 		{
+			"ImportPath": "github.com/FZambia/go-sentinel",
+			"Rev": "0f83ebcca2c77cb324938a77cc5bc78a70e2295c"
+		},
+		{
 			"ImportPath": "github.com/ajstarks/svgo",
 			"Comment": "go.weekly.2012-01-27-118-gfd2151e",
 			"Rev": "fd2151ebabde382463c8351c653151d6bf1657b8"

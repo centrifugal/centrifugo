@@ -50,7 +50,7 @@ type Application struct {
 	shutdown bool
 
 	// metrics holds various counters and timers different parts of Centrifugo update.
-	metrics *Metrics
+	metrics *metricsRegistry
 
 	// chIDPrefix added before every channel name to make ChannelID
 	chIDPrefix string
@@ -89,7 +89,7 @@ func NewApplication(config *Config) (*Application, error) {
 		admins:     newAdminHub(),
 		nodes:      make(map[string]NodeInfo),
 		started:    time.Now().Unix(),
-		metrics:    &Metrics{},
+		metrics:    &metricsRegistry{},
 		chIDPrefix: config.ChannelPrefix + channelIDClientSuffix,
 	}
 	return app, nil
@@ -104,6 +104,7 @@ func (app *Application) Run() error {
 	go app.sendNodePingMsg()
 	go app.cleanNodeInfo()
 	go app.updateMetrics()
+
 	return nil
 }
 
@@ -237,12 +238,7 @@ func (app *Application) node() NodeInfo {
 	}
 	app.nodesMu.Unlock()
 
-	// Note that info is a _copy_ of the NodeInfo in the map since it is not a map of pointer
-	// so we can update it's metrics embedded struct without changing app.nodes.
-	// If you're curious, play with https://play.golang.org/p/DsXUYIKuo3
-	// NodeInfo contains the periodic summary Metrics we provide to other nodes and `stats` calls,
-	// we want the raw counters from the live metrics for this node.
-	info.Metrics = *app.metrics.GetRawCounts()
+	info.Metrics = *app.metrics.GetRawMetrics()
 
 	return info
 }
@@ -489,7 +485,7 @@ func (app *Application) pubPing() error {
 		Goroutines: runtime.NumGoroutine(),
 		NumCPU:     runtime.NumCPU(),
 		Gomaxprocs: runtime.GOMAXPROCS(-1),
-		Metrics:    *app.metrics,
+		Metrics:    *app.metrics.GetSnapshotMetrics(),
 	}
 	cmd := &pingControlCommand{Info: info}
 
@@ -733,6 +729,7 @@ func (app *Application) Presence(ch Channel) (map[ConnID]ClientInfo, error) {
 
 	presence, err := app.engine.presence(chID)
 	if err != nil {
+		logger.ERROR.Println(err)
 		return map[ConnID]ClientInfo{}, ErrInternalServerError
 	}
 	return presence, nil
@@ -758,6 +755,7 @@ func (app *Application) History(ch Channel) ([]Message, error) {
 
 	history, err := app.engine.history(chID, historyOpts{})
 	if err != nil {
+		logger.ERROR.Println(err)
 		return []Message{}, ErrInternalServerError
 	}
 	return history, nil
