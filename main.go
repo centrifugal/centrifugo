@@ -188,6 +188,9 @@ func Main() {
 			viper.BindEnv("history_size")
 			viper.BindEnv("history_lifetime")
 			viper.BindEnv("history_drop_inactive")
+			viper.BindEnv("redis_host")
+			viper.BindEnv("redis_port")
+			viper.BindEnv("redis_url")
 
 			viper.BindPFlag("port", cmd.Flags().Lookup("port"))
 			viper.BindPFlag("api_port", cmd.Flags().Lookup("api_port"))
