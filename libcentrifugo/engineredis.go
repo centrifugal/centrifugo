@@ -42,7 +42,7 @@ type RedisEngine struct {
 	addPresenceScript *redis.Script
 	remPresenceScript *redis.Script
 	presenceScript    *redis.Script
-	publishCh         chan *PublishRequest
+	publishCh         chan *pubRequest
 }
 
 // RedisEngineConfig is struct with Redis Engine options.
@@ -346,7 +346,7 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 		addPresenceScript: redis.NewScript(2, addPresenceSource),
 		remPresenceScript: redis.NewScript(2, remPresenceSource),
 		presenceScript:    redis.NewScript(2, presenceSource),
-		publishCh:         make(chan *PublishRequest, 5000),
+		publishCh:         make(chan *pubRequest, 5000),
 	}
 	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
 	e.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
@@ -618,89 +618,105 @@ func (e *RedisEngine) runPubSub() {
 	}
 }
 
-type PublishRequest struct {
-	Channel             ChannelID
-	Message             []byte
-	HistoryKey          string
-	MessageJSON         []byte
-	HistorySize         int
-	HistoryLifetime     int
-	HistoryDropInactive bool
+type pubRequest struct {
+	channel     ChannelID
+	message     *[]byte
+	messageJSON *[]byte
+	historyKey  string
+	opts        *publishOpts
+	err         *chan error
+}
+
+func (pr *pubRequest) done(err error) {
+	if pr.err == nil {
+		return
+	}
+	*(pr.err) <- err
+}
+
+func (pr *pubRequest) result() error {
+	if pr.err == nil {
+		// No waiting, as caller didn't care about response
+		return nil
+	}
+	return <-*(pr.err)
+}
+
+const pubBatchMaxSize = 5000
+
+func fillBatch(ch chan *pubRequest, prs *[]*pubRequest) {
+	for len(*prs) < pubBatchMaxSize {
+		select {
+		case pr := <-ch:
+			*prs = append(*prs, pr)
+		default:
+			if len(*prs) > 0 {
+				return
+			}
+		}
+	}
 }
 
 func (e *RedisEngine) runPublishPipeline() {
-	msgs := []*PublishRequest{}
-	ticker := time.NewTicker(200 * time.Millisecond)
+	prs := []*pubRequest{}
+
 	for {
-		select {
-		case msg := <-e.publishCh:
-			msgs = append(msgs, msg)
-		case <-ticker.C:
-			if len(msgs) == 0 {
-				continue
-			}
-			conn := e.pool.Get()
+		fillBatch(e.publishCh, &prs)
 
-			conn.Send("SCRIPT", "LOAD", pubScriptSource)
+		println(len(prs))
 
-			for _, pr := range msgs {
-				if pr.HistorySize > 0 && pr.HistoryLifetime > 0 {
-					e.pubScript.SendHash(conn, pr.HistoryKey, pr.Channel, pr.Message, pr.MessageJSON, pr.HistorySize, pr.HistoryLifetime, pr.HistoryDropInactive)
-				} else {
-					conn.Send("PUBLISH", pr.Channel, pr.Message)
-				}
+		conn := e.pool.Get()
+
+		// TODO: how to not send this every time?
+		conn.Send("SCRIPT", "LOAD", pubScriptSource)
+
+		for _, pr := range prs {
+			if pr.opts != nil && pr.opts.HistorySize > 0 && pr.opts.HistoryLifetime > 0 {
+				e.pubScript.SendHash(conn, pr.historyKey, pr.channel, *pr.message, pr.messageJSON, pr.opts.HistorySize, pr.opts.HistoryLifetime, pr.opts.HistoryDropInactive)
+			} else {
+				conn.Send("PUBLISH", pr.channel, *pr.message)
 			}
-			err := conn.Flush()
-			if err != nil {
-				logger.ERROR.Println(err)
-			}
-			for range msgs {
-				_, err := conn.Receive()
-				if err != nil {
-					logger.ERROR.Println(err)
-				}
-			}
-			conn.Close()
-			msgs = []*PublishRequest{}
 		}
+		err := conn.Flush()
+		if err != nil {
+			logger.ERROR.Println(err)
+		}
+		for _, pr := range prs {
+			_, err := conn.Receive()
+			pr.done(err)
+		}
+		conn.Close()
+		prs = []*pubRequest{}
 	}
 }
 
 func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts) error {
-	var err error
-	if opts == nil {
-		// just publish message into channel.
-		conn := e.pool.Get()
-		_, err = conn.Do("PUBLISH", chID, message)
-		conn.Close()
-	} else {
-		// publish message into channel and add history message.
-		if opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
-			messageJSON, err := json.Marshal(opts.Message)
-			if err != nil {
-				logger.ERROR.Println(err)
-				return nil
-			}
-			pr := &PublishRequest{
-				Channel:             chID,
-				Message:             message,
-				MessageJSON:         messageJSON,
-				HistorySize:         opts.HistorySize,
-				HistoryLifetime:     opts.HistoryLifetime,
-				HistoryDropInactive: opts.HistoryDropInactive,
-			}
-			e.publishCh <- pr
-			return nil
-		} else {
-			pr := &PublishRequest{
-				Channel: chID,
-				Message: message,
-			}
-			e.publishCh <- pr
-			return nil
+	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
+		messageJSON, err := json.Marshal(opts.Message)
+		if err != nil {
+			return err
 		}
+		eChan := make(chan error)
+		pr := &pubRequest{
+			channel:     chID,
+			message:     &message,
+			historyKey:  e.getHistoryKey(chID),
+			messageJSON: &messageJSON,
+			opts:        opts,
+			err:         &eChan,
+		}
+		e.publishCh <- pr
+		return pr.result()
+	} else {
+		eChan := make(chan error)
+		pr := &pubRequest{
+			channel: chID,
+			message: &message,
+			err:     &eChan,
+		}
+		e.publishCh <- pr
+		return pr.result()
 	}
-	return err
 }
 
 func (e *RedisEngine) subscribe(chID ChannelID) error {
