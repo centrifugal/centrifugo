@@ -81,6 +81,9 @@ type Config struct {
 	// Debug turns on application debug mode.
 	Debug bool `json:"debug"`
 
+	// Admin enables admin socket.
+	Admin bool
+
 	// Web shows if admin web interface enabled or not
 	Web bool `json:"web"`
 	// WebPassword is an admin web interface password.
@@ -177,6 +180,10 @@ type Config struct {
 	// resources. Use this in development or protect admin resources with firewall rules
 	// in production.
 	InsecureWeb bool `json:"insecure_web"`
+	// InsecureAdmin turns on insecure mode for admin endpoints - no auth required to
+	// connect to admin socket. Protect admin resources with firewall rules in production when
+	// enabling this option.
+	InsecureAdmin bool `json:"insecure_admin"`
 
 	// Secret is a secret key, used to sign API requests and client connection tokens.
 	Secret string `json:"secret"`
