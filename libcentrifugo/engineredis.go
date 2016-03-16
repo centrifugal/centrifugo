@@ -25,8 +25,10 @@ const (
 	// Centrifugo instance might be handling
 	RedisSubscribeBatchLimit = 2048
 	// RedisPublishChannelSize
+	// TODO: write detailed comment
 	RedisPublishChannelSize = 1024
 	// RedisPublishBatchLimit
+	// TODO: write detailed comment
 	RedisPublishBatchLimit = 2048
 )
 
@@ -652,9 +654,7 @@ func fillPublishBatch(ch chan *pubRequest, prs *[]*pubRequest) {
 		case pr := <-ch:
 			*prs = append(*prs, pr)
 		default:
-			if len(*prs) > 0 {
-				return
-			}
+			return
 		}
 	}
 }
@@ -663,6 +663,8 @@ func (e *RedisEngine) runPublishPipeline() {
 	var prs []*pubRequest
 
 	for {
+		pr := <-e.pubCh
+		prs = append(prs, pr)
 		fillPublishBatch(e.pubCh, &prs)
 
 		conn := e.pool.Get()
@@ -670,11 +672,11 @@ func (e *RedisEngine) runPublishPipeline() {
 		// TODO: how to not send this every time?
 		conn.Send("SCRIPT", "LOAD", pubScriptSource)
 
-		for _, pr := range prs {
-			if pr.opts != nil && pr.opts.HistorySize > 0 && pr.opts.HistoryLifetime > 0 {
-				e.pubScript.SendHash(conn, pr.historyKey, pr.channel, *pr.message, *pr.messageJSON, pr.opts.HistorySize, pr.opts.HistoryLifetime, pr.opts.HistoryDropInactive)
+		for i := range prs {
+			if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
+				e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].channel, *prs[i].message, *prs[i].messageJSON, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
 			} else {
-				conn.Send("PUBLISH", pr.channel, *pr.message)
+				conn.Send("PUBLISH", prs[i].channel, *prs[i].message)
 			}
 		}
 		err := conn.Flush()
