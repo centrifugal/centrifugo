@@ -683,7 +683,7 @@ func (e *RedisEngine) runPublishPipeline() {
 				prs[i].done(err)
 			}
 			conn.Close()
-			continue
+			return
 		}
 		for i := range prs {
 			_, err := conn.Receive()
