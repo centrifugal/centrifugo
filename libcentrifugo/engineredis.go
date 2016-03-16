@@ -24,6 +24,10 @@ const (
 	// maximum allowed but we think it probably makes sense to keep a sane limit given how many subscriptions a single
 	// Centrifugo instance might be handling
 	RedisSubscribeBatchLimit = 2048
+	// RedisPublishChannelSize
+	RedisPublishChannelSize = 1024
+	// RedisPublishBatchLimit
+	RedisPublishBatchLimit = 2048
 )
 
 // RedisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.
@@ -38,11 +42,11 @@ type RedisEngine struct {
 	numApiShards      int
 	subCh             chan subRequest
 	unSubCh           chan subRequest
+	pubCh             chan *pubRequest
 	pubScript         *redis.Script
 	addPresenceScript *redis.Script
 	remPresenceScript *redis.Script
 	presenceScript    *redis.Script
-	publishCh         chan *pubRequest
 }
 
 // RedisEngineConfig is struct with Redis Engine options.
@@ -346,8 +350,8 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 		addPresenceScript: redis.NewScript(2, addPresenceSource),
 		remPresenceScript: redis.NewScript(2, remPresenceSource),
 		presenceScript:    redis.NewScript(2, presenceSource),
-		publishCh:         make(chan *pubRequest, 5000),
 	}
+	e.pubCh = make(chan *pubRequest, RedisPublishChannelSize)
 	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
 	e.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
 	return e
@@ -642,10 +646,8 @@ func (pr *pubRequest) result() error {
 	return <-*(pr.err)
 }
 
-const pubBatchMaxSize = 5000
-
-func fillBatch(ch chan *pubRequest, prs *[]*pubRequest) {
-	for len(*prs) < pubBatchMaxSize {
+func fillPublishBatch(ch chan *pubRequest, prs *[]*pubRequest) {
+	for len(*prs) < RedisPublishBatchLimit {
 		select {
 		case pr := <-ch:
 			*prs = append(*prs, pr)
@@ -658,12 +660,10 @@ func fillBatch(ch chan *pubRequest, prs *[]*pubRequest) {
 }
 
 func (e *RedisEngine) runPublishPipeline() {
-	prs := []*pubRequest{}
+	var prs []*pubRequest
 
 	for {
-		fillBatch(e.publishCh, &prs)
-
-		println(len(prs))
+		fillPublishBatch(e.pubCh, &prs)
 
 		conn := e.pool.Get()
 
@@ -672,21 +672,25 @@ func (e *RedisEngine) runPublishPipeline() {
 
 		for _, pr := range prs {
 			if pr.opts != nil && pr.opts.HistorySize > 0 && pr.opts.HistoryLifetime > 0 {
-				e.pubScript.SendHash(conn, pr.historyKey, pr.channel, *pr.message, pr.messageJSON, pr.opts.HistorySize, pr.opts.HistoryLifetime, pr.opts.HistoryDropInactive)
+				e.pubScript.SendHash(conn, pr.historyKey, pr.channel, *pr.message, *pr.messageJSON, pr.opts.HistorySize, pr.opts.HistoryLifetime, pr.opts.HistoryDropInactive)
 			} else {
 				conn.Send("PUBLISH", pr.channel, *pr.message)
 			}
 		}
 		err := conn.Flush()
 		if err != nil {
-			logger.ERROR.Println(err)
+			for i := range prs {
+				prs[i].done(err)
+			}
+			conn.Close()
+			continue
 		}
-		for _, pr := range prs {
+		for i := range prs {
 			_, err := conn.Receive()
-			pr.done(err)
+			prs[i].done(err)
 		}
 		conn.Close()
-		prs = []*pubRequest{}
+		prs = nil
 	}
 }
 
@@ -705,7 +709,7 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 			opts:        opts,
 			err:         &eChan,
 		}
-		e.publishCh <- pr
+		e.pubCh <- pr
 		return pr.result()
 	} else {
 		eChan := make(chan error)
@@ -714,7 +718,7 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 			message: &message,
 			err:     &eChan,
 		}
-		e.publishCh <- pr
+		e.pubCh <- pr
 		return pr.result()
 	}
 }

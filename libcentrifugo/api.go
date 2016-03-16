@@ -108,6 +108,7 @@ func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error
 		return resp, nil
 	}
 	var wg sync.WaitGroup
+	var firstErr error
 	for _, channel := range channels {
 		wg.Add(1)
 		go func(channel Channel) {
@@ -115,12 +116,16 @@ func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error
 			err = app.publish(channel, data, cmd.Client, nil, false)
 			if err != nil {
 				logger.ERROR.Println("Error publishing into channel", string(channel))
-				//resp.Err(err)
-				//return resp, nil
+				if firstErr == nil {
+					firstErr = err
+				}
 			}
 		}(channel)
 	}
 	wg.Wait()
+	if firstErr != nil {
+		resp.Err(firstErr)
+	}
 	return resp, nil
 }
 
