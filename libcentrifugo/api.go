@@ -101,7 +101,6 @@ func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error
 	resp := newResponse("broadcast")
 	channels := cmd.Channels
 	data := cmd.Data
-	var err error
 	if len(channels) == 0 {
 		logger.ERROR.Println("channels required for broadcast")
 		resp.Err(ErrInvalidMessage)
@@ -113,9 +112,9 @@ func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error
 		wg.Add(1)
 		go func(channel Channel) {
 			defer wg.Done()
-			err = app.publish(channel, data, cmd.Client, nil, false)
+			err := app.publish(channel, data, cmd.Client, nil, false)
 			if err != nil {
-				logger.ERROR.Println("Error publishing into channel", string(channel))
+				logger.ERROR.Printf("Error publishing into channel %s: %v", string(channel), err.Error())
 				if firstErr == nil {
 					firstErr = err
 				}
