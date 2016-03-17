@@ -626,8 +626,8 @@ func (e *RedisEngine) runPubSub() {
 
 type pubRequest struct {
 	channel     ChannelID
-	message     *[]byte
-	messageJSON *[]byte
+	message     []byte
+	messageJSON []byte
 	historyKey  string
 	opts        *publishOpts
 	err         *chan error
@@ -674,9 +674,9 @@ func (e *RedisEngine) runPublishPipeline() {
 
 		for i := range prs {
 			if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
-				e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].channel, *prs[i].message, *prs[i].messageJSON, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
+				e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].channel, prs[i].message, prs[i].messageJSON, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
 			} else {
-				conn.Send("PUBLISH", prs[i].channel, *prs[i].message)
+				conn.Send("PUBLISH", prs[i].channel, prs[i].message)
 			}
 		}
 		err := conn.Flush()
@@ -705,9 +705,9 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 		eChan := make(chan error)
 		pr := &pubRequest{
 			channel:     chID,
-			message:     &message,
+			message:     message,
 			historyKey:  e.getHistoryKey(chID),
-			messageJSON: &messageJSON,
+			messageJSON: messageJSON,
 			opts:        opts,
 			err:         &eChan,
 		}
@@ -717,7 +717,7 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 		eChan := make(chan error)
 		pr := &pubRequest{
 			channel: chID,
-			message: &message,
+			message: message,
 			err:     &eChan,
 		}
 		e.pubCh <- pr
