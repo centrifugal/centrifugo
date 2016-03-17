@@ -200,6 +200,8 @@ func Main() {
 			viper.BindPFlag("address", cmd.Flags().Lookup("address"))
 			viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
+			viper.BindPFlag("admin", cmd.Flags().Lookup("admin"))
+			viper.BindPFlag("insecure_admin", cmd.Flags().Lookup("insecure_admin"))
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
 			viper.BindPFlag("web_path", cmd.Flags().Lookup("web_path"))
 			viper.BindPFlag("insecure_web", cmd.Flags().Lookup("insecure_web"))
@@ -272,8 +274,8 @@ func Main() {
 			if c.InsecureAPI {
 				logger.WARN.Println("Running in INSECURE API mode")
 			}
-			if c.InsecureWeb {
-				logger.WARN.Println("Running in INSECURE web mode")
+			if c.InsecureAdmin {
+				logger.WARN.Println("Running in INSECURE admin mode")
 			}
 
 			var e libcentrifugo.Engine
@@ -361,9 +363,16 @@ func Main() {
 			}
 			sockjsOpts.HeartbeatDelay = c.PingInterval
 
+			webEnabled := viper.GetBool("web")
+
 			var webFS http.FileSystem
-			if viper.GetBool("web") {
+			if webEnabled {
 				webFS = assetFS()
+			}
+
+			adminEnabled := viper.GetBool("admin")
+			if webEnabled {
+				adminEnabled = true
 			}
 
 			clientPort := viper.GetString("port")
@@ -393,7 +402,9 @@ func Main() {
 			portToHandlerFlags[apiPort] = portFlags
 
 			portFlags = portToHandlerFlags[adminPort]
-			portFlags |= libcentrifugo.HandlerAdmin
+			if adminEnabled {
+				portFlags |= libcentrifugo.HandlerAdmin
+			}
 			if viper.GetBool("debug") {
 				portFlags |= libcentrifugo.HandlerDebug
 			}
@@ -405,7 +416,8 @@ func Main() {
 			for handlerPort, handlerFlags := range portToHandlerFlags {
 				muxOpts := libcentrifugo.MuxOptions{
 					Prefix:        viper.GetString("prefix"),
-					Web:           viper.GetBool("web"),
+					Admin:         adminEnabled,
+					Web:           webEnabled,
 					WebPath:       viper.GetString("web_path"),
 					WebFS:         webFS,
 					HandlerFlags:  handlerFlags,
