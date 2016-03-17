@@ -56,6 +56,7 @@ func (flags HandlerFlag) String() string {
 // MuxOptions contain various options for DefaultMux.
 type MuxOptions struct {
 	Prefix        string
+	Admin         bool
 	Web           bool
 	WebPath       string
 	WebFS         http.FileSystem
@@ -75,6 +76,7 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	prefix := muxOpts.Prefix
+	admin := muxOpts.Admin
 	web := muxOpts.Web
 	webPath := muxOpts.WebPath
 	webFS := muxOpts.WebFS
@@ -88,31 +90,31 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 	}
 
 	if flags&HandlerRawWS != 0 {
-		// register raw Websocket endpoint
+		// register raw Websocket endpoint.
 		mux.Handle(prefix+"/connection/websocket", app.Logged(app.WrapShutdown(http.HandlerFunc(app.RawWebsocketHandler))))
 	}
 
 	if flags&HandlerSockJS != 0 {
-		// register SockJS endpoints
+		// register SockJS endpoints.
 		sjsh := NewSockJSHandler(app, prefix+"/connection", muxOpts.SockjsOptions)
 		mux.Handle(prefix+"/connection/", app.Logged(app.WrapShutdown(sjsh)))
 	}
 
 	if flags&HandlerAPI != 0 {
-		// register HTTP API endpoint
+		// register HTTP API endpoint.
 		mux.Handle(prefix+"/api/", app.Logged(app.WrapShutdown(http.HandlerFunc(app.APIHandler))))
 	}
 
-	if flags&HandlerAdmin != 0 {
-		// register admin websocket endpoint
+	if admin && flags&HandlerAdmin != 0 {
+		// register admin websocket endpoint.
 		mux.Handle(prefix+"/socket", app.Logged(http.HandlerFunc(app.AdminWebsocketHandler)))
 
-		// optionally serve admin web interface
+		// optionally serve admin web interface.
 		if web {
-			// register admin web interface API endpoints
+			// register admin web interface API endpoints.
 			mux.Handle(prefix+"/auth/", app.Logged(http.HandlerFunc(app.AuthHandler)))
 
-			// serve web interface single-page application
+			// serve web interface single-page application.
 			if webPath != "" {
 				webPrefix := prefix + "/"
 				mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webPath))))
@@ -404,7 +406,7 @@ func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	app.RLock()
-	insecure := app.config.InsecureWeb
+	insecure := app.config.InsecureAdmin
 	webPassword := app.config.WebPassword
 	webSecret := app.config.WebSecret
 	app.RUnlock()

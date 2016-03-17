@@ -93,6 +93,8 @@ func Main() {
 	var address string
 	var debug bool
 	var name string
+	var admin bool
+	var insecureAdmin bool
 	var web bool
 	var webPath string
 	var insecureWeb bool
@@ -188,6 +190,9 @@ func Main() {
 			viper.BindEnv("history_size")
 			viper.BindEnv("history_lifetime")
 			viper.BindEnv("history_drop_inactive")
+			viper.BindEnv("redis_host")
+			viper.BindEnv("redis_port")
+			viper.BindEnv("redis_url")
 
 			viper.BindPFlag("port", cmd.Flags().Lookup("port"))
 			viper.BindPFlag("api_port", cmd.Flags().Lookup("api_port"))
@@ -195,6 +200,8 @@ func Main() {
 			viper.BindPFlag("address", cmd.Flags().Lookup("address"))
 			viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
 			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
+			viper.BindPFlag("admin", cmd.Flags().Lookup("admin"))
+			viper.BindPFlag("insecure_admin", cmd.Flags().Lookup("insecure_admin"))
 			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
 			viper.BindPFlag("web_path", cmd.Flags().Lookup("web_path"))
 			viper.BindPFlag("insecure_web", cmd.Flags().Lookup("insecure_web"))
@@ -267,8 +274,8 @@ func Main() {
 			if c.InsecureAPI {
 				logger.WARN.Println("Running in INSECURE API mode")
 			}
-			if c.InsecureWeb {
-				logger.WARN.Println("Running in INSECURE web mode")
+			if c.InsecureAdmin {
+				logger.WARN.Println("Running in INSECURE admin mode")
 			}
 
 			var e libcentrifugo.Engine
@@ -356,9 +363,16 @@ func Main() {
 			}
 			sockjsOpts.HeartbeatDelay = c.PingInterval
 
+			webEnabled := viper.GetBool("web")
+
 			var webFS http.FileSystem
-			if viper.GetBool("web") {
+			if webEnabled {
 				webFS = assetFS()
+			}
+
+			adminEnabled := viper.GetBool("admin")
+			if webEnabled {
+				adminEnabled = true
 			}
 
 			clientPort := viper.GetString("port")
@@ -388,7 +402,9 @@ func Main() {
 			portToHandlerFlags[apiPort] = portFlags
 
 			portFlags = portToHandlerFlags[adminPort]
-			portFlags |= libcentrifugo.HandlerAdmin
+			if adminEnabled {
+				portFlags |= libcentrifugo.HandlerAdmin
+			}
 			if viper.GetBool("debug") {
 				portFlags |= libcentrifugo.HandlerDebug
 			}
@@ -400,7 +416,8 @@ func Main() {
 			for handlerPort, handlerFlags := range portToHandlerFlags {
 				muxOpts := libcentrifugo.MuxOptions{
 					Prefix:        viper.GetString("prefix"),
-					Web:           viper.GetBool("web"),
+					Admin:         adminEnabled,
+					Web:           webEnabled,
 					WebPath:       viper.GetString("web_path"),
 					WebFS:         webFS,
 					HandlerFlags:  handlerFlags,
@@ -422,12 +439,14 @@ func Main() {
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "debug mode - please, do not use it in production")
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
-	rootCmd.Flags().BoolVarP(&web, "web", "w", false, "serve admin web interface application")
+	rootCmd.Flags().BoolVarP(&admin, "admin", "", false, "Enable admin socket")
+	rootCmd.Flags().BoolVarP(&web, "web", "w", false, "serve admin web interface application (warning: automatically enables admin socket)")
 	rootCmd.Flags().StringVarP(&webPath, "web_path", "", "", "optional path to web interface application")
 	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
 	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolVarP(&insecureAPI, "insecure_api", "", false, "use insecure API mode")
-	rootCmd.Flags().BoolVarP(&insecureWeb, "insecure_web", "", false, "use insecure web mode – no web password and web secret required for web interface")
+	rootCmd.Flags().BoolVarP(&insecureWeb, "insecure_web", "", false, "use insecure web mode – no web password and web secret required for web interface (warning: automatically enables insecure_admin option)")
+	rootCmd.Flags().BoolVarP(&insecureAdmin, "insecure_admin", "", false, "use insecure admin mode – no auth required for admin socket")
 	rootCmd.Flags().BoolVarP(&useSSL, "ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
 	rootCmd.Flags().StringVarP(&sslCert, "ssl_cert", "", "", "path to an X509 certificate file")
 	rootCmd.Flags().StringVarP(&sslKey, "ssl_key", "", "", "path to an X509 certificate key")

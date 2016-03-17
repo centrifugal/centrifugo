@@ -865,7 +865,7 @@ func (app *Application) adminAuthToken() (string, error) {
 func (app *Application) checkAdminAuthToken(token string) error {
 
 	app.RLock()
-	insecure := app.config.InsecureWeb
+	insecure := app.config.InsecureAdmin
 	secret := app.config.WebSecret
 	app.RUnlock()
 
