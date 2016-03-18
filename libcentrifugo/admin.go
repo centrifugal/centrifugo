@@ -103,6 +103,7 @@ func (c *adminClient) message(msg []byte) error {
 		c.Lock()
 
 		if command.Method != "connect" && !c.authenticated {
+			c.Unlock()
 			return ErrUnauthorized
 		}
 
@@ -114,6 +115,7 @@ func (c *adminClient) message(msg []byte) error {
 			err = json.Unmarshal(command.Params, &cmd)
 			if err != nil {
 				logger.ERROR.Println(err)
+				c.Unlock()
 				return ErrInvalidMessage
 			}
 			resp, err = c.connectCmd(&cmd)
@@ -126,6 +128,7 @@ func (c *adminClient) message(msg []byte) error {
 		}
 		if err != nil {
 			logger.ERROR.Println(err)
+			c.Unlock()
 			return err
 		}
 

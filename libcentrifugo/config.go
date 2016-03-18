@@ -83,13 +83,12 @@ type Config struct {
 
 	// Admin enables admin socket.
 	Admin bool
-
-	// Web shows if admin web interface enabled or not
+	// AdminPassword is an admin password.
+	AdminPassword string `json:"-"`
+	// AdminSecret is a secret to generate auth token for admin socket connection.
+	AdminSecret string `json:"-"`
+	// Web enables admin web interface.
 	Web bool `json:"web"`
-	// WebPassword is an admin web interface password.
-	WebPassword string `json:"-"`
-	// WebSecret is a secret to generate auth token for admin web interface.
-	WebSecret string `json:"-"`
 
 	// ChannelPrefix is a string prefix before each channel.
 	ChannelPrefix string `json:"channel_prefix"`
@@ -247,8 +246,8 @@ var DefaultConfig = &Config{
 	Version:                     "-",
 	Name:                        defaultName,
 	Debug:                       false,
-	WebPassword:                 "",
-	WebSecret:                   "",
+	AdminPassword:               "",
+	AdminSecret:                 "",
 	ChannelPrefix:               defaultChannelPrefix,
 	AdminChannel:                ChannelID(defaultChannelPrefix + ".admin"),
 	ControlChannel:              ChannelID(defaultChannelPrefix + ".control"),

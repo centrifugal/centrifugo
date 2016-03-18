@@ -407,8 +407,8 @@ func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 
 	app.RLock()
 	insecure := app.config.InsecureAdmin
-	webPassword := app.config.WebPassword
-	webSecret := app.config.WebSecret
+	adminPassword := app.config.AdminPassword
+	adminSecret := app.config.AdminSecret
 	app.RUnlock()
 
 	if insecure {
@@ -418,12 +418,12 @@ func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if webPassword == "" || webSecret == "" {
-		logger.ERROR.Println("web_password and web_secret must be set in configuration")
+	if adminPassword == "" || adminSecret == "" {
+		logger.ERROR.Println("admin_password and admin_secret must be set in configuration")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	if password == webPassword {
+	if password == adminPassword {
 		w.Header().Set("Content-Type", "application/json")
 		token, err := app.adminAuthToken()
 		if err != nil {
@@ -511,13 +511,14 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 	logger.INFO.Printf("New admin session established with uid %s", c.uid())
+	start := time.Now()
 	defer func() {
 		close(c.closeChan)
 		err := app.removeAdminConn(c)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
-		logger.INFO.Printf("Admin session completed, uid %s", c.uid())
+		logger.INFO.Printf("Admin session completed in %s, uid %s", time.Since(start), c.uid())
 	}()
 
 	go c.writer()
@@ -529,6 +530,10 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		}
 		err = c.message(message)
 		if err != nil {
+			err := ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(CloseStatus, err.Error()), time.Now().Add(1*time.Second))
+			if err != nil {
+				logger.ERROR.Println(err)
+			}
 			break
 		}
 	}

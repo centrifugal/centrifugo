@@ -851,7 +851,7 @@ const (
 
 func (app *Application) adminAuthToken() (string, error) {
 	app.RLock()
-	secret := app.config.WebSecret
+	secret := app.config.AdminSecret
 	app.RUnlock()
 	if secret == "" {
 		logger.ERROR.Println("provide web_secret in configuration")
@@ -866,7 +866,7 @@ func (app *Application) checkAdminAuthToken(token string) error {
 
 	app.RLock()
 	insecure := app.config.InsecureAdmin
-	secret := app.config.WebSecret
+	secret := app.config.AdminSecret
 	app.RUnlock()
 
 	if insecure {
@@ -874,7 +874,7 @@ func (app *Application) checkAdminAuthToken(token string) error {
 	}
 
 	if secret == "" {
-		logger.ERROR.Println("provide web_secret in configuration")
+		logger.ERROR.Println("provide admin_secret in configuration")
 		return ErrUnauthorized
 	}
 
