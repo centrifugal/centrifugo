@@ -233,6 +233,7 @@ func (conn *wsConn) Send(message []byte) error {
 }
 
 func (conn *wsConn) Close(status uint32, reason string) error {
+	conn.ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(status, reason), time.Now().Add(1*time.Second))
 	return conn.ws.Close()
 }
 
