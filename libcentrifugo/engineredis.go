@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,11 +25,11 @@ const (
 	// maximum allowed but we think it probably makes sense to keep a sane limit given how many subscriptions a single
 	// Centrifugo instance might be handling
 	RedisSubscribeBatchLimit = 2048
-	// RedisPublishChannelSize
-	// TODO: write detailed comment
+	// RedisPublishChannelSize is the size for the internal buffered channel RedisEngine
+	// uses to collect publish requests.
 	RedisPublishChannelSize = 1024
-	// RedisPublishBatchLimit
-	// TODO: write detailed comment
+	// RedisPublishBatchLimit is a maximum limit of publish requests one batched publish
+	// operation can contain.
 	RedisPublishBatchLimit = 2048
 )
 
@@ -660,6 +661,18 @@ func fillPublishBatch(ch chan *pubRequest, prs *[]*pubRequest) {
 }
 
 func (e *RedisEngine) runPublishPipeline() {
+
+	conn := e.pool.Get()
+	err := e.pubScript.Load(conn)
+	if err != nil {
+		logger.ERROR.Println(err)
+		conn.Close()
+		// Can not proceed if script has not been loaded - because we use EVALSHA command for
+		// publishing with history.
+		return
+	}
+	conn.Close()
+
 	var prs []*pubRequest
 
 	for {
@@ -668,9 +681,6 @@ func (e *RedisEngine) runPublishPipeline() {
 		fillPublishBatch(e.pubCh, &prs)
 
 		conn := e.pool.Get()
-
-		// TODO: how to not send this every time?
-		conn.Send("SCRIPT", "LOAD", pubScriptSource)
 
 		for i := range prs {
 			if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
@@ -687,11 +697,26 @@ func (e *RedisEngine) runPublishPipeline() {
 			conn.Close()
 			return
 		}
+		var noScriptError bool
 		for i := range prs {
 			_, err := conn.Receive()
+			if err != nil {
+				// Check for NOSCRIPT error. In normal circumstances this should never happen.
+				// The only possible situation is when Redis scripts were flushed. In this case
+				// we will return from this func and load publish script from scratch.
+				// Redigo does the same check but for single EVALSHA command: see
+				// https://github.com/garyburd/redigo/blob/master/redis/script.go#L64
+				if e, ok := err.(redis.Error); ok && strings.HasPrefix(string(e), "NOSCRIPT ") {
+					noScriptError = true
+				}
+			}
 			prs[i].done(err)
 		}
 		conn.Close()
+		if noScriptError {
+			// Start this func from the beginning and LOAD missing script.
+			return
+		}
 		prs = nil
 	}
 }
