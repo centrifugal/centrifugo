@@ -728,6 +728,11 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*clientResponse, err
 	insecure := c.app.config.Insecure
 	c.app.RUnlock()
 
+	body := &SubscribeBody{
+		Channel: channel,
+	}
+	resp.Body = body
+
 	if len(channel) > maxChannelLength {
 		logger.ERROR.Printf("channel too long: max %d, got %d", maxChannelLength, len(channel))
 		resp.Err(clientError{ErrLimitExceeded, errorAdviceFix})
@@ -739,11 +744,6 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*clientResponse, err
 		resp.Err(clientError{ErrLimitExceeded, errorAdviceFix})
 		return resp, nil
 	}
-
-	body := &SubscribeBody{
-		Channel: channel,
-	}
-	resp.Body = body
 
 	if _, ok := c.Channels[channel]; ok {
 		resp.Err(clientError{ErrAlreadySubscribed, errorAdviceFix})
