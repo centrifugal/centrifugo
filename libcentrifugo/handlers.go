@@ -56,6 +56,7 @@ func (flags HandlerFlag) String() string {
 // MuxOptions contain various options for DefaultMux.
 type MuxOptions struct {
 	Prefix        string
+	Admin         bool
 	Web           bool
 	WebPath       string
 	WebFS         http.FileSystem
@@ -489,28 +490,38 @@ func (app *Application) Logged(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
+const (
+	AdminWebsocketReadBufferSize  = 1024
+	AdminWebsocketWriteBufferSize = 1024
+)
+
+var upgrader = &websocket.Upgrader{ReadBufferSize: AdminWebsocketReadBufferSize, WriteBufferSize: AdminWebsocketWriteBufferSize}
 
 // AdminWebsocketHandler handles admin websocket connections.
 func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	app.RLock()
-	web := app.config.Web
+	admin := app.config.Admin
 	app.RUnlock()
-	if !web {
+
+	if !admin {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
 	defer ws.Close()
+
 	c, err := newAdminClient(app, ws)
 	if err != nil {
 		return
 	}
+
 	logger.INFO.Printf("New admin session established with uid %s", c.uid())
 	start := time.Now()
+
 	defer func() {
 		close(c.closeChan)
 		err := app.removeAdminConn(c)

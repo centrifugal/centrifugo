@@ -27,7 +27,7 @@ type adminClient struct {
 }
 
 func newAdminClient(app *Application, sess adminSession) (*adminClient, error) {
-	return &adminClient{
+	c := &adminClient{
 		UID:           ConnID(uuid.NewV4().String()),
 		app:           app,
 		sess:          sess,
@@ -35,7 +35,22 @@ func newAdminClient(app *Application, sess adminSession) (*adminClient, error) {
 		authenticated: false,
 		writeChan:     make(chan []byte, 256),
 		closeChan:     make(chan struct{}),
-	}, nil
+	}
+
+	app.RLock()
+	insecure := c.app.config.InsecureAdmin
+	app.RUnlock()
+
+	if insecure {
+		err = app.addAdminConn(c)
+		if err != nil {
+			logger.ERROR.Println(err)
+			return nil, ErrInternalServerError
+		}
+	}
+	c.authenticated = true
+
+	return c, nil
 }
 
 func (c *adminClient) uid() ConnID {
@@ -91,7 +106,6 @@ func (c *adminClient) message(msg []byte) error {
 		logger.ERROR.Println(err)
 		return ErrInvalidMessage
 	}
-
 	if len(commands) == 0 {
 		return nil
 	}
@@ -114,8 +128,8 @@ func (c *adminClient) message(msg []byte) error {
 			var cmd connectAdminCommand
 			err = json.Unmarshal(command.Params, &cmd)
 			if err != nil {
-				logger.ERROR.Println(err)
 				c.Unlock()
+				logger.ERROR.Println(err)
 				return ErrInvalidMessage
 			}
 			resp, err = c.connectCmd(&cmd)
@@ -127,8 +141,8 @@ func (c *adminClient) message(msg []byte) error {
 			resp, err = c.app.apiCmd(command)
 		}
 		if err != nil {
-			logger.ERROR.Println(err)
 			c.Unlock()
+			logger.ERROR.Println(err)
 			return err
 		}
 
@@ -161,17 +175,16 @@ func (c *adminClient) connectCmd(cmd *connectAdminCommand) (*response, error) {
 		return nil, ErrUnauthorized
 	}
 
-	// TODO: handle case when authentication message not needed.
-	c.authenticated = true
-
-	if cmd.Watch {
-		c.watch = true
-	}
-
 	err = c.app.addAdminConn(c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil, ErrInternalServerError
+	}
+
+	c.authenticated = true
+
+	if cmd.Watch {
+		c.watch = true
 	}
 
 	resp := newResponse("connect")
@@ -180,6 +193,7 @@ func (c *adminClient) connectCmd(cmd *connectAdminCommand) (*response, error) {
 }
 
 // infoCmd handles info command from admin client.
+// TODO: make this a proper API method with strictly defined response body.
 func (c *adminClient) infoCmd() (*response, error) {
 	c.app.nodesMu.Lock()
 	defer c.app.nodesMu.Unlock()

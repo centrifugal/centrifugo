@@ -117,6 +117,8 @@ func (c *client) sendMsgTimeout(msg []byte) error {
 	} else {
 		// Do not use any timeout when sending, it's recommended to keep
 		// Centrifugo behind properly configured reverse proxy.
+		// But slow client connections will be closed anyway after exceeding
+		// client max queue size.
 		return c.sess.Send(msg)
 	}
 	panic("unreachable")
