@@ -135,14 +135,10 @@ func TestAdminAuthToken(t *testing.T) {
 
 	// no web secret set
 	token, err := app.adminAuthToken()
-	if err == nil {
-		println(app.config.WebSecret)
-		println(token)
-	}
 	assert.Equal(t, ErrInternalServerError, err)
 
 	app.Lock()
-	app.config.WebSecret = "secret"
+	app.config.AdminSecret = "secret"
 	app.Unlock()
 
 	err = app.checkAdminAuthToken("")

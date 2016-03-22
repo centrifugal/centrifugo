@@ -87,6 +87,7 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 		mux.Handle(prefix+"/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
 		mux.Handle(prefix+"/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
 		mux.Handle(prefix+"/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+		mux.Handle(prefix+"/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
 	}
 
 	if flags&HandlerRawWS != 0 {
@@ -288,6 +289,10 @@ var (
 
 func cmdFromRequestMsg(msg []byte) ([]apiCommand, error) {
 	var commands []apiCommand
+
+	if len(msg) == 0 {
+		return commands, nil
+	}
 
 	firstByte := msg[0]
 
