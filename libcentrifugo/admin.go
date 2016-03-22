@@ -38,14 +38,13 @@ func newAdminClient(app *Application, sess adminSession) (*adminClient, error) {
 	}
 
 	app.RLock()
-	insecure := c.app.config.InsecureAdmin
+	insecure := app.config.InsecureAdmin
 	app.RUnlock()
 
 	if insecure {
-		err = app.addAdminConn(c)
+		err := app.addAdminConn(c)
 		if err != nil {
-			logger.ERROR.Println(err)
-			return nil, ErrInternalServerError
+			return nil, err
 		}
 	}
 	c.authenticated = true

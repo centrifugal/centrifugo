@@ -22,7 +22,7 @@ func newConfig() *libcentrifugo.Config {
 	cfg.Version = VERSION
 	cfg.Name = getApplicationName()
 	cfg.Debug = viper.GetBool("debug")
-	cfg.Admin = viper.GetBool("admin")
+	cfg.Admin = viper.GetBool("admin") || viper.GetBool("web")
 	cfg.Web = viper.GetBool("web")
 	cfg.AdminPassword = viper.GetString("admin_password")
 	cfg.AdminSecret = viper.GetString("admin_secret")

@@ -510,12 +510,14 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		logger.ERROR.Println(err)
 		return
 	}
 	defer ws.Close()
 
 	c, err := newAdminClient(app, ws)
 	if err != nil {
+		logger.ERROR.Println(err)
 		return
 	}
 
