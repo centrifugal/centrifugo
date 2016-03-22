@@ -33,7 +33,9 @@ type Engine interface {
 	// publish allows to send message into channel.
 	// If publishOpts is nil message must be just sent into provided channel
 	// and no additional work must be done.
-	publish(chID ChannelID, message []byte, opts *publishOpts) error
+	// The returned value is channel in which we will send error as soon as engine
+	// finishes publish operation.
+	publish(chID ChannelID, message []byte, opts *publishOpts) <-chan error
 
 	// subscribe on channel.
 	subscribe(chID ChannelID) error

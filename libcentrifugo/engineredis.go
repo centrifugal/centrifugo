@@ -635,17 +635,10 @@ type pubRequest struct {
 }
 
 func (pr *pubRequest) done(err error) {
-	if pr.err == nil {
-		return
-	}
 	*(pr.err) <- err
 }
 
 func (pr *pubRequest) result() error {
-	if pr.err == nil {
-		// No waiting, as caller didn't care about response
-		return nil
-	}
 	return <-*(pr.err)
 }
 
@@ -721,11 +714,14 @@ func (e *RedisEngine) runPublishPipeline() {
 	}
 }
 
-func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts) error {
+func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts) <-chan error {
+
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
 		messageJSON, err := json.Marshal(opts.Message)
 		if err != nil {
-			return err
+			ch := make(chan error, 1)
+			ch <- err
+			return ch
 		}
 		eChan := make(chan error)
 		pr := &pubRequest{
@@ -737,7 +733,7 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 			err:         &eChan,
 		}
 		e.pubCh <- pr
-		return pr.result()
+		return *pr.err
 	} else {
 		eChan := make(chan error)
 		pr := &pubRequest{
@@ -746,7 +742,7 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 			err:     &eChan,
 		}
 		e.pubCh <- pr
-		return pr.result()
+		return *pr.err
 	}
 }
 

@@ -2,7 +2,6 @@ package libcentrifugo
 
 import (
 	"encoding/json"
-	"sync"
 
 	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
 )
@@ -106,22 +105,20 @@ func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error
 		resp.Err(ErrInvalidMessage)
 		return resp, nil
 	}
-	var wg sync.WaitGroup
-	var firstErr error
-	for _, channel := range channels {
-		wg.Add(1)
-		go func(channel Channel) {
-			defer wg.Done()
-			err := app.publish(channel, data, cmd.Client, nil, false)
-			if err != nil {
-				logger.ERROR.Printf("Error publishing into channel %s: %v", string(channel), err.Error())
-				if firstErr == nil {
-					firstErr = err
-				}
-			}
-		}(channel)
+	errs := make([]<-chan error, len(channels))
+	for i, channel := range channels {
+		errs[i] = app.publishAsync(channel, data, cmd.Client, nil, false)
 	}
-	wg.Wait()
+	var firstErr error
+	for i := range errs {
+		err := <-errs[i]
+		if err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			logger.ERROR.Printf("Error publishing into channel %s: %v", string(channels[i]), err.Error())
+		}
+	}
 	if firstErr != nil {
 		resp.Err(firstErr)
 	}
