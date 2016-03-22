@@ -233,6 +233,7 @@ func (conn *wsConn) Send(message []byte) error {
 }
 
 func (conn *wsConn) Close(status uint32, reason string) error {
+	conn.ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(int(status), reason), time.Now().Add(time.Second))
 	return conn.ws.Close()
 }
 
@@ -274,8 +275,7 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 		}
 		err = c.message(message)
 		if err != nil {
-			logger.ERROR.Println(err)
-			conn.Close(CloseStatus, "error handling message")
+			conn.Close(CloseStatus, err.Error())
 			break
 		}
 	}
