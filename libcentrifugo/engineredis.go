@@ -723,7 +723,7 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 			ch <- err
 			return ch
 		}
-		eChan := make(chan error)
+		eChan := make(chan error, 1)
 		pr := &pubRequest{
 			channel:     chID,
 			message:     message,
@@ -733,16 +733,16 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 			err:         &eChan,
 		}
 		e.pubCh <- pr
-		return *pr.err
+		return eChan
 	} else {
-		eChan := make(chan error)
+		eChan := make(chan error, 1)
 		pr := &pubRequest{
 			channel: chID,
 			message: message,
 			err:     &eChan,
 		}
 		e.pubCh <- pr
-		return *pr.err
+		return eChan
 	}
 }
 
