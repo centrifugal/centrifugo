@@ -341,11 +341,7 @@ func (app *Application) pubControl(method string, params []byte) error {
 	app.RLock()
 	controlChannel := app.config.ControlChannel
 	app.RUnlock()
-	return app.enginePublish(controlChannel, messageBytes, nil)
-}
-
-func (app *Application) enginePublish(chID ChannelID, message []byte, opts *publishOpts) error {
-	return <-app.engine.publish(chID, message, opts)
+	return <-app.engine.publish(controlChannel, messageBytes, nil)
 }
 
 // Publish sends a message to all clients subscribed on channel with provided data, client and ClientInfo.
@@ -475,7 +471,7 @@ func (app *Application) pubJoinLeave(ch Channel, method string, info ClientInfo)
 	if err != nil {
 		return err
 	}
-	return app.enginePublish(chID, byteMessage, nil)
+	return <-app.engine.publish(chID, byteMessage, nil)
 }
 
 // pubPing sends control ping message to all nodes - this message
