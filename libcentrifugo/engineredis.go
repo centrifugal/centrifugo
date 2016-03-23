@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,6 +25,12 @@ const (
 	// maximum allowed but we think it probably makes sense to keep a sane limit given how many subscriptions a single
 	// Centrifugo instance might be handling
 	RedisSubscribeBatchLimit = 2048
+	// RedisPublishChannelSize is the size for the internal buffered channel RedisEngine
+	// uses to collect publish requests.
+	RedisPublishChannelSize = 1024
+	// RedisPublishBatchLimit is a maximum limit of publish requests one batched publish
+	// operation can contain.
+	RedisPublishBatchLimit = 2048
 )
 
 // RedisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.
@@ -38,6 +45,7 @@ type RedisEngine struct {
 	numApiShards      int
 	subCh             chan subRequest
 	unSubCh           chan subRequest
+	pubCh             chan *pubRequest
 	pubScript         *redis.Script
 	addPresenceScript *redis.Script
 	remPresenceScript *redis.Script
@@ -269,23 +277,18 @@ func yesno(condition bool) string {
 	return "no"
 }
 
-// NewRedisEngine initializes Redis Engine.
-func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
-
-	pool := newPool(conf)
-
-	// pubScriptSource contains lua script we register in Redis to call when publishing
-	// client message. It publishes message into channel and adds message to history
-	// list maintaining history size and expiration time. This is an optimization to make
-	// 1 round trip to Redis instead of 2.
-	// KEYS[1] - history list key
-	// ARGV[1] - channel to publish message to
-	// ARGV[2] - message payload
-	// ARGV[3] - history message payload
-	// ARGV[4] - history size
-	// ARGV[5] - history lifetime
-	// ARGV[6] - history drop inactive flag - "0" or "1"
-	pubScriptSource := `
+// pubScriptSource contains lua script we register in Redis to call when publishing
+// client message. It publishes message into channel and adds message to history
+// list maintaining history size and expiration time. This is an optimization to make
+// 1 round trip to Redis instead of 2.
+// KEYS[1] - history list key
+// ARGV[1] - channel to publish message to
+// ARGV[2] - message payload
+// ARGV[3] - history message payload
+// ARGV[4] - history size
+// ARGV[5] - history lifetime
+// ARGV[6] - history drop inactive flag - "0" or "1"
+var pubScriptSource = `
 local n = redis.call("publish", ARGV[1], ARGV[2])
 local m = 0
 if ARGV[6] == "1" and n == 0 then
@@ -300,31 +303,31 @@ end
 return n
 	`
 
-	// KEYS[1] - presence set key
-	// KEYS[2] - presence hash key
-	// ARGV[1] - key expire seconds
-	// ARGV[2] - expire at for set member
-	// ARGV[3] - uid
-	// ARGV[4] - info payload
-	addPresenceSource := `
+// KEYS[1] - presence set key
+// KEYS[2] - presence hash key
+// ARGV[1] - key expire seconds
+// ARGV[2] - expire at for set member
+// ARGV[3] - uid
+// ARGV[4] - info payload
+var addPresenceSource = `
 redis.call("zadd", KEYS[1], ARGV[2], ARGV[3])
 redis.call("hset", KEYS[2], ARGV[3], ARGV[4])
 redis.call("expire", KEYS[1], ARGV[1])
 redis.call("expire", KEYS[2], ARGV[1])
 	`
 
-	// KEYS[1] - presence set key
-	// KEYS[2] - presence hash key
-	// ARGV[1] - uid
-	remPresenceSource := `
+// KEYS[1] - presence set key
+// KEYS[2] - presence hash key
+// ARGV[1] - uid
+var remPresenceSource = `
 redis.call("hdel", KEYS[2], ARGV[1])
 redis.call("zrem", KEYS[1], ARGV[1])
 	`
 
-	// KEYS[1] - presence set key
-	// KEYS[2] - presence hash key
-	// ARGV[1] - now string
-	presenceSource := `
+// KEYS[1] - presence set key
+// KEYS[2] - presence hash key
+// ARGV[1] - now string
+var presenceSource = `
 local expired = redis.call("zrangebyscore", KEYS[1], "0", ARGV[1])
 if #expired > 0 then
   for num = 1, #expired do
@@ -334,6 +337,11 @@ if #expired > 0 then
 end
 return redis.call("hgetall", KEYS[2])
 	`
+
+// NewRedisEngine initializes Redis Engine.
+func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
+
+	pool := newPool(conf)
 
 	e := &RedisEngine{
 		app:               app,
@@ -346,6 +354,7 @@ return redis.call("hgetall", KEYS[2])
 		remPresenceScript: redis.NewScript(2, remPresenceSource),
 		presenceScript:    redis.NewScript(2, presenceSource),
 	}
+	e.pubCh = make(chan *pubRequest, RedisPublishChannelSize)
 	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
 	e.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
 	return e
@@ -359,6 +368,9 @@ func (e *RedisEngine) run() error {
 	e.RLock()
 	api := e.api
 	e.RUnlock()
+	go e.runForever(func() {
+		e.runPublishPipeline()
+	})
 	go e.runForever(func() {
 		e.runPubSub()
 	})
@@ -613,28 +625,125 @@ func (e *RedisEngine) runPubSub() {
 	}
 }
 
-func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts) error {
-	conn := e.pool.Get()
-	defer conn.Close()
+type pubRequest struct {
+	channel     ChannelID
+	message     []byte
+	messageJSON []byte
+	historyKey  string
+	opts        *publishOpts
+	err         *chan error
+}
 
-	var err error
-	if opts == nil {
-		// just publish message into channel.
-		_, err = conn.Do("PUBLISH", chID, message)
-	} else {
-		// publish message into channel and add history message.
-		if opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
-			messageJSON, err := json.Marshal(opts.Message)
-			if err != nil {
-				logger.ERROR.Println(err)
-				return nil
-			}
-			_, err = e.pubScript.Do(conn, e.getHistoryKey(chID), chID, message, messageJSON, opts.HistorySize, opts.HistoryLifetime, opts.HistoryDropInactive)
-		} else {
-			_, err = conn.Do("PUBLISH", chID, message)
+func (pr *pubRequest) done(err error) {
+	*(pr.err) <- err
+}
+
+func (pr *pubRequest) result() error {
+	return <-*(pr.err)
+}
+
+func fillPublishBatch(ch chan *pubRequest, prs *[]*pubRequest) {
+	for len(*prs) < RedisPublishBatchLimit {
+		select {
+		case pr := <-ch:
+			*prs = append(*prs, pr)
+		default:
+			return
 		}
 	}
-	return err
+}
+
+func (e *RedisEngine) runPublishPipeline() {
+
+	conn := e.pool.Get()
+	err := e.pubScript.Load(conn)
+	if err != nil {
+		logger.ERROR.Println(err)
+		conn.Close()
+		// Can not proceed if script has not been loaded - because we use EVALSHA command for
+		// publishing with history.
+		return
+	}
+	conn.Close()
+
+	var prs []*pubRequest
+
+	for {
+		pr := <-e.pubCh
+		prs = append(prs, pr)
+		fillPublishBatch(e.pubCh, &prs)
+
+		conn := e.pool.Get()
+
+		for i := range prs {
+			if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
+				e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].channel, prs[i].message, prs[i].messageJSON, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
+			} else {
+				conn.Send("PUBLISH", prs[i].channel, prs[i].message)
+			}
+		}
+		err := conn.Flush()
+		if err != nil {
+			for i := range prs {
+				prs[i].done(err)
+			}
+			conn.Close()
+			return
+		}
+		var noScriptError bool
+		for i := range prs {
+			_, err := conn.Receive()
+			if err != nil {
+				// Check for NOSCRIPT error. In normal circumstances this should never happen.
+				// The only possible situation is when Redis scripts were flushed. In this case
+				// we will return from this func and load publish script from scratch.
+				// Redigo does the same check but for single EVALSHA command: see
+				// https://github.com/garyburd/redigo/blob/master/redis/script.go#L64
+				if e, ok := err.(redis.Error); ok && strings.HasPrefix(string(e), "NOSCRIPT ") {
+					noScriptError = true
+				}
+			}
+			prs[i].done(err)
+		}
+		conn.Close()
+		if noScriptError {
+			// Start this func from the beginning and LOAD missing script.
+			return
+		}
+		prs = nil
+	}
+}
+
+func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts) <-chan error {
+
+	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
+		messageJSON, err := json.Marshal(opts.Message)
+		if err != nil {
+			ch := make(chan error, 1)
+			ch <- err
+			return ch
+		}
+		eChan := make(chan error, 1)
+		pr := &pubRequest{
+			channel:     chID,
+			message:     message,
+			historyKey:  e.getHistoryKey(chID),
+			messageJSON: messageJSON,
+			opts:        opts,
+			err:         &eChan,
+		}
+		e.pubCh <- pr
+		return eChan
+	} else {
+		eChan := make(chan error, 1)
+		pr := &pubRequest{
+			channel: chID,
+			message: message,
+			err:     &eChan,
+		}
+		e.pubCh <- pr
+		return eChan
+	}
 }
 
 func (e *RedisEngine) subscribe(chID ChannelID) error {

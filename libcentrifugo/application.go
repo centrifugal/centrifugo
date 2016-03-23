@@ -341,16 +341,7 @@ func (app *Application) pubControl(method string, params []byte) error {
 	app.RLock()
 	controlChannel := app.config.ControlChannel
 	app.RUnlock()
-	return app.engine.publish(controlChannel, messageBytes, nil)
-}
-
-// pubAdmin publishes message into admin channel so all running
-// nodes will receive it and send to admins connected.
-func (app *Application) pubAdmin(message []byte) error {
-	app.RLock()
-	adminChannel := app.config.AdminChannel
-	app.RUnlock()
-	return app.engine.publish(adminChannel, message, nil)
+	return <-app.engine.publish(controlChannel, messageBytes, nil)
 }
 
 // Publish sends a message to all clients subscribed on channel with provided data, client and ClientInfo.
@@ -365,7 +356,8 @@ func (app *Application) Publish(ch Channel, data []byte, client ConnID, info *Cl
 		return err
 	}
 
-	err = app.pubClient(ch, chOpts, data, client, info)
+	errCh := app.pubClient(ch, chOpts, data, client, info)
+	err = <-errCh
 	if err != nil {
 		logger.ERROR.Println(err)
 		return ErrInternalServerError
@@ -374,18 +366,23 @@ func (app *Application) Publish(ch Channel, data []byte, client ConnID, info *Cl
 	return nil
 }
 
+func makeErrChan(err error) <-chan error {
+	ret := make(chan error, 1)
+	ret <- err
+	return ret
+}
+
 // publish sends a message into channel with provided data, client and client info.
 // If fromClient argument is true then internally this method will check client permission to
 // publish into this channel.
-func (app *Application) publish(ch Channel, data []byte, client ConnID, info *ClientInfo, fromClient bool) error {
-
+func (app *Application) publishAsync(ch Channel, data []byte, client ConnID, info *ClientInfo, fromClient bool) <-chan error {
 	if string(ch) == "" || len(data) == 0 {
-		return ErrInvalidMessage
+		return makeErrChan(ErrInvalidMessage)
 	}
 
 	chOpts, err := app.channelOpts(ch)
 	if err != nil {
-		return err
+		return makeErrChan(err)
 	}
 
 	app.RLock()
@@ -393,7 +390,7 @@ func (app *Application) publish(ch Channel, data []byte, client ConnID, info *Cl
 	app.RUnlock()
 
 	if fromClient && !chOpts.Publish && !insecure {
-		return ErrPermissionDenied
+		return makeErrChan(ErrPermissionDenied)
 	}
 
 	if app.mediator != nil {
@@ -401,22 +398,23 @@ func (app *Application) publish(ch Channel, data []byte, client ConnID, info *Cl
 		// immediately as mediator will decide itself what to do with it.
 		pass := app.mediator.Message(ch, data, client, info)
 		if !pass {
-			return nil
+			return makeErrChan(nil)
 		}
 	}
 
-	err = app.pubClient(ch, chOpts, data, client, info)
-	if err != nil {
-		logger.ERROR.Println(err)
-		return ErrInternalServerError
-	}
+	return app.pubClient(ch, chOpts, data, client, info)
+}
 
-	return nil
+// publish sends a message into channel with provided data, client and client info.
+// If fromClient argument is true then internally this method will check client permission to
+// publish into this channel.
+func (app *Application) publish(ch Channel, data []byte, client ConnID, info *ClientInfo, fromClient bool) error {
+	return <-app.publishAsync(ch, data, client, info, fromClient)
 }
 
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel.
-func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte, client ConnID, info *ClientInfo) error {
+func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte, client ConnID, info *ClientInfo) <-chan error {
 
 	message := newMessage(ch, data, client, info)
 
@@ -429,10 +427,12 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 		if err != nil {
 			logger.ERROR.Println(err)
 		} else {
-			err = app.pubAdmin(messageBytes)
-			if err != nil {
-				logger.ERROR.Println(err)
-			}
+			app.RLock()
+			adminChannel := app.config.AdminChannel
+			app.RUnlock()
+			// No error handling because we can not block to wait
+			// for publish error here.
+			app.engine.publish(adminChannel, messageBytes, nil)
 		}
 	}
 
@@ -443,7 +443,7 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 
 	byteMessage, err := json.Marshal(resp)
 	if err != nil {
-		return err
+		return makeErrChan(err)
 	}
 
 	pubOpts := &publishOpts{
@@ -453,14 +453,9 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 		HistoryDropInactive: chOpts.HistoryDropInactive,
 	}
 
-	err = app.engine.publish(chID, byteMessage, pubOpts)
-	if err != nil {
-		return err
-	}
-
 	app.metrics.NumMsgPublished.Inc()
 
-	return nil
+	return app.engine.publish(chID, byteMessage, pubOpts)
 }
 
 // pubJoinLeave allows to publish join message into channel when
@@ -476,7 +471,7 @@ func (app *Application) pubJoinLeave(ch Channel, method string, info ClientInfo)
 	if err != nil {
 		return err
 	}
-	return app.engine.publish(chID, byteMessage, nil)
+	return <-app.engine.publish(chID, byteMessage, nil)
 }
 
 // pubPing sends control ping message to all nodes - this message
