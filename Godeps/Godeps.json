@@ -62,6 +62,10 @@
 			"Rev": "442e588f213303bec7936deba67901f8fc8f18b1"
 		},
 		{
+			"ImportPath": "github.com/nats-io/nuid",
+			"Rev": "66a9dd732adf52239277c23a648cd0487db4630b"
+		},
+		{
 			"ImportPath": "github.com/satori/go.uuid",
 			"Rev": "08f0718b61e95ddba0ade3346725fe0e4bf28ca6"
 		},

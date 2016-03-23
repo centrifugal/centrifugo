@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/satori/go.uuid"
+	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nats-io/nuid"
 )
 
 // Message represents client message.
@@ -21,7 +21,7 @@ type Message struct {
 func newMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) Message {
 	raw := json.RawMessage(data)
 	return Message{
-		UID:       MessageID(uuid.NewV4().String()),
+		UID:       MessageID(nuid.Next()),
 		Timestamp: strconv.FormatInt(time.Now().Unix(), 10),
 		Info:      info,
 		Channel:   ch,
