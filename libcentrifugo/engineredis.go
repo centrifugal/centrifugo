@@ -392,6 +392,8 @@ type redisAPIRequest struct {
 func (e *RedisEngine) runForever(fn func()) {
 	for {
 		fn()
+		// Sleep for a while to prevent busy loop when reconnecting to Redis.
+		time.Sleep(300 * time.Millisecond)
 	}
 }
 
