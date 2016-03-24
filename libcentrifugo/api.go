@@ -100,19 +100,27 @@ func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error
 	resp := newResponse("broadcast")
 	channels := cmd.Channels
 	data := cmd.Data
-	var err error
 	if len(channels) == 0 {
 		logger.ERROR.Println("channels required for broadcast")
 		resp.Err(ErrInvalidMessage)
 		return resp, nil
 	}
-	for _, channel := range channels {
-		err = app.publish(channel, data, cmd.Client, nil, false)
+	errs := make([]<-chan error, len(channels))
+	for i, channel := range channels {
+		errs[i] = app.publishAsync(channel, data, cmd.Client, nil, false)
+	}
+	var firstErr error
+	for i := range errs {
+		err := <-errs[i]
 		if err != nil {
-			logger.ERROR.Println("Error publishing into channel", string(channel))
-			resp.Err(err)
-			return resp, nil
+			if firstErr == nil {
+				firstErr = err
+			}
+			logger.ERROR.Printf("Error publishing into channel %s: %v", string(channels[i]), err.Error())
 		}
+	}
+	if firstErr != nil {
+		resp.Err(firstErr)
 	}
 	return resp, nil
 }

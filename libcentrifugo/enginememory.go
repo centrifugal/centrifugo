@@ -37,7 +37,7 @@ func (e *MemoryEngine) run() error {
 	return nil
 }
 
-func (e *MemoryEngine) publish(chID ChannelID, message []byte, opts *publishOpts) error {
+func (e *MemoryEngine) publish(chID ChannelID, message []byte, opts *publishOpts) <-chan error {
 	hasCurrentSubscribers := e.app.clients.hasSubscribers(chID)
 
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
@@ -52,7 +52,9 @@ func (e *MemoryEngine) publish(chID ChannelID, message []byte, opts *publishOpts
 		}
 	}
 
-	return e.app.handleMsg(chID, message)
+	ch := make(chan error, 1)
+	ch <- e.app.handleMsg(chID, message)
+	return ch
 }
 
 func (e *MemoryEngine) subscribe(chID ChannelID) error {

@@ -14,8 +14,10 @@ func (e *testEngine) run() error {
 	return nil
 }
 
-func (e *testEngine) publish(chID ChannelID, message []byte, opts *publishOpts) error {
-	return nil
+func (e *testEngine) publish(chID ChannelID, message []byte, opts *publishOpts) <-chan error {
+	ch := make(chan error, 1)
+	ch <- nil
+	return ch
 }
 
 func (e *testEngine) subscribe(chID ChannelID) error {
