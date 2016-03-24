@@ -418,26 +418,6 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 
 	message := newMessage(ch, data, client, info)
 
-	if chOpts.Watch {
-		resp := newClientResponse("message")
-		resp.Body = &adminMessageBody{
-			Message: message,
-		}
-		messageBytes, err := json.Marshal(resp)
-		if err != nil {
-			logger.ERROR.Println(err)
-		} else {
-			app.RLock()
-			adminChannel := app.config.AdminChannel
-			app.RUnlock()
-			// No error handling because we can not block to wait
-			// for publish error here.
-			app.engine.publish(adminChannel, messageBytes, nil)
-		}
-	}
-
-	chID := app.channelID(ch)
-
 	resp := newClientMessage()
 	resp.Body = message
 
@@ -445,6 +425,17 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 	if err != nil {
 		return makeErrChan(err)
 	}
+
+	if chOpts.Watch {
+		app.RLock()
+		adminChannel := app.config.AdminChannel
+		app.RUnlock()
+		// No error handling because we can not block to wait
+		// for publish error here.
+		app.engine.publish(adminChannel, byteMessage, nil)
+	}
+
+	chID := app.channelID(ch)
 
 	pubOpts := &publishOpts{
 		Message:             message,
@@ -855,7 +846,7 @@ const (
 
 func (app *Application) adminAuthToken() (string, error) {
 	app.RLock()
-	secret := app.config.WebSecret
+	secret := app.config.AdminSecret
 	app.RUnlock()
 	if secret == "" {
 		logger.ERROR.Println("provide web_secret in configuration")
@@ -869,8 +860,8 @@ func (app *Application) adminAuthToken() (string, error) {
 func (app *Application) checkAdminAuthToken(token string) error {
 
 	app.RLock()
-	insecure := app.config.InsecureWeb
-	secret := app.config.WebSecret
+	insecure := app.config.InsecureAdmin
+	secret := app.config.AdminSecret
 	app.RUnlock()
 
 	if insecure {
@@ -878,7 +869,7 @@ func (app *Application) checkAdminAuthToken(token string) error {
 	}
 
 	if secret == "" {
-		logger.ERROR.Println("provide web_secret in configuration")
+		logger.ERROR.Println("provide admin_secret in configuration")
 		return ErrUnauthorized
 	}
 

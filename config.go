@@ -22,9 +22,10 @@ func newConfig() *libcentrifugo.Config {
 	cfg.Version = VERSION
 	cfg.Name = getApplicationName()
 	cfg.Debug = viper.GetBool("debug")
+	cfg.Admin = viper.GetBool("admin") || viper.GetBool("web")
 	cfg.Web = viper.GetBool("web")
-	cfg.WebPassword = viper.GetString("web_password")
-	cfg.WebSecret = viper.GetString("web_secret")
+	cfg.AdminPassword = viper.GetString("admin_password")
+	cfg.AdminSecret = viper.GetString("admin_secret")
 	cfg.ChannelPrefix = viper.GetString("channel_prefix")
 	cfg.AdminChannel = libcentrifugo.ChannelID(cfg.ChannelPrefix + "." + "admin")
 	cfg.ControlChannel = libcentrifugo.ChannelID(cfg.ChannelPrefix + "." + "control")
@@ -50,7 +51,7 @@ func newConfig() *libcentrifugo.Config {
 	cfg.ClientChannelLimit = viper.GetInt("client_channel_limit")
 	cfg.Insecure = viper.GetBool("insecure")
 	cfg.InsecureAPI = viper.GetBool("insecure_api")
-	cfg.InsecureWeb = viper.GetBool("insecure_web")
+	cfg.InsecureAdmin = viper.GetBool("insecure_admin") || viper.GetBool("insecure_web")
 
 	cfg.Secret = viper.GetString("secret")
 	cfg.ConnLifetime = int64(viper.GetInt("connection_lifetime"))

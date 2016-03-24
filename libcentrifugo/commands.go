@@ -18,28 +18,28 @@ type (
 )
 
 type clientCommand struct {
-	UID    string `json:"uid"`
-	Method string
-	Params json.RawMessage
+	UID    string          `json:"uid"`
+	Method string          `json:"method"`
+	Params json.RawMessage `json:"params"`
 }
 
 type apiCommand struct {
-	UID    string `json:"uid"`
-	Method string
-	Params json.RawMessage
+	UID    string          `json:"uid"`
+	Method string          `json:"method"`
+	Params json.RawMessage `json:"params"`
 }
 
 type adminCommand struct {
-	Method string
-	Params json.RawMessage
+	UID    string          `json:"uid"`
+	Method string          `json:"method"`
+	Params json.RawMessage `json:"params"`
 }
 
 type controlCommand struct {
-	// unique node ID which sent this control command.
-	UID string
-
-	Method string
-	Params *json.RawMessage
+	// UID is a unique node ID which sent this control command.
+	UID    string           `json:"uid"`
+	Method string           `json:"method"`
+	Params *json.RawMessage `json:"params"`
 }
 
 // ConnectClientCommand is a command to authorize connection - it contains user ID
@@ -47,53 +47,53 @@ type controlCommand struct {
 // with unix seconds on moment when connect parameters generated and HMAC token to
 // prove correctness of all those parameters.
 type ConnectClientCommand struct {
-	User      UserID
-	Timestamp string
-	Info      string
-	Token     string
+	User      UserID `json:"user"`
+	Timestamp string `json:"timestamp"`
+	Info      string `json:"info"`
+	Token     string `json:"token"`
 }
 
 // RefreshClientCommand is used to prolong connection lifetime when connection check
 // mechanism is enabled. It can only be sent by client after successfull connect.
 type RefreshClientCommand struct {
-	User      UserID
-	Timestamp string
-	Info      string
-	Token     string
+	User      UserID `json:"user"`
+	Timestamp string `json:"timestamp"`
+	Info      string `json:"info"`
+	Token     string `json:"token"`
 }
 
 // SubscribeClientCommand is used to subscribe on channel.
 // It can only be sent by client after successfull connect.
 // It also can have Client, Info and Sign properties when channel is private.
 type SubscribeClientCommand struct {
-	Channel Channel
-	Client  ConnID
-	Last    MessageID
-	Recover bool
-	Info    string
-	Sign    string
+	Channel Channel   `json:"channel"`
+	Client  ConnID    `json:"client"`
+	Last    MessageID `json:"last"`
+	Recover bool      `json:"recover"`
+	Info    string    `json:"info"`
+	Sign    string    `json:"sign"`
 }
 
 // UnsubscribeClientCommand is used to unsubscribe from channel.
 type UnsubscribeClientCommand struct {
-	Channel Channel
+	Channel Channel `json:"channel"`
 }
 
 // PublishClientCommand is used to publish messages into channel.
 type PublishClientCommand struct {
-	Channel Channel
-	Data    json.RawMessage
+	Channel Channel         `json:"channel"`
+	Data    json.RawMessage `json:"data"`
 }
 
 // PresenceClientCommand is used to get presence (actual channel subscriptions).
 // information for channel
 type PresenceClientCommand struct {
-	Channel Channel
+	Channel Channel `json:"channel"`
 }
 
 // HistoryClientCommand is used to get history information for channel.
 type HistoryClientCommand struct {
-	Channel Channel
+	Channel Channel `json:"channel"`
 }
 
 // PingClientCommand is used to ping server.
@@ -104,8 +104,8 @@ type PingClientCommand struct {
 // publishApiCommand is used to publish messages into channel.
 type publishAPICommand struct {
 	Channel Channel
-	Data    json.RawMessage
 	Client  ConnID
+	Data    json.RawMessage
 }
 
 // broadcastApiCommand is used to publish messages into multiple channels.
@@ -143,7 +143,7 @@ type pingControlCommand struct {
 	Info NodeInfo
 }
 
-// unsubscribeControlCommand required when node received unsubscribe API command -
+// unsubscribeControlCommand required when node received unsubscribe API command –
 // node unsubscribes user from channel and then send this control command so other
 // nodes could unsubscribe user too.
 type unsubscribeControlCommand struct {
@@ -156,7 +156,14 @@ type disconnectControlCommand struct {
 	User UserID
 }
 
-// authAdminCommand required to authorize admin connection.
-type authAdminCommand struct {
-	Token string
+// connectAdminCommand required to authorize admin connection and provide
+// connection options.
+type connectAdminCommand struct {
+	Token string `json:"token"`
+	Watch bool   `json:"watch"`
+}
+
+// pingAdminCommand is used to ping server.
+type pingAdminCommand struct {
+	Data string `json:"data"`
 }

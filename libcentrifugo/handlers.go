@@ -56,6 +56,7 @@ func (flags HandlerFlag) String() string {
 // MuxOptions contain various options for DefaultMux.
 type MuxOptions struct {
 	Prefix        string
+	Admin         bool
 	Web           bool
 	WebPath       string
 	WebFS         http.FileSystem
@@ -75,6 +76,7 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	prefix := muxOpts.Prefix
+	admin := muxOpts.Admin
 	web := muxOpts.Web
 	webPath := muxOpts.WebPath
 	webFS := muxOpts.WebFS
@@ -85,36 +87,35 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 		mux.Handle(prefix+"/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
 		mux.Handle(prefix+"/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
 		mux.Handle(prefix+"/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+		mux.Handle(prefix+"/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
 	}
 
 	if flags&HandlerRawWS != 0 {
-		// register raw Websocket endpoint
+		// register raw Websocket endpoint.
 		mux.Handle(prefix+"/connection/websocket", app.Logged(app.WrapShutdown(http.HandlerFunc(app.RawWebsocketHandler))))
 	}
 
 	if flags&HandlerSockJS != 0 {
-		// register SockJS endpoints
+		// register SockJS endpoints.
 		sjsh := NewSockJSHandler(app, prefix+"/connection", muxOpts.SockjsOptions)
 		mux.Handle(prefix+"/connection/", app.Logged(app.WrapShutdown(sjsh)))
 	}
 
 	if flags&HandlerAPI != 0 {
-		// register HTTP API endpoint
+		// register HTTP API endpoint.
 		mux.Handle(prefix+"/api/", app.Logged(app.WrapShutdown(http.HandlerFunc(app.APIHandler))))
 	}
 
-	if flags&HandlerAdmin != 0 {
-		// register admin websocket endpoint
+	if admin && flags&HandlerAdmin != 0 {
+		// register admin websocket endpoint.
 		mux.Handle(prefix+"/socket", app.Logged(http.HandlerFunc(app.AdminWebsocketHandler)))
 
-		// optionally serve admin web interface
+		// optionally serve admin web interface.
 		if web {
-			// register admin web interface API endpoints
+			// register admin web interface API endpoints.
 			mux.Handle(prefix+"/auth/", app.Logged(http.HandlerFunc(app.AuthHandler)))
-			mux.Handle(prefix+"/info/", app.Logged(app.Authenticated(http.HandlerFunc(app.InfoHandler))))
-			mux.Handle(prefix+"/action/", app.Logged(app.Authenticated(http.HandlerFunc(app.ActionHandler))))
 
-			// serve web interface single-page application
+			// serve web interface single-page application.
 			if webPath != "" {
 				webPrefix := prefix + "/"
 				mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webPath))))
@@ -286,8 +287,12 @@ var (
 	objectJSONPrefix byte = '{'
 )
 
-func cmdFromAPIMsg(msg []byte) ([]apiCommand, error) {
+func cmdFromRequestMsg(msg []byte) ([]apiCommand, error) {
 	var commands []apiCommand
+
+	if len(msg) == 0 {
+		return commands, nil
+	}
 
 	firstByte := msg[0]
 
@@ -370,7 +375,7 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	commands, err := cmdFromAPIMsg(data)
+	commands, err := cmdFromRequestMsg(data)
 	if err != nil {
 		logger.ERROR.Println(err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -406,9 +411,9 @@ func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	app.RLock()
-	insecure := app.config.InsecureWeb
-	webPassword := app.config.WebPassword
-	webSecret := app.config.WebSecret
+	insecure := app.config.InsecureAdmin
+	adminPassword := app.config.AdminPassword
+	adminSecret := app.config.AdminSecret
 	app.RUnlock()
 
 	if insecure {
@@ -418,12 +423,12 @@ func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if webPassword == "" || webSecret == "" {
-		logger.ERROR.Println("web_password and web_secret must be set in configuration")
+	if adminPassword == "" || adminSecret == "" {
+		logger.ERROR.Println("admin_password and admin_secret must be set in configuration")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	if password == webPassword {
+	if password == adminPassword {
 		w.Header().Set("Content-Type", "application/json")
 		token, err := app.adminAuthToken()
 		if err != nil {
@@ -490,123 +495,47 @@ func (app *Application) Logged(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-// InfoHandler allows to get actual information about Centrifugo nodes running.
-func (app *Application) InfoHandler(w http.ResponseWriter, r *http.Request) {
-	app.nodesMu.Lock()
-	defer app.nodesMu.Unlock()
-	app.RLock()
-	defer app.RUnlock()
-	info := map[string]interface{}{
-		"version":             app.config.Version,
-		"secret":              app.config.Secret,
-		"connection_lifetime": app.config.ConnLifetime,
-		"channel_options":     app.config.ChannelOptions,
-		"namespaces":          app.config.Namespaces,
-		"engine":              app.engine.name(),
-		"node_name":           app.config.Name,
-		"nodes":               app.nodes,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(info)
-}
+const (
+	AdminWebsocketReadBufferSize  = 1024
+	AdminWebsocketWriteBufferSize = 1024
+)
 
-// ActionHandler allows to call API commands via submitting a form.
-func (app *Application) ActionHandler(w http.ResponseWriter, r *http.Request) {
-
-	app.metrics.NumAPIRequests.Inc()
-
-	method := r.FormValue("method")
-
-	var resp *response
-	var err error
-
-	switch method {
-	case "publish":
-		channel := Channel(r.FormValue("channel"))
-		data := r.FormValue("data")
-		if data == "" {
-			http.Error(w, "Bad Request", http.StatusBadRequest)
-			return
-		}
-		cmd := &publishAPICommand{
-			Channel: channel,
-			Data:    []byte(data),
-		}
-		resp, err = app.publishCmd(cmd)
-	case "unsubscribe":
-		channel := Channel(r.FormValue("channel"))
-		user := UserID(r.FormValue("user"))
-		cmd := &unsubscribeAPICommand{
-			Channel: channel,
-			User:    user,
-		}
-		resp, err = app.unsubcribeCmd(cmd)
-	case "disconnect":
-		user := UserID(r.FormValue("user"))
-		cmd := &disconnectAPICommand{
-			User: user,
-		}
-		resp, err = app.disconnectCmd(cmd)
-	case "presence":
-		channel := Channel(r.FormValue("channel"))
-		cmd := &presenceAPICommand{
-			Channel: channel,
-		}
-		resp, err = app.presenceCmd(cmd)
-	case "history":
-		channel := Channel(r.FormValue("channel"))
-		cmd := &historyAPICommand{
-			Channel: channel,
-		}
-		resp, err = app.historyCmd(cmd)
-	case "channels":
-		resp, err = app.channelsCmd()
-	case "stats":
-		resp, err = app.statsCmd()
-	case "node":
-		resp, err = app.nodeCmd()
-	default:
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-
-	if err != nil {
-		logger.ERROR.Println(err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
-}
-
-var upgrader = &websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
+var upgrader = &websocket.Upgrader{ReadBufferSize: AdminWebsocketReadBufferSize, WriteBufferSize: AdminWebsocketWriteBufferSize}
 
 // AdminWebsocketHandler handles admin websocket connections.
 func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 	app.RLock()
-	web := app.config.Web
+	admin := app.config.Admin
 	app.RUnlock()
-	if !web {
+
+	if !admin {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		logger.ERROR.Println(err)
 		return
 	}
 	defer ws.Close()
+
 	c, err := newAdminClient(app, ws)
 	if err != nil {
+		logger.ERROR.Println(err)
 		return
 	}
-	logger.INFO.Printf("New admin session established with uid %s\n", c.uid())
+
+	logger.INFO.Printf("New admin session established with uid %s", c.uid())
+	start := time.Now()
+
 	defer func() {
 		close(c.closeChan)
 		err := app.removeAdminConn(c)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
+		logger.INFO.Printf("Admin session completed in %s, uid %s", time.Since(start), c.uid())
 	}()
 
 	go c.writer()
@@ -616,18 +545,13 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		if err != nil {
 			break
 		}
-		resp, err := c.handleMessage(message)
+		err = c.message(message)
 		if err != nil {
-			break
-		}
-		msgBytes, err := json.Marshal(resp)
-		if err != nil {
-			break
-		} else {
-			err := c.send(msgBytes)
+			err := ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(CloseStatus, err.Error()), time.Now().Add(1*time.Second))
 			if err != nil {
-				break
+				logger.ERROR.Println(err)
 			}
+			break
 		}
 	}
 }

@@ -15,7 +15,7 @@ func (s *testAdminSession) WriteMessage(int, []byte) error {
 
 func newAdminTestConfig() *Config {
 	return &Config{
-		WebSecret: "secret",
+		AdminSecret: "secret",
 	}
 }
 
@@ -43,23 +43,23 @@ func TestAdminClientMessageHandling(t *testing.T) {
 	c, err := newTestAdminClient()
 	assert.Equal(t, nil, err)
 	emptyMsg := ""
-	_, err = c.handleMessage([]byte(emptyMsg))
-	assert.NotEqual(t, nil, err)
+	err = c.message([]byte(emptyMsg))
+	assert.Equal(t, nil, err)
 	malformedMsg := "ooops"
-	_, err = c.handleMessage([]byte(malformedMsg))
+	err = c.message([]byte(malformedMsg))
 	assert.NotEqual(t, nil, err)
 	unknownMsg := "{\"method\":\"unknown\", \"params\": {}}"
-	_, err = c.handleMessage([]byte(unknownMsg))
-	assert.Equal(t, ErrInvalidMessage, err)
-	emptyAuthMethod := "{\"method\":\"auth\", \"params\": {}}"
-	_, err = c.handleMessage([]byte(emptyAuthMethod))
+	err = c.message([]byte(unknownMsg))
+	assert.Equal(t, ErrMethodNotFound, err)
+	emptyAuthMethod := "{\"method\":\"connect\", \"params\": {}}"
+	err = c.message([]byte(emptyAuthMethod))
 	assert.Equal(t, ErrUnauthorized, err)
-	s := securecookie.New([]byte(c.app.config.WebSecret), nil)
+	s := securecookie.New([]byte(c.app.config.AdminSecret), nil)
 	token, _ := s.Encode(AuthTokenKey, AuthTokenValue)
-	correctAuthMethod := "{\"method\":\"auth\", \"params\": {\"token\":\"" + token + "\"}}"
-	_, err = c.handleMessage([]byte(correctAuthMethod))
+	correctAuthMethod := "{\"method\":\"connect\", \"params\": {\"token\":\"" + token + "\"}}"
+	err = c.message([]byte(correctAuthMethod))
 	assert.Equal(t, nil, err)
 	pingCommand := "{\"method\":\"ping\", \"params\": {}}"
-	_, err = c.handleMessage([]byte(pingCommand))
+	err = c.message([]byte(pingCommand))
 	assert.Equal(t, nil, err)
 }

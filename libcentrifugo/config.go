@@ -72,123 +72,124 @@ type Namespace struct {
 type Config struct {
 	// Version is a version of node as string, in most cases this will
 	// be Centrifugo server version.
-	Version string
+	Version string `json:"version"`
 
 	// Name of this node - must be unique, used as human readable and
 	// meaningful node identificator.
-	Name string
+	Name string `json:"name"`
 
 	// Debug turns on application debug mode.
-	Debug bool
+	Debug bool `json:"debug"`
 
-	// Web shows if admin web interface enabled or not
-	Web bool
-	// WebPassword is an admin web interface password.
-	WebPassword string
-	// WebSecret is a secret to generate auth token for admin web interface.
-	WebSecret string
+	// Admin enables admin socket.
+	Admin bool
+	// AdminPassword is an admin password.
+	AdminPassword string `json:"-"`
+	// AdminSecret is a secret to generate auth token for admin socket connection.
+	AdminSecret string `json:"-"`
+	// Web enables admin web interface.
+	Web bool `json:"web"`
 
 	// ChannelPrefix is a string prefix before each channel.
-	ChannelPrefix string
+	ChannelPrefix string `json:"channel_prefix"`
 	// AdminChannel is channel name for admin messages.
-	AdminChannel ChannelID
+	AdminChannel ChannelID `json:"admin_channel"`
 	// ControlChannel is a channel name for internal control messages between nodes.
-	ControlChannel ChannelID
+	ControlChannel ChannelID `json:"control_channel"`
 	// MaxChannelLength is a maximum length of channel name.
-	MaxChannelLength int
+	MaxChannelLength int `json:"max_channel_length"`
 
 	// PingInterval sets interval server will send ping messages to clients.
-	PingInterval time.Duration
+	PingInterval time.Duration `json:"ping_interval"`
 
 	// NodePingInterval is an interval how often node must send ping
 	// control message.
-	NodePingInterval time.Duration
+	NodePingInterval time.Duration `json:"node_ping_interval"`
 	// NodeInfoCleanInterval is an interval in seconds, how often node must clean
 	// information about other running nodes.
-	NodeInfoCleanInterval time.Duration
+	NodeInfoCleanInterval time.Duration `json:"node_info_clean_interval"`
 	// NodeInfoMaxDelay is an interval in seconds – how many seconds node info
 	// considered actual.
-	NodeInfoMaxDelay time.Duration
+	NodeInfoMaxDelay time.Duration `json:"node_info_max_delay"`
 	// NodeMetricsInterval detects interval node will use to aggregate metrics.
-	NodeMetricsInterval time.Duration
+	NodeMetricsInterval time.Duration `json:"node_metrics_interval"`
 
 	// PresencePingInterval is an interval how often connected clients
 	// must update presence info.
-	PresencePingInterval time.Duration
+	PresencePingInterval time.Duration `json:"presence_ping_interval"`
 	// PresenceExpireInterval is an interval how long to consider
 	// presence info valid after receiving presence ping.
-	PresenceExpireInterval time.Duration
+	PresenceExpireInterval time.Duration `json:"presence_expire_interval"`
 
 	// ExpiredConnectionCloseDelay is an interval given to client to
 	// refresh its connection in the end of connection lifetime.
-	ExpiredConnectionCloseDelay time.Duration
+	ExpiredConnectionCloseDelay time.Duration `json:"expired_connection_close_delay"`
 
 	// StaleConnectionCloseDelay is an interval in seconds after which
 	// connection will be closed if still not authenticated.
-	StaleConnectionCloseDelay time.Duration
+	StaleConnectionCloseDelay time.Duration `json:"stale_connection_close_delay"`
 
 	// MessageSendTimeout is an interval how long time the node
 	// may take to send a message to a client before disconnecting the client.
-	MessageSendTimeout time.Duration
+	MessageSendTimeout time.Duration `json:"message_send_timeout"`
 
 	// ClientRequestMaxSize sets maximum size in bytes of allowed client request.
-	ClientRequestMaxSize int
+	ClientRequestMaxSize int `json:"client_request_max_size"`
 	// ClientQueueMaxSize is a maximum size of client's message queue in bytes.
 	// After this queue size exceeded Centrifugo closes client's connection.
-	ClientQueueMaxSize int
+	ClientQueueMaxSize int `json:"client_queue_max_size"`
 	// ClientQueueInitialCapacity sets initial amount of slots in client message
 	// queue. When these slots are full client queue is automatically resized to
 	// a bigger size. This option can reduce amount of allocations when message
 	// rate is very high and client queue resizes frequently. Note that memory
 	// consumption per client connection grows with this option.
-	ClientQueueInitialCapacity int
+	ClientQueueInitialCapacity int `json:"client_queue_initial_capacity"`
 
 	// ClientChannelLimit sets upper limit of channels each client can subscribe to.
-	ClientChannelLimit int
+	ClientChannelLimit int `json:"client_channel_limit"`
 
 	// PrivateChannelPrefix is a prefix in channel name which indicates that
 	// channel is private.
-	PrivateChannelPrefix string
+	PrivateChannelPrefix string `json:"private_channel_prefix"`
 	// NamespaceChannelBoundary is a string separator which must be put after
 	// namespace part in channel name.
-	NamespaceChannelBoundary string
+	NamespaceChannelBoundary string `json:"namespace_channel_boundary"`
 	// UserChannelBoundary is a string separator which must be set before allowed
 	// users part in channel name.
-	UserChannelBoundary string
+	UserChannelBoundary string `json:"user_channel_boundary"`
 	// UserChannelSeparator separates allowed users in user part of channel name.
-	UserChannelSeparator string
+	UserChannelSeparator string `json:"user_channel_separator"`
 	// ClientChannelBoundary is a string separator which must be set before client
 	// connection ID in channel name so only client with this ID can subscribe on
 	// that channel.
-	ClientChannelBoundary string
+	ClientChannelBoundary string `json:"client_channel_separator"`
 
 	// Insecure turns on insecure mode - when it's turned on then no authentication
 	// required at all when connecting to Centrifugo, anonymous access and publish
 	// allowed for all channels, no connection check performed. This can be suitable
 	// for demonstration or personal usage.
-	Insecure bool
+	Insecure bool `json:"insecure"`
 	// InsecureAPI turns on insecure mode for HTTP API calls. This means that no
 	// API sign required when sending commands. This can be useful if you don't want
 	// to sign every request - for example if you closed API endpoint with firewall
 	// or you want to play with API commands from command line using CURL.
-	InsecureAPI bool
-	// InsecureWeb turns on insecure mode for admin web interface handler endpoints. This
-	// means that no web password and web secret will be used to protect access to web admin
-	// resources. Use this in development or protect admin resources with firewall rules
-	// in production.
-	InsecureWeb bool
+	InsecureAPI bool `json:"insecure_api"`
+	// InsecureAdmin turns on insecure mode for admin endpoints - no auth required to
+	// connect to admin socket and web interface. Protect admin resources with firewall
+	// rules in production when enabling this option.
+	InsecureAdmin bool `json:"insecure_admin"`
 
 	// Secret is a secret key, used to sign API requests and client connection tokens.
-	Secret string
+	Secret string `json:"secret"`
 
 	// ConnLifetime determines time until connection expire, 0 means no connection expire at all.
-	ConnLifetime int64
+	ConnLifetime int64 `json:"connection_lifetime"`
 
 	// ChannelOptions embedded to config.
-	ChannelOptions
+	ChannelOptions `json:"channel_options"`
 
 	// Namespaces - list of namespaces for custom channel options.
-	Namespaces []Namespace
+	Namespaces []Namespace `json:"namespaces"`
 }
 
 func stringInSlice(a string, list []string) bool {
@@ -245,8 +246,8 @@ var DefaultConfig = &Config{
 	Version:                     "-",
 	Name:                        defaultName,
 	Debug:                       false,
-	WebPassword:                 "",
-	WebSecret:                   "",
+	AdminPassword:               "",
+	AdminSecret:                 "",
 	ChannelPrefix:               defaultChannelPrefix,
 	AdminChannel:                ChannelID(defaultChannelPrefix + ".admin"),
 	ControlChannel:              ChannelID(defaultChannelPrefix + ".control"),
