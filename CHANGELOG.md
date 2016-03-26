@@ -1,3 +1,15 @@
+v1.4.2 (not released yet)
+=========================
+
+* Redis Sentinel support for Redis high availability setup. [Docs](https://fzambia.gitbooks.io/centrifugal/content/deploy/sentinel.html)
+* Redis Engine now uses Redis pipeline for batching publish operations - this results in latency and throughput improments when publish rate is high.
+* Refactored admin websocket. New option `admin` to enable admin websocket. New option `insecure_admin` to make this endpoint insecure (useful when admin websocket endpoint/port protected by firewall rules). `web_password` option renamed to `admin_password`, `web_secret` option renamed to `admin_secret`. **But old option names still supported to not break things in existing setups**. Also note, that when you run Centrifugo with `web` interface enabled - you also make admin websocket available, because web interface uses it. A little more info [in pull request](https://github.com/centrifugal/centrifugo/pull/83).
+* Presence Redis Engine methods rewritten to lua to be atomic.
+* Some Redis connection params now can be set over environment variables. See [#81](https://github.com/centrifugal/centrifugo/issues/81)
+* Fix busy loop when attempting to reconnect to Redis. Fixes large CPU usage while reconnecting.
+* Shorter message `uid`s (22 bytes instead of 36). This was made to get some performance improvements.
+
+
 v1.4.1
 ======
 
