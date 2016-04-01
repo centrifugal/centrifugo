@@ -22,7 +22,7 @@ Try [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo
 [![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/centrifugal/centrifugo)
 
 Highlights:
-* Fast server capable to serve thousands of simultanious connections
+* Fast server capable to serve thousands of simultaneous connections
 * HTTP API to communicate from your application backend (publish messages in channels etc.). API clients for Python, Ruby, PHP, Go, NodeJS. Simple to implement new one
 * Javascript client to connect from web browser over SockJS or pure Websocket protocol
 * Scale to several machines with Redis
