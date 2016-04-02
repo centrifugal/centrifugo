@@ -99,7 +99,7 @@
 		},
 		{
 			"ImportPath": "gopkg.in/igm/sockjs-go.v2/sockjs",
-			"Rev": "26300643773d12c6889eccb3883a012af98cac1b"
+			"Rev": "05b5e3121f692bea77aeb1160e4e7881017dc093"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
