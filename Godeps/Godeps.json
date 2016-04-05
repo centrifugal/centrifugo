@@ -63,7 +63,7 @@
 		},
 		{
 			"ImportPath": "github.com/nats-io/nuid",
-			"Rev": "66a9dd732adf52239277c23a648cd0487db4630b"
+			"Rev": "a5152d67cf63cbfb5d992a395458722a45194715"
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",
@@ -99,7 +99,7 @@
 		},
 		{
 			"ImportPath": "gopkg.in/igm/sockjs-go.v2/sockjs",
-			"Rev": "26300643773d12c6889eccb3883a012af98cac1b"
+			"Rev": "05b5e3121f692bea77aeb1160e4e7881017dc093"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

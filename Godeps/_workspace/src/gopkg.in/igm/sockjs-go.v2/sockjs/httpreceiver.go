@@ -41,9 +41,10 @@ func newHTTPReceiver(rw http.ResponseWriter, maxResponse uint32, frameWriter fra
 	}
 	if closeNotifier, ok := rw.(http.CloseNotifier); ok {
 		// if supported check for close notifications from http.RW
+		closeNotifyCh := closeNotifier.CloseNotify()
 		go func() {
 			select {
-			case <-closeNotifier.CloseNotify():
+			case <-closeNotifyCh:
 				recv.Lock()
 				defer recv.Unlock()
 				if recv.state < stateHTTPReceiverClosed {
