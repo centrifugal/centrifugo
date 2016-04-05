@@ -20,16 +20,78 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo"
 )
 
+const LOG_FILE = "log_file"
+const LOG_LEVEL = "log_level"
+const DEBUG = "debug"
+const ENGINE = "engine"
+const INSECURE = "insecure"
+const INSECURE_API = "insecure_api"
+const WEB = "web"
+const WEB_PATH = "web_path"
+const PREFIX = "prefix"
+const ADDRESS = "address"
+const ADMIN_PASSWORD = "admin_password"
+const ADMIN = "admin"
+const ADMIN_SECRET = "admin_secret"
+const INSECURE_WEB = "insecure_web"
+const INSECURE_ADMIN = "insecure_admin"
+const NAME = "name"
+const MAX_CHANNEL_LENGTH = "max_channel_length"
+const REDIS_CONNECT_TIMEOUT = "redis_connect_timeout"
+const NODE_PING_INTERVAL = "node_ping_interval"
+const CHANNEL_PREFIX = "channel_prefix"
+const MESSAGE_SEND_TIMEOUT = "message_send_timeout"
+const PING_INTERVAL = "ping_interval"
+const ADMIN_PORT = "admin_port"
+const NODE_METRICS_INTERVAL = "node_metrics_interval"
+const CENTRIFUGO_PREFIX = "centrifugo"
+const PORT = "port"
+const STALE_CONNECTION_CLOSE_DELAY = "stale_connection_close_delay"
+const REDIS_WRITE_TIMEOUT = "redis_write_timeout"
+const REDIS_HOST = "redis_host"
+const REDIS_PORT = "redis_port"
+const SSL = "ssl"
+const SSL_CERT = "ssl_cert"
+const SSL_KEY = "ssl_key"
+const API_PORT = "api_port"
+const REDIS_PASSWORD = "redis_password"
+const REDIS_DB = "redis_db"
+const REDIS_URL = "redis_url"
+const REDIS_API = "redis_api"
+const REDIS_POOL = "redis_pool"
+const REDIS_API_NUM_SHARDS = "redis_api_num_shards"
+const REDIS_MASTER_NAME = "redis_master_name"
+const REDIS_SENTINELS = "redis_sentinels"
+const GO_MAXPROX = "gomaxprocs"
+const SOCKJS_URL = "sockjs_url"
+const SECRET = "secret"
+const CONNECTION_TIMEOUT = "connection_lifetime"
+const WATCH = "watch"
+const PUBLISH = "publish"
+const ANONYMOUS = "anonymous"
+const JOIN_LEAVE = "join_leave"
+const PRESENCE = "presence"
+const RECOVER = "recover"
+const HISTORY_SIZE = "history_size"
+const HISTORY_LIFETIME = "history_lifetime"
+const HISTORY_DROP_INACTIVE = "history_drop_inactive"
+const NAMESPACES = "namespaces"
+
+const ENGINE_MEMORY = "memory"
+const ENGINE_REDIS = "redis"
+
+const EMPTY = ""
+
 func setupLogging() {
-	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString("log_level"))]
+	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString(LOG_LEVEL))]
 	if !ok {
 		logLevel = logger.LevelInfo
 	}
 	logger.SetLogThreshold(logLevel)
 	logger.SetStdoutThreshold(logLevel)
 
-	if viper.IsSet("log_file") && viper.GetString("log_file") != "" {
-		logger.SetLogFile(viper.GetString("log_file"))
+	if viper.IsSet(LOG_FILE) && viper.GetString(LOG_FILE) != EMPTY {
+		logger.SetLogFile(viper.GetString(LOG_FILE))
 		// do not log into stdout when log file provided
 		logger.SetStdoutThreshold(logger.LevelNone)
 	}
@@ -121,27 +183,25 @@ func Main() {
 	var redisSentinels string
 
 	var rootCmd = &cobra.Command{
-		Use:   "",
+		Use:   EMPTY,
 		Short: "Centrifugo",
 		Long:  "Centrifugo. Real-time messaging (Websockets or SockJS) server in Go.",
 		Run: func(cmd *cobra.Command, args []string) {
 
-			viper.SetDefault("gomaxprocs", 0)
-			viper.SetDefault("debug", false)
-			viper.SetDefault("prefix", "")
-			viper.SetDefault("web", false)
-			viper.SetDefault("web_path", "")
-			viper.SetDefault("admin_password", "")
-			viper.SetDefault("admin_secret", "")
-			viper.RegisterAlias("admin_password", "web_password")
-			viper.RegisterAlias("admin_secret", "web_secret")
-			viper.SetDefault("max_channel_length", 255)
-			viper.SetDefault("channel_prefix", "centrifugo")
-			viper.SetDefault("node_ping_interval", 3)
-			viper.SetDefault("message_send_timeout", 0)
-			viper.SetDefault("ping_interval", 25)
-			viper.SetDefault("node_metrics_interval", 60)
-			viper.SetDefault("stale_connection_close_delay", 25)
+			viper.SetDefault(GO_MAXPROX, 0)
+			viper.SetDefault(DEBUG, false)
+			viper.SetDefault(PREFIX, EMPTY)
+			viper.SetDefault(WEB, false)
+			viper.SetDefault(WEB_PATH, EMPTY)
+			viper.SetDefault(ADMIN_PASSWORD, EMPTY)
+			viper.SetDefault(ADMIN_SECRET, EMPTY)
+			viper.SetDefault(MAX_CHANNEL_LENGTH, 255)
+			viper.SetDefault(CHANNEL_PREFIX, CENTRIFUGO_PREFIX)
+			viper.SetDefault(NODE_PING_INTERVAL, 3)
+			viper.SetDefault(MESSAGE_SEND_TIMEOUT, 0)
+			viper.SetDefault(PING_INTERVAL, 25)
+			viper.SetDefault(NODE_METRICS_INTERVAL, 60)
+			viper.SetDefault(STALE_CONNECTION_CLOSE_DELAY, 25)
 			viper.SetDefault("expired_connection_close_delay", 25)
 			viper.SetDefault("client_channel_limit", 100)
 			viper.SetDefault("client_request_max_size", 65536)  // 64KB
@@ -154,78 +214,45 @@ func Main() {
 			viper.SetDefault("user_channel_boundary", "#")
 			viper.SetDefault("user_channel_separator", ",")
 			viper.SetDefault("client_channel_boundary", "&")
-			viper.SetDefault("sockjs_url", "//cdn.jsdelivr.net/sockjs/1.0/sockjs.min.js")
+			viper.SetDefault(SOCKJS_URL, "//cdn.jsdelivr.net/sockjs/1.0/sockjs.min.js")
 
-			viper.SetDefault("redis_connect_timeout", 1)
-			viper.SetDefault("redis_write_timeout", 1)
+			viper.SetDefault(REDIS_CONNECT_TIMEOUT, 1)
+			viper.SetDefault(REDIS_WRITE_TIMEOUT, 1)
 
-			viper.SetDefault("secret", "")
-			viper.SetDefault("connection_lifetime", 0)
-			viper.SetDefault("watch", false)
-			viper.SetDefault("publish", false)
-			viper.SetDefault("anonymous", false)
-			viper.SetDefault("presence", false)
-			viper.SetDefault("history_size", 0)
-			viper.SetDefault("history_lifetime", 0)
-			viper.SetDefault("recover", false)
-			viper.SetDefault("history_drop_inactive", false)
-			viper.SetDefault("namespaces", "")
+			viper.SetDefault(SECRET, EMPTY)
+			viper.SetDefault(CONNECTION_TIMEOUT, 0)
+			viper.SetDefault(WATCH, false)
+			viper.SetDefault(PUBLISH, false)
+			viper.SetDefault(ANONYMOUS, false)
+			viper.SetDefault(PRESENCE, false)
+			viper.SetDefault(HISTORY_SIZE, 0)
+			viper.SetDefault(HISTORY_LIFETIME, 0)
+			viper.SetDefault(RECOVER, false)
+			viper.SetDefault(HISTORY_DROP_INACTIVE, false)
+			viper.SetDefault(NAMESPACES, EMPTY)
 
-			viper.SetEnvPrefix("centrifugo")
-			viper.BindEnv("debug")
-			viper.BindEnv("engine")
-			viper.BindEnv("insecure")
-			viper.BindEnv("insecure_api")
-			viper.BindEnv("web")
-			viper.BindEnv("admin")
-			viper.BindEnv("admin_password")
-			viper.BindEnv("admin_secret")
-			viper.BindEnv("insecure_web")
-			viper.BindEnv("insecure_admin")
-			viper.BindEnv("secret")
-			viper.BindEnv("connection_lifetime")
-			viper.BindEnv("watch")
-			viper.BindEnv("publish")
-			viper.BindEnv("anonymous")
-			viper.BindEnv("join_leave")
-			viper.BindEnv("presence")
-			viper.BindEnv("recover")
-			viper.BindEnv("history_size")
-			viper.BindEnv("history_lifetime")
-			viper.BindEnv("history_drop_inactive")
-			viper.BindEnv("redis_host")
-			viper.BindEnv("redis_port")
-			viper.BindEnv("redis_url")
+			viper.RegisterAlias(ADMIN_PASSWORD, "web_password")
+			viper.RegisterAlias(ADMIN_SECRET, "web_secret")
 
-			viper.BindPFlag("port", cmd.Flags().Lookup("port"))
-			viper.BindPFlag("api_port", cmd.Flags().Lookup("api_port"))
-			viper.BindPFlag("admin_port", cmd.Flags().Lookup("admin_port"))
-			viper.BindPFlag("address", cmd.Flags().Lookup("address"))
-			viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
-			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
-			viper.BindPFlag("admin", cmd.Flags().Lookup("admin"))
-			viper.BindPFlag("insecure_admin", cmd.Flags().Lookup("insecure_admin"))
-			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
-			viper.BindPFlag("web_path", cmd.Flags().Lookup("web_path"))
-			viper.BindPFlag("insecure_web", cmd.Flags().Lookup("insecure_web"))
-			viper.BindPFlag("engine", cmd.Flags().Lookup("engine"))
-			viper.BindPFlag("insecure", cmd.Flags().Lookup("insecure"))
-			viper.BindPFlag("insecure_api", cmd.Flags().Lookup("insecure_api"))
-			viper.BindPFlag("ssl", cmd.Flags().Lookup("ssl"))
-			viper.BindPFlag("ssl_cert", cmd.Flags().Lookup("ssl_cert"))
-			viper.BindPFlag("ssl_key", cmd.Flags().Lookup("ssl_key"))
-			viper.BindPFlag("log_level", cmd.Flags().Lookup("log_level"))
-			viper.BindPFlag("log_file", cmd.Flags().Lookup("log_file"))
-			viper.BindPFlag("redis_host", cmd.Flags().Lookup("redis_host"))
-			viper.BindPFlag("redis_port", cmd.Flags().Lookup("redis_port"))
-			viper.BindPFlag("redis_password", cmd.Flags().Lookup("redis_password"))
-			viper.BindPFlag("redis_db", cmd.Flags().Lookup("redis_db"))
-			viper.BindPFlag("redis_url", cmd.Flags().Lookup("redis_url"))
-			viper.BindPFlag("redis_api", cmd.Flags().Lookup("redis_api"))
-			viper.BindPFlag("redis_pool", cmd.Flags().Lookup("redis_pool"))
-			viper.BindPFlag("redis_api_num_shards", cmd.Flags().Lookup("redis_api_num_shards"))
-			viper.BindPFlag("redis_master_name", cmd.Flags().Lookup("redis_master_name"))
-			viper.BindPFlag("redis_sentinels", cmd.Flags().Lookup("redis_sentinels"))
+			viper.SetEnvPrefix(CENTRIFUGO_PREFIX)
+
+			bindEnvs := []string{DEBUG, ENGINE, INSECURE, INSECURE_API, WEB, ADMIN, ADMIN_PASSWORD, ADMIN_SECRET,
+				INSECURE_WEB, INSECURE_ADMIN, SECRET, CONNECTION_TIMEOUT, WATCH, PUBLISH, ANONYMOUS, JOIN_LEAVE,
+				PRESENCE, RECOVER, HISTORY_SIZE, HISTORY_LIFETIME, HISTORY_DROP_INACTIVE, REDIS_HOST, REDIS_PORT,
+				REDIS_URL}
+
+			for _, env := range bindEnvs {
+				viper.BindEnv(env)
+			}
+
+			bindPFlags := []string{PORT, API_PORT, ADMIN_PORT, ADDRESS, DEBUG, NAME, ADMIN, INSECURE_ADMIN,
+				WEB, WEB_PATH, INSECURE_WEB, ENGINE, INSECURE, INSECURE_API, SSL, SSL_CERT, SSL_KEY,
+				LOG_LEVEL, LOG_FILE, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD, REDIS_DB, REDIS_URL,
+				REDIS_API, REDIS_POOL, REDIS_API_NUM_SHARDS, REDIS_MASTER_NAME, REDIS_SENTINELS}
+
+			for _, flag := range bindPFlags {
+				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
+			}
 
 			viper.SetConfigFile(configFile)
 
@@ -250,9 +277,9 @@ func Main() {
 
 			setupLogging()
 
-			if os.Getenv("GOMAXPROCS") == "" {
-				if viper.IsSet("gomaxprocs") && viper.GetInt("gomaxprocs") > 0 {
-					runtime.GOMAXPROCS(viper.GetInt("gomaxprocs"))
+			if os.Getenv("GOMAXPROCS") == EMPTY {
+				if viper.IsSet(GO_MAXPROX) && viper.GetInt(GO_MAXPROX) > 0 {
+					runtime.GOMAXPROCS(viper.GetInt(GO_MAXPROX))
 				} else {
 					runtime.GOMAXPROCS(runtime.NumCPU())
 				}
@@ -282,21 +309,21 @@ func Main() {
 			}
 
 			var e libcentrifugo.Engine
-			switch viper.GetString("engine") {
-			case "memory":
+			switch viper.GetString(ENGINE) {
+			case ENGINE_MEMORY:
 				e = libcentrifugo.NewMemoryEngine(app)
-			case "redis":
-				masterName := viper.GetString("redis_master_name")
-				sentinels := viper.GetString("redis_sentinels")
-				if masterName != "" && sentinels == "" {
+			case ENGINE_REDIS:
+				masterName := viper.GetString(REDIS_MASTER_NAME)
+				sentinels := viper.GetString(REDIS_SENTINELS)
+				if masterName != EMPTY && sentinels == EMPTY {
 					logger.FATAL.Fatalf("Provide at least one Sentinel address")
 				}
 
 				sentinelAddrs := []string{}
-				if sentinels != "" {
+				if sentinels != EMPTY {
 					for _, addr := range strings.Split(sentinels, ",") {
 						addr := strings.TrimSpace(addr)
-						if addr == "" {
+						if addr == EMPTY {
 							continue
 						}
 						if _, _, err := net.SplitHostPort(addr); err != nil {
@@ -306,39 +333,39 @@ func Main() {
 					}
 				}
 
-				if len(sentinelAddrs) > 0 && masterName == "" {
+				if len(sentinelAddrs) > 0 && masterName == EMPTY {
 					logger.FATAL.Fatalln("Redis master name required when Sentinel used")
 				}
 
 				redisConf := &libcentrifugo.RedisEngineConfig{
-					Host:           viper.GetString("redis_host"),
-					Port:           viper.GetString("redis_port"),
-					Password:       viper.GetString("redis_password"),
-					DB:             viper.GetString("redis_db"),
-					URL:            viper.GetString("redis_url"),
-					PoolSize:       viper.GetInt("redis_pool"),
-					API:            viper.GetBool("redis_api"),
-					NumAPIShards:   viper.GetInt("redis_api_num_shards"),
+					Host:           viper.GetString(REDIS_HOST),
+					Port:           viper.GetString(REDIS_PORT),
+					Password:       viper.GetString(REDIS_PASSWORD),
+					DB:             viper.GetString(REDIS_DB),
+					URL:            viper.GetString(REDIS_URL),
+					PoolSize:       viper.GetInt(REDIS_POOL),
+					API:            viper.GetBool(REDIS_API),
+					NumAPIShards:   viper.GetInt(REDIS_API_NUM_SHARDS),
 					MasterName:     masterName,
 					SentinelAddrs:  sentinelAddrs,
-					ConnectTimeout: time.Duration(viper.GetInt("redis_connect_timeout")) * time.Second,
-					ReadTimeout:    time.Duration(viper.GetInt("node_ping_interval")*3+1) * time.Second,
+					ConnectTimeout: time.Duration(viper.GetInt(REDIS_CONNECT_TIMEOUT)) * time.Second,
+					ReadTimeout:    time.Duration(viper.GetInt(NODE_PING_INTERVAL)*3+1) * time.Second,
 					WriteTimeout:   time.Duration(viper.GetInt("redis_write_timeout")) * time.Second,
 				}
 				e = libcentrifugo.NewRedisEngine(app, redisConf)
 			default:
-				logger.FATAL.Fatalln("Unknown engine: " + viper.GetString("engine"))
+				logger.FATAL.Fatalln("Unknown engine: " + viper.GetString(ENGINE))
 			}
 
-			logger.INFO.Println("Engine:", viper.GetString("engine"))
+			logger.INFO.Println("Engine:", viper.GetString(ENGINE))
 			logger.DEBUG.Printf("%v\n", viper.AllSettings())
-			logger.INFO.Println("Use SSL:", viper.GetBool("ssl"))
-			if viper.GetBool("ssl") {
-				if viper.GetString("ssl_cert") == "" {
+			logger.INFO.Println("Use SSL:", viper.GetBool(SSL))
+			if viper.GetBool(SSL) {
+				if viper.GetString(SSL_CERT) == EMPTY {
 					logger.FATAL.Println("No SSL certificate provided")
 					os.Exit(1)
 				}
-				if viper.GetString("ssl_key") == "" {
+				if viper.GetString(SSL_KEY) == EMPTY {
 					logger.FATAL.Println("No SSL certificate key provided")
 					os.Exit(1)
 				}
@@ -356,8 +383,8 @@ func Main() {
 			// Override sockjs url. It's important to use the same SockJS library version
 			// on client and server sides, otherwise SockJS will report version mismatch
 			// and won't work.
-			sockjsURL := viper.GetString("sockjs_url")
-			if sockjsURL != "" {
+			sockjsURL := viper.GetString(SOCKJS_URL)
+			if sockjsURL != EMPTY {
 				logger.INFO.Println("SockJS url:", sockjsURL)
 				sockjsOpts.SockJSURL = sockjsURL
 			}
@@ -366,27 +393,27 @@ func Main() {
 			}
 			sockjsOpts.HeartbeatDelay = c.PingInterval
 
-			webEnabled := viper.GetBool("web")
+			webEnabled := viper.GetBool(WEB)
 
 			var webFS http.FileSystem
 			if webEnabled {
 				webFS = assetFS()
 			}
 
-			adminEnabled := viper.GetBool("admin")
+			adminEnabled := viper.GetBool(ADMIN)
 			if webEnabled {
 				adminEnabled = true
 			}
 
-			clientPort := viper.GetString("port")
+			clientPort := viper.GetString(PORT)
 
-			apiPort := viper.GetString("api_port")
-			if apiPort == "" {
+			apiPort := viper.GetString(API_PORT)
+			if apiPort == EMPTY {
 				apiPort = clientPort
 			}
 
-			adminPort := viper.GetString("admin_port")
-			if adminPort == "" {
+			adminPort := viper.GetString(ADMIN_PORT)
+			if adminPort == EMPTY {
 				adminPort = clientPort
 			}
 
@@ -408,7 +435,7 @@ func Main() {
 			if adminEnabled {
 				portFlags |= libcentrifugo.HandlerAdmin
 			}
-			if viper.GetBool("debug") {
+			if viper.GetBool(DEBUG) {
 				portFlags |= libcentrifugo.HandlerDebug
 			}
 			portToHandlerFlags[adminPort] = portFlags
@@ -418,17 +445,17 @@ func Main() {
 			// on separate ports serving handlers specified in flags.
 			for handlerPort, handlerFlags := range portToHandlerFlags {
 				muxOpts := libcentrifugo.MuxOptions{
-					Prefix:        viper.GetString("prefix"),
+					Prefix:        viper.GetString(PREFIX),
 					Admin:         adminEnabled,
 					Web:           webEnabled,
-					WebPath:       viper.GetString("web_path"),
+					WebPath:       viper.GetString(WEB_PATH),
 					WebFS:         webFS,
 					HandlerFlags:  handlerFlags,
 					SockjsOptions: sockjsOpts,
 				}
 				mux := libcentrifugo.DefaultMux(app, muxOpts)
 
-				addr := net.JoinHostPort(viper.GetString("address"), handlerPort)
+				addr := net.JoinHostPort(viper.GetString(ADDRESS), handlerPort)
 
 				logger.INFO.Printf("Start serving %s endpoints on %s\n", handlerFlags, addr)
 				wg.Add(1)
@@ -437,36 +464,36 @@ func Main() {
 			wg.Wait()
 		},
 	}
-	rootCmd.Flags().StringVarP(&port, "port", "p", "8000", "port to bind to")
-	rootCmd.Flags().StringVarP(&address, "address", "a", "", "address to listen on")
-	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "debug mode - please, do not use it in production")
+	rootCmd.Flags().StringVarP(&port, PORT, "p", "8000", "port to bind to")
+	rootCmd.Flags().StringVarP(&address, ADDRESS, "a", EMPTY, "address to listen on")
+	rootCmd.Flags().BoolVarP(&debug, DEBUG, "d", false, "debug mode - please, do not use it in production")
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
-	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
-	rootCmd.Flags().BoolVarP(&admin, "admin", "", false, "Enable admin socket")
-	rootCmd.Flags().BoolVarP(&web, "web", "w", false, "serve admin web interface application (warning: automatically enables admin socket)")
-	rootCmd.Flags().StringVarP(&webPath, "web_path", "", "", "optional path to web interface application")
-	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
-	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure client mode")
-	rootCmd.Flags().BoolVarP(&insecureAPI, "insecure_api", "", false, "use insecure API mode")
-	rootCmd.Flags().BoolVarP(&insecureWeb, "insecure_web", "", false, "use insecure web mode – no web password and web secret required for web interface (warning: automatically enables insecure_admin option)")
-	rootCmd.Flags().BoolVarP(&insecureAdmin, "insecure_admin", "", false, "use insecure admin mode – no auth required for admin socket")
-	rootCmd.Flags().BoolVarP(&useSSL, "ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
-	rootCmd.Flags().StringVarP(&sslCert, "ssl_cert", "", "", "path to an X509 certificate file")
-	rootCmd.Flags().StringVarP(&sslKey, "ssl_key", "", "", "path to an X509 certificate key")
-	rootCmd.Flags().StringVarP(&apiPort, "api_port", "", "", "port to bind api endpoints to (optional until this is required by your deploy setup)")
-	rootCmd.Flags().StringVarP(&adminPort, "admin_port", "", "", "port to bind admin endpoints to (optional until this is required by your deploy setup)")
-	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "info", "set the log level: debug, info, error, critical, fatal or none")
-	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified all logs go to STDOUT")
-	rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisPort, "redis_port", "", "6379", "redis port (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisPassword, "redis_password", "", "", "redis auth password (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisDB, "redis_db", "", "0", "redis database (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisURL, "redis_url", "", "", "redis connection URL (Redis engine)")
-	rootCmd.Flags().BoolVarP(&redisAPI, "redis_api", "", false, "enable Redis API listener (Redis engine)")
-	rootCmd.Flags().IntVarP(&redisPool, "redis_pool", "", 256, "Redis pool size (Redis engine)")
-	rootCmd.Flags().IntVarP(&redisAPINumShards, "redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisMasterName, "redis_master_name", "", "", "Name of Redis master Sentinel monitors (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisSentinels, "redis_sentinels", "", "", "Comma separated list of Sentinels (Redis engine)")
+	rootCmd.Flags().StringVarP(&name, NAME, "n", EMPTY, "unique node name")
+	rootCmd.Flags().BoolVarP(&admin, ADMIN, EMPTY, false, "Enable admin socket")
+	rootCmd.Flags().BoolVarP(&web, WEB, "w", false, "serve admin web interface application (warning: automatically enables admin socket)")
+	rootCmd.Flags().StringVarP(&webPath, WEB_PATH, EMPTY, EMPTY, "optional path to web interface application")
+	rootCmd.Flags().StringVarP(&engn, ENGINE, "e", ENGINE_MEMORY, "engine to use: memory or redis")
+	rootCmd.Flags().BoolVarP(&insecure, INSECURE, EMPTY, false, "start in insecure client mode")
+	rootCmd.Flags().BoolVarP(&insecureAPI, INSECURE_API, EMPTY, false, "use insecure API mode")
+	rootCmd.Flags().BoolVarP(&insecureWeb, INSECURE_WEB, EMPTY, false, "use insecure web mode – no web password and web secret required for web interface (warning: automatically enables insecure_admin option)")
+	rootCmd.Flags().BoolVarP(&insecureAdmin, INSECURE_ADMIN, EMPTY, false, "use insecure admin mode – no auth required for admin socket")
+	rootCmd.Flags().BoolVarP(&useSSL, SSL, EMPTY, false, "accept SSL connections. This requires an X509 certificate and a key file")
+	rootCmd.Flags().StringVarP(&sslCert, SSL_CERT, EMPTY, EMPTY, "path to an X509 certificate file")
+	rootCmd.Flags().StringVarP(&sslKey, SSL_KEY, EMPTY, EMPTY, "path to an X509 certificate key")
+	rootCmd.Flags().StringVarP(&apiPort, API_PORT, EMPTY, EMPTY, "port to bind api endpoints to (optional until this is required by your deploy setup)")
+	rootCmd.Flags().StringVarP(&adminPort, ADMIN_PORT, EMPTY, EMPTY, "port to bind admin endpoints to (optional until this is required by your deploy setup)")
+	rootCmd.Flags().StringVarP(&logLevel, LOG_LEVEL, EMPTY, "info", "set the log level: debug, info, error, critical, fatal or none")
+	rootCmd.Flags().StringVarP(&logFile, LOG_FILE, EMPTY, EMPTY, "optional log file - if not specified all logs go to STDOUT")
+	rootCmd.Flags().StringVarP(&redisHost, REDIS_HOST, EMPTY, "127.0.0.1", "redis host (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisPort, REDIS_PORT, EMPTY, "6379", "redis port (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisPassword, REDIS_PASSWORD, EMPTY, EMPTY, "redis auth password (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisDB, REDIS_DB, EMPTY, "0", "redis database (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisURL, REDIS_URL, EMPTY, EMPTY, "redis connection URL (Redis engine)")
+	rootCmd.Flags().BoolVarP(&redisAPI, REDIS_API, EMPTY, false, "enable Redis API listener (Redis engine)")
+	rootCmd.Flags().IntVarP(&redisPool, REDIS_POOL, EMPTY, 256, "Redis pool size (Redis engine)")
+	rootCmd.Flags().IntVarP(&redisAPINumShards, REDIS_API_NUM_SHARDS, EMPTY, 0, "Number of shards for redis API queue (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisMasterName, REDIS_MASTER_NAME, EMPTY, EMPTY, "Name of Redis master Sentinel monitors (Redis engine)")
+	rootCmd.Flags().StringVarP(&redisSentinels, REDIS_SENTINELS, EMPTY, EMPTY, "Comma separated list of Sentinels (Redis engine)")
 
 	var versionCmd = &cobra.Command{
 		Use:   "version",
