@@ -1,3 +1,11 @@
+v1.4.3
+======
+
+**Fix of security vulnerability introduced in v1.4.2**, see below.
+
+* If you are using Centrifugo v1.4.2 (previous versions not affected) with admin socket enabled (with `--admin` or `--web` options) and your admin endpoint not protected by firewall somehow then you must update to this version. Otherwise it's possible to connect to admin websocket endpoint and run any command without authentication. It's recommended to update your secret key after upgrade. So sorry for this.
+
+
 v1.4.2
 ======
 
