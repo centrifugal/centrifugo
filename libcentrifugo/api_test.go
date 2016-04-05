@@ -121,6 +121,14 @@ func TestAPICmd(t *testing.T) {
 	resp, err = app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.err)
+
+	cmd = apiCommand{
+		Method: "node",
+		Params: []byte("{}"),
+	}
+	resp, err = app.apiCmd(cmd)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nil, resp.err)
 }
 
 func TestAPIPublish(t *testing.T) {
@@ -232,6 +240,13 @@ func TestAPIChannels(t *testing.T) {
 func TestAPIStats(t *testing.T) {
 	app := testApp()
 	resp, err := app.statsCmd()
+	assert.Equal(t, nil, err)
+	assert.Equal(t, nil, resp.err)
+}
+
+func TestAPINode(t *testing.T) {
+	app := testApp()
+	resp, err := app.nodeCmd()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.err)
 }

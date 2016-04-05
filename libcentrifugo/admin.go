@@ -46,8 +46,8 @@ func newAdminClient(app *Application, sess adminSession) (*adminClient, error) {
 		if err != nil {
 			return nil, err
 		}
+		c.authenticated = true
 	}
-	c.authenticated = true
 
 	return c, nil
 }

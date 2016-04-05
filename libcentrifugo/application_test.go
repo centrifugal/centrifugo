@@ -167,6 +167,13 @@ func TestNamespaceKey(t *testing.T) {
 	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns::channel"))
 }
 
+func TestApplicationNode(t *testing.T) {
+	app := testApp()
+	info := app.node()
+	assert.Equal(t, 0, info.Clients)
+	assert.NotEqual(t, 0, info.Started)
+}
+
 func BenchmarkNamespaceKey(b *testing.B) {
 	app := testApp()
 	ch := Channel("test")

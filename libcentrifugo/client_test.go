@@ -29,6 +29,16 @@ func TestUnauthenticatedClient(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
+func TestCloseUnauthenticatedClient(t *testing.T) {
+	app := testApp()
+	app.config.StaleConnectionCloseDelay = 50 * time.Microsecond
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+	assert.NotEqual(t, "", c.uid())
+	time.Sleep(time.Millisecond)
+	assert.Equal(t, true, c.messages.Closed())
+}
+
 func TestClientMessage(t *testing.T) {
 	app := testApp()
 	c, err := newClient(app, &testSession{})
