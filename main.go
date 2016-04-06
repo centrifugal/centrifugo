@@ -172,60 +172,26 @@ func Main() {
 			viper.SetDefault("namespaces", "")
 
 			viper.SetEnvPrefix("centrifugo")
-			viper.BindEnv("debug")
-			viper.BindEnv("engine")
-			viper.BindEnv("insecure")
-			viper.BindEnv("insecure_api")
-			viper.BindEnv("web")
-			viper.BindEnv("admin")
-			viper.BindEnv("admin_password")
-			viper.BindEnv("admin_secret")
-			viper.BindEnv("insecure_web")
-			viper.BindEnv("insecure_admin")
-			viper.BindEnv("secret")
-			viper.BindEnv("connection_lifetime")
-			viper.BindEnv("watch")
-			viper.BindEnv("publish")
-			viper.BindEnv("anonymous")
-			viper.BindEnv("join_leave")
-			viper.BindEnv("presence")
-			viper.BindEnv("recover")
-			viper.BindEnv("history_size")
-			viper.BindEnv("history_lifetime")
-			viper.BindEnv("history_drop_inactive")
-			viper.BindEnv("redis_host")
-			viper.BindEnv("redis_port")
-			viper.BindEnv("redis_url")
 
-			viper.BindPFlag("port", cmd.Flags().Lookup("port"))
-			viper.BindPFlag("api_port", cmd.Flags().Lookup("api_port"))
-			viper.BindPFlag("admin_port", cmd.Flags().Lookup("admin_port"))
-			viper.BindPFlag("address", cmd.Flags().Lookup("address"))
-			viper.BindPFlag("debug", cmd.Flags().Lookup("debug"))
-			viper.BindPFlag("name", cmd.Flags().Lookup("name"))
-			viper.BindPFlag("admin", cmd.Flags().Lookup("admin"))
-			viper.BindPFlag("insecure_admin", cmd.Flags().Lookup("insecure_admin"))
-			viper.BindPFlag("web", cmd.Flags().Lookup("web"))
-			viper.BindPFlag("web_path", cmd.Flags().Lookup("web_path"))
-			viper.BindPFlag("insecure_web", cmd.Flags().Lookup("insecure_web"))
-			viper.BindPFlag("engine", cmd.Flags().Lookup("engine"))
-			viper.BindPFlag("insecure", cmd.Flags().Lookup("insecure"))
-			viper.BindPFlag("insecure_api", cmd.Flags().Lookup("insecure_api"))
-			viper.BindPFlag("ssl", cmd.Flags().Lookup("ssl"))
-			viper.BindPFlag("ssl_cert", cmd.Flags().Lookup("ssl_cert"))
-			viper.BindPFlag("ssl_key", cmd.Flags().Lookup("ssl_key"))
-			viper.BindPFlag("log_level", cmd.Flags().Lookup("log_level"))
-			viper.BindPFlag("log_file", cmd.Flags().Lookup("log_file"))
-			viper.BindPFlag("redis_host", cmd.Flags().Lookup("redis_host"))
-			viper.BindPFlag("redis_port", cmd.Flags().Lookup("redis_port"))
-			viper.BindPFlag("redis_password", cmd.Flags().Lookup("redis_password"))
-			viper.BindPFlag("redis_db", cmd.Flags().Lookup("redis_db"))
-			viper.BindPFlag("redis_url", cmd.Flags().Lookup("redis_url"))
-			viper.BindPFlag("redis_api", cmd.Flags().Lookup("redis_api"))
-			viper.BindPFlag("redis_pool", cmd.Flags().Lookup("redis_pool"))
-			viper.BindPFlag("redis_api_num_shards", cmd.Flags().Lookup("redis_api_num_shards"))
-			viper.BindPFlag("redis_master_name", cmd.Flags().Lookup("redis_master_name"))
-			viper.BindPFlag("redis_sentinels", cmd.Flags().Lookup("redis_sentinels"))
+			bindEnvs := []string{
+				"debug", "engine", "insecure", "insecure_api", "web", "admin", "admin_password", "admin_secret",
+				"insecure_web", "insecure_admin", "secret", "connection_lifetime", "watch", "publish", "anonymous",
+				"join_leave", "presence", "recover", "history_size", "history_lifetime", "history_drop_inactive",
+				"redis_host", "redis_port", "redis_url",
+			}
+			for _, env := range bindEnvs {
+				viper.BindEnv(env)
+			}
+
+			bindPFlags := []string{
+				"port", "api_port", "admin_port", "address", "debug", "name", "admin", "insecure_admin", "web",
+				"web_path", "insecure_web", "engine", "insecure", "insecure_api", "ssl", "ssl_cert", "ssl_key",
+				"log_level", "log_file", "redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
+				"redis_api", "redis_pool", "redis_api_num_shards", "redis_master_name", "redis_sentinels",
+			}
+			for _, flag := range bindPFlags {
+				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
+			}
 
 			viper.SetConfigFile(configFile)
 
