@@ -51,3 +51,22 @@ func TestValidate(t *testing.T) {
 	err := c.Validate()
 	assert.Equal(t, nil, err)
 }
+
+func TestValidateErrorNamespaceNotUnique(t *testing.T) {
+	c := *DefaultConfig
+	var ns []Namespace
+	ns = append(ns, getTestNamespace("test"))
+	ns = append(ns, getTestNamespace("test"))
+	c.Namespaces = ns
+	err := c.Validate()
+	assert.NotEqual(t, nil, err)
+}
+
+func TestValidateErrorNamespaceWrongName(t *testing.T) {
+	c := *DefaultConfig
+	var ns []Namespace
+	ns = append(ns, getTestNamespace("test xwxw"))
+	c.Namespaces = ns
+	err := c.Validate()
+	assert.NotEqual(t, nil, err)
+}

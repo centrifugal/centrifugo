@@ -3,6 +3,7 @@ package libcentrifugo
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -293,6 +294,19 @@ func TestUpdateMetrics(t *testing.T) {
 
 	// Absolute metrics should be updated
 	assert.Equal(t, int64(1), app.metrics.NumMsgPublished.LoadRaw())
+}
+
+func TestUnsubscribe(t *testing.T) {
+	app := testApp()
+	c, err := newClient(app, &testSession{})
+	assert.Equal(t, nil, err)
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []clientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
+	err = c.handleCommands(cmds)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 1, len(c.channels()))
+	app.unsubscribeUser(UserID("user1"), Channel("test"))
+	assert.Equal(t, 0, len(c.channels()))
 }
 
 // BenchmarkReceiveBroadcast measures how fast we can broadcast messages received

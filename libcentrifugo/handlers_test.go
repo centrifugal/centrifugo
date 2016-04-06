@@ -31,6 +31,14 @@ func TestDefaultMux(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 }
 
+func TestHandlerFlagString(t *testing.T) {
+	var flag HandlerFlag
+	flag |= HandlerAPI
+	s := flag.String()
+	assert.True(t, strings.Contains(s, handlerText[HandlerAPI]))
+	assert.False(t, strings.Contains(s, handlerText[HandlerRawWS]))
+}
+
 func TestRawWsHandler(t *testing.T) {
 	app := testApp()
 	mux := DefaultMux(app, DefaultMuxOptions)
