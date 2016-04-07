@@ -1,3 +1,11 @@
+v1.4.4
+======
+
+One more fix for v1.4.2 release here
+
+* proper aliasing of `admin_password` and `admin_secret` configuration options. See [#88](https://github.com/centrifugal/centrifugo/issues/88) 
+
+
 v1.4.3
 ======
 
