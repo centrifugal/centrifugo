@@ -1,7 +1,9 @@
 {
-  "web_password": "password",
-  "web_secret": "secret",
   "secret": "secret",
+  "admin": true,
+  "admin_password": "password",
+  "admin_secret": "secret",
+  "web": true,
   "namespaces": [
     {
       "name": "public",

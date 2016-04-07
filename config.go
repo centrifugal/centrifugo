@@ -24,8 +24,19 @@ func newConfig() *libcentrifugo.Config {
 	cfg.Debug = viper.GetBool("debug")
 	cfg.Admin = viper.GetBool("admin") || viper.GetBool("web")
 	cfg.Web = viper.GetBool("web")
-	cfg.AdminPassword = viper.GetString("admin_password")
-	cfg.AdminSecret = viper.GetString("admin_secret")
+
+	adminPassword := viper.GetString("admin_password")
+	if adminPassword == "" {
+		adminPassword = viper.GetString("web_password")
+	}
+	cfg.AdminPassword = adminPassword
+
+	adminSecret := viper.GetString("admin_secret")
+	if adminSecret == "" {
+		adminSecret = viper.GetString("web_secret")
+	}
+	cfg.AdminSecret = adminSecret
+
 	cfg.ChannelPrefix = viper.GetString("channel_prefix")
 	cfg.AdminChannel = libcentrifugo.ChannelID(cfg.ChannelPrefix + "." + "admin")
 	cfg.ControlChannel = libcentrifugo.ChannelID(cfg.ChannelPrefix + "." + "control")

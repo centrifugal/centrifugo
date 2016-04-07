@@ -133,8 +133,8 @@ func Main() {
 			viper.SetDefault("web_path", "")
 			viper.SetDefault("admin_password", "")
 			viper.SetDefault("admin_secret", "")
-			viper.RegisterAlias("admin_password", "web_password")
-			viper.RegisterAlias("admin_secret", "web_secret")
+			viper.SetDefault("web_password", "") // Deprecated. Use admin_password
+			viper.SetDefault("web_secret", "")   // Deprecated. Use admin_secret
 			viper.SetDefault("max_channel_length", 255)
 			viper.SetDefault("channel_prefix", "centrifugo")
 			viper.SetDefault("node_ping_interval", 3)
