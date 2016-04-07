@@ -6,8 +6,7 @@ Centrifugo is a real-time messaging server. This is a successor of
 In a nutshell this is a server running near your application and keeping lots of persistent Websocket or SockJS connections from your application clients (from web browsers or other environments). When some event happens you can broadcast it to all interested clients using Centrifugo API.
 
 To get more information what is it for and how it works – please, read 
-[documentation](http://fzambia.gitbooks.io/centrifugal/content/) of 
-Centrifugal organization.
+[documentation](http://fzambia.gitbooks.io/centrifugal/content/).
 
 Releases available as single executable files – just 
 [download latest release](https://github.com/centrifugal/centrifugo/releases) for your platform,  
@@ -23,10 +22,11 @@ Try [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo
 
 Highlights:
 * Fast server capable to serve thousands of simultaneous connections
+* Easily integrates with existing application – no need to rewrite your backend code to dive into real-time
 * HTTP API to communicate from your application backend (publish messages in channels etc.). API clients for Python, Ruby, PHP, Go, NodeJS. Simple to implement new one
 * Javascript client to connect from web browser over SockJS or pure Websocket protocol
 * Scale to several machines with Redis
-* SHA-256 HMAC-based authorization
+* SHA-256 HMAC-based authentication
 * Different types of channels – private, user limited, client limited channels
 * Flexible configuration of channels via namespaces
 * Presence information for channels (show all clients in channel)
@@ -34,8 +34,7 @@ Highlights:
 * Join/leave events for channels (client goes online/offline)
 * Recover missed messages after network disconnect
 * Built-in administrative web interface
-* Ready to deploy (docker image, rpm, Nginx configuration)
-* Easily integrates with existing application - no need to rewrite your backend code
+* Ready to deploy (docker image, RPM/DEB packages, Nginx configuration)
 * MIT license
 
 Simplified scheme:
