@@ -444,23 +444,6 @@ func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Bad Request", http.StatusBadRequest)
 }
 
-// Authenticated middleware checks that request contains valid auth token in headers.
-func (app *Application) Authenticated(h http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		if authHeader != "" {
-			token := strings.TrimPrefix(authHeader, "Token ")
-			err := app.checkAdminAuthToken(token)
-			if err == nil {
-				h.ServeHTTP(w, r)
-				return
-			}
-		}
-		w.WriteHeader(401)
-	}
-	return http.HandlerFunc(fn)
-}
-
 // WrapShutdown will return an http Handler.
 // If Application in shutdown it will return http.StatusServiceUnavailable.
 func (app *Application) WrapShutdown(h http.Handler) http.Handler {

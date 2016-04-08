@@ -31,6 +31,18 @@ func TestDefaultMux(t *testing.T) {
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 }
 
+func TestMuxWithDebugFlag(t *testing.T) {
+	app := testApp()
+	opts := DefaultMuxOptions
+	opts.HandlerFlags |= HandlerDebug
+	mux := DefaultMux(app, opts)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	resp, err := http.Get(server.URL + "/debug/pprof")
+	assert.Equal(t, nil, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
 func TestHandlerFlagString(t *testing.T) {
 	var flag HandlerFlag
 	flag |= HandlerAPI
