@@ -104,6 +104,52 @@ func TestAdminWebsocketHandler(t *testing.T) {
 
 }
 
+func TestSockJSHandler(t *testing.T) {
+	app := testApp()
+	opts := DefaultMuxOptions
+	mux := DefaultMux(app, opts)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	url := "ws" + server.URL[4:]
+	conn, resp, err := websocket.DefaultDialer.Dial(url+"/connection/220/fi0pbfvm/websocket", nil)
+	assert.Equal(t, nil, err)
+	data := map[string]interface{}{
+		"method": "ping",
+		"params": map[string]string{},
+	}
+	conn.WriteJSON(data)
+	var response []string
+	conn.ReadJSON(&response)
+	assert.NotEqual(t, nil, response)
+	conn.Close()
+	assert.NotEqual(t, nil, conn)
+	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
+}
+
+func TestRawWSHandler(t *testing.T) {
+	app := testApp()
+	opts := DefaultMuxOptions
+	mux := DefaultMux(app, opts)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	url := "ws" + server.URL[4:]
+	conn, resp, err := websocket.DefaultDialer.Dial(url+"/connection/websocket", nil)
+	assert.Equal(t, nil, err)
+	data := map[string]interface{}{
+		"method": "ping",
+		"params": PingBody{Data: "hello"},
+	}
+	conn.WriteJSON(data)
+	var response clientResponse
+	conn.ReadJSON(&response)
+	assert.NotEqual(t, nil, response)
+	// connect message should be sent first, so we get disconnect
+	assert.Equal(t, "disconnect", response.Method)
+	conn.Close()
+	assert.NotEqual(t, nil, conn)
+	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
+}
+
 func getNPublishJSON(channel string, n int) []byte {
 	commands := make([]map[string]interface{}, n)
 	command := map[string]interface{}{
