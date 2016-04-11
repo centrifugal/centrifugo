@@ -113,16 +113,11 @@ func TestSockJSHandler(t *testing.T) {
 	url := "ws" + server.URL[4:]
 	conn, resp, err := websocket.DefaultDialer.Dial(url+"/connection/220/fi0pbfvm/websocket", nil)
 	assert.Equal(t, nil, err)
-	data := map[string]interface{}{
-		"method": "ping",
-		"params": map[string]string{},
-	}
-	conn.WriteJSON(data)
-	var response []string
-	conn.ReadJSON(&response)
-	assert.NotEqual(t, nil, response)
-	conn.Close()
 	assert.NotEqual(t, nil, conn)
+	_, p, err := conn.ReadMessage()
+	// open frame of SockJS protocol
+	assert.Equal(t, "o", string(p))
+	conn.Close()
 	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
 }
 
