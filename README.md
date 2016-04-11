@@ -8,9 +8,7 @@ In a nutshell this is a server running near your application and keeping lots of
 To get more information what is it for and how it works – please, read 
 [documentation](http://fzambia.gitbooks.io/centrifugal/content/).
 
-Releases available as single executable files – just 
-[download latest release](https://github.com/centrifugal/centrifugo/releases) for your platform,  
-unpack and run.
+Releases available as single executable files – just [download latest release](https://github.com/centrifugal/centrifugo/releases) for your platform, unpack and run.
 
 See official [Docker image](https://hub.docker.com/r/centrifugo/centrifugo/).
 
