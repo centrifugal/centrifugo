@@ -327,6 +327,12 @@
 			"revision": "cb0850c1681cbca3233e84f7e6ec3e4c3f352085"
 		},
 		{
+			"checksumSHA1": "P29nLcVx4WzwhEDgDTCN76rS5WI=",
+			"path": "github.com/kr/pty",
+			"revision": "f7ee69f31298ecbe5d2b349c711e2547a617d398",
+			"revisionTime": "2015-10-07T23:04:24Z"
+		},
+		{
 			"path": "github.com/kr/text",
 			"revision": "6807e777504f54ad073ecef66747de158294b639"
 		},
