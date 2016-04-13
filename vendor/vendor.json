@@ -256,6 +256,18 @@
 			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
 		},
 		{
+			"checksumSHA1": "mEPx03tDisj6nvPDxzIeb1gt4xg=",
+			"path": "github.com/armon/consul-api",
+			"revision": "dcfedd50ed5334f96adee43fc88518a4f095e15c",
+			"revisionTime": "2015-01-07T20:56:47Z"
+		},
+		{
+			"checksumSHA1": "+Qd5km5Hgsg8P3LXL8xX6YTZVvs=",
+			"path": "github.com/coreos/go-etcd/etcd",
+			"revision": "73a8ef737e8ea002281a28b4cb92a1de121ad4c6",
+			"revisionTime": "2015-04-30T21:29:46Z"
+		},
+		{
 			"path": "github.com/elazarl/go-bindata-assetfs",
 			"revision": "d5cac425555ca5cf00694df246e04f05e6a55150"
 		},
@@ -364,6 +376,78 @@
 		{
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "dab07ac62d4905d3e48d17dc549c684ac3b7c15a"
+		},
+		{
+			"checksumSHA1": "Jcarmr4WdTvVAWBssHA33O6NaeI=",
+			"path": "github.com/xordataexchange/crypt/backend",
+			"revision": "93de65664ef094aa5acff4f5201ac17580370af7",
+			"revisionTime": "2015-03-27T17:26:45Z"
+		},
+		{
+			"checksumSHA1": "XwrymfY5Vix5WXwiG+PBmwJiFKo=",
+			"path": "github.com/xordataexchange/crypt/backend/consul",
+			"revision": "93de65664ef094aa5acff4f5201ac17580370af7",
+			"revisionTime": "2015-03-27T17:26:45Z"
+		},
+		{
+			"checksumSHA1": "4c3On61HjMsTvNZ/Jn4w65gV35Q=",
+			"path": "github.com/xordataexchange/crypt/backend/etcd",
+			"revision": "93de65664ef094aa5acff4f5201ac17580370af7",
+			"revisionTime": "2015-03-27T17:26:45Z"
+		},
+		{
+			"checksumSHA1": "+LK6jdiDR3a/HF8SoN5Mf+XftU0=",
+			"path": "github.com/xordataexchange/crypt/config",
+			"revision": "93de65664ef094aa5acff4f5201ac17580370af7",
+			"revisionTime": "2015-03-27T17:26:45Z"
+		},
+		{
+			"checksumSHA1": "lf1th5ICyuV7ah5/CCv1FdGI3Fs=",
+			"path": "github.com/xordataexchange/crypt/encoding/secconf",
+			"revision": "93de65664ef094aa5acff4f5201ac17580370af7",
+			"revisionTime": "2015-03-27T17:26:45Z"
+		},
+		{
+			"checksumSHA1": "TT1rac6kpQp2vz24m5yDGUNQ/QQ=",
+			"path": "golang.org/x/crypto/cast5",
+			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
+			"revisionTime": "2015-05-08T16:14:00Z"
+		},
+		{
+			"checksumSHA1": "+Yh80AKkMNdwI2tuMsZ3fjmDc1Y=",
+			"path": "golang.org/x/crypto/openpgp",
+			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
+			"revisionTime": "2015-05-08T16:14:00Z"
+		},
+		{
+			"checksumSHA1": "olOKkhrdkYQHZ0lf1orrFQPQrv4=",
+			"path": "golang.org/x/crypto/openpgp/armor",
+			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
+			"revisionTime": "2015-05-08T16:14:00Z"
+		},
+		{
+			"checksumSHA1": "eo/KtdjieJQXH7Qy+faXFcF70ME=",
+			"path": "golang.org/x/crypto/openpgp/elgamal",
+			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
+			"revisionTime": "2015-05-08T16:14:00Z"
+		},
+		{
+			"checksumSHA1": "rlxVSaGgqdAgwblsErxTxIfuGfg=",
+			"path": "golang.org/x/crypto/openpgp/errors",
+			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
+			"revisionTime": "2015-05-08T16:14:00Z"
+		},
+		{
+			"checksumSHA1": "otZ7+qdRt2KyF4e1UYe4iYu2Tu4=",
+			"path": "golang.org/x/crypto/openpgp/packet",
+			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
+			"revisionTime": "2015-05-08T16:14:00Z"
+		},
+		{
+			"checksumSHA1": "sJspGhrr7TS9uMgyv2/cSfRDLV8=",
+			"path": "golang.org/x/crypto/openpgp/s2k",
+			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
+			"revisionTime": "2015-05-08T16:14:00Z"
 		},
 		{
 			"path": "golang.org/x/net/websocket",
