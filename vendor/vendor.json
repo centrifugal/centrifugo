@@ -288,16 +288,22 @@
 			"revision": "535138d7bcd717d6531c701ef5933d98b1866257"
 		},
 		{
+			"checksumSHA1": "SGSXlSU1TFtg5aTlVA9v4Ka86lU=",
+			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gorilla/securecookie",
 			"path": "github.com/gorilla/securecookie",
-			"revision": "e95799a481bbcc3d01c2ad5178524cb8bec9f370"
+			"revision": "e95799a481bbcc3d01c2ad5178524cb8bec9f370",
+			"revisionTime": "2015-08-20T08:29:58Z"
 		},
 		{
 			"path": "github.com/gorilla/securecookie/fuzz",
 			"revision": "e95799a481bbcc3d01c2ad5178524cb8bec9f370"
 		},
 		{
+			"checksumSHA1": "yc/AtS4YqKJrwaJTbHKmDYVrtVE=",
+			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gorilla/websocket",
 			"path": "github.com/gorilla/websocket",
-			"revision": "3986be78bf859e01f01af631ad76da5b269d270c"
+			"revision": "e2e3d8414d0fbae04004f151979f4e27c6747fe7",
+			"revisionTime": "2016-03-13T18:57:37Z"
 		},
 		{
 			"path": "github.com/gorilla/websocket/examples/autobahn",
