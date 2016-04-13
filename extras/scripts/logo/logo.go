@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/ajstarks/svgo"
+	"github.com/ajstarks/svgo"
 )
 
 func f64s(val float64) string {

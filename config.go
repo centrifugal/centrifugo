@@ -10,9 +10,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/satori/go.uuid"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/viper"
+	"github.com/FZambia/go-logger"
+	"github.com/satori/go.uuid"
+	"github.com/spf13/viper"
 	"github.com/centrifugal/centrifugo/libcentrifugo"
 )
 

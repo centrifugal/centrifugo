@@ -13,10 +13,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/cobra"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/spf13/viper"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/gopkg.in/igm/sockjs-go.v2/sockjs"
+	"github.com/FZambia/go-logger"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"gopkg.in/igm/sockjs-go.v2/sockjs"
 	"github.com/centrifugal/centrifugo/libcentrifugo"
 )
 

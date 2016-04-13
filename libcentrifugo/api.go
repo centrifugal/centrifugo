@@ -3,7 +3,7 @@ package libcentrifugo
 import (
 	"encoding/json"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
+	"github.com/FZambia/go-logger"
 )
 
 // apiCmd builds API command and dispatches it into correct handler method.

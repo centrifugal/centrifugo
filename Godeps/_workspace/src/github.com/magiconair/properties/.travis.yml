@@ -1,5 +1,0 @@
-language: go
-go:
-    - release
-install: go get gopkg.in/check.v1
-

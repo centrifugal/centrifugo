@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
+	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/priority"
 )
 

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
+	"github.com/FZambia/go-logger"
 )
 
 // Metrics contains various Centrifugo statistic and metric information aggregated

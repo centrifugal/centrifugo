@@ -3,7 +3,7 @@ package libcentrifugo
 import (
 	"sync"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
+	"github.com/FZambia/go-logger"
 )
 
 // clientHub manages client connections.
