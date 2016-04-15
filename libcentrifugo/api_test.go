@@ -385,7 +385,7 @@ func BenchmarkSerializationBroadcast(b *testing.B) {
 // broadcast commands into many channels.
 func BenchmarkSerializationBroadcastMany(b *testing.B) {
 	app := testMemoryApp()
-	jsonData := getManyNChannelsBroadcastJSON(1000, 10)
+	jsonData := getManyNChannelsBroadcastJSON(100, 100)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := testAPIrequest(app, jsonData)
