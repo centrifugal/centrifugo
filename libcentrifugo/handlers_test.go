@@ -2,7 +2,6 @@ package libcentrifugo
 
 import (
 	"bytes"
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -143,22 +142,6 @@ func TestRawWSHandler(t *testing.T) {
 	conn.Close()
 	assert.NotEqual(t, nil, conn)
 	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
-}
-
-func getNPublishJSON(channel string, n int) []byte {
-	commands := make([]map[string]interface{}, n)
-	command := map[string]interface{}{
-		"method": "publish",
-		"params": map[string]interface{}{
-			"channel": channel,
-			"data":    map[string]bool{"benchmarking": true},
-		},
-	}
-	for i := 0; i < n; i++ {
-		commands[i] = command
-	}
-	jsonData, _ := json.Marshal(commands)
-	return jsonData
 }
 
 func BenchmarkAPIHandler(b *testing.B) {
