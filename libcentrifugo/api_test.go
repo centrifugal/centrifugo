@@ -321,74 +321,88 @@ func getManyNChannelsBroadcastJSON(nChannels int, nCommands int) []byte {
 	return jsonData
 }
 
-func testAPIrequest(app *Application, data []byte) ([]byte, error) {
-	commands, err := cmdFromRequestMsg(data)
-	if err != nil {
-		return nil, err
-	}
-
-	var mr multiResponse
-
-	for _, command := range commands {
-		resp, err := app.apiCmd(command)
-		if err != nil {
-			return nil, err
-		}
-		mr = append(mr, resp)
-	}
-	return json.Marshal(mr)
-}
-
-// BenchmarkSerializationPublish allows to bench API request containing single
+// BenchmarkAPIRequestPublish allows to bench processing API request data containing single
 // publish command.
-func BenchmarkSerializationPublish(b *testing.B) {
+func BenchmarkAPIRequestPublish(b *testing.B) {
 	app := testMemoryApp()
 	jsonData := getPublishJSON("channel")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := testAPIrequest(app, jsonData)
+		_, err := app.processAPIData(jsonData)
 		if err != nil {
 			b.Error(err)
 		}
 	}
 }
 
-// BenchmarkSerializationPublishMany allows to bench API request containing many
+// BenchmarkAPIRequestPublishParallel allows to bench processing API request data containing single
+// publish command running in parallel.
+func BenchmarkAPIRequestPublishParallel(b *testing.B) {
+	app := testMemoryApp()
+	jsonData := getPublishJSON("channel")
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := app.processAPIData(jsonData)
+			if err != nil {
+				b.Error(err)
+			}
+		}
+	})
+}
+
+// BenchmarkAPIRequestPublishMany allows to bench processing API request data containing many
 // publish commands as array.
-func BenchmarkSerializationPublishMany(b *testing.B) {
+func BenchmarkAPIRequestPublishMany(b *testing.B) {
 	app := testMemoryApp()
 	jsonData := getNPublishJSON("channel", 1000)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := testAPIrequest(app, jsonData)
+		_, err := app.processAPIData(jsonData)
 		if err != nil {
 			b.Error(err)
 		}
 	}
 }
 
-// BenchmarkSerializationBroadcast allows to bench broadcast API request containing single
+// BenchmarkAPIRequestPublishManyParallel allows to bench processing API request data containing many
+// publish commands as array.
+func BenchmarkAPIRequestPublishManyParallel(b *testing.B) {
+	app := testMemoryApp()
+	jsonData := getNPublishJSON("channel", 1000)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := app.processAPIData(jsonData)
+			if err != nil {
+				b.Error(err)
+			}
+		}
+	})
+}
+
+// BenchmarkAPIRequestBroadcast allows to bench processing API request data containing single
 // broadcast command into many channels.
-func BenchmarkSerializationBroadcast(b *testing.B) {
+func BenchmarkAPIRequestBroadcast(b *testing.B) {
 	app := testMemoryApp()
 	jsonData := getNChannelsBroadcastJSON(1000)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := testAPIrequest(app, jsonData)
+		_, err := app.processAPIData(jsonData)
 		if err != nil {
 			b.Error(err)
 		}
 	}
 }
 
-// BenchmarkSerializationBroadcastMany allows to bench broadcast API request containing many
+// BenchmarkAPIRequestBroadcastMany allows to bench processing API request data containing many
 // broadcast commands into many channels.
-func BenchmarkSerializationBroadcastMany(b *testing.B) {
+func BenchmarkAPIRequestBroadcastMany(b *testing.B) {
 	app := testMemoryApp()
 	jsonData := getManyNChannelsBroadcastJSON(100, 100)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := testAPIrequest(app, jsonData)
+		_, err := app.processAPIData(jsonData)
 		if err != nil {
 			b.Error(err)
 		}

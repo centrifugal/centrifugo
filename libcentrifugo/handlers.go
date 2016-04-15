@@ -317,6 +317,32 @@ func cmdFromRequestMsg(msg []byte) ([]apiCommand, error) {
 	return commands, nil
 }
 
+func (app *Application) processAPIData(data []byte) ([]byte, error) {
+
+	commands, err := cmdFromRequestMsg(data)
+	if err != nil {
+		logger.ERROR.Println(err)
+		return nil, ErrInvalidMessage
+	}
+
+	var mr multiResponse
+
+	for _, command := range commands {
+		resp, err := app.apiCmd(command)
+		if err != nil {
+			logger.ERROR.Println(err)
+			return nil, ErrInvalidMessage
+		}
+		mr = append(mr, resp)
+	}
+	jsonResp, err := json.Marshal(mr)
+	if err != nil {
+		logger.ERROR.Println(err)
+		return nil, ErrInternalServerError
+	}
+	return jsonResp, nil
+}
+
 // APIHandler is responsible for receiving API commands over HTTP.
 func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -375,31 +401,16 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	commands, err := cmdFromRequestMsg(data)
+	jsonResp, err := app.processAPIData(data)
 	if err != nil {
-		logger.ERROR.Println(err)
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-
-	var mr multiResponse
-
-	for _, command := range commands {
-		resp, err := app.apiCmd(command)
-		if err != nil {
-			logger.ERROR.Println(err)
+		if err == ErrInvalidMessage {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
+		} else {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
 		}
-		mr = append(mr, resp)
 	}
-	jsonResp, err := json.Marshal(mr)
-	if err != nil {
-		logger.ERROR.Println(err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonResp)
 }
