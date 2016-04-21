@@ -1,6 +1,8 @@
 package libcentrifugo
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -249,4 +251,160 @@ func TestAPINode(t *testing.T) {
 	resp, err := app.nodeCmd()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.err)
+}
+
+func getNPublishJSON(channel string, n int) []byte {
+	commands := make([]map[string]interface{}, n)
+	command := map[string]interface{}{
+		"method": "publish",
+		"params": map[string]interface{}{
+			"channel": channel,
+			"data":    map[string]bool{"benchmarking": true},
+		},
+	}
+	for i := 0; i < n; i++ {
+		commands[i] = command
+	}
+	jsonData, _ := json.Marshal(commands)
+	return jsonData
+}
+
+func getPublishJSON(channel string) []byte {
+	commands := make([]map[string]interface{}, 1)
+	command := map[string]interface{}{
+		"method": "publish",
+		"params": map[string]interface{}{
+			"channel": channel,
+			"data":    map[string]bool{"benchmarking": true},
+		},
+	}
+	commands[0] = command
+	jsonData, _ := json.Marshal(commands)
+	return jsonData
+}
+
+func getNChannelsBroadcastJSON(n int) []byte {
+	channels := make([]string, n)
+	for i := 0; i < n; i++ {
+		channels[i] = fmt.Sprintf("channel-%d", i)
+	}
+	commands := make([]map[string]interface{}, 1)
+	command := map[string]interface{}{
+		"method": "broadcast",
+		"params": map[string]interface{}{
+			"channels": channels,
+			"data":     map[string]bool{"benchmarking": true},
+		},
+	}
+	commands[0] = command
+	jsonData, _ := json.Marshal(commands)
+	return jsonData
+}
+
+func getManyNChannelsBroadcastJSON(nChannels int, nCommands int) []byte {
+	channels := make([]string, nChannels)
+	for i := 0; i < nChannels; i++ {
+		channels[i] = fmt.Sprintf("channel-%d", i)
+	}
+	commands := make([]map[string]interface{}, nCommands)
+	command := map[string]interface{}{
+		"method": "broadcast",
+		"params": map[string]interface{}{
+			"channels": channels,
+			"data":     map[string]bool{"benchmarking": true},
+		},
+	}
+	for i := 0; i < nCommands; i++ {
+		commands[i] = command
+	}
+	jsonData, _ := json.Marshal(commands)
+	return jsonData
+}
+
+// BenchmarkAPIRequestPublish allows to bench processing API request data containing single
+// publish command.
+func BenchmarkAPIRequestPublish(b *testing.B) {
+	app := testMemoryApp()
+	jsonData := getPublishJSON("channel")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := app.processAPIData(jsonData)
+		if err != nil {
+			b.Error(err)
+		}
+	}
+}
+
+// BenchmarkAPIRequestPublishParallel allows to bench processing API request data containing single
+// publish command running in parallel.
+func BenchmarkAPIRequestPublishParallel(b *testing.B) {
+	app := testMemoryApp()
+	jsonData := getPublishJSON("channel")
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := app.processAPIData(jsonData)
+			if err != nil {
+				b.Error(err)
+			}
+		}
+	})
+}
+
+// BenchmarkAPIRequestPublishMany allows to bench processing API request data containing many
+// publish commands as array.
+func BenchmarkAPIRequestPublishMany(b *testing.B) {
+	app := testMemoryApp()
+	jsonData := getNPublishJSON("channel", 1000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := app.processAPIData(jsonData)
+		if err != nil {
+			b.Error(err)
+		}
+	}
+}
+
+// BenchmarkAPIRequestPublishManyParallel allows to bench processing API request data containing many
+// publish commands as array.
+func BenchmarkAPIRequestPublishManyParallel(b *testing.B) {
+	app := testMemoryApp()
+	jsonData := getNPublishJSON("channel", 1000)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := app.processAPIData(jsonData)
+			if err != nil {
+				b.Error(err)
+			}
+		}
+	})
+}
+
+// BenchmarkAPIRequestBroadcast allows to bench processing API request data containing single
+// broadcast command into many channels.
+func BenchmarkAPIRequestBroadcast(b *testing.B) {
+	app := testMemoryApp()
+	jsonData := getNChannelsBroadcastJSON(1000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := app.processAPIData(jsonData)
+		if err != nil {
+			b.Error(err)
+		}
+	}
+}
+
+// BenchmarkAPIRequestBroadcastMany allows to bench processing API request data containing many
+// broadcast commands into many channels.
+func BenchmarkAPIRequestBroadcastMany(b *testing.B) {
+	app := testMemoryApp()
+	jsonData := getManyNChannelsBroadcastJSON(100, 100)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := app.processAPIData(jsonData)
+		if err != nil {
+			b.Error(err)
+		}
+	}
 }
