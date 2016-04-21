@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-logger"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/FZambia/go-sentinel"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/garyburd/redigo/redis"
+	"github.com/FZambia/go-logger"
+	"github.com/FZambia/go-sentinel"
+	"github.com/garyburd/redigo/redis"
 )
 
 const (

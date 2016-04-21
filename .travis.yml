@@ -1,16 +1,16 @@
 sudo: required
 language: go
 go:
-  - 1.5.3
+  - 1.6.2
 services:
   - redis-server  
 before_install:
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mitchellh/gox
-script: go test ./... -v -cover
+script: make test
 deploy:
   - provider: script
     script: extras/scripts/travis_packagecloud.sh
     on:
       tags: true 
-      go: 1.5.3
+      go: 1.6.2

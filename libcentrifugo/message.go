@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/nats-io/nuid"
+	"github.com/nats-io/nuid"
 )
 
 // Message represents client message.

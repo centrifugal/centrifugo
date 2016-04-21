@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/garyburd/redigo/redis"
-	"github.com/centrifugal/centrifugo/Godeps/_workspace/src/github.com/stretchr/testify/assert"
+	"github.com/garyburd/redigo/redis"
+	"github.com/stretchr/testify/assert"
 )
 
 type testRedisConn struct {
