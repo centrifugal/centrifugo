@@ -1,3 +1,19 @@
+v1.4.5
+======
+
+No backwards incompatible changes here. This release uses go1.6.2
+
+* HTTP/2 support. This means that Centrifugo can utilize HTTP/2 protocol automatically - this is especially useful for HTTP-based SockJS transports (no limits for open connections per domain anymore). Note that HTTP/2 will work only when your setup utilizes `https`. Also HTTP/2 does not affect websockets because of missing protocol upgrade possibilities in HTTP/2 protocol - so websockets will work in the same way as before. Also if you have any proxy before Centrifugo then depending on your setup some reconfiguration may be required to make HTTP/2 work.
+
+Just to remember how to test Centrifugo with SSL: [follow instructions](https://devcenter.heroku.com/articles/ssl-certificate-self) from Heroku article to generate self-signed certificate files. Then start Centrifugo like this:
+
+```
+./centrifugo --config=config.json --web --ssl --ssl_key=server.key --ssl_cert=server.crt
+```
+
+Go to https://localhost:8000/ and confirm that you trust certificate of this site (this is because of self-signed certificate, in case of valid certificate you don't need this step). Then you can test secure endpoint connections.
+
+
 v1.4.4
 ======
 
