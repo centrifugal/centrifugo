@@ -1,7 +1,7 @@
 sudo: required
 language: go
 go:
-  - 1.6.1
+  - 1.6.2
 services:
   - redis-server  
 before_install:
@@ -13,4 +13,4 @@ deploy:
     script: extras/scripts/travis_packagecloud.sh
     on:
       tags: true 
-      go: 1.6.1
+      go: 1.6.2
