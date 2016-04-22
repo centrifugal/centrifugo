@@ -259,13 +259,11 @@ func newPool(conf *RedisEngineConfig) *redis.Pool {
 			if useSentinel {
 				if !sentinel.TestRole(c, "master") {
 					return errors.New("Failed master role check")
-				} else {
-					return nil
 				}
-			} else {
-				_, err := c.Do("PING")
-				return err
+				return nil
 			}
+			_, err := c.Do("PING")
+			return err
 		},
 	}
 }
@@ -718,14 +716,14 @@ func (e *RedisEngine) runPublishPipeline() {
 
 func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts) <-chan error {
 
+	eChan := make(chan error, 1)
+
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
 		messageJSON, err := json.Marshal(opts.Message)
 		if err != nil {
-			ch := make(chan error, 1)
-			ch <- err
-			return ch
+			eChan <- err
+			return eChan
 		}
-		eChan := make(chan error, 1)
 		pr := &pubRequest{
 			channel:     chID,
 			message:     message,
@@ -736,16 +734,15 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 		}
 		e.pubCh <- pr
 		return eChan
-	} else {
-		eChan := make(chan error, 1)
-		pr := &pubRequest{
-			channel: chID,
-			message: message,
-			err:     &eChan,
-		}
-		e.pubCh <- pr
-		return eChan
 	}
+
+	pr := &pubRequest{
+		channel: chID,
+		message: message,
+		err:     &eChan,
+	}
+	e.pubCh <- pr
+	return eChan
 }
 
 func (e *RedisEngine) subscribe(chID ChannelID) error {

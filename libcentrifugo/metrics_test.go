@@ -93,7 +93,7 @@ func TestJSONMarshal(t *testing.T) {
 
 	jsonBytes, err := json.Marshal(m.GetRawMetrics())
 	if err != nil {
-		t.Fatalf("JSON Marshal failed: ", err)
+		t.Fatalf("JSON Marshal failed: %v", err)
 	}
 	if !bytes.Equal(jsonBytes, []byte(expected)) {
 		t.Errorf("JSON Marshal returned:\n\t%s\n  expected:\n\t%s", jsonBytes, expected)
@@ -108,7 +108,7 @@ func TestJSONMarshal(t *testing.T) {
 	// Now snapshot should be just the same since we've not updated
 	jsonBytes, err = json.Marshal(m.GetSnapshotMetrics())
 	if err != nil {
-		t.Fatalf("JSON Marshal failed: ", err)
+		t.Fatalf("JSON Marshal failed: %v", err)
 	}
 	if !bytes.Equal(jsonBytes, []byte(expected)) {
 		t.Errorf("After incrementing JSON Marshal returned:\n\t%s\n  expected:\n\t%s", jsonBytes, expected)
@@ -133,7 +133,7 @@ func TestJSONMarshal(t *testing.T) {
 
 	rawJsonBytes, err := json.Marshal(raw)
 	if err != nil {
-		t.Fatalf("JSON Marshal failed: ", err)
+		t.Fatalf("JSON Marshal failed: %v", err)
 	}
 	if !bytes.Equal(rawJsonBytes, []byte(expectedRaw)) {
 		t.Errorf("After incrementing raw count JSON Marshal returned:\n\t%s\n  expected:\n\t%s",
@@ -161,7 +161,7 @@ func TestJSONMarshal(t *testing.T) {
 
 	jsonBytes, err = json.Marshal(m.GetSnapshotMetrics())
 	if err != nil {
-		t.Fatalf("JSON Marshal failed: ", err)
+		t.Fatalf("JSON Marshal failed: %v", err)
 	}
 	if !bytes.Equal(jsonBytes, []byte(expected)) {
 		t.Errorf("After second update JSON Marshal returned:\n\t%s\n  expected:\n\t%s", jsonBytes, expected)
@@ -186,7 +186,7 @@ func TestJSONMarshal(t *testing.T) {
 		`"cpu_usage":%d}`, raw.MemSys, raw.CPU)
 	rawJsonBytes, err = json.Marshal(raw)
 	if err != nil {
-		t.Fatalf("JSON Marshal failed: ", err)
+		t.Fatalf("JSON Marshal failed: %v", err)
 	}
 	if !bytes.Equal(rawJsonBytes, []byte(expectedRaw)) {
 		t.Errorf("After second update raw count JSON Marshal returned:\n\t%s\n  expected:\n\t%s", rawJsonBytes, expectedRaw)

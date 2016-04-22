@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUnauthenticatedClient(t *testing.T) {

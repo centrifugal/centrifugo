@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
-	"github.com/satori/go.uuid"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
+	"github.com/satori/go.uuid"
 )
 
 const (
@@ -121,7 +121,6 @@ func (c *client) sendMsgTimeout(msg []byte) error {
 		// client max queue size.
 		return c.sess.Send(msg)
 	}
-	panic("unreachable")
 }
 
 // closeUnauthenticated closes connection if it's not authenticated yet.

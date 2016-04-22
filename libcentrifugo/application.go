@@ -305,7 +305,6 @@ func (app *Application) controlMsg(message []byte) error {
 		logger.ERROR.Println("unknown control message method", method)
 		return ErrInvalidMessage
 	}
-	panic("unreachable")
 }
 
 // adminMsg handles messages from admin channel - those messages
