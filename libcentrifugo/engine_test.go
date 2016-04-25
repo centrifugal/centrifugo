@@ -14,36 +14,60 @@ func (e *testEngine) run() error {
 	return nil
 }
 
-func (e *testEngine) publish(chID ChannelID, message []byte, opts *publishOpts) <-chan error {
-	ch := make(chan error, 1)
-	ch <- nil
-	return ch
+func (e *testEngine) publishMessage(ch Channel, message *Message, opts *ChannelOptions) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
 }
 
-func (e *testEngine) subscribe(chID ChannelID) error {
+func (e *testEngine) publishJoin(ch Channel, message *JoinLeaveMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *testEngine) publishLeave(ch Channel, message *JoinLeaveMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *testEngine) publishAdmin(message *AdminCommand) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *testEngine) publishControl(message *ControlCommand) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *testEngine) subscribe(ch Channel) error {
 	return nil
 }
 
-func (e *testEngine) unsubscribe(chID ChannelID) error {
+func (e *testEngine) unsubscribe(ch Channel) error {
 	return nil
 }
 
-func (e *testEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) error {
+func (e *testEngine) addPresence(ch Channel, uid ConnID, info ClientInfo) error {
 	return nil
 }
 
-func (e *testEngine) removePresence(chID ChannelID, uid ConnID) error {
+func (e *testEngine) removePresence(ch Channel, uid ConnID) error {
 	return nil
 }
 
-func (e *testEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
+func (e *testEngine) presence(ch Channel) (map[ConnID]ClientInfo, error) {
 	return map[ConnID]ClientInfo{}, nil
 }
 
-func (e *testEngine) history(chID ChannelID, opts historyOpts) ([]Message, error) {
+func (e *testEngine) history(ch Channel, opts historyOpts) ([]Message, error) {
 	return []Message{}, nil
 }
 
-func (e *testEngine) channels() ([]ChannelID, error) {
-	return []ChannelID{}, nil
+func (e *testEngine) channels() ([]Channel, error) {
+	return []Channel{}, nil
 }

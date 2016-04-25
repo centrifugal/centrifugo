@@ -7,7 +7,7 @@ import (
 )
 
 // apiCmd builds API command and dispatches it into correct handler method.
-func (app *Application) apiCmd(command apiCommand) (*response, error) {
+func (app *Application) apiCmd(command APICommand) (*response, error) {
 
 	var err error
 	var resp *response

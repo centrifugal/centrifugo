@@ -11,14 +11,14 @@ import (
 func TestAPICmd(t *testing.T) {
 	app := testApp()
 
-	cmd := apiCommand{
+	cmd := APICommand{
 		Method: "nonexistent",
 		Params: []byte("{}"),
 	}
 	_, err := app.apiCmd(cmd)
 	assert.Equal(t, err, ErrMethodNotFound)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "publish",
 		Params: []byte("{}"),
 	}
@@ -26,14 +26,14 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, ErrInvalidMessage, resp.err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "publish",
 		Params: []byte("test"),
 	}
 	_, err = app.apiCmd(cmd)
 	assert.Equal(t, ErrInvalidMessage, err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "broadcast",
 		Params: []byte("{}"),
 	}
@@ -41,14 +41,14 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, ErrInvalidMessage, resp.err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "broadcast",
 		Params: []byte("test"),
 	}
 	_, err = app.apiCmd(cmd)
 	assert.Equal(t, ErrInvalidMessage, err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "unsubscribe",
 		Params: []byte("{}"),
 	}
@@ -56,14 +56,14 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, ErrInvalidMessage, resp.err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "unsubscribe",
 		Params: []byte("test"),
 	}
 	_, err = app.apiCmd(cmd)
 	assert.Equal(t, ErrInvalidMessage, err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "disconnect",
 		Params: []byte("{}"),
 	}
@@ -71,14 +71,14 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, ErrInvalidMessage, resp.err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "disconnect",
 		Params: []byte("test"),
 	}
 	_, err = app.apiCmd(cmd)
 	assert.Equal(t, ErrInvalidMessage, err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "presence",
 		Params: []byte("{}"),
 	}
@@ -86,14 +86,14 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, ErrInvalidMessage, resp.err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "presence",
 		Params: []byte("test"),
 	}
 	_, err = app.apiCmd(cmd)
 	assert.Equal(t, ErrInvalidMessage, err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "history",
 		Params: []byte("{}"),
 	}
@@ -101,14 +101,14 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, ErrInvalidMessage, resp.err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "history",
 		Params: []byte("test"),
 	}
 	_, err = app.apiCmd(cmd)
 	assert.Equal(t, ErrInvalidMessage, err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "channels",
 		Params: []byte("{}"),
 	}
@@ -116,7 +116,7 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "stats",
 		Params: []byte("{}"),
 	}
@@ -124,7 +124,7 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.err)
 
-	cmd = apiCommand{
+	cmd = APICommand{
 		Method: "node",
 		Params: []byte("{}"),
 	}

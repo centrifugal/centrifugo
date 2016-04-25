@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/gorilla/websocket"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
-	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -287,8 +287,8 @@ var (
 	objectJSONPrefix byte = '{'
 )
 
-func cmdFromRequestMsg(msg []byte) ([]apiCommand, error) {
-	var commands []apiCommand
+func cmdFromRequestMsg(msg []byte) ([]APICommand, error) {
+	var commands []APICommand
 
 	if len(msg) == 0 {
 		return commands, nil
@@ -299,7 +299,7 @@ func cmdFromRequestMsg(msg []byte) ([]apiCommand, error) {
 	switch firstByte {
 	case objectJSONPrefix:
 		// single command request
-		var command apiCommand
+		var command APICommand
 		err := json.Unmarshal(msg, &command)
 		if err != nil {
 			return nil, err

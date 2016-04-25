@@ -288,6 +288,30 @@
 			"revision": "535138d7bcd717d6531c701ef5933d98b1866257"
 		},
 		{
+			"checksumSHA1": "X8x4RmXTmkMYXM0Y3RttRtqxA3I=",
+			"path": "github.com/gogo/protobuf/gogoproto",
+			"revision": "c3995ae437bb78d1189f4f147dfe5f87ad3596e4",
+			"revisionTime": "2016-04-25T09:57:51Z"
+		},
+		{
+			"checksumSHA1": "4hsVCH+saZnuGKhtI3ajrWuyXow=",
+			"path": "github.com/gogo/protobuf/jsonpb",
+			"revision": "c3995ae437bb78d1189f4f147dfe5f87ad3596e4",
+			"revisionTime": "2016-04-25T09:57:51Z"
+		},
+		{
+			"checksumSHA1": "N3LXf9Vm2RM0AE3DjhCmpiyK4Bc=",
+			"path": "github.com/gogo/protobuf/proto",
+			"revision": "c3995ae437bb78d1189f4f147dfe5f87ad3596e4",
+			"revisionTime": "2016-04-25T09:57:51Z"
+		},
+		{
+			"checksumSHA1": "HXiD8g6jYd/Fm9UovhLjO+7TKos=",
+			"path": "github.com/gogo/protobuf/protoc-gen-gogo/descriptor",
+			"revision": "c3995ae437bb78d1189f4f147dfe5f87ad3596e4",
+			"revisionTime": "2016-04-25T09:57:51Z"
+		},
+		{
 			"checksumSHA1": "SGSXlSU1TFtg5aTlVA9v4Ka86lU=",
 			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gorilla/securecookie",
 			"path": "github.com/gorilla/securecookie",
@@ -356,6 +380,12 @@
 		{
 			"path": "github.com/nats-io/nuid",
 			"revision": "a5152d67cf63cbfb5d992a395458722a45194715"
+		},
+		{
+			"checksumSHA1": "uG/irJIgifYdc+HC1kF6Gwgn7kU=",
+			"path": "github.com/oxtoacart/bpool",
+			"revision": "4e1c5567d7c2dd59fa4c7c83d34c2f3528b025d6",
+			"revisionTime": "2015-07-12T13:31:11Z"
 		},
 		{
 			"path": "github.com/satori/go.uuid",

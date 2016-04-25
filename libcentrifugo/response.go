@@ -1,5 +1,11 @@
 package libcentrifugo
 
+import (
+	"bytes"
+
+	"github.com/oxtoacart/bpool"
+)
+
 type errorAdvice string
 
 const (
@@ -23,20 +29,165 @@ type clientResponse struct {
 	clientError
 }
 
-// clientMessageResponse uses strong type for body instead of interface{} - helps to
-// reduce allocations when marshaling.
-type clientMessageResponse struct {
-	clientResponse
-	Body Message `json:"body"`
+// ClientMessageResponse uses strong type for body instead of interface{} - helps to
+// reduce allocations when marshaling. Also it does not have error - because message
+// client response never contains it.
+type ClientMessageResponse struct {
+	Method string  `json:"method"`
+	Body   Message `json:"body"`
 }
 
 // newClientMessage returns initialized client message response.
-func newClientMessage() *clientMessageResponse {
-	return &clientMessageResponse{
-		clientResponse: clientResponse{
-			Method: "message",
-		},
+func newClientMessage() *ClientMessageResponse {
+	return &ClientMessageResponse{
+		Method: "message",
 	}
+}
+
+const (
+	ClientResponseMarshalBufferSize = 64
+)
+
+var bufpool *bpool.BufferPool
+
+func init() {
+	// Initialize buffer pool, this is not very necessary at moment because we encode
+	// client responses in one goroutine so could use single buffer, but just prepare
+	// for future where we plan to use pool of goroutines encoding messages to client
+	// JSON responses.
+	bufpool = bpool.NewBufferPool(ClientResponseMarshalBufferSize)
+}
+
+func writeClientInfo(buf *bytes.Buffer, info *ClientInfo) {
+	buf.WriteString("{")
+
+	if info.DefaultInfo != nil {
+		buf.WriteString("\"default_info\":")
+		buf.Write(*info.DefaultInfo)
+		buf.WriteString(",")
+	}
+
+	if info.ChannelInfo != nil {
+		buf.WriteString("\"channel_info\":")
+		buf.Write(*info.ChannelInfo)
+		buf.WriteString(",")
+	}
+
+	buf.WriteString("\"user\":")
+	buf.WriteString("\"")
+	buf.WriteString(info.User)
+	buf.WriteString("\"")
+	buf.WriteString(",")
+
+	buf.WriteString("\"client\":")
+	buf.WriteString("\"")
+	buf.WriteString(info.Client)
+	buf.WriteString("\"")
+
+	buf.WriteString("}")
+}
+
+func writeMessage(buf *bytes.Buffer, message *Message) {
+	buf.WriteString("{")
+	buf.WriteString("\"uid\":")
+	buf.WriteString("\"")
+	buf.WriteString(message.UID)
+	buf.WriteString("\"")
+	buf.WriteString(",")
+
+	buf.WriteString("\"timestamp\":")
+	buf.WriteString("\"")
+	buf.WriteString(message.Timestamp)
+	buf.WriteString("\"")
+	buf.WriteString(",")
+
+	if message.Client != "" {
+		buf.WriteString("\"client\":")
+		buf.WriteString("\"")
+		buf.WriteString(message.Client)
+		buf.WriteString("\"")
+		buf.WriteString(",")
+	}
+
+	if message.Info != nil {
+		buf.WriteString("\"info\":")
+		writeClientInfo(buf, message.Info)
+		buf.WriteString(",")
+	}
+
+	buf.WriteString("\"channel\":")
+	buf.WriteString("\"")
+	buf.WriteString(message.Channel)
+	buf.WriteString("\"")
+	buf.WriteString(",")
+
+	buf.WriteString("\"data\":")
+	buf.Write(*message.Data)
+	buf.WriteString("}")
+}
+
+func (m *ClientMessageResponse) Marshal() ([]byte, error) {
+	buf := bufpool.Get()
+	defer bufpool.Put(buf)
+	buf.WriteString("{\"method\":\"message\",\"body\":")
+	writeMessage(buf, &m.Body)
+	buf.WriteString("}")
+	return buf.Bytes(), nil
+}
+
+type ClientJoinResponse struct {
+	Method string           `json:"method"`
+	Body   JoinLeaveMessage `json:"body"`
+}
+
+func newClientJoinMessage() *ClientJoinResponse {
+	return &ClientJoinResponse{
+		Method: "join",
+	}
+}
+
+func writeJoinLeave(buf *bytes.Buffer, message *JoinLeaveMessage) {
+	buf.WriteString("{")
+
+	buf.WriteString("\"channel\":")
+	buf.WriteString("\"")
+	buf.WriteString(message.Channel)
+	buf.WriteString("\"")
+	buf.WriteString(",")
+
+	buf.WriteString("\"data\":")
+	writeClientInfo(buf, &message.Data)
+
+	buf.WriteString("}")
+}
+
+func (m *ClientJoinResponse) Marshal() ([]byte, error) {
+	buf := bufpool.Get()
+	defer bufpool.Put(buf)
+	buf.WriteString("{\"method\":\"join\",\"body\":")
+	writeJoinLeave(buf, &m.Body)
+	buf.WriteString("}")
+	return buf.Bytes(), nil
+}
+
+type ClientLeaveResponse struct {
+	Method string           `json:"method"`
+	Body   JoinLeaveMessage `json:"body"`
+}
+
+func newClientLeaveMessage() *ClientLeaveResponse {
+	return &ClientLeaveResponse{
+		Method: "leave",
+	}
+}
+
+func (m *ClientLeaveResponse) Marshal() ([]byte, error) {
+	buf := bufpool.Get()
+	defer bufpool.Put(buf)
+	buf.WriteString("{\"method\":\"leave\",\"body\":")
+	writeJoinLeave(buf, &m.Body)
+	buf.WriteString("}")
+	return buf.Bytes(), nil
 }
 
 // newClientResponse returns client response initialized with provided method.
@@ -110,12 +261,6 @@ type HistoryBody struct {
 // ChannelsBody represents body of response in case of successful channels command.
 type ChannelsBody struct {
 	Data []Channel `json:"data"`
-}
-
-// JoinLeaveBody represents body of response when join or leave async response sent to client.
-type JoinLeaveBody struct {
-	Channel Channel    `json:"channel"`
-	Data    ClientInfo `json:"data"`
 }
 
 // ConnectBody represents body of response in case of successful connect command.

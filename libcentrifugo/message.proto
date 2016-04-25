@@ -1,0 +1,32 @@
+syntax = 'proto2';
+// protoc --proto_path=../../../../:/usr/local/Cellar/protobuf260/2.6.0/include/:. --gogofaster_out=. message.proto
+
+
+package libcentrifugo;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+
+message Message {
+  required string UID = 1 [(gogoproto.jsontag) = "uid"];
+  required string Timestamp = 2 [(gogoproto.jsontag) = "timestamp"];
+  required string Channel = 3 [(gogoproto.jsontag) = "channel"];
+  required bytes Data = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = true];
+  optional string Client = 5 [(gogoproto.jsontag) = "client,omitempty"];
+  optional ClientInfo Info = 6 [(gogoproto.jsontag) = "info,omitempty"];
+}
+
+message ClientInfo {
+  required string User = 1 [(gogoproto.jsontag) = "user"];
+  required string Client = 2 [(gogoproto.jsontag) = "client"];
+  optional bytes DefaultInfo = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "default_info,omitempty", (gogoproto.nullable) = true];
+  optional bytes ChannelInfo = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "channel_info,omitempty", (gogoproto.nullable) = true];
+}
+
+message JoinLeaveMessage {
+  required string Channel = 1 [(gogoproto.jsontag) = "channel"];
+  required ClientInfo Data = 2 [(gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}

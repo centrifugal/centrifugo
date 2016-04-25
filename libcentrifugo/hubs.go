@@ -17,7 +17,7 @@ type clientHub struct {
 	users map[UserID]map[ConnID]struct{}
 
 	// registry to hold active subscriptions of clients on channels.
-	subs map[ChannelID]map[ConnID]struct{}
+	subs map[Channel]map[ConnID]struct{}
 }
 
 // newClientHub initializes clientHub.
@@ -25,7 +25,7 @@ func newClientHub() *clientHub {
 	return &clientHub{
 		conns: make(map[ConnID]clientConn),
 		users: make(map[UserID]map[ConnID]struct{}),
-		subs:  make(map[ChannelID]map[ConnID]struct{}),
+		subs:  make(map[Channel]map[ConnID]struct{}),
 	}
 }
 
@@ -125,7 +125,7 @@ func (h *clientHub) userConnections(user UserID) map[ConnID]clientConn {
 }
 
 // addSub adds connection into clientHub subscriptions registry.
-func (h *clientHub) addSub(chID ChannelID, c clientConn) (bool, error) {
+func (h *clientHub) addSub(ch Channel, c clientConn) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -133,11 +133,11 @@ func (h *clientHub) addSub(chID ChannelID, c clientConn) (bool, error) {
 
 	h.conns[uid] = c
 
-	_, ok := h.subs[chID]
+	_, ok := h.subs[ch]
 	if !ok {
-		h.subs[chID] = make(map[ConnID]struct{})
+		h.subs[ch] = make(map[ConnID]struct{})
 	}
-	h.subs[chID][uid] = struct{}{}
+	h.subs[ch][uid] = struct{}{}
 	if !ok {
 		return true, nil
 	}
@@ -145,26 +145,26 @@ func (h *clientHub) addSub(chID ChannelID, c clientConn) (bool, error) {
 }
 
 // removeSub removes connection from clientHub subscriptions registry.
-func (h *clientHub) removeSub(chID ChannelID, c clientConn) (bool, error) {
+func (h *clientHub) removeSub(ch Channel, c clientConn) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	uid := c.uid()
 
 	// try to find subscription to delete, return early if not found.
-	if _, ok := h.subs[chID]; !ok {
+	if _, ok := h.subs[ch]; !ok {
 		return true, nil
 	}
-	if _, ok := h.subs[chID][uid]; !ok {
+	if _, ok := h.subs[ch][uid]; !ok {
 		return true, nil
 	}
 
 	// actually remove subscription from hub.
-	delete(h.subs[chID], uid)
+	delete(h.subs[ch], uid)
 
 	// clean up subs map if it's needed.
-	if len(h.subs[chID]) == 0 {
-		delete(h.subs, chID)
+	if len(h.subs[ch]) == 0 {
+		delete(h.subs, ch)
 		return true, nil
 	}
 
@@ -172,12 +172,12 @@ func (h *clientHub) removeSub(chID ChannelID, c clientConn) (bool, error) {
 }
 
 // broadcast sends message to all clients subscribed on channel.
-func (h *clientHub) broadcast(chID ChannelID, message []byte) error {
+func (h *clientHub) broadcast(ch Channel, message []byte) error {
 	h.RLock()
 	defer h.RUnlock()
 
 	// get connections currently subscribed on channel
-	channelSubscriptions, ok := h.subs[chID]
+	channelSubscriptions, ok := h.subs[ch]
 	if !ok {
 		return nil
 	}
@@ -222,10 +222,10 @@ func (h *clientHub) nChannels() int {
 }
 
 // channels returns a slice of all active channels.
-func (h *clientHub) channels() []ChannelID {
+func (h *clientHub) channels() []Channel {
 	h.RLock()
 	defer h.RUnlock()
-	channels := make([]ChannelID, len(h.subs))
+	channels := make([]Channel, len(h.subs))
 	i := 0
 	for ch := range h.subs {
 		channels[i] = ch
@@ -235,10 +235,10 @@ func (h *clientHub) channels() []ChannelID {
 }
 
 // hasSubscribers returns whether or not there are any subscribers for a given channel.
-func (h *clientHub) hasSubscribers(chID ChannelID) bool {
+func (h *clientHub) hasSubscribers(ch Channel) bool {
 	h.RLock()
 	defer h.RUnlock()
-	conns, ok := h.subs[chID]
+	conns, ok := h.subs[ch]
 	if !ok {
 		return false
 	}

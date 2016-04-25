@@ -14,10 +14,10 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
-	"github.com/centrifugal/centrifugo/libcentrifugo"
 )
 
 func setupLogging() {

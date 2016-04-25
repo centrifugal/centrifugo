@@ -49,11 +49,11 @@ type Application struct {
 	// shutdown is a flag which is only true when application is going to shut down.
 	shutdown bool
 
+	// shutdownCh is a channel which is closed when shutdown happens.
+	shutdownCh chan struct{}
+
 	// metrics holds various counters and timers different parts of Centrifugo update.
 	metrics *metricsRegistry
-
-	// chIDPrefix added before every channel name to make ChannelID
-	chIDPrefix string
 }
 
 // Stats contains state and metrics information from running Centrifugo nodes.
@@ -77,8 +77,6 @@ type NodeInfo struct {
 	updated int64
 }
 
-const channelIDClientSuffix = ".channel."
-
 // NewApplication returns new Application instance, the only required argument is
 // config, structure and engine must be set via corresponding methods.
 func NewApplication(config *Config) (*Application, error) {
@@ -90,7 +88,7 @@ func NewApplication(config *Config) (*Application, error) {
 		nodes:      make(map[string]NodeInfo),
 		started:    time.Now().Unix(),
 		metrics:    &metricsRegistry{},
-		chIDPrefix: config.ChannelPrefix + channelIDClientSuffix,
+		shutdownCh: make(chan struct{}),
 	}
 	return app, nil
 }
@@ -112,7 +110,12 @@ func (app *Application) Run() error {
 // all clients from all channels and disconnects them).
 func (app *Application) Shutdown() {
 	app.Lock()
+	if app.shutdown {
+		app.Unlock()
+		return
+	}
 	app.shutdown = true
+	close(app.shutdownCh)
 	app.Unlock()
 	app.clients.shutdown()
 }
@@ -171,7 +174,6 @@ func (app *Application) SetConfig(c *Config) {
 	app.Lock()
 	defer app.Unlock()
 	app.config = c
-	app.chIDPrefix = c.ChannelPrefix + channelIDClientSuffix
 	if app.config.Insecure {
 		logger.WARN.Println("libcentrifugo: application in INSECURE MODE")
 	}
@@ -192,22 +194,7 @@ func (app *Application) SetMediator(m Mediator) {
 }
 
 func (app *Application) channels() ([]Channel, error) {
-	app.RLock()
-	controlChID := app.config.ControlChannel
-	adminChID := app.config.AdminChannel
-	app.RUnlock()
-	chIDs, err := app.engine.channels()
-	if err != nil {
-		return []Channel{}, err
-	}
-	prefix := app.channelIDPrefix()
-	channels := make([]Channel, 0, len(chIDs))
-	for _, chID := range chIDs {
-		if strings.HasPrefix(string(chID), prefix) && chID != controlChID && chID != adminChID {
-			channels = append(channels, Channel(string(chID)[len(prefix):]))
-		}
-	}
-	return channels, nil
+	return app.engine.channels()
 }
 
 func (app *Application) stats() Stats {
@@ -243,30 +230,70 @@ func (app *Application) node() NodeInfo {
 	return info
 }
 
-// handleMsg called when new message of any type received by this node.
-// It looks at channel and decides which message handler to call.
-func (app *Application) handleMsg(chID ChannelID, message []byte) error {
-	switch chID {
-	case app.config.ControlChannel:
-		return app.controlMsg(message)
-	case app.config.AdminChannel:
-		return app.adminMsg(message)
-	default:
-		return app.clientMsg(chID, message)
+func (app *Application) decodeEngineControlMessage(data []byte) (*ControlCommand, error) {
+	var cmd ControlCommand
+	err := json.Unmarshal(data, &cmd)
+	if err != nil {
+		return nil, err
 	}
+	return &cmd, nil
+}
+
+func (app *Application) decodeEngineAdminMessage(data []byte) (*AdminCommand, error) {
+	var cmd AdminCommand
+	err := json.Unmarshal(data, &cmd)
+	if err != nil {
+		return nil, err
+	}
+	return &cmd, nil
+}
+
+func (app *Application) decodeEngineClientMessage(data []byte) (*Message, error) {
+	var msg Message
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
+func (app *Application) decodeEngineJoinMessage(data []byte) (*JoinLeaveMessage, error) {
+	var msg JoinLeaveMessage
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
+func (app *Application) decodeEngineLeaveMessage(data []byte) (*JoinLeaveMessage, error) {
+	return app.decodeEngineJoinMessage(data)
+}
+
+func (app *Application) encodeEngineControlMessage(msg *ControlCommand) ([]byte, error) {
+	return json.Marshal(msg)
+}
+
+func (app *Application) encodeEngineAdminMessage(msg *AdminCommand) ([]byte, error) {
+	return json.Marshal(msg)
+}
+
+func (app *Application) encodeEngineClientMessage(msg *Message) ([]byte, error) {
+	return msg.Marshal()
+}
+
+func (app *Application) encodeEngineJoinMessage(msg *JoinLeaveMessage) ([]byte, error) {
+	return msg.Marshal()
+}
+
+func (app *Application) encodeEngineLeaveMessage(msg *JoinLeaveMessage) ([]byte, error) {
+	return msg.Marshal()
 }
 
 // controlMsg handles messages from control channel - control
 // messages used for internal communication between nodes to share state
 // or commands.
-func (app *Application) controlMsg(message []byte) error {
-
-	var cmd controlCommand
-	err := json.Unmarshal(message, &cmd)
-	if err != nil {
-		logger.ERROR.Println(err)
-		return err
-	}
+func (app *Application) controlMsg(cmd *ControlCommand) error {
 
 	if cmd.UID == app.uid {
 		// Sent by this node.
@@ -307,40 +334,46 @@ func (app *Application) controlMsg(message []byte) error {
 	}
 }
 
-// adminMsg handles messages from admin channel - those messages
-// must be delivered to all admins connected to this node.
-func (app *Application) adminMsg(message []byte) error {
-	return app.admins.broadcast(message)
-}
-
-// clientMsg handles messages published by web application or client
-// into channel. The goal of this method to deliver this message to all clients
-// on this node subscribed on channel.
-func (app *Application) clientMsg(chID ChannelID, message []byte) error {
-	return app.clients.broadcast(chID, message)
-}
-
-// pubControl publishes message into control channel so all running
-// nodes will receive and handle it.
-func (app *Application) pubControl(method string, params []byte) error {
-
-	raw := json.RawMessage(params)
-
-	message := controlCommand{
-		UID:    app.uid,
-		Method: method,
-		Params: &raw,
+func (app *Application) adminMsg(message *AdminCommand) error {
+	app.admins.RLock()
+	hasAdmins := len(app.admins.connections) > 0
+	app.admins.RUnlock()
+	if !hasAdmins {
+		return nil
 	}
 
-	messageBytes, err := json.Marshal(message)
+	resp := newResponse("message")
+	resp.Body = message.Params
+
+	byteMessage, err := json.Marshal(resp)
 	if err != nil {
 		return err
 	}
 
-	app.RLock()
-	controlChannel := app.config.ControlChannel
-	app.RUnlock()
-	return <-app.engine.publish(controlChannel, messageBytes, nil)
+	return app.admins.broadcast(byteMessage)
+}
+
+// clientMsg handles messages published by web application or client into channel.
+// The goal of this method to deliver this message to all clients on this node subscribed
+// on channel and to all connected admins if any and watch option enabled.
+func (app *Application) clientMsg(ch Channel, message *Message) error {
+
+	// TODO: move to memory engine.
+	hasCurrentSubscribers := app.clients.hasSubscribers(ch)
+
+	if !hasCurrentSubscribers {
+		return nil
+	}
+
+	resp := newClientMessage()
+	resp.Body = *message
+
+	byteMessage, err := resp.Marshal()
+	if err != nil {
+		return err
+	}
+
+	return app.clients.broadcast(ch, byteMessage)
 }
 
 // Publish sends a message to all clients subscribed on channel with provided data, client and ClientInfo.
@@ -411,64 +444,88 @@ func (app *Application) publish(ch Channel, data []byte, client ConnID, info *Cl
 	return <-app.publishAsync(ch, data, client, info, fromClient)
 }
 
+// pubControl publishes message into control channel so all running
+// nodes will receive and handle it.
+func (app *Application) pubControl(method string, params []byte) error {
+	raw := json.RawMessage(params)
+	message := ControlCommand{
+		UID:    app.uid,
+		Method: method,
+		Params: &raw,
+	}
+	return <-app.engine.publishControl(&message)
+}
+
+// pubAdmin publishes message to admins.
+func (app *Application) pubAdmin(method string, params []byte) <-chan error {
+	raw := json.RawMessage(params)
+	message := AdminCommand{
+		Method: method,
+		Params: &raw,
+	}
+	return app.engine.publishAdmin(&message)
+}
+
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel.
 func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte, client ConnID, info *ClientInfo) <-chan error {
-
 	message := newMessage(ch, data, client, info)
-
-	resp := newClientMessage()
-	resp.Body = message
-
-	byteMessage, err := json.Marshal(resp)
-	if err != nil {
-		return makeErrChan(err)
-	}
-
-	if chOpts.Watch {
-		app.RLock()
-		adminChannel := app.config.AdminChannel
-		app.RUnlock()
-		// No error handling because we can not block to wait
-		// for publish error here.
-		app.engine.publish(adminChannel, byteMessage, nil)
-	}
-
-	chID := app.channelID(ch)
-
-	pubOpts := &publishOpts{
-		Message:             message,
-		HistorySize:         chOpts.HistorySize,
-		HistoryLifetime:     chOpts.HistoryLifetime,
-		HistoryDropInactive: chOpts.HistoryDropInactive,
-	}
-
 	app.metrics.NumMsgPublished.Inc()
-
-	return app.engine.publish(chID, byteMessage, pubOpts)
+	if chOpts.Watch {
+		byteMessage, err := json.Marshal(message)
+		if err != nil {
+			logger.ERROR.Println(err)
+		} else {
+			app.pubAdmin("message", byteMessage)
+		}
+	}
+	return app.engine.publishMessage(ch, &message, &chOpts)
 }
 
-// pubJoinLeave allows to publish join message into channel when
-// someone subscribes on it or leave message when someone unsubscribed from channel.
-func (app *Application) pubJoinLeave(ch Channel, method string, info ClientInfo) error {
-	chID := app.channelID(ch)
-	resp := newClientResponse(method)
-	resp.Body = &JoinLeaveBody{
-		Channel: ch,
-		Data:    info,
+// pubJoin allows to publish join message into channel when someone subscribes on it
+// or leave message when someone unsubscribes from channel.
+func (app *Application) pubJoin(ch Channel, info ClientInfo) error {
+	return <-app.engine.publishJoin(ch, newJoinLeave(ch, info))
+}
+
+// pubLeave allows to publish join message into channel when someone subscribes on it
+// or leave message when someone unsubscribes from channel.
+func (app *Application) pubLeave(ch Channel, info ClientInfo) error {
+	return <-app.engine.publishLeave(ch, newJoinLeave(ch, info))
+}
+
+func (app *Application) joinMsg(ch Channel, message *JoinLeaveMessage) error {
+	hasCurrentSubscribers := app.clients.hasSubscribers(ch)
+	if !hasCurrentSubscribers {
+		return nil
 	}
-	byteMessage, err := json.Marshal(resp)
+	resp := newClientJoinMessage()
+	resp.Body = *message
+	byteMessage, err := resp.Marshal()
 	if err != nil {
 		return err
 	}
-	return <-app.engine.publish(chID, byteMessage, nil)
+	return app.clients.broadcast(ch, byteMessage)
+}
+
+func (app *Application) leaveMsg(ch Channel, message *JoinLeaveMessage) error {
+	hasCurrentSubscribers := app.clients.hasSubscribers(ch)
+	if !hasCurrentSubscribers {
+		return nil
+	}
+	resp := newClientLeaveMessage()
+	resp.Body = *message
+	byteMessage, err := resp.Marshal()
+	if err != nil {
+		return err
+	}
+	return app.clients.broadcast(ch, byteMessage)
 }
 
 // pubPing sends control ping message to all nodes - this message
 // contains information about current node.
 func (app *Application) pubPing() error {
 	app.RLock()
-	defer app.RUnlock()
 	info := NodeInfo{
 		UID:        app.uid,
 		Name:       app.config.Name,
@@ -481,6 +538,7 @@ func (app *Application) pubPing() error {
 		Gomaxprocs: runtime.GOMAXPROCS(-1),
 		Metrics:    *app.metrics.GetSnapshotMetrics(),
 	}
+	app.RUnlock()
 	cmd := &pingControlCommand{Info: info}
 
 	err := app.pingCmd(cmd)
@@ -539,17 +597,6 @@ func (app *Application) pingCmd(cmd *pingControlCommand) error {
 	return nil
 }
 
-func (app *Application) channelIDPrefix() string {
-	app.RLock()
-	defer app.RUnlock()
-	return app.chIDPrefix
-}
-
-// channelID returns internal name of channel.
-func (app *Application) channelID(ch Channel) ChannelID {
-	return ChannelID(app.channelIDPrefix() + string(ch))
-}
-
 // addConn registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand.
 func (app *Application) addConn(c clientConn) error {
@@ -564,13 +611,12 @@ func (app *Application) removeConn(c clientConn) error {
 // addSub registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
 func (app *Application) addSub(ch Channel, c clientConn) error {
-	chID := app.channelID(ch)
-	first, err := app.clients.addSub(chID, c)
+	first, err := app.clients.addSub(ch, c)
 	if err != nil {
 		return err
 	}
 	if first {
-		return app.engine.subscribe(chID)
+		return app.engine.subscribe(ch)
 	}
 	return nil
 }
@@ -578,13 +624,12 @@ func (app *Application) addSub(ch Channel, c clientConn) error {
 // removeSub removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
 func (app *Application) removeSub(ch Channel, c clientConn) error {
-	chID := app.channelID(ch)
-	empty, err := app.clients.removeSub(chID, c)
+	empty, err := app.clients.removeSub(ch, c)
 	if err != nil {
 		return err
 	}
 	if empty {
-		return app.engine.unsubscribe(chID)
+		return app.engine.unsubscribe(ch)
 	}
 	return nil
 }
@@ -693,14 +738,12 @@ func (app *Application) channelOpts(ch Channel) (ChannelOptions, error) {
 
 // addPresence proxies presence adding to engine.
 func (app *Application) addPresence(ch Channel, uid ConnID, info ClientInfo) error {
-	chID := app.channelID(ch)
-	return app.engine.addPresence(chID, uid, info)
+	return app.engine.addPresence(ch, uid, info)
 }
 
 // removePresence proxies presence removing to engine.
 func (app *Application) removePresence(ch Channel, uid ConnID) error {
-	chID := app.channelID(ch)
-	return app.engine.removePresence(chID, uid)
+	return app.engine.removePresence(ch, uid)
 }
 
 // Presence returns a map of active clients in project channel.
@@ -719,9 +762,7 @@ func (app *Application) Presence(ch Channel) (map[ConnID]ClientInfo, error) {
 		return map[ConnID]ClientInfo{}, ErrNotAvailable
 	}
 
-	chID := app.channelID(ch)
-
-	presence, err := app.engine.presence(chID)
+	presence, err := app.engine.presence(ch)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return map[ConnID]ClientInfo{}, ErrInternalServerError
@@ -745,9 +786,7 @@ func (app *Application) History(ch Channel) ([]Message, error) {
 		return []Message{}, ErrNotAvailable
 	}
 
-	chID := app.channelID(ch)
-
-	history, err := app.engine.history(chID, historyOpts{})
+	history, err := app.engine.history(ch, historyOpts{})
 	if err != nil {
 		logger.ERROR.Println(err)
 		return []Message{}, ErrInternalServerError
@@ -756,15 +795,14 @@ func (app *Application) History(ch Channel) ([]Message, error) {
 }
 
 func (app *Application) lastMessageID(ch Channel) (MessageID, error) {
-	chID := app.channelID(ch)
-	history, err := app.engine.history(chID, historyOpts{Limit: 1})
+	history, err := app.engine.history(ch, historyOpts{Limit: 1})
 	if err != nil {
 		return MessageID(""), err
 	}
 	if len(history) == 0 {
 		return MessageID(""), nil
 	}
-	return history[0].UID, nil
+	return MessageID(history[0].UID), nil
 }
 
 // privateChannel checks if channel private and therefore subscription

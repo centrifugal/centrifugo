@@ -92,10 +92,6 @@ type Config struct {
 
 	// ChannelPrefix is a string prefix before each channel.
 	ChannelPrefix string `json:"channel_prefix"`
-	// AdminChannel is channel name for admin messages.
-	AdminChannel ChannelID `json:"admin_channel"`
-	// ControlChannel is a channel name for internal control messages between nodes.
-	ControlChannel ChannelID `json:"control_channel"`
 	// MaxChannelLength is a maximum length of channel name.
 	MaxChannelLength int `json:"max_channel_length"`
 
@@ -249,8 +245,6 @@ var DefaultConfig = &Config{
 	AdminPassword:               "",
 	AdminSecret:                 "",
 	ChannelPrefix:               defaultChannelPrefix,
-	AdminChannel:                ChannelID(defaultChannelPrefix + ".admin"),
-	ControlChannel:              ChannelID(defaultChannelPrefix + ".control"),
 	MaxChannelLength:            255,
 	PingInterval:                25 * time.Second,
 	NodePingInterval:            defaultNodePingInterval * time.Second,

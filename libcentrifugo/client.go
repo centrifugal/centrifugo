@@ -9,6 +9,7 @@ import (
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
+	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/satori/go.uuid"
 )
 
@@ -39,15 +40,6 @@ type client struct {
 	sendTimeout    time.Duration
 	maxQueueSize   int
 	maxRequestSize int
-}
-
-// ClientInfo contains information about client to use in message
-// meta information, presence information, join/leave events etc.
-type ClientInfo struct {
-	User        UserID           `json:"user"`
-	Client      ConnID           `json:"client"`
-	DefaultInfo *json.RawMessage `json:"default_info,omitempty"`
-	ChannelInfo *json.RawMessage `json:"channel_info,omitempty"`
 }
 
 // newClient creates new ready to communicate client.
@@ -277,26 +269,21 @@ func (c *client) info(ch Channel) ClientInfo {
 	if !ok {
 		channelInfo = []byte{}
 	}
-	var rawDefaultInfo *json.RawMessage
-	var rawChannelInfo *json.RawMessage
+	var rawDefaultInfo *raw.Raw //*json.RawMessage
+	var rawChannelInfo *raw.Raw //*json.RawMessage
 	if len(c.defaultInfo) > 0 {
-		raw := json.RawMessage(c.defaultInfo)
-		rawDefaultInfo = &raw
+		rawData := raw.Raw(c.defaultInfo) //json.RawMessage(c.defaultInfo)
+		rawDefaultInfo = &rawData
 	} else {
 		rawDefaultInfo = nil
 	}
 	if len(channelInfo) > 0 {
-		raw := json.RawMessage(channelInfo)
-		rawChannelInfo = &raw
+		rawData := raw.Raw(channelInfo) //json.RawMessage(channelInfo)
+		rawChannelInfo = &rawData
 	} else {
 		rawChannelInfo = nil
 	}
-	return ClientInfo{
-		User:        c.User,
-		Client:      c.UID,
-		DefaultInfo: rawDefaultInfo,
-		ChannelInfo: rawChannelInfo,
-	}
+	return newClientInfo(c.User, c.UID, rawDefaultInfo, rawChannelInfo)
 }
 
 func cmdFromClientMsg(msgBytes []byte) ([]clientCommand, error) {
@@ -691,7 +678,7 @@ func recoverMessages(last MessageID, messages []Message) ([]Message, bool) {
 	}
 	position := -1
 	for index, msg := range messages {
-		if msg.UID == last {
+		if MessageID(msg.UID) == last {
 			position = index
 			break
 		}
@@ -826,7 +813,7 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*clientResponse, err
 
 	if chOpts.JoinLeave {
 		go func() {
-			err = c.app.pubJoinLeave(channel, "join", info)
+			err = c.app.pubJoin(channel, info)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -877,7 +864,7 @@ func (c *client) unsubscribeCmd(cmd *UnsubscribeClientCommand) (*clientResponse,
 		}
 
 		if chOpts.JoinLeave {
-			err = c.app.pubJoinLeave(channel, "leave", info)
+			err = c.app.pubLeave(channel, info)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}

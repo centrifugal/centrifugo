@@ -232,7 +232,7 @@ func TestClientConnect(t *testing.T) {
 	assert.Equal(t, int64(ts), c.timestamp)
 
 	clientInfo := c.info(Channel(""))
-	assert.Equal(t, UserID("user1"), clientInfo.User)
+	assert.Equal(t, "user1", clientInfo.User)
 
 	assert.Equal(t, 1, len(app.clients.conns))
 
@@ -468,10 +468,10 @@ func TestClientPing(t *testing.T) {
 	assert.Equal(t, nil, resp.err)
 }
 
-func testSubscribeRecoverCmd(channel string, last MessageID, rec bool) clientCommand {
+func testSubscribeRecoverCmd(channel string, last string, rec bool) clientCommand {
 	subscribeCmd := SubscribeClientCommand{
 		Channel: Channel(channel),
-		Last:    last,
+		Last:    MessageID(last),
 		Recover: rec,
 	}
 	cmdBytes, _ := json.Marshal(subscribeCmd)
@@ -514,7 +514,7 @@ func TestSubscribeRecover(t *testing.T) {
 	subscribeCmd := testSubscribeCmd("test")
 	resp, err := c.handleCmd(subscribeCmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, last, resp.Body.(*SubscribeBody).Last)
+	assert.Equal(t, last, string(resp.Body.(*SubscribeBody).Last))
 
 	// publish 2 messages since last
 	data, _ = json.Marshal(map[string]string{"input": "test1"})
@@ -549,8 +549,8 @@ func TestSubscribeRecover(t *testing.T) {
 	assert.Equal(t, true, resp.Body.(*SubscribeBody).Recovered)
 	assert.Equal(t, MessageID(""), resp.Body.(*SubscribeBody).Last)
 	messages = resp.Body.(*SubscribeBody).Messages
-	m0, _ := messages[0].Data.MarshalJSON()
-	m1, _ := messages[1].Data.MarshalJSON()
+	m0, _ := json.Marshal(messages[0].Data)
+	m1, _ := json.Marshal(messages[1].Data)
 	// in reversed order in history
 	assert.Equal(t, strings.Contains(string(m0), "test2"), true)
 	assert.Equal(t, strings.Contains(string(m1), "test1"), true)
