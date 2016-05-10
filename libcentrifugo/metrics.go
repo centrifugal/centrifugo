@@ -53,7 +53,7 @@ type Metrics struct {
 	// MemSys shows system memory usage in bytes.
 	MemSys int64 `json:"memory_sys"`
 
-	// CPU shows cpu usage in percents.
+	// CPU shows cpu usage (actually just a snapshot value) in percents.
 	CPU int64 `json:"cpu_usage"`
 }
 

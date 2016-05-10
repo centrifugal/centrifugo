@@ -2,6 +2,7 @@ package libcentrifugo
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -24,13 +25,32 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, "test", unmarshalledMsg.Channel)
 }
 
-func BenchmarkClientResponseMarshal(b *testing.B) {
-	msg := newMessage(Channel("test"), []byte("{}"), "", nil)
+func BenchmarkClientResponseMarshalJSON(b *testing.B) {
+	responses := make([]*ClientMessageResponse, 10000)
+	for i := 0; i < 10000; i++ {
+		resp := newClientMessage()
+		resp.Body = newMessage(Channel("test"+strconv.Itoa(i)), []byte("{}"), "", nil)
+		responses[i] = resp
+	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		_, err := json.Marshal(responses[i%10000])
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func BenchmarkClientResponseMarshalManual(b *testing.B) {
+	responses := make([]*ClientMessageResponse, 10000)
+	for i := 0; i < 10000; i++ {
 		resp := newClientMessage()
-		resp.Body = msg
-		_, err := json.Marshal(resp)
+		resp.Body = newMessage(Channel("test"+strconv.Itoa(i)), []byte("{}"), "", nil)
+		responses[i] = resp
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := responses[i%10000].Marshal()
 		if err != nil {
 			panic(err)
 		}

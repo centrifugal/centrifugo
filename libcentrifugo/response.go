@@ -6,29 +6,6 @@ import (
 	"github.com/oxtoacart/bpool"
 )
 
-type errorAdvice string
-
-const (
-	errorAdviceNone  errorAdvice = ""
-	errorAdviceFix   errorAdvice = "fix"
-	errorAdviceRetry errorAdvice = "retry"
-)
-
-type clientError struct {
-	err    error
-	Advice errorAdvice `json:"advice,omitempty"`
-}
-
-// clientResponse represents an answer Centrifugo sends to client request
-// commands or protocol messages sent to client asynchronously.
-type clientResponse struct {
-	UID    string      `json:"uid,omitempty"`
-	Body   interface{} `json:"body"`
-	Method string      `json:"method"`
-	Error  string      `json:"error,omitempty"` // Use clientResponse.Err() to set.
-	clientError
-}
-
 // ClientMessageResponse uses strong type for body instead of interface{} - helps to
 // reduce allocations when marshaling. Also it does not have error - because message
 // client response never contains it.
@@ -188,6 +165,29 @@ func (m *ClientLeaveResponse) Marshal() ([]byte, error) {
 	writeJoinLeave(buf, &m.Body)
 	buf.WriteString("}")
 	return buf.Bytes(), nil
+}
+
+type errorAdvice string
+
+const (
+	errorAdviceNone  errorAdvice = ""
+	errorAdviceFix   errorAdvice = "fix"
+	errorAdviceRetry errorAdvice = "retry"
+)
+
+type clientError struct {
+	err    error
+	Advice errorAdvice `json:"advice,omitempty"`
+}
+
+// clientResponse represents an answer Centrifugo sends to client request
+// commands or protocol messages sent to client asynchronously.
+type clientResponse struct {
+	UID    string      `json:"uid,omitempty"`
+	Body   interface{} `json:"body"`
+	Method string      `json:"method"`
+	Error  string      `json:"error,omitempty"` // Use clientResponse.Err() to set.
+	clientError
 }
 
 // newClientResponse returns client response initialized with provided method.

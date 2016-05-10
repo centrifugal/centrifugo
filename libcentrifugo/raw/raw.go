@@ -1,3 +1,7 @@
+// package raw contains Raw type (alias to slice of bytes). This type used by Centrifugo
+// as type for fields in structs which value we want to left untouched. For example custom
+// application specific JSON payload data in published message. This is very similar to
+// json.RawMessage type but have some extra methods to fit gogoprotobuf custom type interface.
 package raw
 
 import (

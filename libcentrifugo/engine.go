@@ -13,12 +13,14 @@ type Engine interface {
 	// name returns a name of concrete engine implementation.
 	name() string
 
-	// run called once just after engine set to application.
+	// run called once on Centrifugo start just after engine set to application.
 	run() error
 
-	// publishMessage allows to send message into channel. The returned value is channel
-	// in which we will send error as soon as engine finishes publish operation. Also
-	// the task of this method is to maintain history for channels if enabled.
+	// publishMessage allows to send message into channel. This message should be delivered
+	// to all clients subscribed on this channel at moment on any Centrifugo node.
+	// The returned value is channel in which we will send error as soon as engine finishes
+	// publish operation. Also the task of this method is to maintain history for channels
+	// if enabled.
 	publishMessage(ch Channel, message *Message, opts *ChannelOptions) <-chan error
 	// publishJoin allows to send join message into channel.
 	publishJoin(ch Channel, message *JoinLeaveMessage) <-chan error
@@ -26,7 +28,7 @@ type Engine interface {
 	publishLeave(ch Channel, message *JoinLeaveMessage) <-chan error
 	// publishControl allows to send control message to all connected nodes.
 	publishControl(message *ControlCommand) <-chan error
-	//
+	// publishAdmin allows to send admin message to all connected admins.
 	publishAdmin(message *AdminCommand) <-chan error
 
 	// subscribe on channel.
