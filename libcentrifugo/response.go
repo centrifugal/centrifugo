@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"runtime"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/encode"
 	"github.com/oxtoacart/bpool"
 )
 
@@ -47,15 +48,11 @@ func writeClientInfo(buf *bytes.Buffer, info *ClientInfo) {
 	}
 
 	buf.WriteString("\"user\":")
-	buf.WriteString("\"")
-	buf.WriteString(info.User)
-	buf.WriteString("\"")
+	encode.EncodeJSONString(buf, info.User, true)
 	buf.WriteString(",")
 
 	buf.WriteString("\"client\":")
-	buf.WriteString("\"")
-	buf.WriteString(info.Client)
-	buf.WriteString("\"")
+	encode.EncodeJSONString(buf, info.Client, true)
 
 	buf.WriteString("}")
 }
@@ -63,22 +60,16 @@ func writeClientInfo(buf *bytes.Buffer, info *ClientInfo) {
 func writeMessage(buf *bytes.Buffer, message *Message) {
 	buf.WriteString("{")
 	buf.WriteString("\"uid\":")
-	buf.WriteString("\"")
-	buf.WriteString(message.UID)
-	buf.WriteString("\"")
+	encode.EncodeJSONString(buf, message.UID, true)
 	buf.WriteString(",")
 
 	buf.WriteString("\"timestamp\":")
-	buf.WriteString("\"")
-	buf.WriteString(message.Timestamp)
-	buf.WriteString("\"")
+	encode.EncodeJSONString(buf, message.Timestamp, true)
 	buf.WriteString(",")
 
 	if message.Client != "" {
 		buf.WriteString("\"client\":")
-		buf.WriteString("\"")
-		buf.WriteString(message.Client)
-		buf.WriteString("\"")
+		encode.EncodeJSONString(buf, message.Client, true)
 		buf.WriteString(",")
 	}
 
@@ -89,9 +80,7 @@ func writeMessage(buf *bytes.Buffer, message *Message) {
 	}
 
 	buf.WriteString("\"channel\":")
-	buf.WriteString("\"")
-	buf.WriteString(message.Channel)
-	buf.WriteString("\"")
+	encode.EncodeJSONString(buf, message.Channel, true)
 	buf.WriteString(",")
 
 	buf.WriteString("\"data\":")
@@ -123,9 +112,7 @@ func writeJoinLeave(buf *bytes.Buffer, message *JoinLeaveMessage) {
 	buf.WriteString("{")
 
 	buf.WriteString("\"channel\":")
-	buf.WriteString("\"")
-	buf.WriteString(message.Channel)
-	buf.WriteString("\"")
+	encode.EncodeJSONString(buf, message.Channel, true)
 	buf.WriteString(",")
 
 	buf.WriteString("\"data\":")
