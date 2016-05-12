@@ -2,6 +2,7 @@ package libcentrifugo
 
 import (
 	"bytes"
+	"runtime"
 
 	"github.com/oxtoacart/bpool"
 )
@@ -21,18 +22,13 @@ func newClientMessage() *ClientMessageResponse {
 	}
 }
 
-const (
-	ClientResponseMarshalBufferSize = 64
-)
-
 var bufpool *bpool.BufferPool
 
 func init() {
-	// Initialize buffer pool, this is not very necessary at moment because we encode
-	// client responses in one goroutine so could use single buffer, but just prepare
-	// for future where we plan to use pool of goroutines encoding messages to client
-	// JSON responses.
-	bufpool = bpool.NewBufferPool(ClientResponseMarshalBufferSize)
+	// Initialize buffer pool, this must be reasonably large because we can encode
+	// messages into client JSON responses in different goroutines (and we already do
+	// this when using Memory Engine).
+	bufpool = bpool.NewBufferPool(runtime.NumCPU())
 }
 
 func writeClientInfo(buf *bytes.Buffer, info *ClientInfo) {

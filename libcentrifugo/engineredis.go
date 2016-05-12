@@ -646,7 +646,10 @@ func (e *RedisEngine) runPubSub() {
 			}
 			switch chID {
 			case controlChannel:
-				message, _ := e.app.decodeEngineControlMessage(n.Data)
+				message, err := e.app.decodeEngineControlMessage(n.Data)
+				if err != nil {
+					continue
+				}
 				e.app.controlMsg(message)
 			case adminChannel:
 				message, _ := e.app.decodeEngineAdminMessage(n.Data)
