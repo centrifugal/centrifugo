@@ -45,7 +45,7 @@ type Engine interface {
 	// presence returns actual presence information for channel.
 	presence(ch Channel) (map[ConnID]ClientInfo, error)
 
-	// history returns a slice of history messages for channel, limit sets maximum amount
-	// of history messages to return.
+	// history returns a slice of history messages for channel according to provided
+	// historyOpts.
 	history(ch Channel, opts historyOpts) ([]Message, error)
 }

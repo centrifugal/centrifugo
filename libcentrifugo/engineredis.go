@@ -775,38 +775,24 @@ func (e *RedisEngine) runPublishPipeline() {
 }
 
 func (e *RedisEngine) messageChannelID(ch Channel) ChannelID {
-	e.RLock()
-	prefix := e.messagePrefix
-	e.RUnlock()
-	return ChannelID(prefix + string(ch))
+	return ChannelID(e.messagePrefix + string(ch))
 }
 
 func (e *RedisEngine) joinChannelID(ch Channel) ChannelID {
-	e.RLock()
-	prefix := e.joinPrefix
-	e.RUnlock()
-	return ChannelID(prefix + string(ch))
+	return ChannelID(e.joinPrefix + string(ch))
 }
 
 func (e *RedisEngine) leaveChannelID(ch Channel) ChannelID {
-	e.RLock()
-	prefix := e.leavePrefix
-	e.RUnlock()
-	return ChannelID(prefix + string(ch))
+	return ChannelID(e.leavePrefix + string(ch))
 }
 
 func (e *RedisEngine) channelFromChannelID(chID ChannelID) (Channel, string) {
-	e.RLock()
-	messagePrefix := e.messagePrefix
-	joinPrefix := e.joinPrefix
-	leavePrefix := e.leavePrefix
-	e.RUnlock()
-	if strings.HasPrefix(string(chID), messagePrefix) {
-		return Channel(strings.TrimPrefix(string(chID), messagePrefix)), "message"
-	} else if strings.HasPrefix(string(chID), joinPrefix) {
-		return Channel(strings.TrimPrefix(string(chID), joinPrefix)), "join"
-	} else if strings.HasPrefix(string(chID), leavePrefix) {
-		return Channel(strings.TrimPrefix(string(chID), leavePrefix)), "leave"
+	if strings.HasPrefix(string(chID), e.messagePrefix) {
+		return Channel(strings.TrimPrefix(string(chID), e.messagePrefix)), "message"
+	} else if strings.HasPrefix(string(chID), e.joinPrefix) {
+		return Channel(strings.TrimPrefix(string(chID), e.joinPrefix)), "join"
+	} else if strings.HasPrefix(string(chID), e.leavePrefix) {
+		return Channel(strings.TrimPrefix(string(chID), e.leavePrefix)), "leave"
 	} else {
 		return Channel(""), "unknown"
 	}
@@ -1113,11 +1099,11 @@ func sliceOfChannelIDs(result interface{}, prefix string, err error) ([]ChannelI
 func (e *RedisEngine) channels() ([]Channel, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
-	e.RLock()
+
 	messagePrefix := e.messagePrefix
 	joinPrefix := e.joinPrefix
 	leavePrefix := e.leavePrefix
-	e.RUnlock()
+
 	reply, err := conn.Do("PUBSUB", "CHANNELS", messagePrefix+"*")
 	if err != nil {
 		return nil, err

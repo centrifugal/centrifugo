@@ -44,12 +44,12 @@ func (r *Raw) Size() int {
 	return len(*r)
 }
 
-// MarshalJSON returns *m as the JSON encoding of m.
+// MarshalJSON returns *r as the JSON encoding of r.
 func (r *Raw) MarshalJSON() ([]byte, error) {
 	return *r, nil
 }
 
-// UnmarshalJSON sets *m to a copy of data.
+// UnmarshalJSON sets *r to a copy of data.
 func (r *Raw) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.New("Raw: UnmarshalJSON on nil pointer")
