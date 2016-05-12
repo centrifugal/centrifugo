@@ -33,67 +33,62 @@ func init() {
 }
 
 func writeClientInfo(buf *bytes.Buffer, info *ClientInfo) {
-	buf.WriteString("{")
+	buf.WriteString(`{`)
 
 	if info.DefaultInfo != nil {
-		buf.WriteString("\"default_info\":")
+		buf.WriteString(`"default_info":`)
 		buf.Write(*info.DefaultInfo)
 		buf.WriteString(",")
 	}
 
 	if info.ChannelInfo != nil {
-		buf.WriteString("\"channel_info\":")
+		buf.WriteString(`"channel_info":`)
 		buf.Write(*info.ChannelInfo)
-		buf.WriteString(",")
+		buf.WriteString(`,`)
 	}
 
-	buf.WriteString("\"user\":")
+	buf.WriteString(`"user":`)
 	encode.EncodeJSONString(buf, info.User, true)
-	buf.WriteString(",")
+	buf.WriteString(`,`)
 
-	buf.WriteString("\"client\":")
+	buf.WriteString(`"client":`)
 	encode.EncodeJSONString(buf, info.Client, true)
 
-	buf.WriteString("}")
+	buf.WriteString(`}`)
 }
 
 func writeMessage(buf *bytes.Buffer, message *Message) {
-	buf.WriteString("{")
-	buf.WriteString("\"uid\":")
-	encode.EncodeJSONString(buf, message.UID, true)
-	buf.WriteString(",")
-
-	buf.WriteString("\"timestamp\":")
-	encode.EncodeJSONString(buf, message.Timestamp, true)
-	buf.WriteString(",")
+	buf.WriteString(`{"uid":"`)
+	buf.WriteString(message.UID)
+	buf.WriteString(`","timestamp":"`)
+	buf.WriteString(message.Timestamp)
+	buf.WriteString(`",`)
 
 	if message.Client != "" {
-		buf.WriteString("\"client\":")
+		buf.WriteString(`"client":`)
 		encode.EncodeJSONString(buf, message.Client, true)
-		buf.WriteString(",")
+		buf.WriteString(`,`)
 	}
 
 	if message.Info != nil {
-		buf.WriteString("\"info\":")
+		buf.WriteString(`"info":`)
 		writeClientInfo(buf, message.Info)
-		buf.WriteString(",")
+		buf.WriteString(`,`)
 	}
 
-	buf.WriteString("\"channel\":")
+	buf.WriteString(`"channel":`)
 	encode.EncodeJSONString(buf, message.Channel, true)
-	buf.WriteString(",")
-
-	buf.WriteString("\"data\":")
+	buf.WriteString(`,"data":`)
 	buf.Write(*message.Data)
-	buf.WriteString("}")
+	buf.WriteString(`}`)
 }
 
 func (m *ClientMessageResponse) Marshal() ([]byte, error) {
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
-	buf.WriteString("{\"method\":\"message\",\"body\":")
+	buf.WriteString(`{"method":"message","body":`)
 	writeMessage(buf, &m.Body)
-	buf.WriteString("}")
+	buf.WriteString(`}`)
 	return buf.Bytes(), nil
 }
 
@@ -109,24 +104,20 @@ func newClientJoinMessage() *ClientJoinResponse {
 }
 
 func writeJoinLeave(buf *bytes.Buffer, message *JoinLeaveMessage) {
-	buf.WriteString("{")
-
-	buf.WriteString("\"channel\":")
+	buf.WriteString(`{`)
+	buf.WriteString(`"channel":`)
 	encode.EncodeJSONString(buf, message.Channel, true)
-	buf.WriteString(",")
-
-	buf.WriteString("\"data\":")
+	buf.WriteString(`,"data":`)
 	writeClientInfo(buf, &message.Data)
-
-	buf.WriteString("}")
+	buf.WriteString(`}`)
 }
 
 func (m *ClientJoinResponse) Marshal() ([]byte, error) {
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
-	buf.WriteString("{\"method\":\"join\",\"body\":")
+	buf.WriteString(`{"method":"join","body":`)
 	writeJoinLeave(buf, &m.Body)
-	buf.WriteString("}")
+	buf.WriteString(`}`)
 	return buf.Bytes(), nil
 }
 
@@ -144,9 +135,9 @@ func newClientLeaveMessage() *ClientLeaveResponse {
 func (m *ClientLeaveResponse) Marshal() ([]byte, error) {
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
-	buf.WriteString("{\"method\":\"leave\",\"body\":")
+	buf.WriteString(`{"method":"leave","body":`)
 	writeJoinLeave(buf, &m.Body)
-	buf.WriteString("}")
+	buf.WriteString(`}`)
 	return buf.Bytes(), nil
 }
 
