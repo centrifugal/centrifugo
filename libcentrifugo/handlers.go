@@ -287,8 +287,8 @@ var (
 	objectJSONPrefix byte = '{'
 )
 
-func cmdFromRequestMsg(msg []byte) ([]APICommand, error) {
-	var commands []APICommand
+func cmdFromRequestMsg(msg []byte) ([]apiCommand, error) {
+	var commands []apiCommand
 
 	if len(msg) == 0 {
 		return commands, nil
@@ -299,7 +299,7 @@ func cmdFromRequestMsg(msg []byte) ([]APICommand, error) {
 	switch firstByte {
 	case objectJSONPrefix:
 		// single command request
-		var command APICommand
+		var command apiCommand
 		err := json.Unmarshal(msg, &command)
 		if err != nil {
 			return nil, err

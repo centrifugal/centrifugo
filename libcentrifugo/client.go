@@ -175,7 +175,7 @@ func (c *client) channels() []Channel {
 func (c *client) unsubscribe(ch Channel) error {
 	c.Lock()
 	defer c.Unlock()
-	cmd := &UnsubscribeClientCommand{
+	cmd := &unsubscribeClientCommand{
 		Channel: ch,
 	}
 	resp, err := c.unsubscribeCmd(cmd)
@@ -228,7 +228,7 @@ func (c *client) clean() error {
 	if len(c.Channels) > 0 {
 		// unsubscribe from all channels
 		for channel := range c.Channels {
-			cmd := &UnsubscribeClientCommand{
+			cmd := &unsubscribeClientCommand{
 				Channel: channel,
 			}
 			_, err := c.unsubscribeCmd(cmd)
@@ -410,56 +410,56 @@ func (c *client) handleCmd(command clientCommand) (*clientResponse, error) {
 
 	switch method {
 	case "connect":
-		var cmd ConnectClientCommand
+		var cmd connectClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.connectCmd(&cmd)
 	case "refresh":
-		var cmd RefreshClientCommand
+		var cmd refreshClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.refreshCmd(&cmd)
 	case "subscribe":
-		var cmd SubscribeClientCommand
+		var cmd subscribeClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.subscribeCmd(&cmd)
 	case "unsubscribe":
-		var cmd UnsubscribeClientCommand
+		var cmd unsubscribeClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.unsubscribeCmd(&cmd)
 	case "publish":
-		var cmd PublishClientCommand
+		var cmd publishClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.publishCmd(&cmd)
 	case "ping":
-		var cmd PingClientCommand
+		var cmd pingClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.pingCmd(&cmd)
 	case "presence":
-		var cmd PresenceClientCommand
+		var cmd presenceClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.presenceCmd(&cmd)
 	case "history":
-		var cmd HistoryClientCommand
+		var cmd historyClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
@@ -478,7 +478,7 @@ func (c *client) handleCmd(command clientCommand) (*clientResponse, error) {
 // pingCmd handles ping command from client - this is necessary sometimes
 // for example Heroku closes websocket connection after 55 seconds
 // of inactive period when no messages with payload travelled over wire
-func (c *client) pingCmd(cmd *PingClientCommand) (*clientResponse, error) {
+func (c *client) pingCmd(cmd *pingClientCommand) (*clientResponse, error) {
 	resp := newClientResponse("ping")
 	resp.Body = &PingBody{
 		Data: cmd.Data,
@@ -511,7 +511,7 @@ func (c *client) expire() {
 // connectCmd handles connect command from client - client must send this
 // command immediately after establishing Websocket or SockJS connection with
 // Centrifugo
-func (c *client) connectCmd(cmd *ConnectClientCommand) (*clientResponse, error) {
+func (c *client) connectCmd(cmd *connectClientCommand) (*clientResponse, error) {
 
 	resp := newClientResponse("connect")
 
@@ -612,7 +612,7 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*clientResponse, error) 
 
 // refreshCmd handle refresh command to update connection with new
 // timestamp - this is only required when connection lifetime option set.
-func (c *client) refreshCmd(cmd *RefreshClientCommand) (*clientResponse, error) {
+func (c *client) refreshCmd(cmd *refreshClientCommand) (*clientResponse, error) {
 
 	resp := newClientResponse("refresh")
 
@@ -700,7 +700,7 @@ func recoverMessages(last MessageID, messages []Message) ([]Message, bool) {
 // on channel, if channel if private then we must validate provided sign here before
 // actually subscribe client on channel. Optionally we can send missed messages to
 // client if it provided last message id seen in channel.
-func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*clientResponse, error) {
+func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*clientResponse, error) {
 
 	resp := newClientResponse("subscribe")
 
@@ -831,7 +831,7 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*clientResponse, err
 
 // unsubscribeCmd handles unsubscribe command from client - it allows to
 // unsubscribe connection from channel
-func (c *client) unsubscribeCmd(cmd *UnsubscribeClientCommand) (*clientResponse, error) {
+func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*clientResponse, error) {
 
 	resp := newClientResponse("unsubscribe")
 
@@ -892,7 +892,7 @@ func (c *client) unsubscribeCmd(cmd *UnsubscribeClientCommand) (*clientResponse,
 // channels themselves if `publish` allowed by channel options. In most cases clients not
 // allowed to publish into channels directly - web application publishes messages
 // itself via HTTP API or Redis.
-func (c *client) publishCmd(cmd *PublishClientCommand) (*clientResponse, error) {
+func (c *client) publishCmd(cmd *publishClientCommand) (*clientResponse, error) {
 
 	resp := newClientResponse("publish")
 
@@ -927,7 +927,7 @@ func (c *client) publishCmd(cmd *PublishClientCommand) (*clientResponse, error) 
 // are subscribed on channel at this moment. This method also checks if
 // presence information turned on for channel (based on channel options
 // for namespace or project)
-func (c *client) presenceCmd(cmd *PresenceClientCommand) (*clientResponse, error) {
+func (c *client) presenceCmd(cmd *presenceClientCommand) (*clientResponse, error) {
 
 	resp := newClientResponse("presence")
 
@@ -959,7 +959,7 @@ func (c *client) presenceCmd(cmd *PresenceClientCommand) (*clientResponse, error
 // into channel. M is history size and can be configured for project or namespace
 // via channel options. Also this method checks that history available for channel
 // (also determined by channel options flag)
-func (c *client) historyCmd(cmd *HistoryClientCommand) (*clientResponse, error) {
+func (c *client) historyCmd(cmd *historyClientCommand) (*clientResponse, error) {
 
 	resp := newClientResponse("history")
 

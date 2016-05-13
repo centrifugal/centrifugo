@@ -21,19 +21,19 @@ type clientCommand struct {
 	Params json.RawMessage `json:"params"`
 }
 
-type APICommand struct {
+type apiCommand struct {
 	UID    string          `json:"uid"`
 	Method string          `json:"method"`
 	Params json.RawMessage `json:"params"`
 }
 
-type AdminCommand struct {
+type adminCommand struct {
 	UID    string           `json:"uid"`
 	Method string           `json:"method"`
 	Params *json.RawMessage `json:"params"`
 }
 
-type ControlCommand struct {
+type controlCommand struct {
 	// UID in case of controlCommand is a unique node ID which originally published
 	// this control command.
 	UID    string           `json:"uid"`
@@ -41,30 +41,30 @@ type ControlCommand struct {
 	Params *json.RawMessage `json:"params"`
 }
 
-// ConnectClientCommand is a command to authorize connection - it contains user ID
+// connectClientCommand is a command to authorize connection - it contains user ID
 // in web application, additional connection information as JSON string, timestamp
 // with unix seconds on moment when connect parameters generated and HMAC token to
 // prove correctness of all those parameters.
-type ConnectClientCommand struct {
+type connectClientCommand struct {
 	User      UserID `json:"user"`
 	Timestamp string `json:"timestamp"`
 	Info      string `json:"info"`
 	Token     string `json:"token"`
 }
 
-// RefreshClientCommand is used to prolong connection lifetime when connection check
+// refreshClientCommand is used to prolong connection lifetime when connection check
 // mechanism is enabled. It can only be sent by client after successfull connect.
-type RefreshClientCommand struct {
+type refreshClientCommand struct {
 	User      UserID `json:"user"`
 	Timestamp string `json:"timestamp"`
 	Info      string `json:"info"`
 	Token     string `json:"token"`
 }
 
-// SubscribeClientCommand is used to subscribe on channel.
+// subscribeClientCommand is used to subscribe on channel.
 // It can only be sent by client after successfull connect.
 // It also can have Client, Info and Sign properties when channel is private.
-type SubscribeClientCommand struct {
+type subscribeClientCommand struct {
 	Channel Channel   `json:"channel"`
 	Client  ConnID    `json:"client"`
 	Last    MessageID `json:"last"`
@@ -73,30 +73,30 @@ type SubscribeClientCommand struct {
 	Sign    string    `json:"sign"`
 }
 
-// UnsubscribeClientCommand is used to unsubscribe from channel.
-type UnsubscribeClientCommand struct {
+// unsubscribeClientCommand is used to unsubscribe from channel.
+type unsubscribeClientCommand struct {
 	Channel Channel `json:"channel"`
 }
 
-// PublishClientCommand is used to publish messages into channel.
-type PublishClientCommand struct {
+// publishClientCommand is used to publish messages into channel.
+type publishClientCommand struct {
 	Channel Channel         `json:"channel"`
 	Data    json.RawMessage `json:"data"`
 }
 
-// PresenceClientCommand is used to get presence (actual channel subscriptions).
+// presenceClientCommand is used to get presence (actual channel subscriptions).
 // information for channel
-type PresenceClientCommand struct {
+type presenceClientCommand struct {
 	Channel Channel `json:"channel"`
 }
 
-// HistoryClientCommand is used to get history information for channel.
-type HistoryClientCommand struct {
+// historyClientCommand is used to get history information for channel.
+type historyClientCommand struct {
 	Channel Channel `json:"channel"`
 }
 
-// PingClientCommand is used to ping server.
-type PingClientCommand struct {
+// pingClientCommand is used to ping server.
+type pingClientCommand struct {
 	Data string `json:"data"`
 }
 

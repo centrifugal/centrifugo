@@ -69,13 +69,13 @@ func (e *MemoryEngine) publishLeave(ch Channel, message *JoinLeaveMessage) <-cha
 	return eChan
 }
 
-func (e *MemoryEngine) publishControl(message *ControlCommand) <-chan error {
+func (e *MemoryEngine) publishControl(message *controlCommand) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.app.controlMsg(message)
 	return eChan
 }
 
-func (e *MemoryEngine) publishAdmin(message *AdminCommand) <-chan error {
+func (e *MemoryEngine) publishAdmin(message *adminCommand) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.app.adminMsg(message)
 	return eChan

@@ -27,9 +27,9 @@ type Engine interface {
 	// publishLeave allows to send leave message into channel.
 	publishLeave(ch Channel, message *JoinLeaveMessage) <-chan error
 	// publishControl allows to send control message to all connected nodes.
-	publishControl(message *ControlCommand) <-chan error
+	publishControl(message *controlCommand) <-chan error
 	// publishAdmin allows to send admin message to all connected admins.
-	publishAdmin(message *AdminCommand) <-chan error
+	publishAdmin(message *adminCommand) <-chan error
 
 	// subscribe on channel.
 	subscribe(ch Channel) error

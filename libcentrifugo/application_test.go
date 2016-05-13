@@ -75,7 +75,7 @@ func createTestClients(app *Application, nChannels, nChannelClients int, sink ch
 			sess.sink = sink
 		}
 		c := newTestClient(app, sess)
-		cmd := ConnectClientCommand{
+		cmd := connectClientCommand{
 			User: UserID(fmt.Sprintf("user-%d", i)),
 		}
 		resp, err := c.connectCmd(&cmd)
@@ -86,7 +86,7 @@ func createTestClients(app *Application, nChannels, nChannelClients int, sink ch
 			panic(resp.err)
 		}
 		for j := 0; j < nChannels; j++ {
-			cmd := SubscribeClientCommand{
+			cmd := subscribeClientCommand{
 				Channel: Channel(fmt.Sprintf("channel-%d", j)),
 			}
 			resp, err = c.subscribeCmd(&cmd)
@@ -178,9 +178,9 @@ func BenchmarkNamespaceKey(b *testing.B) {
 	}
 }
 
-func testPingControlCmd(uid string) *ControlCommand {
+func testPingControlCmd(uid string) *controlCommand {
 	params := json.RawMessage([]byte("{}"))
-	cmd := ControlCommand{
+	cmd := controlCommand{
 		UID:    uid,
 		Method: "ping",
 		Params: &params,
@@ -188,9 +188,9 @@ func testPingControlCmd(uid string) *ControlCommand {
 	return &cmd
 }
 
-func testUnsubscribeControlCmd(uid string) *ControlCommand {
+func testUnsubscribeControlCmd(uid string) *controlCommand {
 	params := json.RawMessage([]byte("{}"))
-	cmd := ControlCommand{
+	cmd := controlCommand{
 		UID:    uid,
 		Method: "unsubscribe",
 		Params: &params,
@@ -198,9 +198,9 @@ func testUnsubscribeControlCmd(uid string) *ControlCommand {
 	return &cmd
 }
 
-func testDisconnectControlCmd(uid string) *ControlCommand {
+func testDisconnectControlCmd(uid string) *controlCommand {
 	params := json.RawMessage([]byte("{}"))
-	cmd := ControlCommand{
+	cmd := controlCommand{
 		UID:    uid,
 		Method: "disconnect",
 		Params: &params,
@@ -208,9 +208,9 @@ func testDisconnectControlCmd(uid string) *ControlCommand {
 	return &cmd
 }
 
-func testWrongControlCmd(uid string) *ControlCommand {
+func testWrongControlCmd(uid string) *controlCommand {
 	params := json.RawMessage([]byte("{}"))
-	cmd := ControlCommand{
+	cmd := controlCommand{
 		UID:    uid,
 		Method: "wrong",
 		Params: &params,

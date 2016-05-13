@@ -230,8 +230,8 @@ func (app *Application) node() NodeInfo {
 	return info
 }
 
-func (app *Application) decodeEngineControlMessage(data []byte) (*ControlCommand, error) {
-	var cmd ControlCommand
+func (app *Application) decodeEngineControlMessage(data []byte) (*controlCommand, error) {
+	var cmd controlCommand
 	err := json.Unmarshal(data, &cmd)
 	if err != nil {
 		return nil, err
@@ -239,8 +239,8 @@ func (app *Application) decodeEngineControlMessage(data []byte) (*ControlCommand
 	return &cmd, nil
 }
 
-func (app *Application) decodeEngineAdminMessage(data []byte) (*AdminCommand, error) {
-	var cmd AdminCommand
+func (app *Application) decodeEngineAdminMessage(data []byte) (*adminCommand, error) {
+	var cmd adminCommand
 	err := json.Unmarshal(data, &cmd)
 	if err != nil {
 		return nil, err
@@ -270,11 +270,11 @@ func (app *Application) decodeEngineLeaveMessage(data []byte) (*JoinLeaveMessage
 	return app.decodeEngineJoinMessage(data)
 }
 
-func (app *Application) encodeEngineControlMessage(msg *ControlCommand) ([]byte, error) {
+func (app *Application) encodeEngineControlMessage(msg *controlCommand) ([]byte, error) {
 	return json.Marshal(msg)
 }
 
-func (app *Application) encodeEngineAdminMessage(msg *AdminCommand) ([]byte, error) {
+func (app *Application) encodeEngineAdminMessage(msg *adminCommand) ([]byte, error) {
 	return json.Marshal(msg)
 }
 
@@ -293,7 +293,7 @@ func (app *Application) encodeEngineLeaveMessage(msg *JoinLeaveMessage) ([]byte,
 // controlMsg handles messages from control channel - control
 // messages used for internal communication between nodes to share state
 // or commands.
-func (app *Application) controlMsg(cmd *ControlCommand) error {
+func (app *Application) controlMsg(cmd *controlCommand) error {
 
 	if cmd.UID == app.uid {
 		// Sent by this node.
@@ -334,7 +334,7 @@ func (app *Application) controlMsg(cmd *ControlCommand) error {
 	}
 }
 
-func (app *Application) adminMsg(message *AdminCommand) error {
+func (app *Application) adminMsg(message *adminCommand) error {
 	app.admins.RLock()
 	hasAdmins := len(app.admins.connections) > 0
 	app.admins.RUnlock()
@@ -448,7 +448,7 @@ func (app *Application) publish(ch Channel, data []byte, client ConnID, info *Cl
 // nodes will receive and handle it.
 func (app *Application) pubControl(method string, params []byte) error {
 	raw := json.RawMessage(params)
-	message := ControlCommand{
+	message := controlCommand{
 		UID:    app.uid,
 		Method: method,
 		Params: &raw,
@@ -459,7 +459,7 @@ func (app *Application) pubControl(method string, params []byte) error {
 // pubAdmin publishes message to admins.
 func (app *Application) pubAdmin(method string, params []byte) <-chan error {
 	raw := json.RawMessage(params)
-	message := AdminCommand{
+	message := adminCommand{
 		Method: method,
 		Params: &raw,
 	}

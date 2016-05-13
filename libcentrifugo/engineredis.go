@@ -403,7 +403,7 @@ func (e *RedisEngine) run() error {
 }
 
 type redisAPIRequest struct {
-	Data []APICommand
+	Data []apiCommand
 }
 
 // runForever simple keeps another function running indefinitely
@@ -870,7 +870,7 @@ func (e *RedisEngine) publishLeave(ch Channel, message *JoinLeaveMessage) <-chan
 	return eChan
 }
 
-func (e *RedisEngine) publishControl(message *ControlCommand) <-chan error {
+func (e *RedisEngine) publishControl(message *controlCommand) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := e.app.encodeEngineControlMessage(message)
@@ -890,7 +890,7 @@ func (e *RedisEngine) publishControl(message *ControlCommand) <-chan error {
 	return eChan
 }
 
-func (e *RedisEngine) publishAdmin(message *AdminCommand) <-chan error {
+func (e *RedisEngine) publishAdmin(message *adminCommand) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := e.app.encodeEngineAdminMessage(message)
