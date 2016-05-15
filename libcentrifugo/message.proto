@@ -13,22 +13,27 @@ option (gogoproto.populate_all) = true;
 option (gogoproto.testgen_all) = true;
 
 message ClientInfo {
-  required string User = 1 [(gogoproto.jsontag) = "user"];
-  required string Client = 2 [(gogoproto.jsontag) = "client"];
+  optional string User = 1 [(gogoproto.jsontag) = "user"];
+  optional string Client = 2 [(gogoproto.jsontag) = "client"];
   optional bytes DefaultInfo = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "default_info,omitempty", (gogoproto.nullable) = true];
   optional bytes ChannelInfo = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "channel_info,omitempty", (gogoproto.nullable) = true];
 }
 
 message Message {
-  required string UID = 1 [(gogoproto.jsontag) = "uid"];
-  required string Timestamp = 2 [(gogoproto.jsontag) = "timestamp"];
-  required string Channel = 3 [(gogoproto.jsontag) = "channel"];
-  required bytes Data = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = true];
+  optional string UID = 1 [(gogoproto.jsontag) = "uid"];
+  optional string Timestamp = 2 [(gogoproto.jsontag) = "timestamp"];
+  optional string Channel = 3 [(gogoproto.jsontag) = "channel"];
+  optional bytes Data = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = true];
   optional string Client = 5 [(gogoproto.jsontag) = "client,omitempty"];
   optional ClientInfo Info = 6 [(gogoproto.jsontag) = "info,omitempty"];
 }
 
-message JoinLeaveMessage {
-  required string Channel = 1 [(gogoproto.jsontag) = "channel"];
-  required ClientInfo Data = 2 [(gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+message JoinMessage {
+  optional string Channel = 1 [(gogoproto.jsontag) = "channel"];
+  optional ClientInfo Data = 2 [(gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}
+
+message LeaveMessage {
+  optional string Channel = 1 [(gogoproto.jsontag) = "channel"];
+  optional ClientInfo Data = 2 [(gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
 }

@@ -20,13 +20,13 @@ func (e *testEngine) publishMessage(ch Channel, message *Message, opts *ChannelO
 	return eChan
 }
 
-func (e *testEngine) publishJoin(ch Channel, message *JoinLeaveMessage) <-chan error {
+func (e *testEngine) publishJoin(ch Channel, message *JoinMessage) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *testEngine) publishLeave(ch Channel, message *JoinLeaveMessage) <-chan error {
+func (e *testEngine) publishLeave(ch Channel, message *LeaveMessage) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan

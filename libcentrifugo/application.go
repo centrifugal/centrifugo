@@ -257,8 +257,8 @@ func (app *Application) decodeEngineClientMessage(data []byte) (*Message, error)
 	return &msg, nil
 }
 
-func (app *Application) decodeEngineJoinMessage(data []byte) (*JoinLeaveMessage, error) {
-	var msg JoinLeaveMessage
+func (app *Application) decodeEngineJoinMessage(data []byte) (*JoinMessage, error) {
+	var msg JoinMessage
 	err := msg.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -266,8 +266,13 @@ func (app *Application) decodeEngineJoinMessage(data []byte) (*JoinLeaveMessage,
 	return &msg, nil
 }
 
-func (app *Application) decodeEngineLeaveMessage(data []byte) (*JoinLeaveMessage, error) {
-	return app.decodeEngineJoinMessage(data)
+func (app *Application) decodeEngineLeaveMessage(data []byte) (*LeaveMessage, error) {
+	var msg LeaveMessage
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
 }
 
 func (app *Application) encodeEngineControlMessage(msg *controlCommand) ([]byte, error) {
@@ -282,11 +287,11 @@ func (app *Application) encodeEngineClientMessage(msg *Message) ([]byte, error) 
 	return msg.Marshal()
 }
 
-func (app *Application) encodeEngineJoinMessage(msg *JoinLeaveMessage) ([]byte, error) {
+func (app *Application) encodeEngineJoinMessage(msg *JoinMessage) ([]byte, error) {
 	return msg.Marshal()
 }
 
-func (app *Application) encodeEngineLeaveMessage(msg *JoinLeaveMessage) ([]byte, error) {
+func (app *Application) encodeEngineLeaveMessage(msg *LeaveMessage) ([]byte, error) {
 	return msg.Marshal()
 }
 
@@ -485,16 +490,16 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 // pubJoin allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
 func (app *Application) pubJoin(ch Channel, info ClientInfo) error {
-	return <-app.engine.publishJoin(ch, newJoinLeave(ch, info))
+	return <-app.engine.publishJoin(ch, newJoinMessage(ch, info))
 }
 
 // pubLeave allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
 func (app *Application) pubLeave(ch Channel, info ClientInfo) error {
-	return <-app.engine.publishLeave(ch, newJoinLeave(ch, info))
+	return <-app.engine.publishLeave(ch, newLeaveMessage(ch, info))
 }
 
-func (app *Application) joinMsg(ch Channel, message *JoinLeaveMessage) error {
+func (app *Application) joinMsg(ch Channel, message *JoinMessage) error {
 	hasCurrentSubscribers := app.clients.hasSubscribers(ch)
 	if !hasCurrentSubscribers {
 		return nil
@@ -508,7 +513,7 @@ func (app *Application) joinMsg(ch Channel, message *JoinLeaveMessage) error {
 	return app.clients.broadcast(ch, byteMessage)
 }
 
-func (app *Application) leaveMsg(ch Channel, message *JoinLeaveMessage) error {
+func (app *Application) leaveMsg(ch Channel, message *LeaveMessage) error {
 	hasCurrentSubscribers := app.clients.hasSubscribers(ch)
 	if !hasCurrentSubscribers {
 		return nil

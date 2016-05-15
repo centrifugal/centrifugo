@@ -93,8 +93,8 @@ func (m *clientMessageResponse) Marshal() ([]byte, error) {
 }
 
 type clientJoinResponse struct {
-	Method string           `json:"method"`
-	Body   JoinLeaveMessage `json:"body"`
+	Method string      `json:"method"`
+	Body   JoinMessage `json:"body"`
 }
 
 func newClientJoinMessage() *clientJoinResponse {
@@ -103,7 +103,16 @@ func newClientJoinMessage() *clientJoinResponse {
 	}
 }
 
-func writeJoinLeave(buf *bytes.Buffer, message *JoinLeaveMessage) {
+func writeJoin(buf *bytes.Buffer, message *JoinMessage) {
+	buf.WriteString(`{`)
+	buf.WriteString(`"channel":`)
+	encode.EncodeJSONString(buf, message.Channel, true)
+	buf.WriteString(`,"data":`)
+	writeClientInfo(buf, &message.Data)
+	buf.WriteString(`}`)
+}
+
+func writeLeave(buf *bytes.Buffer, message *LeaveMessage) {
 	buf.WriteString(`{`)
 	buf.WriteString(`"channel":`)
 	encode.EncodeJSONString(buf, message.Channel, true)
@@ -116,14 +125,14 @@ func (m *clientJoinResponse) Marshal() ([]byte, error) {
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
 	buf.WriteString(`{"method":"join","body":`)
-	writeJoinLeave(buf, &m.Body)
+	writeJoin(buf, &m.Body)
 	buf.WriteString(`}`)
 	return buf.Bytes(), nil
 }
 
 type clientLeaveResponse struct {
-	Method string           `json:"method"`
-	Body   JoinLeaveMessage `json:"body"`
+	Method string       `json:"method"`
+	Body   LeaveMessage `json:"body"`
 }
 
 func newClientLeaveMessage() *clientLeaveResponse {
@@ -136,7 +145,7 @@ func (m *clientLeaveResponse) Marshal() ([]byte, error) {
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
 	buf.WriteString(`{"method":"leave","body":`)
-	writeJoinLeave(buf, &m.Body)
+	writeLeave(buf, &m.Body)
 	buf.WriteString(`}`)
 	return buf.Bytes(), nil
 }

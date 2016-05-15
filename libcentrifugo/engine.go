@@ -23,9 +23,9 @@ type Engine interface {
 	// if enabled.
 	publishMessage(Channel, *Message, *ChannelOptions) <-chan error
 	// publishJoin allows to send join message into channel.
-	publishJoin(Channel, *JoinLeaveMessage) <-chan error
+	publishJoin(Channel, *JoinMessage) <-chan error
 	// publishLeave allows to send leave message into channel.
-	publishLeave(Channel, *JoinLeaveMessage) <-chan error
+	publishLeave(Channel, *LeaveMessage) <-chan error
 	// publishControl allows to send control message to all connected nodes.
 	publishControl(*controlCommand) <-chan error
 	// publishAdmin allows to send admin message to all connected admins.

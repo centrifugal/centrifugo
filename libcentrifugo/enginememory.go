@@ -57,13 +57,13 @@ func (e *MemoryEngine) publishMessage(ch Channel, message *Message, opts *Channe
 	return eChan
 }
 
-func (e *MemoryEngine) publishJoin(ch Channel, message *JoinLeaveMessage) <-chan error {
+func (e *MemoryEngine) publishJoin(ch Channel, message *JoinMessage) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.app.joinMsg(ch, message)
 	return eChan
 }
 
-func (e *MemoryEngine) publishLeave(ch Channel, message *JoinLeaveMessage) <-chan error {
+func (e *MemoryEngine) publishLeave(ch Channel, message *LeaveMessage) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.app.leaveMsg(ch, message)
 	return eChan

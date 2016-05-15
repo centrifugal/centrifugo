@@ -29,8 +29,15 @@ func newMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) Messag
 	}
 }
 
-func newJoinLeave(ch Channel, info ClientInfo) *JoinLeaveMessage {
-	return &JoinLeaveMessage{
+func newJoinMessage(ch Channel, info ClientInfo) *JoinMessage {
+	return &JoinMessage{
+		Channel: string(ch),
+		Data:    info,
+	}
+}
+
+func newLeaveMessage(ch Channel, info ClientInfo) *LeaveMessage {
+	return &LeaveMessage{
 		Channel: string(ch),
 		Data:    info,
 	}

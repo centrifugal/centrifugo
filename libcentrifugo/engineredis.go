@@ -830,7 +830,7 @@ func (e *RedisEngine) publishMessage(ch Channel, message *Message, opts *Channel
 	return eChan
 }
 
-func (e *RedisEngine) publishJoin(ch Channel, message *JoinLeaveMessage) <-chan error {
+func (e *RedisEngine) publishJoin(ch Channel, message *JoinMessage) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := e.app.encodeEngineJoinMessage(message)
@@ -850,7 +850,7 @@ func (e *RedisEngine) publishJoin(ch Channel, message *JoinLeaveMessage) <-chan 
 	return eChan
 }
 
-func (e *RedisEngine) publishLeave(ch Channel, message *JoinLeaveMessage) <-chan error {
+func (e *RedisEngine) publishLeave(ch Channel, message *LeaveMessage) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := e.app.encodeEngineLeaveMessage(message)
