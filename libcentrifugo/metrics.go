@@ -14,6 +14,27 @@ import (
 	"github.com/FZambia/go-logger"
 )
 
+// serverStats contains state and metrics information from running Centrifugo nodes.
+type serverStats struct {
+	Nodes           []nodeInfo `json:"nodes"`
+	MetricsInterval int64      `json:"metrics_interval"`
+}
+
+// nodeInfo contains information and statistics about Centrifugo node.
+type nodeInfo struct {
+	UID        string `json:"uid"`
+	Name       string `json:"name"`
+	Goroutines int    `json:"num_goroutine"`
+	Clients    int    `json:"num_clients"`
+	Unique     int    `json:"num_unique_clients"`
+	Channels   int    `json:"num_channels"`
+	Started    int64  `json:"started_at"`
+	Gomaxprocs int    `json:"gomaxprocs"`
+	NumCPU     int    `json:"num_cpu"`
+	metrics
+	updated int64
+}
+
 // metrics contains various Centrifugo statistic and metric information aggregated
 // once in a configurable interval.
 type metrics struct {

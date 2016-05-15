@@ -1,5 +1,9 @@
 package libcentrifugo
 
+import (
+	"encoding/json"
+)
+
 type historyOpts struct {
 	// Limit sets the max amount of messages that must be returned.
 	// 0 means no limit - i.e. return all history messages.
@@ -49,4 +53,69 @@ type Engine interface {
 	// history returns a slice of history messages for channel according to provided
 	// historyOpts.
 	history(Channel, historyOpts) ([]Message, error)
+}
+
+func decodeEngineControlMessage(data []byte) (*controlCommand, error) {
+	var cmd controlCommand
+	err := json.Unmarshal(data, &cmd)
+	if err != nil {
+		return nil, err
+	}
+	return &cmd, nil
+}
+
+func decodeEngineAdminMessage(data []byte) (*adminCommand, error) {
+	var cmd adminCommand
+	err := json.Unmarshal(data, &cmd)
+	if err != nil {
+		return nil, err
+	}
+	return &cmd, nil
+}
+
+func decodeEngineClientMessage(data []byte) (*Message, error) {
+	var msg Message
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
+func decodeEngineJoinMessage(data []byte) (*JoinMessage, error) {
+	var msg JoinMessage
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
+func decodeEngineLeaveMessage(data []byte) (*LeaveMessage, error) {
+	var msg LeaveMessage
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
+func encodeEngineControlMessage(msg *controlCommand) ([]byte, error) {
+	return json.Marshal(msg)
+}
+
+func encodeEngineAdminMessage(msg *adminCommand) ([]byte, error) {
+	return json.Marshal(msg)
+}
+
+func encodeEngineClientMessage(msg *Message) ([]byte, error) {
+	return msg.Marshal()
+}
+
+func encodeEngineJoinMessage(msg *JoinMessage) ([]byte, error) {
+	return msg.Marshal()
+}
+
+func encodeEngineLeaveMessage(msg *LeaveMessage) ([]byte, error) {
+	return msg.Marshal()
 }

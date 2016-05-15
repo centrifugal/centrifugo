@@ -56,27 +56,6 @@ type Application struct {
 	metrics *metricsRegistry
 }
 
-// Stats contains state and metrics information from running Centrifugo nodes.
-type serverStats struct {
-	Nodes           []nodeInfo `json:"nodes"`
-	MetricsInterval int64      `json:"metrics_interval"`
-}
-
-// nodeInfo contains information and statistics about Centrifugo node.
-type nodeInfo struct {
-	UID        string `json:"uid"`
-	Name       string `json:"name"`
-	Goroutines int    `json:"num_goroutine"`
-	Clients    int    `json:"num_clients"`
-	Unique     int    `json:"num_unique_clients"`
-	Channels   int    `json:"num_channels"`
-	Started    int64  `json:"started_at"`
-	Gomaxprocs int    `json:"gomaxprocs"`
-	NumCPU     int    `json:"num_cpu"`
-	metrics
-	updated int64
-}
-
 // NewApplication returns new Application instance, the only required argument is
 // config, structure and engine must be set via corresponding methods.
 func NewApplication(config *Config) (*Application, error) {
@@ -228,71 +207,6 @@ func (app *Application) node() nodeInfo {
 	info.metrics = *app.metrics.GetRawMetrics()
 
 	return info
-}
-
-func (app *Application) decodeEngineControlMessage(data []byte) (*controlCommand, error) {
-	var cmd controlCommand
-	err := json.Unmarshal(data, &cmd)
-	if err != nil {
-		return nil, err
-	}
-	return &cmd, nil
-}
-
-func (app *Application) decodeEngineAdminMessage(data []byte) (*adminCommand, error) {
-	var cmd adminCommand
-	err := json.Unmarshal(data, &cmd)
-	if err != nil {
-		return nil, err
-	}
-	return &cmd, nil
-}
-
-func (app *Application) decodeEngineClientMessage(data []byte) (*Message, error) {
-	var msg Message
-	err := msg.Unmarshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return &msg, nil
-}
-
-func (app *Application) decodeEngineJoinMessage(data []byte) (*JoinMessage, error) {
-	var msg JoinMessage
-	err := msg.Unmarshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return &msg, nil
-}
-
-func (app *Application) decodeEngineLeaveMessage(data []byte) (*LeaveMessage, error) {
-	var msg LeaveMessage
-	err := msg.Unmarshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return &msg, nil
-}
-
-func (app *Application) encodeEngineControlMessage(msg *controlCommand) ([]byte, error) {
-	return json.Marshal(msg)
-}
-
-func (app *Application) encodeEngineAdminMessage(msg *adminCommand) ([]byte, error) {
-	return json.Marshal(msg)
-}
-
-func (app *Application) encodeEngineClientMessage(msg *Message) ([]byte, error) {
-	return msg.Marshal()
-}
-
-func (app *Application) encodeEngineJoinMessage(msg *JoinMessage) ([]byte, error) {
-	return msg.Marshal()
-}
-
-func (app *Application) encodeEngineLeaveMessage(msg *LeaveMessage) ([]byte, error) {
-	return msg.Marshal()
 }
 
 // controlMsg handles messages from control channel - control

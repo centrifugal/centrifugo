@@ -646,31 +646,31 @@ func (e *RedisEngine) runPubSub() {
 			}
 			switch chID {
 			case controlChannel:
-				message, err := e.app.decodeEngineControlMessage(n.Data)
+				message, err := decodeEngineControlMessage(n.Data)
 				if err != nil {
 					continue
 				}
 				e.app.controlMsg(message)
 			case adminChannel:
-				message, _ := e.app.decodeEngineAdminMessage(n.Data)
+				message, _ := decodeEngineAdminMessage(n.Data)
 				e.app.adminMsg(message)
 			default:
 				ch, msgType := e.channelFromChannelID(chID)
 				switch msgType {
 				case "message":
-					message, err := e.app.decodeEngineClientMessage(n.Data)
+					message, err := decodeEngineClientMessage(n.Data)
 					if err != nil {
 						continue
 					}
 					e.app.clientMsg(ch, message)
 				case "join":
-					message, err := e.app.decodeEngineJoinMessage(n.Data)
+					message, err := decodeEngineJoinMessage(n.Data)
 					if err != nil {
 						continue
 					}
 					e.app.joinMsg(ch, message)
 				case "leave":
-					message, err := e.app.decodeEngineLeaveMessage(n.Data)
+					message, err := decodeEngineLeaveMessage(n.Data)
 					if err != nil {
 						continue
 					}
@@ -801,7 +801,7 @@ func (e *RedisEngine) channelFromChannelID(chID ChannelID) (Channel, string) {
 func (e *RedisEngine) publishMessage(ch Channel, message *Message, opts *ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 
-	byteMessage, err := e.app.encodeEngineClientMessage(message)
+	byteMessage, err := encodeEngineClientMessage(message)
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -833,7 +833,7 @@ func (e *RedisEngine) publishMessage(ch Channel, message *Message, opts *Channel
 func (e *RedisEngine) publishJoin(ch Channel, message *JoinMessage) <-chan error {
 	eChan := make(chan error, 1)
 
-	byteMessage, err := e.app.encodeEngineJoinMessage(message)
+	byteMessage, err := encodeEngineJoinMessage(message)
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -853,7 +853,7 @@ func (e *RedisEngine) publishJoin(ch Channel, message *JoinMessage) <-chan error
 func (e *RedisEngine) publishLeave(ch Channel, message *LeaveMessage) <-chan error {
 	eChan := make(chan error, 1)
 
-	byteMessage, err := e.app.encodeEngineLeaveMessage(message)
+	byteMessage, err := encodeEngineLeaveMessage(message)
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -873,7 +873,7 @@ func (e *RedisEngine) publishLeave(ch Channel, message *LeaveMessage) <-chan err
 func (e *RedisEngine) publishControl(message *controlCommand) <-chan error {
 	eChan := make(chan error, 1)
 
-	byteMessage, err := e.app.encodeEngineControlMessage(message)
+	byteMessage, err := encodeEngineControlMessage(message)
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -893,7 +893,7 @@ func (e *RedisEngine) publishControl(message *controlCommand) <-chan error {
 func (e *RedisEngine) publishAdmin(message *adminCommand) <-chan error {
 	eChan := make(chan error, 1)
 
-	byteMessage, err := e.app.encodeEngineAdminMessage(message)
+	byteMessage, err := encodeEngineAdminMessage(message)
 	if err != nil {
 		eChan <- err
 		return eChan
