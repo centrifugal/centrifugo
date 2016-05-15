@@ -14,9 +14,9 @@ import (
 	"github.com/FZambia/go-logger"
 )
 
-// Metrics contains various Centrifugo statistic and metric information aggregated
+// metrics contains various Centrifugo statistic and metric information aggregated
 // once in a configurable interval.
-type Metrics struct {
+type metrics struct {
 	// NumMsgPublished is how many messages were published into channels.
 	NumMsgPublished int64 `json:"num_msg_published"`
 
@@ -164,11 +164,11 @@ func (m *metricsRegistry) UpdateSnapshot() {
 }
 
 // GetRawMetrics returns a read-only copy of the raw counter values.
-func (m *metricsRegistry) GetRawMetrics() *Metrics {
+func (m *metricsRegistry) GetRawMetrics() *metrics {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	return &Metrics{
+	return &metrics{
 		NumMsgPublished:   m.NumMsgPublished.LoadRaw(),
 		NumMsgQueued:      m.NumMsgQueued.LoadRaw(),
 		NumMsgSent:        m.NumMsgSent.LoadRaw(),
@@ -183,11 +183,11 @@ func (m *metricsRegistry) GetRawMetrics() *Metrics {
 
 // GetSnapshotMetrics returns a read-only copy of the deltas over the last
 // metrics interval.
-func (m *metricsRegistry) GetSnapshotMetrics() *Metrics {
+func (m *metricsRegistry) GetSnapshotMetrics() *metrics {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	return &Metrics{
+	return &metrics{
 		NumMsgPublished:   m.NumMsgPublished.LastIn(),
 		NumMsgQueued:      m.NumMsgQueued.LastIn(),
 		NumMsgSent:        m.NumMsgSent.LastIn(),

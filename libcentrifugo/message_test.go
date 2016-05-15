@@ -26,7 +26,7 @@ func TestMessage(t *testing.T) {
 }
 
 func BenchmarkClientResponseMarshalJSON(b *testing.B) {
-	responses := make([]*ClientMessageResponse, 10000)
+	responses := make([]*clientMessageResponse, 10000)
 	for i := 0; i < 10000; i++ {
 		resp := newClientMessage()
 		resp.Body = newMessage(Channel("test"+strconv.Itoa(i)), []byte("{}"), "", nil)
@@ -42,7 +42,7 @@ func BenchmarkClientResponseMarshalJSON(b *testing.B) {
 }
 
 func BenchmarkClientResponseMarshalManual(b *testing.B) {
-	responses := make([]*ClientMessageResponse, 10000)
+	responses := make([]*clientMessageResponse, 10000)
 	for i := 0; i < 10000; i++ {
 		resp := newClientMessage()
 		resp.Body = newMessage(Channel("test"+strconv.Itoa(i)), []byte("{}"), "", nil)

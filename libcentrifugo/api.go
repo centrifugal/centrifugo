@@ -156,7 +156,7 @@ func (app *Application) disconnectCmd(cmd *disconnectAPICommand) (*response, err
 func (app *Application) presenceCmd(cmd *presenceAPICommand) (*response, error) {
 	resp := newResponse("presence")
 	channel := cmd.Channel
-	body := &PresenceBody{
+	body := &presenceBody{
 		Channel: channel,
 	}
 	resp.Body = body
@@ -173,7 +173,7 @@ func (app *Application) presenceCmd(cmd *presenceAPICommand) (*response, error) 
 func (app *Application) historyCmd(cmd *historyAPICommand) (*response, error) {
 	resp := newResponse("history")
 	channel := cmd.Channel
-	body := &HistoryBody{
+	body := &historyBody{
 		Channel: channel,
 	}
 	resp.Body = body
@@ -189,7 +189,7 @@ func (app *Application) historyCmd(cmd *historyAPICommand) (*response, error) {
 // channelsCmd returns active channels.
 func (app *Application) channelsCmd() (*response, error) {
 	resp := newResponse("channels")
-	body := &ChannelsBody{}
+	body := &channelsBody{}
 	resp.Body = body
 	channels, err := app.channels()
 	if err != nil {
@@ -204,7 +204,7 @@ func (app *Application) channelsCmd() (*response, error) {
 // statsCmd returns active node stats.
 func (app *Application) statsCmd() (*response, error) {
 	resp := newResponse("stats")
-	body := &StatsBody{}
+	body := &statsBody{}
 	body.Data = app.stats()
 	resp.Body = body
 	return resp, nil
@@ -213,7 +213,7 @@ func (app *Application) statsCmd() (*response, error) {
 // nodeCmd returns simple counter metrics which update in real time for the current node only.
 func (app *Application) nodeCmd() (*response, error) {
 	resp := newResponse("node")
-	body := &NodeBody{}
+	body := &nodeBody{}
 	body.Data = app.node()
 	resp.Body = body
 	return resp, nil

@@ -21,31 +21,32 @@ type Engine interface {
 	// The returned value is channel in which we will send error as soon as engine finishes
 	// publish operation. Also the task of this method is to maintain history for channels
 	// if enabled.
-	publishMessage(ch Channel, message *Message, opts *ChannelOptions) <-chan error
+	publishMessage(Channel, *Message, *ChannelOptions) <-chan error
 	// publishJoin allows to send join message into channel.
-	publishJoin(ch Channel, message *JoinLeaveMessage) <-chan error
+	publishJoin(Channel, *JoinLeaveMessage) <-chan error
 	// publishLeave allows to send leave message into channel.
-	publishLeave(ch Channel, message *JoinLeaveMessage) <-chan error
+	publishLeave(Channel, *JoinLeaveMessage) <-chan error
 	// publishControl allows to send control message to all connected nodes.
-	publishControl(message *controlCommand) <-chan error
+	publishControl(*controlCommand) <-chan error
 	// publishAdmin allows to send admin message to all connected admins.
-	publishAdmin(message *adminCommand) <-chan error
+	publishAdmin(*adminCommand) <-chan error
 
 	// subscribe on channel.
-	subscribe(ch Channel) error
+	subscribe(Channel) error
 	// unsubscribe from channel.
-	unsubscribe(ch Channel) error
-	// channels returns slice of currently active channels IDs (with one or more subscribers).
+	unsubscribe(Channel) error
+	// channels returns slice of currently active channels (with one or more subscribers)
+	// on all Centrifugo nodes.
 	channels() ([]Channel, error)
 
-	// addPresence sets or updates presence info for connection with uid.
-	addPresence(ch Channel, uid ConnID, info ClientInfo) error
+	// addPresence sets or updates presence info in channel for connection with uid.
+	addPresence(Channel, ConnID, ClientInfo) error
 	// removePresence removes presence information for connection with uid.
-	removePresence(ch Channel, uid ConnID) error
+	removePresence(Channel, ConnID) error
 	// presence returns actual presence information for channel.
-	presence(ch Channel) (map[ConnID]ClientInfo, error)
+	presence(Channel) (map[ConnID]ClientInfo, error)
 
 	// history returns a slice of history messages for channel according to provided
 	// historyOpts.
-	history(ch Channel, opts historyOpts) ([]Message, error)
+	history(Channel, historyOpts) ([]Message, error)
 }

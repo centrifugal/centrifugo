@@ -26,7 +26,7 @@ type Application struct {
 	started int64
 
 	// nodes is a map with information about nodes known.
-	nodes map[string]NodeInfo
+	nodes map[string]nodeInfo
 
 	// nodesMu allows to synchronize access to nodes.
 	nodesMu sync.Mutex
@@ -57,13 +57,13 @@ type Application struct {
 }
 
 // Stats contains state and metrics information from running Centrifugo nodes.
-type Stats struct {
-	Nodes           []NodeInfo `json:"nodes"`
+type serverStats struct {
+	Nodes           []nodeInfo `json:"nodes"`
 	MetricsInterval int64      `json:"metrics_interval"`
 }
 
-// NodeInfo contains information and statistics about Centrifugo node.
-type NodeInfo struct {
+// nodeInfo contains information and statistics about Centrifugo node.
+type nodeInfo struct {
 	UID        string `json:"uid"`
 	Name       string `json:"name"`
 	Goroutines int    `json:"num_goroutine"`
@@ -73,7 +73,7 @@ type NodeInfo struct {
 	Started    int64  `json:"started_at"`
 	Gomaxprocs int    `json:"gomaxprocs"`
 	NumCPU     int    `json:"num_cpu"`
-	Metrics
+	metrics
 	updated int64
 }
 
@@ -85,7 +85,7 @@ func NewApplication(config *Config) (*Application, error) {
 		config:     config,
 		clients:    newClientHub(),
 		admins:     newAdminHub(),
-		nodes:      make(map[string]NodeInfo),
+		nodes:      make(map[string]nodeInfo),
 		started:    time.Now().Unix(),
 		metrics:    &metricsRegistry{},
 		shutdownCh: make(chan struct{}),
@@ -197,9 +197,9 @@ func (app *Application) channels() ([]Channel, error) {
 	return app.engine.channels()
 }
 
-func (app *Application) stats() Stats {
+func (app *Application) stats() serverStats {
 	app.nodesMu.Lock()
-	nodes := make([]NodeInfo, len(app.nodes))
+	nodes := make([]nodeInfo, len(app.nodes))
 	i := 0
 	for _, info := range app.nodes {
 		nodes[i] = info
@@ -211,13 +211,13 @@ func (app *Application) stats() Stats {
 	interval := app.config.NodeMetricsInterval
 	app.RUnlock()
 
-	return Stats{
+	return serverStats{
 		MetricsInterval: int64(interval.Seconds()),
 		Nodes:           nodes,
 	}
 }
 
-func (app *Application) node() NodeInfo {
+func (app *Application) node() nodeInfo {
 	app.nodesMu.Lock()
 	info, ok := app.nodes[app.uid]
 	if !ok {
@@ -225,7 +225,7 @@ func (app *Application) node() NodeInfo {
 	}
 	app.nodesMu.Unlock()
 
-	info.Metrics = *app.metrics.GetRawMetrics()
+	info.metrics = *app.metrics.GetRawMetrics()
 
 	return info
 }
@@ -526,7 +526,7 @@ func (app *Application) leaveMsg(ch Channel, message *JoinLeaveMessage) error {
 // contains information about current node.
 func (app *Application) pubPing() error {
 	app.RLock()
-	info := NodeInfo{
+	info := nodeInfo{
 		UID:        app.uid,
 		Name:       app.config.Name,
 		Clients:    app.nClients(),
@@ -536,7 +536,7 @@ func (app *Application) pubPing() error {
 		Goroutines: runtime.NumGoroutine(),
 		NumCPU:     runtime.NumCPU(),
 		Gomaxprocs: runtime.GOMAXPROCS(-1),
-		Metrics:    *app.metrics.GetSnapshotMetrics(),
+		metrics:    *app.metrics.GetSnapshotMetrics(),
 	}
 	app.RUnlock()
 	cmd := &pingControlCommand{Info: info}

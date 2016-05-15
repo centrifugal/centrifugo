@@ -139,7 +139,7 @@ type historyAPICommand struct {
 // pingControlCommand allows nodes to know about each other - node sends this
 // control command periodically.
 type pingControlCommand struct {
-	Info NodeInfo `json:"info"`
+	Info nodeInfo `json:"info"`
 }
 
 // unsubscribeControlCommand required when node received unsubscribe API command –

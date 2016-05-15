@@ -8,17 +8,17 @@ import (
 	"github.com/oxtoacart/bpool"
 )
 
-// ClientMessageResponse uses strong type for body instead of interface{} - helps to
+// clientMessageResponse uses strong type for body instead of interface{} - helps to
 // reduce allocations when marshaling. Also it does not have error - because message
 // client response never contains it.
-type ClientMessageResponse struct {
+type clientMessageResponse struct {
 	Method string  `json:"method"`
 	Body   Message `json:"body"`
 }
 
 // newClientMessage returns initialized client message response.
-func newClientMessage() *ClientMessageResponse {
-	return &ClientMessageResponse{
+func newClientMessage() *clientMessageResponse {
+	return &clientMessageResponse{
 		Method: "message",
 	}
 }
@@ -83,7 +83,7 @@ func writeMessage(buf *bytes.Buffer, message *Message) {
 	buf.WriteString(`}`)
 }
 
-func (m *ClientMessageResponse) Marshal() ([]byte, error) {
+func (m *clientMessageResponse) Marshal() ([]byte, error) {
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
 	buf.WriteString(`{"method":"message","body":`)
@@ -92,13 +92,13 @@ func (m *ClientMessageResponse) Marshal() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-type ClientJoinResponse struct {
+type clientJoinResponse struct {
 	Method string           `json:"method"`
 	Body   JoinLeaveMessage `json:"body"`
 }
 
-func newClientJoinMessage() *ClientJoinResponse {
-	return &ClientJoinResponse{
+func newClientJoinMessage() *clientJoinResponse {
+	return &clientJoinResponse{
 		Method: "join",
 	}
 }
@@ -112,7 +112,7 @@ func writeJoinLeave(buf *bytes.Buffer, message *JoinLeaveMessage) {
 	buf.WriteString(`}`)
 }
 
-func (m *ClientJoinResponse) Marshal() ([]byte, error) {
+func (m *clientJoinResponse) Marshal() ([]byte, error) {
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
 	buf.WriteString(`{"method":"join","body":`)
@@ -121,18 +121,18 @@ func (m *ClientJoinResponse) Marshal() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-type ClientLeaveResponse struct {
+type clientLeaveResponse struct {
 	Method string           `json:"method"`
 	Body   JoinLeaveMessage `json:"body"`
 }
 
-func newClientLeaveMessage() *ClientLeaveResponse {
-	return &ClientLeaveResponse{
+func newClientLeaveMessage() *clientLeaveResponse {
+	return &clientLeaveResponse{
 		Method: "leave",
 	}
 }
 
-func (m *ClientLeaveResponse) Marshal() ([]byte, error) {
+func (m *clientLeaveResponse) Marshal() ([]byte, error) {
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
 	buf.WriteString(`{"method":"leave","body":`)
@@ -220,25 +220,25 @@ func newResponse(method string) *response {
 // order - from first executed to last one
 type multiResponse []*response
 
-// PresenceBody represents body of response in case of successful presence command.
-type PresenceBody struct {
+// presenceBody represents body of response in case of successful presence command.
+type presenceBody struct {
 	Channel Channel               `json:"channel"`
 	Data    map[ConnID]ClientInfo `json:"data"`
 }
 
-// HistoryBody represents body of response in case of successful history command.
-type HistoryBody struct {
+// historyBody represents body of response in case of successful history command.
+type historyBody struct {
 	Channel Channel   `json:"channel"`
 	Data    []Message `json:"data"`
 }
 
-// ChannelsBody represents body of response in case of successful channels command.
-type ChannelsBody struct {
+// channelsBody represents body of response in case of successful channels command.
+type channelsBody struct {
 	Data []Channel `json:"data"`
 }
 
-// ConnectBody represents body of response in case of successful connect command.
-type ConnectBody struct {
+// connectBody represents body of response in case of successful connect command.
+type connectBody struct {
 	Version string `json:"version"`
 	Client  ConnID `json:"client"`
 	Expires bool   `json:"expires"`
@@ -246,8 +246,8 @@ type ConnectBody struct {
 	TTL     int64  `json:"ttl"`
 }
 
-// SubscribeBody represents body of response in case of successful subscribe command.
-type SubscribeBody struct {
+// subscribeBody represents body of response in case of successful subscribe command.
+type subscribeBody struct {
 	Channel   Channel   `json:"channel"`
 	Status    bool      `json:"status"`
 	Last      MessageID `json:"last"`
@@ -255,39 +255,39 @@ type SubscribeBody struct {
 	Recovered bool      `json:"recovered"`
 }
 
-// UnsubscribeBody represents body of response in case of successful unsubscribe command.
-type UnsubscribeBody struct {
+// unsubscribeBody represents body of response in case of successful unsubscribe command.
+type unsubscribeBody struct {
 	Channel Channel `json:"channel"`
 	Status  bool    `json:"status"`
 }
 
-// PublishBody represents body of response in case of successful publish command.
-type PublishBody struct {
+// publishBody represents body of response in case of successful publish command.
+type publishBody struct {
 	Channel Channel `json:"channel"`
 	Status  bool    `json:"status"`
 }
 
-// DisconnectBody represents body of disconnect response when we want to tell
+// disconnectBody represents body of disconnect response when we want to tell
 // client to disconnect. Optionally we can give client an advice to continue
 // reconnecting after receiving this message.
-type DisconnectBody struct {
+type disconnectBody struct {
 	Reason    string `json:"reason"`
 	Reconnect bool   `json:"reconnect"`
 }
 
-// PingBody represents body of response in case of successful ping command.
-type PingBody struct {
+// pingBody represents body of response in case of successful ping command.
+type pingBody struct {
 	Data string `json:"data"`
 }
 
-// StatsBody represents body of response in case of successful stats command.
-type StatsBody struct {
-	Data Stats `json:"data"`
+// statsBody represents body of response in case of successful stats command.
+type statsBody struct {
+	Data serverStats `json:"data"`
 }
 
-// NodeBody represents body of response in case of successful node command.
-type NodeBody struct {
-	Data NodeInfo `json:"data"`
+// nodeBody represents body of response in case of successful node command.
+type nodeBody struct {
+	Data nodeInfo `json:"data"`
 }
 
 type adminMessageBody struct {

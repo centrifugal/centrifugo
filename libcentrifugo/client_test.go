@@ -514,7 +514,7 @@ func TestSubscribeRecover(t *testing.T) {
 	subscribeCmd := testSubscribeCmd("test")
 	resp, err := c.handleCmd(subscribeCmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, last, string(resp.Body.(*SubscribeBody).Last))
+	assert.Equal(t, last, string(resp.Body.(*subscribeBody).Last))
 
 	// publish 2 messages since last
 	data, _ = json.Marshal(map[string]string{"input": "test1"})
@@ -534,8 +534,8 @@ func TestSubscribeRecover(t *testing.T) {
 	subscribeLastCmd := testSubscribeRecoverCmd("test", last, false)
 	resp, err = c.handleCmd(subscribeLastCmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 0, len(resp.Body.(*SubscribeBody).Messages))
-	assert.NotEqual(t, last, resp.Body.(*SubscribeBody).Last)
+	assert.Equal(t, 0, len(resp.Body.(*subscribeBody).Messages))
+	assert.NotEqual(t, last, resp.Body.(*subscribeBody).Last)
 
 	// test normal recover
 	c, _ = newClient(app, &testSession{})
@@ -545,10 +545,10 @@ func TestSubscribeRecover(t *testing.T) {
 	subscribeLastCmd = testSubscribeRecoverCmd("test", last, true)
 	resp, err = c.handleCmd(subscribeLastCmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 2, len(resp.Body.(*SubscribeBody).Messages))
-	assert.Equal(t, true, resp.Body.(*SubscribeBody).Recovered)
-	assert.Equal(t, MessageID(""), resp.Body.(*SubscribeBody).Last)
-	messages = resp.Body.(*SubscribeBody).Messages
+	assert.Equal(t, 2, len(resp.Body.(*subscribeBody).Messages))
+	assert.Equal(t, true, resp.Body.(*subscribeBody).Recovered)
+	assert.Equal(t, MessageID(""), resp.Body.(*subscribeBody).Last)
+	messages = resp.Body.(*subscribeBody).Messages
 	m0, _ := json.Marshal(messages[0].Data)
 	m1, _ := json.Marshal(messages[1].Data)
 	// in reversed order in history
@@ -568,6 +568,6 @@ func TestSubscribeRecover(t *testing.T) {
 	subscribeLastCmd = testSubscribeRecoverCmd("test", last, true)
 	resp, err = c.handleCmd(subscribeLastCmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 5, len(resp.Body.(*SubscribeBody).Messages))
-	assert.Equal(t, false, resp.Body.(*SubscribeBody).Recovered)
+	assert.Equal(t, 5, len(resp.Body.(*subscribeBody).Messages))
+	assert.Equal(t, false, resp.Body.(*subscribeBody).Recovered)
 }

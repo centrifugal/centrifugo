@@ -363,7 +363,7 @@ func (c *client) message(msg []byte) error {
 
 func (c *client) disconnect(reason string, reconnect bool) error {
 	resp := newClientResponse("disconnect")
-	resp.Body = &DisconnectBody{
+	resp.Body = &disconnectBody{
 		Reason:    reason,
 		Reconnect: reconnect,
 	}
@@ -480,7 +480,7 @@ func (c *client) handleCmd(command clientCommand) (*clientResponse, error) {
 // of inactive period when no messages with payload travelled over wire
 func (c *client) pingCmd(cmd *pingClientCommand) (*clientResponse, error) {
 	resp := newClientResponse("ping")
-	resp.Body = &PingBody{
+	resp.Body = &pingBody{
 		Data: cmd.Data,
 	}
 	return resp, nil
@@ -563,7 +563,7 @@ func (c *client) connectCmd(cmd *connectClientCommand) (*clientResponse, error) 
 
 	c.User = user
 
-	body := &ConnectBody{}
+	body := &connectBody{}
 	body.Version = version
 	body.Expires = connLifetime > 0
 	body.TTL = connLifetime
@@ -643,7 +643,7 @@ func (c *client) refreshCmd(cmd *refreshClientCommand) (*clientResponse, error) 
 	version := c.app.config.Version
 	c.app.RUnlock()
 
-	body := &ConnectBody{}
+	body := &connectBody{}
 	body.Version = version
 	body.Expires = connLifetime > 0
 	body.TTL = connLifetime
@@ -716,7 +716,7 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (*clientResponse, err
 	insecure := c.app.config.Insecure
 	c.app.RUnlock()
 
-	body := &SubscribeBody{
+	body := &subscribeBody{
 		Channel: channel,
 	}
 	resp.Body = body
@@ -840,7 +840,7 @@ func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (*clientResponse,
 		return nil, ErrInvalidMessage
 	}
 
-	body := &UnsubscribeBody{
+	body := &unsubscribeBody{
 		Channel: channel,
 	}
 	resp.Body = body
@@ -899,7 +899,7 @@ func (c *client) publishCmd(cmd *publishClientCommand) (*clientResponse, error) 
 	channel := cmd.Channel
 	data := cmd.Data
 
-	body := &PublishBody{
+	body := &publishBody{
 		Channel: channel,
 	}
 	resp.Body = body
@@ -933,7 +933,7 @@ func (c *client) presenceCmd(cmd *presenceClientCommand) (*clientResponse, error
 
 	channel := cmd.Channel
 
-	body := &PresenceBody{
+	body := &presenceBody{
 		Channel: channel,
 	}
 
@@ -965,7 +965,7 @@ func (c *client) historyCmd(cmd *historyClientCommand) (*clientResponse, error) 
 
 	channel := cmd.Channel
 
-	body := &HistoryBody{
+	body := &historyBody{
 		Channel: channel,
 	}
 
