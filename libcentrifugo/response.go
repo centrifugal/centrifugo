@@ -112,15 +112,6 @@ func writeJoin(buf *bytes.Buffer, message *JoinMessage) {
 	buf.WriteString(`}`)
 }
 
-func writeLeave(buf *bytes.Buffer, message *LeaveMessage) {
-	buf.WriteString(`{`)
-	buf.WriteString(`"channel":`)
-	encode.EncodeJSONString(buf, message.Channel, true)
-	buf.WriteString(`,"data":`)
-	writeClientInfo(buf, &message.Data)
-	buf.WriteString(`}`)
-}
-
 func (m *clientJoinResponse) Marshal() ([]byte, error) {
 	buf := bufpool.Get()
 	defer bufpool.Put(buf)
@@ -139,6 +130,15 @@ func newClientLeaveMessage() *clientLeaveResponse {
 	return &clientLeaveResponse{
 		Method: "leave",
 	}
+}
+
+func writeLeave(buf *bytes.Buffer, message *LeaveMessage) {
+	buf.WriteString(`{`)
+	buf.WriteString(`"channel":`)
+	encode.EncodeJSONString(buf, message.Channel, true)
+	buf.WriteString(`,"data":`)
+	writeClientInfo(buf, &message.Data)
+	buf.WriteString(`}`)
 }
 
 func (m *clientLeaveResponse) Marshal() ([]byte, error) {

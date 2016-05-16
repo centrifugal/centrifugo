@@ -7,6 +7,7 @@ import (
 
 var hex = "0123456789abcdef"
 
+// EncodeJSONString escapes string value when encoding it to JSON.
 // From https://golang.org/src/encoding/json/encode.go
 func EncodeJSONString(buf *bytes.Buffer, s string, escapeHTML bool) {
 	buf.WriteByte('"')
