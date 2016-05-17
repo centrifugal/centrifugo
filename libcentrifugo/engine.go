@@ -1,9 +1,5 @@
 package libcentrifugo
 
-import (
-	"encoding/json"
-)
-
 type historyOpts struct {
 	// Limit sets the max amount of messages that must be returned.
 	// 0 means no limit - i.e. return all history messages.
@@ -31,9 +27,9 @@ type Engine interface {
 	// publishLeave allows to send leave message into channel.
 	publishLeave(Channel, *LeaveMessage) <-chan error
 	// publishControl allows to send control message to all connected nodes.
-	publishControl(*controlCommand) <-chan error
+	publishControl(*ControlMessage) <-chan error
 	// publishAdmin allows to send admin message to all connected admins.
-	publishAdmin(*adminCommand) <-chan error
+	publishAdmin(*AdminMessage) <-chan error
 
 	// subscribe on channel.
 	subscribe(Channel) error
@@ -53,24 +49,6 @@ type Engine interface {
 	// history returns a slice of history messages for channel according to provided
 	// historyOpts.
 	history(Channel, historyOpts) ([]Message, error)
-}
-
-func decodeEngineControlMessage(data []byte) (*controlCommand, error) {
-	var cmd controlCommand
-	err := json.Unmarshal(data, &cmd)
-	if err != nil {
-		return nil, err
-	}
-	return &cmd, nil
-}
-
-func decodeEngineAdminMessage(data []byte) (*adminCommand, error) {
-	var cmd adminCommand
-	err := json.Unmarshal(data, &cmd)
-	if err != nil {
-		return nil, err
-	}
-	return &cmd, nil
 }
 
 func decodeEngineClientMessage(data []byte) (*Message, error) {
@@ -100,12 +78,22 @@ func decodeEngineLeaveMessage(data []byte) (*LeaveMessage, error) {
 	return &msg, nil
 }
 
-func encodeEngineControlMessage(msg *controlCommand) ([]byte, error) {
-	return json.Marshal(msg)
+func decodeEngineControlMessage(data []byte) (*ControlMessage, error) {
+	var msg ControlMessage
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
 }
 
-func encodeEngineAdminMessage(msg *adminCommand) ([]byte, error) {
-	return json.Marshal(msg)
+func decodeEngineAdminMessage(data []byte) (*AdminMessage, error) {
+	var msg AdminMessage
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
 }
 
 func encodeEngineClientMessage(msg *Message) ([]byte, error) {
@@ -117,5 +105,13 @@ func encodeEngineJoinMessage(msg *JoinMessage) ([]byte, error) {
 }
 
 func encodeEngineLeaveMessage(msg *LeaveMessage) ([]byte, error) {
+	return msg.Marshal()
+}
+
+func encodeEngineControlMessage(msg *ControlMessage) ([]byte, error) {
+	return msg.Marshal()
+}
+
+func encodeEngineAdminMessage(msg *AdminMessage) ([]byte, error) {
 	return msg.Marshal()
 }

@@ -41,8 +41,7 @@ func (t *TestConn) close(reason string) error {
 }
 
 func newTestMessage() *Message {
-	msg := newMessage(Channel("test"), []byte("{}"), "", nil)
-	return &msg
+	return newMessage(Channel("test"), []byte("{}"), "", nil)
 }
 
 func TestMemoryEngine(t *testing.T) {

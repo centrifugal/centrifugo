@@ -178,44 +178,20 @@ func BenchmarkNamespaceKey(b *testing.B) {
 	}
 }
 
-func testPingControlCmd(uid string) *controlCommand {
-	params := json.RawMessage([]byte("{}"))
-	cmd := controlCommand{
-		UID:    uid,
-		Method: "ping",
-		Params: &params,
-	}
-	return &cmd
+func testPingControlCmd(uid string) *ControlMessage {
+	return newControlMessage(uid, "ping", []byte("{}"))
 }
 
-func testUnsubscribeControlCmd(uid string) *controlCommand {
-	params := json.RawMessage([]byte("{}"))
-	cmd := controlCommand{
-		UID:    uid,
-		Method: "unsubscribe",
-		Params: &params,
-	}
-	return &cmd
+func testUnsubscribeControlCmd(uid string) *ControlMessage {
+	return newControlMessage(uid, "unsubscribe", []byte("{}"))
 }
 
-func testDisconnectControlCmd(uid string) *controlCommand {
-	params := json.RawMessage([]byte("{}"))
-	cmd := controlCommand{
-		UID:    uid,
-		Method: "disconnect",
-		Params: &params,
-	}
-	return &cmd
+func testDisconnectControlCmd(uid string) *ControlMessage {
+	return newControlMessage(uid, "disconnect", []byte("{}"))
 }
 
-func testWrongControlCmd(uid string) *controlCommand {
-	params := json.RawMessage([]byte("{}"))
-	cmd := controlCommand{
-		UID:    uid,
-		Method: "wrong",
-		Params: &params,
-	}
-	return &cmd
+func testWrongControlCmd(uid string) *ControlMessage {
+	return newControlMessage(uid, "wrong", []byte("{}"))
 }
 
 func TestPublish(t *testing.T) {
@@ -350,7 +326,7 @@ func BenchmarkClientMsg(b *testing.B) {
 		app.clients.addSub(channel, c)
 		// add message to pool so we have messages for different channels.
 		testMsg := newMessage(channel, []byte("{\"hello world\": true}"), "", nil)
-		messagePool[i] = &testMsg
+		messagePool[i] = testMsg
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -409,7 +385,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 		suffix := i % nChannels
 		ch := Channel(fmt.Sprintf("channel-%d", suffix))
 		msg := newMessage(ch, []byte("{}"), "", nil)
-		inputData = append(inputData, received{ch, msg})
+		inputData = append(inputData, received{ch, *msg})
 	}
 
 	b.ResetTimer()

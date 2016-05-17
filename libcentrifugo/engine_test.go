@@ -32,13 +32,13 @@ func (e *testEngine) publishLeave(ch Channel, message *LeaveMessage) <-chan erro
 	return eChan
 }
 
-func (e *testEngine) publishAdmin(message *adminCommand) <-chan error {
+func (e *testEngine) publishAdmin(message *AdminMessage) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *testEngine) publishControl(message *controlCommand) <-chan error {
+func (e *testEngine) publishControl(message *ControlMessage) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan

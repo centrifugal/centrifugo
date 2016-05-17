@@ -209,10 +209,9 @@ func (app *Application) node() nodeInfo {
 	return info
 }
 
-// controlMsg handles messages from control channel - control
-// messages used for internal communication between nodes to share state
-// or commands.
-func (app *Application) controlMsg(cmd *controlCommand) error {
+// controlMsg handles messages from control channel - control messages used for internal
+// communication between nodes to share state or commands.
+func (app *Application) controlMsg(cmd *ControlMessage) error {
 
 	if cmd.UID == app.uid {
 		// Sent by this node.
@@ -253,7 +252,8 @@ func (app *Application) controlMsg(cmd *controlCommand) error {
 	}
 }
 
-func (app *Application) adminMsg(message *adminCommand) error {
+// adminMsg handlesadmin message broadcasting it to all admins connected to this node.
+func (app *Application) adminMsg(message *AdminMessage) error {
 	app.admins.RLock()
 	hasAdmins := len(app.admins.connections) > 0
 	app.admins.RUnlock()
@@ -274,7 +274,7 @@ func (app *Application) adminMsg(message *adminCommand) error {
 
 // clientMsg handles messages published by web application or client into channel.
 // The goal of this method to deliver this message to all clients on this node subscribed
-// on channel and to all connected admins if any and watch option enabled.
+// on channel.
 func (app *Application) clientMsg(ch Channel, message *Message) error {
 
 	// TODO: move to memory engine.
@@ -366,23 +366,12 @@ func (app *Application) publish(ch Channel, data []byte, client ConnID, info *Cl
 // pubControl publishes message into control channel so all running
 // nodes will receive and handle it.
 func (app *Application) pubControl(method string, params []byte) error {
-	raw := json.RawMessage(params)
-	message := controlCommand{
-		UID:    app.uid,
-		Method: method,
-		Params: &raw,
-	}
-	return <-app.engine.publishControl(&message)
+	return <-app.engine.publishControl(newControlMessage(app.uid, method, params))
 }
 
 // pubAdmin publishes message to admins.
 func (app *Application) pubAdmin(method string, params []byte) <-chan error {
-	raw := json.RawMessage(params)
-	message := adminCommand{
-		Method: method,
-		Params: &raw,
-	}
-	return app.engine.publishAdmin(&message)
+	return app.engine.publishAdmin(newAdminMessage(method, params))
 }
 
 // pubClient publishes message into channel so all running nodes
@@ -398,7 +387,7 @@ func (app *Application) pubClient(ch Channel, chOpts ChannelOptions, data []byte
 			app.pubAdmin("message", byteMessage)
 		}
 	}
-	return app.engine.publishMessage(ch, &message, &chOpts)
+	return app.engine.publishMessage(ch, message, &chOpts)
 }
 
 // pubJoin allows to publish join message into channel when someone subscribes on it
