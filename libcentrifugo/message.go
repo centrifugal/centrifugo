@@ -8,8 +8,8 @@ import (
 	"github.com/nats-io/nuid"
 )
 
-func newClientInfo(user UserID, client ConnID, defaultInfo *raw.Raw, channelInfo *raw.Raw) ClientInfo {
-	return ClientInfo{
+func newClientInfo(user UserID, client ConnID, defaultInfo *raw.Raw, channelInfo *raw.Raw) *ClientInfo {
+	return &ClientInfo{
 		User:        string(user),
 		Client:      string(client),
 		DefaultInfo: defaultInfo,
@@ -17,9 +17,9 @@ func newClientInfo(user UserID, client ConnID, defaultInfo *raw.Raw, channelInfo
 	}
 }
 
-func newMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) Message {
+func newMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) *Message {
 	raw := raw.Raw(data)
-	return Message{
+	return &Message{
 		UID:       nuid.Next(),
 		Timestamp: strconv.FormatInt(time.Now().Unix(), 10),
 		Info:      info,
@@ -40,5 +40,22 @@ func newLeaveMessage(ch Channel, info ClientInfo) *LeaveMessage {
 	return &LeaveMessage{
 		Channel: string(ch),
 		Data:    info,
+	}
+}
+
+func newControlMessage(uid string, method string, params []byte) *ControlMessage {
+	raw := raw.Raw(params)
+	return &ControlMessage{
+		UID:    uid,
+		Method: method,
+		Params: &raw,
+	}
+}
+
+func newAdminMessage(method string, params []byte) *AdminMessage {
+	raw := raw.Raw(params)
+	return &AdminMessage{
+		Method: method,
+		Params: &raw,
 	}
 }

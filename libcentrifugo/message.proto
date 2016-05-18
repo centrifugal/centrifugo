@@ -1,6 +1,6 @@
 syntax = 'proto2';
 // Example how to update gogoprotobuf generated code (Mac OS)
-// protobuf 2.6.0 installed over homebrew: brew install protobuf260
+// protobuf 2.6.0 installed over homebrew: brew install homebrew/versions/protobuf260
 // protoc --proto_path=../../../../:/usr/local/Cellar/protobuf260/2.6.0/include/:. --gogofaster_out=. message.proto
 
 
@@ -36,4 +36,18 @@ message JoinMessage {
 message LeaveMessage {
   optional string Channel = 1 [(gogoproto.jsontag) = "channel"];
   optional ClientInfo Data = 2 [(gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}
+
+message ControlMessage {
+  // UID in case of controlCommand is a unique node ID which originally published
+  // this control command.
+  optional string UID = 1 [(gogoproto.jsontag) = "uid"];
+  optional string Method = 2 [(gogoproto.jsontag) = "method"];
+  optional bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = true];
+}
+
+message AdminMessage {
+  optional string UID = 1 [(gogoproto.jsontag) = "uid"];
+  optional string Method = 2 [(gogoproto.jsontag) = "method"];
+  optional bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = true];
 }

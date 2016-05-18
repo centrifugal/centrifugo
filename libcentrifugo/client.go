@@ -283,7 +283,7 @@ func (c *client) info(ch Channel) ClientInfo {
 	} else {
 		rawChannelInfo = nil
 	}
-	return newClientInfo(c.User, c.UID, rawDefaultInfo, rawChannelInfo)
+	return *newClientInfo(c.User, c.UID, rawDefaultInfo, rawChannelInfo)
 }
 
 func cmdFromClientMsg(msgBytes []byte) ([]clientCommand, error) {

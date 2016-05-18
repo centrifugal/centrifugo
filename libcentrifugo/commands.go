@@ -27,20 +27,6 @@ type apiCommand struct {
 	Params json.RawMessage `json:"params"`
 }
 
-type adminCommand struct {
-	UID    string           `json:"uid"`
-	Method string           `json:"method"`
-	Params *json.RawMessage `json:"params"`
-}
-
-type controlCommand struct {
-	// UID in case of controlCommand is a unique node ID which originally published
-	// this control command.
-	UID    string           `json:"uid"`
-	Method string           `json:"method"`
-	Params *json.RawMessage `json:"params"`
-}
-
 // connectClientCommand is a command to authorize connection - it contains user ID
 // in web application, additional connection information as JSON string, timestamp
 // with unix seconds on moment when connect parameters generated and HMAC token to

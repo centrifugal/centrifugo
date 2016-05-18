@@ -870,7 +870,7 @@ func (e *RedisEngine) publishLeave(ch Channel, message *LeaveMessage) <-chan err
 	return eChan
 }
 
-func (e *RedisEngine) publishControl(message *controlCommand) <-chan error {
+func (e *RedisEngine) publishControl(message *ControlMessage) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := encodeEngineControlMessage(message)
@@ -890,7 +890,7 @@ func (e *RedisEngine) publishControl(message *controlCommand) <-chan error {
 	return eChan
 }
 
-func (e *RedisEngine) publishAdmin(message *adminCommand) <-chan error {
+func (e *RedisEngine) publishAdmin(message *AdminMessage) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := encodeEngineAdminMessage(message)
