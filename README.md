@@ -3,7 +3,7 @@
 Centrifugo is a real-time messaging server. This is a successor of 
 [Centrifuge](https://github.com/centrifugal/centrifuge). Please note that it can be used in conjunction with your application backend written in any language - Python, Ruby, Perl, PHP, Javascript, Java, Objective-C etc.
 
-In a nutshell this is a server running near your application and keeping lots of persistent Websocket or SockJS connections from your application clients (from web browsers or other environments). When some event happens you can broadcast it to all interested clients using Centrifugo API.
+In a nutshell this is a server running near your application and keeping lots of persistent Websocket or SockJS connections from your application clients (from [web](https://github.com/centrifugal/centrifuge-js) browsers or other environments like [iOS](https://github.com/centrifugal/centrifuge-ios) or [Android](https://github.com/centrifugal/centrifuge-android) apps). When some event happens you can broadcast it to all interested clients using Centrifugo API.
 
 To get more information what is it for and how it works – please, read 
 [documentation](http://fzambia.gitbooks.io/centrifugal/content/).
