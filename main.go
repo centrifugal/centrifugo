@@ -14,10 +14,10 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
-	"github.com/centrifugal/centrifugo/libcentrifugo"
 )
 
 func setupLogging() {
@@ -154,7 +154,7 @@ func Main() {
 			viper.SetDefault("user_channel_boundary", "#")
 			viper.SetDefault("user_channel_separator", ",")
 			viper.SetDefault("client_channel_boundary", "&")
-			viper.SetDefault("sockjs_url", "//cdn.jsdelivr.net/sockjs/1.0/sockjs.min.js")
+			viper.SetDefault("sockjs_url", "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js")
 
 			viper.SetDefault("redis_connect_timeout", 1)
 			viper.SetDefault("redis_write_timeout", 1)
