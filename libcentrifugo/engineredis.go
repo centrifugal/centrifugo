@@ -1078,23 +1078,6 @@ func (e *RedisEngine) history(ch Channel, opts historyOpts) ([]Message, error) {
 	return sliceOfMessages(reply, nil)
 }
 
-func sliceOfChannelIDs(result interface{}, prefix string, err error) ([]ChannelID, error) {
-	values, err := redis.Values(result, err)
-	if err != nil {
-		return nil, err
-	}
-	channels := make([]ChannelID, len(values))
-	for i := 0; i < len(values); i++ {
-		value, okValue := values[i].([]byte)
-		if !okValue {
-			return nil, errors.New("error getting ChannelID value")
-		}
-		chID := ChannelID(value)
-		channels[i] = chID
-	}
-	return channels, nil
-}
-
 // Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
 func (e *RedisEngine) channels() ([]Channel, error) {
 	conn := e.pool.Get()
