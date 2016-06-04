@@ -7,10 +7,10 @@ import (
 )
 
 // apiCmd builds API command and dispatches it into correct handler method.
-func (app *Application) apiCmd(command apiCommand) (*response, error) {
+func (app *Application) apiCmd(command apiCommand) (*apiResponse, error) {
 
 	var err error
-	var resp *response
+	var resp *apiResponse
 
 	method := command.Method
 	params := command.Params
@@ -83,8 +83,8 @@ func (app *Application) apiCmd(command apiCommand) (*response, error) {
 }
 
 // publishCmd publishes data into channel.
-func (app *Application) publishCmd(cmd *publishAPICommand) (*response, error) {
-	resp := newResponse("publish")
+func (app *Application) publishCmd(cmd *publishAPICommand) (*apiResponse, error) {
+	resp := newAPIResponse("publish")
 	channel := cmd.Channel
 	data := cmd.Data
 	err := app.publish(channel, data, cmd.Client, nil, false)
@@ -96,8 +96,8 @@ func (app *Application) publishCmd(cmd *publishAPICommand) (*response, error) {
 }
 
 // broadcastCmd publishes data into multiple channels.
-func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error) {
-	resp := newResponse("broadcast")
+func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*apiResponse, error) {
+	resp := newAPIResponse("broadcast")
 	channels := cmd.Channels
 	data := cmd.Data
 	if len(channels) == 0 {
@@ -127,8 +127,8 @@ func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error
 
 // unsubscribeCmd unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes.
-func (app *Application) unsubcribeCmd(cmd *unsubscribeAPICommand) (*response, error) {
-	resp := newResponse("unsubscribe")
+func (app *Application) unsubcribeCmd(cmd *unsubscribeAPICommand) (*apiResponse, error) {
+	resp := newAPIResponse("unsubscribe")
 	channel := cmd.Channel
 	user := cmd.User
 	err := app.Unsubscribe(user, channel)
@@ -141,8 +141,8 @@ func (app *Application) unsubcribeCmd(cmd *unsubscribeAPICommand) (*response, er
 
 // disconnectCmd disconnects user by its ID and sends disconnect
 // control message to other nodes so they could also disconnect this user.
-func (app *Application) disconnectCmd(cmd *disconnectAPICommand) (*response, error) {
-	resp := newResponse("disconnect")
+func (app *Application) disconnectCmd(cmd *disconnectAPICommand) (*apiResponse, error) {
+	resp := newAPIResponse("disconnect")
 	user := cmd.User
 	err := app.Disconnect(user)
 	if err != nil {
@@ -153,8 +153,8 @@ func (app *Application) disconnectCmd(cmd *disconnectAPICommand) (*response, err
 }
 
 // presenceCmd returns response with presense information for channel.
-func (app *Application) presenceCmd(cmd *presenceAPICommand) (*response, error) {
-	resp := newResponse("presence")
+func (app *Application) presenceCmd(cmd *presenceAPICommand) (*apiResponse, error) {
+	resp := newAPIResponse("presence")
 	channel := cmd.Channel
 	body := &presenceBody{
 		Channel: channel,
@@ -170,8 +170,8 @@ func (app *Application) presenceCmd(cmd *presenceAPICommand) (*response, error) 
 }
 
 // historyCmd returns response with history information for channel.
-func (app *Application) historyCmd(cmd *historyAPICommand) (*response, error) {
-	resp := newResponse("history")
+func (app *Application) historyCmd(cmd *historyAPICommand) (*apiResponse, error) {
+	resp := newAPIResponse("history")
 	channel := cmd.Channel
 	body := &historyBody{
 		Channel: channel,
@@ -187,8 +187,8 @@ func (app *Application) historyCmd(cmd *historyAPICommand) (*response, error) {
 }
 
 // channelsCmd returns active channels.
-func (app *Application) channelsCmd() (*response, error) {
-	resp := newResponse("channels")
+func (app *Application) channelsCmd() (*apiResponse, error) {
+	resp := newAPIResponse("channels")
 	body := &channelsBody{}
 	resp.Body = body
 	channels, err := app.channels()
@@ -202,8 +202,8 @@ func (app *Application) channelsCmd() (*response, error) {
 }
 
 // statsCmd returns active node stats.
-func (app *Application) statsCmd() (*response, error) {
-	resp := newResponse("stats")
+func (app *Application) statsCmd() (*apiResponse, error) {
+	resp := newAPIResponse("stats")
 	body := &statsBody{}
 	body.Data = app.stats()
 	resp.Body = body
@@ -211,8 +211,8 @@ func (app *Application) statsCmd() (*response, error) {
 }
 
 // nodeCmd returns simple counter metrics which update in real time for the current node only.
-func (app *Application) nodeCmd() (*response, error) {
-	resp := newResponse("node")
+func (app *Application) nodeCmd() (*apiResponse, error) {
+	resp := newAPIResponse("node")
 	body := &nodeBody{}
 	body.Data = app.node()
 	resp.Body = body

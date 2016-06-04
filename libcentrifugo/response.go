@@ -150,85 +150,6 @@ func (m *clientLeaveResponse) Marshal() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-type errorAdvice string
-
-const (
-	errorAdviceNone  errorAdvice = ""
-	errorAdviceFix   errorAdvice = "fix"
-	errorAdviceRetry errorAdvice = "retry"
-)
-
-type clientError struct {
-	err    error
-	Advice errorAdvice `json:"advice,omitempty"`
-}
-
-// clientResponse represents an answer Centrifugo sends to client request
-// commands or protocol messages sent to client asynchronously.
-type clientResponse struct {
-	UID    string      `json:"uid,omitempty"`
-	Body   interface{} `json:"body"`
-	Method string      `json:"method"`
-	Error  string      `json:"error,omitempty"` // Use clientResponse.Err() to set.
-	clientError
-}
-
-// newClientResponse returns client response initialized with provided method.
-// Setting other client response fields is a caller responsibility.
-func newClientResponse(method string) *clientResponse {
-	return &clientResponse{
-		Method: method,
-	}
-}
-
-// Err set a client error on the client response and updates the 'err'
-// field in the response. If an error has already been set it will be kept.
-func (r *clientResponse) Err(err clientError) {
-	if r.clientError.err != nil {
-		// error already set.
-		return
-	}
-	r.clientError = err
-	e := err.err.Error()
-	r.Error = e
-}
-
-// multiClientResponse is a slice of responses in execution order - from first
-// executed to last one
-type multiClientResponse []*clientResponse
-
-// response represents an answer Centrifugo sends to API request commands
-type response struct {
-	UID    string      `json:"uid,omitempty"`
-	Body   interface{} `json:"body"`
-	Error  *string     `json:"error"`
-	Method string      `json:"method"`
-	err    error       // Use response.Err() to set.
-}
-
-// Err set an error message on the response and updates the 'err' field in
-// the response. If an error has already been set it will be kept.
-func (r *response) Err(err error) {
-	if r.err != nil {
-		return
-	}
-	// TODO: Add logging here? (klauspost)
-	e := err.Error()
-	r.Error = &e
-	r.err = err
-	return
-}
-
-func newResponse(method string) *response {
-	return &response{
-		Method: method,
-	}
-}
-
-// multiResponse is a slice of responses in execution
-// order - from first executed to last one
-type multiResponse []*response
-
 // presenceBody represents body of response in case of successful presence command.
 type presenceBody struct {
 	Channel Channel               `json:"channel"`
@@ -302,3 +223,178 @@ type nodeBody struct {
 type adminMessageBody struct {
 	Message Message `json:"message"`
 }
+
+type response interface {
+	SetErr(err responseError)
+	SetUID(uid string)
+	Marshal() ([]byte, error)
+}
+
+type errorAdvice string
+
+const (
+	errorAdviceNone  errorAdvice = ""
+	errorAdviceFix   errorAdvice = "fix"
+	errorAdviceRetry errorAdvice = "retry"
+)
+
+type responseError struct {
+	err    error
+	Advice errorAdvice `json:"advice,omitempty"`
+}
+
+// clientResponse represents an answer Centrifugo sends to client request
+// commands or protocol messages sent to client asynchronously.
+type clientResponse struct {
+	UID    string `json:"uid,omitempty"`
+	Method string `json:"method"`
+	Error  string `json:"error,omitempty"` // Use clientResponse.Err() to set.
+	responseError
+}
+
+type clientConnectResponse struct {
+	clientResponse
+	Body connectBody `json:"body"`
+}
+
+func newClientConnectResponse() response {
+	return &clientConnectResponse{
+		Method: "connect",
+	}
+}
+
+type clientRefreshResponse struct {
+	clientResponse
+	Body connectBody `json:"body"`
+}
+
+func newClientRefreshResponse() response {
+	return &clientRefreshResponse{
+		Method: "refresh",
+	}
+}
+
+type clientSubscribeResponse struct {
+	clientResponse
+	Body subscribeBody `json:"body"`
+}
+
+func newClientSubscribeResponse() response {
+	return &clientSubscribeResponse{
+		Method: "subscribe",
+	}
+}
+
+type clientUnsubscribeResponse struct {
+	clientResponse
+	Body unsubscribeBody `json:"body"`
+}
+
+func newClientUnsubscribeResponse() response {
+	return &clientUnsubscribeResponse{
+		Method: "unsubscribe",
+	}
+}
+
+type clientPresenceResponse struct {
+	clientResponse
+	Body presenceBody `json:"body"`
+}
+
+func newClientPresenceResponse() response {
+	return &clientPresenceResponse{
+		Method: "presence",
+	}
+}
+
+type clientHistoryResponse struct {
+	clientResponse
+	Body historyBody `json:"body"`
+}
+
+func newClientHistoryResponse() response {
+	return &clientHistoryResponse{
+		Method: "history",
+	}
+}
+
+type clientDisconnectResponse struct {
+	clientResponse
+	Body disconnectBody `json:"body"`
+}
+
+func newClientDisconnectResponse() response {
+	return &clientDisconnectResponse{
+		Method: "disconnect",
+	}
+}
+
+type clientPublishResponse struct {
+	clientResponse
+	Body publishBody `json:"body"`
+}
+
+func newClientPublishResponse() response {
+	return &clientPublishResponse{
+		Method: "publish",
+	}
+}
+
+type clientPingResponse struct {
+	clientResponse
+	Body pingBody `json:"body"`
+}
+
+func newClientPingResponse() response {
+	return &clientPingResponse{
+		Method: "ping",
+	}
+}
+
+// Err set a client error on the client response and updates the 'err'
+// field in the response. If an error has already been set it will be kept.
+func (r *clientResponse) Err(err responseError) {
+	if r.responseError.err != nil {
+		// error already set.
+		return
+	}
+	r.responseError = err
+	e := err.err.Error()
+	r.Error = e
+}
+
+// multiClientResponse is a slice of responses in execution order - from first
+// executed to last one
+type multiClientResponse []response
+
+// response represents an answer Centrifugo sends to API request commands
+type apiResponse struct {
+	UID    string      `json:"uid,omitempty"`
+	Body   interface{} `json:"body"`
+	Error  *string     `json:"error"`
+	Method string      `json:"method"`
+	err    error       // Use response.Err() to set.
+}
+
+// Err set an error message on the response and updates the 'err' field in
+// the response. If an error has already been set it will be kept.
+func (r *apiResponse) Err(err error) {
+	if r.err != nil {
+		return
+	}
+	// TODO: Add logging here? (klauspost)
+	e := err.Error()
+	r.Error = &e
+	r.err = err
+	return
+}
+
+func newAPIResponse(method string) *apiResponse {
+	return &apiResponse{
+		Method: method,
+	}
+}
+
+// multiAPIResponse is a slice of responses in execution
+// order - from first executed to last one
+type multiAPIResponse []*apiResponse

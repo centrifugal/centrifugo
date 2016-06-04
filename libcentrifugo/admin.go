@@ -109,7 +109,7 @@ func (c *adminClient) message(msg []byte) error {
 		return nil
 	}
 
-	var mr multiResponse
+	var mr multiAPIResponse
 
 	for _, command := range commands {
 
@@ -120,7 +120,7 @@ func (c *adminClient) message(msg []byte) error {
 			return ErrUnauthorized
 		}
 
-		var resp *response
+		var resp *apiResponse
 
 		switch command.Method {
 		case "connect":
@@ -167,7 +167,7 @@ func (c *adminClient) message(msg []byte) error {
 
 // connectCmd checks provided token and adds admin connection into application
 // registry if token correct
-func (c *adminClient) connectCmd(cmd *connectAdminCommand) (*response, error) {
+func (c *adminClient) connectCmd(cmd *connectAdminCommand) (*apiResponse, error) {
 
 	err := c.app.checkAdminAuthToken(cmd.Token)
 	if err != nil {
@@ -186,19 +186,19 @@ func (c *adminClient) connectCmd(cmd *connectAdminCommand) (*response, error) {
 		c.watch = true
 	}
 
-	resp := newResponse("connect")
+	resp := newAPIResponse("connect")
 	resp.Body = true
 	return resp, nil
 }
 
 // infoCmd handles info command from admin client.
 // TODO: make this a proper API method with strictly defined response body.
-func (c *adminClient) infoCmd() (*response, error) {
+func (c *adminClient) infoCmd() (*apiResponse, error) {
 	c.app.nodesMu.Lock()
 	defer c.app.nodesMu.Unlock()
 	c.app.RLock()
 	defer c.app.RUnlock()
-	resp := newResponse("info")
+	resp := newAPIResponse("info")
 	resp.Body = map[string]interface{}{
 		"engine": c.app.engine.name(),
 		"config": c.app.config,
@@ -207,8 +207,8 @@ func (c *adminClient) infoCmd() (*response, error) {
 }
 
 // pingCmd handles ping command from admin client.
-func (c *adminClient) pingCmd() (*response, error) {
-	resp := newResponse("ping")
+func (c *adminClient) pingCmd() (*apiResponse, error) {
+	resp := newAPIResponse("ping")
 	resp.Body = "pong"
 	return resp, nil
 }

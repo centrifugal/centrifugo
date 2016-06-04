@@ -362,11 +362,10 @@ func (c *client) message(msg []byte) error {
 }
 
 func (c *client) disconnect(reason string, reconnect bool) error {
-	resp := newClientResponse("disconnect")
-	resp.Body = &disconnectBody{
+	resp := newClientDisconnectResponse(&disconnectBody{
 		Reason:    reason,
 		Reconnect: reconnect,
-	}
+	})
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
 		return err

@@ -261,7 +261,7 @@ func (app *Application) adminMsg(message *AdminMessage) error {
 		return nil
 	}
 
-	resp := newResponse("message")
+	resp := newAPIResponse("message")
 	resp.Body = message.Params
 
 	byteMessage, err := json.Marshal(resp)
