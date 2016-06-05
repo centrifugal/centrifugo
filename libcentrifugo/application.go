@@ -260,15 +260,12 @@ func (app *Application) adminMsg(message *AdminMessage) error {
 	if !hasAdmins {
 		return nil
 	}
-
 	resp := newAPIResponse("message")
 	resp.Body = message.Params
-
 	byteMessage, err := json.Marshal(resp)
 	if err != nil {
 		return err
 	}
-
 	return app.admins.broadcast(byteMessage)
 }
 
@@ -276,22 +273,16 @@ func (app *Application) adminMsg(message *AdminMessage) error {
 // The goal of this method to deliver this message to all clients on this node subscribed
 // on channel.
 func (app *Application) clientMsg(ch Channel, message *Message) error {
-
-	// TODO: move to memory engine.
 	hasCurrentSubscribers := app.clients.hasSubscribers(ch)
-
 	if !hasCurrentSubscribers {
 		return nil
 	}
-
 	resp := newClientMessage()
 	resp.Body = *message
-
 	byteMessage, err := resp.Marshal()
 	if err != nil {
 		return err
 	}
-
 	return app.clients.broadcast(ch, byteMessage)
 }
 
