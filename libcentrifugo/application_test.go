@@ -82,8 +82,8 @@ func createTestClients(app *Application, nChannels, nChannelClients int, sink ch
 		if err != nil {
 			panic(err)
 		}
-		if resp.err != nil {
-			panic(resp.err)
+		if resp.(*clientConnectResponse).err != nil {
+			panic(resp.(*clientConnectResponse).err)
 		}
 		for j := 0; j < nChannels; j++ {
 			cmd := subscribeClientCommand{
@@ -93,8 +93,8 @@ func createTestClients(app *Application, nChannels, nChannelClients int, sink ch
 			if err != nil {
 				panic(err)
 			}
-			if resp.err != nil {
-				panic(resp.err)
+			if resp.(*clientSubscribeResponse).err != nil {
+				panic(resp.(*clientSubscribeResponse).err)
 			}
 		}
 	}

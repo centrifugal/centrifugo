@@ -5,12 +5,11 @@ import (
 	"runtime"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/encode"
+	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/oxtoacart/bpool"
 )
 
-// clientMessageResponse uses strong type for body instead of interface{} - helps to
-// reduce allocations when marshaling. Also it does not have error - because message
-// client response never contains it.
+// clientMessageResponse can not have an error.
 type clientMessageResponse struct {
 	Method string  `json:"method"`
 	Body   Message `json:"body"`
@@ -224,10 +223,14 @@ type adminMessageBody struct {
 	Message Message `json:"message"`
 }
 
+type adminInfoBody struct {
+	engine string  `json:"engine"`
+	config *Config `json:"config"`
+}
+
 type response interface {
 	SetErr(err responseError)
 	SetUID(uid string)
-	Marshal() ([]byte, error)
 }
 
 type errorAdvice string
@@ -248,112 +251,13 @@ type responseError struct {
 type clientResponse struct {
 	UID    string `json:"uid,omitempty"`
 	Method string `json:"method"`
-	Error  string `json:"error,omitempty"` // Use clientResponse.Err() to set.
+	Error  string `json:"error,omitempty"`
 	responseError
-}
-
-type clientConnectResponse struct {
-	clientResponse
-	Body connectBody `json:"body"`
-}
-
-func newClientConnectResponse() response {
-	return &clientConnectResponse{
-		Method: "connect",
-	}
-}
-
-type clientRefreshResponse struct {
-	clientResponse
-	Body connectBody `json:"body"`
-}
-
-func newClientRefreshResponse() response {
-	return &clientRefreshResponse{
-		Method: "refresh",
-	}
-}
-
-type clientSubscribeResponse struct {
-	clientResponse
-	Body subscribeBody `json:"body"`
-}
-
-func newClientSubscribeResponse() response {
-	return &clientSubscribeResponse{
-		Method: "subscribe",
-	}
-}
-
-type clientUnsubscribeResponse struct {
-	clientResponse
-	Body unsubscribeBody `json:"body"`
-}
-
-func newClientUnsubscribeResponse() response {
-	return &clientUnsubscribeResponse{
-		Method: "unsubscribe",
-	}
-}
-
-type clientPresenceResponse struct {
-	clientResponse
-	Body presenceBody `json:"body"`
-}
-
-func newClientPresenceResponse() response {
-	return &clientPresenceResponse{
-		Method: "presence",
-	}
-}
-
-type clientHistoryResponse struct {
-	clientResponse
-	Body historyBody `json:"body"`
-}
-
-func newClientHistoryResponse() response {
-	return &clientHistoryResponse{
-		Method: "history",
-	}
-}
-
-type clientDisconnectResponse struct {
-	clientResponse
-	Body disconnectBody `json:"body"`
-}
-
-func newClientDisconnectResponse() response {
-	return &clientDisconnectResponse{
-		Method: "disconnect",
-	}
-}
-
-type clientPublishResponse struct {
-	clientResponse
-	Body publishBody `json:"body"`
-}
-
-func newClientPublishResponse() response {
-	return &clientPublishResponse{
-		Method: "publish",
-	}
-}
-
-type clientPingResponse struct {
-	clientResponse
-	Body pingBody `json:"body"`
-}
-
-func newClientPingResponse() response {
-	return &clientPingResponse{
-		Method: "ping",
-	}
 }
 
 // Err set a client error on the client response and updates the 'err'
 // field in the response. If an error has already been set it will be kept.
-func (r *clientResponse) Err(err responseError) {
+func (r *clientResponse) SetErr(err responseError) {
 	if r.responseError.err != nil {
 		// error already set.
 		return
@@ -363,38 +267,344 @@ func (r *clientResponse) Err(err responseError) {
 	r.Error = e
 }
 
+func (r *clientResponse) SetUID(uid string) {
+	r.UID = uid
+}
+
+type clientConnectResponse struct {
+	clientResponse
+	Body connectBody `json:"body"`
+}
+
+func newClientConnectResponse(body connectBody) response {
+	return &clientConnectResponse{
+		clientResponse: clientResponse{
+			Method: "connect",
+		},
+		Body: body,
+	}
+}
+
+type clientRefreshResponse struct {
+	clientResponse
+	Body connectBody `json:"body"`
+}
+
+func newClientRefreshResponse(body connectBody) response {
+	return &clientRefreshResponse{
+		clientResponse: clientResponse{
+			Method: "refresh",
+		},
+		Body: body,
+	}
+}
+
+type clientSubscribeResponse struct {
+	clientResponse
+	Body subscribeBody `json:"body"`
+}
+
+func newClientSubscribeResponse(body subscribeBody) response {
+	return &clientSubscribeResponse{
+		clientResponse: clientResponse{
+			Method: "subscribe",
+		},
+		Body: body,
+	}
+}
+
+type clientUnsubscribeResponse struct {
+	clientResponse
+	Body unsubscribeBody `json:"body"`
+}
+
+func newClientUnsubscribeResponse(body unsubscribeBody) response {
+	return &clientUnsubscribeResponse{
+		clientResponse: clientResponse{
+			Method: "unsubscribe",
+		},
+		Body: body,
+	}
+}
+
+type clientPresenceResponse struct {
+	clientResponse
+	Body presenceBody `json:"body"`
+}
+
+func newClientPresenceResponse(body presenceBody) response {
+	return &clientPresenceResponse{
+		clientResponse: clientResponse{
+			Method: "presence",
+		},
+		Body: body,
+	}
+}
+
+type clientHistoryResponse struct {
+	clientResponse
+	Body historyBody `json:"body"`
+}
+
+func newClientHistoryResponse(body historyBody) response {
+	return &clientHistoryResponse{
+		clientResponse: clientResponse{
+			Method: "history",
+		},
+		Body: body,
+	}
+}
+
+type clientDisconnectResponse struct {
+	clientResponse
+	Body disconnectBody `json:"body"`
+}
+
+func newClientDisconnectResponse(body disconnectBody) response {
+	return &clientDisconnectResponse{
+		clientResponse: clientResponse{
+			Method: "disconnect",
+		},
+		Body: body,
+	}
+}
+
+type clientPublishResponse struct {
+	clientResponse
+	Body publishBody `json:"body"`
+}
+
+func newClientPublishResponse(body publishBody) response {
+	return &clientPublishResponse{
+		clientResponse: clientResponse{
+			Method: "publish",
+		},
+		Body: body,
+	}
+}
+
+type clientPingResponse struct {
+	clientResponse
+	Body pingBody `json:"body"`
+}
+
+func newClientPingResponse(body pingBody) response {
+	return &clientPingResponse{
+		clientResponse: clientResponse{
+			Method: "ping",
+		},
+		Body: body,
+	}
+}
+
 // multiClientResponse is a slice of responses in execution order - from first
 // executed to last one
 type multiClientResponse []response
 
-// response represents an answer Centrifugo sends to API request commands
+// apiResponse represents an answer Centrifugo sends to API request commands
 type apiResponse struct {
-	UID    string      `json:"uid,omitempty"`
-	Body   interface{} `json:"body"`
-	Error  *string     `json:"error"`
-	Method string      `json:"method"`
-	err    error       // Use response.Err() to set.
+	UID    string  `json:"uid,omitempty"`
+	Method string  `json:"method"`
+	Error  *string `json:"error"`
+	responseError
 }
 
-// Err set an error message on the response and updates the 'err' field in
+// SetErr set an error message on the api response and updates the 'err' field in
 // the response. If an error has already been set it will be kept.
-func (r *apiResponse) Err(err error) {
-	if r.err != nil {
+func (r *apiResponse) SetErr(err responseError) {
+	if r.responseError.err != nil {
+		// error already set.
 		return
 	}
-	// TODO: Add logging here? (klauspost)
-	e := err.Error()
+	r.responseError = err
+	e := err.err.Error()
 	r.Error = &e
-	r.err = err
 	return
 }
 
-func newAPIResponse(method string) *apiResponse {
-	return &apiResponse{
-		Method: method,
+func (r *apiResponse) SetUID(uid string) {
+	r.UID = uid
+}
+
+type apiPublishResponse struct {
+	apiResponse
+	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
+}
+
+func newAPIPublishResponse() response {
+	return &apiPublishResponse{
+		apiResponse: apiResponse{
+			Method: "publish",
+		},
 	}
 }
 
-// multiAPIResponse is a slice of responses in execution
-// order - from first executed to last one
-type multiAPIResponse []*apiResponse
+type apiBroadcastResponse struct {
+	apiResponse
+	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
+}
+
+func newAPIBroadcastResponse() response {
+	return &apiBroadcastResponse{
+		apiResponse: apiResponse{
+			Method: "broadcast",
+		},
+	}
+}
+
+type apiPresenceResponse struct {
+	apiResponse
+	Body presenceBody `json:"body"`
+}
+
+func newAPIPresenceResponse(body presenceBody) response {
+	return &apiPresenceResponse{
+		apiResponse: apiResponse{
+			Method: "presence",
+		},
+		Body: body,
+	}
+}
+
+type apiHistoryResponse struct {
+	apiResponse
+	Body historyBody `json:"body"`
+}
+
+func newAPIHistoryResponse(body historyBody) response {
+	return &apiHistoryResponse{
+		apiResponse: apiResponse{
+			Method: "history",
+		},
+		Body: body,
+	}
+}
+
+type apiChannelsResponse struct {
+	apiResponse
+	Body channelsBody `json:"body"`
+}
+
+func newAPIChannelsResponse(body channelsBody) response {
+	return &apiChannelsResponse{
+		apiResponse: apiResponse{
+			Method: "channels",
+		},
+		Body: body,
+	}
+}
+
+type apiStatsResponse struct {
+	apiResponse
+	Body statsBody `json:"body"`
+}
+
+func newAPIStatsResponse(body statsBody) response {
+	return &apiStatsResponse{
+		apiResponse: apiResponse{
+			Method: "stats",
+		},
+		Body: body,
+	}
+}
+
+type apiUnsubscribeResponse struct {
+	apiResponse
+	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
+}
+
+func newAPIUnsubscribeResponse() response {
+	return &apiUnsubscribeResponse{
+		apiResponse: apiResponse{
+			Method: "unsubscribe",
+		},
+	}
+}
+
+type apiDisconnectResponse struct {
+	apiResponse
+	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
+}
+
+func newAPIDisconnectResponse() response {
+	return &apiDisconnectResponse{
+		apiResponse: apiResponse{
+			Method: "disconnect",
+		},
+	}
+}
+
+type apiNodeResponse struct {
+	apiResponse
+	Body nodeBody `json:"body"`
+}
+
+func newAPINodeResponse(body nodeBody) response {
+	return &apiNodeResponse{
+		apiResponse: apiResponse{
+			Method: "node",
+		},
+		Body: body,
+	}
+}
+
+type apiAdminConnectResponse struct {
+	apiResponse
+	Body bool `json:"body"`
+}
+
+func newAPIAdminConnectResponse(body bool) response {
+	return &apiAdminConnectResponse{
+		apiResponse: apiResponse{
+			Method: "connect",
+		},
+		Body: body,
+	}
+}
+
+type apiAdminInfoResponse struct {
+	apiResponse
+	Body adminInfoBody `json:"body"`
+}
+
+func newAPIAdminInfoResponse(body adminInfoBody) response {
+	return &apiAdminInfoResponse{
+		apiResponse: apiResponse{
+			Method: "info",
+		},
+		Body: body,
+	}
+}
+
+type apiAdminPingResponse struct {
+	apiResponse
+	Body string `json:"body"`
+}
+
+func newAPIAdminPingResponse(body string) response {
+	return &apiAdminPingResponse{
+		apiResponse: apiResponse{
+			Method: "ping",
+		},
+		Body: body,
+	}
+}
+
+type apiAdminMessageResponse struct {
+	apiResponse
+	Body *raw.Raw `json:"body"`
+}
+
+func newAPIAdminMessageResponse(body *raw.Raw) response {
+	return &apiAdminMessageResponse{
+		apiResponse: apiResponse{
+			Method: "message",
+		},
+		Body: body,
+	}
+}
+
+// multiAPIResponse is a slice of API responses returned as a result for
+// slice of commands received by API in execution order - from first executed
+// to last one.
+type multiAPIResponse []response

@@ -260,8 +260,7 @@ func (app *Application) adminMsg(message *AdminMessage) error {
 	if !hasAdmins {
 		return nil
 	}
-	resp := newAPIResponse("message")
-	resp.Body = message.Params
+	resp := newAPIAdminMessageResponse(message.Params)
 	byteMessage, err := json.Marshal(resp)
 	if err != nil {
 		return err

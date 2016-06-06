@@ -325,7 +325,7 @@ func (app *Application) processAPIData(data []byte) ([]byte, error) {
 		return nil, ErrInvalidMessage
 	}
 
-	var mr multiResponse
+	var mr multiAPIResponse
 
 	for _, command := range commands {
 		resp, err := app.apiCmd(command)
