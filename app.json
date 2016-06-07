@@ -5,8 +5,8 @@
   "logo": "https://avatars1.githubusercontent.com/u/6236442?v=3&s=200",
   "keywords": ["go", "pubsub", "websocket", "real-time", "sockjs", "redis"],
   "env": {
-    "CENTRIFUGO_WEB_PASSWORD": "password",
-    "CENTRIFUGO_WEB_SECRET": {
+    "CENTRIFUGO_ADMIN_PASSWORD": "password",
+    "CENTRIFUGO_ADMIN_SECRET": {
       "description": "Web Secret",
       "generator": "secret"
     },
