@@ -224,8 +224,8 @@ type adminMessageBody struct {
 }
 
 type adminInfoBody struct {
-	engine string  `json:"engine"`
-	config *Config `json:"config"`
+	Engine string  `json:"engine"`
+	Config *Config `json:"config"`
 }
 
 type response interface {

@@ -197,8 +197,8 @@ func (c *adminClient) infoCmd() (response, error) {
 	c.app.RLock()
 	defer c.app.RUnlock()
 	body := adminInfoBody{
-		engine: c.app.engine.name(),
-		config: c.app.config,
+		Engine: c.app.engine.name(),
+		Config: c.app.config,
 	}
 	return newAPIAdminInfoResponse(body), nil
 }
