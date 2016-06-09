@@ -266,16 +266,16 @@ func (c *client) info(ch Channel) ClientInfo {
 	if !ok {
 		channelInfo = []byte{}
 	}
-	var rawDefaultInfo *raw.Raw //*json.RawMessage
-	var rawChannelInfo *raw.Raw //*json.RawMessage
+	var rawDefaultInfo *raw.Raw
+	var rawChannelInfo *raw.Raw
 	if len(c.defaultInfo) > 0 {
-		rawData := raw.Raw(c.defaultInfo) //json.RawMessage(c.defaultInfo)
+		rawData := raw.Raw(c.defaultInfo)
 		rawDefaultInfo = &rawData
 	} else {
 		rawDefaultInfo = nil
 	}
 	if len(channelInfo) > 0 {
-		rawData := raw.Raw(channelInfo) //json.RawMessage(channelInfo)
+		rawData := raw.Raw(channelInfo)
 		rawChannelInfo = &rawData
 	} else {
 		rawChannelInfo = nil
@@ -767,14 +767,14 @@ func (c *client) subscribeCmd(cmd *subscribeClientCommand) (response, error) {
 
 	c.Channels[channel] = true
 
-	info := c.info(channel)
-
 	err = c.app.addSub(channel, c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp := newClientSubscribeResponse(body)
 		return resp, ErrInternalServerError
 	}
+
+	info := c.info(channel)
 
 	if chOpts.Presence {
 		err = c.app.addPresence(channel, c.UID, info)
