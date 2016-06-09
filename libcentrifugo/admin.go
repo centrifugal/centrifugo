@@ -109,7 +109,7 @@ func (c *adminClient) message(msg []byte) error {
 		return nil
 	}
 
-	var mr multiResponse
+	var mr multiAPIResponse
 
 	for _, command := range commands {
 
@@ -120,7 +120,7 @@ func (c *adminClient) message(msg []byte) error {
 			return ErrUnauthorized
 		}
 
-		var resp *response
+		var resp response
 
 		switch command.Method {
 		case "connect":
@@ -147,7 +147,7 @@ func (c *adminClient) message(msg []byte) error {
 
 		c.Unlock()
 
-		resp.UID = command.UID
+		resp.SetUID(command.UID)
 		mr = append(mr, resp)
 	}
 
@@ -167,7 +167,7 @@ func (c *adminClient) message(msg []byte) error {
 
 // connectCmd checks provided token and adds admin connection into application
 // registry if token correct
-func (c *adminClient) connectCmd(cmd *connectAdminCommand) (*response, error) {
+func (c *adminClient) connectCmd(cmd *connectAdminCommand) (response, error) {
 
 	err := c.app.checkAdminAuthToken(cmd.Token)
 	if err != nil {
@@ -186,29 +186,24 @@ func (c *adminClient) connectCmd(cmd *connectAdminCommand) (*response, error) {
 		c.watch = true
 	}
 
-	resp := newResponse("connect")
-	resp.Body = true
-	return resp, nil
+	return newAPIAdminConnectResponse(true), nil
 }
 
 // infoCmd handles info command from admin client.
 // TODO: make this a proper API method with strictly defined response body.
-func (c *adminClient) infoCmd() (*response, error) {
+func (c *adminClient) infoCmd() (response, error) {
 	c.app.nodesMu.Lock()
 	defer c.app.nodesMu.Unlock()
 	c.app.RLock()
 	defer c.app.RUnlock()
-	resp := newResponse("info")
-	resp.Body = map[string]interface{}{
-		"engine": c.app.engine.name(),
-		"config": c.app.config,
+	body := adminInfoBody{
+		Engine: c.app.engine.name(),
+		Config: c.app.config,
 	}
-	return resp, nil
+	return newAPIAdminInfoResponse(body), nil
 }
 
 // pingCmd handles ping command from admin client.
-func (c *adminClient) pingCmd() (*response, error) {
-	resp := newResponse("ping")
-	resp.Body = "pong"
-	return resp, nil
+func (c *adminClient) pingCmd() (response, error) {
+	return newAPIAdminPingResponse("pong"), nil
 }

@@ -104,15 +104,15 @@ func TestSubHub(t *testing.T) {
 	}
 	assert.Equal(t, stringInSlice("test1", channels), true)
 	assert.Equal(t, stringInSlice("test2", channels), true)
-	assert.True(t, h.hasSubscribers(ChannelID("test1")))
-	assert.True(t, h.hasSubscribers(ChannelID("test2")))
+	assert.True(t, h.hasSubscribers(Channel("test1")))
+	assert.True(t, h.hasSubscribers(Channel("test2")))
 	err := h.broadcast("test1", []byte("message"))
 	assert.Equal(t, err, nil)
 	h.removeSub("test1", c)
 	h.removeSub("test2", c)
 	assert.Equal(t, len(h.subs), 0)
-	assert.False(t, h.hasSubscribers(ChannelID("test1")))
-	assert.False(t, h.hasSubscribers(ChannelID("test2")))
+	assert.False(t, h.hasSubscribers(Channel("test1")))
+	assert.False(t, h.hasSubscribers(Channel("test2")))
 }
 
 func TestAdminHub(t *testing.T) {
@@ -137,7 +137,7 @@ func setupHub(users, chanUser, totChannels int) (*clientHub, []*testClientConn) 
 		c.CID = ConnID(fmt.Sprintf("cid-%d", i))
 		c.Channels = make([]Channel, 0)
 		for j := 0; j < chanUser; j++ {
-			ch := ChannelID(fmt.Sprintf("chan-%d", (j+i*chanUser)%totChannels))
+			ch := Channel(fmt.Sprintf("chan-%d", (j+i*chanUser)%totChannels))
 			h.addSub(ch, c)
 		}
 		uC[i] = c
@@ -153,7 +153,7 @@ func BenchmarkSubHubBroadCast(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
-			ch := ChannelID(fmt.Sprintf("chan-%d", i%totChannels))
+			ch := Channel(fmt.Sprintf("chan-%d", i%totChannels))
 			h.broadcast(ch, []byte(fmt.Sprintf("message %d", i)))
 			i++
 		}

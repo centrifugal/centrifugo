@@ -6,20 +6,6 @@ type historyOpts struct {
 	Limit int
 }
 
-type publishOpts struct {
-	// Message is Message being published
-	Message Message
-	// HistorySize is maximum size of channel history that engine must maintain.
-	HistorySize int
-	// HistoryLifetime is maximum amount of seconds history messages should exist
-	// before expiring and most probably being deleted (to prevent memory leaks).
-	HistoryLifetime int
-	// HistoryDropInactive hints to the engine that there were no actual subscribers
-	// connected when message was published, and that it can skip saving if there is
-	// no unexpired history for the channel (i.e. no subscribers active within history_lifetime)
-	HistoryDropInactive bool
-}
-
 // Engine is an interface with all methods that can be used by client or
 // application to publish message, handle subscriptions, save or retrieve
 // presence and history data.
@@ -27,31 +13,105 @@ type Engine interface {
 	// name returns a name of concrete engine implementation.
 	name() string
 
-	// run called once just after engine set to application.
+	// run called once on Centrifugo start just after engine set to application.
 	run() error
 
-	// publish allows to send message into channel.
-	// If publishOpts is nil message must be just sent into provided channel
-	// and no additional work must be done.
-	// The returned value is channel in which we will send error as soon as engine
-	// finishes publish operation.
-	publish(chID ChannelID, message []byte, opts *publishOpts) <-chan error
+	// publishMessage allows to send message into channel. This message should be delivered
+	// to all clients subscribed on this channel at moment on any Centrifugo node.
+	// The returned value is channel in which we will send error as soon as engine finishes
+	// publish operation. Also the task of this method is to maintain history for channels
+	// if enabled.
+	publishMessage(Channel, *Message, *ChannelOptions) <-chan error
+	// publishJoin allows to send join message into channel.
+	publishJoin(Channel, *JoinMessage) <-chan error
+	// publishLeave allows to send leave message into channel.
+	publishLeave(Channel, *LeaveMessage) <-chan error
+	// publishControl allows to send control message to all connected nodes.
+	publishControl(*ControlMessage) <-chan error
+	// publishAdmin allows to send admin message to all connected admins.
+	publishAdmin(*AdminMessage) <-chan error
 
 	// subscribe on channel.
-	subscribe(chID ChannelID) error
+	subscribe(Channel) error
 	// unsubscribe from channel.
-	unsubscribe(chID ChannelID) error
-	// channels returns slice of currently active channels IDs (with one or more subscribers).
-	channels() ([]ChannelID, error)
+	unsubscribe(Channel) error
+	// channels returns slice of currently active channels (with one or more subscribers)
+	// on all Centrifugo nodes.
+	channels() ([]Channel, error)
 
-	// addPresence sets or updates presence info for connection with uid.
-	addPresence(chID ChannelID, uid ConnID, info ClientInfo) error
+	// addPresence sets or updates presence info in channel for connection with uid.
+	addPresence(Channel, ConnID, ClientInfo) error
 	// removePresence removes presence information for connection with uid.
-	removePresence(chID ChannelID, uid ConnID) error
+	removePresence(Channel, ConnID) error
 	// presence returns actual presence information for channel.
-	presence(chID ChannelID) (map[ConnID]ClientInfo, error)
+	presence(Channel) (map[ConnID]ClientInfo, error)
 
-	// history returns a slice of history messages for channel, limit sets maximum amount
-	// of history messages to return.
-	history(chID ChannelID, opts historyOpts) ([]Message, error)
+	// history returns a slice of history messages for channel according to provided
+	// historyOpts.
+	history(Channel, historyOpts) ([]Message, error)
+}
+
+func decodeEngineClientMessage(data []byte) (*Message, error) {
+	var msg Message
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
+func decodeEngineJoinMessage(data []byte) (*JoinMessage, error) {
+	var msg JoinMessage
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
+func decodeEngineLeaveMessage(data []byte) (*LeaveMessage, error) {
+	var msg LeaveMessage
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
+func decodeEngineControlMessage(data []byte) (*ControlMessage, error) {
+	var msg ControlMessage
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
+func decodeEngineAdminMessage(data []byte) (*AdminMessage, error) {
+	var msg AdminMessage
+	err := msg.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
+func encodeEngineClientMessage(msg *Message) ([]byte, error) {
+	return msg.Marshal()
+}
+
+func encodeEngineJoinMessage(msg *JoinMessage) ([]byte, error) {
+	return msg.Marshal()
+}
+
+func encodeEngineLeaveMessage(msg *LeaveMessage) ([]byte, error) {
+	return msg.Marshal()
+}
+
+func encodeEngineControlMessage(msg *ControlMessage) ([]byte, error) {
+	return msg.Marshal()
+}
+
+func encodeEngineAdminMessage(msg *AdminMessage) ([]byte, error) {
+	return msg.Marshal()
 }

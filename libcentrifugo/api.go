@@ -7,10 +7,10 @@ import (
 )
 
 // apiCmd builds API command and dispatches it into correct handler method.
-func (app *Application) apiCmd(command apiCommand) (*response, error) {
+func (app *Application) apiCmd(command apiCommand) (response, error) {
 
 	var err error
-	var resp *response
+	var resp response
 
 	method := command.Method
 	params := command.Params
@@ -77,32 +77,32 @@ func (app *Application) apiCmd(command apiCommand) (*response, error) {
 		return nil, err
 	}
 
-	resp.UID = command.UID
+	resp.SetUID(command.UID)
 
 	return resp, nil
 }
 
 // publishCmd publishes data into channel.
-func (app *Application) publishCmd(cmd *publishAPICommand) (*response, error) {
-	resp := newResponse("publish")
+func (app *Application) publishCmd(cmd *publishAPICommand) (response, error) {
 	channel := cmd.Channel
 	data := cmd.Data
 	err := app.publish(channel, data, cmd.Client, nil, false)
+	resp := newAPIPublishResponse()
 	if err != nil {
-		resp.Err(err)
+		resp.SetErr(responseError{err, errorAdviceNone})
 		return resp, nil
 	}
 	return resp, nil
 }
 
 // broadcastCmd publishes data into multiple channels.
-func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error) {
-	resp := newResponse("broadcast")
+func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (response, error) {
+	resp := newAPIBroadcastResponse()
 	channels := cmd.Channels
 	data := cmd.Data
 	if len(channels) == 0 {
 		logger.ERROR.Println("channels required for broadcast")
-		resp.Err(ErrInvalidMessage)
+		resp.SetErr(responseError{ErrInvalidMessage, errorAdviceNone})
 		return resp, nil
 	}
 	errs := make([]<-chan error, len(channels))
@@ -120,20 +120,20 @@ func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (*response, error
 		}
 	}
 	if firstErr != nil {
-		resp.Err(firstErr)
+		resp.SetErr(responseError{firstErr, errorAdviceNone})
 	}
 	return resp, nil
 }
 
 // unsubscribeCmd unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes.
-func (app *Application) unsubcribeCmd(cmd *unsubscribeAPICommand) (*response, error) {
-	resp := newResponse("unsubscribe")
+func (app *Application) unsubcribeCmd(cmd *unsubscribeAPICommand) (response, error) {
+	resp := newAPIUnsubscribeResponse()
 	channel := cmd.Channel
 	user := cmd.User
 	err := app.Unsubscribe(user, channel)
 	if err != nil {
-		resp.Err(err)
+		resp.SetErr(responseError{err, errorAdviceNone})
 		return resp, nil
 	}
 	return resp, nil
@@ -141,80 +141,73 @@ func (app *Application) unsubcribeCmd(cmd *unsubscribeAPICommand) (*response, er
 
 // disconnectCmd disconnects user by its ID and sends disconnect
 // control message to other nodes so they could also disconnect this user.
-func (app *Application) disconnectCmd(cmd *disconnectAPICommand) (*response, error) {
-	resp := newResponse("disconnect")
+func (app *Application) disconnectCmd(cmd *disconnectAPICommand) (response, error) {
+	resp := newAPIDisconnectResponse()
 	user := cmd.User
 	err := app.Disconnect(user)
 	if err != nil {
-		resp.Err(err)
+		resp.SetErr(responseError{err, errorAdviceNone})
 		return resp, nil
 	}
 	return resp, nil
 }
 
 // presenceCmd returns response with presense information for channel.
-func (app *Application) presenceCmd(cmd *presenceAPICommand) (*response, error) {
-	resp := newResponse("presence")
+func (app *Application) presenceCmd(cmd *presenceAPICommand) (response, error) {
 	channel := cmd.Channel
-	body := &PresenceBody{
+	body := presenceBody{
 		Channel: channel,
 	}
-	resp.Body = body
 	presence, err := app.Presence(channel)
 	if err != nil {
-		resp.Err(err)
+		resp := newAPIPresenceResponse(body)
+		resp.SetErr(responseError{err, errorAdviceNone})
 		return resp, nil
 	}
 	body.Data = presence
-	return resp, nil
+	return newAPIPresenceResponse(body), nil
 }
 
 // historyCmd returns response with history information for channel.
-func (app *Application) historyCmd(cmd *historyAPICommand) (*response, error) {
-	resp := newResponse("history")
+func (app *Application) historyCmd(cmd *historyAPICommand) (response, error) {
 	channel := cmd.Channel
-	body := &HistoryBody{
+	body := historyBody{
 		Channel: channel,
 	}
-	resp.Body = body
 	history, err := app.History(channel)
 	if err != nil {
-		resp.Err(err)
+		resp := newAPIHistoryResponse(body)
+		resp.SetErr(responseError{err, errorAdviceNone})
 		return resp, nil
 	}
 	body.Data = history
-	return resp, nil
+	return newAPIHistoryResponse(body), nil
 }
 
 // channelsCmd returns active channels.
-func (app *Application) channelsCmd() (*response, error) {
-	resp := newResponse("channels")
-	body := &ChannelsBody{}
-	resp.Body = body
+func (app *Application) channelsCmd() (response, error) {
+	body := channelsBody{}
 	channels, err := app.channels()
 	if err != nil {
 		logger.ERROR.Println(err)
-		resp.Err(ErrInternalServerError)
+		resp := newAPIChannelsResponse(body)
+		resp.SetErr(responseError{ErrInternalServerError, errorAdviceNone})
 		return resp, nil
 	}
 	body.Data = channels
-	return resp, nil
+	return newAPIChannelsResponse(body), nil
 }
 
 // statsCmd returns active node stats.
-func (app *Application) statsCmd() (*response, error) {
-	resp := newResponse("stats")
-	body := &StatsBody{}
+func (app *Application) statsCmd() (response, error) {
+	body := statsBody{}
 	body.Data = app.stats()
-	resp.Body = body
-	return resp, nil
+	return newAPIStatsResponse(body), nil
 }
 
 // nodeCmd returns simple counter metrics which update in real time for the current node only.
-func (app *Application) nodeCmd() (*response, error) {
-	resp := newResponse("node")
-	body := &NodeBody{}
+func (app *Application) nodeCmd() (response, error) {
+	body := nodeBody{}
 	body.Data = app.node()
-	resp.Body = body
-	return resp, nil
+	return newAPINodeResponse(body), nil
 }

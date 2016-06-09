@@ -9,6 +9,7 @@ import (
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
+	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/satori/go.uuid"
 )
 
@@ -39,15 +40,6 @@ type client struct {
 	sendTimeout    time.Duration
 	maxQueueSize   int
 	maxRequestSize int
-}
-
-// ClientInfo contains information about client to use in message
-// meta information, presence information, join/leave events etc.
-type ClientInfo struct {
-	User        UserID           `json:"user"`
-	Client      ConnID           `json:"client"`
-	DefaultInfo *json.RawMessage `json:"default_info,omitempty"`
-	ChannelInfo *json.RawMessage `json:"channel_info,omitempty"`
 }
 
 // newClient creates new ready to communicate client.
@@ -183,15 +175,12 @@ func (c *client) channels() []Channel {
 func (c *client) unsubscribe(ch Channel) error {
 	c.Lock()
 	defer c.Unlock()
-	cmd := &UnsubscribeClientCommand{
+	cmd := &unsubscribeClientCommand{
 		Channel: ch,
 	}
 	resp, err := c.unsubscribeCmd(cmd)
 	if err != nil {
 		return err
-	}
-	if resp.err != nil {
-		return resp.err
 	}
 	respJSON, err := json.Marshal(resp)
 	if err != nil {
@@ -236,7 +225,7 @@ func (c *client) clean() error {
 	if len(c.Channels) > 0 {
 		// unsubscribe from all channels
 		for channel := range c.Channels {
-			cmd := &UnsubscribeClientCommand{
+			cmd := &unsubscribeClientCommand{
 				Channel: channel,
 			}
 			_, err := c.unsubscribeCmd(cmd)
@@ -277,26 +266,21 @@ func (c *client) info(ch Channel) ClientInfo {
 	if !ok {
 		channelInfo = []byte{}
 	}
-	var rawDefaultInfo *json.RawMessage
-	var rawChannelInfo *json.RawMessage
+	var rawDefaultInfo *raw.Raw
+	var rawChannelInfo *raw.Raw
 	if len(c.defaultInfo) > 0 {
-		raw := json.RawMessage(c.defaultInfo)
-		rawDefaultInfo = &raw
+		rawData := raw.Raw(c.defaultInfo)
+		rawDefaultInfo = &rawData
 	} else {
 		rawDefaultInfo = nil
 	}
 	if len(channelInfo) > 0 {
-		raw := json.RawMessage(channelInfo)
-		rawChannelInfo = &raw
+		rawData := raw.Raw(channelInfo)
+		rawChannelInfo = &rawData
 	} else {
 		rawChannelInfo = nil
 	}
-	return ClientInfo{
-		User:        c.User,
-		Client:      c.UID,
-		DefaultInfo: rawDefaultInfo,
-		ChannelInfo: rawChannelInfo,
-	}
+	return *newClientInfo(c.User, c.UID, rawDefaultInfo, rawChannelInfo)
 }
 
 func cmdFromClientMsg(msgBytes []byte) ([]clientCommand, error) {
@@ -375,11 +359,11 @@ func (c *client) message(msg []byte) error {
 }
 
 func (c *client) disconnect(reason string, reconnect bool) error {
-	resp := newClientResponse("disconnect")
-	resp.Body = &DisconnectBody{
+	body := disconnectBody{
 		Reason:    reason,
 		Reconnect: reconnect,
 	}
+	resp := newClientDisconnectResponse(body)
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
 		return err
@@ -397,7 +381,7 @@ func (c *client) handleCommands(commands []clientCommand) error {
 		if err != nil {
 			return err
 		}
-		resp.UID = command.UID
+		resp.SetUID(command.UID)
 		mr = append(mr, resp)
 	}
 	jsonResp, err := json.Marshal(mr)
@@ -409,10 +393,10 @@ func (c *client) handleCommands(commands []clientCommand) error {
 }
 
 // handleCmd dispatches clientCommand into correct command handler
-func (c *client) handleCmd(command clientCommand) (*clientResponse, error) {
+func (c *client) handleCmd(command clientCommand) (response, error) {
 
 	var err error
-	var resp *clientResponse
+	var resp response
 
 	method := command.Method
 	params := command.Params
@@ -423,56 +407,56 @@ func (c *client) handleCmd(command clientCommand) (*clientResponse, error) {
 
 	switch method {
 	case "connect":
-		var cmd ConnectClientCommand
+		var cmd connectClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.connectCmd(&cmd)
 	case "refresh":
-		var cmd RefreshClientCommand
+		var cmd refreshClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.refreshCmd(&cmd)
 	case "subscribe":
-		var cmd SubscribeClientCommand
+		var cmd subscribeClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.subscribeCmd(&cmd)
 	case "unsubscribe":
-		var cmd UnsubscribeClientCommand
+		var cmd unsubscribeClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.unsubscribeCmd(&cmd)
 	case "publish":
-		var cmd PublishClientCommand
+		var cmd publishClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.publishCmd(&cmd)
 	case "ping":
-		var cmd PingClientCommand
+		var cmd pingClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.pingCmd(&cmd)
 	case "presence":
-		var cmd PresenceClientCommand
+		var cmd presenceClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.presenceCmd(&cmd)
 	case "history":
-		var cmd HistoryClientCommand
+		var cmd historyClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
@@ -491,11 +475,11 @@ func (c *client) handleCmd(command clientCommand) (*clientResponse, error) {
 // pingCmd handles ping command from client - this is necessary sometimes
 // for example Heroku closes websocket connection after 55 seconds
 // of inactive period when no messages with payload travelled over wire
-func (c *client) pingCmd(cmd *PingClientCommand) (*clientResponse, error) {
-	resp := newClientResponse("ping")
-	resp.Body = &PingBody{
+func (c *client) pingCmd(cmd *pingClientCommand) (response, error) {
+	body := pingBody{
 		Data: cmd.Data,
 	}
+	resp := newClientPingResponse(body)
 	return resp, nil
 }
 
@@ -524,9 +508,9 @@ func (c *client) expire() {
 // connectCmd handles connect command from client - client must send this
 // command immediately after establishing Websocket or SockJS connection with
 // Centrifugo
-func (c *client) connectCmd(cmd *ConnectClientCommand) (*clientResponse, error) {
+func (c *client) connectCmd(cmd *connectClientCommand) (response, error) {
 
-	resp := newClientResponse("connect")
+	//resp := newClientResponse("connect")
 
 	if c.authenticated {
 		logger.ERROR.Println("connect error: client already authenticated")
@@ -576,7 +560,7 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*clientResponse, error) 
 
 	c.User = user
 
-	body := &ConnectBody{}
+	body := connectBody{}
 	body.Version = version
 	body.Expires = connLifetime > 0
 	body.TTL = connLifetime
@@ -587,8 +571,7 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*clientResponse, error) 
 		timeToExpire = c.timestamp + connLifetime - time.Now().Unix()
 		if timeToExpire <= 0 {
 			body.Expired = true
-			resp.Body = body
-			return resp, nil
+			return newClientConnectResponse(body), nil
 		}
 	}
 
@@ -619,15 +602,12 @@ func (c *client) connectCmd(cmd *ConnectClientCommand) (*clientResponse, error) 
 	}
 
 	body.Client = c.UID
-	resp.Body = body
-	return resp, nil
+	return newClientConnectResponse(body), nil
 }
 
 // refreshCmd handle refresh command to update connection with new
 // timestamp - this is only required when connection lifetime option set.
-func (c *client) refreshCmd(cmd *RefreshClientCommand) (*clientResponse, error) {
-
-	resp := newClientResponse("refresh")
+func (c *client) refreshCmd(cmd *refreshClientCommand) (response, error) {
 
 	user := cmd.User
 	info := cmd.Info
@@ -656,7 +636,7 @@ func (c *client) refreshCmd(cmd *RefreshClientCommand) (*clientResponse, error) 
 	version := c.app.config.Version
 	c.app.RUnlock()
 
-	body := &ConnectBody{}
+	body := connectBody{}
 	body.Version = version
 	body.Expires = connLifetime > 0
 	body.TTL = connLifetime
@@ -678,8 +658,7 @@ func (c *client) refreshCmd(cmd *RefreshClientCommand) (*clientResponse, error) 
 			body.Expired = true
 		}
 	}
-	resp.Body = body
-	return resp, nil
+	return newClientRefreshResponse(body), nil
 }
 
 func recoverMessages(last MessageID, messages []Message) ([]Message, bool) {
@@ -691,7 +670,7 @@ func recoverMessages(last MessageID, messages []Message) ([]Message, bool) {
 	}
 	position := -1
 	for index, msg := range messages {
-		if msg.UID == last {
+		if MessageID(msg.UID) == last {
 			position = index
 			break
 		}
@@ -713,9 +692,7 @@ func recoverMessages(last MessageID, messages []Message) ([]Message, bool) {
 // on channel, if channel if private then we must validate provided sign here before
 // actually subscribe client on channel. Optionally we can send missed messages to
 // client if it provided last message id seen in channel.
-func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*clientResponse, error) {
-
-	resp := newClientResponse("subscribe")
+func (c *client) subscribeCmd(cmd *subscribeClientCommand) (response, error) {
 
 	channel := cmd.Channel
 	if channel == "" {
@@ -729,53 +706,60 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*clientResponse, err
 	insecure := c.app.config.Insecure
 	c.app.RUnlock()
 
-	body := &SubscribeBody{
+	body := subscribeBody{
 		Channel: channel,
 	}
-	resp.Body = body
 
 	if len(channel) > maxChannelLength {
 		logger.ERROR.Printf("channel too long: max %d, got %d", maxChannelLength, len(channel))
-		resp.Err(clientError{ErrLimitExceeded, errorAdviceFix})
+		resp := newClientSubscribeResponse(body)
+		resp.SetErr(responseError{ErrLimitExceeded, errorAdviceFix})
 		return resp, nil
 	}
 
 	if len(c.Channels) >= channelLimit {
 		logger.ERROR.Printf("maximimum limit of channels per client reached: %d", channelLimit)
-		resp.Err(clientError{ErrLimitExceeded, errorAdviceFix})
+		resp := newClientSubscribeResponse(body)
+		resp.SetErr(responseError{ErrLimitExceeded, errorAdviceFix})
 		return resp, nil
 	}
 
 	if _, ok := c.Channels[channel]; ok {
-		resp.Err(clientError{ErrAlreadySubscribed, errorAdviceFix})
+		resp := newClientSubscribeResponse(body)
+		resp.SetErr(responseError{ErrAlreadySubscribed, errorAdviceFix})
 		return resp, nil
 	}
 
 	if !c.app.userAllowed(channel, c.User) || !c.app.clientAllowed(channel, c.UID) {
-		resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
+		resp := newClientSubscribeResponse(body)
+		resp.SetErr(responseError{ErrPermissionDenied, errorAdviceFix})
 		return resp, nil
 	}
 
 	chOpts, err := c.app.channelOpts(channel)
 	if err != nil {
-		resp.Err(clientError{err, errorAdviceFix})
+		resp := newClientSubscribeResponse(body)
+		resp.SetErr(responseError{err, errorAdviceFix})
 		return resp, nil
 	}
 
 	if !chOpts.Anonymous && c.User == "" && !insecure {
-		resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
+		resp := newClientSubscribeResponse(body)
+		resp.SetErr(responseError{ErrPermissionDenied, errorAdviceFix})
 		return resp, nil
 	}
 
 	if c.app.privateChannel(channel) {
 		// private channel - subscription must be properly signed
 		if string(c.UID) != string(cmd.Client) {
-			resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
+			resp := newClientSubscribeResponse(body)
+			resp.SetErr(responseError{ErrPermissionDenied, errorAdviceFix})
 			return resp, nil
 		}
 		isValid := auth.CheckChannelSign(secret, string(cmd.Client), string(channel), cmd.Info, cmd.Sign)
 		if !isValid {
-			resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
+			resp := newClientSubscribeResponse(body)
+			resp.SetErr(responseError{ErrPermissionDenied, errorAdviceFix})
 			return resp, nil
 		}
 		c.channelInfo[channel] = []byte(cmd.Info)
@@ -783,19 +767,21 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*clientResponse, err
 
 	c.Channels[channel] = true
 
-	info := c.info(channel)
-
 	err = c.app.addSub(channel, c)
 	if err != nil {
 		logger.ERROR.Println(err)
+		resp := newClientSubscribeResponse(body)
 		return resp, ErrInternalServerError
 	}
+
+	info := c.info(channel)
 
 	if chOpts.Presence {
 		err = c.app.addPresence(channel, c.UID, info)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInternalServerError
+			resp := newClientSubscribeResponse(body)
+			return resp, ErrInternalServerError
 		}
 	}
 
@@ -826,7 +812,7 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*clientResponse, err
 
 	if chOpts.JoinLeave {
 		go func() {
-			err = c.app.pubJoinLeave(channel, "join", info)
+			err = c.app.pubJoin(channel, info)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -839,28 +825,26 @@ func (c *client) subscribeCmd(cmd *SubscribeClientCommand) (*clientResponse, err
 
 	body.Status = true
 
-	return resp, nil
+	return newClientSubscribeResponse(body), nil
 }
 
 // unsubscribeCmd handles unsubscribe command from client - it allows to
 // unsubscribe connection from channel
-func (c *client) unsubscribeCmd(cmd *UnsubscribeClientCommand) (*clientResponse, error) {
-
-	resp := newClientResponse("unsubscribe")
+func (c *client) unsubscribeCmd(cmd *unsubscribeClientCommand) (response, error) {
 
 	channel := cmd.Channel
 	if channel == "" {
 		return nil, ErrInvalidMessage
 	}
 
-	body := &UnsubscribeBody{
+	body := unsubscribeBody{
 		Channel: channel,
 	}
-	resp.Body = body
 
 	chOpts, err := c.app.channelOpts(channel)
 	if err != nil {
-		resp.Err(clientError{err, errorAdviceFix})
+		resp := newClientUnsubscribeResponse(body)
+		resp.SetErr(responseError{err, errorAdviceFix})
 		return resp, nil
 	}
 
@@ -877,7 +861,7 @@ func (c *client) unsubscribeCmd(cmd *UnsubscribeClientCommand) (*clientResponse,
 		}
 
 		if chOpts.JoinLeave {
-			err = c.app.pubJoinLeave(channel, "leave", info)
+			err = c.app.pubLeave(channel, info)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -886,7 +870,8 @@ func (c *client) unsubscribeCmd(cmd *UnsubscribeClientCommand) (*clientResponse,
 		err = c.app.removeSub(channel, c)
 		if err != nil {
 			logger.ERROR.Println(err)
-			resp.Err(clientError{ErrInternalServerError, errorAdviceNone})
+			resp := newClientUnsubscribeResponse(body)
+			resp.SetErr(responseError{ErrInternalServerError, errorAdviceNone})
 			return resp, nil
 		}
 
@@ -898,27 +883,25 @@ func (c *client) unsubscribeCmd(cmd *UnsubscribeClientCommand) (*clientResponse,
 
 	body.Status = true
 
-	return resp, nil
+	return newClientUnsubscribeResponse(body), nil
 }
 
 // publishCmd handles publish command - clients can publish messages into
 // channels themselves if `publish` allowed by channel options. In most cases clients not
 // allowed to publish into channels directly - web application publishes messages
 // itself via HTTP API or Redis.
-func (c *client) publishCmd(cmd *PublishClientCommand) (*clientResponse, error) {
-
-	resp := newClientResponse("publish")
+func (c *client) publishCmd(cmd *publishClientCommand) (response, error) {
 
 	channel := cmd.Channel
 	data := cmd.Data
 
-	body := &PublishBody{
+	body := publishBody{
 		Channel: channel,
 	}
-	resp.Body = body
 
 	if _, ok := c.Channels[channel]; !ok {
-		resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
+		resp := newClientPublishResponse(body)
+		resp.SetErr(responseError{ErrPermissionDenied, errorAdviceFix})
 		return resp, nil
 	}
 
@@ -926,76 +909,73 @@ func (c *client) publishCmd(cmd *PublishClientCommand) (*clientResponse, error) 
 
 	err := c.app.publish(channel, data, c.UID, &info, true)
 	if err != nil {
-		resp.Err(clientError{err, errorAdviceRetry})
+		resp := newClientPublishResponse(body)
+		resp.SetErr(responseError{err, errorAdviceRetry})
 		return resp, nil
 	}
 
-	// message successfully sent
+	// message successfully published to engine.
 	body.Status = true
 
-	return resp, nil
+	return newClientPublishResponse(body), nil
 }
 
 // presenceCmd handles presence command - it shows which clients
 // are subscribed on channel at this moment. This method also checks if
 // presence information turned on for channel (based on channel options
 // for namespace or project)
-func (c *client) presenceCmd(cmd *PresenceClientCommand) (*clientResponse, error) {
-
-	resp := newClientResponse("presence")
+func (c *client) presenceCmd(cmd *presenceClientCommand) (response, error) {
 
 	channel := cmd.Channel
 
-	body := &PresenceBody{
+	body := presenceBody{
 		Channel: channel,
 	}
 
-	resp.Body = body
-
 	if _, ok := c.Channels[channel]; !ok {
-		resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
+		resp := newClientPresenceResponse(body)
+		resp.SetErr(responseError{ErrPermissionDenied, errorAdviceFix})
 		return resp, nil
 	}
 
 	presence, err := c.app.Presence(channel)
 	if err != nil {
-		resp.Err(clientError{err, errorAdviceRetry})
+		resp := newClientPresenceResponse(body)
+		resp.SetErr(responseError{err, errorAdviceRetry})
 		return resp, nil
 	}
 
 	body.Data = presence
 
-	return resp, nil
+	return newClientPresenceResponse(body), nil
 }
 
 // historyCmd handles history command - it shows last M messages published
 // into channel. M is history size and can be configured for project or namespace
 // via channel options. Also this method checks that history available for channel
 // (also determined by channel options flag)
-func (c *client) historyCmd(cmd *HistoryClientCommand) (*clientResponse, error) {
-
-	resp := newClientResponse("history")
+func (c *client) historyCmd(cmd *historyClientCommand) (response, error) {
 
 	channel := cmd.Channel
 
-	body := &HistoryBody{
+	body := historyBody{
 		Channel: channel,
 	}
 
-	resp.Body = body
-
 	if _, ok := c.Channels[channel]; !ok {
-		resp.Err(clientError{ErrPermissionDenied, errorAdviceFix})
+		resp := newClientHistoryResponse(body)
+		resp.SetErr(responseError{ErrPermissionDenied, errorAdviceFix})
 		return resp, nil
 	}
 
 	history, err := c.app.History(channel)
 	if err != nil {
-		resp.Err(clientError{err, errorAdviceRetry})
+		resp := newClientHistoryResponse(body)
+		resp.SetErr(responseError{err, errorAdviceRetry})
 		return resp, nil
 	}
 
 	body.Data = history
 
-	return resp, nil
+	return newClientHistoryResponse(body), nil
 }

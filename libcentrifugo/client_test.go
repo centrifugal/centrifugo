@@ -89,7 +89,7 @@ func TestSingleObjectMessage(t *testing.T) {
 
 func testConnectCmd(timestamp string) clientCommand {
 	token := auth.GenerateClientToken("secret", "user1", timestamp, "")
-	connectCmd := ConnectClientCommand{
+	connectCmd := connectClientCommand{
 		Timestamp: timestamp,
 		User:      UserID("user1"),
 		Info:      "",
@@ -105,7 +105,7 @@ func testConnectCmd(timestamp string) clientCommand {
 
 func testRefreshCmd(timestamp string) clientCommand {
 	token := auth.GenerateClientToken("secret", "user1", timestamp, "")
-	refreshCmd := RefreshClientCommand{
+	refreshCmd := refreshClientCommand{
 		Timestamp: timestamp,
 		User:      UserID("user1"),
 		Info:      "",
@@ -124,7 +124,7 @@ func testChannelSign(client ConnID, ch Channel) string {
 }
 
 func testSubscribePrivateCmd(ch Channel, client ConnID) clientCommand {
-	subscribeCmd := SubscribeClientCommand{
+	subscribeCmd := subscribeClientCommand{
 		Channel: Channel(ch),
 		Client:  client,
 		Info:    "",
@@ -139,7 +139,7 @@ func testSubscribePrivateCmd(ch Channel, client ConnID) clientCommand {
 }
 
 func testSubscribeCmd(channel string) clientCommand {
-	subscribeCmd := SubscribeClientCommand{
+	subscribeCmd := subscribeClientCommand{
 		Channel: Channel(channel),
 	}
 	cmdBytes, _ := json.Marshal(subscribeCmd)
@@ -151,7 +151,7 @@ func testSubscribeCmd(channel string) clientCommand {
 }
 
 func testUnsubscribeCmd(channel string) clientCommand {
-	unsubscribeCmd := UnsubscribeClientCommand{
+	unsubscribeCmd := unsubscribeClientCommand{
 		Channel: Channel(channel),
 	}
 	cmdBytes, _ := json.Marshal(unsubscribeCmd)
@@ -163,7 +163,7 @@ func testUnsubscribeCmd(channel string) clientCommand {
 }
 
 func testPresenceCmd(channel string) clientCommand {
-	presenceCmd := PresenceClientCommand{
+	presenceCmd := presenceClientCommand{
 		Channel: Channel(channel),
 	}
 	cmdBytes, _ := json.Marshal(presenceCmd)
@@ -175,7 +175,7 @@ func testPresenceCmd(channel string) clientCommand {
 }
 
 func testHistoryCmd(channel string) clientCommand {
-	historyCmd := HistoryClientCommand{
+	historyCmd := historyClientCommand{
 		Channel: Channel(channel),
 	}
 	cmdBytes, _ := json.Marshal(historyCmd)
@@ -187,7 +187,7 @@ func testHistoryCmd(channel string) clientCommand {
 }
 
 func testPublishCmd(channel string) clientCommand {
-	publishCmd := PublishClientCommand{
+	publishCmd := publishClientCommand{
 		Channel: Channel(channel),
 		Data:    []byte("{}"),
 	}
@@ -232,7 +232,7 @@ func TestClientConnect(t *testing.T) {
 	assert.Equal(t, int64(ts), c.timestamp)
 
 	clientInfo := c.info(Channel(""))
-	assert.Equal(t, UserID("user1"), clientInfo.User)
+	assert.Equal(t, "user1", clientInfo.User)
 
 	assert.Equal(t, 1, len(app.clients.conns))
 
@@ -273,12 +273,12 @@ func TestClientPublish(t *testing.T) {
 	cmd := testPublishCmd("not_subscribed_on_this")
 	resp, err := c.handleCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrPermissionDenied, resp.err)
+	assert.Equal(t, ErrPermissionDenied, resp.(*clientPublishResponse).err)
 
 	cmd = testPublishCmd("test")
 	resp, err = c.handleCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*clientPublishResponse).err)
 }
 
 func TestClientSubscribe(t *testing.T) {
@@ -312,11 +312,11 @@ func TestClientSubscribePrivate(t *testing.T) {
 
 	resp, err := c.handleCmd(testSubscribeCmd("$test"))
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrPermissionDenied, resp.err)
+	assert.Equal(t, ErrPermissionDenied, resp.(*clientSubscribeResponse).err)
 
 	resp, err = c.handleCmd(testSubscribePrivateCmd("$test", c.UID))
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*clientSubscribeResponse).err)
 
 }
 
@@ -337,24 +337,24 @@ func TestClientSubscribeLimits(t *testing.T) {
 	}
 	ch := strings.Join(b, "")
 
-	resp, err := c.subscribeCmd(&SubscribeClientCommand{Channel: Channel(ch)})
+	resp, err := c.subscribeCmd(&subscribeClientCommand{Channel: Channel(ch)})
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrLimitExceeded, resp.err)
+	assert.Equal(t, ErrLimitExceeded, resp.(*clientSubscribeResponse).err)
 	assert.Equal(t, 0, len(c.channels()))
 
 	c.app.config.ClientChannelLimit = 10
 
 	for i := 0; i < 10; i++ {
-		resp, err := c.subscribeCmd(&SubscribeClientCommand{Channel: Channel(fmt.Sprintf("test%d", i))})
+		resp, err := c.subscribeCmd(&subscribeClientCommand{Channel: Channel(fmt.Sprintf("test%d", i))})
 		assert.Equal(t, nil, err)
-		assert.Equal(t, nil, resp.err)
+		assert.Equal(t, nil, resp.(*clientSubscribeResponse).err)
 		assert.Equal(t, i+1, len(c.channels()))
 	}
 
 	// one more to exceed limit.
-	resp, err = c.subscribeCmd(&SubscribeClientCommand{Channel: Channel("test")})
+	resp, err = c.subscribeCmd(&subscribeClientCommand{Channel: Channel("test")})
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrLimitExceeded, resp.err)
+	assert.Equal(t, ErrLimitExceeded, resp.(*clientSubscribeResponse).err)
 	assert.Equal(t, 10, len(c.channels()))
 
 }
@@ -408,12 +408,12 @@ func TestClientPresence(t *testing.T) {
 
 	resp, err := c.handleCmd(testPresenceCmd("test"))
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrPermissionDenied, resp.err)
+	assert.Equal(t, ErrPermissionDenied, resp.(*clientPresenceResponse).err)
 
 	_, _ = c.handleCmd(testSubscribeCmd("test"))
 	resp, err = c.handleCmd(testPresenceCmd("test"))
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*clientPresenceResponse).err)
 }
 
 func TestClientUpdatePresence(t *testing.T) {
@@ -445,12 +445,12 @@ func TestClientHistory(t *testing.T) {
 
 	resp, err := c.handleCmd(testHistoryCmd("test"))
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrPermissionDenied, resp.err)
+	assert.Equal(t, ErrPermissionDenied, resp.(*clientHistoryResponse).err)
 
 	_, _ = c.handleCmd(testSubscribeCmd("test"))
 	resp, err = c.handleCmd(testHistoryCmd("test"))
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*clientHistoryResponse).err)
 }
 
 func TestClientPing(t *testing.T) {
@@ -465,13 +465,13 @@ func TestClientPing(t *testing.T) {
 
 	resp, err := c.handleCmd(testPingCmd())
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*clientPingResponse).err)
 }
 
-func testSubscribeRecoverCmd(channel string, last MessageID, rec bool) clientCommand {
-	subscribeCmd := SubscribeClientCommand{
+func testSubscribeRecoverCmd(channel string, last string, rec bool) clientCommand {
+	subscribeCmd := subscribeClientCommand{
 		Channel: Channel(channel),
-		Last:    last,
+		Last:    MessageID(last),
 		Recover: rec,
 	}
 	cmdBytes, _ := json.Marshal(subscribeCmd)
@@ -514,7 +514,7 @@ func TestSubscribeRecover(t *testing.T) {
 	subscribeCmd := testSubscribeCmd("test")
 	resp, err := c.handleCmd(subscribeCmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, last, resp.Body.(*SubscribeBody).Last)
+	assert.Equal(t, last, string(resp.(*clientSubscribeResponse).Body.Last))
 
 	// publish 2 messages since last
 	data, _ = json.Marshal(map[string]string{"input": "test1"})
@@ -534,8 +534,8 @@ func TestSubscribeRecover(t *testing.T) {
 	subscribeLastCmd := testSubscribeRecoverCmd("test", last, false)
 	resp, err = c.handleCmd(subscribeLastCmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 0, len(resp.Body.(*SubscribeBody).Messages))
-	assert.NotEqual(t, last, resp.Body.(*SubscribeBody).Last)
+	assert.Equal(t, 0, len(resp.(*clientSubscribeResponse).Body.Messages))
+	assert.NotEqual(t, last, resp.(*clientSubscribeResponse).Body.Last)
 
 	// test normal recover
 	c, _ = newClient(app, &testSession{})
@@ -545,12 +545,12 @@ func TestSubscribeRecover(t *testing.T) {
 	subscribeLastCmd = testSubscribeRecoverCmd("test", last, true)
 	resp, err = c.handleCmd(subscribeLastCmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 2, len(resp.Body.(*SubscribeBody).Messages))
-	assert.Equal(t, true, resp.Body.(*SubscribeBody).Recovered)
-	assert.Equal(t, MessageID(""), resp.Body.(*SubscribeBody).Last)
-	messages = resp.Body.(*SubscribeBody).Messages
-	m0, _ := messages[0].Data.MarshalJSON()
-	m1, _ := messages[1].Data.MarshalJSON()
+	assert.Equal(t, 2, len(resp.(*clientSubscribeResponse).Body.Messages))
+	assert.Equal(t, true, resp.(*clientSubscribeResponse).Body.Recovered)
+	assert.Equal(t, MessageID(""), resp.(*clientSubscribeResponse).Body.Last)
+	messages = resp.(*clientSubscribeResponse).Body.Messages
+	m0, _ := json.Marshal(messages[0].Data)
+	m1, _ := json.Marshal(messages[1].Data)
 	// in reversed order in history
 	assert.Equal(t, strings.Contains(string(m0), "test2"), true)
 	assert.Equal(t, strings.Contains(string(m1), "test1"), true)
@@ -568,6 +568,6 @@ func TestSubscribeRecover(t *testing.T) {
 	subscribeLastCmd = testSubscribeRecoverCmd("test", last, true)
 	resp, err = c.handleCmd(subscribeLastCmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 5, len(resp.Body.(*SubscribeBody).Messages))
-	assert.Equal(t, false, resp.Body.(*SubscribeBody).Recovered)
+	assert.Equal(t, 5, len(resp.(*clientSubscribeResponse).Body.Messages))
+	assert.Equal(t, false, resp.(*clientSubscribeResponse).Body.Recovered)
 }

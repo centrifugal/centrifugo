@@ -75,26 +75,26 @@ func createTestClients(app *Application, nChannels, nChannelClients int, sink ch
 			sess.sink = sink
 		}
 		c := newTestClient(app, sess)
-		cmd := ConnectClientCommand{
+		cmd := connectClientCommand{
 			User: UserID(fmt.Sprintf("user-%d", i)),
 		}
 		resp, err := c.connectCmd(&cmd)
 		if err != nil {
 			panic(err)
 		}
-		if resp.err != nil {
-			panic(resp.err)
+		if resp.(*clientConnectResponse).err != nil {
+			panic(resp.(*clientConnectResponse).err)
 		}
 		for j := 0; j < nChannels; j++ {
-			cmd := SubscribeClientCommand{
+			cmd := subscribeClientCommand{
 				Channel: Channel(fmt.Sprintf("channel-%d", j)),
 			}
 			resp, err = c.subscribeCmd(&cmd)
 			if err != nil {
 				panic(err)
 			}
-			if resp.err != nil {
-				panic(resp.err)
+			if resp.(*clientSubscribeResponse).err != nil {
+				panic(resp.(*clientSubscribeResponse).err)
 			}
 		}
 	}
@@ -104,12 +104,6 @@ func testMemoryAppWithClients(nChannels int, nChannelClients int) *Application {
 	app := testMemoryApp()
 	createTestClients(app, nChannels, nChannelClients, nil)
 	return app
-}
-
-func TestChannelID(t *testing.T) {
-	app := testApp()
-	chID := app.channelID("channel")
-	assert.Equal(t, chID, ChannelID(defaultChannelPrefix+".channel.channel"))
 }
 
 func TestUserAllowed(t *testing.T) {
@@ -184,48 +178,20 @@ func BenchmarkNamespaceKey(b *testing.B) {
 	}
 }
 
-func testPingControlCmd(uid string) []byte {
-	params := json.RawMessage([]byte("{}"))
-	cmd := controlCommand{
-		UID:    uid,
-		Method: "ping",
-		Params: &params,
-	}
-	cmdBytes, _ := json.Marshal(cmd)
-	return cmdBytes
+func testPingControlCmd(uid string) *ControlMessage {
+	return newControlMessage(uid, "ping", []byte("{}"))
 }
 
-func testUnsubscribeControlCmd(uid string) []byte {
-	params := json.RawMessage([]byte("{}"))
-	cmd := controlCommand{
-		UID:    uid,
-		Method: "unsubscribe",
-		Params: &params,
-	}
-	cmdBytes, _ := json.Marshal(cmd)
-	return cmdBytes
+func testUnsubscribeControlCmd(uid string) *ControlMessage {
+	return newControlMessage(uid, "unsubscribe", []byte("{}"))
 }
 
-func testDisconnectControlCmd(uid string) []byte {
-	params := json.RawMessage([]byte("{}"))
-	cmd := controlCommand{
-		UID:    uid,
-		Method: "disconnect",
-		Params: &params,
-	}
-	cmdBytes, _ := json.Marshal(cmd)
-	return cmdBytes
+func testDisconnectControlCmd(uid string) *ControlMessage {
+	return newControlMessage(uid, "disconnect", []byte("{}"))
 }
 
-func testWrongControlCmd(uid string) []byte {
-	params := json.RawMessage([]byte("{}"))
-	cmd := controlCommand{
-		UID:    uid,
-		Method: "wrong",
-		Params: &params,
-	}
-	cmdBytes, _ := json.Marshal(cmd)
-	return cmdBytes
+func testWrongControlCmd(uid string) *ControlMessage {
+	return newControlMessage(uid, "wrong", []byte("{}"))
 }
 
 func TestPublish(t *testing.T) {
@@ -261,7 +227,9 @@ func TestPublish(t *testing.T) {
 func TestPublishJoinLeave(t *testing.T) {
 	app := testMemoryApp()
 	createTestClients(app, 10, 1, nil)
-	err := app.pubJoinLeave(Channel("channel-0"), "join", ClientInfo{})
+	err := app.pubJoin(Channel("channel-0"), ClientInfo{})
+	assert.Equal(t, nil, err)
+	err = app.pubLeave(Channel("channel-0"), ClientInfo{})
 	assert.Equal(t, nil, err)
 }
 
@@ -309,6 +277,88 @@ func TestUnsubscribe(t *testing.T) {
 	assert.Equal(t, 0, len(c.channels()))
 }
 
+// BenchmarkPubSubMessageReceive allows to estimate how many new messages we can convert to client JSON messages.
+func BenchmarkPubSubMessageReceive(b *testing.B) {
+	app := testMemoryApp()
+
+	// create one client so clientMsg really marshal into client response JSON.
+	c, _ := newClient(app, &testSession{})
+
+	messagePoolSize := 1000
+
+	messagePool := make([][]byte, messagePoolSize)
+
+	for i := 0; i < len(messagePool); i++ {
+		channel := Channel("test" + strconv.Itoa(i))
+		// subscribe client to channel so we need to encode message to JSON
+		app.clients.addSub(channel, c)
+		// add message to pool so we have messages for different channels.
+		testMsg := newMessage(channel, []byte("{\"hello world\": true}"), "", nil)
+		byteMessage, _ := testMsg.Marshal() // protobuf
+		messagePool[i] = byteMessage
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var msg Message
+		err := msg.Unmarshal(messagePool[i%len(messagePool)]) // unmarshal from protobuf
+		if err != nil {
+			panic(err)
+		}
+		err = app.clientMsg(Channel("test"+strconv.Itoa(i%len(messagePool))), &msg)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+// BenchmarkClientMsg allows to measue performance of marshaling messages into client response JSON.
+func BenchmarkClientMsg(b *testing.B) {
+	app := testMemoryApp()
+	// create one client so clientMsg really marshal into client response JSON.
+	c, _ := newClient(app, &testSession{})
+	messagePoolSize := 1000
+	messagePool := make([]*Message, messagePoolSize)
+
+	for i := 0; i < len(messagePool); i++ {
+		channel := Channel("test" + strconv.Itoa(i))
+		// subscribe client to channel so we need to encode message to JSON
+		app.clients.addSub(channel, c)
+		// add message to pool so we have messages for different channels.
+		testMsg := newMessage(channel, []byte("{\"hello world\": true}"), "", nil)
+		messagePool[i] = testMsg
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := app.clientMsg(Channel("test"+strconv.Itoa(i%len(messagePool))), messagePool[i%len(messagePool)])
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+// BenchmarkEngineMessageUnmarshal shows how fast we can decode messages coming from engine PUB/SUB.
+func BenchmarkEngineMessageUnmarshal(b *testing.B) {
+	messagePoolSize := 1000
+	messagePool := make([][]byte, messagePoolSize)
+
+	for i := 0; i < len(messagePool); i++ {
+		channel := Channel("test" + strconv.Itoa(i))
+		// add message to pool so we have messages for different channels.
+		testMsg := newMessage(channel, []byte("{\"hello world\": true}"), "", nil)
+		byteMessage, _ := testMsg.Marshal() // protobuf
+		messagePool[i] = byteMessage
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var msg Message
+		err := msg.Unmarshal(messagePool[i%len(messagePool)]) // unmarshal from protobuf
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 // BenchmarkReceiveBroadcast measures how fast we can broadcast messages received
 // from engine into client channels in case of reasonably large different channel
 // amount.
@@ -325,8 +375,8 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 	createTestClients(app, nChannels, nClients, sink)
 
 	type received struct {
-		ch   ChannelID
-		data []byte
+		ch   Channel
+		data Message
 	}
 
 	var inputData []received
@@ -335,10 +385,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 		suffix := i % nChannels
 		ch := Channel(fmt.Sprintf("channel-%d", suffix))
 		msg := newMessage(ch, []byte("{}"), "", nil)
-		resp := newClientMessage()
-		resp.Body = msg
-		jsonData, _ := json.Marshal(resp)
-		inputData = append(inputData, received{app.channelID(ch), jsonData})
+		inputData = append(inputData, received{ch, *msg})
 	}
 
 	b.ResetTimer()
@@ -362,7 +409,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 
 		go func() {
 			for _, item := range inputData {
-				app.handleMsg(item.ch, item.data)
+				app.clientMsg(item.ch, &item.data)
 			}
 		}()
 

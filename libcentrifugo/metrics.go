@@ -14,9 +14,30 @@ import (
 	"github.com/FZambia/go-logger"
 )
 
-// Metrics contains various Centrifugo statistic and metric information aggregated
+// serverStats contains state and metrics information from running Centrifugo nodes.
+type serverStats struct {
+	Nodes           []nodeInfo `json:"nodes"`
+	MetricsInterval int64      `json:"metrics_interval"`
+}
+
+// nodeInfo contains information and statistics about Centrifugo node.
+type nodeInfo struct {
+	UID        string `json:"uid"`
+	Name       string `json:"name"`
+	Goroutines int    `json:"num_goroutine"`
+	Clients    int    `json:"num_clients"`
+	Unique     int    `json:"num_unique_clients"`
+	Channels   int    `json:"num_channels"`
+	Started    int64  `json:"started_at"`
+	Gomaxprocs int    `json:"gomaxprocs"`
+	NumCPU     int    `json:"num_cpu"`
+	metrics
+	updated int64
+}
+
+// metrics contains various Centrifugo statistic and metric information aggregated
 // once in a configurable interval.
-type Metrics struct {
+type metrics struct {
 	// NumMsgPublished is how many messages were published into channels.
 	NumMsgPublished int64 `json:"num_msg_published"`
 
@@ -53,7 +74,7 @@ type Metrics struct {
 	// MemSys shows system memory usage in bytes.
 	MemSys int64 `json:"memory_sys"`
 
-	// CPU shows cpu usage in percents.
+	// CPU shows cpu usage (actually just a snapshot value) in percents.
 	CPU int64 `json:"cpu_usage"`
 }
 
@@ -164,11 +185,11 @@ func (m *metricsRegistry) UpdateSnapshot() {
 }
 
 // GetRawMetrics returns a read-only copy of the raw counter values.
-func (m *metricsRegistry) GetRawMetrics() *Metrics {
+func (m *metricsRegistry) GetRawMetrics() *metrics {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	return &Metrics{
+	return &metrics{
 		NumMsgPublished:   m.NumMsgPublished.LoadRaw(),
 		NumMsgQueued:      m.NumMsgQueued.LoadRaw(),
 		NumMsgSent:        m.NumMsgSent.LoadRaw(),
@@ -183,11 +204,11 @@ func (m *metricsRegistry) GetRawMetrics() *Metrics {
 
 // GetSnapshotMetrics returns a read-only copy of the deltas over the last
 // metrics interval.
-func (m *metricsRegistry) GetSnapshotMetrics() *Metrics {
+func (m *metricsRegistry) GetSnapshotMetrics() *metrics {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	return &Metrics{
+	return &metrics{
 		NumMsgPublished:   m.NumMsgPublished.LastIn(),
 		NumMsgQueued:      m.NumMsgQueued.LastIn(),
 		NumMsgSent:        m.NumMsgSent.LastIn(),

@@ -24,7 +24,7 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err := app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.err)
+	assert.Equal(t, ErrInvalidMessage, resp.(*apiPublishResponse).err)
 
 	cmd = apiCommand{
 		Method: "publish",
@@ -39,7 +39,7 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.err)
+	assert.Equal(t, ErrInvalidMessage, resp.(*apiBroadcastResponse).err)
 
 	cmd = apiCommand{
 		Method: "broadcast",
@@ -54,7 +54,7 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.err)
+	assert.Equal(t, ErrInvalidMessage, resp.(*apiUnsubscribeResponse).err)
 
 	cmd = apiCommand{
 		Method: "unsubscribe",
@@ -69,7 +69,7 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.err)
+	assert.Equal(t, ErrInvalidMessage, resp.(*apiDisconnectResponse).err)
 
 	cmd = apiCommand{
 		Method: "disconnect",
@@ -84,7 +84,7 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.err)
+	assert.Equal(t, ErrInvalidMessage, resp.(*apiPresenceResponse).err)
 
 	cmd = apiCommand{
 		Method: "presence",
@@ -99,7 +99,7 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.err)
+	assert.Equal(t, ErrInvalidMessage, resp.(*apiHistoryResponse).err)
 
 	cmd = apiCommand{
 		Method: "history",
@@ -114,7 +114,7 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiChannelsResponse).err)
 
 	cmd = apiCommand{
 		Method: "stats",
@@ -122,7 +122,7 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiStatsResponse).err)
 
 	cmd = apiCommand{
 		Method: "node",
@@ -130,7 +130,7 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.apiCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiNodeResponse).err)
 }
 
 func TestAPIPublish(t *testing.T) {
@@ -141,14 +141,14 @@ func TestAPIPublish(t *testing.T) {
 	}
 	resp, err := app.publishCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiPublishResponse).err)
 	cmd = &publishAPICommand{
 		Channel: "nonexistentnamespace:channel-2",
 		Data:    []byte("null"),
 	}
 	resp, err = app.publishCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrNamespaceNotFound, resp.err)
+	assert.Equal(t, ErrNamespaceNotFound, resp.(*apiPublishResponse).err)
 }
 
 func TestAPIBroadcast(t *testing.T) {
@@ -159,21 +159,21 @@ func TestAPIBroadcast(t *testing.T) {
 	}
 	resp, err := app.broadcastCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiBroadcastResponse).err)
 	cmd = &broadcastAPICommand{
 		Channels: []Channel{"channel-1", "nonexistentnamespace:channel-2"},
 		Data:     []byte("null"),
 	}
 	resp, err = app.broadcastCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrNamespaceNotFound, resp.err)
+	assert.Equal(t, ErrNamespaceNotFound, resp.(*apiBroadcastResponse).err)
 	cmd = &broadcastAPICommand{
 		Channels: []Channel{},
 		Data:     []byte("null"),
 	}
 	resp, err = app.broadcastCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.err)
+	assert.Equal(t, ErrInvalidMessage, resp.(*apiBroadcastResponse).err)
 }
 
 func TestAPIUnsubscribe(t *testing.T) {
@@ -184,7 +184,7 @@ func TestAPIUnsubscribe(t *testing.T) {
 	}
 	resp, err := app.unsubcribeCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiUnsubscribeResponse).err)
 
 	// unsubscribe from all channels
 	cmd = &unsubscribeAPICommand{
@@ -193,7 +193,7 @@ func TestAPIUnsubscribe(t *testing.T) {
 	}
 	resp, err = app.unsubcribeCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiUnsubscribeResponse).err)
 }
 
 func TestAPIDisconnect(t *testing.T) {
@@ -203,7 +203,7 @@ func TestAPIDisconnect(t *testing.T) {
 	}
 	resp, err := app.disconnectCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiDisconnectResponse).err)
 }
 
 func TestAPIPresence(t *testing.T) {
@@ -213,7 +213,7 @@ func TestAPIPresence(t *testing.T) {
 	}
 	resp, err := app.presenceCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiPresenceResponse).err)
 }
 
 func TestAPIHistory(t *testing.T) {
@@ -223,19 +223,19 @@ func TestAPIHistory(t *testing.T) {
 	}
 	resp, err := app.historyCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiHistoryResponse).err)
 }
 
 func TestAPIChannels(t *testing.T) {
 	app := testApp()
 	resp, err := app.channelsCmd()
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiChannelsResponse).err)
 	app = testMemoryApp()
 	createTestClients(app, 10, 1, nil)
 	resp, err = app.channelsCmd()
 	assert.Equal(t, nil, err)
-	body := resp.Body.(*ChannelsBody)
+	body := resp.(*apiChannelsResponse).Body
 	assert.Equal(t, 10, len(body.Data))
 }
 
@@ -243,14 +243,14 @@ func TestAPIStats(t *testing.T) {
 	app := testApp()
 	resp, err := app.statsCmd()
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiStatsResponse).err)
 }
 
 func TestAPINode(t *testing.T) {
 	app := testApp()
 	resp, err := app.nodeCmd()
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, resp.err)
+	assert.Equal(t, nil, resp.(*apiNodeResponse).err)
 }
 
 func getNPublishJSON(channel string, n int) []byte {

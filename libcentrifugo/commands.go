@@ -7,8 +7,6 @@ import (
 type (
 	// Channel is a string channel name.
 	Channel string
-	// ChannelID is unique channel identificator in Centrifugo.
-	ChannelID string
 	// UserID is web application user ID as string.
 	UserID string
 	// ConnID is a unique connection ID.
@@ -29,43 +27,30 @@ type apiCommand struct {
 	Params json.RawMessage `json:"params"`
 }
 
-type adminCommand struct {
-	UID    string          `json:"uid"`
-	Method string          `json:"method"`
-	Params json.RawMessage `json:"params"`
-}
-
-type controlCommand struct {
-	// UID is a unique node ID which sent this control command.
-	UID    string           `json:"uid"`
-	Method string           `json:"method"`
-	Params *json.RawMessage `json:"params"`
-}
-
-// ConnectClientCommand is a command to authorize connection - it contains user ID
+// connectClientCommand is a command to authorize connection - it contains user ID
 // in web application, additional connection information as JSON string, timestamp
 // with unix seconds on moment when connect parameters generated and HMAC token to
 // prove correctness of all those parameters.
-type ConnectClientCommand struct {
+type connectClientCommand struct {
 	User      UserID `json:"user"`
 	Timestamp string `json:"timestamp"`
 	Info      string `json:"info"`
 	Token     string `json:"token"`
 }
 
-// RefreshClientCommand is used to prolong connection lifetime when connection check
+// refreshClientCommand is used to prolong connection lifetime when connection check
 // mechanism is enabled. It can only be sent by client after successfull connect.
-type RefreshClientCommand struct {
+type refreshClientCommand struct {
 	User      UserID `json:"user"`
 	Timestamp string `json:"timestamp"`
 	Info      string `json:"info"`
 	Token     string `json:"token"`
 }
 
-// SubscribeClientCommand is used to subscribe on channel.
+// subscribeClientCommand is used to subscribe on channel.
 // It can only be sent by client after successfull connect.
 // It also can have Client, Info and Sign properties when channel is private.
-type SubscribeClientCommand struct {
+type subscribeClientCommand struct {
 	Channel Channel   `json:"channel"`
 	Client  ConnID    `json:"client"`
 	Last    MessageID `json:"last"`
@@ -74,86 +59,86 @@ type SubscribeClientCommand struct {
 	Sign    string    `json:"sign"`
 }
 
-// UnsubscribeClientCommand is used to unsubscribe from channel.
-type UnsubscribeClientCommand struct {
+// unsubscribeClientCommand is used to unsubscribe from channel.
+type unsubscribeClientCommand struct {
 	Channel Channel `json:"channel"`
 }
 
-// PublishClientCommand is used to publish messages into channel.
-type PublishClientCommand struct {
+// publishClientCommand is used to publish messages into channel.
+type publishClientCommand struct {
 	Channel Channel         `json:"channel"`
 	Data    json.RawMessage `json:"data"`
 }
 
-// PresenceClientCommand is used to get presence (actual channel subscriptions).
+// presenceClientCommand is used to get presence (actual channel subscriptions).
 // information for channel
-type PresenceClientCommand struct {
+type presenceClientCommand struct {
 	Channel Channel `json:"channel"`
 }
 
-// HistoryClientCommand is used to get history information for channel.
-type HistoryClientCommand struct {
+// historyClientCommand is used to get history information for channel.
+type historyClientCommand struct {
 	Channel Channel `json:"channel"`
 }
 
-// PingClientCommand is used to ping server.
-type PingClientCommand struct {
-	Data string
+// pingClientCommand is used to ping server.
+type pingClientCommand struct {
+	Data string `json:"data"`
 }
 
 // publishApiCommand is used to publish messages into channel.
 type publishAPICommand struct {
-	Channel Channel
-	Client  ConnID
-	Data    json.RawMessage
+	Channel Channel         `json:"channel"`
+	Client  ConnID          `json:"client"`
+	Data    json.RawMessage `json:"data"`
 }
 
 // broadcastApiCommand is used to publish messages into multiple channels.
 type broadcastAPICommand struct {
-	Channels []Channel
-	Data     json.RawMessage
-	Client   ConnID
+	Channels []Channel       `json:"channels"`
+	Data     json.RawMessage `json:"data"`
+	Client   ConnID          `json:"client"`
 }
 
 // unsubscribeApiCommand is used to unsubscribe user from channel.
 type unsubscribeAPICommand struct {
-	Channel Channel
-	User    UserID
+	Channel Channel `json:"channel"`
+	User    UserID  `json:"user"`
 }
 
 // disconnectApiCommand is used to disconnect user.
 type disconnectAPICommand struct {
-	User UserID
+	User UserID `json:"user"`
 }
 
 // presenceApiCommand is used to get presence (actual channel subscriptions)
 // information for channel.
 type presenceAPICommand struct {
-	Channel Channel
+	Channel Channel `json:"channel"`
 }
 
 // historyApiCommand is used to get history information for channel.
 type historyAPICommand struct {
-	Channel Channel
+	Channel Channel `json:"channel"`
 }
 
 // pingControlCommand allows nodes to know about each other - node sends this
 // control command periodically.
 type pingControlCommand struct {
-	Info NodeInfo
+	Info nodeInfo `json:"info"`
 }
 
 // unsubscribeControlCommand required when node received unsubscribe API command –
 // node unsubscribes user from channel and then send this control command so other
 // nodes could unsubscribe user too.
 type unsubscribeControlCommand struct {
-	User    UserID
-	Channel Channel
+	Channel Channel `json:"channel"`
+	User    UserID  `json:"user"`
 }
 
 // disconnectControlCommand required to disconnect user from all nodes.
 type disconnectControlCommand struct {
-	User UserID
+	User UserID `json:"user"`
 }
 
 // connectAdminCommand required to authorize admin connection and provide

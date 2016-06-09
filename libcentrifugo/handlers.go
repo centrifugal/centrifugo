@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/gorilla/websocket"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
-	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -325,7 +325,7 @@ func (app *Application) processAPIData(data []byte) ([]byte, error) {
 		return nil, ErrInvalidMessage
 	}
 
-	var mr multiResponse
+	var mr multiAPIResponse
 
 	for _, command := range commands {
 		resp, err := app.apiCmd(command)

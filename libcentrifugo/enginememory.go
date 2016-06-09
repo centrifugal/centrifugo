@@ -37,8 +37,8 @@ func (e *MemoryEngine) run() error {
 	return nil
 }
 
-func (e *MemoryEngine) publish(chID ChannelID, message []byte, opts *publishOpts) <-chan error {
-	hasCurrentSubscribers := e.app.clients.hasSubscribers(chID)
+func (e *MemoryEngine) publishMessage(ch Channel, message *Message, opts *ChannelOptions) <-chan error {
+	hasCurrentSubscribers := e.app.clients.hasSubscribers(ch)
 
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
 		histOpts := addHistoryOpts{
@@ -46,94 +46,118 @@ func (e *MemoryEngine) publish(chID ChannelID, message []byte, opts *publishOpts
 			Lifetime:     opts.HistoryLifetime,
 			DropInactive: (opts.HistoryDropInactive && !hasCurrentSubscribers),
 		}
-		err := e.historyHub.add(chID, opts.Message, histOpts)
+		err := e.historyHub.add(ch, *message, histOpts)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
 	}
 
-	ch := make(chan error, 1)
-	ch <- e.app.handleMsg(chID, message)
-	return ch
+	eChan := make(chan error, 1)
+	eChan <- e.app.clientMsg(ch, message)
+	return eChan
 }
 
-func (e *MemoryEngine) subscribe(chID ChannelID) error {
+func (e *MemoryEngine) publishJoin(ch Channel, message *JoinMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- e.app.joinMsg(ch, message)
+	return eChan
+}
+
+func (e *MemoryEngine) publishLeave(ch Channel, message *LeaveMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- e.app.leaveMsg(ch, message)
+	return eChan
+}
+
+func (e *MemoryEngine) publishControl(message *ControlMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- e.app.controlMsg(message)
+	return eChan
+}
+
+func (e *MemoryEngine) publishAdmin(message *AdminMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- e.app.adminMsg(message)
+	return eChan
+}
+
+func (e *MemoryEngine) subscribe(ch Channel) error {
 	return nil
 }
 
-func (e *MemoryEngine) unsubscribe(chID ChannelID) error {
+func (e *MemoryEngine) unsubscribe(ch Channel) error {
 	return nil
 }
 
-func (e *MemoryEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) error {
-	return e.presenceHub.add(chID, uid, info)
+func (e *MemoryEngine) addPresence(ch Channel, uid ConnID, info ClientInfo) error {
+	return e.presenceHub.add(ch, uid, info)
 }
 
-func (e *MemoryEngine) removePresence(chID ChannelID, uid ConnID) error {
-	return e.presenceHub.remove(chID, uid)
+func (e *MemoryEngine) removePresence(ch Channel, uid ConnID) error {
+	return e.presenceHub.remove(ch, uid)
 }
 
-func (e *MemoryEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
-	return e.presenceHub.get(chID)
+func (e *MemoryEngine) presence(ch Channel) (map[ConnID]ClientInfo, error) {
+	return e.presenceHub.get(ch)
 }
 
-func (e *MemoryEngine) history(chID ChannelID, opts historyOpts) ([]Message, error) {
-	return e.historyHub.get(chID, opts)
+func (e *MemoryEngine) history(ch Channel, opts historyOpts) ([]Message, error) {
+	return e.historyHub.get(ch, opts)
 }
 
-func (e *MemoryEngine) channels() ([]ChannelID, error) {
+func (e *MemoryEngine) channels() ([]Channel, error) {
 	return e.app.clients.channels(), nil
 }
 
 type memoryPresenceHub struct {
 	sync.RWMutex
-	presence map[ChannelID]map[ConnID]ClientInfo
+	presence map[Channel]map[ConnID]ClientInfo
 }
 
 func newMemoryPresenceHub() *memoryPresenceHub {
 	return &memoryPresenceHub{
-		presence: make(map[ChannelID]map[ConnID]ClientInfo),
+		presence: make(map[Channel]map[ConnID]ClientInfo),
 	}
 }
 
-func (h *memoryPresenceHub) add(chID ChannelID, uid ConnID, info ClientInfo) error {
+func (h *memoryPresenceHub) add(ch Channel, uid ConnID, info ClientInfo) error {
 	h.Lock()
 	defer h.Unlock()
 
-	_, ok := h.presence[chID]
+	_, ok := h.presence[ch]
 	if !ok {
-		h.presence[chID] = make(map[ConnID]ClientInfo)
+		h.presence[ch] = make(map[ConnID]ClientInfo)
 	}
-	h.presence[chID][uid] = info
+	h.presence[ch][uid] = info
 	return nil
 }
 
-func (h *memoryPresenceHub) remove(chID ChannelID, uid ConnID) error {
+func (h *memoryPresenceHub) remove(ch Channel, uid ConnID) error {
 	h.Lock()
 	defer h.Unlock()
 
-	if _, ok := h.presence[chID]; !ok {
+	if _, ok := h.presence[ch]; !ok {
 		return nil
 	}
-	if _, ok := h.presence[chID][uid]; !ok {
+	if _, ok := h.presence[ch][uid]; !ok {
 		return nil
 	}
 
-	delete(h.presence[chID], uid)
+	delete(h.presence[ch], uid)
 
 	// clean up map if needed
-	if len(h.presence[chID]) == 0 {
-		delete(h.presence, chID)
+	if len(h.presence[ch]) == 0 {
+		delete(h.presence, ch)
 	}
 
 	return nil
 }
 
-func (h *memoryPresenceHub) get(chID ChannelID) (map[ConnID]ClientInfo, error) {
+func (h *memoryPresenceHub) get(ch Channel) (map[ConnID]ClientInfo, error) {
 	h.RLock()
 	defer h.RUnlock()
 
-	presence, ok := h.presence[chID]
+	presence, ok := h.presence[ch]
 	if !ok {
 		// return empty map
 		return map[ConnID]ClientInfo{}, nil
@@ -158,14 +182,14 @@ func (i historyItem) isExpired() bool {
 
 type memoryHistoryHub struct {
 	sync.RWMutex
-	history   map[ChannelID]historyItem
+	history   map[Channel]historyItem
 	queue     priority.Queue
 	nextCheck int64
 }
 
 func newMemoryHistoryHub() *memoryHistoryHub {
 	return &memoryHistoryHub{
-		history:   make(map[ChannelID]historyItem),
+		history:   make(map[Channel]historyItem),
 		queue:     priority.MakeQueue(),
 		nextCheck: 0,
 	}
@@ -205,13 +229,13 @@ func (h *memoryHistoryHub) expire() {
 				nextCheck = expireAt
 				break
 			}
-			chID := ChannelID(item.Value)
-			hItem, ok := h.history[chID]
+			ch := Channel(item.Value)
+			hItem, ok := h.history[ch]
 			if !ok {
 				continue
 			}
 			if hItem.expireAt <= expireAt {
-				delete(h.history, chID)
+				delete(h.history, ch)
 			}
 		}
 		h.nextCheck = nextCheck
@@ -219,11 +243,11 @@ func (h *memoryHistoryHub) expire() {
 	}
 }
 
-func (h *memoryHistoryHub) add(chID ChannelID, message Message, opts addHistoryOpts) error {
+func (h *memoryHistoryHub) add(ch Channel, message Message, opts addHistoryOpts) error {
 	h.Lock()
 	defer h.Unlock()
 
-	_, ok := h.history[chID]
+	_, ok := h.history[ch]
 
 	if opts.DropInactive && !ok {
 		// No active history for this channel so don't bother storing at all
@@ -231,19 +255,19 @@ func (h *memoryHistoryHub) add(chID ChannelID, message Message, opts addHistoryO
 	}
 
 	expireAt := time.Now().Unix() + int64(opts.Lifetime)
-	heap.Push(&h.queue, &priority.Item{Value: string(chID), Priority: expireAt})
+	heap.Push(&h.queue, &priority.Item{Value: string(ch), Priority: expireAt})
 	if !ok {
-		h.history[chID] = historyItem{
+		h.history[ch] = historyItem{
 			messages: []Message{message},
 			expireAt: expireAt,
 		}
 	} else {
-		messages := h.history[chID].messages
+		messages := h.history[ch].messages
 		messages = append([]Message{message}, messages...)
 		if len(messages) > opts.Size {
 			messages = messages[0:opts.Size]
 		}
-		h.history[chID] = historyItem{
+		h.history[ch] = historyItem{
 			messages: messages,
 			expireAt: expireAt,
 		}
@@ -256,18 +280,18 @@ func (h *memoryHistoryHub) add(chID ChannelID, message Message, opts addHistoryO
 	return nil
 }
 
-func (h *memoryHistoryHub) get(chID ChannelID, opts historyOpts) ([]Message, error) {
+func (h *memoryHistoryHub) get(ch Channel, opts historyOpts) ([]Message, error) {
 	h.RLock()
 	defer h.RUnlock()
 
-	hItem, ok := h.history[chID]
+	hItem, ok := h.history[ch]
 	if !ok {
 		// return empty slice
 		return []Message{}, nil
 	}
 	if hItem.isExpired() {
 		// return empty slice
-		delete(h.history, chID)
+		delete(h.history, ch)
 		return []Message{}, nil
 	}
 	if opts.Limit == 0 || opts.Limit >= len(hItem.messages) {

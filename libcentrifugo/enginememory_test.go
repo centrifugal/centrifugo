@@ -1,7 +1,6 @@
 package libcentrifugo
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -41,6 +40,10 @@ func (t *TestConn) close(reason string) error {
 	return nil
 }
 
+func newTestMessage() *Message {
+	return newMessage(Channel("test"), []byte("{}"), "", nil)
+}
+
 func TestMemoryEngine(t *testing.T) {
 	e := testMemoryEngine()
 	err := e.run()
@@ -49,10 +52,10 @@ func TestMemoryEngine(t *testing.T) {
 	assert.NotEqual(t, nil, e.presenceHub)
 	assert.NotEqual(t, e.name(), "")
 
-	err = <-e.publish(ChannelID("channel"), []byte("{}"), nil)
+	err = <-e.publishMessage(Channel("channel"), newTestMessage(), nil)
 	assert.Equal(t, nil, err)
 
-	assert.Equal(t, nil, e.subscribe(ChannelID("channel")))
+	assert.Equal(t, nil, e.subscribe(Channel("channel")))
 
 	// Memory engine is actually tightly coupled to application hubs in implementation
 	// so calling subscribe on the engine alone is actually a no-op since Application already
@@ -60,65 +63,64 @@ func TestMemoryEngine(t *testing.T) {
 	// In order to test publish works after subscription is added, we actually need to inject a
 	// fake subscription into the Application hub
 	fakeConn := &TestConn{"test", "test", []Channel{"channel"}}
-	e.app.clients.addSub(ChannelID("channel"), fakeConn)
+	e.app.clients.addSub(Channel("channel"), fakeConn)
 
 	// Now we've subscribed...
-	err = <-e.publish(ChannelID("channel"), []byte("{}"), nil)
+	err = <-e.publishMessage(Channel("channel"), newTestMessage(), nil)
 	assert.Equal(t, nil, err)
 
-	assert.Equal(t, nil, e.unsubscribe(ChannelID("channel")))
+	assert.Equal(t, nil, e.unsubscribe(Channel("channel")))
 
 	// Same dance to manually remove sub from app hub
-	e.app.clients.removeSub(ChannelID("channel"), fakeConn)
+	e.app.clients.removeSub(Channel("channel"), fakeConn)
 
-	assert.Equal(t, nil, e.addPresence(ChannelID("channel"), "uid", ClientInfo{}))
-	p, err := e.presence(ChannelID("channel"))
+	assert.Equal(t, nil, e.addPresence(Channel("channel"), "uid", ClientInfo{}))
+	p, err := e.presence(Channel("channel"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(p))
-	err = e.removePresence(ChannelID("channel"), "uid")
+	err = e.removePresence(Channel("channel"), "uid")
 	assert.Equal(t, nil, err)
 
-	msg := Message{UID: MessageID("test UID")}
-	msgJSON, _ := json.Marshal(msg)
+	msg := Message{UID: "test UID"}
 
 	// test adding history
-	assert.Equal(t, nil, <-e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 4, 1, false}))
-	h, err := e.history(ChannelID("channel"), historyOpts{})
+	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	h, err := e.history(Channel("channel"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
-	assert.Equal(t, h[0].UID, MessageID("test UID"))
+	assert.Equal(t, h[0].UID, "test UID")
 
 	// test history limit
-	assert.Equal(t, nil, <-e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 4, 1, false}))
-	assert.Equal(t, nil, <-e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 4, 1, false}))
-	assert.Equal(t, nil, <-e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 4, 1, false}))
-	h, err = e.history(ChannelID("channel"), historyOpts{Limit: 2})
+	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	h, err = e.history(Channel("channel"), historyOpts{Limit: 2})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(h))
 
 	// test history limit greater than history size
-	assert.Equal(t, nil, <-e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 1, 1, false}))
-	assert.Equal(t, nil, <-e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 1, 1, false}))
-	assert.Equal(t, nil, <-e.publish(ChannelID("channel"), msgJSON, &publishOpts{msg, 1, 1, false}))
-	h, err = e.history(ChannelID("channel"), historyOpts{Limit: 2})
+	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
+	h, err = e.history(Channel("channel"), historyOpts{Limit: 2})
 
 	// HistoryDropInactive tests - new channel to avoid conflicts with test above
 	// 1. add history with DropInactive = true should be a no-op if history is empty
-	assert.Equal(t, nil, <-e.publish(ChannelID("channel-2"), msgJSON, &publishOpts{msg, 2, 5, true}))
-	h, err = e.history(ChannelID("channel-2"), historyOpts{})
+	assert.Equal(t, nil, <-e.publishMessage(Channel("channel-2"), &msg, &ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
+	h, err = e.history(Channel("channel-2"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(h))
 
 	// 2. add history with DropInactive = false should always work
-	assert.Equal(t, nil, <-e.publish(ChannelID("channel-2"), msgJSON, &publishOpts{msg, 2, 5, false}))
-	h, err = e.history(ChannelID("channel-2"), historyOpts{})
+	assert.Equal(t, nil, <-e.publishMessage(Channel("channel-2"), &msg, &ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: false}))
+	h, err = e.history(Channel("channel-2"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 
 	// 3. add with DropInactive = true should work immediately since there should be something in history
 	// for 5 seconds from above
-	assert.Equal(t, nil, <-e.publish(ChannelID("channel-2"), msgJSON, &publishOpts{msg, 2, 5, true}))
-	h, err = e.history(ChannelID("channel-2"), historyOpts{})
+	assert.Equal(t, nil, <-e.publishMessage(Channel("channel-2"), &msg, &ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
+	h, err = e.history(Channel("channel-2"), historyOpts{})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(h))
 }
@@ -127,8 +129,8 @@ func TestMemoryPresenceHub(t *testing.T) {
 	h := newMemoryPresenceHub()
 	assert.Equal(t, 0, len(h.presence))
 
-	testCh1 := ChannelID("channel1")
-	testCh2 := ChannelID("channel2")
+	testCh1 := Channel("channel1")
+	testCh2 := Channel("channel2")
 
 	uid := ConnID("uid")
 
@@ -158,8 +160,8 @@ func TestMemoryHistoryHub(t *testing.T) {
 	h := newMemoryHistoryHub()
 	h.initialize()
 	assert.Equal(t, 0, len(h.history))
-	ch1 := ChannelID("channel1")
-	ch2 := ChannelID("channel2")
+	ch1 := Channel("channel1")
+	ch2 := Channel("channel2")
 	h.add(ch1, Message{}, addHistoryOpts{1, 1, false})
 	h.add(ch1, Message{}, addHistoryOpts{1, 1, false})
 	h.add(ch2, Message{}, addHistoryOpts{2, 1, false})

@@ -33,6 +33,20 @@ const (
 	RedisPublishBatchLimit = 2048
 )
 
+type (
+	// ChannelID is unique channel identificator in Redis.
+	ChannelID string
+)
+
+const (
+	RedisAPIKeySuffix         = ".api"
+	RedisControlChannelSuffix = ".control"
+	RedisAdminChannelSuffix   = ".admin"
+	RedisMessageChannelPrefix = ".message."
+	RedisJoinChannelPrefix    = ".join."
+	RedisLeaveChannelPrefix   = ".leave."
+)
+
 // RedisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.
 // This engine allows to scale Centrifugo - you can run several Centrifugo instances
 // connected to the same Redis and load balance clients between instances.
@@ -50,6 +64,9 @@ type RedisEngine struct {
 	addPresenceScript *redis.Script
 	remPresenceScript *redis.Script
 	presenceScript    *redis.Script
+	messagePrefix     string
+	joinPrefix        string
+	leavePrefix       string
 }
 
 // RedisEngineConfig is struct with Redis Engine options.
@@ -282,21 +299,20 @@ func yesno(condition bool) string {
 // KEYS[1] - history list key
 // ARGV[1] - channel to publish message to
 // ARGV[2] - message payload
-// ARGV[3] - history message payload
-// ARGV[4] - history size
-// ARGV[5] - history lifetime
-// ARGV[6] - history drop inactive flag - "0" or "1"
+// ARGV[3] - history size
+// ARGV[4] - history lifetime
+// ARGV[5] - history drop inactive flag - "0" or "1"
 var pubScriptSource = `
 local n = redis.call("publish", ARGV[1], ARGV[2])
 local m = 0
-if ARGV[6] == "1" and n == 0 then
-  m = redis.call("lpushx", KEYS[1], ARGV[3])
+if ARGV[5] == "1" and n == 0 then
+  m = redis.call("lpushx", KEYS[1], ARGV[2])
 else
-  m = redis.call("lpush", KEYS[1], ARGV[3])
+  m = redis.call("lpush", KEYS[1], ARGV[2])
 end
 if m > 0 then
-  redis.call("ltrim", KEYS[1], 0, ARGV[4])
-  redis.call("expire", KEYS[1], ARGV[5])
+  redis.call("ltrim", KEYS[1], 0, ARGV[3])
+  redis.call("expire", KEYS[1], ARGV[4])
 end
 return n
 	`
@@ -355,6 +371,12 @@ func NewRedisEngine(app *Application, conf *RedisEngineConfig) *RedisEngine {
 	e.pubCh = make(chan *pubRequest, RedisPublishChannelSize)
 	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
 	e.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
+	app.RLock()
+	channelPrefix := app.config.ChannelPrefix
+	app.RUnlock()
+	e.messagePrefix = channelPrefix + RedisMessageChannelPrefix
+	e.joinPrefix = channelPrefix + RedisJoinChannelPrefix
+	e.leavePrefix = channelPrefix + RedisLeaveChannelPrefix
 	return e
 }
 
@@ -389,7 +411,12 @@ type redisAPIRequest struct {
 // can be used to cleanup nicely (defers only run at function return not end of block scope)
 func (e *RedisEngine) runForever(fn func()) {
 	for {
-		fn()
+		select {
+		case <-e.app.shutdownCh:
+			return
+		default:
+			fn()
+		}
 		// Sleep for a while to prevent busy loop when reconnecting to Redis.
 		time.Sleep(300 * time.Millisecond)
 	}
@@ -418,9 +445,7 @@ func (e *RedisEngine) runAPI() {
 	logger.DEBUG.Println("Enter runAPI")
 	defer logger.DEBUG.Println("Return from runAPI")
 
-	e.app.RLock()
-	apiKey := e.app.config.ChannelPrefix + "." + "api"
-	e.app.RUnlock()
+	apiKey := e.getAPIQueueKey()
 
 	done := make(chan struct{})
 	defer close(done)
@@ -430,7 +455,7 @@ func (e *RedisEngine) runAPI() {
 	workQueues[apiKey] = make(chan []byte, 256)
 
 	for i := 0; i < e.numApiShards; i++ {
-		queueKey := fmt.Sprintf("%s.%d", apiKey, i)
+		queueKey := e.getAPIShardQueueKey(i)
 		popParams = append(popParams, queueKey)
 		workQueues[queueKey] = make(chan []byte, 256)
 	}
@@ -528,10 +553,8 @@ func (e *RedisEngine) runPubSub() {
 	logger.DEBUG.Println("Enter runPubSub")
 	defer logger.DEBUG.Println("Return from runPubSub")
 
-	e.app.RLock()
-	adminChannel := e.app.config.AdminChannel
-	controlChannel := e.app.config.ControlChannel
-	e.app.RUnlock()
+	controlChannel := e.controlChannelID()
+	adminChannel := e.adminChannelID()
 
 	done := make(chan struct{})
 	defer close(done)
@@ -604,19 +627,57 @@ func (e *RedisEngine) runPubSub() {
 	// We don't care if they fail since conn will be closed and we'll retry
 	// if they do anyway.
 	// This saves a lot of allocating of pointless chans...
-	r := newSubRequest(adminChannel, false)
+	r := newSubRequest(controlChannel, false)
 	e.subCh <- r
-	r = newSubRequest(controlChannel, false)
+	r = newSubRequest(adminChannel, false)
 	e.subCh <- r
-	for _, chID := range e.app.clients.channels() {
-		r = newSubRequest(chID, false)
-		e.subCh <- r
+	for _, ch := range e.app.clients.channels() {
+		e.subCh <- newSubRequest(e.messageChannelID(ch), false)
+		e.subCh <- newSubRequest(e.joinChannelID(ch), false)
+		e.subCh <- newSubRequest(e.leaveChannelID(ch), false)
 	}
 
 	for {
 		switch n := conn.Receive().(type) {
 		case redis.Message:
-			e.app.handleMsg(ChannelID(n.Channel), n.Data)
+			chID := ChannelID(n.Channel)
+			if len(n.Data) == 0 {
+				continue
+			}
+			switch chID {
+			case controlChannel:
+				message, err := decodeEngineControlMessage(n.Data)
+				if err != nil {
+					continue
+				}
+				e.app.controlMsg(message)
+			case adminChannel:
+				message, _ := decodeEngineAdminMessage(n.Data)
+				e.app.adminMsg(message)
+			default:
+				ch, msgType := e.channelFromChannelID(chID)
+				switch msgType {
+				case "message":
+					message, err := decodeEngineClientMessage(n.Data)
+					if err != nil {
+						continue
+					}
+					e.app.clientMsg(ch, message)
+				case "join":
+					message, err := decodeEngineJoinMessage(n.Data)
+					if err != nil {
+						continue
+					}
+					e.app.joinMsg(ch, message)
+				case "leave":
+					message, err := decodeEngineLeaveMessage(n.Data)
+					if err != nil {
+						continue
+					}
+					e.app.leaveMsg(ch, message)
+				default:
+				}
+			}
 		case redis.Subscription:
 		case error:
 			logger.ERROR.Printf("RedisEngine Receiver error: %v\n", n)
@@ -626,12 +687,11 @@ func (e *RedisEngine) runPubSub() {
 }
 
 type pubRequest struct {
-	channel     ChannelID
-	message     []byte
-	messageJSON []byte
-	historyKey  string
-	opts        *publishOpts
-	err         *chan error
+	channel    ChannelID
+	message    []byte
+	historyKey string
+	opts       *ChannelOptions
+	err        *chan error
 }
 
 func (pr *pubRequest) done(err error) {
@@ -677,7 +737,7 @@ func (e *RedisEngine) runPublishPipeline() {
 
 		for i := range prs {
 			if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
-				e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].channel, prs[i].message, prs[i].messageJSON, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
+				e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].channel, prs[i].message, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
 			} else {
 				conn.Send("PUBLISH", prs[i].channel, prs[i].message)
 			}
@@ -714,23 +774,48 @@ func (e *RedisEngine) runPublishPipeline() {
 	}
 }
 
-func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts) <-chan error {
+func (e *RedisEngine) messageChannelID(ch Channel) ChannelID {
+	return ChannelID(e.messagePrefix + string(ch))
+}
 
+func (e *RedisEngine) joinChannelID(ch Channel) ChannelID {
+	return ChannelID(e.joinPrefix + string(ch))
+}
+
+func (e *RedisEngine) leaveChannelID(ch Channel) ChannelID {
+	return ChannelID(e.leavePrefix + string(ch))
+}
+
+func (e *RedisEngine) channelFromChannelID(chID ChannelID) (Channel, string) {
+	if strings.HasPrefix(string(chID), e.messagePrefix) {
+		return Channel(strings.TrimPrefix(string(chID), e.messagePrefix)), "message"
+	} else if strings.HasPrefix(string(chID), e.joinPrefix) {
+		return Channel(strings.TrimPrefix(string(chID), e.joinPrefix)), "join"
+	} else if strings.HasPrefix(string(chID), e.leavePrefix) {
+		return Channel(strings.TrimPrefix(string(chID), e.leavePrefix)), "leave"
+	} else {
+		return Channel(""), "unknown"
+	}
+}
+
+func (e *RedisEngine) publishMessage(ch Channel, message *Message, opts *ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 
+	byteMessage, err := encodeEngineClientMessage(message)
+	if err != nil {
+		eChan <- err
+		return eChan
+	}
+
+	chID := e.messageChannelID(ch)
+
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
-		messageJSON, err := json.Marshal(opts.Message)
-		if err != nil {
-			eChan <- err
-			return eChan
-		}
 		pr := &pubRequest{
-			channel:     chID,
-			message:     message,
-			historyKey:  e.getHistoryKey(chID),
-			messageJSON: messageJSON,
-			opts:        opts,
-			err:         &eChan,
+			channel:    chID,
+			message:    byteMessage,
+			historyKey: e.getHistoryKey(chID),
+			opts:       opts,
+			err:        &eChan,
 		}
 		e.pubCh <- pr
 		return eChan
@@ -738,25 +823,136 @@ func (e *RedisEngine) publish(chID ChannelID, message []byte, opts *publishOpts)
 
 	pr := &pubRequest{
 		channel: chID,
-		message: message,
+		message: byteMessage,
 		err:     &eChan,
 	}
 	e.pubCh <- pr
 	return eChan
 }
 
-func (e *RedisEngine) subscribe(chID ChannelID) error {
-	logger.DEBUG.Println("subscribe on Redis channel", chID)
-	r := newSubRequest(chID, true)
+func (e *RedisEngine) publishJoin(ch Channel, message *JoinMessage) <-chan error {
+	eChan := make(chan error, 1)
+
+	byteMessage, err := encodeEngineJoinMessage(message)
+	if err != nil {
+		eChan <- err
+		return eChan
+	}
+
+	chID := e.joinChannelID(ch)
+
+	pr := &pubRequest{
+		channel: chID,
+		message: byteMessage,
+		err:     &eChan,
+	}
+	e.pubCh <- pr
+	return eChan
+}
+
+func (e *RedisEngine) publishLeave(ch Channel, message *LeaveMessage) <-chan error {
+	eChan := make(chan error, 1)
+
+	byteMessage, err := encodeEngineLeaveMessage(message)
+	if err != nil {
+		eChan <- err
+		return eChan
+	}
+
+	chID := e.leaveChannelID(ch)
+
+	pr := &pubRequest{
+		channel: chID,
+		message: byteMessage,
+		err:     &eChan,
+	}
+	e.pubCh <- pr
+	return eChan
+}
+
+func (e *RedisEngine) publishControl(message *ControlMessage) <-chan error {
+	eChan := make(chan error, 1)
+
+	byteMessage, err := encodeEngineControlMessage(message)
+	if err != nil {
+		eChan <- err
+		return eChan
+	}
+
+	chID := e.controlChannelID()
+
+	pr := &pubRequest{
+		channel: chID,
+		message: byteMessage,
+		err:     &eChan,
+	}
+	e.pubCh <- pr
+	return eChan
+}
+
+func (e *RedisEngine) publishAdmin(message *AdminMessage) <-chan error {
+	eChan := make(chan error, 1)
+
+	byteMessage, err := encodeEngineAdminMessage(message)
+	if err != nil {
+		eChan <- err
+		return eChan
+	}
+
+	chID := e.adminChannelID()
+
+	pr := &pubRequest{
+		channel: chID,
+		message: byteMessage,
+		err:     &eChan,
+	}
+	e.pubCh <- pr
+	return eChan
+}
+
+func (e *RedisEngine) subscribe(ch Channel) error {
+	logger.DEBUG.Println("subscribe on channel", ch)
+	r := newSubRequest(e.joinChannelID(ch), false)
+	e.subCh <- r
+	r = newSubRequest(e.leaveChannelID(ch), false)
+	e.subCh <- r
+	r = newSubRequest(e.messageChannelID(ch), true)
 	e.subCh <- r
 	return r.result()
 }
 
-func (e *RedisEngine) unsubscribe(chID ChannelID) error {
-	logger.DEBUG.Println("unsubscribe from Redis channel", chID)
-	r := newSubRequest(chID, true)
+func (e *RedisEngine) unsubscribe(ch Channel) error {
+	logger.DEBUG.Println("unsubscribe from channel", ch)
+	r := newSubRequest(e.joinChannelID(ch), false)
+	e.unSubCh <- r
+	r = newSubRequest(e.leaveChannelID(ch), false)
+	e.unSubCh <- r
+	r = newSubRequest(e.messageChannelID(ch), true)
 	e.unSubCh <- r
 	return r.result()
+}
+
+func (e *RedisEngine) getAPIQueueKey() string {
+	e.app.RLock()
+	defer e.app.RUnlock()
+	return e.app.config.ChannelPrefix + RedisAPIKeySuffix
+}
+
+func (e *RedisEngine) getAPIShardQueueKey(shardNum int) string {
+	apiKey := e.getAPIQueueKey()
+	return fmt.Sprintf("%s.%d", apiKey, shardNum)
+}
+
+func (e *RedisEngine) controlChannelID() ChannelID {
+	e.app.RLock()
+	defer e.app.RUnlock()
+	return ChannelID(e.app.config.ChannelPrefix + RedisControlChannelSuffix)
+}
+
+func (e *RedisEngine) adminChannelID() ChannelID {
+	e.app.RLock()
+	defer e.app.RUnlock()
+	return ChannelID(e.app.config.ChannelPrefix + RedisAdminChannelSuffix)
 }
 
 func (e *RedisEngine) getHashKey(chID ChannelID) string {
@@ -777,13 +973,14 @@ func (e *RedisEngine) getHistoryKey(chID ChannelID) string {
 	return e.app.config.ChannelPrefix + ".history.list." + string(chID)
 }
 
-func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) error {
+func (e *RedisEngine) addPresence(ch Channel, uid ConnID, info ClientInfo) error {
+	chID := e.messageChannelID(ch)
 	e.app.RLock()
 	presenceExpireSeconds := int(e.app.config.PresenceExpireInterval.Seconds())
 	e.app.RUnlock()
 	conn := e.pool.Get()
 	defer conn.Close()
-	infoJSON, err := json.Marshal(info)
+	infoJSON, err := info.Marshal()
 	if err != nil {
 		return err
 	}
@@ -794,7 +991,8 @@ func (e *RedisEngine) addPresence(chID ChannelID, uid ConnID, info ClientInfo) e
 	return err
 }
 
-func (e *RedisEngine) removePresence(chID ChannelID, uid ConnID) error {
+func (e *RedisEngine) removePresence(ch Channel, uid ConnID) error {
+	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
 	hashKey := e.getHashKey(chID)
@@ -819,7 +1017,7 @@ func mapStringClientInfo(result interface{}, err error) (map[ConnID]ClientInfo, 
 			return nil, errors.New("ScanMap key not a bulk string value")
 		}
 		var f ClientInfo
-		err = json.Unmarshal(value, &f)
+		err = f.Unmarshal(value)
 		if err != nil {
 			return nil, errors.New("can not unmarshal value to ClientInfo")
 		}
@@ -828,7 +1026,8 @@ func mapStringClientInfo(result interface{}, err error) (map[ConnID]ClientInfo, 
 	return m, nil
 }
 
-func (e *RedisEngine) presence(chID ChannelID) (map[ConnID]ClientInfo, error) {
+func (e *RedisEngine) presence(ch Channel) (map[ConnID]ClientInfo, error) {
+	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
 	hashKey := e.getHashKey(chID)
@@ -853,7 +1052,7 @@ func sliceOfMessages(result interface{}, err error) ([]Message, error) {
 			return nil, errors.New("error getting Message value")
 		}
 		var m Message
-		err = json.Unmarshal(value, &m)
+		err = m.Unmarshal(value)
 		if err != nil {
 			return nil, errors.New("can not unmarshal value to Message")
 		}
@@ -862,7 +1061,8 @@ func sliceOfMessages(result interface{}, err error) ([]Message, error) {
 	return msgs, nil
 }
 
-func (e *RedisEngine) history(chID ChannelID, opts historyOpts) ([]Message, error) {
+func (e *RedisEngine) history(ch Channel, opts historyOpts) ([]Message, error) {
+	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
 	var rangeBound int = -1
@@ -878,31 +1078,35 @@ func (e *RedisEngine) history(chID ChannelID, opts historyOpts) ([]Message, erro
 	return sliceOfMessages(reply, nil)
 }
 
-func sliceOfChannelIDs(result interface{}, prefix string, err error) ([]ChannelID, error) {
-	values, err := redis.Values(result, err)
+// Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
+func (e *RedisEngine) channels() ([]Channel, error) {
+	conn := e.pool.Get()
+	defer conn.Close()
+
+	messagePrefix := e.messagePrefix
+	joinPrefix := e.joinPrefix
+	leavePrefix := e.leavePrefix
+
+	reply, err := conn.Do("PUBSUB", "CHANNELS", messagePrefix+"*")
 	if err != nil {
 		return nil, err
 	}
-	channels := make([]ChannelID, len(values))
+
+	values, err := redis.Values(reply, err)
+	if err != nil {
+		return nil, err
+	}
+
+	channels := make([]Channel, 0, len(values))
 	for i := 0; i < len(values); i++ {
 		value, okValue := values[i].([]byte)
 		if !okValue {
 			return nil, errors.New("error getting ChannelID value")
 		}
 		chID := ChannelID(value)
-		channels[i] = chID
+		if !strings.HasPrefix(string(chID), joinPrefix) && !strings.HasPrefix(string(chID), leavePrefix) {
+			channels = append(channels, Channel(string(chID)[len(messagePrefix):]))
+		}
 	}
 	return channels, nil
-}
-
-// Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
-func (e *RedisEngine) channels() ([]ChannelID, error) {
-	conn := e.pool.Get()
-	defer conn.Close()
-	prefix := e.app.channelIDPrefix()
-	reply, err := conn.Do("PUBSUB", "CHANNELS", prefix+"*")
-	if err != nil {
-		return nil, err
-	}
-	return sliceOfChannelIDs(reply, prefix, nil)
 }

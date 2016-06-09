@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
-	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 )
 
 func TestDefaultMux(t *testing.T) {
@@ -131,7 +131,7 @@ func TestRawWSHandler(t *testing.T) {
 	assert.Equal(t, nil, err)
 	data := map[string]interface{}{
 		"method": "ping",
-		"params": PingBody{Data: "hello"},
+		"params": pingBody{Data: "hello"},
 	}
 	conn.WriteJSON(data)
 	var response clientResponse
