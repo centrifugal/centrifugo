@@ -189,55 +189,6 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 	}
 }
 
-// wsConn is a struct to fit SockJS session interface so client will accept
-// it as its sess
-type wsConn struct {
-	ws           *websocket.Conn
-	closeCh      chan struct{}
-	pingInterval time.Duration
-	pingTimer    *time.Timer
-}
-
-func newWSConn(ws *websocket.Conn, pingInterval time.Duration) *wsConn {
-	conn := &wsConn{
-		ws:           ws,
-		closeCh:      make(chan struct{}),
-		pingInterval: pingInterval,
-	}
-	conn.pingTimer = time.AfterFunc(conn.pingInterval, conn.ping)
-	return conn
-}
-
-func (conn *wsConn) ping() {
-	select {
-	case <-conn.closeCh:
-		conn.pingTimer.Stop()
-		return
-	default:
-		err := conn.ws.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(conn.pingInterval/2))
-		if err != nil {
-			conn.ws.Close()
-			conn.pingTimer.Stop()
-			return
-		}
-		conn.pingTimer = time.AfterFunc(conn.pingInterval, conn.ping)
-	}
-}
-
-func (conn *wsConn) Send(message []byte) error {
-	select {
-	case <-conn.closeCh:
-		return nil
-	default:
-		return conn.ws.WriteMessage(websocket.TextMessage, message)
-	}
-}
-
-func (conn *wsConn) Close(status uint32, reason string) error {
-	conn.ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(int(status), reason), time.Now().Add(time.Second))
-	return conn.ws.Close()
-}
-
 // RawWebsocketHandler called when new client connection comes to raw Websocket endpoint.
 func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -507,44 +458,46 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	ws, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		logger.ERROR.Println(err)
+	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
+	if _, ok := err.(websocket.HandshakeError); ok {
+		http.Error(w, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
+		return
+	} else if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer ws.Close()
 
-	c, err := newAdminClient(app, ws)
+	app.RLock()
+	pingInterval := app.config.PingInterval
+	app.RUnlock()
+	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
+
+	conn := newWSConn(ws, pingInterval)
+	defer close(conn.closeCh)
+
+	c, err := newAdminClient(app, conn)
 	if err != nil {
-		logger.ERROR.Println(err)
 		return
 	}
-
-	logger.INFO.Printf("New admin session established with uid %s", c.uid())
 	start := time.Now()
-
+	logger.INFO.Printf("New admin session established with uid %s\n", c.uid())
+	defer c.clean()
 	defer func() {
-		close(c.closeChan)
-		err := app.removeAdminConn(c)
-		if err != nil {
-			logger.ERROR.Println(err)
-		}
 		logger.INFO.Printf("Admin session completed in %s, uid %s", time.Since(start), c.uid())
 	}()
 
-	go c.writer()
+	ws.SetReadDeadline(time.Now().Add(pongWait))
+	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
-		_, message, err := ws.ReadMessage()
+		_, message, err := conn.ws.ReadMessage()
 		if err != nil {
 			break
 		}
 		err = c.message(message)
 		if err != nil {
-			err := ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(CloseStatus, err.Error()), time.Now().Add(1*time.Second))
-			if err != nil {
-				logger.ERROR.Println(err)
-			}
+			conn.Close(CloseStatus, err.Error())
 			break
 		}
 	}

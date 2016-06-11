@@ -9,7 +9,11 @@ import (
 
 type testAdminSession struct{}
 
-func (s *testAdminSession) WriteMessage(int, []byte) error {
+func (s *testAdminSession) Send([]byte) error {
+	return nil
+}
+
+func (s *testAdminSession) Close(status uint32, reason string) error {
 	return nil
 }
 
@@ -40,7 +44,6 @@ func newInsecureTestAdminClient() (*adminClient, error) {
 
 func TestAdminClient(t *testing.T) {
 	c, err := newTestAdminClient()
-	go c.writer()
 	assert.Equal(t, nil, err)
 	assert.NotEqual(t, c.uid(), "")
 	err = c.send([]byte("message"))

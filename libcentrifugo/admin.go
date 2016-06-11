@@ -5,36 +5,36 @@ import (
 	"sync"
 
 	"github.com/FZambia/go-logger"
-	"github.com/gorilla/websocket"
+	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
 	"github.com/satori/go.uuid"
 )
 
-// use interface to mimic websocket connection write method we use here
-type adminSession interface {
-	WriteMessage(int, []byte) error
-}
+// adminQueueMaxSize sets admin queue max size to 10MB.
+const adminQueueMaxSize = 10485760
 
-// adminClient is a wrapper over admin websocket connection
+// adminClient is a wrapper over admin connection.
 type adminClient struct {
 	sync.RWMutex
 	app           *Application
 	UID           ConnID
-	sess          adminSession
+	sess          session
 	watch         bool
 	authenticated bool
-	writeChan     chan []byte
 	closeChan     chan struct{}
+	maxQueueSize  int
+	messages      bytequeue.ByteQueue
 }
 
-func newAdminClient(app *Application, sess adminSession) (*adminClient, error) {
+func newAdminClient(app *Application, sess session) (*adminClient, error) {
 	c := &adminClient{
 		UID:           ConnID(uuid.NewV4().String()),
 		app:           app,
 		sess:          sess,
 		watch:         false,
 		authenticated: false,
-		writeChan:     make(chan []byte, 256),
 		closeChan:     make(chan struct{}),
+		maxQueueSize:  adminQueueMaxSize,
+		messages:      bytequeue.New(2),
 	}
 
 	app.RLock()
@@ -49,7 +49,58 @@ func newAdminClient(app *Application, sess adminSession) (*adminClient, error) {
 		c.authenticated = true
 	}
 
+	go c.sendMessages()
+
 	return c, nil
+}
+
+func (c *adminClient) close(reason string) error {
+	// TODO: better locking for client - at moment we close message queue in 2 places, here and in clean() method
+	c.messages.Close()
+	c.sess.Close(CloseStatus, reason)
+	return nil
+}
+
+// clean called when connection was closed to make different clean up
+// actions for a client
+func (c *adminClient) clean() error {
+	c.Lock()
+	defer c.Unlock()
+
+	select {
+	case <-c.closeChan:
+		return nil
+	default:
+		close(c.closeChan)
+	}
+
+	err := c.app.removeAdminConn(c)
+	if err != nil {
+		logger.ERROR.Println(err)
+		return nil
+	}
+	c.messages.Close()
+	c.authenticated = false
+	return nil
+}
+
+// sendMessages waits for messages from queue and sends them to client.
+func (c *adminClient) sendMessages() {
+	for {
+		msg, ok := c.messages.Wait()
+		if !ok {
+			if c.messages.Closed() {
+				return
+			}
+			continue
+		}
+		err := c.sess.Send(msg)
+		if err != nil {
+			logger.INFO.Println("error sending to", c.uid(), err.Error())
+			c.close("error sending message")
+			return
+		}
+	}
 }
 
 func (c *adminClient) uid() ConnID {
@@ -57,6 +108,10 @@ func (c *adminClient) uid() ConnID {
 }
 
 func (c *adminClient) send(message []byte) error {
+	if c.messages.Size() > c.maxQueueSize {
+		c.close("slow")
+		return ErrClientClosed
+	}
 	if !c.watch {
 		// At moment we only use this method to send asynchronous
 		// messages to admin client when new message published into channel with
@@ -68,33 +123,11 @@ func (c *adminClient) send(message []byte) error {
 		// @banks actually suggested).
 		return nil
 	}
-	return c.write(message)
-}
-
-func (c *adminClient) write(message []byte) error {
-	// TODO: introduce queue here - similar to client's queue.
-	select {
-	case c.writeChan <- message:
-	default:
-		logger.ERROR.Println("can't write into admin ws connection write channel")
-		return ErrInternalServerError
+	ok := c.messages.Add(message)
+	if !ok {
+		return ErrClientClosed
 	}
 	return nil
-}
-
-// writer reads from buffered channel and sends received messages to admin.
-func (c *adminClient) writer() {
-	for {
-		select {
-		case message := <-c.writeChan:
-			err := c.sess.WriteMessage(websocket.TextMessage, message)
-			if err != nil {
-				return
-			}
-		case <-c.closeChan:
-			return
-		}
-	}
 }
 
 // message handles message received from admin connection
@@ -157,7 +190,7 @@ func (c *adminClient) message(msg []byte) error {
 		return ErrInternalServerError
 	}
 
-	err = c.write(respBytes)
+	err = c.send(respBytes)
 	if err != nil {
 		return ErrInternalServerError
 	}
@@ -190,7 +223,6 @@ func (c *adminClient) connectCmd(cmd *connectAdminCommand) (response, error) {
 }
 
 // infoCmd handles info command from admin client.
-// TODO: make this a proper API method with strictly defined response body.
 func (c *adminClient) infoCmd() (response, error) {
 	c.app.nodesMu.Lock()
 	defer c.app.nodesMu.Unlock()

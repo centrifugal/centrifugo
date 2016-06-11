@@ -91,27 +91,27 @@ func (c *client) sendMsgTimeout(msg []byte) error {
 	case <-c.closeChan:
 		return nil
 	default:
-	}
-	sendTimeout := c.sendTimeout // No lock here as sendTimeout immutable while client exists.
-	if sendTimeout > 0 {
-		// Send to client's session with provided timeout.
-		to := time.After(sendTimeout)
-		sent := make(chan error)
-		go func() {
-			sent <- c.sess.Send(msg)
-		}()
-		select {
-		case err := <-sent:
-			return err
-		case <-to:
-			return ErrSendTimeout
+		sendTimeout := c.sendTimeout // No lock here as sendTimeout immutable while client exists.
+		if sendTimeout > 0 {
+			// Send to client's session with provided timeout.
+			to := time.After(sendTimeout)
+			sent := make(chan error)
+			go func() {
+				sent <- c.sess.Send(msg)
+			}()
+			select {
+			case err := <-sent:
+				return err
+			case <-to:
+				return ErrSendTimeout
+			}
+		} else {
+			// Do not use any timeout when sending, it's recommended to keep
+			// Centrifugo behind properly configured reverse proxy.
+			// But slow client connections will be closed anyway after exceeding
+			// client max queue size.
+			return c.sess.Send(msg)
 		}
-	} else {
-		// Do not use any timeout when sending, it's recommended to keep
-		// Centrifugo behind properly configured reverse proxy.
-		// But slow client connections will be closed anyway after exceeding
-		// client max queue size.
-		return c.sess.Send(msg)
 	}
 }
 
