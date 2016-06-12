@@ -306,7 +306,8 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if strings.HasPrefix(strings.ToLower(contentType), "application/json") {
-		// json request
+		// json request, this is a prefferred more performant way, as parsing
+		// Form Value rather expensive (about 30% speed up).
 		sign = r.Header.Get("X-API-Sign")
 		defer r.Body.Close()
 		data, err = ioutil.ReadAll(r.Body)
