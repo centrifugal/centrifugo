@@ -648,11 +648,16 @@ func (e *RedisEngine) runPubSub() {
 			case controlChannel:
 				message, err := decodeEngineControlMessage(n.Data)
 				if err != nil {
+					logger.ERROR.Println(err)
 					continue
 				}
 				e.app.controlMsg(message)
 			case adminChannel:
-				message, _ := decodeEngineAdminMessage(n.Data)
+				message, err := decodeEngineAdminMessage(n.Data)
+				if err != nil {
+					logger.ERROR.Println(err)
+					continue
+				}
 				e.app.adminMsg(message)
 			default:
 				ch, msgType := e.channelFromChannelID(chID)
@@ -660,18 +665,21 @@ func (e *RedisEngine) runPubSub() {
 				case "message":
 					message, err := decodeEngineClientMessage(n.Data)
 					if err != nil {
+						logger.ERROR.Println(err)
 						continue
 					}
 					e.app.clientMsg(ch, message)
 				case "join":
 					message, err := decodeEngineJoinMessage(n.Data)
 					if err != nil {
+						logger.ERROR.Println(err)
 						continue
 					}
 					e.app.joinMsg(ch, message)
 				case "leave":
 					message, err := decodeEngineLeaveMessage(n.Data)
 					if err != nil {
+						logger.ERROR.Println(err)
 						continue
 					}
 					e.app.leaveMsg(ch, message)
