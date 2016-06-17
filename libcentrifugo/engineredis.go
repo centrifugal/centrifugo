@@ -660,30 +660,10 @@ func (e *RedisEngine) runPubSub() {
 				}
 				e.app.adminMsg(message)
 			default:
-				ch, msgType := e.channelFromChannelID(chID)
-				switch msgType {
-				case "message":
-					message, err := decodeEngineClientMessage(n.Data)
-					if err != nil {
-						logger.ERROR.Println(err)
-						continue
-					}
-					e.app.clientMsg(ch, message)
-				case "join":
-					message, err := decodeEngineJoinMessage(n.Data)
-					if err != nil {
-						logger.ERROR.Println(err)
-						continue
-					}
-					e.app.joinMsg(ch, message)
-				case "leave":
-					message, err := decodeEngineLeaveMessage(n.Data)
-					if err != nil {
-						logger.ERROR.Println(err)
-						continue
-					}
-					e.app.leaveMsg(ch, message)
-				default:
+				err := e.handleRedisClientMessage(chID, n.Data)
+				if err != nil {
+					logger.ERROR.Println(err)
+					continue
 				}
 			}
 		case redis.Subscription:
@@ -692,6 +672,32 @@ func (e *RedisEngine) runPubSub() {
 			return
 		}
 	}
+}
+
+func (e *RedisEngine) handleRedisClientMessage(chID ChannelID, data []byte) error {
+	ch, msgType := e.channelFromChannelID(chID)
+	switch msgType {
+	case "message":
+		message, err := decodeEngineClientMessage(data)
+		if err != nil {
+			return err
+		}
+		e.app.clientMsg(ch, message)
+	case "join":
+		message, err := decodeEngineJoinMessage(data)
+		if err != nil {
+			return err
+		}
+		e.app.joinMsg(ch, message)
+	case "leave":
+		message, err := decodeEngineLeaveMessage(data)
+		if err != nil {
+			return err
+		}
+		e.app.leaveMsg(ch, message)
+	default:
+	}
+	return nil
 }
 
 type pubRequest struct {

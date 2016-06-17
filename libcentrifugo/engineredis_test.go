@@ -168,6 +168,29 @@ func TestRedisEngine(t *testing.T) {
 		_, err = c.Conn.Do("LPUSH", queueKey, []byte("{}"))
 		assert.Equal(t, nil, err)
 	}
+
+	// test publishing control message.
+	controlMsg := newControlMessage("uid", "method", []byte("{}"))
+	err = <-e.publishControl(controlMsg)
+	assert.Equal(t, nil, err)
+
+	// test publishing admin message.
+	adminMessage := newAdminMessage("method", []byte("{}"))
+	err = <-e.publishAdmin(adminMessage)
+	assert.Equal(t, nil, err)
+
+	rawInfoData := raw.Raw([]byte("{}"))
+	clientInfo := newClientInfo(UserID("1"), ConnID("1"), &rawInfoData, &rawInfoData)
+
+	// test publishing join message.
+	joinMessage := newJoinMessage(Channel("test"), *clientInfo)
+	err = <-e.publishJoin(Channel("test"), joinMessage)
+	assert.Equal(t, nil, err)
+
+	// test publishing leave message.
+	leaveMessage := newLeaveMessage(Channel("test"), *clientInfo)
+	err = <-e.publishLeave(Channel("test"), leaveMessage)
+	assert.Equal(t, nil, err)
 }
 
 func TestRedisChannels(t *testing.T) {
@@ -183,4 +206,27 @@ func TestRedisChannels(t *testing.T) {
 	channels, err = app.engine.channels()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 10, len(channels))
+}
+
+func TestHandleClientMessage(t *testing.T) {
+	app := testApp()
+	e := testRedisEngine(app)
+	ch := Channel("test")
+	chID := e.messageChannelID(ch)
+	testMsg := newMessage(ch, []byte("{\"hello world\": true}"), "", nil)
+	byteMessage, _ := testMsg.Marshal() // protobuf
+	err := e.handleRedisClientMessage(chID, byteMessage)
+	assert.Equal(t, nil, err)
+	rawData := raw.Raw([]byte("{}"))
+	info := newClientInfo(UserID("1"), ConnID("1"), &rawData, &rawData)
+	testJoinMsg := newJoinMessage(ch, *info)
+	byteJoinMsg, _ := testJoinMsg.Marshal()
+	chID = e.joinChannelID(ch)
+	err = e.handleRedisClientMessage(chID, byteJoinMsg)
+	assert.Equal(t, nil, err)
+	chID = e.leaveChannelID(ch)
+	testLeaveMsg := newLeaveMessage(ch, *info)
+	byteLeaveMsg, _ := testLeaveMsg.Marshal()
+	err = e.handleRedisClientMessage(chID, byteLeaveMsg)
+	assert.Equal(t, nil, err)
 }
