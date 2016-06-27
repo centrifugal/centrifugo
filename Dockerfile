@@ -1,8 +1,8 @@
 FROM centos:7
 
-ENV VERSION 1.4.5
+ENV VERSION 1.5.0
 
-ENV CENTRIFUGO_SHA256 4092ca2ac6804e8494796805b0aa6155fcf137f46f8e69294109af6821f08e6b
+ENV CENTRIFUGO_SHA256 ff5631864f7d33bf9c2c93a3519b79036e7e6ccf699f87749efcd066fa7b43f6
 
 ENV DOWNLOAD https://github.com/centrifugal/centrifugo/releases/download/v$VERSION/centrifugo-$VERSION-linux-amd64.zip
 

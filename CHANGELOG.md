@@ -1,5 +1,5 @@
-v1.5.0 (not released yet)
-=========================
+v1.5.0
+======
 
 Some upgrade steps needed to migrate to this release, see below.
 
