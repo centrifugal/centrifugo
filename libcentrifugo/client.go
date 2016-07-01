@@ -386,7 +386,8 @@ func (c *client) handleCommands(commands []clientCommand) error {
 	}
 	jsonResp, err := json.Marshal(mr)
 	if err != nil {
-		return err
+		logger.ERROR.Println(err)
+		return ErrInvalidMessage
 	}
 	err = c.send(jsonResp)
 	return err
