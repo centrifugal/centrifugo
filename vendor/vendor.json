@@ -374,6 +374,12 @@
 			"revision": "d5929c67198951106f49f7ea425198d0f1a08f7f"
 		},
 		{
+			"checksumSHA1": "urY45++NYCue4nh4k8OjUFnIGfU=",
+			"path": "github.com/mailru/easyjson/buffer",
+			"revision": "7acac2663abbf13bd349d76e3768a9e0a9d842f3",
+			"revisionTime": "2016-07-07T10:16:22Z"
+		},
+		{
 			"path": "github.com/mitchellh/mapstructure",
 			"revision": "442e588f213303bec7936deba67901f8fc8f18b1"
 		},
