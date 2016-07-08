@@ -1,16 +1,17 @@
 package encode
 
 import (
-	"bytes"
 	"unicode/utf8"
+
+	"github.com/mailru/easyjson/buffer"
 )
 
 var hex = "0123456789abcdef"
 
 // EncodeJSONString escapes string value when encoding it to JSON.
 // From https://golang.org/src/encoding/json/encode.go
-func EncodeJSONString(buf *bytes.Buffer, s string, escapeHTML bool) {
-	buf.WriteByte('"')
+func EncodeJSONString(buf *buffer.Buffer, s string, escapeHTML bool) {
+	buf.AppendByte('"')
 	start := 0
 	for i := 0; i < len(s); {
 		if b := s[i]; b < utf8.RuneSelf {
@@ -20,30 +21,30 @@ func EncodeJSONString(buf *bytes.Buffer, s string, escapeHTML bool) {
 				continue
 			}
 			if start < i {
-				buf.WriteString(s[start:i])
+				buf.AppendString(s[start:i])
 			}
 			switch b {
 			case '\\', '"':
-				buf.WriteByte('\\')
-				buf.WriteByte(b)
+				buf.AppendByte('\\')
+				buf.AppendByte(b)
 			case '\n':
-				buf.WriteByte('\\')
-				buf.WriteByte('n')
+				buf.AppendByte('\\')
+				buf.AppendByte('n')
 			case '\r':
-				buf.WriteByte('\\')
-				buf.WriteByte('r')
+				buf.AppendByte('\\')
+				buf.AppendByte('r')
 			case '\t':
-				buf.WriteByte('\\')
-				buf.WriteByte('t')
+				buf.AppendByte('\\')
+				buf.AppendByte('t')
 			default:
 				// This encodes bytes < 0x20 except for \t, \n and \r.
 				// If escapeHTML is set, it also escapes <, >, and &
 				// because they can lead to security holes when
 				// user-controlled strings are rendered into JSON
 				// and served to some browsers.
-				buf.WriteString(`\u00`)
-				buf.WriteByte(hex[b>>4])
-				buf.WriteByte(hex[b&0xF])
+				buf.AppendString(`\u00`)
+				buf.AppendByte(hex[b>>4])
+				buf.AppendByte(hex[b&0xF])
 			}
 			i++
 			start = i
@@ -52,9 +53,9 @@ func EncodeJSONString(buf *bytes.Buffer, s string, escapeHTML bool) {
 		c, size := utf8.DecodeRuneInString(s[i:])
 		if c == utf8.RuneError && size == 1 {
 			if start < i {
-				buf.WriteString(s[start:i])
+				buf.AppendString(s[start:i])
 			}
-			buf.WriteString(`\ufffd`)
+			buf.AppendString(`\ufffd`)
 			i += size
 			start = i
 			continue
@@ -68,10 +69,10 @@ func EncodeJSONString(buf *bytes.Buffer, s string, escapeHTML bool) {
 		// See http://timelessrepo.com/json-isnt-a-javascript-subset for discussion.
 		if c == '\u2028' || c == '\u2029' {
 			if start < i {
-				buf.WriteString(s[start:i])
+				buf.AppendString(s[start:i])
 			}
-			buf.WriteString(`\u202`)
-			buf.WriteByte(hex[c&0xF])
+			buf.AppendString(`\u202`)
+			buf.AppendByte(hex[c&0xF])
 			i += size
 			start = i
 			continue
@@ -79,7 +80,7 @@ func EncodeJSONString(buf *bytes.Buffer, s string, escapeHTML bool) {
 		i += size
 	}
 	if start < len(s) {
-		buf.WriteString(s[start:])
+		buf.AppendString(s[start:])
 	}
-	buf.WriteByte('"')
+	buf.AppendByte('"')
 }
