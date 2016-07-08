@@ -388,12 +388,6 @@
 			"revision": "a5152d67cf63cbfb5d992a395458722a45194715"
 		},
 		{
-			"checksumSHA1": "uG/irJIgifYdc+HC1kF6Gwgn7kU=",
-			"path": "github.com/oxtoacart/bpool",
-			"revision": "4e1c5567d7c2dd59fa4c7c83d34c2f3528b025d6",
-			"revisionTime": "2015-07-12T13:31:11Z"
-		},
-		{
 			"path": "github.com/satori/go.uuid",
 			"revision": "08f0718b61e95ddba0ade3346725fe0e4bf28ca6"
 		},
