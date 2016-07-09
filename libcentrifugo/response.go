@@ -3,7 +3,7 @@ package libcentrifugo
 import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/encode"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
-	"github.com/mailru/easyjson/buffer"
+	"github.com/valyala/bytebufferpool"
 )
 
 // clientMessageResponse can not have an error.
@@ -19,63 +19,66 @@ func newClientMessage() *clientMessageResponse {
 	}
 }
 
-func writeClientInfo(buf *buffer.Buffer, info *ClientInfo) {
-	buf.AppendString(`{`)
+func writeClientInfo(buf *bytebufferpool.ByteBuffer, info *ClientInfo) {
+	buf.WriteString(`{`)
 
 	if info.DefaultInfo != nil {
-		buf.AppendString(`"default_info":`)
-		buf.AppendBytes(*info.DefaultInfo)
-		buf.AppendString(",")
+		buf.WriteString(`"default_info":`)
+		buf.Write(*info.DefaultInfo)
+		buf.WriteString(",")
 	}
 
 	if info.ChannelInfo != nil {
-		buf.AppendString(`"channel_info":`)
-		buf.AppendBytes(*info.ChannelInfo)
-		buf.AppendString(`,`)
+		buf.WriteString(`"channel_info":`)
+		buf.Write(*info.ChannelInfo)
+		buf.WriteString(`,`)
 	}
 
-	buf.AppendString(`"user":`)
+	buf.WriteString(`"user":`)
 	encode.EncodeJSONString(buf, info.User, true)
-	buf.AppendString(`,`)
+	buf.WriteString(`,`)
 
-	buf.AppendString(`"client":`)
+	buf.WriteString(`"client":`)
 	encode.EncodeJSONString(buf, info.Client, true)
 
-	buf.AppendString(`}`)
+	buf.WriteString(`}`)
 }
 
-func writeMessage(buf *buffer.Buffer, message *Message) {
-	buf.AppendString(`{"uid":"`)
-	buf.AppendString(message.UID)
-	buf.AppendString(`","timestamp":"`)
-	buf.AppendString(message.Timestamp)
-	buf.AppendString(`",`)
+func writeMessage(buf *bytebufferpool.ByteBuffer, message *Message) {
+	buf.WriteString(`{"uid":"`)
+	buf.WriteString(message.UID)
+	buf.WriteString(`","timestamp":"`)
+	buf.WriteString(message.Timestamp)
+	buf.WriteString(`",`)
 
 	if message.Client != "" {
-		buf.AppendString(`"client":`)
+		buf.WriteString(`"client":`)
 		encode.EncodeJSONString(buf, message.Client, true)
-		buf.AppendString(`,`)
+		buf.WriteString(`,`)
 	}
 
 	if message.Info != nil {
-		buf.AppendString(`"info":`)
+		buf.WriteString(`"info":`)
 		writeClientInfo(buf, message.Info)
-		buf.AppendString(`,`)
+		buf.WriteString(`,`)
 	}
 
-	buf.AppendString(`"channel":`)
+	buf.WriteString(`"channel":`)
 	encode.EncodeJSONString(buf, message.Channel, true)
-	buf.AppendString(`,"data":`)
-	buf.AppendBytes(*message.Data)
-	buf.AppendString(`}`)
+	buf.WriteString(`,"data":`)
+	buf.Write(*message.Data)
+	buf.WriteString(`}`)
 }
 
 func (m *clientMessageResponse) Marshal() ([]byte, error) {
-	var buf buffer.Buffer
-	buf.AppendString(`{"method":"message","body":`)
-	writeMessage(&buf, &m.Body)
-	buf.AppendString(`}`)
-	return buf.BuildBytes(), nil
+	buf := bytebufferpool.Get()
+	buf.WriteString(`{"method":"message","body":`)
+	writeMessage(buf, &m.Body)
+	buf.WriteString(`}`)
+	c := make([]byte, buf.Len())
+	copy(c, buf.Bytes())
+	bytebufferpool.Put(buf)
+	return c, nil
 }
 
 type clientJoinResponse struct {
@@ -89,21 +92,22 @@ func newClientJoinMessage() *clientJoinResponse {
 	}
 }
 
-func writeJoin(buf *buffer.Buffer, message *JoinMessage) {
-	buf.AppendString(`{`)
-	buf.AppendString(`"channel":`)
+func writeJoin(buf *bytebufferpool.ByteBuffer, message *JoinMessage) {
+	buf.WriteString(`{`)
+	buf.WriteString(`"channel":`)
 	encode.EncodeJSONString(buf, message.Channel, true)
-	buf.AppendString(`,"data":`)
+	buf.WriteString(`,"data":`)
 	writeClientInfo(buf, &message.Data)
-	buf.AppendString(`}`)
+	buf.WriteString(`}`)
 }
 
 func (m *clientJoinResponse) Marshal() ([]byte, error) {
-	var buf buffer.Buffer
-	buf.AppendString(`{"method":"join","body":`)
-	writeJoin(&buf, &m.Body)
-	buf.AppendString(`}`)
-	return buf.BuildBytes(), nil
+	buf := bytebufferpool.Get()
+	defer bytebufferpool.Put(buf)
+	buf.WriteString(`{"method":"join","body":`)
+	writeJoin(buf, &m.Body)
+	buf.WriteString(`}`)
+	return buf.Bytes(), nil
 }
 
 type clientLeaveResponse struct {
@@ -117,21 +121,22 @@ func newClientLeaveMessage() *clientLeaveResponse {
 	}
 }
 
-func writeLeave(buf *buffer.Buffer, message *LeaveMessage) {
-	buf.AppendString(`{`)
-	buf.AppendString(`"channel":`)
+func writeLeave(buf *bytebufferpool.ByteBuffer, message *LeaveMessage) {
+	buf.WriteString(`{`)
+	buf.WriteString(`"channel":`)
 	encode.EncodeJSONString(buf, message.Channel, true)
-	buf.AppendString(`,"data":`)
+	buf.WriteString(`,"data":`)
 	writeClientInfo(buf, &message.Data)
-	buf.AppendString(`}`)
+	buf.WriteString(`}`)
 }
 
 func (m *clientLeaveResponse) Marshal() ([]byte, error) {
-	var buf buffer.Buffer
-	buf.AppendString(`{"method":"leave","body":`)
-	writeLeave(&buf, &m.Body)
-	buf.AppendString(`}`)
-	return buf.BuildBytes(), nil
+	buf := bytebufferpool.Get()
+	defer bytebufferpool.Put(buf)
+	buf.WriteString(`{"method":"leave","body":`)
+	writeLeave(buf, &m.Body)
+	buf.WriteString(`}`)
+	return buf.Bytes(), nil
 }
 
 // presenceBody represents body of response in case of successful presence command.
