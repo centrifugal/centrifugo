@@ -1,12 +1,9 @@
 package libcentrifugo
 
 import (
-	"bytes"
-	"runtime"
-
 	"github.com/centrifugal/centrifugo/libcentrifugo/encode"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
-	"github.com/oxtoacart/bpool"
+	"github.com/valyala/bytebufferpool"
 )
 
 // clientMessageResponse can not have an error.
@@ -22,16 +19,7 @@ func newClientMessage() *clientMessageResponse {
 	}
 }
 
-var bufpool *bpool.BufferPool
-
-func init() {
-	// Initialize buffer pool, this must be reasonably large because we can encode
-	// messages into client JSON responses in different goroutines (and we already do
-	// this when using Memory Engine).
-	bufpool = bpool.NewBufferPool(runtime.NumCPU())
-}
-
-func writeClientInfo(buf *bytes.Buffer, info *ClientInfo) {
+func writeClientInfo(buf *bytebufferpool.ByteBuffer, info *ClientInfo) {
 	buf.WriteString(`{`)
 
 	if info.DefaultInfo != nil {
@@ -56,7 +44,7 @@ func writeClientInfo(buf *bytes.Buffer, info *ClientInfo) {
 	buf.WriteString(`}`)
 }
 
-func writeMessage(buf *bytes.Buffer, message *Message) {
+func writeMessage(buf *bytebufferpool.ByteBuffer, message *Message) {
 	buf.WriteString(`{"uid":"`)
 	buf.WriteString(message.UID)
 	buf.WriteString(`","timestamp":"`)
@@ -83,12 +71,14 @@ func writeMessage(buf *bytes.Buffer, message *Message) {
 }
 
 func (m *clientMessageResponse) Marshal() ([]byte, error) {
-	buf := bufpool.Get()
-	defer bufpool.Put(buf)
+	buf := bytebufferpool.Get()
 	buf.WriteString(`{"method":"message","body":`)
 	writeMessage(buf, &m.Body)
 	buf.WriteString(`}`)
-	return buf.Bytes(), nil
+	c := make([]byte, buf.Len())
+	copy(c, buf.Bytes())
+	bytebufferpool.Put(buf)
+	return c, nil
 }
 
 type clientJoinResponse struct {
@@ -102,7 +92,7 @@ func newClientJoinMessage() *clientJoinResponse {
 	}
 }
 
-func writeJoin(buf *bytes.Buffer, message *JoinMessage) {
+func writeJoin(buf *bytebufferpool.ByteBuffer, message *JoinMessage) {
 	buf.WriteString(`{`)
 	buf.WriteString(`"channel":`)
 	encode.EncodeJSONString(buf, message.Channel, true)
@@ -112,12 +102,14 @@ func writeJoin(buf *bytes.Buffer, message *JoinMessage) {
 }
 
 func (m *clientJoinResponse) Marshal() ([]byte, error) {
-	buf := bufpool.Get()
-	defer bufpool.Put(buf)
+	buf := bytebufferpool.Get()
 	buf.WriteString(`{"method":"join","body":`)
 	writeJoin(buf, &m.Body)
 	buf.WriteString(`}`)
-	return buf.Bytes(), nil
+	c := make([]byte, buf.Len())
+	copy(c, buf.Bytes())
+	bytebufferpool.Put(buf)
+	return c, nil
 }
 
 type clientLeaveResponse struct {
@@ -131,7 +123,7 @@ func newClientLeaveMessage() *clientLeaveResponse {
 	}
 }
 
-func writeLeave(buf *bytes.Buffer, message *LeaveMessage) {
+func writeLeave(buf *bytebufferpool.ByteBuffer, message *LeaveMessage) {
 	buf.WriteString(`{`)
 	buf.WriteString(`"channel":`)
 	encode.EncodeJSONString(buf, message.Channel, true)
@@ -141,12 +133,14 @@ func writeLeave(buf *bytes.Buffer, message *LeaveMessage) {
 }
 
 func (m *clientLeaveResponse) Marshal() ([]byte, error) {
-	buf := bufpool.Get()
-	defer bufpool.Put(buf)
+	buf := bytebufferpool.Get()
 	buf.WriteString(`{"method":"leave","body":`)
 	writeLeave(buf, &m.Body)
 	buf.WriteString(`}`)
-	return buf.Bytes(), nil
+	c := make([]byte, buf.Len())
+	copy(c, buf.Bytes())
+	bytebufferpool.Put(buf)
+	return c, nil
 }
 
 // presenceBody represents body of response in case of successful presence command.
