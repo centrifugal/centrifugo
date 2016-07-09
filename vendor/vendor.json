@@ -374,12 +374,6 @@
 			"revision": "d5929c67198951106f49f7ea425198d0f1a08f7f"
 		},
 		{
-			"checksumSHA1": "urY45++NYCue4nh4k8OjUFnIGfU=",
-			"path": "github.com/mailru/easyjson/buffer",
-			"revision": "7acac2663abbf13bd349d76e3768a9e0a9d842f3",
-			"revisionTime": "2016-07-07T10:16:22Z"
-		},
-		{
 			"path": "github.com/mitchellh/mapstructure",
 			"revision": "442e588f213303bec7936deba67901f8fc8f18b1"
 		},
@@ -418,6 +412,12 @@
 		{
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "dab07ac62d4905d3e48d17dc549c684ac3b7c15a"
+		},
+		{
+			"checksumSHA1": "UH0Z+bfd+2InukxI++fxbYa0/ME=",
+			"path": "github.com/valyala/bytebufferpool",
+			"revision": "a517d2d1537f5b02e9f6c23d4794160c6c2bc157",
+			"revisionTime": "2016-07-01T19:46:08Z"
 		},
 		{
 			"checksumSHA1": "Jcarmr4WdTvVAWBssHA33O6NaeI=",

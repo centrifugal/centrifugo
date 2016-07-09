@@ -103,11 +103,13 @@ func writeJoin(buf *bytebufferpool.ByteBuffer, message *JoinMessage) {
 
 func (m *clientJoinResponse) Marshal() ([]byte, error) {
 	buf := bytebufferpool.Get()
-	defer bytebufferpool.Put(buf)
 	buf.WriteString(`{"method":"join","body":`)
 	writeJoin(buf, &m.Body)
 	buf.WriteString(`}`)
-	return buf.Bytes(), nil
+	c := make([]byte, buf.Len())
+	copy(c, buf.Bytes())
+	bytebufferpool.Put(buf)
+	return c, nil
 }
 
 type clientLeaveResponse struct {
@@ -132,11 +134,13 @@ func writeLeave(buf *bytebufferpool.ByteBuffer, message *LeaveMessage) {
 
 func (m *clientLeaveResponse) Marshal() ([]byte, error) {
 	buf := bytebufferpool.Get()
-	defer bytebufferpool.Put(buf)
 	buf.WriteString(`{"method":"leave","body":`)
 	writeLeave(buf, &m.Body)
 	buf.WriteString(`}`)
-	return buf.Bytes(), nil
+	c := make([]byte, buf.Len())
+	copy(c, buf.Bytes())
+	bytebufferpool.Put(buf)
+	return c, nil
 }
 
 // presenceBody represents body of response in case of successful presence command.
