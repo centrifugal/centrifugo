@@ -1,3 +1,9 @@
+v1.5.1
+======
+
+* Fixes [#94](https://github.com/centrifugal/centrifugo/issues).
+
+
 v1.5.0
 ======
 
