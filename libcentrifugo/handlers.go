@@ -296,7 +296,10 @@ func (app *Application) processAPIData(data []byte) ([]byte, error) {
 
 // APIHandler is responsible for receiving API commands over HTTP.
 func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
-
+	started := time.Now()
+	defer func() {
+		app.metrics.histograms.RecordMicroseconds("http_api", time.Now().Sub(started))
+	}()
 	app.metrics.NumAPIRequests.Inc()
 
 	contentType := r.Header.Get("Content-Type")
