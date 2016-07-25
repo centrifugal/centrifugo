@@ -13,20 +13,20 @@ import (
 
 // HDRHistogram is a synchronized wrapper over github.com/codahale/hdrhistogram.WindowedHistogram
 type HDRHistogram struct {
-	mu         sync.Mutex
-	hist       *hdr.WindowedHistogram
-	name       string
-	numBuckets int
-	quantiles  []float64
+	mu          sync.Mutex
+	hist        *hdr.WindowedHistogram
+	name        string
+	nHistograms int
+	quantiles   []float64
 }
 
 // NewHDRHistogram creates new HDRHistogram.
-func NewHDRHistogram(name string, numBuckets int, minValue, maxValue int64, sigfigs int, quantiles []float64) *HDRHistogram {
+func NewHDRHistogram(name string, nHistograms int, minValue, maxValue int64, sigfigs int, quantiles []float64) *HDRHistogram {
 	h := &HDRHistogram{
-		hist:       hdr.NewWindowed(numBuckets, minValue, maxValue, sigfigs),
-		name:       name,
-		quantiles:  quantiles,
-		numBuckets: numBuckets,
+		hist:        hdr.NewWindowed(nHistograms, minValue, maxValue, sigfigs),
+		name:        name,
+		quantiles:   quantiles,
+		nHistograms: nHistograms,
 	}
 	return h
 }
@@ -38,8 +38,8 @@ func (h *HDRHistogram) Name() string {
 }
 
 // NumBuckets returns amount of buckets(windows) this histogram initialized with.
-func (h *HDRHistogram) NumBuckets() int {
-	return h.numBuckets
+func (h *HDRHistogram) NumHistograms() int {
+	return h.nHistograms
 }
 
 // RecordValue is wrapper over github.com/codahale/hdrhistogram.WindowedHistogram.RecordValue
@@ -53,6 +53,20 @@ func (h *HDRHistogram) RecordValue(value int64) error {
 // RecordMicroseconds allows to record time.Duration value as microseconds.
 func (h *HDRHistogram) RecordMicroseconds(value time.Duration) error {
 	return h.RecordValue(int64(value) / 1000)
+}
+
+// Snapshot
+func (h *HDRHistogram) Snapshot() *hdr.Histogram {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return hdr.Import(h.hist.Current.Export())
+}
+
+// MergedSnapshot
+func (h *HDRHistogram) MergedSnapshot() *hdr.Histogram {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return hdr.Import(h.hist.Merge().Export())
 }
 
 // Rotate histogram.
@@ -96,32 +110,33 @@ func (r *HDRHistogramRegistry) RecordMicroseconds(name string, value time.Durati
 // Rotate all registered histograms.
 func (r *HDRHistogramRegistry) Rotate() {
 	for _, hist := range r.histograms {
-		hist.hist.Rotate()
+		hist.Rotate()
 	}
 }
 
 // LoadValues allows to get union of metric values over all registered
 // histograms - both for current and merged over all buckets.
 func (r *HDRHistogramRegistry) LoadValues() map[string]int64 {
-	latencies := make(map[string]int64)
+	values := make(map[string]int64)
 	for _, hist := range r.histograms {
 		name := hist.Name()
-		numBuckets := strconv.Itoa(hist.NumBuckets())
-		latencies[name+"_1_count"] = int64(hist.hist.Current.TotalCount())
-		latencies[name+"_1_max"] = int64(hist.hist.Current.Max())
-		latencies[name+"_1_min"] = int64(hist.hist.Current.Min())
-		latencies[name+"_1_mean"] = int64(hist.hist.Current.Mean())
+		nHistograms := strconv.Itoa(hist.NumHistograms())
+		currentSnapshot := hist.Snapshot()
+		mergedSnapshot := hist.MergedSnapshot()
+		values[name+"_1_count"] = int64(currentSnapshot.TotalCount())
+		values[name+"_1_max"] = int64(currentSnapshot.Max())
+		values[name+"_1_min"] = int64(currentSnapshot.Min())
+		values[name+"_1_mean"] = int64(currentSnapshot.Mean())
 		for _, q := range hist.quantiles {
-			latencies[name+"_1_"+strconv.FormatFloat(q, 'f', -1, 64)+"%ile"] = int64(hist.hist.Current.ValueAtQuantile(q))
+			values[name+"_1_"+strconv.FormatFloat(q, 'f', -1, 64)+"%ile"] = int64(currentSnapshot.ValueAtQuantile(q))
 		}
-		merged := hist.hist.Merge()
-		latencies[name+"_"+numBuckets+"_count"] = int64(merged.TotalCount())
-		latencies[name+"_"+numBuckets+"_max"] = int64(merged.Max())
-		latencies[name+"_"+numBuckets+"_min"] = int64(merged.Min())
-		latencies[name+"_"+numBuckets+"_mean"] = int64(merged.Mean())
+		values[name+"_"+nHistograms+"_count"] = int64(mergedSnapshot.TotalCount())
+		values[name+"_"+nHistograms+"_max"] = int64(mergedSnapshot.Max())
+		values[name+"_"+nHistograms+"_min"] = int64(mergedSnapshot.Min())
+		values[name+"_"+nHistograms+"_mean"] = int64(mergedSnapshot.Mean())
 		for _, q := range hist.quantiles {
-			latencies[name+"_"+numBuckets+"_"+strconv.FormatFloat(q, 'f', -1, 64)+"%ile"] = int64(merged.ValueAtQuantile(q))
+			values[name+"_"+nHistograms+"_"+strconv.FormatFloat(q, 'f', -1, 64)+"%ile"] = int64(mergedSnapshot.ValueAtQuantile(q))
 		}
 	}
-	return latencies
+	return values
 }
