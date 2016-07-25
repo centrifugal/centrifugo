@@ -37,7 +37,7 @@ func (h *HDRHistogram) Name() string {
 	return h.name
 }
 
-// NumBuckets returns amount of buckets(windows) this histogram initialized with.
+// NumHistograms returns amount of buckets(windows) this histogram initialized with.
 func (h *HDRHistogram) NumHistograms() int {
 	return h.nHistograms
 }
@@ -46,8 +46,9 @@ func (h *HDRHistogram) NumHistograms() int {
 // with extra mutex protection to allow concurrent writes.
 func (h *HDRHistogram) RecordValue(value int64) error {
 	h.mu.Lock()
-	defer h.mu.Unlock()
-	return h.hist.Current.RecordValue(value)
+	err := h.hist.Current.RecordValue(value)
+	h.mu.Unlock()
+	return err
 }
 
 // RecordMicroseconds allows to record time.Duration value as microseconds.
@@ -55,14 +56,14 @@ func (h *HDRHistogram) RecordMicroseconds(value time.Duration) error {
 	return h.RecordValue(int64(value) / 1000)
 }
 
-// Snapshot
+// Snapshot allows to get snapshot of current histogram in a thread-safe way.
 func (h *HDRHistogram) Snapshot() *hdr.Histogram {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return hdr.Import(h.hist.Current.Export())
 }
 
-// MergedSnapshot
+// MergedSnapshot allows to get snapshot of merged histogram in a thread-safe way.
 func (h *HDRHistogram) MergedSnapshot() *hdr.Histogram {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -72,8 +73,8 @@ func (h *HDRHistogram) MergedSnapshot() *hdr.Histogram {
 // Rotate histogram.
 func (h *HDRHistogram) Rotate() {
 	h.mu.Lock()
-	defer h.mu.Unlock()
 	h.hist.Rotate()
+	h.mu.Unlock()
 }
 
 // HDRHistogramRegistry is a wrapper to deal with several HDRHistogram instances.
