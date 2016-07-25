@@ -262,6 +262,12 @@
 			"revisionTime": "2015-01-07T20:56:47Z"
 		},
 		{
+			"checksumSHA1": "W7DNxQwdGQ2YO3PR3jARJg6Iqsw=",
+			"path": "github.com/codahale/hdrhistogram",
+			"revision": "f8ad88b59a584afeee9d334eff879b104439117b",
+			"revisionTime": "2016-04-25T23:15:03Z"
+		},
+		{
 			"checksumSHA1": "+Qd5km5Hgsg8P3LXL8xX6YTZVvs=",
 			"path": "github.com/coreos/go-etcd/etcd",
 			"revision": "73a8ef737e8ea002281a28b4cb92a1de121ad4c6",
