@@ -222,7 +222,7 @@ func (m *metricsRegistry) GetRawMetrics() *metrics {
 		BytesClientOut:    m.BytesClientOut.LoadRaw(),
 		MemSys:            atomic.LoadInt64(&m.MemSys),
 		CPU:               atomic.LoadInt64(&m.CPU),
-		Latencies:         m.histograms.LoadLatencies(),
+		Latencies:         m.histograms.LoadValues(),
 	}
 }
 
@@ -242,7 +242,7 @@ func (m *metricsRegistry) GetSnapshotMetrics() *metrics {
 		BytesClientOut:    m.BytesClientOut.LastIn(),
 		MemSys:            atomic.LoadInt64(&m.MemSys),
 		CPU:               atomic.LoadInt64(&m.CPU),
-		Latencies:         m.histograms.LoadLatencies(),
+		Latencies:         m.histograms.LoadValues(),
 	}
 }
 
