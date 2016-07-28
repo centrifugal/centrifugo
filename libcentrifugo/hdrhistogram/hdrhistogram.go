@@ -115,12 +115,24 @@ func (r *HDRHistogramRegistry) Rotate() {
 	}
 }
 
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 // LoadValues allows to get union of metric values over all registered
 // histograms - both for current and merged over all buckets.
-func (r *HDRHistogramRegistry) LoadValues() map[string]int64 {
+func (r *HDRHistogramRegistry) LoadValues(names ...string) map[string]int64 {
 	values := make(map[string]int64)
 	for _, hist := range r.histograms {
 		name := hist.Name()
+		if len(names) > 0 && !stringInSlice(name, names) {
+			continue
+		}
 		nHistograms := strconv.Itoa(hist.NumHistograms())
 		currentSnapshot := hist.Snapshot()
 		mergedSnapshot := hist.MergedSnapshot()
