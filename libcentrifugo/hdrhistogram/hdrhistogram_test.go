@@ -8,7 +8,7 @@ import (
 )
 
 func TestHDRHistogram(t *testing.T) {
-	hist := NewHDRHistogram("test", 3, 1, 1000, 3, []float64{50.0})
+	hist := NewHDRHistogram("test", 3, 1, 1000, 3, []float64{50.0}, "")
 	err := hist.RecordValue(100)
 	assert.Equal(t, nil, err)
 	err = hist.RecordValue(1000000)
@@ -21,14 +21,14 @@ func TestHDRHistogram(t *testing.T) {
 
 func TestRegistryRegister(t *testing.T) {
 	registry := NewHDRHistogramRegistry()
-	hist := NewHDRHistogram("test", 3, 1, 1000, 3, []float64{50.0})
+	hist := NewHDRHistogram("test", 3, 1, 1000, 3, []float64{50.0}, "")
 	registry.Register(hist)
 	assert.Equal(t, 1, len(registry.histograms))
 }
 
 func TestRegistryValueRecording(t *testing.T) {
 	registry := NewHDRHistogramRegistry()
-	hist := NewHDRHistogram("test", 3, 1, 1000, 3, []float64{50.0})
+	hist := NewHDRHistogram("test", 3, 1, 1000, 3, []float64{50.0}, "")
 	registry.Register(hist)
 	err := registry.RecordValue("test", 100)
 	assert.Equal(t, nil, err)
@@ -42,8 +42,8 @@ func TestRegistryValueRecording(t *testing.T) {
 
 func TestRegistryRotate(t *testing.T) {
 	registry := NewHDRHistogramRegistry()
-	hist1 := NewHDRHistogram("test1", 3, 1, 1000, 3, []float64{50.0})
-	hist2 := NewHDRHistogram("test2", 3, 1, 1000, 3, []float64{50.0})
+	hist1 := NewHDRHistogram("test1", 3, 1, 1000, 3, []float64{50.0}, "")
+	hist2 := NewHDRHistogram("test2", 3, 1, 1000, 3, []float64{50.0}, "")
 	registry.Register(hist1)
 	registry.Register(hist2)
 	registry.RecordValue("test1", 100)
@@ -57,8 +57,8 @@ func TestRegistryRotate(t *testing.T) {
 
 func TestRegistryLoadValues(t *testing.T) {
 	registry := NewHDRHistogramRegistry()
-	hist1 := NewHDRHistogram("test1", 3, 1, 1000, 3, []float64{50.0})
-	hist2 := NewHDRHistogram("test2", 3, 1, 1000, 3, []float64{50.0})
+	hist1 := NewHDRHistogram("test1", 3, 1, 1000, 3, []float64{50.0}, "")
+	hist2 := NewHDRHistogram("test2", 3, 1, 1000, 3, []float64{50.0}, "")
 	registry.Register(hist1)
 	registry.Register(hist2)
 	registry.RecordValue("test1", 100)
@@ -92,8 +92,8 @@ func TestRegistryLoadValues(t *testing.T) {
 
 func TestRegistryLoadValuesCustomOnly(t *testing.T) {
 	registry := NewHDRHistogramRegistry()
-	hist1 := NewHDRHistogram("test1", 3, 1, 1000, 3, []float64{50.0})
-	hist2 := NewHDRHistogram("test2", 3, 1, 1000, 3, []float64{50.0})
+	hist1 := NewHDRHistogram("test1", 3, 1, 1000, 3, []float64{50.0}, "")
+	hist2 := NewHDRHistogram("test2", 3, 1, 1000, 3, []float64{50.0}, "")
 	registry.Register(hist1)
 	registry.Register(hist2)
 	values := registry.LoadValues("test2")
@@ -103,9 +103,18 @@ func TestRegistryLoadValuesCustomOnly(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestRegistryLoadValueCustomQuantity(t *testing.T) {
+	registry := NewHDRHistogramRegistry()
+	hist := NewHDRHistogram("test", 3, 1, 1000, 3, []float64{50.0}, "microseconds")
+	registry.Register(hist)
+	values := registry.LoadValues("test")
+	_, ok := values["test_1_microseconds_mean"]
+	assert.True(t, ok)
+}
+
 func BenchmarkRegistryRecording(b *testing.B) {
 	registry := NewHDRHistogramRegistry()
-	hist := NewHDRHistogram("test", 3, 1, 1000, 3, []float64{50.0})
+	hist := NewHDRHistogram("test", 3, 1, 1000, 3, []float64{50.0}, "")
 	registry.Register(hist)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -118,7 +127,7 @@ func BenchmarkRegistryRecording(b *testing.B) {
 
 func BenchmarkRegistryRecordingParallel(b *testing.B) {
 	registry := NewHDRHistogramRegistry()
-	hist := NewHDRHistogram("test", 3, 1, 1000, 3, []float64{50.0})
+	hist := NewHDRHistogram("test", 3, 1, 1000, 3, []float64{50.0}, "")
 	registry.Register(hist)
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {

@@ -119,8 +119,8 @@ func newMetricsHistogramRegistry() *hdrhistogram.HDRHistogramRegistry {
 	numBuckets := 15              // histograms will be rotated every time we call UpdateSnapshot from outside.
 	sigfigs := 3
 	registry := hdrhistogram.NewHDRHistogramRegistry()
-	registry.Register(hdrhistogram.NewHDRHistogram("http_api", numBuckets, minValue, maxValue, sigfigs, quantiles))
-	registry.Register(hdrhistogram.NewHDRHistogram("client_api", numBuckets, minValue, maxValue, sigfigs, quantiles))
+	registry.Register(hdrhistogram.NewHDRHistogram("http_api", numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
+	registry.Register(hdrhistogram.NewHDRHistogram("client_api", numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 	return registry
 }
 

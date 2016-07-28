@@ -18,28 +18,19 @@ type HDRHistogram struct {
 	name        string
 	nHistograms int
 	quantiles   []float64
+	quantity    string
 }
 
 // NewHDRHistogram creates new HDRHistogram.
-func NewHDRHistogram(name string, nHistograms int, minValue, maxValue int64, sigfigs int, quantiles []float64) *HDRHistogram {
+func NewHDRHistogram(name string, nHistograms int, minValue, maxValue int64, sigfigs int, quantiles []float64, quantity string) *HDRHistogram {
 	h := &HDRHistogram{
 		hist:        hdr.NewWindowed(nHistograms, minValue, maxValue, sigfigs),
 		name:        name,
 		quantiles:   quantiles,
 		nHistograms: nHistograms,
+		quantity:    quantity,
 	}
 	return h
-}
-
-// Name returns HDRHistogram name. Can be useful to distinguishing between histograms
-// and for exported metric names.
-func (h *HDRHistogram) Name() string {
-	return h.name
-}
-
-// NumHistograms returns amount of buckets(windows) this histogram initialized with.
-func (h *HDRHistogram) NumHistograms() int {
-	return h.nHistograms
 }
 
 // RecordValue is wrapper over github.com/codahale/hdrhistogram.WindowedHistogram.RecordValue
@@ -77,6 +68,36 @@ func (h *HDRHistogram) Rotate() {
 	h.mu.Unlock()
 }
 
+// LoadValues allows to export map of histogram values - both current and merged.
+func (h *HDRHistogram) LoadValues() map[string]int64 {
+	values := make(map[string]int64)
+	name := h.name
+	nHistograms := strconv.Itoa(h.nHistograms)
+	currentSnapshot := h.Snapshot()
+	mergedSnapshot := h.MergedSnapshot()
+	quantity := h.quantity
+	if h.quantity == "" {
+		quantity = ""
+	} else {
+		quantity = h.quantity + "_"
+	}
+	values[name+"_1_count"] = int64(currentSnapshot.TotalCount())
+	values[name+"_1_"+quantity+"max"] = int64(currentSnapshot.Max())
+	values[name+"_1_"+quantity+"min"] = int64(currentSnapshot.Min())
+	values[name+"_1_"+quantity+"mean"] = int64(currentSnapshot.Mean())
+	for _, q := range h.quantiles {
+		values[name+"_1_"+quantity+strconv.FormatFloat(q, 'f', -1, 64)+"%ile"] = int64(currentSnapshot.ValueAtQuantile(q))
+	}
+	values[name+"_"+nHistograms+"_count"] = int64(mergedSnapshot.TotalCount())
+	values[name+"_"+nHistograms+"_"+quantity+"max"] = int64(mergedSnapshot.Max())
+	values[name+"_"+nHistograms+"_"+quantity+"min"] = int64(mergedSnapshot.Min())
+	values[name+"_"+nHistograms+"_"+quantity+"mean"] = int64(mergedSnapshot.Mean())
+	for _, q := range h.quantiles {
+		values[name+"_"+nHistograms+"_"+quantity+strconv.FormatFloat(q, 'f', -1, 64)+"%ile"] = int64(mergedSnapshot.ValueAtQuantile(q))
+	}
+	return values
+}
+
 // HDRHistogramRegistry is a wrapper to deal with several HDRHistogram instances.
 // After it has been initialized you only can write values into histograms and extract
 // data - do not register histograms dinamically after initial setup.
@@ -95,7 +116,7 @@ func NewHDRHistogramRegistry() *HDRHistogramRegistry {
 // later to record values over registry instance using RecordValue and RecordMicroseconds
 // methods.
 func (r *HDRHistogramRegistry) Register(h *HDRHistogram) {
-	r.histograms[h.Name()] = h
+	r.histograms[h.name] = h
 }
 
 // RecordValue into histogram with provided name. Panics if name not registered.
@@ -124,31 +145,19 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-// LoadValues allows to get union of metric values over all registered
+// LoadValues allows to get union of metric values over registered
 // histograms - both for current and merged over all buckets.
+// If names not provided then return values for all registered histograms.
 func (r *HDRHistogramRegistry) LoadValues(names ...string) map[string]int64 {
 	values := make(map[string]int64)
 	for _, hist := range r.histograms {
-		name := hist.Name()
+		name := hist.name
 		if len(names) > 0 && !stringInSlice(name, names) {
 			continue
 		}
-		nHistograms := strconv.Itoa(hist.NumHistograms())
-		currentSnapshot := hist.Snapshot()
-		mergedSnapshot := hist.MergedSnapshot()
-		values[name+"_1_count"] = int64(currentSnapshot.TotalCount())
-		values[name+"_1_max"] = int64(currentSnapshot.Max())
-		values[name+"_1_min"] = int64(currentSnapshot.Min())
-		values[name+"_1_mean"] = int64(currentSnapshot.Mean())
-		for _, q := range hist.quantiles {
-			values[name+"_1_"+strconv.FormatFloat(q, 'f', -1, 64)+"%ile"] = int64(currentSnapshot.ValueAtQuantile(q))
-		}
-		values[name+"_"+nHistograms+"_count"] = int64(mergedSnapshot.TotalCount())
-		values[name+"_"+nHistograms+"_max"] = int64(mergedSnapshot.Max())
-		values[name+"_"+nHistograms+"_min"] = int64(mergedSnapshot.Min())
-		values[name+"_"+nHistograms+"_mean"] = int64(mergedSnapshot.Mean())
-		for _, q := range hist.quantiles {
-			values[name+"_"+nHistograms+"_"+strconv.FormatFloat(q, 'f', -1, 64)+"%ile"] = int64(mergedSnapshot.ValueAtQuantile(q))
+		histValues := hist.LoadValues()
+		for k, v := range histValues {
+			values[k] = v
 		}
 	}
 	return values
