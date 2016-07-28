@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/hdrhistogram"
 )
 
 // serverStats contains state and metrics information from running Centrifugo nodes.
@@ -71,6 +72,11 @@ type metrics struct {
 	// TimeClientMax shows maximum response time to client request. DEPRECATED!
 	TimeClientMax int64 `json:"time_client_max"`
 
+	// Latencies is a map of latency distributions. Currently it includes latency distribution
+	// of HTTP API response times and client response times. Every type includes distribution
+	// over short time period N (by default 1min) and 15*N period (by default 15min).
+	Latencies map[string]int64 `json:"latencies"`
+
 	// MemSys shows system memory usage in bytes.
 	MemSys int64 `json:"memory_sys"`
 
@@ -96,10 +102,7 @@ type metricsRegistry struct {
 	NumClientRequests metricCounter
 	BytesClientIn     metricCounter
 	BytesClientOut    metricCounter
-	TimeAPIMean       int64 // Deprecated
-	TimeClientMean    int64 // Deprecated
-	TimeAPIMax        int64 // Deprecated
-	TimeClientMax     int64 // Deprecated
+	histograms        *hdrhistogram.HDRHistogramRegistry
 	MemSys            int64
 	CPU               int64
 
@@ -107,6 +110,24 @@ type metricsRegistry struct {
 	// but raw counters may still increment atomically while held so it's not a strict
 	// point-in-time snapshot of all values.
 	mu sync.Mutex
+}
+
+func newMetricsHistogramRegistry() *hdrhistogram.HDRHistogramRegistry {
+	quantiles := []float64{50, 90, 99, 99.99}
+	var minValue int64 = 1        // as we record latencies in microseconds, min resolution 1mks
+	var maxValue int64 = 60000000 // as we record latencies in microseconds, max resolution 60s
+	numBuckets := 15              // histograms will be rotated every time we call UpdateSnapshot from outside.
+	sigfigs := 3
+	registry := hdrhistogram.NewHDRHistogramRegistry()
+	registry.Register(hdrhistogram.NewHDRHistogram("http_api", numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
+	registry.Register(hdrhistogram.NewHDRHistogram("client_api", numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
+	return registry
+}
+
+func newMetricsRegistry() *metricsRegistry {
+	registry := &metricsRegistry{}
+	registry.histograms = newMetricsHistogramRegistry()
+	return registry
 }
 
 // metricCounter is a wrapper around a set of int64s that count things.
@@ -182,6 +203,8 @@ func (m *metricsRegistry) UpdateSnapshot() {
 	m.NumClientRequests.updateDelta()
 	m.BytesClientIn.updateDelta()
 	m.BytesClientOut.updateDelta()
+
+	m.histograms.Rotate()
 }
 
 // GetRawMetrics returns a read-only copy of the raw counter values.
@@ -199,6 +222,7 @@ func (m *metricsRegistry) GetRawMetrics() *metrics {
 		BytesClientOut:    m.BytesClientOut.LoadRaw(),
 		MemSys:            atomic.LoadInt64(&m.MemSys),
 		CPU:               atomic.LoadInt64(&m.CPU),
+		Latencies:         m.histograms.LoadValues(),
 	}
 }
 
@@ -218,6 +242,7 @@ func (m *metricsRegistry) GetSnapshotMetrics() *metrics {
 		BytesClientOut:    m.BytesClientOut.LastIn(),
 		MemSys:            atomic.LoadInt64(&m.MemSys),
 		CPU:               atomic.LoadInt64(&m.CPU),
+		Latencies:         m.histograms.LoadValues(),
 	}
 }
 

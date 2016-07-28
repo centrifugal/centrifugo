@@ -1,9 +1,6 @@
 package libcentrifugo
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -33,7 +30,7 @@ func AssertSameCounts(t *testing.T, when string, got, expected metricCounter) {
 
 func TestMetrics(t *testing.T) {
 
-	m := metricsRegistry{}
+	m := newMetricsRegistry()
 
 	m.NumMsgPublished.Inc()
 	m.NumMsgPublished.Inc()
@@ -65,7 +62,7 @@ func TestMetrics(t *testing.T) {
 }
 
 func TestJSONMarshal(t *testing.T) {
-	m := &metricsRegistry{}
+	m := newMetricsRegistry()
 	m.NumMsgPublished.Add(42)
 	m.NumMsgQueued.Add(42)
 	m.NumMsgSent.Add(42)
@@ -76,28 +73,19 @@ func TestJSONMarshal(t *testing.T) {
 
 	m.UpdateSnapshot()
 
-	expected := fmt.Sprintf(`{"num_msg_published":42,`+
-		`"num_msg_queued":42,`+
-		`"num_msg_sent":42,`+
-		`"num_api_requests":42,`+
-		`"num_client_requests":42,`+
-		`"bytes_client_in":42,`+
-		`"bytes_client_out":42,`+
-		// Timers are deprecated but still in output to avoid breaking assumptions
-		`"time_api_mean":0,`+
-		`"time_client_mean":0,`+
-		`"time_api_max":0,`+
-		`"time_client_max":0,`+
-		`"memory_sys":%d,`+
-		`"cpu_usage":%d}`, m.MemSys, m.CPU)
+	raw := m.GetRawMetrics()
 
-	jsonBytes, err := json.Marshal(m.GetRawMetrics())
-	if err != nil {
-		t.Fatalf("JSON Marshal failed: %v", err)
-	}
-	if !bytes.Equal(jsonBytes, []byte(expected)) {
-		t.Errorf("JSON Marshal returned:\n\t%s\n  expected:\n\t%s", jsonBytes, expected)
-	}
+	assert.Equal(t, int64(42), raw.NumMsgPublished)
+	assert.Equal(t, int64(42), raw.NumMsgQueued)
+	assert.Equal(t, int64(42), raw.NumMsgSent)
+	assert.Equal(t, int64(42), raw.NumAPIRequests)
+	assert.Equal(t, int64(42), raw.NumClientRequests)
+	assert.Equal(t, int64(42), raw.BytesClientIn)
+	assert.Equal(t, int64(42), raw.BytesClientOut)
+	assert.Equal(t, int64(0), raw.TimeAPIMean)
+	assert.Equal(t, int64(0), raw.TimeClientMax)
+	assert.Equal(t, int64(0), raw.TimeClientMax)
+	assert.Equal(t, int64(0), raw.TimeClientMean)
 
 	// Update some values
 	m.NumMsgSent.Add(42)
@@ -106,91 +94,68 @@ func TestJSONMarshal(t *testing.T) {
 	m.BytesClientIn.Add(42)
 
 	// Now snapshot should be just the same since we've not updated
-	jsonBytes, err = json.Marshal(m.GetSnapshotMetrics())
-	if err != nil {
-		t.Fatalf("JSON Marshal failed: %v", err)
-	}
-	if !bytes.Equal(jsonBytes, []byte(expected)) {
-		t.Errorf("After incrementing JSON Marshal returned:\n\t%s\n  expected:\n\t%s", jsonBytes, expected)
-	}
+	snapshot := m.GetSnapshotMetrics()
+
+	assert.Equal(t, int64(42), snapshot.NumMsgPublished)
+	assert.Equal(t, int64(42), snapshot.NumMsgQueued)
+	assert.Equal(t, int64(42), snapshot.NumMsgSent)
+	assert.Equal(t, int64(42), snapshot.NumAPIRequests)
+	assert.Equal(t, int64(42), snapshot.NumClientRequests)
+	assert.Equal(t, int64(42), snapshot.BytesClientIn)
+	assert.Equal(t, int64(42), snapshot.BytesClientOut)
+	assert.Equal(t, int64(0), snapshot.TimeAPIMean)
+	assert.Equal(t, int64(0), snapshot.TimeClientMax)
+	assert.Equal(t, int64(0), snapshot.TimeClientMax)
+	assert.Equal(t, int64(0), snapshot.TimeClientMean)
 
 	// But Raw snapshot should include raw totals
-	raw := m.GetRawMetrics()
-	expectedRaw := fmt.Sprintf(`{"num_msg_published":42,`+
-		`"num_msg_queued":42,`+
-		`"num_msg_sent":84,`+
-		`"num_api_requests":84,`+
-		`"num_client_requests":84,`+
-		`"bytes_client_in":84,`+
-		`"bytes_client_out":42,`+
-		// Timers are deprecated but still in output to avoid breaking assumptions
-		`"time_api_mean":0,`+
-		`"time_client_mean":0,`+
-		`"time_api_max":0,`+
-		`"time_client_max":0,`+
-		`"memory_sys":%d,`+
-		`"cpu_usage":%d}`, raw.MemSys, raw.CPU)
+	raw = m.GetRawMetrics()
 
-	rawJsonBytes, err := json.Marshal(raw)
-	if err != nil {
-		t.Fatalf("JSON Marshal failed: %v", err)
-	}
-	if !bytes.Equal(rawJsonBytes, []byte(expectedRaw)) {
-		t.Errorf("After incrementing raw count JSON Marshal returned:\n\t%s\n  expected:\n\t%s",
-			rawJsonBytes, expectedRaw)
-	}
+	assert.Equal(t, int64(42), raw.NumMsgPublished)
+	assert.Equal(t, int64(42), raw.NumMsgQueued)
+	assert.Equal(t, int64(84), raw.NumMsgSent)
+	assert.Equal(t, int64(84), raw.NumAPIRequests)
+	assert.Equal(t, int64(84), raw.NumClientRequests)
+	assert.Equal(t, int64(84), raw.BytesClientIn)
+	assert.Equal(t, int64(42), raw.BytesClientOut)
+	assert.Equal(t, int64(0), raw.TimeAPIMean)
+	assert.Equal(t, int64(0), raw.TimeClientMax)
+	assert.Equal(t, int64(0), raw.TimeClientMax)
+	assert.Equal(t, int64(0), raw.TimeClientMean)
 
 	// Now update
 	m.UpdateSnapshot()
 
 	// Now snapshot should have reset to only last round of increments
-	expected = fmt.Sprintf(`{"num_msg_published":0,`+
-		`"num_msg_queued":0,`+
-		`"num_msg_sent":42,`+
-		`"num_api_requests":42,`+
-		`"num_client_requests":42,`+
-		`"bytes_client_in":42,`+
-		`"bytes_client_out":0,`+
-		// Timers are deprecated but still in output to avoid breaking assumptions
-		`"time_api_mean":0,`+
-		`"time_client_mean":0,`+
-		`"time_api_max":0,`+
-		`"time_client_max":0,`+
-		`"memory_sys":%d,`+
-		`"cpu_usage":%d}`, m.MemSys, m.CPU)
+	snapshot = m.GetSnapshotMetrics()
 
-	jsonBytes, err = json.Marshal(m.GetSnapshotMetrics())
-	if err != nil {
-		t.Fatalf("JSON Marshal failed: %v", err)
-	}
-	if !bytes.Equal(jsonBytes, []byte(expected)) {
-		t.Errorf("After second update JSON Marshal returned:\n\t%s\n  expected:\n\t%s", jsonBytes, expected)
-	}
+	assert.Equal(t, int64(0), snapshot.NumMsgPublished)
+	assert.Equal(t, int64(0), snapshot.NumMsgQueued)
+	assert.Equal(t, int64(42), snapshot.NumMsgSent)
+	assert.Equal(t, int64(42), snapshot.NumAPIRequests)
+	assert.Equal(t, int64(42), snapshot.NumClientRequests)
+	assert.Equal(t, int64(42), snapshot.BytesClientIn)
+	assert.Equal(t, int64(0), snapshot.BytesClientOut)
+	assert.Equal(t, int64(0), snapshot.TimeAPIMean)
+	assert.Equal(t, int64(0), snapshot.TimeClientMax)
+	assert.Equal(t, int64(0), snapshot.TimeClientMax)
+	assert.Equal(t, int64(0), snapshot.TimeClientMean)
 
 	// But Raw should still have all the totals (need to redefine it though since cpu and mem might change
 	// during UpdateSnapshot above)
 	raw = m.GetRawMetrics()
-	expectedRaw = fmt.Sprintf(`{"num_msg_published":42,`+
-		`"num_msg_queued":42,`+
-		`"num_msg_sent":84,`+
-		`"num_api_requests":84,`+
-		`"num_client_requests":84,`+
-		`"bytes_client_in":84,`+
-		`"bytes_client_out":42,`+
-		// Timers are deprecated but still in output to avoid breaking assumptions
-		`"time_api_mean":0,`+
-		`"time_client_mean":0,`+
-		`"time_api_max":0,`+
-		`"time_client_max":0,`+
-		`"memory_sys":%d,`+
-		`"cpu_usage":%d}`, raw.MemSys, raw.CPU)
-	rawJsonBytes, err = json.Marshal(raw)
-	if err != nil {
-		t.Fatalf("JSON Marshal failed: %v", err)
-	}
-	if !bytes.Equal(rawJsonBytes, []byte(expectedRaw)) {
-		t.Errorf("After second update raw count JSON Marshal returned:\n\t%s\n  expected:\n\t%s", rawJsonBytes, expectedRaw)
-	}
+
+	assert.Equal(t, int64(42), raw.NumMsgPublished)
+	assert.Equal(t, int64(42), raw.NumMsgQueued)
+	assert.Equal(t, int64(84), raw.NumMsgSent)
+	assert.Equal(t, int64(84), raw.NumAPIRequests)
+	assert.Equal(t, int64(84), raw.NumClientRequests)
+	assert.Equal(t, int64(84), raw.BytesClientIn)
+	assert.Equal(t, int64(42), raw.BytesClientOut)
+	assert.Equal(t, int64(0), raw.TimeAPIMean)
+	assert.Equal(t, int64(0), raw.TimeClientMax)
+	assert.Equal(t, int64(0), raw.TimeClientMax)
+	assert.Equal(t, int64(0), raw.TimeClientMean)
 }
 
 /***********************************
