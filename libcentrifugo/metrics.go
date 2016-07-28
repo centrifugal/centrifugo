@@ -115,7 +115,7 @@ type metricsRegistry struct {
 func newMetricsHistogramRegistry() *hdrhistogram.HDRHistogramRegistry {
 	quantiles := []float64{50, 90, 99, 99.99}
 	var minValue int64 = 1        // as we record latencies in microseconds, min resolution 1mks
-	var maxValue int64 = 10000000 // as we record latencies in microseconds, max resolution 10s
+	var maxValue int64 = 60000000 // as we record latencies in microseconds, max resolution 60s
 	numBuckets := 15              // histograms will be rotated every time we call UpdateSnapshot from outside.
 	sigfigs := 3
 	registry := hdrhistogram.NewHDRHistogramRegistry()
