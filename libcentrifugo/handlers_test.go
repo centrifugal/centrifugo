@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/elazarl/go-bindata-assetfs"
@@ -46,11 +47,22 @@ func TestMuxWithDebugFlag(t *testing.T) {
 type testFileSystem struct{}
 
 func (fs *testFileSystem) Open(name string) (http.File, error) {
-	file := assetfs.NewAssetFile(name, []byte("it works"))
+	file := assetfs.NewAssetFile(name, []byte("it works"), time.Now())
 	return file, nil
 }
 
-func TestMuxWithAdminWeb(t *testing.T) {
+func TestMuxAdminWeb404(t *testing.T) {
+	app := testApp()
+	opts := DefaultMuxOptions
+	mux := DefaultMux(app, opts)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	resp, err := http.Get(server.URL + "/")
+	assert.Equal(t, nil, err)
+	assert.Equal(t, resp.StatusCode, http.StatusNotFound)
+}
+
+func TestMuxAdminWeb(t *testing.T) {
 	app := testApp()
 	opts := DefaultMuxOptions
 	opts.Web = true
@@ -60,8 +72,7 @@ func TestMuxWithAdminWeb(t *testing.T) {
 	mux := DefaultMux(app, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
-	t.Logf("%#v", server.URL)
-	resp, err := http.Get(server.URL + "/fake/")
+	resp, err := http.Get(server.URL + "/path/")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	defer resp.Body.Close()

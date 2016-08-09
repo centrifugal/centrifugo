@@ -10,8 +10,6 @@ release:
 
 prepare:
 	go get github.com/mitchellh/gox
-	go get github.com/tools/godep
-	godep restore
 
 test:
 	go test $(TESTFOLDERS) -cover
@@ -23,7 +21,6 @@ bindata:
 	go-bindata-assetfs -prefix="extras" extras/web/...
 	mv bindata_assetfs.go bindata.go
 	gofmt -w bindata.go	
-	godep save -r ./...
 
 package:
 	./extras/scripts/package.sh $(VERSION) $(ITERATION)

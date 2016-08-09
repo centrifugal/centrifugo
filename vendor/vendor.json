@@ -274,12 +274,18 @@
 			"revisionTime": "2015-04-30T21:29:46Z"
 		},
 		{
+			"checksumSHA1": "5ftkjfUwI9A6xCQ1PwIAd5+qlo0=",
+			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/elazarl/go-bindata-assetfs",
 			"path": "github.com/elazarl/go-bindata-assetfs",
-			"revision": "d5cac425555ca5cf00694df246e04f05e6a55150"
+			"revision": "e1a2a7ec64b07d04ac9ebb072404fe8b7b60de1b",
+			"revisionTime": "2016-08-03T19:23:04Z"
 		},
 		{
+			"checksumSHA1": "CaThXbumVxZtNlItiXma5B78PwQ=",
+			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs",
 			"path": "github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs",
-			"revision": "d5cac425555ca5cf00694df246e04f05e6a55150"
+			"revision": "e1a2a7ec64b07d04ac9ebb072404fe8b7b60de1b",
+			"revisionTime": "2016-08-03T19:23:04Z"
 		},
 		{
 			"path": "github.com/garyburd/redigo/internal",
