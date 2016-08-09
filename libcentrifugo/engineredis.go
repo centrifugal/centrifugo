@@ -1075,13 +1075,13 @@ func sliceOfMessages(result interface{}, err error) ([]Message, error) {
 	return msgs, nil
 }
 
-func (e *RedisEngine) history(ch Channel, opts historyOpts) ([]Message, error) {
+func (e *RedisEngine) history(ch Channel, limit int) ([]Message, error) {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
 	var rangeBound int = -1
-	if opts.Limit > 0 {
-		rangeBound = opts.Limit - 1 // Redis includes last index into result
+	if limit > 0 {
+		rangeBound = limit - 1 // Redis includes last index into result
 	}
 	historyKey := e.getHistoryKey(chID)
 	reply, err := conn.Do("LRANGE", historyKey, 0, rangeBound)

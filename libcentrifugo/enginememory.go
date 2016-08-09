@@ -101,8 +101,8 @@ func (e *MemoryEngine) presence(ch Channel) (map[ConnID]ClientInfo, error) {
 	return e.presenceHub.get(ch)
 }
 
-func (e *MemoryEngine) history(ch Channel, opts historyOpts) ([]Message, error) {
-	return e.historyHub.get(ch, opts)
+func (e *MemoryEngine) history(ch Channel, limit int) ([]Message, error) {
+	return e.historyHub.get(ch, limit)
 }
 
 func (e *MemoryEngine) channels() ([]Channel, error) {
@@ -280,7 +280,7 @@ func (h *memoryHistoryHub) add(ch Channel, message Message, opts addHistoryOpts)
 	return nil
 }
 
-func (h *memoryHistoryHub) get(ch Channel, opts historyOpts) ([]Message, error) {
+func (h *memoryHistoryHub) get(ch Channel, limit int) ([]Message, error) {
 	h.RLock()
 	defer h.RUnlock()
 
@@ -294,9 +294,9 @@ func (h *memoryHistoryHub) get(ch Channel, opts historyOpts) ([]Message, error) 
 		delete(h.history, ch)
 		return []Message{}, nil
 	}
-	if opts.Limit == 0 || opts.Limit >= len(hItem.messages) {
+	if limit == 0 || limit >= len(hItem.messages) {
 		return hItem.messages, nil
 	} else {
-		return hItem.messages[:opts.Limit], nil
+		return hItem.messages[:limit], nil
 	}
 }

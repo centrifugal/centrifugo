@@ -14,51 +14,60 @@ type session interface {
 	Close(status uint32, reason string) error
 }
 
-// wsConn is a struct to fit SockJS session interface so client will accept
-// it as its sess
-type wsConn struct {
-	ws           *websocket.Conn
+// websocketConn is an interface to mimic gorilla/websocket methods we use in Centrifugo.
+// Needed only to simplify wsConn struct tests. Description can be found in gorilla websocket docs:
+// https://godoc.org/github.com/gorilla/websocket.
+type websocketConn interface {
+	ReadMessage() (messageType int, p []byte, err error)
+	WriteMessage(messageType int, data []byte) error
+	WriteControl(messageType int, data []byte, deadline time.Time) error
+	Close() error
+}
+
+// wsSession is a wrapper struct over websocket connection to fit session interface so client will accept it.
+type wsSession struct {
+	ws           websocketConn
 	closeCh      chan struct{}
 	pingInterval time.Duration
 	pingTimer    *time.Timer
 }
 
-func newWSConn(ws *websocket.Conn, pingInterval time.Duration) *wsConn {
-	conn := &wsConn{
+func newWSSession(ws websocketConn, pingInterval time.Duration) *wsSession {
+	sess := &wsSession{
 		ws:           ws,
 		closeCh:      make(chan struct{}),
 		pingInterval: pingInterval,
 	}
-	conn.pingTimer = time.AfterFunc(conn.pingInterval, conn.ping)
-	return conn
+	sess.pingTimer = time.AfterFunc(sess.pingInterval, sess.ping)
+	return sess
 }
 
-func (conn *wsConn) ping() {
+func (sess *wsSession) ping() {
 	select {
-	case <-conn.closeCh:
-		conn.pingTimer.Stop()
+	case <-sess.closeCh:
+		sess.pingTimer.Stop()
 		return
 	default:
-		err := conn.ws.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(conn.pingInterval/2))
+		err := sess.ws.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(sess.pingInterval/2))
 		if err != nil {
-			conn.ws.Close()
-			conn.pingTimer.Stop()
+			sess.ws.Close()
+			sess.pingTimer.Stop()
 			return
 		}
-		conn.pingTimer = time.AfterFunc(conn.pingInterval, conn.ping)
+		sess.pingTimer = time.AfterFunc(sess.pingInterval, sess.ping)
 	}
 }
 
-func (conn *wsConn) Send(message []byte) error {
+func (sess *wsSession) Send(message []byte) error {
 	select {
-	case <-conn.closeCh:
+	case <-sess.closeCh:
 		return nil
 	default:
-		return conn.ws.WriteMessage(websocket.TextMessage, message)
+		return sess.ws.WriteMessage(websocket.TextMessage, message)
 	}
 }
 
-func (conn *wsConn) Close(status uint32, reason string) error {
-	conn.ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(int(status), reason), time.Now().Add(time.Second))
-	return conn.ws.Close()
+func (sess *wsSession) Close(status uint32, reason string) error {
+	sess.ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(int(status), reason), time.Now().Add(time.Second))
+	return sess.ws.Close()
 }

@@ -1,11 +1,5 @@
 package libcentrifugo
 
-type historyOpts struct {
-	// Limit sets the max amount of messages that must be returned.
-	// 0 means no limit - i.e. return all history messages.
-	Limit int
-}
-
 // Engine is an interface with all methods that can be used by client or
 // application to publish message, handle subscriptions, save or retrieve
 // presence and history data.
@@ -46,9 +40,10 @@ type Engine interface {
 	// presence returns actual presence information for channel.
 	presence(Channel) (map[ConnID]ClientInfo, error)
 
-	// history returns a slice of history messages for channel according to provided
-	// historyOpts.
-	history(Channel, historyOpts) ([]Message, error)
+	// history returns a slice of history messages for channel.
+	// Integer limit sets the max amount of messages that must be returned. 0 means no limit - i.e.
+	// return all history messages (actually limited by configured history_size).
+	history(ch Channel, limit int) ([]Message, error)
 }
 
 func decodeEngineClientMessage(data []byte) (*Message, error) {

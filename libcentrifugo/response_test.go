@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,6 +57,12 @@ func TestClientResponse(t *testing.T) {
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":\"error1\""))
 }
 
+func TestAdminMessageResponse(t *testing.T) {
+	data := raw.Raw([]byte("test"))
+	resp := newAPIAdminMessageResponse(&data)
+	assert.Equal(t, "message", resp.(*apiAdminMessageResponse).Method)
+}
+
 // TestClientMessageMarshalManual tests valid using of buffer pools
 // when marshalling JSON messages manually.
 // This is related to https://github.com/centrifugal/centrifugo/issues/94
@@ -100,4 +107,27 @@ func TestClientMessageMarshalManual(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func TestClientMessageMarshalManualWithClientInfo(t *testing.T) {
+
+	defaultInfo := raw.Raw(`{"default": "info"}`)
+	channelInfo := raw.Raw(`{"channel": "info"}`)
+
+	info := &ClientInfo{
+		DefaultInfo: &defaultInfo,
+		ChannelInfo: &channelInfo,
+		User:        "test_user",
+		Client:      "test_client",
+	}
+
+	payload := `{"input": "test"}`
+	resp := newClientMessage()
+	resp.Body = *newMessage(Channel("test"), []byte(payload), "test_client", info)
+	jsonData, err := resp.Marshal()
+	assert.Equal(t, nil, err)
+	assert.True(t, strings.Contains(string(jsonData), `"default_info":{"default": "info"}`))
+	assert.True(t, strings.Contains(string(jsonData), `"channel_info":{"channel": "info"}`))
+	assert.True(t, strings.Contains(string(jsonData), "test_user"))
+	assert.True(t, strings.Contains(string(jsonData), "test_client"))
 }

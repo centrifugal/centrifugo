@@ -85,7 +85,7 @@ func TestMemoryEngine(t *testing.T) {
 
 	// test adding history
 	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
-	h, err := e.history(Channel("channel"), historyOpts{})
+	h, err := e.history(Channel("channel"), 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 	assert.Equal(t, h[0].UID, "test UID")
@@ -94,7 +94,7 @@ func TestMemoryEngine(t *testing.T) {
 	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
 	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
 	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
-	h, err = e.history(Channel("channel"), historyOpts{Limit: 2})
+	h, err = e.history(Channel("channel"), 2)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(h))
 
@@ -102,25 +102,25 @@ func TestMemoryEngine(t *testing.T) {
 	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
 	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
 	assert.Equal(t, nil, <-e.publishMessage(Channel("channel"), &msg, &ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
-	h, err = e.history(Channel("channel"), historyOpts{Limit: 2})
+	h, err = e.history(Channel("channel"), 2)
 
 	// HistoryDropInactive tests - new channel to avoid conflicts with test above
 	// 1. add history with DropInactive = true should be a no-op if history is empty
 	assert.Equal(t, nil, <-e.publishMessage(Channel("channel-2"), &msg, &ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
-	h, err = e.history(Channel("channel-2"), historyOpts{})
+	h, err = e.history(Channel("channel-2"), 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(h))
 
 	// 2. add history with DropInactive = false should always work
 	assert.Equal(t, nil, <-e.publishMessage(Channel("channel-2"), &msg, &ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: false}))
-	h, err = e.history(Channel("channel-2"), historyOpts{})
+	h, err = e.history(Channel("channel-2"), 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 
 	// 3. add with DropInactive = true should work immediately since there should be something in history
 	// for 5 seconds from above
 	assert.Equal(t, nil, <-e.publishMessage(Channel("channel-2"), &msg, &ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
-	h, err = e.history(Channel("channel-2"), historyOpts{})
+	h, err = e.history(Channel("channel-2"), 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(h))
 }
@@ -166,23 +166,23 @@ func TestMemoryHistoryHub(t *testing.T) {
 	h.add(ch1, Message{}, addHistoryOpts{1, 1, false})
 	h.add(ch2, Message{}, addHistoryOpts{2, 1, false})
 	h.add(ch2, Message{}, addHistoryOpts{2, 1, true}) // Test that adding only if active works when it's active
-	hist, err := h.get(ch1, historyOpts{})
+	hist, err := h.get(ch1, 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(hist))
-	hist, err = h.get(ch2, historyOpts{})
+	hist, err = h.get(ch2, 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(hist))
 	time.Sleep(2 * time.Second)
 
 	// test that history cleaned up by periodic task
 	assert.Equal(t, 0, len(h.history))
-	hist, err = h.get(ch1, historyOpts{})
+	hist, err = h.get(ch1, 0)
 	assert.Equal(t, 0, len(hist))
 
 	// Now test adding history for inactive channel is a no-op if OnlySaveIfActvie is true
 	h.add(ch2, Message{}, addHistoryOpts{2, 10, true})
 	assert.Equal(t, 0, len(h.history))
-	hist, err = h.get(ch2, historyOpts{})
+	hist, err = h.get(ch2, 0)
 	assert.Equal(t, 0, len(hist))
 
 	// test history messages limit
@@ -190,15 +190,15 @@ func TestMemoryHistoryHub(t *testing.T) {
 	h.add(ch1, Message{}, addHistoryOpts{10, 1, false})
 	h.add(ch1, Message{}, addHistoryOpts{10, 1, false})
 	h.add(ch1, Message{}, addHistoryOpts{10, 1, false})
-	hist, err = h.get(ch1, historyOpts{})
+	hist, err = h.get(ch1, 0)
 	assert.Equal(t, 4, len(hist))
-	hist, err = h.get(ch1, historyOpts{Limit: 1})
+	hist, err = h.get(ch1, 1)
 	assert.Equal(t, 1, len(hist))
 
 	// test history limit greater than history size
 	h.add(ch1, Message{}, addHistoryOpts{1, 1, false})
 	h.add(ch1, Message{}, addHistoryOpts{1, 1, false})
-	hist, err = h.get(ch1, historyOpts{Limit: 2})
+	hist, err = h.get(ch1, 2)
 	assert.Equal(t, 1, len(hist))
 }
 

@@ -71,7 +71,7 @@ func (e *testEngine) presence(ch Channel) (map[ConnID]ClientInfo, error) {
 	return map[ConnID]ClientInfo{}, nil
 }
 
-func (e *testEngine) history(ch Channel, opts historyOpts) ([]Message, error) {
+func (e *testEngine) history(ch Channel, limit int) ([]Message, error) {
 	return []Message{}, nil
 }
 

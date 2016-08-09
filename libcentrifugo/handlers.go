@@ -207,10 +207,10 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	app.RUnlock()
 	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
 
-	conn := newWSConn(ws, pingInterval)
-	defer close(conn.closeCh)
+	sess := newWSSession(ws, pingInterval)
+	defer close(sess.closeCh)
 
-	c, err := newClient(app, conn)
+	c, err := newClient(app, sess)
 	if err != nil {
 		return
 	}
@@ -221,13 +221,13 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
-		_, message, err := conn.ws.ReadMessage()
+		_, message, err := sess.ws.ReadMessage()
 		if err != nil {
 			break
 		}
 		err = c.message(message)
 		if err != nil {
-			conn.Close(CloseStatus, err.Error())
+			sess.Close(CloseStatus, err.Error())
 			break
 		}
 	}
@@ -477,10 +477,10 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 	app.RUnlock()
 	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
 
-	conn := newWSConn(ws, pingInterval)
-	defer close(conn.closeCh)
+	sess := newWSSession(ws, pingInterval)
+	defer close(sess.closeCh)
 
-	c, err := newAdminClient(app, conn)
+	c, err := newAdminClient(app, sess)
 	if err != nil {
 		return
 	}
@@ -495,13 +495,13 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	for {
-		_, message, err := conn.ws.ReadMessage()
+		_, message, err := sess.ws.ReadMessage()
 		if err != nil {
 			break
 		}
 		err = c.message(message)
 		if err != nil {
-			conn.Close(CloseStatus, err.Error())
+			sess.Close(CloseStatus, err.Error())
 			break
 		}
 	}
