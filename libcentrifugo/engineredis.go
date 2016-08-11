@@ -442,8 +442,8 @@ func (e *RedisEngine) blpopTimeout() int {
 func (e *RedisEngine) runAPI() {
 	conn := e.pool.Get()
 	defer conn.Close()
-	logger.DEBUG.Println("Enter runAPI")
-	defer logger.DEBUG.Println("Return from runAPI")
+	logger.TRACE.Println("Enter runAPI")
+	defer logger.TRACE.Println("Return from runAPI")
 
 	apiKey := e.getAPIQueueKey()
 
@@ -550,8 +550,8 @@ func fillBatchFromChan(ch <-chan subRequest, batch *[]subRequest, chIDs *[]inter
 func (e *RedisEngine) runPubSub() {
 	conn := redis.PubSubConn{Conn: e.pool.Get()}
 	defer conn.Close()
-	logger.DEBUG.Println("Enter runPubSub")
-	defer logger.DEBUG.Println("Return from runPubSub")
+	logger.TRACE.Println("Enter runPubSub")
+	defer logger.TRACE.Println("Return from runPubSub")
 
 	controlChannel := e.controlChannelID()
 	adminChannel := e.adminChannelID()
@@ -561,10 +561,10 @@ func (e *RedisEngine) runPubSub() {
 
 	// Run subscriber routine
 	go func() {
-		logger.INFO.Println("Starting RedisEngine Subscriber")
+		logger.TRACE.Println("Starting RedisEngine Subscriber")
 
 		defer func() {
-			logger.INFO.Println("Stopping RedisEngine Subscriber")
+			logger.TRACE.Println("Stopping RedisEngine Subscriber")
 		}()
 		for {
 			select {
@@ -925,7 +925,7 @@ func (e *RedisEngine) publishAdmin(message *AdminMessage) <-chan error {
 }
 
 func (e *RedisEngine) subscribe(ch Channel) error {
-	logger.DEBUG.Println("subscribe on channel", ch)
+	logger.TRACE.Println("Subscribe node on channel", ch)
 	r := newSubRequest(e.joinChannelID(ch), false)
 	e.subCh <- r
 	r = newSubRequest(e.leaveChannelID(ch), false)
@@ -936,7 +936,7 @@ func (e *RedisEngine) subscribe(ch Channel) error {
 }
 
 func (e *RedisEngine) unsubscribe(ch Channel) error {
-	logger.DEBUG.Println("unsubscribe from channel", ch)
+	logger.TRACE.Println("Unsubscribe node from channel", ch)
 	r := newSubRequest(e.joinChannelID(ch), false)
 	e.unSubCh <- r
 	r = newSubRequest(e.leaveChannelID(ch), false)

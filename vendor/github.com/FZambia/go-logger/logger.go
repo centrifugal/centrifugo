@@ -21,7 +21,8 @@ type NotePad struct {
 }
 
 const (
-	LevelDebug Level = iota
+	LevelTrace Level = iota
+	LevelDebug
 	LevelInfo
 	LevelWarn
 	LevelError
@@ -34,6 +35,7 @@ const (
 )
 
 var (
+	TRACE    *log.Logger
 	DEBUG    *log.Logger
 	INFO     *log.Logger
 	WARN     *log.Logger
@@ -47,8 +49,9 @@ var (
 
 	Flag int = log.Ldate | log.Ltime
 
-	NotePads []*NotePad = []*NotePad{debug, info, warn, err, critical, fatal}
+	NotePads []*NotePad = []*NotePad{trace, debug, info, warn, err, critical, fatal}
 
+	trace    *NotePad = &NotePad{Level: LevelTrace, Handle: os.Stdout, Logger: &TRACE, Prefix: "[T]: "}
 	debug    *NotePad = &NotePad{Level: LevelDebug, Handle: os.Stdout, Logger: &DEBUG, Prefix: "[D]: "}
 	info     *NotePad = &NotePad{Level: LevelInfo, Handle: os.Stdout, Logger: &INFO, Prefix: "[I]: "}
 	warn     *NotePad = &NotePad{Level: LevelWarn, Handle: os.Stdout, Logger: &WARN, Prefix: "[W]: "}
@@ -61,6 +64,7 @@ var (
 )
 
 var LevelMatches = map[string]Level{
+	"TRACE":    LevelTrace,
 	"DEBUG":    LevelDebug,
 	"INFO":     LevelInfo,
 	"WARN":     LevelWarn,
@@ -98,8 +102,8 @@ func initialize() {
 // Ensures that the level provided is within the bounds of available levels
 func levelCheck(level Level) Level {
 	switch {
-	case level <= LevelDebug:
-		return LevelDebug
+	case level <= LevelTrace:
+		return LevelTrace
 	case level >= LevelFatal:
 		return LevelFatal
 	default:

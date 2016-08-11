@@ -297,7 +297,7 @@ func Main() {
 			}
 
 			logger.INFO.Println("Engine:", viper.GetString("engine"))
-			logger.DEBUG.Printf("%v\n", viper.AllSettings())
+			logger.TRACE.Printf("%v\n", viper.AllSettings())
 			logger.INFO.Println("Use SSL:", viper.GetBool("ssl"))
 			if viper.GetBool("ssl") {
 				if viper.GetString("ssl_cert") == "" {
@@ -421,7 +421,7 @@ func Main() {
 	rootCmd.Flags().StringVarP(&sslKey, "ssl_key", "", "", "path to an X509 certificate key")
 	rootCmd.Flags().StringVarP(&apiPort, "api_port", "", "", "port to bind api endpoints to (optional until this is required by your deploy setup)")
 	rootCmd.Flags().StringVarP(&adminPort, "admin_port", "", "", "port to bind admin endpoints to (optional until this is required by your deploy setup)")
-	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "info", "set the log level: debug, info, error, critical, fatal or none")
+	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "debug", "set the log level: trace, debug, info, error, critical, fatal or none")
 	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified all logs go to STDOUT")
 	rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")
 	rootCmd.Flags().StringVarP(&redisPort, "redis_port", "", "6379", "redis port (Redis engine)")
