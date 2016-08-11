@@ -23,8 +23,11 @@
 			"revision": "056c9bc7be7190eaa7715723883caffa5f8fa3e4"
 		},
 		{
+			"checksumSHA1": "4abPaYSPssM6QNkIra92Lu2g2y8=",
+			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/FZambia/go-logger",
 			"path": "github.com/FZambia/go-logger",
-			"revision": "1e47f2709a6dc3366a17490c863c0b3e5f218cda"
+			"revision": "656c7347d91febe2e4f6132ff6d74a0213cbeebe",
+			"revisionTime": "2016-08-11T08:39:09Z"
 		},
 		{
 			"path": "github.com/FZambia/go-sentinel",
