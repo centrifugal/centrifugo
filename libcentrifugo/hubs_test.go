@@ -104,15 +104,15 @@ func TestSubHub(t *testing.T) {
 	}
 	assert.Equal(t, stringInSlice("test1", channels), true)
 	assert.Equal(t, stringInSlice("test2", channels), true)
-	assert.True(t, h.hasSubscribers(Channel("test1")))
-	assert.True(t, h.hasSubscribers(Channel("test2")))
+	assert.True(t, h.numSubscribers(Channel("test1")) > 0)
+	assert.True(t, h.numSubscribers(Channel("test2")) > 0)
 	err := h.broadcast("test1", []byte("message"))
 	assert.Equal(t, err, nil)
 	h.removeSub("test1", c)
 	h.removeSub("test2", c)
 	assert.Equal(t, len(h.subs), 0)
-	assert.False(t, h.hasSubscribers(Channel("test1")))
-	assert.False(t, h.hasSubscribers(Channel("test2")))
+	assert.False(t, h.numSubscribers(Channel("test1")) > 0)
+	assert.False(t, h.numSubscribers(Channel("test2")) > 0)
 }
 
 func TestAdminHub(t *testing.T) {

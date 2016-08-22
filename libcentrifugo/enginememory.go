@@ -38,7 +38,7 @@ func (e *MemoryEngine) run() error {
 }
 
 func (e *MemoryEngine) publishMessage(ch Channel, message *Message, opts *ChannelOptions) <-chan error {
-	hasCurrentSubscribers := e.app.clients.hasSubscribers(ch)
+	hasCurrentSubscribers := e.app.clients.numSubscribers(ch) > 0
 
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
 		histOpts := addHistoryOpts{

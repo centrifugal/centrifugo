@@ -272,7 +272,8 @@ func (app *Application) adminMsg(message *AdminMessage) error {
 // The goal of this method to deliver this message to all clients on this node subscribed
 // on channel.
 func (app *Application) clientMsg(ch Channel, message *Message) error {
-	hasCurrentSubscribers := app.clients.hasSubscribers(ch)
+	numSubscribers := app.clients.numSubscribers(ch)
+	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
@@ -393,7 +394,7 @@ func (app *Application) pubLeave(ch Channel, info ClientInfo) error {
 }
 
 func (app *Application) joinMsg(ch Channel, message *JoinMessage) error {
-	hasCurrentSubscribers := app.clients.hasSubscribers(ch)
+	hasCurrentSubscribers := app.clients.numSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
@@ -407,7 +408,7 @@ func (app *Application) joinMsg(ch Channel, message *JoinMessage) error {
 }
 
 func (app *Application) leaveMsg(ch Channel, message *LeaveMessage) error {
-	hasCurrentSubscribers := app.clients.hasSubscribers(ch)
+	hasCurrentSubscribers := app.clients.numSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}

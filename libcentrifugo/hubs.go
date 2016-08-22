@@ -234,15 +234,15 @@ func (h *clientHub) channels() []Channel {
 	return channels
 }
 
-// hasSubscribers returns whether or not there are any subscribers for a given channel.
-func (h *clientHub) hasSubscribers(ch Channel) bool {
+// numSubscribers returns number of current subscribers for a given channel.
+func (h *clientHub) numSubscribers(ch Channel) int {
 	h.RLock()
 	defer h.RUnlock()
 	conns, ok := h.subs[ch]
 	if !ok {
-		return false
+		return 0
 	}
-	return len(conns) > 0
+	return len(conns)
 }
 
 // adminHub manages admin connections from web interface.
