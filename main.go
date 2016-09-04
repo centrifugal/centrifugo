@@ -21,6 +21,9 @@ import (
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
+// Version of Centrifugo server. Set on build stage.
+var VERSION string
+
 func setupLogging() {
 	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString("log_level"))]
 	if !ok {
@@ -249,7 +252,10 @@ func Main() {
 			}
 
 			var e engine.Engine
-			switch viper.GetString("engine") {
+
+			engineName := viper.GetString("engine")
+
+			switch engineName {
 			case "memory":
 				e = engine.NewMemoryEngine(app)
 			case "redis":
@@ -294,10 +300,10 @@ func Main() {
 				}
 				e = engine.NewRedisEngine(app, redisConf)
 			default:
-				logger.FATAL.Fatalln("Unknown engine: " + viper.GetString("engine"))
+				logger.FATAL.Fatalln("Unknown engine: " + engineName)
 			}
 
-			logger.INFO.Println("Engine:", viper.GetString("engine"))
+			logger.INFO.Println("Engine:", e.Name())
 			logger.TRACE.Printf("%v\n", viper.AllSettings())
 			logger.INFO.Println("Use SSL:", viper.GetBool("ssl"))
 			if viper.GetBool("ssl") {
@@ -424,6 +430,7 @@ func Main() {
 	rootCmd.Flags().StringVarP(&adminPort, "admin_port", "", "", "port to bind admin endpoints to (optional until this is required by your deploy setup)")
 	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "debug", "set the log level: trace, debug, info, error, critical, fatal or none")
 	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified all logs go to STDOUT")
+
 	rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")
 	rootCmd.Flags().StringVarP(&redisPort, "redis_port", "", "6379", "redis port (Redis engine)")
 	rootCmd.Flags().StringVarP(&redisPassword, "redis_password", "", "", "redis auth password (Redis engine)")

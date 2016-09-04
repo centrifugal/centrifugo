@@ -6,24 +6,14 @@ then
 fi
 
 MAIN_DIR=`pwd`
-VERSION_FILE=$MAIN_DIR/version.go
 DOCKERFILE=$MAIN_DIR/Dockerfile
 DOCKERFILE_TEMPLATE=$MAIN_DIR/extras/scripts/dockerfile.template
-
-cat > $VERSION_FILE <<EOF
-package main
-
-const (
-	// VERSION of Centrifugo server.
-	VERSION = "$1"
-)
-EOF
 
 mkdir -p BUILDS
 mkdir -p BUILDS/$1
 rm -rf BUILDS/$1/*
 
-gox -os="linux darwin freebsd windows" -output="./BUILDS/$1/centrifugo-$1-{{.OS}}-{{.Arch}}/centrifugo"
+gox -os="linux darwin freebsd windows" -ldflags="-X VERSION=$1" -output="./BUILDS/$1/centrifugo-$1-{{.OS}}-{{.Arch}}/centrifugo"
 
 cd BUILDS/$1
 
