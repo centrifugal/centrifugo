@@ -1,4 +1,4 @@
-package libcentrifugo
+package config
 
 import (
 	"errors"
@@ -218,38 +218,38 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// channelOpts searches for channel options for specified namespace key.
-func (c *Config) channelOpts(nk NamespaceKey) (ChannelOptions, error) {
+// ChannelOpts searches for channel options for specified namespace key.
+func (c *Config) ChannelOpts(nk NamespaceKey) (bool, ChannelOptions) {
 	if nk == NamespaceKey("") {
-		return c.ChannelOptions, nil
+		return true, c.ChannelOptions
 	}
 	for _, n := range c.Namespaces {
 		if n.Name == nk {
-			return n.ChannelOptions, nil
+			return true, n.ChannelOptions
 		}
 	}
-	return ChannelOptions{}, ErrNamespaceNotFound
+	return false, ChannelOptions{}
 }
 
 const (
-	defaultName             = "libcentrifugo"
-	defaultChannelPrefix    = "libcentrifugo"
-	defaultNodePingInterval = 5
+	DefaultName             = "libcentrifugo"
+	DefaultChannelPrefix    = "libcentrifugo"
+	DefaultNodePingInterval = 5
 )
 
 // DefaultConfig is Config initialized with default values for all fields.
 var DefaultConfig = &Config{
 	Version:                     "-",
-	Name:                        defaultName,
+	Name:                        DefaultName,
 	Debug:                       false,
 	AdminPassword:               "",
 	AdminSecret:                 "",
-	ChannelPrefix:               defaultChannelPrefix,
+	ChannelPrefix:               DefaultChannelPrefix,
 	MaxChannelLength:            255,
 	PingInterval:                25 * time.Second,
-	NodePingInterval:            defaultNodePingInterval * time.Second,
-	NodeInfoCleanInterval:       defaultNodePingInterval * 3 * time.Second,
-	NodeInfoMaxDelay:            defaultNodePingInterval*2*time.Second + 1*time.Second,
+	NodePingInterval:            DefaultNodePingInterval * time.Second,
+	NodeInfoCleanInterval:       DefaultNodePingInterval * 3 * time.Second,
+	NodeInfoMaxDelay:            DefaultNodePingInterval*2*time.Second + 1*time.Second,
 	NodeMetricsInterval:         60 * time.Second,
 	PresencePingInterval:        25 * time.Second,
 	PresenceExpireInterval:      60 * time.Second,

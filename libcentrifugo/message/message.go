@@ -1,4 +1,4 @@
-package libcentrifugo
+package message
 
 import (
 	"strconv"
@@ -8,7 +8,18 @@ import (
 	"github.com/nats-io/nuid"
 )
 
-func newClientInfo(user UserID, client ConnID, defaultInfo *raw.Raw, channelInfo *raw.Raw) *ClientInfo {
+type (
+	// Channel is a string channel name.
+	Channel string
+	// UserID is web application user ID as string.
+	UserID string
+	// ConnID is a unique connection ID.
+	ConnID string
+	// MessageID is a unique message ID
+	MessageID string
+)
+
+func NewClientInfo(user UserID, client ConnID, defaultInfo *raw.Raw, channelInfo *raw.Raw) *ClientInfo {
 	return &ClientInfo{
 		User:        string(user),
 		Client:      string(client),
@@ -17,7 +28,7 @@ func newClientInfo(user UserID, client ConnID, defaultInfo *raw.Raw, channelInfo
 	}
 }
 
-func newMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) *Message {
+func NewMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) *Message {
 	raw := raw.Raw(data)
 	return &Message{
 		UID:       nuid.Next(),
@@ -29,21 +40,21 @@ func newMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) *Messa
 	}
 }
 
-func newJoinMessage(ch Channel, info ClientInfo) *JoinMessage {
+func NewJoinMessage(ch Channel, info ClientInfo) *JoinMessage {
 	return &JoinMessage{
 		Channel: string(ch),
 		Data:    info,
 	}
 }
 
-func newLeaveMessage(ch Channel, info ClientInfo) *LeaveMessage {
+func NewLeaveMessage(ch Channel, info ClientInfo) *LeaveMessage {
 	return &LeaveMessage{
 		Channel: string(ch),
 		Data:    info,
 	}
 }
 
-func newControlMessage(uid string, method string, params []byte) *ControlMessage {
+func NewControlMessage(uid string, method string, params []byte) *ControlMessage {
 	raw := raw.Raw(params)
 	return &ControlMessage{
 		UID:    uid,
@@ -52,7 +63,7 @@ func newControlMessage(uid string, method string, params []byte) *ControlMessage
 	}
 }
 
-func newAdminMessage(method string, params []byte) *AdminMessage {
+func NewAdminMessage(method string, params []byte) *AdminMessage {
 	raw := raw.Raw(params)
 	return &AdminMessage{
 		Method: method,

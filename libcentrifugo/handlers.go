@@ -10,6 +10,8 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"github.com/centrifugal/centrifugo/libcentrifugo/commands"
+	"github.com/centrifugal/centrifugo/libcentrifugo/response"
 	"github.com/gorilla/websocket"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
@@ -238,11 +240,11 @@ var (
 	objectJSONPrefix byte = '{'
 )
 
-func cmdFromRequestMsg(msg []byte) ([]apiCommand, error) {
-	var commands []apiCommand
+func cmdFromRequestMsg(msg []byte) ([]commands.ApiCommand, error) {
+	var cmds []commands.ApiCommand
 
 	if len(msg) == 0 {
-		return commands, nil
+		return cmds, nil
 	}
 
 	firstByte := msg[0]
@@ -250,22 +252,22 @@ func cmdFromRequestMsg(msg []byte) ([]apiCommand, error) {
 	switch firstByte {
 	case objectJSONPrefix:
 		// single command request
-		var command apiCommand
+		var command commands.ApiCommand
 		err := json.Unmarshal(msg, &command)
 		if err != nil {
 			return nil, err
 		}
-		commands = append(commands, command)
+		cmds = append(cmds, command)
 	case arrayJSONPrefix:
 		// array of commands received
-		err := json.Unmarshal(msg, &commands)
+		err := json.Unmarshal(msg, &cmds)
 		if err != nil {
 			return nil, err
 		}
 	default:
 		return nil, ErrInvalidMessage
 	}
-	return commands, nil
+	return cmds, nil
 }
 
 func (app *Application) processAPIData(data []byte) ([]byte, error) {
@@ -276,10 +278,10 @@ func (app *Application) processAPIData(data []byte) ([]byte, error) {
 		return nil, ErrInvalidMessage
 	}
 
-	var mr multiAPIResponse
+	var mr response.MultiAPIResponse
 
 	for _, command := range commands {
-		resp, err := app.apiCmd(command)
+		resp, err := app.ApiCmd(command)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidMessage
@@ -298,7 +300,7 @@ func (app *Application) processAPIData(data []byte) ([]byte, error) {
 func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
 	defer func() {
-		app.metrics.histograms.RecordMicroseconds("http_api", time.Now().Sub(started))
+		app.metrics.Histograms.RecordMicroseconds("http_api", time.Now().Sub(started))
 	}()
 	app.metrics.NumAPIRequests.Inc()
 

@@ -4,20 +4,22 @@ import (
 	"encoding/json"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/commands"
+	"github.com/centrifugal/centrifugo/libcentrifugo/response"
 )
 
 // apiCmd builds API command and dispatches it into correct handler method.
-func (app *Application) apiCmd(command apiCommand) (response, error) {
+func (app *Application) ApiCmd(cmd commands.ApiCommand) (response.Response, error) {
 
 	var err error
-	var resp response
+	var resp response.Response
 
-	method := command.Method
-	params := command.Params
+	method := cmd.Method
+	params := cmd.Params
 
 	switch method {
 	case "publish":
-		var cmd publishAPICommand
+		var cmd commands.PublishAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -25,7 +27,7 @@ func (app *Application) apiCmd(command apiCommand) (response, error) {
 		}
 		resp, err = app.publishCmd(&cmd)
 	case "broadcast":
-		var cmd broadcastAPICommand
+		var cmd commands.BroadcastAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -33,7 +35,7 @@ func (app *Application) apiCmd(command apiCommand) (response, error) {
 		}
 		resp, err = app.broadcastCmd(&cmd)
 	case "unsubscribe":
-		var cmd unsubscribeAPICommand
+		var cmd commands.UnsubscribeAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -41,7 +43,7 @@ func (app *Application) apiCmd(command apiCommand) (response, error) {
 		}
 		resp, err = app.unsubcribeCmd(&cmd)
 	case "disconnect":
-		var cmd disconnectAPICommand
+		var cmd commands.DisconnectAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -49,7 +51,7 @@ func (app *Application) apiCmd(command apiCommand) (response, error) {
 		}
 		resp, err = app.disconnectCmd(&cmd)
 	case "presence":
-		var cmd presenceAPICommand
+		var cmd commands.PresenceAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -57,7 +59,7 @@ func (app *Application) apiCmd(command apiCommand) (response, error) {
 		}
 		resp, err = app.presenceCmd(&cmd)
 	case "history":
-		var cmd historyAPICommand
+		var cmd commands.HistoryAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -77,32 +79,32 @@ func (app *Application) apiCmd(command apiCommand) (response, error) {
 		return nil, err
 	}
 
-	resp.SetUID(command.UID)
+	resp.SetUID(cmd.UID)
 
 	return resp, nil
 }
 
 // publishCmd publishes data into channel.
-func (app *Application) publishCmd(cmd *publishAPICommand) (response, error) {
+func (app *Application) publishCmd(cmd *commands.PublishAPICommand) (response.Response, error) {
 	channel := cmd.Channel
 	data := cmd.Data
 	err := app.publish(channel, data, cmd.Client, nil, false)
-	resp := newAPIPublishResponse()
+	resp := response.NewAPIPublishResponse()
 	if err != nil {
-		resp.SetErr(responseError{err, errorAdviceNone})
+		resp.SetErr(response.ResponseError{err, response.ErrorAdviceNone})
 		return resp, nil
 	}
 	return resp, nil
 }
 
 // broadcastCmd publishes data into multiple channels.
-func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (response, error) {
-	resp := newAPIBroadcastResponse()
+func (app *Application) broadcastCmd(cmd *commands.BroadcastAPICommand) (response.Response, error) {
+	resp := response.NewAPIBroadcastResponse()
 	channels := cmd.Channels
 	data := cmd.Data
 	if len(channels) == 0 {
 		logger.ERROR.Println("channels required for broadcast")
-		resp.SetErr(responseError{ErrInvalidMessage, errorAdviceNone})
+		resp.SetErr(response.ResponseError{ErrInvalidMessage, response.ErrorAdviceNone})
 		return resp, nil
 	}
 	errs := make([]<-chan error, len(channels))
@@ -120,20 +122,20 @@ func (app *Application) broadcastCmd(cmd *broadcastAPICommand) (response, error)
 		}
 	}
 	if firstErr != nil {
-		resp.SetErr(responseError{firstErr, errorAdviceNone})
+		resp.SetErr(response.ResponseError{firstErr, response.ErrorAdviceNone})
 	}
 	return resp, nil
 }
 
 // unsubscribeCmd unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes.
-func (app *Application) unsubcribeCmd(cmd *unsubscribeAPICommand) (response, error) {
-	resp := newAPIUnsubscribeResponse()
+func (app *Application) unsubcribeCmd(cmd *commands.UnsubscribeAPICommand) (response.Response, error) {
+	resp := response.NewAPIUnsubscribeResponse()
 	channel := cmd.Channel
 	user := cmd.User
 	err := app.Unsubscribe(user, channel)
 	if err != nil {
-		resp.SetErr(responseError{err, errorAdviceNone})
+		resp.SetErr(response.ResponseError{err, response.ErrorAdviceNone})
 		return resp, nil
 	}
 	return resp, nil
@@ -141,73 +143,73 @@ func (app *Application) unsubcribeCmd(cmd *unsubscribeAPICommand) (response, err
 
 // disconnectCmd disconnects user by its ID and sends disconnect
 // control message to other nodes so they could also disconnect this user.
-func (app *Application) disconnectCmd(cmd *disconnectAPICommand) (response, error) {
-	resp := newAPIDisconnectResponse()
+func (app *Application) disconnectCmd(cmd *commands.DisconnectAPICommand) (response.Response, error) {
+	resp := response.NewAPIDisconnectResponse()
 	user := cmd.User
 	err := app.Disconnect(user)
 	if err != nil {
-		resp.SetErr(responseError{err, errorAdviceNone})
+		resp.SetErr(response.ResponseError{err, response.ErrorAdviceNone})
 		return resp, nil
 	}
 	return resp, nil
 }
 
 // presenceCmd returns response with presense information for channel.
-func (app *Application) presenceCmd(cmd *presenceAPICommand) (response, error) {
+func (app *Application) presenceCmd(cmd *commands.PresenceAPICommand) (response.Response, error) {
 	channel := cmd.Channel
-	body := presenceBody{
+	body := response.PresenceBody{
 		Channel: channel,
 	}
 	presence, err := app.Presence(channel)
 	if err != nil {
-		resp := newAPIPresenceResponse(body)
-		resp.SetErr(responseError{err, errorAdviceNone})
+		resp := response.NewAPIPresenceResponse(body)
+		resp.SetErr(response.ResponseError{err, response.ErrorAdviceNone})
 		return resp, nil
 	}
 	body.Data = presence
-	return newAPIPresenceResponse(body), nil
+	return response.NewAPIPresenceResponse(body), nil
 }
 
 // historyCmd returns response with history information for channel.
-func (app *Application) historyCmd(cmd *historyAPICommand) (response, error) {
+func (app *Application) historyCmd(cmd *commands.HistoryAPICommand) (response.Response, error) {
 	channel := cmd.Channel
-	body := historyBody{
+	body := response.HistoryBody{
 		Channel: channel,
 	}
 	history, err := app.History(channel)
 	if err != nil {
-		resp := newAPIHistoryResponse(body)
-		resp.SetErr(responseError{err, errorAdviceNone})
+		resp := response.NewAPIHistoryResponse(body)
+		resp.SetErr(response.ResponseError{err, response.ErrorAdviceNone})
 		return resp, nil
 	}
 	body.Data = history
-	return newAPIHistoryResponse(body), nil
+	return response.NewAPIHistoryResponse(body), nil
 }
 
 // channelsCmd returns active channels.
-func (app *Application) channelsCmd() (response, error) {
-	body := channelsBody{}
+func (app *Application) channelsCmd() (response.Response, error) {
+	body := response.ChannelsBody{}
 	channels, err := app.channels()
 	if err != nil {
 		logger.ERROR.Println(err)
-		resp := newAPIChannelsResponse(body)
-		resp.SetErr(responseError{ErrInternalServerError, errorAdviceNone})
+		resp := response.NewAPIChannelsResponse(body)
+		resp.SetErr(response.ResponseError{ErrInternalServerError, response.ErrorAdviceNone})
 		return resp, nil
 	}
 	body.Data = channels
-	return newAPIChannelsResponse(body), nil
+	return response.NewAPIChannelsResponse(body), nil
 }
 
 // statsCmd returns active node stats.
-func (app *Application) statsCmd() (response, error) {
-	body := statsBody{}
+func (app *Application) statsCmd() (response.Response, error) {
+	body := response.StatsBody{}
 	body.Data = app.stats()
-	return newAPIStatsResponse(body), nil
+	return response.NewAPIStatsResponse(body), nil
 }
 
 // nodeCmd returns simple counter metrics which update in real time for the current node only.
-func (app *Application) nodeCmd() (response, error) {
-	body := nodeBody{}
+func (app *Application) nodeCmd() (response.Response, error) {
+	body := response.NodeBody{}
 	body.Data = app.node()
-	return newAPINodeResponse(body), nil
+	return response.NewAPINodeResponse(body), nil
 }

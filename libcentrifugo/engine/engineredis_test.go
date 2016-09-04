@@ -1,4 +1,4 @@
-package libcentrifugo
+package engine
 
 import (
 	"errors"

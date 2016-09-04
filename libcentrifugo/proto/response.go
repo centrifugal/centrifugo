@@ -1,25 +1,28 @@
-package libcentrifugo
+package response
 
 import (
+	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/encode"
+	"github.com/centrifugal/centrifugo/libcentrifugo/message"
+	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/valyala/bytebufferpool"
 )
 
-// clientMessageResponse can not have an error.
-type clientMessageResponse struct {
-	Method string  `json:"method"`
-	Body   Message `json:"body"`
+// ClientMessageResponse can not have an error.
+type ClientMessageResponse struct {
+	Method string          `json:"method"`
+	Body   message.Message `json:"body"`
 }
 
-// newClientMessage returns initialized client message response.
-func newClientMessage() *clientMessageResponse {
-	return &clientMessageResponse{
+// NewClientMessage returns initialized client message response.
+func NewClientMessage() *ClientMessageResponse {
+	return &ClientMessageResponse{
 		Method: "message",
 	}
 }
 
-func writeClientInfo(buf *bytebufferpool.ByteBuffer, info *ClientInfo) {
+func writeClientInfo(buf *bytebufferpool.ByteBuffer, info *message.ClientInfo) {
 	buf.WriteString(`{`)
 
 	if info.DefaultInfo != nil {
@@ -44,33 +47,33 @@ func writeClientInfo(buf *bytebufferpool.ByteBuffer, info *ClientInfo) {
 	buf.WriteString(`}`)
 }
 
-func writeMessage(buf *bytebufferpool.ByteBuffer, message *Message) {
+func writeMessage(buf *bytebufferpool.ByteBuffer, msg *message.Message) {
 	buf.WriteString(`{"uid":"`)
-	buf.WriteString(message.UID)
+	buf.WriteString(msg.UID)
 	buf.WriteString(`","timestamp":"`)
-	buf.WriteString(message.Timestamp)
+	buf.WriteString(msg.Timestamp)
 	buf.WriteString(`",`)
 
-	if message.Client != "" {
+	if msg.Client != "" {
 		buf.WriteString(`"client":`)
-		encode.EncodeJSONString(buf, message.Client, true)
+		encode.EncodeJSONString(buf, msg.Client, true)
 		buf.WriteString(`,`)
 	}
 
-	if message.Info != nil {
+	if msg.Info != nil {
 		buf.WriteString(`"info":`)
-		writeClientInfo(buf, message.Info)
+		writeClientInfo(buf, msg.Info)
 		buf.WriteString(`,`)
 	}
 
 	buf.WriteString(`"channel":`)
-	encode.EncodeJSONString(buf, message.Channel, true)
+	encode.EncodeJSONString(buf, msg.Channel, true)
 	buf.WriteString(`,"data":`)
-	buf.Write(*message.Data)
+	buf.Write(*msg.Data)
 	buf.WriteString(`}`)
 }
 
-func (m *clientMessageResponse) Marshal() ([]byte, error) {
+func (m *ClientMessageResponse) Marshal() ([]byte, error) {
 	buf := bytebufferpool.Get()
 	buf.WriteString(`{"method":"message","body":`)
 	writeMessage(buf, &m.Body)
@@ -81,27 +84,27 @@ func (m *clientMessageResponse) Marshal() ([]byte, error) {
 	return c, nil
 }
 
-type clientJoinResponse struct {
-	Method string      `json:"method"`
-	Body   JoinMessage `json:"body"`
+type ClientJoinResponse struct {
+	Method string              `json:"method"`
+	Body   message.JoinMessage `json:"body"`
 }
 
-func newClientJoinMessage() *clientJoinResponse {
-	return &clientJoinResponse{
+func NewClientJoinMessage() *ClientJoinResponse {
+	return &ClientJoinResponse{
 		Method: "join",
 	}
 }
 
-func writeJoin(buf *bytebufferpool.ByteBuffer, message *JoinMessage) {
+func writeJoin(buf *bytebufferpool.ByteBuffer, msg *message.JoinMessage) {
 	buf.WriteString(`{`)
 	buf.WriteString(`"channel":`)
-	encode.EncodeJSONString(buf, message.Channel, true)
+	encode.EncodeJSONString(buf, msg.Channel, true)
 	buf.WriteString(`,"data":`)
-	writeClientInfo(buf, &message.Data)
+	writeClientInfo(buf, &msg.Data)
 	buf.WriteString(`}`)
 }
 
-func (m *clientJoinResponse) Marshal() ([]byte, error) {
+func (m *ClientJoinResponse) Marshal() ([]byte, error) {
 	buf := bytebufferpool.Get()
 	buf.WriteString(`{"method":"join","body":`)
 	writeJoin(buf, &m.Body)
@@ -112,27 +115,27 @@ func (m *clientJoinResponse) Marshal() ([]byte, error) {
 	return c, nil
 }
 
-type clientLeaveResponse struct {
-	Method string       `json:"method"`
-	Body   LeaveMessage `json:"body"`
+type ClientLeaveResponse struct {
+	Method string               `json:"method"`
+	Body   message.LeaveMessage `json:"body"`
 }
 
-func newClientLeaveMessage() *clientLeaveResponse {
-	return &clientLeaveResponse{
+func NewClientLeaveMessage() *ClientLeaveResponse {
+	return &ClientLeaveResponse{
 		Method: "leave",
 	}
 }
 
-func writeLeave(buf *bytebufferpool.ByteBuffer, message *LeaveMessage) {
+func writeLeave(buf *bytebufferpool.ByteBuffer, msg *message.LeaveMessage) {
 	buf.WriteString(`{`)
 	buf.WriteString(`"channel":`)
-	encode.EncodeJSONString(buf, message.Channel, true)
+	encode.EncodeJSONString(buf, msg.Channel, true)
 	buf.WriteString(`,"data":`)
-	writeClientInfo(buf, &message.Data)
+	writeClientInfo(buf, &msg.Data)
 	buf.WriteString(`}`)
 }
 
-func (m *clientLeaveResponse) Marshal() ([]byte, error) {
+func (m *ClientLeaveResponse) Marshal() ([]byte, error) {
 	buf := bytebufferpool.Get()
 	buf.WriteString(`{"method":"leave","body":`)
 	writeLeave(buf, &m.Body)
@@ -143,101 +146,101 @@ func (m *clientLeaveResponse) Marshal() ([]byte, error) {
 	return c, nil
 }
 
-// presenceBody represents body of response in case of successful presence command.
-type presenceBody struct {
-	Channel Channel               `json:"channel"`
-	Data    map[ConnID]ClientInfo `json:"data"`
+// PresenceBody represents body of response in case of successful presence command.
+type PresenceBody struct {
+	Channel message.Channel                       `json:"channel"`
+	Data    map[message.ConnID]message.ClientInfo `json:"data"`
 }
 
-// historyBody represents body of response in case of successful history command.
-type historyBody struct {
-	Channel Channel   `json:"channel"`
-	Data    []Message `json:"data"`
+// HistoryBody represents body of response in case of successful history command.
+type HistoryBody struct {
+	Channel message.Channel   `json:"channel"`
+	Data    []message.Message `json:"data"`
 }
 
-// channelsBody represents body of response in case of successful channels command.
-type channelsBody struct {
-	Data []Channel `json:"data"`
+// ChannelsBody represents body of response in case of successful channels command.
+type ChannelsBody struct {
+	Data []message.Channel `json:"data"`
 }
 
-// connectBody represents body of response in case of successful connect command.
-type connectBody struct {
-	Version string `json:"version"`
-	Client  ConnID `json:"client"`
-	Expires bool   `json:"expires"`
-	Expired bool   `json:"expired"`
-	TTL     int64  `json:"ttl"`
+// ConnectBody represents body of response in case of successful connect command.
+type ConnectBody struct {
+	Version string         `json:"version"`
+	Client  message.ConnID `json:"client"`
+	Expires bool           `json:"expires"`
+	Expired bool           `json:"expired"`
+	TTL     int64          `json:"ttl"`
 }
 
-// subscribeBody represents body of response in case of successful subscribe command.
-type subscribeBody struct {
-	Channel   Channel   `json:"channel"`
-	Status    bool      `json:"status"`
-	Last      MessageID `json:"last"`
-	Messages  []Message `json:"messages"`
-	Recovered bool      `json:"recovered"`
+// SubscribeBody represents body of response in case of successful subscribe command.
+type SubscribeBody struct {
+	Channel   message.Channel   `json:"channel"`
+	Status    bool              `json:"status"`
+	Last      message.MessageID `json:"last"`
+	Messages  []message.Message `json:"messages"`
+	Recovered bool              `json:"recovered"`
 }
 
-// unsubscribeBody represents body of response in case of successful unsubscribe command.
-type unsubscribeBody struct {
-	Channel Channel `json:"channel"`
-	Status  bool    `json:"status"`
+// UnsubscribeBody represents body of response in case of successful unsubscribe command.
+type UnsubscribeBody struct {
+	Channel message.Channel `json:"channel"`
+	Status  bool            `json:"status"`
 }
 
-// publishBody represents body of response in case of successful publish command.
-type publishBody struct {
-	Channel Channel `json:"channel"`
-	Status  bool    `json:"status"`
+// PublishBody represents body of response in case of successful publish command.
+type PublishBody struct {
+	Channel message.Channel `json:"channel"`
+	Status  bool            `json:"status"`
 }
 
-// disconnectBody represents body of disconnect response when we want to tell
+// DisconnectBody represents body of disconnect response when we want to tell
 // client to disconnect. Optionally we can give client an advice to continue
 // reconnecting after receiving this message.
-type disconnectBody struct {
+type DisconnectBody struct {
 	Reason    string `json:"reason"`
 	Reconnect bool   `json:"reconnect"`
 }
 
-// pingBody represents body of response in case of successful ping command.
-type pingBody struct {
+// PingBody represents body of response in case of successful ping command.
+type PingBody struct {
 	Data string `json:"data"`
 }
 
-// statsBody represents body of response in case of successful stats command.
-type statsBody struct {
-	Data serverStats `json:"data"`
+// StatsBody represents body of response in case of successful stats command.
+type StatsBody struct {
+	Data metrics.ServerStats `json:"data"`
 }
 
-// nodeBody represents body of response in case of successful node command.
-type nodeBody struct {
-	Data nodeInfo `json:"data"`
+// NodeBody represents body of response in case of successful node command.
+type NodeBody struct {
+	Data metrics.NodeInfo `json:"data"`
 }
 
 type adminMessageBody struct {
-	Message Message `json:"message"`
+	Message message.Message `json:"message"`
 }
 
-type adminInfoBody struct {
-	Engine string  `json:"engine"`
-	Config *Config `json:"config"`
+type AdminInfoBody struct {
+	Engine string         `json:"engine"`
+	Config *config.Config `json:"config"`
 }
 
-type response interface {
-	SetErr(err responseError)
+type Response interface {
+	SetErr(err ResponseError)
 	SetUID(uid string)
 }
 
-type errorAdvice string
+type ErrorAdvice string
 
 const (
-	errorAdviceNone  errorAdvice = ""
-	errorAdviceFix   errorAdvice = "fix"
-	errorAdviceRetry errorAdvice = "retry"
+	ErrorAdviceNone  ErrorAdvice = ""
+	ErrorAdviceFix   ErrorAdvice = "fix"
+	ErrorAdviceRetry ErrorAdvice = "retry"
 )
 
-type responseError struct {
-	err    error
-	Advice errorAdvice `json:"advice,omitempty"`
+type ResponseError struct {
+	Err    error
+	Advice ErrorAdvice `json:"advice,omitempty"`
 }
 
 // clientResponse represents an answer Centrifugo sends to client request
@@ -246,18 +249,18 @@ type clientResponse struct {
 	UID    string `json:"uid,omitempty"`
 	Method string `json:"method"`
 	Error  string `json:"error,omitempty"`
-	responseError
+	ResponseError
 }
 
 // Err set a client error on the client response and updates the 'err'
 // field in the response. If an error has already been set it will be kept.
-func (r *clientResponse) SetErr(err responseError) {
-	if r.responseError.err != nil {
+func (r *clientResponse) SetErr(err ResponseError) {
+	if r.ResponseError.Err != nil {
 		// error already set.
 		return
 	}
-	r.responseError = err
-	e := err.err.Error()
+	r.ResponseError = err
+	e := err.Err.Error()
 	r.Error = e
 }
 
@@ -267,10 +270,10 @@ func (r *clientResponse) SetUID(uid string) {
 
 type clientConnectResponse struct {
 	clientResponse
-	Body connectBody `json:"body"`
+	Body ConnectBody `json:"body"`
 }
 
-func newClientConnectResponse(body connectBody) response {
+func NewClientConnectResponse(body ConnectBody) Response {
 	return &clientConnectResponse{
 		clientResponse: clientResponse{
 			Method: "connect",
@@ -281,10 +284,10 @@ func newClientConnectResponse(body connectBody) response {
 
 type clientRefreshResponse struct {
 	clientResponse
-	Body connectBody `json:"body"`
+	Body ConnectBody `json:"body"`
 }
 
-func newClientRefreshResponse(body connectBody) response {
+func NewClientRefreshResponse(body ConnectBody) Response {
 	return &clientRefreshResponse{
 		clientResponse: clientResponse{
 			Method: "refresh",
@@ -295,10 +298,10 @@ func newClientRefreshResponse(body connectBody) response {
 
 type clientSubscribeResponse struct {
 	clientResponse
-	Body subscribeBody `json:"body"`
+	Body SubscribeBody `json:"body"`
 }
 
-func newClientSubscribeResponse(body subscribeBody) response {
+func NewClientSubscribeResponse(body SubscribeBody) Response {
 	return &clientSubscribeResponse{
 		clientResponse: clientResponse{
 			Method: "subscribe",
@@ -309,10 +312,10 @@ func newClientSubscribeResponse(body subscribeBody) response {
 
 type clientUnsubscribeResponse struct {
 	clientResponse
-	Body unsubscribeBody `json:"body"`
+	Body UnsubscribeBody `json:"body"`
 }
 
-func newClientUnsubscribeResponse(body unsubscribeBody) response {
+func NewClientUnsubscribeResponse(body UnsubscribeBody) Response {
 	return &clientUnsubscribeResponse{
 		clientResponse: clientResponse{
 			Method: "unsubscribe",
@@ -323,10 +326,10 @@ func newClientUnsubscribeResponse(body unsubscribeBody) response {
 
 type clientPresenceResponse struct {
 	clientResponse
-	Body presenceBody `json:"body"`
+	Body PresenceBody `json:"body"`
 }
 
-func newClientPresenceResponse(body presenceBody) response {
+func NewClientPresenceResponse(body PresenceBody) Response {
 	return &clientPresenceResponse{
 		clientResponse: clientResponse{
 			Method: "presence",
@@ -337,10 +340,10 @@ func newClientPresenceResponse(body presenceBody) response {
 
 type clientHistoryResponse struct {
 	clientResponse
-	Body historyBody `json:"body"`
+	Body HistoryBody `json:"body"`
 }
 
-func newClientHistoryResponse(body historyBody) response {
+func NewClientHistoryResponse(body HistoryBody) Response {
 	return &clientHistoryResponse{
 		clientResponse: clientResponse{
 			Method: "history",
@@ -351,10 +354,10 @@ func newClientHistoryResponse(body historyBody) response {
 
 type clientDisconnectResponse struct {
 	clientResponse
-	Body disconnectBody `json:"body"`
+	Body DisconnectBody `json:"body"`
 }
 
-func newClientDisconnectResponse(body disconnectBody) response {
+func NewClientDisconnectResponse(body DisconnectBody) Response {
 	return &clientDisconnectResponse{
 		clientResponse: clientResponse{
 			Method: "disconnect",
@@ -365,10 +368,10 @@ func newClientDisconnectResponse(body disconnectBody) response {
 
 type clientPublishResponse struct {
 	clientResponse
-	Body publishBody `json:"body"`
+	Body PublishBody `json:"body"`
 }
 
-func newClientPublishResponse(body publishBody) response {
+func NewClientPublishResponse(body PublishBody) Response {
 	return &clientPublishResponse{
 		clientResponse: clientResponse{
 			Method: "publish",
@@ -379,10 +382,10 @@ func newClientPublishResponse(body publishBody) response {
 
 type clientPingResponse struct {
 	clientResponse
-	Body pingBody `json:"body"`
+	Body PingBody `json:"body"`
 }
 
-func newClientPingResponse(body pingBody) response {
+func NewClientPingResponse(body PingBody) Response {
 	return &clientPingResponse{
 		clientResponse: clientResponse{
 			Method: "ping",
@@ -391,27 +394,27 @@ func newClientPingResponse(body pingBody) response {
 	}
 }
 
-// multiClientResponse is a slice of responses in execution order - from first
+// MultiClientResponse is a slice of responses in execution order - from first
 // executed to last one
-type multiClientResponse []response
+type MultiClientResponse []Response
 
 // apiResponse represents an answer Centrifugo sends to API request commands
 type apiResponse struct {
 	UID    string  `json:"uid,omitempty"`
 	Method string  `json:"method"`
 	Error  *string `json:"error"`
-	responseError
+	ResponseError
 }
 
 // SetErr set an error message on the api response and updates the 'err' field in
 // the response. If an error has already been set it will be kept.
-func (r *apiResponse) SetErr(err responseError) {
-	if r.responseError.err != nil {
+func (r *apiResponse) SetErr(err ResponseError) {
+	if r.ResponseError.Err != nil {
 		// error already set.
 		return
 	}
-	r.responseError = err
-	e := err.err.Error()
+	r.ResponseError = err
+	e := err.Err.Error()
 	r.Error = &e
 	return
 }
@@ -425,7 +428,7 @@ type apiPublishResponse struct {
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
-func newAPIPublishResponse() response {
+func NewAPIPublishResponse() Response {
 	return &apiPublishResponse{
 		apiResponse: apiResponse{
 			Method: "publish",
@@ -438,7 +441,7 @@ type apiBroadcastResponse struct {
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
-func newAPIBroadcastResponse() response {
+func NewAPIBroadcastResponse() Response {
 	return &apiBroadcastResponse{
 		apiResponse: apiResponse{
 			Method: "broadcast",
@@ -448,10 +451,10 @@ func newAPIBroadcastResponse() response {
 
 type apiPresenceResponse struct {
 	apiResponse
-	Body presenceBody `json:"body"`
+	Body PresenceBody `json:"body"`
 }
 
-func newAPIPresenceResponse(body presenceBody) response {
+func NewAPIPresenceResponse(body PresenceBody) Response {
 	return &apiPresenceResponse{
 		apiResponse: apiResponse{
 			Method: "presence",
@@ -462,10 +465,10 @@ func newAPIPresenceResponse(body presenceBody) response {
 
 type apiHistoryResponse struct {
 	apiResponse
-	Body historyBody `json:"body"`
+	Body HistoryBody `json:"body"`
 }
 
-func newAPIHistoryResponse(body historyBody) response {
+func NewAPIHistoryResponse(body HistoryBody) Response {
 	return &apiHistoryResponse{
 		apiResponse: apiResponse{
 			Method: "history",
@@ -476,10 +479,10 @@ func newAPIHistoryResponse(body historyBody) response {
 
 type apiChannelsResponse struct {
 	apiResponse
-	Body channelsBody `json:"body"`
+	Body ChannelsBody `json:"body"`
 }
 
-func newAPIChannelsResponse(body channelsBody) response {
+func NewAPIChannelsResponse(body ChannelsBody) Response {
 	return &apiChannelsResponse{
 		apiResponse: apiResponse{
 			Method: "channels",
@@ -490,10 +493,10 @@ func newAPIChannelsResponse(body channelsBody) response {
 
 type apiStatsResponse struct {
 	apiResponse
-	Body statsBody `json:"body"`
+	Body StatsBody `json:"body"`
 }
 
-func newAPIStatsResponse(body statsBody) response {
+func NewAPIStatsResponse(body StatsBody) Response {
 	return &apiStatsResponse{
 		apiResponse: apiResponse{
 			Method: "stats",
@@ -507,7 +510,7 @@ type apiUnsubscribeResponse struct {
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
-func newAPIUnsubscribeResponse() response {
+func NewAPIUnsubscribeResponse() Response {
 	return &apiUnsubscribeResponse{
 		apiResponse: apiResponse{
 			Method: "unsubscribe",
@@ -520,7 +523,7 @@ type apiDisconnectResponse struct {
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
-func newAPIDisconnectResponse() response {
+func NewAPIDisconnectResponse() Response {
 	return &apiDisconnectResponse{
 		apiResponse: apiResponse{
 			Method: "disconnect",
@@ -530,10 +533,10 @@ func newAPIDisconnectResponse() response {
 
 type apiNodeResponse struct {
 	apiResponse
-	Body nodeBody `json:"body"`
+	Body NodeBody `json:"body"`
 }
 
-func newAPINodeResponse(body nodeBody) response {
+func NewAPINodeResponse(body NodeBody) Response {
 	return &apiNodeResponse{
 		apiResponse: apiResponse{
 			Method: "node",
@@ -547,7 +550,7 @@ type apiAdminConnectResponse struct {
 	Body bool `json:"body"`
 }
 
-func newAPIAdminConnectResponse(body bool) response {
+func NewAPIAdminConnectResponse(body bool) Response {
 	return &apiAdminConnectResponse{
 		apiResponse: apiResponse{
 			Method: "connect",
@@ -558,10 +561,10 @@ func newAPIAdminConnectResponse(body bool) response {
 
 type apiAdminInfoResponse struct {
 	apiResponse
-	Body adminInfoBody `json:"body"`
+	Body AdminInfoBody `json:"body"`
 }
 
-func newAPIAdminInfoResponse(body adminInfoBody) response {
+func NewAPIAdminInfoResponse(body AdminInfoBody) Response {
 	return &apiAdminInfoResponse{
 		apiResponse: apiResponse{
 			Method: "info",
@@ -575,7 +578,7 @@ type apiAdminPingResponse struct {
 	Body string `json:"body"`
 }
 
-func newAPIAdminPingResponse(body string) response {
+func NewAPIAdminPingResponse(body string) Response {
 	return &apiAdminPingResponse{
 		apiResponse: apiResponse{
 			Method: "ping",
@@ -589,7 +592,7 @@ type apiAdminMessageResponse struct {
 	Body *raw.Raw `json:"body"`
 }
 
-func newAPIAdminMessageResponse(body *raw.Raw) response {
+func NewAPIAdminMessageResponse(body *raw.Raw) Response {
 	return &apiAdminMessageResponse{
 		apiResponse: apiResponse{
 			Method: "message",
@@ -598,7 +601,7 @@ func newAPIAdminMessageResponse(body *raw.Raw) response {
 	}
 }
 
-// multiAPIResponse is a slice of API responses returned as a result for
+// MultiAPIResponse is a slice of API responses returned as a result for
 // slice of commands received by API in execution order - from first executed
 // to last one.
-type multiAPIResponse []response
+type MultiAPIResponse []Response

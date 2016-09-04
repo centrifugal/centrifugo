@@ -6,6 +6,9 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
+	"github.com/centrifugal/centrifugo/libcentrifugo/commands"
+	"github.com/centrifugal/centrifugo/libcentrifugo/message"
+	"github.com/centrifugal/centrifugo/libcentrifugo/response"
 	"github.com/satori/go.uuid"
 )
 
@@ -16,7 +19,7 @@ const adminQueueMaxSize = 10485760
 type adminClient struct {
 	sync.RWMutex
 	app           *Application
-	UID           ConnID
+	UID           message.ConnID
 	sess          session
 	watch         bool
 	authenticated bool
@@ -27,7 +30,7 @@ type adminClient struct {
 
 func newAdminClient(app *Application, sess session) (*adminClient, error) {
 	c := &adminClient{
-		UID:           ConnID(uuid.NewV4().String()),
+		UID:           message.ConnID(uuid.NewV4().String()),
 		app:           app,
 		sess:          sess,
 		watch:         false,
@@ -103,7 +106,7 @@ func (c *adminClient) sendMessages() {
 	}
 }
 
-func (c *adminClient) uid() ConnID {
+func (c *adminClient) uid() message.ConnID {
 	return c.UID
 }
 
@@ -133,18 +136,18 @@ func (c *adminClient) send(message []byte) error {
 // message handles message received from admin connection
 func (c *adminClient) message(msg []byte) error {
 
-	commands, err := cmdFromRequestMsg(msg)
+	cmds, err := cmdFromRequestMsg(msg)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return ErrInvalidMessage
 	}
-	if len(commands) == 0 {
+	if len(cmds) == 0 {
 		return nil
 	}
 
-	var mr multiAPIResponse
+	var mr response.MultiAPIResponse
 
-	for _, command := range commands {
+	for _, command := range cmds {
 
 		c.Lock()
 
@@ -153,11 +156,11 @@ func (c *adminClient) message(msg []byte) error {
 			return ErrUnauthorized
 		}
 
-		var resp response
+		var resp response.Response
 
 		switch command.Method {
 		case "connect":
-			var cmd connectAdminCommand
+			var cmd commands.ConnectAdminCommand
 			err = json.Unmarshal(command.Params, &cmd)
 			if err != nil {
 				c.Unlock()
@@ -170,7 +173,7 @@ func (c *adminClient) message(msg []byte) error {
 		case "info":
 			resp, err = c.infoCmd()
 		default:
-			resp, err = c.app.apiCmd(command)
+			resp, err = c.app.ApiCmd(command)
 		}
 		if err != nil {
 			c.Unlock()
@@ -200,7 +203,7 @@ func (c *adminClient) message(msg []byte) error {
 
 // connectCmd checks provided token and adds admin connection into application
 // registry if token correct
-func (c *adminClient) connectCmd(cmd *connectAdminCommand) (response, error) {
+func (c *adminClient) connectCmd(cmd *commands.ConnectAdminCommand) (response.Response, error) {
 
 	err := c.app.checkAdminAuthToken(cmd.Token)
 	if err != nil {
@@ -219,23 +222,23 @@ func (c *adminClient) connectCmd(cmd *connectAdminCommand) (response, error) {
 		c.watch = true
 	}
 
-	return newAPIAdminConnectResponse(true), nil
+	return response.NewAPIAdminConnectResponse(true), nil
 }
 
 // infoCmd handles info command from admin client.
-func (c *adminClient) infoCmd() (response, error) {
+func (c *adminClient) infoCmd() (response.Response, error) {
 	c.app.nodesMu.Lock()
 	defer c.app.nodesMu.Unlock()
 	c.app.RLock()
 	defer c.app.RUnlock()
-	body := adminInfoBody{
-		Engine: c.app.engine.name(),
+	body := response.AdminInfoBody{
+		Engine: c.app.engine.Name(),
 		Config: c.app.config,
 	}
-	return newAPIAdminInfoResponse(body), nil
+	return response.NewAPIAdminInfoResponse(body), nil
 }
 
 // pingCmd handles ping command from admin client.
-func (c *adminClient) pingCmd() (response, error) {
-	return newAPIAdminPingResponse("pong"), nil
+func (c *adminClient) pingCmd() (response.Response, error) {
+	return response.NewAPIAdminPingResponse("pong"), nil
 }

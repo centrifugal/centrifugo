@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/message"
 )
 
 // clientHub manages client connections.
@@ -11,21 +12,21 @@ type clientHub struct {
 	sync.RWMutex
 
 	// match ConnID with actual client connection.
-	conns map[ConnID]clientConn
+	conns map[message.ConnID]clientConn
 
 	// registry to hold active client connections grouped by UserID.
-	users map[UserID]map[ConnID]struct{}
+	users map[message.UserID]map[message.ConnID]struct{}
 
 	// registry to hold active subscriptions of clients on channels.
-	subs map[Channel]map[ConnID]struct{}
+	subs map[message.Channel]map[message.ConnID]struct{}
 }
 
 // newClientHub initializes clientHub.
 func newClientHub() *clientHub {
 	return &clientHub{
-		conns: make(map[ConnID]clientConn),
-		users: make(map[UserID]map[ConnID]struct{}),
-		subs:  make(map[Channel]map[ConnID]struct{}),
+		conns: make(map[message.ConnID]clientConn),
+		users: make(map[message.UserID]map[message.ConnID]struct{}),
+		subs:  make(map[message.Channel]map[message.ConnID]struct{}),
 	}
 }
 
@@ -66,7 +67,7 @@ func (h *clientHub) add(c clientConn) error {
 
 	_, ok := h.users[user]
 	if !ok {
-		h.users[user] = make(map[ConnID]struct{})
+		h.users[user] = make(map[message.ConnID]struct{})
 	}
 	h.users[user][uid] = struct{}{}
 	return nil
@@ -102,17 +103,17 @@ func (h *clientHub) remove(c clientConn) error {
 }
 
 // userConnections returns all connections of user with UserID in project.
-func (h *clientHub) userConnections(user UserID) map[ConnID]clientConn {
+func (h *clientHub) userConnections(user message.UserID) map[message.ConnID]clientConn {
 	h.RLock()
 	defer h.RUnlock()
 
 	userConnections, ok := h.users[user]
 	if !ok {
-		return map[ConnID]clientConn{}
+		return map[message.ConnID]clientConn{}
 	}
 
-	var conns map[ConnID]clientConn
-	conns = make(map[ConnID]clientConn, len(userConnections))
+	var conns map[message.ConnID]clientConn
+	conns = make(map[message.ConnID]clientConn, len(userConnections))
 	for uid := range userConnections {
 		c, ok := h.conns[uid]
 		if !ok {
@@ -125,7 +126,7 @@ func (h *clientHub) userConnections(user UserID) map[ConnID]clientConn {
 }
 
 // addSub adds connection into clientHub subscriptions registry.
-func (h *clientHub) addSub(ch Channel, c clientConn) (bool, error) {
+func (h *clientHub) addSub(ch message.Channel, c clientConn) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -135,7 +136,7 @@ func (h *clientHub) addSub(ch Channel, c clientConn) (bool, error) {
 
 	_, ok := h.subs[ch]
 	if !ok {
-		h.subs[ch] = make(map[ConnID]struct{})
+		h.subs[ch] = make(map[message.ConnID]struct{})
 	}
 	h.subs[ch][uid] = struct{}{}
 	if !ok {
@@ -145,7 +146,7 @@ func (h *clientHub) addSub(ch Channel, c clientConn) (bool, error) {
 }
 
 // removeSub removes connection from clientHub subscriptions registry.
-func (h *clientHub) removeSub(ch Channel, c clientConn) (bool, error) {
+func (h *clientHub) removeSub(ch message.Channel, c clientConn) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -172,7 +173,7 @@ func (h *clientHub) removeSub(ch Channel, c clientConn) (bool, error) {
 }
 
 // broadcast sends message to all clients subscribed on channel.
-func (h *clientHub) broadcast(ch Channel, message []byte) error {
+func (h *clientHub) broadcast(ch message.Channel, message []byte) error {
 	h.RLock()
 	defer h.RUnlock()
 
@@ -222,10 +223,10 @@ func (h *clientHub) nChannels() int {
 }
 
 // channels returns a slice of all active channels.
-func (h *clientHub) channels() []Channel {
+func (h *clientHub) channels() []message.Channel {
 	h.RLock()
 	defer h.RUnlock()
-	channels := make([]Channel, len(h.subs))
+	channels := make([]message.Channel, len(h.subs))
 	i := 0
 	for ch := range h.subs {
 		channels[i] = ch
@@ -235,7 +236,7 @@ func (h *clientHub) channels() []Channel {
 }
 
 // numSubscribers returns number of current subscribers for a given channel.
-func (h *clientHub) numSubscribers(ch Channel) int {
+func (h *clientHub) numSubscribers(ch message.Channel) int {
 	h.RLock()
 	defer h.RUnlock()
 	conns, ok := h.subs[ch]
@@ -250,13 +251,13 @@ type adminHub struct {
 	sync.RWMutex
 
 	// Registry to hold active admin connections.
-	connections map[ConnID]adminConn
+	connections map[message.ConnID]adminConn
 }
 
 // newAdminHub initializes new adminHub.
 func newAdminHub() *adminHub {
 	return &adminHub{
-		connections: make(map[ConnID]adminConn),
+		connections: make(map[message.ConnID]adminConn),
 	}
 }
 

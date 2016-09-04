@@ -24,7 +24,8 @@ type websocketConn interface {
 	Close() error
 }
 
-// wsSession is a wrapper struct over websocket connection to fit session interface so client will accept it.
+// wsSession is a wrapper struct over websocket connection to fit session interface so
+// client will accept it.
 type wsSession struct {
 	ws           websocketConn
 	closeCh      chan struct{}
@@ -42,13 +43,16 @@ func newWSSession(ws websocketConn, pingInterval time.Duration) *wsSession {
 	return sess
 }
 
+// TODO: data race detector complains here as we call ping from different goroutines –
+// no real trouble as we do this periodically but better to fix anyway.
 func (sess *wsSession) ping() {
 	select {
 	case <-sess.closeCh:
 		sess.pingTimer.Stop()
 		return
 	default:
-		err := sess.ws.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(sess.pingInterval/2))
+		deadline := time.Now().Add(sess.pingInterval / 2)
+		err := sess.ws.WriteControl(websocket.PingMessage, []byte("ping"), deadline)
 		if err != nil {
 			sess.ws.Close()
 			sess.pingTimer.Stop()
@@ -68,6 +72,8 @@ func (sess *wsSession) Send(message []byte) error {
 }
 
 func (sess *wsSession) Close(status uint32, reason string) error {
-	sess.ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(int(status), reason), time.Now().Add(time.Second))
+	deadline := time.Now().Add(time.Second)
+	msg := websocket.FormatCloseMessage(int(status), reason)
+	sess.ws.WriteControl(websocket.CloseMessage, msg, deadline)
 	return sess.ws.Close()
 }

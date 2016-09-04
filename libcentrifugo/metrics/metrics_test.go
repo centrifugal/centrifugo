@@ -1,4 +1,4 @@
-package libcentrifugo
+package metrics
 
 import (
 	"runtime"

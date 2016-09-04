@@ -1,9 +1,11 @@
-package libcentrifugo
+package engine
 
 import (
 	"bytes"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/config"
+	"github.com/centrifugal/centrifugo/libcentrifugo/message"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,19 +23,19 @@ func (e *testEngine) run() error {
 	return nil
 }
 
-func (e *testEngine) publishMessage(ch Channel, message *Message, opts *ChannelOptions) <-chan error {
+func (e *testEngine) publishMessage(ch message.Channel, message *message.Message, opts *config.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *testEngine) publishJoin(ch Channel, message *JoinMessage) <-chan error {
+func (e *testEngine) publishJoin(ch message.Channel, message *message.JoinMessage) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *testEngine) publishLeave(ch Channel, message *LeaveMessage) <-chan error {
+func (e *testEngine) publishLeave(ch message.Channel, message *message.LeaveMessage) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan

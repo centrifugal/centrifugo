@@ -1,4 +1,4 @@
-package libcentrifugo
+package metrics
 
 import (
 	"bytes"
@@ -15,14 +15,15 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/hdrhistogram"
 )
 
-// serverStats contains state and metrics information from running Centrifugo nodes.
-type serverStats struct {
-	Nodes           []nodeInfo `json:"nodes"`
+// ServerStats contains state and metrics information from running Centrifugo nodes.
+type ServerStats struct {
+	Nodes           []NodeInfo `json:"nodes"`
 	MetricsInterval int64      `json:"metrics_interval"`
 }
 
-// nodeInfo contains information and statistics about Centrifugo node.
-type nodeInfo struct {
+// NodeInfo contains information and statistics about Centrifugo node.
+type NodeInfo struct {
+	mu         sync.RWMutex
 	UID        string `json:"uid"`
 	Name       string `json:"name"`
 	Goroutines int    `json:"num_goroutine"`
@@ -34,6 +35,24 @@ type nodeInfo struct {
 	NumCPU     int    `json:"num_cpu"`
 	metrics
 	updated int64
+}
+
+func (i *NodeInfo) Updated() int64 {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+	return i.updated
+}
+
+func (i *NodeInfo) SetUpdated(up int64) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	i.updated = up
+}
+
+func (i *NodeInfo) SetMetrics(m metrics) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	i.metrics = m
 }
 
 // metrics contains various Centrifugo statistic and metric information aggregated
@@ -84,7 +103,7 @@ type metrics struct {
 	CPU int64 `json:"cpu_usage"`
 }
 
-// metricsRegistry contains various Centrifugo statistic and metric information aggregated
+// MetricsRegistry contains various Centrifugo statistic and metric information aggregated
 // once in a configurable interval.
 // NOTE: it's is critical that each metricCounter/int64 member is aligned to 8-byte boundary.
 // See sync/atomic documentation under "bugs".
@@ -94,7 +113,7 @@ type metrics struct {
 // it is first, but we should not rely on that implementation detail for correctness.
 // Add any new members to the END of this struct unless they can guarantee 64 bit alignment
 // (i.e. (u)int64 or 2 x (u)int32 etc.)
-type metricsRegistry struct {
+type MetricsRegistry struct {
 	NumMsgPublished   metricCounter
 	NumMsgQueued      metricCounter
 	NumMsgSent        metricCounter
@@ -102,7 +121,7 @@ type metricsRegistry struct {
 	NumClientRequests metricCounter
 	BytesClientIn     metricCounter
 	BytesClientOut    metricCounter
-	histograms        *hdrhistogram.HDRHistogramRegistry
+	Histograms        *hdrhistogram.HDRHistogramRegistry
 	MemSys            int64
 	CPU               int64
 
@@ -124,9 +143,9 @@ func newMetricsHistogramRegistry() *hdrhistogram.HDRHistogramRegistry {
 	return registry
 }
 
-func newMetricsRegistry() *metricsRegistry {
-	registry := &metricsRegistry{}
-	registry.histograms = newMetricsHistogramRegistry()
+func NewMetricsRegistry() *MetricsRegistry {
+	registry := &MetricsRegistry{}
+	registry.Histograms = newMetricsHistogramRegistry()
 	return registry
 }
 
@@ -176,7 +195,7 @@ func (c *metricCounter) updateDelta() {
 	c.lastIntervalValue = now
 }
 
-func (m *metricsRegistry) UpdateSnapshot() {
+func (m *MetricsRegistry) UpdateSnapshot() {
 	// We update under a lock to ensure that no other process is also updating
 	// snapshot nor copying the values with GetRawMetrics/GetSnapshotMetrics.
 	// Other processes CAN still atomically increment raw counter values while we
@@ -204,11 +223,11 @@ func (m *metricsRegistry) UpdateSnapshot() {
 	m.BytesClientIn.updateDelta()
 	m.BytesClientOut.updateDelta()
 
-	m.histograms.Rotate()
+	m.Histograms.Rotate()
 }
 
 // GetRawMetrics returns a read-only copy of the raw counter values.
-func (m *metricsRegistry) GetRawMetrics() *metrics {
+func (m *MetricsRegistry) GetRawMetrics() *metrics {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -222,13 +241,13 @@ func (m *metricsRegistry) GetRawMetrics() *metrics {
 		BytesClientOut:    m.BytesClientOut.LoadRaw(),
 		MemSys:            atomic.LoadInt64(&m.MemSys),
 		CPU:               atomic.LoadInt64(&m.CPU),
-		Latencies:         m.histograms.LoadValues(),
+		Latencies:         m.Histograms.LoadValues(),
 	}
 }
 
 // GetSnapshotMetrics returns a read-only copy of the deltas over the last
 // metrics interval.
-func (m *metricsRegistry) GetSnapshotMetrics() *metrics {
+func (m *MetricsRegistry) GetSnapshotMetrics() *metrics {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -242,7 +261,7 @@ func (m *metricsRegistry) GetSnapshotMetrics() *metrics {
 		BytesClientOut:    m.BytesClientOut.LastIn(),
 		MemSys:            atomic.LoadInt64(&m.MemSys),
 		CPU:               atomic.LoadInt64(&m.CPU),
-		Latencies:         m.histograms.LoadValues(),
+		Latencies:         m.Histograms.LoadValues(),
 	}
 }
 

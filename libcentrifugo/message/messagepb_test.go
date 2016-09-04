@@ -3,7 +3,7 @@
 // DO NOT EDIT!
 
 /*
-Package libcentrifugo is a generated protocol buffer package.
+Package message is a generated protocol buffer package.
 
 It is generated from these files:
 	message.proto
@@ -16,7 +16,7 @@ It has these top-level messages:
 	ControlMessage
 	AdminMessage
 */
-package libcentrifugo
+package message
 
 import testing "testing"
 import math_rand "math/rand"

@@ -1,4 +1,4 @@
-package libcentrifugo
+package message
 
 import (
 	"encoding/json"
