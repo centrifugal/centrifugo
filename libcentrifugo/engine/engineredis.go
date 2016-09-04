@@ -12,7 +12,6 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/go-sentinel"
-	"github.com/centrifugal/centrifugo/libcentrifugo/app"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/garyburd/redigo/redis"
@@ -55,8 +54,8 @@ const (
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
 	sync.RWMutex
-	app               app.App
-	appConfig         config.Config
+	node              Node
+	nodeConfig        config.Config
 	config            *RedisEngineConfig
 	pool              *redis.Pool
 	api               bool
@@ -357,13 +356,13 @@ return redis.call("hgetall", KEYS[2])
 	`
 
 // NewRedisEngine initializes Redis Engine.
-func NewRedisEngine(application app.App, conf *RedisEngineConfig) *RedisEngine {
+func NewRedisEngine(node Node, conf *RedisEngineConfig) *RedisEngine {
 
 	pool := newPool(conf)
 
 	e := &RedisEngine{
-		app:               application,
-		appConfig:         application.Config(),
+		node:              node,
+		nodeConfig:        node.Config(),
 		config:            conf,
 		pool:              pool,
 		api:               conf.API,
@@ -376,7 +375,7 @@ func NewRedisEngine(application app.App, conf *RedisEngineConfig) *RedisEngine {
 	e.pubCh = make(chan *pubRequest, RedisPublishChannelSize)
 	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
 	e.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
-	channelPrefix := e.appConfig.ChannelPrefix
+	channelPrefix := e.nodeConfig.ChannelPrefix
 	e.messagePrefix = channelPrefix + RedisMessageChannelPrefix
 	e.joinPrefix = channelPrefix + RedisJoinChannelPrefix
 	e.leavePrefix = channelPrefix + RedisLeaveChannelPrefix
@@ -413,7 +412,7 @@ type redisAPIRequest struct {
 // the reason this loop is not inside the function itself is so that defer
 // can be used to cleanup nicely (defers only run at function return not end of block scope)
 func (e *RedisEngine) runForever(fn func()) {
-	shutdownCh := e.app.NotifyShutdown()
+	shutdownCh := e.node.NotifyShutdown()
 	for {
 		select {
 		case <-shutdownCh:
@@ -486,7 +485,7 @@ func (e *RedisEngine) runAPI() {
 						continue
 					}
 					for _, command := range req.Data {
-						_, err := e.app.ApiCmd(command)
+						_, err := e.node.APICmd(command)
 						if err != nil {
 							logger.ERROR.Println(err)
 						}
@@ -635,7 +634,7 @@ func (e *RedisEngine) runPubSub() {
 	e.subCh <- r
 	r = newSubRequest(adminChannel, false)
 	e.subCh <- r
-	for _, ch := range e.app.Channels() {
+	for _, ch := range e.node.Channels() {
 		e.subCh <- newSubRequest(e.messageChannelID(ch), false)
 		e.subCh <- newSubRequest(e.joinChannelID(ch), false)
 		e.subCh <- newSubRequest(e.leaveChannelID(ch), false)
@@ -655,14 +654,14 @@ func (e *RedisEngine) runPubSub() {
 					logger.ERROR.Println(err)
 					continue
 				}
-				e.app.ControlMsg(message)
+				e.node.ControlMsg(message)
 			case adminChannel:
 				message, err := decodeEngineAdminMessage(n.Data)
 				if err != nil {
 					logger.ERROR.Println(err)
 					continue
 				}
-				e.app.AdminMsg(message)
+				e.node.AdminMsg(message)
 			default:
 				err := e.handleRedisClientMessage(chID, n.Data)
 				if err != nil {
@@ -686,19 +685,19 @@ func (e *RedisEngine) handleRedisClientMessage(chID ChannelID, data []byte) erro
 		if err != nil {
 			return err
 		}
-		e.app.ClientMsg(ch, message)
+		e.node.ClientMsg(ch, message)
 	case "join":
 		message, err := decodeEngineJoinMessage(data)
 		if err != nil {
 			return err
 		}
-		e.app.JoinMsg(ch, message)
+		e.node.JoinMsg(ch, message)
 	case "leave":
 		message, err := decodeEngineLeaveMessage(data)
 		if err != nil {
 			return err
 		}
-		e.app.LeaveMsg(ch, message)
+		e.node.LeaveMsg(ch, message)
 	default:
 	}
 	return nil
@@ -951,7 +950,7 @@ func (e *RedisEngine) Unsubscribe(ch proto.Channel) error {
 }
 
 func (e *RedisEngine) getAPIQueueKey() string {
-	return e.appConfig.ChannelPrefix + RedisAPIKeySuffix
+	return e.nodeConfig.ChannelPrefix + RedisAPIKeySuffix
 }
 
 func (e *RedisEngine) getAPIShardQueueKey(shardNum int) string {
@@ -960,28 +959,28 @@ func (e *RedisEngine) getAPIShardQueueKey(shardNum int) string {
 }
 
 func (e *RedisEngine) controlChannelID() ChannelID {
-	return ChannelID(e.appConfig.ChannelPrefix + RedisControlChannelSuffix)
+	return ChannelID(e.nodeConfig.ChannelPrefix + RedisControlChannelSuffix)
 }
 
 func (e *RedisEngine) adminChannelID() ChannelID {
-	return ChannelID(e.appConfig.ChannelPrefix + RedisAdminChannelSuffix)
+	return ChannelID(e.nodeConfig.ChannelPrefix + RedisAdminChannelSuffix)
 }
 
 func (e *RedisEngine) getHashKey(chID ChannelID) string {
-	return e.appConfig.ChannelPrefix + ".presence.hash." + string(chID)
+	return e.nodeConfig.ChannelPrefix + ".presence.hash." + string(chID)
 }
 
 func (e *RedisEngine) getSetKey(chID ChannelID) string {
-	return e.appConfig.ChannelPrefix + ".presence.set." + string(chID)
+	return e.nodeConfig.ChannelPrefix + ".presence.set." + string(chID)
 }
 
 func (e *RedisEngine) getHistoryKey(chID ChannelID) string {
-	return e.appConfig.ChannelPrefix + ".history.list." + string(chID)
+	return e.nodeConfig.ChannelPrefix + ".history.list." + string(chID)
 }
 
 func (e *RedisEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo) error {
 	chID := e.messageChannelID(ch)
-	presenceExpireSeconds := int(e.appConfig.PresenceExpireInterval.Seconds())
+	presenceExpireSeconds := int(e.nodeConfig.PresenceExpireInterval.Seconds())
 	conn := e.pool.Get()
 	defer conn.Close()
 	infoJSON, err := info.Marshal()

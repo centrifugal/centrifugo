@@ -1,5 +1,5 @@
-// Package libcentrifugo is a real-time core for Centrifugo server.
-package libcentrifugo
+// Package node is a real-time core for Centrifugo server.
+package node
 
 import (
 	"encoding/json"

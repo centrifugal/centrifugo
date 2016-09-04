@@ -1,4 +1,4 @@
-package libcentrifugo
+package node
 
 import (
 	"bytes"

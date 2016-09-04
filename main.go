@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
-	"github.com/centrifugal/centrifugo/libcentrifugo"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
@@ -36,7 +36,7 @@ func setupLogging() {
 	}
 }
 
-func handleSignals(app *libcentrifugo.Application) {
+func handleSignals(app *node.Application) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -233,7 +233,7 @@ func Main() {
 				logger.FATAL.Fatalln(err)
 			}
 
-			app, err := libcentrifugo.NewApplication(c)
+			app, err := node.NewApplication(c)
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
@@ -359,24 +359,24 @@ func Main() {
 
 			// portToHandlerFlags contains mapping between ports and handler flags
 			// to serve on this port.
-			portToHandlerFlags := map[string]libcentrifugo.HandlerFlag{}
+			portToHandlerFlags := map[string]node.HandlerFlag{}
 
-			var portFlags libcentrifugo.HandlerFlag
+			var portFlags node.HandlerFlag
 
 			portFlags = portToHandlerFlags[clientPort]
-			portFlags |= libcentrifugo.HandlerRawWS | libcentrifugo.HandlerSockJS
+			portFlags |= node.HandlerRawWS | node.HandlerSockJS
 			portToHandlerFlags[clientPort] = portFlags
 
 			portFlags = portToHandlerFlags[apiPort]
-			portFlags |= libcentrifugo.HandlerAPI
+			portFlags |= node.HandlerAPI
 			portToHandlerFlags[apiPort] = portFlags
 
 			portFlags = portToHandlerFlags[adminPort]
 			if adminEnabled {
-				portFlags |= libcentrifugo.HandlerAdmin
+				portFlags |= node.HandlerAdmin
 			}
 			if viper.GetBool("debug") {
-				portFlags |= libcentrifugo.HandlerDebug
+				portFlags |= node.HandlerDebug
 			}
 			portToHandlerFlags[adminPort] = portFlags
 
@@ -384,7 +384,7 @@ func Main() {
 			// Iterate over port to flags mapping and start HTTP servers
 			// on separate ports serving handlers specified in flags.
 			for handlerPort, handlerFlags := range portToHandlerFlags {
-				muxOpts := libcentrifugo.MuxOptions{
+				muxOpts := node.MuxOptions{
 					Prefix:        viper.GetString("prefix"),
 					Admin:         adminEnabled,
 					Web:           webEnabled,
@@ -393,7 +393,7 @@ func Main() {
 					HandlerFlags:  handlerFlags,
 					SockjsOptions: sockjsOpts,
 				}
-				mux := libcentrifugo.DefaultMux(app, muxOpts)
+				mux := node.DefaultMux(app, muxOpts)
 
 				addr := net.JoinHostPort(viper.GetString("address"), handlerPort)
 

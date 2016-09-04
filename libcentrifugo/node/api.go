@@ -1,4 +1,4 @@
-package libcentrifugo
+package node
 
 import (
 	"encoding/json"
@@ -7,8 +7,8 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
-// apiCmd builds API command and dispatches it into correct handler method.
-func (app *Application) ApiCmd(cmd proto.ApiCommand) (proto.Response, error) {
+// APICmd builds API command and dispatches it into correct handler method.
+func (app *Application) APICmd(cmd proto.ApiCommand) (proto.Response, error) {
 
 	var err error
 	var resp proto.Response

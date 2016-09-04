@@ -1,4 +1,4 @@
-package libcentrifugo
+package node
 
 import (
 	"encoding/json"
@@ -279,7 +279,7 @@ func (app *Application) processAPIData(data []byte) ([]byte, error) {
 	var mr proto.MultiAPIResponse
 
 	for _, command := range commands {
-		resp, err := app.ApiCmd(command)
+		resp, err := app.APICmd(command)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidMessage

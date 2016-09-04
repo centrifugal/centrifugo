@@ -1,4 +1,4 @@
-package libcentrifugo
+package node
 
 import (
 	"encoding/json"
@@ -171,7 +171,7 @@ func (c *adminClient) message(msg []byte) error {
 		case "info":
 			resp, err = c.infoCmd()
 		default:
-			resp, err = c.app.ApiCmd(command)
+			resp, err = c.app.APICmd(command)
 		}
 		if err != nil {
 			c.Unlock()

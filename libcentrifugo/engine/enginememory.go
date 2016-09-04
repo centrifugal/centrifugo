@@ -6,25 +6,25 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
-	"github.com/centrifugal/centrifugo/libcentrifugo/app"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/priority"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
-// MemoryEngine allows to run Centrifugo without using Redis at all. All data managed inside process
-// memory. With this engine you can only run single Centrifugo node. If you need to scale you should
+// MemoryEngine allows to run Centrifugo without using Redis at all.
+// All data managed inside process memory. With this engine you can
+// only run single Centrifugo node. If you need to scale you should
 // use Redis engine instead.
 type MemoryEngine struct {
-	app         app.App
+	node        Node
 	presenceHub *memoryPresenceHub
 	historyHub  *memoryHistoryHub
 }
 
 // NewMemoryEngine initializes Memory Engine.
-func NewMemoryEngine(application app.App) *MemoryEngine {
+func NewMemoryEngine(node Node) *MemoryEngine {
 	e := &MemoryEngine{
-		app:         application,
+		node:        node,
 		presenceHub: newMemoryPresenceHub(),
 		historyHub:  newMemoryHistoryHub(),
 	}
@@ -41,7 +41,7 @@ func (e *MemoryEngine) Run() error {
 }
 
 func (e *MemoryEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *config.ChannelOptions) <-chan error {
-	hasCurrentSubscribers := e.app.NumSubscribers(ch) > 0
+	hasCurrentSubscribers := e.node.NumSubscribers(ch) > 0
 
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
 		histOpts := addHistoryOpts{
@@ -56,31 +56,31 @@ func (e *MemoryEngine) PublishMessage(ch proto.Channel, message *proto.Message, 
 	}
 
 	eChan := make(chan error, 1)
-	eChan <- e.app.ClientMsg(ch, message)
+	eChan <- e.node.ClientMsg(ch, message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.app.JoinMsg(ch, message)
+	eChan <- e.node.JoinMsg(ch, message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.app.LeaveMsg(ch, message)
+	eChan <- e.node.LeaveMsg(ch, message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishControl(message *proto.ControlMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.app.ControlMsg(message)
+	eChan <- e.node.ControlMsg(message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.app.AdminMsg(message)
+	eChan <- e.node.AdminMsg(message)
 	return eChan
 }
 
@@ -109,7 +109,7 @@ func (e *MemoryEngine) History(ch proto.Channel, limit int) ([]proto.Message, er
 }
 
 func (e *MemoryEngine) Channels() ([]proto.Channel, error) {
-	return e.app.Channels(), nil
+	return e.node.Channels(), nil
 }
 
 type memoryPresenceHub struct {

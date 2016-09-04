@@ -1,4 +1,4 @@
-package libcentrifugo
+package node
 
 import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
