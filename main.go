@@ -13,9 +13,13 @@ import (
 	"syscall"
 	"time"
 
+	// Embedded web interface.
+	_ "github.com/centrifugal/centrifugo/libcentrifugo/statik"
+
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
+	"github.com/rakyll/statik/fs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
@@ -343,7 +347,7 @@ func Main() {
 
 			var webFS http.FileSystem
 			if webEnabled {
-				webFS = assetFS()
+				webFS, _ = fs.New()
 			}
 
 			adminEnabled := viper.GetBool("admin")

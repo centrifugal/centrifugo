@@ -397,6 +397,12 @@
 			"revision": "a5152d67cf63cbfb5d992a395458722a45194715"
 		},
 		{
+			"checksumSHA1": "FdnIB5f7S6Ic0jlk8egixo2kPhY=",
+			"path": "github.com/rakyll/statik/fs",
+			"revision": "2940084503a48359b41de178874e862c5bc3efe8",
+			"revisionTime": "2016-03-22T00:45:35Z"
+		},
+		{
 			"path": "github.com/satori/go.uuid",
 			"revision": "08f0718b61e95ddba0ade3346725fe0e4bf28ca6"
 		},

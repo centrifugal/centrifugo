@@ -18,9 +18,8 @@ web:
 	./extras/scripts/update_web.sh
 
 bindata:
-	go-bindata-assetfs -prefix="extras" extras/web/...
-	mv bindata_assetfs.go bindata.go
-	gofmt -w bindata.go	
+	statik -src=extras/web -dest ./libcentrifugo/
+	gofmt -w libcentrifugo/statik/statik.go	
 
 package:
 	./extras/scripts/package.sh $(VERSION) $(ITERATION)
