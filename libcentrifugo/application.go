@@ -9,12 +9,10 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
-	"github.com/centrifugal/centrifugo/libcentrifugo/commands"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
-	"github.com/centrifugal/centrifugo/libcentrifugo/message"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
-	"github.com/centrifugal/centrifugo/libcentrifugo/response"
+	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/securecookie"
 	"github.com/satori/go.uuid"
 )
@@ -104,23 +102,24 @@ func (app *Application) Run() error {
 
 // Shutdown sets shutdown flag and does various connection clean ups (at moment only unsubscribes
 // all clients from all channels and disconnects them).
-func (app *Application) Shutdown() {
+func (app *Application) Shutdown() error {
 	app.Lock()
 	if app.shutdown {
 		app.Unlock()
-		return
+		return nil
 	}
 	app.shutdown = true
 	close(app.shutdownCh)
 	app.Unlock()
 	app.clients.shutdown()
+	return nil
 }
 
-func (app *Application) Channels() []message.Channel {
+func (app *Application) Channels() []proto.Channel {
 	return app.clients.channels()
 }
 
-func (app *Application) NumSubscribers(ch message.Channel) int {
+func (app *Application) NumSubscribers(ch proto.Channel) int {
 	return app.clients.numSubscribers(ch)
 }
 
@@ -197,7 +196,7 @@ func (app *Application) SetMediator(m Mediator) {
 	app.mediator = m
 }
 
-func (app *Application) channels() ([]message.Channel, error) {
+func (app *Application) channels() ([]proto.Channel, error) {
 	return app.engine.Channels()
 }
 
@@ -235,8 +234,8 @@ func (app *Application) node() metrics.NodeInfo {
 }
 
 // ControlMsg handles messages from control channel - control messages used for internal
-// communication between nodes to share state or commands.
-func (app *Application) ControlMsg(cmd *message.ControlMessage) error {
+// communication between nodes to share state or proto.
+func (app *Application) ControlMsg(cmd *proto.ControlMessage) error {
 
 	if cmd.UID == app.uid {
 		// Sent by this node.
@@ -248,7 +247,7 @@ func (app *Application) ControlMsg(cmd *message.ControlMessage) error {
 
 	switch method {
 	case "ping":
-		var cmd commands.PingControlCommand
+		var cmd proto.PingControlCommand
 		err := json.Unmarshal(*params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -256,7 +255,7 @@ func (app *Application) ControlMsg(cmd *message.ControlMessage) error {
 		}
 		return app.pingCmd(&cmd)
 	case "unsubscribe":
-		var cmd commands.UnsubscribeControlCommand
+		var cmd proto.UnsubscribeControlCommand
 		err := json.Unmarshal(*params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -264,7 +263,7 @@ func (app *Application) ControlMsg(cmd *message.ControlMessage) error {
 		}
 		return app.unsubscribeUser(cmd.User, cmd.Channel)
 	case "disconnect":
-		var cmd commands.DisconnectControlCommand
+		var cmd proto.DisconnectControlCommand
 		err := json.Unmarshal(*params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
@@ -278,14 +277,14 @@ func (app *Application) ControlMsg(cmd *message.ControlMessage) error {
 }
 
 // AdminMsg handlesadmin message broadcasting it to all admins connected to this node.
-func (app *Application) AdminMsg(message *message.AdminMessage) error {
+func (app *Application) AdminMsg(msg *proto.AdminMessage) error {
 	app.admins.RLock()
 	hasAdmins := len(app.admins.connections) > 0
 	app.admins.RUnlock()
 	if !hasAdmins {
 		return nil
 	}
-	resp := response.NewAPIAdminMessageResponse(message.Params)
+	resp := proto.NewAPIAdminMessageResponse(msg.Params)
 	byteMessage, err := json.Marshal(resp)
 	if err != nil {
 		return err
@@ -296,13 +295,13 @@ func (app *Application) AdminMsg(message *message.AdminMessage) error {
 // ClientMsg handles messages published by web application or client into channel.
 // The goal of this method to deliver this message to all clients on this node subscribed
 // on channel.
-func (app *Application) ClientMsg(ch message.Channel, msg *message.Message) error {
+func (app *Application) ClientMsg(ch proto.Channel, msg *proto.Message) error {
 	numSubscribers := app.clients.numSubscribers(ch)
 	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
-	resp := response.NewClientMessage()
+	resp := proto.NewClientMessage()
 	resp.Body = *msg
 	byteMessage, err := resp.Marshal()
 	if err != nil {
@@ -312,7 +311,7 @@ func (app *Application) ClientMsg(ch message.Channel, msg *message.Message) erro
 }
 
 // Publish sends a message to all clients subscribed on channel with provided data, client and ClientInfo.
-func (app *Application) Publish(ch message.Channel, data []byte, client message.ConnID, info *message.ClientInfo) error {
+func (app *Application) Publish(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) error {
 
 	if string(ch) == "" || len(data) == 0 {
 		return ErrInvalidMessage
@@ -342,7 +341,7 @@ func makeErrChan(err error) <-chan error {
 // publish sends a message into channel with provided data, client and client info.
 // If fromClient argument is true then internally this method will check client permission to
 // publish into this channel.
-func (app *Application) publishAsync(ch message.Channel, data []byte, client message.ConnID, info *message.ClientInfo, fromClient bool) <-chan error {
+func (app *Application) publishAsync(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo, fromClient bool) <-chan error {
 	if string(ch) == "" || len(data) == 0 {
 		return makeErrChan(ErrInvalidMessage)
 	}
@@ -375,25 +374,25 @@ func (app *Application) publishAsync(ch message.Channel, data []byte, client mes
 // publish sends a message into channel with provided data, client and client info.
 // If fromClient argument is true then internally this method will check client permission to
 // publish into this channel.
-func (app *Application) publish(ch message.Channel, data []byte, client message.ConnID, info *message.ClientInfo, fromClient bool) error {
+func (app *Application) publish(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo, fromClient bool) error {
 	return <-app.publishAsync(ch, data, client, info, fromClient)
 }
 
 // pubControl publishes message into control channel so all running
 // nodes will receive and handle it.
 func (app *Application) pubControl(method string, params []byte) error {
-	return <-app.engine.PublishControl(message.NewControlMessage(app.uid, method, params))
+	return <-app.engine.PublishControl(proto.NewControlMessage(app.uid, method, params))
 }
 
 // pubAdmin publishes message to admins.
 func (app *Application) pubAdmin(method string, params []byte) <-chan error {
-	return app.engine.PublishAdmin(message.NewAdminMessage(method, params))
+	return app.engine.PublishAdmin(proto.NewAdminMessage(method, params))
 }
 
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel.
-func (app *Application) pubClient(ch message.Channel, chOpts config.ChannelOptions, data []byte, client message.ConnID, info *message.ClientInfo) <-chan error {
-	message := message.NewMessage(ch, data, client, info)
+func (app *Application) pubClient(ch proto.Channel, chOpts config.ChannelOptions, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
+	message := proto.NewMessage(ch, data, client, info)
 	app.metrics.NumMsgPublished.Inc()
 	if chOpts.Watch {
 		byteMessage, err := json.Marshal(message)
@@ -408,22 +407,22 @@ func (app *Application) pubClient(ch message.Channel, chOpts config.ChannelOptio
 
 // pubJoin allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (app *Application) pubJoin(ch message.Channel, info message.ClientInfo) error {
-	return <-app.engine.PublishJoin(ch, message.NewJoinMessage(ch, info))
+func (app *Application) pubJoin(ch proto.Channel, info proto.ClientInfo) error {
+	return <-app.engine.PublishJoin(ch, proto.NewJoinMessage(ch, info))
 }
 
 // pubLeave allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (app *Application) pubLeave(ch message.Channel, info message.ClientInfo) error {
-	return <-app.engine.PublishLeave(ch, message.NewLeaveMessage(ch, info))
+func (app *Application) pubLeave(ch proto.Channel, info proto.ClientInfo) error {
+	return <-app.engine.PublishLeave(ch, proto.NewLeaveMessage(ch, info))
 }
 
-func (app *Application) JoinMsg(ch message.Channel, msg *message.JoinMessage) error {
+func (app *Application) JoinMsg(ch proto.Channel, msg *proto.JoinMessage) error {
 	hasCurrentSubscribers := app.clients.numSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
-	resp := response.NewClientJoinMessage()
+	resp := proto.NewClientJoinMessage()
 	resp.Body = *msg
 	byteMessage, err := resp.Marshal()
 	if err != nil {
@@ -432,12 +431,12 @@ func (app *Application) JoinMsg(ch message.Channel, msg *message.JoinMessage) er
 	return app.clients.broadcast(ch, byteMessage)
 }
 
-func (app *Application) LeaveMsg(ch message.Channel, msg *message.LeaveMessage) error {
+func (app *Application) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) error {
 	hasCurrentSubscribers := app.clients.numSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
-	resp := response.NewClientLeaveMessage()
+	resp := proto.NewClientLeaveMessage()
 	resp.Body = *msg
 	byteMessage, err := resp.Marshal()
 	if err != nil {
@@ -464,7 +463,7 @@ func (app *Application) pubPing() error {
 	}
 	info.SetMetrics(*app.metrics.GetSnapshotMetrics())
 	app.RUnlock()
-	cmd := &commands.PingControlCommand{Info: info}
+	cmd := &proto.PingControlCommand{Info: info}
 
 	err := app.pingCmd(cmd)
 	if err != nil {
@@ -481,9 +480,9 @@ func (app *Application) pubPing() error {
 
 // pubUnsubscribe publishes unsubscribe control message to all nodes – so all
 // nodes could unsubscribe user from channel.
-func (app *Application) pubUnsubscribe(user message.UserID, ch message.Channel) error {
+func (app *Application) pubUnsubscribe(user proto.UserID, ch proto.Channel) error {
 
-	cmd := &commands.UnsubscribeControlCommand{
+	cmd := &proto.UnsubscribeControlCommand{
 		User:    user,
 		Channel: ch,
 	}
@@ -498,9 +497,9 @@ func (app *Application) pubUnsubscribe(user message.UserID, ch message.Channel) 
 
 // pubDisconnect publishes disconnect control message to all nodes – so all
 // nodes could disconnect user from Centrifugo.
-func (app *Application) pubDisconnect(user message.UserID) error {
+func (app *Application) pubDisconnect(user proto.UserID) error {
 
-	cmd := &commands.DisconnectControlCommand{
+	cmd := &proto.DisconnectControlCommand{
 		User: user,
 	}
 
@@ -513,7 +512,7 @@ func (app *Application) pubDisconnect(user message.UserID) error {
 }
 
 // pingCmd handles ping control command i.e. updates information about known nodes.
-func (app *Application) pingCmd(cmd *commands.PingControlCommand) error {
+func (app *Application) pingCmd(cmd *proto.PingControlCommand) error {
 	info := cmd.Info
 	info.SetUpdated(time.Now().Unix())
 	app.nodesMu.Lock()
@@ -535,7 +534,7 @@ func (app *Application) removeConn(c clientConn) error {
 
 // addSub registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
-func (app *Application) addSub(ch message.Channel, c clientConn) error {
+func (app *Application) addSub(ch proto.Channel, c clientConn) error {
 	first, err := app.clients.addSub(ch, c)
 	if err != nil {
 		return err
@@ -548,7 +547,7 @@ func (app *Application) addSub(ch message.Channel, c clientConn) error {
 
 // removeSub removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
-func (app *Application) removeSub(ch message.Channel, c clientConn) error {
+func (app *Application) removeSub(ch proto.Channel, c clientConn) error {
 	empty, err := app.clients.removeSub(ch, c)
 	if err != nil {
 		return err
@@ -561,7 +560,7 @@ func (app *Application) removeSub(ch message.Channel, c clientConn) error {
 
 // Unsubscribe unsubscribes user from channel, if channel is equal to empty
 // string then user will be unsubscribed from all channels.
-func (app *Application) Unsubscribe(user message.UserID, ch message.Channel) error {
+func (app *Application) Unsubscribe(user proto.UserID, ch proto.Channel) error {
 
 	if string(user) == "" {
 		return ErrInvalidMessage
@@ -589,15 +588,15 @@ func (app *Application) Unsubscribe(user message.UserID, ch message.Channel) err
 
 // unsubscribeUser unsubscribes user from channel on this node. If channel
 // is an empty string then user will be unsubscribed from all channels.
-func (app *Application) unsubscribeUser(user message.UserID, ch message.Channel) error {
+func (app *Application) unsubscribeUser(user proto.UserID, ch proto.Channel) error {
 	userConnections := app.clients.userConnections(user)
 	for _, c := range userConnections {
-		var channels []message.Channel
+		var channels []proto.Channel
 		if string(ch) == "" {
 			// unsubscribe from all channels
 			channels = c.channels()
 		} else {
-			channels = []message.Channel{ch}
+			channels = []proto.Channel{ch}
 		}
 
 		for _, channel := range channels {
@@ -612,7 +611,7 @@ func (app *Application) unsubscribeUser(user message.UserID, ch message.Channel)
 
 // Disconnect allows to close all user connections to Centrifugo. Note that user still
 // can try to reconnect to the server after being disconnected.
-func (app *Application) Disconnect(user message.UserID) error {
+func (app *Application) Disconnect(user proto.UserID) error {
 
 	if string(user) == "" {
 		return ErrInvalidMessage
@@ -632,7 +631,7 @@ func (app *Application) Disconnect(user message.UserID) error {
 }
 
 // disconnectUser closes client connections of user on current node.
-func (app *Application) disconnectUser(user message.UserID) error {
+func (app *Application) disconnectUser(user proto.UserID) error {
 	userConnections := app.clients.userConnections(user)
 	for _, c := range userConnections {
 		err := c.close("disconnect")
@@ -644,7 +643,7 @@ func (app *Application) disconnectUser(user message.UserID) error {
 }
 
 // namespaceKey returns namespace key from channel name if exists.
-func (app *Application) namespaceKey(ch message.Channel) config.NamespaceKey {
+func (app *Application) namespaceKey(ch proto.Channel) config.NamespaceKey {
 	cTrim := strings.TrimPrefix(string(ch), app.config.PrivateChannelPrefix)
 	if strings.Contains(cTrim, app.config.NamespaceChannelBoundary) {
 		parts := strings.SplitN(cTrim, app.config.NamespaceChannelBoundary, 2)
@@ -654,7 +653,7 @@ func (app *Application) namespaceKey(ch message.Channel) config.NamespaceKey {
 }
 
 // channelOpts returns channel options for channel using current application structure.
-func (app *Application) channelOpts(ch message.Channel) (config.ChannelOptions, error) {
+func (app *Application) channelOpts(ch proto.Channel) (config.ChannelOptions, error) {
 	app.RLock()
 	defer app.RUnlock()
 	nk := app.namespaceKey(ch)
@@ -666,77 +665,77 @@ func (app *Application) channelOpts(ch message.Channel) (config.ChannelOptions, 
 }
 
 // addPresence proxies presence adding to engine.
-func (app *Application) addPresence(ch message.Channel, uid message.ConnID, info message.ClientInfo) error {
+func (app *Application) addPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo) error {
 	return app.engine.AddPresence(ch, uid, info)
 }
 
 // removePresence proxies presence removing to engine.
-func (app *Application) removePresence(ch message.Channel, uid message.ConnID) error {
+func (app *Application) removePresence(ch proto.Channel, uid proto.ConnID) error {
 	return app.engine.RemovePresence(ch, uid)
 }
 
 // Presence returns a map of active clients in project channel.
-func (app *Application) Presence(ch message.Channel) (map[message.ConnID]message.ClientInfo, error) {
+func (app *Application) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
 
 	if string(ch) == "" {
-		return map[message.ConnID]message.ClientInfo{}, ErrInvalidMessage
+		return map[proto.ConnID]proto.ClientInfo{}, ErrInvalidMessage
 	}
 
 	chOpts, err := app.channelOpts(ch)
 	if err != nil {
-		return map[message.ConnID]message.ClientInfo{}, err
+		return map[proto.ConnID]proto.ClientInfo{}, err
 	}
 
 	if !chOpts.Presence {
-		return map[message.ConnID]message.ClientInfo{}, ErrNotAvailable
+		return map[proto.ConnID]proto.ClientInfo{}, ErrNotAvailable
 	}
 
 	presence, err := app.engine.Presence(ch)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return map[message.ConnID]message.ClientInfo{}, ErrInternalServerError
+		return map[proto.ConnID]proto.ClientInfo{}, ErrInternalServerError
 	}
 	return presence, nil
 }
 
 // History returns a slice of last messages published into project channel.
-func (app *Application) History(ch message.Channel) ([]message.Message, error) {
+func (app *Application) History(ch proto.Channel) ([]proto.Message, error) {
 
 	if string(ch) == "" {
-		return []message.Message{}, ErrInvalidMessage
+		return []proto.Message{}, ErrInvalidMessage
 	}
 
 	chOpts, err := app.channelOpts(ch)
 	if err != nil {
-		return []message.Message{}, err
+		return []proto.Message{}, err
 	}
 
 	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
-		return []message.Message{}, ErrNotAvailable
+		return []proto.Message{}, ErrNotAvailable
 	}
 
 	history, err := app.engine.History(ch, 0)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return []message.Message{}, ErrInternalServerError
+		return []proto.Message{}, ErrInternalServerError
 	}
 	return history, nil
 }
 
-func (app *Application) lastMessageID(ch message.Channel) (message.MessageID, error) {
+func (app *Application) lastMessageID(ch proto.Channel) (proto.MessageID, error) {
 	history, err := app.engine.History(ch, 1)
 	if err != nil {
-		return message.MessageID(""), err
+		return proto.MessageID(""), err
 	}
 	if len(history) == 0 {
-		return message.MessageID(""), nil
+		return proto.MessageID(""), nil
 	}
-	return message.MessageID(history[0].UID), nil
+	return proto.MessageID(history[0].UID), nil
 }
 
 // privateChannel checks if channel private and therefore subscription
 // request on it must be properly signed on web application backend.
-func (app *Application) privateChannel(ch message.Channel) bool {
+func (app *Application) privateChannel(ch proto.Channel) bool {
 	app.RLock()
 	defer app.RUnlock()
 	return strings.HasPrefix(string(ch), app.config.PrivateChannelPrefix)
@@ -745,7 +744,7 @@ func (app *Application) privateChannel(ch message.Channel) bool {
 // userAllowed checks if user can subscribe on channel - as channel
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it.
-func (app *Application) userAllowed(ch message.Channel, user message.UserID) bool {
+func (app *Application) userAllowed(ch proto.Channel, user proto.UserID) bool {
 	app.RLock()
 	defer app.RUnlock()
 	if !strings.Contains(string(ch), app.config.UserChannelBoundary) {
@@ -764,7 +763,7 @@ func (app *Application) userAllowed(ch message.Channel, user message.UserID) boo
 // clientAllowed checks if client can subscribe on channel - as channel
 // can contain special part in the end to indicate which client allowed
 // to subscribe on it.
-func (app *Application) clientAllowed(ch message.Channel, client message.ConnID) bool {
+func (app *Application) clientAllowed(ch proto.Channel, client proto.ConnID) bool {
 	app.RLock()
 	defer app.RUnlock()
 	if !strings.Contains(string(ch), app.config.ClientChannelBoundary) {

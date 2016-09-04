@@ -2,7 +2,7 @@ package engine
 
 import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
-	"github.com/centrifugal/centrifugo/libcentrifugo/message"
+	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
 // Engine is an interface with all methods that can be used by client or
@@ -20,39 +20,39 @@ type Engine interface {
 	// The returned value is channel in which we will send error as soon as engine finishes
 	// publish operation. Also the task of this method is to maintain history for channels
 	// if enabled.
-	PublishMessage(message.Channel, *message.Message, *config.ChannelOptions) <-chan error
+	PublishMessage(proto.Channel, *proto.Message, *config.ChannelOptions) <-chan error
 	// PublishJoin allows to send join message into channel.
-	PublishJoin(message.Channel, *message.JoinMessage) <-chan error
+	PublishJoin(proto.Channel, *proto.JoinMessage) <-chan error
 	// PublishLeave allows to send leave message into channel.
-	PublishLeave(message.Channel, *message.LeaveMessage) <-chan error
+	PublishLeave(proto.Channel, *proto.LeaveMessage) <-chan error
 	// PublishControl allows to send control message to all connected nodes.
-	PublishControl(*message.ControlMessage) <-chan error
+	PublishControl(*proto.ControlMessage) <-chan error
 	// PublishAdmin allows to send admin message to all connected admins.
-	PublishAdmin(*message.AdminMessage) <-chan error
+	PublishAdmin(*proto.AdminMessage) <-chan error
 
 	// Subscribe on channel.
-	Subscribe(message.Channel) error
+	Subscribe(proto.Channel) error
 	// Unsubscribe from channel.
-	Unsubscribe(message.Channel) error
+	Unsubscribe(proto.Channel) error
 	// Channels returns slice of currently active channels (with one or more subscribers)
 	// on all Centrifugo nodes.
-	Channels() ([]message.Channel, error)
+	Channels() ([]proto.Channel, error)
 
 	// AddPresence sets or updates presence info in channel for connection with uid.
-	AddPresence(message.Channel, message.ConnID, message.ClientInfo) error
+	AddPresence(proto.Channel, proto.ConnID, proto.ClientInfo) error
 	// RemovePresence removes presence information for connection with uid.
-	RemovePresence(message.Channel, message.ConnID) error
+	RemovePresence(proto.Channel, proto.ConnID) error
 	// Presence returns actual presence information for channel.
-	Presence(message.Channel) (map[message.ConnID]message.ClientInfo, error)
+	Presence(proto.Channel) (map[proto.ConnID]proto.ClientInfo, error)
 
 	// History returns a slice of history messages for channel.
 	// Integer limit sets the max amount of messages that must be returned. 0 means no limit - i.e.
 	// return all history messages (actually limited by configured history_size).
-	History(ch message.Channel, limit int) ([]message.Message, error)
+	History(ch proto.Channel, limit int) ([]proto.Message, error)
 }
 
-func decodeEngineClientMessage(data []byte) (*message.Message, error) {
-	var msg message.Message
+func decodeEngineClientMessage(data []byte) (*proto.Message, error) {
+	var msg proto.Message
 	err := msg.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -60,8 +60,8 @@ func decodeEngineClientMessage(data []byte) (*message.Message, error) {
 	return &msg, nil
 }
 
-func decodeEngineJoinMessage(data []byte) (*message.JoinMessage, error) {
-	var msg message.JoinMessage
+func decodeEngineJoinMessage(data []byte) (*proto.JoinMessage, error) {
+	var msg proto.JoinMessage
 	err := msg.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -69,8 +69,8 @@ func decodeEngineJoinMessage(data []byte) (*message.JoinMessage, error) {
 	return &msg, nil
 }
 
-func decodeEngineLeaveMessage(data []byte) (*message.LeaveMessage, error) {
-	var msg message.LeaveMessage
+func decodeEngineLeaveMessage(data []byte) (*proto.LeaveMessage, error) {
+	var msg proto.LeaveMessage
 	err := msg.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -78,8 +78,8 @@ func decodeEngineLeaveMessage(data []byte) (*message.LeaveMessage, error) {
 	return &msg, nil
 }
 
-func decodeEngineControlMessage(data []byte) (*message.ControlMessage, error) {
-	var msg message.ControlMessage
+func decodeEngineControlMessage(data []byte) (*proto.ControlMessage, error) {
+	var msg proto.ControlMessage
 	err := msg.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -87,8 +87,8 @@ func decodeEngineControlMessage(data []byte) (*message.ControlMessage, error) {
 	return &msg, nil
 }
 
-func decodeEngineAdminMessage(data []byte) (*message.AdminMessage, error) {
-	var msg message.AdminMessage
+func decodeEngineAdminMessage(data []byte) (*proto.AdminMessage, error) {
+	var msg proto.AdminMessage
 	err := msg.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -96,22 +96,22 @@ func decodeEngineAdminMessage(data []byte) (*message.AdminMessage, error) {
 	return &msg, nil
 }
 
-func encodeEngineClientMessage(msg *message.Message) ([]byte, error) {
+func encodeEngineClientMessage(msg *proto.Message) ([]byte, error) {
 	return msg.Marshal()
 }
 
-func encodeEngineJoinMessage(msg *message.JoinMessage) ([]byte, error) {
+func encodeEngineJoinMessage(msg *proto.JoinMessage) ([]byte, error) {
 	return msg.Marshal()
 }
 
-func encodeEngineLeaveMessage(msg *message.LeaveMessage) ([]byte, error) {
+func encodeEngineLeaveMessage(msg *proto.LeaveMessage) ([]byte, error) {
 	return msg.Marshal()
 }
 
-func encodeEngineControlMessage(msg *message.ControlMessage) ([]byte, error) {
+func encodeEngineControlMessage(msg *proto.ControlMessage) ([]byte, error) {
 	return msg.Marshal()
 }
 
-func encodeEngineAdminMessage(msg *message.AdminMessage) ([]byte, error) {
+func encodeEngineAdminMessage(msg *proto.AdminMessage) ([]byte, error) {
 	return msg.Marshal()
 }

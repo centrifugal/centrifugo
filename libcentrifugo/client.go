@@ -9,10 +9,8 @@ import (
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
-	"github.com/centrifugal/centrifugo/libcentrifugo/commands"
-	"github.com/centrifugal/centrifugo/libcentrifugo/message"
+	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
-	"github.com/centrifugal/centrifugo/libcentrifugo/response"
 	"github.com/satori/go.uuid"
 )
 
@@ -28,13 +26,13 @@ type client struct {
 	sync.RWMutex
 	app            *Application
 	sess           session
-	UID            message.ConnID
-	User           message.UserID
+	UID            proto.ConnID
+	User           proto.UserID
 	timestamp      int64
 	defaultInfo    []byte
 	authenticated  bool
-	channelInfo    map[message.Channel][]byte
-	Channels       map[message.Channel]bool
+	channelInfo    map[proto.Channel][]byte
+	Channels       map[proto.Channel]bool
 	messages       bytequeue.ByteQueue
 	closeChan      chan struct{}
 	staleTimer     *time.Timer
@@ -48,7 +46,7 @@ type client struct {
 // newClient creates new ready to communicate client.
 func newClient(app *Application, s session) (*client, error) {
 	c := client{
-		UID:       message.ConnID(uuid.NewV4().String()),
+		UID:       proto.ConnID(uuid.NewV4().String()),
 		app:       app,
 		sess:      s,
 		closeChan: make(chan struct{}),
@@ -131,7 +129,7 @@ func (c *client) closeUnauthenticated() {
 
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
-func (c *client) updateChannelPresence(ch message.Channel) {
+func (c *client) updateChannelPresence(ch proto.Channel) {
 	chOpts, err := c.app.channelOpts(ch)
 	if err != nil {
 		return
@@ -155,18 +153,18 @@ func (c *client) updatePresence() {
 	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
 }
 
-func (c *client) uid() message.ConnID {
+func (c *client) uid() proto.ConnID {
 	return c.UID
 }
 
-func (c *client) user() message.UserID {
+func (c *client) user() proto.UserID {
 	return c.User
 }
 
-func (c *client) channels() []message.Channel {
+func (c *client) channels() []proto.Channel {
 	c.RLock()
 	defer c.RUnlock()
-	keys := make([]message.Channel, len(c.Channels))
+	keys := make([]proto.Channel, len(c.Channels))
 	i := 0
 	for k := range c.Channels {
 		keys[i] = k
@@ -175,10 +173,10 @@ func (c *client) channels() []message.Channel {
 	return keys
 }
 
-func (c *client) unsubscribe(ch message.Channel) error {
+func (c *client) unsubscribe(ch proto.Channel) error {
 	c.Lock()
 	defer c.Unlock()
-	cmd := &commands.UnsubscribeClientCommand{
+	cmd := &proto.UnsubscribeClientCommand{
 		Channel: ch,
 	}
 	resp, err := c.unsubscribeCmd(cmd)
@@ -228,7 +226,7 @@ func (c *client) clean() error {
 	if len(c.Channels) > 0 {
 		// unsubscribe from all channels
 		for channel := range c.Channels {
-			cmd := &commands.UnsubscribeClientCommand{
+			cmd := &proto.UnsubscribeClientCommand{
 				Channel: channel,
 			}
 			_, err := c.unsubscribeCmd(cmd)
@@ -264,7 +262,7 @@ func (c *client) clean() error {
 	return nil
 }
 
-func (c *client) info(ch message.Channel) message.ClientInfo {
+func (c *client) info(ch proto.Channel) proto.ClientInfo {
 	channelInfo, ok := c.channelInfo[ch]
 	if !ok {
 		channelInfo = []byte{}
@@ -283,16 +281,16 @@ func (c *client) info(ch message.Channel) message.ClientInfo {
 	} else {
 		rawChannelInfo = nil
 	}
-	return *message.NewClientInfo(c.User, c.UID, rawDefaultInfo, rawChannelInfo)
+	return *proto.NewClientInfo(c.User, c.UID, rawDefaultInfo, rawChannelInfo)
 }
 
-func cmdFromClientMsg(msgBytes []byte) ([]commands.ClientCommand, error) {
-	var cmds []commands.ClientCommand
+func cmdFromClientMsg(msgBytes []byte) ([]proto.ClientCommand, error) {
+	var cmds []proto.ClientCommand
 	firstByte := msgBytes[0]
 	switch firstByte {
 	case objectJSONPrefix:
 		// single command request
-		var cmd commands.ClientCommand
+		var cmd proto.ClientCommand
 		err := json.Unmarshal(msgBytes, &cmd)
 		if err != nil {
 			return nil, err
@@ -366,11 +364,11 @@ func (c *client) message(msg []byte) error {
 }
 
 func (c *client) disconnect(reason string, reconnect bool) error {
-	body := response.DisconnectBody{
+	body := proto.DisconnectBody{
 		Reason:    reason,
 		Reconnect: reconnect,
 	}
-	resp := response.NewClientDisconnectResponse(body)
+	resp := proto.NewClientDisconnectResponse(body)
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
 		return err
@@ -378,11 +376,11 @@ func (c *client) disconnect(reason string, reconnect bool) error {
 	return c.send(jsonResp)
 }
 
-func (c *client) handleCommands(cmds []commands.ClientCommand) error {
+func (c *client) handleCommands(cmds []proto.ClientCommand) error {
 	c.Lock()
 	defer c.Unlock()
 	var err error
-	var mr response.MultiClientResponse
+	var mr proto.MultiClientResponse
 	for _, command := range cmds {
 		resp, err := c.handleCmd(command)
 		if err != nil {
@@ -401,10 +399,10 @@ func (c *client) handleCommands(cmds []commands.ClientCommand) error {
 }
 
 // handleCmd dispatches clientCommand into correct command handler
-func (c *client) handleCmd(command commands.ClientCommand) (response.Response, error) {
+func (c *client) handleCmd(command proto.ClientCommand) (proto.Response, error) {
 
 	var err error
-	var resp response.Response
+	var resp proto.Response
 
 	method := command.Method
 	params := command.Params
@@ -415,56 +413,56 @@ func (c *client) handleCmd(command commands.ClientCommand) (response.Response, e
 
 	switch method {
 	case "connect":
-		var cmd commands.ConnectClientCommand
+		var cmd proto.ConnectClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.connectCmd(&cmd)
 	case "refresh":
-		var cmd commands.RefreshClientCommand
+		var cmd proto.RefreshClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.refreshCmd(&cmd)
 	case "subscribe":
-		var cmd commands.SubscribeClientCommand
+		var cmd proto.SubscribeClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.subscribeCmd(&cmd)
 	case "unsubscribe":
-		var cmd commands.UnsubscribeClientCommand
+		var cmd proto.UnsubscribeClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.unsubscribeCmd(&cmd)
 	case "publish":
-		var cmd commands.PublishClientCommand
+		var cmd proto.PublishClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.publishCmd(&cmd)
 	case "ping":
-		var cmd commands.PingClientCommand
+		var cmd proto.PingClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.pingCmd(&cmd)
 	case "presence":
-		var cmd commands.PresenceClientCommand
+		var cmd proto.PresenceClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
 		}
 		resp, err = c.presenceCmd(&cmd)
 	case "history":
-		var cmd commands.HistoryClientCommand
+		var cmd proto.HistoryClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return nil, ErrInvalidMessage
@@ -483,11 +481,11 @@ func (c *client) handleCmd(command commands.ClientCommand) (response.Response, e
 // pingCmd handles ping command from client - this is necessary sometimes
 // for example Heroku closes websocket connection after 55 seconds
 // of inactive period when no messages with payload travelled over wire
-func (c *client) pingCmd(cmd *commands.PingClientCommand) (response.Response, error) {
-	body := response.PingBody{
+func (c *client) pingCmd(cmd *proto.PingClientCommand) (proto.Response, error) {
+	body := proto.PingBody{
 		Data: cmd.Data,
 	}
-	resp := response.NewClientPingResponse(body)
+	resp := proto.NewClientPingResponse(body)
 	return resp, nil
 }
 
@@ -516,7 +514,7 @@ func (c *client) expire() {
 // connectCmd handles connect command from client - client must send this
 // command immediately after establishing Websocket or SockJS connection with
 // Centrifugo
-func (c *client) connectCmd(cmd *commands.ConnectClientCommand) (response.Response, error) {
+func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, error) {
 
 	//resp := newClientResponse("connect")
 
@@ -568,7 +566,7 @@ func (c *client) connectCmd(cmd *commands.ConnectClientCommand) (response.Respon
 
 	c.User = user
 
-	body := response.ConnectBody{}
+	body := proto.ConnectBody{}
 	body.Version = version
 	body.Expires = connLifetime > 0
 	body.TTL = connLifetime
@@ -579,14 +577,14 @@ func (c *client) connectCmd(cmd *commands.ConnectClientCommand) (response.Respon
 		timeToExpire = c.timestamp + connLifetime - time.Now().Unix()
 		if timeToExpire <= 0 {
 			body.Expired = true
-			return response.NewClientConnectResponse(body), nil
+			return proto.NewClientConnectResponse(body), nil
 		}
 	}
 
 	c.authenticated = true
 	c.defaultInfo = []byte(info)
-	c.Channels = map[message.Channel]bool{}
-	c.channelInfo = map[message.Channel][]byte{}
+	c.Channels = map[proto.Channel]bool{}
+	c.channelInfo = map[proto.Channel][]byte{}
 
 	if c.staleTimer != nil {
 		c.staleTimer.Stop()
@@ -610,12 +608,12 @@ func (c *client) connectCmd(cmd *commands.ConnectClientCommand) (response.Respon
 	}
 
 	body.Client = c.UID
-	return response.NewClientConnectResponse(body), nil
+	return proto.NewClientConnectResponse(body), nil
 }
 
 // refreshCmd handle refresh command to update connection with new
 // timestamp - this is only required when connection lifetime option set.
-func (c *client) refreshCmd(cmd *commands.RefreshClientCommand) (response.Response, error) {
+func (c *client) refreshCmd(cmd *proto.RefreshClientCommand) (proto.Response, error) {
 
 	user := cmd.User
 	info := cmd.Info
@@ -644,7 +642,7 @@ func (c *client) refreshCmd(cmd *commands.RefreshClientCommand) (response.Respon
 	version := c.app.config.Version
 	c.app.RUnlock()
 
-	body := response.ConnectBody{}
+	body := proto.ConnectBody{}
 	body.Version = version
 	body.Expires = connLifetime > 0
 	body.TTL = connLifetime
@@ -666,11 +664,11 @@ func (c *client) refreshCmd(cmd *commands.RefreshClientCommand) (response.Respon
 			body.Expired = true
 		}
 	}
-	return response.NewClientRefreshResponse(body), nil
+	return proto.NewClientRefreshResponse(body), nil
 }
 
-func recoverMessages(last message.MessageID, messages []message.Message) ([]message.Message, bool) {
-	if last == message.MessageID("") {
+func recoverMessages(last proto.MessageID, messages []proto.Message) ([]proto.Message, bool) {
+	if last == proto.MessageID("") {
 		// Client wants to recover messages but it seems that there were no
 		// messages in history before, so client missed all messages which
 		// exist now.
@@ -678,7 +676,7 @@ func recoverMessages(last message.MessageID, messages []message.Message) ([]mess
 	}
 	position := -1
 	for index, msg := range messages {
-		if message.MessageID(msg.UID) == last {
+		if proto.MessageID(msg.UID) == last {
 			position = index
 			break
 		}
@@ -700,7 +698,7 @@ func recoverMessages(last message.MessageID, messages []message.Message) ([]mess
 // on channel, if channel if private then we must validate provided sign here before
 // actually subscribe client on channel. Optionally we can send missed messages to
 // client if it provided last message id seen in channel.
-func (c *client) subscribeCmd(cmd *commands.SubscribeClientCommand) (response.Response, error) {
+func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response, error) {
 
 	channel := cmd.Channel
 	if channel == "" {
@@ -714,60 +712,60 @@ func (c *client) subscribeCmd(cmd *commands.SubscribeClientCommand) (response.Re
 	insecure := c.app.config.Insecure
 	c.app.RUnlock()
 
-	body := response.SubscribeBody{
+	body := proto.SubscribeBody{
 		Channel: channel,
 	}
 
 	if len(channel) > maxChannelLength {
 		logger.ERROR.Printf("channel too long: max %d, got %d", maxChannelLength, len(channel))
-		resp := response.NewClientSubscribeResponse(body)
-		resp.SetErr(response.ResponseError{ErrLimitExceeded, response.ErrorAdviceFix})
+		resp := proto.NewClientSubscribeResponse(body)
+		resp.SetErr(proto.ResponseError{ErrLimitExceeded, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
 	if len(c.Channels) >= channelLimit {
 		logger.ERROR.Printf("maximimum limit of channels per client reached: %d", channelLimit)
-		resp := response.NewClientSubscribeResponse(body)
-		resp.SetErr(response.ResponseError{ErrLimitExceeded, response.ErrorAdviceFix})
+		resp := proto.NewClientSubscribeResponse(body)
+		resp.SetErr(proto.ResponseError{ErrLimitExceeded, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
 	if _, ok := c.Channels[channel]; ok {
-		resp := response.NewClientSubscribeResponse(body)
-		resp.SetErr(response.ResponseError{ErrAlreadySubscribed, response.ErrorAdviceFix})
+		resp := proto.NewClientSubscribeResponse(body)
+		resp.SetErr(proto.ResponseError{ErrAlreadySubscribed, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
 	if !c.app.userAllowed(channel, c.User) || !c.app.clientAllowed(channel, c.UID) {
-		resp := response.NewClientSubscribeResponse(body)
-		resp.SetErr(response.ResponseError{ErrPermissionDenied, response.ErrorAdviceFix})
+		resp := proto.NewClientSubscribeResponse(body)
+		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
 	chOpts, err := c.app.channelOpts(channel)
 	if err != nil {
-		resp := response.NewClientSubscribeResponse(body)
-		resp.SetErr(response.ResponseError{err, response.ErrorAdviceFix})
+		resp := proto.NewClientSubscribeResponse(body)
+		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
 	if !chOpts.Anonymous && c.User == "" && !insecure {
-		resp := response.NewClientSubscribeResponse(body)
-		resp.SetErr(response.ResponseError{ErrPermissionDenied, response.ErrorAdviceFix})
+		resp := proto.NewClientSubscribeResponse(body)
+		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
 	if c.app.privateChannel(channel) {
 		// private channel - subscription must be properly signed
 		if string(c.UID) != string(cmd.Client) {
-			resp := response.NewClientSubscribeResponse(body)
-			resp.SetErr(response.ResponseError{ErrPermissionDenied, response.ErrorAdviceFix})
+			resp := proto.NewClientSubscribeResponse(body)
+			resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 			return resp, nil
 		}
 		isValid := auth.CheckChannelSign(secret, string(cmd.Client), string(channel), cmd.Info, cmd.Sign)
 		if !isValid {
-			resp := response.NewClientSubscribeResponse(body)
-			resp.SetErr(response.ResponseError{ErrPermissionDenied, response.ErrorAdviceFix})
+			resp := proto.NewClientSubscribeResponse(body)
+			resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 			return resp, nil
 		}
 		c.channelInfo[channel] = []byte(cmd.Info)
@@ -778,7 +776,7 @@ func (c *client) subscribeCmd(cmd *commands.SubscribeClientCommand) (response.Re
 	err = c.app.addSub(channel, c)
 	if err != nil {
 		logger.ERROR.Println(err)
-		resp := response.NewClientSubscribeResponse(body)
+		resp := proto.NewClientSubscribeResponse(body)
 		return resp, ErrInternalServerError
 	}
 
@@ -788,7 +786,7 @@ func (c *client) subscribeCmd(cmd *commands.SubscribeClientCommand) (response.Re
 		err = c.app.addPresence(channel, c.UID, info)
 		if err != nil {
 			logger.ERROR.Println(err)
-			resp := response.NewClientSubscribeResponse(body)
+			resp := proto.NewClientSubscribeResponse(body)
 			return resp, ErrInternalServerError
 		}
 	}
@@ -801,7 +799,7 @@ func (c *client) subscribeCmd(cmd *commands.SubscribeClientCommand) (response.Re
 			messages, err := c.app.History(channel)
 			if err != nil {
 				logger.ERROR.Printf("can't recover messages for channel %s: %s", string(channel), err)
-				body.Messages = []message.Message{}
+				body.Messages = []proto.Message{}
 			} else {
 				recoveredMessages, recovered := recoverMessages(cmd.Last, messages)
 				body.Messages = recoveredMessages
@@ -833,26 +831,26 @@ func (c *client) subscribeCmd(cmd *commands.SubscribeClientCommand) (response.Re
 
 	body.Status = true
 
-	return response.NewClientSubscribeResponse(body), nil
+	return proto.NewClientSubscribeResponse(body), nil
 }
 
 // unsubscribeCmd handles unsubscribe command from client - it allows to
 // unsubscribe connection from channel
-func (c *client) unsubscribeCmd(cmd *commands.UnsubscribeClientCommand) (response.Response, error) {
+func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeClientCommand) (proto.Response, error) {
 
 	channel := cmd.Channel
 	if channel == "" {
 		return nil, ErrInvalidMessage
 	}
 
-	body := response.UnsubscribeBody{
+	body := proto.UnsubscribeBody{
 		Channel: channel,
 	}
 
 	chOpts, err := c.app.channelOpts(channel)
 	if err != nil {
-		resp := response.NewClientUnsubscribeResponse(body)
-		resp.SetErr(response.ResponseError{err, response.ErrorAdviceFix})
+		resp := proto.NewClientUnsubscribeResponse(body)
+		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
@@ -878,8 +876,8 @@ func (c *client) unsubscribeCmd(cmd *commands.UnsubscribeClientCommand) (respons
 		err = c.app.removeSub(channel, c)
 		if err != nil {
 			logger.ERROR.Println(err)
-			resp := response.NewClientUnsubscribeResponse(body)
-			resp.SetErr(response.ResponseError{ErrInternalServerError, response.ErrorAdviceNone})
+			resp := proto.NewClientUnsubscribeResponse(body)
+			resp.SetErr(proto.ResponseError{ErrInternalServerError, proto.ErrorAdviceNone})
 			return resp, nil
 		}
 
@@ -891,25 +889,25 @@ func (c *client) unsubscribeCmd(cmd *commands.UnsubscribeClientCommand) (respons
 
 	body.Status = true
 
-	return response.NewClientUnsubscribeResponse(body), nil
+	return proto.NewClientUnsubscribeResponse(body), nil
 }
 
 // publishCmd handles publish command - clients can publish messages into
 // channels themselves if `publish` allowed by channel options. In most cases clients not
 // allowed to publish into channels directly - web application publishes messages
 // itself via HTTP API or Redis.
-func (c *client) publishCmd(cmd *commands.PublishClientCommand) (response.Response, error) {
+func (c *client) publishCmd(cmd *proto.PublishClientCommand) (proto.Response, error) {
 
 	channel := cmd.Channel
 	data := cmd.Data
 
-	body := response.PublishBody{
+	body := proto.PublishBody{
 		Channel: channel,
 	}
 
 	if _, ok := c.Channels[channel]; !ok {
-		resp := response.NewClientPublishResponse(body)
-		resp.SetErr(response.ResponseError{ErrPermissionDenied, response.ErrorAdviceFix})
+		resp := proto.NewClientPublishResponse(body)
+		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
@@ -917,73 +915,73 @@ func (c *client) publishCmd(cmd *commands.PublishClientCommand) (response.Respon
 
 	err := c.app.publish(channel, data, c.UID, &info, true)
 	if err != nil {
-		resp := response.NewClientPublishResponse(body)
-		resp.SetErr(response.ResponseError{err, response.ErrorAdviceRetry})
+		resp := proto.NewClientPublishResponse(body)
+		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceRetry})
 		return resp, nil
 	}
 
 	// message successfully published to engine.
 	body.Status = true
 
-	return response.NewClientPublishResponse(body), nil
+	return proto.NewClientPublishResponse(body), nil
 }
 
 // presenceCmd handles presence command - it shows which clients
 // are subscribed on channel at this moment. This method also checks if
 // presence information turned on for channel (based on channel options
 // for namespace or project)
-func (c *client) presenceCmd(cmd *commands.PresenceClientCommand) (response.Response, error) {
+func (c *client) presenceCmd(cmd *proto.PresenceClientCommand) (proto.Response, error) {
 
 	channel := cmd.Channel
 
-	body := response.PresenceBody{
+	body := proto.PresenceBody{
 		Channel: channel,
 	}
 
 	if _, ok := c.Channels[channel]; !ok {
-		resp := response.NewClientPresenceResponse(body)
-		resp.SetErr(response.ResponseError{ErrPermissionDenied, response.ErrorAdviceFix})
+		resp := proto.NewClientPresenceResponse(body)
+		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
 	presence, err := c.app.Presence(channel)
 	if err != nil {
-		resp := response.NewClientPresenceResponse(body)
-		resp.SetErr(response.ResponseError{err, response.ErrorAdviceRetry})
+		resp := proto.NewClientPresenceResponse(body)
+		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceRetry})
 		return resp, nil
 	}
 
 	body.Data = presence
 
-	return response.NewClientPresenceResponse(body), nil
+	return proto.NewClientPresenceResponse(body), nil
 }
 
 // historyCmd handles history command - it shows last M messages published
 // into channel. M is history size and can be configured for project or namespace
 // via channel options. Also this method checks that history available for channel
 // (also determined by channel options flag)
-func (c *client) historyCmd(cmd *commands.HistoryClientCommand) (response.Response, error) {
+func (c *client) historyCmd(cmd *proto.HistoryClientCommand) (proto.Response, error) {
 
 	channel := cmd.Channel
 
-	body := response.HistoryBody{
+	body := proto.HistoryBody{
 		Channel: channel,
 	}
 
 	if _, ok := c.Channels[channel]; !ok {
-		resp := response.NewClientHistoryResponse(body)
-		resp.SetErr(response.ResponseError{ErrPermissionDenied, response.ErrorAdviceFix})
+		resp := proto.NewClientHistoryResponse(body)
+		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
 	history, err := c.app.History(channel)
 	if err != nil {
-		resp := response.NewClientHistoryResponse(body)
-		resp.SetErr(response.ResponseError{err, response.ErrorAdviceRetry})
+		resp := proto.NewClientHistoryResponse(body)
+		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceRetry})
 		return resp, nil
 	}
 
 	body.Data = history
 
-	return response.NewClientHistoryResponse(body), nil
+	return proto.NewClientHistoryResponse(body), nil
 }

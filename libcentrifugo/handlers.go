@@ -10,8 +10,7 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
-	"github.com/centrifugal/centrifugo/libcentrifugo/commands"
-	"github.com/centrifugal/centrifugo/libcentrifugo/response"
+	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/websocket"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
@@ -240,8 +239,8 @@ var (
 	objectJSONPrefix byte = '{'
 )
 
-func cmdFromRequestMsg(msg []byte) ([]commands.ApiCommand, error) {
-	var cmds []commands.ApiCommand
+func cmdFromRequestMsg(msg []byte) ([]proto.ApiCommand, error) {
+	var cmds []proto.ApiCommand
 
 	if len(msg) == 0 {
 		return cmds, nil
@@ -252,7 +251,7 @@ func cmdFromRequestMsg(msg []byte) ([]commands.ApiCommand, error) {
 	switch firstByte {
 	case objectJSONPrefix:
 		// single command request
-		var command commands.ApiCommand
+		var command proto.ApiCommand
 		err := json.Unmarshal(msg, &command)
 		if err != nil {
 			return nil, err
@@ -278,7 +277,7 @@ func (app *Application) processAPIData(data []byte) ([]byte, error) {
 		return nil, ErrInvalidMessage
 	}
 
-	var mr response.MultiAPIResponse
+	var mr proto.MultiAPIResponse
 
 	for _, command := range commands {
 		resp, err := app.ApiCmd(command)

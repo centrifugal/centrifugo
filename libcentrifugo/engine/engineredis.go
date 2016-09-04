@@ -13,9 +13,8 @@ import (
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/go-sentinel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/app"
-	"github.com/centrifugal/centrifugo/libcentrifugo/commands"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
-	"github.com/centrifugal/centrifugo/libcentrifugo/message"
+	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/garyburd/redigo/redis"
 )
 
@@ -46,7 +45,7 @@ const (
 	RedisAPIKeySuffix         = ".api"
 	RedisControlChannelSuffix = ".control"
 	RedisAdminChannelSuffix   = ".admin"
-	RedisMessageChannelPrefix = ".message."
+	RedisMessageChannelPrefix = ".proto."
 	RedisJoinChannelPrefix    = ".join."
 	RedisLeaveChannelPrefix   = ".leave."
 )
@@ -298,7 +297,7 @@ func yesno(condition bool) string {
 }
 
 // pubScriptSource contains lua script we register in Redis to call when publishing
-// client message. It publishes message into channel and adds message to history
+// client proto. It publishes message into channel and adds message to history
 // list maintaining history size and expiration time. This is an optimization to make
 // 1 round trip to Redis instead of 2.
 // KEYS[1] - history list key
@@ -407,7 +406,7 @@ func (e *RedisEngine) Run() error {
 }
 
 type redisAPIRequest struct {
-	Data []commands.ApiCommand
+	Data []proto.ApiCommand
 }
 
 // runForever simple keeps another function running indefinitely
@@ -793,31 +792,31 @@ func (e *RedisEngine) runPublishPipeline() {
 	}
 }
 
-func (e *RedisEngine) messageChannelID(ch message.Channel) ChannelID {
+func (e *RedisEngine) messageChannelID(ch proto.Channel) ChannelID {
 	return ChannelID(e.messagePrefix + string(ch))
 }
 
-func (e *RedisEngine) joinChannelID(ch message.Channel) ChannelID {
+func (e *RedisEngine) joinChannelID(ch proto.Channel) ChannelID {
 	return ChannelID(e.joinPrefix + string(ch))
 }
 
-func (e *RedisEngine) leaveChannelID(ch message.Channel) ChannelID {
+func (e *RedisEngine) leaveChannelID(ch proto.Channel) ChannelID {
 	return ChannelID(e.leavePrefix + string(ch))
 }
 
-func (e *RedisEngine) channelFromChannelID(chID ChannelID) (message.Channel, string) {
+func (e *RedisEngine) channelFromChannelID(chID ChannelID) (proto.Channel, string) {
 	if strings.HasPrefix(string(chID), e.messagePrefix) {
-		return message.Channel(strings.TrimPrefix(string(chID), e.messagePrefix)), "message"
+		return proto.Channel(strings.TrimPrefix(string(chID), e.messagePrefix)), "message"
 	} else if strings.HasPrefix(string(chID), e.joinPrefix) {
-		return message.Channel(strings.TrimPrefix(string(chID), e.joinPrefix)), "join"
+		return proto.Channel(strings.TrimPrefix(string(chID), e.joinPrefix)), "join"
 	} else if strings.HasPrefix(string(chID), e.leavePrefix) {
-		return message.Channel(strings.TrimPrefix(string(chID), e.leavePrefix)), "leave"
+		return proto.Channel(strings.TrimPrefix(string(chID), e.leavePrefix)), "leave"
 	} else {
-		return message.Channel(""), "unknown"
+		return proto.Channel(""), "unknown"
 	}
 }
 
-func (e *RedisEngine) PublishMessage(ch message.Channel, message *message.Message, opts *config.ChannelOptions) <-chan error {
+func (e *RedisEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *config.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := encodeEngineClientMessage(message)
@@ -849,7 +848,7 @@ func (e *RedisEngine) PublishMessage(ch message.Channel, message *message.Messag
 	return eChan
 }
 
-func (e *RedisEngine) PublishJoin(ch message.Channel, message *message.JoinMessage) <-chan error {
+func (e *RedisEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := encodeEngineJoinMessage(message)
@@ -869,7 +868,7 @@ func (e *RedisEngine) PublishJoin(ch message.Channel, message *message.JoinMessa
 	return eChan
 }
 
-func (e *RedisEngine) PublishLeave(ch message.Channel, message *message.LeaveMessage) <-chan error {
+func (e *RedisEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := encodeEngineLeaveMessage(message)
@@ -889,7 +888,7 @@ func (e *RedisEngine) PublishLeave(ch message.Channel, message *message.LeaveMes
 	return eChan
 }
 
-func (e *RedisEngine) PublishControl(message *message.ControlMessage) <-chan error {
+func (e *RedisEngine) PublishControl(message *proto.ControlMessage) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := encodeEngineControlMessage(message)
@@ -909,7 +908,7 @@ func (e *RedisEngine) PublishControl(message *message.ControlMessage) <-chan err
 	return eChan
 }
 
-func (e *RedisEngine) PublishAdmin(message *message.AdminMessage) <-chan error {
+func (e *RedisEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := encodeEngineAdminMessage(message)
@@ -929,7 +928,7 @@ func (e *RedisEngine) PublishAdmin(message *message.AdminMessage) <-chan error {
 	return eChan
 }
 
-func (e *RedisEngine) Subscribe(ch message.Channel) error {
+func (e *RedisEngine) Subscribe(ch proto.Channel) error {
 	logger.TRACE.Println("Subscribe node on channel", ch)
 	r := newSubRequest(e.joinChannelID(ch), false)
 	e.subCh <- r
@@ -940,7 +939,7 @@ func (e *RedisEngine) Subscribe(ch message.Channel) error {
 	return r.result()
 }
 
-func (e *RedisEngine) Unsubscribe(ch message.Channel) error {
+func (e *RedisEngine) Unsubscribe(ch proto.Channel) error {
 	logger.TRACE.Println("Unsubscribe node from channel", ch)
 	r := newSubRequest(e.joinChannelID(ch), false)
 	e.unSubCh <- r
@@ -980,7 +979,7 @@ func (e *RedisEngine) getHistoryKey(chID ChannelID) string {
 	return e.appConfig.ChannelPrefix + ".history.list." + string(chID)
 }
 
-func (e *RedisEngine) AddPresence(ch message.Channel, uid message.ConnID, info message.ClientInfo) error {
+func (e *RedisEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo) error {
 	chID := e.messageChannelID(ch)
 	presenceExpireSeconds := int(e.appConfig.PresenceExpireInterval.Seconds())
 	conn := e.pool.Get()
@@ -996,7 +995,7 @@ func (e *RedisEngine) AddPresence(ch message.Channel, uid message.ConnID, info m
 	return err
 }
 
-func (e *RedisEngine) RemovePresence(ch message.Channel, uid message.ConnID) error {
+func (e *RedisEngine) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -1006,7 +1005,7 @@ func (e *RedisEngine) RemovePresence(ch message.Channel, uid message.ConnID) err
 	return err
 }
 
-func mapStringClientInfo(result interface{}, err error) (map[message.ConnID]message.ClientInfo, error) {
+func mapStringClientInfo(result interface{}, err error) (map[proto.ConnID]proto.ClientInfo, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err
@@ -1014,24 +1013,24 @@ func mapStringClientInfo(result interface{}, err error) (map[message.ConnID]mess
 	if len(values)%2 != 0 {
 		return nil, errors.New("mapStringClientInfo expects even number of values result")
 	}
-	m := make(map[message.ConnID]message.ClientInfo, len(values)/2)
+	m := make(map[proto.ConnID]proto.ClientInfo, len(values)/2)
 	for i := 0; i < len(values); i += 2 {
 		key, okKey := values[i].([]byte)
 		value, okValue := values[i+1].([]byte)
 		if !okKey || !okValue {
 			return nil, errors.New("ScanMap key not a bulk string value")
 		}
-		var f message.ClientInfo
+		var f proto.ClientInfo
 		err = f.Unmarshal(value)
 		if err != nil {
 			return nil, errors.New("can not unmarshal value to ClientInfo")
 		}
-		m[message.ConnID(key)] = f
+		m[proto.ConnID(key)] = f
 	}
 	return m, nil
 }
 
-func (e *RedisEngine) Presence(ch message.Channel) (map[message.ConnID]message.ClientInfo, error) {
+func (e *RedisEngine) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -1045,18 +1044,18 @@ func (e *RedisEngine) Presence(ch message.Channel) (map[message.ConnID]message.C
 	return mapStringClientInfo(reply, nil)
 }
 
-func sliceOfMessages(result interface{}, err error) ([]message.Message, error) {
+func sliceOfMessages(result interface{}, err error) ([]proto.Message, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err
 	}
-	msgs := make([]message.Message, len(values))
+	msgs := make([]proto.Message, len(values))
 	for i := 0; i < len(values); i++ {
 		value, okValue := values[i].([]byte)
 		if !okValue {
 			return nil, errors.New("error getting Message value")
 		}
-		var m message.Message
+		var m proto.Message
 		err = m.Unmarshal(value)
 		if err != nil {
 			return nil, errors.New("can not unmarshal value to Message")
@@ -1066,7 +1065,7 @@ func sliceOfMessages(result interface{}, err error) ([]message.Message, error) {
 	return msgs, nil
 }
 
-func (e *RedisEngine) History(ch message.Channel, limit int) ([]message.Message, error) {
+func (e *RedisEngine) History(ch proto.Channel, limit int) ([]proto.Message, error) {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -1084,7 +1083,7 @@ func (e *RedisEngine) History(ch message.Channel, limit int) ([]message.Message,
 }
 
 // Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
-func (e *RedisEngine) Channels() ([]message.Channel, error) {
+func (e *RedisEngine) Channels() ([]proto.Channel, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 
@@ -1102,7 +1101,7 @@ func (e *RedisEngine) Channels() ([]message.Channel, error) {
 		return nil, err
 	}
 
-	channels := make([]message.Channel, 0, len(values))
+	channels := make([]proto.Channel, 0, len(values))
 	for i := 0; i < len(values); i++ {
 		value, okValue := values[i].([]byte)
 		if !okValue {
@@ -1110,7 +1109,7 @@ func (e *RedisEngine) Channels() ([]message.Channel, error) {
 		}
 		chID := ChannelID(value)
 		if !strings.HasPrefix(string(chID), joinPrefix) && !strings.HasPrefix(string(chID), leavePrefix) {
-			channels = append(channels, message.Channel(string(chID)[len(messagePrefix):]))
+			channels = append(channels, proto.Channel(string(chID)[len(messagePrefix):]))
 		}
 	}
 	return channels, nil

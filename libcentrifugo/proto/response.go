@@ -1,9 +1,8 @@
-package response
+package proto
 
 import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/encode"
-	"github.com/centrifugal/centrifugo/libcentrifugo/message"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/valyala/bytebufferpool"
@@ -11,8 +10,8 @@ import (
 
 // ClientMessageResponse can not have an error.
 type ClientMessageResponse struct {
-	Method string          `json:"method"`
-	Body   message.Message `json:"body"`
+	Method string  `json:"method"`
+	Body   Message `json:"body"`
 }
 
 // NewClientMessage returns initialized client message response.
@@ -22,7 +21,7 @@ func NewClientMessage() *ClientMessageResponse {
 	}
 }
 
-func writeClientInfo(buf *bytebufferpool.ByteBuffer, info *message.ClientInfo) {
+func writeClientInfo(buf *bytebufferpool.ByteBuffer, info *ClientInfo) {
 	buf.WriteString(`{`)
 
 	if info.DefaultInfo != nil {
@@ -47,7 +46,7 @@ func writeClientInfo(buf *bytebufferpool.ByteBuffer, info *message.ClientInfo) {
 	buf.WriteString(`}`)
 }
 
-func writeMessage(buf *bytebufferpool.ByteBuffer, msg *message.Message) {
+func writeMessage(buf *bytebufferpool.ByteBuffer, msg *Message) {
 	buf.WriteString(`{"uid":"`)
 	buf.WriteString(msg.UID)
 	buf.WriteString(`","timestamp":"`)
@@ -85,8 +84,8 @@ func (m *ClientMessageResponse) Marshal() ([]byte, error) {
 }
 
 type ClientJoinResponse struct {
-	Method string              `json:"method"`
-	Body   message.JoinMessage `json:"body"`
+	Method string      `json:"method"`
+	Body   JoinMessage `json:"body"`
 }
 
 func NewClientJoinMessage() *ClientJoinResponse {
@@ -95,7 +94,7 @@ func NewClientJoinMessage() *ClientJoinResponse {
 	}
 }
 
-func writeJoin(buf *bytebufferpool.ByteBuffer, msg *message.JoinMessage) {
+func writeJoin(buf *bytebufferpool.ByteBuffer, msg *JoinMessage) {
 	buf.WriteString(`{`)
 	buf.WriteString(`"channel":`)
 	encode.EncodeJSONString(buf, msg.Channel, true)
@@ -116,8 +115,8 @@ func (m *ClientJoinResponse) Marshal() ([]byte, error) {
 }
 
 type ClientLeaveResponse struct {
-	Method string               `json:"method"`
-	Body   message.LeaveMessage `json:"body"`
+	Method string       `json:"method"`
+	Body   LeaveMessage `json:"body"`
 }
 
 func NewClientLeaveMessage() *ClientLeaveResponse {
@@ -126,7 +125,7 @@ func NewClientLeaveMessage() *ClientLeaveResponse {
 	}
 }
 
-func writeLeave(buf *bytebufferpool.ByteBuffer, msg *message.LeaveMessage) {
+func writeLeave(buf *bytebufferpool.ByteBuffer, msg *LeaveMessage) {
 	buf.WriteString(`{`)
 	buf.WriteString(`"channel":`)
 	encode.EncodeJSONString(buf, msg.Channel, true)
@@ -148,54 +147,54 @@ func (m *ClientLeaveResponse) Marshal() ([]byte, error) {
 
 // PresenceBody represents body of response in case of successful presence command.
 type PresenceBody struct {
-	Channel message.Channel                       `json:"channel"`
-	Data    map[message.ConnID]message.ClientInfo `json:"data"`
+	Channel Channel               `json:"channel"`
+	Data    map[ConnID]ClientInfo `json:"data"`
 }
 
 // HistoryBody represents body of response in case of successful history command.
 type HistoryBody struct {
-	Channel message.Channel   `json:"channel"`
-	Data    []message.Message `json:"data"`
+	Channel Channel   `json:"channel"`
+	Data    []Message `json:"data"`
 }
 
 // ChannelsBody represents body of response in case of successful channels command.
 type ChannelsBody struct {
-	Data []message.Channel `json:"data"`
+	Data []Channel `json:"data"`
 }
 
 // ConnectBody represents body of response in case of successful connect command.
 type ConnectBody struct {
-	Version string         `json:"version"`
-	Client  message.ConnID `json:"client"`
-	Expires bool           `json:"expires"`
-	Expired bool           `json:"expired"`
-	TTL     int64          `json:"ttl"`
+	Version string `json:"version"`
+	Client  ConnID `json:"client"`
+	Expires bool   `json:"expires"`
+	Expired bool   `json:"expired"`
+	TTL     int64  `json:"ttl"`
 }
 
 // SubscribeBody represents body of response in case of successful subscribe command.
 type SubscribeBody struct {
-	Channel   message.Channel   `json:"channel"`
-	Status    bool              `json:"status"`
-	Last      message.MessageID `json:"last"`
-	Messages  []message.Message `json:"messages"`
-	Recovered bool              `json:"recovered"`
+	Channel   Channel   `json:"channel"`
+	Status    bool      `json:"status"`
+	Last      MessageID `json:"last"`
+	Messages  []Message `json:"messages"`
+	Recovered bool      `json:"recovered"`
 }
 
 // UnsubscribeBody represents body of response in case of successful unsubscribe command.
 type UnsubscribeBody struct {
-	Channel message.Channel `json:"channel"`
-	Status  bool            `json:"status"`
+	Channel Channel `json:"channel"`
+	Status  bool    `json:"status"`
 }
 
 // PublishBody represents body of response in case of successful publish command.
 type PublishBody struct {
-	Channel message.Channel `json:"channel"`
-	Status  bool            `json:"status"`
+	Channel Channel `json:"channel"`
+	Status  bool    `json:"status"`
 }
 
 // DisconnectBody represents body of disconnect response when we want to tell
 // client to disconnect. Optionally we can give client an advice to continue
-// reconnecting after receiving this message.
+// reconnecting after receiving this
 type DisconnectBody struct {
 	Reason    string `json:"reason"`
 	Reconnect bool   `json:"reconnect"`
@@ -217,7 +216,7 @@ type NodeBody struct {
 }
 
 type adminMessageBody struct {
-	Message message.Message `json:"message"`
+	Message Message `json:"message"`
 }
 
 type AdminInfoBody struct {
