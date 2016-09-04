@@ -1,6 +1,7 @@
 package libcentrifugo
 
 import (
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -27,7 +28,9 @@ type websocketConn interface {
 // wsSession is a wrapper struct over websocket connection to fit session interface so
 // client will accept it.
 type wsSession struct {
+	mu           sync.RWMutex
 	ws           websocketConn
+	closed       bool
 	closeCh      chan struct{}
 	pingInterval time.Duration
 	pingTimer    *time.Timer
@@ -39,39 +42,55 @@ func newWSSession(ws websocketConn, pingInterval time.Duration) *wsSession {
 		closeCh:      make(chan struct{}),
 		pingInterval: pingInterval,
 	}
-	sess.pingTimer = time.AfterFunc(sess.pingInterval, sess.ping)
+	sess.addPing()
 	return sess
 }
 
-// TODO: data race detector complains here as we call ping from different goroutines –
-// no real trouble as we do this periodically but better to fix anyway.
 func (sess *wsSession) ping() {
 	select {
 	case <-sess.closeCh:
-		sess.pingTimer.Stop()
 		return
 	default:
 		deadline := time.Now().Add(sess.pingInterval / 2)
 		err := sess.ws.WriteControl(websocket.PingMessage, []byte("ping"), deadline)
 		if err != nil {
-			sess.ws.Close()
-			sess.pingTimer.Stop()
+			sess.Close(CloseStatus, "write ping error")
 			return
 		}
-		sess.pingTimer = time.AfterFunc(sess.pingInterval, sess.ping)
+		sess.addPing()
 	}
 }
 
-func (sess *wsSession) Send(message []byte) error {
+func (sess *wsSession) addPing() {
+	sess.mu.Lock()
+	if sess.closed {
+		sess.mu.Unlock()
+		return
+	}
+	sess.pingTimer = time.AfterFunc(sess.pingInterval, sess.ping)
+	sess.mu.Unlock()
+}
+
+func (sess *wsSession) Send(msg []byte) error {
 	select {
 	case <-sess.closeCh:
 		return nil
 	default:
-		return sess.ws.WriteMessage(websocket.TextMessage, message)
+		return sess.ws.WriteMessage(websocket.TextMessage, msg)
 	}
 }
 
 func (sess *wsSession) Close(status uint32, reason string) error {
+	sess.mu.Lock()
+	if sess.closed {
+		// Already closed, noop.
+		sess.mu.Unlock()
+		return nil
+	}
+	close(sess.closeCh)
+	sess.closed = true
+	sess.pingTimer.Stop()
+	sess.mu.Unlock()
 	deadline := time.Now().Add(time.Second)
 	msg := websocket.FormatCloseMessage(int(status), reason)
 	sess.ws.WriteControl(websocket.CloseMessage, msg, deadline)

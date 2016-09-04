@@ -142,15 +142,27 @@ func (c *client) updateChannelPresence(ch proto.Channel) {
 
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
-	c.app.RLock()
-	presenceInterval := c.app.config.PresencePingInterval
-	c.app.RUnlock()
 	c.RLock()
-	defer c.RUnlock()
 	for _, channel := range c.channels() {
 		c.updateChannelPresence(channel)
 	}
-	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
+	c.RUnlock()
+	c.Lock()
+	c.addPresenceUpdate()
+	c.Unlock()
+}
+
+// Lock must be held outside.
+func (c *client) addPresenceUpdate() {
+	select {
+	case <-c.closeChan:
+		return
+	default:
+		c.app.RLock()
+		presenceInterval := c.app.config.PresencePingInterval
+		c.app.RUnlock()
+		c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
+	}
 }
 
 func (c *client) uid() proto.ConnID {
@@ -532,7 +544,6 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	closeDelay := c.app.config.ExpiredConnectionCloseDelay
 	connLifetime := c.app.config.ConnLifetime
 	version := c.app.config.Version
-	presenceInterval := c.app.config.PresencePingInterval
 	c.app.RUnlock()
 
 	var timestamp string
@@ -590,7 +601,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 		c.staleTimer.Stop()
 	}
 
-	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
+	c.addPresenceUpdate()
 
 	err := c.app.addConn(c)
 	if err != nil {

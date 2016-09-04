@@ -201,7 +201,6 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer ws.Close()
 
 	app.RLock()
 	pingInterval := app.config.PingInterval
@@ -209,7 +208,7 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
 
 	sess := newWSSession(ws, pingInterval)
-	defer close(sess.closeCh)
+	defer sess.Close(CloseStatus, "")
 
 	c, err := newClient(app, sess)
 	if err != nil {
@@ -471,7 +470,6 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer ws.Close()
 
 	app.RLock()
 	pingInterval := app.config.PingInterval
@@ -479,7 +477,7 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
 
 	sess := newWSSession(ws, pingInterval)
-	defer close(sess.closeCh)
+	defer sess.Close(CloseStatus, "")
 
 	c, err := newAdminClient(app, sess)
 	if err != nil {
@@ -488,9 +486,6 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 	start := time.Now()
 	logger.DEBUG.Printf("New admin session established with uid %s\n", c.uid())
 	defer c.clean()
-	defer func() {
-		logger.DEBUG.Printf("Admin session completed in %s, uid %s", time.Since(start), c.uid())
-	}()
 
 	ws.SetReadDeadline(time.Now().Add(pongWait))
 	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
@@ -506,4 +501,6 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 			break
 		}
 	}
+
+	logger.DEBUG.Printf("Admin session completed in %s, uid %s", time.Since(start), c.uid())
 }
