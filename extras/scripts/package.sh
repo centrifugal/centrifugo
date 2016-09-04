@@ -94,7 +94,7 @@ make_dir_tree() {
 # do_build builds the code. The version and commit must be passed in.
 do_build() {
     echo "Start building binary"
-    gox -os="linux" -ldflags="-X VERSION=$VERSION" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/{{.Dir}}"
+    gox -os="linux" -ldflags="-X main.VERSION=$VERSION" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/{{.Dir}}"
     echo "Binary build completed successfully"
 }
 

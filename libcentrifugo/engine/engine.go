@@ -5,6 +5,41 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
+type FlagSetter interface {
+	StringFlag(p *string, name, shorthand string, value string, usage string)
+	BoolFlag(p *bool, name, shorthand string, value bool, usage string)
+	IntFlag(p *int, name, shorthand string, value int, usage string)
+}
+
+type ConfigSetter interface {
+	SetDefault(key string, value interface{})
+	BindEnv(key string)
+	BindFlag(key string, flagName string)
+}
+
+type ConfigGetter interface {
+	Get(string) interface{}
+	GetString(string) string
+	GetBool(string) bool
+	GetInt(string) int
+	IsSet(string) bool
+}
+
+// type EngineFactory func(Node, ConfigValueGetter) Engine
+
+// var Engines map[string]EngineFactory
+
+// func RegisterEngine(name string, fn EngineFactory) {
+// 	Engines[name] = fn
+// }
+
+// func init() {
+// 	Engines = map[string]Engine{
+// 		"memory": NewMemoryEngine,
+// 		"redis":  NewRedisEngine,
+// 	}
+// }
+
 type Node interface {
 	// Config allows to get node Config.
 	Config() config.Config

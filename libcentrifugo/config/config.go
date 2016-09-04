@@ -232,8 +232,8 @@ func (c *Config) ChannelOpts(nk NamespaceKey) (bool, ChannelOptions) {
 }
 
 const (
-	DefaultName             = "libcentrifugo"
-	DefaultChannelPrefix    = "libcentrifugo"
+	DefaultName             = "centrifugo"
+	DefaultChannelPrefix    = "centrifugo"
 	DefaultNodePingInterval = 5
 )
 
