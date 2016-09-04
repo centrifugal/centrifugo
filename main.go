@@ -15,6 +15,7 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo"
+	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
@@ -247,10 +248,10 @@ func Main() {
 				logger.WARN.Println("Running in INSECURE admin mode")
 			}
 
-			var e libcentrifugo.Engine
+			var e engine.Engine
 			switch viper.GetString("engine") {
 			case "memory":
-				e = libcentrifugo.NewMemoryEngine(app)
+				e = engine.NewMemoryEngine(app)
 			case "redis":
 				masterName := viper.GetString("redis_master_name")
 				sentinels := viper.GetString("redis_sentinels")
@@ -276,7 +277,7 @@ func Main() {
 					logger.FATAL.Fatalln("Redis master name required when Sentinel used")
 				}
 
-				redisConf := &libcentrifugo.RedisEngineConfig{
+				redisConf := &engine.RedisEngineConfig{
 					Host:           viper.GetString("redis_host"),
 					Port:           viper.GetString("redis_port"),
 					Password:       viper.GetString("redis_password"),
@@ -291,7 +292,7 @@ func Main() {
 					ReadTimeout:    time.Duration(viper.GetInt("node_ping_interval")*3+1) * time.Second,
 					WriteTimeout:   time.Duration(viper.GetInt("redis_write_timeout")) * time.Second,
 				}
-				e = libcentrifugo.NewRedisEngine(app, redisConf)
+				e = engine.NewRedisEngine(app, redisConf)
 			default:
 				logger.FATAL.Fatalln("Unknown engine: " + viper.GetString("engine"))
 			}
@@ -320,8 +321,8 @@ func Main() {
 			sockjsOpts := sockjs.DefaultOptions
 
 			// Override sockjs url. It's important to use the same SockJS library version
-			// on client and server sides, otherwise SockJS will report version mismatch
-			// and won't work.
+			// on client and server sides when using iframe based SockJS transports, otherwise
+			// SockJS will raise error about version mismatch.
 			sockjsURL := viper.GetString("sockjs_url")
 			if sockjsURL != "" {
 				logger.INFO.Println("SockJS url:", sockjsURL)

@@ -11,14 +11,14 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
-	"github.com/centrifugal/centrifugo/libcentrifugo"
+	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/viper"
 )
 
 // newConfig creates new libcentrifugo.Config using viper.
-func newConfig() *libcentrifugo.Config {
-	cfg := &libcentrifugo.Config{}
+func newConfig() *config.Config {
+	cfg := &config.Config{}
 	cfg.Version = VERSION
 	cfg.Name = getApplicationName()
 	cfg.Debug = viper.GetBool("debug")
@@ -192,11 +192,11 @@ func validateConfig(f string) error {
 	return c.Validate()
 }
 
-func namespacesFromConfig(v *viper.Viper) []libcentrifugo.Namespace {
+func namespacesFromConfig(v *viper.Viper) []config.Namespace {
 	// TODO: as viper does not have exported global config instance
 	// we need to use nil when application wants to use global viper
 	// config - this must be improved using our own global viper instance
-	ns := []libcentrifugo.Namespace{}
+	ns := []config.Namespace{}
 	if !viper.IsSet("namespaces") {
 		return ns
 	}
