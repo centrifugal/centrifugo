@@ -132,43 +132,57 @@ func (app *Application) updateMetrics() {
 		app.RLock()
 		interval := app.config.NodeMetricsInterval
 		app.RUnlock()
-		time.Sleep(interval)
-		app.updateMetricsOnce()
+		select {
+		case <-app.shutdownCh:
+			return
+		case <-time.After(interval):
+			app.updateMetricsOnce()
+		}
 	}
 }
 
 func (app *Application) sendNodePingMsg() {
+	err := app.pubPing()
+	if err != nil {
+		logger.CRITICAL.Println(err)
+	}
 	for {
-		err := app.pubPing()
-		if err != nil {
-			logger.CRITICAL.Println(err)
-		}
 		app.RLock()
 		interval := app.config.NodePingInterval
 		app.RUnlock()
-		time.Sleep(interval)
+		select {
+		case <-app.shutdownCh:
+			return
+		case <-time.After(interval):
+			err := app.pubPing()
+			if err != nil {
+				logger.CRITICAL.Println(err)
+			}
+		}
 	}
 }
 
 func (app *Application) cleanNodeInfo() {
 	for {
 		app.RLock()
-		delay := app.config.NodeInfoMaxDelay
-		app.RUnlock()
-
-		app.nodesMu.Lock()
-		for uid, info := range app.nodes {
-			if time.Now().Unix()-info.Updated() > int64(delay.Seconds()) {
-				delete(app.nodes, uid)
-			}
-		}
-		app.nodesMu.Unlock()
-
-		app.RLock()
 		interval := app.config.NodeInfoCleanInterval
 		app.RUnlock()
+		select {
+		case <-app.shutdownCh:
+			return
+		case <-time.After(interval):
+			app.RLock()
+			delay := app.config.NodeInfoMaxDelay
+			app.RUnlock()
 
-		time.Sleep(interval)
+			app.nodesMu.Lock()
+			for uid, info := range app.nodes {
+				if time.Now().Unix()-info.Updated() > int64(delay.Seconds()) {
+					delete(app.nodes, uid)
+				}
+			}
+			app.nodesMu.Unlock()
+		}
 	}
 }
 
