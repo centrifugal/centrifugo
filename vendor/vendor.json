@@ -259,22 +259,10 @@
 			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
 		},
 		{
-			"checksumSHA1": "mEPx03tDisj6nvPDxzIeb1gt4xg=",
-			"path": "github.com/armon/consul-api",
-			"revision": "dcfedd50ed5334f96adee43fc88518a4f095e15c",
-			"revisionTime": "2015-01-07T20:56:47Z"
-		},
-		{
 			"checksumSHA1": "W7DNxQwdGQ2YO3PR3jARJg6Iqsw=",
 			"path": "github.com/codahale/hdrhistogram",
 			"revision": "f8ad88b59a584afeee9d334eff879b104439117b",
 			"revisionTime": "2016-04-25T23:15:03Z"
-		},
-		{
-			"checksumSHA1": "+Qd5km5Hgsg8P3LXL8xX6YTZVvs=",
-			"path": "github.com/coreos/go-etcd/etcd",
-			"revision": "73a8ef737e8ea002281a28b4cb92a1de121ad4c6",
-			"revisionTime": "2015-04-30T21:29:46Z"
 		},
 		{
 			"checksumSHA1": "xgjI2W3RGiQwNlxsOW2V9fJ9kaM=",
@@ -284,10 +272,6 @@
 		},
 		{
 			"path": "github.com/garyburd/redigo/internal",
-			"revision": "535138d7bcd717d6531c701ef5933d98b1866257"
-		},
-		{
-			"path": "github.com/garyburd/redigo/internal/redistest",
 			"revision": "535138d7bcd717d6531c701ef5933d98b1866257"
 		},
 		{
@@ -413,19 +397,10 @@
 			"revisionTime": "2013-11-06T22:25:44Z"
 		},
 		{
-			"comment": "go.weekly.2011-12-22-26-gcb0850c",
-			"path": "github.com/kr/pretty",
-			"revision": "cb0850c1681cbca3233e84f7e6ec3e4c3f352085"
-		},
-		{
 			"checksumSHA1": "P29nLcVx4WzwhEDgDTCN76rS5WI=",
 			"path": "github.com/kr/pty",
 			"revision": "f7ee69f31298ecbe5d2b349c711e2547a617d398",
 			"revisionTime": "2015-10-07T23:04:24Z"
-		},
-		{
-			"path": "github.com/kr/text",
-			"revision": "6807e777504f54ad073ecef66747de158294b639"
 		},
 		{
 			"path": "github.com/kr/text/colwriter",
@@ -531,10 +506,6 @@
 			"revisionTime": "2016-08-30T14:32:46Z"
 		},
 		{
-			"path": "github.com/spf13/viper/remote",
-			"revision": "9fca10189b1307bba68b2cd487dd93da0bfbda06"
-		},
-		{
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "dab07ac62d4905d3e48d17dc549c684ac3b7c15a"
 		},
@@ -543,42 +514,6 @@
 			"path": "github.com/valyala/bytebufferpool",
 			"revision": "a517d2d1537f5b02e9f6c23d4794160c6c2bc157",
 			"revisionTime": "2016-07-01T19:46:08Z"
-		},
-		{
-			"checksumSHA1": "Jcarmr4WdTvVAWBssHA33O6NaeI=",
-			"path": "github.com/xordataexchange/crypt/backend",
-			"revision": "93de65664ef094aa5acff4f5201ac17580370af7",
-			"revisionTime": "2015-03-27T17:26:45Z"
-		},
-		{
-			"checksumSHA1": "XwrymfY5Vix5WXwiG+PBmwJiFKo=",
-			"path": "github.com/xordataexchange/crypt/backend/consul",
-			"revision": "93de65664ef094aa5acff4f5201ac17580370af7",
-			"revisionTime": "2015-03-27T17:26:45Z"
-		},
-		{
-			"checksumSHA1": "4c3On61HjMsTvNZ/Jn4w65gV35Q=",
-			"path": "github.com/xordataexchange/crypt/backend/etcd",
-			"revision": "93de65664ef094aa5acff4f5201ac17580370af7",
-			"revisionTime": "2015-03-27T17:26:45Z"
-		},
-		{
-			"checksumSHA1": "+LK6jdiDR3a/HF8SoN5Mf+XftU0=",
-			"path": "github.com/xordataexchange/crypt/config",
-			"revision": "93de65664ef094aa5acff4f5201ac17580370af7",
-			"revisionTime": "2015-03-27T17:26:45Z"
-		},
-		{
-			"checksumSHA1": "lf1th5ICyuV7ah5/CCv1FdGI3Fs=",
-			"path": "github.com/xordataexchange/crypt/encoding/secconf",
-			"revision": "93de65664ef094aa5acff4f5201ac17580370af7",
-			"revisionTime": "2015-03-27T17:26:45Z"
-		},
-		{
-			"checksumSHA1": "TT1rac6kpQp2vz24m5yDGUNQ/QQ=",
-			"path": "golang.org/x/crypto/cast5",
-			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
-			"revisionTime": "2015-05-08T16:14:00Z"
 		},
 		{
 			"checksumSHA1": "h+pFYiRHBogczS8/F1NoN3Ata44=",
@@ -599,42 +534,6 @@
 			"revisionTime": "2016-09-02T16:03:59Z"
 		},
 		{
-			"checksumSHA1": "+Yh80AKkMNdwI2tuMsZ3fjmDc1Y=",
-			"path": "golang.org/x/crypto/openpgp",
-			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
-			"revisionTime": "2015-05-08T16:14:00Z"
-		},
-		{
-			"checksumSHA1": "olOKkhrdkYQHZ0lf1orrFQPQrv4=",
-			"path": "golang.org/x/crypto/openpgp/armor",
-			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
-			"revisionTime": "2015-05-08T16:14:00Z"
-		},
-		{
-			"checksumSHA1": "eo/KtdjieJQXH7Qy+faXFcF70ME=",
-			"path": "golang.org/x/crypto/openpgp/elgamal",
-			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
-			"revisionTime": "2015-05-08T16:14:00Z"
-		},
-		{
-			"checksumSHA1": "rlxVSaGgqdAgwblsErxTxIfuGfg=",
-			"path": "golang.org/x/crypto/openpgp/errors",
-			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
-			"revisionTime": "2015-05-08T16:14:00Z"
-		},
-		{
-			"checksumSHA1": "otZ7+qdRt2KyF4e1UYe4iYu2Tu4=",
-			"path": "golang.org/x/crypto/openpgp/packet",
-			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
-			"revisionTime": "2015-05-08T16:14:00Z"
-		},
-		{
-			"checksumSHA1": "sJspGhrr7TS9uMgyv2/cSfRDLV8=",
-			"path": "golang.org/x/crypto/openpgp/s2k",
-			"revision": "74f810a0152f4c50a16195f6b9ff44afc35594e8",
-			"revisionTime": "2015-05-08T16:14:00Z"
-		},
-		{
 			"checksumSHA1": "pXOcpeiBjX3zbVKeg0pvYnEmtqU=",
 			"path": "golang.org/x/crypto/ssh",
 			"revision": "9e590154d2353f3f5e1b24da7275686040dcf491",
@@ -651,32 +550,8 @@
 			"revisionTime": "2016-07-15T05:43:45Z"
 		},
 		{
-			"checksumSHA1": "3JkLagg7UP4890bHn0Uld6GmO6M=",
-			"path": "golang.org/x/text/internal/gen",
-			"revision": "ceefd2213ed29504fff30155163c8f59827734f3",
-			"revisionTime": "2016-08-31T08:18:28Z"
-		},
-		{
-			"checksumSHA1": "47nwiUyVBY2RKoEGXmCSvusY4Js=",
-			"path": "golang.org/x/text/internal/triegen",
-			"revision": "ceefd2213ed29504fff30155163c8f59827734f3",
-			"revisionTime": "2016-08-31T08:18:28Z"
-		},
-		{
-			"checksumSHA1": "LyT5byg0Dq4x3OcGt6EwIDgPUpc=",
-			"path": "golang.org/x/text/internal/ucd",
-			"revision": "ceefd2213ed29504fff30155163c8f59827734f3",
-			"revisionTime": "2016-08-31T08:18:28Z"
-		},
-		{
 			"checksumSHA1": "TZDHZj3zWDc5LKqpoLamOKt6Nmo=",
 			"path": "golang.org/x/text/transform",
-			"revision": "ceefd2213ed29504fff30155163c8f59827734f3",
-			"revisionTime": "2016-08-31T08:18:28Z"
-		},
-		{
-			"checksumSHA1": "n94g6qdzv0fgQFGelH4/HXOthl0=",
-			"path": "golang.org/x/text/unicode/cldr",
 			"revision": "ceefd2213ed29504fff30155163c8f59827734f3",
 			"revisionTime": "2016-08-31T08:18:28Z"
 		},
