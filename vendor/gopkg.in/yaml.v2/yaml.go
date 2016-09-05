@@ -222,7 +222,7 @@ func getStructInfo(st reflect.Type) (*structInfo, error) {
 	inlineMap := -1
 	for i := 0; i != n; i++ {
 		field := st.Field(i)
-		if field.PkgPath != "" {
+		if field.PkgPath != "" && !field.Anonymous {
 			continue // Private field
 		}
 
@@ -324,6 +324,8 @@ func isZero(v reflect.Value) bool {
 		return v.Len() == 0
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return v.Int() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return v.Uint() == 0
 	case reflect.Bool:
