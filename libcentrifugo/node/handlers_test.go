@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
-	"github.com/elazarl/go-bindata-assetfs"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 )
@@ -44,13 +43,6 @@ func TestMuxWithDebugFlag(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
-type testFileSystem struct{}
-
-func (fs *testFileSystem) Open(name string) (http.File, error) {
-	file := assetfs.NewAssetFile(name, []byte("it works"), time.Now())
-	return file, nil
-}
-
 func TestMuxAdminWeb404(t *testing.T) {
 	app := testApp()
 	opts := DefaultMuxOptions
@@ -60,25 +52,6 @@ func TestMuxAdminWeb404(t *testing.T) {
 	resp, err := http.Get(server.URL + "/")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, resp.StatusCode, http.StatusNotFound)
-}
-
-func TestMuxAdminWeb(t *testing.T) {
-	app := testApp()
-	opts := DefaultMuxOptions
-	opts.Web = true
-	opts.Admin = true
-	opts.WebFS = &testFileSystem{}
-	opts.HandlerFlags |= HandlerAdmin
-	mux := DefaultMux(app, opts)
-	server := httptest.NewServer(mux)
-	defer server.Close()
-	resp, err := http.Get(server.URL + "/path/")
-	assert.Equal(t, nil, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, "it works", string(body))
 }
 
 func TestHandlerFlagString(t *testing.T) {

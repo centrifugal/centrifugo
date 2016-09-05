@@ -201,9 +201,9 @@ func namespacesFromConfig(v *viper.Viper) []config.Namespace {
 		return ns
 	}
 	if v == nil {
-		viper.MarshalKey("namespaces", &ns)
+		viper.UnmarshalKey("namespaces", &ns)
 	} else {
-		v.MarshalKey("namespaces", &ns)
+		v.UnmarshalKey("namespaces", &ns)
 	}
 	return ns
 }

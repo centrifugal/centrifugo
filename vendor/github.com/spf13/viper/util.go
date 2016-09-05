@@ -21,15 +21,16 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/BurntSushi/toml"
+	"github.com/hashicorp/hcl"
 	"github.com/magiconair/properties"
+	toml "github.com/pelletier/go-toml"
 	"github.com/spf13/cast"
 	jww "github.com/spf13/jwalterweatherman"
 	"gopkg.in/yaml.v2"
 )
 
-type // Denotes failing to parse configuration file.
-ConfigParseError struct {
+// Denotes failing to parse configuration file.
+type ConfigParseError struct {
 	err error
 }
 
@@ -76,7 +77,7 @@ func absPathify(inPath string) string {
 
 // Check if File / Directory Exists
 func exists(path string) (bool, error) {
-	_, err := os.Stat(path)
+	_, err := v.fs.Stat(path)
 	if err == nil {
 		return true, nil
 	}
@@ -129,7 +130,7 @@ func findCWD() (string, error) {
 	return path, nil
 }
 
-func marshallConfigReader(in io.Reader, c map[string]interface{}, configType string) error {
+func unmarshallConfigReader(in io.Reader, c map[string]interface{}, configType string) error {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(in)
 
@@ -144,9 +145,23 @@ func marshallConfigReader(in io.Reader, c map[string]interface{}, configType str
 			return ConfigParseError{err}
 		}
 
-	case "toml":
-		if _, err := toml.Decode(buf.String(), &c); err != nil {
+	case "hcl":
+		obj, err := hcl.Parse(string(buf.Bytes()))
+		if err != nil {
 			return ConfigParseError{err}
+		}
+		if err = hcl.DecodeObject(&c, obj); err != nil {
+			return ConfigParseError{err}
+		}
+
+	case "toml":
+		tree, err := toml.LoadReader(buf)
+		if err != nil {
+			return ConfigParseError{err}
+		}
+		tmap := tree.ToMap()
+		for k, v := range tmap {
+			c[k] = v
 		}
 
 	case "properties", "props", "prop":
