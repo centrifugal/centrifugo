@@ -3,34 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"checksumSHA1": "hqDDDpue/5363luidNMBS8z8eJU=",
-			"comment": "v0.1.0-21-g056c9bc",
-			"path": "github.com/BurntSushi/toml",
-			"revision": "99064174e013895bbd9b025c31100bd1d9b590ca",
-			"revisionTime": "2016-07-17T15:07:09Z"
-		},
-		{
-			"checksumSHA1": "gt+aP+7zGVTaayVQpOVSvY2Defc=",
-			"comment": "v0.1.0-21-g056c9bc",
-			"path": "github.com/BurntSushi/toml/cmd/toml-test-decoder",
-			"revision": "99064174e013895bbd9b025c31100bd1d9b590ca",
-			"revisionTime": "2016-07-17T15:07:09Z"
-		},
-		{
-			"checksumSHA1": "dl1Ogkr/g4ijf580tN957s98xfw=",
-			"comment": "v0.1.0-21-g056c9bc",
-			"path": "github.com/BurntSushi/toml/cmd/toml-test-encoder",
-			"revision": "99064174e013895bbd9b025c31100bd1d9b590ca",
-			"revisionTime": "2016-07-17T15:07:09Z"
-		},
-		{
-			"checksumSHA1": "CygsRZYGwvMwhMf6XLi19p8tfQE=",
-			"comment": "v0.1.0-21-g056c9bc",
-			"path": "github.com/BurntSushi/toml/cmd/tomlv",
-			"revision": "99064174e013895bbd9b025c31100bd1d9b590ca",
-			"revisionTime": "2016-07-17T15:07:09Z"
-		},
-		{
 			"checksumSHA1": "4abPaYSPssM6QNkIra92Lu2g2y8=",
 			"path": "github.com/FZambia/go-logger",
 			"revision": "656c7347d91febe2e4f6132ff6d74a0213cbeebe",
