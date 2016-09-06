@@ -1,6 +1,6 @@
 {
 	"comment": "",
-	"ignore": "test",
+	"ignore": "test github.com/ajstarks/svgo golang.org/x/net/websocket",
 	"package": [
 		{
 			"checksumSHA1": "4abPaYSPssM6QNkIra92Lu2g2y8=",
@@ -13,241 +13,15 @@
 			"revision": "0f83ebcca2c77cb324938a77cc5bc78a70e2295c"
 		},
 		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/android",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/barchart",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/benchviz",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/bubtrail",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/bulletgraph",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/codepic",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/colortab",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/compx",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/cube",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/f50",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/fe",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/flower",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/fontcompare",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/funnel",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/gradient",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/html5logo",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/imfade",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/lewitt",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/ltr",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/marker",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/paths",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/pattern",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/picserv",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/planets",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/pmap",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/randcomp",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/richter",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/rl",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/rpd",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/rr",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/shotchart",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/skewabc",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/stockproduct",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/svgdef",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/svgopher",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/svgplay",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/svgplot",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/svgrid",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/tsg",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/tumblrgrid",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/turbulence",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/vismem",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/webfonts",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
-		},
-		{
-			"comment": "go.weekly.2012-01-27-118-gfd2151e",
-			"path": "github.com/ajstarks/svgo/websvg",
-			"revision": "fd2151ebabde382463c8351c653151d6bf1657b8"
+			"checksumSHA1": "p1xLs4Y5QmvBlnNRzphaqIYZ59c=",
+			"path": "github.com/FZambia/viper-lite",
+			"revision": ""
 		},
 		{
 			"checksumSHA1": "W7DNxQwdGQ2YO3PR3jARJg6Iqsw=",
 			"path": "github.com/codahale/hdrhistogram",
 			"revision": "f8ad88b59a584afeee9d334eff879b104439117b",
 			"revisionTime": "2016-04-25T23:15:03Z"
-		},
-		{
-			"checksumSHA1": "xgjI2W3RGiQwNlxsOW2V9fJ9kaM=",
-			"path": "github.com/fsnotify/fsnotify",
-			"revision": "f12c6236fe7b5cf6bcf30e5935d08cb079d78334",
-			"revisionTime": "2016-08-16T05:15:41Z"
 		},
 		{
 			"path": "github.com/garyburd/redigo/internal",
@@ -288,90 +62,10 @@
 			"revisionTime": "2015-08-20T08:29:58Z"
 		},
 		{
-			"path": "github.com/gorilla/securecookie/fuzz",
-			"revision": "e95799a481bbcc3d01c2ad5178524cb8bec9f370"
-		},
-		{
 			"checksumSHA1": "klfNfdEPsrWYLps2qBkLgfJsNYI=",
 			"path": "github.com/gorilla/websocket",
 			"revision": "a69d25be2fe2923a97c2af6849b2f52426f68fc0",
 			"revisionTime": "2016-08-02T13:32:03Z"
-		},
-		{
-			"path": "github.com/gorilla/websocket/examples/autobahn",
-			"revision": "3986be78bf859e01f01af631ad76da5b269d270c"
-		},
-		{
-			"path": "github.com/gorilla/websocket/examples/chat",
-			"revision": "3986be78bf859e01f01af631ad76da5b269d270c"
-		},
-		{
-			"path": "github.com/gorilla/websocket/examples/command",
-			"revision": "3986be78bf859e01f01af631ad76da5b269d270c"
-		},
-		{
-			"path": "github.com/gorilla/websocket/examples/filewatch",
-			"revision": "3986be78bf859e01f01af631ad76da5b269d270c"
-		},
-		{
-			"checksumSHA1": "fa9G5tEr4oJJc3vtgn/B0NWZXfA=",
-			"path": "github.com/hashicorp/hcl",
-			"revision": "99df0eb941dd8ddbc83d3f3605a34f6a686ac85e",
-			"revisionTime": "2016-09-02T16:52:19Z"
-		},
-		{
-			"checksumSHA1": "67DfevLBglV52Y2eAuhFc/xQni0=",
-			"path": "github.com/hashicorp/hcl/hcl/ast",
-			"revision": "99df0eb941dd8ddbc83d3f3605a34f6a686ac85e",
-			"revisionTime": "2016-09-02T16:52:19Z"
-		},
-		{
-			"checksumSHA1": "l2oQxBsZRwn6eZjf+whXr8c9+8c=",
-			"path": "github.com/hashicorp/hcl/hcl/parser",
-			"revision": "99df0eb941dd8ddbc83d3f3605a34f6a686ac85e",
-			"revisionTime": "2016-09-02T16:52:19Z"
-		},
-		{
-			"checksumSHA1": "lgR7PSAZ0RtvAc9OCtCnNsF/x8g=",
-			"path": "github.com/hashicorp/hcl/hcl/scanner",
-			"revision": "99df0eb941dd8ddbc83d3f3605a34f6a686ac85e",
-			"revisionTime": "2016-09-02T16:52:19Z"
-		},
-		{
-			"checksumSHA1": "JlZmnzqdmFFyb1+2afLyR3BOE/8=",
-			"path": "github.com/hashicorp/hcl/hcl/strconv",
-			"revision": "99df0eb941dd8ddbc83d3f3605a34f6a686ac85e",
-			"revisionTime": "2016-09-02T16:52:19Z"
-		},
-		{
-			"checksumSHA1": "c6yprzj06ASwCo18TtbbNNBHljA=",
-			"path": "github.com/hashicorp/hcl/hcl/token",
-			"revision": "99df0eb941dd8ddbc83d3f3605a34f6a686ac85e",
-			"revisionTime": "2016-09-02T16:52:19Z"
-		},
-		{
-			"checksumSHA1": "jQ45CCc1ed/nlV7bbSnx6z72q1M=",
-			"path": "github.com/hashicorp/hcl/json/parser",
-			"revision": "99df0eb941dd8ddbc83d3f3605a34f6a686ac85e",
-			"revisionTime": "2016-09-02T16:52:19Z"
-		},
-		{
-			"checksumSHA1": "YdvFsNOMSWMLnY6fcliWQa0O5Fw=",
-			"path": "github.com/hashicorp/hcl/json/scanner",
-			"revision": "99df0eb941dd8ddbc83d3f3605a34f6a686ac85e",
-			"revisionTime": "2016-09-02T16:52:19Z"
-		},
-		{
-			"checksumSHA1": "fNlXQCQEnb+B3k5UDL/r15xtSJY=",
-			"path": "github.com/hashicorp/hcl/json/token",
-			"revision": "99df0eb941dd8ddbc83d3f3605a34f6a686ac85e",
-			"revisionTime": "2016-09-02T16:52:19Z"
-		},
-		{
-			"checksumSHA1": "KQhA4EQp4Ldwj9nJZnEURlE6aQw=",
-			"path": "github.com/kr/fs",
-			"revision": "2788f0dbd16903de03cb8186e5c7d97b69ad387b",
-			"revisionTime": "2013-11-06T22:25:44Z"
 		},
 		{
 			"checksumSHA1": "P29nLcVx4WzwhEDgDTCN76rS5WI=",
@@ -382,15 +76,6 @@
 		{
 			"path": "github.com/kr/text/colwriter",
 			"revision": "6807e777504f54ad073ecef66747de158294b639"
-		},
-		{
-			"path": "github.com/kr/text/mc",
-			"revision": "6807e777504f54ad073ecef66747de158294b639"
-		},
-		{
-			"comment": "v1.5.2",
-			"path": "github.com/magiconair/properties",
-			"revision": "d5929c67198951106f49f7ea425198d0f1a08f7f"
 		},
 		{
 			"checksumSHA1": "LUrnGREfnifW4WDMaavmc9MlLI0=",
@@ -415,18 +100,6 @@
 			"revisionTime": "2016-08-23T07:47:07Z"
 		},
 		{
-			"checksumSHA1": "Hky3u+8Rqum+wB5BHMj0A8ZmT4g=",
-			"path": "github.com/pkg/errors",
-			"revision": "17b591df37844cde689f4d5813e5cea0927d8dd2",
-			"revisionTime": "2016-08-22T09:00:10Z"
-		},
-		{
-			"checksumSHA1": "FJIb/zcGEYhYUo33wSzX3T6hwGU=",
-			"path": "github.com/pkg/sftp",
-			"revision": "a71e8f580e3b622ebff585309160b1cc549ef4d2",
-			"revisionTime": "2016-07-21T23:14:53Z"
-		},
-		{
 			"checksumSHA1": "FdnIB5f7S6Ic0jlk8egixo2kPhY=",
 			"path": "github.com/rakyll/statik/fs",
 			"revision": "2940084503a48359b41de178874e862c5bc3efe8",
@@ -435,24 +108,6 @@
 		{
 			"path": "github.com/satori/go.uuid",
 			"revision": "08f0718b61e95ddba0ade3346725fe0e4bf28ca6"
-		},
-		{
-			"checksumSHA1": "59wTbS4fE2282Q88NrBYImbFGbo=",
-			"path": "github.com/spf13/afero",
-			"revision": "20500e2abd0d1f4564a499e83d11d6c73cd58c27",
-			"revisionTime": "2016-08-21T08:36:12Z"
-		},
-		{
-			"checksumSHA1": "S29tnboEqKV8/ghlvDzaqtJJD7E=",
-			"path": "github.com/spf13/afero/mem",
-			"revision": "20500e2abd0d1f4564a499e83d11d6c73cd58c27",
-			"revisionTime": "2016-08-21T08:36:12Z"
-		},
-		{
-			"checksumSHA1": "sLyAUiIT7V0DNVp6yBhW4Ms5BEs=",
-			"path": "github.com/spf13/afero/sftp",
-			"revision": "20500e2abd0d1f4564a499e83d11d6c73cd58c27",
-			"revisionTime": "2016-08-21T08:36:12Z"
 		},
 		{
 			"checksumSHA1": "F5PKdeFzODdoAChY/aEiEDaNWtQ=",
@@ -477,12 +132,6 @@
 			"revisionTime": "2016-08-20T15:41:56Z"
 		},
 		{
-			"checksumSHA1": "AEhbo+ngM14A/E4LwHOspRTrpJk=",
-			"path": "github.com/spf13/viper",
-			"revision": "16990631d4aa7e38f73dbbbf37fa13e67c648531",
-			"revisionTime": "2016-08-30T14:32:46Z"
-		},
-		{
 			"path": "github.com/stretchr/testify/assert",
 			"revision": "dab07ac62d4905d3e48d17dc549c684ac3b7c15a"
 		},
@@ -491,52 +140,6 @@
 			"path": "github.com/valyala/bytebufferpool",
 			"revision": "a517d2d1537f5b02e9f6c23d4794160c6c2bc157",
 			"revisionTime": "2016-07-01T19:46:08Z"
-		},
-		{
-			"checksumSHA1": "h+pFYiRHBogczS8/F1NoN3Ata44=",
-			"path": "golang.org/x/crypto/curve25519",
-			"revision": "9e590154d2353f3f5e1b24da7275686040dcf491",
-			"revisionTime": "2016-09-02T16:03:59Z"
-		},
-		{
-			"checksumSHA1": "wGb//LjBPNxYHqk+dcLo7BjPXK8=",
-			"path": "golang.org/x/crypto/ed25519",
-			"revision": "9e590154d2353f3f5e1b24da7275686040dcf491",
-			"revisionTime": "2016-09-02T16:03:59Z"
-		},
-		{
-			"checksumSHA1": "LXFcVx8I587SnWmKycSDEq9yvK8=",
-			"path": "golang.org/x/crypto/ed25519/internal/edwards25519",
-			"revision": "9e590154d2353f3f5e1b24da7275686040dcf491",
-			"revisionTime": "2016-09-02T16:03:59Z"
-		},
-		{
-			"checksumSHA1": "pXOcpeiBjX3zbVKeg0pvYnEmtqU=",
-			"path": "golang.org/x/crypto/ssh",
-			"revision": "9e590154d2353f3f5e1b24da7275686040dcf491",
-			"revisionTime": "2016-09-02T16:03:59Z"
-		},
-		{
-			"path": "golang.org/x/net/websocket",
-			"revision": "db8e4de5b2d6653f66aea53094624468caad15d2"
-		},
-		{
-			"checksumSHA1": "8fD/im5Kwvy3JgmxulDTambmE8w=",
-			"path": "golang.org/x/sys/unix",
-			"revision": "a646d33e2ee3172a661fc09bca23bb4889a41bc8",
-			"revisionTime": "2016-07-15T05:43:45Z"
-		},
-		{
-			"checksumSHA1": "TZDHZj3zWDc5LKqpoLamOKt6Nmo=",
-			"path": "golang.org/x/text/transform",
-			"revision": "ceefd2213ed29504fff30155163c8f59827734f3",
-			"revisionTime": "2016-08-31T08:18:28Z"
-		},
-		{
-			"checksumSHA1": "pDDMc5yLVQ2xeR9CajcgIJODPcw=",
-			"path": "golang.org/x/text/unicode/norm",
-			"revision": "ceefd2213ed29504fff30155163c8f59827734f3",
-			"revisionTime": "2016-08-31T08:18:28Z"
 		},
 		{
 			"path": "gopkg.in/igm/sockjs-go.v2/sockjs",

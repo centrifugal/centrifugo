@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
+	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/satori/go.uuid"
-	"github.com/spf13/viper"
 )
 
 // newConfig creates new libcentrifugo.Config using viper.

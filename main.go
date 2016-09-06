@@ -17,11 +17,11 @@ import (
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/statik"
 
 	"github.com/FZambia/go-logger"
+	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/rakyll/statik/fs"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
