@@ -11,7 +11,6 @@ So what's out of the box:
 * fsnotify
 * HCL and Java properties config file formats
 * afero filesystem support
-* jwalterweatherman logging
 
 Another features are here and have the same API. If you are OK with lack of features above than all you need is change viper import path in your code.
 

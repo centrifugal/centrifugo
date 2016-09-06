@@ -32,6 +32,7 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cast"
+	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/pflag"
 )
 
@@ -41,7 +42,8 @@ func init() {
 	v = New()
 }
 
-// Denotes encountering an unsupported configuration filetype.
+// Denotes encountering an unsupported
+// configuration filetype.
 type UnsupportedConfigError string
 
 // Returns the formatted configuration error.
@@ -68,8 +70,7 @@ func (fnfe ConfigFileNotFoundError) Error() string {
 // 2. flags
 // 3. env. variables
 // 4. config file
-// 5. key/value store
-// 6. defaults
+// 5. defaults
 //
 // For example, if values from the following sources were loaded:
 //
@@ -197,6 +198,7 @@ func AddConfigPath(in string) { v.AddConfigPath(in) }
 func (v *Viper) AddConfigPath(in string) {
 	if in != "" {
 		absin := absPathify(in)
+		jww.INFO.Println("adding", absin, "to paths to search")
 		if !stringInSlice(absin, v.configPaths) {
 			v.configPaths = append(v.configPaths, absin)
 		}
@@ -286,6 +288,7 @@ func (v *Viper) Get(key string) interface{} {
 	// get the flag's value even if the flag's value has not changed
 	if val == nil {
 		if flag, exists := v.pflags[lcaseKey]; exists {
+			jww.TRACE.Println(key, "get pflag default", val)
 			switch flag.ValueType() {
 			case "int", "int8", "int16", "int32", "int64":
 				val = cast.ToInt(flag.ValueString())
@@ -554,6 +557,7 @@ func (v *Viper) find(key string) interface{} {
 	// PFlag Override first
 	flag, exists := v.pflags[key]
 	if exists && flag.HasChanged() {
+		jww.TRACE.Println(key, "found in override (via pflag):", flag.ValueString())
 		switch flag.ValueType() {
 		case "int", "int8", "int16", "int32", "int64":
 			return cast.ToInt(flag.ValueString())
@@ -566,6 +570,7 @@ func (v *Viper) find(key string) interface{} {
 
 	val, exists = v.override[key]
 	if exists {
+		jww.TRACE.Println(key, "found in override:", val)
 		return val
 	}
 
@@ -573,19 +578,25 @@ func (v *Viper) find(key string) interface{} {
 		// even if it hasn't been registered, if automaticEnv is used,
 		// check any Get request
 		if val = v.getEnv(v.mergeWithEnvPrefix(key)); val != "" {
+			jww.TRACE.Println(key, "found in environment with val:", val)
 			return val
 		}
 	}
 
 	envkey, exists := v.env[key]
 	if exists {
+		jww.TRACE.Println(key, "registered as env var", envkey)
 		if val = v.getEnv(envkey); val != "" {
+			jww.TRACE.Println(envkey, "found in environment with val:", val)
 			return val
+		} else {
+			jww.TRACE.Println(envkey, "env value unset:")
 		}
 	}
 
 	val, exists = v.config[key]
 	if exists {
+		jww.TRACE.Println(key, "found in config:", val)
 		return val
 	}
 
@@ -597,6 +608,7 @@ func (v *Viper) find(key string) interface{} {
 		if source != nil {
 			if reflect.TypeOf(source).Kind() == reflect.Map {
 				val := v.searchMap(cast.ToStringMap(source), path[1:])
+				jww.TRACE.Println(key, "found in nested config:", val)
 				return val
 			}
 		}
@@ -604,6 +616,7 @@ func (v *Viper) find(key string) interface{} {
 
 	val, exists = v.defaults[key]
 	if exists {
+		jww.TRACE.Println(key, "found in defaults:", val)
 		return val
 	}
 
@@ -675,12 +688,15 @@ func (v *Viper) registerAlias(alias string, key string) {
 			}
 			v.aliases[alias] = key
 		}
+	} else {
+		jww.WARN.Println("Creating circular reference alias", alias, key, v.realKey(key))
 	}
 }
 
 func (v *Viper) realKey(key string) string {
 	newkey, exists := v.aliases[key]
 	if exists {
+		jww.DEBUG.Println("Alias", key, "to", newkey)
 		return v.realKey(newkey)
 	} else {
 		return key
@@ -720,6 +736,7 @@ func (v *Viper) Set(key string, value interface{}) {
 // and key/value stores, searching in one of the defined paths.
 func ReadInConfig() error { return v.ReadInConfig() }
 func (v *Viper) ReadInConfig() error {
+	jww.INFO.Println("Attempting to read in config file")
 	if !stringInSlice(v.getConfigType(), SupportedExts) {
 		return UnsupportedConfigError(v.getConfigType())
 	}
@@ -737,6 +754,7 @@ func (v *Viper) ReadInConfig() error {
 // MergeInConfig merges a new configuration with an existing config.
 func MergeInConfig() error { return v.MergeInConfig() }
 func (v *Viper) MergeInConfig() error {
+	jww.INFO.Println("Attempting to merge in config file")
 	if !stringInSlice(v.getConfigType(), SupportedExts) {
 		return UnsupportedConfigError(v.getConfigType())
 	}
@@ -801,6 +819,7 @@ func mergeMaps(
 	for sk, sv := range src {
 		tk := keyExists(sk, tgt)
 		if tk == "" {
+			jww.TRACE.Printf("tk=\"\", tgt[%s]=%v", sk, sv)
 			tgt[sk] = sv
 			if itgt != nil {
 				itgt[sk] = sv
@@ -810,6 +829,7 @@ func mergeMaps(
 
 		tv, ok := tgt[tk]
 		if !ok {
+			jww.TRACE.Printf("tgt[%s] != ok, tgt[%s]=%v", tk, sk, sv)
 			tgt[sk] = sv
 			if itgt != nil {
 				itgt[sk] = sv
@@ -820,18 +840,27 @@ func mergeMaps(
 		svType := reflect.TypeOf(sv)
 		tvType := reflect.TypeOf(tv)
 		if svType != tvType {
+			jww.ERROR.Printf(
+				"svType != tvType; key=%s, st=%v, tt=%v, sv=%v, tv=%v",
+				sk, svType, tvType, sv, tv)
 			continue
 		}
 
+		jww.TRACE.Printf("processing key=%s, st=%v, tt=%v, sv=%v, tv=%v",
+			sk, svType, tvType, sv, tv)
+
 		switch ttv := tv.(type) {
 		case map[interface{}]interface{}:
+			jww.TRACE.Printf("merging maps (must convert)")
 			tsv := sv.(map[interface{}]interface{})
 			ssv := castToMapStringInterface(tsv)
 			stv := castToMapStringInterface(ttv)
 			mergeMaps(ssv, stv, ttv)
 		case map[string]interface{}:
+			jww.TRACE.Printf("merging maps")
 			mergeMaps(sv.(map[string]interface{}), ttv, nil)
 		default:
+			jww.TRACE.Printf("setting value")
 			tgt[tk] = sv
 			if itgt != nil {
 				itgt[tk] = sv
@@ -954,8 +983,11 @@ func (v *Viper) getConfigFile() string {
 }
 
 func (v *Viper) searchInPath(in string) (filename string) {
+	jww.DEBUG.Println("Searching for config in ", in)
 	for _, ext := range SupportedExts {
+		jww.DEBUG.Println("Checking for", filepath.Join(in, v.configName+"."+ext))
 		if b, _ := exists(filepath.Join(in, v.configName+"."+ext)); b {
+			jww.DEBUG.Println("Found: ", filepath.Join(in, v.configName+"."+ext))
 			return filepath.Join(in, v.configName+"."+ext)
 		}
 	}
@@ -966,6 +998,9 @@ func (v *Viper) searchInPath(in string) (filename string) {
 // search all configPaths for any config file.
 // Returns the first path that exists (and is a config file)
 func (v *Viper) findConfigFile() (string, error) {
+
+	jww.INFO.Println("Searching for config in ", v.configPaths)
+
 	for _, cp := range v.configPaths {
 		file := v.searchInPath(cp)
 		if file != "" {
