@@ -69,16 +69,6 @@
 			"revisionTime": "2016-08-02T13:32:03Z"
 		},
 		{
-			"checksumSHA1": "P29nLcVx4WzwhEDgDTCN76rS5WI=",
-			"path": "github.com/kr/pty",
-			"revision": "f7ee69f31298ecbe5d2b349c711e2547a617d398",
-			"revisionTime": "2015-10-07T23:04:24Z"
-		},
-		{
-			"path": "github.com/kr/text/colwriter",
-			"revision": "6807e777504f54ad073ecef66747de158294b639"
-		},
-		{
 			"checksumSHA1": "LUrnGREfnifW4WDMaavmc9MlLI0=",
 			"path": "github.com/mitchellh/mapstructure",
 			"revision": "ca63d7c062ee3c9f34db231e352b60012b4fd0c1",
