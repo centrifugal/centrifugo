@@ -1,4 +1,4 @@
-package engine
+package engineredis
 
 import (
 	"encoding/json"
@@ -13,9 +13,20 @@ import (
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/go-sentinel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
+	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
+	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/garyburd/redigo/redis"
 )
+
+func init() {
+	plugin.RegisterEngine("redis", NewRedisEngine)
+	plugin.RegisterConfigurator("redis", RedisEngineConfigure)
+}
+
+func RedisEngineConfigure(plugin.ConfigSetter) error {
+	return nil
+}
 
 const (
 	// RedisSubscribeChannelSize is the size for the internal buffered channels RedisEngine
@@ -54,7 +65,7 @@ const (
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
 	sync.RWMutex
-	node              Node
+	node              engine.Node
 	nodeConfig        config.Config
 	config            *RedisEngineConfig
 	pool              *redis.Pool
@@ -356,7 +367,47 @@ return redis.call("hgetall", KEYS[2])
 	`
 
 // NewRedisEngine initializes Redis Engine.
-func NewRedisEngine(node Node, conf *RedisEngineConfig) *RedisEngine {
+func NewRedisEngine(node engine.Node, config plugin.ConfigGetter) engine.Engine {
+
+	masterName := config.GetString("redis_master_name")
+	sentinels := config.GetString("redis_sentinels")
+	if masterName != "" && sentinels == "" {
+		logger.FATAL.Fatalf("Provide at least one Sentinel address")
+	}
+
+	sentinelAddrs := []string{}
+	if sentinels != "" {
+		for _, addr := range strings.Split(sentinels, ",") {
+			addr := strings.TrimSpace(addr)
+			if addr == "" {
+				continue
+			}
+			if _, _, err := net.SplitHostPort(addr); err != nil {
+				logger.FATAL.Fatalf("Malformed Sentinel address: %s", addr)
+			}
+			sentinelAddrs = append(sentinelAddrs, addr)
+		}
+	}
+
+	if len(sentinelAddrs) > 0 && masterName == "" {
+		logger.FATAL.Fatalln("Redis master name required when Sentinel used")
+	}
+
+	conf := &RedisEngineConfig{
+		Host:           config.GetString("redis_host"),
+		Port:           config.GetString("redis_port"),
+		Password:       config.GetString("redis_password"),
+		DB:             config.GetString("redis_db"),
+		URL:            config.GetString("redis_url"),
+		PoolSize:       config.GetInt("redis_pool"),
+		API:            config.GetBool("redis_api"),
+		NumAPIShards:   config.GetInt("redis_api_num_shards"),
+		MasterName:     masterName,
+		SentinelAddrs:  sentinelAddrs,
+		ConnectTimeout: time.Duration(config.GetInt("redis_connect_timeout")) * time.Second,
+		ReadTimeout:    time.Duration(config.GetInt("node_ping_interval")*3+1) * time.Second,
+		WriteTimeout:   time.Duration(config.GetInt("redis_write_timeout")) * time.Second,
+	}
 
 	pool := newPool(conf)
 

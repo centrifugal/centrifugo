@@ -13,16 +13,20 @@ import (
 	"syscall"
 	"time"
 
-	// Embedded web interface.
-	_ "github.com/centrifugal/centrifugo/libcentrifugo/statik"
-
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
+	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/rakyll/statik/fs"
 	"github.com/spf13/cobra"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
+
+	_ "github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
+	_ "github.com/centrifugal/centrifugo/libcentrifugo/engine/engineredis"
+
+	// Embedded web interface.
+	_ "github.com/centrifugal/centrifugo/libcentrifugo/statik"
 )
 
 // Version of Centrifugo server. Set on build stage.
@@ -117,16 +121,16 @@ func Main() {
 	var apiPort string
 	var adminPort string
 
-	var redisHost string
-	var redisPort string
-	var redisPassword string
-	var redisDB string
-	var redisURL string
-	var redisAPI bool
-	var redisPool int
-	var redisAPINumShards int
-	var redisMasterName string
-	var redisSentinels string
+	// var redisHost string
+	// var redisPort string
+	// var redisPassword string
+	// var redisDB string
+	// var redisURL string
+	// var redisAPI bool
+	// var redisPool int
+	// var redisAPINumShards int
+	// var redisMasterName string
+	// var redisSentinels string
 
 	var rootCmd = &cobra.Command{
 		Use:   "",
@@ -259,53 +263,12 @@ func Main() {
 
 			engineName := viper.GetString("engine")
 
-			switch engineName {
-			case "memory":
-				e = engine.NewMemoryEngine(app)
-			case "redis":
-				masterName := viper.GetString("redis_master_name")
-				sentinels := viper.GetString("redis_sentinels")
-				if masterName != "" && sentinels == "" {
-					logger.FATAL.Fatalf("Provide at least one Sentinel address")
-				}
-
-				sentinelAddrs := []string{}
-				if sentinels != "" {
-					for _, addr := range strings.Split(sentinels, ",") {
-						addr := strings.TrimSpace(addr)
-						if addr == "" {
-							continue
-						}
-						if _, _, err := net.SplitHostPort(addr); err != nil {
-							logger.FATAL.Fatalf("Malformed Sentinel address: %s", addr)
-						}
-						sentinelAddrs = append(sentinelAddrs, addr)
-					}
-				}
-
-				if len(sentinelAddrs) > 0 && masterName == "" {
-					logger.FATAL.Fatalln("Redis master name required when Sentinel used")
-				}
-
-				redisConf := &engine.RedisEngineConfig{
-					Host:           viper.GetString("redis_host"),
-					Port:           viper.GetString("redis_port"),
-					Password:       viper.GetString("redis_password"),
-					DB:             viper.GetString("redis_db"),
-					URL:            viper.GetString("redis_url"),
-					PoolSize:       viper.GetInt("redis_pool"),
-					API:            viper.GetBool("redis_api"),
-					NumAPIShards:   viper.GetInt("redis_api_num_shards"),
-					MasterName:     masterName,
-					SentinelAddrs:  sentinelAddrs,
-					ConnectTimeout: time.Duration(viper.GetInt("redis_connect_timeout")) * time.Second,
-					ReadTimeout:    time.Duration(viper.GetInt("node_ping_interval")*3+1) * time.Second,
-					WriteTimeout:   time.Duration(viper.GetInt("redis_write_timeout")) * time.Second,
-				}
-				e = engine.NewRedisEngine(app, redisConf)
-			default:
+			factory, ok := plugin.EngineFactories[engineName]
+			if !ok {
 				logger.FATAL.Fatalln("Unknown engine: " + engineName)
 			}
+
+			e = factory(app, viper.GetViper())
 
 			logger.INFO.Println("Engine:", e.Name())
 			logger.TRACE.Printf("%v\n", viper.AllSettings())
@@ -435,16 +398,16 @@ func Main() {
 	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "debug", "set the log level: trace, debug, info, error, critical, fatal or none")
 	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified all logs go to STDOUT")
 
-	rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisPort, "redis_port", "", "6379", "redis port (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisPassword, "redis_password", "", "", "redis auth password (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisDB, "redis_db", "", "0", "redis database (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisURL, "redis_url", "", "", "redis connection URL (Redis engine)")
-	rootCmd.Flags().BoolVarP(&redisAPI, "redis_api", "", false, "enable Redis API listener (Redis engine)")
-	rootCmd.Flags().IntVarP(&redisPool, "redis_pool", "", 256, "Redis pool size (Redis engine)")
-	rootCmd.Flags().IntVarP(&redisAPINumShards, "redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisMasterName, "redis_master_name", "", "", "Name of Redis master Sentinel monitors (Redis engine)")
-	rootCmd.Flags().StringVarP(&redisSentinels, "redis_sentinels", "", "", "Comma separated list of Sentinels (Redis engine)")
+	// rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")
+	// rootCmd.Flags().StringVarP(&redisPort, "redis_port", "", "6379", "redis port (Redis engine)")
+	// rootCmd.Flags().StringVarP(&redisPassword, "redis_password", "", "", "redis auth password (Redis engine)")
+	// rootCmd.Flags().StringVarP(&redisDB, "redis_db", "", "0", "redis database (Redis engine)")
+	// rootCmd.Flags().StringVarP(&redisURL, "redis_url", "", "", "redis connection URL (Redis engine)")
+	// rootCmd.Flags().BoolVarP(&redisAPI, "redis_api", "", false, "enable Redis API listener (Redis engine)")
+	// rootCmd.Flags().IntVarP(&redisPool, "redis_pool", "", 256, "Redis pool size (Redis engine)")
+	// rootCmd.Flags().IntVarP(&redisAPINumShards, "redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
+	// rootCmd.Flags().StringVarP(&redisMasterName, "redis_master_name", "", "", "Name of Redis master Sentinel monitors (Redis engine)")
+	// rootCmd.Flags().StringVarP(&redisSentinels, "redis_sentinels", "", "", "Comma separated list of Sentinels (Redis engine)")
 
 	var versionCmd = &cobra.Command{
 		Use:   "version",

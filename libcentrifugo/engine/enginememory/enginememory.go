@@ -1,4 +1,4 @@
-package engine
+package enginememory
 
 import (
 	"container/heap"
@@ -7,22 +7,28 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
+	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
+	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/priority"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
+
+func init() {
+	plugin.RegisterEngine("memory", NewMemoryEngine)
+}
 
 // MemoryEngine allows to run Centrifugo without using Redis at all.
 // All data managed inside process memory. With this engine you can
 // only run single Centrifugo node. If you need to scale you should
 // use Redis engine instead.
 type MemoryEngine struct {
-	node        Node
+	node        engine.Node
 	presenceHub *memoryPresenceHub
 	historyHub  *memoryHistoryHub
 }
 
 // NewMemoryEngine initializes Memory Engine.
-func NewMemoryEngine(node Node) *MemoryEngine {
+func NewMemoryEngine(node engine.Node, config plugin.ConfigGetter) engine.Engine {
 	e := &MemoryEngine{
 		node:        node,
 		presenceHub: newMemoryPresenceHub(),
