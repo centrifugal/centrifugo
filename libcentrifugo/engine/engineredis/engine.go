@@ -24,7 +24,47 @@ func init() {
 	plugin.RegisterConfigurator("redis", RedisEngineConfigure)
 }
 
-func RedisEngineConfigure(plugin.ConfigSetter) error {
+func RedisEngineConfigure(setter plugin.ConfigSetter) error {
+
+	setter.SetDefault("redis_connect_timeout", 1)
+	setter.SetDefault("redis_write_timeout", 1)
+
+	var redisHost string
+	var redisPort string
+	var redisPassword string
+	var redisDB string
+	var redisURL string
+	var redisAPI bool
+	var redisPool int
+	var redisAPINumShards int
+	var redisMasterName string
+	var redisSentinels string
+
+	setter.StringFlag(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")
+	setter.StringFlag(&redisPort, "redis_port", "", "6379", "redis port (Redis engine)")
+	setter.StringFlag(&redisPassword, "redis_password", "", "", "redis auth password (Redis engine)")
+	setter.StringFlag(&redisDB, "redis_db", "", "0", "redis database (Redis engine)")
+	setter.StringFlag(&redisURL, "redis_url", "", "", "redis connection URL (Redis engine)")
+	setter.BoolFlag(&redisAPI, "redis_api", "", false, "enable Redis API listener (Redis engine)")
+	setter.IntFlag(&redisPool, "redis_pool", "", 256, "Redis pool size (Redis engine)")
+	setter.IntFlag(&redisAPINumShards, "redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
+	setter.StringFlag(&redisMasterName, "redis_master_name", "", "", "Name of Redis master Sentinel monitors (Redis engine)")
+	setter.StringFlag(&redisSentinels, "redis_sentinels", "", "", "Comma separated list of Sentinels (Redis engine)")
+
+	bindFlags := []string{
+		"redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
+		"redis_api", "redis_pool", "redis_api_num_shards", "redis_master_name", "redis_sentinels",
+	}
+
+	for _, flag := range bindFlags {
+		setter.BindFlag(flag, flag)
+	}
+
+	bindEnvs := []string{"redis_host", "redis_port", "redis_url"}
+	for _, env := range bindEnvs {
+		setter.BindEnv(env)
+	}
+
 	return nil
 }
 
@@ -299,78 +339,9 @@ func newPool(conf *RedisEngineConfig) *redis.Pool {
 	}
 }
 
-func yesno(condition bool) string {
-	if condition {
-		return "yes"
-	}
-	return "no"
-}
-
-// pubScriptSource contains lua script we register in Redis to call when publishing
-// client proto. It publishes message into channel and adds message to history
-// list maintaining history size and expiration time. This is an optimization to make
-// 1 round trip to Redis instead of 2.
-// KEYS[1] - history list key
-// ARGV[1] - channel to publish message to
-// ARGV[2] - message payload
-// ARGV[3] - history size
-// ARGV[4] - history lifetime
-// ARGV[5] - history drop inactive flag - "0" or "1"
-var pubScriptSource = `
-local n = redis.call("publish", ARGV[1], ARGV[2])
-local m = 0
-if ARGV[5] == "1" and n == 0 then
-  m = redis.call("lpushx", KEYS[1], ARGV[2])
-else
-  m = redis.call("lpush", KEYS[1], ARGV[2])
-end
-if m > 0 then
-  redis.call("ltrim", KEYS[1], 0, ARGV[3])
-  redis.call("expire", KEYS[1], ARGV[4])
-end
-return n
-	`
-
-// KEYS[1] - presence set key
-// KEYS[2] - presence hash key
-// ARGV[1] - key expire seconds
-// ARGV[2] - expire at for set member
-// ARGV[3] - uid
-// ARGV[4] - info payload
-var addPresenceSource = `
-redis.call("zadd", KEYS[1], ARGV[2], ARGV[3])
-redis.call("hset", KEYS[2], ARGV[3], ARGV[4])
-redis.call("expire", KEYS[1], ARGV[1])
-redis.call("expire", KEYS[2], ARGV[1])
-	`
-
-// KEYS[1] - presence set key
-// KEYS[2] - presence hash key
-// ARGV[1] - uid
-var remPresenceSource = `
-redis.call("hdel", KEYS[2], ARGV[1])
-redis.call("zrem", KEYS[1], ARGV[1])
-	`
-
-// KEYS[1] - presence set key
-// KEYS[2] - presence hash key
-// ARGV[1] - now string
-var presenceSource = `
-local expired = redis.call("zrangebyscore", KEYS[1], "0", ARGV[1])
-if #expired > 0 then
-  for num = 1, #expired do
-    redis.call("hdel", KEYS[2], expired[num])
-  end
-  redis.call("zremrangebyscore", KEYS[1], "0", ARGV[1])
-end
-return redis.call("hgetall", KEYS[2])
-	`
-
-// NewRedisEngine initializes Redis Engine.
-func NewRedisEngine(node engine.Node, config plugin.ConfigGetter) engine.Engine {
-
-	masterName := config.GetString("redis_master_name")
-	sentinels := config.GetString("redis_sentinels")
+func getRedisEngineConfig(getter plugin.ConfigGetter) *RedisEngineConfig {
+	masterName := getter.GetString("redis_master_name")
+	sentinels := getter.GetString("redis_sentinels")
 	if masterName != "" && sentinels == "" {
 		logger.FATAL.Fatalf("Provide at least one Sentinel address")
 	}
@@ -394,28 +365,34 @@ func NewRedisEngine(node engine.Node, config plugin.ConfigGetter) engine.Engine 
 	}
 
 	conf := &RedisEngineConfig{
-		Host:           config.GetString("redis_host"),
-		Port:           config.GetString("redis_port"),
-		Password:       config.GetString("redis_password"),
-		DB:             config.GetString("redis_db"),
-		URL:            config.GetString("redis_url"),
-		PoolSize:       config.GetInt("redis_pool"),
-		API:            config.GetBool("redis_api"),
-		NumAPIShards:   config.GetInt("redis_api_num_shards"),
+		Host:           getter.GetString("redis_host"),
+		Port:           getter.GetString("redis_port"),
+		Password:       getter.GetString("redis_password"),
+		DB:             getter.GetString("redis_db"),
+		URL:            getter.GetString("redis_url"),
+		PoolSize:       getter.GetInt("redis_pool"),
+		API:            getter.GetBool("redis_api"),
+		NumAPIShards:   getter.GetInt("redis_api_num_shards"),
 		MasterName:     masterName,
 		SentinelAddrs:  sentinelAddrs,
-		ConnectTimeout: time.Duration(config.GetInt("redis_connect_timeout")) * time.Second,
-		ReadTimeout:    time.Duration(config.GetInt("node_ping_interval")*3+1) * time.Second,
-		WriteTimeout:   time.Duration(config.GetInt("redis_write_timeout")) * time.Second,
+		ConnectTimeout: time.Duration(getter.GetInt("redis_connect_timeout")) * time.Second,
+		ReadTimeout:    time.Duration(getter.GetInt("node_ping_interval")*3+1) * time.Second,
+		WriteTimeout:   time.Duration(getter.GetInt("redis_write_timeout")) * time.Second,
 	}
 
-	pool := newPool(conf)
+	return conf
+}
+
+// NewRedisEngine initializes Redis Engine.
+func NewRedisEngine(node engine.Node, getter plugin.ConfigGetter) engine.Engine {
+
+	conf := getRedisEngineConfig(getter)
 
 	e := &RedisEngine{
 		node:              node,
 		nodeConfig:        node.Config(),
 		config:            conf,
-		pool:              pool,
+		pool:              newPool(conf),
 		api:               conf.API,
 		numApiShards:      conf.NumAPIShards,
 		pubScript:         redis.NewScript(1, pubScriptSource),
@@ -432,6 +409,75 @@ func NewRedisEngine(node engine.Node, config plugin.ConfigGetter) engine.Engine 
 	e.leavePrefix = channelPrefix + RedisLeaveChannelPrefix
 	return e
 }
+
+func yesno(condition bool) string {
+	if condition {
+		return "yes"
+	}
+	return "no"
+}
+
+var (
+	// pubScriptSource contains lua script we register in Redis to call when publishing
+	// client proto. It publishes message into channel and adds message to history
+	// list maintaining history size and expiration time. This is an optimization to make
+	// 1 round trip to Redis instead of 2.
+	// KEYS[1] - history list key
+	// ARGV[1] - channel to publish message to
+	// ARGV[2] - message payload
+	// ARGV[3] - history size
+	// ARGV[4] - history lifetime
+	// ARGV[5] - history drop inactive flag - "0" or "1"
+	pubScriptSource = `
+local n = redis.call("publish", ARGV[1], ARGV[2])
+local m = 0
+if ARGV[5] == "1" and n == 0 then
+  m = redis.call("lpushx", KEYS[1], ARGV[2])
+else
+  m = redis.call("lpush", KEYS[1], ARGV[2])
+end
+if m > 0 then
+  redis.call("ltrim", KEYS[1], 0, ARGV[3])
+  redis.call("expire", KEYS[1], ARGV[4])
+end
+return n
+	`
+
+	// KEYS[1] - presence set key
+	// KEYS[2] - presence hash key
+	// ARGV[1] - key expire seconds
+	// ARGV[2] - expire at for set member
+	// ARGV[3] - uid
+	// ARGV[4] - info payload
+	addPresenceSource = `
+redis.call("zadd", KEYS[1], ARGV[2], ARGV[3])
+redis.call("hset", KEYS[2], ARGV[3], ARGV[4])
+redis.call("expire", KEYS[1], ARGV[1])
+redis.call("expire", KEYS[2], ARGV[1])
+	`
+
+	// KEYS[1] - presence set key
+	// KEYS[2] - presence hash key
+	// ARGV[1] - uid
+	remPresenceSource = `
+redis.call("hdel", KEYS[2], ARGV[1])
+redis.call("zrem", KEYS[1], ARGV[1])
+	`
+
+	// KEYS[1] - presence set key
+	// KEYS[2] - presence hash key
+	// ARGV[1] - now string
+	presenceSource = `
+local expired = redis.call("zrangebyscore", KEYS[1], "0", ARGV[1])
+if #expired > 0 then
+  for num = 1, #expired do
+    redis.call("hdel", KEYS[2], expired[num])
+  end
+  redis.call("zremrangebyscore", KEYS[1], "0", ARGV[1])
+end
+return redis.call("hgetall", KEYS[2])
+	`
+)
 
 func (e *RedisEngine) Name() string {
 	return "Redis"

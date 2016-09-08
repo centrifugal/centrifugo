@@ -121,17 +121,6 @@ func Main() {
 	var apiPort string
 	var adminPort string
 
-	// var redisHost string
-	// var redisPort string
-	// var redisPassword string
-	// var redisDB string
-	// var redisURL string
-	// var redisAPI bool
-	// var redisPool int
-	// var redisAPINumShards int
-	// var redisMasterName string
-	// var redisSentinels string
-
 	var rootCmd = &cobra.Command{
 		Use:   "",
 		Short: "Centrifugo",
@@ -168,9 +157,6 @@ func Main() {
 			viper.SetDefault("client_channel_boundary", "&")
 			viper.SetDefault("sockjs_url", "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js")
 
-			viper.SetDefault("redis_connect_timeout", 1)
-			viper.SetDefault("redis_write_timeout", 1)
-
 			viper.SetDefault("secret", "")
 			viper.SetDefault("connection_lifetime", 0)
 			viper.SetDefault("watch", false)
@@ -189,7 +175,6 @@ func Main() {
 				"debug", "engine", "insecure", "insecure_api", "web", "admin", "admin_password", "admin_secret",
 				"insecure_web", "insecure_admin", "secret", "connection_lifetime", "watch", "publish", "anonymous",
 				"join_leave", "presence", "recover", "history_size", "history_lifetime", "history_drop_inactive",
-				"redis_host", "redis_port", "redis_url",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -198,8 +183,7 @@ func Main() {
 			bindPFlags := []string{
 				"port", "api_port", "admin_port", "address", "debug", "name", "admin", "insecure_admin", "web",
 				"web_path", "insecure_web", "engine", "insecure", "insecure_api", "ssl", "ssl_cert", "ssl_key",
-				"log_level", "log_file", "redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
-				"redis_api", "redis_pool", "redis_api_num_shards", "redis_master_name", "redis_sentinels",
+				"log_level", "log_file",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -259,15 +243,13 @@ func Main() {
 				logger.WARN.Println("Running in INSECURE admin mode")
 			}
 
-			var e engine.Engine
-
 			engineName := viper.GetString("engine")
-
 			factory, ok := plugin.EngineFactories[engineName]
 			if !ok {
 				logger.FATAL.Fatalln("Unknown engine: " + engineName)
 			}
 
+			var e engine.Engine
 			e = factory(app, viper.GetViper())
 
 			logger.INFO.Println("Engine:", e.Name())
@@ -377,6 +359,7 @@ func Main() {
 			wg.Wait()
 		},
 	}
+
 	rootCmd.Flags().StringVarP(&port, "port", "p", "8000", "port to bind to")
 	rootCmd.Flags().StringVarP(&address, "address", "a", "", "address to listen on")
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "debug mode - please, do not use it in production")
@@ -398,16 +381,9 @@ func Main() {
 	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "debug", "set the log level: trace, debug, info, error, critical, fatal or none")
 	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified all logs go to STDOUT")
 
-	// rootCmd.Flags().StringVarP(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")
-	// rootCmd.Flags().StringVarP(&redisPort, "redis_port", "", "6379", "redis port (Redis engine)")
-	// rootCmd.Flags().StringVarP(&redisPassword, "redis_password", "", "", "redis auth password (Redis engine)")
-	// rootCmd.Flags().StringVarP(&redisDB, "redis_db", "", "0", "redis database (Redis engine)")
-	// rootCmd.Flags().StringVarP(&redisURL, "redis_url", "", "", "redis connection URL (Redis engine)")
-	// rootCmd.Flags().BoolVarP(&redisAPI, "redis_api", "", false, "enable Redis API listener (Redis engine)")
-	// rootCmd.Flags().IntVarP(&redisPool, "redis_pool", "", 256, "Redis pool size (Redis engine)")
-	// rootCmd.Flags().IntVarP(&redisAPINumShards, "redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
-	// rootCmd.Flags().StringVarP(&redisMasterName, "redis_master_name", "", "", "Name of Redis master Sentinel monitors (Redis engine)")
-	// rootCmd.Flags().StringVarP(&redisSentinels, "redis_sentinels", "", "", "Comma separated list of Sentinels (Redis engine)")
+	for _, configurator := range plugin.Configurators {
+		configurator(plugin.NewViperConfigSetter(viper.GetViper(), rootCmd.Flags()))
+	}
 
 	var versionCmd = &cobra.Command{
 		Use:   "version",
