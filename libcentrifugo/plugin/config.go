@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 )
 
 type ConfigSetter interface {
@@ -21,7 +22,7 @@ type ConfigGetter interface {
 	IsSet(string) bool
 }
 
-type EngineFactory func(engine.Node, ConfigGetter) engine.Engine
+type EngineFactory func(node.Node, ConfigGetter) engine.Engine
 
 type Configurator func(ConfigSetter) error
 
