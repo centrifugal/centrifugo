@@ -8,9 +8,9 @@ type ConfigSetter interface {
 	SetDefault(key string, value interface{})
 	BindEnv(key string)
 	BindFlag(key string, flagName string)
-	StringFlag(p *string, name, shorthand string, value string, usage string)
-	BoolFlag(p *bool, name, shorthand string, value bool, usage string)
-	IntFlag(p *int, name, shorthand string, value int, usage string)
+	StringFlag(name, shorthand string, value string, usage string)
+	BoolFlag(name, shorthand string, value bool, usage string)
+	IntFlag(name, shorthand string, value int, usage string)
 }
 
 type ConfigGetter interface {

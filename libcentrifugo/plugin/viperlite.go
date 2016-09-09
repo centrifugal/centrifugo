@@ -18,16 +18,19 @@ func NewViperConfigSetter(v *viper.Viper, fs *pflag.FlagSet) ConfigSetter {
 	}
 }
 
-func (s *viperConfigSetter) StringFlag(p *string, name, shorthand string, value string, usage string) {
-	s.flagSet.StringVarP(p, name, shorthand, value, usage)
+func (s *viperConfigSetter) StringFlag(name, shorthand string, value string, usage string) {
+	var p string
+	s.flagSet.StringVarP(&p, name, shorthand, value, usage)
 }
 
-func (s *viperConfigSetter) BoolFlag(p *bool, name, shorthand string, value bool, usage string) {
-	s.flagSet.BoolVarP(p, name, shorthand, value, usage)
+func (s *viperConfigSetter) BoolFlag(name, shorthand string, value bool, usage string) {
+	var p bool
+	s.flagSet.BoolVarP(&p, name, shorthand, value, usage)
 }
 
-func (s *viperConfigSetter) IntFlag(p *int, name, shorthand string, value int, usage string) {
-	s.flagSet.IntVarP(p, name, shorthand, value, usage)
+func (s *viperConfigSetter) IntFlag(name, shorthand string, value int, usage string) {
+	var p int
+	s.flagSet.IntVarP(&p, name, shorthand, value, usage)
 }
 
 func (s *viperConfigSetter) SetDefault(key string, value interface{}) {

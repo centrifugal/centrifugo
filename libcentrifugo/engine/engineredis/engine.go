@@ -29,27 +29,16 @@ func RedisEngineConfigure(setter plugin.ConfigSetter) error {
 	setter.SetDefault("redis_connect_timeout", 1)
 	setter.SetDefault("redis_write_timeout", 1)
 
-	var redisHost string
-	var redisPort string
-	var redisPassword string
-	var redisDB string
-	var redisURL string
-	var redisAPI bool
-	var redisPool int
-	var redisAPINumShards int
-	var redisMasterName string
-	var redisSentinels string
-
-	setter.StringFlag(&redisHost, "redis_host", "", "127.0.0.1", "redis host (Redis engine)")
-	setter.StringFlag(&redisPort, "redis_port", "", "6379", "redis port (Redis engine)")
-	setter.StringFlag(&redisPassword, "redis_password", "", "", "redis auth password (Redis engine)")
-	setter.StringFlag(&redisDB, "redis_db", "", "0", "redis database (Redis engine)")
-	setter.StringFlag(&redisURL, "redis_url", "", "", "redis connection URL (Redis engine)")
-	setter.BoolFlag(&redisAPI, "redis_api", "", false, "enable Redis API listener (Redis engine)")
-	setter.IntFlag(&redisPool, "redis_pool", "", 256, "Redis pool size (Redis engine)")
-	setter.IntFlag(&redisAPINumShards, "redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
-	setter.StringFlag(&redisMasterName, "redis_master_name", "", "", "Name of Redis master Sentinel monitors (Redis engine)")
-	setter.StringFlag(&redisSentinels, "redis_sentinels", "", "", "Comma separated list of Sentinels (Redis engine)")
+	setter.StringFlag("redis_host", "", "127.0.0.1", "redis host (Redis engine)")
+	setter.StringFlag("redis_port", "", "6379", "redis port (Redis engine)")
+	setter.StringFlag("redis_password", "", "", "redis auth password (Redis engine)")
+	setter.StringFlag("redis_db", "", "0", "redis database (Redis engine)")
+	setter.StringFlag("redis_url", "", "", "redis connection URL (Redis engine)")
+	setter.BoolFlag("redis_api", "", false, "enable Redis API listener (Redis engine)")
+	setter.IntFlag("redis_pool", "", 256, "Redis pool size (Redis engine)")
+	setter.IntFlag("redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
+	setter.StringFlag("redis_master_name", "", "", "Name of Redis master Sentinel monitors (Redis engine)")
+	setter.StringFlag("redis_sentinels", "", "", "Comma separated list of Sentinels (Redis engine)")
 
 	bindFlags := []string{
 		"redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
