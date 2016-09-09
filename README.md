@@ -1,8 +1,8 @@
 [![Join the chat at https://gitter.im/centrifugal/centrifugo](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/centrifugal/centrifugo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-Centrifugo is a real-time messaging server. It can be used in conjunction with your application backend written in any language - Python, Ruby, Perl, PHP, Javascript, Java, Objective-C etc.
+Centrifugo is a real-time messaging server. It's language-agnostic and can be used in conjunction with application backend written in any language - Python, Ruby, Perl, PHP, Javascript, Java, Objective-C etc.
 
-In a nutshell this is a server running near your application and keeping lots of persistent Websocket or SockJS connections from your application clients (from [web](https://github.com/centrifugal/centrifuge-js) browsers or other environments like [iOS](https://github.com/centrifugal/centrifuge-ios) or [Android](https://github.com/centrifugal/centrifuge-android) apps). When some event happens you can broadcast it to all interested clients using Centrifugo API.
+Centrifugo runs as separate service and keeps persistent Websocket or SockJS connections from your application clients (from [web](https://github.com/centrifugal/centrifuge-js) browsers or other environments like [iOS](https://github.com/centrifugal/centrifuge-ios) or [Android](https://github.com/centrifugal/centrifuge-android) apps). When some event happens you can broadcast it to all interested clients using Centrifugo API.
 
 Read [documentation](http://fzambia.gitbooks.io/centrifugal/content/) to get details. You can also find [this introduction post](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) interesting – this is a story behind Centrifugo.
 
