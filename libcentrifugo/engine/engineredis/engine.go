@@ -14,9 +14,9 @@ import (
 	"github.com/FZambia/go-sentinel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
-	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
+	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/garyburd/redigo/redis"
 )
 
@@ -95,7 +95,7 @@ const (
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
 	sync.RWMutex
-	node              node.Node
+	node              server.Node
 	nodeConfig        config.Config
 	config            *RedisEngineConfig
 	pool              *redis.Pool
@@ -374,7 +374,7 @@ func getRedisEngineConfig(getter plugin.ConfigGetter) *RedisEngineConfig {
 }
 
 // NewRedisEngine initializes Redis Engine.
-func NewRedisEngine(n node.Node, getter plugin.ConfigGetter) engine.Engine {
+func NewRedisEngine(n server.Node, getter plugin.ConfigGetter) engine.Engine {
 
 	conf := getRedisEngineConfig(getter)
 

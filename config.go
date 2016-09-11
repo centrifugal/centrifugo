@@ -23,7 +23,28 @@ func newConfig() *config.Config {
 	cfg.Name = getApplicationName()
 	cfg.Debug = viper.GetBool("debug")
 	cfg.Admin = viper.GetBool("admin") || viper.GetBool("web")
+
 	cfg.Web = viper.GetBool("web")
+	cfg.WebPath = viper.GetString("web_path")
+
+	cfg.HTTPAddress = viper.GetString("address")
+	cfg.HTTPPort = viper.GetString("port")
+	cfg.HTTPAdminPort = viper.GetString("admin_port")
+	cfg.HTTPAPIPort = viper.GetString("api_port")
+
+	if viper.GetBool("ssl") {
+		cfg.SSL = true
+		if viper.GetString("ssl_cert") == "" {
+			logger.FATAL.Println("No SSL certificate provided")
+			os.Exit(1)
+		}
+		cfg.SSLCert = viper.GetString("ssl_cert")
+		if viper.GetString("ssl_key") == "" {
+			logger.FATAL.Println("No SSL certificate key provided")
+			os.Exit(1)
+		}
+		cfg.SSLKey = viper.GetString("ssl_key")
+	}
 
 	adminPassword := viper.GetString("admin_password")
 	if adminPassword == "" {

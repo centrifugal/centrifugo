@@ -1,5 +1,5 @@
-// Package node is a real-time core for Centrifugo server.
-package node
+// Package server is a real-time core for Centrifugo server.
+package server
 
 import (
 	"encoding/json"
@@ -60,9 +60,9 @@ type Application struct {
 	metrics *metrics.MetricsRegistry
 }
 
-// NewApplication returns new Application instance, the only required argument is
+// New returns new Application instance, the only required argument is
 // config, structure and engine must be set via corresponding methods.
-func NewApplication(c *config.Config) (*Application, error) {
+func New(c *config.Config) (Server, error) {
 	app := &Application{
 		uid:        uuid.NewV4().String(),
 		config:     c,
@@ -97,7 +97,7 @@ func (app *Application) Run() error {
 	go app.cleanNodeInfo()
 	go app.updateMetrics()
 
-	return nil
+	return app.runHTTPServer()
 }
 
 // Shutdown sets shutdown flag and does various connection clean ups (at moment only unsubscribes

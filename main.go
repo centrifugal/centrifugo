@@ -2,25 +2,20 @@ package main
 
 import (
 	"fmt"
-	"net"
-	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
-	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
-	"github.com/rakyll/statik/fs"
+	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/spf13/cobra"
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
 
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/engine/engineredis"
@@ -47,7 +42,7 @@ func setupLogging() {
 	}
 }
 
-func handleSignals(app *node.Application) {
+func handleSignals(srv server.Server) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -70,28 +65,15 @@ func handleSignals(app *node.Application) {
 			}
 			setupLogging()
 			c := newConfig()
-			app.SetConfig(c)
+			srv.SetConfig(c)
 			logger.INFO.Println("Configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
 			logger.INFO.Println("Shutting down")
 			go time.AfterFunc(10*time.Second, func() {
 				os.Exit(1)
 			})
-			app.Shutdown()
+			srv.Shutdown()
 			os.Exit(0)
-		}
-	}
-}
-
-func listenHTTP(mux http.Handler, addr string, useSSL bool, sslCert, sslKey string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	if useSSL {
-		if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
-			logger.FATAL.Fatalln("ListenAndServe:", err)
-		}
-	} else {
-		if err := http.ListenAndServe(addr, mux); err != nil {
-			logger.FATAL.Fatalln("ListenAndServe:", err)
 		}
 	}
 }
@@ -211,6 +193,7 @@ func Main() {
 			}
 
 			setupLogging()
+			logger.TRACE.Printf("%v\n", viper.AllSettings())
 
 			if os.Getenv("GOMAXPROCS") == "" {
 				if viper.IsSet("gomaxprocs") && viper.GetInt("gomaxprocs") > 0 {
@@ -228,7 +211,7 @@ func Main() {
 				logger.FATAL.Fatalln(err)
 			}
 
-			app, err := node.NewApplication(c)
+			srv, err := server.New(c)
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
@@ -244,119 +227,20 @@ func Main() {
 			}
 
 			engineName := viper.GetString("engine")
-			factory, ok := plugin.EngineFactories[engineName]
+			engineFactory, ok := plugin.EngineFactories[engineName]
 			if !ok {
 				logger.FATAL.Fatalln("Unknown engine: " + engineName)
 			}
 
 			var e engine.Engine
-			e = factory(app, viper.GetViper())
-
+			e = engineFactory(srv.(server.Node), viper.GetViper())
 			logger.INFO.Println("Engine:", e.Name())
-			logger.TRACE.Printf("%v\n", viper.AllSettings())
-			logger.INFO.Println("Use SSL:", viper.GetBool("ssl"))
-			if viper.GetBool("ssl") {
-				if viper.GetString("ssl_cert") == "" {
-					logger.FATAL.Println("No SSL certificate provided")
-					os.Exit(1)
-				}
-				if viper.GetString("ssl_key") == "" {
-					logger.FATAL.Println("No SSL certificate key provided")
-					os.Exit(1)
-				}
-			}
-			app.SetEngine(e)
-			err = app.Run()
-			if err != nil {
+
+			srv.SetEngine(e)
+			go handleSignals(srv)
+			if err = srv.Run(); err != nil {
 				logger.FATAL.Fatalln(err)
 			}
-
-			go handleSignals(app)
-
-			sockjsOpts := sockjs.DefaultOptions
-
-			// Override sockjs url. It's important to use the same SockJS library version
-			// on client and server sides when using iframe based SockJS transports, otherwise
-			// SockJS will raise error about version mismatch.
-			sockjsURL := viper.GetString("sockjs_url")
-			if sockjsURL != "" {
-				logger.INFO.Println("SockJS url:", sockjsURL)
-				sockjsOpts.SockJSURL = sockjsURL
-			}
-			if c.PingInterval < time.Second {
-				logger.FATAL.Fatalln("Ping interval can not be less than one second.")
-			}
-			sockjsOpts.HeartbeatDelay = c.PingInterval
-
-			webEnabled := viper.GetBool("web")
-
-			var webFS http.FileSystem
-			if webEnabled {
-				webFS, _ = fs.New()
-			}
-
-			adminEnabled := viper.GetBool("admin")
-			if webEnabled {
-				adminEnabled = true
-			}
-
-			clientPort := viper.GetString("port")
-
-			apiPort := viper.GetString("api_port")
-			if apiPort == "" {
-				apiPort = clientPort
-			}
-
-			adminPort := viper.GetString("admin_port")
-			if adminPort == "" {
-				adminPort = clientPort
-			}
-
-			// portToHandlerFlags contains mapping between ports and handler flags
-			// to serve on this port.
-			portToHandlerFlags := map[string]node.HandlerFlag{}
-
-			var portFlags node.HandlerFlag
-
-			portFlags = portToHandlerFlags[clientPort]
-			portFlags |= node.HandlerRawWS | node.HandlerSockJS
-			portToHandlerFlags[clientPort] = portFlags
-
-			portFlags = portToHandlerFlags[apiPort]
-			portFlags |= node.HandlerAPI
-			portToHandlerFlags[apiPort] = portFlags
-
-			portFlags = portToHandlerFlags[adminPort]
-			if adminEnabled {
-				portFlags |= node.HandlerAdmin
-			}
-			if viper.GetBool("debug") {
-				portFlags |= node.HandlerDebug
-			}
-			portToHandlerFlags[adminPort] = portFlags
-
-			var wg sync.WaitGroup
-			// Iterate over port to flags mapping and start HTTP servers
-			// on separate ports serving handlers specified in flags.
-			for handlerPort, handlerFlags := range portToHandlerFlags {
-				muxOpts := node.MuxOptions{
-					Prefix:        viper.GetString("prefix"),
-					Admin:         adminEnabled,
-					Web:           webEnabled,
-					WebPath:       viper.GetString("web_path"),
-					WebFS:         webFS,
-					HandlerFlags:  handlerFlags,
-					SockjsOptions: sockjsOpts,
-				}
-				mux := node.DefaultMux(app, muxOpts)
-
-				addr := net.JoinHostPort(viper.GetString("address"), handlerPort)
-
-				logger.INFO.Printf("Start serving %s endpoints on %s\n", handlerFlags, addr)
-				wg.Add(1)
-				go listenHTTP(mux, addr, useSSL, sslCert, sslKey, &wg)
-			}
-			wg.Wait()
 		},
 	}
 

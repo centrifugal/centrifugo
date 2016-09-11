@@ -1,9 +1,24 @@
-package node
+package server
 
 import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
+	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
+
+type Server interface {
+	// SetConfig allows to set/update node config.
+	SetConfig(*config.Config)
+
+	// Run runs server.
+	Run() error
+
+	// SetEngine sets an engine to use.
+	SetEngine(engine.Engine)
+
+	// Shutdown shuts down server.
+	Shutdown() error
+}
 
 type Node interface {
 	// Config allows to get node Config.

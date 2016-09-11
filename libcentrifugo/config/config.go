@@ -89,6 +89,28 @@ type Config struct {
 	AdminSecret string `json:"-"`
 	// Web enables admin web interface.
 	Web bool `json:"web"`
+	// WebPath
+	WebPath string
+
+	HTTPAddress string
+
+	HTTPPrefix string
+
+	HTTPPort string
+
+	HTTPAdminPort string
+
+	HTTPAPIPort string
+
+	// SSL enables builtin https server.
+	SSL bool
+	// SSLCert is path to SSL certificate file.
+	SSLCert string
+	// SSLKey is path to SSL key file.
+	SSLKey string
+
+	// SockjsURL is a custom SockJS library url to use in iframe transports.
+	SockjsURL string
 
 	// ChannelPrefix is a string prefix before each channel.
 	ChannelPrefix string `json:"channel_prefix"`

@@ -1,17 +1,20 @@
-package node
+package server
 
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/websocket"
+	"github.com/rakyll/statik/fs"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
@@ -69,6 +72,115 @@ type MuxOptions struct {
 var DefaultMuxOptions = MuxOptions{
 	HandlerFlags:  HandlerRawWS | HandlerSockJS | HandlerAPI | HandlerAdmin,
 	SockjsOptions: sockjs.DefaultOptions,
+}
+
+func listenHTTP(mux http.Handler, addr string, useSSL bool, sslCert, sslKey string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	if useSSL {
+		if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
+			logger.FATAL.Fatalln("ListenAndServe:", err)
+		}
+	} else {
+		if err := http.ListenAndServe(addr, mux); err != nil {
+			logger.FATAL.Fatalln("ListenAndServe:", err)
+		}
+	}
+}
+
+func (app *Application) runHTTPServer() error {
+
+	app.RLock()
+	sockjsURL := app.config.SockjsURL
+	webEnabled := app.config.Web
+	webPath := app.config.WebPath
+	sslEnabled := app.config.SSL
+	sslCert := app.config.SSLCert
+	sslKey := app.config.SSLKey
+	adminEnabled := app.config.Admin
+	address := app.config.HTTPAddress
+	clientPort := app.config.HTTPPort
+	adminPort := app.config.HTTPAdminPort
+	apiPort := app.config.HTTPAPIPort
+	httpPrefix := app.config.HTTPPrefix
+	debug := app.config.Debug
+	pingInterval := app.config.PingInterval
+	app.RUnlock()
+
+	sockjsOpts := sockjs.DefaultOptions
+
+	// Override sockjs url. It's important to use the same SockJS library version
+	// on client and server sides when using iframe based SockJS transports, otherwise
+	// SockJS will raise error about version mismatch.
+	if sockjsURL != "" {
+		logger.INFO.Println("SockJS url:", sockjsURL)
+		sockjsOpts.SockJSURL = sockjsURL
+	}
+
+	sockjsOpts.HeartbeatDelay = pingInterval
+
+	var webFS http.FileSystem
+	if webEnabled {
+		webFS, _ = fs.New()
+	}
+
+	if webEnabled {
+		adminEnabled = true
+	}
+
+	if apiPort == "" {
+		apiPort = clientPort
+	}
+	if adminPort == "" {
+		adminPort = clientPort
+	}
+
+	// portToHandlerFlags contains mapping between ports and handler flags
+	// to serve on this port.
+	portToHandlerFlags := map[string]HandlerFlag{}
+
+	var portFlags HandlerFlag
+
+	portFlags = portToHandlerFlags[clientPort]
+	portFlags |= HandlerRawWS | HandlerSockJS
+	portToHandlerFlags[clientPort] = portFlags
+
+	portFlags = portToHandlerFlags[apiPort]
+	portFlags |= HandlerAPI
+	portToHandlerFlags[apiPort] = portFlags
+
+	portFlags = portToHandlerFlags[adminPort]
+	if adminEnabled {
+		portFlags |= HandlerAdmin
+	}
+	if debug {
+		portFlags |= HandlerDebug
+	}
+	portToHandlerFlags[adminPort] = portFlags
+
+	var wg sync.WaitGroup
+	// Iterate over port to flags mapping and start HTTP servers
+	// on separate ports serving handlers specified in flags.
+	for handlerPort, handlerFlags := range portToHandlerFlags {
+		muxOpts := MuxOptions{
+			Prefix:        httpPrefix,
+			Admin:         adminEnabled,
+			Web:           webEnabled,
+			WebPath:       webPath,
+			WebFS:         webFS,
+			HandlerFlags:  handlerFlags,
+			SockjsOptions: sockjsOpts,
+		}
+		mux := DefaultMux(app, muxOpts)
+
+		addr := net.JoinHostPort(address, handlerPort)
+
+		logger.INFO.Printf("Start serving %s endpoints on %s\n", handlerFlags, addr)
+		wg.Add(1)
+		go listenHTTP(mux, addr, sslEnabled, sslCert, sslKey, &wg)
+	}
+	wg.Wait()
+
+	return nil
 }
 
 // DefaultMux returns a mux including set of default handlers for Centrifugo server.
