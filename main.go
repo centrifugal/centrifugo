@@ -17,10 +17,11 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/spf13/cobra"
 
+	// Register builtin memory and redis engines.
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/engine/engineredis"
 
-	// Embedded web interface.
+	// Register embedded web interface.
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/statik"
 )
 
@@ -173,9 +174,6 @@ func Main() {
 
 			viper.SetConfigFile(configFile)
 
-			logger.INFO.Printf("Centrifugo version: %s", VERSION)
-			logger.INFO.Printf("Process PID: %d", os.Getpid())
-
 			absConfPath, err := filepath.Abs(configFile)
 			if err != nil {
 				logger.FATAL.Fatalln(err)
@@ -193,7 +191,6 @@ func Main() {
 			}
 
 			setupLogging()
-			logger.TRACE.Printf("%v\n", viper.AllSettings())
 
 			if os.Getenv("GOMAXPROCS") == "" {
 				if viper.IsSet("gomaxprocs") && viper.GetInt("gomaxprocs") > 0 {
@@ -202,8 +199,6 @@ func Main() {
 					runtime.GOMAXPROCS(runtime.NumCPU())
 				}
 			}
-
-			logger.INFO.Println("GOMAXPROCS:", runtime.GOMAXPROCS(0))
 
 			c := newConfig()
 			err = c.Validate()
@@ -224,10 +219,15 @@ func Main() {
 
 			var e engine.Engine
 			e = engineFactory(srv.(server.Node), viper.GetViper())
-			logger.INFO.Println("Engine:", e.Name())
 			srv.SetEngine(e)
 
 			go handleSignals(srv)
+
+			logger.TRACE.Printf("%v\n", viper.AllSettings())
+			logger.INFO.Printf("Centrifugo version: %s", VERSION)
+			logger.INFO.Printf("Process PID: %d", os.Getpid())
+			logger.INFO.Println("Engine:", e.Name())
+			logger.INFO.Println("GOMAXPROCS:", runtime.GOMAXPROCS(0))
 
 			if err = srv.Run(); err != nil {
 				logger.FATAL.Fatalln(err)
