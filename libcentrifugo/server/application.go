@@ -73,6 +73,7 @@ func New(c *config.Config) (Server, error) {
 		metrics:    metrics.NewMetricsRegistry(),
 		shutdownCh: make(chan struct{}),
 	}
+
 	return app, nil
 }
 
@@ -96,6 +97,21 @@ func (app *Application) Run() error {
 	go app.sendNodePingMsg()
 	go app.cleanNodeInfo()
 	go app.updateMetrics()
+
+	app.RLock()
+	if app.config.Insecure {
+		logger.WARN.Println("Running in INSECURE client mode")
+	}
+	if app.config.InsecureAPI {
+		logger.WARN.Println("Running in INSECURE API mode")
+	}
+	if app.config.InsecureAdmin {
+		logger.WARN.Println("Running in INSECURE admin mode")
+	}
+	if app.config.Debug {
+		logger.WARN.Println("Running in DEBUG mode")
+	}
+	app.RUnlock()
 
 	return app.runHTTPServer()
 }

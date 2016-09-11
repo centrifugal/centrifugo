@@ -237,6 +237,15 @@ func (c *Config) Validate() error {
 		nss = append(nss, name)
 	}
 
+	if c.SSL {
+		if c.SSLCert == "" {
+			return errors.New(errPrefix + "no SSL certificate provided")
+		}
+		if c.SSLKey == "" {
+			return errors.New(errPrefix + "no SSL certificate key provided")
+		}
+	}
+
 	return nil
 }
 

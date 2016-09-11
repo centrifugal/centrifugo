@@ -19,41 +19,33 @@ import (
 // newConfig creates new libcentrifugo.Config using viper.
 func newConfig() *config.Config {
 	cfg := &config.Config{}
+
 	cfg.Version = VERSION
 	cfg.Name = getApplicationName()
 	cfg.Debug = viper.GetBool("debug")
 	cfg.Admin = viper.GetBool("admin") || viper.GetBool("web")
-
 	cfg.Web = viper.GetBool("web")
 	cfg.WebPath = viper.GetString("web_path")
-
 	cfg.HTTPAddress = viper.GetString("address")
 	cfg.HTTPPort = viper.GetString("port")
 	cfg.HTTPAdminPort = viper.GetString("admin_port")
 	cfg.HTTPAPIPort = viper.GetString("api_port")
-
-	if viper.GetBool("ssl") {
-		cfg.SSL = true
-		if viper.GetString("ssl_cert") == "" {
-			logger.FATAL.Println("No SSL certificate provided")
-			os.Exit(1)
-		}
-		cfg.SSLCert = viper.GetString("ssl_cert")
-		if viper.GetString("ssl_key") == "" {
-			logger.FATAL.Println("No SSL certificate key provided")
-			os.Exit(1)
-		}
-		cfg.SSLKey = viper.GetString("ssl_key")
-	}
+	cfg.HTTPPrefix = viper.GetString("http_prefix")
+	cfg.SockjsURL = viper.GetString("sockjs_url")
+	cfg.SSL = viper.GetBool("ssl")
+	cfg.SSLCert = viper.GetString("ssl_cert")
+	cfg.SSLKey = viper.GetString("ssl_cert")
 
 	adminPassword := viper.GetString("admin_password")
 	if adminPassword == "" {
+		// For backwards compatibility.
 		adminPassword = viper.GetString("web_password")
 	}
 	cfg.AdminPassword = adminPassword
 
 	adminSecret := viper.GetString("admin_secret")
 	if adminSecret == "" {
+		// For backwards compatibility.
 		adminSecret = viper.GetString("web_secret")
 	}
 	cfg.AdminSecret = adminSecret

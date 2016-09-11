@@ -111,7 +111,7 @@ func Main() {
 
 			viper.SetDefault("gomaxprocs", 0)
 			viper.SetDefault("debug", false)
-			viper.SetDefault("prefix", "")
+			viper.SetDefault("http_prefix", "")
 			viper.SetDefault("web", false)
 			viper.SetDefault("web_path", "")
 			viper.SetDefault("admin_password", "")
@@ -216,16 +216,6 @@ func Main() {
 				logger.FATAL.Fatalln(err)
 			}
 
-			if c.Insecure {
-				logger.WARN.Println("Running in INSECURE client mode")
-			}
-			if c.InsecureAPI {
-				logger.WARN.Println("Running in INSECURE API mode")
-			}
-			if c.InsecureAdmin {
-				logger.WARN.Println("Running in INSECURE admin mode")
-			}
-
 			engineName := viper.GetString("engine")
 			engineFactory, ok := plugin.EngineFactories[engineName]
 			if !ok {
@@ -235,9 +225,10 @@ func Main() {
 			var e engine.Engine
 			e = engineFactory(srv.(server.Node), viper.GetViper())
 			logger.INFO.Println("Engine:", e.Name())
-
 			srv.SetEngine(e)
+
 			go handleSignals(srv)
+
 			if err = srv.Run(); err != nil {
 				logger.FATAL.Fatalln(err)
 			}
