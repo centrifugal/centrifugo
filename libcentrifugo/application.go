@@ -221,6 +221,10 @@ func (app *Application) controlMsg(cmd *ControlMessage) error {
 	method := cmd.Method
 	params := cmd.Params
 
+	if logger.TRACE.Enabled() {
+		logger.TRACE.Printf("Control %s message from node: %s", cmd.Method, cmd.UID)
+	}
+
 	switch method {
 	case "ping":
 		var cmd pingControlCommand
