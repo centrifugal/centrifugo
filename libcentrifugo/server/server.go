@@ -10,6 +10,9 @@ type Server interface {
 	// SetConfig allows to set/update node config.
 	SetConfig(*config.Config)
 
+	// SetMediator allows to set mediator interface.
+	SetMediator(Mediator)
+
 	// Run runs server.
 	Run() error
 

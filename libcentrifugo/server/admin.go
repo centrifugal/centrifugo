@@ -7,8 +7,62 @@ import (
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
+	"github.com/gorilla/securecookie"
 	"github.com/satori/go.uuid"
 )
+
+const (
+	// AuthTokenKey is a key for admin authorization token.
+	AuthTokenKey = "token"
+	// AuthTokenValue is a value for secure admin authorization token.
+	AuthTokenValue = "authorized"
+)
+
+func (app *Application) adminAuthToken() (string, error) {
+	app.RLock()
+	secret := app.config.AdminSecret
+	app.RUnlock()
+	if secret == "" {
+		logger.ERROR.Println("provide web_secret in configuration")
+		return "", ErrInternalServerError
+	}
+	s := securecookie.New([]byte(secret), nil)
+	return s.Encode(AuthTokenKey, AuthTokenValue)
+}
+
+// checkAdminAuthToken checks admin connection token which Centrifugo returns after admin login.
+func (app *Application) checkAdminAuthToken(token string) error {
+
+	app.RLock()
+	insecure := app.config.InsecureAdmin
+	secret := app.config.AdminSecret
+	app.RUnlock()
+
+	if insecure {
+		return nil
+	}
+
+	if secret == "" {
+		logger.ERROR.Println("provide admin_secret in configuration")
+		return ErrUnauthorized
+	}
+
+	if token == "" {
+		return ErrUnauthorized
+	}
+
+	s := securecookie.New([]byte(secret), nil)
+	var val string
+	err := s.Decode(AuthTokenKey, token, &val)
+	if err != nil {
+		return ErrUnauthorized
+	}
+
+	if val != AuthTokenValue {
+		return ErrUnauthorized
+	}
+	return nil
+}
 
 // adminQueueMaxSize sets admin queue max size to 10MB.
 const adminQueueMaxSize = 10485760
