@@ -1,4 +1,4 @@
-package hdrhistogram
+package metrics
 
 import (
 	"testing"

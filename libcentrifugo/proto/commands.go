@@ -2,9 +2,42 @@ package proto
 
 import (
 	"encoding/json"
-
-	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
+	"sync"
 )
+
+// NodeInfo contains information and statistics about Centrifugo node.
+type NodeInfo struct {
+	mu      sync.RWMutex
+	UID     string           `json:"uid"`
+	Name    string           `json:"name"`
+	Started int64            `json:"started_at"`
+	Metrics map[string]int64 `json:"metrics"`
+	updated int64            `json:"-"`
+}
+
+func (i *NodeInfo) Updated() int64 {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+	return i.updated
+}
+
+func (i *NodeInfo) SetUpdated(up int64) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	i.updated = up
+}
+
+func (i *NodeInfo) SetMetrics(m map[string]int64) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	i.Metrics = m
+}
+
+// ServerStats contains state and metrics information from running Centrifugo nodes.
+type ServerStats struct {
+	Nodes           []NodeInfo `json:"nodes"`
+	MetricsInterval int64      `json:"metrics_interval"`
+}
 
 type ClientCommand struct {
 	UID    string          `json:"uid"`
@@ -116,7 +149,7 @@ type HistoryAPICommand struct {
 // PingControlCommand allows nodes to know about each other - node sends this
 // control command periodically.
 type PingControlCommand struct {
-	Info metrics.NodeInfo `json:"info"`
+	Info NodeInfo `json:"info"`
 }
 
 // UnsubscribeControlCommand required when node received unsubscribe API command –

@@ -3,7 +3,6 @@ package proto
 import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/encode"
-	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/valyala/bytebufferpool"
 )
@@ -207,12 +206,12 @@ type PingBody struct {
 
 // StatsBody represents body of response in case of successful stats command.
 type StatsBody struct {
-	Data metrics.ServerStats `json:"data"`
+	Data ServerStats `json:"data"`
 }
 
 // NodeBody represents body of response in case of successful node command.
 type NodeBody struct {
-	Data metrics.NodeInfo `json:"data"`
+	Data NodeInfo `json:"data"`
 }
 
 type adminMessageBody struct {
@@ -238,7 +237,7 @@ const (
 )
 
 type ResponseError struct {
-	Err    error
+	Err    error       `json:"-"`
 	Advice ErrorAdvice `json:"advice,omitempty"`
 }
 

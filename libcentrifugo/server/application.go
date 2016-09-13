@@ -10,6 +10,7 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
+	"github.com/centrifugal/centrifugo/libcentrifugo/cpu"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
@@ -29,7 +30,7 @@ type Application struct {
 	started int64
 
 	// nodes is a map with information about nodes known.
-	nodes map[string]metrics.NodeInfo
+	nodes map[string]proto.NodeInfo
 
 	// nodesMu allows to synchronize access to nodes.
 	nodesMu sync.Mutex
@@ -56,7 +57,37 @@ type Application struct {
 	shutdownCh chan struct{}
 
 	// metrics holds various counters and timers different parts of Centrifugo update.
-	metrics *metrics.MetricsRegistry
+	metrics *metrics.Registry
+}
+
+func init() {
+
+	metrics.Metrics.RegisterCounter("num_msg_published", metrics.NewCounter())
+	metrics.Metrics.RegisterCounter("num_msg_queued", metrics.NewCounter())
+	metrics.Metrics.RegisterCounter("num_msg_sent", metrics.NewCounter())
+	metrics.Metrics.RegisterCounter("num_api_requests", metrics.NewCounter())
+	metrics.Metrics.RegisterCounter("num_client_requests", metrics.NewCounter())
+	metrics.Metrics.RegisterCounter("bytes_client_in", metrics.NewCounter())
+	metrics.Metrics.RegisterCounter("bytes_client_out", metrics.NewCounter())
+	metrics.Metrics.RegisterCounter("num_msg_published", metrics.NewCounter())
+
+	metrics.Metrics.RegisterGauge("memory_sys", metrics.NewGauge())
+	metrics.Metrics.RegisterGauge("cpu_usage", metrics.NewGauge())
+	metrics.Metrics.RegisterGauge("num_goroutine", metrics.NewGauge())
+	metrics.Metrics.RegisterGauge("num_clients", metrics.NewGauge())
+	metrics.Metrics.RegisterGauge("num_unique_clients", metrics.NewGauge())
+	metrics.Metrics.RegisterGauge("num_channels", metrics.NewGauge())
+	metrics.Metrics.RegisterGauge("gomaxprocs", metrics.NewGauge())
+	metrics.Metrics.RegisterGauge("num_cpu", metrics.NewGauge())
+
+	quantiles := []float64{50, 90, 99, 99.99}
+	var minValue int64 = 1        // as we record latencies in microseconds, min resolution 1mks
+	var maxValue int64 = 60000000 // as we record latencies in microseconds, max resolution 60s
+	numBuckets := 15              // histograms will be rotated every time we call UpdateSnapshot from outside.
+	sigfigs := 3
+
+	metrics.Metrics.RegisterHDRHistogram("http_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
+	metrics.Metrics.RegisterHDRHistogram("client_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
 // New returns new server instance backed by Application, the only required
@@ -67,9 +98,9 @@ func New(c *config.Config) (Server, error) {
 		config:     c,
 		clients:    newClientHub(),
 		admins:     newAdminHub(),
-		nodes:      make(map[string]metrics.NodeInfo),
+		nodes:      make(map[string]proto.NodeInfo),
 		started:    time.Now().Unix(),
-		metrics:    metrics.NewMetricsRegistry(),
+		metrics:    metrics.Metrics,
 		shutdownCh: make(chan struct{}),
 	}
 
@@ -87,8 +118,8 @@ func (app *Application) NotifyShutdown() chan struct{} {
 	return app.shutdownCh
 }
 
-// Run performs all startup actions. At moment must be called once on start after engine and
-// structure set.
+// Run performs all startup actions. At moment must be called once on start
+// after engine and structure set.
 func (app *Application) Run() error {
 	if err := app.engine.Run(); err != nil {
 		return err
@@ -139,6 +170,12 @@ func (app *Application) NumSubscribers(ch proto.Channel) int {
 }
 
 func (app *Application) updateMetricsOnce() {
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+	app.metrics.Gauges.Set("memory_sys", int64(mem.Sys))
+	if usage, err := cpu.Usage(); err == nil {
+		app.metrics.Gauges.Set("cpu_usage", int64(usage))
+	}
 	app.metrics.UpdateSnapshot()
 }
 
@@ -229,9 +266,9 @@ func (app *Application) channels() ([]proto.Channel, error) {
 	return app.engine.Channels()
 }
 
-func (app *Application) stats() metrics.ServerStats {
+func (app *Application) stats() proto.ServerStats {
 	app.nodesMu.Lock()
-	nodes := make([]metrics.NodeInfo, len(app.nodes))
+	nodes := make([]proto.NodeInfo, len(app.nodes))
 	i := 0
 	for _, info := range app.nodes {
 		nodes[i] = info
@@ -243,13 +280,41 @@ func (app *Application) stats() metrics.ServerStats {
 	interval := app.config.NodeMetricsInterval
 	app.RUnlock()
 
-	return metrics.ServerStats{
+	return proto.ServerStats{
 		MetricsInterval: int64(interval.Seconds()),
 		Nodes:           nodes,
 	}
 }
 
-func (app *Application) node() metrics.NodeInfo {
+func (app *Application) getRawMetrics() map[string]int64 {
+	m := make(map[string]int64)
+	for name, val := range app.metrics.Counters.LoadValues() {
+		m[name] = val
+	}
+	for name, val := range app.metrics.HDRHistograms.LoadValues() {
+		m[name] = val
+	}
+	for name, val := range app.metrics.Gauges.LoadValues() {
+		m[name] = val
+	}
+	return m
+}
+
+func (app *Application) getSnapshotMetrics() map[string]int64 {
+	m := make(map[string]int64)
+	for name, val := range app.metrics.Counters.LoadIntervalValues() {
+		m[name] = val
+	}
+	for name, val := range app.metrics.HDRHistograms.LoadValues() {
+		m[name] = val
+	}
+	for name, val := range app.metrics.Gauges.LoadValues() {
+		m[name] = val
+	}
+	return m
+}
+
+func (app *Application) node() proto.NodeInfo {
 	app.nodesMu.Lock()
 	info, ok := app.nodes[app.uid]
 	if !ok {
@@ -257,7 +322,7 @@ func (app *Application) node() metrics.NodeInfo {
 	}
 	app.nodesMu.Unlock()
 
-	info.SetMetrics(*app.metrics.GetRawMetrics())
+	info.SetMetrics(app.getRawMetrics())
 
 	return info
 }
@@ -422,7 +487,7 @@ func (app *Application) pubAdmin(method string, params []byte) <-chan error {
 // will receive it and will send to all clients on node subscribed on channel.
 func (app *Application) pubClient(ch proto.Channel, chOpts config.ChannelOptions, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
 	message := proto.NewMessage(ch, data, client, info)
-	app.metrics.NumMsgPublished.Inc()
+	app.metrics.Counters.Inc("num_msg_published")
 	if chOpts.Watch {
 		byteMessage, err := json.Marshal(message)
 		if err != nil {
@@ -478,19 +543,18 @@ func (app *Application) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) erro
 // contains information about current node.
 func (app *Application) pubPing() error {
 	app.RLock()
-	info := metrics.NodeInfo{
-		UID:        app.uid,
-		Name:       app.config.Name,
-		Clients:    app.nClients(),
-		Unique:     app.nUniqueClients(),
-		Channels:   app.nChannels(),
-		Started:    app.started,
-		Goroutines: runtime.NumGoroutine(),
-		NumCPU:     runtime.NumCPU(),
-		Gomaxprocs: runtime.GOMAXPROCS(-1),
-		//metrics:    *app.metrics.GetSnapshotMetrics(),
+	app.metrics.Gauges.Set("num_clients", int64(app.nClients()))
+	app.metrics.Gauges.Set("num_unique_clients", int64(app.nUniqueClients()))
+	app.metrics.Gauges.Set("num_channels", int64(app.nChannels()))
+	app.metrics.Gauges.Set("num_goroutine", int64(runtime.NumGoroutine()))
+	app.metrics.Gauges.Set("num_cpu", int64(runtime.NumCPU()))
+	app.metrics.Gauges.Set("gomaxprocs", int64(runtime.GOMAXPROCS(-1)))
+	info := proto.NodeInfo{
+		UID:     app.uid,
+		Name:    app.config.Name,
+		Started: app.started,
+		Metrics: app.getSnapshotMetrics(),
 	}
-	info.SetMetrics(*app.metrics.GetSnapshotMetrics())
 	app.RUnlock()
 	cmd := &proto.PingControlCommand{Info: info}
 
