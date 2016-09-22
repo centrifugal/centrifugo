@@ -2,7 +2,6 @@ package proto
 
 import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
-	"github.com/centrifugal/centrifugo/libcentrifugo/encode"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/valyala/bytebufferpool"
 )
@@ -36,11 +35,11 @@ func writeClientInfo(buf *bytebufferpool.ByteBuffer, info *ClientInfo) {
 	}
 
 	buf.WriteString(`"user":`)
-	encode.EncodeJSONString(buf, info.User, true)
+	EncodeJSONString(buf, info.User, true)
 	buf.WriteString(`,`)
 
 	buf.WriteString(`"client":`)
-	encode.EncodeJSONString(buf, info.Client, true)
+	EncodeJSONString(buf, info.Client, true)
 
 	buf.WriteString(`}`)
 }
@@ -54,7 +53,7 @@ func writeMessage(buf *bytebufferpool.ByteBuffer, msg *Message) {
 
 	if msg.Client != "" {
 		buf.WriteString(`"client":`)
-		encode.EncodeJSONString(buf, msg.Client, true)
+		EncodeJSONString(buf, msg.Client, true)
 		buf.WriteString(`,`)
 	}
 
@@ -65,7 +64,7 @@ func writeMessage(buf *bytebufferpool.ByteBuffer, msg *Message) {
 	}
 
 	buf.WriteString(`"channel":`)
-	encode.EncodeJSONString(buf, msg.Channel, true)
+	EncodeJSONString(buf, msg.Channel, true)
 	buf.WriteString(`,"data":`)
 	buf.Write(*msg.Data)
 	buf.WriteString(`}`)
@@ -96,7 +95,7 @@ func NewClientJoinMessage() *ClientJoinResponse {
 func writeJoin(buf *bytebufferpool.ByteBuffer, msg *JoinMessage) {
 	buf.WriteString(`{`)
 	buf.WriteString(`"channel":`)
-	encode.EncodeJSONString(buf, msg.Channel, true)
+	EncodeJSONString(buf, msg.Channel, true)
 	buf.WriteString(`,"data":`)
 	writeClientInfo(buf, &msg.Data)
 	buf.WriteString(`}`)
@@ -127,7 +126,7 @@ func NewClientLeaveMessage() *ClientLeaveResponse {
 func writeLeave(buf *bytebufferpool.ByteBuffer, msg *LeaveMessage) {
 	buf.WriteString(`{`)
 	buf.WriteString(`"channel":`)
-	encode.EncodeJSONString(buf, msg.Channel, true)
+	EncodeJSONString(buf, msg.Channel, true)
 	buf.WriteString(`,"data":`)
 	writeClientInfo(buf, &msg.Data)
 	buf.WriteString(`}`)

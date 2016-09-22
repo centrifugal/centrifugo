@@ -1,4 +1,4 @@
-package cpu
+package server
 
 import (
 	"bytes"
@@ -9,10 +9,10 @@ import (
 	"strings"
 )
 
-// Usage is the simplest possible method to extract CPU usage info on most of platforms
+// cpuUsage is the simplest possible method to extract CPU usage info on most of platforms
 // Centrifugo runs. I have not found a more sophisticated cross platform way to extract
 // this info without using CGO.
-func Usage() (int64, error) {
+func cpuUsage() (int64, error) {
 	cmd := exec.Command("ps", "aux")
 	var out bytes.Buffer
 	cmd.Stdout = &out

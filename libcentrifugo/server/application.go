@@ -10,7 +10,6 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
-	"github.com/centrifugal/centrifugo/libcentrifugo/cpu"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
@@ -183,7 +182,7 @@ func (app *Application) updateMetricsOnce() {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 	app.metrics.Gauges.Set("memory_sys", int64(mem.Sys))
-	if usage, err := cpu.Usage(); err == nil {
+	if usage, err := cpuUsage(); err == nil {
 		app.metrics.Gauges.Set("cpu_usage", int64(usage))
 	}
 	app.metricsMu.Lock()
