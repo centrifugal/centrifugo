@@ -1,9 +1,5 @@
 package metrics
 
-import (
-	"sync"
-)
-
 var Metrics *Registry
 
 func init() {
@@ -16,11 +12,6 @@ type Registry struct {
 	Gauges        *GaugeRegistry
 	Counters      *CounterRegistry
 	HDRHistograms *HDRHistogramRegistry
-
-	// mu protects from multiple processes updating snapshot values at once
-	// but raw counters may still increment atomically while held so it's not a strict
-	// point-in-time snapshot of all values.
-	mu sync.Mutex
 }
 
 func NewRegistry() *Registry {
@@ -41,18 +32,6 @@ func (m *Registry) RegisterGauge(name string, g *Gauge) {
 
 func (m *Registry) RegisterHDRHistogram(name string, h *HDRHistogram) {
 	m.HDRHistograms.Register(name, h)
-}
-
-func (m *Registry) UpdateSnapshot() {
-	// We update under a lock to ensure that no other process is also updating
-	// snapshot nor copying the values with GetRawMetrics/GetSnapshotMetrics.
-	// Other processes CAN still atomically increment raw counter values while we
-	// go though - we don't guarantee counter values are point-in-time consistent
-	// with each other
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.Counters.UpdateDelta()
-	m.HDRHistograms.Rotate()
 }
 
 func stringInSlice(a string, list []string) bool {

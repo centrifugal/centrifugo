@@ -58,10 +58,15 @@ type Application struct {
 
 	// metrics holds various counters and timers different parts of Centrifugo update.
 	metrics *metrics.Registry
+
+	// save metrics snapshot until next metrics interval.
+	metricsSnapshot map[string]int64
+
+	// protect access to metrics snapshot.
+	metricsMu sync.RWMutex
 }
 
 func init() {
-
 	metrics.Metrics.RegisterCounter("num_msg_published", metrics.NewCounter())
 	metrics.Metrics.RegisterCounter("num_msg_queued", metrics.NewCounter())
 	metrics.Metrics.RegisterCounter("num_msg_sent", metrics.NewCounter())
@@ -81,30 +86,35 @@ func init() {
 	metrics.Metrics.RegisterGauge("num_cpu", metrics.NewGauge())
 
 	quantiles := []float64{50, 90, 99, 99.99}
-	var minValue int64 = 1        // as we record latencies in microseconds, min resolution 1mks
-	var maxValue int64 = 60000000 // as we record latencies in microseconds, max resolution 60s
-	numBuckets := 15              // histograms will be rotated every time we call UpdateSnapshot from outside.
+	var minValue int64 = 1        // record latencies in microseconds, min resolution 1mks.
+	var maxValue int64 = 60000000 // record latencies in microseconds, max resolution 60s.
+	numBuckets := 15              // histograms will be rotated every time we updating snapshot.
 	sigfigs := 3
-
 	metrics.Metrics.RegisterHDRHistogram("http_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 	metrics.Metrics.RegisterHDRHistogram("client_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
 // New returns new server instance backed by Application, the only required
 // argument is config. Engine must be set via corresponding methods.
-func New(c *config.Config) (Server, error) {
+func New(c *config.Config) Server {
 	app := &Application{
-		uid:        uuid.NewV4().String(),
-		config:     c,
-		clients:    newClientHub(),
-		admins:     newAdminHub(),
-		nodes:      make(map[string]proto.NodeInfo),
-		started:    time.Now().Unix(),
-		metrics:    metrics.Metrics,
-		shutdownCh: make(chan struct{}),
+		uid:             uuid.NewV4().String(),
+		config:          c,
+		clients:         newClientHub(),
+		admins:          newAdminHub(),
+		nodes:           make(map[string]proto.NodeInfo),
+		started:         time.Now().Unix(),
+		metrics:         metrics.Metrics,
+		metricsSnapshot: make(map[string]int64),
+		shutdownCh:      make(chan struct{}),
 	}
 
-	return app, nil
+	// Create initial snapshot with empty values.
+	app.metricsMu.Lock()
+	app.metricsSnapshot = app.getSnapshotMetrics()
+	app.metricsMu.Unlock()
+
+	return app
 }
 
 func (app *Application) Config() config.Config {
@@ -176,7 +186,11 @@ func (app *Application) updateMetricsOnce() {
 	if usage, err := cpu.Usage(); err == nil {
 		app.metrics.Gauges.Set("cpu_usage", int64(usage))
 	}
-	app.metrics.UpdateSnapshot()
+	app.metricsMu.Lock()
+	app.metricsSnapshot = app.getSnapshotMetrics()
+	app.metrics.Counters.UpdateDelta()
+	app.metrics.HDRHistograms.Rotate()
+	app.metricsMu.Unlock()
 }
 
 func (app *Application) updateMetrics() {
@@ -549,13 +563,22 @@ func (app *Application) pubPing() error {
 	app.metrics.Gauges.Set("num_goroutine", int64(runtime.NumGoroutine()))
 	app.metrics.Gauges.Set("num_cpu", int64(runtime.NumCPU()))
 	app.metrics.Gauges.Set("gomaxprocs", int64(runtime.GOMAXPROCS(-1)))
+
+	metricsSnapshot := make(map[string]int64)
+	app.metricsMu.RLock()
+	for k, v := range app.metricsSnapshot {
+		metricsSnapshot[k] = v
+	}
+	app.metricsMu.RUnlock()
+
 	info := proto.NodeInfo{
 		UID:     app.uid,
 		Name:    app.config.Name,
 		Started: app.started,
-		Metrics: app.getSnapshotMetrics(),
+		Metrics: metricsSnapshot,
 	}
 	app.RUnlock()
+
 	cmd := &proto.PingControlCommand{Info: info}
 
 	err := app.pingCmd(cmd)

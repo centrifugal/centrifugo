@@ -206,10 +206,7 @@ func Main() {
 				logger.FATAL.Fatalln(err)
 			}
 
-			srv, err := server.New(c)
-			if err != nil {
-				logger.FATAL.Fatalln(err)
-			}
+			srv := server.New(c)
 
 			engineName := viper.GetString("engine")
 			engineFactory, ok := plugin.EngineFactories[engineName]

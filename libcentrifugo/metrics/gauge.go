@@ -12,12 +12,10 @@ func NewGauge() *Gauge {
 	return &Gauge{}
 }
 
-// Set
 func (g *Gauge) Set(value int64) {
 	atomic.StoreInt64(&g.value, value)
 }
 
-// Load
 func (g *Gauge) Load() int64 {
 	return atomic.LoadInt64(&g.value)
 }

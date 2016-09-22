@@ -113,12 +113,15 @@ func (r *HDRHistogramRegistry) Register(name string, h *HDRHistogram) {
 	r.histograms[name] = h
 }
 
-// RecordValue into histogram with provided name. Panics if name not registered.
+// RecordValue into histogram with provided name. Noop if name not registered.
 func (r *HDRHistogramRegistry) RecordValue(name string, value int64) error {
+	if _, ok := r.histograms[name]; !ok {
+		return nil
+	}
 	return r.histograms[name].RecordValue(value)
 }
 
-// RecordMicroseconds into histogram with provided name. Panics if name not registered.
+// RecordMicroseconds into histogram with provided name. Noop if name not registered.
 func (r *HDRHistogramRegistry) RecordMicroseconds(name string, value time.Duration) error {
 	return r.RecordValue(name, int64(value)/1000)
 }
