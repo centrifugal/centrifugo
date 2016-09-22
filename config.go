@@ -17,89 +17,73 @@ import (
 )
 
 // newConfig creates new libcentrifugo.Config using viper.
-func newConfig() *config.Config {
+func newConfig(v *viper.Viper) *config.Config {
 	cfg := &config.Config{}
-
 	cfg.Version = VERSION
-	cfg.Name = getApplicationName()
-	cfg.Debug = viper.GetBool("debug")
-	cfg.Admin = viper.GetBool("admin") || viper.GetBool("web")
-	cfg.Web = viper.GetBool("web")
-	cfg.WebPath = viper.GetString("web_path")
-	cfg.HTTPAddress = viper.GetString("address")
-	cfg.HTTPPort = viper.GetString("port")
-	cfg.HTTPAdminPort = viper.GetString("admin_port")
-	cfg.HTTPAPIPort = viper.GetString("api_port")
-	cfg.HTTPPrefix = viper.GetString("http_prefix")
-	cfg.SockjsURL = viper.GetString("sockjs_url")
-	cfg.SSL = viper.GetBool("ssl")
-	cfg.SSLCert = viper.GetString("ssl_cert")
-	cfg.SSLKey = viper.GetString("ssl_cert")
 
-	adminPassword := viper.GetString("admin_password")
-	if adminPassword == "" {
-		// For backwards compatibility.
-		adminPassword = viper.GetString("web_password")
-	}
-	cfg.AdminPassword = adminPassword
-
-	adminSecret := viper.GetString("admin_secret")
-	if adminSecret == "" {
-		// For backwards compatibility.
-		adminSecret = viper.GetString("web_secret")
-	}
-	cfg.AdminSecret = adminSecret
-
-	cfg.ChannelPrefix = viper.GetString("channel_prefix")
-	cfg.MaxChannelLength = viper.GetInt("max_channel_length")
-	cfg.PingInterval = time.Duration(viper.GetInt("ping_interval")) * time.Second
-	cfg.NodePingInterval = time.Duration(viper.GetInt("node_ping_interval")) * time.Second
+	cfg.Name = getApplicationName(v)
+	cfg.Debug = v.GetBool("debug")
+	cfg.Admin = v.GetBool("admin")
+	cfg.AdminPassword = v.GetString("admin_password")
+	cfg.AdminSecret = v.GetString("admin_secret")
+	cfg.Web = v.GetBool("web")
+	cfg.WebPath = v.GetString("web_path")
+	cfg.HTTPAddress = v.GetString("address")
+	cfg.HTTPPort = v.GetString("port")
+	cfg.HTTPAdminPort = v.GetString("admin_port")
+	cfg.HTTPAPIPort = v.GetString("api_port")
+	cfg.HTTPPrefix = v.GetString("http_prefix")
+	cfg.SockjsURL = v.GetString("sockjs_url")
+	cfg.SSL = v.GetBool("ssl")
+	cfg.SSLCert = v.GetString("ssl_cert")
+	cfg.SSLKey = v.GetString("ssl_cert")
+	cfg.ChannelPrefix = v.GetString("channel_prefix")
+	cfg.MaxChannelLength = v.GetInt("max_channel_length")
+	cfg.PingInterval = time.Duration(v.GetInt("ping_interval")) * time.Second
+	cfg.NodePingInterval = time.Duration(v.GetInt("node_ping_interval")) * time.Second
 	cfg.NodeInfoCleanInterval = cfg.NodePingInterval * 3
 	cfg.NodeInfoMaxDelay = cfg.NodePingInterval*2 + 1*time.Second
-	cfg.NodeMetricsInterval = time.Duration(viper.GetInt("node_metrics_interval")) * time.Second
-	cfg.PresencePingInterval = time.Duration(viper.GetInt("presence_ping_interval")) * time.Second
-	cfg.PresenceExpireInterval = time.Duration(viper.GetInt("presence_expire_interval")) * time.Second
-	cfg.MessageSendTimeout = time.Duration(viper.GetInt("message_send_timeout")) * time.Second
-	cfg.PrivateChannelPrefix = viper.GetString("private_channel_prefix")
-	cfg.NamespaceChannelBoundary = viper.GetString("namespace_channel_boundary")
-	cfg.UserChannelBoundary = viper.GetString("user_channel_boundary")
-	cfg.UserChannelSeparator = viper.GetString("user_channel_separator")
-	cfg.ClientChannelBoundary = viper.GetString("client_channel_boundary")
-	cfg.ExpiredConnectionCloseDelay = time.Duration(viper.GetInt("expired_connection_close_delay")) * time.Second
-	cfg.StaleConnectionCloseDelay = time.Duration(viper.GetInt("stale_connection_close_delay")) * time.Second
-	cfg.ClientRequestMaxSize = viper.GetInt("client_request_max_size")
-	cfg.ClientQueueMaxSize = viper.GetInt("client_queue_max_size")
-	cfg.ClientQueueInitialCapacity = viper.GetInt("client_queue_initial_capacity")
-	cfg.ClientChannelLimit = viper.GetInt("client_channel_limit")
-	cfg.Insecure = viper.GetBool("insecure")
-	cfg.InsecureAPI = viper.GetBool("insecure_api")
-	cfg.InsecureAdmin = viper.GetBool("insecure_admin") || viper.GetBool("insecure_web")
-
-	cfg.Secret = viper.GetString("secret")
-	cfg.ConnLifetime = int64(viper.GetInt("connection_lifetime"))
-
-	cfg.Watch = viper.GetBool("watch")
-	cfg.Publish = viper.GetBool("publish")
-	cfg.Anonymous = viper.GetBool("anonymous")
-	cfg.Presence = viper.GetBool("presence")
-	cfg.JoinLeave = viper.GetBool("join_leave")
-	cfg.HistorySize = viper.GetInt("history_size")
-	cfg.HistoryLifetime = viper.GetInt("history_lifetime")
-	cfg.HistoryDropInactive = viper.GetBool("history_drop_inactive")
-	cfg.Recover = viper.GetBool("recover")
-	cfg.Namespaces = namespacesFromConfig(nil)
-
+	cfg.NodeMetricsInterval = time.Duration(v.GetInt("node_metrics_interval")) * time.Second
+	cfg.PresencePingInterval = time.Duration(v.GetInt("presence_ping_interval")) * time.Second
+	cfg.PresenceExpireInterval = time.Duration(v.GetInt("presence_expire_interval")) * time.Second
+	cfg.MessageSendTimeout = time.Duration(v.GetInt("message_send_timeout")) * time.Second
+	cfg.PrivateChannelPrefix = v.GetString("private_channel_prefix")
+	cfg.NamespaceChannelBoundary = v.GetString("namespace_channel_boundary")
+	cfg.UserChannelBoundary = v.GetString("user_channel_boundary")
+	cfg.UserChannelSeparator = v.GetString("user_channel_separator")
+	cfg.ClientChannelBoundary = v.GetString("client_channel_boundary")
+	cfg.ExpiredConnectionCloseDelay = time.Duration(v.GetInt("expired_connection_close_delay")) * time.Second
+	cfg.StaleConnectionCloseDelay = time.Duration(v.GetInt("stale_connection_close_delay")) * time.Second
+	cfg.ClientRequestMaxSize = v.GetInt("client_request_max_size")
+	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
+	cfg.ClientQueueInitialCapacity = v.GetInt("client_queue_initial_capacity")
+	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
+	cfg.Insecure = v.GetBool("insecure")
+	cfg.InsecureAPI = v.GetBool("insecure_api")
+	cfg.InsecureAdmin = v.GetBool("insecure_admin") || viper.GetBool("insecure_web")
+	cfg.Secret = v.GetString("secret")
+	cfg.ConnLifetime = int64(v.GetInt("connection_lifetime"))
+	cfg.Watch = v.GetBool("watch")
+	cfg.Publish = v.GetBool("publish")
+	cfg.Anonymous = v.GetBool("anonymous")
+	cfg.Presence = v.GetBool("presence")
+	cfg.JoinLeave = v.GetBool("join_leave")
+	cfg.HistorySize = v.GetInt("history_size")
+	cfg.HistoryLifetime = v.GetInt("history_lifetime")
+	cfg.HistoryDropInactive = v.GetBool("history_drop_inactive")
+	cfg.Recover = v.GetBool("recover")
+	cfg.Namespaces = namespacesFromConfig(v)
 	return cfg
 }
 
 // getApplicationName returns a name for this node. If no name provided
 // in configuration then it constructs node name based on hostname and port
-func getApplicationName() string {
-	name := viper.GetString("name")
+func getApplicationName(v *viper.Viper) string {
+	name := v.GetString("name")
 	if name != "" {
 		return name
 	}
-	port := viper.GetString("port")
+	port := v.GetString("port")
 	var hostname string
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -201,23 +185,16 @@ func validateConfig(f string) error {
 			return errors.New("Unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
 		}
 	}
-	c := newConfig()
+	c := newConfig(v)
 	return c.Validate()
 }
 
 func namespacesFromConfig(v *viper.Viper) []config.Namespace {
-	// TODO: as viper does not have exported global config instance
-	// we need to use nil when application wants to use global viper
-	// config - this must be improved using our own global viper instance
 	ns := []config.Namespace{}
 	if !viper.IsSet("namespaces") {
 		return ns
 	}
-	if v == nil {
-		viper.UnmarshalKey("namespaces", &ns)
-	} else {
-		v.UnmarshalKey("namespaces", &ns)
-	}
+	v.UnmarshalKey("namespaces", &ns)
 	return ns
 }
 

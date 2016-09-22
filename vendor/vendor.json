@@ -13,10 +13,11 @@
 			"revision": "0f83ebcca2c77cb324938a77cc5bc78a70e2295c"
 		},
 		{
-			"checksumSHA1": "RaqJwvvnXDLkdNqjNot9FuguQYw=",
+			"checksumSHA1": "5pkis0WdWjQB5J3l7sg3ZAAFbAc=",
+			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/FZambia/viper-lite",
 			"path": "github.com/FZambia/viper-lite",
-			"revision": "f074865e991100621ab6b4790bd9c92ef0765443",
-			"revisionTime": "2016-09-06T09:44:22Z"
+			"revision": "eb9709b24ffe0202036e1d23423193c5eceb9507",
+			"revisionTime": "2016-09-22T13:59:26Z"
 		},
 		{
 			"checksumSHA1": "W7DNxQwdGQ2YO3PR3jARJg6Iqsw=",

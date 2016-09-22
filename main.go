@@ -65,7 +65,7 @@ func handleSignals(srv server.Server) {
 				}
 			}
 			setupLogging()
-			c := newConfig()
+			c := newConfig(viper.GetViper())
 			srv.SetConfig(c)
 			logger.INFO.Println("Configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
@@ -200,7 +200,7 @@ func Main() {
 				}
 			}
 
-			c := newConfig()
+			c := newConfig(viper.GetViper())
 			err = c.Validate()
 			if err != nil {
 				logger.FATAL.Fatalln(err)
