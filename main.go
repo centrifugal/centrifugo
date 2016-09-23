@@ -215,7 +215,10 @@ func Main() {
 			}
 
 			var e engine.Engine
-			e = engineFactory(srv.(server.Node), viper.GetViper())
+			e, err = engineFactory(srv.(server.Node), viper.GetViper())
+			if err != nil {
+				logger.FATAL.Fatalln(err)
+			}
 			srv.SetEngine(e)
 
 			go handleSignals(srv)

@@ -29,14 +29,14 @@ type MemoryEngine struct {
 }
 
 // NewMemoryEngine initializes Memory Engine.
-func NewMemoryEngine(node server.Node, config plugin.ConfigGetter) engine.Engine {
+func NewMemoryEngine(node server.Node, config plugin.ConfigGetter) (engine.Engine, error) {
 	e := &MemoryEngine{
 		node:        node,
 		presenceHub: newMemoryPresenceHub(),
 		historyHub:  newMemoryHistoryHub(),
 	}
 	e.historyHub.initialize()
-	return e
+	return e, nil
 }
 
 func (e *MemoryEngine) Name() string {

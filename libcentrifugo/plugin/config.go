@@ -1,10 +1,6 @@
 package plugin
 
-import (
-	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
-	"github.com/centrifugal/centrifugo/libcentrifugo/server"
-)
-
+// ConfigSetter allows to setup configuration options from pluggable components.
 type ConfigSetter interface {
 	SetDefault(key string, value interface{})
 	BindEnv(key string)
@@ -14,31 +10,11 @@ type ConfigSetter interface {
 	IntFlag(name, shorthand string, value int, usage string)
 }
 
+// ConfigGetter allows to get configuration options inside pluggable components.
 type ConfigGetter interface {
 	Get(string) interface{}
 	GetString(string) string
 	GetBool(string) bool
 	GetInt(string) int
 	IsSet(string) bool
-}
-
-type EngineFactory func(server.Node, ConfigGetter) engine.Engine
-
-type Configurator func(ConfigSetter) error
-
-var EngineFactories map[string]EngineFactory
-
-var Configurators map[string]Configurator
-
-func RegisterEngine(name string, fn EngineFactory) {
-	EngineFactories[name] = fn
-}
-
-func RegisterConfigurator(name string, fn Configurator) {
-	Configurators[name] = fn
-}
-
-func init() {
-	EngineFactories = map[string]EngineFactory{}
-	Configurators = map[string]Configurator{}
 }

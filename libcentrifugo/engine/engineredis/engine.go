@@ -374,7 +374,7 @@ func getRedisEngineConfig(getter plugin.ConfigGetter) *RedisEngineConfig {
 }
 
 // NewRedisEngine initializes Redis Engine.
-func NewRedisEngine(n server.Node, getter plugin.ConfigGetter) engine.Engine {
+func NewRedisEngine(n server.Node, getter plugin.ConfigGetter) (engine.Engine, error) {
 
 	conf := getRedisEngineConfig(getter)
 
@@ -397,7 +397,7 @@ func NewRedisEngine(n server.Node, getter plugin.ConfigGetter) engine.Engine {
 	e.messagePrefix = channelPrefix + RedisMessageChannelPrefix
 	e.joinPrefix = channelPrefix + RedisJoinChannelPrefix
 	e.leavePrefix = channelPrefix + RedisLeaveChannelPrefix
-	return e
+	return e, nil
 }
 
 func yesno(condition bool) string {
