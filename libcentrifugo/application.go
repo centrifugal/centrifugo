@@ -221,6 +221,10 @@ func (app *Application) controlMsg(cmd *ControlMessage) error {
 	method := cmd.Method
 	params := cmd.Params
 
+	if logger.TRACE.Enabled() {
+		logger.TRACE.Printf("Control %s message from node: %s", cmd.Method, cmd.UID)
+	}
+
 	switch method {
 	case "ping":
 		var cmd pingControlCommand
@@ -255,8 +259,12 @@ func (app *Application) controlMsg(cmd *ControlMessage) error {
 // adminMsg handlesadmin message broadcasting it to all admins connected to this node.
 func (app *Application) adminMsg(message *AdminMessage) error {
 	app.admins.RLock()
-	hasAdmins := len(app.admins.connections) > 0
+	numAdmins := len(app.admins.connections)
 	app.admins.RUnlock()
+	if logger.TRACE.Enabled() {
+		logger.TRACE.Printf("Admin message (%d admins): %s", numAdmins, message.Params)
+	}
+	hasAdmins := numAdmins > 0
 	if !hasAdmins {
 		return nil
 	}
@@ -273,6 +281,9 @@ func (app *Application) adminMsg(message *AdminMessage) error {
 // on channel.
 func (app *Application) clientMsg(ch Channel, message *Message) error {
 	numSubscribers := app.clients.numSubscribers(ch)
+	if logger.TRACE.Enabled() {
+		logger.TRACE.Printf("Client message into channel %s (%d subscribers): %s", message.Channel, numSubscribers, message.Data)
+	}
 	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
 		return nil
@@ -394,7 +405,11 @@ func (app *Application) pubLeave(ch Channel, info ClientInfo) error {
 }
 
 func (app *Application) joinMsg(ch Channel, message *JoinMessage) error {
-	hasCurrentSubscribers := app.clients.numSubscribers(ch) > 0
+	numSubscribers := app.clients.numSubscribers(ch)
+	if logger.TRACE.Enabled() {
+		logger.TRACE.Printf("Join message into channel %s (%d subscribers): user %s", message.Channel, numSubscribers, message.Data.User)
+	}
+	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
@@ -408,7 +423,11 @@ func (app *Application) joinMsg(ch Channel, message *JoinMessage) error {
 }
 
 func (app *Application) leaveMsg(ch Channel, message *LeaveMessage) error {
-	hasCurrentSubscribers := app.clients.numSubscribers(ch) > 0
+	numSubscribers := app.clients.numSubscribers(ch)
+	if logger.TRACE.Enabled() {
+		logger.TRACE.Printf("Leave message into channel %s (%d subscribers): user %s", message.Channel, numSubscribers, message.Data.User)
+	}
+	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}

@@ -23,11 +23,10 @@
 			"revision": "056c9bc7be7190eaa7715723883caffa5f8fa3e4"
 		},
 		{
-			"checksumSHA1": "4abPaYSPssM6QNkIra92Lu2g2y8=",
-			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/FZambia/go-logger",
+			"checksumSHA1": "6HiBVDBPrM6zWptYEwNhD3GqHuo=",
 			"path": "github.com/FZambia/go-logger",
-			"revision": "656c7347d91febe2e4f6132ff6d74a0213cbeebe",
-			"revisionTime": "2016-08-11T08:39:09Z"
+			"revision": "4052dbd19fe53cf9b5decf34e6c6f06366753259",
+			"revisionTime": "2016-09-06T15:03:52Z"
 		},
 		{
 			"path": "github.com/FZambia/go-sentinel",
@@ -326,7 +325,6 @@
 		},
 		{
 			"checksumSHA1": "SGSXlSU1TFtg5aTlVA9v4Ka86lU=",
-			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gorilla/securecookie",
 			"path": "github.com/gorilla/securecookie",
 			"revision": "e95799a481bbcc3d01c2ad5178524cb8bec9f370",
 			"revisionTime": "2015-08-20T08:29:58Z"
@@ -337,7 +335,6 @@
 		},
 		{
 			"checksumSHA1": "yc/AtS4YqKJrwaJTbHKmDYVrtVE=",
-			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gorilla/websocket",
 			"path": "github.com/gorilla/websocket",
 			"revision": "e2e3d8414d0fbae04004f151979f4e27c6747fe7",
 			"revisionTime": "2016-03-13T18:57:37Z"
