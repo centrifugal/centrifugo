@@ -491,6 +491,10 @@ func (e *RedisEngine) Run() error {
 	return nil
 }
 
+func (e *RedisEngine) Shutdown() error {
+	return errors.New("Shutdown not implemented")
+}
+
 type redisAPIRequest struct {
 	Data []proto.ApiCommand
 }

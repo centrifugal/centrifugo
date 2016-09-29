@@ -2,6 +2,7 @@ package enginememory
 
 import (
 	"container/heap"
+	"errors"
 	"sync"
 	"time"
 
@@ -45,6 +46,10 @@ func (e *MemoryEngine) Name() string {
 
 func (e *MemoryEngine) Run() error {
 	return nil
+}
+
+func (e *MemoryEngine) Shutdown() error {
+	return errors.New("Shutdown not implemented")
 }
 
 func (e *MemoryEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *config.ChannelOptions) <-chan error {
