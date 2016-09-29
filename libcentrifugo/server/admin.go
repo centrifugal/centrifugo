@@ -284,8 +284,10 @@ func (c *adminClient) infoCmd() (proto.Response, error) {
 	c.app.RLock()
 	defer c.app.RUnlock()
 	body := proto.AdminInfoBody{
-		Engine: c.app.engine.Name(),
-		Config: c.app.config,
+		Data: map[string]interface{}{
+			"engine": c.app.engine.Name(),
+			"config": c.app.config,
+		},
 	}
 	return proto.NewAPIAdminInfoResponse(body), nil
 }

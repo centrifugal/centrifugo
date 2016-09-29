@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
-	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
@@ -44,7 +43,7 @@ type Application struct {
 	engine engine.Engine
 
 	// config for application.
-	config *config.Config
+	config *Config
 
 	// mediator allows integrate libcentrifugo Application with external go code.
 	mediator Mediator
@@ -95,7 +94,7 @@ func init() {
 
 // New returns new server instance backed by Application, the only required
 // argument is config. Engine must be set via corresponding methods.
-func New(c *config.Config) Server {
+func New(c *Config) Server {
 	app := &Application{
 		uid:             uuid.NewV4().String(),
 		config:          c,
@@ -116,7 +115,7 @@ func New(c *config.Config) Server {
 	return app
 }
 
-func (app *Application) Config() config.Config {
+func (app *Application) Config() Config {
 	app.RLock()
 	c := *app.config
 	app.RUnlock()
@@ -252,7 +251,7 @@ func (app *Application) cleanNodeInfo() {
 }
 
 // SetConfig binds config to application.
-func (app *Application) SetConfig(c *config.Config) {
+func (app *Application) SetConfig(c *Config) {
 	app.Lock()
 	defer app.Unlock()
 	app.config = c
@@ -498,7 +497,7 @@ func (app *Application) pubAdmin(method string, params []byte) <-chan error {
 
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel.
-func (app *Application) pubClient(ch proto.Channel, chOpts config.ChannelOptions, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
+func (app *Application) pubClient(ch proto.Channel, chOpts proto.ChannelOptions, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
 	message := proto.NewMessage(ch, data, client, info)
 	app.metrics.Counters.Inc("num_msg_published")
 	if chOpts.Watch {
@@ -758,17 +757,17 @@ func (app *Application) disconnectUser(user proto.UserID) error {
 }
 
 // namespaceKey returns namespace key from channel name if exists.
-func (app *Application) namespaceKey(ch proto.Channel) config.NamespaceKey {
+func (app *Application) namespaceKey(ch proto.Channel) NamespaceKey {
 	cTrim := strings.TrimPrefix(string(ch), app.config.PrivateChannelPrefix)
 	if strings.Contains(cTrim, app.config.NamespaceChannelBoundary) {
 		parts := strings.SplitN(cTrim, app.config.NamespaceChannelBoundary, 2)
-		return config.NamespaceKey(parts[0])
+		return NamespaceKey(parts[0])
 	}
-	return config.NamespaceKey("")
+	return NamespaceKey("")
 }
 
 // channelOpts returns channel options for channel using current application structure.
-func (app *Application) channelOpts(ch proto.Channel) (config.ChannelOptions, error) {
+func (app *Application) channelOpts(ch proto.Channel) (proto.ChannelOptions, error) {
 	app.RLock()
 	defer app.RUnlock()
 	nk := app.namespaceKey(ch)
@@ -776,12 +775,15 @@ func (app *Application) channelOpts(ch proto.Channel) (config.ChannelOptions, er
 	if found {
 		return opts, nil
 	}
-	return config.ChannelOptions{}, ErrNamespaceNotFound
+	return proto.ChannelOptions{}, ErrNamespaceNotFound
 }
 
 // addPresence proxies presence adding to engine.
 func (app *Application) addPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo) error {
-	return app.engine.AddPresence(ch, uid, info)
+	app.RLock()
+	expire := int(app.config.PresenceExpireInterval.Seconds())
+	app.RUnlock()
+	return app.engine.AddPresence(ch, uid, info, expire)
 }
 
 // removePresence proxies presence removing to engine.

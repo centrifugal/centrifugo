@@ -1,7 +1,6 @@
 package proto
 
 import (
-	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/valyala/bytebufferpool"
 )
@@ -218,8 +217,7 @@ type adminMessageBody struct {
 }
 
 type AdminInfoBody struct {
-	Engine string         `json:"engine"`
-	Config *config.Config `json:"config"`
+	Data map[string]interface{} `json:"data"`
 }
 
 type Response interface {

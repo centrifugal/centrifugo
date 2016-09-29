@@ -1,3 +1,6 @@
+* `channel_prefix` renamed to `redis_prefix`
+* admin info response format changed 
+
 v1.5.1
 ======
 

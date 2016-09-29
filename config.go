@@ -12,13 +12,13 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/viper-lite"
-	"github.com/centrifugal/centrifugo/libcentrifugo/config"
+	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/satori/go.uuid"
 )
 
 // newConfig creates new libcentrifugo.Config using viper.
-func newConfig(v *viper.Viper) *config.Config {
-	cfg := &config.Config{}
+func newConfig(v *viper.Viper) *server.Config {
+	cfg := &server.Config{}
 	cfg.Version = VERSION
 
 	cfg.Name = getApplicationName(v)
@@ -37,7 +37,6 @@ func newConfig(v *viper.Viper) *config.Config {
 	cfg.SSL = v.GetBool("ssl")
 	cfg.SSLCert = v.GetString("ssl_cert")
 	cfg.SSLKey = v.GetString("ssl_cert")
-	cfg.ChannelPrefix = v.GetString("channel_prefix")
 	cfg.MaxChannelLength = v.GetInt("max_channel_length")
 	cfg.PingInterval = time.Duration(v.GetInt("ping_interval")) * time.Second
 	cfg.NodePingInterval = time.Duration(v.GetInt("node_ping_interval")) * time.Second
@@ -189,8 +188,8 @@ func validateConfig(f string) error {
 	return c.Validate()
 }
 
-func namespacesFromConfig(v *viper.Viper) []config.Namespace {
-	ns := []config.Namespace{}
+func namespacesFromConfig(v *viper.Viper) []server.Namespace {
+	ns := []server.Namespace{}
 	if !viper.IsSet("namespaces") {
 		return ns
 	}

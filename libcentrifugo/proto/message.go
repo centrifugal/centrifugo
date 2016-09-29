@@ -9,8 +9,6 @@ import (
 )
 
 type (
-	// Channel is a string channel name.
-	Channel string
 	// UserID is web application user ID as string.
 	UserID string
 	// ConnID is a unique connection ID.

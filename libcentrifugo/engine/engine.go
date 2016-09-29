@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
@@ -24,7 +23,7 @@ type Engine interface {
 	// The returned value is channel in which we will send error as soon as engine finishes
 	// publish operation. Also the task of this method is to maintain history for channels
 	// if enabled.
-	PublishMessage(proto.Channel, *proto.Message, *config.ChannelOptions) <-chan error
+	PublishMessage(proto.Channel, *proto.Message, *proto.ChannelOptions) <-chan error
 	// PublishJoin allows to send join message into channel.
 	PublishJoin(proto.Channel, *proto.JoinMessage) <-chan error
 	// PublishLeave allows to send leave message into channel.
@@ -43,7 +42,7 @@ type Engine interface {
 	Channels() ([]proto.Channel, error)
 
 	// AddPresence sets or updates presence info in channel for connection with uid.
-	AddPresence(proto.Channel, proto.ConnID, proto.ClientInfo) error
+	AddPresence(ch proto.Channel, connID proto.ConnID, info proto.ClientInfo, expire int) error
 	// RemovePresence removes presence information for connection with uid.
 	RemovePresence(proto.Channel, proto.ConnID) error
 	// Presence returns actual presence information for channel.

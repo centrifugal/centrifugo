@@ -12,7 +12,6 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/go-sentinel"
-	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
@@ -27,7 +26,10 @@ func init() {
 
 func RedisEngineConfigure(setter plugin.ConfigSetter) error {
 
+	setter.SetDefault("redis_prefix", "centrifugo")
+
 	setter.SetDefault("redis_connect_timeout", 1)
+	setter.SetDefault("redis_read_timeout", 10) // Must be greater than minimal periodic node ping interval.
 	setter.SetDefault("redis_write_timeout", 1)
 
 	setter.StringFlag("redis_host", "", "127.0.0.1", "redis host (Redis engine)")
@@ -85,7 +87,7 @@ const (
 	RedisAPIKeySuffix         = ".api"
 	RedisControlChannelSuffix = ".control"
 	RedisAdminChannelSuffix   = ".admin"
-	RedisMessageChannelPrefix = ".proto."
+	RedisMessageChannelPrefix = ".message."
 	RedisJoinChannelPrefix    = ".join."
 	RedisLeaveChannelPrefix   = ".leave."
 )
@@ -96,7 +98,6 @@ const (
 type RedisEngine struct {
 	sync.RWMutex
 	node              server.Node
-	nodeConfig        config.Config
 	config            *RedisEngineConfig
 	pool              *redis.Pool
 	api               bool
@@ -138,6 +139,9 @@ type RedisEngineConfig struct {
 	MasterName string
 	// SentinelAddrs is a slice of Sentinel addresses.
 	SentinelAddrs []string
+
+	// Prefix to use before every channel name and key in Redis.
+	Prefix string
 
 	// Timeout on read operations. Note that at moment it should be greater than node
 	// ping interval in order to prevent timing out Pubsub connection's Receive call.
@@ -363,10 +367,11 @@ func getRedisEngineConfig(getter plugin.ConfigGetter) *RedisEngineConfig {
 		PoolSize:       getter.GetInt("redis_pool"),
 		API:            getter.GetBool("redis_api"),
 		NumAPIShards:   getter.GetInt("redis_api_num_shards"),
+		Prefix:         getter.GetString("redis_prefix"),
 		MasterName:     masterName,
 		SentinelAddrs:  sentinelAddrs,
 		ConnectTimeout: time.Duration(getter.GetInt("redis_connect_timeout")) * time.Second,
-		ReadTimeout:    time.Duration(getter.GetInt("node_ping_interval")*3+1) * time.Second,
+		ReadTimeout:    time.Duration(getter.GetInt("redis_read_timeout")) * time.Second,
 		WriteTimeout:   time.Duration(getter.GetInt("redis_write_timeout")) * time.Second,
 	}
 
@@ -380,7 +385,6 @@ func NewRedisEngine(n server.Node, getter plugin.ConfigGetter) (engine.Engine, e
 
 	e := &RedisEngine{
 		node:              n,
-		nodeConfig:        n.Config(),
 		config:            conf,
 		pool:              newPool(conf),
 		api:               conf.API,
@@ -393,10 +397,9 @@ func NewRedisEngine(n server.Node, getter plugin.ConfigGetter) (engine.Engine, e
 	e.pubCh = make(chan *pubRequest, RedisPublishChannelSize)
 	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
 	e.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
-	channelPrefix := e.nodeConfig.ChannelPrefix
-	e.messagePrefix = channelPrefix + RedisMessageChannelPrefix
-	e.joinPrefix = channelPrefix + RedisJoinChannelPrefix
-	e.leavePrefix = channelPrefix + RedisLeaveChannelPrefix
+	e.messagePrefix = conf.Prefix + RedisMessageChannelPrefix
+	e.joinPrefix = conf.Prefix + RedisJoinChannelPrefix
+	e.leavePrefix = conf.Prefix + RedisLeaveChannelPrefix
 	return e, nil
 }
 
@@ -409,7 +412,7 @@ func yesno(condition bool) string {
 
 var (
 	// pubScriptSource contains lua script we register in Redis to call when publishing
-	// client proto. It publishes message into channel and adds message to history
+	// client message. It publishes message into channel and adds message to history
 	// list maintaining history size and expiration time. This is an optimization to make
 	// 1 round trip to Redis instead of 2.
 	// KEYS[1] - history list key
@@ -798,7 +801,7 @@ type pubRequest struct {
 	channel    ChannelID
 	message    []byte
 	historyKey string
-	opts       *config.ChannelOptions
+	opts       *proto.ChannelOptions
 	err        *chan error
 }
 
@@ -906,7 +909,7 @@ func (e *RedisEngine) channelFromChannelID(chID ChannelID) (proto.Channel, strin
 	}
 }
 
-func (e *RedisEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *config.ChannelOptions) <-chan error {
+func (e *RedisEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := encodeEngineClientMessage(message)
@@ -1041,7 +1044,7 @@ func (e *RedisEngine) Unsubscribe(ch proto.Channel) error {
 }
 
 func (e *RedisEngine) getAPIQueueKey() string {
-	return e.nodeConfig.ChannelPrefix + RedisAPIKeySuffix
+	return e.config.Prefix + RedisAPIKeySuffix
 }
 
 func (e *RedisEngine) getAPIShardQueueKey(shardNum int) string {
@@ -1050,38 +1053,37 @@ func (e *RedisEngine) getAPIShardQueueKey(shardNum int) string {
 }
 
 func (e *RedisEngine) controlChannelID() ChannelID {
-	return ChannelID(e.nodeConfig.ChannelPrefix + RedisControlChannelSuffix)
+	return ChannelID(e.config.Prefix + RedisControlChannelSuffix)
 }
 
 func (e *RedisEngine) adminChannelID() ChannelID {
-	return ChannelID(e.nodeConfig.ChannelPrefix + RedisAdminChannelSuffix)
+	return ChannelID(e.config.Prefix + RedisAdminChannelSuffix)
 }
 
 func (e *RedisEngine) getHashKey(chID ChannelID) string {
-	return e.nodeConfig.ChannelPrefix + ".presence.hash." + string(chID)
+	return e.config.Prefix + ".presence.hash." + string(chID)
 }
 
 func (e *RedisEngine) getSetKey(chID ChannelID) string {
-	return e.nodeConfig.ChannelPrefix + ".presence.set." + string(chID)
+	return e.config.Prefix + ".presence.set." + string(chID)
 }
 
 func (e *RedisEngine) getHistoryKey(chID ChannelID) string {
-	return e.nodeConfig.ChannelPrefix + ".history.list." + string(chID)
+	return e.config.Prefix + ".history.list." + string(chID)
 }
 
-func (e *RedisEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo) error {
+func (e *RedisEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo, expire int) error {
 	chID := e.messageChannelID(ch)
-	presenceExpireSeconds := int(e.nodeConfig.PresenceExpireInterval.Seconds())
 	conn := e.pool.Get()
 	defer conn.Close()
 	infoJSON, err := info.Marshal()
 	if err != nil {
 		return err
 	}
-	expireAt := time.Now().Unix() + int64(presenceExpireSeconds)
+	expireAt := time.Now().Unix() + int64(expire)
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
-	_, err = e.addPresenceScript.Do(conn, setKey, hashKey, presenceExpireSeconds, expireAt, uid, infoJSON)
+	_, err = e.addPresenceScript.Do(conn, setKey, hashKey, expire, expireAt, uid, infoJSON)
 	return err
 }
 

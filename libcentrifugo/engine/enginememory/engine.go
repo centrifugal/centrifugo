@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
-	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/priority"
@@ -52,7 +51,7 @@ func (e *MemoryEngine) Shutdown() error {
 	return errors.New("Shutdown not implemented")
 }
 
-func (e *MemoryEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *config.ChannelOptions) <-chan error {
+func (e *MemoryEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
 	hasCurrentSubscribers := e.node.NumSubscribers(ch) > 0
 
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
@@ -104,7 +103,7 @@ func (e *MemoryEngine) Unsubscribe(ch proto.Channel) error {
 	return nil
 }
 
-func (e *MemoryEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo) error {
+func (e *MemoryEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo, expire int) error {
 	return e.presenceHub.add(ch, uid, info)
 }
 

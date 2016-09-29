@@ -1,14 +1,13 @@
 package server
 
 import (
-	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
 type Server interface {
 	// SetConfig allows to set/update node config.
-	SetConfig(*config.Config)
+	SetConfig(*Config)
 
 	// SetMediator allows to set mediator interface.
 	SetMediator(Mediator)
@@ -25,7 +24,7 @@ type Server interface {
 
 type Node interface {
 	// Config allows to get node Config.
-	Config() config.Config
+	Config() Config
 
 	// ClientMsg handles client message received from channel -
 	// broadcasts it to all connected interested clients.
