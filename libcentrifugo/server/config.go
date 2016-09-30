@@ -39,30 +39,32 @@ type Config struct {
 	AdminPassword string `json:"-"`
 	// AdminSecret is a secret to generate auth token for admin socket connection.
 	AdminSecret string `json:"-"`
+
 	// Web enables admin web interface.
 	Web bool `json:"web"`
 	// WebPath
-	WebPath string
+	WebPath string `json:"web_path"`
 
-	HTTPAddress string
-
-	HTTPPrefix string
-
-	HTTPPort string
-
-	HTTPAdminPort string
-
-	HTTPAPIPort string
+	// HTTPAddress
+	HTTPAddress string `json:"http_address"`
+	// HTTPPrefix
+	HTTPPrefix string `json:"http_prefix"`
+	// HTTPPort
+	HTTPPort string `json:"http_port"`
+	// HTTPAdminPort
+	HTTPAdminPort string `json:"http_admin_port"`
+	// HTTPAPIPort
+	HTTPAPIPort string `json:"http_api_port"`
 
 	// SSL enables builtin https server.
-	SSL bool
+	SSL bool `json:"ssl"`
 	// SSLCert is path to SSL certificate file.
-	SSLCert string
+	SSLCert string `json:"ssl_cert"`
 	// SSLKey is path to SSL key file.
-	SSLKey string
+	SSLKey string `json:"ssl_key"`
 
 	// SockjsURL is a custom SockJS library url to use in iframe transports.
-	SockjsURL string
+	SockjsURL string `json:"sockjs_url"`
 
 	// MaxChannelLength is a maximum length of channel name.
 	MaxChannelLength int `json:"max_channel_length"`

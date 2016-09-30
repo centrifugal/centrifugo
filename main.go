@@ -120,7 +120,6 @@ func Main() {
 			viper.SetDefault("web_password", "") // Deprecated. Use admin_password
 			viper.SetDefault("web_secret", "")   // Deprecated. Use admin_secret
 			viper.SetDefault("max_channel_length", 255)
-			viper.SetDefault("channel_prefix", "centrifugo")
 			viper.SetDefault("node_ping_interval", 3)
 			viper.SetDefault("message_send_timeout", 0)
 			viper.SetDefault("ping_interval", 25)
