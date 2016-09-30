@@ -75,3 +75,7 @@ func (g *viperConfigGetter) GetBool(key string) bool {
 func (g *viperConfigGetter) IsSet(key string) bool {
 	return g.viper.IsSet(key)
 }
+
+func (g *viperConfigGetter) UnmarshalKey(key string, target interface{}) error {
+	return g.viper.UnmarshalKey(key, target)
+}

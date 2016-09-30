@@ -12,9 +12,10 @@ type ConfigSetter interface {
 
 // ConfigGetter allows to get configuration options inside pluggable components.
 type ConfigGetter interface {
-	Get(string) interface{}
-	GetString(string) string
-	GetBool(string) bool
-	GetInt(string) int
-	IsSet(string) bool
+	Get(key string) interface{}
+	GetString(key string) string
+	GetBool(key string) bool
+	GetInt(key string) int
+	IsSet(key string) bool
+	UnmarshalKey(key string, target interface{}) error
 }
