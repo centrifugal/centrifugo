@@ -43,10 +43,10 @@ func (h *clientHub) shutdown() {
 				continue
 			}
 			go func(cc clientConn) {
-				for _, ch := range cc.channels() {
-					cc.unsubscribe(ch)
+				for _, ch := range cc.Channels() {
+					cc.Unsubscribe(ch)
 				}
-				cc.close("shutting down")
+				cc.Close("shutting down")
 				wg.Done()
 			}(cc)
 		}
@@ -60,8 +60,8 @@ func (h *clientHub) add(c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
-	uid := c.uid()
-	user := c.user()
+	uid := c.UID()
+	user := c.User()
 
 	h.conns[uid] = c
 
@@ -78,8 +78,8 @@ func (h *clientHub) remove(c clientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
-	uid := c.uid()
-	user := c.user()
+	uid := c.UID()
+	user := c.User()
 
 	delete(h.conns, uid)
 
@@ -130,7 +130,7 @@ func (h *clientHub) addSub(ch proto.Channel, c clientConn) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
-	uid := c.uid()
+	uid := c.UID()
 
 	h.conns[uid] = c
 
@@ -150,7 +150,7 @@ func (h *clientHub) removeSub(ch proto.Channel, c clientConn) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
-	uid := c.uid()
+	uid := c.UID()
 
 	// try to find subscription to delete, return early if not found.
 	if _, ok := h.subs[ch]; !ok {
@@ -189,7 +189,7 @@ func (h *clientHub) broadcast(ch proto.Channel, message []byte) error {
 		if !ok {
 			continue
 		}
-		err := c.send(message)
+		err := c.Send(message)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
@@ -265,7 +265,7 @@ func newAdminHub() *adminHub {
 func (h *adminHub) add(c adminConn) error {
 	h.Lock()
 	defer h.Unlock()
-	h.connections[c.uid()] = c
+	h.connections[c.UID()] = c
 	return nil
 }
 
@@ -273,7 +273,7 @@ func (h *adminHub) add(c adminConn) error {
 func (h *adminHub) remove(c adminConn) error {
 	h.Lock()
 	defer h.Unlock()
-	delete(h.connections, c.uid())
+	delete(h.connections, c.UID())
 	return nil
 }
 
@@ -282,7 +282,7 @@ func (h *adminHub) broadcast(message []byte) error {
 	h.RLock()
 	defer h.RUnlock()
 	for _, c := range h.connections {
-		err := c.send(message)
+		err := c.Send(message)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}

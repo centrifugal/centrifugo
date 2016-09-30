@@ -71,7 +71,7 @@ const adminQueueMaxSize = 10485760
 type adminClient struct {
 	sync.RWMutex
 	app           *Application
-	UID           proto.ConnID
+	uid           proto.ConnID
 	sess          session
 	watch         bool
 	authenticated bool
@@ -82,7 +82,7 @@ type adminClient struct {
 
 func newAdminClient(app *Application, sess session) (*adminClient, error) {
 	c := &adminClient{
-		UID:           proto.ConnID(uuid.NewV4().String()),
+		uid:           proto.ConnID(uuid.NewV4().String()),
 		app:           app,
 		sess:          sess,
 		watch:         false,
@@ -151,18 +151,18 @@ func (c *adminClient) sendMessages() {
 		}
 		err := c.sess.Send(msg)
 		if err != nil {
-			logger.INFO.Println("error sending to", c.uid(), err.Error())
+			logger.INFO.Println("error sending to", c.UID(), err.Error())
 			c.close("error sending message")
 			return
 		}
 	}
 }
 
-func (c *adminClient) uid() proto.ConnID {
-	return c.UID
+func (c *adminClient) UID() proto.ConnID {
+	return c.uid
 }
 
-func (c *adminClient) send(message []byte) error {
+func (c *adminClient) Send(message []byte) error {
 	if c.messages.Size() > c.maxQueueSize {
 		c.close("slow")
 		return ErrClientClosed
@@ -245,7 +245,7 @@ func (c *adminClient) message(msg []byte) error {
 		return ErrInternalServerError
 	}
 
-	err = c.send(respBytes)
+	err = c.Send(respBytes)
 	if err != nil {
 		return ErrInternalServerError
 	}

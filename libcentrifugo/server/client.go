@@ -26,13 +26,13 @@ type client struct {
 	sync.RWMutex
 	app            *Application
 	sess           session
-	UID            proto.ConnID
-	User           proto.UserID
+	uid            proto.ConnID
+	user           proto.UserID
 	timestamp      int64
 	defaultInfo    []byte
 	authenticated  bool
 	channelInfo    map[proto.Channel][]byte
-	Channels       map[proto.Channel]bool
+	channels       map[proto.Channel]bool
 	messages       bytequeue.ByteQueue
 	closeChan      chan struct{}
 	staleTimer     *time.Timer
@@ -46,7 +46,7 @@ type client struct {
 // newClient creates new ready to communicate client.
 func newClient(app *Application, s session) (*client, error) {
 	c := client{
-		UID:       proto.ConnID(uuid.NewV4().String()),
+		uid:       proto.ConnID(uuid.NewV4().String()),
 		app:       app,
 		sess:      s,
 		closeChan: make(chan struct{}),
@@ -78,8 +78,8 @@ func (c *client) sendMessages() {
 		}
 		err := c.sendMsgTimeout(msg)
 		if err != nil {
-			logger.INFO.Println("error sending to", c.uid(), err.Error())
-			c.close("error sending message")
+			logger.INFO.Println("error sending to", c.UID(), err.Error())
+			c.Close("error sending message")
 			return
 		}
 		c.app.metrics.Counters.Inc("num_msg_sent")
@@ -123,7 +123,7 @@ func (c *client) closeUnauthenticated() {
 	c.RLock()
 	defer c.RUnlock()
 	if !c.authenticated {
-		c.close("stale")
+		c.Close("stale")
 	}
 }
 
@@ -137,13 +137,13 @@ func (c *client) updateChannelPresence(ch proto.Channel) {
 	if !chOpts.Presence {
 		return
 	}
-	c.app.addPresence(ch, c.UID, c.info(ch))
+	c.app.addPresence(ch, c.UID(), c.info(ch))
 }
 
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
 	c.RLock()
-	for _, channel := range c.channels() {
+	for _, channel := range c.Channels() {
 		c.updateChannelPresence(channel)
 	}
 	c.RUnlock()
@@ -165,27 +165,27 @@ func (c *client) addPresenceUpdate() {
 	}
 }
 
-func (c *client) uid() proto.ConnID {
-	return c.UID
+func (c *client) UID() proto.ConnID {
+	return c.uid
 }
 
-func (c *client) user() proto.UserID {
-	return c.User
+func (c *client) User() proto.UserID {
+	return c.user
 }
 
-func (c *client) channels() []proto.Channel {
+func (c *client) Channels() []proto.Channel {
 	c.RLock()
 	defer c.RUnlock()
-	keys := make([]proto.Channel, len(c.Channels))
+	keys := make([]proto.Channel, len(c.channels))
 	i := 0
-	for k := range c.Channels {
+	for k := range c.channels {
 		keys[i] = k
 		i++
 	}
 	return keys
 }
 
-func (c *client) unsubscribe(ch proto.Channel) error {
+func (c *client) Unsubscribe(ch proto.Channel) error {
 	c.Lock()
 	defer c.Unlock()
 	cmd := &proto.UnsubscribeClientCommand{
@@ -199,23 +199,23 @@ func (c *client) unsubscribe(ch proto.Channel) error {
 	if err != nil {
 		return err
 	}
-	return c.send(respJSON)
+	return c.Send(respJSON)
 }
 
-func (c *client) send(message []byte) error {
+func (c *client) Send(message []byte) error {
 	ok := c.messages.Add(message)
 	if !ok {
 		return ErrClientClosed
 	}
 	c.app.metrics.Counters.Inc("num_msg_queued")
 	if c.messages.Size() > c.maxQueueSize {
-		c.close("slow")
+		c.Close("slow")
 		return ErrClientClosed
 	}
 	return nil
 }
 
-func (c *client) close(reason string) error {
+func (c *client) Close(reason string) error {
 	// TODO: better locking for client - at moment we close message queue in 2 places, here and in clean() method
 	c.messages.Close()
 	c.sess.Close(CloseStatus, reason)
@@ -235,9 +235,9 @@ func (c *client) clean() error {
 		close(c.closeChan)
 	}
 
-	if len(c.Channels) > 0 {
+	if len(c.channels) > 0 {
 		// unsubscribe from all channels
-		for channel := range c.Channels {
+		for channel := range c.channels {
 			cmd := &proto.UnsubscribeClientCommand{
 				Channel: channel,
 			}
@@ -258,7 +258,7 @@ func (c *client) clean() error {
 	c.messages.Close()
 
 	if c.authenticated && c.app.mediator != nil {
-		c.app.mediator.Disconnect(c.UID, c.User)
+		c.app.mediator.Disconnect(c.uid, c.user)
 	}
 
 	if c.expireTimer != nil {
@@ -293,7 +293,7 @@ func (c *client) info(ch proto.Channel) proto.ClientInfo {
 	} else {
 		rawChannelInfo = nil
 	}
-	return *proto.NewClientInfo(c.User, c.UID, rawDefaultInfo, rawChannelInfo)
+	return *proto.NewClientInfo(c.User(), c.UID(), rawDefaultInfo, rawChannelInfo)
 }
 
 func cmdFromClientMsg(msgBytes []byte) ([]proto.ClientCommand, error) {
@@ -385,7 +385,7 @@ func (c *client) disconnect(reason string, reconnect bool) error {
 	if err != nil {
 		return err
 	}
-	return c.send(jsonResp)
+	return c.Send(jsonResp)
 }
 
 func (c *client) handleCommands(cmds []proto.ClientCommand) error {
@@ -406,7 +406,7 @@ func (c *client) handleCommands(cmds []proto.ClientCommand) error {
 		logger.ERROR.Println(err)
 		return ErrInvalidMessage
 	}
-	err = c.send(jsonResp)
+	err = c.Send(jsonResp)
 	return err
 }
 
@@ -519,7 +519,7 @@ func (c *client) expire() {
 		return
 	}
 
-	c.close("expired")
+	c.Close("expired")
 	return
 }
 
@@ -527,8 +527,6 @@ func (c *client) expire() {
 // command immediately after establishing Websocket or SockJS connection with
 // Centrifugo
 func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, error) {
-
-	//resp := newClientResponse("connect")
 
 	if c.authenticated {
 		logger.ERROR.Println("connect error: client already authenticated")
@@ -575,7 +573,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 		c.timestamp = time.Now().Unix()
 	}
 
-	c.User = user
+	c.user = user
 
 	body := proto.ConnectBody{}
 	body.Version = version
@@ -594,7 +592,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 
 	c.authenticated = true
 	c.defaultInfo = []byte(info)
-	c.Channels = map[proto.Channel]bool{}
+	c.channels = map[proto.Channel]bool{}
 	c.channelInfo = map[proto.Channel][]byte{}
 
 	if c.staleTimer != nil {
@@ -610,7 +608,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	}
 
 	if c.app.mediator != nil {
-		c.app.mediator.Connect(c.UID, c.User)
+		c.app.mediator.Connect(c.uid, c.user)
 	}
 
 	if timeToExpire > 0 {
@@ -618,7 +616,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 		c.expireTimer = time.AfterFunc(duration, c.expire)
 	}
 
-	body.Client = c.UID
+	body.Client = c.uid
 	return proto.NewClientConnectResponse(body), nil
 }
 
@@ -657,7 +655,7 @@ func (c *client) refreshCmd(cmd *proto.RefreshClientCommand) (proto.Response, er
 	body.Version = version
 	body.Expires = connLifetime > 0
 	body.TTL = connLifetime
-	body.Client = c.UID
+	body.Client = c.uid
 
 	if connLifetime > 0 {
 		// connection check enabled
@@ -734,20 +732,20 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 		return resp, nil
 	}
 
-	if len(c.Channels) >= channelLimit {
+	if len(c.channels) >= channelLimit {
 		logger.ERROR.Printf("maximimum limit of channels per client reached: %d", channelLimit)
 		resp := proto.NewClientSubscribeResponse(body)
 		resp.SetErr(proto.ResponseError{ErrLimitExceeded, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
-	if _, ok := c.Channels[channel]; ok {
+	if _, ok := c.channels[channel]; ok {
 		resp := proto.NewClientSubscribeResponse(body)
 		resp.SetErr(proto.ResponseError{ErrAlreadySubscribed, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
-	if !c.app.userAllowed(channel, c.User) || !c.app.clientAllowed(channel, c.UID) {
+	if !c.app.userAllowed(channel, c.user) || !c.app.clientAllowed(channel, c.uid) {
 		resp := proto.NewClientSubscribeResponse(body)
 		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
@@ -760,7 +758,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 		return resp, nil
 	}
 
-	if !chOpts.Anonymous && c.User == "" && !insecure {
+	if !chOpts.Anonymous && c.user == "" && !insecure {
 		resp := proto.NewClientSubscribeResponse(body)
 		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
@@ -768,7 +766,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 
 	if c.app.privateChannel(channel) {
 		// private channel - subscription must be properly signed
-		if string(c.UID) != string(cmd.Client) {
+		if string(c.uid) != string(cmd.Client) {
 			resp := proto.NewClientSubscribeResponse(body)
 			resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 			return resp, nil
@@ -782,7 +780,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 		c.channelInfo[channel] = []byte(cmd.Info)
 	}
 
-	c.Channels[channel] = true
+	c.channels[channel] = true
 
 	err = c.app.addSub(channel, c)
 	if err != nil {
@@ -794,7 +792,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 	info := c.info(channel)
 
 	if chOpts.Presence {
-		err = c.app.addPresence(channel, c.UID, info)
+		err = c.app.addPresence(channel, c.uid, info)
 		if err != nil {
 			logger.ERROR.Println(err)
 			resp := proto.NewClientSubscribeResponse(body)
@@ -837,7 +835,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 	}
 
 	if c.app.mediator != nil {
-		c.app.mediator.Subscribe(channel, c.UID, c.User)
+		c.app.mediator.Subscribe(channel, c.uid, c.user)
 	}
 
 	body.Status = true
@@ -867,12 +865,12 @@ func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeClientCommand) (proto.Resp
 
 	info := c.info(channel)
 
-	_, ok := c.Channels[channel]
+	_, ok := c.channels[channel]
 	if ok {
 
-		delete(c.Channels, channel)
+		delete(c.channels, channel)
 
-		err = c.app.removePresence(channel, c.UID)
+		err = c.app.removePresence(channel, c.uid)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
@@ -893,7 +891,7 @@ func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeClientCommand) (proto.Resp
 		}
 
 		if c.app.mediator != nil {
-			c.app.mediator.Unsubscribe(channel, c.UID, c.User)
+			c.app.mediator.Unsubscribe(channel, c.uid, c.user)
 		}
 
 	}
@@ -916,7 +914,7 @@ func (c *client) publishCmd(cmd *proto.PublishClientCommand) (proto.Response, er
 		Channel: channel,
 	}
 
-	if _, ok := c.Channels[channel]; !ok {
+	if _, ok := c.channels[channel]; !ok {
 		resp := proto.NewClientPublishResponse(body)
 		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
@@ -924,7 +922,7 @@ func (c *client) publishCmd(cmd *proto.PublishClientCommand) (proto.Response, er
 
 	info := c.info(channel)
 
-	err := c.app.publish(channel, data, c.UID, &info, true)
+	err := c.app.publish(channel, data, c.uid, &info, true)
 	if err != nil {
 		resp := proto.NewClientPublishResponse(body)
 		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceRetry})
@@ -949,7 +947,7 @@ func (c *client) presenceCmd(cmd *proto.PresenceClientCommand) (proto.Response, 
 		Channel: channel,
 	}
 
-	if _, ok := c.Channels[channel]; !ok {
+	if _, ok := c.channels[channel]; !ok {
 		resp := proto.NewClientPresenceResponse(body)
 		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
@@ -979,7 +977,7 @@ func (c *client) historyCmd(cmd *proto.HistoryClientCommand) (proto.Response, er
 		Channel: channel,
 	}
 
-	if _, ok := c.Channels[channel]; !ok {
+	if _, ok := c.channels[channel]; !ok {
 		resp := proto.NewClientHistoryResponse(body)
 		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil

@@ -286,7 +286,7 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 		return
 	}
 	defer c.clean()
-	logger.DEBUG.Printf("New SockJS session established with uid %s\n", c.uid())
+	logger.DEBUG.Printf("New SockJS session established with uid %s\n", c.UID())
 
 	for {
 		if msg, err := s.Recv(); err == nil {
@@ -326,7 +326,7 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		return
 	}
-	logger.DEBUG.Printf("New raw Websocket session established with uid %s\n", c.uid())
+	logger.DEBUG.Printf("New raw Websocket session established with uid %s\n", c.UID())
 	defer c.clean()
 
 	ws.SetReadDeadline(time.Now().Add(pongWait))
@@ -596,7 +596,7 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 	start := time.Now()
-	logger.DEBUG.Printf("New admin session established with uid %s\n", c.uid())
+	logger.DEBUG.Printf("New admin session established with uid %s\n", c.UID())
 	defer c.clean()
 
 	ws.SetReadDeadline(time.Now().Add(pongWait))
@@ -614,5 +614,5 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	logger.DEBUG.Printf("Admin session completed in %s, uid %s", time.Since(start), c.uid())
+	logger.DEBUG.Printf("Admin session completed in %s, uid %s", time.Since(start), c.UID())
 }

@@ -708,13 +708,13 @@ func (app *Application) unsubscribeUser(user proto.UserID, ch proto.Channel) err
 		var channels []proto.Channel
 		if string(ch) == "" {
 			// unsubscribe from all channels
-			channels = c.channels()
+			channels = c.Channels()
 		} else {
 			channels = []proto.Channel{ch}
 		}
 
 		for _, channel := range channels {
-			err := c.unsubscribe(channel)
+			err := c.Unsubscribe(channel)
 			if err != nil {
 				return err
 			}
@@ -748,7 +748,7 @@ func (app *Application) Disconnect(user proto.UserID) error {
 func (app *Application) disconnectUser(user proto.UserID) error {
 	userConnections := app.clients.userConnections(user)
 	for _, c := range userConnections {
-		err := c.close("disconnect")
+		err := c.Close("disconnect")
 		if err != nil {
 			return err
 		}
