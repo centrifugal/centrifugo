@@ -75,7 +75,8 @@ type adminClient struct {
 	sess          session
 	watch         bool
 	authenticated bool
-	closeChan     chan struct{}
+	closeCh       chan struct{}
+	closed        bool
 	maxQueueSize  int
 	messages      bytequeue.ByteQueue
 }
@@ -87,7 +88,7 @@ func newAdminClient(app *Application, sess session) (*adminClient, error) {
 		sess:          sess,
 		watch:         false,
 		authenticated: false,
-		closeChan:     make(chan struct{}),
+		closeCh:       make(chan struct{}),
 		maxQueueSize:  adminQueueMaxSize,
 		messages:      bytequeue.New(2),
 	}
@@ -109,33 +110,31 @@ func newAdminClient(app *Application, sess session) (*adminClient, error) {
 	return c, nil
 }
 
-func (c *adminClient) close(reason string) error {
-	// TODO: better locking for client - at moment we close message queue in 2 places, here and in clean() method
-	c.messages.Close()
-	c.sess.Close(CloseStatus, reason)
-	return nil
-}
-
-// clean called when connection was closed to make different clean up
-// actions for a client
-func (c *adminClient) clean() error {
+// Close called to close connection.
+func (c *adminClient) Close(reason string) error {
 	c.Lock()
 	defer c.Unlock()
 
-	select {
-	case <-c.closeChan:
+	if c.closed {
 		return nil
-	default:
-		close(c.closeChan)
 	}
+
+	if reason != "" {
+		logger.DEBUG.Printf("Closing admin connection %s: %s", c.UID(), reason)
+	}
+
+	close(c.closeCh)
+	c.closed = true
+
+	c.messages.Close()
+	c.sess.Close(CloseStatus, reason)
 
 	err := c.app.removeAdminConn(c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil
 	}
-	c.messages.Close()
-	c.authenticated = false
+
 	return nil
 }
 
@@ -151,8 +150,7 @@ func (c *adminClient) sendMessages() {
 		}
 		err := c.sess.Send(msg)
 		if err != nil {
-			logger.INFO.Println("error sending to", c.UID(), err.Error())
-			c.close("error sending message")
+			c.Close("error sending message")
 			return
 		}
 	}
@@ -164,7 +162,7 @@ func (c *adminClient) UID() proto.ConnID {
 
 func (c *adminClient) Send(message []byte) error {
 	if c.messages.Size() > c.maxQueueSize {
-		c.close("slow")
+		c.Close("slow")
 		return ErrClientClosed
 	}
 	if !c.watch {
@@ -279,8 +277,6 @@ func (c *adminClient) connectCmd(cmd *proto.ConnectAdminCommand) (proto.Response
 
 // infoCmd handles info command from admin client.
 func (c *adminClient) infoCmd() (proto.Response, error) {
-	c.app.nodesMu.Lock()
-	defer c.app.nodesMu.Unlock()
 	c.app.RLock()
 	defer c.app.RUnlock()
 	body := proto.AdminInfoBody{

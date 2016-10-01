@@ -177,15 +177,15 @@ func Main() {
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
-			logger.INFO.Println("Config file search path:", absConfPath)
 
 			err = viper.ReadInConfig()
+			configFound := true
 			if err != nil {
 				switch err.(type) {
 				case viper.ConfigParseError:
 					logger.FATAL.Fatalf("Error parsing configuration: %s\n", err)
 				default:
-					logger.WARN.Println("No config file found")
+					configFound = false
 				}
 			}
 
@@ -222,11 +222,14 @@ func Main() {
 
 			go handleSignals(srv)
 
-			logger.TRACE.Printf("%v\n", viper.AllSettings())
+			if !configFound {
+				logger.WARN.Println("No config file found")
+			}
+			logger.INFO.Printf("Config path: %s", absConfPath)
 			logger.INFO.Printf("Centrifugo version: %s", VERSION)
 			logger.INFO.Printf("Process PID: %d", os.Getpid())
-			logger.INFO.Println("Engine:", e.Name())
-			logger.INFO.Println("GOMAXPROCS:", runtime.GOMAXPROCS(0))
+			logger.INFO.Printf("Engine: %s", e.Name())
+			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
 
 			if err = srv.Run(); err != nil {
 				logger.FATAL.Fatalln(err)

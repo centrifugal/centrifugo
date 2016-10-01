@@ -249,52 +249,41 @@ func NewSockJSHandler(app *Application, sockjsPrefix string, sockjsOpts sockjs.O
 	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, app.sockJSHandler)
 }
 
-type sockjsConn struct {
-	sess    sockjs.Session
-	closeCh chan struct{}
+type sockjsSession struct {
+	sess sockjs.Session
 }
 
-func newSockjsConn(sess sockjs.Session) *sockjsConn {
-	return &sockjsConn{
-		sess:    sess,
-		closeCh: make(chan struct{}),
+func newSockjsSession(sess sockjs.Session) *sockjsSession {
+	return &sockjsSession{
+		sess: sess,
 	}
 }
 
-func (conn *sockjsConn) Send(msg []byte) error {
-	select {
-	case <-conn.closeCh:
-		return nil
-	default:
-		return conn.sess.Send(string(msg))
-	}
+func (conn *sockjsSession) Send(msg []byte) error {
+	return conn.sess.Send(string(msg))
 }
 
-func (conn *sockjsConn) Close(status uint32, reason string) error {
+func (conn *sockjsSession) Close(status uint32, reason string) error {
 	return conn.sess.Close(status, reason)
 }
 
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (app *Application) sockJSHandler(s sockjs.Session) {
 
-	conn := newSockjsConn(s)
-	defer close(conn.closeCh)
-
-	c, err := newClient(app, conn)
-	if err != nil {
-		logger.ERROR.Println(err)
-		return
-	}
-	defer c.clean()
+	c := newClient(app, newSockjsSession(s))
+	defer c.Close("")
 
 	logger.DEBUG.Printf("New SockJS session established with uid %s\n", c.UID())
+	defer func() {
+		logger.DEBUG.Printf("SockJS session with uid %s completed", c.UID())
+	}()
 
 	for {
 		if msg, err := s.Recv(); err == nil {
 			err = c.message([]byte(msg))
 			if err != nil {
 				logger.ERROR.Println(err)
-				s.Close(CloseStatus, "error handling message")
+				c.Close("error handling message")
 				break
 			}
 			continue
@@ -320,27 +309,25 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 	app.RUnlock()
 	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
 
-	sess := newWSSession(ws, pingInterval)
-	defer sess.Close(CloseStatus, "")
-
-	c, err := newClient(app, sess)
-	if err != nil {
-		return
-	}
-	logger.DEBUG.Printf("New raw Websocket session established with uid %s\n", c.UID())
-	defer c.clean()
-
 	ws.SetReadDeadline(time.Now().Add(pongWait))
 	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
+	c := newClient(app, newWSSession(ws, pingInterval))
+	defer c.Close("")
+
+	logger.DEBUG.Printf("New raw websocket session established with uid %s\n", c.UID())
+	defer func() {
+		logger.DEBUG.Printf("Raw websocket session with uid %s completed", c.UID())
+	}()
+
 	for {
-		_, message, err := sess.ws.ReadMessage()
+		_, message, err := ws.ReadMessage()
 		if err != nil {
 			break
 		}
 		err = c.message(message)
 		if err != nil {
-			sess.Close(CloseStatus, err.Error())
+			c.Close(err.Error())
 			break
 		}
 	}
@@ -589,19 +576,23 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 	app.RUnlock()
 	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
 
+	ws.SetReadDeadline(time.Now().Add(pongWait))
+	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+
 	sess := newWSSession(ws, pingInterval)
-	defer sess.Close(CloseStatus, "")
 
 	c, err := newAdminClient(app, sess)
 	if err != nil {
+		sess.Close(CloseStatus, ErrInternalServerError.Error())
 		return
 	}
+	defer c.Close("")
+
 	start := time.Now()
 	logger.DEBUG.Printf("New admin session established with uid %s\n", c.UID())
-	defer c.clean()
-
-	ws.SetReadDeadline(time.Now().Add(pongWait))
-	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	defer func() {
+		logger.DEBUG.Printf("Admin session completed in %s, uid %s", time.Since(start), c.UID())
+	}()
 
 	for {
 		_, message, err := sess.ws.ReadMessage()
@@ -610,10 +601,8 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		}
 		err = c.message(message)
 		if err != nil {
-			sess.Close(CloseStatus, err.Error())
+			c.Close(err.Error())
 			break
 		}
 	}
-
-	logger.DEBUG.Printf("Admin session completed in %s, uid %s", time.Since(start), c.UID())
 }

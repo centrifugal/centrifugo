@@ -35,6 +35,7 @@ type client struct {
 	channels       map[proto.Channel]bool
 	messages       bytequeue.ByteQueue
 	closeCh        chan struct{}
+	closed         bool
 	staleTimer     *time.Timer
 	expireTimer    *time.Timer
 	presenceTimer  *time.Timer
@@ -44,7 +45,7 @@ type client struct {
 }
 
 // newClient creates new ready to communicate client.
-func newClient(app *Application, s session) (*client, error) {
+func newClient(app *Application, s session) *client {
 	app.RLock()
 	staleCloseDelay := app.config.StaleConnectionCloseDelay
 	queueInitialCapacity := app.config.ClientQueueInitialCapacity
@@ -67,7 +68,7 @@ func newClient(app *Application, s session) (*client, error) {
 	if staleCloseDelay > 0 {
 		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
 	}
-	return &c, nil
+	return &c
 }
 
 // sendMessages waits for messages from queue and sends them to client.
@@ -82,7 +83,6 @@ func (c *client) sendMessages() {
 		}
 		err := c.sendMessage(msg)
 		if err != nil {
-			logger.INFO.Println("error sending to", c.uid, err.Error())
 			c.Close("error sending message")
 			return
 		}
@@ -92,31 +92,26 @@ func (c *client) sendMessages() {
 }
 
 func (c *client) sendMessage(msg []byte) error {
-	select {
-	case <-c.closeCh:
-		return nil
-	default:
-		sendTimeout := c.sendTimeout // No lock here as sendTimeout immutable while client exists.
-		if sendTimeout > 0 {
-			// Send to client's session with provided timeout.
-			to := time.After(sendTimeout)
-			sent := make(chan error)
-			go func() {
-				sent <- c.sess.Send(msg)
-			}()
-			select {
-			case err := <-sent:
-				return err
-			case <-to:
-				return ErrSendTimeout
-			}
-		} else {
-			// Do not use any timeout when sending, it's recommended to keep
-			// Centrifugo behind properly configured reverse proxy.
-			// But slow client connections will be closed anyway after exceeding
-			// client max queue size.
-			return c.sess.Send(msg)
+	sendTimeout := c.sendTimeout // No lock here as sendTimeout immutable while client exists.
+	if sendTimeout > 0 {
+		// Send to client's session with provided timeout.
+		to := time.After(sendTimeout)
+		sent := make(chan error)
+		go func() {
+			sent <- c.sess.Send(msg)
+		}()
+		select {
+		case err := <-sent:
+			return err
+		case <-to:
+			return ErrSendTimeout
 		}
+	} else {
+		// Do not use any timeout when sending, it's recommended to keep
+		// Centrifugo behind properly configured reverse proxy.
+		// But slow client connections will be closed anyway after exceeding
+		// client max queue size.
+		return c.sess.Send(msg)
 	}
 }
 
@@ -125,8 +120,10 @@ func (c *client) sendMessage(msg []byte) error {
 // in a reasonable time interval after actually connected to Centrifugo.
 func (c *client) closeUnauthenticated() {
 	c.RLock()
-	defer c.RUnlock()
-	if !c.authenticated {
+	authenticated := c.authenticated
+	closed := c.closed
+	c.RUnlock()
+	if !authenticated && !closed {
 		c.Close("stale")
 	}
 }
@@ -147,6 +144,9 @@ func (c *client) updateChannelPresence(ch proto.Channel) {
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
 	c.RLock()
+	if c.closed {
+		return
+	}
 	for _, channel := range c.Channels() {
 		c.updateChannelPresence(channel)
 	}
@@ -158,15 +158,13 @@ func (c *client) updatePresence() {
 
 // Lock must be held outside.
 func (c *client) addPresenceUpdate() {
-	select {
-	case <-c.closeCh:
+	if c.closed {
 		return
-	default:
-		c.app.RLock()
-		presenceInterval := c.app.config.PresencePingInterval
-		c.app.RUnlock()
-		c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
 	}
+	c.app.RLock()
+	presenceInterval := c.app.config.PresencePingInterval
+	c.app.RUnlock()
+	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
 }
 
 func (c *client) UID() proto.ConnID {
@@ -190,19 +188,25 @@ func (c *client) Channels() []proto.Channel {
 }
 
 func (c *client) Unsubscribe(ch proto.Channel) error {
-	c.Lock()
-	defer c.Unlock()
 	cmd := &proto.UnsubscribeClientCommand{
 		Channel: ch,
 	}
+	c.Lock()
+	if c.closed {
+		c.Unlock()
+		return nil
+	}
 	resp, err := c.unsubscribeCmd(cmd)
 	if err != nil {
+		c.Unlock()
 		return err
 	}
 	respJSON, err := json.Marshal(resp)
 	if err != nil {
+		c.Unlock()
 		return err
 	}
+	c.Unlock()
 	return c.Send(respJSON)
 }
 
@@ -219,25 +223,22 @@ func (c *client) Send(message []byte) error {
 	return nil
 }
 
-func (c *client) Close(reason string) error {
-	// TODO: better locking for client - at moment we close message queue in 2 places, here and in clean() method
-	c.messages.Close()
-	c.sess.Close(CloseStatus, reason)
-	return nil
-}
-
 // clean called when connection was closed to make different clean up
 // actions for a client
-func (c *client) clean() error {
+func (c *client) Close(reason string) error {
 	c.Lock()
 	defer c.Unlock()
 
-	select {
-	case <-c.closeCh:
+	if c.closed {
 		return nil
-	default:
-		close(c.closeCh)
 	}
+
+	if reason != "" {
+		logger.DEBUG.Printf("Closing connection %s: %s", c.UID(), reason)
+	}
+
+	close(c.closeCh)
+	c.closed = true
 
 	if len(c.channels) > 0 {
 		// unsubscribe from all channels
@@ -252,14 +253,15 @@ func (c *client) clean() error {
 		}
 	}
 
+	c.messages.Close()
+	c.sess.Close(CloseStatus, reason)
+
 	if c.authenticated {
 		err := c.app.removeConn(c)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
 	}
-
-	c.messages.Close()
 
 	if c.authenticated && c.app.mediator != nil {
 		c.app.mediator.Disconnect(c.uid, c.user)
@@ -273,7 +275,9 @@ func (c *client) clean() error {
 		c.presenceTimer.Stop()
 	}
 
-	c.authenticated = false
+	if c.staleTimer != nil {
+		c.staleTimer.Stop()
+	}
 
 	return nil
 }
@@ -393,9 +397,6 @@ func (c *client) disconnect(reason string, reconnect bool) error {
 }
 
 func (c *client) handleCommands(cmds []proto.ClientCommand) error {
-	c.Lock()
-	defer c.Unlock()
-
 	var err error
 	var mr proto.MultiClientResponse
 	for _, command := range cmds {
@@ -417,6 +418,13 @@ func (c *client) handleCommands(cmds []proto.ClientCommand) error {
 
 // handleCmd dispatches clientCommand into correct command handler
 func (c *client) handleCmd(command proto.ClientCommand) (proto.Response, error) {
+
+	c.Lock()
+	defer c.Unlock()
+
+	if c.closed {
+		return nil, ErrClientClosed
+	}
 
 	var err error
 	var resp proto.Response
@@ -507,9 +515,6 @@ func (c *client) pingCmd(cmd *proto.PingClientCommand) (proto.Response, error) {
 }
 
 func (c *client) expire() {
-	c.Lock()
-	defer c.Unlock()
-
 	c.app.RLock()
 	connLifetime := c.app.config.ConnLifetime
 	c.app.RUnlock()
@@ -518,7 +523,9 @@ func (c *client) expire() {
 		return
 	}
 
+	c.RLock()
 	timeToExpire := c.timestamp + connLifetime - time.Now().Unix()
+	c.RUnlock()
 	if timeToExpire > 0 {
 		// connection was succesfully refreshed
 		return

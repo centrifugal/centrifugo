@@ -28,4 +28,6 @@ type adminConn interface {
 	UID() proto.ConnID
 	// Send allows to send message to admin connection.
 	Send(message []byte) error
+	// Close closes admin's connection.
+	Close(reason string) error
 }
