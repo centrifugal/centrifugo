@@ -29,12 +29,12 @@ type client struct {
 	uid            proto.ConnID
 	user           proto.UserID
 	timestamp      int64
-	defaultInfo    []byte
 	authenticated  bool
+	defaultInfo    []byte
 	channelInfo    map[proto.Channel][]byte
 	channels       map[proto.Channel]bool
 	messages       bytequeue.ByteQueue
-	closeChan      chan struct{}
+	closeCh        chan struct{}
 	staleTimer     *time.Timer
 	expireTimer    *time.Timer
 	presenceTimer  *time.Timer
@@ -45,20 +45,24 @@ type client struct {
 
 // newClient creates new ready to communicate client.
 func newClient(app *Application, s session) (*client, error) {
-	c := client{
-		uid:       proto.ConnID(uuid.NewV4().String()),
-		app:       app,
-		sess:      s,
-		closeChan: make(chan struct{}),
-	}
 	app.RLock()
 	staleCloseDelay := app.config.StaleConnectionCloseDelay
 	queueInitialCapacity := app.config.ClientQueueInitialCapacity
-	c.maxQueueSize = app.config.ClientQueueMaxSize
-	c.maxRequestSize = app.config.ClientRequestMaxSize
-	c.sendTimeout = app.config.MessageSendTimeout
+	maxQueueSize := app.config.ClientQueueMaxSize
+	maxRequestSize := app.config.ClientRequestMaxSize
+	sendTimeout := app.config.MessageSendTimeout
 	app.RUnlock()
-	c.messages = bytequeue.New(queueInitialCapacity)
+
+	c := client{
+		uid:            proto.ConnID(uuid.NewV4().String()),
+		app:            app,
+		sess:           s,
+		closeCh:        make(chan struct{}),
+		messages:       bytequeue.New(queueInitialCapacity),
+		maxQueueSize:   maxQueueSize,
+		maxRequestSize: maxRequestSize,
+		sendTimeout:    sendTimeout,
+	}
 	go c.sendMessages()
 	if staleCloseDelay > 0 {
 		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
@@ -76,9 +80,9 @@ func (c *client) sendMessages() {
 			}
 			continue
 		}
-		err := c.sendMsgTimeout(msg)
+		err := c.sendMessage(msg)
 		if err != nil {
-			logger.INFO.Println("error sending to", c.UID(), err.Error())
+			logger.INFO.Println("error sending to", c.uid, err.Error())
 			c.Close("error sending message")
 			return
 		}
@@ -87,9 +91,9 @@ func (c *client) sendMessages() {
 	}
 }
 
-func (c *client) sendMsgTimeout(msg []byte) error {
+func (c *client) sendMessage(msg []byte) error {
 	select {
-	case <-c.closeChan:
+	case <-c.closeCh:
 		return nil
 	default:
 		sendTimeout := c.sendTimeout // No lock here as sendTimeout immutable while client exists.
@@ -137,7 +141,7 @@ func (c *client) updateChannelPresence(ch proto.Channel) {
 	if !chOpts.Presence {
 		return
 	}
-	c.app.addPresence(ch, c.UID(), c.info(ch))
+	c.app.addPresence(ch, c.uid, c.info(ch))
 }
 
 // updatePresence updates presence info for all client channels
@@ -155,7 +159,7 @@ func (c *client) updatePresence() {
 // Lock must be held outside.
 func (c *client) addPresenceUpdate() {
 	select {
-	case <-c.closeChan:
+	case <-c.closeCh:
 		return
 	default:
 		c.app.RLock()
@@ -229,10 +233,10 @@ func (c *client) clean() error {
 	defer c.Unlock()
 
 	select {
-	case <-c.closeChan:
+	case <-c.closeCh:
 		return nil
 	default:
-		close(c.closeChan)
+		close(c.closeCh)
 	}
 
 	if len(c.channels) > 0 {
@@ -293,7 +297,7 @@ func (c *client) info(ch proto.Channel) proto.ClientInfo {
 	} else {
 		rawChannelInfo = nil
 	}
-	return *proto.NewClientInfo(c.User(), c.UID(), rawDefaultInfo, rawChannelInfo)
+	return *proto.NewClientInfo(c.user, c.uid, rawDefaultInfo, rawChannelInfo)
 }
 
 func cmdFromClientMsg(msgBytes []byte) ([]proto.ClientCommand, error) {
@@ -391,6 +395,7 @@ func (c *client) disconnect(reason string, reconnect bool) error {
 func (c *client) handleCommands(cmds []proto.ClientCommand) error {
 	c.Lock()
 	defer c.Unlock()
+
 	var err error
 	var mr proto.MultiClientResponse
 	for _, command := range cmds {
@@ -560,9 +565,6 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 			logger.ERROR.Println("invalid token for user", user)
 			return nil, ErrInvalidToken
 		}
-	}
-
-	if !insecure {
 		ts, err := strconv.Atoi(timestamp)
 		if err != nil {
 			logger.ERROR.Println(err)

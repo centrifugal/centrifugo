@@ -286,6 +286,7 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 		return
 	}
 	defer c.clean()
+
 	logger.DEBUG.Printf("New SockJS session established with uid %s\n", c.UID())
 
 	for {
