@@ -23,7 +23,7 @@ func (app *Application) adminAuthToken() (string, error) {
 	secret := app.config.AdminSecret
 	app.RUnlock()
 	if secret == "" {
-		logger.ERROR.Println("provide web_secret in configuration")
+		logger.ERROR.Println("provide admin_secret in configuration")
 		return "", ErrInternalServerError
 	}
 	s := securecookie.New([]byte(secret), nil)

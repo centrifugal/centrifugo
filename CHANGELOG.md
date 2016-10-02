@@ -1,6 +1,7 @@
 * `channel_prefix` renamed to `redis_prefix`
 * admin info response format changed 
 * NodeInfo chahged => stats, node cmd response format changed
+* `web_password` and `web_secret` not supported anymore
 
 v1.5.1
 ======

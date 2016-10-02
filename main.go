@@ -110,15 +110,13 @@ func Main() {
 		Long:  "Centrifugo. Real-time messaging (Websockets or SockJS) server in Go.",
 		Run: func(cmd *cobra.Command, args []string) {
 
+			viper.SetEnvPrefix("centrifugo")
+
 			viper.SetDefault("gomaxprocs", 0)
 			viper.SetDefault("debug", false)
-			viper.SetDefault("http_prefix", "")
-			viper.SetDefault("web", false)
-			viper.SetDefault("web_path", "")
-			viper.SetDefault("admin_password", "")
-			viper.SetDefault("admin_secret", "")
-			viper.SetDefault("web_password", "") // Deprecated. Use admin_password
-			viper.SetDefault("web_secret", "")   // Deprecated. Use admin_secret
+			viper.SetDefault("engine", "memory")
+			viper.SetDefault("name", "")
+
 			viper.SetDefault("max_channel_length", 255)
 			viper.SetDefault("node_ping_interval", 3)
 			viper.SetDefault("message_send_timeout", 0)
@@ -137,9 +135,16 @@ func Main() {
 			viper.SetDefault("user_channel_boundary", "#")
 			viper.SetDefault("user_channel_separator", ",")
 			viper.SetDefault("client_channel_boundary", "&")
+
+			viper.SetDefault("http_prefix", "")
+			viper.SetDefault("web", false)
+			viper.SetDefault("web_path", "")
+			viper.SetDefault("admin_password", "")
+			viper.SetDefault("admin_secret", "")
 			viper.SetDefault("sockjs_url", "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js")
 
 			viper.SetDefault("secret", "")
+
 			viper.SetDefault("connection_lifetime", 0)
 			viper.SetDefault("watch", false)
 			viper.SetDefault("publish", false)
@@ -150,8 +155,6 @@ func Main() {
 			viper.SetDefault("recover", false)
 			viper.SetDefault("history_drop_inactive", false)
 			viper.SetDefault("namespaces", "")
-
-			viper.SetEnvPrefix("centrifugo")
 
 			bindEnvs := []string{
 				"debug", "engine", "insecure", "insecure_api", "web", "admin", "admin_password", "admin_secret",
@@ -237,15 +240,16 @@ func Main() {
 		},
 	}
 
-	rootCmd.Flags().StringVarP(&port, "port", "p", "8000", "port to bind to")
-	rootCmd.Flags().StringVarP(&address, "address", "a", "", "address to listen on")
-	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "debug mode - please, do not use it in production")
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
-	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
-	rootCmd.Flags().BoolVarP(&admin, "admin", "", false, "Enable admin socket")
-	rootCmd.Flags().BoolVarP(&web, "web", "w", false, "serve admin web interface application (warning: automatically enables admin socket)")
-	rootCmd.Flags().StringVarP(&webPath, "web_path", "", "", "optional path to web interface application")
 	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
+	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "enable debug mode")
+	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
+	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "debug", "set the log level: trace, debug, info, error, critical, fatal or none")
+	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified logs go to STDOUT")
+
+	rootCmd.Flags().BoolVarP(&admin, "admin", "", false, "enable admin socket")
+	rootCmd.Flags().BoolVarP(&web, "web", "w", false, "serve admin web interface application (warning: automatically enables admin socket)")
+	rootCmd.Flags().StringVarP(&webPath, "web_path", "", "", "optional path to custom web interface application")
 	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolVarP(&insecureAPI, "insecure_api", "", false, "use insecure API mode")
 	rootCmd.Flags().BoolVarP(&insecureWeb, "insecure_web", "", false, "use insecure web mode – no web password and web secret required for web interface (warning: automatically enables insecure_admin option)")
@@ -253,10 +257,10 @@ func Main() {
 	rootCmd.Flags().BoolVarP(&useSSL, "ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
 	rootCmd.Flags().StringVarP(&sslCert, "ssl_cert", "", "", "path to an X509 certificate file")
 	rootCmd.Flags().StringVarP(&sslKey, "ssl_key", "", "", "path to an X509 certificate key")
-	rootCmd.Flags().StringVarP(&apiPort, "api_port", "", "", "port to bind api endpoints to (optional until this is required by your deploy setup)")
-	rootCmd.Flags().StringVarP(&adminPort, "admin_port", "", "", "port to bind admin endpoints to (optional until this is required by your deploy setup)")
-	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "debug", "set the log level: trace, debug, info, error, critical, fatal or none")
-	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified all logs go to STDOUT")
+	rootCmd.Flags().StringVarP(&address, "address", "a", "", "address to listen on")
+	rootCmd.Flags().StringVarP(&port, "port", "p", "8000", "port to bind HTTP server to")
+	rootCmd.Flags().StringVarP(&apiPort, "api_port", "", "", "port to bind api endpoints to (optional)")
+	rootCmd.Flags().StringVarP(&adminPort, "admin_port", "", "", "port to bind admin endpoints to (optional)")
 
 	for _, configurator := range plugin.Configurators {
 		configurator(plugin.NewViperConfigSetter(viper.GetViper(), rootCmd.Flags()))
