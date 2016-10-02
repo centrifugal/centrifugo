@@ -2,6 +2,7 @@
 * admin info response format changed 
 * NodeInfo chahged => stats, node cmd response format changed
 * `web_password` and `web_secret` not supported anymore
+* TODO: `insecure_web` removed, must rely on `insecure_admin` option.
 
 v1.5.1
 ======

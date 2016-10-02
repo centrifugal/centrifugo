@@ -1,18 +1,25 @@
-package server
+package httpserver
 
 import (
-	"sync"
-	"time"
-
-	"github.com/gorilla/websocket"
+	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
-// Session represents a connection between server and client.
-type session interface {
-	// Send sends one message to session
-	Send([]byte) error
-	// Close closes the session with provided code and reason.
-	Close(status uint32, reason string) error
+type sockjsSession struct {
+	sess sockjs.Session
+}
+
+func newSockjsSession(sess sockjs.Session) *sockjsSession {
+	return &sockjsSession{
+		sess: sess,
+	}
+}
+
+func (conn *sockjsSession) Send(msg []byte) error {
+	return conn.sess.Send(string(msg))
+}
+
+func (conn *sockjsSession) Close(status uint32, reason string) error {
+	return conn.sess.Close(status, reason)
 }
 
 // websocketConn is an interface to mimic gorilla/websocket methods we use in Centrifugo.

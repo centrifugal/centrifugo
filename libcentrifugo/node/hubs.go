@@ -1,4 +1,4 @@
-package server
+package node
 
 import (
 	"sync"
@@ -12,7 +12,7 @@ type clientHub struct {
 	sync.RWMutex
 
 	// match ConnID with actual client connection.
-	conns map[proto.ConnID]clientConn
+	conns map[proto.ConnID]ClientConn
 
 	// registry to hold active client connections grouped by UserID.
 	users map[proto.UserID]map[proto.ConnID]struct{}
@@ -24,7 +24,7 @@ type clientHub struct {
 // newClientHub initializes clientHub.
 func newClientHub() *clientHub {
 	return &clientHub{
-		conns: make(map[proto.ConnID]clientConn),
+		conns: make(map[proto.ConnID]ClientConn),
 		users: make(map[proto.UserID]map[proto.ConnID]struct{}),
 		subs:  make(map[proto.Channel]map[proto.ConnID]struct{}),
 	}
@@ -42,7 +42,7 @@ func (h *clientHub) shutdown() {
 				wg.Done()
 				continue
 			}
-			go func(cc clientConn) {
+			go func(cc ClientConn) {
 				for _, ch := range cc.Channels() {
 					cc.Unsubscribe(ch)
 				}
@@ -56,7 +56,7 @@ func (h *clientHub) shutdown() {
 }
 
 // add adds connection into clientHub connections registry.
-func (h *clientHub) add(c clientConn) error {
+func (h *clientHub) add(c ClientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -74,7 +74,7 @@ func (h *clientHub) add(c clientConn) error {
 }
 
 // remove removes connection from clientHub connections registry.
-func (h *clientHub) remove(c clientConn) error {
+func (h *clientHub) remove(c ClientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -103,17 +103,17 @@ func (h *clientHub) remove(c clientConn) error {
 }
 
 // userConnections returns all connections of user with UserID in project.
-func (h *clientHub) userConnections(user proto.UserID) map[proto.ConnID]clientConn {
+func (h *clientHub) userConnections(user proto.UserID) map[proto.ConnID]ClientConn {
 	h.RLock()
 	defer h.RUnlock()
 
 	userConnections, ok := h.users[user]
 	if !ok {
-		return map[proto.ConnID]clientConn{}
+		return map[proto.ConnID]ClientConn{}
 	}
 
-	var conns map[proto.ConnID]clientConn
-	conns = make(map[proto.ConnID]clientConn, len(userConnections))
+	var conns map[proto.ConnID]ClientConn
+	conns = make(map[proto.ConnID]ClientConn, len(userConnections))
 	for uid := range userConnections {
 		c, ok := h.conns[uid]
 		if !ok {
@@ -126,7 +126,7 @@ func (h *clientHub) userConnections(user proto.UserID) map[proto.ConnID]clientCo
 }
 
 // addSub adds connection into clientHub subscriptions registry.
-func (h *clientHub) addSub(ch proto.Channel, c clientConn) (bool, error) {
+func (h *clientHub) addSub(ch proto.Channel, c ClientConn) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -146,7 +146,7 @@ func (h *clientHub) addSub(ch proto.Channel, c clientConn) (bool, error) {
 }
 
 // removeSub removes connection from clientHub subscriptions registry.
-func (h *clientHub) removeSub(ch proto.Channel, c clientConn) (bool, error) {
+func (h *clientHub) removeSub(ch proto.Channel, c ClientConn) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -251,18 +251,18 @@ type adminHub struct {
 	sync.RWMutex
 
 	// Registry to hold active admin connections.
-	connections map[proto.ConnID]adminConn
+	connections map[proto.ConnID]AdminConn
 }
 
 // newAdminHub initializes new adminHub.
 func newAdminHub() *adminHub {
 	return &adminHub{
-		connections: make(map[proto.ConnID]adminConn),
+		connections: make(map[proto.ConnID]AdminConn),
 	}
 }
 
 // add adds connection to adminHub connections registry.
-func (h *adminHub) add(c adminConn) error {
+func (h *adminHub) add(c AdminConn) error {
 	h.Lock()
 	defer h.Unlock()
 	h.connections[c.UID()] = c
@@ -270,7 +270,7 @@ func (h *adminHub) add(c adminConn) error {
 }
 
 // remove removes connection from adminHub connections registry.
-func (h *adminHub) remove(c adminConn) error {
+func (h *adminHub) remove(c AdminConn) error {
 	h.Lock()
 	defer h.Unlock()
 	delete(h.connections, c.UID())

@@ -1,4 +1,4 @@
-package server
+package node
 
 import (
 	"errors"
@@ -26,45 +26,34 @@ type Config struct {
 	// be Centrifugo server version.
 	Version string `json:"version"`
 
-	// Name of this node - must be unique, used as human readable and
-	// meaningful node identificator.
-	Name string `json:"name"`
-
 	// Debug turns on application debug mode.
 	Debug bool `json:"debug"`
 
+	// Name of this server node - must be unique, used as human readable
+	// and meaningful node identificator.
+	Name string `json:"name"`
+
 	// Admin enables admin socket.
-	Admin bool
+	Admin bool `json:"admin"`
 	// AdminPassword is an admin password.
 	AdminPassword string `json:"-"`
 	// AdminSecret is a secret to generate auth token for admin socket connection.
 	AdminSecret string `json:"-"`
 
-	// Web enables admin web interface.
-	Web bool `json:"web"`
-	// WebPath
-	WebPath string `json:"web_path"`
-
-	// HTTPAddress
-	HTTPAddress string `json:"http_address"`
-	// HTTPPrefix
-	HTTPPrefix string `json:"http_prefix"`
-	// HTTPPort
-	HTTPPort string `json:"http_port"`
-	// HTTPAdminPort
-	HTTPAdminPort string `json:"http_admin_port"`
-	// HTTPAPIPort
-	HTTPAPIPort string `json:"http_api_port"`
-
-	// SSL enables builtin https server.
-	SSL bool `json:"ssl"`
-	// SSLCert is path to SSL certificate file.
-	SSLCert string `json:"ssl_cert"`
-	// SSLKey is path to SSL key file.
-	SSLKey string `json:"ssl_key"`
-
-	// SockjsURL is a custom SockJS library url to use in iframe transports.
-	SockjsURL string `json:"sockjs_url"`
+	// Insecure turns on insecure mode - when it's turned on then no authentication
+	// required at all when connecting to Centrifugo, anonymous access and publish
+	// allowed for all channels, no connection check performed. This can be suitable
+	// for demonstration or personal usage.
+	Insecure bool `json:"insecure"`
+	// InsecureAPI turns on insecure mode for HTTP API calls. This means that no
+	// API sign required when sending commands. This can be useful if you don't want
+	// to sign every request - for example if you closed API endpoint with firewall
+	// or you want to play with API commands from command line using CURL.
+	InsecureAPI bool `json:"insecure_api"`
+	// InsecureAdmin turns on insecure mode for admin endpoints - no auth required to
+	// connect to admin socket and web interface. Protect admin resources with firewall
+	// rules in production when enabling this option.
+	InsecureAdmin bool `json:"insecure_admin"`
 
 	// MaxChannelLength is a maximum length of channel name.
 	MaxChannelLength int `json:"max_channel_length"`
@@ -134,21 +123,6 @@ type Config struct {
 	// that channel.
 	ClientChannelBoundary string `json:"client_channel_separator"`
 
-	// Insecure turns on insecure mode - when it's turned on then no authentication
-	// required at all when connecting to Centrifugo, anonymous access and publish
-	// allowed for all channels, no connection check performed. This can be suitable
-	// for demonstration or personal usage.
-	Insecure bool `json:"insecure"`
-	// InsecureAPI turns on insecure mode for HTTP API calls. This means that no
-	// API sign required when sending commands. This can be useful if you don't want
-	// to sign every request - for example if you closed API endpoint with firewall
-	// or you want to play with API commands from command line using CURL.
-	InsecureAPI bool `json:"insecure_api"`
-	// InsecureAdmin turns on insecure mode for admin endpoints - no auth required to
-	// connect to admin socket and web interface. Protect admin resources with firewall
-	// rules in production when enabling this option.
-	InsecureAdmin bool `json:"insecure_admin"`
-
 	// Secret is a secret key, used to sign API requests and client connection tokens.
 	Secret string `json:"secret"`
 
@@ -188,16 +162,6 @@ func (c *Config) Validate() error {
 		}
 		nss = append(nss, name)
 	}
-
-	if c.SSL {
-		if c.SSLCert == "" {
-			return errors.New(errPrefix + "no SSL certificate provided")
-		}
-		if c.SSLKey == "" {
-			return errors.New(errPrefix + "no SSL certificate key provided")
-		}
-	}
-
 	return nil
 }
 

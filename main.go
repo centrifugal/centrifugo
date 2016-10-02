@@ -136,13 +136,6 @@ func Main() {
 			viper.SetDefault("user_channel_separator", ",")
 			viper.SetDefault("client_channel_boundary", "&")
 
-			viper.SetDefault("http_prefix", "")
-			viper.SetDefault("web", false)
-			viper.SetDefault("web_path", "")
-			viper.SetDefault("admin_password", "")
-			viper.SetDefault("admin_secret", "")
-			viper.SetDefault("sockjs_url", "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js")
-
 			viper.SetDefault("secret", "")
 
 			viper.SetDefault("connection_lifetime", 0)
@@ -157,7 +150,7 @@ func Main() {
 			viper.SetDefault("namespaces", "")
 
 			bindEnvs := []string{
-				"debug", "engine", "insecure", "insecure_api", "web", "admin", "admin_password", "admin_secret",
+				"debug", "engine", "insecure", "insecure_api", "admin", "admin_password", "admin_secret",
 				"insecure_web", "insecure_admin", "secret", "connection_lifetime", "watch", "publish", "anonymous",
 				"join_leave", "presence", "recover", "history_size", "history_lifetime", "history_drop_inactive",
 			}
@@ -166,9 +159,8 @@ func Main() {
 			}
 
 			bindPFlags := []string{
-				"port", "api_port", "admin_port", "address", "debug", "name", "admin", "insecure_admin", "web",
-				"web_path", "insecure_web", "engine", "insecure", "insecure_api", "ssl", "ssl_cert", "ssl_key",
-				"log_level", "log_file",
+				"debug", "name", "admin", "insecure_admin", "engine", "insecure",
+				"insecure_api", "log_level", "log_file",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -248,19 +240,9 @@ func Main() {
 	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified logs go to STDOUT")
 
 	rootCmd.Flags().BoolVarP(&admin, "admin", "", false, "enable admin socket")
-	rootCmd.Flags().BoolVarP(&web, "web", "w", false, "serve admin web interface application (warning: automatically enables admin socket)")
-	rootCmd.Flags().StringVarP(&webPath, "web_path", "", "", "optional path to custom web interface application")
 	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolVarP(&insecureAPI, "insecure_api", "", false, "use insecure API mode")
-	rootCmd.Flags().BoolVarP(&insecureWeb, "insecure_web", "", false, "use insecure web mode – no web password and web secret required for web interface (warning: automatically enables insecure_admin option)")
 	rootCmd.Flags().BoolVarP(&insecureAdmin, "insecure_admin", "", false, "use insecure admin mode – no auth required for admin socket")
-	rootCmd.Flags().BoolVarP(&useSSL, "ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
-	rootCmd.Flags().StringVarP(&sslCert, "ssl_cert", "", "", "path to an X509 certificate file")
-	rootCmd.Flags().StringVarP(&sslKey, "ssl_key", "", "", "path to an X509 certificate key")
-	rootCmd.Flags().StringVarP(&address, "address", "a", "", "address to listen on")
-	rootCmd.Flags().StringVarP(&port, "port", "p", "8000", "port to bind HTTP server to")
-	rootCmd.Flags().StringVarP(&apiPort, "api_port", "", "", "port to bind api endpoints to (optional)")
-	rootCmd.Flags().StringVarP(&adminPort, "admin_port", "", "", "port to bind admin endpoints to (optional)")
 
 	for _, configurator := range plugin.Configurators {
 		configurator(plugin.NewViperConfigSetter(viper.GetViper(), rootCmd.Flags()))

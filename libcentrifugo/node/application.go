@@ -1,5 +1,5 @@
-// Package server is a real-time core for Centrifugo server.
-package server
+// Package node is a real-time core for Centrifugo server.
+package node
 
 import (
 	"encoding/json"

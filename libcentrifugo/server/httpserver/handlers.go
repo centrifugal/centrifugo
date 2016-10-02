@@ -1,4 +1,4 @@
-package server
+package httpserver
 
 import (
 	"encoding/json"
@@ -87,24 +87,25 @@ func listenHTTP(mux http.Handler, addr string, useSSL bool, sslCert, sslKey stri
 	}
 }
 
-func (app *Application) runHTTPServer() error {
+func (s *HTTPServer) runHTTPServer() error {
 
-	app.RLock()
-	sockjsURL := app.config.SockjsURL
-	webEnabled := app.config.Web
-	webPath := app.config.WebPath
-	sslEnabled := app.config.SSL
-	sslCert := app.config.SSLCert
-	sslKey := app.config.SSLKey
-	adminEnabled := app.config.Admin
-	address := app.config.HTTPAddress
-	clientPort := app.config.HTTPPort
-	adminPort := app.config.HTTPAdminPort
-	apiPort := app.config.HTTPAPIPort
-	httpPrefix := app.config.HTTPPrefix
-	debug := app.config.Debug
-	pingInterval := app.config.PingInterval
-	app.RUnlock()
+	s.RLock()
+	debug := s.server.GetConfig().Debug
+	pingInterval := s.server.GetConfig().PingInterval
+	adminEnabled := s.server.GetConfig().Admin
+
+	sockjsURL := s.config.SockjsURL
+	webEnabled := s.config.Web
+	webPath := s.config.WebPath
+	sslEnabled := s.config.SSL
+	sslCert := s.config.SSLCert
+	sslKey := s.config.SSLKey
+	address := s.config.HTTPAddress
+	clientPort := s.config.HTTPPort
+	adminPort := s.config.HTTPAdminPort
+	apiPort := s.config.HTTPAPIPort
+	httpPrefix := s.config.HTTPPrefix
+	s.RUnlock()
 
 	sockjsOpts := sockjs.DefaultOptions
 
@@ -170,7 +171,7 @@ func (app *Application) runHTTPServer() error {
 			HandlerFlags:  handlerFlags,
 			SockjsOptions: sockjsOpts,
 		}
-		mux := DefaultMux(app, muxOpts)
+		mux := DefaultMux(s, muxOpts)
 
 		addr := net.JoinHostPort(address, handlerPort)
 
@@ -184,7 +185,7 @@ func (app *Application) runHTTPServer() error {
 }
 
 // DefaultMux returns a mux including set of default handlers for Centrifugo server.
-func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
+func DefaultMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 
 	mux := http.NewServeMux()
 
@@ -205,28 +206,28 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 
 	if flags&HandlerRawWS != 0 {
 		// register raw Websocket endpoint.
-		mux.Handle(prefix+"/connection/websocket", app.Logged(app.WrapShutdown(http.HandlerFunc(app.RawWebsocketHandler))))
+		mux.Handle(prefix+"/connection/websocket", s.Logged(s.WrapShutdown(http.HandlerFunc(s.RawWebsocketHandler))))
 	}
 
 	if flags&HandlerSockJS != 0 {
 		// register SockJS endpoints.
-		sjsh := NewSockJSHandler(app, prefix+"/connection", muxOpts.SockjsOptions)
-		mux.Handle(prefix+"/connection/", app.Logged(app.WrapShutdown(sjsh)))
+		sjsh := NewSockJSHandler(s, prefix+"/connection", muxOpts.SockjsOptions)
+		mux.Handle(prefix+"/connection/", s.Logged(s.WrapShutdown(sjsh)))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
-		mux.Handle(prefix+"/api/", app.Logged(app.WrapShutdown(http.HandlerFunc(app.APIHandler))))
+		mux.Handle(prefix+"/api/", s.Logged(s.WrapShutdown(http.HandlerFunc(s.APIHandler))))
 	}
 
 	if admin && flags&HandlerAdmin != 0 {
 		// register admin websocket endpoint.
-		mux.Handle(prefix+"/socket", app.Logged(http.HandlerFunc(app.AdminWebsocketHandler)))
+		mux.Handle(prefix+"/socket", s.Logged(http.HandlerFunc(s.AdminWebsocketHandler)))
 
 		// optionally serve admin web interface.
 		if web {
 			// register admin web interface API endpoints.
-			mux.Handle(prefix+"/auth/", app.Logged(http.HandlerFunc(app.AuthHandler)))
+			mux.Handle(prefix+"/auth/", s.Logged(http.HandlerFunc(s.AuthHandler)))
 
 			// serve web interface single-page application.
 			if webPath != "" {
@@ -245,32 +246,14 @@ func DefaultMux(app *Application, muxOpts MuxOptions) *http.ServeMux {
 // NewSockJSHandler returns SockJS handler bind to sockjsPrefix url prefix.
 // SockJS handler has several handlers inside responsible for various tasks
 // according to SockJS protocol.
-func NewSockJSHandler(app *Application, sockjsPrefix string, sockjsOpts sockjs.Options) http.Handler {
+func NewSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Options) http.Handler {
 	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, app.sockJSHandler)
 }
 
-type sockjsSession struct {
-	sess sockjs.Session
-}
-
-func newSockjsSession(sess sockjs.Session) *sockjsSession {
-	return &sockjsSession{
-		sess: sess,
-	}
-}
-
-func (conn *sockjsSession) Send(msg []byte) error {
-	return conn.sess.Send(string(msg))
-}
-
-func (conn *sockjsSession) Close(status uint32, reason string) error {
-	return conn.sess.Close(status, reason)
-}
-
 // sockJSHandler called when new client connection comes to SockJS endpoint.
-func (app *Application) sockJSHandler(s sockjs.Session) {
+func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
-	c := newClient(app, newSockjsSession(s))
+	c := newClient(app, newSockjsSession(sess))
 	defer c.Close("")
 
 	logger.DEBUG.Printf("New SockJS session established with uid %s\n", c.UID())
@@ -279,7 +262,7 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 	}()
 
 	for {
-		if msg, err := s.Recv(); err == nil {
+		if msg, err := sess.Recv(); err == nil {
 			err = c.message([]byte(msg))
 			if err != nil {
 				logger.ERROR.Println(err)
@@ -293,7 +276,7 @@ func (app *Application) sockJSHandler(s sockjs.Session) {
 }
 
 // RawWebsocketHandler called when new client connection comes to raw Websocket endpoint.
-func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
 	if _, ok := err.(websocket.HandshakeError); ok {
@@ -304,9 +287,10 @@ func (app *Application) RawWebsocketHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	app.RLock()
-	pingInterval := app.config.PingInterval
-	app.RUnlock()
+	s.RLock()
+	pingInterval := s.server.GetConfig().PingInterval
+	s.RUnlock()
+
 	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
 
 	ws.SetReadDeadline(time.Now().Add(pongWait))
@@ -368,7 +352,7 @@ func cmdFromRequestMsg(msg []byte) ([]proto.ApiCommand, error) {
 	return cmds, nil
 }
 
-func (app *Application) processAPIData(data []byte) ([]byte, error) {
+func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 
 	commands, err := cmdFromRequestMsg(data)
 	if err != nil {
@@ -395,12 +379,12 @@ func (app *Application) processAPIData(data []byte) ([]byte, error) {
 }
 
 // APIHandler is responsible for receiving API commands over HTTP.
-func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
+func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
 	defer func() {
-		app.metrics.HDRHistograms.RecordMicroseconds("http_api", time.Now().Sub(started))
+		s.metrics.HDRHistograms.RecordMicroseconds("http_api", time.Now().Sub(started))
 	}()
-	app.metrics.Counters.Inc("num_api_requests")
+	s.metrics.Counters.Inc("num_api_requests")
 
 	contentType := r.Header.Get("Content-Type")
 
@@ -425,10 +409,10 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 		data = []byte(r.FormValue("data"))
 	}
 
-	app.RLock()
-	secret := app.config.Secret
-	insecure := app.config.InsecureAPI
-	app.RUnlock()
+	s.RLock()
+	secret := s.server.GetConfig().Secret
+	insecure := s.server.GetConfig().InsecureAPI
+	s.RUnlock()
 
 	if sign == "" && !insecure {
 		logger.ERROR.Println("no sign found in API request")
@@ -456,7 +440,7 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	jsonResp, err := app.processAPIData(data)
+	jsonResp, err := s.processAPIData(data)
 	if err != nil {
 		if err == ErrInvalidMessage {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -473,14 +457,14 @@ func (app *Application) APIHandler(w http.ResponseWriter, r *http.Request) {
 const insecureWebToken = "insecure"
 
 // AuthHandler allows to get admin web interface token.
-func (app *Application) AuthHandler(w http.ResponseWriter, r *http.Request) {
+func (s *HTTPServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
-	app.RLock()
-	insecure := app.config.InsecureAdmin
-	adminPassword := app.config.AdminPassword
-	adminSecret := app.config.AdminSecret
-	app.RUnlock()
+	s.RLock()
+	insecure := s.server.GetConfig().InsecureAdmin
+	adminPassword := s.server.GetConfig().AdminPassword
+	adminSecret := s.server.GetConfig().AdminSecret
+	s.RUnlock()
 
 	if insecure {
 		w.Header().Set("Content-Type", "application/json")
