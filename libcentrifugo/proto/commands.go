@@ -1,8 +1,9 @@
 package proto
 
 import (
-	"encoding/json"
 	"sync"
+
+	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 )
 
 // NodeInfo contains information and statistics about Centrifugo node.
@@ -40,15 +41,15 @@ type ServerStats struct {
 }
 
 type ClientCommand struct {
-	UID    string          `json:"uid"`
-	Method string          `json:"method"`
-	Params json.RawMessage `json:"params"`
+	UID    string  `json:"uid"`
+	Method string  `json:"method"`
+	Params raw.Raw `json:"params"`
 }
 
 type ApiCommand struct {
-	UID    string          `json:"uid"`
-	Method string          `json:"method"`
-	Params json.RawMessage `json:"params"`
+	UID    string  `json:"uid"`
+	Method string  `json:"method"`
+	Params raw.Raw `json:"params"`
 }
 
 // ConnectClientCommand is a command to authorize connection - it contains user ID
@@ -90,8 +91,8 @@ type UnsubscribeClientCommand struct {
 
 // PublishClientCommand is used to publish messages into channel.
 type PublishClientCommand struct {
-	Channel Channel         `json:"channel"`
-	Data    json.RawMessage `json:"data"`
+	Channel Channel `json:"channel"`
+	Data    raw.Raw `json:"data"`
 }
 
 // PresenceClientCommand is used to get presence (actual channel subscriptions).
@@ -112,16 +113,16 @@ type PingClientCommand struct {
 
 // PublishApiCommand is used to publish messages into channel.
 type PublishAPICommand struct {
-	Channel Channel         `json:"channel"`
-	Client  ConnID          `json:"client"`
-	Data    json.RawMessage `json:"data"`
+	Channel Channel `json:"channel"`
+	Client  ConnID  `json:"client"`
+	Data    raw.Raw `json:"data"`
 }
 
 // BroadcastApiCommand is used to publish messages into multiple channels.
 type BroadcastAPICommand struct {
-	Channels []Channel       `json:"channels"`
-	Data     json.RawMessage `json:"data"`
-	Client   ConnID          `json:"client"`
+	Channels []Channel `json:"channels"`
+	Data     raw.Raw   `json:"data"`
+	Client   ConnID    `json:"client"`
 }
 
 // UnsubscribeApiCommand is used to unsubscribe user from channel.
