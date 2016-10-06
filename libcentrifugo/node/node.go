@@ -9,25 +9,28 @@ type Node interface {
 	// Config allows to get node Config.
 	Config() Config
 
+	// SetConfig allows to set node config.
 	SetConfig(*Config)
 
-	// SetEngine.
+	// SetEngine allows to set node engine.
 	SetEngine(engine.Engine)
 
 	// SetMediator allows to set mediator interface.
 	SetMediator(Mediator)
 
+	// Run starts a node.
 	Run() error
 
+	// Shutdown stuts down a node.
 	Shutdown() error
 
 	// NotifyShutdown allows to get channel which will be closed on node shutdown.
 	NotifyShutdown() chan struct{}
 
-	//
+	// NewClient creates new client connection.
 	NewClient(Session) (ClientConn, error)
 
-	//
+	// NewAdminClient creates new admin connection.
 	NewAdminClient(Session) (AdminConn, error)
 
 	// ClientMsg handles client message received from channel -

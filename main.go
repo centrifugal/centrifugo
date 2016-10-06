@@ -93,6 +93,7 @@ func Main() {
 	var admin bool
 	var insecureAdmin bool
 	var engn string
+	var srvs string
 	var logLevel string
 	var logFile string
 	var insecure bool
@@ -107,8 +108,10 @@ func Main() {
 			viper.SetEnvPrefix("centrifugo")
 
 			viper.SetDefault("gomaxprocs", 0)
-			viper.SetDefault("debug", false)
 			viper.SetDefault("engine", "memory")
+			viper.SetDefault("servers", "http")
+
+			viper.SetDefault("debug", false)
 			viper.SetDefault("name", "")
 			viper.SetDefault("max_channel_length", 255)
 			viper.SetDefault("node_ping_interval", 3)
@@ -142,15 +145,15 @@ func Main() {
 
 			bindEnvs := []string{
 				"debug", "engine", "insecure", "insecure_api", "admin", "admin_password", "admin_secret",
-				"insecure_web", "insecure_admin", "secret", "connection_lifetime", "watch", "publish", "anonymous",
-				"join_leave", "presence", "recover", "history_size", "history_lifetime", "history_drop_inactive",
+				"insecure_admin", "secret", "connection_lifetime", "watch", "publish", "anonymous", "join_leave",
+				"presence", "recover", "history_size", "history_lifetime", "history_drop_inactive",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
 			}
 
 			bindPFlags := []string{
-				"debug", "name", "admin", "insecure_admin", "engine", "insecure",
+				"debug", "name", "admin", "insecure_admin", "engine", "servers", "insecure",
 				"insecure_api", "log_level", "log_file",
 			}
 			for _, flag := range bindPFlags {
@@ -208,10 +211,26 @@ func Main() {
 
 			go handleSignals(nod)
 
-			var wg sync.WaitGroup
+			if !configFound {
+				logger.WARN.Println("No config file found")
+			}
+			logger.INFO.Printf("Config path: %s", absConfPath)
+			logger.INFO.Printf("Centrifugo version: %s", VERSION)
+			logger.INFO.Printf("Process PID: %d", os.Getpid())
+			logger.INFO.Printf("Engine: %s", e.Name())
+			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
 
 			shutdownCh := nod.NotifyShutdown()
-			for _, fn := range plugin.ServerFactories {
+
+			serverNames := strings.Split(viper.GetString("servers"), ",")
+			var wg sync.WaitGroup
+			for _, serverName := range serverNames {
+				fn, ok := plugin.ServerFactories[serverName]
+				if !ok {
+					logger.FATAL.Printf("Server %s not registered", serverName)
+					continue
+				}
+				logger.DEBUG.Printf("Starting %s server", serverName)
 				srv, err := fn(nod, viper.GetViper())
 				if err != nil {
 					logger.FATAL.Fatalln(err)
@@ -225,15 +244,6 @@ func Main() {
 				}()
 			}
 
-			if !configFound {
-				logger.WARN.Println("No config file found")
-			}
-			logger.INFO.Printf("Config path: %s", absConfPath)
-			logger.INFO.Printf("Centrifugo version: %s", VERSION)
-			logger.INFO.Printf("Process PID: %d", os.Getpid())
-			logger.INFO.Printf("Engine: %s", e.Name())
-			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
-
 			if err = nod.Run(); err != nil {
 				logger.FATAL.Fatalln(err)
 			}
@@ -243,15 +253,16 @@ func Main() {
 
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
+	rootCmd.Flags().StringVarP(&srvs, "servers", "s", "http", "comma-separated servers to use")
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "enable debug mode")
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
-	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "debug", "set the log level: trace, debug, info, error, critical, fatal or none")
-	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified logs go to STDOUT")
-
 	rootCmd.Flags().BoolVarP(&admin, "admin", "", false, "enable admin socket")
 	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolVarP(&insecureAPI, "insecure_api", "", false, "use insecure API mode")
 	rootCmd.Flags().BoolVarP(&insecureAdmin, "insecure_admin", "", false, "use insecure admin mode – no auth required for admin socket")
+
+	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "debug", "set the log level: trace, debug, info, error, critical, fatal or none")
+	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified logs go to STDOUT")
 
 	for _, configurator := range plugin.Configurators {
 		configurator(plugin.NewViperConfigSetter(viper.GetViper(), rootCmd.Flags()))

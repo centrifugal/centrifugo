@@ -9,9 +9,8 @@ import (
 )
 
 func init() {
-	plugin.RegisterServer("httpserver", NewHTTPServer)
-	plugin.RegisterConfigurator("httpserver", HTTPServerConfigure)
-
+	plugin.RegisterServer("http", NewHTTPServer)
+	plugin.RegisterConfigurator("http", HTTPServerConfigure)
 }
 
 func HTTPServerConfigure(setter plugin.ConfigSetter) error {
