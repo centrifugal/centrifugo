@@ -25,7 +25,7 @@ const (
 type client struct {
 	sync.RWMutex
 	app            *Application
-	sess           session
+	sess           Session
 	uid            proto.ConnID
 	user           proto.UserID
 	timestamp      int64
@@ -45,7 +45,7 @@ type client struct {
 }
 
 // newClient creates new ready to communicate client.
-func newClient(app *Application, s session) *client {
+func (app *Application) NewClient(s Session) (ClientConn, error) {
 	app.RLock()
 	staleCloseDelay := app.config.StaleConnectionCloseDelay
 	queueInitialCapacity := app.config.ClientQueueInitialCapacity
@@ -68,7 +68,7 @@ func newClient(app *Application, s session) *client {
 	if staleCloseDelay > 0 {
 		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
 	}
-	return &c
+	return &c, nil
 }
 
 // sendMessages waits for messages from queue and sends them to client.
@@ -304,29 +304,7 @@ func (c *client) info(ch proto.Channel) proto.ClientInfo {
 	return *proto.NewClientInfo(c.user, c.uid, rawDefaultInfo, rawChannelInfo)
 }
 
-func cmdFromClientMsg(msgBytes []byte) ([]proto.ClientCommand, error) {
-	var cmds []proto.ClientCommand
-	firstByte := msgBytes[0]
-	switch firstByte {
-	case objectJSONPrefix:
-		// single command request
-		var cmd proto.ClientCommand
-		err := json.Unmarshal(msgBytes, &cmd)
-		if err != nil {
-			return nil, err
-		}
-		cmds = append(cmds, cmd)
-	case arrayJSONPrefix:
-		// array of commands received
-		err := json.Unmarshal(msgBytes, &cmds)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return cmds, nil
-}
-
-func (c *client) message(msg []byte) error {
+func (c *client) Handle(msg []byte) error {
 	started := time.Now()
 	defer func() {
 		c.app.metrics.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
@@ -350,7 +328,7 @@ func (c *client) message(msg []byte) error {
 		return ErrLimitExceeded
 	}
 
-	commands, err := cmdFromClientMsg(msg)
+	commands, err := proto.ClientCommandsFromJSON(msg)
 	if err != nil {
 		logger.ERROR.Println(err)
 		c.disconnect(ErrInvalidMessage.Error(), false)

@@ -12,10 +12,16 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
+	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/websocket"
 	"github.com/rakyll/statik/fs"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
+)
+
+const (
+	CloseStatus = 3000
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -90,9 +96,9 @@ func listenHTTP(mux http.Handler, addr string, useSSL bool, sslCert, sslKey stri
 func (s *HTTPServer) runHTTPServer() error {
 
 	s.RLock()
-	debug := s.server.GetConfig().Debug
-	pingInterval := s.server.GetConfig().PingInterval
-	adminEnabled := s.server.GetConfig().Admin
+	debug := s.node.Config().Debug
+	pingInterval := s.node.Config().PingInterval
+	adminEnabled := s.node.Config().Admin
 
 	sockjsURL := s.config.SockjsURL
 	webEnabled := s.config.Web
@@ -247,13 +253,18 @@ func DefaultMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 // SockJS handler has several handlers inside responsible for various tasks
 // according to SockJS protocol.
 func NewSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Options) http.Handler {
-	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, app.sockJSHandler)
+	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, s.sockJSHandler)
 }
 
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
-	c := newClient(app, newSockjsSession(sess))
+	c, err := s.node.NewClient(newSockjsSession(sess))
+	if err != nil {
+		logger.ERROR.Println(err)
+		sess.Close(3000, "Internal Server Error")
+		return
+	}
 	defer c.Close("")
 
 	logger.DEBUG.Printf("New SockJS session established with uid %s\n", c.UID())
@@ -263,7 +274,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
 	for {
 		if msg, err := sess.Recv(); err == nil {
-			err = c.message([]byte(msg))
+			err = c.Handle([]byte(msg))
 			if err != nil {
 				logger.ERROR.Println(err)
 				c.Close("error handling message")
@@ -288,7 +299,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	s.RLock()
-	pingInterval := s.server.GetConfig().PingInterval
+	pingInterval := s.node.Config().PingInterval
 	s.RUnlock()
 
 	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
@@ -296,7 +307,12 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	ws.SetReadDeadline(time.Now().Add(pongWait))
 	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
-	c := newClient(app, newWSSession(ws, pingInterval))
+	c, err := s.node.NewClient(newWSSession(ws, pingInterval))
+	if err != nil {
+		logger.ERROR.Println(err)
+		ws.Close()
+		return
+	}
 	defer c.Close("")
 
 	logger.DEBUG.Printf("New raw websocket session established with uid %s\n", c.UID())
@@ -309,7 +325,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 		if err != nil {
 			break
 		}
-		err = c.message(message)
+		err = c.Handle(message)
 		if err != nil {
 			c.Close(err.Error())
 			break
@@ -317,44 +333,9 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-var (
-	arrayJSONPrefix  byte = '['
-	objectJSONPrefix byte = '{'
-)
-
-func cmdFromRequestMsg(msg []byte) ([]proto.ApiCommand, error) {
-	var cmds []proto.ApiCommand
-
-	if len(msg) == 0 {
-		return cmds, nil
-	}
-
-	firstByte := msg[0]
-
-	switch firstByte {
-	case objectJSONPrefix:
-		// single command request
-		var command proto.ApiCommand
-		err := json.Unmarshal(msg, &command)
-		if err != nil {
-			return nil, err
-		}
-		cmds = append(cmds, command)
-	case arrayJSONPrefix:
-		// array of commands received
-		err := json.Unmarshal(msg, &cmds)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, ErrInvalidMessage
-	}
-	return cmds, nil
-}
-
 func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 
-	commands, err := cmdFromRequestMsg(data)
+	commands, err := proto.APICommandsFromJSON(data)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil, ErrInvalidMessage
@@ -363,7 +344,7 @@ func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 	var mr proto.MultiAPIResponse
 
 	for _, command := range commands {
-		resp, err := app.APICmd(command)
+		resp, err := s.node.APICmd(command)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidMessage
@@ -382,9 +363,9 @@ func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
 	defer func() {
-		s.metrics.HDRHistograms.RecordMicroseconds("http_api", time.Now().Sub(started))
+		plugin.Metrics.HDRHistograms.RecordMicroseconds("http_api", time.Now().Sub(started))
 	}()
-	s.metrics.Counters.Inc("num_api_requests")
+	plugin.Metrics.Counters.Inc("num_api_requests")
 
 	contentType := r.Header.Get("Content-Type")
 
@@ -410,8 +391,8 @@ func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.RLock()
-	secret := s.server.GetConfig().Secret
-	insecure := s.server.GetConfig().InsecureAPI
+	secret := s.node.Config().Secret
+	insecure := s.node.Config().InsecureAPI
 	s.RUnlock()
 
 	if sign == "" && !insecure {
@@ -461,9 +442,9 @@ func (s *HTTPServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	s.RLock()
-	insecure := s.server.GetConfig().InsecureAdmin
-	adminPassword := s.server.GetConfig().AdminPassword
-	adminSecret := s.server.GetConfig().AdminSecret
+	insecure := s.node.Config().InsecureAdmin
+	adminPassword := s.node.Config().AdminPassword
+	adminSecret := s.node.Config().AdminSecret
 	s.RUnlock()
 
 	if insecure {
@@ -480,7 +461,7 @@ func (s *HTTPServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if password == adminPassword {
 		w.Header().Set("Content-Type", "application/json")
-		token, err := app.adminAuthToken()
+		token, err := node.AdminAuthToken(s.node.Config().AdminSecret)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -496,11 +477,11 @@ func (s *HTTPServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
 
 // WrapShutdown will return an http Handler.
 // If Application in shutdown it will return http.StatusServiceUnavailable.
-func (app *Application) WrapShutdown(h http.Handler) http.Handler {
+func (s *HTTPServer) WrapShutdown(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		app.RLock()
-		shutdown := app.shutdown
-		app.RUnlock()
+		s.RLock()
+		shutdown := s.shutdown
+		s.RUnlock()
 		if shutdown {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
@@ -511,7 +492,7 @@ func (app *Application) WrapShutdown(h http.Handler) http.Handler {
 }
 
 // Logged middleware logs request.
-func (app *Application) Logged(h http.Handler) http.Handler {
+func (s *HTTPServer) Logged(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		addr := r.Header.Get("X-Real-IP")
@@ -536,10 +517,8 @@ const (
 var upgrader = &websocket.Upgrader{ReadBufferSize: AdminWebsocketReadBufferSize, WriteBufferSize: AdminWebsocketWriteBufferSize}
 
 // AdminWebsocketHandler handles admin websocket connections.
-func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
-	app.RLock()
-	admin := app.config.Admin
-	app.RUnlock()
+func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+	admin := s.node.Config().Admin
 
 	if !admin {
 		w.WriteHeader(http.StatusNotFound)
@@ -555,9 +534,7 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	app.RLock()
-	pingInterval := app.config.PingInterval
-	app.RUnlock()
+	pingInterval := s.node.Config().PingInterval
 	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
 
 	ws.SetReadDeadline(time.Now().Add(pongWait))
@@ -565,7 +542,7 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 
 	sess := newWSSession(ws, pingInterval)
 
-	c, err := newAdminClient(app, sess)
+	c, err := s.node.NewAdminClient(sess)
 	if err != nil {
 		sess.Close(CloseStatus, ErrInternalServerError.Error())
 		return
@@ -583,7 +560,7 @@ func (app *Application) AdminWebsocketHandler(w http.ResponseWriter, r *http.Req
 		if err != nil {
 			break
 		}
-		err = c.message(message)
+		err = c.Handle(message)
 		if err != nil {
 			c.Close(err.Error())
 			break

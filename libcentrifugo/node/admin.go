@@ -18,10 +18,7 @@ const (
 	AuthTokenValue = "authorized"
 )
 
-func (app *Application) adminAuthToken() (string, error) {
-	app.RLock()
-	secret := app.config.AdminSecret
-	app.RUnlock()
+func AdminAuthToken(secret string) (string, error) {
 	if secret == "" {
 		logger.ERROR.Println("provide admin_secret in configuration")
 		return "", ErrInternalServerError
@@ -72,7 +69,7 @@ type adminClient struct {
 	sync.RWMutex
 	app           *Application
 	uid           proto.ConnID
-	sess          session
+	sess          Session
 	watch         bool
 	authenticated bool
 	closeCh       chan struct{}
@@ -81,7 +78,7 @@ type adminClient struct {
 	messages      bytequeue.ByteQueue
 }
 
-func newAdminClient(app *Application, sess session) (*adminClient, error) {
+func (app *Application) NewAdminClient(sess Session) (AdminConn, error) {
 	c := &adminClient{
 		uid:           proto.ConnID(uuid.NewV4().String()),
 		app:           app,
@@ -183,10 +180,10 @@ func (c *adminClient) Send(message []byte) error {
 	return nil
 }
 
-// message handles message received from admin connection
-func (c *adminClient) message(msg []byte) error {
+// Handle handles message received from admin connection
+func (c *adminClient) Handle(msg []byte) error {
 
-	cmds, err := cmdFromRequestMsg(msg)
+	cmds, err := proto.APICommandsFromJSON(msg)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return ErrInvalidMessage

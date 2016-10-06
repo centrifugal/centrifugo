@@ -1,6 +1,8 @@
 package proto
 
 import (
+	"encoding/json"
+	"errors"
 	"sync"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
@@ -50,6 +52,64 @@ type ApiCommand struct {
 	UID    string  `json:"uid"`
 	Method string  `json:"method"`
 	Params raw.Raw `json:"params"`
+}
+
+var (
+	arrayJSONPrefix   byte = '['
+	objectJSONPrefix  byte = '{'
+	ErrInvalidMessage      = errors.New("malformed message")
+)
+
+func APICommandsFromJSON(msg []byte) ([]ApiCommand, error) {
+	var cmds []ApiCommand
+
+	if len(msg) == 0 {
+		return cmds, nil
+	}
+
+	firstByte := msg[0]
+
+	switch firstByte {
+	case objectJSONPrefix:
+		// single command request
+		var command ApiCommand
+		err := json.Unmarshal(msg, &command)
+		if err != nil {
+			return nil, err
+		}
+		cmds = append(cmds, command)
+	case arrayJSONPrefix:
+		// array of commands received
+		err := json.Unmarshal(msg, &cmds)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, ErrInvalidMessage
+	}
+	return cmds, nil
+}
+
+func ClientCommandsFromJSON(msgBytes []byte) ([]ClientCommand, error) {
+	var cmds []ClientCommand
+	firstByte := msgBytes[0]
+	switch firstByte {
+	case objectJSONPrefix:
+		// single command request
+		var cmd ClientCommand
+		err := json.Unmarshal(msgBytes, &cmd)
+		if err != nil {
+			return nil, err
+		}
+		cmds = append(cmds, cmd)
+	case arrayJSONPrefix:
+		// array of commands received
+		err := json.Unmarshal(msgBytes, &cmds)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return cmds, nil
 }
 
 // ConnectClientCommand is a command to authorize connection - it contains user ID

@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
-	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
+//"github.com/centrifugal/centrifugo/libcentrifugo/engine"
+//"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
 type Server interface {

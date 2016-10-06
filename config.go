@@ -12,13 +12,13 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/viper-lite"
-	"github.com/centrifugal/centrifugo/libcentrifugo/server"
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/satori/go.uuid"
 )
 
 // newConfig creates new libcentrifugo.Config using viper.
-func newConfig(v *viper.Viper) *server.Config {
-	cfg := &server.Config{}
+func newConfig(v *viper.Viper) *node.Config {
+	cfg := &node.Config{}
 	cfg.Version = VERSION
 
 	cfg.Name = getApplicationName(v)
@@ -26,17 +26,6 @@ func newConfig(v *viper.Viper) *server.Config {
 	cfg.Admin = v.GetBool("admin")
 	cfg.AdminPassword = v.GetString("admin_password")
 	cfg.AdminSecret = v.GetString("admin_secret")
-	cfg.Web = v.GetBool("web")
-	cfg.WebPath = v.GetString("web_path")
-	cfg.HTTPAddress = v.GetString("address")
-	cfg.HTTPPort = v.GetString("port")
-	cfg.HTTPAdminPort = v.GetString("admin_port")
-	cfg.HTTPAPIPort = v.GetString("api_port")
-	cfg.HTTPPrefix = v.GetString("http_prefix")
-	cfg.SockjsURL = v.GetString("sockjs_url")
-	cfg.SSL = v.GetBool("ssl")
-	cfg.SSLCert = v.GetString("ssl_cert")
-	cfg.SSLKey = v.GetString("ssl_cert")
 	cfg.MaxChannelLength = v.GetInt("max_channel_length")
 	cfg.PingInterval = time.Duration(v.GetInt("ping_interval")) * time.Second
 	cfg.NodePingInterval = time.Duration(v.GetInt("node_ping_interval")) * time.Second
@@ -59,7 +48,7 @@ func newConfig(v *viper.Viper) *server.Config {
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
 	cfg.Insecure = v.GetBool("insecure")
 	cfg.InsecureAPI = v.GetBool("insecure_api")
-	cfg.InsecureAdmin = v.GetBool("insecure_admin") || viper.GetBool("insecure_web")
+	cfg.InsecureAdmin = v.GetBool("insecure_admin")
 	cfg.Secret = v.GetString("secret")
 	cfg.ConnLifetime = int64(v.GetInt("connection_lifetime"))
 	cfg.Watch = v.GetBool("watch")
@@ -188,8 +177,8 @@ func validateConfig(f string) error {
 	return c.Validate()
 }
 
-func namespacesFromConfig(v *viper.Viper) []server.Namespace {
-	ns := []server.Namespace{}
+func namespacesFromConfig(v *viper.Viper) []node.Namespace {
+	ns := []node.Namespace{}
 	if !viper.IsSet("namespaces") {
 		return ns
 	}

@@ -9,8 +9,26 @@ type Node interface {
 	// Config allows to get node Config.
 	Config() Config
 
+	SetConfig(*Config)
+
+	// SetEngine.
+	SetEngine(engine.Engine)
+
 	// SetMediator allows to set mediator interface.
 	SetMediator(Mediator)
+
+	Run() error
+
+	Shutdown() error
+
+	// NotifyShutdown allows to get channel which will be closed on node shutdown.
+	NotifyShutdown() chan struct{}
+
+	//
+	NewClient(Session) (ClientConn, error)
+
+	//
+	NewAdminClient(Session) (AdminConn, error)
 
 	// ClientMsg handles client message received from channel -
 	// broadcasts it to all connected interested clients.
@@ -31,7 +49,4 @@ type Node interface {
 
 	// ApiCmd allows to handle API command.
 	APICmd(proto.ApiCommand) (proto.Response, error)
-
-	// NotifyShutdown allows to get channel which will be closed on node shutdown.
-	NotifyShutdown() chan struct{}
 }

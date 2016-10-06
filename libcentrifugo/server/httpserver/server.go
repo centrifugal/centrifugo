@@ -3,13 +3,15 @@ package httpserver
 import (
 	"sync"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 )
 
 func init() {
-	plugin.RegisterServerFactory("httpserver", NewHTTPServer)
+	plugin.RegisterServer("httpserver", NewHTTPServer)
 	plugin.RegisterConfigurator("httpserver", HTTPServerConfigure)
+
 }
 
 func HTTPServerConfigure(setter plugin.ConfigSetter) error {
@@ -53,22 +55,23 @@ func HTTPServerConfigure(setter plugin.ConfigSetter) error {
 
 type HTTPServer struct {
 	sync.RWMutex
-	server     server.Server
+	node       node.Node
 	config     *Config
+	shutdown   bool
 	shutdownCh chan struct{}
 }
 
-func NewHTTPServer(server server.Server, getter plugin.ConfigGetter) *HTTPServer {
+func NewHTTPServer(n node.Node, getter plugin.ConfigGetter) (server.Server, error) {
 	return &HTTPServer{
-		server: server,
+		node:   n,
 		config: newConfig(getter),
-	}
-}
-
-func newConfig(getter plugin.ConfigGetter) *Config {
-	return &Config{}
+	}, nil
 }
 
 func (s *HTTPServer) Run() error {
+	return s.runHTTPServer()
+}
+
+func (s *HTTPServer) Shutdown() error {
 	return nil
 }

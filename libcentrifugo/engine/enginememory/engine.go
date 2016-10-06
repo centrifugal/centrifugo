@@ -8,10 +8,10 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/priority"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
-	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 )
 
 func init() {
@@ -23,15 +23,15 @@ func init() {
 // only run single Centrifugo node. If you need to scale you should
 // use Redis engine instead.
 type MemoryEngine struct {
-	node        server.Node
+	node        node.Node
 	presenceHub *memoryPresenceHub
 	historyHub  *memoryHistoryHub
 }
 
 // NewMemoryEngine initializes Memory Engine.
-func NewMemoryEngine(node server.Node, config plugin.ConfigGetter) (engine.Engine, error) {
+func NewMemoryEngine(n node.Node, config plugin.ConfigGetter) (engine.Engine, error) {
 	e := &MemoryEngine{
-		node:        node,
+		node:        n,
 		presenceHub: newMemoryPresenceHub(),
 		historyHub:  newMemoryHistoryHub(),
 	}

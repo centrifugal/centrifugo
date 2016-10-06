@@ -94,7 +94,7 @@ func init() {
 
 // New returns new server instance backed by Application, the only required
 // argument is config. Engine must be set via corresponding methods.
-func New(c *Config) Server {
+func New(c *Config) Node {
 	app := &Application{
 		uid:             uuid.NewV4().String(),
 		config:          c,
@@ -151,7 +151,7 @@ func (app *Application) Run() error {
 	}
 	app.RUnlock()
 
-	return app.runHTTPServer()
+	return nil
 }
 
 // Shutdown sets shutdown flag and does various connection clean ups (at moment only unsubscribes
@@ -637,18 +637,18 @@ func (app *Application) pingCmd(cmd *proto.PingControlCommand) error {
 
 // addConn registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand.
-func (app *Application) addConn(c clientConn) error {
+func (app *Application) addConn(c ClientConn) error {
 	return app.clients.add(c)
 }
 
 // removeConn removes client connection from connection registry.
-func (app *Application) removeConn(c clientConn) error {
+func (app *Application) removeConn(c ClientConn) error {
 	return app.clients.remove(c)
 }
 
 // addSub registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
-func (app *Application) addSub(ch proto.Channel, c clientConn) error {
+func (app *Application) addSub(ch proto.Channel, c ClientConn) error {
 	first, err := app.clients.addSub(ch, c)
 	if err != nil {
 		return err
@@ -661,7 +661,7 @@ func (app *Application) addSub(ch proto.Channel, c clientConn) error {
 
 // removeSub removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
-func (app *Application) removeSub(ch proto.Channel, c clientConn) error {
+func (app *Application) removeSub(ch proto.Channel, c ClientConn) error {
 	empty, err := app.clients.removeSub(ch, c)
 	if err != nil {
 		return err
@@ -895,12 +895,12 @@ func (app *Application) clientAllowed(ch proto.Channel, client proto.ConnID) boo
 }
 
 // addAdminConn registers an admin connection in adminConnectionHub.
-func (app *Application) addAdminConn(c adminConn) error {
+func (app *Application) addAdminConn(c AdminConn) error {
 	return app.admins.add(c)
 }
 
 // removeAdminConn admin connection from adminConnectionHub.
-func (app *Application) removeAdminConn(c adminConn) error {
+func (app *Application) removeAdminConn(c AdminConn) error {
 	return app.admins.remove(c)
 }
 

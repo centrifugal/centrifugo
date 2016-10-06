@@ -7,19 +7,23 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
-	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/spf13/cobra"
 
 	// Register builtin memory and redis engines.
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/engine/engineredis"
+
+	// Register servers, only HTTP server here.
+	_ "github.com/centrifugal/centrifugo/libcentrifugo/server/httpserver"
 
 	// Register embedded web interface.
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/statik"
@@ -43,7 +47,7 @@ func setupLogging() {
 	}
 }
 
-func handleSignals(srv server.Server) {
+func handleSignals(n node.Node) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -66,14 +70,14 @@ func handleSignals(srv server.Server) {
 			}
 			setupLogging()
 			c := newConfig(viper.GetViper())
-			srv.SetConfig(c)
+			n.SetConfig(c)
 			logger.INFO.Println("Configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
 			logger.INFO.Println("Shutting down")
 			go time.AfterFunc(10*time.Second, func() {
 				os.Exit(1)
 			})
-			srv.Shutdown()
+			n.Shutdown()
 			os.Exit(0)
 		}
 	}
@@ -84,25 +88,15 @@ func Main() {
 
 	var configFile string
 
-	var port string
-	var address string
 	var debug bool
 	var name string
 	var admin bool
 	var insecureAdmin bool
-	var web bool
-	var webPath string
-	var insecureWeb bool
 	var engn string
 	var logLevel string
 	var logFile string
 	var insecure bool
 	var insecureAPI bool
-	var useSSL bool
-	var sslCert string
-	var sslKey string
-	var apiPort string
-	var adminPort string
 
 	var rootCmd = &cobra.Command{
 		Use:   "",
@@ -116,7 +110,6 @@ func Main() {
 			viper.SetDefault("debug", false)
 			viper.SetDefault("engine", "memory")
 			viper.SetDefault("name", "")
-
 			viper.SetDefault("max_channel_length", 255)
 			viper.SetDefault("node_ping_interval", 3)
 			viper.SetDefault("message_send_timeout", 0)
@@ -135,9 +128,7 @@ func Main() {
 			viper.SetDefault("user_channel_boundary", "#")
 			viper.SetDefault("user_channel_separator", ",")
 			viper.SetDefault("client_channel_boundary", "&")
-
 			viper.SetDefault("secret", "")
-
 			viper.SetDefault("connection_lifetime", 0)
 			viper.SetDefault("watch", false)
 			viper.SetDefault("publish", false)
@@ -200,7 +191,7 @@ func Main() {
 				logger.FATAL.Fatalln(err)
 			}
 
-			srv := server.New(c)
+			nod := node.New(c)
 
 			engineName := viper.GetString("engine")
 			engineFactory, ok := plugin.EngineFactories[engineName]
@@ -209,13 +200,30 @@ func Main() {
 			}
 
 			var e engine.Engine
-			e, err = engineFactory(srv.(server.Node), viper.GetViper())
+			e, err = engineFactory(nod, viper.GetViper())
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
-			srv.SetEngine(e)
+			nod.SetEngine(e)
 
-			go handleSignals(srv)
+			go handleSignals(nod)
+
+			var wg sync.WaitGroup
+
+			shutdownCh := nod.NotifyShutdown()
+			for _, fn := range plugin.ServerFactories {
+				srv, err := fn(nod, viper.GetViper())
+				if err != nil {
+					logger.FATAL.Fatalln(err)
+				}
+				wg.Add(1)
+				go srv.Run()
+				go func() {
+					defer wg.Done()
+					<-shutdownCh
+					srv.Shutdown()
+				}()
+			}
 
 			if !configFound {
 				logger.WARN.Println("No config file found")
@@ -226,9 +234,10 @@ func Main() {
 			logger.INFO.Printf("Engine: %s", e.Name())
 			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
 
-			if err = srv.Run(); err != nil {
+			if err = nod.Run(); err != nil {
 				logger.FATAL.Fatalln(err)
 			}
+			wg.Wait()
 		},
 	}
 

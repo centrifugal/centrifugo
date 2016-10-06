@@ -2,11 +2,8 @@ package httpserver
 
 import (
 	"errors"
-	"regexp"
-	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
-	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
 // Config contains Application configuration options.
@@ -67,6 +64,8 @@ func stringInSlice(a string, list []string) bool {
 
 // Validate validates config and returns error if problems found
 func (c *Config) Validate() error {
+	errPrefix := "config error: "
+
 	if c.SSL {
 		if c.SSLCert == "" {
 			return errors.New(errPrefix + "no SSL certificate provided")

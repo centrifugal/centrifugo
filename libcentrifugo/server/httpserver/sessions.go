@@ -1,6 +1,10 @@
 package httpserver
 
 import (
+	"sync"
+	"time"
+
+	"github.com/gorilla/websocket"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
