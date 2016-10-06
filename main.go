@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
+	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/spf13/cobra"
 
 	// Register builtin memory and redis engines.
@@ -180,6 +180,10 @@ func Main() {
 
 			setupLogging()
 
+			if !configFound {
+				logger.WARN.Println("No config file found")
+			}
+
 			if os.Getenv("GOMAXPROCS") == "" {
 				if viper.IsSet("gomaxprocs") && viper.GetInt("gomaxprocs") > 0 {
 					runtime.GOMAXPROCS(viper.GetInt("gomaxprocs"))
@@ -201,53 +205,38 @@ func Main() {
 			if !ok {
 				logger.FATAL.Fatalln("Unknown engine: " + engineName)
 			}
-
 			var e engine.Engine
 			e, err = engineFactory(nod, viper.GetViper())
 			if err != nil {
 				logger.FATAL.Fatalln(err)
 			}
-			nod.SetEngine(e)
-
-			go handleSignals(nod)
-
-			if !configFound {
-				logger.WARN.Println("No config file found")
-			}
-			logger.INFO.Printf("Config path: %s", absConfPath)
-			logger.INFO.Printf("Centrifugo version: %s", VERSION)
-			logger.INFO.Printf("Process PID: %d", os.Getpid())
-			logger.INFO.Printf("Engine: %s", e.Name())
-			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
-
-			shutdownCh := nod.NotifyShutdown()
 
 			serverNames := strings.Split(viper.GetString("servers"), ",")
-			var wg sync.WaitGroup
+			servers := map[string]server.Server{}
 			for _, serverName := range serverNames {
 				fn, ok := plugin.ServerFactories[serverName]
 				if !ok {
 					logger.FATAL.Printf("Server %s not registered", serverName)
 					continue
 				}
-				logger.DEBUG.Printf("Starting %s server", serverName)
 				srv, err := fn(nod, viper.GetViper())
 				if err != nil {
 					logger.FATAL.Fatalln(err)
 				}
-				wg.Add(1)
-				go srv.Run()
-				go func() {
-					defer wg.Done()
-					<-shutdownCh
-					srv.Shutdown()
-				}()
+				servers[serverName] = srv
 			}
 
-			if err = nod.Run(); err != nil {
+			go handleSignals(nod)
+
+			logger.INFO.Printf("Config path: %s", absConfPath)
+			logger.INFO.Printf("Centrifugo version: %s", VERSION)
+			logger.INFO.Printf("Process PID: %d", os.Getpid())
+			logger.INFO.Printf("Engine: %s", e.Name())
+			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
+
+			if err = nod.Run(e, servers, nil); err != nil {
 				logger.FATAL.Fatalln(err)
 			}
-			wg.Wait()
 		},
 	}
 

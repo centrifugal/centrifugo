@@ -3,6 +3,7 @@ package httpserver
 import (
 	"sync"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/server"
@@ -11,6 +12,13 @@ import (
 func init() {
 	plugin.RegisterServer("http", NewHTTPServer)
 	plugin.RegisterConfigurator("http", HTTPServerConfigure)
+
+	quantiles := []float64{50, 90, 99, 99.99}
+	var minValue int64 = 1        // record latencies in microseconds, min resolution 1mks.
+	var maxValue int64 = 60000000 // record latencies in microseconds, max resolution 60s.
+	numBuckets := 15              // histograms will be rotated every time we updating snapshot.
+	sigfigs := 3
+	plugin.Metrics.RegisterHDRHistogram("http_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
 func HTTPServerConfigure(setter plugin.ConfigSetter) error {

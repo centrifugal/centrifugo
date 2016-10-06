@@ -3,29 +3,24 @@ package node
 import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
+	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 )
 
 type Node interface {
+	// Run starts a node with provided Engine, Servers and Mediator.
+	Run(e engine.Engine, servers map[string]server.Server, m Mediator) error
+
+	// Shutdown shuts down a node.
+	Shutdown() error
+
+	// NotifyShutdown allows to get a channel which will be closed on node shutdown.
+	NotifyShutdown() chan struct{}
+
 	// Config allows to get node Config.
 	Config() Config
 
 	// SetConfig allows to set node config.
 	SetConfig(*Config)
-
-	// SetEngine allows to set node engine.
-	SetEngine(engine.Engine)
-
-	// SetMediator allows to set mediator interface.
-	SetMediator(Mediator)
-
-	// Run starts a node.
-	Run() error
-
-	// Shutdown stuts down a node.
-	Shutdown() error
-
-	// NotifyShutdown allows to get channel which will be closed on node shutdown.
-	NotifyShutdown() chan struct{}
 
 	// NewClient creates new client connection.
 	NewClient(Session) (ClientConn, error)

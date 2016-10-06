@@ -12,6 +12,7 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
+	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/satori/go.uuid"
 )
 
@@ -88,7 +89,6 @@ func init() {
 	var maxValue int64 = 60000000 // record latencies in microseconds, max resolution 60s.
 	numBuckets := 15              // histograms will be rotated every time we updating snapshot.
 	sigfigs := 3
-	metrics.Metrics.RegisterHDRHistogram("http_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 	metrics.Metrics.RegisterHDRHistogram("client_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
@@ -128,8 +128,13 @@ func (app *Application) NotifyShutdown() chan struct{} {
 
 // Run performs all startup actions. At moment must be called once on start
 // after engine and structure set.
-func (app *Application) Run() error {
-	if err := app.engine.Run(); err != nil {
+func (app *Application) Run(e engine.Engine, servers map[string]server.Server, m Mediator) error {
+	app.Lock()
+	app.engine = e
+	app.mediator = m
+	app.Unlock()
+
+	if err := e.Run(); err != nil {
 		return err
 	}
 	go app.sendNodePingMsg()
@@ -151,6 +156,20 @@ func (app *Application) Run() error {
 	}
 	app.RUnlock()
 
+	var wg sync.WaitGroup
+	for srvName, srv := range servers {
+		wg.Add(1)
+		logger.DEBUG.Printf("Starting %s server", srvName)
+		go srv.Run()
+		go func() {
+			defer wg.Done()
+			<-app.shutdownCh
+			if err := srv.Shutdown(); err != nil {
+				logger.ERROR.Println(err)
+			}
+		}()
+	}
+	wg.Wait()
 	return nil
 }
 
@@ -258,20 +277,6 @@ func (app *Application) SetConfig(c *Config) {
 	if app.config.Insecure {
 		logger.WARN.Println("libcentrifugo: application in INSECURE MODE")
 	}
-}
-
-// SetEngine binds engine to application.
-func (app *Application) SetEngine(e engine.Engine) {
-	app.Lock()
-	defer app.Unlock()
-	app.engine = e
-}
-
-// SetMediator binds mediator to application.
-func (app *Application) SetMediator(m Mediator) {
-	app.Lock()
-	defer app.Unlock()
-	app.mediator = m
 }
 
 func (app *Application) channels() ([]proto.Channel, error) {
