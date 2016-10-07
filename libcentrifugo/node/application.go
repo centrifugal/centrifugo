@@ -43,6 +43,9 @@ type Application struct {
 	// engine to use - in memory or redis.
 	engine engine.Engine
 
+	// servers contains list of servers connected to this node.
+	servers map[string]server.Server
+
 	// config for application.
 	config *Config
 
@@ -115,6 +118,12 @@ func New(c *Config) Node {
 	return app
 }
 
+func NewWithMediator(c *Config, m Mediator) Node {
+	n := New(c)
+	n.(*Application).mediator = m
+	return n
+}
+
 func (app *Application) Config() Config {
 	app.RLock()
 	c := *app.config
@@ -128,10 +137,10 @@ func (app *Application) NotifyShutdown() chan struct{} {
 
 // Run performs all startup actions. At moment must be called once on start
 // after engine and structure set.
-func (app *Application) Run(e engine.Engine, servers map[string]server.Server, m Mediator) error {
+func (app *Application) Run(e engine.Engine, servers map[string]server.Server) error {
 	app.Lock()
 	app.engine = e
-	app.mediator = m
+	app.servers = servers
 	app.Unlock()
 
 	if err := e.Run(); err != nil {

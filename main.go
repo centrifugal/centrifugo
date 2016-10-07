@@ -234,7 +234,7 @@ func Main() {
 			logger.INFO.Printf("Engine: %s", e.Name())
 			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
 
-			if err = nod.Run(e, servers, nil); err != nil {
+			if err = nod.Run(e, servers); err != nil {
 				logger.FATAL.Fatalln(err)
 			}
 		},

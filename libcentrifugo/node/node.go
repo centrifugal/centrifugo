@@ -8,7 +8,7 @@ import (
 
 type Node interface {
 	// Run starts a node with provided Engine, Servers and Mediator.
-	Run(e engine.Engine, servers map[string]server.Server, m Mediator) error
+	Run(e engine.Engine, servers map[string]server.Server) error
 
 	// Shutdown shuts down a node.
 	Shutdown() error
