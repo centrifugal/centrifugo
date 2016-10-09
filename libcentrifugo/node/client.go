@@ -19,9 +19,23 @@ const (
 	CloseStatus = 3000
 )
 
-// client represents clien connection to Centrifugo - at moment this can be Websocket
-// or SockJS connection. It abstracts away protocol of incoming connection having
-// session interface. Session allows to Send messages via connection and to Close connection.
+type ClientDecoder interface {
+	// Result must be *ClientCommand or []*ClientCommand
+	DecodeCommand(msg []byte) (interface{}, error)
+	// Result must be any decoded params regarding to provided method.
+	DecodeParams(method string, params []byte) (interface{}, error)
+}
+
+type ClientEncoder interface {
+	// Encodes single Response.
+	Encode(proto.Response) ([]byte, error)
+	// Encodes slice of Responses.
+	EncodeMulti(proto.MultiClientResponse) ([]byte, error)
+}
+
+// client represents Client connection to Centrifugo - at moment this can be
+// Websocket or SockJS connection. Client abstracts away Centrifugo client
+// protocol from connection transport. Transport represented by Session interface.
 type client struct {
 	sync.RWMutex
 	app            *Application
@@ -42,10 +56,12 @@ type client struct {
 	sendTimeout    time.Duration
 	maxQueueSize   int
 	maxRequestSize int
+	decoder        ClientDecoder
+	encoder        ClientEncoder
 }
 
 // newClient creates new ready to communicate client.
-func (app *Application) NewClient(s Session) (ClientConn, error) {
+func (app *Application) NewClient(s Session, dec ClientDecoder, enc ClientEncoder) (ClientConn, error) {
 	app.RLock()
 	staleCloseDelay := app.config.StaleConnectionCloseDelay
 	queueInitialCapacity := app.config.ClientQueueInitialCapacity
@@ -63,6 +79,8 @@ func (app *Application) NewClient(s Session) (ClientConn, error) {
 		maxQueueSize:   maxQueueSize,
 		maxRequestSize: maxRequestSize,
 		sendTimeout:    sendTimeout,
+		decoder:        ClientDecoder,
+		encoder:        ClientEncoder,
 	}
 	go c.sendMessages()
 	if staleCloseDelay > 0 {
@@ -282,6 +300,7 @@ func (c *client) Close(reason string) error {
 	return nil
 }
 
+// client Lock must be held outside.
 func (c *client) info(ch proto.Channel) proto.ClientInfo {
 	channelInfo, ok := c.channelInfo[ch]
 	if !ok {

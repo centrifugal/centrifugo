@@ -1,6 +1,7 @@
 package bytequeue
 
 import (
+	"encoding/json"
 	"strconv"
 	"testing"
 

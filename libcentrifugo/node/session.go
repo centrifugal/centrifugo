@@ -1,7 +1,5 @@
 package node
 
-import ()
-
 // Session represents a connection between server and client.
 type Session interface {
 	// Send sends one message to session

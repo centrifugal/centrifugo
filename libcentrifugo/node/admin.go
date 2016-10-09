@@ -95,7 +95,7 @@ func (app *Application) NewAdminClient(sess Session) (AdminConn, error) {
 	app.RUnlock()
 
 	if insecure {
-		err := app.addAdminConn(c)
+		err := app.AdminHub().Add(c)
 		if err != nil {
 			return nil, err
 		}
@@ -126,7 +126,7 @@ func (c *adminClient) Close(reason string) error {
 	c.messages.Close()
 	c.sess.Close(CloseStatus, reason)
 
-	err := c.app.removeAdminConn(c)
+	err := c.app.AdminHub().Remove(c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil
@@ -220,7 +220,7 @@ func (c *adminClient) Handle(msg []byte) error {
 		case "info":
 			resp, err = c.infoCmd()
 		default:
-			resp, err = c.app.APICmd(command)
+			resp, err = c.app.APICmd(command, nil)
 		}
 		if err != nil {
 			c.Unlock()
@@ -257,7 +257,7 @@ func (c *adminClient) connectCmd(cmd *proto.ConnectAdminCommand) (proto.Response
 		return nil, ErrUnauthorized
 	}
 
-	err = c.app.addAdminConn(c)
+	err = c.app.AdminHub().Add(c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil, ErrInternalServerError

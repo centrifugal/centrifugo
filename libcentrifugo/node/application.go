@@ -35,10 +35,10 @@ type Application struct {
 	nodesMu sync.Mutex
 
 	// hub to manage client connections.
-	clients *clientHub
+	clients ClientHub
 
 	// hub to manage admin connections.
-	admins *adminHub
+	admins AdminHub
 
 	// engine to use - in memory or redis.
 	engine engine.Engine
@@ -193,16 +193,20 @@ func (app *Application) Shutdown() error {
 	app.shutdown = true
 	close(app.shutdownCh)
 	app.Unlock()
-	app.clients.shutdown()
+	app.clients.Shutdown()
 	return nil
 }
 
+func (app *Application) Handler() MessageHandler {
+	return app
+}
+
 func (app *Application) Channels() []proto.Channel {
-	return app.clients.channels()
+	return app.clients.Channels()
 }
 
 func (app *Application) NumSubscribers(ch proto.Channel) int {
-	return app.clients.numSubscribers(ch)
+	return app.clients.NumSubscribers(ch)
 }
 
 func (app *Application) updateMetricsOnce() {
@@ -398,9 +402,7 @@ func (app *Application) ControlMsg(cmd *proto.ControlMessage) error {
 
 // AdminMsg handlesadmin message broadcasting it to all admins connected to this node.
 func (app *Application) AdminMsg(msg *proto.AdminMessage) error {
-	app.admins.RLock()
-	hasAdmins := len(app.admins.connections) > 0
-	app.admins.RUnlock()
+	hasAdmins := app.admins.NumAdmins() > 0
 	if !hasAdmins {
 		return nil
 	}
@@ -409,14 +411,14 @@ func (app *Application) AdminMsg(msg *proto.AdminMessage) error {
 	if err != nil {
 		return err
 	}
-	return app.admins.broadcast(byteMessage)
+	return app.admins.Broadcast(byteMessage)
 }
 
 // ClientMsg handles messages published by web application or client into channel.
 // The goal of this method to deliver this message to all clients on this node subscribed
 // on channel.
 func (app *Application) ClientMsg(ch proto.Channel, msg *proto.Message) error {
-	numSubscribers := app.clients.numSubscribers(ch)
+	numSubscribers := app.clients.NumSubscribers(ch)
 	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
 		return nil
@@ -427,7 +429,7 @@ func (app *Application) ClientMsg(ch proto.Channel, msg *proto.Message) error {
 	if err != nil {
 		return err
 	}
-	return app.clients.broadcast(ch, byteMessage)
+	return app.clients.Broadcast(ch, byteMessage)
 }
 
 // Publish sends a message to all clients subscribed on channel with provided data, client and ClientInfo.
@@ -538,7 +540,7 @@ func (app *Application) pubLeave(ch proto.Channel, info proto.ClientInfo) error 
 }
 
 func (app *Application) JoinMsg(ch proto.Channel, msg *proto.JoinMessage) error {
-	hasCurrentSubscribers := app.clients.numSubscribers(ch) > 0
+	hasCurrentSubscribers := app.clients.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
@@ -548,11 +550,11 @@ func (app *Application) JoinMsg(ch proto.Channel, msg *proto.JoinMessage) error 
 	if err != nil {
 		return err
 	}
-	return app.clients.broadcast(ch, byteMessage)
+	return app.clients.Broadcast(ch, byteMessage)
 }
 
 func (app *Application) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) error {
-	hasCurrentSubscribers := app.clients.numSubscribers(ch) > 0
+	hasCurrentSubscribers := app.clients.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
@@ -562,16 +564,16 @@ func (app *Application) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) erro
 	if err != nil {
 		return err
 	}
-	return app.clients.broadcast(ch, byteMessage)
+	return app.clients.Broadcast(ch, byteMessage)
 }
 
 // pubPing sends control ping message to all nodes - this message
 // contains information about current node.
 func (app *Application) pubPing() error {
 	app.RLock()
-	app.metrics.Gauges.Set("num_clients", int64(app.nClients()))
-	app.metrics.Gauges.Set("num_unique_clients", int64(app.nUniqueClients()))
-	app.metrics.Gauges.Set("num_channels", int64(app.nChannels()))
+	app.metrics.Gauges.Set("num_clients", int64(app.ClientHub().NumClients()))
+	app.metrics.Gauges.Set("num_unique_clients", int64(app.ClientHub().NumUniqueClients()))
+	app.metrics.Gauges.Set("num_channels", int64(app.ClientHub().NumChannels()))
 	app.metrics.Gauges.Set("num_goroutine", int64(runtime.NumGoroutine()))
 	app.metrics.Gauges.Set("num_cpu", int64(runtime.NumCPU()))
 	app.metrics.Gauges.Set("gomaxprocs", int64(runtime.GOMAXPROCS(-1)))
@@ -652,18 +654,18 @@ func (app *Application) pingCmd(cmd *proto.PingControlCommand) error {
 // addConn registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand.
 func (app *Application) addConn(c ClientConn) error {
-	return app.clients.add(c)
+	return app.clients.Add(c)
 }
 
 // removeConn removes client connection from connection registry.
 func (app *Application) removeConn(c ClientConn) error {
-	return app.clients.remove(c)
+	return app.clients.Remove(c)
 }
 
 // addSub registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
 func (app *Application) addSub(ch proto.Channel, c ClientConn) error {
-	first, err := app.clients.addSub(ch, c)
+	first, err := app.clients.AddSub(ch, c)
 	if err != nil {
 		return err
 	}
@@ -676,7 +678,7 @@ func (app *Application) addSub(ch proto.Channel, c ClientConn) error {
 // removeSub removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
 func (app *Application) removeSub(ch proto.Channel, c ClientConn) error {
-	empty, err := app.clients.removeSub(ch, c)
+	empty, err := app.clients.RemoveSub(ch, c)
 	if err != nil {
 		return err
 	}
@@ -717,7 +719,7 @@ func (app *Application) Unsubscribe(user proto.UserID, ch proto.Channel) error {
 // unsubscribeUser unsubscribes user from channel on this node. If channel
 // is an empty string then user will be unsubscribed from all channels.
 func (app *Application) unsubscribeUser(user proto.UserID, ch proto.Channel) error {
-	userConnections := app.clients.userConnections(user)
+	userConnections := app.clients.UserConnections(user)
 	for _, c := range userConnections {
 		var channels []proto.Channel
 		if string(ch) == "" {
@@ -760,7 +762,7 @@ func (app *Application) Disconnect(user proto.UserID) error {
 
 // disconnectUser closes client connections of user on current node.
 func (app *Application) disconnectUser(user proto.UserID) error {
-	userConnections := app.clients.userConnections(user)
+	userConnections := app.clients.UserConnections(user)
 	for _, c := range userConnections {
 		err := c.Close("disconnect")
 		if err != nil {
@@ -908,27 +910,10 @@ func (app *Application) clientAllowed(ch proto.Channel, client proto.ConnID) boo
 	return false
 }
 
-// addAdminConn registers an admin connection in adminConnectionHub.
-func (app *Application) addAdminConn(c AdminConn) error {
-	return app.admins.add(c)
+func (app *Application) ClientHub() ClientHub {
+	return app.clients
 }
 
-// removeAdminConn admin connection from adminConnectionHub.
-func (app *Application) removeAdminConn(c AdminConn) error {
-	return app.admins.remove(c)
-}
-
-// nChannels returns total amount of active channels on this node.
-func (app *Application) nChannels() int {
-	return app.clients.nChannels()
-}
-
-// nClients returns total amount of client connections to this node.
-func (app *Application) nClients() int {
-	return app.clients.nClients()
-}
-
-// nUniqueClients returns total amount of unique client connections to this node.
-func (app *Application) nUniqueClients() int {
-	return app.clients.nUniqueClients()
+func (app *Application) AdminHub() AdminHub {
+	return app.admins
 }

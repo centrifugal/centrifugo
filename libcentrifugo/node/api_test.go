@@ -408,3 +408,72 @@ func BenchmarkAPIRequestBroadcastMany(b *testing.B) {
 		}
 	}
 }
+
+type TestCommand struct {
+	User      string `json:"user"`
+	Timestamp string `json:"timestamp"`
+	Info      string `json:"info"`
+	Token     string `json:"token"`
+}
+
+func UnmarshalExplicit(b []byte) (*TestCommand, error) {
+	var cmd TestCommand
+	err := json.Unmarshal(b, &cmd)
+	if err != nil {
+		return nil, err
+	}
+	return &cmd, nil
+}
+
+func UnmarshalInterface(method string, b []byte) (interface{}, error) {
+	var cmd TestCommand
+	err := json.Unmarshal(b, &cmd)
+	if err != nil {
+		return nil, err
+	}
+	return &cmd, nil
+}
+
+func BenchmarkUnmarshalExplicit(b *testing.B) {
+	cmd := TestCommand{
+		User:      "1",
+		Timestamp: "21212122",
+		Info:      "wyf84ft638f7h3487f483f3478f6h348f68h437hf63478f",
+		Token:     "465f7gtyd45f6tgs54d6fsd5rf6t",
+	}
+	cmdBytes, err := json.Marshal(cmd)
+	if err != nil {
+		panic(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cmd, err := UnmarshalExplicit(cmdBytes)
+		if err != nil {
+			panic(err)
+		}
+		if cmd.User != "1" {
+			panic("111")
+		}
+	}
+}
+
+func BenchmarkUnmarshalInterface(b *testing.B) {
+	cmd := TestCommand{
+		User:      "1",
+		Timestamp: "21212122",
+		Info:      "wyf84ft638f7h3487f483f3478f6h348f68h437hf63478f",
+		Token:     "465f7gtyd45f6tgs54d6fsd5rf6t",
+	}
+	cmdBytes, _ := json.Marshal(cmd)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		cmdInt, err := UnmarshalInterface("connect", cmdBytes)
+		if err != nil {
+			panic(err)
+		}
+		cmd := cmdInt.(*TestCommand)
+		if cmd.User != "1" {
+			panic("111")
+		}
+	}
+}

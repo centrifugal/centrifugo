@@ -52,7 +52,7 @@ func (e *MemoryEngine) Shutdown() error {
 }
 
 func (e *MemoryEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
-	hasCurrentSubscribers := e.node.NumSubscribers(ch) > 0
+	hasCurrentSubscribers := e.node.ClientHub().NumSubscribers(ch) > 0
 
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
 		histOpts := addHistoryOpts{
@@ -67,31 +67,31 @@ func (e *MemoryEngine) PublishMessage(ch proto.Channel, message *proto.Message, 
 	}
 
 	eChan := make(chan error, 1)
-	eChan <- e.node.ClientMsg(ch, message)
+	eChan <- e.node.Handler().ClientMsg(ch, message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.JoinMsg(ch, message)
+	eChan <- e.node.Handler().JoinMsg(ch, message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.LeaveMsg(ch, message)
+	eChan <- e.node.Handler().LeaveMsg(ch, message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishControl(message *proto.ControlMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.ControlMsg(message)
+	eChan <- e.node.Handler().ControlMsg(message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.AdminMsg(message)
+	eChan <- e.node.Handler().AdminMsg(message)
 	return eChan
 }
 
@@ -120,7 +120,7 @@ func (e *MemoryEngine) History(ch proto.Channel, limit int) ([]proto.Message, er
 }
 
 func (e *MemoryEngine) Channels() ([]proto.Channel, error) {
-	return e.node.Channels(), nil
+	return e.node.ClientHub().Channels(), nil
 }
 
 type memoryPresenceHub struct {

@@ -7,6 +7,21 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
+type ClientHub interface {
+	Add(c ClientConn) error
+	Remove(c ClientConn) error
+	AddSub(ch proto.Channel, c ClientConn) (bool, error)
+	RemoveSub(ch proto.Channel, c ClientConn) (bool, error)
+	Broadcast(ch proto.Channel, message []byte) error
+	NumSubscribers(ch proto.Channel) int
+	NumClients() int
+	NumUniqueClients() int
+	NumChannels() int
+	Channels() []proto.Channel
+	UserConnections(user proto.UserID) map[proto.ConnID]ClientConn
+	Shutdown() error
+}
+
 // clientHub manages client connections.
 type clientHub struct {
 	sync.RWMutex
@@ -22,7 +37,7 @@ type clientHub struct {
 }
 
 // newClientHub initializes clientHub.
-func newClientHub() *clientHub {
+func newClientHub() ClientHub {
 	return &clientHub{
 		conns: make(map[proto.ConnID]ClientConn),
 		users: make(map[proto.UserID]map[proto.ConnID]struct{}),
@@ -30,8 +45,8 @@ func newClientHub() *clientHub {
 	}
 }
 
-// shutdown unsubscribes users from all channels and disconnects them.
-func (h *clientHub) shutdown() {
+// Shutdown unsubscribes users from all channels and disconnects them.
+func (h *clientHub) Shutdown() error {
 	var wg sync.WaitGroup
 	h.RLock()
 	for _, user := range h.users {
@@ -53,10 +68,11 @@ func (h *clientHub) shutdown() {
 	}
 	h.RUnlock()
 	wg.Wait()
+	return nil
 }
 
-// add adds connection into clientHub connections registry.
-func (h *clientHub) add(c ClientConn) error {
+// Add adds connection into clientHub connections registry.
+func (h *clientHub) Add(c ClientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -73,8 +89,8 @@ func (h *clientHub) add(c ClientConn) error {
 	return nil
 }
 
-// remove removes connection from clientHub connections registry.
-func (h *clientHub) remove(c ClientConn) error {
+// Remove removes connection from clientHub connections registry.
+func (h *clientHub) Remove(c ClientConn) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -102,8 +118,8 @@ func (h *clientHub) remove(c ClientConn) error {
 	return nil
 }
 
-// userConnections returns all connections of user with UserID in project.
-func (h *clientHub) userConnections(user proto.UserID) map[proto.ConnID]ClientConn {
+// userConnections returns all connections of user with specified UserID.
+func (h *clientHub) UserConnections(user proto.UserID) map[proto.ConnID]ClientConn {
 	h.RLock()
 	defer h.RUnlock()
 
@@ -125,8 +141,8 @@ func (h *clientHub) userConnections(user proto.UserID) map[proto.ConnID]ClientCo
 	return conns
 }
 
-// addSub adds connection into clientHub subscriptions registry.
-func (h *clientHub) addSub(ch proto.Channel, c ClientConn) (bool, error) {
+// AddSub adds connection into clientHub subscriptions registry.
+func (h *clientHub) AddSub(ch proto.Channel, c ClientConn) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -145,8 +161,8 @@ func (h *clientHub) addSub(ch proto.Channel, c ClientConn) (bool, error) {
 	return false, nil
 }
 
-// removeSub removes connection from clientHub subscriptions registry.
-func (h *clientHub) removeSub(ch proto.Channel, c ClientConn) (bool, error) {
+// RemoveSub removes connection from clientHub subscriptions registry.
+func (h *clientHub) RemoveSub(ch proto.Channel, c ClientConn) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -172,8 +188,8 @@ func (h *clientHub) removeSub(ch proto.Channel, c ClientConn) (bool, error) {
 	return false, nil
 }
 
-// broadcast sends message to all clients subscribed on channel.
-func (h *clientHub) broadcast(ch proto.Channel, message []byte) error {
+// Broadcast sends message to all clients subscribed on channel.
+func (h *clientHub) Broadcast(ch proto.Channel, message []byte) error {
 	h.RLock()
 	defer h.RUnlock()
 
@@ -197,8 +213,8 @@ func (h *clientHub) broadcast(ch proto.Channel, message []byte) error {
 	return nil
 }
 
-// nClients returns total number of client connections.
-func (h *clientHub) nClients() int {
+// NumClients returns total number of client connections.
+func (h *clientHub) NumClients() int {
 	h.RLock()
 	defer h.RUnlock()
 	total := 0
@@ -208,22 +224,22 @@ func (h *clientHub) nClients() int {
 	return total
 }
 
-// nUniqueClients returns a number of unique users connected.
-func (h *clientHub) nUniqueClients() int {
+// NumUniqueClients returns a number of unique users connected.
+func (h *clientHub) NumUniqueClients() int {
 	h.RLock()
 	defer h.RUnlock()
 	return len(h.users)
 }
 
-// nChannels returns a total number of different channels.
-func (h *clientHub) nChannels() int {
+// NumChannels returns a total number of different channels.
+func (h *clientHub) NumChannels() int {
 	h.RLock()
 	defer h.RUnlock()
 	return len(h.subs)
 }
 
-// channels returns a slice of all active channels.
-func (h *clientHub) channels() []proto.Channel {
+// Channels returns a slice of all active channels.
+func (h *clientHub) Channels() []proto.Channel {
 	h.RLock()
 	defer h.RUnlock()
 	channels := make([]proto.Channel, len(h.subs))
@@ -235,8 +251,8 @@ func (h *clientHub) channels() []proto.Channel {
 	return channels
 }
 
-// numSubscribers returns number of current subscribers for a given channel.
-func (h *clientHub) numSubscribers(ch proto.Channel) int {
+// NumSubscribers returns number of current subscribers for a given channel.
+func (h *clientHub) NumSubscribers(ch proto.Channel) int {
 	h.RLock()
 	defer h.RUnlock()
 	conns, ok := h.subs[ch]
@@ -244,6 +260,14 @@ func (h *clientHub) numSubscribers(ch proto.Channel) int {
 		return 0
 	}
 	return len(conns)
+}
+
+type AdminHub interface {
+	Add(c AdminConn) error
+	Remove(c AdminConn) error
+	NumAdmins() int
+	Broadcast(message []byte) error
+	Shutdown() error
 }
 
 // adminHub manages admin connections from web interface.
@@ -255,14 +279,14 @@ type adminHub struct {
 }
 
 // newAdminHub initializes new adminHub.
-func newAdminHub() *adminHub {
+func newAdminHub() AdminHub {
 	return &adminHub{
 		connections: make(map[proto.ConnID]AdminConn),
 	}
 }
 
 // add adds connection to adminHub connections registry.
-func (h *adminHub) add(c AdminConn) error {
+func (h *adminHub) Add(c AdminConn) error {
 	h.Lock()
 	defer h.Unlock()
 	h.connections[c.UID()] = c
@@ -270,7 +294,7 @@ func (h *adminHub) add(c AdminConn) error {
 }
 
 // remove removes connection from adminHub connections registry.
-func (h *adminHub) remove(c AdminConn) error {
+func (h *adminHub) Remove(c AdminConn) error {
 	h.Lock()
 	defer h.Unlock()
 	delete(h.connections, c.UID())
@@ -278,7 +302,7 @@ func (h *adminHub) remove(c AdminConn) error {
 }
 
 // broadcast sends message to all connected admins.
-func (h *adminHub) broadcast(message []byte) error {
+func (h *adminHub) Broadcast(message []byte) error {
 	h.RLock()
 	defer h.RUnlock()
 	for _, c := range h.connections {
@@ -287,5 +311,17 @@ func (h *adminHub) broadcast(message []byte) error {
 			logger.ERROR.Println(err)
 		}
 	}
+	return nil
+}
+
+// NumAdmins.
+func (h *adminHub) NumAdmins() int {
+	h.RLock()
+	defer h.RUnlock()
+	return len(h.connections)
+}
+
+// Shutdown.
+func (h *adminHub) Shutdown() error {
 	return nil
 }

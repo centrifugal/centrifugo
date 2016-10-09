@@ -579,7 +579,7 @@ func (e *RedisEngine) runAPI() {
 						continue
 					}
 					for _, command := range req.Data {
-						_, err := e.node.APICmd(command)
+						_, err := e.node.APICmd(command, nil)
 						if err != nil {
 							logger.ERROR.Println(err)
 						}
@@ -728,7 +728,7 @@ func (e *RedisEngine) runPubSub() {
 	e.subCh <- r
 	r = newSubRequest(adminChannel, false)
 	e.subCh <- r
-	for _, ch := range e.node.Channels() {
+	for _, ch := range e.node.ClientHub().Channels() {
 		e.subCh <- newSubRequest(e.messageChannelID(ch), false)
 		e.subCh <- newSubRequest(e.joinChannelID(ch), false)
 		e.subCh <- newSubRequest(e.leaveChannelID(ch), false)
@@ -748,14 +748,14 @@ func (e *RedisEngine) runPubSub() {
 					logger.ERROR.Println(err)
 					continue
 				}
-				e.node.ControlMsg(message)
+				e.node.Handler().ControlMsg(message)
 			case adminChannel:
 				message, err := decodeEngineAdminMessage(n.Data)
 				if err != nil {
 					logger.ERROR.Println(err)
 					continue
 				}
-				e.node.AdminMsg(message)
+				e.node.Handler().AdminMsg(message)
 			default:
 				err := e.handleRedisClientMessage(chID, n.Data)
 				if err != nil {
@@ -779,19 +779,19 @@ func (e *RedisEngine) handleRedisClientMessage(chID ChannelID, data []byte) erro
 		if err != nil {
 			return err
 		}
-		e.node.ClientMsg(ch, message)
+		e.node.Handler().ClientMsg(ch, message)
 	case "join":
 		message, err := decodeEngineJoinMessage(data)
 		if err != nil {
 			return err
 		}
-		e.node.JoinMsg(ch, message)
+		e.node.Handler().JoinMsg(ch, message)
 	case "leave":
 		message, err := decodeEngineLeaveMessage(data)
 		if err != nil {
 			return err
 		}
-		e.node.LeaveMsg(ch, message)
+		e.node.Handler().LeaveMsg(ch, message)
 	default:
 	}
 	return nil

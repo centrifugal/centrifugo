@@ -344,7 +344,7 @@ func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 	var mr proto.MultiAPIResponse
 
 	for _, command := range commands {
-		resp, err := s.node.APICmd(command)
+		resp, err := s.node.APICmd(command, nil)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidMessage
