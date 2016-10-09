@@ -50,5 +50,5 @@ type Node interface {
 	NewAdminClient(Session) (AdminConn, error)
 
 	// ApiCmd allows to handle API command.
-	APICmd(proto.ApiCommand, APIParamsDecoder) (proto.Response, error)
+	APICmd(proto.ApiCommand) (proto.Response, error)
 }

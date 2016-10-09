@@ -220,7 +220,7 @@ func (c *adminClient) Handle(msg []byte) error {
 		case "info":
 			resp, err = c.infoCmd()
 		default:
-			resp, err = c.app.APICmd(command, nil)
+			resp, err = c.app.APICmd(command)
 		}
 		if err != nil {
 			c.Unlock()

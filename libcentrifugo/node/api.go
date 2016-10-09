@@ -7,45 +7,48 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
-type APIParamsDecoder interface {
-	Decode(method string, params []byte) (interface{}, error)
-}
+// APICmd builds API command and dispatches it into correct handler method.
+func (app *Application) APICmd(cmd proto.ApiCommand) (proto.Response, error) {
 
-var jsonParamsDecoder *JSONParamsDecoder
-
-type JSONParamsDecoder struct{}
-
-func (d *JSONParamsDecoder) Decode(method string, params []byte) (interface{}, error) {
 	var err error
+	var resp proto.Response
+
+	method := cmd.Method
+	params := cmd.Params
+
 	switch method {
 	case "publish":
 		var cmd proto.PublishAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, err
+			logger.ERROR.Println(err)
+			return nil, ErrInvalidMessage
 		}
-		return &cmd, nil
+		resp, err = app.publishCmd(&cmd)
 	case "broadcast":
 		var cmd proto.BroadcastAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, err
+			logger.ERROR.Println(err)
+			return nil, ErrInvalidMessage
 		}
-		return &cmd, nil
+		resp, err = app.broadcastCmd(&cmd)
 	case "unsubscribe":
 		var cmd proto.UnsubscribeAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, err
+			logger.ERROR.Println(err)
+			return nil, ErrInvalidMessage
 		}
-		return &cmd, nil
+		resp, err = app.unsubcribeCmd(&cmd)
 	case "disconnect":
 		var cmd proto.DisconnectAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, err
+			logger.ERROR.Println(err)
+			return nil, ErrInvalidMessage
 		}
-		return &cmd, nil
+		resp, err = app.disconnectCmd(&cmd)
 	case "presence":
 		var cmd proto.PresenceAPICommand
 		err = json.Unmarshal(params, &cmd)
@@ -53,54 +56,15 @@ func (d *JSONParamsDecoder) Decode(method string, params []byte) (interface{}, e
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidMessage
 		}
-		return &cmd, nil
+		resp, err = app.presenceCmd(&cmd)
 	case "history":
 		var cmd proto.HistoryAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, err
+			logger.ERROR.Println(err)
+			return nil, ErrInvalidMessage
 		}
-		return &cmd, nil
-	default:
-		return nil, nil
-	}
-}
-
-func init() {
-	jsonParamsDecoder = &JSONParamsDecoder{}
-}
-
-// APICmd builds API command and dispatches it into correct handler method.
-func (app *Application) APICmd(cmd proto.ApiCommand, decoder APIParamsDecoder) (proto.Response, error) {
-
-	var err error
-	var resp proto.Response
-
-	method := cmd.Method
-
-	if decoder == nil {
-		// Use default decoder.
-		decoder = jsonParamsDecoder
-	}
-	params, err := decoder.Decode(method, cmd.Params)
-	if err != nil {
-		logger.ERROR.Println(err)
-		return nil, err
-	}
-
-	switch method {
-	case "publish":
-		resp, err = app.publishCmd(params.(*proto.PublishAPICommand))
-	case "broadcast":
-		resp, err = app.broadcastCmd(params.(*proto.BroadcastAPICommand))
-	case "unsubscribe":
-		resp, err = app.unsubcribeCmd(params.(*proto.UnsubscribeAPICommand))
-	case "disconnect":
-		resp, err = app.disconnectCmd(params.(*proto.DisconnectAPICommand))
-	case "presence":
-		resp, err = app.presenceCmd(params.(*proto.PresenceAPICommand))
-	case "history":
-		resp, err = app.historyCmd(params.(*proto.HistoryAPICommand))
+		resp, err = app.historyCmd(&cmd)
 	case "channels":
 		resp, err = app.channelsCmd()
 	case "stats":

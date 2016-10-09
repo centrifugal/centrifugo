@@ -579,7 +579,7 @@ func (e *RedisEngine) runAPI() {
 						continue
 					}
 					for _, command := range req.Data {
-						_, err := e.node.APICmd(command, nil)
+						_, err := e.node.APICmd(command)
 						if err != nil {
 							logger.ERROR.Println(err)
 						}
