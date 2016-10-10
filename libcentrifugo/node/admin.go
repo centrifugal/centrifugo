@@ -18,6 +18,8 @@ const (
 	AuthTokenValue = "authorized"
 )
 
+type AdminOptions struct{}
+
 func AdminAuthToken(secret string) (string, error) {
 	if secret == "" {
 		logger.ERROR.Println("provide admin_secret in configuration")
@@ -78,7 +80,7 @@ type adminClient struct {
 	messages      bytequeue.ByteQueue
 }
 
-func (app *Application) NewAdminClient(sess Session) (AdminConn, error) {
+func (app *Application) NewAdminClient(sess Session, opts *AdminOptions) (AdminConn, error) {
 	c := &adminClient{
 		uid:           proto.ConnID(uuid.NewV4().String()),
 		app:           app,
@@ -220,7 +222,7 @@ func (c *adminClient) Handle(msg []byte) error {
 		case "info":
 			resp, err = c.infoCmd()
 		default:
-			resp, err = c.app.APICmd(command)
+			resp, err = c.app.APICmd(command, nil)
 		}
 		if err != nil {
 			c.Unlock()

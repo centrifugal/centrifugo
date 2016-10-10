@@ -7,8 +7,10 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
+type APIOptions struct{}
+
 // APICmd builds API command and dispatches it into correct handler method.
-func (app *Application) APICmd(cmd proto.ApiCommand) (proto.Response, error) {
+func (app *Application) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response, error) {
 
 	var err error
 	var resp proto.Response

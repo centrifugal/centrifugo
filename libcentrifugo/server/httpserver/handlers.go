@@ -259,7 +259,7 @@ func NewSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Opti
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
-	c, err := s.node.NewClient(newSockjsSession(sess))
+	c, err := s.node.NewClient(newSockjsSession(sess), nil)
 	if err != nil {
 		logger.ERROR.Println(err)
 		sess.Close(3000, "Internal Server Error")
@@ -307,7 +307,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	ws.SetReadDeadline(time.Now().Add(pongWait))
 	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
-	c, err := s.node.NewClient(newWSSession(ws, pingInterval))
+	c, err := s.node.NewClient(newWSSession(ws, pingInterval), nil)
 	if err != nil {
 		logger.ERROR.Println(err)
 		ws.Close()
@@ -344,7 +344,7 @@ func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 	var mr proto.MultiAPIResponse
 
 	for _, command := range commands {
-		resp, err := s.node.APICmd(command)
+		resp, err := s.node.APICmd(command, nil)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidMessage
@@ -542,7 +542,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 
 	sess := newWSSession(ws, pingInterval)
 
-	c, err := s.node.NewAdminClient(sess)
+	c, err := s.node.NewAdminClient(sess, nil)
 	if err != nil {
 		sess.Close(CloseStatus, ErrInternalServerError.Error())
 		return

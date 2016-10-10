@@ -38,17 +38,16 @@ type Node interface {
 
 	// Returns MessageHandler which allows to process messages from Engine.
 	Handler() MessageHandler
-
 	// Returns node ClientHub.
 	ClientHub() ClientHub
 	// Returns node AdminHub.
 	AdminHub() AdminHub
 
 	// NewClient creates new client connection.
-	NewClient(Session) (ClientConn, error)
+	NewClient(Session, *ClientOptions) (ClientConn, error)
 	// NewAdminClient creates new admin connection.
-	NewAdminClient(Session) (AdminConn, error)
+	NewAdminClient(Session, *AdminOptions) (AdminConn, error)
 
 	// ApiCmd allows to handle API command.
-	APICmd(proto.ApiCommand) (proto.Response, error)
+	APICmd(proto.ApiCommand, *APIOptions) (proto.Response, error)
 }
