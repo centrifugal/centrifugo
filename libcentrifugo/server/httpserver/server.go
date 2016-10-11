@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	plugin.RegisterServer("http", NewHTTPServer)
+	plugin.RegisterServer("http", HTTPServerPlugin)
 	plugin.RegisterConfigurator("http", HTTPServerConfigure)
 
 	quantiles := []float64{50, 90, 99, 99.99}
@@ -68,10 +68,14 @@ type HTTPServer struct {
 	shutdownCh chan struct{}
 }
 
-func NewHTTPServer(n node.Node, getter plugin.ConfigGetter) (server.Server, error) {
+func HTTPServerPlugin(n node.Node, getter plugin.ConfigGetter) (server.Server, error) {
+	return NewHTTPServer(n, newConfig(getter))
+}
+
+func NewHTTPServer(n node.Node, config *Config) (server.Server, error) {
 	return &HTTPServer{
 		node:   n,
-		config: newConfig(getter),
+		config: config,
 	}, nil
 }
 

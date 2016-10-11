@@ -6,9 +6,9 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 )
 
-// MessageHandler contains all methods required to process messages coming from
+// EngineHandler contains all methods required to process messages coming from
 // engine and deliver them to connected users if needed.
-type MessageHandler interface {
+type EngineHandler interface {
 	// ClientMsg handles client message received from channel -
 	// broadcasts it to all connected interested clients.
 	ClientMsg(proto.Channel, *proto.Message) error
@@ -22,22 +22,30 @@ type MessageHandler interface {
 	ControlMsg(*proto.ControlMessage) error
 }
 
+type NodeRunOptions struct {
+	Engine   engine.Engine
+	Servers  map[string]server.Server
+	Mediator Mediator
+}
+
 type Node interface {
 	// Run starts a node with provided Engine, Servers and Mediator.
-	Run(e engine.Engine, servers map[string]server.Server) error
+	Run(*NodeRunOptions) error
 
 	// Shutdown shuts down a node.
 	Shutdown() error
+
 	// NotifyShutdown allows to get a channel which will be closed on node shutdown.
 	NotifyShutdown() chan struct{}
 
-	// Config allows to get node Config.
+	// Config allows to get copy of current node Config.
 	Config() Config
 	// SetConfig allows to set node config.
 	SetConfig(*Config)
 
-	// Returns MessageHandler which allows to process messages from Engine.
-	Handler() MessageHandler
+	// Returns EngineHandler which allows to process messages from Engine.
+	EngineHandler() EngineHandler
+
 	// Returns node ClientHub.
 	ClientHub() ClientHub
 	// Returns node AdminHub.

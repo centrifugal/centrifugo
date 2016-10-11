@@ -22,7 +22,7 @@ import (
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/engine/engineredis"
 
-	// Register servers, only HTTP server here.
+	// Register servers.
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/server/httpserver"
 
 	// Register embedded web interface.
@@ -70,6 +70,10 @@ func handleSignals(n node.Node) {
 			}
 			setupLogging()
 			c := newConfig(viper.GetViper())
+			if err := c.Validate(); err != nil {
+				logger.CRITICAL.Println(err)
+				continue
+			}
 			n.SetConfig(c)
 			logger.INFO.Println("Configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
@@ -234,7 +238,7 @@ func Main() {
 			logger.INFO.Printf("Engine: %s", e.Name())
 			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
 
-			if err = nod.Run(e, servers); err != nil {
+			if err = nod.Run(&node.NodeRunOptions{Engine: e, Servers: servers}); err != nil {
 				logger.FATAL.Fatalln(err)
 			}
 		},

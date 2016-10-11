@@ -16,7 +16,7 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-// newConfig creates new libcentrifugo.Config using viper.
+// newConfig creates new node.Config using viper.
 func newConfig(v *viper.Viper) *node.Config {
 	cfg := &node.Config{}
 	cfg.Version = VERSION

@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	plugin.RegisterEngine("memory", NewMemoryEngine)
+	plugin.RegisterEngine("memory", MemoryEnginePlugin)
 }
 
 // MemoryEngine allows to run Centrifugo without using Redis at all.
@@ -28,8 +28,14 @@ type MemoryEngine struct {
 	historyHub  *memoryHistoryHub
 }
 
+type MemoryEngineConfig struct{}
+
+func MemoryEnginePlugin(n node.Node, config plugin.ConfigGetter) (engine.Engine, error) {
+	return NewMemoryEngine(n, &MemoryEngineConfig{})
+}
+
 // NewMemoryEngine initializes Memory Engine.
-func NewMemoryEngine(n node.Node, config plugin.ConfigGetter) (engine.Engine, error) {
+func NewMemoryEngine(n node.Node, conf *MemoryEngineConfig) (engine.Engine, error) {
 	e := &MemoryEngine{
 		node:        n,
 		presenceHub: newMemoryPresenceHub(),
@@ -67,31 +73,31 @@ func (e *MemoryEngine) PublishMessage(ch proto.Channel, message *proto.Message, 
 	}
 
 	eChan := make(chan error, 1)
-	eChan <- e.node.Handler().ClientMsg(ch, message)
+	eChan <- e.node.EngineHandler().ClientMsg(ch, message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.Handler().JoinMsg(ch, message)
+	eChan <- e.node.EngineHandler().JoinMsg(ch, message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.Handler().LeaveMsg(ch, message)
+	eChan <- e.node.EngineHandler().LeaveMsg(ch, message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishControl(message *proto.ControlMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.Handler().ControlMsg(message)
+	eChan <- e.node.EngineHandler().ControlMsg(message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.Handler().AdminMsg(message)
+	eChan <- e.node.EngineHandler().AdminMsg(message)
 	return eChan
 }
 

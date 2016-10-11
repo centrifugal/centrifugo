@@ -105,7 +105,7 @@ func (app *Application) broadcastCmd(cmd *proto.BroadcastAPICommand) (proto.Resp
 	data := cmd.Data
 	if len(channels) == 0 {
 		logger.ERROR.Println("channels required for broadcast")
-		resp.SetErr(proto.ResponseError{ErrInvalidMessage, proto.ErrorAdviceNone})
+		resp.SetErr(proto.ResponseError{ErrInvalidMessage, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 	errs := make([]<-chan error, len(channels))

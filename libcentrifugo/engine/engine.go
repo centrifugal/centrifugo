@@ -14,8 +14,8 @@ type Engine interface {
 	// Run called once on Centrifugo start just after engine set to application.
 	Run() error
 
-	// Shutdown stops engine. This is currently not used and not implemented in
-	// Memory and Redis engines.
+	// Shutdown stops an engine. This is currently not used not implemented in
+	// Memory and Redis builtin engines.
 	Shutdown() error
 
 	// PublishMessage allows to send message into channel. This message should be delivered

@@ -88,8 +88,8 @@ func (c *client) sendMessages() {
 			c.Close("error sending message")
 			return
 		}
-		c.app.metrics.Counters.Inc("num_msg_sent")
-		c.app.metrics.Counters.Add("bytes_client_out", int64(len(msg)))
+		metricsRegistry.Counters.Inc("num_msg_sent")
+		metricsRegistry.Counters.Add("bytes_client_out", int64(len(msg)))
 	}
 }
 
@@ -217,7 +217,7 @@ func (c *client) Send(message []byte) error {
 	if !ok {
 		return ErrClientClosed
 	}
-	c.app.metrics.Counters.Inc("num_msg_queued")
+	metricsRegistry.Counters.Inc("num_msg_queued")
 	if c.messages.Size() > c.maxQueueSize {
 		c.Close("slow")
 		return ErrClientClosed
@@ -309,10 +309,10 @@ func (c *client) info(ch proto.Channel) proto.ClientInfo {
 func (c *client) Handle(msg []byte) error {
 	started := time.Now()
 	defer func() {
-		c.app.metrics.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
+		metricsRegistry.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
 	}()
-	c.app.metrics.Counters.Inc("num_client_requests")
-	c.app.metrics.Counters.Add("bytes_client_in", int64(len(msg)))
+	metricsRegistry.Counters.Inc("num_client_requests")
+	metricsRegistry.Counters.Add("bytes_client_in", int64(len(msg)))
 
 	// Interval to sleep before closing connection to give client a chance to receive
 	// disconnect message and process it. Connection will be closed then.

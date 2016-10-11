@@ -58,9 +58,6 @@ type Application struct {
 	// shutdownCh is a channel which is closed when shutdown happens.
 	shutdownCh chan struct{}
 
-	// metrics holds various counters and timers different parts of Centrifugo update.
-	metrics *metrics.Registry
-
 	// save metrics snapshot until next metrics interval.
 	metricsSnapshot map[string]int64
 
@@ -68,31 +65,35 @@ type Application struct {
 	metricsMu sync.RWMutex
 }
 
-func init() {
-	metrics.Metrics.RegisterCounter("num_msg_published", metrics.NewCounter())
-	metrics.Metrics.RegisterCounter("num_msg_queued", metrics.NewCounter())
-	metrics.Metrics.RegisterCounter("num_msg_sent", metrics.NewCounter())
-	metrics.Metrics.RegisterCounter("num_api_requests", metrics.NewCounter())
-	metrics.Metrics.RegisterCounter("num_client_requests", metrics.NewCounter())
-	metrics.Metrics.RegisterCounter("bytes_client_in", metrics.NewCounter())
-	metrics.Metrics.RegisterCounter("bytes_client_out", metrics.NewCounter())
-	metrics.Metrics.RegisterCounter("num_msg_published", metrics.NewCounter())
+var metricsRegistry *metrics.Registry
 
-	metrics.Metrics.RegisterGauge("memory_sys", metrics.NewGauge())
-	metrics.Metrics.RegisterGauge("cpu_usage", metrics.NewGauge())
-	metrics.Metrics.RegisterGauge("num_goroutine", metrics.NewGauge())
-	metrics.Metrics.RegisterGauge("num_clients", metrics.NewGauge())
-	metrics.Metrics.RegisterGauge("num_unique_clients", metrics.NewGauge())
-	metrics.Metrics.RegisterGauge("num_channels", metrics.NewGauge())
-	metrics.Metrics.RegisterGauge("gomaxprocs", metrics.NewGauge())
-	metrics.Metrics.RegisterGauge("num_cpu", metrics.NewGauge())
+func init() {
+	metricsRegistry = metrics.Metrics
+
+	metricsRegistry.RegisterCounter("num_msg_published", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("num_msg_queued", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("num_msg_sent", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("num_api_requests", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("num_client_requests", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("bytes_client_in", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("bytes_client_out", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("num_msg_published", metrics.NewCounter())
+
+	metricsRegistry.RegisterGauge("memory_sys", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("cpu_usage", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("num_goroutine", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("num_clients", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("num_unique_clients", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("num_channels", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("gomaxprocs", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("num_cpu", metrics.NewGauge())
 
 	quantiles := []float64{50, 90, 99, 99.99}
 	var minValue int64 = 1        // record latencies in microseconds, min resolution 1mks.
 	var maxValue int64 = 60000000 // record latencies in microseconds, max resolution 60s.
 	numBuckets := 15              // histograms will be rotated every time we updating snapshot.
 	sigfigs := 3
-	metrics.Metrics.RegisterHDRHistogram("client_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
+	metricsRegistry.RegisterHDRHistogram("client_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
 // New returns new server instance backed by Application, the only required
@@ -105,7 +106,6 @@ func New(c *Config) Node {
 		admins:          newAdminHub(),
 		nodes:           make(map[string]proto.NodeInfo),
 		started:         time.Now().Unix(),
-		metrics:         metrics.Metrics,
 		metricsSnapshot: make(map[string]int64),
 		shutdownCh:      make(chan struct{}),
 	}
@@ -116,12 +116,6 @@ func New(c *Config) Node {
 	app.metricsMu.Unlock()
 
 	return app
-}
-
-func NewWithMediator(c *Config, m Mediator) Node {
-	n := New(c)
-	n.(*Application).mediator = m
-	return n
 }
 
 func (app *Application) Config() Config {
@@ -137,13 +131,14 @@ func (app *Application) NotifyShutdown() chan struct{} {
 
 // Run performs all startup actions. At moment must be called once on start
 // after engine and structure set.
-func (app *Application) Run(e engine.Engine, servers map[string]server.Server) error {
+func (app *Application) Run(opts *NodeRunOptions) error {
 	app.Lock()
-	app.engine = e
-	app.servers = servers
+	app.engine = opts.Engine
+	app.servers = opts.Servers
+	app.mediator = opts.Mediator
 	app.Unlock()
 
-	if err := e.Run(); err != nil {
+	if err := app.engine.Run(); err != nil {
 		return err
 	}
 	go app.sendNodePingMsg()
@@ -166,7 +161,7 @@ func (app *Application) Run(e engine.Engine, servers map[string]server.Server) e
 	app.RUnlock()
 
 	var wg sync.WaitGroup
-	for srvName, srv := range servers {
+	for srvName, srv := range app.servers {
 		wg.Add(1)
 		logger.DEBUG.Printf("Starting %s server", srvName)
 		go srv.Run()
@@ -197,29 +192,29 @@ func (app *Application) Shutdown() error {
 	return nil
 }
 
-func (app *Application) Handler() MessageHandler {
+func (app *Application) EngineHandler() EngineHandler {
 	return app
 }
 
-func (app *Application) Channels() []proto.Channel {
-	return app.clients.Channels()
+func (app *Application) ClientHub() ClientHub {
+	return app.clients
 }
 
-func (app *Application) NumSubscribers(ch proto.Channel) int {
-	return app.clients.NumSubscribers(ch)
+func (app *Application) AdminHub() AdminHub {
+	return app.admins
 }
 
 func (app *Application) updateMetricsOnce() {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
-	app.metrics.Gauges.Set("memory_sys", int64(mem.Sys))
+	metricsRegistry.Gauges.Set("memory_sys", int64(mem.Sys))
 	if usage, err := cpuUsage(); err == nil {
-		app.metrics.Gauges.Set("cpu_usage", int64(usage))
+		metricsRegistry.Gauges.Set("cpu_usage", int64(usage))
 	}
 	app.metricsMu.Lock()
 	app.metricsSnapshot = app.getSnapshotMetrics()
-	app.metrics.Counters.UpdateDelta()
-	app.metrics.HDRHistograms.Rotate()
+	metricsRegistry.Counters.UpdateDelta()
+	metricsRegistry.HDRHistograms.Rotate()
 	app.metricsMu.Unlock()
 }
 
@@ -287,9 +282,6 @@ func (app *Application) SetConfig(c *Config) {
 	app.Lock()
 	defer app.Unlock()
 	app.config = c
-	if app.config.Insecure {
-		logger.WARN.Println("libcentrifugo: application in INSECURE MODE")
-	}
 }
 
 func (app *Application) channels() ([]proto.Channel, error) {
@@ -318,13 +310,13 @@ func (app *Application) stats() proto.ServerStats {
 
 func (app *Application) getRawMetrics() map[string]int64 {
 	m := make(map[string]int64)
-	for name, val := range app.metrics.Counters.LoadValues() {
+	for name, val := range metricsRegistry.Counters.LoadValues() {
 		m[name] = val
 	}
-	for name, val := range app.metrics.HDRHistograms.LoadValues() {
+	for name, val := range metricsRegistry.HDRHistograms.LoadValues() {
 		m[name] = val
 	}
-	for name, val := range app.metrics.Gauges.LoadValues() {
+	for name, val := range metricsRegistry.Gauges.LoadValues() {
 		m[name] = val
 	}
 	return m
@@ -332,13 +324,13 @@ func (app *Application) getRawMetrics() map[string]int64 {
 
 func (app *Application) getSnapshotMetrics() map[string]int64 {
 	m := make(map[string]int64)
-	for name, val := range app.metrics.Counters.LoadIntervalValues() {
+	for name, val := range metricsRegistry.Counters.LoadIntervalValues() {
 		m[name] = val
 	}
-	for name, val := range app.metrics.HDRHistograms.LoadValues() {
+	for name, val := range metricsRegistry.HDRHistograms.LoadValues() {
 		m[name] = val
 	}
-	for name, val := range app.metrics.Gauges.LoadValues() {
+	for name, val := range metricsRegistry.Gauges.LoadValues() {
 		m[name] = val
 	}
 	return m
@@ -423,8 +415,7 @@ func (app *Application) ClientMsg(ch proto.Channel, msg *proto.Message) error {
 	if !hasCurrentSubscribers {
 		return nil
 	}
-	resp := proto.NewClientMessage()
-	resp.Body = *msg
+	resp := proto.NewClientMessage(msg)
 	byteMessage, err := resp.Marshal()
 	if err != nil {
 		return err
@@ -515,7 +506,7 @@ func (app *Application) pubAdmin(method string, params []byte) <-chan error {
 // will receive it and will send to all clients on node subscribed on channel.
 func (app *Application) pubClient(ch proto.Channel, chOpts proto.ChannelOptions, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
 	message := proto.NewMessage(ch, data, client, info)
-	app.metrics.Counters.Inc("num_msg_published")
+	metricsRegistry.Counters.Inc("num_msg_published")
 	if chOpts.Watch {
 		byteMessage, err := json.Marshal(message)
 		if err != nil {
@@ -544,8 +535,7 @@ func (app *Application) JoinMsg(ch proto.Channel, msg *proto.JoinMessage) error 
 	if !hasCurrentSubscribers {
 		return nil
 	}
-	resp := proto.NewClientJoinMessage()
-	resp.Body = *msg
+	resp := proto.NewClientJoinMessage(msg)
 	byteMessage, err := resp.Marshal()
 	if err != nil {
 		return err
@@ -558,8 +548,7 @@ func (app *Application) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) erro
 	if !hasCurrentSubscribers {
 		return nil
 	}
-	resp := proto.NewClientLeaveMessage()
-	resp.Body = *msg
+	resp := proto.NewClientLeaveMessage(msg)
 	byteMessage, err := resp.Marshal()
 	if err != nil {
 		return err
@@ -571,12 +560,12 @@ func (app *Application) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) erro
 // contains information about current node.
 func (app *Application) pubPing() error {
 	app.RLock()
-	app.metrics.Gauges.Set("num_clients", int64(app.ClientHub().NumClients()))
-	app.metrics.Gauges.Set("num_unique_clients", int64(app.ClientHub().NumUniqueClients()))
-	app.metrics.Gauges.Set("num_channels", int64(app.ClientHub().NumChannels()))
-	app.metrics.Gauges.Set("num_goroutine", int64(runtime.NumGoroutine()))
-	app.metrics.Gauges.Set("num_cpu", int64(runtime.NumCPU()))
-	app.metrics.Gauges.Set("gomaxprocs", int64(runtime.GOMAXPROCS(-1)))
+	metricsRegistry.Gauges.Set("num_clients", int64(app.ClientHub().NumClients()))
+	metricsRegistry.Gauges.Set("num_unique_clients", int64(app.ClientHub().NumUniqueClients()))
+	metricsRegistry.Gauges.Set("num_channels", int64(app.ClientHub().NumChannels()))
+	metricsRegistry.Gauges.Set("num_goroutine", int64(runtime.NumGoroutine()))
+	metricsRegistry.Gauges.Set("num_cpu", int64(runtime.NumCPU()))
+	metricsRegistry.Gauges.Set("gomaxprocs", int64(runtime.GOMAXPROCS(-1)))
 
 	metricsSnapshot := make(map[string]int64)
 	app.metricsMu.RLock()
@@ -908,12 +897,4 @@ func (app *Application) clientAllowed(ch proto.Channel, client proto.ConnID) boo
 		return true
 	}
 	return false
-}
-
-func (app *Application) ClientHub() ClientHub {
-	return app.clients
-}
-
-func (app *Application) AdminHub() AdminHub {
-	return app.admins
 }

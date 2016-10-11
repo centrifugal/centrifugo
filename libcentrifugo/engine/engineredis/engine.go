@@ -20,7 +20,7 @@ import (
 )
 
 func init() {
-	plugin.RegisterEngine("redis", NewRedisEngine)
+	plugin.RegisterEngine("redis", RedisEnginePlugin)
 	plugin.RegisterConfigurator("redis", RedisEngineConfigure)
 }
 
@@ -378,11 +378,13 @@ func getRedisEngineConfig(getter plugin.ConfigGetter) *RedisEngineConfig {
 	return conf
 }
 
-// NewRedisEngine initializes Redis Engine.
-func NewRedisEngine(n node.Node, getter plugin.ConfigGetter) (engine.Engine, error) {
-
+func RedisEnginePlugin(n node.Node, getter plugin.ConfigGetter) (engine.Engine, error) {
 	conf := getRedisEngineConfig(getter)
+	return NewRedisEngine(n, conf)
+}
 
+// NewRedisEngine initializes Redis Engine.
+func NewRedisEngine(n node.Node, conf *RedisEngineConfig) (engine.Engine, error) {
 	e := &RedisEngine{
 		node:              n,
 		config:            conf,
@@ -748,14 +750,14 @@ func (e *RedisEngine) runPubSub() {
 					logger.ERROR.Println(err)
 					continue
 				}
-				e.node.Handler().ControlMsg(message)
+				e.node.EngineHandler().ControlMsg(message)
 			case adminChannel:
 				message, err := decodeEngineAdminMessage(n.Data)
 				if err != nil {
 					logger.ERROR.Println(err)
 					continue
 				}
-				e.node.Handler().AdminMsg(message)
+				e.node.EngineHandler().AdminMsg(message)
 			default:
 				err := e.handleRedisClientMessage(chID, n.Data)
 				if err != nil {
@@ -779,19 +781,19 @@ func (e *RedisEngine) handleRedisClientMessage(chID ChannelID, data []byte) erro
 		if err != nil {
 			return err
 		}
-		e.node.Handler().ClientMsg(ch, message)
+		e.node.EngineHandler().ClientMsg(ch, message)
 	case "join":
 		message, err := decodeEngineJoinMessage(data)
 		if err != nil {
 			return err
 		}
-		e.node.Handler().JoinMsg(ch, message)
+		e.node.EngineHandler().JoinMsg(ch, message)
 	case "leave":
 		message, err := decodeEngineLeaveMessage(data)
 		if err != nil {
 			return err
 		}
-		e.node.Handler().LeaveMsg(ch, message)
+		e.node.EngineHandler().LeaveMsg(ch, message)
 	default:
 	}
 	return nil

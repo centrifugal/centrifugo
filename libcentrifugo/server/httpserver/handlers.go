@@ -96,9 +96,11 @@ func listenHTTP(mux http.Handler, addr string, useSSL bool, sslCert, sslKey stri
 func (s *HTTPServer) runHTTPServer() error {
 
 	s.RLock()
-	debug := s.node.Config().Debug
-	pingInterval := s.node.Config().PingInterval
-	adminEnabled := s.node.Config().Admin
+	nodeConfig := s.node.Config()
+
+	debug := nodeConfig.Debug
+	pingInterval := nodeConfig.PingInterval
+	adminEnabled := nodeConfig.Admin
 
 	sockjsURL := s.config.SockjsURL
 	webEnabled := s.config.Web
@@ -298,9 +300,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	s.RLock()
 	pingInterval := s.node.Config().PingInterval
-	s.RUnlock()
 
 	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
 
@@ -390,10 +390,9 @@ func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 		data = []byte(r.FormValue("data"))
 	}
 
-	s.RLock()
-	secret := s.node.Config().Secret
-	insecure := s.node.Config().InsecureAPI
-	s.RUnlock()
+	config := s.node.Config()
+	secret := config.Secret
+	insecure := config.InsecureAPI
 
 	if sign == "" && !insecure {
 		logger.ERROR.Println("no sign found in API request")
@@ -441,11 +440,10 @@ const insecureWebToken = "insecure"
 func (s *HTTPServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
-	s.RLock()
-	insecure := s.node.Config().InsecureAdmin
-	adminPassword := s.node.Config().AdminPassword
-	adminSecret := s.node.Config().AdminSecret
-	s.RUnlock()
+	config := s.node.Config()
+	insecure := config.InsecureAdmin
+	adminPassword := config.AdminPassword
+	adminSecret := config.AdminSecret
 
 	if insecure {
 		w.Header().Set("Content-Type", "application/json")
@@ -461,7 +459,7 @@ func (s *HTTPServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if password == adminPassword {
 		w.Header().Set("Content-Type", "application/json")
-		token, err := node.AdminAuthToken(s.node.Config().AdminSecret)
+		token, err := node.AdminAuthToken(adminSecret)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -518,7 +516,10 @@ var upgrader = &websocket.Upgrader{ReadBufferSize: AdminWebsocketReadBufferSize,
 
 // AdminWebsocketHandler handles admin websocket connections.
 func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
-	admin := s.node.Config().Admin
+
+	config := s.node.Config()
+
+	admin := config.Admin
 
 	if !admin {
 		w.WriteHeader(http.StatusNotFound)
@@ -534,7 +535,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	pingInterval := s.node.Config().PingInterval
+	pingInterval := config.PingInterval
 	pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
 
 	ws.SetReadDeadline(time.Now().Add(pongWait))

@@ -12,9 +12,10 @@ type ClientMessageResponse struct {
 }
 
 // NewClientMessage returns initialized client message response.
-func NewClientMessage() *ClientMessageResponse {
+func NewClientMessage(msg *Message) *ClientMessageResponse {
 	return &ClientMessageResponse{
 		Method: "message",
+		Body:   *msg,
 	}
 }
 
@@ -85,9 +86,10 @@ type ClientJoinResponse struct {
 	Body   JoinMessage `json:"body"`
 }
 
-func NewClientJoinMessage() *ClientJoinResponse {
+func NewClientJoinMessage(msg *JoinMessage) *ClientJoinResponse {
 	return &ClientJoinResponse{
 		Method: "join",
+		Body:   *msg,
 	}
 }
 
@@ -116,9 +118,10 @@ type ClientLeaveResponse struct {
 	Body   LeaveMessage `json:"body"`
 }
 
-func NewClientLeaveMessage() *ClientLeaveResponse {
+func NewClientLeaveMessage(msg *LeaveMessage) *ClientLeaveResponse {
 	return &ClientLeaveResponse{
 		Method: "leave",
+		Body:   *msg,
 	}
 }
 
@@ -210,10 +213,6 @@ type StatsBody struct {
 // NodeBody represents body of response in case of successful node command.
 type NodeBody struct {
 	Data NodeInfo `json:"data"`
-}
-
-type adminMessageBody struct {
-	Message Message `json:"message"`
 }
 
 type AdminInfoBody struct {
