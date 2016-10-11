@@ -10,7 +10,7 @@ import (
 type APIOptions struct{}
 
 // APICmd builds API command and dispatches it into correct handler method.
-func (app *Application) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response, error) {
+func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response, error) {
 
 	var err error
 	var resp proto.Response
@@ -86,7 +86,7 @@ func (app *Application) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Re
 }
 
 // publishCmd publishes data into channel.
-func (app *Application) publishCmd(cmd *proto.PublishAPICommand) (proto.Response, error) {
+func (app *Node) publishCmd(cmd *proto.PublishAPICommand) (proto.Response, error) {
 	channel := cmd.Channel
 	data := cmd.Data
 	err := app.publish(channel, data, cmd.Client, nil, false)
@@ -99,7 +99,7 @@ func (app *Application) publishCmd(cmd *proto.PublishAPICommand) (proto.Response
 }
 
 // broadcastCmd publishes data into multiple channels.
-func (app *Application) broadcastCmd(cmd *proto.BroadcastAPICommand) (proto.Response, error) {
+func (app *Node) broadcastCmd(cmd *proto.BroadcastAPICommand) (proto.Response, error) {
 	resp := proto.NewAPIBroadcastResponse()
 	channels := cmd.Channels
 	data := cmd.Data
@@ -130,7 +130,7 @@ func (app *Application) broadcastCmd(cmd *proto.BroadcastAPICommand) (proto.Resp
 
 // unsubscribeCmd unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes.
-func (app *Application) unsubcribeCmd(cmd *proto.UnsubscribeAPICommand) (proto.Response, error) {
+func (app *Node) unsubcribeCmd(cmd *proto.UnsubscribeAPICommand) (proto.Response, error) {
 	resp := proto.NewAPIUnsubscribeResponse()
 	channel := cmd.Channel
 	user := cmd.User
@@ -144,7 +144,7 @@ func (app *Application) unsubcribeCmd(cmd *proto.UnsubscribeAPICommand) (proto.R
 
 // disconnectCmd disconnects user by its ID and sends disconnect
 // control message to other nodes so they could also disconnect this user.
-func (app *Application) disconnectCmd(cmd *proto.DisconnectAPICommand) (proto.Response, error) {
+func (app *Node) disconnectCmd(cmd *proto.DisconnectAPICommand) (proto.Response, error) {
 	resp := proto.NewAPIDisconnectResponse()
 	user := cmd.User
 	err := app.Disconnect(user)
@@ -156,7 +156,7 @@ func (app *Application) disconnectCmd(cmd *proto.DisconnectAPICommand) (proto.Re
 }
 
 // presenceCmd returns response with presense information for channel.
-func (app *Application) presenceCmd(cmd *proto.PresenceAPICommand) (proto.Response, error) {
+func (app *Node) presenceCmd(cmd *proto.PresenceAPICommand) (proto.Response, error) {
 	channel := cmd.Channel
 	body := proto.PresenceBody{
 		Channel: channel,
@@ -172,7 +172,7 @@ func (app *Application) presenceCmd(cmd *proto.PresenceAPICommand) (proto.Respon
 }
 
 // historyCmd returns response with history information for channel.
-func (app *Application) historyCmd(cmd *proto.HistoryAPICommand) (proto.Response, error) {
+func (app *Node) historyCmd(cmd *proto.HistoryAPICommand) (proto.Response, error) {
 	channel := cmd.Channel
 	body := proto.HistoryBody{
 		Channel: channel,
@@ -188,7 +188,7 @@ func (app *Application) historyCmd(cmd *proto.HistoryAPICommand) (proto.Response
 }
 
 // channelsCmd returns active channels.
-func (app *Application) channelsCmd() (proto.Response, error) {
+func (app *Node) channelsCmd() (proto.Response, error) {
 	body := proto.ChannelsBody{}
 	channels, err := app.channels()
 	if err != nil {
@@ -202,14 +202,14 @@ func (app *Application) channelsCmd() (proto.Response, error) {
 }
 
 // statsCmd returns active node stats.
-func (app *Application) statsCmd() (proto.Response, error) {
+func (app *Node) statsCmd() (proto.Response, error) {
 	body := proto.StatsBody{}
 	body.Data = app.stats()
 	return proto.NewAPIStatsResponse(body), nil
 }
 
 // nodeCmd returns simple counter metrics which update in real time for the current node only.
-func (app *Application) nodeCmd() (proto.Response, error) {
+func (app *Node) nodeCmd() (proto.Response, error) {
 	body := proto.NodeBody{}
 	body.Data = app.node()
 	return proto.NewAPINodeResponse(body), nil

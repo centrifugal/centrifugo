@@ -30,7 +30,7 @@ func AdminAuthToken(secret string) (string, error) {
 }
 
 // checkAdminAuthToken checks admin connection token which Centrifugo returns after admin login.
-func (app *Application) checkAdminAuthToken(token string) error {
+func (app *Node) checkAdminAuthToken(token string) error {
 
 	app.RLock()
 	insecure := app.config.InsecureAdmin
@@ -69,7 +69,7 @@ const adminQueueMaxSize = 10485760
 // adminClient is a wrapper over admin connection.
 type adminClient struct {
 	sync.RWMutex
-	app           *Application
+	app           *Node
 	uid           proto.ConnID
 	sess          Session
 	watch         bool
@@ -80,7 +80,7 @@ type adminClient struct {
 	messages      bytequeue.ByteQueue
 }
 
-func (app *Application) NewAdminClient(sess Session, opts *AdminOptions) (AdminConn, error) {
+func (app *Node) NewAdminClient(sess Session, opts *AdminOptions) (AdminConn, error) {
 	c := &adminClient{
 		uid:           proto.ConnID(uuid.NewV4().String()),
 		app:           app,

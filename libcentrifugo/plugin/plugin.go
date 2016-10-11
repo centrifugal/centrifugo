@@ -7,7 +7,7 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 )
 
-type EngineFactory func(node.Node, ConfigGetter) (engine.Engine, error)
+type EngineFactory func(*node.Node, ConfigGetter) (engine.Engine, error)
 
 var EngineFactories map[string]EngineFactory
 
@@ -27,7 +27,7 @@ func RegisterConfigurator(name string, fn Configurator) {
 
 var Metrics *metrics.Registry
 
-type ServerFactory func(node.Node, ConfigGetter) (server.Server, error)
+type ServerFactory func(*node.Node, ConfigGetter) (server.Server, error)
 
 var ServerFactories map[string]ServerFactory
 

@@ -23,19 +23,19 @@ func init() {
 // only run single Centrifugo node. If you need to scale you should
 // use Redis engine instead.
 type MemoryEngine struct {
-	node        node.Node
+	node        *node.Node
 	presenceHub *memoryPresenceHub
 	historyHub  *memoryHistoryHub
 }
 
 type MemoryEngineConfig struct{}
 
-func MemoryEnginePlugin(n node.Node, config plugin.ConfigGetter) (engine.Engine, error) {
+func MemoryEnginePlugin(n *node.Node, config plugin.ConfigGetter) (engine.Engine, error) {
 	return NewMemoryEngine(n, &MemoryEngineConfig{})
 }
 
 // NewMemoryEngine initializes Memory Engine.
-func NewMemoryEngine(n node.Node, conf *MemoryEngineConfig) (engine.Engine, error) {
+func NewMemoryEngine(n *node.Node, conf *MemoryEngineConfig) (engine.Engine, error) {
 	e := &MemoryEngine{
 		node:        n,
 		presenceHub: newMemoryPresenceHub(),
@@ -73,31 +73,31 @@ func (e *MemoryEngine) PublishMessage(ch proto.Channel, message *proto.Message, 
 	}
 
 	eChan := make(chan error, 1)
-	eChan <- e.node.EngineHandler().ClientMsg(ch, message)
+	eChan <- e.node.ClientMsg(ch, message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.EngineHandler().JoinMsg(ch, message)
+	eChan <- e.node.JoinMsg(ch, message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.EngineHandler().LeaveMsg(ch, message)
+	eChan <- e.node.LeaveMsg(ch, message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishControl(message *proto.ControlMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.EngineHandler().ControlMsg(message)
+	eChan <- e.node.ControlMsg(message)
 	return eChan
 }
 
 func (e *MemoryEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.EngineHandler().AdminMsg(message)
+	eChan <- e.node.AdminMsg(message)
 	return eChan
 }
 

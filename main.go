@@ -47,7 +47,7 @@ func setupLogging() {
 	}
 }
 
-func handleSignals(n node.Node) {
+func handleSignals(n *node.Node) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -238,7 +238,7 @@ func Main() {
 			logger.INFO.Printf("Engine: %s", e.Name())
 			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
 
-			if err = nod.Run(&node.NodeRunOptions{Engine: e, Servers: servers}); err != nil {
+			if err = nod.Run(&node.RunOptions{Engine: e, Servers: servers}); err != nil {
 				logger.FATAL.Fatalln(err)
 			}
 		},

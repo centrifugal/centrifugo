@@ -26,7 +26,7 @@ type ClientOptions struct{}
 // session interface. Session allows to Send messages via connection and to Close connection.
 type client struct {
 	sync.RWMutex
-	app            *Application
+	app            *Node
 	sess           Session
 	uid            proto.ConnID
 	user           proto.UserID
@@ -47,7 +47,7 @@ type client struct {
 }
 
 // newClient creates new ready to communicate client.
-func (app *Application) NewClient(s Session, opts *ClientOptions) (ClientConn, error) {
+func (app *Node) NewClient(s Session, opts *ClientOptions) (ClientConn, error) {
 	app.RLock()
 	staleCloseDelay := app.config.StaleConnectionCloseDelay
 	queueInitialCapacity := app.config.ClientQueueInitialCapacity

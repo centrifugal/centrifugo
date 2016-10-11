@@ -97,7 +97,7 @@ const (
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
 	sync.RWMutex
-	node              node.Node
+	node              *node.Node
 	config            *RedisEngineConfig
 	pool              *redis.Pool
 	api               bool
@@ -378,13 +378,13 @@ func getRedisEngineConfig(getter plugin.ConfigGetter) *RedisEngineConfig {
 	return conf
 }
 
-func RedisEnginePlugin(n node.Node, getter plugin.ConfigGetter) (engine.Engine, error) {
+func RedisEnginePlugin(n *node.Node, getter plugin.ConfigGetter) (engine.Engine, error) {
 	conf := getRedisEngineConfig(getter)
 	return NewRedisEngine(n, conf)
 }
 
 // NewRedisEngine initializes Redis Engine.
-func NewRedisEngine(n node.Node, conf *RedisEngineConfig) (engine.Engine, error) {
+func NewRedisEngine(n *node.Node, conf *RedisEngineConfig) (engine.Engine, error) {
 	e := &RedisEngine{
 		node:              n,
 		config:            conf,
@@ -750,14 +750,14 @@ func (e *RedisEngine) runPubSub() {
 					logger.ERROR.Println(err)
 					continue
 				}
-				e.node.EngineHandler().ControlMsg(message)
+				e.node.ControlMsg(message)
 			case adminChannel:
 				message, err := decodeEngineAdminMessage(n.Data)
 				if err != nil {
 					logger.ERROR.Println(err)
 					continue
 				}
-				e.node.EngineHandler().AdminMsg(message)
+				e.node.AdminMsg(message)
 			default:
 				err := e.handleRedisClientMessage(chID, n.Data)
 				if err != nil {
@@ -781,19 +781,19 @@ func (e *RedisEngine) handleRedisClientMessage(chID ChannelID, data []byte) erro
 		if err != nil {
 			return err
 		}
-		e.node.EngineHandler().ClientMsg(ch, message)
+		e.node.ClientMsg(ch, message)
 	case "join":
 		message, err := decodeEngineJoinMessage(data)
 		if err != nil {
 			return err
 		}
-		e.node.EngineHandler().JoinMsg(ch, message)
+		e.node.JoinMsg(ch, message)
 	case "leave":
 		message, err := decodeEngineLeaveMessage(data)
 		if err != nil {
 			return err
 		}
-		e.node.EngineHandler().LeaveMsg(ch, message)
+		e.node.LeaveMsg(ch, message)
 	default:
 	}
 	return nil

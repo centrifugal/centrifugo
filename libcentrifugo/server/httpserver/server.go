@@ -62,17 +62,17 @@ func HTTPServerConfigure(setter plugin.ConfigSetter) error {
 
 type HTTPServer struct {
 	sync.RWMutex
-	node       node.Node
+	node       *node.Node
 	config     *Config
 	shutdown   bool
 	shutdownCh chan struct{}
 }
 
-func HTTPServerPlugin(n node.Node, getter plugin.ConfigGetter) (server.Server, error) {
+func HTTPServerPlugin(n *node.Node, getter plugin.ConfigGetter) (server.Server, error) {
 	return NewHTTPServer(n, newConfig(getter))
 }
 
-func NewHTTPServer(n node.Node, config *Config) (server.Server, error) {
+func NewHTTPServer(n *node.Node, config *Config) (server.Server, error) {
 	return &HTTPServer{
 		node:   n,
 		config: config,
