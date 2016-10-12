@@ -3,11 +3,12 @@ package node
 import (
 	"testing"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
 )
 
-func getTestChannelOptions() ChannelOptions {
-	return ChannelOptions{
+func getTestChannelOptions() proto.ChannelOptions {
+	return proto.ChannelOptions{
 		Watch:           true,
 		Publish:         true,
 		Presence:        true,

@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
 )
 
 type testClientConn struct {
-	CID      ConnID
-	UID      UserID
-	Channels []Channel
+	CID      proto.ConnID
+	UID      proto.UserID
+	Channels []proto.Channel
 
 	Messages [][]byte
 	Closed   bool
@@ -22,18 +23,18 @@ func newTestUserCC() *testClientConn {
 	return &testClientConn{
 		CID:      "test uid",
 		UID:      "test user",
-		Channels: []Channel{"test"},
+		Channels: []proto.Channel{"test"},
 	}
 }
-func (c *testClientConn) uid() ConnID {
+func (c *testClientConn) uid() proto.ConnID {
 	return c.CID
 }
 
-func (c *testClientConn) user() UserID {
+func (c *testClientConn) user() proto.UserID {
 	return c.UID
 }
 
-func (c *testClientConn) channels() []Channel {
+func (c *testClientConn) channels() []proto.Channel {
 	return c.Channels
 }
 
@@ -42,7 +43,7 @@ func (c *testClientConn) send(message []byte) error {
 	return nil
 }
 
-func (c *testClientConn) unsubscribe(channel Channel) error {
+func (c *testClientConn) unsubscribe(channel proto.Channel) error {
 	for i, ch := range c.Channels {
 		if ch == channel {
 			c.Channels = c.Channels[:i+copy(c.Channels[i:], c.Channels[i+1:])]
@@ -62,7 +63,7 @@ func (c *testClientConn) close(reason string) error {
 
 type testAdminConn struct{}
 
-func (c *testAdminConn) uid() ConnID {
+func (c *testAdminConn) uid() proto.ConnID {
 	return "test uid"
 }
 

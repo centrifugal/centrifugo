@@ -7,8 +7,86 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
+	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
 )
+
+type TestEngine struct{}
+
+func NewTestEngine() *TestEngine {
+	return &TestEngine{}
+}
+
+func (e *TestEngine) Name() string {
+	return "test engine"
+}
+
+func (e *TestEngine) Run() error {
+	return nil
+}
+
+func (e *TestEngine) Shutdown() error {
+	return nil
+}
+
+func (e *TestEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishControl(message *proto.ControlMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) Subscribe(ch proto.Channel) error {
+	return nil
+}
+
+func (e *TestEngine) Unsubscribe(ch proto.Channel) error {
+	return nil
+}
+
+func (e *TestEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo, expire int) error {
+	return nil
+}
+
+func (e *TestEngine) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+	return nil
+}
+
+func (e *TestEngine) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
+	return map[proto.ConnID]proto.ClientInfo{}, nil
+}
+
+func (e *TestEngine) History(ch proto.Channel, limit int) ([]proto.Message, error) {
+	return []proto.Message{}, nil
+}
+
+func (e *TestEngine) Channels() ([]proto.Channel, error) {
+	return []proto.Channel{}, nil
+}
 
 type testSession struct {
 	sink   chan []byte
@@ -27,48 +105,30 @@ func (t *testSession) Close(status uint32, reason string) error {
 	return nil
 }
 
-func testApp() *Application {
+func testNode() *Node {
 	c := newTestConfig()
-	app, _ := NewApplication(&c)
-	app.SetEngine(newTestEngine())
-	return app
+	n, _ := New(&c)
+	n.engine = engine.NewTestEngine()
+	return n
 }
 
-func testMemoryApp() *Application {
-	return testMemoryAppWithConfig(nil)
-}
-
-func testMemoryAppWithConfig(c *Config) *Application {
+func testNodeWithConfig(c *Config) *Node {
 	if c == nil {
 		conf := newTestConfig()
 		c = &conf
 	}
-	app, _ := NewApplication(c)
-	app.SetEngine(NewMemoryEngine(app))
-	return app
+	n, _ := New(c)
+	n.engine = engine.NewTestEngine()
+	return n
 }
 
-func testRedisApp() *Application {
-	return testRedisAppWithConfig(nil)
-}
-
-func testRedisAppWithConfig(c *Config) *Application {
-	if c == nil {
-		conf := newTestConfig()
-		c = &conf
-	}
-	app, _ := NewApplication(c)
-	app.SetEngine(testRedisEngine(app))
-	return app
-}
-
-func newTestClient(app *Application, sess session) *client {
-	c, _ := newClient(app, sess)
+func newTestClient(n *Node, sess session) *client {
+	c, _ := newClient(n, sess)
 	return c
 }
 
-func createTestClients(app *Application, nChannels, nChannelClients int, sink chan []byte) {
-	app.config.Insecure = true
+func createTestClients(n *Node, nChannels, nChannelClients int, sink chan []byte) {
+	n.config.Insecure = true
 	for i := 0; i < nChannelClients; i++ {
 		sess := &testSession{}
 		if sink != nil {

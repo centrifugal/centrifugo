@@ -23,30 +23,30 @@ func newAdminTestConfig() *Config {
 	}
 }
 
-func newAdminTestApplication() *Application {
-	app, _ := NewApplication(newAdminTestConfig())
-	app.engine = newTestEngine()
-	return app
+func newAdminTestNode() *Node {
+	n := New(newAdminTestConfig())
+	n.engine = NewTestEngine()
+	return n
 }
 
-func newTestAdminClient() (*adminClient, error) {
-	app := newAdminTestApplication()
-	c, err := newAdminClient(app, &testAdminSession{})
+func newTestAdminClient() (AdminConn, error) {
+	n := newAdminTestNode()
+	c, err := n.NewAdminClient(&testAdminSession{}, nil)
 	return c, err
 }
 
-func newInsecureTestAdminClient() (*adminClient, error) {
-	app := newAdminTestApplication()
-	app.config.InsecureAdmin = true
-	c, err := newAdminClient(app, &testAdminSession{})
+func newInsecureTestAdminClient() (AdminConn, error) {
+	n := newAdminTestNode()
+	n.config.InsecureAdmin = true
+	c, err := n.NewAdminClient(&testAdminSession{}, nil)
 	return c, err
 }
 
 func TestAdminClient(t *testing.T) {
 	c, err := newTestAdminClient()
 	assert.Equal(t, nil, err)
-	assert.NotEqual(t, c.uid(), "")
-	err = c.send([]byte("message"))
+	assert.NotEqual(t, c.UID(), "")
+	err = c.Send([]byte("message"))
 	assert.Equal(t, nil, err)
 }
 
@@ -54,27 +54,27 @@ func TestAdminClientMessageHandling(t *testing.T) {
 	c, err := newTestAdminClient()
 	assert.Equal(t, nil, err)
 	emptyMsg := ""
-	err = c.message([]byte(emptyMsg))
+	err = c.Handle([]byte(emptyMsg))
 	assert.Equal(t, nil, err)
 	malformedMsg := "ooops"
-	err = c.message([]byte(malformedMsg))
+	err = c.Handle([]byte(malformedMsg))
 	assert.NotEqual(t, nil, err)
 	emptyAuthMethod := "{\"method\":\"connect\", \"params\": {\"watch\": true}}"
-	err = c.message([]byte(emptyAuthMethod))
+	err = c.Handle([]byte(emptyAuthMethod))
 	assert.Equal(t, ErrUnauthorized, err)
-	s := securecookie.New([]byte(c.app.config.AdminSecret), nil)
+	s := securecookie.New([]byte("secret"), nil)
 	token, _ := s.Encode(AuthTokenKey, AuthTokenValue)
 	correctAuthMethod := "{\"method\":\"connect\", \"params\": {\"token\":\"" + token + "\", \"watch\": true}}"
-	err = c.message([]byte(correctAuthMethod))
+	err = c.Handle([]byte(correctAuthMethod))
 	assert.Equal(t, nil, err)
 	unknownMsg := "{\"method\":\"unknown\", \"params\": {}}"
-	err = c.message([]byte(unknownMsg))
+	err = c.Handle([]byte(unknownMsg))
 	assert.Equal(t, ErrMethodNotFound, err)
 	infoCommand := "{\"method\":\"info\", \"params\": {}}"
-	err = c.message([]byte(infoCommand))
+	err = c.Handle([]byte(infoCommand))
 	assert.Equal(t, nil, err)
 	pingCommand := "{\"method\":\"ping\", \"params\": {}}"
-	err = c.message([]byte(pingCommand))
+	err = c.Handle([]byte(pingCommand))
 	assert.Equal(t, nil, err)
 }
 
@@ -82,7 +82,7 @@ func TestAdminClientAuthentication(t *testing.T) {
 	c, err := newTestAdminClient()
 	assert.Equal(t, nil, err)
 	infoCommand := "{\"method\":\"info\", \"params\": {}}"
-	err = c.message([]byte(infoCommand))
+	err = c.Handle([]byte(infoCommand))
 	assert.Equal(t, ErrUnauthorized, err)
 }
 
@@ -90,17 +90,17 @@ func TestAdminClientInsecure(t *testing.T) {
 	c, err := newInsecureTestAdminClient()
 	assert.Equal(t, nil, err)
 	infoCommand := "{\"method\":\"info\", \"params\": {}}"
-	err = c.message([]byte(infoCommand))
+	err = c.Handle([]byte(infoCommand))
 	assert.Equal(t, nil, err)
 }
 
 func TestAdminClientNotWatching(t *testing.T) {
 	c, err := newTestAdminClient()
 	assert.Equal(t, nil, err)
-	s := securecookie.New([]byte(c.app.config.AdminSecret), nil)
+	s := securecookie.New([]byte("secret"), nil)
 	token, _ := s.Encode(AuthTokenKey, AuthTokenValue)
 	correctAuthMethod := "{\"method\":\"connect\", \"params\": {\"token\":\"" + token + "\"}}"
-	err = c.message([]byte(correctAuthMethod))
+	err = c.Handle([]byte(correctAuthMethod))
 	assert.Equal(t, nil, err)
-	assert.Equal(t, false, c.watch)
+	assert.Equal(t, false, c.(*adminClient).watch)
 }

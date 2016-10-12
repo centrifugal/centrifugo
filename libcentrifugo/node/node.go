@@ -47,14 +47,14 @@ type Node struct {
 	// hub to manage admin connections.
 	admins AdminHub
 
+	// config for application.
+	config *Config
+
 	// engine to use - in memory or redis.
 	engine engine.Engine
 
 	// servers contains list of servers connected to this node.
 	servers map[string]server.Server
-
-	// config for application.
-	config *Config
 
 	// mediator allows integrate libcentrifugo Node with external go code.
 	mediator Mediator
@@ -72,6 +72,7 @@ type Node struct {
 	metricsMu sync.RWMutex
 }
 
+// global metrics registry pointing to the same Registry plugin package uses.
 var metricsRegistry *metrics.Registry
 
 func init() {
@@ -103,8 +104,7 @@ func init() {
 	metricsRegistry.RegisterHDRHistogram("client_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
-// New returns new server instance backed by Node, the only required
-// argument is config. Engine must be set via corresponding methods.
+// New creates Node, the only required argument is config.
 func New(c *Config) *Node {
 	app := &Node{
 		uid:             uuid.NewV4().String(),
@@ -125,6 +125,7 @@ func New(c *Config) *Node {
 	return app
 }
 
+// Config returns a copy of node Config.
 func (app *Node) Config() Config {
 	app.RLock()
 	c := *app.config
@@ -132,6 +133,7 @@ func (app *Node) Config() Config {
 	return c
 }
 
+// Notify shutdown returns a channel which will be closed on node shutdown.
 func (app *Node) NotifyShutdown() chan struct{} {
 	return app.shutdownCh
 }
@@ -187,8 +189,7 @@ func (app *Node) runServers() error {
 	return nil
 }
 
-// Shutdown sets shutdown flag and does various connection clean ups (at moment only unsubscribes
-// all clients from all channels and disconnects them).
+// Shutdown sets shutdown flag and does various clean ups.
 func (app *Node) Shutdown() error {
 	app.Lock()
 	if app.shutdown {
@@ -429,7 +430,7 @@ func (app *Node) ClientMsg(ch proto.Channel, msg *proto.Message) error {
 	return app.clients.Broadcast(ch, byteMessage)
 }
 
-// Publish sends a message to all clients subscribed on channel with provided data, client and ClientInfo.
+// Publish sends a message to all clients subscribed on channel.
 func (app *Node) Publish(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) error {
 
 	if string(ch) == "" || len(data) == 0 {

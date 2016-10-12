@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,32 +17,32 @@ func testMemoryEngine() *MemoryEngine {
 }
 
 type TestConn struct {
-	Uid      ConnID
-	UserID   UserID
-	Channels []Channel
+	Uid      proto.ConnID
+	UserID   proto.UserID
+	Channels []proto.Channel
 }
 
-func (t *TestConn) uid() ConnID {
+func (t *TestConn) uid() proto.ConnID {
 	return t.Uid
 }
-func (t *TestConn) user() UserID {
+func (t *TestConn) user() proto.UserID {
 	return t.UserID
 }
-func (t *TestConn) channels() []Channel {
+func (t *TestConn) channels() []proto.Channel {
 	return t.Channels
 }
 func (t *TestConn) send(message []byte) error {
 	return nil
 }
-func (t *TestConn) unsubscribe(ch Channel) error {
+func (t *TestConn) unsubscribe(ch proto.Channel) error {
 	return nil
 }
 func (t *TestConn) close(reason string) error {
 	return nil
 }
 
-func newTestMessage() *Message {
-	return newMessage(Channel("test"), []byte("{}"), "", nil)
+func newTestMessage() *proto.Message {
+	return proto.NewMessage(Channel("test"), []byte("{}"), "", nil)
 }
 
 func TestMemoryEngine(t *testing.T) {

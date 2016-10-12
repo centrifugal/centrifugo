@@ -7,6 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
+	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/garyburd/redigo/redis"
 	"github.com/stretchr/testify/assert"
@@ -67,7 +70,7 @@ func dial() testRedisConn {
 	return testRedisConn{c}
 }
 
-func testRedisEngine(app *Application) *RedisEngine {
+func testRedisEngine(n *node.Node) engine.Engine {
 	redisConf := &RedisEngineConfig{
 		Host:         testRedisHost,
 		Port:         testRedisPort,
@@ -78,7 +81,7 @@ func testRedisEngine(app *Application) *RedisEngine {
 		API:          true,
 		NumAPIShards: testRedisNumAPIShards,
 	}
-	e := NewRedisEngine(app, redisConf)
+	e, _ := NewRedisEngine(n, redisConf)
 	return e
 }
 
@@ -229,4 +232,51 @@ func TestHandleClientMessage(t *testing.T) {
 	byteLeaveMsg, _ := testLeaveMsg.Marshal()
 	err = e.handleRedisClientMessage(chID, byteLeaveMsg)
 	assert.Equal(t, nil, err)
+}
+
+func TestEngineEncodeDecode(t *testing.T) {
+	message := proto.NewMessage(Channel("encode_decode_test"), []byte("{}"), "", nil)
+	byteMessage, err := encodeEngineClientMessage(message)
+	assert.Equal(t, nil, err)
+	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))
+
+	decodedMessage, err := decodeEngineClientMessage(byteMessage)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "encode_decode_test", decodedMessage.Channel)
+
+	joinMessage := newJoinMessage(Channel("encode_decode_test"), ClientInfo{})
+	byteMessage, err = encodeEngineJoinMessage(joinMessage)
+	assert.Equal(t, nil, err)
+	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))
+
+	decodedJoinMessage, err := decodeEngineJoinMessage(byteMessage)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "encode_decode_test", decodedJoinMessage.Channel)
+
+	leaveMessage := newLeaveMessage(Channel("encode_decode_test"), ClientInfo{})
+	byteMessage, err = encodeEngineLeaveMessage(leaveMessage)
+	assert.Equal(t, nil, err)
+	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))
+
+	decodedLeaveMessage, err := decodeEngineLeaveMessage(byteMessage)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "encode_decode_test", decodedLeaveMessage.Channel)
+
+	controlMessage := newControlMessage("test_encode_decode_uid", "ping", []byte("{}"))
+	byteMessage, err = encodeEngineControlMessage(controlMessage)
+	assert.Equal(t, nil, err)
+	assert.True(t, bytes.Contains(byteMessage, []byte("test_encode_decode_uid")))
+
+	decodedControlMessage, err := decodeEngineControlMessage(byteMessage)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "test_encode_decode_uid", decodedControlMessage.UID)
+
+	adminMessage := newAdminMessage("test_encode_decode", []byte("{}"))
+	byteMessage, err = encodeEngineAdminMessage(adminMessage)
+	assert.Equal(t, nil, err)
+	assert.True(t, bytes.Contains(byteMessage, []byte("test_encode_decode")))
+
+	decodedAdminMessage, err := decodeEngineAdminMessage(byteMessage)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "test_encode_decode", decodedAdminMessage.Method)
 }

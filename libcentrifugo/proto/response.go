@@ -262,13 +262,13 @@ func (r *clientResponse) SetUID(uid string) {
 	r.UID = uid
 }
 
-type clientConnectResponse struct {
+type ClientConnectResponse struct {
 	clientResponse
 	Body ConnectBody `json:"body"`
 }
 
 func NewClientConnectResponse(body ConnectBody) Response {
-	return &clientConnectResponse{
+	return &ClientConnectResponse{
 		clientResponse: clientResponse{
 			Method: "connect",
 		},
@@ -276,13 +276,13 @@ func NewClientConnectResponse(body ConnectBody) Response {
 	}
 }
 
-type clientRefreshResponse struct {
+type ClientRefreshResponse struct {
 	clientResponse
 	Body ConnectBody `json:"body"`
 }
 
 func NewClientRefreshResponse(body ConnectBody) Response {
-	return &clientRefreshResponse{
+	return &ClientRefreshResponse{
 		clientResponse: clientResponse{
 			Method: "refresh",
 		},
@@ -290,13 +290,13 @@ func NewClientRefreshResponse(body ConnectBody) Response {
 	}
 }
 
-type clientSubscribeResponse struct {
+type ClientSubscribeResponse struct {
 	clientResponse
 	Body SubscribeBody `json:"body"`
 }
 
 func NewClientSubscribeResponse(body SubscribeBody) Response {
-	return &clientSubscribeResponse{
+	return &ClientSubscribeResponse{
 		clientResponse: clientResponse{
 			Method: "subscribe",
 		},
@@ -304,13 +304,13 @@ func NewClientSubscribeResponse(body SubscribeBody) Response {
 	}
 }
 
-type clientUnsubscribeResponse struct {
+type ClientUnsubscribeResponse struct {
 	clientResponse
 	Body UnsubscribeBody `json:"body"`
 }
 
 func NewClientUnsubscribeResponse(body UnsubscribeBody) Response {
-	return &clientUnsubscribeResponse{
+	return &ClientUnsubscribeResponse{
 		clientResponse: clientResponse{
 			Method: "unsubscribe",
 		},
@@ -318,13 +318,13 @@ func NewClientUnsubscribeResponse(body UnsubscribeBody) Response {
 	}
 }
 
-type clientPresenceResponse struct {
+type ClientPresenceResponse struct {
 	clientResponse
 	Body PresenceBody `json:"body"`
 }
 
 func NewClientPresenceResponse(body PresenceBody) Response {
-	return &clientPresenceResponse{
+	return &ClientPresenceResponse{
 		clientResponse: clientResponse{
 			Method: "presence",
 		},
@@ -332,13 +332,13 @@ func NewClientPresenceResponse(body PresenceBody) Response {
 	}
 }
 
-type clientHistoryResponse struct {
+type ClientHistoryResponse struct {
 	clientResponse
 	Body HistoryBody `json:"body"`
 }
 
 func NewClientHistoryResponse(body HistoryBody) Response {
-	return &clientHistoryResponse{
+	return &ClientHistoryResponse{
 		clientResponse: clientResponse{
 			Method: "history",
 		},
@@ -346,13 +346,13 @@ func NewClientHistoryResponse(body HistoryBody) Response {
 	}
 }
 
-type clientDisconnectResponse struct {
+type ClientDisconnectResponse struct {
 	clientResponse
 	Body DisconnectBody `json:"body"`
 }
 
 func NewClientDisconnectResponse(body DisconnectBody) Response {
-	return &clientDisconnectResponse{
+	return &ClientDisconnectResponse{
 		clientResponse: clientResponse{
 			Method: "disconnect",
 		},
@@ -360,13 +360,13 @@ func NewClientDisconnectResponse(body DisconnectBody) Response {
 	}
 }
 
-type clientPublishResponse struct {
+type ClientPublishResponse struct {
 	clientResponse
 	Body PublishBody `json:"body"`
 }
 
 func NewClientPublishResponse(body PublishBody) Response {
-	return &clientPublishResponse{
+	return &ClientPublishResponse{
 		clientResponse: clientResponse{
 			Method: "publish",
 		},
@@ -374,13 +374,13 @@ func NewClientPublishResponse(body PublishBody) Response {
 	}
 }
 
-type clientPingResponse struct {
+type ClientPingResponse struct {
 	clientResponse
 	Body PingBody `json:"body"`
 }
 
 func NewClientPingResponse(body PingBody) Response {
-	return &clientPingResponse{
+	return &ClientPingResponse{
 		clientResponse: clientResponse{
 			Method: "ping",
 		},
@@ -417,39 +417,39 @@ func (r *apiResponse) SetUID(uid string) {
 	r.UID = uid
 }
 
-type apiPublishResponse struct {
+type APIPublishResponse struct {
 	apiResponse
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
 func NewAPIPublishResponse() Response {
-	return &apiPublishResponse{
+	return &APIPublishResponse{
 		apiResponse: apiResponse{
 			Method: "publish",
 		},
 	}
 }
 
-type apiBroadcastResponse struct {
+type APIBroadcastResponse struct {
 	apiResponse
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
 func NewAPIBroadcastResponse() Response {
-	return &apiBroadcastResponse{
+	return &APIBroadcastResponse{
 		apiResponse: apiResponse{
 			Method: "broadcast",
 		},
 	}
 }
 
-type apiPresenceResponse struct {
+type APIPresenceResponse struct {
 	apiResponse
 	Body PresenceBody `json:"body"`
 }
 
 func NewAPIPresenceResponse(body PresenceBody) Response {
-	return &apiPresenceResponse{
+	return &APIPresenceResponse{
 		apiResponse: apiResponse{
 			Method: "presence",
 		},
@@ -457,13 +457,13 @@ func NewAPIPresenceResponse(body PresenceBody) Response {
 	}
 }
 
-type apiHistoryResponse struct {
+type APIHistoryResponse struct {
 	apiResponse
 	Body HistoryBody `json:"body"`
 }
 
 func NewAPIHistoryResponse(body HistoryBody) Response {
-	return &apiHistoryResponse{
+	return &APIHistoryResponse{
 		apiResponse: apiResponse{
 			Method: "history",
 		},
@@ -471,13 +471,13 @@ func NewAPIHistoryResponse(body HistoryBody) Response {
 	}
 }
 
-type apiChannelsResponse struct {
+type APIChannelsResponse struct {
 	apiResponse
 	Body ChannelsBody `json:"body"`
 }
 
 func NewAPIChannelsResponse(body ChannelsBody) Response {
-	return &apiChannelsResponse{
+	return &APIChannelsResponse{
 		apiResponse: apiResponse{
 			Method: "channels",
 		},
@@ -485,13 +485,13 @@ func NewAPIChannelsResponse(body ChannelsBody) Response {
 	}
 }
 
-type apiStatsResponse struct {
+type APIStatsResponse struct {
 	apiResponse
 	Body StatsBody `json:"body"`
 }
 
 func NewAPIStatsResponse(body StatsBody) Response {
-	return &apiStatsResponse{
+	return &APIStatsResponse{
 		apiResponse: apiResponse{
 			Method: "stats",
 		},
@@ -499,39 +499,39 @@ func NewAPIStatsResponse(body StatsBody) Response {
 	}
 }
 
-type apiUnsubscribeResponse struct {
+type APIUnsubscribeResponse struct {
 	apiResponse
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
 func NewAPIUnsubscribeResponse() Response {
-	return &apiUnsubscribeResponse{
+	return &APIUnsubscribeResponse{
 		apiResponse: apiResponse{
 			Method: "unsubscribe",
 		},
 	}
 }
 
-type apiDisconnectResponse struct {
+type APIDisconnectResponse struct {
 	apiResponse
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
 func NewAPIDisconnectResponse() Response {
-	return &apiDisconnectResponse{
+	return &APIDisconnectResponse{
 		apiResponse: apiResponse{
 			Method: "disconnect",
 		},
 	}
 }
 
-type apiNodeResponse struct {
+type APINodeResponse struct {
 	apiResponse
 	Body NodeBody `json:"body"`
 }
 
 func NewAPINodeResponse(body NodeBody) Response {
-	return &apiNodeResponse{
+	return &APINodeResponse{
 		apiResponse: apiResponse{
 			Method: "node",
 		},
@@ -539,13 +539,13 @@ func NewAPINodeResponse(body NodeBody) Response {
 	}
 }
 
-type apiAdminConnectResponse struct {
+type APIAdminConnectResponse struct {
 	apiResponse
 	Body bool `json:"body"`
 }
 
 func NewAPIAdminConnectResponse(body bool) Response {
-	return &apiAdminConnectResponse{
+	return &APIAdminConnectResponse{
 		apiResponse: apiResponse{
 			Method: "connect",
 		},
@@ -553,13 +553,13 @@ func NewAPIAdminConnectResponse(body bool) Response {
 	}
 }
 
-type apiAdminInfoResponse struct {
+type APIAdminInfoResponse struct {
 	apiResponse
 	Body AdminInfoBody `json:"body"`
 }
 
 func NewAPIAdminInfoResponse(body AdminInfoBody) Response {
-	return &apiAdminInfoResponse{
+	return &APIAdminInfoResponse{
 		apiResponse: apiResponse{
 			Method: "info",
 		},
@@ -567,13 +567,13 @@ func NewAPIAdminInfoResponse(body AdminInfoBody) Response {
 	}
 }
 
-type apiAdminPingResponse struct {
+type APIAdminPingResponse struct {
 	apiResponse
 	Body string `json:"body"`
 }
 
 func NewAPIAdminPingResponse(body string) Response {
-	return &apiAdminPingResponse{
+	return &APIAdminPingResponse{
 		apiResponse: apiResponse{
 			Method: "ping",
 		},
@@ -581,13 +581,13 @@ func NewAPIAdminPingResponse(body string) Response {
 	}
 }
 
-type apiAdminMessageResponse struct {
+type APIAdminMessageResponse struct {
 	apiResponse
 	Body *raw.Raw `json:"body"`
 }
 
 func NewAPIAdminMessageResponse(body *raw.Raw) Response {
-	return &apiAdminMessageResponse{
+	return &APIAdminMessageResponse{
 		apiResponse: apiResponse{
 			Method: "message",
 		},
