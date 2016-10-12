@@ -16,6 +16,14 @@ import (
 	"github.com/satori/go.uuid"
 )
 
+// Session represents a connection between server and client.
+type Session interface {
+	// Send sends one message to session
+	Send([]byte) error
+	// Close closes the session with provided code and reason.
+	Close(status uint32, reason string) error
+}
+
 type RunOptions struct {
 	Engine   engine.Engine
 	Servers  map[string]server.Server
@@ -150,8 +158,15 @@ func (app *Node) Run(opts *RunOptions) error {
 	if err := app.engine.Run(); err != nil {
 		return err
 	}
+
+	err := app.pubPing()
+	if err != nil {
+		logger.CRITICAL.Println(err)
+	}
 	go app.sendNodePingMsg()
+
 	go app.cleanNodeInfo()
+
 	go app.updateMetrics()
 
 	config := app.Config()
@@ -168,24 +183,11 @@ func (app *Node) Run(opts *RunOptions) error {
 		logger.WARN.Println("Running in DEBUG mode")
 	}
 
-	return app.runServers()
-}
-
-func (app *Node) runServers() error {
-	var wg sync.WaitGroup
 	for srvName, srv := range app.servers {
-		wg.Add(1)
 		logger.DEBUG.Printf("Starting %s server", srvName)
 		go srv.Run()
-		go func() {
-			defer wg.Done()
-			<-app.shutdownCh
-			if err := srv.Shutdown(); err != nil {
-				logger.ERROR.Println(err)
-			}
-		}()
 	}
-	wg.Wait()
+
 	return nil
 }
 
@@ -199,8 +201,13 @@ func (app *Node) Shutdown() error {
 	app.shutdown = true
 	close(app.shutdownCh)
 	app.Unlock()
-	app.clients.Shutdown()
-	return nil
+	for srvName, srv := range app.servers {
+		logger.INFO.Printf("Shutting down %s server", srvName)
+		if err := srv.Shutdown(); err != nil {
+			logger.ERROR.Printf("Shutting down server %s: %v", srvName, err)
+		}
+	}
+	return app.clients.Shutdown()
 }
 
 func (app *Node) ClientHub() ClientHub {
@@ -240,10 +247,6 @@ func (app *Node) updateMetrics() {
 }
 
 func (app *Node) sendNodePingMsg() {
-	err := app.pubPing()
-	if err != nil {
-		logger.CRITICAL.Println(err)
-	}
 	for {
 		app.RLock()
 		interval := app.config.NodePingInterval
@@ -437,7 +440,7 @@ func (app *Node) Publish(ch proto.Channel, data []byte, client proto.ConnID, inf
 		return ErrInvalidMessage
 	}
 
-	chOpts, err := app.channelOpts(ch)
+	chOpts, err := app.ChannelOpts(ch)
 	if err != nil {
 		return err
 	}
@@ -466,7 +469,7 @@ func (app *Node) publishAsync(ch proto.Channel, data []byte, client proto.ConnID
 		return makeErrChan(ErrInvalidMessage)
 	}
 
-	chOpts, err := app.channelOpts(ch)
+	chOpts, err := app.ChannelOpts(ch)
 	if err != nil {
 		return makeErrChan(err)
 	}
@@ -693,7 +696,7 @@ func (app *Node) Unsubscribe(user proto.UserID, ch proto.Channel) error {
 	}
 
 	if string(ch) != "" {
-		_, err := app.channelOpts(ch)
+		_, err := app.ChannelOpts(ch)
 		if err != nil {
 			return err
 		}
@@ -779,15 +782,11 @@ func (app *Node) namespaceKey(ch proto.Channel) NamespaceKey {
 }
 
 // channelOpts returns channel options for channel using current application structure.
-func (app *Node) channelOpts(ch proto.Channel) (proto.ChannelOptions, error) {
+func (app *Node) ChannelOpts(ch proto.Channel) (proto.ChannelOptions, error) {
 	app.RLock()
 	defer app.RUnlock()
 	nk := app.namespaceKey(ch)
-	found, opts := app.config.ChannelOpts(nk)
-	if found {
-		return opts, nil
-	}
-	return proto.ChannelOptions{}, ErrNamespaceNotFound
+	return app.config.channelOpts(nk)
 }
 
 // addPresence proxies presence adding to engine.
@@ -810,7 +809,7 @@ func (app *Node) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, 
 		return map[proto.ConnID]proto.ClientInfo{}, ErrInvalidMessage
 	}
 
-	chOpts, err := app.channelOpts(ch)
+	chOpts, err := app.ChannelOpts(ch)
 	if err != nil {
 		return map[proto.ConnID]proto.ClientInfo{}, err
 	}
@@ -834,7 +833,7 @@ func (app *Node) History(ch proto.Channel) ([]proto.Message, error) {
 		return []proto.Message{}, ErrInvalidMessage
 	}
 
-	chOpts, err := app.channelOpts(ch)
+	chOpts, err := app.ChannelOpts(ch)
 	if err != nil {
 		return []proto.Message{}, err
 	}

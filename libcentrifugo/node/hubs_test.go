@@ -10,50 +10,54 @@ import (
 )
 
 type testClientConn struct {
-	CID      proto.ConnID
-	UID      proto.UserID
-	Channels []proto.Channel
+	cid      proto.ConnID
+	uid      proto.UserID
+	channels []proto.Channel
 
 	Messages [][]byte
 	Closed   bool
 	sess     *testSession
 }
 
-func newTestUserCC() *testClientConn {
+func newTestUserCC(cid proto.ConnID, uid proto.UserID) *testClientConn {
 	return &testClientConn{
-		CID:      "test uid",
-		UID:      "test user",
-		Channels: []proto.Channel{"test"},
+		cid:      cid,
+		uid:      uid,
+		channels: []proto.Channel{"test"},
 	}
 }
-func (c *testClientConn) uid() proto.ConnID {
-	return c.CID
+func (c *testClientConn) UID() proto.ConnID {
+	return c.cid
 }
 
-func (c *testClientConn) user() proto.UserID {
-	return c.UID
+func (c *testClientConn) User() proto.UserID {
+	return c.uid
 }
 
-func (c *testClientConn) channels() []proto.Channel {
-	return c.Channels
+func (c *testClientConn) Channels() []proto.Channel {
+	return c.channels
 }
 
-func (c *testClientConn) send(message []byte) error {
+func (c *testClientConn) Send(message []byte) error {
 	c.Messages = append(c.Messages, message)
 	return nil
 }
 
-func (c *testClientConn) unsubscribe(channel proto.Channel) error {
-	for i, ch := range c.Channels {
+func (c *testClientConn) Handle(message []byte) error {
+	return nil
+}
+
+func (c *testClientConn) Unsubscribe(channel proto.Channel) error {
+	for i, ch := range c.Channels() {
 		if ch == channel {
-			c.Channels = c.Channels[:i+copy(c.Channels[i:], c.Channels[i+1:])]
+			c.channels = c.channels[:i+copy(c.channels[i:], c.channels[i+1:])]
 			return nil
 		}
 	}
 	return fmt.Errorf("channel '%s' not found", string(channel))
 }
 
-func (c *testClientConn) close(reason string) error {
+func (c *testClientConn) Close(reason string) error {
 	if c.Closed {
 		return fmt.Errorf("duplicate close")
 	}
@@ -73,73 +77,70 @@ func (c *testAdminConn) send(message string) error {
 
 func TestClientHub(t *testing.T) {
 	h := newClientHub()
-	c := newTestUserCC()
-	h.add(c)
-	assert.Equal(t, len(h.users), 1)
-	conns := h.userConnections("test user")
+	c := newTestUserCC("test uid", "test user")
+	h.Add(c)
+	assert.Equal(t, len(h.(*clientHub).users), 1)
+	conns := h.UserConnections(proto.UserID("test user"))
 	assert.Equal(t, 1, len(conns))
-	assert.Equal(t, 1, h.nClients())
-	assert.Equal(t, 1, h.nUniqueClients())
-	h.remove(c)
-	assert.Equal(t, len(h.users), 0)
+	assert.Equal(t, 1, h.NumClients())
+	assert.Equal(t, 1, h.NumUniqueClients())
+	h.Remove(c)
+	assert.Equal(t, len(h.(*clientHub).users), 0)
 	assert.Equal(t, 1, len(conns))
 }
 
 func TestShutdown(t *testing.T) {
 	h := newClientHub()
-	c := newTestUserCC()
-	h.add(c)
-	assert.Equal(t, len(h.users), 1)
-	h.shutdown()
+	c := newTestUserCC("test uid", "test user")
+	h.Add(c)
+	assert.Equal(t, len(h.(*clientHub).users), 1)
+	h.Shutdown()
 }
 
 func TestSubHub(t *testing.T) {
 	h := newClientHub()
-	c := newTestUserCC()
-	h.addSub("test1", c)
-	h.addSub("test2", c)
-	assert.Equal(t, 2, h.nChannels())
+	c := newTestUserCC("test uid", "test user")
+	h.AddSub("test1", c)
+	h.AddSub("test2", c)
+	assert.Equal(t, 2, h.NumChannels())
 	channels := []string{}
-	for _, ch := range h.channels() {
+	for _, ch := range h.Channels() {
 		channels = append(channels, string(ch))
 	}
 	assert.Equal(t, stringInSlice("test1", channels), true)
 	assert.Equal(t, stringInSlice("test2", channels), true)
-	assert.True(t, h.numSubscribers(Channel("test1")) > 0)
-	assert.True(t, h.numSubscribers(Channel("test2")) > 0)
-	err := h.broadcast("test1", []byte("message"))
+	assert.True(t, h.NumSubscribers(proto.Channel("test1")) > 0)
+	assert.True(t, h.NumSubscribers(proto.Channel("test2")) > 0)
+	err := h.Broadcast("test1", []byte("message"))
 	assert.Equal(t, err, nil)
-	h.removeSub("test1", c)
-	h.removeSub("test2", c)
-	assert.Equal(t, len(h.subs), 0)
-	assert.False(t, h.numSubscribers(Channel("test1")) > 0)
-	assert.False(t, h.numSubscribers(Channel("test2")) > 0)
+	h.RemoveSub("test1", c)
+	h.RemoveSub("test2", c)
+	assert.Equal(t, h.NumChannels(), 0)
+	assert.False(t, h.NumSubscribers(proto.Channel("test1")) > 0)
+	assert.False(t, h.NumSubscribers(proto.Channel("test2")) > 0)
 }
 
 func TestAdminHub(t *testing.T) {
 	h := newAdminHub()
-	c := newTestUserCC()
-	err := h.add(c)
+	c := newTestUserCC("test uid", "test user")
+	err := h.Add(c)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(h.connections), 1)
-	err = h.broadcast([]byte("message"))
+	assert.Equal(t, len(h.(*adminHub).connections), 1)
+	err = h.Broadcast([]byte("message"))
 	assert.Equal(t, err, nil)
-	err = h.remove(c)
+	err = h.Remove(c)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, len(h.connections), 0)
+	assert.Equal(t, len(h.(*adminHub).connections), 0)
 }
 
-func setupHub(users, chanUser, totChannels int) (*clientHub, []*testClientConn) {
+func setupHub(users, chanUser, totChannels int) (ClientHub, []*testClientConn) {
 	uC := make([]*testClientConn, users)
 	h := newClientHub()
 	for i := range uC {
-		c := newTestUserCC()
-		c.UID = UserID(fmt.Sprintf("uid-%d", i))
-		c.CID = ConnID(fmt.Sprintf("cid-%d", i))
-		c.Channels = make([]Channel, 0)
+		c := newTestUserCC("test uid", "test user")
 		for j := 0; j < chanUser; j++ {
-			ch := Channel(fmt.Sprintf("chan-%d", (j+i*chanUser)%totChannels))
-			h.addSub(ch, c)
+			ch := proto.Channel(fmt.Sprintf("chan-%d", (j+i*chanUser)%totChannels))
+			h.AddSub(ch, c)
 		}
 		uC[i] = c
 	}
@@ -154,8 +155,8 @@ func BenchmarkSubHubBroadCast(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
-			ch := Channel(fmt.Sprintf("chan-%d", i%totChannels))
-			h.broadcast(ch, []byte(fmt.Sprintf("message %d", i)))
+			ch := proto.Channel(fmt.Sprintf("chan-%d", i%totChannels))
+			h.Broadcast(ch, []byte(fmt.Sprintf("message %d", i)))
 			i++
 		}
 	})
@@ -165,7 +166,7 @@ func BenchmarkSubHubBroadCast(b *testing.B) {
 	for _, user := range conns {
 		total += len(user.Messages)
 	}
-	b.Logf("Chans:%d, Msgs:%d, Rcvd:%d", h.nChannels(), b.N, total)
+	b.Logf("Chans:%d, Msgs:%d, Rcvd:%d", h.NumChannels(), b.N, total)
 	if dur > time.Millisecond*10 {
 		b.Logf("%d messages/sec", total*int(time.Second)/int(dur))
 	}

@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
 )
@@ -107,8 +106,11 @@ func (t *testSession) Close(status uint32, reason string) error {
 
 func testNode() *Node {
 	c := newTestConfig()
-	n, _ := New(&c)
-	n.engine = engine.NewTestEngine()
+	n := New(&c)
+	err := n.Run(&RunOptions{Engine: NewTestEngine()})
+	if err != nil {
+		panic(err)
+	}
 	return n
 }
 
@@ -117,13 +119,13 @@ func testNodeWithConfig(c *Config) *Node {
 		conf := newTestConfig()
 		c = &conf
 	}
-	n, _ := New(c)
-	n.engine = engine.NewTestEngine()
+	n := New(c)
+	n.engine = NewTestEngine()
 	return n
 }
 
-func newTestClient(n *Node, sess session) *client {
-	c, _ := newClient(n, sess)
+func newTestClient(n *Node, sess Session) ClientConn {
+	c, _ := n.NewClient(sess, nil)
 	return c
 }
 
@@ -134,40 +136,34 @@ func createTestClients(n *Node, nChannels, nChannelClients int, sink chan []byte
 		if sink != nil {
 			sess.sink = sink
 		}
-		c := newTestClient(app, sess)
-		cmd := connectClientCommand{
-			User: UserID(fmt.Sprintf("user-%d", i)),
+		c := newTestClient(n, sess)
+		cmd := proto.ConnectClientCommand{
+			User: proto.UserID(fmt.Sprintf("user-%d", i)),
 		}
-		resp, err := c.connectCmd(&cmd)
+		resp, err := c.(*client).connectCmd(&cmd)
 		if err != nil {
 			panic(err)
 		}
-		if resp.(*clientConnectResponse).err != nil {
-			panic(resp.(*clientConnectResponse).err)
+		if resp.(*proto.ClientConnectResponse).ResponseError.Err != nil {
+			panic(resp.(*proto.ClientConnectResponse).ResponseError.Err)
 		}
 		for j := 0; j < nChannels; j++ {
-			cmd := subscribeClientCommand{
-				Channel: Channel(fmt.Sprintf("channel-%d", j)),
+			cmd := proto.SubscribeClientCommand{
+				Channel: proto.Channel(fmt.Sprintf("channel-%d", j)),
 			}
-			resp, err = c.subscribeCmd(&cmd)
+			resp, err = c.(*client).subscribeCmd(&cmd)
 			if err != nil {
 				panic(err)
 			}
-			if resp.(*clientSubscribeResponse).err != nil {
-				panic(resp.(*clientSubscribeResponse).err)
+			if resp.(*proto.ClientSubscribeResponse).ResponseError.Err != nil {
+				panic(resp.(*proto.ClientSubscribeResponse).ResponseError.Err)
 			}
 		}
 	}
 }
 
-func testMemoryAppWithClients(nChannels int, nChannelClients int) *Application {
-	app := testMemoryApp()
-	createTestClients(app, nChannels, nChannelClients, nil)
-	return app
-}
-
 func TestUserAllowed(t *testing.T) {
-	app := testApp()
+	app := testNode()
 	assert.Equal(t, true, app.userAllowed("channel#1", "1"))
 	assert.Equal(t, true, app.userAllowed("channel", "1"))
 	assert.Equal(t, false, app.userAllowed("channel#1", "2"))
@@ -177,19 +173,19 @@ func TestUserAllowed(t *testing.T) {
 }
 
 func TestSetConfig(t *testing.T) {
-	app := testApp()
+	app := testNode()
 	c := newTestConfig()
 	app.SetConfig(&c)
 }
 
 func TestAdminAuthToken(t *testing.T) {
-	app := testApp()
+	app := testNode()
 	// first without secret set
 	err := app.checkAdminAuthToken("")
 	assert.Equal(t, ErrUnauthorized, err)
 
-	// no web secret set
-	token, err := app.adminAuthToken()
+	// no secret set
+	token, err := AdminAuthToken(app.config.AdminSecret)
 	assert.Equal(t, ErrInternalServerError, err)
 
 	app.Lock()
@@ -199,7 +195,7 @@ func TestAdminAuthToken(t *testing.T) {
 	err = app.checkAdminAuthToken("")
 	assert.Equal(t, ErrUnauthorized, err)
 
-	token, err = app.adminAuthToken()
+	token, err = AdminAuthToken("secret")
 	assert.Equal(t, nil, err)
 	assert.True(t, len(token) > 0)
 	err = app.checkAdminAuthToken(token)
@@ -208,14 +204,14 @@ func TestAdminAuthToken(t *testing.T) {
 }
 
 func TestClientAllowed(t *testing.T) {
-	app := testApp()
-	assert.Equal(t, true, app.clientAllowed("channel&67330d48-f668-4916-758b-f4eb1dd5b41d", ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
-	assert.Equal(t, true, app.clientAllowed("channel", ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
-	assert.Equal(t, false, app.clientAllowed("channel&long-client-id", ConnID("wrong-client-id")))
+	app := testNode()
+	assert.Equal(t, true, app.clientAllowed("channel&67330d48-f668-4916-758b-f4eb1dd5b41d", proto.ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
+	assert.Equal(t, true, app.clientAllowed("channel", proto.ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
+	assert.Equal(t, false, app.clientAllowed("channel&long-client-id", proto.ConnID("wrong-client-id")))
 }
 
 func TestNamespaceKey(t *testing.T) {
-	app := testApp()
+	app := testNode()
 	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns:channel"))
 	assert.Equal(t, NamespaceKey(""), app.namespaceKey("channel"))
 	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns:channel:opa"))
@@ -223,257 +219,89 @@ func TestNamespaceKey(t *testing.T) {
 }
 
 func TestApplicationNode(t *testing.T) {
-	app := testApp()
+	app := testNode()
+	err := app.Run(&RunOptions{Engine: NewTestEngine()})
+	assert.Equal(t, nil, err)
 	info := app.node()
-	assert.Equal(t, 0, info.Clients)
+	assert.Equal(t, int64(0), info.Metrics["num_clients"])
 	assert.NotEqual(t, 0, info.Started)
 }
 
 func BenchmarkNamespaceKey(b *testing.B) {
-	app := testApp()
-	ch := Channel("test")
+	app := testNode()
+	ch := proto.Channel("test")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		app.namespaceKey(ch)
 	}
 }
 
-func testPingControlCmd(uid string) *ControlMessage {
-	return newControlMessage(uid, "ping", []byte("{}"))
+func testPingControlCmd(uid string) *proto.ControlMessage {
+	return proto.NewControlMessage(uid, "ping", []byte("{}"))
 }
 
-func testUnsubscribeControlCmd(uid string) *ControlMessage {
-	return newControlMessage(uid, "unsubscribe", []byte("{}"))
+func testUnsubscribeControlCmd(uid string) *proto.ControlMessage {
+	return proto.NewControlMessage(uid, "unsubscribe", []byte("{}"))
 }
 
-func testDisconnectControlCmd(uid string) *ControlMessage {
-	return newControlMessage(uid, "disconnect", []byte("{}"))
+func testDisconnectControlCmd(uid string) *proto.ControlMessage {
+	return proto.NewControlMessage(uid, "disconnect", []byte("{}"))
 }
 
-func testWrongControlCmd(uid string) *ControlMessage {
-	return newControlMessage(uid, "wrong", []byte("{}"))
-}
-
-func TestPublish(t *testing.T) {
-	// Custom config
-	c := newTestConfig()
-
-	// Set custom options for default namespace
-	c.ChannelOptions.HistoryLifetime = 10
-	c.ChannelOptions.HistorySize = 2
-	c.ChannelOptions.HistoryDropInactive = true
-
-	app := testMemoryAppWithConfig(&c)
-	createTestClients(app, 10, 1, nil)
-	data, _ := json.Marshal(map[string]string{"test": "publish"})
-	err := app.Publish(Channel("channel-0"), data, ConnID(""), nil)
-	assert.Nil(t, err)
-
-	// Check publish to subscribed channels did result in saved history
-	hist, err := app.History(Channel("channel-0"))
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(hist))
-
-	// Publishing to a channel no one is subscribed to should be a no-op
-	err = app.Publish(Channel("some-other-channel"), data, ConnID(""), nil)
-	assert.Nil(t, err)
-
-	hist, err = app.History(Channel("some-other-channel"))
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(hist))
-
-}
-
-func TestPublishJoinLeave(t *testing.T) {
-	app := testMemoryApp()
-	createTestClients(app, 10, 1, nil)
-	err := app.pubJoin(Channel("channel-0"), ClientInfo{})
-	assert.Equal(t, nil, err)
-	err = app.pubLeave(Channel("channel-0"), ClientInfo{})
-	assert.Equal(t, nil, err)
+func testWrongControlCmd(uid string) *proto.ControlMessage {
+	return proto.NewControlMessage(uid, "wrong", []byte("{}"))
 }
 
 func TestControlMessages(t *testing.T) {
-	app := testApp()
-	app.Run()
+	app := testNode()
 	// command from this node
 	cmd := testPingControlCmd(app.uid)
-	err := app.controlMsg(cmd)
+	err := app.ControlMsg(cmd)
 	assert.Equal(t, nil, err)
 	cmd = testPingControlCmd("another_node")
-	err = app.controlMsg(cmd)
+	err = app.ControlMsg(cmd)
 	assert.Equal(t, nil, err)
-	err = app.controlMsg(testWrongControlCmd("another node"))
+	err = app.ControlMsg(testWrongControlCmd("another node"))
 	assert.Equal(t, ErrInvalidMessage, err)
-	err = app.controlMsg(testUnsubscribeControlCmd("another node"))
+	err = app.ControlMsg(testUnsubscribeControlCmd("another node"))
 	assert.Equal(t, nil, err)
-	err = app.controlMsg(testDisconnectControlCmd("another node"))
+	err = app.ControlMsg(testDisconnectControlCmd("another node"))
+	assert.Equal(t, nil, err)
+}
+
+func TestUnsubscribe(t *testing.T) {
+	app := testNode()
+	c, err := app.NewClient(&testSession{}, nil)
+	assert.Equal(t, nil, err)
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []proto.ClientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
+	err = c.(*client).handleCommands(cmds)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 1, len(c.Channels()))
+	app.unsubscribeUser(proto.UserID("user1"), proto.Channel("test"))
+	assert.Equal(t, 0, len(c.Channels()))
+}
+
+func TestPublishJoinLeave(t *testing.T) {
+	app := testNode()
+	err := app.pubJoin(proto.Channel("channel-0"), proto.ClientInfo{})
+	assert.Equal(t, nil, err)
+	err = app.pubLeave(proto.Channel("channel-0"), proto.ClientInfo{})
 	assert.Equal(t, nil, err)
 }
 
 func TestUpdateMetrics(t *testing.T) {
-	app := testMemoryApp()
-	createTestClients(app, 10, 1, nil)
+	app := testNode()
 	data, _ := json.Marshal(map[string]string{"test": "publish"})
-	err := app.Publish(Channel("channel-0"), data, ConnID(""), nil)
+	err := app.Publish(proto.Channel("channel-0"), data, proto.ConnID(""), nil)
 	assert.Equal(t, nil, err)
-	app.config.NodeMetricsInterval = 1 * time.Millisecond
+
+	config := app.Config()
+	config.NodeMetricsInterval = 1 * time.Millisecond
+	app.SetConfig(&config)
+
 	app.updateMetricsOnce()
 
 	// Absolute metrics should be updated
-	assert.Equal(t, int64(1), app.metrics.NumMsgPublished.LoadRaw())
-}
-
-func TestUnsubscribe(t *testing.T) {
-	app := testApp()
-	c, err := newClient(app, &testSession{})
-	assert.Equal(t, nil, err)
-	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	cmds := []clientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
-	err = c.handleCommands(cmds)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, 1, len(c.channels()))
-	app.unsubscribeUser(UserID("user1"), Channel("test"))
-	assert.Equal(t, 0, len(c.channels()))
-}
-
-// BenchmarkPubSubMessageReceive allows to estimate how many new messages we can convert to client JSON messages.
-func BenchmarkPubSubMessageReceive(b *testing.B) {
-	app := testMemoryApp()
-
-	// create one client so clientMsg really marshal into client response JSON.
-	c, _ := newClient(app, &testSession{})
-
-	messagePoolSize := 1000
-
-	messagePool := make([][]byte, messagePoolSize)
-
-	for i := 0; i < len(messagePool); i++ {
-		channel := Channel("test" + strconv.Itoa(i))
-		// subscribe client to channel so we need to encode message to JSON
-		app.clients.addSub(channel, c)
-		// add message to pool so we have messages for different channels.
-		testMsg := newMessage(channel, []byte("{\"hello world\": true}"), "", nil)
-		byteMessage, _ := testMsg.Marshal() // protobuf
-		messagePool[i] = byteMessage
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		var msg Message
-		err := msg.Unmarshal(messagePool[i%len(messagePool)]) // unmarshal from protobuf
-		if err != nil {
-			panic(err)
-		}
-		err = app.clientMsg(Channel("test"+strconv.Itoa(i%len(messagePool))), &msg)
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-// BenchmarkClientMsg allows to measue performance of marshaling messages into client response JSON.
-func BenchmarkClientMsg(b *testing.B) {
-	app := testMemoryApp()
-	// create one client so clientMsg really marshal into client response JSON.
-	c, _ := newClient(app, &testSession{})
-	messagePoolSize := 1000
-	messagePool := make([]*Message, messagePoolSize)
-
-	for i := 0; i < len(messagePool); i++ {
-		channel := Channel("test" + strconv.Itoa(i))
-		// subscribe client to channel so we need to encode message to JSON
-		app.clients.addSub(channel, c)
-		// add message to pool so we have messages for different channels.
-		testMsg := newMessage(channel, []byte("{\"hello world\": true}"), "", nil)
-		messagePool[i] = testMsg
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		err := app.clientMsg(Channel("test"+strconv.Itoa(i%len(messagePool))), messagePool[i%len(messagePool)])
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-// BenchmarkEngineMessageUnmarshal shows how fast we can decode messages coming from engine PUB/SUB.
-func BenchmarkEngineMessageUnmarshal(b *testing.B) {
-	messagePoolSize := 1000
-	messagePool := make([][]byte, messagePoolSize)
-
-	for i := 0; i < len(messagePool); i++ {
-		channel := Channel("test" + strconv.Itoa(i))
-		// add message to pool so we have messages for different channels.
-		testMsg := newMessage(channel, []byte("{\"hello world\": true}"), "", nil)
-		byteMessage, _ := testMsg.Marshal() // protobuf
-		messagePool[i] = byteMessage
-	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		var msg Message
-		err := msg.Unmarshal(messagePool[i%len(messagePool)]) // unmarshal from protobuf
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-// BenchmarkReceiveBroadcast measures how fast we can broadcast messages received
-// from engine into client channels in case of reasonably large different channel
-// amount.
-func BenchmarkReceiveBroadcast(b *testing.B) {
-	nChannels := 1000
-	nClients := 1000
-	nCommands := 10000
-	nMessages := nCommands * nClients
-	sink := make(chan []byte, nMessages)
-	app := testMemoryApp()
-	// Use very large initial capacity so that queue resizes do not affect benchmark.
-	app.config.ClientQueueInitialCapacity = 4000
-	app.config.ClientChannelLimit = 1000
-	createTestClients(app, nChannels, nClients, sink)
-
-	type received struct {
-		ch   Channel
-		data Message
-	}
-
-	var inputData []received
-
-	for i := 0; i < nCommands; i++ {
-		suffix := i % nChannels
-		ch := Channel(fmt.Sprintf("channel-%d", suffix))
-		msg := newMessage(ch, []byte("{}"), "", nil)
-		inputData = append(inputData, received{ch, *msg})
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-
-		done := make(chan struct{})
-
-		go func() {
-			count := 0
-			for {
-				select {
-				case <-sink:
-					count++
-				}
-				if count == nMessages {
-					close(done)
-					return
-				}
-			}
-		}()
-
-		go func() {
-			for _, item := range inputData {
-				app.clientMsg(item.ch, &item.data)
-			}
-		}()
-
-		<-done
-	}
-	b.StopTimer()
+	assert.Equal(t, int64(1), metricsRegistry.Counters.LoadValues()["num_msg_published"])
 }

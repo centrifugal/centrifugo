@@ -133,7 +133,7 @@ func (c *client) closeUnauthenticated() {
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
 func (c *client) updateChannelPresence(ch proto.Channel) {
-	chOpts, err := c.app.channelOpts(ch)
+	chOpts, err := c.app.ChannelOpts(ch)
 	if err != nil {
 		return
 	}
@@ -740,7 +740,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 		return resp, nil
 	}
 
-	chOpts, err := c.app.channelOpts(channel)
+	chOpts, err := c.app.ChannelOpts(channel)
 	if err != nil {
 		resp := proto.NewClientSubscribeResponse(body)
 		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceFix})
@@ -845,7 +845,7 @@ func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeClientCommand) (proto.Resp
 		Channel: channel,
 	}
 
-	chOpts, err := c.app.channelOpts(channel)
+	chOpts, err := c.app.ChannelOpts(channel)
 	if err != nil {
 		resp := proto.NewClientUnsubscribeResponse(body)
 		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceFix})

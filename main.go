@@ -241,6 +241,7 @@ func Main() {
 			if err = nod.Run(&node.RunOptions{Engine: e, Servers: servers}); err != nil {
 				logger.FATAL.Fatalln(err)
 			}
+			select {}
 		},
 	}
 

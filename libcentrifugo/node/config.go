@@ -165,17 +165,17 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// ChannelOpts searches for channel options for specified namespace key.
-func (c *Config) ChannelOpts(nk NamespaceKey) (bool, proto.ChannelOptions) {
+// channelOpts searches for channel options for specified namespace key.
+func (c *Config) channelOpts(nk NamespaceKey) (proto.ChannelOptions, error) {
 	if nk == NamespaceKey("") {
-		return true, c.ChannelOptions
+		return c.ChannelOptions, nil
 	}
 	for _, n := range c.Namespaces {
 		if n.Name == nk {
-			return true, n.ChannelOptions
+			return n.ChannelOptions, nil
 		}
 	}
-	return false, proto.ChannelOptions{}
+	return proto.ChannelOptions{}, ErrNamespaceNotFound
 }
 
 const (

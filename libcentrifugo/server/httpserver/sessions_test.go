@@ -1,4 +1,4 @@
-package node
+package httpserver
 
 import (
 	"errors"
