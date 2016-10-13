@@ -9,20 +9,13 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/satori/go.uuid"
 )
-
-// Session represents a connection between server and client.
-type Session interface {
-	// Send sends one message to session
-	Send([]byte) error
-	// Close closes the session with provided code and reason.
-	Close(status uint32, reason string) error
-}
 
 type RunOptions struct {
 	Engine   engine.Engine
@@ -50,10 +43,10 @@ type Node struct {
 	nodesMu sync.Mutex
 
 	// hub to manage client connections.
-	clients ClientHub
+	clients conns.ClientHub
 
 	// hub to manage admin connections.
-	admins AdminHub
+	admins conns.AdminHub
 
 	// config for application.
 	config *Config
@@ -117,8 +110,8 @@ func New(c *Config) *Node {
 	app := &Node{
 		uid:             uuid.NewV4().String(),
 		config:          c,
-		clients:         newClientHub(),
-		admins:          newAdminHub(),
+		clients:         conns.NewClientHub(),
+		admins:          conns.NewAdminHub(),
 		nodes:           make(map[string]proto.NodeInfo),
 		started:         time.Now().Unix(),
 		metricsSnapshot: make(map[string]int64),
@@ -139,6 +132,26 @@ func (app *Node) Config() Config {
 	c := *app.config
 	app.RUnlock()
 	return c
+}
+
+// Config returns a copy of node Config.
+func (app *Node) Engine() engine.Engine {
+	return app.engine
+}
+
+// Config returns a copy of node Config.
+func (app *Node) Mediator() Mediator {
+	return app.mediator
+}
+
+// ClientHub.
+func (app *Node) ClientHub() conns.ClientHub {
+	return app.clients
+}
+
+// AdminHub.
+func (app *Node) AdminHub() conns.AdminHub {
+	return app.admins
 }
 
 // Notify shutdown returns a channel which will be closed on node shutdown.
@@ -208,14 +221,6 @@ func (app *Node) Shutdown() error {
 		}
 	}
 	return app.clients.Shutdown()
-}
-
-func (app *Node) ClientHub() ClientHub {
-	return app.clients
-}
-
-func (app *Node) AdminHub() AdminHub {
-	return app.admins
 }
 
 func (app *Node) updateMetricsOnce() {
@@ -433,38 +438,19 @@ func (app *Node) ClientMsg(ch proto.Channel, msg *proto.Message) error {
 	return app.clients.Broadcast(ch, byteMessage)
 }
 
-// Publish sends a message to all clients subscribed on channel.
-func (app *Node) Publish(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) error {
-
-	if string(ch) == "" || len(data) == 0 {
-		return ErrInvalidMessage
-	}
-
-	chOpts, err := app.ChannelOpts(ch)
-	if err != nil {
-		return err
-	}
-
-	errCh := app.pubClient(ch, chOpts, data, client, info)
-	err = <-errCh
-	if err != nil {
-		logger.ERROR.Println(err)
-		return ErrInternalServerError
-	}
-
-	return nil
-}
-
 func makeErrChan(err error) <-chan error {
 	ret := make(chan error, 1)
 	ret <- err
 	return ret
 }
 
-// publish sends a message into channel with provided data, client and client info.
-// If fromClient argument is true then internally this method will check client permission to
-// publish into this channel.
-func (app *Node) publishAsync(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo, fromClient bool) <-chan error {
+// Publish sends a message to all clients subscribed on channel.
+func (app *Node) Publish(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) error {
+	return <-app.publishAsync(ch, data, client, info)
+}
+
+// publishAsync sends a message into channel with provided data, client and client info.
+func (app *Node) publishAsync(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
 	if string(ch) == "" || len(data) == 0 {
 		return makeErrChan(ErrInvalidMessage)
 	}
@@ -472,14 +458,6 @@ func (app *Node) publishAsync(ch proto.Channel, data []byte, client proto.ConnID
 	chOpts, err := app.ChannelOpts(ch)
 	if err != nil {
 		return makeErrChan(err)
-	}
-
-	app.RLock()
-	insecure := app.config.Insecure
-	app.RUnlock()
-
-	if fromClient && !chOpts.Publish && !insecure {
-		return makeErrChan(ErrPermissionDenied)
 	}
 
 	if app.mediator != nil {
@@ -492,13 +470,6 @@ func (app *Node) publishAsync(ch proto.Channel, data []byte, client proto.ConnID
 	}
 
 	return app.pubClient(ch, chOpts, data, client, info)
-}
-
-// publish sends a message into channel with provided data, client and client info.
-// If fromClient argument is true then internally this method will check client permission to
-// publish into this channel.
-func (app *Node) publish(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo, fromClient bool) error {
-	return <-app.publishAsync(ch, data, client, info, fromClient)
 }
 
 // pubControl publishes message into control channel so all running
@@ -528,15 +499,15 @@ func (app *Node) pubClient(ch proto.Channel, chOpts proto.ChannelOptions, data [
 	return app.engine.PublishMessage(ch, message, &chOpts)
 }
 
-// pubJoin allows to publish join message into channel when someone subscribes on it
+// PubJoin allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (app *Node) pubJoin(ch proto.Channel, info proto.ClientInfo) error {
+func (app *Node) PubJoin(ch proto.Channel, info proto.ClientInfo) error {
 	return <-app.engine.PublishJoin(ch, proto.NewJoinMessage(ch, info))
 }
 
-// pubLeave allows to publish join message into channel when someone subscribes on it
+// PubLeave allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (app *Node) pubLeave(ch proto.Channel, info proto.ClientInfo) error {
+func (app *Node) PubLeave(ch proto.Channel, info proto.ClientInfo) error {
 	return <-app.engine.PublishLeave(ch, proto.NewLeaveMessage(ch, info))
 }
 
@@ -570,9 +541,9 @@ func (app *Node) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) error {
 // contains information about current node.
 func (app *Node) pubPing() error {
 	app.RLock()
-	metricsRegistry.Gauges.Set("num_clients", int64(app.ClientHub().NumClients()))
-	metricsRegistry.Gauges.Set("num_unique_clients", int64(app.ClientHub().NumUniqueClients()))
-	metricsRegistry.Gauges.Set("num_channels", int64(app.ClientHub().NumChannels()))
+	metricsRegistry.Gauges.Set("num_clients", int64(app.clients.NumClients()))
+	metricsRegistry.Gauges.Set("num_unique_clients", int64(app.clients.NumUniqueClients()))
+	metricsRegistry.Gauges.Set("num_channels", int64(app.clients.NumChannels()))
 	metricsRegistry.Gauges.Set("num_goroutine", int64(runtime.NumGoroutine()))
 	metricsRegistry.Gauges.Set("num_cpu", int64(runtime.NumCPU()))
 	metricsRegistry.Gauges.Set("gomaxprocs", int64(runtime.GOMAXPROCS(-1)))
@@ -650,20 +621,20 @@ func (app *Node) pingCmd(cmd *proto.PingControlCommand) error {
 	return nil
 }
 
-// addConn registers authenticated connection in clientConnectionHub
+// AddConn registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand.
-func (app *Node) addConn(c ClientConn) error {
+func (app *Node) AddClientConn(c conns.ClientConn) error {
 	return app.clients.Add(c)
 }
 
 // removeConn removes client connection from connection registry.
-func (app *Node) removeConn(c ClientConn) error {
+func (app *Node) RemoveClientConn(c conns.ClientConn) error {
 	return app.clients.Remove(c)
 }
 
-// addSub registers subscription of connection on channel in both
+// AddClientSub registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
-func (app *Node) addSub(ch proto.Channel, c ClientConn) error {
+func (app *Node) AddClientSub(ch proto.Channel, c conns.ClientConn) error {
 	first, err := app.clients.AddSub(ch, c)
 	if err != nil {
 		return err
@@ -674,9 +645,9 @@ func (app *Node) addSub(ch proto.Channel, c ClientConn) error {
 	return nil
 }
 
-// removeSub removes subscription of connection on channel
+// RemoveClientSub removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
-func (app *Node) removeSub(ch proto.Channel, c ClientConn) error {
+func (app *Node) RemoveClientSub(ch proto.Channel, c conns.ClientConn) error {
 	empty, err := app.clients.RemoveSub(ch, c)
 	if err != nil {
 		return err
@@ -790,15 +761,15 @@ func (app *Node) ChannelOpts(ch proto.Channel) (proto.ChannelOptions, error) {
 }
 
 // addPresence proxies presence adding to engine.
-func (app *Node) addPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo) error {
+func (app *Node) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo) error {
 	app.RLock()
 	expire := int(app.config.PresenceExpireInterval.Seconds())
 	app.RUnlock()
 	return app.engine.AddPresence(ch, uid, info, expire)
 }
 
-// removePresence proxies presence removing to engine.
-func (app *Node) removePresence(ch proto.Channel, uid proto.ConnID) error {
+// RemovePresence proxies presence removing to engine.
+func (app *Node) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
 	return app.engine.RemovePresence(ch, uid)
 }
 
@@ -850,7 +821,7 @@ func (app *Node) History(ch proto.Channel) ([]proto.Message, error) {
 	return history, nil
 }
 
-func (app *Node) lastMessageID(ch proto.Channel) (proto.MessageID, error) {
+func (app *Node) LastMessageID(ch proto.Channel) (proto.MessageID, error) {
 	history, err := app.engine.History(ch, 1)
 	if err != nil {
 		return proto.MessageID(""), err
@@ -861,18 +832,18 @@ func (app *Node) lastMessageID(ch proto.Channel) (proto.MessageID, error) {
 	return proto.MessageID(history[0].UID), nil
 }
 
-// privateChannel checks if channel private and therefore subscription
+// PrivateChannel checks if channel private and therefore subscription
 // request on it must be properly signed on web application backend.
-func (app *Node) privateChannel(ch proto.Channel) bool {
+func (app *Node) PrivateChannel(ch proto.Channel) bool {
 	app.RLock()
 	defer app.RUnlock()
 	return strings.HasPrefix(string(ch), app.config.PrivateChannelPrefix)
 }
 
-// userAllowed checks if user can subscribe on channel - as channel
+// UserAllowed checks if user can subscribe on channel - as channel
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it.
-func (app *Node) userAllowed(ch proto.Channel, user proto.UserID) bool {
+func (app *Node) UserAllowed(ch proto.Channel, user proto.UserID) bool {
 	app.RLock()
 	defer app.RUnlock()
 	if !strings.Contains(string(ch), app.config.UserChannelBoundary) {
@@ -888,10 +859,10 @@ func (app *Node) userAllowed(ch proto.Channel, user proto.UserID) bool {
 	return false
 }
 
-// clientAllowed checks if client can subscribe on channel - as channel
+// ClientAllowed checks if client can subscribe on channel - as channel
 // can contain special part in the end to indicate which client allowed
 // to subscribe on it.
-func (app *Node) clientAllowed(ch proto.Channel, client proto.ConnID) bool {
+func (app *Node) ClientAllowed(ch proto.Channel, client proto.ConnID) bool {
 	app.RLock()
 	defer app.RUnlock()
 	if !strings.Contains(string(ch), app.config.ClientChannelBoundary) {

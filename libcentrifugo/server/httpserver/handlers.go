@@ -12,7 +12,8 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
-	"github.com/centrifugal/centrifugo/libcentrifugo/node"
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns/adminconn"
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns/clientconn"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/websocket"
@@ -261,7 +262,7 @@ func NewSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Opti
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
-	c, err := s.node.NewClient(newSockjsSession(sess), nil)
+	c, err := clientconn.New(s.node, newSockjsSession(sess), nil)
 	if err != nil {
 		logger.ERROR.Println(err)
 		sess.Close(3000, "Internal Server Error")
@@ -307,7 +308,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	ws.SetReadDeadline(time.Now().Add(pongWait))
 	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
-	c, err := s.node.NewClient(newWSSession(ws, pingInterval), nil)
+	c, err := clientconn.New(s.node, newWSSession(ws, pingInterval), nil)
 	if err != nil {
 		logger.ERROR.Println(err)
 		ws.Close()
@@ -459,7 +460,7 @@ func (s *HTTPServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if password == adminPassword {
 		w.Header().Set("Content-Type", "application/json")
-		token, err := node.AdminAuthToken(adminSecret)
+		token, err := adminconn.AdminAuthToken(adminSecret)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -543,7 +544,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 
 	sess := newWSSession(ws, pingInterval)
 
-	c, err := s.node.NewAdminClient(sess, nil)
+	c, err := adminconn.New(s.node, sess, nil)
 	if err != nil {
 		sess.Close(CloseStatus, ErrInternalServerError.Error())
 		return

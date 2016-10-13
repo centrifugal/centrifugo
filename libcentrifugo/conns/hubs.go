@@ -1,4 +1,4 @@
-package node
+package conns
 
 import (
 	"sync"
@@ -37,7 +37,7 @@ type clientHub struct {
 }
 
 // newClientHub initializes clientHub.
-func newClientHub() ClientHub {
+func NewClientHub() ClientHub {
 	return &clientHub{
 		conns: make(map[proto.ConnID]ClientConn),
 		users: make(map[proto.UserID]map[proto.ConnID]struct{}),
@@ -279,7 +279,7 @@ type adminHub struct {
 }
 
 // newAdminHub initializes new adminHub.
-func newAdminHub() AdminHub {
+func NewAdminHub() AdminHub {
 	return &adminHub{
 		connections: make(map[proto.ConnID]AdminConn),
 	}

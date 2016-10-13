@@ -1,4 +1,4 @@
-package node
+package clientconn
 
 import (
 	"encoding/json"

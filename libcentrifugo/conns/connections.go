@@ -1,4 +1,4 @@
-package node
+package conns
 
 import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
@@ -34,4 +34,12 @@ type AdminConn interface {
 	Send(message []byte) error
 	// Close closes admin's connection.
 	Close(reason string) error
+}
+
+// Session represents a connection between server and client.
+type Session interface {
+	// Send sends one message to session
+	Send([]byte) error
+	// Close closes the session with provided code and reason.
+	Close(status uint32, reason string) error
 }

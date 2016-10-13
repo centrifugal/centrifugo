@@ -89,7 +89,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 func (app *Node) publishCmd(cmd *proto.PublishAPICommand) (proto.Response, error) {
 	channel := cmd.Channel
 	data := cmd.Data
-	err := app.publish(channel, data, cmd.Client, nil, false)
+	err := app.Publish(channel, data, cmd.Client, nil)
 	resp := proto.NewAPIPublishResponse()
 	if err != nil {
 		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceNone})
@@ -110,7 +110,7 @@ func (app *Node) broadcastCmd(cmd *proto.BroadcastAPICommand) (proto.Response, e
 	}
 	errs := make([]<-chan error, len(channels))
 	for i, channel := range channels {
-		errs[i] = app.publishAsync(channel, data, cmd.Client, nil, false)
+		errs[i] = app.publishAsync(channel, data, cmd.Client, nil)
 	}
 	var firstErr error
 	for i := range errs {

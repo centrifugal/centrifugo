@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
 )
@@ -124,7 +125,7 @@ func testNodeWithConfig(c *Config) *Node {
 	return n
 }
 
-func newTestClient(n *Node, sess Session) ClientConn {
+func newTestClient(n *Node, sess conns.Session) conns.ClientConn {
 	c, _ := n.NewClient(sess, nil)
 	return c
 }

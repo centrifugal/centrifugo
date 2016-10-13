@@ -1,14 +1,22 @@
-package node
+package adminconn
 
 import (
 	"encoding/json"
+	"errors"
 	"sync"
 
 	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/securecookie"
 	"github.com/satori/go.uuid"
+)
+
+const (
+	// CloseStatus is status code set when closing client connections.
+	CloseStatus = 3000
 )
 
 const (
@@ -20,6 +28,18 @@ const (
 
 type AdminOptions struct{}
 
+var (
+	// ErrInvalidMessage means that you sent invalid message to Centrifugo.
+	ErrInvalidMessage = errors.New("invalid message")
+	// ErrUnauthorized means unauthorized access.
+	ErrUnauthorized = errors.New("unauthorized")
+	// ErrInternalServerError means server error, if returned this is a signal that
+	// something went wrong with Centrifugo itself.
+	ErrInternalServerError = errors.New("internal server error")
+	// ErrClientClosed means that client connection already closed.
+	ErrClientClosed = errors.New("client is closed")
+)
+
 func AdminAuthToken(secret string) (string, error) {
 	if secret == "" {
 		logger.ERROR.Println("provide admin_secret in configuration")
@@ -30,12 +50,11 @@ func AdminAuthToken(secret string) (string, error) {
 }
 
 // checkAdminAuthToken checks admin connection token which Centrifugo returns after admin login.
-func (app *Node) checkAdminAuthToken(token string) error {
+func checkAdminAuthToken(n *node.Node, token string) error {
 
-	app.RLock()
-	insecure := app.config.InsecureAdmin
-	secret := app.config.AdminSecret
-	app.RUnlock()
+	config := n.Config()
+	insecure := config.InsecureAdmin
+	secret := config.AdminSecret
 
 	if insecure {
 		return nil
@@ -69,9 +88,9 @@ const adminQueueMaxSize = 10485760
 // adminClient is a wrapper over admin connection.
 type adminClient struct {
 	sync.RWMutex
-	app           *Node
+	node          *node.Node
 	uid           proto.ConnID
-	sess          Session
+	sess          conns.Session
 	watch         bool
 	authenticated bool
 	closeCh       chan struct{}
@@ -80,10 +99,10 @@ type adminClient struct {
 	messages      bytequeue.ByteQueue
 }
 
-func (app *Node) NewAdminClient(sess Session, opts *AdminOptions) (AdminConn, error) {
+func New(n *node.Node, sess conns.Session, opts *AdminOptions) (conns.AdminConn, error) {
 	c := &adminClient{
 		uid:           proto.ConnID(uuid.NewV4().String()),
-		app:           app,
+		node:          n,
 		sess:          sess,
 		watch:         false,
 		authenticated: false,
@@ -92,12 +111,10 @@ func (app *Node) NewAdminClient(sess Session, opts *AdminOptions) (AdminConn, er
 		messages:      bytequeue.New(2),
 	}
 
-	app.RLock()
-	insecure := app.config.InsecureAdmin
-	app.RUnlock()
+	insecure := c.node.Config().InsecureAdmin
 
 	if insecure {
-		err := app.AdminHub().Add(c)
+		err := c.node.AdminHub().Add(c)
 		if err != nil {
 			return nil, err
 		}
@@ -128,7 +145,7 @@ func (c *adminClient) Close(reason string) error {
 	c.messages.Close()
 	c.sess.Close(CloseStatus, reason)
 
-	err := c.app.AdminHub().Remove(c)
+	err := c.node.AdminHub().Remove(c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil
@@ -222,7 +239,7 @@ func (c *adminClient) Handle(msg []byte) error {
 		case "info":
 			resp, err = c.infoCmd()
 		default:
-			resp, err = c.app.APICmd(command, nil)
+			resp, err = c.node.APICmd(command, nil)
 		}
 		if err != nil {
 			c.Unlock()
@@ -254,12 +271,12 @@ func (c *adminClient) Handle(msg []byte) error {
 // registry if token correct
 func (c *adminClient) connectCmd(cmd *proto.ConnectAdminCommand) (proto.Response, error) {
 
-	err := c.app.checkAdminAuthToken(cmd.Token)
+	err := checkAdminAuthToken(c.node, cmd.Token)
 	if err != nil {
 		return nil, ErrUnauthorized
 	}
 
-	err = c.app.AdminHub().Add(c)
+	err = c.node.AdminHub().Add(c)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil, ErrInternalServerError
@@ -276,12 +293,10 @@ func (c *adminClient) connectCmd(cmd *proto.ConnectAdminCommand) (proto.Response
 
 // infoCmd handles info command from admin client.
 func (c *adminClient) infoCmd() (proto.Response, error) {
-	c.app.RLock()
-	defer c.app.RUnlock()
 	body := proto.AdminInfoBody{
 		Data: map[string]interface{}{
-			"engine": c.app.engine.Name(),
-			"config": c.app.config,
+			"engine": c.node.Engine().Name(),
+			"config": c.node.Config(),
 		},
 	}
 	return proto.NewAPIAdminInfoResponse(body), nil
