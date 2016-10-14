@@ -568,6 +568,13 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 		return nil, proto.ErrLimitExceeded
 	}
 
+	if c.node.Mediator() != nil {
+		pass := c.node.Mediator().Connect(c.uid, c.user)
+		if !pass {
+			return nil, proto.ErrPermissionDenied
+		}
+	}
+
 	c.user = user
 
 	body := proto.ConnectBody{}
@@ -600,10 +607,6 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil, proto.ErrInternalServerError
-	}
-
-	if c.node.Mediator() != nil {
-		c.node.Mediator().Connect(c.uid, c.user)
 	}
 
 	if timeToExpire > 0 {
@@ -771,6 +774,15 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 		c.channelInfo[channel] = []byte(cmd.Info)
 	}
 
+	if c.node.Mediator() != nil {
+		pass := c.node.Mediator().Subscribe(channel, c.uid, c.user)
+		if !pass {
+			resp := proto.NewClientSubscribeResponse(body)
+			resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
+			return resp, nil
+		}
+	}
+
 	c.channels[channel] = true
 
 	err = c.node.AddClientSub(channel, c)
@@ -823,10 +835,6 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 				logger.ERROR.Println(err)
 			}
 		}()
-	}
-
-	if c.node.Mediator() != nil {
-		c.node.Mediator().Subscribe(channel, c.uid, c.user)
 	}
 
 	body.Status = true
