@@ -382,7 +382,7 @@ func (app *Node) ControlMsg(cmd *proto.ControlMessage) error {
 		err := json.Unmarshal(*params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return ErrInvalidMessage
+			return proto.ErrInvalidMessage
 		}
 		return app.pingCmd(&cmd)
 	case "unsubscribe":
@@ -390,7 +390,7 @@ func (app *Node) ControlMsg(cmd *proto.ControlMessage) error {
 		err := json.Unmarshal(*params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return ErrInvalidMessage
+			return proto.ErrInvalidMessage
 		}
 		return app.unsubscribeUser(cmd.User, cmd.Channel)
 	case "disconnect":
@@ -398,12 +398,12 @@ func (app *Node) ControlMsg(cmd *proto.ControlMessage) error {
 		err := json.Unmarshal(*params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return ErrInvalidMessage
+			return proto.ErrInvalidMessage
 		}
 		return app.disconnectUser(cmd.User)
 	default:
 		logger.ERROR.Println("unknown control message method", method)
-		return ErrInvalidMessage
+		return proto.ErrInvalidMessage
 	}
 }
 
@@ -452,21 +452,12 @@ func (app *Node) Publish(ch proto.Channel, data []byte, client proto.ConnID, inf
 // publishAsync sends a message into channel with provided data, client and client info.
 func (app *Node) publishAsync(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
 	if string(ch) == "" || len(data) == 0 {
-		return makeErrChan(ErrInvalidMessage)
+		return makeErrChan(proto.ErrInvalidMessage)
 	}
 
 	chOpts, err := app.ChannelOpts(ch)
 	if err != nil {
 		return makeErrChan(err)
-	}
-
-	if app.mediator != nil {
-		// If mediator is set then we don't need to publish message
-		// immediately as mediator will decide itself what to do with it.
-		pass := app.mediator.Message(ch, data, client, info)
-		if !pass {
-			return makeErrChan(nil)
-		}
 	}
 
 	return app.pubClient(ch, chOpts, data, client, info)
@@ -663,7 +654,7 @@ func (app *Node) RemoveClientSub(ch proto.Channel, c conns.ClientConn) error {
 func (app *Node) Unsubscribe(user proto.UserID, ch proto.Channel) error {
 
 	if string(user) == "" {
-		return ErrInvalidMessage
+		return proto.ErrInvalidMessage
 	}
 
 	if string(ch) != "" {
@@ -676,12 +667,12 @@ func (app *Node) Unsubscribe(user proto.UserID, ch proto.Channel) error {
 	// First unsubscribe on this node.
 	err := app.unsubscribeUser(user, ch)
 	if err != nil {
-		return ErrInternalServerError
+		return proto.ErrInternalServerError
 	}
 	// Second send unsubscribe control message to other nodes.
 	err = app.pubUnsubscribe(user, ch)
 	if err != nil {
-		return ErrInternalServerError
+		return proto.ErrInternalServerError
 	}
 	return nil
 }
@@ -714,18 +705,18 @@ func (app *Node) unsubscribeUser(user proto.UserID, ch proto.Channel) error {
 func (app *Node) Disconnect(user proto.UserID) error {
 
 	if string(user) == "" {
-		return ErrInvalidMessage
+		return proto.ErrInvalidMessage
 	}
 
 	// first disconnect user from this node
 	err := app.disconnectUser(user)
 	if err != nil {
-		return ErrInternalServerError
+		return proto.ErrInternalServerError
 	}
 	// second send disconnect control message to other nodes
 	err = app.pubDisconnect(user)
 	if err != nil {
-		return ErrInternalServerError
+		return proto.ErrInternalServerError
 	}
 	return nil
 }
@@ -777,7 +768,7 @@ func (app *Node) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
 func (app *Node) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
 
 	if string(ch) == "" {
-		return map[proto.ConnID]proto.ClientInfo{}, ErrInvalidMessage
+		return map[proto.ConnID]proto.ClientInfo{}, proto.ErrInvalidMessage
 	}
 
 	chOpts, err := app.ChannelOpts(ch)
@@ -786,13 +777,13 @@ func (app *Node) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, 
 	}
 
 	if !chOpts.Presence {
-		return map[proto.ConnID]proto.ClientInfo{}, ErrNotAvailable
+		return map[proto.ConnID]proto.ClientInfo{}, proto.ErrNotAvailable
 	}
 
 	presence, err := app.engine.Presence(ch)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return map[proto.ConnID]proto.ClientInfo{}, ErrInternalServerError
+		return map[proto.ConnID]proto.ClientInfo{}, proto.ErrInternalServerError
 	}
 	return presence, nil
 }
@@ -801,7 +792,7 @@ func (app *Node) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, 
 func (app *Node) History(ch proto.Channel) ([]proto.Message, error) {
 
 	if string(ch) == "" {
-		return []proto.Message{}, ErrInvalidMessage
+		return []proto.Message{}, proto.ErrInvalidMessage
 	}
 
 	chOpts, err := app.ChannelOpts(ch)
@@ -810,13 +801,13 @@ func (app *Node) History(ch proto.Channel) ([]proto.Message, error) {
 	}
 
 	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
-		return []proto.Message{}, ErrNotAvailable
+		return []proto.Message{}, proto.ErrNotAvailable
 	}
 
 	history, err := app.engine.History(ch, 0)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return []proto.Message{}, ErrInternalServerError
+		return []proto.Message{}, proto.ErrInternalServerError
 	}
 	return history, nil
 }

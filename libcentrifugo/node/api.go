@@ -24,7 +24,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = app.publishCmd(&cmd)
 	case "broadcast":
@@ -32,7 +32,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = app.broadcastCmd(&cmd)
 	case "unsubscribe":
@@ -40,7 +40,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = app.unsubcribeCmd(&cmd)
 	case "disconnect":
@@ -48,7 +48,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = app.disconnectCmd(&cmd)
 	case "presence":
@@ -56,7 +56,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = app.presenceCmd(&cmd)
 	case "history":
@@ -64,7 +64,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = app.historyCmd(&cmd)
 	case "channels":
@@ -74,7 +74,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 	case "node":
 		resp, err = app.nodeCmd()
 	default:
-		return nil, ErrMethodNotFound
+		return nil, proto.ErrMethodNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -105,7 +105,7 @@ func (app *Node) broadcastCmd(cmd *proto.BroadcastAPICommand) (proto.Response, e
 	data := cmd.Data
 	if len(channels) == 0 {
 		logger.ERROR.Println("channels required for broadcast")
-		resp.SetErr(proto.ResponseError{ErrInvalidMessage, proto.ErrorAdviceFix})
+		resp.SetErr(proto.ResponseError{proto.ErrInvalidMessage, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 	errs := make([]<-chan error, len(channels))
@@ -194,7 +194,7 @@ func (app *Node) channelsCmd() (proto.Response, error) {
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp := proto.NewAPIChannelsResponse(body)
-		resp.SetErr(proto.ResponseError{ErrInternalServerError, proto.ErrorAdviceNone})
+		resp.SetErr(proto.ResponseError{proto.ErrInternalServerError, proto.ErrorAdviceNone})
 		return resp, nil
 	}
 	body.Data = channels

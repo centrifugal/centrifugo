@@ -2,7 +2,6 @@ package clientconn
 
 import (
 	"encoding/json"
-	"errors"
 	"strconv"
 	"sync"
 	"time"
@@ -21,32 +20,6 @@ import (
 const (
 	// CloseStatus is status code set when closing client connections.
 	CloseStatus = 3000
-)
-
-var (
-	// ErrInvalidMessage means that you sent invalid message to Centrifugo.
-	ErrInvalidMessage = errors.New("invalid message")
-	// ErrInvalidToken means that client sent invalid token.
-	ErrInvalidToken = errors.New("invalid token")
-	// ErrUnauthorized means unauthorized access.
-	ErrUnauthorized = errors.New("unauthorized")
-	// ErrMethodNotFound means that method sent in command does not exist.
-	ErrMethodNotFound = errors.New("method not found")
-	// ErrPermissionDenied means that access to resource not allowed.
-	ErrPermissionDenied = errors.New("permission denied")
-	// ErrInternalServerError means server error, if returned this is a signal that
-	// something went wrong with Centrifugo itself.
-	ErrInternalServerError = errors.New("internal server error")
-	// ErrAlreadySubscribed returned when client wants to subscribe on channel
-	// it already subscribed to.
-	ErrAlreadySubscribed = errors.New("already subscribed")
-	// ErrLimitExceeded says that some sort of limit exceeded, server logs should give
-	// more detailed information.
-	ErrLimitExceeded = errors.New("limit exceeded")
-	// ErrSendTimeout means that timeout occurred when sending message into connection.
-	ErrSendTimeout = errors.New("send timeout")
-	// ErrClientClosed means that client connection already closed.
-	ErrClientClosed = errors.New("client is closed")
 )
 
 type ClientOptions struct{}
@@ -135,7 +108,7 @@ func (c *client) sendMessage(msg []byte) error {
 		case err := <-sent:
 			return err
 		case <-to:
-			return ErrSendTimeout
+			return proto.ErrSendTimeout
 		}
 	} else {
 		// Do not use any timeout when sending, it's recommended to keep
@@ -243,12 +216,12 @@ func (c *client) Unsubscribe(ch proto.Channel) error {
 func (c *client) Send(message []byte) error {
 	ok := c.messages.Add(message)
 	if !ok {
-		return ErrClientClosed
+		return proto.ErrClientClosed
 	}
 	plugin.Metrics.Counters.Inc("num_msg_queued")
 	if c.messages.Size() > c.maxQueueSize {
 		c.Close("slow")
-		return ErrClientClosed
+		return proto.ErrClientClosed
 	}
 	return nil
 }
@@ -348,37 +321,37 @@ func (c *client) Handle(msg []byte) error {
 
 	if len(msg) == 0 {
 		logger.ERROR.Println("empty client request received")
-		c.disconnect(ErrInvalidMessage.Error(), false)
+		c.disconnect(proto.ErrInvalidMessage.Error(), false)
 		time.Sleep(waitBeforeClose)
-		return ErrInvalidMessage
+		return proto.ErrInvalidMessage
 	} else if len(msg) > c.maxRequestSize {
 		logger.ERROR.Println("client request exceeds max request size limit")
-		c.disconnect(ErrLimitExceeded.Error(), false)
+		c.disconnect(proto.ErrLimitExceeded.Error(), false)
 		time.Sleep(waitBeforeClose)
-		return ErrLimitExceeded
+		return proto.ErrLimitExceeded
 	}
 
 	commands, err := proto.ClientCommandsFromJSON(msg)
 	if err != nil {
 		logger.ERROR.Println(err)
-		c.disconnect(ErrInvalidMessage.Error(), false)
+		c.disconnect(proto.ErrInvalidMessage.Error(), false)
 		time.Sleep(waitBeforeClose)
-		return ErrInvalidMessage
+		return proto.ErrInvalidMessage
 	}
 
 	if len(commands) == 0 {
 		// Nothing to do - in normal workflow such commands should never come.
 		// Let's be strict here to prevent client sending useless messages.
 		logger.ERROR.Println("got request from client without commands")
-		c.disconnect(ErrInvalidMessage.Error(), false)
+		c.disconnect(proto.ErrInvalidMessage.Error(), false)
 		time.Sleep(waitBeforeClose)
-		return ErrInvalidMessage
+		return proto.ErrInvalidMessage
 	}
 
 	err = c.handleCommands(commands)
 	if err != nil {
 		reconnect := false
-		if err == ErrInternalServerError {
+		if err == proto.ErrInternalServerError {
 			// In case of any internal server error we give client an advice to reconnect.
 			// Any other error results in disconnect without reconnect.
 			reconnect = true
@@ -418,7 +391,7 @@ func (c *client) handleCommands(cmds []proto.ClientCommand) error {
 	jsonResp, err := json.Marshal(mr)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return ErrInvalidMessage
+		return proto.ErrInvalidMessage
 	}
 	err = c.Send(jsonResp)
 	return err
@@ -431,7 +404,7 @@ func (c *client) handleCmd(command proto.ClientCommand) (proto.Response, error) 
 	defer c.Unlock()
 
 	if c.closed {
-		return nil, ErrClientClosed
+		return nil, proto.ErrClientClosed
 	}
 
 	var err error
@@ -441,7 +414,7 @@ func (c *client) handleCmd(command proto.ClientCommand) (proto.Response, error) 
 	params := command.Params
 
 	if method != "connect" && !c.authenticated {
-		return nil, ErrUnauthorized
+		return nil, proto.ErrUnauthorized
 	}
 
 	switch method {
@@ -449,60 +422,60 @@ func (c *client) handleCmd(command proto.ClientCommand) (proto.Response, error) 
 		var cmd proto.ConnectClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = c.connectCmd(&cmd)
 	case "refresh":
 		var cmd proto.RefreshClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = c.refreshCmd(&cmd)
 	case "subscribe":
 		var cmd proto.SubscribeClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = c.subscribeCmd(&cmd)
 	case "unsubscribe":
 		var cmd proto.UnsubscribeClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = c.unsubscribeCmd(&cmd)
 	case "publish":
 		var cmd proto.PublishClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = c.publishCmd(&cmd)
 	case "ping":
 		var cmd proto.PingClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = c.pingCmd(&cmd)
 	case "presence":
 		var cmd proto.PresenceClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = c.presenceCmd(&cmd)
 	case "history":
 		var cmd proto.HistoryClientCommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		resp, err = c.historyCmd(&cmd)
 	default:
-		return nil, ErrMethodNotFound
+		return nil, proto.ErrMethodNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -549,7 +522,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 
 	if c.authenticated {
 		logger.ERROR.Println("connect error: client already authenticated")
-		return nil, ErrInvalidMessage
+		return nil, proto.ErrInvalidMessage
 	}
 
 	user := cmd.User
@@ -562,6 +535,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	closeDelay := config.ExpiredConnectionCloseDelay
 	connLifetime := config.ConnLifetime
 	version := config.Version
+	userConnectionLimit := config.UserConnectionLimit
 
 	var timestamp string
 	var token string
@@ -577,16 +551,21 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 		isValid := auth.CheckClientToken(secret, string(user), timestamp, info, token)
 		if !isValid {
 			logger.ERROR.Println("invalid token for user", user)
-			return nil, ErrInvalidToken
+			return nil, proto.ErrInvalidToken
 		}
 		ts, err := strconv.Atoi(timestamp)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		c.timestamp = int64(ts)
 	} else {
 		c.timestamp = time.Now().Unix()
+	}
+
+	if userConnectionLimit > 0 && user != "" && len(c.node.ClientHub().UserConnections(user)) >= userConnectionLimit {
+		logger.ERROR.Printf("limit of connections %d for user %s reached", userConnectionLimit, user)
+		return nil, proto.ErrLimitExceeded
 	}
 
 	c.user = user
@@ -620,7 +599,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	err := c.node.AddClientConn(c)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return nil, ErrInternalServerError
+		return nil, proto.ErrInternalServerError
 	}
 
 	if c.node.Mediator() != nil {
@@ -651,13 +630,13 @@ func (c *client) refreshCmd(cmd *proto.RefreshClientCommand) (proto.Response, er
 	isValid := auth.CheckClientToken(secret, string(user), timestamp, info, token)
 	if !isValid {
 		logger.ERROR.Println("invalid refresh token for user", user)
-		return nil, ErrInvalidToken
+		return nil, proto.ErrInvalidToken
 	}
 
 	ts, err := strconv.Atoi(timestamp)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return nil, ErrInvalidMessage
+		return nil, proto.ErrInvalidMessage
 	}
 
 	closeDelay := config.ExpiredConnectionCloseDelay
@@ -724,7 +703,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 
 	channel := cmd.Channel
 	if channel == "" {
-		return nil, ErrInvalidMessage
+		return nil, proto.ErrInvalidMessage
 	}
 
 	config := c.node.Config()
@@ -740,26 +719,26 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 	if len(channel) > maxChannelLength {
 		logger.ERROR.Printf("channel too long: max %d, got %d", maxChannelLength, len(channel))
 		resp := proto.NewClientSubscribeResponse(body)
-		resp.SetErr(proto.ResponseError{ErrLimitExceeded, proto.ErrorAdviceFix})
+		resp.SetErr(proto.ResponseError{proto.ErrLimitExceeded, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
 	if len(c.channels) >= channelLimit {
 		logger.ERROR.Printf("maximimum limit of channels per client reached: %d", channelLimit)
 		resp := proto.NewClientSubscribeResponse(body)
-		resp.SetErr(proto.ResponseError{ErrLimitExceeded, proto.ErrorAdviceFix})
+		resp.SetErr(proto.ResponseError{proto.ErrLimitExceeded, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
 	if _, ok := c.channels[channel]; ok {
 		resp := proto.NewClientSubscribeResponse(body)
-		resp.SetErr(proto.ResponseError{ErrAlreadySubscribed, proto.ErrorAdviceFix})
+		resp.SetErr(proto.ResponseError{proto.ErrAlreadySubscribed, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
 	if !c.node.UserAllowed(channel, c.user) || !c.node.ClientAllowed(channel, c.uid) {
 		resp := proto.NewClientSubscribeResponse(body)
-		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
+		resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
@@ -772,7 +751,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 
 	if !chOpts.Anonymous && c.user == "" && !insecure {
 		resp := proto.NewClientSubscribeResponse(body)
-		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
+		resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
@@ -780,13 +759,13 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 		// private channel - subscription must be properly signed
 		if string(c.uid) != string(cmd.Client) {
 			resp := proto.NewClientSubscribeResponse(body)
-			resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
+			resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
 			return resp, nil
 		}
 		isValid := auth.CheckChannelSign(secret, string(cmd.Client), string(channel), cmd.Info, cmd.Sign)
 		if !isValid {
 			resp := proto.NewClientSubscribeResponse(body)
-			resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
+			resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
 			return resp, nil
 		}
 		c.channelInfo[channel] = []byte(cmd.Info)
@@ -798,7 +777,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp := proto.NewClientSubscribeResponse(body)
-		return resp, ErrInternalServerError
+		return resp, proto.ErrInternalServerError
 	}
 
 	info := c.info(channel)
@@ -808,7 +787,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 		if err != nil {
 			logger.ERROR.Println(err)
 			resp := proto.NewClientSubscribeResponse(body)
-			return resp, ErrInternalServerError
+			return resp, proto.ErrInternalServerError
 		}
 	}
 
@@ -861,7 +840,7 @@ func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeClientCommand) (proto.Resp
 
 	channel := cmd.Channel
 	if channel == "" {
-		return nil, ErrInvalidMessage
+		return nil, proto.ErrInvalidMessage
 	}
 
 	body := proto.UnsubscribeBody{
@@ -898,7 +877,7 @@ func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeClientCommand) (proto.Resp
 		if err != nil {
 			logger.ERROR.Println(err)
 			resp := proto.NewClientUnsubscribeResponse(body)
-			resp.SetErr(proto.ResponseError{ErrInternalServerError, proto.ErrorAdviceNone})
+			resp.SetErr(proto.ResponseError{proto.ErrInternalServerError, proto.ErrorAdviceNone})
 			return resp, nil
 		}
 
@@ -928,7 +907,7 @@ func (c *client) publishCmd(cmd *proto.PublishClientCommand) (proto.Response, er
 
 	if _, ok := c.channels[channel]; !ok {
 		resp := proto.NewClientPublishResponse(body)
-		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
+		resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
@@ -938,7 +917,7 @@ func (c *client) publishCmd(cmd *proto.PublishClientCommand) (proto.Response, er
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp := proto.NewClientPublishResponse(body)
-		resp.SetErr(proto.ResponseError{ErrInternalServerError, proto.ErrorAdviceRetry})
+		resp.SetErr(proto.ResponseError{proto.ErrInternalServerError, proto.ErrorAdviceRetry})
 		return resp, nil
 	}
 
@@ -946,8 +925,19 @@ func (c *client) publishCmd(cmd *proto.PublishClientCommand) (proto.Response, er
 
 	if !chOpts.Publish && !insecure {
 		resp := proto.NewClientPublishResponse(body)
-		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceFix})
+		resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
+	}
+
+	if c.node.Mediator() != nil {
+		// If mediator is set then we don't need to publish message
+		// immediately as mediator will decide itself what to do with it.
+		pass := c.node.Mediator().Message(channel, data, c.uid, &info)
+		if !pass {
+			resp := proto.NewClientPublishResponse(body)
+			resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
+			return resp, nil
+		}
 	}
 
 	err = c.node.Publish(channel, data, c.uid, &info)
@@ -977,7 +967,7 @@ func (c *client) presenceCmd(cmd *proto.PresenceClientCommand) (proto.Response, 
 
 	if _, ok := c.channels[channel]; !ok {
 		resp := proto.NewClientPresenceResponse(body)
-		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
+		resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
@@ -1007,7 +997,7 @@ func (c *client) historyCmd(cmd *proto.HistoryClientCommand) (proto.Response, er
 
 	if _, ok := c.channels[channel]; !ok {
 		resp := proto.NewClientHistoryResponse(body)
-		resp.SetErr(proto.ResponseError{ErrPermissionDenied, proto.ErrorAdviceFix})
+		resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 

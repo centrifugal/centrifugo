@@ -2,7 +2,6 @@ package adminconn
 
 import (
 	"encoding/json"
-	"errors"
 	"sync"
 
 	"github.com/FZambia/go-logger"
@@ -28,22 +27,10 @@ const (
 
 type AdminOptions struct{}
 
-var (
-	// ErrInvalidMessage means that you sent invalid message to Centrifugo.
-	ErrInvalidMessage = errors.New("invalid message")
-	// ErrUnauthorized means unauthorized access.
-	ErrUnauthorized = errors.New("unauthorized")
-	// ErrInternalServerError means server error, if returned this is a signal that
-	// something went wrong with Centrifugo itself.
-	ErrInternalServerError = errors.New("internal server error")
-	// ErrClientClosed means that client connection already closed.
-	ErrClientClosed = errors.New("client is closed")
-)
-
 func AdminAuthToken(secret string) (string, error) {
 	if secret == "" {
 		logger.ERROR.Println("provide admin_secret in configuration")
-		return "", ErrInternalServerError
+		return "", proto.ErrInternalServerError
 	}
 	s := securecookie.New([]byte(secret), nil)
 	return s.Encode(AuthTokenKey, AuthTokenValue)
@@ -62,22 +49,22 @@ func checkAdminAuthToken(n *node.Node, token string) error {
 
 	if secret == "" {
 		logger.ERROR.Println("provide admin_secret in configuration")
-		return ErrUnauthorized
+		return proto.ErrUnauthorized
 	}
 
 	if token == "" {
-		return ErrUnauthorized
+		return proto.ErrUnauthorized
 	}
 
 	s := securecookie.New([]byte(secret), nil)
 	var val string
 	err := s.Decode(AuthTokenKey, token, &val)
 	if err != nil {
-		return ErrUnauthorized
+		return proto.ErrUnauthorized
 	}
 
 	if val != AuthTokenValue {
-		return ErrUnauthorized
+		return proto.ErrUnauthorized
 	}
 	return nil
 }
@@ -179,7 +166,7 @@ func (c *adminClient) UID() proto.ConnID {
 func (c *adminClient) Send(message []byte) error {
 	if c.messages.Size() > c.maxQueueSize {
 		c.Close("slow")
-		return ErrClientClosed
+		return proto.ErrClientClosed
 	}
 	if !c.watch {
 		// At moment we only use this method to send asynchronous
@@ -194,7 +181,7 @@ func (c *adminClient) Send(message []byte) error {
 	}
 	ok := c.messages.Add(message)
 	if !ok {
-		return ErrClientClosed
+		return proto.ErrClientClosed
 	}
 	return nil
 }
@@ -205,7 +192,7 @@ func (c *adminClient) Handle(msg []byte) error {
 	cmds, err := proto.APICommandsFromJSON(msg)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return ErrInvalidMessage
+		return proto.ErrInvalidMessage
 	}
 	if len(cmds) == 0 {
 		return nil
@@ -219,7 +206,7 @@ func (c *adminClient) Handle(msg []byte) error {
 
 		if command.Method != "connect" && !c.authenticated {
 			c.Unlock()
-			return ErrUnauthorized
+			return proto.ErrUnauthorized
 		}
 
 		var resp proto.Response
@@ -231,7 +218,7 @@ func (c *adminClient) Handle(msg []byte) error {
 			if err != nil {
 				c.Unlock()
 				logger.ERROR.Println(err)
-				return ErrInvalidMessage
+				return proto.ErrInvalidMessage
 			}
 			resp, err = c.connectCmd(&cmd)
 		case "ping":
@@ -256,12 +243,12 @@ func (c *adminClient) Handle(msg []byte) error {
 	respBytes, err := json.Marshal(mr)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return ErrInternalServerError
+		return proto.ErrInternalServerError
 	}
 
 	err = c.Send(respBytes)
 	if err != nil {
-		return ErrInternalServerError
+		return proto.ErrInternalServerError
 	}
 
 	return nil
@@ -273,13 +260,13 @@ func (c *adminClient) connectCmd(cmd *proto.ConnectAdminCommand) (proto.Response
 
 	err := checkAdminAuthToken(c.node, cmd.Token)
 	if err != nil {
-		return nil, ErrUnauthorized
+		return nil, proto.ErrUnauthorized
 	}
 
 	err = c.node.AdminHub().Add(c)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return nil, ErrInternalServerError
+		return nil, proto.ErrInternalServerError
 	}
 
 	c.authenticated = true

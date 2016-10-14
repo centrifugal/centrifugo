@@ -46,6 +46,7 @@ func newConfig(v *viper.Viper) *node.Config {
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientQueueInitialCapacity = v.GetInt("client_queue_initial_capacity")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
+	cfg.UserConnectionLimit = v.GetInt("user_connection_limit")
 	cfg.Insecure = v.GetBool("insecure")
 	cfg.InsecureAPI = v.GetBool("insecure_api")
 	cfg.InsecureAdmin = v.GetBool("insecure_admin")

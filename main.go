@@ -94,14 +94,14 @@ func Main() {
 
 	var debug bool
 	var name string
-	var admin bool
-	var insecureAdmin bool
 	var engn string
 	var srvs string
-	var logLevel string
-	var logFile string
+	var admin bool
 	var insecure bool
 	var insecureAPI bool
+	var insecureAdmin bool
+	var logLevel string
+	var logFile string
 
 	var rootCmd = &cobra.Command{
 		Use:   "",
@@ -114,10 +114,11 @@ func Main() {
 			viper.SetDefault("gomaxprocs", 0)
 			viper.SetDefault("engine", "memory")
 			viper.SetDefault("servers", "http")
-
 			viper.SetDefault("debug", false)
 			viper.SetDefault("name", "")
+
 			viper.SetDefault("max_channel_length", 255)
+			viper.SetDefault("user_connection_limit", 0)
 			viper.SetDefault("node_ping_interval", 3)
 			viper.SetDefault("message_send_timeout", 0)
 			viper.SetDefault("ping_interval", 25)
@@ -248,8 +249,8 @@ func Main() {
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringVarP(&engn, "engine", "e", "memory", "engine to use: memory or redis")
 	rootCmd.Flags().StringVarP(&srvs, "servers", "s", "http", "comma-separated servers to use")
-	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "enable debug mode")
 	rootCmd.Flags().StringVarP(&name, "name", "n", "", "unique node name")
+	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "enable debug mode")
 	rootCmd.Flags().BoolVarP(&admin, "admin", "", false, "enable admin socket")
 	rootCmd.Flags().BoolVarP(&insecure, "insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolVarP(&insecureAPI, "insecure_api", "", false, "use insecure API mode")

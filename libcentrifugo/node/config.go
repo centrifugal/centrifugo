@@ -107,6 +107,9 @@ type Config struct {
 	// ClientChannelLimit sets upper limit of channels each client can subscribe to.
 	ClientChannelLimit int `json:"client_channel_limit"`
 
+	// UserConnectionLimit limits number of connections from user with the same ID.
+	UserConnectionLimit int `json:"user_connection_limit"`
+
 	// PrivateChannelPrefix is a prefix in channel name which indicates that
 	// channel is private.
 	PrivateChannelPrefix string `json:"private_channel_prefix"`
@@ -175,7 +178,7 @@ func (c *Config) channelOpts(nk NamespaceKey) (proto.ChannelOptions, error) {
 			return n.ChannelOptions, nil
 		}
 	}
-	return proto.ChannelOptions{}, ErrNamespaceNotFound
+	return proto.ChannelOptions{}, proto.ErrNamespaceNotFound
 }
 
 const (

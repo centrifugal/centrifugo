@@ -2,7 +2,6 @@ package proto
 
 import (
 	"encoding/json"
-	"errors"
 	"sync"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
@@ -55,9 +54,8 @@ type ApiCommand struct {
 }
 
 var (
-	arrayJSONPrefix   byte = '['
-	objectJSONPrefix  byte = '{'
-	ErrInvalidMessage      = errors.New("malformed message")
+	arrayJSONPrefix  byte = '['
+	objectJSONPrefix byte = '{'
 )
 
 func APICommandsFromJSON(msg []byte) ([]ApiCommand, error) {

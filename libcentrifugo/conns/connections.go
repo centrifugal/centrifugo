@@ -36,7 +36,7 @@ type AdminConn interface {
 	Close(reason string) error
 }
 
-// Session represents a connection between server and client.
+// Session represents a connection transport between server and client.
 type Session interface {
 	// Send sends one message to session
 	Send([]byte) error
