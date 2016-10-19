@@ -1,4 +1,4 @@
-package node
+package apiv1
 
 import (
 	"encoding/json"

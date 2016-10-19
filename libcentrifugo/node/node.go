@@ -299,11 +299,11 @@ func (app *Node) SetConfig(c *Config) {
 	app.config = c
 }
 
-func (app *Node) channels() ([]proto.Channel, error) {
+func (app *Node) Channels() ([]proto.Channel, error) {
 	return app.engine.Channels()
 }
 
-func (app *Node) stats() proto.ServerStats {
+func (app *Node) Stats() proto.ServerStats {
 	app.nodesMu.Lock()
 	nodes := make([]proto.NodeInfo, len(app.nodes))
 	i := 0
@@ -351,7 +351,7 @@ func (app *Node) getSnapshotMetrics() map[string]int64 {
 	return m
 }
 
-func (app *Node) node() proto.NodeInfo {
+func (app *Node) Node() proto.NodeInfo {
 	app.nodesMu.Lock()
 	info, ok := app.nodes[app.uid]
 	if !ok {
@@ -446,11 +446,11 @@ func makeErrChan(err error) <-chan error {
 
 // Publish sends a message to all clients subscribed on channel.
 func (app *Node) Publish(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) error {
-	return <-app.publishAsync(ch, data, client, info)
+	return <-app.PublishAsync(ch, data, client, info)
 }
 
-// publishAsync sends a message into channel with provided data, client and client info.
-func (app *Node) publishAsync(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
+// PublishAsync sends a message into channel with provided data, client and client info.
+func (app *Node) PublishAsync(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
 	if string(ch) == "" || len(data) == 0 {
 		return makeErrChan(proto.ErrInvalidMessage)
 	}

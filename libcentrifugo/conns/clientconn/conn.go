@@ -49,6 +49,33 @@ type client struct {
 	maxRequestSize int
 }
 
+var (
+	arrayJSONPrefix  byte = '['
+	objectJSONPrefix byte = '{'
+)
+
+func clientCommandsFromJSON(msgBytes []byte) ([]proto.ClientCommand, error) {
+	var cmds []proto.ClientCommand
+	firstByte := msgBytes[0]
+	switch firstByte {
+	case objectJSONPrefix:
+		// single command request
+		var cmd proto.ClientCommand
+		err := json.Unmarshal(msgBytes, &cmd)
+		if err != nil {
+			return nil, err
+		}
+		cmds = append(cmds, cmd)
+	case arrayJSONPrefix:
+		// array of commands received
+		err := json.Unmarshal(msgBytes, &cmds)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return cmds, nil
+}
+
 // New creates new ready to communicate client.
 func New(n *node.Node, s conns.Session, opts *ClientOptions) (conns.ClientConn, error) {
 	config := n.Config()
@@ -331,7 +358,7 @@ func (c *client) Handle(msg []byte) error {
 		return proto.ErrLimitExceeded
 	}
 
-	commands, err := proto.ClientCommandsFromJSON(msg)
+	commands, err := clientCommandsFromJSON(msg)
 	if err != nil {
 		logger.ERROR.Println(err)
 		c.disconnect(proto.ErrInvalidMessage.Error(), false)
