@@ -12,6 +12,7 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/go-sentinel"
+	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
@@ -581,7 +582,7 @@ func (e *RedisEngine) runAPI() {
 						continue
 					}
 					for _, command := range req.Data {
-						_, err := e.node.APICmd(command, nil)
+						_, err := apiv1.APICmd(e.node, command, nil)
 						if err != nil {
 							logger.ERROR.Println(err)
 						}

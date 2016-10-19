@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns/adminconn"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns/clientconn"
@@ -334,9 +335,44 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+var (
+	arrayJSONPrefix  byte = '['
+	objectJSONPrefix byte = '{'
+)
+
+func apiCommandsFromJSON(msg []byte) ([]proto.ApiCommand, error) {
+	var cmds []proto.ApiCommand
+
+	if len(msg) == 0 {
+		return cmds, nil
+	}
+
+	firstByte := msg[0]
+
+	switch firstByte {
+	case objectJSONPrefix:
+		// single command request
+		var command proto.ApiCommand
+		err := json.Unmarshal(msg, &command)
+		if err != nil {
+			return nil, err
+		}
+		cmds = append(cmds, command)
+	case arrayJSONPrefix:
+		// array of commands received
+		err := json.Unmarshal(msg, &cmds)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, ErrInvalidMessage
+	}
+	return cmds, nil
+}
+
 func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 
-	commands, err := proto.APICommandsFromJSON(data)
+	commands, err := apiCommandsFromJSON(data)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil, ErrInvalidMessage
@@ -345,7 +381,7 @@ func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 	var mr proto.MultiAPIResponse
 
 	for _, command := range commands {
-		resp, err := s.node.APICmd(command, nil)
+		resp, err := apiv1.APICmd(s.node, command, nil)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, ErrInvalidMessage

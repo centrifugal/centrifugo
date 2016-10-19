@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
 	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
@@ -84,6 +85,41 @@ type adminClient struct {
 	closed        bool
 	maxQueueSize  int
 	messages      bytequeue.ByteQueue
+}
+
+var (
+	arrayJSONPrefix  byte = '['
+	objectJSONPrefix byte = '{'
+)
+
+func apiCommandsFromJSON(msg []byte) ([]proto.ApiCommand, error) {
+	var cmds []proto.ApiCommand
+
+	if len(msg) == 0 {
+		return cmds, nil
+	}
+
+	firstByte := msg[0]
+
+	switch firstByte {
+	case objectJSONPrefix:
+		// single command request
+		var command proto.ApiCommand
+		err := json.Unmarshal(msg, &command)
+		if err != nil {
+			return nil, err
+		}
+		cmds = append(cmds, command)
+	case arrayJSONPrefix:
+		// array of commands received
+		err := json.Unmarshal(msg, &cmds)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, proto.ErrInvalidMessage
+	}
+	return cmds, nil
 }
 
 func New(n *node.Node, sess conns.Session, opts *AdminOptions) (conns.AdminConn, error) {
@@ -189,7 +225,7 @@ func (c *adminClient) Send(message []byte) error {
 // Handle handles message received from admin connection
 func (c *adminClient) Handle(msg []byte) error {
 
-	cmds, err := proto.APICommandsFromJSON(msg)
+	cmds, err := apiCommandsFromJSON(msg)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return proto.ErrInvalidMessage
@@ -226,7 +262,7 @@ func (c *adminClient) Handle(msg []byte) error {
 		case "info":
 			resp, err = c.infoCmd()
 		default:
-			resp, err = c.node.APICmd(command, nil)
+			resp, err = apiv1.APICmd(c.node, command, nil)
 		}
 		if err != nil {
 			c.Unlock()

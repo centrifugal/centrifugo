@@ -1,16 +1,17 @@
-package node
+package apiv1
 
 import (
 	"encoding/json"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
 type APIOptions struct{}
 
 // APICmd builds API command and dispatches it into correct handler method.
-func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response, error) {
+func APICmd(app *node.Node, cmd proto.ApiCommand, opts *APIOptions) (proto.Response, error) {
 
 	var err error
 	var resp proto.Response
@@ -26,7 +27,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 			logger.ERROR.Println(err)
 			return nil, proto.ErrInvalidMessage
 		}
-		resp, err = app.publishCmd(&cmd)
+		resp, err = PublishCmd(app, &cmd)
 	case "broadcast":
 		var cmd proto.BroadcastAPICommand
 		err = json.Unmarshal(params, &cmd)
@@ -34,7 +35,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 			logger.ERROR.Println(err)
 			return nil, proto.ErrInvalidMessage
 		}
-		resp, err = app.broadcastCmd(&cmd)
+		resp, err = BroadcastCmd(app, &cmd)
 	case "unsubscribe":
 		var cmd proto.UnsubscribeAPICommand
 		err = json.Unmarshal(params, &cmd)
@@ -42,7 +43,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 			logger.ERROR.Println(err)
 			return nil, proto.ErrInvalidMessage
 		}
-		resp, err = app.unsubcribeCmd(&cmd)
+		resp, err = UnsubcribeCmd(app, &cmd)
 	case "disconnect":
 		var cmd proto.DisconnectAPICommand
 		err = json.Unmarshal(params, &cmd)
@@ -50,7 +51,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 			logger.ERROR.Println(err)
 			return nil, proto.ErrInvalidMessage
 		}
-		resp, err = app.disconnectCmd(&cmd)
+		resp, err = DisconnectCmd(app, &cmd)
 	case "presence":
 		var cmd proto.PresenceAPICommand
 		err = json.Unmarshal(params, &cmd)
@@ -58,7 +59,7 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 			logger.ERROR.Println(err)
 			return nil, proto.ErrInvalidMessage
 		}
-		resp, err = app.presenceCmd(&cmd)
+		resp, err = PresenceCmd(app, &cmd)
 	case "history":
 		var cmd proto.HistoryAPICommand
 		err = json.Unmarshal(params, &cmd)
@@ -66,13 +67,13 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 			logger.ERROR.Println(err)
 			return nil, proto.ErrInvalidMessage
 		}
-		resp, err = app.historyCmd(&cmd)
+		resp, err = HistoryCmd(app, &cmd)
 	case "channels":
-		resp, err = app.channelsCmd()
+		resp, err = ChannelsCmd(app)
 	case "stats":
-		resp, err = app.statsCmd()
+		resp, err = StatsCmd(app)
 	case "node":
-		resp, err = app.nodeCmd()
+		resp, err = NodeCmd(app)
 	default:
 		return nil, proto.ErrMethodNotFound
 	}
@@ -85,8 +86,8 @@ func (app *Node) APICmd(cmd proto.ApiCommand, opts *APIOptions) (proto.Response,
 	return resp, nil
 }
 
-// publishCmd publishes data into channel.
-func (app *Node) publishCmd(cmd *proto.PublishAPICommand) (proto.Response, error) {
+// PublishCmd publishes data into channel.
+func PublishCmd(app *node.Node, cmd *proto.PublishAPICommand) (proto.Response, error) {
 	channel := cmd.Channel
 	data := cmd.Data
 	err := app.Publish(channel, data, cmd.Client, nil)
@@ -98,8 +99,8 @@ func (app *Node) publishCmd(cmd *proto.PublishAPICommand) (proto.Response, error
 	return resp, nil
 }
 
-// broadcastCmd publishes data into multiple channels.
-func (app *Node) broadcastCmd(cmd *proto.BroadcastAPICommand) (proto.Response, error) {
+// BroadcastCmd publishes data into multiple channels.
+func BroadcastCmd(app *node.Node, cmd *proto.BroadcastAPICommand) (proto.Response, error) {
 	resp := proto.NewAPIBroadcastResponse()
 	channels := cmd.Channels
 	data := cmd.Data
@@ -110,7 +111,7 @@ func (app *Node) broadcastCmd(cmd *proto.BroadcastAPICommand) (proto.Response, e
 	}
 	errs := make([]<-chan error, len(channels))
 	for i, channel := range channels {
-		errs[i] = app.publishAsync(channel, data, cmd.Client, nil)
+		errs[i] = app.PublishAsync(channel, data, cmd.Client, nil)
 	}
 	var firstErr error
 	for i := range errs {
@@ -128,9 +129,9 @@ func (app *Node) broadcastCmd(cmd *proto.BroadcastAPICommand) (proto.Response, e
 	return resp, nil
 }
 
-// unsubscribeCmd unsubscribes project's user from channel and sends
+// UnsubscribeCmd unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes.
-func (app *Node) unsubcribeCmd(cmd *proto.UnsubscribeAPICommand) (proto.Response, error) {
+func UnsubcribeCmd(app *node.Node, cmd *proto.UnsubscribeAPICommand) (proto.Response, error) {
 	resp := proto.NewAPIUnsubscribeResponse()
 	channel := cmd.Channel
 	user := cmd.User
@@ -142,9 +143,9 @@ func (app *Node) unsubcribeCmd(cmd *proto.UnsubscribeAPICommand) (proto.Response
 	return resp, nil
 }
 
-// disconnectCmd disconnects user by its ID and sends disconnect
+// DisconnectCmd disconnects user by its ID and sends disconnect
 // control message to other nodes so they could also disconnect this user.
-func (app *Node) disconnectCmd(cmd *proto.DisconnectAPICommand) (proto.Response, error) {
+func DisconnectCmd(app *node.Node, cmd *proto.DisconnectAPICommand) (proto.Response, error) {
 	resp := proto.NewAPIDisconnectResponse()
 	user := cmd.User
 	err := app.Disconnect(user)
@@ -155,8 +156,8 @@ func (app *Node) disconnectCmd(cmd *proto.DisconnectAPICommand) (proto.Response,
 	return resp, nil
 }
 
-// presenceCmd returns response with presense information for channel.
-func (app *Node) presenceCmd(cmd *proto.PresenceAPICommand) (proto.Response, error) {
+// PresenceCmd returns response with presense information for channel.
+func PresenceCmd(app *node.Node, cmd *proto.PresenceAPICommand) (proto.Response, error) {
 	channel := cmd.Channel
 	body := proto.PresenceBody{
 		Channel: channel,
@@ -171,8 +172,8 @@ func (app *Node) presenceCmd(cmd *proto.PresenceAPICommand) (proto.Response, err
 	return proto.NewAPIPresenceResponse(body), nil
 }
 
-// historyCmd returns response with history information for channel.
-func (app *Node) historyCmd(cmd *proto.HistoryAPICommand) (proto.Response, error) {
+// HistoryCmd returns response with history information for channel.
+func HistoryCmd(app *node.Node, cmd *proto.HistoryAPICommand) (proto.Response, error) {
 	channel := cmd.Channel
 	body := proto.HistoryBody{
 		Channel: channel,
@@ -187,10 +188,10 @@ func (app *Node) historyCmd(cmd *proto.HistoryAPICommand) (proto.Response, error
 	return proto.NewAPIHistoryResponse(body), nil
 }
 
-// channelsCmd returns active channels.
-func (app *Node) channelsCmd() (proto.Response, error) {
+// ChannelsCmd returns active channels.
+func ChannelsCmd(app *node.Node) (proto.Response, error) {
 	body := proto.ChannelsBody{}
-	channels, err := app.channels()
+	channels, err := app.Channels()
 	if err != nil {
 		logger.ERROR.Println(err)
 		resp := proto.NewAPIChannelsResponse(body)
@@ -201,16 +202,16 @@ func (app *Node) channelsCmd() (proto.Response, error) {
 	return proto.NewAPIChannelsResponse(body), nil
 }
 
-// statsCmd returns active node stats.
-func (app *Node) statsCmd() (proto.Response, error) {
+// StatsCmd returns active node stats.
+func StatsCmd(app *node.Node) (proto.Response, error) {
 	body := proto.StatsBody{}
-	body.Data = app.stats()
+	body.Data = app.Stats()
 	return proto.NewAPIStatsResponse(body), nil
 }
 
-// nodeCmd returns simple counter metrics which update in real time for the current node only.
-func (app *Node) nodeCmd() (proto.Response, error) {
+// NodeCmd returns simple counter metrics which update in real time for the current node only.
+func NodeCmd(app *node.Node) (proto.Response, error) {
 	body := proto.NodeBody{}
-	body.Data = app.node()
+	body.Data = app.Node()
 	return proto.NewAPINodeResponse(body), nil
 }
