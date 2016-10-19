@@ -2,12 +2,9 @@ package node
 
 import (
 	"encoding/json"
-	"fmt"
-	"strconv"
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
 )
@@ -125,52 +122,14 @@ func testNodeWithConfig(c *Config) *Node {
 	return n
 }
 
-func newTestClient(n *Node, sess conns.Session) conns.ClientConn {
-	c, _ := n.NewClient(sess, nil)
-	return c
-}
-
-func createTestClients(n *Node, nChannels, nChannelClients int, sink chan []byte) {
-	n.config.Insecure = true
-	for i := 0; i < nChannelClients; i++ {
-		sess := &testSession{}
-		if sink != nil {
-			sess.sink = sink
-		}
-		c := newTestClient(n, sess)
-		cmd := proto.ConnectClientCommand{
-			User: proto.UserID(fmt.Sprintf("user-%d", i)),
-		}
-		resp, err := c.(*client).connectCmd(&cmd)
-		if err != nil {
-			panic(err)
-		}
-		if resp.(*proto.ClientConnectResponse).ResponseError.Err != nil {
-			panic(resp.(*proto.ClientConnectResponse).ResponseError.Err)
-		}
-		for j := 0; j < nChannels; j++ {
-			cmd := proto.SubscribeClientCommand{
-				Channel: proto.Channel(fmt.Sprintf("channel-%d", j)),
-			}
-			resp, err = c.(*client).subscribeCmd(&cmd)
-			if err != nil {
-				panic(err)
-			}
-			if resp.(*proto.ClientSubscribeResponse).ResponseError.Err != nil {
-				panic(resp.(*proto.ClientSubscribeResponse).ResponseError.Err)
-			}
-		}
-	}
-}
-
 func TestUserAllowed(t *testing.T) {
 	app := testNode()
-	assert.Equal(t, true, app.userAllowed("channel#1", "1"))
-	assert.Equal(t, true, app.userAllowed("channel", "1"))
-	assert.Equal(t, false, app.userAllowed("channel#1", "2"))
-	assert.Equal(t, true, app.userAllowed("channel#1,2", "1"))
-	assert.Equal(t, true, app.userAllowed("channel#1,2", "2"))
-	assert.Equal(t, false, app.userAllowed("channel#1,2", "3"))
+	assert.Equal(t, true, app.UserAllowed("channel#1", "1"))
+	assert.Equal(t, true, app.UserAllowed("channel", "1"))
+	assert.Equal(t, false, app.UserAllowed("channel#1", "2"))
+	assert.Equal(t, true, app.UserAllowed("channel#1,2", "1"))
+	assert.Equal(t, true, app.UserAllowed("channel#1,2", "2"))
+	assert.Equal(t, false, app.UserAllowed("channel#1,2", "3"))
 }
 
 func TestSetConfig(t *testing.T) {
@@ -179,36 +138,11 @@ func TestSetConfig(t *testing.T) {
 	app.SetConfig(&c)
 }
 
-func TestAdminAuthToken(t *testing.T) {
-	app := testNode()
-	// first without secret set
-	err := app.checkAdminAuthToken("")
-	assert.Equal(t, ErrUnauthorized, err)
-
-	// no secret set
-	token, err := AdminAuthToken(app.config.AdminSecret)
-	assert.Equal(t, ErrInternalServerError, err)
-
-	app.Lock()
-	app.config.AdminSecret = "secret"
-	app.Unlock()
-
-	err = app.checkAdminAuthToken("")
-	assert.Equal(t, ErrUnauthorized, err)
-
-	token, err = AdminAuthToken("secret")
-	assert.Equal(t, nil, err)
-	assert.True(t, len(token) > 0)
-	err = app.checkAdminAuthToken(token)
-	assert.Equal(t, nil, err)
-
-}
-
 func TestClientAllowed(t *testing.T) {
 	app := testNode()
-	assert.Equal(t, true, app.clientAllowed("channel&67330d48-f668-4916-758b-f4eb1dd5b41d", proto.ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
-	assert.Equal(t, true, app.clientAllowed("channel", proto.ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
-	assert.Equal(t, false, app.clientAllowed("channel&long-client-id", proto.ConnID("wrong-client-id")))
+	assert.Equal(t, true, app.ClientAllowed("channel&67330d48-f668-4916-758b-f4eb1dd5b41d", proto.ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
+	assert.Equal(t, true, app.ClientAllowed("channel", proto.ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
+	assert.Equal(t, false, app.ClientAllowed("channel&long-client-id", proto.ConnID("wrong-client-id")))
 }
 
 func TestNamespaceKey(t *testing.T) {
@@ -263,31 +197,18 @@ func TestControlMessages(t *testing.T) {
 	err = app.ControlMsg(cmd)
 	assert.Equal(t, nil, err)
 	err = app.ControlMsg(testWrongControlCmd("another node"))
-	assert.Equal(t, ErrInvalidMessage, err)
+	assert.Equal(t, proto.ErrInvalidMessage, err)
 	err = app.ControlMsg(testUnsubscribeControlCmd("another node"))
 	assert.Equal(t, nil, err)
 	err = app.ControlMsg(testDisconnectControlCmd("another node"))
 	assert.Equal(t, nil, err)
 }
 
-func TestUnsubscribe(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
-	assert.Equal(t, nil, err)
-	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	cmds := []proto.ClientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
-	err = c.(*client).handleCommands(cmds)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, 1, len(c.Channels()))
-	app.unsubscribeUser(proto.UserID("user1"), proto.Channel("test"))
-	assert.Equal(t, 0, len(c.Channels()))
-}
-
 func TestPublishJoinLeave(t *testing.T) {
 	app := testNode()
-	err := app.pubJoin(proto.Channel("channel-0"), proto.ClientInfo{})
+	err := app.PubJoin(proto.Channel("channel-0"), proto.ClientInfo{})
 	assert.Equal(t, nil, err)
-	err = app.pubLeave(proto.Channel("channel-0"), proto.ClientInfo{})
+	err = app.PubLeave(proto.Channel("channel-0"), proto.ClientInfo{})
 	assert.Equal(t, nil, err)
 }
 
@@ -304,5 +225,5 @@ func TestUpdateMetrics(t *testing.T) {
 	app.updateMetricsOnce()
 
 	// Absolute metrics should be updated
-	assert.Equal(t, int64(1), metricsRegistry.Counters.LoadValues()["num_msg_published"])
+	assert.True(t, metricsRegistry.Counters.LoadValues()["num_msg_published"] > 0)
 }

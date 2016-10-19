@@ -9,10 +9,100 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
 	//"github.com/centrifugal/centrifugo/libcentrifugo/engine/engineredis"
+	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns/clientconn"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
+	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/stretchr/testify/assert"
 )
+
+type TestEngine struct{}
+
+func NewTestEngine() *TestEngine {
+	return &TestEngine{}
+}
+
+func (e *TestEngine) Name() string {
+	return "test engine"
+}
+
+func (e *TestEngine) Run() error {
+	return nil
+}
+
+func (e *TestEngine) Shutdown() error {
+	return nil
+}
+
+func (e *TestEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishControl(message *proto.ControlMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) Subscribe(ch proto.Channel) error {
+	return nil
+}
+
+func (e *TestEngine) Unsubscribe(ch proto.Channel) error {
+	return nil
+}
+
+func (e *TestEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo, expire int) error {
+	return nil
+}
+
+func (e *TestEngine) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+	return nil
+}
+
+func (e *TestEngine) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
+	return map[proto.ConnID]proto.ClientInfo{}, nil
+}
+
+func (e *TestEngine) History(ch proto.Channel, limit int) ([]proto.Message, error) {
+	return []proto.Message{}, nil
+}
+
+func (e *TestEngine) Channels() ([]proto.Channel, error) {
+	return []proto.Channel{}, nil
+}
+
+func testNode() *node.Node {
+	c := newTestConfig()
+	n := node.New(&c)
+	err := n.Run(&node.RunOptions{Engine: NewTestEngine()})
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
 
 func getTestChannelOptions() proto.ChannelOptions {
 	return proto.ChannelOptions{
@@ -79,8 +169,8 @@ func testMemoryNodeWithClients(nChannels int, nChannelClients int) *node.Node {
 	return n
 }
 
-func newTestClient(n *node.Node, sess node.Session) node.ClientConn {
-	c, _ := n.NewClient(sess, nil)
+func newTestClient(n *node.Node, sess conns.Session) conns.ClientConn {
+	c, _ := clientconn.New(n, sess, nil)
 	return c
 }
 
@@ -94,29 +184,36 @@ func createTestClients(n *node.Node, nChannels, nChannelClients int, sink chan [
 			sess.sink = sink
 		}
 		c := newTestClient(n, sess)
-		cmd := proto.ConnectClientCommand{
+		body := proto.ConnectClientCommand{
 			User: proto.UserID(fmt.Sprintf("user-%d", i)),
 		}
-		msg, _ := json.Marshal(cmd)
-		err := c.Handle(msg)
+		bodyBytes, _ := json.Marshal(body)
+		rawBytes := raw.Raw(bodyBytes)
+		cmd := proto.ClientCommand{
+			Method: "connect",
+			Params: rawBytes,
+		}
+		cmdBytes, _ := json.Marshal(&cmd)
+		err := c.Handle(cmdBytes)
 		if err != nil {
 			panic(err)
 		}
-		//if resp.(*proto.ClientConnectResponse).ResponseError.Err != nil {
-		//	panic(resp.(*proto.ClientConnectResponse).ResponseError.Err)
-		//}
 		for j := 0; j < nChannels; j++ {
-			cmd := proto.SubscribeClientCommand{
+
+			body := proto.SubscribeClientCommand{
 				Channel: proto.Channel(fmt.Sprintf("channel-%d", j)),
 			}
-			msg, _ := json.Marshal(cmd)
-			err := c.Handle(msg)
+			bodyBytes, _ := json.Marshal(body)
+			cmd := proto.ClientCommand{
+				Method: "subscribe",
+				Params: raw.Raw(bodyBytes),
+			}
+			cmdBytes, _ := json.Marshal(&cmd)
+
+			err := c.Handle(cmdBytes)
 			if err != nil {
 				panic(err)
 			}
-			//if resp.(*proto.ClientSubscribeResponse).ResponseError.Err != nil {
-			//	panic(resp.(*proto.ClientSubscribeResponse).ResponseError.Err)
-			//}
 		}
 	}
 }
@@ -126,7 +223,7 @@ func BenchmarkPubSubMessageReceive(b *testing.B) {
 	app := testMemoryNode()
 
 	// create one client so clientMsg really marshal into client response JSON.
-	c, _ := app.NewClient(&testSession{}, nil)
+	c, _ := clientconn.New(app, &testSession{}, nil)
 
 	messagePoolSize := 1000
 
@@ -156,11 +253,53 @@ func BenchmarkPubSubMessageReceive(b *testing.B) {
 	}
 }
 
+func testConnectCmd(timestamp string) proto.ClientCommand {
+	token := auth.GenerateClientToken("secret", "user1", timestamp, "")
+	connectCmd := proto.ConnectClientCommand{
+		Timestamp: timestamp,
+		User:      proto.UserID("user1"),
+		Info:      "",
+		Token:     token,
+	}
+	cmdBytes, _ := json.Marshal(connectCmd)
+	cmd := proto.ClientCommand{
+		Method: "connect",
+		Params: cmdBytes,
+	}
+	return cmd
+}
+
+func testSubscribeCmd(channel string) proto.ClientCommand {
+	subscribeCmd := proto.SubscribeClientCommand{
+		Channel: proto.Channel(channel),
+	}
+	cmdBytes, _ := json.Marshal(subscribeCmd)
+	cmd := proto.ClientCommand{
+		Method: "subscribe",
+		Params: cmdBytes,
+	}
+	return cmd
+}
+
+func TestUnsubscribe(t *testing.T) {
+	app := testNode()
+	c, err := clientconn.New(app, &testSession{}, nil)
+	assert.Equal(t, nil, err)
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	cmds := []proto.ClientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
+	cmdBytes, _ := json.Marshal(cmds)
+	err = c.Handle(cmdBytes)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 1, len(c.Channels()))
+	app.Unsubscribe(proto.UserID("user1"), proto.Channel("test"))
+	assert.Equal(t, 0, len(c.Channels()))
+}
+
 // BenchmarkClientMsg allows to measue performance of marshaling messages into client response JSON.
 func BenchmarkClientMsg(b *testing.B) {
 	app := testMemoryNode()
 	// create one client so clientMsg really marshal into client response JSON.
-	c, _ := app.NewClient(&testSession{}, nil)
+	c, _ := clientconn.New(app, &testSession{}, nil)
 	messagePoolSize := 1000
 	messagePool := make([]*proto.Message, messagePoolSize)
 

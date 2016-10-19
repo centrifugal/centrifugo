@@ -3,6 +3,8 @@ package adminconn
 import (
 	"testing"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
+	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/securecookie"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,8 +19,8 @@ func (s *testAdminSession) Close(status uint32, reason string) error {
 	return nil
 }
 
-func newAdminTestConfig() *Config {
-	return &Config{
+func newAdminTestConfig() *node.Config {
+	return &node.Config{
 		AdminSecret: "secret",
 	}
 }
@@ -103,4 +105,29 @@ func TestAdminClientNotWatching(t *testing.T) {
 	err = c.Handle([]byte(correctAuthMethod))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, false, c.(*adminClient).watch)
+}
+
+func TestAdminAuthToken(t *testing.T) {
+	app := testNode()
+	// first without secret set
+	err := app.checkAdminAuthToken("")
+	assert.Equal(t, proto.ErrUnauthorized, err)
+
+	// no secret set
+	token, err := AdminAuthToken(app.config.AdminSecret)
+	assert.Equal(t, proto.ErrInternalServerError, err)
+
+	app.Lock()
+	app.config.AdminSecret = "secret"
+	app.Unlock()
+
+	err = app.checkAdminAuthToken("")
+	assert.Equal(t, proto.ErrUnauthorized, err)
+
+	token, err = AdminAuthToken("secret")
+	assert.Equal(t, nil, err)
+	assert.True(t, len(token) > 0)
+	err = app.checkAdminAuthToken(token)
+	assert.Equal(t, nil, err)
+
 }
