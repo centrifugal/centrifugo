@@ -12,7 +12,7 @@ import (
 )
 
 func TestAPIResponse(t *testing.T) {
-	resp := newAPIPublishResponse()
+	resp := NewAPIPublishResponse()
 	marshalledResponse, err := json.Marshal(resp)
 	assert.Equal(t, nil, err)
 
@@ -21,8 +21,8 @@ func TestAPIResponse(t *testing.T) {
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"method\":\"publish\""))
 	assert.Equal(t, false, strings.Contains(string(marshalledResponse), "\"uid\""))
 
-	resp = newAPIPublishResponse()
-	resp.SetErr(responseError{errors.New("test error"), errorAdviceNone})
+	resp = NewAPIPublishResponse()
+	resp.SetErr(ResponseError{errors.New("test error"), ErrorAdviceNone})
 	resp.SetUID("test uid")
 	marshalledResponse, err = json.Marshal(resp)
 	assert.Equal(t, nil, err)
@@ -30,17 +30,17 @@ func TestAPIResponse(t *testing.T) {
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"method\":\"publish\""))
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"uid\":\"test uid\""))
 
-	resp = newAPIPublishResponse()
-	resp.SetErr(responseError{errors.New("error1"), errorAdviceNone})
-	resp.SetErr(responseError{errors.New("error2"), errorAdviceNone})
+	resp = NewAPIPublishResponse()
+	resp.SetErr(ResponseError{errors.New("error1"), ErrorAdviceNone})
+	resp.SetErr(ResponseError{errors.New("error2"), ErrorAdviceNone})
 	marshalledResponse, err = json.Marshal(resp)
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":\"error1\""))
 }
 
 func TestMultiResponse(t *testing.T) {
-	var mr multiAPIResponse
-	resp1 := newAPIPublishResponse()
-	resp2 := newAPIPublishResponse()
+	var mr MultiAPIResponse
+	resp1 := NewAPIPublishResponse()
+	resp2 := NewAPIPublishResponse()
 	mr = append(mr, resp1)
 	mr = append(mr, resp2)
 	marshalledResponse, err := json.Marshal(mr)
@@ -49,9 +49,9 @@ func TestMultiResponse(t *testing.T) {
 }
 
 func TestClientResponse(t *testing.T) {
-	resp := newClientPublishResponse(publishBody{Status: true})
-	resp.SetErr(responseError{errors.New("error1"), errorAdviceFix})
-	resp.SetErr(responseError{errors.New("error2"), errorAdviceFix})
+	resp := NewClientPublishResponse(PublishBody{Status: true})
+	resp.SetErr(ResponseError{errors.New("error1"), ErrorAdviceFix})
+	resp.SetErr(ResponseError{errors.New("error2"), ErrorAdviceFix})
 	marshalledResponse, err := json.Marshal(resp)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":\"error1\""))
@@ -59,8 +59,8 @@ func TestClientResponse(t *testing.T) {
 
 func TestAdminMessageResponse(t *testing.T) {
 	data := raw.Raw([]byte("test"))
-	resp := newAPIAdminMessageResponse(&data)
-	assert.Equal(t, "message", resp.(*apiAdminMessageResponse).Method)
+	resp := NewAPIAdminMessageResponse(&data)
+	assert.Equal(t, "message", resp.(*APIAdminMessageResponse).Method)
 }
 
 // TestClientMessageMarshalManual tests valid using of buffer pools
@@ -68,7 +68,7 @@ func TestAdminMessageResponse(t *testing.T) {
 // This is related to https://github.com/centrifugal/centrifugo/issues/94
 // and without fix reproduces problem described in issue.
 func TestClientMessageMarshalManual(t *testing.T) {
-	responses := make([]*clientMessageResponse, 1000)
+	responses := make([]*ClientMessageResponse, 1000)
 
 	payloads := []string{
 		`{"input": "test", "id":"TEST.12","value":47.355434343434343,"timestamp":14679931924}`,
@@ -76,8 +76,7 @@ func TestClientMessageMarshalManual(t *testing.T) {
 	}
 
 	for i := 0; i < 1000; i++ {
-		resp := newClientMessage()
-		resp.Body = *newMessage(Channel("test"), []byte(payloads[i%len(payloads)]), "", nil)
+		resp := NewClientMessage(NewMessage(Channel("test"), []byte(payloads[i%len(payloads)]), "", nil))
 		responses[i] = resp
 	}
 
@@ -101,7 +100,7 @@ func TestClientMessageMarshalManual(t *testing.T) {
 	wg.Wait()
 
 	for _, resp := range resps {
-		var m clientMessageResponse
+		var m ClientMessageResponse
 		err := json.Unmarshal(resp, &m)
 		if err != nil {
 			t.Fatal(err)
@@ -122,8 +121,7 @@ func TestClientMessageMarshalManualWithClientInfo(t *testing.T) {
 	}
 
 	payload := `{"input": "test"}`
-	resp := newClientMessage()
-	resp.Body = *newMessage(Channel("test"), []byte(payload), "test_client", info)
+	resp := NewClientMessage(NewMessage(Channel("test"), []byte(payload), "test_client", info))
 	jsonData, err := resp.Marshal()
 	assert.Equal(t, nil, err)
 	assert.True(t, strings.Contains(string(jsonData), `"default_info":{"default": "info"}`))

@@ -10,7 +10,7 @@ import (
 )
 
 func TestMessage(t *testing.T) {
-	msg := newMessage(Channel("test"), []byte("{}"), "", nil)
+	msg := NewMessage(Channel("test"), []byte("{}"), "", nil)
 	assert.Equal(t, msg.Channel, "test")
 	msgBytes, err := json.Marshal(msg)
 	assert.Equal(t, nil, err)
@@ -26,10 +26,9 @@ func TestMessage(t *testing.T) {
 }
 
 func BenchmarkClientResponseMarshalJSON(b *testing.B) {
-	responses := make([]*clientMessageResponse, 10000)
+	responses := make([]*ClientMessageResponse, 10000)
 	for i := 0; i < 10000; i++ {
-		resp := newClientMessage()
-		resp.Body = *newMessage(Channel("test"+strconv.Itoa(i)), []byte("{}"), "", nil)
+		resp := NewClientMessage(NewMessage(Channel("test"+strconv.Itoa(i)), []byte("{}"), "", nil))
 		responses[i] = resp
 	}
 	b.ResetTimer()
@@ -42,10 +41,9 @@ func BenchmarkClientResponseMarshalJSON(b *testing.B) {
 }
 
 func BenchmarkClientResponseMarshalManual(b *testing.B) {
-	responses := make([]*clientMessageResponse, 10000)
+	responses := make([]*ClientMessageResponse, 10000)
 	for i := 0; i < 10000; i++ {
-		resp := newClientMessage()
-		resp.Body = *newMessage(Channel("test"+strconv.Itoa(i)), []byte("{}"), "", nil)
+		resp := NewClientMessage(NewMessage(Channel("test"+strconv.Itoa(i)), []byte("{}"), "", nil))
 		responses[i] = resp
 	}
 	b.ResetTimer()
@@ -58,7 +56,7 @@ func BenchmarkClientResponseMarshalManual(b *testing.B) {
 }
 
 func BenchmarkMsgMarshalJSON(b *testing.B) {
-	msg := newMessage(Channel("test"), []byte("{}"), "", nil)
+	msg := NewMessage(Channel("test"), []byte("{}"), "", nil)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := json.Marshal(msg)
@@ -69,7 +67,7 @@ func BenchmarkMsgMarshalJSON(b *testing.B) {
 }
 
 func BenchmarkMsgMarshalGogoprotobuf(b *testing.B) {
-	msg := newMessage(Channel("test"), []byte("{}"), "", nil)
+	msg := NewMessage(Channel("test"), []byte("{}"), "", nil)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := msg.Marshal()

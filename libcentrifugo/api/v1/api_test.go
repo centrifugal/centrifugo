@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +18,7 @@ func TestAPICmd(t *testing.T) {
 		Params: []byte("{}"),
 	}
 	_, err := app.APICmd(cmd, nil)
-	assert.Equal(t, err, ErrMethodNotFound)
+	assert.Equal(t, err, proto.ErrMethodNotFound)
 
 	cmd = proto.ApiCommand{
 		Method: "publish",
@@ -25,14 +26,14 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err := app.APICmd(cmd, nil)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.(*proto.APIPublishResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIPublishResponse).ResponseError.Err)
 
 	cmd = proto.ApiCommand{
 		Method: "publish",
 		Params: []byte("test"),
 	}
 	_, err = app.APICmd(cmd, nil)
-	assert.Equal(t, ErrInvalidMessage, err)
+	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	cmd = proto.ApiCommand{
 		Method: "broadcast",
@@ -40,14 +41,14 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.APICmd(cmd, nil)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
 
 	cmd = proto.ApiCommand{
 		Method: "broadcast",
 		Params: []byte("test"),
 	}
 	_, err = app.APICmd(cmd, nil)
-	assert.Equal(t, ErrInvalidMessage, err)
+	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	cmd = proto.ApiCommand{
 		Method: "unsubscribe",
@@ -55,14 +56,14 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.APICmd(cmd, nil)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.(*proto.APIUnsubscribeResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIUnsubscribeResponse).ResponseError.Err)
 
 	cmd = proto.ApiCommand{
 		Method: "unsubscribe",
 		Params: []byte("test"),
 	}
 	_, err = app.APICmd(cmd, nil)
-	assert.Equal(t, ErrInvalidMessage, err)
+	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	cmd = proto.ApiCommand{
 		Method: "disconnect",
@@ -70,14 +71,14 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.APICmd(cmd, nil)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.(*proto.APIDisconnectResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIDisconnectResponse).ResponseError.Err)
 
 	cmd = proto.ApiCommand{
 		Method: "disconnect",
 		Params: []byte("test"),
 	}
 	_, err = app.APICmd(cmd, nil)
-	assert.Equal(t, ErrInvalidMessage, err)
+	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	cmd = proto.ApiCommand{
 		Method: "presence",
@@ -85,14 +86,14 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.APICmd(cmd, nil)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.(*proto.APIPresenceResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIPresenceResponse).ResponseError.Err)
 
 	cmd = proto.ApiCommand{
 		Method: "presence",
 		Params: []byte("test"),
 	}
 	_, err = app.APICmd(cmd, nil)
-	assert.Equal(t, ErrInvalidMessage, err)
+	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	cmd = proto.ApiCommand{
 		Method: "history",
@@ -100,14 +101,14 @@ func TestAPICmd(t *testing.T) {
 	}
 	resp, err = app.APICmd(cmd, nil)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.(*proto.APIHistoryResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIHistoryResponse).ResponseError.Err)
 
 	cmd = proto.ApiCommand{
 		Method: "history",
 		Params: []byte("test"),
 	}
 	_, err = app.APICmd(cmd, nil)
-	assert.Equal(t, ErrInvalidMessage, err)
+	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	cmd = proto.ApiCommand{
 		Method: "channels",
@@ -149,7 +150,7 @@ func TestAPIPublish(t *testing.T) {
 	}
 	resp, err = app.publishCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrNamespaceNotFound, resp.(*proto.APIPublishResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrNamespaceNotFound, resp.(*proto.APIPublishResponse).ResponseError.Err)
 }
 
 func TestAPIBroadcast(t *testing.T) {
@@ -167,14 +168,14 @@ func TestAPIBroadcast(t *testing.T) {
 	}
 	resp, err = app.broadcastCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrNamespaceNotFound, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrNamespaceNotFound, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
 	cmd = &proto.BroadcastAPICommand{
 		Channels: []proto.Channel{},
 		Data:     []byte("null"),
 	}
 	resp, err = app.broadcastCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrInvalidMessage, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
 }
 
 func TestAPIUnsubscribe(t *testing.T) {
