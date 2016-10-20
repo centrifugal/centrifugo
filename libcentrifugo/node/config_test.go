@@ -44,7 +44,7 @@ func TestGetChannelOptions(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	_, err = c.channelOpts("wrongnamespacekey")
-	assert.Equal(t, ErrNamespaceNotFound, err)
+	assert.Equal(t, proto.ErrNamespaceNotFound, err)
 }
 
 func TestValidate(t *testing.T) {
