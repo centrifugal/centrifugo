@@ -365,7 +365,7 @@ func apiCommandsFromJSON(msg []byte) ([]proto.ApiCommand, error) {
 			return nil, err
 		}
 	default:
-		return nil, ErrInvalidMessage
+		return nil, proto.ErrInvalidMessage
 	}
 	return cmds, nil
 }
@@ -375,7 +375,7 @@ func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 	commands, err := apiCommandsFromJSON(data)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return nil, ErrInvalidMessage
+		return nil, proto.ErrInvalidMessage
 	}
 
 	var mr proto.MultiAPIResponse
@@ -384,14 +384,14 @@ func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 		resp, err := apiv1.APICmd(s.node, command, nil)
 		if err != nil {
 			logger.ERROR.Println(err)
-			return nil, ErrInvalidMessage
+			return nil, proto.ErrInvalidMessage
 		}
 		mr = append(mr, resp)
 	}
 	jsonResp, err := json.Marshal(mr)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return nil, ErrInternalServerError
+		return nil, proto.ErrInternalServerError
 	}
 	return jsonResp, nil
 }
@@ -459,7 +459,7 @@ func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 
 	jsonResp, err := s.processAPIData(data)
 	if err != nil {
-		if err == ErrInvalidMessage {
+		if err == proto.ErrInvalidMessage {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		} else {
@@ -582,7 +582,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 
 	c, err := adminconn.New(s.node, sess, nil)
 	if err != nil {
-		sess.Close(CloseStatus, ErrInternalServerError.Error())
+		sess.Close(CloseStatus, proto.ErrInternalServerError.Error())
 		return
 	}
 	defer c.Close("")
