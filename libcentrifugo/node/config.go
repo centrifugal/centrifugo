@@ -2,9 +2,11 @@ package node
 
 import (
 	"errors"
+	"os"
 	"regexp"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
@@ -214,4 +216,77 @@ var DefaultConfig = &Config{
 	ClientQueueInitialCapacity:  2,
 	ClientChannelLimit:          100,
 	Insecure:                    false,
+}
+
+// NewConfig creates new node.Config using getter interface.
+func NewConfig(v config.Getter) *Config {
+	cfg := &Config{}
+
+	cfg.Name = getApplicationName(v)
+	cfg.Debug = v.GetBool("debug")
+	cfg.Admin = v.GetBool("admin")
+	cfg.AdminPassword = v.GetString("admin_password")
+	cfg.AdminSecret = v.GetString("admin_secret")
+	cfg.MaxChannelLength = v.GetInt("max_channel_length")
+	cfg.PingInterval = time.Duration(v.GetInt("ping_interval")) * time.Second
+	cfg.NodePingInterval = time.Duration(v.GetInt("node_ping_interval")) * time.Second
+	cfg.NodeInfoCleanInterval = cfg.NodePingInterval * 3
+	cfg.NodeInfoMaxDelay = cfg.NodePingInterval*2 + 1*time.Second
+	cfg.NodeMetricsInterval = time.Duration(v.GetInt("node_metrics_interval")) * time.Second
+	cfg.PresencePingInterval = time.Duration(v.GetInt("presence_ping_interval")) * time.Second
+	cfg.PresenceExpireInterval = time.Duration(v.GetInt("presence_expire_interval")) * time.Second
+	cfg.MessageSendTimeout = time.Duration(v.GetInt("message_send_timeout")) * time.Second
+	cfg.PrivateChannelPrefix = v.GetString("private_channel_prefix")
+	cfg.NamespaceChannelBoundary = v.GetString("namespace_channel_boundary")
+	cfg.UserChannelBoundary = v.GetString("user_channel_boundary")
+	cfg.UserChannelSeparator = v.GetString("user_channel_separator")
+	cfg.ClientChannelBoundary = v.GetString("client_channel_boundary")
+	cfg.ExpiredConnectionCloseDelay = time.Duration(v.GetInt("expired_connection_close_delay")) * time.Second
+	cfg.StaleConnectionCloseDelay = time.Duration(v.GetInt("stale_connection_close_delay")) * time.Second
+	cfg.ClientRequestMaxSize = v.GetInt("client_request_max_size")
+	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
+	cfg.ClientQueueInitialCapacity = v.GetInt("client_queue_initial_capacity")
+	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
+	cfg.UserConnectionLimit = v.GetInt("user_connection_limit")
+	cfg.Insecure = v.GetBool("insecure")
+	cfg.InsecureAPI = v.GetBool("insecure_api")
+	cfg.InsecureAdmin = v.GetBool("insecure_admin")
+	cfg.Secret = v.GetString("secret")
+	cfg.ConnLifetime = int64(v.GetInt("connection_lifetime"))
+	cfg.Watch = v.GetBool("watch")
+	cfg.Publish = v.GetBool("publish")
+	cfg.Anonymous = v.GetBool("anonymous")
+	cfg.Presence = v.GetBool("presence")
+	cfg.JoinLeave = v.GetBool("join_leave")
+	cfg.HistorySize = v.GetInt("history_size")
+	cfg.HistoryLifetime = v.GetInt("history_lifetime")
+	cfg.HistoryDropInactive = v.GetBool("history_drop_inactive")
+	cfg.Recover = v.GetBool("recover")
+	cfg.Namespaces = namespacesFromConfig(v)
+	return cfg
+}
+
+// getApplicationName returns a name for this node. If no name provided
+// in configuration then it constructs node name based on hostname and port
+func getApplicationName(v config.Getter) string {
+	name := v.GetString("name")
+	if name != "" {
+		return name
+	}
+	port := v.GetString("port")
+	var hostname string
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "?"
+	}
+	return hostname + "_" + port
+}
+
+func namespacesFromConfig(v config.Getter) []Namespace {
+	ns := []Namespace{}
+	if !v.IsSet("namespaces") {
+		return ns
+	}
+	v.UnmarshalKey("namespaces", &ns)
+	return ns
 }

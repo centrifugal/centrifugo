@@ -561,7 +561,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	insecure := config.Insecure
 	closeDelay := config.ExpiredConnectionCloseDelay
 	connLifetime := config.ConnLifetime
-	version := config.Version
+	version := c.node.Version()
 	userConnectionLimit := config.UserConnectionLimit
 
 	var timestamp string

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
@@ -29,6 +30,9 @@ type RunOptions struct {
 type Node struct {
 	// TODO: make private.
 	sync.RWMutex
+
+	// version
+	version string
 
 	// unique id for this node.
 	uid string
@@ -106,8 +110,9 @@ func init() {
 }
 
 // New creates Node, the only required argument is config.
-func New(c *Config) *Node {
+func New(version string, c *Config) *Node {
 	n := &Node{
+		version:         version,
 		uid:             uuid.NewV4().String(),
 		config:          c,
 		clients:         conns.NewClientHub(),
@@ -132,6 +137,59 @@ func (n *Node) Config() Config {
 	c := *n.config
 	n.RUnlock()
 	return c
+}
+
+// SetConfig binds config to application.
+func (n *Node) SetConfig(c *Config) {
+	n.Lock()
+	defer n.Unlock()
+	n.config = c
+}
+
+func (n *Node) Version() string {
+	return n.version
+}
+
+// Reload node.
+func (n *Node) Reload(getter config.Getter) error {
+	if validator, ok := n.engine.(config.Validator); ok {
+		err := validator.Validate(getter)
+		if err != nil {
+			return err
+		}
+	}
+	for _, server := range n.servers {
+		if validator, ok := server.(config.Validator); ok {
+			err := validator.Validate(getter)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	c := NewConfig(getter)
+	if err := c.Validate(); err != nil {
+		return err
+	}
+	n.SetConfig(c)
+
+	if reloader, ok := n.engine.(config.Reloader); ok {
+		err := reloader.Reload(getter)
+		if err != nil {
+			logger.ERROR.Printf("Error reloading engine: %v", err)
+		}
+	}
+
+	for srvName, server := range n.servers {
+		if reloader, ok := server.(config.Reloader); ok {
+			err := reloader.Reload(getter)
+			if err != nil {
+				logger.ERROR.Printf("Error reloading server %s: %v", srvName, err)
+			}
+		}
+	}
+
+	return nil
 }
 
 // Config returns a copy of node Config.
@@ -290,13 +348,6 @@ func (n *Node) cleanNodeInfo() {
 			n.nodesMu.Unlock()
 		}
 	}
-}
-
-// SetConfig binds config to application.
-func (n *Node) SetConfig(c *Config) {
-	n.Lock()
-	defer n.Unlock()
-	n.config = c
 }
 
 func (n *Node) Channels() ([]proto.Channel, error) {

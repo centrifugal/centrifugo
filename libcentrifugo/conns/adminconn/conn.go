@@ -318,8 +318,9 @@ func (c *adminClient) connectCmd(cmd *proto.ConnectAdminCommand) (proto.Response
 func (c *adminClient) infoCmd() (proto.Response, error) {
 	body := proto.AdminInfoBody{
 		Data: map[string]interface{}{
-			"engine": c.node.Engine().Name(),
-			"config": c.node.Config(),
+			"version": c.node.Version(),
+			"engine":  c.node.Engine().Name(),
+			"config":  c.node.Config(),
 		},
 	}
 	return proto.NewAPIAdminInfoResponse(body), nil

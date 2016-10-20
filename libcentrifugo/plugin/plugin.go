@@ -1,13 +1,14 @@
 package plugin
 
 import (
+	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 )
 
-type EngineFactory func(*node.Node, ConfigGetter) (engine.Engine, error)
+type EngineFactory func(*node.Node, config.Getter) (engine.Engine, error)
 
 var EngineFactories map[string]EngineFactory
 
@@ -16,7 +17,7 @@ func RegisterEngine(name string, fn EngineFactory) {
 	EngineFactories[name] = fn
 }
 
-type Configurator func(ConfigSetter) error
+type Configurator func(config.Setter) error
 
 var Configurators map[string]Configurator
 
@@ -27,7 +28,7 @@ func RegisterConfigurator(name string, fn Configurator) {
 
 var Metrics *metrics.Registry
 
-type ServerFactory func(*node.Node, ConfigGetter) (server.Server, error)
+type ServerFactory func(*node.Node, config.Getter) (server.Server, error)
 
 var ServerFactories map[string]ServerFactory
 

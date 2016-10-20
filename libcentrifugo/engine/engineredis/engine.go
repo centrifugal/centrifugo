@@ -13,6 +13,7 @@ import (
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/go-sentinel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
+	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
@@ -25,7 +26,7 @@ func init() {
 	plugin.RegisterConfigurator("redis", RedisEngineConfigure)
 }
 
-func RedisEngineConfigure(setter plugin.ConfigSetter) error {
+func RedisEngineConfigure(setter config.Setter) error {
 
 	setter.SetDefault("redis_prefix", "centrifugo")
 
@@ -334,7 +335,7 @@ func newPool(conf *RedisEngineConfig) *redis.Pool {
 	}
 }
 
-func getRedisEngineConfig(getter plugin.ConfigGetter) *RedisEngineConfig {
+func getRedisEngineConfig(getter config.Getter) *RedisEngineConfig {
 	masterName := getter.GetString("redis_master_name")
 	sentinels := getter.GetString("redis_sentinels")
 	if masterName != "" && sentinels == "" {
@@ -379,7 +380,7 @@ func getRedisEngineConfig(getter plugin.ConfigGetter) *RedisEngineConfig {
 	return conf
 }
 
-func RedisEnginePlugin(n *node.Node, getter plugin.ConfigGetter) (engine.Engine, error) {
+func RedisEnginePlugin(n *node.Node, getter config.Getter) (engine.Engine, error) {
 	conf := getRedisEngineConfig(getter)
 	return NewRedisEngine(n, conf)
 }

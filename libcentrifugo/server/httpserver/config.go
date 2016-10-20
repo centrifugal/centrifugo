@@ -3,7 +3,7 @@ package httpserver
 import (
 	"errors"
 
-	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
+	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 )
 
 // Config contains Application configuration options.
@@ -37,7 +37,7 @@ type Config struct {
 }
 
 // newConfig creates new libcentrifugo.Config using viper.
-func newConfig(c plugin.ConfigGetter) *Config {
+func newConfig(c config.Getter) *Config {
 	cfg := &Config{}
 	cfg.Web = c.GetBool("web")
 	cfg.WebPath = c.GetString("web_path")

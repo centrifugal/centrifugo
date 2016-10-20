@@ -1,7 +1,7 @@
-package plugin
+package config
 
-// ConfigSetter allows to setup configuration options from pluggable components.
-type ConfigSetter interface {
+// Setter allows to setup configuration options from pluggable components.
+type Setter interface {
 	SetDefault(key string, value interface{})
 	BindEnv(key string)
 	BindFlag(key string, flagName string)
@@ -10,12 +10,20 @@ type ConfigSetter interface {
 	IntFlag(name, shorthand string, value int, usage string)
 }
 
-// ConfigGetter allows to get configuration options inside pluggable components.
-type ConfigGetter interface {
+// Getter allows to get configuration options inside pluggable components.
+type Getter interface {
 	Get(key string) interface{}
 	GetString(key string) string
 	GetBool(key string) bool
 	GetInt(key string) int
 	IsSet(key string) bool
 	UnmarshalKey(key string, target interface{}) error
+}
+
+type Reloader interface {
+	Reload(Getter) error
+}
+
+type Validator interface {
+	Validate(Getter) error
 }

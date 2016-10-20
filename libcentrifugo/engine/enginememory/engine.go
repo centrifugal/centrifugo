@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
@@ -30,7 +31,7 @@ type MemoryEngine struct {
 
 type MemoryEngineConfig struct{}
 
-func MemoryEnginePlugin(n *node.Node, config plugin.ConfigGetter) (engine.Engine, error) {
+func MemoryEnginePlugin(n *node.Node, c config.Getter) (engine.Engine, error) {
 	return NewMemoryEngine(n, &MemoryEngineConfig{})
 }
 

@@ -1,4 +1,4 @@
-package plugin
+package config
 
 import (
 	"github.com/FZambia/viper-lite"
@@ -11,7 +11,7 @@ type viperConfigSetter struct {
 }
 
 // NewViperConfigSetter is a wrapper over viper to return ConfigSetter interface from it.
-func NewViperConfigSetter(v *viper.Viper, fs *pflag.FlagSet) ConfigSetter {
+func NewViperConfigSetter(v *viper.Viper, fs *pflag.FlagSet) Setter {
 	return &viperConfigSetter{
 		viper:   v,
 		flagSet: fs,
@@ -50,7 +50,7 @@ type viperConfigGetter struct {
 }
 
 // NewViperConfigGetter is a wrapper over viper to return ConfigGetter interface from it.
-func NewViperConfigGetter(v *viper.Viper) ConfigGetter {
+func NewViperConfigGetter(v *viper.Viper) Getter {
 	return &viperConfigGetter{
 		viper: v,
 	}

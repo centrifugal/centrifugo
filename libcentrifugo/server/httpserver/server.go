@@ -3,6 +3,7 @@ package httpserver
 import (
 	"sync"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
@@ -21,7 +22,7 @@ func init() {
 	plugin.Metrics.RegisterHDRHistogram("http_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
-func HTTPServerConfigure(setter plugin.ConfigSetter) error {
+func HTTPServerConfigure(setter config.Setter) error {
 
 	setter.SetDefault("http_prefix", "")
 	setter.SetDefault("web", false)
@@ -68,7 +69,7 @@ type HTTPServer struct {
 	shutdownCh chan struct{}
 }
 
-func HTTPServerPlugin(n *node.Node, getter plugin.ConfigGetter) (server.Server, error) {
+func HTTPServerPlugin(n *node.Node, getter config.Getter) (server.Server, error) {
 	return NewHTTPServer(n, newConfig(getter))
 }
 
@@ -81,6 +82,10 @@ func NewHTTPServer(n *node.Node, config *Config) (server.Server, error) {
 
 func (s *HTTPServer) Run() error {
 	return s.runHTTPServer()
+}
+
+func (s *HTTPServer) Reload() error {
+	return nil
 }
 
 func (s *HTTPServer) Shutdown() error {
