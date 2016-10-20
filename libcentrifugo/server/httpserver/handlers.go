@@ -410,10 +410,16 @@ func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
+	config := s.node.Config()
+	secret := config.Secret
+	insecure := config.InsecureAPI
+
 	if strings.HasPrefix(strings.ToLower(contentType), "application/json") {
 		// json request, this is a prefferred more performant way, as parsing
 		// Form Value rather expensive (about 30% speed up).
-		sign = r.Header.Get("X-API-Sign")
+		if !insecure {
+			sign = r.Header.Get("X-API-Sign")
+		}
 		defer r.Body.Close()
 		data, err = ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -423,13 +429,11 @@ func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// application/x-www-form-urlencoded request
-		sign = r.FormValue("sign")
+		if !insecure {
+			sign = r.FormValue("sign")
+		}
 		data = []byte(r.FormValue("data"))
 	}
-
-	config := s.node.Config()
-	secret := config.Secret
-	insecure := config.InsecureAPI
 
 	if sign == "" && !insecure {
 		logger.ERROR.Println("no sign found in API request")
@@ -538,7 +542,9 @@ func (s *HTTPServer) Logged(h http.Handler) http.Handler {
 			}
 		}
 		h.ServeHTTP(w, r)
-		logger.DEBUG.Printf("%s %s from %s completed in %s\n", r.Method, r.URL.Path, addr, time.Since(start))
+		if logger.DEBUG.Enabled() {
+			logger.DEBUG.Printf("%s %s from %s completed in %s\n", r.Method, r.URL.Path, addr, time.Since(start))
+		}
 		return
 	}
 	return http.HandlerFunc(fn)
