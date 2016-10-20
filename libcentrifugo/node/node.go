@@ -107,7 +107,7 @@ func init() {
 
 // New creates Node, the only required argument is config.
 func New(c *Config) *Node {
-	app := &Node{
+	n := &Node{
 		uid:             uuid.NewV4().String(),
 		config:          c,
 		clients:         conns.NewClientHub(),
@@ -119,70 +119,70 @@ func New(c *Config) *Node {
 	}
 
 	// Create initial snapshot with empty values.
-	app.metricsMu.Lock()
-	app.metricsSnapshot = app.getSnapshotMetrics()
-	app.metricsMu.Unlock()
+	n.metricsMu.Lock()
+	n.metricsSnapshot = n.getSnapshotMetrics()
+	n.metricsMu.Unlock()
 
-	return app
+	return n
 }
 
 // Config returns a copy of node Config.
-func (app *Node) Config() Config {
-	app.RLock()
-	c := *app.config
-	app.RUnlock()
+func (n *Node) Config() Config {
+	n.RLock()
+	c := *n.config
+	n.RUnlock()
 	return c
 }
 
 // Config returns a copy of node Config.
-func (app *Node) Engine() engine.Engine {
-	return app.engine
+func (n *Node) Engine() engine.Engine {
+	return n.engine
 }
 
 // Config returns a copy of node Config.
-func (app *Node) Mediator() Mediator {
-	return app.mediator
+func (n *Node) Mediator() Mediator {
+	return n.mediator
 }
 
 // ClientHub.
-func (app *Node) ClientHub() conns.ClientHub {
-	return app.clients
+func (n *Node) ClientHub() conns.ClientHub {
+	return n.clients
 }
 
 // AdminHub.
-func (app *Node) AdminHub() conns.AdminHub {
-	return app.admins
+func (n *Node) AdminHub() conns.AdminHub {
+	return n.admins
 }
 
 // Notify shutdown returns a channel which will be closed on node shutdown.
-func (app *Node) NotifyShutdown() chan struct{} {
-	return app.shutdownCh
+func (n *Node) NotifyShutdown() chan struct{} {
+	return n.shutdownCh
 }
 
 // Run performs all startup actions. At moment must be called once on start
 // after engine and structure set.
-func (app *Node) Run(opts *RunOptions) error {
-	app.Lock()
-	app.engine = opts.Engine
-	app.servers = opts.Servers
-	app.mediator = opts.Mediator
-	app.Unlock()
+func (n *Node) Run(opts *RunOptions) error {
+	n.Lock()
+	n.engine = opts.Engine
+	n.servers = opts.Servers
+	n.mediator = opts.Mediator
+	n.Unlock()
 
-	if err := app.engine.Run(); err != nil {
+	if err := n.engine.Run(); err != nil {
 		return err
 	}
 
-	err := app.pubPing()
+	err := n.pubPing()
 	if err != nil {
 		logger.CRITICAL.Println(err)
 	}
-	go app.sendNodePingMsg()
+	go n.sendNodePingMsg()
 
-	go app.cleanNodeInfo()
+	go n.cleanNodeInfo()
 
-	go app.updateMetrics()
+	go n.updateMetrics()
 
-	config := app.Config()
+	config := n.Config()
 	if config.Insecure {
 		logger.WARN.Println("Running in INSECURE client mode")
 	}
@@ -196,7 +196,7 @@ func (app *Node) Run(opts *RunOptions) error {
 		logger.WARN.Println("Running in DEBUG mode")
 	}
 
-	for srvName, srv := range app.servers {
+	for srvName, srv := range n.servers {
 		logger.DEBUG.Printf("Starting %s server", srvName)
 		go srv.Run()
 	}
@@ -205,62 +205,62 @@ func (app *Node) Run(opts *RunOptions) error {
 }
 
 // Shutdown sets shutdown flag and does various clean ups.
-func (app *Node) Shutdown() error {
-	app.Lock()
-	if app.shutdown {
-		app.Unlock()
+func (n *Node) Shutdown() error {
+	n.Lock()
+	if n.shutdown {
+		n.Unlock()
 		return nil
 	}
-	app.shutdown = true
-	close(app.shutdownCh)
-	app.Unlock()
-	for srvName, srv := range app.servers {
+	n.shutdown = true
+	close(n.shutdownCh)
+	n.Unlock()
+	for srvName, srv := range n.servers {
 		logger.INFO.Printf("Shutting down %s server", srvName)
 		if err := srv.Shutdown(); err != nil {
 			logger.ERROR.Printf("Shutting down server %s: %v", srvName, err)
 		}
 	}
-	return app.clients.Shutdown()
+	return n.clients.Shutdown()
 }
 
-func (app *Node) updateMetricsOnce() {
+func (n *Node) updateMetricsOnce() {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 	metricsRegistry.Gauges.Set("memory_sys", int64(mem.Sys))
 	if usage, err := cpuUsage(); err == nil {
 		metricsRegistry.Gauges.Set("cpu_usage", int64(usage))
 	}
-	app.metricsMu.Lock()
-	app.metricsSnapshot = app.getSnapshotMetrics()
+	n.metricsMu.Lock()
+	n.metricsSnapshot = n.getSnapshotMetrics()
 	metricsRegistry.Counters.UpdateDelta()
 	metricsRegistry.HDRHistograms.Rotate()
-	app.metricsMu.Unlock()
+	n.metricsMu.Unlock()
 }
 
-func (app *Node) updateMetrics() {
+func (n *Node) updateMetrics() {
 	for {
-		app.RLock()
-		interval := app.config.NodeMetricsInterval
-		app.RUnlock()
+		n.RLock()
+		interval := n.config.NodeMetricsInterval
+		n.RUnlock()
 		select {
-		case <-app.shutdownCh:
+		case <-n.shutdownCh:
 			return
 		case <-time.After(interval):
-			app.updateMetricsOnce()
+			n.updateMetricsOnce()
 		}
 	}
 }
 
-func (app *Node) sendNodePingMsg() {
+func (n *Node) sendNodePingMsg() {
 	for {
-		app.RLock()
-		interval := app.config.NodePingInterval
-		app.RUnlock()
+		n.RLock()
+		interval := n.config.NodePingInterval
+		n.RUnlock()
 		select {
-		case <-app.shutdownCh:
+		case <-n.shutdownCh:
 			return
 		case <-time.After(interval):
-			err := app.pubPing()
+			err := n.pubPing()
 			if err != nil {
 				logger.CRITICAL.Println(err)
 			}
@@ -268,54 +268,54 @@ func (app *Node) sendNodePingMsg() {
 	}
 }
 
-func (app *Node) cleanNodeInfo() {
+func (n *Node) cleanNodeInfo() {
 	for {
-		app.RLock()
-		interval := app.config.NodeInfoCleanInterval
-		app.RUnlock()
+		n.RLock()
+		interval := n.config.NodeInfoCleanInterval
+		n.RUnlock()
 		select {
-		case <-app.shutdownCh:
+		case <-n.shutdownCh:
 			return
 		case <-time.After(interval):
-			app.RLock()
-			delay := app.config.NodeInfoMaxDelay
-			app.RUnlock()
+			n.RLock()
+			delay := n.config.NodeInfoMaxDelay
+			n.RUnlock()
 
-			app.nodesMu.Lock()
-			for uid, info := range app.nodes {
+			n.nodesMu.Lock()
+			for uid, info := range n.nodes {
 				if time.Now().Unix()-info.Updated() > int64(delay.Seconds()) {
-					delete(app.nodes, uid)
+					delete(n.nodes, uid)
 				}
 			}
-			app.nodesMu.Unlock()
+			n.nodesMu.Unlock()
 		}
 	}
 }
 
 // SetConfig binds config to application.
-func (app *Node) SetConfig(c *Config) {
-	app.Lock()
-	defer app.Unlock()
-	app.config = c
+func (n *Node) SetConfig(c *Config) {
+	n.Lock()
+	defer n.Unlock()
+	n.config = c
 }
 
-func (app *Node) Channels() ([]proto.Channel, error) {
-	return app.engine.Channels()
+func (n *Node) Channels() ([]proto.Channel, error) {
+	return n.engine.Channels()
 }
 
-func (app *Node) Stats() proto.ServerStats {
-	app.nodesMu.Lock()
-	nodes := make([]proto.NodeInfo, len(app.nodes))
+func (n *Node) Stats() proto.ServerStats {
+	n.nodesMu.Lock()
+	nodes := make([]proto.NodeInfo, len(n.nodes))
 	i := 0
-	for _, info := range app.nodes {
+	for _, info := range n.nodes {
 		nodes[i] = info
 		i++
 	}
-	app.nodesMu.Unlock()
+	n.nodesMu.Unlock()
 
-	app.RLock()
-	interval := app.config.NodeMetricsInterval
-	app.RUnlock()
+	n.RLock()
+	interval := n.config.NodeMetricsInterval
+	n.RUnlock()
 
 	return proto.ServerStats{
 		MetricsInterval: int64(interval.Seconds()),
@@ -323,7 +323,7 @@ func (app *Node) Stats() proto.ServerStats {
 	}
 }
 
-func (app *Node) getRawMetrics() map[string]int64 {
+func (n *Node) getRawMetrics() map[string]int64 {
 	m := make(map[string]int64)
 	for name, val := range metricsRegistry.Counters.LoadValues() {
 		m[name] = val
@@ -337,7 +337,7 @@ func (app *Node) getRawMetrics() map[string]int64 {
 	return m
 }
 
-func (app *Node) getSnapshotMetrics() map[string]int64 {
+func (n *Node) getSnapshotMetrics() map[string]int64 {
 	m := make(map[string]int64)
 	for name, val := range metricsRegistry.Counters.LoadIntervalValues() {
 		m[name] = val
@@ -351,24 +351,24 @@ func (app *Node) getSnapshotMetrics() map[string]int64 {
 	return m
 }
 
-func (app *Node) Node() proto.NodeInfo {
-	app.nodesMu.Lock()
-	info, ok := app.nodes[app.uid]
+func (n *Node) Node() proto.NodeInfo {
+	n.nodesMu.Lock()
+	info, ok := n.nodes[n.uid]
 	if !ok {
 		logger.WARN.Println("node called but no local node info yet, returning garbage")
 	}
-	app.nodesMu.Unlock()
+	n.nodesMu.Unlock()
 
-	info.SetMetrics(app.getRawMetrics())
+	info.SetMetrics(n.getRawMetrics())
 
 	return info
 }
 
 // ControlMsg handles messages from control channel - control messages used for internal
 // communication between nodes to share state or proto.
-func (app *Node) ControlMsg(cmd *proto.ControlMessage) error {
+func (n *Node) ControlMsg(cmd *proto.ControlMessage) error {
 
-	if cmd.UID == app.uid {
+	if cmd.UID == n.uid {
 		// Sent by this node.
 		return nil
 	}
@@ -384,7 +384,7 @@ func (app *Node) ControlMsg(cmd *proto.ControlMessage) error {
 			logger.ERROR.Println(err)
 			return proto.ErrInvalidMessage
 		}
-		return app.pingCmd(&cmd)
+		return n.pingCmd(&cmd)
 	case "unsubscribe":
 		var cmd proto.UnsubscribeControlCommand
 		err := json.Unmarshal(*params, &cmd)
@@ -392,7 +392,7 @@ func (app *Node) ControlMsg(cmd *proto.ControlMessage) error {
 			logger.ERROR.Println(err)
 			return proto.ErrInvalidMessage
 		}
-		return app.unsubscribeUser(cmd.User, cmd.Channel)
+		return n.unsubscribeUser(cmd.User, cmd.Channel)
 	case "disconnect":
 		var cmd proto.DisconnectControlCommand
 		err := json.Unmarshal(*params, &cmd)
@@ -400,7 +400,7 @@ func (app *Node) ControlMsg(cmd *proto.ControlMessage) error {
 			logger.ERROR.Println(err)
 			return proto.ErrInvalidMessage
 		}
-		return app.disconnectUser(cmd.User)
+		return n.disconnectUser(cmd.User)
 	default:
 		logger.ERROR.Println("unknown control message method", method)
 		return proto.ErrInvalidMessage
@@ -408,8 +408,8 @@ func (app *Node) ControlMsg(cmd *proto.ControlMessage) error {
 }
 
 // AdminMsg handlesadmin message broadcasting it to all admins connected to this node.
-func (app *Node) AdminMsg(msg *proto.AdminMessage) error {
-	hasAdmins := app.admins.NumAdmins() > 0
+func (n *Node) AdminMsg(msg *proto.AdminMessage) error {
+	hasAdmins := n.admins.NumAdmins() > 0
 	if !hasAdmins {
 		return nil
 	}
@@ -418,14 +418,14 @@ func (app *Node) AdminMsg(msg *proto.AdminMessage) error {
 	if err != nil {
 		return err
 	}
-	return app.admins.Broadcast(byteMessage)
+	return n.admins.Broadcast(byteMessage)
 }
 
 // ClientMsg handles messages published by web application or client into channel.
 // The goal of this method to deliver this message to all clients on this node subscribed
 // on channel.
-func (app *Node) ClientMsg(ch proto.Channel, msg *proto.Message) error {
-	numSubscribers := app.clients.NumSubscribers(ch)
+func (n *Node) ClientMsg(ch proto.Channel, msg *proto.Message) error {
+	numSubscribers := n.clients.NumSubscribers(ch)
 	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
 		return nil
@@ -435,7 +435,7 @@ func (app *Node) ClientMsg(ch proto.Channel, msg *proto.Message) error {
 	if err != nil {
 		return err
 	}
-	return app.clients.Broadcast(ch, byteMessage)
+	return n.clients.Broadcast(ch, byteMessage)
 }
 
 func makeErrChan(err error) <-chan error {
@@ -445,38 +445,38 @@ func makeErrChan(err error) <-chan error {
 }
 
 // Publish sends a message to all clients subscribed on channel.
-func (app *Node) Publish(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) error {
-	return <-app.PublishAsync(ch, data, client, info)
+func (n *Node) Publish(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) error {
+	return <-n.PublishAsync(ch, data, client, info)
 }
 
 // PublishAsync sends a message into channel with provided data, client and client info.
-func (app *Node) PublishAsync(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
+func (n *Node) PublishAsync(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
 	if string(ch) == "" || len(data) == 0 {
 		return makeErrChan(proto.ErrInvalidMessage)
 	}
 
-	chOpts, err := app.ChannelOpts(ch)
+	chOpts, err := n.ChannelOpts(ch)
 	if err != nil {
 		return makeErrChan(err)
 	}
 
-	return app.pubClient(ch, chOpts, data, client, info)
+	return n.pubClient(ch, chOpts, data, client, info)
 }
 
 // pubControl publishes message into control channel so all running
 // nodes will receive and handle it.
-func (app *Node) pubControl(method string, params []byte) error {
-	return <-app.engine.PublishControl(proto.NewControlMessage(app.uid, method, params))
+func (n *Node) pubControl(method string, params []byte) error {
+	return <-n.engine.PublishControl(proto.NewControlMessage(n.uid, method, params))
 }
 
 // pubAdmin publishes message to admins.
-func (app *Node) pubAdmin(method string, params []byte) <-chan error {
-	return app.engine.PublishAdmin(proto.NewAdminMessage(method, params))
+func (n *Node) pubAdmin(method string, params []byte) <-chan error {
+	return n.engine.PublishAdmin(proto.NewAdminMessage(method, params))
 }
 
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel.
-func (app *Node) pubClient(ch proto.Channel, chOpts proto.ChannelOptions, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
+func (n *Node) pubClient(ch proto.Channel, chOpts proto.ChannelOptions, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
 	message := proto.NewMessage(ch, data, client, info)
 	metricsRegistry.Counters.Inc("num_msg_published")
 	if chOpts.Watch {
@@ -484,26 +484,26 @@ func (app *Node) pubClient(ch proto.Channel, chOpts proto.ChannelOptions, data [
 		if err != nil {
 			logger.ERROR.Println(err)
 		} else {
-			app.pubAdmin("message", byteMessage)
+			n.pubAdmin("message", byteMessage)
 		}
 	}
-	return app.engine.PublishMessage(ch, message, &chOpts)
+	return n.engine.PublishMessage(ch, message, &chOpts)
 }
 
 // PubJoin allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (app *Node) PubJoin(ch proto.Channel, info proto.ClientInfo) error {
-	return <-app.engine.PublishJoin(ch, proto.NewJoinMessage(ch, info))
+func (n *Node) PubJoin(ch proto.Channel, info proto.ClientInfo) error {
+	return <-n.engine.PublishJoin(ch, proto.NewJoinMessage(ch, info))
 }
 
 // PubLeave allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (app *Node) PubLeave(ch proto.Channel, info proto.ClientInfo) error {
-	return <-app.engine.PublishLeave(ch, proto.NewLeaveMessage(ch, info))
+func (n *Node) PubLeave(ch proto.Channel, info proto.ClientInfo) error {
+	return <-n.engine.PublishLeave(ch, proto.NewLeaveMessage(ch, info))
 }
 
-func (app *Node) JoinMsg(ch proto.Channel, msg *proto.JoinMessage) error {
-	hasCurrentSubscribers := app.clients.NumSubscribers(ch) > 0
+func (n *Node) JoinMsg(ch proto.Channel, msg *proto.JoinMessage) error {
+	hasCurrentSubscribers := n.clients.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
@@ -512,11 +512,11 @@ func (app *Node) JoinMsg(ch proto.Channel, msg *proto.JoinMessage) error {
 	if err != nil {
 		return err
 	}
-	return app.clients.Broadcast(ch, byteMessage)
+	return n.clients.Broadcast(ch, byteMessage)
 }
 
-func (app *Node) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) error {
-	hasCurrentSubscribers := app.clients.NumSubscribers(ch) > 0
+func (n *Node) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) error {
+	hasCurrentSubscribers := n.clients.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
@@ -525,38 +525,38 @@ func (app *Node) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) error {
 	if err != nil {
 		return err
 	}
-	return app.clients.Broadcast(ch, byteMessage)
+	return n.clients.Broadcast(ch, byteMessage)
 }
 
 // pubPing sends control ping message to all nodes - this message
 // contains information about current node.
-func (app *Node) pubPing() error {
-	app.RLock()
-	metricsRegistry.Gauges.Set("num_clients", int64(app.clients.NumClients()))
-	metricsRegistry.Gauges.Set("num_unique_clients", int64(app.clients.NumUniqueClients()))
-	metricsRegistry.Gauges.Set("num_channels", int64(app.clients.NumChannels()))
+func (n *Node) pubPing() error {
+	n.RLock()
+	metricsRegistry.Gauges.Set("num_clients", int64(n.clients.NumClients()))
+	metricsRegistry.Gauges.Set("num_unique_clients", int64(n.clients.NumUniqueClients()))
+	metricsRegistry.Gauges.Set("num_channels", int64(n.clients.NumChannels()))
 	metricsRegistry.Gauges.Set("num_goroutine", int64(runtime.NumGoroutine()))
 	metricsRegistry.Gauges.Set("num_cpu", int64(runtime.NumCPU()))
 	metricsRegistry.Gauges.Set("gomaxprocs", int64(runtime.GOMAXPROCS(-1)))
 
 	metricsSnapshot := make(map[string]int64)
-	app.metricsMu.RLock()
-	for k, v := range app.metricsSnapshot {
+	n.metricsMu.RLock()
+	for k, v := range n.metricsSnapshot {
 		metricsSnapshot[k] = v
 	}
-	app.metricsMu.RUnlock()
+	n.metricsMu.RUnlock()
 
 	info := proto.NodeInfo{
-		UID:     app.uid,
-		Name:    app.config.Name,
-		Started: app.started,
+		UID:     n.uid,
+		Name:    n.config.Name,
+		Started: n.started,
 		Metrics: metricsSnapshot,
 	}
-	app.RUnlock()
+	n.RUnlock()
 
 	cmd := &proto.PingControlCommand{Info: info}
 
-	err := app.pingCmd(cmd)
+	err := n.pingCmd(cmd)
 	if err != nil {
 		logger.ERROR.Println(err)
 	}
@@ -566,12 +566,12 @@ func (app *Node) pubPing() error {
 		return err
 	}
 
-	return app.pubControl("ping", cmdBytes)
+	return n.pubControl("ping", cmdBytes)
 }
 
 // pubUnsubscribe publishes unsubscribe control message to all nodes – so all
 // nodes could unsubscribe user from channel.
-func (app *Node) pubUnsubscribe(user proto.UserID, ch proto.Channel) error {
+func (n *Node) pubUnsubscribe(user proto.UserID, ch proto.Channel) error {
 
 	cmd := &proto.UnsubscribeControlCommand{
 		User:    user,
@@ -583,12 +583,12 @@ func (app *Node) pubUnsubscribe(user proto.UserID, ch proto.Channel) error {
 		return err
 	}
 
-	return app.pubControl("unsubscribe", cmdBytes)
+	return n.pubControl("unsubscribe", cmdBytes)
 }
 
 // pubDisconnect publishes disconnect control message to all nodes – so all
 // nodes could disconnect user from Centrifugo.
-func (app *Node) pubDisconnect(user proto.UserID) error {
+func (n *Node) pubDisconnect(user proto.UserID) error {
 
 	cmd := &proto.DisconnectControlCommand{
 		User: user,
@@ -599,78 +599,78 @@ func (app *Node) pubDisconnect(user proto.UserID) error {
 		return err
 	}
 
-	return app.pubControl("disconnect", cmdBytes)
+	return n.pubControl("disconnect", cmdBytes)
 }
 
 // pingCmd handles ping control command i.e. updates information about known nodes.
-func (app *Node) pingCmd(cmd *proto.PingControlCommand) error {
+func (n *Node) pingCmd(cmd *proto.PingControlCommand) error {
 	info := cmd.Info
 	info.SetUpdated(time.Now().Unix())
-	app.nodesMu.Lock()
-	app.nodes[info.UID] = info
-	app.nodesMu.Unlock()
+	n.nodesMu.Lock()
+	n.nodes[info.UID] = info
+	n.nodesMu.Unlock()
 	return nil
 }
 
 // AddConn registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand.
-func (app *Node) AddClientConn(c conns.ClientConn) error {
-	return app.clients.Add(c)
+func (n *Node) AddClientConn(c conns.ClientConn) error {
+	return n.clients.Add(c)
 }
 
 // removeConn removes client connection from connection registry.
-func (app *Node) RemoveClientConn(c conns.ClientConn) error {
-	return app.clients.Remove(c)
+func (n *Node) RemoveClientConn(c conns.ClientConn) error {
+	return n.clients.Remove(c)
 }
 
 // AddClientSub registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
-func (app *Node) AddClientSub(ch proto.Channel, c conns.ClientConn) error {
-	first, err := app.clients.AddSub(ch, c)
+func (n *Node) AddClientSub(ch proto.Channel, c conns.ClientConn) error {
+	first, err := n.clients.AddSub(ch, c)
 	if err != nil {
 		return err
 	}
 	if first {
-		return app.engine.Subscribe(ch)
+		return n.engine.Subscribe(ch)
 	}
 	return nil
 }
 
 // RemoveClientSub removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
-func (app *Node) RemoveClientSub(ch proto.Channel, c conns.ClientConn) error {
-	empty, err := app.clients.RemoveSub(ch, c)
+func (n *Node) RemoveClientSub(ch proto.Channel, c conns.ClientConn) error {
+	empty, err := n.clients.RemoveSub(ch, c)
 	if err != nil {
 		return err
 	}
 	if empty {
-		return app.engine.Unsubscribe(ch)
+		return n.engine.Unsubscribe(ch)
 	}
 	return nil
 }
 
 // Unsubscribe unsubscribes user from channel, if channel is equal to empty
 // string then user will be unsubscribed from all channels.
-func (app *Node) Unsubscribe(user proto.UserID, ch proto.Channel) error {
+func (n *Node) Unsubscribe(user proto.UserID, ch proto.Channel) error {
 
 	if string(user) == "" {
 		return proto.ErrInvalidMessage
 	}
 
 	if string(ch) != "" {
-		_, err := app.ChannelOpts(ch)
+		_, err := n.ChannelOpts(ch)
 		if err != nil {
 			return err
 		}
 	}
 
 	// First unsubscribe on this node.
-	err := app.unsubscribeUser(user, ch)
+	err := n.unsubscribeUser(user, ch)
 	if err != nil {
 		return proto.ErrInternalServerError
 	}
 	// Second send unsubscribe control message to other nodes.
-	err = app.pubUnsubscribe(user, ch)
+	err = n.pubUnsubscribe(user, ch)
 	if err != nil {
 		return proto.ErrInternalServerError
 	}
@@ -679,8 +679,8 @@ func (app *Node) Unsubscribe(user proto.UserID, ch proto.Channel) error {
 
 // unsubscribeUser unsubscribes user from channel on this node. If channel
 // is an empty string then user will be unsubscribed from all channels.
-func (app *Node) unsubscribeUser(user proto.UserID, ch proto.Channel) error {
-	userConnections := app.clients.UserConnections(user)
+func (n *Node) unsubscribeUser(user proto.UserID, ch proto.Channel) error {
+	userConnections := n.clients.UserConnections(user)
 	for _, c := range userConnections {
 		var channels []proto.Channel
 		if string(ch) == "" {
@@ -702,19 +702,19 @@ func (app *Node) unsubscribeUser(user proto.UserID, ch proto.Channel) error {
 
 // Disconnect allows to close all user connections to Centrifugo. Note that user still
 // can try to reconnect to the server after being disconnected.
-func (app *Node) Disconnect(user proto.UserID) error {
+func (n *Node) Disconnect(user proto.UserID) error {
 
 	if string(user) == "" {
 		return proto.ErrInvalidMessage
 	}
 
 	// first disconnect user from this node
-	err := app.disconnectUser(user)
+	err := n.disconnectUser(user)
 	if err != nil {
 		return proto.ErrInternalServerError
 	}
 	// second send disconnect control message to other nodes
-	err = app.pubDisconnect(user)
+	err = n.pubDisconnect(user)
 	if err != nil {
 		return proto.ErrInternalServerError
 	}
@@ -722,8 +722,8 @@ func (app *Node) Disconnect(user proto.UserID) error {
 }
 
 // disconnectUser closes client connections of user on current node.
-func (app *Node) disconnectUser(user proto.UserID) error {
-	userConnections := app.clients.UserConnections(user)
+func (n *Node) disconnectUser(user proto.UserID) error {
+	userConnections := n.clients.UserConnections(user)
 	for _, c := range userConnections {
 		err := c.Close("disconnect")
 		if err != nil {
@@ -734,44 +734,44 @@ func (app *Node) disconnectUser(user proto.UserID) error {
 }
 
 // namespaceKey returns namespace key from channel name if exists.
-func (app *Node) namespaceKey(ch proto.Channel) NamespaceKey {
-	cTrim := strings.TrimPrefix(string(ch), app.config.PrivateChannelPrefix)
-	if strings.Contains(cTrim, app.config.NamespaceChannelBoundary) {
-		parts := strings.SplitN(cTrim, app.config.NamespaceChannelBoundary, 2)
+func (n *Node) namespaceKey(ch proto.Channel) NamespaceKey {
+	cTrim := strings.TrimPrefix(string(ch), n.config.PrivateChannelPrefix)
+	if strings.Contains(cTrim, n.config.NamespaceChannelBoundary) {
+		parts := strings.SplitN(cTrim, n.config.NamespaceChannelBoundary, 2)
 		return NamespaceKey(parts[0])
 	}
 	return NamespaceKey("")
 }
 
 // channelOpts returns channel options for channel using current application structure.
-func (app *Node) ChannelOpts(ch proto.Channel) (proto.ChannelOptions, error) {
-	app.RLock()
-	defer app.RUnlock()
-	nk := app.namespaceKey(ch)
-	return app.config.channelOpts(nk)
+func (n *Node) ChannelOpts(ch proto.Channel) (proto.ChannelOptions, error) {
+	n.RLock()
+	defer n.RUnlock()
+	nk := n.namespaceKey(ch)
+	return n.config.channelOpts(nk)
 }
 
 // addPresence proxies presence adding to engine.
-func (app *Node) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo) error {
-	app.RLock()
-	expire := int(app.config.PresenceExpireInterval.Seconds())
-	app.RUnlock()
-	return app.engine.AddPresence(ch, uid, info, expire)
+func (n *Node) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo) error {
+	n.RLock()
+	expire := int(n.config.PresenceExpireInterval.Seconds())
+	n.RUnlock()
+	return n.engine.AddPresence(ch, uid, info, expire)
 }
 
 // RemovePresence proxies presence removing to engine.
-func (app *Node) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
-	return app.engine.RemovePresence(ch, uid)
+func (n *Node) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+	return n.engine.RemovePresence(ch, uid)
 }
 
 // Presence returns a map of active clients in project channel.
-func (app *Node) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
+func (n *Node) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
 
 	if string(ch) == "" {
 		return map[proto.ConnID]proto.ClientInfo{}, proto.ErrInvalidMessage
 	}
 
-	chOpts, err := app.ChannelOpts(ch)
+	chOpts, err := n.ChannelOpts(ch)
 	if err != nil {
 		return map[proto.ConnID]proto.ClientInfo{}, err
 	}
@@ -780,7 +780,7 @@ func (app *Node) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, 
 		return map[proto.ConnID]proto.ClientInfo{}, proto.ErrNotAvailable
 	}
 
-	presence, err := app.engine.Presence(ch)
+	presence, err := n.engine.Presence(ch)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return map[proto.ConnID]proto.ClientInfo{}, proto.ErrInternalServerError
@@ -789,13 +789,13 @@ func (app *Node) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, 
 }
 
 // History returns a slice of last messages published into project channel.
-func (app *Node) History(ch proto.Channel) ([]proto.Message, error) {
+func (n *Node) History(ch proto.Channel) ([]proto.Message, error) {
 
 	if string(ch) == "" {
 		return []proto.Message{}, proto.ErrInvalidMessage
 	}
 
-	chOpts, err := app.ChannelOpts(ch)
+	chOpts, err := n.ChannelOpts(ch)
 	if err != nil {
 		return []proto.Message{}, err
 	}
@@ -804,7 +804,7 @@ func (app *Node) History(ch proto.Channel) ([]proto.Message, error) {
 		return []proto.Message{}, proto.ErrNotAvailable
 	}
 
-	history, err := app.engine.History(ch, 0)
+	history, err := n.engine.History(ch, 0)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return []proto.Message{}, proto.ErrInternalServerError
@@ -812,8 +812,8 @@ func (app *Node) History(ch proto.Channel) ([]proto.Message, error) {
 	return history, nil
 }
 
-func (app *Node) LastMessageID(ch proto.Channel) (proto.MessageID, error) {
-	history, err := app.engine.History(ch, 1)
+func (n *Node) LastMessageID(ch proto.Channel) (proto.MessageID, error) {
+	history, err := n.engine.History(ch, 1)
 	if err != nil {
 		return proto.MessageID(""), err
 	}
@@ -825,23 +825,23 @@ func (app *Node) LastMessageID(ch proto.Channel) (proto.MessageID, error) {
 
 // PrivateChannel checks if channel private and therefore subscription
 // request on it must be properly signed on web application backend.
-func (app *Node) PrivateChannel(ch proto.Channel) bool {
-	app.RLock()
-	defer app.RUnlock()
-	return strings.HasPrefix(string(ch), app.config.PrivateChannelPrefix)
+func (n *Node) PrivateChannel(ch proto.Channel) bool {
+	n.RLock()
+	defer n.RUnlock()
+	return strings.HasPrefix(string(ch), n.config.PrivateChannelPrefix)
 }
 
 // UserAllowed checks if user can subscribe on channel - as channel
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it.
-func (app *Node) UserAllowed(ch proto.Channel, user proto.UserID) bool {
-	app.RLock()
-	defer app.RUnlock()
-	if !strings.Contains(string(ch), app.config.UserChannelBoundary) {
+func (n *Node) UserAllowed(ch proto.Channel, user proto.UserID) bool {
+	n.RLock()
+	defer n.RUnlock()
+	if !strings.Contains(string(ch), n.config.UserChannelBoundary) {
 		return true
 	}
-	parts := strings.Split(string(ch), app.config.UserChannelBoundary)
-	allowedUsers := strings.Split(parts[len(parts)-1], app.config.UserChannelSeparator)
+	parts := strings.Split(string(ch), n.config.UserChannelBoundary)
+	allowedUsers := strings.Split(parts[len(parts)-1], n.config.UserChannelSeparator)
 	for _, allowedUser := range allowedUsers {
 		if string(user) == allowedUser {
 			return true
@@ -853,13 +853,13 @@ func (app *Node) UserAllowed(ch proto.Channel, user proto.UserID) bool {
 // ClientAllowed checks if client can subscribe on channel - as channel
 // can contain special part in the end to indicate which client allowed
 // to subscribe on it.
-func (app *Node) ClientAllowed(ch proto.Channel, client proto.ConnID) bool {
-	app.RLock()
-	defer app.RUnlock()
-	if !strings.Contains(string(ch), app.config.ClientChannelBoundary) {
+func (n *Node) ClientAllowed(ch proto.Channel, client proto.ConnID) bool {
+	n.RLock()
+	defer n.RUnlock()
+	if !strings.Contains(string(ch), n.config.ClientChannelBoundary) {
 		return true
 	}
-	parts := strings.Split(string(ch), app.config.ClientChannelBoundary)
+	parts := strings.Split(string(ch), n.config.ClientChannelBoundary)
 	allowedClient := parts[len(parts)-1]
 	if string(client) == allowedClient {
 		return true
