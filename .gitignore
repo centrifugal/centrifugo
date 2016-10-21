@@ -1,4 +1,5 @@
 centrifugo
+!/libcentrifugo/centrifugo
 BUILDS
 PACKAGES
 FlameGraph
