@@ -3,11 +3,158 @@ package adminconn
 import (
 	"testing"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/securecookie"
 	"github.com/stretchr/testify/assert"
 )
+
+type TestEngine struct{}
+
+func NewTestEngine() *TestEngine {
+	return &TestEngine{}
+}
+
+func (e *TestEngine) Name() string {
+	return "test engine"
+}
+
+func (e *TestEngine) Run() error {
+	return nil
+}
+
+func (e *TestEngine) Shutdown() error {
+	return nil
+}
+
+func (e *TestEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishControl(message *proto.ControlMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) Subscribe(ch proto.Channel) error {
+	return nil
+}
+
+func (e *TestEngine) Unsubscribe(ch proto.Channel) error {
+	return nil
+}
+
+func (e *TestEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo, expire int) error {
+	return nil
+}
+
+func (e *TestEngine) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+	return nil
+}
+
+func (e *TestEngine) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
+	return map[proto.ConnID]proto.ClientInfo{}, nil
+}
+
+func (e *TestEngine) History(ch proto.Channel, limit int) ([]proto.Message, error) {
+	return []proto.Message{}, nil
+}
+
+func (e *TestEngine) Channels() ([]proto.Channel, error) {
+	return []proto.Channel{}, nil
+}
+
+type TestSession struct {
+	sink   chan []byte
+	closed bool
+}
+
+func NewTestSession() *TestSession {
+	return &TestSession{}
+}
+
+func (t *TestSession) Send(msg []byte) error {
+	if t.sink != nil {
+		t.sink <- msg
+	}
+	return nil
+}
+
+func (t *TestSession) Close(status uint32, reason string) error {
+	t.closed = true
+	return nil
+}
+
+func getTestChannelOptions() proto.ChannelOptions {
+	return proto.ChannelOptions{
+		Watch:           true,
+		Publish:         true,
+		Presence:        true,
+		HistorySize:     1,
+		HistoryLifetime: 1,
+	}
+}
+
+func getTestNamespace(name node.NamespaceKey) node.Namespace {
+	return node.Namespace{
+		Name:           name,
+		ChannelOptions: getTestChannelOptions(),
+	}
+}
+
+func NewTestConfig() *node.Config {
+	c := node.DefaultConfig
+	var ns []node.Namespace
+	ns = append(ns, getTestNamespace("test"))
+	c.Namespaces = ns
+	c.Secret = "secret"
+	c.ChannelOptions = getTestChannelOptions()
+	return c
+}
+
+func NewTestNode() *node.Node {
+	c := NewTestConfig()
+	n := node.New("", c)
+	err := n.Run(&node.RunOptions{Engine: NewTestEngine()})
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
+
+func NewTestNodeWithConfig(c *node.Config) *node.Node {
+	if c == nil {
+		c = NewTestConfig()
+	}
+	n := node.New("", c)
+	err := n.Run(&node.RunOptions{Engine: NewTestEngine()})
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
 
 type testAdminSession struct{}
 
@@ -25,22 +172,23 @@ func newAdminTestConfig() *node.Config {
 	}
 }
 
-func newAdminTestNode() *Node {
-	n := New(newAdminTestConfig())
-	n.engine = NewTestEngine()
-	return n
+func newAdminTestNode() *node.Node {
+	conf := newAdminTestConfig()
+	return NewTestNodeWithConfig(conf)
 }
 
-func newTestAdminClient() (AdminConn, error) {
+func newTestAdminClient() (conns.AdminConn, error) {
 	n := newAdminTestNode()
-	c, err := n.NewAdminClient(&testAdminSession{}, nil)
+	c, err := New(n, &testAdminSession{}, nil)
 	return c, err
 }
 
-func newInsecureTestAdminClient() (AdminConn, error) {
+func newInsecureTestAdminClient() (conns.AdminConn, error) {
 	n := newAdminTestNode()
-	n.config.InsecureAdmin = true
-	c, err := n.NewAdminClient(&testAdminSession{}, nil)
+	conf := n.Config()
+	conf.InsecureAdmin = true
+	n.SetConfig(&conf)
+	c, err := New(n, &testAdminSession{}, nil)
 	return c, err
 }
 
@@ -63,7 +211,7 @@ func TestAdminClientMessageHandling(t *testing.T) {
 	assert.NotEqual(t, nil, err)
 	emptyAuthMethod := "{\"method\":\"connect\", \"params\": {\"watch\": true}}"
 	err = c.Handle([]byte(emptyAuthMethod))
-	assert.Equal(t, ErrUnauthorized, err)
+	assert.Equal(t, proto.ErrUnauthorized, err)
 	s := securecookie.New([]byte("secret"), nil)
 	token, _ := s.Encode(AuthTokenKey, AuthTokenValue)
 	correctAuthMethod := "{\"method\":\"connect\", \"params\": {\"token\":\"" + token + "\", \"watch\": true}}"
@@ -71,7 +219,7 @@ func TestAdminClientMessageHandling(t *testing.T) {
 	assert.Equal(t, nil, err)
 	unknownMsg := "{\"method\":\"unknown\", \"params\": {}}"
 	err = c.Handle([]byte(unknownMsg))
-	assert.Equal(t, ErrMethodNotFound, err)
+	assert.Equal(t, proto.ErrMethodNotFound, err)
 	infoCommand := "{\"method\":\"info\", \"params\": {}}"
 	err = c.Handle([]byte(infoCommand))
 	assert.Equal(t, nil, err)
@@ -85,7 +233,7 @@ func TestAdminClientAuthentication(t *testing.T) {
 	assert.Equal(t, nil, err)
 	infoCommand := "{\"method\":\"info\", \"params\": {}}"
 	err = c.Handle([]byte(infoCommand))
-	assert.Equal(t, ErrUnauthorized, err)
+	assert.Equal(t, proto.ErrUnauthorized, err)
 }
 
 func TestAdminClientInsecure(t *testing.T) {
@@ -108,26 +256,26 @@ func TestAdminClientNotWatching(t *testing.T) {
 }
 
 func TestAdminAuthToken(t *testing.T) {
-	app := testNode()
+	app := NewTestNode()
 	// first without secret set
-	err := app.checkAdminAuthToken("")
+	err := checkAdminAuthToken(app, "")
 	assert.Equal(t, proto.ErrUnauthorized, err)
 
 	// no secret set
-	token, err := AdminAuthToken(app.config.AdminSecret)
+	token, err := AdminAuthToken(app.Config().AdminSecret)
 	assert.Equal(t, proto.ErrInternalServerError, err)
 
-	app.Lock()
-	app.config.AdminSecret = "secret"
-	app.Unlock()
+	conf := app.Config()
+	conf.AdminSecret = "secret"
+	app.SetConfig(&conf)
 
-	err = app.checkAdminAuthToken("")
+	err = checkAdminAuthToken(app, "")
 	assert.Equal(t, proto.ErrUnauthorized, err)
 
 	token, err = AdminAuthToken("secret")
 	assert.Equal(t, nil, err)
 	assert.True(t, len(token) > 0)
-	err = app.checkAdminAuthToken(token)
+	err = checkAdminAuthToken(app, token)
 	assert.Equal(t, nil, err)
 
 }

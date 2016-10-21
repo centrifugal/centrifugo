@@ -104,7 +104,7 @@ func (t *testSession) Close(status uint32, reason string) error {
 
 func testNode() *Node {
 	c := newTestConfig()
-	n := New(&c)
+	n := New("", &c)
 	err := n.Run(&RunOptions{Engine: NewTestEngine()})
 	if err != nil {
 		panic(err)
@@ -117,7 +117,7 @@ func testNodeWithConfig(c *Config) *Node {
 		conf := newTestConfig()
 		c = &conf
 	}
-	n := New(c)
+	n := New("", c)
 	n.engine = NewTestEngine()
 	return n
 }
@@ -157,7 +157,7 @@ func TestApplicationNode(t *testing.T) {
 	app := testNode()
 	err := app.Run(&RunOptions{Engine: NewTestEngine()})
 	assert.Equal(t, nil, err)
-	info := app.node()
+	info := app.Node()
 	assert.Equal(t, int64(0), info.Metrics["num_clients"])
 	assert.NotEqual(t, 0, info.Started)
 }

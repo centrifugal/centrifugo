@@ -64,8 +64,6 @@ func TestWSConnPingAfterClose(t *testing.T) {
 	ws := &testWSConnection{}
 	c := newWSSession(ws, 1*time.Nanosecond)
 	err := c.Close(1, "test close")
-	// TODO: closing channel should be inside Close!
-	close(c.closeCh)
 	assert.Equal(t, nil, err)
 	c.ping()
 	assert.Equal(t, true, c.ws.(*testWSConnection).closed)
@@ -75,8 +73,6 @@ func TestSendAfterClose(t *testing.T) {
 	ws := &testWSConnection{}
 	c := newWSSession(ws, 1*time.Nanosecond)
 	err := c.Close(1, "test close")
-	// TODO: closing channel should be inside Close!
-	close(c.closeCh)
 	assert.Equal(t, nil, err)
 	err = c.Send([]byte("test"))
 	assert.Equal(t, nil, err)

@@ -10,21 +10,167 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type TestEngine struct{}
+
+func NewTestEngine() *TestEngine {
+	return &TestEngine{}
+}
+
+func (e *TestEngine) Name() string {
+	return "test engine"
+}
+
+func (e *TestEngine) Run() error {
+	return nil
+}
+
+func (e *TestEngine) Shutdown() error {
+	return nil
+}
+
+func (e *TestEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishControl(message *proto.ControlMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) Subscribe(ch proto.Channel) error {
+	return nil
+}
+
+func (e *TestEngine) Unsubscribe(ch proto.Channel) error {
+	return nil
+}
+
+func (e *TestEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo, expire int) error {
+	return nil
+}
+
+func (e *TestEngine) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+	return nil
+}
+
+func (e *TestEngine) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
+	return map[proto.ConnID]proto.ClientInfo{}, nil
+}
+
+func (e *TestEngine) History(ch proto.Channel, limit int) ([]proto.Message, error) {
+	return []proto.Message{}, nil
+}
+
+func (e *TestEngine) Channels() ([]proto.Channel, error) {
+	return []proto.Channel{}, nil
+}
+
+type TestSession struct {
+	sink   chan []byte
+	closed bool
+}
+
+func NewTestSession() *TestSession {
+	return &TestSession{}
+}
+
+func (t *TestSession) Send(msg []byte) error {
+	if t.sink != nil {
+		t.sink <- msg
+	}
+	return nil
+}
+
+func (t *TestSession) Close(status uint32, reason string) error {
+	t.closed = true
+	return nil
+}
+
+func getTestChannelOptions() proto.ChannelOptions {
+	return proto.ChannelOptions{
+		Watch:           true,
+		Publish:         true,
+		Presence:        true,
+		HistorySize:     1,
+		HistoryLifetime: 1,
+	}
+}
+
+func getTestNamespace(name node.NamespaceKey) node.Namespace {
+	return node.Namespace{
+		Name:           name,
+		ChannelOptions: getTestChannelOptions(),
+	}
+}
+
+func NewTestConfig() *node.Config {
+	c := node.DefaultConfig
+	var ns []node.Namespace
+	ns = append(ns, getTestNamespace("test"))
+	c.Namespaces = ns
+	c.Secret = "secret"
+	c.ChannelOptions = getTestChannelOptions()
+	return c
+}
+
+func NewTestNode() *node.Node {
+	c := NewTestConfig()
+	n := node.New("", c)
+	err := n.Run(&node.RunOptions{Engine: NewTestEngine()})
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
+
+func NewTestNodeWithConfig(c *node.Config) *node.Node {
+	if c == nil {
+		c = NewTestConfig()
+	}
+	n := node.New("", c)
+	err := n.Run(&node.RunOptions{Engine: NewTestEngine()})
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
+
 func TestAPICmd(t *testing.T) {
-	app := testNode()
+	app := NewTestNode()
 
 	cmd := proto.ApiCommand{
 		Method: "nonexistent",
 		Params: []byte("{}"),
 	}
-	_, err := app.APICmd(cmd, nil)
+	_, err := APICmd(app, cmd, nil)
 	assert.Equal(t, err, proto.ErrMethodNotFound)
 
 	cmd = proto.ApiCommand{
 		Method: "publish",
 		Params: []byte("{}"),
 	}
-	resp, err := app.APICmd(cmd, nil)
+	resp, err := APICmd(app, cmd, nil)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIPublishResponse).ResponseError.Err)
 
@@ -32,14 +178,14 @@ func TestAPICmd(t *testing.T) {
 		Method: "publish",
 		Params: []byte("test"),
 	}
-	_, err = app.APICmd(cmd, nil)
+	_, err = APICmd(app, cmd, nil)
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	cmd = proto.ApiCommand{
 		Method: "broadcast",
 		Params: []byte("{}"),
 	}
-	resp, err = app.APICmd(cmd, nil)
+	resp, err = APICmd(app, cmd, nil)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
 
@@ -47,14 +193,14 @@ func TestAPICmd(t *testing.T) {
 		Method: "broadcast",
 		Params: []byte("test"),
 	}
-	_, err = app.APICmd(cmd, nil)
+	_, err = APICmd(app, cmd, nil)
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	cmd = proto.ApiCommand{
 		Method: "unsubscribe",
 		Params: []byte("{}"),
 	}
-	resp, err = app.APICmd(cmd, nil)
+	resp, err = APICmd(app, cmd, nil)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIUnsubscribeResponse).ResponseError.Err)
 
@@ -62,14 +208,14 @@ func TestAPICmd(t *testing.T) {
 		Method: "unsubscribe",
 		Params: []byte("test"),
 	}
-	_, err = app.APICmd(cmd, nil)
+	_, err = APICmd(app, cmd, nil)
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	cmd = proto.ApiCommand{
 		Method: "disconnect",
 		Params: []byte("{}"),
 	}
-	resp, err = app.APICmd(cmd, nil)
+	resp, err = APICmd(app, cmd, nil)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIDisconnectResponse).ResponseError.Err)
 
@@ -77,14 +223,14 @@ func TestAPICmd(t *testing.T) {
 		Method: "disconnect",
 		Params: []byte("test"),
 	}
-	_, err = app.APICmd(cmd, nil)
+	_, err = APICmd(app, cmd, nil)
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	cmd = proto.ApiCommand{
 		Method: "presence",
 		Params: []byte("{}"),
 	}
-	resp, err = app.APICmd(cmd, nil)
+	resp, err = APICmd(app, cmd, nil)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIPresenceResponse).ResponseError.Err)
 
@@ -92,14 +238,14 @@ func TestAPICmd(t *testing.T) {
 		Method: "presence",
 		Params: []byte("test"),
 	}
-	_, err = app.APICmd(cmd, nil)
+	_, err = APICmd(app, cmd, nil)
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	cmd = proto.ApiCommand{
 		Method: "history",
 		Params: []byte("{}"),
 	}
-	resp, err = app.APICmd(cmd, nil)
+	resp, err = APICmd(app, cmd, nil)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIHistoryResponse).ResponseError.Err)
 
@@ -107,14 +253,14 @@ func TestAPICmd(t *testing.T) {
 		Method: "history",
 		Params: []byte("test"),
 	}
-	_, err = app.APICmd(cmd, nil)
+	_, err = APICmd(app, cmd, nil)
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	cmd = proto.ApiCommand{
 		Method: "channels",
 		Params: []byte("{}"),
 	}
-	resp, err = app.APICmd(cmd, nil)
+	resp, err = APICmd(app, cmd, nil)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIChannelsResponse).ResponseError.Err)
 
@@ -122,7 +268,7 @@ func TestAPICmd(t *testing.T) {
 		Method: "stats",
 		Params: []byte("{}"),
 	}
-	resp, err = app.APICmd(cmd, nil)
+	resp, err = APICmd(app, cmd, nil)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIStatsResponse).ResponseError.Err)
 
@@ -130,61 +276,61 @@ func TestAPICmd(t *testing.T) {
 		Method: "node",
 		Params: []byte("{}"),
 	}
-	resp, err = app.APICmd(cmd, nil)
+	resp, err = APICmd(app, cmd, nil)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APINodeResponse).ResponseError.Err)
 }
 
 func TestAPIPublish(t *testing.T) {
-	app := testNode()
+	app := NewTestNode()
 	cmd := &proto.PublishAPICommand{
 		Channel: "channel",
 		Data:    []byte("null"),
 	}
-	resp, err := app.publishCmd(cmd)
+	resp, err := PublishCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIPublishResponse).ResponseError.Err)
 	cmd = &proto.PublishAPICommand{
 		Channel: "nonexistentnamespace:channel-2",
 		Data:    []byte("null"),
 	}
-	resp, err = app.publishCmd(cmd)
+	resp, err = PublishCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrNamespaceNotFound, resp.(*proto.APIPublishResponse).ResponseError.Err)
 }
 
 func TestAPIBroadcast(t *testing.T) {
-	app := testNode()
+	app := NewTestNode()
 	cmd := &proto.BroadcastAPICommand{
 		Channels: []proto.Channel{"channel-1", "channel-2"},
 		Data:     []byte("null"),
 	}
-	resp, err := app.broadcastCmd(cmd)
+	resp, err := BroadcastCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
 	cmd = &proto.BroadcastAPICommand{
 		Channels: []proto.Channel{"channel-1", "nonexistentnamespace:channel-2"},
 		Data:     []byte("null"),
 	}
-	resp, err = app.broadcastCmd(cmd)
+	resp, err = BroadcastCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrNamespaceNotFound, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
 	cmd = &proto.BroadcastAPICommand{
 		Channels: []proto.Channel{},
 		Data:     []byte("null"),
 	}
-	resp, err = app.broadcastCmd(cmd)
+	resp, err = BroadcastCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
 }
 
 func TestAPIUnsubscribe(t *testing.T) {
-	app := testNode()
+	app := NewTestNode()
 	cmd := &proto.UnsubscribeAPICommand{
 		User:    "test user",
 		Channel: "channel",
 	}
-	resp, err := app.unsubcribeCmd(cmd)
+	resp, err := UnsubcribeCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIUnsubscribeResponse).ResponseError.Err)
 
@@ -193,44 +339,44 @@ func TestAPIUnsubscribe(t *testing.T) {
 		User:    "test user",
 		Channel: "",
 	}
-	resp, err = app.unsubcribeCmd(cmd)
+	resp, err = UnsubcribeCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIUnsubscribeResponse).ResponseError.Err)
 }
 
 func TestAPIDisconnect(t *testing.T) {
-	app := testNode()
+	app := NewTestNode()
 	cmd := &proto.DisconnectAPICommand{
 		User: "test user",
 	}
-	resp, err := app.disconnectCmd(cmd)
+	resp, err := DisconnectCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIDisconnectResponse).ResponseError.Err)
 }
 
 func TestAPIPresence(t *testing.T) {
-	app := testNode()
+	app := NewTestNode()
 	cmd := &proto.PresenceAPICommand{
 		Channel: "channel",
 	}
-	resp, err := app.presenceCmd(cmd)
+	resp, err := PresenceCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIPresenceResponse).ResponseError.Err)
 }
 
 func TestAPIHistory(t *testing.T) {
-	app := testNode()
+	app := NewTestNode()
 	cmd := &proto.HistoryAPICommand{
 		Channel: "channel",
 	}
-	resp, err := app.historyCmd(cmd)
+	resp, err := HistoryCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIHistoryResponse).ResponseError.Err)
 }
 
 func TestAPIChannels(t *testing.T) {
-	app := testNode()
-	resp, err := app.channelsCmd()
+	app := NewTestNode()
+	resp, err := ChannelsCmd(app)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIChannelsResponse).ResponseError.Err)
 	/*
@@ -244,15 +390,15 @@ func TestAPIChannels(t *testing.T) {
 }
 
 func TestAPIStats(t *testing.T) {
-	app := testNode()
-	resp, err := app.statsCmd()
+	app := NewTestNode()
+	resp, err := StatsCmd(app)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIStatsResponse).ResponseError.Err)
 }
 
 func TestAPINode(t *testing.T) {
-	app := testNode()
-	resp, err := app.nodeCmd()
+	app := NewTestNode()
+	resp, err := NodeCmd(app)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APINodeResponse).ResponseError.Err)
 }

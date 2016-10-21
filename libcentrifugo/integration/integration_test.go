@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
+	//"github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
 	//"github.com/centrifugal/centrifugo/libcentrifugo/engine/engineredis"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
@@ -94,14 +94,25 @@ func (e *TestEngine) Channels() ([]proto.Channel, error) {
 	return []proto.Channel{}, nil
 }
 
-func testNode() *node.Node {
-	c := newTestConfig()
-	n := node.New(&c)
-	err := n.Run(&node.RunOptions{Engine: NewTestEngine()})
-	if err != nil {
-		panic(err)
+type TestSession struct {
+	sink   chan []byte
+	closed bool
+}
+
+func NewTestSession() *TestSession {
+	return &TestSession{}
+}
+
+func (t *TestSession) Send(msg []byte) error {
+	if t.sink != nil {
+		t.sink <- msg
 	}
-	return n
+	return nil
+}
+
+func (t *TestSession) Close(status uint32, reason string) error {
+	t.closed = true
+	return nil
 }
 
 func getTestChannelOptions() proto.ChannelOptions {
@@ -121,8 +132,8 @@ func getTestNamespace(name node.NamespaceKey) node.Namespace {
 	}
 }
 
-func newTestConfig() node.Config {
-	c := *node.DefaultConfig
+func NewTestConfig() *node.Config {
+	c := node.DefaultConfig
 	var ns []node.Namespace
 	ns = append(ns, getTestNamespace("test"))
 	c.Namespaces = ns
@@ -131,35 +142,25 @@ func newTestConfig() node.Config {
 	return c
 }
 
-type testSession struct {
-	sink   chan []byte
-	closed bool
-}
-
-func (t *testSession) Send(msg []byte) error {
-	if t.sink != nil {
-		t.sink <- msg
+func NewTestNode() *node.Node {
+	c := NewTestConfig()
+	n := node.New("", c)
+	err := n.Run(&node.RunOptions{Engine: NewTestEngine()})
+	if err != nil {
+		panic(err)
 	}
-	return nil
+	return n
 }
 
-func (t *testSession) Close(status uint32, reason string) error {
-	t.closed = true
-	return nil
-}
-
-func testMemoryNode() *node.Node {
-	return testMemoryNodeWithConfig(nil)
-}
-
-func testMemoryNodeWithConfig(c *node.Config) *node.Node {
+func NewTestNodeWithConfig(c *node.Config) *node.Node {
 	if c == nil {
-		conf := newTestConfig()
-		c = &conf
+		c = NewTestConfig()
 	}
-	n := node.New(c)
-	engn, _ := enginememory.NewMemoryEngine(n, nil)
-	n.Run(&node.RunOptions{Engine: engn})
+	n := node.New("", c)
+	err := n.Run(&node.RunOptions{Engine: NewTestEngine()})
+	if err != nil {
+		panic(err)
+	}
 	return n
 }
 
@@ -405,7 +406,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 
 func TestPublish(t *testing.T) {
 	// Custom config
-	c := newTestConfig()
+	c := NewTestConfig()
 
 	// Set custom options for default namespace
 	c.ChannelOptions.HistoryLifetime = 10

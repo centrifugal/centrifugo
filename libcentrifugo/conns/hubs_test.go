@@ -9,6 +9,36 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
+type TestSession struct {
+	sink   chan []byte
+	closed bool
+}
+
+func NewTestSession() *TestSession {
+	return &TestSession{}
+}
+
+func (t *TestSession) Send(msg []byte) error {
+	if t.sink != nil {
+		t.sink <- msg
+	}
+	return nil
+}
+
+func (t *TestSession) Close(status uint32, reason string) error {
+	t.closed = true
+	return nil
+}
+
 type testClientConn struct {
 	cid      proto.ConnID
 	uid      proto.UserID
@@ -16,7 +46,7 @@ type testClientConn struct {
 
 	Messages [][]byte
 	Closed   bool
-	sess     *testSession
+	sess     *TestSession
 }
 
 func newTestUserCC(cid proto.ConnID, uid proto.UserID) *testClientConn {
@@ -76,7 +106,7 @@ func (c *testAdminConn) send(message string) error {
 }
 
 func TestClientHub(t *testing.T) {
-	h := newClientHub()
+	h := NewClientHub()
 	c := newTestUserCC("test uid", "test user")
 	h.Add(c)
 	assert.Equal(t, len(h.(*clientHub).users), 1)
@@ -90,7 +120,7 @@ func TestClientHub(t *testing.T) {
 }
 
 func TestShutdown(t *testing.T) {
-	h := newClientHub()
+	h := NewClientHub()
 	c := newTestUserCC("test uid", "test user")
 	h.Add(c)
 	assert.Equal(t, len(h.(*clientHub).users), 1)
@@ -98,7 +128,7 @@ func TestShutdown(t *testing.T) {
 }
 
 func TestSubHub(t *testing.T) {
-	h := newClientHub()
+	h := NewClientHub()
 	c := newTestUserCC("test uid", "test user")
 	h.AddSub("test1", c)
 	h.AddSub("test2", c)
@@ -121,7 +151,7 @@ func TestSubHub(t *testing.T) {
 }
 
 func TestAdminHub(t *testing.T) {
-	h := newAdminHub()
+	h := NewAdminHub()
 	c := newTestUserCC("test uid", "test user")
 	err := h.Add(c)
 	assert.Equal(t, err, nil)
@@ -135,7 +165,7 @@ func TestAdminHub(t *testing.T) {
 
 func setupHub(users, chanUser, totChannels int) (ClientHub, []*testClientConn) {
 	uC := make([]*testClientConn, users)
-	h := newClientHub()
+	h := NewClientHub()
 	for i := range uC {
 		c := newTestUserCC("test uid", "test user")
 		for j := 0; j < chanUser; j++ {

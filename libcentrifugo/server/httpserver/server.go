@@ -84,10 +84,13 @@ func (s *HTTPServer) Run() error {
 	return s.runHTTPServer()
 }
 
-func (s *HTTPServer) Reload() error {
-	return nil
-}
-
 func (s *HTTPServer) Shutdown() error {
+	s.Lock()
+	defer s.Unlock()
+	if s.shutdown {
+		return nil
+	}
+	s.shutdown = true
+	close(s.shutdownCh)
 	return nil
 }

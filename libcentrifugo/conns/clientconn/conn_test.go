@@ -9,13 +9,160 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
 )
 
+type TestEngine struct{}
+
+func NewTestEngine() *TestEngine {
+	return &TestEngine{}
+}
+
+func (e *TestEngine) Name() string {
+	return "test engine"
+}
+
+func (e *TestEngine) Run() error {
+	return nil
+}
+
+func (e *TestEngine) Shutdown() error {
+	return nil
+}
+
+func (e *TestEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) PublishControl(message *proto.ControlMessage) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- nil
+	return eChan
+}
+
+func (e *TestEngine) Subscribe(ch proto.Channel) error {
+	return nil
+}
+
+func (e *TestEngine) Unsubscribe(ch proto.Channel) error {
+	return nil
+}
+
+func (e *TestEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo, expire int) error {
+	return nil
+}
+
+func (e *TestEngine) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+	return nil
+}
+
+func (e *TestEngine) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
+	return map[proto.ConnID]proto.ClientInfo{}, nil
+}
+
+func (e *TestEngine) History(ch proto.Channel, limit int) ([]proto.Message, error) {
+	return []proto.Message{}, nil
+}
+
+func (e *TestEngine) Channels() ([]proto.Channel, error) {
+	return []proto.Channel{}, nil
+}
+
+type TestSession struct {
+	sink   chan []byte
+	closed bool
+}
+
+func NewTestSession() *TestSession {
+	return &TestSession{}
+}
+
+func (t *TestSession) Send(msg []byte) error {
+	if t.sink != nil {
+		t.sink <- msg
+	}
+	return nil
+}
+
+func (t *TestSession) Close(status uint32, reason string) error {
+	t.closed = true
+	return nil
+}
+
+func getTestChannelOptions() proto.ChannelOptions {
+	return proto.ChannelOptions{
+		Watch:           true,
+		Publish:         true,
+		Presence:        true,
+		HistorySize:     1,
+		HistoryLifetime: 1,
+	}
+}
+
+func getTestNamespace(name node.NamespaceKey) node.Namespace {
+	return node.Namespace{
+		Name:           name,
+		ChannelOptions: getTestChannelOptions(),
+	}
+}
+
+func NewTestConfig() *node.Config {
+	c := node.DefaultConfig
+	var ns []node.Namespace
+	ns = append(ns, getTestNamespace("test"))
+	c.Namespaces = ns
+	c.Secret = "secret"
+	c.ChannelOptions = getTestChannelOptions()
+	return c
+}
+
+func NewTestNode() *node.Node {
+	c := NewTestConfig()
+	n := node.New("", c)
+	err := n.Run(&node.RunOptions{Engine: NewTestEngine()})
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
+
+func NewTestNodeWithConfig(c *node.Config) *node.Node {
+	if c == nil {
+		c = NewTestConfig()
+	}
+	n := node.New("", c)
+	err := n.Run(&node.RunOptions{Engine: NewTestEngine()})
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
+
 func TestUnauthenticatedClient(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 	assert.NotEqual(t, "", c.UID())
 
@@ -31,9 +178,11 @@ func TestUnauthenticatedClient(t *testing.T) {
 }
 
 func TestCloseUnauthenticatedClient(t *testing.T) {
-	app := testNode()
-	app.config.StaleConnectionCloseDelay = 50 * time.Microsecond
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	conf := app.Config()
+	conf.StaleConnectionCloseDelay = 50 * time.Microsecond
+	app.SetConfig(&conf)
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 	assert.NotEqual(t, "", c.UID())
 	time.Sleep(time.Millisecond)
@@ -41,13 +190,13 @@ func TestCloseUnauthenticatedClient(t *testing.T) {
 }
 
 func TestClientMessage(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	// empty message
 	err = c.Handle([]byte{})
-	assert.Equal(t, ErrInvalidMessage, err)
+	assert.Equal(t, proto.ErrInvalidMessage, err)
 
 	// malformed message
 	err = c.Handle([]byte("wroooong"))
@@ -56,7 +205,7 @@ func TestClientMessage(t *testing.T) {
 	// client request exceeds allowed size
 	b := make([]byte, 1024*65)
 	err = c.Handle(b)
-	assert.Equal(t, ErrLimitExceeded, err)
+	assert.Equal(t, proto.ErrLimitExceeded, err)
 
 	var cmds []proto.ClientCommand
 
@@ -69,12 +218,12 @@ func TestClientMessage(t *testing.T) {
 	cmdBytes, err := json.Marshal(cmds)
 	assert.Equal(t, nil, err)
 	err = c.Handle(cmdBytes)
-	assert.Equal(t, ErrUnauthorized, err)
+	assert.Equal(t, proto.ErrUnauthorized, err)
 }
 
 func TestSingleObjectMessage(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	nonConnectFirstCmd := proto.ClientCommand{
@@ -85,7 +234,7 @@ func TestSingleObjectMessage(t *testing.T) {
 	cmdBytes, err := json.Marshal(nonConnectFirstCmd)
 	assert.Equal(t, nil, err)
 	err = c.Handle(cmdBytes)
-	assert.Equal(t, ErrUnauthorized, err)
+	assert.Equal(t, proto.ErrUnauthorized, err)
 }
 
 func testConnectCmd(timestamp string) proto.ClientCommand {
@@ -209,8 +358,8 @@ func testPingCmd() proto.ClientCommand {
 }
 
 func TestClientConnect(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	var cmd proto.ClientCommand
@@ -222,7 +371,7 @@ func TestClientConnect(t *testing.T) {
 	}
 	cmds = []proto.ClientCommand{cmd}
 	err = c.(*client).handleCommands(cmds)
-	assert.Equal(t, ErrInvalidToken, err)
+	assert.Equal(t, proto.ErrInvalidToken, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	cmds = []proto.ClientCommand{testConnectCmd(timestamp)}
@@ -235,7 +384,7 @@ func TestClientConnect(t *testing.T) {
 	clientInfo := c.(*client).info(proto.Channel(""))
 	assert.Equal(t, "user1", clientInfo.User)
 
-	assert.Equal(t, 1, app.clients.NumClients())
+	assert.Equal(t, 1, app.ClientHub().NumClients())
 
 	assert.NotEqual(t, "", c.UID(), "uid must be already set")
 	assert.NotEqual(t, "", c.User(), "user must be already set")
@@ -243,12 +392,12 @@ func TestClientConnect(t *testing.T) {
 	err = c.Close("")
 	assert.Equal(t, nil, err)
 
-	assert.Equal(t, 0, app.clients.NumClients())
+	assert.Equal(t, 0, app.ClientHub().NumClients())
 }
 
 func TestClientRefresh(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -262,8 +411,8 @@ func TestClientRefresh(t *testing.T) {
 }
 
 func TestClientPublish(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -274,7 +423,7 @@ func TestClientPublish(t *testing.T) {
 	cmd := testPublishCmd("not_subscribed_on_this")
 	resp, err := c.(*client).handleCmd(cmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrPermissionDenied, resp.(*proto.ClientPublishResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrPermissionDenied, resp.(*proto.ClientPublishResponse).ResponseError.Err)
 
 	cmd = testPublishCmd("test")
 	resp, err = c.(*client).handleCmd(cmd)
@@ -283,8 +432,8 @@ func TestClientPublish(t *testing.T) {
 }
 
 func TestClientSubscribe(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -293,18 +442,18 @@ func TestClientSubscribe(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(c.Channels()))
 
-	assert.Equal(t, 1, app.clients.NumChannels())
+	assert.Equal(t, 1, app.ClientHub().NumChannels())
 	assert.Equal(t, 1, len(c.Channels()))
 
 	err = c.Close("")
 	assert.Equal(t, nil, err)
 
-	assert.Equal(t, 0, app.clients.NumChannels())
+	assert.Equal(t, 0, app.ClientHub().NumChannels())
 }
 
 func TestClientSubscribePrivate(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -313,7 +462,7 @@ func TestClientSubscribePrivate(t *testing.T) {
 
 	resp, err := c.(*client).handleCmd(testSubscribeCmd("$test"))
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrPermissionDenied, resp.(*proto.ClientSubscribeResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrPermissionDenied, resp.(*proto.ClientSubscribeResponse).ResponseError.Err)
 
 	resp, err = c.(*client).handleCmd(testSubscribePrivateCmd("$test", c.UID()))
 	assert.Equal(t, nil, err)
@@ -322,8 +471,8 @@ func TestClientSubscribePrivate(t *testing.T) {
 }
 
 func TestClientSubscribeLimits(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -340,10 +489,12 @@ func TestClientSubscribeLimits(t *testing.T) {
 
 	resp, err := c.(*client).subscribeCmd(&proto.SubscribeClientCommand{Channel: proto.Channel(ch)})
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrLimitExceeded, resp.(*proto.ClientSubscribeResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrLimitExceeded, resp.(*proto.ClientSubscribeResponse).ResponseError.Err)
 	assert.Equal(t, 0, len(c.Channels()))
 
-	c.(*client).app.config.ClientChannelLimit = 10
+	conf := app.Config()
+	conf.ClientChannelLimit = 10
+	app.SetConfig(&conf)
 
 	for i := 0; i < 10; i++ {
 		resp, err := c.(*client).subscribeCmd(&proto.SubscribeClientCommand{Channel: proto.Channel(fmt.Sprintf("test%d", i))})
@@ -355,14 +506,14 @@ func TestClientSubscribeLimits(t *testing.T) {
 	// one more to exceed limit.
 	resp, err = c.(*client).subscribeCmd(&proto.SubscribeClientCommand{Channel: proto.Channel("test")})
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrLimitExceeded, resp.(*proto.ClientSubscribeResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrLimitExceeded, resp.(*proto.ClientSubscribeResponse).ResponseError.Err)
 	assert.Equal(t, 10, len(c.Channels()))
 
 }
 
 func TestClientUnsubscribe(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -378,12 +529,12 @@ func TestClientUnsubscribe(t *testing.T) {
 	err = c.(*client).handleCommands(cmds)
 	assert.Equal(t, nil, err)
 
-	assert.Equal(t, 0, app.clients.NumChannels())
+	assert.Equal(t, 0, app.ClientHub().NumChannels())
 }
 
 func TestClientUnsubscribeExternal(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -393,13 +544,13 @@ func TestClientUnsubscribeExternal(t *testing.T) {
 
 	err = c.(*client).Unsubscribe(proto.Channel("test"))
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 0, app.clients.NumChannels())
+	assert.Equal(t, 0, app.ClientHub().NumChannels())
 	assert.Equal(t, 0, len(c.Channels()))
 }
 
 func TestClientPresence(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -409,7 +560,7 @@ func TestClientPresence(t *testing.T) {
 
 	resp, err := c.(*client).handleCmd(testPresenceCmd("test"))
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrPermissionDenied, resp.(*proto.ClientPresenceResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrPermissionDenied, resp.(*proto.ClientPresenceResponse).ResponseError.Err)
 
 	_, _ = c.(*client).handleCmd(testSubscribeCmd("test"))
 	resp, err = c.(*client).handleCmd(testPresenceCmd("test"))
@@ -418,8 +569,8 @@ func TestClientPresence(t *testing.T) {
 }
 
 func TestClientUpdatePresence(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -435,8 +586,8 @@ func TestClientUpdatePresence(t *testing.T) {
 }
 
 func TestClientHistory(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -446,7 +597,7 @@ func TestClientHistory(t *testing.T) {
 
 	resp, err := c.(*client).handleCmd(testHistoryCmd("test"))
 	assert.Equal(t, nil, err)
-	assert.Equal(t, ErrPermissionDenied, resp.(*proto.ClientHistoryResponse).ResponseError.Err)
+	assert.Equal(t, proto.ErrPermissionDenied, resp.(*proto.ClientHistoryResponse).ResponseError.Err)
 
 	_, _ = c.(*client).handleCmd(testSubscribeCmd("test"))
 	resp, err = c.(*client).handleCmd(testHistoryCmd("test"))
@@ -455,8 +606,8 @@ func TestClientHistory(t *testing.T) {
 }
 
 func TestClientPing(t *testing.T) {
-	app := testNode()
-	c, err := app.NewClient(&testSession{}, nil)
+	app := NewTestNode()
+	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
