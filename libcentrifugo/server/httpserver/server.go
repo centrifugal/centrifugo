@@ -75,8 +75,9 @@ func HTTPServerPlugin(n *node.Node, getter config.Getter) (server.Server, error)
 
 func NewHTTPServer(n *node.Node, config *Config) (server.Server, error) {
 	return &HTTPServer{
-		node:   n,
-		config: config,
+		node:       n,
+		config:     config,
+		shutdownCh: make(chan struct{}),
 	}, nil
 }
 
