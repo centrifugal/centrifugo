@@ -1,6 +1,6 @@
 VERSION := $(shell git describe --tags | sed -e 's/^v//g' | awk -F "-" '{print $$1}')
 ITERATION := $(shell git describe --tags --long | awk -F "-" '{print $$2}')
-TESTFOLDERS := $(shell go list ./... | grep -v /vendor/)
+TESTFOLDERS := $(shell go list ./... | grep -v /vendor/ | grep -v /extras/)
 
 all: release
 
