@@ -81,7 +81,7 @@ type Node struct {
 var metricsRegistry *metrics.Registry
 
 func init() {
-	metricsRegistry = metrics.Metrics
+	metricsRegistry = metrics.DefaultRegistry
 
 	metricsRegistry.RegisterCounter("num_msg_published", metrics.NewCounter())
 	metricsRegistry.RegisterCounter("num_msg_queued", metrics.NewCounter())

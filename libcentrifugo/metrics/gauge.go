@@ -36,6 +36,11 @@ func (r *GaugeRegistry) Register(name string, c *Gauge) {
 	r.gauges[name] = c
 }
 
+// Get allows to get Gauge from registry.
+func (r *GaugeRegistry) Get(name string) *Gauge {
+	return r.gauges[name]
+}
+
 func (r *GaugeRegistry) Set(name string, value int64) {
 	r.gauges[name].Set(value)
 }

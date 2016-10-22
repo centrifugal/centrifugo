@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	//"github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
+	"github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
 	//"github.com/centrifugal/centrifugo/libcentrifugo/engine/engineredis"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
@@ -164,8 +164,29 @@ func NewTestNodeWithConfig(c *node.Config) *node.Node {
 	return n
 }
 
+func NewTestMemoryNode() *node.Node {
+	c := NewTestConfig()
+	n := node.New("", c)
+	e, _ := enginememory.NewMemoryEngine(n, nil)
+	err := n.Run(&node.RunOptions{Engine: e})
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
+
+func NewTestMemoryNodeWithConfig(c *node.Config) *node.Node {
+	n := node.New("", c)
+	e, _ := enginememory.NewMemoryEngine(n, nil)
+	err := n.Run(&node.RunOptions{Engine: e})
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
+
 func testMemoryNodeWithClients(nChannels int, nChannelClients int) *node.Node {
-	n := testMemoryNode()
+	n := NewTestMemoryNode()
 	createTestClients(n, nChannels, nChannelClients, nil)
 	return n
 }
@@ -180,7 +201,7 @@ func createTestClients(n *node.Node, nChannels, nChannelClients int, sink chan [
 	config.Insecure = true
 	n.SetConfig(&config)
 	for i := 0; i < nChannelClients; i++ {
-		sess := &testSession{}
+		sess := NewTestSession()
 		if sink != nil {
 			sess.sink = sink
 		}
@@ -221,10 +242,10 @@ func createTestClients(n *node.Node, nChannels, nChannelClients int, sink chan [
 
 // BenchmarkPubSubMessageReceive allows to estimate how many new messages we can convert to client JSON messages.
 func BenchmarkPubSubMessageReceive(b *testing.B) {
-	app := testMemoryNode()
+	app := NewTestMemoryNode()
 
 	// create one client so clientMsg really marshal into client response JSON.
-	c, _ := clientconn.New(app, &testSession{}, nil)
+	c, _ := clientconn.New(app, NewTestSession(), nil)
 
 	messagePoolSize := 1000
 
@@ -283,8 +304,8 @@ func testSubscribeCmd(channel string) proto.ClientCommand {
 }
 
 func TestUnsubscribe(t *testing.T) {
-	app := testNode()
-	c, err := clientconn.New(app, &testSession{}, nil)
+	app := NewTestNode()
+	c, err := clientconn.New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	cmds := []proto.ClientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
@@ -298,9 +319,9 @@ func TestUnsubscribe(t *testing.T) {
 
 // BenchmarkClientMsg allows to measue performance of marshaling messages into client response JSON.
 func BenchmarkClientMsg(b *testing.B) {
-	app := testMemoryNode()
+	app := NewTestMemoryNode()
 	// create one client so clientMsg really marshal into client response JSON.
-	c, _ := clientconn.New(app, &testSession{}, nil)
+	c, _ := clientconn.New(app, NewTestSession(), nil)
 	messagePoolSize := 1000
 	messagePool := make([]*proto.Message, messagePoolSize)
 
@@ -352,7 +373,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 	nCommands := 10000
 	nMessages := nCommands * nClients
 	sink := make(chan []byte, nMessages)
-	app := testMemoryNode()
+	app := NewTestMemoryNode()
 	// Use very large initial capacity so that queue resizes do not affect benchmark.
 	config := app.Config()
 	config.ClientQueueInitialCapacity = 4000
@@ -413,7 +434,7 @@ func TestPublish(t *testing.T) {
 	c.ChannelOptions.HistorySize = 2
 	c.ChannelOptions.HistoryDropInactive = true
 
-	app := testMemoryNodeWithConfig(&c)
+	app := NewTestMemoryNodeWithConfig(c)
 	createTestClients(app, 10, 1, nil)
 	data, _ := json.Marshal(map[string]string{"test": "publish"})
 	err := app.Publish(proto.Channel("channel-0"), data, proto.ConnID(""), nil)

@@ -7,10 +7,6 @@ import (
 // Counter is a wrapper around a set of int64s that count things.
 // It encapsulates both absolute monotonic counter (incremented atomically),
 // and periodic delta which is updated every `app.config.NodeMetricsInterval`.
-// Since raw counter is operated on atomically, and this struct is a non-pointer member of metricsRegistry,
-// it's critical that not only does value field remain 8-byte aligned, but that total struct size is always
-// a multiple of 8 bytes.
-// See comment on metricsRegistry for more on alignment.
 type Counter struct {
 	value             int64
 	lastIntervalValue int64
@@ -65,6 +61,11 @@ func NewCounterRegistry() *CounterRegistry {
 // Register allows to register Counter in registry.
 func (r *CounterRegistry) Register(name string, c *Counter) {
 	r.counters[name] = c
+}
+
+// Get allows to get Counter from registry.
+func (r *CounterRegistry) Get(name string) *Counter {
+	return r.counters[name]
 }
 
 // Inc by name.

@@ -41,5 +41,5 @@ func init() {
 	EngineFactories = map[string]EngineFactory{}
 	ServerFactories = map[string]ServerFactory{}
 	Configurators = map[string]Configurator{}
-	Metrics = metrics.Metrics
+	Metrics = metrics.DefaultRegistry
 }

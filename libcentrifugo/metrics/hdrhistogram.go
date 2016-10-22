@@ -113,6 +113,11 @@ func (r *HDRHistogramRegistry) Register(name string, h *HDRHistogram) {
 	r.histograms[name] = h
 }
 
+// Get allows to get Gauge from registry.
+func (r *HDRHistogramRegistry) Get(name string) *HDRHistogram {
+	return r.histograms[name]
+}
+
 // RecordValue into histogram with provided name. Noop if name not registered.
 func (r *HDRHistogramRegistry) RecordValue(name string, value int64) error {
 	if _, ok := r.histograms[name]; !ok {

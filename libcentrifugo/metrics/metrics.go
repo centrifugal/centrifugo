@@ -1,9 +1,9 @@
 package metrics
 
-var Metrics *Registry
+var DefaultRegistry *Registry
 
 func init() {
-	Metrics = NewRegistry()
+	DefaultRegistry = NewRegistry()
 }
 
 // Registry contains various Centrifugo statistic and metric information aggregated
