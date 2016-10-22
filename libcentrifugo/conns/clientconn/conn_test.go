@@ -184,9 +184,14 @@ func TestCloseUnauthenticatedClient(t *testing.T) {
 	app.SetConfig(&conf)
 	c, err := New(app, NewTestSession(), nil)
 	assert.Equal(t, nil, err)
+	assert.Equal(t, false, c.(*client).closed)
 	assert.NotEqual(t, "", c.UID())
-	time.Sleep(time.Millisecond)
-	assert.Equal(t, true, c.(*client).messages.Closed())
+	select {
+	case <-c.(*client).closeCh:
+		return
+	case <-time.After(time.Second):
+		assert.True(t, false, "stale connection must be closed")
+	}
 }
 
 func TestClientMessage(t *testing.T) {
