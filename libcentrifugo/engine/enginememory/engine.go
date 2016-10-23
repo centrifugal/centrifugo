@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
+	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/priority"

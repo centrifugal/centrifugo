@@ -225,5 +225,5 @@ func TestUpdateMetrics(t *testing.T) {
 	app.updateMetricsOnce()
 
 	// Absolute metrics should be updated
-	assert.True(t, metricsRegistry.Counters.LoadValues()["num_msg_published"] > 0)
+	assert.True(t, metricsRegistry.Counters.LoadValues()["node_num_client_msg_published"] > 0)
 }

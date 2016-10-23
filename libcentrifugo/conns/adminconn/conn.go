@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
 	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
+	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/securecookie"

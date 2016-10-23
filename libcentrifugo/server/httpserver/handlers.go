@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns/adminconn"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns/clientconn"
+	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/websocket"

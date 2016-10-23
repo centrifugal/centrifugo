@@ -3,7 +3,7 @@ package conns
 import (
 	"sync"
 
-	"github.com/FZambia/go-logger"
+	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
