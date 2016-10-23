@@ -61,6 +61,18 @@
 			"revisionTime": "2016-10-14T17:32:44Z"
 		},
 		{
+			"checksumSHA1": "HPVQZu059/Rfw2bAWM538bVTcUc=",
+			"path": "github.com/gogo/protobuf/sortkeys",
+			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
+			"revisionTime": "2016-10-14T17:32:44Z"
+		},
+		{
+			"checksumSHA1": "oKk4xoyMaBIZN1XME2COciqxd18=",
+			"path": "github.com/gogo/protobuf/types",
+			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
+			"revisionTime": "2016-10-14T17:32:44Z"
+		},
+		{
 			"checksumSHA1": "SGSXlSU1TFtg5aTlVA9v4Ka86lU=",
 			"path": "github.com/gorilla/securecookie",
 			"revision": "e95799a481bbcc3d01c2ad5178524cb8bec9f370",
