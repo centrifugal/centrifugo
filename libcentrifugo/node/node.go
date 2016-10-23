@@ -83,14 +83,27 @@ var metricsRegistry *metrics.Registry
 func init() {
 	metricsRegistry = metrics.DefaultRegistry
 
-	metricsRegistry.RegisterCounter("num_msg_published", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("num_msg_queued", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("num_msg_sent", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("num_api_requests", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("num_client_requests", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("bytes_client_in", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("bytes_client_out", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("num_msg_published", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_client_msg_published", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_join_msg_published", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_leave_msg_published", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_admin_msg_published", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_control_msg_published", metrics.NewCounter())
+
+	metricsRegistry.RegisterCounter("node_num_client_msg_received", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_join_msg_received", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_leave_msg_received", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_admin_msg_received", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_control_msg_received", metrics.NewCounter())
+
+	metricsRegistry.RegisterCounter("node_num_add_client_conn", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_remove_client_conn", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_add_client_sub", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_remove_client_sub", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_presence", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_add_presence", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_remove_presence", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_history", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_last_message_id", metrics.NewCounter())
 
 	metricsRegistry.RegisterGauge("memory_sys", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("cpu_usage", metrics.NewGauge())
@@ -98,15 +111,6 @@ func init() {
 	metricsRegistry.RegisterGauge("num_clients", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("num_unique_clients", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("num_channels", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("gomaxprocs", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("num_cpu", metrics.NewGauge())
-
-	quantiles := []float64{50, 90, 99, 99.99}
-	var minValue int64 = 1        // record latencies in microseconds, min resolution 1mks.
-	var maxValue int64 = 60000000 // record latencies in microseconds, max resolution 60s.
-	numBuckets := 15              // histograms will be rotated every time we updating snapshot.
-	sigfigs := 3
-	metricsRegistry.RegisterHDRHistogram("client_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
 // New creates Node, the only required argument is config.
@@ -418,6 +422,7 @@ func (n *Node) Node() proto.NodeInfo {
 // ControlMsg handles messages from control channel - control messages used for internal
 // communication between nodes to share state or proto.
 func (n *Node) ControlMsg(cmd *proto.ControlMessage) error {
+	metricsRegistry.Counters.Inc("node_num_control_msg_received")
 
 	if cmd.UID == n.uid {
 		// Sent by this node.
@@ -460,6 +465,7 @@ func (n *Node) ControlMsg(cmd *proto.ControlMessage) error {
 
 // AdminMsg handlesadmin message broadcasting it to all admins connected to this node.
 func (n *Node) AdminMsg(msg *proto.AdminMessage) error {
+	metricsRegistry.Counters.Inc("node_num_admin_msg_received")
 	hasAdmins := n.admins.NumAdmins() > 0
 	if !hasAdmins {
 		return nil
@@ -476,12 +482,41 @@ func (n *Node) AdminMsg(msg *proto.AdminMessage) error {
 // The goal of this method to deliver this message to all clients on this node subscribed
 // on channel.
 func (n *Node) ClientMsg(ch proto.Channel, msg *proto.Message) error {
+	metricsRegistry.Counters.Inc("node_num_client_msg_received")
 	numSubscribers := n.clients.NumSubscribers(ch)
 	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
 	resp := proto.NewClientMessage(msg)
+	byteMessage, err := resp.Marshal()
+	if err != nil {
+		return err
+	}
+	return n.clients.Broadcast(ch, byteMessage)
+}
+
+func (n *Node) JoinMsg(ch proto.Channel, msg *proto.JoinMessage) error {
+	metricsRegistry.Counters.Inc("node_num_join_msg_received")
+	hasCurrentSubscribers := n.clients.NumSubscribers(ch) > 0
+	if !hasCurrentSubscribers {
+		return nil
+	}
+	resp := proto.NewClientJoinMessage(msg)
+	byteMessage, err := resp.Marshal()
+	if err != nil {
+		return err
+	}
+	return n.clients.Broadcast(ch, byteMessage)
+}
+
+func (n *Node) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) error {
+	metricsRegistry.Counters.Inc("node_num_leave_msg_received")
+	hasCurrentSubscribers := n.clients.NumSubscribers(ch) > 0
+	if !hasCurrentSubscribers {
+		return nil
+	}
+	resp := proto.NewClientLeaveMessage(msg)
 	byteMessage, err := resp.Marshal()
 	if err != nil {
 		return err
@@ -517,19 +552,21 @@ func (n *Node) PublishAsync(ch proto.Channel, data []byte, client proto.ConnID, 
 // pubControl publishes message into control channel so all running
 // nodes will receive and handle it.
 func (n *Node) pubControl(method string, params []byte) error {
+	metricsRegistry.Counters.Inc("node_num_control_msg_published")
 	return <-n.engine.PublishControl(proto.NewControlMessage(n.uid, method, params))
 }
 
 // pubAdmin publishes message to admins.
 func (n *Node) pubAdmin(method string, params []byte) <-chan error {
+	metricsRegistry.Counters.Inc("node_num_admin_msg_published")
 	return n.engine.PublishAdmin(proto.NewAdminMessage(method, params))
 }
 
 // pubClient publishes message into channel so all running nodes
 // will receive it and will send to all clients on node subscribed on channel.
 func (n *Node) pubClient(ch proto.Channel, chOpts proto.ChannelOptions, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
+	metricsRegistry.Counters.Inc("node_num_client_msg_published")
 	message := proto.NewMessage(ch, data, client, info)
-	metricsRegistry.Counters.Inc("num_msg_published")
 	if chOpts.Watch {
 		byteMessage, err := json.Marshal(message)
 		if err != nil {
@@ -544,39 +581,15 @@ func (n *Node) pubClient(ch proto.Channel, chOpts proto.ChannelOptions, data []b
 // PubJoin allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
 func (n *Node) PubJoin(ch proto.Channel, info proto.ClientInfo) error {
+	metricsRegistry.Counters.Inc("node_num_join_msg_published")
 	return <-n.engine.PublishJoin(ch, proto.NewJoinMessage(ch, info))
 }
 
 // PubLeave allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
 func (n *Node) PubLeave(ch proto.Channel, info proto.ClientInfo) error {
+	metricsRegistry.Counters.Inc("node_num_leave_msg_published")
 	return <-n.engine.PublishLeave(ch, proto.NewLeaveMessage(ch, info))
-}
-
-func (n *Node) JoinMsg(ch proto.Channel, msg *proto.JoinMessage) error {
-	hasCurrentSubscribers := n.clients.NumSubscribers(ch) > 0
-	if !hasCurrentSubscribers {
-		return nil
-	}
-	resp := proto.NewClientJoinMessage(msg)
-	byteMessage, err := resp.Marshal()
-	if err != nil {
-		return err
-	}
-	return n.clients.Broadcast(ch, byteMessage)
-}
-
-func (n *Node) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) error {
-	hasCurrentSubscribers := n.clients.NumSubscribers(ch) > 0
-	if !hasCurrentSubscribers {
-		return nil
-	}
-	resp := proto.NewClientLeaveMessage(msg)
-	byteMessage, err := resp.Marshal()
-	if err != nil {
-		return err
-	}
-	return n.clients.Broadcast(ch, byteMessage)
 }
 
 // pubPing sends control ping message to all nodes - this message
@@ -587,8 +600,6 @@ func (n *Node) pubPing() error {
 	metricsRegistry.Gauges.Set("num_unique_clients", int64(n.clients.NumUniqueClients()))
 	metricsRegistry.Gauges.Set("num_channels", int64(n.clients.NumChannels()))
 	metricsRegistry.Gauges.Set("num_goroutine", int64(runtime.NumGoroutine()))
-	metricsRegistry.Gauges.Set("num_cpu", int64(runtime.NumCPU()))
-	metricsRegistry.Gauges.Set("gomaxprocs", int64(runtime.GOMAXPROCS(-1)))
 
 	metricsSnapshot := make(map[string]int64)
 	n.metricsMu.RLock()
@@ -666,17 +677,20 @@ func (n *Node) pingCmd(cmd *proto.PingControlCommand) error {
 // AddConn registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand.
 func (n *Node) AddClientConn(c conns.ClientConn) error {
+	metricsRegistry.Counters.Inc("node_num_add_client_conn")
 	return n.clients.Add(c)
 }
 
 // removeConn removes client connection from connection registry.
 func (n *Node) RemoveClientConn(c conns.ClientConn) error {
+	metricsRegistry.Counters.Inc("node_num_remove_client_conn")
 	return n.clients.Remove(c)
 }
 
 // AddClientSub registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
 func (n *Node) AddClientSub(ch proto.Channel, c conns.ClientConn) error {
+	metricsRegistry.Counters.Inc("node_num_add_client_sub")
 	first, err := n.clients.AddSub(ch, c)
 	if err != nil {
 		return err
@@ -690,6 +704,7 @@ func (n *Node) AddClientSub(ch proto.Channel, c conns.ClientConn) error {
 // RemoveClientSub removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
 func (n *Node) RemoveClientSub(ch proto.Channel, c conns.ClientConn) error {
+	metricsRegistry.Counters.Inc("node_num_remove_client_sub")
 	empty, err := n.clients.RemoveSub(ch, c)
 	if err != nil {
 		return err
@@ -807,11 +822,13 @@ func (n *Node) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.Client
 	n.RLock()
 	expire := int(n.config.PresenceExpireInterval.Seconds())
 	n.RUnlock()
+	metricsRegistry.Counters.Inc("node_num_add_presence")
 	return n.engine.AddPresence(ch, uid, info, expire)
 }
 
 // RemovePresence proxies presence removing to engine.
 func (n *Node) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+	metricsRegistry.Counters.Inc("node_num_remove_presence")
 	return n.engine.RemovePresence(ch, uid)
 }
 
@@ -830,6 +847,8 @@ func (n *Node) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, er
 	if !chOpts.Presence {
 		return map[proto.ConnID]proto.ClientInfo{}, proto.ErrNotAvailable
 	}
+
+	metricsRegistry.Counters.Inc("node_num_presence")
 
 	presence, err := n.engine.Presence(ch)
 	if err != nil {
@@ -855,6 +874,8 @@ func (n *Node) History(ch proto.Channel) ([]proto.Message, error) {
 		return []proto.Message{}, proto.ErrNotAvailable
 	}
 
+	metricsRegistry.Counters.Inc("node_num_history")
+
 	history, err := n.engine.History(ch, 0)
 	if err != nil {
 		logger.ERROR.Println(err)
@@ -864,6 +885,7 @@ func (n *Node) History(ch proto.Channel) ([]proto.Message, error) {
 }
 
 func (n *Node) LastMessageID(ch proto.Channel) (proto.MessageID, error) {
+	metricsRegistry.Counters.Inc("node_num_last_message_id")
 	history, err := n.engine.History(ch, 1)
 	if err != nil {
 		return proto.MessageID(""), err

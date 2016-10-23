@@ -10,12 +10,30 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
+	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/satori/go.uuid"
 )
+
+func init() {
+	metricsRegistry := plugin.Metrics
+
+	metricsRegistry.RegisterCounter("client_num_msg_queued", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("client_num_msg_sent", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("client_num_msg_published", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("client_bytes_in", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("client_bytes_out", metrics.NewCounter())
+
+	quantiles := []float64{50, 90, 99, 99.99}
+	var minValue int64 = 1        // record latencies in microseconds, min resolution 1mks.
+	var maxValue int64 = 60000000 // record latencies in microseconds, max resolution 60s.
+	numBuckets := 15              // histograms will be rotated every time we updating snapshot.
+	sigfigs := 3
+	metricsRegistry.RegisterHDRHistogram("client_request", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
+}
 
 const (
 	// CloseStatus is status code set when closing client connections.
@@ -117,8 +135,8 @@ func (c *client) sendMessages() {
 			c.Close("error sending message")
 			return
 		}
-		plugin.Metrics.Counters.Inc("num_msg_sent")
-		plugin.Metrics.Counters.Add("bytes_client_out", int64(len(msg)))
+		plugin.Metrics.Counters.Inc("client_num_msg_sent")
+		plugin.Metrics.Counters.Add("client_bytes_out", int64(len(msg)))
 	}
 }
 
@@ -245,7 +263,7 @@ func (c *client) Send(message []byte) error {
 	if !ok {
 		return proto.ErrClientClosed
 	}
-	plugin.Metrics.Counters.Inc("num_msg_queued")
+	plugin.Metrics.Counters.Inc("client_num_msg_queued")
 	if c.messages.Size() > c.maxQueueSize {
 		c.Close("slow")
 		return proto.ErrClientClosed
@@ -337,10 +355,9 @@ func (c *client) info(ch proto.Channel) proto.ClientInfo {
 func (c *client) Handle(msg []byte) error {
 	started := time.Now()
 	defer func() {
-		plugin.Metrics.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
+		plugin.Metrics.HDRHistograms.RecordMicroseconds("client_request", time.Now().Sub(started))
 	}()
-	plugin.Metrics.Counters.Inc("num_client_requests")
-	plugin.Metrics.Counters.Add("bytes_client_in", int64(len(msg)))
+	plugin.Metrics.Counters.Add("client_bytes_in", int64(len(msg)))
 
 	// Interval to sleep before closing connection to give client a chance to receive
 	// disconnect message and process it. Connection will be closed then.
@@ -974,6 +991,8 @@ func (c *client) publishCmd(cmd *proto.PublishClientCommand) (proto.Response, er
 			return resp, nil
 		}
 	}
+
+	plugin.Metrics.Counters.Inc("client_num_msg_published")
 
 	err = c.node.Publish(channel, data, c.uid, &info)
 	if err != nil {

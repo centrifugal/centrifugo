@@ -400,9 +400,8 @@ func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
 	defer func() {
-		plugin.Metrics.HDRHistograms.RecordMicroseconds("http_api", time.Now().Sub(started))
+		plugin.Metrics.HDRHistograms.RecordMicroseconds("http_request", time.Now().Sub(started))
 	}()
-	plugin.Metrics.Counters.Inc("num_api_requests")
 
 	contentType := r.Header.Get("Content-Type")
 

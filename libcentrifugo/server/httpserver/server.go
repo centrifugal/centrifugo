@@ -19,7 +19,7 @@ func init() {
 	var maxValue int64 = 60000000 // record latencies in microseconds, max resolution 60s.
 	numBuckets := 15              // histograms will be rotated every time we updating snapshot.
 	sigfigs := 3
-	plugin.Metrics.RegisterHDRHistogram("http_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
+	plugin.Metrics.RegisterHDRHistogram("http_request", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
 func HTTPServerConfigure(setter config.Setter) error {
