@@ -33,28 +33,32 @@
 			"revision": "535138d7bcd717d6531c701ef5933d98b1866257"
 		},
 		{
-			"checksumSHA1": "X8x4RmXTmkMYXM0Y3RttRtqxA3I=",
+			"checksumSHA1": "aXC93Lo0MY4HRMSF7ANJ97VtulM=",
+			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gogo/protobuf/gogoproto",
 			"path": "github.com/gogo/protobuf/gogoproto",
-			"revision": "c3995ae437bb78d1189f4f147dfe5f87ad3596e4",
-			"revisionTime": "2016-04-25T09:57:51Z"
+			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
+			"revisionTime": "2016-10-14T17:32:44Z"
 		},
 		{
-			"checksumSHA1": "4hsVCH+saZnuGKhtI3ajrWuyXow=",
+			"checksumSHA1": "aW+WIBMwERhkkduCmifqL/umXpo=",
+			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gogo/protobuf/jsonpb",
 			"path": "github.com/gogo/protobuf/jsonpb",
-			"revision": "c3995ae437bb78d1189f4f147dfe5f87ad3596e4",
-			"revisionTime": "2016-04-25T09:57:51Z"
+			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
+			"revisionTime": "2016-10-14T17:32:44Z"
 		},
 		{
-			"checksumSHA1": "N3LXf9Vm2RM0AE3DjhCmpiyK4Bc=",
+			"checksumSHA1": "2eIRbxeMUEF1ZnOanJhXmFR7pFs=",
+			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gogo/protobuf/proto",
 			"path": "github.com/gogo/protobuf/proto",
-			"revision": "c3995ae437bb78d1189f4f147dfe5f87ad3596e4",
-			"revisionTime": "2016-04-25T09:57:51Z"
+			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
+			"revisionTime": "2016-10-14T17:32:44Z"
 		},
 		{
-			"checksumSHA1": "HXiD8g6jYd/Fm9UovhLjO+7TKos=",
+			"checksumSHA1": "zVCBnBzjkmL1Gkll/7IbpKKprmw=",
+			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gogo/protobuf/protoc-gen-gogo/descriptor",
 			"path": "github.com/gogo/protobuf/protoc-gen-gogo/descriptor",
-			"revision": "c3995ae437bb78d1189f4f147dfe5f87ad3596e4",
-			"revisionTime": "2016-04-25T09:57:51Z"
+			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
+			"revisionTime": "2016-10-14T17:32:44Z"
 		},
 		{
 			"checksumSHA1": "SGSXlSU1TFtg5aTlVA9v4Ka86lU=",
@@ -63,10 +67,11 @@
 			"revisionTime": "2015-08-20T08:29:58Z"
 		},
 		{
-			"checksumSHA1": "klfNfdEPsrWYLps2qBkLgfJsNYI=",
+			"checksumSHA1": "O9Gjl1F5NFZoi4HgmkQohzwl+dk=",
+			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gorilla/websocket",
 			"path": "github.com/gorilla/websocket",
-			"revision": "a69d25be2fe2923a97c2af6849b2f52426f68fc0",
-			"revisionTime": "2016-08-02T13:32:03Z"
+			"revision": "0b847f2facc24ec406130a05bb1bb72d41993b05",
+			"revisionTime": "2016-10-21T19:35:05Z"
 		},
 		{
 			"checksumSHA1": "LUrnGREfnifW4WDMaavmc9MlLI0=",

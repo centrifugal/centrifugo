@@ -255,7 +255,7 @@ func (n *Node) Run(opts *RunOptions) error {
 	}
 
 	for srvName, srv := range n.servers {
-		logger.DEBUG.Printf("Starting %s server", srvName)
+		logger.INFO.Printf("Starting %s server", srvName)
 		go srv.Run()
 	}
 

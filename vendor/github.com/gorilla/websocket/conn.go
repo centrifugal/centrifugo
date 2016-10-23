@@ -10,7 +10,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"net"
 	"strconv"
 	"time"
@@ -218,20 +217,6 @@ func isValidReceivedCloseCode(code int) bool {
 	return validReceivedCloseCodes[code] || (code >= 3000 && code <= 4999)
 }
 
-func maskBytes(key [4]byte, pos int, b []byte) int {
-	for i := range b {
-		b[i] ^= key[pos&3]
-		pos++
-	}
-	return pos & 3
-}
-
-func newMaskKey() [4]byte {
-	n := rand.Uint32()
-	return [4]byte{byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24)}
-}
-
-// Conn represents a WebSocket connection.
 type Conn struct {
 	conn        net.Conn
 	isServer    bool
@@ -983,6 +968,13 @@ func (c *Conn) SetPongHandler(h func(appData string) error) {
 // modifications to connection specific flags.
 func (c *Conn) UnderlyingConn() net.Conn {
 	return c.conn
+}
+
+// EnableWriteCompression enables and disables write compression of
+// subsequent text and binary messages. This function is a noop if
+// compression was not negotiated with the peer.
+func (c *Conn) EnableWriteCompression(enable bool) {
+	c.enableWriteCompression = enable
 }
 
 // FormatCloseMessage formats closeCode and text as a WebSocket close message.

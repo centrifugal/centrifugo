@@ -1,5 +1,7 @@
-// Copyright (c) 2013, Vastech SA (PTY) LTD. All rights reserved.
-// http://github.com/gogo/protobuf/gogoproto
+// Protocol Buffers for Go with Gadgets
+//
+// Copyright (c) 2013, The GoGo Authors. All rights reserved.
+// http://github.com/gogo/protobuf
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -74,6 +76,7 @@ extend google.protobuf.FileOptions {
 	optional bool goproto_unrecognized_all = 63026;
 	optional bool gogoproto_import = 63027;
 	optional bool protosizer_all = 63028;
+	optional bool compare_all = 63029;
 }
 
 extend google.protobuf.MessageOptions {
@@ -103,6 +106,7 @@ extend google.protobuf.MessageOptions {
 	optional bool goproto_unrecognized = 64026;
 
 	optional bool protosizer = 64028;
+	optional bool compare = 64029;
 }
 
 extend google.protobuf.FieldOptions {
@@ -115,4 +119,7 @@ extend google.protobuf.FieldOptions {
 	optional string casttype = 65007;
 	optional string castkey = 65008;
 	optional string castvalue = 65009;
+
+	optional bool stdtime = 65010;
+	optional bool stdduration = 65011;
 }

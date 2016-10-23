@@ -1,8 +1,9 @@
-syntax = 'proto2';
-// Example how to update gogoprotobuf generated code (Mac OS)
-// protobuf 2.6.0 installed over homebrew: brew install homebrew/versions/protobuf260
-// protoc --proto_path=../../../../:/usr/local/Cellar/protobuf260/2.6.0/include/:. --gogofaster_out=. message.proto
-
+syntax = "proto3";
+// Example how to update gogoprotobuf generated code (Mac OS).
+// go get -u github.com/gogo/protobuf/...
+// Download release of protobuf from: https://github.com/google/protobuf/releases 
+// Use binary from unpacked release, for example:
+// ../../protoc-3.1.0-osx-x86_64/bin/protoc --proto_path=../../protoc-3.1.0-osx-x86_64/:../../../../../:. --gogofaster_out=. message.proto
 
 package proto;
 
@@ -13,41 +14,41 @@ option (gogoproto.populate_all) = true;
 option (gogoproto.testgen_all) = true;
 
 message ClientInfo {
-  optional string User = 1 [(gogoproto.jsontag) = "user"];
-  optional string Client = 2 [(gogoproto.jsontag) = "client"];
-  optional bytes DefaultInfo = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "default_info,omitempty", (gogoproto.nullable) = true];
-  optional bytes ChannelInfo = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "channel_info,omitempty", (gogoproto.nullable) = true];
+  string User = 1 [(gogoproto.jsontag) = "user"];
+  string Client = 2 [(gogoproto.jsontag) = "client"];
+  bytes DefaultInfo = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "default_info,omitempty", (gogoproto.nullable) = true];
+  bytes ChannelInfo = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "channel_info,omitempty", (gogoproto.nullable) = true];
 }
 
 message Message {
-  optional string UID = 1 [(gogoproto.jsontag) = "uid"];
-  optional string Timestamp = 2 [(gogoproto.jsontag) = "timestamp"];
-  optional string Channel = 3 [(gogoproto.jsontag) = "channel"];
-  optional bytes Data = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = true];
-  optional string Client = 5 [(gogoproto.jsontag) = "client,omitempty"];
-  optional ClientInfo Info = 6 [(gogoproto.jsontag) = "info,omitempty"];
+  string UID = 1 [(gogoproto.jsontag) = "uid"];
+  string Timestamp = 2 [(gogoproto.jsontag) = "timestamp"];
+  string Channel = 3 [(gogoproto.jsontag) = "channel"];
+  bytes Data = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = true];
+  string Client = 5 [(gogoproto.jsontag) = "client,omitempty"];
+  ClientInfo Info = 6 [(gogoproto.jsontag) = "info,omitempty"];
 }
 
 message JoinMessage {
-  optional string Channel = 1 [(gogoproto.jsontag) = "channel"];
-  optional ClientInfo Data = 2 [(gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+  string Channel = 1 [(gogoproto.jsontag) = "channel"];
+  ClientInfo Data = 2 [(gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
 }
 
 message LeaveMessage {
-  optional string Channel = 1 [(gogoproto.jsontag) = "channel"];
-  optional ClientInfo Data = 2 [(gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+  string Channel = 1 [(gogoproto.jsontag) = "channel"];
+  ClientInfo Data = 2 [(gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
 }
 
 message ControlMessage {
   // UID in case of controlCommand is a unique node ID which originally published
   // this control command.
-  optional string UID = 1 [(gogoproto.jsontag) = "uid"];
-  optional string Method = 2 [(gogoproto.jsontag) = "method"];
-  optional bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = true];
+  string UID = 1 [(gogoproto.jsontag) = "uid"];
+  string Method = 2 [(gogoproto.jsontag) = "method"];
+  bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = true];
 }
 
 message AdminMessage {
-  optional string UID = 1 [(gogoproto.jsontag) = "uid"];
-  optional string Method = 2 [(gogoproto.jsontag) = "method"];
-  optional bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = true];
+  string UID = 1 [(gogoproto.jsontag) = "uid"];
+  string Method = 2 [(gogoproto.jsontag) = "method"];
+  bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = true];
 }
