@@ -24,13 +24,13 @@ func writeClientInfo(buf *bytebufferpool.ByteBuffer, info *ClientInfo) {
 
 	if info.DefaultInfo != nil {
 		buf.WriteString(`"default_info":`)
-		buf.Write(*info.DefaultInfo)
+		buf.Write(info.DefaultInfo)
 		buf.WriteString(",")
 	}
 
 	if info.ChannelInfo != nil {
 		buf.WriteString(`"channel_info":`)
-		buf.Write(*info.ChannelInfo)
+		buf.Write(info.ChannelInfo)
 		buf.WriteString(`,`)
 	}
 
@@ -66,7 +66,7 @@ func writeMessage(buf *bytebufferpool.ByteBuffer, msg *Message) {
 	buf.WriteString(`"channel":`)
 	EncodeJSONString(buf, msg.Channel, true)
 	buf.WriteString(`,"data":`)
-	buf.Write(*msg.Data)
+	buf.Write(msg.Data)
 	buf.WriteString(`}`)
 }
 
@@ -583,10 +583,10 @@ func NewAdminPingResponse(body string) Response {
 
 type AdminMessageResponse struct {
 	apiResponse
-	Body *raw.Raw `json:"body"`
+	Body raw.Raw `json:"body"`
 }
 
-func NewAdminMessageResponse(body *raw.Raw) Response {
+func NewAdminMessageResponse(body raw.Raw) Response {
 	return &AdminMessageResponse{
 		apiResponse: apiResponse{
 			Method: "message",

@@ -25,6 +25,15 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, "test", unmarshalledMsg.Channel)
 }
 
+func TestMarshalUnmarshal(t *testing.T) {
+	data := `{"key": "привет"}`
+	msg := NewMessage(Channel("test"), []byte(data), "", nil)
+	encoded, _ := msg.Marshal()
+	var newMsg Message
+	newMsg.Unmarshal(encoded)
+	assert.Equal(t, string(data), string(*newMsg.Data))
+}
+
 func BenchmarkClientResponseMarshalJSON(b *testing.B) {
 	responses := make([]*ClientMessageResponse, 10000)
 	for i := 0; i < 10000; i++ {
