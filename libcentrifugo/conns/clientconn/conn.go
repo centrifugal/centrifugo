@@ -874,7 +874,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 
 	if chOpts.JoinLeave {
 		go func() {
-			err = c.node.PubJoin(channel, info)
+			err = <-c.node.PublishJoin(proto.NewJoinMessage(channel, info), &chOpts)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -919,7 +919,7 @@ func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeClientCommand) (proto.Resp
 		}
 
 		if chOpts.JoinLeave {
-			err = c.node.PubLeave(channel, info)
+			err = <-c.node.PublishLeave(proto.NewLeaveMessage(channel, info), &chOpts)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -955,6 +955,12 @@ func (c *client) publishCmd(cmd *proto.PublishClientCommand) (proto.Response, er
 
 	body := proto.PublishBody{
 		Channel: channel,
+	}
+
+	if string(channel) == "" || len(data) == 0 {
+		resp := proto.NewClientPublishResponse(body)
+		resp.SetErr(proto.ResponseError{proto.ErrInvalidMessage, proto.ErrorAdviceFix})
+		return resp, nil
 	}
 
 	if _, ok := c.channels[channel]; !ok {
@@ -994,7 +1000,17 @@ func (c *client) publishCmd(cmd *proto.PublishClientCommand) (proto.Response, er
 
 	plugin.Metrics.Counters.Inc("client_num_msg_published")
 
-	err = c.node.Publish(channel, data, c.uid, &info)
+	message := proto.NewMessage(channel, data, c.uid, &info)
+	if chOpts.Watch {
+		byteMessage, err := json.Marshal(message)
+		if err != nil {
+			logger.ERROR.Println(err)
+		} else {
+			c.node.PublishAdmin(proto.NewAdminMessage("message", byteMessage))
+		}
+	}
+
+	err = <-c.node.Publish(message, &chOpts)
 	if err != nil {
 		resp := proto.NewClientPublishResponse(body)
 		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceRetry})

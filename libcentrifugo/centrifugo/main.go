@@ -224,6 +224,18 @@ func Main(version string) {
 			logger.INFO.Printf("Process PID: %d", os.Getpid())
 			logger.INFO.Printf("Engine: %s", e.Name())
 			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
+			if c.Insecure {
+				logger.WARN.Println("Running in INSECURE client mode")
+			}
+			if c.InsecureAPI {
+				logger.WARN.Println("Running in INSECURE API mode")
+			}
+			if c.InsecureAdmin {
+				logger.WARN.Println("Running in INSECURE admin mode")
+			}
+			if c.Debug {
+				logger.WARN.Println("Running in DEBUG mode")
+			}
 
 			if err = nod.Run(&node.RunOptions{Engine: e, Servers: servers}); err != nil {
 				logger.FATAL.Fatalln(err)

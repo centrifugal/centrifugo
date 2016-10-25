@@ -88,9 +88,29 @@ func APICmd(n *node.Node, cmd proto.ApiCommand, opts *APIOptions) (proto.Respons
 
 // PublishCmd publishes data into channel.
 func PublishCmd(n *node.Node, cmd *proto.PublishAPICommand) (proto.Response, error) {
-	channel := cmd.Channel
+	ch := cmd.Channel
 	data := cmd.Data
-	err := n.Publish(channel, data, cmd.Client, nil)
+
+	if string(ch) == "" || len(data) == 0 {
+		return nil, proto.ErrInvalidMessage
+	}
+
+	chOpts, err := n.ChannelOpts(ch)
+	if err != nil {
+		return nil, err
+	}
+
+	message := proto.NewMessage(ch, data, cmd.Client, nil)
+	if chOpts.Watch {
+		byteMessage, err := json.Marshal(message)
+		if err != nil {
+			logger.ERROR.Println(err)
+		} else {
+			n.PublishAdmin(proto.NewAdminMessage("message", byteMessage))
+		}
+	}
+
+	err = <-n.Publish(message, &chOpts)
 	resp := proto.NewAPIPublishResponse()
 	if err != nil {
 		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceNone})
@@ -109,10 +129,38 @@ func BroadcastCmd(n *node.Node, cmd *proto.BroadcastAPICommand) (proto.Response,
 		resp.SetErr(proto.ResponseError{proto.ErrInvalidMessage, proto.ErrorAdviceFix})
 		return resp, nil
 	}
-	errs := make([]<-chan error, len(channels))
-	for i, channel := range channels {
-		errs[i] = n.PublishAsync(channel, data, cmd.Client, nil)
+	if len(data) == 0 {
+		logger.ERROR.Println("empty data")
+		resp.SetErr(proto.ResponseError{proto.ErrInvalidMessage, proto.ErrorAdviceFix})
+		return resp, nil
 	}
+	errs := make([]<-chan error, len(channels))
+	for i, ch := range channels {
+
+		if string(ch) == "" {
+			resp.SetErr(proto.ResponseError{proto.ErrInvalidMessage, proto.ErrorAdviceFix})
+			return resp, nil
+		}
+
+		chOpts, err := n.ChannelOpts(ch)
+		if err != nil {
+			resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceFix})
+			return resp, nil
+		}
+
+		message := proto.NewMessage(ch, data, cmd.Client, nil)
+		if chOpts.Watch {
+			byteMessage, err := json.Marshal(message)
+			if err != nil {
+				logger.ERROR.Println(err)
+			} else {
+				n.PublishAdmin(proto.NewAdminMessage("message", byteMessage))
+			}
+		}
+
+		errs[i] = n.Publish(message, &chOpts)
+	}
+
 	var firstErr error
 	for i := range errs {
 		err := <-errs[i]

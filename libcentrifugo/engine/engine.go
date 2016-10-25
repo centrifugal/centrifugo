@@ -23,11 +23,11 @@ type Engine interface {
 	// The returned value is channel in which we will send error as soon as engine finishes
 	// publish operation. Also the task of this method is to maintain history for channels
 	// if enabled.
-	PublishMessage(proto.Channel, *proto.Message, *proto.ChannelOptions) <-chan error
+	PublishMessage(*proto.Message, *proto.ChannelOptions) <-chan error
 	// PublishJoin allows to send join message into channel.
-	PublishJoin(proto.Channel, *proto.JoinMessage) <-chan error
+	PublishJoin(*proto.JoinMessage, *proto.ChannelOptions) <-chan error
 	// PublishLeave allows to send leave message into channel.
-	PublishLeave(proto.Channel, *proto.LeaveMessage) <-chan error
+	PublishLeave(*proto.LeaveMessage, *proto.ChannelOptions) <-chan error
 	// PublishControl allows to send control message to all connected nodes.
 	PublishControl(*proto.ControlMessage) <-chan error
 	// PublishAdmin allows to send admin message to all connected admins.

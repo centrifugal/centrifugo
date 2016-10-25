@@ -58,7 +58,10 @@ func (e *MemoryEngine) Shutdown() error {
 	return errors.New("Shutdown not implemented")
 }
 
-func (e *MemoryEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (e *MemoryEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+
+	ch := message.Channel
+
 	hasCurrentSubscribers := e.node.ClientHub().NumSubscribers(ch) > 0
 
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
@@ -74,19 +77,19 @@ func (e *MemoryEngine) PublishMessage(ch proto.Channel, message *proto.Message, 
 	}
 
 	eChan := make(chan error, 1)
-	eChan <- e.node.ClientMsg(ch, message)
+	eChan <- e.node.ClientMsg(message)
 	return eChan
 }
 
-func (e *MemoryEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
+func (e *MemoryEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.JoinMsg(ch, message)
+	eChan <- e.node.JoinMsg(message)
 	return eChan
 }
 
-func (e *MemoryEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
+func (e *MemoryEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.LeaveMsg(ch, message)
+	eChan <- e.node.LeaveMsg(message)
 	return eChan
 }
 

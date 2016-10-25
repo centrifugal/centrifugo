@@ -913,7 +913,9 @@ func (e *RedisEngine) channelFromChannelID(chID ChannelID) (proto.Channel, strin
 	}
 }
 
-func (e *RedisEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (e *RedisEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+	ch := message.Channel
+
 	eChan := make(chan error, 1)
 
 	byteMessage, err := encodeEngineClientMessage(message)
@@ -945,7 +947,9 @@ func (e *RedisEngine) PublishMessage(ch proto.Channel, message *proto.Message, o
 	return eChan
 }
 
-func (e *RedisEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
+func (e *RedisEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
+	ch := message.Channel
+
 	eChan := make(chan error, 1)
 
 	byteMessage, err := encodeEngineJoinMessage(message)
@@ -965,7 +969,9 @@ func (e *RedisEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) 
 	return eChan
 }
 
-func (e *RedisEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
+func (e *RedisEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
+	ch := message.Channel
+
 	eChan := make(chan error, 1)
 
 	byteMessage, err := encodeEngineLeaveMessage(message)

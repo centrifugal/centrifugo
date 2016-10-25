@@ -239,24 +239,8 @@ func (n *Node) Run(opts *RunOptions) error {
 		logger.CRITICAL.Println(err)
 	}
 	go n.sendNodePingMsg()
-
 	go n.cleanNodeInfo()
-
 	go n.updateMetrics()
-
-	config := n.Config()
-	if config.Insecure {
-		logger.WARN.Println("Running in INSECURE client mode")
-	}
-	if config.InsecureAPI {
-		logger.WARN.Println("Running in INSECURE API mode")
-	}
-	if config.InsecureAdmin {
-		logger.WARN.Println("Running in INSECURE admin mode")
-	}
-	if config.Debug {
-		logger.WARN.Println("Running in DEBUG mode")
-	}
 
 	for srvName, srv := range n.servers {
 		logger.INFO.Printf("Starting %s server", srvName)
@@ -378,6 +362,17 @@ func (n *Node) Stats() proto.ServerStats {
 	}
 }
 
+func (n *Node) Node() proto.NodeInfo {
+	n.nodesMu.Lock()
+	info, ok := n.nodes[n.uid]
+	if !ok {
+		logger.WARN.Println("node called but no local node info yet, returning garbage")
+	}
+	n.nodesMu.Unlock()
+	info.SetMetrics(n.getRawMetrics())
+	return info
+}
+
 func (n *Node) getRawMetrics() map[string]int64 {
 	m := make(map[string]int64)
 	for name, val := range metricsRegistry.Counters.LoadValues() {
@@ -404,19 +399,6 @@ func (n *Node) getSnapshotMetrics() map[string]int64 {
 		m[name] = val
 	}
 	return m
-}
-
-func (n *Node) Node() proto.NodeInfo {
-	n.nodesMu.Lock()
-	info, ok := n.nodes[n.uid]
-	if !ok {
-		logger.WARN.Println("node called but no local node info yet, returning garbage")
-	}
-	n.nodesMu.Unlock()
-
-	info.SetMetrics(n.getRawMetrics())
-
-	return info
 }
 
 // ControlMsg handles messages from control channel - control messages used for internal
@@ -481,7 +463,8 @@ func (n *Node) AdminMsg(msg *proto.AdminMessage) error {
 // ClientMsg handles messages published by web application or client into channel.
 // The goal of this method to deliver this message to all clients on this node subscribed
 // on channel.
-func (n *Node) ClientMsg(ch proto.Channel, msg *proto.Message) error {
+func (n *Node) ClientMsg(msg *proto.Message) error {
+	ch := msg.Channel
 	metricsRegistry.Counters.Inc("node_num_client_msg_received")
 	numSubscribers := n.clients.NumSubscribers(ch)
 	hasCurrentSubscribers := numSubscribers > 0
@@ -496,7 +479,8 @@ func (n *Node) ClientMsg(ch proto.Channel, msg *proto.Message) error {
 	return n.clients.Broadcast(ch, byteMessage)
 }
 
-func (n *Node) JoinMsg(ch proto.Channel, msg *proto.JoinMessage) error {
+func (n *Node) JoinMsg(msg *proto.JoinMessage) error {
+	ch := msg.Channel
 	metricsRegistry.Counters.Inc("node_num_join_msg_received")
 	hasCurrentSubscribers := n.clients.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
@@ -510,7 +494,8 @@ func (n *Node) JoinMsg(ch proto.Channel, msg *proto.JoinMessage) error {
 	return n.clients.Broadcast(ch, byteMessage)
 }
 
-func (n *Node) LeaveMsg(ch proto.Channel, msg *proto.LeaveMessage) error {
+func (n *Node) LeaveMsg(msg *proto.LeaveMessage) error {
+	ch := msg.Channel
 	metricsRegistry.Counters.Inc("node_num_leave_msg_received")
 	hasCurrentSubscribers := n.clients.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
@@ -530,66 +515,59 @@ func makeErrChan(err error) <-chan error {
 	return ret
 }
 
-// Publish sends a message to all clients subscribed on channel.
-func (n *Node) Publish(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) error {
-	return <-n.PublishAsync(ch, data, client, info)
-}
-
-// PublishAsync sends a message into channel with provided data, client and client info.
-func (n *Node) PublishAsync(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
-	if string(ch) == "" || len(data) == 0 {
-		return makeErrChan(proto.ErrInvalidMessage)
-	}
-
-	chOpts, err := n.ChannelOpts(ch)
-	if err != nil {
-		return makeErrChan(err)
-	}
-
-	return n.pubClient(ch, chOpts, data, client, info)
-}
-
-// pubControl publishes message into control channel so all running
-// nodes will receive and handle it.
-func (n *Node) pubControl(method string, params []byte) error {
-	metricsRegistry.Counters.Inc("node_num_control_msg_published")
-	return <-n.engine.PublishControl(proto.NewControlMessage(n.uid, method, params))
-}
-
-// pubAdmin publishes message to admins.
-func (n *Node) pubAdmin(method string, params []byte) <-chan error {
-	metricsRegistry.Counters.Inc("node_num_admin_msg_published")
-	return n.engine.PublishAdmin(proto.NewAdminMessage(method, params))
-}
-
-// pubClient publishes message into channel so all running nodes
-// will receive it and will send to all clients on node subscribed on channel.
-func (n *Node) pubClient(ch proto.Channel, chOpts proto.ChannelOptions, data []byte, client proto.ConnID, info *proto.ClientInfo) <-chan error {
-	metricsRegistry.Counters.Inc("node_num_client_msg_published")
-	message := proto.NewMessage(ch, data, client, info)
-	if chOpts.Watch {
-		byteMessage, err := json.Marshal(message)
+// Publish sends a message to all clients subscribed on channel. All running nodes
+// will receive it and will send it to all clients on node subscribed on channel.
+func (n *Node) Publish(msg *proto.Message, opts *proto.ChannelOptions) <-chan error {
+	if opts == nil {
+		chOpts, err := n.ChannelOpts(msg.Channel)
 		if err != nil {
-			logger.ERROR.Println(err)
-		} else {
-			n.pubAdmin("message", byteMessage)
+			return makeErrChan(err)
 		}
+		opts = &chOpts
 	}
-	return n.engine.PublishMessage(ch, message, &chOpts)
+	metricsRegistry.Counters.Inc("node_num_client_msg_published")
+	return n.engine.PublishMessage(msg, opts)
 }
 
-// PubJoin allows to publish join message into channel when someone subscribes on it
+// PublishJoin allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (n *Node) PubJoin(ch proto.Channel, info proto.ClientInfo) error {
+func (n *Node) PublishJoin(msg *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
+	if opts == nil {
+		chOpts, err := n.ChannelOpts(msg.Channel)
+		if err != nil {
+			return makeErrChan(err)
+		}
+		opts = &chOpts
+	}
 	metricsRegistry.Counters.Inc("node_num_join_msg_published")
-	return <-n.engine.PublishJoin(ch, proto.NewJoinMessage(ch, info))
+	return n.engine.PublishJoin(msg, opts)
 }
 
-// PubLeave allows to publish join message into channel when someone subscribes on it
+// PublishLeave allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (n *Node) PubLeave(ch proto.Channel, info proto.ClientInfo) error {
+func (n *Node) PublishLeave(msg *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
+	if opts == nil {
+		chOpts, err := n.ChannelOpts(msg.Channel)
+		if err != nil {
+			return makeErrChan(err)
+		}
+		opts = &chOpts
+	}
 	metricsRegistry.Counters.Inc("node_num_leave_msg_published")
-	return <-n.engine.PublishLeave(ch, proto.NewLeaveMessage(ch, info))
+	return n.engine.PublishLeave(msg, opts)
+}
+
+// PublishAdmin publishes message to admins.
+func (n *Node) PublishAdmin(msg *proto.AdminMessage) <-chan error {
+	metricsRegistry.Counters.Inc("node_num_admin_msg_published")
+	return n.engine.PublishAdmin(msg)
+}
+
+// publishControl publishes message into control channel so all running
+// nodes will receive and handle it.
+func (n *Node) publishControl(msg *proto.ControlMessage) <-chan error {
+	metricsRegistry.Counters.Inc("node_num_control_msg_published")
+	return n.engine.PublishControl(msg)
 }
 
 // pubPing sends control ping message to all nodes - this message
@@ -628,7 +606,7 @@ func (n *Node) pubPing() error {
 		return err
 	}
 
-	return n.pubControl("ping", cmdBytes)
+	return <-n.publishControl(proto.NewControlMessage(n.uid, "ping", cmdBytes))
 }
 
 // pubUnsubscribe publishes unsubscribe control message to all nodes – so all
@@ -645,7 +623,7 @@ func (n *Node) pubUnsubscribe(user proto.UserID, ch proto.Channel) error {
 		return err
 	}
 
-	return n.pubControl("unsubscribe", cmdBytes)
+	return <-n.publishControl(proto.NewControlMessage(n.uid, "unsubscribe", cmdBytes))
 }
 
 // pubDisconnect publishes disconnect control message to all nodes – so all
@@ -661,17 +639,7 @@ func (n *Node) pubDisconnect(user proto.UserID) error {
 		return err
 	}
 
-	return n.pubControl("disconnect", cmdBytes)
-}
-
-// pingCmd handles ping control command i.e. updates information about known nodes.
-func (n *Node) pingCmd(cmd *proto.PingControlCommand) error {
-	info := cmd.Info
-	info.SetUpdated(time.Now().Unix())
-	n.nodesMu.Lock()
-	n.nodes[info.UID] = info
-	n.nodesMu.Unlock()
-	return nil
+	return <-n.publishControl(proto.NewControlMessage(n.uid, "disconnect", cmdBytes))
 }
 
 // AddConn registers authenticated connection in clientConnectionHub
@@ -712,6 +680,16 @@ func (n *Node) RemoveClientSub(ch proto.Channel, c conns.ClientConn) error {
 	if empty {
 		return n.engine.Unsubscribe(ch)
 	}
+	return nil
+}
+
+// pingCmd handles ping control command i.e. updates information about known nodes.
+func (n *Node) pingCmd(cmd *proto.PingControlCommand) error {
+	info := cmd.Info
+	info.SetUpdated(time.Now().Unix())
+	n.nodesMu.Lock()
+	n.nodes[info.UID] = info
+	n.nodesMu.Unlock()
 	return nil
 }
 
@@ -813,8 +791,7 @@ func (n *Node) namespaceKey(ch proto.Channel) NamespaceKey {
 func (n *Node) ChannelOpts(ch proto.Channel) (proto.ChannelOptions, error) {
 	n.RLock()
 	defer n.RUnlock()
-	nk := n.namespaceKey(ch)
-	return n.config.channelOpts(nk)
+	return n.config.channelOpts(n.namespaceKey(ch))
 }
 
 // addPresence proxies presence adding to engine.
