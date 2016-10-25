@@ -31,7 +31,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 	encoded, _ := msg.Marshal()
 	var newMsg Message
 	newMsg.Unmarshal(encoded)
-	assert.Equal(t, string(data), string(*newMsg.Data))
+	assert.Equal(t, string(data), string(newMsg.Data))
 }
 
 func BenchmarkClientResponseMarshalJSON(b *testing.B) {

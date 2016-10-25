@@ -59,7 +59,7 @@ func TestClientResponse(t *testing.T) {
 
 func TestAdminMessageResponse(t *testing.T) {
 	data := raw.Raw([]byte("test"))
-	resp := NewAdminMessageResponse(&data)
+	resp := NewAdminMessageResponse(data)
 	assert.Equal(t, "message", resp.(*AdminMessageResponse).Method)
 }
 
@@ -114,8 +114,8 @@ func TestClientMessageMarshalManualWithClientInfo(t *testing.T) {
 	channelInfo := raw.Raw(`{"channel": "info"}`)
 
 	info := &ClientInfo{
-		DefaultInfo: &defaultInfo,
-		ChannelInfo: &channelInfo,
+		DefaultInfo: defaultInfo,
+		ChannelInfo: channelInfo,
 		User:        "test_user",
 		Client:      "test_client",
 	}
