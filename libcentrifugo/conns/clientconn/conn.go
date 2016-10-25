@@ -688,7 +688,7 @@ func (c *client) refreshCmd(cmd *proto.RefreshClientCommand) (proto.Response, er
 
 	closeDelay := config.ExpiredConnectionCloseDelay
 	connLifetime := config.ConnLifetime
-	version := config.Version
+	version := c.node.Version()
 
 	body := proto.ConnectBody{}
 	body.Version = version

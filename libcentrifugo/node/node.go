@@ -470,7 +470,7 @@ func (n *Node) AdminMsg(msg *proto.AdminMessage) error {
 	if !hasAdmins {
 		return nil
 	}
-	resp := proto.NewAPIAdminMessageResponse(msg.Params)
+	resp := proto.NewAdminMessageResponse(msg.Params)
 	byteMessage, err := json.Marshal(resp)
 	if err != nil {
 		return err
