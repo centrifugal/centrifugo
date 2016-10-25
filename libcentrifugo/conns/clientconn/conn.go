@@ -335,17 +335,15 @@ func (c *client) info(ch proto.Channel) proto.ClientInfo {
 	if !ok {
 		channelInfo = []byte{}
 	}
-	var rawDefaultInfo *raw.Raw
-	var rawChannelInfo *raw.Raw
+	var rawDefaultInfo raw.Raw
+	var rawChannelInfo raw.Raw
 	if len(c.defaultInfo) > 0 {
-		rawData := raw.Raw(c.defaultInfo)
-		rawDefaultInfo = &rawData
+		rawDefaultInfo = raw.Raw(c.defaultInfo)
 	} else {
 		rawDefaultInfo = nil
 	}
 	if len(channelInfo) > 0 {
-		rawData := raw.Raw(channelInfo)
-		rawChannelInfo = &rawData
+		rawChannelInfo = raw.Raw(channelInfo)
 	} else {
 		rawChannelInfo = nil
 	}
@@ -688,7 +686,7 @@ func (c *client) refreshCmd(cmd *proto.RefreshClientCommand) (proto.Response, er
 
 	closeDelay := config.ExpiredConnectionCloseDelay
 	connLifetime := config.ConnLifetime
-	version := config.Version
+	version := c.node.Version()
 
 	body := proto.ConnectBody{}
 	body.Version = version

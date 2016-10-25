@@ -24,10 +24,6 @@ type Namespace struct {
 
 // Config contains Application configuration options.
 type Config struct {
-	// Version is a version of node as string, in most cases this will
-	// be Centrifugo server version.
-	Version string `json:"version"`
-
 	// Debug turns on application debug mode.
 	Debug bool `json:"debug"`
 
@@ -190,7 +186,6 @@ const (
 
 // DefaultConfig is Config initialized with default values for all fields.
 var DefaultConfig = &Config{
-	Version:                     "-",
 	Name:                        DefaultName,
 	Debug:                       false,
 	AdminPassword:               "",

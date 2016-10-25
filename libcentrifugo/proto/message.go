@@ -17,7 +17,7 @@ type (
 	MessageID string
 )
 
-func NewClientInfo(user UserID, client ConnID, defaultInfo *raw.Raw, channelInfo *raw.Raw) *ClientInfo {
+func NewClientInfo(user UserID, client ConnID, defaultInfo raw.Raw, channelInfo raw.Raw) *ClientInfo {
 	return &ClientInfo{
 		User:        string(user),
 		Client:      string(client),
@@ -33,7 +33,7 @@ func NewMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) *Messa
 		Timestamp: strconv.FormatInt(time.Now().Unix(), 10),
 		Info:      info,
 		Channel:   string(ch),
-		Data:      &raw,
+		Data:      raw,
 		Client:    string(client),
 	}
 }
@@ -57,7 +57,7 @@ func NewControlMessage(uid string, method string, params []byte) *ControlMessage
 	return &ControlMessage{
 		UID:    uid,
 		Method: method,
-		Params: &raw,
+		Params: raw,
 	}
 }
 
@@ -65,6 +65,6 @@ func NewAdminMessage(method string, params []byte) *AdminMessage {
 	raw := raw.Raw(params)
 	return &AdminMessage{
 		Method: method,
-		Params: &raw,
+		Params: raw,
 	}
 }

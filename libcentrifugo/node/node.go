@@ -417,7 +417,7 @@ func (n *Node) ControlMsg(cmd *proto.ControlMessage) error {
 	switch method {
 	case "ping":
 		var cmd proto.PingControlCommand
-		err := json.Unmarshal(*params, &cmd)
+		err := json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return proto.ErrInvalidMessage
@@ -425,7 +425,7 @@ func (n *Node) ControlMsg(cmd *proto.ControlMessage) error {
 		return n.pingCmd(&cmd)
 	case "unsubscribe":
 		var cmd proto.UnsubscribeControlCommand
-		err := json.Unmarshal(*params, &cmd)
+		err := json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return proto.ErrInvalidMessage
@@ -433,7 +433,7 @@ func (n *Node) ControlMsg(cmd *proto.ControlMessage) error {
 		return n.unsubscribeUser(cmd.User, cmd.Channel)
 	case "disconnect":
 		var cmd proto.DisconnectControlCommand
-		err := json.Unmarshal(*params, &cmd)
+		err := json.Unmarshal(params, &cmd)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return proto.ErrInvalidMessage
@@ -452,7 +452,7 @@ func (n *Node) AdminMsg(msg *proto.AdminMessage) error {
 	if !hasAdmins {
 		return nil
 	}
-	resp := proto.NewAPIAdminMessageResponse(msg.Params)
+	resp := proto.NewAdminMessageResponse(msg.Params)
 	byteMessage, err := json.Marshal(resp)
 	if err != nil {
 		return err

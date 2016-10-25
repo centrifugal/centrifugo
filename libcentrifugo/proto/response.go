@@ -24,13 +24,13 @@ func writeClientInfo(buf *bytebufferpool.ByteBuffer, info *ClientInfo) {
 
 	if info.DefaultInfo != nil {
 		buf.WriteString(`"default_info":`)
-		buf.Write(*info.DefaultInfo)
+		buf.Write(info.DefaultInfo)
 		buf.WriteString(",")
 	}
 
 	if info.ChannelInfo != nil {
 		buf.WriteString(`"channel_info":`)
-		buf.Write(*info.ChannelInfo)
+		buf.Write(info.ChannelInfo)
 		buf.WriteString(`,`)
 	}
 
@@ -66,7 +66,7 @@ func writeMessage(buf *bytebufferpool.ByteBuffer, msg *Message) {
 	buf.WriteString(`"channel":`)
 	EncodeJSONString(buf, msg.Channel, true)
 	buf.WriteString(`,"data":`)
-	buf.Write(*msg.Data)
+	buf.Write(msg.Data)
 	buf.WriteString(`}`)
 }
 
@@ -539,13 +539,13 @@ func NewAPINodeResponse(body NodeBody) Response {
 	}
 }
 
-type APIAdminConnectResponse struct {
+type AdminConnectResponse struct {
 	apiResponse
 	Body bool `json:"body"`
 }
 
-func NewAPIAdminConnectResponse(body bool) Response {
-	return &APIAdminConnectResponse{
+func NewAdminConnectResponse(body bool) Response {
+	return &AdminConnectResponse{
 		apiResponse: apiResponse{
 			Method: "connect",
 		},
@@ -553,13 +553,13 @@ func NewAPIAdminConnectResponse(body bool) Response {
 	}
 }
 
-type APIAdminInfoResponse struct {
+type AdminInfoResponse struct {
 	apiResponse
 	Body AdminInfoBody `json:"body"`
 }
 
-func NewAPIAdminInfoResponse(body AdminInfoBody) Response {
-	return &APIAdminInfoResponse{
+func NewAdminInfoResponse(body AdminInfoBody) Response {
+	return &AdminInfoResponse{
 		apiResponse: apiResponse{
 			Method: "info",
 		},
@@ -567,13 +567,13 @@ func NewAPIAdminInfoResponse(body AdminInfoBody) Response {
 	}
 }
 
-type APIAdminPingResponse struct {
+type AdminPingResponse struct {
 	apiResponse
 	Body string `json:"body"`
 }
 
-func NewAPIAdminPingResponse(body string) Response {
-	return &APIAdminPingResponse{
+func NewAdminPingResponse(body string) Response {
+	return &AdminPingResponse{
 		apiResponse: apiResponse{
 			Method: "ping",
 		},
@@ -581,13 +581,13 @@ func NewAPIAdminPingResponse(body string) Response {
 	}
 }
 
-type APIAdminMessageResponse struct {
+type AdminMessageResponse struct {
 	apiResponse
-	Body *raw.Raw `json:"body"`
+	Body raw.Raw `json:"body"`
 }
 
-func NewAPIAdminMessageResponse(body *raw.Raw) Response {
-	return &APIAdminMessageResponse{
+func NewAdminMessageResponse(body raw.Raw) Response {
+	return &AdminMessageResponse{
 		apiResponse: apiResponse{
 			Method: "message",
 		},

@@ -311,7 +311,7 @@ func (c *adminClient) connectCmd(cmd *proto.ConnectAdminCommand) (proto.Response
 		c.watch = true
 	}
 
-	return proto.NewAPIAdminConnectResponse(true), nil
+	return proto.NewAdminConnectResponse(true), nil
 }
 
 // infoCmd handles info command from admin client.
@@ -323,10 +323,10 @@ func (c *adminClient) infoCmd() (proto.Response, error) {
 			"config":  c.node.Config(),
 		},
 	}
-	return proto.NewAPIAdminInfoResponse(body), nil
+	return proto.NewAdminInfoResponse(body), nil
 }
 
 // pingCmd handles ping command from admin client.
 func (c *adminClient) pingCmd() (proto.Response, error) {
-	return proto.NewAPIAdminPingResponse("pong"), nil
+	return proto.NewAdminPingResponse("pong"), nil
 }

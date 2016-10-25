@@ -155,7 +155,7 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	rawData := raw.Raw([]byte("{}"))
-	msg := proto.Message{UID: "test UID", Data: &rawData}
+	msg := proto.Message{UID: "test UID", Data: rawData}
 
 	// test adding history
 	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
@@ -221,7 +221,7 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	rawInfoData := raw.Raw([]byte("{}"))
-	clientInfo := proto.NewClientInfo(proto.UserID("1"), proto.ConnID("1"), &rawInfoData, &rawInfoData)
+	clientInfo := proto.NewClientInfo(proto.UserID("1"), proto.ConnID("1"), rawInfoData, rawInfoData)
 
 	// test publishing join message.
 	joinMessage := proto.NewJoinMessage(proto.Channel("test"), *clientInfo)
@@ -261,7 +261,7 @@ func TestHandleClientMessage(t *testing.T) {
 	err := e.handleRedisClientMessage(chID, byteMessage)
 	assert.Equal(t, nil, err)
 	rawData := raw.Raw([]byte("{}"))
-	info := proto.NewClientInfo(proto.UserID("1"), proto.ConnID("1"), &rawData, &rawData)
+	info := proto.NewClientInfo(proto.UserID("1"), proto.ConnID("1"), rawData, rawData)
 	testJoinMsg := proto.NewJoinMessage(ch, *info)
 	byteJoinMsg, _ := testJoinMsg.Marshal()
 	chID = e.joinChannelID(ch)
