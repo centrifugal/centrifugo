@@ -115,7 +115,7 @@ func ClientCommandsFromJSON(msgBytes []byte) ([]ClientCommand, error) {
 // with unix seconds on moment when connect parameters generated and HMAC token to
 // prove correctness of all those parameters.
 type ConnectClientCommand struct {
-	User      UserID `json:"user"`
+	User      string `json:"user"`
 	Timestamp string `json:"timestamp"`
 	Info      string `json:"info"`
 	Token     string `json:"token"`
@@ -124,7 +124,7 @@ type ConnectClientCommand struct {
 // RefreshClientCommand is used to prolong connection lifetime when connection check
 // mechanism is enabled. It can only be sent by client after successfull connect.
 type RefreshClientCommand struct {
-	User      UserID `json:"user"`
+	User      string `json:"user"`
 	Timestamp string `json:"timestamp"`
 	Info      string `json:"info"`
 	Token     string `json:"token"`
@@ -134,34 +134,34 @@ type RefreshClientCommand struct {
 // It can only be sent by client after successfull connect.
 // It also can have Client, Info and Sign properties when channel is private.
 type SubscribeClientCommand struct {
-	Channel Channel   `json:"channel"`
-	Client  ConnID    `json:"client"`
-	Last    MessageID `json:"last"`
-	Recover bool      `json:"recover"`
-	Info    string    `json:"info"`
-	Sign    string    `json:"sign"`
+	Channel string `json:"channel"`
+	Client  string `json:"client"`
+	Last    string `json:"last"`
+	Recover bool   `json:"recover"`
+	Info    string `json:"info"`
+	Sign    string `json:"sign"`
 }
 
 // UnsubscribeClientCommand is used to unsubscribe from channel.
 type UnsubscribeClientCommand struct {
-	Channel Channel `json:"channel"`
+	Channel string `json:"channel"`
 }
 
 // PublishClientCommand is used to publish messages into channel.
 type PublishClientCommand struct {
-	Channel Channel `json:"channel"`
+	Channel string  `json:"channel"`
 	Data    raw.Raw `json:"data"`
 }
 
 // PresenceClientCommand is used to get presence (actual channel subscriptions).
 // information for channel
 type PresenceClientCommand struct {
-	Channel Channel `json:"channel"`
+	Channel string `json:"channel"`
 }
 
 // HistoryClientCommand is used to get history information for channel.
 type HistoryClientCommand struct {
-	Channel Channel `json:"channel"`
+	Channel string `json:"channel"`
 }
 
 // PingClientCommand is used to ping server.
@@ -171,38 +171,38 @@ type PingClientCommand struct {
 
 // PublishApiCommand is used to publish messages into channel.
 type PublishAPICommand struct {
-	Channel Channel `json:"channel"`
-	Client  ConnID  `json:"client"`
+	Channel string  `json:"channel"`
+	Client  string  `json:"client"`
 	Data    raw.Raw `json:"data"`
 }
 
 // BroadcastApiCommand is used to publish messages into multiple channels.
 type BroadcastAPICommand struct {
-	Channels []Channel `json:"channels"`
-	Data     raw.Raw   `json:"data"`
-	Client   ConnID    `json:"client"`
+	Channels []string `json:"channels"`
+	Data     raw.Raw  `json:"data"`
+	Client   string   `json:"client"`
 }
 
 // UnsubscribeApiCommand is used to unsubscribe user from channel.
 type UnsubscribeAPICommand struct {
-	Channel Channel `json:"channel"`
-	User    UserID  `json:"user"`
+	Channel string `json:"channel"`
+	User    string `json:"user"`
 }
 
 // DisconnectApiCommand is used to disconnect user.
 type DisconnectAPICommand struct {
-	User UserID `json:"user"`
+	User string `json:"user"`
 }
 
 // PresenceApiCommand is used to get presence (actual channel subscriptions)
 // information for channel.
 type PresenceAPICommand struct {
-	Channel Channel `json:"channel"`
+	Channel string `json:"channel"`
 }
 
 // HistoryApiCommand is used to get history information for channel.
 type HistoryAPICommand struct {
-	Channel Channel `json:"channel"`
+	Channel string `json:"channel"`
 }
 
 // PingControlCommand allows nodes to know about each other - node sends this
@@ -215,13 +215,13 @@ type PingControlCommand struct {
 // node unsubscribes user from channel and then send this control command so other
 // nodes could unsubscribe user too.
 type UnsubscribeControlCommand struct {
-	Channel Channel `json:"channel"`
-	User    UserID  `json:"user"`
+	Channel string `json:"channel"`
+	User    string `json:"user"`
 }
 
 // DisconnectControlCommand required to disconnect user from all nodes.
 type DisconnectControlCommand struct {
-	User UserID `json:"user"`
+	User string `json:"user"`
 }
 
 // ConnectAdminCommand required to authorize admin connection and provide

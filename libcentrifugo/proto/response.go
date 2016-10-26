@@ -147,25 +147,25 @@ func (m *ClientLeaveResponse) Marshal() ([]byte, error) {
 
 // PresenceBody represents body of response in case of successful presence command.
 type PresenceBody struct {
-	Channel Channel               `json:"channel"`
-	Data    map[ConnID]ClientInfo `json:"data"`
+	Channel string                `json:"channel"`
+	Data    map[string]ClientInfo `json:"data"`
 }
 
 // HistoryBody represents body of response in case of successful history command.
 type HistoryBody struct {
-	Channel Channel   `json:"channel"`
+	Channel string    `json:"channel"`
 	Data    []Message `json:"data"`
 }
 
 // ChannelsBody represents body of response in case of successful channels command.
 type ChannelsBody struct {
-	Data []Channel `json:"data"`
+	Data []string `json:"data"`
 }
 
 // ConnectBody represents body of response in case of successful connect command.
 type ConnectBody struct {
 	Version string `json:"version"`
-	Client  ConnID `json:"client"`
+	Client  string `json:"client"`
 	Expires bool   `json:"expires"`
 	Expired bool   `json:"expired"`
 	TTL     int64  `json:"ttl"`
@@ -173,23 +173,23 @@ type ConnectBody struct {
 
 // SubscribeBody represents body of response in case of successful subscribe command.
 type SubscribeBody struct {
-	Channel   Channel   `json:"channel"`
+	Channel   string    `json:"channel"`
 	Status    bool      `json:"status"`
-	Last      MessageID `json:"last"`
+	Last      string    `json:"last"`
 	Messages  []Message `json:"messages"`
 	Recovered bool      `json:"recovered"`
 }
 
 // UnsubscribeBody represents body of response in case of successful unsubscribe command.
 type UnsubscribeBody struct {
-	Channel Channel `json:"channel"`
-	Status  bool    `json:"status"`
+	Channel string `json:"channel"`
+	Status  bool   `json:"status"`
 }
 
 // PublishBody represents body of response in case of successful publish command.
 type PublishBody struct {
-	Channel Channel `json:"channel"`
-	Status  bool    `json:"status"`
+	Channel string `json:"channel"`
+	Status  bool   `json:"status"`
 }
 
 // DisconnectBody represents body of disconnect response when we want to tell

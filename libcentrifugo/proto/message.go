@@ -8,46 +8,37 @@ import (
 	"github.com/nats-io/nuid"
 )
 
-type (
-	// UserID is web application user ID as string.
-	UserID string
-	// ConnID is a unique connection ID.
-	ConnID string
-	// MessageID is a unique message ID
-	MessageID string
-)
-
-func NewClientInfo(user UserID, client ConnID, defaultInfo raw.Raw, channelInfo raw.Raw) *ClientInfo {
+func NewClientInfo(user string, client string, defaultInfo raw.Raw, channelInfo raw.Raw) *ClientInfo {
 	return &ClientInfo{
-		User:        string(user),
-		Client:      string(client),
+		User:        user,
+		Client:      client,
 		DefaultInfo: defaultInfo,
 		ChannelInfo: channelInfo,
 	}
 }
 
-func NewMessage(ch Channel, data []byte, client ConnID, info *ClientInfo) *Message {
+func NewMessage(ch string, data []byte, client string, info *ClientInfo) *Message {
 	raw := raw.Raw(data)
 	return &Message{
 		UID:       nuid.Next(),
 		Timestamp: strconv.FormatInt(time.Now().Unix(), 10),
 		Info:      info,
-		Channel:   string(ch),
+		Channel:   ch,
 		Data:      raw,
-		Client:    string(client),
+		Client:    client,
 	}
 }
 
-func NewJoinMessage(ch Channel, info ClientInfo) *JoinMessage {
+func NewJoinMessage(ch string, info ClientInfo) *JoinMessage {
 	return &JoinMessage{
-		Channel: string(ch),
+		Channel: ch,
 		Data:    info,
 	}
 }
 
-func NewLeaveMessage(ch Channel, info ClientInfo) *LeaveMessage {
+func NewLeaveMessage(ch string, info ClientInfo) *LeaveMessage {
 	return &LeaveMessage{
-		Channel: string(ch),
+		Channel: ch,
 		Data:    info,
 	}
 }

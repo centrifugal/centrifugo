@@ -338,7 +338,7 @@ func (n *Node) cleanNodeInfo() {
 	}
 }
 
-func (n *Node) Channels() ([]proto.Channel, error) {
+func (n *Node) Channels() ([]string, error) {
 	return n.engine.Channels()
 }
 
@@ -611,7 +611,7 @@ func (n *Node) pubPing() error {
 
 // pubUnsubscribe publishes unsubscribe control message to all nodes – so all
 // nodes could unsubscribe user from channel.
-func (n *Node) pubUnsubscribe(user proto.UserID, ch proto.Channel) error {
+func (n *Node) pubUnsubscribe(user string, ch string) error {
 
 	cmd := &proto.UnsubscribeControlCommand{
 		User:    user,
@@ -628,7 +628,7 @@ func (n *Node) pubUnsubscribe(user proto.UserID, ch proto.Channel) error {
 
 // pubDisconnect publishes disconnect control message to all nodes – so all
 // nodes could disconnect user from Centrifugo.
-func (n *Node) pubDisconnect(user proto.UserID) error {
+func (n *Node) pubDisconnect(user string) error {
 
 	cmd := &proto.DisconnectControlCommand{
 		User: user,
@@ -657,7 +657,7 @@ func (n *Node) RemoveClientConn(c conns.ClientConn) error {
 
 // AddClientSub registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
-func (n *Node) AddClientSub(ch proto.Channel, c conns.ClientConn) error {
+func (n *Node) AddClientSub(ch string, c conns.ClientConn) error {
 	metricsRegistry.Counters.Inc("node_num_add_client_sub")
 	first, err := n.clients.AddSub(ch, c)
 	if err != nil {
@@ -671,7 +671,7 @@ func (n *Node) AddClientSub(ch proto.Channel, c conns.ClientConn) error {
 
 // RemoveClientSub removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
-func (n *Node) RemoveClientSub(ch proto.Channel, c conns.ClientConn) error {
+func (n *Node) RemoveClientSub(ch string, c conns.ClientConn) error {
 	metricsRegistry.Counters.Inc("node_num_remove_client_sub")
 	empty, err := n.clients.RemoveSub(ch, c)
 	if err != nil {
@@ -695,7 +695,7 @@ func (n *Node) pingCmd(cmd *proto.PingControlCommand) error {
 
 // Unsubscribe unsubscribes user from channel, if channel is equal to empty
 // string then user will be unsubscribed from all channels.
-func (n *Node) Unsubscribe(user proto.UserID, ch proto.Channel) error {
+func (n *Node) Unsubscribe(user string, ch string) error {
 
 	if string(user) == "" {
 		return proto.ErrInvalidMessage
@@ -723,15 +723,15 @@ func (n *Node) Unsubscribe(user proto.UserID, ch proto.Channel) error {
 
 // unsubscribeUser unsubscribes user from channel on this node. If channel
 // is an empty string then user will be unsubscribed from all channels.
-func (n *Node) unsubscribeUser(user proto.UserID, ch proto.Channel) error {
+func (n *Node) unsubscribeUser(user string, ch string) error {
 	userConnections := n.clients.UserConnections(user)
 	for _, c := range userConnections {
-		var channels []proto.Channel
+		var channels []string
 		if string(ch) == "" {
 			// unsubscribe from all channels
 			channels = c.Channels()
 		} else {
-			channels = []proto.Channel{ch}
+			channels = []string{ch}
 		}
 
 		for _, channel := range channels {
@@ -746,7 +746,7 @@ func (n *Node) unsubscribeUser(user proto.UserID, ch proto.Channel) error {
 
 // Disconnect allows to close all user connections to Centrifugo. Note that user still
 // can try to reconnect to the server after being disconnected.
-func (n *Node) Disconnect(user proto.UserID) error {
+func (n *Node) Disconnect(user string) error {
 
 	if string(user) == "" {
 		return proto.ErrInvalidMessage
@@ -766,7 +766,7 @@ func (n *Node) Disconnect(user proto.UserID) error {
 }
 
 // disconnectUser closes client connections of user on current node.
-func (n *Node) disconnectUser(user proto.UserID) error {
+func (n *Node) disconnectUser(user string) error {
 	userConnections := n.clients.UserConnections(user)
 	for _, c := range userConnections {
 		err := c.Close("disconnect")
@@ -778,8 +778,8 @@ func (n *Node) disconnectUser(user proto.UserID) error {
 }
 
 // namespaceKey returns namespace key from channel name if exists.
-func (n *Node) namespaceKey(ch proto.Channel) NamespaceKey {
-	cTrim := strings.TrimPrefix(string(ch), n.config.PrivateChannelPrefix)
+func (n *Node) namespaceKey(ch string) NamespaceKey {
+	cTrim := strings.TrimPrefix(ch, n.config.PrivateChannelPrefix)
 	if strings.Contains(cTrim, n.config.NamespaceChannelBoundary) {
 		parts := strings.SplitN(cTrim, n.config.NamespaceChannelBoundary, 2)
 		return NamespaceKey(parts[0])
@@ -788,14 +788,14 @@ func (n *Node) namespaceKey(ch proto.Channel) NamespaceKey {
 }
 
 // channelOpts returns channel options for channel using current application structure.
-func (n *Node) ChannelOpts(ch proto.Channel) (proto.ChannelOptions, error) {
+func (n *Node) ChannelOpts(ch string) (proto.ChannelOptions, error) {
 	n.RLock()
 	defer n.RUnlock()
 	return n.config.channelOpts(n.namespaceKey(ch))
 }
 
 // addPresence proxies presence adding to engine.
-func (n *Node) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo) error {
+func (n *Node) AddPresence(ch string, uid string, info proto.ClientInfo) error {
 	n.RLock()
 	expire := int(n.config.PresenceExpireInterval.Seconds())
 	n.RUnlock()
@@ -804,25 +804,25 @@ func (n *Node) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.Client
 }
 
 // RemovePresence proxies presence removing to engine.
-func (n *Node) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+func (n *Node) RemovePresence(ch string, uid string) error {
 	metricsRegistry.Counters.Inc("node_num_remove_presence")
 	return n.engine.RemovePresence(ch, uid)
 }
 
 // Presence returns a map of active clients in project channel.
-func (n *Node) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
+func (n *Node) Presence(ch string) (map[string]proto.ClientInfo, error) {
 
 	if string(ch) == "" {
-		return map[proto.ConnID]proto.ClientInfo{}, proto.ErrInvalidMessage
+		return map[string]proto.ClientInfo{}, proto.ErrInvalidMessage
 	}
 
 	chOpts, err := n.ChannelOpts(ch)
 	if err != nil {
-		return map[proto.ConnID]proto.ClientInfo{}, err
+		return map[string]proto.ClientInfo{}, err
 	}
 
 	if !chOpts.Presence {
-		return map[proto.ConnID]proto.ClientInfo{}, proto.ErrNotAvailable
+		return map[string]proto.ClientInfo{}, proto.ErrNotAvailable
 	}
 
 	metricsRegistry.Counters.Inc("node_num_presence")
@@ -830,13 +830,13 @@ func (n *Node) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, er
 	presence, err := n.engine.Presence(ch)
 	if err != nil {
 		logger.ERROR.Println(err)
-		return map[proto.ConnID]proto.ClientInfo{}, proto.ErrInternalServerError
+		return map[string]proto.ClientInfo{}, proto.ErrInternalServerError
 	}
 	return presence, nil
 }
 
 // History returns a slice of last messages published into project channel.
-func (n *Node) History(ch proto.Channel) ([]proto.Message, error) {
+func (n *Node) History(ch string) ([]proto.Message, error) {
 
 	if string(ch) == "" {
 		return []proto.Message{}, proto.ErrInvalidMessage
@@ -861,21 +861,21 @@ func (n *Node) History(ch proto.Channel) ([]proto.Message, error) {
 	return history, nil
 }
 
-func (n *Node) LastMessageID(ch proto.Channel) (proto.MessageID, error) {
+func (n *Node) LastMessageID(ch string) (string, error) {
 	metricsRegistry.Counters.Inc("node_num_last_message_id")
 	history, err := n.engine.History(ch, 1)
 	if err != nil {
-		return proto.MessageID(""), err
+		return "", err
 	}
 	if len(history) == 0 {
-		return proto.MessageID(""), nil
+		return "", nil
 	}
-	return proto.MessageID(history[0].UID), nil
+	return history[0].UID, nil
 }
 
 // PrivateChannel checks if channel private and therefore subscription
 // request on it must be properly signed on web application backend.
-func (n *Node) PrivateChannel(ch proto.Channel) bool {
+func (n *Node) PrivateChannel(ch string) bool {
 	n.RLock()
 	defer n.RUnlock()
 	return strings.HasPrefix(string(ch), n.config.PrivateChannelPrefix)
@@ -884,13 +884,13 @@ func (n *Node) PrivateChannel(ch proto.Channel) bool {
 // UserAllowed checks if user can subscribe on channel - as channel
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it.
-func (n *Node) UserAllowed(ch proto.Channel, user proto.UserID) bool {
+func (n *Node) UserAllowed(ch string, user string) bool {
 	n.RLock()
 	defer n.RUnlock()
-	if !strings.Contains(string(ch), n.config.UserChannelBoundary) {
+	if !strings.Contains(ch, n.config.UserChannelBoundary) {
 		return true
 	}
-	parts := strings.Split(string(ch), n.config.UserChannelBoundary)
+	parts := strings.Split(ch, n.config.UserChannelBoundary)
 	allowedUsers := strings.Split(parts[len(parts)-1], n.config.UserChannelSeparator)
 	for _, allowedUser := range allowedUsers {
 		if string(user) == allowedUser {
@@ -903,13 +903,13 @@ func (n *Node) UserAllowed(ch proto.Channel, user proto.UserID) bool {
 // ClientAllowed checks if client can subscribe on channel - as channel
 // can contain special part in the end to indicate which client allowed
 // to subscribe on it.
-func (n *Node) ClientAllowed(ch proto.Channel, client proto.ConnID) bool {
+func (n *Node) ClientAllowed(ch string, client string) bool {
 	n.RLock()
 	defer n.RUnlock()
-	if !strings.Contains(string(ch), n.config.ClientChannelBoundary) {
+	if !strings.Contains(ch, n.config.ClientChannelBoundary) {
 		return true
 	}
-	parts := strings.Split(string(ch), n.config.ClientChannelBoundary)
+	parts := strings.Split(ch, n.config.ClientChannelBoundary)
 	allowedClient := parts[len(parts)-1]
 	if string(client) == allowedClient {
 		return true

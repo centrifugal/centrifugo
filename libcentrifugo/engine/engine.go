@@ -34,22 +34,22 @@ type Engine interface {
 	PublishAdmin(*proto.AdminMessage) <-chan error
 
 	// Subscribe on channel.
-	Subscribe(proto.Channel) error
+	Subscribe(string) error
 	// Unsubscribe from channel.
-	Unsubscribe(proto.Channel) error
+	Unsubscribe(string) error
 	// Channels returns slice of currently active channels (with one or more subscribers)
 	// on all Centrifugo nodes.
-	Channels() ([]proto.Channel, error)
+	Channels() ([]string, error)
 
 	// AddPresence sets or updates presence info in channel for connection with uid.
-	AddPresence(ch proto.Channel, connID proto.ConnID, info proto.ClientInfo, expire int) error
+	AddPresence(ch string, connID string, info proto.ClientInfo, expire int) error
 	// RemovePresence removes presence information for connection with uid.
-	RemovePresence(proto.Channel, proto.ConnID) error
+	RemovePresence(ch string, connID string) error
 	// Presence returns actual presence information for channel.
-	Presence(proto.Channel) (map[proto.ConnID]proto.ClientInfo, error)
+	Presence(ch string) (map[string]proto.ClientInfo, error)
 
 	// History returns a slice of history messages for channel.
 	// Integer limit sets the max amount of messages that must be returned. 0 means no limit - i.e.
 	// return all history messages (actually limited by configured history_size).
-	History(ch proto.Channel, limit int) ([]proto.Message, error)
+	History(ch string, limit int) ([]proto.Message, error)
 }

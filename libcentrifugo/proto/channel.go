@@ -1,10 +1,5 @@
 package proto
 
-type (
-	// Channel is a string channel name.
-	Channel string
-)
-
 // ChannelOptions represent channel specific configuration for namespace or project in a whole
 type ChannelOptions struct {
 	// Watch determines if message published into channel will be also sent into admin channel.

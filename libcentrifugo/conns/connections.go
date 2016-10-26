@@ -1,24 +1,20 @@
 package conns
 
-import (
-	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
-)
-
 // ClientConn is an interface abstracting all methods used
 // by application to interact with client connection.
 type ClientConn interface {
 	// UID returns unique connection id.
-	UID() proto.ConnID
+	UID() string
 	// User return user ID associated with connection.
-	User() proto.UserID
+	User() string
 	// Channels returns a slice of channels connection subscribed to.
-	Channels() []proto.Channel
+	Channels() []string
 	// Handle message coming from client.
 	Handle(message []byte) error
 	// Send allows to send message to connection client.
 	Send(message []byte) error
 	// Unsubscribe allows to unsubscribe connection from channel.
-	Unsubscribe(ch proto.Channel) error
+	Unsubscribe(ch string) error
 	// Close closes client's connection.
 	Close(reason string) error
 }
@@ -27,7 +23,7 @@ type ClientConn interface {
 // by application to interact with admin connection.
 type AdminConn interface {
 	// UID returns unique admin connection id.
-	UID() proto.ConnID
+	UID() string
 	// Handle message coming from admin client.
 	Handle(message []byte) error
 	// Send allows to send message to admin connection.

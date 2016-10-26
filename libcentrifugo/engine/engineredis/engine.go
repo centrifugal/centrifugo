@@ -776,26 +776,26 @@ func (e *RedisEngine) runPubSub() {
 }
 
 func (e *RedisEngine) handleRedisClientMessage(chID ChannelID, data []byte) error {
-	ch, msgType := e.channelFromChannelID(chID)
+	msgType := e.typeFromChannelID(chID)
 	switch msgType {
 	case "message":
 		message, err := decodeEngineClientMessage(data)
 		if err != nil {
 			return err
 		}
-		e.node.ClientMsg(ch, message)
+		e.node.ClientMsg(message)
 	case "join":
 		message, err := decodeEngineJoinMessage(data)
 		if err != nil {
 			return err
 		}
-		e.node.JoinMsg(ch, message)
+		e.node.JoinMsg(message)
 	case "leave":
 		message, err := decodeEngineLeaveMessage(data)
 		if err != nil {
 			return err
 		}
-		e.node.LeaveMsg(ch, message)
+		e.node.LeaveMsg(message)
 	default:
 	}
 	return nil
@@ -889,27 +889,27 @@ func (e *RedisEngine) runPublishPipeline() {
 	}
 }
 
-func (e *RedisEngine) messageChannelID(ch proto.Channel) ChannelID {
+func (e *RedisEngine) messageChannelID(ch string) ChannelID {
 	return ChannelID(e.messagePrefix + string(ch))
 }
 
-func (e *RedisEngine) joinChannelID(ch proto.Channel) ChannelID {
+func (e *RedisEngine) joinChannelID(ch string) ChannelID {
 	return ChannelID(e.joinPrefix + string(ch))
 }
 
-func (e *RedisEngine) leaveChannelID(ch proto.Channel) ChannelID {
+func (e *RedisEngine) leaveChannelID(ch string) ChannelID {
 	return ChannelID(e.leavePrefix + string(ch))
 }
 
-func (e *RedisEngine) channelFromChannelID(chID ChannelID) (proto.Channel, string) {
+func (e *RedisEngine) typeFromChannelID(chID ChannelID) string {
 	if strings.HasPrefix(string(chID), e.messagePrefix) {
-		return proto.Channel(strings.TrimPrefix(string(chID), e.messagePrefix)), "message"
+		return "message"
 	} else if strings.HasPrefix(string(chID), e.joinPrefix) {
-		return proto.Channel(strings.TrimPrefix(string(chID), e.joinPrefix)), "join"
+		return "join"
 	} else if strings.HasPrefix(string(chID), e.leavePrefix) {
-		return proto.Channel(strings.TrimPrefix(string(chID), e.leavePrefix)), "leave"
+		return "leave"
 	} else {
-		return proto.Channel(""), "unknown"
+		return "unknown"
 	}
 }
 
@@ -1031,7 +1031,7 @@ func (e *RedisEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	return eChan
 }
 
-func (e *RedisEngine) Subscribe(ch proto.Channel) error {
+func (e *RedisEngine) Subscribe(ch string) error {
 	logger.TRACE.Println("Subscribe node on channel", ch)
 	r := newSubRequest(e.joinChannelID(ch), false)
 	e.subCh <- r
@@ -1042,7 +1042,7 @@ func (e *RedisEngine) Subscribe(ch proto.Channel) error {
 	return r.result()
 }
 
-func (e *RedisEngine) Unsubscribe(ch proto.Channel) error {
+func (e *RedisEngine) Unsubscribe(ch string) error {
 	logger.TRACE.Println("Unsubscribe node from channel", ch)
 	r := newSubRequest(e.joinChannelID(ch), false)
 	e.unSubCh <- r
@@ -1082,7 +1082,7 @@ func (e *RedisEngine) getHistoryKey(chID ChannelID) string {
 	return e.config.Prefix + ".history.list." + string(chID)
 }
 
-func (e *RedisEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo, expire int) error {
+func (e *RedisEngine) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -1097,7 +1097,7 @@ func (e *RedisEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto
 	return err
 }
 
-func (e *RedisEngine) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+func (e *RedisEngine) RemovePresence(ch string, uid string) error {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -1107,7 +1107,7 @@ func (e *RedisEngine) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
 	return err
 }
 
-func mapStringClientInfo(result interface{}, err error) (map[proto.ConnID]proto.ClientInfo, error) {
+func mapStringClientInfo(result interface{}, err error) (map[string]proto.ClientInfo, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err
@@ -1115,7 +1115,7 @@ func mapStringClientInfo(result interface{}, err error) (map[proto.ConnID]proto.
 	if len(values)%2 != 0 {
 		return nil, errors.New("mapStringClientInfo expects even number of values result")
 	}
-	m := make(map[proto.ConnID]proto.ClientInfo, len(values)/2)
+	m := make(map[string]proto.ClientInfo, len(values)/2)
 	for i := 0; i < len(values); i += 2 {
 		key, okKey := values[i].([]byte)
 		value, okValue := values[i+1].([]byte)
@@ -1127,12 +1127,12 @@ func mapStringClientInfo(result interface{}, err error) (map[proto.ConnID]proto.
 		if err != nil {
 			return nil, errors.New("can not unmarshal value to ClientInfo")
 		}
-		m[proto.ConnID(key)] = f
+		m[string(key)] = f
 	}
 	return m, nil
 }
 
-func (e *RedisEngine) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
+func (e *RedisEngine) Presence(ch string) (map[string]proto.ClientInfo, error) {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -1167,7 +1167,7 @@ func sliceOfMessages(result interface{}, err error) ([]proto.Message, error) {
 	return msgs, nil
 }
 
-func (e *RedisEngine) History(ch proto.Channel, limit int) ([]proto.Message, error) {
+func (e *RedisEngine) History(ch string, limit int) ([]proto.Message, error) {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -1185,7 +1185,7 @@ func (e *RedisEngine) History(ch proto.Channel, limit int) ([]proto.Message, err
 }
 
 // Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
-func (e *RedisEngine) Channels() ([]proto.Channel, error) {
+func (e *RedisEngine) Channels() ([]string, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 
@@ -1203,7 +1203,7 @@ func (e *RedisEngine) Channels() ([]proto.Channel, error) {
 		return nil, err
 	}
 
-	channels := make([]proto.Channel, 0, len(values))
+	channels := make([]string, 0, len(values))
 	for i := 0; i < len(values); i++ {
 		value, okValue := values[i].([]byte)
 		if !okValue {
@@ -1211,7 +1211,7 @@ func (e *RedisEngine) Channels() ([]proto.Channel, error) {
 		}
 		chID := ChannelID(value)
 		if !strings.HasPrefix(string(chID), joinPrefix) && !strings.HasPrefix(string(chID), leavePrefix) {
-			channels = append(channels, proto.Channel(string(chID)[len(messagePrefix):]))
+			channels = append(channels, string(string(chID)[len(messagePrefix):]))
 		}
 	}
 	return channels, nil

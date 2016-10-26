@@ -49,13 +49,13 @@ type client struct {
 	sync.RWMutex
 	node           *node.Node
 	sess           conns.Session
-	uid            proto.ConnID
-	user           proto.UserID
+	uid            string
+	user           string
 	timestamp      int64
 	authenticated  bool
 	defaultInfo    []byte
-	channelInfo    map[proto.Channel][]byte
-	channels       map[proto.Channel]bool
+	channelInfo    map[string][]byte
+	channels       map[string]bool
 	messages       bytequeue.ByteQueue
 	closeCh        chan struct{}
 	closed         bool
@@ -104,7 +104,7 @@ func New(n *node.Node, s conns.Session, opts *ClientOptions) (conns.ClientConn, 
 	sendTimeout := config.MessageSendTimeout
 
 	c := client{
-		uid:            proto.ConnID(uuid.NewV4().String()),
+		uid:            uuid.NewV4().String(),
 		node:           n,
 		sess:           s,
 		closeCh:        make(chan struct{}),
@@ -179,7 +179,7 @@ func (c *client) closeUnauthenticated() {
 
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
-func (c *client) updateChannelPresence(ch proto.Channel) {
+func (c *client) updateChannelPresence(ch string) {
 	chOpts, err := c.node.ChannelOpts(ch)
 	if err != nil {
 		return
@@ -215,18 +215,18 @@ func (c *client) addPresenceUpdate() {
 	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
 }
 
-func (c *client) UID() proto.ConnID {
+func (c *client) UID() string {
 	return c.uid
 }
 
-func (c *client) User() proto.UserID {
+func (c *client) User() string {
 	return c.user
 }
 
-func (c *client) Channels() []proto.Channel {
+func (c *client) Channels() []string {
 	c.RLock()
 	defer c.RUnlock()
-	keys := make([]proto.Channel, len(c.channels))
+	keys := make([]string, len(c.channels))
 	i := 0
 	for k := range c.channels {
 		keys[i] = k
@@ -235,7 +235,7 @@ func (c *client) Channels() []proto.Channel {
 	return keys
 }
 
-func (c *client) Unsubscribe(ch proto.Channel) error {
+func (c *client) Unsubscribe(ch string) error {
 	cmd := &proto.UnsubscribeClientCommand{
 		Channel: ch,
 	}
@@ -330,7 +330,7 @@ func (c *client) Close(reason string) error {
 	return nil
 }
 
-func (c *client) info(ch proto.Channel) proto.ClientInfo {
+func (c *client) info(ch string) proto.ClientInfo {
 	channelInfo, ok := c.channelInfo[ch]
 	if !ok {
 		channelInfo = []byte{}
@@ -636,8 +636,8 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 
 	c.authenticated = true
 	c.defaultInfo = []byte(info)
-	c.channels = map[proto.Channel]bool{}
-	c.channelInfo = map[proto.Channel][]byte{}
+	c.channels = map[string]bool{}
+	c.channelInfo = map[string][]byte{}
 
 	if c.staleTimer != nil {
 		c.staleTimer.Stop()
@@ -713,8 +713,8 @@ func (c *client) refreshCmd(cmd *proto.RefreshClientCommand) (proto.Response, er
 	return proto.NewClientRefreshResponse(body), nil
 }
 
-func recoverMessages(last proto.MessageID, messages []proto.Message) ([]proto.Message, bool) {
-	if last == proto.MessageID("") {
+func recoverMessages(last string, messages []proto.Message) ([]proto.Message, bool) {
+	if last == "" {
 		// Client wants to recover messages but it seems that there were no
 		// messages in history before, so client missed all messages which
 		// exist now.
@@ -722,7 +722,7 @@ func recoverMessages(last proto.MessageID, messages []proto.Message) ([]proto.Me
 	}
 	position := -1
 	for index, msg := range messages {
-		if proto.MessageID(msg.UID) == last {
+		if msg.UID == last {
 			position = index
 			break
 		}

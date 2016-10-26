@@ -77,7 +77,7 @@ const adminQueueMaxSize = 10485760
 type adminClient struct {
 	sync.RWMutex
 	node          *node.Node
-	uid           proto.ConnID
+	uid           string
 	sess          conns.Session
 	watch         bool
 	authenticated bool
@@ -124,7 +124,7 @@ func apiCommandsFromJSON(msg []byte) ([]proto.ApiCommand, error) {
 
 func New(n *node.Node, sess conns.Session, opts *AdminOptions) (conns.AdminConn, error) {
 	c := &adminClient{
-		uid:           proto.ConnID(uuid.NewV4().String()),
+		uid:           uuid.NewV4().String(),
 		node:          n,
 		sess:          sess,
 		watch:         false,
@@ -195,7 +195,7 @@ func (c *adminClient) sendMessages() {
 	}
 }
 
-func (c *adminClient) UID() proto.ConnID {
+func (c *adminClient) UID() string {
 	return c.uid
 }
 
