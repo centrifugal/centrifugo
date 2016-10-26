@@ -48,18 +48,18 @@ func testMemoryEngine() *MemoryEngine {
 }
 
 type TestConn struct {
-	uid      proto.ConnID
-	userID   proto.UserID
-	channels []proto.Channel
+	uid      string
+	userID   string
+	channels []string
 }
 
-func (t *TestConn) UID() proto.ConnID {
+func (t *TestConn) UID() string {
 	return t.uid
 }
-func (t *TestConn) User() proto.UserID {
+func (t *TestConn) User() string {
 	return t.userID
 }
-func (t *TestConn) Channels() []proto.Channel {
+func (t *TestConn) Channels() []string {
 	return t.channels
 }
 func (t *TestConn) Send(message []byte) error {
@@ -68,7 +68,7 @@ func (t *TestConn) Send(message []byte) error {
 func (t *TestConn) Handle(message []byte) error {
 	return nil
 }
-func (t *TestConn) Unsubscribe(ch proto.Channel) error {
+func (t *TestConn) Unsubscribe(ch string) error {
 	return nil
 }
 func (t *TestConn) Close(reason string) error {
@@ -76,7 +76,7 @@ func (t *TestConn) Close(reason string) error {
 }
 
 func newTestMessage() *proto.Message {
-	return proto.NewMessage(proto.Channel("test"), []byte("{}"), "", nil)
+	return proto.NewMessage("channel", []byte("{}"), "", nil)
 }
 
 func TestMemoryEngine(t *testing.T) {
@@ -87,75 +87,77 @@ func TestMemoryEngine(t *testing.T) {
 	assert.NotEqual(t, nil, e.presenceHub)
 	assert.NotEqual(t, e.Name(), "")
 
-	err = <-e.PublishMessage(proto.Channel("channel"), newTestMessage(), nil)
+	err = <-e.PublishMessage(newTestMessage(), nil)
 	assert.Equal(t, nil, err)
 
-	assert.Equal(t, nil, e.Subscribe(proto.Channel("channel")))
+	assert.Equal(t, nil, e.Subscribe("channel"))
 
 	// Memory engine is actually tightly coupled to application hubs in implementation
 	// so calling subscribe on the engine alone is actually a no-op since Application already
 	// knows about the subscription.
 	// In order to test publish works after subscription is added, we actually need to inject a
 	// fake subscription into the Application hub
-	fakeConn := &TestConn{"test", "test", []proto.Channel{"channel"}}
-	e.node.AddClientSub(proto.Channel("channel"), fakeConn)
+	fakeConn := &TestConn{"test", "test", []string{"channel"}}
+	e.node.AddClientSub("channel", fakeConn)
 
 	// Now we've subscribed...
-	err = <-e.PublishMessage(proto.Channel("channel"), newTestMessage(), nil)
+	err = <-e.PublishMessage(newTestMessage(), nil)
 	assert.Equal(t, nil, err)
 
-	assert.Equal(t, nil, e.Unsubscribe(proto.Channel("channel")))
+	assert.Equal(t, nil, e.Unsubscribe(string("channel")))
 
 	// Same dance to manually remove sub from app hub
-	e.node.RemoveClientSub(proto.Channel("channel"), fakeConn)
+	e.node.RemoveClientSub(string("channel"), fakeConn)
 
-	assert.Equal(t, nil, e.AddPresence(proto.Channel("channel"), "uid", proto.ClientInfo{}, int(e.node.Config().PresenceExpireInterval.Seconds())))
-	p, err := e.Presence(proto.Channel("channel"))
+	assert.Equal(t, nil, e.AddPresence(string("channel"), "uid", proto.ClientInfo{}, int(e.node.Config().PresenceExpireInterval.Seconds())))
+	p, err := e.Presence(string("channel"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(p))
-	err = e.RemovePresence(proto.Channel("channel"), "uid")
+	err = e.RemovePresence(string("channel"), "uid")
 	assert.Equal(t, nil, err)
 
-	msg := proto.Message{UID: "test UID"}
+	msg := proto.Message{UID: "test UID", Channel: "channel"}
 
 	// test adding history
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
-	h, err := e.History(proto.Channel("channel"), 0)
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	h, err := e.History("channel", 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 	assert.Equal(t, h[0].UID, "test UID")
 
 	// test history limit
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
-	h, err = e.History(proto.Channel("channel"), 2)
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	h, err = e.History(string("channel"), 2)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(h))
 
 	// test history limit greater than history size
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
-	h, err = e.History(proto.Channel("channel"), 2)
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
+	h, err = e.History(string("channel"), 2)
 
 	// HistoryDropInactive tests - new channel to avoid conflicts with test above
 	// 1. add history with DropInactive = true should be a no-op if history is empty
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel-2"), &msg, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
-	h, err = e.History(proto.Channel("channel-2"), 0)
+	msg2 := proto.Message{UID: "test UID", Channel: "channel-2"}
+
+	assert.Equal(t, nil, <-e.PublishMessage(&msg2, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
+	h, err = e.History("channel-2", 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(h))
 
 	// 2. add history with DropInactive = false should always work
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel-2"), &msg, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: false}))
-	h, err = e.History(proto.Channel("channel-2"), 0)
+	assert.Equal(t, nil, <-e.PublishMessage(&msg2, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: false}))
+	h, err = e.History("channel-2", 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 
 	// 3. add with DropInactive = true should work immediately since there should be something in history
 	// for 5 seconds from above
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel-2"), &msg, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
-	h, err = e.History(proto.Channel("channel-2"), 0)
+	assert.Equal(t, nil, <-e.PublishMessage(&msg2, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
+	h, err = e.History("channel-2", 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(h))
 }
@@ -164,10 +166,10 @@ func TestMemoryPresenceHub(t *testing.T) {
 	h := newMemoryPresenceHub()
 	assert.Equal(t, 0, len(h.presence))
 
-	testCh1 := proto.Channel("channel1")
-	testCh2 := proto.Channel("channel2")
+	testCh1 := string("channel1")
+	testCh2 := string("channel2")
 
-	uid := proto.ConnID("uid")
+	uid := string("uid")
 
 	info := proto.ClientInfo{
 		User:   "user",
@@ -195,8 +197,8 @@ func TestMemoryHistoryHub(t *testing.T) {
 	h := newMemoryHistoryHub()
 	h.initialize()
 	assert.Equal(t, 0, len(h.history))
-	ch1 := proto.Channel("channel1")
-	ch2 := proto.Channel("channel2")
+	ch1 := string("channel1")
+	ch2 := string("channel2")
 	h.add(ch1, proto.Message{}, addHistoryOpts{1, 1, false})
 	h.add(ch1, proto.Message{}, addHistoryOpts{1, 1, false})
 	h.add(ch2, proto.Message{}, addHistoryOpts{2, 1, false})

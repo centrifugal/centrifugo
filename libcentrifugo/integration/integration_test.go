@@ -36,19 +36,19 @@ func (e *TestEngine) Shutdown() error {
 	return nil
 }
 
-func (e *TestEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (e *TestEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *TestEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
+func (e *TestEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *TestEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
+func (e *TestEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
@@ -66,32 +66,32 @@ func (e *TestEngine) PublishControl(message *proto.ControlMessage) <-chan error 
 	return eChan
 }
 
-func (e *TestEngine) Subscribe(ch proto.Channel) error {
+func (e *TestEngine) Subscribe(ch string) error {
 	return nil
 }
 
-func (e *TestEngine) Unsubscribe(ch proto.Channel) error {
+func (e *TestEngine) Unsubscribe(ch string) error {
 	return nil
 }
 
-func (e *TestEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo, expire int) error {
+func (e *TestEngine) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
 	return nil
 }
 
-func (e *TestEngine) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+func (e *TestEngine) RemovePresence(ch string, uid string) error {
 	return nil
 }
 
-func (e *TestEngine) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
-	return map[proto.ConnID]proto.ClientInfo{}, nil
+func (e *TestEngine) Presence(ch string) (map[string]proto.ClientInfo, error) {
+	return map[string]proto.ClientInfo{}, nil
 }
 
-func (e *TestEngine) History(ch proto.Channel, limit int) ([]proto.Message, error) {
+func (e *TestEngine) History(ch string, limit int) ([]proto.Message, error) {
 	return []proto.Message{}, nil
 }
 
-func (e *TestEngine) Channels() ([]proto.Channel, error) {
-	return []proto.Channel{}, nil
+func (e *TestEngine) Channels() ([]string, error) {
+	return []string{}, nil
 }
 
 type TestSession struct {
@@ -207,7 +207,7 @@ func createTestClients(n *node.Node, nChannels, nChannelClients int, sink chan [
 		}
 		c := newTestClient(n, sess)
 		body := proto.ConnectClientCommand{
-			User: proto.UserID(fmt.Sprintf("user-%d", i)),
+			User: string(fmt.Sprintf("user-%d", i)),
 		}
 		bodyBytes, _ := json.Marshal(body)
 		rawBytes := raw.Raw(bodyBytes)
@@ -223,7 +223,7 @@ func createTestClients(n *node.Node, nChannels, nChannelClients int, sink chan [
 		for j := 0; j < nChannels; j++ {
 
 			body := proto.SubscribeClientCommand{
-				Channel: proto.Channel(fmt.Sprintf("channel-%d", j)),
+				Channel: string(fmt.Sprintf("channel-%d", j)),
 			}
 			bodyBytes, _ := json.Marshal(body)
 			cmd := proto.ClientCommand{
@@ -252,7 +252,7 @@ func BenchmarkPubSubMessageReceive(b *testing.B) {
 	messagePool := make([][]byte, messagePoolSize)
 
 	for i := 0; i < len(messagePool); i++ {
-		channel := proto.Channel("test" + strconv.Itoa(i))
+		channel := string("test" + strconv.Itoa(i))
 		// subscribe client to channel so we need to encode message to JSON
 		app.ClientHub().AddSub(channel, c)
 		// add message to pool so we have messages for different channels.
@@ -268,7 +268,7 @@ func BenchmarkPubSubMessageReceive(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		err = app.ClientMsg(proto.Channel("test"+strconv.Itoa(i%len(messagePool))), &msg)
+		err = app.ClientMsg(&msg)
 		if err != nil {
 			panic(err)
 		}
@@ -279,7 +279,7 @@ func testConnectCmd(timestamp string) proto.ClientCommand {
 	token := auth.GenerateClientToken("secret", "user1", timestamp, "")
 	connectCmd := proto.ConnectClientCommand{
 		Timestamp: timestamp,
-		User:      proto.UserID("user1"),
+		User:      string("user1"),
 		Info:      "",
 		Token:     token,
 	}
@@ -293,7 +293,7 @@ func testConnectCmd(timestamp string) proto.ClientCommand {
 
 func testSubscribeCmd(channel string) proto.ClientCommand {
 	subscribeCmd := proto.SubscribeClientCommand{
-		Channel: proto.Channel(channel),
+		Channel: string(channel),
 	}
 	cmdBytes, _ := json.Marshal(subscribeCmd)
 	cmd := proto.ClientCommand{
@@ -313,7 +313,7 @@ func TestUnsubscribe(t *testing.T) {
 	err = c.Handle(cmdBytes)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(c.Channels()))
-	app.Unsubscribe(proto.UserID("user1"), proto.Channel("test"))
+	app.Unsubscribe(string("user1"), string("test"))
 	assert.Equal(t, 0, len(c.Channels()))
 }
 
@@ -326,7 +326,7 @@ func BenchmarkClientMsg(b *testing.B) {
 	messagePool := make([]*proto.Message, messagePoolSize)
 
 	for i := 0; i < len(messagePool); i++ {
-		channel := proto.Channel("test" + strconv.Itoa(i))
+		channel := string("test" + strconv.Itoa(i))
 		// subscribe client to channel so we need to encode message to JSON
 		app.ClientHub().AddSub(channel, c)
 		// add message to pool so we have messages for different channels.
@@ -335,7 +335,7 @@ func BenchmarkClientMsg(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		err := app.ClientMsg(proto.Channel("test"+strconv.Itoa(i%len(messagePool))), messagePool[i%len(messagePool)])
+		err := app.ClientMsg(messagePool[i%len(messagePool)])
 		if err != nil {
 			panic(err)
 		}
@@ -348,7 +348,7 @@ func BenchmarkEngineMessageUnmarshal(b *testing.B) {
 	messagePool := make([][]byte, messagePoolSize)
 
 	for i := 0; i < len(messagePool); i++ {
-		channel := proto.Channel("test" + strconv.Itoa(i))
+		channel := string("test" + strconv.Itoa(i))
 		// add message to pool so we have messages for different channels.
 		testMsg := proto.NewMessage(channel, []byte("{\"hello world\": true}"), "", nil)
 		byteMessage, _ := testMsg.Marshal() // protobuf
@@ -382,7 +382,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 	createTestClients(app, nChannels, nClients, sink)
 
 	type received struct {
-		ch   proto.Channel
+		ch   string
 		data proto.Message
 	}
 
@@ -390,7 +390,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 
 	for i := 0; i < nCommands; i++ {
 		suffix := i % nChannels
-		ch := proto.Channel(fmt.Sprintf("channel-%d", suffix))
+		ch := string(fmt.Sprintf("channel-%d", suffix))
 		msg := proto.NewMessage(ch, []byte("{}"), "", nil)
 		inputData = append(inputData, received{ch, *msg})
 	}
@@ -416,7 +416,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 
 		go func() {
 			for _, item := range inputData {
-				app.ClientMsg(item.ch, &item.data)
+				app.ClientMsg(&item.data)
 			}
 		}()
 
@@ -437,19 +437,19 @@ func TestPublish(t *testing.T) {
 	app := NewTestMemoryNodeWithConfig(c)
 	createTestClients(app, 10, 1, nil)
 	data, _ := json.Marshal(map[string]string{"test": "publish"})
-	err := app.Publish(proto.Channel("channel-0"), data, proto.ConnID(""), nil)
+	err := <-app.Publish(proto.NewMessage("channel-0", data, "", nil), nil)
 	assert.Nil(t, err)
 
 	// Check publish to subscribed channels did result in saved history
-	hist, err := app.History(proto.Channel("channel-0"))
+	hist, err := app.History("channel-0")
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(hist))
 
 	// Publishing to a channel no one is subscribed to should be a no-op
-	err = app.Publish(proto.Channel("some-other-channel"), data, proto.ConnID(""), nil)
+	err = <-app.Publish(proto.NewMessage("some-other-channel", data, "", nil), nil)
 	assert.Nil(t, err)
 
-	hist, err = app.History(proto.Channel("some-other-channel"))
+	hist, err = app.History("some-other-channel")
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(hist))
 }

@@ -27,19 +27,19 @@ func (e *TestEngine) Shutdown() error {
 	return nil
 }
 
-func (e *TestEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (e *TestEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *TestEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
+func (e *TestEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *TestEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
+func (e *TestEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
@@ -57,32 +57,32 @@ func (e *TestEngine) PublishControl(message *proto.ControlMessage) <-chan error 
 	return eChan
 }
 
-func (e *TestEngine) Subscribe(ch proto.Channel) error {
+func (e *TestEngine) Subscribe(ch string) error {
 	return nil
 }
 
-func (e *TestEngine) Unsubscribe(ch proto.Channel) error {
+func (e *TestEngine) Unsubscribe(ch string) error {
 	return nil
 }
 
-func (e *TestEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo, expire int) error {
+func (e *TestEngine) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
 	return nil
 }
 
-func (e *TestEngine) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+func (e *TestEngine) RemovePresence(ch string, uid string) error {
 	return nil
 }
 
-func (e *TestEngine) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
-	return map[proto.ConnID]proto.ClientInfo{}, nil
+func (e *TestEngine) Presence(ch string) (map[string]proto.ClientInfo, error) {
+	return map[string]proto.ClientInfo{}, nil
 }
 
-func (e *TestEngine) History(ch proto.Channel, limit int) ([]proto.Message, error) {
+func (e *TestEngine) History(ch string, limit int) ([]proto.Message, error) {
 	return []proto.Message{}, nil
 }
 
-func (e *TestEngine) Channels() ([]proto.Channel, error) {
-	return []proto.Channel{}, nil
+func (e *TestEngine) Channels() ([]string, error) {
+	return []string{}, nil
 }
 
 type testSession struct {
@@ -140,9 +140,9 @@ func TestSetConfig(t *testing.T) {
 
 func TestClientAllowed(t *testing.T) {
 	app := testNode()
-	assert.Equal(t, true, app.ClientAllowed("channel&67330d48-f668-4916-758b-f4eb1dd5b41d", proto.ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
-	assert.Equal(t, true, app.ClientAllowed("channel", proto.ConnID("67330d48-f668-4916-758b-f4eb1dd5b41d")))
-	assert.Equal(t, false, app.ClientAllowed("channel&long-client-id", proto.ConnID("wrong-client-id")))
+	assert.Equal(t, true, app.ClientAllowed("channel&67330d48-f668-4916-758b-f4eb1dd5b41d", string("67330d48-f668-4916-758b-f4eb1dd5b41d")))
+	assert.Equal(t, true, app.ClientAllowed("channel", string("67330d48-f668-4916-758b-f4eb1dd5b41d")))
+	assert.Equal(t, false, app.ClientAllowed("channel&long-client-id", string("wrong-client-id")))
 }
 
 func TestNamespaceKey(t *testing.T) {
@@ -164,7 +164,7 @@ func TestApplicationNode(t *testing.T) {
 
 func BenchmarkNamespaceKey(b *testing.B) {
 	app := testNode()
-	ch := proto.Channel("test")
+	ch := string("test")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		app.namespaceKey(ch)
@@ -206,16 +206,16 @@ func TestControlMessages(t *testing.T) {
 
 func TestPublishJoinLeave(t *testing.T) {
 	app := testNode()
-	err := app.PubJoin(proto.Channel("channel-0"), proto.ClientInfo{})
+	err := <-app.PublishJoin(proto.NewJoinMessage("channel-0", proto.ClientInfo{}), nil)
 	assert.Equal(t, nil, err)
-	err = app.PubLeave(proto.Channel("channel-0"), proto.ClientInfo{})
+	err = <-app.PublishLeave(proto.NewLeaveMessage("channel-0", proto.ClientInfo{}), nil)
 	assert.Equal(t, nil, err)
 }
 
 func TestUpdateMetrics(t *testing.T) {
 	app := testNode()
 	data, _ := json.Marshal(map[string]string{"test": "publish"})
-	err := app.Publish(proto.Channel("channel-0"), data, proto.ConnID(""), nil)
+	err := <-app.Publish(proto.NewMessage("channel-0", data, "", nil), nil)
 	assert.Equal(t, nil, err)
 
 	config := app.Config()

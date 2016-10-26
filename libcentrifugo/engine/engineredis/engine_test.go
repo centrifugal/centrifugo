@@ -98,7 +98,7 @@ func NewTestConfig() *node.Config {
 }
 
 func newTestMessage() *proto.Message {
-	return proto.NewMessage(proto.Channel("test"), []byte("{}"), "", nil)
+	return proto.NewMessage(string("channel"), []byte("{}"), "", nil)
 }
 
 func NewTestRedisEngine() *RedisEngine {
@@ -135,66 +135,68 @@ func TestRedisEngine(t *testing.T) {
 
 	testMsg := newTestMessage()
 
-	err = <-e.PublishMessage(proto.Channel("channel"), testMsg, nil)
+	err = <-e.PublishMessage(testMsg, nil)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, nil, e.Subscribe(proto.Channel("channel")))
+	assert.Equal(t, nil, e.Subscribe("channel"))
 	// Now we've subscribed...
-	err = <-e.PublishMessage(proto.Channel("channel"), testMsg, nil)
-	assert.Equal(t, nil, e.Unsubscribe(proto.Channel("channel")))
+	err = <-e.PublishMessage(testMsg, nil)
+	assert.Equal(t, nil, e.Unsubscribe("channel"))
 
 	// test adding presence
-	assert.Equal(t, nil, e.AddPresence(proto.Channel("channel"), "uid", proto.ClientInfo{}, int(e.node.Config().PresenceExpireInterval.Seconds())))
+	assert.Equal(t, nil, e.AddPresence("channel", "uid", proto.ClientInfo{}, int(e.node.Config().PresenceExpireInterval.Seconds())))
 
 	// test getting presence
-	p, err := e.Presence(proto.Channel("channel"))
+	p, err := e.Presence("channel")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(p))
 
 	// test removing presence
-	err = e.RemovePresence(proto.Channel("channel"), "uid")
+	err = e.RemovePresence("channel", "uid")
 	assert.Equal(t, nil, err)
 
 	rawData := raw.Raw([]byte("{}"))
-	msg := proto.Message{UID: "test UID", Data: rawData}
+	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
 
 	// test adding history
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
-	h, err := e.History(proto.Channel("channel"), 0)
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	h, err := e.History("channel", 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 	assert.Equal(t, h[0].UID, "test UID")
 
 	// test history limit
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
-	h, err = e.History(proto.Channel("channel"), 2)
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	h, err = e.History("channel", 2)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(h))
 
 	// test history limit greater than history size
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel"), &msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
-	h, err = e.History(proto.Channel("channel"), 2)
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
+	h, err = e.History("channel", 2)
 
 	// HistoryDropInactive tests - new channel to avoid conflicts with test above
 	// 1. add history with DropInactive = true should be a no-op if history is empty
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel-2"), &msg, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
-	h, err = e.History(proto.Channel("channel-2"), 0)
+	msg2 := proto.Message{UID: "test UID", Channel: "channel-2"}
+
+	assert.Equal(t, nil, <-e.PublishMessage(&msg2, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
+	h, err = e.History("channel-2", 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(h))
 
 	// 2. add history with DropInactive = false should always work
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel-2"), &msg, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: false}))
-	h, err = e.History(proto.Channel("channel-2"), 0)
+	assert.Equal(t, nil, <-e.PublishMessage(&msg2, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: false}))
+	h, err = e.History("channel-2", 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 
 	// 3. add with DropInactive = true should work immediately since there should be something in history
 	// for 5 seconds from above
-	assert.Equal(t, nil, <-e.PublishMessage(proto.Channel("channel-2"), &msg, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
-	h, err = e.History(proto.Channel("channel-2"), 0)
+	assert.Equal(t, nil, <-e.PublishMessage(&msg2, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
+	h, err = e.History("channel-2", 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(h))
 
@@ -221,16 +223,16 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 
 	rawInfoData := raw.Raw([]byte("{}"))
-	clientInfo := proto.NewClientInfo(proto.UserID("1"), proto.ConnID("1"), rawInfoData, rawInfoData)
+	clientInfo := proto.NewClientInfo(string("1"), string("1"), rawInfoData, rawInfoData)
 
 	// test publishing join message.
-	joinMessage := proto.NewJoinMessage(proto.Channel("test"), *clientInfo)
-	err = <-e.PublishJoin(proto.Channel("test"), joinMessage)
+	joinMessage := proto.NewJoinMessage(string("test"), *clientInfo)
+	err = <-e.PublishJoin(joinMessage, nil)
 	assert.Equal(t, nil, err)
 
 	// test publishing leave message.
-	leaveMessage := proto.NewLeaveMessage(proto.Channel("test"), *clientInfo)
-	err = <-e.PublishLeave(proto.Channel("test"), leaveMessage)
+	leaveMessage := proto.NewLeaveMessage(string("test"), *clientInfo)
+	err = <-e.PublishLeave(leaveMessage, nil)
 	assert.Equal(t, nil, err)
 }
 
@@ -254,14 +256,14 @@ func TestRedisChannels(t *testing.T) {
 func TestHandleClientMessage(t *testing.T) {
 	e := NewTestRedisEngine()
 
-	ch := proto.Channel("test")
+	ch := string("test")
 	chID := e.messageChannelID(ch)
 	testMsg := proto.NewMessage(ch, []byte("{\"hello world\": true}"), "", nil)
 	byteMessage, _ := testMsg.Marshal() // protobuf
 	err := e.handleRedisClientMessage(chID, byteMessage)
 	assert.Equal(t, nil, err)
 	rawData := raw.Raw([]byte("{}"))
-	info := proto.NewClientInfo(proto.UserID("1"), proto.ConnID("1"), rawData, rawData)
+	info := proto.NewClientInfo(string("1"), string("1"), rawData, rawData)
 	testJoinMsg := proto.NewJoinMessage(ch, *info)
 	byteJoinMsg, _ := testJoinMsg.Marshal()
 	chID = e.joinChannelID(ch)
@@ -275,7 +277,7 @@ func TestHandleClientMessage(t *testing.T) {
 }
 
 func TestEngineEncodeDecode(t *testing.T) {
-	message := proto.NewMessage(proto.Channel("encode_decode_test"), []byte("{}"), "", nil)
+	message := proto.NewMessage(string("encode_decode_test"), []byte("{}"), "", nil)
 	byteMessage, err := encodeEngineClientMessage(message)
 	assert.Equal(t, nil, err)
 	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))
@@ -284,7 +286,7 @@ func TestEngineEncodeDecode(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "encode_decode_test", decodedMessage.Channel)
 
-	joinMessage := proto.NewJoinMessage(proto.Channel("encode_decode_test"), proto.ClientInfo{})
+	joinMessage := proto.NewJoinMessage(string("encode_decode_test"), proto.ClientInfo{})
 	byteMessage, err = encodeEngineJoinMessage(joinMessage)
 	assert.Equal(t, nil, err)
 	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))
@@ -293,7 +295,7 @@ func TestEngineEncodeDecode(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "encode_decode_test", decodedJoinMessage.Channel)
 
-	leaveMessage := proto.NewLeaveMessage(proto.Channel("encode_decode_test"), proto.ClientInfo{})
+	leaveMessage := proto.NewLeaveMessage(string("encode_decode_test"), proto.ClientInfo{})
 	byteMessage, err = encodeEngineLeaveMessage(leaveMessage)
 	assert.Equal(t, nil, err)
 	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))

@@ -32,19 +32,19 @@ func (e *TestEngine) Shutdown() error {
 	return nil
 }
 
-func (e *TestEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (e *TestEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *TestEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
+func (e *TestEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *TestEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
+func (e *TestEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
@@ -62,32 +62,32 @@ func (e *TestEngine) PublishControl(message *proto.ControlMessage) <-chan error 
 	return eChan
 }
 
-func (e *TestEngine) Subscribe(ch proto.Channel) error {
+func (e *TestEngine) Subscribe(ch string) error {
 	return nil
 }
 
-func (e *TestEngine) Unsubscribe(ch proto.Channel) error {
+func (e *TestEngine) Unsubscribe(ch string) error {
 	return nil
 }
 
-func (e *TestEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo, expire int) error {
+func (e *TestEngine) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
 	return nil
 }
 
-func (e *TestEngine) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+func (e *TestEngine) RemovePresence(ch string, uid string) error {
 	return nil
 }
 
-func (e *TestEngine) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
-	return map[proto.ConnID]proto.ClientInfo{}, nil
+func (e *TestEngine) Presence(ch string) (map[string]proto.ClientInfo, error) {
+	return map[string]proto.ClientInfo{}, nil
 }
 
-func (e *TestEngine) History(ch proto.Channel, limit int) ([]proto.Message, error) {
+func (e *TestEngine) History(ch string, limit int) ([]proto.Message, error) {
 	return []proto.Message{}, nil
 }
 
-func (e *TestEngine) Channels() ([]proto.Channel, error) {
-	return []proto.Channel{}, nil
+func (e *TestEngine) Channels() ([]string, error) {
+	return []string{}, nil
 }
 
 type TestSession struct {
@@ -167,10 +167,10 @@ func TestUnauthenticatedClient(t *testing.T) {
 	assert.NotEqual(t, "", c.UID())
 
 	// user not set before connect command success
-	assert.Equal(t, proto.UserID(""), c.User())
+	assert.Equal(t, "", c.User())
 
 	assert.Equal(t, false, c.(*client).authenticated)
-	assert.Equal(t, []proto.Channel{}, c.Channels())
+	assert.Equal(t, []string{}, c.Channels())
 
 	// check that unauthenticated client can be cleaned correctly
 	err = c.Close("")
@@ -246,7 +246,7 @@ func testConnectCmd(timestamp string) proto.ClientCommand {
 	token := auth.GenerateClientToken("secret", "user1", timestamp, "")
 	connectCmd := proto.ConnectClientCommand{
 		Timestamp: timestamp,
-		User:      proto.UserID("user1"),
+		User:      string("user1"),
 		Info:      "",
 		Token:     token,
 	}
@@ -262,7 +262,7 @@ func testRefreshCmd(timestamp string) proto.ClientCommand {
 	token := auth.GenerateClientToken("secret", "user1", timestamp, "")
 	refreshCmd := proto.RefreshClientCommand{
 		Timestamp: timestamp,
-		User:      proto.UserID("user1"),
+		User:      string("user1"),
 		Info:      "",
 		Token:     token,
 	}
@@ -274,13 +274,13 @@ func testRefreshCmd(timestamp string) proto.ClientCommand {
 	return cmd
 }
 
-func testChannelSign(client proto.ConnID, ch proto.Channel) string {
+func testChannelSign(client string, ch string) string {
 	return auth.GenerateChannelSign("secret", string(client), string(ch), "")
 }
 
-func testSubscribePrivateCmd(ch proto.Channel, client proto.ConnID) proto.ClientCommand {
+func testSubscribePrivateCmd(ch string, client string) proto.ClientCommand {
 	subscribeCmd := proto.SubscribeClientCommand{
-		Channel: proto.Channel(ch),
+		Channel: string(ch),
 		Client:  client,
 		Info:    "",
 		Sign:    testChannelSign(client, ch),
@@ -295,7 +295,7 @@ func testSubscribePrivateCmd(ch proto.Channel, client proto.ConnID) proto.Client
 
 func testSubscribeCmd(channel string) proto.ClientCommand {
 	subscribeCmd := proto.SubscribeClientCommand{
-		Channel: proto.Channel(channel),
+		Channel: string(channel),
 	}
 	cmdBytes, _ := json.Marshal(subscribeCmd)
 	cmd := proto.ClientCommand{
@@ -307,7 +307,7 @@ func testSubscribeCmd(channel string) proto.ClientCommand {
 
 func testUnsubscribeCmd(channel string) proto.ClientCommand {
 	unsubscribeCmd := proto.UnsubscribeClientCommand{
-		Channel: proto.Channel(channel),
+		Channel: string(channel),
 	}
 	cmdBytes, _ := json.Marshal(unsubscribeCmd)
 	cmd := proto.ClientCommand{
@@ -319,7 +319,7 @@ func testUnsubscribeCmd(channel string) proto.ClientCommand {
 
 func testPresenceCmd(channel string) proto.ClientCommand {
 	presenceCmd := proto.PresenceClientCommand{
-		Channel: proto.Channel(channel),
+		Channel: string(channel),
 	}
 	cmdBytes, _ := json.Marshal(presenceCmd)
 	cmd := proto.ClientCommand{
@@ -331,7 +331,7 @@ func testPresenceCmd(channel string) proto.ClientCommand {
 
 func testHistoryCmd(channel string) proto.ClientCommand {
 	historyCmd := proto.HistoryClientCommand{
-		Channel: proto.Channel(channel),
+		Channel: string(channel),
 	}
 	cmdBytes, _ := json.Marshal(historyCmd)
 	cmd := proto.ClientCommand{
@@ -343,7 +343,7 @@ func testHistoryCmd(channel string) proto.ClientCommand {
 
 func testPublishCmd(channel string) proto.ClientCommand {
 	publishCmd := proto.PublishClientCommand{
-		Channel: proto.Channel(channel),
+		Channel: string(channel),
 		Data:    []byte("{}"),
 	}
 	cmdBytes, _ := json.Marshal(publishCmd)
@@ -386,7 +386,7 @@ func TestClientConnect(t *testing.T) {
 	ts, err := strconv.Atoi(timestamp)
 	assert.Equal(t, int64(ts), c.(*client).timestamp)
 
-	clientInfo := c.(*client).info(proto.Channel(""))
+	clientInfo := c.(*client).info(string(""))
 	assert.Equal(t, "user1", clientInfo.User)
 
 	assert.Equal(t, 1, app.ClientHub().NumClients())
@@ -492,7 +492,7 @@ func TestClientSubscribeLimits(t *testing.T) {
 	}
 	ch := strings.Join(b, "")
 
-	resp, err := c.(*client).subscribeCmd(&proto.SubscribeClientCommand{Channel: proto.Channel(ch)})
+	resp, err := c.(*client).subscribeCmd(&proto.SubscribeClientCommand{Channel: string(ch)})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrLimitExceeded, resp.(*proto.ClientSubscribeResponse).ResponseError.Err)
 	assert.Equal(t, 0, len(c.Channels()))
@@ -502,14 +502,14 @@ func TestClientSubscribeLimits(t *testing.T) {
 	app.SetConfig(&conf)
 
 	for i := 0; i < 10; i++ {
-		resp, err := c.(*client).subscribeCmd(&proto.SubscribeClientCommand{Channel: proto.Channel(fmt.Sprintf("test%d", i))})
+		resp, err := c.(*client).subscribeCmd(&proto.SubscribeClientCommand{Channel: string(fmt.Sprintf("test%d", i))})
 		assert.Equal(t, nil, err)
 		assert.Equal(t, nil, resp.(*proto.ClientSubscribeResponse).ResponseError.Err)
 		assert.Equal(t, i+1, len(c.Channels()))
 	}
 
 	// one more to exceed limit.
-	resp, err = c.(*client).subscribeCmd(&proto.SubscribeClientCommand{Channel: proto.Channel("test")})
+	resp, err = c.(*client).subscribeCmd(&proto.SubscribeClientCommand{Channel: string("test")})
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrLimitExceeded, resp.(*proto.ClientSubscribeResponse).ResponseError.Err)
 	assert.Equal(t, 10, len(c.Channels()))
@@ -547,7 +547,7 @@ func TestClientUnsubscribeExternal(t *testing.T) {
 	err = c.(*client).handleCommands(cmds)
 	assert.Equal(t, nil, err)
 
-	err = c.(*client).Unsubscribe(proto.Channel("test"))
+	err = c.(*client).Unsubscribe(string("test"))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, app.ClientHub().NumChannels())
 	assert.Equal(t, 0, len(c.Channels()))
@@ -627,8 +627,8 @@ func TestClientPing(t *testing.T) {
 
 func testSubscribeRecoverCmd(channel string, last string, rec bool) proto.ClientCommand {
 	subscribeCmd := proto.SubscribeClientCommand{
-		Channel: proto.Channel(channel),
-		Last:    proto.MessageID(last),
+		Channel: string(channel),
+		Last:    last,
 		Recover: rec,
 	}
 	cmdBytes, _ := json.Marshal(subscribeCmd)
@@ -659,7 +659,7 @@ func TestSubscribeRecover(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, int64(1), metricsRegistry.Counters.LoadRaw("num_msg_published"))
 
-	messages, _ := app.History(proto.Channel("test"))
+	messages, _ := app.History(string("test"))
 	assert.Equal(t, 1, len(messages))
 	message := messages[0]
 	last := message.UID
@@ -716,7 +716,7 @@ func TestSubscribeRecover(t *testing.T) {
 	// test part recover - when Centrifugo can not recover all missed messages
 	for i := 0; i < 10; i++ {
 		data, _ = json.Marshal(map[string]string{"input": "test1"})
-		err = app.Publish(proto.Channel("test"), data, proto.ConnID(""), nil)
+		err = app.Publish(string("test"), data, string(""), nil)
 		assert.Equal(t, nil, err)
 	}
 	c, _ = app.NewClient(&testSession{}, nil)

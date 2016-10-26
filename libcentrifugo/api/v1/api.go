@@ -95,9 +95,12 @@ func PublishCmd(n *node.Node, cmd *proto.PublishAPICommand) (proto.Response, err
 		return nil, proto.ErrInvalidMessage
 	}
 
+	resp := proto.NewAPIPublishResponse()
+
 	chOpts, err := n.ChannelOpts(ch)
 	if err != nil {
-		return nil, err
+		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceFix})
+		return resp, nil
 	}
 
 	message := proto.NewMessage(ch, data, cmd.Client, nil)
@@ -111,7 +114,7 @@ func PublishCmd(n *node.Node, cmd *proto.PublishAPICommand) (proto.Response, err
 	}
 
 	err = <-n.Publish(message, &chOpts)
-	resp := proto.NewAPIPublishResponse()
+
 	if err != nil {
 		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceNone})
 		return resp, nil

@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,31 +39,31 @@ func (t *TestSession) Close(status uint32, reason string) error {
 }
 
 type testClientConn struct {
-	cid      proto.ConnID
-	uid      proto.UserID
-	channels []proto.Channel
+	cid      string
+	uid      string
+	channels []string
 
 	Messages [][]byte
 	Closed   bool
 	sess     *TestSession
 }
 
-func newTestUserCC(cid proto.ConnID, uid proto.UserID) *testClientConn {
+func newTestUserCC(cid string, uid string) *testClientConn {
 	return &testClientConn{
 		cid:      cid,
 		uid:      uid,
-		channels: []proto.Channel{"test"},
+		channels: []string{"test"},
 	}
 }
-func (c *testClientConn) UID() proto.ConnID {
+func (c *testClientConn) UID() string {
 	return c.cid
 }
 
-func (c *testClientConn) User() proto.UserID {
+func (c *testClientConn) User() string {
 	return c.uid
 }
 
-func (c *testClientConn) Channels() []proto.Channel {
+func (c *testClientConn) Channels() []string {
 	return c.channels
 }
 
@@ -77,7 +76,7 @@ func (c *testClientConn) Handle(message []byte) error {
 	return nil
 }
 
-func (c *testClientConn) Unsubscribe(channel proto.Channel) error {
+func (c *testClientConn) Unsubscribe(channel string) error {
 	for i, ch := range c.Channels() {
 		if ch == channel {
 			c.channels = c.channels[:i+copy(c.channels[i:], c.channels[i+1:])]
@@ -97,7 +96,7 @@ func (c *testClientConn) Close(reason string) error {
 
 type testAdminConn struct{}
 
-func (c *testAdminConn) uid() proto.ConnID {
+func (c *testAdminConn) uid() string {
 	return "test uid"
 }
 
@@ -110,7 +109,7 @@ func TestClientHub(t *testing.T) {
 	c := newTestUserCC("test uid", "test user")
 	h.Add(c)
 	assert.Equal(t, len(h.(*clientHub).users), 1)
-	conns := h.UserConnections(proto.UserID("test user"))
+	conns := h.UserConnections(string("test user"))
 	assert.Equal(t, 1, len(conns))
 	assert.Equal(t, 1, h.NumClients())
 	assert.Equal(t, 1, h.NumUniqueClients())
@@ -139,15 +138,15 @@ func TestSubHub(t *testing.T) {
 	}
 	assert.Equal(t, stringInSlice("test1", channels), true)
 	assert.Equal(t, stringInSlice("test2", channels), true)
-	assert.True(t, h.NumSubscribers(proto.Channel("test1")) > 0)
-	assert.True(t, h.NumSubscribers(proto.Channel("test2")) > 0)
+	assert.True(t, h.NumSubscribers(string("test1")) > 0)
+	assert.True(t, h.NumSubscribers(string("test2")) > 0)
 	err := h.Broadcast("test1", []byte("message"))
 	assert.Equal(t, err, nil)
 	h.RemoveSub("test1", c)
 	h.RemoveSub("test2", c)
 	assert.Equal(t, h.NumChannels(), 0)
-	assert.False(t, h.NumSubscribers(proto.Channel("test1")) > 0)
-	assert.False(t, h.NumSubscribers(proto.Channel("test2")) > 0)
+	assert.False(t, h.NumSubscribers(string("test1")) > 0)
+	assert.False(t, h.NumSubscribers(string("test2")) > 0)
 }
 
 func TestAdminHub(t *testing.T) {
@@ -169,7 +168,7 @@ func setupHub(users, chanUser, totChannels int) (ClientHub, []*testClientConn) {
 	for i := range uC {
 		c := newTestUserCC("test uid", "test user")
 		for j := 0; j < chanUser; j++ {
-			ch := proto.Channel(fmt.Sprintf("chan-%d", (j+i*chanUser)%totChannels))
+			ch := string(fmt.Sprintf("chan-%d", (j+i*chanUser)%totChannels))
 			h.AddSub(ch, c)
 		}
 		uC[i] = c
@@ -185,7 +184,7 @@ func BenchmarkSubHubBroadCast(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
-			ch := proto.Channel(fmt.Sprintf("chan-%d", i%totChannels))
+			ch := string(fmt.Sprintf("chan-%d", i%totChannels))
 			h.Broadcast(ch, []byte(fmt.Sprintf("message %d", i)))
 			i++
 		}

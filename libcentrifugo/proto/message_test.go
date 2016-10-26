@@ -10,7 +10,7 @@ import (
 )
 
 func TestMessage(t *testing.T) {
-	msg := NewMessage(Channel("test"), []byte("{}"), "", nil)
+	msg := NewMessage("test", []byte("{}"), "", nil)
 	assert.Equal(t, msg.Channel, "test")
 	msgBytes, err := json.Marshal(msg)
 	assert.Equal(t, nil, err)
@@ -27,7 +27,7 @@ func TestMessage(t *testing.T) {
 
 func TestMarshalUnmarshal(t *testing.T) {
 	data := `{"key": "привет"}`
-	msg := NewMessage(Channel("test"), []byte(data), "", nil)
+	msg := NewMessage("test", []byte(data), "", nil)
 	encoded, _ := msg.Marshal()
 	var newMsg Message
 	newMsg.Unmarshal(encoded)
@@ -37,7 +37,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 func BenchmarkClientResponseMarshalJSON(b *testing.B) {
 	responses := make([]*ClientMessageResponse, 10000)
 	for i := 0; i < 10000; i++ {
-		resp := NewClientMessage(NewMessage(Channel("test"+strconv.Itoa(i)), []byte("{}"), "", nil))
+		resp := NewClientMessage(NewMessage("test"+strconv.Itoa(i), []byte("{}"), "", nil))
 		responses[i] = resp
 	}
 	b.ResetTimer()
@@ -52,7 +52,7 @@ func BenchmarkClientResponseMarshalJSON(b *testing.B) {
 func BenchmarkClientResponseMarshalManual(b *testing.B) {
 	responses := make([]*ClientMessageResponse, 10000)
 	for i := 0; i < 10000; i++ {
-		resp := NewClientMessage(NewMessage(Channel("test"+strconv.Itoa(i)), []byte("{}"), "", nil))
+		resp := NewClientMessage(NewMessage("test"+strconv.Itoa(i), []byte("{}"), "", nil))
 		responses[i] = resp
 	}
 	b.ResetTimer()
@@ -65,7 +65,7 @@ func BenchmarkClientResponseMarshalManual(b *testing.B) {
 }
 
 func BenchmarkMsgMarshalJSON(b *testing.B) {
-	msg := NewMessage(Channel("test"), []byte("{}"), "", nil)
+	msg := NewMessage("test", []byte("{}"), "", nil)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := json.Marshal(msg)
@@ -76,7 +76,7 @@ func BenchmarkMsgMarshalJSON(b *testing.B) {
 }
 
 func BenchmarkMsgMarshalGogoprotobuf(b *testing.B) {
-	msg := NewMessage(Channel("test"), []byte("{}"), "", nil)
+	msg := NewMessage("test", []byte("{}"), "", nil)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := msg.Marshal()

@@ -28,19 +28,19 @@ func (e *TestEngine) Shutdown() error {
 	return nil
 }
 
-func (e *TestEngine) PublishMessage(ch proto.Channel, message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (e *TestEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *TestEngine) PublishJoin(ch proto.Channel, message *proto.JoinMessage) <-chan error {
+func (e *TestEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *TestEngine) PublishLeave(ch proto.Channel, message *proto.LeaveMessage) <-chan error {
+func (e *TestEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
@@ -58,32 +58,32 @@ func (e *TestEngine) PublishControl(message *proto.ControlMessage) <-chan error 
 	return eChan
 }
 
-func (e *TestEngine) Subscribe(ch proto.Channel) error {
+func (e *TestEngine) Subscribe(ch string) error {
 	return nil
 }
 
-func (e *TestEngine) Unsubscribe(ch proto.Channel) error {
+func (e *TestEngine) Unsubscribe(ch string) error {
 	return nil
 }
 
-func (e *TestEngine) AddPresence(ch proto.Channel, uid proto.ConnID, info proto.ClientInfo, expire int) error {
+func (e *TestEngine) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
 	return nil
 }
 
-func (e *TestEngine) RemovePresence(ch proto.Channel, uid proto.ConnID) error {
+func (e *TestEngine) RemovePresence(ch string, uid string) error {
 	return nil
 }
 
-func (e *TestEngine) Presence(ch proto.Channel) (map[proto.ConnID]proto.ClientInfo, error) {
-	return map[proto.ConnID]proto.ClientInfo{}, nil
+func (e *TestEngine) Presence(ch string) (map[string]proto.ClientInfo, error) {
+	return map[string]proto.ClientInfo{}, nil
 }
 
-func (e *TestEngine) History(ch proto.Channel, limit int) ([]proto.Message, error) {
+func (e *TestEngine) History(ch string, limit int) ([]proto.Message, error) {
 	return []proto.Message{}, nil
 }
 
-func (e *TestEngine) Channels() ([]proto.Channel, error) {
-	return []proto.Channel{}, nil
+func (e *TestEngine) Channels() ([]string, error) {
+	return []string{}, nil
 }
 
 type TestSession struct {
@@ -170,9 +170,8 @@ func TestAPICmd(t *testing.T) {
 		Method: "publish",
 		Params: []byte("{}"),
 	}
-	resp, err := APICmd(app, cmd, nil)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIPublishResponse).ResponseError.Err)
+	_, err = APICmd(app, cmd, nil)
+	assert.Equal(t, err, proto.ErrInvalidMessage)
 
 	cmd = proto.ApiCommand{
 		Method: "publish",
@@ -185,7 +184,7 @@ func TestAPICmd(t *testing.T) {
 		Method: "broadcast",
 		Params: []byte("{}"),
 	}
-	resp, err = APICmd(app, cmd, nil)
+	resp, err := APICmd(app, cmd, nil)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
 
@@ -302,21 +301,21 @@ func TestAPIPublish(t *testing.T) {
 func TestAPIBroadcast(t *testing.T) {
 	app := NewTestNode()
 	cmd := &proto.BroadcastAPICommand{
-		Channels: []proto.Channel{"channel-1", "channel-2"},
+		Channels: []string{"channel-1", "channel-2"},
 		Data:     []byte("null"),
 	}
 	resp, err := BroadcastCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
 	cmd = &proto.BroadcastAPICommand{
-		Channels: []proto.Channel{"channel-1", "nonexistentnamespace:channel-2"},
+		Channels: []string{"channel-1", "nonexistentnamespace:channel-2"},
 		Data:     []byte("null"),
 	}
 	resp, err = BroadcastCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrNamespaceNotFound, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
 	cmd = &proto.BroadcastAPICommand{
-		Channels: []proto.Channel{},
+		Channels: []string{},
 		Data:     []byte("null"),
 	}
 	resp, err = BroadcastCmd(app, cmd)

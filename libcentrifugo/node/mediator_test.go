@@ -12,25 +12,25 @@ type testMediator struct {
 	message     int
 }
 
-func (m *testMediator) Connect(client proto.ConnID, user proto.UserID) {
+func (m *testMediator) Connect(client string, user string) {
 	m.connect++
 }
 
-func (m *testMediator) Subscribe(ch proto.Channel, client proto.ConnID, user proto.UserID) {
+func (m *testMediator) Subscribe(ch string, client string, user string) {
 	m.subscribe++
 }
 
-func (m *testMediator) Unsubscribe(ch proto.Channel, client proto.ConnID, user proto.UserID) {
+func (m *testMediator) Unsubscribe(ch string, client string, user string) {
 	m.unsubscribe++
 	return
 }
 
-func (m *testMediator) Disconnect(client proto.ConnID, user proto.UserID) {
+func (m *testMediator) Disconnect(client string, user string) {
 	m.disconnect++
 	return
 }
 
-func (m *testMediator) Message(ch proto.Channel, data []byte, client proto.ConnID, info *proto.ClientInfo) bool {
+func (m *testMediator) Message(ch string, data []byte, client string, info *proto.ClientInfo) bool {
 	m.message++
 	return false
 }
