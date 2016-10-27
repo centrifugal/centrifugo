@@ -14,7 +14,6 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns/clientconn"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
-	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -200,39 +199,28 @@ func createTestClients(n *node.Node, nChannels, nChannelClients int, sink chan [
 	config := n.Config()
 	config.Insecure = true
 	n.SetConfig(&config)
+
+	// prepare subscribe commands.
+	subscribeBytes := make([][]byte, nChannels)
+	for j := 0; j < nChannels; j++ {
+		subscribeBytes[j] = []byte(`{"method": "subscribe", "params": {"channel": "` + fmt.Sprintf("channel-%d", j) + `"}}`)
+	}
+
 	for i := 0; i < nChannelClients; i++ {
 		sess := NewTestSession()
 		if sink != nil {
 			sess.sink = sink
 		}
 		c := newTestClient(n, sess)
-		body := proto.ConnectClientCommand{
-			User: string(fmt.Sprintf("user-%d", i)),
-		}
-		bodyBytes, _ := json.Marshal(body)
-		rawBytes := raw.Raw(bodyBytes)
-		cmd := proto.ClientCommand{
-			Method: "connect",
-			Params: rawBytes,
-		}
-		cmdBytes, _ := json.Marshal(&cmd)
-		err := c.Handle(cmdBytes)
+
+		connectBytes := []byte(`{"method": "connect", "params": {"user": "` + fmt.Sprintf("user-%d", i) + `"}}`)
+
+		err := c.Handle(connectBytes)
 		if err != nil {
 			panic(err)
 		}
 		for j := 0; j < nChannels; j++ {
-
-			body := proto.SubscribeClientCommand{
-				Channel: string(fmt.Sprintf("channel-%d", j)),
-			}
-			bodyBytes, _ := json.Marshal(body)
-			cmd := proto.ClientCommand{
-				Method: "subscribe",
-				Params: raw.Raw(bodyBytes),
-			}
-			cmdBytes, _ := json.Marshal(&cmd)
-
-			err := c.Handle(cmdBytes)
+			err := c.Handle(subscribeBytes[j])
 			if err != nil {
 				panic(err)
 			}
@@ -383,7 +371,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 
 	type received struct {
 		ch   string
-		data proto.Message
+		data *proto.Message
 	}
 
 	var inputData []received
@@ -392,7 +380,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 		suffix := i % nChannels
 		ch := string(fmt.Sprintf("channel-%d", suffix))
 		msg := proto.NewMessage(ch, []byte("{}"), "", nil)
-		inputData = append(inputData, received{ch, *msg})
+		inputData = append(inputData, received{ch, msg})
 	}
 
 	b.ResetTimer()
@@ -416,7 +404,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 
 		go func() {
 			for _, item := range inputData {
-				app.ClientMsg(&item.data)
+				app.ClientMsg(item.data)
 			}
 		}()
 
