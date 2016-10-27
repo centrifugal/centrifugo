@@ -13,10 +13,10 @@
 			"revision": "0f83ebcca2c77cb324938a77cc5bc78a70e2295c"
 		},
 		{
-			"checksumSHA1": "JF/tuoAyE9R3LeBuaTvog6asXrU=",
+			"checksumSHA1": "hfbrhQ6/IRyWX6ckT0HY++Ae+xU=",
 			"path": "github.com/FZambia/viper-lite",
-			"revision": "86995e474f8ace5e74c258753411c777717335b2",
-			"revisionTime": "2016-10-01T18:00:16Z"
+			"revision": "0644ae657ce11007b8c0eef8133e83c441b6ca7e",
+			"revisionTime": "2016-10-27T10:01:25Z"
 		},
 		{
 			"checksumSHA1": "W7DNxQwdGQ2YO3PR3jARJg6Iqsw=",
@@ -34,28 +34,24 @@
 		},
 		{
 			"checksumSHA1": "aXC93Lo0MY4HRMSF7ANJ97VtulM=",
-			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gogo/protobuf/gogoproto",
 			"path": "github.com/gogo/protobuf/gogoproto",
 			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
 			"revisionTime": "2016-10-14T17:32:44Z"
 		},
 		{
 			"checksumSHA1": "aW+WIBMwERhkkduCmifqL/umXpo=",
-			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gogo/protobuf/jsonpb",
 			"path": "github.com/gogo/protobuf/jsonpb",
 			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
 			"revisionTime": "2016-10-14T17:32:44Z"
 		},
 		{
 			"checksumSHA1": "2eIRbxeMUEF1ZnOanJhXmFR7pFs=",
-			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gogo/protobuf/proto",
 			"path": "github.com/gogo/protobuf/proto",
 			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
 			"revisionTime": "2016-10-14T17:32:44Z"
 		},
 		{
 			"checksumSHA1": "zVCBnBzjkmL1Gkll/7IbpKKprmw=",
-			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gogo/protobuf/protoc-gen-gogo/descriptor",
 			"path": "github.com/gogo/protobuf/protoc-gen-gogo/descriptor",
 			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
 			"revisionTime": "2016-10-14T17:32:44Z"
@@ -80,7 +76,6 @@
 		},
 		{
 			"checksumSHA1": "O9Gjl1F5NFZoi4HgmkQohzwl+dk=",
-			"origin": "github.com/centrifugal/centrifugo/vendor/github.com/gorilla/websocket",
 			"path": "github.com/gorilla/websocket",
 			"revision": "0b847f2facc24ec406130a05bb1bb72d41993b05",
 			"revisionTime": "2016-10-21T19:35:05Z"
