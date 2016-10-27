@@ -338,10 +338,12 @@ func (n *Node) cleanNodeInfo() {
 	}
 }
 
+// Channels returns list of all engines clients subscribed on all Centrifugo nodes.
 func (n *Node) Channels() ([]string, error) {
 	return n.engine.Channels()
 }
 
+// Stats returns aggregated stats from all Centrifugo nodes.
 func (n *Node) Stats() proto.ServerStats {
 	n.nodesMu.Lock()
 	nodes := make([]proto.NodeInfo, len(n.nodes))
@@ -362,6 +364,7 @@ func (n *Node) Stats() proto.ServerStats {
 	}
 }
 
+// Node returns raw information only from current node.
 func (n *Node) Node() proto.NodeInfo {
 	n.nodesMu.Lock()
 	info, ok := n.nodes[n.uid]
