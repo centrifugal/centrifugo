@@ -506,8 +506,11 @@
 			"revision": "db8e4de5b2d6653f66aea53094624468caad15d2"
 		},
 		{
+			"checksumSHA1": "oB90iPjWGKrGCtcuelz6n/noKD4=",
+			"origin": "github.com/centrifugal/centrifugo/vendor/gopkg.in/igm/sockjs-go.v2/sockjs",
 			"path": "gopkg.in/igm/sockjs-go.v2/sockjs",
-			"revision": "05b5e3121f692bea77aeb1160e4e7881017dc093"
+			"revision": "1e8c8f7f3832bd1fadc93ea672f82d22d45c1c34",
+			"revisionTime": "2016-10-18T09:56:49Z"
 		},
 		{
 			"path": "gopkg.in/yaml.v2",

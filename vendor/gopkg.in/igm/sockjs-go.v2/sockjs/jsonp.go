@@ -57,6 +57,8 @@ func (h *handler) jsonpSend(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	sessionID, _ := h.parseSessionID(req.URL)
+	h.sessionsMux.Lock()
+	defer h.sessionsMux.Unlock()
 	if sess, ok := h.sessions[sessionID]; !ok {
 		http.NotFound(rw, req)
 	} else {
