@@ -146,7 +146,8 @@
 		},
 		{
 			"path": "gopkg.in/igm/sockjs-go.v2/sockjs",
-			"revision": "05b5e3121f692bea77aeb1160e4e7881017dc093"
+			"revision": "1e8c8f7f3832bd1fadc93ea672f82d22d45c1c34",
+			"revisionTime": "2016-10-18T09:56:49Z"
 		},
 		{
 			"checksumSHA1": "yV+2de12Q/t09hBGYGKEOFr1/zc=",
