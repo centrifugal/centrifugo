@@ -1,21 +1,17 @@
 v1.6.0 (not released yet)
 =========================
 
-This Centrifugo release is a massive internal refactoring with the goal to separate code of different components such as engine, server, node, metrics, clients to own packages. The code layout changed dramatically. Look at `libcentrifugo` folder! Unfortunately there are some minor backwards incompatibilities with previous release - see notes below.
+This Centrifugo release is a massive internal refactoring with the goal to separate code of different components such as engine, server, metrics, clients to own packages. The code layout changed dramatically. Look at `libcentrifugo` folder! Unfortunately there are some minor backwards incompatibilities with previous release - see notes below.
 
-With new structure it's much more simple to create custom engines, servers, clients - each with own metrics and configuration options.
+With new structure it's much more simple to create custom engines, servers and clients - each with own metrics and configuration options.
+As Centrifugo written in Go the only performant way to write plugins is to import in in `main.go` file and build Centrifugo with it. So using custom builds will require our users to build Centrifugo themselves. But at least it's much easier than supporting full Centrifugo fork. I will try to document how to extend Centrifugo later. Until that moment, please contact via email or Gitter chat if you want to write something custom.
 
-The highlights:
+Release highlights:
 
-* pluggable engines (i.e. only top level `main.go` file must be changed to register another engine implementation).
-* pluggable servers (possible to register custom HTTP server - for example built with fasthttp lib or even plain TCP).
-* possible to write custom clients - as connections now abstracted in interface (this is a bit harder because also requires to use custom server to create custom client connection).
-* simple metrics. As there is no need anymore to create new struct field when adding new counter/gauge/hist internally in Centrifugo - we added several useful new metrics. See updated documentation for complete list. 
-* client transport now abstracted away - so it would be much easier in future to add new transport.
-* API transport abstracted away - it would be easier in future to add new API requests source.
-* Plugins can add there own metrics, options, flags.
-
-I will try to document how to extend Centrifugo later. Until that moment, please contact us if you want to write something custom.
+* pluggable engines
+* pluggable servers (possible to register custom HTTP server, or even plain TCP - so theoretically it's not that hard now to make Centrifugo work with TCP connections).
+* pluggable engines and servers can add there own metrics, options, flags.
+* new metrics. As there is no need anymore to create new struct field when adding new counter/gauge/hist internally in Centrifugo - we added several useful new metrics. For example API and client request HDR histograms. See updated documentation for complete list. This change resulted in backwards incompatible issue when working with Centrifugo metrics (see below).
 
 Fixes:
 
@@ -28,6 +24,13 @@ Backwards incompatible changes:
 * `NodeInfo` struct chahged - i.e. `stats` and `node` command response format changed a bit, metrics now represented as map containing string keys and integer values. So you may need to update you monitoring scripts.
 * `web_password` and `web_secret` not supported anymore. Use `admin_password` and `admin_secret`.
 * `insecure_web` option removed - web interface now available without any password if `insecure_admin` option enabled. Of course in this case you should remember about protecting your admin endpoints with firewall rules. Btw we recommend to do this even if you are using admin password.
+
+Several internal highlights (mostly for Go developers):
+
+* client transport now abstracted away - so it would be much easier in future to add new transport in addition/replacement to Websocket and SockJS.
+* API abstracted away from protocol - it would be easier in future to add new API requests source.
+* no performance penalty was introduced during this refactoring.
+
 
 v1.5.1
 ======
