@@ -12,6 +12,8 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns/adminconn"
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns/clientconn"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
@@ -261,7 +263,7 @@ func NewSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Opti
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
-	c, err := plugin.ClientFactories["default"](s.node, newSockjsSession(sess))
+	c, err := clientconn.New(s.node, newSockjsSession(sess))
 	if err != nil {
 		logger.ERROR.Println(err)
 		sess.Close(3000, "Internal Server Error")
@@ -307,7 +309,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	ws.SetReadDeadline(time.Now().Add(pongWait))
 	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
-	c, err := plugin.ClientFactories["default"](s.node, newWSSession(ws, pingInterval))
+	c, err := clientconn.New(s.node, newWSSession(ws, pingInterval))
 	if err != nil {
 		logger.ERROR.Println(err)
 		ws.Close()
@@ -585,7 +587,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 
 	sess := newWSSession(ws, pingInterval)
 
-	c, err := plugin.AdminFactories["default"](s.node, sess)
+	c, err := adminconn.New(s.node, sess)
 	if err != nil {
 		sess.Close(CloseStatus, proto.ErrInternalServerError.Error())
 		return

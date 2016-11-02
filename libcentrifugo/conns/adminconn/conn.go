@@ -10,14 +10,9 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
-	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/satori/go.uuid"
 )
-
-func init() {
-	plugin.RegisterAdmin("default", New)
-}
 
 const (
 	// CloseStatus is status code set when closing client connections.

@@ -19,8 +19,6 @@ import (
 )
 
 func init() {
-	plugin.RegisterClient("default", New)
-
 	metricsRegistry := plugin.Metrics
 
 	metricsRegistry.RegisterCounter("client_num_msg_queued", metrics.NewCounter())
