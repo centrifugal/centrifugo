@@ -1,7 +1,7 @@
-// Package logger.
 package logger
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -17,7 +17,7 @@ type LevelLogger struct {
 	enabled int32
 	level   Level
 	prefix  string
-	Logger  *log.Logger
+	logger  *log.Logger
 }
 
 // Enabled exists to prevent calling underlying logger methods when not needed.
@@ -27,12 +27,14 @@ func (n *LevelLogger) Enabled() bool {
 	return atomic.LoadInt32(&n.enabled) != 0
 }
 
+var callDepth = 2
+
 // Print calls underlying Logger Print func.
 func (n *LevelLogger) Print(v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
-	n.Logger.Print(v...)
+	n.logger.Output(callDepth, fmt.Sprint(v...))
 }
 
 // Printf calls underlying Logger Printf func.
@@ -40,7 +42,7 @@ func (n *LevelLogger) Printf(format string, v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
-	n.Logger.Printf(format, v...)
+	n.logger.Output(callDepth, fmt.Sprintf(format, v...))
 }
 
 // Println calls underlying Logger Println func.
@@ -48,7 +50,7 @@ func (n *LevelLogger) Println(v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
-	n.Logger.Println(v...)
+	n.logger.Output(callDepth, fmt.Sprintln(v...))
 }
 
 // Fatal calls underlying Logger Fatal func.
@@ -56,7 +58,8 @@ func (n *LevelLogger) Fatal(v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
-	n.Logger.Fatal(v...)
+	n.logger.Output(callDepth, fmt.Sprint(v...))
+	os.Exit(1)
 }
 
 // Fatalf calls underlying Logger Fatalf func.
@@ -64,7 +67,8 @@ func (n *LevelLogger) Fatalf(format string, v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
-	n.Logger.Fatalf(format, v...)
+	n.logger.Output(callDepth, fmt.Sprintf(format, v...))
+	os.Exit(1)
 }
 
 // Fatalln calls underlying Logger Fatalln func.
@@ -72,7 +76,8 @@ func (n *LevelLogger) Fatalln(v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
-	n.Logger.Fatalln(v...)
+	n.logger.Output(callDepth, fmt.Sprintln(v...))
+	os.Exit(1)
 }
 
 // Panic calls underlying Logger Panic func.
@@ -80,7 +85,9 @@ func (n *LevelLogger) Panic(v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
-	n.Logger.Panic(v...)
+	s := fmt.Sprint(v...)
+	n.logger.Output(callDepth, s)
+	panic(s)
 }
 
 // Panicf calls underlying Logger Panicf func.
@@ -88,7 +95,9 @@ func (n *LevelLogger) Panicf(format string, v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
-	n.Logger.Panicf(format, v...)
+	s := fmt.Sprintf(format, v...)
+	n.logger.Output(callDepth, s)
+	panic(s)
 }
 
 // Panicln calls underlying Logger Panicln func.
@@ -96,7 +105,9 @@ func (n *LevelLogger) Panicln(v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
-	n.Logger.Panicln(v...)
+	s := fmt.Sprintln(v...)
+	n.logger.Output(callDepth, s)
+	panic(s)
 }
 
 const (
@@ -122,13 +133,13 @@ var (
 
 	Flag int = log.Ldate | log.Ltime
 
-	TRACE    *LevelLogger = &LevelLogger{level: LevelTrace, Logger: logger, prefix: "[T]: "}
-	DEBUG    *LevelLogger = &LevelLogger{level: LevelDebug, Logger: logger, prefix: "[D]: "}
-	INFO     *LevelLogger = &LevelLogger{level: LevelInfo, Logger: logger, prefix: "[I]: "}
-	WARN     *LevelLogger = &LevelLogger{level: LevelWarn, Logger: logger, prefix: "[W]: "}
-	ERROR    *LevelLogger = &LevelLogger{level: LevelError, Logger: logger, prefix: "[E]: "}
-	CRITICAL *LevelLogger = &LevelLogger{level: LevelCritical, Logger: logger, prefix: "[C]: "}
-	FATAL    *LevelLogger = &LevelLogger{level: LevelFatal, Logger: logger, prefix: "[F]: "}
+	TRACE    *LevelLogger = &LevelLogger{level: LevelTrace, logger: logger, prefix: "[T]: "}
+	DEBUG    *LevelLogger = &LevelLogger{level: LevelDebug, logger: logger, prefix: "[D]: "}
+	INFO     *LevelLogger = &LevelLogger{level: LevelInfo, logger: logger, prefix: "[I]: "}
+	WARN     *LevelLogger = &LevelLogger{level: LevelWarn, logger: logger, prefix: "[W]: "}
+	ERROR    *LevelLogger = &LevelLogger{level: LevelError, logger: logger, prefix: "[E]: "}
+	CRITICAL *LevelLogger = &LevelLogger{level: LevelCritical, logger: logger, prefix: "[C]: "}
+	FATAL    *LevelLogger = &LevelLogger{level: LevelFatal, logger: logger, prefix: "[F]: "}
 
 	loggers []*LevelLogger = []*LevelLogger{TRACE, DEBUG, INFO, WARN, ERROR, CRITICAL, FATAL}
 
@@ -174,7 +185,7 @@ func initialize() {
 		}
 
 		atomic.StoreInt32(&l.enabled, 0)
-		l.Logger = log.New(handler, l.prefix, Flag)
+		l.logger = log.New(handler, l.prefix, Flag)
 		atomic.StoreInt32(&l.enabled, enabled)
 	}
 }

@@ -45,8 +45,8 @@ func (r *Raw) Size() int {
 }
 
 // MarshalJSON returns *r as the JSON encoding of r.
-func (r *Raw) MarshalJSON() ([]byte, error) {
-	return *r, nil
+func (r Raw) MarshalJSON() ([]byte, error) {
+	return r, nil
 }
 
 // UnmarshalJSON sets *r to a copy of data.
@@ -74,8 +74,9 @@ func NewPopulatedRaw(r intn) *Raw {
 	v1 := r.Intn(100)
 	data := make([]byte, v1)
 	for i := 0; i < v1; i++ {
-		data[i] = byte(r.Intn(256))
+		data[i] = byte('a')
 	}
-	raw := Raw(data)
+	d := `{"key":"` + string(data) + `"}`
+	raw := Raw([]byte(d))
 	return &raw
 }

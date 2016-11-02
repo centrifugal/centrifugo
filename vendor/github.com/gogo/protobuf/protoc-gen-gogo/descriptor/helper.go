@@ -1,4 +1,6 @@
-// Copyright (c) 2013, Vastech SA (PTY) LTD. All rights reserved.
+// Protocol Buffers for Go with Gadgets
+//
+// Copyright (c) 2013, The GoGo Authors. All rights reserved.
 // http://github.com/gogo/protobuf
 //
 // Redistribution and use in source and binary forms, with or without
@@ -336,6 +338,10 @@ func (f *FieldDescriptorProto) IsRepeated() bool {
 
 func (f *FieldDescriptorProto) IsString() bool {
 	return *f.Type == FieldDescriptorProto_TYPE_STRING
+}
+
+func (f *FieldDescriptorProto) IsBool() bool {
+	return *f.Type == FieldDescriptorProto_TYPE_BOOL
 }
 
 func (f *FieldDescriptorProto) IsRequired() bool {

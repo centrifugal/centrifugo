@@ -1,4 +1,7 @@
 centrifugo
+!/libcentrifugo/centrifugo
 BUILDS
 PACKAGES
+FlameGraph
+torch.svg
 protoc-3*

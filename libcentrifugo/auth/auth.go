@@ -5,6 +5,8 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+
+	"github.com/gorilla/securecookie"
 )
 
 // Centrifugo uses sha256 as digest algorithm for HMAC tokens and signs
@@ -68,4 +70,30 @@ func CheckChannelSign(secret, client, channel, channelData, providedSign string)
 	}
 	sign := GenerateChannelSign(secret, client, channel, channelData)
 	return hmac.Equal([]byte(sign), []byte(providedSign))
+}
+
+const (
+	// AuthTokenKey is a key for admin authorization token.
+	AdminTokenKey = "token"
+	// AuthTokenValue is a value for secure admin authorization token.
+	AdminTokenValue = "authorized"
+)
+
+func GenerateAdminToken(secret string) (string, error) {
+	s := securecookie.New([]byte(secret), nil)
+	return s.Encode(AdminTokenKey, AdminTokenValue)
+}
+
+// CheckAdminAuthToken checks admin connection token which Centrifugo returns after admin login.
+func CheckAdminToken(secret string, token string) bool {
+	s := securecookie.New([]byte(secret), nil)
+	var val string
+	err := s.Decode(AdminTokenKey, token, &val)
+	if err != nil {
+		return false
+	}
+	if val != AdminTokenValue {
+		return false
+	}
+	return true
 }
