@@ -19,6 +19,8 @@ import (
 )
 
 func init() {
+	plugin.RegisterClient("default", New)
+
 	metricsRegistry := plugin.Metrics
 
 	metricsRegistry.RegisterCounter("client_num_msg_queued", metrics.NewCounter())
@@ -39,8 +41,6 @@ const (
 	// CloseStatus is status code set when closing client connections.
 	CloseStatus = 3000
 )
-
-type ClientOptions struct{}
 
 // client represents client connection to Centrifugo - at moment this can be Websocket
 // or SockJS connection. It abstracts away protocol of incoming connection having
@@ -94,8 +94,8 @@ func clientCommandsFromJSON(msgBytes []byte) ([]proto.ClientCommand, error) {
 	return cmds, nil
 }
 
-// New creates new ready to communicate client.
-func New(n *node.Node, s conns.Session, opts *ClientOptions) (conns.ClientConn, error) {
+// New creates new client connection.
+func New(n *node.Node, s conns.Session) (conns.ClientConn, error) {
 	config := n.Config()
 	staleCloseDelay := config.StaleConnectionCloseDelay
 	queueInitialCapacity := config.ClientQueueInitialCapacity

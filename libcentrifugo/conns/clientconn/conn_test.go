@@ -162,7 +162,7 @@ func NewTestNodeWithConfig(c *node.Config) *node.Node {
 
 func TestUnauthenticatedClient(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 	assert.NotEqual(t, "", c.UID())
 
@@ -182,7 +182,7 @@ func TestCloseUnauthenticatedClient(t *testing.T) {
 	conf := app.Config()
 	conf.StaleConnectionCloseDelay = 50 * time.Microsecond
 	app.SetConfig(&conf)
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 	assert.Equal(t, false, c.(*client).closed)
 	assert.NotEqual(t, "", c.UID())
@@ -196,7 +196,7 @@ func TestCloseUnauthenticatedClient(t *testing.T) {
 
 func TestClientMessage(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	// empty message
@@ -228,7 +228,7 @@ func TestClientMessage(t *testing.T) {
 
 func TestSingleObjectMessage(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	nonConnectFirstCmd := proto.ClientCommand{
@@ -364,7 +364,7 @@ func testPingCmd() proto.ClientCommand {
 
 func TestClientConnect(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	var cmd proto.ClientCommand
@@ -402,7 +402,7 @@ func TestClientConnect(t *testing.T) {
 
 func TestClientRefresh(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -417,7 +417,7 @@ func TestClientRefresh(t *testing.T) {
 
 func TestClientPublish(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -438,7 +438,7 @@ func TestClientPublish(t *testing.T) {
 
 func TestClientSubscribe(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -458,7 +458,7 @@ func TestClientSubscribe(t *testing.T) {
 
 func TestClientSubscribePrivate(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -477,7 +477,7 @@ func TestClientSubscribePrivate(t *testing.T) {
 
 func TestClientSubscribeLimits(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -518,7 +518,7 @@ func TestClientSubscribeLimits(t *testing.T) {
 
 func TestClientUnsubscribe(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -539,7 +539,7 @@ func TestClientUnsubscribe(t *testing.T) {
 
 func TestClientUnsubscribeExternal(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -555,7 +555,7 @@ func TestClientUnsubscribeExternal(t *testing.T) {
 
 func TestClientPresence(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -575,7 +575,7 @@ func TestClientPresence(t *testing.T) {
 
 func TestClientUpdatePresence(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -592,7 +592,7 @@ func TestClientUpdatePresence(t *testing.T) {
 
 func TestClientHistory(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -612,7 +612,7 @@ func TestClientHistory(t *testing.T) {
 
 func TestClientPing(t *testing.T) {
 	app := NewTestNode()
-	c, err := New(app, NewTestSession(), nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)

@@ -5,37 +5,24 @@ import (
 	"sync"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
+	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
+	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
-	"github.com/gorilla/securecookie"
 	"github.com/satori/go.uuid"
 )
+
+func init() {
+	plugin.RegisterAdmin("default", New)
+}
 
 const (
 	// CloseStatus is status code set when closing client connections.
 	CloseStatus = 3000
 )
-
-const (
-	// AuthTokenKey is a key for admin authorization token.
-	AuthTokenKey = "token"
-	// AuthTokenValue is a value for secure admin authorization token.
-	AuthTokenValue = "authorized"
-)
-
-type AdminOptions struct{}
-
-func AdminAuthToken(secret string) (string, error) {
-	if secret == "" {
-		logger.ERROR.Println("provide admin_secret in configuration")
-		return "", proto.ErrInternalServerError
-	}
-	s := securecookie.New([]byte(secret), nil)
-	return s.Encode(AuthTokenKey, AuthTokenValue)
-}
 
 // checkAdminAuthToken checks admin connection token which Centrifugo returns after admin login.
 func checkAdminAuthToken(n *node.Node, token string) error {
@@ -57,14 +44,8 @@ func checkAdminAuthToken(n *node.Node, token string) error {
 		return proto.ErrUnauthorized
 	}
 
-	s := securecookie.New([]byte(secret), nil)
-	var val string
-	err := s.Decode(AuthTokenKey, token, &val)
-	if err != nil {
-		return proto.ErrUnauthorized
-	}
-
-	if val != AuthTokenValue {
+	authenticated := auth.CheckAdminToken(secret, token)
+	if !authenticated {
 		return proto.ErrUnauthorized
 	}
 	return nil
@@ -122,7 +103,7 @@ func apiCommandsFromJSON(msg []byte) ([]proto.ApiCommand, error) {
 	return cmds, nil
 }
 
-func New(n *node.Node, sess conns.Session, opts *AdminOptions) (conns.AdminConn, error) {
+func New(n *node.Node, sess conns.Session) (conns.AdminConn, error) {
 	c := &adminClient{
 		uid:           uuid.NewV4().String(),
 		node:          n,

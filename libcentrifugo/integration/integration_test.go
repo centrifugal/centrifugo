@@ -7,11 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
-	//"github.com/centrifugal/centrifugo/libcentrifugo/engine/engineredis"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns/clientconn"
+	"github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
@@ -191,7 +190,7 @@ func testMemoryNodeWithClients(nChannels int, nChannelClients int) *node.Node {
 }
 
 func newTestClient(n *node.Node, sess conns.Session) conns.ClientConn {
-	c, _ := clientconn.New(n, sess, nil)
+	c, _ := clientconn.New(n, sess)
 	return c
 }
 
@@ -233,7 +232,7 @@ func BenchmarkPubSubMessageReceive(b *testing.B) {
 	app := NewTestMemoryNode()
 
 	// create one client so clientMsg really marshal into client response JSON.
-	c, _ := clientconn.New(app, NewTestSession(), nil)
+	c, _ := clientconn.New(app, NewTestSession())
 
 	messagePoolSize := 1000
 
@@ -293,7 +292,7 @@ func testSubscribeCmd(channel string) proto.ClientCommand {
 
 func TestUnsubscribe(t *testing.T) {
 	app := NewTestNode()
-	c, err := clientconn.New(app, NewTestSession(), nil)
+	c, err := clientconn.New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	cmds := []proto.ClientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
@@ -309,7 +308,7 @@ func TestUnsubscribe(t *testing.T) {
 func BenchmarkClientMsg(b *testing.B) {
 	app := NewTestMemoryNode()
 	// create one client so clientMsg really marshal into client response JSON.
-	c, _ := clientconn.New(app, NewTestSession(), nil)
+	c, _ := clientconn.New(app, NewTestSession())
 	messagePoolSize := 1000
 	messagePool := make([]*proto.Message, messagePoolSize)
 
