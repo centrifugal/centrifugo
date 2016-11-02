@@ -3,10 +3,10 @@ package adminconn
 import (
 	"testing"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
-	"github.com/gorilla/securecookie"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -179,7 +179,7 @@ func newAdminTestNode() *node.Node {
 
 func newTestAdminClient() (conns.AdminConn, error) {
 	n := newAdminTestNode()
-	c, err := New(n, &testAdminSession{}, nil)
+	c, err := New(n, &testAdminSession{})
 	return c, err
 }
 
@@ -188,7 +188,7 @@ func newInsecureTestAdminClient() (conns.AdminConn, error) {
 	conf := n.Config()
 	conf.InsecureAdmin = true
 	n.SetConfig(&conf)
-	c, err := New(n, &testAdminSession{}, nil)
+	c, err := New(n, &testAdminSession{})
 	return c, err
 }
 
@@ -212,8 +212,7 @@ func TestAdminClientMessageHandling(t *testing.T) {
 	emptyAuthMethod := "{\"method\":\"connect\", \"params\": {\"watch\": true}}"
 	err = c.Handle([]byte(emptyAuthMethod))
 	assert.Equal(t, proto.ErrUnauthorized, err)
-	s := securecookie.New([]byte("secret"), nil)
-	token, _ := s.Encode(AuthTokenKey, AuthTokenValue)
+	token, _ := auth.GenerateAdminToken("secret")
 	correctAuthMethod := "{\"method\":\"connect\", \"params\": {\"token\":\"" + token + "\", \"watch\": true}}"
 	err = c.Handle([]byte(correctAuthMethod))
 	assert.Equal(t, nil, err)
@@ -247,8 +246,7 @@ func TestAdminClientInsecure(t *testing.T) {
 func TestAdminClientNotWatching(t *testing.T) {
 	c, err := newTestAdminClient()
 	assert.Equal(t, nil, err)
-	s := securecookie.New([]byte("secret"), nil)
-	token, _ := s.Encode(AuthTokenKey, AuthTokenValue)
+	token, _ := auth.GenerateAdminToken("secret")
 	correctAuthMethod := "{\"method\":\"connect\", \"params\": {\"token\":\"" + token + "\"}}"
 	err = c.Handle([]byte(correctAuthMethod))
 	assert.Equal(t, nil, err)
@@ -261,10 +259,6 @@ func TestAdminAuthToken(t *testing.T) {
 	err := checkAdminAuthToken(app, "")
 	assert.Equal(t, proto.ErrUnauthorized, err)
 
-	// no secret set
-	token, err := AdminAuthToken(app.Config().AdminSecret)
-	assert.Equal(t, proto.ErrInternalServerError, err)
-
 	conf := app.Config()
 	conf.AdminSecret = "secret"
 	app.SetConfig(&conf)
@@ -272,7 +266,7 @@ func TestAdminAuthToken(t *testing.T) {
 	err = checkAdminAuthToken(app, "")
 	assert.Equal(t, proto.ErrUnauthorized, err)
 
-	token, err = AdminAuthToken("secret")
+	token, err := auth.GenerateAdminToken("secret")
 	assert.Equal(t, nil, err)
 	assert.True(t, len(token) > 0)
 	err = checkAdminAuthToken(app, token)
