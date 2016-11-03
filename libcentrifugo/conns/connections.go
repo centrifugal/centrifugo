@@ -1,5 +1,12 @@
 package conns
 
+type DisconnectAdvice struct {
+	Reason    string `json: "reason"`
+	Reconnect bool   `json:"reconnect"`
+}
+
+var DefaultDisconnectAdvice = &DisconnectAdvice{"", true}
+
 // ClientConn is an interface abstracting all methods used
 // by application to interact with client connection.
 type ClientConn interface {
@@ -16,7 +23,7 @@ type ClientConn interface {
 	// Unsubscribe allows to unsubscribe connection from channel.
 	Unsubscribe(ch string) error
 	// Close closes client's connection.
-	Close(reason string) error
+	Close(*DisconnectAdvice) error
 }
 
 // AdminConn is an interface abstracting all methods used
@@ -29,7 +36,7 @@ type AdminConn interface {
 	// Send allows to send message to admin connection.
 	Send(message []byte) error
 	// Close closes admin's connection.
-	Close(reason string) error
+	Close(*DisconnectAdvice) error
 }
 
 // Session represents a connection transport between server and client.
@@ -37,5 +44,5 @@ type Session interface {
 	// Send sends one message to session
 	Send([]byte) error
 	// Close closes the session with provided code and reason.
-	Close(status uint32, reason string) error
+	Close(*DisconnectAdvice) error
 }

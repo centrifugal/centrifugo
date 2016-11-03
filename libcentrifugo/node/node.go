@@ -772,10 +772,9 @@ func (n *Node) Disconnect(user string) error {
 func (n *Node) disconnectUser(user string) error {
 	userConnections := n.clients.UserConnections(user)
 	for _, c := range userConnections {
-		err := c.Close("disconnect")
-		if err != nil {
-			return err
-		}
+		go func(c conns.ClientConn) {
+			c.Close(&conns.DisconnectAdvice{"disconnect", false})
+		}(c)
 	}
 	return nil
 }

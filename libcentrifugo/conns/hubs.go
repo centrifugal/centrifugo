@@ -60,7 +60,7 @@ func (h *clientHub) Shutdown() error {
 				for _, ch := range cc.Channels() {
 					cc.Unsubscribe(ch)
 				}
-				cc.Close("shutting down")
+				cc.Close(&DisconnectAdvice{"shutting down", true})
 				wg.Done()
 			}(cc)
 		}

@@ -4,8 +4,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/gorilla/websocket"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
+)
+
+const (
+	// CloseStatus is status code set when closing client connections.
+	CloseStatus = 3000
 )
 
 type sockjsSession struct {
@@ -22,8 +28,8 @@ func (conn *sockjsSession) Send(msg []byte) error {
 	return conn.sess.Send(string(msg))
 }
 
-func (conn *sockjsSession) Close(status uint32, reason string) error {
-	return conn.sess.Close(status, reason)
+func (conn *sockjsSession) Close(advice *conns.DisconnectAdvice) error {
+	return conn.sess.Close(CloseStatus, advice.Reason+"11")
 }
 
 // websocketConn is an interface to mimic gorilla/websocket methods we use in Centrifugo.
@@ -65,7 +71,7 @@ func (sess *wsSession) ping() {
 		deadline := time.Now().Add(sess.pingInterval / 2)
 		err := sess.ws.WriteControl(websocket.PingMessage, []byte("ping"), deadline)
 		if err != nil {
-			sess.Close(CloseStatus, "write ping error")
+			sess.Close(&conns.DisconnectAdvice{"write ping error", true})
 			return
 		}
 		sess.addPing()
@@ -91,7 +97,7 @@ func (sess *wsSession) Send(msg []byte) error {
 	}
 }
 
-func (sess *wsSession) Close(status uint32, reason string) error {
+func (sess *wsSession) Close(advice *conns.DisconnectAdvice) error {
 	sess.mu.Lock()
 	if sess.closed {
 		// Already closed, noop.
@@ -103,7 +109,7 @@ func (sess *wsSession) Close(status uint32, reason string) error {
 	sess.pingTimer.Stop()
 	sess.mu.Unlock()
 	deadline := time.Now().Add(time.Second)
-	msg := websocket.FormatCloseMessage(int(status), reason)
+	msg := websocket.FormatCloseMessage(int(CloseStatus), advice.Reason)
 	sess.ws.WriteControl(websocket.CloseMessage, msg, deadline)
 	return sess.ws.Close()
 }
