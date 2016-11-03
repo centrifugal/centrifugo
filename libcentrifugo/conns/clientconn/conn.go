@@ -300,20 +300,22 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 	c.Lock()
 	defer c.Unlock()
 
-	if advice == nil {
-		advice = conns.DefaultDisconnectAdvice
-	}
-
 	if c.closed {
 		return nil
 	}
 
-	if advice != nil {
+	if advice == nil {
+		advice = conns.DefaultDisconnectAdvice
+	}
+
+	if advice.Reason != "" {
 		logger.DEBUG.Printf("Closing connection %s: %s", c.UID(), advice.Reason)
 	}
 
 	close(c.closeCh)
 	c.closed = true
+
+	c.messages.Close()
 
 	if len(c.channels) > 0 {
 		// unsubscribe from all channels
@@ -328,7 +330,12 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		}
 	}
 
-	c.messages.Close()
+	if c.authenticated {
+		err := c.node.RemoveClientConn(c)
+		if err != nil {
+			logger.ERROR.Println(err)
+		}
+	}
 
 	select {
 	case <-c.sendFinished:
@@ -341,13 +348,6 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 	}
 
 	c.sess.Close(advice)
-
-	if c.authenticated {
-		err := c.node.RemoveClientConn(c)
-		if err != nil {
-			logger.ERROR.Println(err)
-		}
-	}
 
 	if c.authenticated && c.node.Mediator() != nil {
 		c.node.Mediator().Disconnect(c.uid, c.user)

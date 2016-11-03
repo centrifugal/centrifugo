@@ -204,10 +204,7 @@ func (h *clientHub) Broadcast(ch string, message []byte) error {
 		if !ok {
 			continue
 		}
-		err := c.Send(message)
-		if err != nil {
-			logger.ERROR.Println(err)
-		}
+		c.Send(message)
 	}
 	return nil
 }

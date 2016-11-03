@@ -15,7 +15,9 @@ const (
 )
 
 type sockjsSession struct {
-	sess sockjs.Session
+	mu     sync.RWMutex
+	closed bool
+	sess   sockjs.Session
 }
 
 func newSockjsSession(sess sockjs.Session) *sockjsSession {
@@ -24,12 +26,21 @@ func newSockjsSession(sess sockjs.Session) *sockjsSession {
 	}
 }
 
-func (conn *sockjsSession) Send(msg []byte) error {
-	return conn.sess.Send(string(msg))
+func (sess *sockjsSession) Send(msg []byte) error {
+	return sess.sess.Send(string(msg))
 }
 
-func (conn *sockjsSession) Close(advice *conns.DisconnectAdvice) error {
-	return conn.sess.Close(CloseStatus, advice.Reason+"11")
+func (sess *sockjsSession) Close(advice *conns.DisconnectAdvice) error {
+	sess.mu.Lock()
+	defer sess.mu.Unlock()
+	if sess.closed {
+		// Already closed, noop.
+		return nil
+	}
+	sess.closed = true
+	// Give polling client a chance to receive and process buffered messages.
+	time.Sleep(time.Second)
+	return sess.sess.Close(CloseStatus, advice.Reason)
 }
 
 // websocketConn is an interface to mimic gorilla/websocket methods we use in Centrifugo.
