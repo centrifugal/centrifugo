@@ -267,8 +267,9 @@ func (c *client) Send(message []byte) error {
 	return nil
 }
 
-// sendDisconnect sends disconnect advice to client. Client message queue must
-// be closed before calling this.
+// sendDisconnect sends disconnect advice to client before closing connection.
+// Client message queue must be closed before calling this to prevent concurrent
+// writes into session transport connection.
 func (c *client) sendDisconnect(advice *conns.DisconnectAdvice) error {
 	body := proto.DisconnectBody{
 		Reason:    advice.Reason,
@@ -279,8 +280,8 @@ func (c *client) sendDisconnect(advice *conns.DisconnectAdvice) error {
 	if err != nil {
 		return err
 	}
-	// Here we know that sending goroutines finished sending and returned.
-	// So we can safely write into session - i.e. avoid concurrent writes.
+	// Here we know that sending goroutine completed so we can
+	// safely write into session - i.e. avoid concurrent writes.
 	sent := make(chan struct{})
 	go func() {
 		defer close(sent)
@@ -344,13 +345,7 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 			logger.ERROR.Printf("Error sending disconnect: %v", err)
 		}
 	case <-time.After(time.Second):
-		logger.ERROR.Println("Error stopping sendMessages goroutine")
-	}
-
-	c.sess.Close(advice)
-
-	if c.authenticated && c.node.Mediator() != nil {
-		c.node.Mediator().Disconnect(c.uid, c.user)
+		logger.ERROR.Println("Timeout stopping sendMessages goroutine")
 	}
 
 	if c.expireTimer != nil {
@@ -364,6 +359,12 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 	if c.staleTimer != nil {
 		c.staleTimer.Stop()
 	}
+
+	if c.authenticated && c.node.Mediator() != nil {
+		c.node.Mediator().Disconnect(c.uid, c.user)
+	}
+
+	c.sess.Close(advice)
 
 	return nil
 }
