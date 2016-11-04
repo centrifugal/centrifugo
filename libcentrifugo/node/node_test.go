@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
 )
@@ -97,7 +98,7 @@ func (t *testSession) Send(msg []byte) error {
 	return nil
 }
 
-func (t *testSession) Close(status uint32, reason string) error {
+func (t *testSession) Close(adv *conns.DisconnectAdvice) error {
 	t.closed = true
 	return nil
 }

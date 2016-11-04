@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
@@ -71,7 +72,7 @@ func (t *TestConn) Handle(message []byte) error {
 func (t *TestConn) Unsubscribe(ch string) error {
 	return nil
 }
-func (t *TestConn) Close(reason string) error {
+func (t *TestConn) Close(adv *conns.DisconnectAdvice) error {
 	return nil
 }
 

@@ -219,7 +219,7 @@ func DefaultMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 	if flags&HandlerSockJS != 0 {
 		// register SockJS endpoints.
 		sjsh := NewSockJSHandler(s, prefix+"/connection", muxOpts.SockjsOptions)
-		mux.Handle(prefix+"/connection/", s.Logged(sjsh))
+		mux.Handle(prefix+"/connection/", s.Logged(s.WrapShutdown(sjsh)))
 	}
 
 	if flags&HandlerAPI != 0 {

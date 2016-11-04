@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
@@ -106,7 +107,7 @@ func (t *TestSession) Send(msg []byte) error {
 	return nil
 }
 
-func (t *TestSession) Close(status uint32, reason string) error {
+func (t *TestSession) Close(adv *conns.DisconnectAdvice) error {
 	t.closed = true
 	return nil
 }
@@ -173,7 +174,7 @@ func TestUnauthenticatedClient(t *testing.T) {
 	assert.Equal(t, []string{}, c.Channels())
 
 	// check that unauthenticated client can be cleaned correctly
-	err = c.Close("")
+	err = c.Close(nil)
 	assert.Equal(t, nil, err)
 }
 
@@ -203,14 +204,23 @@ func TestClientMessage(t *testing.T) {
 	err = c.Handle([]byte{})
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
+	c, err = New(app, NewTestSession())
+	assert.Equal(t, nil, err)
+
 	// malformed message
 	err = c.Handle([]byte("wroooong"))
 	assert.NotEqual(t, nil, err)
+
+	c, err = New(app, NewTestSession())
+	assert.Equal(t, nil, err)
 
 	// client request exceeds allowed size
 	b := make([]byte, 1024*65)
 	err = c.Handle(b)
 	assert.Equal(t, proto.ErrLimitExceeded, err)
+
+	c, err = New(app, NewTestSession())
+	assert.Equal(t, nil, err)
 
 	var cmds []proto.ClientCommand
 
@@ -394,7 +404,7 @@ func TestClientConnect(t *testing.T) {
 	assert.NotEqual(t, "", c.UID(), "uid must be already set")
 	assert.NotEqual(t, "", c.User(), "user must be already set")
 
-	err = c.Close("")
+	err = c.Close(nil)
 	assert.Equal(t, nil, err)
 
 	assert.Equal(t, 0, app.ClientHub().NumClients())
@@ -450,7 +460,7 @@ func TestClientSubscribe(t *testing.T) {
 	assert.Equal(t, 1, app.ClientHub().NumChannels())
 	assert.Equal(t, 1, len(c.Channels()))
 
-	err = c.Close("")
+	err = c.Close(nil)
 	assert.Equal(t, nil, err)
 
 	assert.Equal(t, 0, app.ClientHub().NumChannels())

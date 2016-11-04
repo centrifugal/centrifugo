@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 )
@@ -63,7 +64,7 @@ func TestWSConnPingFailed(t *testing.T) {
 func TestWSConnPingAfterClose(t *testing.T) {
 	ws := &testWSConnection{}
 	c := newWSSession(ws, 1*time.Nanosecond)
-	err := c.Close(1, "test close")
+	err := c.Close(conns.DefaultDisconnectAdvice)
 	assert.Equal(t, nil, err)
 	c.ping()
 	assert.Equal(t, true, c.ws.(*testWSConnection).closed)
@@ -72,7 +73,7 @@ func TestWSConnPingAfterClose(t *testing.T) {
 func TestSendAfterClose(t *testing.T) {
 	ws := &testWSConnection{}
 	c := newWSSession(ws, 1*time.Nanosecond)
-	err := c.Close(1, "test close")
+	err := c.Close(conns.DefaultDisconnectAdvice)
 	assert.Equal(t, nil, err)
 	err = c.Send([]byte("test"))
 	assert.Equal(t, nil, err)
