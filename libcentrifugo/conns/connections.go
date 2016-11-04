@@ -1,11 +1,36 @@
 package conns
 
+import (
+	"encoding/json"
+	"sync"
+)
+
 type DisconnectAdvice struct {
-	Reason    string `json: "reason"`
+	mu        sync.RWMutex
+	Reason    string `json:"reason"`
 	Reconnect bool   `json:"reconnect"`
+	jsonified string
 }
 
-var DefaultDisconnectAdvice = &DisconnectAdvice{"", true}
+func (a *DisconnectAdvice) JSONString() (string, error) {
+	a.mu.RLock()
+	if a.jsonified != "" {
+		a.mu.RUnlock()
+		return a.jsonified, nil
+	}
+	a.mu.RUnlock()
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	b, err := json.Marshal(a)
+	if err != nil {
+		return "", err
+	}
+	a.jsonified = string(b)
+	return a.jsonified, nil
+}
+
+var DefaultDisconnectAdvice = &DisconnectAdvice{Reason: "", Reconnect: true}
 
 // ClientConn is an interface abstracting all methods used
 // by application to interact with client connection.

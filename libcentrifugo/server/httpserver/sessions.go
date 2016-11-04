@@ -38,9 +38,11 @@ func (sess *sockjsSession) Close(advice *conns.DisconnectAdvice) error {
 		return nil
 	}
 	sess.closed = true
-	// Give polling client a chance to receive and process buffered messages.
-	time.Sleep(time.Second)
-	return sess.sess.Close(CloseStatus, advice.Reason)
+	reason, err := advice.JSONString()
+	if err != nil {
+		return err
+	}
+	return sess.sess.Close(CloseStatus, reason)
 }
 
 // websocketConn is an interface to mimic gorilla/websocket methods we use in Centrifugo.
@@ -82,7 +84,7 @@ func (sess *wsSession) ping() {
 		deadline := time.Now().Add(sess.pingInterval / 2)
 		err := sess.ws.WriteControl(websocket.PingMessage, []byte("ping"), deadline)
 		if err != nil {
-			sess.Close(&conns.DisconnectAdvice{"write ping error", true})
+			sess.Close(&conns.DisconnectAdvice{Reason: "write ping error", Reconnect: true})
 			return
 		}
 		sess.addPing()
@@ -120,7 +122,11 @@ func (sess *wsSession) Close(advice *conns.DisconnectAdvice) error {
 	sess.pingTimer.Stop()
 	sess.mu.Unlock()
 	deadline := time.Now().Add(time.Second)
-	msg := websocket.FormatCloseMessage(int(CloseStatus), advice.Reason)
+	reason, err := advice.JSONString()
+	if err != nil {
+		return err
+	}
+	msg := websocket.FormatCloseMessage(int(CloseStatus), reason)
 	sess.ws.WriteControl(websocket.CloseMessage, msg, deadline)
 	return sess.ws.Close()
 }

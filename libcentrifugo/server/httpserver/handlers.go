@@ -278,7 +278,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 			err = c.Handle([]byte(msg))
 			if err != nil {
 				logger.ERROR.Println(err)
-				c.Close(&conns.DisconnectAdvice{"error handling message", true})
+				c.Close(&conns.DisconnectAdvice{Reason: "error handling message", Reconnect: true})
 				return
 			}
 			continue
@@ -326,7 +326,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 		}
 		err = c.Handle(message)
 		if err != nil {
-			c.Close(&conns.DisconnectAdvice{err.Error(), true})
+			c.Close(&conns.DisconnectAdvice{Reason: err.Error(), Reconnect: true})
 			break
 		}
 	}
@@ -586,7 +586,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 
 	c, err := adminconn.New(s.node, sess)
 	if err != nil {
-		sess.Close(&conns.DisconnectAdvice{proto.ErrInternalServerError.Error(), true})
+		sess.Close(&conns.DisconnectAdvice{Reason: proto.ErrInternalServerError.Error(), Reconnect: true})
 		return
 	}
 	defer c.Close(nil)
@@ -604,7 +604,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 		}
 		err = c.Handle(message)
 		if err != nil {
-			c.Close(&conns.DisconnectAdvice{err.Error(), true})
+			c.Close(&conns.DisconnectAdvice{Reason: err.Error(), Reconnect: true})
 			break
 		}
 	}

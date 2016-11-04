@@ -128,7 +128,7 @@ func (c *client) sendMessages() {
 		}
 		err := c.sendMessage(msg)
 		if err != nil {
-			c.Close(&conns.DisconnectAdvice{"error sending message", true})
+			c.Close(&conns.DisconnectAdvice{Reason: "error sending message", Reconnect: true})
 			return
 		}
 		plugin.Metrics.Counters.Inc("client_num_msg_sent")
@@ -169,7 +169,7 @@ func (c *client) closeUnauthenticated() {
 	closed := c.closed
 	c.RUnlock()
 	if !authenticated && !closed {
-		c.Close(&conns.DisconnectAdvice{"stale", false})
+		c.Close(&conns.DisconnectAdvice{Reason: "stale", Reconnect: false})
 	}
 }
 
@@ -261,7 +261,7 @@ func (c *client) Send(message []byte) error {
 	}
 	plugin.Metrics.Counters.Inc("client_num_msg_queued")
 	if c.messages.Size() > c.maxQueueSize {
-		c.Close(&conns.DisconnectAdvice{"slow", false})
+		c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: false})
 		return proto.ErrClientClosed
 	}
 	return nil
@@ -398,18 +398,18 @@ func (c *client) Handle(msg []byte) error {
 
 	if len(msg) == 0 {
 		logger.ERROR.Println("empty client request received")
-		c.Close(&conns.DisconnectAdvice{proto.ErrInvalidMessage.Error(), false})
+		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrInvalidMessage.Error(), Reconnect: false})
 		return proto.ErrInvalidMessage
 	} else if len(msg) > c.maxRequestSize {
 		logger.ERROR.Println("client request exceeds max request size limit")
-		c.Close(&conns.DisconnectAdvice{proto.ErrLimitExceeded.Error(), false})
+		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrLimitExceeded.Error(), Reconnect: false})
 		return proto.ErrLimitExceeded
 	}
 
 	commands, err := clientCommandsFromJSON(msg)
 	if err != nil {
 		logger.ERROR.Println(err)
-		c.Close(&conns.DisconnectAdvice{proto.ErrInvalidMessage.Error(), false})
+		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrInvalidMessage.Error(), Reconnect: false})
 		return proto.ErrInvalidMessage
 	}
 
@@ -417,7 +417,7 @@ func (c *client) Handle(msg []byte) error {
 		// Nothing to do - in normal workflow such commands should never come.
 		// Let's be strict here to prevent client sending useless messages.
 		logger.ERROR.Println("got request from client without commands")
-		c.Close(&conns.DisconnectAdvice{proto.ErrInvalidMessage.Error(), false})
+		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrInvalidMessage.Error(), Reconnect: false})
 		return proto.ErrInvalidMessage
 	}
 
@@ -429,7 +429,7 @@ func (c *client) Handle(msg []byte) error {
 			// Any other error results in disconnect without reconnect.
 			reconnect = true
 		}
-		c.Close(&conns.DisconnectAdvice{proto.ErrLimitExceeded.Error(), reconnect})
+		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrLimitExceeded.Error(), Reconnect: reconnect})
 	}
 	return err
 }
@@ -568,7 +568,7 @@ func (c *client) expire() {
 		return
 	}
 
-	c.Close(&conns.DisconnectAdvice{"expired", true})
+	c.Close(&conns.DisconnectAdvice{Reason: "expired", Reconnect: true})
 	return
 }
 

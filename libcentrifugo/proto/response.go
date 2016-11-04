@@ -194,7 +194,7 @@ type PublishBody struct {
 
 // DisconnectBody represents body of disconnect response when we want to tell
 // client to disconnect. Optionally we can give client an advice to continue
-// reconnecting after receiving this
+// reconnecting after receiving this.
 type DisconnectBody struct {
 	Reason    string `json:"reason"`
 	Reconnect bool   `json:"reconnect"`

@@ -169,7 +169,7 @@ func (c *adminClient) sendMessages() {
 		}
 		err := c.sess.Send(msg)
 		if err != nil {
-			c.Close(&conns.DisconnectAdvice{"error sending message", true})
+			c.Close(&conns.DisconnectAdvice{Reason: "error sending message", Reconnect: true})
 			return
 		}
 	}
@@ -181,7 +181,7 @@ func (c *adminClient) UID() string {
 
 func (c *adminClient) Send(message []byte) error {
 	if c.messages.Size() > c.maxQueueSize {
-		c.Close(&conns.DisconnectAdvice{"slow", true})
+		c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: true})
 		return proto.ErrClientClosed
 	}
 	if !c.watch {
