@@ -126,7 +126,7 @@ func New(n *node.Node, sess conns.Session) (conns.AdminConn, error) {
 }
 
 // Close called to close connection.
-func (c *adminClient) Close(reason string) error {
+func (c *adminClient) Close(advice *conns.DisconnectAdvice) error {
 	c.Lock()
 	defer c.Unlock()
 
@@ -134,15 +134,19 @@ func (c *adminClient) Close(reason string) error {
 		return nil
 	}
 
-	if reason != "" {
-		logger.DEBUG.Printf("Closing admin connection %s: %s", c.UID(), reason)
+	if advice == nil {
+		advice = conns.DefaultDisconnectAdvice
+	}
+
+	if advice.Reason != "" {
+		logger.DEBUG.Printf("Closing admin connection %s: %s", c.UID(), advice.Reason)
 	}
 
 	close(c.closeCh)
 	c.closed = true
 
 	c.messages.Close()
-	c.sess.Close(CloseStatus, reason)
+	c.sess.Close(advice)
 
 	err := c.node.AdminHub().Remove(c)
 	if err != nil {
@@ -165,7 +169,7 @@ func (c *adminClient) sendMessages() {
 		}
 		err := c.sess.Send(msg)
 		if err != nil {
-			c.Close("error sending message")
+			c.Close(&conns.DisconnectAdvice{Reason: "error sending message", Reconnect: true})
 			return
 		}
 	}
@@ -177,7 +181,7 @@ func (c *adminClient) UID() string {
 
 func (c *adminClient) Send(message []byte) error {
 	if c.messages.Size() > c.maxQueueSize {
-		c.Close("slow")
+		c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: true})
 		return proto.ErrClientClosed
 	}
 	if !c.watch {

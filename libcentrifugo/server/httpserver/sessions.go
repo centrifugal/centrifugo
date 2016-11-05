@@ -4,12 +4,20 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/gorilla/websocket"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
+const (
+	// CloseStatus is status code set when closing client connections.
+	CloseStatus = 3000
+)
+
 type sockjsSession struct {
-	sess sockjs.Session
+	mu     sync.RWMutex
+	closed bool
+	sess   sockjs.Session
 }
 
 func newSockjsSession(sess sockjs.Session) *sockjsSession {
@@ -18,12 +26,23 @@ func newSockjsSession(sess sockjs.Session) *sockjsSession {
 	}
 }
 
-func (conn *sockjsSession) Send(msg []byte) error {
-	return conn.sess.Send(string(msg))
+func (sess *sockjsSession) Send(msg []byte) error {
+	return sess.sess.Send(string(msg))
 }
 
-func (conn *sockjsSession) Close(status uint32, reason string) error {
-	return conn.sess.Close(status, reason)
+func (sess *sockjsSession) Close(advice *conns.DisconnectAdvice) error {
+	sess.mu.Lock()
+	defer sess.mu.Unlock()
+	if sess.closed {
+		// Already closed, noop.
+		return nil
+	}
+	sess.closed = true
+	reason, err := advice.JSONString()
+	if err != nil {
+		return err
+	}
+	return sess.sess.Close(CloseStatus, reason)
 }
 
 // websocketConn is an interface to mimic gorilla/websocket methods we use in Centrifugo.
@@ -65,7 +84,7 @@ func (sess *wsSession) ping() {
 		deadline := time.Now().Add(sess.pingInterval / 2)
 		err := sess.ws.WriteControl(websocket.PingMessage, []byte("ping"), deadline)
 		if err != nil {
-			sess.Close(CloseStatus, "write ping error")
+			sess.Close(&conns.DisconnectAdvice{Reason: "write ping error", Reconnect: true})
 			return
 		}
 		sess.addPing()
@@ -91,7 +110,7 @@ func (sess *wsSession) Send(msg []byte) error {
 	}
 }
 
-func (sess *wsSession) Close(status uint32, reason string) error {
+func (sess *wsSession) Close(advice *conns.DisconnectAdvice) error {
 	sess.mu.Lock()
 	if sess.closed {
 		// Already closed, noop.
@@ -103,7 +122,11 @@ func (sess *wsSession) Close(status uint32, reason string) error {
 	sess.pingTimer.Stop()
 	sess.mu.Unlock()
 	deadline := time.Now().Add(time.Second)
-	msg := websocket.FormatCloseMessage(int(status), reason)
+	reason, err := advice.JSONString()
+	if err != nil {
+		return err
+	}
+	msg := websocket.FormatCloseMessage(int(CloseStatus), reason)
 	sess.ws.WriteControl(websocket.CloseMessage, msg, deadline)
 	return sess.ws.Close()
 }

@@ -48,6 +48,7 @@ func NewClientHub() ClientHub {
 func (h *clientHub) Shutdown() error {
 	var wg sync.WaitGroup
 	h.RLock()
+	advice := &DisconnectAdvice{Reason: "shutting down", Reconnect: true}
 	for _, user := range h.users {
 		wg.Add(len(user))
 		for uid := range user {
@@ -60,7 +61,7 @@ func (h *clientHub) Shutdown() error {
 				for _, ch := range cc.Channels() {
 					cc.Unsubscribe(ch)
 				}
-				cc.Close("shutting down")
+				cc.Close(advice)
 				wg.Done()
 			}(cc)
 		}
@@ -204,10 +205,7 @@ func (h *clientHub) Broadcast(ch string, message []byte) error {
 		if !ok {
 			continue
 		}
-		err := c.Send(message)
-		if err != nil {
-			logger.ERROR.Println(err)
-		}
+		c.Send(message)
 	}
 	return nil
 }

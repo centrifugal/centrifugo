@@ -33,7 +33,7 @@ func (t *TestSession) Send(msg []byte) error {
 	return nil
 }
 
-func (t *TestSession) Close(status uint32, reason string) error {
+func (t *TestSession) Close(adv *DisconnectAdvice) error {
 	t.closed = true
 	return nil
 }
@@ -86,7 +86,7 @@ func (c *testClientConn) Unsubscribe(channel string) error {
 	return fmt.Errorf("channel '%s' not found", string(channel))
 }
 
-func (c *testClientConn) Close(reason string) error {
+func (c *testClientConn) Close(adv *DisconnectAdvice) error {
 	if c.Closed {
 		return fmt.Errorf("duplicate close")
 	}

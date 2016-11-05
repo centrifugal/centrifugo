@@ -35,11 +35,6 @@ func init() {
 	metricsRegistry.RegisterHDRHistogram("client_request", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
-const (
-	// CloseStatus is status code set when closing client connections.
-	CloseStatus = 3000
-)
-
 // client represents client connection to Centrifugo - at moment this can be Websocket
 // or SockJS connection. It abstracts away protocol of incoming connection having
 // session interface. Session allows to Send messages via connection and to Close connection.
@@ -63,6 +58,7 @@ type client struct {
 	sendTimeout    time.Duration
 	maxQueueSize   int
 	maxRequestSize int
+	sendFinished   chan struct{}
 }
 
 var (
@@ -110,6 +106,7 @@ func New(n *node.Node, s conns.Session) (conns.ClientConn, error) {
 		maxQueueSize:   maxQueueSize,
 		maxRequestSize: maxRequestSize,
 		sendTimeout:    sendTimeout,
+		sendFinished:   make(chan struct{}),
 	}
 	go c.sendMessages()
 	if staleCloseDelay > 0 {
@@ -120,6 +117,7 @@ func New(n *node.Node, s conns.Session) (conns.ClientConn, error) {
 
 // sendMessages waits for messages from queue and sends them to client.
 func (c *client) sendMessages() {
+	defer close(c.sendFinished)
 	for {
 		msg, ok := c.messages.Wait()
 		if !ok {
@@ -130,7 +128,7 @@ func (c *client) sendMessages() {
 		}
 		err := c.sendMessage(msg)
 		if err != nil {
-			c.Close("error sending message")
+			c.Close(&conns.DisconnectAdvice{Reason: "error sending message", Reconnect: true})
 			return
 		}
 		plugin.Metrics.Counters.Inc("client_num_msg_sent")
@@ -156,8 +154,8 @@ func (c *client) sendMessage(msg []byte) error {
 	} else {
 		// Do not use any timeout when sending, it's recommended to keep
 		// Centrifugo behind properly configured reverse proxy.
-		// But slow client connections will be closed anyway after exceeding
-		// client max queue size.
+		// Slow client connections will be closed eventually anyway after
+		// exceeding client max queue size.
 		return c.sess.Send(msg)
 	}
 }
@@ -171,7 +169,7 @@ func (c *client) closeUnauthenticated() {
 	closed := c.closed
 	c.RUnlock()
 	if !authenticated && !closed {
-		c.Close("stale")
+		c.Close(&conns.DisconnectAdvice{Reason: "stale", Reconnect: false})
 	}
 }
 
@@ -263,15 +261,43 @@ func (c *client) Send(message []byte) error {
 	}
 	plugin.Metrics.Counters.Inc("client_num_msg_queued")
 	if c.messages.Size() > c.maxQueueSize {
-		c.Close("slow")
+		c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: false})
 		return proto.ErrClientClosed
+	}
+	return nil
+}
+
+// sendDisconnect sends disconnect advice to client before closing connection.
+// Client message queue must be closed before calling this to prevent concurrent
+// writes into session transport connection.
+func (c *client) sendDisconnect(advice *conns.DisconnectAdvice) error {
+	body := proto.DisconnectBody{
+		Reason:    advice.Reason,
+		Reconnect: advice.Reconnect,
+	}
+	resp := proto.NewClientDisconnectResponse(body)
+	jsonResp, err := json.Marshal(resp)
+	if err != nil {
+		return err
+	}
+	// Here we know that sending goroutine completed so we can
+	// safely write into session - i.e. avoid concurrent writes.
+	sent := make(chan struct{})
+	go func() {
+		defer close(sent)
+		c.sess.Send(jsonResp)
+	}()
+	select {
+	case <-sent:
+	case <-time.After(time.Second):
+		return proto.ErrSendTimeout
 	}
 	return nil
 }
 
 // clean called when connection was closed to make different clean up
 // actions for a client
-func (c *client) Close(reason string) error {
+func (c *client) Close(advice *conns.DisconnectAdvice) error {
 	c.Lock()
 	defer c.Unlock()
 
@@ -279,12 +305,18 @@ func (c *client) Close(reason string) error {
 		return nil
 	}
 
-	if reason != "" {
-		logger.DEBUG.Printf("Closing connection %s: %s", c.UID(), reason)
+	if advice == nil {
+		advice = conns.DefaultDisconnectAdvice
+	}
+
+	if advice.Reason != "" {
+		logger.DEBUG.Printf("Closing connection %s: %s", c.UID(), advice.Reason)
 	}
 
 	close(c.closeCh)
 	c.closed = true
+
+	c.messages.Close()
 
 	if len(c.channels) > 0 {
 		// unsubscribe from all channels
@@ -299,9 +331,6 @@ func (c *client) Close(reason string) error {
 		}
 	}
 
-	c.messages.Close()
-	c.sess.Close(CloseStatus, reason)
-
 	if c.authenticated {
 		err := c.node.RemoveClientConn(c)
 		if err != nil {
@@ -309,8 +338,14 @@ func (c *client) Close(reason string) error {
 		}
 	}
 
-	if c.authenticated && c.node.Mediator() != nil {
-		c.node.Mediator().Disconnect(c.uid, c.user)
+	select {
+	case <-c.sendFinished:
+		err := c.sendDisconnect(advice)
+		if err != nil {
+			logger.ERROR.Printf("Error sending disconnect: %v", err)
+		}
+	case <-time.After(time.Second):
+		logger.ERROR.Println("Timeout stopping sendMessages goroutine")
 	}
 
 	if c.expireTimer != nil {
@@ -324,6 +359,12 @@ func (c *client) Close(reason string) error {
 	if c.staleTimer != nil {
 		c.staleTimer.Stop()
 	}
+
+	if c.authenticated && c.node.Mediator() != nil {
+		c.node.Mediator().Disconnect(c.uid, c.user)
+	}
+
+	c.sess.Close(advice)
 
 	return nil
 }
@@ -355,27 +396,20 @@ func (c *client) Handle(msg []byte) error {
 	}()
 	plugin.Metrics.Counters.Add("client_bytes_in", int64(len(msg)))
 
-	// Interval to sleep before closing connection to give client a chance to receive
-	// disconnect message and process it. Connection will be closed then.
-	waitBeforeClose := time.Second
-
 	if len(msg) == 0 {
 		logger.ERROR.Println("empty client request received")
-		c.disconnect(proto.ErrInvalidMessage.Error(), false)
-		time.Sleep(waitBeforeClose)
+		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrInvalidMessage.Error(), Reconnect: false})
 		return proto.ErrInvalidMessage
 	} else if len(msg) > c.maxRequestSize {
 		logger.ERROR.Println("client request exceeds max request size limit")
-		c.disconnect(proto.ErrLimitExceeded.Error(), false)
-		time.Sleep(waitBeforeClose)
+		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrLimitExceeded.Error(), Reconnect: false})
 		return proto.ErrLimitExceeded
 	}
 
 	commands, err := clientCommandsFromJSON(msg)
 	if err != nil {
 		logger.ERROR.Println(err)
-		c.disconnect(proto.ErrInvalidMessage.Error(), false)
-		time.Sleep(waitBeforeClose)
+		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrInvalidMessage.Error(), Reconnect: false})
 		return proto.ErrInvalidMessage
 	}
 
@@ -383,8 +417,7 @@ func (c *client) Handle(msg []byte) error {
 		// Nothing to do - in normal workflow such commands should never come.
 		// Let's be strict here to prevent client sending useless messages.
 		logger.ERROR.Println("got request from client without commands")
-		c.disconnect(proto.ErrInvalidMessage.Error(), false)
-		time.Sleep(waitBeforeClose)
+		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrInvalidMessage.Error(), Reconnect: false})
 		return proto.ErrInvalidMessage
 	}
 
@@ -396,25 +429,9 @@ func (c *client) Handle(msg []byte) error {
 			// Any other error results in disconnect without reconnect.
 			reconnect = true
 		}
-		c.disconnect(err.Error(), reconnect)
-		if !reconnect {
-			time.Sleep(waitBeforeClose)
-		}
+		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrLimitExceeded.Error(), Reconnect: reconnect})
 	}
 	return err
-}
-
-func (c *client) disconnect(reason string, reconnect bool) error {
-	body := proto.DisconnectBody{
-		Reason:    reason,
-		Reconnect: reconnect,
-	}
-	resp := proto.NewClientDisconnectResponse(body)
-	jsonResp, err := json.Marshal(resp)
-	if err != nil {
-		return err
-	}
-	return c.Send(jsonResp)
 }
 
 func (c *client) handleCommands(cmds []proto.ClientCommand) error {
@@ -551,7 +568,7 @@ func (c *client) expire() {
 		return
 	}
 
-	c.Close("expired")
+	c.Close(&conns.DisconnectAdvice{Reason: "expired", Reconnect: true})
 	return
 }
 

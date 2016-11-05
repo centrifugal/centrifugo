@@ -102,7 +102,7 @@ func (t *TestSession) Send(msg []byte) error {
 	return nil
 }
 
-func (t *TestSession) Close(status uint32, reason string) error {
+func (t *TestSession) Close(adv *conns.DisconnectAdvice) error {
 	t.closed = true
 	return nil
 }
@@ -162,7 +162,7 @@ func (s *testAdminSession) Send([]byte) error {
 	return nil
 }
 
-func (s *testAdminSession) Close(status uint32, reason string) error {
+func (s *testAdminSession) Close(adv *conns.DisconnectAdvice) error {
 	return nil
 }
 

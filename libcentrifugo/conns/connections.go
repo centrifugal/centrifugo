@@ -1,5 +1,37 @@
 package conns
 
+import (
+	"encoding/json"
+	"sync"
+)
+
+type DisconnectAdvice struct {
+	mu        sync.RWMutex
+	Reason    string `json:"reason"`
+	Reconnect bool   `json:"reconnect"`
+	jsonified string
+}
+
+func (a *DisconnectAdvice) JSONString() (string, error) {
+	a.mu.RLock()
+	if a.jsonified != "" {
+		a.mu.RUnlock()
+		return a.jsonified, nil
+	}
+	a.mu.RUnlock()
+
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	b, err := json.Marshal(a)
+	if err != nil {
+		return "", err
+	}
+	a.jsonified = string(b)
+	return a.jsonified, nil
+}
+
+var DefaultDisconnectAdvice = &DisconnectAdvice{Reason: "", Reconnect: true}
+
 // ClientConn is an interface abstracting all methods used
 // by application to interact with client connection.
 type ClientConn interface {
@@ -16,7 +48,7 @@ type ClientConn interface {
 	// Unsubscribe allows to unsubscribe connection from channel.
 	Unsubscribe(ch string) error
 	// Close closes client's connection.
-	Close(reason string) error
+	Close(*DisconnectAdvice) error
 }
 
 // AdminConn is an interface abstracting all methods used
@@ -29,7 +61,7 @@ type AdminConn interface {
 	// Send allows to send message to admin connection.
 	Send(message []byte) error
 	// Close closes admin's connection.
-	Close(reason string) error
+	Close(*DisconnectAdvice) error
 }
 
 // Session represents a connection transport between server and client.
@@ -37,5 +69,5 @@ type Session interface {
 	// Send sends one message to session
 	Send([]byte) error
 	// Close closes the session with provided code and reason.
-	Close(status uint32, reason string) error
+	Close(*DisconnectAdvice) error
 }

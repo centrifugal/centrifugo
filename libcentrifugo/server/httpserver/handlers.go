@@ -12,6 +12,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns/adminconn"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns/clientconn"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
@@ -20,10 +21,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/rakyll/statik/fs"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
-)
-
-const (
-	CloseStatus = 3000
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -269,7 +266,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 		sess.Close(3000, "Internal Server Error")
 		return
 	}
-	defer c.Close("")
+	defer c.Close(nil)
 
 	logger.DEBUG.Printf("New SockJS session established with uid %s\n", c.UID())
 	defer func() {
@@ -281,8 +278,8 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 			err = c.Handle([]byte(msg))
 			if err != nil {
 				logger.ERROR.Println(err)
-				c.Close("error handling message")
-				break
+				c.Close(&conns.DisconnectAdvice{Reason: "error handling message", Reconnect: true})
+				return
 			}
 			continue
 		}
@@ -315,7 +312,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 		ws.Close()
 		return
 	}
-	defer c.Close("")
+	defer c.Close(nil)
 
 	logger.DEBUG.Printf("New raw websocket session established with uid %s\n", c.UID())
 	defer func() {
@@ -329,7 +326,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 		}
 		err = c.Handle(message)
 		if err != nil {
-			c.Close(err.Error())
+			c.Close(&conns.DisconnectAdvice{Reason: err.Error(), Reconnect: true})
 			break
 		}
 	}
@@ -589,10 +586,10 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 
 	c, err := adminconn.New(s.node, sess)
 	if err != nil {
-		sess.Close(CloseStatus, proto.ErrInternalServerError.Error())
+		sess.Close(&conns.DisconnectAdvice{Reason: proto.ErrInternalServerError.Error(), Reconnect: true})
 		return
 	}
-	defer c.Close("")
+	defer c.Close(nil)
 
 	start := time.Now()
 	logger.DEBUG.Printf("New admin session established with uid %s\n", c.UID())
@@ -607,7 +604,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 		}
 		err = c.Handle(message)
 		if err != nil {
-			c.Close(err.Error())
+			c.Close(&conns.DisconnectAdvice{Reason: err.Error(), Reconnect: true})
 			break
 		}
 	}

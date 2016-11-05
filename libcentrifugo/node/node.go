@@ -771,11 +771,11 @@ func (n *Node) Disconnect(user string) error {
 // disconnectUser closes client connections of user on current node.
 func (n *Node) disconnectUser(user string) error {
 	userConnections := n.clients.UserConnections(user)
+	advice := &conns.DisconnectAdvice{Reason: "disconnect", Reconnect: false}
 	for _, c := range userConnections {
-		err := c.Close("disconnect")
-		if err != nil {
-			return err
-		}
+		go func(cc conns.ClientConn) {
+			cc.Close(advice)
+		}(c)
 	}
 	return nil
 }
