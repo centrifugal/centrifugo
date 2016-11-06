@@ -747,19 +747,21 @@ func (e *RedisEngine) runPubSub() {
 			}
 			switch chID {
 			case controlChannel:
-				message, err := decodeEngineControlMessage(n.Data)
+				var message proto.ControlMessage
+				err := message.Unmarshal(n.Data)
 				if err != nil {
 					logger.ERROR.Println(err)
 					continue
 				}
-				e.node.ControlMsg(message)
+				e.node.ControlMsg(&message)
 			case adminChannel:
-				message, err := decodeEngineAdminMessage(n.Data)
+				var message proto.AdminMessage
+				err := message.Unmarshal(n.Data)
 				if err != nil {
 					logger.ERROR.Println(err)
 					continue
 				}
-				e.node.AdminMsg(message)
+				e.node.AdminMsg(&message)
 			default:
 				err := e.handleRedisClientMessage(chID, n.Data)
 				if err != nil {
@@ -779,23 +781,26 @@ func (e *RedisEngine) handleRedisClientMessage(chID ChannelID, data []byte) erro
 	msgType := e.typeFromChannelID(chID)
 	switch msgType {
 	case "message":
-		message, err := decodeEngineClientMessage(data)
+		var message proto.Message
+		err := message.Unmarshal(data)
 		if err != nil {
 			return err
 		}
-		e.node.ClientMsg(message)
+		e.node.ClientMsg(&message)
 	case "join":
-		message, err := decodeEngineJoinMessage(data)
+		var message proto.JoinMessage
+		err := message.Unmarshal(data)
 		if err != nil {
 			return err
 		}
-		e.node.JoinMsg(message)
+		e.node.JoinMsg(&message)
 	case "leave":
-		message, err := decodeEngineLeaveMessage(data)
+		var message proto.LeaveMessage
+		err := message.Unmarshal(data)
 		if err != nil {
 			return err
 		}
-		e.node.LeaveMsg(message)
+		e.node.LeaveMsg(&message)
 	default:
 	}
 	return nil
@@ -918,7 +923,7 @@ func (e *RedisEngine) PublishMessage(message *proto.Message, opts *proto.Channel
 
 	eChan := make(chan error, 1)
 
-	byteMessage, err := encodeEngineClientMessage(message)
+	byteMessage, err := message.Marshal()
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -952,7 +957,7 @@ func (e *RedisEngine) PublishJoin(message *proto.JoinMessage, opts *proto.Channe
 
 	eChan := make(chan error, 1)
 
-	byteMessage, err := encodeEngineJoinMessage(message)
+	byteMessage, err := message.Marshal()
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -974,7 +979,7 @@ func (e *RedisEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.Chan
 
 	eChan := make(chan error, 1)
 
-	byteMessage, err := encodeEngineLeaveMessage(message)
+	byteMessage, err := message.Marshal()
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -994,7 +999,7 @@ func (e *RedisEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.Chan
 func (e *RedisEngine) PublishControl(message *proto.ControlMessage) <-chan error {
 	eChan := make(chan error, 1)
 
-	byteMessage, err := encodeEngineControlMessage(message)
+	byteMessage, err := message.Marshal()
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -1014,7 +1019,7 @@ func (e *RedisEngine) PublishControl(message *proto.ControlMessage) <-chan error
 func (e *RedisEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	eChan := make(chan error, 1)
 
-	byteMessage, err := encodeEngineAdminMessage(message)
+	byteMessage, err := message.Marshal()
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -1215,69 +1220,4 @@ func (e *RedisEngine) Channels() ([]string, error) {
 		}
 	}
 	return channels, nil
-}
-
-func decodeEngineClientMessage(data []byte) (*proto.Message, error) {
-	var msg proto.Message
-	err := msg.Unmarshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return &msg, nil
-}
-
-func decodeEngineJoinMessage(data []byte) (*proto.JoinMessage, error) {
-	var msg proto.JoinMessage
-	err := msg.Unmarshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return &msg, nil
-}
-
-func decodeEngineLeaveMessage(data []byte) (*proto.LeaveMessage, error) {
-	var msg proto.LeaveMessage
-	err := msg.Unmarshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return &msg, nil
-}
-
-func decodeEngineControlMessage(data []byte) (*proto.ControlMessage, error) {
-	var msg proto.ControlMessage
-	err := msg.Unmarshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return &msg, nil
-}
-
-func decodeEngineAdminMessage(data []byte) (*proto.AdminMessage, error) {
-	var msg proto.AdminMessage
-	err := msg.Unmarshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return &msg, nil
-}
-
-func encodeEngineClientMessage(msg *proto.Message) ([]byte, error) {
-	return msg.Marshal()
-}
-
-func encodeEngineJoinMessage(msg *proto.JoinMessage) ([]byte, error) {
-	return msg.Marshal()
-}
-
-func encodeEngineLeaveMessage(msg *proto.LeaveMessage) ([]byte, error) {
-	return msg.Marshal()
-}
-
-func encodeEngineControlMessage(msg *proto.ControlMessage) ([]byte, error) {
-	return msg.Marshal()
-}
-
-func encodeEngineAdminMessage(msg *proto.AdminMessage) ([]byte, error) {
-	return msg.Marshal()
 }

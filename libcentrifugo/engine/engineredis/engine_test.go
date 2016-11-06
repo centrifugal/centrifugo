@@ -1,7 +1,6 @@
 package engineredis
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"net"
@@ -274,51 +273,4 @@ func TestHandleClientMessage(t *testing.T) {
 	byteLeaveMsg, _ := testLeaveMsg.Marshal()
 	err = e.handleRedisClientMessage(chID, byteLeaveMsg)
 	assert.Equal(t, nil, err)
-}
-
-func TestEngineEncodeDecode(t *testing.T) {
-	message := proto.NewMessage(string("encode_decode_test"), []byte("{}"), "", nil)
-	byteMessage, err := encodeEngineClientMessage(message)
-	assert.Equal(t, nil, err)
-	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))
-
-	decodedMessage, err := decodeEngineClientMessage(byteMessage)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, "encode_decode_test", decodedMessage.Channel)
-
-	joinMessage := proto.NewJoinMessage(string("encode_decode_test"), proto.ClientInfo{})
-	byteMessage, err = encodeEngineJoinMessage(joinMessage)
-	assert.Equal(t, nil, err)
-	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))
-
-	decodedJoinMessage, err := decodeEngineJoinMessage(byteMessage)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, "encode_decode_test", decodedJoinMessage.Channel)
-
-	leaveMessage := proto.NewLeaveMessage(string("encode_decode_test"), proto.ClientInfo{})
-	byteMessage, err = encodeEngineLeaveMessage(leaveMessage)
-	assert.Equal(t, nil, err)
-	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))
-
-	decodedLeaveMessage, err := decodeEngineLeaveMessage(byteMessage)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, "encode_decode_test", decodedLeaveMessage.Channel)
-
-	controlMessage := proto.NewControlMessage("test_encode_decode_uid", "ping", []byte("{}"))
-	byteMessage, err = encodeEngineControlMessage(controlMessage)
-	assert.Equal(t, nil, err)
-	assert.True(t, bytes.Contains(byteMessage, []byte("test_encode_decode_uid")))
-
-	decodedControlMessage, err := decodeEngineControlMessage(byteMessage)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, "test_encode_decode_uid", decodedControlMessage.UID)
-
-	adminMessage := proto.NewAdminMessage("test_encode_decode", []byte("{}"))
-	byteMessage, err = encodeEngineAdminMessage(adminMessage)
-	assert.Equal(t, nil, err)
-	assert.True(t, bytes.Contains(byteMessage, []byte("test_encode_decode")))
-
-	decodedAdminMessage, err := decodeEngineAdminMessage(byteMessage)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, "test_encode_decode", decodedAdminMessage.Method)
 }

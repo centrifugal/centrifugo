@@ -1,6 +1,7 @@
 package proto
 
 import (
+	"bytes"
 	"encoding/json"
 	"strconv"
 	"strings"
@@ -32,6 +33,53 @@ func TestMarshalUnmarshal(t *testing.T) {
 	var newMsg Message
 	newMsg.Unmarshal(encoded)
 	assert.Equal(t, string(data), string(newMsg.Data))
+}
+
+func TestEngineEncodeDecode(t *testing.T) {
+	message := NewMessage(string("encode_decode_test"), []byte("{}"), "", nil)
+	byteMessage, err := message.Marshal()
+	assert.Equal(t, nil, err)
+	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))
+	var decodedMessage Message
+	err = decodedMessage.Unmarshal(byteMessage)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "encode_decode_test", decodedMessage.Channel)
+
+	joinMessage := NewJoinMessage(string("encode_decode_test"), ClientInfo{})
+	byteMessage, err = joinMessage.Marshal()
+	assert.Equal(t, nil, err)
+	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))
+	var decodedJoinMessage JoinMessage
+	err = decodedJoinMessage.Unmarshal(byteMessage)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "encode_decode_test", decodedJoinMessage.Channel)
+
+	leaveMessage := NewLeaveMessage(string("encode_decode_test"), ClientInfo{})
+	byteMessage, err = leaveMessage.Marshal()
+	assert.Equal(t, nil, err)
+	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))
+	var decodedLeaveMessage LeaveMessage
+	err = decodedLeaveMessage.Unmarshal(byteMessage)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "encode_decode_test", decodedLeaveMessage.Channel)
+
+	controlMessage := NewControlMessage("test_encode_decode_uid", "ping", []byte("{}"))
+	byteMessage, err = controlMessage.Marshal()
+	assert.Equal(t, nil, err)
+	assert.True(t, bytes.Contains(byteMessage, []byte("test_encode_decode_uid")))
+	var decodedControlMessage ControlMessage
+	err = decodedControlMessage.Unmarshal(byteMessage)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "test_encode_decode_uid", decodedControlMessage.UID)
+
+	adminMessage := NewAdminMessage("test_encode_decode", []byte("{}"))
+	byteMessage, err = adminMessage.Marshal()
+	assert.Equal(t, nil, err)
+	assert.True(t, bytes.Contains(byteMessage, []byte("test_encode_decode")))
+	var decodedAdminMessage AdminMessage
+	err = decodedAdminMessage.Unmarshal(byteMessage)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, "test_encode_decode", decodedAdminMessage.Method)
 }
 
 func BenchmarkClientResponseMarshalJSON(b *testing.B) {
