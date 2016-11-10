@@ -35,38 +35,38 @@
 		{
 			"checksumSHA1": "aXC93Lo0MY4HRMSF7ANJ97VtulM=",
 			"path": "github.com/gogo/protobuf/gogoproto",
-			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
-			"revisionTime": "2016-10-14T17:32:44Z"
+			"revision": "8d70fb3182befc465c4a1eac8ad4d38ff49778e2",
+			"revisionTime": "2016-11-05T09:51:13Z"
 		},
 		{
 			"checksumSHA1": "aW+WIBMwERhkkduCmifqL/umXpo=",
 			"path": "github.com/gogo/protobuf/jsonpb",
-			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
-			"revisionTime": "2016-10-14T17:32:44Z"
+			"revision": "8d70fb3182befc465c4a1eac8ad4d38ff49778e2",
+			"revisionTime": "2016-11-05T09:51:13Z"
 		},
 		{
-			"checksumSHA1": "2eIRbxeMUEF1ZnOanJhXmFR7pFs=",
+			"checksumSHA1": "oDNpaVF/BHUyme8A7RoBAH2q6is=",
 			"path": "github.com/gogo/protobuf/proto",
-			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
-			"revisionTime": "2016-10-14T17:32:44Z"
+			"revision": "8d70fb3182befc465c4a1eac8ad4d38ff49778e2",
+			"revisionTime": "2016-11-05T09:51:13Z"
 		},
 		{
 			"checksumSHA1": "zVCBnBzjkmL1Gkll/7IbpKKprmw=",
 			"path": "github.com/gogo/protobuf/protoc-gen-gogo/descriptor",
-			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
-			"revisionTime": "2016-10-14T17:32:44Z"
+			"revision": "8d70fb3182befc465c4a1eac8ad4d38ff49778e2",
+			"revisionTime": "2016-11-05T09:51:13Z"
 		},
 		{
 			"checksumSHA1": "HPVQZu059/Rfw2bAWM538bVTcUc=",
 			"path": "github.com/gogo/protobuf/sortkeys",
-			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
-			"revisionTime": "2016-10-14T17:32:44Z"
+			"revision": "8d70fb3182befc465c4a1eac8ad4d38ff49778e2",
+			"revisionTime": "2016-11-05T09:51:13Z"
 		},
 		{
-			"checksumSHA1": "oKk4xoyMaBIZN1XME2COciqxd18=",
+			"checksumSHA1": "dNP+nzQsPeiDus11f+cJBrgpUao=",
 			"path": "github.com/gogo/protobuf/types",
-			"revision": "50d1bd39ce4e7a96b75e3e040be9caf79dbb4c61",
-			"revisionTime": "2016-10-14T17:32:44Z"
+			"revision": "8d70fb3182befc465c4a1eac8ad4d38ff49778e2",
+			"revisionTime": "2016-11-05T09:51:13Z"
 		},
 		{
 			"checksumSHA1": "SGSXlSU1TFtg5aTlVA9v4Ka86lU=",
@@ -75,10 +75,10 @@
 			"revisionTime": "2015-08-20T08:29:58Z"
 		},
 		{
-			"checksumSHA1": "O9Gjl1F5NFZoi4HgmkQohzwl+dk=",
+			"checksumSHA1": "SmBqqqR0T+1Ksx5zwCl295Vey0s=",
 			"path": "github.com/gorilla/websocket",
-			"revision": "0b847f2facc24ec406130a05bb1bb72d41993b05",
-			"revisionTime": "2016-10-21T19:35:05Z"
+			"revision": "9fbf129ff2a3cf2467f7d0021de2eb4d3aecc109",
+			"revisionTime": "2016-11-02T20:04:59Z"
 		},
 		{
 			"checksumSHA1": "LUrnGREfnifW4WDMaavmc9MlLI0=",
@@ -87,8 +87,10 @@
 			"revisionTime": "2016-08-08T18:12:53Z"
 		},
 		{
+			"checksumSHA1": "i8Yom1KrpDKwjlGH/gpJGAQmo68=",
 			"path": "github.com/nats-io/nuid",
-			"revision": "a5152d67cf63cbfb5d992a395458722a45194715"
+			"revision": "289cccf02c178dc782430d534e3c1f5b72af807f",
+			"revisionTime": "2016-09-27T04:49:45Z"
 		},
 		{
 			"checksumSHA1": "8Y05Pz7onrQPcVWW6JStSsYRh6E=",
@@ -109,8 +111,10 @@
 			"revisionTime": "2016-03-22T00:45:35Z"
 		},
 		{
+			"checksumSHA1": "zmC8/3V4ls53DJlNTKDZwPSC/dA=",
 			"path": "github.com/satori/go.uuid",
-			"revision": "08f0718b61e95ddba0ade3346725fe0e4bf28ca6"
+			"revision": "b061729afc07e77a8aa4fad0a2fd840958f1942a",
+			"revisionTime": "2016-09-27T10:08:44Z"
 		},
 		{
 			"checksumSHA1": "F5PKdeFzODdoAChY/aEiEDaNWtQ=",
@@ -139,12 +143,13 @@
 			"revision": "dab07ac62d4905d3e48d17dc549c684ac3b7c15a"
 		},
 		{
-			"checksumSHA1": "UH0Z+bfd+2InukxI++fxbYa0/ME=",
+			"checksumSHA1": "LTOa3BADhwvT0wFCknPueQALm8I=",
 			"path": "github.com/valyala/bytebufferpool",
-			"revision": "a517d2d1537f5b02e9f6c23d4794160c6c2bc157",
-			"revisionTime": "2016-07-01T19:46:08Z"
+			"revision": "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7",
+			"revisionTime": "2016-08-17T18:16:52Z"
 		},
 		{
+			"checksumSHA1": "oB90iPjWGKrGCtcuelz6n/noKD4=",
 			"path": "gopkg.in/igm/sockjs-go.v2/sockjs",
 			"revision": "1e8c8f7f3832bd1fadc93ea672f82d22d45c1c34",
 			"revisionTime": "2016-10-18T09:56:49Z"

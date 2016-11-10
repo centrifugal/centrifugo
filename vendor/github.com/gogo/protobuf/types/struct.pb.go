@@ -766,24 +766,24 @@ func extensionToGoStringStruct(m github_com_gogo_protobuf_proto.Message) string 
 	s += strings.Join(ss, ",") + "})"
 	return s
 }
-func (m *Struct) Marshal() (data []byte, err error) {
+func (m *Struct) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *Struct) MarshalTo(data []byte) (int, error) {
+func (m *Struct) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.Fields) > 0 {
 		for k := range m.Fields {
-			data[i] = 0xa
+			dAtA[i] = 0xa
 			i++
 			v := m.Fields[k]
 			msgSize := 0
@@ -792,16 +792,16 @@ func (m *Struct) MarshalTo(data []byte) (int, error) {
 				msgSize += 1 + sovStruct(uint64(msgSize))
 			}
 			mapSize := 1 + len(k) + sovStruct(uint64(len(k))) + msgSize
-			i = encodeVarintStruct(data, i, uint64(mapSize))
-			data[i] = 0xa
+			i = encodeVarintStruct(dAtA, i, uint64(mapSize))
+			dAtA[i] = 0xa
 			i++
-			i = encodeVarintStruct(data, i, uint64(len(k)))
-			i += copy(data[i:], k)
+			i = encodeVarintStruct(dAtA, i, uint64(len(k)))
+			i += copy(dAtA[i:], k)
 			if v != nil {
-				data[i] = 0x12
+				dAtA[i] = 0x12
 				i++
-				i = encodeVarintStruct(data, i, uint64(v.Size()))
-				n1, err := v.MarshalTo(data[i:])
+				i = encodeVarintStruct(dAtA, i, uint64(v.Size()))
+				n1, err := v.MarshalTo(dAtA[i:])
 				if err != nil {
 					return 0, err
 				}
@@ -812,23 +812,23 @@ func (m *Struct) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Value) Marshal() (data []byte, err error) {
+func (m *Value) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *Value) MarshalTo(data []byte) (int, error) {
+func (m *Value) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if m.Kind != nil {
-		nn2, err := m.Kind.MarshalTo(data[i:])
+		nn2, err := m.Kind.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -837,47 +837,47 @@ func (m *Value) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Value_NullValue) MarshalTo(data []byte) (int, error) {
+func (m *Value_NullValue) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	data[i] = 0x8
+	dAtA[i] = 0x8
 	i++
-	i = encodeVarintStruct(data, i, uint64(m.NullValue))
+	i = encodeVarintStruct(dAtA, i, uint64(m.NullValue))
 	return i, nil
 }
-func (m *Value_NumberValue) MarshalTo(data []byte) (int, error) {
+func (m *Value_NumberValue) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	data[i] = 0x11
+	dAtA[i] = 0x11
 	i++
-	i = encodeFixed64Struct(data, i, uint64(math.Float64bits(float64(m.NumberValue))))
+	i = encodeFixed64Struct(dAtA, i, uint64(math.Float64bits(float64(m.NumberValue))))
 	return i, nil
 }
-func (m *Value_StringValue) MarshalTo(data []byte) (int, error) {
+func (m *Value_StringValue) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	data[i] = 0x1a
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintStruct(data, i, uint64(len(m.StringValue)))
-	i += copy(data[i:], m.StringValue)
+	i = encodeVarintStruct(dAtA, i, uint64(len(m.StringValue)))
+	i += copy(dAtA[i:], m.StringValue)
 	return i, nil
 }
-func (m *Value_BoolValue) MarshalTo(data []byte) (int, error) {
+func (m *Value_BoolValue) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	data[i] = 0x20
+	dAtA[i] = 0x20
 	i++
 	if m.BoolValue {
-		data[i] = 1
+		dAtA[i] = 1
 	} else {
-		data[i] = 0
+		dAtA[i] = 0
 	}
 	i++
 	return i, nil
 }
-func (m *Value_StructValue) MarshalTo(data []byte) (int, error) {
+func (m *Value_StructValue) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
 	if m.StructValue != nil {
-		data[i] = 0x2a
+		dAtA[i] = 0x2a
 		i++
-		i = encodeVarintStruct(data, i, uint64(m.StructValue.Size()))
-		n3, err := m.StructValue.MarshalTo(data[i:])
+		i = encodeVarintStruct(dAtA, i, uint64(m.StructValue.Size()))
+		n3, err := m.StructValue.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -885,13 +885,13 @@ func (m *Value_StructValue) MarshalTo(data []byte) (int, error) {
 	}
 	return i, nil
 }
-func (m *Value_ListValue) MarshalTo(data []byte) (int, error) {
+func (m *Value_ListValue) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
 	if m.ListValue != nil {
-		data[i] = 0x32
+		dAtA[i] = 0x32
 		i++
-		i = encodeVarintStruct(data, i, uint64(m.ListValue.Size()))
-		n4, err := m.ListValue.MarshalTo(data[i:])
+		i = encodeVarintStruct(dAtA, i, uint64(m.ListValue.Size()))
+		n4, err := m.ListValue.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -899,27 +899,27 @@ func (m *Value_ListValue) MarshalTo(data []byte) (int, error) {
 	}
 	return i, nil
 }
-func (m *ListValue) Marshal() (data []byte, err error) {
+func (m *ListValue) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ListValue) MarshalTo(data []byte) (int, error) {
+func (m *ListValue) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.Values) > 0 {
 		for _, msg := range m.Values {
-			data[i] = 0xa
+			dAtA[i] = 0xa
 			i++
-			i = encodeVarintStruct(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintStruct(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -929,31 +929,31 @@ func (m *ListValue) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func encodeFixed64Struct(data []byte, offset int, v uint64) int {
-	data[offset] = uint8(v)
-	data[offset+1] = uint8(v >> 8)
-	data[offset+2] = uint8(v >> 16)
-	data[offset+3] = uint8(v >> 24)
-	data[offset+4] = uint8(v >> 32)
-	data[offset+5] = uint8(v >> 40)
-	data[offset+6] = uint8(v >> 48)
-	data[offset+7] = uint8(v >> 56)
+func encodeFixed64Struct(dAtA []byte, offset int, v uint64) int {
+	dAtA[offset] = uint8(v)
+	dAtA[offset+1] = uint8(v >> 8)
+	dAtA[offset+2] = uint8(v >> 16)
+	dAtA[offset+3] = uint8(v >> 24)
+	dAtA[offset+4] = uint8(v >> 32)
+	dAtA[offset+5] = uint8(v >> 40)
+	dAtA[offset+6] = uint8(v >> 48)
+	dAtA[offset+7] = uint8(v >> 56)
 	return offset + 8
 }
-func encodeFixed32Struct(data []byte, offset int, v uint32) int {
-	data[offset] = uint8(v)
-	data[offset+1] = uint8(v >> 8)
-	data[offset+2] = uint8(v >> 16)
-	data[offset+3] = uint8(v >> 24)
+func encodeFixed32Struct(dAtA []byte, offset int, v uint32) int {
+	dAtA[offset] = uint8(v)
+	dAtA[offset+1] = uint8(v >> 8)
+	dAtA[offset+2] = uint8(v >> 16)
+	dAtA[offset+3] = uint8(v >> 24)
 	return offset + 4
 }
-func encodeVarintStruct(data []byte, offset int, v uint64) int {
+func encodeVarintStruct(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
-		data[offset] = uint8(v&0x7f | 0x80)
+		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
-	data[offset] = uint8(v)
+	dAtA[offset] = uint8(v)
 	return offset + 1
 }
 func NewPopulatedStruct(r randyStruct, easy bool) *Struct {
@@ -1007,7 +1007,7 @@ func NewPopulatedValue_NumberValue(r randyStruct, easy bool) *Value_NumberValue 
 }
 func NewPopulatedValue_StringValue(r randyStruct, easy bool) *Value_StringValue {
 	this := &Value_StringValue{}
-	this.StringValue = randStringStruct(r)
+	this.StringValue = string(randStringStruct(r))
 	return this
 }
 func NewPopulatedValue_BoolValue(r randyStruct, easy bool) *Value_BoolValue {
@@ -1065,7 +1065,7 @@ func randStringStruct(r randyStruct) string {
 	}
 	return string(tmps)
 }
-func randUnrecognizedStruct(r randyStruct, maxFieldNumber int) (data []byte) {
+func randUnrecognizedStruct(r randyStruct, maxFieldNumber int) (dAtA []byte) {
 	l := r.Intn(5)
 	for i := 0; i < l; i++ {
 		wire := r.Intn(4)
@@ -1073,43 +1073,43 @@ func randUnrecognizedStruct(r randyStruct, maxFieldNumber int) (data []byte) {
 			wire = 5
 		}
 		fieldNumber := maxFieldNumber + r.Intn(100)
-		data = randFieldStruct(data, r, fieldNumber, wire)
+		dAtA = randFieldStruct(dAtA, r, fieldNumber, wire)
 	}
-	return data
+	return dAtA
 }
-func randFieldStruct(data []byte, r randyStruct, fieldNumber int, wire int) []byte {
+func randFieldStruct(dAtA []byte, r randyStruct, fieldNumber int, wire int) []byte {
 	key := uint32(fieldNumber)<<3 | uint32(wire)
 	switch wire {
 	case 0:
-		data = encodeVarintPopulateStruct(data, uint64(key))
+		dAtA = encodeVarintPopulateStruct(dAtA, uint64(key))
 		v4 := r.Int63()
 		if r.Intn(2) == 0 {
 			v4 *= -1
 		}
-		data = encodeVarintPopulateStruct(data, uint64(v4))
+		dAtA = encodeVarintPopulateStruct(dAtA, uint64(v4))
 	case 1:
-		data = encodeVarintPopulateStruct(data, uint64(key))
-		data = append(data, byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)))
+		dAtA = encodeVarintPopulateStruct(dAtA, uint64(key))
+		dAtA = append(dAtA, byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)))
 	case 2:
-		data = encodeVarintPopulateStruct(data, uint64(key))
+		dAtA = encodeVarintPopulateStruct(dAtA, uint64(key))
 		ll := r.Intn(100)
-		data = encodeVarintPopulateStruct(data, uint64(ll))
+		dAtA = encodeVarintPopulateStruct(dAtA, uint64(ll))
 		for j := 0; j < ll; j++ {
-			data = append(data, byte(r.Intn(256)))
+			dAtA = append(dAtA, byte(r.Intn(256)))
 		}
 	default:
-		data = encodeVarintPopulateStruct(data, uint64(key))
-		data = append(data, byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)))
+		dAtA = encodeVarintPopulateStruct(dAtA, uint64(key))
+		dAtA = append(dAtA, byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)))
 	}
-	return data
+	return dAtA
 }
-func encodeVarintPopulateStruct(data []byte, v uint64) []byte {
+func encodeVarintPopulateStruct(dAtA []byte, v uint64) []byte {
 	for v >= 1<<7 {
-		data = append(data, uint8(uint64(v)&0x7f|0x80))
+		dAtA = append(dAtA, uint8(uint64(v)&0x7f|0x80))
 		v >>= 7
 	}
-	data = append(data, uint8(v))
-	return data
+	dAtA = append(dAtA, uint8(v))
+	return dAtA
 }
 func (m *Struct) Size() (n int) {
 	var l int
@@ -1315,8 +1315,8 @@ func valueToStringStruct(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *Struct) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *Struct) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -1328,7 +1328,7 @@ func (m *Struct) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -1356,7 +1356,7 @@ func (m *Struct) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1378,7 +1378,7 @@ func (m *Struct) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				keykey |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1393,7 +1393,7 @@ func (m *Struct) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLenmapkey |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1408,7 +1408,7 @@ func (m *Struct) Unmarshal(data []byte) error {
 			if postStringIndexmapkey > l {
 				return io.ErrUnexpectedEOF
 			}
-			mapkey := string(data[iNdEx:postStringIndexmapkey])
+			mapkey := string(dAtA[iNdEx:postStringIndexmapkey])
 			iNdEx = postStringIndexmapkey
 			if m.Fields == nil {
 				m.Fields = make(map[string]*Value)
@@ -1422,7 +1422,7 @@ func (m *Struct) Unmarshal(data []byte) error {
 					if iNdEx >= l {
 						return io.ErrUnexpectedEOF
 					}
-					b := data[iNdEx]
+					b := dAtA[iNdEx]
 					iNdEx++
 					valuekey |= (uint64(b) & 0x7F) << shift
 					if b < 0x80 {
@@ -1437,7 +1437,7 @@ func (m *Struct) Unmarshal(data []byte) error {
 					if iNdEx >= l {
 						return io.ErrUnexpectedEOF
 					}
-					b := data[iNdEx]
+					b := dAtA[iNdEx]
 					iNdEx++
 					mapmsglen |= (int(b) & 0x7F) << shift
 					if b < 0x80 {
@@ -1455,7 +1455,7 @@ func (m *Struct) Unmarshal(data []byte) error {
 					return io.ErrUnexpectedEOF
 				}
 				mapvalue := &Value{}
-				if err := mapvalue.Unmarshal(data[iNdEx:postmsgIndex]); err != nil {
+				if err := mapvalue.Unmarshal(dAtA[iNdEx:postmsgIndex]); err != nil {
 					return err
 				}
 				iNdEx = postmsgIndex
@@ -1467,7 +1467,7 @@ func (m *Struct) Unmarshal(data []byte) error {
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipStruct(data[iNdEx:])
+			skippy, err := skipStruct(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -1486,8 +1486,8 @@ func (m *Struct) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *Value) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *Value) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -1499,7 +1499,7 @@ func (m *Value) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -1527,7 +1527,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (NullValue(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1544,14 +1544,14 @@ func (m *Value) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			iNdEx += 8
-			v = uint64(data[iNdEx-8])
-			v |= uint64(data[iNdEx-7]) << 8
-			v |= uint64(data[iNdEx-6]) << 16
-			v |= uint64(data[iNdEx-5]) << 24
-			v |= uint64(data[iNdEx-4]) << 32
-			v |= uint64(data[iNdEx-3]) << 40
-			v |= uint64(data[iNdEx-2]) << 48
-			v |= uint64(data[iNdEx-1]) << 56
+			v = uint64(dAtA[iNdEx-8])
+			v |= uint64(dAtA[iNdEx-7]) << 8
+			v |= uint64(dAtA[iNdEx-6]) << 16
+			v |= uint64(dAtA[iNdEx-5]) << 24
+			v |= uint64(dAtA[iNdEx-4]) << 32
+			v |= uint64(dAtA[iNdEx-3]) << 40
+			v |= uint64(dAtA[iNdEx-2]) << 48
+			v |= uint64(dAtA[iNdEx-1]) << 56
 			m.Kind = &Value_NumberValue{float64(math.Float64frombits(v))}
 		case 3:
 			if wireType != 2 {
@@ -1565,7 +1565,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1580,7 +1580,7 @@ func (m *Value) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Kind = &Value_StringValue{string(data[iNdEx:postIndex])}
+			m.Kind = &Value_StringValue{string(dAtA[iNdEx:postIndex])}
 			iNdEx = postIndex
 		case 4:
 			if wireType != 0 {
@@ -1594,7 +1594,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1615,7 +1615,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1630,7 +1630,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			v := &Struct{}
-			if err := v.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			m.Kind = &Value_StructValue{v}
@@ -1647,7 +1647,7 @@ func (m *Value) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1662,14 +1662,14 @@ func (m *Value) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			v := &ListValue{}
-			if err := v.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			m.Kind = &Value_ListValue{v}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipStruct(data[iNdEx:])
+			skippy, err := skipStruct(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -1688,8 +1688,8 @@ func (m *Value) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ListValue) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ListValue) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -1701,7 +1701,7 @@ func (m *ListValue) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -1729,7 +1729,7 @@ func (m *ListValue) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1744,13 +1744,13 @@ func (m *ListValue) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Values = append(m.Values, &Value{})
-			if err := m.Values[len(m.Values)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Values[len(m.Values)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipStruct(data[iNdEx:])
+			skippy, err := skipStruct(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -1769,8 +1769,8 @@ func (m *ListValue) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func skipStruct(data []byte) (n int, err error) {
-	l := len(data)
+func skipStruct(dAtA []byte) (n int, err error) {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		var wire uint64
@@ -1781,7 +1781,7 @@ func skipStruct(data []byte) (n int, err error) {
 			if iNdEx >= l {
 				return 0, io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -1799,7 +1799,7 @@ func skipStruct(data []byte) (n int, err error) {
 					return 0, io.ErrUnexpectedEOF
 				}
 				iNdEx++
-				if data[iNdEx-1] < 0x80 {
+				if dAtA[iNdEx-1] < 0x80 {
 					break
 				}
 			}
@@ -1816,7 +1816,7 @@ func skipStruct(data []byte) (n int, err error) {
 				if iNdEx >= l {
 					return 0, io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				length |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1839,7 +1839,7 @@ func skipStruct(data []byte) (n int, err error) {
 					if iNdEx >= l {
 						return 0, io.ErrUnexpectedEOF
 					}
-					b := data[iNdEx]
+					b := dAtA[iNdEx]
 					iNdEx++
 					innerWire |= (uint64(b) & 0x7F) << shift
 					if b < 0x80 {
@@ -1850,7 +1850,7 @@ func skipStruct(data []byte) (n int, err error) {
 				if innerWireType == 4 {
 					break
 				}
-				next, err := skipStruct(data[start:])
+				next, err := skipStruct(dAtA[start:])
 				if err != nil {
 					return 0, err
 				}
