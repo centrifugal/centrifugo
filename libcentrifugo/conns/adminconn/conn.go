@@ -14,11 +14,6 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-const (
-	// CloseStatus is status code set when closing client connections.
-	CloseStatus = 3000
-)
-
 // checkAdminAuthToken checks admin connection token which Centrifugo returns after admin login.
 func checkAdminAuthToken(n *node.Node, token string) error {
 
