@@ -8,10 +8,6 @@ import (
 	// Register servers.
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/server/httpserver"
 
-	// Register default client and admin connections
-	_ "github.com/centrifugal/centrifugo/libcentrifugo/conns/adminconn"
-	_ "github.com/centrifugal/centrifugo/libcentrifugo/conns/clientconn"
-
 	// Register embedded web interface.
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/statik"
 

@@ -97,42 +97,47 @@ func Main(version string) {
 
 			viper.SetEnvPrefix("centrifugo")
 
-			viper.SetDefault("gomaxprocs", 0)
-			viper.SetDefault("engine", "memory")
-			viper.SetDefault("servers", "http")
-			viper.SetDefault("debug", false)
-			viper.SetDefault("name", "")
+			defaults := map[string]interface{}{
+				"gomaxprocs":                     0,
+				"engine":                         "memory",
+				"servers":                        "http",
+				"debug":                          false,
+				"name":                           "",
+				"secret":                         "",
+				"connection_lifetime":            0,
+				"watch":                          false,
+				"publish":                        false,
+				"anonymous":                      false,
+				"presence":                       false,
+				"history_size":                   0,
+				"history_lifetime":               0,
+				"recover":                        false,
+				"history_drop_inactive":          false,
+				"namespaces":                     "",
+				"max_channel_length":             255,
+				"user_connection_limit":          0,
+				"node_ping_interval":             3,
+				"message_send_timeout":           0,
+				"ping_interval":                  25,
+				"node_metrics_interval":          60,
+				"stale_connection_close_delay":   25,
+				"expired_connection_close_delay": 25,
+				"client_channel_limit":           100,
+				"client_request_max_size":        65536,    // 64KB
+				"client_queue_max_size":          10485760, // 10MB
+				"client_queue_initial_capacity":  2,
+				"presence_ping_interval":         25,
+				"presence_expire_interval":       60,
+				"private_channel_prefix":         "$",
+				"namespace_channel_boundary":     ":",
+				"user_channel_boundary":          "#",
+				"user_channel_separator":         ",",
+				"client_channel_boundary":        "&",
+			}
 
-			viper.SetDefault("max_channel_length", 255)
-			viper.SetDefault("user_connection_limit", 0)
-			viper.SetDefault("node_ping_interval", 3)
-			viper.SetDefault("message_send_timeout", 0)
-			viper.SetDefault("ping_interval", 25)
-			viper.SetDefault("node_metrics_interval", 60)
-			viper.SetDefault("stale_connection_close_delay", 25)
-			viper.SetDefault("expired_connection_close_delay", 25)
-			viper.SetDefault("client_channel_limit", 100)
-			viper.SetDefault("client_request_max_size", 65536)  // 64KB
-			viper.SetDefault("client_queue_max_size", 10485760) // 10MB
-			viper.SetDefault("client_queue_initial_capacity", 2)
-			viper.SetDefault("presence_ping_interval", 25)
-			viper.SetDefault("presence_expire_interval", 60)
-			viper.SetDefault("private_channel_prefix", "$")
-			viper.SetDefault("namespace_channel_boundary", ":")
-			viper.SetDefault("user_channel_boundary", "#")
-			viper.SetDefault("user_channel_separator", ",")
-			viper.SetDefault("client_channel_boundary", "&")
-			viper.SetDefault("secret", "")
-			viper.SetDefault("connection_lifetime", 0)
-			viper.SetDefault("watch", false)
-			viper.SetDefault("publish", false)
-			viper.SetDefault("anonymous", false)
-			viper.SetDefault("presence", false)
-			viper.SetDefault("history_size", 0)
-			viper.SetDefault("history_lifetime", 0)
-			viper.SetDefault("recover", false)
-			viper.SetDefault("history_drop_inactive", false)
-			viper.SetDefault("namespaces", "")
+			for k, v := range defaults {
+				viper.SetDefault(k, v)
+			}
 
 			bindEnvs := []string{
 				"debug", "engine", "insecure", "insecure_api", "admin", "admin_password", "admin_secret",
