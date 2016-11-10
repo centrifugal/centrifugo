@@ -32,6 +32,7 @@ Several internal highlights (mostly for Go developers):
 * client transport now abstracted away - so it would be much easier in future to add new transport in addition/replacement to Websocket/SockJS
 * API abstracted away from protocol - it would be easier in future to add new API requests source.
 * no performance penalty was introduced during this refactoring.
+* go1.7.3 used for builds.
 
 
 v1.5.1
