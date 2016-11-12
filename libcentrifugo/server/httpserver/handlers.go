@@ -332,44 +332,9 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-var (
-	arrayJSONPrefix  byte = '['
-	objectJSONPrefix byte = '{'
-)
-
-func apiCommandsFromJSON(msg []byte) ([]proto.ApiCommand, error) {
-	var cmds []proto.ApiCommand
-
-	if len(msg) == 0 {
-		return cmds, nil
-	}
-
-	firstByte := msg[0]
-
-	switch firstByte {
-	case objectJSONPrefix:
-		// single command request
-		var command proto.ApiCommand
-		err := json.Unmarshal(msg, &command)
-		if err != nil {
-			return nil, err
-		}
-		cmds = append(cmds, command)
-	case arrayJSONPrefix:
-		// array of commands received
-		err := json.Unmarshal(msg, &cmds)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, proto.ErrInvalidMessage
-	}
-	return cmds, nil
-}
-
 func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 
-	commands, err := apiCommandsFromJSON(data)
+	commands, err := apiv1.APICommandsFromJSON(data)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return nil, proto.ErrInvalidMessage
@@ -378,7 +343,7 @@ func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 	var mr proto.MultiAPIResponse
 
 	for _, command := range commands {
-		resp, err := apiv1.APICmd(s.node, command, nil)
+		resp, err := apiv1.APICmd(s.node, command)
 		if err != nil {
 			logger.ERROR.Println(err)
 			return nil, proto.ErrInvalidMessage

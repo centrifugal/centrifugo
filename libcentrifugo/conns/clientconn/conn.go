@@ -143,7 +143,11 @@ func (c *client) sendMessage(msg []byte) error {
 		to := time.After(sendTimeout)
 		sent := make(chan error)
 		go func() {
-			sent <- c.sess.Send(msg)
+			select {
+			case sent <- c.sess.Send(msg):
+			case <-c.closeCh:
+				return
+			}
 		}()
 		select {
 		case err := <-sent:

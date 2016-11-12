@@ -8,10 +8,43 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
-type APIOptions struct{}
+var (
+	arrayJSONPrefix  byte = '['
+	objectJSONPrefix byte = '{'
+)
+
+func APICommandsFromJSON(msg []byte) ([]proto.ApiCommand, error) {
+	var cmds []proto.ApiCommand
+
+	if len(msg) == 0 {
+		return cmds, nil
+	}
+
+	firstByte := msg[0]
+
+	switch firstByte {
+	case objectJSONPrefix:
+		// single command request
+		var command proto.ApiCommand
+		err := json.Unmarshal(msg, &command)
+		if err != nil {
+			return nil, err
+		}
+		cmds = append(cmds, command)
+	case arrayJSONPrefix:
+		// array of commands received
+		err := json.Unmarshal(msg, &cmds)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, proto.ErrInvalidMessage
+	}
+	return cmds, nil
+}
 
 // APICmd builds API command and dispatches it into correct handler method.
-func APICmd(n *node.Node, cmd proto.ApiCommand, opts *APIOptions) (proto.Response, error) {
+func APICmd(n *node.Node, cmd proto.ApiCommand) (proto.Response, error) {
 
 	var err error
 	var resp proto.Response
@@ -90,6 +123,7 @@ func APICmd(n *node.Node, cmd proto.ApiCommand, opts *APIOptions) (proto.Respons
 func PublishCmd(n *node.Node, cmd *proto.PublishAPICommand) (proto.Response, error) {
 	ch := cmd.Channel
 	data := cmd.Data
+	client := cmd.Client
 
 	if string(ch) == "" || len(data) == 0 {
 		return nil, proto.ErrInvalidMessage
@@ -103,7 +137,7 @@ func PublishCmd(n *node.Node, cmd *proto.PublishAPICommand) (proto.Response, err
 		return resp, nil
 	}
 
-	message := proto.NewMessage(ch, data, cmd.Client, nil)
+	message := proto.NewMessage(ch, data, client, nil)
 	if chOpts.Watch {
 		byteMessage, err := json.Marshal(message)
 		if err != nil {
@@ -124,19 +158,25 @@ func PublishCmd(n *node.Node, cmd *proto.PublishAPICommand) (proto.Response, err
 
 // BroadcastCmd publishes data into multiple channels.
 func BroadcastCmd(n *node.Node, cmd *proto.BroadcastAPICommand) (proto.Response, error) {
+
 	resp := proto.NewAPIBroadcastResponse()
+
 	channels := cmd.Channels
 	data := cmd.Data
+	client := cmd.Client
+
 	if len(channels) == 0 {
 		logger.ERROR.Println("channels required for broadcast")
 		resp.SetErr(proto.ResponseError{proto.ErrInvalidMessage, proto.ErrorAdviceFix})
 		return resp, nil
 	}
+
 	if len(data) == 0 {
 		logger.ERROR.Println("empty data")
 		resp.SetErr(proto.ResponseError{proto.ErrInvalidMessage, proto.ErrorAdviceFix})
 		return resp, nil
 	}
+
 	errs := make([]<-chan error, len(channels))
 	for i, ch := range channels {
 
@@ -151,7 +191,7 @@ func BroadcastCmd(n *node.Node, cmd *proto.BroadcastAPICommand) (proto.Response,
 			return resp, nil
 		}
 
-		message := proto.NewMessage(ch, data, cmd.Client, nil)
+		message := proto.NewMessage(ch, data, client, nil)
 		if chOpts.Watch {
 			byteMessage, err := json.Marshal(message)
 			if err != nil {
@@ -183,9 +223,12 @@ func BroadcastCmd(n *node.Node, cmd *proto.BroadcastAPICommand) (proto.Response,
 // UnsubscribeCmd unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes.
 func UnsubcribeCmd(n *node.Node, cmd *proto.UnsubscribeAPICommand) (proto.Response, error) {
+
 	resp := proto.NewAPIUnsubscribeResponse()
-	channel := cmd.Channel
+
 	user := cmd.User
+	channel := cmd.Channel
+
 	err := n.Unsubscribe(user, channel)
 	if err != nil {
 		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceNone})
@@ -197,9 +240,12 @@ func UnsubcribeCmd(n *node.Node, cmd *proto.UnsubscribeAPICommand) (proto.Respon
 // DisconnectCmd disconnects user by its ID and sends disconnect
 // control message to other nodes so they could also disconnect this user.
 func DisconnectCmd(n *node.Node, cmd *proto.DisconnectAPICommand) (proto.Response, error) {
+
 	resp := proto.NewAPIDisconnectResponse()
+
 	user := cmd.User
-	err := n.Disconnect(user)
+
+	err := n.Disconnect(user, false)
 	if err != nil {
 		resp.SetErr(proto.ResponseError{err, proto.ErrorAdviceNone})
 		return resp, nil

@@ -58,41 +58,6 @@ type adminClient struct {
 	messages      bytequeue.ByteQueue
 }
 
-var (
-	arrayJSONPrefix  byte = '['
-	objectJSONPrefix byte = '{'
-)
-
-func apiCommandsFromJSON(msg []byte) ([]proto.ApiCommand, error) {
-	var cmds []proto.ApiCommand
-
-	if len(msg) == 0 {
-		return cmds, nil
-	}
-
-	firstByte := msg[0]
-
-	switch firstByte {
-	case objectJSONPrefix:
-		// single command request
-		var command proto.ApiCommand
-		err := json.Unmarshal(msg, &command)
-		if err != nil {
-			return nil, err
-		}
-		cmds = append(cmds, command)
-	case arrayJSONPrefix:
-		// array of commands received
-		err := json.Unmarshal(msg, &cmds)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, proto.ErrInvalidMessage
-	}
-	return cmds, nil
-}
-
 func New(n *node.Node, sess conns.Session) (conns.AdminConn, error) {
 	c := &adminClient{
 		uid:           uuid.NewV4().String(),
@@ -200,7 +165,7 @@ func (c *adminClient) Send(message []byte) error {
 // Handle handles message received from admin connection
 func (c *adminClient) Handle(msg []byte) error {
 
-	cmds, err := apiCommandsFromJSON(msg)
+	cmds, err := apiv1.APICommandsFromJSON(msg)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return proto.ErrInvalidMessage
@@ -237,7 +202,7 @@ func (c *adminClient) Handle(msg []byte) error {
 		case "info":
 			resp, err = c.infoCmd()
 		default:
-			resp, err = apiv1.APICmd(c.node, command, nil)
+			resp, err = apiv1.APICmd(c.node, command)
 		}
 		if err != nil {
 			c.Unlock()

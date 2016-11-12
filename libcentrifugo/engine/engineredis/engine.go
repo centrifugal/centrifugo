@@ -583,7 +583,7 @@ func (e *RedisEngine) runAPI() {
 						continue
 					}
 					for _, command := range req.Data {
-						_, err := apiv1.APICmd(e.node, command, nil)
+						err := apiCmd(e.node, command)
 						if err != nil {
 							logger.ERROR.Println(err)
 						}
@@ -1220,4 +1220,46 @@ func (e *RedisEngine) Channels() ([]string, error) {
 		}
 	}
 	return channels, nil
+}
+
+func apiCmd(n *node.Node, cmd proto.ApiCommand) error {
+
+	var err error
+
+	method := cmd.Method
+	params := cmd.Params
+
+	switch method {
+	case "publish":
+		var cmd proto.PublishAPICommand
+		err = json.Unmarshal(params, &cmd)
+		if err != nil {
+			return err
+		}
+		_, err = apiv1.PublishCmd(n, &cmd)
+	case "broadcast":
+		var cmd proto.BroadcastAPICommand
+		err = json.Unmarshal(params, &cmd)
+		if err != nil {
+			return err
+		}
+		_, err = apiv1.BroadcastCmd(n, &cmd)
+	case "unsubscribe":
+		var cmd proto.UnsubscribeAPICommand
+		err = json.Unmarshal(params, &cmd)
+		if err != nil {
+			return err
+		}
+		_, err = apiv1.UnsubcribeCmd(n, &cmd)
+	case "disconnect":
+		var cmd proto.DisconnectAPICommand
+		err = json.Unmarshal(params, &cmd)
+		if err != nil {
+			return err
+		}
+		_, err = apiv1.DisconnectCmd(n, &cmd)
+	default:
+		return nil
+	}
+	return err
 }

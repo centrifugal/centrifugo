@@ -441,7 +441,7 @@ func (n *Node) ControlMsg(cmd *proto.ControlMessage) error {
 			logger.ERROR.Println(err)
 			return proto.ErrInvalidMessage
 		}
-		return n.disconnectUser(cmd.User)
+		return n.disconnectUser(cmd.User, false)
 	default:
 		logger.ERROR.Println("unknown control message method", method)
 		return proto.ErrInvalidMessage
@@ -631,7 +631,7 @@ func (n *Node) pubUnsubscribe(user string, ch string) error {
 
 // pubDisconnect publishes disconnect control message to all nodes – so all
 // nodes could disconnect user from Centrifugo.
-func (n *Node) pubDisconnect(user string) error {
+func (n *Node) pubDisconnect(user string, reconnect bool) error {
 
 	cmd := &proto.DisconnectControlCommand{
 		User: user,
@@ -747,21 +747,20 @@ func (n *Node) unsubscribeUser(user string, ch string) error {
 	return nil
 }
 
-// Disconnect allows to close all user connections to Centrifugo. Note that user still
-// can try to reconnect to the server after being disconnected.
-func (n *Node) Disconnect(user string) error {
+// Disconnect allows to close all user connections to Centrifugo.
+func (n *Node) Disconnect(user string, reconnect bool) error {
 
 	if string(user) == "" {
 		return proto.ErrInvalidMessage
 	}
 
 	// first disconnect user from this node
-	err := n.disconnectUser(user)
+	err := n.disconnectUser(user, reconnect)
 	if err != nil {
 		return proto.ErrInternalServerError
 	}
 	// second send disconnect control message to other nodes
-	err = n.pubDisconnect(user)
+	err = n.pubDisconnect(user, reconnect)
 	if err != nil {
 		return proto.ErrInternalServerError
 	}
@@ -769,9 +768,9 @@ func (n *Node) Disconnect(user string) error {
 }
 
 // disconnectUser closes client connections of user on current node.
-func (n *Node) disconnectUser(user string) error {
+func (n *Node) disconnectUser(user string, reconnect bool) error {
 	userConnections := n.clients.UserConnections(user)
-	advice := &conns.DisconnectAdvice{Reason: "disconnect", Reconnect: false}
+	advice := &conns.DisconnectAdvice{Reason: "disconnect", Reconnect: reconnect}
 	for _, c := range userConnections {
 		go func(cc conns.ClientConn) {
 			cc.Close(advice)
