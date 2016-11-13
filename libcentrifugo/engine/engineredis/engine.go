@@ -503,7 +503,7 @@ func (e *RedisEngine) Shutdown() error {
 }
 
 type redisAPIRequest struct {
-	Data []proto.ApiCommand
+	Data []proto.APICommand
 }
 
 // runForever simple keeps another function running indefinitely
@@ -1222,7 +1222,7 @@ func (e *RedisEngine) Channels() ([]string, error) {
 	return channels, nil
 }
 
-func apiCmd(n *node.Node, cmd proto.ApiCommand) error {
+func apiCmd(n *node.Node, cmd proto.APICommand) error {
 
 	var err error
 

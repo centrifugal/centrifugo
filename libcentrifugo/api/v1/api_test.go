@@ -159,28 +159,28 @@ func NewTestNodeWithConfig(c *node.Config) *node.Node {
 func TestAPICmd(t *testing.T) {
 	app := NewTestNode()
 
-	cmd := proto.ApiCommand{
+	cmd := proto.APICommand{
 		Method: "nonexistent",
 		Params: []byte("{}"),
 	}
 	_, err := APICmd(app, cmd)
 	assert.Equal(t, err, proto.ErrMethodNotFound)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "publish",
 		Params: []byte("{}"),
 	}
 	_, err = APICmd(app, cmd)
 	assert.Equal(t, err, proto.ErrInvalidMessage)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "publish",
 		Params: []byte("test"),
 	}
 	_, err = APICmd(app, cmd)
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "broadcast",
 		Params: []byte("{}"),
 	}
@@ -188,14 +188,14 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "broadcast",
 		Params: []byte("test"),
 	}
 	_, err = APICmd(app, cmd)
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "unsubscribe",
 		Params: []byte("{}"),
 	}
@@ -203,14 +203,14 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIUnsubscribeResponse).ResponseError.Err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "unsubscribe",
 		Params: []byte("test"),
 	}
 	_, err = APICmd(app, cmd)
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "disconnect",
 		Params: []byte("{}"),
 	}
@@ -218,14 +218,14 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIDisconnectResponse).ResponseError.Err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "disconnect",
 		Params: []byte("test"),
 	}
 	_, err = APICmd(app, cmd)
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "presence",
 		Params: []byte("{}"),
 	}
@@ -233,14 +233,14 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIPresenceResponse).ResponseError.Err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "presence",
 		Params: []byte("test"),
 	}
 	_, err = APICmd(app, cmd)
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "history",
 		Params: []byte("{}"),
 	}
@@ -248,14 +248,14 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrInvalidMessage, resp.(*proto.APIHistoryResponse).ResponseError.Err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "history",
 		Params: []byte("test"),
 	}
 	_, err = APICmd(app, cmd)
 	assert.Equal(t, proto.ErrInvalidMessage, err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "channels",
 		Params: []byte("{}"),
 	}
@@ -263,7 +263,7 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIChannelsResponse).ResponseError.Err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "stats",
 		Params: []byte("{}"),
 	}
@@ -271,7 +271,7 @@ func TestAPICmd(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIStatsResponse).ResponseError.Err)
 
-	cmd = proto.ApiCommand{
+	cmd = proto.APICommand{
 		Method: "node",
 		Params: []byte("{}"),
 	}

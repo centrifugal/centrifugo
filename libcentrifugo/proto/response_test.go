@@ -60,7 +60,7 @@ func TestClientResponse(t *testing.T) {
 func TestAdminMessageResponse(t *testing.T) {
 	data := raw.Raw([]byte("test"))
 	resp := NewAdminMessageResponse(data)
-	assert.Equal(t, "message", resp.(*AdminMessageResponse).Method)
+	assert.Equal(t, "message", resp.Method)
 }
 
 // TestClientMessageMarshalManual tests valid using of buffer pools

@@ -13,8 +13,8 @@ var (
 	objectJSONPrefix byte = '{'
 )
 
-func APICommandsFromJSON(msg []byte) ([]proto.ApiCommand, error) {
-	var cmds []proto.ApiCommand
+func APICommandsFromJSON(msg []byte) ([]proto.APICommand, error) {
+	var cmds []proto.APICommand
 
 	if len(msg) == 0 {
 		return cmds, nil
@@ -25,7 +25,7 @@ func APICommandsFromJSON(msg []byte) ([]proto.ApiCommand, error) {
 	switch firstByte {
 	case objectJSONPrefix:
 		// single command request
-		var command proto.ApiCommand
+		var command proto.APICommand
 		err := json.Unmarshal(msg, &command)
 		if err != nil {
 			return nil, err
@@ -44,7 +44,7 @@ func APICommandsFromJSON(msg []byte) ([]proto.ApiCommand, error) {
 }
 
 // APICmd builds API command and dispatches it into correct handler method.
-func APICmd(n *node.Node, cmd proto.ApiCommand) (proto.Response, error) {
+func APICmd(n *node.Node, cmd proto.APICommand) (proto.Response, error) {
 
 	var err error
 	var resp proto.Response

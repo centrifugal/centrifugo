@@ -47,7 +47,7 @@ type ClientCommand struct {
 	Params raw.Raw `json:"params"`
 }
 
-type ApiCommand struct {
+type APICommand struct {
 	UID    string  `json:"uid"`
 	Method string  `json:"method"`
 	Params raw.Raw `json:"params"`
@@ -58,8 +58,8 @@ var (
 	objectJSONPrefix byte = '{'
 )
 
-func APICommandsFromJSON(msg []byte) ([]ApiCommand, error) {
-	var cmds []ApiCommand
+func APICommandsFromJSON(msg []byte) ([]APICommand, error) {
+	var cmds []APICommand
 
 	if len(msg) == 0 {
 		return cmds, nil
@@ -70,7 +70,7 @@ func APICommandsFromJSON(msg []byte) ([]ApiCommand, error) {
 	switch firstByte {
 	case objectJSONPrefix:
 		// single command request
-		var command ApiCommand
+		var command APICommand
 		err := json.Unmarshal(msg, &command)
 		if err != nil {
 			return nil, err

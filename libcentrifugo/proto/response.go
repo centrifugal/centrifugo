@@ -267,7 +267,7 @@ type ClientConnectResponse struct {
 	Body ConnectBody `json:"body"`
 }
 
-func NewClientConnectResponse(body ConnectBody) Response {
+func NewClientConnectResponse(body ConnectBody) *ClientConnectResponse {
 	return &ClientConnectResponse{
 		clientResponse: clientResponse{
 			Method: "connect",
@@ -281,7 +281,7 @@ type ClientRefreshResponse struct {
 	Body ConnectBody `json:"body"`
 }
 
-func NewClientRefreshResponse(body ConnectBody) Response {
+func NewClientRefreshResponse(body ConnectBody) *ClientRefreshResponse {
 	return &ClientRefreshResponse{
 		clientResponse: clientResponse{
 			Method: "refresh",
@@ -295,7 +295,7 @@ type ClientSubscribeResponse struct {
 	Body SubscribeBody `json:"body"`
 }
 
-func NewClientSubscribeResponse(body SubscribeBody) Response {
+func NewClientSubscribeResponse(body SubscribeBody) *ClientSubscribeResponse {
 	return &ClientSubscribeResponse{
 		clientResponse: clientResponse{
 			Method: "subscribe",
@@ -309,7 +309,7 @@ type ClientUnsubscribeResponse struct {
 	Body UnsubscribeBody `json:"body"`
 }
 
-func NewClientUnsubscribeResponse(body UnsubscribeBody) Response {
+func NewClientUnsubscribeResponse(body UnsubscribeBody) *ClientUnsubscribeResponse {
 	return &ClientUnsubscribeResponse{
 		clientResponse: clientResponse{
 			Method: "unsubscribe",
@@ -323,7 +323,7 @@ type ClientPresenceResponse struct {
 	Body PresenceBody `json:"body"`
 }
 
-func NewClientPresenceResponse(body PresenceBody) Response {
+func NewClientPresenceResponse(body PresenceBody) *ClientPresenceResponse {
 	return &ClientPresenceResponse{
 		clientResponse: clientResponse{
 			Method: "presence",
@@ -337,7 +337,7 @@ type ClientHistoryResponse struct {
 	Body HistoryBody `json:"body"`
 }
 
-func NewClientHistoryResponse(body HistoryBody) Response {
+func NewClientHistoryResponse(body HistoryBody) *ClientHistoryResponse {
 	return &ClientHistoryResponse{
 		clientResponse: clientResponse{
 			Method: "history",
@@ -351,7 +351,7 @@ type ClientDisconnectResponse struct {
 	Body DisconnectBody `json:"body"`
 }
 
-func NewClientDisconnectResponse(body DisconnectBody) Response {
+func NewClientDisconnectResponse(body DisconnectBody) *ClientDisconnectResponse {
 	return &ClientDisconnectResponse{
 		clientResponse: clientResponse{
 			Method: "disconnect",
@@ -365,7 +365,7 @@ type ClientPublishResponse struct {
 	Body PublishBody `json:"body"`
 }
 
-func NewClientPublishResponse(body PublishBody) Response {
+func NewClientPublishResponse(body PublishBody) *ClientPublishResponse {
 	return &ClientPublishResponse{
 		clientResponse: clientResponse{
 			Method: "publish",
@@ -379,7 +379,7 @@ type ClientPingResponse struct {
 	Body PingBody `json:"body"`
 }
 
-func NewClientPingResponse(body PingBody) Response {
+func NewClientPingResponse(body PingBody) *ClientPingResponse {
 	return &ClientPingResponse{
 		clientResponse: clientResponse{
 			Method: "ping",
@@ -422,7 +422,7 @@ type APIPublishResponse struct {
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
-func NewAPIPublishResponse() Response {
+func NewAPIPublishResponse() *APIPublishResponse {
 	return &APIPublishResponse{
 		apiResponse: apiResponse{
 			Method: "publish",
@@ -435,7 +435,7 @@ type APIBroadcastResponse struct {
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
-func NewAPIBroadcastResponse() Response {
+func NewAPIBroadcastResponse() *APIBroadcastResponse {
 	return &APIBroadcastResponse{
 		apiResponse: apiResponse{
 			Method: "broadcast",
@@ -448,7 +448,7 @@ type APIPresenceResponse struct {
 	Body PresenceBody `json:"body"`
 }
 
-func NewAPIPresenceResponse(body PresenceBody) Response {
+func NewAPIPresenceResponse(body PresenceBody) *APIPresenceResponse {
 	return &APIPresenceResponse{
 		apiResponse: apiResponse{
 			Method: "presence",
@@ -462,7 +462,7 @@ type APIHistoryResponse struct {
 	Body HistoryBody `json:"body"`
 }
 
-func NewAPIHistoryResponse(body HistoryBody) Response {
+func NewAPIHistoryResponse(body HistoryBody) *APIHistoryResponse {
 	return &APIHistoryResponse{
 		apiResponse: apiResponse{
 			Method: "history",
@@ -476,7 +476,7 @@ type APIChannelsResponse struct {
 	Body ChannelsBody `json:"body"`
 }
 
-func NewAPIChannelsResponse(body ChannelsBody) Response {
+func NewAPIChannelsResponse(body ChannelsBody) *APIChannelsResponse {
 	return &APIChannelsResponse{
 		apiResponse: apiResponse{
 			Method: "channels",
@@ -490,7 +490,7 @@ type APIStatsResponse struct {
 	Body StatsBody `json:"body"`
 }
 
-func NewAPIStatsResponse(body StatsBody) Response {
+func NewAPIStatsResponse(body StatsBody) *APIStatsResponse {
 	return &APIStatsResponse{
 		apiResponse: apiResponse{
 			Method: "stats",
@@ -504,7 +504,7 @@ type APIUnsubscribeResponse struct {
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
-func NewAPIUnsubscribeResponse() Response {
+func NewAPIUnsubscribeResponse() *APIUnsubscribeResponse {
 	return &APIUnsubscribeResponse{
 		apiResponse: apiResponse{
 			Method: "unsubscribe",
@@ -517,7 +517,7 @@ type APIDisconnectResponse struct {
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
-func NewAPIDisconnectResponse() Response {
+func NewAPIDisconnectResponse() *APIDisconnectResponse {
 	return &APIDisconnectResponse{
 		apiResponse: apiResponse{
 			Method: "disconnect",
@@ -530,7 +530,7 @@ type APINodeResponse struct {
 	Body NodeBody `json:"body"`
 }
 
-func NewAPINodeResponse(body NodeBody) Response {
+func NewAPINodeResponse(body NodeBody) *APINodeResponse {
 	return &APINodeResponse{
 		apiResponse: apiResponse{
 			Method: "node",
@@ -544,7 +544,7 @@ type AdminConnectResponse struct {
 	Body bool `json:"body"`
 }
 
-func NewAdminConnectResponse(body bool) Response {
+func NewAdminConnectResponse(body bool) *AdminConnectResponse {
 	return &AdminConnectResponse{
 		apiResponse: apiResponse{
 			Method: "connect",
@@ -558,7 +558,7 @@ type AdminInfoResponse struct {
 	Body AdminInfoBody `json:"body"`
 }
 
-func NewAdminInfoResponse(body AdminInfoBody) Response {
+func NewAdminInfoResponse(body AdminInfoBody) *AdminInfoResponse {
 	return &AdminInfoResponse{
 		apiResponse: apiResponse{
 			Method: "info",
@@ -572,7 +572,7 @@ type AdminPingResponse struct {
 	Body string `json:"body"`
 }
 
-func NewAdminPingResponse(body string) Response {
+func NewAdminPingResponse(body string) *AdminPingResponse {
 	return &AdminPingResponse{
 		apiResponse: apiResponse{
 			Method: "ping",
@@ -586,7 +586,7 @@ type AdminMessageResponse struct {
 	Body raw.Raw `json:"body"`
 }
 
-func NewAdminMessageResponse(body raw.Raw) Response {
+func NewAdminMessageResponse(body raw.Raw) *AdminMessageResponse {
 	return &AdminMessageResponse{
 		apiResponse: apiResponse{
 			Method: "message",
