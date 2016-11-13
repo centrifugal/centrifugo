@@ -165,7 +165,7 @@ func NewTestNodeWithConfig(c *node.Config) *node.Node {
 func NewTestMemoryNode() *node.Node {
 	c := NewTestConfig()
 	n := node.New("", c)
-	e, _ := enginememory.NewMemoryEngine(n, nil)
+	e, _ := enginememory.New(n, nil)
 	err := n.Run(&node.RunOptions{Engine: e})
 	if err != nil {
 		panic(err)
@@ -175,7 +175,7 @@ func NewTestMemoryNode() *node.Node {
 
 func NewTestMemoryNodeWithConfig(c *node.Config) *node.Node {
 	n := node.New("", c)
-	e, _ := enginememory.NewMemoryEngine(n, nil)
+	e, _ := enginememory.New(n, nil)
 	err := n.Run(&node.RunOptions{Engine: e})
 	if err != nil {
 		panic(err)

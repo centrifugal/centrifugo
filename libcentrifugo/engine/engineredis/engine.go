@@ -22,11 +22,11 @@ import (
 )
 
 func init() {
-	plugin.RegisterEngine("redis", RedisEnginePlugin)
-	plugin.RegisterConfigurator("redis", RedisEngineConfigure)
+	plugin.RegisterEngine("redis", Plugin)
+	plugin.RegisterConfigurator("redis", Configure)
 }
 
-func RedisEngineConfigure(setter config.Setter) error {
+func Configure(setter config.Setter) error {
 
 	setter.SetDefault("redis_prefix", "centrifugo")
 
@@ -100,7 +100,7 @@ const (
 type RedisEngine struct {
 	sync.RWMutex
 	node              *node.Node
-	config            *RedisEngineConfig
+	config            *Config
 	pool              *redis.Pool
 	api               bool
 	numApiShards      int
@@ -116,8 +116,8 @@ type RedisEngine struct {
 	leavePrefix       string
 }
 
-// RedisEngineConfig is struct with Redis Engine options.
-type RedisEngineConfig struct {
+// Config is struct with Redis Engine options.
+type Config struct {
 	// Host is Redis server host.
 	Host string
 	// Port is Redis server port.
@@ -189,7 +189,7 @@ func (sr *subRequest) result() error {
 	return <-*(sr.err)
 }
 
-func newPool(conf *RedisEngineConfig) *redis.Pool {
+func newPool(conf *Config) *redis.Pool {
 
 	host := conf.Host
 	port := conf.Port
@@ -335,7 +335,7 @@ func newPool(conf *RedisEngineConfig) *redis.Pool {
 	}
 }
 
-func getRedisEngineConfig(getter config.Getter) *RedisEngineConfig {
+func getConfig(getter config.Getter) *Config {
 	masterName := getter.GetString("redis_master_name")
 	sentinels := getter.GetString("redis_sentinels")
 	if masterName != "" && sentinels == "" {
@@ -360,7 +360,7 @@ func getRedisEngineConfig(getter config.Getter) *RedisEngineConfig {
 		logger.FATAL.Fatalln("Redis master name required when Sentinel used")
 	}
 
-	conf := &RedisEngineConfig{
+	conf := &Config{
 		Host:           getter.GetString("redis_host"),
 		Port:           getter.GetString("redis_port"),
 		Password:       getter.GetString("redis_password"),
@@ -380,13 +380,13 @@ func getRedisEngineConfig(getter config.Getter) *RedisEngineConfig {
 	return conf
 }
 
-func RedisEnginePlugin(n *node.Node, getter config.Getter) (engine.Engine, error) {
-	conf := getRedisEngineConfig(getter)
-	return NewRedisEngine(n, conf)
+func Plugin(n *node.Node, getter config.Getter) (engine.Engine, error) {
+	conf := getConfig(getter)
+	return New(n, conf)
 }
 
-// NewRedisEngine initializes Redis Engine.
-func NewRedisEngine(n *node.Node, conf *RedisEngineConfig) (engine.Engine, error) {
+// New initializes Redis Engine.
+func New(n *node.Node, conf *Config) (engine.Engine, error) {
 	e := &RedisEngine{
 		node:              n,
 		config:            conf,

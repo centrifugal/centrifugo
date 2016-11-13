@@ -16,7 +16,11 @@ import (
 )
 
 func init() {
-	plugin.RegisterEngine("memory", MemoryEnginePlugin)
+	plugin.RegisterEngine("memory", Plugin)
+}
+
+func Plugin(n *node.Node, c config.Getter) (engine.Engine, error) {
+	return New(n, &Config{})
 }
 
 // MemoryEngine allows to run Centrifugo without using Redis at all.
@@ -25,22 +29,18 @@ func init() {
 // use Redis engine instead.
 type MemoryEngine struct {
 	node        *node.Node
-	presenceHub *memoryPresenceHub
-	historyHub  *memoryHistoryHub
+	presenceHub *presenceHub
+	historyHub  *historyHub
 }
 
-type MemoryEngineConfig struct{}
+type Config struct{}
 
-func MemoryEnginePlugin(n *node.Node, c config.Getter) (engine.Engine, error) {
-	return NewMemoryEngine(n, &MemoryEngineConfig{})
-}
-
-// NewMemoryEngine initializes Memory Engine.
-func NewMemoryEngine(n *node.Node, conf *MemoryEngineConfig) (engine.Engine, error) {
+// New initializes Memory Engine.
+func New(n *node.Node, conf *Config) (engine.Engine, error) {
 	e := &MemoryEngine{
 		node:        n,
-		presenceHub: newMemoryPresenceHub(),
-		historyHub:  newMemoryHistoryHub(),
+		presenceHub: newPresenceHub(),
+		historyHub:  newHistoryHub(),
 	}
 	e.historyHub.initialize()
 	return e, nil
@@ -133,18 +133,18 @@ func (e *MemoryEngine) Channels() ([]string, error) {
 	return e.node.ClientHub().Channels(), nil
 }
 
-type memoryPresenceHub struct {
+type presenceHub struct {
 	sync.RWMutex
 	presence map[string]map[string]proto.ClientInfo
 }
 
-func newMemoryPresenceHub() *memoryPresenceHub {
-	return &memoryPresenceHub{
+func newPresenceHub() *presenceHub {
+	return &presenceHub{
 		presence: make(map[string]map[string]proto.ClientInfo),
 	}
 }
 
-func (h *memoryPresenceHub) add(ch string, uid string, info proto.ClientInfo) error {
+func (h *presenceHub) add(ch string, uid string, info proto.ClientInfo) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -156,7 +156,7 @@ func (h *memoryPresenceHub) add(ch string, uid string, info proto.ClientInfo) er
 	return nil
 }
 
-func (h *memoryPresenceHub) remove(ch string, uid string) error {
+func (h *presenceHub) remove(ch string, uid string) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -177,7 +177,7 @@ func (h *memoryPresenceHub) remove(ch string, uid string) error {
 	return nil
 }
 
-func (h *memoryPresenceHub) get(ch string) (map[string]proto.ClientInfo, error) {
+func (h *presenceHub) get(ch string) (map[string]proto.ClientInfo, error) {
 	h.RLock()
 	defer h.RUnlock()
 
@@ -204,15 +204,15 @@ func (i historyItem) isExpired() bool {
 	return i.expireAt < time.Now().Unix()
 }
 
-type memoryHistoryHub struct {
+type historyHub struct {
 	sync.RWMutex
 	history   map[string]historyItem
 	queue     priority.Queue
 	nextCheck int64
 }
 
-func newMemoryHistoryHub() *memoryHistoryHub {
-	return &memoryHistoryHub{
+func newHistoryHub() *historyHub {
+	return &historyHub{
 		history:   make(map[string]historyItem),
 		queue:     priority.MakeQueue(),
 		nextCheck: 0,
@@ -231,11 +231,11 @@ type addHistoryOpts struct {
 	DropInactive bool
 }
 
-func (h *memoryHistoryHub) initialize() {
+func (h *historyHub) initialize() {
 	go h.expire()
 }
 
-func (h *memoryHistoryHub) expire() {
+func (h *historyHub) expire() {
 	var nextCheck int64
 	for {
 		time.Sleep(time.Second)
@@ -267,7 +267,7 @@ func (h *memoryHistoryHub) expire() {
 	}
 }
 
-func (h *memoryHistoryHub) add(ch string, msg proto.Message, opts addHistoryOpts) error {
+func (h *historyHub) add(ch string, msg proto.Message, opts addHistoryOpts) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -304,7 +304,7 @@ func (h *memoryHistoryHub) add(ch string, msg proto.Message, opts addHistoryOpts
 	return nil
 }
 
-func (h *memoryHistoryHub) get(ch string, limit int) ([]proto.Message, error) {
+func (h *historyHub) get(ch string, limit int) ([]proto.Message, error) {
 	h.RLock()
 	defer h.RUnlock()
 

@@ -103,7 +103,7 @@ func newTestMessage() *proto.Message {
 func NewTestRedisEngine() *RedisEngine {
 	c := NewTestConfig()
 	n := node.New("", c)
-	redisConf := &RedisEngineConfig{
+	redisConf := &Config{
 		Host:         testRedisHost,
 		Port:         testRedisPort,
 		Password:     testRedisPassword,
@@ -114,7 +114,7 @@ func NewTestRedisEngine() *RedisEngine {
 		NumAPIShards: testRedisNumAPIShards,
 		Prefix:       "centrifugotest",
 	}
-	e, _ := NewRedisEngine(n, redisConf)
+	e, _ := New(n, redisConf)
 	err := n.Run(&node.RunOptions{Engine: e})
 	if err != nil {
 		panic(err)

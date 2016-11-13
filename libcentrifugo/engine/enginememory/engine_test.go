@@ -40,7 +40,7 @@ func NewTestConfig() *node.Config {
 func testMemoryEngine() *MemoryEngine {
 	c := NewTestConfig()
 	n := node.New("", c)
-	e, _ := NewMemoryEngine(n, nil)
+	e, _ := New(n, nil)
 	err := n.Run(&node.RunOptions{Engine: e})
 	if err != nil {
 		panic(err)
@@ -164,7 +164,7 @@ func TestMemoryEngine(t *testing.T) {
 }
 
 func TestMemoryPresenceHub(t *testing.T) {
-	h := newMemoryPresenceHub()
+	h := newPresenceHub()
 	assert.Equal(t, 0, len(h.presence))
 
 	testCh1 := string("channel1")
@@ -195,7 +195,7 @@ func TestMemoryPresenceHub(t *testing.T) {
 }
 
 func TestMemoryHistoryHub(t *testing.T) {
-	h := newMemoryHistoryHub()
+	h := newHistoryHub()
 	h.initialize()
 	assert.Equal(t, 0, len(h.history))
 	ch1 := string("channel1")
