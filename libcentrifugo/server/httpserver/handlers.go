@@ -260,6 +260,8 @@ func NewSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Opti
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
+	plugin.Metrics.Counters.Inc("http_sockjs_num_requests")
+
 	c, err := clientconn.New(s.node, newSockjsSession(sess))
 	if err != nil {
 		logger.ERROR.Println(err)
@@ -289,6 +291,8 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
 // RawWebsocketHandler called when new client connection comes to raw Websocket endpoint.
 func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+
+	plugin.Metrics.Counters.Inc("http_raw_ws_num_requests")
 
 	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
 	if _, ok := err.(websocket.HandshakeError); ok {
@@ -362,8 +366,9 @@ func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
 func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
 	defer func() {
-		plugin.Metrics.HDRHistograms.RecordMicroseconds("http_request", time.Now().Sub(started))
+		plugin.Metrics.HDRHistograms.RecordMicroseconds("http_api", time.Now().Sub(started))
 	}()
+	plugin.Metrics.Counters.Inc("http_api_num_requests")
 
 	contentType := r.Header.Get("Content-Type")
 

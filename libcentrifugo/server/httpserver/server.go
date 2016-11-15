@@ -14,12 +14,16 @@ func init() {
 	plugin.RegisterServer("http", HTTPServerPlugin)
 	plugin.RegisterConfigurator("http", HTTPServerConfigure)
 
+	plugin.Metrics.RegisterCounter("http_api_num_requests", metrics.NewCounter())
+	plugin.Metrics.RegisterCounter("http_raw_ws_num_requests", metrics.NewCounter())
+	plugin.Metrics.RegisterCounter("http_sockjs_num_requests", metrics.NewCounter())
+
 	quantiles := []float64{50, 90, 99, 99.99}
 	var minValue int64 = 1        // record latencies in microseconds, min resolution 1mks.
 	var maxValue int64 = 60000000 // record latencies in microseconds, max resolution 60s.
 	numBuckets := 15              // histograms will be rotated every time we updating snapshot.
 	sigfigs := 3
-	plugin.Metrics.RegisterHDRHistogram("http_request", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
+	plugin.Metrics.RegisterHDRHistogram("http_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
 func HTTPServerConfigure(setter config.Setter) error {

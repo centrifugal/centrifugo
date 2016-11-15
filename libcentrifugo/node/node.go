@@ -105,12 +105,12 @@ func init() {
 	metricsRegistry.RegisterCounter("node_num_history", metrics.NewCounter())
 	metricsRegistry.RegisterCounter("node_num_last_message_id", metrics.NewCounter())
 
-	metricsRegistry.RegisterGauge("memory_sys", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("cpu_usage", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("num_goroutine", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("num_clients", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("num_unique_clients", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("num_channels", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("node_memory_sys", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("node_cpu_usage", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("node_num_goroutine", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("node_num_clients", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("node_num_unique_clients", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("node_num_channels", metrics.NewGauge())
 }
 
 // New creates Node, the only required argument is config.
@@ -272,13 +272,13 @@ func (n *Node) Shutdown() error {
 func (n *Node) updateMetricsOnce() {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
-	metricsRegistry.Gauges.Set("memory_sys", int64(mem.Sys))
+	metricsRegistry.Gauges.Set("node_memory_sys", int64(mem.Sys))
 	if usage, err := cpuUsage(); err == nil {
-		metricsRegistry.Gauges.Set("cpu_usage", int64(usage))
+		metricsRegistry.Gauges.Set("node_cpu_usage", int64(usage))
 	}
 	n.metricsMu.Lock()
-	n.metricsSnapshot = n.getSnapshotMetrics()
 	metricsRegistry.Counters.UpdateDelta()
+	n.metricsSnapshot = n.getSnapshotMetrics()
 	metricsRegistry.HDRHistograms.Rotate()
 	n.metricsMu.Unlock()
 }
@@ -577,10 +577,10 @@ func (n *Node) publishControl(msg *proto.ControlMessage) <-chan error {
 // contains information about current node.
 func (n *Node) pubPing() error {
 	n.RLock()
-	metricsRegistry.Gauges.Set("num_clients", int64(n.clients.NumClients()))
-	metricsRegistry.Gauges.Set("num_unique_clients", int64(n.clients.NumUniqueClients()))
-	metricsRegistry.Gauges.Set("num_channels", int64(n.clients.NumChannels()))
-	metricsRegistry.Gauges.Set("num_goroutine", int64(runtime.NumGoroutine()))
+	metricsRegistry.Gauges.Set("node_num_clients", int64(n.clients.NumClients()))
+	metricsRegistry.Gauges.Set("node_num_unique_clients", int64(n.clients.NumUniqueClients()))
+	metricsRegistry.Gauges.Set("node_num_channels", int64(n.clients.NumChannels()))
+	metricsRegistry.Gauges.Set("node_num_goroutine", int64(runtime.NumGoroutine()))
 
 	metricsSnapshot := make(map[string]int64)
 	n.metricsMu.RLock()

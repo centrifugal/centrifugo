@@ -26,13 +26,16 @@ func init() {
 	metricsRegistry.RegisterCounter("client_num_msg_published", metrics.NewCounter())
 	metricsRegistry.RegisterCounter("client_bytes_in", metrics.NewCounter())
 	metricsRegistry.RegisterCounter("client_bytes_out", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("client_api_num_requests", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("client_num_connect", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("client_num_subscribe", metrics.NewCounter())
 
 	quantiles := []float64{50, 90, 99, 99.99}
 	var minValue int64 = 1        // record latencies in microseconds, min resolution 1mks.
 	var maxValue int64 = 60000000 // record latencies in microseconds, max resolution 60s.
 	numBuckets := 15              // histograms will be rotated every time we updating snapshot.
 	sigfigs := 3
-	metricsRegistry.RegisterHDRHistogram("client_request", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
+	metricsRegistry.RegisterHDRHistogram("client_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
 // client represents client connection to Centrifugo - at moment this can be Websocket
@@ -346,10 +349,10 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 	case <-c.sendFinished:
 		err := c.sendDisconnect(advice)
 		if err != nil {
-			logger.ERROR.Printf("Error sending disconnect: %v", err)
+			logger.DEBUG.Printf("Error sending disconnect: %v", err)
 		}
 	case <-time.After(time.Second):
-		logger.ERROR.Println("Timeout stopping sendMessages goroutine")
+		logger.DEBUG.Println("Timeout stopping sendMessages goroutine")
 	}
 
 	if c.expireTimer != nil {
@@ -396,8 +399,9 @@ func (c *client) info(ch string) proto.ClientInfo {
 func (c *client) Handle(msg []byte) error {
 	started := time.Now()
 	defer func() {
-		plugin.Metrics.HDRHistograms.RecordMicroseconds("client_request", time.Now().Sub(started))
+		plugin.Metrics.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
 	}()
+	plugin.Metrics.Counters.Inc("client_api_num_requests")
 	plugin.Metrics.Counters.Add("client_bytes_in", int64(len(msg)))
 
 	if len(msg) == 0 {
@@ -580,6 +584,8 @@ func (c *client) expire() {
 // command immediately after establishing Websocket or SockJS connection with
 // Centrifugo
 func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, error) {
+
+	plugin.Metrics.Counters.Inc("client_num_connect")
 
 	if c.authenticated {
 		logger.ERROR.Println("connect error: client already authenticated")
@@ -764,6 +770,8 @@ func recoverMessages(last string, messages []proto.Message) ([]proto.Message, bo
 // actually subscribe client on channel. Optionally we can send missed messages to
 // client if it provided last message id seen in channel.
 func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response, error) {
+
+	plugin.Metrics.Counters.Inc("client_num_subscribe")
 
 	channel := cmd.Channel
 	if channel == "" {
