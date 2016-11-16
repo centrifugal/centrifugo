@@ -444,14 +444,14 @@ func (c *client) Handle(msg []byte) error {
 
 func (c *client) handleCommands(cmds []proto.ClientCommand) error {
 	var err error
-	var mr proto.MultiClientResponse
-	for _, command := range cmds {
+	mr := make(proto.MultiClientResponse, len(cmds))
+	for i, command := range cmds {
 		resp, err := c.handleCmd(command)
 		if err != nil {
 			return err
 		}
 		resp.SetUID(command.UID)
-		mr = append(mr, resp)
+		mr[i] = resp
 	}
 	jsonResp, err := json.Marshal(mr)
 	if err != nil {
