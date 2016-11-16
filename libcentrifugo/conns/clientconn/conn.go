@@ -131,7 +131,8 @@ func (c *client) sendMessages() {
 		}
 		err := c.sendMessage(msg)
 		if err != nil {
-			c.Close(&conns.DisconnectAdvice{Reason: "error sending message", Reconnect: true})
+			// Close in goroutine to let this function return.
+			go c.Close(&conns.DisconnectAdvice{Reason: "error sending message", Reconnect: true})
 			return
 		}
 		plugin.Metrics.Counters.Inc("client_num_msg_sent")
@@ -268,6 +269,7 @@ func (c *client) Send(message []byte) error {
 	}
 	plugin.Metrics.Counters.Inc("client_num_msg_queued")
 	if c.messages.Size() > c.maxQueueSize {
+		// Close in goroutine to not block message broadcast.
 		go c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: false})
 		return proto.ErrClientClosed
 	}
