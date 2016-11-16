@@ -34,6 +34,12 @@ type Config struct {
 
 	// SockjsURL is a custom SockJS library url to use in iframe transports.
 	SockjsURL string `json:"sockjs_url"`
+
+	// SockjsHeartbeatDelay allows to specify custom SockJS server to client heartbeat interval.
+	// Starting from Centrifugo 1.6.0 we don't use it (i.e. set it 0) as we send pings from
+	// client to server. But if someone wants old behaviour then it's possible to turn off ping
+	// on client side and set this option to something reasonable (25 seconds for example).
+	SockjsHeartbeatDelay int `json:"sockjs_heartbeat_delay"`
 }
 
 // newConfig creates new libcentrifugo.Config using viper.
@@ -47,6 +53,7 @@ func newConfig(c config.Getter) *Config {
 	cfg.HTTPAPIPort = c.GetString("api_port")
 	cfg.HTTPPrefix = c.GetString("http_prefix")
 	cfg.SockjsURL = c.GetString("sockjs_url")
+	cfg.SockjsHeartbeatDelay = c.GetInt("sockjs_heartbeat_delay")
 	cfg.SSL = c.GetBool("ssl")
 	cfg.SSLCert = c.GetString("ssl_cert")
 	cfg.SSLKey = c.GetString("ssl_cert")
