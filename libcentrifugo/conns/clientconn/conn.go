@@ -268,7 +268,7 @@ func (c *client) Send(message []byte) error {
 	}
 	plugin.Metrics.Counters.Inc("client_num_msg_queued")
 	if c.messages.Size() > c.maxQueueSize {
-		c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: false})
+		go c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: false})
 		return proto.ErrClientClosed
 	}
 	return nil
