@@ -202,7 +202,7 @@ type DisconnectBody struct {
 
 // PingBody represents body of response in case of successful ping command.
 type PingBody struct {
-	Data string `json:"data"`
+	Data string `json:"data,omitempty"`
 }
 
 // StatsBody represents body of response in case of successful stats command.
@@ -376,10 +376,10 @@ func NewClientPublishResponse(body PublishBody) *ClientPublishResponse {
 
 type ClientPingResponse struct {
 	clientResponse
-	Body PingBody `json:"body"`
+	Body *PingBody `json:"body,omitempty"`
 }
 
-func NewClientPingResponse(body PingBody) *ClientPingResponse {
+func NewClientPingResponse(body *PingBody) *ClientPingResponse {
 	return &ClientPingResponse{
 		clientResponse: clientResponse{
 			Method: "ping",
