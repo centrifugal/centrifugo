@@ -105,6 +105,11 @@ type Config struct {
 	// ClientChannelLimit sets upper limit of channels each client can subscribe to.
 	ClientChannelLimit int `json:"client_channel_limit"`
 
+	// ClientMaxIdleTimeout sets a time how long client considered alive if there was
+	// no any message activity. It only used when client sets ping: true when connecting
+	// to Centrifugo - i.e. explicitly said that it going to send periodic pings to server.
+	ClientMaxIdleTimeout time.Duration `json:"client_max_idle_timeout"`
+
 	// UserConnectionLimit limits number of connections from user with the same ID.
 	UserConnectionLimit int `json:"user_connection_limit"`
 
@@ -210,6 +215,7 @@ var DefaultConfig = &Config{
 	ClientQueueMaxSize:          10485760, // 10MB by default
 	ClientQueueInitialCapacity:  2,
 	ClientChannelLimit:          100,
+	ClientMaxIdleTimeout:        60 * time.Second,
 	Insecure:                    false,
 }
 
@@ -242,6 +248,7 @@ func NewConfig(v config.Getter) *Config {
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientQueueInitialCapacity = v.GetInt("client_queue_initial_capacity")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
+	cfg.ClientMaxIdleTimeout = time.Duration(v.GetInt("client_max_idle_timeout")) * time.Second
 	cfg.UserConnectionLimit = v.GetInt("user_connection_limit")
 	cfg.Insecure = v.GetBool("insecure")
 	cfg.InsecureAPI = v.GetBool("insecure_api")

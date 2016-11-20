@@ -197,19 +197,21 @@ func (c *client) updateChannelPresence(ch string) {
 	c.node.AddPresence(ch, c.uid, c.info(ch))
 }
 
+func (c *client) isIdle() bool {
+	config := c.node.Config()
+	maxIdleTimeout := config.ClientMaxIdleTimeout
+	c.lastSeenMu.RLock()
+	lastSeen := c.lastSeen
+	c.lastSeenMu.RUnlock()
+	return time.Now().Unix()-lastSeen > int64(maxIdleTimeout.Seconds())
+}
+
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
 
-	if c.ping {
-		config := c.node.Config()
-		presenceInterval := config.PresencePingInterval
-		c.lastSeenMu.RLock()
-		lastSeen := c.lastSeen
-		c.lastSeenMu.RUnlock()
-		if time.Now().Unix()-lastSeen > int64(presenceInterval.Seconds())+10 {
-			go c.Close(nil)
-			return
-		}
+	if c.ping && c.isIdle() {
+		go c.Close(nil)
+		return
 	}
 
 	c.RLock()
@@ -330,14 +332,6 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		return nil
 	}
 
-	if advice == nil {
-		advice = conns.DefaultDisconnectAdvice
-	}
-
-	if advice.Reason != "" {
-		logger.DEBUG.Printf("Closing connection %s: %s", c.UID(), advice.Reason)
-	}
-
 	close(c.closeCh)
 	c.closed = true
 
@@ -363,14 +357,16 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		}
 	}
 
-	select {
-	case <-c.sendFinished:
-		err := c.sendDisconnect(advice)
-		if err != nil {
-			logger.DEBUG.Printf("Error sending disconnect: %v", err)
+	if advice != nil {
+		select {
+		case <-c.sendFinished:
+			err := c.sendDisconnect(advice)
+			if err != nil {
+				logger.DEBUG.Printf("Error sending disconnect: %v", err)
+			}
+		case <-time.After(time.Second):
+			logger.DEBUG.Println("Timeout stopping sendMessages goroutine")
 		}
-	case <-time.After(time.Second):
-		logger.DEBUG.Println("Timeout stopping sendMessages goroutine")
 	}
 
 	if c.expireTimer != nil {
@@ -387,6 +383,14 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 
 	if c.authenticated && c.node.Mediator() != nil {
 		c.node.Mediator().Disconnect(c.uid, c.user)
+	}
+
+	if advice == nil {
+		advice = conns.DefaultDisconnectAdvice
+	}
+
+	if advice.Reason != "" {
+		logger.DEBUG.Printf("Closing connection %s: %s", c.UID(), advice.Reason)
 	}
 
 	c.sess.Close(advice)
@@ -415,9 +419,11 @@ func (c *client) info(ch string) proto.ClientInfo {
 }
 
 func (c *client) Handle(msg []byte) error {
+
 	c.lastSeenMu.Lock()
 	c.lastSeen = time.Now().Unix()
 	c.lastSeenMu.Unlock()
+
 	started := time.Now()
 	defer func() {
 		plugin.Metrics.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
@@ -437,7 +443,7 @@ func (c *client) Handle(msg []byte) error {
 
 	commands, err := clientCommandsFromJSON(msg)
 	if err != nil {
-		logger.ERROR.Println(err)
+		logger.ERROR.Printf("Error unmarshaling message: %v", err)
 		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrInvalidMessage.Error(), Reconnect: false})
 		return proto.ErrInvalidMessage
 	}
@@ -459,8 +465,9 @@ func (c *client) Handle(msg []byte) error {
 			reconnect = true
 		}
 		c.Close(&conns.DisconnectAdvice{Reason: err.Error(), Reconnect: reconnect})
+		return err
 	}
-	return err
+	return nil
 }
 
 func (c *client) handleCommands(cmds []proto.ClientCommand) error {

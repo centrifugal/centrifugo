@@ -122,6 +122,7 @@ func Main(version string) {
 				"node_metrics_interval":          60,
 				"stale_connection_close_delay":   25,
 				"expired_connection_close_delay": 25,
+				"client_max_idle_timeout":        60,
 				"client_channel_limit":           100,
 				"client_request_max_size":        65536,    // 64KB
 				"client_queue_max_size":          10485760, // 10MB
