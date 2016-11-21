@@ -279,8 +279,6 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 		if msg, err := sess.Recv(); err == nil {
 			err = c.Handle([]byte(msg))
 			if err != nil {
-				logger.ERROR.Println(err)
-				c.Close(&conns.DisconnectAdvice{Reason: "error handling message", Reconnect: true})
 				return
 			}
 			continue
@@ -326,12 +324,11 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	for {
 		_, message, err := ws.ReadMessage()
 		if err != nil {
-			break
+			return
 		}
 		err = c.Handle(message)
 		if err != nil {
-			c.Close(&conns.DisconnectAdvice{Reason: err.Error(), Reconnect: true})
-			break
+			return
 		}
 	}
 }

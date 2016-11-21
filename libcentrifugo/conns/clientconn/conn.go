@@ -62,6 +62,9 @@ type client struct {
 	maxQueueSize   int
 	maxRequestSize int
 	sendFinished   chan struct{}
+	ping           bool
+	lastSeen       int64
+	lastSeenMu     sync.RWMutex
 }
 
 var (
@@ -194,8 +197,23 @@ func (c *client) updateChannelPresence(ch string) {
 	c.node.AddPresence(ch, c.uid, c.info(ch))
 }
 
+func (c *client) isIdle() bool {
+	config := c.node.Config()
+	maxIdleTimeout := config.ClientMaxIdleTimeout
+	c.lastSeenMu.RLock()
+	lastSeen := c.lastSeen
+	c.lastSeenMu.RUnlock()
+	return time.Now().Unix()-lastSeen > int64(maxIdleTimeout.Seconds())
+}
+
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
+
+	if c.ping && c.isIdle() {
+		go c.Close(nil)
+		return
+	}
+
 	c.RLock()
 	if c.closed {
 		return
@@ -314,14 +332,6 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		return nil
 	}
 
-	if advice == nil {
-		advice = conns.DefaultDisconnectAdvice
-	}
-
-	if advice.Reason != "" {
-		logger.DEBUG.Printf("Closing connection %s: %s", c.UID(), advice.Reason)
-	}
-
 	close(c.closeCh)
 	c.closed = true
 
@@ -347,14 +357,16 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		}
 	}
 
-	select {
-	case <-c.sendFinished:
-		err := c.sendDisconnect(advice)
-		if err != nil {
-			logger.DEBUG.Printf("Error sending disconnect: %v", err)
+	if advice != nil {
+		select {
+		case <-c.sendFinished:
+			err := c.sendDisconnect(advice)
+			if err != nil {
+				logger.DEBUG.Printf("Error sending disconnect: %v", err)
+			}
+		case <-time.After(time.Second):
+			logger.DEBUG.Println("Timeout stopping sendMessages goroutine")
 		}
-	case <-time.After(time.Second):
-		logger.DEBUG.Println("Timeout stopping sendMessages goroutine")
 	}
 
 	if c.expireTimer != nil {
@@ -371,6 +383,14 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 
 	if c.authenticated && c.node.Mediator() != nil {
 		c.node.Mediator().Disconnect(c.uid, c.user)
+	}
+
+	if advice == nil {
+		advice = conns.DefaultDisconnectAdvice
+	}
+
+	if advice.Reason != "" {
+		logger.DEBUG.Printf("Closing connection %s: %s", c.UID(), advice.Reason)
 	}
 
 	c.sess.Close(advice)
@@ -399,6 +419,11 @@ func (c *client) info(ch string) proto.ClientInfo {
 }
 
 func (c *client) Handle(msg []byte) error {
+
+	c.lastSeenMu.Lock()
+	c.lastSeen = time.Now().Unix()
+	c.lastSeenMu.Unlock()
+
 	started := time.Now()
 	defer func() {
 		plugin.Metrics.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
@@ -418,7 +443,7 @@ func (c *client) Handle(msg []byte) error {
 
 	commands, err := clientCommandsFromJSON(msg)
 	if err != nil {
-		logger.ERROR.Println(err)
+		logger.ERROR.Printf("Error unmarshaling message: %v", err)
 		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrInvalidMessage.Error(), Reconnect: false})
 		return proto.ErrInvalidMessage
 	}
@@ -439,9 +464,10 @@ func (c *client) Handle(msg []byte) error {
 			// Any other error results in disconnect without reconnect.
 			reconnect = true
 		}
-		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrLimitExceeded.Error(), Reconnect: reconnect})
+		c.Close(&conns.DisconnectAdvice{Reason: err.Error(), Reconnect: reconnect})
+		return err
 	}
-	return err
+	return nil
 }
 
 func (c *client) handleCommands(cmds []proto.ClientCommand) error {
@@ -455,7 +481,12 @@ func (c *client) handleCommands(cmds []proto.ClientCommand) error {
 		resp.SetUID(command.UID)
 		mr[i] = resp
 	}
-	jsonResp, err := json.Marshal(mr)
+	var jsonResp []byte
+	if len(cmds) == 1 {
+		jsonResp, err = json.Marshal(mr[0])
+	} else {
+		jsonResp, err = json.Marshal(mr)
+	}
 	if err != nil {
 		logger.ERROR.Println(err)
 		return proto.ErrInvalidMessage
@@ -522,9 +553,11 @@ func (c *client) handleCmd(command proto.ClientCommand) (proto.Response, error) 
 		resp, err = c.publishCmd(&cmd)
 	case "ping":
 		var cmd proto.PingClientCommand
-		err = json.Unmarshal(params, &cmd)
-		if err != nil {
-			return nil, proto.ErrInvalidMessage
+		if len(params) > 0 {
+			err = json.Unmarshal(params, &cmd)
+			if err != nil {
+				return nil, proto.ErrInvalidMessage
+			}
 		}
 		resp, err = c.pingCmd(&cmd)
 	case "presence":
@@ -555,8 +588,11 @@ func (c *client) handleCmd(command proto.ClientCommand) (proto.Response, error) 
 // for example Heroku closes websocket connection after 55 seconds
 // of inactive period when no messages with payload travelled over wire
 func (c *client) pingCmd(cmd *proto.PingClientCommand) (proto.Response, error) {
-	body := proto.PingBody{
-		Data: cmd.Data,
+	var body *proto.PingBody
+	if cmd.Data != "" {
+		body = &proto.PingBody{
+			Data: cmd.Data,
+		}
 	}
 	resp := proto.NewClientPingResponse(body)
 	return resp, nil
@@ -645,6 +681,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	}
 
 	c.user = user
+	c.ping = cmd.Ping
 
 	body := proto.ConnectBody{}
 	body.Version = version
