@@ -49,9 +49,9 @@ type client struct {
 	user           string
 	timestamp      int64
 	authenticated  bool
-	defaultInfo    []byte
-	channelInfo    map[string][]byte
-	channels       map[string]bool
+	defaultInfo    raw.Raw
+	channelInfo    map[string]raw.Raw
+	channels       map[string]struct{}
 	messages       bytequeue.ByteQueue
 	closeCh        chan struct{}
 	closed         bool
@@ -237,10 +237,14 @@ func (c *client) addPresenceUpdate() {
 	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
 }
 
+// No lock here as uid set on client initialization and can not be changed - we
+// only read this value after.
 func (c *client) UID() string {
 	return c.uid
 }
 
+// No lock here as User() can not be called before we set user value in connect command.
+// After this we only read this value.
 func (c *client) User() string {
 	return c.user
 }
@@ -390,7 +394,7 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 	}
 
 	if advice.Reason != "" {
-		logger.DEBUG.Printf("Closing connection %s: %s", c.UID(), advice.Reason)
+		logger.DEBUG.Printf("Closing connection %s (user %s): %s", c.uid, c.user, advice.Reason)
 	}
 
 	c.sess.Close(advice)
@@ -399,23 +403,9 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 }
 
 func (c *client) info(ch string) proto.ClientInfo {
-	channelInfo, ok := c.channelInfo[ch]
-	if !ok {
-		channelInfo = []byte{}
-	}
-	var rawDefaultInfo raw.Raw
-	var rawChannelInfo raw.Raw
-	if len(c.defaultInfo) > 0 {
-		rawDefaultInfo = raw.Raw(c.defaultInfo)
-	} else {
-		rawDefaultInfo = nil
-	}
-	if len(channelInfo) > 0 {
-		rawChannelInfo = raw.Raw(channelInfo)
-	} else {
-		rawChannelInfo = nil
-	}
-	return *proto.NewClientInfo(c.user, c.uid, rawDefaultInfo, rawChannelInfo)
+	defaultInfo := c.defaultInfo
+	channelInfo, _ := c.channelInfo[ch]
+	return *proto.NewClientInfo(c.user, c.uid, defaultInfo, channelInfo)
 }
 
 func (c *client) Handle(msg []byte) error {
@@ -699,9 +689,11 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	}
 
 	c.authenticated = true
-	c.defaultInfo = []byte(info)
-	c.channels = map[string]bool{}
-	c.channelInfo = map[string][]byte{}
+	if len(info) > 0 {
+		c.defaultInfo = raw.Raw(info)
+	}
+	c.channels = map[string]struct{}{}
+	c.channelInfo = map[string]raw.Raw{}
 
 	if c.staleTimer != nil {
 		c.staleTimer.Stop()
@@ -764,7 +756,7 @@ func (c *client) refreshCmd(cmd *proto.RefreshClientCommand) (proto.Response, er
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
 			c.timestamp = int64(ts)
-			c.defaultInfo = []byte(info)
+			c.defaultInfo = raw.Raw(info)
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
@@ -879,7 +871,9 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 			resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
 			return resp, nil
 		}
-		c.channelInfo[channel] = []byte(cmd.Info)
+		if len(cmd.Info) > 0 {
+			c.channelInfo[channel] = raw.Raw(cmd.Info)
+		}
 	}
 
 	if c.node.Mediator() != nil {
@@ -891,7 +885,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 		}
 	}
 
-	c.channels[channel] = true
+	c.channels[channel] = struct{}{}
 
 	err = c.node.AddClientSub(channel, c)
 	if err != nil {
