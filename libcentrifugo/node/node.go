@@ -40,11 +40,12 @@ type Node struct {
 	// started is unix time of node start.
 	started int64
 
-	// nodes is a map with information about nodes known.
+	// nodes is a map with information about known nodes.
 	nodes map[string]proto.NodeInfo
-
+	// nodesUpdated tracks time we last received ping from node. Used to clean up nodes map.
+	nodesUpdated map[string]int64
 	// nodesMu allows to synchronize access to nodes.
-	nodesMu sync.Mutex
+	nodesMu sync.RWMutex
 
 	// hub to manage client connections.
 	clients conns.ClientHub
@@ -122,6 +123,7 @@ func New(version string, c *Config) *Node {
 		clients:         conns.NewClientHub(),
 		admins:          conns.NewAdminHub(),
 		nodes:           make(map[string]proto.NodeInfo),
+		nodesUpdated:    make(map[string]int64),
 		started:         time.Now().Unix(),
 		metricsSnapshot: make(map[string]int64),
 		shutdownCh:      make(chan struct{}),
@@ -328,9 +330,21 @@ func (n *Node) cleanNodeInfo() {
 			n.RUnlock()
 
 			n.nodesMu.Lock()
-			for uid, info := range n.nodes {
-				if time.Now().Unix()-info.Updated() > int64(delay.Seconds()) {
+			for uid, _ := range n.nodes {
+				if uid == n.uid {
+					// No need to clean info for current node.
+					continue
+				}
+				updated, ok := n.nodesUpdated[uid]
+				if !ok {
+					// As we do all operations with nodes under lock this should never happen.
 					delete(n.nodes, uid)
+					continue
+				}
+				if time.Now().Unix()-updated > int64(delay.Seconds()) {
+					// Too many seconds since this node have been last seen - remove it from map.
+					delete(n.nodes, uid)
+					delete(n.nodesUpdated, uid)
 				}
 			}
 			n.nodesMu.Unlock()
@@ -345,14 +359,14 @@ func (n *Node) Channels() ([]string, error) {
 
 // Stats returns aggregated stats from all Centrifugo nodes.
 func (n *Node) Stats() proto.ServerStats {
-	n.nodesMu.Lock()
+	n.nodesMu.RLock()
 	nodes := make([]proto.NodeInfo, len(n.nodes))
 	i := 0
 	for _, info := range n.nodes {
 		nodes[i] = info
 		i++
 	}
-	n.nodesMu.Unlock()
+	n.nodesMu.RUnlock()
 
 	n.RLock()
 	interval := n.config.NodeMetricsInterval
@@ -366,13 +380,10 @@ func (n *Node) Stats() proto.ServerStats {
 
 // Node returns raw information only from current node.
 func (n *Node) Node() proto.NodeInfo {
-	n.nodesMu.Lock()
-	info, ok := n.nodes[n.uid]
-	if !ok {
-		logger.WARN.Println("node called but no local node info yet, returning garbage")
-	}
-	n.nodesMu.Unlock()
-	info.SetMetrics(n.getRawMetrics())
+	n.nodesMu.RLock()
+	info, _ := n.nodes[n.uid]
+	n.nodesMu.RUnlock()
+	info.Metrics = n.getRawMetrics()
 	return info
 }
 
@@ -689,9 +700,9 @@ func (n *Node) RemoveClientSub(ch string, c conns.ClientConn) error {
 // pingCmd handles ping control command i.e. updates information about known nodes.
 func (n *Node) pingCmd(cmd *proto.PingControlCommand) error {
 	info := cmd.Info
-	info.SetUpdated(time.Now().Unix())
 	n.nodesMu.Lock()
 	n.nodes[info.UID] = info
+	n.nodesUpdated[info.UID] = time.Now().Unix()
 	n.nodesMu.Unlock()
 	return nil
 }
