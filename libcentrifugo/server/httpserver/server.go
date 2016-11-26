@@ -34,6 +34,9 @@ func HTTPServerConfigure(setter config.Setter) error {
 	setter.SetDefault("admin_password", "")
 	setter.SetDefault("admin_secret", "")
 	setter.SetDefault("sockjs_url", "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js")
+	setter.SetDefault("websocket_compression", false)
+	setter.SetDefault("websocket_read_buffer_size", 4096)
+	setter.SetDefault("websocket_write_buffer_size", 4096)
 
 	setter.BoolFlag("web", "w", false, "serve admin web interface application (warning: automatically enables admin socket)")
 	setter.StringFlag("web_path", "", "", "optional path to custom web interface application")

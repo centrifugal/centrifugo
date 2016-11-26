@@ -34,6 +34,20 @@ type Config struct {
 
 	// SockjsURL is a custom SockJS library url to use in iframe transports.
 	SockjsURL string `json:"sockjs_url"`
+
+	// WebsocketCompression allows to enable websocket permessage-deflate
+	// compression support for raw websocket connections. It does not guarantee
+	// that compression will be used - i.e. it only says that Centrifugo will
+	// try to negotiate it with client.
+	WebsocketCompression bool `json:"websocket_compression"`
+
+	// WebsocketReadBufferSize is a parameter that is used for raw websocket Upgrader.
+	// If set to zero reasonable default value will be used.
+	WebsocketReadBufferSize int `json:"websocket_read_buffer_size"`
+
+	// WebsocketWriteBufferSize is a parameter that is used for raw websocket Upgrader.
+	// If set to zero reasonable default value will be used.
+	WebsocketWriteBufferSize int `json:"websocket_write_buffer_size"`
 }
 
 // newConfig creates new libcentrifugo.Config using viper.
@@ -50,6 +64,9 @@ func newConfig(c config.Getter) *Config {
 	cfg.SSL = c.GetBool("ssl")
 	cfg.SSLCert = c.GetString("ssl_cert")
 	cfg.SSLKey = c.GetString("ssl_cert")
+	cfg.WebsocketCompression = c.GetBool("websocket_compression")
+	cfg.WebsocketReadBufferSize = c.GetInt("websocket_read_buffer_size")
+	cfg.WebsocketWriteBufferSize = c.GetInt("websocket_write_buffer_size")
 	return cfg
 }
 

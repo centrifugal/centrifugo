@@ -77,8 +77,8 @@
 		{
 			"checksumSHA1": "SmBqqqR0T+1Ksx5zwCl295Vey0s=",
 			"path": "github.com/gorilla/websocket",
-			"revision": "9fbf129ff2a3cf2467f7d0021de2eb4d3aecc109",
-			"revisionTime": "2016-11-02T20:04:59Z"
+			"revision": "e8f0f8aaa98dfb6586cbdf2978d511e3199a960a",
+			"revisionTime": "2016-11-12T14:27:12Z"
 		},
 		{
 			"checksumSHA1": "LUrnGREfnifW4WDMaavmc9MlLI0=",
