@@ -3,14 +3,15 @@ v1.6.0 (not released yet)
 
 This Centrifugo release is a massive internal refactoring with the goal to separate code of different components such as engine, server, metrics, clients to own packages. The code layout changed dramatically. Look at `libcentrifugo` folder! Unfortunately there are some minor backwards incompatibilities with previous release - see notes below.
 
-With new structure it's much more simple to create custom engines or servers - each with own metrics and configuration options. As Centrifugo written in Go the only performant way to write plugins is to import them in `main.go` file and build Centrifugo with them. So if you want to create custom build you will need to build Centrifugo yourself. But at least it's much easier than supporting full Centrifugo fork. I will try to document how to extend Centrifugo later. Until that moment, please contact via email or Gitter chat if you want to write something custom.
+With new structure it's much more simple to create custom engines or servers - each with own metrics and configuration options. Although it's possible to create pluggable engines and servers I can not guarantee at moment that we will keep `libcentrifugo` packages API stable - as our primary goal is still building Centrifugo standalone server. So if we find sth that must be fixed internally - we will fix it even if this could result in packages API changes
+
+As Centrifugo written in Go the only performant way to write plugins is to import them in `main.go` file and build Centrifugo with them. So if you want to create custom build you will need to build Centrifugo yourself. But at least it's much easier than supporting full Centrifugo fork.
 
 Release highlights:
 
-* pluggable engines
-* pluggable servers (possible to register custom HTTP server, or even plain TCP - so theoretically it's not that hard now to make Centrifugo work with TCP connections).
-* pluggable engines and servers can add there own metrics, options, flags.
-* new metrics. As there is no need anymore to create new struct field when adding new counter/gauge/hist internally in Centrifugo - we added several useful new metrics. For example API and client request HDR histograms. See updated documentation for complete list. This change resulted in backwards incompatible issue when working with Centrifugo metrics (see below).
+* new metrics. Several useful new metrics have beed added. For example HTTP API and client request HDR histograms. See updated documentation for complete list. Refactoring resulted in backwards incompatible issue when working with Centrifugo metrics (see below).
+* optimizations for client side ping, centrifuge-js now automatically sends periodic `ping` commands to server. Centrifugo checks client's last activity time and closes stale connections.
+* experimental websocket compression support for raw websockets - see [#115](https://github.com/centrifugal/centrifugo/issues/115)
 
 Fixes:
 
@@ -18,16 +19,16 @@ Fixes:
 
 Backwards incompatible changes:
 
-* default log level now is `info` - `debug` level is too chatty for production logs. If you still want to see logs about all connections and API requests - set `log_level` option to `debug`
+* `stats` and `node` command response body format changed a bit, metrics now represented as map containing string keys and integer values. So you may need to update your monitoring scripts.
+* default log level now is `info` - `debug` level is too chatty for production logs as there are tons of API requests per second, tons of client connect/disconnect events. If you still want to see logs about all connections and API requests - set `log_level` option to `debug`
 * `channel_prefix` option renamed to `redis_prefix`
-* `stats` and `node` command response body format changed a bit, metrics now represented as map containing string keys and integer values. So you may need to update you monitoring scripts.
 * `web_password` and `web_secret` option aliases not supported anymore. Use `admin_password` and `admin_secret`.
 * `insecure_web` option removed - web interface now available without any password if `insecure_admin` option enabled. Of course in this case you should remember about protecting your admin endpoints with firewall rules. Btw we recommend to do this even if you are using admin password.
 * admin `info` response format changed a bit - but this most possibly will not affect anyone as it was mostly used by embedded web interface only.
 
 Several internal highlights (mostly for Go developers):
 
-* code base now more simple and readable
+* code base now is more simple and readable
 * protobuf v3 for message schema (using gogoprotobuf library). proto2 and proto3 are wire compatible
 * client transport now abstracted away - so it would be much easier in future to add new transport in addition/replacement to Websocket/SockJS
 * API abstracted away from protocol - it would be easier in future to add new API requests source.
