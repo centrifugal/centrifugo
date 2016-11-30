@@ -14,25 +14,6 @@ type NodeInfo struct {
 	Name    string           `json:"name"`
 	Started int64            `json:"started_at"`
 	Metrics map[string]int64 `json:"metrics"`
-	updated int64            `json:"-"`
-}
-
-func (i *NodeInfo) Updated() int64 {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-	return i.updated
-}
-
-func (i *NodeInfo) SetUpdated(up int64) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-	i.updated = up
-}
-
-func (i *NodeInfo) SetMetrics(m map[string]int64) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-	i.Metrics = m
 }
 
 // ServerStats contains state and metrics information from running Centrifugo nodes.
@@ -119,6 +100,7 @@ type ConnectClientCommand struct {
 	Timestamp string `json:"timestamp"`
 	Info      string `json:"info"`
 	Token     string `json:"token"`
+	Ping      bool   `json:"ping"`
 }
 
 // RefreshClientCommand is used to prolong connection lifetime when connection check

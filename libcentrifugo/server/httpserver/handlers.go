@@ -94,12 +94,12 @@ func listenHTTP(mux http.Handler, addr string, useSSL bool, sslCert, sslKey stri
 
 func (s *HTTPServer) runHTTPServer() error {
 
-	s.RLock()
 	nodeConfig := s.node.Config()
 
 	debug := nodeConfig.Debug
 	adminEnabled := nodeConfig.Admin
 
+	s.RLock()
 	sockjsURL := s.config.SockjsURL
 	sockjsHeartbeatDelay := s.config.SockjsHeartbeatDelay
 	webEnabled := s.config.Web
@@ -112,7 +112,16 @@ func (s *HTTPServer) runHTTPServer() error {
 	adminPort := s.config.HTTPAdminPort
 	apiPort := s.config.HTTPAPIPort
 	httpPrefix := s.config.HTTPPrefix
+	wsReadBufferSize := s.config.WebsocketReadBufferSize
+	wsWriteBufferSize := s.config.WebsocketWriteBufferSize
 	s.RUnlock()
+
+	if wsReadBufferSize > 0 {
+		sockjs.WebSocketReadBufSize = wsReadBufferSize
+	}
+	if wsWriteBufferSize > 0 {
+		sockjs.WebSocketWriteBufSize = wsWriteBufferSize
+	}
 
 	sockjsOpts := sockjs.DefaultOptions
 
@@ -279,8 +288,6 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 		if msg, err := sess.Recv(); err == nil {
 			err = c.Handle([]byte(msg))
 			if err != nil {
-				logger.ERROR.Println(err)
-				c.Close(&conns.DisconnectAdvice{Reason: "error handling message", Reconnect: true})
 				return
 			}
 			continue
@@ -294,7 +301,30 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 
 	plugin.Metrics.Counters.Inc("http_raw_ws_num_requests")
 
-	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
+	s.RLock()
+	wsCompression := s.config.WebsocketCompression
+	wsReadBufferSize := s.config.WebsocketReadBufferSize
+	wsWriteBufferSize := s.config.WebsocketWriteBufferSize
+	s.RUnlock()
+
+	if wsReadBufferSize == 0 {
+		wsReadBufferSize = sockjs.WebSocketReadBufSize
+	}
+	if wsWriteBufferSize == 0 {
+		wsWriteBufferSize = sockjs.WebSocketWriteBufSize
+	}
+
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:    wsReadBufferSize,
+		WriteBufferSize:   wsWriteBufferSize,
+		EnableCompression: wsCompression,
+		CheckOrigin: func(r *http.Request) bool {
+			// Allow all connections.
+			return true
+		},
+	}
+
+	ws, err := upgrader.Upgrade(w, r, nil)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(w, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
 		return
@@ -326,12 +356,11 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	for {
 		_, message, err := ws.ReadMessage()
 		if err != nil {
-			break
+			return
 		}
 		err = c.Handle(message)
 		if err != nil {
-			c.Close(&conns.DisconnectAdvice{Reason: err.Error(), Reconnect: true})
-			break
+			return
 		}
 	}
 }

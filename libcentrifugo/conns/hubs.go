@@ -44,11 +44,17 @@ func NewClientHub() ClientHub {
 	}
 }
 
+var (
+	ShutdownSemaphoreChanBufferSize = 1000
+)
+
 // Shutdown unsubscribes users from all channels and disconnects them.
 func (h *clientHub) Shutdown() error {
 	var wg sync.WaitGroup
 	h.RLock()
 	advice := &DisconnectAdvice{Reason: "shutting down", Reconnect: true}
+	// Limit concurrency here to prevent memory burst on shutdown.
+	sem := make(chan struct{}, ShutdownSemaphoreChanBufferSize)
 	for _, user := range h.users {
 		wg.Add(len(user))
 		for uid := range user {
@@ -57,7 +63,9 @@ func (h *clientHub) Shutdown() error {
 				wg.Done()
 				continue
 			}
+			sem <- struct{}{}
 			go func(cc ClientConn) {
+				defer func() { <-sem }()
 				for _, ch := range cc.Channels() {
 					cc.Unsubscribe(ch)
 				}

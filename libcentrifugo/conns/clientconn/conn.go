@@ -49,9 +49,9 @@ type client struct {
 	user           string
 	timestamp      int64
 	authenticated  bool
-	defaultInfo    []byte
-	channelInfo    map[string][]byte
-	channels       map[string]bool
+	defaultInfo    raw.Raw
+	channelInfo    map[string]raw.Raw
+	channels       map[string]struct{}
 	messages       bytequeue.ByteQueue
 	closeCh        chan struct{}
 	closed         bool
@@ -62,6 +62,9 @@ type client struct {
 	maxQueueSize   int
 	maxRequestSize int
 	sendFinished   chan struct{}
+	ping           bool
+	lastSeen       int64
+	lastSeenMu     sync.RWMutex
 }
 
 var (
@@ -131,7 +134,8 @@ func (c *client) sendMessages() {
 		}
 		err := c.sendMessage(msg)
 		if err != nil {
-			c.Close(&conns.DisconnectAdvice{Reason: "error sending message", Reconnect: true})
+			// Close in goroutine to let this function return.
+			go c.Close(&conns.DisconnectAdvice{Reason: "error sending message", Reconnect: true})
 			return
 		}
 		plugin.Metrics.Counters.Inc("client_num_msg_sent")
@@ -193,8 +197,23 @@ func (c *client) updateChannelPresence(ch string) {
 	c.node.AddPresence(ch, c.uid, c.info(ch))
 }
 
+func (c *client) isIdle() bool {
+	config := c.node.Config()
+	maxIdleTimeout := config.ClientMaxIdleTimeout
+	c.lastSeenMu.RLock()
+	lastSeen := c.lastSeen
+	c.lastSeenMu.RUnlock()
+	return time.Now().Unix()-lastSeen > int64(maxIdleTimeout.Seconds())
+}
+
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
+
+	if c.ping && c.isIdle() {
+		go c.Close(nil)
+		return
+	}
+
 	c.RLock()
 	if c.closed {
 		return
@@ -218,10 +237,14 @@ func (c *client) addPresenceUpdate() {
 	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
 }
 
+// No lock here as uid set on client initialization and can not be changed - we
+// only read this value after.
 func (c *client) UID() string {
 	return c.uid
 }
 
+// No lock here as User() can not be called before we set user value in connect command.
+// After this we only read this value.
 func (c *client) User() string {
 	return c.user
 }
@@ -268,7 +291,8 @@ func (c *client) Send(message []byte) error {
 	}
 	plugin.Metrics.Counters.Inc("client_num_msg_queued")
 	if c.messages.Size() > c.maxQueueSize {
-		c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: false})
+		// Close in goroutine to not block message broadcast.
+		go c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: false})
 		return proto.ErrClientClosed
 	}
 	return nil
@@ -312,14 +336,6 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		return nil
 	}
 
-	if advice == nil {
-		advice = conns.DefaultDisconnectAdvice
-	}
-
-	if advice.Reason != "" {
-		logger.DEBUG.Printf("Closing connection %s: %s", c.UID(), advice.Reason)
-	}
-
 	close(c.closeCh)
 	c.closed = true
 
@@ -345,14 +361,16 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		}
 	}
 
-	select {
-	case <-c.sendFinished:
-		err := c.sendDisconnect(advice)
-		if err != nil {
-			logger.DEBUG.Printf("Error sending disconnect: %v", err)
+	if advice != nil {
+		select {
+		case <-c.sendFinished:
+			err := c.sendDisconnect(advice)
+			if err != nil {
+				logger.DEBUG.Printf("Error sending disconnect: %v", err)
+			}
+		case <-time.After(time.Second):
+			logger.DEBUG.Println("Timeout stopping sendMessages goroutine")
 		}
-	case <-time.After(time.Second):
-		logger.DEBUG.Println("Timeout stopping sendMessages goroutine")
 	}
 
 	if c.expireTimer != nil {
@@ -371,32 +389,31 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		c.node.Mediator().Disconnect(c.uid, c.user)
 	}
 
+	if advice == nil {
+		advice = conns.DefaultDisconnectAdvice
+	}
+
+	if advice.Reason != "" {
+		logger.DEBUG.Printf("Closing connection %s (user %s): %s", c.uid, c.user, advice.Reason)
+	}
+
 	c.sess.Close(advice)
 
 	return nil
 }
 
 func (c *client) info(ch string) proto.ClientInfo {
-	channelInfo, ok := c.channelInfo[ch]
-	if !ok {
-		channelInfo = []byte{}
-	}
-	var rawDefaultInfo raw.Raw
-	var rawChannelInfo raw.Raw
-	if len(c.defaultInfo) > 0 {
-		rawDefaultInfo = raw.Raw(c.defaultInfo)
-	} else {
-		rawDefaultInfo = nil
-	}
-	if len(channelInfo) > 0 {
-		rawChannelInfo = raw.Raw(channelInfo)
-	} else {
-		rawChannelInfo = nil
-	}
-	return *proto.NewClientInfo(c.user, c.uid, rawDefaultInfo, rawChannelInfo)
+	defaultInfo := c.defaultInfo
+	channelInfo, _ := c.channelInfo[ch]
+	return *proto.NewClientInfo(c.user, c.uid, defaultInfo, channelInfo)
 }
 
 func (c *client) Handle(msg []byte) error {
+
+	c.lastSeenMu.Lock()
+	c.lastSeen = time.Now().Unix()
+	c.lastSeenMu.Unlock()
+
 	started := time.Now()
 	defer func() {
 		plugin.Metrics.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
@@ -416,7 +433,7 @@ func (c *client) Handle(msg []byte) error {
 
 	commands, err := clientCommandsFromJSON(msg)
 	if err != nil {
-		logger.ERROR.Println(err)
+		logger.ERROR.Printf("Error unmarshaling message: %v", err)
 		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrInvalidMessage.Error(), Reconnect: false})
 		return proto.ErrInvalidMessage
 	}
@@ -437,23 +454,29 @@ func (c *client) Handle(msg []byte) error {
 			// Any other error results in disconnect without reconnect.
 			reconnect = true
 		}
-		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrLimitExceeded.Error(), Reconnect: reconnect})
+		c.Close(&conns.DisconnectAdvice{Reason: err.Error(), Reconnect: reconnect})
+		return err
 	}
-	return err
+	return nil
 }
 
 func (c *client) handleCommands(cmds []proto.ClientCommand) error {
 	var err error
-	var mr proto.MultiClientResponse
-	for _, command := range cmds {
+	mr := make(proto.MultiClientResponse, len(cmds))
+	for i, command := range cmds {
 		resp, err := c.handleCmd(command)
 		if err != nil {
 			return err
 		}
 		resp.SetUID(command.UID)
-		mr = append(mr, resp)
+		mr[i] = resp
 	}
-	jsonResp, err := json.Marshal(mr)
+	var jsonResp []byte
+	if len(cmds) == 1 {
+		jsonResp, err = json.Marshal(mr[0])
+	} else {
+		jsonResp, err = json.Marshal(mr)
+	}
 	if err != nil {
 		logger.ERROR.Println(err)
 		return proto.ErrInvalidMessage
@@ -520,9 +543,11 @@ func (c *client) handleCmd(command proto.ClientCommand) (proto.Response, error) 
 		resp, err = c.publishCmd(&cmd)
 	case "ping":
 		var cmd proto.PingClientCommand
-		err = json.Unmarshal(params, &cmd)
-		if err != nil {
-			return nil, proto.ErrInvalidMessage
+		if len(params) > 0 {
+			err = json.Unmarshal(params, &cmd)
+			if err != nil {
+				return nil, proto.ErrInvalidMessage
+			}
 		}
 		resp, err = c.pingCmd(&cmd)
 	case "presence":
@@ -553,8 +578,11 @@ func (c *client) handleCmd(command proto.ClientCommand) (proto.Response, error) 
 // for example Heroku closes websocket connection after 55 seconds
 // of inactive period when no messages with payload travelled over wire
 func (c *client) pingCmd(cmd *proto.PingClientCommand) (proto.Response, error) {
-	body := proto.PingBody{
-		Data: cmd.Data,
+	var body *proto.PingBody
+	if cmd.Data != "" {
+		body = &proto.PingBody{
+			Data: cmd.Data,
+		}
 	}
 	resp := proto.NewClientPingResponse(body)
 	return resp, nil
@@ -643,6 +671,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	}
 
 	c.user = user
+	c.ping = cmd.Ping
 
 	body := proto.ConnectBody{}
 	body.Version = version
@@ -660,9 +689,11 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	}
 
 	c.authenticated = true
-	c.defaultInfo = []byte(info)
-	c.channels = map[string]bool{}
-	c.channelInfo = map[string][]byte{}
+	if len(info) > 0 {
+		c.defaultInfo = raw.Raw(info)
+	}
+	c.channels = map[string]struct{}{}
+	c.channelInfo = map[string]raw.Raw{}
 
 	if c.staleTimer != nil {
 		c.staleTimer.Stop()
@@ -725,7 +756,7 @@ func (c *client) refreshCmd(cmd *proto.RefreshClientCommand) (proto.Response, er
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
 			c.timestamp = int64(ts)
-			c.defaultInfo = []byte(info)
+			c.defaultInfo = raw.Raw(info)
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
@@ -840,7 +871,9 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 			resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
 			return resp, nil
 		}
-		c.channelInfo[channel] = []byte(cmd.Info)
+		if len(cmd.Info) > 0 {
+			c.channelInfo[channel] = raw.Raw(cmd.Info)
+		}
 	}
 
 	if c.node.Mediator() != nil {
@@ -852,7 +885,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 		}
 	}
 
-	c.channels[channel] = true
+	c.channels[channel] = struct{}{}
 
 	err = c.node.AddClientSub(channel, c)
 	if err != nil {

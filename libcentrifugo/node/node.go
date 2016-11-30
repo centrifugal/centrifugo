@@ -40,12 +40,6 @@ type Node struct {
 	// started is unix time of node start.
 	started int64
 
-	// nodes is a map with information about nodes known.
-	nodes map[string]proto.NodeInfo
-
-	// nodesMu allows to synchronize access to nodes.
-	nodesMu sync.Mutex
-
 	// hub to manage client connections.
 	clients conns.ClientHub
 
@@ -60,6 +54,8 @@ type Node struct {
 
 	// servers contains list of servers connected to this node.
 	servers map[string]server.Server
+
+	nodes *nodeRegistry
 
 	// mediator allows integrate libcentrifugo Node with external go code.
 	mediator Mediator
@@ -115,13 +111,15 @@ func init() {
 
 // New creates Node, the only required argument is config.
 func New(version string, c *Config) *Node {
+	uid := uuid.NewV4().String()
+
 	n := &Node{
 		version:         version,
-		uid:             uuid.NewV4().String(),
+		uid:             uid,
+		nodes:           newNodeRegistry(uid),
 		config:          c,
 		clients:         conns.NewClientHub(),
 		admins:          conns.NewAdminHub(),
-		nodes:           make(map[string]proto.NodeInfo),
 		started:         time.Now().Unix(),
 		metricsSnapshot: make(map[string]int64),
 		shutdownCh:      make(chan struct{}),
@@ -326,14 +324,7 @@ func (n *Node) cleanNodeInfo() {
 			n.RLock()
 			delay := n.config.NodeInfoMaxDelay
 			n.RUnlock()
-
-			n.nodesMu.Lock()
-			for uid, info := range n.nodes {
-				if time.Now().Unix()-info.Updated() > int64(delay.Seconds()) {
-					delete(n.nodes, uid)
-				}
-			}
-			n.nodesMu.Unlock()
+			n.nodes.clean(delay)
 		}
 	}
 }
@@ -345,34 +336,20 @@ func (n *Node) Channels() ([]string, error) {
 
 // Stats returns aggregated stats from all Centrifugo nodes.
 func (n *Node) Stats() proto.ServerStats {
-	n.nodesMu.Lock()
-	nodes := make([]proto.NodeInfo, len(n.nodes))
-	i := 0
-	for _, info := range n.nodes {
-		nodes[i] = info
-		i++
-	}
-	n.nodesMu.Unlock()
-
 	n.RLock()
 	interval := n.config.NodeMetricsInterval
 	n.RUnlock()
 
 	return proto.ServerStats{
 		MetricsInterval: int64(interval.Seconds()),
-		Nodes:           nodes,
+		Nodes:           n.nodes.list(),
 	}
 }
 
 // Node returns raw information only from current node.
 func (n *Node) Node() proto.NodeInfo {
-	n.nodesMu.Lock()
-	info, ok := n.nodes[n.uid]
-	if !ok {
-		logger.WARN.Println("node called but no local node info yet, returning garbage")
-	}
-	n.nodesMu.Unlock()
-	info.SetMetrics(n.getRawMetrics())
+	info := n.nodes.get(n.uid)
+	info.Metrics = n.getRawMetrics()
 	return info
 }
 
@@ -689,10 +666,7 @@ func (n *Node) RemoveClientSub(ch string, c conns.ClientConn) error {
 // pingCmd handles ping control command i.e. updates information about known nodes.
 func (n *Node) pingCmd(cmd *proto.PingControlCommand) error {
 	info := cmd.Info
-	info.SetUpdated(time.Now().Unix())
-	n.nodesMu.Lock()
-	n.nodes[info.UID] = info
-	n.nodesMu.Unlock()
+	n.nodes.add(info)
 	return nil
 }
 
@@ -917,4 +891,71 @@ func (n *Node) ClientAllowed(ch string, client string) bool {
 		return true
 	}
 	return false
+}
+
+type nodeRegistry struct {
+	// mu allows to synchronize access to node registry.
+	mu sync.RWMutex
+	// currentUID keeps uid of current node
+	currentUID string
+	// nodes is a map with information about known nodes.
+	nodes map[string]proto.NodeInfo
+	// updates track time we last received ping from node. Used to clean up nodes map.
+	updates map[string]int64
+}
+
+func newNodeRegistry(currentUID string) *nodeRegistry {
+	return &nodeRegistry{
+		currentUID: currentUID,
+		nodes:      make(map[string]proto.NodeInfo),
+		updates:    make(map[string]int64),
+	}
+}
+
+func (r *nodeRegistry) list() []proto.NodeInfo {
+	r.mu.RLock()
+	nodes := make([]proto.NodeInfo, len(r.nodes))
+	i := 0
+	for _, info := range r.nodes {
+		nodes[i] = info
+		i++
+	}
+	r.mu.RUnlock()
+	return nodes
+}
+
+func (r *nodeRegistry) get(uid string) proto.NodeInfo {
+	r.mu.RLock()
+	info, _ := r.nodes[uid]
+	r.mu.RUnlock()
+	return info
+}
+
+func (r *nodeRegistry) add(info proto.NodeInfo) {
+	r.mu.Lock()
+	r.nodes[info.UID] = info
+	r.updates[info.UID] = time.Now().Unix()
+	r.mu.Unlock()
+}
+
+func (r *nodeRegistry) clean(delay time.Duration) {
+	r.mu.Lock()
+	for uid, _ := range r.nodes {
+		if uid == r.currentUID {
+			// No need to clean info for current node.
+			continue
+		}
+		updated, ok := r.updates[uid]
+		if !ok {
+			// As we do all operations with nodes under lock this should never happen.
+			delete(r.nodes, uid)
+			continue
+		}
+		if time.Now().Unix()-updated > int64(delay.Seconds()) {
+			// Too many seconds since this node have been last seen - remove it from map.
+			delete(r.nodes, uid)
+			delete(r.updates, uid)
+		}
+	}
+	r.mu.Unlock()
 }
