@@ -129,7 +129,9 @@ func (s *session) attachReceiver(recv receiver) error {
 	s.recv.sendBulk(s.sendBuffer...)
 	s.sendBuffer = nil
 	s.timer.Stop()
-	s.timer = time.AfterFunc(s.heartbeatInterval, s.heartbeat)
+	if s.heartbeatInterval > 0 {
+		s.timer = time.AfterFunc(s.heartbeatInterval, s.heartbeat)
+	}
 	return nil
 }
 
