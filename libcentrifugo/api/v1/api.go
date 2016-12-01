@@ -43,6 +43,35 @@ func APICommandsFromJSON(msg []byte) ([]proto.APICommand, error) {
 	return cmds, nil
 }
 
+// ProcessAPIData is a helper method to extract commands from []byte data in APIv1 format,
+// run commands and return JSON encoded response.
+func ProcessAPIData(n *node.Node, data []byte) ([]byte, error) {
+
+	commands, err := APICommandsFromJSON(data)
+	if err != nil {
+		logger.ERROR.Println(err)
+		return nil, proto.ErrInvalidMessage
+	}
+
+	mr := make(proto.MultiAPIResponse, len(commands))
+
+	for i, command := range commands {
+		resp, err := APICmd(n, command)
+		if err != nil {
+			logger.ERROR.Println(err)
+			return nil, proto.ErrInvalidMessage
+		}
+		mr[i] = resp
+	}
+
+	jsonResp, err := json.Marshal(mr)
+	if err != nil {
+		logger.ERROR.Println(err)
+		return nil, proto.ErrInternalServerError
+	}
+	return jsonResp, nil
+}
+
 // APICmd builds API command and dispatches it into correct handler method.
 func APICmd(n *node.Node, cmd proto.APICommand) (proto.Response, error) {
 

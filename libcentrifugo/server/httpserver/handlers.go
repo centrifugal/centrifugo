@@ -365,32 +365,6 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (s *HTTPServer) processAPIData(data []byte) ([]byte, error) {
-
-	commands, err := apiv1.APICommandsFromJSON(data)
-	if err != nil {
-		logger.ERROR.Println(err)
-		return nil, proto.ErrInvalidMessage
-	}
-
-	var mr proto.MultiAPIResponse
-
-	for _, command := range commands {
-		resp, err := apiv1.APICmd(s.node, command)
-		if err != nil {
-			logger.ERROR.Println(err)
-			return nil, proto.ErrInvalidMessage
-		}
-		mr = append(mr, resp)
-	}
-	jsonResp, err := json.Marshal(mr)
-	if err != nil {
-		logger.ERROR.Println(err)
-		return nil, proto.ErrInternalServerError
-	}
-	return jsonResp, nil
-}
-
 // APIHandler is responsible for receiving API commands over HTTP.
 func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
@@ -456,7 +430,7 @@ func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	jsonResp, err := s.processAPIData(data)
+	jsonResp, err := apiv1.ProcessAPIData(s.node, data)
 	if err != nil {
 		if err == proto.ErrInvalidMessage {
 			http.Error(w, "Bad Request", http.StatusBadRequest)

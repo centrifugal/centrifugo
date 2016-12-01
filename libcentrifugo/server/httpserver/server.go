@@ -77,10 +77,10 @@ type HTTPServer struct {
 }
 
 func HTTPServerPlugin(n *node.Node, getter config.Getter) (server.Server, error) {
-	return NewHTTPServer(n, newConfig(getter))
+	return New(n, newConfig(getter))
 }
 
-func NewHTTPServer(n *node.Node, config *Config) (server.Server, error) {
+func New(n *node.Node, config *Config) (server.Server, error) {
 	return &HTTPServer{
 		node:       n,
 		config:     config,
