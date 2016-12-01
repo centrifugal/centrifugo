@@ -97,11 +97,11 @@ func (s *HTTPServer) runHTTPServer() error {
 	nodeConfig := s.node.Config()
 
 	debug := nodeConfig.Debug
-	pingInterval := nodeConfig.PingInterval
 	adminEnabled := nodeConfig.Admin
 
 	s.RLock()
 	sockjsURL := s.config.SockjsURL
+	sockjsHeartbeatDelay := s.config.SockjsHeartbeatDelay
 	webEnabled := s.config.Web
 	webPath := s.config.WebPath
 	sslEnabled := s.config.SSL
@@ -133,7 +133,7 @@ func (s *HTTPServer) runHTTPServer() error {
 		sockjsOpts.SockJSURL = sockjsURL
 	}
 
-	sockjsOpts.HeartbeatDelay = pingInterval
+	sockjsOpts.HeartbeatDelay = time.Duration(sockjsHeartbeatDelay) * time.Second
 
 	var webFS http.FileSystem
 	if webEnabled {

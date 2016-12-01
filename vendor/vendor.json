@@ -149,10 +149,10 @@
 			"revisionTime": "2016-08-17T18:16:52Z"
 		},
 		{
-			"checksumSHA1": "oB90iPjWGKrGCtcuelz6n/noKD4=",
+			"checksumSHA1": "ay9WnRs0b3RGtKVTEGvKvfvfojs=",
 			"path": "gopkg.in/igm/sockjs-go.v2/sockjs",
-			"revision": "1e8c8f7f3832bd1fadc93ea672f82d22d45c1c34",
-			"revisionTime": "2016-10-18T09:56:49Z"
+			"revision": "d276e9ffe5cc5c271b81198cc77a2adf6c4482d2",
+			"revisionTime": "2016-11-15T19:38:03Z"
 		},
 		{
 			"checksumSHA1": "yV+2de12Q/t09hBGYGKEOFr1/zc=",
