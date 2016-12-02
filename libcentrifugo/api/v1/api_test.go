@@ -376,14 +376,6 @@ func TestAPIChannels(t *testing.T) {
 	resp, err := ChannelsCmd(app)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIChannelsResponse).ResponseError.Err)
-	/*
-		app = testMemoryApp()
-		createTestClients(app, 10, 1, nil)
-		resp, err = app.channelsCmd()
-		assert.Equal(t, nil, err)
-		body := resp.(*proto.APIChannelsResponse).Body
-		assert.Equal(t, 10, len(body.Data))
-	*/
 }
 
 func TestAPIStats(t *testing.T) {

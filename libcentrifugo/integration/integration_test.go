@@ -116,11 +116,11 @@ func (t *TestSession) Close(adv *conns.DisconnectAdvice) error {
 
 func getTestChannelOptions() proto.ChannelOptions {
 	return proto.ChannelOptions{
-		Watch:           true,
+		Watch:           false,
 		Publish:         true,
 		Presence:        true,
-		HistorySize:     1,
-		HistoryLifetime: 1,
+		HistorySize:     10,
+		HistoryLifetime: 10,
 	}
 }
 
@@ -440,6 +440,15 @@ func TestPublish(t *testing.T) {
 	hist, err = app.History("some-other-channel")
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(hist))
+}
+
+func TestAPIChannels(t *testing.T) {
+	app := NewTestMemoryNode()
+	createTestClients(app, 10, 1, nil)
+	resp, err := apiv1.ChannelsCmd(app)
+	assert.Equal(t, nil, err)
+	body := resp.(*proto.APIChannelsResponse).Body
+	assert.Equal(t, 10, len(body.Data))
 }
 
 func getNPublishJSON(channel string, n int) []byte {
