@@ -2,8 +2,11 @@ syntax = "proto3";
 // Example how to update gogoprotobuf generated code (Mac OS).
 // go get -u github.com/gogo/protobuf/...
 // Download release of protobuf from: https://github.com/google/protobuf/releases 
+// Install gogofaster program:
+// go get github.com/gogo/protobuf/protoc-gen-gogofaster
 // Use binary from unpacked release, for example:
-// ../../protoc-3.1.0-osx-x86_64/bin/protoc --proto_path=../../protoc-3.1.0-osx-x86_64/:../../../../../:. --gogofaster_out=. message.proto
+// ../../protoc-3.1.0-osx-x86_64/bin/protoc --proto_path=../../protoc-3.1.0-osx-x86_64/:../../vendor/:. --gogofaster_out=. message.proto
+// Note that we use vendored gogoprotobuf path in example above.
 
 package proto;
 
