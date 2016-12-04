@@ -100,6 +100,7 @@ const (
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
 	sync.RWMutex
+	node     *node.Node
 	sharding bool
 	Shards   []*RedisShard
 }
@@ -212,7 +213,7 @@ func newPool(conf *Config) *redis.Pool {
 	apiEnabled := yesno(conf.API)
 	var shardsSuffix string
 	if conf.API {
-		shardsSuffix = fmt.Sprintf(", num shard queues: %d", conf.NumAPIShards)
+		shardsSuffix = fmt.Sprintf(", num API shard queues: %d", conf.NumAPIShards)
 	}
 	if !useSentinel {
 		logger.INFO.Printf("Redis: %s/%s, pool: %d, using password: %s, API enabled: %s%s\n", serverAddr, db, conf.PoolSize, usingPassword, apiEnabled, shardsSuffix)
@@ -478,6 +479,7 @@ func New(n *node.Node, configs []*Config) (engine.Engine, error) {
 	}
 
 	e := &RedisEngine{
+		node:     n,
 		Shards:   shards,
 		sharding: len(shards) > 1,
 	}
