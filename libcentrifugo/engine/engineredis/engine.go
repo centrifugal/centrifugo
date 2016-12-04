@@ -31,14 +31,14 @@ func Configure(setter config.Setter) error {
 	setter.SetDefault("redis_prefix", "centrifugo")
 
 	setter.SetDefault("redis_connect_timeout", 1)
-	setter.SetDefault("redis_read_timeout", 10) // Must be greater than minimal periodic node ping interval.
+	setter.SetDefault("redis_read_timeout", 10) // Must be greater than ping channel publish interval.
 	setter.SetDefault("redis_write_timeout", 1)
 
 	setter.StringFlag("redis_host", "", "127.0.0.1", "redis host (Redis engine)")
 	setter.StringFlag("redis_port", "", "6379", "redis port (Redis engine)")
 	setter.StringFlag("redis_password", "", "", "redis auth password (Redis engine)")
 	setter.StringFlag("redis_db", "", "0", "redis database (Redis engine)")
-	setter.StringFlag("redis_url", "", "", "redis connection URL (Redis engine)")
+	setter.StringFlag("redis_url", "", "", "redis connection URL in format redis://:password@hostname:port/db_number (Redis engine)")
 	setter.BoolFlag("redis_api", "", false, "enable Redis API listener (Redis engine)")
 	setter.IntFlag("redis_pool", "", 256, "Redis pool size (Redis engine)")
 	setter.IntFlag("redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
@@ -114,8 +114,12 @@ type Config struct {
 	Password string
 	// DB is Redis database number as string. If empty then database 0 used.
 	DB string
-	// URL to redis server in format redis://:password@hostname:port/db_number
-	URL string
+
+	// MasterName is a name of Redis instance master Sentinel monitors.
+	MasterName string
+	// SentinelAddrs is a slice of Sentinel addresses.
+	SentinelAddrs []string
+
 	// PoolSize is a size of Redis connection pool.
 	PoolSize int
 	// API enables listening for API queues to publish API commands into Centrifugo via pushing
@@ -124,11 +128,6 @@ type Config struct {
 	// NumAPIShards is a number of sharded API queues in Redis to increase volume of commands
 	// (most probably publish) that Centrifugo instance can process.
 	NumAPIShards int
-
-	// MasterName is a name of Redis instance master Sentinel monitors.
-	MasterName string
-	// SentinelAddrs is a slice of Sentinel addresses.
-	SentinelAddrs []string
 
 	// Prefix to use before every channel name and key in Redis.
 	Prefix string
@@ -201,33 +200,9 @@ func newPool(conf *Config) *redis.Pool {
 	host := conf.Host
 	port := conf.Port
 	password := conf.Password
-
 	db := "0"
 	if conf.DB != "" {
 		db = conf.DB
-	}
-
-	// If URL set then prefer it over other parameters.
-	if conf.URL != "" {
-		u, err := url.Parse(conf.URL)
-		if err != nil {
-			logger.FATAL.Fatalln(err)
-		}
-		if u.User != nil {
-			var ok bool
-			password, ok = u.User.Password()
-			if !ok {
-				password = ""
-			}
-		}
-		host, port, err = net.SplitHostPort(u.Host)
-		if err != nil {
-			logger.FATAL.Fatalln(err)
-		}
-		path := u.Path
-		if path != "" {
-			db = path[1:]
-		}
 	}
 
 	serverAddr := net.JoinHostPort(host, port)
@@ -385,6 +360,9 @@ func getConfigs(getter config.Getter) []*Config {
 		}
 	}
 
+	password := getter.GetString("redis_password")
+	db := getter.GetString("redis_db")
+
 	if len(sentinelAddrs) > 0 && masterName == "" {
 		logger.FATAL.Fatalln("Redis master name required when Sentinel used")
 	}
@@ -415,6 +393,35 @@ func getConfigs(getter config.Getter) []*Config {
 		urls = newURLs
 	}
 
+	for i, confURL := range urls {
+		if confURL == "" {
+			continue
+		}
+		// If URL set then prefer it over other parameters.
+		u, err := url.Parse(confURL)
+		if err != nil {
+			logger.FATAL.Fatalln(err)
+		}
+		if u.User != nil {
+			var ok bool
+			pass, ok := u.User.Password()
+			if !ok {
+				pass = ""
+			}
+			password = pass
+		}
+		host, port, err := net.SplitHostPort(u.Host)
+		if err != nil {
+			logger.FATAL.Fatalln(err)
+		}
+		path := u.Path
+		if path != "" {
+			db = path[1:]
+		}
+		hosts[i] = host
+		ports[i] = port
+	}
+
 	if masterName != "" && len(masterNames) < numShards {
 		logger.FATAL.Fatalln("Redis master names must be set for every Redis shard")
 	}
@@ -428,11 +435,10 @@ func getConfigs(getter config.Getter) []*Config {
 
 	for i := 0; i < numShards; i++ {
 		conf := &Config{
-			URL:            urls[i],
 			Host:           hosts[i],
 			Port:           ports[i],
-			Password:       getter.GetString("redis_password"),
-			DB:             getter.GetString("redis_db"),
+			Password:       password,
+			DB:             db,
 			PoolSize:       getter.GetInt("redis_pool"),
 			API:            getter.GetBool("redis_api"),
 			NumAPIShards:   getter.GetInt("redis_api_num_shards"),
@@ -1030,32 +1036,34 @@ func (e *RedisShard) runPublishPipeline() {
 
 	var prs []*pubRequest
 
-	timer := time.NewTimer(4 * time.Second)
+	// We have to PUBLISH pings into connection to prevent connection close after read timeout.
+	// In our case it's important to maintain PUB/SUB receiver connection alive to prevent
+	// resubscribing on all our subscriptions again and again.
+	//pingInterval := 3 * time.Second
+	//pingTimer := time.NewTimer(pingInterval)
 
 	for {
 		select {
-		case <-timer.C:
+		case <-time.After(4 * time.Second):
 			conn := e.pool.Get()
-			conn.Send("PUBLISH", e.pingChannelID(), nil)
-			conn.Close()
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
+			err := conn.Send("PUBLISH", e.pingChannelID(), nil)
+			if err != nil {
+				logger.ERROR.Printf("Error publish ping: %v", err)
+				conn.Close()
+				return
 			}
-			timer.Reset(4 * time.Second)
+			conn.Close()
 		case pr := <-e.pubCh:
 			prs = append(prs, pr)
 			fillPublishBatch(e.pubCh, &prs)
 
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
-			timer.Reset(4 * time.Second)
+			// if !pingTimer.Stop() {
+			// 	select {
+			// 	case <-pingTimer.C:
+			// 	default:
+			// 	}
+			// }
+			// pingTimer.Reset(pingInterval)
 
 			conn := e.pool.Get()
 
@@ -1072,6 +1080,7 @@ func (e *RedisShard) runPublishPipeline() {
 					prs[i].done(err)
 				}
 				conn.Close()
+				logger.ERROR.Printf("Error flushing publish pipeline: %v", err)
 				return
 			}
 			var noScriptError bool
