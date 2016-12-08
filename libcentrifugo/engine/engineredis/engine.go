@@ -491,9 +491,7 @@ func (e *RedisEngine) Run() error {
 		e.runPubSub()
 	})
 	if api {
-		go e.runForever(func() {
-			e.runAPI()
-		})
+		e.runAPI()
 	}
 	return nil
 }
@@ -540,9 +538,66 @@ func (e *RedisEngine) blpopTimeout() int {
 	return timeout
 }
 
-func (e *RedisEngine) runAPI() {
+func (e *RedisEngine) runAPIWorker(queue string) {
+	shutdownCh := e.node.NotifyShutdown()
 	conn := e.pool.Get()
 	defer conn.Close()
+	logger.DEBUG.Println("Start worker for queue %s", queue)
+
+	for {
+		select {
+		case <-shutdownCh:
+			return
+		default:
+			// Add timeout param, it must be less than connection ReadTimeout to prevent
+			// timeout errors. Below we handle situation when BLPOP block timeout fired
+			// (ErrNil returned) and call BLPOP again.
+			reply, err := conn.Do("BLPOP", queue, e.blpopTimeout())
+			if err != nil {
+				logger.ERROR.Println(err)
+				return
+			}
+
+			values, err := redis.Values(reply, nil)
+			if err != nil {
+				if err == redis.ErrNil {
+					continue
+				}
+				logger.ERROR.Println(err)
+				return
+			}
+			if len(values) != 2 {
+				logger.ERROR.Println("Wrong reply from Redis in BLPOP - expecting 2 values")
+				continue
+			}
+
+			queueName, okQ := values[0].([]byte)
+			if string(queueName) != queue {
+				continue
+			}
+			body, okVal := values[1].([]byte)
+			if !okQ || !okVal {
+				logger.ERROR.Println("Wrong reply from Redis in BLPOP - can not convert value")
+				continue
+			}
+
+			var req redisAPIRequest
+			err = json.Unmarshal(body, &req)
+			if err != nil {
+				logger.ERROR.Println(err)
+				continue
+			}
+			for _, command := range req.Data {
+				err := apiCmd(e.node, command)
+				if err != nil {
+					logger.ERROR.Println(err)
+				}
+			}
+		}
+	}
+}
+
+func (e *RedisEngine) runAPI() {
 	logger.TRACE.Println("Enter runAPI")
 	defer logger.TRACE.Println("Return from runAPI")
 
@@ -551,85 +606,20 @@ func (e *RedisEngine) runAPI() {
 	done := make(chan struct{})
 	defer close(done)
 
-	popParams := []interface{}{apiKey}
-	workQueues := make(map[string]chan []byte)
-	workQueues[apiKey] = make(chan []byte, 256)
+	queues := make(map[string]bool)
+	queues[apiKey] = true
 
 	for i := 0; i < e.numApiShards; i++ {
 		queueKey := e.getAPIShardQueueKey(i)
-		popParams = append(popParams, queueKey)
-		workQueues[queueKey] = make(chan []byte, 256)
+		queues[queueKey] = true
 	}
 
-	// Add timeout param, it must be less than connection ReadTimeout to prevent
-	// timeout errors. Below we handle situation when BLPOP block timeout fired
-	// (ErrNil returned) and call BLPOP again.
-	popParams = append(popParams, e.blpopTimeout())
-
-	// Start a worker for each queue
-	for name, ch := range workQueues {
-		go func(name string, in <-chan []byte) {
-			logger.INFO.Printf("Starting worker for API queue %s", name)
-			for {
-				select {
-				case body, ok := <-in:
-					if !ok {
-						return
-					}
-					var req redisAPIRequest
-					err := json.Unmarshal(body, &req)
-					if err != nil {
-						logger.ERROR.Println(err)
-						continue
-					}
-					for _, command := range req.Data {
-						err := apiCmd(e.node, command)
-						if err != nil {
-							logger.ERROR.Println(err)
-						}
-					}
-				case <-done:
-					return
-				}
-			}
-		}(name, ch)
-	}
-
-	for {
-		reply, err := conn.Do("BLPOP", popParams...)
-		if err != nil {
-			logger.ERROR.Println(err)
-			return
-		}
-
-		values, err := redis.Values(reply, nil)
-		if err != nil {
-			if err == redis.ErrNil {
-				continue
-			}
-			logger.ERROR.Println(err)
-			return
-		}
-		if len(values) != 2 {
-			logger.ERROR.Println("Wrong reply from Redis in BLPOP - expecting 2 values")
-			continue
-		}
-
-		queue, okQ := values[0].([]byte)
-		body, okVal := values[1].([]byte)
-		if !okQ || !okVal {
-			logger.ERROR.Println("Wrong reply from Redis in BLPOP - can not convert value")
-			continue
-		}
-
-		// Pick worker based on queue
-		q, ok := workQueues[string(queue)]
-		if !ok {
-			logger.ERROR.Println("Got message from a queue we didn't even know about!")
-			continue
-		}
-
-		q <- body
+	for name := range queues {
+		func(name string) {
+			go e.runForever(func() {
+				e.runAPIWorker(name)
+			})
+		}(name)
 	}
 }
 
