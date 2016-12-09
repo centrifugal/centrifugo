@@ -111,6 +111,7 @@ type RedisEngine struct {
 	addPresenceScript *redis.Script
 	remPresenceScript *redis.Script
 	presenceScript    *redis.Script
+	lpopScript        *redis.Script
 	messagePrefix     string
 	joinPrefix        string
 	leavePrefix       string
@@ -397,6 +398,7 @@ func New(n *node.Node, conf *Config) (engine.Engine, error) {
 		addPresenceScript: redis.NewScript(2, addPresenceSource),
 		remPresenceScript: redis.NewScript(2, remPresenceSource),
 		presenceScript:    redis.NewScript(2, presenceSource),
+		lpopScript:        redis.NewScript(1, lpopSource),
 	}
 	e.pubCh = make(chan *pubRequest, RedisPublishChannelSize)
 	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
@@ -474,6 +476,14 @@ if #expired > 0 then
 end
 return redis.call("hgetall", KEYS[2])
 	`
+
+	lpopSource = `
+local entries = redis.call("lrange", KEYS[1], "0", "10")
+if #entries > 0 then
+  redis.call("ltrim", KEYS[1], #entries, -1)
+end
+return entries
+	`
 )
 
 func (e *RedisEngine) Name() string {
@@ -542,55 +552,91 @@ func (e *RedisEngine) runAPIWorker(queue string) {
 	shutdownCh := e.node.NotifyShutdown()
 	conn := e.pool.Get()
 	defer conn.Close()
+
+	err := e.lpopScript.Load(conn)
+	if err != nil {
+		logger.ERROR.Println(err)
+		return
+	}
+
 	logger.DEBUG.Println("Start worker for queue %s", queue)
+
+	// Start with BLPOP.
+	blockingPop := true
 
 	for {
 		select {
 		case <-shutdownCh:
 			return
 		default:
-			// Add timeout param, it must be less than connection ReadTimeout to prevent
-			// timeout errors. Below we handle situation when BLPOP block timeout fired
-			// (ErrNil returned) and call BLPOP again.
-			reply, err := conn.Do("BLPOP", queue, e.blpopTimeout())
-			if err != nil {
-				logger.ERROR.Println(err)
-				return
-			}
-
-			values, err := redis.Values(reply, nil)
-			if err != nil {
-				if err == redis.ErrNil {
-					continue
-				}
-				logger.ERROR.Println(err)
-				return
-			}
-			if len(values) != 2 {
-				logger.ERROR.Println("Wrong reply from Redis in BLPOP - expecting 2 values")
-				continue
-			}
-
-			queueName, okQ := values[0].([]byte)
-			if string(queueName) != queue {
-				continue
-			}
-			body, okVal := values[1].([]byte)
-			if !okQ || !okVal {
-				logger.ERROR.Println("Wrong reply from Redis in BLPOP - can not convert value")
-				continue
-			}
-
-			var req redisAPIRequest
-			err = json.Unmarshal(body, &req)
-			if err != nil {
-				logger.ERROR.Println(err)
-				continue
-			}
-			for _, command := range req.Data {
-				err := apiCmd(e.node, command)
+			if blockingPop {
+				// BLPOP with timeout, which must be less than connection ReadTimeout to prevent
+				// timeout errors. Below we handle situation when BLPOP block timeout fired
+				// (ErrNil returned) and call BLPOP again.
+				reply, err := conn.Do("BLPOP", queue, e.blpopTimeout())
 				if err != nil {
 					logger.ERROR.Println(err)
+					return
+				}
+
+				values, err := redis.Values(reply, nil)
+				if err != nil {
+					if err == redis.ErrNil {
+						continue
+					}
+					logger.ERROR.Println(err)
+					return
+				}
+				if len(values) != 2 {
+					logger.ERROR.Println("Wrong reply from Redis in BLPOP - expecting 2 values")
+					continue
+				}
+
+				queueName, okQ := values[0].([]byte)
+				if string(queueName) != queue {
+					continue
+				}
+				body, okVal := values[1].([]byte)
+				if !okQ || !okVal {
+					logger.ERROR.Println("Wrong reply from Redis in BLPOP - can not convert value")
+					continue
+				}
+				err = e.processAPIData(body)
+				if err != nil {
+					logger.ERROR.Printf("Error processing Redis API data: %v", err)
+				}
+				// There could be a lot of messages, switch to fast retreiving using
+				// lua script with LRANGE/LTRIM operations.
+				blockingPop = false
+			} else {
+				err := e.lpopScript.SendHash(conn, queue)
+				if err != nil {
+					logger.ERROR.Println(err)
+					return
+				}
+				err = conn.Flush()
+				if err != nil {
+					return
+				}
+				values, err := redis.Values(conn.Receive())
+				if err != nil {
+					logger.ERROR.Println(err)
+					return
+				}
+				if len(values) == 0 {
+					// No items in queue, switch back to BLPOP.
+					blockingPop = true
+					continue
+				}
+				for _, val := range values {
+					data, ok := val.([]byte)
+					if !ok {
+						continue
+					}
+					err := e.processAPIData(data)
+					if err != nil {
+						logger.ERROR.Printf("Error processing Redis API data: %v", err)
+					}
 				}
 			}
 		}
@@ -1212,6 +1258,21 @@ func (e *RedisEngine) Channels() ([]string, error) {
 	return channels, nil
 }
 
+func (e *RedisEngine) processAPIData(data []byte) error {
+	var req redisAPIRequest
+	err := json.Unmarshal(data, &req)
+	if err != nil {
+		return err
+	}
+	for _, command := range req.Data {
+		err := apiCmd(e.node, command)
+		if err != nil {
+			logger.ERROR.Println(err)
+		}
+	}
+	return nil
+}
+
 func apiCmd(n *node.Node, cmd proto.APICommand) error {
 
 	var err error
@@ -1226,14 +1287,14 @@ func apiCmd(n *node.Node, cmd proto.APICommand) error {
 		if err != nil {
 			return err
 		}
-		_, err = apiv1.PublishCmd(n, &cmd)
+		apiv1.PublishCmdAsync(n, &cmd)
 	case "broadcast":
 		var cmd proto.BroadcastAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return err
 		}
-		_, err = apiv1.BroadcastCmd(n, &cmd)
+		apiv1.BroadcastCmdAsync(n, &cmd)
 	case "unsubscribe":
 		var cmd proto.UnsubscribeAPICommand
 		err = json.Unmarshal(params, &cmd)

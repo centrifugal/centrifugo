@@ -148,6 +148,12 @@ func APICmd(n *node.Node, cmd proto.APICommand) (proto.Response, error) {
 	return resp, nil
 }
 
+func makeErrChan(err error) <-chan error {
+	ret := make(chan error, 1)
+	ret <- err
+	return ret
+}
+
 // PublishCmd publishes data into channel.
 func PublishCmd(n *node.Node, cmd *proto.PublishAPICommand) (proto.Response, error) {
 	ch := cmd.Channel
@@ -183,6 +189,34 @@ func PublishCmd(n *node.Node, cmd *proto.PublishAPICommand) (proto.Response, err
 		return resp, nil
 	}
 	return resp, nil
+}
+
+// PublishCmdAsync publishes data into channel without any returned response.
+func PublishCmdAsync(n *node.Node, cmd *proto.PublishAPICommand) <-chan error {
+	ch := cmd.Channel
+	data := cmd.Data
+	client := cmd.Client
+
+	if string(ch) == "" || len(data) == 0 {
+		return makeErrChan(proto.ErrInvalidMessage)
+	}
+
+	chOpts, err := n.ChannelOpts(ch)
+	if err != nil {
+		return makeErrChan(err)
+	}
+
+	message := proto.NewMessage(ch, data, client, nil)
+	if chOpts.Watch {
+		byteMessage, err := json.Marshal(message)
+		if err != nil {
+			logger.ERROR.Println(err)
+		} else {
+			n.PublishAdmin(proto.NewAdminMessage("message", byteMessage))
+		}
+	}
+
+	return n.Publish(message, &chOpts)
 }
 
 // BroadcastCmd publishes data into multiple channels.
@@ -247,6 +281,49 @@ func BroadcastCmd(n *node.Node, cmd *proto.BroadcastAPICommand) (proto.Response,
 		resp.SetErr(proto.ResponseError{firstErr, proto.ErrorAdviceNone})
 	}
 	return resp, nil
+}
+
+// BroadcastCmdAsync publishes data into multiple channels without returning Response.
+func BroadcastCmdAsync(n *node.Node, cmd *proto.BroadcastAPICommand) <-chan error {
+
+	channels := cmd.Channels
+	data := cmd.Data
+	client := cmd.Client
+
+	if len(channels) == 0 {
+		logger.ERROR.Println("channels required for broadcast")
+		return makeErrChan(proto.ErrInvalidMessage)
+	}
+
+	if len(data) == 0 {
+		logger.ERROR.Println("empty data")
+		return makeErrChan(proto.ErrInvalidMessage)
+	}
+
+	for _, ch := range channels {
+
+		if string(ch) == "" {
+			return makeErrChan(proto.ErrInvalidMessage)
+		}
+
+		chOpts, err := n.ChannelOpts(ch)
+		if err != nil {
+			return makeErrChan(err)
+		}
+
+		message := proto.NewMessage(ch, data, client, nil)
+		if chOpts.Watch {
+			byteMessage, err := json.Marshal(message)
+			if err != nil {
+				logger.ERROR.Println(err)
+			} else {
+				n.PublishAdmin(proto.NewAdminMessage("message", byteMessage))
+			}
+		}
+
+		n.Publish(message, &chOpts)
+	}
+	return makeErrChan(nil)
 }
 
 // UnsubscribeCmd unsubscribes project's user from channel and sends
