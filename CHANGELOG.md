@@ -1,17 +1,17 @@
 v1.6.0 (not released yet)
 =========================
 
-This Centrifugo release is a massive internal refactoring with the goal to separate code of different components such as engine, server, metrics, clients to own packages. The code layout changed dramatically. Look at `libcentrifugo` folder! Unfortunately there are some minor backwards incompatibilities with previous release - see notes below.
+This Centrifugo release is a massive internal refactoring with the goal to separate code of different components such as engine, server, metrics, clients to own packages. The code layout changed dramatically. Look at `libcentrifugo` folder! Unfortunately there are some minor backwards incompatibilities with previous release - see notes below. With new structure it's much more simple to create custom engines or servers - each with own metrics and configuration options. 
 
-With new structure it's much more simple to create custom engines or servers - each with own metrics and configuration options. Although it's possible to create pluggable engines and servers I can not guarantee at moment that we will keep `libcentrifugo` packages API stable - as our primary goal is still building Centrifugo standalone server. So if we find sth that must be fixed internally - we will fix it even if this could result in packages API changes
+Although it's possible to create pluggable engines and servers I can not guarantee at moment that we will keep `libcentrifugo` packages API stable - as our primary goal is still building Centrifugo standalone server. So if we find something that must be fixed internally - we will fix it even if this could result in packages API changes.
 
 As Centrifugo written in Go the only performant way to write plugins is to import them in `main.go` file and build Centrifugo with them. So if you want to create custom build you will need to build Centrifugo yourself. But at least it's much easier than supporting full Centrifugo fork.
 
 Release highlights:
 
-* new metrics. Several useful new metrics have beed added. For example HTTP API and client request HDR histograms. See updated documentation for complete list. Refactoring resulted in backwards incompatible issue when working with Centrifugo metrics (see below).
-* optimizations for client side ping, centrifuge-js now automatically sends periodic `ping` commands to server. Centrifugo checks client's last activity time and closes stale connections.
-* experimental websocket compression support for raw websockets - see [#115](https://github.com/centrifugal/centrifugo/issues/115)
+* new metrics. Several useful new metrics have beed added. For example HTTP API and client request HDR histograms. See updated documentation for complete list. Refactoring resulted in backwards incompatible issue when working with Centrifugo metrics (see below). [Here is a docs chapter](https://fzambia.gitbooks.io/centrifugal/content/server/stats.html) about metrics.
+* optimizations for client side ping, centrifuge-js now automatically sends periodic `ping` commands to server. Centrifugo checks client's last activity time and closes stale connections. SockJS server won't sent heartbeat frames by default. You can restore the old behaviour though: setting `ping: false` on client side and `sockjs_heartbeat_delay` option in Centrifugo configuration. All this means that you better update `centrifuge-js` client to latest version (`1.4.0`). Read more [in docs](https://fzambia.gitbooks.io/centrifugal/content/mixed/ping.html).
+* experimental websocket compression support for raw websockets - see [#115](https://github.com/centrifugal/centrifugo/issues/115). Read more [in docs](https://fzambia.gitbooks.io/centrifugal/content/mixed/websocket_compression.html).
 
 Fixes:
 
@@ -28,12 +28,12 @@ Backwards incompatible changes:
 
 Several internal highlights (mostly for Go developers):
 
-* code base now is more simple and readable
+* code base is more simple and readable now
 * protobuf v3 for message schema (using gogoprotobuf library). proto2 and proto3 are wire compatible
 * client transport now abstracted away - so it would be much easier in future to add new transport in addition/replacement to Websocket/SockJS
 * API abstracted away from protocol - it would be easier in future to add new API requests source.
 * no performance penalty was introduced during this refactoring.
-* go1.7.3 used for builds.
+* go1.7.4 used for builds.
 
 
 v1.5.1
