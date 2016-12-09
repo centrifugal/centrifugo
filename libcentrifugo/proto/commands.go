@@ -39,36 +39,6 @@ var (
 	objectJSONPrefix byte = '{'
 )
 
-func APICommandsFromJSON(msg []byte) ([]APICommand, error) {
-	var cmds []APICommand
-
-	if len(msg) == 0 {
-		return cmds, nil
-	}
-
-	firstByte := msg[0]
-
-	switch firstByte {
-	case objectJSONPrefix:
-		// single command request
-		var command APICommand
-		err := json.Unmarshal(msg, &command)
-		if err != nil {
-			return nil, err
-		}
-		cmds = append(cmds, command)
-	case arrayJSONPrefix:
-		// array of commands received
-		err := json.Unmarshal(msg, &cmds)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, ErrInvalidMessage
-	}
-	return cmds, nil
-}
-
 func ClientCommandsFromJSON(msgBytes []byte) ([]ClientCommand, error) {
 	var cmds []ClientCommand
 	firstByte := msgBytes[0]

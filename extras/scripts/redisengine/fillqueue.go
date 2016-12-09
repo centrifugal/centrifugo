@@ -25,13 +25,7 @@ func main() {
 		},
 	}
 
-	data := map[string]interface{}{
-		"data": []interface{}{
-			command,
-		},
-	}
-
-	bytes, _ := json.Marshal(data)
+	bytes, _ := json.Marshal(command)
 	println(string(bytes))
 
 	var wg sync.WaitGroup

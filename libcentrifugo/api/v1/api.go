@@ -8,13 +8,25 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
+// Try to extract single APICommand encoded as JSON.
+func APICommandFromJSON(msg []byte) (*proto.APICommand, error) {
+	var cmd proto.APICommand
+	err := json.Unmarshal(msg, &cmd)
+	if err != nil {
+		return nil, err
+	}
+	return &cmd, nil
+}
+
 var (
 	arrayJSONPrefix  byte = '['
 	objectJSONPrefix byte = '{'
 )
 
-func APICommandsFromJSON(msg []byte) ([]proto.APICommand, error) {
-	var cmds []proto.APICommand
+// Try to extract slice of APICommand encoded as JSON. This function understands both
+// single object and array of commands JSON looking at first byte of msg.
+func APICommandsFromJSON(msg []byte) ([]*proto.APICommand, error) {
+	var cmds []*proto.APICommand
 
 	if len(msg) == 0 {
 		return cmds, nil
@@ -25,8 +37,7 @@ func APICommandsFromJSON(msg []byte) ([]proto.APICommand, error) {
 	switch firstByte {
 	case objectJSONPrefix:
 		// single command request
-		var command proto.APICommand
-		err := json.Unmarshal(msg, &command)
+		command, err := APICommandFromJSON(msg)
 		if err != nil {
 			return nil, err
 		}
@@ -73,7 +84,7 @@ func ProcessAPIData(n *node.Node, data []byte) ([]byte, error) {
 }
 
 // APICmd builds API command and dispatches it into correct handler method.
-func APICmd(n *node.Node, cmd proto.APICommand) (proto.Response, error) {
+func APICmd(n *node.Node, cmd *proto.APICommand) (proto.Response, error) {
 
 	var err error
 	var resp proto.Response
@@ -191,7 +202,7 @@ func PublishCmd(n *node.Node, cmd *proto.PublishAPICommand) (proto.Response, err
 	return resp, nil
 }
 
-// PublishCmdAsync publishes data into channel without any returned response.
+// PublishCmdAsync publishes data into channel without waiting for response.
 func PublishCmdAsync(n *node.Node, cmd *proto.PublishAPICommand) <-chan error {
 	ch := cmd.Channel
 	data := cmd.Data
@@ -283,7 +294,7 @@ func BroadcastCmd(n *node.Node, cmd *proto.BroadcastAPICommand) (proto.Response,
 	return resp, nil
 }
 
-// BroadcastCmdAsync publishes data into multiple channels without returning Response.
+// BroadcastCmdAsync publishes data into multiple channels without waiting for response.
 func BroadcastCmdAsync(n *node.Node, cmd *proto.BroadcastAPICommand) <-chan error {
 
 	channels := cmd.Channels

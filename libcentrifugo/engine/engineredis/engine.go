@@ -111,7 +111,7 @@ type RedisEngine struct {
 	addPresenceScript *redis.Script
 	remPresenceScript *redis.Script
 	presenceScript    *redis.Script
-	lpopScript        *redis.Script
+	lpopManyScript    *redis.Script
 	messagePrefix     string
 	joinPrefix        string
 	leavePrefix       string
@@ -398,7 +398,7 @@ func New(n *node.Node, conf *Config) (engine.Engine, error) {
 		addPresenceScript: redis.NewScript(2, addPresenceSource),
 		remPresenceScript: redis.NewScript(2, remPresenceSource),
 		presenceScript:    redis.NewScript(2, presenceSource),
-		lpopScript:        redis.NewScript(1, lpopSource),
+		lpopManyScript:    redis.NewScript(1, lpopManySource),
 	}
 	e.pubCh = make(chan *pubRequest, RedisPublishChannelSize)
 	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
@@ -477,7 +477,7 @@ end
 return redis.call("hgetall", KEYS[2])
 	`
 
-	lpopSource = `
+	lpopManySource = `
 local entries = redis.call("lrange", KEYS[1], "0", "10")
 if #entries > 0 then
   redis.call("ltrim", KEYS[1], #entries, -1)
@@ -508,10 +508,6 @@ func (e *RedisEngine) Run() error {
 
 func (e *RedisEngine) Shutdown() error {
 	return errors.New("Shutdown not implemented")
-}
-
-type redisAPIRequest struct {
-	Data []proto.APICommand
 }
 
 // runForever simple keeps another function running indefinitely
@@ -553,7 +549,7 @@ func (e *RedisEngine) runAPIWorker(queue string) {
 	conn := e.pool.Get()
 	defer conn.Close()
 
-	err := e.lpopScript.Load(conn)
+	err := e.lpopManyScript.Load(conn)
 	if err != nil {
 		logger.ERROR.Println(err)
 		return
@@ -591,14 +587,11 @@ func (e *RedisEngine) runAPIWorker(queue string) {
 					logger.ERROR.Println("Wrong reply from Redis in BLPOP - expecting 2 values")
 					continue
 				}
-
-				queueName, okQ := values[0].([]byte)
-				if string(queueName) != queue {
-					continue
-				}
+				// values[0] is a name of API queue, as we listen only one queue
+				// here - we don't need it.
 				body, okVal := values[1].([]byte)
-				if !okQ || !okVal {
-					logger.ERROR.Println("Wrong reply from Redis in BLPOP - can not convert value")
+				if !okVal {
+					logger.ERROR.Println("Wrong reply from Redis in BLPOP - can not convert value to slice of bytes")
 					continue
 				}
 				err = e.processAPIData(body)
@@ -609,7 +602,7 @@ func (e *RedisEngine) runAPIWorker(queue string) {
 				// lua script with LRANGE/LTRIM operations.
 				blockingPop = false
 			} else {
-				err := e.lpopScript.SendHash(conn, queue)
+				err := e.lpopManyScript.SendHash(conn, queue)
 				if err != nil {
 					logger.ERROR.Println(err)
 					return
@@ -631,6 +624,7 @@ func (e *RedisEngine) runAPIWorker(queue string) {
 				for _, val := range values {
 					data, ok := val.([]byte)
 					if !ok {
+						logger.ERROR.Println("Wrong reply in API lua script response - can not convert value to slice of bytes")
 						continue
 					}
 					err := e.processAPIData(data)
@@ -1258,22 +1252,34 @@ func (e *RedisEngine) Channels() ([]string, error) {
 	return channels, nil
 }
 
+// Deprecated, will be removed in future releases.
+type redisAPIRequest struct {
+	Data []proto.APICommand
+}
+
 func (e *RedisEngine) processAPIData(data []byte) error {
-	var req redisAPIRequest
-	err := json.Unmarshal(data, &req)
+	cmd, err := apiv1.APICommandFromJSON(data)
 	if err != nil {
 		return err
 	}
-	for _, command := range req.Data {
-		err := apiCmd(e.node, command)
+	// Support deprecated usage of old Redis API format.
+	if cmd.Method == "" {
+		var req redisAPIRequest
+		err := json.Unmarshal(data, &req)
 		if err != nil {
-			logger.ERROR.Println(err)
+			return err
+		}
+		for _, command := range req.Data {
+			err := apiCmd(e.node, &command)
+			if err != nil {
+				logger.ERROR.Println(err)
+			}
 		}
 	}
-	return nil
+	return apiCmd(e.node, cmd)
 }
 
-func apiCmd(n *node.Node, cmd proto.APICommand) error {
+func apiCmd(n *node.Node, cmd *proto.APICommand) error {
 
 	var err error
 
