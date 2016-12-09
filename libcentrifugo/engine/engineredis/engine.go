@@ -477,8 +477,10 @@ end
 return redis.call("hgetall", KEYS[2])
 	`
 
+	// KEYS[1] - API list (queue) key
+	// ARGV[1] - maximum amount of items to get
 	lpopManySource = `
-local entries = redis.call("lrange", KEYS[1], "0", "10")
+local entries = redis.call("lrange", KEYS[1], "0", ARGV[1])
 if #entries > 0 then
   redis.call("ltrim", KEYS[1], #entries, -1)
 end
@@ -602,7 +604,7 @@ func (e *RedisEngine) runAPIWorker(queue string) {
 				// lua script with LRANGE/LTRIM operations.
 				blockingPop = false
 			} else {
-				err := e.lpopManyScript.SendHash(conn, queue)
+				err := e.lpopManyScript.SendHash(conn, queue, 10)
 				if err != nil {
 					logger.ERROR.Println(err)
 					return
