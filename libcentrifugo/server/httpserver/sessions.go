@@ -72,7 +72,9 @@ func newWSSession(ws websocketConn, pingInterval time.Duration) *wsSession {
 		closeCh:      make(chan struct{}),
 		pingInterval: pingInterval,
 	}
-	sess.addPing()
+	if pingInterval > 0 {
+		sess.addPing()
+	}
 	return sess
 }
 
@@ -119,7 +121,9 @@ func (sess *wsSession) Close(advice *conns.DisconnectAdvice) error {
 	}
 	close(sess.closeCh)
 	sess.closed = true
-	sess.pingTimer.Stop()
+	if sess.pingTimer != nil {
+		sess.pingTimer.Stop()
+	}
 	sess.mu.Unlock()
 	deadline := time.Now().Add(time.Second)
 	reason, err := advice.JSONString()
