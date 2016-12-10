@@ -31,14 +31,14 @@ func Configure(setter config.Setter) error {
 	setter.SetDefault("redis_prefix", "centrifugo")
 
 	setter.SetDefault("redis_connect_timeout", 1)
-	setter.SetDefault("redis_read_timeout", 10) // Must be greater than minimal periodic node ping interval.
+	setter.SetDefault("redis_read_timeout", 10) // Must be greater than ping channel publish interval.
 	setter.SetDefault("redis_write_timeout", 1)
 
 	setter.StringFlag("redis_host", "", "127.0.0.1", "redis host (Redis engine)")
 	setter.StringFlag("redis_port", "", "6379", "redis port (Redis engine)")
 	setter.StringFlag("redis_password", "", "", "redis auth password (Redis engine)")
 	setter.StringFlag("redis_db", "", "0", "redis database (Redis engine)")
-	setter.StringFlag("redis_url", "", "", "redis connection URL (Redis engine)")
+	setter.StringFlag("redis_url", "", "", "redis connection URL in format redis://:password@hostname:port/db_number (Redis engine)")
 	setter.BoolFlag("redis_api", "", false, "enable Redis API listener (Redis engine)")
 	setter.IntFlag("redis_pool", "", 256, "Redis pool size (Redis engine)")
 	setter.IntFlag("redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
@@ -88,6 +88,7 @@ type (
 const (
 	RedisAPIKeySuffix         = ".api"
 	RedisControlChannelSuffix = ".control"
+	RedisPingChannelSuffix    = ".ping"
 	RedisAdminChannelSuffix   = ".admin"
 	RedisMessageChannelPrefix = ".message."
 	RedisJoinChannelPrefix    = ".join."
@@ -98,6 +99,13 @@ const (
 // This engine allows to scale Centrifugo - you can run several Centrifugo instances
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
+	sync.RWMutex
+	node     *node.Node
+	sharding bool
+	Shards   []*RedisShard
+}
+
+type RedisShard struct {
 	sync.RWMutex
 	node              *node.Node
 	config            *Config
@@ -127,8 +135,12 @@ type Config struct {
 	Password string
 	// DB is Redis database number as string. If empty then database 0 used.
 	DB string
-	// URL to redis server in format redis://:password@hostname:port/db_number
-	URL string
+
+	// MasterName is a name of Redis instance master Sentinel monitors.
+	MasterName string
+	// SentinelAddrs is a slice of Sentinel addresses.
+	SentinelAddrs []string
+
 	// PoolSize is a size of Redis connection pool.
 	PoolSize int
 	// API enables listening for API queues to publish API commands into Centrifugo via pushing
@@ -137,11 +149,6 @@ type Config struct {
 	// NumAPIShards is a number of sharded API queues in Redis to increase volume of commands
 	// (most probably publish) that Centrifugo instance can process.
 	NumAPIShards int
-
-	// MasterName is a name of Redis instance master Sentinel monitors.
-	MasterName string
-	// SentinelAddrs is a slice of Sentinel addresses.
-	SentinelAddrs []string
 
 	// Prefix to use before every channel name and key in Redis.
 	Prefix string
@@ -195,33 +202,9 @@ func newPool(conf *Config) *redis.Pool {
 	host := conf.Host
 	port := conf.Port
 	password := conf.Password
-
 	db := "0"
 	if conf.DB != "" {
 		db = conf.DB
-	}
-
-	// If URL set then prefer it over other parameters.
-	if conf.URL != "" {
-		u, err := url.Parse(conf.URL)
-		if err != nil {
-			logger.FATAL.Fatalln(err)
-		}
-		if u.User != nil {
-			var ok bool
-			password, ok = u.User.Password()
-			if !ok {
-				password = ""
-			}
-		}
-		host, port, err = net.SplitHostPort(u.Host)
-		if err != nil {
-			logger.FATAL.Fatalln(err)
-		}
-		path := u.Path
-		if path != "" {
-			db = path[1:]
-		}
 	}
 
 	serverAddr := net.JoinHostPort(host, port)
@@ -231,12 +214,12 @@ func newPool(conf *Config) *redis.Pool {
 	apiEnabled := yesno(conf.API)
 	var shardsSuffix string
 	if conf.API {
-		shardsSuffix = fmt.Sprintf(", num shard queues: %d", conf.NumAPIShards)
+		shardsSuffix = fmt.Sprintf(", num API shard queues: %d", conf.NumAPIShards)
 	}
 	if !useSentinel {
-		logger.INFO.Printf("Redis engine: %s/%s, pool: %d, using password: %s, API enabled: %s%s\n", serverAddr, db, conf.PoolSize, usingPassword, apiEnabled, shardsSuffix)
+		logger.INFO.Printf("Redis: %s/%s, pool: %d, using password: %s, API enabled: %s%s\n", serverAddr, db, conf.PoolSize, usingPassword, apiEnabled, shardsSuffix)
 	} else {
-		logger.INFO.Printf("Redis engine: Sentinel for name: %s, db: %s, pool: %d, using password: %s, API enabled: %s%s\n", conf.MasterName, db, conf.PoolSize, usingPassword, apiEnabled, shardsSuffix)
+		logger.INFO.Printf("Redis: Sentinel for name: %s, db: %s, pool: %d, using password: %s, API enabled: %s%s\n", conf.MasterName, db, conf.PoolSize, usingPassword, apiEnabled, shardsSuffix)
 	}
 
 	var lastMu sync.Mutex
@@ -336,8 +319,30 @@ func newPool(conf *Config) *redis.Pool {
 	}
 }
 
-func getConfig(getter config.Getter) *Config {
+func getConfigs(getter config.Getter) []*Config {
+	numShards := 1
+
+	hosts := strings.Split(getter.GetString("redis_host"), ",")
+	if len(hosts) > numShards {
+		numShards = len(hosts)
+	}
+
+	ports := strings.Split(getter.GetString("redis_port"), ",")
+	if len(ports) > numShards {
+		numShards = len(ports)
+	}
+
+	urls := strings.Split(getter.GetString("redis_url"), ",")
+	if len(urls) > numShards {
+		numShards = len(urls)
+	}
+
 	masterName := getter.GetString("redis_master_name")
+	masterNames := strings.Split(masterName, ",")
+	if len(masterNames) > numShards {
+		numShards = len(masterNames)
+	}
+
 	sentinels := getter.GetString("redis_sentinels")
 	if masterName != "" && sentinels == "" {
 		logger.FATAL.Fatalf("Provide at least one Sentinel address")
@@ -357,38 +362,133 @@ func getConfig(getter config.Getter) *Config {
 		}
 	}
 
+	password := getter.GetString("redis_password")
+	db := getter.GetString("redis_db")
+
 	if len(sentinelAddrs) > 0 && masterName == "" {
 		logger.FATAL.Fatalln("Redis master name required when Sentinel used")
 	}
 
-	conf := &Config{
-		Host:           getter.GetString("redis_host"),
-		Port:           getter.GetString("redis_port"),
-		Password:       getter.GetString("redis_password"),
-		DB:             getter.GetString("redis_db"),
-		URL:            getter.GetString("redis_url"),
-		PoolSize:       getter.GetInt("redis_pool"),
-		API:            getter.GetBool("redis_api"),
-		NumAPIShards:   getter.GetInt("redis_api_num_shards"),
-		Prefix:         getter.GetString("redis_prefix"),
-		MasterName:     masterName,
-		SentinelAddrs:  sentinelAddrs,
-		ConnectTimeout: time.Duration(getter.GetInt("redis_connect_timeout")) * time.Second,
-		ReadTimeout:    time.Duration(getter.GetInt("redis_read_timeout")) * time.Second,
-		WriteTimeout:   time.Duration(getter.GetInt("redis_write_timeout")) * time.Second,
+	var shardConfigs []*Config
+
+	if len(hosts) < numShards {
+		newHosts := make([]string, numShards)
+		for i := 0; i < numShards; i++ {
+			newHosts[i] = hosts[0]
+		}
+		hosts = newHosts
 	}
 
-	return conf
+	if len(ports) < numShards {
+		newPorts := make([]string, numShards)
+		for i := 0; i < numShards; i++ {
+			newPorts[i] = ports[0]
+		}
+		ports = newPorts
+	}
+
+	if len(urls) < numShards {
+		newURLs := make([]string, numShards)
+		for i := 0; i < numShards; i++ {
+			newURLs[i] = urls[0]
+		}
+		urls = newURLs
+	}
+
+	for i, confURL := range urls {
+		if confURL == "" {
+			continue
+		}
+		// If URL set then prefer it over other parameters.
+		u, err := url.Parse(confURL)
+		if err != nil {
+			logger.FATAL.Fatalln(err)
+		}
+		if u.User != nil {
+			var ok bool
+			pass, ok := u.User.Password()
+			if !ok {
+				pass = ""
+			}
+			password = pass
+		}
+		host, port, err := net.SplitHostPort(u.Host)
+		if err != nil {
+			logger.FATAL.Fatalln(err)
+		}
+		path := u.Path
+		if path != "" {
+			db = path[1:]
+		}
+		hosts[i] = host
+		ports[i] = port
+	}
+
+	if masterName != "" && len(masterNames) < numShards {
+		logger.FATAL.Fatalln("Redis master names must be set for every Redis shard")
+	}
+	if len(masterNames) < numShards {
+		newMasterNames := make([]string, numShards)
+		for i := 0; i < numShards; i++ {
+			newMasterNames[i] = masterNames[0]
+		}
+		masterNames = newMasterNames
+	}
+
+	for i := 0; i < numShards; i++ {
+		conf := &Config{
+			Host:           hosts[i],
+			Port:           ports[i],
+			Password:       password,
+			DB:             db,
+			PoolSize:       getter.GetInt("redis_pool"),
+			API:            getter.GetBool("redis_api"),
+			NumAPIShards:   getter.GetInt("redis_api_num_shards"),
+			Prefix:         getter.GetString("redis_prefix"),
+			MasterName:     masterNames[i],
+			SentinelAddrs:  sentinelAddrs,
+			ConnectTimeout: time.Duration(getter.GetInt("redis_connect_timeout")) * time.Second,
+			ReadTimeout:    time.Duration(getter.GetInt("redis_read_timeout")) * time.Second,
+			WriteTimeout:   time.Duration(getter.GetInt("redis_write_timeout")) * time.Second,
+		}
+		shardConfigs = append(shardConfigs, conf)
+	}
+
+	return shardConfigs
 }
 
 func Plugin(n *node.Node, getter config.Getter) (engine.Engine, error) {
-	conf := getConfig(getter)
-	return New(n, conf)
+	configs := getConfigs(getter)
+	return New(n, configs)
 }
 
 // New initializes Redis Engine.
-func New(n *node.Node, conf *Config) (engine.Engine, error) {
+func New(n *node.Node, configs []*Config) (engine.Engine, error) {
+
+	var shards []*RedisShard
+
+	if len(configs) > 1 {
+		logger.INFO.Printf("Redis sharding enabled: %d shards", len(configs))
+	}
+
+	for _, conf := range configs {
+		shard, err := NewShard(n, conf)
+		if err != nil {
+			return nil, err
+		}
+		shards = append(shards, shard)
+	}
+
 	e := &RedisEngine{
+		node:     n,
+		Shards:   shards,
+		sharding: len(shards) > 1,
+	}
+	return e, nil
+}
+
+func NewShard(n *node.Node, conf *Config) (*RedisShard, error) {
+	shard := &RedisShard{
 		node:              n,
 		config:            conf,
 		pool:              newPool(conf),
@@ -400,13 +500,13 @@ func New(n *node.Node, conf *Config) (engine.Engine, error) {
 		presenceScript:    redis.NewScript(2, presenceSource),
 		lpopManyScript:    redis.NewScript(1, lpopManySource),
 	}
-	e.pubCh = make(chan *pubRequest, RedisPublishChannelSize)
-	e.subCh = make(chan subRequest, RedisSubscribeChannelSize)
-	e.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
-	e.messagePrefix = conf.Prefix + RedisMessageChannelPrefix
-	e.joinPrefix = conf.Prefix + RedisJoinChannelPrefix
-	e.leavePrefix = conf.Prefix + RedisLeaveChannelPrefix
-	return e, nil
+	shard.pubCh = make(chan *pubRequest, RedisPublishChannelSize)
+	shard.subCh = make(chan subRequest, RedisSubscribeChannelSize)
+	shard.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
+	shard.messagePrefix = conf.Prefix + RedisMessageChannelPrefix
+	shard.joinPrefix = conf.Prefix + RedisJoinChannelPrefix
+	shard.leavePrefix = conf.Prefix + RedisLeaveChannelPrefix
+	return shard, nil
 }
 
 func yesno(condition bool) string {
@@ -493,6 +593,91 @@ func (e *RedisEngine) Name() string {
 }
 
 func (e *RedisEngine) Run() error {
+	for _, shard := range e.Shards {
+		err := shard.Run()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e *RedisEngine) shardIndex(channel string) int {
+	if !e.sharding {
+		return 0
+	}
+	return int(consistentHash(channel, len(e.Shards)))
+}
+
+func (e *RedisEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+	return e.Shards[e.shardIndex(message.Channel)].PublishMessage(message, opts)
+}
+
+func (e *RedisEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
+	return e.Shards[e.shardIndex(message.Channel)].PublishJoin(message, opts)
+}
+
+func (e *RedisEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
+	return e.Shards[e.shardIndex(message.Channel)].PublishLeave(message, opts)
+}
+
+func (e *RedisEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
+	return e.Shards[0].PublishAdmin(message)
+}
+
+func (e *RedisEngine) PublishControl(message *proto.ControlMessage) <-chan error {
+	return e.Shards[0].PublishControl(message)
+}
+
+func (e *RedisEngine) Subscribe(ch string) error {
+	return e.Shards[e.shardIndex(ch)].Subscribe(ch)
+}
+
+func (e *RedisEngine) Unsubscribe(ch string) error {
+	return e.Shards[e.shardIndex(ch)].Unsubscribe(ch)
+}
+
+func (e *RedisEngine) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
+	return e.Shards[e.shardIndex(ch)].AddPresence(ch, uid, info, expire)
+}
+
+func (e *RedisEngine) RemovePresence(ch string, uid string) error {
+	return e.Shards[e.shardIndex(ch)].RemovePresence(ch, uid)
+}
+
+func (e *RedisEngine) Presence(ch string) (map[string]proto.ClientInfo, error) {
+	return e.Shards[e.shardIndex(ch)].Presence(ch)
+}
+
+func (e *RedisEngine) History(ch string, limit int) ([]proto.Message, error) {
+	return e.Shards[e.shardIndex(ch)].History(ch, limit)
+}
+
+func (e *RedisEngine) Channels() ([]string, error) {
+	channelMap := map[string]struct{}{}
+	for _, shard := range e.Shards {
+		chans, err := shard.Channels()
+		if err != nil {
+			return chans, err
+		}
+		if !e.sharding {
+			// We have all channels on one shard.
+			return chans, nil
+		}
+		for _, ch := range chans {
+			channelMap[ch] = struct{}{}
+		}
+	}
+	channels := make([]string, len(channelMap))
+	j := 0
+	for ch := range channelMap {
+		channels[j] = ch
+		j++
+	}
+	return channels, nil
+}
+
+func (e *RedisShard) Run() error {
 	e.RLock()
 	api := e.api
 	e.RUnlock()
@@ -515,7 +700,7 @@ func (e *RedisEngine) Shutdown() error {
 // runForever simple keeps another function running indefinitely
 // the reason this loop is not inside the function itself is so that defer
 // can be used to cleanup nicely (defers only run at function return not end of block scope)
-func (e *RedisEngine) runForever(fn func()) {
+func (e *RedisShard) runForever(fn func()) {
 	shutdownCh := e.node.NotifyShutdown()
 	for {
 		select {
@@ -529,7 +714,7 @@ func (e *RedisEngine) runForever(fn func()) {
 	}
 }
 
-func (e *RedisEngine) blpopTimeout() int {
+func (e *RedisShard) blpopTimeout() int {
 	var timeout int
 	e.RLock()
 	readTimeout := e.config.ReadTimeout
@@ -546,8 +731,9 @@ func (e *RedisEngine) blpopTimeout() int {
 	return timeout
 }
 
-func (e *RedisEngine) runAPIWorker(queue string) {
+func (e *RedisShard) runAPIWorker(queue string) {
 	shutdownCh := e.node.NotifyShutdown()
+
 	conn := e.pool.Get()
 	defer conn.Close()
 
@@ -639,7 +825,7 @@ func (e *RedisEngine) runAPIWorker(queue string) {
 	}
 }
 
-func (e *RedisEngine) runAPI() {
+func (e *RedisShard) runAPI() {
 	logger.TRACE.Println("Enter runAPI")
 	defer logger.TRACE.Println("Return from runAPI")
 
@@ -680,7 +866,7 @@ func fillBatchFromChan(ch <-chan subRequest, batch *[]subRequest, chIDs *[]inter
 	}
 }
 
-func (e *RedisEngine) runPubSub() {
+func (e *RedisShard) runPubSub() {
 	conn := redis.PubSubConn{Conn: e.pool.Get()}
 	defer conn.Close()
 	logger.TRACE.Println("Enter runPubSub")
@@ -688,6 +874,7 @@ func (e *RedisEngine) runPubSub() {
 
 	controlChannel := e.controlChannelID()
 	adminChannel := e.adminChannelID()
+	pingChannel := e.pingChannelID()
 
 	done := make(chan struct{})
 	defer close(done)
@@ -764,6 +951,8 @@ func (e *RedisEngine) runPubSub() {
 	e.subCh <- r
 	r = newSubRequest(adminChannel, false)
 	e.subCh <- r
+	r = newSubRequest(pingChannel, false)
+	e.subCh <- r
 	for _, ch := range e.node.ClientHub().Channels() {
 		e.subCh <- newSubRequest(e.messageChannelID(ch), false)
 		e.subCh <- newSubRequest(e.joinChannelID(ch), false)
@@ -794,6 +983,7 @@ func (e *RedisEngine) runPubSub() {
 					continue
 				}
 				e.node.AdminMsg(&message)
+			case pingChannel:
 			default:
 				err := e.handleRedisClientMessage(chID, n.Data)
 				if err != nil {
@@ -809,7 +999,7 @@ func (e *RedisEngine) runPubSub() {
 	}
 }
 
-func (e *RedisEngine) handleRedisClientMessage(chID ChannelID, data []byte) error {
+func (e *RedisShard) handleRedisClientMessage(chID ChannelID, data []byte) error {
 	msgType := e.typeFromChannelID(chID)
 	switch msgType {
 	case "message":
@@ -865,7 +1055,7 @@ func fillPublishBatch(ch chan *pubRequest, prs *[]*pubRequest) {
 	}
 }
 
-func (e *RedisEngine) runPublishPipeline() {
+func (e *RedisShard) runPublishPipeline() {
 
 	conn := e.pool.Get()
 	err := e.pubScript.Load(conn)
@@ -880,65 +1070,85 @@ func (e *RedisEngine) runPublishPipeline() {
 
 	var prs []*pubRequest
 
+	pingTimeout := int(e.config.ReadTimeout.Seconds()/2) - 1
+	if pingTimeout <= 0 {
+		pingTimeout = 1
+	}
+
 	for {
-		pr := <-e.pubCh
-		prs = append(prs, pr)
-		fillPublishBatch(e.pubCh, &prs)
-
-		conn := e.pool.Get()
-
-		for i := range prs {
-			if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
-				e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].channel, prs[i].message, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
-			} else {
-				conn.Send("PUBLISH", prs[i].channel, prs[i].message)
+		select {
+		case <-time.After(time.Duration(pingTimeout) * time.Second):
+			// We have to PUBLISH pings into connection to prevent connection close after read timeout.
+			// In our case it's important to maintain PUB/SUB receiver connection alive to prevent
+			// resubscribing on all our subscriptions again and again.
+			conn := e.pool.Get()
+			err := conn.Send("PUBLISH", e.pingChannelID(), nil)
+			if err != nil {
+				logger.ERROR.Printf("Error publish ping: %v", err)
+				conn.Close()
+				return
 			}
-		}
-		err := conn.Flush()
-		if err != nil {
+			conn.Close()
+		case pr := <-e.pubCh:
+			prs = append(prs, pr)
+			fillPublishBatch(e.pubCh, &prs)
+
+			conn := e.pool.Get()
+
 			for i := range prs {
+				if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
+					e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].channel, prs[i].message, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
+				} else {
+					conn.Send("PUBLISH", prs[i].channel, prs[i].message)
+				}
+			}
+			err := conn.Flush()
+			if err != nil {
+				for i := range prs {
+					prs[i].done(err)
+				}
+				conn.Close()
+				logger.ERROR.Printf("Error flushing publish pipeline: %v", err)
+				return
+			}
+			var noScriptError bool
+			for i := range prs {
+				_, err := conn.Receive()
+				if err != nil {
+					// Check for NOSCRIPT error. In normal circumstances this should never happen.
+					// The only possible situation is when Redis scripts were flushed. In this case
+					// we will return from this func and load publish script from scratch.
+					// Redigo does the same check but for single EVALSHA command: see
+					// https://github.com/garyburd/redigo/blob/master/redis/script.go#L64
+					if e, ok := err.(redis.Error); ok && strings.HasPrefix(string(e), "NOSCRIPT ") {
+						noScriptError = true
+					}
+				}
 				prs[i].done(err)
 			}
 			conn.Close()
-			return
-		}
-		var noScriptError bool
-		for i := range prs {
-			_, err := conn.Receive()
-			if err != nil {
-				// Check for NOSCRIPT error. In normal circumstances this should never happen.
-				// The only possible situation is when Redis scripts were flushed. In this case
-				// we will return from this func and load publish script from scratch.
-				// Redigo does the same check but for single EVALSHA command: see
-				// https://github.com/garyburd/redigo/blob/master/redis/script.go#L64
-				if e, ok := err.(redis.Error); ok && strings.HasPrefix(string(e), "NOSCRIPT ") {
-					noScriptError = true
-				}
+			if noScriptError {
+				// Start this func from the beginning and LOAD missing script.
+				return
 			}
-			prs[i].done(err)
+			prs = nil
 		}
-		conn.Close()
-		if noScriptError {
-			// Start this func from the beginning and LOAD missing script.
-			return
-		}
-		prs = nil
 	}
 }
 
-func (e *RedisEngine) messageChannelID(ch string) ChannelID {
+func (e *RedisShard) messageChannelID(ch string) ChannelID {
 	return ChannelID(e.messagePrefix + string(ch))
 }
 
-func (e *RedisEngine) joinChannelID(ch string) ChannelID {
+func (e *RedisShard) joinChannelID(ch string) ChannelID {
 	return ChannelID(e.joinPrefix + string(ch))
 }
 
-func (e *RedisEngine) leaveChannelID(ch string) ChannelID {
+func (e *RedisShard) leaveChannelID(ch string) ChannelID {
 	return ChannelID(e.leavePrefix + string(ch))
 }
 
-func (e *RedisEngine) typeFromChannelID(chID ChannelID) string {
+func (e *RedisShard) typeFromChannelID(chID ChannelID) string {
 	if strings.HasPrefix(string(chID), e.messagePrefix) {
 		return "message"
 	} else if strings.HasPrefix(string(chID), e.joinPrefix) {
@@ -950,7 +1160,7 @@ func (e *RedisEngine) typeFromChannelID(chID ChannelID) string {
 	}
 }
 
-func (e *RedisEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (e *RedisShard) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
 	ch := message.Channel
 
 	eChan := make(chan error, 1)
@@ -984,7 +1194,7 @@ func (e *RedisEngine) PublishMessage(message *proto.Message, opts *proto.Channel
 	return eChan
 }
 
-func (e *RedisEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
+func (e *RedisShard) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
 	ch := message.Channel
 
 	eChan := make(chan error, 1)
@@ -1006,7 +1216,7 @@ func (e *RedisEngine) PublishJoin(message *proto.JoinMessage, opts *proto.Channe
 	return eChan
 }
 
-func (e *RedisEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
+func (e *RedisShard) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
 	ch := message.Channel
 
 	eChan := make(chan error, 1)
@@ -1028,7 +1238,7 @@ func (e *RedisEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.Chan
 	return eChan
 }
 
-func (e *RedisEngine) PublishControl(message *proto.ControlMessage) <-chan error {
+func (e *RedisShard) PublishControl(message *proto.ControlMessage) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := message.Marshal()
@@ -1048,7 +1258,7 @@ func (e *RedisEngine) PublishControl(message *proto.ControlMessage) <-chan error
 	return eChan
 }
 
-func (e *RedisEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
+func (e *RedisShard) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := message.Marshal()
@@ -1068,7 +1278,7 @@ func (e *RedisEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	return eChan
 }
 
-func (e *RedisEngine) Subscribe(ch string) error {
+func (e *RedisShard) Subscribe(ch string) error {
 	logger.TRACE.Println("Subscribe node on channel", ch)
 	r := newSubRequest(e.joinChannelID(ch), false)
 	e.subCh <- r
@@ -1079,7 +1289,7 @@ func (e *RedisEngine) Subscribe(ch string) error {
 	return r.result()
 }
 
-func (e *RedisEngine) Unsubscribe(ch string) error {
+func (e *RedisShard) Unsubscribe(ch string) error {
 	logger.TRACE.Println("Unsubscribe node from channel", ch)
 	r := newSubRequest(e.joinChannelID(ch), false)
 	e.unSubCh <- r
@@ -1090,36 +1300,40 @@ func (e *RedisEngine) Unsubscribe(ch string) error {
 	return r.result()
 }
 
-func (e *RedisEngine) getAPIQueueKey() string {
+func (e *RedisShard) getAPIQueueKey() string {
 	return e.config.Prefix + RedisAPIKeySuffix
 }
 
-func (e *RedisEngine) getAPIShardQueueKey(shardNum int) string {
+func (e *RedisShard) getAPIShardQueueKey(shardNum int) string {
 	apiKey := e.getAPIQueueKey()
 	return fmt.Sprintf("%s.%d", apiKey, shardNum)
 }
 
-func (e *RedisEngine) controlChannelID() ChannelID {
+func (e *RedisShard) controlChannelID() ChannelID {
 	return ChannelID(e.config.Prefix + RedisControlChannelSuffix)
 }
 
-func (e *RedisEngine) adminChannelID() ChannelID {
+func (e *RedisShard) pingChannelID() ChannelID {
+	return ChannelID(e.config.Prefix + RedisPingChannelSuffix)
+}
+
+func (e *RedisShard) adminChannelID() ChannelID {
 	return ChannelID(e.config.Prefix + RedisAdminChannelSuffix)
 }
 
-func (e *RedisEngine) getHashKey(chID ChannelID) string {
+func (e *RedisShard) getHashKey(chID ChannelID) string {
 	return e.config.Prefix + ".presence.hash." + string(chID)
 }
 
-func (e *RedisEngine) getSetKey(chID ChannelID) string {
+func (e *RedisShard) getSetKey(chID ChannelID) string {
 	return e.config.Prefix + ".presence.set." + string(chID)
 }
 
-func (e *RedisEngine) getHistoryKey(chID ChannelID) string {
+func (e *RedisShard) getHistoryKey(chID ChannelID) string {
 	return e.config.Prefix + ".history.list." + string(chID)
 }
 
-func (e *RedisEngine) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
+func (e *RedisShard) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -1134,7 +1348,7 @@ func (e *RedisEngine) AddPresence(ch string, uid string, info proto.ClientInfo, 
 	return err
 }
 
-func (e *RedisEngine) RemovePresence(ch string, uid string) error {
+func (e *RedisShard) RemovePresence(ch string, uid string) error {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -1169,7 +1383,7 @@ func mapStringClientInfo(result interface{}, err error) (map[string]proto.Client
 	return m, nil
 }
 
-func (e *RedisEngine) Presence(ch string) (map[string]proto.ClientInfo, error) {
+func (e *RedisShard) Presence(ch string) (map[string]proto.ClientInfo, error) {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -1204,7 +1418,7 @@ func sliceOfMessages(result interface{}, err error) ([]proto.Message, error) {
 	return msgs, nil
 }
 
-func (e *RedisEngine) History(ch string, limit int) ([]proto.Message, error) {
+func (e *RedisShard) History(ch string, limit int) ([]proto.Message, error) {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
 	defer conn.Close()
@@ -1222,7 +1436,7 @@ func (e *RedisEngine) History(ch string, limit int) ([]proto.Message, error) {
 }
 
 // Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
-func (e *RedisEngine) Channels() ([]string, error) {
+func (e *RedisShard) Channels() ([]string, error) {
 	conn := e.pool.Get()
 	defer conn.Close()
 
@@ -1259,7 +1473,7 @@ type redisAPIRequest struct {
 	Data []proto.APICommand
 }
 
-func (e *RedisEngine) processAPIData(data []byte) error {
+func (e *RedisShard) processAPIData(data []byte) error {
 	cmd, err := apiv1.APICommandFromJSON(data)
 	if err != nil {
 		return err
@@ -1321,4 +1535,13 @@ func apiCmd(n *node.Node, cmd *proto.APICommand) error {
 		return nil
 	}
 	return err
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }

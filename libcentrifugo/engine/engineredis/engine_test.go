@@ -108,13 +108,12 @@ func NewTestRedisEngine() *RedisEngine {
 		Port:         testRedisPort,
 		Password:     testRedisPassword,
 		DB:           testRedisDB,
-		URL:          testRedisURL,
 		PoolSize:     testRedisPoolSize,
 		API:          true,
 		NumAPIShards: testRedisNumAPIShards,
 		Prefix:       "centrifugotest",
 	}
-	e, _ := New(n, redisConf)
+	e, _ := New(n, []*Config{redisConf})
 	err := n.Run(&node.RunOptions{Engine: e})
 	if err != nil {
 		panic(err)
@@ -200,7 +199,7 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, 2, len(h))
 
 	// test API
-	apiKey := e.config.Prefix + "." + "api"
+	apiKey := "centrifugotest" + "." + "api"
 	_, err = c.Conn.Do("LPUSH", apiKey, []byte("{}"))
 	assert.Equal(t, nil, err)
 
@@ -255,22 +254,24 @@ func TestRedisChannels(t *testing.T) {
 func TestHandleClientMessage(t *testing.T) {
 	e := NewTestRedisEngine()
 
+	shard := e.Shards[0]
+
 	ch := string("test")
-	chID := e.messageChannelID(ch)
+	chID := shard.messageChannelID(ch)
 	testMsg := proto.NewMessage(ch, []byte("{\"hello world\": true}"), "", nil)
 	byteMessage, _ := testMsg.Marshal() // protobuf
-	err := e.handleRedisClientMessage(chID, byteMessage)
+	err := shard.handleRedisClientMessage(chID, byteMessage)
 	assert.Equal(t, nil, err)
 	rawData := raw.Raw([]byte("{}"))
 	info := proto.NewClientInfo(string("1"), string("1"), rawData, rawData)
 	testJoinMsg := proto.NewJoinMessage(ch, *info)
 	byteJoinMsg, _ := testJoinMsg.Marshal()
-	chID = e.joinChannelID(ch)
-	err = e.handleRedisClientMessage(chID, byteJoinMsg)
+	chID = shard.joinChannelID(ch)
+	err = shard.handleRedisClientMessage(chID, byteJoinMsg)
 	assert.Equal(t, nil, err)
-	chID = e.leaveChannelID(ch)
+	chID = shard.leaveChannelID(ch)
 	testLeaveMsg := proto.NewLeaveMessage(ch, *info)
 	byteLeaveMsg, _ := testLeaveMsg.Marshal()
-	err = e.handleRedisClientMessage(chID, byteLeaveMsg)
+	err = shard.handleRedisClientMessage(chID, byteLeaveMsg)
 	assert.Equal(t, nil, err)
 }
