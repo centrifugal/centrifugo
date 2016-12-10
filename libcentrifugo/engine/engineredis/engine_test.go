@@ -24,7 +24,7 @@ const (
 	testRedisPassword     = ""
 	testRedisDB           = "9"
 	testRedisURL          = "redis://:@127.0.0.1:6379/9"
-	testRedisPoolSize     = 5
+	testRedisPoolSize     = 13
 	testRedisNumAPIShards = 4
 )
 
@@ -254,7 +254,7 @@ func TestRedisChannels(t *testing.T) {
 func TestHandleClientMessage(t *testing.T) {
 	e := NewTestRedisEngine()
 
-	shard := e.Shards[0]
+	shard := e.shards[0]
 
 	ch := string("test")
 	chID := shard.messageChannelID(ch)

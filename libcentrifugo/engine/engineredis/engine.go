@@ -102,7 +102,7 @@ type RedisEngine struct {
 	sync.RWMutex
 	node     *node.Node
 	sharding bool
-	Shards   []*RedisShard
+	shards   []*RedisShard
 }
 
 type RedisShard struct {
@@ -439,14 +439,14 @@ func getConfigs(getter config.Getter) []*Config {
 		conf := &Config{
 			Host:           hosts[i],
 			Port:           ports[i],
+			MasterName:     masterNames[i],
+			SentinelAddrs:  sentinelAddrs,
 			Password:       password,
 			DB:             db,
 			PoolSize:       getter.GetInt("redis_pool"),
 			API:            getter.GetBool("redis_api"),
 			NumAPIShards:   getter.GetInt("redis_api_num_shards"),
 			Prefix:         getter.GetString("redis_prefix"),
-			MasterName:     masterNames[i],
-			SentinelAddrs:  sentinelAddrs,
 			ConnectTimeout: time.Duration(getter.GetInt("redis_connect_timeout")) * time.Second,
 			ReadTimeout:    time.Duration(getter.GetInt("redis_read_timeout")) * time.Second,
 			WriteTimeout:   time.Duration(getter.GetInt("redis_write_timeout")) * time.Second,
@@ -481,7 +481,7 @@ func New(n *node.Node, configs []*Config) (engine.Engine, error) {
 
 	e := &RedisEngine{
 		node:     n,
-		Shards:   shards,
+		shards:   shards,
 		sharding: len(shards) > 1,
 	}
 	return e, nil
@@ -593,7 +593,7 @@ func (e *RedisEngine) Name() string {
 }
 
 func (e *RedisEngine) Run() error {
-	for _, shard := range e.Shards {
+	for _, shard := range e.shards {
 		err := shard.Run()
 		if err != nil {
 			return err
@@ -606,56 +606,56 @@ func (e *RedisEngine) shardIndex(channel string) int {
 	if !e.sharding {
 		return 0
 	}
-	return int(consistentHash(channel, len(e.Shards)))
+	return int(consistentHash(channel, len(e.shards)))
 }
 
 func (e *RedisEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
-	return e.Shards[e.shardIndex(message.Channel)].PublishMessage(message, opts)
+	return e.shards[e.shardIndex(message.Channel)].PublishMessage(message, opts)
 }
 
 func (e *RedisEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
-	return e.Shards[e.shardIndex(message.Channel)].PublishJoin(message, opts)
+	return e.shards[e.shardIndex(message.Channel)].PublishJoin(message, opts)
 }
 
 func (e *RedisEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
-	return e.Shards[e.shardIndex(message.Channel)].PublishLeave(message, opts)
+	return e.shards[e.shardIndex(message.Channel)].PublishLeave(message, opts)
 }
 
 func (e *RedisEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
-	return e.Shards[0].PublishAdmin(message)
+	return e.shards[0].PublishAdmin(message)
 }
 
 func (e *RedisEngine) PublishControl(message *proto.ControlMessage) <-chan error {
-	return e.Shards[0].PublishControl(message)
+	return e.shards[0].PublishControl(message)
 }
 
 func (e *RedisEngine) Subscribe(ch string) error {
-	return e.Shards[e.shardIndex(ch)].Subscribe(ch)
+	return e.shards[e.shardIndex(ch)].Subscribe(ch)
 }
 
 func (e *RedisEngine) Unsubscribe(ch string) error {
-	return e.Shards[e.shardIndex(ch)].Unsubscribe(ch)
+	return e.shards[e.shardIndex(ch)].Unsubscribe(ch)
 }
 
 func (e *RedisEngine) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
-	return e.Shards[e.shardIndex(ch)].AddPresence(ch, uid, info, expire)
+	return e.shards[e.shardIndex(ch)].AddPresence(ch, uid, info, expire)
 }
 
 func (e *RedisEngine) RemovePresence(ch string, uid string) error {
-	return e.Shards[e.shardIndex(ch)].RemovePresence(ch, uid)
+	return e.shards[e.shardIndex(ch)].RemovePresence(ch, uid)
 }
 
 func (e *RedisEngine) Presence(ch string) (map[string]proto.ClientInfo, error) {
-	return e.Shards[e.shardIndex(ch)].Presence(ch)
+	return e.shards[e.shardIndex(ch)].Presence(ch)
 }
 
 func (e *RedisEngine) History(ch string, limit int) ([]proto.Message, error) {
-	return e.Shards[e.shardIndex(ch)].History(ch, limit)
+	return e.shards[e.shardIndex(ch)].History(ch, limit)
 }
 
 func (e *RedisEngine) Channels() ([]string, error) {
 	channelMap := map[string]struct{}{}
-	for _, shard := range e.Shards {
+	for _, shard := range e.shards {
 		chans, err := shard.Channels()
 		if err != nil {
 			return chans, err
@@ -1468,7 +1468,7 @@ func (e *RedisShard) Channels() ([]string, error) {
 	return channels, nil
 }
 
-// Deprecated, will be removed in future releases.
+// Deprecated, will be removed in future releases. See Centrifugo Redis API docs for new format.
 type redisAPIRequest struct {
 	Data []proto.APICommand
 }
@@ -1486,7 +1486,7 @@ func (e *RedisShard) processAPIData(data []byte) error {
 			return err
 		}
 		for _, command := range req.Data {
-			err := apiCmd(e.node, &command)
+			err := apiCmd(e.node, command)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
@@ -1495,7 +1495,7 @@ func (e *RedisShard) processAPIData(data []byte) error {
 	return apiCmd(e.node, cmd)
 }
 
-func apiCmd(n *node.Node, cmd *proto.APICommand) error {
+func apiCmd(n *node.Node, cmd proto.APICommand) error {
 
 	var err error
 
@@ -1509,39 +1509,30 @@ func apiCmd(n *node.Node, cmd *proto.APICommand) error {
 		if err != nil {
 			return err
 		}
-		apiv1.PublishCmdAsync(n, &cmd)
+		apiv1.PublishCmdAsync(n, cmd)
 	case "broadcast":
 		var cmd proto.BroadcastAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return err
 		}
-		apiv1.BroadcastCmdAsync(n, &cmd)
+		apiv1.BroadcastCmdAsync(n, cmd)
 	case "unsubscribe":
 		var cmd proto.UnsubscribeAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return err
 		}
-		_, err = apiv1.UnsubcribeCmd(n, &cmd)
+		_, err = apiv1.UnsubcribeCmd(n, cmd)
 	case "disconnect":
 		var cmd proto.DisconnectAPICommand
 		err = json.Unmarshal(params, &cmd)
 		if err != nil {
 			return err
 		}
-		_, err = apiv1.DisconnectCmd(n, &cmd)
+		_, err = apiv1.DisconnectCmd(n, cmd)
 	default:
 		return nil
 	}
 	return err
-}
-
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
 }
