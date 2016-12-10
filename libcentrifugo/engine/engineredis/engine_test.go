@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 	"testing"
 	"time"
 
@@ -103,7 +104,7 @@ func newTestMessage() *proto.Message {
 func NewTestRedisEngine() *RedisEngine {
 	c := NewTestConfig()
 	n := node.New("", c)
-	redisConf := &Config{
+	redisConf := &ShardConfig{
 		Host:         testRedisHost,
 		Port:         testRedisPort,
 		Password:     testRedisPassword,
@@ -113,7 +114,7 @@ func NewTestRedisEngine() *RedisEngine {
 		NumAPIShards: testRedisNumAPIShards,
 		Prefix:       "centrifugotest",
 	}
-	e, _ := New(n, []*Config{redisConf})
+	e, _ := New(n, []*ShardConfig{redisConf})
 	err := n.Run(&node.RunOptions{Engine: e})
 	if err != nil {
 		panic(err)
@@ -274,4 +275,25 @@ func TestHandleClientMessage(t *testing.T) {
 	byteLeaveMsg, _ := testLeaveMsg.Marshal()
 	err = shard.handleRedisClientMessage(chID, byteLeaveMsg)
 	assert.Equal(t, nil, err)
+}
+
+func TestConsistentIndex(t *testing.T) {
+	chans := []string{"chan1", "chan2", "chan3", "chan4", "chan5", "chan6", "chan7", "chan8"}
+	for _, ch := range chans {
+		bucket := consistentIndex(ch, 2)
+		assert.True(t, bucket >= 0)
+		assert.True(t, bucket < 2)
+	}
+}
+
+func BenchmarkConsistentIndex(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		consistentIndex(strconv.Itoa(i), 4)
+	}
+}
+
+func BenchmarkIndex(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		index(strconv.Itoa(i), 4)
+	}
 }
