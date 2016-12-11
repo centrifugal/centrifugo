@@ -214,7 +214,7 @@ var DefaultConfig = &Config{
 	ClientRequestMaxSize:        65536,    // 64KB by default
 	ClientQueueMaxSize:          10485760, // 10MB by default
 	ClientQueueInitialCapacity:  2,
-	ClientChannelLimit:          100,
+	ClientChannelLimit:          128,
 	ClientMaxIdleTimeout:        60 * time.Second,
 	Insecure:                    false,
 }

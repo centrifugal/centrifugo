@@ -25,7 +25,7 @@ const (
 	testRedisPassword     = ""
 	testRedisDB           = "9"
 	testRedisURL          = "redis://:@127.0.0.1:6379/9"
-	testRedisPoolSize     = 13
+	testRedisPoolSize     = 256
 	testRedisNumAPIShards = 4
 )
 

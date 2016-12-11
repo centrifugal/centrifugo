@@ -7,6 +7,7 @@ import (
 	"hash/fnv"
 	"net"
 	"net/url"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -33,7 +34,7 @@ func Configure(setter config.Setter) error {
 	setter.SetDefault("redis_connect_timeout", 1)
 	setter.SetDefault("redis_read_timeout", 10) // Must be greater than ping channel publish interval.
 	setter.SetDefault("redis_write_timeout", 1)
-
+	setter.SetDefault("redis_pubsub_num_workers", 0)
 	setter.StringFlag("redis_host", "", "127.0.0.1", "redis host (Redis engine)")
 	setter.StringFlag("redis_port", "", "6379", "redis port (Redis engine)")
 	setter.StringFlag("redis_password", "", "", "redis auth password (Redis engine)")
@@ -68,6 +69,9 @@ const (
 	// PubSub connection is reconnecting. Two channels of this size will be allocated, one for
 	// Subscribe and one for Unsubscribe
 	RedisSubscribeChannelSize = 4096
+	// RedisPubSubWorkerChannelSize sets buffer size of channel to which we send all
+	// messages received from Redis PUB/SUB connection to process in separate goroutine.
+	RedisPubSubWorkerChannelSize = 4096
 	// Maximum number of channels to include in a single subscribe call. Redis documentation
 	// doesn't specify a maximum allowed but we think it probably makes sense to keep a sane
 	// limit given how many subscriptions a single Centrifugo instance might be handling.
@@ -150,6 +154,9 @@ type ShardConfig struct {
 	NumAPIShards int
 	// Prefix to use before every channel name and key in Redis.
 	Prefix string
+	// PubSubNumWorkers sets how many PUB/SUB message processing workers will be started.
+	// By default we start runtime.NumCPU() workers.
+	PubSubNumWorkers int
 	// ReadTimeout is a timeout on read operations. Note that at moment it should be greater
 	// than node ping publish interval in order to prevent timing out Pubsub connection's
 	// Receive call.
@@ -435,19 +442,20 @@ func getConfigs(getter config.Getter) []*ShardConfig {
 
 	for i := 0; i < numShards; i++ {
 		conf := &ShardConfig{
-			Host:           hosts[i],
-			Port:           ports[i],
-			MasterName:     masterNames[i],
-			SentinelAddrs:  sentinelAddrs,
-			Password:       password,
-			DB:             db,
-			PoolSize:       getter.GetInt("redis_pool"),
-			API:            getter.GetBool("redis_api"),
-			NumAPIShards:   getter.GetInt("redis_api_num_shards"),
-			Prefix:         getter.GetString("redis_prefix"),
-			ConnectTimeout: time.Duration(getter.GetInt("redis_connect_timeout")) * time.Second,
-			ReadTimeout:    time.Duration(getter.GetInt("redis_read_timeout")) * time.Second,
-			WriteTimeout:   time.Duration(getter.GetInt("redis_write_timeout")) * time.Second,
+			Host:             hosts[i],
+			Port:             ports[i],
+			MasterName:       masterNames[i],
+			SentinelAddrs:    sentinelAddrs,
+			Password:         password,
+			DB:               db,
+			PoolSize:         getter.GetInt("redis_pool"),
+			API:              getter.GetBool("redis_api"),
+			NumAPIShards:     getter.GetInt("redis_api_num_shards"),
+			Prefix:           getter.GetString("redis_prefix"),
+			PubSubNumWorkers: getter.GetInt("redis_pubsub_num_workers"),
+			ConnectTimeout:   time.Duration(getter.GetInt("redis_connect_timeout")) * time.Second,
+			ReadTimeout:      time.Duration(getter.GetInt("redis_read_timeout")) * time.Second,
+			WriteTimeout:     time.Duration(getter.GetInt("redis_write_timeout")) * time.Second,
 		}
 		shardConfigs = append(shardConfigs, conf)
 	}
@@ -683,7 +691,13 @@ func (e *Shard) Run() error {
 		e.runPublishPipeline()
 	})
 	go e.runForever(func() {
-		e.runPubSub()
+		e.RLock()
+		numWorkers := e.config.PubSubNumWorkers
+		e.RUnlock()
+		if numWorkers == 0 {
+			numWorkers = runtime.NumCPU()
+		}
+		e.runPubSub(numWorkers)
 	})
 	if api {
 		e.runAPI()
@@ -718,7 +732,7 @@ func (e *Shard) blpopTimeout() int {
 	readTimeout := e.config.ReadTimeout
 	e.RUnlock()
 	if readTimeout == 0 {
-		// No read timeout - we can block frever in BLOP.
+		// No read timeout - we can block forever in BLPOP.
 		timeout = 0
 	} else {
 		timeout = int(readTimeout.Seconds() / 2)
@@ -741,7 +755,7 @@ func (e *Shard) runAPIWorker(queue string) {
 		return
 	}
 
-	logger.DEBUG.Println("Start worker for queue %s", queue)
+	logger.DEBUG.Printf("Start worker for queue %s", queue)
 
 	// Start with BLPOP.
 	blockingPop := true
@@ -788,7 +802,7 @@ func (e *Shard) runAPIWorker(queue string) {
 				// lua script with LRANGE/LTRIM operations.
 				blockingPop = false
 			} else {
-				err := e.lpopManyScript.SendHash(conn, queue, 10)
+				err := e.lpopManyScript.SendHash(conn, queue, 64)
 				if err != nil {
 					logger.ERROR.Println(err)
 					return
@@ -856,7 +870,10 @@ func fillBatchFromChan(ch <-chan subRequest, batch *[]subRequest, chIDs *[]inter
 	}
 }
 
-func (e *Shard) runPubSub() {
+func (e *Shard) runPubSub(numWorkers int) {
+
+	logger.DEBUG.Printf("Running Redis PUB/SUB, num workers: %d", numWorkers)
+
 	conn := redis.PubSubConn{Conn: e.pool.Get()}
 	defer conn.Close()
 
@@ -867,7 +884,7 @@ func (e *Shard) runPubSub() {
 	done := make(chan struct{})
 	defer close(done)
 
-	// Run subscriber routine
+	// Run subscriber goroutine.
 	go func() {
 		logger.TRACE.Println("Starting RedisEngine Subscriber")
 
@@ -947,41 +964,61 @@ func (e *Shard) runPubSub() {
 		e.subCh <- newSubRequest(e.leaveChannelID(ch), false)
 	}
 
+	// Run workers to spread received message processing work over worker goroutines.
+	workers := make(map[int]chan redis.Message)
+	for i := 0; i < numWorkers; i++ {
+		workerCh := make(chan redis.Message, RedisPubSubWorkerChannelSize)
+		workers[i] = workerCh
+		go func(ch chan redis.Message) {
+			for {
+				select {
+				case <-done:
+					return
+				case n := <-ch:
+					chID := ChannelID(n.Channel)
+					if len(n.Data) == 0 {
+						continue
+					}
+					switch chID {
+					case controlChannel:
+						var message proto.ControlMessage
+						err := message.Unmarshal(n.Data)
+						if err != nil {
+							logger.ERROR.Println(err)
+							continue
+						}
+						e.node.ControlMsg(&message)
+					case adminChannel:
+						var message proto.AdminMessage
+						err := message.Unmarshal(n.Data)
+						if err != nil {
+							logger.ERROR.Println(err)
+							continue
+						}
+						e.node.AdminMsg(&message)
+					case pingChannel:
+						// Do nothing - this message just maintains connection open.
+					default:
+						err := e.handleRedisClientMessage(chID, n.Data)
+						if err != nil {
+							logger.ERROR.Println(err)
+							continue
+						}
+					}
+				}
+			}
+		}(workerCh)
+	}
+
 	for {
 		switch n := conn.Receive().(type) {
 		case redis.Message:
-			chID := ChannelID(n.Channel)
-			if len(n.Data) == 0 {
-				continue
-			}
-			switch chID {
-			case controlChannel:
-				var message proto.ControlMessage
-				err := message.Unmarshal(n.Data)
-				if err != nil {
-					logger.ERROR.Println(err)
-					continue
-				}
-				e.node.ControlMsg(&message)
-			case adminChannel:
-				var message proto.AdminMessage
-				err := message.Unmarshal(n.Data)
-				if err != nil {
-					logger.ERROR.Println(err)
-					continue
-				}
-				e.node.AdminMsg(&message)
-			case pingChannel:
-			default:
-				err := e.handleRedisClientMessage(chID, n.Data)
-				if err != nil {
-					logger.ERROR.Println(err)
-					continue
-				}
-			}
+			// Add message to worker channel preserving message order - i.e. messages from
+			// the same channel will be processed in the same worker.
+			workers[index(n.Channel, numWorkers)] <- n
 		case redis.Subscription:
 		case error:
-			logger.ERROR.Printf("RedisEngine Receiver error: %v\n", n)
+			logger.ERROR.Printf("Redis receiver error: %v\n", n)
 			return
 		}
 	}
@@ -1044,44 +1081,37 @@ func fillPublishBatch(ch chan pubRequest, prs *[]pubRequest) {
 }
 
 func (e *Shard) runPublishPipeline() {
-
 	conn := e.pool.Get()
+	defer conn.Close()
+
 	err := e.pubScript.Load(conn)
 	if err != nil {
 		logger.ERROR.Println(err)
-		conn.Close()
 		// Can not proceed if script has not been loaded - because we use EVALSHA command for
 		// publishing with history.
 		return
 	}
-	conn.Close()
 
 	var prs []pubRequest
 
-	pingTimeout := int(e.config.ReadTimeout.Seconds()/2) - 1
-	if pingTimeout <= 0 {
-		pingTimeout = 1
-	}
+	e.RLock()
+	pingTimeout := e.config.ReadTimeout / 3
+	e.RUnlock()
 
 	for {
 		select {
-		case <-time.After(time.Duration(pingTimeout) * time.Second):
+		case <-time.After(pingTimeout):
 			// We have to PUBLISH pings into connection to prevent connection close after read timeout.
 			// In our case it's important to maintain PUB/SUB receiver connection alive to prevent
 			// resubscribing on all our subscriptions again and again.
-			conn := e.pool.Get()
 			err := conn.Send("PUBLISH", e.pingChannelID(), nil)
 			if err != nil {
 				logger.ERROR.Printf("Error publish ping: %v", err)
-				conn.Close()
 				return
 			}
-			conn.Close()
 		case pr := <-e.pubCh:
 			prs = append(prs, pr)
 			fillPublishBatch(e.pubCh, &prs)
-
-			conn := e.pool.Get()
 
 			for i := range prs {
 				if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
@@ -1095,7 +1125,6 @@ func (e *Shard) runPublishPipeline() {
 				for i := range prs {
 					prs[i].done(err)
 				}
-				conn.Close()
 				logger.ERROR.Printf("Error flushing publish pipeline: %v", err)
 				return
 			}
@@ -1114,7 +1143,6 @@ func (e *Shard) runPublishPipeline() {
 				}
 				prs[i].done(err)
 			}
-			conn.Close()
 			if noScriptError {
 				// Start this func from the beginning and LOAD missing script.
 				return
