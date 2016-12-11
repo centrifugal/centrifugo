@@ -744,6 +744,7 @@ func (e *Shard) blpopTimeout() int {
 }
 
 func (e *Shard) runAPIWorker(queue string) {
+	logger.DEBUG.Printf("Start Redis API worker for queue %s", queue)
 	shutdownCh := e.node.NotifyShutdown()
 
 	conn := e.pool.Get()
@@ -754,8 +755,6 @@ func (e *Shard) runAPIWorker(queue string) {
 		logger.ERROR.Println(err)
 		return
 	}
-
-	logger.DEBUG.Printf("Start worker for queue %s", queue)
 
 	// Start with BLPOP.
 	blockingPop := true
