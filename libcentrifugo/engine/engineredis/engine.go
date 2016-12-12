@@ -1552,9 +1552,9 @@ func apiCmd(n *node.Node, cmd proto.APICommand) error {
 	return err
 }
 
-// Adapted function from https://github.com/dgryski/go-jump package by Damian Gryski.
-// consistentIndex consistently chooses a hash bucket number in the range [0, numBuckets) for the given string.
-// numBuckets must be >= 1.
+// consistentIndex is an adapted function from https://github.com/dgryski/go-jump
+// package by Damian Gryski. It consistently chooses a hash bucket number in the
+// range [0, numBuckets) for the given string. numBuckets must be >= 1.
 func consistentIndex(s string, numBuckets int) int {
 
 	hash := fnv.New64a()
