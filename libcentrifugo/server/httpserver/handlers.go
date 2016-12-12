@@ -333,7 +333,9 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	pingInterval := s.node.Config().PingInterval
+	config := s.node.Config()
+	pingInterval := config.PingInterval
+	writeTimeout := config.ClientMessageWriteTimeout
 
 	if pingInterval > 0 {
 		pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
@@ -341,7 +343,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 		ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}
 
-	c, err := clientconn.New(s.node, newWSSession(ws, pingInterval))
+	c, err := clientconn.New(s.node, newWSSession(ws, pingInterval, writeTimeout))
 	if err != nil {
 		logger.ERROR.Println(err)
 		ws.Close()
@@ -551,6 +553,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	pingInterval := config.PingInterval
+	writeTimeout := config.ClientMessageWriteTimeout
 
 	if pingInterval > 0 {
 		pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
@@ -558,7 +561,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 		ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}
 
-	sess := newWSSession(ws, pingInterval)
+	sess := newWSSession(ws, pingInterval, writeTimeout)
 
 	c, err := adminconn.New(s.node, sess)
 	if err != nil {

@@ -15,9 +15,10 @@ const (
 )
 
 type sockjsSession struct {
-	mu     sync.RWMutex
-	closed bool
-	sess   sockjs.Session
+	mu           sync.RWMutex
+	closed       bool
+	sess         sockjs.Session
+	writeTimeout time.Duration
 }
 
 func newSockjsSession(sess sockjs.Session) *sockjsSession {
@@ -52,6 +53,7 @@ type websocketConn interface {
 	ReadMessage() (messageType int, p []byte, err error)
 	WriteMessage(messageType int, data []byte) error
 	WriteControl(messageType int, data []byte, deadline time.Time) error
+	SetWriteDeadline(t time.Time) error
 	Close() error
 }
 
@@ -63,14 +65,16 @@ type wsSession struct {
 	closed       bool
 	closeCh      chan struct{}
 	pingInterval time.Duration
+	writeTimeout time.Duration
 	pingTimer    *time.Timer
 }
 
-func newWSSession(ws websocketConn, pingInterval time.Duration) *wsSession {
+func newWSSession(ws websocketConn, pingInterval time.Duration, writeTimeout time.Duration) *wsSession {
 	sess := &wsSession{
 		ws:           ws,
 		closeCh:      make(chan struct{}),
 		pingInterval: pingInterval,
+		writeTimeout: writeTimeout,
 	}
 	if pingInterval > 0 {
 		sess.addPing()
@@ -108,7 +112,14 @@ func (sess *wsSession) Send(msg []byte) error {
 	case <-sess.closeCh:
 		return nil
 	default:
-		return sess.ws.WriteMessage(websocket.TextMessage, msg)
+		if sess.writeTimeout > 0 {
+			sess.ws.SetWriteDeadline(time.Now().Add(sess.writeTimeout))
+		}
+		err := sess.ws.WriteMessage(websocket.TextMessage, msg)
+		if sess.writeTimeout > 0 {
+			sess.ws.SetWriteDeadline(time.Time{})
+		}
+		return err
 	}
 }
 

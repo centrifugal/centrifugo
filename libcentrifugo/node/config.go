@@ -86,9 +86,12 @@ type Config struct {
 	// connection will be closed if still not authenticated.
 	StaleConnectionCloseDelay time.Duration `json:"stale_connection_close_delay"`
 
-	// MessageSendTimeout is an interval how long time the node
-	// may take to send a message to a client before disconnecting the client.
-	MessageSendTimeout time.Duration `json:"message_send_timeout"`
+	// MessageWriteTimeout is maximum time of write message operation.
+	// Slow client will be disconnected. By default we don't use this option (i.e. it's 0)
+	// and slow client connections will be closed when there queue size exceeds
+	// ClientQueueMaxSize. In case of SockJS transport we don't have control over it so
+	// it only affects raw websocket.
+	ClientMessageWriteTimeout time.Duration `json:"client_message_write_timeout"`
 
 	// ClientRequestMaxSize sets maximum size in bytes of allowed client request.
 	ClientRequestMaxSize int `json:"client_request_max_size"`
@@ -203,7 +206,7 @@ var DefaultConfig = &Config{
 	NodeMetricsInterval:         60 * time.Second,
 	PresencePingInterval:        25 * time.Second,
 	PresenceExpireInterval:      60 * time.Second,
-	MessageSendTimeout:          0,
+	ClientMessageWriteTimeout:   0,
 	PrivateChannelPrefix:        "$", // so private channel will look like "$gossips"
 	NamespaceChannelBoundary:    ":", // so namespace "public" can be used "public:news"
 	ClientChannelBoundary:       "&", // so client channel is sth like "client&7a37e561-c720-4608-52a8-a964a9db7a8a"
@@ -236,7 +239,7 @@ func NewConfig(v config.Getter) *Config {
 	cfg.NodeMetricsInterval = time.Duration(v.GetInt("node_metrics_interval")) * time.Second
 	cfg.PresencePingInterval = time.Duration(v.GetInt("presence_ping_interval")) * time.Second
 	cfg.PresenceExpireInterval = time.Duration(v.GetInt("presence_expire_interval")) * time.Second
-	cfg.MessageSendTimeout = time.Duration(v.GetInt("message_send_timeout")) * time.Second
+	cfg.ClientMessageWriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
 	cfg.PrivateChannelPrefix = v.GetString("private_channel_prefix")
 	cfg.NamespaceChannelBoundary = v.GetString("namespace_channel_boundary")
 	cfg.UserChannelBoundary = v.GetString("user_channel_boundary")

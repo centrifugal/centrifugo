@@ -117,11 +117,11 @@ func Main(version string) {
 				"max_channel_length":             255,
 				"user_connection_limit":          0,
 				"node_ping_interval":             3,
-				"message_send_timeout":           0,
 				"ping_interval":                  25,
 				"node_metrics_interval":          60,
 				"stale_connection_close_delay":   25,
 				"expired_connection_close_delay": 25,
+				"client_message_write_timeout":   0,
 				"client_max_idle_timeout":        60,
 				"client_channel_limit":           100,
 				"client_request_max_size":        65536,    // 64KB

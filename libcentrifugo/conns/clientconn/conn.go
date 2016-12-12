@@ -101,7 +101,6 @@ func New(n *node.Node, s conns.Session) (conns.ClientConn, error) {
 	queueInitialCapacity := config.ClientQueueInitialCapacity
 	maxQueueSize := config.ClientQueueMaxSize
 	maxRequestSize := config.ClientRequestMaxSize
-	sendTimeout := config.MessageSendTimeout
 
 	c := client{
 		uid:            uuid.NewV4().String(),
@@ -111,7 +110,6 @@ func New(n *node.Node, s conns.Session) (conns.ClientConn, error) {
 		messages:       bytequeue.New(queueInitialCapacity),
 		maxQueueSize:   maxQueueSize,
 		maxRequestSize: maxRequestSize,
-		sendTimeout:    sendTimeout,
 		sendFinished:   make(chan struct{}),
 	}
 	go c.sendMessages()
@@ -144,31 +142,10 @@ func (c *client) sendMessages() {
 }
 
 func (c *client) sendMessage(msg []byte) error {
-	sendTimeout := c.sendTimeout // No lock here as sendTimeout immutable while client exists.
-	if sendTimeout > 0 {
-		// Send to client's session with provided timeout.
-		to := time.After(sendTimeout)
-		sent := make(chan error)
-		go func() {
-			select {
-			case sent <- c.sess.Send(msg):
-			case <-c.closeCh:
-				return
-			}
-		}()
-		select {
-		case err := <-sent:
-			return err
-		case <-to:
-			return proto.ErrSendTimeout
-		}
-	} else {
-		// Do not use any timeout when sending, it's recommended to keep
-		// Centrifugo behind properly configured reverse proxy.
-		// Slow client connections will be closed eventually anyway after
-		// exceeding client max queue size.
-		return c.sess.Send(msg)
-	}
+	// Write timeout must be implemented inside session Send method.
+	// Slow client connections will be closed eventually anyway after
+	// exceeding client max queue size.
+	return c.sess.Send(msg)
 }
 
 // closeUnauthenticated closes connection if it's not authenticated yet.
