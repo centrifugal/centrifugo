@@ -3,6 +3,7 @@ package engineredis
 import (
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"strconv"
 	"testing"
@@ -235,22 +236,14 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
-/*
 func TestRedisChannels(t *testing.T) {
 	c := dial()
 	defer c.close()
-	app := testRedisApp()
-	err := app.Run()
-	assert.Nil(t, err)
-	channels, err := app.engine.channels()
+	e := NewTestRedisEngine()
+	channels, err := e.Channels()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(channels))
-	createTestClients(app, 10, 1, nil)
-	channels, err = app.engine.channels()
-	assert.Equal(t, nil, err)
-	assert.Equal(t, 10, len(channels))
 }
-*/
 
 func TestHandleClientMessage(t *testing.T) {
 	e := NewTestRedisEngine()
@@ -277,13 +270,65 @@ func TestHandleClientMessage(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
-func TestConsistentIndex(t *testing.T) {
-	chans := []string{"chan1", "chan2", "chan3", "chan4", "chan5", "chan6", "chan7", "chan8"}
-	for _, ch := range chans {
-		bucket := consistentIndex(ch, 2)
-		assert.True(t, bucket >= 0)
-		assert.True(t, bucket < 2)
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randString(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
+	return string(b)
+}
+
+// TestConsistentIndex exists to test consistent hashing algorithm we use.
+// As we use random in this test we carefully do asserts here.
+// At least it can protect us from stupid mistakes to certain degree.
+// We just expect +-equal distribution and keeping most of chans on
+// the same shard after resharding.
+func TestConsistentIndex(t *testing.T) {
+
+	rand.Seed(time.Now().UnixNano())
+	numChans := 10000
+	numShards := 10
+	chans := make([]string, numChans)
+	for i := 0; i < numChans; i++ {
+		chans[i] = randString(rand.Intn(10) + 1)
+	}
+	chanToShard := make(map[string]int)
+	chanToReshard := make(map[string]int)
+	shardToChan := make(map[int][]string)
+
+	for _, ch := range chans {
+		shard := consistentIndex(ch, numShards)
+		reshard := consistentIndex(ch, numShards+1)
+		chanToShard[ch] = shard
+		chanToReshard[ch] = reshard
+
+		if _, ok := shardToChan[shard]; !ok {
+			shardToChan[shard] = []string{}
+		}
+		shardChans := shardToChan[shard]
+		shardChans = append(shardChans, ch)
+		shardToChan[shard] = shardChans
+	}
+
+	for shard, shardChans := range shardToChan {
+		shardFraction := float64(len(shardChans)) * 100 / float64(len(chans))
+		fmt.Printf("Shard %d: %f%%\n", shard, shardFraction)
+	}
+
+	sameShards := 0
+
+	// And test resharding.
+	for ch, shard := range chanToShard {
+		reshard := chanToReshard[ch]
+		if shard == reshard {
+			sameShards += 1
+		}
+	}
+	sameFraction := float64(sameShards) * 100 / float64(len(chans))
+	fmt.Printf("Same shards after resharding: %f%%\n", sameFraction)
+	assert.True(t, sameFraction > 0.7)
 }
 
 func BenchmarkConsistentIndex(b *testing.B) {
