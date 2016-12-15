@@ -324,78 +324,120 @@ func newPool(conf *ShardConfig) *redis.Pool {
 	}
 }
 
-func getConfigs(getter config.Getter) []*ShardConfig {
+func getConfigs(getter config.Getter) ([]*ShardConfig, error) {
 	numShards := 1
 
-	hosts := strings.Split(getter.GetString("redis_host"), ",")
-	if len(hosts) > numShards {
-		numShards = len(hosts)
+	hostsConf := getter.GetString("redis_host")
+	portsConf := getter.GetString("redis_port")
+	urlsConf := getter.GetString("redis_url")
+	masterNamesConf := getter.GetString("redis_master_name")
+	sentinelsConf := getter.GetString("redis_sentinels")
+
+	password := getter.GetString("redis_password")
+	db := getter.GetString("redis_db")
+
+	hosts := []string{}
+	if hostsConf != "" {
+		hosts = strings.Split(hostsConf, ",")
+		if len(hosts) > numShards {
+			numShards = len(hosts)
+		}
 	}
 
-	ports := strings.Split(getter.GetString("redis_port"), ",")
-	if len(ports) > numShards {
-		numShards = len(ports)
+	ports := []string{}
+	if portsConf != "" {
+		ports = strings.Split(portsConf, ",")
+		if len(ports) > numShards {
+			numShards = len(ports)
+		}
 	}
 
-	urls := strings.Split(getter.GetString("redis_url"), ",")
-	if len(urls) > numShards {
-		numShards = len(urls)
+	urls := []string{}
+	if urlsConf != "" {
+		urls = strings.Split(urlsConf, ",")
+		if len(urls) > numShards {
+			numShards = len(urls)
+		}
 	}
 
-	masterName := getter.GetString("redis_master_name")
-	masterNames := strings.Split(masterName, ",")
-	if len(masterNames) > numShards {
-		numShards = len(masterNames)
+	masterNames := []string{}
+	if masterNamesConf != "" {
+		masterNames = strings.Split(masterNamesConf, ",")
+		if len(masterNames) > numShards {
+			numShards = len(masterNames)
+		}
 	}
 
-	sentinels := getter.GetString("redis_sentinels")
-	if masterName != "" && sentinels == "" {
-		logger.FATAL.Fatalf("Provide at least one Sentinel address")
+	if masterNamesConf != "" && sentinelsConf == "" {
+		return nil, fmt.Errorf("Provide at least one Sentinel address")
+	}
+
+	if masterNamesConf != "" && len(masterNames) < numShards {
+		return nil, fmt.Errorf("Redis master name must be set for every Redis shard when Sentinel used")
 	}
 
 	sentinelAddrs := []string{}
-	if sentinels != "" {
-		for _, addr := range strings.Split(sentinels, ",") {
+	if sentinelsConf != "" {
+		for _, addr := range strings.Split(sentinelsConf, ",") {
 			addr := strings.TrimSpace(addr)
 			if addr == "" {
 				continue
 			}
 			if _, _, err := net.SplitHostPort(addr); err != nil {
-				logger.FATAL.Fatalf("Malformed Sentinel address: %s", addr)
+				return nil, fmt.Errorf("Malformed Sentinel address: %s", addr)
 			}
 			sentinelAddrs = append(sentinelAddrs, addr)
 		}
 	}
 
-	password := getter.GetString("redis_password")
-	db := getter.GetString("redis_db")
-
-	if len(sentinelAddrs) > 0 && masterName == "" {
-		logger.FATAL.Fatalln("Redis master name required when Sentinel used")
-	}
-
-	if len(hosts) < numShards {
+	if len(hosts) <= 1 {
 		newHosts := make([]string, numShards)
 		for i := 0; i < numShards; i++ {
-			newHosts[i] = hosts[0]
+			if len(hosts) == 0 {
+				newHosts[i] = ""
+			} else {
+				newHosts[i] = hosts[0]
+			}
 		}
 		hosts = newHosts
+	} else if len(hosts) != numShards {
+		return nil, fmt.Errorf("Malformed sharding configuration: wrong number of redis hosts")
 	}
 
-	if len(ports) < numShards {
+	if len(ports) <= 1 {
 		newPorts := make([]string, numShards)
 		for i := 0; i < numShards; i++ {
-			newPorts[i] = ports[0]
+			if len(ports) == 0 {
+				newPorts[i] = ""
+			} else {
+				newPorts[i] = ports[0]
+			}
 		}
 		ports = newPorts
+	} else if len(ports) != numShards {
+		return nil, fmt.Errorf("Malformed sharding configuration: wrong number of redis ports")
 	}
 
-	if len(urls) < numShards {
-		newURLs := make([]string, numShards)
+	if len(urls) > 0 && len(urls) != numShards {
+		return nil, fmt.Errorf("Malformed sharding configuration: wrong number of redis urls")
+	}
+
+	if len(masterNames) == 0 {
+		newMasterNames := make([]string, numShards)
 		for i := 0; i < numShards; i++ {
-			newURLs[i] = urls[0]
+			newMasterNames[i] = ""
 		}
-		urls = newURLs
+		masterNames = newMasterNames
+	}
+
+	passwords := make([]string, numShards)
+	for i := 0; i < numShards; i++ {
+		passwords[i] = password
+	}
+
+	dbs := make([]string, numShards)
+	for i := 0; i < numShards; i++ {
+		dbs[i] = db
 	}
 
 	for i, confURL := range urls {
@@ -405,7 +447,7 @@ func getConfigs(getter config.Getter) []*ShardConfig {
 		// If URL set then prefer it over other parameters.
 		u, err := url.Parse(confURL)
 		if err != nil {
-			logger.FATAL.Fatalln(err)
+			return nil, fmt.Errorf("%v", err)
 		}
 		if u.User != nil {
 			var ok bool
@@ -413,29 +455,18 @@ func getConfigs(getter config.Getter) []*ShardConfig {
 			if !ok {
 				pass = ""
 			}
-			password = pass
+			passwords[i] = pass
 		}
 		host, port, err := net.SplitHostPort(u.Host)
 		if err != nil {
-			logger.FATAL.Fatalln(err)
+			return nil, fmt.Errorf("%v", err)
 		}
 		path := u.Path
 		if path != "" {
-			db = path[1:]
+			dbs[i] = path[1:]
 		}
 		hosts[i] = host
 		ports[i] = port
-	}
-
-	if masterName != "" && len(masterNames) < numShards {
-		logger.FATAL.Fatalln("Redis master names must be set for every Redis shard")
-	}
-	if len(masterNames) < numShards {
-		newMasterNames := make([]string, numShards)
-		for i := 0; i < numShards; i++ {
-			newMasterNames[i] = masterNames[0]
-		}
-		masterNames = newMasterNames
 	}
 
 	var shardConfigs []*ShardConfig
@@ -444,10 +475,10 @@ func getConfigs(getter config.Getter) []*ShardConfig {
 		conf := &ShardConfig{
 			Host:             hosts[i],
 			Port:             ports[i],
+			Password:         passwords[i],
+			DB:               dbs[i],
 			MasterName:       masterNames[i],
 			SentinelAddrs:    sentinelAddrs,
-			Password:         password,
-			DB:               db,
 			PoolSize:         getter.GetInt("redis_pool"),
 			API:              getter.GetBool("redis_api"),
 			NumAPIShards:     getter.GetInt("redis_api_num_shards"),
@@ -460,11 +491,14 @@ func getConfigs(getter config.Getter) []*ShardConfig {
 		shardConfigs = append(shardConfigs, conf)
 	}
 
-	return shardConfigs
+	return shardConfigs, nil
 }
 
 func Plugin(n *node.Node, getter config.Getter) (engine.Engine, error) {
-	configs := getConfigs(getter)
+	configs, err := getConfigs(getter)
+	if err != nil {
+		return nil, err
+	}
 	return New(n, configs)
 }
 

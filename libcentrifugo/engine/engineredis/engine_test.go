@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
@@ -275,6 +276,163 @@ func TestHandleClientMessage(t *testing.T) {
 	byteLeaveMsg, _ := testLeaveMsg.Marshal()
 	err = shard.handleRedisClientMessage(chID, byteLeaveMsg)
 	assert.Equal(t, nil, err)
+}
+
+type testGetter struct {
+	data map[string]interface{}
+}
+
+func newTestGetter(data map[string]interface{}) config.Getter {
+	return &testGetter{
+		data: data,
+	}
+}
+
+func (g *testGetter) Get(key string) interface{} {
+	d, ok := g.data[key]
+	if ok {
+		return d
+	}
+	return nil
+}
+
+func (g *testGetter) GetString(key string) string {
+	d, ok := g.data[key]
+	if ok {
+		return d.(string)
+	}
+	return ""
+}
+
+func (g *testGetter) GetBool(key string) bool {
+	d, ok := g.data[key]
+	if ok {
+		return d.(bool)
+	}
+	return false
+}
+
+func (g *testGetter) GetInt(key string) int {
+	d, ok := g.data[key]
+	if ok {
+		return d.(int)
+	}
+	return 0
+}
+
+func (g *testGetter) IsSet(key string) bool {
+	_, ok := g.data[key]
+	return ok
+}
+
+func (g *testGetter) UnmarshalKey(key string, target interface{}) error {
+	return nil
+}
+
+func TestShardConfigs(t *testing.T) {
+	g := newTestGetter(map[string]interface{}{
+		"redis_host":     "127.0.0.1",
+		"redis_port":     "6379",
+		"redis_url":      "",
+		"redis_db":       "0",
+		"redis_password": "",
+	})
+	confs, err := getConfigs(g)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 1, len(confs))
+	assert.Equal(t, "127.0.0.1", confs[0].Host)
+	assert.Equal(t, "6379", confs[0].Port)
+	assert.Equal(t, "0", confs[0].DB)
+
+	g = newTestGetter(map[string]interface{}{
+		"redis_host":     "127.0.0.1",
+		"redis_port":     "6379,6380",
+		"redis_url":      "",
+		"redis_db":       "0",
+		"redis_password": "",
+	})
+	confs, err = getConfigs(g)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(confs))
+	assert.Equal(t, "127.0.0.1", confs[0].Host)
+	assert.Equal(t, "6379", confs[0].Port)
+	assert.Equal(t, "0", confs[0].DB)
+	assert.Equal(t, "127.0.0.1", confs[1].Host)
+	assert.Equal(t, "6380", confs[1].Port)
+	assert.Equal(t, "0", confs[1].DB)
+
+	g = newTestGetter(map[string]interface{}{
+		"redis_host":     "",
+		"redis_port":     "",
+		"redis_url":      "redis://:pass1@127.0.0.1:6379/0,redis://:pass2@127.0.0.2:6380/1",
+		"redis_db":       "",
+		"redis_password": "",
+	})
+	confs, err = getConfigs(g)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(confs))
+	assert.Equal(t, "127.0.0.1", confs[0].Host)
+	assert.Equal(t, "6379", confs[0].Port)
+	assert.Equal(t, "0", confs[0].DB)
+	assert.Equal(t, "pass1", confs[0].Password)
+	assert.Equal(t, "127.0.0.2", confs[1].Host)
+	assert.Equal(t, "6380", confs[1].Port)
+	assert.Equal(t, "1", confs[1].DB)
+	assert.Equal(t, "pass2", confs[1].Password)
+
+	g = newTestGetter(map[string]interface{}{
+		"redis_host":     "127.0.0.1,127.0.0.2",
+		"redis_port":     "6379,6380",
+		"redis_url":      "",
+		"redis_db":       "",
+		"redis_password": "",
+	})
+	confs, err = getConfigs(g)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(confs))
+	assert.Equal(t, "127.0.0.1", confs[0].Host)
+	assert.Equal(t, "6379", confs[0].Port)
+	assert.Equal(t, "127.0.0.2", confs[1].Host)
+	assert.Equal(t, "6380", confs[1].Port)
+
+	g = newTestGetter(map[string]interface{}{
+		"redis_host":     "127.0.0.1,127.0.0.2",
+		"redis_port":     "6379,6380",
+		"redis_url":      "",
+		"redis_db":       "",
+		"redis_password": "",
+	})
+	confs, err = getConfigs(g)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(confs))
+	assert.Equal(t, "127.0.0.1", confs[0].Host)
+	assert.Equal(t, "6379", confs[0].Port)
+	assert.Equal(t, "127.0.0.2", confs[1].Host)
+	assert.Equal(t, "6380", confs[1].Port)
+
+	g = newTestGetter(map[string]interface{}{
+		"redis_host":     "127.0.0.1,127.0.0.2",
+		"redis_port":     "6379,6380,6381",
+		"redis_url":      "",
+		"redis_db":       "",
+		"redis_password": "",
+	})
+	_, err = getConfigs(g)
+	assert.NotEqual(t, nil, err, "too few hosts here actually")
+
+	g = newTestGetter(map[string]interface{}{
+		"redis_master_name": "mymaster,yourmaster",
+	})
+	_, err = getConfigs(g)
+	assert.NotEqual(t, nil, err, "sentinels required here")
+
+	g = newTestGetter(map[string]interface{}{
+		"redis_master_name": "mymaster,yourmaster",
+		"redis_sentinels":   "127.0.0.1:6380",
+	})
+	confs, err = getConfigs(g)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(confs))
 }
 
 func TestConsistentIndex(t *testing.T) {
