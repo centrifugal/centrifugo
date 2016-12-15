@@ -134,6 +134,13 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, e.Name(), "Redis")
 
+	channels, err := e.Channels()
+	assert.Equal(t, nil, err)
+	if len(channels) > 0 {
+		fmt.Printf("%#v", channels)
+	}
+	assert.Equal(t, 0, len(channels))
+
 	testMsg := newTestMessage()
 
 	err = <-e.PublishMessage(testMsg, nil)
@@ -235,18 +242,6 @@ func TestRedisEngine(t *testing.T) {
 	leaveMessage := proto.NewLeaveMessage(string("test"), *clientInfo)
 	err = <-e.PublishLeave(leaveMessage, nil)
 	assert.Equal(t, nil, err)
-}
-
-func TestRedisChannels(t *testing.T) {
-	c := dial()
-	defer c.close()
-	e := NewTestRedisEngine()
-	channels, err := e.Channels()
-	assert.Equal(t, nil, err)
-	if len(channels) > 0 {
-		fmt.Printf("%#v", channels)
-	}
-	assert.Equal(t, 0, len(channels))
 }
 
 func TestHandleClientMessage(t *testing.T) {
