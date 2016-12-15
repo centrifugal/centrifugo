@@ -123,7 +123,7 @@ func Main(version string) {
 				"expired_connection_close_delay": 25,
 				"client_message_write_timeout":   0,
 				"client_max_idle_timeout":        60,
-				"client_channel_limit":           100,
+				"client_channel_limit":           128,
 				"client_request_max_size":        65536,    // 64KB
 				"client_queue_max_size":          10485760, // 10MB
 				"client_queue_initial_capacity":  2,
