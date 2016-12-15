@@ -1490,8 +1490,6 @@ func (e *Shard) Channels() ([]string, error) {
 	defer conn.Close()
 
 	messagePrefix := e.messagePrefix
-	joinPrefix := e.joinPrefix
-	leavePrefix := e.leavePrefix
 
 	reply, err := conn.Do("PUBSUB", "CHANNELS", messagePrefix+"*")
 	if err != nil {
@@ -1510,9 +1508,7 @@ func (e *Shard) Channels() ([]string, error) {
 			return nil, errors.New("error getting ChannelID value")
 		}
 		chID := ChannelID(value)
-		if !strings.HasPrefix(string(chID), joinPrefix) && !strings.HasPrefix(string(chID), leavePrefix) {
-			channels = append(channels, string(string(chID)[len(messagePrefix):]))
-		}
+		channels = append(channels, string(string(chID)[len(messagePrefix):]))
 	}
 	return channels, nil
 }
