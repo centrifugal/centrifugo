@@ -243,6 +243,9 @@ func TestRedisChannels(t *testing.T) {
 	e := NewTestRedisEngine()
 	channels, err := e.Channels()
 	assert.Equal(t, nil, err)
+	if len(channels) > 0 {
+		fmt.Printf("%#v", channels)
+	}
 	assert.Equal(t, 0, len(channels))
 }
 
