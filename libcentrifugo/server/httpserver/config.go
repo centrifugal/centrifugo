@@ -47,6 +47,11 @@ type Config struct {
 	// try to negotiate it with client.
 	WebsocketCompression bool `json:"websocket_compression"`
 
+	// WebsocketCompressionMinSize allows to set minimal limit in bytes for message to use
+	// compression when writing it into client connection. By default it's 0 - i.e. all messages
+	// will be compressed when WebsocketCompression enabled and compression negotiated with client.
+	WebsocketCompressionMinSize int `json:"websocket_compression_min_size"`
+
 	// WebsocketReadBufferSize is a parameter that is used for raw websocket Upgrader.
 	// If set to zero reasonable default value will be used.
 	WebsocketReadBufferSize int `json:"websocket_read_buffer_size"`
@@ -72,6 +77,7 @@ func newConfig(c config.Getter) *Config {
 	cfg.SSLCert = c.GetString("ssl_cert")
 	cfg.SSLKey = c.GetString("ssl_cert")
 	cfg.WebsocketCompression = c.GetBool("websocket_compression")
+	cfg.WebsocketCompressionMinSize = c.GetInt("websocket_compression_min_size")
 	cfg.WebsocketReadBufferSize = c.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = c.GetInt("websocket_write_buffer_size")
 	return cfg

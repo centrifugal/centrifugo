@@ -36,6 +36,7 @@ func HTTPServerConfigure(setter config.Setter) error {
 	setter.SetDefault("sockjs_url", "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js")
 	setter.SetDefault("sockjs_heartbeat_delay", 0)
 	setter.SetDefault("websocket_compression", false)
+	setter.SetDefault("websocket_compression_min_size", 0)
 	setter.SetDefault("websocket_read_buffer_size", 4096)
 	setter.SetDefault("websocket_write_buffer_size", 4096)
 

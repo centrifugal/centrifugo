@@ -43,6 +43,10 @@ func (c *testWSConnection) SetWriteDeadline(t time.Time) error {
 	return nil
 }
 
+func (c *testWSConnection) EnableWriteCompression(enabled bool) {
+	return
+}
+
 func (c *testWSConnection) Close() error {
 	c.closed = true
 	if c.closeErr {
@@ -53,21 +57,21 @@ func (c *testWSConnection) Close() error {
 
 func TestWSConnPing(t *testing.T) {
 	ws := &testWSConnection{}
-	c := newWSSession(ws, 1*time.Nanosecond, 0)
+	c := newWSSession(ws, 1*time.Nanosecond, 0, 0)
 	c.ping()
 	assert.Equal(t, false, c.ws.(*testWSConnection).closed)
 }
 
 func TestWSConnPingFailed(t *testing.T) {
 	ws := &testWSConnection{controlErr: true}
-	c := newWSSession(ws, 1*time.Nanosecond, 0)
+	c := newWSSession(ws, 1*time.Nanosecond, 0, 0)
 	c.ping()
 	assert.Equal(t, true, c.ws.(*testWSConnection).closed)
 }
 
 func TestWSConnPingAfterClose(t *testing.T) {
 	ws := &testWSConnection{}
-	c := newWSSession(ws, 1*time.Nanosecond, 0)
+	c := newWSSession(ws, 1*time.Nanosecond, 0, 0)
 	err := c.Close(conns.DefaultDisconnectAdvice)
 	assert.Equal(t, nil, err)
 	c.ping()
@@ -76,7 +80,7 @@ func TestWSConnPingAfterClose(t *testing.T) {
 
 func TestSendAfterClose(t *testing.T) {
 	ws := &testWSConnection{}
-	c := newWSSession(ws, 1*time.Nanosecond, 0)
+	c := newWSSession(ws, 1*time.Nanosecond, 0, 0)
 	err := c.Close(conns.DefaultDisconnectAdvice)
 	assert.Equal(t, nil, err)
 	err = c.Send([]byte("test"))

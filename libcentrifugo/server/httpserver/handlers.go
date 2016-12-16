@@ -303,6 +303,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 
 	s.RLock()
 	wsCompression := s.config.WebsocketCompression
+	wsCompressionMinSize := s.config.WebsocketCompressionMinSize
 	wsReadBufferSize := s.config.WebsocketReadBufferSize
 	wsWriteBufferSize := s.config.WebsocketWriteBufferSize
 	s.RUnlock()
@@ -343,7 +344,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 		ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}
 
-	c, err := clientconn.New(s.node, newWSSession(ws, pingInterval, writeTimeout))
+	c, err := clientconn.New(s.node, newWSSession(ws, pingInterval, writeTimeout, wsCompressionMinSize))
 	if err != nil {
 		logger.ERROR.Println(err)
 		ws.Close()
@@ -561,7 +562,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 		ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}
 
-	sess := newWSSession(ws, pingInterval, writeTimeout)
+	sess := newWSSession(ws, pingInterval, writeTimeout, 0)
 
 	c, err := adminconn.New(s.node, sess)
 	if err != nil {

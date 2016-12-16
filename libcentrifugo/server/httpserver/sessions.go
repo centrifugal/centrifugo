@@ -54,27 +54,30 @@ type websocketConn interface {
 	WriteMessage(messageType int, data []byte) error
 	WriteControl(messageType int, data []byte, deadline time.Time) error
 	SetWriteDeadline(t time.Time) error
+	EnableWriteCompression(enable bool)
 	Close() error
 }
 
 // wsSession is a wrapper struct over websocket connection to fit session interface so
 // client will accept it.
 type wsSession struct {
-	mu           sync.RWMutex
-	ws           websocketConn
-	closed       bool
-	closeCh      chan struct{}
-	pingInterval time.Duration
-	writeTimeout time.Duration
-	pingTimer    *time.Timer
+	mu                 sync.RWMutex
+	ws                 websocketConn
+	closed             bool
+	closeCh            chan struct{}
+	pingInterval       time.Duration
+	writeTimeout       time.Duration
+	compressionMinSize int
+	pingTimer          *time.Timer
 }
 
-func newWSSession(ws websocketConn, pingInterval time.Duration, writeTimeout time.Duration) *wsSession {
+func newWSSession(ws websocketConn, pingInterval time.Duration, writeTimeout time.Duration, compressionMinSize int) *wsSession {
 	sess := &wsSession{
-		ws:           ws,
-		closeCh:      make(chan struct{}),
-		pingInterval: pingInterval,
-		writeTimeout: writeTimeout,
+		ws:                 ws,
+		closeCh:            make(chan struct{}),
+		pingInterval:       pingInterval,
+		writeTimeout:       writeTimeout,
+		compressionMinSize: compressionMinSize,
 	}
 	if pingInterval > 0 {
 		sess.addPing()
@@ -112,6 +115,9 @@ func (sess *wsSession) Send(msg []byte) error {
 	case <-sess.closeCh:
 		return nil
 	default:
+		if sess.compressionMinSize > 0 {
+			sess.ws.EnableWriteCompression(len(msg) > sess.compressionMinSize)
+		}
 		if sess.writeTimeout > 0 {
 			sess.ws.SetWriteDeadline(time.Now().Add(sess.writeTimeout))
 		}
