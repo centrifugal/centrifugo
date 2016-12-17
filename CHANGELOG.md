@@ -1,38 +1,45 @@
 v1.6.0 (not released yet)
 =========================
 
-This Centrifugo release is a massive internal refactoring with the goal to separate code of different components such as engine, server, metrics, clients to own packages. The code layout changed dramatically. Look at `libcentrifugo` folder! Unfortunately there are some minor backwards incompatibilities with previous release - see notes below. With new structure it's much more simple to create custom engines or servers - each with own metrics and configuration options. 
+This Centrifugo release is a massive 4-months refactoring of internals with the goal to separate code of different components such as engine, server, metrics, clients to own packages with well-defined API to communicate between them. The code layout changed dramatically. Look at `libcentrifugo` folder [before](https://github.com/centrifugal/centrifugo/tree/v1.5.1/libcentrifugo) and [after](https://github.com/centrifugal/centrifugo/tree/master/libcentrifugo)! Unfortunately there are backwards incompatibilities with previous release - see notes below. The most significant one is changed metrics format in `stats` and `node` API command responses.
 
-Although it's possible to create pluggable engines and servers I can not guarantee at moment that we will keep `libcentrifugo` packages API stable - as our primary goal is still building Centrifugo standalone server. So if we find something that must be fixed internally - we will fix it even if this could result in packages API changes.
+With new code layout it's much more simple to create custom engines or servers – each with own metrics and configuration options. **We can not guarantee** though that we will keep `libcentrifugo` packages API stable – **our primary goal is still building Centrifugo standalone server**. So if we find something that must be fixed or improved internally - we will fix/improve it even if this could result in packages API changes.
 
-As Centrifugo written in Go the only performant way to write plugins is to import them in `main.go` file and build Centrifugo with them. So if you want to create custom build you will need to build Centrifugo yourself. But at least it's much easier than supporting full Centrifugo fork.
+As Centrifugo written in Go the only performant way to write plugins is to import them in `main.go` file and build Centrifugo with them. So if you want to create custom build with custom server or custom engine you will need to change `main.go` file and build Centrifugo yourself. But at least it's easier than supporting full Centrifugo fork.
 
-Release highlights:
+### Release highlights:
 
-* new metrics. Several useful new metrics have beed added. For example HTTP API and client request HDR histograms. See updated documentation for complete list. Refactoring resulted in backwards incompatible issue when working with Centrifugo metrics (see below). [Here is a docs chapter](https://fzambia.gitbooks.io/centrifugal/content/server/stats.html) about metrics.
-* optimizations for client side ping, centrifuge-js now automatically sends periodic `ping` commands to server. Centrifugo checks client's last activity time and closes stale connections. SockJS server won't sent heartbeat frames by default. You can restore the old behaviour though: setting `ping: false` on client side and `sockjs_heartbeat_delay` option in Centrifugo configuration. All this means that you better update `centrifuge-js` client to latest version (`1.4.0`). Read more [in docs](https://fzambia.gitbooks.io/centrifugal/content/mixed/ping.html).
-* experimental websocket compression support for raw websockets - see [#115](https://github.com/centrifugal/centrifugo/issues/115). Read more [in docs](https://fzambia.gitbooks.io/centrifugal/content/mixed/websocket_compression.html).
+* New metrics. Several useful new metrics have beed added. For example HTTP API and client request HDR histograms. See updated documentation for complete list. Refactoring resulted in backwards incompatible issue when working with Centrifugo metrics (see below). [Here is a docs chapter](https://fzambia.gitbooks.io/centrifugal/content/server/stats.html) about metrics.
+* Optimizations for client side ping, `centrifuge-js` now automatically sends periodic `ping` commands to server. Centrifugo checks client's last activity time and closes stale connections. Builtin SockJS server won't send heartbeat frames to SockJS clients by default. You can restore the old behaviour though: setting `ping: false` on client side and `sockjs_heartbeat_delay: 25` option in Centrifugo configuration. This all means that you better update `centrifuge-js` client to latest version (`1.4.0`). Read [more about pings in docs](https://fzambia.gitbooks.io/centrifugal/content/mixed/ping.html).
+* Experimental websocket compression support for raw websockets - see [#115](https://github.com/centrifugal/centrifugo/issues/115). Read more details how to enable it [in docs](https://fzambia.gitbooks.io/centrifugal/content/mixed/websocket_compression.html). Keep in mind that enabling websocket compression can result in slower Centrifugo performance - depending on your load this can be noticeable.
+* Serious improvements in Redis API queue consuming. There was a bottleneck as we used BLPOP command to get every message from Redis which resulted in extra RTT. Now it's fixed and we can get several API messages from queue at once and process them. The format of Redis API queue changed - see new format description [in docs](https://fzambia.gitbooks.io/centrifugal/content/server/engines.html). Actually it's now the same as single HTTP API command - so we believe you should be comfortable with it. Old format is still supported but **DEPRECATED** and will be removed in next releases.
+* Redis sharding support. See more details [in docs](https://fzambia.gitbooks.io/centrifugal/content/server/scaling.html). This resolves some fears about Redis being bottleneck on some large Centrifugo setups. Though we have not heard such stories yet. Redis is single-threaded server, it's insanely fast but if your Redis approaches 100% CPU usage then this sharding feature is what can help your application to scale. 
+* Many minor internal improvements.
 
-Fixes:
+### Fixes:
 
-* this release fixes crash when `jsonp` transport was used by SockJS client - this was fixed recently in sockjs-go library.
+* This release fixes crash when `jsonp` transport was used by SockJS client - this was fixed recently in sockjs-go library.
+* Memory bursts fixed on node shutdown when we gracefully disconnect many connected clients.
 
-Backwards incompatible changes:
+### Backwards incompatible changes:
 
-* `stats` and `node` command response body format changed a bit, metrics now represented as map containing string keys and integer values. So you may need to update your monitoring scripts.
-* default log level now is `info` - `debug` level is too chatty for production logs as there are tons of API requests per second, tons of client connect/disconnect events. If you still want to see logs about all connections and API requests - set `log_level` option to `debug`
-* `channel_prefix` option renamed to `redis_prefix`
+* `stats` and `node` command response body format changed – metrics now represented as map containing string keys and integer values. So you may need to update your monitoring scripts.
+* Default log level now is `info` - `debug` level is too chatty for production logs as there are tons of API requests per second, tons of client connect/disconnect events. If you still want to see logs about all connections and API requests - set `log_level` option to `debug`.
+* `channel_prefix` option renamed to `redis_prefix`.
 * `web_password` and `web_secret` option aliases not supported anymore. Use `admin_password` and `admin_secret`.
-* `insecure_web` option removed - web interface now available without any password if `insecure_admin` option enabled. Of course in this case you should remember about protecting your admin endpoints with firewall rules. Btw we recommend to do this even if you are using admin password.
-* admin `info` response format changed a bit - but this most possibly will not affect anyone as it was mostly used by embedded web interface only.
+* `insecure_web` option removed – web interface now available without any password if `insecure_admin` option enabled. Of course in this case you should remember about protecting your admin endpoints with firewall rules. Btw we recommend to do this even if you are using admin password.
+* Admin `info` response format changed a bit - but this most possibly will not affect anyone as it was mostly used by embedded web interface only.
+* Some internal undocumented options have been changed. Btw [we documented several useful options](https://fzambia.gitbooks.io/centrifugal/content/server/advanced_configuration.html) which can be helpful in some cases.
 
-Several internal highlights (mostly for Go developers):
+### Several internal highlights (mostly for Go developers):
 
-* code base is more simple and readable now
-* protobuf v3 for message schema (using gogoprotobuf library). proto2 and proto3 are wire compatible
-* client transport now abstracted away - so it would be much easier in future to add new transport in addition/replacement to Websocket/SockJS
+* Code base is more simple and readable now.
+* Protobuf v3 for message schema (using gogoprotobuf library). proto2 and proto3 are wire compatible.
+* Client transport now abstracted away - so it would be much easier in future to add new transport in addition/replacement to Websocket/SockJS.
 * API abstracted away from protocol - it would be easier in future to add new API requests source.
-* no performance penalty was introduced during this refactoring.
+* No performance penalty was introduced during this refactoring.
+* We process PUB/SUB messages in several goroutines, preserving message order.
+* We use `statik` (https://github.com/rakyll/statik) to embed web interface now.
 * go1.7.4 used for builds.
 
 
