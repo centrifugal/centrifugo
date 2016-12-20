@@ -54,7 +54,7 @@ type Options struct {
 var DefaultOptions = Options{
 	Websocket:       true,
 	JSessionID:      nil,
-	SockJSURL:       "http://cdn.sockjs.org/sockjs-0.3.min.js",
+	SockJSURL:       "//cdnjs.cloudflare.com/ajax/libs/sockjs-client/0.3.4/sockjs.min.js",
 	HeartbeatDelay:  25 * time.Second,
 	DisconnectDelay: 5 * time.Second,
 	ResponseLimit:   128 * 1024,

@@ -81,6 +81,12 @@
 			"revisionTime": "2016-11-12T14:27:12Z"
 		},
 		{
+			"checksumSHA1": "H+a6W2j6xwNUqK7f7Q+ujPazjKU=",
+			"path": "github.com/igm/sockjs-go/sockjs",
+			"revision": "1f275fbd3bcc9a21ec90217b80f40db44404410b",
+			"revisionTime": "2016-11-15T19:28:38Z"
+		},
+		{
 			"checksumSHA1": "LUrnGREfnifW4WDMaavmc9MlLI0=",
 			"path": "github.com/mitchellh/mapstructure",
 			"revision": "ca63d7c062ee3c9f34db231e352b60012b4fd0c1",
@@ -147,12 +153,6 @@
 			"path": "github.com/valyala/bytebufferpool",
 			"revision": "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7",
 			"revisionTime": "2016-08-17T18:16:52Z"
-		},
-		{
-			"checksumSHA1": "ay9WnRs0b3RGtKVTEGvKvfvfojs=",
-			"path": "gopkg.in/igm/sockjs-go.v2/sockjs",
-			"revision": "d276e9ffe5cc5c271b81198cc77a2adf6c4482d2",
-			"revisionTime": "2016-11-15T19:38:03Z"
 		},
 		{
 			"checksumSHA1": "yV+2de12Q/t09hBGYGKEOFr1/zc=",

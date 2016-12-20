@@ -117,7 +117,7 @@ func (h *handler) sessionByRequest(req *http.Request) (*session, error) {
 	}
 	sess, exists := h.sessions[sessionID]
 	if !exists {
-		sess = newSession(sessionID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
+		sess = newSession(req, sessionID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
 		h.sessions[sessionID] = sess
 		if h.handlerFunc != nil {
 			go h.handlerFunc(sess)

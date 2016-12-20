@@ -6,7 +6,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/gorilla/websocket"
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"github.com/igm/sockjs-go/sockjs"
 )
 
 const (

@@ -19,8 +19,8 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/websocket"
+	"github.com/igm/sockjs-go/sockjs"
 	"github.com/rakyll/statik/fs"
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.

@@ -9,7 +9,7 @@ import (
 func xhrCors(rw http.ResponseWriter, req *http.Request) {
 	header := rw.Header()
 	origin := req.Header.Get("origin")
-	if origin == "" || origin == "null" {
+	if origin == "" {
 		origin = "*"
 	}
 	header.Set("Access-Control-Allow-Origin", origin)
@@ -17,7 +17,7 @@ func xhrCors(rw http.ResponseWriter, req *http.Request) {
 	if allowHeaders := req.Header.Get("Access-Control-Request-Headers"); allowHeaders != "" && allowHeaders != "null" {
 		header.Add("Access-Control-Allow-Headers", allowHeaders)
 	}
-	header.Add("Access-Control-Allow-Credentials", "true")
+	header.Set("Access-Control-Allow-Credentials", "true")
 }
 
 func xhrOptions(rw http.ResponseWriter, req *http.Request) {
