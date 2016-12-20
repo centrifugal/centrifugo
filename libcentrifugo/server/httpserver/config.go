@@ -75,7 +75,7 @@ func newConfig(c config.Getter) *Config {
 	cfg.SockjsHeartbeatDelay = c.GetInt("sockjs_heartbeat_delay")
 	cfg.SSL = c.GetBool("ssl")
 	cfg.SSLCert = c.GetString("ssl_cert")
-	cfg.SSLKey = c.GetString("ssl_cert")
+	cfg.SSLKey = c.GetString("ssl_key")
 	cfg.WebsocketCompression = c.GetBool("websocket_compression")
 	cfg.WebsocketCompressionMinSize = c.GetInt("websocket_compression_min_size")
 	cfg.WebsocketReadBufferSize = c.GetInt("websocket_read_buffer_size")
