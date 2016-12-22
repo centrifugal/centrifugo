@@ -6,6 +6,7 @@
   "keywords": ["go", "pubsub", "websocket", "real-time", "sockjs", "redis"],
   "env": {
     "GO_LINKER_SYMBOL": "main.VERSION",
+    "GO_LINKER_VALUE": "dev",
     "CENTRIFUGO_ADMIN_PASSWORD": "password",
     "CENTRIFUGO_ADMIN_SECRET": {
       "description": "Web Secret",
