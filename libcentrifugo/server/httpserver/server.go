@@ -40,11 +40,18 @@ func HTTPServerConfigure(setter config.Setter) error {
 	setter.SetDefault("websocket_read_buffer_size", 4096)
 	setter.SetDefault("websocket_write_buffer_size", 4096)
 
+	setter.SetDefault("ssl_autocert", false)
+	setter.SetDefault("ssl_autocert_host_whitelist", "")
+	setter.SetDefault("ssl_autocert_cache_dir", "")
+	setter.SetDefault("ssl_autocert_email", "")
+
 	setter.BoolFlag("web", "w", false, "serve admin web interface application (warning: automatically enables admin socket)")
 	setter.StringFlag("web_path", "", "", "optional path to custom web interface application")
+
 	setter.BoolFlag("ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
 	setter.StringFlag("ssl_cert", "", "", "path to an X509 certificate file")
 	setter.StringFlag("ssl_key", "", "", "path to an X509 certificate key")
+
 	setter.StringFlag("address", "a", "", "address to listen on")
 	setter.StringFlag("port", "p", "8000", "port to bind HTTP server to")
 	setter.StringFlag("api_port", "", "", "port to bind api endpoints to (optional)")

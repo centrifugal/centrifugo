@@ -80,16 +80,7 @@ var DefaultMuxOptions = MuxOptions{
 }
 
 func listenHTTP(mux http.Handler, addr string, useSSL bool, sslCert, sslKey string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	if useSSL {
-		if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
-			logger.FATAL.Fatalln("ListenAndServe:", err)
-		}
-	} else {
-		if err := http.ListenAndServe(addr, mux); err != nil {
-			logger.FATAL.Fatalln("ListenAndServe:", err)
-		}
-	}
+
 }
 
 func (s *HTTPServer) runHTTPServer() error {
@@ -193,6 +184,20 @@ func (s *HTTPServer) runHTTPServer() error {
 
 		logger.INFO.Printf("Start serving %s endpoints on %s\n", handlerFlags, addr)
 		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			if sslEnabled {
+				if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
+					logger.FATAL.Fatalln("ListenAndServe:", err)
+				}
+			} else {
+				if err := http.ListenAndServe(addr, mux); err != nil {
+					logger.FATAL.Fatalln("ListenAndServe:", err)
+				}
+			}
+		}()
+
 		go listenHTTP(mux, addr, sslEnabled, sslCert, sslKey, &wg)
 	}
 	wg.Wait()

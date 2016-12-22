@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 )
@@ -31,6 +32,14 @@ type Config struct {
 	SSLCert string `json:"ssl_cert"`
 	// SSLKey is path to SSL key file.
 	SSLKey string `json:"ssl_key"`
+	// SSLAutocert enables automatic certificate receive from ACME provider.
+	SSLAutocert bool `json:"ssl_autocert"`
+	// SSLAutocertHostWhitelist is a slice of host names ACME Manager is allowed to respond to.
+	SSLAutocertHostWhitelist []string `json:"ssl_autocert_host_whitelist"`
+	// SSLAutocertCacheDir is a folder to cache certificates from ACME provider.
+	SSLAutocertCacheDir string `json:"ssl_autocert_cache_dir"`
+	// SSLAutocertEmail is a contact email address to notify about problems with certificates.
+	SSLAutocertEmail string `json:"ssl_autocert_email"`
 
 	// SockjsURL is a custom SockJS library url to use in iframe transports.
 	SockjsURL string `json:"sockjs_url"`
@@ -76,6 +85,15 @@ func newConfig(c config.Getter) *Config {
 	cfg.SSL = c.GetBool("ssl")
 	cfg.SSLCert = c.GetString("ssl_cert")
 	cfg.SSLKey = c.GetString("ssl_key")
+	cfg.SSLAutocert = c.GetBool("ssl_autocert")
+	autocertHostWhitelist := c.GetString("ssl_autocert_host_whitelist")
+	if autocertHostWhitelist != "" {
+		cfg.SSLAutocertHostWhitelist = strings.Split(autocertHostWhitelist, ",")
+	} else {
+		cfg.SSLAutocertHostWhitelist = nil
+	}
+	cfg.SSLAutocertCacheDir = c.GetString("ssl_autocert_cache_dir")
+	cfg.SSLAutocertEmail = c.GetString("ssl_autocert_email")
 	cfg.WebsocketCompression = c.GetBool("websocket_compression")
 	cfg.WebsocketCompressionMinSize = c.GetInt("websocket_compression_min_size")
 	cfg.WebsocketReadBufferSize = c.GetInt("websocket_read_buffer_size")
