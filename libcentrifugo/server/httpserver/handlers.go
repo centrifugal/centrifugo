@@ -236,7 +236,7 @@ func DefaultMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 		mux.Handle(prefix+"/api/", s.Logged(s.WrapShutdown(http.HandlerFunc(s.APIHandler))))
 	}
 
-	if admin && flags&HandlerAdmin != 0 {
+	if (admin || web) && flags&HandlerAdmin != 0 {
 		// register admin websocket endpoint.
 		mux.Handle(prefix+"/socket", s.Logged(http.HandlerFunc(s.AdminWebsocketHandler)))
 
@@ -536,10 +536,13 @@ var upgrader = &websocket.Upgrader{ReadBufferSize: AdminWebsocketReadBufferSize,
 func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	config := s.node.Config()
-
 	admin := config.Admin
 
-	if !admin {
+	s.RLock()
+	web := s.config.Web
+	s.RUnlock()
+
+	if !(admin || web) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
