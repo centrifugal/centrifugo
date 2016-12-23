@@ -75,10 +75,10 @@
 			"revisionTime": "2015-08-20T08:29:58Z"
 		},
 		{
-			"checksumSHA1": "SmBqqqR0T+1Ksx5zwCl295Vey0s=",
+			"checksumSHA1": "B4bk7vdV9aD7AhrtATXfgEacdqE=",
 			"path": "github.com/gorilla/websocket",
-			"revision": "e8f0f8aaa98dfb6586cbdf2978d511e3199a960a",
-			"revisionTime": "2016-11-12T14:27:12Z"
+			"revision": "3ab3a8b8831546bd18fd182c20687ca853b2bb13",
+			"revisionTime": "2016-12-15T22:53:35Z"
 		},
 		{
 			"checksumSHA1": "H+a6W2j6xwNUqK7f7Q+ujPazjKU=",
