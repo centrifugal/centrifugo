@@ -193,33 +193,32 @@ func (s *HTTPServer) runHTTPServer() error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if sslEnabled || sslAutocertEnabled {
-				if sslAutocertEnabled {
-					certManager := autocert.Manager{
-						Prompt: autocert.AcceptTOS,
-						Email:  sslAutocertEmail,
-					}
-					if sslAutocertHostWhitelist != nil {
-						certManager.HostPolicy = autocert.HostWhitelist(sslAutocertHostWhitelist...)
-					}
-					if sslAutocertCacheDir != "" {
-						certManager.Cache = autocert.DirCache(sslAutocertCacheDir)
-					}
-					server := &http.Server{
-						Addr:    addr,
-						Handler: mux,
-						TLSConfig: &tls.Config{
-							GetCertificate: certManager.GetCertificate,
-						},
-					}
-					if err := server.ListenAndServeTLS("", ""); err != nil {
-						logger.FATAL.Fatalln("ListenAndServe:", err)
-					}
-				} else {
-					// Autocert disabled - just try to use provided SSL cert and key files.
-					if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
-						logger.FATAL.Fatalln("ListenAndServe:", err)
-					}
+
+			if sslAutocertEnabled {
+				certManager := autocert.Manager{
+					Prompt: autocert.AcceptTOS,
+					Email:  sslAutocertEmail,
+				}
+				if sslAutocertHostWhitelist != nil {
+					certManager.HostPolicy = autocert.HostWhitelist(sslAutocertHostWhitelist...)
+				}
+				if sslAutocertCacheDir != "" {
+					certManager.Cache = autocert.DirCache(sslAutocertCacheDir)
+				}
+				server := &http.Server{
+					Addr:    addr,
+					Handler: mux,
+					TLSConfig: &tls.Config{
+						GetCertificate: certManager.GetCertificate,
+					},
+				}
+				if err := server.ListenAndServeTLS("", ""); err != nil {
+					logger.FATAL.Fatalln("ListenAndServe:", err)
+				}
+			} else if sslEnabled {
+				// Autocert disabled - just try to use provided SSL cert and key files.
+				if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
+					logger.FATAL.Fatalln("ListenAndServe:", err)
 				}
 			} else {
 				if err := http.ListenAndServe(addr, mux); err != nil {
