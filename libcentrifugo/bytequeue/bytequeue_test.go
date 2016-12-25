@@ -94,6 +94,19 @@ func TestByteQueueClose(t *testing.T) {
 
 }
 
+func TestByteQueueCloseRemaining(t *testing.T) {
+	q := New(2)
+	q.Add([]byte("1"))
+	q.Add([]byte("2"))
+	msgs := q.CloseRemaining()
+	assert.Equal(t, 2, len(msgs))
+	ok := q.Add([]byte("3"))
+	assert.Equal(t, false, ok)
+	assert.Equal(t, true, q.Closed())
+	msgs = q.CloseRemaining()
+	assert.Equal(t, 0, len(msgs))
+}
+
 func BenchmarkQueueAdd(b *testing.B) {
 	q := New(2)
 	b.ResetTimer()
