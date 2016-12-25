@@ -908,12 +908,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 	}
 
 	if chOpts.JoinLeave {
-		go func() {
-			err = <-c.node.PublishJoin(proto.NewJoinMessage(channel, info), &chOpts)
-			if err != nil {
-				logger.ERROR.Println(err)
-			}
-		}()
+		c.node.PublishJoin(proto.NewJoinMessage(channel, info), &chOpts)
 	}
 
 	body.Status = true
@@ -954,10 +949,7 @@ func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeClientCommand) (proto.Resp
 		}
 
 		if chOpts.JoinLeave {
-			err = <-c.node.PublishLeave(proto.NewLeaveMessage(channel, info), &chOpts)
-			if err != nil {
-				logger.ERROR.Println(err)
-			}
+			c.node.PublishLeave(proto.NewLeaveMessage(channel, info), &chOpts)
 		}
 
 		err = c.node.RemoveClientSub(channel, c)
