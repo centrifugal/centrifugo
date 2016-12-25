@@ -1,3 +1,18 @@
+v1.6.1 (not released yet)
+=========================
+
+This release fixes some configuration problems introduced by v1.6.0 and adds Let's Encrypt support.
+
+### Features
+
+* automatic TLS certificates from Let's Encrypt - see [#133](https://github.com/centrifugal/centrifugo/issues/133)
+* websocket compression performance improvent (due to Gorilla Websocket library update)
+
+### Fixes
+
+* fix SSL/TLS certificates file option names - see [#132](https://github.com/centrifugal/centrifugo/issues/132)
+* fix `web` option that must enable admin socket automatically - see [#136](https://github.com/centrifugal/centrifugo/issues/136)
+
 v1.6.0
 ======
 
