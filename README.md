@@ -18,20 +18,20 @@ Try [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo
 
 Highlights:
 * Fast server capable to serve thousands of simultaneous connections
-* Easily integrates with existing application – no need to rewrite your backend code to dive into real-time
+* Easily integrates with existing application – no need to rewrite your backend code to introduce real-time events
 * HTTP API to communicate from your application backend (publish messages in channels etc.). API clients for Python, Ruby, PHP, Go, NodeJS. Simple to implement new one
-* Javascript client to connect from web browser over SockJS or pure Websocket protocol
-* Scale to several machines with Redis
+* Javascript client to connect from web browser over SockJS or pure Websocket protocol. Clients for iOS and Android on top of Websocket
+* Scale to several machines with Redis, Redis Sentinel for high availability, consistent hash sharding.
 * SHA-256 HMAC-based connection authentication and private channel authorization
 * Different types of channels – private, user limited, client limited channels
 * Flexible configuration of channels via namespaces
-* Presence information for channels (show all clients in channel)
+* Presence information for channels (show all active clients in channel)
 * History information for channels (last messages sent into channels)
 * Join/leave events for channels (client goes online/offline)
 * Recover missed messages after network disconnect
 * Built-in administrative web interface
 * Possibility to use as WebRTC signaling server
-* Ready to deploy (docker image, RPM/DEB packages, Nginx configuration)
+* Ready to deploy (docker image, RPM/DEB packages, Nginx configuration, automatic Let's Encrypt TLS certificates)
 * MIT license
 
 Simplified scheme:
