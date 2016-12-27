@@ -121,7 +121,7 @@ func NewTestRedisEngine() *RedisEngine {
 	if err != nil {
 		panic(err)
 	}
-	return e.(*RedisEngine)
+	return e
 }
 
 func TestRedisEngine(t *testing.T) {

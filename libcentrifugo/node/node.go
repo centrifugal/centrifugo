@@ -18,6 +18,7 @@ import (
 	"github.com/satori/go.uuid"
 )
 
+// RunOptions struct represents options that must be provided to node Run method.
 type RunOptions struct {
 	Engine   engine.Engine
 	Servers  map[string]server.Server
@@ -148,6 +149,7 @@ func (n *Node) SetConfig(c *Config) {
 	n.config = c
 }
 
+// Version returns version of node.
 func (n *Node) Version() string {
 	return n.version
 }
@@ -194,7 +196,7 @@ func (n *Node) Reload(getter config.Getter) error {
 	return nil
 }
 
-// Config returns a copy of node Config.
+// Engine returns node's Engine.
 func (n *Node) Engine() engine.Engine {
 	return n.engine
 }
@@ -204,17 +206,17 @@ func (n *Node) Mediator() Mediator {
 	return n.mediator
 }
 
-// ClientHub.
+// ClientHub returns node's client hub.
 func (n *Node) ClientHub() conns.ClientHub {
 	return n.clients
 }
 
-// AdminHub.
+// AdminHub returns node's admin hub.
 func (n *Node) AdminHub() conns.AdminHub {
 	return n.admins
 }
 
-// Notify shutdown returns a channel which will be closed on node shutdown.
+// NotifyShutdown returns a channel which will be closed on node shutdown.
 func (n *Node) NotifyShutdown() chan struct{} {
 	return n.shutdownCh
 }
@@ -459,6 +461,7 @@ func (n *Node) ClientMsg(msg *proto.Message) error {
 	return n.clients.Broadcast(ch, byteMessage)
 }
 
+// JoinMsg handles JoinMessage.
 func (n *Node) JoinMsg(msg *proto.JoinMessage) error {
 	ch := msg.Channel
 	metricsRegistry.Counters.Inc("node_num_join_msg_received")
@@ -474,6 +477,7 @@ func (n *Node) JoinMsg(msg *proto.JoinMessage) error {
 	return n.clients.Broadcast(ch, byteMessage)
 }
 
+// LeaveMsg handles leave message.
 func (n *Node) LeaveMsg(msg *proto.LeaveMessage) error {
 	ch := msg.Channel
 	metricsRegistry.Counters.Inc("node_num_leave_msg_received")
@@ -622,14 +626,14 @@ func (n *Node) pubDisconnect(user string, reconnect bool) error {
 	return <-n.publishControl(proto.NewControlMessage(n.uid, "disconnect", cmdBytes))
 }
 
-// AddConn registers authenticated connection in clientConnectionHub
+// AddClientConn registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand.
 func (n *Node) AddClientConn(c conns.ClientConn) error {
 	metricsRegistry.Counters.Inc("node_num_add_client_conn")
 	return n.clients.Add(c)
 }
 
-// removeConn removes client connection from connection registry.
+// RemoveClientConn removes client connection from connection registry.
 func (n *Node) RemoveClientConn(c conns.ClientConn) error {
 	metricsRegistry.Counters.Inc("node_num_remove_client_conn")
 	return n.clients.Remove(c)
@@ -763,14 +767,14 @@ func (n *Node) namespaceKey(ch string) NamespaceKey {
 	return NamespaceKey("")
 }
 
-// channelOpts returns channel options for channel using current application structure.
+// ChannelOpts returns channel options for channel using current application structure.
 func (n *Node) ChannelOpts(ch string) (proto.ChannelOptions, error) {
 	n.RLock()
 	defer n.RUnlock()
 	return n.config.channelOpts(n.namespaceKey(ch))
 }
 
-// addPresence proxies presence adding to engine.
+// AddPresence proxies presence adding to engine.
 func (n *Node) AddPresence(ch string, uid string, info proto.ClientInfo) error {
 	n.RLock()
 	expire := int(n.config.PresenceExpireInterval.Seconds())
@@ -837,6 +841,7 @@ func (n *Node) History(ch string) ([]proto.Message, error) {
 	return history, nil
 }
 
+// LastMessageID return last message id for channel.
 func (n *Node) LastMessageID(ch string) (string, error) {
 	metricsRegistry.Counters.Inc("node_num_last_message_id")
 	history, err := n.engine.History(ch, 1)
@@ -940,7 +945,7 @@ func (r *nodeRegistry) add(info proto.NodeInfo) {
 
 func (r *nodeRegistry) clean(delay time.Duration) {
 	r.mu.Lock()
-	for uid, _ := range r.nodes {
+	for uid := range r.nodes {
 		if uid == r.currentUID {
 			// No need to clean info for current node.
 			continue

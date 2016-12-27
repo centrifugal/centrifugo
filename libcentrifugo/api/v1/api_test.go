@@ -327,7 +327,7 @@ func TestAPIUnsubscribe(t *testing.T) {
 		User:    "test user",
 		Channel: "channel",
 	}
-	resp, err := UnsubcribeCmd(app, cmd)
+	resp, err := UnsubscribeCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIUnsubscribeResponse).ResponseError.Err)
 
@@ -336,7 +336,7 @@ func TestAPIUnsubscribe(t *testing.T) {
 		User:    "test user",
 		Channel: "",
 	}
-	resp, err = UnsubcribeCmd(app, cmd)
+	resp, err = UnsubscribeCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIUnsubscribeResponse).ResponseError.Err)
 }

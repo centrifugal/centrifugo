@@ -14,6 +14,7 @@ type Registry struct {
 	HDRHistograms *HDRHistogramRegistry
 }
 
+// NewRegistry initializes Registry.
 func NewRegistry() *Registry {
 	return &Registry{
 		Counters:      NewCounterRegistry(),
@@ -22,14 +23,17 @@ func NewRegistry() *Registry {
 	}
 }
 
+// RegisterCounter allows to register counter in registry.
 func (m *Registry) RegisterCounter(name string, c *Counter) {
 	m.Counters.Register(name, c)
 }
 
+// RegisterGauge allows to register gauge in registry.
 func (m *Registry) RegisterGauge(name string, g *Gauge) {
 	m.Gauges.Register(name, g)
 }
 
+// RegisterHDRHistogram allows to register hdr histogram in registry.
 func (m *Registry) RegisterHDRHistogram(name string, h *HDRHistogram) {
 	m.HDRHistograms.Register(name, h)
 }

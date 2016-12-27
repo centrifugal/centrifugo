@@ -58,6 +58,7 @@ type adminClient struct {
 	messages      bytequeue.ByteQueue
 }
 
+// New initializes new AdminConn.
 func New(n *node.Node, sess conns.Session) (conns.AdminConn, error) {
 	c := &adminClient{
 		uid:           uuid.NewV4().String(),

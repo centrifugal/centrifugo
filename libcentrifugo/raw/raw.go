@@ -1,7 +1,4 @@
-// package raw contains Raw type (alias to slice of bytes). This type used by Centrifugo
-// as type for fields in structs which value we want to left untouched. For example custom
-// application specific JSON payload data in published message. This is very similar to
-// json.RawMessage type but have some extra methods to fit gogoprotobuf custom type interface.
+// Package raw contains Raw type (alias to slice of bytes).
 package raw
 
 import (
@@ -9,8 +6,13 @@ import (
 	"errors"
 )
 
+// Raw type used by Centrifugo as type for fields in structs which value we want to left
+// untouched. For example custom application specific JSON payload data in published message.
+// This is very similar to json.RawMessage type but have some extra methods to fit
+// gogoprotobuf custom type interface.
 type Raw []byte
 
+// Marshal encodes Raw to slice of bytes. Exists to fit gogoprotobuf custom type interface.
 func (r Raw) Marshal() ([]byte, error) {
 	if len(r) == 0 {
 		return nil, nil
@@ -18,6 +20,7 @@ func (r Raw) Marshal() ([]byte, error) {
 	return []byte(r), nil
 }
 
+// MarshalTo exists to fit gogoprotobuf custom type interface.
 func (r Raw) MarshalTo(data []byte) (n int, err error) {
 	if len(r) == 0 {
 		return 0, nil
@@ -26,6 +29,7 @@ func (r Raw) MarshalTo(data []byte) (n int, err error) {
 	return len(r), nil
 }
 
+// Unmarshal exists to fit gogoprotobuf custom type interface.
 func (r *Raw) Unmarshal(data []byte) error {
 	if len(data) == 0 {
 		r = nil
@@ -37,6 +41,7 @@ func (r *Raw) Unmarshal(data []byte) error {
 	return nil
 }
 
+// Size exists to fit gogoprotobuf custom type interface.
 func (r *Raw) Size() int {
 	if r == nil {
 		return 0
@@ -58,10 +63,12 @@ func (r *Raw) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Equal exists to fit gogoprotobuf custom type interface.
 func (r Raw) Equal(other Raw) bool {
 	return bytes.Equal(r[0:], other[0:])
 }
 
+// Compare exists to fit gogoprotobuf custom type interface.
 func (r Raw) Compare(other Raw) int {
 	return bytes.Compare(r[0:], other[0:])
 }
@@ -70,6 +77,7 @@ type intn interface {
 	Intn(n int) int
 }
 
+// NewPopulatedRaw required for gogoprotobuf custom type.
 func NewPopulatedRaw(r intn) *Raw {
 	v1 := r.Intn(100)
 	data := make([]byte, v1)

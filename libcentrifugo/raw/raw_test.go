@@ -30,6 +30,6 @@ func TestRaw(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if string(stdjsondata1) != string(stdjsondata2) {
-		t.Fatalf("no match", err)
+		t.Fatalf("no match: %v", err)
 	}
 }

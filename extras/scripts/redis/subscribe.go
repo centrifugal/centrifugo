@@ -12,6 +12,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+// Hash is consistent hash func using jump algorithm.
 func Hash(ch string, numBuckets int) int32 {
 
 	hash := fnv.New64a()
@@ -65,7 +66,7 @@ func main() {
 
 	pool := newPool(":6379")
 
-	var counter int32 = 0
+	var counter int32
 
 	go func() {
 		prevCounter := counter

@@ -4,6 +4,7 @@ import (
 	gologger "github.com/FZambia/go-logger"
 )
 
+// LevelMatches is a map that matches string level to logger level constants.
 var LevelMatches = map[string]gologger.Level{
 	"TRACE":    gologger.LevelTrace,
 	"DEBUG":    gologger.LevelDebug,
@@ -16,24 +17,39 @@ var LevelMatches = map[string]gologger.Level{
 }
 
 var (
-	LevelTrace    gologger.Level = gologger.LevelTrace
-	LevelDebug    gologger.Level = gologger.LevelDebug
-	LevelInfo     gologger.Level = gologger.LevelInfo
-	LevelWarn     gologger.Level = gologger.LevelWarn
-	LevelError    gologger.Level = gologger.LevelError
+	// LevelTrace level.
+	LevelTrace gologger.Level = gologger.LevelTrace
+	// LevelDebug level.
+	LevelDebug gologger.Level = gologger.LevelDebug
+	// LevelInfo level.
+	LevelInfo gologger.Level = gologger.LevelInfo
+	// LevelWarn level.
+	LevelWarn gologger.Level = gologger.LevelWarn
+	// LevelError level.
+	LevelError gologger.Level = gologger.LevelError
+	// LevelCritical level.
 	LevelCritical gologger.Level = gologger.LevelCritical
-	LevelFatal    gologger.Level = gologger.LevelFatal
-	LevelNone     gologger.Level = gologger.LevelNone
+	// LevelFatal level.
+	LevelFatal gologger.Level = gologger.LevelFatal
+	// LevelNone level.
+	LevelNone gologger.Level = gologger.LevelNone
 )
 
 var (
-	TRACE    *gologger.LevelLogger
-	DEBUG    *gologger.LevelLogger
-	INFO     *gologger.LevelLogger
-	WARN     *gologger.LevelLogger
-	ERROR    *gologger.LevelLogger
+	// TRACE logger.
+	TRACE *gologger.LevelLogger
+	// DEBUG logger.
+	DEBUG *gologger.LevelLogger
+	// INFO logger.
+	INFO *gologger.LevelLogger
+	// WARN logger.
+	WARN *gologger.LevelLogger
+	// ERROR logger.
+	ERROR *gologger.LevelLogger
+	// CRITICAL logger.
 	CRITICAL *gologger.LevelLogger
-	FATAL    *gologger.LevelLogger
+	// FATAL logger
+	FATAL *gologger.LevelLogger
 )
 
 func init() {

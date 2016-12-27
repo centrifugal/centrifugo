@@ -8,7 +8,7 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
 
-// Try to extract single APICommand encoded as JSON.
+// APICommandFromJSON tries to extract single APICommand encoded as JSON.
 func APICommandFromJSON(msg []byte) (proto.APICommand, error) {
 	var cmd proto.APICommand
 	err := json.Unmarshal(msg, &cmd)
@@ -23,7 +23,7 @@ var (
 	objectJSONPrefix byte = '{'
 )
 
-// Try to extract slice of APICommand encoded as JSON. This function understands both
+// APICommandsFromJSON tries to extract slice of APICommand encoded as JSON. This function understands both
 // single object and array of commands JSON looking at first byte of msg.
 func APICommandsFromJSON(msg []byte) ([]proto.APICommand, error) {
 	var cmds []proto.APICommand
@@ -116,7 +116,7 @@ func APICmd(n *node.Node, cmd proto.APICommand) (proto.Response, error) {
 			logger.ERROR.Println(err)
 			return nil, proto.ErrInvalidMessage
 		}
-		resp, err = UnsubcribeCmd(n, cmd)
+		resp, err = UnsubscribeCmd(n, cmd)
 	case "disconnect":
 		var cmd proto.DisconnectAPICommand
 		err = json.Unmarshal(params, &cmd)
@@ -339,7 +339,7 @@ func BroadcastCmdAsync(n *node.Node, cmd proto.BroadcastAPICommand) <-chan error
 
 // UnsubscribeCmd unsubscribes project's user from channel and sends
 // unsubscribe control message to other nodes.
-func UnsubcribeCmd(n *node.Node, cmd proto.UnsubscribeAPICommand) (proto.Response, error) {
+func UnsubscribeCmd(n *node.Node, cmd proto.UnsubscribeAPICommand) (proto.Response, error) {
 
 	resp := proto.NewAPIUnsubscribeResponse()
 
@@ -370,7 +370,7 @@ func DisconnectCmd(n *node.Node, cmd proto.DisconnectAPICommand) (proto.Response
 	return resp, nil
 }
 
-// PresenceCmd returns response with presense information for channel.
+// PresenceCmd returns response with presence information for channel.
 func PresenceCmd(n *node.Node, cmd proto.PresenceAPICommand) (proto.Response, error) {
 	channel := cmd.Channel
 	body := proto.PresenceBody{

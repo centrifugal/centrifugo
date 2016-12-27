@@ -577,7 +577,7 @@ func (c *client) expire() {
 	timeToExpire := c.timestamp + connLifetime - time.Now().Unix()
 	c.RUnlock()
 	if timeToExpire > 0 {
-		// connection was succesfully refreshed
+		// connection was successfully refreshed.
 		return
 	}
 

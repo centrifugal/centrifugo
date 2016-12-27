@@ -471,10 +471,9 @@ func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 		if err == proto.ErrInvalidMessage {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
-		} else {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
 		}
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonResp)
@@ -558,7 +557,9 @@ func (s *HTTPServer) Logged(h http.Handler) http.Handler {
 }
 
 const (
-	AdminWebsocketReadBufferSize  = 1024
+	// AdminWebsocketReadBufferSize is a size of read buffer for admin websocket connection.
+	AdminWebsocketReadBufferSize = 1024
+	// AdminWebsocketWriteBufferSize is a size of write buffer for admin websocket connection.
 	AdminWebsocketWriteBufferSize = 1024
 )
 

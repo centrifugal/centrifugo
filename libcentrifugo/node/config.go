@@ -188,7 +188,9 @@ func (c *Config) channelOpts(nk NamespaceKey) (proto.ChannelOptions, error) {
 }
 
 const (
-	DefaultName             = "centrifugo"
+	// DefaultName of node.
+	DefaultName = "centrifugo"
+	// DefaultNodePingInterval used in default config.
 	DefaultNodePingInterval = 3
 )
 

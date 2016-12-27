@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"golang.org/x/net/websocket"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"golang.org/x/net/websocket"
 )
 
 func publisher(chTrigger chan int, chTime chan time.Time, url, origin, connectMessage, subscribeMessage, publishMessage string) {

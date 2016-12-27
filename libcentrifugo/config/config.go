@@ -20,10 +20,12 @@ type Getter interface {
 	UnmarshalKey(key string, target interface{}) error
 }
 
+// Reloader interface must be implemented by entities supporing configuration reload.
 type Reloader interface {
 	Reload(Getter) error
 }
 
+// Validator interface must be implemented by entities supporing configuration validation.
 type Validator interface {
 	Validate(Getter) error
 }

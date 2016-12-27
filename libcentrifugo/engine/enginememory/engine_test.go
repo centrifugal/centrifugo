@@ -45,7 +45,7 @@ func testMemoryEngine() *MemoryEngine {
 	if err != nil {
 		panic(err)
 	}
-	return e.(*MemoryEngine)
+	return e
 }
 
 type TestConn struct {
@@ -215,12 +215,14 @@ func TestMemoryHistoryHub(t *testing.T) {
 	// test that history cleaned up by periodic task
 	assert.Equal(t, 0, len(h.history))
 	hist, err = h.get(ch1, 0)
+	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(hist))
 
 	// Now test adding history for inactive channel is a no-op if OnlySaveIfActvie is true
 	h.add(ch2, proto.Message{}, addHistoryOpts{2, 10, true})
 	assert.Equal(t, 0, len(h.history))
 	hist, err = h.get(ch2, 0)
+	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(hist))
 
 	// test history messages limit
@@ -229,14 +231,17 @@ func TestMemoryHistoryHub(t *testing.T) {
 	h.add(ch1, proto.Message{}, addHistoryOpts{10, 1, false})
 	h.add(ch1, proto.Message{}, addHistoryOpts{10, 1, false})
 	hist, err = h.get(ch1, 0)
+	assert.Equal(t, nil, err)
 	assert.Equal(t, 4, len(hist))
 	hist, err = h.get(ch1, 1)
+	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(hist))
 
 	// test history limit greater than history size
 	h.add(ch1, proto.Message{}, addHistoryOpts{1, 1, false})
 	h.add(ch1, proto.Message{}, addHistoryOpts{1, 1, false})
 	hist, err = h.get(ch1, 2)
+	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(hist))
 }
 

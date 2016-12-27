@@ -20,7 +20,7 @@ type ChannelOptions struct {
 	// access to channels. Turn on this option and use empty string as user ID.
 	Anonymous bool `json:"anonymous"`
 
-	// Presence turns on(off) presence information for channels. Presense is a structure with
+	// Presence turns on(off) presence information for channels. Presence is a structure with
 	// clients currently subscribed on channel.
 	Presence bool `json:"presence"`
 

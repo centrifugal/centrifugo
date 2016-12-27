@@ -70,6 +70,8 @@ func writeMessage(buf *bytebufferpool.ByteBuffer, msg *Message) {
 	buf.WriteString(`}`)
 }
 
+// Marshal marshals ClientMessageResponse into JSON using buffer pool and manual
+// JSON construction.
 func (m *ClientMessageResponse) Marshal() ([]byte, error) {
 	buf := bytebufferpool.Get()
 	buf.WriteString(`{"method":"message","body":`)
@@ -81,11 +83,13 @@ func (m *ClientMessageResponse) Marshal() ([]byte, error) {
 	return c, nil
 }
 
+// ClientJoinResponse sent to client when someone subscribed on channel.
 type ClientJoinResponse struct {
 	Method string      `json:"method"`
 	Body   JoinMessage `json:"body"`
 }
 
+// NewClientJoinMessage initializes ClientJoinResponse.
 func NewClientJoinMessage(msg *JoinMessage) *ClientJoinResponse {
 	return &ClientJoinResponse{
 		Method: "join",
@@ -102,6 +106,8 @@ func writeJoin(buf *bytebufferpool.ByteBuffer, msg *JoinMessage) {
 	buf.WriteString(`}`)
 }
 
+// Marshal marshals ClientJoinResponse into JSON using buffer pool and manual
+// JSON construction.
 func (m *ClientJoinResponse) Marshal() ([]byte, error) {
 	buf := bytebufferpool.Get()
 	buf.WriteString(`{"method":"join","body":`)
@@ -113,11 +119,13 @@ func (m *ClientJoinResponse) Marshal() ([]byte, error) {
 	return c, nil
 }
 
+// ClientLeaveResponse sent when someone unsubscribes from channel.
 type ClientLeaveResponse struct {
 	Method string       `json:"method"`
 	Body   LeaveMessage `json:"body"`
 }
 
+// NewClientLeaveMessage initializes ClientLeaveResponse.
 func NewClientLeaveMessage(msg *LeaveMessage) *ClientLeaveResponse {
 	return &ClientLeaveResponse{
 		Method: "leave",
@@ -134,6 +142,8 @@ func writeLeave(buf *bytebufferpool.ByteBuffer, msg *LeaveMessage) {
 	buf.WriteString(`}`)
 }
 
+// Marshal marshals ClientLeaveResponse into JSON using buffer pool and manual
+// JSON construction.
 func (m *ClientLeaveResponse) Marshal() ([]byte, error) {
 	buf := bytebufferpool.Get()
 	buf.WriteString(`{"method":"leave","body":`)
@@ -215,23 +225,31 @@ type NodeBody struct {
 	Data NodeInfo `json:"data"`
 }
 
+// AdminInfoBody represents response to admin info command.
 type AdminInfoBody struct {
 	Data map[string]interface{} `json:"data"`
 }
 
+// Response is an interface describing response methods.
 type Response interface {
 	SetErr(err ResponseError)
 	SetUID(uid string)
 }
 
+// ErrorAdvice is a string which is sent in case of error. It contains advice how client
+// should behave when error occurred.
 type ErrorAdvice string
 
 const (
-	ErrorAdviceNone  ErrorAdvice = ""
-	ErrorAdviceFix   ErrorAdvice = "fix"
+	// ErrorAdviceNone represents undefined advice.
+	ErrorAdviceNone ErrorAdvice = ""
+	// ErrorAdviceFix says that developer most probably made a mistake working with Centrifugo.
+	ErrorAdviceFix ErrorAdvice = "fix"
+	// ErrorAdviceRetry says that operation can't be done at moment but may be possible in future.
 	ErrorAdviceRetry ErrorAdvice = "retry"
 )
 
+// ResponseError represents error in response.
 type ResponseError struct {
 	Err    error       `json:"-"`
 	Advice ErrorAdvice `json:"advice,omitempty"`
@@ -246,7 +264,7 @@ type clientResponse struct {
 	ResponseError
 }
 
-// Err set a client error on the client response and updates the 'err'
+// SetErr sets a client error on the client response and updates the 'err'
 // field in the response. If an error has already been set it will be kept.
 func (r *clientResponse) SetErr(err ResponseError) {
 	if r.ResponseError.Err != nil {
@@ -258,15 +276,18 @@ func (r *clientResponse) SetErr(err ResponseError) {
 	r.Error = e
 }
 
+// SetUID sets unique uid which must be equal to request uid.
 func (r *clientResponse) SetUID(uid string) {
 	r.UID = uid
 }
 
+// ClientConnectResponse represents response to client connect command.
 type ClientConnectResponse struct {
 	clientResponse
 	Body ConnectBody `json:"body"`
 }
 
+// NewClientConnectResponse initializes ClientConnectResponse.
 func NewClientConnectResponse(body ConnectBody) *ClientConnectResponse {
 	return &ClientConnectResponse{
 		clientResponse: clientResponse{
@@ -276,11 +297,13 @@ func NewClientConnectResponse(body ConnectBody) *ClientConnectResponse {
 	}
 }
 
+// ClientRefreshResponse represents response to client refresh command.
 type ClientRefreshResponse struct {
 	clientResponse
 	Body ConnectBody `json:"body"`
 }
 
+// NewClientRefreshResponse initializes ClientRefreshResponse.
 func NewClientRefreshResponse(body ConnectBody) *ClientRefreshResponse {
 	return &ClientRefreshResponse{
 		clientResponse: clientResponse{
@@ -290,11 +313,13 @@ func NewClientRefreshResponse(body ConnectBody) *ClientRefreshResponse {
 	}
 }
 
+// ClientSubscribeResponse represents response to client subscribe command.
 type ClientSubscribeResponse struct {
 	clientResponse
 	Body SubscribeBody `json:"body"`
 }
 
+// NewClientSubscribeResponse initializes ClientSubscribeResponse.
 func NewClientSubscribeResponse(body SubscribeBody) *ClientSubscribeResponse {
 	return &ClientSubscribeResponse{
 		clientResponse: clientResponse{
@@ -304,11 +329,13 @@ func NewClientSubscribeResponse(body SubscribeBody) *ClientSubscribeResponse {
 	}
 }
 
+// ClientUnsubscribeResponse represents response to client unsubscribe command.
 type ClientUnsubscribeResponse struct {
 	clientResponse
 	Body UnsubscribeBody `json:"body"`
 }
 
+// NewClientUnsubscribeResponse initializes ClientUnsubscribeResponse.
 func NewClientUnsubscribeResponse(body UnsubscribeBody) *ClientUnsubscribeResponse {
 	return &ClientUnsubscribeResponse{
 		clientResponse: clientResponse{
@@ -318,11 +345,13 @@ func NewClientUnsubscribeResponse(body UnsubscribeBody) *ClientUnsubscribeRespon
 	}
 }
 
+// ClientPresenceResponse represents response to client presence command.
 type ClientPresenceResponse struct {
 	clientResponse
 	Body PresenceBody `json:"body"`
 }
 
+// NewClientPresenceResponse initializes ClientPresenceResponse.
 func NewClientPresenceResponse(body PresenceBody) *ClientPresenceResponse {
 	return &ClientPresenceResponse{
 		clientResponse: clientResponse{
@@ -332,11 +361,13 @@ func NewClientPresenceResponse(body PresenceBody) *ClientPresenceResponse {
 	}
 }
 
+// ClientHistoryResponse represents response to client history command.
 type ClientHistoryResponse struct {
 	clientResponse
 	Body HistoryBody `json:"body"`
 }
 
+// NewClientHistoryResponse initializes ClientHistoryResponse.
 func NewClientHistoryResponse(body HistoryBody) *ClientHistoryResponse {
 	return &ClientHistoryResponse{
 		clientResponse: clientResponse{
@@ -346,11 +377,13 @@ func NewClientHistoryResponse(body HistoryBody) *ClientHistoryResponse {
 	}
 }
 
+// ClientDisconnectResponse represents response to client disconnect command.
 type ClientDisconnectResponse struct {
 	clientResponse
 	Body DisconnectBody `json:"body"`
 }
 
+// NewClientDisconnectResponse initializes ClientDisconnectResponse.
 func NewClientDisconnectResponse(body DisconnectBody) *ClientDisconnectResponse {
 	return &ClientDisconnectResponse{
 		clientResponse: clientResponse{
@@ -360,11 +393,13 @@ func NewClientDisconnectResponse(body DisconnectBody) *ClientDisconnectResponse 
 	}
 }
 
+// ClientPublishResponse represents response to ClientPublishResponse.
 type ClientPublishResponse struct {
 	clientResponse
 	Body PublishBody `json:"body"`
 }
 
+// NewClientPublishResponse initializes ClientPublishResponse.
 func NewClientPublishResponse(body PublishBody) *ClientPublishResponse {
 	return &ClientPublishResponse{
 		clientResponse: clientResponse{
@@ -374,11 +409,13 @@ func NewClientPublishResponse(body PublishBody) *ClientPublishResponse {
 	}
 }
 
+// ClientPingResponse represents response to client ping command.
 type ClientPingResponse struct {
 	clientResponse
 	Body *PingBody `json:"body,omitempty"`
 }
 
+// NewClientPingResponse initializes ClientPingResponse.
 func NewClientPingResponse(body *PingBody) *ClientPingResponse {
 	return &ClientPingResponse{
 		clientResponse: clientResponse{
@@ -400,7 +437,7 @@ type apiResponse struct {
 	ResponseError
 }
 
-// SetErr set an error message on the api response and updates the 'err' field in
+// SetErr sets an error message on the api response and updates the 'err' field in
 // the response. If an error has already been set it will be kept.
 func (r *apiResponse) SetErr(err ResponseError) {
 	if r.ResponseError.Err != nil {
@@ -413,15 +450,18 @@ func (r *apiResponse) SetErr(err ResponseError) {
 	return
 }
 
+// SetUID allows to set uid to api response.
 func (r *apiResponse) SetUID(uid string) {
 	r.UID = uid
 }
 
+// APIPublishResponse represents response to API publish command.
 type APIPublishResponse struct {
 	apiResponse
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
+// NewAPIPublishResponse initializes APIPublishResponse.
 func NewAPIPublishResponse() *APIPublishResponse {
 	return &APIPublishResponse{
 		apiResponse: apiResponse{
@@ -430,11 +470,13 @@ func NewAPIPublishResponse() *APIPublishResponse {
 	}
 }
 
+// APIBroadcastResponse represents response to broadcast API command.
 type APIBroadcastResponse struct {
 	apiResponse
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
+// NewAPIBroadcastResponse initializes APIBroadcastResponse.
 func NewAPIBroadcastResponse() *APIBroadcastResponse {
 	return &APIBroadcastResponse{
 		apiResponse: apiResponse{
@@ -443,11 +485,13 @@ func NewAPIBroadcastResponse() *APIBroadcastResponse {
 	}
 }
 
+// APIPresenceResponse represents response to API presence command.
 type APIPresenceResponse struct {
 	apiResponse
 	Body PresenceBody `json:"body"`
 }
 
+// NewAPIPresenceResponse initializes APIPresenceResponse.
 func NewAPIPresenceResponse(body PresenceBody) *APIPresenceResponse {
 	return &APIPresenceResponse{
 		apiResponse: apiResponse{
@@ -457,11 +501,13 @@ func NewAPIPresenceResponse(body PresenceBody) *APIPresenceResponse {
 	}
 }
 
+// APIHistoryResponse represents response to API history command.
 type APIHistoryResponse struct {
 	apiResponse
 	Body HistoryBody `json:"body"`
 }
 
+// NewAPIHistoryResponse initializes APIHistoryResponse.
 func NewAPIHistoryResponse(body HistoryBody) *APIHistoryResponse {
 	return &APIHistoryResponse{
 		apiResponse: apiResponse{
@@ -471,11 +517,13 @@ func NewAPIHistoryResponse(body HistoryBody) *APIHistoryResponse {
 	}
 }
 
+// APIChannelsResponse represents response to API channels command.
 type APIChannelsResponse struct {
 	apiResponse
 	Body ChannelsBody `json:"body"`
 }
 
+// NewAPIChannelsResponse initializes APIChannelsResponse.
 func NewAPIChannelsResponse(body ChannelsBody) *APIChannelsResponse {
 	return &APIChannelsResponse{
 		apiResponse: apiResponse{
@@ -485,11 +533,13 @@ func NewAPIChannelsResponse(body ChannelsBody) *APIChannelsResponse {
 	}
 }
 
+// APIStatsResponse represents response to API stats command.
 type APIStatsResponse struct {
 	apiResponse
 	Body StatsBody `json:"body"`
 }
 
+// NewAPIStatsResponse initializes APIStatsResponse.
 func NewAPIStatsResponse(body StatsBody) *APIStatsResponse {
 	return &APIStatsResponse{
 		apiResponse: apiResponse{
@@ -499,11 +549,13 @@ func NewAPIStatsResponse(body StatsBody) *APIStatsResponse {
 	}
 }
 
+// APIUnsubscribeResponse represents response to API unsubscribe command.
 type APIUnsubscribeResponse struct {
 	apiResponse
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
+// NewAPIUnsubscribeResponse initializes APIUnsubscribeResponse.
 func NewAPIUnsubscribeResponse() *APIUnsubscribeResponse {
 	return &APIUnsubscribeResponse{
 		apiResponse: apiResponse{
@@ -512,11 +564,13 @@ func NewAPIUnsubscribeResponse() *APIUnsubscribeResponse {
 	}
 }
 
+// APIDisconnectResponse represents response to API disconnect command.
 type APIDisconnectResponse struct {
 	apiResponse
 	Body interface{} `json:"body"` // TODO: interface{} for API protocol backwards compatibility.
 }
 
+// NewAPIDisconnectResponse initializes APIDisconnectResponse.
 func NewAPIDisconnectResponse() *APIDisconnectResponse {
 	return &APIDisconnectResponse{
 		apiResponse: apiResponse{
@@ -525,11 +579,13 @@ func NewAPIDisconnectResponse() *APIDisconnectResponse {
 	}
 }
 
+// APINodeResponse represents response to API node command.
 type APINodeResponse struct {
 	apiResponse
 	Body NodeBody `json:"body"`
 }
 
+// NewAPINodeResponse initializes APINodeResponse.
 func NewAPINodeResponse(body NodeBody) *APINodeResponse {
 	return &APINodeResponse{
 		apiResponse: apiResponse{
@@ -539,11 +595,13 @@ func NewAPINodeResponse(body NodeBody) *APINodeResponse {
 	}
 }
 
+// AdminConnectResponse represents response to admin connect command.
 type AdminConnectResponse struct {
 	apiResponse
 	Body bool `json:"body"`
 }
 
+// NewAdminConnectResponse initializes AdminConnectResponse.
 func NewAdminConnectResponse(body bool) *AdminConnectResponse {
 	return &AdminConnectResponse{
 		apiResponse: apiResponse{
@@ -553,11 +611,13 @@ func NewAdminConnectResponse(body bool) *AdminConnectResponse {
 	}
 }
 
+// AdminInfoResponse represents response to admin info command.
 type AdminInfoResponse struct {
 	apiResponse
 	Body AdminInfoBody `json:"body"`
 }
 
+// NewAdminInfoResponse initializes AdminInfoResponse.
 func NewAdminInfoResponse(body AdminInfoBody) *AdminInfoResponse {
 	return &AdminInfoResponse{
 		apiResponse: apiResponse{
@@ -567,11 +627,13 @@ func NewAdminInfoResponse(body AdminInfoBody) *AdminInfoResponse {
 	}
 }
 
+// AdminPingResponse represents response to admin ping command.
 type AdminPingResponse struct {
 	apiResponse
 	Body string `json:"body"`
 }
 
+// NewAdminPingResponse initializes AdminPingResponse.
 func NewAdminPingResponse(body string) *AdminPingResponse {
 	return &AdminPingResponse{
 		apiResponse: apiResponse{
@@ -581,11 +643,13 @@ func NewAdminPingResponse(body string) *AdminPingResponse {
 	}
 }
 
+// AdminMessageResponse is a new message for admin that watches.
 type AdminMessageResponse struct {
 	apiResponse
 	Body raw.Raw `json:"body"`
 }
 
+// NewAdminMessageResponse initializes AdminMessageResponse.
 func NewAdminMessageResponse(body raw.Raw) *AdminMessageResponse {
 	return &AdminMessageResponse{
 		apiResponse: apiResponse{

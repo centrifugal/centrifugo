@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// DisconnectAdvice sent to client when we want it to gracefully disconnect.
 type DisconnectAdvice struct {
 	mu        sync.RWMutex
 	Reason    string `json:"reason"`
@@ -12,6 +13,7 @@ type DisconnectAdvice struct {
 	jsonified string
 }
 
+// JSONString contains cached representation of DisconnectAdvice as JSON.
 func (a *DisconnectAdvice) JSONString() (string, error) {
 	a.mu.RLock()
 	if a.jsonified != "" {
@@ -30,6 +32,7 @@ func (a *DisconnectAdvice) JSONString() (string, error) {
 	return a.jsonified, nil
 }
 
+// DefaultDisconnectAdvice is no reason and reconnect.
 var DefaultDisconnectAdvice = &DisconnectAdvice{Reason: "", Reconnect: true}
 
 // ClientConn is an interface abstracting all methods used

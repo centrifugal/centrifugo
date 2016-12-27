@@ -48,7 +48,7 @@ func main() {
 
 	pool := newPool(":6379")
 
-	var counter int32 = 0
+	var counter int32
 
 	go func() {
 		prevCounter := counter

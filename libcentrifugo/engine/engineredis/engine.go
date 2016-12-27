@@ -28,6 +28,7 @@ func init() {
 	plugin.RegisterConfigurator("redis", Configure)
 }
 
+// Configure is a Configurator function for Redis engine.
 func Configure(setter config.Setter) error {
 
 	setter.SetDefault("redis_prefix", "centrifugo")
@@ -72,9 +73,10 @@ const (
 	// RedisPubSubWorkerChannelSize sets buffer size of channel to which we send all
 	// messages received from Redis PUB/SUB connection to process in separate goroutine.
 	RedisPubSubWorkerChannelSize = 4096
-	// Maximum number of channels to include in a single subscribe call. Redis documentation
-	// doesn't specify a maximum allowed but we think it probably makes sense to keep a sane
-	// limit given how many subscriptions a single Centrifugo instance might be handling.
+	// RedisSubscribeBatchLimit is a maximum number of channels to include in a single subscribe
+	// call. Redis documentation doesn't specify a maximum allowed but we think it probably makes
+	// sense to keep a sane limit given how many subscriptions a single Centrifugo instance might
+	// be handling.
 	RedisSubscribeBatchLimit = 2048
 	// RedisPublishChannelSize is the size for the internal buffered channel RedisEngine uses
 	// to collect publish requests.
@@ -90,13 +92,20 @@ type (
 )
 
 const (
-	RedisAPIKeySuffix         = ".api"
+	// RedisAPIKeySuffix is a suffix for api queue (LIST) key.
+	RedisAPIKeySuffix = ".api"
+	// RedisControlChannelSuffix is a suffix for control channel.
 	RedisControlChannelSuffix = ".control"
-	RedisPingChannelSuffix    = ".ping"
-	RedisAdminChannelSuffix   = ".admin"
+	// RedisPingChannelSuffix is a suffix for ping channel.
+	RedisPingChannelSuffix = ".ping"
+	// RedisAdminChannelSuffix is a suffix for admin channel.
+	RedisAdminChannelSuffix = ".admin"
+	// RedisMessageChannelPrefix is a prefix before channel name for client messages.
 	RedisMessageChannelPrefix = ".message."
-	RedisJoinChannelPrefix    = ".join."
-	RedisLeaveChannelPrefix   = ".leave."
+	// RedisJoinChannelPrefix is a prefix before channel name for join messages.
+	RedisJoinChannelPrefix = ".join."
+	// RedisLeaveChannelPrefix is a prefix before channel name for leave messages.
+	RedisLeaveChannelPrefix = ".leave."
 )
 
 // RedisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.
@@ -494,6 +503,7 @@ func getConfigs(getter config.Getter) ([]*ShardConfig, error) {
 	return shardConfigs, nil
 }
 
+// Plugin returns Redis Engine.
 func Plugin(n *node.Node, getter config.Getter) (engine.Engine, error) {
 	configs, err := getConfigs(getter)
 	if err != nil {
@@ -503,7 +513,7 @@ func Plugin(n *node.Node, getter config.Getter) (engine.Engine, error) {
 }
 
 // New initializes Redis Engine.
-func New(n *node.Node, configs []*ShardConfig) (engine.Engine, error) {
+func New(n *node.Node, configs []*ShardConfig) (*RedisEngine, error) {
 
 	var shards []*Shard
 
@@ -527,6 +537,7 @@ func New(n *node.Node, configs []*ShardConfig) (engine.Engine, error) {
 	return e, nil
 }
 
+// NewShard initializes new Redis shard.
 func NewShard(n *node.Node, conf *ShardConfig) (*Shard, error) {
 	shard := &Shard{
 		node:              n,
@@ -635,10 +646,12 @@ func (e *RedisEngine) shardIndex(channel string) int {
 	return consistentIndex(channel, len(e.shards))
 }
 
+// Name returns name of engine.
 func (e *RedisEngine) Name() string {
 	return "Redis"
 }
 
+// Run runs engine after node initialized.
 func (e *RedisEngine) Run() error {
 	for _, shard := range e.shards {
 		err := shard.Run()
@@ -649,50 +662,62 @@ func (e *RedisEngine) Run() error {
 	return nil
 }
 
+// PublishMessage - see engine interface description.
 func (e *RedisEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
 	return e.shards[e.shardIndex(message.Channel)].PublishMessage(message, opts)
 }
 
+// PublishJoin - see engine interface description.
 func (e *RedisEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
 	return e.shards[e.shardIndex(message.Channel)].PublishJoin(message, opts)
 }
 
+// PublishLeave - see engine interface description.
 func (e *RedisEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
 	return e.shards[e.shardIndex(message.Channel)].PublishLeave(message, opts)
 }
 
+// PublishAdmin- see engine interface description.
 func (e *RedisEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	return e.shards[0].PublishAdmin(message)
 }
 
+// PublishControl - see engine interface description.
 func (e *RedisEngine) PublishControl(message *proto.ControlMessage) <-chan error {
 	return e.shards[0].PublishControl(message)
 }
 
+// Subscribe - see engine interface description.
 func (e *RedisEngine) Subscribe(ch string) error {
 	return e.shards[e.shardIndex(ch)].Subscribe(ch)
 }
 
+// Unsubscribe - see engine interface description.
 func (e *RedisEngine) Unsubscribe(ch string) error {
 	return e.shards[e.shardIndex(ch)].Unsubscribe(ch)
 }
 
+// AddPresence - see engine interface description.
 func (e *RedisEngine) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
 	return e.shards[e.shardIndex(ch)].AddPresence(ch, uid, info, expire)
 }
 
+// RemovePresence - see engine interface description.
 func (e *RedisEngine) RemovePresence(ch string, uid string) error {
 	return e.shards[e.shardIndex(ch)].RemovePresence(ch, uid)
 }
 
+// Presence - see engine interface description.
 func (e *RedisEngine) Presence(ch string) (map[string]proto.ClientInfo, error) {
 	return e.shards[e.shardIndex(ch)].Presence(ch)
 }
 
+// History - see engine interface description.
 func (e *RedisEngine) History(ch string, limit int) ([]proto.Message, error) {
 	return e.shards[e.shardIndex(ch)].History(ch, limit)
 }
 
+// Channels - see engine interface description.
 func (e *RedisEngine) Channels() ([]string, error) {
 	channelMap := map[string]struct{}{}
 	for _, shard := range e.shards {
@@ -717,6 +742,7 @@ func (e *RedisEngine) Channels() ([]string, error) {
 	return channels, nil
 }
 
+// Run runs Redis shard.
 func (e *Shard) Run() error {
 	e.RLock()
 	api := e.api
@@ -739,6 +765,7 @@ func (e *Shard) Run() error {
 	return nil
 }
 
+// Shutdown shuts down Redis engine.
 func (e *RedisEngine) Shutdown() error {
 	return errors.New("Shutdown not implemented")
 }
@@ -1209,6 +1236,7 @@ func (e *Shard) typeFromChannelID(chID ChannelID) string {
 	}
 }
 
+// PublishMessage - see engine interface description.
 func (e *Shard) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
 	ch := message.Channel
 
@@ -1243,6 +1271,7 @@ func (e *Shard) PublishMessage(message *proto.Message, opts *proto.ChannelOption
 	return eChan
 }
 
+// PublishJoin - see engine interface description.
 func (e *Shard) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
 	ch := message.Channel
 
@@ -1265,6 +1294,7 @@ func (e *Shard) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptio
 	return eChan
 }
 
+// PublishLeave - see engine interface description.
 func (e *Shard) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
 	ch := message.Channel
 
@@ -1287,6 +1317,7 @@ func (e *Shard) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOpt
 	return eChan
 }
 
+// PublishControl - see engine interface description.
 func (e *Shard) PublishControl(message *proto.ControlMessage) <-chan error {
 	eChan := make(chan error, 1)
 
@@ -1307,6 +1338,7 @@ func (e *Shard) PublishControl(message *proto.ControlMessage) <-chan error {
 	return eChan
 }
 
+// PublishAdmin - see engine interface description.
 func (e *Shard) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	eChan := make(chan error, 1)
 
@@ -1327,6 +1359,7 @@ func (e *Shard) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	return eChan
 }
 
+// Subscribe - see engine interface description.
 func (e *Shard) Subscribe(ch string) error {
 	logger.TRACE.Println("Subscribe node on channel", ch)
 	r := newSubRequest(e.joinChannelID(ch), false)
@@ -1338,6 +1371,7 @@ func (e *Shard) Subscribe(ch string) error {
 	return r.result()
 }
 
+// Unsubscribe - see engine interface description.
 func (e *Shard) Unsubscribe(ch string) error {
 	logger.TRACE.Println("Unsubscribe node from channel", ch)
 	r := newSubRequest(e.joinChannelID(ch), false)
@@ -1382,6 +1416,7 @@ func (e *Shard) getHistoryKey(chID ChannelID) string {
 	return e.config.Prefix + ".history.list." + string(chID)
 }
 
+// AddPresence - see engine interface description.
 func (e *Shard) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
@@ -1397,6 +1432,7 @@ func (e *Shard) AddPresence(ch string, uid string, info proto.ClientInfo, expire
 	return err
 }
 
+// RemovePresence - see engine interface description.
 func (e *Shard) RemovePresence(ch string, uid string) error {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
@@ -1432,6 +1468,7 @@ func mapStringClientInfo(result interface{}, err error) (map[string]proto.Client
 	return m, nil
 }
 
+// Presence - see engine interface description.
 func (e *Shard) Presence(ch string) (map[string]proto.ClientInfo, error) {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
@@ -1467,6 +1504,7 @@ func sliceOfMessages(result interface{}, err error) ([]proto.Message, error) {
 	return msgs, nil
 }
 
+// History - see engine interface description.
 func (e *Shard) History(ch string, limit int) ([]proto.Message, error) {
 	chID := e.messageChannelID(ch)
 	conn := e.pool.Get()
@@ -1484,6 +1522,7 @@ func (e *Shard) History(ch string, limit int) ([]proto.Message, error) {
 	return sliceOfMessages(reply, nil)
 }
 
+// Channels - see engine interface description.
 // Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
 func (e *Shard) Channels() ([]string, error) {
 	conn := e.pool.Get()
@@ -1568,7 +1607,7 @@ func apiCmd(n *node.Node, cmd proto.APICommand) error {
 		if err != nil {
 			return err
 		}
-		_, err = apiv1.UnsubcribeCmd(n, cmd)
+		_, err = apiv1.UnsubscribeCmd(n, cmd)
 	case "disconnect":
 		var cmd proto.DisconnectAPICommand
 		err = json.Unmarshal(params, &cmd)

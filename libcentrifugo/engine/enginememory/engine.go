@@ -19,6 +19,7 @@ func init() {
 	plugin.RegisterEngine("memory", Plugin)
 }
 
+// Plugin returns new memory engine.
 func Plugin(n *node.Node, c config.Getter) (engine.Engine, error) {
 	return New(n, &Config{})
 }
@@ -33,10 +34,11 @@ type MemoryEngine struct {
 	historyHub  *historyHub
 }
 
+// Config is a memory engine congig struct.
 type Config struct{}
 
 // New initializes Memory Engine.
-func New(n *node.Node, conf *Config) (engine.Engine, error) {
+func New(n *node.Node, conf *Config) (*MemoryEngine, error) {
 	e := &MemoryEngine{
 		node:        n,
 		presenceHub: newPresenceHub(),
@@ -46,18 +48,24 @@ func New(n *node.Node, conf *Config) (engine.Engine, error) {
 	return e, nil
 }
 
+// Name returns a name of engine.
 func (e *MemoryEngine) Name() string {
 	return "In memory – single node only"
 }
 
+// Run runs memory engine - we do not have any logic here as Memory Engine ready to work
+// just after initialization.
 func (e *MemoryEngine) Run() error {
 	return nil
 }
 
+// Shutdown shuts down engine.
 func (e *MemoryEngine) Shutdown() error {
 	return errors.New("Shutdown not implemented")
 }
 
+// PublishMessage adds message into history hub and calls node ClientMsg method to handle message.
+// We don't have any PUB/SUB here as Memory Engine is single node only.
 func (e *MemoryEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
 
 	ch := message.Channel
@@ -81,54 +89,65 @@ func (e *MemoryEngine) PublishMessage(message *proto.Message, opts *proto.Channe
 	return eChan
 }
 
+// PublishJoin - see Engine interface description.
 func (e *MemoryEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.node.JoinMsg(message)
 	return eChan
 }
 
+// PublishLeave - see Engine interface description.
 func (e *MemoryEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.node.LeaveMsg(message)
 	return eChan
 }
 
+// PublishControl - see Engine interface description.
 func (e *MemoryEngine) PublishControl(message *proto.ControlMessage) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.node.ControlMsg(message)
 	return eChan
 }
 
+// PublishAdmin - see Engine interface description.
 func (e *MemoryEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.node.AdminMsg(message)
 	return eChan
 }
 
+// Subscribe is noop here.
 func (e *MemoryEngine) Subscribe(ch string) error {
 	return nil
 }
 
+// Unsubscribe is noop here.
 func (e *MemoryEngine) Unsubscribe(ch string) error {
 	return nil
 }
 
+// AddPresence adds client info into presence hub.
 func (e *MemoryEngine) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
 	return e.presenceHub.add(ch, uid, info)
 }
 
+// RemovePresence removes client info from presence hub.
 func (e *MemoryEngine) RemovePresence(ch string, uid string) error {
 	return e.presenceHub.remove(ch, uid)
 }
 
+// Presence extracts presence info from presence hub.
 func (e *MemoryEngine) Presence(ch string) (map[string]proto.ClientInfo, error) {
 	return e.presenceHub.get(ch)
 }
 
+// History extracts history from history hub.
 func (e *MemoryEngine) History(ch string, limit int) ([]proto.Message, error) {
 	return e.historyHub.get(ch, limit)
 }
 
+// Channels returns all channels node currently subscribed on.
 func (e *MemoryEngine) Channels() ([]string, error) {
 	return e.node.ClientHub().Channels(), nil
 }
@@ -320,7 +339,6 @@ func (h *historyHub) get(ch string, limit int) ([]proto.Message, error) {
 	}
 	if limit == 0 || limit >= len(hItem.messages) {
 		return hItem.messages, nil
-	} else {
-		return hItem.messages[:limit], nil
 	}
+	return hItem.messages[:limit], nil
 }

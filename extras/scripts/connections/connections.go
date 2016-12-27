@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"golang.org/x/net/websocket"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"golang.org/x/net/websocket"
 )
 
 func subscriber(numChannels int, chSub chan struct{}, url, origin, connectMessage string) {

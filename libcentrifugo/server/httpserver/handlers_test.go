@@ -199,7 +199,7 @@ func TestRawWsHandler(t *testing.T) {
 	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
 
 	s.node.Shutdown()
-	_, resp, err = websocket.DefaultDialer.Dial(url+"/connection/websocket", nil)
+	_, resp, _ = websocket.DefaultDialer.Dial(url+"/connection/websocket", nil)
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 }
 
@@ -252,6 +252,7 @@ func TestSockJSHandler(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.NotEqual(t, nil, conn)
 	_, p, err := conn.ReadMessage()
+	assert.Equal(t, nil, err)
 	// open frame of SockJS protocol
 	assert.Equal(t, "o", string(p))
 	conn.Close()

@@ -26,6 +26,7 @@ func init() {
 	plugin.Metrics.RegisterHDRHistogram("http_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
+// HTTPServerConfigure is a Configurator func for default Centrifugo http server.
 func HTTPServerConfigure(setter config.Setter) error {
 
 	setter.SetDefault("http_prefix", "")
@@ -77,6 +78,7 @@ func HTTPServerConfigure(setter config.Setter) error {
 	return nil
 }
 
+// HTTPServer is a default builtin Centrifugo server.
 type HTTPServer struct {
 	sync.RWMutex
 	node       *node.Node
@@ -85,11 +87,13 @@ type HTTPServer struct {
 	shutdownCh chan struct{}
 }
 
+// HTTPServerPlugin is a plugin that returns HTTPServer.
 func HTTPServerPlugin(n *node.Node, getter config.Getter) (server.Server, error) {
 	return New(n, newConfig(getter))
 }
 
-func New(n *node.Node, config *Config) (server.Server, error) {
+// New initializes HTTPServer.
+func New(n *node.Node, config *Config) (*HTTPServer, error) {
 	return &HTTPServer{
 		node:       n,
 		config:     config,
@@ -97,10 +101,12 @@ func New(n *node.Node, config *Config) (server.Server, error) {
 	}, nil
 }
 
+// Run runs HTTPServer.
 func (s *HTTPServer) Run() error {
 	return s.runHTTPServer()
 }
 
+// Shutdown shuts down server.
 func (s *HTTPServer) Shutdown() error {
 	s.Lock()
 	defer s.Unlock()
