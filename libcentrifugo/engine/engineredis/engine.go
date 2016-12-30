@@ -83,9 +83,10 @@ const (
 	// RedisPublishBatchLimit is a maximum limit of publish requests one batched publish
 	// operation can contain.
 	RedisPublishBatchLimit = 2048
-
-	RedisDataBatchLimit  = 16
-	RedisDataChannelSize = 128
+	// RedisDataBatchLimit limits amount of data operations combined in one pipeline.
+	RedisDataBatchLimit = 8
+	// RedisDataChannelSize is a buffer size of channel with data operation requests.
+	RedisDataChannelSize = 256
 )
 
 type (
@@ -906,13 +907,10 @@ func (e *Shard) runAPIWorker(queue string) {
 
 func (e *Shard) runAPI() {
 	queues := make(map[string]bool)
-
 	queues[e.getAPIQueueKey()] = true
-
 	for i := 0; i < e.numApiShards; i++ {
 		queues[e.getAPIShardQueueKey(i)] = true
 	}
-
 	for name := range queues {
 		func(name string) {
 			go e.runForever(func() {
@@ -1179,7 +1177,6 @@ func (e *Shard) runPublishPipeline() {
 		case pr := <-e.pubCh:
 			prs = append(prs, pr)
 			fillPublishBatch(e.pubCh, &prs)
-
 			for i := range prs {
 				if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
 					e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].channel, prs[i].message, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
@@ -1219,19 +1216,29 @@ func (e *Shard) runPublishPipeline() {
 	}
 }
 
+type dataOp int
+
+const (
+	dataOpAddPresence dataOp = iota
+	dataOpRemovePresence
+	dataOpPresence
+	dataOpHistory
+	dataOpChannels
+)
+
 type dataResponse struct {
 	reply interface{}
 	err   error
 }
 
 type dataRequest struct {
-	cmd  string
+	op   dataOp
 	args []interface{}
 	resp chan *dataResponse
 }
 
-func newDataRequest(cmd string, args []interface{}, wantResponse bool) dataRequest {
-	r := dataRequest{cmd: cmd, args: args}
+func newDataRequest(op dataOp, args []interface{}, wantResponse bool) dataRequest {
+	r := dataRequest{op: op, args: args}
 	if wantResponse {
 		r.resp = make(chan *dataResponse, 1)
 	}
@@ -1247,7 +1254,7 @@ func (dr *dataRequest) done(reply interface{}, err error) {
 
 func (dr *dataRequest) result() *dataResponse {
 	if dr.resp == nil {
-		// No waiting, as caller didn't care about response
+		// No waiting, as caller didn't care about response.
 		return &dataResponse{}
 	}
 	return <-dr.resp
@@ -1297,16 +1304,16 @@ func (e *Shard) runDataPipeline() {
 			drs = append(drs, dr)
 			fillDataBatch(e.dataCh, &drs, RedisDataChannelSize)
 			for i := range drs {
-				switch drs[i].cmd {
-				case "add_presence":
+				switch drs[i].op {
+				case dataOpAddPresence:
 					e.addPresenceScript.SendHash(conn, drs[i].args...)
-				case "remove_presence":
+				case dataOpRemovePresence:
 					e.remPresenceScript.SendHash(conn, drs[i].args...)
-				case "presence":
+				case dataOpPresence:
 					e.presenceScript.SendHash(conn, drs[i].args...)
-				case "history":
+				case dataOpHistory:
 					conn.Send("LRANGE", drs[i].args...)
-				case "channels":
+				case dataOpChannels:
 					conn.Send("PUBSUB", drs[i].args...)
 				}
 			}
@@ -1556,9 +1563,8 @@ func (e *Shard) AddPresence(ch string, uid string, info proto.ClientInfo, expire
 	expireAt := time.Now().Unix() + int64(expire)
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
-	dr := newDataRequest("add_presence", []interface{}{setKey, hashKey, expire, expireAt, uid, infoJSON}, true)
+	dr := newDataRequest(dataOpAddPresence, []interface{}{setKey, hashKey, expire, expireAt, uid, infoJSON}, true)
 	e.dataCh <- dr
-	//return nil
 	resp := dr.result()
 	return resp.err
 }
@@ -1568,7 +1574,7 @@ func (e *Shard) RemovePresence(ch string, uid string) error {
 	chID := e.messageChannelID(ch)
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
-	dr := newDataRequest("remove_presence", []interface{}{setKey, hashKey, uid}, true)
+	dr := newDataRequest(dataOpRemovePresence, []interface{}{setKey, hashKey, uid}, true)
 	e.dataCh <- dr
 	resp := dr.result()
 	return resp.err
@@ -1580,7 +1586,7 @@ func (e *Shard) Presence(ch string) (map[string]proto.ClientInfo, error) {
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
 	now := int(time.Now().Unix())
-	dr := newDataRequest("presence", []interface{}{setKey, hashKey, now}, true)
+	dr := newDataRequest(dataOpPresence, []interface{}{setKey, hashKey, now}, true)
 	e.dataCh <- dr
 	resp := dr.result()
 	if resp.err != nil {
@@ -1597,7 +1603,7 @@ func (e *Shard) History(ch string, limit int) ([]proto.Message, error) {
 		rangeBound = limit - 1 // Redis includes last index into result
 	}
 	historyKey := e.getHistoryKey(chID)
-	dr := newDataRequest("history", []interface{}{historyKey, 0, rangeBound}, true)
+	dr := newDataRequest(dataOpHistory, []interface{}{historyKey, 0, rangeBound}, true)
 	e.dataCh <- dr
 	resp := dr.result()
 	if resp.err != nil {
@@ -1609,7 +1615,7 @@ func (e *Shard) History(ch string, limit int) ([]proto.Message, error) {
 // Channels - see engine interface description.
 // Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
 func (e *Shard) Channels() ([]string, error) {
-	dr := newDataRequest("channels", []interface{}{"CHANNELS", e.messagePrefix + "*"}, true)
+	dr := newDataRequest(dataOpChannels, []interface{}{"CHANNELS", e.messagePrefix + "*"}, true)
 	e.dataCh <- dr
 	resp := dr.result()
 	if resp.err != nil {
