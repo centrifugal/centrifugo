@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"net"
 	"net/url"
 	"runtime"
@@ -84,6 +83,9 @@ const (
 	// RedisPublishBatchLimit is a maximum limit of publish requests one batched publish
 	// operation can contain.
 	RedisPublishBatchLimit = 2048
+
+	RedisDataBatchLimit  = 16
+	RedisDataChannelSize = 128
 )
 
 type (
@@ -129,6 +131,7 @@ type Shard struct {
 	subCh             chan subRequest
 	unSubCh           chan subRequest
 	pubCh             chan pubRequest
+	dataCh            chan dataRequest
 	pubScript         *redis.Script
 	addPresenceScript *redis.Script
 	remPresenceScript *redis.Script
@@ -554,6 +557,7 @@ func NewShard(n *node.Node, conf *ShardConfig) (*Shard, error) {
 	shard.pubCh = make(chan pubRequest, RedisPublishChannelSize)
 	shard.subCh = make(chan subRequest, RedisSubscribeChannelSize)
 	shard.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
+	shard.dataCh = make(chan dataRequest, RedisDataChannelSize)
 	shard.messagePrefix = conf.Prefix + RedisMessageChannelPrefix
 	shard.joinPrefix = conf.Prefix + RedisJoinChannelPrefix
 	shard.leavePrefix = conf.Prefix + RedisLeaveChannelPrefix
@@ -759,6 +763,9 @@ func (e *Shard) Run() error {
 		}
 		e.runPubSub(numWorkers)
 	})
+	go e.runForever(func() {
+		e.runDataPipeline()
+	})
 	if api {
 		e.runAPI()
 	}
@@ -915,10 +922,10 @@ func (e *Shard) runAPI() {
 	}
 }
 
-// fillBatchFromChan attempts to read items from a subRequest channel and append them to split
+// fillSubBatch attempts to read items from a subRequest channel and append them to split
 // until it either hits maxSize or would have to block. If batch is empty and chan is empty then
 // batch might end up being zero length.
-func fillBatchFromChan(ch <-chan subRequest, batch *[]subRequest, chIDs *[]interface{}, maxSize int) {
+func fillSubBatch(ch <-chan subRequest, batch *[]subRequest, chIDs *[]interface{}, maxSize int) {
 	for len(*batch) < maxSize {
 		select {
 		case req := <-ch:
@@ -961,7 +968,7 @@ func (e *Shard) runPubSub(numWorkers int) {
 				batch := []subRequest{r}
 
 				// Try to gather as many others as we can without waiting
-				fillBatchFromChan(e.subCh, &batch, &chIDs, RedisSubscribeBatchLimit)
+				fillSubBatch(e.subCh, &batch, &chIDs, RedisSubscribeBatchLimit)
 				// Send them all
 				err := conn.Subscribe(chIDs...)
 				if err != nil {
@@ -985,7 +992,7 @@ func (e *Shard) runPubSub(numWorkers int) {
 				chIDs := []interface{}{r.Channel}
 				batch := []subRequest{r}
 				// Try to gather as many others as we can without waiting
-				fillBatchFromChan(e.unSubCh, &batch, &chIDs, RedisSubscribeBatchLimit)
+				fillSubBatch(e.unSubCh, &batch, &chIDs, RedisSubscribeBatchLimit)
 				// Send them all
 				err := conn.Unsubscribe(chIDs...)
 				if err != nil {
@@ -1212,6 +1219,129 @@ func (e *Shard) runPublishPipeline() {
 	}
 }
 
+type dataResponse struct {
+	reply interface{}
+	err   error
+}
+
+type dataRequest struct {
+	cmd  string
+	args []interface{}
+	resp chan *dataResponse
+}
+
+func newDataRequest(cmd string, args []interface{}, wantResponse bool) dataRequest {
+	r := dataRequest{cmd: cmd, args: args}
+	if wantResponse {
+		r.resp = make(chan *dataResponse, 1)
+	}
+	return r
+}
+
+func (dr *dataRequest) done(reply interface{}, err error) {
+	if dr.resp == nil {
+		return
+	}
+	dr.resp <- &dataResponse{reply: reply, err: err}
+}
+
+func (dr *dataRequest) result() *dataResponse {
+	if dr.resp == nil {
+		// No waiting, as caller didn't care about response
+		return &dataResponse{}
+	}
+	return <-dr.resp
+}
+
+func fillDataBatch(ch <-chan dataRequest, batch *[]dataRequest, maxSize int) {
+	for len(*batch) < maxSize {
+		select {
+		case req := <-ch:
+			*batch = append(*batch, req)
+		default:
+			return
+		}
+	}
+}
+
+func (e *Shard) runDataPipeline() {
+	conn := e.pool.Get()
+	defer conn.Close()
+
+	err := e.addPresenceScript.Load(conn)
+	if err != nil {
+		logger.ERROR.Println(err)
+		// Can not proceed if script has not been loaded.
+		return
+	}
+
+	err = e.presenceScript.Load(conn)
+	if err != nil {
+		logger.ERROR.Println(err)
+		// Can not proceed if script has not been loaded.
+		return
+	}
+
+	err = e.remPresenceScript.Load(conn)
+	if err != nil {
+		logger.ERROR.Println(err)
+		// Can not proceed if script has not been loaded.
+		return
+	}
+
+	var drs []dataRequest
+
+	for {
+		select {
+		case dr := <-e.dataCh:
+			drs = append(drs, dr)
+			fillDataBatch(e.dataCh, &drs, RedisDataChannelSize)
+			for i := range drs {
+				switch drs[i].cmd {
+				case "add_presence":
+					e.addPresenceScript.SendHash(conn, drs[i].args...)
+				case "remove_presence":
+					e.remPresenceScript.SendHash(conn, drs[i].args...)
+				case "presence":
+					e.presenceScript.SendHash(conn, drs[i].args...)
+				case "history":
+					conn.Send("LRANGE", drs[i].args...)
+				case "channels":
+					conn.Send("PUBSUB", drs[i].args...)
+				}
+			}
+			err := conn.Flush()
+			if err != nil {
+				for i := range drs {
+					drs[i].done(nil, err)
+				}
+				logger.ERROR.Printf("Error flushing publish pipeline: %v", err)
+				return
+			}
+			var noScriptError bool
+			for i := range drs {
+				reply, err := conn.Receive()
+				if err != nil {
+					// Check for NOSCRIPT error. In normal circumstances this should never happen.
+					// The only possible situation is when Redis scripts were flushed. In this case
+					// we will return from this func and load publish script from scratch.
+					// Redigo does the same check but for single EVALSHA command: see
+					// https://github.com/garyburd/redigo/blob/master/redis/script.go#L64
+					if e, ok := err.(redis.Error); ok && strings.HasPrefix(string(e), "NOSCRIPT ") {
+						noScriptError = true
+					}
+				}
+				drs[i].done(reply, err)
+			}
+			if noScriptError {
+				// Start this func from the beginning and LOAD missing script.
+				return
+			}
+			drs = nil
+		}
+	}
+}
+
 func (e *Shard) messageChannelID(ch string) ChannelID {
 	return ChannelID(e.messagePrefix + string(ch))
 }
@@ -1419,8 +1549,6 @@ func (e *Shard) getHistoryKey(chID ChannelID) string {
 // AddPresence - see engine interface description.
 func (e *Shard) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
 	chID := e.messageChannelID(ch)
-	conn := e.pool.Get()
-	defer conn.Close()
 	infoJSON, err := info.Marshal()
 	if err != nil {
 		return err
@@ -1428,118 +1556,69 @@ func (e *Shard) AddPresence(ch string, uid string, info proto.ClientInfo, expire
 	expireAt := time.Now().Unix() + int64(expire)
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
-	_, err = e.addPresenceScript.Do(conn, setKey, hashKey, expire, expireAt, uid, infoJSON)
-	return err
+	dr := newDataRequest("add_presence", []interface{}{setKey, hashKey, expire, expireAt, uid, infoJSON}, true)
+	e.dataCh <- dr
+	//return nil
+	resp := dr.result()
+	return resp.err
 }
 
 // RemovePresence - see engine interface description.
 func (e *Shard) RemovePresence(ch string, uid string) error {
 	chID := e.messageChannelID(ch)
-	conn := e.pool.Get()
-	defer conn.Close()
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
-	_, err := e.remPresenceScript.Do(conn, setKey, hashKey, uid)
-	return err
-}
-
-func mapStringClientInfo(result interface{}, err error) (map[string]proto.ClientInfo, error) {
-	values, err := redis.Values(result, err)
-	if err != nil {
-		return nil, err
-	}
-	if len(values)%2 != 0 {
-		return nil, errors.New("mapStringClientInfo expects even number of values result")
-	}
-	m := make(map[string]proto.ClientInfo, len(values)/2)
-	for i := 0; i < len(values); i += 2 {
-		key, okKey := values[i].([]byte)
-		value, okValue := values[i+1].([]byte)
-		if !okKey || !okValue {
-			return nil, errors.New("ScanMap key not a bulk string value")
-		}
-		var f proto.ClientInfo
-		err = f.Unmarshal(value)
-		if err != nil {
-			return nil, errors.New("can not unmarshal value to ClientInfo")
-		}
-		m[string(key)] = f
-	}
-	return m, nil
+	dr := newDataRequest("remove_presence", []interface{}{setKey, hashKey, uid}, true)
+	e.dataCh <- dr
+	resp := dr.result()
+	return resp.err
 }
 
 // Presence - see engine interface description.
 func (e *Shard) Presence(ch string) (map[string]proto.ClientInfo, error) {
 	chID := e.messageChannelID(ch)
-	conn := e.pool.Get()
-	defer conn.Close()
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
 	now := int(time.Now().Unix())
-	reply, err := e.presenceScript.Do(conn, setKey, hashKey, now)
-	if err != nil {
-		return nil, err
+	dr := newDataRequest("presence", []interface{}{setKey, hashKey, now}, true)
+	e.dataCh <- dr
+	resp := dr.result()
+	if resp.err != nil {
+		return nil, resp.err
 	}
-	return mapStringClientInfo(reply, nil)
-}
-
-func sliceOfMessages(result interface{}, err error) ([]proto.Message, error) {
-	values, err := redis.Values(result, err)
-	if err != nil {
-		return nil, err
-	}
-	msgs := make([]proto.Message, len(values))
-	for i := 0; i < len(values); i++ {
-		value, okValue := values[i].([]byte)
-		if !okValue {
-			return nil, errors.New("error getting Message value")
-		}
-		var m proto.Message
-		err = m.Unmarshal(value)
-		if err != nil {
-			return nil, errors.New("can not unmarshal value to Message")
-		}
-		msgs[i] = m
-	}
-	return msgs, nil
+	return mapStringClientInfo(resp.reply, nil)
 }
 
 // History - see engine interface description.
 func (e *Shard) History(ch string, limit int) ([]proto.Message, error) {
 	chID := e.messageChannelID(ch)
-	conn := e.pool.Get()
-	defer conn.Close()
 	var rangeBound int = -1
 	if limit > 0 {
 		rangeBound = limit - 1 // Redis includes last index into result
 	}
 	historyKey := e.getHistoryKey(chID)
-	reply, err := conn.Do("LRANGE", historyKey, 0, rangeBound)
-	if err != nil {
-		logger.ERROR.Printf("%#v", err)
-		return nil, err
+	dr := newDataRequest("history", []interface{}{historyKey, 0, rangeBound}, true)
+	e.dataCh <- dr
+	resp := dr.result()
+	if resp.err != nil {
+		return nil, resp.err
 	}
-	return sliceOfMessages(reply, nil)
+	return sliceOfMessages(resp.reply, nil)
 }
 
 // Channels - see engine interface description.
 // Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
 func (e *Shard) Channels() ([]string, error) {
-	conn := e.pool.Get()
-	defer conn.Close()
-
-	messagePrefix := e.messagePrefix
-
-	reply, err := conn.Do("PUBSUB", "CHANNELS", messagePrefix+"*")
+	dr := newDataRequest("channels", []interface{}{"CHANNELS", e.messagePrefix + "*"}, true)
+	e.dataCh <- dr
+	resp := dr.result()
+	if resp.err != nil {
+		return nil, resp.err
+	}
+	values, err := redis.Values(resp.reply, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	values, err := redis.Values(reply, err)
-	if err != nil {
-		return nil, err
-	}
-
 	channels := make([]string, 0, len(values))
 	for i := 0; i < len(values); i++ {
 		value, okValue := values[i].([]byte)
@@ -1547,7 +1626,7 @@ func (e *Shard) Channels() ([]string, error) {
 			return nil, errors.New("error getting ChannelID value")
 		}
 		chID := ChannelID(value)
-		channels = append(channels, string(string(chID)[len(messagePrefix):]))
+		channels = append(channels, string(string(chID)[len(e.messagePrefix):]))
 	}
 	return channels, nil
 }
@@ -1619,32 +1698,4 @@ func apiCmd(n *node.Node, cmd proto.APICommand) error {
 		return nil
 	}
 	return err
-}
-
-// consistentIndex is an adapted function from https://github.com/dgryski/go-jump
-// package by Damian Gryski. It consistently chooses a hash bucket number in the
-// range [0, numBuckets) for the given string. numBuckets must be >= 1.
-func consistentIndex(s string, numBuckets int) int {
-
-	hash := fnv.New64a()
-	hash.Write([]byte(s))
-	key := hash.Sum64()
-
-	var b int64 = -1
-	var j int64
-
-	for j < int64(numBuckets) {
-		b = j
-		key = key*2862933555777941757 + 1
-		j = int64(float64(b+1) * (float64(int64(1)<<31) / float64((key>>33)+1)))
-	}
-
-	return int(b)
-}
-
-// index chooses bucket number in range [0, numBuckets).
-func index(s string, numBuckets int) int {
-	hash := fnv.New64a()
-	hash.Write([]byte(s))
-	return int(hash.Sum64() % uint64(numBuckets))
 }

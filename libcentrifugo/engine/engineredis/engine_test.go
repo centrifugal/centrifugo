@@ -1,7 +1,7 @@
 package engineredis
 
 import (
-	"errors"
+	//"errors"
 	"fmt"
 	"math/rand"
 	"net"
@@ -58,16 +58,16 @@ func dial() testRedisConn {
 		panic(err)
 	}
 
-	n, err := redis.Int(c.Do("DBSIZE"))
-	if err != nil {
-		c.Close()
-		panic(err)
-	}
+	// n, err := redis.Int(c.Do("DBSIZE"))
+	// if err != nil {
+	// 	c.Close()
+	// 	panic(err)
+	// }
 
-	if n != 0 {
-		c.Close()
-		panic(errors.New("database is not empty, test can not continue"))
-	}
+	// if n != 0 {
+	// 	c.Close()
+	// 	panic(errors.New("database is not empty, test can not continue"))
+	// }
 
 	return testRedisConn{c}
 }
@@ -115,6 +115,7 @@ func NewTestRedisEngine() *RedisEngine {
 		API:          true,
 		NumAPIShards: testRedisNumAPIShards,
 		Prefix:       "centrifugotest",
+		ReadTimeout:  100 * time.Second,
 	}
 	e, _ := New(n, []*ShardConfig{redisConf})
 	err := n.Run(&node.RunOptions{Engine: e})
@@ -497,4 +498,65 @@ func BenchmarkIndex(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		index(strconv.Itoa(i), 4)
 	}
+}
+
+func BenchmarkOpAddPresenceParallel(b *testing.B) {
+	c := dial()
+	defer c.close()
+	e := NewTestRedisEngine()
+	expire := int(e.node.Config().PresenceExpireInterval.Seconds())
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			err := e.AddPresence("channel", "uid", proto.ClientInfo{}, expire)
+			if err != nil {
+				panic(err)
+			}
+		}
+	})
+}
+
+func BenchmarkOpAddPresence(b *testing.B) {
+	c := dial()
+	defer c.close()
+	e := NewTestRedisEngine()
+	expire := int(e.node.Config().PresenceExpireInterval.Seconds())
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := e.AddPresence("channel", "uid", proto.ClientInfo{}, expire)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func BenchmarkOpPresence(b *testing.B) {
+	c := dial()
+	defer c.close()
+	e := NewTestRedisEngine()
+	e.AddPresence("channel", "uid", proto.ClientInfo{}, 300)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			e.Presence("channel")
+		}
+	})
+}
+
+func BenchmarkOpHistory(b *testing.B) {
+	c := dial()
+	defer c.close()
+	e := NewTestRedisEngine()
+	rawData := raw.Raw([]byte("{}"))
+	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			e.History("channel", 0)
+		}
+	})
 }
