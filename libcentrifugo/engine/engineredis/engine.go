@@ -195,7 +195,7 @@ func newSubRequest(chID ChannelID, subscribe bool, wantResponse bool) subRequest
 		subscribe: subscribe,
 	}
 	if wantResponse {
-		eChan := make(chan error)
+		eChan := make(chan error, 1)
 		r.err = &eChan
 	}
 	return r
@@ -756,13 +756,7 @@ func (e *Shard) Run() error {
 		e.runPublishPipeline()
 	})
 	go e.runForever(func() {
-		e.RLock()
-		numWorkers := e.config.PubSubNumWorkers
-		e.RUnlock()
-		if numWorkers == 0 {
-			numWorkers = runtime.NumCPU()
-		}
-		e.runPubSub(numWorkers)
+		e.runPubSub()
 	})
 	go e.runForever(func() {
 		e.runDataPipeline()
@@ -934,7 +928,14 @@ func fillSubBatch(ch <-chan subRequest, batch *[]subRequest, maxSize int) {
 	}
 }
 
-func (e *Shard) runPubSub(numWorkers int) {
+func (e *Shard) runPubSub() {
+
+	e.RLock()
+	numWorkers := e.config.PubSubNumWorkers
+	e.RUnlock()
+	if numWorkers == 0 {
+		numWorkers = runtime.NumCPU()
+	}
 
 	logger.DEBUG.Printf("Running Redis PUB/SUB, num workers: %d", numWorkers)
 
