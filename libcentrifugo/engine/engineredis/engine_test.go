@@ -381,6 +381,30 @@ func TestRedisEngineSubscribeUnsubscribe(t *testing.T) {
 		channels, _ := e.Channels()
 		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
 	}
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			e.Unsubscribe("7-test-" + strconv.Itoa(i))
+			e.Unsubscribe("8-test-" + strconv.Itoa(i))
+			e.Subscribe("8-test-" + strconv.Itoa(i))
+			e.Unsubscribe("9-test-" + strconv.Itoa(i))
+			e.Subscribe("7-test-" + strconv.Itoa(i))
+			e.Unsubscribe("8-test-" + strconv.Itoa(i))
+			e.Subscribe("9-test-" + strconv.Itoa(i))
+			e.Unsubscribe("9-test-" + strconv.Itoa(i))
+			e.Unsubscribe("7-test-" + strconv.Itoa(i))
+		}(i)
+	}
+	wg.Wait()
+	channels, err = e.Channels()
+	assert.Equal(t, nil, err)
+	if len(channels) != 0 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+	}
 }
 
 func TestHandleClientMessage(t *testing.T) {
