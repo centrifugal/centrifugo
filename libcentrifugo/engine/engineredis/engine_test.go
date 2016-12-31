@@ -264,6 +264,9 @@ func TestRedisEngineSubscribeUnsubscribe(t *testing.T) {
 	channels, err := e.Channels()
 	assert.Equal(t, nil, err)
 	if len(channels) != 1 {
+		// Redis PUBSUB CHANNELS command looks like eventual consistent, so sometimes
+		// it returns wrong results, sleeping for a while helps in such situations.
+		// See https://gist.github.com/FZambia/80a5241e06b4662f7fe89cfaf24072c3
 		time.Sleep(500 * time.Millisecond)
 		channels, _ := e.Channels()
 		assert.Equal(t, 1, len(channels), fmt.Sprintf("%#v", channels))
