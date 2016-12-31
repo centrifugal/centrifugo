@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -105,6 +106,10 @@ func newTestMessage() *proto.Message {
 }
 
 func NewTestRedisEngine() *RedisEngine {
+	return NewTestRedisEngineWithPrefix("centrifugotest")
+}
+
+func NewTestRedisEngineWithPrefix(prefix string) *RedisEngine {
 	logger.SetStdoutThreshold(logger.LevelNone)
 	c := NewTestConfig()
 	n := node.New("", c)
@@ -116,7 +121,7 @@ func NewTestRedisEngine() *RedisEngine {
 		PoolSize:     testRedisPoolSize,
 		API:          true,
 		NumAPIShards: testRedisNumAPIShards,
-		Prefix:       "centrifugotest",
+		Prefix:       prefix,
 		ReadTimeout:  100 * time.Second,
 	}
 	e, _ := New(n, []*ShardConfig{redisConf})
@@ -250,26 +255,129 @@ func TestRedisEngine(t *testing.T) {
 func TestRedisEngineSubscribeUnsubscribe(t *testing.T) {
 	c := dial()
 	defer c.close()
-	e := NewTestRedisEngine()
 
-	e.Subscribe("1")
-	e.Subscribe("1")
+	// Custom prefix to not collide with other tests.
+	e := NewTestRedisEngineWithPrefix("TestRedisEngineSubscribeUnsubscribe")
+
+	e.Subscribe("1-test")
+	e.Subscribe("1-test")
 	channels, err := e.Channels()
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 1, len(channels))
+	if len(channels) != 1 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 1, len(channels), fmt.Sprintf("%#v", channels))
+	}
 
-	e.Unsubscribe("1")
+	e.Unsubscribe("1-test")
 	channels, err = e.Channels()
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 0, len(channels))
+	if len(channels) != 0 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+	}
 
-	for i := 0; i < 1000; i++ {
-		e.Subscribe("1")
-		e.Unsubscribe("1")
+	var wg sync.WaitGroup
+
+	// The same channel in parallel.
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			e.Subscribe("2-test")
+			e.Unsubscribe("2-test")
+		}()
+	}
+	wg.Wait()
+	channels, err = e.Channels()
+	assert.Equal(t, nil, err)
+
+	if len(channels) != 0 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+	}
+
+	// Different channels in parallel.
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			e.Subscribe("3-test-" + strconv.Itoa(i))
+			e.Unsubscribe("3-test-" + strconv.Itoa(i))
+		}(i)
+	}
+	wg.Wait()
+	channels, err = e.Channels()
+	assert.Equal(t, nil, err)
+	if len(channels) != 0 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+	}
+
+	// The same channel sequential.
+	for i := 0; i < 10000; i++ {
+		e.Subscribe("4-test")
+		e.Unsubscribe("4-test")
 	}
 	channels, err = e.Channels()
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 0, len(channels))
+	if len(channels) != 0 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+	}
+
+	// Different channels sequential.
+	for j := 0; j < 10; j++ {
+		for i := 0; i < 10000; i++ {
+			e.Subscribe("5-test-" + strconv.Itoa(i))
+			e.Unsubscribe("5-test-" + strconv.Itoa(i))
+		}
+		channels, err = e.Channels()
+		assert.Equal(t, nil, err)
+		if len(channels) != 0 {
+			time.Sleep(500 * time.Millisecond)
+			channels, _ := e.Channels()
+			assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+		}
+	}
+
+	// Different channels subscribe only in parallel.
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			e.Subscribe("6-test-" + strconv.Itoa(i))
+		}(i)
+	}
+	wg.Wait()
+	channels, err = e.Channels()
+	assert.Equal(t, nil, err)
+	if len(channels) != 100 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 100, len(channels), fmt.Sprintf("%#v", channels))
+	}
+
+	// Different channels unsubscribe only in parallel.
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			e.Unsubscribe("6-test-" + strconv.Itoa(i))
+		}(i)
+	}
+	wg.Wait()
+	channels, err = e.Channels()
+	assert.Equal(t, nil, err)
+	if len(channels) != 0 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+	}
 }
 
 func TestHandleClientMessage(t *testing.T) {

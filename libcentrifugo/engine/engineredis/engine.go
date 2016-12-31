@@ -183,7 +183,7 @@ type ShardConfig struct {
 type subRequest struct {
 	channel   ChannelID
 	subscribe bool
-	err       *chan error
+	err       chan error
 }
 
 // newSubRequest creates a new request to subscribe or unsubscribe form a channel.
@@ -195,8 +195,7 @@ func newSubRequest(chID ChannelID, subscribe bool, wantResponse bool) subRequest
 		subscribe: subscribe,
 	}
 	if wantResponse {
-		eChan := make(chan error, 1)
-		r.err = &eChan
+		r.err = make(chan error, 1)
 	}
 	return r
 }
@@ -205,7 +204,7 @@ func (sr *subRequest) done(err error) {
 	if sr.err == nil {
 		return
 	}
-	*(sr.err) <- err
+	sr.err <- err
 }
 
 func (sr *subRequest) result() error {
@@ -213,7 +212,7 @@ func (sr *subRequest) result() error {
 		// No waiting, as caller didn't care about response
 		return nil
 	}
-	return <-*(sr.err)
+	return <-sr.err
 }
 
 func newPool(conf *ShardConfig) *redis.Pool {
@@ -969,33 +968,37 @@ func (e *Shard) runPubSub() {
 
 				// Keep matches between ChannelID and position of subRequest in batch
 				// for subscribe requests.
-				subs := map[ChannelID]int{}
+				subs := map[ChannelID]struct{}{}
 
 				// Keep matches between ChannelID and position of subRequest in batch
 				// for unsubscribe requests.
-				unsubs := map[ChannelID]int{}
-
-				// A slice with subRequest positions that after merging batch requests
-				// does not make much sense sending in Redis.
-				noops := []int{}
+				unsubs := map[ChannelID]struct{}{}
 
 				for i := range batch {
 					ch := batch[i].channel
 
 					if batch[i].subscribe {
-						subs[ch] = i
-						if b, ok := unsubs[ch]; ok {
+						if _, ok := subs[ch]; ok {
+							// If we already had such channel in batch - we don't need to send
+							// it to Redis.
+							continue
+						}
+						subs[ch] = struct{}{}
+						if _, ok := unsubs[ch]; ok {
 							// If we already have more recent unsubscribe to the same channel in
 							// batch - we don't need to send it to Redis.
-							noops = append(noops, b)
 							delete(unsubs, ch)
 						}
 					} else {
-						unsubs[ch] = i
-						if b, ok := subs[ch]; ok {
+						if _, ok := unsubs[ch]; ok {
+							// If we already had such channel in batch - we don't need to send
+							// it to Redis.
+							continue
+						}
+						unsubs[ch] = struct{}{}
+						if _, ok := subs[ch]; ok {
 							// If we already have more recent subscribe to the same channel in
 							// batch - we don't need to send it to Redis.
-							noops = append(noops, b)
 							delete(subs, ch)
 						}
 					}
@@ -1030,8 +1033,10 @@ func (e *Shard) runPubSub() {
 						conn.Close()
 						return
 					}
-					// Subscribe requests in batch succeeded.
-					for _, i := range subs {
+				}
+				// Subscribe requests in batch succeeded.
+				for i := range batch {
+					if batch[i].subscribe {
 						batch[i].done(nil)
 					}
 				}
@@ -1041,25 +1046,22 @@ func (e *Shard) runPubSub() {
 						logger.ERROR.Printf("RedisEngine Unsubscriber error: %v\n", err)
 						// Here we should only resolve with error unsubscribe requests and
 						// noop requests.
-						for _, i := range unsubs {
-							batch[i].done(err)
-						}
-						for _, i := range noops {
-							batch[i].done(err)
+						for i := range batch {
+							if !batch[i].subscribe {
+								batch[i].done(err)
+							}
 						}
 						// Close conn, this should cause Receive to return with err below
 						// and whole runPubSub method to restart
 						conn.Close()
 						return
 					}
-					// Unsubscribe requests in batch succeded.
-					for _, i := range unsubs {
+				}
+				// Unsubscribe requests in batch succeded.
+				for i := range batch {
+					if !batch[i].subscribe {
 						batch[i].done(nil)
 					}
-				}
-				// Noop requests in batch succeded automatically here.
-				for _, i := range noops {
-					batch[i].done(nil)
 				}
 			}
 		}
