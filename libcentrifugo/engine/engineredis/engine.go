@@ -960,13 +960,22 @@ func (e *Shard) runPubSub(numWorkers int) {
 			case <-done:
 				return
 			case r := <-e.subCh:
+				// Initialize batch with subRequest just read from channel.
 				batch := []subRequest{r}
 
-				// Try to gather as many others as we can without waiting
+				// Try to gather as many others as we can without waiting.
 				fillSubBatch(e.subCh, &batch, RedisSubscribeBatchLimit)
 
+				// Keep matches between ChannelID and position of subRequest in batch
+				// for subscribe requests.
 				subs := map[ChannelID]int{}
+
+				// Keep matches between ChannelID and position of subRequest in batch
+				// for unsubscribe requests.
 				unsubs := map[ChannelID]int{}
+
+				// A slice with subRequest positions that after merging batch requests
+				// does not make much sense sending in Redis.
 				noops := []int{}
 
 				for i := range batch {
@@ -975,24 +984,30 @@ func (e *Shard) runPubSub(numWorkers int) {
 					if batch[i].subscribe {
 						subs[ch] = i
 						if b, ok := unsubs[ch]; ok {
+							// If we already have more recent unsubscribe to the same channel in
+							// batch - we don't need to send it to Redis.
 							noops = append(noops, b)
 							delete(unsubs, ch)
 						}
 					} else {
 						unsubs[ch] = i
 						if b, ok := subs[ch]; ok {
+							// If we already have more recent subscribe to the same channel in
+							// batch - we don't need to send it to Redis.
 							noops = append(noops, b)
 							delete(subs, ch)
 						}
 					}
 				}
 
+				// Prepare arguments for Subscribe/Unsubscribe operations.
 				subChIDs := make([]interface{}, len(subs))
 				i := 0
 				for ch := range subs {
 					subChIDs[i] = ch
 					i++
 				}
+
 				i = 0
 				unsubChIDs := make([]interface{}, len(unsubs))
 				for ch := range unsubs {
@@ -1003,16 +1018,18 @@ func (e *Shard) runPubSub(numWorkers int) {
 				if len(subChIDs) > 0 {
 					err := conn.Subscribe(subChIDs...)
 					if err != nil {
-						// Subscribe error is fatal
 						logger.ERROR.Printf("RedisEngine Subscriber error: %v\n", err)
+
+						// Resolve all requests in batch with err.
 						for i := range batch {
 							batch[i].done(err)
 						}
 						// Close conn, this should cause Receive to return with err below
-						// and whole runPubSub method to restart
+						// and whole runPubSub method to restart.
 						conn.Close()
 						return
 					}
+					// Subscribe requests in batch succeeded.
 					for _, i := range subs {
 						batch[i].done(nil)
 					}
@@ -1020,8 +1037,9 @@ func (e *Shard) runPubSub(numWorkers int) {
 				if len(unsubChIDs) > 0 {
 					err := conn.Unsubscribe(unsubChIDs...)
 					if err != nil {
-						// Subscribe error is fatal
 						logger.ERROR.Printf("RedisEngine Unsubscriber error: %v\n", err)
+						// Here we should only resolve with error unsubscribe requests and
+						// noop requests.
 						for _, i := range unsubs {
 							batch[i].done(err)
 						}
@@ -1033,10 +1051,12 @@ func (e *Shard) runPubSub(numWorkers int) {
 						conn.Close()
 						return
 					}
+					// Unsubscribe requests in batch succeded.
 					for _, i := range unsubs {
 						batch[i].done(nil)
 					}
 				}
+				// Noop requests in batch succeded automatically here.
 				for _, i := range noops {
 					batch[i].done(nil)
 				}
