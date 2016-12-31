@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
+	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
@@ -104,6 +105,7 @@ func newTestMessage() *proto.Message {
 }
 
 func NewTestRedisEngine() *RedisEngine {
+	logger.SetStdoutThreshold(logger.LevelNone)
 	c := NewTestConfig()
 	n := node.New("", c)
 	redisConf := &ShardConfig{
@@ -503,6 +505,26 @@ func BenchmarkIndex(b *testing.B) {
 	}
 }
 
+func BenchmarkPublish(b *testing.B) {
+	e := NewTestRedisEngine()
+	rawData := raw.Raw([]byte(`{"bench": true}`))
+	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 0, HistoryLifetime: 0, HistoryDropInactive: false})
+	}
+}
+
+func BenchmarkPublishWithHistory(b *testing.B) {
+	e := NewTestRedisEngine()
+	rawData := raw.Raw([]byte(`{"bench": true}`))
+	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 10, HistoryLifetime: 300, HistoryDropInactive: false})
+	}
+}
+
 func BenchmarkOpAddPresence(b *testing.B) {
 	e := NewTestRedisEngine()
 	expire := int(e.node.Config().PresenceExpireInterval.Seconds())
@@ -519,6 +541,7 @@ func BenchmarkOpAddPresenceParallel(b *testing.B) {
 	e := NewTestRedisEngine()
 	expire := int(e.node.Config().PresenceExpireInterval.Seconds())
 	b.ResetTimer()
+	b.SetParallelism(12)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			err := e.AddPresence("channel", "uid", proto.ClientInfo{}, expire)
@@ -545,6 +568,7 @@ func BenchmarkOpPresenceParallel(b *testing.B) {
 	e := NewTestRedisEngine()
 	e.AddPresence("channel", "uid", proto.ClientInfo{}, 300)
 	b.ResetTimer()
+	b.SetParallelism(12)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			_, err := e.Presence("channel")
@@ -582,6 +606,7 @@ func BenchmarkOpHistoryParallel(b *testing.B) {
 	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
 	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
 	b.ResetTimer()
+	b.SetParallelism(12)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			_, err := e.History("channel", 0)

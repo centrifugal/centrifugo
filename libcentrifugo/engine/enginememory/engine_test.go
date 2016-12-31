@@ -7,6 +7,7 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
+	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -245,15 +246,114 @@ func TestMemoryHistoryHub(t *testing.T) {
 	assert.Equal(t, 1, len(hist))
 }
 
-/*
-func TestMemoryChannels(t *testing.T) {
-	app := testMemoryApp()
-	channels, err := app.engine.channels()
-	assert.Equal(t, nil, err)
-	assert.Equal(t, 0, len(channels))
-	createTestClients(app, 10, 1, nil)
-	channels, err = app.engine.channels()
-	assert.Equal(t, nil, err)
-	assert.Equal(t, 10, len(channels))
+func BenchmarkPublish(b *testing.B) {
+	e := testMemoryEngine()
+	rawData := raw.Raw([]byte(`{"bench": true}`))
+	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 0, HistoryLifetime: 0, HistoryDropInactive: false})
+	}
 }
-*/
+
+func BenchmarkPublishWithHistory(b *testing.B) {
+	e := testMemoryEngine()
+	rawData := raw.Raw([]byte(`{"bench": true}`))
+	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 10, HistoryLifetime: 300, HistoryDropInactive: false})
+	}
+}
+
+func BenchmarkOpAddPresence(b *testing.B) {
+	e := testMemoryEngine()
+	expire := int(e.node.Config().PresenceExpireInterval.Seconds())
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := e.AddPresence("channel", "uid", proto.ClientInfo{}, expire)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func BenchmarkOpAddPresenceParallel(b *testing.B) {
+	e := testMemoryEngine()
+	expire := int(e.node.Config().PresenceExpireInterval.Seconds())
+	b.ResetTimer()
+	b.SetParallelism(12)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			err := e.AddPresence("channel", "uid", proto.ClientInfo{}, expire)
+			if err != nil {
+				panic(err)
+			}
+		}
+	})
+}
+
+func BenchmarkOpPresence(b *testing.B) {
+	e := testMemoryEngine()
+	e.AddPresence("channel", "uid", proto.ClientInfo{}, 300)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := e.Presence("channel")
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func BenchmarkOpPresenceParallel(b *testing.B) {
+	e := testMemoryEngine()
+	e.AddPresence("channel", "uid", proto.ClientInfo{}, 300)
+	b.ResetTimer()
+	b.SetParallelism(12)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := e.Presence("channel")
+			if err != nil {
+				panic(err)
+			}
+		}
+	})
+}
+
+func BenchmarkOpHistory(b *testing.B) {
+	e := testMemoryEngine()
+	rawData := raw.Raw([]byte("{}"))
+	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := e.History("channel", 0)
+		if err != nil {
+			panic(err)
+		}
+
+	}
+}
+
+func BenchmarkOpHistoryParallel(b *testing.B) {
+	e := testMemoryEngine()
+	rawData := raw.Raw([]byte("{}"))
+	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	b.ResetTimer()
+	b.SetParallelism(12)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := e.History("channel", 0)
+			if err != nil {
+				panic(err)
+			}
+		}
+	})
+}
