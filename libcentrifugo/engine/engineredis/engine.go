@@ -966,12 +966,10 @@ func (e *Shard) runPubSub() {
 				// Try to gather as many others as we can without waiting.
 				fillSubBatch(e.subCh, &batch, RedisSubscribeBatchLimit)
 
-				// Keep matches between ChannelID and position of subRequest in batch
-				// for subscribe requests.
+				// Keep unique ChannelID presented in batch to subscribe.
 				subs := map[ChannelID]struct{}{}
 
-				// Keep matches between ChannelID and position of subRequest in batch
-				// for unsubscribe requests.
+				// Keep unique ChannelID presented in batch to unsubscribe.
 				unsubs := map[ChannelID]struct{}{}
 
 				for i := range batch {
@@ -994,7 +992,8 @@ func (e *Shard) runPubSub() {
 					}
 				}
 
-				// Prepare arguments for Subscribe/Unsubscribe operations.
+				// Prepare arguments for Subscribe/Unsubscribe operations which accept slice
+				// of interface{}.
 				subChIDs := make([]interface{}, len(subs))
 				i := 0
 				for ch := range subs {
