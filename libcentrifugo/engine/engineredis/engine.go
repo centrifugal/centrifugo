@@ -978,11 +978,6 @@ func (e *Shard) runPubSub() {
 					ch := batch[i].channel
 
 					if batch[i].subscribe {
-						if _, ok := subs[ch]; ok {
-							// If we already had such channel in batch - we don't need to send
-							// it to Redis.
-							continue
-						}
 						subs[ch] = struct{}{}
 						if _, ok := unsubs[ch]; ok {
 							// If we already have more recent unsubscribe to the same channel in
@@ -990,11 +985,6 @@ func (e *Shard) runPubSub() {
 							delete(unsubs, ch)
 						}
 					} else {
-						if _, ok := unsubs[ch]; ok {
-							// If we already had such channel in batch - we don't need to send
-							// it to Redis.
-							continue
-						}
 						unsubs[ch] = struct{}{}
 						if _, ok := subs[ch]; ok {
 							// If we already have more recent subscribe to the same channel in
