@@ -1033,8 +1033,8 @@ func (e *Shard) runPubSub() {
 					err := conn.Unsubscribe(unsubChIDs...)
 					if err != nil {
 						logger.ERROR.Printf("RedisEngine Unsubscriber error: %v\n", err)
-						// Here we should only resolve with error unsubscribe requests and
-						// noop requests.
+						// Here we should only resolve with error unsubscribe requests.
+						// Subscribe requests have been already resolved without error above.
 						for i := range batch {
 							if !batch[i].subscribe {
 								batch[i].done(err)
