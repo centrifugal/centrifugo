@@ -6,10 +6,12 @@ import (
 	"math/rand"
 	"net"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
+	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
@@ -104,6 +106,11 @@ func newTestMessage() *proto.Message {
 }
 
 func NewTestRedisEngine() *RedisEngine {
+	return NewTestRedisEngineWithPrefix("centrifugotest")
+}
+
+func NewTestRedisEngineWithPrefix(prefix string) *RedisEngine {
+	logger.SetStdoutThreshold(logger.LevelNone)
 	c := NewTestConfig()
 	n := node.New("", c)
 	redisConf := &ShardConfig{
@@ -114,7 +121,8 @@ func NewTestRedisEngine() *RedisEngine {
 		PoolSize:     testRedisPoolSize,
 		API:          true,
 		NumAPIShards: testRedisNumAPIShards,
-		Prefix:       "centrifugotest",
+		Prefix:       prefix,
+		ReadTimeout:  100 * time.Second,
 	}
 	e, _ := New(n, []*ShardConfig{redisConf})
 	err := n.Run(&node.RunOptions{Engine: e})
@@ -244,7 +252,165 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
+func TestRedisEngineSubscribeUnsubscribe(t *testing.T) {
+	c := dial()
+	defer c.close()
+
+	// Custom prefix to not collide with other tests.
+	e := NewTestRedisEngineWithPrefix("TestRedisEngineSubscribeUnsubscribe")
+
+	e.Subscribe("1-test")
+	e.Subscribe("1-test")
+	channels, err := e.Channels()
+	assert.Equal(t, nil, err)
+	if len(channels) != 1 {
+		// Redis PUBSUB CHANNELS command looks like eventual consistent, so sometimes
+		// it returns wrong results, sleeping for a while helps in such situations.
+		// See https://gist.github.com/FZambia/80a5241e06b4662f7fe89cfaf24072c3
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 1, len(channels), fmt.Sprintf("%#v", channels))
+	}
+
+	e.Unsubscribe("1-test")
+	channels, err = e.Channels()
+	assert.Equal(t, nil, err)
+	if len(channels) != 0 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+	}
+
+	var wg sync.WaitGroup
+
+	// The same channel in parallel.
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			e.Subscribe("2-test")
+			e.Unsubscribe("2-test")
+		}()
+	}
+	wg.Wait()
+	channels, err = e.Channels()
+	assert.Equal(t, nil, err)
+
+	if len(channels) != 0 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+	}
+
+	// Different channels in parallel.
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			e.Subscribe("3-test-" + strconv.Itoa(i))
+			e.Unsubscribe("3-test-" + strconv.Itoa(i))
+		}(i)
+	}
+	wg.Wait()
+	channels, err = e.Channels()
+	assert.Equal(t, nil, err)
+	if len(channels) != 0 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+	}
+
+	// The same channel sequential.
+	for i := 0; i < 10000; i++ {
+		e.Subscribe("4-test")
+		e.Unsubscribe("4-test")
+	}
+	channels, err = e.Channels()
+	assert.Equal(t, nil, err)
+	if len(channels) != 0 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+	}
+
+	// Different channels sequential.
+	for j := 0; j < 10; j++ {
+		for i := 0; i < 10000; i++ {
+			e.Subscribe("5-test-" + strconv.Itoa(i))
+			e.Unsubscribe("5-test-" + strconv.Itoa(i))
+		}
+		channels, err = e.Channels()
+		assert.Equal(t, nil, err)
+		if len(channels) != 0 {
+			time.Sleep(500 * time.Millisecond)
+			channels, _ := e.Channels()
+			assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+		}
+	}
+
+	// Different channels subscribe only in parallel.
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			e.Subscribe("6-test-" + strconv.Itoa(i))
+		}(i)
+	}
+	wg.Wait()
+	channels, err = e.Channels()
+	assert.Equal(t, nil, err)
+	if len(channels) != 100 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 100, len(channels), fmt.Sprintf("%#v", channels))
+	}
+
+	// Different channels unsubscribe only in parallel.
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			e.Unsubscribe("6-test-" + strconv.Itoa(i))
+		}(i)
+	}
+	wg.Wait()
+	channels, err = e.Channels()
+	assert.Equal(t, nil, err)
+	if len(channels) != 0 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+	}
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			e.Unsubscribe("7-test-" + strconv.Itoa(i))
+			e.Unsubscribe("8-test-" + strconv.Itoa(i))
+			e.Subscribe("8-test-" + strconv.Itoa(i))
+			e.Unsubscribe("9-test-" + strconv.Itoa(i))
+			e.Subscribe("7-test-" + strconv.Itoa(i))
+			e.Unsubscribe("8-test-" + strconv.Itoa(i))
+			e.Subscribe("9-test-" + strconv.Itoa(i))
+			e.Unsubscribe("9-test-" + strconv.Itoa(i))
+			e.Unsubscribe("7-test-" + strconv.Itoa(i))
+		}(i)
+	}
+	wg.Wait()
+	channels, err = e.Channels()
+	assert.Equal(t, nil, err)
+	if len(channels) != 0 {
+		time.Sleep(500 * time.Millisecond)
+		channels, _ := e.Channels()
+		assert.Equal(t, 0, len(channels), fmt.Sprintf("%#v", channels))
+	}
+}
+
 func TestHandleClientMessage(t *testing.T) {
+	c := dial()
+	defer c.close()
+
 	e := NewTestRedisEngine()
 
 	shard := e.shards[0]
@@ -497,4 +663,113 @@ func BenchmarkIndex(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		index(strconv.Itoa(i), 4)
 	}
+}
+
+func BenchmarkPublish(b *testing.B) {
+	e := NewTestRedisEngine()
+	rawData := raw.Raw([]byte(`{"bench": true}`))
+	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 0, HistoryLifetime: 0, HistoryDropInactive: false})
+	}
+}
+
+func BenchmarkPublishWithHistory(b *testing.B) {
+	e := NewTestRedisEngine()
+	rawData := raw.Raw([]byte(`{"bench": true}`))
+	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 10, HistoryLifetime: 300, HistoryDropInactive: false})
+	}
+}
+
+func BenchmarkOpAddPresence(b *testing.B) {
+	e := NewTestRedisEngine()
+	expire := int(e.node.Config().PresenceExpireInterval.Seconds())
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := e.AddPresence("channel", "uid", proto.ClientInfo{}, expire)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func BenchmarkOpAddPresenceParallel(b *testing.B) {
+	e := NewTestRedisEngine()
+	expire := int(e.node.Config().PresenceExpireInterval.Seconds())
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			err := e.AddPresence("channel", "uid", proto.ClientInfo{}, expire)
+			if err != nil {
+				panic(err)
+			}
+		}
+	})
+}
+
+func BenchmarkOpPresence(b *testing.B) {
+	e := NewTestRedisEngine()
+	e.AddPresence("channel", "uid", proto.ClientInfo{}, 300)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := e.Presence("channel")
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func BenchmarkOpPresenceParallel(b *testing.B) {
+	e := NewTestRedisEngine()
+	e.AddPresence("channel", "uid", proto.ClientInfo{}, 300)
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := e.Presence("channel")
+			if err != nil {
+				panic(err)
+			}
+		}
+	})
+}
+
+func BenchmarkOpHistory(b *testing.B) {
+	e := NewTestRedisEngine()
+	rawData := raw.Raw([]byte("{}"))
+	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := e.History("channel", 0)
+		if err != nil {
+			panic(err)
+		}
+
+	}
+}
+
+func BenchmarkOpHistoryParallel(b *testing.B) {
+	e := NewTestRedisEngine()
+	rawData := raw.Raw([]byte("{}"))
+	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := e.History("channel", 0)
+			if err != nil {
+				panic(err)
+			}
+		}
+	})
 }

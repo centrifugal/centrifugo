@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"net"
 	"net/url"
 	"runtime"
@@ -84,6 +83,10 @@ const (
 	// RedisPublishBatchLimit is a maximum limit of publish requests one batched publish
 	// operation can contain.
 	RedisPublishBatchLimit = 2048
+	// RedisDataBatchLimit limits amount of data operations combined in one pipeline.
+	RedisDataBatchLimit = 8
+	// RedisDataChannelSize is a buffer size of channel with data operation requests.
+	RedisDataChannelSize = 256
 )
 
 type (
@@ -127,8 +130,8 @@ type Shard struct {
 	api               bool
 	numApiShards      int
 	subCh             chan subRequest
-	unSubCh           chan subRequest
 	pubCh             chan pubRequest
+	dataCh            chan dataRequest
 	pubScript         *redis.Script
 	addPresenceScript *redis.Script
 	remPresenceScript *redis.Script
@@ -178,20 +181,21 @@ type ShardConfig struct {
 
 // subRequest is an internal request to subscribe or unsubscribe from one or more channels
 type subRequest struct {
-	Channel ChannelID
-	err     *chan error
+	channel   ChannelID
+	subscribe bool
+	err       chan error
 }
 
 // newSubRequest creates a new request to subscribe or unsubscribe form a channel.
 // If the caller cares about response they should set wantResponse and then call
 // result() on the request once it has been pushed to the appropriate chan.
-func newSubRequest(chID ChannelID, wantResponse bool) subRequest {
+func newSubRequest(chID ChannelID, subscribe bool, wantResponse bool) subRequest {
 	r := subRequest{
-		Channel: chID,
+		channel:   chID,
+		subscribe: subscribe,
 	}
 	if wantResponse {
-		eChan := make(chan error)
-		r.err = &eChan
+		r.err = make(chan error, 1)
 	}
 	return r
 }
@@ -200,7 +204,7 @@ func (sr *subRequest) done(err error) {
 	if sr.err == nil {
 		return
 	}
-	*(sr.err) <- err
+	sr.err <- err
 }
 
 func (sr *subRequest) result() error {
@@ -208,7 +212,7 @@ func (sr *subRequest) result() error {
 		// No waiting, as caller didn't care about response
 		return nil
 	}
-	return <-*(sr.err)
+	return <-sr.err
 }
 
 func newPool(conf *ShardConfig) *redis.Pool {
@@ -553,7 +557,7 @@ func NewShard(n *node.Node, conf *ShardConfig) (*Shard, error) {
 	}
 	shard.pubCh = make(chan pubRequest, RedisPublishChannelSize)
 	shard.subCh = make(chan subRequest, RedisSubscribeChannelSize)
-	shard.unSubCh = make(chan subRequest, RedisSubscribeChannelSize)
+	shard.dataCh = make(chan dataRequest, RedisDataChannelSize)
 	shard.messagePrefix = conf.Prefix + RedisMessageChannelPrefix
 	shard.joinPrefix = conf.Prefix + RedisJoinChannelPrefix
 	shard.leavePrefix = conf.Prefix + RedisLeaveChannelPrefix
@@ -751,13 +755,10 @@ func (e *Shard) Run() error {
 		e.runPublishPipeline()
 	})
 	go e.runForever(func() {
-		e.RLock()
-		numWorkers := e.config.PubSubNumWorkers
-		e.RUnlock()
-		if numWorkers == 0 {
-			numWorkers = runtime.NumCPU()
-		}
-		e.runPubSub(numWorkers)
+		e.runPubSub()
+	})
+	go e.runForever(func() {
+		e.runDataPipeline()
 	})
 	if api {
 		e.runAPI()
@@ -899,13 +900,10 @@ func (e *Shard) runAPIWorker(queue string) {
 
 func (e *Shard) runAPI() {
 	queues := make(map[string]bool)
-
 	queues[e.getAPIQueueKey()] = true
-
 	for i := 0; i < e.numApiShards; i++ {
 		queues[e.getAPIShardQueueKey(i)] = true
 	}
-
 	for name := range queues {
 		func(name string) {
 			go e.runForever(func() {
@@ -915,22 +913,28 @@ func (e *Shard) runAPI() {
 	}
 }
 
-// fillBatchFromChan attempts to read items from a subRequest channel and append them to split
+// fillSubBatch attempts to read items from a subRequest channel and append them to split
 // until it either hits maxSize or would have to block. If batch is empty and chan is empty then
 // batch might end up being zero length.
-func fillBatchFromChan(ch <-chan subRequest, batch *[]subRequest, chIDs *[]interface{}, maxSize int) {
+func fillSubBatch(ch <-chan subRequest, batch *[]subRequest, maxSize int) {
 	for len(*batch) < maxSize {
 		select {
 		case req := <-ch:
 			*batch = append(*batch, req)
-			*chIDs = append(*chIDs, req.Channel)
 		default:
 			return
 		}
 	}
 }
 
-func (e *Shard) runPubSub(numWorkers int) {
+func (e *Shard) runPubSub() {
+
+	e.RLock()
+	numWorkers := e.config.PubSubNumWorkers
+	e.RUnlock()
+	if numWorkers == 0 {
+		numWorkers = runtime.NumCPU()
+	}
 
 	logger.DEBUG.Printf("Running Redis PUB/SUB, num workers: %d", numWorkers)
 
@@ -956,53 +960,97 @@ func (e *Shard) runPubSub(numWorkers int) {
 			case <-done:
 				return
 			case r := <-e.subCh:
-				// Something to subscribe
-				chIDs := []interface{}{r.Channel}
+				// Initialize batch with subRequest just read from channel.
 				batch := []subRequest{r}
 
-				// Try to gather as many others as we can without waiting
-				fillBatchFromChan(e.subCh, &batch, &chIDs, RedisSubscribeBatchLimit)
-				// Send them all
-				err := conn.Subscribe(chIDs...)
-				if err != nil {
-					// Subscribe error is fatal
-					logger.ERROR.Printf("RedisEngine Subscriber error: %v\n", err)
+				// Try to gather as many others as we can without waiting.
+				fillSubBatch(e.subCh, &batch, RedisSubscribeBatchLimit)
 
-					for i := range batch {
-						batch[i].done(err)
-					}
+				// Keep unique ChannelID presented in batch to subscribe.
+				subs := map[ChannelID]struct{}{}
 
-					// Close conn, this should cause Receive to return with err below
-					// and whole runPubSub method to restart
-					conn.Close()
-					return
-				}
+				// Keep unique ChannelID presented in batch to unsubscribe.
+				unsubs := map[ChannelID]struct{}{}
+
 				for i := range batch {
-					batch[i].done(nil)
-				}
-			case r := <-e.unSubCh:
-				// Something to subscribe
-				chIDs := []interface{}{r.Channel}
-				batch := []subRequest{r}
-				// Try to gather as many others as we can without waiting
-				fillBatchFromChan(e.unSubCh, &batch, &chIDs, RedisSubscribeBatchLimit)
-				// Send them all
-				err := conn.Unsubscribe(chIDs...)
-				if err != nil {
-					// Subscribe error is fatal
-					logger.ERROR.Printf("RedisEngine Unsubscriber error: %v\n", err)
+					ch := batch[i].channel
 
-					for i := range batch {
-						batch[i].done(err)
+					if batch[i].subscribe {
+						subs[ch] = struct{}{}
+						if _, ok := unsubs[ch]; ok {
+							// If we already have more recent unsubscribe to the same channel in
+							// batch - we don't need to send it to Redis.
+							delete(unsubs, ch)
+						}
+					} else {
+						unsubs[ch] = struct{}{}
+						if _, ok := subs[ch]; ok {
+							// If we already have more recent subscribe to the same channel in
+							// batch - we don't need to send it to Redis.
+							delete(subs, ch)
+						}
 					}
-
-					// Close conn, this should cause Receive to return with err below
-					// and whole runPubSub method to restart
-					conn.Close()
-					return
 				}
+
+				// Prepare arguments for Subscribe/Unsubscribe operations which accept slice
+				// of interface{}.
+				subChIDs := make([]interface{}, len(subs))
+				i := 0
+				for ch := range subs {
+					subChIDs[i] = ch
+					i++
+				}
+
+				i = 0
+				unsubChIDs := make([]interface{}, len(unsubs))
+				for ch := range unsubs {
+					unsubChIDs[i] = ch
+					i++
+				}
+
+				if len(subChIDs) > 0 {
+					err := conn.Subscribe(subChIDs...)
+					if err != nil {
+						logger.ERROR.Printf("RedisEngine Subscriber error: %v\n", err)
+
+						// Resolve all requests in batch with err.
+						for i := range batch {
+							batch[i].done(err)
+						}
+						// Close conn, this should cause Receive to return with err below
+						// and whole runPubSub method to restart.
+						conn.Close()
+						return
+					}
+				}
+				// Subscribe requests in batch succeeded.
 				for i := range batch {
-					batch[i].done(nil)
+					if batch[i].subscribe {
+						batch[i].done(nil)
+					}
+				}
+				if len(unsubChIDs) > 0 {
+					err := conn.Unsubscribe(unsubChIDs...)
+					if err != nil {
+						logger.ERROR.Printf("RedisEngine Unsubscriber error: %v\n", err)
+						// Here we should only resolve with error unsubscribe requests.
+						// Subscribe requests have been already resolved without error above.
+						for i := range batch {
+							if !batch[i].subscribe {
+								batch[i].done(err)
+							}
+						}
+						// Close conn, this should cause Receive to return with err below
+						// and whole runPubSub method to restart
+						conn.Close()
+						return
+					}
+				}
+				// Unsubscribe requests in batch succeded.
+				for i := range batch {
+					if !batch[i].subscribe {
+						batch[i].done(nil)
+					}
 				}
 			}
 		}
@@ -1012,16 +1060,16 @@ func (e *Shard) runPubSub(numWorkers int) {
 	// We don't care if they fail since conn will be closed and we'll retry
 	// if they do anyway.
 	// This saves a lot of allocating of pointless chans...
-	r := newSubRequest(controlChannel, false)
+	r := newSubRequest(controlChannel, true, false)
 	e.subCh <- r
-	r = newSubRequest(adminChannel, false)
+	r = newSubRequest(adminChannel, true, false)
 	e.subCh <- r
-	r = newSubRequest(pingChannel, false)
+	r = newSubRequest(pingChannel, true, false)
 	e.subCh <- r
 	for _, ch := range e.node.ClientHub().Channels() {
-		e.subCh <- newSubRequest(e.messageChannelID(ch), false)
-		e.subCh <- newSubRequest(e.joinChannelID(ch), false)
-		e.subCh <- newSubRequest(e.leaveChannelID(ch), false)
+		e.subCh <- newSubRequest(e.messageChannelID(ch), true, false)
+		e.subCh <- newSubRequest(e.joinChannelID(ch), true, false)
+		e.subCh <- newSubRequest(e.leaveChannelID(ch), true, false)
 	}
 
 	// Run workers to spread received message processing work over worker goroutines.
@@ -1142,15 +1190,17 @@ func fillPublishBatch(ch chan pubRequest, prs *[]pubRequest) {
 
 func (e *Shard) runPublishPipeline() {
 	conn := e.pool.Get()
-	defer conn.Close()
 
 	err := e.pubScript.Load(conn)
 	if err != nil {
 		logger.ERROR.Println(err)
 		// Can not proceed if script has not been loaded - because we use EVALSHA command for
 		// publishing with history.
+		conn.Close()
 		return
 	}
+
+	conn.Close()
 
 	var prs []pubRequest
 
@@ -1164,15 +1214,18 @@ func (e *Shard) runPublishPipeline() {
 			// We have to PUBLISH pings into connection to prevent connection close after read timeout.
 			// In our case it's important to maintain PUB/SUB receiver connection alive to prevent
 			// resubscribing on all our subscriptions again and again.
+			conn := e.pool.Get()
 			err := conn.Send("PUBLISH", e.pingChannelID(), nil)
 			if err != nil {
 				logger.ERROR.Printf("Error publish ping: %v", err)
+				conn.Close()
 				return
 			}
+			conn.Close()
 		case pr := <-e.pubCh:
 			prs = append(prs, pr)
 			fillPublishBatch(e.pubCh, &prs)
-
+			conn := e.pool.Get()
 			for i := range prs {
 				if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
 					e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].channel, prs[i].message, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
@@ -1186,6 +1239,7 @@ func (e *Shard) runPublishPipeline() {
 					prs[i].done(err)
 				}
 				logger.ERROR.Printf("Error flushing publish pipeline: %v", err)
+				conn.Close()
 				return
 			}
 			var noScriptError bool
@@ -1205,9 +1259,156 @@ func (e *Shard) runPublishPipeline() {
 			}
 			if noScriptError {
 				// Start this func from the beginning and LOAD missing script.
+				conn.Close()
 				return
 			}
+			conn.Close()
 			prs = nil
+		}
+	}
+}
+
+type dataOp int
+
+const (
+	dataOpAddPresence dataOp = iota
+	dataOpRemovePresence
+	dataOpPresence
+	dataOpHistory
+	dataOpChannels
+)
+
+type dataResponse struct {
+	reply interface{}
+	err   error
+}
+
+type dataRequest struct {
+	op   dataOp
+	args []interface{}
+	resp chan *dataResponse
+}
+
+func newDataRequest(op dataOp, args []interface{}, wantResponse bool) dataRequest {
+	r := dataRequest{op: op, args: args}
+	if wantResponse {
+		r.resp = make(chan *dataResponse, 1)
+	}
+	return r
+}
+
+func (dr *dataRequest) done(reply interface{}, err error) {
+	if dr.resp == nil {
+		return
+	}
+	dr.resp <- &dataResponse{reply: reply, err: err}
+}
+
+func (dr *dataRequest) result() *dataResponse {
+	if dr.resp == nil {
+		// No waiting, as caller didn't care about response.
+		return &dataResponse{}
+	}
+	return <-dr.resp
+}
+
+func fillDataBatch(ch <-chan dataRequest, batch *[]dataRequest, maxSize int) {
+	for len(*batch) < maxSize {
+		select {
+		case req := <-ch:
+			*batch = append(*batch, req)
+		default:
+			return
+		}
+	}
+}
+
+func (e *Shard) runDataPipeline() {
+
+	conn := e.pool.Get()
+
+	err := e.addPresenceScript.Load(conn)
+	if err != nil {
+		logger.ERROR.Println(err)
+		// Can not proceed if script has not been loaded.
+		conn.Close()
+		return
+	}
+
+	err = e.presenceScript.Load(conn)
+	if err != nil {
+		logger.ERROR.Println(err)
+		// Can not proceed if script has not been loaded.
+		conn.Close()
+		return
+	}
+
+	err = e.remPresenceScript.Load(conn)
+	if err != nil {
+		logger.ERROR.Println(err)
+		// Can not proceed if script has not been loaded.
+		conn.Close()
+		return
+	}
+
+	conn.Close()
+
+	var drs []dataRequest
+
+	for {
+		select {
+		case dr := <-e.dataCh:
+			drs = append(drs, dr)
+			fillDataBatch(e.dataCh, &drs, RedisDataChannelSize)
+
+			conn := e.pool.Get()
+
+			for i := range drs {
+				switch drs[i].op {
+				case dataOpAddPresence:
+					e.addPresenceScript.SendHash(conn, drs[i].args...)
+				case dataOpRemovePresence:
+					e.remPresenceScript.SendHash(conn, drs[i].args...)
+				case dataOpPresence:
+					e.presenceScript.SendHash(conn, drs[i].args...)
+				case dataOpHistory:
+					conn.Send("LRANGE", drs[i].args...)
+				case dataOpChannels:
+					conn.Send("PUBSUB", drs[i].args...)
+				}
+			}
+
+			err := conn.Flush()
+			if err != nil {
+				for i := range drs {
+					drs[i].done(nil, err)
+				}
+				logger.ERROR.Printf("Error flushing publish pipeline: %v", err)
+				conn.Close()
+				return
+			}
+			var noScriptError bool
+			for i := range drs {
+				reply, err := conn.Receive()
+				if err != nil {
+					// Check for NOSCRIPT error. In normal circumstances this should never happen.
+					// The only possible situation is when Redis scripts were flushed. In this case
+					// we will return from this func and load publish script from scratch.
+					// Redigo does the same check but for single EVALSHA command: see
+					// https://github.com/garyburd/redigo/blob/master/redis/script.go#L64
+					if e, ok := err.(redis.Error); ok && strings.HasPrefix(string(e), "NOSCRIPT ") {
+						noScriptError = true
+					}
+				}
+				drs[i].done(reply, err)
+			}
+			if noScriptError {
+				// Start this func from the beginning and LOAD missing script.
+				conn.Close()
+				return
+			}
+			conn.Close()
+			drs = nil
 		}
 	}
 }
@@ -1362,11 +1563,11 @@ func (e *Shard) PublishAdmin(message *proto.AdminMessage) <-chan error {
 // Subscribe - see engine interface description.
 func (e *Shard) Subscribe(ch string) error {
 	logger.TRACE.Println("Subscribe node on channel", ch)
-	r := newSubRequest(e.joinChannelID(ch), false)
+	r := newSubRequest(e.joinChannelID(ch), true, false)
 	e.subCh <- r
-	r = newSubRequest(e.leaveChannelID(ch), false)
+	r = newSubRequest(e.leaveChannelID(ch), true, false)
 	e.subCh <- r
-	r = newSubRequest(e.messageChannelID(ch), true)
+	r = newSubRequest(e.messageChannelID(ch), true, true)
 	e.subCh <- r
 	return r.result()
 }
@@ -1374,12 +1575,12 @@ func (e *Shard) Subscribe(ch string) error {
 // Unsubscribe - see engine interface description.
 func (e *Shard) Unsubscribe(ch string) error {
 	logger.TRACE.Println("Unsubscribe node from channel", ch)
-	r := newSubRequest(e.joinChannelID(ch), false)
-	e.unSubCh <- r
-	r = newSubRequest(e.leaveChannelID(ch), false)
-	e.unSubCh <- r
-	r = newSubRequest(e.messageChannelID(ch), true)
-	e.unSubCh <- r
+	r := newSubRequest(e.joinChannelID(ch), false, false)
+	e.subCh <- r
+	r = newSubRequest(e.leaveChannelID(ch), false, false)
+	e.subCh <- r
+	r = newSubRequest(e.messageChannelID(ch), false, true)
+	e.subCh <- r
 	return r.result()
 }
 
@@ -1419,8 +1620,6 @@ func (e *Shard) getHistoryKey(chID ChannelID) string {
 // AddPresence - see engine interface description.
 func (e *Shard) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
 	chID := e.messageChannelID(ch)
-	conn := e.pool.Get()
-	defer conn.Close()
 	infoJSON, err := info.Marshal()
 	if err != nil {
 		return err
@@ -1428,118 +1627,68 @@ func (e *Shard) AddPresence(ch string, uid string, info proto.ClientInfo, expire
 	expireAt := time.Now().Unix() + int64(expire)
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
-	_, err = e.addPresenceScript.Do(conn, setKey, hashKey, expire, expireAt, uid, infoJSON)
-	return err
+	dr := newDataRequest(dataOpAddPresence, []interface{}{setKey, hashKey, expire, expireAt, uid, infoJSON}, true)
+	e.dataCh <- dr
+	resp := dr.result()
+	return resp.err
 }
 
 // RemovePresence - see engine interface description.
 func (e *Shard) RemovePresence(ch string, uid string) error {
 	chID := e.messageChannelID(ch)
-	conn := e.pool.Get()
-	defer conn.Close()
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
-	_, err := e.remPresenceScript.Do(conn, setKey, hashKey, uid)
-	return err
-}
-
-func mapStringClientInfo(result interface{}, err error) (map[string]proto.ClientInfo, error) {
-	values, err := redis.Values(result, err)
-	if err != nil {
-		return nil, err
-	}
-	if len(values)%2 != 0 {
-		return nil, errors.New("mapStringClientInfo expects even number of values result")
-	}
-	m := make(map[string]proto.ClientInfo, len(values)/2)
-	for i := 0; i < len(values); i += 2 {
-		key, okKey := values[i].([]byte)
-		value, okValue := values[i+1].([]byte)
-		if !okKey || !okValue {
-			return nil, errors.New("ScanMap key not a bulk string value")
-		}
-		var f proto.ClientInfo
-		err = f.Unmarshal(value)
-		if err != nil {
-			return nil, errors.New("can not unmarshal value to ClientInfo")
-		}
-		m[string(key)] = f
-	}
-	return m, nil
+	dr := newDataRequest(dataOpRemovePresence, []interface{}{setKey, hashKey, uid}, true)
+	e.dataCh <- dr
+	resp := dr.result()
+	return resp.err
 }
 
 // Presence - see engine interface description.
 func (e *Shard) Presence(ch string) (map[string]proto.ClientInfo, error) {
 	chID := e.messageChannelID(ch)
-	conn := e.pool.Get()
-	defer conn.Close()
 	hashKey := e.getHashKey(chID)
 	setKey := e.getSetKey(chID)
 	now := int(time.Now().Unix())
-	reply, err := e.presenceScript.Do(conn, setKey, hashKey, now)
-	if err != nil {
-		return nil, err
+	dr := newDataRequest(dataOpPresence, []interface{}{setKey, hashKey, now}, true)
+	e.dataCh <- dr
+	resp := dr.result()
+	if resp.err != nil {
+		return nil, resp.err
 	}
-	return mapStringClientInfo(reply, nil)
-}
-
-func sliceOfMessages(result interface{}, err error) ([]proto.Message, error) {
-	values, err := redis.Values(result, err)
-	if err != nil {
-		return nil, err
-	}
-	msgs := make([]proto.Message, len(values))
-	for i := 0; i < len(values); i++ {
-		value, okValue := values[i].([]byte)
-		if !okValue {
-			return nil, errors.New("error getting Message value")
-		}
-		var m proto.Message
-		err = m.Unmarshal(value)
-		if err != nil {
-			return nil, errors.New("can not unmarshal value to Message")
-		}
-		msgs[i] = m
-	}
-	return msgs, nil
+	return mapStringClientInfo(resp.reply, nil)
 }
 
 // History - see engine interface description.
 func (e *Shard) History(ch string, limit int) ([]proto.Message, error) {
 	chID := e.messageChannelID(ch)
-	conn := e.pool.Get()
-	defer conn.Close()
 	var rangeBound int = -1
 	if limit > 0 {
 		rangeBound = limit - 1 // Redis includes last index into result
 	}
 	historyKey := e.getHistoryKey(chID)
-	reply, err := conn.Do("LRANGE", historyKey, 0, rangeBound)
-	if err != nil {
-		logger.ERROR.Printf("%#v", err)
-		return nil, err
+	dr := newDataRequest(dataOpHistory, []interface{}{historyKey, 0, rangeBound}, true)
+	e.dataCh <- dr
+	resp := dr.result()
+	if resp.err != nil {
+		return nil, resp.err
 	}
-	return sliceOfMessages(reply, nil)
+	return sliceOfMessages(resp.reply, nil)
 }
 
 // Channels - see engine interface description.
 // Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
 func (e *Shard) Channels() ([]string, error) {
-	conn := e.pool.Get()
-	defer conn.Close()
-
-	messagePrefix := e.messagePrefix
-
-	reply, err := conn.Do("PUBSUB", "CHANNELS", messagePrefix+"*")
+	dr := newDataRequest(dataOpChannels, []interface{}{"CHANNELS", e.messagePrefix + "*"}, true)
+	e.dataCh <- dr
+	resp := dr.result()
+	if resp.err != nil {
+		return nil, resp.err
+	}
+	values, err := redis.Values(resp.reply, nil)
 	if err != nil {
 		return nil, err
 	}
-
-	values, err := redis.Values(reply, err)
-	if err != nil {
-		return nil, err
-	}
-
 	channels := make([]string, 0, len(values))
 	for i := 0; i < len(values); i++ {
 		value, okValue := values[i].([]byte)
@@ -1547,7 +1696,7 @@ func (e *Shard) Channels() ([]string, error) {
 			return nil, errors.New("error getting ChannelID value")
 		}
 		chID := ChannelID(value)
-		channels = append(channels, string(string(chID)[len(messagePrefix):]))
+		channels = append(channels, string(string(chID)[len(e.messagePrefix):]))
 	}
 	return channels, nil
 }
@@ -1619,32 +1768,4 @@ func apiCmd(n *node.Node, cmd proto.APICommand) error {
 		return nil
 	}
 	return err
-}
-
-// consistentIndex is an adapted function from https://github.com/dgryski/go-jump
-// package by Damian Gryski. It consistently chooses a hash bucket number in the
-// range [0, numBuckets) for the given string. numBuckets must be >= 1.
-func consistentIndex(s string, numBuckets int) int {
-
-	hash := fnv.New64a()
-	hash.Write([]byte(s))
-	key := hash.Sum64()
-
-	var b int64 = -1
-	var j int64
-
-	for j < int64(numBuckets) {
-		b = j
-		key = key*2862933555777941757 + 1
-		j = int64(float64(b+1) * (float64(int64(1)<<31) / float64((key>>33)+1)))
-	}
-
-	return int(b)
-}
-
-// index chooses bucket number in range [0, numBuckets).
-func index(s string, numBuckets int) int {
-	hash := fnv.New64a()
-	hash.Write([]byte(s))
-	return int(hash.Sum64() % uint64(numBuckets))
 }

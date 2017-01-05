@@ -943,9 +943,11 @@ func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeClientCommand) (proto.Resp
 
 		delete(c.channels, channel)
 
-		err = c.node.RemovePresence(channel, c.uid)
-		if err != nil {
-			logger.ERROR.Println(err)
+		if chOpts.Presence {
+			err = c.node.RemovePresence(channel, c.uid)
+			if err != nil {
+				logger.ERROR.Println(err)
+			}
 		}
 
 		if chOpts.JoinLeave {
