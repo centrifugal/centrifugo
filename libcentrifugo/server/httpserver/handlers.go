@@ -81,10 +81,6 @@ var DefaultMuxOptions = MuxOptions{
 	SockjsOptions: sockjs.DefaultOptions,
 }
 
-func listenHTTP(mux http.Handler, addr string, useSSL bool, sslCert, sslKey string, wg *sync.WaitGroup) {
-
-}
-
 func (s *HTTPServer) runHTTPServer() error {
 
 	nodeConfig := s.node.Config()
