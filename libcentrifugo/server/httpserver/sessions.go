@@ -39,6 +39,9 @@ func (sess *sockjsSession) Close(advice *conns.DisconnectAdvice) error {
 		return nil
 	}
 	sess.closed = true
+	if advice == nil {
+		advice = conns.DefaultDisconnectAdvice
+	}
 	reason, err := advice.JSONString()
 	if err != nil {
 		return err
@@ -142,12 +145,14 @@ func (sess *wsSession) Close(advice *conns.DisconnectAdvice) error {
 		sess.pingTimer.Stop()
 	}
 	sess.mu.Unlock()
-	deadline := time.Now().Add(time.Second)
-	reason, err := advice.JSONString()
-	if err != nil {
-		return err
+	if advice != nil {
+		deadline := time.Now().Add(time.Second)
+		reason, err := advice.JSONString()
+		if err != nil {
+			return err
+		}
+		msg := websocket.FormatCloseMessage(int(CloseStatus), reason)
+		sess.ws.WriteControl(websocket.CloseMessage, msg, deadline)
 	}
-	msg := websocket.FormatCloseMessage(int(CloseStatus), reason)
-	sess.ws.WriteControl(websocket.CloseMessage, msg, deadline)
 	return sess.ws.Close()
 }

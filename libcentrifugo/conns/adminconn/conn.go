@@ -95,11 +95,7 @@ func (c *adminClient) Close(advice *conns.DisconnectAdvice) error {
 		return nil
 	}
 
-	if advice == nil {
-		advice = conns.DefaultDisconnectAdvice
-	}
-
-	if advice.Reason != "" {
+	if advice != nil && advice.Reason != "" {
 		logger.DEBUG.Printf("Closing admin connection %s: %s", c.UID(), advice.Reason)
 	}
 

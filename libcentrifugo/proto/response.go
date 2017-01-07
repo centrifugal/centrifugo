@@ -202,14 +202,6 @@ type PublishBody struct {
 	Status  bool   `json:"status"`
 }
 
-// DisconnectBody represents body of disconnect response when we want to tell
-// client to disconnect. Optionally we can give client an advice to continue
-// reconnecting after receiving this.
-type DisconnectBody struct {
-	Reason    string `json:"reason"`
-	Reconnect bool   `json:"reconnect"`
-}
-
 // PingBody represents body of response in case of successful ping command.
 type PingBody struct {
 	Data string `json:"data,omitempty"`
@@ -372,22 +364,6 @@ func NewClientHistoryResponse(body HistoryBody) *ClientHistoryResponse {
 	return &ClientHistoryResponse{
 		clientResponse: clientResponse{
 			Method: "history",
-		},
-		Body: body,
-	}
-}
-
-// ClientDisconnectResponse represents response to client disconnect command.
-type ClientDisconnectResponse struct {
-	clientResponse
-	Body DisconnectBody `json:"body"`
-}
-
-// NewClientDisconnectResponse initializes ClientDisconnectResponse.
-func NewClientDisconnectResponse(body DisconnectBody) *ClientDisconnectResponse {
-	return &ClientDisconnectResponse{
-		clientResponse: clientResponse{
-			Method: "disconnect",
 		},
 		Body: body,
 	}

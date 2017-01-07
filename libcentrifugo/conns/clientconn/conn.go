@@ -275,34 +275,6 @@ func (c *client) Send(message []byte) error {
 	return nil
 }
 
-// sendDisconnect sends disconnect advice to client before closing connection.
-// Client message queue must be closed before calling this to prevent concurrent
-// writes into session transport connection.
-func (c *client) sendDisconnect(advice *conns.DisconnectAdvice) error {
-	body := proto.DisconnectBody{
-		Reason:    advice.Reason,
-		Reconnect: advice.Reconnect,
-	}
-	resp := proto.NewClientDisconnectResponse(body)
-	jsonResp, err := json.Marshal(resp)
-	if err != nil {
-		return err
-	}
-	// Here we know that sending goroutine completed so we can
-	// safely write into session - i.e. avoid concurrent writes.
-	sent := make(chan struct{})
-	go func() {
-		defer close(sent)
-		c.sess.Send(jsonResp)
-	}()
-	select {
-	case <-sent:
-	case <-time.After(time.Second):
-		return proto.ErrSendTimeout
-	}
-	return nil
-}
-
 // clean called when connection was closed to make different clean up
 // actions for a client
 func (c *client) Close(advice *conns.DisconnectAdvice) error {
@@ -338,18 +310,6 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		}
 	}
 
-	if advice != nil {
-		select {
-		case <-c.sendFinished:
-			err := c.sendDisconnect(advice)
-			if err != nil {
-				logger.DEBUG.Printf("Error sending disconnect: %v", err)
-			}
-		case <-time.After(time.Second):
-			logger.DEBUG.Println("Timeout stopping sendMessages goroutine")
-		}
-	}
-
 	if c.expireTimer != nil {
 		c.expireTimer.Stop()
 	}
@@ -366,11 +326,7 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		c.node.Mediator().Disconnect(c.uid, c.user)
 	}
 
-	if advice == nil {
-		advice = conns.DefaultDisconnectAdvice
-	}
-
-	if advice.Reason != "" {
+	if advice != nil && advice.Reason != "" {
 		logger.DEBUG.Printf("Closing connection %s (user %s): %s", c.uid, c.user, advice.Reason)
 	}
 
