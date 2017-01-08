@@ -15,20 +15,26 @@ const (
 )
 
 type sockjsSession struct {
-	mu           sync.RWMutex
-	closed       bool
-	sess         sockjs.Session
-	writeTimeout time.Duration
+	mu      sync.RWMutex
+	closed  bool
+	closeCh chan struct{}
+	sess    sockjs.Session
 }
 
 func newSockjsSession(sess sockjs.Session) *sockjsSession {
 	return &sockjsSession{
-		sess: sess,
+		sess:    sess,
+		closeCh: make(chan struct{}),
 	}
 }
 
 func (sess *sockjsSession) Send(msg []byte) error {
-	return sess.sess.Send(string(msg))
+	select {
+	case <-sess.closeCh:
+		return nil
+	default:
+		return sess.sess.Send(string(msg))
+	}
 }
 
 func (sess *sockjsSession) Close(advice *conns.DisconnectAdvice) error {
@@ -39,6 +45,7 @@ func (sess *sockjsSession) Close(advice *conns.DisconnectAdvice) error {
 		return nil
 	}
 	sess.closed = true
+	close(sess.closeCh)
 	if advice == nil {
 		advice = conns.DefaultDisconnectAdvice
 	}
