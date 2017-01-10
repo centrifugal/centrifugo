@@ -1,0 +1,12 @@
+class Centrifugo < Formula
+  desc "Centrifugo"
+  homepage "https://github.com/centrifugal/centrifugo"
+  url "https://github.com/centrifugal/centrifugo/releases/download/v%version%/centrifugo-%version%-darwin-amd64.zip"
+  sha256 "%checksum%"
+
+  def install
+    system "chmod", "+x", "centrifugo"
+    system "mkdir", "#{prefix}/bin"
+    system "cp", "centrifugo", "#{prefix}/bin/centrifugo"
+  end
+end

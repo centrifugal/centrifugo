@@ -8,11 +8,18 @@ Read [documentation](http://fzambia.gitbooks.io/centrifugal/content/) to get det
 
 Releases available as single executable files – just [download latest release](https://github.com/centrifugal/centrifugo/releases) for your platform, unpack and run.
 
+If you are on MacOS:
+
+```
+brew tap centrifugal/centrifugo https://github.com/centrifugal/centrifugo
+brew install centrifugo
+```
+
 See official [Docker image](https://hub.docker.com/r/centrifugo/centrifugo/).
 
 There are also [packages for 64-bit Debian, Centos and Ubuntu](https://packagecloud.io/FZambia/centrifugo).
 
-Try [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo`). Or deploy your own Centrifugo instance in one click:
+Try our [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo`). Or deploy your own Centrifugo instance in one click:
 
 [![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/centrifugal/centrifugo)
 
