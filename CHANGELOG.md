@@ -1,17 +1,20 @@
-v1.6.2 (not released yet)
-=========================
-
-No backwards incompatible changes here.
+v1.6.2
+======
 
 ### Features
 
 * Use Redis pipelining and single connection for presence/history/channels operations. This increases performance of those operations especially on systems with many CPU cores.
 * Homebrew formula to install Centrifugo on MacOS, see README for instructions.
+* Update gorilla websocket library - there is one more update for websocket compression: pool flate readers which should increase compression performance.
 
 ### Fixes
 
 * Fix calling presence remove for every channel (not only channels with presence option enabled).
-* Change subscribing/unsubscribing algorithm to Redis channels - it fixes theretical possibility ow wrong subscribing state in Redis.
+* Change subscribing/unsubscribing algorithm to Redis channels - it fixes theretical possibility of wrong subscribing state in Redis.
+
+### Internal (for developers/contributors)
+
+* We don't use `disconnect` message before closing client connections anymore - we rely on websocket/SockJS close reason now (which is JSON encoded `DisconnectAdvice`). Our js client already handles that reason, so no breaking changes there. Some work required in other clients though to support `reconnect: false` in advice.
 
 v1.6.1
 ======
