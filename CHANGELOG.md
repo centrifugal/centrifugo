@@ -1,3 +1,18 @@
+v1.6.2 (not released yet)
+=========================
+
+No backwards incompatible changes here.
+
+### Features
+
+* Use Redis pipelining and single connection for presence/history/channels operations. This increases performance of those operations especially on systems with many CPU cores.
+* Homebrew formula to install Centrifugo on MacOS, see README for instructions.
+
+### Fixes
+
+* Fix calling presence remove for every channel (not only channels with presence option enabled).
+* Change subscribing/unsubscribing algorithm to Redis channels - it fixes theretical possibility ow wrong subscribing state in Redis.
+
 v1.6.1
 ======
 
