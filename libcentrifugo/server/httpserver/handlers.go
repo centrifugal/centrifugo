@@ -354,11 +354,8 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	ws, err := upgrader.Upgrade(w, r, nil)
-	if _, ok := err.(websocket.HandshakeError); ok {
-		http.Error(w, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
-		return
-	} else if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+	if err != nil {
+		logger.DEBUG.Printf("Websocket connection upgrade error: %#v", err.Error())
 		return
 	}
 
@@ -577,11 +574,8 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
-	if _, ok := err.(websocket.HandshakeError); ok {
-		http.Error(w, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
-		return
-	} else if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+	if err != nil {
+		logger.DEBUG.Printf("Admin connection upgrade error: %#v", err.Error())
 		return
 	}
 
