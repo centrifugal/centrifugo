@@ -635,29 +635,6 @@ func TestClientPing(t *testing.T) {
 	assert.Equal(t, nil, resp.(*proto.ClientPingResponse).ResponseError.Err)
 }
 
-func TestClientIsIdle(t *testing.T) {
-	app := NewTestNode()
-	conf := app.Config()
-	conf.ClientMaxIdleTimeout = time.Second
-	app.SetConfig(&conf)
-	c, err := New(app, NewTestSession())
-	assert.Equal(t, nil, err)
-
-	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	cmds := []proto.ClientCommand{testConnectCmd(timestamp)}
-	cmdBytes, _ := json.Marshal(cmds)
-	err = c.(*client).Handle(cmdBytes)
-	assert.Equal(t, nil, err)
-
-	isIdle := c.(*client).isIdle()
-	assert.Equal(t, false, isIdle)
-
-	time.Sleep(2 * time.Second)
-
-	isIdle = c.(*client).isIdle()
-	assert.Equal(t, true, isIdle)
-}
-
 func testSubscribeRecoverCmd(channel string, last string, rec bool) proto.ClientCommand {
 	subscribeCmd := proto.SubscribeClientCommand{
 		Channel: string(channel),
