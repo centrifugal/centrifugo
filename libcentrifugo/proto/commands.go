@@ -73,7 +73,6 @@ type ConnectClientCommand struct {
 	Timestamp string `json:"timestamp"`
 	Info      string `json:"info"`
 	Token     string `json:"token"`
-	Ping      bool   `json:"ping"`
 }
 
 // RefreshClientCommand is used to prolong connection lifetime when connection check

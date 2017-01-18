@@ -62,9 +62,6 @@ type client struct {
 	maxQueueSize   int
 	maxRequestSize int
 	sendFinished   chan struct{}
-	ping           bool
-	lastSeen       int64
-	lastSeenMu     sync.RWMutex
 }
 
 var (
@@ -174,23 +171,8 @@ func (c *client) updateChannelPresence(ch string) {
 	c.node.AddPresence(ch, c.uid, c.info(ch))
 }
 
-func (c *client) isIdle() bool {
-	config := c.node.Config()
-	maxIdleTimeout := config.ClientMaxIdleTimeout
-	c.lastSeenMu.RLock()
-	lastSeen := c.lastSeen
-	c.lastSeenMu.RUnlock()
-	return time.Now().Unix()-lastSeen > int64(maxIdleTimeout.Seconds())
-}
-
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
-
-	if c.ping && c.isIdle() {
-		go c.Close(nil)
-		return
-	}
-
 	c.RLock()
 	if c.closed {
 		return
@@ -342,11 +324,6 @@ func (c *client) info(ch string) proto.ClientInfo {
 }
 
 func (c *client) Handle(msg []byte) error {
-
-	c.lastSeenMu.Lock()
-	c.lastSeen = time.Now().Unix()
-	c.lastSeenMu.Unlock()
-
 	started := time.Now()
 	defer func() {
 		plugin.Metrics.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
@@ -604,7 +581,6 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	}
 
 	c.user = user
-	c.ping = cmd.Ping
 
 	body := proto.ConnectBody{}
 	body.Version = version
