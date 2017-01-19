@@ -1,3 +1,19 @@
+v1.6.3
+======
+
+This release fixes wrong decision made in 1.6.x related to pings. We don't rely on client to server 
+pings to disconnect clients anymore, we also moved back SockJS heartbeat frames - i.e. sending them 
+from server to client every 25 seconds as before (in Centrifugo < 1.6.0). Recent changes in `centrifuge-js` (version 1.4.2) allowed us to not introduce addition reconnects for SockJS polling 
+transports when sending client to server automatic ping. We also updated documentation [chapter about 
+pings](https://fzambia.gitbooks.io/centrifugal/content/mixed/ping.html) a bit.
+
+### Fixes
+
+* Random disconnects from Centrifugo when using automatic client to server pings. This is a default 
+behaviour so it affects almost everyone who using Centrifugo 1.6.x, fixes https://github.com/centrifugal/centrifugo/issues/142
+* Fix writing headers after headers already written in raw websocket endpoint - this remove annoying log line appearing after client can't upgrade connection to Websocket.
+
+
 v1.6.2
 ======
 

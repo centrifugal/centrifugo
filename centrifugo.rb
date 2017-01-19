@@ -1,8 +1,8 @@
 class Centrifugo < Formula
   desc "Centrifugo"
   homepage "https://github.com/centrifugal/centrifugo"
-  url "https://github.com/centrifugal/centrifugo/releases/download/v1.6.2/centrifugo-1.6.2-darwin-amd64.zip"
-  sha256 "a1b3d6b9ad5c7a53d95e70357f9a7e25f664e37cb15473fa8ea84d5a7b0db6cf"
+  url "https://github.com/centrifugal/centrifugo/releases/download/v1.6.3/centrifugo-1.6.3-darwin-amd64.zip"
+  sha256 "98bf03e36a5b55ecc98e6314725b1bc77d1b224823827a9b7b4bbc57571422d5"
 
   def install
     system "chmod", "+x", "centrifugo"
