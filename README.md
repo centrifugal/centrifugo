@@ -4,7 +4,9 @@ Centrifugo is a real-time messaging server. It's language-agnostic and can be us
 
 Centrifugo runs as separate service and keeps persistent Websocket or SockJS connections from your application clients (from [web](https://github.com/centrifugal/centrifuge-js) browsers or other environments like [iOS](https://github.com/centrifugal/centrifuge-ios) or [Android](https://github.com/centrifugal/centrifuge-android) apps). When some event happens you can broadcast it to all interested clients using Centrifugo API.
 
-Read [documentation](http://fzambia.gitbooks.io/centrifugal/content/) to get details. You can also find [this introduction post](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) interesting – this is a story behind Centrifugo.
+[Documentation](http://fzambia.gitbooks.io/centrifugal/content/) is a good start to get all details. You can also find [this introduction post](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) interesting – this is a story behind Centrifugo.
+
+### How to install
 
 Releases available as single executable files – just [download latest release](https://github.com/centrifugal/centrifugo/releases) for your platform, unpack and run.
 
@@ -19,11 +21,14 @@ See official [Docker image](https://hub.docker.com/r/centrifugo/centrifugo/).
 
 There are also [packages for 64-bit Debian, Centos and Ubuntu](https://packagecloud.io/FZambia/centrifugo).
 
+### Demo
+
 Try our [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo`). Or deploy your own Centrifugo instance in one click:
 
 [![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/centrifugal/centrifugo)
 
-Highlights:
+### Highlights
+
 * Fast server capable to serve thousands of simultaneous connections
 * Easily integrates with existing application – no need to rewrite your backend code to introduce real-time events
 * HTTP API to communicate from your application backend (publish messages in channels etc.). API clients for Python, Ruby, PHP, Go, NodeJS. Simple to implement new one
@@ -41,6 +46,6 @@ Highlights:
 * Ready to deploy (docker image, RPM/DEB packages, Nginx configuration, automatic Let's Encrypt TLS certificates)
 * MIT license
 
-Simplified scheme:
+### Simplified scheme
 
 ![scheme](https://raw.githubusercontent.com/centrifugal/documentation/master/assets/images/scheme.png)
