@@ -241,7 +241,8 @@ type Conn struct {
 	writeErr   error
 
 	enableWriteCompression bool
-	newCompressionWriter   func(io.WriteCloser) io.WriteCloser
+	compressionLevel       int
+	newCompressionWriter   func(io.WriteCloser, int) io.WriteCloser
 
 	// Read fields
 	reader        io.ReadCloser // the current reader returned to the application
@@ -285,6 +286,7 @@ func newConn(conn net.Conn, isServer bool, readBufferSize, writeBufferSize int) 
 		readFinal:              true,
 		writeBuf:               make([]byte, writeBufferSize+maxFrameHeaderSize),
 		enableWriteCompression: true,
+		compressionLevel:       defaultCompressionLevel,
 	}
 	c.SetCloseHandler(nil)
 	c.SetPingHandler(nil)
@@ -450,7 +452,7 @@ func (c *Conn) NextWriter(messageType int) (io.WriteCloser, error) {
 	}
 	c.writer = mw
 	if c.newCompressionWriter != nil && c.enableWriteCompression && isData(messageType) {
-		w := c.newCompressionWriter(c.writer)
+		w := c.newCompressionWriter(c.writer, c.compressionLevel)
 		mw.compress = true
 		c.writer = w
 	}
@@ -981,6 +983,15 @@ func (c *Conn) CloseHandler() func(code int, text string) error {
 // The code argument to h is the received close code or CloseNoStatusReceived
 // if the close message is empty. The default close handler sends a close frame
 // back to the peer.
+//
+// The application must read the connection to process close messages as
+// described in the section on Control Frames above.
+//
+// The connection read methods return a CloseError when a close frame is
+// received. Most applications should handle close messages as part of their
+// normal error handling. Applications should only set a close handler when the
+// application must perform some action before sending a close frame back to
+// the peer.
 func (c *Conn) SetCloseHandler(h func(code int, text string) error) {
 	if h == nil {
 		h = func(code int, text string) error {
@@ -1003,6 +1014,9 @@ func (c *Conn) PingHandler() func(appData string) error {
 // SetPingHandler sets the handler for ping messages received from the peer.
 // The appData argument to h is the PING frame application data. The default
 // ping handler sends a pong to the peer.
+//
+// The application must read the connection to process ping messages as
+// described in the section on Control Frames above.
 func (c *Conn) SetPingHandler(h func(appData string) error) {
 	if h == nil {
 		h = func(message string) error {
@@ -1026,6 +1040,9 @@ func (c *Conn) PongHandler() func(appData string) error {
 // SetPongHandler sets the handler for pong messages received from the peer.
 // The appData argument to h is the PONG frame application data. The default
 // pong handler does nothing.
+//
+// The application must read the connection to process ping messages as
+// described in the section on Control Frames above.
 func (c *Conn) SetPongHandler(h func(appData string) error) {
 	if h == nil {
 		h = func(string) error { return nil }
@@ -1044,6 +1061,18 @@ func (c *Conn) UnderlyingConn() net.Conn {
 // compression was not negotiated with the peer.
 func (c *Conn) EnableWriteCompression(enable bool) {
 	c.enableWriteCompression = enable
+}
+
+// SetCompressionLevel sets the flate compression level for subsequent text and
+// binary messages. This function is a noop if compression was not negotiated
+// with the peer. See the compress/flate package for a description of
+// compression levels.
+func (c *Conn) SetCompressionLevel(level int) error {
+	if !isValidCompressionLevel(level) {
+		return errors.New("websocket: invalid compression level")
+	}
+	c.compressionLevel = level
+	return nil
 }
 
 // FormatCloseMessage formats closeCode and text as a WebSocket close message.
