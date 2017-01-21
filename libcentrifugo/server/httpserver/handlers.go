@@ -331,6 +331,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 
 	s.RLock()
 	wsCompression := s.config.WebsocketCompression
+	wsCompressionLevel := s.config.WebsocketCompressionLevel
 	wsCompressionMinSize := s.config.WebsocketCompressionMinSize
 	wsReadBufferSize := s.config.WebsocketReadBufferSize
 	wsWriteBufferSize := s.config.WebsocketWriteBufferSize
@@ -357,6 +358,13 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		logger.DEBUG.Printf("Websocket connection upgrade error: %#v", err.Error())
 		return
+	}
+
+	if wsCompression {
+		err := ws.SetCompressionLevel(wsCompressionLevel)
+		if err != nil {
+			logger.ERROR.Printf("Error setting websocket compression level: %v", err)
+		}
 	}
 
 	config := s.node.Config()

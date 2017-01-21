@@ -56,6 +56,10 @@ type Config struct {
 	// try to negotiate it with client.
 	WebsocketCompression bool `json:"websocket_compression"`
 
+	// WebsocketCompressionLevel sets a level for websocket compression.
+	// See posiible value description at https://golang.org/pkg/compress/flate/#NewWriter
+	WebsocketCompressionLevel int `json:"websocket_compression_level"`
+
 	// WebsocketCompressionMinSize allows to set minimal limit in bytes for message to use
 	// compression when writing it into client connection. By default it's 0 - i.e. all messages
 	// will be compressed when WebsocketCompression enabled and compression negotiated with client.
@@ -95,6 +99,7 @@ func newConfig(c config.Getter) *Config {
 	cfg.SSLAutocertCacheDir = c.GetString("ssl_autocert_cache_dir")
 	cfg.SSLAutocertEmail = c.GetString("ssl_autocert_email")
 	cfg.WebsocketCompression = c.GetBool("websocket_compression")
+	cfg.WebsocketCompressionLevel = c.GetInt("websocket_compression_level")
 	cfg.WebsocketCompressionMinSize = c.GetInt("websocket_compression_min_size")
 	cfg.WebsocketReadBufferSize = c.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = c.GetInt("websocket_write_buffer_size")
