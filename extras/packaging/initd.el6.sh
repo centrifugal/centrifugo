@@ -52,9 +52,9 @@ if [ ! -f "$STDERR" ]; then
     mkdir -p $(dirname $STDERR)
 fi
 
-[ -e /etc/sysconfig/centrifugo ] && . /etc/sysconfig/centrifugo
-
 lockfile="/var/lock/subsys/centrifugo"
+
+[ -e /etc/sysconfig/centrifugo ] && . /etc/sysconfig/centrifugo
 
 if ! [ -x $DAEMON ]; then
   echo "$DAEMON binary not found."
