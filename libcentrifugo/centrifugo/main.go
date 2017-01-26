@@ -2,6 +2,7 @@ package centrifugo
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -21,6 +22,8 @@ import (
 )
 
 func setupLogging() {
+	log.SetFlags(0)
+	log.SetOutput(logger.INFO)
 	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString("log_level"))]
 	if !ok {
 		logLevel = logger.LevelInfo
