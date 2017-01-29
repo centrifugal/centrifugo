@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"github.com/igm/sockjs-go/sockjs"
 	"github.com/rakyll/statik/fs"
 	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/net/http2"
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -208,12 +210,31 @@ func (s *HTTPServer) runHTTPServer() error {
 						GetCertificate: certManager.GetCertificate,
 					},
 				}
+
+				// TODO: actually we won't need this when building with Go > 1.8
+				// See https://github.com/centrifugal/centrifugo/issues/145
+				if !strings.Contains(os.Getenv("GODEBUG"), "http2server=0") {
+					if err := http2.ConfigureServer(server, nil); err != nil {
+						logger.FATAL.Fatalln("Configuring HTTP/2 server error:", err)
+					}
+				}
+
 				if err := server.ListenAndServeTLS("", ""); err != nil {
 					logger.FATAL.Fatalln("ListenAndServe:", err)
 				}
 			} else if sslEnabled {
 				// Autocert disabled - just try to use provided SSL cert and key files.
-				if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
+				server := &http.Server{Addr: addr, Handler: mux}
+
+				// TODO: actually we won't need this when building with Go > 1.8
+				// See https://github.com/centrifugal/centrifugo/issues/145
+				if !strings.Contains(os.Getenv("GODEBUG"), "http2server=0") {
+					if err := http2.ConfigureServer(server, nil); err != nil {
+						logger.FATAL.Fatalln("Configuring HTTP/2 server error:", err)
+					}
+				}
+
+				if err := server.ListenAndServeTLS(sslCert, sslKey); err != nil {
 					logger.FATAL.Fatalln("ListenAndServe:", err)
 				}
 			} else {
