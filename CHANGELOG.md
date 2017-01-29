@@ -1,3 +1,21 @@
+v1.6.4 (not released yet)
+=========================
+
+No backwards incompatible changes here.
+
+### Features
+
+* configurable websocket compression level - see [updated docs](https://fzambia.gitbooks.io/centrifugal/content/mixed/websocket_compression.html) 
+
+### Fixes
+
+* fixes crash when using builtin TLS server - see [#145](https://github.com/centrifugal/centrifugo/issues/145)
+
+### Internal (for developers/contributors)
+
+* Using Go 1.7.5 for builds
+
+
 v1.6.3
 ======
 
