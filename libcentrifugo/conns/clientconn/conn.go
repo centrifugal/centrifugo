@@ -736,7 +736,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 	}
 
 	if len(c.channels) >= channelLimit {
-		logger.ERROR.Printf("maximimum limit of channels per client reached: %d", channelLimit)
+		logger.ERROR.Printf("maximum limit of channels per client reached: %d", channelLimit)
 		resp := proto.NewClientSubscribeResponse(body)
 		resp.SetErr(proto.ResponseError{proto.ErrLimitExceeded, proto.ErrorAdviceFix})
 		return resp, nil
