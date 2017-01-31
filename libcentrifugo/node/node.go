@@ -108,6 +108,7 @@ func init() {
 	metricsRegistry.RegisterGauge("node_num_clients", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("node_num_unique_clients", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("node_num_channels", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("node_uptime_seconds", metrics.NewGauge())
 }
 
 // New creates Node, the only required argument is config.
@@ -562,6 +563,7 @@ func (n *Node) pubPing() error {
 	metricsRegistry.Gauges.Set("node_num_unique_clients", int64(n.clients.NumUniqueClients()))
 	metricsRegistry.Gauges.Set("node_num_channels", int64(n.clients.NumChannels()))
 	metricsRegistry.Gauges.Set("node_num_goroutine", int64(runtime.NumGoroutine()))
+	metricsRegistry.Gauges.Set("node_uptime_seconds", time.Now().Unix()-n.started)
 
 	metricsSnapshot := make(map[string]int64)
 	n.metricsMu.RLock()
