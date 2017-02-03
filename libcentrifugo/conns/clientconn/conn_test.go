@@ -10,10 +10,22 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
+	"github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
 )
+
+func NewTestMemoryNode() *node.Node {
+	c := NewTestConfig()
+	n := node.New("", c)
+	e, _ := enginememory.New(n, nil)
+	err := n.Run(&node.RunOptions{Engine: e})
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
 
 type TestEngine struct{}
 
@@ -649,53 +661,55 @@ func testSubscribeRecoverCmd(channel string, last string, rec bool) proto.Client
 	return cmd
 }
 
-/*
 func TestSubscribeRecover(t *testing.T) {
-	app := testMemoryApp()
-	app.config.Recover = true
-	app.config.HistoryLifetime = 30
-	app.config.HistorySize = 5
+	app := NewTestMemoryNode()
+	conf := app.Config()
+	conf.Recover = true
+	conf.HistoryLifetime = 30
+	conf.HistorySize = 5
+	app.SetConfig(&conf)
 
-	c, err := app.NewClient(&testSession{}, nil)
+	c, err := New(app, NewTestSession())
 	assert.Equal(t, nil, err)
 
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-	cmds := []clientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
+	cmds := []proto.ClientCommand{testConnectCmd(timestamp), testSubscribeCmd("test")}
 	err = c.(*client).handleCommands(cmds)
 	assert.Equal(t, nil, err)
 
 	data, _ := json.Marshal(map[string]string{"input": "test"})
-	err = app.Publish(Channel("test"), data, ConnID(""), nil)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, int64(1), metricsRegistry.Counters.LoadRaw("num_msg_published"))
 
-	messages, _ := app.History(string("test"))
+	msg := proto.NewMessage("test", data, "", nil)
+	err = <-app.Publish(msg, nil)
+	assert.Equal(t, nil, err)
+
+	messages, _ := app.History("test")
 	assert.Equal(t, 1, len(messages))
 	message := messages[0]
 	last := message.UID
 
 	// test setting last message uid when no uid provided
-	c, _ = app.NewClient(&testSession{}, nil)
+	c, _ = New(app, NewTestSession())
 	cmds = []proto.ClientCommand{testConnectCmd(timestamp)}
 	err = c.(*client).handleCommands(cmds)
 	assert.Equal(t, nil, err)
 	subscribeCmd := testSubscribeCmd("test")
 	resp, err := c.(*client).handleCmd(subscribeCmd)
 	assert.Equal(t, nil, err)
-	assert.Equal(t, last, string(resp.(*proto.ClientSubscribeResponse).Body.Last))
+	assert.Equal(t, last, resp.(*proto.ClientSubscribeResponse).Body.Last)
 
 	// publish 2 messages since last
 	data, _ = json.Marshal(map[string]string{"input": "test1"})
-	err = app.Publish(Channel("test"), data, ConnID(""), nil)
+	msg = proto.NewMessage("test", data, "", nil)
+	err = <-app.Publish(msg, nil)
 	assert.Equal(t, nil, err)
 	data, _ = json.Marshal(map[string]string{"input": "test2"})
-	err = app.Publish(Channel("test"), data, ConnID(""), nil)
+	msg = proto.NewMessage("test", data, "", nil)
+	err = <-app.Publish(msg, nil)
 	assert.Equal(t, nil, err)
 
-	assert.Equal(t, int64(3), app.metrics.NumMsgPublished.LoadRaw())
-
 	// test no messages recovered when recover is false in subscribe cmd
-	c, _ = app.NewClient(&testSession{}, nil)
+	c, _ = New(app, NewTestSession())
 	cmds = []proto.ClientCommand{testConnectCmd(timestamp)}
 	err = c.(*client).handleCommands(cmds)
 	assert.Equal(t, nil, err)
@@ -706,7 +720,7 @@ func TestSubscribeRecover(t *testing.T) {
 	assert.NotEqual(t, last, resp.(*proto.ClientSubscribeResponse).Body.Last)
 
 	// test normal recover
-	c, _ = app.NewClient(&testSession{}, nil)
+	c, _ = New(app, NewTestSession())
 	cmds = []proto.ClientCommand{testConnectCmd(timestamp)}
 	err = c.(*client).handleCommands(cmds)
 	assert.Equal(t, nil, err)
@@ -715,7 +729,7 @@ func TestSubscribeRecover(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(resp.(*proto.ClientSubscribeResponse).Body.Messages))
 	assert.Equal(t, true, resp.(*proto.ClientSubscribeResponse).Body.Recovered)
-	assert.Equal(t, MessageID(""), resp.(*proto.ClientSubscribeResponse).Body.Last)
+	assert.Equal(t, "", resp.(*proto.ClientSubscribeResponse).Body.Last)
 	messages = resp.(*proto.ClientSubscribeResponse).Body.Messages
 	m0, _ := json.Marshal(messages[0].Data)
 	m1, _ := json.Marshal(messages[1].Data)
@@ -726,10 +740,11 @@ func TestSubscribeRecover(t *testing.T) {
 	// test part recover - when Centrifugo can not recover all missed messages
 	for i := 0; i < 10; i++ {
 		data, _ = json.Marshal(map[string]string{"input": "test1"})
-		err = app.Publish(string("test"), data, string(""), nil)
+		msg = proto.NewMessage("test", data, "", nil)
+		err = <-app.Publish(msg, nil)
 		assert.Equal(t, nil, err)
 	}
-	c, _ = app.NewClient(&testSession{}, nil)
+	c, _ = New(app, NewTestSession())
 	cmds = []proto.ClientCommand{testConnectCmd(timestamp)}
 	err = c.(*client).handleCommands(cmds)
 	assert.Equal(t, nil, err)
@@ -739,4 +754,3 @@ func TestSubscribeRecover(t *testing.T) {
 	assert.Equal(t, 5, len(resp.(*proto.ClientSubscribeResponse).Body.Messages))
 	assert.Equal(t, false, resp.(*proto.ClientSubscribeResponse).Body.Recovered)
 }
-*/
