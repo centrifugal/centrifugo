@@ -1,19 +1,24 @@
-v1.6.4 (not released yet)
-=========================
+v1.6.4
+======
 
 No backwards incompatible changes here.
 
+We **consider removing** `timestamp` field from message as it's seems useless and never used by Centrifugo users. Applications that need timestamp for some reason can include it into message JSON payload. If you have any objections please look at [issue #147](https://github.com/centrifugal/centrifugo/issues/147) and write your thoughts against removing this field.
+
 ### Features
 
-* configurable websocket compression level - see [updated docs](https://fzambia.gitbooks.io/centrifugal/content/mixed/websocket_compression.html) 
+* configurable websocket compression level - see [updated docs](https://fzambia.gitbooks.io/centrifugal/content/mixed/websocket_compression.html). Bear in mind that compression is still very CPU and memory expensive
+* new metric `node_uptime_seconds` - see [updated docs](https://fzambia.gitbooks.io/centrifugal/content/server/stats.html) for stats
 
 ### Fixes
 
 * fixes crash when using builtin TLS server - see [#145](https://github.com/centrifugal/centrifugo/issues/145)
+* redirect Go std lib logging into our INFO logger
 
 ### Internal (for developers/contributors)
 
 * Using Go 1.7.5 for builds
+* As soon as Go 1.8 out we will be able to remove `x/net/http2` dependency as standard lib will contain fix for [#145](https://github.com/centrifugal/centrifugo/issues/145)
 
 
 v1.6.3
