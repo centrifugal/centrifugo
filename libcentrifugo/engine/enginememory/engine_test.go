@@ -164,6 +164,36 @@ func TestMemoryEngine(t *testing.T) {
 	assert.Equal(t, 2, len(h))
 }
 
+// Emulate history drop inactive edge case: when single client subscribes on channel
+// and then goes offline for a short time. At this moment we unsubscribe node from
+// channel but we have to save messages into history for history lifetime interval
+// so client could recover it.
+func TestMemoryEngineDropInactive(t *testing.T) {
+	e := testMemoryEngine()
+	conf := e.node.Config()
+	conf.HistoryDropInactive = true
+	conf.HistoryLifetime = 5
+	conf.HistorySize = 2
+	e.node.SetConfig(&conf)
+
+	err := e.Run()
+
+	msg := proto.Message{UID: "test UID", Channel: "channel-drop-inactive"}
+	opts, _ := e.node.ChannelOpts(msg.Channel)
+
+	assert.Nil(t, <-e.PublishMessage(&msg, &opts))
+	h, err := e.History(msg.Channel, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(h))
+
+	e.Unsubscribe(msg.Channel)
+
+	assert.Nil(t, <-e.PublishMessage(&msg, &opts))
+	h, err = e.History(msg.Channel, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(h))
+}
+
 func TestMemoryPresenceHub(t *testing.T) {
 	h := newPresenceHub()
 	assert.Equal(t, 0, len(h.presence))
@@ -201,10 +231,10 @@ func TestMemoryHistoryHub(t *testing.T) {
 	assert.Equal(t, 0, len(h.history))
 	ch1 := string("channel1")
 	ch2 := string("channel2")
-	h.add(ch1, proto.Message{}, addHistoryOpts{1, 1, false})
-	h.add(ch1, proto.Message{}, addHistoryOpts{1, 1, false})
-	h.add(ch2, proto.Message{}, addHistoryOpts{2, 1, false})
-	h.add(ch2, proto.Message{}, addHistoryOpts{2, 1, true}) // Test that adding only if active works when it's active
+	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch2, proto.Message{}, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch2, proto.Message{}, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 1, HistoryDropInactive: true}, false) // Test that adding only if active works when it's active
 	hist, err := h.get(ch1, 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(hist))
@@ -219,18 +249,18 @@ func TestMemoryHistoryHub(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(hist))
 
-	// Now test adding history for inactive channel is a no-op if OnlySaveIfActvie is true
-	h.add(ch2, proto.Message{}, addHistoryOpts{2, 10, true})
+	// Now test adding history for inactive channel is a no-op if HistoryDropInactive is true
+	h.add(ch2, proto.Message{}, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 10, HistoryDropInactive: true}, false)
 	assert.Equal(t, 0, len(h.history))
 	hist, err = h.get(ch2, 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(hist))
 
 	// test history messages limit
-	h.add(ch1, proto.Message{}, addHistoryOpts{10, 1, false})
-	h.add(ch1, proto.Message{}, addHistoryOpts{10, 1, false})
-	h.add(ch1, proto.Message{}, addHistoryOpts{10, 1, false})
-	h.add(ch1, proto.Message{}, addHistoryOpts{10, 1, false})
+	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 10, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 10, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 10, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 10, HistoryLifetime: 1, HistoryDropInactive: false}, false)
 	hist, err = h.get(ch1, 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 4, len(hist))
@@ -239,8 +269,8 @@ func TestMemoryHistoryHub(t *testing.T) {
 	assert.Equal(t, 1, len(hist))
 
 	// test history limit greater than history size
-	h.add(ch1, proto.Message{}, addHistoryOpts{1, 1, false})
-	h.add(ch1, proto.Message{}, addHistoryOpts{1, 1, false})
+	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}, false)
 	hist, err = h.get(ch1, 2)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(hist))

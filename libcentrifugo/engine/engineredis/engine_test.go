@@ -252,6 +252,36 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
+func TestMemoryEngineDropInactive(t *testing.T) {
+	c := dial()
+	defer c.close()
+
+	e := NewTestRedisEngine()
+
+	conf := e.node.Config()
+	conf.HistoryDropInactive = true
+	conf.HistoryLifetime = 5
+	conf.HistorySize = 2
+	e.node.SetConfig(&conf)
+
+	err := e.Run()
+
+	msg := proto.Message{UID: "test UID", Channel: "channel-drop-inactive"}
+	opts, _ := e.node.ChannelOpts(msg.Channel)
+
+	assert.Nil(t, <-e.PublishMessage(&msg, &opts))
+	h, err := e.History(msg.Channel, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(h))
+
+	e.Unsubscribe(msg.Channel)
+
+	assert.Nil(t, <-e.PublishMessage(&msg, &opts))
+	h, err = e.History(msg.Channel, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(h))
+}
+
 func TestRedisEngineSubscribeUnsubscribe(t *testing.T) {
 	c := dial()
 	defer c.close()

@@ -73,12 +73,7 @@ func (e *MemoryEngine) PublishMessage(message *proto.Message, opts *proto.Channe
 	hasCurrentSubscribers := e.node.ClientHub().NumSubscribers(ch) > 0
 
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
-		histOpts := addHistoryOpts{
-			Size:         opts.HistorySize,
-			Lifetime:     opts.HistoryLifetime,
-			DropInactive: (opts.HistoryDropInactive && !hasCurrentSubscribers),
-		}
-		err := e.historyHub.add(ch, *message, histOpts)
+		err := e.historyHub.add(ch, *message, opts, hasCurrentSubscribers)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
@@ -124,6 +119,9 @@ func (e *MemoryEngine) Subscribe(ch string) error {
 
 // Unsubscribe is noop here.
 func (e *MemoryEngine) Unsubscribe(ch string) error {
+	if chOpts, err := e.node.ChannelOpts(ch); err == nil && chOpts.HistoryDropInactive {
+		e.historyHub.touch(ch, &chOpts)
+	}
 	return nil
 }
 
@@ -238,18 +236,6 @@ func newHistoryHub() *historyHub {
 	}
 }
 
-type addHistoryOpts struct {
-	// Size is maximum size of channel history that engine must maintain.
-	Size int
-	// Lifetime is maximum amount of seconds history messages should exist
-	// before expiring and most probably being deleted (to prevent memory leaks).
-	Lifetime int
-	// DropInactive hints to the engine that there were no actual subscribers
-	// connected when message was published, and that it can skip saving if there is
-	// no unexpired history for the channel (i.e. no subscribers active within history_lifetime)
-	DropInactive bool
-}
-
 func (h *historyHub) initialize() {
 	go h.expire()
 }
@@ -286,18 +272,41 @@ func (h *historyHub) expire() {
 	}
 }
 
-func (h *historyHub) add(ch string, msg proto.Message, opts addHistoryOpts) error {
+func (h *historyHub) touch(ch string, opts *proto.ChannelOptions) {
+	h.Lock()
+	defer h.Unlock()
+
+	item, ok := h.history[ch]
+	expireAt := time.Now().Unix() + int64(opts.HistoryLifetime)
+
+	heap.Push(&h.queue, &priority.Item{Value: ch, Priority: expireAt})
+
+	if !ok {
+		h.history[ch] = historyItem{
+			messages: []proto.Message{},
+			expireAt: expireAt,
+		}
+	} else {
+		item.expireAt = expireAt
+	}
+
+	if h.nextCheck == 0 || h.nextCheck > expireAt {
+		h.nextCheck = expireAt
+	}
+}
+
+func (h *historyHub) add(ch string, msg proto.Message, opts *proto.ChannelOptions, hasSubscribers bool) error {
 	h.Lock()
 	defer h.Unlock()
 
 	_, ok := h.history[ch]
 
-	if opts.DropInactive && !ok {
+	if opts.HistoryDropInactive && !hasSubscribers && !ok {
 		// No active history for this channel so don't bother storing at all
 		return nil
 	}
 
-	expireAt := time.Now().Unix() + int64(opts.Lifetime)
+	expireAt := time.Now().Unix() + int64(opts.HistoryLifetime)
 	heap.Push(&h.queue, &priority.Item{Value: ch, Priority: expireAt})
 	if !ok {
 		h.history[ch] = historyItem{
@@ -307,8 +316,8 @@ func (h *historyHub) add(ch string, msg proto.Message, opts addHistoryOpts) erro
 	} else {
 		messages := h.history[ch].messages
 		messages = append([]proto.Message{msg}, messages...)
-		if len(messages) > opts.Size {
-			messages = messages[0:opts.Size]
+		if len(messages) > opts.HistorySize {
+			messages = messages[0:opts.HistorySize]
 		}
 		h.history[ch] = historyItem{
 			messages: messages,

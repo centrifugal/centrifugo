@@ -549,7 +549,7 @@ func NewShard(n *node.Node, conf *ShardConfig) (*Shard, error) {
 		pool:              newPool(conf),
 		api:               conf.API,
 		numApiShards:      conf.NumAPIShards,
-		pubScript:         redis.NewScript(1, pubScriptSource),
+		pubScript:         redis.NewScript(2, pubScriptSource),
 		addPresenceScript: redis.NewScript(2, addPresenceSource),
 		remPresenceScript: redis.NewScript(2, remPresenceSource),
 		presenceScript:    redis.NewScript(2, presenceSource),
@@ -577,6 +577,7 @@ var (
 	// list maintaining history size and expiration time. This is an optimization to make
 	// 1 round trip to Redis instead of 2.
 	// KEYS[1] - history list key
+	// KEYS[2] - history touch object key
 	// ARGV[1] - channel to publish message to
 	// ARGV[2] - message payload
 	// ARGV[3] - history size
@@ -585,7 +586,7 @@ var (
 	pubScriptSource = `
 local n = redis.call("publish", ARGV[1], ARGV[2])
 local m = 0
-if ARGV[5] == "1" and n == 0 then
+if ARGV[5] == "1" and n == 0 and redis.call("exists", KEYS[2]) == 0 then
   m = redis.call("lpushx", KEYS[1], ARGV[2])
 else
   m = redis.call("lpush", KEYS[1], ARGV[2])
@@ -1165,6 +1166,7 @@ type pubRequest struct {
 	channel    ChannelID
 	message    []byte
 	historyKey string
+	touchKey   string
 	opts       *proto.ChannelOptions
 	err        *chan error
 }
@@ -1228,7 +1230,7 @@ func (e *Shard) runPublishPipeline() {
 			conn := e.pool.Get()
 			for i := range prs {
 				if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
-					e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].channel, prs[i].message, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
+					e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].touchKey, prs[i].channel, prs[i].message, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
 				} else {
 					conn.Send("PUBLISH", prs[i].channel, prs[i].message)
 				}
@@ -1276,6 +1278,7 @@ const (
 	dataOpPresence
 	dataOpHistory
 	dataOpChannels
+	dataOpHistoryTouch
 )
 
 type dataResponse struct {
@@ -1375,6 +1378,8 @@ func (e *Shard) runDataPipeline() {
 					conn.Send("LRANGE", drs[i].args...)
 				case dataOpChannels:
 					conn.Send("PUBSUB", drs[i].args...)
+				case dataOpHistoryTouch:
+					conn.Send("SETEX", drs[i].args...)
 				}
 			}
 
@@ -1456,6 +1461,7 @@ func (e *Shard) PublishMessage(message *proto.Message, opts *proto.ChannelOption
 			channel:    chID,
 			message:    byteMessage,
 			historyKey: e.getHistoryKey(chID),
+			touchKey:   e.getHistoryTouchKey(chID),
 			opts:       opts,
 			err:        &eChan,
 		}
@@ -1581,6 +1587,9 @@ func (e *Shard) Unsubscribe(ch string) error {
 	e.subCh <- r
 	r = newSubRequest(e.messageChannelID(ch), false, true)
 	e.subCh <- r
+	if chOpts, err := e.node.ChannelOpts(ch); err == nil && chOpts.HistoryDropInactive {
+		e.dataCh <- newDataRequest(dataOpHistoryTouch, []interface{}{e.getHistoryTouchKey(e.messageChannelID(ch)), chOpts.HistoryLifetime, ""}, false)
+	}
 	return r.result()
 }
 
@@ -1615,6 +1624,10 @@ func (e *Shard) getSetKey(chID ChannelID) string {
 
 func (e *Shard) getHistoryKey(chID ChannelID) string {
 	return e.config.Prefix + ".history.list." + string(chID)
+}
+
+func (e *Shard) getHistoryTouchKey(chID ChannelID) string {
+	return e.config.Prefix + ".history.touch." + string(chID)
 }
 
 // AddPresence - see engine interface description.
