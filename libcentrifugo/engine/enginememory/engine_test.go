@@ -164,6 +164,36 @@ func TestMemoryEngine(t *testing.T) {
 	assert.Equal(t, 2, len(h))
 }
 
+// Emulate history drop inactive edge case: when single client subscribes on channel
+// and then goes offline for a short time. At this moment we unsubscribe node from
+// channel but we have to save messages into history for history lifetime interval
+// so client could recover it.
+func TestMemoryEngineDropInactive(t *testing.T) {
+	e := testMemoryEngine()
+	conf := e.node.Config()
+	conf.HistoryDropInactive = true
+	conf.HistoryLifetime = 5
+	conf.HistorySize = 2
+	e.node.SetConfig(&conf)
+
+	err := e.Run()
+
+	msg := proto.Message{UID: "test UID", Channel: "channel-drop-inactive"}
+	opts, _ := e.node.ChannelOpts(msg.Channel)
+
+	assert.Nil(t, <-e.PublishMessage(&msg, &opts))
+	h, err := e.History(msg.Channel, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(h))
+
+	e.Unsubscribe(msg.Channel)
+
+	assert.Nil(t, <-e.PublishMessage(&msg, &opts))
+	h, err = e.History(msg.Channel, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(h))
+}
+
 func TestMemoryPresenceHub(t *testing.T) {
 	h := newPresenceHub()
 	assert.Equal(t, 0, len(h.presence))
