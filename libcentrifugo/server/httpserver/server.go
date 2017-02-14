@@ -46,6 +46,8 @@ func HTTPServerConfigure(setter config.Setter) error {
 	setter.SetDefault("ssl_autocert_host_whitelist", "")
 	setter.SetDefault("ssl_autocert_cache_dir", "")
 	setter.SetDefault("ssl_autocert_email", "")
+	setter.SetDefault("ssl_autocert_force_rsa", false)
+	setter.SetDefault("ssl_autocert_server_name", "")
 
 	setter.BoolFlag("web", "w", false, "serve admin web interface application (warning: automatically enables admin socket)")
 	setter.StringFlag("web_path", "", "", "optional path to custom web interface application")

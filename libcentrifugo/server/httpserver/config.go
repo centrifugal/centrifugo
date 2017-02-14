@@ -32,6 +32,7 @@ type Config struct {
 	SSLCert string `json:"ssl_cert"`
 	// SSLKey is path to SSL key file.
 	SSLKey string `json:"ssl_key"`
+
 	// SSLAutocert enables automatic certificate receive from ACME provider.
 	SSLAutocert bool `json:"ssl_autocert"`
 	// SSLAutocertHostWhitelist is a slice of host names ACME Manager is allowed to respond to.
@@ -40,6 +41,12 @@ type Config struct {
 	SSLAutocertCacheDir string `json:"ssl_autocert_cache_dir"`
 	// SSLAutocertEmail is a contact email address to notify about problems with certificates.
 	SSLAutocertEmail string `json:"ssl_autocert_email"`
+	// SSLAutocertForceRSA forces autocert manager generate certificates with 2048-bit RSA keys.
+	SSLAutocertForceRSA bool `json:"ssl_autocert_force_rsa"`
+	// SSLAutocertServerName allows to set ServerName for ClientHelloInfo object if it's empty.
+	// This can be useful to deal with old browsers without SNI support -
+	// see https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819
+	SSLAutocertServerName string `json:"ssl_autocert_server_name"`
 
 	// SockjsURL is a custom SockJS library url to use in iframe transports.
 	SockjsURL string `json:"sockjs_url"`
@@ -98,6 +105,8 @@ func newConfig(c config.Getter) *Config {
 	}
 	cfg.SSLAutocertCacheDir = c.GetString("ssl_autocert_cache_dir")
 	cfg.SSLAutocertEmail = c.GetString("ssl_autocert_email")
+	cfg.SSLAutocertForceRSA = c.GetBool("ssl_autocert_force_rsa")
+	cfg.SSLAutocertServerName = c.GetString("ssl_autocert_server_name")
 	cfg.WebsocketCompression = c.GetBool("websocket_compression")
 	cfg.WebsocketCompressionLevel = c.GetInt("websocket_compression_level")
 	cfg.WebsocketCompressionMinSize = c.GetInt("websocket_compression_min_size")

@@ -102,6 +102,8 @@ func (s *HTTPServer) runHTTPServer() error {
 	sslAutocertHostWhitelist := s.config.SSLAutocertHostWhitelist
 	sslAutocertCacheDir := s.config.SSLAutocertCacheDir
 	sslAutocertEmail := s.config.SSLAutocertEmail
+	sslAutocertForceRSA := s.config.SSLAutocertForceRSA
+	sslAutocertServerName := s.config.SSLAutocertServerName
 	address := s.config.HTTPAddress
 	clientPort := s.config.HTTPPort
 	adminPort := s.config.HTTPAdminPort
@@ -194,8 +196,9 @@ func (s *HTTPServer) runHTTPServer() error {
 
 			if sslAutocertEnabled {
 				certManager := autocert.Manager{
-					Prompt: autocert.AcceptTOS,
-					Email:  sslAutocertEmail,
+					Prompt:   autocert.AcceptTOS,
+					ForceRSA: sslAutocertForceRSA,
+					Email:    sslAutocertEmail,
 				}
 				if sslAutocertHostWhitelist != nil {
 					certManager.HostPolicy = autocert.HostWhitelist(sslAutocertHostWhitelist...)
@@ -207,7 +210,13 @@ func (s *HTTPServer) runHTTPServer() error {
 					Addr:    addr,
 					Handler: mux,
 					TLSConfig: &tls.Config{
-						GetCertificate: certManager.GetCertificate,
+						GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+							// See https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819
+							if sslAutocertServerName != "" && hello.ServerName == "" {
+								hello.ServerName = sslAutocertServerName
+							}
+							return certManager.GetCertificate(hello)
+						},
 					},
 				}
 
