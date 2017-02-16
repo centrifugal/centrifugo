@@ -117,7 +117,8 @@ func (e *MemoryEngine) Subscribe(ch string) error {
 	return nil
 }
 
-// Unsubscribe is noop here.
+// Unsubscribe node from channel.
+// In case of memory engine its only job is to touch channel history for history lifetime period.
 func (e *MemoryEngine) Unsubscribe(ch string) error {
 	if chOpts, err := e.node.ChannelOpts(ch); err == nil && chOpts.HistoryDropInactive {
 		e.historyHub.touch(ch, &chOpts)

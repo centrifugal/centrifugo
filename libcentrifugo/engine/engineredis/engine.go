@@ -1588,7 +1588,13 @@ func (e *Shard) Unsubscribe(ch string) error {
 	r = newSubRequest(e.messageChannelID(ch), false, true)
 	e.subCh <- r
 	if chOpts, err := e.node.ChannelOpts(ch); err == nil && chOpts.HistoryDropInactive {
-		e.dataCh <- newDataRequest(dataOpHistoryTouch, []interface{}{e.getHistoryTouchKey(e.messageChannelID(ch)), chOpts.HistoryLifetime, ""}, false)
+		// Waiting for response here is not actually required. But this seems
+		// semantically correct and allows avoid races in drop inactive tests.
+		// It does not seem a big bottleneck for real usage but can be tuned in
+		// future if we find any problems with it.
+		dr := newDataRequest(dataOpHistoryTouch, []interface{}{e.getHistoryTouchKey(e.messageChannelID(ch)), chOpts.HistoryLifetime, ""}, true)
+		e.dataCh <- dr
+		dr.result()
 	}
 	return r.result()
 }
