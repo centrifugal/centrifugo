@@ -6,11 +6,11 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
-	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
+	"github.com/centrifugal/centrifugo/libcentrifugo/queue"
 	"github.com/satori/go.uuid"
 )
 
@@ -55,7 +55,7 @@ type adminClient struct {
 	closeCh       chan struct{}
 	closed        bool
 	maxQueueSize  int
-	messages      bytequeue.ByteQueue
+	messages      queue.Queue
 }
 
 // New initializes new AdminConn.
@@ -68,7 +68,7 @@ func New(n *node.Node, sess conns.Session) (conns.AdminConn, error) {
 		authenticated: false,
 		closeCh:       make(chan struct{}),
 		maxQueueSize:  adminQueueMaxSize,
-		messages:      bytequeue.New(2),
+		messages:      queue.New(2),
 	}
 
 	insecure := c.node.Config().InsecureAdmin
@@ -124,7 +124,7 @@ func (c *adminClient) sendMessages() {
 			}
 			continue
 		}
-		err := c.sess.Send(msg)
+		err := c.sess.Send(msg.(*conns.QueuedMessage))
 		if err != nil {
 			c.Close(&conns.DisconnectAdvice{Reason: "error sending message", Reconnect: true})
 			return
@@ -136,7 +136,7 @@ func (c *adminClient) UID() string {
 	return c.uid
 }
 
-func (c *adminClient) Send(message []byte) error {
+func (c *adminClient) Send(message *conns.QueuedMessage) error {
 	if c.messages.Size() > c.maxQueueSize {
 		c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: true})
 		return proto.ErrClientClosed
@@ -219,7 +219,7 @@ func (c *adminClient) Handle(msg []byte) error {
 		return proto.ErrInternalServerError
 	}
 
-	err = c.Send(respBytes)
+	err = c.Send(conns.NewQueuedMessage(respBytes, false))
 	if err != nil {
 		return proto.ErrInternalServerError
 	}

@@ -1,4 +1,4 @@
-package bytequeue
+package queue
 
 import (
 	"strconv"

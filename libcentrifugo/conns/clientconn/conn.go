@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
-	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
+	"github.com/centrifugal/centrifugo/libcentrifugo/queue"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/satori/go.uuid"
 )
@@ -52,7 +52,7 @@ type client struct {
 	defaultInfo    raw.Raw
 	channelInfo    map[string]raw.Raw
 	channels       map[string]struct{}
-	messages       bytequeue.ByteQueue
+	messages       queue.Queue
 	closeCh        chan struct{}
 	closed         bool
 	staleTimer     *time.Timer
@@ -104,7 +104,7 @@ func New(n *node.Node, s conns.Session) (conns.ClientConn, error) {
 		node:           n,
 		sess:           s,
 		closeCh:        make(chan struct{}),
-		messages:       bytequeue.New(queueInitialCapacity),
+		messages:       queue.New(queueInitialCapacity),
 		maxQueueSize:   maxQueueSize,
 		maxRequestSize: maxRequestSize,
 		sendFinished:   make(chan struct{}),
@@ -127,18 +127,19 @@ func (c *client) sendMessages() {
 			}
 			continue
 		}
-		err := c.sendMessage(msg)
+		qm := msg.(*conns.QueuedMessage)
+		err := c.sendMessage(qm)
 		if err != nil {
 			// Close in goroutine to let this function return.
 			go c.Close(&conns.DisconnectAdvice{Reason: "error sending message", Reconnect: true})
 			return
 		}
 		plugin.Metrics.Counters.Inc("client_num_msg_sent")
-		plugin.Metrics.Counters.Add("client_bytes_out", int64(len(msg)))
+		plugin.Metrics.Counters.Add("client_bytes_out", int64(qm.Len()))
 	}
 }
 
-func (c *client) sendMessage(msg []byte) error {
+func (c *client) sendMessage(msg *conns.QueuedMessage) error {
 	// Write timeout must be implemented inside session Send method.
 	// Slow client connections will be closed eventually anyway after
 	// exceeding client max queue size.
@@ -240,10 +241,11 @@ func (c *client) Unsubscribe(ch string) error {
 		return err
 	}
 	c.Unlock()
-	return c.Send(respJSON)
+	msg := conns.NewQueuedMessage(respJSON, false)
+	return c.Send(msg)
 }
 
-func (c *client) Send(message []byte) error {
+func (c *client) Send(message *conns.QueuedMessage) error {
 	ok := c.messages.Add(message)
 	if !ok {
 		return proto.ErrClientClosed
@@ -391,7 +393,8 @@ func (c *client) handleCommands(cmds []proto.ClientCommand) error {
 		logger.ERROR.Println(err)
 		return proto.ErrInvalidMessage
 	}
-	err = c.Send(jsonResp)
+	msg := conns.NewQueuedMessage(jsonResp, false)
+	err = c.Send(msg)
 	return err
 }
 

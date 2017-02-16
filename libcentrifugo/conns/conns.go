@@ -3,6 +3,8 @@ package conns
 import (
 	"encoding/json"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 // DisconnectAdvice sent to client when we want it to gracefully disconnect.
@@ -35,6 +37,37 @@ func (a *DisconnectAdvice) JSONString() (string, error) {
 // DefaultDisconnectAdvice is no reason and reconnect.
 var DefaultDisconnectAdvice = &DisconnectAdvice{Reason: "", Reconnect: true}
 
+// QueuedMessage is a wrapper structure over raw data payload.
+type QueuedMessage struct {
+	Payload     []byte
+	UsePrepared bool
+	prepared    *websocket.PreparedMessage
+	once        sync.Once
+}
+
+// NewQueuedMessage initializes QueuedMessage.
+func NewQueuedMessage(payload []byte, usePrepared bool) *QueuedMessage {
+	m := &QueuedMessage{
+		Payload:     payload,
+		UsePrepared: usePrepared,
+	}
+	return m
+}
+
+// Prepared allows to get PreparedMessage for raw websocket connections.
+func (m *QueuedMessage) Prepared() *websocket.PreparedMessage {
+	m.once.Do(func() {
+		pm, _ := websocket.NewPreparedMessage(websocket.TextMessage, m.Payload)
+		m.prepared = pm
+	})
+	return m.prepared
+}
+
+// Len returns length of QueuedMessage payload.
+func (m *QueuedMessage) Len() int {
+	return len(m.Payload)
+}
+
 // ClientConn is an interface abstracting all methods used
 // by application to interact with client connection.
 type ClientConn interface {
@@ -47,7 +80,7 @@ type ClientConn interface {
 	// Handle message coming from client.
 	Handle(message []byte) error
 	// Send allows to send message to connection client.
-	Send(message []byte) error
+	Send(*QueuedMessage) error
 	// Unsubscribe allows to unsubscribe connection from channel.
 	Unsubscribe(ch string) error
 	// Close closes client's connection.
@@ -62,7 +95,7 @@ type AdminConn interface {
 	// Handle message coming from admin client.
 	Handle(message []byte) error
 	// Send allows to send message to admin connection.
-	Send(message []byte) error
+	Send(*QueuedMessage) error
 	// Close closes admin's connection.
 	Close(*DisconnectAdvice) error
 }
@@ -70,7 +103,7 @@ type AdminConn interface {
 // Session represents a connection transport between server and client.
 type Session interface {
 	// Send sends one message to session
-	Send([]byte) error
+	Send(*QueuedMessage) error
 	// Close closes the session with provided code and reason.
 	Close(*DisconnectAdvice) error
 }
