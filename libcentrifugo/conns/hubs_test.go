@@ -43,7 +43,7 @@ type testClientConn struct {
 	uid      string
 	channels []string
 
-	Messages [][]byte
+	Messages []*QueuedMessage
 	Closed   bool
 	sess     *TestSession
 }
@@ -67,7 +67,7 @@ func (c *testClientConn) Channels() []string {
 	return c.channels
 }
 
-func (c *testClientConn) Send(message []byte) error {
+func (c *testClientConn) Send(message *QueuedMessage) error {
 	c.Messages = append(c.Messages, message)
 	return nil
 }
@@ -91,16 +91,6 @@ func (c *testClientConn) Close(adv *DisconnectAdvice) error {
 		return fmt.Errorf("duplicate close")
 	}
 	c.Closed = true
-	return nil
-}
-
-type testAdminConn struct{}
-
-func (c *testAdminConn) uid() string {
-	return "test uid"
-}
-
-func (c *testAdminConn) send(message string) error {
 	return nil
 }
 

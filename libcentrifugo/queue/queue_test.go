@@ -7,6 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type testItem []byte
+
+func (t testItem) Len() int {
+	return len(t)
+}
+
 func TestByteQueueResize(t *testing.T) {
 	initialCapacity := 2
 	q := New(initialCapacity)
@@ -16,19 +22,19 @@ func TestByteQueueResize(t *testing.T) {
 
 	i := 0
 	for i < initialCapacity {
-		q.Add([]byte(strconv.Itoa(i)))
+		q.Add(testItem([]byte(strconv.Itoa(i))))
 		i++
 	}
 	assert.Equal(t, initialCapacity, q.Cap())
-	q.Add([]byte("resize here"))
+	q.Add(testItem([]byte("resize here")))
 	assert.Equal(t, initialCapacity*2, q.Cap())
 	q.Remove()
 	// back to initial capacity
 	assert.Equal(t, initialCapacity, q.Cap())
 
-	q.Add([]byte("new resize here"))
+	q.Add(testItem([]byte("new resize here")))
 	assert.Equal(t, initialCapacity*2, q.Cap())
-	q.Add([]byte("one more item, no resize must happen"))
+	q.Add(testItem([]byte("one more item, no resize must happen")))
 	assert.Equal(t, initialCapacity*2, q.Cap())
 
 	assert.Equal(t, initialCapacity+2, q.Len())
@@ -38,8 +44,8 @@ func TestByteQueueSize(t *testing.T) {
 	initialCapacity := 2
 	q := New(initialCapacity)
 	assert.Equal(t, 0, q.Size())
-	q.Add([]byte("1"))
-	q.Add([]byte("2"))
+	q.Add(testItem([]byte("1")))
+	q.Add(testItem([]byte("2")))
 	assert.Equal(t, 2, q.Size())
 	q.Remove()
 	assert.Equal(t, 1, q.Size())
@@ -48,24 +54,24 @@ func TestByteQueueSize(t *testing.T) {
 func TestByteQueueWait(t *testing.T) {
 	initialCapacity := 2
 	q := New(initialCapacity)
-	q.Add([]byte("1"))
-	q.Add([]byte("2"))
+	q.Add(testItem([]byte("1")))
+	q.Add(testItem([]byte("2")))
 
 	s, ok := q.Wait()
 	assert.Equal(t, true, ok)
-	assert.Equal(t, "1", string(s))
+	assert.Equal(t, "1", string(s.(testItem)))
 
 	s, ok = q.Wait()
 	assert.Equal(t, true, ok)
-	assert.Equal(t, "2", string(s))
+	assert.Equal(t, "2", string(s.(testItem)))
 
 	go func() {
-		q.Add([]byte("3"))
+		q.Add(testItem([]byte("3")))
 	}()
 
 	s, ok = q.Wait()
 	assert.Equal(t, true, ok)
-	assert.Equal(t, "3", string(s))
+	assert.Equal(t, "3", string(s.(testItem)))
 
 }
 
@@ -77,11 +83,11 @@ func TestByteQueueClose(t *testing.T) {
 	_, ok := q.Remove()
 	assert.Equal(t, false, ok)
 
-	q.Add([]byte("1"))
-	q.Add([]byte("2"))
+	q.Add(testItem([]byte("1")))
+	q.Add(testItem([]byte("2")))
 	q.Close()
 
-	ok = q.Add([]byte("3"))
+	ok = q.Add(testItem([]byte("3")))
 	assert.Equal(t, false, ok)
 
 	_, ok = q.Wait()
@@ -96,11 +102,11 @@ func TestByteQueueClose(t *testing.T) {
 
 func TestByteQueueCloseRemaining(t *testing.T) {
 	q := New(2)
-	q.Add([]byte("1"))
-	q.Add([]byte("2"))
+	q.Add(testItem([]byte("1")))
+	q.Add(testItem([]byte("2")))
 	msgs := q.CloseRemaining()
 	assert.Equal(t, 2, len(msgs))
-	ok := q.Add([]byte("3"))
+	ok := q.Add(testItem([]byte("3")))
 	assert.Equal(t, false, ok)
 	assert.Equal(t, true, q.Closed())
 	msgs = q.CloseRemaining()
@@ -111,13 +117,13 @@ func BenchmarkQueueAdd(b *testing.B) {
 	q := New(2)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		q.Add([]byte("test"))
+		q.Add(testItem([]byte("test")))
 	}
 	b.StopTimer()
 	q.Close()
 }
 
-func addAndConsume(q ByteQueue, n int) {
+func addAndConsume(q Queue, n int) {
 	// Add to queue and consume in another goroutine.
 	done := make(chan struct{})
 	go func() {
@@ -135,7 +141,7 @@ func addAndConsume(q ByteQueue, n int) {
 		}
 	}()
 	for i := 0; i < n; i++ {
-		q.Add([]byte("test"))
+		q.Add(testItem([]byte("test")))
 	}
 	<-done
 }

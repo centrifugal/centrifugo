@@ -104,7 +104,7 @@ func (e *TestEngine) Channels() ([]string, error) {
 }
 
 type TestSession struct {
-	sink   chan []byte
+	sink   chan *conns.QueuedMessage
 	closed bool
 }
 
@@ -112,7 +112,7 @@ func NewTestSession() *TestSession {
 	return &TestSession{}
 }
 
-func (t *TestSession) Send(msg []byte) error {
+func (t *TestSession) Send(msg *conns.QueuedMessage) error {
 	if t.sink != nil {
 		t.sink <- msg
 	}
