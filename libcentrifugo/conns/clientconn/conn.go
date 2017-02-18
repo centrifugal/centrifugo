@@ -128,7 +128,10 @@ func (c *client) sendMessages() {
 			continue
 		}
 		qm := msg.(*conns.QueuedMessage)
-		err := c.sendMessage(qm)
+		// Write timeout must be implemented inside session Send method.
+		// Slow client connections will be closed eventually anyway after
+		// exceeding client max queue size.
+		err := c.sess.Send(qm)
 		if err != nil {
 			// Close in goroutine to let this function return.
 			go c.Close(&conns.DisconnectAdvice{Reason: "error sending message", Reconnect: true})
@@ -137,13 +140,6 @@ func (c *client) sendMessages() {
 		plugin.Metrics.Counters.Inc("client_num_msg_sent")
 		plugin.Metrics.Counters.Add("client_bytes_out", int64(qm.Len()))
 	}
-}
-
-func (c *client) sendMessage(msg *conns.QueuedMessage) error {
-	// Write timeout must be implemented inside session Send method.
-	// Slow client connections will be closed eventually anyway after
-	// exceeding client max queue size.
-	return c.sess.Send(msg)
 }
 
 // closeUnauthenticated closes connection if it's not authenticated yet.
