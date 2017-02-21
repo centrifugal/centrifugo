@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -206,26 +207,34 @@ func createTestClients(n *node.Node, nChannels, nChannelClients int, sink chan [
 		subscribeBytes[j] = []byte(`{"method": "subscribe", "params": {"channel": "` + fmt.Sprintf("channel-%d", j) + `"}}`)
 	}
 
+	var wg sync.WaitGroup
+
+	wg.Add(nChannelClients)
+
 	for i := 0; i < nChannelClients; i++ {
-		sess := NewTestSession()
-		if sink != nil {
-			sess.sink = sink
-		}
-		c := newTestClient(n, sess)
+		go func(i int) {
+			defer wg.Done()
+			sess := NewTestSession()
+			if sink != nil {
+				sess.sink = sink
+			}
+			c := newTestClient(n, sess)
 
-		connectBytes := []byte(`{"method": "connect", "params": {"user": "` + fmt.Sprintf("user-%d", i) + `"}}`)
+			connectBytes := []byte(`{"method": "connect", "params": {"user": "` + fmt.Sprintf("user-%d", i) + `"}}`)
 
-		err := c.Handle(connectBytes)
-		if err != nil {
-			panic(err)
-		}
-		for j := 0; j < nChannels; j++ {
-			err := c.Handle(subscribeBytes[j])
+			err := c.Handle(connectBytes)
 			if err != nil {
 				panic(err)
 			}
-		}
+			for j := 0; j < nChannels; j++ {
+				err := c.Handle(subscribeBytes[j])
+				if err != nil {
+					panic(err)
+				}
+			}
+		}(i)
 	}
+	wg.Wait()
 }
 
 // BenchmarkPubSubMessageReceive allows to estimate how many new messages we can convert to client JSON messages.
@@ -357,8 +366,8 @@ func BenchmarkEngineMessageUnmarshal(b *testing.B) {
 // amount.
 func BenchmarkReceiveBroadcast(b *testing.B) {
 	nChannels := 1000
-	nClients := 1000
-	nCommands := 10000
+	nClients := 100
+	nCommands := 100
 	nMessages := nCommands * nClients
 	sink := make(chan []byte, nMessages)
 	app := NewTestMemoryNode()
