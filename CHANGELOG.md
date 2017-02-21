@@ -1,3 +1,18 @@
+v1.6.5
+======
+
+No backwards incompatible changes here.
+
+### Features
+
+* resolve `history_drop_inactive` option edge case (described in [#50](https://github.com/centrifugal/centrifugo/issues/50))
+* two new options for autocert: `ssl_autocert_force_rsa` and `ssl_autocert_server_name`. See [docs](https://fzambia.gitbooks.io/centrifugal/content/deploy/certificates.html#automatic-certificates) for description 
+
+### Fixes
+
+* update web interface - in new version we don't show connection endpoints on main page as we can't show them reliably. Final endpoints depend on your production proxy/firewall politics (and port configuration) so we don't try to guess.
+
+
 v1.6.4
 ======
 
