@@ -25,7 +25,6 @@ message ClientInfo {
 
 message Message {
   string UID = 1 [(gogoproto.jsontag) = "uid"];
-  string Timestamp = 2 [(gogoproto.jsontag) = "timestamp"];
   string Channel = 3 [(gogoproto.jsontag) = "channel"];
   bytes Data = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
   string Client = 5 [(gogoproto.jsontag) = "client,omitempty"];
