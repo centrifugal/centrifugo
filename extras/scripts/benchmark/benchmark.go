@@ -11,7 +11,7 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func publisher(chTrigger chan int, chTime chan time.Time, url, origin, connectMessage, subscribeMessage, publishMessage string) {
+func publisher(chTime chan time.Time, url, origin, connectMessage, subscribeMessage, publishMessage string) {
 	var err error
 	var ws *websocket.Conn
 	for {
@@ -22,6 +22,7 @@ func publisher(chTrigger chan int, chTime chan time.Time, url, origin, connectMe
 		}
 		break
 	}
+	defer ws.Close()
 
 	var msg = make([]byte, 512)
 
@@ -43,26 +44,21 @@ func publisher(chTrigger chan int, chTime chan time.Time, url, origin, connectMe
 		log.Fatal(err)
 	}
 
-	for {
-		<-chTrigger
+	if _, err := ws.Write([]byte(publishMessage)); err != nil {
+		fmt.Println("publisher publish write error")
+		log.Fatal(err)
+	}
 
-		if _, err := ws.Write([]byte(publishMessage)); err != nil {
-			fmt.Println("publisher publish write error")
-			log.Fatal(err)
-		}
+	chTime <- time.Now()
 
-		chTime <- time.Now()
+	if _, err = ws.Read(msg); err != nil {
+		fmt.Println("publisher publish read error")
+		log.Fatal(err)
+	}
 
-		if _, err = ws.Read(msg); err != nil {
-			fmt.Println("publisher publish read error")
-			log.Fatal(err)
-		}
-
-		if _, err = ws.Read(msg); err != nil {
-			fmt.Println("publisher message read error")
-			log.Fatal(err)
-		}
-
+	if _, err = ws.Read(msg); err != nil {
+		fmt.Println("publisher message read error")
+		log.Fatal(err)
 	}
 }
 
@@ -104,7 +100,6 @@ func subscriber(chSub, chMsg, chStart chan int, url, origin, connectMessage, sub
 			fmt.Println("subscriber msg read error")
 			log.Fatal(err)
 		}
-		//fmt.Println("message received")
 		chMsg <- 1
 	}
 }
@@ -132,11 +127,9 @@ func main() {
 	subscribeMessage := "{\"params\": {\"channel\": \"test\"}, \"method\": \"subscribe\"}"
 	publishMessage := "{\"params\": {\"data\": {\"input\": \"I am benchmarking Centrifuge at moment\"}, \"channel\": \"test\"}, \"method\": \"publish\"}"
 
-	chSub := make(chan int)
-	chMsg := make(chan int)
+	chSub := make(chan int, increment)
+	chMsg := make(chan int, 10000)
 	chStart := make(chan int)
-	chTrigger := make(chan int)
-	chTime := make(chan time.Time)
 
 	var startTime time.Time
 
@@ -144,32 +137,30 @@ func main() {
 
 	fullTime := 0.0
 
-	go func() {
-		publisher(chTrigger, chTime, url, origin, connectMessage, subscribeMessage, publishMessage)
-	}()
-
 	for i := 0; i < maxClients; i += increment {
 
 		time.Sleep(50 * time.Millisecond)
+
 		totalTime = 0
 		for j := 0; j < increment; j++ {
-			time.Sleep(5 * time.Millisecond)
 			go func() {
 				subscriber(chSub, chMsg, chStart, url, origin, connectMessage, subscribeMessage, publishMessage)
 			}()
 			<-chSub
-
 		}
 
 		currentClients := i + increment
 
 		// repeat several times to get average time value
 		for k := 0; k < repeats; k++ {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 			fullTime = 0.0
 			messagesReceived = 0
 			// publish message
-			chTrigger <- 1
+			chTime := make(chan time.Time)
+			go func() {
+				publisher(chTime, url, origin, connectMessage, subscribeMessage, publishMessage)
+			}()
 			startTime = <-chTime
 			for {
 				<-chMsg
