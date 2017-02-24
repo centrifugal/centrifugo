@@ -18,7 +18,6 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"channel\":\"test\""))
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"data\":{}"))
 	assert.Equal(t, false, strings.Contains(string(msgBytes), "\"client\":\"\"")) // empty field must be omitted
-	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"timestamp\":"))
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"uid\":"))
 	var unmarshalledMsg Message
 	err = json.Unmarshal(msgBytes, &unmarshalledMsg)

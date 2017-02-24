@@ -47,8 +47,6 @@ func writeClientInfo(buf *bytebufferpool.ByteBuffer, info *ClientInfo) {
 func writeMessage(buf *bytebufferpool.ByteBuffer, msg *Message) {
 	buf.WriteString(`{"uid":"`)
 	buf.WriteString(msg.UID)
-	buf.WriteString(`","timestamp":"`)
-	buf.WriteString(msg.Timestamp)
 	buf.WriteString(`",`)
 
 	if msg.Client != "" {

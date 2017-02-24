@@ -1,9 +1,6 @@
 package proto
 
 import (
-	"strconv"
-	"time"
-
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/nats-io/nuid"
 )
@@ -22,12 +19,11 @@ func NewClientInfo(user string, client string, defaultInfo raw.Raw, channelInfo 
 func NewMessage(ch string, data []byte, client string, info *ClientInfo) *Message {
 	raw := raw.Raw(data)
 	return &Message{
-		UID:       nuid.Next(),
-		Timestamp: strconv.FormatInt(time.Now().Unix(), 10),
-		Info:      info,
-		Channel:   ch,
-		Data:      raw,
-		Client:    client,
+		UID:     nuid.Next(),
+		Info:    info,
+		Channel: ch,
+		Data:    raw,
+		Client:  client,
 	}
 }
 
