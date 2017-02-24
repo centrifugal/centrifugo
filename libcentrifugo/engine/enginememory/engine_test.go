@@ -64,7 +64,7 @@ func (t *TestConn) User() string {
 func (t *TestConn) Channels() []string {
 	return t.channels
 }
-func (t *TestConn) Send(message []byte) error {
+func (t *TestConn) Send(message *conns.QueuedMessage) error {
 	return nil
 }
 func (t *TestConn) Handle(message []byte) error {

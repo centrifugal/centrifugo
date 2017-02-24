@@ -32,6 +32,13 @@ func (c *testWSConnection) WriteMessage(messageType int, data []byte) error {
 	return nil
 }
 
+func (c *testWSConnection) WritePreparedMessage(*websocket.PreparedMessage) error {
+	if c.writeErr {
+		return errors.New("error")
+	}
+	return nil
+}
+
 func (c *testWSConnection) WriteControl(messageType int, data []byte, deadline time.Time) error {
 	if c.controlErr {
 		return errors.New("error")
@@ -83,6 +90,6 @@ func TestSendAfterClose(t *testing.T) {
 	c := newWSSession(ws, 1*time.Nanosecond, 0, 0)
 	err := c.Close(conns.DefaultDisconnectAdvice)
 	assert.Equal(t, nil, err)
-	err = c.Send([]byte("test"))
+	err = c.Send(conns.NewQueuedMessage([]byte("test"), false))
 	assert.Equal(t, nil, err)
 }

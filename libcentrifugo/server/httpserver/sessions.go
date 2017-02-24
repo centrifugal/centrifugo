@@ -28,12 +28,12 @@ func newSockjsSession(sess sockjs.Session) *sockjsSession {
 	}
 }
 
-func (sess *sockjsSession) Send(msg []byte) error {
+func (sess *sockjsSession) Send(msg *conns.QueuedMessage) error {
 	select {
 	case <-sess.closeCh:
 		return nil
 	default:
-		return sess.sess.Send(string(msg))
+		return sess.sess.Send(string(msg.Payload))
 	}
 }
 
@@ -62,6 +62,7 @@ func (sess *sockjsSession) Close(advice *conns.DisconnectAdvice) error {
 type websocketConn interface {
 	ReadMessage() (messageType int, p []byte, err error)
 	WriteMessage(messageType int, data []byte) error
+	WritePreparedMessage(pm *websocket.PreparedMessage) error
 	WriteControl(messageType int, data []byte, deadline time.Time) error
 	SetWriteDeadline(t time.Time) error
 	EnableWriteCompression(enable bool)
@@ -120,18 +121,24 @@ func (sess *wsSession) addPing() {
 	sess.mu.Unlock()
 }
 
-func (sess *wsSession) Send(msg []byte) error {
+func (sess *wsSession) Send(msg *conns.QueuedMessage) error {
 	select {
 	case <-sess.closeCh:
 		return nil
 	default:
 		if sess.compressionMinSize > 0 {
-			sess.ws.EnableWriteCompression(len(msg) > sess.compressionMinSize)
+			sess.ws.EnableWriteCompression(msg.Len() > sess.compressionMinSize)
 		}
 		if sess.writeTimeout > 0 {
 			sess.ws.SetWriteDeadline(time.Now().Add(sess.writeTimeout))
 		}
-		err := sess.ws.WriteMessage(websocket.TextMessage, msg)
+		var err error
+		if msg.UsePrepared {
+			err = sess.ws.WritePreparedMessage(msg.Prepared())
+		} else {
+			err = sess.ws.WriteMessage(websocket.TextMessage, msg.Payload)
+		}
+
 		if sess.writeTimeout > 0 {
 			sess.ws.SetWriteDeadline(time.Time{})
 		}

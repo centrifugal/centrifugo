@@ -211,12 +211,14 @@ func (h *clientHub) Broadcast(ch string, message []byte) error {
 	}
 
 	// iterate over them and send message individually
+	msg := NewQueuedMessage(message, true)
+
 	for uid := range channelSubscriptions {
 		c, ok := h.conns[uid]
 		if !ok {
 			continue
 		}
-		c.Send(message)
+		c.Send(msg)
 	}
 	return nil
 }
@@ -314,8 +316,9 @@ func (h *adminHub) Remove(c AdminConn) error {
 func (h *adminHub) Broadcast(message []byte) error {
 	h.RLock()
 	defer h.RUnlock()
+	msg := NewQueuedMessage(message, true)
 	for _, c := range h.connections {
-		err := c.Send(message)
+		err := c.Send(msg)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}

@@ -95,7 +95,7 @@ func (e *TestEngine) Channels() ([]string, error) {
 }
 
 type TestSession struct {
-	sink   chan []byte
+	sink   chan *conns.QueuedMessage
 	closed bool
 }
 
@@ -103,7 +103,7 @@ func NewTestSession() *TestSession {
 	return &TestSession{}
 }
 
-func (t *TestSession) Send(msg []byte) error {
+func (t *TestSession) Send(msg *conns.QueuedMessage) error {
 	if t.sink != nil {
 		t.sink <- msg
 	}
@@ -196,7 +196,7 @@ func newTestClient(n *node.Node, sess conns.Session) conns.ClientConn {
 	return c
 }
 
-func createTestClients(n *node.Node, nChannels, nChannelClients int, sink chan []byte) {
+func createTestClients(n *node.Node, nChannels, nChannelClients int, sink chan *conns.QueuedMessage) {
 	config := n.Config()
 	config.Insecure = true
 	n.SetConfig(&config)
@@ -369,7 +369,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 	nClients := 100
 	nCommands := 100
 	nMessages := nCommands * nClients
-	sink := make(chan []byte, nMessages)
+	sink := make(chan *conns.QueuedMessage, nMessages)
 	app := NewTestMemoryNode()
 	// Use very large initial capacity so that queue resizes do not affect benchmark.
 	config := app.Config()
