@@ -103,6 +103,10 @@ func init() {
 	metricsRegistry.RegisterCounter("node_num_last_message_id", metrics.NewCounter())
 
 	metricsRegistry.RegisterGauge("node_memory_sys", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("node_memory_heap_sys", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("node_memory_heap_alloc", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("node_memory_stack_inuse", metrics.NewGauge())
+
 	metricsRegistry.RegisterGauge("node_cpu_usage", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("node_num_goroutine", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("node_num_clients", metrics.NewGauge())
@@ -274,6 +278,9 @@ func (n *Node) updateMetricsOnce() {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 	metricsRegistry.Gauges.Set("node_memory_sys", int64(mem.Sys))
+	metricsRegistry.Gauges.Set("node_memory_heap_sys", int64(mem.HeapSys))
+	metricsRegistry.Gauges.Set("node_memory_heap_alloc", int64(mem.HeapAlloc))
+	metricsRegistry.Gauges.Set("node_memory_stack_inuse", int64(mem.StackInuse))
 	if usage, err := cpuUsage(); err == nil {
 		metricsRegistry.Gauges.Set("node_cpu_usage", int64(usage))
 	}
