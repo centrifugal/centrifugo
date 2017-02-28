@@ -1,7 +1,7 @@
 v1.7.0
 ======
 
-This release changes two important aspects of Centrifugo. We expect that it will be fully backwards compatible with previous one. But as changes are pretty serious this is a new point release.
+This release changes two important aspects of Centrifugo. We expect that it will be fully backwards compatible with previous one in most scenarios until you were using `timestamp` message field somehow.
 
 ### What's changed
 
