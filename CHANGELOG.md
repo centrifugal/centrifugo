@@ -1,5 +1,5 @@
-v1.7.0 (not released yet)
-=========================
+v1.7.0
+======
 
 This release changes two important aspects of Centrifugo. We expect that it will be fully backwards compatible with previous one. But as changes are pretty serious this is a new point release.
 
@@ -7,7 +7,7 @@ This release changes two important aspects of Centrifugo. We expect that it will
 
 * integration with Gorilla Websocket [PreparedMessage](https://godoc.org/github.com/gorilla/websocket#PreparedMessage) for raw websocket. We expect it to drastically improve websocket compression case - reducing both memory and CPU in large fan-out scenarios. This change does not affect SockJS in any way.
 * `timestamp` field removed from message. See [#147](https://github.com/centrifugal/centrifugo/issues/147) for motivation.
-
+* Several new memory metrics - `node_memory_heap_sys`, `node_memory_heap_alloc`, `node_memory_stack_inuse`
 
 v1.6.5
 ======
