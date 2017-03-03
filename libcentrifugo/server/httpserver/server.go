@@ -39,8 +39,8 @@ func HTTPServerConfigure(setter config.Setter) error {
 	setter.SetDefault("websocket_compression", false)
 	setter.SetDefault("websocket_compression_min_size", 0)
 	setter.SetDefault("websocket_compression_level", 1)
-	setter.SetDefault("websocket_read_buffer_size", 4096)
-	setter.SetDefault("websocket_write_buffer_size", 4096)
+	setter.SetDefault("websocket_read_buffer_size", 0)
+	setter.SetDefault("websocket_write_buffer_size", 0)
 
 	setter.SetDefault("ssl_autocert", false)
 	setter.SetDefault("ssl_autocert_host_whitelist", "")

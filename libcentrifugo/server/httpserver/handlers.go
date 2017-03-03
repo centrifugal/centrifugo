@@ -587,15 +587,6 @@ func (s *HTTPServer) Logged(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-const (
-	// AdminWebsocketReadBufferSize is a size of read buffer for admin websocket connection.
-	AdminWebsocketReadBufferSize = 1024
-	// AdminWebsocketWriteBufferSize is a size of write buffer for admin websocket connection.
-	AdminWebsocketWriteBufferSize = 1024
-)
-
-var upgrader = &websocket.Upgrader{ReadBufferSize: AdminWebsocketReadBufferSize, WriteBufferSize: AdminWebsocketWriteBufferSize}
-
 // AdminWebsocketHandler handles admin websocket connections.
 func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -611,7 +602,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
+	ws, err := websocket.Upgrade(w, r, nil, 0, 0)
 	if err != nil {
 		logger.DEBUG.Printf("Admin connection upgrade error: %#v", err.Error())
 		return

@@ -1,3 +1,17 @@
+v1.7.1 (not released yet)
+=========================
+
+No backwards incompatible changes
+
+### Fixes
+
+* fix mass resubscribe after several Redis disconnects in a row - more in [#163](https://github.com/centrifugal/centrifugo/pull/163)
+
+### Features
+
+* update Gorilla Websocket lib - it's now tries to reuse buffers returned from Go http library `hijack` method. We adapted Centrifugo default websocket buffer options to utilize this feature.
+
+
 v1.7.0
 ======
 
