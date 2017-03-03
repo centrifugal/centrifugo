@@ -265,26 +265,70 @@ type Conn struct {
 }
 
 func newConn(conn net.Conn, isServer bool, readBufferSize, writeBufferSize int) *Conn {
+	return newConnBRW(conn, isServer, readBufferSize, writeBufferSize, nil)
+}
+
+type writeHook struct {
+	p []byte
+}
+
+func (wh *writeHook) Write(p []byte) (int, error) {
+	wh.p = p
+	return len(p), nil
+}
+
+func newConnBRW(conn net.Conn, isServer bool, readBufferSize, writeBufferSize int, brw *bufio.ReadWriter) *Conn {
 	mu := make(chan bool, 1)
 	mu <- true
 
-	if readBufferSize == 0 {
-		readBufferSize = defaultReadBufferSize
+	var br *bufio.Reader
+	if readBufferSize == 0 && brw != nil && brw.Reader != nil {
+		// Reuse the supplied bufio.Reader if the buffer has a useful size.
+		// This code assumes that peek on a reader returns
+		// bufio.Reader.buf[:0].
+		brw.Reader.Reset(conn)
+		if p, err := brw.Reader.Peek(0); err == nil && cap(p) >= 256 {
+			br = brw.Reader
+		}
 	}
-	if readBufferSize < maxControlFramePayloadSize {
-		readBufferSize = maxControlFramePayloadSize
+	if br == nil {
+		if readBufferSize == 0 {
+			readBufferSize = defaultReadBufferSize
+		}
+		if readBufferSize < maxControlFramePayloadSize {
+			readBufferSize = maxControlFramePayloadSize
+		}
+		br = bufio.NewReaderSize(conn, readBufferSize)
 	}
-	if writeBufferSize == 0 {
-		writeBufferSize = defaultWriteBufferSize
+
+	var writeBuf []byte
+	if writeBufferSize == 0 && brw != nil && brw.Writer != nil {
+		// Use the bufio.Writer's buffer if the buffer has a useful size. This
+		// code assumes that bufio.Writer.buf[:1] is passed to the
+		// bufio.Writer's underlying writer.
+		var wh writeHook
+		brw.Writer.Reset(&wh)
+		brw.Writer.WriteByte(0)
+		brw.Flush()
+		if cap(wh.p) >= maxFrameHeaderSize+256 {
+			writeBuf = wh.p[:cap(wh.p)]
+		}
+	}
+
+	if writeBuf == nil {
+		if writeBufferSize == 0 {
+			writeBufferSize = defaultWriteBufferSize
+		}
+		writeBuf = make([]byte, writeBufferSize+maxFrameHeaderSize)
 	}
 
 	c := &Conn{
 		isServer:               isServer,
-		br:                     bufio.NewReaderSize(conn, readBufferSize),
+		br:                     br,
 		conn:                   conn,
 		mu:                     mu,
 		readFinal:              true,
-		writeBuf:               make([]byte, writeBufferSize+maxFrameHeaderSize),
+		writeBuf:               writeBuf,
 		enableWriteCompression: true,
 		compressionLevel:       defaultCompressionLevel,
 	}
