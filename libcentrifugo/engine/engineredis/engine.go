@@ -64,10 +64,7 @@ func Configure(setter config.Setter) error {
 
 const (
 	// RedisSubscribeChannelSize is the size for the internal buffered channels RedisEngine
-	// uses to synchronize subscribe/unsubscribe. It allows for effective batching during bulk
-	// re-subscriptions, and allows large volume of incoming subscriptions to not block when
-	// PubSub connection is reconnecting. Two channels of this size will be allocated, one for
-	// Subscribe and one for Unsubscribe
+	// uses to synchronize subscribe/unsubscribe.
 	RedisSubscribeChannelSize = 4096
 	// RedisPubSubWorkerChannelSize sets buffer size of channel to which we send all
 	// messages received from Redis PUB/SUB connection to process in separate goroutine.
