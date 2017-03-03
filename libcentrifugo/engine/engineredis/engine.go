@@ -181,7 +181,7 @@ type ShardConfig struct {
 
 // subRequest is an internal request to subscribe or unsubscribe from one or more channels
 type subRequest struct {
-	channel   ChannelID
+	channels  []ChannelID
 	subscribe bool
 	err       chan error
 }
@@ -189,9 +189,9 @@ type subRequest struct {
 // newSubRequest creates a new request to subscribe or unsubscribe form a channel.
 // If the caller cares about response they should set wantResponse and then call
 // result() on the request once it has been pushed to the appropriate chan.
-func newSubRequest(chID ChannelID, subscribe bool, wantResponse bool) subRequest {
+func newSubRequest(chIDs []ChannelID, subscribe bool, wantResponse bool) subRequest {
 	r := subRequest{
-		channel:   chID,
+		channels:  chIDs,
 		subscribe: subscribe,
 	}
 	if wantResponse {
@@ -914,20 +914,6 @@ func (e *Shard) runAPI() {
 	}
 }
 
-// fillSubBatch attempts to read items from a subRequest channel and append them to split
-// until it either hits maxSize or would have to block. If batch is empty and chan is empty then
-// batch might end up being zero length.
-func fillSubBatch(ch <-chan subRequest, batch *[]subRequest, maxSize int) {
-	for len(*batch) < maxSize {
-		select {
-		case req := <-ch:
-			*batch = append(*batch, req)
-		default:
-			return
-		}
-	}
-}
-
 func (e *Shard) runPubSub() {
 
 	e.RLock()
@@ -938,13 +924,20 @@ func (e *Shard) runPubSub() {
 	}
 
 	logger.DEBUG.Printf("Running Redis PUB/SUB, num workers: %d", numWorkers)
+	defer func() {
+		logger.DEBUG.Printf("Stopping Redis PUB/SUB")
+	}()
 
-	conn := redis.PubSubConn{Conn: e.pool.Get()}
+	poolConn := e.pool.Get()
+	if poolConn.Err() != nil {
+		// At this moment test on borrow could already return an error,
+		// we can't work with broken connection.
+		poolConn.Close()
+		return
+	}
+
+	conn := redis.PubSubConn{Conn: poolConn}
 	defer conn.Close()
-
-	controlChannel := e.controlChannelID()
-	adminChannel := e.adminChannelID()
-	pingChannel := e.pingChannelID()
 
 	done := make(chan struct{})
 	defer close(done)
@@ -961,117 +954,37 @@ func (e *Shard) runPubSub() {
 			case <-done:
 				return
 			case r := <-e.subCh:
-				// Initialize batch with subRequest just read from channel.
-				batch := []subRequest{r}
-
-				// Try to gather as many others as we can without waiting.
-				fillSubBatch(e.subCh, &batch, RedisSubscribeBatchLimit)
-
-				// Keep unique ChannelID presented in batch to subscribe.
-				subs := map[ChannelID]struct{}{}
-
-				// Keep unique ChannelID presented in batch to unsubscribe.
-				unsubs := map[ChannelID]struct{}{}
-
-				for i := range batch {
-					ch := batch[i].channel
-
-					if batch[i].subscribe {
-						subs[ch] = struct{}{}
-						if _, ok := unsubs[ch]; ok {
-							// If we already have more recent unsubscribe to the same channel in
-							// batch - we don't need to send it to Redis.
-							delete(unsubs, ch)
-						}
-					} else {
-						unsubs[ch] = struct{}{}
-						if _, ok := subs[ch]; ok {
-							// If we already have more recent subscribe to the same channel in
-							// batch - we don't need to send it to Redis.
-							delete(subs, ch)
-						}
-					}
-				}
-
-				// Prepare arguments for Subscribe/Unsubscribe operations which accept slice
-				// of interface{}.
-				subChIDs := make([]interface{}, len(subs))
+				chIDs := make([]interface{}, len(r.channels))
 				i := 0
-				for ch := range subs {
-					subChIDs[i] = ch
+				for _, ch := range r.channels {
+					chIDs[i] = ch
 					i++
 				}
 
-				i = 0
-				unsubChIDs := make([]interface{}, len(unsubs))
-				for ch := range unsubs {
-					unsubChIDs[i] = ch
-					i++
+				var opErr error
+				if r.subscribe {
+					opErr = conn.Subscribe(chIDs...)
+				} else {
+					opErr = conn.Unsubscribe(chIDs...)
 				}
 
-				if len(subChIDs) > 0 {
-					err := conn.Subscribe(subChIDs...)
-					if err != nil {
-						logger.ERROR.Printf("RedisEngine Subscriber error: %v\n", err)
+				if opErr != nil {
+					logger.ERROR.Printf("RedisEngine Subscriber error: %v\n", opErr)
+					r.done(opErr)
 
-						// Resolve all requests in batch with err.
-						for i := range batch {
-							batch[i].done(err)
-						}
-						// Close conn, this should cause Receive to return with err below
-						// and whole runPubSub method to restart.
-						conn.Close()
-						return
-					}
+					// Close conn, this should cause Receive to return with err below
+					// and whole runPubSub method to restart.
+					conn.Close()
+					return
 				}
-				// Subscribe requests in batch succeeded.
-				for i := range batch {
-					if batch[i].subscribe {
-						batch[i].done(nil)
-					}
-				}
-				if len(unsubChIDs) > 0 {
-					err := conn.Unsubscribe(unsubChIDs...)
-					if err != nil {
-						logger.ERROR.Printf("RedisEngine Unsubscriber error: %v\n", err)
-						// Here we should only resolve with error unsubscribe requests.
-						// Subscribe requests have been already resolved without error above.
-						for i := range batch {
-							if !batch[i].subscribe {
-								batch[i].done(err)
-							}
-						}
-						// Close conn, this should cause Receive to return with err below
-						// and whole runPubSub method to restart
-						conn.Close()
-						return
-					}
-				}
-				// Unsubscribe requests in batch succeded.
-				for i := range batch {
-					if !batch[i].subscribe {
-						batch[i].done(nil)
-					}
-				}
+				r.done(nil)
 			}
 		}
 	}()
 
-	// Subscribe to channels we need in bulk.
-	// We don't care if they fail since conn will be closed and we'll retry
-	// if they do anyway.
-	// This saves a lot of allocating of pointless chans...
-	r := newSubRequest(controlChannel, true, false)
-	e.subCh <- r
-	r = newSubRequest(adminChannel, true, false)
-	e.subCh <- r
-	r = newSubRequest(pingChannel, true, false)
-	e.subCh <- r
-	for _, ch := range e.node.ClientHub().Channels() {
-		e.subCh <- newSubRequest(e.messageChannelID(ch), true, false)
-		e.subCh <- newSubRequest(e.joinChannelID(ch), true, false)
-		e.subCh <- newSubRequest(e.leaveChannelID(ch), true, false)
-	}
+	controlChannel := e.controlChannelID()
+	adminChannel := e.adminChannelID()
+	pingChannel := e.pingChannelID()
 
 	// Run workers to spread received message processing work over worker goroutines.
 	workers := make(map[int]chan redis.Message)
@@ -1118,6 +1031,44 @@ func (e *Shard) runPubSub() {
 			}
 		}(workerCh)
 	}
+
+	chIDs := make([]ChannelID, 3)
+	chIDs[0] = controlChannel
+	chIDs[1] = adminChannel
+	chIDs[2] = pingChannel
+
+	for _, ch := range e.node.ClientHub().Channels() {
+		chIDs = append(chIDs, e.messageChannelID(ch))
+		chIDs = append(chIDs, e.joinChannelID(ch))
+		chIDs = append(chIDs, e.leaveChannelID(ch))
+	}
+
+	batch := make([]ChannelID, 0)
+
+	for i, ch := range chIDs {
+		if len(batch) > 0 && i%RedisSubscribeBatchLimit == 0 {
+			r := newSubRequest(batch, true, true)
+			e.subCh <- r
+			err := r.result()
+			if err != nil {
+				logger.ERROR.Printf("Error subscribing: %v", err)
+				return
+			}
+			batch = nil
+		}
+		batch = append(batch, ch)
+	}
+	if len(batch) > 0 {
+		r := newSubRequest(batch, true, true)
+		e.subCh <- r
+		err := r.result()
+		if err != nil {
+			logger.ERROR.Printf("Error subscribing: %v", err)
+			return
+		}
+	}
+
+	logger.DEBUG.Printf("Successfully subscribed to %d Redis channels", len(chIDs))
 
 	for {
 		switch n := conn.Receive().(type) {
@@ -1569,11 +1520,11 @@ func (e *Shard) PublishAdmin(message *proto.AdminMessage) <-chan error {
 // Subscribe - see engine interface description.
 func (e *Shard) Subscribe(ch string) error {
 	logger.TRACE.Println("Subscribe node on channel", ch)
-	r := newSubRequest(e.joinChannelID(ch), true, false)
-	e.subCh <- r
-	r = newSubRequest(e.leaveChannelID(ch), true, false)
-	e.subCh <- r
-	r = newSubRequest(e.messageChannelID(ch), true, true)
+	channels := make([]ChannelID, 3)
+	channels[0] = e.joinChannelID(ch)
+	channels[1] = e.leaveChannelID(ch)
+	channels[2] = e.messageChannelID(ch)
+	r := newSubRequest(channels, true, true)
 	e.subCh <- r
 	return r.result()
 }
@@ -1581,12 +1532,14 @@ func (e *Shard) Subscribe(ch string) error {
 // Unsubscribe - see engine interface description.
 func (e *Shard) Unsubscribe(ch string) error {
 	logger.TRACE.Println("Unsubscribe node from channel", ch)
-	r := newSubRequest(e.joinChannelID(ch), false, false)
+	channels := make([]ChannelID, 3)
+	channels[0] = e.joinChannelID(ch)
+	channels[1] = e.leaveChannelID(ch)
+	channels[2] = e.messageChannelID(ch)
+
+	r := newSubRequest(channels, false, true)
 	e.subCh <- r
-	r = newSubRequest(e.leaveChannelID(ch), false, false)
-	e.subCh <- r
-	r = newSubRequest(e.messageChannelID(ch), false, true)
-	e.subCh <- r
+
 	if chOpts, err := e.node.ChannelOpts(ch); err == nil && chOpts.HistoryDropInactive {
 		// Waiting for response here is not actually required. But this seems
 		// semantically correct and allows avoid races in drop inactive tests.
