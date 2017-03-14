@@ -1,3 +1,12 @@
+v1.7.2
+======
+
+No backwards incompatible changes here.
+
+### Fixes
+
+* fix reusing read and write buffers returned from connection hijack. This was added in previous release but due to the bug in configuration the feature did not work.
+
 v1.7.1
 ======
 
