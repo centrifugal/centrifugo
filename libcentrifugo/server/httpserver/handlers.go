@@ -113,12 +113,8 @@ func (s *HTTPServer) runHTTPServer() error {
 	wsWriteBufferSize := s.config.WebsocketWriteBufferSize
 	s.RUnlock()
 
-	if wsReadBufferSize > 0 {
-		sockjs.WebSocketReadBufSize = wsReadBufferSize
-	}
-	if wsWriteBufferSize > 0 {
-		sockjs.WebSocketWriteBufSize = wsWriteBufferSize
-	}
+	sockjs.WebSocketReadBufSize = wsReadBufferSize
+	sockjs.WebSocketWriteBufSize = wsWriteBufferSize
 
 	sockjsOpts := sockjs.DefaultOptions
 
@@ -366,13 +362,6 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	wsReadBufferSize := s.config.WebsocketReadBufferSize
 	wsWriteBufferSize := s.config.WebsocketWriteBufferSize
 	s.RUnlock()
-
-	if wsReadBufferSize == 0 {
-		wsReadBufferSize = sockjs.WebSocketReadBufSize
-	}
-	if wsWriteBufferSize == 0 {
-		wsWriteBufferSize = sockjs.WebSocketWriteBufSize
-	}
 
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:    wsReadBufferSize,
