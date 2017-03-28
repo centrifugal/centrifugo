@@ -9,8 +9,9 @@ import (
 	"github.com/gorilla/securecookie"
 )
 
+// HMACLength used to validate length of token string we received.
 // Centrifugo uses sha256 as digest algorithm for HMAC tokens and signs
-// so all correct tokens must be of fixed length set by HMACLength.
+// so all correct tokens must be of fixed length set by this const.
 const (
 	HMACLength = 64
 )
@@ -73,18 +74,19 @@ func CheckChannelSign(secret, client, channel, channelData, providedSign string)
 }
 
 const (
-	// AuthTokenKey is a key for admin authorization token.
+	// AdminTokenKey is a key for admin authorization token.
 	AdminTokenKey = "token"
-	// AuthTokenValue is a value for secure admin authorization token.
+	// AdminTokenValue is a value for secure admin authorization token.
 	AdminTokenValue = "authorized"
 )
 
+// GenerateAdminToken generates admin authentication token.
 func GenerateAdminToken(secret string) (string, error) {
 	s := securecookie.New([]byte(secret), nil)
 	return s.Encode(AdminTokenKey, AdminTokenValue)
 }
 
-// CheckAdminAuthToken checks admin connection token which Centrifugo returns after admin login.
+// CheckAdminToken checks admin connection token which Centrifugo returns after admin login.
 func CheckAdminToken(secret string, token string) bool {
 	s := securecookie.New([]byte(secret), nil)
 	var val string

@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 )
@@ -32,6 +33,21 @@ type Config struct {
 	// SSLKey is path to SSL key file.
 	SSLKey string `json:"ssl_key"`
 
+	// SSLAutocert enables automatic certificate receive from ACME provider.
+	SSLAutocert bool `json:"ssl_autocert"`
+	// SSLAutocertHostWhitelist is a slice of host names ACME Manager is allowed to respond to.
+	SSLAutocertHostWhitelist []string `json:"ssl_autocert_host_whitelist"`
+	// SSLAutocertCacheDir is a folder to cache certificates from ACME provider.
+	SSLAutocertCacheDir string `json:"ssl_autocert_cache_dir"`
+	// SSLAutocertEmail is a contact email address to notify about problems with certificates.
+	SSLAutocertEmail string `json:"ssl_autocert_email"`
+	// SSLAutocertForceRSA forces autocert manager generate certificates with 2048-bit RSA keys.
+	SSLAutocertForceRSA bool `json:"ssl_autocert_force_rsa"`
+	// SSLAutocertServerName allows to set ServerName for ClientHelloInfo object if it's empty.
+	// This can be useful to deal with old browsers without SNI support -
+	// see https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819
+	SSLAutocertServerName string `json:"ssl_autocert_server_name"`
+
 	// SockjsURL is a custom SockJS library url to use in iframe transports.
 	SockjsURL string `json:"sockjs_url"`
 
@@ -46,6 +62,15 @@ type Config struct {
 	// that compression will be used - i.e. it only says that Centrifugo will
 	// try to negotiate it with client.
 	WebsocketCompression bool `json:"websocket_compression"`
+
+	// WebsocketCompressionLevel sets a level for websocket compression.
+	// See posiible value description at https://golang.org/pkg/compress/flate/#NewWriter
+	WebsocketCompressionLevel int `json:"websocket_compression_level"`
+
+	// WebsocketCompressionMinSize allows to set minimal limit in bytes for message to use
+	// compression when writing it into client connection. By default it's 0 - i.e. all messages
+	// will be compressed when WebsocketCompression enabled and compression negotiated with client.
+	WebsocketCompressionMinSize int `json:"websocket_compression_min_size"`
 
 	// WebsocketReadBufferSize is a parameter that is used for raw websocket Upgrader.
 	// If set to zero reasonable default value will be used.
@@ -70,8 +95,21 @@ func newConfig(c config.Getter) *Config {
 	cfg.SockjsHeartbeatDelay = c.GetInt("sockjs_heartbeat_delay")
 	cfg.SSL = c.GetBool("ssl")
 	cfg.SSLCert = c.GetString("ssl_cert")
-	cfg.SSLKey = c.GetString("ssl_cert")
+	cfg.SSLKey = c.GetString("ssl_key")
+	cfg.SSLAutocert = c.GetBool("ssl_autocert")
+	autocertHostWhitelist := c.GetString("ssl_autocert_host_whitelist")
+	if autocertHostWhitelist != "" {
+		cfg.SSLAutocertHostWhitelist = strings.Split(autocertHostWhitelist, ",")
+	} else {
+		cfg.SSLAutocertHostWhitelist = nil
+	}
+	cfg.SSLAutocertCacheDir = c.GetString("ssl_autocert_cache_dir")
+	cfg.SSLAutocertEmail = c.GetString("ssl_autocert_email")
+	cfg.SSLAutocertForceRSA = c.GetBool("ssl_autocert_force_rsa")
+	cfg.SSLAutocertServerName = c.GetString("ssl_autocert_server_name")
 	cfg.WebsocketCompression = c.GetBool("websocket_compression")
+	cfg.WebsocketCompressionLevel = c.GetInt("websocket_compression_level")
+	cfg.WebsocketCompressionMinSize = c.GetInt("websocket_compression_min_size")
 	cfg.WebsocketReadBufferSize = c.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = c.GetInt("websocket_write_buffer_size")
 	return cfg

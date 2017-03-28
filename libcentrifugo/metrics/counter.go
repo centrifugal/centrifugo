@@ -17,15 +17,17 @@ type Counter struct {
 	_padding [5]int64
 }
 
+// NewCounter creates new Counter.
 func NewCounter() *Counter {
 	return &Counter{}
 }
 
+// Value allows to get raw counter value.
 func (c *Counter) Value() int64 {
 	return atomic.LoadInt64(&c.value)
 }
 
-// LastIn allows to get last interval value for counter.
+// IntervalValue allows to get last interval value for counter.
 func (c *Counter) IntervalValue() int64 {
 	return atomic.LoadInt64(&c.lastIntervalDelta)
 }
@@ -40,13 +42,14 @@ func (c *Counter) Add(n int64) int64 {
 	return atomic.AddInt64(&c.value, n)
 }
 
-// updateDelta updates the delta value for last interval based on current value and previous value.
+// UpdateDelta updates the delta value for last interval based on current value and previous value.
 func (c *Counter) UpdateDelta() {
 	now := atomic.LoadInt64(&c.value)
 	atomic.StoreInt64(&c.lastIntervalDelta, now-atomic.LoadInt64(&c.lastIntervalValue))
 	atomic.StoreInt64(&c.lastIntervalValue, now)
 }
 
+// CounterRegistry contains counters with specified names.
 type CounterRegistry struct {
 	counters map[string]*Counter
 }
@@ -68,14 +71,12 @@ func (r *CounterRegistry) Get(name string) *Counter {
 	return r.counters[name]
 }
 
-// Inc by name.
-// Should only be called after registry already initialized.
+// Inc by name. Should only be called after registry already initialized.
 func (r *CounterRegistry) Inc(name string) int64 {
 	return r.counters[name].Inc()
 }
 
-// Add by name.
-// Should only be called after registry already initialized.
+// Add by name. Should only be called after registry already initialized.
 func (r *CounterRegistry) Add(name string, n int64) int64 {
 	return r.counters[name].Add(n)
 }
@@ -88,7 +89,7 @@ func (r *CounterRegistry) UpdateDelta() {
 	}
 }
 
-// LoadRawValues allows to get union of raw counter values over registered counters.
+// LoadValues allows to get union of raw counter values over registered counters.
 // Should only be called after registry already initialized.
 func (r *CounterRegistry) LoadValues(names ...string) map[string]int64 {
 	values := make(map[string]int64)
@@ -101,7 +102,7 @@ func (r *CounterRegistry) LoadValues(names ...string) map[string]int64 {
 	return values
 }
 
-// LoadLastInValues allows to get union of last interval snapshot values over registered counters.
+// LoadIntervalValues allows to get union of last interval snapshot values over registered counters.
 // Should only be called after registry already initialized.
 func (r *CounterRegistry) LoadIntervalValues(names ...string) map[string]int64 {
 	values := make(map[string]int64)

@@ -29,6 +29,16 @@ func (n *LevelLogger) Enabled() bool {
 
 var callDepth = 2
 
+// Write allows LevelLogger to implement io.Writer interface so we can use it
+// as output for other loggers.
+func (n *LevelLogger) Write(p []byte) (int, error) {
+	if !n.Enabled() {
+		return len(p), nil
+	}
+	n.Printf("%s", p)
+	return len(p), nil
+}
+
 // Print calls underlying Logger Print func.
 func (n *LevelLogger) Print(v ...interface{}) {
 	if !n.Enabled() {

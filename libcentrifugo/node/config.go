@@ -86,9 +86,12 @@ type Config struct {
 	// connection will be closed if still not authenticated.
 	StaleConnectionCloseDelay time.Duration `json:"stale_connection_close_delay"`
 
-	// MessageSendTimeout is an interval how long time the node
-	// may take to send a message to a client before disconnecting the client.
-	MessageSendTimeout time.Duration `json:"message_send_timeout"`
+	// MessageWriteTimeout is maximum time of write message operation.
+	// Slow client will be disconnected. By default we don't use this option (i.e. it's 0)
+	// and slow client connections will be closed when there queue size exceeds
+	// ClientQueueMaxSize. In case of SockJS transport we don't have control over it so
+	// it only affects raw websocket.
+	ClientMessageWriteTimeout time.Duration `json:"client_message_write_timeout"`
 
 	// ClientRequestMaxSize sets maximum size in bytes of allowed client request.
 	ClientRequestMaxSize int `json:"client_request_max_size"`
@@ -104,11 +107,6 @@ type Config struct {
 
 	// ClientChannelLimit sets upper limit of channels each client can subscribe to.
 	ClientChannelLimit int `json:"client_channel_limit"`
-
-	// ClientMaxIdleTimeout sets a time how long client considered alive if there was
-	// no any message activity. It only used when client sets ping: true when connecting
-	// to Centrifugo - i.e. explicitly said that it going to send periodic pings to server.
-	ClientMaxIdleTimeout time.Duration `json:"client_max_idle_timeout"`
 
 	// UserConnectionLimit limits number of connections from user with the same ID.
 	UserConnectionLimit int `json:"user_connection_limit"`
@@ -185,7 +183,9 @@ func (c *Config) channelOpts(nk NamespaceKey) (proto.ChannelOptions, error) {
 }
 
 const (
-	DefaultName             = "centrifugo"
+	// DefaultName of node.
+	DefaultName = "centrifugo"
+	// DefaultNodePingInterval used in default config.
 	DefaultNodePingInterval = 3
 )
 
@@ -203,7 +203,7 @@ var DefaultConfig = &Config{
 	NodeMetricsInterval:         60 * time.Second,
 	PresencePingInterval:        25 * time.Second,
 	PresenceExpireInterval:      60 * time.Second,
-	MessageSendTimeout:          0,
+	ClientMessageWriteTimeout:   0,
 	PrivateChannelPrefix:        "$", // so private channel will look like "$gossips"
 	NamespaceChannelBoundary:    ":", // so namespace "public" can be used "public:news"
 	ClientChannelBoundary:       "&", // so client channel is sth like "client&7a37e561-c720-4608-52a8-a964a9db7a8a"
@@ -214,8 +214,7 @@ var DefaultConfig = &Config{
 	ClientRequestMaxSize:        65536,    // 64KB by default
 	ClientQueueMaxSize:          10485760, // 10MB by default
 	ClientQueueInitialCapacity:  2,
-	ClientChannelLimit:          100,
-	ClientMaxIdleTimeout:        60 * time.Second,
+	ClientChannelLimit:          128,
 	Insecure:                    false,
 }
 
@@ -236,7 +235,7 @@ func NewConfig(v config.Getter) *Config {
 	cfg.NodeMetricsInterval = time.Duration(v.GetInt("node_metrics_interval")) * time.Second
 	cfg.PresencePingInterval = time.Duration(v.GetInt("presence_ping_interval")) * time.Second
 	cfg.PresenceExpireInterval = time.Duration(v.GetInt("presence_expire_interval")) * time.Second
-	cfg.MessageSendTimeout = time.Duration(v.GetInt("message_send_timeout")) * time.Second
+	cfg.ClientMessageWriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
 	cfg.PrivateChannelPrefix = v.GetString("private_channel_prefix")
 	cfg.NamespaceChannelBoundary = v.GetString("namespace_channel_boundary")
 	cfg.UserChannelBoundary = v.GetString("user_channel_boundary")
@@ -248,7 +247,6 @@ func NewConfig(v config.Getter) *Config {
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientQueueInitialCapacity = v.GetInt("client_queue_initial_capacity")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
-	cfg.ClientMaxIdleTimeout = time.Duration(v.GetInt("client_max_idle_timeout")) * time.Second
 	cfg.UserConnectionLimit = v.GetInt("user_connection_limit")
 	cfg.Insecure = v.GetBool("insecure")
 	cfg.InsecureAPI = v.GetBool("insecure_api")

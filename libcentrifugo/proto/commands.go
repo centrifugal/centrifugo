@@ -22,12 +22,14 @@ type ServerStats struct {
 	MetricsInterval int64      `json:"metrics_interval"`
 }
 
+// ClientCommand describes client connection command struct.
 type ClientCommand struct {
 	UID    string  `json:"uid"`
 	Method string  `json:"method"`
 	Params raw.Raw `json:"params"`
 }
 
+// APICommand describes API request command struct.
 type APICommand struct {
 	UID    string  `json:"uid"`
 	Method string  `json:"method"`
@@ -39,36 +41,7 @@ var (
 	objectJSONPrefix byte = '{'
 )
 
-func APICommandsFromJSON(msg []byte) ([]APICommand, error) {
-	var cmds []APICommand
-
-	if len(msg) == 0 {
-		return cmds, nil
-	}
-
-	firstByte := msg[0]
-
-	switch firstByte {
-	case objectJSONPrefix:
-		// single command request
-		var command APICommand
-		err := json.Unmarshal(msg, &command)
-		if err != nil {
-			return nil, err
-		}
-		cmds = append(cmds, command)
-	case arrayJSONPrefix:
-		// array of commands received
-		err := json.Unmarshal(msg, &cmds)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, ErrInvalidMessage
-	}
-	return cmds, nil
-}
-
+// ClientCommandsFromJSON extracts slice of ClientCommand from client request encoded as JSON.
 func ClientCommandsFromJSON(msgBytes []byte) ([]ClientCommand, error) {
 	var cmds []ClientCommand
 	firstByte := msgBytes[0]
@@ -100,11 +73,10 @@ type ConnectClientCommand struct {
 	Timestamp string `json:"timestamp"`
 	Info      string `json:"info"`
 	Token     string `json:"token"`
-	Ping      bool   `json:"ping"`
 }
 
 // RefreshClientCommand is used to prolong connection lifetime when connection check
-// mechanism is enabled. It can only be sent by client after successfull connect.
+// mechanism is enabled. It can only be sent by client after successful connect.
 type RefreshClientCommand struct {
 	User      string `json:"user"`
 	Timestamp string `json:"timestamp"`
@@ -113,7 +85,7 @@ type RefreshClientCommand struct {
 }
 
 // SubscribeClientCommand is used to subscribe on channel.
-// It can only be sent by client after successfull connect.
+// It can only be sent by client after successful connect.
 // It also can have Client, Info and Sign properties when channel is private.
 type SubscribeClientCommand struct {
 	Channel string `json:"channel"`
@@ -151,38 +123,38 @@ type PingClientCommand struct {
 	Data string `json:"data"`
 }
 
-// PublishApiCommand is used to publish messages into channel.
+// PublishAPICommand is used to publish messages into channel.
 type PublishAPICommand struct {
 	Channel string  `json:"channel"`
 	Client  string  `json:"client"`
 	Data    raw.Raw `json:"data"`
 }
 
-// BroadcastApiCommand is used to publish messages into multiple channels.
+// BroadcastAPICommand is used to publish messages into multiple channels.
 type BroadcastAPICommand struct {
 	Channels []string `json:"channels"`
 	Data     raw.Raw  `json:"data"`
 	Client   string   `json:"client"`
 }
 
-// UnsubscribeApiCommand is used to unsubscribe user from channel.
+// UnsubscribeAPICommand is used to unsubscribe user from channel.
 type UnsubscribeAPICommand struct {
 	Channel string `json:"channel"`
 	User    string `json:"user"`
 }
 
-// DisconnectApiCommand is used to disconnect user.
+// DisconnectAPICommand is used to disconnect user.
 type DisconnectAPICommand struct {
 	User string `json:"user"`
 }
 
-// PresenceApiCommand is used to get presence (actual channel subscriptions)
+// PresenceAPICommand is used to get presence (actual channel subscriptions)
 // information for channel.
 type PresenceAPICommand struct {
 	Channel string `json:"channel"`
 }
 
-// HistoryApiCommand is used to get history information for channel.
+// HistoryAPICommand is used to get history information for channel.
 type HistoryAPICommand struct {
 	Channel string `json:"channel"`
 }

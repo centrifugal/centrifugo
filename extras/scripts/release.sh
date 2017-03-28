@@ -8,6 +8,8 @@ fi
 MAIN_DIR=`pwd`
 DOCKERFILE=$MAIN_DIR/Dockerfile
 DOCKERFILE_TEMPLATE=$MAIN_DIR/extras/scripts/dockerfile.template
+HOMEBREWFILE=$MAIN_DIR/centrifugo.rb
+HOMEBREWFILE_TEMPLATE=$MAIN_DIR/extras/scripts/homebrew.template
 
 mkdir -p BUILDS
 mkdir -p BUILDS/$1
@@ -27,9 +29,13 @@ done
 
 CHECKSUM=`cat sha256sum.txt | grep "linux-amd64" | awk -F "  " '{print $1}'`
 echo "SHA 256 sum for Dockerfile: $CHECKSUM"
-
 sed -e "s;%version%;$1;g" -e "s;%checksum%;$CHECKSUM;g" $DOCKERFILE_TEMPLATE > $DOCKERFILE
 echo "Centos 7 Dockerfile updated"
+
+CHECKSUM=`cat sha256sum.txt | grep "darwin-amd64" | awk -F "  " '{print $1}'`
+echo "SHA 256 sum for Homebrew formula file: $CHECKSUM"
+sed -e "s;%version%;$1;g" -e "s;%checksum%;$CHECKSUM;g" $HOMEBREWFILE_TEMPLATE > $HOMEBREWFILE
+echo "Homebrew formula updated"
 
 echo "Done! Now what you should do:"
 echo "1) Write CHANGELOG.md if needed"

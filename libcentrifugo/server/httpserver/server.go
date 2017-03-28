@@ -26,6 +26,7 @@ func init() {
 	plugin.Metrics.RegisterHDRHistogram("http_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
+// HTTPServerConfigure is a Configurator func for default Centrifugo http server.
 func HTTPServerConfigure(setter config.Setter) error {
 
 	setter.SetDefault("http_prefix", "")
@@ -34,16 +35,27 @@ func HTTPServerConfigure(setter config.Setter) error {
 	setter.SetDefault("admin_password", "")
 	setter.SetDefault("admin_secret", "")
 	setter.SetDefault("sockjs_url", "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js")
-	setter.SetDefault("sockjs_heartbeat_delay", 0)
+	setter.SetDefault("sockjs_heartbeat_delay", 25)
 	setter.SetDefault("websocket_compression", false)
-	setter.SetDefault("websocket_read_buffer_size", 4096)
-	setter.SetDefault("websocket_write_buffer_size", 4096)
+	setter.SetDefault("websocket_compression_min_size", 0)
+	setter.SetDefault("websocket_compression_level", 1)
+	setter.SetDefault("websocket_read_buffer_size", 0)
+	setter.SetDefault("websocket_write_buffer_size", 0)
+
+	setter.SetDefault("ssl_autocert", false)
+	setter.SetDefault("ssl_autocert_host_whitelist", "")
+	setter.SetDefault("ssl_autocert_cache_dir", "")
+	setter.SetDefault("ssl_autocert_email", "")
+	setter.SetDefault("ssl_autocert_force_rsa", false)
+	setter.SetDefault("ssl_autocert_server_name", "")
 
 	setter.BoolFlag("web", "w", false, "serve admin web interface application (warning: automatically enables admin socket)")
 	setter.StringFlag("web_path", "", "", "optional path to custom web interface application")
+
 	setter.BoolFlag("ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
 	setter.StringFlag("ssl_cert", "", "", "path to an X509 certificate file")
 	setter.StringFlag("ssl_key", "", "", "path to an X509 certificate key")
+
 	setter.StringFlag("address", "a", "", "address to listen on")
 	setter.StringFlag("port", "p", "8000", "port to bind HTTP server to")
 	setter.StringFlag("api_port", "", "", "port to bind api endpoints to (optional)")
@@ -69,6 +81,7 @@ func HTTPServerConfigure(setter config.Setter) error {
 	return nil
 }
 
+// HTTPServer is a default builtin Centrifugo server.
 type HTTPServer struct {
 	sync.RWMutex
 	node       *node.Node
@@ -77,11 +90,13 @@ type HTTPServer struct {
 	shutdownCh chan struct{}
 }
 
+// HTTPServerPlugin is a plugin that returns HTTPServer.
 func HTTPServerPlugin(n *node.Node, getter config.Getter) (server.Server, error) {
 	return New(n, newConfig(getter))
 }
 
-func New(n *node.Node, config *Config) (server.Server, error) {
+// New initializes HTTPServer.
+func New(n *node.Node, config *Config) (*HTTPServer, error) {
 	return &HTTPServer{
 		node:       n,
 		config:     config,
@@ -89,10 +104,12 @@ func New(n *node.Node, config *Config) (server.Server, error) {
 	}, nil
 }
 
+// Run runs HTTPServer.
 func (s *HTTPServer) Run() error {
 	return s.runHTTPServer()
 }
 
+// Shutdown shuts down server.
 func (s *HTTPServer) Shutdown() error {
 	s.Lock()
 	defer s.Unlock()

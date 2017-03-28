@@ -3,10 +3,10 @@
 	"ignore": "test github.com/ajstarks/svgo golang.org/x/net/websocket",
 	"package": [
 		{
-			"checksumSHA1": "2+pogUjiO+ws1kj8eZqVWflIS2Q=",
+			"checksumSHA1": "QdY6HchsN9U9FQVEjOdoegkg8ic=",
 			"path": "github.com/FZambia/go-logger",
-			"revision": "f1245f2255da0c9e3f871d239d5ca776fa339d94",
-			"revisionTime": "2016-10-20T09:37:53Z"
+			"revision": "250d14e545ab5e21e2ba5974909d805b06199d70",
+			"revisionTime": "2017-01-25T12:59:37Z"
 		},
 		{
 			"path": "github.com/FZambia/go-sentinel",
@@ -75,10 +75,16 @@
 			"revisionTime": "2015-08-20T08:29:58Z"
 		},
 		{
-			"checksumSHA1": "SmBqqqR0T+1Ksx5zwCl295Vey0s=",
+			"checksumSHA1": "G778A9feKkdW7ZjeDdj5qoU0Ku4=",
 			"path": "github.com/gorilla/websocket",
-			"revision": "e8f0f8aaa98dfb6586cbdf2978d511e3199a960a",
-			"revisionTime": "2016-11-12T14:27:12Z"
+			"revision": "b258b4fadb573ac412f187b9f31974ea99d32f50",
+			"revisionTime": "2017-03-02T22:46:13Z"
+		},
+		{
+			"checksumSHA1": "H+a6W2j6xwNUqK7f7Q+ujPazjKU=",
+			"path": "github.com/igm/sockjs-go/sockjs",
+			"revision": "1f275fbd3bcc9a21ec90217b80f40db44404410b",
+			"revisionTime": "2016-11-15T19:28:38Z"
 		},
 		{
 			"checksumSHA1": "LUrnGREfnifW4WDMaavmc9MlLI0=",
@@ -149,10 +155,54 @@
 			"revisionTime": "2016-08-17T18:16:52Z"
 		},
 		{
-			"checksumSHA1": "ay9WnRs0b3RGtKVTEGvKvfvfojs=",
-			"path": "gopkg.in/igm/sockjs-go.v2/sockjs",
-			"revision": "d276e9ffe5cc5c271b81198cc77a2adf6c4482d2",
-			"revisionTime": "2016-11-15T19:38:03Z"
+			"checksumSHA1": "TK1Yr8BbwionaaAvM+77lwAAx/8=",
+			"path": "golang.org/x/crypto/acme",
+			"revision": "f6b343c37ca80bfa8ea539da67a0b621f84fab1d",
+			"revisionTime": "2016-12-21T04:54:10Z"
+		},
+		{
+			"checksumSHA1": "fvFbUkZIL96D/kWOJwJRMESGjQQ=",
+			"path": "golang.org/x/crypto/acme/autocert",
+			"revision": "f6b343c37ca80bfa8ea539da67a0b621f84fab1d",
+			"revisionTime": "2016-12-21T04:54:10Z"
+		},
+		{
+			"checksumSHA1": "9jjO5GjLa0XF/nfWihF02RoH4qc=",
+			"origin": "golang.org/x/crypto/vendor/golang.org/x/net/context",
+			"path": "golang.org/x/net/context",
+			"revision": "f6b343c37ca80bfa8ea539da67a0b621f84fab1d",
+			"revisionTime": "2016-12-21T04:54:10Z"
+		},
+		{
+			"checksumSHA1": "WHc3uByvGaMcnSoI21fhzYgbOgg=",
+			"origin": "golang.org/x/crypto/vendor/golang.org/x/net/context/ctxhttp",
+			"path": "golang.org/x/net/context/ctxhttp",
+			"revision": "f6b343c37ca80bfa8ea539da67a0b621f84fab1d",
+			"revisionTime": "2016-12-21T04:54:10Z"
+		},
+		{
+			"checksumSHA1": "N1akwAdrHVfPPrsFOhG2ouP21VA=",
+			"path": "golang.org/x/net/http2",
+			"revision": "f2499483f923065a842d38eb4c7f1927e6fc6e6d",
+			"revisionTime": "2017-01-14T04:22:49Z"
+		},
+		{
+			"checksumSHA1": "HzuGD7AwgC0p1az1WAQnEFnEk98=",
+			"path": "golang.org/x/net/http2/hpack",
+			"revision": "f2499483f923065a842d38eb4c7f1927e6fc6e6d",
+			"revisionTime": "2017-01-14T04:22:49Z"
+		},
+		{
+			"checksumSHA1": "GIGmSrYACByf5JDIP9ByBZksY80=",
+			"path": "golang.org/x/net/idna",
+			"revision": "f2499483f923065a842d38eb4c7f1927e6fc6e6d",
+			"revisionTime": "2017-01-14T04:22:49Z"
+		},
+		{
+			"checksumSHA1": "3xyuaSNmClqG4YWC7g0isQIbUTc=",
+			"path": "golang.org/x/net/lex/httplex",
+			"revision": "f2499483f923065a842d38eb4c7f1927e6fc6e6d",
+			"revisionTime": "2017-01-14T04:22:49Z"
 		},
 		{
 			"checksumSHA1": "yV+2de12Q/t09hBGYGKEOFr1/zc=",

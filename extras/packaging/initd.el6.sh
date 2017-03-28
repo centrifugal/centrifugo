@@ -52,9 +52,10 @@ if [ ! -f "$STDERR" ]; then
     mkdir -p $(dirname $STDERR)
 fi
 
-[ -e /etc/sysconfig/centrifugo ] && . /etc/sysconfig/centrifugo
-
 lockfile="/var/lock/subsys/centrifugo"
+pidfile="/var/run/centrifugo.pid"
+
+[ -e /etc/sysconfig/centrifugo ] && . /etc/sysconfig/centrifugo
 
 if ! [ -x $DAEMON ]; then
   echo "$DAEMON binary not found."
@@ -75,16 +76,17 @@ start() {
 
     configtest || return $?
     echo -n $"Starting $NAME: "
-    daemon --user centrifugo --check=$DAEMON "nohup $DAEMON -c $CONFIG $CENTRIFUGO_OPTS >>$STDOUT 2>&1 &"
+    daemon --pidfile=$pidfile --user centrifugo --check=$DAEMON "nohup $DAEMON -c $CONFIG $CENTRIFUGO_OPTS >>$STDOUT 2>&1 &"
     retval=$?
     echo
     [ $retval -eq 0 ] && touch $lockfile
+    pgrep -f "$DAEMON -c $CONFIG" > $pidfile
     return $retval
 }
 
 stop() {
     echo -n $"Stopping $NAME: "
-    killproc $NAME -TERM
+    killproc -p $pidfile $NAME -TERM
     retval=$?
     if [ $retval -eq 0 ]; then
         if [ "$CONSOLETYPE" != "serial" ]; then
@@ -122,7 +124,7 @@ configtest() {
 }
 
 rh_status() {
-    status $NAME
+    status -p $pidfile $NAME
 }
 
 rh_status_q() {

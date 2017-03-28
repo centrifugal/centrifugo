@@ -34,6 +34,7 @@ func TestAPIResponse(t *testing.T) {
 	resp.SetErr(ResponseError{errors.New("error1"), ErrorAdviceNone})
 	resp.SetErr(ResponseError{errors.New("error2"), ErrorAdviceNone})
 	marshalledResponse, err = json.Marshal(resp)
+	assert.Equal(t, nil, err)
 	assert.Equal(t, true, strings.Contains(string(marshalledResponse), "\"error\":\"error1\""))
 }
 

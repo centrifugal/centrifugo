@@ -280,14 +280,14 @@ func TestAPICmd(t *testing.T) {
 
 func TestAPIPublish(t *testing.T) {
 	app := NewTestNode()
-	cmd := &proto.PublishAPICommand{
+	cmd := proto.PublishAPICommand{
 		Channel: "channel",
 		Data:    []byte("null"),
 	}
 	resp, err := PublishCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIPublishResponse).ResponseError.Err)
-	cmd = &proto.PublishAPICommand{
+	cmd = proto.PublishAPICommand{
 		Channel: "nonexistentnamespace:channel-2",
 		Data:    []byte("null"),
 	}
@@ -298,21 +298,21 @@ func TestAPIPublish(t *testing.T) {
 
 func TestAPIBroadcast(t *testing.T) {
 	app := NewTestNode()
-	cmd := &proto.BroadcastAPICommand{
+	cmd := proto.BroadcastAPICommand{
 		Channels: []string{"channel-1", "channel-2"},
 		Data:     []byte("null"),
 	}
 	resp, err := BroadcastCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
-	cmd = &proto.BroadcastAPICommand{
+	cmd = proto.BroadcastAPICommand{
 		Channels: []string{"channel-1", "nonexistentnamespace:channel-2"},
 		Data:     []byte("null"),
 	}
 	resp, err = BroadcastCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, proto.ErrNamespaceNotFound, resp.(*proto.APIBroadcastResponse).ResponseError.Err)
-	cmd = &proto.BroadcastAPICommand{
+	cmd = proto.BroadcastAPICommand{
 		Channels: []string{},
 		Data:     []byte("null"),
 	}
@@ -323,27 +323,27 @@ func TestAPIBroadcast(t *testing.T) {
 
 func TestAPIUnsubscribe(t *testing.T) {
 	app := NewTestNode()
-	cmd := &proto.UnsubscribeAPICommand{
+	cmd := proto.UnsubscribeAPICommand{
 		User:    "test user",
 		Channel: "channel",
 	}
-	resp, err := UnsubcribeCmd(app, cmd)
+	resp, err := UnsubscribeCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIUnsubscribeResponse).ResponseError.Err)
 
 	// unsubscribe from all channels
-	cmd = &proto.UnsubscribeAPICommand{
+	cmd = proto.UnsubscribeAPICommand{
 		User:    "test user",
 		Channel: "",
 	}
-	resp, err = UnsubcribeCmd(app, cmd)
+	resp, err = UnsubscribeCmd(app, cmd)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, nil, resp.(*proto.APIUnsubscribeResponse).ResponseError.Err)
 }
 
 func TestAPIDisconnect(t *testing.T) {
 	app := NewTestNode()
-	cmd := &proto.DisconnectAPICommand{
+	cmd := proto.DisconnectAPICommand{
 		User: "test user",
 	}
 	resp, err := DisconnectCmd(app, cmd)
@@ -353,7 +353,7 @@ func TestAPIDisconnect(t *testing.T) {
 
 func TestAPIPresence(t *testing.T) {
 	app := NewTestNode()
-	cmd := &proto.PresenceAPICommand{
+	cmd := proto.PresenceAPICommand{
 		Channel: "channel",
 	}
 	resp, err := PresenceCmd(app, cmd)
@@ -363,7 +363,7 @@ func TestAPIPresence(t *testing.T) {
 
 func TestAPIHistory(t *testing.T) {
 	app := NewTestNode()
-	cmd := &proto.HistoryAPICommand{
+	cmd := proto.HistoryAPICommand{
 		Channel: "channel",
 	}
 	resp, err := HistoryCmd(app, cmd)

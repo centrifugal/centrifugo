@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
-	"github.com/centrifugal/centrifugo/libcentrifugo/bytequeue"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
+	"github.com/centrifugal/centrifugo/libcentrifugo/queue"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/satori/go.uuid"
 )
@@ -52,7 +52,7 @@ type client struct {
 	defaultInfo    raw.Raw
 	channelInfo    map[string]raw.Raw
 	channels       map[string]struct{}
-	messages       bytequeue.ByteQueue
+	messages       queue.Queue
 	closeCh        chan struct{}
 	closed         bool
 	staleTimer     *time.Timer
@@ -62,9 +62,6 @@ type client struct {
 	maxQueueSize   int
 	maxRequestSize int
 	sendFinished   chan struct{}
-	ping           bool
-	lastSeen       int64
-	lastSeenMu     sync.RWMutex
 }
 
 var (
@@ -101,17 +98,15 @@ func New(n *node.Node, s conns.Session) (conns.ClientConn, error) {
 	queueInitialCapacity := config.ClientQueueInitialCapacity
 	maxQueueSize := config.ClientQueueMaxSize
 	maxRequestSize := config.ClientRequestMaxSize
-	sendTimeout := config.MessageSendTimeout
 
 	c := client{
 		uid:            uuid.NewV4().String(),
 		node:           n,
 		sess:           s,
 		closeCh:        make(chan struct{}),
-		messages:       bytequeue.New(queueInitialCapacity),
+		messages:       queue.New(queueInitialCapacity),
 		maxQueueSize:   maxQueueSize,
 		maxRequestSize: maxRequestSize,
-		sendTimeout:    sendTimeout,
 		sendFinished:   make(chan struct{}),
 	}
 	go c.sendMessages()
@@ -132,42 +127,18 @@ func (c *client) sendMessages() {
 			}
 			continue
 		}
-		err := c.sendMessage(msg)
+		qm := msg.(*conns.QueuedMessage)
+		// Write timeout must be implemented inside session Send method.
+		// Slow client connections will be closed eventually anyway after
+		// exceeding client max queue size.
+		err := c.sess.Send(qm)
 		if err != nil {
 			// Close in goroutine to let this function return.
 			go c.Close(&conns.DisconnectAdvice{Reason: "error sending message", Reconnect: true})
 			return
 		}
 		plugin.Metrics.Counters.Inc("client_num_msg_sent")
-		plugin.Metrics.Counters.Add("client_bytes_out", int64(len(msg)))
-	}
-}
-
-func (c *client) sendMessage(msg []byte) error {
-	sendTimeout := c.sendTimeout // No lock here as sendTimeout immutable while client exists.
-	if sendTimeout > 0 {
-		// Send to client's session with provided timeout.
-		to := time.After(sendTimeout)
-		sent := make(chan error)
-		go func() {
-			select {
-			case sent <- c.sess.Send(msg):
-			case <-c.closeCh:
-				return
-			}
-		}()
-		select {
-		case err := <-sent:
-			return err
-		case <-to:
-			return proto.ErrSendTimeout
-		}
-	} else {
-		// Do not use any timeout when sending, it's recommended to keep
-		// Centrifugo behind properly configured reverse proxy.
-		// Slow client connections will be closed eventually anyway after
-		// exceeding client max queue size.
-		return c.sess.Send(msg)
+		plugin.Metrics.Counters.Add("client_bytes_out", int64(qm.Len()))
 	}
 }
 
@@ -197,23 +168,8 @@ func (c *client) updateChannelPresence(ch string) {
 	c.node.AddPresence(ch, c.uid, c.info(ch))
 }
 
-func (c *client) isIdle() bool {
-	config := c.node.Config()
-	maxIdleTimeout := config.ClientMaxIdleTimeout
-	c.lastSeenMu.RLock()
-	lastSeen := c.lastSeen
-	c.lastSeenMu.RUnlock()
-	return time.Now().Unix()-lastSeen > int64(maxIdleTimeout.Seconds())
-}
-
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
-
-	if c.ping && c.isIdle() {
-		go c.Close(nil)
-		return
-	}
-
 	c.RLock()
 	if c.closed {
 		return
@@ -281,10 +237,11 @@ func (c *client) Unsubscribe(ch string) error {
 		return err
 	}
 	c.Unlock()
-	return c.Send(respJSON)
+	msg := conns.NewQueuedMessage(respJSON, false)
+	return c.Send(msg)
 }
 
-func (c *client) Send(message []byte) error {
+func (c *client) Send(message *conns.QueuedMessage) error {
 	ok := c.messages.Add(message)
 	if !ok {
 		return proto.ErrClientClosed
@@ -294,34 +251,6 @@ func (c *client) Send(message []byte) error {
 		// Close in goroutine to not block message broadcast.
 		go c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: false})
 		return proto.ErrClientClosed
-	}
-	return nil
-}
-
-// sendDisconnect sends disconnect advice to client before closing connection.
-// Client message queue must be closed before calling this to prevent concurrent
-// writes into session transport connection.
-func (c *client) sendDisconnect(advice *conns.DisconnectAdvice) error {
-	body := proto.DisconnectBody{
-		Reason:    advice.Reason,
-		Reconnect: advice.Reconnect,
-	}
-	resp := proto.NewClientDisconnectResponse(body)
-	jsonResp, err := json.Marshal(resp)
-	if err != nil {
-		return err
-	}
-	// Here we know that sending goroutine completed so we can
-	// safely write into session - i.e. avoid concurrent writes.
-	sent := make(chan struct{})
-	go func() {
-		defer close(sent)
-		c.sess.Send(jsonResp)
-	}()
-	select {
-	case <-sent:
-	case <-time.After(time.Second):
-		return proto.ErrSendTimeout
 	}
 	return nil
 }
@@ -361,18 +290,6 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		}
 	}
 
-	if advice != nil {
-		select {
-		case <-c.sendFinished:
-			err := c.sendDisconnect(advice)
-			if err != nil {
-				logger.DEBUG.Printf("Error sending disconnect: %v", err)
-			}
-		case <-time.After(time.Second):
-			logger.DEBUG.Println("Timeout stopping sendMessages goroutine")
-		}
-	}
-
 	if c.expireTimer != nil {
 		c.expireTimer.Stop()
 	}
@@ -389,11 +306,7 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		c.node.Mediator().Disconnect(c.uid, c.user)
 	}
 
-	if advice == nil {
-		advice = conns.DefaultDisconnectAdvice
-	}
-
-	if advice.Reason != "" {
+	if advice != nil && advice.Reason != "" {
 		logger.DEBUG.Printf("Closing connection %s (user %s): %s", c.uid, c.user, advice.Reason)
 	}
 
@@ -409,11 +322,6 @@ func (c *client) info(ch string) proto.ClientInfo {
 }
 
 func (c *client) Handle(msg []byte) error {
-
-	c.lastSeenMu.Lock()
-	c.lastSeen = time.Now().Unix()
-	c.lastSeenMu.Unlock()
-
 	started := time.Now()
 	defer func() {
 		plugin.Metrics.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
@@ -481,7 +389,8 @@ func (c *client) handleCommands(cmds []proto.ClientCommand) error {
 		logger.ERROR.Println(err)
 		return proto.ErrInvalidMessage
 	}
-	err = c.Send(jsonResp)
+	msg := conns.NewQueuedMessage(jsonResp, false)
+	err = c.Send(msg)
 	return err
 }
 
@@ -600,7 +509,7 @@ func (c *client) expire() {
 	timeToExpire := c.timestamp + connLifetime - time.Now().Unix()
 	c.RUnlock()
 	if timeToExpire > 0 {
-		// connection was succesfully refreshed
+		// connection was successfully refreshed.
 		return
 	}
 
@@ -671,7 +580,6 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	}
 
 	c.user = user
-	c.ping = cmd.Ping
 
 	body := proto.ConnectBody{}
 	body.Version = version
@@ -827,7 +735,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 	}
 
 	if len(c.channels) >= channelLimit {
-		logger.ERROR.Printf("maximimum limit of channels per client reached: %d", channelLimit)
+		logger.ERROR.Printf("maximum limit of channels per client reached: %d", channelLimit)
 		resp := proto.NewClientSubscribeResponse(body)
 		resp.SetErr(proto.ResponseError{proto.ErrLimitExceeded, proto.ErrorAdviceFix})
 		return resp, nil
@@ -931,12 +839,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 	}
 
 	if chOpts.JoinLeave {
-		go func() {
-			err = <-c.node.PublishJoin(proto.NewJoinMessage(channel, info), &chOpts)
-			if err != nil {
-				logger.ERROR.Println(err)
-			}
-		}()
+		c.node.PublishJoin(proto.NewJoinMessage(channel, info), &chOpts)
 	}
 
 	body.Status = true
@@ -971,16 +874,15 @@ func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeClientCommand) (proto.Resp
 
 		delete(c.channels, channel)
 
-		err = c.node.RemovePresence(channel, c.uid)
-		if err != nil {
-			logger.ERROR.Println(err)
-		}
-
-		if chOpts.JoinLeave {
-			err = <-c.node.PublishLeave(proto.NewLeaveMessage(channel, info), &chOpts)
+		if chOpts.Presence {
+			err = c.node.RemovePresence(channel, c.uid)
 			if err != nil {
 				logger.ERROR.Println(err)
 			}
+		}
+
+		if chOpts.JoinLeave {
+			c.node.PublishLeave(proto.NewLeaveMessage(channel, info), &chOpts)
 		}
 
 		err = c.node.RemoveClientSub(channel, c)

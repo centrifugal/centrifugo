@@ -1,11 +1,13 @@
 package httpserver
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -19,8 +21,10 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/websocket"
+	"github.com/igm/sockjs-go/sockjs"
 	"github.com/rakyll/statik/fs"
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/net/http2"
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -79,19 +83,6 @@ var DefaultMuxOptions = MuxOptions{
 	SockjsOptions: sockjs.DefaultOptions,
 }
 
-func listenHTTP(mux http.Handler, addr string, useSSL bool, sslCert, sslKey string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	if useSSL {
-		if err := http.ListenAndServeTLS(addr, sslCert, sslKey, mux); err != nil {
-			logger.FATAL.Fatalln("ListenAndServe:", err)
-		}
-	} else {
-		if err := http.ListenAndServe(addr, mux); err != nil {
-			logger.FATAL.Fatalln("ListenAndServe:", err)
-		}
-	}
-}
-
 func (s *HTTPServer) runHTTPServer() error {
 
 	nodeConfig := s.node.Config()
@@ -107,6 +98,12 @@ func (s *HTTPServer) runHTTPServer() error {
 	sslEnabled := s.config.SSL
 	sslCert := s.config.SSLCert
 	sslKey := s.config.SSLKey
+	sslAutocertEnabled := s.config.SSLAutocert
+	sslAutocertHostWhitelist := s.config.SSLAutocertHostWhitelist
+	sslAutocertCacheDir := s.config.SSLAutocertCacheDir
+	sslAutocertEmail := s.config.SSLAutocertEmail
+	sslAutocertForceRSA := s.config.SSLAutocertForceRSA
+	sslAutocertServerName := s.config.SSLAutocertServerName
 	address := s.config.HTTPAddress
 	clientPort := s.config.HTTPPort
 	adminPort := s.config.HTTPAdminPort
@@ -116,12 +113,8 @@ func (s *HTTPServer) runHTTPServer() error {
 	wsWriteBufferSize := s.config.WebsocketWriteBufferSize
 	s.RUnlock()
 
-	if wsReadBufferSize > 0 {
-		sockjs.WebSocketReadBufSize = wsReadBufferSize
-	}
-	if wsWriteBufferSize > 0 {
-		sockjs.WebSocketWriteBufSize = wsWriteBufferSize
-	}
+	sockjs.WebSocketReadBufSize = wsReadBufferSize
+	sockjs.WebSocketWriteBufSize = wsWriteBufferSize
 
 	sockjsOpts := sockjs.DefaultOptions
 
@@ -192,8 +185,69 @@ func (s *HTTPServer) runHTTPServer() error {
 		addr := net.JoinHostPort(address, handlerPort)
 
 		logger.INFO.Printf("Start serving %s endpoints on %s\n", handlerFlags, addr)
+
 		wg.Add(1)
-		go listenHTTP(mux, addr, sslEnabled, sslCert, sslKey, &wg)
+		go func() {
+			defer wg.Done()
+
+			if sslAutocertEnabled {
+				certManager := autocert.Manager{
+					Prompt:   autocert.AcceptTOS,
+					ForceRSA: sslAutocertForceRSA,
+					Email:    sslAutocertEmail,
+				}
+				if sslAutocertHostWhitelist != nil {
+					certManager.HostPolicy = autocert.HostWhitelist(sslAutocertHostWhitelist...)
+				}
+				if sslAutocertCacheDir != "" {
+					certManager.Cache = autocert.DirCache(sslAutocertCacheDir)
+				}
+				server := &http.Server{
+					Addr:    addr,
+					Handler: mux,
+					TLSConfig: &tls.Config{
+						GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+							// See https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819
+							if sslAutocertServerName != "" && hello.ServerName == "" {
+								hello.ServerName = sslAutocertServerName
+							}
+							return certManager.GetCertificate(hello)
+						},
+					},
+				}
+
+				// TODO: actually we won't need this when building with Go > 1.8
+				// See https://github.com/centrifugal/centrifugo/issues/145
+				if !strings.Contains(os.Getenv("GODEBUG"), "http2server=0") {
+					if err := http2.ConfigureServer(server, nil); err != nil {
+						logger.FATAL.Fatalln("Configuring HTTP/2 server error:", err)
+					}
+				}
+
+				if err := server.ListenAndServeTLS("", ""); err != nil {
+					logger.FATAL.Fatalln("ListenAndServe:", err)
+				}
+			} else if sslEnabled {
+				// Autocert disabled - just try to use provided SSL cert and key files.
+				server := &http.Server{Addr: addr, Handler: mux}
+
+				// TODO: actually we won't need this when building with Go > 1.8
+				// See https://github.com/centrifugal/centrifugo/issues/145
+				if !strings.Contains(os.Getenv("GODEBUG"), "http2server=0") {
+					if err := http2.ConfigureServer(server, nil); err != nil {
+						logger.FATAL.Fatalln("Configuring HTTP/2 server error:", err)
+					}
+				}
+
+				if err := server.ListenAndServeTLS(sslCert, sslKey); err != nil {
+					logger.FATAL.Fatalln("ListenAndServe:", err)
+				}
+			} else {
+				if err := http.ListenAndServe(addr, mux); err != nil {
+					logger.FATAL.Fatalln("ListenAndServe:", err)
+				}
+			}
+		}()
 	}
 	wg.Wait()
 
@@ -236,7 +290,7 @@ func DefaultMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 		mux.Handle(prefix+"/api/", s.Logged(s.WrapShutdown(http.HandlerFunc(s.APIHandler))))
 	}
 
-	if admin && flags&HandlerAdmin != 0 {
+	if (admin || web) && flags&HandlerAdmin != 0 {
 		// register admin websocket endpoint.
 		mux.Handle(prefix+"/socket", s.Logged(http.HandlerFunc(s.AdminWebsocketHandler)))
 
@@ -303,16 +357,11 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 
 	s.RLock()
 	wsCompression := s.config.WebsocketCompression
+	wsCompressionLevel := s.config.WebsocketCompressionLevel
+	wsCompressionMinSize := s.config.WebsocketCompressionMinSize
 	wsReadBufferSize := s.config.WebsocketReadBufferSize
 	wsWriteBufferSize := s.config.WebsocketWriteBufferSize
 	s.RUnlock()
-
-	if wsReadBufferSize == 0 {
-		wsReadBufferSize = sockjs.WebSocketReadBufSize
-	}
-	if wsWriteBufferSize == 0 {
-		wsWriteBufferSize = sockjs.WebSocketWriteBufSize
-	}
 
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:    wsReadBufferSize,
@@ -325,15 +374,21 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	ws, err := upgrader.Upgrade(w, r, nil)
-	if _, ok := err.(websocket.HandshakeError); ok {
-		http.Error(w, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
-		return
-	} else if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+	if err != nil {
+		logger.DEBUG.Printf("Websocket connection upgrade error: %#v", err.Error())
 		return
 	}
 
-	pingInterval := s.node.Config().PingInterval
+	if wsCompression {
+		err := ws.SetCompressionLevel(wsCompressionLevel)
+		if err != nil {
+			logger.ERROR.Printf("Error setting websocket compression level: %v", err)
+		}
+	}
+
+	config := s.node.Config()
+	pingInterval := config.PingInterval
+	writeTimeout := config.ClientMessageWriteTimeout
 
 	if pingInterval > 0 {
 		pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
@@ -341,7 +396,7 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 		ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}
 
-	c, err := clientconn.New(s.node, newWSSession(ws, pingInterval))
+	c, err := clientconn.New(s.node, newWSSession(ws, pingInterval, writeTimeout, wsCompressionMinSize))
 	if err != nil {
 		logger.ERROR.Println(err)
 		ws.Close()
@@ -436,10 +491,9 @@ func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 		if err == proto.ErrInvalidMessage {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
-		} else {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
 		}
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonResp)
@@ -522,35 +576,29 @@ func (s *HTTPServer) Logged(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-const (
-	AdminWebsocketReadBufferSize  = 1024
-	AdminWebsocketWriteBufferSize = 1024
-)
-
-var upgrader = &websocket.Upgrader{ReadBufferSize: AdminWebsocketReadBufferSize, WriteBufferSize: AdminWebsocketWriteBufferSize}
-
 // AdminWebsocketHandler handles admin websocket connections.
 func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	config := s.node.Config()
-
 	admin := config.Admin
 
-	if !admin {
+	s.RLock()
+	web := s.config.Web
+	s.RUnlock()
+
+	if !(admin || web) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	ws, err := websocket.Upgrade(w, r, nil, sockjs.WebSocketReadBufSize, sockjs.WebSocketWriteBufSize)
-	if _, ok := err.(websocket.HandshakeError); ok {
-		http.Error(w, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
-		return
-	} else if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+	ws, err := websocket.Upgrade(w, r, nil, 0, 0)
+	if err != nil {
+		logger.DEBUG.Printf("Admin connection upgrade error: %#v", err.Error())
 		return
 	}
 
 	pingInterval := config.PingInterval
+	writeTimeout := config.ClientMessageWriteTimeout
 
 	if pingInterval > 0 {
 		pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
@@ -558,7 +606,7 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 		ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}
 
-	sess := newWSSession(ws, pingInterval)
+	sess := newWSSession(ws, pingInterval, writeTimeout, 0)
 
 	c, err := adminconn.New(s.node, sess)
 	if err != nil {

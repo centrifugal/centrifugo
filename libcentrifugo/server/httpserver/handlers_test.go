@@ -2,7 +2,6 @@ package httpserver
 
 import (
 	"bytes"
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -199,7 +198,7 @@ func TestRawWsHandler(t *testing.T) {
 	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
 
 	s.node.Shutdown()
-	_, resp, err = websocket.DefaultDialer.Dial(url+"/connection/websocket", nil)
+	_, resp, _ = websocket.DefaultDialer.Dial(url+"/connection/websocket", nil)
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 }
 
@@ -252,6 +251,7 @@ func TestSockJSHandler(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.NotEqual(t, nil, conn)
 	_, p, err := conn.ReadMessage()
+	assert.Equal(t, nil, err)
 	// open frame of SockJS protocol
 	assert.Equal(t, "o", string(p))
 	conn.Close()
@@ -265,23 +265,10 @@ func TestRawWSHandler(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
-	conn, _, err := websocket.DefaultDialer.Dial(url+"/connection/websocket", nil)
+	conn, resp, err := websocket.DefaultDialer.Dial(url+"/connection/websocket", nil)
 	assert.Equal(t, nil, err)
-	data := map[string]interface{}{
-		"method": "ping",
-		"params": proto.PingBody{Data: "hello"},
-	}
-	conn.WriteJSON(data)
-	var response interface{}
-	conn.ReadJSON(&response)
-	assert.NotEqual(t, nil, response)
-	b, _ := json.Marshal(response)
-	println(b)
-	// connect message should be sent first, so we get disconnect
-	//assert.Equal(t, "disconnect", response.Method)
-	//conn.Close()
-	//assert.NotEqual(t, nil, conn)
-	//assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
+	assert.NotEqual(t, nil, conn)
+	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
 }
 
 /*

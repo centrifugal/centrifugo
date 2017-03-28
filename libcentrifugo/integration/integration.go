@@ -1,2 +1,2 @@
-// package integration exists only for Centrifugo integration tests.
+// Package integration exists only for Centrifugo integration tests.
 package integration

@@ -6,7 +6,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/gorilla/websocket"
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"github.com/igm/sockjs-go/sockjs"
 )
 
 const (
@@ -15,19 +15,26 @@ const (
 )
 
 type sockjsSession struct {
-	mu     sync.RWMutex
-	closed bool
-	sess   sockjs.Session
+	mu      sync.RWMutex
+	closed  bool
+	closeCh chan struct{}
+	sess    sockjs.Session
 }
 
 func newSockjsSession(sess sockjs.Session) *sockjsSession {
 	return &sockjsSession{
-		sess: sess,
+		sess:    sess,
+		closeCh: make(chan struct{}),
 	}
 }
 
-func (sess *sockjsSession) Send(msg []byte) error {
-	return sess.sess.Send(string(msg))
+func (sess *sockjsSession) Send(msg *conns.QueuedMessage) error {
+	select {
+	case <-sess.closeCh:
+		return nil
+	default:
+		return sess.sess.Send(string(msg.Payload))
+	}
 }
 
 func (sess *sockjsSession) Close(advice *conns.DisconnectAdvice) error {
@@ -38,6 +45,10 @@ func (sess *sockjsSession) Close(advice *conns.DisconnectAdvice) error {
 		return nil
 	}
 	sess.closed = true
+	close(sess.closeCh)
+	if advice == nil {
+		advice = conns.DefaultDisconnectAdvice
+	}
 	reason, err := advice.JSONString()
 	if err != nil {
 		return err
@@ -51,26 +62,33 @@ func (sess *sockjsSession) Close(advice *conns.DisconnectAdvice) error {
 type websocketConn interface {
 	ReadMessage() (messageType int, p []byte, err error)
 	WriteMessage(messageType int, data []byte) error
+	WritePreparedMessage(pm *websocket.PreparedMessage) error
 	WriteControl(messageType int, data []byte, deadline time.Time) error
+	SetWriteDeadline(t time.Time) error
+	EnableWriteCompression(enable bool)
 	Close() error
 }
 
 // wsSession is a wrapper struct over websocket connection to fit session interface so
 // client will accept it.
 type wsSession struct {
-	mu           sync.RWMutex
-	ws           websocketConn
-	closed       bool
-	closeCh      chan struct{}
-	pingInterval time.Duration
-	pingTimer    *time.Timer
+	mu                 sync.RWMutex
+	ws                 websocketConn
+	closed             bool
+	closeCh            chan struct{}
+	pingInterval       time.Duration
+	writeTimeout       time.Duration
+	compressionMinSize int
+	pingTimer          *time.Timer
 }
 
-func newWSSession(ws websocketConn, pingInterval time.Duration) *wsSession {
+func newWSSession(ws websocketConn, pingInterval time.Duration, writeTimeout time.Duration, compressionMinSize int) *wsSession {
 	sess := &wsSession{
-		ws:           ws,
-		closeCh:      make(chan struct{}),
-		pingInterval: pingInterval,
+		ws:                 ws,
+		closeCh:            make(chan struct{}),
+		pingInterval:       pingInterval,
+		writeTimeout:       writeTimeout,
+		compressionMinSize: compressionMinSize,
 	}
 	if pingInterval > 0 {
 		sess.addPing()
@@ -103,12 +121,28 @@ func (sess *wsSession) addPing() {
 	sess.mu.Unlock()
 }
 
-func (sess *wsSession) Send(msg []byte) error {
+func (sess *wsSession) Send(msg *conns.QueuedMessage) error {
 	select {
 	case <-sess.closeCh:
 		return nil
 	default:
-		return sess.ws.WriteMessage(websocket.TextMessage, msg)
+		if sess.compressionMinSize > 0 {
+			sess.ws.EnableWriteCompression(msg.Len() > sess.compressionMinSize)
+		}
+		if sess.writeTimeout > 0 {
+			sess.ws.SetWriteDeadline(time.Now().Add(sess.writeTimeout))
+		}
+		var err error
+		if msg.UsePrepared {
+			err = sess.ws.WritePreparedMessage(msg.Prepared())
+		} else {
+			err = sess.ws.WriteMessage(websocket.TextMessage, msg.Payload)
+		}
+
+		if sess.writeTimeout > 0 {
+			sess.ws.SetWriteDeadline(time.Time{})
+		}
+		return err
 	}
 }
 
@@ -125,12 +159,14 @@ func (sess *wsSession) Close(advice *conns.DisconnectAdvice) error {
 		sess.pingTimer.Stop()
 	}
 	sess.mu.Unlock()
-	deadline := time.Now().Add(time.Second)
-	reason, err := advice.JSONString()
-	if err != nil {
-		return err
+	if advice != nil {
+		deadline := time.Now().Add(time.Second)
+		reason, err := advice.JSONString()
+		if err != nil {
+			return err
+		}
+		msg := websocket.FormatCloseMessage(int(CloseStatus), reason)
+		sess.ws.WriteControl(websocket.CloseMessage, msg, deadline)
 	}
-	msg := websocket.FormatCloseMessage(int(CloseStatus), reason)
-	sess.ws.WriteControl(websocket.CloseMessage, msg, deadline)
 	return sess.ws.Close()
 }

@@ -5,10 +5,11 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
-	"golang.org/x/net/websocket"
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"golang.org/x/net/websocket"
 )
 
 func subscriber(numChannels int, chSub chan struct{}, url, origin, connectMessage string) {
@@ -72,15 +73,31 @@ func main() {
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	token := auth.GenerateClientToken(secret, "test", timestamp, "")
 	connectMessage := fmt.Sprintf("{\"params\": {\"timestamp\": \"%s\", \"token\": \"%s\", \"user\": \"test\"}, \"method\": \"connect\"}", timestamp, token)
-	done := make(chan struct{})
+
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 10)
+	connected := 0
 
 	for i := 0; i < clients; i += 1 {
-		chSub := make(chan struct{})
-		go subscriber(numChannels, chSub, url, origin, connectMessage)
-		<-chSub
-		fmt.Printf("\r%d", i+1)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			chSub := make(chan struct{})
+			go subscriber(numChannels, chSub, url, origin, connectMessage)
+			<-chSub
+			mu.Lock()
+			connected += 1
+			fmt.Printf("\r%d", connected)
+			mu.Unlock()
+		}()
+
 	}
 
+	wg.Wait()
+
 	// Just run until interrupted keeping connections open.
-	<-done
+	select {}
 }

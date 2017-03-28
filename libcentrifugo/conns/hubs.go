@@ -6,6 +6,7 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 )
 
+// ClientHub is an interface describing current client connections to node.
 type ClientHub interface {
 	Add(c ClientConn) error
 	Remove(c ClientConn) error
@@ -35,7 +36,7 @@ type clientHub struct {
 	subs map[string]map[string]struct{}
 }
 
-// newClientHub initializes clientHub.
+// NewClientHub initializes clientHub.
 func NewClientHub() ClientHub {
 	return &clientHub{
 		conns: make(map[string]ClientConn),
@@ -45,6 +46,8 @@ func NewClientHub() ClientHub {
 }
 
 var (
+	// ShutdownSemaphoreChanBufferSize limits graceful disconnects concurrency on
+	// node shutdown.
 	ShutdownSemaphoreChanBufferSize = 1000
 )
 
@@ -208,12 +211,14 @@ func (h *clientHub) Broadcast(ch string, message []byte) error {
 	}
 
 	// iterate over them and send message individually
+	msg := NewQueuedMessage(message, true)
+
 	for uid := range channelSubscriptions {
 		c, ok := h.conns[uid]
 		if !ok {
 			continue
 		}
-		c.Send(message)
+		c.Send(msg)
 	}
 	return nil
 }
@@ -267,6 +272,7 @@ func (h *clientHub) NumSubscribers(ch string) int {
 	return len(conns)
 }
 
+// AdminHub is an interface describing admin connections to node.
 type AdminHub interface {
 	Add(c AdminConn) error
 	Remove(c AdminConn) error
@@ -283,7 +289,7 @@ type adminHub struct {
 	connections map[string]AdminConn
 }
 
-// newAdminHub initializes new adminHub.
+// NewAdminHub initializes new adminHub.
 func NewAdminHub() AdminHub {
 	return &adminHub{
 		connections: make(map[string]AdminConn),
@@ -310,8 +316,9 @@ func (h *adminHub) Remove(c AdminConn) error {
 func (h *adminHub) Broadcast(message []byte) error {
 	h.RLock()
 	defer h.RUnlock()
+	msg := NewQueuedMessage(message, true)
 	for _, c := range h.connections {
-		err := c.Send(message)
+		err := c.Send(msg)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}

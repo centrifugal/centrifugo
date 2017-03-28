@@ -87,7 +87,7 @@ func (e *TestEngine) Channels() ([]string, error) {
 }
 
 type TestSession struct {
-	sink   chan []byte
+	sink   chan *conns.QueuedMessage
 	closed bool
 }
 
@@ -95,7 +95,7 @@ func NewTestSession() *TestSession {
 	return &TestSession{}
 }
 
-func (t *TestSession) Send(msg []byte) error {
+func (t *TestSession) Send(msg *conns.QueuedMessage) error {
 	if t.sink != nil {
 		t.sink <- msg
 	}
@@ -158,7 +158,7 @@ func NewTestNodeWithConfig(c *node.Config) *node.Node {
 
 type testAdminSession struct{}
 
-func (s *testAdminSession) Send([]byte) error {
+func (s *testAdminSession) Send(*conns.QueuedMessage) error {
 	return nil
 }
 
@@ -196,7 +196,7 @@ func TestAdminClient(t *testing.T) {
 	c, err := newTestAdminClient()
 	assert.Equal(t, nil, err)
 	assert.NotEqual(t, c.UID(), "")
-	err = c.Send([]byte("message"))
+	err = c.Send(conns.NewQueuedMessage([]byte("message"), false))
 	assert.Equal(t, nil, err)
 }
 

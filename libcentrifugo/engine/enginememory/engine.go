@@ -19,6 +19,7 @@ func init() {
 	plugin.RegisterEngine("memory", Plugin)
 }
 
+// Plugin returns new memory engine.
 func Plugin(n *node.Node, c config.Getter) (engine.Engine, error) {
 	return New(n, &Config{})
 }
@@ -33,10 +34,11 @@ type MemoryEngine struct {
 	historyHub  *historyHub
 }
 
+// Config is a memory engine congig struct.
 type Config struct{}
 
 // New initializes Memory Engine.
-func New(n *node.Node, conf *Config) (engine.Engine, error) {
+func New(n *node.Node, conf *Config) (*MemoryEngine, error) {
 	e := &MemoryEngine{
 		node:        n,
 		presenceHub: newPresenceHub(),
@@ -46,18 +48,24 @@ func New(n *node.Node, conf *Config) (engine.Engine, error) {
 	return e, nil
 }
 
+// Name returns a name of engine.
 func (e *MemoryEngine) Name() string {
 	return "In memory – single node only"
 }
 
+// Run runs memory engine - we do not have any logic here as Memory Engine ready to work
+// just after initialization.
 func (e *MemoryEngine) Run() error {
 	return nil
 }
 
+// Shutdown shuts down engine.
 func (e *MemoryEngine) Shutdown() error {
 	return errors.New("Shutdown not implemented")
 }
 
+// PublishMessage adds message into history hub and calls node ClientMsg method to handle message.
+// We don't have any PUB/SUB here as Memory Engine is single node only.
 func (e *MemoryEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
 
 	ch := message.Channel
@@ -65,12 +73,7 @@ func (e *MemoryEngine) PublishMessage(message *proto.Message, opts *proto.Channe
 	hasCurrentSubscribers := e.node.ClientHub().NumSubscribers(ch) > 0
 
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
-		histOpts := addHistoryOpts{
-			Size:         opts.HistorySize,
-			Lifetime:     opts.HistoryLifetime,
-			DropInactive: (opts.HistoryDropInactive && !hasCurrentSubscribers),
-		}
-		err := e.historyHub.add(ch, *message, histOpts)
+		err := e.historyHub.add(ch, *message, opts, hasCurrentSubscribers)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
@@ -81,54 +84,69 @@ func (e *MemoryEngine) PublishMessage(message *proto.Message, opts *proto.Channe
 	return eChan
 }
 
+// PublishJoin - see Engine interface description.
 func (e *MemoryEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.node.JoinMsg(message)
 	return eChan
 }
 
+// PublishLeave - see Engine interface description.
 func (e *MemoryEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.node.LeaveMsg(message)
 	return eChan
 }
 
+// PublishControl - see Engine interface description.
 func (e *MemoryEngine) PublishControl(message *proto.ControlMessage) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.node.ControlMsg(message)
 	return eChan
 }
 
+// PublishAdmin - see Engine interface description.
 func (e *MemoryEngine) PublishAdmin(message *proto.AdminMessage) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.node.AdminMsg(message)
 	return eChan
 }
 
+// Subscribe is noop here.
 func (e *MemoryEngine) Subscribe(ch string) error {
 	return nil
 }
 
+// Unsubscribe node from channel.
+// In case of memory engine its only job is to touch channel history for history lifetime period.
 func (e *MemoryEngine) Unsubscribe(ch string) error {
+	if chOpts, err := e.node.ChannelOpts(ch); err == nil && chOpts.HistoryDropInactive {
+		e.historyHub.touch(ch, &chOpts)
+	}
 	return nil
 }
 
+// AddPresence adds client info into presence hub.
 func (e *MemoryEngine) AddPresence(ch string, uid string, info proto.ClientInfo, expire int) error {
 	return e.presenceHub.add(ch, uid, info)
 }
 
+// RemovePresence removes client info from presence hub.
 func (e *MemoryEngine) RemovePresence(ch string, uid string) error {
 	return e.presenceHub.remove(ch, uid)
 }
 
+// Presence extracts presence info from presence hub.
 func (e *MemoryEngine) Presence(ch string) (map[string]proto.ClientInfo, error) {
 	return e.presenceHub.get(ch)
 }
 
+// History extracts history from history hub.
 func (e *MemoryEngine) History(ch string, limit int) ([]proto.Message, error) {
 	return e.historyHub.get(ch, limit)
 }
 
+// Channels returns all channels node currently subscribed on.
 func (e *MemoryEngine) Channels() ([]string, error) {
 	return e.node.ClientHub().Channels(), nil
 }
@@ -219,18 +237,6 @@ func newHistoryHub() *historyHub {
 	}
 }
 
-type addHistoryOpts struct {
-	// Size is maximum size of channel history that engine must maintain.
-	Size int
-	// Lifetime is maximum amount of seconds history messages should exist
-	// before expiring and most probably being deleted (to prevent memory leaks).
-	Lifetime int
-	// DropInactive hints to the engine that there were no actual subscribers
-	// connected when message was published, and that it can skip saving if there is
-	// no unexpired history for the channel (i.e. no subscribers active within history_lifetime)
-	DropInactive bool
-}
-
 func (h *historyHub) initialize() {
 	go h.expire()
 }
@@ -267,18 +273,41 @@ func (h *historyHub) expire() {
 	}
 }
 
-func (h *historyHub) add(ch string, msg proto.Message, opts addHistoryOpts) error {
+func (h *historyHub) touch(ch string, opts *proto.ChannelOptions) {
+	h.Lock()
+	defer h.Unlock()
+
+	item, ok := h.history[ch]
+	expireAt := time.Now().Unix() + int64(opts.HistoryLifetime)
+
+	heap.Push(&h.queue, &priority.Item{Value: ch, Priority: expireAt})
+
+	if !ok {
+		h.history[ch] = historyItem{
+			messages: []proto.Message{},
+			expireAt: expireAt,
+		}
+	} else {
+		item.expireAt = expireAt
+	}
+
+	if h.nextCheck == 0 || h.nextCheck > expireAt {
+		h.nextCheck = expireAt
+	}
+}
+
+func (h *historyHub) add(ch string, msg proto.Message, opts *proto.ChannelOptions, hasSubscribers bool) error {
 	h.Lock()
 	defer h.Unlock()
 
 	_, ok := h.history[ch]
 
-	if opts.DropInactive && !ok {
+	if opts.HistoryDropInactive && !hasSubscribers && !ok {
 		// No active history for this channel so don't bother storing at all
 		return nil
 	}
 
-	expireAt := time.Now().Unix() + int64(opts.Lifetime)
+	expireAt := time.Now().Unix() + int64(opts.HistoryLifetime)
 	heap.Push(&h.queue, &priority.Item{Value: ch, Priority: expireAt})
 	if !ok {
 		h.history[ch] = historyItem{
@@ -288,8 +317,8 @@ func (h *historyHub) add(ch string, msg proto.Message, opts addHistoryOpts) erro
 	} else {
 		messages := h.history[ch].messages
 		messages = append([]proto.Message{msg}, messages...)
-		if len(messages) > opts.Size {
-			messages = messages[0:opts.Size]
+		if len(messages) > opts.HistorySize {
+			messages = messages[0:opts.HistorySize]
 		}
 		h.history[ch] = historyItem{
 			messages: messages,
@@ -320,7 +349,6 @@ func (h *historyHub) get(ch string, limit int) ([]proto.Message, error) {
 	}
 	if limit == 0 || limit >= len(hItem.messages) {
 		return hItem.messages, nil
-	} else {
-		return hItem.messages[:limit], nil
 	}
+	return hItem.messages[:limit], nil
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/centrifugo"
 )
 
-// Version of Centrifugo server. Set on build stage.
+// VERSION of Centrifugo server. Set on build stage.
 var VERSION string
 
 func main() {

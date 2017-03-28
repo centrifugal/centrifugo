@@ -30,6 +30,7 @@ func (pq Queue) Swap(i, j int) {
 	pq[j].index = j
 }
 
+// Push value into queue.
 func (pq *Queue) Push(x interface{}) {
 	n := len(*pq)
 	item := x.(*Item)
@@ -37,6 +38,7 @@ func (pq *Queue) Push(x interface{}) {
 	*pq = append(*pq, item)
 }
 
+// Pop value from queue.
 func (pq *Queue) Pop() interface{} {
 	old := *pq
 	n := len(old)
@@ -46,6 +48,7 @@ func (pq *Queue) Pop() interface{} {
 	return item
 }
 
+// MakeQueue allows to create priority queue.
 func MakeQueue() Queue {
 	pq := make(Queue, 0)
 	heap.Init(&pq)
