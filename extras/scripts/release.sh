@@ -15,7 +15,9 @@ mkdir -p BUILDS
 mkdir -p BUILDS/$1
 rm -rf BUILDS/$1/*
 
-gox -os="linux darwin freebsd windows" -arch="amd64 386 arm" -ldflags="-X main.VERSION=$1" -output="./BUILDS/$1/centrifugo-$1-{{.OS}}-{{.Arch}}/centrifugo"
+gox -os="linux windows" -arch="amd64 386" -ldflags="-X main.VERSION=$1" -output="./BUILDS/$1/centrifugo-$1-{{.OS}}-{{.Arch}}/centrifugo"
+gox -os="darwin freebsd" -arch="amd64" -ldflags="-X main.VERSION=$1" -output="./BUILDS/$1/centrifugo-$1-{{.OS}}-{{.Arch}}/centrifugo"
+gox -os="linux" -arch="arm" -ldflags="-X main.VERSION=$1" -output="./BUILDS/$1/centrifugo-$1-{{.OS}}-{{.Arch}}/centrifugo"
 
 cd BUILDS/$1
 
