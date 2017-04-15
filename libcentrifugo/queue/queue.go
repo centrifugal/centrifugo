@@ -94,8 +94,8 @@ func (q *byteQueue) resize(n int) {
 // In that case the Item is dropped.
 func (q *byteQueue) Add(i Item) bool {
 	q.mu.Lock()
+	defer q.mu.Unlock()
 	if q.closed {
-		q.mu.Unlock()
 		return false
 	}
 	if q.cnt == len(q.nodes) {
@@ -108,7 +108,6 @@ func (q *byteQueue) Add(i Item) bool {
 	q.size += i.Len()
 	q.cnt++
 	q.cond.Signal()
-	q.mu.Unlock()
 	return true
 }
 
