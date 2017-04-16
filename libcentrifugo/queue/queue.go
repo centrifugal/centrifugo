@@ -132,15 +132,10 @@ func (q *byteQueue) CloseRemaining() []Item {
 	if q.closed {
 		return []Item{}
 	}
-	rem := make([]Item, 0, q.cnt)
-	for q.cnt > 0 {
-		i := q.nodes[q.head]
-		q.head = (q.head + 1) % len(q.nodes)
-		q.cnt--
-		rem = append(rem, i)
-	}
+	rem := q.nodes[q.head:]
 	q.closed = true
 	q.cnt = 0
+	q.head = 0
 	q.nodes = nil
 	q.size = 0
 	q.cond.Broadcast()
