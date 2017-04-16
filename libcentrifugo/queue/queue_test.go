@@ -14,7 +14,7 @@ func (t testItem) Len() int {
 }
 
 func TestByteQueueResize(t *testing.T) {
-	initialCapacity := 2
+	initialCapacity := 100
 	q := New(initialCapacity)
 	assert.Equal(t, 0, q.Len())
 	assert.Equal(t, initialCapacity, q.Cap())
@@ -41,7 +41,7 @@ func TestByteQueueResize(t *testing.T) {
 }
 
 func TestByteQueueSize(t *testing.T) {
-	initialCapacity := 2
+	initialCapacity := 100
 	q := New(initialCapacity)
 	assert.Equal(t, 0, q.Size())
 	q.Add(testItem([]byte("1")))
@@ -52,7 +52,7 @@ func TestByteQueueSize(t *testing.T) {
 }
 
 func TestByteQueueWait(t *testing.T) {
-	initialCapacity := 2
+	initialCapacity := 100
 	q := New(initialCapacity)
 	q.Add(testItem([]byte("1")))
 	q.Add(testItem([]byte("2")))
@@ -76,7 +76,7 @@ func TestByteQueueWait(t *testing.T) {
 }
 
 func TestByteQueueClose(t *testing.T) {
-	initialCapacity := 2
+	initialCapacity := 100
 	q := New(initialCapacity)
 
 	// test removing from empty queue
@@ -101,7 +101,7 @@ func TestByteQueueClose(t *testing.T) {
 }
 
 func TestByteQueueCloseRemaining(t *testing.T) {
-	q := New(2)
+	q := New(100)
 	q.Add(testItem([]byte("1")))
 	q.Add(testItem([]byte("2")))
 	msgs := q.CloseRemaining()
