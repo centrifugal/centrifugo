@@ -20,10 +20,8 @@ func TestByteQueueResize(t *testing.T) {
 	assert.Equal(t, initialCapacity, q.Cap())
 	assert.Equal(t, false, q.Closed())
 
-	i := 0
-	for i < initialCapacity {
+	for i := 0; i < initialCapacity; i++ {
 		q.Add(testItem([]byte(strconv.Itoa(i))))
-		i++
 	}
 	assert.Equal(t, initialCapacity, q.Cap())
 	q.Add(testItem([]byte("resize here")))
