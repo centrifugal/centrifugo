@@ -28,6 +28,18 @@ func TestMetrics(t *testing.T) {
 	assert.Equal(t, int64(10), counter.Value())
 }
 
+func TestStringInSlice(t *testing.T) {
+	assert.True(t, stringInSlice("one", []string{"one", "two", "tree"}))
+	assert.True(t, stringInSlice("two", []string{"one", "two", "tree"}))
+	assert.True(t, stringInSlice("", []string{"one", "two", "tree", ""}))
+
+	assert.False(t, stringInSlice("four", []string{"one", "two", "tree"}))
+	assert.False(t, stringInSlice("ab", []string{"aba", "bab"}))
+	assert.False(t, stringInSlice("four", []string{}))
+	assert.False(t, stringInSlice("", []string{}))
+	assert.False(t, stringInSlice("", []string{"one", "two", "tree"}))
+}
+
 /***********************************
  * Atomic false sharing benchmarks
  ***********************************/
