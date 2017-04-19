@@ -3,7 +3,7 @@ v1.7.3
 
 No backwards incompatible changes here.
 
-This release built using new version of Go - 1.8.1, previously Centrifugo used Go 1.7.5, so here we benefit from Go evolution improvements - the most notable is improvements in GC pauses which should in turn improve Centrifugo latency.
+This release built using new version of Go - 1.8.1, previously Centrifugo used Go 1.7.5, so here we benefit from Go evolution improvements - the most notable is improvements in GC pauses which should in turn improve Centrifugo latency. It also reduces memory usage by about 15-20% when websocket compression enabled.
 
 v1.7.2
 ======
