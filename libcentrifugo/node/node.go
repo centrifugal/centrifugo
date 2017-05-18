@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
@@ -509,7 +510,7 @@ func makeErrChan(err error) <-chan error {
 
 // Publish sends a message to all clients subscribed on channel. All running nodes
 // will receive it and will send it to all clients on node subscribed on channel.
-func (n *Node) Publish(msg *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (n *Node) Publish(msg *proto.Message, opts *channel.Options) <-chan error {
 	if opts == nil {
 		chOpts, err := n.ChannelOpts(msg.Channel)
 		if err != nil {
@@ -523,7 +524,7 @@ func (n *Node) Publish(msg *proto.Message, opts *proto.ChannelOptions) <-chan er
 
 // PublishJoin allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (n *Node) PublishJoin(msg *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
+func (n *Node) PublishJoin(msg *proto.JoinMessage, opts *channel.Options) <-chan error {
 	if opts == nil {
 		chOpts, err := n.ChannelOpts(msg.Channel)
 		if err != nil {
@@ -537,7 +538,7 @@ func (n *Node) PublishJoin(msg *proto.JoinMessage, opts *proto.ChannelOptions) <
 
 // PublishLeave allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (n *Node) PublishLeave(msg *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
+func (n *Node) PublishLeave(msg *proto.LeaveMessage, opts *channel.Options) <-chan error {
 	if opts == nil {
 		chOpts, err := n.ChannelOpts(msg.Channel)
 		if err != nil {
@@ -767,17 +768,17 @@ func (n *Node) disconnectUser(user string, reconnect bool) error {
 }
 
 // namespaceKey returns namespace key from channel name if exists.
-func (n *Node) namespaceKey(ch string) NamespaceKey {
+func (n *Node) namespaceKey(ch string) channel.NamespaceKey {
 	cTrim := strings.TrimPrefix(ch, n.config.PrivateChannelPrefix)
 	if strings.Contains(cTrim, n.config.NamespaceChannelBoundary) {
 		parts := strings.SplitN(cTrim, n.config.NamespaceChannelBoundary, 2)
-		return NamespaceKey(parts[0])
+		return channel.NamespaceKey(parts[0])
 	}
-	return NamespaceKey("")
+	return channel.NamespaceKey("")
 }
 
 // ChannelOpts returns channel options for channel using current application structure.
-func (n *Node) ChannelOpts(ch string) (proto.ChannelOptions, error) {
+func (n *Node) ChannelOpts(ch string) (channel.Options, error) {
 	n.RLock()
 	defer n.RUnlock()
 	return n.config.channelOpts(n.namespaceKey(ch))

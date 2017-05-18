@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/auth"
+	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
@@ -45,19 +46,19 @@ func (e *TestEngine) Shutdown() error {
 	return nil
 }
 
-func (e *TestEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (e *TestEngine) PublishMessage(message *proto.Message, opts *channel.Options) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *TestEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
+func (e *TestEngine) PublishJoin(message *proto.JoinMessage, opts *channel.Options) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *TestEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
+func (e *TestEngine) PublishLeave(message *proto.LeaveMessage, opts *channel.Options) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
@@ -124,8 +125,8 @@ func (t *TestSession) Close(adv *conns.DisconnectAdvice) error {
 	return nil
 }
 
-func getTestChannelOptions() proto.ChannelOptions {
-	return proto.ChannelOptions{
+func getTestChannelOptions() channel.Options {
+	return channel.Options{
 		Watch:           true,
 		Publish:         true,
 		Presence:        true,
@@ -134,20 +135,20 @@ func getTestChannelOptions() proto.ChannelOptions {
 	}
 }
 
-func getTestNamespace(name node.NamespaceKey) node.Namespace {
-	return node.Namespace{
-		Name:           name,
-		ChannelOptions: getTestChannelOptions(),
+func getTestNamespace(name channel.NamespaceKey) channel.Namespace {
+	return channel.Namespace{
+		Name:    name,
+		Options: getTestChannelOptions(),
 	}
 }
 
 func NewTestConfig() *node.Config {
 	c := node.DefaultConfig
-	var ns []node.Namespace
+	var ns []channel.Namespace
 	ns = append(ns, getTestNamespace("test"))
 	c.Namespaces = ns
 	c.Secret = "secret"
-	c.ChannelOptions = getTestChannelOptions()
+	c.Options = getTestChannelOptions()
 	return c
 }
 

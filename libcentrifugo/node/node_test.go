@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/stretchr/testify/assert"
@@ -28,19 +29,19 @@ func (e *TestEngine) Shutdown() error {
 	return nil
 }
 
-func (e *TestEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (e *TestEngine) PublishMessage(message *proto.Message, opts *channel.Options) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *TestEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
+func (e *TestEngine) PublishJoin(message *proto.JoinMessage, opts *channel.Options) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
 }
 
-func (e *TestEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
+func (e *TestEngine) PublishLeave(message *proto.LeaveMessage, opts *channel.Options) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- nil
 	return eChan
@@ -148,10 +149,10 @@ func TestClientAllowed(t *testing.T) {
 
 func TestNamespaceKey(t *testing.T) {
 	app := testNode()
-	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns:channel"))
-	assert.Equal(t, NamespaceKey(""), app.namespaceKey("channel"))
-	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns:channel:opa"))
-	assert.Equal(t, NamespaceKey("ns"), app.namespaceKey("ns::channel"))
+	assert.Equal(t, channel.NamespaceKey("ns"), app.namespaceKey("ns:channel"))
+	assert.Equal(t, channel.NamespaceKey(""), app.namespaceKey("channel"))
+	assert.Equal(t, channel.NamespaceKey("ns"), app.namespaceKey("ns:channel:opa"))
+	assert.Equal(t, channel.NamespaceKey("ns"), app.namespaceKey("ns::channel"))
 }
 
 func TestApplicationNode(t *testing.T) {

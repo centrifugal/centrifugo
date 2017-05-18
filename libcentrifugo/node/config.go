@@ -6,21 +6,10 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 )
-
-// NamespaceKey is a name of namespace unique for project.
-type NamespaceKey string
-
-// Namespace allows to create channels with different channel options within the Project
-type Namespace struct {
-	// Name is a unique namespace name.
-	Name NamespaceKey `json:"name"`
-
-	// ChannelOptions for namespace determine channel options for channels belonging to this namespace.
-	proto.ChannelOptions `mapstructure:",squash"`
-}
 
 // Config contains Application configuration options.
 type Config struct {
@@ -133,11 +122,11 @@ type Config struct {
 	// ConnLifetime determines time until connection expire, 0 means no connection expire at all.
 	ConnLifetime int64 `json:"connection_lifetime"`
 
-	// ChannelOptions embedded to config.
-	proto.ChannelOptions `json:"channel_options"`
+	// channel.Options embedded to config.
+	channel.Options `json:"channel_options"`
 
 	// Namespaces - list of namespaces for custom channel options.
-	Namespaces []Namespace `json:"namespaces"`
+	Namespaces []channel.Namespace `json:"namespaces"`
 }
 
 func stringInSlice(a string, list []string) bool {
@@ -170,16 +159,16 @@ func (c *Config) Validate() error {
 }
 
 // channelOpts searches for channel options for specified namespace key.
-func (c *Config) channelOpts(nk NamespaceKey) (proto.ChannelOptions, error) {
-	if nk == NamespaceKey("") {
-		return c.ChannelOptions, nil
+func (c *Config) channelOpts(nk channel.NamespaceKey) (channel.Options, error) {
+	if nk == channel.NamespaceKey("") {
+		return c.Options, nil
 	}
 	for _, n := range c.Namespaces {
 		if n.Name == nk {
-			return n.ChannelOptions, nil
+			return n.Options, nil
 		}
 	}
-	return proto.ChannelOptions{}, proto.ErrNamespaceNotFound
+	return channel.Options{}, proto.ErrNamespaceNotFound
 }
 
 const (
@@ -282,8 +271,8 @@ func getApplicationName(v config.Getter) string {
 	return hostname + "_" + port
 }
 
-func namespacesFromConfig(v config.Getter) []Namespace {
-	ns := []Namespace{}
+func namespacesFromConfig(v config.Getter) []channel.Namespace {
+	ns := []channel.Namespace{}
 	if !v.IsSet("namespaces") {
 		return ns
 	}

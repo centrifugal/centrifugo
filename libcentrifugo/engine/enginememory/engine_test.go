@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
@@ -11,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getTestChannelOptions() proto.ChannelOptions {
-	return proto.ChannelOptions{
+func getTestChannelOptions() channel.Options {
+	return channel.Options{
 		Watch:           true,
 		Publish:         true,
 		Presence:        true,
@@ -21,20 +22,20 @@ func getTestChannelOptions() proto.ChannelOptions {
 	}
 }
 
-func getTestNamespace(name node.NamespaceKey) node.Namespace {
-	return node.Namespace{
-		Name:           name,
-		ChannelOptions: getTestChannelOptions(),
+func getTestNamespace(name channel.NamespaceKey) channel.Namespace {
+	return channel.Namespace{
+		Name:    name,
+		Options: getTestChannelOptions(),
 	}
 }
 
 func NewTestConfig() *node.Config {
 	c := node.DefaultConfig
-	var ns []node.Namespace
+	var ns []channel.Namespace
 	ns = append(ns, getTestNamespace("test"))
 	c.Namespaces = ns
 	c.Secret = "secret"
-	c.ChannelOptions = getTestChannelOptions()
+	c.Options = getTestChannelOptions()
 	return c
 }
 
@@ -121,44 +122,44 @@ func TestMemoryEngine(t *testing.T) {
 	msg := proto.Message{UID: "test UID", Channel: "channel"}
 
 	// test adding history
-	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &channel.Options{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
 	h, err := e.History("channel", 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 	assert.Equal(t, h[0].UID, "test UID")
 
 	// test history limit
-	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
-	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
-	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &channel.Options{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &channel.Options{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &channel.Options{HistorySize: 4, HistoryLifetime: 1, HistoryDropInactive: false}))
 	h, err = e.History(string("channel"), 2)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(h))
 
 	// test history limit greater than history size
-	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
-	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
-	assert.Equal(t, nil, <-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &channel.Options{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &channel.Options{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg, &channel.Options{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
 	h, err = e.History(string("channel"), 2)
 
 	// HistoryDropInactive tests - new channel to avoid conflicts with test above
 	// 1. add history with DropInactive = true should be a no-op if history is empty
 	msg2 := proto.Message{UID: "test UID", Channel: "channel-2"}
 
-	assert.Equal(t, nil, <-e.PublishMessage(&msg2, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg2, &channel.Options{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
 	h, err = e.History("channel-2", 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(h))
 
 	// 2. add history with DropInactive = false should always work
-	assert.Equal(t, nil, <-e.PublishMessage(&msg2, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: false}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg2, &channel.Options{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: false}))
 	h, err = e.History("channel-2", 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(h))
 
 	// 3. add with DropInactive = true should work immediately since there should be something in history
 	// for 5 seconds from above
-	assert.Equal(t, nil, <-e.PublishMessage(&msg2, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
+	assert.Equal(t, nil, <-e.PublishMessage(&msg2, &channel.Options{HistorySize: 2, HistoryLifetime: 5, HistoryDropInactive: true}))
 	h, err = e.History("channel-2", 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(h))
@@ -231,10 +232,10 @@ func TestMemoryHistoryHub(t *testing.T) {
 	assert.Equal(t, 0, len(h.history))
 	ch1 := string("channel1")
 	ch2 := string("channel2")
-	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}, false)
-	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}, false)
-	h.add(ch2, proto.Message{}, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 1, HistoryDropInactive: false}, false)
-	h.add(ch2, proto.Message{}, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 1, HistoryDropInactive: true}, false) // Test that adding only if active works when it's active
+	h.add(ch1, proto.Message{}, &channel.Options{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch1, proto.Message{}, &channel.Options{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch2, proto.Message{}, &channel.Options{HistorySize: 2, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch2, proto.Message{}, &channel.Options{HistorySize: 2, HistoryLifetime: 1, HistoryDropInactive: true}, false) // Test that adding only if active works when it's active
 	hist, err := h.get(ch1, 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(hist))
@@ -250,17 +251,17 @@ func TestMemoryHistoryHub(t *testing.T) {
 	assert.Equal(t, 0, len(hist))
 
 	// Now test adding history for inactive channel is a no-op if HistoryDropInactive is true
-	h.add(ch2, proto.Message{}, &proto.ChannelOptions{HistorySize: 2, HistoryLifetime: 10, HistoryDropInactive: true}, false)
+	h.add(ch2, proto.Message{}, &channel.Options{HistorySize: 2, HistoryLifetime: 10, HistoryDropInactive: true}, false)
 	assert.Equal(t, 0, len(h.history))
 	hist, err = h.get(ch2, 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, len(hist))
 
 	// test history messages limit
-	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 10, HistoryLifetime: 1, HistoryDropInactive: false}, false)
-	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 10, HistoryLifetime: 1, HistoryDropInactive: false}, false)
-	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 10, HistoryLifetime: 1, HistoryDropInactive: false}, false)
-	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 10, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch1, proto.Message{}, &channel.Options{HistorySize: 10, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch1, proto.Message{}, &channel.Options{HistorySize: 10, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch1, proto.Message{}, &channel.Options{HistorySize: 10, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch1, proto.Message{}, &channel.Options{HistorySize: 10, HistoryLifetime: 1, HistoryDropInactive: false}, false)
 	hist, err = h.get(ch1, 0)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 4, len(hist))
@@ -269,8 +270,8 @@ func TestMemoryHistoryHub(t *testing.T) {
 	assert.Equal(t, 1, len(hist))
 
 	// test history limit greater than history size
-	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}, false)
-	h.add(ch1, proto.Message{}, &proto.ChannelOptions{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch1, proto.Message{}, &channel.Options{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}, false)
+	h.add(ch1, proto.Message{}, &channel.Options{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}, false)
 	hist, err = h.get(ch1, 2)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(hist))
@@ -282,7 +283,7 @@ func BenchmarkPublish(b *testing.B) {
 	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 0, HistoryLifetime: 0, HistoryDropInactive: false})
+		e.PublishMessage(&msg, &channel.Options{HistorySize: 0, HistoryLifetime: 0, HistoryDropInactive: false})
 	}
 }
 
@@ -292,7 +293,7 @@ func BenchmarkPublishWithHistory(b *testing.B) {
 	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 10, HistoryLifetime: 300, HistoryDropInactive: false})
+		e.PublishMessage(&msg, &channel.Options{HistorySize: 10, HistoryLifetime: 300, HistoryDropInactive: false})
 	}
 }
 
@@ -354,10 +355,10 @@ func BenchmarkOpHistory(b *testing.B) {
 	e := testMemoryEngine()
 	rawData := raw.Raw([]byte("{}"))
 	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
-	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
-	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
-	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
-	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &channel.Options{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &channel.Options{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &channel.Options{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &channel.Options{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := e.History("channel", 0)
@@ -372,10 +373,10 @@ func BenchmarkOpHistoryParallel(b *testing.B) {
 	e := testMemoryEngine()
 	rawData := raw.Raw([]byte("{}"))
 	msg := proto.Message{UID: "test UID", Channel: "channel", Data: rawData}
-	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
-	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
-	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
-	<-e.PublishMessage(&msg, &proto.ChannelOptions{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &channel.Options{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &channel.Options{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &channel.Options{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
+	<-e.PublishMessage(&msg, &channel.Options{HistorySize: 4, HistoryLifetime: 300, HistoryDropInactive: false})
 	b.ResetTimer()
 	b.SetParallelism(12)
 	b.RunParallel(func(pb *testing.PB) {

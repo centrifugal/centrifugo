@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
@@ -66,7 +67,7 @@ func (e *MemoryEngine) Shutdown() error {
 
 // PublishMessage adds message into history hub and calls node ClientMsg method to handle message.
 // We don't have any PUB/SUB here as Memory Engine is single node only.
-func (e *MemoryEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (e *MemoryEngine) PublishMessage(message *proto.Message, opts *channel.Options) <-chan error {
 
 	ch := message.Channel
 
@@ -85,14 +86,14 @@ func (e *MemoryEngine) PublishMessage(message *proto.Message, opts *proto.Channe
 }
 
 // PublishJoin - see Engine interface description.
-func (e *MemoryEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
+func (e *MemoryEngine) PublishJoin(message *proto.JoinMessage, opts *channel.Options) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.node.JoinMsg(message)
 	return eChan
 }
 
 // PublishLeave - see Engine interface description.
-func (e *MemoryEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
+func (e *MemoryEngine) PublishLeave(message *proto.LeaveMessage, opts *channel.Options) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.node.LeaveMsg(message)
 	return eChan
@@ -273,7 +274,7 @@ func (h *historyHub) expire() {
 	}
 }
 
-func (h *historyHub) touch(ch string, opts *proto.ChannelOptions) {
+func (h *historyHub) touch(ch string, opts *channel.Options) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -296,7 +297,7 @@ func (h *historyHub) touch(ch string, opts *proto.ChannelOptions) {
 	}
 }
 
-func (h *historyHub) add(ch string, msg proto.Message, opts *proto.ChannelOptions, hasSubscribers bool) error {
+func (h *historyHub) add(ch string, msg proto.Message, opts *channel.Options, hasSubscribers bool) error {
 	h.Lock()
 	defer h.Unlock()
 
