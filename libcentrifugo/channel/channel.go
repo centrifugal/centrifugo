@@ -1,7 +1,19 @@
-package proto
+package channel
+
+// NamespaceKey is a name of namespace unique for project.
+type NamespaceKey string
+
+// Namespace allows to create channels with different channel options within the Project
+type Namespace struct {
+	// Name is a unique namespace name.
+	Name NamespaceKey `json:"name"`
+
+	// Options for namespace determine channel options for channels belonging to this namespace.
+	Options `mapstructure:",squash"`
+}
 
 // ChannelOptions represent channel specific configuration for namespace or project in a whole
-type ChannelOptions struct {
+type Options struct {
 	// Watch determines if message published into channel will be also sent into admin channel.
 	// Note that this option must be used carefully in channels with high rate of new messages
 	// as admin client can not process all of those messages. Use this option for testing or for

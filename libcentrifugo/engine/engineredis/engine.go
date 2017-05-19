@@ -13,6 +13,7 @@ import (
 
 	"github.com/FZambia/go-sentinel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
+	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
@@ -665,17 +666,17 @@ func (e *RedisEngine) Run() error {
 }
 
 // PublishMessage - see engine interface description.
-func (e *RedisEngine) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (e *RedisEngine) PublishMessage(message *proto.Message, opts *channel.Options) <-chan error {
 	return e.shards[e.shardIndex(message.Channel)].PublishMessage(message, opts)
 }
 
 // PublishJoin - see engine interface description.
-func (e *RedisEngine) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
+func (e *RedisEngine) PublishJoin(message *proto.JoinMessage, opts *channel.Options) <-chan error {
 	return e.shards[e.shardIndex(message.Channel)].PublishJoin(message, opts)
 }
 
 // PublishLeave - see engine interface description.
-func (e *RedisEngine) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
+func (e *RedisEngine) PublishLeave(message *proto.LeaveMessage, opts *channel.Options) <-chan error {
 	return e.shards[e.shardIndex(message.Channel)].PublishLeave(message, opts)
 }
 
@@ -1115,7 +1116,7 @@ type pubRequest struct {
 	message    []byte
 	historyKey string
 	touchKey   string
-	opts       *proto.ChannelOptions
+	opts       *channel.Options
 	err        *chan error
 }
 
@@ -1391,7 +1392,7 @@ func (e *Shard) typeFromChannelID(chID ChannelID) string {
 }
 
 // PublishMessage - see engine interface description.
-func (e *Shard) PublishMessage(message *proto.Message, opts *proto.ChannelOptions) <-chan error {
+func (e *Shard) PublishMessage(message *proto.Message, opts *channel.Options) <-chan error {
 	ch := message.Channel
 
 	eChan := make(chan error, 1)
@@ -1427,7 +1428,7 @@ func (e *Shard) PublishMessage(message *proto.Message, opts *proto.ChannelOption
 }
 
 // PublishJoin - see engine interface description.
-func (e *Shard) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptions) <-chan error {
+func (e *Shard) PublishJoin(message *proto.JoinMessage, opts *channel.Options) <-chan error {
 	ch := message.Channel
 
 	eChan := make(chan error, 1)
@@ -1450,7 +1451,7 @@ func (e *Shard) PublishJoin(message *proto.JoinMessage, opts *proto.ChannelOptio
 }
 
 // PublishLeave - see engine interface description.
-func (e *Shard) PublishLeave(message *proto.LeaveMessage, opts *proto.ChannelOptions) <-chan error {
+func (e *Shard) PublishLeave(message *proto.LeaveMessage, opts *channel.Options) <-chan error {
 	ch := message.Channel
 
 	eChan := make(chan error, 1)
