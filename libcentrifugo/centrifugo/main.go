@@ -2,11 +2,13 @@ package centrifugo
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -20,6 +22,14 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/spf13/cobra"
 )
+
+func writePidFile(pidFile string) error {
+	if pidFile == "" {
+		return nil
+	}
+	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
+	return ioutil.WriteFile(pidFile, pid, 0644)
+}
 
 func setupLogging() {
 	log.SetFlags(0)
@@ -67,10 +77,17 @@ func handleSignals(n *node.Node) {
 			logger.INFO.Println("Configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
 			logger.INFO.Println("Shutting down")
+			pidFile := viper.GetString("pid_file")
 			go time.AfterFunc(10*time.Second, func() {
+				if pidFile != "" {
+					os.Remove(pidFile)
+				}
 				os.Exit(1)
 			})
 			n.Shutdown()
+			if pidFile != "" {
+				os.Remove(pidFile)
+			}
 			os.Exit(0)
 		}
 	}
@@ -91,6 +108,7 @@ func Main(version string) {
 	var insecureAdmin bool
 	var logLevel string
 	var logFile string
+	var pidFile string
 
 	var rootCmd = &cobra.Command{
 		Use:   "",
@@ -153,7 +171,7 @@ func Main(version string) {
 
 			bindPFlags := []string{
 				"debug", "name", "admin", "insecure_admin", "engine", "servers", "insecure",
-				"insecure_api", "log_level", "log_file",
+				"insecure_api", "log_level", "log_file", "pid_file",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -178,6 +196,10 @@ func Main(version string) {
 			}
 
 			setupLogging()
+			err = writePidFile(viper.GetString("pid_file"))
+			if err != nil {
+				logger.FATAL.Fatalf("Error writing PID: %v", err)
+			}
 
 			if !configFound {
 				logger.WARN.Println("No config file found")
@@ -264,6 +286,7 @@ func Main(version string) {
 
 	rootCmd.Flags().StringVarP(&logLevel, "log_level", "", "info", "set the log level: trace, debug, info, error, critical, fatal or none")
 	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified logs go to STDOUT")
+	rootCmd.Flags().StringVarP(&pidFile, "pid_file", "", "", "optional path to create PID file")
 
 	for _, configurator := range plugin.Configurators {
 		configurator(config.NewViperConfigSetter(viper.GetViper(), rootCmd.Flags()))
