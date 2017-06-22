@@ -107,7 +107,7 @@ func (t *testSession) Close(adv *conns.DisconnectAdvice) error {
 func testNode() *Node {
 	c := newTestConfig()
 	n := New("", &c)
-	err := n.Run(&RunOptions{Engine: NewTestEngine()})
+	err := n.Run(NewTestEngine())
 	if err != nil {
 		panic(err)
 	}
@@ -157,7 +157,7 @@ func TestNamespaceKey(t *testing.T) {
 
 func TestApplicationNode(t *testing.T) {
 	app := testNode()
-	err := app.Run(&RunOptions{Engine: NewTestEngine()})
+	err := app.Run(NewTestEngine())
 	assert.Equal(t, nil, err)
 	info := app.Node()
 	assert.Equal(t, int64(0), info.Metrics["num_clients"])

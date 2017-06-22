@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/FZambia/reborn/server"
 	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
@@ -15,16 +16,8 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
-	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/satori/go.uuid"
 )
-
-// RunOptions struct represents options that must be provided to node Run method.
-type RunOptions struct {
-	Engine   engine.Engine
-	Servers  map[string]server.Server
-	Mediator Mediator
-}
 
 // Node is a heart of Centrifugo – it internally manages client and admin hubs,
 // maintains information about other Centrifugo nodes, keeps references to
@@ -229,11 +222,9 @@ func (n *Node) NotifyShutdown() chan struct{} {
 
 // Run performs all startup actions. At moment must be called once on start
 // after engine and structure set.
-func (n *Node) Run(opts *RunOptions) error {
+func (n *Node) Run(e engine.Engine) error {
 	n.Lock()
-	n.engine = opts.Engine
-	n.servers = opts.Servers
-	n.mediator = opts.Mediator
+	n.engine = e
 	n.Unlock()
 
 	if err := n.engine.Run(); err != nil {
@@ -248,11 +239,6 @@ func (n *Node) Run(opts *RunOptions) error {
 	go n.cleanNodeInfo()
 	go n.updateMetrics()
 
-	for srvName, srv := range n.servers {
-		logger.INFO.Printf("Starting %s server", srvName)
-		go srv.Run()
-	}
-
 	return nil
 }
 
@@ -266,12 +252,6 @@ func (n *Node) Shutdown() error {
 	n.shutdown = true
 	close(n.shutdownCh)
 	n.Unlock()
-	for srvName, srv := range n.servers {
-		logger.INFO.Printf("Shutting down %s server", srvName)
-		if err := srv.Shutdown(); err != nil {
-			logger.ERROR.Printf("Shutting down server %s: %v", srvName, err)
-		}
-	}
 	return n.clients.Shutdown()
 }
 

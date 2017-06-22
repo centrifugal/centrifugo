@@ -1,4 +1,4 @@
-package httpserver
+package server
 
 import (
 	"errors"
@@ -81,8 +81,8 @@ type Config struct {
 	WebsocketWriteBufferSize int `json:"websocket_write_buffer_size"`
 }
 
-// newConfig creates new libcentrifugo.Config using viper.
-func newConfig(c config.Getter) *Config {
+// NewConfig creates new libcentrifugo.Config using viper.
+func NewConfig(c config.Getter) *Config {
 	cfg := &Config{}
 	cfg.Web = c.GetBool("web")
 	cfg.WebPath = c.GetString("web_path")
@@ -138,6 +138,3 @@ func (c *Config) Validate() error {
 	}
 	return nil
 }
-
-// DefaultConfig is Config initialized with default values for all fields.
-var DefaultConfig = &Config{}

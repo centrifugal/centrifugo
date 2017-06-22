@@ -1,4 +1,4 @@
-package httpserver
+package server
 
 import (
 	"testing"
@@ -68,12 +68,12 @@ func (c *fakeConfigGetter) GetInt(key string) int {
 }
 
 func TestNewConfig(t *testing.T) {
-	cfg := newConfig(&fakeConfigGetter{})
+	cfg := NewConfig(&fakeConfigGetter{})
 	assert.True(t, cfg.Web)
 	assert.Equal(t, cfg.WebPath, "web_path_value")
 	assert.Equal(t, cfg.SockjsHeartbeatDelay, SOCKSJS_HEARTBEAT_DELAY)
 	assert.Nil(t, cfg.SSLAutocertHostWhitelist)
 
-	cfg = newConfig(&fakeConfigGetter{autocertHostWhitelist: "one,two,three"})
+	cfg = NewConfig(&fakeConfigGetter{autocertHostWhitelist: "one,two,three"})
 	assert.Equal(t, cfg.SSLAutocertHostWhitelist, []string{"one", "two", "three"})
 }

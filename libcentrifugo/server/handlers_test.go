@@ -1,4 +1,4 @@
-package httpserver
+package server
 
 import (
 	"bytes"
@@ -14,7 +14,6 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
-	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 )
@@ -133,7 +132,7 @@ func NewTestHTTPServer() *HTTPServer {
 		shutdownCh: make(chan struct{}),
 	}
 
-	err := n.Run(&node.RunOptions{Engine: NewTestEngine(), Servers: map[string]server.Server{"http": s}})
+	err := n.Run(NewTestEngine())
 	if err != nil {
 		panic(err)
 	}
@@ -149,7 +148,7 @@ func TestDefaultMux(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	s.node.Shutdown()
+	s.Shutdown()
 	resp, err = http.Get(server.URL + "/connection/info")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
@@ -188,6 +187,7 @@ func TestHandlerFlagString(t *testing.T) {
 
 func TestRawWsHandler(t *testing.T) {
 	s := NewTestHTTPServer()
+
 	mux := DefaultMux(s, DefaultMuxOptions)
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -198,7 +198,7 @@ func TestRawWsHandler(t *testing.T) {
 	assert.NotEqual(t, nil, conn)
 	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
 
-	s.node.Shutdown()
+	s.Shutdown()
 	_, resp, _ = websocket.DefaultDialer.Dial(url+"/connection/websocket", nil)
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 }
@@ -271,49 +271,6 @@ func TestRawWSHandler(t *testing.T) {
 	assert.NotEqual(t, nil, conn)
 	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
 }
-
-/*
-func BenchmarkAPIHandler(b *testing.B) {
-	nChannels := 1
-	nClients := 1000
-	nCommands := 1000
-	nMessages := nClients * nCommands
-	sink := make(chan []byte, nMessages)
-	app := testMemoryApp()
-
-	// Use very large initial capacity so that queue resizes do not affect benchmark.
-	app.config.ClientQueueInitialCapacity = 1000
-
-	createTestClients(app, nChannels, nClients, sink)
-	b.Logf("num channels: %v, num clients: %v, num unique clients %v, num commands: %v", app.clients.nChannels(), app.clients.nClients(), app.clients.nUniqueClients(), nCommands)
-	jsonData := getNPublishJSON("channel-0", nCommands)
-	sign := auth.GenerateApiSign("secret", jsonData)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		done := make(chan struct{})
-		go func() {
-			count := 0
-			for {
-				select {
-				case <-sink:
-					count++
-				}
-				if count == nMessages {
-					close(done)
-					return
-				}
-			}
-		}()
-		rec := httptest.NewRecorder()
-		req, _ := http.NewRequest("POST", "/api/test1", bytes.NewBuffer(jsonData))
-		req.Header.Add("X-API-Sign", sign)
-		req.Header.Add("Content-Type", "application/json")
-		app.APIHandler(rec, req)
-		<-done
-	}
-	b.StopTimer()
-}
-*/
 
 func TestAPIHandler(t *testing.T) {
 	s := NewTestHTTPServer()

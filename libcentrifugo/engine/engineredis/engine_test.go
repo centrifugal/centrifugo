@@ -126,7 +126,7 @@ func NewTestRedisEngineWithPrefix(prefix string) *RedisEngine {
 		ReadTimeout:  100 * time.Second,
 	}
 	e, _ := New(n, []*ShardConfig{redisConf})
-	err := n.Run(&node.RunOptions{Engine: e})
+	err := n.Run(e)
 	if err != nil {
 		panic(err)
 	}

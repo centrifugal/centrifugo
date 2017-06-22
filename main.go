@@ -5,9 +5,6 @@ import (
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/engine/enginememory"
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/engine/engineredis"
 
-	// Register servers.
-	_ "github.com/centrifugal/centrifugo/libcentrifugo/server/httpserver"
-
 	// Register embedded web interface.
 	_ "github.com/centrifugal/centrifugo/libcentrifugo/statik"
 
