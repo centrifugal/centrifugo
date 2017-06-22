@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FZambia/reborn/server"
 	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
@@ -46,9 +45,6 @@ type Node struct {
 
 	// engine to use - in memory or redis.
 	engine engine.Engine
-
-	// servers contains list of servers connected to this node.
-	servers map[string]server.Server
 
 	nodes *nodeRegistry
 
@@ -161,14 +157,6 @@ func (n *Node) Reload(getter config.Getter) error {
 			return err
 		}
 	}
-	for _, server := range n.servers {
-		if validator, ok := server.(config.Validator); ok {
-			err := validator.Validate(getter)
-			if err != nil {
-				return err
-			}
-		}
-	}
 
 	c := NewConfig(getter)
 	if err := c.Validate(); err != nil {
@@ -180,15 +168,6 @@ func (n *Node) Reload(getter config.Getter) error {
 		err := reloader.Reload(getter)
 		if err != nil {
 			logger.ERROR.Printf("Error reloading engine: %v", err)
-		}
-	}
-
-	for srvName, server := range n.servers {
-		if reloader, ok := server.(config.Reloader); ok {
-			err := reloader.Reload(getter)
-			if err != nil {
-				logger.ERROR.Printf("Error reloading server %s: %v", srvName, err)
-			}
 		}
 	}
 
