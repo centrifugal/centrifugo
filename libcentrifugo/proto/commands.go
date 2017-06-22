@@ -2,14 +2,12 @@ package proto
 
 import (
 	"encoding/json"
-	"sync"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 )
 
 // NodeInfo contains information and statistics about Centrifugo node.
 type NodeInfo struct {
-	mu      sync.RWMutex
 	UID     string           `json:"uid"`
 	Name    string           `json:"name"`
 	Started int64            `json:"started_at"`
