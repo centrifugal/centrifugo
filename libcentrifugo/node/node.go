@@ -40,7 +40,7 @@ type Node struct {
 	// hub to manage admin connections.
 	admins conns.AdminHub
 
-	// config for application.
+	// config for node.
 	config *Config
 
 	// engine to use - in memory or redis.
@@ -51,7 +51,7 @@ type Node struct {
 	// mediator allows integrate libcentrifugo Node with external go code.
 	mediator Mediator
 
-	// shutdown is a flag which is only true when application is going to shut down.
+	// shutdown is a flag which is only true when node is going to shut down.
 	shutdown bool
 
 	// shutdownCh is a channel which is closed when shutdown happens.
@@ -137,11 +137,18 @@ func (n *Node) Config() Config {
 	return c
 }
 
-// SetConfig binds config to application.
+// SetConfig binds config to node.
 func (n *Node) SetConfig(c *Config) {
 	n.Lock()
 	defer n.Unlock()
 	n.config = c
+}
+
+// SetMediator binds Mediator to node.
+func (n *Node) SetMediator(m Mediator) {
+	n.Lock()
+	defer n.Unlock()
+	n.mediator = m
 }
 
 // Version returns version of node.
@@ -736,7 +743,7 @@ func (n *Node) namespaceKey(ch string) channel.NamespaceKey {
 	return channel.NamespaceKey("")
 }
 
-// ChannelOpts returns channel options for channel using current application structure.
+// ChannelOpts returns channel options for channel using current channel config.
 func (n *Node) ChannelOpts(ch string) (channel.Options, error) {
 	n.RLock()
 	defer n.RUnlock()
