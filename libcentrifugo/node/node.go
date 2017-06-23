@@ -47,9 +47,6 @@ type Node struct {
 
 	nodes *nodeRegistry
 
-	// mediator allows integrate libcentrifugo Node with external go code.
-	mediator Mediator
-
 	// shutdown is a flag which is only true when node is going to shut down.
 	shutdown bool
 
@@ -143,13 +140,6 @@ func (n *Node) SetConfig(c *Config) {
 	n.config = c
 }
 
-// SetMediator binds Mediator to node.
-func (n *Node) SetMediator(m Mediator) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	n.mediator = m
-}
-
 // Version returns version of node.
 func (n *Node) Version() string {
 	return n.version
@@ -183,11 +173,6 @@ func (n *Node) Reload(getter config.Getter) error {
 // Engine returns node's Engine.
 func (n *Node) Engine() engine.Engine {
 	return n.engine
-}
-
-// Config returns a copy of node Config.
-func (n *Node) Mediator() Mediator {
-	return n.mediator
 }
 
 // ClientHub returns node's client hub.
