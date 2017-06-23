@@ -5,7 +5,7 @@ import (
 )
 
 // Mediator is an interface to work with Centrifugo events from
-// Go code. Implemented Mediator must be set to Node on start.
+// Go code. Implemented Mediator must be set to Node before Run called.
 type Mediator interface {
 	Connect(client string, user string) bool
 	Subscribe(ch string, client string, user string) bool

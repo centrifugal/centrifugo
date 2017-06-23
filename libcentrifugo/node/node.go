@@ -23,7 +23,7 @@ import (
 // config, engine, metrics etc.
 type Node struct {
 	// TODO: make private.
-	sync.RWMutex
+	mu sync.RWMutex
 
 	// version
 	version string
@@ -131,23 +131,23 @@ func New(version string, c *Config) *Node {
 
 // Config returns a copy of node Config.
 func (n *Node) Config() Config {
-	n.RLock()
+	n.mu.RLock()
 	c := *n.config
-	n.RUnlock()
+	n.mu.RUnlock()
 	return c
 }
 
 // SetConfig binds config to node.
 func (n *Node) SetConfig(c *Config) {
-	n.Lock()
-	defer n.Unlock()
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.config = c
 }
 
 // SetMediator binds Mediator to node.
 func (n *Node) SetMediator(m Mediator) {
-	n.Lock()
-	defer n.Unlock()
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.mediator = m
 }
 
@@ -209,9 +209,9 @@ func (n *Node) NotifyShutdown() chan struct{} {
 // Run performs all startup actions. At moment must be called once on start
 // after engine and structure set.
 func (n *Node) Run(e engine.Engine) error {
-	n.Lock()
+	n.mu.Lock()
 	n.engine = e
-	n.Unlock()
+	n.mu.Unlock()
 
 	if err := n.engine.Run(); err != nil {
 		return err
@@ -230,14 +230,14 @@ func (n *Node) Run(e engine.Engine) error {
 
 // Shutdown sets shutdown flag and does various clean ups.
 func (n *Node) Shutdown() error {
-	n.Lock()
+	n.mu.Lock()
 	if n.shutdown {
-		n.Unlock()
+		n.mu.Unlock()
 		return nil
 	}
 	n.shutdown = true
 	close(n.shutdownCh)
-	n.Unlock()
+	n.mu.Unlock()
 	return n.clients.Shutdown()
 }
 
@@ -260,9 +260,9 @@ func (n *Node) updateMetricsOnce() {
 
 func (n *Node) updateMetrics() {
 	for {
-		n.RLock()
+		n.mu.RLock()
 		interval := n.config.NodeMetricsInterval
-		n.RUnlock()
+		n.mu.RUnlock()
 		select {
 		case <-n.shutdownCh:
 			return
@@ -274,9 +274,9 @@ func (n *Node) updateMetrics() {
 
 func (n *Node) sendNodePingMsg() {
 	for {
-		n.RLock()
+		n.mu.RLock()
 		interval := n.config.NodePingInterval
-		n.RUnlock()
+		n.mu.RUnlock()
 		select {
 		case <-n.shutdownCh:
 			return
@@ -291,16 +291,16 @@ func (n *Node) sendNodePingMsg() {
 
 func (n *Node) cleanNodeInfo() {
 	for {
-		n.RLock()
+		n.mu.RLock()
 		interval := n.config.NodeInfoCleanInterval
-		n.RUnlock()
+		n.mu.RUnlock()
 		select {
 		case <-n.shutdownCh:
 			return
 		case <-time.After(interval):
-			n.RLock()
+			n.mu.RLock()
 			delay := n.config.NodeInfoMaxDelay
-			n.RUnlock()
+			n.mu.RUnlock()
 			n.nodes.clean(delay)
 		}
 	}
@@ -313,9 +313,9 @@ func (n *Node) Channels() ([]string, error) {
 
 // Stats returns aggregated stats from all Centrifugo nodes.
 func (n *Node) Stats() proto.ServerStats {
-	n.RLock()
+	n.mu.RLock()
 	interval := n.config.NodeMetricsInterval
-	n.RUnlock()
+	n.mu.RUnlock()
 
 	return proto.ServerStats{
 		MetricsInterval: int64(interval.Seconds()),
@@ -532,7 +532,7 @@ func (n *Node) publishControl(msg *proto.ControlMessage) <-chan error {
 // pubPing sends control ping message to all nodes - this message
 // contains information about current node.
 func (n *Node) pubPing() error {
-	n.RLock()
+	n.mu.RLock()
 	metricsRegistry.Gauges.Set("node_num_clients", int64(n.clients.NumClients()))
 	metricsRegistry.Gauges.Set("node_num_unique_clients", int64(n.clients.NumUniqueClients()))
 	metricsRegistry.Gauges.Set("node_num_channels", int64(n.clients.NumChannels()))
@@ -552,7 +552,7 @@ func (n *Node) pubPing() error {
 		Started: n.started,
 		Metrics: metricsSnapshot,
 	}
-	n.RUnlock()
+	n.mu.RUnlock()
 
 	cmd := &proto.PingControlCommand{Info: info}
 
@@ -745,16 +745,16 @@ func (n *Node) namespaceKey(ch string) channel.NamespaceKey {
 
 // ChannelOpts returns channel options for channel using current channel config.
 func (n *Node) ChannelOpts(ch string) (channel.Options, error) {
-	n.RLock()
-	defer n.RUnlock()
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 	return n.config.channelOpts(n.namespaceKey(ch))
 }
 
 // AddPresence proxies presence adding to engine.
 func (n *Node) AddPresence(ch string, uid string, info proto.ClientInfo) error {
-	n.RLock()
+	n.mu.RLock()
 	expire := int(n.config.PresenceExpireInterval.Seconds())
-	n.RUnlock()
+	n.mu.RUnlock()
 	metricsRegistry.Counters.Inc("node_num_add_presence")
 	return n.engine.AddPresence(ch, uid, info, expire)
 }
@@ -833,8 +833,8 @@ func (n *Node) LastMessageID(ch string) (string, error) {
 // PrivateChannel checks if channel private and therefore subscription
 // request on it must be properly signed on web application backend.
 func (n *Node) PrivateChannel(ch string) bool {
-	n.RLock()
-	defer n.RUnlock()
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 	return strings.HasPrefix(string(ch), n.config.PrivateChannelPrefix)
 }
 
@@ -842,8 +842,8 @@ func (n *Node) PrivateChannel(ch string) bool {
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it.
 func (n *Node) UserAllowed(ch string, user string) bool {
-	n.RLock()
-	defer n.RUnlock()
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 	if !strings.Contains(ch, n.config.UserChannelBoundary) {
 		return true
 	}
@@ -861,8 +861,8 @@ func (n *Node) UserAllowed(ch string, user string) bool {
 // can contain special part in the end to indicate which client allowed
 // to subscribe on it.
 func (n *Node) ClientAllowed(ch string, client string) bool {
-	n.RLock()
-	defer n.RUnlock()
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 	if !strings.Contains(ch, n.config.ClientChannelBoundary) {
 		return true
 	}
