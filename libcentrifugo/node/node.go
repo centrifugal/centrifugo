@@ -22,7 +22,6 @@ import (
 // maintains information about other Centrifugo nodes, keeps references to
 // config, engine, metrics etc.
 type Node struct {
-	// TODO: make private.
 	mu sync.RWMutex
 
 	// version
