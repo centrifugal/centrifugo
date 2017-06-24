@@ -101,12 +101,15 @@ func init() {
 	metricsRegistry.RegisterGauge("node_uptime_seconds", metrics.NewGauge())
 }
 
+// VERSION of Centrifugo server node. Set on build stage.
+var VERSION string
+
 // New creates Node, the only required argument is config.
-func New(version string, c *Config) *Node {
+func New(c *Config) *Node {
 	uid := uuid.NewV4().String()
 
 	n := &Node{
-		version:         version,
+		version:         VERSION,
 		uid:             uid,
 		nodes:           newNodeRegistry(uid),
 		config:          c,

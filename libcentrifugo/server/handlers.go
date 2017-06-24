@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -178,7 +179,7 @@ func (s *HTTPServer) runHTTPServer() error {
 			HandlerFlags:  handlerFlags,
 			SockjsOptions: sockjsOpts,
 		}
-		mux := DefaultMux(s, muxOpts)
+		mux := ServeMux(s, muxOpts)
 
 		addr := net.JoinHostPort(address, handlerPort)
 
@@ -235,8 +236,8 @@ func (s *HTTPServer) runHTTPServer() error {
 	return nil
 }
 
-// DefaultMux returns a mux including set of default handlers for Centrifugo server.
-func DefaultMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
+// ServeMux returns a mux including set of default handlers for Centrifugo server.
+func ServeMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 
 	mux := http.NewServeMux()
 
@@ -257,28 +258,28 @@ func DefaultMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 
 	if flags&HandlerRawWS != 0 {
 		// register raw Websocket endpoint.
-		mux.Handle(prefix+"/connection/websocket", s.Logged(s.WrapShutdown(http.HandlerFunc(s.RawWebsocketHandler))))
+		mux.Handle(prefix+"/connection/websocket", s.logged(s.wrapShutdown(http.HandlerFunc(s.rawWebsocketHandler))))
 	}
 
 	if flags&HandlerSockJS != 0 {
 		// register SockJS endpoints.
-		sjsh := NewSockJSHandler(s, prefix+"/connection", muxOpts.SockjsOptions)
-		mux.Handle(prefix+"/connection/", s.Logged(s.WrapShutdown(sjsh)))
+		sjsh := newSockJSHandler(s, path.Join(prefix, "/connection"), muxOpts.SockjsOptions)
+		mux.Handle(path.Join(prefix, "/connection/")+"/", s.logged(s.wrapShutdown(sjsh)))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
-		mux.Handle(prefix+"/api/", s.Logged(s.WrapShutdown(http.HandlerFunc(s.APIHandler))))
+		mux.Handle(prefix+"/api/", s.logged(s.wrapShutdown(http.HandlerFunc(s.apiHandler))))
 	}
 
 	if (admin || web) && flags&HandlerAdmin != 0 {
 		// register admin websocket endpoint.
-		mux.Handle(prefix+"/socket", s.Logged(http.HandlerFunc(s.AdminWebsocketHandler)))
+		mux.Handle(prefix+"/socket", s.logged(http.HandlerFunc(s.adminWebsocketHandler)))
 
 		// optionally serve admin web interface.
 		if web {
 			// register admin web interface API endpoints.
-			mux.Handle(prefix+"/auth/", s.Logged(http.HandlerFunc(s.AuthHandler)))
+			mux.Handle(prefix+"/auth/", s.logged(http.HandlerFunc(s.authHandler)))
 
 			// serve web interface single-page application.
 			if webPath != "" {
@@ -294,10 +295,10 @@ func DefaultMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 	return mux
 }
 
-// NewSockJSHandler returns SockJS handler bind to sockjsPrefix url prefix.
+// newSockJSHandler returns SockJS handler bind to sockjsPrefix url prefix.
 // SockJS handler has several handlers inside responsible for various tasks
 // according to SockJS protocol.
-func NewSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Options) http.Handler {
+func newSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Options) http.Handler {
 	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, s.sockJSHandler)
 }
 
@@ -331,8 +332,8 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 	}
 }
 
-// RawWebsocketHandler called when new client connection comes to raw Websocket endpoint.
-func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+// rawWebsocketHandler called when new client connection comes to raw Websocket endpoint.
+func (s *HTTPServer) rawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	plugin.Metrics.Counters.Inc("http_raw_ws_num_requests")
 
@@ -402,8 +403,8 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-// APIHandler is responsible for receiving API commands over HTTP.
-func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
+// apiHandler is responsible for receiving API commands over HTTP.
+func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
 	defer func() {
 		plugin.Metrics.HDRHistograms.RecordMicroseconds("http_api", time.Now().Sub(started))
@@ -482,8 +483,8 @@ func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 
 const insecureWebToken = "insecure"
 
-// AuthHandler allows to get admin web interface token.
-func (s *HTTPServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
+// authHandler allows to get admin web interface token.
+func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	config := s.node.Config()
@@ -521,9 +522,9 @@ func (s *HTTPServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Bad Request", http.StatusBadRequest)
 }
 
-// WrapShutdown will return an http Handler.
+// wrapShutdown will return an http Handler.
 // If Application in shutdown it will return http.StatusServiceUnavailable.
-func (s *HTTPServer) WrapShutdown(h http.Handler) http.Handler {
+func (s *HTTPServer) wrapShutdown(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		s.RLock()
 		shutdown := s.shutdown
@@ -537,8 +538,8 @@ func (s *HTTPServer) WrapShutdown(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-// Logged middleware logs request.
-func (s *HTTPServer) Logged(h http.Handler) http.Handler {
+// logged middleware logs request.
+func (s *HTTPServer) logged(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		addr := r.Header.Get("X-Real-IP")
@@ -557,8 +558,8 @@ func (s *HTTPServer) Logged(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-// AdminWebsocketHandler handles admin websocket connections.
-func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+// adminWebsocketHandler handles admin websocket connections.
+func (s *HTTPServer) adminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	config := s.node.Config()
 	admin := config.Admin

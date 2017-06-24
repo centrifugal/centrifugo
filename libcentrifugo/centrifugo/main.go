@@ -304,7 +304,8 @@ func Main(version string) {
 				logger.FATAL.Fatalln(err)
 			}
 
-			nod := node.New(version, c)
+			node.VERSION = version
+			nod := node.New(c)
 
 			engineName := viper.GetString("engine")
 			engineFactory, ok := plugin.EngineFactories[engineName]
