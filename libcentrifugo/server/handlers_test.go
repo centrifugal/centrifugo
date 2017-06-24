@@ -124,7 +124,7 @@ func NewTestConfig() *node.Config {
 func NewTestHTTPServer() *HTTPServer {
 
 	c := NewTestConfig()
-	n := node.New("", c)
+	n := node.New(c)
 
 	s := &HTTPServer{
 		node:       n,
@@ -141,7 +141,7 @@ func NewTestHTTPServer() *HTTPServer {
 
 func TestDefaultMux(t *testing.T) {
 	s := NewTestHTTPServer()
-	mux := DefaultMux(s, DefaultMuxOptions)
+	mux := ServeMux(s, DefaultMuxOptions)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	resp, err := http.Get(server.URL + "/connection/info")
@@ -158,7 +158,7 @@ func TestMuxWithDebugFlag(t *testing.T) {
 	s := NewTestHTTPServer()
 	opts := DefaultMuxOptions
 	opts.HandlerFlags |= HandlerDebug
-	mux := DefaultMux(s, opts)
+	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	resp, err := http.Get(server.URL + "/debug/pprof")
@@ -169,7 +169,7 @@ func TestMuxWithDebugFlag(t *testing.T) {
 func TestMuxAdminWeb404(t *testing.T) {
 	s := NewTestHTTPServer()
 	opts := DefaultMuxOptions
-	mux := DefaultMux(s, opts)
+	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	resp, err := http.Get(server.URL + "/")
@@ -188,7 +188,7 @@ func TestHandlerFlagString(t *testing.T) {
 func TestRawWsHandler(t *testing.T) {
 	s := NewTestHTTPServer()
 
-	mux := DefaultMux(s, DefaultMuxOptions)
+	mux := ServeMux(s, DefaultMuxOptions)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -207,7 +207,7 @@ func TestAdminWebsocketHandlerNotFound(t *testing.T) {
 	s := NewTestHTTPServer()
 	opts := DefaultMuxOptions
 	opts.Web = true
-	mux := DefaultMux(s, opts)
+	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -222,7 +222,7 @@ func TestAdminWebsocketHandler(t *testing.T) {
 	s.node.SetConfig(&conf)
 	opts := DefaultMuxOptions
 	opts.Admin = true
-	mux := DefaultMux(s, opts)
+	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -244,7 +244,7 @@ func TestAdminWebsocketHandler(t *testing.T) {
 func TestSockJSHandler(t *testing.T) {
 	s := NewTestHTTPServer()
 	opts := DefaultMuxOptions
-	mux := DefaultMux(s, opts)
+	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -262,7 +262,7 @@ func TestSockJSHandler(t *testing.T) {
 func TestRawWSHandler(t *testing.T) {
 	opts := DefaultMuxOptions
 	s := NewTestHTTPServer()
-	mux := DefaultMux(s, opts)
+	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -274,20 +274,20 @@ func TestRawWSHandler(t *testing.T) {
 
 func TestAPIHandler(t *testing.T) {
 	s := NewTestHTTPServer()
-	mux := DefaultMux(s, DefaultMuxOptions)
+	mux := ServeMux(s, DefaultMuxOptions)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
 	// nil body
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", server.URL+"/api/test", nil)
-	s.APIHandler(rec, req)
+	s.apiHandler(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 
 	// empty body
 	rec = httptest.NewRecorder()
 	req, _ = http.NewRequest("POST", server.URL+"/api/test", strings.NewReader(""))
-	s.APIHandler(rec, req)
+	s.apiHandler(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 
 	// wrong sign
@@ -298,7 +298,7 @@ func TestAPIHandler(t *testing.T) {
 	req, _ = http.NewRequest("POST", server.URL+"/api/", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
-	s.APIHandler(rec, req)
+	s.apiHandler(rec, req)
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 
 	// valid form urlencoded request
@@ -311,7 +311,7 @@ func TestAPIHandler(t *testing.T) {
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
-	s.APIHandler(rec, req)
+	s.apiHandler(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
 
 	// valid JSON request
@@ -321,7 +321,7 @@ func TestAPIHandler(t *testing.T) {
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", bytes.NewBuffer([]byte(data)))
 	req.Header.Add("X-API-Sign", sign)
 	req.Header.Add("Content-Type", "application/json")
-	s.APIHandler(rec, req)
+	s.apiHandler(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
 
 	// request with unknown method
@@ -334,7 +334,7 @@ func TestAPIHandler(t *testing.T) {
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
-	s.APIHandler(rec, req)
+	s.apiHandler(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
@@ -347,7 +347,7 @@ func TestAuthHandler(t *testing.T) {
 	values.Set("password", "pass")
 	req, _ := http.NewRequest("POST", "/auth/", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	s.AuthHandler(r, req)
+	s.authHandler(r, req)
 	assert.Equal(t, http.StatusBadRequest, r.Code)
 
 	conf := s.node.Config()
@@ -360,7 +360,7 @@ func TestAuthHandler(t *testing.T) {
 	values.Set("password", "wrong_pass")
 	req, _ = http.NewRequest("POST", "/auth/", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	s.AuthHandler(r, req)
+	s.authHandler(r, req)
 	assert.Equal(t, http.StatusBadRequest, r.Code)
 	body, _ := ioutil.ReadAll(r.Body)
 	assert.Equal(t, false, strings.Contains(string(body), "token"))
@@ -370,7 +370,7 @@ func TestAuthHandler(t *testing.T) {
 	values.Set("password", "password")
 	req, _ = http.NewRequest("POST", "/auth/", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	s.AuthHandler(r, req)
+	s.authHandler(r, req)
 	assert.Equal(t, http.StatusOK, r.Code)
 	body, _ = ioutil.ReadAll(r.Body)
 	assert.Equal(t, true, strings.Contains(string(body), "token"))

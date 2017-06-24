@@ -137,7 +137,7 @@ func NewTestConfig() *node.Config {
 
 func NewTestNode() *node.Node {
 	c := NewTestConfig()
-	n := node.New("", c)
+	n := node.New(c)
 	err := n.Run(NewTestEngine())
 	if err != nil {
 		panic(err)
@@ -149,7 +149,7 @@ func NewTestNodeWithConfig(c *node.Config) *node.Node {
 	if c == nil {
 		c = NewTestConfig()
 	}
-	n := node.New("", c)
+	n := node.New(c)
 	err := n.Run(NewTestEngine())
 	if err != nil {
 		panic(err)

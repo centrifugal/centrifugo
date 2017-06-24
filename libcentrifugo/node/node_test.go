@@ -106,7 +106,7 @@ func (t *testSession) Close(adv *conns.DisconnectAdvice) error {
 
 func testNode() *Node {
 	c := newTestConfig()
-	n := New("", &c)
+	n := New(&c)
 	err := n.Run(NewTestEngine())
 	if err != nil {
 		panic(err)
@@ -119,7 +119,7 @@ func testNodeWithConfig(c *Config) *Node {
 		conf := newTestConfig()
 		c = &conf
 	}
-	n := New("", c)
+	n := New(c)
 	n.engine = NewTestEngine()
 	return n
 }

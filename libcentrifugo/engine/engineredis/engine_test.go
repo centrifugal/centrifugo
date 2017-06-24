@@ -113,7 +113,7 @@ func NewTestRedisEngine() *RedisEngine {
 func NewTestRedisEngineWithPrefix(prefix string) *RedisEngine {
 	logger.SetStdoutThreshold(logger.LevelNone)
 	c := NewTestConfig()
-	n := node.New("", c)
+	n := node.New(c)
 	redisConf := &ShardConfig{
 		Host:         testRedisHost,
 		Port:         testRedisPort,
