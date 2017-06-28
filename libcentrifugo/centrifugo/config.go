@@ -8,9 +8,13 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/FZambia/viper-lite"
+	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
+	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
+	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/satori/go.uuid"
 )
 
@@ -106,7 +110,7 @@ func validateConfig(f string) error {
 			return errors.New("Unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
 		}
 	}
-	c := node.NewConfig(v)
+	c := newNodeConfig(v)
 	return c.Validate()
 }
 
@@ -117,4 +121,88 @@ func stringInSlice(a string, list []string) bool {
 		}
 	}
 	return false
+}
+
+// newNodeConfig creates new node.Config using getter interface.
+func newNodeConfig(v config.Getter) *node.Config {
+	cfg := &node.Config{}
+
+	cfg.Name = getApplicationName(v)
+	cfg.Debug = v.GetBool("debug")
+	cfg.Admin = v.GetBool("admin")
+	cfg.AdminPassword = v.GetString("admin_password")
+	cfg.AdminSecret = v.GetString("admin_secret")
+	cfg.MaxChannelLength = v.GetInt("max_channel_length")
+	cfg.PingInterval = time.Duration(v.GetInt("ping_interval")) * time.Second
+	cfg.NodePingInterval = time.Duration(v.GetInt("node_ping_interval")) * time.Second
+	cfg.NodeInfoCleanInterval = cfg.NodePingInterval * 3
+	cfg.NodeInfoMaxDelay = cfg.NodePingInterval*2 + 1*time.Second
+	cfg.NodeMetricsInterval = time.Duration(v.GetInt("node_metrics_interval")) * time.Second
+	cfg.PresencePingInterval = time.Duration(v.GetInt("presence_ping_interval")) * time.Second
+	cfg.PresenceExpireInterval = time.Duration(v.GetInt("presence_expire_interval")) * time.Second
+	cfg.ClientMessageWriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
+	cfg.PrivateChannelPrefix = v.GetString("private_channel_prefix")
+	cfg.NamespaceChannelBoundary = v.GetString("namespace_channel_boundary")
+	cfg.UserChannelBoundary = v.GetString("user_channel_boundary")
+	cfg.UserChannelSeparator = v.GetString("user_channel_separator")
+	cfg.ClientChannelBoundary = v.GetString("client_channel_boundary")
+	cfg.ExpiredConnectionCloseDelay = time.Duration(v.GetInt("expired_connection_close_delay")) * time.Second
+	cfg.StaleConnectionCloseDelay = time.Duration(v.GetInt("stale_connection_close_delay")) * time.Second
+	cfg.ClientRequestMaxSize = v.GetInt("client_request_max_size")
+	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
+	cfg.ClientQueueInitialCapacity = v.GetInt("client_queue_initial_capacity")
+	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
+	cfg.UserConnectionLimit = v.GetInt("user_connection_limit")
+	cfg.Insecure = v.GetBool("insecure")
+	cfg.InsecureAPI = v.GetBool("insecure_api")
+	cfg.InsecureAdmin = v.GetBool("insecure_admin")
+	cfg.Secret = v.GetString("secret")
+	cfg.ConnLifetime = int64(v.GetInt("connection_lifetime"))
+	cfg.Watch = v.GetBool("watch")
+	cfg.Publish = v.GetBool("publish")
+	cfg.Anonymous = v.GetBool("anonymous")
+	cfg.Presence = v.GetBool("presence")
+	cfg.JoinLeave = v.GetBool("join_leave")
+	cfg.HistorySize = v.GetInt("history_size")
+	cfg.HistoryLifetime = v.GetInt("history_lifetime")
+	cfg.HistoryDropInactive = v.GetBool("history_drop_inactive")
+	cfg.Recover = v.GetBool("recover")
+	cfg.Namespaces = namespacesFromConfig(v)
+	return cfg
+}
+
+// getApplicationName returns a name for this node. If no name provided
+// in configuration then it constructs node name based on hostname and port
+func getApplicationName(v config.Getter) string {
+	name := v.GetString("name")
+	if name != "" {
+		return name
+	}
+	port := v.GetString("port")
+	var hostname string
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "?"
+	}
+	return hostname + "_" + port
+}
+
+func namespacesFromConfig(v config.Getter) []channel.Namespace {
+	ns := []channel.Namespace{}
+	if !v.IsSet("namespaces") {
+		return ns
+	}
+	v.UnmarshalKey("namespaces", &ns)
+	return ns
+}
+
+// newServerConfig creates new server config using viper.
+func newServerConfig(c config.Getter) *server.Config {
+	cfg := &server.Config{}
+	cfg.WebsocketCompression = c.GetBool("websocket_compression")
+	cfg.WebsocketCompressionLevel = c.GetInt("websocket_compression_level")
+	cfg.WebsocketCompressionMinSize = c.GetInt("websocket_compression_min_size")
+	cfg.WebsocketReadBufferSize = c.GetInt("websocket_read_buffer_size")
+	cfg.WebsocketWriteBufferSize = c.GetInt("websocket_write_buffer_size")
+	return cfg
 }

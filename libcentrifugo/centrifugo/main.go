@@ -1,15 +1,19 @@
 package centrifugo
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -20,7 +24,10 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/plugin"
 	"github.com/centrifugal/centrifugo/libcentrifugo/server"
+	"github.com/igm/sockjs-go/sockjs"
+	"github.com/rakyll/statik/fs"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 func writePidFile(pidFile string) error {
@@ -70,7 +77,8 @@ func handleSignals(n *node.Node, s *server.HTTPServer) {
 				}
 			}
 			setupLogging()
-			if err := n.Reload(viper.GetViper()); err != nil {
+			cfg := newNodeConfig(viper.GetViper())
+			if err := n.Reload(cfg); err != nil {
 				logger.CRITICAL.Println(err)
 				continue
 			}
@@ -99,6 +107,9 @@ func ConfigureNode(setter config.Setter) error {
 	defaults := map[string]interface{}{
 		"debug":                          false,
 		"name":                           "",
+		"admin":                          false,
+		"admin_password":                 "",
+		"admin_secret":                   "",
 		"secret":                         "",
 		"connection_lifetime":            0,
 		"watch":                          false,
@@ -221,6 +232,162 @@ func ConfigureServer(setter config.Setter) error {
 	return nil
 }
 
+func runServer(n *node.Node, s *server.HTTPServer) error {
+
+	debug := viper.GetBool("debug")
+	adminEnabled := viper.GetBool("admin")
+
+	webEnabled := viper.GetBool("web")
+	webPath := viper.GetString("web_path")
+	httpAddress := viper.GetString("address")
+	httpClientPort := viper.GetString("port")
+	httpAdminPort := viper.GetString("admin_port")
+	httpAPIPort := viper.GetString("api_port")
+	httpPrefix := viper.GetString("http_prefix")
+	sockjsURL := viper.GetString("sockjs_url")
+	sockjsHeartbeatDelay := viper.GetInt("sockjs_heartbeat_delay")
+	sslEnabled := viper.GetBool("ssl")
+	sslCert := viper.GetString("ssl_cert")
+	sslKey := viper.GetString("ssl_key")
+	sslAutocertEnabled := viper.GetBool("ssl_autocert")
+	autocertHostWhitelist := viper.GetString("ssl_autocert_host_whitelist")
+	var sslAutocertHostWhitelist []string
+	if autocertHostWhitelist != "" {
+		sslAutocertHostWhitelist = strings.Split(autocertHostWhitelist, ",")
+	} else {
+		sslAutocertHostWhitelist = nil
+	}
+	sslAutocertCacheDir := viper.GetString("ssl_autocert_cache_dir")
+	sslAutocertEmail := viper.GetString("ssl_autocert_email")
+	sslAutocertForceRSA := viper.GetBool("ssl_autocert_force_rsa")
+	sslAutocertServerName := viper.GetString("ssl_autocert_server_name")
+	websocketReadBufferSize := viper.GetInt("websocket_read_buffer_size")
+	websocketWriteBufferSize := viper.GetInt("websocket_write_buffer_size")
+
+	sockjs.WebSocketReadBufSize = websocketReadBufferSize
+	sockjs.WebSocketWriteBufSize = websocketWriteBufferSize
+
+	sockjsOpts := sockjs.DefaultOptions
+
+	// Override sockjs url. It's important to use the same SockJS library version
+	// on client and server sides when using iframe based SockJS transports, otherwise
+	// SockJS will raise error about version mismatch.
+	if sockjsURL != "" {
+		logger.INFO.Println("SockJS url:", sockjsURL)
+		sockjsOpts.SockJSURL = sockjsURL
+	}
+
+	sockjsOpts.HeartbeatDelay = time.Duration(sockjsHeartbeatDelay) * time.Second
+
+	var webFS http.FileSystem
+	if webEnabled {
+		webFS, _ = fs.New()
+	}
+
+	if webEnabled {
+		adminEnabled = true
+	}
+
+	if httpAPIPort == "" {
+		httpAPIPort = httpClientPort
+	}
+	if httpAdminPort == "" {
+		httpAdminPort = httpClientPort
+	}
+
+	// portToHandlerFlags contains mapping between ports and handler flags
+	// to serve on this port.
+	portToHandlerFlags := map[string]server.HandlerFlag{}
+
+	var portFlags server.HandlerFlag
+
+	portFlags = portToHandlerFlags[httpClientPort]
+	portFlags |= server.HandlerRawWS | server.HandlerSockJS
+	portToHandlerFlags[httpClientPort] = portFlags
+
+	portFlags = portToHandlerFlags[httpAPIPort]
+	portFlags |= server.HandlerAPI
+	portToHandlerFlags[httpAPIPort] = portFlags
+
+	portFlags = portToHandlerFlags[httpAdminPort]
+	if adminEnabled {
+		portFlags |= server.HandlerAdmin
+	}
+	if debug {
+		portFlags |= server.HandlerDebug
+	}
+	portToHandlerFlags[httpAdminPort] = portFlags
+
+	var wg sync.WaitGroup
+	// Iterate over port to flags mapping and start HTTP servers
+	// on separate ports serving handlers specified in flags.
+	for handlerPort, handlerFlags := range portToHandlerFlags {
+		muxOpts := server.MuxOptions{
+			Prefix:        httpPrefix,
+			Admin:         adminEnabled,
+			Web:           webEnabled,
+			WebPath:       webPath,
+			WebFS:         webFS,
+			HandlerFlags:  handlerFlags,
+			SockjsOptions: sockjsOpts,
+		}
+		mux := server.ServeMux(s, muxOpts)
+
+		addr := net.JoinHostPort(httpAddress, handlerPort)
+
+		logger.INFO.Printf("Start serving %s endpoints on %s\n", handlerFlags, addr)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			if sslAutocertEnabled {
+				certManager := autocert.Manager{
+					Prompt:   autocert.AcceptTOS,
+					ForceRSA: sslAutocertForceRSA,
+					Email:    sslAutocertEmail,
+				}
+				if sslAutocertHostWhitelist != nil {
+					certManager.HostPolicy = autocert.HostWhitelist(sslAutocertHostWhitelist...)
+				}
+				if sslAutocertCacheDir != "" {
+					certManager.Cache = autocert.DirCache(sslAutocertCacheDir)
+				}
+				server := &http.Server{
+					Addr:    addr,
+					Handler: mux,
+					TLSConfig: &tls.Config{
+						GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+							// See https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819
+							if sslAutocertServerName != "" && hello.ServerName == "" {
+								hello.ServerName = sslAutocertServerName
+							}
+							return certManager.GetCertificate(hello)
+						},
+					},
+				}
+
+				if err := server.ListenAndServeTLS("", ""); err != nil {
+					logger.FATAL.Fatalln("ListenAndServe:", err)
+				}
+			} else if sslEnabled {
+				// Autocert disabled - just try to use provided SSL cert and key files.
+				server := &http.Server{Addr: addr, Handler: mux}
+				if err := server.ListenAndServeTLS(sslCert, sslKey); err != nil {
+					logger.FATAL.Fatalln("ListenAndServe:", err)
+				}
+			} else {
+				if err := http.ListenAndServe(addr, mux); err != nil {
+					logger.FATAL.Fatalln("ListenAndServe:", err)
+				}
+			}
+		}()
+	}
+	wg.Wait()
+
+	return nil
+}
+
 // Main starts Centrifugo server.
 func Main(version string) {
 
@@ -298,7 +465,7 @@ func Main(version string) {
 				}
 			}
 
-			c := node.NewConfig(viper.GetViper())
+			c := newNodeConfig(viper.GetViper())
 			err = c.Validate()
 			if err != nil {
 				logger.FATAL.Fatalln(err)
@@ -322,10 +489,10 @@ func Main(version string) {
 				logger.FATAL.Fatalln(err)
 			}
 
-			sc := server.NewConfig(viper.GetViper())
-			server, _ := server.New(nod, sc)
+			sc := newServerConfig(viper.GetViper())
+			srv, _ := server.New(nod, sc)
 
-			go handleSignals(nod, server)
+			go handleSignals(nod, srv)
 
 			logger.INFO.Printf("Config path: %s", absConfPath)
 			logger.INFO.Printf("Version: %s", version)
@@ -345,7 +512,7 @@ func Main(version string) {
 				logger.WARN.Println("Running in DEBUG mode")
 			}
 
-			if err = server.Run(); err != nil {
+			if err = runServer(nod, srv); err != nil {
 				logger.FATAL.Fatalf("Error running server: %v", err)
 			}
 

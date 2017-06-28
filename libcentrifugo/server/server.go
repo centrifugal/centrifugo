@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net/http"
 	"sync"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
@@ -25,6 +26,7 @@ func init() {
 type HTTPServer struct {
 	sync.RWMutex
 	node       *node.Node
+	mux        *http.ServeMux
 	config     *Config
 	shutdown   bool
 	shutdownCh chan struct{}
@@ -39,9 +41,8 @@ func New(n *node.Node, config *Config) (*HTTPServer, error) {
 	}, nil
 }
 
-// Run runs HTTPServer.
-func (s *HTTPServer) Run() error {
-	return s.runHTTPServer()
+func (s *HTTPServer) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	s.mux.ServeHTTP(rw, r)
 }
 
 // Shutdown shuts down server.

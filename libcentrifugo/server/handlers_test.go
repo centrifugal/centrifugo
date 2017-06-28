@@ -206,7 +206,6 @@ func TestRawWsHandler(t *testing.T) {
 func TestAdminWebsocketHandlerNotFound(t *testing.T) {
 	s := NewTestHTTPServer()
 	opts := DefaultMuxOptions
-	opts.Web = true
 	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()

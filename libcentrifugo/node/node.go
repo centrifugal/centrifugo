@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
-	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
@@ -149,27 +148,11 @@ func (n *Node) Version() string {
 }
 
 // Reload node.
-func (n *Node) Reload(getter config.Getter) error {
-	if validator, ok := n.engine.(config.Validator); ok {
-		err := validator.Validate(getter)
-		if err != nil {
-			return err
-		}
-	}
-
-	c := NewConfig(getter)
+func (n *Node) Reload(c *Config) error {
 	if err := c.Validate(); err != nil {
 		return err
 	}
 	n.SetConfig(c)
-
-	if reloader, ok := n.engine.(config.Reloader); ok {
-		err := reloader.Reload(getter)
-		if err != nil {
-			logger.ERROR.Printf("Error reloading engine: %v", err)
-		}
-	}
-
 	return nil
 }
 

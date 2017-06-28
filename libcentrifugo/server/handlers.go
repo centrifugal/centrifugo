@@ -1,15 +1,12 @@
 package server
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/http/pprof"
 	"path"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
@@ -22,8 +19,6 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/websocket"
 	"github.com/igm/sockjs-go/sockjs"
-	"github.com/rakyll/statik/fs"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -80,160 +75,6 @@ type MuxOptions struct {
 var DefaultMuxOptions = MuxOptions{
 	HandlerFlags:  HandlerRawWS | HandlerSockJS | HandlerAPI | HandlerAdmin,
 	SockjsOptions: sockjs.DefaultOptions,
-}
-
-func (s *HTTPServer) runHTTPServer() error {
-
-	nodeConfig := s.node.Config()
-
-	debug := nodeConfig.Debug
-	adminEnabled := nodeConfig.Admin
-
-	s.RLock()
-	sockjsURL := s.config.SockjsURL
-	sockjsHeartbeatDelay := s.config.SockjsHeartbeatDelay
-	webEnabled := s.config.Web
-	webPath := s.config.WebPath
-	sslEnabled := s.config.SSL
-	sslCert := s.config.SSLCert
-	sslKey := s.config.SSLKey
-	sslAutocertEnabled := s.config.SSLAutocert
-	sslAutocertHostWhitelist := s.config.SSLAutocertHostWhitelist
-	sslAutocertCacheDir := s.config.SSLAutocertCacheDir
-	sslAutocertEmail := s.config.SSLAutocertEmail
-	sslAutocertForceRSA := s.config.SSLAutocertForceRSA
-	sslAutocertServerName := s.config.SSLAutocertServerName
-	address := s.config.HTTPAddress
-	clientPort := s.config.HTTPPort
-	adminPort := s.config.HTTPAdminPort
-	apiPort := s.config.HTTPAPIPort
-	httpPrefix := s.config.HTTPPrefix
-	wsReadBufferSize := s.config.WebsocketReadBufferSize
-	wsWriteBufferSize := s.config.WebsocketWriteBufferSize
-	s.RUnlock()
-
-	sockjs.WebSocketReadBufSize = wsReadBufferSize
-	sockjs.WebSocketWriteBufSize = wsWriteBufferSize
-
-	sockjsOpts := sockjs.DefaultOptions
-
-	// Override sockjs url. It's important to use the same SockJS library version
-	// on client and server sides when using iframe based SockJS transports, otherwise
-	// SockJS will raise error about version mismatch.
-	if sockjsURL != "" {
-		logger.INFO.Println("SockJS url:", sockjsURL)
-		sockjsOpts.SockJSURL = sockjsURL
-	}
-
-	sockjsOpts.HeartbeatDelay = time.Duration(sockjsHeartbeatDelay) * time.Second
-
-	var webFS http.FileSystem
-	if webEnabled {
-		webFS, _ = fs.New()
-	}
-
-	if webEnabled {
-		adminEnabled = true
-	}
-
-	if apiPort == "" {
-		apiPort = clientPort
-	}
-	if adminPort == "" {
-		adminPort = clientPort
-	}
-
-	// portToHandlerFlags contains mapping between ports and handler flags
-	// to serve on this port.
-	portToHandlerFlags := map[string]HandlerFlag{}
-
-	var portFlags HandlerFlag
-
-	portFlags = portToHandlerFlags[clientPort]
-	portFlags |= HandlerRawWS | HandlerSockJS
-	portToHandlerFlags[clientPort] = portFlags
-
-	portFlags = portToHandlerFlags[apiPort]
-	portFlags |= HandlerAPI
-	portToHandlerFlags[apiPort] = portFlags
-
-	portFlags = portToHandlerFlags[adminPort]
-	if adminEnabled {
-		portFlags |= HandlerAdmin
-	}
-	if debug {
-		portFlags |= HandlerDebug
-	}
-	portToHandlerFlags[adminPort] = portFlags
-
-	var wg sync.WaitGroup
-	// Iterate over port to flags mapping and start HTTP servers
-	// on separate ports serving handlers specified in flags.
-	for handlerPort, handlerFlags := range portToHandlerFlags {
-		muxOpts := MuxOptions{
-			Prefix:        httpPrefix,
-			Admin:         adminEnabled,
-			Web:           webEnabled,
-			WebPath:       webPath,
-			WebFS:         webFS,
-			HandlerFlags:  handlerFlags,
-			SockjsOptions: sockjsOpts,
-		}
-		mux := ServeMux(s, muxOpts)
-
-		addr := net.JoinHostPort(address, handlerPort)
-
-		logger.INFO.Printf("Start serving %s endpoints on %s\n", handlerFlags, addr)
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			if sslAutocertEnabled {
-				certManager := autocert.Manager{
-					Prompt:   autocert.AcceptTOS,
-					ForceRSA: sslAutocertForceRSA,
-					Email:    sslAutocertEmail,
-				}
-				if sslAutocertHostWhitelist != nil {
-					certManager.HostPolicy = autocert.HostWhitelist(sslAutocertHostWhitelist...)
-				}
-				if sslAutocertCacheDir != "" {
-					certManager.Cache = autocert.DirCache(sslAutocertCacheDir)
-				}
-				server := &http.Server{
-					Addr:    addr,
-					Handler: mux,
-					TLSConfig: &tls.Config{
-						GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-							// See https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819
-							if sslAutocertServerName != "" && hello.ServerName == "" {
-								hello.ServerName = sslAutocertServerName
-							}
-							return certManager.GetCertificate(hello)
-						},
-					},
-				}
-
-				if err := server.ListenAndServeTLS("", ""); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
-				}
-			} else if sslEnabled {
-				// Autocert disabled - just try to use provided SSL cert and key files.
-				server := &http.Server{Addr: addr, Handler: mux}
-				if err := server.ListenAndServeTLS(sslCert, sslKey); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
-				}
-			} else {
-				if err := http.ListenAndServe(addr, mux); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
-				}
-			}
-		}()
-	}
-	wg.Wait()
-
-	return nil
 }
 
 // ServeMux returns a mux including set of default handlers for Centrifugo server.
@@ -562,16 +403,6 @@ func (s *HTTPServer) logged(h http.Handler) http.Handler {
 func (s *HTTPServer) adminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	config := s.node.Config()
-	admin := config.Admin
-
-	s.RLock()
-	web := s.config.Web
-	s.RUnlock()
-
-	if !(admin || web) {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 
 	ws, err := websocket.Upgrade(w, r, nil, 0, 0)
 	if err != nil {
