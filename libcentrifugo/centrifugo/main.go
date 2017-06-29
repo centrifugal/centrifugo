@@ -236,7 +236,6 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 
 	debug := viper.GetBool("debug")
 	adminEnabled := viper.GetBool("admin")
-
 	webEnabled := viper.GetBool("web")
 	webPath := viper.GetString("web_path")
 	httpAddress := viper.GetString("address")
@@ -310,8 +309,11 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 	portToHandlerFlags[httpAPIPort] = portFlags
 
 	portFlags = portToHandlerFlags[httpAdminPort]
-	if adminEnabled {
+	if adminEnabled || webEnabled {
 		portFlags |= server.HandlerAdmin
+	}
+	if webEnabled {
+		portFlags |= server.HandlerWeb
 	}
 	if debug {
 		portFlags |= server.HandlerDebug
@@ -324,8 +326,6 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 	for handlerPort, handlerFlags := range portToHandlerFlags {
 		muxOpts := server.MuxOptions{
 			Prefix:        httpPrefix,
-			Admin:         adminEnabled,
-			Web:           webEnabled,
 			WebPath:       webPath,
 			WebFS:         webFS,
 			HandlerFlags:  handlerFlags,
@@ -508,7 +508,7 @@ func Main(version string) {
 			if c.InsecureAdmin {
 				logger.WARN.Println("Running in INSECURE admin mode")
 			}
-			if c.Debug {
+			if viper.GetBool("debug") {
 				logger.WARN.Println("Running in DEBUG mode")
 			}
 

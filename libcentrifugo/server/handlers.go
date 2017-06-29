@@ -35,6 +35,8 @@ const (
 	HandlerAdmin
 	// HandlerDebug enables debug handlers.
 	HandlerDebug
+	// HandlerWeb enables web interface serving.
+	HandlerWeb
 )
 
 var handlerText = map[HandlerFlag]string{
@@ -63,8 +65,6 @@ func (flags HandlerFlag) String() string {
 // MuxOptions contain various options for DefaultMux.
 type MuxOptions struct {
 	Prefix        string
-	Admin         bool
-	Web           bool
 	WebPath       string
 	WebFS         http.FileSystem
 	SockjsOptions sockjs.Options
@@ -83,8 +83,6 @@ func ServeMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	prefix := muxOpts.Prefix
-	admin := muxOpts.Admin
-	web := muxOpts.Web
 	webPath := muxOpts.WebPath
 	webFS := muxOpts.WebFS
 	flags := muxOpts.HandlerFlags
@@ -113,12 +111,12 @@ func ServeMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 		mux.Handle(prefix+"/api/", s.logged(s.wrapShutdown(http.HandlerFunc(s.apiHandler))))
 	}
 
-	if (admin || web) && flags&HandlerAdmin != 0 {
+	if flags&HandlerAdmin != 0 {
 		// register admin websocket endpoint.
 		mux.Handle(prefix+"/socket", s.logged(http.HandlerFunc(s.adminWebsocketHandler)))
 
 		// optionally serve admin web interface.
-		if web {
+		if flags&HandlerWeb != 0 {
 			// register admin web interface API endpoints.
 			mux.Handle(prefix+"/auth/", s.logged(http.HandlerFunc(s.authHandler)))
 

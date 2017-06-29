@@ -11,9 +11,6 @@ import (
 
 // Config contains Application configuration options.
 type Config struct {
-	// Debug turns on application debug mode.
-	Debug bool `json:"debug"`
-
 	// Name of this server node - must be unique, used as human readable
 	// and meaningful node identificator.
 	Name string `json:"name"`
@@ -179,9 +176,12 @@ const (
 // DefaultConfig is Config initialized with default values for all fields.
 var DefaultConfig = &Config{
 	Name:                        DefaultName,
-	Debug:                       false,
+	Admin:                       false,
 	AdminPassword:               "",
 	AdminSecret:                 "",
+	Insecure:                    false,
+	InsecureAPI:                 false,
+	InsecureAdmin:               false,
 	MaxChannelLength:            255,
 	PingInterval:                25 * time.Second,
 	NodePingInterval:            DefaultNodePingInterval * time.Second,
@@ -202,5 +202,4 @@ var DefaultConfig = &Config{
 	ClientQueueMaxSize:          10485760, // 10MB by default
 	ClientQueueInitialCapacity:  2,
 	ClientChannelLimit:          128,
-	Insecure:                    false,
 }

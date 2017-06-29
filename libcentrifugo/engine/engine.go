@@ -35,9 +35,9 @@ type Engine interface {
 	PublishAdmin(*proto.AdminMessage) <-chan error
 
 	// Subscribe on channel.
-	Subscribe(string) error
+	Subscribe(ch string) error
 	// Unsubscribe from channel.
-	Unsubscribe(string) error
+	Unsubscribe(ch string) error
 	// Channels returns slice of currently active channels (with one or more subscribers)
 	// on all Centrifugo nodes.
 	Channels() ([]string, error)

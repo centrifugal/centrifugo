@@ -128,7 +128,6 @@ func newNodeConfig(v config.Getter) *node.Config {
 	cfg := &node.Config{}
 
 	cfg.Name = getApplicationName(v)
-	cfg.Debug = v.GetBool("debug")
 	cfg.Admin = v.GetBool("admin")
 	cfg.AdminPassword = v.GetString("admin_password")
 	cfg.AdminSecret = v.GetString("admin_secret")
