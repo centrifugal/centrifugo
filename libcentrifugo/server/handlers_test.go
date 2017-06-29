@@ -220,7 +220,7 @@ func TestAdminWebsocketHandler(t *testing.T) {
 	conf.Admin = true // admin websocket available only if option enabled.
 	s.node.SetConfig(&conf)
 	opts := DefaultMuxOptions
-	opts.Admin = true
+	opts.HandlerFlags |= HandlerAdmin
 	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()

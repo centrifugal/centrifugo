@@ -45,10 +45,11 @@ var handlerText = map[HandlerFlag]string{
 	HandlerAPI:    "API",
 	HandlerAdmin:  "admin",
 	HandlerDebug:  "debug",
+	HandlerWeb:    "web",
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerRawWS, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerDebug}
+	flagsOrdered := []HandlerFlag{HandlerRawWS, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerWeb, HandlerDebug}
 	endpoints := []string{}
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -71,10 +72,14 @@ type MuxOptions struct {
 	HandlerFlags  HandlerFlag
 }
 
-// DefaultMuxOptions contain default SockJS options.
-var DefaultMuxOptions = MuxOptions{
-	HandlerFlags:  HandlerRawWS | HandlerSockJS | HandlerAPI | HandlerAdmin,
-	SockjsOptions: sockjs.DefaultOptions,
+// DefaultMuxOptions contain default Mux Options to start Centrifugo server.
+func DefaultMuxOptions() MuxOptions {
+	sockjsOpts := sockjs.DefaultOptions
+	sockjsOpts.SockJSURL = "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js"
+	return MuxOptions{
+		HandlerFlags:  HandlerRawWS | HandlerSockJS | HandlerAPI,
+		SockjsOptions: sockjs.DefaultOptions,
+	}
 }
 
 // ServeMux returns a mux including set of default handlers for Centrifugo server.
