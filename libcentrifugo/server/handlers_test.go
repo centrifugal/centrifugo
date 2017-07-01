@@ -141,7 +141,7 @@ func NewTestHTTPServer() *HTTPServer {
 
 func TestDefaultMux(t *testing.T) {
 	s := NewTestHTTPServer()
-	mux := ServeMux(s, DefaultMuxOptions())
+	mux := ServeMux(s, defaultMuxOptions())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	resp, err := http.Get(server.URL + "/connection/info")
@@ -156,7 +156,7 @@ func TestDefaultMux(t *testing.T) {
 
 func TestMuxWithDebugFlag(t *testing.T) {
 	s := NewTestHTTPServer()
-	opts := DefaultMuxOptions()
+	opts := defaultMuxOptions()
 	opts.HandlerFlags |= HandlerDebug
 	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
@@ -168,7 +168,7 @@ func TestMuxWithDebugFlag(t *testing.T) {
 
 func TestMuxAdminWeb404(t *testing.T) {
 	s := NewTestHTTPServer()
-	opts := DefaultMuxOptions()
+	opts := defaultMuxOptions()
 	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -188,7 +188,7 @@ func TestHandlerFlagString(t *testing.T) {
 func TestRawWsHandler(t *testing.T) {
 	s := NewTestHTTPServer()
 
-	mux := ServeMux(s, DefaultMuxOptions())
+	mux := ServeMux(s, defaultMuxOptions())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -205,7 +205,7 @@ func TestRawWsHandler(t *testing.T) {
 
 func TestAdminWebsocketHandlerNotFound(t *testing.T) {
 	s := NewTestHTTPServer()
-	opts := DefaultMuxOptions()
+	opts := defaultMuxOptions()
 	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -219,7 +219,7 @@ func TestAdminWebsocketHandler(t *testing.T) {
 	conf := s.node.Config()
 	conf.Admin = true // admin websocket available only if option enabled.
 	s.node.SetConfig(&conf)
-	opts := DefaultMuxOptions()
+	opts := defaultMuxOptions()
 	opts.HandlerFlags |= HandlerAdmin
 	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
@@ -242,7 +242,7 @@ func TestAdminWebsocketHandler(t *testing.T) {
 
 func TestSockJSHandler(t *testing.T) {
 	s := NewTestHTTPServer()
-	opts := DefaultMuxOptions()
+	opts := defaultMuxOptions()
 	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -259,7 +259,7 @@ func TestSockJSHandler(t *testing.T) {
 }
 
 func TestRawWSHandler(t *testing.T) {
-	opts := DefaultMuxOptions()
+	opts := defaultMuxOptions()
 	s := NewTestHTTPServer()
 	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
@@ -273,7 +273,7 @@ func TestRawWSHandler(t *testing.T) {
 
 func TestAPIHandler(t *testing.T) {
 	s := NewTestHTTPServer()
-	mux := ServeMux(s, DefaultMuxOptions())
+	mux := ServeMux(s, defaultMuxOptions())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 

@@ -72,8 +72,8 @@ type MuxOptions struct {
 	HandlerFlags  HandlerFlag
 }
 
-// DefaultMuxOptions contain default Mux Options to start Centrifugo server.
-func DefaultMuxOptions() MuxOptions {
+// defaultMuxOptions contain default Mux Options to start Centrifugo server.
+func defaultMuxOptions() MuxOptions {
 	sockjsOpts := sockjs.DefaultOptions
 	sockjsOpts.SockJSURL = "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js"
 	return MuxOptions{
@@ -215,7 +215,11 @@ func (s *HTTPServer) rawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	config := s.node.Config()
 	pingInterval := config.PingInterval
 	writeTimeout := config.ClientMessageWriteTimeout
+	maxRequestSize := config.ClientRequestMaxSize
 
+	if maxRequestSize > 0 {
+		ws.SetReadLimit(int64(maxRequestSize))
+	}
 	if pingInterval > 0 {
 		pongWait := pingInterval * 10 / 9
 		ws.SetReadDeadline(time.Now().Add(pongWait))
@@ -415,9 +419,13 @@ func (s *HTTPServer) adminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 
 	pingInterval := config.PingInterval
 	writeTimeout := config.ClientMessageWriteTimeout
+	maxRequestSize := config.ClientRequestMaxSize
 
+	if maxRequestSize > 0 {
+		ws.SetReadLimit(int64(maxRequestSize))
+	}
 	if pingInterval > 0 {
-		pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
+		pongWait := pingInterval * 10 / 9
 		ws.SetReadDeadline(time.Now().Add(pongWait))
 		ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}
