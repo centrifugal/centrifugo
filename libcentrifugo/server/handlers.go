@@ -31,7 +31,7 @@ const (
 	HandlerSockJS
 	// HandlerAPI enables API handler.
 	HandlerAPI
-	// HandlerAdmin enables admin handlers - admin websocket, web interface endpoints.
+	// HandlerAdmin enables admin Websocket handler.
 	HandlerAdmin
 	// HandlerDebug enables debug handlers.
 	HandlerDebug
@@ -217,7 +217,7 @@ func (s *HTTPServer) rawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	writeTimeout := config.ClientMessageWriteTimeout
 
 	if pingInterval > 0 {
-		pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
+		pongWait := pingInterval * 10 / 9
 		ws.SetReadDeadline(time.Now().Add(pongWait))
 		ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}

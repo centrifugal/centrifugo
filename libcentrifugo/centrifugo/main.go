@@ -368,17 +368,17 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 				}
 
 				if err := server.ListenAndServeTLS("", ""); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
+					logger.FATAL.Fatalf("ListenAndServe: %v", err)
 				}
 			} else if sslEnabled {
 				// Autocert disabled - just try to use provided SSL cert and key files.
 				server := &http.Server{Addr: addr, Handler: mux}
 				if err := server.ListenAndServeTLS(sslCert, sslKey); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
+					logger.FATAL.Fatalf("ListenAndServe: %v", err)
 				}
 			} else {
 				if err := http.ListenAndServe(addr, mux); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
+					logger.FATAL.Fatalf("ListenAndServe: %v", err)
 				}
 			}
 		}()
@@ -433,7 +433,7 @@ func Main(version string) {
 
 			absConfPath, err := filepath.Abs(configFile)
 			if err != nil {
-				logger.FATAL.Fatalln(err)
+				logger.FATAL.Fatalf("Error retreiving config file absolute path: %v", err)
 			}
 
 			err = viper.ReadInConfig()
@@ -468,7 +468,7 @@ func Main(version string) {
 			c := newNodeConfig(viper.GetViper())
 			err = c.Validate()
 			if err != nil {
-				logger.FATAL.Fatalln(err)
+				logger.FATAL.Fatalf("Error validating config: %v", err)
 			}
 
 			node.VERSION = version
@@ -477,16 +477,16 @@ func Main(version string) {
 			engineName := viper.GetString("engine")
 			engineFactory, ok := plugin.EngineFactories[engineName]
 			if !ok {
-				logger.FATAL.Fatalln("Unknown engine: " + engineName)
+				logger.FATAL.Fatalf("Unknown engine: %s", engineName)
 			}
 			var e engine.Engine
 			e, err = engineFactory(nod, viper.GetViper())
 			if err != nil {
-				logger.FATAL.Fatalln(err)
+				logger.FATAL.Fatalf("Error creating engine: %v", err)
 			}
 
 			if err = nod.Run(e); err != nil {
-				logger.FATAL.Fatalln(err)
+				logger.FATAL.Fatalf("Error running node: %v", err)
 			}
 
 			sc := newServerConfig(viper.GetViper())
@@ -549,7 +549,7 @@ func Main(version string) {
 		Run: func(cmd *cobra.Command, args []string) {
 			err := validateConfig(checkConfigFile)
 			if err != nil {
-				logger.FATAL.Fatalln(err)
+				logger.FATAL.Fatalf("%v", err)
 			}
 		},
 	}
@@ -564,7 +564,7 @@ func Main(version string) {
 		Run: func(cmd *cobra.Command, args []string) {
 			err := generateConfig(outputConfigFile)
 			if err != nil {
-				logger.FATAL.Fatalln(err)
+				logger.FATAL.Fatalf("%v", err)
 			}
 		},
 	}
