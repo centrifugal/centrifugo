@@ -1,6 +1,6 @@
 package server
 
-// Config contains Application configuration options.
+// Config contains HTTPServer configuration options.
 type Config struct {
 	// WebsocketCompression allows to enable websocket permessage-deflate
 	// compression support for raw websocket connections. It does not guarantee
