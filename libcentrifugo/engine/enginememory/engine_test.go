@@ -41,9 +41,9 @@ func NewTestConfig() *node.Config {
 
 func testMemoryEngine() *MemoryEngine {
 	c := NewTestConfig()
-	n := node.New("", c)
+	n := node.New(c)
 	e, _ := New(n, nil)
-	err := n.Run(&node.RunOptions{Engine: e})
+	err := n.Run(e)
 	if err != nil {
 		panic(err)
 	}

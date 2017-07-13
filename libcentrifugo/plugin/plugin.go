@@ -5,7 +5,6 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
-	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 )
 
 // EngineFactory is a function that returns engine.Engine implementation.
@@ -33,20 +32,8 @@ func RegisterConfigurator(name string, fn Configurator) {
 // Metrics is pointer to registry to keep Centrifugo metrics.
 var Metrics *metrics.Registry
 
-// ServerFactory is a function that returns server.Server implementation.
-type ServerFactory func(*node.Node, config.Getter) (server.Server, error)
-
-// ServerFactories ia a map of ServerFactory functions.
-var ServerFactories map[string]ServerFactory
-
-// RegisterServer allows to register custom Server implementation.
-func RegisterServer(name string, fn ServerFactory) {
-	ServerFactories[name] = fn
-}
-
 func init() {
 	EngineFactories = map[string]EngineFactory{}
-	ServerFactories = map[string]ServerFactory{}
 	Configurators = map[string]Configurator{}
 	Metrics = metrics.DefaultRegistry
 }

@@ -1,4 +1,4 @@
-package httpserver
+package server
 
 import (
 	"bytes"
@@ -14,7 +14,6 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
 	"github.com/centrifugal/centrifugo/libcentrifugo/node"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
-	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 )
@@ -125,7 +124,7 @@ func NewTestConfig() *node.Config {
 func NewTestHTTPServer() *HTTPServer {
 
 	c := NewTestConfig()
-	n := node.New("", c)
+	n := node.New(c)
 
 	s := &HTTPServer{
 		node:       n,
@@ -133,7 +132,7 @@ func NewTestHTTPServer() *HTTPServer {
 		shutdownCh: make(chan struct{}),
 	}
 
-	err := n.Run(&node.RunOptions{Engine: NewTestEngine(), Servers: map[string]server.Server{"http": s}})
+	err := n.Run(NewTestEngine())
 	if err != nil {
 		panic(err)
 	}
@@ -142,14 +141,14 @@ func NewTestHTTPServer() *HTTPServer {
 
 func TestDefaultMux(t *testing.T) {
 	s := NewTestHTTPServer()
-	mux := DefaultMux(s, DefaultMuxOptions)
+	mux := ServeMux(s, defaultMuxOptions())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	resp, err := http.Get(server.URL + "/connection/info")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-	s.node.Shutdown()
+	s.Shutdown()
 	resp, err = http.Get(server.URL + "/connection/info")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
@@ -157,9 +156,9 @@ func TestDefaultMux(t *testing.T) {
 
 func TestMuxWithDebugFlag(t *testing.T) {
 	s := NewTestHTTPServer()
-	opts := DefaultMuxOptions
+	opts := defaultMuxOptions()
 	opts.HandlerFlags |= HandlerDebug
-	mux := DefaultMux(s, opts)
+	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	resp, err := http.Get(server.URL + "/debug/pprof")
@@ -169,8 +168,8 @@ func TestMuxWithDebugFlag(t *testing.T) {
 
 func TestMuxAdminWeb404(t *testing.T) {
 	s := NewTestHTTPServer()
-	opts := DefaultMuxOptions
-	mux := DefaultMux(s, opts)
+	opts := defaultMuxOptions()
+	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	resp, err := http.Get(server.URL + "/")
@@ -188,7 +187,8 @@ func TestHandlerFlagString(t *testing.T) {
 
 func TestRawWsHandler(t *testing.T) {
 	s := NewTestHTTPServer()
-	mux := DefaultMux(s, DefaultMuxOptions)
+
+	mux := ServeMux(s, defaultMuxOptions())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -198,16 +198,15 @@ func TestRawWsHandler(t *testing.T) {
 	assert.NotEqual(t, nil, conn)
 	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
 
-	s.node.Shutdown()
+	s.Shutdown()
 	_, resp, _ = websocket.DefaultDialer.Dial(url+"/connection/websocket", nil)
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 }
 
 func TestAdminWebsocketHandlerNotFound(t *testing.T) {
 	s := NewTestHTTPServer()
-	opts := DefaultMuxOptions
-	opts.Web = true
-	mux := DefaultMux(s, opts)
+	opts := defaultMuxOptions()
+	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -220,9 +219,9 @@ func TestAdminWebsocketHandler(t *testing.T) {
 	conf := s.node.Config()
 	conf.Admin = true // admin websocket available only if option enabled.
 	s.node.SetConfig(&conf)
-	opts := DefaultMuxOptions
-	opts.Admin = true
-	mux := DefaultMux(s, opts)
+	opts := defaultMuxOptions()
+	opts.HandlerFlags |= HandlerAdmin
+	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -243,8 +242,8 @@ func TestAdminWebsocketHandler(t *testing.T) {
 
 func TestSockJSHandler(t *testing.T) {
 	s := NewTestHTTPServer()
-	opts := DefaultMuxOptions
-	mux := DefaultMux(s, opts)
+	opts := defaultMuxOptions()
+	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -260,9 +259,9 @@ func TestSockJSHandler(t *testing.T) {
 }
 
 func TestRawWSHandler(t *testing.T) {
-	opts := DefaultMuxOptions
+	opts := defaultMuxOptions()
 	s := NewTestHTTPServer()
-	mux := DefaultMux(s, opts)
+	mux := ServeMux(s, opts)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	url := "ws" + server.URL[4:]
@@ -272,65 +271,22 @@ func TestRawWSHandler(t *testing.T) {
 	assert.Equal(t, http.StatusSwitchingProtocols, resp.StatusCode)
 }
 
-/*
-func BenchmarkAPIHandler(b *testing.B) {
-	nChannels := 1
-	nClients := 1000
-	nCommands := 1000
-	nMessages := nClients * nCommands
-	sink := make(chan []byte, nMessages)
-	app := testMemoryApp()
-
-	// Use very large initial capacity so that queue resizes do not affect benchmark.
-	app.config.ClientQueueInitialCapacity = 1000
-
-	createTestClients(app, nChannels, nClients, sink)
-	b.Logf("num channels: %v, num clients: %v, num unique clients %v, num commands: %v", app.clients.nChannels(), app.clients.nClients(), app.clients.nUniqueClients(), nCommands)
-	jsonData := getNPublishJSON("channel-0", nCommands)
-	sign := auth.GenerateApiSign("secret", jsonData)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		done := make(chan struct{})
-		go func() {
-			count := 0
-			for {
-				select {
-				case <-sink:
-					count++
-				}
-				if count == nMessages {
-					close(done)
-					return
-				}
-			}
-		}()
-		rec := httptest.NewRecorder()
-		req, _ := http.NewRequest("POST", "/api/test1", bytes.NewBuffer(jsonData))
-		req.Header.Add("X-API-Sign", sign)
-		req.Header.Add("Content-Type", "application/json")
-		app.APIHandler(rec, req)
-		<-done
-	}
-	b.StopTimer()
-}
-*/
-
 func TestAPIHandler(t *testing.T) {
 	s := NewTestHTTPServer()
-	mux := DefaultMux(s, DefaultMuxOptions)
+	mux := ServeMux(s, defaultMuxOptions())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
 	// nil body
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", server.URL+"/api/test", nil)
-	s.APIHandler(rec, req)
+	s.apiHandler(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 
 	// empty body
 	rec = httptest.NewRecorder()
 	req, _ = http.NewRequest("POST", server.URL+"/api/test", strings.NewReader(""))
-	s.APIHandler(rec, req)
+	s.apiHandler(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 
 	// wrong sign
@@ -341,7 +297,7 @@ func TestAPIHandler(t *testing.T) {
 	req, _ = http.NewRequest("POST", server.URL+"/api/", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
-	s.APIHandler(rec, req)
+	s.apiHandler(rec, req)
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 
 	// valid form urlencoded request
@@ -354,7 +310,7 @@ func TestAPIHandler(t *testing.T) {
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
-	s.APIHandler(rec, req)
+	s.apiHandler(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
 
 	// valid JSON request
@@ -364,7 +320,7 @@ func TestAPIHandler(t *testing.T) {
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", bytes.NewBuffer([]byte(data)))
 	req.Header.Add("X-API-Sign", sign)
 	req.Header.Add("Content-Type", "application/json")
-	s.APIHandler(rec, req)
+	s.apiHandler(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
 
 	// request with unknown method
@@ -377,7 +333,7 @@ func TestAPIHandler(t *testing.T) {
 	req, _ = http.NewRequest("POST", server.URL+"/api/test1", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("Content-Length", strconv.Itoa(len(values.Encode())))
-	s.APIHandler(rec, req)
+	s.apiHandler(rec, req)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
@@ -390,7 +346,7 @@ func TestAuthHandler(t *testing.T) {
 	values.Set("password", "pass")
 	req, _ := http.NewRequest("POST", "/auth/", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	s.AuthHandler(r, req)
+	s.authHandler(r, req)
 	assert.Equal(t, http.StatusBadRequest, r.Code)
 
 	conf := s.node.Config()
@@ -403,7 +359,7 @@ func TestAuthHandler(t *testing.T) {
 	values.Set("password", "wrong_pass")
 	req, _ = http.NewRequest("POST", "/auth/", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	s.AuthHandler(r, req)
+	s.authHandler(r, req)
 	assert.Equal(t, http.StatusBadRequest, r.Code)
 	body, _ := ioutil.ReadAll(r.Body)
 	assert.Equal(t, false, strings.Contains(string(body), "token"))
@@ -413,7 +369,7 @@ func TestAuthHandler(t *testing.T) {
 	values.Set("password", "password")
 	req, _ = http.NewRequest("POST", "/auth/", strings.NewReader(values.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	s.AuthHandler(r, req)
+	s.authHandler(r, req)
 	assert.Equal(t, http.StatusOK, r.Code)
 	body, _ = ioutil.ReadAll(r.Body)
 	assert.Equal(t, true, strings.Contains(string(body), "token"))

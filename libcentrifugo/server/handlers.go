@@ -1,14 +1,12 @@
-package httpserver
+package server
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/http/pprof"
+	"path"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/api/v1"
@@ -21,8 +19,6 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
 	"github.com/gorilla/websocket"
 	"github.com/igm/sockjs-go/sockjs"
-	"github.com/rakyll/statik/fs"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -35,10 +31,12 @@ const (
 	HandlerSockJS
 	// HandlerAPI enables API handler.
 	HandlerAPI
-	// HandlerAdmin enables admin handlers - admin websocket, web interface endpoints.
+	// HandlerAdmin enables admin Websocket handler.
 	HandlerAdmin
 	// HandlerDebug enables debug handlers.
 	HandlerDebug
+	// HandlerWeb enables web interface serving.
+	HandlerWeb
 )
 
 var handlerText = map[HandlerFlag]string{
@@ -47,10 +45,11 @@ var handlerText = map[HandlerFlag]string{
 	HandlerAPI:    "API",
 	HandlerAdmin:  "admin",
 	HandlerDebug:  "debug",
+	HandlerWeb:    "web",
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerRawWS, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerDebug}
+	flagsOrdered := []HandlerFlag{HandlerRawWS, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerWeb, HandlerDebug}
 	endpoints := []string{}
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -67,182 +66,28 @@ func (flags HandlerFlag) String() string {
 // MuxOptions contain various options for DefaultMux.
 type MuxOptions struct {
 	Prefix        string
-	Admin         bool
-	Web           bool
 	WebPath       string
 	WebFS         http.FileSystem
 	SockjsOptions sockjs.Options
 	HandlerFlags  HandlerFlag
 }
 
-// DefaultMuxOptions contain default SockJS options.
-var DefaultMuxOptions = MuxOptions{
-	HandlerFlags:  HandlerRawWS | HandlerSockJS | HandlerAPI | HandlerAdmin,
-	SockjsOptions: sockjs.DefaultOptions,
-}
-
-func (s *HTTPServer) runHTTPServer() error {
-
-	nodeConfig := s.node.Config()
-
-	debug := nodeConfig.Debug
-	adminEnabled := nodeConfig.Admin
-
-	s.RLock()
-	sockjsURL := s.config.SockjsURL
-	sockjsHeartbeatDelay := s.config.SockjsHeartbeatDelay
-	webEnabled := s.config.Web
-	webPath := s.config.WebPath
-	sslEnabled := s.config.SSL
-	sslCert := s.config.SSLCert
-	sslKey := s.config.SSLKey
-	sslAutocertEnabled := s.config.SSLAutocert
-	sslAutocertHostWhitelist := s.config.SSLAutocertHostWhitelist
-	sslAutocertCacheDir := s.config.SSLAutocertCacheDir
-	sslAutocertEmail := s.config.SSLAutocertEmail
-	sslAutocertForceRSA := s.config.SSLAutocertForceRSA
-	sslAutocertServerName := s.config.SSLAutocertServerName
-	address := s.config.HTTPAddress
-	clientPort := s.config.HTTPPort
-	adminPort := s.config.HTTPAdminPort
-	apiPort := s.config.HTTPAPIPort
-	httpPrefix := s.config.HTTPPrefix
-	wsReadBufferSize := s.config.WebsocketReadBufferSize
-	wsWriteBufferSize := s.config.WebsocketWriteBufferSize
-	s.RUnlock()
-
-	sockjs.WebSocketReadBufSize = wsReadBufferSize
-	sockjs.WebSocketWriteBufSize = wsWriteBufferSize
-
+// defaultMuxOptions contain default Mux Options to start Centrifugo server.
+func defaultMuxOptions() MuxOptions {
 	sockjsOpts := sockjs.DefaultOptions
-
-	// Override sockjs url. It's important to use the same SockJS library version
-	// on client and server sides when using iframe based SockJS transports, otherwise
-	// SockJS will raise error about version mismatch.
-	if sockjsURL != "" {
-		logger.INFO.Println("SockJS url:", sockjsURL)
-		sockjsOpts.SockJSURL = sockjsURL
+	sockjsOpts.SockJSURL = "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js"
+	return MuxOptions{
+		HandlerFlags:  HandlerRawWS | HandlerSockJS | HandlerAPI,
+		SockjsOptions: sockjs.DefaultOptions,
 	}
-
-	sockjsOpts.HeartbeatDelay = time.Duration(sockjsHeartbeatDelay) * time.Second
-
-	var webFS http.FileSystem
-	if webEnabled {
-		webFS, _ = fs.New()
-	}
-
-	if webEnabled {
-		adminEnabled = true
-	}
-
-	if apiPort == "" {
-		apiPort = clientPort
-	}
-	if adminPort == "" {
-		adminPort = clientPort
-	}
-
-	// portToHandlerFlags contains mapping between ports and handler flags
-	// to serve on this port.
-	portToHandlerFlags := map[string]HandlerFlag{}
-
-	var portFlags HandlerFlag
-
-	portFlags = portToHandlerFlags[clientPort]
-	portFlags |= HandlerRawWS | HandlerSockJS
-	portToHandlerFlags[clientPort] = portFlags
-
-	portFlags = portToHandlerFlags[apiPort]
-	portFlags |= HandlerAPI
-	portToHandlerFlags[apiPort] = portFlags
-
-	portFlags = portToHandlerFlags[adminPort]
-	if adminEnabled {
-		portFlags |= HandlerAdmin
-	}
-	if debug {
-		portFlags |= HandlerDebug
-	}
-	portToHandlerFlags[adminPort] = portFlags
-
-	var wg sync.WaitGroup
-	// Iterate over port to flags mapping and start HTTP servers
-	// on separate ports serving handlers specified in flags.
-	for handlerPort, handlerFlags := range portToHandlerFlags {
-		muxOpts := MuxOptions{
-			Prefix:        httpPrefix,
-			Admin:         adminEnabled,
-			Web:           webEnabled,
-			WebPath:       webPath,
-			WebFS:         webFS,
-			HandlerFlags:  handlerFlags,
-			SockjsOptions: sockjsOpts,
-		}
-		mux := DefaultMux(s, muxOpts)
-
-		addr := net.JoinHostPort(address, handlerPort)
-
-		logger.INFO.Printf("Start serving %s endpoints on %s\n", handlerFlags, addr)
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			if sslAutocertEnabled {
-				certManager := autocert.Manager{
-					Prompt:   autocert.AcceptTOS,
-					ForceRSA: sslAutocertForceRSA,
-					Email:    sslAutocertEmail,
-				}
-				if sslAutocertHostWhitelist != nil {
-					certManager.HostPolicy = autocert.HostWhitelist(sslAutocertHostWhitelist...)
-				}
-				if sslAutocertCacheDir != "" {
-					certManager.Cache = autocert.DirCache(sslAutocertCacheDir)
-				}
-				server := &http.Server{
-					Addr:    addr,
-					Handler: mux,
-					TLSConfig: &tls.Config{
-						GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-							// See https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819
-							if sslAutocertServerName != "" && hello.ServerName == "" {
-								hello.ServerName = sslAutocertServerName
-							}
-							return certManager.GetCertificate(hello)
-						},
-					},
-				}
-
-				if err := server.ListenAndServeTLS("", ""); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
-				}
-			} else if sslEnabled {
-				// Autocert disabled - just try to use provided SSL cert and key files.
-				server := &http.Server{Addr: addr, Handler: mux}
-				if err := server.ListenAndServeTLS(sslCert, sslKey); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
-				}
-			} else {
-				if err := http.ListenAndServe(addr, mux); err != nil {
-					logger.FATAL.Fatalln("ListenAndServe:", err)
-				}
-			}
-		}()
-	}
-	wg.Wait()
-
-	return nil
 }
 
-// DefaultMux returns a mux including set of default handlers for Centrifugo server.
-func DefaultMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
+// ServeMux returns a mux including set of default handlers for Centrifugo server.
+func ServeMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 
 	mux := http.NewServeMux()
 
 	prefix := muxOpts.Prefix
-	admin := muxOpts.Admin
-	web := muxOpts.Web
 	webPath := muxOpts.WebPath
 	webFS := muxOpts.WebFS
 	flags := muxOpts.HandlerFlags
@@ -257,28 +102,28 @@ func DefaultMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 
 	if flags&HandlerRawWS != 0 {
 		// register raw Websocket endpoint.
-		mux.Handle(prefix+"/connection/websocket", s.Logged(s.WrapShutdown(http.HandlerFunc(s.RawWebsocketHandler))))
+		mux.Handle(prefix+"/connection/websocket", s.logged(s.wrapShutdown(http.HandlerFunc(s.rawWebsocketHandler))))
 	}
 
 	if flags&HandlerSockJS != 0 {
 		// register SockJS endpoints.
-		sjsh := NewSockJSHandler(s, prefix+"/connection", muxOpts.SockjsOptions)
-		mux.Handle(prefix+"/connection/", s.Logged(s.WrapShutdown(sjsh)))
+		sjsh := newSockJSHandler(s, path.Join(prefix, "/connection"), muxOpts.SockjsOptions)
+		mux.Handle(path.Join(prefix, "/connection/")+"/", s.logged(s.wrapShutdown(sjsh)))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
-		mux.Handle(prefix+"/api/", s.Logged(s.WrapShutdown(http.HandlerFunc(s.APIHandler))))
+		mux.Handle(prefix+"/api/", s.logged(s.wrapShutdown(http.HandlerFunc(s.apiHandler))))
 	}
 
-	if (admin || web) && flags&HandlerAdmin != 0 {
+	if flags&HandlerAdmin != 0 {
 		// register admin websocket endpoint.
-		mux.Handle(prefix+"/socket", s.Logged(http.HandlerFunc(s.AdminWebsocketHandler)))
+		mux.Handle(prefix+"/socket", s.logged(http.HandlerFunc(s.adminWebsocketHandler)))
 
 		// optionally serve admin web interface.
-		if web {
+		if flags&HandlerWeb != 0 {
 			// register admin web interface API endpoints.
-			mux.Handle(prefix+"/auth/", s.Logged(http.HandlerFunc(s.AuthHandler)))
+			mux.Handle(prefix+"/auth/", s.logged(http.HandlerFunc(s.authHandler)))
 
 			// serve web interface single-page application.
 			if webPath != "" {
@@ -294,10 +139,10 @@ func DefaultMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 	return mux
 }
 
-// NewSockJSHandler returns SockJS handler bind to sockjsPrefix url prefix.
+// newSockJSHandler returns SockJS handler bind to sockjsPrefix url prefix.
 // SockJS handler has several handlers inside responsible for various tasks
 // according to SockJS protocol.
-func NewSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Options) http.Handler {
+func newSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Options) http.Handler {
 	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, s.sockJSHandler)
 }
 
@@ -331,8 +176,8 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 	}
 }
 
-// RawWebsocketHandler called when new client connection comes to raw Websocket endpoint.
-func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+// rawWebsocketHandler called when new client connection comes to raw Websocket endpoint.
+func (s *HTTPServer) rawWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	plugin.Metrics.Counters.Inc("http_raw_ws_num_requests")
 
@@ -370,9 +215,13 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	config := s.node.Config()
 	pingInterval := config.PingInterval
 	writeTimeout := config.ClientMessageWriteTimeout
+	maxRequestSize := config.ClientRequestMaxSize
 
+	if maxRequestSize > 0 {
+		ws.SetReadLimit(int64(maxRequestSize))
+	}
 	if pingInterval > 0 {
-		pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
+		pongWait := pingInterval * 10 / 9
 		ws.SetReadDeadline(time.Now().Add(pongWait))
 		ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}
@@ -402,8 +251,8 @@ func (s *HTTPServer) RawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-// APIHandler is responsible for receiving API commands over HTTP.
-func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
+// apiHandler is responsible for receiving API commands over HTTP.
+func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
 	defer func() {
 		plugin.Metrics.HDRHistograms.RecordMicroseconds("http_api", time.Now().Sub(started))
@@ -482,8 +331,8 @@ func (s *HTTPServer) APIHandler(w http.ResponseWriter, r *http.Request) {
 
 const insecureWebToken = "insecure"
 
-// AuthHandler allows to get admin web interface token.
-func (s *HTTPServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
+// authHandler allows to get admin web interface token.
+func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	config := s.node.Config()
@@ -521,9 +370,9 @@ func (s *HTTPServer) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Bad Request", http.StatusBadRequest)
 }
 
-// WrapShutdown will return an http Handler.
+// wrapShutdown will return an http Handler.
 // If Application in shutdown it will return http.StatusServiceUnavailable.
-func (s *HTTPServer) WrapShutdown(h http.Handler) http.Handler {
+func (s *HTTPServer) wrapShutdown(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		s.RLock()
 		shutdown := s.shutdown
@@ -537,8 +386,8 @@ func (s *HTTPServer) WrapShutdown(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-// Logged middleware logs request.
-func (s *HTTPServer) Logged(h http.Handler) http.Handler {
+// logged middleware logs request.
+func (s *HTTPServer) logged(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		addr := r.Header.Get("X-Real-IP")
@@ -557,20 +406,10 @@ func (s *HTTPServer) Logged(h http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-// AdminWebsocketHandler handles admin websocket connections.
-func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
+// adminWebsocketHandler handles admin websocket connections.
+func (s *HTTPServer) adminWebsocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	config := s.node.Config()
-	admin := config.Admin
-
-	s.RLock()
-	web := s.config.Web
-	s.RUnlock()
-
-	if !(admin || web) {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 
 	ws, err := websocket.Upgrade(w, r, nil, 0, 0)
 	if err != nil {
@@ -580,9 +419,13 @@ func (s *HTTPServer) AdminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 
 	pingInterval := config.PingInterval
 	writeTimeout := config.ClientMessageWriteTimeout
+	maxRequestSize := config.ClientRequestMaxSize
 
+	if maxRequestSize > 0 {
+		ws.SetReadLimit(int64(maxRequestSize))
+	}
 	if pingInterval > 0 {
-		pongWait := pingInterval * 10 / 9 // https://github.com/gorilla/websocket/blob/master/examples/chat/conn.go#L22
+		pongWait := pingInterval * 10 / 9
 		ws.SetReadDeadline(time.Now().Add(pongWait))
 		ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}

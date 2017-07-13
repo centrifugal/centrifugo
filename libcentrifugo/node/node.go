@@ -9,29 +9,19 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/libcentrifugo/channel"
-	"github.com/centrifugal/centrifugo/libcentrifugo/config"
 	"github.com/centrifugal/centrifugo/libcentrifugo/conns"
 	"github.com/centrifugal/centrifugo/libcentrifugo/engine"
 	"github.com/centrifugal/centrifugo/libcentrifugo/logger"
 	"github.com/centrifugal/centrifugo/libcentrifugo/metrics"
 	"github.com/centrifugal/centrifugo/libcentrifugo/proto"
-	"github.com/centrifugal/centrifugo/libcentrifugo/server"
 	"github.com/satori/go.uuid"
 )
-
-// RunOptions struct represents options that must be provided to node Run method.
-type RunOptions struct {
-	Engine   engine.Engine
-	Servers  map[string]server.Server
-	Mediator Mediator
-}
 
 // Node is a heart of Centrifugo – it internally manages client and admin hubs,
 // maintains information about other Centrifugo nodes, keeps references to
 // config, engine, metrics etc.
 type Node struct {
-	// TODO: make private.
-	sync.RWMutex
+	mu sync.RWMutex
 
 	// version
 	version string
@@ -48,21 +38,15 @@ type Node struct {
 	// hub to manage admin connections.
 	admins conns.AdminHub
 
-	// config for application.
+	// config for node.
 	config *Config
 
 	// engine to use - in memory or redis.
 	engine engine.Engine
 
-	// servers contains list of servers connected to this node.
-	servers map[string]server.Server
-
 	nodes *nodeRegistry
 
-	// mediator allows integrate libcentrifugo Node with external go code.
-	mediator Mediator
-
-	// shutdown is a flag which is only true when application is going to shut down.
+	// shutdown is a flag which is only true when node is going to shut down.
 	shutdown bool
 
 	// shutdownCh is a channel which is closed when shutdown happens.
@@ -116,12 +100,15 @@ func init() {
 	metricsRegistry.RegisterGauge("node_uptime_seconds", metrics.NewGauge())
 }
 
+// VERSION of Centrifugo server node. Set on build stage.
+var VERSION string
+
 // New creates Node, the only required argument is config.
-func New(version string, c *Config) *Node {
+func New(c *Config) *Node {
 	uid := uuid.NewV4().String()
 
 	n := &Node{
-		version:         version,
+		version:         VERSION,
 		uid:             uid,
 		nodes:           newNodeRegistry(uid),
 		config:          c,
@@ -142,16 +129,16 @@ func New(version string, c *Config) *Node {
 
 // Config returns a copy of node Config.
 func (n *Node) Config() Config {
-	n.RLock()
+	n.mu.RLock()
 	c := *n.config
-	n.RUnlock()
+	n.mu.RUnlock()
 	return c
 }
 
-// SetConfig binds config to application.
+// SetConfig binds config to node.
 func (n *Node) SetConfig(c *Config) {
-	n.Lock()
-	defer n.Unlock()
+	n.mu.Lock()
+	defer n.mu.Unlock()
 	n.config = c
 }
 
@@ -161,55 +148,17 @@ func (n *Node) Version() string {
 }
 
 // Reload node.
-func (n *Node) Reload(getter config.Getter) error {
-	if validator, ok := n.engine.(config.Validator); ok {
-		err := validator.Validate(getter)
-		if err != nil {
-			return err
-		}
-	}
-	for _, server := range n.servers {
-		if validator, ok := server.(config.Validator); ok {
-			err := validator.Validate(getter)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	c := NewConfig(getter)
+func (n *Node) Reload(c *Config) error {
 	if err := c.Validate(); err != nil {
 		return err
 	}
 	n.SetConfig(c)
-
-	if reloader, ok := n.engine.(config.Reloader); ok {
-		err := reloader.Reload(getter)
-		if err != nil {
-			logger.ERROR.Printf("Error reloading engine: %v", err)
-		}
-	}
-
-	for srvName, server := range n.servers {
-		if reloader, ok := server.(config.Reloader); ok {
-			err := reloader.Reload(getter)
-			if err != nil {
-				logger.ERROR.Printf("Error reloading server %s: %v", srvName, err)
-			}
-		}
-	}
-
 	return nil
 }
 
 // Engine returns node's Engine.
 func (n *Node) Engine() engine.Engine {
 	return n.engine
-}
-
-// Config returns a copy of node Config.
-func (n *Node) Mediator() Mediator {
-	return n.mediator
 }
 
 // ClientHub returns node's client hub.
@@ -229,12 +178,10 @@ func (n *Node) NotifyShutdown() chan struct{} {
 
 // Run performs all startup actions. At moment must be called once on start
 // after engine and structure set.
-func (n *Node) Run(opts *RunOptions) error {
-	n.Lock()
-	n.engine = opts.Engine
-	n.servers = opts.Servers
-	n.mediator = opts.Mediator
-	n.Unlock()
+func (n *Node) Run(e engine.Engine) error {
+	n.mu.Lock()
+	n.engine = e
+	n.mu.Unlock()
 
 	if err := n.engine.Run(); err != nil {
 		return err
@@ -248,30 +195,19 @@ func (n *Node) Run(opts *RunOptions) error {
 	go n.cleanNodeInfo()
 	go n.updateMetrics()
 
-	for srvName, srv := range n.servers {
-		logger.INFO.Printf("Starting %s server", srvName)
-		go srv.Run()
-	}
-
 	return nil
 }
 
 // Shutdown sets shutdown flag and does various clean ups.
 func (n *Node) Shutdown() error {
-	n.Lock()
+	n.mu.Lock()
 	if n.shutdown {
-		n.Unlock()
+		n.mu.Unlock()
 		return nil
 	}
 	n.shutdown = true
 	close(n.shutdownCh)
-	n.Unlock()
-	for srvName, srv := range n.servers {
-		logger.INFO.Printf("Shutting down %s server", srvName)
-		if err := srv.Shutdown(); err != nil {
-			logger.ERROR.Printf("Shutting down server %s: %v", srvName, err)
-		}
-	}
+	n.mu.Unlock()
 	return n.clients.Shutdown()
 }
 
@@ -294,9 +230,9 @@ func (n *Node) updateMetricsOnce() {
 
 func (n *Node) updateMetrics() {
 	for {
-		n.RLock()
+		n.mu.RLock()
 		interval := n.config.NodeMetricsInterval
-		n.RUnlock()
+		n.mu.RUnlock()
 		select {
 		case <-n.shutdownCh:
 			return
@@ -308,9 +244,9 @@ func (n *Node) updateMetrics() {
 
 func (n *Node) sendNodePingMsg() {
 	for {
-		n.RLock()
+		n.mu.RLock()
 		interval := n.config.NodePingInterval
-		n.RUnlock()
+		n.mu.RUnlock()
 		select {
 		case <-n.shutdownCh:
 			return
@@ -325,16 +261,16 @@ func (n *Node) sendNodePingMsg() {
 
 func (n *Node) cleanNodeInfo() {
 	for {
-		n.RLock()
+		n.mu.RLock()
 		interval := n.config.NodeInfoCleanInterval
-		n.RUnlock()
+		n.mu.RUnlock()
 		select {
 		case <-n.shutdownCh:
 			return
 		case <-time.After(interval):
-			n.RLock()
+			n.mu.RLock()
 			delay := n.config.NodeInfoMaxDelay
-			n.RUnlock()
+			n.mu.RUnlock()
 			n.nodes.clean(delay)
 		}
 	}
@@ -347,9 +283,9 @@ func (n *Node) Channels() ([]string, error) {
 
 // Stats returns aggregated stats from all Centrifugo nodes.
 func (n *Node) Stats() proto.ServerStats {
-	n.RLock()
+	n.mu.RLock()
 	interval := n.config.NodeMetricsInterval
-	n.RUnlock()
+	n.mu.RUnlock()
 
 	return proto.ServerStats{
 		MetricsInterval: int64(interval.Seconds()),
@@ -566,7 +502,7 @@ func (n *Node) publishControl(msg *proto.ControlMessage) <-chan error {
 // pubPing sends control ping message to all nodes - this message
 // contains information about current node.
 func (n *Node) pubPing() error {
-	n.RLock()
+	n.mu.RLock()
 	metricsRegistry.Gauges.Set("node_num_clients", int64(n.clients.NumClients()))
 	metricsRegistry.Gauges.Set("node_num_unique_clients", int64(n.clients.NumUniqueClients()))
 	metricsRegistry.Gauges.Set("node_num_channels", int64(n.clients.NumChannels()))
@@ -586,7 +522,7 @@ func (n *Node) pubPing() error {
 		Started: n.started,
 		Metrics: metricsSnapshot,
 	}
-	n.RUnlock()
+	n.mu.RUnlock()
 
 	cmd := &proto.PingControlCommand{Info: info}
 
@@ -777,18 +713,18 @@ func (n *Node) namespaceKey(ch string) channel.NamespaceKey {
 	return channel.NamespaceKey("")
 }
 
-// ChannelOpts returns channel options for channel using current application structure.
+// ChannelOpts returns channel options for channel using current channel config.
 func (n *Node) ChannelOpts(ch string) (channel.Options, error) {
-	n.RLock()
-	defer n.RUnlock()
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 	return n.config.channelOpts(n.namespaceKey(ch))
 }
 
 // AddPresence proxies presence adding to engine.
 func (n *Node) AddPresence(ch string, uid string, info proto.ClientInfo) error {
-	n.RLock()
+	n.mu.RLock()
 	expire := int(n.config.PresenceExpireInterval.Seconds())
-	n.RUnlock()
+	n.mu.RUnlock()
 	metricsRegistry.Counters.Inc("node_num_add_presence")
 	return n.engine.AddPresence(ch, uid, info, expire)
 }
@@ -867,8 +803,8 @@ func (n *Node) LastMessageID(ch string) (string, error) {
 // PrivateChannel checks if channel private and therefore subscription
 // request on it must be properly signed on web application backend.
 func (n *Node) PrivateChannel(ch string) bool {
-	n.RLock()
-	defer n.RUnlock()
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 	return strings.HasPrefix(string(ch), n.config.PrivateChannelPrefix)
 }
 
@@ -876,8 +812,8 @@ func (n *Node) PrivateChannel(ch string) bool {
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it.
 func (n *Node) UserAllowed(ch string, user string) bool {
-	n.RLock()
-	defer n.RUnlock()
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 	if !strings.Contains(ch, n.config.UserChannelBoundary) {
 		return true
 	}
@@ -895,8 +831,8 @@ func (n *Node) UserAllowed(ch string, user string) bool {
 // can contain special part in the end to indicate which client allowed
 // to subscribe on it.
 func (n *Node) ClientAllowed(ch string, client string) bool {
-	n.RLock()
-	defer n.RUnlock()
+	n.mu.RLock()
+	defer n.mu.RUnlock()
 	if !strings.Contains(ch, n.config.ClientChannelBoundary) {
 		return true
 	}

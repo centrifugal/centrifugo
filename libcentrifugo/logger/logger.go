@@ -18,21 +18,21 @@ var LevelMatches = map[string]gologger.Level{
 
 var (
 	// LevelTrace level.
-	LevelTrace gologger.Level = gologger.LevelTrace
+	LevelTrace = gologger.LevelTrace
 	// LevelDebug level.
-	LevelDebug gologger.Level = gologger.LevelDebug
+	LevelDebug = gologger.LevelDebug
 	// LevelInfo level.
-	LevelInfo gologger.Level = gologger.LevelInfo
+	LevelInfo = gologger.LevelInfo
 	// LevelWarn level.
-	LevelWarn gologger.Level = gologger.LevelWarn
+	LevelWarn = gologger.LevelWarn
 	// LevelError level.
-	LevelError gologger.Level = gologger.LevelError
+	LevelError = gologger.LevelError
 	// LevelCritical level.
-	LevelCritical gologger.Level = gologger.LevelCritical
+	LevelCritical = gologger.LevelCritical
 	// LevelFatal level.
-	LevelFatal gologger.Level = gologger.LevelFatal
+	LevelFatal = gologger.LevelFatal
 	// LevelNone level.
-	LevelNone gologger.Level = gologger.LevelNone
+	LevelNone = gologger.LevelNone
 )
 
 var (

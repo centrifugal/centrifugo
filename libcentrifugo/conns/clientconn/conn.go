@@ -302,10 +302,6 @@ func (c *client) Close(advice *conns.DisconnectAdvice) error {
 		c.staleTimer.Stop()
 	}
 
-	if c.authenticated && c.node.Mediator() != nil {
-		c.node.Mediator().Disconnect(c.uid, c.user)
-	}
-
 	if advice != nil && advice.Reason != "" {
 		logger.DEBUG.Printf("Closing connection %s (user %s): %s", c.uid, c.user, advice.Reason)
 	}
@@ -572,13 +568,6 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 		return nil, proto.ErrLimitExceeded
 	}
 
-	if c.node.Mediator() != nil {
-		pass := c.node.Mediator().Connect(c.uid, c.user)
-		if !pass {
-			return nil, proto.ErrPermissionDenied
-		}
-	}
-
 	c.user = user
 
 	body := proto.ConnectBody{}
@@ -784,15 +773,6 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 		}
 	}
 
-	if c.node.Mediator() != nil {
-		pass := c.node.Mediator().Subscribe(channel, c.uid, c.user)
-		if !pass {
-			resp := proto.NewClientSubscribeResponse(body)
-			resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
-			return resp, nil
-		}
-	}
-
 	c.channels[channel] = struct{}{}
 
 	err = c.node.AddClientSub(channel, c)
@@ -892,11 +872,6 @@ func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeClientCommand) (proto.Resp
 			resp.SetErr(proto.ResponseError{proto.ErrInternalServerError, proto.ErrorAdviceNone})
 			return resp, nil
 		}
-
-		if c.node.Mediator() != nil {
-			c.node.Mediator().Unsubscribe(channel, c.uid, c.user)
-		}
-
 	}
 
 	body.Status = true
@@ -945,17 +920,6 @@ func (c *client) publishCmd(cmd *proto.PublishClientCommand) (proto.Response, er
 		resp := proto.NewClientPublishResponse(body)
 		resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
 		return resp, nil
-	}
-
-	if c.node.Mediator() != nil {
-		// If mediator is set then we don't need to publish message
-		// immediately as mediator will decide itself what to do with it.
-		pass := c.node.Mediator().Message(channel, data, c.uid, &info)
-		if !pass {
-			resp := proto.NewClientPublishResponse(body)
-			resp.SetErr(proto.ResponseError{proto.ErrPermissionDenied, proto.ErrorAdviceFix})
-			return resp, nil
-		}
 	}
 
 	plugin.Metrics.Counters.Inc("client_num_msg_published")
