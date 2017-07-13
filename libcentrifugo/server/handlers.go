@@ -151,29 +151,32 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
 	plugin.Metrics.Counters.Inc("http_sockjs_num_requests")
 
-	c, err := clientconn.New(s.node, newSockjsSession(sess))
-	if err != nil {
-		logger.ERROR.Println(err)
-		sess.Close(3000, "Internal Server Error")
-		return
-	}
-	defer c.Close(nil)
-
-	logger.DEBUG.Printf("New SockJS session established with uid %s\n", c.UID())
-	defer func() {
-		logger.DEBUG.Printf("SockJS session with uid %s completed", c.UID())
-	}()
-
-	for {
-		if msg, err := sess.Recv(); err == nil {
-			err = c.Handle([]byte(msg))
-			if err != nil {
-				return
-			}
-			continue
+	// Separate goroutine for better GC of caller's data.
+	go func() {
+		c, err := clientconn.New(s.node, newSockjsSession(sess))
+		if err != nil {
+			logger.ERROR.Println(err)
+			sess.Close(3000, "Internal Server Error")
+			return
 		}
-		break
-	}
+		defer c.Close(nil)
+
+		logger.DEBUG.Printf("New SockJS session established with uid %s\n", c.UID())
+		defer func() {
+			logger.DEBUG.Printf("SockJS session with uid %s completed", c.UID())
+		}()
+
+		for {
+			if msg, err := sess.Recv(); err == nil {
+				err = c.Handle([]byte(msg))
+				if err != nil {
+					return
+				}
+				continue
+			}
+			break
+		}
+	}()
 }
 
 // rawWebsocketHandler called when new client connection comes to raw Websocket endpoint.
@@ -226,29 +229,32 @@ func (s *HTTPServer) rawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 		ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}
 
-	c, err := clientconn.New(s.node, newWSSession(ws, pingInterval, writeTimeout, wsCompressionMinSize))
-	if err != nil {
-		logger.ERROR.Println(err)
-		ws.Close()
-		return
-	}
-	defer c.Close(nil)
+	// Separate goroutine for better GC of caller's data.
+	go func() {
+		c, err := clientconn.New(s.node, newWSSession(ws, pingInterval, writeTimeout, wsCompressionMinSize))
+		if err != nil {
+			logger.ERROR.Println(err)
+			ws.Close()
+			return
+		}
+		defer c.Close(nil)
 
-	logger.DEBUG.Printf("New raw websocket session established with uid %s\n", c.UID())
-	defer func() {
-		logger.DEBUG.Printf("Raw websocket session with uid %s completed", c.UID())
+		logger.DEBUG.Printf("New raw websocket session established with uid %s\n", c.UID())
+		defer func() {
+			logger.DEBUG.Printf("Raw websocket session with uid %s completed", c.UID())
+		}()
+
+		for {
+			_, message, err := ws.ReadMessage()
+			if err != nil {
+				return
+			}
+			err = c.Handle(message)
+			if err != nil {
+				return
+			}
+		}
 	}()
-
-	for {
-		_, message, err := ws.ReadMessage()
-		if err != nil {
-			return
-		}
-		err = c.Handle(message)
-		if err != nil {
-			return
-		}
-	}
 }
 
 // apiHandler is responsible for receiving API commands over HTTP.
@@ -432,28 +438,31 @@ func (s *HTTPServer) adminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 
 	sess := newWSSession(ws, pingInterval, writeTimeout, 0)
 
-	c, err := adminconn.New(s.node, sess)
-	if err != nil {
-		sess.Close(&conns.DisconnectAdvice{Reason: proto.ErrInternalServerError.Error(), Reconnect: true})
-		return
-	}
-	defer c.Close(nil)
+	// Separate goroutine for better GC of caller's data.
+	go func() {
+		c, err := adminconn.New(s.node, sess)
+		if err != nil {
+			sess.Close(&conns.DisconnectAdvice{Reason: proto.ErrInternalServerError.Error(), Reconnect: true})
+			return
+		}
+		defer c.Close(nil)
 
-	start := time.Now()
-	logger.DEBUG.Printf("New admin session established with uid %s\n", c.UID())
-	defer func() {
-		logger.DEBUG.Printf("Admin session completed in %s, uid %s", time.Since(start), c.UID())
+		start := time.Now()
+		logger.DEBUG.Printf("New admin session established with uid %s\n", c.UID())
+		defer func() {
+			logger.DEBUG.Printf("Admin session completed in %s, uid %s", time.Since(start), c.UID())
+		}()
+
+		for {
+			_, message, err := sess.ws.ReadMessage()
+			if err != nil {
+				break
+			}
+			err = c.Handle(message)
+			if err != nil {
+				c.Close(&conns.DisconnectAdvice{Reason: err.Error(), Reconnect: true})
+				break
+			}
+		}
 	}()
-
-	for {
-		_, message, err := sess.ws.ReadMessage()
-		if err != nil {
-			break
-		}
-		err = c.Handle(message)
-		if err != nil {
-			c.Close(&conns.DisconnectAdvice{Reason: err.Error(), Reconnect: true})
-			break
-		}
-	}
 }
