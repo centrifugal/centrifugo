@@ -17,7 +17,7 @@ brew tap centrifugal/centrifugo https://github.com/centrifugal/centrifugo
 brew install centrifugo
 ```
 
-See official [Docker image](https://hub.docker.com/r/centrifugo/centrifugo/).
+See official [Docker image](https://hub.docker.com/r/centrifugo/centrifugo/) and [Kubernetes Helm Chart](https://github.com/kubernetes/charts/tree/master/stable/centrifugo).
 
 There are also [packages for 64-bit Debian, Centos and Ubuntu](https://packagecloud.io/FZambia/centrifugo).
 
