@@ -1,3 +1,19 @@
+v1.7.4
+======
+
+No backwards incompatible changes here.
+
+This release is centered around internal refactoring to detach node from server - see more details in [#186](https://github.com/centrifugal/centrifugo/pull/186).
+
+### Features
+
+* optionally create PID file using `--pid_file` command line option.
+* create connections in separate goroutines to slightly improve GC (and therefore reduce memory usage).
+
+### Internal (for developers/contributors)
+
+* Using Go 1.8.3 for builds
+
 v1.7.3
 ======
 
