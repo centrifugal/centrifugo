@@ -1,3 +1,10 @@
+v1.7.5
+======
+
+No backwards incompatible changes here.
+
+The only change is using new version of Go for builds (Go 1.9.2). This will allow to analize performance profiles more easily without having to use binaries. See [this new wiki page](https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues) about investigating performance issues.
+
 v1.7.4
 ======
 
