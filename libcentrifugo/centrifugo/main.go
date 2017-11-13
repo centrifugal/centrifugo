@@ -404,8 +404,6 @@ func Main(version string) {
 		Long:  "Centrifugo. Real-time messaging (Websockets or SockJS) server in Go.",
 		Run: func(cmd *cobra.Command, args []string) {
 
-			viper.SetEnvPrefix("centrifugo")
-
 			defaults := map[string]interface{}{
 				"gomaxprocs": 0,
 				"engine":     "memory",
@@ -525,6 +523,7 @@ func Main(version string) {
 	rootCmd.Flags().StringVarP(&logFile, "log_file", "", "", "optional log file - if not specified logs go to STDOUT")
 	rootCmd.Flags().StringVarP(&pidFile, "pid_file", "", "", "optional path to create PID file")
 
+	viper.SetEnvPrefix("centrifugo")
 	ConfigureNode(config.NewViperConfigSetter(viper.GetViper(), rootCmd.Flags()))
 	ConfigureServer(config.NewViperConfigSetter(viper.GetViper(), rootCmd.Flags()))
 	for _, configurator := range plugin.Configurators {
