@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package api;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+
+message RequestWrapper {
+    bool Multi = 1 [(gogoproto.jsontag) = "m"];
+    bytes Data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "d", (gogoproto.nullable) = false];
+}
+
+message Request {
+    uint64 ID = 1 [(gogoproto.jsontag) = "i"];
+    string Method = 2 [(gogoproto.jsontag) = "m"];
+    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "p", (gogoproto.nullable) = false];
+}
+
+message Error {
+    uint32 Code = 1 [(gogoproto.jsontag) = "code"];
+    string Message = 2 [(gogoproto.jsontag) = "message"];
+}
+
+message Response {
+    uint64 ID = 1 [(gogoproto.jsontag) = "i"];
+    Error Err = 2 [(gogoproto.jsontag) = "e"];
+    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "r", (gogoproto.nullable) = false];
+}
+
+message NodeInfo {
+    string UID = 1 [(gogoproto.jsontag) = "uid"];
+    string Name = 2 [(gogoproto.jsontag) = "name"];
+    int64 StartedAt = 3 [(gogoproto.jsontag) = "started_at"];
+    map <string, double> Metrics = 4 [(gogoproto.jsontag) = "metrics"];
+}
+
+message Stats {
+    uint64 MetricsInterval = 1 [(gogoproto.jsontag) = "metrics_interval"];
+    repeated NodeInfo Nodes = 2 [(gogoproto.jsontag) = "nodes"];
+}
+
+message Publish {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+    string Client = 2 [(gogoproto.jsontag) = "client"];
+    bytes Data = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}
+
+message Broadcast {
+    repeated string Channels = 1 [(gogoproto.jsontag) = "channels"];
+    string Client = 2 [(gogoproto.jsontag) = "client"];
+    bytes Data = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}
+
+message Unsubscribe {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+    string User = 2 [(gogoproto.jsontag) = "user"];
+}
+
+message Disconnect {
+    string User = 1 [(gogoproto.jsontag) = "user"];
+}
+
+message Presence {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message History {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}

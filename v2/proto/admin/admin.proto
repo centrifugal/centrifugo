@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package admin;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+
+message Request {
+    uint64 ID = 1 [(gogoproto.jsontag) = "i"];
+    string Method = 2 [(gogoproto.jsontag) = "m"];
+    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "p", (gogoproto.nullable) = false];
+}
+
+message Error {
+    uint32 Code = 1 [(gogoproto.jsontag) = "code"];
+    string Message = 2 [(gogoproto.jsontag) = "message"];
+}
+
+message Response {
+    uint64 ID = 1 [(gogoproto.jsontag) = "i"];
+    Error Err = 2 [(gogoproto.jsontag) = "e"];
+    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "r", (gogoproto.nullable) = false];
+}
+
+message Connect {
+    bool Watch = 1 [(gogoproto.jsontag) = "watch,omitempty"];
+}
+
+message Ping {
+    string Data = 1 [(gogoproto.jsontag) = "watch,omitempty"];
+}

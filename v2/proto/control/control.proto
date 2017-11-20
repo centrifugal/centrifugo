@@ -1,0 +1,42 @@
+syntax = "proto3";
+// Example how to update gogoprotobuf generated code (Mac OS).
+// go get -u github.com/gogo/protobuf/...
+// Download release of protobuf from: https://github.com/google/protobuf/releases 
+// Install gogofaster program:
+// go get github.com/gogo/protobuf/protoc-gen-gogofaster
+// protoc --proto_path=../../../../vendor/:. --gogofaster_out=. control.proto
+// Note that we use vendored gogoprotobuf path in example above.
+
+package control;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+
+message Command {
+    string UID = 1 [(gogoproto.jsontag) = "uid"];
+    string Method = 2 [(gogoproto.jsontag) = "m"];
+    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw", (gogoproto.jsontag) = "p", (gogoproto.nullable) = false];
+}
+
+message NodeInfo {
+    string UID = 1;
+    string Name = 2;
+    int64 StartedAt = 3;
+    map<string, double> Metrics = 4;
+}
+
+message Ping {
+    NodeInfo Info = 1;
+}
+
+message Unsubscribe {
+    string Channel = 1;
+    string User = 2;
+}
+
+message Disconnect {
+    string User = 2;
+}
