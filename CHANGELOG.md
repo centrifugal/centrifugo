@@ -1,3 +1,12 @@
+v1.7.6
+======
+
+No backwards incompatible changes here.
+
+### Fixes
+
+* fix setting config via environment vars - `CENTRIFUGO_` prefix did not work since 1.7.4  
+
 v1.7.5
 ======
 
