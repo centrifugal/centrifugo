@@ -69,9 +69,6 @@ func (h *clientHub) Shutdown() error {
 			sem <- struct{}{}
 			go func(cc ClientConn) {
 				defer func() { <-sem }()
-				for _, ch := range cc.Channels() {
-					cc.Unsubscribe(ch)
-				}
 				cc.Close(advice)
 				wg.Done()
 			}(cc)
