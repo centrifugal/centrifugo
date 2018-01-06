@@ -1,0 +1,15 @@
+// protoc --proto_path=../../vendor/:. --gogofaster_out=. error.proto
+syntax = "proto3";
+
+package proto;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+
+message Error {
+    uint32 Code = 1 [(gogoproto.jsontag) = "code"];
+    string Message = 2 [(gogoproto.jsontag) = "message"];
+}

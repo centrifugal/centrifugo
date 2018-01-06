@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package gorilla/securecookie encodes and decodes authenticated and optionally
+Package securecookie encodes and decodes authenticated and optionally
 encrypted cookie values.
 
 Secure cookies can't be forged, because their values are validated using HMAC.

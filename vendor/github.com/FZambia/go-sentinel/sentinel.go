@@ -3,6 +3,7 @@ package sentinel
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -48,7 +49,7 @@ import (
 //  			return c, nil
 //  		},
 //  		TestOnBorrow: func(c redis.Conn, t time.Time) error {
-//  			if !redis.TestRole(c, "master") {
+//  			if !sentinel.TestRole(c, "master") {
 //  				return errors.New("Role check failed")
 //  			} else {
 //  				return nil
@@ -90,9 +91,8 @@ type NoSentinelsAvailable struct {
 func (ns NoSentinelsAvailable) Error() string {
 	if ns.lastError != nil {
 		return fmt.Sprintf("redigo: no sentinels available; last error: %s", ns.lastError.Error())
-	} else {
-		return fmt.Sprintf("redigo: no sentinels available")
 	}
+	return fmt.Sprintf("redigo: no sentinels available")
 }
 
 // putToTop puts Sentinel address to the top of address list - this means
@@ -249,15 +249,43 @@ func (s *Sentinel) MasterAddr() (string, error) {
 	return res.(string), nil
 }
 
-// SlaveAddrs returns a slice with known slaves of current master instance.
+// SlaveAddrs returns a slice with known slave addresses of current master instance.
 func (s *Sentinel) SlaveAddrs() ([]string, error) {
+	res, err := s.doUntilSuccess(func(c redis.Conn) (interface{}, error) {
+		return queryForSlaveAddrs(c, s.MasterName)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return res.([]string), nil
+}
+
+// Slave represents a Redis slave instance which is known by Sentinel.
+type Slave struct {
+	ip    string
+	port  string
+	flags string
+}
+
+// Addr returns an address of slave.
+func (s *Slave) Addr() string {
+	return net.JoinHostPort(s.ip, s.port)
+}
+
+// Available returns if slave is in working state at moment based on information in slave flags.
+func (s *Slave) Available() bool {
+	return !strings.Contains(s.flags, "disconnected") && !strings.Contains(s.flags, "s_down")
+}
+
+// Slaves returns a slice with known slaves of master instance.
+func (s *Sentinel) Slaves() ([]*Slave, error) {
 	res, err := s.doUntilSuccess(func(c redis.Conn) (interface{}, error) {
 		return queryForSlaves(c, s.MasterName)
 	})
 	if err != nil {
 		return nil, err
 	}
-	return res.([]string), nil
+	return res.([]*Slave), nil
 }
 
 // SentinelAddrs returns a slice of known Sentinel addresses Sentinel server aware of.
@@ -332,22 +360,42 @@ func queryForMaster(conn redis.Conn, masterName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	masterAddr := strings.Join(res, ":")
+	if len(res) < 2 {
+		return "", errors.New("redigo: malformed get-master-addr-by-name reply")
+	}
+	masterAddr := net.JoinHostPort(res[0], res[1])
 	return masterAddr, nil
 }
 
-func queryForSlaves(conn redis.Conn, masterName string) ([]string, error) {
+func queryForSlaveAddrs(conn redis.Conn, masterName string) ([]string, error) {
+	slaves, err := queryForSlaves(conn, masterName)
+	if err != nil {
+		return nil, err
+	}
+	slaveAddrs := make([]string, 0)
+	for _, slave := range slaves {
+		slaveAddrs = append(slaveAddrs, slave.Addr())
+	}
+	return slaveAddrs, nil
+}
+
+func queryForSlaves(conn redis.Conn, masterName string) ([]*Slave, error) {
 	res, err := redis.Values(conn.Do("SENTINEL", "slaves", masterName))
 	if err != nil {
 		return nil, err
 	}
-	slaves := make([]string, 0)
+	slaves := make([]*Slave, 0)
 	for _, a := range res {
 		sm, err := redis.StringMap(a, err)
 		if err != nil {
 			return slaves, err
 		}
-		slaves = append(slaves, fmt.Sprintf("%s:%s", sm["ip"], sm["port"]))
+		slave := &Slave{
+			ip:    sm["ip"],
+			port:  sm["port"],
+			flags: sm["flags"],
+		}
+		slaves = append(slaves, slave)
 	}
 	return slaves, nil
 }

@@ -22,7 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/garyburd/redigo/internal/redistest"
 	"github.com/garyburd/redigo/redis"
 )
 
@@ -32,10 +31,16 @@ type poolTestConn struct {
 	redis.Conn
 }
 
-func (c *poolTestConn) Close() error { c.d.open -= 1; return nil }
-func (c *poolTestConn) Err() error   { return c.err }
+func (c *poolTestConn) Close() error {
+	c.d.mu.Lock()
+	c.d.open -= 1
+	c.d.mu.Unlock()
+	return c.Conn.Close()
+}
 
-func (c *poolTestConn) Do(commandName string, args ...interface{}) (reply interface{}, err error) {
+func (c *poolTestConn) Err() error { return c.err }
+
+func (c *poolTestConn) Do(commandName string, args ...interface{}) (interface{}, error) {
 	if commandName == "ERR" {
 		c.err = args[0].(error)
 		commandName = "PING"
@@ -52,6 +57,7 @@ func (c *poolTestConn) Send(commandName string, args ...interface{}) error {
 }
 
 type poolDialer struct {
+	mu       sync.Mutex
 	t        *testing.T
 	dialed   int
 	open     int
@@ -60,28 +66,42 @@ type poolDialer struct {
 }
 
 func (d *poolDialer) dial() (redis.Conn, error) {
+	d.mu.Lock()
 	d.dialed += 1
-	if d.dialErr != nil {
+	dialErr := d.dialErr
+	d.mu.Unlock()
+	if dialErr != nil {
 		return nil, d.dialErr
 	}
-	c, err := redistest.Dial()
+	c, err := redis.DialDefaultServer()
 	if err != nil {
 		return nil, err
 	}
+	d.mu.Lock()
 	d.open += 1
+	d.mu.Unlock()
 	return &poolTestConn{d: d, Conn: c}, nil
 }
 
-func (d *poolDialer) check(message string, p *redis.Pool, dialed, open int) {
+func (d *poolDialer) check(message string, p *redis.Pool, dialed, open, inuse int) {
+	d.mu.Lock()
 	if d.dialed != dialed {
 		d.t.Errorf("%s: dialed=%d, want %d", message, d.dialed, dialed)
 	}
 	if d.open != open {
 		d.t.Errorf("%s: open=%d, want %d", message, d.open, open)
 	}
-	if active := p.ActiveCount(); active != open {
-		d.t.Errorf("%s: active=%d, want %d", message, active, open)
+
+	stats := p.Stats()
+
+	if stats.ActiveCount != open {
+		d.t.Errorf("%s: active=%d, want %d", message, stats.ActiveCount, open)
 	}
+	if stats.IdleCount != open-inuse {
+		d.t.Errorf("%s: idle=%d, want %d", message, stats.IdleCount, open-inuse)
+	}
+
+	d.mu.Unlock()
 }
 
 func TestPoolReuse(t *testing.T) {
@@ -100,9 +120,9 @@ func TestPoolReuse(t *testing.T) {
 		c2.Close()
 	}
 
-	d.check("before close", p, 2, 2)
+	d.check("before close", p, 2, 2, 0)
 	p.Close()
-	d.check("after close", p, 2, 0)
+	d.check("after close", p, 2, 0, 0)
 }
 
 func TestPoolMaxIdle(t *testing.T) {
@@ -111,6 +131,8 @@ func TestPoolMaxIdle(t *testing.T) {
 		MaxIdle: 2,
 		Dial:    d.dial,
 	}
+	defer p.Close()
+
 	for i := 0; i < 10; i++ {
 		c1 := p.Get()
 		c1.Do("PING")
@@ -122,9 +144,9 @@ func TestPoolMaxIdle(t *testing.T) {
 		c2.Close()
 		c3.Close()
 	}
-	d.check("before close", p, 12, 2)
+	d.check("before close", p, 12, 2, 0)
 	p.Close()
-	d.check("after close", p, 12, 0)
+	d.check("after close", p, 12, 0, 0)
 }
 
 func TestPoolError(t *testing.T) {
@@ -133,6 +155,7 @@ func TestPoolError(t *testing.T) {
 		MaxIdle: 2,
 		Dial:    d.dial,
 	}
+	defer p.Close()
 
 	c := p.Get()
 	c.Do("ERR", io.EOF)
@@ -145,7 +168,7 @@ func TestPoolError(t *testing.T) {
 	c.Do("ERR", io.EOF)
 	c.Close()
 
-	d.check(".", p, 2, 0)
+	d.check(".", p, 2, 0, 0)
 }
 
 func TestPoolClose(t *testing.T) {
@@ -154,6 +177,7 @@ func TestPoolClose(t *testing.T) {
 		MaxIdle: 2,
 		Dial:    d.dial,
 	}
+	defer p.Close()
 
 	c1 := p.Get()
 	c1.Do("PING")
@@ -172,7 +196,7 @@ func TestPoolClose(t *testing.T) {
 
 	p.Close()
 
-	d.check("after pool close", p, 3, 1)
+	d.check("after pool close", p, 3, 1, 1)
 
 	if _, err := c1.Do("PING"); err == nil {
 		t.Errorf("expected error after connection and pool closed")
@@ -180,7 +204,7 @@ func TestPoolClose(t *testing.T) {
 
 	c3.Close()
 
-	d.check("after conn close", p, 3, 0)
+	d.check("after conn close", p, 3, 0, 0)
 
 	c1 = p.Get()
 	if _, err := c1.Do("PING"); err == nil {
@@ -195,6 +219,7 @@ func TestPoolTimeout(t *testing.T) {
 		IdleTimeout: 300 * time.Second,
 		Dial:        d.dial,
 	}
+	defer p.Close()
 
 	now := time.Now()
 	redis.SetNowFunc(func() time.Time { return now })
@@ -204,7 +229,7 @@ func TestPoolTimeout(t *testing.T) {
 	c.Do("PING")
 	c.Close()
 
-	d.check("1", p, 1, 1)
+	d.check("1", p, 1, 1, 0)
 
 	now = now.Add(p.IdleTimeout)
 
@@ -212,15 +237,15 @@ func TestPoolTimeout(t *testing.T) {
 	c.Do("PING")
 	c.Close()
 
-	d.check("2", p, 2, 1)
-
-	p.Close()
+	d.check("2", p, 2, 1, 0)
 }
 
 func TestPoolConcurrenSendReceive(t *testing.T) {
 	p := &redis.Pool{
-		Dial: redistest.Dial,
+		Dial: redis.DialDefaultServer,
 	}
+	defer p.Close()
+
 	c := p.Get()
 	done := make(chan error, 1)
 	go func() {
@@ -238,7 +263,6 @@ func TestPoolConcurrenSendReceive(t *testing.T) {
 		t.Fatalf("Do() returned error %v", err)
 	}
 	c.Close()
-	p.Close()
 }
 
 func TestPoolBorrowCheck(t *testing.T) {
@@ -248,14 +272,14 @@ func TestPoolBorrowCheck(t *testing.T) {
 		Dial:         d.dial,
 		TestOnBorrow: func(redis.Conn, time.Time) error { return redis.Error("BLAH") },
 	}
+	defer p.Close()
 
 	for i := 0; i < 10; i++ {
 		c := p.Get()
 		c.Do("PING")
 		c.Close()
 	}
-	d.check("1", p, 10, 1)
-	p.Close()
+	d.check("1", p, 10, 1, 0)
 }
 
 func TestPoolMaxActive(t *testing.T) {
@@ -265,12 +289,14 @@ func TestPoolMaxActive(t *testing.T) {
 		MaxActive: 2,
 		Dial:      d.dial,
 	}
+	defer p.Close()
+
 	c1 := p.Get()
 	c1.Do("PING")
 	c2 := p.Get()
 	c2.Do("PING")
 
-	d.check("1", p, 2, 2)
+	d.check("1", p, 2, 2, 2)
 
 	c3 := p.Get()
 	if _, err := c3.Do("PING"); err != redis.ErrPoolExhausted {
@@ -278,9 +304,9 @@ func TestPoolMaxActive(t *testing.T) {
 	}
 
 	c3.Close()
-	d.check("2", p, 2, 2)
+	d.check("2", p, 2, 2, 2)
 	c2.Close()
-	d.check("3", p, 2, 2)
+	d.check("3", p, 2, 2, 1)
 
 	c3 = p.Get()
 	if _, err := c3.Do("PING"); err != nil {
@@ -288,8 +314,7 @@ func TestPoolMaxActive(t *testing.T) {
 	}
 	c3.Close()
 
-	d.check("4", p, 2, 2)
-	p.Close()
+	d.check("4", p, 2, 2, 1)
 }
 
 func TestPoolMonitorCleanup(t *testing.T) {
@@ -299,12 +324,13 @@ func TestPoolMonitorCleanup(t *testing.T) {
 		MaxActive: 2,
 		Dial:      d.dial,
 	}
+	defer p.Close()
+
 	c := p.Get()
 	c.Send("MONITOR")
 	c.Close()
 
-	d.check("", p, 1, 0)
-	p.Close()
+	d.check("", p, 1, 0, 0)
 }
 
 func TestPoolPubSubCleanup(t *testing.T) {
@@ -314,6 +340,7 @@ func TestPoolPubSubCleanup(t *testing.T) {
 		MaxActive: 2,
 		Dial:      d.dial,
 	}
+	defer p.Close()
 
 	c := p.Get()
 	c.Send("SUBSCRIBE", "x")
@@ -334,8 +361,6 @@ func TestPoolPubSubCleanup(t *testing.T) {
 		t.Errorf("got commands %v, want %v", d.commands, want)
 	}
 	d.commands = nil
-
-	p.Close()
 }
 
 func TestPoolTransactionCleanup(t *testing.T) {
@@ -345,6 +370,7 @@ func TestPoolTransactionCleanup(t *testing.T) {
 		MaxActive: 2,
 		Dial:      d.dial,
 	}
+	defer p.Close()
 
 	c := p.Get()
 	c.Do("WATCH", "key")
@@ -406,8 +432,6 @@ func TestPoolTransactionCleanup(t *testing.T) {
 		t.Errorf("got commands %v, want %v", d.commands, want)
 	}
 	d.commands = nil
-
-	p.Close()
 }
 
 func startGoroutines(p *redis.Pool, cmd string, args ...interface{}) chan error {
@@ -416,8 +440,8 @@ func startGoroutines(p *redis.Pool, cmd string, args ...interface{}) chan error 
 		go func() {
 			c := p.Get()
 			_, err := c.Do(cmd, args...)
-			errs <- err
 			c.Close()
+			errs <- err
 		}()
 	}
 
@@ -436,9 +460,10 @@ func TestWaitPool(t *testing.T) {
 		Wait:      true,
 	}
 	defer p.Close()
+
 	c := p.Get()
 	errs := startGoroutines(p, "PING")
-	d.check("before close", p, 1, 1)
+	d.check("before close", p, 1, 1, 1)
 	c.Close()
 	timeout := time.After(2 * time.Second)
 	for i := 0; i < cap(errs); i++ {
@@ -451,7 +476,7 @@ func TestWaitPool(t *testing.T) {
 			t.Fatalf("timeout waiting for blocked goroutine %d", i)
 		}
 	}
-	d.check("done", p, 1, 1)
+	d.check("done", p, 1, 1, 0)
 }
 
 func TestWaitPoolClose(t *testing.T) {
@@ -462,12 +487,14 @@ func TestWaitPoolClose(t *testing.T) {
 		Dial:      d.dial,
 		Wait:      true,
 	}
+	defer p.Close()
+
 	c := p.Get()
 	if _, err := c.Do("PING"); err != nil {
 		t.Fatal(err)
 	}
 	errs := startGoroutines(p, "PING")
-	d.check("before close", p, 1, 1)
+	d.check("before close", p, 1, 1, 1)
 	p.Close()
 	timeout := time.After(2 * time.Second)
 	for i := 0; i < cap(errs); i++ {
@@ -484,7 +511,7 @@ func TestWaitPoolClose(t *testing.T) {
 		}
 	}
 	c.Close()
-	d.check("done", p, 1, 0)
+	d.check("done", p, 1, 0, 0)
 }
 
 func TestWaitPoolCommandError(t *testing.T) {
@@ -497,9 +524,10 @@ func TestWaitPoolCommandError(t *testing.T) {
 		Wait:      true,
 	}
 	defer p.Close()
+
 	c := p.Get()
 	errs := startGoroutines(p, "ERR", testErr)
-	d.check("before close", p, 1, 1)
+	d.check("before close", p, 1, 1, 1)
 	c.Close()
 	timeout := time.After(2 * time.Second)
 	for i := 0; i < cap(errs); i++ {
@@ -512,7 +540,7 @@ func TestWaitPoolCommandError(t *testing.T) {
 			t.Fatalf("timeout waiting for blocked goroutine %d", i)
 		}
 	}
-	d.check("done", p, cap(errs), 0)
+	d.check("done", p, cap(errs), 0, 0)
 }
 
 func TestWaitPoolDialError(t *testing.T) {
@@ -525,9 +553,10 @@ func TestWaitPoolDialError(t *testing.T) {
 		Wait:      true,
 	}
 	defer p.Close()
+
 	c := p.Get()
 	errs := startGoroutines(p, "ERR", testErr)
-	d.check("before close", p, 1, 1)
+	d.check("before close", p, 1, 1, 1)
 
 	d.dialErr = errors.New("dial")
 	c.Close()
@@ -554,9 +583,9 @@ func TestWaitPoolDialError(t *testing.T) {
 		t.Errorf("expected one nil error, got %d", nilCount)
 	}
 	if errCount != cap(errs)-1 {
-		t.Errorf("expected %d dial erors, got %d", cap(errs)-1, errCount)
+		t.Errorf("expected %d dial errors, got %d", cap(errs)-1, errCount)
 	}
-	d.check("done", p, cap(errs), 0)
+	d.check("done", p, cap(errs), 0, 0)
 }
 
 // Borrowing requires us to iterate over the idle connections, unlock the pool,
@@ -565,7 +594,7 @@ func TestWaitPoolDialError(t *testing.T) {
 // test ensures that iteration will work correctly if multiple threads are
 // iterating simultaneously.
 func TestLocking_TestOnBorrowFails_PoolDoesntCrash(t *testing.T) {
-	count := 100
+	const count = 100
 
 	// First we'll Create a pool where the pilfering of idle connections fails.
 	d := poolDialer{t: t}
@@ -580,29 +609,17 @@ func TestLocking_TestOnBorrowFails_PoolDoesntCrash(t *testing.T) {
 	defer p.Close()
 
 	// Fill the pool with idle connections.
-	b1 := sync.WaitGroup{}
-	b1.Add(count)
-	b2 := sync.WaitGroup{}
-	b2.Add(count)
-	for i := 0; i < count; i++ {
-		go func() {
-			c := p.Get()
-			if c.Err() != nil {
-				t.Errorf("pool get failed: %v", c.Err())
-			}
-			b1.Done()
-			b1.Wait()
-			c.Close()
-			b2.Done()
-		}()
+	conns := make([]redis.Conn, count)
+	for i := range conns {
+		conns[i] = p.Get()
 	}
-	b2.Wait()
-	if d.dialed != count {
-		t.Errorf("Expected %d dials, got %d", count, d.dialed)
+	for i := range conns {
+		conns[i].Close()
 	}
 
 	// Spawn a bunch of goroutines to thrash the pool.
-	b2.Add(count)
+	var wg sync.WaitGroup
+	wg.Add(count)
 	for i := 0; i < count; i++ {
 		go func() {
 			c := p.Get()
@@ -610,10 +627,10 @@ func TestLocking_TestOnBorrowFails_PoolDoesntCrash(t *testing.T) {
 				t.Errorf("pool get failed: %v", c.Err())
 			}
 			c.Close()
-			b2.Done()
+			wg.Done()
 		}()
 	}
-	b2.Wait()
+	wg.Wait()
 	if d.dialed != count*2 {
 		t.Errorf("Expected %d dials, got %d", count*2, d.dialed)
 	}
@@ -621,7 +638,7 @@ func TestLocking_TestOnBorrowFails_PoolDoesntCrash(t *testing.T) {
 
 func BenchmarkPoolGet(b *testing.B) {
 	b.StopTimer()
-	p := redis.Pool{Dial: redistest.Dial, MaxIdle: 2}
+	p := redis.Pool{Dial: redis.DialDefaultServer, MaxIdle: 2}
 	c := p.Get()
 	if err := c.Err(); err != nil {
 		b.Fatal(err)
@@ -637,7 +654,7 @@ func BenchmarkPoolGet(b *testing.B) {
 
 func BenchmarkPoolGetErr(b *testing.B) {
 	b.StopTimer()
-	p := redis.Pool{Dial: redistest.Dial, MaxIdle: 2}
+	p := redis.Pool{Dial: redis.DialDefaultServer, MaxIdle: 2}
 	c := p.Get()
 	if err := c.Err(); err != nil {
 		b.Fatal(err)
@@ -656,7 +673,7 @@ func BenchmarkPoolGetErr(b *testing.B) {
 
 func BenchmarkPoolGetPing(b *testing.B) {
 	b.StopTimer()
-	p := redis.Pool{Dial: redistest.Dial, MaxIdle: 2}
+	p := redis.Pool{Dial: redis.DialDefaultServer, MaxIdle: 2}
 	c := p.Get()
 	if err := c.Err(); err != nil {
 		b.Fatal(err)

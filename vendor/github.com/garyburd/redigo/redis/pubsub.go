@@ -14,13 +14,10 @@
 
 package redis
 
-import (
-	"errors"
-)
+import "errors"
 
 // Subscription represents a subscribe or unsubscribe notification.
 type Subscription struct {
-
 	// Kind is "subscribe", "unsubscribe", "psubscribe" or "punsubscribe"
 	Kind string
 
@@ -33,7 +30,6 @@ type Subscription struct {
 
 // Message represents a message notification.
 type Message struct {
-
 	// The originating channel.
 	Channel string
 
@@ -43,7 +39,6 @@ type Message struct {
 
 // PMessage represents a pmessage notification.
 type PMessage struct {
-
 	// The matched pattern.
 	Pattern string
 
@@ -52,6 +47,11 @@ type PMessage struct {
 
 	// The message data.
 	Data []byte
+}
+
+// Pong represents a pubsub pong notification.
+type Pong struct {
+	Data string
 }
 
 // PubSubConn wraps a Conn with convenience methods for subscribers.
@@ -90,9 +90,18 @@ func (c PubSubConn) PUnsubscribe(channel ...interface{}) error {
 	return c.Conn.Flush()
 }
 
-// Receive returns a pushed message as a Subscription, Message, PMessage or
-// error. The return value is intended to be used directly in a type switch as
-// illustrated in the PubSubConn example.
+// Ping sends a PING to the server with the specified data.
+//
+// The connection must be subscribed to at least one channel or pattern when
+// calling this method.
+func (c PubSubConn) Ping(data string) error {
+	c.Conn.Send("PING", data)
+	return c.Conn.Flush()
+}
+
+// Receive returns a pushed message as a Subscription, Message, PMessage, Pong
+// or error. The return value is intended to be used directly in a type switch
+// as illustrated in the PubSubConn example.
 func (c PubSubConn) Receive() interface{} {
 	reply, err := Values(c.Conn.Receive())
 	if err != nil {
@@ -124,6 +133,12 @@ func (c PubSubConn) Receive() interface{} {
 			return err
 		}
 		return s
+	case "pong":
+		var p Pong
+		if _, err := Scan(reply, &p.Data); err != nil {
+			return err
+		}
+		return p
 	}
 	return errors.New("redigo: unknown pubsub notification")
 }

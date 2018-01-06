@@ -1,0 +1,120 @@
+// protoc --proto_path=$GOPATH/src:$GOPATH/src/github.com/centrifugal/centrifugo/vendor:. --gogofaster_out=. client.proto
+// pbjs -t json -p $GOPATH/src proto/client/client.proto > public/client.json
+// pbjs -t json proto/message.proto > public/message.json
+syntax = "proto3";
+
+package client;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/centrifugal/centrifugo/lib/proto/message.proto";
+import "github.com/centrifugal/centrifugo/lib/proto/error.proto";
+
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+
+message Command {
+    uint64 ID = 1 [(gogoproto.jsontag) = "i,omitempty"];
+    string Method = 2 [(gogoproto.jsontag) = "m,omitempty"];
+    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "p,omitempty", (gogoproto.nullable) = false];
+}
+
+message Reply {
+    uint64 ID = 1 [(gogoproto.jsontag) = "i,omitempty"];
+    proto.Error Error = 2 [(gogoproto.jsontag) = "e,omitempty"];
+    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "r", (gogoproto.nullable) = false];
+}
+
+message Connect {
+    string User = 1 [(gogoproto.jsontag) = "user"];
+    string Time = 2 [(gogoproto.jsontag) = "time"];
+    string Info = 3 [(gogoproto.jsontag) = "info"];
+    string Opts = 4 [(gogoproto.jsontag) = "opts"];
+    string Token = 5 [(gogoproto.jsontag) = "token"];
+}
+
+message ConnectResult {
+    string Client = 1 [(gogoproto.jsontag) = "client"];
+    string Version = 2 [(gogoproto.jsontag) = "version"];
+    bool Expires = 3 [(gogoproto.jsontag) = "expires,omitempty"];
+    bool Expired = 4 [(gogoproto.jsontag) = "expired,omitempty"];
+    uint32 TTL = 5 [(gogoproto.jsontag) = "ttl,omitempty"];
+}
+
+message Refresh {
+    string User = 1 [(gogoproto.jsontag) = "user"];
+    string Time = 2 [(gogoproto.jsontag) = "time"];
+    string Info = 3 [(gogoproto.jsontag) = "info"];
+    string Opts = 4 [(gogoproto.jsontag) = "opts"];
+    string Token = 5 [(gogoproto.jsontag) = "token"];
+}
+
+message RefreshResult {
+    string Client = 1 [(gogoproto.jsontag) = "client"];
+    string Version = 2 [(gogoproto.jsontag) = "version"];
+    bool Expires = 3 [(gogoproto.jsontag) = "expires,omitempty"];
+    bool Expired = 4 [(gogoproto.jsontag) = "expired,omitempty"];
+    uint32 TTL = 5 [(gogoproto.jsontag) = "ttl,omitempty"];
+}
+
+message Subscribe {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+    string Client = 2 [(gogoproto.jsontag) = "client"];
+    string Info = 3 [(gogoproto.jsontag) = "info"];
+    string Sign = 4 [(gogoproto.jsontag) = "sign"];
+    bool Recover = 5 [(gogoproto.jsontag) = "recover"];
+    string Last = 6 [(gogoproto.jsontag) = "last"];
+    bool Passive = 7 [(gogoproto.jsontag) = "passive"];
+}
+
+message SubscribeResult {
+    string Last = 1;
+    bool Recovered = 2;
+    repeated proto.Message Messages = 3;
+}
+
+message Unsubscribe {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message UnsubscribeResult {}
+
+message Publish {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+    bytes Data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}
+
+message PublishResult {}
+
+message Presence {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message PresenceResult {
+    map<string, proto.ClientInfo> Data = 1 [(gogoproto.jsontag) = "data"];
+}
+
+message PresenceStats {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message PresenceStatsResult {
+    uint64 NumClients = 1 [(gogoproto.jsontag) = "num_clients"];
+    uint64 NumUsers = 2 [(gogoproto.jsontag) = "num_users"];
+}
+
+message History {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message HistoryResult {
+    repeated proto.Message Data = 1 [(gogoproto.jsontag) = "data"];
+}
+
+message Ping {
+    string Data = 1 [(gogoproto.jsontag) = "data"];
+}
+
+message PingResult {
+    string Data = 1 [(gogoproto.jsontag) = "data"];
+}

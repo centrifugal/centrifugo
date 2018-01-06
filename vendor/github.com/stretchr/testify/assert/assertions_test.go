@@ -2,10 +2,80 @@ package assert
 
 import (
 	"errors"
+	"io"
 	"math"
+	"os"
+	"reflect"
 	"regexp"
 	"testing"
 	"time"
+)
+
+var (
+	i     interface{}
+	zeros = []interface{}{
+		false,
+		byte(0),
+		complex64(0),
+		complex128(0),
+		float32(0),
+		float64(0),
+		int(0),
+		int8(0),
+		int16(0),
+		int32(0),
+		int64(0),
+		rune(0),
+		uint(0),
+		uint8(0),
+		uint16(0),
+		uint32(0),
+		uint64(0),
+		uintptr(0),
+		"",
+		[0]interface{}{},
+		[]interface{}(nil),
+		struct{ x int }{},
+		(*interface{})(nil),
+		(func())(nil),
+		nil,
+		interface{}(nil),
+		map[interface{}]interface{}(nil),
+		(chan interface{})(nil),
+		(<-chan interface{})(nil),
+		(chan<- interface{})(nil),
+	}
+	nonZeros = []interface{}{
+		true,
+		byte(1),
+		complex64(1),
+		complex128(1),
+		float32(1),
+		float64(1),
+		int(1),
+		int8(1),
+		int16(1),
+		int32(1),
+		int64(1),
+		rune(1),
+		uint(1),
+		uint8(1),
+		uint16(1),
+		uint32(1),
+		uint64(1),
+		uintptr(1),
+		"s",
+		[1]interface{}{1},
+		[]interface{}{},
+		struct{ x int }{1},
+		(*interface{})(&i),
+		(func())(func() {}),
+		interface{}(1),
+		map[interface{}]interface{}{},
+		(chan interface{})(make(chan interface{})),
+		(<-chan interface{})(make(chan interface{})),
+		(chan<- interface{})(make(chan interface{})),
+	}
 )
 
 // AssertionTesterInterface defines an interface to be used for testing assertion methods
@@ -61,6 +131,12 @@ func TestObjectsAreEqual(t *testing.T) {
 	}
 	if !ObjectsAreEqualValues(uint32(10), int32(10)) {
 		t.Error("ObjectsAreEqualValues should return true")
+	}
+	if ObjectsAreEqualValues(0, nil) {
+		t.Fail()
+	}
+	if ObjectsAreEqualValues(nil, 0) {
+		t.Fail()
 	}
 
 }
@@ -119,6 +195,28 @@ func TestEqual(t *testing.T) {
 
 }
 
+func TestFormatUnequalValues(t *testing.T) {
+	expected, actual := formatUnequalValues("foo", "bar")
+	Equal(t, `"foo"`, expected, "value should not include type")
+	Equal(t, `"bar"`, actual, "value should not include type")
+
+	expected, actual = formatUnequalValues(123, 123)
+	Equal(t, `123`, expected, "value should not include type")
+	Equal(t, `123`, actual, "value should not include type")
+
+	expected, actual = formatUnequalValues(int64(123), int32(123))
+	Equal(t, `int64(123)`, expected, "value should include type")
+	Equal(t, `int32(123)`, actual, "value should include type")
+
+	type testStructType struct {
+		Val string
+	}
+
+	expected, actual = formatUnequalValues(&testStructType{Val: "test"}, &testStructType{Val: "test"})
+	Equal(t, `&assert.testStructType{Val:"test"}`, expected, "value should not include type annotation")
+	Equal(t, `&assert.testStructType{Val:"test"}`, actual, "value should not include type annotation")
+}
+
 func TestNotNil(t *testing.T) {
 
 	mockT := new(testing.T)
@@ -129,6 +227,9 @@ func TestNotNil(t *testing.T) {
 	if NotNil(mockT, nil) {
 		t.Error("NotNil should return false: object is nil")
 	}
+	if NotNil(mockT, (*struct{})(nil)) {
+		t.Error("NotNil should return false: object is (*struct{})(nil)")
+	}
 
 }
 
@@ -138,6 +239,9 @@ func TestNil(t *testing.T) {
 
 	if !Nil(mockT, nil) {
 		t.Error("Nil should return true: object is nil")
+	}
+	if !Nil(mockT, (*struct{})(nil)) {
+		t.Error("Nil should return true: object is (*struct{})(nil)")
 	}
 	if Nil(mockT, new(AssertionTesterConformingObject)) {
 		t.Error("Nil should return false: object is not nil")
@@ -255,6 +359,7 @@ func TestContains(t *testing.T) {
 		{"g", "h"},
 		{"j", "k"},
 	}
+	simpleMap := map[interface{}]interface{}{"Foo": "Bar"}
 
 	if !Contains(mockT, "Hello World", "Hello") {
 		t.Error("Contains should return true: \"Hello World\" contains \"Hello\"")
@@ -275,12 +380,22 @@ func TestContains(t *testing.T) {
 	if Contains(mockT, complexList, &A{"g", "e"}) {
 		t.Error("Contains should return false: complexList contains {\"g\", \"e\"}")
 	}
+	if Contains(mockT, complexList, &A{"g", "e"}) {
+		t.Error("Contains should return false: complexList contains {\"g\", \"e\"}")
+	}
+	if !Contains(mockT, simpleMap, "Foo") {
+		t.Error("Contains should return true: \"{\"Foo\": \"Bar\"}\" contains \"Foo\"")
+	}
+	if Contains(mockT, simpleMap, "Bar") {
+		t.Error("Contains should return false: \"{\"Foo\": \"Bar\"}\" does not contains \"Bar\"")
+	}
 }
 
 func TestNotContains(t *testing.T) {
 
 	mockT := new(testing.T)
 	list := []string{"Foo", "Bar"}
+	simpleMap := map[interface{}]interface{}{"Foo": "Bar"}
 
 	if !NotContains(mockT, "Hello World", "Hello!") {
 		t.Error("NotContains should return true: \"Hello World\" does not contain \"Hello!\"")
@@ -295,13 +410,19 @@ func TestNotContains(t *testing.T) {
 	if NotContains(mockT, list, "Foo") {
 		t.Error("NotContains should return false: \"[\"Foo\", \"Bar\"]\" contains \"Foo\"")
 	}
-
+	if NotContains(mockT, simpleMap, "Foo") {
+		t.Error("Contains should return true: \"{\"Foo\": \"Bar\"}\" contains \"Foo\"")
+	}
+	if !NotContains(mockT, simpleMap, "Bar") {
+		t.Error("Contains should return false: \"{\"Foo\": \"Bar\"}\" does not contains \"Bar\"")
+	}
 }
 
 func Test_includeElement(t *testing.T) {
 
 	list1 := []string{"Foo", "Bar"}
 	list2 := []int{1, 2}
+	simpleMap := map[interface{}]interface{}{"Foo": "Bar"}
 
 	ok, found := includeElement("Hello World", "World")
 	True(t, ok)
@@ -335,10 +456,17 @@ func Test_includeElement(t *testing.T) {
 	True(t, ok)
 	False(t, found)
 
+	ok, found = includeElement(simpleMap, "Foo")
+	True(t, ok)
+	True(t, found)
+
+	ok, found = includeElement(simpleMap, "Bar")
+	True(t, ok)
+	False(t, found)
+
 	ok, found = includeElement(1433, "1")
 	False(t, ok)
 	False(t, found)
-
 }
 
 func TestCondition(t *testing.T) {
@@ -417,7 +545,25 @@ func TestNoError(t *testing.T) {
 
 	False(t, NoError(mockT, err), "NoError with error should return False")
 
+	// returning an empty error interface
+	err = func() error {
+		var err *customError
+		if err != nil {
+			t.Fatal("err should be nil here")
+		}
+		return err
+	}()
+
+	if err == nil { // err is not nil here!
+		t.Errorf("Error should be nil due to empty interface", err)
+	}
+
+	False(t, NoError(mockT, err), "NoError should fail with empty error interface")
 }
+
+type customError struct{}
+
+func (*customError) Error() string { return "fail" }
 
 func TestError(t *testing.T) {
 
@@ -433,6 +579,20 @@ func TestError(t *testing.T) {
 
 	True(t, Error(mockT, err), "Error with error should return True")
 
+	// returning an empty error interface
+	err = func() error {
+		var err *customError
+		if err != nil {
+			t.Fatal("err should be nil here")
+		}
+		return err
+	}()
+
+	if err == nil { // err is not nil here!
+		t.Errorf("Error should be nil due to empty interface", err)
+	}
+
+	True(t, Error(mockT, err), "Error should pass with empty error interface")
 }
 
 func TestEqualError(t *testing.T) {
@@ -465,6 +625,7 @@ func Test_isEmpty(t *testing.T) {
 	True(t, isEmpty(false))
 	True(t, isEmpty(map[string]string{}))
 	True(t, isEmpty(new(time.Time)))
+	True(t, isEmpty(time.Time{}))
 	True(t, isEmpty(make(chan struct{})))
 	False(t, isEmpty("something"))
 	False(t, isEmpty(errors.New("something")))
@@ -481,6 +642,10 @@ func TestEmpty(t *testing.T) {
 	mockT := new(testing.T)
 	chWithValue := make(chan struct{}, 1)
 	chWithValue <- struct{}{}
+	var tiP *time.Time
+	var tiNP time.Time
+	var s *string
+	var f *os.File
 
 	True(t, Empty(mockT, ""), "Empty string is empty")
 	True(t, Empty(mockT, nil), "Nil is empty")
@@ -488,6 +653,10 @@ func TestEmpty(t *testing.T) {
 	True(t, Empty(mockT, 0), "Zero int value is empty")
 	True(t, Empty(mockT, false), "False value is empty")
 	True(t, Empty(mockT, make(chan struct{})), "Channel without values is empty")
+	True(t, Empty(mockT, s), "Nil string pointer is empty")
+	True(t, Empty(mockT, f), "Nil os.File pointer is empty")
+	True(t, Empty(mockT, tiP), "Nil time.Time pointer is empty")
+	True(t, Empty(mockT, tiNP), "time.Time is empty")
 
 	False(t, Empty(mockT, "something"), "Non Empty string is not empty")
 	False(t, Empty(mockT, errors.New("something")), "Non nil object is not empty")
@@ -715,10 +884,11 @@ func TestInEpsilon(t *testing.T) {
 		{-2.2, -2.1, 0.1},
 		{uint64(100), uint8(101), 0.01},
 		{0.1, -0.1, 2},
+		{0.1, 0, 2},
 	}
 
 	for _, tc := range cases {
-		True(t, InEpsilon(mockT, tc.a, tc.b, tc.epsilon, "Expected %V and %V to have a relative difference of %v", tc.a, tc.b, tc.epsilon))
+		True(t, InEpsilon(t, tc.a, tc.b, tc.epsilon, "Expected %V and %V to have a relative difference of %v", tc.a, tc.b, tc.epsilon), "test: %q", tc)
 	}
 
 	cases = []struct {
@@ -732,6 +902,7 @@ func TestInEpsilon(t *testing.T) {
 		{2.1, -2.2, 1},
 		{2.1, "bla-bla", 0},
 		{0.1, -0.1, 1.99},
+		{0, 0.1, 2}, // expected must be different to zero
 	}
 
 	for _, tc := range cases {
@@ -788,4 +959,252 @@ func TestRegexp(t *testing.T) {
 		True(t, NotRegexp(mockT, tc.rx, tc.str))
 		True(t, NotRegexp(mockT, regexp.MustCompile(tc.rx), tc.str))
 	}
+}
+
+func testAutogeneratedFunction() {
+	defer func() {
+		if err := recover(); err == nil {
+			panic("did not panic")
+		}
+		CallerInfo()
+	}()
+	t := struct {
+		io.Closer
+	}{}
+	var c io.Closer
+	c = t
+	c.Close()
+}
+
+func TestCallerInfoWithAutogeneratedFunctions(t *testing.T) {
+	NotPanics(t, func() {
+		testAutogeneratedFunction()
+	})
+}
+
+func TestZero(t *testing.T) {
+	mockT := new(testing.T)
+
+	for _, test := range zeros {
+		True(t, Zero(mockT, test, "%#v is not the %v zero value", test, reflect.TypeOf(test)))
+	}
+
+	for _, test := range nonZeros {
+		False(t, Zero(mockT, test, "%#v is not the %v zero value", test, reflect.TypeOf(test)))
+	}
+}
+
+func TestNotZero(t *testing.T) {
+	mockT := new(testing.T)
+
+	for _, test := range zeros {
+		False(t, NotZero(mockT, test, "%#v is not the %v zero value", test, reflect.TypeOf(test)))
+	}
+
+	for _, test := range nonZeros {
+		True(t, NotZero(mockT, test, "%#v is not the %v zero value", test, reflect.TypeOf(test)))
+	}
+}
+
+func TestJSONEq_EqualSONString(t *testing.T) {
+	mockT := new(testing.T)
+	True(t, JSONEq(mockT, `{"hello": "world", "foo": "bar"}`, `{"hello": "world", "foo": "bar"}`))
+}
+
+func TestJSONEq_EquivalentButNotEqual(t *testing.T) {
+	mockT := new(testing.T)
+	True(t, JSONEq(mockT, `{"hello": "world", "foo": "bar"}`, `{"foo": "bar", "hello": "world"}`))
+}
+
+func TestJSONEq_HashOfArraysAndHashes(t *testing.T) {
+	mockT := new(testing.T)
+	True(t, JSONEq(mockT, "{\r\n\t\"numeric\": 1.5,\r\n\t\"array\": [{\"foo\": \"bar\"}, 1, \"string\", [\"nested\", \"array\", 5.5]],\r\n\t\"hash\": {\"nested\": \"hash\", \"nested_slice\": [\"this\", \"is\", \"nested\"]},\r\n\t\"string\": \"foo\"\r\n}",
+		"{\r\n\t\"numeric\": 1.5,\r\n\t\"hash\": {\"nested\": \"hash\", \"nested_slice\": [\"this\", \"is\", \"nested\"]},\r\n\t\"string\": \"foo\",\r\n\t\"array\": [{\"foo\": \"bar\"}, 1, \"string\", [\"nested\", \"array\", 5.5]]\r\n}"))
+}
+
+func TestJSONEq_Array(t *testing.T) {
+	mockT := new(testing.T)
+	True(t, JSONEq(mockT, `["foo", {"hello": "world", "nested": "hash"}]`, `["foo", {"nested": "hash", "hello": "world"}]`))
+}
+
+func TestJSONEq_HashAndArrayNotEquivalent(t *testing.T) {
+	mockT := new(testing.T)
+	False(t, JSONEq(mockT, `["foo", {"hello": "world", "nested": "hash"}]`, `{"foo": "bar", {"nested": "hash", "hello": "world"}}`))
+}
+
+func TestJSONEq_HashesNotEquivalent(t *testing.T) {
+	mockT := new(testing.T)
+	False(t, JSONEq(mockT, `{"foo": "bar"}`, `{"foo": "bar", "hello": "world"}`))
+}
+
+func TestJSONEq_ActualIsNotJSON(t *testing.T) {
+	mockT := new(testing.T)
+	False(t, JSONEq(mockT, `{"foo": "bar"}`, "Not JSON"))
+}
+
+func TestJSONEq_ExpectedIsNotJSON(t *testing.T) {
+	mockT := new(testing.T)
+	False(t, JSONEq(mockT, "Not JSON", `{"foo": "bar", "hello": "world"}`))
+}
+
+func TestJSONEq_ExpectedAndActualNotJSON(t *testing.T) {
+	mockT := new(testing.T)
+	False(t, JSONEq(mockT, "Not JSON", "Not JSON"))
+}
+
+func TestJSONEq_ArraysOfDifferentOrder(t *testing.T) {
+	mockT := new(testing.T)
+	False(t, JSONEq(mockT, `["foo", {"hello": "world", "nested": "hash"}]`, `[{ "hello": "world", "nested": "hash"}, "foo"]`))
+}
+
+func TestDiff(t *testing.T) {
+	expected := `
+
+Diff:
+--- Expected
++++ Actual
+@@ -1,3 +1,3 @@
+ (struct { foo string }) {
+- foo: (string) (len=5) "hello"
++ foo: (string) (len=3) "bar"
+ }
+`
+	actual := diff(
+		struct{ foo string }{"hello"},
+		struct{ foo string }{"bar"},
+	)
+	Equal(t, expected, actual)
+
+	expected = `
+
+Diff:
+--- Expected
++++ Actual
+@@ -2,5 +2,5 @@
+  (int) 1,
+- (int) 2,
+  (int) 3,
+- (int) 4
++ (int) 5,
++ (int) 7
+ }
+`
+	actual = diff(
+		[]int{1, 2, 3, 4},
+		[]int{1, 3, 5, 7},
+	)
+	Equal(t, expected, actual)
+
+	expected = `
+
+Diff:
+--- Expected
++++ Actual
+@@ -2,4 +2,4 @@
+  (int) 1,
+- (int) 2,
+- (int) 3
++ (int) 3,
++ (int) 5
+ }
+`
+	actual = diff(
+		[]int{1, 2, 3, 4}[0:3],
+		[]int{1, 3, 5, 7}[0:3],
+	)
+	Equal(t, expected, actual)
+
+	expected = `
+
+Diff:
+--- Expected
++++ Actual
+@@ -1,6 +1,6 @@
+ (map[string]int) (len=4) {
+- (string) (len=4) "four": (int) 4,
++ (string) (len=4) "five": (int) 5,
+  (string) (len=3) "one": (int) 1,
+- (string) (len=5) "three": (int) 3,
+- (string) (len=3) "two": (int) 2
++ (string) (len=5) "seven": (int) 7,
++ (string) (len=5) "three": (int) 3
+ }
+`
+
+	actual = diff(
+		map[string]int{"one": 1, "two": 2, "three": 3, "four": 4},
+		map[string]int{"one": 1, "three": 3, "five": 5, "seven": 7},
+	)
+	Equal(t, expected, actual)
+}
+
+func TestDiffEmptyCases(t *testing.T) {
+	Equal(t, "", diff(nil, nil))
+	Equal(t, "", diff(struct{ foo string }{}, nil))
+	Equal(t, "", diff(nil, struct{ foo string }{}))
+	Equal(t, "", diff(1, 2))
+	Equal(t, "", diff(1, 2))
+	Equal(t, "", diff([]int{1}, []bool{true}))
+}
+
+// Ensure there are no data races
+func TestDiffRace(t *testing.T) {
+	t.Parallel()
+
+	expected := map[string]string{
+		"a": "A",
+		"b": "B",
+		"c": "C",
+	}
+
+	actual := map[string]string{
+		"d": "D",
+		"e": "E",
+		"f": "F",
+	}
+
+	// run diffs in parallel simulating tests with t.Parallel()
+	numRoutines := 10
+	rChans := make([]chan string, numRoutines)
+	for idx := range rChans {
+		rChans[idx] = make(chan string)
+		go func(ch chan string) {
+			defer close(ch)
+			ch <- diff(expected, actual)
+		}(rChans[idx])
+	}
+
+	for _, ch := range rChans {
+		for msg := range ch {
+			NotZero(t, msg) // dummy assert
+		}
+	}
+}
+
+type mockTestingT struct {
+}
+
+func (m *mockTestingT) Errorf(format string, args ...interface{}) {}
+
+func TestFailNowWithPlainTestingT(t *testing.T) {
+	mockT := &mockTestingT{}
+
+	Panics(t, func() {
+		FailNow(mockT, "failed")
+	}, "should panic since mockT is missing FailNow()")
+}
+
+type mockFailNowTestingT struct {
+}
+
+func (m *mockFailNowTestingT) Errorf(format string, args ...interface{}) {}
+
+func (m *mockFailNowTestingT) FailNow() {}
+
+func TestFailNowWithFullTestingT(t *testing.T) {
+	mockT := &mockFailNowTestingT{}
+
+	NotPanics(t, func() {
+		FailNow(mockT, "failed")
+	}, "should call mockT.FailNow() rather than panicking")
 }

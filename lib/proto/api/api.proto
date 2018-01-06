@@ -1,0 +1,114 @@
+// protoc --proto_path=$GOPATH/src:$GOPATH/src/github.com/centrifugal/centrifugo/vendor:. --gogofaster_out=plugins=grpc:. api.proto
+syntax = "proto3";
+
+package api;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/centrifugal/centrifugo/lib/proto/error.proto";
+import "github.com/centrifugal/centrifugo/lib/proto/message.proto";
+
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+
+message Request {
+    repeated Command Commands = 1 [(gogoproto.jsontag) = "commands"];
+    bool Async = 2 [(gogoproto.jsontag) = "async"];
+}
+
+message Command {
+    uint64 ID = 1 [(gogoproto.jsontag) = "i"];
+    string Method = 2 [(gogoproto.jsontag) = "m"];
+    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "p", (gogoproto.nullable) = false];
+}
+
+message Response {
+    repeated Reply Replies = 1 [(gogoproto.jsontag) = "replies"];
+}
+
+message Reply {
+    uint64 ID = 1 [(gogoproto.jsontag) = "i,omitempty"];
+    proto.Error Error = 2 [(gogoproto.jsontag) = "e,omitempty"];
+    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "r", (gogoproto.nullable) = false];
+}
+
+message Publish {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+    bytes Data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}
+
+message PublishResult {}
+
+message Broadcast {
+    repeated string Channels = 1 [(gogoproto.jsontag) = "channels"];
+    bytes Data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}
+
+message BroadcastResult {}
+
+message Unsubscribe {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+    string User = 2 [(gogoproto.jsontag) = "user"];
+}
+
+message UnsubscribeResult {}
+
+message Disconnect {
+    string User = 1 [(gogoproto.jsontag) = "user"];
+}
+
+message DisconnectResult {}
+
+message Presence {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message PresenceResult {
+    map<string, proto.ClientInfo> Data = 1 [(gogoproto.jsontag) = "data"];
+}
+
+message PresenceStats {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message PresenceStatsResult {
+    uint64 NumClients = 1 [(gogoproto.jsontag) = "num_clients"];
+    uint64 NumUsers = 2 [(gogoproto.jsontag) = "num_users"];
+}
+
+message History {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message HistoryResult {
+    repeated proto.Message Data = 1 [(gogoproto.jsontag) = "data"];
+}
+
+message Channels {
+}
+
+message ChannelsResult {
+    repeated string Data = 1 [(gogoproto.jsontag) = "data"];
+}
+
+message Info {}
+
+message InfoResult {
+    string Engine = 1 [(gogoproto.jsontag) = "engine"];
+    uint64 MetricsInterval = 2 [(gogoproto.jsontag) = "metrics_interval"];
+    repeated NodeResult Nodes = 3 [(gogoproto.jsontag) = "nodes"];
+}
+
+message Node {}
+
+message NodeResult {
+    string UID = 1 [(gogoproto.jsontag) = "uid"];
+    string Name = 2 [(gogoproto.jsontag) = "name"];
+    string Version = 3 [(gogoproto.jsontag) = "version"];
+    int64 StartedAt = 4 [(gogoproto.jsontag) = "started_at"];
+    map <string, int64> Metrics = 5 [(gogoproto.jsontag) = "metrics"];
+}
+
+service Centrifugo {
+  rpc Send (Request) returns (Response) {}
+}

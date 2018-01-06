@@ -1,0 +1,22 @@
+// protoc --proto_path=$GOPATH/src:$GOPATH/src/github.com/centrifugal/centrifugo/vendor:. --gogofaster_out=. admin.proto
+syntax = "proto3";
+
+package admin;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+
+enum MessageType {
+    option (gogoproto.goproto_enum_prefix) = false;
+
+    CLIENT = 0 [(gogoproto.enumvalue_customname) = "MessageTypeClient"];
+    INTERNAL = 1 [(gogoproto.enumvalue_customname) = "MessageTypeInternal"];
+}
+
+message Message {
+    MessageType Type = 1 [(gogoproto.jsontag) = "t,omitempty"];
+    bytes Data = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "d", (gogoproto.nullable) = false];
+}

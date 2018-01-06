@@ -12,7 +12,7 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 
-package internal
+package internal // import "github.com/garyburd/redigo/internal"
 
 import (
 	"strings"
@@ -40,6 +40,15 @@ var commandInfos = map[string]CommandInfo{
 	"MONITOR":    {Set: MonitorState},
 }
 
+func init() {
+	for n, ci := range commandInfos {
+		commandInfos[strings.ToLower(n)] = ci
+	}
+}
+
 func LookupCommandInfo(commandName string) CommandInfo {
+	if ci, ok := commandInfos[commandName]; ok {
+		return ci
+	}
 	return commandInfos[strings.ToUpper(commandName)]
 }

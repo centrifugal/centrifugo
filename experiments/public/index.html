@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>WebSocket Example</title>
+  </head>
+  <body>
+    <script>
+      // to always use TextEncoder/TextDecoder polyfill.
+      // window.TextEncoder = window.TextDecoder = null;
+    </script>
+    <script src="//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js"></script>
+    <script src="https://unpkg.com/text-encoding@0.6.4/lib/encoding-indexes.js"></script>
+    <script src="https://unpkg.com/text-encoding@0.6.4/lib/encoding.js"></script>
+    <script src="//cdn.rawgit.com/dcodeIO/protobuf.js/6.8.3/dist/protobuf.min.js"></script>
+    <script type="text/javascript">
+      (function() {
+        protobuf.load("client.json", function(err, root) {
+          if (err)
+            throw err;
+
+          var Command = root.lookupType("client.Command");
+          var Reply = root.lookupType("client.Reply");
+          var AsyncMessage = root.lookupType("client.AsyncMessage");
+          var Message = root.lookupType("proto.Message");
+
+          var readMessages = function(buffer) {
+              var reader = protobuf.Reader.create(new Uint8Array(buffer));
+              while (reader.pos < reader.len) {
+                let reply = Reply.decodeDelimited(reader);
+                var asyncMessage = AsyncMessage.decode(reply.Result);
+                //console.log(asyncMessage);
+                var message = Message.decode(asyncMessage.Data);
+                //console.log(message);
+                var str = new TextDecoder("utf-8").decode(message.Data);
+                console.log(JSON.parse(str))
+              }
+          }
+
+          var writeMessages = function() {
+            var writer = protobuf.Writer.create();
+            var cmd = Command.create();
+            cmd.ID = 2;
+            cmd.Method = "test1";
+            cmd.Data = new Uint8Array();
+            Command.encodeDelimited(cmd, writer);
+            var cmd = Command.create();
+            cmd.ID = 3;
+            cmd.Method = "test2";
+            cmd.Data = new Uint8Array();
+            Command.encodeDelimited(cmd, writer);
+            return writer.finish();
+          }
+
+          var runXHRJSON = function() {
+            var oReq = new XMLHttpRequest();
+            oReq.open("POST", "http://127.0.0.1:1337/xhrjson", true);
+            oReq.responseType = "text";
+
+            oReq.onload = function (oEvent) {
+              console.log(JSON.parse(oReq.response));
+            };
+
+            oReq.send(null);
+          }
+
+          var runXHRBinary = function() {
+            var oReq = new XMLHttpRequest();
+            oReq.open("POST", "http://127.0.0.1:1337/xhrbinary", true);
+            oReq.responseType = "arraybuffer";
+
+            oReq.onload = function (oEvent) {
+              readMessages(oReq.response);
+            };
+
+            oReq.send(null);
+          }
+
+          setTimeout(function(){
+            runXHRJSON();
+            runXHRBinary();
+          }, 1000);
+
+          var conn = new WebSocket("ws://127.0.0.1:1337/binary");
+          conn.onopen = function () {
+            console.log("Opening binary websocket connection...");
+            conn.binaryType = "arraybuffer";
+          }
+          conn.onclose = function(evt) {
+            console.log('Connection closed');
+          }
+          conn.onmessage = function(event) {
+            //var offset = 0;
+            //data = new Uint8Array();
+            // while (offset < event.data.byteLength) {
+            //   var length = new Uint32Array(event.data.slice(offset,offset+4))[0]
+            //   var reply = Reply.decode(new Uint8Array(event.data.slice(4+offset, 4+offset+length)));
+            //   offset = offset + 4 + length;
+            //   console.log(reply);
+            //   var asyncMessage = AsyncMessage.decode(reply.Result);
+            //   console.log(asyncMessage);
+            //   var message = Message.decode(asyncMessage.Data);
+            //   console.log(message);
+            //   var str = new TextDecoder("utf-8").decode(message.Data);
+            //   console.log(JSON.parse(str))
+            // }
+            readMessages(event.data);
+            conn.send(writeMessages());
+          }
+        })
+      })();
+
+      setTimeout(function(){
+        runJSON();
+      }, 1000);
+
+      setTimeout(function(){
+        runSockjs();
+      }, 2000);
+
+      function runJSON() {
+        var conn = new WebSocket("ws://127.0.0.1:1337/json");
+        conn.onopen = function () {
+          console.log("Opening websocket json connection...");
+        }
+        conn.onclose = function(evt) {
+          console.log('Connection closed');
+        }
+        conn.onmessage = function(event) {
+          var messages = event.data.split('\n');
+          for (var i = 0; i < messages.length; i++) {
+            console.log(JSON.parse(messages[i]));
+          }
+        }
+      }
+
+      function runSockjs() {
+        var conn = new SockJS("http://127.0.0.1:1337/sockjs", null, {});
+        conn.onopen = function () {
+          console.log("Opening SockJS connection...");
+        }
+        conn.onclose = function(evt) {
+          console.log('Connection closed');
+        }
+        conn.onmessage = function(event) {
+          var messages = event.data.split('\n');
+          for (var i = 0; i < messages.length; i++) {
+            console.log(JSON.parse(messages[i]));
+          }
+        }
+      }
+    </script>
+  </body>
+</html>

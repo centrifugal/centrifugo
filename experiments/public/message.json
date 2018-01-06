@@ -1,0 +1,139 @@
+{
+  "nested": {
+    "proto": {
+      "options": {
+        "(gogoproto.equal_all)": true,
+        "(gogoproto.populate_all)": true,
+        "(gogoproto.testgen_all)": true
+      },
+      "nested": {
+        "ClientInfo": {
+          "fields": {
+            "User": {
+              "type": "string",
+              "id": 1,
+              "options": {
+                "(gogoproto.jsontag)": "user"
+              }
+            },
+            "Client": {
+              "type": "string",
+              "id": 2,
+              "options": {
+                "(gogoproto.jsontag)": "client"
+              }
+            },
+            "ConnInfo": {
+              "type": "bytes",
+              "id": 3,
+              "options": {
+                "(gogoproto.customtype)": "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw",
+                "(gogoproto.jsontag)": "conn_info,omitempty",
+                "(gogoproto.nullable)": false
+              }
+            },
+            "ChanInfo": {
+              "type": "bytes",
+              "id": 4,
+              "options": {
+                "(gogoproto.customtype)": "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw",
+                "(gogoproto.jsontag)": "chan_info,omitempty",
+                "(gogoproto.nullable)": false
+              }
+            }
+          }
+        },
+        "Message": {
+          "fields": {
+            "UID": {
+              "type": "string",
+              "id": 1,
+              "options": {
+                "(gogoproto.jsontag)": "uid"
+              }
+            },
+            "Channel": {
+              "type": "string",
+              "id": 2,
+              "options": {
+                "(gogoproto.jsontag)": "channel"
+              }
+            },
+            "Data": {
+              "type": "bytes",
+              "id": 3,
+              "options": {
+                "(gogoproto.customtype)": "github.com/centrifugal/centrifugo/libcentrifugo/raw.Raw",
+                "(gogoproto.jsontag)": "data",
+                "(gogoproto.nullable)": false
+              }
+            },
+            "Client": {
+              "type": "string",
+              "id": 4,
+              "options": {
+                "(gogoproto.jsontag)": "client,omitempty"
+              }
+            },
+            "Info": {
+              "type": "ClientInfo",
+              "id": 5,
+              "options": {
+                "(gogoproto.jsontag)": "info,omitempty"
+              }
+            }
+          }
+        },
+        "Join": {
+          "fields": {
+            "Channel": {
+              "type": "string",
+              "id": 1,
+              "options": {
+                "(gogoproto.jsontag)": "channel"
+              }
+            },
+            "Data": {
+              "type": "ClientInfo",
+              "id": 2,
+              "options": {
+                "(gogoproto.jsontag)": "data",
+                "(gogoproto.nullable)": false
+              }
+            }
+          }
+        },
+        "Leave": {
+          "fields": {
+            "Channel": {
+              "type": "string",
+              "id": 1,
+              "options": {
+                "(gogoproto.jsontag)": "channel"
+              }
+            },
+            "Data": {
+              "type": "ClientInfo",
+              "id": 2,
+              "options": {
+                "(gogoproto.jsontag)": "data",
+                "(gogoproto.nullable)": false
+              }
+            }
+          }
+        },
+        "Unsubscribe": {
+          "fields": {
+            "Channel": {
+              "type": "string",
+              "id": 1,
+              "options": {
+                "(gogoproto.jsontag)": "channel"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

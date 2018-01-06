@@ -21,6 +21,7 @@ package viper
 
 import (
 	"bytes"
+	"encoding/csv"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -38,10 +39,16 @@ import (
 
 var v *Viper
 
+type RemoteResponse struct {
+	Value []byte
+	Error error
+}
+
 func init() {
 	v = New()
 }
 
+// UnsupportedConfigError denotes encountering an unsupported
 // configuration filetype.
 type UnsupportedConfigError string
 
@@ -146,8 +153,8 @@ func Reset() {
 // Universally supported extensions.
 var SupportedExts []string = []string{"json", "toml", "yaml", "yml"}
 
-// SetConfigFile explicitly defines the path, name and extension of the config file
-// Viper will use this and not check any of the config paths
+// SetConfigFile explicitly defines the path, name and extension of the config file.
+// Viper will use this and not check any of the config paths.
 func SetConfigFile(in string) { v.SetConfigFile(in) }
 func (v *Viper) SetConfigFile(in string) {
 	if in != "" {
@@ -156,8 +163,8 @@ func (v *Viper) SetConfigFile(in string) {
 }
 
 // SetEnvPrefix defines a prefix that ENVIRONMENT variables will use.
-// E.g. if your prefix is "spf", the env registry
-// will look for env. variables that start with "SPF_"
+// E.g. if your prefix is "spf", the env registry will look for env
+// variables that start with "SPF_".
 func SetEnvPrefix(in string) { v.SetEnvPrefix(in) }
 func (v *Viper) SetEnvPrefix(in string) {
 	if in != "" {
@@ -175,11 +182,11 @@ func (v *Viper) mergeWithEnvPrefix(in string) string {
 
 // TODO: should getEnv logic be moved into find(). Can generalize the use of
 // rewriting keys many things, Ex: Get('someKey') -> some_key
-// (cammel case to snake case for JSON keys perhaps)
+// (camel case to snake case for JSON keys perhaps)
 
 // getEnv is a wrapper around os.Getenv which replaces characters in the original
-// key. This allows env vars which have different keys then the config object
-// keys
+// key. This allows env vars which have different keys than the config object
+// keys.
 func (v *Viper) getEnv(key string) string {
 	if v.envKeyReplacer != nil {
 		key = v.envKeyReplacer.Replace(key)
@@ -187,7 +194,7 @@ func (v *Viper) getEnv(key string) string {
 	return os.Getenv(key)
 }
 
-// ConfigFileUsed returns the file used to populate the config registry
+// ConfigFileUsed returns the file used to populate the config registry.
 func ConfigFileUsed() string            { return v.ConfigFileUsed() }
 func (v *Viper) ConfigFileUsed() string { return v.configFile }
 
@@ -375,6 +382,7 @@ func GetViper() *Viper {
 }
 
 // Get can retrieve any value given the key to use.
+// Get is case-insensitive for a key.
 // Get has the behavior of returning the value associated with the first
 // place from where it is set. Viper will check in the following order:
 // override, flag, env, config file, key/value store, default
@@ -388,36 +396,38 @@ func (v *Viper) Get(key string) interface{} {
 		return nil
 	}
 
-	valType := val
 	if v.typeByDefValue {
 		// TODO(bep) this branch isn't covered by a single test.
+		valType := val
 		path := strings.Split(lcaseKey, v.keyDelim)
 		defVal := v.searchMap(v.defaults, path)
 		if defVal != nil {
 			valType = defVal
 		}
+
+		switch valType.(type) {
+		case bool:
+			return cast.ToBool(val)
+		case string:
+			return cast.ToString(val)
+		case int64, int32, int16, int8, int:
+			return cast.ToInt(val)
+		case float64, float32:
+			return cast.ToFloat64(val)
+		case time.Time:
+			return cast.ToTime(val)
+		case time.Duration:
+			return cast.ToDuration(val)
+		case []string:
+			return cast.ToStringSlice(val)
+		}
 	}
 
-	switch valType.(type) {
-	case bool:
-		return cast.ToBool(val)
-	case string:
-		return cast.ToString(val)
-	case int64, int32, int16, int8, int:
-		return cast.ToInt(val)
-	case float64, float32:
-		return cast.ToFloat64(val)
-	case time.Time:
-		return cast.ToTime(val)
-	case time.Duration:
-		return cast.ToDuration(val)
-	case []string:
-		return cast.ToStringSlice(val)
-	}
 	return val
 }
 
 // Sub returns new Viper instance representing a sub tree of this instance.
+// Sub is case-insensitive for a key.
 func Sub(key string) *Viper { return v.Sub(key) }
 func (v *Viper) Sub(key string) *Viper {
 	subv := New()
@@ -510,7 +520,15 @@ func (v *Viper) GetSizeInBytes(key string) uint {
 // UnmarshalKey takes a single key and unmarshals it into a Struct.
 func UnmarshalKey(key string, rawVal interface{}) error { return v.UnmarshalKey(key, rawVal) }
 func (v *Viper) UnmarshalKey(key string, rawVal interface{}) error {
-	return mapstructure.Decode(v.Get(key), rawVal)
+	err := decode(v.Get(key), defaultDecoderConfig(rawVal))
+
+	if err != nil {
+		return err
+	}
+
+	v.insensitiviseMaps()
+
+	return nil
 }
 
 // Unmarshal unmarshals the config into a Struct. Make sure that the tags
@@ -529,13 +547,16 @@ func (v *Viper) Unmarshal(rawVal interface{}) error {
 }
 
 // defaultDecoderConfig returns default mapsstructure.DecoderConfig with suppot
-// of time.Duration values
+// of time.Duration values & string slices
 func defaultDecoderConfig(output interface{}) *mapstructure.DecoderConfig {
 	return &mapstructure.DecoderConfig{
 		Metadata:         nil,
 		Result:           output,
 		WeaklyTypedInput: true,
-		DecodeHook:       mapstructure.StringToTimeDurationHookFunc(),
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			mapstructure.StringToTimeDurationHookFunc(),
+			mapstructure.StringToSliceHookFunc(","),
+		),
 	}
 }
 
@@ -596,7 +617,7 @@ func (v *Viper) BindFlagValues(flags FlagValueSet) (err error) {
 }
 
 // BindFlagValue binds a specific key to a FlagValue.
-// Example(where serverCmd is a Cobra instance):
+// Example (where serverCmd is a Cobra instance):
 //
 //	 serverCmd.Flags().Int("port", 1138, "Port to run Application server on")
 //	 Viper.BindFlagValue("port", serverCmd.Flags().Lookup("port"))
@@ -677,7 +698,9 @@ func (v *Viper) find(lcaseKey string) interface{} {
 			return cast.ToBool(flag.ValueString())
 		case "stringSlice":
 			s := strings.TrimPrefix(flag.ValueString(), "[")
-			return strings.TrimSuffix(s, "]")
+			s = strings.TrimSuffix(s, "]")
+			res, _ := readAsCSV(s)
+			return res
 		default:
 			return flag.ValueString()
 		}
@@ -735,7 +758,9 @@ func (v *Viper) find(lcaseKey string) interface{} {
 			return cast.ToBool(flag.ValueString())
 		case "stringSlice":
 			s := strings.TrimPrefix(flag.ValueString(), "[")
-			return strings.TrimSuffix(s, "]")
+			s = strings.TrimSuffix(s, "]")
+			res, _ := readAsCSV(s)
+			return res
 		default:
 			return flag.ValueString()
 		}
@@ -745,7 +770,17 @@ func (v *Viper) find(lcaseKey string) interface{} {
 	return nil
 }
 
+func readAsCSV(val string) ([]string, error) {
+	if val == "" {
+		return []string{}, nil
+	}
+	stringReader := strings.NewReader(val)
+	csvReader := csv.NewReader(stringReader)
+	return csvReader.Read()
+}
+
 // IsSet checks to see if the key has been set in any of the data locations.
+// IsSet is case-insensitive for a key.
 func IsSet(key string) bool { return v.IsSet(key) }
 func (v *Viper) IsSet(key string) bool {
 	lcaseKey := strings.ToLower(key)
@@ -823,6 +858,7 @@ func (v *Viper) InConfig(key string) bool {
 }
 
 // SetDefault sets the default value for this key.
+// SetDefault is case-insensitive for a key.
 // Default only used when no value is provided by the user via flag, config or ENV.
 func SetDefault(key string, value interface{}) { v.SetDefault(key, value) }
 func (v *Viper) SetDefault(key string, value interface{}) {
@@ -839,6 +875,7 @@ func (v *Viper) SetDefault(key string, value interface{}) {
 }
 
 // Set sets the value for the key in the override regiser.
+// Set is case-insensitive for a key.
 // Will be used instead of values obtained via
 // flags, config file, ENV, default, or key/value store.
 func Set(key string, value interface{}) { v.Set(key, value) }
@@ -875,26 +912,31 @@ func (v *Viper) ReadInConfig() error {
 		return err
 	}
 
-	v.config = make(map[string]interface{})
+	config := make(map[string]interface{})
 
-	return v.unmarshalReader(bytes.NewReader(file), v.config)
+	err = v.unmarshalReader(bytes.NewReader(file), config)
+	if err != nil {
+		return err
+	}
+
+	v.config = config
+	return nil
 }
 
 // MergeInConfig merges a new configuration with an existing config.
 func MergeInConfig() error { return v.MergeInConfig() }
 func (v *Viper) MergeInConfig() error {
 	jww.INFO.Println("Attempting to merge in config file")
-	if !stringInSlice(v.getConfigType(), SupportedExts) {
-		return UnsupportedConfigError(v.getConfigType())
-	}
-
 	filename, err := v.getConfigFile()
 	if err != nil {
 		return err
 	}
 
-	file, err := ioutil.ReadFile(filename)
+	if !stringInSlice(v.getConfigType(), SupportedExts) {
+		return UnsupportedConfigError(v.getConfigType())
+	}
 
+	file, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
 	}
@@ -1020,8 +1062,8 @@ func mergeMaps(
 	}
 }
 
-// Unmarshall a Reader into a map
-// Should probably be an unexported function
+// Unmarshall a Reader into a map.
+// Should probably be an unexported function.
 func unmarshalReader(in io.Reader, c map[string]interface{}) error {
 	return v.unmarshalReader(in, c)
 }
@@ -1207,7 +1249,6 @@ func (v *Viper) searchInPath(in string) (filename string) {
 // Search all configPaths for any config file.
 // Returns the first path that exists (and is a config file).
 func (v *Viper) findConfigFile() (string, error) {
-
 	jww.INFO.Println("Searching for config in ", v.configPaths)
 
 	for _, cp := range v.configPaths {

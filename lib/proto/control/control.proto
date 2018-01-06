@@ -1,0 +1,37 @@
+// Install protoc compiler https://github.com/google/protobuf/releases 
+// Install gogofaster program:
+// go get -u github.com/gogo/protobuf/protoc-gen-gogofaster
+// protoc --proto_path=$GOPATH/src/github.com/centrifugal/centrifugo/vendor:. --gogofaster_out=. control.proto
+// Note that we use vendored gogoprotobuf path in example above.
+syntax = "proto3";
+
+package control;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+
+message Command {
+    string UID = 1;
+    string Method = 2;
+    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.nullable) = false];
+}
+
+message Node {
+    string UID = 1;
+    string Name = 2;
+    string Version = 3;
+    int64 StartedAt = 4;
+    map <string, int64> Metrics = 5;
+}
+
+message Unsubscribe {
+    string Channel = 1;
+    string User = 2;
+}
+
+message Disconnect {
+    string User = 1;
+}

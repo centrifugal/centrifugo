@@ -15,18 +15,76 @@
 package redis_test
 
 import (
-	"bufio"
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
+	"io"
 	"math"
 	"net"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/garyburd/redigo/internal/redistest"
 	"github.com/garyburd/redigo/redis"
 )
+
+type testConn struct {
+	io.Reader
+	io.Writer
+}
+
+func (*testConn) Close() error                       { return nil }
+func (*testConn) LocalAddr() net.Addr                { return nil }
+func (*testConn) RemoteAddr() net.Addr               { return nil }
+func (*testConn) SetDeadline(t time.Time) error      { return nil }
+func (*testConn) SetReadDeadline(t time.Time) error  { return nil }
+func (*testConn) SetWriteDeadline(t time.Time) error { return nil }
+
+func dialTestConn(r string, w io.Writer) redis.DialOption {
+	return redis.DialNetDial(func(network, addr string) (net.Conn, error) {
+		return &testConn{Reader: strings.NewReader(r), Writer: w}, nil
+	})
+}
+
+type tlsTestConn struct {
+	net.Conn
+	done chan struct{}
+}
+
+func (c *tlsTestConn) Close() error {
+	c.Conn.Close()
+	<-c.done
+	return nil
+}
+
+func dialTestConnTLS(r string, w io.Writer) redis.DialOption {
+	return redis.DialNetDial(func(network, addr string) (net.Conn, error) {
+		client, server := net.Pipe()
+		tlsServer := tls.Server(server, &serverTLSConfig)
+		go io.Copy(tlsServer, strings.NewReader(r))
+		done := make(chan struct{})
+		go func() {
+			io.Copy(w, tlsServer)
+			close(done)
+		}()
+		return &tlsTestConn{Conn: client, done: done}, nil
+	})
+}
+
+type durationArg struct {
+	time.Duration
+}
+
+func (t durationArg) RedisArg() interface{} {
+	return t.Seconds()
+}
+
+type recursiveArg int
+
+func (v recursiveArg) RedisArg() interface{} { return v }
 
 var writeTests = []struct {
 	args     []interface{}
@@ -65,6 +123,14 @@ var writeTests = []struct {
 		"*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$0\r\n\r\n",
 	},
 	{
+		[]interface{}{"SET", "key", durationArg{time.Minute}},
+		"*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$2\r\n60\r\n",
+	},
+	{
+		[]interface{}{"SET", "key", recursiveArg(123)},
+		"*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$3\r\n123\r\n",
+	},
+	{
 		[]interface{}{"ECHO", true, false},
 		"*3\r\n$4\r\nECHO\r\n$1\r\n1\r\n$1\r\n0\r\n",
 	},
@@ -73,14 +139,13 @@ var writeTests = []struct {
 func TestWrite(t *testing.T) {
 	for _, tt := range writeTests {
 		var buf bytes.Buffer
-		rw := bufio.ReadWriter{Writer: bufio.NewWriter(&buf)}
-		c := redis.NewConnBufio(rw)
+		c, _ := redis.Dial("", "", dialTestConn("", &buf))
 		err := c.Send(tt.args[0].(string), tt.args[1:]...)
 		if err != nil {
 			t.Errorf("Send(%v) returned error %v", tt.args, err)
 			continue
 		}
-		rw.Flush()
+		c.Flush()
 		actual := buf.String()
 		if actual != tt.expected {
 			t.Errorf("Send(%v) = %q, want %q", tt.args, actual, tt.expected)
@@ -173,11 +238,7 @@ var readTests = []struct {
 
 func TestRead(t *testing.T) {
 	for _, tt := range readTests {
-		rw := bufio.ReadWriter{
-			Reader: bufio.NewReader(strings.NewReader(tt.reply)),
-			Writer: bufio.NewWriter(nil), // writer need to support Flush
-		}
-		c := redis.NewConnBufio(rw)
+		c, _ := redis.Dial("", "", dialTestConn(tt.reply, nil))
 		actual, err := c.Receive()
 		if tt.expected == errorSentinel {
 			if err == nil {
@@ -257,7 +318,7 @@ var testCommands = []struct {
 }
 
 func TestDoCommands(t *testing.T) {
-	c, err := redistest.Dial()
+	c, err := redis.DialDefaultServer()
 	if err != nil {
 		t.Fatalf("error connection to database, %v", err)
 	}
@@ -276,7 +337,7 @@ func TestDoCommands(t *testing.T) {
 }
 
 func TestPipelineCommands(t *testing.T) {
-	c, err := redistest.Dial()
+	c, err := redis.DialDefaultServer()
 	if err != nil {
 		t.Fatalf("error connection to database, %v", err)
 	}
@@ -302,7 +363,7 @@ func TestPipelineCommands(t *testing.T) {
 }
 
 func TestBlankCommmand(t *testing.T) {
-	c, err := redistest.Dial()
+	c, err := redis.DialDefaultServer()
 	if err != nil {
 		t.Fatalf("error connection to database, %v", err)
 	}
@@ -329,7 +390,7 @@ func TestBlankCommmand(t *testing.T) {
 }
 
 func TestRecvBeforeSend(t *testing.T) {
-	c, err := redistest.Dial()
+	c, err := redis.DialDefaultServer()
 	if err != nil {
 		t.Fatalf("error connection to database, %v", err)
 	}
@@ -350,7 +411,7 @@ func TestRecvBeforeSend(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
-	c, err := redistest.Dial()
+	c, err := redis.DialDefaultServer()
 	if err != nil {
 		t.Fatalf("error connection to database, %v", err)
 	}
@@ -370,7 +431,7 @@ func TestError(t *testing.T) {
 	}
 }
 
-func TestReadDeadline(t *testing.T) {
+func TestReadTimeout(t *testing.T) {
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("net.Listen returned %v", err)
@@ -391,7 +452,9 @@ func TestReadDeadline(t *testing.T) {
 		}
 	}()
 
-	c1, err := redis.DialTimeout(l.Addr().Network(), l.Addr().String(), 0, time.Millisecond, 0)
+	// Do
+
+	c1, err := redis.Dial(l.Addr().Network(), l.Addr().String(), redis.DialReadTimeout(time.Millisecond))
 	if err != nil {
 		t.Fatalf("redis.Dial returned %v", err)
 	}
@@ -405,7 +468,9 @@ func TestReadDeadline(t *testing.T) {
 		t.Fatalf("c1.Err() = nil, expect error")
 	}
 
-	c2, err := redis.DialTimeout(l.Addr().Network(), l.Addr().String(), 0, time.Millisecond, 0)
+	// Send/Flush/Receive
+
+	c2, err := redis.Dial(l.Addr().Network(), l.Addr().String(), redis.DialReadTimeout(time.Millisecond))
 	if err != nil {
 		t.Fatalf("redis.Dial returned %v", err)
 	}
@@ -422,11 +487,164 @@ func TestReadDeadline(t *testing.T) {
 	}
 }
 
+var dialErrors = []struct {
+	rawurl        string
+	expectedError string
+}{
+	{
+		"localhost",
+		"invalid redis URL scheme",
+	},
+	// The error message for invalid hosts is different in different
+	// versions of Go, so just check that there is an error message.
+	{
+		"redis://weird url",
+		"",
+	},
+	{
+		"redis://foo:bar:baz",
+		"",
+	},
+	{
+		"http://www.google.com",
+		"invalid redis URL scheme: http",
+	},
+	{
+		"redis://localhost:6379/abc123",
+		"invalid database: abc123",
+	},
+}
+
+func TestDialURLErrors(t *testing.T) {
+	for _, d := range dialErrors {
+		_, err := redis.DialURL(d.rawurl)
+		if err == nil || !strings.Contains(err.Error(), d.expectedError) {
+			t.Errorf("DialURL did not return expected error (expected %v to contain %s)", err, d.expectedError)
+		}
+	}
+}
+
+func TestDialURLPort(t *testing.T) {
+	checkPort := func(network, address string) (net.Conn, error) {
+		if address != "localhost:6379" {
+			t.Errorf("DialURL did not set port to 6379 by default (got %v)", address)
+		}
+		return nil, nil
+	}
+	_, err := redis.DialURL("redis://localhost", redis.DialNetDial(checkPort))
+	if err != nil {
+		t.Error("dial error:", err)
+	}
+}
+
+func TestDialURLHost(t *testing.T) {
+	checkHost := func(network, address string) (net.Conn, error) {
+		if address != "localhost:6379" {
+			t.Errorf("DialURL did not set host to localhost by default (got %v)", address)
+		}
+		return nil, nil
+	}
+	_, err := redis.DialURL("redis://:6379", redis.DialNetDial(checkHost))
+	if err != nil {
+		t.Error("dial error:", err)
+	}
+}
+
+var dialURLTests = []struct {
+	description string
+	url         string
+	r           string
+	w           string
+}{
+	{"password", "redis://x:abc123@localhost", "+OK\r\n", "*2\r\n$4\r\nAUTH\r\n$6\r\nabc123\r\n"},
+	{"database 3", "redis://localhost/3", "+OK\r\n", "*2\r\n$6\r\nSELECT\r\n$1\r\n3\r\n"},
+	{"database 99", "redis://localhost/99", "+OK\r\n", "*2\r\n$6\r\nSELECT\r\n$2\r\n99\r\n"},
+	{"no database", "redis://localhost/", "+OK\r\n", ""},
+}
+
+func TestDialURL(t *testing.T) {
+	for _, tt := range dialURLTests {
+		var buf bytes.Buffer
+		// UseTLS should be ignored in all of these tests.
+		_, err := redis.DialURL(tt.url, dialTestConn(tt.r, &buf), redis.DialUseTLS(true))
+		if err != nil {
+			t.Errorf("%s dial error: %v", tt.description, err)
+			continue
+		}
+		if w := buf.String(); w != tt.w {
+			t.Errorf("%s commands = %q, want %q", tt.description, w, tt.w)
+		}
+	}
+}
+
+func checkPingPong(t *testing.T, buf *bytes.Buffer, c redis.Conn) {
+	resp, err := c.Do("PING")
+	if err != nil {
+		t.Fatal("ping error:", err)
+	}
+	// Close connection to ensure that writes to buf are complete.
+	c.Close()
+	expected := "*1\r\n$4\r\nPING\r\n"
+	actual := buf.String()
+	if actual != expected {
+		t.Errorf("commands = %q, want %q", actual, expected)
+	}
+	if resp != "PONG" {
+		t.Errorf("resp = %v, want %v", resp, "PONG")
+	}
+}
+
+const pingResponse = "+PONG\r\n"
+
+func TestDialURLTLS(t *testing.T) {
+	var buf bytes.Buffer
+	c, err := redis.DialURL("rediss://example.com/",
+		redis.DialTLSConfig(&clientTLSConfig),
+		dialTestConnTLS(pingResponse, &buf))
+	if err != nil {
+		t.Fatal("dial error:", err)
+	}
+	checkPingPong(t, &buf, c)
+}
+
+func TestDialUseTLS(t *testing.T) {
+	var buf bytes.Buffer
+	c, err := redis.Dial("tcp", "example.com:6379",
+		redis.DialTLSConfig(&clientTLSConfig),
+		dialTestConnTLS(pingResponse, &buf),
+		redis.DialUseTLS(true))
+	if err != nil {
+		t.Fatal("dial error:", err)
+	}
+	checkPingPong(t, &buf, c)
+}
+
+func TestDialTLSSKipVerify(t *testing.T) {
+	var buf bytes.Buffer
+	c, err := redis.Dial("tcp", "example.com:6379",
+		dialTestConnTLS(pingResponse, &buf),
+		redis.DialTLSSkipVerify(true),
+		redis.DialUseTLS(true))
+	if err != nil {
+		t.Fatal("dial error:", err)
+	}
+	checkPingPong(t, &buf, c)
+}
+
 // Connect to local instance of Redis running on the default port.
-func ExampleDial(x int) {
+func ExampleDial() {
 	c, err := redis.Dial("tcp", ":6379")
 	if err != nil {
 		// handle error
+	}
+	defer c.Close()
+}
+
+// Connect to remote instance of Redis using a URL.
+func ExampleDialURL() {
+	c, err := redis.DialURL(os.Getenv("REDIS_URL"))
+	if err != nil {
+		// handle connection error
 	}
 	defer c.Close()
 }
@@ -435,7 +653,7 @@ func ExampleDial(x int) {
 // http://redis.io/topics/transactions for information on how Redis handles
 // errors in a transaction.
 func TestExecError(t *testing.T) {
-	c, err := redistest.Dial()
+	c, err := redis.DialDefaultServer()
 	if err != nil {
 		t.Fatalf("error connection to database, %v", err)
 	}
@@ -443,6 +661,7 @@ func TestExecError(t *testing.T) {
 
 	// Execute commands that fail before EXEC is called.
 
+	c.Do("DEL", "k0")
 	c.Do("ZADD", "k0", 0, 0)
 	c.Send("MULTI")
 	c.Send("NOTACOMMAND", "k0", 0, 0)
@@ -455,6 +674,7 @@ func TestExecError(t *testing.T) {
 	// Execute commands that fail after EXEC is called. The first command
 	// returns an error.
 
+	c.Do("DEL", "k1")
 	c.Do("ZADD", "k1", 0, 0)
 	c.Send("MULTI")
 	c.Send("HSET", "k1", 0, 0)
@@ -478,7 +698,7 @@ func TestExecError(t *testing.T) {
 	}
 
 	if _, ok := vs[1].([]byte); !ok {
-		t.Fatalf("second result is type %T, expected []byte", vs[2])
+		t.Fatalf("second result is type %T, expected []byte", vs[1])
 	}
 
 	// Execute commands that fail after EXEC is called. The second command
@@ -513,7 +733,7 @@ func TestExecError(t *testing.T) {
 
 func BenchmarkDoEmpty(b *testing.B) {
 	b.StopTimer()
-	c, err := redistest.Dial()
+	c, err := redis.DialDefaultServer()
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -528,7 +748,7 @@ func BenchmarkDoEmpty(b *testing.B) {
 
 func BenchmarkDoPing(b *testing.B) {
 	b.StopTimer()
-	c, err := redistest.Dial()
+	c, err := redis.DialDefaultServer()
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -539,4 +759,65 @@ func BenchmarkDoPing(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+var clientTLSConfig, serverTLSConfig tls.Config
+
+func init() {
+	// The certificate and key for testing TLS dial options was created
+	// using the command
+	//
+	//   go run GOROOT/src/crypto/tls/generate_cert.go  \
+	//      --rsa-bits 1024 \
+	//      --host 127.0.0.1,::1,example.com --ca \
+	//      --start-date "Jan 1 00:00:00 1970" \
+	//      --duration=1000000h
+	//
+	// where GOROOT is the value of GOROOT reported by go env.
+	localhostCert := []byte(`
+-----BEGIN CERTIFICATE-----
+MIICFDCCAX2gAwIBAgIRAJfBL4CUxkXcdlFurb3K+iowDQYJKoZIhvcNAQELBQAw
+EjEQMA4GA1UEChMHQWNtZSBDbzAgFw03MDAxMDEwMDAwMDBaGA8yMDg0MDEyOTE2
+MDAwMFowEjEQMA4GA1UEChMHQWNtZSBDbzCBnzANBgkqhkiG9w0BAQEFAAOBjQAw
+gYkCgYEArizw8WxMUQ3bGHLeuJ4fDrEpy+L2pqrbYRlKk1DasJ/VkB8bImzIpe6+
+LGjiYIxvnDCOJ3f3QplcQuiuMyl6f2irJlJsbFT8Lo/3obnuTKAIaqUdJUqBg6y+
+JaL8Auk97FvunfKFv8U1AIhgiLzAfQ/3Eaq1yi87Ra6pMjGbTtcCAwEAAaNoMGYw
+DgYDVR0PAQH/BAQDAgKkMBMGA1UdJQQMMAoGCCsGAQUFBwMBMA8GA1UdEwEB/wQF
+MAMBAf8wLgYDVR0RBCcwJYILZXhhbXBsZS5jb22HBH8AAAGHEAAAAAAAAAAAAAAA
+AAAAAAEwDQYJKoZIhvcNAQELBQADgYEAdZ8daIVkyhVwflt5I19m0oq1TycbGO1+
+ach7T6cZiBQeNR/SJtxr/wKPEpmvUgbv2BfFrKJ8QoIHYsbNSURTWSEa02pfw4k9
+6RQhij3ZkG79Ituj5OYRORV6Z0HUW32r670BtcuHuAhq7YA6Nxy4FtSt7bAlVdRt
+rrKgNsltzMk=
+-----END CERTIFICATE-----`)
+
+	localhostKey := []byte(`
+-----BEGIN RSA PRIVATE KEY-----
+MIICXAIBAAKBgQCuLPDxbExRDdsYct64nh8OsSnL4vamqtthGUqTUNqwn9WQHxsi
+bMil7r4saOJgjG+cMI4nd/dCmVxC6K4zKXp/aKsmUmxsVPwuj/ehue5MoAhqpR0l
+SoGDrL4lovwC6T3sW+6d8oW/xTUAiGCIvMB9D/cRqrXKLztFrqkyMZtO1wIDAQAB
+AoGACrc5G6FOEK6JjDeE/Fa+EmlT6PdNtXNNi+vCas3Opo8u1G8VfEi1D4BgstrB
+Eq+RLkrOdB8tVyuYQYWPMhabMqF+hhKJN72j0OwfuPlVvTInwb/cKjo/zbH1IA+Y
+HenHNK4ywv7/p/9/MvQPJ3I32cQBCgGUW5chVSH5M1sj5gECQQDabQAI1X0uDqCm
+KbX9gXVkAgxkFddrt6LBHt57xujFcqEKFE7nwKhDh7DweVs/VEJ+kpid4z+UnLOw
+KjtP9JolAkEAzCNBphQ//IsbH5rNs10wIUw3Ks/Oepicvr6kUFbIv+neRzi1iJHa
+m6H7EayK3PWgax6BAsR/t0Jc9XV7r2muSwJAVzN09BHnK+ADGtNEKLTqXMbEk6B0
+pDhn7ZmZUOkUPN+Kky+QYM11X6Bob1jDqQDGmymDbGUxGO+GfSofC8inUQJAGfci
+Eo3g1a6b9JksMPRZeuLG4ZstGErxJRH6tH1Va5PDwitka8qhk8o2tTjNMO3NSdLH
+diKoXBcE2/Pll5pJoQJBAIMiiMIzXJhnN4mX8may44J/HvMlMf2xuVH2gNMwmZuc
+Bjqn3yoLHaoZVvbWOi0C2TCN4FjXjaLNZGifQPbIcaA=
+-----END RSA PRIVATE KEY-----`)
+
+	cert, err := tls.X509KeyPair(localhostCert, localhostKey)
+	if err != nil {
+		panic(fmt.Sprintf("error creating key pair: %v", err))
+	}
+	serverTLSConfig.Certificates = []tls.Certificate{cert}
+
+	certificate, err := x509.ParseCertificate(serverTLSConfig.Certificates[0].Certificate[0])
+	if err != nil {
+		panic(fmt.Sprintf("error parsing x509 certificate: %v", err))
+	}
+
+	clientTLSConfig.RootCAs = x509.NewCertPool()
+	clientTLSConfig.RootCAs.AddCert(certificate)
 }

@@ -1,0 +1,5 @@
+<thing top="100" left="100" sep="100">
+    <item width="50"  height="50"  name="Little" color="blue">This is small</item>
+    <item width="75"  height="100" name="Med"    color="green">This is medium</item>
+    <item width="100" height="200" name="Big"    color="red">This is large</item>
+</thing>

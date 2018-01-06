@@ -16,11 +16,34 @@ package redis_test
 
 import (
 	"fmt"
-	"github.com/garyburd/redigo/redis"
 	"math"
 	"reflect"
 	"testing"
+	"time"
+
+	"github.com/garyburd/redigo/redis"
 )
+
+type durationScan struct {
+	time.Duration `redis:"sd"`
+}
+
+func (t *durationScan) RedisScan(src interface{}) (err error) {
+	if t == nil {
+		return fmt.Errorf("nil pointer")
+	}
+	switch src := src.(type) {
+	case string:
+		t.Duration, err = time.ParseDuration(src)
+	case []byte:
+		t.Duration, err = time.ParseDuration(string(src))
+	case int64:
+		t.Duration = time.Duration(src)
+	default:
+		err = fmt.Errorf("cannot convert from %T to %T", src, t)
+	}
+	return err
+}
 
 var scanConversionTests = []struct {
 	src  interface{}
@@ -46,6 +69,7 @@ var scanConversionTests = []struct {
 	{[]byte("1"), true},
 	{int64(1), true},
 	{[]byte("t"), true},
+	{"hello", "hello"},
 	{[]byte("hello"), "hello"},
 	{[]byte("world"), []byte("world")},
 	{[]interface{}{[]byte("foo")}, []interface{}{[]byte("foo")}},
@@ -57,6 +81,11 @@ var scanConversionTests = []struct {
 	{[]interface{}{[]byte("1"), []byte("2")}, []float64{1, 2}},
 	{[]interface{}{[]byte("1")}, []byte{1}},
 	{[]interface{}{[]byte("1")}, []bool{true}},
+	{"1m", durationScan{Duration: time.Minute}},
+	{[]byte("1m"), durationScan{Duration: time.Minute}},
+	{time.Minute.Nanoseconds(), durationScan{Duration: time.Minute}},
+	{[]interface{}{[]byte("1m")}, []durationScan{durationScan{Duration: time.Minute}}},
+	{[]interface{}{[]byte("1m")}, []*durationScan{&durationScan{Duration: time.Minute}}},
 }
 
 func TestScanConversion(t *testing.T) {
@@ -84,6 +113,8 @@ var scanConversionErrorTests = []struct {
 	{int64(-1), byte(0)},
 	{[]byte("junk"), false},
 	{redis.Error("blah"), false},
+	{redis.Error("blah"), durationScan{Duration: time.Minute}},
+	{"invalid", durationScan{Duration: time.Minute}},
 }
 
 func TestScanConversionError(t *testing.T) {
@@ -100,7 +131,8 @@ func TestScanConversionError(t *testing.T) {
 func ExampleScan() {
 	c, err := dial()
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	defer c.Close()
 
@@ -115,7 +147,8 @@ func ExampleScan() {
 		"GET", "album:*->title",
 		"GET", "album:*->rating"))
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 
 	for len(values) > 0 {
@@ -123,7 +156,8 @@ func ExampleScan() {
 		rating := -1 // initialize to illegal value to detect nil.
 		values, err = redis.Scan(values, &title, &rating)
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			return
 		}
 		if rating == -1 {
 			fmt.Println(title, "not-rated")
@@ -153,6 +187,8 @@ type s1 struct {
 	Bt bool
 	Bf bool
 	s0
+	Sd  durationScan  `redis:"sd"`
+	Sdp *durationScan `redis:"sdp"`
 }
 
 var scanStructTests = []struct {
@@ -161,8 +197,31 @@ var scanStructTests = []struct {
 	value interface{}
 }{
 	{"basic",
-		[]string{"i", "-1234", "u", "5678", "s", "hello", "p", "world", "b", "t", "Bt", "1", "Bf", "0", "X", "123", "y", "456"},
-		&s1{I: -1234, U: 5678, S: "hello", P: []byte("world"), B: true, Bt: true, Bf: false, s0: s0{X: 123, Y: 456}},
+		[]string{
+			"i", "-1234",
+			"u", "5678",
+			"s", "hello",
+			"p", "world",
+			"b", "t",
+			"Bt", "1",
+			"Bf", "0",
+			"X", "123",
+			"y", "456",
+			"sd", "1m",
+			"sdp", "1m",
+		},
+		&s1{
+			I:   -1234,
+			U:   5678,
+			S:   "hello",
+			P:   []byte("world"),
+			B:   true,
+			Bt:  true,
+			Bf:  false,
+			s0:  s0{X: 123, Y: 456},
+			Sd:  durationScan{Duration: time.Minute},
+			Sdp: &durationScan{Duration: time.Minute},
+		},
 	},
 }
 
@@ -295,7 +354,8 @@ func TestScanSlice(t *testing.T) {
 func ExampleScanSlice() {
 	c, err := dial()
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	defer c.Close()
 
@@ -310,7 +370,8 @@ func ExampleScanSlice() {
 		"GET", "album:*->title",
 		"GET", "album:*->rating"))
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 
 	var albums []struct {
@@ -318,7 +379,8 @@ func ExampleScanSlice() {
 		Rating int
 	}
 	if err := redis.ScanSlice(values, &albums); err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	fmt.Printf("%v\n", albums)
 	// Output:
@@ -332,16 +394,17 @@ var argsTests = []struct {
 }{
 	{"struct ptr",
 		redis.Args{}.AddFlat(&struct {
-			I  int    `redis:"i"`
-			U  uint   `redis:"u"`
-			S  string `redis:"s"`
-			P  []byte `redis:"p"`
+			I  int               `redis:"i"`
+			U  uint              `redis:"u"`
+			S  string            `redis:"s"`
+			P  []byte            `redis:"p"`
+			M  map[string]string `redis:"m"`
 			Bt bool
 			Bf bool
 		}{
-			-1234, 5678, "hello", []byte("world"), true, false,
+			-1234, 5678, "hello", []byte("world"), map[string]string{"hello": "world"}, true, false,
 		}),
-		redis.Args{"i", int(-1234), "u", uint(5678), "s", "hello", "p", []byte("world"), "Bt", true, "Bf", false},
+		redis.Args{"i", int(-1234), "u", uint(5678), "s", "hello", "p", []byte("world"), "m", map[string]string{"hello": "world"}, "Bt", true, "Bf", false},
 	},
 	{"struct",
 		redis.Args{}.AddFlat(struct{ I int }{123}),
@@ -350,6 +413,20 @@ var argsTests = []struct {
 	{"slice",
 		redis.Args{}.Add(1).AddFlat([]string{"a", "b", "c"}).Add(2),
 		redis.Args{1, "a", "b", "c", 2},
+	},
+	{"struct omitempty",
+		redis.Args{}.AddFlat(&struct {
+			I  int               `redis:"i,omitempty"`
+			U  uint              `redis:"u,omitempty"`
+			S  string            `redis:"s,omitempty"`
+			P  []byte            `redis:"p,omitempty"`
+			M  map[string]string `redis:"m,omitempty"`
+			Bt bool              `redis:"Bt,omitempty"`
+			Bf bool              `redis:"Bf,omitempty"`
+		}{
+			0, 0, "", []byte{}, map[string]string{}, true, false,
+		}),
+		redis.Args{"Bt", true},
 	},
 }
 
@@ -364,7 +441,8 @@ func TestArgs(t *testing.T) {
 func ExampleArgs() {
 	c, err := dial()
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	defer c.Close()
 
@@ -379,7 +457,8 @@ func ExampleArgs() {
 	p1.Body = "Hello"
 
 	if _, err := c.Do("HMSET", redis.Args{}.Add("id1").AddFlat(&p1)...); err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 
 	m := map[string]string{
@@ -389,18 +468,21 @@ func ExampleArgs() {
 	}
 
 	if _, err := c.Do("HMSET", redis.Args{}.Add("id2").AddFlat(m)...); err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 
 	for _, id := range []string{"id1", "id2"} {
 
 		v, err := redis.Values(c.Do("HGETALL", id))
 		if err != nil {
-			panic(err)
+			fmt.Println(err)
+			return
 		}
 
 		if err := redis.ScanStruct(v, &p2); err != nil {
-			panic(err)
+			fmt.Println(err)
+			return
 		}
 
 		fmt.Printf("%+v\n", p2)
