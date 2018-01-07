@@ -13,7 +13,6 @@ option (gogoproto.testgen_all) = true;
 
 message Request {
     repeated Command Commands = 1 [(gogoproto.jsontag) = "commands"];
-    bool Async = 2 [(gogoproto.jsontag) = "async"];
 }
 
 message Command {

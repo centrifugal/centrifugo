@@ -15,6 +15,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/FZambia/statik"
+  packages = ["fs"]
+  revision = "a4ba4328dcd4f83a6f37b46bc763f6f26a54f2e7"
+
+[[projects]]
+  branch = "master"
   name = "github.com/FZambia/viper-lite"
   packages = ["."]
   revision = "d5a31e6aa18be883faab7c5a037f540f51bb9b1e"
@@ -120,12 +126,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  name = "github.com/rakyll/statik"
-  packages = ["fs"]
-  revision = "fd36b3595eb2ec8da4b8153b107f7ea08504899d"
-  version = "v0.1.1"
-
-[[projects]]
   name = "github.com/satori/go.uuid"
   packages = ["."]
   revision = "879c5887cd475cd7864858769793b2ceb0d44feb"
@@ -160,12 +160,6 @@
   packages = ["assert"]
   revision = "69483b4bd14f5845b5a1e55bca19e954e827f1d0"
   version = "v1.1.4"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/valyala/bytebufferpool"
-  packages = ["."]
-  revision = "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7"
 
 [[projects]]
   branch = "master"
@@ -255,6 +249,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7732aaea94aa853c3e79ff71f6e45230a11865a1b80737b8a5abc75b6254f0c6"
+  inputs-digest = "e0650d9ff3dd2d6c3df4e37e5418369ce63824aa6b7db37737733409722dec0f"
   solver-name = "gps-cdcl"
   solver-version = 1

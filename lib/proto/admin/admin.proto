@@ -17,6 +17,6 @@ enum MessageType {
 }
 
 message Message {
-    MessageType Type = 1 [(gogoproto.jsontag) = "t,omitempty"];
-    bytes Data = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "d", (gogoproto.nullable) = false];
+    MessageType Type = 1 [(gogoproto.jsontag) = "type,omitempty"];
+    bytes Data = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
 }

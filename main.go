@@ -28,16 +28,13 @@ import (
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/server"
+	"github.com/centrifugal/centrifugo/lib/statik"
 
 	"github.com/FZambia/viper-lite"
 	"github.com/igm/sockjs-go/sockjs"
-	"github.com/rakyll/statik/fs"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/acme/autocert"
-
-	// Register embedded web interface.
-	_ "github.com/centrifugal/centrifugo/lib/statik"
 )
 
 // VERSION of Centrifugo server. Set on build stage.
@@ -436,7 +433,7 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 
 	var webFS http.FileSystem
 	if webEnabled {
-		webFS, _ = fs.New()
+		webFS = statik.FS
 	}
 
 	if httpAPIPort == "" {

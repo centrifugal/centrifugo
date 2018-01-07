@@ -21,7 +21,7 @@ enum MessageType {
 message Message {
     MessageType Type = 1 [(gogoproto.jsontag) = "t,omitempty"];
     string UID = 2 [(gogoproto.jsontag) = "i,omitempty"];
-    string Channel = 3 [(gogoproto.jsontag) = "ch,omitempty"];
+    string Channel = 3 [(gogoproto.jsontag) = "c,omitempty"];
     bytes Data = 4 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "d", (gogoproto.nullable) = false];
 }
 

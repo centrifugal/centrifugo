@@ -16,7 +16,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto"
 	clientproto "github.com/centrifugal/centrifugo/lib/proto/client"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 func init() {
