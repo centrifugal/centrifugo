@@ -50,6 +50,9 @@ func (r *Raw) Size() int {
 
 // MarshalJSON returns *r as the JSON encoding of r.
 func (r Raw) MarshalJSON() ([]byte, error) {
+	if r == nil {
+		return []byte("null"), nil
+	}
 	return r, nil
 }
 

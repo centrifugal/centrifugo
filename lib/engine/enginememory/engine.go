@@ -11,7 +11,6 @@ import (
 	"github.com/centrifugal/centrifugo/lib/internal/priority"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/proto/admin"
 	"github.com/centrifugal/centrifugo/lib/proto/control"
 )
 
@@ -75,33 +74,10 @@ func (e *MemoryEngine) PublishClient(message *proto.Message, opts *channel.Optio
 	return eChan
 }
 
-// // PublishJoin - see Engine interface description.
-// func (e *MemoryEngine) PublishJoin(message *proto.JoinMessage, opts *channel.Options) <-chan error {
-// 	eChan := make(chan error, 1)
-// 	eChan <- e.node.JoinMsg(message)
-// 	return eChan
-// }
-
-// // PublishLeave - see Engine interface description.
-// func (e *MemoryEngine) PublishLeave(message *proto.LeaveMessage, opts *channel.Options) <-chan error {
-// 	eChan := make(chan error, 1)
-// 	eChan <- e.node.LeaveMsg(message)
-// 	return eChan
-// }
-
 // PublishControl - see Engine interface description.
 func (e *MemoryEngine) PublishControl(message *control.Command) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.node.HandleControl(message)
-	return eChan
-}
-
-// PublishAdmin - see Engine interface description.
-func (e *MemoryEngine) PublishAdmin(message *admin.Message) <-chan error {
-	eChan := make(chan error, 1)
-	// TODO
-	eChan <- nil
-	//eChan <- e.node.AdminMsg(message)
 	return eChan
 }
 
@@ -110,8 +86,9 @@ func (e *MemoryEngine) Subscribe(ch string) error {
 	return nil
 }
 
-// Unsubscribe node from channel.
-// In case of memory engine its only job is to touch channel history for history lifetime period.
+// Unsubscribe node from channel. In case of memory engine
+// its only job is to touch channel history for history
+// lifetime period. See https://github.com/centrifugal/centrifugo/pull/148
 func (e *MemoryEngine) Unsubscribe(ch string) error {
 	if chOpts, ok := e.node.ChannelOpts(ch); ok && chOpts.HistoryDropInactive {
 		e.historyHub.touch(ch, &chOpts)

@@ -155,7 +155,7 @@ func (c *Config) Validate() error {
 // channelOpts searches for channel options for specified namespace key.
 func (c *Config) channelOpts(nk channel.NamespaceKey) (channel.Options, bool) {
 	if nk == channel.NamespaceKey("") {
-		return c.Options, false
+		return c.Options, true
 	}
 	for _, n := range c.Namespaces {
 		if n.Name == nk {

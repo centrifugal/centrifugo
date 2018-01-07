@@ -9,6 +9,7 @@ import (
 
 // CommandDecoder ...
 type CommandDecoder interface {
+	Reset([]byte) error
 	Decode() (*Command, error)
 }
 
@@ -18,10 +19,14 @@ type JSONCommandDecoder struct {
 }
 
 // NewJSONCommandDecoder ...
-func NewJSONCommandDecoder(data []byte) *JSONCommandDecoder {
-	return &JSONCommandDecoder{
-		decoder: json.NewDecoder(bytes.NewReader(data)),
-	}
+func NewJSONCommandDecoder() *JSONCommandDecoder {
+	return &JSONCommandDecoder{}
+}
+
+// Reset ...
+func (d *JSONCommandDecoder) Reset(data []byte) error {
+	d.decoder = json.NewDecoder(bytes.NewReader(data))
+	return nil
 }
 
 // Decode ...
@@ -41,10 +46,15 @@ type ProtobufCommandDecoder struct {
 }
 
 // NewProtobufCommandDecoder ...
-func NewProtobufCommandDecoder(data []byte) *ProtobufCommandDecoder {
-	return &ProtobufCommandDecoder{
-		data: data,
-	}
+func NewProtobufCommandDecoder() *ProtobufCommandDecoder {
+	return &ProtobufCommandDecoder{}
+}
+
+// Reset ...
+func (d *ProtobufCommandDecoder) Reset(data []byte) error {
+	d.data = data
+	d.offset = 0
+	return nil
 }
 
 // Decode ...

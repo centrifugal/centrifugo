@@ -63,15 +63,16 @@ type client struct {
 	maxQueueSize   int
 	maxRequestSize int
 	sendFinished   chan struct{}
-	resultEncoder  clientproto.ResultEncoder
+	encoding       clientproto.Encoding
 	paramsDecoder  clientproto.ParamsDecoder
+	resultEncoder  clientproto.ResultEncoder
 }
 
 // CommandHandler must handle incoming command from client.
 type CommandHandler func(ctx context.Context, params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect)
 
 // New creates new client connection.
-func New(ctx context.Context, n *node.Node, s Session, credentials *Credentials) node.Client {
+func New(ctx context.Context, n *node.Node, s Session, enc clientproto.Encoding, credentials *Credentials) node.Client {
 	config := n.Config()
 	staleCloseDelay := config.StaleConnectionCloseDelay
 	queueInitialCapacity := config.ClientQueueInitialCapacity
@@ -87,8 +88,8 @@ func New(ctx context.Context, n *node.Node, s Session, credentials *Credentials)
 		sendFinished:   make(chan struct{}),
 		maxQueueSize:   maxQueueSize,
 		maxRequestSize: maxRequestSize,
-		resultEncoder:  clientproto.NewJSONResultEncoder(),
-		paramsDecoder:  clientproto.NewJSONParamsDecoder(),
+		paramsDecoder:  clientproto.GetParamsDecoder(enc),
+		resultEncoder:  clientproto.GetResultEncoder(enc),
 	}
 
 	go c.sendMessages()
@@ -188,6 +189,10 @@ func (c *client) User() string {
 	return c.user
 }
 
+func (c *client) Encoding() clientproto.Encoding {
+	return c.encoding
+}
+
 func (c *client) Channels() []string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -214,15 +219,15 @@ func (c *client) Unsubscribe(ch string) error {
 	c.mu.Unlock()
 
 	// TODO: send AsyncUnsubscribeMessage to this client.
-	// respJSON, err := json.Marshal(res)
-	// if err != nil {
-	// 	return err
-	// }
-	// return c.Send(respJSON)
+	// encoder := clientproto.GetReplyEncoder(c.encoding)
+	// defer clientproto.PutReplyEncoder(c.encoding, encoder)
+	// unsubscribe := &proto.Unsubscribe{}
+	// message := proto.NewUnsubscribeMessage(ch)
+
 	return nil
 }
 
-func (c *client) Send(data []byte) error {
+func (c *client) enqueue(data []byte) error {
 	ok := c.messages.Add(data)
 	if !ok {
 		return nil
@@ -234,6 +239,10 @@ func (c *client) Send(data []byte) error {
 		return nil
 	}
 	return nil
+}
+
+func (c *client) Send(data []byte) error {
+	return c.enqueue(data)
 }
 
 // clean called when connection was closed to make different clean up
@@ -318,9 +327,12 @@ func (c *client) Handle(data []byte) error {
 		return proto.ErrLimitExceeded
 	}
 
-	// TODO: maybe per-client instance synchronized encoder?
-	encoder := clientproto.NewJSONReplyEncoder()
-	decoder := clientproto.NewJSONCommandDecoder(data)
+	encoder := clientproto.GetReplyEncoder(c.encoding)
+	defer clientproto.PutReplyEncoder(c.encoding, encoder)
+
+	decoder := clientproto.GetCommandDecoder(c.encoding)
+	defer clientproto.PutCommandDecoder(c.encoding, decoder)
+
 	for {
 		cmd, err := decoder.Decode()
 		if err != nil {
@@ -344,16 +356,7 @@ func (c *client) Handle(data []byte) error {
 			return err
 		}
 	}
-
-	data, err := encoder.Finish()
-	if err != nil {
-		logger.ERROR.Printf("Error getting response data: %v", err)
-		c.Close(&proto.Disconnect{Reason: "internal error", Reconnect: true})
-		return err
-	}
-
-	c.Send(data)
-	return nil
+	return c.enqueue(encoder.Finish())
 }
 
 // handleCmd dispatches clientCommand into correct command handler

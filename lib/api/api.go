@@ -49,6 +49,10 @@ func (h *RequestHandler) Handle(data []byte) ([]byte, error) {
 
 	replies := make([]*apiproto.Reply, len(request.Commands))
 
+	if len(request.Commands) == 0 {
+		return nil, proto.ErrInvalidData
+	}
+
 	for i, command := range request.Commands {
 		rep, err := h.handleCommand(command)
 		if err != nil {
@@ -205,6 +209,7 @@ func CallPublish(n *node.Node, cmd *apiproto.Publish) (*apiproto.PublishResult, 
 	data := cmd.Data
 
 	if string(ch) == "" || len(data) == 0 {
+		logger.ERROR.Printf("channel and data required for publish")
 		return nil, proto.ErrInvalidData
 	}
 
@@ -239,6 +244,7 @@ func CallPublishAsync(n *node.Node, cmd *apiproto.Publish) <-chan *proto.Error {
 	data := cmd.Data
 
 	if string(ch) == "" || len(data) == 0 {
+		logger.ERROR.Printf("channel and data required for publish")
 		return makeProtoErrChan(proto.ErrInvalidData)
 	}
 

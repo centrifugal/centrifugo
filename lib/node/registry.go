@@ -45,9 +45,18 @@ func (r *nodeRegistry) get(uid string) control.Node {
 	return info
 }
 
-func (r *nodeRegistry) add(info control.Node) {
+func (r *nodeRegistry) add(info *control.Node) {
 	r.mu.Lock()
-	r.nodes[info.UID] = info
+	currentInfo, ok := r.nodes[info.UID]
+	if !ok {
+		r.nodes[info.UID] = *info
+	} else {
+		// Only metrics is variable part of running node at moment.
+		if len(info.Metrics) > 0 {
+			currentInfo.Metrics = info.Metrics
+		}
+		r.nodes[info.UID] = currentInfo
+	}
 	r.updates[info.UID] = time.Now().Unix()
 	r.mu.Unlock()
 }

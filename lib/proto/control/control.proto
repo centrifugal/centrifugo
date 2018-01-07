@@ -24,7 +24,8 @@ message Node {
     string Name = 2;
     string Version = 3;
     int64 StartedAt = 4;
-    map <string, int64> Metrics = 5;
+    uint64 MetricsUpdateInterval = 5;
+    map <string, int64> Metrics = 6;
 }
 
 message Unsubscribe {

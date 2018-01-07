@@ -14,7 +14,6 @@ import (
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/proto/admin"
 	"github.com/centrifugal/centrifugo/lib/proto/control"
 
 	"github.com/FZambia/go-sentinel"
@@ -57,14 +56,8 @@ const (
 	RedisControlChannelSuffix = ".control"
 	// RedisPingChannelSuffix is a suffix for ping channel.
 	RedisPingChannelSuffix = ".ping"
-	// RedisAdminChannelSuffix is a suffix for admin channel.
-	RedisAdminChannelSuffix = ".admin"
-	// RedisMessageChannelPrefix is a prefix before channel name for client messages.
-	RedisMessageChannelPrefix = ".message."
-	// RedisJoinChannelPrefix is a prefix before channel name for join messages.
-	RedisJoinChannelPrefix = ".join."
-	// RedisLeaveChannelPrefix is a prefix before channel name for leave messages.
-	RedisLeaveChannelPrefix = ".leave."
+	// RedisClientChannelPrefix is a prefix before channel name for client messages.
+	RedisClientChannelPrefix = ".client."
 )
 
 // RedisEngine uses Redis datastructures and PUB/SUB to manage Centrifugo logic.
@@ -95,8 +88,6 @@ type Shard struct {
 	presenceScript    *redis.Script
 	lpopManyScript    *redis.Script
 	messagePrefix     string
-	joinPrefix        string
-	leavePrefix       string
 	jsonAPIHandler    *api.RequestHandler
 }
 
@@ -340,9 +331,7 @@ func NewShard(n *node.Node, conf *ShardConfig) (*Shard, error) {
 	shard.pubCh = make(chan pubRequest, RedisPublishChannelSize)
 	shard.subCh = make(chan subRequest, RedisSubscribeChannelSize)
 	shard.dataCh = make(chan dataRequest, RedisDataChannelSize)
-	shard.messagePrefix = conf.Prefix + RedisMessageChannelPrefix
-	shard.joinPrefix = conf.Prefix + RedisJoinChannelPrefix
-	shard.leavePrefix = conf.Prefix + RedisLeaveChannelPrefix
+	shard.messagePrefix = conf.Prefix + RedisClientChannelPrefix
 	return shard, nil
 }
 
@@ -467,11 +456,6 @@ func (e *RedisEngine) Run() error {
 // PublishClient ...
 func (e *RedisEngine) PublishClient(message *proto.Message, opts *channel.Options) <-chan error {
 	return e.shards[e.shardIndex(message.Channel)].PublishClient(message, opts)
-}
-
-// PublishAdmin - see engine interface description.
-func (e *RedisEngine) PublishAdmin(message *admin.Message) <-chan error {
-	return e.shards[0].PublishAdmin(message)
 }
 
 // PublishControl - see engine interface description.
@@ -775,7 +759,6 @@ func (e *Shard) runPubSub() {
 	}()
 
 	controlChannel := e.controlChannelID()
-	adminChannel := e.adminChannelID()
 	pingChannel := e.pingChannelID()
 
 	// Run workers to spread received message processing work over worker goroutines.
@@ -795,22 +778,12 @@ func (e *Shard) runPubSub() {
 					}
 					switch chID {
 					case controlChannel:
-						var cmd control.Command
-						err := cmd.Unmarshal(n.Data)
+						cmd, err := e.node.CommandDecoder().Decode(n.Data)
 						if err != nil {
 							logger.ERROR.Println(err)
 							continue
 						}
-						e.node.HandleControl(&cmd)
-						// TODO
-						// case adminChannel:
-					// 	var message admin.Message
-					// 	err := message.Unmarshal(n.Data)
-					// 	if err != nil {
-					// 		logger.ERROR.Println(err)
-					// 		continue
-					// 	}
-					// 	e.node.AdminMsg(&message)
+						e.node.HandleControl(cmd)
 					case pingChannel:
 						// Do nothing - this message just maintains connection open.
 					default:
@@ -825,15 +798,12 @@ func (e *Shard) runPubSub() {
 		}(workerCh)
 	}
 
-	chIDs := make([]ChannelID, 3)
+	chIDs := make([]ChannelID, 2)
 	chIDs[0] = controlChannel
-	chIDs[1] = adminChannel
-	chIDs[2] = pingChannel
+	chIDs[1] = pingChannel
 
 	for _, ch := range e.node.Hub().Channels() {
-		chIDs = append(chIDs, e.messageChannelID(ch))
-		chIDs = append(chIDs, e.joinChannelID(ch))
-		chIDs = append(chIDs, e.leaveChannelID(ch))
+		chIDs = append(chIDs, e.channelID(ch))
 	}
 
 	batch := make([]ChannelID, 0)
@@ -1142,28 +1112,9 @@ func (e *Shard) runDataPipeline() {
 	}
 }
 
-func (e *Shard) messageChannelID(ch string) ChannelID {
+func (e *Shard) channelID(ch string) ChannelID {
 	return ChannelID(e.messagePrefix + string(ch))
 }
-
-func (e *Shard) joinChannelID(ch string) ChannelID {
-	return ChannelID(e.joinPrefix + string(ch))
-}
-
-func (e *Shard) leaveChannelID(ch string) ChannelID {
-	return ChannelID(e.leavePrefix + string(ch))
-}
-
-// func (e *Shard) typeFromChannelID(chID ChannelID) string {
-// 	if strings.HasPrefix(string(chID), e.messagePrefix) {
-// 		return "message"
-// 	} else if strings.HasPrefix(string(chID), e.joinPrefix) {
-// 		return "join"
-// 	} else if strings.HasPrefix(string(chID), e.leavePrefix) {
-// 		return "leave"
-// 	}
-// 	return "unknown"
-// }
 
 // PublishClient - see engine interface description.
 func (e *Shard) PublishClient(message *proto.Message, opts *channel.Options) <-chan error {
@@ -1171,13 +1122,13 @@ func (e *Shard) PublishClient(message *proto.Message, opts *channel.Options) <-c
 
 	eChan := make(chan error, 1)
 
-	byteMessage, err := message.Marshal()
+	byteMessage, err := e.node.MessageEncoder().Encode(message)
 	if err != nil {
 		eChan <- err
 		return eChan
 	}
 
-	chID := e.messageChannelID(ch)
+	chID := e.channelID(ch)
 
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
 		pr := pubRequest{
@@ -1202,10 +1153,10 @@ func (e *Shard) PublishClient(message *proto.Message, opts *channel.Options) <-c
 }
 
 // PublishControl - see engine interface description.
-func (e *Shard) PublishControl(message *control.Command) <-chan error {
+func (e *Shard) PublishControl(cmd *control.Command) <-chan error {
 	eChan := make(chan error, 1)
 
-	byteMessage, err := message.Marshal()
+	byteMessage, err := e.node.CommandEncoder().Encode(cmd)
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -1222,35 +1173,11 @@ func (e *Shard) PublishControl(message *control.Command) <-chan error {
 	return eChan
 }
 
-// PublishAdmin - see engine interface description.
-func (e *Shard) PublishAdmin(message *admin.Message) <-chan error {
-	eChan := make(chan error, 1)
-
-	byteMessage, err := message.Marshal()
-	if err != nil {
-		eChan <- err
-		return eChan
-	}
-
-	chID := e.adminChannelID()
-
-	pr := pubRequest{
-		channel: chID,
-		message: byteMessage,
-		err:     &eChan,
-	}
-	e.pubCh <- pr
-	return eChan
-}
-
 // Subscribe - see engine interface description.
 func (e *Shard) Subscribe(ch string) error {
 	logger.DEBUG.Println("Subscribe node on channel", ch)
-	channels := make([]ChannelID, 3)
-	channels[0] = e.joinChannelID(ch)
-	channels[1] = e.leaveChannelID(ch)
-	channels[2] = e.messageChannelID(ch)
-	r := newSubRequest(channels, true, true)
+	channel := e.channelID(ch)
+	r := newSubRequest([]ChannelID{channel}, true, true)
 	e.subCh <- r
 	return r.result()
 }
@@ -1258,12 +1185,8 @@ func (e *Shard) Subscribe(ch string) error {
 // Unsubscribe - see engine interface description.
 func (e *Shard) Unsubscribe(ch string) error {
 	logger.DEBUG.Println("Unsubscribe node from channel", ch)
-	channels := make([]ChannelID, 3)
-	channels[0] = e.joinChannelID(ch)
-	channels[1] = e.leaveChannelID(ch)
-	channels[2] = e.messageChannelID(ch)
-
-	r := newSubRequest(channels, false, true)
+	channel := e.channelID(ch)
+	r := newSubRequest([]ChannelID{channel}, false, true)
 	e.subCh <- r
 
 	if chOpts, ok := e.node.ChannelOpts(ch); ok && chOpts.HistoryDropInactive {
@@ -1271,7 +1194,7 @@ func (e *Shard) Unsubscribe(ch string) error {
 		// semantically correct and allows avoid races in drop inactive tests.
 		// It does not seem a big bottleneck for real usage but can be tuned in
 		// future if we find any problems with it.
-		dr := newDataRequest(dataOpHistoryTouch, []interface{}{e.getHistoryTouchKey(e.messageChannelID(ch)), chOpts.HistoryLifetime, ""}, true)
+		dr := newDataRequest(dataOpHistoryTouch, []interface{}{e.getHistoryTouchKey(e.channelID(ch)), chOpts.HistoryLifetime, ""}, true)
 		e.dataCh <- dr
 		dr.result()
 	}
@@ -1295,15 +1218,11 @@ func (e *Shard) pingChannelID() ChannelID {
 	return ChannelID(e.config.Prefix + RedisPingChannelSuffix)
 }
 
-func (e *Shard) adminChannelID() ChannelID {
-	return ChannelID(e.config.Prefix + RedisAdminChannelSuffix)
-}
-
-func (e *Shard) getHashKey(chID ChannelID) string {
+func (e *Shard) getPresenceHashKey(chID ChannelID) string {
 	return e.config.Prefix + ".presence.hash." + string(chID)
 }
 
-func (e *Shard) getSetKey(chID ChannelID) string {
+func (e *Shard) getPresenceSetKey(chID ChannelID) string {
 	return e.config.Prefix + ".presence.set." + string(chID)
 }
 
@@ -1317,14 +1236,14 @@ func (e *Shard) getHistoryTouchKey(chID ChannelID) string {
 
 // AddPresence - see engine interface description.
 func (e *Shard) AddPresence(ch string, uid string, info *proto.ClientInfo, expire int) error {
-	chID := e.messageChannelID(ch)
+	chID := e.channelID(ch)
 	infoJSON, err := info.Marshal()
 	if err != nil {
 		return err
 	}
 	expireAt := time.Now().Unix() + int64(expire)
-	hashKey := e.getHashKey(chID)
-	setKey := e.getSetKey(chID)
+	hashKey := e.getPresenceHashKey(chID)
+	setKey := e.getPresenceSetKey(chID)
 	dr := newDataRequest(dataOpAddPresence, []interface{}{setKey, hashKey, expire, expireAt, uid, infoJSON}, true)
 	e.dataCh <- dr
 	resp := dr.result()
@@ -1333,9 +1252,9 @@ func (e *Shard) AddPresence(ch string, uid string, info *proto.ClientInfo, expir
 
 // RemovePresence - see engine interface description.
 func (e *Shard) RemovePresence(ch string, uid string) error {
-	chID := e.messageChannelID(ch)
-	hashKey := e.getHashKey(chID)
-	setKey := e.getSetKey(chID)
+	chID := e.channelID(ch)
+	hashKey := e.getPresenceHashKey(chID)
+	setKey := e.getPresenceSetKey(chID)
 	dr := newDataRequest(dataOpRemovePresence, []interface{}{setKey, hashKey, uid}, true)
 	e.dataCh <- dr
 	resp := dr.result()
@@ -1344,9 +1263,9 @@ func (e *Shard) RemovePresence(ch string, uid string) error {
 
 // Presence - see engine interface description.
 func (e *Shard) Presence(ch string) (map[string]*proto.ClientInfo, error) {
-	chID := e.messageChannelID(ch)
-	hashKey := e.getHashKey(chID)
-	setKey := e.getSetKey(chID)
+	chID := e.channelID(ch)
+	hashKey := e.getPresenceHashKey(chID)
+	setKey := e.getPresenceSetKey(chID)
 	now := int(time.Now().Unix())
 	dr := newDataRequest(dataOpPresence, []interface{}{setKey, hashKey, now}, true)
 	e.dataCh <- dr
@@ -1359,7 +1278,7 @@ func (e *Shard) Presence(ch string) (map[string]*proto.ClientInfo, error) {
 
 // History - see engine interface description.
 func (e *Shard) History(ch string, limit int) ([]*proto.Message, error) {
-	chID := e.messageChannelID(ch)
+	chID := e.channelID(ch)
 	var rangeBound = -1
 	if limit > 0 {
 		rangeBound = limit - 1 // Redis includes last index into result

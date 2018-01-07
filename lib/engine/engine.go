@@ -3,7 +3,6 @@ package engine
 import (
 	"github.com/centrifugal/centrifugo/lib/channel"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/proto/admin"
 	"github.com/centrifugal/centrifugo/lib/proto/control"
 )
 
@@ -26,8 +25,6 @@ type Engine interface {
 	// publish operation. Also this method should maintain history for
 	// channels if enabled in channel options.
 	PublishClient(msg *proto.Message, opts *channel.Options) <-chan error
-	// PublishAdmin allows to send admin message to all connected admins.
-	PublishAdmin(*admin.Message) <-chan error
 	// PublishControl allows to send control command to all running nodes.
 	PublishControl(*control.Command) <-chan error
 

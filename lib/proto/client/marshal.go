@@ -8,8 +8,9 @@ import (
 
 // ReplyEncoder ...
 type ReplyEncoder interface {
+	Reset()
 	Encode(*Reply) error
-	Finish() ([]byte, error)
+	Finish() []byte
 }
 
 // JSONReplyEncoder ...
@@ -20,6 +21,11 @@ type JSONReplyEncoder struct {
 // NewJSONReplyEncoder ...
 func NewJSONReplyEncoder() *JSONReplyEncoder {
 	return &JSONReplyEncoder{}
+}
+
+// Reset ...
+func (e *JSONReplyEncoder) Reset() {
+	e.buffer.Reset()
 }
 
 // Encode ...
@@ -34,8 +40,8 @@ func (e *JSONReplyEncoder) Encode(r *Reply) error {
 }
 
 // Finish ...
-func (e *JSONReplyEncoder) Finish() ([]byte, error) {
-	return e.buffer.Bytes(), nil
+func (e *JSONReplyEncoder) Finish() []byte {
+	return e.buffer.Bytes()
 }
 
 // ProtobufReplyEncoder ...
@@ -61,9 +67,14 @@ func (e *ProtobufReplyEncoder) Encode(r *Reply) error {
 	return nil
 }
 
+// Reset ...
+func (e *ProtobufReplyEncoder) Reset() {
+	e.buffer.Reset()
+}
+
 // Finish ...
-func (e *ProtobufReplyEncoder) Finish() ([]byte, error) {
-	return e.buffer.Bytes(), nil
+func (e *ProtobufReplyEncoder) Finish() []byte {
+	return e.buffer.Bytes()
 }
 
 // ResultEncoder ...

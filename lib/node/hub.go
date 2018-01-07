@@ -3,6 +3,8 @@ package node
 import (
 	"sync"
 
+	"github.com/centrifugal/centrifugo/lib/proto/client"
+
 	"github.com/centrifugal/centrifugo/lib/proto"
 )
 
@@ -12,7 +14,9 @@ type Hub interface {
 	Remove(c Client) error
 	AddSub(ch string, c Client) (bool, error)
 	RemoveSub(ch string, c Client) (bool, error)
-	Broadcast(ch string, message []byte) error
+	BroadcastPublication(ch string, publication *proto.Publication) error
+	BroadcastJoin(ch string, join *proto.Join) error
+	BroadcastLeave(ch string, leave *proto.Leave) error
 	NumSubscribers(ch string) int
 	NumClients() int
 	NumUniqueClients() int
@@ -34,14 +38,22 @@ type clientHub struct {
 
 	// registry to hold active subscriptions of clients on channels.
 	subs map[string]map[string]struct{}
+
+	// jsonMessageEncoder encodes client messages in JSON.
+	jsonMessageEncoder proto.MessageEncoder
+
+	// protobufMessageEncoder encodes client messages in Protobuf.
+	protobufMessageEncoder proto.MessageEncoder
 }
 
 // NewHub initializes clientHub.
 func NewHub() Hub {
 	return &clientHub{
-		conns: make(map[string]Client),
-		users: make(map[string]map[string]struct{}),
-		subs:  make(map[string]map[string]struct{}),
+		conns:                  make(map[string]Client),
+		users:                  make(map[string]map[string]struct{}),
+		subs:                   make(map[string]map[string]struct{}),
+		jsonMessageEncoder:     proto.NewJSONMessageEncoder(),
+		protobufMessageEncoder: proto.NewProtobufMessageEncoder(),
 	}
 }
 
@@ -200,15 +212,18 @@ func (h *clientHub) RemoveSub(ch string, c Client) (bool, error) {
 }
 
 // Broadcast sends message to all clients subscribed on channel.
-func (h *clientHub) Broadcast(ch string, message []byte) error {
+func (h *clientHub) BroadcastPublication(channel string, publication *proto.Publication) error {
 	h.RLock()
 	defer h.RUnlock()
 
 	// get connections currently subscribed on channel
-	channelSubscriptions, ok := h.subs[ch]
+	channelSubscriptions, ok := h.subs[channel]
 	if !ok {
 		return nil
 	}
+
+	var jsonData []byte
+	var protobufData []byte
 
 	// iterate over them and send message individually
 	for uid := range channelSubscriptions {
@@ -216,7 +231,174 @@ func (h *clientHub) Broadcast(ch string, message []byte) error {
 		if !ok {
 			continue
 		}
-		c.Send(message)
+		enc := c.Encoding()
+		if enc == client.EncodingJSON {
+			if jsonData == nil {
+				data, err := h.jsonMessageEncoder.EncodePublication(publication)
+				if err != nil {
+					return err
+				}
+				messageBytes, err := h.jsonMessageEncoder.Encode(proto.NewPublicationMessage(channel, data))
+				if err != nil {
+					return err
+				}
+				encoder := client.GetReplyEncoder(enc)
+				reply := &client.Reply{
+					Result: messageBytes,
+				}
+				encoder.Encode(reply)
+				jsonData = encoder.Finish()
+				client.PutReplyEncoder(enc, encoder)
+			}
+			c.Send(jsonData)
+		} else if enc == client.EncodingProtobuf {
+			if protobufData == nil {
+				data, err := h.protobufMessageEncoder.EncodePublication(publication)
+				if err != nil {
+					return err
+				}
+				messageBytes, err := h.protobufMessageEncoder.Encode(proto.NewPublicationMessage(channel, data))
+				if err != nil {
+					return err
+				}
+				encoder := client.GetReplyEncoder(enc)
+				reply := &client.Reply{
+					Result: messageBytes,
+				}
+				encoder.Encode(reply)
+				protobufData = encoder.Finish()
+				client.PutReplyEncoder(enc, encoder)
+			}
+			c.Send(protobufData)
+		}
+	}
+	return nil
+}
+
+// BroadcastJoin sends message to all clients subscribed on channel.
+func (h *clientHub) BroadcastJoin(channel string, join *proto.Join) error {
+	h.RLock()
+	defer h.RUnlock()
+
+	// get connections currently subscribed on channel
+	channelSubscriptions, ok := h.subs[channel]
+	if !ok {
+		return nil
+	}
+
+	var jsonData []byte
+	var protobufData []byte
+
+	// iterate over them and send message individually
+	for uid := range channelSubscriptions {
+		c, ok := h.conns[uid]
+		if !ok {
+			continue
+		}
+		enc := c.Encoding()
+		if enc == client.EncodingJSON {
+			if jsonData == nil {
+				data, err := h.jsonMessageEncoder.EncodeJoin(join)
+				if err != nil {
+					return err
+				}
+				messageBytes, err := h.jsonMessageEncoder.Encode(proto.NewJoinMessage(channel, data))
+				if err != nil {
+					return err
+				}
+				encoder := client.GetReplyEncoder(enc)
+				reply := &client.Reply{
+					Result: messageBytes,
+				}
+				encoder.Encode(reply)
+				jsonData = encoder.Finish()
+				client.PutReplyEncoder(enc, encoder)
+			}
+			c.Send(jsonData)
+		} else if enc == client.EncodingProtobuf {
+			if protobufData == nil {
+				data, err := h.protobufMessageEncoder.EncodeJoin(join)
+				if err != nil {
+					return err
+				}
+				messageBytes, err := h.protobufMessageEncoder.Encode(proto.NewJoinMessage(channel, data))
+				if err != nil {
+					return err
+				}
+				encoder := client.GetReplyEncoder(enc)
+				reply := &client.Reply{
+					Result: messageBytes,
+				}
+				encoder.Encode(reply)
+				protobufData = encoder.Finish()
+				client.PutReplyEncoder(enc, encoder)
+			}
+			c.Send(protobufData)
+		}
+	}
+	return nil
+}
+
+// Broadcast sends message to all clients subscribed on channel.
+func (h *clientHub) BroadcastLeave(channel string, leave *proto.Leave) error {
+	h.RLock()
+	defer h.RUnlock()
+
+	// get connections currently subscribed on channel
+	channelSubscriptions, ok := h.subs[channel]
+	if !ok {
+		return nil
+	}
+
+	var jsonData []byte
+	var protobufData []byte
+
+	// iterate over them and send message individually
+	for uid := range channelSubscriptions {
+		c, ok := h.conns[uid]
+		if !ok {
+			continue
+		}
+		enc := c.Encoding()
+		if enc == client.EncodingJSON {
+			if jsonData == nil {
+				data, err := h.jsonMessageEncoder.EncodeLeave(leave)
+				if err != nil {
+					return err
+				}
+				messageBytes, err := h.jsonMessageEncoder.Encode(proto.NewLeaveMessage(channel, data))
+				if err != nil {
+					return err
+				}
+				encoder := client.GetReplyEncoder(enc)
+				reply := &client.Reply{
+					Result: messageBytes,
+				}
+				encoder.Encode(reply)
+				jsonData = encoder.Finish()
+				client.PutReplyEncoder(enc, encoder)
+			}
+			c.Send(jsonData)
+		} else if enc == client.EncodingProtobuf {
+			if protobufData == nil {
+				data, err := h.protobufMessageEncoder.EncodeLeave(leave)
+				if err != nil {
+					return err
+				}
+				messageBytes, err := h.protobufMessageEncoder.Encode(proto.NewLeaveMessage(channel, data))
+				if err != nil {
+					return err
+				}
+				encoder := client.GetReplyEncoder(enc)
+				reply := &client.Reply{
+					Result: messageBytes,
+				}
+				encoder.Encode(reply)
+				protobufData = encoder.Finish()
+				client.PutReplyEncoder(enc, encoder)
+			}
+			c.Send(protobufData)
+		}
 	}
 	return nil
 }

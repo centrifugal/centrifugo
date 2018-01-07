@@ -14,6 +14,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
+	clientproto "github.com/centrifugal/centrifugo/lib/proto/client"
 
 	"github.com/gorilla/websocket"
 	"github.com/igm/sockjs-go/sockjs"
@@ -152,7 +153,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 	// Separate goroutine for better GC of caller's data.
 	go func() {
 		session := newSockjsSession(sess)
-		c := conns.New(request.Context(), s.node, session, connCredentials)
+		c := conns.New(request.Context(), s.node, session, clientproto.EncodingJSON, connCredentials)
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {
@@ -175,9 +176,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 	}()
 }
 
-// websocketHandler called when new client connection comes to raw Websocket endpoint.
 func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
-
 	metrics.DefaultRegistry.Counters.Inc("http_raw_ws_num_requests")
 
 	s.RLock()
@@ -233,6 +232,12 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var enc = clientproto.EncodingJSON
+	format := r.URL.Query().Get("format")
+	if format == "protobuf" {
+		enc = clientproto.EncodingProtobuf
+	}
+
 	// Separate goroutine for better GC of caller's data.
 	go func() {
 		opts := &wsSessionOptions{
@@ -241,7 +246,7 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			compressionMinSize: wsCompressionMinSize,
 		}
 		session := newWSSession(conn, opts)
-		c := conns.New(r.Context(), s.node, session, connCredentials)
+		c := conns.New(r.Context(), s.node, session, enc, connCredentials)
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {
@@ -277,7 +282,7 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	data, err = ioutil.ReadAll(r.Body)
 	if err != nil {
-		logger.ERROR.Println(err)
+		logger.ERROR.Printf("error reading body: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -296,6 +301,7 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 		resp, err = s.protobufAPIHandler.Handle(data)
 	}
 	if err != nil {
+		logger.ERROR.Printf("error handling request: %v", err)
 		if err == proto.ErrInvalidData {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return

@@ -17,9 +17,9 @@ message Request {
 }
 
 message Command {
-    uint64 ID = 1 [(gogoproto.jsontag) = "i"];
-    string Method = 2 [(gogoproto.jsontag) = "m"];
-    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "p", (gogoproto.nullable) = false];
+    uint64 ID = 1 [(gogoproto.jsontag) = "id"];
+    string Method = 2 [(gogoproto.jsontag) = "method"];
+    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = false];
 }
 
 message Response {
@@ -27,9 +27,9 @@ message Response {
 }
 
 message Reply {
-    uint64 ID = 1 [(gogoproto.jsontag) = "i,omitempty"];
-    proto.Error Error = 2 [(gogoproto.jsontag) = "e,omitempty"];
-    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "r", (gogoproto.nullable) = false];
+    uint64 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
+    proto.Error Error = 2 [(gogoproto.jsontag) = "error,omitempty"];
+    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "result,omitempty", (gogoproto.nullable) = false];
 }
 
 message Publish {
@@ -95,8 +95,7 @@ message Info {}
 
 message InfoResult {
     string Engine = 1 [(gogoproto.jsontag) = "engine"];
-    uint64 MetricsInterval = 2 [(gogoproto.jsontag) = "metrics_interval"];
-    repeated NodeResult Nodes = 3 [(gogoproto.jsontag) = "nodes"];
+    repeated NodeResult Nodes = 2 [(gogoproto.jsontag) = "nodes"];
 }
 
 message Node {}
@@ -106,7 +105,8 @@ message NodeResult {
     string Name = 2 [(gogoproto.jsontag) = "name"];
     string Version = 3 [(gogoproto.jsontag) = "version"];
     int64 StartedAt = 4 [(gogoproto.jsontag) = "started_at"];
-    map <string, int64> Metrics = 5 [(gogoproto.jsontag) = "metrics"];
+    uint64 MetricsUpdateInterval = 5 [(gogoproto.jsontag) = "metrics_update_interval"];
+    map <string, int64> Metrics = 6 [(gogoproto.jsontag) = "metrics"];
 }
 
 service Centrifugo {

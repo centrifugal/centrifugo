@@ -2,7 +2,6 @@
 package node
 
 import (
-	"encoding/json"
 	"runtime"
 	"strings"
 	"sync"
@@ -13,16 +12,15 @@ import (
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/proto/admin"
 	"github.com/centrifugal/centrifugo/lib/proto/api"
 	"github.com/centrifugal/centrifugo/lib/proto/control"
 
 	uuid "github.com/satori/go.uuid"
 )
 
-// Node is a heart of Centrifugo – it internally manages client and admin hubs,
-// maintains information about other Centrifugo nodes, keeps references to
-// config, engine, metrics etc.
+// Node is a heart of Centrifugo – it internally keeps and manages client
+// connections, maintains information about other Centrifugo nodes, keeps
+// some useful references to things like engine, metrics etc.
 type Node struct {
 	mu sync.RWMutex
 
@@ -56,14 +54,22 @@ type Node struct {
 	// save metrics snapshot until next metrics interval.
 	metricsSnapshot map[string]int64
 
+	metricsOnce sync.Once
+
 	// protect access to metrics snapshot.
 	metricsMu sync.RWMutex
 
-	// messageEncoder encodes client messages.
+	// messageEncoder is encoder to encode messages for engine.
 	messageEncoder proto.MessageEncoder
 
-	// messageDecoder decodes client messages.
+	// messageEncoder is decoder to decode messages coming from engine.
 	messageDecoder proto.MessageDecoder
+
+	// commandEncoder is encoder to encode control messages for engine.
+	commandEncoder control.CommandEncoder
+
+	// commandDecoder is decoder to decode control messages coming from engine.
+	commandDecoder control.CommandDecoder
 }
 
 // global metrics registry pointing to the same Registry plugin package uses.
@@ -123,8 +129,10 @@ func New(c *Config) *Node {
 		startedAt:       time.Now().Unix(),
 		metricsSnapshot: make(map[string]int64),
 		shutdownCh:      make(chan struct{}),
-		messageEncoder:  proto.NewJSONMessageEncoder(), // TODO: set somehow
-		messageDecoder:  proto.NewJSONMessageDecoder(), // TODO: set somehow
+		messageEncoder:  proto.NewProtobufMessageEncoder(),
+		messageDecoder:  proto.NewProtobufMessageDecoder(),
+		commandEncoder:  control.NewProtobufCommandEncoder(),
+		commandDecoder:  control.NewProtobufCommandDecoder(),
 	}
 
 	// Create initial snapshot with empty metric values.
@@ -184,6 +192,16 @@ func (n *Node) MessageDecoder() proto.MessageDecoder {
 	return n.messageDecoder
 }
 
+// CommandEncoder ...
+func (n *Node) CommandEncoder() control.CommandEncoder {
+	return n.commandEncoder
+}
+
+// CommandDecoder ...
+func (n *Node) CommandDecoder() control.CommandDecoder {
+	return n.commandDecoder
+}
+
 // NotifyShutdown returns a channel which will be closed on node shutdown.
 func (n *Node) NotifyShutdown() chan struct{} {
 	return n.shutdownCh
@@ -200,7 +218,7 @@ func (n *Node) Run(e engine.Engine) error {
 		return err
 	}
 
-	err := n.pubPing()
+	err := n.pubNode()
 	if err != nil {
 		logger.CRITICAL.Println(err)
 	}
@@ -237,6 +255,7 @@ func (n *Node) updateMetricsOnce() {
 	n.metricsMu.Lock()
 	metricsRegistry.Counters.UpdateDelta()
 	n.metricsSnapshot = n.getSnapshotMetrics()
+	n.metricsOnce = sync.Once{} // let metrics to be sent again.
 	metricsRegistry.HDRHistograms.Rotate()
 	n.metricsMu.Unlock()
 }
@@ -264,7 +283,7 @@ func (n *Node) sendNodePingMsg() {
 		case <-n.shutdownCh:
 			return
 		case <-time.After(interval):
-			err := n.pubPing()
+			err := n.pubNode()
 			if err != nil {
 				logger.CRITICAL.Println(err)
 			}
@@ -296,24 +315,21 @@ func (n *Node) Channels() ([]string, error) {
 
 // Info returns aggregated stats from all Centrifugo nodes.
 func (n *Node) Info() (*api.InfoResult, error) {
-	n.mu.RLock()
-	interval := n.config.NodeMetricsInterval
-	n.mu.RUnlock()
-
 	nodes := n.nodes.list()
-	nodeResults := make([]*api.NodeResult, 0, len(nodes))
-	for i, n := range nodes {
+	nodeResults := make([]*api.NodeResult, len(nodes))
+	for i, nd := range nodes {
 		nodeResults[i] = &api.NodeResult{
-			UID:       n.UID,
-			Name:      n.Name,
-			StartedAt: n.StartedAt,
-			Metrics:   map[string]int64{},
+			UID:                   nd.UID,
+			Name:                  nd.Name,
+			StartedAt:             nd.StartedAt,
+			MetricsUpdateInterval: nd.MetricsUpdateInterval,
+			Metrics:               nd.Metrics,
 		}
 	}
 
 	return &api.InfoResult{
-		MetricsInterval: uint64(interval.Seconds()),
-		Nodes:           nodeResults,
+		Engine: n.Engine().Name(),
+		Nodes:  nodeResults,
 	}, nil
 }
 
@@ -367,26 +383,23 @@ func (n *Node) HandleControl(cmd *control.Command) error {
 
 	switch method {
 	case "node":
-		var cmd control.Node
-		err := json.Unmarshal(params, &cmd)
+		cmd, err := n.CommandDecoder().DecodeNode(params)
 		if err != nil {
-			logger.ERROR.Println(err)
+			logger.ERROR.Printf("error decoding node control params: %v", err)
 			return proto.ErrInvalidData
 		}
-		return n.nodeCmd(&cmd)
+		return n.nodeCmd(cmd)
 	case "unsubscribe":
-		var cmd control.Unsubscribe
-		err := json.Unmarshal(params, &cmd)
+		cmd, err := n.CommandDecoder().DecodeUnsubscribe(params)
 		if err != nil {
-			logger.ERROR.Println(err)
+			logger.ERROR.Printf("error decoding unsubscribe control params: %v", err)
 			return proto.ErrInvalidData
 		}
 		return n.unsubscribeUser(cmd.User, cmd.Channel)
 	case "disconnect":
-		var cmd control.Disconnect
-		err := json.Unmarshal(params, &cmd)
+		cmd, err := n.CommandDecoder().DecodeDisconnect(params)
 		if err != nil {
-			logger.ERROR.Println(err)
+			logger.ERROR.Printf("error decoding disconnect control params: %v", err)
 			return proto.ErrInvalidData
 		}
 		return n.disconnectUser(cmd.User, false)
@@ -400,106 +413,59 @@ func (n *Node) HandleControl(cmd *control.Command) error {
 func (n *Node) HandleClientMessage(message *proto.Message) error {
 	switch message.Type {
 	case proto.MessageTypePublication:
-		var publication proto.Publication
-		err := message.Unmarshal(message.Data)
+		publication, err := n.messageDecoder.DecodePublication(message.Data)
 		if err != nil {
 			return err
 		}
-		n.handlePublication(message.Channel, &publication)
+		n.handlePublication(message.Channel, publication)
 	case proto.MessageTypeJoin:
-		var join proto.Join
-		err := message.Unmarshal(message.Data)
+		join, err := n.messageDecoder.DecodeJoin(message.Data)
 		if err != nil {
 			return err
 		}
-		n.handleJoin(message.Channel, &join)
+		n.handleJoin(message.Channel, join)
 	case proto.MessageTypeLeave:
-		var leave proto.Leave
-		err := message.Unmarshal(message.Data)
+		leave, err := n.messageDecoder.DecodeLeave(message.Data)
 		if err != nil {
 			return err
 		}
-		n.handleLeave(message.Channel, &leave)
+		n.handleLeave(message.Channel, leave)
 	default:
 	}
 	return nil
 }
 
-// TODO
-// AdminMsg handlesadmin message broadcasting it to all admins connected to this node.
-// func (n *Node) AdminMsg(msg *admin.Message) error {
-// 	metricsRegistry.Counters.Inc("node_num_admin_msg_received")
-// 	hasAdmins := n.admins.NumAdmins() > 0
-// 	if !hasAdmins {
-// 		return nil
-// 	}
-// 	// TODO
-// 	//resp := proto.NewAdminMessageResponse(msg.Params)
-// 	byteMessage, err := json.Marshal(msg)
-// 	//byteMessage, err := json.Marshal(resp)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return n.admins.Broadcast(byteMessage)
-// }
-
 // handlePublication handles messages published by web application or client into channel.
 // The goal of this method to deliver this message to all clients on this node subscribed
 // on channel.
-func (n *Node) handlePublication(ch string, msg *proto.Publication) error {
+func (n *Node) handlePublication(ch string, publication *proto.Publication) error {
 	metricsRegistry.Counters.Inc("node_num_publication_received")
 	numSubscribers := n.hub.NumSubscribers(ch)
 	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
-
-	data, err := n.MessageEncoder().EncodePublication(msg)
-	if err != nil {
-		return err
-	}
-	messageBytes, err := n.MessageEncoder().Encode(proto.NewPublicationMessage(ch, data))
-	if err != nil {
-		return err
-	}
-	return n.hub.Broadcast(ch, messageBytes)
+	return n.hub.BroadcastPublication(ch, publication)
 }
 
 // handleJoin handles join messages.
-func (n *Node) handleJoin(ch string, msg *proto.Join) error {
+func (n *Node) handleJoin(ch string, join *proto.Join) error {
 	metricsRegistry.Counters.Inc("node_num_join_received")
 	hasCurrentSubscribers := n.hub.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
-	data, err := n.MessageEncoder().EncodeJoin(msg)
-	if err != nil {
-		return err
-	}
-	messageBytes, err := n.MessageEncoder().Encode(proto.NewJoinMessage(ch, data))
-	if err != nil {
-		return err
-	}
-	return n.hub.Broadcast(ch, messageBytes)
+	return n.hub.BroadcastJoin(ch, join)
 }
 
 // handleLeave handles leave messages.
-func (n *Node) handleLeave(ch string, msg *proto.Leave) error {
+func (n *Node) handleLeave(ch string, leave *proto.Leave) error {
 	metricsRegistry.Counters.Inc("node_num_leave_received")
 	hasCurrentSubscribers := n.hub.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
-
-	data, err := n.MessageEncoder().EncodeLeave(msg)
-	if err != nil {
-		return err
-	}
-	messageBytes, err := n.MessageEncoder().Encode(proto.NewLeaveMessage(ch, data))
-	if err != nil {
-		return err
-	}
-	return n.hub.Broadcast(ch, messageBytes)
+	return n.hub.BroadcastLeave(ch, leave)
 }
 
 func makeErrChan(err error) <-chan error {
@@ -518,10 +484,12 @@ func (n *Node) Publish(ch string, publication *proto.Publication, opts *channel.
 		}
 		opts = &chOpts
 	}
+
 	data, err := n.MessageEncoder().EncodePublication(publication)
 	if err != nil {
 		return makeErrChan(proto.ErrInternalServerError)
 	}
+
 	metricsRegistry.Counters.Inc("node_num_publication_sent")
 
 	if opts.Watch {
@@ -572,12 +540,6 @@ func (n *Node) PublishLeave(ch string, leave *proto.Leave, opts *channel.Options
 	return n.engine.PublishClient(proto.NewLeaveMessage(ch, data), opts)
 }
 
-// PublishAdmin publishes message to admins.
-func (n *Node) PublishAdmin(msg *admin.Message) <-chan error {
-	metricsRegistry.Counters.Inc("node_num_admin_msg_sent")
-	return n.engine.PublishAdmin(msg)
-}
-
 // publishControl publishes message into control channel so all running
 // nodes will receive and handle it.
 func (n *Node) publishControl(msg *control.Command) <-chan error {
@@ -585,32 +547,38 @@ func (n *Node) publishControl(msg *control.Command) <-chan error {
 	return n.engine.PublishControl(msg)
 }
 
-// pubPing sends control ping message to all nodes - this message
+// pubNode sends control message to all nodes - this message
 // contains information about current node.
-func (n *Node) pubPing() error {
+func (n *Node) pubNode() error {
 	n.mu.RLock()
-	metricsRegistry.Gauges.Set("node_num_clients", int64(n.hub.NumClients()))
-	metricsRegistry.Gauges.Set("node_num_unique_clients", int64(n.hub.NumUniqueClients()))
-	metricsRegistry.Gauges.Set("node_num_channels", int64(n.hub.NumChannels()))
-	metricsRegistry.Gauges.Set("node_num_goroutine", int64(runtime.NumGoroutine()))
-	metricsRegistry.Gauges.Set("node_uptime_seconds", time.Now().Unix()-n.startedAt)
-
-	metricsSnapshot := make(map[string]int64)
-	n.metricsMu.RLock()
-	for k, v := range n.metricsSnapshot {
-		metricsSnapshot[k] = v
-	}
-	n.metricsMu.RUnlock()
 
 	node := &control.Node{
-		UID:       n.uid,
-		Name:      n.config.Name,
-		StartedAt: n.startedAt,
-		Metrics:   metricsSnapshot,
+		UID:                   n.uid,
+		Name:                  n.config.Name,
+		Version:               n.version,
+		StartedAt:             n.startedAt,
+		MetricsUpdateInterval: uint64(n.config.NodeMetricsInterval.Seconds()),
 	}
+
+	n.metricsMu.RLock()
+	n.metricsOnce.Do(func() {
+		metricsRegistry.Gauges.Set("node_num_clients", int64(n.hub.NumClients()))
+		metricsRegistry.Gauges.Set("node_num_unique_clients", int64(n.hub.NumUniqueClients()))
+		metricsRegistry.Gauges.Set("node_num_channels", int64(n.hub.NumChannels()))
+		metricsRegistry.Gauges.Set("node_num_goroutine", int64(runtime.NumGoroutine()))
+		metricsRegistry.Gauges.Set("node_uptime_seconds", time.Now().Unix()-n.startedAt)
+
+		metricsSnapshot := make(map[string]int64)
+		for k, v := range n.metricsSnapshot {
+			metricsSnapshot[k] = v
+		}
+		node.Metrics = metricsSnapshot
+	})
+	n.metricsMu.RUnlock()
+
 	n.mu.RUnlock()
 
-	params, _ := node.Marshal()
+	params, _ := n.commandEncoder.EncodeNode(node)
 
 	cmd := &control.Command{
 		UID:    n.uid,
@@ -622,11 +590,6 @@ func (n *Node) pubPing() error {
 	if err != nil {
 		logger.ERROR.Println(err)
 	}
-
-	// cmdBytes, err := json.Marshal(cmd)
-	// if err != nil {
-	// 	return err
-	// }
 
 	return <-n.publishControl(cmd)
 }
@@ -640,18 +603,13 @@ func (n *Node) pubUnsubscribe(user string, ch string) error {
 		User: user,
 	}
 
-	params, _ := unsubscribe.Marshal()
+	params, _ := n.commandEncoder.EncodeUnsubscribe(unsubscribe)
 
 	cmd := &control.Command{
 		UID:    n.uid,
 		Method: "unsubscribe",
 		Params: params,
 	}
-
-	// cmdBytes, err := json.Marshal(cmd)
-	// if err != nil {
-	// 	return err
-	// }
 
 	return <-n.publishControl(cmd)
 }
@@ -664,18 +622,13 @@ func (n *Node) pubDisconnect(user string, reconnect bool) error {
 		User: user,
 	}
 
-	params, _ := disconnect.Marshal()
+	params, _ := n.commandEncoder.EncodeDisconnect(disconnect)
 
 	cmd := &control.Command{
 		UID:    n.uid,
 		Method: "unsubscribe",
 		Params: params,
 	}
-
-	// cmdBytes, err := json.Marshal(cmd)
-	// if err != nil {
-	// 	return err
-	// }
 
 	return <-n.publishControl(cmd)
 }
@@ -723,8 +676,7 @@ func (n *Node) RemoveSubscription(ch string, c Client) error {
 
 // nodeCmd handles ping control command i.e. updates information about known nodes.
 func (n *Node) nodeCmd(node *control.Node) error {
-	//info := cmd.Info
-	n.nodes.add(*node)
+	n.nodes.add(node)
 	return nil
 }
 

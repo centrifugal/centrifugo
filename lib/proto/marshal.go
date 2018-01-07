@@ -10,6 +10,7 @@ type MessageEncoder interface {
 	EncodePublication(*Publication) ([]byte, error)
 	EncodeJoin(*Join) ([]byte, error)
 	EncodeLeave(*Leave) ([]byte, error)
+	EncodeUnsubscribe(*Unsubscribe) ([]byte, error)
 }
 
 // JSONMessageEncoder ...
@@ -41,6 +42,11 @@ func (e *JSONMessageEncoder) EncodeLeave(message *Leave) ([]byte, error) {
 	return json.Marshal(message)
 }
 
+// EncodeUnsubscribe ...
+func (e *JSONMessageEncoder) EncodeUnsubscribe(message *Unsubscribe) ([]byte, error) {
+	return json.Marshal(message)
+}
+
 // ProtobufMessageEncoder ...
 type ProtobufMessageEncoder struct {
 }
@@ -67,5 +73,10 @@ func (e *ProtobufMessageEncoder) EncodeJoin(message *Join) ([]byte, error) {
 
 // EncodeLeave ...
 func (e *ProtobufMessageEncoder) EncodeLeave(message *Leave) ([]byte, error) {
+	return message.Marshal()
+}
+
+// EncodeUnsubscribe ...
+func (e *ProtobufMessageEncoder) EncodeUnsubscribe(message *Unsubscribe) ([]byte, error) {
 	return message.Marshal()
 }
