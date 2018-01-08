@@ -9,32 +9,26 @@ import (
 
 // RequestHandler ...
 type RequestHandler struct {
-	node            *node.Node
-	requestDecoder  apiproto.RequestDecoder
-	responseEncoder apiproto.ResponseEncoder
-	paramsDecoder   apiproto.ParamsDecoder
-	resultEncoder   apiproto.ResultEncoder
+	node    *node.Node
+	decoder apiproto.Decoder
+	encoder apiproto.Encoder
 }
 
 // NewJSONRequestHandler ...
 func NewJSONRequestHandler(n *node.Node) *RequestHandler {
 	return &RequestHandler{
-		node:            n,
-		requestDecoder:  apiproto.NewJSONRequestDecoder(),
-		responseEncoder: apiproto.NewJSONResponseEncoder(),
-		paramsDecoder:   apiproto.NewJSONParamsDecoder(),
-		resultEncoder:   apiproto.NewJSONResultEncoder(),
+		node:    n,
+		decoder: apiproto.NewJSONDecoder(),
+		encoder: apiproto.NewJSONEncoder(),
 	}
 }
 
 // NewProtobufRequestHandler ...
 func NewProtobufRequestHandler(n *node.Node) *RequestHandler {
 	return &RequestHandler{
-		node:            n,
-		requestDecoder:  apiproto.NewProtobufRequestDecoder(),
-		responseEncoder: apiproto.NewProtobufResponseEncoder(),
-		paramsDecoder:   apiproto.NewProtobufParamsDecoder(),
-		resultEncoder:   apiproto.NewProtobufResultEncoder(),
+		node:    n,
+		decoder: apiproto.NewProtobufDecoder(),
+		encoder: apiproto.NewProtobufEncoder(),
 	}
 }
 
@@ -42,7 +36,7 @@ func NewProtobufRequestHandler(n *node.Node) *RequestHandler {
 // encoded response.
 func (h *RequestHandler) Handle(data []byte) ([]byte, error) {
 
-	request, err := h.requestDecoder.Decode(data)
+	request, err := h.decoder.DecodeRequest(data)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +59,7 @@ func (h *RequestHandler) Handle(data []byte) ([]byte, error) {
 		Replies: replies,
 	}
 
-	resp, err := h.responseEncoder.Encode(response)
+	resp, err := h.encoder.EncodeResponse(response)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +87,7 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 
 	switch method {
 	case "publish":
-		cmd, err := h.paramsDecoder.DecodePublish(params)
+		cmd, err := h.decoder.DecodePublish(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding: %v", err)
 			rep.Error = proto.ErrBadRequest
@@ -102,13 +96,13 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 		var res *apiproto.PublishResult
 		res, replyErr = CallPublish(h.node, cmd)
 		if replyErr == nil {
-			replyRes, err = h.resultEncoder.EncodePublishResult(res)
+			replyRes, err = h.encoder.EncodePublishResult(res)
 			if err != nil {
 				return nil, err
 			}
 		}
 	case "broadcast":
-		cmd, err := h.paramsDecoder.DecodeBroadcast(params)
+		cmd, err := h.decoder.DecodeBroadcast(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding: %v", err)
 			rep.Error = proto.ErrBadRequest
@@ -117,13 +111,13 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 		var res *apiproto.BroadcastResult
 		res, replyErr = CallBroadcast(h.node, cmd)
 		if replyErr == nil {
-			replyRes, err = h.resultEncoder.EncodeBroadcastResult(res)
+			replyRes, err = h.encoder.EncodeBroadcastResult(res)
 			if err != nil {
 				return nil, err
 			}
 		}
 	case "unsubscribe":
-		cmd, err := h.paramsDecoder.DecodeUnsubscribe(params)
+		cmd, err := h.decoder.DecodeUnsubscribe(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding: %v", err)
 			rep.Error = proto.ErrBadRequest
@@ -132,13 +126,13 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 		var res *apiproto.UnsubscribeResult
 		res, replyErr = CallUnsubscribe(h.node, cmd)
 		if replyErr == nil {
-			replyRes, err = h.resultEncoder.EncodeUnsubscribeResult(res)
+			replyRes, err = h.encoder.EncodeUnsubscribeResult(res)
 			if err != nil {
 				return nil, err
 			}
 		}
 	case "disconnect":
-		cmd, err := h.paramsDecoder.DecodeDisconnect(params)
+		cmd, err := h.decoder.DecodeDisconnect(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding: %v", err)
 			rep.Error = proto.ErrBadRequest
@@ -147,13 +141,13 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 		var res *apiproto.DisconnectResult
 		res, replyErr = CallDisconnect(h.node, cmd)
 		if replyErr == nil {
-			replyRes, err = h.resultEncoder.EncodeDisconnectResult(res)
+			replyRes, err = h.encoder.EncodeDisconnectResult(res)
 			if err != nil {
 				return nil, err
 			}
 		}
 	case "presence":
-		cmd, err := h.paramsDecoder.DecodePresence(params)
+		cmd, err := h.decoder.DecodePresence(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding: %v", err)
 			rep.Error = proto.ErrBadRequest
@@ -162,13 +156,13 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 		var res *apiproto.PresenceResult
 		res, replyErr = CallPresence(h.node, cmd)
 		if replyErr == nil {
-			replyRes, err = h.resultEncoder.EncodePresenceResult(res)
+			replyRes, err = h.encoder.EncodePresenceResult(res)
 			if err != nil {
 				return nil, err
 			}
 		}
 	case "presence_stats":
-		cmd, err := h.paramsDecoder.DecodePresenceStats(params)
+		cmd, err := h.decoder.DecodePresenceStats(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding: %v", err)
 			rep.Error = proto.ErrBadRequest
@@ -177,13 +171,13 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 		var res *apiproto.PresenceStatsResult
 		res, replyErr = CallPresenceStats(h.node, cmd)
 		if replyErr == nil {
-			replyRes, err = h.resultEncoder.EncodePresenceStatsResult(res)
+			replyRes, err = h.encoder.EncodePresenceStatsResult(res)
 			if err != nil {
 				return nil, err
 			}
 		}
 	case "history":
-		cmd, err := h.paramsDecoder.DecodeHistory(params)
+		cmd, err := h.decoder.DecodeHistory(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding: %v", err)
 			rep.Error = proto.ErrBadRequest
@@ -192,7 +186,7 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 		var res *apiproto.HistoryResult
 		res, replyErr = CallHistory(h.node, cmd)
 		if replyErr == nil {
-			replyRes, err = h.resultEncoder.EncodeHistoryResult(res)
+			replyRes, err = h.encoder.EncodeHistoryResult(res)
 			if err != nil {
 				return nil, err
 			}
@@ -200,7 +194,7 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 	case "channels":
 		res, replyErr := CallChannels(h.node, &apiproto.Channels{})
 		if replyErr == nil {
-			replyRes, err = h.resultEncoder.EncodeChannelsResult(res)
+			replyRes, err = h.encoder.EncodeChannelsResult(res)
 			if err != nil {
 				return nil, err
 			}
@@ -208,7 +202,7 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 	case "info":
 		res, replyErr := CallInfo(h.node, &apiproto.Info{})
 		if replyErr == nil {
-			replyRes, err = h.resultEncoder.EncodeInfoResult(res)
+			replyRes, err = h.encoder.EncodeInfoResult(res)
 			if err != nil {
 				return nil, err
 			}

@@ -2,39 +2,9 @@ package api
 
 import "encoding/json"
 
-// ResponseEncoder ...
-type ResponseEncoder interface {
-	Encode(*Response) ([]byte, error)
-}
-
-// JSONResponseEncoder ...
-type JSONResponseEncoder struct{}
-
-// NewJSONResponseEncoder ...
-func NewJSONResponseEncoder() *JSONResponseEncoder {
-	return &JSONResponseEncoder{}
-}
-
-// Encode ...
-func (e *JSONResponseEncoder) Encode(response *Response) ([]byte, error) {
-	return json.Marshal(response)
-}
-
-// ProtobufResponseEncoder ...
-type ProtobufResponseEncoder struct{}
-
-// NewProtobufResponseEncoder ...
-func NewProtobufResponseEncoder() *ProtobufResponseEncoder {
-	return &ProtobufResponseEncoder{}
-}
-
-// Encode ...
-func (e *ProtobufResponseEncoder) Encode(response *Response) ([]byte, error) {
-	return response.Marshal()
-}
-
-// ResultEncoder ...
-type ResultEncoder interface {
+// Encoder ...
+type Encoder interface {
+	EncodeResponse(*Response) ([]byte, error)
 	EncodePublishResult(*PublishResult) ([]byte, error)
 	EncodeBroadcastResult(*BroadcastResult) ([]byte, error)
 	EncodeUnsubscribeResult(*UnsubscribeResult) ([]byte, error)
@@ -46,113 +16,123 @@ type ResultEncoder interface {
 	EncodeInfoResult(*InfoResult) ([]byte, error)
 }
 
-// JSONResultEncoder ...
-type JSONResultEncoder struct{}
+// JSONEncoder ...
+type JSONEncoder struct{}
 
-// NewJSONResultEncoder ...
-func NewJSONResultEncoder() *JSONResultEncoder {
-	return &JSONResultEncoder{}
+// NewJSONEncoder ...
+func NewJSONEncoder() *JSONEncoder {
+	return &JSONEncoder{}
+}
+
+// EncodeResponse ...
+func (e *JSONEncoder) EncodeResponse(response *Response) ([]byte, error) {
+	return json.Marshal(response)
 }
 
 // EncodePublishResult ...
-func (e *JSONResultEncoder) EncodePublishResult(res *PublishResult) ([]byte, error) {
+func (e *JSONEncoder) EncodePublishResult(res *PublishResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
 // EncodeBroadcastResult ...
-func (e *JSONResultEncoder) EncodeBroadcastResult(res *BroadcastResult) ([]byte, error) {
+func (e *JSONEncoder) EncodeBroadcastResult(res *BroadcastResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
 // EncodeUnsubscribeResult ...
-func (e *JSONResultEncoder) EncodeUnsubscribeResult(res *UnsubscribeResult) ([]byte, error) {
+func (e *JSONEncoder) EncodeUnsubscribeResult(res *UnsubscribeResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
 // EncodeDisconnectResult ...
-func (e *JSONResultEncoder) EncodeDisconnectResult(res *DisconnectResult) ([]byte, error) {
+func (e *JSONEncoder) EncodeDisconnectResult(res *DisconnectResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
 // EncodePresenceResult ...
-func (e *JSONResultEncoder) EncodePresenceResult(res *PresenceResult) ([]byte, error) {
+func (e *JSONEncoder) EncodePresenceResult(res *PresenceResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
 // EncodePresenceStatsResult ...
-func (e *JSONResultEncoder) EncodePresenceStatsResult(res *PresenceStatsResult) ([]byte, error) {
+func (e *JSONEncoder) EncodePresenceStatsResult(res *PresenceStatsResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
 // EncodeHistoryResult ...
-func (e *JSONResultEncoder) EncodeHistoryResult(res *HistoryResult) ([]byte, error) {
+func (e *JSONEncoder) EncodeHistoryResult(res *HistoryResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
 // EncodeChannelsResult ...
-func (e *JSONResultEncoder) EncodeChannelsResult(res *ChannelsResult) ([]byte, error) {
+func (e *JSONEncoder) EncodeChannelsResult(res *ChannelsResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
 // EncodeInfoResult ...
-func (e *JSONResultEncoder) EncodeInfoResult(res *InfoResult) ([]byte, error) {
+func (e *JSONEncoder) EncodeInfoResult(res *InfoResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
 // EncodeNodeResult ...
-func (e *JSONResultEncoder) EncodeNodeResult(res *NodeResult) ([]byte, error) {
+func (e *JSONEncoder) EncodeNodeResult(res *NodeResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
-// ProtobufResultEncoder ...
-type ProtobufResultEncoder struct{}
+// ProtobufEncoder ...
+type ProtobufEncoder struct{}
 
-// NewProtobufResultEncoder ...
-func NewProtobufResultEncoder() *ProtobufResultEncoder {
-	return &ProtobufResultEncoder{}
+// NewProtobufEncoder ...
+func NewProtobufEncoder() *ProtobufEncoder {
+	return &ProtobufEncoder{}
+}
+
+// EncodeResponse ...
+func (e *ProtobufEncoder) EncodeResponse(response *Response) ([]byte, error) {
+	return response.Marshal()
 }
 
 // EncodePublishResult ...
-func (e *ProtobufResultEncoder) EncodePublishResult(res *PublishResult) ([]byte, error) {
+func (e *ProtobufEncoder) EncodePublishResult(res *PublishResult) ([]byte, error) {
 	return res.Marshal()
 }
 
 // EncodeBroadcastResult ...
-func (e *ProtobufResultEncoder) EncodeBroadcastResult(res *BroadcastResult) ([]byte, error) {
+func (e *ProtobufEncoder) EncodeBroadcastResult(res *BroadcastResult) ([]byte, error) {
 	return res.Marshal()
 }
 
 // EncodeUnsubscribeResult ...
-func (e *ProtobufResultEncoder) EncodeUnsubscribeResult(res *UnsubscribeResult) ([]byte, error) {
+func (e *ProtobufEncoder) EncodeUnsubscribeResult(res *UnsubscribeResult) ([]byte, error) {
 	return res.Marshal()
 }
 
 // EncodeDisconnectResult ...
-func (e *ProtobufResultEncoder) EncodeDisconnectResult(res *DisconnectResult) ([]byte, error) {
+func (e *ProtobufEncoder) EncodeDisconnectResult(res *DisconnectResult) ([]byte, error) {
 	return res.Marshal()
 }
 
 // EncodePresenceResult ...
-func (e *ProtobufResultEncoder) EncodePresenceResult(res *PresenceResult) ([]byte, error) {
+func (e *ProtobufEncoder) EncodePresenceResult(res *PresenceResult) ([]byte, error) {
 	return res.Marshal()
 }
 
 // EncodePresenceStatsResult ...
-func (e *ProtobufResultEncoder) EncodePresenceStatsResult(res *PresenceStatsResult) ([]byte, error) {
+func (e *ProtobufEncoder) EncodePresenceStatsResult(res *PresenceStatsResult) ([]byte, error) {
 	return res.Marshal()
 }
 
 // EncodeHistoryResult ...
-func (e *ProtobufResultEncoder) EncodeHistoryResult(res *HistoryResult) ([]byte, error) {
+func (e *ProtobufEncoder) EncodeHistoryResult(res *HistoryResult) ([]byte, error) {
 	return res.Marshal()
 }
 
 // EncodeChannelsResult ...
-func (e *ProtobufResultEncoder) EncodeChannelsResult(res *ChannelsResult) ([]byte, error) {
+func (e *ProtobufEncoder) EncodeChannelsResult(res *ChannelsResult) ([]byte, error) {
 	return res.Marshal()
 }
 
 // EncodeInfoResult ...
-func (e *ProtobufResultEncoder) EncodeInfoResult(res *InfoResult) ([]byte, error) {
+func (e *ProtobufEncoder) EncodeInfoResult(res *InfoResult) ([]byte, error) {
 	return res.Marshal()
 }
