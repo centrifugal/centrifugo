@@ -1,13 +1,9 @@
 package channel
 
-// NamespaceKey is a name of namespace unique for project.
-type NamespaceKey string
-
-// Namespace allows to create channels with different channel
-// options.
+// Namespace allows to create channels with different channel options.
 type Namespace struct {
 	// Name is a unique namespace name.
-	Name NamespaceKey `json:"name"`
+	Name string `json:"name"`
 
 	// Options for namespace determine channel options for channels
 	// belonging to this namespace.

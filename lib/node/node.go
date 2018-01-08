@@ -763,21 +763,21 @@ func (n *Node) disconnectUser(user string, reconnect bool) error {
 	return nil
 }
 
-// namespaceKey returns namespace key from channel name if exists.
-func (n *Node) namespaceKey(ch string) channel.NamespaceKey {
+// namespaceName returns namespace name from channel if exists.
+func (n *Node) namespaceName(ch string) string {
 	cTrim := strings.TrimPrefix(ch, n.config.PrivateChannelPrefix)
 	if strings.Contains(cTrim, n.config.NamespaceChannelBoundary) {
 		parts := strings.SplitN(cTrim, n.config.NamespaceChannelBoundary, 2)
-		return channel.NamespaceKey(parts[0])
+		return parts[0]
 	}
-	return channel.NamespaceKey("")
+	return ""
 }
 
 // ChannelOpts returns channel options for channel using current channel config.
 func (n *Node) ChannelOpts(ch string) (channel.Options, bool) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
-	return n.config.channelOpts(n.namespaceKey(ch))
+	return n.config.channelOpts(n.namespaceName(ch))
 }
 
 // AddPresence proxies presence adding to engine.
