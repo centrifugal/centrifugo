@@ -15,7 +15,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto/api"
 	"github.com/centrifugal/centrifugo/lib/proto/control"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 )
 
 // Node is a heart of Centrifugo – it internally keeps and manages client
@@ -39,7 +39,7 @@ type Node struct {
 	// config for node.
 	config *Config
 
-	// engine to use - in memory or redis.
+	// engine - in memory or redis.
 	engine engine.Engine
 
 	// nodes contains registry of known nodes.
@@ -54,6 +54,8 @@ type Node struct {
 	// save metrics snapshot until next metrics interval.
 	metricsSnapshot map[string]int64
 
+	// metricsOnce helps to share metrics with other nodes only once after
+	// snapshot updated thus significantly reducing node control message size.
 	metricsOnce sync.Once
 
 	// protect access to metrics snapshot.
