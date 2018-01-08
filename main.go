@@ -60,9 +60,10 @@ func main() {
 				"publish":                        false,
 				"anonymous":                      false,
 				"presence":                       false,
+				"presence_stats":                 false,
 				"history_size":                   0,
 				"history_lifetime":               0,
-				"recover":                        false,
+				"history_recover":                false,
 				"history_drop_inactive":          false,
 				"namespaces":                     "",
 				"max_channel_length":             255,
@@ -117,9 +118,9 @@ func main() {
 			bindEnvs := []string{
 				"engine", "debug", "insecure", "insecure_api", "admin", "admin_password",
 				"admin_secret", "insecure_admin", "secret", "connection_lifetime", "watch",
-				"publish", "anonymous", "join_leave", "presence", "recover", "history_size",
-				"history_lifetime", "history_drop_inactive", "web", "redis_host", "redis_port",
-				"redis_url",
+				"publish", "anonymous", "join_leave", "presence", "presence_stats",
+				"history_recover", "history_size", "history_lifetime", "history_drop_inactive",
+				"web", "redis_host", "redis_port", "redis_url",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -677,11 +678,12 @@ func newNodeConfig(v *viper.Viper) *node.Config {
 	cfg.Publish = v.GetBool("publish")
 	cfg.Anonymous = v.GetBool("anonymous")
 	cfg.Presence = v.GetBool("presence")
+	cfg.PresenceStats = v.GetBool("presence_stats")
 	cfg.JoinLeave = v.GetBool("join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryLifetime = v.GetInt("history_lifetime")
 	cfg.HistoryDropInactive = v.GetBool("history_drop_inactive")
-	cfg.Recover = v.GetBool("recover")
+	cfg.HistoryRecover = v.GetBool("history_recover")
 	cfg.Namespaces = namespacesFromConfig(v)
 	return cfg
 }

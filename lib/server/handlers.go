@@ -142,7 +142,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 	request := sess.Request()
 	ctx := request.Context()
 	var connCredentials *conns.Credentials
-	if val := ctx.Value(conns.CredentialsKey); val != nil {
+	if val := ctx.Value(CredentialsKey); val != nil {
 		if credentials, ok := val.(*conns.Credentials); ok {
 			connCredentials = credentials
 		}
@@ -226,7 +226,7 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	var connCredentials *conns.Credentials
-	if val := ctx.Value(conns.CredentialsKey); val != nil {
+	if val := ctx.Value(CredentialsKey); val != nil {
 		if credentials, ok := val.(*conns.Credentials); ok {
 			connCredentials = credentials
 		}

@@ -69,7 +69,7 @@ type client struct {
 }
 
 // CommandHandler must handle incoming command from client.
-type CommandHandler func(ctx context.Context, params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect)
+type CommandHandler func(ctx context.Context, method string, params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect)
 
 // New creates new client connection.
 func New(ctx context.Context, n *node.Node, s Session, enc clientproto.Encoding, credentials *Credentials) node.Client {
@@ -866,7 +866,7 @@ func (c *client) subscribeCmd(cmd *clientproto.Subscribe) (*clientproto.Subscrib
 		}
 	}
 
-	if chOpts.Recover {
+	if chOpts.HistoryRecover {
 		if cmd.Recover {
 			// Client provided subscribe request with recover flag on. Try to recover missed messages
 			// automatically from history (we suppose here that history configured wisely) based on
@@ -1036,10 +1036,42 @@ func (c *client) presenceCmd(cmd *clientproto.Presence) (*clientproto.PresenceRe
 // presenceStatsCmd ...
 func (c *client) presenceStatsCmd(cmd *clientproto.PresenceStats) (*clientproto.PresenceStatsResult, *proto.Error, *proto.Disconnect) {
 
-	// TODO
+	channel := cmd.Channel
+
+	if _, ok := c.channels[channel]; !ok {
+		return nil, proto.ErrPermissionDenied, nil
+	}
+
+	chOpts, ok := c.node.ChannelOpts(channel)
+	if !ok {
+		return nil, proto.ErrNamespaceNotFound, nil
+	}
+
+	if !chOpts.Presence || !chOpts.PresenceStats {
+		return nil, proto.ErrNotAvailable, nil
+	}
+
+	presence, err := c.node.Presence(channel)
+	if err != nil {
+		logger.ERROR.Printf("error getting presence: %v", err)
+		return nil, proto.ErrInternalServerError, nil
+	}
+
+	numClients := len(presence)
+	numUsers := 0
+	uniqueUsers := map[string]struct{}{}
+
+	for _, info := range presence {
+		userID := info.User
+		if _, ok := uniqueUsers[userID]; !ok {
+			uniqueUsers[userID] = struct{}{}
+			numUsers++
+		}
+	}
+
 	res := &clientproto.PresenceStatsResult{
-		NumClients: 0,
-		NumUsers:   0,
+		NumClients: uint64(numClients),
+		NumUsers:   uint64(numUsers),
 	}
 
 	return res, nil, nil
@@ -1051,15 +1083,26 @@ func (c *client) presenceStatsCmd(cmd *clientproto.PresenceStats) (*clientproto.
 // (also determined by channel options flag).
 func (c *client) historyCmd(cmd *clientproto.History) (*clientproto.HistoryResult, *proto.Error, *proto.Disconnect) {
 
-	// TODO: all error checks must be done here and not inside node method.
+	ch := cmd.Channel
 
-	channel := cmd.Channel
+	if string(ch) == "" {
+		return nil, nil, proto.DisconnectInvalidMessage
+	}
 
-	if _, ok := c.channels[channel]; !ok {
+	if _, ok := c.channels[ch]; !ok {
 		return nil, proto.ErrPermissionDenied, nil
 	}
 
-	history, err := c.node.History(channel)
+	chOpts, ok := c.node.ChannelOpts(ch)
+	if !ok {
+		return nil, proto.ErrNamespaceNotFound, nil
+	}
+
+	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
+		return nil, proto.ErrNotAvailable, nil
+	}
+
+	history, err := c.node.History(ch)
 	if err != nil {
 		logger.ERROR.Printf("error getting history: %v", err)
 		return nil, proto.ErrInternalServerError, nil

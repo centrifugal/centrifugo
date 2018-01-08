@@ -187,12 +187,10 @@ import (
 
 var FS http.FileSystem
 
-// Data contains static content that can be embedded.
-const Data = "`, namePackage)
+func init() {
+	data := "`, namePackage)
 	FprintZipData(&qb, buffer.Bytes())
 	fmt.Fprint(&qb, `"
-
-func init() {
 	FS, _ = fs.New(Data)
 }
 `)

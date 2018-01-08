@@ -21,6 +21,7 @@ type Options struct {
 	// sent into admin channel. Note that this option must be used
 	// carefully in channels with high rate of messages. Use this option
 	// for testing or for channels with reasonable message rate.
+	// TODO: admin does not work at moment.
 	Watch bool `json:"watch"`
 
 	// Publish determines if client can publish messages into channel
@@ -40,16 +41,21 @@ type Options struct {
 	// empty string as user ID.
 	Anonymous bool `json:"anonymous"`
 
-	// Presence turns on(off) presence information for channels.
-	// Presence is a structure with clients currently subscribed on
-	// channel.
-	Presence bool `json:"presence"`
-
 	// JoinLeave turns on(off) join/leave messages for channels.
 	// When client subscribes on channel join message sent to all
 	// clients in this channel. When client leaves channel (unsubscribes)
 	// leave message sent.
 	JoinLeave bool `mapstructure:"join_leave" json:"join_leave"`
+
+	// Presence turns on(off) presence information for channels.
+	// Presence is a structure with clients currently subscribed on
+	// channel.
+	Presence bool `json:"presence"`
+
+	// PresenceStats turns on(off) presence stats information for channels.
+	// This is a short summary of presence which includes number of clients
+	// subscribed on channel and number of unique users at moment.
+	PresenceStats bool `mapstructure:"presence_stats" json:"presence_stats"`
 
 	// HistorySize determines max amount of history messages for channel,
 	// 0 means no history for channel. Centrifugo history has auxiliary
@@ -66,7 +72,7 @@ type Options struct {
 	// Centrifugo will try to recover missed messages for resubscribing
 	// client. This option uses messages from history and must be used
 	// with reasonable HistorySize and HistoryLifetime configuration.
-	Recover bool `json:"recover"`
+	HistoryRecover bool `mapstructure:"history_recover" json:"history_recover"`
 
 	// HistoryDropInactive enables an optimization where history is
 	// only saved for channels that have at least one active subscriber.

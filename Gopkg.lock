@@ -17,7 +17,7 @@
   branch = "master"
   name = "github.com/FZambia/statik"
   packages = ["fs"]
-  revision = "a4ba4328dcd4f83a6f37b46bc763f6f26a54f2e7"
+  revision = "a7328d76d10c882601e8ebaf00f1ff072126f33b"
 
 [[projects]]
   branch = "master"

@@ -405,15 +405,70 @@ func CallPresence(n *node.Node, cmd *apiproto.Presence) (*apiproto.PresenceResul
 
 // CallPresenceStats returns response with presence stats information for channel.
 func CallPresenceStats(n *node.Node, cmd *apiproto.PresenceStats) (*apiproto.PresenceStatsResult, *proto.Error) {
-	return nil, nil
+
+	ch := cmd.Channel
+
+	if string(ch) == "" {
+		return nil, proto.ErrInvalidData
+	}
+
+	chOpts, ok := n.ChannelOpts(ch)
+	if !ok {
+		return nil, proto.ErrNamespaceNotFound
+	}
+
+	if !chOpts.Presence {
+		return nil, proto.ErrNotAvailable
+	}
+
+	if !chOpts.PresenceStats {
+		return nil, proto.ErrNotAvailable
+	}
+
+	presence, err := n.Presence(cmd.Channel)
+	if err != nil {
+		logger.ERROR.Printf("error calling presence: %v", err)
+		return nil, proto.ErrInternalServerError
+	}
+
+	numClients := len(presence)
+	numUsers := 0
+	uniqueUsers := map[string]struct{}{}
+
+	for _, info := range presence {
+		userID := info.User
+		if _, ok := uniqueUsers[userID]; !ok {
+			uniqueUsers[userID] = struct{}{}
+			numUsers++
+		}
+	}
+
+	presenceStats := &apiproto.PresenceStatsResult{
+		NumClients: uint64(numClients),
+		NumUsers:   uint64(numUsers),
+	}
+	return presenceStats, nil
 }
 
 // CallHistory returns response with history information for channel.
 func CallHistory(n *node.Node, cmd *apiproto.History) (*apiproto.HistoryResult, *proto.Error) {
 
-	channel := cmd.Channel
+	ch := cmd.Channel
 
-	history, err := n.History(channel)
+	if string(ch) == "" {
+		return nil, proto.ErrInvalidData
+	}
+
+	chOpts, ok := n.ChannelOpts(ch)
+	if !ok {
+		return nil, proto.ErrNamespaceNotFound
+	}
+
+	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
+		return nil, proto.ErrNotAvailable
+	}
+
+	history, err := n.History(ch)
 	if err != nil {
 		logger.ERROR.Printf("error calling history: %v", err)
 		return nil, proto.ErrInternalServerError

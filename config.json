@@ -6,14 +6,14 @@
   "namespaces": [
     {
       "name": "public",
+      "watch": true,
       "anonymous": true,
       "publish": true,
-      "watch": true,
-      "presence": true,
       "join_leave": true,
+      "presence": true,
       "history_size": 10,
       "history_lifetime": 30,
-      "recover": true
+      "history_recover": true
     }  
   ]
 }

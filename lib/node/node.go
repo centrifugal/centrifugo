@@ -795,27 +795,14 @@ func (n *Node) RemovePresence(ch string, uid string) error {
 	return n.engine.RemovePresence(ch, uid)
 }
 
-// Presence returns a map of active clients in project channel.
+// Presence returns a map with information about active clients in channel.
 func (n *Node) Presence(ch string) (map[string]*proto.ClientInfo, error) {
-
-	if string(ch) == "" {
-		return nil, proto.ErrInvalidData
-	}
-
-	chOpts, ok := n.ChannelOpts(ch)
-	if !ok {
-		return nil, proto.ErrNamespaceNotFound
-	}
-
-	if !chOpts.Presence {
-		return nil, proto.ErrNotAvailable
-	}
 
 	metricsRegistry.Counters.Inc("node_num_presence")
 
 	presence, err := n.engine.Presence(ch)
 	if err != nil {
-		logger.ERROR.Println(err)
+		logger.ERROR.Printf("error getting presence: %v", err)
 		return nil, proto.ErrInternalServerError
 	}
 	return presence, nil
@@ -823,20 +810,6 @@ func (n *Node) Presence(ch string) (map[string]*proto.ClientInfo, error) {
 
 // History returns a slice of last messages published into project channel.
 func (n *Node) History(ch string) ([]*proto.Message, error) {
-
-	if string(ch) == "" {
-		return nil, proto.ErrInvalidData
-	}
-
-	chOpts, ok := n.ChannelOpts(ch)
-	if !ok {
-		return nil, proto.ErrNamespaceNotFound
-	}
-
-	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
-		return nil, proto.ErrNotAvailable
-	}
-
 	metricsRegistry.Counters.Inc("node_num_history")
 
 	history, err := n.engine.History(ch, 0)
