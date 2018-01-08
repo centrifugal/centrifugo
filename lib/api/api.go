@@ -50,7 +50,7 @@ func (h *RequestHandler) Handle(data []byte) ([]byte, error) {
 	replies := make([]*apiproto.Reply, len(request.Commands))
 
 	if len(request.Commands) == 0 {
-		return nil, proto.ErrInvalidData
+		return nil, proto.ErrBadRequest
 	}
 
 	for i, command := range request.Commands {
@@ -82,11 +82,22 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 	var replyRes proto.Raw
 	var replyErr *proto.Error
 
+	rep := &apiproto.Reply{
+		ID: cmd.ID,
+	}
+
+	if method == "" {
+		rep.Error = proto.ErrBadRequest
+		return rep, nil
+	}
+
 	switch method {
 	case "publish":
 		cmd, err := h.paramsDecoder.DecodePublish(params)
 		if err != nil {
-			return nil, err
+			logger.ERROR.Printf("error decoding: %v", err)
+			rep.Error = proto.ErrBadRequest
+			return rep, nil
 		}
 		var res *apiproto.PublishResult
 		res, replyErr = CallPublish(h.node, cmd)
@@ -99,7 +110,9 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 	case "broadcast":
 		cmd, err := h.paramsDecoder.DecodeBroadcast(params)
 		if err != nil {
-			return nil, err
+			logger.ERROR.Printf("error decoding: %v", err)
+			rep.Error = proto.ErrBadRequest
+			return rep, nil
 		}
 		var res *apiproto.BroadcastResult
 		res, replyErr = CallBroadcast(h.node, cmd)
@@ -112,7 +125,9 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 	case "unsubscribe":
 		cmd, err := h.paramsDecoder.DecodeUnsubscribe(params)
 		if err != nil {
-			return nil, err
+			logger.ERROR.Printf("error decoding: %v", err)
+			rep.Error = proto.ErrBadRequest
+			return rep, nil
 		}
 		var res *apiproto.UnsubscribeResult
 		res, replyErr = CallUnsubscribe(h.node, cmd)
@@ -125,7 +140,9 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 	case "disconnect":
 		cmd, err := h.paramsDecoder.DecodeDisconnect(params)
 		if err != nil {
-			return nil, err
+			logger.ERROR.Printf("error decoding: %v", err)
+			rep.Error = proto.ErrBadRequest
+			return rep, nil
 		}
 		var res *apiproto.DisconnectResult
 		res, replyErr = CallDisconnect(h.node, cmd)
@@ -138,7 +155,9 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 	case "presence":
 		cmd, err := h.paramsDecoder.DecodePresence(params)
 		if err != nil {
-			return nil, err
+			logger.ERROR.Printf("error decoding: %v", err)
+			rep.Error = proto.ErrBadRequest
+			return rep, nil
 		}
 		var res *apiproto.PresenceResult
 		res, replyErr = CallPresence(h.node, cmd)
@@ -151,7 +170,9 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 	case "presence_stats":
 		cmd, err := h.paramsDecoder.DecodePresenceStats(params)
 		if err != nil {
-			return nil, err
+			logger.ERROR.Printf("error decoding: %v", err)
+			rep.Error = proto.ErrBadRequest
+			return rep, nil
 		}
 		var res *apiproto.PresenceStatsResult
 		res, replyErr = CallPresenceStats(h.node, cmd)
@@ -164,7 +185,9 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 	case "history":
 		cmd, err := h.paramsDecoder.DecodeHistory(params)
 		if err != nil {
-			return nil, err
+			logger.ERROR.Printf("error decoding: %v", err)
+			rep.Error = proto.ErrBadRequest
+			return rep, nil
 		}
 		var res *apiproto.HistoryResult
 		res, replyErr = CallHistory(h.node, cmd)
@@ -194,11 +217,8 @@ func (h *RequestHandler) handleCommand(cmd *apiproto.Command) (*apiproto.Reply, 
 		replyErr = proto.ErrMethodNotFound
 	}
 
-	rep := &apiproto.Reply{
-		ID:     cmd.ID,
-		Result: replyRes,
-		Error:  replyErr,
-	}
+	rep.Result = replyRes
+	rep.Error = replyErr
 
 	return rep, nil
 }
@@ -210,7 +230,7 @@ func CallPublish(n *node.Node, cmd *apiproto.Publish) (*apiproto.PublishResult, 
 
 	if string(ch) == "" || len(data) == 0 {
 		logger.ERROR.Printf("channel and data required for publish")
-		return nil, proto.ErrInvalidData
+		return nil, proto.ErrBadRequest
 	}
 
 	res := &apiproto.PublishResult{}
@@ -245,7 +265,7 @@ func CallPublishAsync(n *node.Node, cmd *apiproto.Publish) <-chan *proto.Error {
 
 	if string(ch) == "" || len(data) == 0 {
 		logger.ERROR.Printf("channel and data required for publish")
-		return makeProtoErrChan(proto.ErrInvalidData)
+		return makeProtoErrChan(proto.ErrBadRequest)
 	}
 
 	chOpts, ok := n.ChannelOpts(ch)
@@ -272,12 +292,12 @@ func CallBroadcast(n *node.Node, cmd *apiproto.Broadcast) (*apiproto.BroadcastRe
 
 	if len(channels) == 0 {
 		logger.ERROR.Println("channels required for broadcast")
-		return nil, proto.ErrInvalidData
+		return nil, proto.ErrBadRequest
 	}
 
 	if len(data) == 0 {
 		logger.ERROR.Println("data required for broadcast")
-		return res, proto.ErrInvalidData
+		return res, proto.ErrBadRequest
 	}
 
 	errs := make([]<-chan error, len(channels))
@@ -286,7 +306,7 @@ func CallBroadcast(n *node.Node, cmd *apiproto.Broadcast) (*apiproto.BroadcastRe
 
 		if string(ch) == "" {
 			logger.ERROR.Println("channel can not be blank in broadcast")
-			return res, proto.ErrInvalidData
+			return res, proto.ErrBadRequest
 		}
 
 		chOpts, ok := n.ChannelOpts(ch)
@@ -325,19 +345,19 @@ func CallBroadcastAsync(n *node.Node, cmd *apiproto.Broadcast) <-chan *proto.Err
 
 	if len(channels) == 0 {
 		logger.ERROR.Println("channels required for broadcast")
-		return makeProtoErrChan(proto.ErrInvalidData)
+		return makeProtoErrChan(proto.ErrBadRequest)
 	}
 
 	if len(data) == 0 {
 		logger.ERROR.Println("data required for broadcast")
-		return makeProtoErrChan(proto.ErrInvalidData)
+		return makeProtoErrChan(proto.ErrBadRequest)
 	}
 
 	for _, ch := range channels {
 
 		if string(ch) == "" {
 			logger.ERROR.Println("channel can not be blank in broadcast")
-			return makeProtoErrChan(proto.ErrInvalidData)
+			return makeProtoErrChan(proto.ErrBadRequest)
 		}
 
 		chOpts, ok := n.ChannelOpts(ch)
@@ -409,7 +429,7 @@ func CallPresenceStats(n *node.Node, cmd *apiproto.PresenceStats) (*apiproto.Pre
 	ch := cmd.Channel
 
 	if string(ch) == "" {
-		return nil, proto.ErrInvalidData
+		return nil, proto.ErrBadRequest
 	}
 
 	chOpts, ok := n.ChannelOpts(ch)
@@ -456,7 +476,7 @@ func CallHistory(n *node.Node, cmd *apiproto.History) (*apiproto.HistoryResult, 
 	ch := cmd.Channel
 
 	if string(ch) == "" {
-		return nil, proto.ErrInvalidData
+		return nil, proto.ErrBadRequest
 	}
 
 	chOpts, ok := n.ChannelOpts(ch)

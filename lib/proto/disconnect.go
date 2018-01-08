@@ -7,8 +7,8 @@ var (
 	DisconnectReasonShutdown = "shutdown"
 	// DisconnectReasonInvalidToken ...
 	DisconnectReasonInvalidToken = "invalid token"
-	// DisconnectReasonInvalidMessage ...
-	DisconnectReasonInvalidMessage = "invalid message"
+	// DisconnectReasonBadRequest ...
+	DisconnectReasonBadRequest = "bad request"
 	// DisconnectReasonServerError ...
 	DisconnectReasonServerError = "internal server error"
 )
@@ -19,6 +19,8 @@ type Disconnect struct {
 	Reconnect bool   `json:"reconnect"`
 }
 
+// Some predefined disconnect structures. Though it's always
+// possible to create Disconnect with any field values on the fly.
 var (
 	// DisconnectNormal ...
 	DisconnectNormal = &Disconnect{
@@ -35,9 +37,9 @@ var (
 		Reason:    DisconnectReasonInvalidToken,
 		Reconnect: false,
 	}
-	// DisconnectInvalidMessage ...
-	DisconnectInvalidMessage = &Disconnect{
-		Reason:    DisconnectReasonInvalidMessage,
+	// DisconnectBadRequest ...
+	DisconnectBadRequest = &Disconnect{
+		Reason:    DisconnectReasonBadRequest,
 		Reconnect: false,
 	}
 	// DisconnectServerError ...

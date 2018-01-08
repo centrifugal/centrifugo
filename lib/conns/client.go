@@ -319,8 +319,8 @@ func (c *client) Handle(data []byte) error {
 
 	if len(data) == 0 {
 		logger.ERROR.Println("empty client request received")
-		c.Close(&proto.Disconnect{Reason: proto.ErrInvalidData.Error(), Reconnect: false})
-		return proto.ErrInvalidData
+		c.Close(&proto.Disconnect{Reason: proto.ErrBadRequest.Error(), Reconnect: false})
+		return proto.ErrBadRequest
 	} else if len(data) > c.maxRequestSize {
 		logger.ERROR.Println("client request exceeds max request size limit")
 		c.Close(&proto.Disconnect{Reason: proto.ErrLimitExceeded.Error(), Reconnect: false})
@@ -341,7 +341,7 @@ func (c *client) Handle(data []byte) error {
 			}
 			logger.ERROR.Printf("error decoding request: %v", err)
 			c.Close(&proto.Disconnect{Reason: "malformed request", Reconnect: false})
-			return proto.ErrInvalidData
+			return proto.ErrBadRequest
 		}
 		rep, disconnect := c.handleCmd(cmd)
 		if disconnect != nil {
@@ -441,7 +441,7 @@ func (c *client) handleConnect(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	cmd, err := c.paramsDecoder.DecodeConnect(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding connect: %v", err)
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 	res, replyErr, disconnect := c.connectCmd(cmd)
 	if replyErr != nil || disconnect != nil {
@@ -459,7 +459,7 @@ func (c *client) handleRefresh(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	cmd, err := c.paramsDecoder.DecodeRefresh(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding refresh: %v", err)
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 	res, replyErr, disconnect := c.refreshCmd(cmd)
 	if replyErr != nil || disconnect != nil {
@@ -477,7 +477,7 @@ func (c *client) handleSubscribe(params proto.Raw) (proto.Raw, *proto.Error, *pr
 	cmd, err := c.paramsDecoder.DecodeSubscribe(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding subscribe: %v", err)
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 	res, replyErr, disconnect := c.subscribeCmd(cmd)
 	if replyErr != nil || disconnect != nil {
@@ -495,7 +495,7 @@ func (c *client) handleUnsubscribe(params proto.Raw) (proto.Raw, *proto.Error, *
 	cmd, err := c.paramsDecoder.DecodeUnsubscribe(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding unsubscribe: %v", err)
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 	res, replyErr, disconnect := c.unsubscribeCmd(cmd)
 	if replyErr != nil || disconnect != nil {
@@ -513,7 +513,7 @@ func (c *client) handlePublish(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	cmd, err := c.paramsDecoder.DecodePublish(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding publish: %v", err)
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 	res, replyErr, disconnect := c.publishCmd(cmd)
 	if replyErr != nil || disconnect != nil {
@@ -531,7 +531,7 @@ func (c *client) handlePresence(params proto.Raw) (proto.Raw, *proto.Error, *pro
 	cmd, err := c.paramsDecoder.DecodePresence(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding presence: %v", err)
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 	res, replyErr, disconnect := c.presenceCmd(cmd)
 	if replyErr != nil || disconnect != nil {
@@ -549,7 +549,7 @@ func (c *client) handlePresenceStats(params proto.Raw) (proto.Raw, *proto.Error,
 	cmd, err := c.paramsDecoder.DecodePresenceStats(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding presence stats: %v", err)
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 	res, replyErr, disconnect := c.presenceStatsCmd(cmd)
 	if replyErr != nil || disconnect != nil {
@@ -567,7 +567,7 @@ func (c *client) handleHistory(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	cmd, err := c.paramsDecoder.DecodeHistory(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding history: %v", err)
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 	res, replyErr, disconnect := c.historyCmd(cmd)
 	if replyErr != nil || disconnect != nil {
@@ -585,7 +585,7 @@ func (c *client) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *proto.D
 	cmd, err := c.paramsDecoder.DecodePing(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding ping: %v", err)
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 	res, replyErr, disconnect := c.pingCmd(cmd)
 	if replyErr != nil || disconnect != nil {
@@ -608,7 +608,7 @@ func (c *client) connectCmd(cmd *clientproto.Connect) (*clientproto.ConnectResul
 
 	if c.authenticated {
 		logger.ERROR.Println("connect error: client already authenticated")
-		return nil, proto.ErrInvalidData, nil
+		return nil, proto.ErrBadRequest, nil
 	}
 
 	user := cmd.User
@@ -643,7 +643,7 @@ func (c *client) connectCmd(cmd *clientproto.Connect) (*clientproto.ConnectResul
 		ts, err := strconv.Atoi(timestamp)
 		if err != nil {
 			logger.ERROR.Printf("invalid timestamp: %v", err)
-			return nil, nil, proto.DisconnectInvalidMessage
+			return nil, nil, proto.DisconnectBadRequest
 		}
 		c.timestamp = int64(ts)
 	} else {
@@ -723,7 +723,7 @@ func (c *client) refreshCmd(cmd *clientproto.Refresh) (*clientproto.RefreshResul
 	ts, err := strconv.Atoi(timestamp)
 	if err != nil {
 		logger.ERROR.Printf("invalid timestamp: %v", err)
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 
 	closeDelay := config.ExpiredConnectionCloseDelay
@@ -794,7 +794,7 @@ func (c *client) subscribeCmd(cmd *clientproto.Subscribe) (*clientproto.Subscrib
 	channel := cmd.Channel
 	if channel == "" {
 		logger.ERROR.Printf("channel not found in subscribe cmd")
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 
 	config := c.node.Config()
@@ -943,7 +943,7 @@ func (c *client) unsubscribeCmd(cmd *clientproto.Unsubscribe) (*clientproto.Unsu
 	channel := cmd.Channel
 	if channel == "" {
 		logger.ERROR.Printf("channel not found in unsubscribe cmd")
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 
 	res := &clientproto.UnsubscribeResult{}
@@ -969,7 +969,7 @@ func (c *client) publishCmd(cmd *clientproto.Publish) (*clientproto.PublishResul
 
 	if string(channel) == "" || len(data) == 0 {
 		logger.ERROR.Printf("channel and data required for publish")
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 
 	if _, ok := c.channels[channel]; !ok {
@@ -1086,7 +1086,7 @@ func (c *client) historyCmd(cmd *clientproto.History) (*clientproto.HistoryResul
 	ch := cmd.Channel
 
 	if string(ch) == "" {
-		return nil, nil, proto.DisconnectInvalidMessage
+		return nil, nil, proto.DisconnectBadRequest
 	}
 
 	if _, ok := c.channels[ch]; !ok {

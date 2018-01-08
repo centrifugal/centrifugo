@@ -2,56 +2,7 @@ package api
 
 import (
 	"encoding/json"
-
-	"github.com/centrifugal/centrifugo/lib/proto"
 )
-
-// commandFromJSON tries to extract single APICommand encoded as JSON.
-func commandFromJSON(msg []byte) (*Command, error) {
-	var cmd Command
-	err := json.Unmarshal(msg, &cmd)
-	if err != nil {
-		return nil, err
-	}
-	return &cmd, nil
-}
-
-var (
-	arrayJSONPrefix  byte = '['
-	objectJSONPrefix byte = '{'
-)
-
-// CommandsFromJSON tries to extract slice of APICommand encoded as JSON.
-// This function understands both single object and array of commands JSON
-// looking at first byte of msg.
-func CommandsFromJSON(msg []byte) ([]*Command, error) {
-	var cmds []*Command
-
-	if len(msg) == 0 {
-		return cmds, nil
-	}
-
-	firstByte := msg[0]
-
-	switch firstByte {
-	case objectJSONPrefix:
-		// single command request
-		command, err := commandFromJSON(msg)
-		if err != nil {
-			return nil, err
-		}
-		cmds = append(cmds, command)
-	case arrayJSONPrefix:
-		// array of commands received
-		err := json.Unmarshal(msg, &cmds)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, proto.ErrInvalidData
-	}
-	return cmds, nil
-}
 
 // RequestDecoder ...
 type RequestDecoder interface {

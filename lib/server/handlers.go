@@ -13,7 +13,6 @@ import (
 	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
-	"github.com/centrifugal/centrifugo/lib/proto"
 	clientproto "github.com/centrifugal/centrifugo/lib/proto/client"
 
 	"github.com/gorilla/websocket"
@@ -302,10 +301,6 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		logger.ERROR.Printf("error handling request: %v", err)
-		if err == proto.ErrInvalidData {
-			http.Error(w, "Bad Request", http.StatusBadRequest)
-			return
-		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

@@ -386,26 +386,26 @@ func (n *Node) HandleControl(cmd *control.Command) error {
 		cmd, err := n.CommandDecoder().DecodeNode(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding node control params: %v", err)
-			return proto.ErrInvalidData
+			return proto.ErrBadRequest
 		}
 		return n.nodeCmd(cmd)
 	case "unsubscribe":
 		cmd, err := n.CommandDecoder().DecodeUnsubscribe(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding unsubscribe control params: %v", err)
-			return proto.ErrInvalidData
+			return proto.ErrBadRequest
 		}
 		return n.unsubscribeUser(cmd.User, cmd.Channel)
 	case "disconnect":
 		cmd, err := n.CommandDecoder().DecodeDisconnect(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding disconnect control params: %v", err)
-			return proto.ErrInvalidData
+			return proto.ErrBadRequest
 		}
 		return n.disconnectUser(cmd.User, false)
 	default:
 		logger.ERROR.Printf("unknown control message method: %s", method)
-		return proto.ErrInvalidData
+		return proto.ErrBadRequest
 	}
 }
 
@@ -685,7 +685,7 @@ func (n *Node) nodeCmd(node *control.Node) error {
 func (n *Node) Unsubscribe(user string, ch string) error {
 
 	if string(user) == "" {
-		return proto.ErrInvalidData
+		return proto.ErrBadRequest
 	}
 
 	if string(ch) != "" {
@@ -735,7 +735,7 @@ func (n *Node) unsubscribeUser(user string, ch string) error {
 func (n *Node) Disconnect(user string, reconnect bool) error {
 
 	if string(user) == "" {
-		return proto.ErrInvalidData
+		return proto.ErrBadRequest
 	}
 
 	// first disconnect user from this node

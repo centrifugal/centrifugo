@@ -16,25 +16,25 @@ var (
 		Code:    100,
 		Message: "internal server error",
 	}
-	// ErrMethodNotFound means that method sent in command does not exist.
-	ErrMethodNotFound = &Error{
+	// ErrUnauthorized says that ...
+	ErrUnauthorized = &Error{
 		Code:    101,
-		Message: "method not found",
+		Message: "unauthorized",
 	}
 	// ErrNamespaceNotFound means that namespace in channel name does not exist.
 	ErrNamespaceNotFound = &Error{
 		Code:    102,
 		Message: "namespace not found",
 	}
-	// ErrNotAvailable means that resource is not enabled.
-	ErrNotAvailable = &Error{
-		Code:    103,
-		Message: "not available",
-	}
 	// ErrPermissionDenied means that access to resource not allowed.
 	ErrPermissionDenied = &Error{
-		Code:    104,
+		Code:    103,
 		Message: "permission denied",
+	}
+	// ErrMethodNotFound means that method sent in command does not exist.
+	ErrMethodNotFound = &Error{
+		Code:    104,
+		Message: "method not found",
 	}
 	// ErrAlreadySubscribed returned when client wants to subscribe on channel
 	// it already subscribed to.
@@ -48,15 +48,15 @@ var (
 		Code:    106,
 		Message: "limit exceeded",
 	}
-	// ErrInvalidData says that Centrifugo can not parse received data
+	// ErrBadRequest says that Centrifugo can not parse received data
 	// because it is malformed.
-	ErrInvalidData = &Error{
+	ErrBadRequest = &Error{
 		Code:    107,
-		Message: "invalid data",
+		Message: "bad request",
 	}
-	// ErrUnauthorized says that ...
-	ErrUnauthorized = &Error{
+	// ErrNotAvailable means that resource is not enabled.
+	ErrNotAvailable = &Error{
 		Code:    108,
-		Message: "unauthorized",
+		Message: "not available",
 	}
 )
