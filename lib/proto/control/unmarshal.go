@@ -1,24 +1,24 @@
 package control
 
-// CommandDecoder ...
-type CommandDecoder interface {
-	Decode([]byte) (*Command, error)
+// Decoder ...
+type Decoder interface {
+	DecodeCommand([]byte) (*Command, error)
 	DecodeNode([]byte) (*Node, error)
 	DecodeUnsubscribe([]byte) (*Unsubscribe, error)
 	DecodeDisconnect([]byte) (*Disconnect, error)
 }
 
-// ProtobufCommandDecoder ...
-type ProtobufCommandDecoder struct {
+// ProtobufDecoder ...
+type ProtobufDecoder struct {
 }
 
-// NewProtobufCommandDecoder ...
-func NewProtobufCommandDecoder() *ProtobufCommandDecoder {
-	return &ProtobufCommandDecoder{}
+// NewProtobufDecoder ...
+func NewProtobufDecoder() *ProtobufDecoder {
+	return &ProtobufDecoder{}
 }
 
-// Decode ...
-func (e *ProtobufCommandDecoder) Decode(data []byte) (*Command, error) {
+// DecodeCommand ...
+func (e *ProtobufDecoder) DecodeCommand(data []byte) (*Command, error) {
 	var cmd Command
 	err := cmd.Unmarshal(data)
 	if err != nil {
@@ -28,7 +28,7 @@ func (e *ProtobufCommandDecoder) Decode(data []byte) (*Command, error) {
 }
 
 // DecodeNode ...
-func (e *ProtobufCommandDecoder) DecodeNode(data []byte) (*Node, error) {
+func (e *ProtobufDecoder) DecodeNode(data []byte) (*Node, error) {
 	var cmd Node
 	err := cmd.Unmarshal(data)
 	if err != nil {
@@ -38,7 +38,7 @@ func (e *ProtobufCommandDecoder) DecodeNode(data []byte) (*Node, error) {
 }
 
 // DecodeUnsubscribe ...
-func (e *ProtobufCommandDecoder) DecodeUnsubscribe(data []byte) (*Unsubscribe, error) {
+func (e *ProtobufDecoder) DecodeUnsubscribe(data []byte) (*Unsubscribe, error) {
 	var cmd Unsubscribe
 	err := cmd.Unmarshal(data)
 	if err != nil {
@@ -48,7 +48,7 @@ func (e *ProtobufCommandDecoder) DecodeUnsubscribe(data []byte) (*Unsubscribe, e
 }
 
 // DecodeDisconnect ...
-func (e *ProtobufCommandDecoder) DecodeDisconnect(data []byte) (*Disconnect, error) {
+func (e *ProtobufDecoder) DecodeDisconnect(data []byte) (*Disconnect, error) {
 	var cmd Disconnect
 	err := cmd.Unmarshal(data)
 	if err != nil {

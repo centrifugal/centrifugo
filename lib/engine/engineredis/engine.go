@@ -778,7 +778,7 @@ func (e *Shard) runPubSub() {
 					}
 					switch chID {
 					case controlChannel:
-						cmd, err := e.node.CommandDecoder().Decode(n.Data)
+						cmd, err := e.node.ControlDecoder().DecodeCommand(n.Data)
 						if err != nil {
 							logger.ERROR.Println(err)
 							continue
@@ -1156,7 +1156,7 @@ func (e *Shard) PublishClient(message *proto.Message, opts *channel.Options) <-c
 func (e *Shard) PublishControl(cmd *control.Command) <-chan error {
 	eChan := make(chan error, 1)
 
-	byteMessage, err := e.node.CommandEncoder().Encode(cmd)
+	byteMessage, err := e.node.ControlEncoder().EncodeCommand(cmd)
 	if err != nil {
 		eChan <- err
 		return eChan

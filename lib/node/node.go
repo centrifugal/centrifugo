@@ -65,11 +65,11 @@ type Node struct {
 	// messageEncoder is decoder to decode messages coming from engine.
 	messageDecoder proto.MessageDecoder
 
-	// commandEncoder is encoder to encode control messages for engine.
-	commandEncoder control.CommandEncoder
+	// controlEncoder is encoder to encode control messages for engine.
+	controlEncoder control.Encoder
 
-	// commandDecoder is decoder to decode control messages coming from engine.
-	commandDecoder control.CommandDecoder
+	// controlDecoder is decoder to decode control messages coming from engine.
+	controlDecoder control.Decoder
 }
 
 // global metrics registry pointing to the same Registry plugin package uses.
@@ -131,8 +131,8 @@ func New(c *Config) *Node {
 		shutdownCh:      make(chan struct{}),
 		messageEncoder:  proto.NewProtobufMessageEncoder(),
 		messageDecoder:  proto.NewProtobufMessageDecoder(),
-		commandEncoder:  control.NewProtobufCommandEncoder(),
-		commandDecoder:  control.NewProtobufCommandDecoder(),
+		controlEncoder:  control.NewProtobufEncoder(),
+		controlDecoder:  control.NewProtobufDecoder(),
 	}
 
 	// Create initial snapshot with empty metric values.
@@ -192,14 +192,14 @@ func (n *Node) MessageDecoder() proto.MessageDecoder {
 	return n.messageDecoder
 }
 
-// CommandEncoder ...
-func (n *Node) CommandEncoder() control.CommandEncoder {
-	return n.commandEncoder
+// ControlEncoder ...
+func (n *Node) ControlEncoder() control.Encoder {
+	return n.controlEncoder
 }
 
-// CommandDecoder ...
-func (n *Node) CommandDecoder() control.CommandDecoder {
-	return n.commandDecoder
+// ControlDecoder ...
+func (n *Node) ControlDecoder() control.Decoder {
+	return n.controlDecoder
 }
 
 // NotifyShutdown returns a channel which will be closed on node shutdown.
@@ -383,21 +383,21 @@ func (n *Node) HandleControl(cmd *control.Command) error {
 
 	switch method {
 	case "node":
-		cmd, err := n.CommandDecoder().DecodeNode(params)
+		cmd, err := n.ControlDecoder().DecodeNode(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding node control params: %v", err)
 			return proto.ErrBadRequest
 		}
 		return n.nodeCmd(cmd)
 	case "unsubscribe":
-		cmd, err := n.CommandDecoder().DecodeUnsubscribe(params)
+		cmd, err := n.ControlDecoder().DecodeUnsubscribe(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding unsubscribe control params: %v", err)
 			return proto.ErrBadRequest
 		}
 		return n.unsubscribeUser(cmd.User, cmd.Channel)
 	case "disconnect":
-		cmd, err := n.CommandDecoder().DecodeDisconnect(params)
+		cmd, err := n.ControlDecoder().DecodeDisconnect(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding disconnect control params: %v", err)
 			return proto.ErrBadRequest
@@ -578,7 +578,7 @@ func (n *Node) pubNode() error {
 
 	n.mu.RUnlock()
 
-	params, _ := n.commandEncoder.EncodeNode(node)
+	params, _ := n.ControlEncoder().EncodeNode(node)
 
 	cmd := &control.Command{
 		UID:    n.uid,
@@ -603,7 +603,7 @@ func (n *Node) pubUnsubscribe(user string, ch string) error {
 		User: user,
 	}
 
-	params, _ := n.commandEncoder.EncodeUnsubscribe(unsubscribe)
+	params, _ := n.ControlEncoder().EncodeUnsubscribe(unsubscribe)
 
 	cmd := &control.Command{
 		UID:    n.uid,
@@ -622,7 +622,7 @@ func (n *Node) pubDisconnect(user string, reconnect bool) error {
 		User: user,
 	}
 
-	params, _ := n.commandEncoder.EncodeDisconnect(disconnect)
+	params, _ := n.ControlEncoder().EncodeDisconnect(disconnect)
 
 	cmd := &control.Command{
 		UID:    n.uid,
