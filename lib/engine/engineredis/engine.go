@@ -313,35 +313,6 @@ func New(n *node.Node, config *Config) (*RedisEngine, error) {
 	return e, nil
 }
 
-// NewShard initializes new Redis shard.
-func NewShard(n *node.Node, conf *ShardConfig) (*Shard, error) {
-	shard := &Shard{
-		node:              n,
-		config:            conf,
-		pool:              newPool(conf),
-		api:               conf.API,
-		numAPIShards:      conf.NumAPIShards,
-		pubScript:         redis.NewScript(2, pubScriptSource),
-		addPresenceScript: redis.NewScript(2, addPresenceSource),
-		remPresenceScript: redis.NewScript(2, remPresenceSource),
-		presenceScript:    redis.NewScript(2, presenceSource),
-		lpopManyScript:    redis.NewScript(1, lpopManySource),
-		jsonAPIHandler:    api.NewJSONRequestHandler(n),
-	}
-	shard.pubCh = make(chan pubRequest, RedisPublishChannelSize)
-	shard.subCh = make(chan subRequest, RedisSubscribeChannelSize)
-	shard.dataCh = make(chan dataRequest, RedisDataChannelSize)
-	shard.messagePrefix = conf.Prefix + RedisClientChannelPrefix
-	return shard, nil
-}
-
-func yesno(condition bool) string {
-	if condition {
-		return "yes"
-	}
-	return "no"
-}
-
 var (
 	// pubScriptSource contains lua script we register in Redis to call when publishing
 	// client message. It publishes message into channel and adds message to history
@@ -415,6 +386,68 @@ return entries
 	`
 )
 
+// NewShard initializes new Redis shard.
+func NewShard(n *node.Node, conf *ShardConfig) (*Shard, error) {
+	shard := &Shard{
+		node:              n,
+		config:            conf,
+		pool:              newPool(conf),
+		api:               conf.API,
+		numAPIShards:      conf.NumAPIShards,
+		pubScript:         redis.NewScript(2, pubScriptSource),
+		addPresenceScript: redis.NewScript(2, addPresenceSource),
+		remPresenceScript: redis.NewScript(2, remPresenceSource),
+		presenceScript:    redis.NewScript(2, presenceSource),
+		lpopManyScript:    redis.NewScript(1, lpopManySource),
+		jsonAPIHandler:    api.NewJSONRequestHandler(n),
+	}
+	shard.pubCh = make(chan pubRequest, RedisPublishChannelSize)
+	shard.subCh = make(chan subRequest, RedisSubscribeChannelSize)
+	shard.dataCh = make(chan dataRequest, RedisDataChannelSize)
+	shard.messagePrefix = conf.Prefix + RedisClientChannelPrefix
+	return shard, nil
+}
+
+func yesno(condition bool) string {
+	if condition {
+		return "yes"
+	}
+	return "no"
+}
+
+func (e *Shard) getAPIShardQueueKey(shardNum int) string {
+	apiKey := e.getAPIQueueKey()
+	return fmt.Sprintf("%s.%d", apiKey, shardNum)
+}
+
+func (e *Shard) messageChannelID(ch string) channelID {
+	return channelID(e.messagePrefix + ch)
+}
+
+func (e *Shard) controlChannelID() channelID {
+	return channelID(e.config.Prefix + RedisControlChannelSuffix)
+}
+
+func (e *Shard) pingChannelID() channelID {
+	return channelID(e.config.Prefix + RedisPingChannelSuffix)
+}
+
+func (e *Shard) getPresenceHashKey(ch string) channelID {
+	return channelID(e.config.Prefix + ".presence.data." + ch)
+}
+
+func (e *Shard) getPresenceSetKey(ch string) channelID {
+	return channelID(e.config.Prefix + ".presence.expire." + ch)
+}
+
+func (e *Shard) getHistoryKey(ch string) channelID {
+	return channelID(e.config.Prefix + ".history.list." + ch)
+}
+
+func (e *Shard) getHistoryTouchKey(ch string) channelID {
+	return channelID(e.config.Prefix + ".history.touch." + ch)
+}
+
 func (e *RedisEngine) shardIndex(channel string) int {
 	if !e.sharding {
 		return 0
@@ -437,21 +470,6 @@ func (e *RedisEngine) Run() error {
 	}
 	return nil
 }
-
-// // PublishMessage - see engine interface description.
-// func (e *RedisEngine) PublishMessage(message *proto.Message, opts *channel.Options) <-chan error {
-// 	return e.shards[e.shardIndex(message.Channel)].PublishMessage(message, opts)
-// }
-
-// // PublishJoin - see engine interface description.
-// func (e *RedisEngine) PublishJoin(message *proto.JoinMessage, opts *channel.Options) <-chan error {
-// 	return e.shards[e.shardIndex(message.Channel)].PublishJoin(message, opts)
-// }
-
-// // PublishLeave - see engine interface description.
-// func (e *RedisEngine) PublishLeave(message *proto.LeaveMessage, opts *channel.Options) <-chan error {
-// 	return e.shards[e.shardIndex(message.Channel)].PublishLeave(message, opts)
-// }
 
 // PublishClient ...
 func (e *RedisEngine) PublishClient(message *proto.Message, opts *channel.Options) <-chan error {
@@ -758,8 +776,8 @@ func (e *Shard) runPubSub() {
 		}
 	}()
 
-	controlChannel := e.controlchannelID()
-	pingChannel := e.pingchannelID()
+	controlChannel := e.controlChannelID()
+	pingChannel := e.pingChannelID()
 
 	// Run workers to spread received message processing work over worker goroutines.
 	workers := make(map[int]chan redis.Message)
@@ -859,8 +877,8 @@ func (e *Shard) handleRedisClientMessage(chID channelID, data []byte) error {
 type pubRequest struct {
 	channel    channelID
 	message    []byte
-	historyKey string
-	touchKey   string
+	historyKey channelID
+	touchKey   channelID
 	opts       *channel.Options
 	err        *chan error
 }
@@ -911,7 +929,7 @@ func (e *Shard) runPublishPipeline() {
 			// In our case it's important to maintain PUB/SUB receiver connection alive to prevent
 			// resubscribing on all our subscriptions again and again.
 			conn := e.pool.Get()
-			err := conn.Send("PUBLISH", e.pingchannelID(), nil)
+			err := conn.Send("PUBLISH", e.pingChannelID(), nil)
 			if err != nil {
 				logger.ERROR.Printf("Error publish ping: %v", err)
 				conn.Close()
@@ -1116,39 +1134,6 @@ func (e *Shard) getAPIQueueKey() string {
 	return e.config.Prefix + RedisAPIKeySuffix
 }
 
-func (e *Shard) getAPIShardQueueKey(shardNum int) string {
-	apiKey := e.getAPIQueueKey()
-	return fmt.Sprintf("%s.%d", apiKey, shardNum)
-}
-
-func (e *Shard) messageChannelID(ch string) channelID {
-	return channelID(e.messagePrefix + string(ch))
-}
-
-func (e *Shard) controlchannelID() channelID {
-	return channelID(e.config.Prefix + RedisControlChannelSuffix)
-}
-
-func (e *Shard) pingchannelID() channelID {
-	return channelID(e.config.Prefix + RedisPingChannelSuffix)
-}
-
-func (e *Shard) getPresenceHashKey(chID channelID) string {
-	return e.config.Prefix + ".presence.hash." + string(chID)
-}
-
-func (e *Shard) getPresenceSetKey(chID channelID) string {
-	return e.config.Prefix + ".presence.set." + string(chID)
-}
-
-func (e *Shard) getHistoryKey(chID channelID) string {
-	return e.config.Prefix + ".history.list." + string(chID)
-}
-
-func (e *Shard) getHistoryTouchKey(chID channelID) string {
-	return e.config.Prefix + ".history.touch." + string(chID)
-}
-
 // PublishClient - see engine interface description.
 func (e *Shard) PublishClient(message *proto.Message, opts *channel.Options) <-chan error {
 	ch := message.Channel
@@ -1167,8 +1152,8 @@ func (e *Shard) PublishClient(message *proto.Message, opts *channel.Options) <-c
 		pr := pubRequest{
 			channel:    chID,
 			message:    byteMessage,
-			historyKey: e.getHistoryKey(chID),
-			touchKey:   e.getHistoryTouchKey(chID),
+			historyKey: e.getHistoryKey(ch),
+			touchKey:   e.getHistoryTouchKey(ch),
 			opts:       opts,
 			err:        &eChan,
 		}
@@ -1195,7 +1180,7 @@ func (e *Shard) PublishControl(cmd *control.Command) <-chan error {
 		return eChan
 	}
 
-	chID := e.controlchannelID()
+	chID := e.controlChannelID()
 
 	pr := pubRequest{
 		channel: chID,
@@ -1227,7 +1212,7 @@ func (e *Shard) Unsubscribe(ch string) error {
 		// semantically correct and allows avoid races in drop inactive tests.
 		// It does not seem a big bottleneck for real usage but can be tuned in
 		// future if we find any problems with it.
-		dr := newDataRequest(dataOpHistoryTouch, []interface{}{e.getHistoryTouchKey(e.messageChannelID(ch)), chOpts.HistoryLifetime, ""}, true)
+		dr := newDataRequest(dataOpHistoryTouch, []interface{}{e.getHistoryTouchKey(ch), chOpts.HistoryLifetime, ""}, true)
 		e.dataCh <- dr
 		dr.result()
 	}
@@ -1236,14 +1221,13 @@ func (e *Shard) Unsubscribe(ch string) error {
 
 // AddPresence - see engine interface description.
 func (e *Shard) AddPresence(ch string, uid string, info *proto.ClientInfo, expire int) error {
-	chID := e.messageChannelID(ch)
 	infoJSON, err := info.Marshal()
 	if err != nil {
 		return err
 	}
 	expireAt := time.Now().Unix() + int64(expire)
-	hashKey := e.getPresenceHashKey(chID)
-	setKey := e.getPresenceSetKey(chID)
+	hashKey := e.getPresenceHashKey(ch)
+	setKey := e.getPresenceSetKey(ch)
 	dr := newDataRequest(dataOpAddPresence, []interface{}{setKey, hashKey, expire, expireAt, uid, infoJSON}, true)
 	e.dataCh <- dr
 	resp := dr.result()
@@ -1252,9 +1236,8 @@ func (e *Shard) AddPresence(ch string, uid string, info *proto.ClientInfo, expir
 
 // RemovePresence - see engine interface description.
 func (e *Shard) RemovePresence(ch string, uid string) error {
-	chID := e.messageChannelID(ch)
-	hashKey := e.getPresenceHashKey(chID)
-	setKey := e.getPresenceSetKey(chID)
+	hashKey := e.getPresenceHashKey(ch)
+	setKey := e.getPresenceSetKey(ch)
 	dr := newDataRequest(dataOpRemovePresence, []interface{}{setKey, hashKey, uid}, true)
 	e.dataCh <- dr
 	resp := dr.result()
@@ -1263,9 +1246,8 @@ func (e *Shard) RemovePresence(ch string, uid string) error {
 
 // Presence - see engine interface description.
 func (e *Shard) Presence(ch string) (map[string]*proto.ClientInfo, error) {
-	chID := e.messageChannelID(ch)
-	hashKey := e.getPresenceHashKey(chID)
-	setKey := e.getPresenceSetKey(chID)
+	hashKey := e.getPresenceHashKey(ch)
+	setKey := e.getPresenceSetKey(ch)
 	now := int(time.Now().Unix())
 	dr := newDataRequest(dataOpPresence, []interface{}{setKey, hashKey, now}, true)
 	e.dataCh <- dr
@@ -1278,12 +1260,11 @@ func (e *Shard) Presence(ch string) (map[string]*proto.ClientInfo, error) {
 
 // History - see engine interface description.
 func (e *Shard) History(ch string, limit int) ([]*proto.Message, error) {
-	chID := e.messageChannelID(ch)
 	var rangeBound = -1
 	if limit > 0 {
 		rangeBound = limit - 1 // Redis includes last index into result
 	}
-	historyKey := e.getHistoryKey(chID)
+	historyKey := e.getHistoryKey(ch)
 	dr := newDataRequest(dataOpHistory, []interface{}{historyKey, 0, rangeBound}, true)
 	e.dataCh <- dr
 	resp := dr.result()
