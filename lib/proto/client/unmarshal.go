@@ -19,8 +19,10 @@ type JSONCommandDecoder struct {
 }
 
 // NewJSONCommandDecoder ...
-func NewJSONCommandDecoder() *JSONCommandDecoder {
-	return &JSONCommandDecoder{}
+func NewJSONCommandDecoder(data []byte) *JSONCommandDecoder {
+	return &JSONCommandDecoder{
+		decoder: json.NewDecoder(bytes.NewReader(data)),
+	}
 }
 
 // Reset ...
@@ -46,8 +48,10 @@ type ProtobufCommandDecoder struct {
 }
 
 // NewProtobufCommandDecoder ...
-func NewProtobufCommandDecoder() *ProtobufCommandDecoder {
-	return &ProtobufCommandDecoder{}
+func NewProtobufCommandDecoder(data []byte) *ProtobufCommandDecoder {
+	return &ProtobufCommandDecoder{
+		data: data,
+	}
 }
 
 // Reset ...

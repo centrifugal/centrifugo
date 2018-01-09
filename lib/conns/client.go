@@ -330,7 +330,7 @@ func (c *client) Handle(data []byte) error {
 	encoder := clientproto.GetReplyEncoder(c.encoding)
 	defer clientproto.PutReplyEncoder(c.encoding, encoder)
 
-	decoder := clientproto.GetCommandDecoder(c.encoding)
+	decoder := clientproto.GetCommandDecoder(c.encoding, data)
 	defer clientproto.PutCommandDecoder(c.encoding, decoder)
 
 	for {

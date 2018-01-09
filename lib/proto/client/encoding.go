@@ -46,11 +46,11 @@ func PutReplyEncoder(enc Encoding, e ReplyEncoder) {
 }
 
 // GetCommandDecoder ...
-func GetCommandDecoder(enc Encoding) CommandDecoder {
+func GetCommandDecoder(enc Encoding, data []byte) CommandDecoder {
 	if enc == EncodingJSON {
-		return NewJSONCommandDecoder()
+		return NewJSONCommandDecoder(data)
 	}
-	return NewProtobufCommandDecoder()
+	return NewProtobufCommandDecoder(data)
 }
 
 // PutCommandDecoder ...
