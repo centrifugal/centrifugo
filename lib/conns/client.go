@@ -68,9 +68,6 @@ type client struct {
 	resultEncoder  clientproto.ResultEncoder
 }
 
-// CommandHandler must handle incoming command from client.
-type CommandHandler func(ctx context.Context, method string, params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect)
-
 // New creates new client connection.
 func New(ctx context.Context, n *node.Node, s Session, enc clientproto.Encoding, credentials *Credentials) node.Client {
 	config := n.Config()
@@ -218,12 +215,27 @@ func (c *client) Unsubscribe(ch string) error {
 	}
 	c.mu.Unlock()
 
-	// TODO: send AsyncUnsubscribeMessage to this client.
-	// encoder := clientproto.GetReplyEncoder(c.encoding)
-	// defer clientproto.PutReplyEncoder(c.encoding, encoder)
-	// unsubscribe := &proto.Unsubscribe{}
-	// message := proto.NewUnsubscribeMessage(ch)
+	var messageEncoder proto.MessageEncoder
+	if c.Encoding() == clientproto.EncodingJSON {
+		messageEncoder = proto.NewJSONMessageEncoder()
+	} else {
+		messageEncoder = proto.NewProtobufMessageEncoder()
+	}
 
+	data, err := messageEncoder.EncodeUnsubscribe(&proto.Unsubscribe{})
+	if err != nil {
+		return err
+	}
+	result, err := messageEncoder.Encode(proto.NewUnsubscribeMessage(ch, data))
+	if err != nil {
+		return nil
+	}
+	encoder := clientproto.GetReplyEncoder(c.Encoding())
+	defer clientproto.PutReplyEncoder(c.Encoding(), encoder)
+	encoder.Encode(&clientproto.Reply{
+		Result: result,
+	})
+	c.enqueue(encoder.Finish())
 	return nil
 }
 
