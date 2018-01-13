@@ -101,6 +101,7 @@ func init() {
 	metricsRegistry.RegisterCounter("node_num_add_presence", metrics.NewCounter())
 	metricsRegistry.RegisterCounter("node_num_remove_presence", metrics.NewCounter())
 	metricsRegistry.RegisterCounter("node_num_history", metrics.NewCounter())
+	metricsRegistry.RegisterCounter("node_num_remove_history", metrics.NewCounter())
 	metricsRegistry.RegisterCounter("node_num_last_message_id", metrics.NewCounter())
 
 	metricsRegistry.RegisterGauge("node_memory_sys", metrics.NewGauge())
@@ -802,6 +803,12 @@ func (n *Node) History(ch string) ([]*proto.Publication, error) {
 		return nil, err
 	}
 	return publications, nil
+}
+
+// RemoveHistory removes channel history.
+func (n *Node) RemoveHistory(ch string) error {
+	metricsRegistry.Counters.Inc("node_num_remove_history")
+	return n.engine.RemoveHistory(ch)
 }
 
 // LastMessageID return last message id for channel.
