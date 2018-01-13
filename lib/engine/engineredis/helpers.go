@@ -2,8 +2,10 @@ package engineredis
 
 import (
 	"errors"
+	"fmt"
 	"hash/fnv"
 
+	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 
 	"github.com/garyburd/redigo/redis"
@@ -34,23 +36,32 @@ func mapStringClientInfo(result interface{}, err error) (map[string]*proto.Clien
 	return m, nil
 }
 
-func sliceOfMessages(result interface{}, err error) ([]*proto.Message, error) {
+func sliceOfMessages(n *node.Node, result interface{}, err error) ([]*proto.Publication, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err
 	}
-	msgs := make([]*proto.Message, len(values))
+	msgs := make([]*proto.Publication, len(values))
 	for i := 0; i < len(values); i++ {
 		value, okValue := values[i].([]byte)
 		if !okValue {
 			return nil, errors.New("error getting Message value")
 		}
-		var m proto.Message
-		err = m.Unmarshal(value)
+
+		msg, err := n.MessageDecoder().Decode(value)
 		if err != nil {
-			return nil, errors.New("can not unmarshal value to Message")
+			return nil, fmt.Errorf("can not unmarshal value to Message: %v", err)
 		}
-		msgs[i] = &m
+
+		if msg.Type != proto.MessageTypePublication {
+			return nil, fmt.Errorf("wrong message type in history: %d", msg.Type)
+		}
+
+		publication, err := n.MessageDecoder().DecodePublication(msg.Data)
+		if err != nil {
+			return nil, fmt.Errorf("can not unmarshal value to Publication: %v", err)
+		}
+		msgs[i] = publication
 	}
 	return msgs, nil
 }

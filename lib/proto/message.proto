@@ -20,7 +20,6 @@ enum MessageType {
 
 message Message {
     MessageType Type = 1 [(gogoproto.jsontag) = "t,omitempty"];
-    string UID = 2 [(gogoproto.jsontag) = "i,omitempty"];
     string Channel = 3 [(gogoproto.jsontag) = "c,omitempty"];
     bytes Data = 4 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "d", (gogoproto.nullable) = false];
 }
@@ -33,8 +32,9 @@ message ClientInfo {
 }
 
 message Publication {
-  bytes Data = 1 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
-  ClientInfo Info = 2 [(gogoproto.jsontag) = "info,omitempty"];
+  string UID = 1 [(gogoproto.jsontag) = "uid,omitempty"];
+  bytes Data = 2 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+  ClientInfo Info = 3 [(gogoproto.jsontag) = "info,omitempty"];
 }
 
 message Join {

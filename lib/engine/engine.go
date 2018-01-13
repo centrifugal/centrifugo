@@ -18,13 +18,18 @@ type Engine interface {
 	// implementations can safely return nil without doing any work.
 	Shutdown() error
 
-	// PublishClient allows to send asynchronous message into channel.
+	// Publish allows to send asynchronous message into channel.
 	// This message should be delivered to all clients subscribed on this
 	// channel at moment on any Centrifugo node. The returned value is
 	// channel in which we will send error as soon as engine finishes
 	// publish operation. Also this method should maintain history for
 	// channels if enabled in channel options.
-	PublishClient(msg *proto.Message, opts *channel.Options) <-chan error
+	// TODO: refactor comment.
+	Publish(ch string, publication *proto.Publication, opts *channel.Options) <-chan error
+	// PublishJoin ...
+	PublishJoin(ch string, join *proto.Join, opts *channel.Options) <-chan error
+	// PublishLeave ...
+	PublishLeave(ch string, join *proto.Leave, opts *channel.Options) <-chan error
 	// PublishControl allows to send control command to all running nodes.
 	PublishControl(*control.Command) <-chan error
 
@@ -49,7 +54,7 @@ type Engine interface {
 	// Integer limit sets the max amount of messages that must
 	// be returned. 0 means no limit - i.e. return all history
 	// messages (actually limited by configured history_size).
-	History(ch string, limit int) ([]*proto.Message, error)
+	History(ch string, limit int) ([]*proto.Publication, error)
 	// RemoveHistory removes history from channel. This is in
 	// general not needed as history expires automatically (based
 	// on history_lifetime) but sometimes can be useful for

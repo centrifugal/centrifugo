@@ -1,14 +1,9 @@
 package proto
 
-import (
-	"github.com/nats-io/nuid"
-)
-
 // NewPublicationMessage returns initialized async data message.
 func NewPublicationMessage(ch string, data Raw) *Message {
 	return &Message{
 		Type:    MessageTypePublication,
-		UID:     nuid.Next(),
 		Channel: ch,
 		Data:    data,
 	}
@@ -18,7 +13,6 @@ func NewPublicationMessage(ch string, data Raw) *Message {
 func NewJoinMessage(ch string, data Raw) *Message {
 	return &Message{
 		Type:    MessageTypeJoin,
-		UID:     nuid.Next(),
 		Channel: ch,
 		Data:    data,
 	}
@@ -28,7 +22,6 @@ func NewJoinMessage(ch string, data Raw) *Message {
 func NewLeaveMessage(ch string, data Raw) *Message {
 	return &Message{
 		Type:    MessageTypeLeave,
-		UID:     nuid.Next(),
 		Channel: ch,
 		Data:    data,
 	}
@@ -38,7 +31,6 @@ func NewLeaveMessage(ch string, data Raw) *Message {
 func NewUnsubscribeMessage(ch string, data Raw) *Message {
 	return &Message{
 		Type:    MessageTypeUnsubscribe,
-		UID:     nuid.Next(),
 		Channel: ch,
 		Data:    data,
 	}

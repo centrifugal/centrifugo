@@ -7,6 +7,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	apiproto "github.com/centrifugal/centrifugo/lib/proto/api"
+	"github.com/nats-io/nuid"
 )
 
 // Handler ...
@@ -62,9 +63,11 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		if resp.Error != nil {
 			rep.Error = resp.Error
 		} else {
-			replyRes, err = encoder.EncodePublish(resp.Result)
-			if err != nil {
-				return nil, err
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodePublish(resp.Result)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	case "broadcast":
@@ -78,9 +81,11 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		if resp.Error != nil {
 			rep.Error = resp.Error
 		} else {
-			replyRes, err = encoder.EncodeBroadcast(resp.Result)
-			if err != nil {
-				return nil, err
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeBroadcast(resp.Result)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	case "unsubscribe":
@@ -94,9 +99,11 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		if resp.Error != nil {
 			rep.Error = resp.Error
 		} else {
-			replyRes, err = encoder.EncodeUnsubscribe(resp.Result)
-			if err != nil {
-				return nil, err
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeUnsubscribe(resp.Result)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	case "disconnect":
@@ -110,9 +117,11 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		if resp.Error != nil {
 			rep.Error = resp.Error
 		} else {
-			replyRes, err = encoder.EncodeDisconnect(resp.Result)
-			if err != nil {
-				return nil, err
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeDisconnect(resp.Result)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	case "presence":
@@ -126,9 +135,11 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		if resp.Error != nil {
 			rep.Error = resp.Error
 		} else {
-			replyRes, err = encoder.EncodePresence(resp.Result)
-			if err != nil {
-				return nil, err
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodePresence(resp.Result)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	case "presence_stats":
@@ -142,9 +153,11 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		if resp.Error != nil {
 			rep.Error = resp.Error
 		} else {
-			replyRes, err = encoder.EncodePresenceStats(resp.Result)
-			if err != nil {
-				return nil, err
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodePresenceStats(resp.Result)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	case "history":
@@ -158,9 +171,11 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		if resp.Error != nil {
 			rep.Error = resp.Error
 		} else {
-			replyRes, err = encoder.EncodeHistory(resp.Result)
-			if err != nil {
-				return nil, err
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeHistory(resp.Result)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	case "channels":
@@ -168,9 +183,11 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		if resp.Error != nil {
 			rep.Error = resp.Error
 		} else {
-			replyRes, err = encoder.EncodeChannels(resp.Result)
-			if err != nil {
-				return nil, err
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeChannels(resp.Result)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	case "info":
@@ -178,16 +195,20 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		if resp.Error != nil {
 			rep.Error = resp.Error
 		} else {
-			replyRes, err = encoder.EncodeInfo(resp.Result)
-			if err != nil {
-				return nil, err
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeInfo(resp.Result)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	default:
 		rep.Error = proto.ErrMethodNotFound
 	}
 
-	rep.Result = replyRes
+	if len(replyRes) > 0 {
+		rep.Result = (*proto.Raw)(&replyRes)
+	}
 
 	return rep, nil
 }
@@ -212,6 +233,7 @@ func (h *Handler) Publish(ctx context.Context, cmd *apiproto.PublishRequest) *ap
 	}
 
 	publication := &proto.Publication{
+		UID:  nuid.Next(),
 		Data: cmd.Data,
 	}
 
@@ -334,7 +356,7 @@ func (h *Handler) Presence(ctx context.Context, cmd *apiproto.PresenceRequest) *
 	}
 
 	resp.Result = &apiproto.PresenceResult{
-		Data: presence,
+		Presence: presence,
 	}
 	return resp
 }
@@ -420,7 +442,7 @@ func (h *Handler) History(ctx context.Context, cmd *apiproto.HistoryRequest) *ap
 	}
 
 	resp.Result = &apiproto.HistoryResult{
-		Data: history,
+		Publications: history,
 	}
 	return resp
 }
@@ -438,7 +460,7 @@ func (h *Handler) Channels(ctx context.Context, cmd *apiproto.ChannelsRequest) *
 	}
 
 	resp.Result = &apiproto.ChannelsResult{
-		Data: channels,
+		Channels: channels,
 	}
 	return resp
 }

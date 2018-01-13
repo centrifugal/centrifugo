@@ -21,7 +21,7 @@ message Command {
 message Reply {
     uint64 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
     proto.Error Error = 2 [(gogoproto.jsontag) = "error,omitempty"];
-    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "result,omitempty", (gogoproto.nullable) = false];
+    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "result,omitempty"];
 }
 
 message PublishRequest {
@@ -81,7 +81,7 @@ message PresenceResponse {
 }
 
 message PresenceResult {
-    map<string, proto.ClientInfo> Data = 1 [(gogoproto.jsontag) = "data"];
+    map<string, proto.ClientInfo> Presence = 1 [(gogoproto.jsontag) = "presence"];
 }
 
 message PresenceStatsRequest {
@@ -108,7 +108,7 @@ message HistoryResponse {
 }
 
 message HistoryResult {
-    repeated proto.Message Data = 1 [(gogoproto.jsontag) = "data"];
+    repeated proto.Publication Publications = 1 [(gogoproto.jsontag) = "publications"];
 }
 
 message ChannelsRequest {}
@@ -119,7 +119,7 @@ message ChannelsResponse {
 }
 
 message ChannelsResult {
-    repeated string Data = 1 [(gogoproto.jsontag) = "data"];
+    repeated string Channels = 1 [(gogoproto.jsontag) = "channels"];
 }
 
 message InfoRequest {}

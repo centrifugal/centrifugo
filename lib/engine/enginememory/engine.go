@@ -54,23 +54,35 @@ func (e *MemoryEngine) Shutdown() error {
 	return errors.New("Shutdown not implemented")
 }
 
-// PublishClient adds message into history hub and calls node ClientMsg method to handle message.
+// Publish adds message into history hub and calls node ClientMsg method to handle message.
 // We don't have any PUB/SUB here as Memory Engine is single node only.
-func (e *MemoryEngine) PublishClient(message *proto.Message, opts *channel.Options) <-chan error {
-
-	ch := message.Channel
+func (e *MemoryEngine) Publish(ch string, pub *proto.Publication, opts *channel.Options) <-chan error {
 
 	hasCurrentSubscribers := e.node.Hub().NumSubscribers(ch) > 0
 
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
-		err := e.historyHub.add(ch, message, opts, hasCurrentSubscribers)
+		err := e.historyHub.add(ch, pub, opts, hasCurrentSubscribers)
 		if err != nil {
 			logger.ERROR.Println(err)
 		}
 	}
 
 	eChan := make(chan error, 1)
-	eChan <- e.node.HandleClientMessage(message)
+	eChan <- e.node.HandlePublication(ch, pub)
+	return eChan
+}
+
+// PublishJoin ...
+func (e *MemoryEngine) PublishJoin(ch string, join *proto.Join, opts *channel.Options) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- e.node.HandleJoin(ch, join)
+	return eChan
+}
+
+// PublishLeave ...
+func (e *MemoryEngine) PublishLeave(ch string, leave *proto.Leave, opts *channel.Options) <-chan error {
+	eChan := make(chan error, 1)
+	eChan <- e.node.HandleLeave(ch, leave)
 	return eChan
 }
 
@@ -112,7 +124,7 @@ func (e *MemoryEngine) Presence(ch string) (map[string]*proto.ClientInfo, error)
 }
 
 // History extracts history from history hub.
-func (e *MemoryEngine) History(ch string, limit int) ([]*proto.Message, error) {
+func (e *MemoryEngine) History(ch string, limit int) ([]*proto.Publication, error) {
 	return e.historyHub.get(ch, limit)
 }
 
@@ -189,7 +201,7 @@ func (h *presenceHub) get(ch string) (map[string]*proto.ClientInfo, error) {
 }
 
 type historyItem struct {
-	messages []*proto.Message
+	messages []*proto.Publication
 	expireAt int64
 }
 
@@ -259,7 +271,7 @@ func (h *historyHub) touch(ch string, opts *channel.Options) {
 
 	if !ok {
 		h.history[ch] = historyItem{
-			messages: []*proto.Message{},
+			messages: []*proto.Publication{},
 			expireAt: expireAt,
 		}
 	} else {
@@ -271,7 +283,7 @@ func (h *historyHub) touch(ch string, opts *channel.Options) {
 	}
 }
 
-func (h *historyHub) add(ch string, msg *proto.Message, opts *channel.Options, hasSubscribers bool) error {
+func (h *historyHub) add(ch string, msg *proto.Publication, opts *channel.Options, hasSubscribers bool) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -286,12 +298,12 @@ func (h *historyHub) add(ch string, msg *proto.Message, opts *channel.Options, h
 	heap.Push(&h.queue, &priority.Item{Value: ch, Priority: expireAt})
 	if !ok {
 		h.history[ch] = historyItem{
-			messages: []*proto.Message{msg},
+			messages: []*proto.Publication{msg},
 			expireAt: expireAt,
 		}
 	} else {
 		messages := h.history[ch].messages
-		messages = append([]*proto.Message{msg}, messages...)
+		messages = append([]*proto.Publication{msg}, messages...)
 		if len(messages) > opts.HistorySize {
 			messages = messages[0:opts.HistorySize]
 		}
@@ -308,19 +320,19 @@ func (h *historyHub) add(ch string, msg *proto.Message, opts *channel.Options, h
 	return nil
 }
 
-func (h *historyHub) get(ch string, limit int) ([]*proto.Message, error) {
+func (h *historyHub) get(ch string, limit int) ([]*proto.Publication, error) {
 	h.RLock()
 	defer h.RUnlock()
 
 	hItem, ok := h.history[ch]
 	if !ok {
 		// return empty slice
-		return nil, nil
+		return []*proto.Publication{}, nil
 	}
 	if hItem.isExpired() {
 		// return empty slice
 		delete(h.history, ch)
-		return nil, nil
+		return []*proto.Publication{}, nil
 	}
 	if limit == 0 || limit >= len(hItem.messages) {
 		return hItem.messages, nil

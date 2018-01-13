@@ -299,12 +299,12 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 	var enc apiproto.Encoding
 
 	contentType := r.Header.Get("Content-Type")
-	if strings.HasPrefix(strings.ToLower(contentType), "application/json") {
-		enc = apiproto.EncodingJSON
-		apiHandler = s.jsonAPIHandler
-	} else {
+	if strings.HasPrefix(strings.ToLower(contentType), "application/octet-stream") {
 		enc = apiproto.EncodingProtobuf
 		apiHandler = s.protobufAPIHandler
+	} else {
+		enc = apiproto.EncodingJSON
+		apiHandler = s.jsonAPIHandler
 	}
 
 	encoder := apiproto.GetReplyEncoder(enc)

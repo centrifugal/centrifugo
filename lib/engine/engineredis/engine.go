@@ -445,9 +445,19 @@ func (e *RedisEngine) Run() error {
 	return nil
 }
 
-// PublishClient - see engine interface description.
-func (e *RedisEngine) PublishClient(message *proto.Message, opts *channel.Options) <-chan error {
-	return e.shards[e.shardIndex(message.Channel)].PublishClient(message, opts)
+// Publish - see engine interface description.
+func (e *RedisEngine) Publish(ch string, pub *proto.Publication, opts *channel.Options) <-chan error {
+	return e.shards[e.shardIndex(ch)].Publish(ch, pub, opts)
+}
+
+// PublishJoin - see engine interface description.
+func (e *RedisEngine) PublishJoin(ch string, join *proto.Join, opts *channel.Options) <-chan error {
+	return e.shards[e.shardIndex(ch)].PublishJoin(ch, join, opts)
+}
+
+// PublishLeave - see engine interface description.
+func (e *RedisEngine) PublishLeave(ch string, leave *proto.Leave, opts *channel.Options) <-chan error {
+	return e.shards[e.shardIndex(ch)].PublishLeave(ch, leave, opts)
 }
 
 // PublishControl - see engine interface description.
@@ -481,7 +491,7 @@ func (e *RedisEngine) Presence(ch string) (map[string]*proto.ClientInfo, error) 
 }
 
 // History - see engine interface description.
-func (e *RedisEngine) History(ch string, limit int) ([]*proto.Message, error) {
+func (e *RedisEngine) History(ch string, limit int) ([]*proto.Publication, error) {
 	return e.shards[e.shardIndex(ch)].History(ch, limit)
 }
 
@@ -990,13 +1000,17 @@ func (e *Shard) runDataPipeline() {
 	}
 }
 
-// PublishClient - see engine interface description.
-func (e *Shard) PublishClient(message *proto.Message, opts *channel.Options) <-chan error {
-	ch := message.Channel
+// Publish - see engine interface description.
+func (e *Shard) Publish(ch string, pub *proto.Publication, opts *channel.Options) <-chan error {
 
 	eChan := make(chan error, 1)
 
-	byteMessage, err := e.node.MessageEncoder().Encode(message)
+	data, err := e.node.MessageEncoder().EncodePublication(pub)
+	if err != nil {
+		eChan <- err
+		return eChan
+	}
+	byteMessage, err := e.node.MessageEncoder().Encode(proto.NewPublicationMessage(ch, data))
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -1016,6 +1030,60 @@ func (e *Shard) PublishClient(message *proto.Message, opts *channel.Options) <-c
 		e.pubCh <- pr
 		return eChan
 	}
+
+	pr := pubRequest{
+		channel: chID,
+		message: byteMessage,
+		err:     &eChan,
+	}
+	e.pubCh <- pr
+	return eChan
+}
+
+// PublishJoin - see engine interface description.
+func (e *Shard) PublishJoin(ch string, join *proto.Join, opts *channel.Options) <-chan error {
+
+	eChan := make(chan error, 1)
+
+	data, err := e.node.MessageEncoder().EncodeJoin(join)
+	if err != nil {
+		eChan <- err
+		return eChan
+	}
+	byteMessage, err := e.node.MessageEncoder().Encode(proto.NewJoinMessage(ch, data))
+	if err != nil {
+		eChan <- err
+		return eChan
+	}
+
+	chID := e.messageChannelID(ch)
+
+	pr := pubRequest{
+		channel: chID,
+		message: byteMessage,
+		err:     &eChan,
+	}
+	e.pubCh <- pr
+	return eChan
+}
+
+// PublishLeave - see engine interface description.
+func (e *Shard) PublishLeave(ch string, leave *proto.Leave, opts *channel.Options) <-chan error {
+
+	eChan := make(chan error, 1)
+
+	data, err := e.node.MessageEncoder().EncodeLeave(leave)
+	if err != nil {
+		eChan <- err
+		return eChan
+	}
+	byteMessage, err := e.node.MessageEncoder().Encode(proto.NewLeaveMessage(ch, data))
+	if err != nil {
+		eChan <- err
+		return eChan
+	}
+
+	chID := e.messageChannelID(ch)
 
 	pr := pubRequest{
 		channel: chID,
@@ -1115,7 +1183,7 @@ func (e *Shard) Presence(ch string) (map[string]*proto.ClientInfo, error) {
 }
 
 // History - see engine interface description.
-func (e *Shard) History(ch string, limit int) ([]*proto.Message, error) {
+func (e *Shard) History(ch string, limit int) ([]*proto.Publication, error) {
 	var rangeBound = -1
 	if limit > 0 {
 		rangeBound = limit - 1 // Redis includes last index into result
@@ -1127,7 +1195,7 @@ func (e *Shard) History(ch string, limit int) ([]*proto.Message, error) {
 	if resp.err != nil {
 		return nil, resp.err
 	}
-	return sliceOfMessages(resp.reply, nil)
+	return sliceOfMessages(e.node, resp.reply, nil)
 }
 
 // RemoveHistory - see engine interface description.

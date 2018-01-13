@@ -419,28 +419,28 @@ func (n *Node) HandleClientMessage(message *proto.Message) error {
 		if err != nil {
 			return err
 		}
-		n.handlePublication(message.Channel, publication)
+		n.HandlePublication(message.Channel, publication)
 	case proto.MessageTypeJoin:
 		join, err := n.messageDecoder.DecodeJoin(message.Data)
 		if err != nil {
 			return err
 		}
-		n.handleJoin(message.Channel, join)
+		n.HandleJoin(message.Channel, join)
 	case proto.MessageTypeLeave:
 		leave, err := n.messageDecoder.DecodeLeave(message.Data)
 		if err != nil {
 			return err
 		}
-		n.handleLeave(message.Channel, leave)
+		n.HandleLeave(message.Channel, leave)
 	default:
 	}
 	return nil
 }
 
-// handlePublication handles messages published by web application or client into channel.
+// HandlePublication handles messages published by web application or client into channel.
 // The goal of this method to deliver this message to all clients on this node subscribed
 // on channel.
-func (n *Node) handlePublication(ch string, publication *proto.Publication) error {
+func (n *Node) HandlePublication(ch string, publication *proto.Publication) error {
 	metricsRegistry.Counters.Inc("node_num_publication_received")
 	numSubscribers := n.hub.NumSubscribers(ch)
 	hasCurrentSubscribers := numSubscribers > 0
@@ -450,8 +450,8 @@ func (n *Node) handlePublication(ch string, publication *proto.Publication) erro
 	return n.hub.BroadcastPublication(ch, publication)
 }
 
-// handleJoin handles join messages.
-func (n *Node) handleJoin(ch string, join *proto.Join) error {
+// HandleJoin handles join messages.
+func (n *Node) HandleJoin(ch string, join *proto.Join) error {
 	metricsRegistry.Counters.Inc("node_num_join_received")
 	hasCurrentSubscribers := n.hub.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
@@ -460,8 +460,8 @@ func (n *Node) handleJoin(ch string, join *proto.Join) error {
 	return n.hub.BroadcastJoin(ch, join)
 }
 
-// handleLeave handles leave messages.
-func (n *Node) handleLeave(ch string, leave *proto.Leave) error {
+// HandleLeave handles leave messages.
+func (n *Node) HandleLeave(ch string, leave *proto.Leave) error {
 	metricsRegistry.Counters.Inc("node_num_leave_received")
 	hasCurrentSubscribers := n.hub.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
@@ -487,22 +487,9 @@ func (n *Node) Publish(ch string, publication *proto.Publication, opts *channel.
 		opts = &chOpts
 	}
 
-	data, err := n.MessageEncoder().EncodePublication(publication)
-	if err != nil {
-		return makeErrChan(proto.ErrInternalServerError)
-	}
-
 	metricsRegistry.Counters.Inc("node_num_publication_sent")
 
-	if opts.Watch {
-		// TODO: admin
-		// n.PublishAdmin(&admin.Message{
-		// 	Type: admin.MessageTypeClient,
-		// 	Data: byteMessage,
-		// })
-	}
-
-	return n.engine.PublishClient(proto.NewPublicationMessage(ch, data), opts)
+	return n.engine.Publish(ch, publication, opts)
 }
 
 // PublishJoin allows to publish join message into channel when someone subscribes on it
@@ -515,13 +502,8 @@ func (n *Node) PublishJoin(ch string, join *proto.Join, opts *channel.Options) <
 		}
 		opts = &chOpts
 	}
-
-	data, err := n.MessageEncoder().EncodeJoin(join)
-	if err != nil {
-		return makeErrChan(proto.ErrInternalServerError)
-	}
 	metricsRegistry.Counters.Inc("node_num_join_sent")
-	return n.engine.PublishClient(proto.NewJoinMessage(ch, data), opts)
+	return n.engine.PublishJoin(ch, join, opts)
 }
 
 // PublishLeave allows to publish join message into channel when someone subscribes on it
@@ -534,12 +516,8 @@ func (n *Node) PublishLeave(ch string, leave *proto.Leave, opts *channel.Options
 		}
 		opts = &chOpts
 	}
-	data, err := n.MessageEncoder().EncodeLeave(leave)
-	if err != nil {
-		return makeErrChan(proto.ErrInternalServerError)
-	}
 	metricsRegistry.Counters.Inc("node_num_leave_sent")
-	return n.engine.PublishClient(proto.NewLeaveMessage(ch, data), opts)
+	return n.engine.PublishLeave(ch, leave, opts)
 }
 
 // publishControl publishes message into control channel so all running
@@ -811,28 +789,27 @@ func (n *Node) Presence(ch string) (map[string]*proto.ClientInfo, error) {
 }
 
 // History returns a slice of last messages published into project channel.
-func (n *Node) History(ch string) ([]*proto.Message, error) {
+func (n *Node) History(ch string) ([]*proto.Publication, error) {
 	metricsRegistry.Counters.Inc("node_num_history")
 
-	history, err := n.engine.History(ch, 0)
+	publications, err := n.engine.History(ch, 0)
 	if err != nil {
-		logger.ERROR.Println(err)
-		return nil, proto.ErrInternalServerError
+		return nil, err
 	}
-	return history, nil
+	return publications, nil
 }
 
 // LastMessageID return last message id for channel.
 func (n *Node) LastMessageID(ch string) (string, error) {
 	metricsRegistry.Counters.Inc("node_num_last_message_id")
-	history, err := n.engine.History(ch, 1)
+	publications, err := n.engine.History(ch, 1)
 	if err != nil {
 		return "", err
 	}
-	if len(history) == 0 {
+	if len(publications) == 0 {
 		return "", nil
 	}
-	return history[0].UID, nil
+	return publications[0].UID, nil
 }
 
 // PrivateChannel checks if channel private and therefore subscription

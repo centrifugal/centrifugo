@@ -756,7 +756,7 @@ func (c *client) refreshCmd(cmd *clientproto.Refresh) (*clientproto.RefreshResul
 	return res, nil, nil
 }
 
-func recoverMessages(last string, messages []*proto.Message) ([]*proto.Message, bool) {
+func recoverMessages(last string, messages []*proto.Publication) ([]*proto.Publication, bool) {
 	if last == "" {
 		// Client wants to recover messages but it seems that there were no
 		// messages in history before, so client missed all messages which
@@ -874,7 +874,7 @@ func (c *client) subscribeCmd(cmd *clientproto.Subscribe) (*clientproto.Subscrib
 			messages, err := c.node.History(channel)
 			if err != nil {
 				logger.ERROR.Printf("can't recover messages for channel %s: %s", string(channel), err)
-				res.Messages = []*proto.Message{}
+				res.Messages = nil
 			} else {
 				recoveredMessages, recovered := recoverMessages(cmd.Last, messages)
 				res.Messages = recoveredMessages

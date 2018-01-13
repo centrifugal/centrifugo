@@ -70,7 +70,7 @@ message Subscribe {
 message SubscribeResult {
     string Last = 1;
     bool Recovered = 2;
-    repeated proto.Message Messages = 3;
+    repeated proto.Publication Messages = 3;
 }
 
 message Unsubscribe {
@@ -108,7 +108,7 @@ message History {
 }
 
 message HistoryResult {
-    repeated proto.Message Data = 1 [(gogoproto.jsontag) = "data"];
+    repeated proto.Publication Data = 1 [(gogoproto.jsontag) = "data"];
 }
 
 message Ping {
