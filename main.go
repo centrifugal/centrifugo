@@ -131,8 +131,7 @@ func main() {
 				"insecure", "insecure_admin", "insecure_api", "port", "api_port", "admin_port",
 				"address", "web", "web_path", "insecure_web", "ssl", "ssl_cert", "ssl_key",
 				"redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
-				"redis_api", "redis_pool", "redis_api_num_shards", "redis_master_name",
-				"redis_sentinels",
+				"redis_pool", "redis_master_name", "redis_sentinels",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -262,9 +261,7 @@ func main() {
 	rootCmd.Flags().StringP("redis_password", "", "", "redis auth password (Redis engine)")
 	rootCmd.Flags().StringP("redis_db", "", "0", "redis database (Redis engine)")
 	rootCmd.Flags().StringP("redis_url", "", "", "redis connection URL in format redis://:password@hostname:port/db (Redis engine)")
-	rootCmd.Flags().BoolP("redis_api", "", false, "enable Redis API listener (Redis engine)")
 	rootCmd.Flags().IntP("redis_pool", "", 256, "Redis pool size (Redis engine)")
-	rootCmd.Flags().IntP("redis_api_num_shards", "", 0, "Number of shards for redis API queue (Redis engine)")
 	rootCmd.Flags().StringP("redis_master_name", "", "", "Name of Redis master Sentinel monitors (Redis engine)")
 	rootCmd.Flags().StringP("redis_sentinels", "", "", "Comma separated list of Sentinels (Redis engine)")
 
@@ -460,7 +457,7 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 
 	portFlags = portToHandlerFlags[httpAdminPort]
 	if webEnabled {
-		portFlags |= server.HandlerWeb
+		portFlags |= server.HandlerAdmin
 	}
 	if debug {
 		portFlags |= server.HandlerDebug
@@ -909,8 +906,6 @@ func redisEngineConfig(getter *viper.Viper) (*engineredis.Config, error) {
 			MasterName:       masterNames[i],
 			SentinelAddrs:    sentinelAddrs,
 			PoolSize:         getter.GetInt("redis_pool"),
-			API:              getter.GetBool("redis_api"),
-			NumAPIShards:     getter.GetInt("redis_api_num_shards"),
 			Prefix:           getter.GetString("redis_prefix"),
 			PubSubNumWorkers: getter.GetInt("redis_pubsub_num_workers"),
 			ConnectTimeout:   time.Duration(getter.GetInt("redis_connect_timeout")) * time.Second,

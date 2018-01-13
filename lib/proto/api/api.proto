@@ -1,4 +1,5 @@
 // protoc --proto_path=$GOPATH/src:$GOPATH/src/github.com/centrifugal/centrifugo/vendor:. --gogofaster_out=plugins=grpc:. api.proto
+// python3 -m grpc_tools.protoc --proto_path $GOPATH/src:$GOPATH/src/github.com/centrifugal/centrifugo/vendor:. --python_out=. --grpc_python_out=. api.proto
 syntax = "proto3";
 
 package api;
@@ -11,18 +12,10 @@ option (gogoproto.equal_all) = true;
 option (gogoproto.populate_all) = true;
 option (gogoproto.testgen_all) = true;
 
-message Request {
-    repeated Command Commands = 1 [(gogoproto.jsontag) = "commands"];
-}
-
 message Command {
     uint64 ID = 1 [(gogoproto.jsontag) = "id"];
     string Method = 2 [(gogoproto.jsontag) = "method"];
     bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = false];
-}
-
-message Response {
-    repeated Reply Replies = 1 [(gogoproto.jsontag) = "replies"];
 }
 
 message Reply {
@@ -31,43 +24,73 @@ message Reply {
     bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "result,omitempty", (gogoproto.nullable) = false];
 }
 
-message Publish {
+message PublishRequest {
     string Channel = 1 [(gogoproto.jsontag) = "channel"];
     bytes Data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}
+
+message PublishResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    PublishResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message PublishResult {}
 
-message Broadcast {
+message BroadcastRequest {
     repeated string Channels = 1 [(gogoproto.jsontag) = "channels"];
     bytes Data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
 }
 
+message BroadcastResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    BroadcastResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
 message BroadcastResult {}
 
-message Unsubscribe {
+message UnsubscribeRequest {
     string Channel = 1 [(gogoproto.jsontag) = "channel"];
     string User = 2 [(gogoproto.jsontag) = "user"];
 }
 
+message UnsubscribeResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    UnsubscribeResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
 message UnsubscribeResult {}
 
-message Disconnect {
+message DisconnectRequest {
     string User = 1 [(gogoproto.jsontag) = "user"];
+}
+
+message DisconnectResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    DisconnectResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message DisconnectResult {}
 
-message Presence {
+message PresenceRequest {
     string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message PresenceResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    PresenceResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message PresenceResult {
     map<string, proto.ClientInfo> Data = 1 [(gogoproto.jsontag) = "data"];
 }
 
-message PresenceStats {
+message PresenceStatsRequest {
     string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message PresenceStatsResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    PresenceStatsResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message PresenceStatsResult {
@@ -75,29 +98,41 @@ message PresenceStatsResult {
     uint64 NumUsers = 2 [(gogoproto.jsontag) = "num_users"];
 }
 
-message History {
+message HistoryRequest {
     string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message HistoryResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    HistoryResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message HistoryResult {
     repeated proto.Message Data = 1 [(gogoproto.jsontag) = "data"];
 }
 
-message Channels {
+message ChannelsRequest {}
+
+message ChannelsResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    ChannelsResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message ChannelsResult {
     repeated string Data = 1 [(gogoproto.jsontag) = "data"];
 }
 
-message Info {}
+message InfoRequest {}
+
+message InfoResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    InfoResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
 
 message InfoResult {
     string Engine = 1 [(gogoproto.jsontag) = "engine"];
     repeated NodeResult Nodes = 2 [(gogoproto.jsontag) = "nodes"];
 }
-
-message Node {}
 
 message NodeResult {
     string UID = 1 [(gogoproto.jsontag) = "uid"];
@@ -109,5 +144,13 @@ message NodeResult {
 }
 
 service Centrifugo {
-  rpc Send (Request) returns (Response) {}
+    rpc Publish (PublishRequest) returns (PublishResponse) {}
+    rpc Broadcast (BroadcastRequest) returns (BroadcastResponse) {}
+    rpc Unsubscribe (UnsubscribeRequest) returns (UnsubscribeResponse) {}
+    rpc Disconnect (DisconnectRequest) returns (DisconnectResponse) {}
+    rpc Presence (PresenceRequest) returns (PresenceResponse) {}
+    rpc PresenceStats (PresenceStatsRequest) returns (PresenceStatsResponse) {}
+    rpc History (HistoryRequest) returns (HistoryResponse) {}
+    rpc Channels (ChannelsRequest) returns (ChannelsResponse) {}
+    rpc Info (InfoRequest) returns (InfoResponse) {}
 }

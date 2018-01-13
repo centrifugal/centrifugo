@@ -1,21 +1,93 @@
 package api
 
 import (
+	"bytes"
+	"encoding/binary"
 	"encoding/json"
+	"io"
 )
+
+// CommandDecoder ...
+type CommandDecoder interface {
+	Reset([]byte) error
+	Decode() (*Command, error)
+}
+
+// JSONCommandDecoder ...
+type JSONCommandDecoder struct {
+	decoder *json.Decoder
+}
+
+// NewJSONCommandDecoder ...
+func NewJSONCommandDecoder(data []byte) *JSONCommandDecoder {
+	return &JSONCommandDecoder{
+		decoder: json.NewDecoder(bytes.NewReader(data)),
+	}
+}
+
+// Reset ...
+func (d *JSONCommandDecoder) Reset(data []byte) error {
+	d.decoder = json.NewDecoder(bytes.NewReader(data))
+	return nil
+}
+
+// Decode ...
+func (d *JSONCommandDecoder) Decode() (*Command, error) {
+	var c Command
+	err := d.decoder.Decode(&c)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+// ProtobufCommandDecoder ...
+type ProtobufCommandDecoder struct {
+	data   []byte
+	offset int
+}
+
+// NewProtobufCommandDecoder ...
+func NewProtobufCommandDecoder(data []byte) *ProtobufCommandDecoder {
+	return &ProtobufCommandDecoder{
+		data: data,
+	}
+}
+
+// Reset ...
+func (d *ProtobufCommandDecoder) Reset(data []byte) error {
+	d.data = data
+	d.offset = 0
+	return nil
+}
+
+// Decode ...
+func (d *ProtobufCommandDecoder) Decode() (*Command, error) {
+	if d.offset < len(d.data) {
+		var c Command
+		l, n := binary.Uvarint(d.data[d.offset:])
+		cmdBytes := d.data[d.offset+n : d.offset+n+int(l)]
+		err := c.Unmarshal(cmdBytes)
+		if err != nil {
+			return nil, err
+		}
+		d.offset = d.offset + n + int(l)
+		return &c, nil
+	}
+	return nil, io.EOF
+}
 
 // Decoder ...
 type Decoder interface {
-	DecodeRequest([]byte) (*Request, error)
-	DecodePublish([]byte) (*Publish, error)
-	DecodeBroadcast([]byte) (*Broadcast, error)
-	DecodeUnsubscribe([]byte) (*Unsubscribe, error)
-	DecodeDisconnect([]byte) (*Disconnect, error)
-	DecodePresence([]byte) (*Presence, error)
-	DecodePresenceStats([]byte) (*PresenceStats, error)
-	DecodeHistory([]byte) (*History, error)
-	DecodeInfo([]byte) (*Info, error)
-	DecodeNode([]byte) (*Node, error)
+	DecodePublish([]byte) (*PublishRequest, error)
+	DecodeBroadcast([]byte) (*BroadcastRequest, error)
+	DecodeUnsubscribe([]byte) (*UnsubscribeRequest, error)
+	DecodeDisconnect([]byte) (*DisconnectRequest, error)
+	DecodePresence([]byte) (*PresenceRequest, error)
+	DecodePresenceStats([]byte) (*PresenceStatsRequest, error)
+	DecodeHistory([]byte) (*HistoryRequest, error)
+	DecodeChannels([]byte) (*ChannelsRequest, error)
+	DecodeInfo([]byte) (*InfoRequest, error)
 }
 
 // JSONDecoder ...
@@ -26,19 +98,9 @@ func NewJSONDecoder() *JSONDecoder {
 	return &JSONDecoder{}
 }
 
-// DecodeRequest ...
-func (d *JSONDecoder) DecodeRequest(data []byte) (*Request, error) {
-	var m Request
-	err := json.Unmarshal(data, &m)
-	if err != nil {
-		return nil, err
-	}
-	return &m, nil
-}
-
 // DecodePublish ...
-func (d *JSONDecoder) DecodePublish(data []byte) (*Publish, error) {
-	var p Publish
+func (d *JSONDecoder) DecodePublish(data []byte) (*PublishRequest, error) {
+	var p PublishRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err
@@ -47,8 +109,8 @@ func (d *JSONDecoder) DecodePublish(data []byte) (*Publish, error) {
 }
 
 // DecodeBroadcast ...
-func (d *JSONDecoder) DecodeBroadcast(data []byte) (*Broadcast, error) {
-	var p Broadcast
+func (d *JSONDecoder) DecodeBroadcast(data []byte) (*BroadcastRequest, error) {
+	var p BroadcastRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err
@@ -57,8 +119,8 @@ func (d *JSONDecoder) DecodeBroadcast(data []byte) (*Broadcast, error) {
 }
 
 // DecodeUnsubscribe ...
-func (d *JSONDecoder) DecodeUnsubscribe(data []byte) (*Unsubscribe, error) {
-	var p Unsubscribe
+func (d *JSONDecoder) DecodeUnsubscribe(data []byte) (*UnsubscribeRequest, error) {
+	var p UnsubscribeRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err
@@ -67,8 +129,8 @@ func (d *JSONDecoder) DecodeUnsubscribe(data []byte) (*Unsubscribe, error) {
 }
 
 // DecodeDisconnect ...
-func (d *JSONDecoder) DecodeDisconnect(data []byte) (*Disconnect, error) {
-	var p Disconnect
+func (d *JSONDecoder) DecodeDisconnect(data []byte) (*DisconnectRequest, error) {
+	var p DisconnectRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err
@@ -77,8 +139,8 @@ func (d *JSONDecoder) DecodeDisconnect(data []byte) (*Disconnect, error) {
 }
 
 // DecodePresence ...
-func (d *JSONDecoder) DecodePresence(data []byte) (*Presence, error) {
-	var p Presence
+func (d *JSONDecoder) DecodePresence(data []byte) (*PresenceRequest, error) {
+	var p PresenceRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err
@@ -87,8 +149,8 @@ func (d *JSONDecoder) DecodePresence(data []byte) (*Presence, error) {
 }
 
 // DecodePresenceStats ...
-func (d *JSONDecoder) DecodePresenceStats(data []byte) (*PresenceStats, error) {
-	var p PresenceStats
+func (d *JSONDecoder) DecodePresenceStats(data []byte) (*PresenceStatsRequest, error) {
+	var p PresenceStatsRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err
@@ -97,8 +159,18 @@ func (d *JSONDecoder) DecodePresenceStats(data []byte) (*PresenceStats, error) {
 }
 
 // DecodeHistory ...
-func (d *JSONDecoder) DecodeHistory(data []byte) (*History, error) {
-	var p History
+func (d *JSONDecoder) DecodeHistory(data []byte) (*HistoryRequest, error) {
+	var p HistoryRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeChannels ...
+func (d *JSONDecoder) DecodeChannels(data []byte) (*ChannelsRequest, error) {
+	var p ChannelsRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err
@@ -107,18 +179,8 @@ func (d *JSONDecoder) DecodeHistory(data []byte) (*History, error) {
 }
 
 // DecodeInfo ...
-func (d *JSONDecoder) DecodeInfo(data []byte) (*Info, error) {
-	var p Info
-	err := json.Unmarshal(data, &p)
-	if err != nil {
-		return nil, err
-	}
-	return &p, nil
-}
-
-// DecodeNode ...
-func (d *JSONDecoder) DecodeNode(data []byte) (*Node, error) {
-	var p Node
+func (d *JSONDecoder) DecodeInfo(data []byte) (*InfoRequest, error) {
+	var p InfoRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err
@@ -134,19 +196,9 @@ func NewProtobufDecoder() *ProtobufDecoder {
 	return &ProtobufDecoder{}
 }
 
-// DecodeRequest ...
-func (d *ProtobufDecoder) DecodeRequest(data []byte) (*Request, error) {
-	var m Request
-	err := m.Unmarshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return &m, nil
-}
-
 // DecodePublish ...
-func (d *ProtobufDecoder) DecodePublish(data []byte) (*Publish, error) {
-	var p Publish
+func (d *ProtobufDecoder) DecodePublish(data []byte) (*PublishRequest, error) {
+	var p PublishRequest
 	err := p.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -155,8 +207,8 @@ func (d *ProtobufDecoder) DecodePublish(data []byte) (*Publish, error) {
 }
 
 // DecodeBroadcast ...
-func (d *ProtobufDecoder) DecodeBroadcast(data []byte) (*Broadcast, error) {
-	var p Broadcast
+func (d *ProtobufDecoder) DecodeBroadcast(data []byte) (*BroadcastRequest, error) {
+	var p BroadcastRequest
 	err := p.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -165,8 +217,8 @@ func (d *ProtobufDecoder) DecodeBroadcast(data []byte) (*Broadcast, error) {
 }
 
 // DecodeUnsubscribe ...
-func (d *ProtobufDecoder) DecodeUnsubscribe(data []byte) (*Unsubscribe, error) {
-	var p Unsubscribe
+func (d *ProtobufDecoder) DecodeUnsubscribe(data []byte) (*UnsubscribeRequest, error) {
+	var p UnsubscribeRequest
 	err := p.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -175,8 +227,8 @@ func (d *ProtobufDecoder) DecodeUnsubscribe(data []byte) (*Unsubscribe, error) {
 }
 
 // DecodeDisconnect ...
-func (d *ProtobufDecoder) DecodeDisconnect(data []byte) (*Disconnect, error) {
-	var p Disconnect
+func (d *ProtobufDecoder) DecodeDisconnect(data []byte) (*DisconnectRequest, error) {
+	var p DisconnectRequest
 	err := p.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -185,8 +237,8 @@ func (d *ProtobufDecoder) DecodeDisconnect(data []byte) (*Disconnect, error) {
 }
 
 // DecodePresence ...
-func (d *ProtobufDecoder) DecodePresence(data []byte) (*Presence, error) {
-	var p Presence
+func (d *ProtobufDecoder) DecodePresence(data []byte) (*PresenceRequest, error) {
+	var p PresenceRequest
 	err := p.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -195,8 +247,8 @@ func (d *ProtobufDecoder) DecodePresence(data []byte) (*Presence, error) {
 }
 
 // DecodePresenceStats ...
-func (d *ProtobufDecoder) DecodePresenceStats(data []byte) (*PresenceStats, error) {
-	var p PresenceStats
+func (d *ProtobufDecoder) DecodePresenceStats(data []byte) (*PresenceStatsRequest, error) {
+	var p PresenceStatsRequest
 	err := p.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -205,8 +257,18 @@ func (d *ProtobufDecoder) DecodePresenceStats(data []byte) (*PresenceStats, erro
 }
 
 // DecodeHistory ...
-func (d *ProtobufDecoder) DecodeHistory(data []byte) (*History, error) {
-	var p History
+func (d *ProtobufDecoder) DecodeHistory(data []byte) (*HistoryRequest, error) {
+	var p HistoryRequest
+	err := p.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeChannels ...
+func (d *ProtobufDecoder) DecodeChannels(data []byte) (*ChannelsRequest, error) {
+	var p ChannelsRequest
 	err := p.Unmarshal(data)
 	if err != nil {
 		return nil, err
@@ -215,18 +277,8 @@ func (d *ProtobufDecoder) DecodeHistory(data []byte) (*History, error) {
 }
 
 // DecodeInfo ...
-func (d *ProtobufDecoder) DecodeInfo(data []byte) (*Info, error) {
-	var p Info
-	err := p.Unmarshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return &p, nil
-}
-
-// DecodeNode ...
-func (d *ProtobufDecoder) DecodeNode(data []byte) (*Node, error) {
-	var p Node
+func (d *ProtobufDecoder) DecodeInfo(data []byte) (*InfoRequest, error) {
+	var p InfoRequest
 	err := p.Unmarshal(data)
 	if err != nil {
 		return nil, err

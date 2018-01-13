@@ -8,29 +8,35 @@
 		api.proto
 
 	It has these top-level messages:
-		Request
 		Command
-		Response
 		Reply
-		Publish
+		PublishRequest
+		PublishResponse
 		PublishResult
-		Broadcast
+		BroadcastRequest
+		BroadcastResponse
 		BroadcastResult
-		Unsubscribe
+		UnsubscribeRequest
+		UnsubscribeResponse
 		UnsubscribeResult
-		Disconnect
+		DisconnectRequest
+		DisconnectResponse
 		DisconnectResult
-		Presence
+		PresenceRequest
+		PresenceResponse
 		PresenceResult
-		PresenceStats
+		PresenceStatsRequest
+		PresenceStatsResponse
 		PresenceStatsResult
-		History
+		HistoryRequest
+		HistoryResponse
 		HistoryResult
-		Channels
+		ChannelsRequest
+		ChannelsResponse
 		ChannelsResult
-		Info
+		InfoRequest
+		InfoResponse
 		InfoResult
-		Node
 		NodeResult
 */
 package api
@@ -60,30 +66,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
-type Request struct {
-	Commands []*Command `protobuf:"bytes,1,rep,name=Commands" json:"commands"`
-	Async    bool       `protobuf:"varint,2,opt,name=Async,proto3" json:"async"`
-}
-
-func (m *Request) Reset()                    { *m = Request{} }
-func (m *Request) String() string            { return proto.CompactTextString(m) }
-func (*Request) ProtoMessage()               {}
-func (*Request) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{0} }
-
-func (m *Request) GetCommands() []*Command {
-	if m != nil {
-		return m.Commands
-	}
-	return nil
-}
-
-func (m *Request) GetAsync() bool {
-	if m != nil {
-		return m.Async
-	}
-	return false
-}
-
 type Command struct {
 	ID     uint64                                          `protobuf:"varint,1,opt,name=ID,proto3" json:"id"`
 	Method string                                          `protobuf:"bytes,2,opt,name=Method,proto3" json:"method"`
@@ -93,7 +75,7 @@ type Command struct {
 func (m *Command) Reset()                    { *m = Command{} }
 func (m *Command) String() string            { return proto.CompactTextString(m) }
 func (*Command) ProtoMessage()               {}
-func (*Command) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{1} }
+func (*Command) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{0} }
 
 func (m *Command) GetID() uint64 {
 	if m != nil {
@@ -109,22 +91,6 @@ func (m *Command) GetMethod() string {
 	return ""
 }
 
-type Response struct {
-	Replies []*Reply `protobuf:"bytes,1,rep,name=Replies" json:"replies"`
-}
-
-func (m *Response) Reset()                    { *m = Response{} }
-func (m *Response) String() string            { return proto.CompactTextString(m) }
-func (*Response) ProtoMessage()               {}
-func (*Response) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{2} }
-
-func (m *Response) GetReplies() []*Reply {
-	if m != nil {
-		return m.Replies
-	}
-	return nil
-}
-
 type Reply struct {
 	ID     uint64                                          `protobuf:"varint,1,opt,name=ID,proto3" json:"id,omitempty"`
 	Error  *proto1.Error                                   `protobuf:"bytes,2,opt,name=Error" json:"error,omitempty"`
@@ -134,7 +100,7 @@ type Reply struct {
 func (m *Reply) Reset()                    { *m = Reply{} }
 func (m *Reply) String() string            { return proto.CompactTextString(m) }
 func (*Reply) ProtoMessage()               {}
-func (*Reply) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{3} }
+func (*Reply) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{1} }
 
 func (m *Reply) GetID() uint64 {
 	if m != nil {
@@ -150,21 +116,45 @@ func (m *Reply) GetError() *proto1.Error {
 	return nil
 }
 
-type Publish struct {
+type PublishRequest struct {
 	Channel string                                          `protobuf:"bytes,1,opt,name=Channel,proto3" json:"channel"`
 	Data    github_com_centrifugal_centrifugo_lib_proto.Raw `protobuf:"bytes,2,opt,name=Data,proto3,customtype=github.com/centrifugal/centrifugo/lib/proto.Raw" json:"data"`
 }
 
-func (m *Publish) Reset()                    { *m = Publish{} }
-func (m *Publish) String() string            { return proto.CompactTextString(m) }
-func (*Publish) ProtoMessage()               {}
-func (*Publish) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{4} }
+func (m *PublishRequest) Reset()                    { *m = PublishRequest{} }
+func (m *PublishRequest) String() string            { return proto.CompactTextString(m) }
+func (*PublishRequest) ProtoMessage()               {}
+func (*PublishRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{2} }
 
-func (m *Publish) GetChannel() string {
+func (m *PublishRequest) GetChannel() string {
 	if m != nil {
 		return m.Channel
 	}
 	return ""
+}
+
+type PublishResponse struct {
+	Error  *proto1.Error  `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Result *PublishResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
+}
+
+func (m *PublishResponse) Reset()                    { *m = PublishResponse{} }
+func (m *PublishResponse) String() string            { return proto.CompactTextString(m) }
+func (*PublishResponse) ProtoMessage()               {}
+func (*PublishResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{3} }
+
+func (m *PublishResponse) GetError() *proto1.Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *PublishResponse) GetResult() *PublishResult {
+	if m != nil {
+		return m.Result
+	}
+	return nil
 }
 
 type PublishResult struct {
@@ -173,21 +163,45 @@ type PublishResult struct {
 func (m *PublishResult) Reset()                    { *m = PublishResult{} }
 func (m *PublishResult) String() string            { return proto.CompactTextString(m) }
 func (*PublishResult) ProtoMessage()               {}
-func (*PublishResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{5} }
+func (*PublishResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{4} }
 
-type Broadcast struct {
+type BroadcastRequest struct {
 	Channels []string                                        `protobuf:"bytes,1,rep,name=Channels" json:"channels"`
 	Data     github_com_centrifugal_centrifugo_lib_proto.Raw `protobuf:"bytes,2,opt,name=Data,proto3,customtype=github.com/centrifugal/centrifugo/lib/proto.Raw" json:"data"`
 }
 
-func (m *Broadcast) Reset()                    { *m = Broadcast{} }
-func (m *Broadcast) String() string            { return proto.CompactTextString(m) }
-func (*Broadcast) ProtoMessage()               {}
-func (*Broadcast) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{6} }
+func (m *BroadcastRequest) Reset()                    { *m = BroadcastRequest{} }
+func (m *BroadcastRequest) String() string            { return proto.CompactTextString(m) }
+func (*BroadcastRequest) ProtoMessage()               {}
+func (*BroadcastRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{5} }
 
-func (m *Broadcast) GetChannels() []string {
+func (m *BroadcastRequest) GetChannels() []string {
 	if m != nil {
 		return m.Channels
+	}
+	return nil
+}
+
+type BroadcastResponse struct {
+	Error  *proto1.Error    `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Result *BroadcastResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
+}
+
+func (m *BroadcastResponse) Reset()                    { *m = BroadcastResponse{} }
+func (m *BroadcastResponse) String() string            { return proto.CompactTextString(m) }
+func (*BroadcastResponse) ProtoMessage()               {}
+func (*BroadcastResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{6} }
+
+func (m *BroadcastResponse) GetError() *proto1.Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *BroadcastResponse) GetResult() *BroadcastResult {
+	if m != nil {
+		return m.Result
 	}
 	return nil
 }
@@ -200,28 +214,52 @@ func (m *BroadcastResult) String() string            { return proto.CompactTextS
 func (*BroadcastResult) ProtoMessage()               {}
 func (*BroadcastResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{7} }
 
-type Unsubscribe struct {
+type UnsubscribeRequest struct {
 	Channel string `protobuf:"bytes,1,opt,name=Channel,proto3" json:"channel"`
 	User    string `protobuf:"bytes,2,opt,name=User,proto3" json:"user"`
 }
 
-func (m *Unsubscribe) Reset()                    { *m = Unsubscribe{} }
-func (m *Unsubscribe) String() string            { return proto.CompactTextString(m) }
-func (*Unsubscribe) ProtoMessage()               {}
-func (*Unsubscribe) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{8} }
+func (m *UnsubscribeRequest) Reset()                    { *m = UnsubscribeRequest{} }
+func (m *UnsubscribeRequest) String() string            { return proto.CompactTextString(m) }
+func (*UnsubscribeRequest) ProtoMessage()               {}
+func (*UnsubscribeRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{8} }
 
-func (m *Unsubscribe) GetChannel() string {
+func (m *UnsubscribeRequest) GetChannel() string {
 	if m != nil {
 		return m.Channel
 	}
 	return ""
 }
 
-func (m *Unsubscribe) GetUser() string {
+func (m *UnsubscribeRequest) GetUser() string {
 	if m != nil {
 		return m.User
 	}
 	return ""
+}
+
+type UnsubscribeResponse struct {
+	Error  *proto1.Error      `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Result *UnsubscribeResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
+}
+
+func (m *UnsubscribeResponse) Reset()                    { *m = UnsubscribeResponse{} }
+func (m *UnsubscribeResponse) String() string            { return proto.CompactTextString(m) }
+func (*UnsubscribeResponse) ProtoMessage()               {}
+func (*UnsubscribeResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{9} }
+
+func (m *UnsubscribeResponse) GetError() *proto1.Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *UnsubscribeResponse) GetResult() *UnsubscribeResult {
+	if m != nil {
+		return m.Result
+	}
+	return nil
 }
 
 type UnsubscribeResult struct {
@@ -230,22 +268,46 @@ type UnsubscribeResult struct {
 func (m *UnsubscribeResult) Reset()                    { *m = UnsubscribeResult{} }
 func (m *UnsubscribeResult) String() string            { return proto.CompactTextString(m) }
 func (*UnsubscribeResult) ProtoMessage()               {}
-func (*UnsubscribeResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{9} }
+func (*UnsubscribeResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{10} }
 
-type Disconnect struct {
+type DisconnectRequest struct {
 	User string `protobuf:"bytes,1,opt,name=User,proto3" json:"user"`
 }
 
-func (m *Disconnect) Reset()                    { *m = Disconnect{} }
-func (m *Disconnect) String() string            { return proto.CompactTextString(m) }
-func (*Disconnect) ProtoMessage()               {}
-func (*Disconnect) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{10} }
+func (m *DisconnectRequest) Reset()                    { *m = DisconnectRequest{} }
+func (m *DisconnectRequest) String() string            { return proto.CompactTextString(m) }
+func (*DisconnectRequest) ProtoMessage()               {}
+func (*DisconnectRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{11} }
 
-func (m *Disconnect) GetUser() string {
+func (m *DisconnectRequest) GetUser() string {
 	if m != nil {
 		return m.User
 	}
 	return ""
+}
+
+type DisconnectResponse struct {
+	Error  *proto1.Error     `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Result *DisconnectResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
+}
+
+func (m *DisconnectResponse) Reset()                    { *m = DisconnectResponse{} }
+func (m *DisconnectResponse) String() string            { return proto.CompactTextString(m) }
+func (*DisconnectResponse) ProtoMessage()               {}
+func (*DisconnectResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{12} }
+
+func (m *DisconnectResponse) GetError() *proto1.Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *DisconnectResponse) GetResult() *DisconnectResult {
+	if m != nil {
+		return m.Result
+	}
+	return nil
 }
 
 type DisconnectResult struct {
@@ -254,22 +316,46 @@ type DisconnectResult struct {
 func (m *DisconnectResult) Reset()                    { *m = DisconnectResult{} }
 func (m *DisconnectResult) String() string            { return proto.CompactTextString(m) }
 func (*DisconnectResult) ProtoMessage()               {}
-func (*DisconnectResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{11} }
+func (*DisconnectResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{13} }
 
-type Presence struct {
+type PresenceRequest struct {
 	Channel string `protobuf:"bytes,1,opt,name=Channel,proto3" json:"channel"`
 }
 
-func (m *Presence) Reset()                    { *m = Presence{} }
-func (m *Presence) String() string            { return proto.CompactTextString(m) }
-func (*Presence) ProtoMessage()               {}
-func (*Presence) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{12} }
+func (m *PresenceRequest) Reset()                    { *m = PresenceRequest{} }
+func (m *PresenceRequest) String() string            { return proto.CompactTextString(m) }
+func (*PresenceRequest) ProtoMessage()               {}
+func (*PresenceRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{14} }
 
-func (m *Presence) GetChannel() string {
+func (m *PresenceRequest) GetChannel() string {
 	if m != nil {
 		return m.Channel
 	}
 	return ""
+}
+
+type PresenceResponse struct {
+	Error  *proto1.Error   `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Result *PresenceResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
+}
+
+func (m *PresenceResponse) Reset()                    { *m = PresenceResponse{} }
+func (m *PresenceResponse) String() string            { return proto.CompactTextString(m) }
+func (*PresenceResponse) ProtoMessage()               {}
+func (*PresenceResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{15} }
+
+func (m *PresenceResponse) GetError() *proto1.Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *PresenceResponse) GetResult() *PresenceResult {
+	if m != nil {
+		return m.Result
+	}
+	return nil
 }
 
 type PresenceResult struct {
@@ -279,7 +365,7 @@ type PresenceResult struct {
 func (m *PresenceResult) Reset()                    { *m = PresenceResult{} }
 func (m *PresenceResult) String() string            { return proto.CompactTextString(m) }
 func (*PresenceResult) ProtoMessage()               {}
-func (*PresenceResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{13} }
+func (*PresenceResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{16} }
 
 func (m *PresenceResult) GetData() map[string]*proto2.ClientInfo {
 	if m != nil {
@@ -288,20 +374,44 @@ func (m *PresenceResult) GetData() map[string]*proto2.ClientInfo {
 	return nil
 }
 
-type PresenceStats struct {
+type PresenceStatsRequest struct {
 	Channel string `protobuf:"bytes,1,opt,name=Channel,proto3" json:"channel"`
 }
 
-func (m *PresenceStats) Reset()                    { *m = PresenceStats{} }
-func (m *PresenceStats) String() string            { return proto.CompactTextString(m) }
-func (*PresenceStats) ProtoMessage()               {}
-func (*PresenceStats) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{14} }
+func (m *PresenceStatsRequest) Reset()                    { *m = PresenceStatsRequest{} }
+func (m *PresenceStatsRequest) String() string            { return proto.CompactTextString(m) }
+func (*PresenceStatsRequest) ProtoMessage()               {}
+func (*PresenceStatsRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{17} }
 
-func (m *PresenceStats) GetChannel() string {
+func (m *PresenceStatsRequest) GetChannel() string {
 	if m != nil {
 		return m.Channel
 	}
 	return ""
+}
+
+type PresenceStatsResponse struct {
+	Error  *proto1.Error        `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Result *PresenceStatsResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
+}
+
+func (m *PresenceStatsResponse) Reset()                    { *m = PresenceStatsResponse{} }
+func (m *PresenceStatsResponse) String() string            { return proto.CompactTextString(m) }
+func (*PresenceStatsResponse) ProtoMessage()               {}
+func (*PresenceStatsResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{18} }
+
+func (m *PresenceStatsResponse) GetError() *proto1.Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *PresenceStatsResponse) GetResult() *PresenceStatsResult {
+	if m != nil {
+		return m.Result
+	}
+	return nil
 }
 
 type PresenceStatsResult struct {
@@ -312,7 +422,7 @@ type PresenceStatsResult struct {
 func (m *PresenceStatsResult) Reset()                    { *m = PresenceStatsResult{} }
 func (m *PresenceStatsResult) String() string            { return proto.CompactTextString(m) }
 func (*PresenceStatsResult) ProtoMessage()               {}
-func (*PresenceStatsResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{15} }
+func (*PresenceStatsResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{19} }
 
 func (m *PresenceStatsResult) GetNumClients() uint64 {
 	if m != nil {
@@ -328,20 +438,44 @@ func (m *PresenceStatsResult) GetNumUsers() uint64 {
 	return 0
 }
 
-type History struct {
+type HistoryRequest struct {
 	Channel string `protobuf:"bytes,1,opt,name=Channel,proto3" json:"channel"`
 }
 
-func (m *History) Reset()                    { *m = History{} }
-func (m *History) String() string            { return proto.CompactTextString(m) }
-func (*History) ProtoMessage()               {}
-func (*History) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{16} }
+func (m *HistoryRequest) Reset()                    { *m = HistoryRequest{} }
+func (m *HistoryRequest) String() string            { return proto.CompactTextString(m) }
+func (*HistoryRequest) ProtoMessage()               {}
+func (*HistoryRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{20} }
 
-func (m *History) GetChannel() string {
+func (m *HistoryRequest) GetChannel() string {
 	if m != nil {
 		return m.Channel
 	}
 	return ""
+}
+
+type HistoryResponse struct {
+	Error  *proto1.Error  `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Result *HistoryResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
+}
+
+func (m *HistoryResponse) Reset()                    { *m = HistoryResponse{} }
+func (m *HistoryResponse) String() string            { return proto.CompactTextString(m) }
+func (*HistoryResponse) ProtoMessage()               {}
+func (*HistoryResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{21} }
+
+func (m *HistoryResponse) GetError() *proto1.Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *HistoryResponse) GetResult() *HistoryResult {
+	if m != nil {
+		return m.Result
+	}
+	return nil
 }
 
 type HistoryResult struct {
@@ -351,7 +485,7 @@ type HistoryResult struct {
 func (m *HistoryResult) Reset()                    { *m = HistoryResult{} }
 func (m *HistoryResult) String() string            { return proto.CompactTextString(m) }
 func (*HistoryResult) ProtoMessage()               {}
-func (*HistoryResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{17} }
+func (*HistoryResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{22} }
 
 func (m *HistoryResult) GetData() []*proto2.Message {
 	if m != nil {
@@ -360,13 +494,37 @@ func (m *HistoryResult) GetData() []*proto2.Message {
 	return nil
 }
 
-type Channels struct {
+type ChannelsRequest struct {
 }
 
-func (m *Channels) Reset()                    { *m = Channels{} }
-func (m *Channels) String() string            { return proto.CompactTextString(m) }
-func (*Channels) ProtoMessage()               {}
-func (*Channels) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{18} }
+func (m *ChannelsRequest) Reset()                    { *m = ChannelsRequest{} }
+func (m *ChannelsRequest) String() string            { return proto.CompactTextString(m) }
+func (*ChannelsRequest) ProtoMessage()               {}
+func (*ChannelsRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{23} }
+
+type ChannelsResponse struct {
+	Error  *proto1.Error   `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Result *ChannelsResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
+}
+
+func (m *ChannelsResponse) Reset()                    { *m = ChannelsResponse{} }
+func (m *ChannelsResponse) String() string            { return proto.CompactTextString(m) }
+func (*ChannelsResponse) ProtoMessage()               {}
+func (*ChannelsResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{24} }
+
+func (m *ChannelsResponse) GetError() *proto1.Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *ChannelsResponse) GetResult() *ChannelsResult {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
 
 type ChannelsResult struct {
 	Data []string `protobuf:"bytes,1,rep,name=Data" json:"data"`
@@ -375,7 +533,7 @@ type ChannelsResult struct {
 func (m *ChannelsResult) Reset()                    { *m = ChannelsResult{} }
 func (m *ChannelsResult) String() string            { return proto.CompactTextString(m) }
 func (*ChannelsResult) ProtoMessage()               {}
-func (*ChannelsResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{19} }
+func (*ChannelsResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{25} }
 
 func (m *ChannelsResult) GetData() []string {
 	if m != nil {
@@ -384,13 +542,37 @@ func (m *ChannelsResult) GetData() []string {
 	return nil
 }
 
-type Info struct {
+type InfoRequest struct {
 }
 
-func (m *Info) Reset()                    { *m = Info{} }
-func (m *Info) String() string            { return proto.CompactTextString(m) }
-func (*Info) ProtoMessage()               {}
-func (*Info) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{20} }
+func (m *InfoRequest) Reset()                    { *m = InfoRequest{} }
+func (m *InfoRequest) String() string            { return proto.CompactTextString(m) }
+func (*InfoRequest) ProtoMessage()               {}
+func (*InfoRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{26} }
+
+type InfoResponse struct {
+	Error  *proto1.Error `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Result *InfoResult   `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
+}
+
+func (m *InfoResponse) Reset()                    { *m = InfoResponse{} }
+func (m *InfoResponse) String() string            { return proto.CompactTextString(m) }
+func (*InfoResponse) ProtoMessage()               {}
+func (*InfoResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{27} }
+
+func (m *InfoResponse) GetError() *proto1.Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *InfoResponse) GetResult() *InfoResult {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
 
 type InfoResult struct {
 	Engine string        `protobuf:"bytes,1,opt,name=Engine,proto3" json:"engine"`
@@ -400,7 +582,7 @@ type InfoResult struct {
 func (m *InfoResult) Reset()                    { *m = InfoResult{} }
 func (m *InfoResult) String() string            { return proto.CompactTextString(m) }
 func (*InfoResult) ProtoMessage()               {}
-func (*InfoResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{21} }
+func (*InfoResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{28} }
 
 func (m *InfoResult) GetEngine() string {
 	if m != nil {
@@ -416,14 +598,6 @@ func (m *InfoResult) GetNodes() []*NodeResult {
 	return nil
 }
 
-type Node struct {
-}
-
-func (m *Node) Reset()                    { *m = Node{} }
-func (m *Node) String() string            { return proto.CompactTextString(m) }
-func (*Node) ProtoMessage()               {}
-func (*Node) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{22} }
-
 type NodeResult struct {
 	UID                   string           `protobuf:"bytes,1,opt,name=UID,proto3" json:"uid"`
 	Name                  string           `protobuf:"bytes,2,opt,name=Name,proto3" json:"name"`
@@ -436,7 +610,7 @@ type NodeResult struct {
 func (m *NodeResult) Reset()                    { *m = NodeResult{} }
 func (m *NodeResult) String() string            { return proto.CompactTextString(m) }
 func (*NodeResult) ProtoMessage()               {}
-func (*NodeResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{23} }
+func (*NodeResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{29} }
 
 func (m *NodeResult) GetUID() string {
 	if m != nil {
@@ -481,62 +655,36 @@ func (m *NodeResult) GetMetrics() map[string]int64 {
 }
 
 func init() {
-	proto.RegisterType((*Request)(nil), "api.Request")
 	proto.RegisterType((*Command)(nil), "api.Command")
-	proto.RegisterType((*Response)(nil), "api.Response")
 	proto.RegisterType((*Reply)(nil), "api.Reply")
-	proto.RegisterType((*Publish)(nil), "api.Publish")
+	proto.RegisterType((*PublishRequest)(nil), "api.PublishRequest")
+	proto.RegisterType((*PublishResponse)(nil), "api.PublishResponse")
 	proto.RegisterType((*PublishResult)(nil), "api.PublishResult")
-	proto.RegisterType((*Broadcast)(nil), "api.Broadcast")
+	proto.RegisterType((*BroadcastRequest)(nil), "api.BroadcastRequest")
+	proto.RegisterType((*BroadcastResponse)(nil), "api.BroadcastResponse")
 	proto.RegisterType((*BroadcastResult)(nil), "api.BroadcastResult")
-	proto.RegisterType((*Unsubscribe)(nil), "api.Unsubscribe")
+	proto.RegisterType((*UnsubscribeRequest)(nil), "api.UnsubscribeRequest")
+	proto.RegisterType((*UnsubscribeResponse)(nil), "api.UnsubscribeResponse")
 	proto.RegisterType((*UnsubscribeResult)(nil), "api.UnsubscribeResult")
-	proto.RegisterType((*Disconnect)(nil), "api.Disconnect")
+	proto.RegisterType((*DisconnectRequest)(nil), "api.DisconnectRequest")
+	proto.RegisterType((*DisconnectResponse)(nil), "api.DisconnectResponse")
 	proto.RegisterType((*DisconnectResult)(nil), "api.DisconnectResult")
-	proto.RegisterType((*Presence)(nil), "api.Presence")
+	proto.RegisterType((*PresenceRequest)(nil), "api.PresenceRequest")
+	proto.RegisterType((*PresenceResponse)(nil), "api.PresenceResponse")
 	proto.RegisterType((*PresenceResult)(nil), "api.PresenceResult")
-	proto.RegisterType((*PresenceStats)(nil), "api.PresenceStats")
+	proto.RegisterType((*PresenceStatsRequest)(nil), "api.PresenceStatsRequest")
+	proto.RegisterType((*PresenceStatsResponse)(nil), "api.PresenceStatsResponse")
 	proto.RegisterType((*PresenceStatsResult)(nil), "api.PresenceStatsResult")
-	proto.RegisterType((*History)(nil), "api.History")
+	proto.RegisterType((*HistoryRequest)(nil), "api.HistoryRequest")
+	proto.RegisterType((*HistoryResponse)(nil), "api.HistoryResponse")
 	proto.RegisterType((*HistoryResult)(nil), "api.HistoryResult")
-	proto.RegisterType((*Channels)(nil), "api.Channels")
+	proto.RegisterType((*ChannelsRequest)(nil), "api.ChannelsRequest")
+	proto.RegisterType((*ChannelsResponse)(nil), "api.ChannelsResponse")
 	proto.RegisterType((*ChannelsResult)(nil), "api.ChannelsResult")
-	proto.RegisterType((*Info)(nil), "api.Info")
+	proto.RegisterType((*InfoRequest)(nil), "api.InfoRequest")
+	proto.RegisterType((*InfoResponse)(nil), "api.InfoResponse")
 	proto.RegisterType((*InfoResult)(nil), "api.InfoResult")
-	proto.RegisterType((*Node)(nil), "api.Node")
 	proto.RegisterType((*NodeResult)(nil), "api.NodeResult")
-}
-func (this *Request) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*Request)
-	if !ok {
-		that2, ok := that.(Request)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if len(this.Commands) != len(that1.Commands) {
-		return false
-	}
-	for i := range this.Commands {
-		if !this.Commands[i].Equal(that1.Commands[i]) {
-			return false
-		}
-	}
-	if this.Async != that1.Async {
-		return false
-	}
-	return true
 }
 func (this *Command) Equal(that interface{}) bool {
 	if that == nil {
@@ -565,35 +713,6 @@ func (this *Command) Equal(that interface{}) bool {
 	}
 	if !this.Params.Equal(that1.Params) {
 		return false
-	}
-	return true
-}
-func (this *Response) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*Response)
-	if !ok {
-		that2, ok := that.(Response)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
-	}
-	if len(this.Replies) != len(that1.Replies) {
-		return false
-	}
-	for i := range this.Replies {
-		if !this.Replies[i].Equal(that1.Replies[i]) {
-			return false
-		}
 	}
 	return true
 }
@@ -627,14 +746,14 @@ func (this *Reply) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *Publish) Equal(that interface{}) bool {
+func (this *PublishRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*Publish)
+	that1, ok := that.(*PublishRequest)
 	if !ok {
-		that2, ok := that.(Publish)
+		that2, ok := that.(PublishRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -650,6 +769,33 @@ func (this *Publish) Equal(that interface{}) bool {
 		return false
 	}
 	if !this.Data.Equal(that1.Data) {
+		return false
+	}
+	return true
+}
+func (this *PublishResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*PublishResponse)
+	if !ok {
+		that2, ok := that.(PublishResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Error.Equal(that1.Error) {
+		return false
+	}
+	if !this.Result.Equal(that1.Result) {
 		return false
 	}
 	return true
@@ -675,14 +821,14 @@ func (this *PublishResult) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *Broadcast) Equal(that interface{}) bool {
+func (this *BroadcastRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*Broadcast)
+	that1, ok := that.(*BroadcastRequest)
 	if !ok {
-		that2, ok := that.(Broadcast)
+		that2, ok := that.(BroadcastRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -703,6 +849,33 @@ func (this *Broadcast) Equal(that interface{}) bool {
 		}
 	}
 	if !this.Data.Equal(that1.Data) {
+		return false
+	}
+	return true
+}
+func (this *BroadcastResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*BroadcastResponse)
+	if !ok {
+		that2, ok := that.(BroadcastResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Error.Equal(that1.Error) {
+		return false
+	}
+	if !this.Result.Equal(that1.Result) {
 		return false
 	}
 	return true
@@ -728,14 +901,14 @@ func (this *BroadcastResult) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *Unsubscribe) Equal(that interface{}) bool {
+func (this *UnsubscribeRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*Unsubscribe)
+	that1, ok := that.(*UnsubscribeRequest)
 	if !ok {
-		that2, ok := that.(Unsubscribe)
+		that2, ok := that.(UnsubscribeRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -751,6 +924,33 @@ func (this *Unsubscribe) Equal(that interface{}) bool {
 		return false
 	}
 	if this.User != that1.User {
+		return false
+	}
+	return true
+}
+func (this *UnsubscribeResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*UnsubscribeResponse)
+	if !ok {
+		that2, ok := that.(UnsubscribeResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Error.Equal(that1.Error) {
+		return false
+	}
+	if !this.Result.Equal(that1.Result) {
 		return false
 	}
 	return true
@@ -776,14 +976,14 @@ func (this *UnsubscribeResult) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *Disconnect) Equal(that interface{}) bool {
+func (this *DisconnectRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*Disconnect)
+	that1, ok := that.(*DisconnectRequest)
 	if !ok {
-		that2, ok := that.(Disconnect)
+		that2, ok := that.(DisconnectRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -796,6 +996,33 @@ func (this *Disconnect) Equal(that interface{}) bool {
 		return false
 	}
 	if this.User != that1.User {
+		return false
+	}
+	return true
+}
+func (this *DisconnectResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DisconnectResponse)
+	if !ok {
+		that2, ok := that.(DisconnectResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Error.Equal(that1.Error) {
+		return false
+	}
+	if !this.Result.Equal(that1.Result) {
 		return false
 	}
 	return true
@@ -821,14 +1048,14 @@ func (this *DisconnectResult) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *Presence) Equal(that interface{}) bool {
+func (this *PresenceRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*Presence)
+	that1, ok := that.(*PresenceRequest)
 	if !ok {
-		that2, ok := that.(Presence)
+		that2, ok := that.(PresenceRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -841,6 +1068,33 @@ func (this *Presence) Equal(that interface{}) bool {
 		return false
 	}
 	if this.Channel != that1.Channel {
+		return false
+	}
+	return true
+}
+func (this *PresenceResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*PresenceResponse)
+	if !ok {
+		that2, ok := that.(PresenceResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Error.Equal(that1.Error) {
+		return false
+	}
+	if !this.Result.Equal(that1.Result) {
 		return false
 	}
 	return true
@@ -874,14 +1128,14 @@ func (this *PresenceResult) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *PresenceStats) Equal(that interface{}) bool {
+func (this *PresenceStatsRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*PresenceStats)
+	that1, ok := that.(*PresenceStatsRequest)
 	if !ok {
-		that2, ok := that.(PresenceStats)
+		that2, ok := that.(PresenceStatsRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -894,6 +1148,33 @@ func (this *PresenceStats) Equal(that interface{}) bool {
 		return false
 	}
 	if this.Channel != that1.Channel {
+		return false
+	}
+	return true
+}
+func (this *PresenceStatsResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*PresenceStatsResponse)
+	if !ok {
+		that2, ok := that.(PresenceStatsResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Error.Equal(that1.Error) {
+		return false
+	}
+	if !this.Result.Equal(that1.Result) {
 		return false
 	}
 	return true
@@ -925,14 +1206,14 @@ func (this *PresenceStatsResult) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *History) Equal(that interface{}) bool {
+func (this *HistoryRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*History)
+	that1, ok := that.(*HistoryRequest)
 	if !ok {
-		that2, ok := that.(History)
+		that2, ok := that.(HistoryRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -945,6 +1226,33 @@ func (this *History) Equal(that interface{}) bool {
 		return false
 	}
 	if this.Channel != that1.Channel {
+		return false
+	}
+	return true
+}
+func (this *HistoryResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*HistoryResponse)
+	if !ok {
+		that2, ok := that.(HistoryResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Error.Equal(that1.Error) {
+		return false
+	}
+	if !this.Result.Equal(that1.Result) {
 		return false
 	}
 	return true
@@ -978,14 +1286,14 @@ func (this *HistoryResult) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *Channels) Equal(that interface{}) bool {
+func (this *ChannelsRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*Channels)
+	that1, ok := that.(*ChannelsRequest)
 	if !ok {
-		that2, ok := that.(Channels)
+		that2, ok := that.(ChannelsRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -995,6 +1303,33 @@ func (this *Channels) Equal(that interface{}) bool {
 	if that1 == nil {
 		return this == nil
 	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *ChannelsResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ChannelsResponse)
+	if !ok {
+		that2, ok := that.(ChannelsResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Error.Equal(that1.Error) {
+		return false
+	}
+	if !this.Result.Equal(that1.Result) {
 		return false
 	}
 	return true
@@ -1028,14 +1363,14 @@ func (this *ChannelsResult) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *Info) Equal(that interface{}) bool {
+func (this *InfoRequest) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*Info)
+	that1, ok := that.(*InfoRequest)
 	if !ok {
-		that2, ok := that.(Info)
+		that2, ok := that.(InfoRequest)
 		if ok {
 			that1 = &that2
 		} else {
@@ -1045,6 +1380,33 @@ func (this *Info) Equal(that interface{}) bool {
 	if that1 == nil {
 		return this == nil
 	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *InfoResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*InfoResponse)
+	if !ok {
+		that2, ok := that.(InfoResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Error.Equal(that1.Error) {
+		return false
+	}
+	if !this.Result.Equal(that1.Result) {
 		return false
 	}
 	return true
@@ -1078,27 +1440,6 @@ func (this *InfoResult) Equal(that interface{}) bool {
 		if !this.Nodes[i].Equal(that1.Nodes[i]) {
 			return false
 		}
-	}
-	return true
-}
-func (this *Node) Equal(that interface{}) bool {
-	if that == nil {
-		return this == nil
-	}
-
-	that1, ok := that.(*Node)
-	if !ok {
-		that2, ok := that.(Node)
-		if ok {
-			that1 = &that2
-		} else {
-			return false
-		}
-	}
-	if that1 == nil {
-		return this == nil
-	} else if this == nil {
-		return false
 	}
 	return true
 }
@@ -1158,7 +1499,15 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for Centrifugo service
 
 type CentrifugoClient interface {
-	Send(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
+	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
+	Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*BroadcastResponse, error)
+	Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error)
+	Disconnect(ctx context.Context, in *DisconnectRequest, opts ...grpc.CallOption) (*DisconnectResponse, error)
+	Presence(ctx context.Context, in *PresenceRequest, opts ...grpc.CallOption) (*PresenceResponse, error)
+	PresenceStats(ctx context.Context, in *PresenceStatsRequest, opts ...grpc.CallOption) (*PresenceStatsResponse, error)
+	History(ctx context.Context, in *HistoryRequest, opts ...grpc.CallOption) (*HistoryResponse, error)
+	Channels(ctx context.Context, in *ChannelsRequest, opts ...grpc.CallOption) (*ChannelsResponse, error)
+	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
 }
 
 type centrifugoClient struct {
@@ -1169,9 +1518,81 @@ func NewCentrifugoClient(cc *grpc.ClientConn) CentrifugoClient {
 	return &centrifugoClient{cc}
 }
 
-func (c *centrifugoClient) Send(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
-	out := new(Response)
-	err := grpc.Invoke(ctx, "/api.Centrifugo/Send", in, out, c.cc, opts...)
+func (c *centrifugoClient) Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error) {
+	out := new(PublishResponse)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Publish", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoClient) Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*BroadcastResponse, error) {
+	out := new(BroadcastResponse)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Broadcast", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoClient) Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error) {
+	out := new(UnsubscribeResponse)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Unsubscribe", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoClient) Disconnect(ctx context.Context, in *DisconnectRequest, opts ...grpc.CallOption) (*DisconnectResponse, error) {
+	out := new(DisconnectResponse)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Disconnect", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoClient) Presence(ctx context.Context, in *PresenceRequest, opts ...grpc.CallOption) (*PresenceResponse, error) {
+	out := new(PresenceResponse)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Presence", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoClient) PresenceStats(ctx context.Context, in *PresenceStatsRequest, opts ...grpc.CallOption) (*PresenceStatsResponse, error) {
+	out := new(PresenceStatsResponse)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/PresenceStats", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoClient) History(ctx context.Context, in *HistoryRequest, opts ...grpc.CallOption) (*HistoryResponse, error) {
+	out := new(HistoryResponse)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/History", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoClient) Channels(ctx context.Context, in *ChannelsRequest, opts ...grpc.CallOption) (*ChannelsResponse, error) {
+	out := new(ChannelsResponse)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Channels", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoClient) Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error) {
+	out := new(InfoResponse)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Info", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1181,27 +1602,179 @@ func (c *centrifugoClient) Send(ctx context.Context, in *Request, opts ...grpc.C
 // Server API for Centrifugo service
 
 type CentrifugoServer interface {
-	Send(context.Context, *Request) (*Response, error)
+	Publish(context.Context, *PublishRequest) (*PublishResponse, error)
+	Broadcast(context.Context, *BroadcastRequest) (*BroadcastResponse, error)
+	Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error)
+	Disconnect(context.Context, *DisconnectRequest) (*DisconnectResponse, error)
+	Presence(context.Context, *PresenceRequest) (*PresenceResponse, error)
+	PresenceStats(context.Context, *PresenceStatsRequest) (*PresenceStatsResponse, error)
+	History(context.Context, *HistoryRequest) (*HistoryResponse, error)
+	Channels(context.Context, *ChannelsRequest) (*ChannelsResponse, error)
+	Info(context.Context, *InfoRequest) (*InfoResponse, error)
 }
 
 func RegisterCentrifugoServer(s *grpc.Server, srv CentrifugoServer) {
 	s.RegisterService(&_Centrifugo_serviceDesc, srv)
 }
 
-func _Centrifugo_Send_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Request)
+func _Centrifugo_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PublishRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugoServer).Send(ctx, in)
+		return srv.(CentrifugoServer).Publish(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Centrifugo/Send",
+		FullMethod: "/api.Centrifugo/Publish",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugoServer).Send(ctx, req.(*Request))
+		return srv.(CentrifugoServer).Publish(ctx, req.(*PublishRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Centrifugo_Broadcast_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BroadcastRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoServer).Broadcast(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Centrifugo/Broadcast",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoServer).Broadcast(ctx, req.(*BroadcastRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Centrifugo_Unsubscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnsubscribeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoServer).Unsubscribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Centrifugo/Unsubscribe",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoServer).Unsubscribe(ctx, req.(*UnsubscribeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Centrifugo_Disconnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DisconnectRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoServer).Disconnect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Centrifugo/Disconnect",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoServer).Disconnect(ctx, req.(*DisconnectRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Centrifugo_Presence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PresenceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoServer).Presence(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Centrifugo/Presence",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoServer).Presence(ctx, req.(*PresenceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Centrifugo_PresenceStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PresenceStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoServer).PresenceStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Centrifugo/PresenceStats",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoServer).PresenceStats(ctx, req.(*PresenceStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Centrifugo_History_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoServer).History(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Centrifugo/History",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoServer).History(ctx, req.(*HistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Centrifugo_Channels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChannelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoServer).Channels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Centrifugo/Channels",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoServer).Channels(ctx, req.(*ChannelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Centrifugo_Info_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoServer).Info(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Centrifugo/Info",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoServer).Info(ctx, req.(*InfoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1211,52 +1784,44 @@ var _Centrifugo_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*CentrifugoServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Send",
-			Handler:    _Centrifugo_Send_Handler,
+			MethodName: "Publish",
+			Handler:    _Centrifugo_Publish_Handler,
+		},
+		{
+			MethodName: "Broadcast",
+			Handler:    _Centrifugo_Broadcast_Handler,
+		},
+		{
+			MethodName: "Unsubscribe",
+			Handler:    _Centrifugo_Unsubscribe_Handler,
+		},
+		{
+			MethodName: "Disconnect",
+			Handler:    _Centrifugo_Disconnect_Handler,
+		},
+		{
+			MethodName: "Presence",
+			Handler:    _Centrifugo_Presence_Handler,
+		},
+		{
+			MethodName: "PresenceStats",
+			Handler:    _Centrifugo_PresenceStats_Handler,
+		},
+		{
+			MethodName: "History",
+			Handler:    _Centrifugo_History_Handler,
+		},
+		{
+			MethodName: "Channels",
+			Handler:    _Centrifugo_Channels_Handler,
+		},
+		{
+			MethodName: "Info",
+			Handler:    _Centrifugo_Info_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "api.proto",
-}
-
-func (m *Request) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Request) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Commands) > 0 {
-		for _, msg := range m.Commands {
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintApi(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
-	if m.Async {
-		dAtA[i] = 0x10
-		i++
-		if m.Async {
-			dAtA[i] = 1
-		} else {
-			dAtA[i] = 0
-		}
-		i++
-	}
-	return i, nil
 }
 
 func (m *Command) Marshal() (dAtA []byte, err error) {
@@ -1293,36 +1858,6 @@ func (m *Command) MarshalTo(dAtA []byte) (int, error) {
 		return 0, err
 	}
 	i += n1
-	return i, nil
-}
-
-func (m *Response) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Response) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
-	if len(m.Replies) > 0 {
-		for _, msg := range m.Replies {
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintApi(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
 	return i, nil
 }
 
@@ -1367,7 +1902,7 @@ func (m *Reply) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Publish) Marshal() (dAtA []byte, err error) {
+func (m *PublishRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1377,7 +1912,7 @@ func (m *Publish) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *Publish) MarshalTo(dAtA []byte) (int, error) {
+func (m *PublishRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -1399,6 +1934,44 @@ func (m *Publish) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *PublishResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PublishResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Error != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Error.Size()))
+		n5, err := m.Error.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n5
+	}
+	if m.Result != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Result.Size()))
+		n6, err := m.Result.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n6
+	}
+	return i, nil
+}
+
 func (m *PublishResult) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1417,7 +1990,7 @@ func (m *PublishResult) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Broadcast) Marshal() (dAtA []byte, err error) {
+func (m *BroadcastRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1427,7 +2000,7 @@ func (m *Broadcast) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *Broadcast) MarshalTo(dAtA []byte) (int, error) {
+func (m *BroadcastRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -1450,11 +2023,49 @@ func (m *Broadcast) MarshalTo(dAtA []byte) (int, error) {
 	dAtA[i] = 0x12
 	i++
 	i = encodeVarintApi(dAtA, i, uint64(m.Data.Size()))
-	n5, err := m.Data.MarshalTo(dAtA[i:])
+	n7, err := m.Data.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
-	i += n5
+	i += n7
+	return i, nil
+}
+
+func (m *BroadcastResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *BroadcastResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Error != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Error.Size()))
+		n8, err := m.Error.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n8
+	}
+	if m.Result != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Result.Size()))
+		n9, err := m.Result.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n9
+	}
 	return i, nil
 }
 
@@ -1476,7 +2087,7 @@ func (m *BroadcastResult) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Unsubscribe) Marshal() (dAtA []byte, err error) {
+func (m *UnsubscribeRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1486,7 +2097,7 @@ func (m *Unsubscribe) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *Unsubscribe) MarshalTo(dAtA []byte) (int, error) {
+func (m *UnsubscribeRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -1502,6 +2113,44 @@ func (m *Unsubscribe) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintApi(dAtA, i, uint64(len(m.User)))
 		i += copy(dAtA[i:], m.User)
+	}
+	return i, nil
+}
+
+func (m *UnsubscribeResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *UnsubscribeResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Error != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Error.Size()))
+		n10, err := m.Error.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n10
+	}
+	if m.Result != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Result.Size()))
+		n11, err := m.Result.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n11
 	}
 	return i, nil
 }
@@ -1524,7 +2173,7 @@ func (m *UnsubscribeResult) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Disconnect) Marshal() (dAtA []byte, err error) {
+func (m *DisconnectRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1534,7 +2183,7 @@ func (m *Disconnect) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *Disconnect) MarshalTo(dAtA []byte) (int, error) {
+func (m *DisconnectRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -1544,6 +2193,44 @@ func (m *Disconnect) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintApi(dAtA, i, uint64(len(m.User)))
 		i += copy(dAtA[i:], m.User)
+	}
+	return i, nil
+}
+
+func (m *DisconnectResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DisconnectResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Error != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Error.Size()))
+		n12, err := m.Error.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n12
+	}
+	if m.Result != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Result.Size()))
+		n13, err := m.Result.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n13
 	}
 	return i, nil
 }
@@ -1566,7 +2253,7 @@ func (m *DisconnectResult) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Presence) Marshal() (dAtA []byte, err error) {
+func (m *PresenceRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1576,7 +2263,7 @@ func (m *Presence) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *Presence) MarshalTo(dAtA []byte) (int, error) {
+func (m *PresenceRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -1586,6 +2273,44 @@ func (m *Presence) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintApi(dAtA, i, uint64(len(m.Channel)))
 		i += copy(dAtA[i:], m.Channel)
+	}
+	return i, nil
+}
+
+func (m *PresenceResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PresenceResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Error != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Error.Size()))
+		n14, err := m.Error.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n14
+	}
+	if m.Result != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Result.Size()))
+		n15, err := m.Result.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n15
 	}
 	return i, nil
 }
@@ -1625,18 +2350,18 @@ func (m *PresenceResult) MarshalTo(dAtA []byte) (int, error) {
 				dAtA[i] = 0x12
 				i++
 				i = encodeVarintApi(dAtA, i, uint64(v.Size()))
-				n6, err := v.MarshalTo(dAtA[i:])
+				n16, err := v.MarshalTo(dAtA[i:])
 				if err != nil {
 					return 0, err
 				}
-				i += n6
+				i += n16
 			}
 		}
 	}
 	return i, nil
 }
 
-func (m *PresenceStats) Marshal() (dAtA []byte, err error) {
+func (m *PresenceStatsRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1646,7 +2371,7 @@ func (m *PresenceStats) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *PresenceStats) MarshalTo(dAtA []byte) (int, error) {
+func (m *PresenceStatsRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -1656,6 +2381,44 @@ func (m *PresenceStats) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintApi(dAtA, i, uint64(len(m.Channel)))
 		i += copy(dAtA[i:], m.Channel)
+	}
+	return i, nil
+}
+
+func (m *PresenceStatsResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *PresenceStatsResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Error != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Error.Size()))
+		n17, err := m.Error.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n17
+	}
+	if m.Result != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Result.Size()))
+		n18, err := m.Result.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n18
 	}
 	return i, nil
 }
@@ -1688,7 +2451,7 @@ func (m *PresenceStatsResult) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *History) Marshal() (dAtA []byte, err error) {
+func (m *HistoryRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1698,7 +2461,7 @@ func (m *History) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *History) MarshalTo(dAtA []byte) (int, error) {
+func (m *HistoryRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -1708,6 +2471,44 @@ func (m *History) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintApi(dAtA, i, uint64(len(m.Channel)))
 		i += copy(dAtA[i:], m.Channel)
+	}
+	return i, nil
+}
+
+func (m *HistoryResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *HistoryResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Error != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Error.Size()))
+		n19, err := m.Error.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n19
+	}
+	if m.Result != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Result.Size()))
+		n20, err := m.Result.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n20
 	}
 	return i, nil
 }
@@ -1742,7 +2543,7 @@ func (m *HistoryResult) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Channels) Marshal() (dAtA []byte, err error) {
+func (m *ChannelsRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1752,11 +2553,49 @@ func (m *Channels) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *Channels) MarshalTo(dAtA []byte) (int, error) {
+func (m *ChannelsRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
+	return i, nil
+}
+
+func (m *ChannelsResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ChannelsResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Error != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Error.Size()))
+		n21, err := m.Error.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n21
+	}
+	if m.Result != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Result.Size()))
+		n22, err := m.Result.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n22
+	}
 	return i, nil
 }
 
@@ -1793,7 +2632,7 @@ func (m *ChannelsResult) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *Info) Marshal() (dAtA []byte, err error) {
+func (m *InfoRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -1803,11 +2642,49 @@ func (m *Info) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *Info) MarshalTo(dAtA []byte) (int, error) {
+func (m *InfoRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
+	return i, nil
+}
+
+func (m *InfoResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *InfoResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Error != nil {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Error.Size()))
+		n23, err := m.Error.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n23
+	}
+	if m.Result != nil {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Result.Size()))
+		n24, err := m.Result.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n24
+	}
 	return i, nil
 }
 
@@ -1844,24 +2721,6 @@ func (m *InfoResult) MarshalTo(dAtA []byte) (int, error) {
 			i += n
 		}
 	}
-	return i, nil
-}
-
-func (m *Node) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Node) MarshalTo(dAtA []byte) (int, error) {
-	var i int
-	_ = i
-	var l int
-	_ = l
 	return i, nil
 }
 
@@ -1936,41 +2795,12 @@ func encodeVarintApi(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
-func NewPopulatedRequest(r randyApi, easy bool) *Request {
-	this := &Request{}
-	if r.Intn(10) != 0 {
-		v1 := r.Intn(5)
-		this.Commands = make([]*Command, v1)
-		for i := 0; i < v1; i++ {
-			this.Commands[i] = NewPopulatedCommand(r, easy)
-		}
-	}
-	this.Async = bool(bool(r.Intn(2) == 0))
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
 func NewPopulatedCommand(r randyApi, easy bool) *Command {
 	this := &Command{}
 	this.ID = uint64(uint64(r.Uint32()))
 	this.Method = string(randStringApi(r))
-	v2 := github_com_centrifugal_centrifugo_lib_proto.NewPopulatedRaw(r)
-	this.Params = *v2
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedResponse(r randyApi, easy bool) *Response {
-	this := &Response{}
-	if r.Intn(10) != 0 {
-		v3 := r.Intn(5)
-		this.Replies = make([]*Reply, v3)
-		for i := 0; i < v3; i++ {
-			this.Replies[i] = NewPopulatedReply(r, easy)
-		}
-	}
+	v1 := github_com_centrifugal_centrifugo_lib_proto.NewPopulatedRaw(r)
+	this.Params = *v1
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -1982,18 +2812,31 @@ func NewPopulatedReply(r randyApi, easy bool) *Reply {
 	if r.Intn(10) != 0 {
 		this.Error = proto1.NewPopulatedError(r, easy)
 	}
-	v4 := github_com_centrifugal_centrifugo_lib_proto.NewPopulatedRaw(r)
-	this.Result = *v4
+	v2 := github_com_centrifugal_centrifugo_lib_proto.NewPopulatedRaw(r)
+	this.Result = *v2
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
 }
 
-func NewPopulatedPublish(r randyApi, easy bool) *Publish {
-	this := &Publish{}
+func NewPopulatedPublishRequest(r randyApi, easy bool) *PublishRequest {
+	this := &PublishRequest{}
 	this.Channel = string(randStringApi(r))
-	v5 := github_com_centrifugal_centrifugo_lib_proto.NewPopulatedRaw(r)
-	this.Data = *v5
+	v3 := github_com_centrifugal_centrifugo_lib_proto.NewPopulatedRaw(r)
+	this.Data = *v3
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
+func NewPopulatedPublishResponse(r randyApi, easy bool) *PublishResponse {
+	this := &PublishResponse{}
+	if r.Intn(10) != 0 {
+		this.Error = proto1.NewPopulatedError(r, easy)
+	}
+	if r.Intn(10) != 0 {
+		this.Result = NewPopulatedPublishResult(r, easy)
+	}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -2006,15 +2849,28 @@ func NewPopulatedPublishResult(r randyApi, easy bool) *PublishResult {
 	return this
 }
 
-func NewPopulatedBroadcast(r randyApi, easy bool) *Broadcast {
-	this := &Broadcast{}
-	v6 := r.Intn(10)
-	this.Channels = make([]string, v6)
-	for i := 0; i < v6; i++ {
+func NewPopulatedBroadcastRequest(r randyApi, easy bool) *BroadcastRequest {
+	this := &BroadcastRequest{}
+	v4 := r.Intn(10)
+	this.Channels = make([]string, v4)
+	for i := 0; i < v4; i++ {
 		this.Channels[i] = string(randStringApi(r))
 	}
-	v7 := github_com_centrifugal_centrifugo_lib_proto.NewPopulatedRaw(r)
-	this.Data = *v7
+	v5 := github_com_centrifugal_centrifugo_lib_proto.NewPopulatedRaw(r)
+	this.Data = *v5
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
+func NewPopulatedBroadcastResponse(r randyApi, easy bool) *BroadcastResponse {
+	this := &BroadcastResponse{}
+	if r.Intn(10) != 0 {
+		this.Error = proto1.NewPopulatedError(r, easy)
+	}
+	if r.Intn(10) != 0 {
+		this.Result = NewPopulatedBroadcastResult(r, easy)
+	}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -2027,10 +2883,23 @@ func NewPopulatedBroadcastResult(r randyApi, easy bool) *BroadcastResult {
 	return this
 }
 
-func NewPopulatedUnsubscribe(r randyApi, easy bool) *Unsubscribe {
-	this := &Unsubscribe{}
+func NewPopulatedUnsubscribeRequest(r randyApi, easy bool) *UnsubscribeRequest {
+	this := &UnsubscribeRequest{}
 	this.Channel = string(randStringApi(r))
 	this.User = string(randStringApi(r))
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
+func NewPopulatedUnsubscribeResponse(r randyApi, easy bool) *UnsubscribeResponse {
+	this := &UnsubscribeResponse{}
+	if r.Intn(10) != 0 {
+		this.Error = proto1.NewPopulatedError(r, easy)
+	}
+	if r.Intn(10) != 0 {
+		this.Result = NewPopulatedUnsubscribeResult(r, easy)
+	}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -2043,9 +2912,22 @@ func NewPopulatedUnsubscribeResult(r randyApi, easy bool) *UnsubscribeResult {
 	return this
 }
 
-func NewPopulatedDisconnect(r randyApi, easy bool) *Disconnect {
-	this := &Disconnect{}
+func NewPopulatedDisconnectRequest(r randyApi, easy bool) *DisconnectRequest {
+	this := &DisconnectRequest{}
 	this.User = string(randStringApi(r))
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
+func NewPopulatedDisconnectResponse(r randyApi, easy bool) *DisconnectResponse {
+	this := &DisconnectResponse{}
+	if r.Intn(10) != 0 {
+		this.Error = proto1.NewPopulatedError(r, easy)
+	}
+	if r.Intn(10) != 0 {
+		this.Result = NewPopulatedDisconnectResult(r, easy)
+	}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -2058,9 +2940,22 @@ func NewPopulatedDisconnectResult(r randyApi, easy bool) *DisconnectResult {
 	return this
 }
 
-func NewPopulatedPresence(r randyApi, easy bool) *Presence {
-	this := &Presence{}
+func NewPopulatedPresenceRequest(r randyApi, easy bool) *PresenceRequest {
+	this := &PresenceRequest{}
 	this.Channel = string(randStringApi(r))
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
+func NewPopulatedPresenceResponse(r randyApi, easy bool) *PresenceResponse {
+	this := &PresenceResponse{}
+	if r.Intn(10) != 0 {
+		this.Error = proto1.NewPopulatedError(r, easy)
+	}
+	if r.Intn(10) != 0 {
+		this.Result = NewPopulatedPresenceResult(r, easy)
+	}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -2069,9 +2964,9 @@ func NewPopulatedPresence(r randyApi, easy bool) *Presence {
 func NewPopulatedPresenceResult(r randyApi, easy bool) *PresenceResult {
 	this := &PresenceResult{}
 	if r.Intn(10) != 0 {
-		v8 := r.Intn(10)
+		v6 := r.Intn(10)
 		this.Data = make(map[string]*proto2.ClientInfo)
-		for i := 0; i < v8; i++ {
+		for i := 0; i < v6; i++ {
 			this.Data[randStringApi(r)] = proto2.NewPopulatedClientInfo(r, easy)
 		}
 	}
@@ -2080,9 +2975,22 @@ func NewPopulatedPresenceResult(r randyApi, easy bool) *PresenceResult {
 	return this
 }
 
-func NewPopulatedPresenceStats(r randyApi, easy bool) *PresenceStats {
-	this := &PresenceStats{}
+func NewPopulatedPresenceStatsRequest(r randyApi, easy bool) *PresenceStatsRequest {
+	this := &PresenceStatsRequest{}
 	this.Channel = string(randStringApi(r))
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
+func NewPopulatedPresenceStatsResponse(r randyApi, easy bool) *PresenceStatsResponse {
+	this := &PresenceStatsResponse{}
+	if r.Intn(10) != 0 {
+		this.Error = proto1.NewPopulatedError(r, easy)
+	}
+	if r.Intn(10) != 0 {
+		this.Result = NewPopulatedPresenceStatsResult(r, easy)
+	}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -2097,9 +3005,22 @@ func NewPopulatedPresenceStatsResult(r randyApi, easy bool) *PresenceStatsResult
 	return this
 }
 
-func NewPopulatedHistory(r randyApi, easy bool) *History {
-	this := &History{}
+func NewPopulatedHistoryRequest(r randyApi, easy bool) *HistoryRequest {
+	this := &HistoryRequest{}
 	this.Channel = string(randStringApi(r))
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
+func NewPopulatedHistoryResponse(r randyApi, easy bool) *HistoryResponse {
+	this := &HistoryResponse{}
+	if r.Intn(10) != 0 {
+		this.Error = proto1.NewPopulatedError(r, easy)
+	}
+	if r.Intn(10) != 0 {
+		this.Result = NewPopulatedHistoryResult(r, easy)
+	}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -2108,9 +3029,9 @@ func NewPopulatedHistory(r randyApi, easy bool) *History {
 func NewPopulatedHistoryResult(r randyApi, easy bool) *HistoryResult {
 	this := &HistoryResult{}
 	if r.Intn(10) != 0 {
-		v9 := r.Intn(5)
-		this.Data = make([]*proto2.Message, v9)
-		for i := 0; i < v9; i++ {
+		v7 := r.Intn(5)
+		this.Data = make([]*proto2.Message, v7)
+		for i := 0; i < v7; i++ {
 			this.Data[i] = proto2.NewPopulatedMessage(r, easy)
 		}
 	}
@@ -2119,8 +3040,21 @@ func NewPopulatedHistoryResult(r randyApi, easy bool) *HistoryResult {
 	return this
 }
 
-func NewPopulatedChannels(r randyApi, easy bool) *Channels {
-	this := &Channels{}
+func NewPopulatedChannelsRequest(r randyApi, easy bool) *ChannelsRequest {
+	this := &ChannelsRequest{}
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
+func NewPopulatedChannelsResponse(r randyApi, easy bool) *ChannelsResponse {
+	this := &ChannelsResponse{}
+	if r.Intn(10) != 0 {
+		this.Error = proto1.NewPopulatedError(r, easy)
+	}
+	if r.Intn(10) != 0 {
+		this.Result = NewPopulatedChannelsResult(r, easy)
+	}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -2128,9 +3062,9 @@ func NewPopulatedChannels(r randyApi, easy bool) *Channels {
 
 func NewPopulatedChannelsResult(r randyApi, easy bool) *ChannelsResult {
 	this := &ChannelsResult{}
-	v10 := r.Intn(10)
-	this.Data = make([]string, v10)
-	for i := 0; i < v10; i++ {
+	v8 := r.Intn(10)
+	this.Data = make([]string, v8)
+	for i := 0; i < v8; i++ {
 		this.Data[i] = string(randStringApi(r))
 	}
 	if !easy && r.Intn(10) != 0 {
@@ -2138,8 +3072,21 @@ func NewPopulatedChannelsResult(r randyApi, easy bool) *ChannelsResult {
 	return this
 }
 
-func NewPopulatedInfo(r randyApi, easy bool) *Info {
-	this := &Info{}
+func NewPopulatedInfoRequest(r randyApi, easy bool) *InfoRequest {
+	this := &InfoRequest{}
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
+func NewPopulatedInfoResponse(r randyApi, easy bool) *InfoResponse {
+	this := &InfoResponse{}
+	if r.Intn(10) != 0 {
+		this.Error = proto1.NewPopulatedError(r, easy)
+	}
+	if r.Intn(10) != 0 {
+		this.Result = NewPopulatedInfoResult(r, easy)
+	}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -2149,19 +3096,12 @@ func NewPopulatedInfoResult(r randyApi, easy bool) *InfoResult {
 	this := &InfoResult{}
 	this.Engine = string(randStringApi(r))
 	if r.Intn(10) != 0 {
-		v11 := r.Intn(5)
-		this.Nodes = make([]*NodeResult, v11)
-		for i := 0; i < v11; i++ {
+		v9 := r.Intn(5)
+		this.Nodes = make([]*NodeResult, v9)
+		for i := 0; i < v9; i++ {
 			this.Nodes[i] = NewPopulatedNodeResult(r, easy)
 		}
 	}
-	if !easy && r.Intn(10) != 0 {
-	}
-	return this
-}
-
-func NewPopulatedNode(r randyApi, easy bool) *Node {
-	this := &Node{}
 	if !easy && r.Intn(10) != 0 {
 	}
 	return this
@@ -2178,13 +3118,13 @@ func NewPopulatedNodeResult(r randyApi, easy bool) *NodeResult {
 	}
 	this.MetricsUpdateInterval = uint64(uint64(r.Uint32()))
 	if r.Intn(10) != 0 {
-		v12 := r.Intn(10)
+		v10 := r.Intn(10)
 		this.Metrics = make(map[string]int64)
-		for i := 0; i < v12; i++ {
-			v13 := randStringApi(r)
-			this.Metrics[v13] = int64(r.Int63())
+		for i := 0; i < v10; i++ {
+			v11 := randStringApi(r)
+			this.Metrics[v11] = int64(r.Int63())
 			if r.Intn(2) == 0 {
-				this.Metrics[v13] *= -1
+				this.Metrics[v11] *= -1
 			}
 		}
 	}
@@ -2212,9 +3152,9 @@ func randUTF8RuneApi(r randyApi) rune {
 	return rune(ru + 61)
 }
 func randStringApi(r randyApi) string {
-	v14 := r.Intn(100)
-	tmps := make([]rune, v14)
-	for i := 0; i < v14; i++ {
+	v12 := r.Intn(100)
+	tmps := make([]rune, v12)
+	for i := 0; i < v12; i++ {
 		tmps[i] = randUTF8RuneApi(r)
 	}
 	return string(tmps)
@@ -2236,11 +3176,11 @@ func randFieldApi(dAtA []byte, r randyApi, fieldNumber int, wire int) []byte {
 	switch wire {
 	case 0:
 		dAtA = encodeVarintPopulateApi(dAtA, uint64(key))
-		v15 := r.Int63()
+		v13 := r.Int63()
 		if r.Intn(2) == 0 {
-			v15 *= -1
+			v13 *= -1
 		}
-		dAtA = encodeVarintPopulateApi(dAtA, uint64(v15))
+		dAtA = encodeVarintPopulateApi(dAtA, uint64(v13))
 	case 1:
 		dAtA = encodeVarintPopulateApi(dAtA, uint64(key))
 		dAtA = append(dAtA, byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)), byte(r.Intn(256)))
@@ -2265,21 +3205,6 @@ func encodeVarintPopulateApi(dAtA []byte, v uint64) []byte {
 	dAtA = append(dAtA, uint8(v))
 	return dAtA
 }
-func (m *Request) Size() (n int) {
-	var l int
-	_ = l
-	if len(m.Commands) > 0 {
-		for _, e := range m.Commands {
-			l = e.Size()
-			n += 1 + l + sovApi(uint64(l))
-		}
-	}
-	if m.Async {
-		n += 2
-	}
-	return n
-}
-
 func (m *Command) Size() (n int) {
 	var l int
 	_ = l
@@ -2292,18 +3217,6 @@ func (m *Command) Size() (n int) {
 	}
 	l = m.Params.Size()
 	n += 1 + l + sovApi(uint64(l))
-	return n
-}
-
-func (m *Response) Size() (n int) {
-	var l int
-	_ = l
-	if len(m.Replies) > 0 {
-		for _, e := range m.Replies {
-			l = e.Size()
-			n += 1 + l + sovApi(uint64(l))
-		}
-	}
 	return n
 }
 
@@ -2322,7 +3235,7 @@ func (m *Reply) Size() (n int) {
 	return n
 }
 
-func (m *Publish) Size() (n int) {
+func (m *PublishRequest) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Channel)
@@ -2334,13 +3247,27 @@ func (m *Publish) Size() (n int) {
 	return n
 }
 
+func (m *PublishResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Error != nil {
+		l = m.Error.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
+	if m.Result != nil {
+		l = m.Result.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
+	return n
+}
+
 func (m *PublishResult) Size() (n int) {
 	var l int
 	_ = l
 	return n
 }
 
-func (m *Broadcast) Size() (n int) {
+func (m *BroadcastRequest) Size() (n int) {
 	var l int
 	_ = l
 	if len(m.Channels) > 0 {
@@ -2354,13 +3281,27 @@ func (m *Broadcast) Size() (n int) {
 	return n
 }
 
+func (m *BroadcastResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Error != nil {
+		l = m.Error.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
+	if m.Result != nil {
+		l = m.Result.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
+	return n
+}
+
 func (m *BroadcastResult) Size() (n int) {
 	var l int
 	_ = l
 	return n
 }
 
-func (m *Unsubscribe) Size() (n int) {
+func (m *UnsubscribeRequest) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Channel)
@@ -2369,6 +3310,20 @@ func (m *Unsubscribe) Size() (n int) {
 	}
 	l = len(m.User)
 	if l > 0 {
+		n += 1 + l + sovApi(uint64(l))
+	}
+	return n
+}
+
+func (m *UnsubscribeResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Error != nil {
+		l = m.Error.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
+	if m.Result != nil {
+		l = m.Result.Size()
 		n += 1 + l + sovApi(uint64(l))
 	}
 	return n
@@ -2380,11 +3335,25 @@ func (m *UnsubscribeResult) Size() (n int) {
 	return n
 }
 
-func (m *Disconnect) Size() (n int) {
+func (m *DisconnectRequest) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.User)
 	if l > 0 {
+		n += 1 + l + sovApi(uint64(l))
+	}
+	return n
+}
+
+func (m *DisconnectResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Error != nil {
+		l = m.Error.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
+	if m.Result != nil {
+		l = m.Result.Size()
 		n += 1 + l + sovApi(uint64(l))
 	}
 	return n
@@ -2396,11 +3365,25 @@ func (m *DisconnectResult) Size() (n int) {
 	return n
 }
 
-func (m *Presence) Size() (n int) {
+func (m *PresenceRequest) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Channel)
 	if l > 0 {
+		n += 1 + l + sovApi(uint64(l))
+	}
+	return n
+}
+
+func (m *PresenceResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Error != nil {
+		l = m.Error.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
+	if m.Result != nil {
+		l = m.Result.Size()
 		n += 1 + l + sovApi(uint64(l))
 	}
 	return n
@@ -2425,11 +3408,25 @@ func (m *PresenceResult) Size() (n int) {
 	return n
 }
 
-func (m *PresenceStats) Size() (n int) {
+func (m *PresenceStatsRequest) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Channel)
 	if l > 0 {
+		n += 1 + l + sovApi(uint64(l))
+	}
+	return n
+}
+
+func (m *PresenceStatsResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Error != nil {
+		l = m.Error.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
+	if m.Result != nil {
+		l = m.Result.Size()
 		n += 1 + l + sovApi(uint64(l))
 	}
 	return n
@@ -2447,11 +3444,25 @@ func (m *PresenceStatsResult) Size() (n int) {
 	return n
 }
 
-func (m *History) Size() (n int) {
+func (m *HistoryRequest) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Channel)
 	if l > 0 {
+		n += 1 + l + sovApi(uint64(l))
+	}
+	return n
+}
+
+func (m *HistoryResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Error != nil {
+		l = m.Error.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
+	if m.Result != nil {
+		l = m.Result.Size()
 		n += 1 + l + sovApi(uint64(l))
 	}
 	return n
@@ -2469,9 +3480,23 @@ func (m *HistoryResult) Size() (n int) {
 	return n
 }
 
-func (m *Channels) Size() (n int) {
+func (m *ChannelsRequest) Size() (n int) {
 	var l int
 	_ = l
+	return n
+}
+
+func (m *ChannelsResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Error != nil {
+		l = m.Error.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
+	if m.Result != nil {
+		l = m.Result.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
 	return n
 }
 
@@ -2487,9 +3512,23 @@ func (m *ChannelsResult) Size() (n int) {
 	return n
 }
 
-func (m *Info) Size() (n int) {
+func (m *InfoRequest) Size() (n int) {
 	var l int
 	_ = l
+	return n
+}
+
+func (m *InfoResponse) Size() (n int) {
+	var l int
+	_ = l
+	if m.Error != nil {
+		l = m.Error.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
+	if m.Result != nil {
+		l = m.Result.Size()
+		n += 1 + l + sovApi(uint64(l))
+	}
 	return n
 }
 
@@ -2506,12 +3545,6 @@ func (m *InfoResult) Size() (n int) {
 			n += 1 + l + sovApi(uint64(l))
 		}
 	}
-	return n
-}
-
-func (m *Node) Size() (n int) {
-	var l int
-	_ = l
 	return n
 }
 
@@ -2559,107 +3592,6 @@ func sovApi(x uint64) (n int) {
 }
 func sozApi(x uint64) (n int) {
 	return sovApi(uint64((x << 1) ^ uint64((int64(x) >> 63))))
-}
-func (m *Request) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowApi
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Request: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Request: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Commands", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowApi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthApi
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Commands = append(m.Commands, &Command{})
-			if err := m.Commands[len(m.Commands)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Async", wireType)
-			}
-			var v int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowApi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Async = bool(v != 0)
-		default:
-			iNdEx = preIndex
-			skippy, err := skipApi(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthApi
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
 }
 func (m *Command) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -2765,87 +3697,6 @@ func (m *Command) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if err := m.Params.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipApi(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthApi
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Response) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowApi
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Response: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Response: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Replies", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowApi
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthApi
-			}
-			postIndex := iNdEx + msglen
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Replies = append(m.Replies, &Reply{})
-			if err := m.Replies[len(m.Replies)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3002,7 +3853,7 @@ func (m *Reply) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *Publish) Unmarshal(dAtA []byte) error {
+func (m *PublishRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3025,10 +3876,10 @@ func (m *Publish) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: Publish: wiretype end group for non-group")
+			return fmt.Errorf("proto: PublishRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Publish: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: PublishRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -3111,6 +3962,122 @@ func (m *Publish) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *PublishResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowApi
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PublishResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PublishResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Error == nil {
+				m.Error = &proto1.Error{}
+			}
+			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Result == nil {
+				m.Result = &PublishResult{}
+			}
+			if err := m.Result.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipApi(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthApi
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *PublishResult) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3161,7 +4128,7 @@ func (m *PublishResult) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *Broadcast) Unmarshal(dAtA []byte) error {
+func (m *BroadcastRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3184,10 +4151,10 @@ func (m *Broadcast) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: Broadcast: wiretype end group for non-group")
+			return fmt.Errorf("proto: BroadcastRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Broadcast: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: BroadcastRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -3270,6 +4237,122 @@ func (m *Broadcast) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *BroadcastResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowApi
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: BroadcastResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: BroadcastResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Error == nil {
+				m.Error = &proto1.Error{}
+			}
+			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Result == nil {
+				m.Result = &BroadcastResult{}
+			}
+			if err := m.Result.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipApi(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthApi
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *BroadcastResult) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3320,7 +4403,7 @@ func (m *BroadcastResult) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *Unsubscribe) Unmarshal(dAtA []byte) error {
+func (m *UnsubscribeRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3343,10 +4426,10 @@ func (m *Unsubscribe) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: Unsubscribe: wiretype end group for non-group")
+			return fmt.Errorf("proto: UnsubscribeRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Unsubscribe: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: UnsubscribeRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -3428,6 +4511,122 @@ func (m *Unsubscribe) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *UnsubscribeResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowApi
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: UnsubscribeResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: UnsubscribeResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Error == nil {
+				m.Error = &proto1.Error{}
+			}
+			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Result == nil {
+				m.Result = &UnsubscribeResult{}
+			}
+			if err := m.Result.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipApi(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthApi
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *UnsubscribeResult) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3478,7 +4677,7 @@ func (m *UnsubscribeResult) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *Disconnect) Unmarshal(dAtA []byte) error {
+func (m *DisconnectRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3501,10 +4700,10 @@ func (m *Disconnect) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: Disconnect: wiretype end group for non-group")
+			return fmt.Errorf("proto: DisconnectRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Disconnect: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DisconnectRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -3535,6 +4734,122 @@ func (m *Disconnect) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.User = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipApi(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthApi
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DisconnectResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowApi
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DisconnectResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DisconnectResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Error == nil {
+				m.Error = &proto1.Error{}
+			}
+			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Result == nil {
+				m.Result = &DisconnectResult{}
+			}
+			if err := m.Result.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -3607,7 +4922,7 @@ func (m *DisconnectResult) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *Presence) Unmarshal(dAtA []byte) error {
+func (m *PresenceRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3630,10 +4945,10 @@ func (m *Presence) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: Presence: wiretype end group for non-group")
+			return fmt.Errorf("proto: PresenceRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Presence: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: PresenceRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -3664,6 +4979,122 @@ func (m *Presence) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Channel = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipApi(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthApi
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PresenceResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowApi
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PresenceResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PresenceResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Error == nil {
+				m.Error = &proto1.Error{}
+			}
+			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Result == nil {
+				m.Result = &PresenceResult{}
+			}
+			if err := m.Result.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -3859,7 +5290,7 @@ func (m *PresenceResult) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *PresenceStats) Unmarshal(dAtA []byte) error {
+func (m *PresenceStatsRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3882,10 +5313,10 @@ func (m *PresenceStats) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: PresenceStats: wiretype end group for non-group")
+			return fmt.Errorf("proto: PresenceStatsRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: PresenceStats: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: PresenceStatsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -3916,6 +5347,122 @@ func (m *PresenceStats) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Channel = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipApi(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthApi
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *PresenceStatsResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowApi
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: PresenceStatsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: PresenceStatsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Error == nil {
+				m.Error = &proto1.Error{}
+			}
+			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Result == nil {
+				m.Result = &PresenceStatsResult{}
+			}
+			if err := m.Result.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -4026,7 +5573,7 @@ func (m *PresenceStatsResult) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *History) Unmarshal(dAtA []byte) error {
+func (m *HistoryRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -4049,10 +5596,10 @@ func (m *History) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: History: wiretype end group for non-group")
+			return fmt.Errorf("proto: HistoryRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: History: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: HistoryRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -4083,6 +5630,122 @@ func (m *History) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Channel = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipApi(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthApi
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *HistoryResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowApi
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: HistoryResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: HistoryResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Error == nil {
+				m.Error = &proto1.Error{}
+			}
+			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Result == nil {
+				m.Result = &HistoryResult{}
+			}
+			if err := m.Result.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -4186,7 +5849,7 @@ func (m *HistoryResult) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *Channels) Unmarshal(dAtA []byte) error {
+func (m *ChannelsRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -4209,12 +5872,128 @@ func (m *Channels) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: Channels: wiretype end group for non-group")
+			return fmt.Errorf("proto: ChannelsRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Channels: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: ChannelsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipApi(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthApi
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ChannelsResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowApi
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ChannelsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ChannelsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Error == nil {
+				m.Error = &proto1.Error{}
+			}
+			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Result == nil {
+				m.Result = &ChannelsResult{}
+			}
+			if err := m.Result.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipApi(dAtA[iNdEx:])
@@ -4315,7 +6094,7 @@ func (m *ChannelsResult) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *Info) Unmarshal(dAtA []byte) error {
+func (m *InfoRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -4338,12 +6117,128 @@ func (m *Info) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: Info: wiretype end group for non-group")
+			return fmt.Errorf("proto: InfoRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Info: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: InfoRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipApi(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthApi
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *InfoResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowApi
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: InfoResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: InfoResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Error", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Error == nil {
+				m.Error = &proto1.Error{}
+			}
+			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Result", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Result == nil {
+				m.Result = &InfoResult{}
+			}
+			if err := m.Result.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipApi(dAtA[iNdEx:])
@@ -4454,56 +6349,6 @@ func (m *InfoResult) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipApi(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if skippy < 0 {
-				return ErrInvalidLengthApi
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Node) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowApi
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Node: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Node: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := skipApi(dAtA[iNdEx:])
@@ -4915,69 +6760,84 @@ var (
 func init() { proto.RegisterFile("api.proto", fileDescriptorApi) }
 
 var fileDescriptorApi = []byte{
-	// 1018 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x56, 0x4d, 0x6f, 0xe3, 0xc4,
-	0x1b, 0xaf, 0xf3, 0xee, 0xa7, 0xe9, 0xdb, 0xf4, 0xff, 0x87, 0x50, 0x4a, 0x1c, 0x59, 0x5a, 0x11,
-	0x50, 0x49, 0xf6, 0x45, 0xda, 0x85, 0x45, 0x2b, 0x54, 0xa7, 0x95, 0x28, 0xa8, 0x55, 0x99, 0xaa,
-	0x48, 0x9c, 0xaa, 0x89, 0x3d, 0x4d, 0x2d, 0xe2, 0x71, 0xd6, 0x33, 0x2e, 0xca, 0x07, 0xe0, 0xc2,
-	0x89, 0x2b, 0x37, 0x8e, 0x7c, 0x04, 0xbe, 0x01, 0x7b, 0xe4, 0xcc, 0xc1, 0x82, 0x70, 0xf3, 0x81,
-	0x33, 0x47, 0x34, 0x2f, 0x49, 0xdc, 0xa5, 0x87, 0xee, 0x4a, 0xdc, 0xc6, 0xbf, 0xe7, 0xf7, 0xbc,
-	0xfd, 0x66, 0x9e, 0x19, 0x83, 0x4d, 0x26, 0x61, 0x6f, 0x92, 0xc4, 0x22, 0x46, 0x65, 0x32, 0x09,
-	0x77, 0x3e, 0x18, 0x85, 0xe2, 0x2a, 0x1d, 0xf6, 0xfc, 0x38, 0xea, 0x8f, 0xe2, 0x51, 0xdc, 0x57,
-	0xb6, 0x61, 0x7a, 0xa9, 0xbe, 0xd4, 0x87, 0x5a, 0x69, 0x9f, 0x9d, 0x27, 0x05, 0xba, 0x4f, 0x99,
-	0x48, 0xc2, 0xcb, 0x74, 0x44, 0xc6, 0xcb, 0x75, 0xdc, 0x1f, 0x87, 0x43, 0x1d, 0xa4, 0x4f, 0x93,
-	0x24, 0x4e, 0x8c, 0xe3, 0x47, 0xaf, 0xe2, 0x18, 0x51, 0xce, 0xc9, 0x88, 0x6a, 0x57, 0x77, 0x08,
-	0x75, 0x4c, 0x9f, 0xa7, 0x94, 0x0b, 0xf4, 0x18, 0x1a, 0x83, 0x38, 0x8a, 0x08, 0x0b, 0x78, 0xcb,
-	0xea, 0x94, 0xbb, 0xab, 0x0f, 0x9b, 0x3d, 0xd9, 0x90, 0x01, 0xbd, 0x66, 0x9e, 0x39, 0x0d, 0xdf,
-	0x30, 0xf0, 0x82, 0x8b, 0x1c, 0xa8, 0xee, 0xf3, 0x29, 0xf3, 0x5b, 0xa5, 0x8e, 0xd5, 0x6d, 0x78,
-	0x76, 0x9e, 0x39, 0x55, 0x22, 0x01, 0xac, 0x71, 0xf7, 0x47, 0x0b, 0xea, 0x86, 0x8d, 0xde, 0x80,
-	0xd2, 0xd1, 0x41, 0xcb, 0xea, 0x58, 0xdd, 0x8a, 0x57, 0xcb, 0x33, 0xa7, 0x14, 0x06, 0xb8, 0x74,
-	0x74, 0x80, 0x5c, 0xa8, 0x1d, 0x53, 0x71, 0x15, 0x07, 0x2a, 0x8a, 0xed, 0x41, 0x9e, 0x39, 0xb5,
-	0x48, 0x21, 0xd8, 0x58, 0xd0, 0x57, 0x50, 0x3b, 0x25, 0x09, 0x89, 0x78, 0xab, 0xdc, 0xb1, 0xba,
-	0x4d, 0x6f, 0xff, 0x45, 0xe6, 0xac, 0xfc, 0x96, 0x39, 0xfd, 0x57, 0x68, 0xbf, 0x87, 0xc9, 0x37,
-	0x32, 0xf4, 0x44, 0x05, 0xc2, 0x26, 0xa0, 0xfb, 0x0c, 0x1a, 0x98, 0xf2, 0x49, 0xcc, 0x38, 0x45,
-	0x0f, 0xa4, 0x24, 0x93, 0x71, 0x48, 0xe7, 0x32, 0x80, 0x92, 0x41, 0x62, 0x53, 0x6f, 0x35, 0xcf,
-	0x9c, 0x7a, 0xa2, 0xcd, 0x78, 0xce, 0x73, 0x7f, 0xb1, 0xa0, 0xaa, 0xec, 0xa8, 0x53, 0xe8, 0x6f,
-	0x33, 0xcf, 0x9c, 0x66, 0x18, 0xec, 0xc5, 0x51, 0x28, 0x68, 0x34, 0x11, 0x53, 0xd5, 0xe9, 0x13,
-	0xa8, 0x1e, 0xca, 0xbd, 0x53, 0x8d, 0x4a, 0x8d, 0x75, 0x5d, 0x0a, 0xf3, 0xb6, 0xf3, 0xcc, 0xd9,
-	0x50, 0x5b, 0x5b, 0xf0, 0xd2, 0x7c, 0xe4, 0x43, 0x0d, 0x53, 0x9e, 0x8e, 0x85, 0x69, 0xff, 0xf3,
-	0xd7, 0x6f, 0x7f, 0x33, 0x51, 0x81, 0x0a, 0x39, 0x4c, 0x68, 0xf7, 0x5b, 0x0b, 0xea, 0xa7, 0xe9,
-	0x70, 0x1c, 0xf2, 0x2b, 0x74, 0x0f, 0xea, 0x83, 0x2b, 0xc2, 0x18, 0x1d, 0xab, 0x86, 0x6c, 0xdd,
-	0xbc, 0xaf, 0x21, 0x3c, 0xb7, 0xa1, 0x33, 0xa8, 0x1c, 0x10, 0x41, 0x54, 0x3f, 0x4d, 0xef, 0x93,
-	0xd7, 0xaf, 0xaa, 0x12, 0x10, 0x41, 0xb0, 0x0a, 0xe6, 0x6e, 0xc0, 0x9a, 0x29, 0xc3, 0x14, 0xf6,
-	0x9d, 0x05, 0xb6, 0x97, 0xc4, 0x24, 0xf0, 0x09, 0x17, 0xa8, 0x0b, 0x0d, 0x93, 0x5e, 0x6f, 0x92,
-	0x6d, 0x4e, 0xa7, 0xc1, 0xf0, 0xc2, 0xfa, 0xdf, 0x54, 0xb7, 0x05, 0x1b, 0x8b, 0x5a, 0x4c, 0x7d,
-	0x18, 0x56, 0xcf, 0x19, 0x4f, 0x87, 0xdc, 0x4f, 0xc2, 0x21, 0xbd, 0xab, 0x76, 0xbb, 0x50, 0x39,
-	0xe7, 0x34, 0x31, 0x87, 0xbe, 0x21, 0xd3, 0xa4, 0x9c, 0x26, 0x58, 0xa1, 0xee, 0x36, 0x6c, 0x15,
-	0x62, 0x9a, 0x44, 0xef, 0x03, 0x1c, 0x84, 0xdc, 0x8f, 0x19, 0xa3, 0xbe, 0x58, 0x04, 0xb0, 0x6e,
-	0x0d, 0x80, 0x60, 0x73, 0xc9, 0x35, 0xfe, 0x0f, 0xa0, 0x71, 0x9a, 0x50, 0x4e, 0x99, 0x7f, 0xd7,
-	0x2a, 0xdd, 0x1f, 0x2c, 0x58, 0x9f, 0xfb, 0xe8, 0x28, 0xe8, 0x63, 0x23, 0xab, 0x9e, 0x90, 0x77,
-	0xd4, 0x84, 0xdc, 0xa4, 0xf4, 0xa4, 0xfd, 0x90, 0x89, 0x64, 0xaa, 0xcb, 0x5a, 0xca, 0xb7, 0xf3,
-	0x19, 0xd8, 0x0b, 0x23, 0xda, 0x84, 0xf2, 0xd7, 0x74, 0xaa, 0xf3, 0x63, 0xb9, 0x44, 0xef, 0x42,
-	0xf5, 0x9a, 0x8c, 0x53, 0x6a, 0x26, 0x64, 0xcb, 0x4c, 0xc8, 0x60, 0x1c, 0x52, 0x26, 0x8e, 0xd8,
-	0x65, 0x8c, 0xb5, 0xfd, 0x69, 0xe9, 0x43, 0xcb, 0x7d, 0x0c, 0x6b, 0xf3, 0xbc, 0x67, 0x82, 0x08,
-	0x7e, 0xd7, 0x9e, 0x9e, 0xc3, 0xf6, 0x0d, 0x3f, 0xd3, 0x57, 0x1f, 0xe0, 0x24, 0x8d, 0x74, 0x2a,
-	0x6e, 0xe6, 0x78, 0x23, 0xcf, 0x9c, 0x55, 0x96, 0x46, 0x17, 0xbe, 0x86, 0x71, 0x81, 0x82, 0xde,
-	0x83, 0xc6, 0x49, 0x1a, 0x49, 0xb5, 0xb9, 0xaa, 0xb7, 0xe2, 0xad, 0xe5, 0x99, 0x63, 0x4b, 0xba,
-	0xdc, 0x08, 0x8e, 0x17, 0x66, 0xf7, 0x3e, 0xd4, 0x3f, 0x0d, 0xb9, 0x88, 0x93, 0xe9, 0x5d, 0x8b,
-	0x7c, 0x06, 0x6b, 0xc6, 0xc3, 0x94, 0xb7, 0x77, 0x43, 0xf6, 0x75, 0xa3, 0xcc, 0xb1, 0xbe, 0xd2,
-	0x5f, 0xd6, 0xd9, 0x85, 0xe5, 0x94, 0xb8, 0x3d, 0x58, 0x9f, 0xaf, 0x4d, 0xac, 0xdd, 0x42, 0x2c,
-	0xfb, 0x5f, 0xbe, 0x35, 0xa8, 0x48, 0xa9, 0xdd, 0x21, 0x80, 0x92, 0x5c, 0xfb, 0xb8, 0x50, 0x3b,
-	0x64, 0xa3, 0x90, 0x51, 0x53, 0xb6, 0xba, 0xa6, 0xa9, 0x42, 0xb0, 0xb1, 0xa0, 0xfb, 0x50, 0x3d,
-	0x89, 0x03, 0x2a, 0xe5, 0x90, 0x45, 0x6e, 0xa8, 0xb3, 0x21, 0x11, 0x1d, 0x43, 0x3f, 0x10, 0x4c,
-	0x32, 0xb0, 0x26, 0xca, 0x5c, 0x72, 0xe1, 0xfe, 0x55, 0x02, 0x58, 0x12, 0xd1, 0x5b, 0x50, 0x3e,
-	0x37, 0x97, 0xa9, 0xed, 0xd5, 0xf3, 0xcc, 0x29, 0xa7, 0x61, 0x80, 0x25, 0x26, 0x6b, 0x3f, 0x21,
-	0x11, 0x2d, 0xce, 0x0d, 0x23, 0x11, 0xc5, 0x0a, 0x95, 0xea, 0x7e, 0x49, 0x13, 0x1e, 0xc6, 0x4c,
-	0x5d, 0x95, 0x46, 0xdd, 0x6b, 0x0d, 0xe1, 0xb9, 0x0d, 0xed, 0x81, 0x7d, 0x26, 0x48, 0x22, 0x68,
-	0xb0, 0x2f, 0x5a, 0x95, 0x8e, 0xd5, 0x2d, 0x7b, 0xeb, 0x79, 0xe6, 0x00, 0xd7, 0xe0, 0x05, 0x11,
-	0x78, 0x49, 0x40, 0x5f, 0xc0, 0xff, 0x8f, 0xa9, 0x48, 0x42, 0x9f, 0x9f, 0x4f, 0x02, 0x22, 0xe8,
-	0x11, 0x13, 0x34, 0xb9, 0x26, 0xe3, 0x56, 0x55, 0xed, 0xfa, 0xdb, 0x79, 0xe6, 0xbc, 0x19, 0x69,
-	0xc2, 0x45, 0xaa, 0x18, 0x17, 0xa1, 0xa1, 0xe0, 0xdb, 0x3d, 0xd1, 0x00, 0xea, 0xc6, 0xd0, 0xaa,
-	0x29, 0xad, 0x76, 0x5f, 0xd2, 0xaa, 0x67, 0xcc, 0x7a, 0x8c, 0x54, 0x17, 0x26, 0x05, 0x9e, 0x7b,
-	0xee, 0x3c, 0x85, 0x66, 0x91, 0x75, 0xcb, 0x3c, 0xfd, 0xaf, 0x38, 0x4f, 0xe5, 0xc2, 0xf0, 0x3c,
-	0x7c, 0x04, 0x30, 0x58, 0xdc, 0x78, 0xe8, 0x1e, 0x54, 0xce, 0x28, 0x0b, 0x50, 0xd3, 0xbc, 0x77,
-	0xea, 0xb7, 0x60, 0x67, 0xcd, 0x7c, 0xe9, 0xd7, 0xd1, 0x5d, 0xf1, 0x76, 0xff, 0xfe, 0xa3, 0x6d,
-	0xfd, 0x34, 0x6b, 0x5b, 0x3f, 0xcf, 0xda, 0xd6, 0x8b, 0x59, 0xdb, 0xfa, 0x75, 0xd6, 0xb6, 0x7e,
-	0x9f, 0xb5, 0xad, 0xef, 0xff, 0x6c, 0xaf, 0x0c, 0x6b, 0xea, 0x48, 0x3e, 0xfa, 0x27, 0x00, 0x00,
-	0xff, 0xff, 0xc7, 0xe0, 0x8a, 0xda, 0x0c, 0x09, 0x00, 0x00,
+	// 1259 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x56, 0xcf, 0x6f, 0x1b, 0x45,
+	0x14, 0xce, 0xc4, 0x8e, 0x1d, 0xbf, 0x38, 0xb1, 0x33, 0x71, 0x52, 0x37, 0x14, 0x6f, 0xb4, 0x12,
+	0x22, 0x48, 0xad, 0x0d, 0x45, 0xea, 0x2f, 0xa8, 0x4a, 0xd7, 0x29, 0x6a, 0x40, 0x8d, 0xca, 0x56,
+	0x41, 0xea, 0x29, 0x5a, 0xdb, 0x53, 0x67, 0x85, 0x77, 0xd7, 0xdd, 0x99, 0x2d, 0xca, 0x3f, 0xc0,
+	0x09, 0xa1, 0x82, 0x38, 0xc0, 0x8d, 0x23, 0x27, 0xce, 0xfc, 0x07, 0xf4, 0xc8, 0x99, 0xc3, 0x0a,
+	0xc2, 0x6d, 0x0f, 0x9c, 0x39, 0xa2, 0x9d, 0x99, 0xfd, 0x69, 0x0b, 0xcb, 0xb5, 0x72, 0xf3, 0xbe,
+	0xf7, 0xbe, 0x37, 0xef, 0xfb, 0x3c, 0xef, 0xcd, 0x83, 0x8a, 0x31, 0x36, 0xdb, 0x63, 0xd7, 0x61,
+	0x0e, 0x2e, 0x18, 0x63, 0x73, 0xf7, 0xda, 0xd0, 0x64, 0xa7, 0x5e, 0xaf, 0xdd, 0x77, 0xac, 0xce,
+	0xd0, 0x19, 0x3a, 0x1d, 0xee, 0xeb, 0x79, 0xcf, 0xf8, 0x17, 0xff, 0xe0, 0xbf, 0x04, 0x66, 0xf7,
+	0x66, 0x2a, 0xbc, 0x4f, 0x6c, 0xe6, 0x9a, 0xcf, 0xbc, 0xa1, 0x31, 0x4a, 0x7e, 0x3b, 0x9d, 0x91,
+	0xd9, 0x13, 0x49, 0x3a, 0xc4, 0x75, 0x1d, 0x57, 0x02, 0x6f, 0xcf, 0x03, 0xb4, 0x08, 0xa5, 0xc6,
+	0x90, 0x08, 0xa8, 0xfa, 0x13, 0x82, 0x72, 0xd7, 0xb1, 0x2c, 0xc3, 0x1e, 0xe0, 0x1d, 0x58, 0x3e,
+	0x3c, 0x68, 0xa2, 0x3d, 0xb4, 0x5f, 0xd4, 0x4a, 0x81, 0xaf, 0x2c, 0x9b, 0x03, 0x7d, 0xf9, 0xf0,
+	0x00, 0xab, 0x50, 0x7a, 0x44, 0xd8, 0xa9, 0x33, 0x68, 0x2e, 0xef, 0xa1, 0xfd, 0x8a, 0x06, 0x81,
+	0xaf, 0x94, 0x2c, 0x6e, 0xd1, 0xa5, 0x07, 0x3f, 0x85, 0xd2, 0x63, 0xc3, 0x35, 0x2c, 0xda, 0x2c,
+	0xec, 0xa1, 0xfd, 0xaa, 0x76, 0xff, 0x95, 0xaf, 0x2c, 0xfd, 0xe1, 0x2b, 0x9d, 0x39, 0x4a, 0x6b,
+	0xeb, 0xc6, 0x97, 0x61, 0xea, 0x31, 0x4f, 0xa4, 0xcb, 0x84, 0xea, 0x6f, 0x08, 0x56, 0x74, 0x32,
+	0x1e, 0x9d, 0xe1, 0xbd, 0x54, 0x81, 0xf5, 0xc0, 0x57, 0xaa, 0xe6, 0xe0, 0xaa, 0x63, 0x99, 0x8c,
+	0x58, 0x63, 0x76, 0xc6, 0x4b, 0xbd, 0x09, 0x2b, 0x0f, 0x42, 0x61, 0x78, 0xa5, 0x6b, 0xd7, 0xab,
+	0x82, 0x65, 0x9b, 0xdb, 0xb4, 0xad, 0xc0, 0x57, 0x6a, 0x5c, 0xb7, 0x14, 0x4a, 0xc4, 0xe3, 0x3e,
+	0x94, 0x74, 0x42, 0xbd, 0x11, 0x93, 0xf5, 0x7f, 0xfa, 0xfa, 0xf5, 0xd7, 0x5d, 0x9e, 0x28, 0x75,
+	0x86, 0x4c, 0xad, 0x7e, 0x8d, 0x60, 0xe3, 0xb1, 0xd7, 0x1b, 0x99, 0xf4, 0x54, 0x27, 0xcf, 0x3d,
+	0x42, 0x19, 0x7e, 0x0b, 0xca, 0xdd, 0x53, 0xc3, 0xb6, 0xc9, 0x88, 0xf3, 0xaa, 0x68, 0x6b, 0x81,
+	0xaf, 0x94, 0xfb, 0xc2, 0xa4, 0x47, 0x3e, 0xfc, 0x04, 0x8a, 0x07, 0x06, 0x33, 0x38, 0xad, 0xaa,
+	0x76, 0xef, 0xf5, 0x8b, 0x2b, 0x0e, 0x0c, 0x66, 0xe8, 0x3c, 0x59, 0x58, 0x4e, 0x2d, 0x2e, 0x87,
+	0x8e, 0x1d, 0x9b, 0x92, 0x44, 0x40, 0x34, 0xa7, 0x80, 0x1f, 0xc5, 0x02, 0x0a, 0xe9, 0x71, 0x3b,
+	0x6c, 0x86, 0x24, 0xbd, 0x37, 0x62, 0x5a, 0xe3, 0x7f, 0xd5, 0xa9, 0xc1, 0x7a, 0x26, 0x5c, 0xfd,
+	0x16, 0x41, 0x5d, 0x73, 0x1d, 0x63, 0xd0, 0x37, 0x28, 0x8b, 0x04, 0xdb, 0x87, 0x55, 0x29, 0x0a,
+	0x6d, 0xa2, 0xbd, 0xc2, 0x7e, 0x45, 0xab, 0x06, 0xbe, 0xb2, 0x2a, 0x15, 0xa3, 0x7a, 0xec, 0xbd,
+	0x18, 0xcd, 0x5e, 0x22, 0xd8, 0x4c, 0xd5, 0xb4, 0xa8, 0x6a, 0x5a, 0x4e, 0xb5, 0x06, 0x57, 0x2d,
+	0x7d, 0xc0, 0x6c, 0xdd, 0x36, 0xa1, 0x96, 0x03, 0xa8, 0x4f, 0x01, 0x1f, 0xdb, 0xd4, 0xeb, 0xd1,
+	0xbe, 0x6b, 0xf6, 0xc8, 0x9c, 0x77, 0xed, 0x0a, 0x14, 0x8f, 0x29, 0x71, 0x65, 0xb3, 0xaf, 0x86,
+	0x02, 0x78, 0x94, 0xb8, 0x3a, 0xb7, 0xaa, 0xdf, 0x23, 0xd8, 0xca, 0xe4, 0x5e, 0x54, 0x82, 0x83,
+	0x9c, 0x04, 0x3b, 0x5c, 0x82, 0xec, 0x11, 0xb3, 0x45, 0xd8, 0x82, 0xcd, 0x09, 0x88, 0xfa, 0x1e,
+	0x6c, 0x1e, 0x98, 0xb4, 0xef, 0xd8, 0x36, 0xe9, 0xc7, 0x17, 0x28, 0xa2, 0x87, 0xa6, 0xd2, 0xfb,
+	0x0e, 0x01, 0x4e, 0x63, 0x16, 0x65, 0xd7, 0xcd, 0xb1, 0xdb, 0xe6, 0xec, 0x32, 0x27, 0xcc, 0x26,
+	0x87, 0xa1, 0x9e, 0x47, 0xa8, 0xb7, 0xa0, 0xf6, 0xd8, 0x25, 0x94, 0xd8, 0xfd, 0x39, 0xff, 0x5f,
+	0xf5, 0x1b, 0x04, 0xf5, 0x04, 0xba, 0x28, 0xc1, 0xfb, 0x39, 0x82, 0x5b, 0xa2, 0xef, 0x93, 0xfc,
+	0xb3, 0xe9, 0xfd, 0x18, 0x8e, 0xc5, 0x0c, 0x00, 0x7f, 0x20, 0x7b, 0x37, 0xec, 0xf0, 0xb5, 0xeb,
+	0x6f, 0x4e, 0xc9, 0xd9, 0x0e, 0xfd, 0x0f, 0x6c, 0xe6, 0x9e, 0x89, 0xff, 0x30, 0xe9, 0xd1, 0xdd,
+	0x4f, 0xa0, 0x12, 0x3b, 0x71, 0x1d, 0x0a, 0x5f, 0x90, 0x33, 0x21, 0x88, 0x1e, 0xfe, 0xc4, 0x6f,
+	0xc3, 0xca, 0x0b, 0x63, 0xe4, 0x11, 0x59, 0xf0, 0xa6, 0xa4, 0xda, 0x1d, 0x99, 0xc4, 0x66, 0x87,
+	0xf6, 0x33, 0x47, 0x17, 0xfe, 0x3b, 0xcb, 0xb7, 0x90, 0x7a, 0x17, 0x1a, 0xd1, 0xb9, 0x4f, 0x98,
+	0xc1, 0xe8, 0x9c, 0x5a, 0xff, 0x80, 0x60, 0x3b, 0x87, 0x5f, 0x54, 0xf0, 0x8f, 0x73, 0x82, 0x37,
+	0x33, 0xe2, 0x44, 0x87, 0xcc, 0x56, 0xfd, 0x39, 0x6c, 0x4d, 0x01, 0xe1, 0x0e, 0xc0, 0x91, 0x67,
+	0x09, 0x31, 0xa8, 0x7c, 0x6b, 0x6b, 0x81, 0xaf, 0xac, 0xd9, 0x9e, 0x75, 0xd2, 0x17, 0x66, 0x3d,
+	0x15, 0x82, 0xdf, 0x81, 0xd5, 0x23, 0xcf, 0x0a, 0x9b, 0x87, 0xf2, 0x8a, 0x8a, 0xda, 0x7a, 0xe0,
+	0x2b, 0x95, 0x30, 0x3c, 0xec, 0x2b, 0xaa, 0xc7, 0x6e, 0xf5, 0x26, 0x6c, 0x3c, 0x34, 0x29, 0x73,
+	0xdc, 0xb3, 0x39, 0x65, 0x0c, 0x5f, 0xaa, 0x18, 0x79, 0x31, 0x2f, 0x55, 0x92, 0x7e, 0xb6, 0x74,
+	0x77, 0x61, 0x3d, 0x13, 0x8e, 0xaf, 0x66, 0xae, 0xeb, 0x86, 0x2c, 0xe5, 0x91, 0xd8, 0xb4, 0xf2,
+	0xf7, 0x33, 0x1c, 0xd8, 0xd1, 0x23, 0x25, 0x75, 0xe0, 0x3d, 0x99, 0xd8, 0x2e, 0xa6, 0x27, 0x53,
+	0xf9, 0x67, 0x53, 0x6c, 0xc3, 0x46, 0x36, 0x3e, 0x9c, 0x9b, 0x31, 0xc7, 0xca, 0x04, 0xa7, 0x75,
+	0x58, 0xe3, 0xad, 0x23, 0xf9, 0x7c, 0x85, 0xa0, 0x2a, 0xbe, 0x17, 0xe5, 0x72, 0x37, 0xc7, 0xa5,
+	0xc6, 0xb9, 0xc8, 0xdc, 0xb3, 0x79, 0xf4, 0x00, 0x92, 0xd8, 0x70, 0x93, 0x7d, 0x60, 0x0f, 0x4d,
+	0x9b, 0xc8, 0xdb, 0xc6, 0x37, 0x59, 0xc2, 0x2d, 0xba, 0xf4, 0xe0, 0x77, 0x61, 0xe5, 0xc8, 0x19,
+	0x90, 0xf0, 0x32, 0x17, 0xe2, 0xf3, 0x42, 0x8b, 0x3c, 0xaf, 0x12, 0xf8, 0xca, 0x8a, 0x1d, 0x46,
+	0xe8, 0x22, 0x50, 0xfd, 0x67, 0x19, 0x20, 0x09, 0xc0, 0x97, 0xa1, 0x70, 0x2c, 0xd7, 0xd4, 0x8a,
+	0x56, 0x0e, 0x7c, 0xa5, 0xe0, 0x99, 0x03, 0x3d, 0xb4, 0x85, 0x1a, 0x1e, 0x19, 0x16, 0x49, 0x3f,
+	0xad, 0xb6, 0x61, 0x11, 0x9d, 0x5b, 0xc3, 0x66, 0xf8, 0x9c, 0xb8, 0xd4, 0x74, 0x6c, 0xbe, 0x84,
+	0xca, 0x66, 0x78, 0x21, 0x4c, 0x7a, 0xe4, 0xc3, 0x57, 0xa1, 0xf2, 0x84, 0x19, 0x2e, 0x23, 0x83,
+	0xfb, 0xac, 0x59, 0xdc, 0x43, 0xfb, 0x05, 0x6d, 0x23, 0xf0, 0x15, 0xa0, 0xc2, 0x78, 0x62, 0x30,
+	0x3d, 0x09, 0xc0, 0x9f, 0xc1, 0xf6, 0x23, 0xc2, 0x5c, 0xb3, 0x4f, 0x8f, 0xc7, 0x03, 0x83, 0x91,
+	0x43, 0x9b, 0x11, 0xf7, 0x85, 0x31, 0x6a, 0xae, 0xf0, 0x5e, 0x7d, 0x23, 0xf0, 0x95, 0x4b, 0x96,
+	0x08, 0x38, 0xf1, 0x78, 0xc4, 0x89, 0x29, 0x43, 0xf4, 0xe9, 0x48, 0xdc, 0x85, 0xb2, 0x74, 0x34,
+	0x4b, 0x5c, 0xa3, 0x2b, 0x39, 0x8d, 0xda, 0xd2, 0x2d, 0xc6, 0x33, 0x67, 0x21, 0x8f, 0xd0, 0x23,
+	0xe4, 0xee, 0x1d, 0xa8, 0xa6, 0xa3, 0xa6, 0xcc, 0xe9, 0x46, 0x7a, 0x4e, 0x17, 0x52, 0x43, 0xf9,
+	0xfa, 0x2f, 0x45, 0x80, 0x6e, 0xbc, 0xaf, 0xe1, 0x1b, 0x50, 0x96, 0x8b, 0x23, 0xde, 0xca, 0x6e,
+	0x9d, 0xfc, 0x32, 0xee, 0x36, 0x72, 0xab, 0x28, 0xbf, 0x91, 0xea, 0x12, 0xfe, 0x10, 0x2a, 0xf1,
+	0xe2, 0x84, 0xb7, 0xf3, 0x9b, 0x97, 0xc0, 0xee, 0x4c, 0x2c, 0x64, 0x11, 0x5a, 0x83, 0xb5, 0xd4,
+	0xc6, 0x81, 0x2f, 0x4d, 0xae, 0x2d, 0x22, 0x43, 0x73, 0xca, 0x3e, 0x13, 0xe5, 0xb8, 0x07, 0x90,
+	0x3c, 0xec, 0x78, 0x67, 0x62, 0x37, 0x10, 0x19, 0x2e, 0x4d, 0xee, 0x0c, 0x51, 0x82, 0xdb, 0xb0,
+	0x1a, 0x0d, 0x71, 0xdc, 0xc8, 0xbd, 0x92, 0x02, 0xbc, 0x9d, 0x7f, 0x3b, 0x23, 0xe8, 0x43, 0x58,
+	0xcf, 0xcc, 0x7f, 0x7c, 0x79, 0xda, 0x43, 0x22, 0x92, 0xec, 0x4e, 0x7d, 0x63, 0xa2, 0x4c, 0x37,
+	0xa0, 0x2c, 0xc7, 0xa1, 0xd4, 0x3f, 0x3b, 0xe4, 0xa5, 0xfe, 0xb9, 0xf9, 0x2d, 0x8a, 0x8f, 0x97,
+	0xf5, 0x46, 0x6e, 0x44, 0xa5, 0x8b, 0xcf, 0x0f, 0x46, 0x75, 0x09, 0x5f, 0x83, 0x62, 0xd8, 0xd6,
+	0xb8, 0x9e, 0x9a, 0x06, 0x02, 0xb2, 0x99, 0x9e, 0x0f, 0x32, 0x5c, 0xbb, 0xf2, 0xef, 0x5f, 0x2d,
+	0xf4, 0xf3, 0x79, 0x0b, 0xfd, 0x7a, 0xde, 0x42, 0xaf, 0xce, 0x5b, 0xe8, 0xf7, 0xf3, 0x16, 0xfa,
+	0xf3, 0xbc, 0x85, 0x5e, 0xfe, 0xdd, 0x5a, 0xea, 0x95, 0xf8, 0x2c, 0x7a, 0xff, 0xbf, 0x00, 0x00,
+	0x00, 0xff, 0xff, 0xf2, 0xb7, 0x54, 0xb2, 0xbf, 0x0f, 0x00, 0x00,
 }

@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/pprof"
@@ -9,10 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/centrifugal/centrifugo/lib/api"
 	"github.com/centrifugal/centrifugo/lib/auth"
 	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
+	apiproto "github.com/centrifugal/centrifugo/lib/proto/api"
 	clientproto "github.com/centrifugal/centrifugo/lib/proto/client"
 
 	"github.com/gorilla/websocket"
@@ -29,8 +32,8 @@ const (
 	HandlerSockJS
 	// HandlerAPI enables API handler.
 	HandlerAPI
-	// HandlerWeb enables web interface serving.
-	HandlerWeb
+	// HandlerAdmin enables admin web interface.
+	HandlerAdmin
 	// HandlerDebug enables debug handlers.
 	HandlerDebug
 )
@@ -39,12 +42,12 @@ var handlerText = map[HandlerFlag]string{
 	HandlerWebsocket: "websocket",
 	HandlerSockJS:    "SockJS",
 	HandlerAPI:       "API",
+	HandlerAdmin:     "admin",
 	HandlerDebug:     "debug",
-	HandlerWeb:       "web",
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerWeb, HandlerDebug}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerDebug}
 	endpoints := []string{}
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -97,25 +100,25 @@ func ServeMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 
 	if flags&HandlerWebsocket != 0 {
 		// register raw Websocket endpoint.
-		mux.Handle(prefix+"/connection/websocket", s.logged(s.wrapShutdown(http.HandlerFunc(s.websocketHandler))))
+		mux.Handle(prefix+"/connection/websocket", s.log(s.wrapShutdown(http.HandlerFunc(s.websocketHandler))))
 	}
 
 	if flags&HandlerSockJS != 0 {
 		// register SockJS endpoints.
 		sjsh := newSockJSHandler(s, path.Join(prefix, "/connection/sockjs"), muxOpts.SockjsOptions)
-		mux.Handle(path.Join(prefix, "/connection/sockjs")+"/", s.logged(s.wrapShutdown(sjsh)))
+		mux.Handle(path.Join(prefix, "/connection/sockjs")+"/", s.log(s.wrapShutdown(sjsh)))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
-		mux.Handle(prefix+"/api/", s.logged(s.wrapShutdown(http.HandlerFunc(s.apiHandler))))
+		mux.Handle(prefix+"/api/", s.log(s.wrapShutdown(http.HandlerFunc(s.apiHandler))))
 	}
 
-	if flags&HandlerWeb != 0 {
+	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
-		mux.Handle(prefix+"/auth/", s.logged(http.HandlerFunc(s.authHandler)))
-
-		// serve web interface single-page application.
+		mux.Handle(prefix+"/admin/auth/", s.log(http.HandlerFunc(s.authHandler)))
+		mux.Handle(prefix+"/admin/api/", s.log(http.HandlerFunc(s.apiHandler)))
+		// serve admin single-page web application.
 		if webPath != "" {
 			webPrefix := prefix + "/"
 			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webPath))))
@@ -292,19 +295,49 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var apiHandler *api.Handler
+	var enc apiproto.Encoding
+
 	contentType := r.Header.Get("Content-Type")
-	var resp []byte
 	if strings.HasPrefix(strings.ToLower(contentType), "application/json") {
-		resp, err = s.jsonAPIHandler.Handle(data)
+		enc = apiproto.EncodingJSON
+		apiHandler = s.jsonAPIHandler
 	} else {
-		resp, err = s.protobufAPIHandler.Handle(data)
+		enc = apiproto.EncodingProtobuf
+		apiHandler = s.protobufAPIHandler
 	}
-	if err != nil {
-		logger.ERROR.Printf("error handling request: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+
+	encoder := apiproto.GetReplyEncoder(enc)
+	defer apiproto.PutReplyEncoder(enc, encoder)
+
+	decoder := apiproto.GetCommandDecoder(enc, data)
+	defer apiproto.PutCommandDecoder(enc, decoder)
+
+	for {
+		command, err := decoder.Decode()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			logger.ERROR.Printf("error decoding API data: %v", err)
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		rep, err := apiHandler.Handle(r.Context(), command)
+		if err != nil {
+			logger.ERROR.Printf("error handling API command: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		err = encoder.Encode(rep)
+		if err != nil {
+			logger.ERROR.Printf("error encoding API reply: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
-	w.Header().Set("Content-Type", "application/json")
+	resp := encoder.Finish()
+	w.Header().Set("Content-Type", contentType)
 	w.Write(resp)
 }
 
@@ -349,10 +382,83 @@ func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Bad Request", http.StatusBadRequest)
 }
 
+// apiAuth ...
+// func (s *HTTPServer) apiAuth(h http.Handler) http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		authorization := r.Header.Get("Authorization")
+// 		s.RLock()
+// 		apiKey := s.node.Config().APIKey
+// 		apiInsecure := s.node.Config().APIInsecure
+// 		s.RUnlock()
+// 		if !apiInsecure {
+// 			parts := strings.Fields(authorization)
+// 			if len(parts) != 2 {
+// 				w.WriteHeader(http.StatusUnauthorized)
+// 				return
+// 			}
+// 			authMethod := strings.ToLower(parts[0])
+// 			if authMethod != "apikey" || parts[1] != apiKey {
+// 				w.WriteHeader(http.StatusUnauthorized)
+// 				return
+// 			}
+// 		}
+// 		h.ServeHTTP(w, r)
+// 	})
+// }
+
+// checkAdminAuthToken checks admin connection token which Centrifugo returns after admin login.
+// func (s *HTTPServer) checkAdminAuthToken(token string) error {
+
+// 	s.RLock()
+// 	adminPassword := s.node.Config().AdminPassword
+// 	adminSecret := s.node.Config().AdminSecret
+// 	adminInsecure := s.node.Config().AdminInsecure
+// 	s.RUnlock()
+
+// 	if adminInsecure {
+// 		return nil
+// 	}
+
+// 	if adminSecret == "" {
+// 		logger.ERROR.Println("no admin secret set in configuration")
+// 		return proto.ErrUnauthorized
+// 	}
+
+// 	if token == "" {
+// 		return proto.ErrUnauthorized
+// 	}
+
+// 	auth := auth.CheckAdminToken(adminSecret, token)
+// 	if !auth {
+// 		return proto.ErrUnauthorized
+// 	}
+// 	return nil
+// }
+
+// apiAuth ...
+// func (s *HTTPServer) adminAPIAuth(h http.Handler) http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		authorization := r.Header.Get("Authorization")
+
+// 		parts := strings.Fields(authorization)
+// 		if len(parts) != 2 {
+// 			w.WriteHeader(http.StatusUnauthorized)
+// 			return
+// 		}
+// 		authMethod := strings.ToLower(parts[0])
+// 		if authMethod != "token" || s.checkAdminAuthToken(parts[1]) != nil {
+// 			w.WriteHeader(http.StatusUnauthorized)
+// 			return
+// 		}
+
+// 		h.ServeHTTP(w, r)
+// 	})
+// }
+
 // wrapShutdown will return http Handler.
 // If Application in shutdown it will return http.StatusServiceUnavailable.
 func (s *HTTPServer) wrapShutdown(h http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.RLock()
 		shutdown := s.shutdown
 		s.RUnlock()
@@ -361,13 +467,12 @@ func (s *HTTPServer) wrapShutdown(h http.Handler) http.Handler {
 			return
 		}
 		h.ServeHTTP(w, r)
-	}
-	return http.HandlerFunc(fn)
+	})
 }
 
-// logged middleware logs request.
-func (s *HTTPServer) logged(h http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
+// log middleware logs request.
+func (s *HTTPServer) log(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var start time.Time
 		if logger.DEBUG.Enabled() {
 			start = time.Now()
@@ -384,6 +489,5 @@ func (s *HTTPServer) logged(h http.Handler) http.Handler {
 			logger.DEBUG.Printf("%s %s from %s completed in %s\n", r.Method, r.URL.Path, addr, time.Since(start))
 		}
 		return
-	}
-	return http.HandlerFunc(fn)
+	})
 }

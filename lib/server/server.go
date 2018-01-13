@@ -7,6 +7,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/api"
 	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/node"
+	apiproto "github.com/centrifugal/centrifugo/lib/proto/api"
 )
 
 func init() {
@@ -30,8 +31,8 @@ type HTTPServer struct {
 	config             *Config
 	shutdown           bool
 	shutdownCh         chan struct{}
-	jsonAPIHandler     *api.RequestHandler
-	protobufAPIHandler *api.RequestHandler
+	jsonAPIHandler     *api.Handler
+	protobufAPIHandler *api.Handler
 }
 
 // New initializes HTTPServer.
@@ -40,8 +41,8 @@ func New(n *node.Node, config *Config) (*HTTPServer, error) {
 		node:               n,
 		config:             config,
 		shutdownCh:         make(chan struct{}),
-		jsonAPIHandler:     api.NewJSONRequestHandler(n),
-		protobufAPIHandler: api.NewProtobufRequestHandler(n),
+		jsonAPIHandler:     api.NewHandler(n, apiproto.EncodingJSON),
+		protobufAPIHandler: api.NewHandler(n, apiproto.EncodingProtobuf),
 	}, nil
 }
 

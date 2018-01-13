@@ -2,14 +2,12 @@ package engineredis
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/lib/api"
 	"github.com/centrifugal/centrifugo/lib/channel"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
@@ -50,8 +48,6 @@ type (
 )
 
 const (
-	// RedisAPIKeySuffix is a suffix for api queue (LIST) key.
-	RedisAPIKeySuffix = ".api"
 	// RedisControlChannelSuffix is a suffix for control channel.
 	RedisControlChannelSuffix = ".control"
 	// RedisPingChannelSuffix is a suffix for ping channel.
@@ -77,8 +73,6 @@ type Shard struct {
 	node              *node.Node
 	config            *ShardConfig
 	pool              *redis.Pool
-	api               bool
-	numAPIShards      int
 	subCh             chan subRequest
 	pubCh             chan pubRequest
 	dataCh            chan dataRequest
@@ -88,7 +82,6 @@ type Shard struct {
 	presenceScript    *redis.Script
 	lpopManyScript    *redis.Script
 	messagePrefix     string
-	jsonAPIHandler    *api.RequestHandler
 }
 
 // Config of Redis Engine.
@@ -112,12 +105,6 @@ type ShardConfig struct {
 	SentinelAddrs []string
 	// PoolSize is a size of Redis connection pool.
 	PoolSize int
-	// API enables listening for API queues to publish API commands into Centrifugo via pushing
-	// commands into Redis queue.
-	API bool
-	// NumAPIShards is a number of sharded API queues in Redis to increase volume of commands
-	// (most probably publish) that Centrifugo instance can process.
-	NumAPIShards int
 	// Prefix to use before every channel name and key in Redis.
 	Prefix string
 	// PubSubNumWorkers sets how many PUB/SUB message processing workers will be started.
@@ -180,15 +167,10 @@ func newPool(conf *ShardConfig) *redis.Pool {
 	useSentinel := conf.MasterName != "" && len(conf.SentinelAddrs) > 0
 
 	usingPassword := yesno(password != "")
-	apiEnabled := yesno(conf.API)
-	var shardsSuffix string
-	if conf.API {
-		shardsSuffix = fmt.Sprintf(", num API shard queues: %d", conf.NumAPIShards)
-	}
 	if !useSentinel {
-		logger.INFO.Printf("Redis: %s/%d, pool: %d, using password: %s, API enabled: %s%s\n", serverAddr, db, conf.PoolSize, usingPassword, apiEnabled, shardsSuffix)
+		logger.INFO.Printf("Redis: %s/%d, pool: %d, using password: %s\n", serverAddr, db, conf.PoolSize, usingPassword)
 	} else {
-		logger.INFO.Printf("Redis: Sentinel for name: %s, db: %d, pool: %d, using password: %s, API enabled: %s%s\n", conf.MasterName, db, conf.PoolSize, usingPassword, apiEnabled, shardsSuffix)
+		logger.INFO.Printf("Redis: Sentinel for name: %s, db: %d, pool: %d, using password: %s\n", conf.MasterName, db, conf.PoolSize, usingPassword)
 	}
 
 	var lastMu sync.Mutex
@@ -392,14 +374,11 @@ func NewShard(n *node.Node, conf *ShardConfig) (*Shard, error) {
 		node:              n,
 		config:            conf,
 		pool:              newPool(conf),
-		api:               conf.API,
-		numAPIShards:      conf.NumAPIShards,
 		pubScript:         redis.NewScript(2, pubScriptSource),
 		addPresenceScript: redis.NewScript(2, addPresenceSource),
 		remPresenceScript: redis.NewScript(2, remPresenceSource),
 		presenceScript:    redis.NewScript(2, presenceSource),
 		lpopManyScript:    redis.NewScript(1, lpopManySource),
-		jsonAPIHandler:    api.NewJSONRequestHandler(n),
 	}
 	shard.pubCh = make(chan pubRequest, RedisPublishChannelSize)
 	shard.subCh = make(chan subRequest, RedisSubscribeChannelSize)
@@ -413,11 +392,6 @@ func yesno(condition bool) string {
 		return "yes"
 	}
 	return "no"
-}
-
-func (e *Shard) getAPIShardQueueKey(shardNum int) string {
-	apiKey := e.getAPIQueueKey()
-	return fmt.Sprintf("%s.%d", apiKey, shardNum)
 }
 
 func (e *Shard) messageChannelID(ch string) channelID {
@@ -471,7 +445,7 @@ func (e *RedisEngine) Run() error {
 	return nil
 }
 
-// PublishClient ...
+// PublishClient - see engine interface description.
 func (e *RedisEngine) PublishClient(message *proto.Message, opts *channel.Options) <-chan error {
 	return e.shards[e.shardIndex(message.Channel)].PublishClient(message, opts)
 }
@@ -543,9 +517,6 @@ func (e *RedisEngine) Channels() ([]string, error) {
 
 // Run runs Redis shard.
 func (e *Shard) Run() error {
-	e.RLock()
-	api := e.api
-	e.RUnlock()
 	go e.runForever(func() {
 		e.runPublishPipeline()
 	})
@@ -555,9 +526,6 @@ func (e *Shard) Run() error {
 	go e.runForever(func() {
 		e.runDataPipeline()
 	})
-	if api {
-		e.runAPI()
-	}
 	return nil
 }
 
@@ -598,114 +566,6 @@ func (e *Shard) blpopTimeout() int {
 		}
 	}
 	return timeout
-}
-
-func (e *Shard) runAPIWorker(queue string) {
-	logger.DEBUG.Printf("Start Redis API worker for queue %s", queue)
-	shutdownCh := e.node.NotifyShutdown()
-
-	conn := e.pool.Get()
-	defer conn.Close()
-
-	err := e.lpopManyScript.Load(conn)
-	if err != nil {
-		logger.ERROR.Println(err)
-		return
-	}
-
-	// Start with BLPOP.
-	blockingPop := true
-
-	for {
-		select {
-		case <-shutdownCh:
-			return
-		default:
-			if blockingPop {
-				// BLPOP with timeout, which must be less than connection ReadTimeout to prevent
-				// timeout errors. Below we handle situation when BLPOP block timeout fired
-				// (ErrNil returned) and call BLPOP again.
-				reply, err := conn.Do("BLPOP", queue, e.blpopTimeout())
-				if err != nil {
-					logger.ERROR.Println(err)
-					return
-				}
-
-				values, err := redis.Values(reply, nil)
-				if err != nil {
-					if err == redis.ErrNil {
-						continue
-					}
-					logger.ERROR.Println(err)
-					return
-				}
-				if len(values) != 2 {
-					logger.ERROR.Println("Wrong reply from Redis in BLPOP - expecting 2 values")
-					continue
-				}
-				// values[0] is a name of API queue, as we listen only one queue
-				// here - we don't need it.
-				body, okVal := values[1].([]byte)
-				if !okVal {
-					logger.ERROR.Println("Wrong reply from Redis in BLPOP - can not convert value to slice of bytes")
-					continue
-				}
-				err = e.processAPIData(body)
-				if err != nil {
-					logger.ERROR.Printf("Error processing Redis API data: %v", err)
-				}
-				// There could be a lot of messages, switch to fast retreiving using
-				// lua script with LRANGE/LTRIM operations.
-				blockingPop = false
-			} else {
-				err := e.lpopManyScript.SendHash(conn, queue, 64)
-				if err != nil {
-					logger.ERROR.Println(err)
-					return
-				}
-				err = conn.Flush()
-				if err != nil {
-					return
-				}
-				values, err := redis.Values(conn.Receive())
-				if err != nil {
-					logger.ERROR.Println(err)
-					return
-				}
-				if len(values) == 0 {
-					// No items in queue, switch back to BLPOP.
-					blockingPop = true
-					continue
-				}
-				for _, val := range values {
-					data, ok := val.([]byte)
-					if !ok {
-						logger.ERROR.Println("Wrong reply in API lua script response - can not convert value to slice of bytes")
-						continue
-					}
-					err := e.processAPIData(data)
-					if err != nil {
-						logger.ERROR.Printf("Error processing Redis API data: %v", err)
-					}
-				}
-			}
-		}
-	}
-}
-
-func (e *Shard) runAPI() {
-	queues := make(map[string]bool)
-	queues[e.getAPIQueueKey()] = true
-	for i := 0; i < e.numAPIShards; i++ {
-		queues[e.getAPIShardQueueKey(i)] = true
-	}
-	for name := range queues {
-		func(name string) {
-			go e.runForever(func() {
-				e.runAPIWorker(name)
-			})
-		}(name)
-	}
 }
 
 func (e *Shard) runPubSub() {
@@ -1130,10 +990,6 @@ func (e *Shard) runDataPipeline() {
 	}
 }
 
-func (e *Shard) getAPIQueueKey() string {
-	return e.config.Prefix + RedisAPIKeySuffix
-}
-
 // PublishClient - see engine interface description.
 func (e *Shard) PublishClient(message *proto.Message, opts *channel.Options) <-chan error {
 	ch := message.Channel
@@ -1303,10 +1159,4 @@ func (e *Shard) Channels() ([]string, error) {
 		channels = append(channels, string(string(chID)[len(e.messagePrefix):]))
 	}
 	return channels, nil
-}
-
-func (e *Shard) processAPIData(data []byte) error {
-	// TODO: binary?
-	_, err := e.jsonAPIHandler.Handle(data)
-	return err
 }
