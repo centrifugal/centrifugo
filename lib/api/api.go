@@ -7,7 +7,6 @@ import (
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	apiproto "github.com/centrifugal/centrifugo/lib/proto/api"
-	"github.com/nats-io/nuid"
 )
 
 // Handler ...
@@ -233,7 +232,6 @@ func (h *Handler) Publish(ctx context.Context, cmd *apiproto.PublishRequest) *ap
 	}
 
 	publication := &proto.Publication{
-		UID:  nuid.Next(),
 		Data: cmd.Data,
 	}
 

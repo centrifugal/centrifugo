@@ -14,6 +14,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/api"
 	"github.com/centrifugal/centrifugo/lib/proto/control"
+	"github.com/nats-io/nuid"
 
 	"github.com/satori/go.uuid"
 )
@@ -478,7 +479,7 @@ func makeErrChan(err error) <-chan error {
 
 // Publish sends a message to all clients subscribed on channel. All running nodes
 // will receive it and will send it to all clients on node subscribed on channel.
-func (n *Node) Publish(ch string, publication *proto.Publication, opts *channel.Options) <-chan error {
+func (n *Node) Publish(ch string, pub *proto.Publication, opts *channel.Options) <-chan error {
 	if opts == nil {
 		chOpts, ok := n.ChannelOpts(ch)
 		if !ok {
@@ -489,7 +490,11 @@ func (n *Node) Publish(ch string, publication *proto.Publication, opts *channel.
 
 	metricsRegistry.Counters.Inc("node_num_publication_sent")
 
-	return n.engine.Publish(ch, publication, opts)
+	if pub.UID == "" {
+		pub.UID = nuid.Next()
+	}
+
+	return n.engine.Publish(ch, pub, opts)
 }
 
 // PublishJoin allows to publish join message into channel when someone subscribes on it
