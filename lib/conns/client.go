@@ -421,9 +421,11 @@ func (c *client) handleCmd(command *clientproto.Command) (*clientproto.Reply, *p
 	}
 
 	rep := &clientproto.Reply{
-		ID:     command.ID,
-		Result: replyRes,
-		Error:  replyErr,
+		ID:    command.ID,
+		Error: replyErr,
+	}
+	if replyRes != nil {
+		rep.Result = replyRes
 	}
 
 	return rep, nil
@@ -459,10 +461,13 @@ func (c *client) handleConnect(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	if replyErr != nil || disconnect != nil {
 		return nil, replyErr, disconnect
 	}
-	replyRes, err := c.resultEncoder.EncodeConnectResult(res)
-	if err != nil {
-		logger.ERROR.Printf("error encoding connect: %v", err)
-		return nil, nil, proto.DisconnectServerError
+	var replyRes []byte
+	if res != nil {
+		replyRes, err = c.resultEncoder.EncodeConnectResult(res)
+		if err != nil {
+			logger.ERROR.Printf("error encoding connect: %v", err)
+			return nil, nil, proto.DisconnectServerError
+		}
 	}
 	return replyRes, nil, nil
 }
@@ -477,10 +482,13 @@ func (c *client) handleRefresh(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	if replyErr != nil || disconnect != nil {
 		return nil, replyErr, disconnect
 	}
-	replyRes, err := c.resultEncoder.EncodeRefreshResult(res)
-	if err != nil {
-		logger.ERROR.Printf("error encoding refresh: %v", err)
-		return nil, nil, proto.DisconnectServerError
+	var replyRes []byte
+	if res != nil {
+		replyRes, err = c.resultEncoder.EncodeRefreshResult(res)
+		if err != nil {
+			logger.ERROR.Printf("error encoding refresh: %v", err)
+			return nil, nil, proto.DisconnectServerError
+		}
 	}
 	return replyRes, nil, nil
 }
@@ -495,10 +503,13 @@ func (c *client) handleSubscribe(params proto.Raw) (proto.Raw, *proto.Error, *pr
 	if replyErr != nil || disconnect != nil {
 		return nil, replyErr, disconnect
 	}
-	replyRes, err := c.resultEncoder.EncodeSubscribeResult(res)
-	if err != nil {
-		logger.ERROR.Printf("error encoding subscribe: %v", err)
-		return nil, nil, proto.DisconnectServerError
+	var replyRes []byte
+	if res != nil {
+		replyRes, err = c.resultEncoder.EncodeSubscribeResult(res)
+		if err != nil {
+			logger.ERROR.Printf("error encoding subscribe: %v", err)
+			return nil, nil, proto.DisconnectServerError
+		}
 	}
 	return replyRes, nil, nil
 }
@@ -513,10 +524,13 @@ func (c *client) handleUnsubscribe(params proto.Raw) (proto.Raw, *proto.Error, *
 	if replyErr != nil || disconnect != nil {
 		return nil, replyErr, disconnect
 	}
-	replyRes, err := c.resultEncoder.EncodeUnsubscribeResult(res)
-	if err != nil {
-		logger.ERROR.Printf("error encoding unsubscribe: %v", err)
-		return nil, nil, proto.DisconnectServerError
+	var replyRes []byte
+	if res != nil {
+		replyRes, err = c.resultEncoder.EncodeUnsubscribeResult(res)
+		if err != nil {
+			logger.ERROR.Printf("error encoding unsubscribe: %v", err)
+			return nil, nil, proto.DisconnectServerError
+		}
 	}
 	return replyRes, nil, nil
 }
@@ -531,10 +545,13 @@ func (c *client) handlePublish(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	if replyErr != nil || disconnect != nil {
 		return nil, replyErr, disconnect
 	}
-	replyRes, err := c.resultEncoder.EncodePublishResult(res)
-	if err != nil {
-		logger.ERROR.Printf("error encoding publish: %v", err)
-		return nil, nil, proto.DisconnectServerError
+	var replyRes []byte
+	if res != nil {
+		replyRes, err = c.resultEncoder.EncodePublishResult(res)
+		if err != nil {
+			logger.ERROR.Printf("error encoding publish: %v", err)
+			return nil, nil, proto.DisconnectServerError
+		}
 	}
 	return replyRes, nil, nil
 }
@@ -549,10 +566,13 @@ func (c *client) handlePresence(params proto.Raw) (proto.Raw, *proto.Error, *pro
 	if replyErr != nil || disconnect != nil {
 		return nil, replyErr, disconnect
 	}
-	replyRes, err := c.resultEncoder.EncodePresenceResult(res)
-	if err != nil {
-		logger.ERROR.Printf("error encoding presence: %v", err)
-		return nil, nil, proto.DisconnectServerError
+	var replyRes []byte
+	if res != nil {
+		replyRes, err = c.resultEncoder.EncodePresenceResult(res)
+		if err != nil {
+			logger.ERROR.Printf("error encoding presence: %v", err)
+			return nil, nil, proto.DisconnectServerError
+		}
 	}
 	return replyRes, nil, nil
 }
@@ -567,10 +587,13 @@ func (c *client) handlePresenceStats(params proto.Raw) (proto.Raw, *proto.Error,
 	if replyErr != nil || disconnect != nil {
 		return nil, replyErr, disconnect
 	}
-	replyRes, err := c.resultEncoder.EncodePresenceStatsResult(res)
-	if err != nil {
-		logger.ERROR.Printf("error encoding presence stats: %v", err)
-		return nil, nil, proto.DisconnectServerError
+	var replyRes []byte
+	if res != nil {
+		replyRes, err = c.resultEncoder.EncodePresenceStatsResult(res)
+		if err != nil {
+			logger.ERROR.Printf("error encoding presence stats: %v", err)
+			return nil, nil, proto.DisconnectServerError
+		}
 	}
 	return replyRes, nil, nil
 }
@@ -585,10 +608,13 @@ func (c *client) handleHistory(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	if replyErr != nil || disconnect != nil {
 		return nil, replyErr, disconnect
 	}
-	replyRes, err := c.resultEncoder.EncodeHistoryResult(res)
-	if err != nil {
-		logger.ERROR.Printf("error encoding history: %v", err)
-		return nil, nil, proto.DisconnectServerError
+	var replyRes []byte
+	if res != nil {
+		replyRes, err = c.resultEncoder.EncodeHistoryResult(res)
+		if err != nil {
+			logger.ERROR.Printf("error encoding history: %v", err)
+			return nil, nil, proto.DisconnectServerError
+		}
 	}
 	return replyRes, nil, nil
 }
@@ -603,10 +629,13 @@ func (c *client) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *proto.D
 	if replyErr != nil || disconnect != nil {
 		return nil, replyErr, disconnect
 	}
-	replyRes, err := c.resultEncoder.EncodePingResult(res)
-	if err != nil {
-		logger.ERROR.Printf("error encoding ping: %v", err)
-		return nil, nil, proto.DisconnectServerError
+	var replyRes []byte
+	if res != nil {
+		replyRes, err = c.resultEncoder.EncodePingResult(res)
+		if err != nil {
+			logger.ERROR.Printf("error encoding ping: %v", err)
+			return nil, nil, proto.DisconnectServerError
+		}
 	}
 	return replyRes, nil, nil
 }
@@ -637,20 +666,20 @@ func (c *client) connectCmd(cmd *clientproto.Connect) (*clientproto.ConnectResul
 	userConnectionLimit := config.UserConnectionLimit
 
 	var timestamp string
-	var token string
+	var sign string
 	if !insecure {
 		timestamp = cmd.Time
-		token = cmd.Token
+		sign = cmd.Sign
 	} else {
 		timestamp = ""
-		token = ""
+		sign = ""
 	}
 
 	if !insecure {
-		isValid := auth.CheckClientToken(secret, string(user), timestamp, info, opts, token)
+		isValid := auth.CheckClientSign(secret, string(user), timestamp, info, opts, sign)
 		if !isValid {
-			logger.ERROR.Println("invalid token for user", user)
-			return nil, nil, proto.DisconnectInvalidToken
+			logger.ERROR.Println("invalid sign for user", user)
+			return nil, nil, proto.DisconnectInvalidSign
 		}
 		ts, err := strconv.Atoi(timestamp)
 		if err != nil {
@@ -721,15 +750,15 @@ func (c *client) refreshCmd(cmd *clientproto.Refresh) (*clientproto.RefreshResul
 	info := cmd.Info
 	timestamp := cmd.Time
 	opts := cmd.Opts
-	token := cmd.Token
+	sign := cmd.Sign
 
 	config := c.node.Config()
 	secret := config.Secret
 
-	isValid := auth.CheckClientToken(secret, string(user), timestamp, info, opts, token)
+	isValid := auth.CheckClientSign(secret, string(user), timestamp, info, opts, sign)
 	if !isValid {
-		logger.ERROR.Println("invalid refresh token for user", user)
-		return nil, nil, proto.DisconnectInvalidToken
+		logger.ERROR.Println("invalid refresh sign for user", user)
+		return nil, nil, proto.DisconnectInvalidSign
 	}
 
 	ts, err := strconv.Atoi(timestamp)
@@ -886,10 +915,10 @@ func (c *client) subscribeCmd(cmd *clientproto.Subscribe) (*clientproto.Subscrib
 			messages, err := c.node.History(channel)
 			if err != nil {
 				logger.ERROR.Printf("can't recover messages for channel %s: %s", string(channel), err)
-				res.Messages = nil
+				res.Publications = nil
 			} else {
 				recoveredMessages, recovered := recoverMessages(cmd.Last, messages)
-				res.Messages = recoveredMessages
+				res.Publications = recoveredMessages
 				res.Recovered = recovered
 			}
 		} else {
@@ -907,7 +936,7 @@ func (c *client) subscribeCmd(cmd *clientproto.Subscribe) (*clientproto.Subscrib
 		join := &proto.Join{
 			Info: *info,
 		}
-		c.node.PublishJoin(channel, join, &chOpts)
+		go c.node.PublishJoin(channel, join, &chOpts)
 	}
 
 	return res, nil, nil
@@ -1039,7 +1068,7 @@ func (c *client) presenceCmd(cmd *clientproto.Presence) (*clientproto.PresenceRe
 	}
 
 	res := &clientproto.PresenceResult{
-		Data: presence,
+		Presence: presence,
 	}
 
 	return res, nil, nil
@@ -1114,14 +1143,14 @@ func (c *client) historyCmd(cmd *clientproto.History) (*clientproto.HistoryResul
 		return nil, proto.ErrNotAvailable, nil
 	}
 
-	history, err := c.node.History(ch)
+	publications, err := c.node.History(ch)
 	if err != nil {
 		logger.ERROR.Printf("error getting history: %v", err)
 		return nil, proto.ErrInternalServerError, nil
 	}
 
 	res := &clientproto.HistoryResult{
-		Data: history,
+		Publications: publications,
 	}
 
 	return res, nil, nil
@@ -1131,7 +1160,9 @@ func (c *client) historyCmd(cmd *clientproto.History) (*clientproto.HistoryResul
 func (c *client) pingCmd(cmd *clientproto.Ping) (*clientproto.PingResult, *proto.Error, *proto.Disconnect) {
 	var res *clientproto.PingResult
 	if cmd.Data != "" {
-		res.Data = cmd.Data
+		res = &clientproto.PingResult{
+			Data: cmd.Data,
+		}
 	}
 	return res, nil, nil
 }

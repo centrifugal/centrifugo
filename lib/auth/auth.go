@@ -16,9 +16,9 @@ const (
 	HMACLength = 64
 )
 
-// GenerateClientToken generates client token based on project secret key and provided
-// connection parameters such as user ID, time, info, opts.
-func GenerateClientToken(secret, user, time, info, opts string) string {
+// GenerateClientSign generates client connection sign based on secret key
+// and provided connection parameters such as user ID, time, info and opts.
+func GenerateClientSign(secret, user, time, info, opts string) string {
 	token := hmac.New(sha256.New, []byte(secret))
 	token.Write([]byte(user))
 	token.Write([]byte(time))
@@ -27,31 +27,14 @@ func GenerateClientToken(secret, user, time, info, opts string) string {
 	return hex.EncodeToString(token.Sum(nil))
 }
 
-// CheckClientToken validates correctness of provided (by client connection) token
-// comparing it with generated one.
-func CheckClientToken(secret, user, time, info, opts, providedToken string) bool {
+// CheckClientSign validates correctness of sign provided by client connection
+// comparing it with generated correct one.
+func CheckClientSign(secret, user, time, info, opts, providedToken string) bool {
 	if len(providedToken) != HMACLength {
 		return false
 	}
-	token := GenerateClientToken(secret, user, time, info, opts)
+	token := GenerateClientSign(secret, user, time, info, opts)
 	return hmac.Equal([]byte(token), []byte(providedToken))
-}
-
-// GenerateAPISign generates sign which is used to sign HTTP API requests.
-func GenerateAPISign(secret string, data []byte) string {
-	sign := hmac.New(sha256.New, []byte(secret))
-	sign.Write(data)
-	return hex.EncodeToString(sign.Sum(nil))
-}
-
-// CheckAPISign validates correctness of provided (in HTTP API request) sign
-// comparing it with generated one.
-func CheckAPISign(secret string, data []byte, providedSign string) bool {
-	if len(providedSign) != HMACLength {
-		return false
-	}
-	sign := GenerateAPISign(secret, data)
-	return hmac.Equal([]byte(sign), []byte(providedSign))
 }
 
 // GenerateChannelSign generates sign which is used to prove permission of

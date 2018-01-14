@@ -14,15 +14,15 @@ option (gogoproto.populate_all) = true;
 option (gogoproto.testgen_all) = true;
 
 message Command {
-    uint64 ID = 1 [(gogoproto.jsontag) = "i,omitempty"];
-    string Method = 2 [(gogoproto.jsontag) = "m,omitempty"];
-    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "p,omitempty", (gogoproto.nullable) = false];
+    uint64 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
+    string Method = 2 [(gogoproto.jsontag) = "method,omitempty"];
+    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "params,omitempty", (gogoproto.nullable) = false];
 }
 
 message Reply {
-    uint64 ID = 1 [(gogoproto.jsontag) = "i,omitempty"];
-    proto.Error Error = 2 [(gogoproto.jsontag) = "e,omitempty"];
-    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "r", (gogoproto.nullable) = false];
+    uint64 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
+    proto.Error Error = 2 [(gogoproto.jsontag) = "error,omitempty"];
+    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "result,omitempty", (gogoproto.nullable) = false];
 }
 
 message Connect {
@@ -30,7 +30,7 @@ message Connect {
     string Time = 2 [(gogoproto.jsontag) = "time"];
     string Info = 3 [(gogoproto.jsontag) = "info"];
     string Opts = 4 [(gogoproto.jsontag) = "opts"];
-    string Token = 5 [(gogoproto.jsontag) = "token"];
+    string Sign = 5 [(gogoproto.jsontag) = "sign"];
 }
 
 message ConnectResult {
@@ -46,7 +46,7 @@ message Refresh {
     string Time = 2 [(gogoproto.jsontag) = "time"];
     string Info = 3 [(gogoproto.jsontag) = "info"];
     string Opts = 4 [(gogoproto.jsontag) = "opts"];
-    string Token = 5 [(gogoproto.jsontag) = "token"];
+    string Sign = 5 [(gogoproto.jsontag) = "sign"];
 }
 
 message RefreshResult {
@@ -68,9 +68,9 @@ message Subscribe {
 }
 
 message SubscribeResult {
-    string Last = 1;
-    bool Recovered = 2;
-    repeated proto.Publication Messages = 3;
+    string Last = 1 [(gogoproto.jsontag) = "last,omitempty"];
+    bool Recovered = 2 [(gogoproto.jsontag) = "recovered,omitempty"];
+    repeated proto.Publication Publications = 3 [(gogoproto.jsontag) = "publications,omitempty"];
 }
 
 message Unsubscribe {
@@ -91,7 +91,7 @@ message Presence {
 }
 
 message PresenceResult {
-    map<string, proto.ClientInfo> Data = 1 [(gogoproto.jsontag) = "data"];
+    map<string, proto.ClientInfo> Presence = 1 [(gogoproto.jsontag) = "presence"];
 }
 
 message PresenceStats {
@@ -108,7 +108,7 @@ message History {
 }
 
 message HistoryResult {
-    repeated proto.Publication Data = 1 [(gogoproto.jsontag) = "data"];
+    repeated proto.Publication Publications = 1 [(gogoproto.jsontag) = "publications"];
 }
 
 message Ping {

@@ -181,9 +181,11 @@ func (d *JSONParamsDecoder) DecodeHistory(data []byte) (*History, error) {
 // DecodePing ...
 func (d *JSONParamsDecoder) DecodePing(data []byte) (*Ping, error) {
 	var p Ping
-	err := json.Unmarshal(data, &p)
-	if err != nil {
-		return nil, err
+	if data != nil {
+		err := json.Unmarshal(data, &p)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &p, nil
 }

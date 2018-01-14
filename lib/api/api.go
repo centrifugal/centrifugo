@@ -205,8 +205,8 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		rep.Error = proto.ErrMethodNotFound
 	}
 
-	if len(replyRes) > 0 {
-		rep.Result = (*proto.Raw)(&replyRes)
+	if replyRes != nil {
+		rep.Result = replyRes
 	}
 
 	return rep, nil

@@ -21,7 +21,7 @@ message Command {
 message Reply {
     uint64 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
     proto.Error Error = 2 [(gogoproto.jsontag) = "error,omitempty"];
-    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "result,omitempty"];
+    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "result,omitempty", (gogoproto.nullable) = false];
 }
 
 message PublishRequest {
