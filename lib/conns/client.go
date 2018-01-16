@@ -15,6 +15,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	clientproto "github.com/centrifugal/centrifugo/lib/proto/client"
+	"github.com/centrifugal/centrifugo/lib/rpc"
 
 	"github.com/satori/go.uuid"
 )
@@ -77,6 +78,7 @@ func New(ctx context.Context, n *node.Node, s Session, enc clientproto.Encoding,
 	maxRequestSize := config.ClientRequestMaxSize
 
 	c := client{
+		ctx:            ctx,
 		uid:            uuid.NewV4().String(),
 		node:           n,
 		session:        s,
@@ -412,7 +414,18 @@ func (c *client) handleCmd(command *clientproto.Command) (*clientproto.Reply, *p
 		case "ping":
 			replyRes, replyErr, disconnect = c.handlePing(params)
 		default:
-			replyRes, replyErr = nil, proto.ErrMethodNotFound
+			handler := c.node.RPCHandler()
+			if handler != nil {
+				var rpcResponse *rpc.Response
+				rpcResponse, disconnect = handler(c.ctx, &rpc.Request{
+					Method: method,
+					Params: params,
+				})
+				replyRes = rpcResponse.Result
+				replyErr = rpcResponse.Error
+			} else {
+				replyRes, replyErr = nil, proto.ErrMethodNotFound
+			}
 		}
 	}
 

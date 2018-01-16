@@ -14,6 +14,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/api"
 	"github.com/centrifugal/centrifugo/lib/proto/control"
+	"github.com/centrifugal/centrifugo/lib/rpc"
 	"github.com/nats-io/nuid"
 
 	"github.com/satori/go.uuid"
@@ -73,6 +74,8 @@ type Node struct {
 
 	// controlDecoder is decoder to decode control messages coming from engine.
 	controlDecoder control.Decoder
+
+	rpcHandler rpc.Handler
 }
 
 // global metrics registry pointing to the same Registry plugin package uses.
@@ -160,6 +163,16 @@ func (n *Node) SetConfig(c *Config) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	n.config = c
+}
+
+// SetRPCHandler binds config to node.
+func (n *Node) SetRPCHandler(h rpc.Handler) {
+	n.rpcHandler = h
+}
+
+// RPCHandler binds config to node.
+func (n *Node) RPCHandler() rpc.Handler {
+	return n.rpcHandler
 }
 
 // Version returns version of node.

@@ -155,7 +155,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 	// Separate goroutine for better GC of caller's data.
 	go func() {
 		session := newSockjsSession(sess)
-		c := conns.New(request.Context(), s.node, session, clientproto.EncodingJSON, connCredentials)
+		c := conns.New(ctx, s.node, session, clientproto.EncodingJSON, connCredentials)
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {
@@ -248,7 +248,7 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			compressionMinSize: wsCompressionMinSize,
 		}
 		session := newWSSession(conn, opts)
-		c := conns.New(r.Context(), s.node, session, enc, connCredentials)
+		c := conns.New(ctx, s.node, session, enc, connCredentials)
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {

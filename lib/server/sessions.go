@@ -65,7 +65,6 @@ func (s *sockjsSession) Close(advice *proto.Disconnect) error {
 type wsConn interface {
 	ReadMessage() (messageType int, p []byte, err error)
 	WriteMessage(messageType int, data []byte) error
-	WritePreparedMessage(pm *websocket.PreparedMessage) error
 	WriteControl(messageType int, data []byte, deadline time.Time) error
 	SetWriteDeadline(t time.Time) error
 	EnableWriteCompression(enable bool)
@@ -169,6 +168,7 @@ func (s *wsSession) Close(advice *proto.Disconnect) error {
 		}
 		msg := websocket.FormatCloseMessage(int(CloseStatus), string(reason))
 		s.conn.WriteControl(websocket.CloseMessage, msg, deadline)
+		return s.conn.Close()
 	}
 	return s.conn.Close()
 }

@@ -1,7 +1,7 @@
 package server
 
-// CredentialsKeyType ...
-type CredentialsKeyType int
+// credentialsKeyType ...
+type credentialsKeyType int
 
 // CredentialsKey ...
-var CredentialsKey CredentialsKeyType = 1
+var CredentialsKey credentialsKeyType = 1

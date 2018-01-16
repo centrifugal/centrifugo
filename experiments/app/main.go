@@ -2,20 +2,30 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/centrifugal/centrifugo/lib/channel"
+	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/engine/enginememory"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
+	"github.com/centrifugal/centrifugo/lib/rpc"
 	"github.com/centrifugal/centrifugo/lib/server"
 )
 
-func handleRPC(ctx context.Context, method string, params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
-	log.Printf("RPC received, method: %s, params: %s", method, string(params))
-	result := []byte(`{"rpc": true}`)
-	return nil, nil, nil
+func authMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Our middleware logic goes here...
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, server.CredentialsKey, &conns.Credentials{UserID: "42"})
+		r = r.WithContext(ctx)
+		h.ServeHTTP(w, r)
+	})
 }
 
 func main() {
@@ -32,7 +42,33 @@ func main() {
 		},
 	}
 	n := node.New(nodeConfig)
-	n.RegisterRPCHandler(handleRPC)
+
+	handleRPC := func(ctx context.Context, req *rpc.Request) (*rpc.Response, *proto.Disconnect) {
+
+		var userID string
+		value := ctx.Value(server.CredentialsKey)
+		credentials, ok := value.(*conns.Credentials)
+		if ok {
+			userID = credentials.UserID
+		}
+
+		log.Printf("RPC from user: %s, method: %s, params: %s", userID, req.Method, string(req.Params))
+		result := []byte(`{"text": "rpc response"}`)
+
+		go func() {
+			err := <-n.Publish("$public:chat", &proto.Publication{Data: []byte(`{"input": "Booom!"}`)}, nil)
+			if err != nil {
+				log.Fatalln(err)
+			}
+		}()
+
+		return &rpc.Response{
+			Error:  nil,
+			Result: result,
+		}, &proto.Disconnect{Reason: "go away", Reconnect: false}
+	}
+
+	n.SetRPCHandler(handleRPC)
 
 	e, err := enginememory.New(n, &enginememory.Config{})
 	if err != nil {
@@ -55,9 +91,24 @@ func main() {
 	}
 	mux := server.ServeMux(s, opts)
 
-	http.Handle("/", mux)
+	http.Handle("/", authMiddleware(mux))
 
-	if err := http.ListenAndServe(":8000", nil); err != nil {
-		panic(err)
-	}
+	go func() {
+		if err := http.ListenAndServe(":8000", nil); err != nil {
+			panic(err)
+		}
+	}()
+
+	sigs := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigs
+		n.Shutdown()
+		done <- true
+	}()
+
+	<-done
+	fmt.Println("exiting")
 }

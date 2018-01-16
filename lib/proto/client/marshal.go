@@ -41,7 +41,10 @@ func (e *JSONReplyEncoder) Encode(r *Reply) error {
 
 // Finish ...
 func (e *JSONReplyEncoder) Finish() []byte {
-	return e.buffer.Bytes()
+	data := e.buffer.Bytes()
+	dataCopy := make([]byte, len(data))
+	copy(dataCopy, data)
+	return dataCopy
 }
 
 // ProtobufReplyEncoder ...
@@ -74,7 +77,10 @@ func (e *ProtobufReplyEncoder) Reset() {
 
 // Finish ...
 func (e *ProtobufReplyEncoder) Finish() []byte {
-	return e.buffer.Bytes()
+	data := e.buffer.Bytes()
+	dataCopy := make([]byte, len(data))
+	copy(dataCopy, data)
+	return dataCopy
 }
 
 // ResultEncoder ...

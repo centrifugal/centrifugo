@@ -9,13 +9,13 @@ import (
 // Request ...
 type Request struct {
 	Method string
-	Params *proto.Raw
+	Params proto.Raw
 }
 
 // Response ...
 type Response struct {
 	Error  *proto.Error
-	Result *proto.Raw
+	Result proto.Raw
 }
 
 // Handler must handle incoming command from client.
