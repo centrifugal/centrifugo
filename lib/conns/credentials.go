@@ -7,7 +7,14 @@ const (
 
 // Credentials ...
 type Credentials struct {
-	UserID string
-	Info   []byte
-	Opts   string
+	UserID  string
+	Info    []byte
+	Expires int64
+	Opts    string
 }
+
+// credentialsContextKeyType ...
+type credentialsContextKeyType int
+
+// CredentialsContextKey ...
+var CredentialsContextKey credentialsContextKeyType = 1

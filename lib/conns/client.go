@@ -51,6 +51,7 @@ type client struct {
 	uid            string
 	user           string
 	timestamp      int64
+	opts           string
 	authenticated  bool
 	defaultInfo    proto.Raw
 	channelInfo    map[string]proto.Raw
@@ -65,12 +66,10 @@ type client struct {
 	maxRequestSize int
 	sendFinished   chan struct{}
 	encoding       clientproto.Encoding
-	paramsDecoder  clientproto.ParamsDecoder
-	resultEncoder  clientproto.ResultEncoder
 }
 
 // New creates new client connection.
-func New(ctx context.Context, n *node.Node, s Session, enc clientproto.Encoding, credentials *Credentials) node.Client {
+func New(ctx context.Context, n *node.Node, s Session, enc clientproto.Encoding) node.Client {
 	config := n.Config()
 	staleCloseDelay := config.StaleConnectionCloseDelay
 	queueInitialCapacity := config.ClientQueueInitialCapacity
@@ -87,13 +86,26 @@ func New(ctx context.Context, n *node.Node, s Session, enc clientproto.Encoding,
 		sendFinished:   make(chan struct{}),
 		maxQueueSize:   maxQueueSize,
 		maxRequestSize: maxRequestSize,
-		paramsDecoder:  clientproto.GetParamsDecoder(enc),
-		resultEncoder:  clientproto.GetResultEncoder(enc),
+		encoding:       enc,
+	}
+
+	var credentials *Credentials
+	if val := ctx.Value(CredentialsContextKey); val != nil {
+		if creds, ok := val.(*Credentials); ok {
+			credentials = creds
+		}
+	}
+
+	if credentials != nil {
+		c.authenticated = true
+		c.user = credentials.UserID
+		c.opts = credentials.Opts
+		c.defaultInfo = credentials.Info
 	}
 
 	go c.sendMessages()
 
-	if staleCloseDelay > 0 {
+	if staleCloseDelay > 0 && !c.authenticated {
 		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
 	}
 
@@ -465,7 +477,7 @@ func (c *client) expire() {
 }
 
 func (c *client) handleConnect(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
-	cmd, err := c.paramsDecoder.DecodeConnect(params)
+	cmd, err := clientproto.GetParamsDecoder(c.encoding).DecodeConnect(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding connect: %v", err)
 		return nil, nil, proto.DisconnectBadRequest
@@ -476,7 +488,7 @@ func (c *client) handleConnect(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	}
 	var replyRes []byte
 	if res != nil {
-		replyRes, err = c.resultEncoder.EncodeConnectResult(res)
+		replyRes, err = clientproto.GetResultEncoder(c.encoding).EncodeConnectResult(res)
 		if err != nil {
 			logger.ERROR.Printf("error encoding connect: %v", err)
 			return nil, nil, proto.DisconnectServerError
@@ -486,7 +498,7 @@ func (c *client) handleConnect(params proto.Raw) (proto.Raw, *proto.Error, *prot
 }
 
 func (c *client) handleRefresh(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
-	cmd, err := c.paramsDecoder.DecodeRefresh(params)
+	cmd, err := clientproto.GetParamsDecoder(c.encoding).DecodeRefresh(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding refresh: %v", err)
 		return nil, nil, proto.DisconnectBadRequest
@@ -497,7 +509,7 @@ func (c *client) handleRefresh(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	}
 	var replyRes []byte
 	if res != nil {
-		replyRes, err = c.resultEncoder.EncodeRefreshResult(res)
+		replyRes, err = clientproto.GetResultEncoder(c.encoding).EncodeRefreshResult(res)
 		if err != nil {
 			logger.ERROR.Printf("error encoding refresh: %v", err)
 			return nil, nil, proto.DisconnectServerError
@@ -507,7 +519,7 @@ func (c *client) handleRefresh(params proto.Raw) (proto.Raw, *proto.Error, *prot
 }
 
 func (c *client) handleSubscribe(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
-	cmd, err := c.paramsDecoder.DecodeSubscribe(params)
+	cmd, err := clientproto.GetParamsDecoder(c.encoding).DecodeSubscribe(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding subscribe: %v", err)
 		return nil, nil, proto.DisconnectBadRequest
@@ -518,7 +530,7 @@ func (c *client) handleSubscribe(params proto.Raw) (proto.Raw, *proto.Error, *pr
 	}
 	var replyRes []byte
 	if res != nil {
-		replyRes, err = c.resultEncoder.EncodeSubscribeResult(res)
+		replyRes, err = clientproto.GetResultEncoder(c.encoding).EncodeSubscribeResult(res)
 		if err != nil {
 			logger.ERROR.Printf("error encoding subscribe: %v", err)
 			return nil, nil, proto.DisconnectServerError
@@ -528,7 +540,7 @@ func (c *client) handleSubscribe(params proto.Raw) (proto.Raw, *proto.Error, *pr
 }
 
 func (c *client) handleUnsubscribe(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
-	cmd, err := c.paramsDecoder.DecodeUnsubscribe(params)
+	cmd, err := clientproto.GetParamsDecoder(c.encoding).DecodeUnsubscribe(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding unsubscribe: %v", err)
 		return nil, nil, proto.DisconnectBadRequest
@@ -539,7 +551,7 @@ func (c *client) handleUnsubscribe(params proto.Raw) (proto.Raw, *proto.Error, *
 	}
 	var replyRes []byte
 	if res != nil {
-		replyRes, err = c.resultEncoder.EncodeUnsubscribeResult(res)
+		replyRes, err = clientproto.GetResultEncoder(c.encoding).EncodeUnsubscribeResult(res)
 		if err != nil {
 			logger.ERROR.Printf("error encoding unsubscribe: %v", err)
 			return nil, nil, proto.DisconnectServerError
@@ -549,7 +561,7 @@ func (c *client) handleUnsubscribe(params proto.Raw) (proto.Raw, *proto.Error, *
 }
 
 func (c *client) handlePublish(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
-	cmd, err := c.paramsDecoder.DecodePublish(params)
+	cmd, err := clientproto.GetParamsDecoder(c.encoding).DecodePublish(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding publish: %v", err)
 		return nil, nil, proto.DisconnectBadRequest
@@ -560,7 +572,7 @@ func (c *client) handlePublish(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	}
 	var replyRes []byte
 	if res != nil {
-		replyRes, err = c.resultEncoder.EncodePublishResult(res)
+		replyRes, err = clientproto.GetResultEncoder(c.encoding).EncodePublishResult(res)
 		if err != nil {
 			logger.ERROR.Printf("error encoding publish: %v", err)
 			return nil, nil, proto.DisconnectServerError
@@ -570,7 +582,7 @@ func (c *client) handlePublish(params proto.Raw) (proto.Raw, *proto.Error, *prot
 }
 
 func (c *client) handlePresence(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
-	cmd, err := c.paramsDecoder.DecodePresence(params)
+	cmd, err := clientproto.GetParamsDecoder(c.encoding).DecodePresence(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding presence: %v", err)
 		return nil, nil, proto.DisconnectBadRequest
@@ -581,7 +593,7 @@ func (c *client) handlePresence(params proto.Raw) (proto.Raw, *proto.Error, *pro
 	}
 	var replyRes []byte
 	if res != nil {
-		replyRes, err = c.resultEncoder.EncodePresenceResult(res)
+		replyRes, err = clientproto.GetResultEncoder(c.encoding).EncodePresenceResult(res)
 		if err != nil {
 			logger.ERROR.Printf("error encoding presence: %v", err)
 			return nil, nil, proto.DisconnectServerError
@@ -591,7 +603,7 @@ func (c *client) handlePresence(params proto.Raw) (proto.Raw, *proto.Error, *pro
 }
 
 func (c *client) handlePresenceStats(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
-	cmd, err := c.paramsDecoder.DecodePresenceStats(params)
+	cmd, err := clientproto.GetParamsDecoder(c.encoding).DecodePresenceStats(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding presence stats: %v", err)
 		return nil, nil, proto.DisconnectBadRequest
@@ -602,7 +614,7 @@ func (c *client) handlePresenceStats(params proto.Raw) (proto.Raw, *proto.Error,
 	}
 	var replyRes []byte
 	if res != nil {
-		replyRes, err = c.resultEncoder.EncodePresenceStatsResult(res)
+		replyRes, err = clientproto.GetResultEncoder(c.encoding).EncodePresenceStatsResult(res)
 		if err != nil {
 			logger.ERROR.Printf("error encoding presence stats: %v", err)
 			return nil, nil, proto.DisconnectServerError
@@ -612,7 +624,7 @@ func (c *client) handlePresenceStats(params proto.Raw) (proto.Raw, *proto.Error,
 }
 
 func (c *client) handleHistory(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
-	cmd, err := c.paramsDecoder.DecodeHistory(params)
+	cmd, err := clientproto.GetParamsDecoder(c.encoding).DecodeHistory(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding history: %v", err)
 		return nil, nil, proto.DisconnectBadRequest
@@ -623,7 +635,7 @@ func (c *client) handleHistory(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	}
 	var replyRes []byte
 	if res != nil {
-		replyRes, err = c.resultEncoder.EncodeHistoryResult(res)
+		replyRes, err = clientproto.GetResultEncoder(c.encoding).EncodeHistoryResult(res)
 		if err != nil {
 			logger.ERROR.Printf("error encoding history: %v", err)
 			return nil, nil, proto.DisconnectServerError
@@ -633,7 +645,7 @@ func (c *client) handleHistory(params proto.Raw) (proto.Raw, *proto.Error, *prot
 }
 
 func (c *client) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
-	cmd, err := c.paramsDecoder.DecodePing(params)
+	cmd, err := clientproto.GetParamsDecoder(c.encoding).DecodePing(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding ping: %v", err)
 		return nil, nil, proto.DisconnectBadRequest
@@ -644,7 +656,7 @@ func (c *client) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *proto.D
 	}
 	var replyRes []byte
 	if res != nil {
-		replyRes, err = c.resultEncoder.EncodePingResult(res)
+		replyRes, err = clientproto.GetResultEncoder(c.encoding).EncodePingResult(res)
 		if err != nil {
 			logger.ERROR.Printf("error encoding ping: %v", err)
 			return nil, nil, proto.DisconnectServerError

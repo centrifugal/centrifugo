@@ -141,21 +141,12 @@ func newSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Opti
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
-	request := sess.Request()
-	ctx := request.Context()
-	var connCredentials *conns.Credentials
-	if val := ctx.Value(CredentialsKey); val != nil {
-		if credentials, ok := val.(*conns.Credentials); ok {
-			connCredentials = credentials
-		}
-	}
-
 	metrics.DefaultRegistry.Counters.Inc("http_sockjs_num_requests")
 
 	// Separate goroutine for better GC of caller's data.
 	go func() {
 		session := newSockjsSession(sess)
-		c := conns.New(ctx, s.node, session, clientproto.EncodingJSON, connCredentials)
+		c := conns.New(sess.Request().Context(), s.node, session, clientproto.EncodingJSON)
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {
@@ -226,14 +217,6 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 		conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}
 
-	ctx := r.Context()
-	var connCredentials *conns.Credentials
-	if val := ctx.Value(CredentialsKey); val != nil {
-		if credentials, ok := val.(*conns.Credentials); ok {
-			connCredentials = credentials
-		}
-	}
-
 	var enc = clientproto.EncodingJSON
 	format := r.URL.Query().Get("format")
 	if format == "protobuf" {
@@ -248,7 +231,7 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			compressionMinSize: wsCompressionMinSize,
 		}
 		session := newWSSession(conn, opts)
-		c := conns.New(ctx, s.node, session, enc, connCredentials)
+		c := conns.New(r.Context(), s.node, session, enc)
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {
@@ -380,114 +363,4 @@ func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Error(w, "Bad Request", http.StatusBadRequest)
-}
-
-// apiAuth ...
-// func (s *HTTPServer) apiAuth(h http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		authorization := r.Header.Get("Authorization")
-// 		s.RLock()
-// 		apiKey := s.node.Config().APIKey
-// 		apiInsecure := s.node.Config().APIInsecure
-// 		s.RUnlock()
-// 		if !apiInsecure {
-// 			parts := strings.Fields(authorization)
-// 			if len(parts) != 2 {
-// 				w.WriteHeader(http.StatusUnauthorized)
-// 				return
-// 			}
-// 			authMethod := strings.ToLower(parts[0])
-// 			if authMethod != "apikey" || parts[1] != apiKey {
-// 				w.WriteHeader(http.StatusUnauthorized)
-// 				return
-// 			}
-// 		}
-// 		h.ServeHTTP(w, r)
-// 	})
-// }
-
-// checkAdminAuthToken checks admin connection token which Centrifugo returns after admin login.
-// func (s *HTTPServer) checkAdminAuthToken(token string) error {
-
-// 	s.RLock()
-// 	adminPassword := s.node.Config().AdminPassword
-// 	adminSecret := s.node.Config().AdminSecret
-// 	adminInsecure := s.node.Config().AdminInsecure
-// 	s.RUnlock()
-
-// 	if adminInsecure {
-// 		return nil
-// 	}
-
-// 	if adminSecret == "" {
-// 		logger.ERROR.Println("no admin secret set in configuration")
-// 		return proto.ErrUnauthorized
-// 	}
-
-// 	if token == "" {
-// 		return proto.ErrUnauthorized
-// 	}
-
-// 	auth := auth.CheckAdminToken(adminSecret, token)
-// 	if !auth {
-// 		return proto.ErrUnauthorized
-// 	}
-// 	return nil
-// }
-
-// apiAuth ...
-// func (s *HTTPServer) adminAPIAuth(h http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		authorization := r.Header.Get("Authorization")
-
-// 		parts := strings.Fields(authorization)
-// 		if len(parts) != 2 {
-// 			w.WriteHeader(http.StatusUnauthorized)
-// 			return
-// 		}
-// 		authMethod := strings.ToLower(parts[0])
-// 		if authMethod != "token" || s.checkAdminAuthToken(parts[1]) != nil {
-// 			w.WriteHeader(http.StatusUnauthorized)
-// 			return
-// 		}
-
-// 		h.ServeHTTP(w, r)
-// 	})
-// }
-
-// wrapShutdown will return http Handler.
-// If Application in shutdown it will return http.StatusServiceUnavailable.
-func (s *HTTPServer) wrapShutdown(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.RLock()
-		shutdown := s.shutdown
-		s.RUnlock()
-		if shutdown {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			return
-		}
-		h.ServeHTTP(w, r)
-	})
-}
-
-// log middleware logs request.
-func (s *HTTPServer) log(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var start time.Time
-		if logger.DEBUG.Enabled() {
-			start = time.Now()
-		}
-		h.ServeHTTP(w, r)
-		if logger.DEBUG.Enabled() {
-			addr := r.Header.Get("X-Real-IP")
-			if addr == "" {
-				addr = r.Header.Get("X-Forwarded-For")
-				if addr == "" {
-					addr = r.RemoteAddr
-				}
-			}
-			logger.DEBUG.Printf("%s %s from %s completed in %s\n", r.Method, r.URL.Path, addr, time.Since(start))
-		}
-		return
-	})
 }
