@@ -344,9 +344,25 @@ func (h *Handler) Presence(ctx context.Context, cmd *apiproto.PresenceRequest) *
 
 	resp := &apiproto.PresenceResponse{}
 
-	channel := cmd.Channel
+	ch := cmd.Channel
 
-	presence, err := h.node.Presence(channel)
+	if string(ch) == "" {
+		resp.Error = proto.ErrBadRequest
+		return resp
+	}
+
+	chOpts, ok := h.node.ChannelOpts(ch)
+	if !ok {
+		resp.Error = proto.ErrNamespaceNotFound
+		return resp
+	}
+
+	if !chOpts.Presence {
+		resp.Error = proto.ErrNotAvailable
+		return resp
+	}
+
+	presence, err := h.node.Presence(ch)
 	if err != nil {
 		logger.ERROR.Printf("error calling presence: %v", err)
 		resp.Error = proto.ErrInternalServerError

@@ -53,7 +53,7 @@ type client struct {
 	timestamp      int64
 	opts           string
 	authenticated  bool
-	defaultInfo    proto.Raw
+	connInfo       proto.Raw
 	channelInfo    map[string]proto.Raw
 	channels       map[string]struct{}
 	messages       queue.Queue
@@ -87,20 +87,6 @@ func New(ctx context.Context, n *node.Node, s Session, enc clientproto.Encoding)
 		maxQueueSize:   maxQueueSize,
 		maxRequestSize: maxRequestSize,
 		encoding:       enc,
-	}
-
-	var credentials *Credentials
-	if val := ctx.Value(CredentialsContextKey); val != nil {
-		if creds, ok := val.(*Credentials); ok {
-			credentials = creds
-		}
-	}
-
-	if credentials != nil {
-		c.authenticated = true
-		c.user = credentials.UserID
-		c.opts = credentials.Opts
-		c.defaultInfo = credentials.Info
 	}
 
 	go c.sendMessages()
@@ -228,7 +214,11 @@ func (c *client) Unsubscribe(ch string) error {
 		return err
 	}
 	c.mu.Unlock()
+	c.sendUnsubscribe(ch)
+	return nil
+}
 
+func (c *client) sendUnsubscribe(ch string) error {
 	var messageEncoder proto.MessageEncoder
 	if c.Encoding() == clientproto.EncodingJSON {
 		messageEncoder = proto.NewJSONMessageEncoder()
@@ -325,12 +315,12 @@ func (c *client) Close(advice *proto.Disconnect) error {
 }
 
 func (c *client) info(ch string) *proto.ClientInfo {
-	defaultInfo := c.defaultInfo
+	connInfo := c.connInfo
 	channelInfo, _ := c.channelInfo[ch]
 	return &proto.ClientInfo{
 		User:     c.user,
 		Client:   c.uid,
-		ConnInfo: defaultInfo,
+		ConnInfo: connInfo,
 		ChanInfo: channelInfo,
 	}
 }
@@ -677,10 +667,6 @@ func (c *client) connectCmd(cmd *clientproto.Connect) (*clientproto.ConnectResul
 		return nil, proto.ErrBadRequest, nil
 	}
 
-	user := cmd.User
-	info := cmd.Info
-	opts := cmd.Opts
-
 	config := c.node.Config()
 
 	secret := config.Secret
@@ -690,59 +676,90 @@ func (c *client) connectCmd(cmd *clientproto.Connect) (*clientproto.ConnectResul
 	version := c.node.Version()
 	userConnectionLimit := config.UserConnectionLimit
 
-	var timestamp string
-	var sign string
-	if !insecure {
-		timestamp = cmd.Time
-		sign = cmd.Sign
-	} else {
-		timestamp = ""
-		sign = ""
-	}
-
-	if !insecure {
-		isValid := auth.CheckClientSign(secret, string(user), timestamp, info, opts, sign)
-		if !isValid {
-			logger.ERROR.Println("invalid sign for user", user)
-			return nil, nil, proto.DisconnectInvalidSign
+	var credentials *Credentials
+	if val := c.ctx.Value(CredentialsContextKey); val != nil {
+		if creds, ok := val.(*Credentials); ok {
+			credentials = creds
 		}
-		ts, err := strconv.Atoi(timestamp)
-		if err != nil {
-			logger.ERROR.Printf("invalid timestamp: %v", err)
-			return nil, nil, proto.DisconnectBadRequest
-		}
-		c.timestamp = int64(ts)
-	} else {
-		c.timestamp = time.Now().Unix()
-	}
-
-	if userConnectionLimit > 0 && user != "" && len(c.node.Hub().UserConnections(user)) >= userConnectionLimit {
-		logger.ERROR.Printf("limit of connections %d for user %s reached", userConnectionLimit, user)
-		return nil, proto.ErrLimitExceeded, nil
-	}
-
-	c.user = user
-
-	res := &clientproto.ConnectResult{
-		Version: version,
-		Expires: connLifetime > 0,
-		TTL:     uint32(connLifetime),
 	}
 
 	var timeToExpire int64
+	var expires bool
+	var expired bool
+	var ttl uint32
 
-	if connLifetime > 0 && !insecure {
-		timeToExpire = c.timestamp + connLifetime - time.Now().Unix()
-		if timeToExpire <= 0 {
-			res.Expired = true
-			return res, nil, nil
+	if credentials != nil {
+		c.user = credentials.UserID
+		c.opts = credentials.Opts
+		c.connInfo = credentials.Info
+		c.timestamp = time.Now().Unix()
+	} else {
+		user := cmd.User
+		info := cmd.Info
+		opts := cmd.Opts
+
+		var timestamp string
+		var sign string
+		if !insecure {
+			timestamp = cmd.Time
+			sign = cmd.Sign
+		} else {
+			timestamp = ""
+			sign = ""
+		}
+
+		if !insecure {
+			isValid := auth.CheckClientSign(secret, string(user), timestamp, info, opts, sign)
+			if !isValid {
+				logger.ERROR.Println("invalid sign for user", user)
+				return nil, nil, proto.DisconnectInvalidSign
+			}
+			ts, err := strconv.Atoi(timestamp)
+			if err != nil {
+				logger.ERROR.Printf("invalid timestamp: %v", err)
+				return nil, nil, proto.DisconnectBadRequest
+			}
+			c.timestamp = int64(ts)
+		} else {
+			c.timestamp = time.Now().Unix()
+		}
+
+		c.user = user
+		c.opts = opts
+		if len(info) > 0 {
+			c.connInfo = proto.Raw(info)
+		}
+
+		expires = connLifetime > 0
+		ttl = uint32(connLifetime)
+
+		if connLifetime > 0 && !insecure {
+			timeToExpire = c.timestamp + connLifetime - time.Now().Unix()
+			if timeToExpire <= 0 {
+				expired = true
+			}
 		}
 	}
 
-	c.authenticated = true
-	if len(info) > 0 {
-		c.defaultInfo = proto.Raw(info)
+	if userConnectionLimit > 0 && c.user != "" && len(c.node.Hub().UserConnections(c.user)) >= userConnectionLimit {
+		logger.ERROR.Printf("limit of connections %d for user %s reached", userConnectionLimit, c.user)
+		return nil, proto.ErrLimitExceeded, nil
 	}
+
+	res := &clientproto.ConnectResult{
+		Version: version,
+		Expires: expires,
+		TTL:     ttl,
+		Expired: expired,
+	}
+
+	if res.Expired {
+		// Can't authenticate client with expired credentials.
+		return res, nil, nil
+	}
+
+	// Client successfully connected.
+	c.authenticated = true
 	c.channels = map[string]struct{}{}
 	c.channelInfo = map[string]proto.Raw{}
 
@@ -809,7 +826,7 @@ func (c *client) refreshCmd(cmd *clientproto.Refresh) (*clientproto.RefreshResul
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
 			c.timestamp = int64(ts)
-			c.defaultInfo = proto.Raw(info)
+			c.connInfo = proto.Raw(info)
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
@@ -822,6 +839,11 @@ func (c *client) refreshCmd(cmd *clientproto.Refresh) (*clientproto.RefreshResul
 	return res, nil, nil
 }
 
+// NOTE: actually can be a part of engine history method, for
+// example if we eventually will work with Redis streams. For
+// this sth like HistoryFilter{limit int, from string} struct
+// can be added as History engine method argument instead of
+// just limit.
 func recoverMessages(last string, messages []*proto.Publication) ([]*proto.Publication, bool) {
 	if last == "" {
 		// Client wants to recover messages but it seems that there were no
@@ -1028,25 +1050,25 @@ func (c *client) unsubscribeCmd(cmd *clientproto.Unsubscribe) (*clientproto.Unsu
 // itself via HTTP API or Redis.
 func (c *client) publishCmd(cmd *clientproto.Publish) (*clientproto.PublishResult, *proto.Error, *proto.Disconnect) {
 
-	channel := cmd.Channel
+	ch := cmd.Channel
 	data := cmd.Data
 
 	res := &clientproto.PublishResult{}
 
-	if string(channel) == "" || len(data) == 0 {
+	if string(ch) == "" || len(data) == 0 {
 		logger.ERROR.Printf("channel and data required for publish")
 		return nil, nil, proto.DisconnectBadRequest
 	}
 
-	if _, ok := c.channels[channel]; !ok {
+	if _, ok := c.channels[ch]; !ok {
 		return nil, proto.ErrPermissionDenied, nil
 	}
 
-	info := c.info(channel)
+	info := c.info(ch)
 
-	chOpts, ok := c.node.ChannelOpts(channel)
+	chOpts, ok := c.node.ChannelOpts(ch)
 	if !ok {
-		logger.ERROR.Printf("can't get channel options for channel: %s", channel)
+		logger.ERROR.Printf("can't get channel options for channel: %s", ch)
 		return nil, proto.ErrNamespaceNotFound, nil
 	}
 
@@ -1063,7 +1085,7 @@ func (c *client) publishCmd(cmd *clientproto.Publish) (*clientproto.PublishResul
 		Info: info,
 	}
 
-	err := <-c.node.Publish(channel, publication, &chOpts)
+	err := <-c.node.Publish(ch, publication, &chOpts)
 	if err != nil {
 		logger.ERROR.Printf("error publishing message: %v", err)
 		return nil, proto.ErrInternalServerError, nil
@@ -1078,15 +1100,26 @@ func (c *client) publishCmd(cmd *clientproto.Publish) (*clientproto.PublishResul
 // for namespace or project)
 func (c *client) presenceCmd(cmd *clientproto.Presence) (*clientproto.PresenceResult, *proto.Error, *proto.Disconnect) {
 
-	// TODO: all error checks must be done here and not inside node method.
+	ch := cmd.Channel
 
-	channel := cmd.Channel
+	if string(ch) == "" {
+		return nil, nil, proto.DisconnectBadRequest
+	}
 
-	if _, ok := c.channels[channel]; !ok {
+	chOpts, ok := c.node.ChannelOpts(ch)
+	if !ok {
+		return nil, proto.ErrNamespaceNotFound, nil
+	}
+
+	if _, ok := c.channels[ch]; !ok {
 		return nil, proto.ErrPermissionDenied, nil
 	}
 
-	presence, err := c.node.Presence(channel)
+	if !chOpts.Presence {
+		return nil, proto.ErrNotAvailable, nil
+	}
+
+	presence, err := c.node.Presence(ch)
 	if err != nil {
 		logger.ERROR.Printf("error getting presence: %v", err)
 		return nil, proto.ErrInternalServerError, nil
@@ -1102,13 +1135,17 @@ func (c *client) presenceCmd(cmd *clientproto.Presence) (*clientproto.PresenceRe
 // presenceStatsCmd ...
 func (c *client) presenceStatsCmd(cmd *clientproto.PresenceStats) (*clientproto.PresenceStatsResult, *proto.Error, *proto.Disconnect) {
 
-	channel := cmd.Channel
+	ch := cmd.Channel
 
-	if _, ok := c.channels[channel]; !ok {
+	if string(ch) == "" {
+		return nil, nil, proto.DisconnectBadRequest
+	}
+
+	if _, ok := c.channels[ch]; !ok {
 		return nil, proto.ErrPermissionDenied, nil
 	}
 
-	chOpts, ok := c.node.ChannelOpts(channel)
+	chOpts, ok := c.node.ChannelOpts(ch)
 	if !ok {
 		return nil, proto.ErrNamespaceNotFound, nil
 	}
@@ -1117,7 +1154,7 @@ func (c *client) presenceStatsCmd(cmd *clientproto.PresenceStats) (*clientproto.
 		return nil, proto.ErrNotAvailable, nil
 	}
 
-	presence, err := c.node.Presence(channel)
+	presence, err := c.node.Presence(ch)
 	if err != nil {
 		logger.ERROR.Printf("error getting presence: %v", err)
 		return nil, proto.ErrInternalServerError, nil
