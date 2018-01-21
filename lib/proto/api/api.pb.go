@@ -8,6 +8,7 @@
 		api.proto
 
 	It has these top-level messages:
+		Error
 		Command
 		Reply
 		PublishRequest
@@ -46,7 +47,6 @@ import fmt "fmt"
 import math "math"
 import _ "github.com/gogo/protobuf/gogoproto"
 import proto1 "github.com/centrifugal/centrifugo/lib/proto"
-import proto2 "github.com/centrifugal/centrifugo/lib/proto"
 
 import github_com_centrifugal_centrifugo_lib_proto "github.com/centrifugal/centrifugo/lib/proto"
 
@@ -66,6 +66,30 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
+type Error struct {
+	Code    uint32 `protobuf:"varint,1,opt,name=Code,proto3" json:"code"`
+	Message string `protobuf:"bytes,2,opt,name=Message,proto3" json:"message"`
+}
+
+func (m *Error) Reset()                    { *m = Error{} }
+func (m *Error) String() string            { return proto.CompactTextString(m) }
+func (*Error) ProtoMessage()               {}
+func (*Error) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{0} }
+
+func (m *Error) GetCode() uint32 {
+	if m != nil {
+		return m.Code
+	}
+	return 0
+}
+
+func (m *Error) GetMessage() string {
+	if m != nil {
+		return m.Message
+	}
+	return ""
+}
+
 type Command struct {
 	ID     uint64                                          `protobuf:"varint,1,opt,name=ID,proto3" json:"id"`
 	Method string                                          `protobuf:"bytes,2,opt,name=Method,proto3" json:"method"`
@@ -75,7 +99,7 @@ type Command struct {
 func (m *Command) Reset()                    { *m = Command{} }
 func (m *Command) String() string            { return proto.CompactTextString(m) }
 func (*Command) ProtoMessage()               {}
-func (*Command) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{0} }
+func (*Command) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{1} }
 
 func (m *Command) GetID() uint64 {
 	if m != nil {
@@ -93,14 +117,14 @@ func (m *Command) GetMethod() string {
 
 type Reply struct {
 	ID     uint64                                          `protobuf:"varint,1,opt,name=ID,proto3" json:"id,omitempty"`
-	Error  *proto1.Error                                   `protobuf:"bytes,2,opt,name=Error" json:"error,omitempty"`
+	Error  *Error                                          `protobuf:"bytes,2,opt,name=Error" json:"error,omitempty"`
 	Result github_com_centrifugal_centrifugo_lib_proto.Raw `protobuf:"bytes,3,opt,name=Result,proto3,customtype=github.com/centrifugal/centrifugo/lib/proto.Raw" json:"result,omitempty"`
 }
 
 func (m *Reply) Reset()                    { *m = Reply{} }
 func (m *Reply) String() string            { return proto.CompactTextString(m) }
 func (*Reply) ProtoMessage()               {}
-func (*Reply) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{1} }
+func (*Reply) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{2} }
 
 func (m *Reply) GetID() uint64 {
 	if m != nil {
@@ -109,7 +133,7 @@ func (m *Reply) GetID() uint64 {
 	return 0
 }
 
-func (m *Reply) GetError() *proto1.Error {
+func (m *Reply) GetError() *Error {
 	if m != nil {
 		return m.Error
 	}
@@ -124,7 +148,7 @@ type PublishRequest struct {
 func (m *PublishRequest) Reset()                    { *m = PublishRequest{} }
 func (m *PublishRequest) String() string            { return proto.CompactTextString(m) }
 func (*PublishRequest) ProtoMessage()               {}
-func (*PublishRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{2} }
+func (*PublishRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{3} }
 
 func (m *PublishRequest) GetChannel() string {
 	if m != nil {
@@ -134,16 +158,16 @@ func (m *PublishRequest) GetChannel() string {
 }
 
 type PublishResponse struct {
-	Error  *proto1.Error  `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Error  *Error         `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
 	Result *PublishResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
 }
 
 func (m *PublishResponse) Reset()                    { *m = PublishResponse{} }
 func (m *PublishResponse) String() string            { return proto.CompactTextString(m) }
 func (*PublishResponse) ProtoMessage()               {}
-func (*PublishResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{3} }
+func (*PublishResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{4} }
 
-func (m *PublishResponse) GetError() *proto1.Error {
+func (m *PublishResponse) GetError() *Error {
 	if m != nil {
 		return m.Error
 	}
@@ -163,7 +187,7 @@ type PublishResult struct {
 func (m *PublishResult) Reset()                    { *m = PublishResult{} }
 func (m *PublishResult) String() string            { return proto.CompactTextString(m) }
 func (*PublishResult) ProtoMessage()               {}
-func (*PublishResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{4} }
+func (*PublishResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{5} }
 
 type BroadcastRequest struct {
 	Channels []string                                        `protobuf:"bytes,1,rep,name=Channels" json:"channels"`
@@ -173,7 +197,7 @@ type BroadcastRequest struct {
 func (m *BroadcastRequest) Reset()                    { *m = BroadcastRequest{} }
 func (m *BroadcastRequest) String() string            { return proto.CompactTextString(m) }
 func (*BroadcastRequest) ProtoMessage()               {}
-func (*BroadcastRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{5} }
+func (*BroadcastRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{6} }
 
 func (m *BroadcastRequest) GetChannels() []string {
 	if m != nil {
@@ -183,16 +207,16 @@ func (m *BroadcastRequest) GetChannels() []string {
 }
 
 type BroadcastResponse struct {
-	Error  *proto1.Error    `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Error  *Error           `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
 	Result *BroadcastResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
 }
 
 func (m *BroadcastResponse) Reset()                    { *m = BroadcastResponse{} }
 func (m *BroadcastResponse) String() string            { return proto.CompactTextString(m) }
 func (*BroadcastResponse) ProtoMessage()               {}
-func (*BroadcastResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{6} }
+func (*BroadcastResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{7} }
 
-func (m *BroadcastResponse) GetError() *proto1.Error {
+func (m *BroadcastResponse) GetError() *Error {
 	if m != nil {
 		return m.Error
 	}
@@ -212,7 +236,7 @@ type BroadcastResult struct {
 func (m *BroadcastResult) Reset()                    { *m = BroadcastResult{} }
 func (m *BroadcastResult) String() string            { return proto.CompactTextString(m) }
 func (*BroadcastResult) ProtoMessage()               {}
-func (*BroadcastResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{7} }
+func (*BroadcastResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{8} }
 
 type UnsubscribeRequest struct {
 	Channel string `protobuf:"bytes,1,opt,name=Channel,proto3" json:"channel"`
@@ -222,7 +246,7 @@ type UnsubscribeRequest struct {
 func (m *UnsubscribeRequest) Reset()                    { *m = UnsubscribeRequest{} }
 func (m *UnsubscribeRequest) String() string            { return proto.CompactTextString(m) }
 func (*UnsubscribeRequest) ProtoMessage()               {}
-func (*UnsubscribeRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{8} }
+func (*UnsubscribeRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{9} }
 
 func (m *UnsubscribeRequest) GetChannel() string {
 	if m != nil {
@@ -239,16 +263,16 @@ func (m *UnsubscribeRequest) GetUser() string {
 }
 
 type UnsubscribeResponse struct {
-	Error  *proto1.Error      `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Error  *Error             `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
 	Result *UnsubscribeResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
 }
 
 func (m *UnsubscribeResponse) Reset()                    { *m = UnsubscribeResponse{} }
 func (m *UnsubscribeResponse) String() string            { return proto.CompactTextString(m) }
 func (*UnsubscribeResponse) ProtoMessage()               {}
-func (*UnsubscribeResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{9} }
+func (*UnsubscribeResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{10} }
 
-func (m *UnsubscribeResponse) GetError() *proto1.Error {
+func (m *UnsubscribeResponse) GetError() *Error {
 	if m != nil {
 		return m.Error
 	}
@@ -268,7 +292,7 @@ type UnsubscribeResult struct {
 func (m *UnsubscribeResult) Reset()                    { *m = UnsubscribeResult{} }
 func (m *UnsubscribeResult) String() string            { return proto.CompactTextString(m) }
 func (*UnsubscribeResult) ProtoMessage()               {}
-func (*UnsubscribeResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{10} }
+func (*UnsubscribeResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{11} }
 
 type DisconnectRequest struct {
 	User string `protobuf:"bytes,1,opt,name=User,proto3" json:"user"`
@@ -277,7 +301,7 @@ type DisconnectRequest struct {
 func (m *DisconnectRequest) Reset()                    { *m = DisconnectRequest{} }
 func (m *DisconnectRequest) String() string            { return proto.CompactTextString(m) }
 func (*DisconnectRequest) ProtoMessage()               {}
-func (*DisconnectRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{11} }
+func (*DisconnectRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{12} }
 
 func (m *DisconnectRequest) GetUser() string {
 	if m != nil {
@@ -287,16 +311,16 @@ func (m *DisconnectRequest) GetUser() string {
 }
 
 type DisconnectResponse struct {
-	Error  *proto1.Error     `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Error  *Error            `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
 	Result *DisconnectResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
 }
 
 func (m *DisconnectResponse) Reset()                    { *m = DisconnectResponse{} }
 func (m *DisconnectResponse) String() string            { return proto.CompactTextString(m) }
 func (*DisconnectResponse) ProtoMessage()               {}
-func (*DisconnectResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{12} }
+func (*DisconnectResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{13} }
 
-func (m *DisconnectResponse) GetError() *proto1.Error {
+func (m *DisconnectResponse) GetError() *Error {
 	if m != nil {
 		return m.Error
 	}
@@ -316,7 +340,7 @@ type DisconnectResult struct {
 func (m *DisconnectResult) Reset()                    { *m = DisconnectResult{} }
 func (m *DisconnectResult) String() string            { return proto.CompactTextString(m) }
 func (*DisconnectResult) ProtoMessage()               {}
-func (*DisconnectResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{13} }
+func (*DisconnectResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{14} }
 
 type PresenceRequest struct {
 	Channel string `protobuf:"bytes,1,opt,name=Channel,proto3" json:"channel"`
@@ -325,7 +349,7 @@ type PresenceRequest struct {
 func (m *PresenceRequest) Reset()                    { *m = PresenceRequest{} }
 func (m *PresenceRequest) String() string            { return proto.CompactTextString(m) }
 func (*PresenceRequest) ProtoMessage()               {}
-func (*PresenceRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{14} }
+func (*PresenceRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{15} }
 
 func (m *PresenceRequest) GetChannel() string {
 	if m != nil {
@@ -335,16 +359,16 @@ func (m *PresenceRequest) GetChannel() string {
 }
 
 type PresenceResponse struct {
-	Error  *proto1.Error   `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Error  *Error          `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
 	Result *PresenceResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
 }
 
 func (m *PresenceResponse) Reset()                    { *m = PresenceResponse{} }
 func (m *PresenceResponse) String() string            { return proto.CompactTextString(m) }
 func (*PresenceResponse) ProtoMessage()               {}
-func (*PresenceResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{15} }
+func (*PresenceResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{16} }
 
-func (m *PresenceResponse) GetError() *proto1.Error {
+func (m *PresenceResponse) GetError() *Error {
 	if m != nil {
 		return m.Error
 	}
@@ -359,15 +383,15 @@ func (m *PresenceResponse) GetResult() *PresenceResult {
 }
 
 type PresenceResult struct {
-	Presence map[string]*proto2.ClientInfo `protobuf:"bytes,1,rep,name=Presence" json:"presence" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value"`
+	Presence map[string]*proto1.ClientInfo `protobuf:"bytes,1,rep,name=Presence" json:"presence" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value"`
 }
 
 func (m *PresenceResult) Reset()                    { *m = PresenceResult{} }
 func (m *PresenceResult) String() string            { return proto.CompactTextString(m) }
 func (*PresenceResult) ProtoMessage()               {}
-func (*PresenceResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{16} }
+func (*PresenceResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{17} }
 
-func (m *PresenceResult) GetPresence() map[string]*proto2.ClientInfo {
+func (m *PresenceResult) GetPresence() map[string]*proto1.ClientInfo {
 	if m != nil {
 		return m.Presence
 	}
@@ -381,7 +405,7 @@ type PresenceStatsRequest struct {
 func (m *PresenceStatsRequest) Reset()                    { *m = PresenceStatsRequest{} }
 func (m *PresenceStatsRequest) String() string            { return proto.CompactTextString(m) }
 func (*PresenceStatsRequest) ProtoMessage()               {}
-func (*PresenceStatsRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{17} }
+func (*PresenceStatsRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{18} }
 
 func (m *PresenceStatsRequest) GetChannel() string {
 	if m != nil {
@@ -391,16 +415,16 @@ func (m *PresenceStatsRequest) GetChannel() string {
 }
 
 type PresenceStatsResponse struct {
-	Error  *proto1.Error        `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Error  *Error               `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
 	Result *PresenceStatsResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
 }
 
 func (m *PresenceStatsResponse) Reset()                    { *m = PresenceStatsResponse{} }
 func (m *PresenceStatsResponse) String() string            { return proto.CompactTextString(m) }
 func (*PresenceStatsResponse) ProtoMessage()               {}
-func (*PresenceStatsResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{18} }
+func (*PresenceStatsResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{19} }
 
-func (m *PresenceStatsResponse) GetError() *proto1.Error {
+func (m *PresenceStatsResponse) GetError() *Error {
 	if m != nil {
 		return m.Error
 	}
@@ -422,7 +446,7 @@ type PresenceStatsResult struct {
 func (m *PresenceStatsResult) Reset()                    { *m = PresenceStatsResult{} }
 func (m *PresenceStatsResult) String() string            { return proto.CompactTextString(m) }
 func (*PresenceStatsResult) ProtoMessage()               {}
-func (*PresenceStatsResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{19} }
+func (*PresenceStatsResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{20} }
 
 func (m *PresenceStatsResult) GetNumClients() uint64 {
 	if m != nil {
@@ -445,7 +469,7 @@ type HistoryRequest struct {
 func (m *HistoryRequest) Reset()                    { *m = HistoryRequest{} }
 func (m *HistoryRequest) String() string            { return proto.CompactTextString(m) }
 func (*HistoryRequest) ProtoMessage()               {}
-func (*HistoryRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{20} }
+func (*HistoryRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{21} }
 
 func (m *HistoryRequest) GetChannel() string {
 	if m != nil {
@@ -455,16 +479,16 @@ func (m *HistoryRequest) GetChannel() string {
 }
 
 type HistoryResponse struct {
-	Error  *proto1.Error  `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Error  *Error         `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
 	Result *HistoryResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
 }
 
 func (m *HistoryResponse) Reset()                    { *m = HistoryResponse{} }
 func (m *HistoryResponse) String() string            { return proto.CompactTextString(m) }
 func (*HistoryResponse) ProtoMessage()               {}
-func (*HistoryResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{21} }
+func (*HistoryResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{22} }
 
-func (m *HistoryResponse) GetError() *proto1.Error {
+func (m *HistoryResponse) GetError() *Error {
 	if m != nil {
 		return m.Error
 	}
@@ -479,15 +503,15 @@ func (m *HistoryResponse) GetResult() *HistoryResult {
 }
 
 type HistoryResult struct {
-	Publications []*proto2.Publication `protobuf:"bytes,1,rep,name=Publications" json:"publications"`
+	Publications []*proto1.Publication `protobuf:"bytes,1,rep,name=Publications" json:"publications"`
 }
 
 func (m *HistoryResult) Reset()                    { *m = HistoryResult{} }
 func (m *HistoryResult) String() string            { return proto.CompactTextString(m) }
 func (*HistoryResult) ProtoMessage()               {}
-func (*HistoryResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{22} }
+func (*HistoryResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{23} }
 
-func (m *HistoryResult) GetPublications() []*proto2.Publication {
+func (m *HistoryResult) GetPublications() []*proto1.Publication {
 	if m != nil {
 		return m.Publications
 	}
@@ -500,19 +524,19 @@ type ChannelsRequest struct {
 func (m *ChannelsRequest) Reset()                    { *m = ChannelsRequest{} }
 func (m *ChannelsRequest) String() string            { return proto.CompactTextString(m) }
 func (*ChannelsRequest) ProtoMessage()               {}
-func (*ChannelsRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{23} }
+func (*ChannelsRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{24} }
 
 type ChannelsResponse struct {
-	Error  *proto1.Error   `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Error  *Error          `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
 	Result *ChannelsResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
 }
 
 func (m *ChannelsResponse) Reset()                    { *m = ChannelsResponse{} }
 func (m *ChannelsResponse) String() string            { return proto.CompactTextString(m) }
 func (*ChannelsResponse) ProtoMessage()               {}
-func (*ChannelsResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{24} }
+func (*ChannelsResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{25} }
 
-func (m *ChannelsResponse) GetError() *proto1.Error {
+func (m *ChannelsResponse) GetError() *Error {
 	if m != nil {
 		return m.Error
 	}
@@ -533,7 +557,7 @@ type ChannelsResult struct {
 func (m *ChannelsResult) Reset()                    { *m = ChannelsResult{} }
 func (m *ChannelsResult) String() string            { return proto.CompactTextString(m) }
 func (*ChannelsResult) ProtoMessage()               {}
-func (*ChannelsResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{25} }
+func (*ChannelsResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{26} }
 
 func (m *ChannelsResult) GetChannels() []string {
 	if m != nil {
@@ -548,19 +572,19 @@ type InfoRequest struct {
 func (m *InfoRequest) Reset()                    { *m = InfoRequest{} }
 func (m *InfoRequest) String() string            { return proto.CompactTextString(m) }
 func (*InfoRequest) ProtoMessage()               {}
-func (*InfoRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{26} }
+func (*InfoRequest) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{27} }
 
 type InfoResponse struct {
-	Error  *proto1.Error `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
-	Result *InfoResult   `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
+	Error  *Error      `protobuf:"bytes,1,opt,name=Error" json:"error,omitempty"`
+	Result *InfoResult `protobuf:"bytes,2,opt,name=Result" json:"result,omitempty"`
 }
 
 func (m *InfoResponse) Reset()                    { *m = InfoResponse{} }
 func (m *InfoResponse) String() string            { return proto.CompactTextString(m) }
 func (*InfoResponse) ProtoMessage()               {}
-func (*InfoResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{27} }
+func (*InfoResponse) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{28} }
 
-func (m *InfoResponse) GetError() *proto1.Error {
+func (m *InfoResponse) GetError() *Error {
 	if m != nil {
 		return m.Error
 	}
@@ -582,7 +606,7 @@ type InfoResult struct {
 func (m *InfoResult) Reset()                    { *m = InfoResult{} }
 func (m *InfoResult) String() string            { return proto.CompactTextString(m) }
 func (*InfoResult) ProtoMessage()               {}
-func (*InfoResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{28} }
+func (*InfoResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{29} }
 
 func (m *InfoResult) GetEngine() string {
 	if m != nil {
@@ -610,7 +634,7 @@ type NodeResult struct {
 func (m *NodeResult) Reset()                    { *m = NodeResult{} }
 func (m *NodeResult) String() string            { return proto.CompactTextString(m) }
 func (*NodeResult) ProtoMessage()               {}
-func (*NodeResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{29} }
+func (*NodeResult) Descriptor() ([]byte, []int) { return fileDescriptorApi, []int{30} }
 
 func (m *NodeResult) GetUID() string {
 	if m != nil {
@@ -655,6 +679,7 @@ func (m *NodeResult) GetMetrics() map[string]int64 {
 }
 
 func init() {
+	proto.RegisterType((*Error)(nil), "api.Error")
 	proto.RegisterType((*Command)(nil), "api.Command")
 	proto.RegisterType((*Reply)(nil), "api.Reply")
 	proto.RegisterType((*PublishRequest)(nil), "api.PublishRequest")
@@ -685,6 +710,33 @@ func init() {
 	proto.RegisterType((*InfoResponse)(nil), "api.InfoResponse")
 	proto.RegisterType((*InfoResult)(nil), "api.InfoResult")
 	proto.RegisterType((*NodeResult)(nil), "api.NodeResult")
+}
+func (this *Error) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Error)
+	if !ok {
+		that2, ok := that.(Error)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Code != that1.Code {
+		return false
+	}
+	if this.Message != that1.Message {
+		return false
+	}
+	return true
 }
 func (this *Command) Equal(that interface{}) bool {
 	if that == nil {
@@ -1824,6 +1876,35 @@ var _Centrifugo_serviceDesc = grpc.ServiceDesc{
 	Metadata: "api.proto",
 }
 
+func (m *Error) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Error) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if m.Code != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(m.Code))
+	}
+	if len(m.Message) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintApi(dAtA, i, uint64(len(m.Message)))
+		i += copy(dAtA[i:], m.Message)
+	}
+	return i, nil
+}
+
 func (m *Command) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -2795,6 +2876,15 @@ func encodeVarintApi(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return offset + 1
 }
+func NewPopulatedError(r randyApi, easy bool) *Error {
+	this := &Error{}
+	this.Code = uint32(r.Uint32())
+	this.Message = string(randStringApi(r))
+	if !easy && r.Intn(10) != 0 {
+	}
+	return this
+}
+
 func NewPopulatedCommand(r randyApi, easy bool) *Command {
 	this := &Command{}
 	this.ID = uint64(uint64(r.Uint32()))
@@ -2810,7 +2900,7 @@ func NewPopulatedReply(r randyApi, easy bool) *Reply {
 	this := &Reply{}
 	this.ID = uint64(uint64(r.Uint32()))
 	if r.Intn(10) != 0 {
-		this.Error = proto1.NewPopulatedError(r, easy)
+		this.Error = NewPopulatedError(r, easy)
 	}
 	v2 := github_com_centrifugal_centrifugo_lib_proto.NewPopulatedRaw(r)
 	this.Result = *v2
@@ -2832,7 +2922,7 @@ func NewPopulatedPublishRequest(r randyApi, easy bool) *PublishRequest {
 func NewPopulatedPublishResponse(r randyApi, easy bool) *PublishResponse {
 	this := &PublishResponse{}
 	if r.Intn(10) != 0 {
-		this.Error = proto1.NewPopulatedError(r, easy)
+		this.Error = NewPopulatedError(r, easy)
 	}
 	if r.Intn(10) != 0 {
 		this.Result = NewPopulatedPublishResult(r, easy)
@@ -2866,7 +2956,7 @@ func NewPopulatedBroadcastRequest(r randyApi, easy bool) *BroadcastRequest {
 func NewPopulatedBroadcastResponse(r randyApi, easy bool) *BroadcastResponse {
 	this := &BroadcastResponse{}
 	if r.Intn(10) != 0 {
-		this.Error = proto1.NewPopulatedError(r, easy)
+		this.Error = NewPopulatedError(r, easy)
 	}
 	if r.Intn(10) != 0 {
 		this.Result = NewPopulatedBroadcastResult(r, easy)
@@ -2895,7 +2985,7 @@ func NewPopulatedUnsubscribeRequest(r randyApi, easy bool) *UnsubscribeRequest {
 func NewPopulatedUnsubscribeResponse(r randyApi, easy bool) *UnsubscribeResponse {
 	this := &UnsubscribeResponse{}
 	if r.Intn(10) != 0 {
-		this.Error = proto1.NewPopulatedError(r, easy)
+		this.Error = NewPopulatedError(r, easy)
 	}
 	if r.Intn(10) != 0 {
 		this.Result = NewPopulatedUnsubscribeResult(r, easy)
@@ -2923,7 +3013,7 @@ func NewPopulatedDisconnectRequest(r randyApi, easy bool) *DisconnectRequest {
 func NewPopulatedDisconnectResponse(r randyApi, easy bool) *DisconnectResponse {
 	this := &DisconnectResponse{}
 	if r.Intn(10) != 0 {
-		this.Error = proto1.NewPopulatedError(r, easy)
+		this.Error = NewPopulatedError(r, easy)
 	}
 	if r.Intn(10) != 0 {
 		this.Result = NewPopulatedDisconnectResult(r, easy)
@@ -2951,7 +3041,7 @@ func NewPopulatedPresenceRequest(r randyApi, easy bool) *PresenceRequest {
 func NewPopulatedPresenceResponse(r randyApi, easy bool) *PresenceResponse {
 	this := &PresenceResponse{}
 	if r.Intn(10) != 0 {
-		this.Error = proto1.NewPopulatedError(r, easy)
+		this.Error = NewPopulatedError(r, easy)
 	}
 	if r.Intn(10) != 0 {
 		this.Result = NewPopulatedPresenceResult(r, easy)
@@ -2965,9 +3055,9 @@ func NewPopulatedPresenceResult(r randyApi, easy bool) *PresenceResult {
 	this := &PresenceResult{}
 	if r.Intn(10) != 0 {
 		v6 := r.Intn(10)
-		this.Presence = make(map[string]*proto2.ClientInfo)
+		this.Presence = make(map[string]*proto1.ClientInfo)
 		for i := 0; i < v6; i++ {
-			this.Presence[randStringApi(r)] = proto2.NewPopulatedClientInfo(r, easy)
+			this.Presence[randStringApi(r)] = proto1.NewPopulatedClientInfo(r, easy)
 		}
 	}
 	if !easy && r.Intn(10) != 0 {
@@ -2986,7 +3076,7 @@ func NewPopulatedPresenceStatsRequest(r randyApi, easy bool) *PresenceStatsReque
 func NewPopulatedPresenceStatsResponse(r randyApi, easy bool) *PresenceStatsResponse {
 	this := &PresenceStatsResponse{}
 	if r.Intn(10) != 0 {
-		this.Error = proto1.NewPopulatedError(r, easy)
+		this.Error = NewPopulatedError(r, easy)
 	}
 	if r.Intn(10) != 0 {
 		this.Result = NewPopulatedPresenceStatsResult(r, easy)
@@ -3016,7 +3106,7 @@ func NewPopulatedHistoryRequest(r randyApi, easy bool) *HistoryRequest {
 func NewPopulatedHistoryResponse(r randyApi, easy bool) *HistoryResponse {
 	this := &HistoryResponse{}
 	if r.Intn(10) != 0 {
-		this.Error = proto1.NewPopulatedError(r, easy)
+		this.Error = NewPopulatedError(r, easy)
 	}
 	if r.Intn(10) != 0 {
 		this.Result = NewPopulatedHistoryResult(r, easy)
@@ -3030,9 +3120,9 @@ func NewPopulatedHistoryResult(r randyApi, easy bool) *HistoryResult {
 	this := &HistoryResult{}
 	if r.Intn(10) != 0 {
 		v7 := r.Intn(5)
-		this.Publications = make([]*proto2.Publication, v7)
+		this.Publications = make([]*proto1.Publication, v7)
 		for i := 0; i < v7; i++ {
-			this.Publications[i] = proto2.NewPopulatedPublication(r, easy)
+			this.Publications[i] = proto1.NewPopulatedPublication(r, easy)
 		}
 	}
 	if !easy && r.Intn(10) != 0 {
@@ -3050,7 +3140,7 @@ func NewPopulatedChannelsRequest(r randyApi, easy bool) *ChannelsRequest {
 func NewPopulatedChannelsResponse(r randyApi, easy bool) *ChannelsResponse {
 	this := &ChannelsResponse{}
 	if r.Intn(10) != 0 {
-		this.Error = proto1.NewPopulatedError(r, easy)
+		this.Error = NewPopulatedError(r, easy)
 	}
 	if r.Intn(10) != 0 {
 		this.Result = NewPopulatedChannelsResult(r, easy)
@@ -3082,7 +3172,7 @@ func NewPopulatedInfoRequest(r randyApi, easy bool) *InfoRequest {
 func NewPopulatedInfoResponse(r randyApi, easy bool) *InfoResponse {
 	this := &InfoResponse{}
 	if r.Intn(10) != 0 {
-		this.Error = proto1.NewPopulatedError(r, easy)
+		this.Error = NewPopulatedError(r, easy)
 	}
 	if r.Intn(10) != 0 {
 		this.Result = NewPopulatedInfoResult(r, easy)
@@ -3205,6 +3295,19 @@ func encodeVarintPopulateApi(dAtA []byte, v uint64) []byte {
 	dAtA = append(dAtA, uint8(v))
 	return dAtA
 }
+func (m *Error) Size() (n int) {
+	var l int
+	_ = l
+	if m.Code != 0 {
+		n += 1 + sovApi(uint64(m.Code))
+	}
+	l = len(m.Message)
+	if l > 0 {
+		n += 1 + l + sovApi(uint64(l))
+	}
+	return n
+}
+
 func (m *Command) Size() (n int) {
 	var l int
 	_ = l
@@ -3593,6 +3696,104 @@ func sovApi(x uint64) (n int) {
 func sozApi(x uint64) (n int) {
 	return sovApi(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
+func (m *Error) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowApi
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Error: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Error: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Code", wireType)
+			}
+			m.Code = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Code |= (uint32(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Message", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowApi
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthApi
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Message = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipApi(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthApi
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func (m *Command) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
@@ -3796,7 +3997,7 @@ func (m *Reply) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Error == nil {
-				m.Error = &proto1.Error{}
+				m.Error = &Error{}
 			}
 			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -4018,7 +4219,7 @@ func (m *PublishResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Error == nil {
-				m.Error = &proto1.Error{}
+				m.Error = &Error{}
 			}
 			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -4293,7 +4494,7 @@ func (m *BroadcastResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Error == nil {
-				m.Error = &proto1.Error{}
+				m.Error = &Error{}
 			}
 			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -4567,7 +4768,7 @@ func (m *UnsubscribeResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Error == nil {
-				m.Error = &proto1.Error{}
+				m.Error = &Error{}
 			}
 			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -4812,7 +5013,7 @@ func (m *DisconnectResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Error == nil {
-				m.Error = &proto1.Error{}
+				m.Error = &Error{}
 			}
 			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -5057,7 +5258,7 @@ func (m *PresenceResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Error == nil {
-				m.Error = &proto1.Error{}
+				m.Error = &Error{}
 			}
 			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -5173,10 +5374,10 @@ func (m *PresenceResult) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Presence == nil {
-				m.Presence = make(map[string]*proto2.ClientInfo)
+				m.Presence = make(map[string]*proto1.ClientInfo)
 			}
 			var mapkey string
-			var mapvalue *proto2.ClientInfo
+			var mapvalue *proto1.ClientInfo
 			for iNdEx < postIndex {
 				entryPreIndex := iNdEx
 				var wire uint64
@@ -5247,7 +5448,7 @@ func (m *PresenceResult) Unmarshal(dAtA []byte) error {
 					if postmsgIndex > l {
 						return io.ErrUnexpectedEOF
 					}
-					mapvalue = &proto2.ClientInfo{}
+					mapvalue = &proto1.ClientInfo{}
 					if err := mapvalue.Unmarshal(dAtA[iNdEx:postmsgIndex]); err != nil {
 						return err
 					}
@@ -5425,7 +5626,7 @@ func (m *PresenceStatsResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Error == nil {
-				m.Error = &proto1.Error{}
+				m.Error = &Error{}
 			}
 			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -5708,7 +5909,7 @@ func (m *HistoryResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Error == nil {
-				m.Error = &proto1.Error{}
+				m.Error = &Error{}
 			}
 			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -5823,7 +6024,7 @@ func (m *HistoryResult) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Publications = append(m.Publications, &proto2.Publication{})
+			m.Publications = append(m.Publications, &proto1.Publication{})
 			if err := m.Publications[len(m.Publications)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -5955,7 +6156,7 @@ func (m *ChannelsResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Error == nil {
-				m.Error = &proto1.Error{}
+				m.Error = &Error{}
 			}
 			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -6200,7 +6401,7 @@ func (m *InfoResponse) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Error == nil {
-				m.Error = &proto1.Error{}
+				m.Error = &Error{}
 			}
 			if err := m.Error.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -6760,85 +6961,87 @@ var (
 func init() { proto.RegisterFile("api.proto", fileDescriptorApi) }
 
 var fileDescriptorApi = []byte{
-	// 1269 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x56, 0xcd, 0x6f, 0x1b, 0x45,
-	0x14, 0xcf, 0xc4, 0x8e, 0x1d, 0xbf, 0x38, 0xb1, 0x33, 0x71, 0x52, 0x37, 0x54, 0xde, 0xb0, 0x12,
-	0x22, 0x48, 0x6d, 0x02, 0x45, 0xea, 0x97, 0xa8, 0x4a, 0x37, 0x29, 0x6a, 0x54, 0x35, 0x2a, 0x53,
-	0x05, 0xa9, 0xa7, 0x68, 0x6c, 0x4f, 0x93, 0x15, 0xde, 0x5d, 0x77, 0x67, 0xb6, 0x28, 0xff, 0x00,
-	0x27, 0x84, 0x0a, 0xe2, 0xc0, 0x91, 0x23, 0x17, 0x38, 0xf3, 0x1f, 0xd0, 0x23, 0x67, 0x0e, 0x2b,
-	0x08, 0x37, 0x1f, 0x38, 0x73, 0x44, 0x3b, 0x33, 0xfb, 0x19, 0x0b, 0xe3, 0x46, 0xb9, 0xd9, 0x6f,
-	0xde, 0xef, 0x37, 0xef, 0xfd, 0x76, 0xde, 0x07, 0xd4, 0xe8, 0xd0, 0xde, 0x1a, 0xfa, 0x9e, 0xf0,
-	0x70, 0x89, 0x0e, 0xed, 0xf5, 0x6b, 0x47, 0xb6, 0x38, 0x0e, 0xba, 0x5b, 0x3d, 0xcf, 0xd9, 0x3e,
-	0xf2, 0x8e, 0xbc, 0x6d, 0x79, 0xd6, 0x0d, 0x9e, 0xcb, 0x7f, 0xf2, 0x8f, 0xfc, 0xa5, 0x30, 0xeb,
-	0x37, 0x33, 0xee, 0x3d, 0xe6, 0x0a, 0xdf, 0x7e, 0x1e, 0x1c, 0xd1, 0x41, 0xfa, 0xdb, 0xdb, 0x1e,
-	0xd8, 0x5d, 0x45, 0xb2, 0xcd, 0x7c, 0xdf, 0xf3, 0x35, 0xf0, 0xf6, 0x34, 0x40, 0x87, 0x71, 0x4e,
-	0x8f, 0x98, 0x82, 0x9a, 0x3f, 0x20, 0xa8, 0xee, 0x78, 0x8e, 0x43, 0xdd, 0x3e, 0x5e, 0x83, 0xd9,
-	0xbd, 0xdd, 0x36, 0xda, 0x40, 0x9b, 0x65, 0xab, 0x32, 0x0a, 0x8d, 0x59, 0xbb, 0x4f, 0x66, 0xf7,
-	0x76, 0xb1, 0x09, 0x95, 0xc7, 0x4c, 0x1c, 0x7b, 0xfd, 0xf6, 0xec, 0x06, 0xda, 0xac, 0x59, 0x30,
-	0x0a, 0x8d, 0x8a, 0x23, 0x2d, 0x44, 0x9f, 0xe0, 0x67, 0x50, 0x79, 0x42, 0x7d, 0xea, 0xf0, 0x76,
-	0x69, 0x03, 0x6d, 0xd6, 0xad, 0xfb, 0xaf, 0x43, 0x63, 0xe6, 0xf7, 0xd0, 0xd8, 0x9e, 0x22, 0xb4,
-	0x2d, 0x42, 0xbf, 0x88, 0xa8, 0x87, 0x92, 0x88, 0x68, 0x42, 0xf3, 0x57, 0x04, 0x73, 0x84, 0x0d,
-	0x07, 0x27, 0x78, 0x23, 0x13, 0x60, 0x73, 0x14, 0x1a, 0x75, 0xbb, 0x7f, 0xd5, 0x73, 0x6c, 0xc1,
-	0x9c, 0xa1, 0x38, 0x91, 0xa1, 0xde, 0x84, 0xb9, 0x07, 0x91, 0x30, 0x32, 0xd2, 0x85, 0xeb, 0x75,
-	0x95, 0xe5, 0x96, 0xb4, 0x59, 0x2b, 0xa3, 0xd0, 0x68, 0x48, 0xdd, 0x32, 0x28, 0xe5, 0x8f, 0x7b,
-	0x50, 0x21, 0x8c, 0x07, 0x03, 0xa1, 0xe3, 0x7f, 0xf4, 0xe6, 0xf1, 0x37, 0x7d, 0x49, 0x94, 0xb9,
-	0x43, 0x53, 0x9b, 0x5f, 0x21, 0x58, 0x7a, 0x12, 0x74, 0x07, 0x36, 0x3f, 0x26, 0xec, 0x45, 0xc0,
-	0xb8, 0xc0, 0xef, 0x40, 0x75, 0xe7, 0x98, 0xba, 0x2e, 0x1b, 0xc8, 0xbc, 0x6a, 0xd6, 0xc2, 0x28,
-	0x34, 0xaa, 0x3d, 0x65, 0x22, 0xf1, 0x19, 0x7e, 0x0a, 0xe5, 0x5d, 0x2a, 0xa8, 0x4c, 0xab, 0x6e,
-	0xdd, 0x7b, 0xf3, 0xe0, 0xca, 0x7d, 0x2a, 0x28, 0x91, 0x64, 0x51, 0x38, 0x8d, 0x24, 0x1c, 0x3e,
-	0xf4, 0x5c, 0xce, 0x52, 0x01, 0xd1, 0x94, 0x02, 0x7e, 0x9c, 0x08, 0xa8, 0xa4, 0xc7, 0x5b, 0x51,
-	0x31, 0xa4, 0xf4, 0xc1, 0x40, 0x58, 0xad, 0xff, 0x54, 0xa7, 0x01, 0x8b, 0x39, 0x77, 0xf3, 0x1b,
-	0x04, 0x4d, 0xcb, 0xf7, 0x68, 0xbf, 0x47, 0xb9, 0x88, 0x05, 0xdb, 0x84, 0x79, 0x2d, 0x0a, 0x6f,
-	0xa3, 0x8d, 0xd2, 0x66, 0xcd, 0xaa, 0x8f, 0x42, 0x63, 0x5e, 0x2b, 0xc6, 0x49, 0x72, 0x7a, 0x31,
-	0x9a, 0xbd, 0x42, 0xb0, 0x9c, 0x89, 0xe9, 0xbc, 0xaa, 0x59, 0x05, 0xd5, 0x5a, 0x52, 0xb5, 0xec,
-	0x05, 0x93, 0x75, 0x5b, 0x86, 0x46, 0x01, 0x60, 0x3e, 0x03, 0x7c, 0xe0, 0xf2, 0xa0, 0xcb, 0x7b,
-	0xbe, 0xdd, 0x65, 0x53, 0xbe, 0xb5, 0x2b, 0x50, 0x3e, 0xe0, 0xcc, 0xd7, 0xc5, 0x3e, 0x1f, 0x09,
-	0x10, 0x70, 0xe6, 0x13, 0x69, 0x35, 0xbf, 0x43, 0xb0, 0x92, 0xe3, 0x3e, 0xaf, 0x04, 0xbb, 0x05,
-	0x09, 0xd6, 0xa4, 0x04, 0xf9, 0x2b, 0x26, 0x8b, 0xb0, 0x02, 0xcb, 0x67, 0x20, 0xe6, 0x07, 0xb0,
-	0xbc, 0x6b, 0xf3, 0x9e, 0xe7, 0xba, 0xac, 0x97, 0x3c, 0xa0, 0x38, 0x3d, 0x34, 0x36, 0xbd, 0x6f,
-	0x11, 0xe0, 0x2c, 0xe6, 0xbc, 0xd9, 0xed, 0x14, 0xb2, 0x5b, 0x95, 0xd9, 0xe5, 0x6e, 0x98, 0x9c,
-	0x1c, 0x86, 0x66, 0x11, 0x61, 0xde, 0x82, 0xc6, 0x13, 0x9f, 0x71, 0xe6, 0xf6, 0xa6, 0xfc, 0xbe,
-	0xe6, 0xd7, 0x08, 0x9a, 0x29, 0xf4, 0xbc, 0x09, 0xde, 0x2f, 0x24, 0xb8, 0xa2, 0xea, 0x3e, 0xe5,
-	0x9f, 0x9c, 0xde, 0x4f, 0x51, 0x5b, 0xcc, 0x01, 0xf0, 0x23, 0x98, 0x8f, 0x2d, 0xb2, 0xca, 0x17,
-	0xae, 0xbf, 0x3d, 0x86, 0x37, 0xf9, 0xfb, 0xc0, 0x15, 0xfe, 0x89, 0x6a, 0x04, 0xc3, 0xd8, 0x23,
-	0x21, 0x58, 0xdf, 0x87, 0xc5, 0x9c, 0x23, 0x6e, 0x42, 0xe9, 0x73, 0x76, 0xa2, 0x44, 0x22, 0xd1,
-	0x4f, 0xfc, 0x2e, 0xcc, 0xbd, 0xa4, 0x83, 0x80, 0xe9, 0x24, 0x96, 0x75, 0xfa, 0x3b, 0x03, 0x9b,
-	0xb9, 0x62, 0xcf, 0x7d, 0xee, 0x11, 0x75, 0x7e, 0x67, 0xf6, 0x16, 0x32, 0xef, 0x42, 0x2b, 0xe6,
-	0x7b, 0x2a, 0xa8, 0xe0, 0x53, 0xea, 0xff, 0x3d, 0x82, 0xd5, 0x02, 0xfe, 0xbc, 0x1f, 0xe1, 0x93,
-	0xc2, 0x47, 0x68, 0xe7, 0xc4, 0x8a, 0x2f, 0x99, 0xfc, 0x25, 0x5e, 0xc0, 0xca, 0x18, 0x10, 0xde,
-	0x06, 0xd8, 0x0f, 0x1c, 0x25, 0x06, 0xd7, 0xf3, 0xb7, 0x31, 0x0a, 0x8d, 0x05, 0x37, 0x70, 0x0e,
-	0x7b, 0xca, 0x4c, 0x32, 0x2e, 0xf8, 0x3d, 0x98, 0xdf, 0x0f, 0x9c, 0xa8, 0xa0, 0xb8, 0x8c, 0xa8,
-	0x6c, 0x2d, 0x8e, 0x42, 0xa3, 0x16, 0xb9, 0x47, 0xb5, 0xc6, 0x49, 0x72, 0x6c, 0xde, 0x84, 0xa5,
-	0x87, 0x36, 0x17, 0x9e, 0x7f, 0x32, 0xa5, 0x8c, 0xd1, 0xf4, 0x4a, 0x90, 0x17, 0x33, 0xbd, 0x52,
-	0xfa, 0xc9, 0xd2, 0x3d, 0x83, 0xc5, 0x9c, 0x3b, 0x7e, 0x08, 0x75, 0x39, 0xce, 0x7a, 0x54, 0xd8,
-	0x9e, 0xcb, 0xf5, 0x33, 0xc6, 0x3a, 0xa4, 0xcc, 0x91, 0x5a, 0x65, 0x86, 0x19, 0x5f, 0x92, 0x43,
-	0x46, 0x0d, 0x3e, 0x1e, 0x6a, 0x5a, 0x23, 0x59, 0xc3, 0xa9, 0xed, 0x62, 0x6a, 0x38, 0xc3, 0x3f,
-	0x39, 0xfd, 0x3b, 0xb0, 0x94, 0xf7, 0xff, 0xff, 0x83, 0xda, 0x5c, 0x84, 0x05, 0x59, 0x62, 0x3a,
-	0xb7, 0x2f, 0x11, 0xd4, 0xd5, 0xff, 0xf3, 0xe6, 0x75, 0xb7, 0x90, 0x57, 0x43, 0xe6, 0xa5, 0xb9,
-	0x27, 0xe7, 0xd4, 0x05, 0x48, 0x7d, 0xa3, 0x2d, 0xf8, 0x81, 0x7b, 0x64, 0xbb, 0x4c, 0xbf, 0x4a,
-	0xb9, 0x05, 0x33, 0x69, 0x21, 0xfa, 0x04, 0xbf, 0x0f, 0x73, 0xfb, 0x5e, 0x9f, 0x45, 0x8f, 0xbe,
-	0x94, 0xdc, 0x17, 0x59, 0xf4, 0x7d, 0xb5, 0x51, 0x68, 0xcc, 0xb9, 0x91, 0x07, 0x51, 0x8e, 0xe6,
-	0xdf, 0xb3, 0x00, 0xa9, 0x03, 0xbe, 0x0c, 0xa5, 0x03, 0xbd, 0xe2, 0xd6, 0xac, 0xea, 0x28, 0x34,
-	0x4a, 0x81, 0xdd, 0x27, 0x91, 0x2d, 0x9a, 0x5b, 0xfb, 0xd4, 0x61, 0xd9, 0xb1, 0xec, 0x52, 0x87,
-	0x11, 0x69, 0x8d, 0x8a, 0xe6, 0x33, 0xe6, 0x73, 0xdb, 0x73, 0xe5, 0x02, 0xab, 0x8b, 0xe6, 0xa5,
-	0x32, 0x91, 0xf8, 0x0c, 0x5f, 0x85, 0xda, 0x53, 0x41, 0x7d, 0xc1, 0xfa, 0xf7, 0x45, 0xbb, 0xbc,
-	0x81, 0x36, 0x4b, 0xd6, 0xd2, 0x28, 0x34, 0x80, 0x2b, 0xe3, 0x21, 0x15, 0x24, 0x75, 0xc0, 0x9f,
-	0xc2, 0xea, 0x63, 0x26, 0x7c, 0xbb, 0xc7, 0x0f, 0x86, 0x7d, 0x2a, 0xd8, 0x9e, 0x2b, 0x98, 0xff,
-	0x92, 0x0e, 0xda, 0x73, 0xb2, 0xa6, 0xdf, 0x1a, 0x85, 0xc6, 0x25, 0x47, 0x39, 0x1c, 0x06, 0xd2,
-	0xe3, 0xd0, 0xd6, 0x2e, 0x64, 0x3c, 0x12, 0xef, 0x40, 0x55, 0x1f, 0xb4, 0x2b, 0x52, 0xa3, 0x2b,
-	0x05, 0x8d, 0xb6, 0xf4, 0xb1, 0x6a, 0xe9, 0x32, 0x0b, 0x7d, 0x05, 0x89, 0x91, 0xeb, 0x77, 0xa0,
-	0x9e, 0xf5, 0x1a, 0xd3, 0xcf, 0x5b, 0xd9, 0x7e, 0x5e, 0xca, 0x34, 0xef, 0xeb, 0x3f, 0x97, 0x01,
-	0x76, 0x92, 0x5d, 0x0f, 0xdf, 0x80, 0xaa, 0x5e, 0x3a, 0xf1, 0x4a, 0x7e, 0x63, 0x95, 0x8f, 0x71,
-	0xbd, 0x55, 0x58, 0x63, 0xe5, 0x8b, 0x34, 0x67, 0xf0, 0x47, 0x50, 0x4b, 0x96, 0x2e, 0xbc, 0x5a,
-	0xdc, 0xda, 0x14, 0x76, 0xed, 0xcc, 0x32, 0x17, 0xa3, 0x2d, 0x58, 0xc8, 0x6c, 0x2b, 0xf8, 0xd2,
-	0xd9, 0x95, 0x47, 0x31, 0xb4, 0xc7, 0xec, 0x42, 0x31, 0xc7, 0x3d, 0x80, 0x74, 0x29, 0xc0, 0x6b,
-	0x67, 0xf6, 0x0a, 0xc5, 0x70, 0xe9, 0xec, 0xbe, 0x11, 0x13, 0xdc, 0x4e, 0x67, 0x2c, 0x6e, 0x15,
-	0xa6, 0xab, 0x02, 0xaf, 0x16, 0x67, 0x6e, 0x0c, 0x7d, 0x98, 0x4e, 0x54, 0x39, 0x27, 0xf0, 0xe5,
-	0x71, 0x03, 0x47, 0x91, 0xac, 0x8f, 0x9d, 0x45, 0x31, 0xd3, 0x0d, 0xa8, 0xea, 0xb6, 0xa9, 0xf5,
-	0xcf, 0x0f, 0x03, 0xad, 0x7f, 0xa1, 0xcf, 0xab, 0xe0, 0x93, 0x45, 0xbf, 0x55, 0x68, 0x57, 0xd9,
-	0xe0, 0x8b, 0x4d, 0xd2, 0x9c, 0xc1, 0xd7, 0xa0, 0x1c, 0x95, 0x35, 0x6e, 0x66, 0xba, 0x81, 0x82,
-	0x2c, 0x67, 0xfb, 0x83, 0x76, 0xb7, 0xae, 0xfc, 0xf3, 0x67, 0x07, 0xfd, 0x78, 0xda, 0x41, 0xbf,
-	0x9c, 0x76, 0xd0, 0xeb, 0xd3, 0x0e, 0xfa, 0xed, 0xb4, 0x83, 0xfe, 0x38, 0xed, 0xa0, 0x57, 0x7f,
-	0x75, 0x66, 0xba, 0x15, 0xd9, 0x8b, 0x3e, 0xfc, 0x37, 0x00, 0x00, 0xff, 0xff, 0xc3, 0x21, 0x20,
-	0xb8, 0xfb, 0x0f, 0x00, 0x00,
+	// 1300 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x57, 0xcf, 0x6f, 0xdc, 0x44,
+	0x14, 0xce, 0x64, 0x37, 0x9b, 0xec, 0xcb, 0x26, 0xbb, 0x99, 0x6c, 0xd2, 0x6d, 0x88, 0xd6, 0xc1,
+	0x12, 0x22, 0x48, 0x6d, 0x02, 0x45, 0x94, 0x52, 0x51, 0x95, 0x7a, 0x53, 0xd4, 0xa8, 0x34, 0x2a,
+	0x53, 0x05, 0xa9, 0xa7, 0x68, 0xd6, 0x3b, 0x4d, 0x2c, 0xd6, 0xf6, 0xd6, 0x33, 0x2e, 0xca, 0x9d,
+	0x13, 0x42, 0xa8, 0x70, 0xe0, 0xcc, 0x91, 0x0b, 0x9c, 0xf9, 0x07, 0x90, 0x7a, 0xe4, 0xcc, 0xc1,
+	0x82, 0x70, 0xf3, 0x81, 0x33, 0x47, 0xe4, 0x99, 0xf1, 0xda, 0xeb, 0xac, 0x58, 0xd2, 0x55, 0x6f,
+	0xf6, 0x9b, 0xf7, 0x7d, 0x9e, 0xf7, 0xcd, 0xbc, 0x1f, 0x86, 0x2a, 0x1d, 0x38, 0x3b, 0x83, 0xc0,
+	0x17, 0x3e, 0x2e, 0xd1, 0x81, 0xb3, 0x71, 0xf5, 0xd8, 0x11, 0x27, 0x61, 0x77, 0xc7, 0xf6, 0xdd,
+	0xdd, 0x63, 0xff, 0xd8, 0xdf, 0x95, 0x6b, 0xdd, 0xf0, 0x89, 0x7c, 0x93, 0x2f, 0xf2, 0x49, 0x61,
+	0x36, 0x6e, 0xe4, 0xdc, 0x6d, 0xe6, 0x89, 0xc0, 0x79, 0x12, 0x1e, 0xd3, 0x7e, 0xf6, 0xec, 0xef,
+	0xf6, 0x9d, 0xae, 0x22, 0xd9, 0xb5, 0xfb, 0x0e, 0xf3, 0x84, 0x42, 0x9a, 0x9f, 0xc0, 0xdc, 0xdd,
+	0x20, 0xf0, 0x03, 0xbc, 0x09, 0xe5, 0x8e, 0xdf, 0x63, 0x2d, 0xb4, 0x85, 0xb6, 0x97, 0xac, 0x85,
+	0x38, 0x32, 0xca, 0xb6, 0xdf, 0x63, 0x44, 0x5a, 0xf1, 0x1b, 0x30, 0xff, 0x80, 0x71, 0x4e, 0x8f,
+	0x59, 0x6b, 0x76, 0x0b, 0x6d, 0x57, 0xad, 0xc5, 0x38, 0x32, 0xe6, 0x5d, 0x65, 0x22, 0xe9, 0x9a,
+	0xf9, 0x03, 0x82, 0xf9, 0x8e, 0xef, 0xba, 0xd4, 0xeb, 0xe1, 0x75, 0x98, 0xdd, 0xdf, 0x93, 0x74,
+	0x65, 0xab, 0x12, 0x47, 0xc6, 0xac, 0xd3, 0x23, 0xb3, 0xfb, 0x7b, 0xd8, 0x84, 0xca, 0x03, 0x26,
+	0x4e, 0xfc, 0x9e, 0x66, 0x82, 0x38, 0x32, 0x2a, 0xae, 0xb4, 0x10, 0xbd, 0x82, 0x1f, 0x43, 0xe5,
+	0x21, 0x0d, 0xa8, 0xcb, 0x5b, 0xa5, 0x2d, 0xb4, 0x5d, 0xb3, 0xee, 0xbc, 0x88, 0x8c, 0x99, 0xdf,
+	0x23, 0x63, 0xf7, 0x02, 0x71, 0xee, 0x10, 0xfa, 0x45, 0x42, 0x3d, 0x90, 0x44, 0x44, 0x13, 0x9a,
+	0xbf, 0x22, 0x98, 0x23, 0x6c, 0xd0, 0x3f, 0xc5, 0x5b, 0xb9, 0x0d, 0x36, 0xe2, 0xc8, 0xa8, 0x39,
+	0xbd, 0x2b, 0xbe, 0xeb, 0x08, 0xe6, 0x0e, 0xc4, 0xa9, 0xdc, 0xea, 0x7b, 0x5a, 0x1c, 0xb9, 0xd3,
+	0xc5, 0x6b, 0xb0, 0x93, 0x9c, 0x92, 0xb4, 0x58, 0xab, 0x71, 0x64, 0xd4, 0x59, 0xf2, 0x98, 0xc3,
+	0x68, 0x29, 0x6d, 0xa8, 0x10, 0xc6, 0xc3, 0xbe, 0xd0, 0xbb, 0xbf, 0xff, 0xf2, 0xbb, 0x6f, 0x04,
+	0x92, 0x28, 0xf7, 0x0d, 0x4d, 0x6d, 0x7e, 0x8d, 0x60, 0xf9, 0x61, 0xd8, 0xed, 0x3b, 0xfc, 0x84,
+	0xb0, 0xa7, 0x21, 0xe3, 0x22, 0x39, 0xa4, 0xce, 0x09, 0xf5, 0x3c, 0xd6, 0x97, 0x51, 0xe9, 0x43,
+	0xb2, 0x95, 0x89, 0xa4, 0x6b, 0xf8, 0x11, 0x94, 0xf7, 0xa8, 0xa0, 0x32, 0xa8, 0x9a, 0x75, 0xfb,
+	0xe5, 0x37, 0x57, 0xee, 0x51, 0x41, 0x89, 0x24, 0x33, 0xbf, 0x42, 0x50, 0x1f, 0x6e, 0x87, 0x0f,
+	0x7c, 0x8f, 0xb3, 0x4c, 0x3e, 0x74, 0x21, 0xf9, 0x3e, 0x1a, 0xca, 0xa7, 0x64, 0xc7, 0x12, 0x97,
+	0x91, 0x87, 0x7d, 0x61, 0x35, 0xff, 0x53, 0x9b, 0x3a, 0x2c, 0x8d, 0xb8, 0x9b, 0xdf, 0x22, 0x68,
+	0x58, 0x81, 0x4f, 0x7b, 0x36, 0xe5, 0x22, 0x95, 0x6b, 0x1b, 0x16, 0xb4, 0x24, 0xbc, 0x85, 0xb6,
+	0x4a, 0xdb, 0x55, 0xab, 0x16, 0x47, 0xc6, 0x82, 0xd6, 0x8b, 0x93, 0xe1, 0xea, 0xab, 0x51, 0xec,
+	0x1b, 0x04, 0x2b, 0xb9, 0x3d, 0x4d, 0xa7, 0x99, 0x55, 0xd0, 0xac, 0x29, 0x71, 0x79, 0xfa, 0xc9,
+	0xaa, 0xad, 0x40, 0xbd, 0x00, 0x30, 0x1f, 0x03, 0x3e, 0xf4, 0x78, 0xd8, 0xe5, 0x76, 0xe0, 0x74,
+	0xd9, 0x05, 0xef, 0xd9, 0x26, 0x94, 0x0f, 0x39, 0x0b, 0x74, 0x9a, 0xcb, 0x8a, 0x12, 0x72, 0x16,
+	0x10, 0x69, 0x35, 0xbf, 0x43, 0xb0, 0x3a, 0xc2, 0x3d, 0x9d, 0x00, 0x7b, 0x05, 0x01, 0xd6, 0x25,
+	0x6e, 0xf4, 0x03, 0x93, 0x25, 0x58, 0x85, 0x95, 0x73, 0x10, 0xf3, 0x1d, 0x58, 0xd9, 0x73, 0xb8,
+	0xed, 0x7b, 0x1e, 0xb3, 0x87, 0x97, 0x27, 0x0d, 0x0e, 0x8d, 0x0d, 0xee, 0x39, 0x02, 0x9c, 0xc7,
+	0x4c, 0x17, 0x5b, 0xa7, 0x10, 0xdb, 0x9a, 0xc4, 0x8d, 0xf0, 0x4f, 0x0e, 0x0d, 0x43, 0xa3, 0x88,
+	0x30, 0x6f, 0x40, 0xfd, 0x61, 0xc0, 0x38, 0xf3, 0xec, 0x0b, 0x9e, 0x6d, 0x52, 0x7d, 0x1a, 0x19,
+	0x74, 0xba, 0xf0, 0xee, 0x14, 0xc2, 0x5b, 0x55, 0xf9, 0x9e, 0xb1, 0x4f, 0x0e, 0xee, 0xa7, 0xa4,
+	0x18, 0x8e, 0x00, 0xf0, 0x7d, 0x58, 0x48, 0x2d, 0x32, 0xbb, 0x17, 0xaf, 0xbd, 0x3e, 0x86, 0x77,
+	0xf8, 0x7a, 0xd7, 0x13, 0xc1, 0xa9, 0x2a, 0x00, 0x83, 0xd4, 0x63, 0x48, 0xb0, 0x71, 0x00, 0x4b,
+	0x23, 0x8e, 0xb8, 0x01, 0xa5, 0xcf, 0xd9, 0xa9, 0x92, 0x88, 0x24, 0x8f, 0xf8, 0x4d, 0x98, 0x7b,
+	0x46, 0xfb, 0x21, 0xd3, 0x41, 0xac, 0xa8, 0xfe, 0xba, 0xd3, 0x91, 0xcd, 0x76, 0xdf, 0x7b, 0xe2,
+	0x13, 0xb5, 0x7e, 0x73, 0xf6, 0x06, 0x32, 0x6f, 0x41, 0x33, 0xe5, 0x7b, 0x24, 0xa8, 0xe0, 0x17,
+	0x54, 0xff, 0x7b, 0x04, 0x6b, 0x05, 0xfc, 0x74, 0x47, 0xf0, 0x71, 0xe1, 0x08, 0x5a, 0x23, 0x52,
+	0xa5, 0x9f, 0x98, 0x7c, 0x0e, 0x4f, 0x61, 0x75, 0x0c, 0x08, 0xef, 0x02, 0x1c, 0x84, 0xae, 0x92,
+	0x82, 0xeb, 0x8e, 0x5b, 0x8f, 0x23, 0x63, 0xd1, 0x0b, 0xdd, 0x23, 0x35, 0x8e, 0x70, 0x92, 0x73,
+	0xc1, 0x6f, 0xc1, 0xc2, 0x41, 0xe8, 0x26, 0xa9, 0xc4, 0xe5, 0x8e, 0xca, 0xd6, 0x52, 0x1c, 0x19,
+	0xd5, 0xc4, 0x3d, 0xc9, 0x32, 0x4e, 0x86, 0xcb, 0xe6, 0xfb, 0xb0, 0x7c, 0xcf, 0xe1, 0xc2, 0x0f,
+	0x4e, 0x2f, 0x28, 0x62, 0xd2, 0xb1, 0x86, 0xc8, 0x57, 0xd1, 0xb1, 0x32, 0xf2, 0xc9, 0xc2, 0x3d,
+	0x86, 0xa5, 0x11, 0x77, 0x7c, 0x0f, 0x6a, 0xb2, 0x85, 0xd9, 0x54, 0x38, 0xbe, 0xc7, 0xf5, 0x15,
+	0xc6, 0xfa, 0x56, 0xe5, 0x96, 0xd4, 0xe8, 0x32, 0xc8, 0xf9, 0x92, 0x11, 0x64, 0x52, 0xd6, 0xd3,
+	0x46, 0xa6, 0x15, 0x92, 0xd9, 0x9b, 0xd9, 0x5e, 0x45, 0xf6, 0xe6, 0xd8, 0x27, 0x07, 0x7f, 0x13,
+	0x96, 0x47, 0xfd, 0xff, 0x7f, 0x6b, 0x36, 0x97, 0x60, 0x51, 0x26, 0x97, 0x8e, 0xec, 0x4b, 0x04,
+	0x35, 0xf5, 0x3e, 0x5d, 0x54, 0xb7, 0x0a, 0x51, 0xd5, 0x25, 0x4e, 0x33, 0x4f, 0x8e, 0xa8, 0x0b,
+	0x90, 0xf9, 0x26, 0x13, 0xef, 0x5d, 0xef, 0xd8, 0xf1, 0x98, 0xbe, 0x8f, 0x72, 0xe2, 0x65, 0xd2,
+	0x42, 0xf4, 0x0a, 0x7e, 0x1b, 0xe6, 0x0e, 0xfc, 0x1e, 0x4b, 0xae, 0x7b, 0x69, 0xf8, 0xbd, 0xc4,
+	0xa2, 0xbf, 0x57, 0x8d, 0x23, 0x63, 0xce, 0x4b, 0x3c, 0x88, 0x72, 0x34, 0xff, 0x9e, 0x05, 0xc8,
+	0x1c, 0xf0, 0x65, 0x28, 0x1d, 0xea, 0x71, 0xb6, 0x6a, 0xcd, 0xc7, 0x91, 0x51, 0x0a, 0x9d, 0x1e,
+	0x49, 0x6c, 0x49, 0xaf, 0x3a, 0xa0, 0x2e, 0xcb, 0x37, 0x62, 0x8f, 0xba, 0x8c, 0x48, 0x6b, 0x92,
+	0x2e, 0x9f, 0xb1, 0x80, 0x3b, 0xbe, 0x27, 0xc7, 0x55, 0x9d, 0x2e, 0xcf, 0x94, 0x89, 0xa4, 0x6b,
+	0xf8, 0x0a, 0x54, 0x1f, 0x09, 0x1a, 0x08, 0xd6, 0xbb, 0x23, 0x5a, 0xe5, 0x2d, 0xb4, 0x5d, 0xb2,
+	0x96, 0xe3, 0xc8, 0x00, 0xae, 0x8c, 0x47, 0x54, 0x90, 0xcc, 0x01, 0x7f, 0x0a, 0x6b, 0x0f, 0x98,
+	0x08, 0x1c, 0x9b, 0x1f, 0x0e, 0x7a, 0x54, 0xb0, 0x7d, 0x4f, 0xb0, 0xe0, 0x19, 0xed, 0xb7, 0xe6,
+	0x64, 0x36, 0xbf, 0x16, 0x47, 0xc6, 0x25, 0x57, 0x39, 0x1c, 0x85, 0xd2, 0xe3, 0xc8, 0xd1, 0x2e,
+	0x64, 0x3c, 0x12, 0x77, 0x92, 0x5f, 0x10, 0xb9, 0xd0, 0xaa, 0x48, 0x8d, 0x36, 0x0b, 0x1a, 0xed,
+	0xe8, 0x65, 0x55, 0xca, 0xf5, 0x0f, 0x8a, 0xb4, 0x90, 0x14, 0xb9, 0x71, 0x13, 0x6a, 0x79, 0xaf,
+	0x31, 0x75, 0xbc, 0x99, 0xaf, 0xe3, 0xa5, 0x5c, 0xd1, 0xbe, 0xf6, 0x73, 0x19, 0xa0, 0x33, 0x9c,
+	0xed, 0xf0, 0x75, 0x98, 0xd7, 0x43, 0x26, 0x5e, 0x1d, 0x9d, 0x50, 0xe5, 0x55, 0xdc, 0x68, 0x16,
+	0xc6, 0x56, 0x79, 0x1f, 0xcd, 0x19, 0xfc, 0x21, 0x54, 0x87, 0x63, 0x16, 0x5e, 0x2b, 0xce, 0x69,
+	0x0a, 0xbb, 0x7e, 0x6e, 0x7c, 0x4b, 0xd1, 0x16, 0x2c, 0xe6, 0x26, 0x14, 0x7c, 0xe9, 0xfc, 0x98,
+	0xa3, 0x18, 0x5a, 0x63, 0xe6, 0x9f, 0x94, 0xe3, 0x36, 0x40, 0x36, 0x0a, 0xe0, 0xf5, 0x73, 0xd3,
+	0x84, 0x62, 0xb8, 0x74, 0x7e, 0xca, 0x48, 0x09, 0x3e, 0xc8, 0x7a, 0x2b, 0x6e, 0x16, 0xba, 0xaa,
+	0x02, 0xaf, 0x15, 0x7b, 0x6d, 0x0a, 0xbd, 0x97, 0x75, 0x52, 0xd9, 0x21, 0xf0, 0xe5, 0x71, 0xad,
+	0x46, 0x91, 0x6c, 0x8c, 0xed, 0x42, 0x29, 0xd3, 0x75, 0x98, 0xd7, 0x25, 0x53, 0xeb, 0x3f, 0xda,
+	0x06, 0xb4, 0xfe, 0x85, 0x0a, 0xaf, 0x36, 0x3f, 0x1c, 0xec, 0x9b, 0x85, 0x62, 0x95, 0xdf, 0x7c,
+	0xb1, 0x40, 0x9a, 0x33, 0xf8, 0x2a, 0x94, 0x93, 0xb4, 0xc6, 0x8d, 0x5c, 0x35, 0x50, 0x90, 0x95,
+	0x7c, 0x7d, 0xd0, 0xee, 0xd6, 0xe6, 0x3f, 0x7f, 0xb6, 0xd1, 0x8f, 0x67, 0x6d, 0xf4, 0xcb, 0x59,
+	0x1b, 0xbd, 0x38, 0x6b, 0xa3, 0xdf, 0xce, 0xda, 0xe8, 0x8f, 0xb3, 0x36, 0x7a, 0xfe, 0x57, 0x7b,
+	0xa6, 0x5b, 0x91, 0xa5, 0xfc, 0xdd, 0x7f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x59, 0xf0, 0x82, 0x82,
+	0xfb, 0x0f, 0x00, 0x00,
 }

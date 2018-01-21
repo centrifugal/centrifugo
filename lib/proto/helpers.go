@@ -27,10 +27,10 @@ func NewLeaveMessage(ch string, data Raw) *Message {
 	}
 }
 
-// NewUnsubscribeMessage returns initialized async unsubscribe message.
-func NewUnsubscribeMessage(ch string, data Raw) *Message {
+// NewUnsubMessage returns initialized async unsubscribe message.
+func NewUnsubMessage(ch string, data Raw) *Message {
 	return &Message{
-		Type:    MessageTypeUnsubscribe,
+		Type:    MessageTypeUnsub,
 		Channel: ch,
 		Data:    data,
 	}

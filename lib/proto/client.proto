@@ -1,0 +1,206 @@
+// protoc --proto_path=$GOPATH/src:$GOPATH/src/github.com/centrifugal/centrifugo/vendor:. --gogofaster_out=. client.proto
+// pbjs -t json -p $GOPATH/src proto/client/client.proto > public/client.json
+// pbjs -t json proto/message.proto > public/message.json
+syntax = "proto3";
+
+package proto;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+
+message Error {
+    uint32 Code = 1 [(gogoproto.jsontag) = "code"];
+    string Message = 2 [(gogoproto.jsontag) = "message"];
+}
+
+message Command {
+    uint64 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
+    string Method = 2 [(gogoproto.jsontag) = "method,omitempty"];
+    bytes Params = 3 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "params,omitempty", (gogoproto.nullable) = false];
+}
+
+message Reply {
+    uint64 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
+    proto.Error Error = 2 [(gogoproto.jsontag) = "error,omitempty"];
+    bytes Result = 3 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "result,omitempty", (gogoproto.nullable) = false];
+}
+
+enum MessageType {
+    option (gogoproto.goproto_enum_prefix) = false;
+
+    PUBLICATION = 0 [(gogoproto.enumvalue_customname) = "MessageTypePublication"];
+    JOIN = 1 [(gogoproto.enumvalue_customname) = "MessageTypeJoin"];
+    LEAVE = 2 [(gogoproto.enumvalue_customname) = "MessageTypeLeave"];
+    UNSUB = 3 [(gogoproto.enumvalue_customname) = "MessageTypeUnsub"];
+}
+
+message Message {
+    MessageType Type = 1 [(gogoproto.jsontag) = "t,omitempty"];
+    string Channel = 3 [(gogoproto.jsontag) = "c,omitempty"];
+    bytes Data = 4 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "d", (gogoproto.nullable) = false];
+}
+
+message ClientInfo {
+  string User = 1 [(gogoproto.jsontag) = "user"];
+  string Client = 2 [(gogoproto.jsontag) = "client"];
+  bytes ConnInfo = 3 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "conn_info,omitempty", (gogoproto.nullable) = false];
+  bytes ChanInfo = 4 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "chan_info,omitempty", (gogoproto.nullable) = false];
+}
+
+message Publication {
+  string UID = 1 [(gogoproto.jsontag) = "uid,omitempty"];
+  bytes Data = 2 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+  ClientInfo Info = 3 [(gogoproto.jsontag) = "info,omitempty"];
+}
+
+message Join {
+  ClientInfo Info = 1 [(gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}
+
+message Leave {
+  ClientInfo Info = 1 [(gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}
+
+message Unsub {}
+
+message ConnectRequest {
+    string User = 1 [(gogoproto.jsontag) = "user"];
+    string Time = 2 [(gogoproto.jsontag) = "time"];
+    string Info = 3 [(gogoproto.jsontag) = "info"];
+    string Opts = 4 [(gogoproto.jsontag) = "opts"];
+    string Sign = 5 [(gogoproto.jsontag) = "sign"];
+}
+
+message ConnectResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    ConnectResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
+message ConnectResult {
+    string Client = 1 [(gogoproto.jsontag) = "client"];
+    string Version = 2 [(gogoproto.jsontag) = "version"];
+    bool Expires = 3 [(gogoproto.jsontag) = "expires,omitempty"];
+    bool Expired = 4 [(gogoproto.jsontag) = "expired,omitempty"];
+    uint32 TTL = 5 [(gogoproto.jsontag) = "ttl,omitempty"];
+}
+
+message RefreshRequest {
+    string User = 1 [(gogoproto.jsontag) = "user"];
+    string Time = 2 [(gogoproto.jsontag) = "time"];
+    string Info = 3 [(gogoproto.jsontag) = "info"];
+    string Opts = 4 [(gogoproto.jsontag) = "opts"];
+    string Sign = 5 [(gogoproto.jsontag) = "sign"];
+}
+
+message RefreshResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    RefreshResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
+message RefreshResult {
+    string Client = 1 [(gogoproto.jsontag) = "client"];
+    string Version = 2 [(gogoproto.jsontag) = "version"];
+    bool Expires = 3 [(gogoproto.jsontag) = "expires,omitempty"];
+    bool Expired = 4 [(gogoproto.jsontag) = "expired,omitempty"];
+    uint32 TTL = 5 [(gogoproto.jsontag) = "ttl,omitempty"];
+}
+
+message SubscribeRequest {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+    string Client = 2 [(gogoproto.jsontag) = "client"];
+    string Info = 3 [(gogoproto.jsontag) = "info"];
+    string Sign = 4 [(gogoproto.jsontag) = "sign"];
+    bool Recover = 5 [(gogoproto.jsontag) = "recover"];
+    string Last = 6 [(gogoproto.jsontag) = "last"];
+    bool Passive = 7 [(gogoproto.jsontag) = "passive"];
+}
+
+message SubscribeResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    SubscribeResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
+message SubscribeResult {
+    string Last = 1 [(gogoproto.jsontag) = "last,omitempty"];
+    bool Recovered = 2 [(gogoproto.jsontag) = "recovered,omitempty"];
+    repeated Publication Publications = 3 [(gogoproto.jsontag) = "publications,omitempty"];
+}
+
+message UnsubscribeRequest {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message UnsubscribeResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    UnsubscribeResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
+message UnsubscribeResult {}
+
+message PublishRequest {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+    bytes Data = 2 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}
+
+message PublishResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    PublishResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
+message PublishResult {}
+
+message PresenceRequest {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message PresenceResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    PresenceResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
+message PresenceResult {
+    map<string, ClientInfo> Presence = 1 [(gogoproto.jsontag) = "presence"];
+}
+
+message PresenceStatsRequest {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message PresenceStatsResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    PresenceStatsResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
+message PresenceStatsResult {
+    uint64 NumClients = 1 [(gogoproto.jsontag) = "num_clients"];
+    uint64 NumUsers = 2 [(gogoproto.jsontag) = "num_users"];
+}
+
+message HistoryRequest {
+    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message HistoryResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    HistoryResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
+message HistoryResult {
+    repeated Publication Publications = 1 [(gogoproto.jsontag) = "publications"];
+}
+
+message PingRequest {
+    string Data = 1 [(gogoproto.jsontag) = "data"];
+}
+
+message PingResponse {
+    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    PingResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
+message PingResult {
+    string Data = 1 [(gogoproto.jsontag) = "data"];
+}

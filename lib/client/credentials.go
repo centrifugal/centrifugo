@@ -1,4 +1,4 @@
-package conns
+package client
 
 const (
 	// OptionHidden for hidden connections.

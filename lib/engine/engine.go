@@ -29,7 +29,7 @@ type Engine interface {
 	// PublishJoin ...
 	PublishJoin(ch string, join *proto.Join, opts *channel.Options) <-chan error
 	// PublishLeave ...
-	PublishLeave(ch string, join *proto.Leave, opts *channel.Options) <-chan error
+	PublishLeave(ch string, leave *proto.Leave, opts *channel.Options) <-chan error
 	// PublishControl allows to send control command to all running nodes.
 	PublishControl(*control.Command) <-chan error
 

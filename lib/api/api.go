@@ -40,7 +40,7 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 
 	if method == "" {
 		logger.ERROR.Println("method required in API command")
-		rep.Error = proto.ErrBadRequest
+		rep.Error = apiproto.ErrBadRequest
 		return rep, nil
 	}
 
@@ -55,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		cmd, err := decoder.DecodePublish(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding publish params: %v", err)
-			rep.Error = proto.ErrBadRequest
+			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
 		resp := h.Publish(ctx, cmd)
@@ -73,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		cmd, err := decoder.DecodeBroadcast(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding broadcast params: %v", err)
-			rep.Error = proto.ErrBadRequest
+			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
 		resp := h.Broadcast(ctx, cmd)
@@ -91,7 +91,7 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		cmd, err := decoder.DecodeUnsubscribe(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding unsubscribe params: %v", err)
-			rep.Error = proto.ErrBadRequest
+			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
 		resp := h.Unsubscribe(ctx, cmd)
@@ -109,7 +109,7 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		cmd, err := decoder.DecodeDisconnect(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding disconnect params: %v", err)
-			rep.Error = proto.ErrBadRequest
+			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
 		resp := h.Disconnect(ctx, cmd)
@@ -127,7 +127,7 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		cmd, err := decoder.DecodePresence(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding presence params: %v", err)
-			rep.Error = proto.ErrBadRequest
+			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
 		resp := h.Presence(ctx, cmd)
@@ -145,7 +145,7 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		cmd, err := decoder.DecodePresenceStats(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding presence_stats params: %v", err)
-			rep.Error = proto.ErrBadRequest
+			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
 		resp := h.PresenceStats(ctx, cmd)
@@ -163,7 +163,7 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 		cmd, err := decoder.DecodeHistory(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding history params: %v", err)
-			rep.Error = proto.ErrBadRequest
+			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
 		resp := h.History(ctx, cmd)
@@ -202,7 +202,7 @@ func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.
 			}
 		}
 	default:
-		rep.Error = proto.ErrMethodNotFound
+		rep.Error = apiproto.ErrMethodNotFound
 	}
 
 	if replyRes != nil {
@@ -221,13 +221,13 @@ func (h *Handler) Publish(ctx context.Context, cmd *apiproto.PublishRequest) *ap
 
 	if string(ch) == "" || len(data) == 0 {
 		logger.ERROR.Printf("channel and data required for publish")
-		resp.Error = proto.ErrBadRequest
+		resp.Error = apiproto.ErrBadRequest
 		return resp
 	}
 
 	chOpts, ok := h.node.ChannelOpts(ch)
 	if !ok {
-		resp.Error = proto.ErrNamespaceNotFound
+		resp.Error = apiproto.ErrNamespaceNotFound
 		return resp
 	}
 
@@ -238,7 +238,7 @@ func (h *Handler) Publish(ctx context.Context, cmd *apiproto.PublishRequest) *ap
 	err := <-h.node.Publish(cmd.Channel, publication, &chOpts)
 	if err != nil {
 		logger.ERROR.Printf("error publishing message: %v", err)
-		resp.Error = proto.ErrInternalServerError
+		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
 	return resp
@@ -254,13 +254,13 @@ func (h *Handler) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequest)
 
 	if len(channels) == 0 {
 		logger.ERROR.Println("channels required for broadcast")
-		resp.Error = proto.ErrBadRequest
+		resp.Error = apiproto.ErrBadRequest
 		return resp
 	}
 
 	if len(data) == 0 {
 		logger.ERROR.Println("data required for broadcast")
-		resp.Error = proto.ErrBadRequest
+		resp.Error = apiproto.ErrBadRequest
 		return resp
 	}
 
@@ -270,14 +270,14 @@ func (h *Handler) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequest)
 
 		if string(ch) == "" {
 			logger.ERROR.Println("channel can not be blank in broadcast")
-			resp.Error = proto.ErrBadRequest
+			resp.Error = apiproto.ErrBadRequest
 			return resp
 		}
 
 		chOpts, ok := h.node.ChannelOpts(ch)
 		if !ok {
 			logger.ERROR.Panicf("can't find namespace for channel %s", ch)
-			resp.Error = proto.ErrNamespaceNotFound
+			resp.Error = apiproto.ErrNamespaceNotFound
 		}
 
 		publication := &proto.Publication{
@@ -298,7 +298,7 @@ func (h *Handler) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequest)
 	}
 	if firstErr != nil {
 		logger.ERROR.Printf("error broadcasting: %v", firstErr)
-		resp.Error = proto.ErrInternalServerError
+		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
 	return resp
@@ -316,7 +316,7 @@ func (h *Handler) Unsubscribe(ctx context.Context, cmd *apiproto.UnsubscribeRequ
 	err := h.node.Unsubscribe(user, channel)
 	if err != nil {
 		logger.ERROR.Printf("error unsubscribing user %s from channel %s: %v", user, channel, err)
-		resp.Error = proto.ErrInternalServerError
+		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
 	return resp
@@ -333,7 +333,7 @@ func (h *Handler) Disconnect(ctx context.Context, cmd *apiproto.DisconnectReques
 	err := h.node.Disconnect(user, false)
 	if err != nil {
 		logger.ERROR.Printf("error disconnecting user with ID %s: %v", cmd.User, err)
-		resp.Error = proto.ErrInternalServerError
+		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
 	return resp
@@ -347,25 +347,25 @@ func (h *Handler) Presence(ctx context.Context, cmd *apiproto.PresenceRequest) *
 	ch := cmd.Channel
 
 	if string(ch) == "" {
-		resp.Error = proto.ErrBadRequest
+		resp.Error = apiproto.ErrBadRequest
 		return resp
 	}
 
 	chOpts, ok := h.node.ChannelOpts(ch)
 	if !ok {
-		resp.Error = proto.ErrNamespaceNotFound
+		resp.Error = apiproto.ErrNamespaceNotFound
 		return resp
 	}
 
 	if !chOpts.Presence {
-		resp.Error = proto.ErrNotAvailable
+		resp.Error = apiproto.ErrNotAvailable
 		return resp
 	}
 
 	presence, err := h.node.Presence(ch)
 	if err != nil {
 		logger.ERROR.Printf("error calling presence: %v", err)
-		resp.Error = proto.ErrInternalServerError
+		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
 
@@ -383,25 +383,25 @@ func (h *Handler) PresenceStats(ctx context.Context, cmd *apiproto.PresenceStats
 	ch := cmd.Channel
 
 	if string(ch) == "" {
-		resp.Error = proto.ErrBadRequest
+		resp.Error = apiproto.ErrBadRequest
 		return resp
 	}
 
 	chOpts, ok := h.node.ChannelOpts(ch)
 	if !ok {
-		resp.Error = proto.ErrNamespaceNotFound
+		resp.Error = apiproto.ErrNamespaceNotFound
 		return resp
 	}
 
 	if !chOpts.Presence || !chOpts.PresenceStats {
-		resp.Error = proto.ErrNotAvailable
+		resp.Error = apiproto.ErrNotAvailable
 		return resp
 	}
 
 	presence, err := h.node.Presence(cmd.Channel)
 	if err != nil {
 		logger.ERROR.Printf("error calling presence: %v", err)
-		resp.Error = proto.ErrInternalServerError
+		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
 
@@ -433,25 +433,25 @@ func (h *Handler) History(ctx context.Context, cmd *apiproto.HistoryRequest) *ap
 	ch := cmd.Channel
 
 	if string(ch) == "" {
-		resp.Error = proto.ErrBadRequest
+		resp.Error = apiproto.ErrBadRequest
 		return resp
 	}
 
 	chOpts, ok := h.node.ChannelOpts(ch)
 	if !ok {
-		resp.Error = proto.ErrNamespaceNotFound
+		resp.Error = apiproto.ErrNamespaceNotFound
 		return resp
 	}
 
 	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
-		resp.Error = proto.ErrNotAvailable
+		resp.Error = apiproto.ErrNotAvailable
 		return resp
 	}
 
 	history, err := h.node.History(ch)
 	if err != nil {
 		logger.ERROR.Printf("error calling history: %v", err)
-		resp.Error = proto.ErrInternalServerError
+		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
 
@@ -469,7 +469,7 @@ func (h *Handler) Channels(ctx context.Context, cmd *apiproto.ChannelsRequest) *
 	channels, err := h.node.Channels()
 	if err != nil {
 		logger.ERROR.Printf("error calling channels: %v", err)
-		resp.Error = proto.ErrInternalServerError
+		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
 
@@ -487,7 +487,7 @@ func (h *Handler) Info(ctx context.Context, cmd *apiproto.InfoRequest) *apiproto
 	info, err := h.node.Info()
 	if err != nil {
 		logger.ERROR.Printf("error calling stats: %v", err)
-		resp.Error = proto.ErrInternalServerError
+		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
 

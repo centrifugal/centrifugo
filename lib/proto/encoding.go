@@ -1,4 +1,4 @@
-package client
+package proto
 
 import "sync"
 
@@ -11,6 +11,14 @@ const (
 	// EncodingProtobuf means protobuf protocol.
 	EncodingProtobuf Encoding = 1
 )
+
+// GetMessageEncoder ...
+func GetMessageEncoder(enc Encoding) MessageEncoder {
+	if enc == EncodingJSON {
+		return NewJSONMessageEncoder()
+	}
+	return NewProtobufMessageEncoder()
+}
 
 var (
 	jsonReplyEncoderPool     sync.Pool

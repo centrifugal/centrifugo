@@ -12,11 +12,11 @@ import (
 
 	"github.com/centrifugal/centrifugo/lib/api"
 	"github.com/centrifugal/centrifugo/lib/auth"
-	"github.com/centrifugal/centrifugo/lib/conns"
+	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
+	"github.com/centrifugal/centrifugo/lib/proto"
 	apiproto "github.com/centrifugal/centrifugo/lib/proto/api"
-	clientproto "github.com/centrifugal/centrifugo/lib/proto/client"
 
 	"github.com/gorilla/websocket"
 	"github.com/igm/sockjs-go/sockjs"
@@ -146,7 +146,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 	// Separate goroutine for better GC of caller's data.
 	go func() {
 		session := newSockjsSession(sess)
-		c := conns.New(sess.Request().Context(), s.node, session, clientproto.EncodingJSON)
+		c := client.New(sess.Request().Context(), s.node, session, proto.EncodingJSON)
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {
@@ -217,10 +217,10 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 		conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	}
 
-	var enc = clientproto.EncodingJSON
+	var enc = proto.EncodingJSON
 	format := r.URL.Query().Get("format")
 	if format == "protobuf" {
-		enc = clientproto.EncodingProtobuf
+		enc = proto.EncodingProtobuf
 	}
 
 	// Separate goroutine for better GC of caller's data.
@@ -231,7 +231,7 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			compressionMinSize: wsCompressionMinSize,
 		}
 		session := newWSSession(conn, opts)
-		c := conns.New(r.Context(), s.node, session, enc)
+		c := client.New(r.Context(), s.node, session, enc)
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {

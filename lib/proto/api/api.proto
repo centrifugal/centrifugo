@@ -5,12 +5,16 @@ syntax = "proto3";
 package api;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-import "github.com/centrifugal/centrifugo/lib/proto/error.proto";
-import "github.com/centrifugal/centrifugo/lib/proto/message.proto";
+import "github.com/centrifugal/centrifugo/lib/proto/client.proto";
 
 option (gogoproto.equal_all) = true;
 option (gogoproto.populate_all) = true;
 option (gogoproto.testgen_all) = true;
+
+message Error {
+    uint32 Code = 1 [(gogoproto.jsontag) = "code"];
+    string Message = 2 [(gogoproto.jsontag) = "message"];
+}
 
 message Command {
     uint64 ID = 1 [(gogoproto.jsontag) = "id"];
@@ -20,7 +24,7 @@ message Command {
 
 message Reply {
     uint64 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
-    proto.Error Error = 2 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 2 [(gogoproto.jsontag) = "error,omitempty"];
     bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "result,omitempty", (gogoproto.nullable) = false];
 }
 
@@ -30,7 +34,7 @@ message PublishRequest {
 }
 
 message PublishResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     PublishResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -42,7 +46,7 @@ message BroadcastRequest {
 }
 
 message BroadcastResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     BroadcastResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -54,7 +58,7 @@ message UnsubscribeRequest {
 }
 
 message UnsubscribeResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     UnsubscribeResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -65,7 +69,7 @@ message DisconnectRequest {
 }
 
 message DisconnectResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     DisconnectResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -76,7 +80,7 @@ message PresenceRequest {
 }
 
 message PresenceResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     PresenceResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -89,7 +93,7 @@ message PresenceStatsRequest {
 }
 
 message PresenceStatsResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     PresenceStatsResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -103,7 +107,7 @@ message HistoryRequest {
 }
 
 message HistoryResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     HistoryResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -114,7 +118,7 @@ message HistoryResult {
 message ChannelsRequest {}
 
 message ChannelsResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     ChannelsResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -125,7 +129,7 @@ message ChannelsResult {
 message InfoRequest {}
 
 message InfoResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     InfoResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 

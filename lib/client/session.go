@@ -1,4 +1,4 @@
-package conns
+package client
 
 import (
 	"github.com/centrifugal/centrifugo/lib/proto"

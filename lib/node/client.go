@@ -2,14 +2,13 @@ package node
 
 import (
 	"github.com/centrifugal/centrifugo/lib/proto"
-	clientproto "github.com/centrifugal/centrifugo/lib/proto/client"
 )
 
 // Client is an interface abstracting all methods used
 // by application to interact with client connection.
 type Client interface {
 	// Encoding returns connection protocol encoding.
-	Encoding() clientproto.Encoding
+	Encoding() proto.Encoding
 	// UID returns unique connection id.
 	UID() string
 	// User return user ID associated with connection.

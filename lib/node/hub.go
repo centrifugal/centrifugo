@@ -3,8 +3,6 @@ package node
 import (
 	"sync"
 
-	"github.com/centrifugal/centrifugo/lib/proto/client"
-
 	"github.com/centrifugal/centrifugo/lib/proto"
 )
 
@@ -38,22 +36,14 @@ type clientHub struct {
 
 	// registry to hold active subscriptions of clients on channels.
 	subs map[string]map[string]struct{}
-
-	// jsonMessageEncoder encodes client messages in JSON.
-	jsonMessageEncoder proto.MessageEncoder
-
-	// protobufMessageEncoder encodes client messages in Protobuf.
-	protobufMessageEncoder proto.MessageEncoder
 }
 
 // NewHub initializes clientHub.
 func NewHub() Hub {
 	return &clientHub{
-		conns:                  make(map[string]Client),
-		users:                  make(map[string]map[string]struct{}),
-		subs:                   make(map[string]map[string]struct{}),
-		jsonMessageEncoder:     proto.NewJSONMessageEncoder(),
-		protobufMessageEncoder: proto.NewProtobufMessageEncoder(),
+		conns: make(map[string]Client),
+		users: make(map[string]map[string]struct{}),
+		subs:  make(map[string]map[string]struct{}),
 	}
 }
 
@@ -232,42 +222,42 @@ func (h *clientHub) BroadcastPublication(channel string, publication *proto.Publ
 			continue
 		}
 		enc := c.Encoding()
-		if enc == client.EncodingJSON {
+		if enc == proto.EncodingJSON {
 			if jsonData == nil {
-				data, err := h.jsonMessageEncoder.EncodePublication(publication)
+				data, err := proto.GetMessageEncoder(enc).EncodePublication(publication)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := h.jsonMessageEncoder.Encode(proto.NewPublicationMessage(channel, data))
+				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewPublicationMessage(channel, data))
 				if err != nil {
 					return err
 				}
-				encoder := client.GetReplyEncoder(enc)
-				reply := &client.Reply{
+				encoder := proto.GetReplyEncoder(enc)
+				reply := &proto.Reply{
 					Result: messageBytes,
 				}
 				encoder.Encode(reply)
 				jsonData = encoder.Finish()
-				client.PutReplyEncoder(enc, encoder)
+				proto.PutReplyEncoder(enc, encoder)
 			}
 			c.Send(jsonData)
-		} else if enc == client.EncodingProtobuf {
+		} else if enc == proto.EncodingProtobuf {
 			if protobufData == nil {
-				data, err := h.protobufMessageEncoder.EncodePublication(publication)
+				data, err := proto.GetMessageEncoder(enc).EncodePublication(publication)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := h.protobufMessageEncoder.Encode(proto.NewPublicationMessage(channel, data))
+				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewPublicationMessage(channel, data))
 				if err != nil {
 					return err
 				}
-				encoder := client.GetReplyEncoder(enc)
-				reply := &client.Reply{
+				encoder := proto.GetReplyEncoder(enc)
+				reply := &proto.Reply{
 					Result: messageBytes,
 				}
 				encoder.Encode(reply)
 				protobufData = encoder.Finish()
-				client.PutReplyEncoder(enc, encoder)
+				proto.PutReplyEncoder(enc, encoder)
 			}
 			c.Send(protobufData)
 		}
@@ -296,42 +286,42 @@ func (h *clientHub) BroadcastJoin(channel string, join *proto.Join) error {
 			continue
 		}
 		enc := c.Encoding()
-		if enc == client.EncodingJSON {
+		if enc == proto.EncodingJSON {
 			if jsonData == nil {
-				data, err := h.jsonMessageEncoder.EncodeJoin(join)
+				data, err := proto.GetMessageEncoder(enc).EncodeJoin(join)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := h.jsonMessageEncoder.Encode(proto.NewJoinMessage(channel, data))
+				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewJoinMessage(channel, data))
 				if err != nil {
 					return err
 				}
-				encoder := client.GetReplyEncoder(enc)
-				reply := &client.Reply{
+				encoder := proto.GetReplyEncoder(enc)
+				reply := &proto.Reply{
 					Result: messageBytes,
 				}
 				encoder.Encode(reply)
 				jsonData = encoder.Finish()
-				client.PutReplyEncoder(enc, encoder)
+				proto.PutReplyEncoder(enc, encoder)
 			}
 			c.Send(jsonData)
-		} else if enc == client.EncodingProtobuf {
+		} else if enc == proto.EncodingProtobuf {
 			if protobufData == nil {
-				data, err := h.protobufMessageEncoder.EncodeJoin(join)
+				data, err := proto.GetMessageEncoder(enc).EncodeJoin(join)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := h.protobufMessageEncoder.Encode(proto.NewJoinMessage(channel, data))
+				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewJoinMessage(channel, data))
 				if err != nil {
 					return err
 				}
-				encoder := client.GetReplyEncoder(enc)
-				reply := &client.Reply{
+				encoder := proto.GetReplyEncoder(enc)
+				reply := &proto.Reply{
 					Result: messageBytes,
 				}
 				encoder.Encode(reply)
 				protobufData = encoder.Finish()
-				client.PutReplyEncoder(enc, encoder)
+				proto.PutReplyEncoder(enc, encoder)
 			}
 			c.Send(protobufData)
 		}
@@ -360,42 +350,42 @@ func (h *clientHub) BroadcastLeave(channel string, leave *proto.Leave) error {
 			continue
 		}
 		enc := c.Encoding()
-		if enc == client.EncodingJSON {
+		if enc == proto.EncodingJSON {
 			if jsonData == nil {
-				data, err := h.jsonMessageEncoder.EncodeLeave(leave)
+				data, err := proto.GetMessageEncoder(enc).EncodeLeave(leave)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := h.jsonMessageEncoder.Encode(proto.NewLeaveMessage(channel, data))
+				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewLeaveMessage(channel, data))
 				if err != nil {
 					return err
 				}
-				encoder := client.GetReplyEncoder(enc)
-				reply := &client.Reply{
+				encoder := proto.GetReplyEncoder(enc)
+				reply := &proto.Reply{
 					Result: messageBytes,
 				}
 				encoder.Encode(reply)
 				jsonData = encoder.Finish()
-				client.PutReplyEncoder(enc, encoder)
+				proto.PutReplyEncoder(enc, encoder)
 			}
 			c.Send(jsonData)
-		} else if enc == client.EncodingProtobuf {
+		} else if enc == proto.EncodingProtobuf {
 			if protobufData == nil {
-				data, err := h.protobufMessageEncoder.EncodeLeave(leave)
+				data, err := proto.GetMessageEncoder(enc).EncodeLeave(leave)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := h.protobufMessageEncoder.Encode(proto.NewLeaveMessage(channel, data))
+				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewLeaveMessage(channel, data))
 				if err != nil {
 					return err
 				}
-				encoder := client.GetReplyEncoder(enc)
-				reply := &client.Reply{
+				encoder := proto.GetReplyEncoder(enc)
+				reply := &proto.Reply{
 					Result: messageBytes,
 				}
 				encoder.Encode(reply)
 				protobufData = encoder.Finish()
-				client.PutReplyEncoder(enc, encoder)
+				proto.PutReplyEncoder(enc, encoder)
 			}
 			c.Send(protobufData)
 		}
