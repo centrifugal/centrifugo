@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/centrifugal/centrifugo/lib/channel"
-	"github.com/centrifugal/centrifugo/lib/conns"
+	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/engine/enginememory"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
@@ -22,7 +22,7 @@ func authMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Our middleware logic goes here...
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, server.CredentialsKey, &conns.Credentials{UserID: "42"})
+		ctx = context.WithValue(ctx, client.CredentialsContextKey, &client.Credentials{UserID: "42"})
 		r = r.WithContext(ctx)
 		h.ServeHTTP(w, r)
 	})
@@ -46,8 +46,8 @@ func main() {
 	handleRPC := func(ctx context.Context, req *rpc.Request) (*rpc.Response, *proto.Disconnect) {
 
 		var userID string
-		value := ctx.Value(server.CredentialsKey)
-		credentials, ok := value.(*conns.Credentials)
+		value := ctx.Value(client.CredentialsContextKey)
+		credentials, ok := value.(*client.Credentials)
 		if ok {
 			userID = credentials.UserID
 		}
