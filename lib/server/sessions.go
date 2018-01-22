@@ -31,6 +31,10 @@ func newSockjsSession(s sockjs.Session) *sockjsSession {
 	}
 }
 
+func (s *sockjsSession) Name() string {
+	return "sockjs"
+}
+
 func (s *sockjsSession) Send(msg []byte) error {
 	select {
 	case <-s.closeCh:
@@ -59,8 +63,9 @@ func (s *sockjsSession) Close(advice *proto.Disconnect) error {
 	return s.session.Close(CloseStatus, string(reason))
 }
 
-// wsConn is an interface to mimic gorilla/websocket methods we use in Centrifugo.
-// Needed only to simplify wsConn struct tests. Description can be found in gorilla websocket docs:
+// wsConn is an interface to mimic gorilla/websocket methods we use
+// in Centrifugo. Needed only to simplify wsConn struct tests.
+// Description can be found in gorilla websocket docs:
 // https://godoc.org/github.com/gorilla/websocket.
 type wsConn interface {
 	ReadMessage() (messageType int, p []byte, err error)
@@ -124,6 +129,10 @@ func (s *wsSession) addPing() {
 	}
 	s.pingTimer = time.AfterFunc(s.opts.pingInterval, s.ping)
 	s.mu.Unlock()
+}
+
+func (s *wsSession) Name() string {
+	return "websocket"
 }
 
 func (s *wsSession) Send(msg []byte) error {

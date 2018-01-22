@@ -12,9 +12,9 @@ import (
 	"github.com/centrifugal/centrifugo/lib/channel"
 	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/engine/enginememory"
+	"github.com/centrifugal/centrifugo/lib/events"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/rpc"
 	"github.com/centrifugal/centrifugo/lib/server"
 )
 
@@ -43,7 +43,7 @@ func main() {
 	}
 	n := node.New(nodeConfig)
 
-	handleRPC := func(ctx context.Context, req *rpc.Request) (*rpc.Response, *proto.Disconnect) {
+	handleRPC := func(ctx context.Context, req *events.RPCContext) (*events.RPCReply, error) {
 
 		var userID string
 		value := ctx.Value(client.CredentialsContextKey)
@@ -62,13 +62,16 @@ func main() {
 			}
 		}()
 
-		return &rpc.Response{
-			Error:  nil,
+		return &events.RPCReply{
 			Result: result,
-		}, &proto.Disconnect{Reason: "go away", Reconnect: false}
+		}, nil
 	}
 
-	n.SetRPCHandler(handleRPC)
+	mediator := &events.Mediator{
+		RPCHandler: handleRPC,
+	}
+
+	n.SetMediator(mediator)
 
 	e, err := enginememory.New(n, &enginememory.Config{})
 	if err != nil {

@@ -12,7 +12,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/lib/api"
 	"github.com/centrifugal/centrifugo/lib/auth"
-	"github.com/centrifugal/centrifugo/lib/client"
+	"github.com/centrifugal/centrifugo/lib/client/clientconn"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
@@ -146,13 +146,13 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 	// Separate goroutine for better GC of caller's data.
 	go func() {
 		session := newSockjsSession(sess)
-		c := client.New(sess.Request().Context(), s.node, session, proto.EncodingJSON)
+		c := clientconn.New(sess.Request().Context(), s.node, session, proto.EncodingJSON)
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {
-			logger.DEBUG.Printf("New SockJS session established with uid %s\n", c.UID())
+			logger.DEBUG.Printf("New SockJS session established with client ID %s\n", c.ID())
 			defer func() {
-				logger.DEBUG.Printf("SockJS session with uid %s completed", c.UID())
+				logger.DEBUG.Printf("SockJS session with client ID %s completed", c.ID())
 			}()
 		}
 
@@ -231,13 +231,13 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			compressionMinSize: wsCompressionMinSize,
 		}
 		session := newWSSession(conn, opts)
-		c := client.New(r.Context(), s.node, session, enc)
+		c := clientconn.New(r.Context(), s.node, session, enc)
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {
-			logger.DEBUG.Printf("New raw websocket session established with uid %s\n", c.UID())
+			logger.DEBUG.Printf("New raw websocket session established with client ID %s\n", c.ID())
 			defer func() {
-				logger.DEBUG.Printf("Raw websocket session with uid %s completed", c.UID())
+				logger.DEBUG.Printf("Raw websocket session with client ID %s completed", c.ID())
 			}()
 		}
 

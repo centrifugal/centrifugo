@@ -75,7 +75,7 @@ message ConnectRequest {
 }
 
 message ConnectResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     ConnectResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -96,7 +96,7 @@ message RefreshRequest {
 }
 
 message RefreshResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     RefreshResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -119,7 +119,7 @@ message SubscribeRequest {
 }
 
 message SubscribeResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     SubscribeResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -134,7 +134,7 @@ message UnsubscribeRequest {
 }
 
 message UnsubscribeResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     UnsubscribeResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -146,7 +146,7 @@ message PublishRequest {
 }
 
 message PublishResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     PublishResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -157,7 +157,7 @@ message PresenceRequest {
 }
 
 message PresenceResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     PresenceResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -170,7 +170,7 @@ message PresenceStatsRequest {
 }
 
 message PresenceStatsResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     PresenceStatsResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -184,7 +184,7 @@ message HistoryRequest {
 }
 
 message HistoryResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     HistoryResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
@@ -197,7 +197,7 @@ message PingRequest {
 }
 
 message PingResponse {
-    proto.Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
     PingResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 

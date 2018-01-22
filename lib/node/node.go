@@ -8,13 +8,14 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/lib/channel"
+	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/engine"
+	"github.com/centrifugal/centrifugo/lib/events"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/api"
 	"github.com/centrifugal/centrifugo/lib/proto/control"
-	"github.com/centrifugal/centrifugo/lib/rpc"
 	"github.com/nats-io/nuid"
 
 	"github.com/satori/go.uuid"
@@ -75,7 +76,7 @@ type Node struct {
 	// controlDecoder is decoder to decode control messages coming from engine.
 	controlDecoder control.Decoder
 
-	rpcHandler rpc.Handler
+	mediator *events.Mediator
 }
 
 // global metrics registry pointing to the same Registry plugin package uses.
@@ -165,14 +166,14 @@ func (n *Node) SetConfig(c *Config) {
 	n.config = c
 }
 
-// SetRPCHandler binds config to node.
-func (n *Node) SetRPCHandler(h rpc.Handler) {
-	n.rpcHandler = h
+// SetMediator binds mediator to node.
+func (n *Node) SetMediator(m *events.Mediator) {
+	n.mediator = m
 }
 
-// RPCHandler binds config to node.
-func (n *Node) RPCHandler() rpc.Handler {
-	return n.rpcHandler
+// Mediator binds config to node.
+func (n *Node) Mediator() *events.Mediator {
+	return n.mediator
 }
 
 // Version returns version of node.
@@ -634,20 +635,20 @@ func (n *Node) pubDisconnect(user string, reconnect bool) error {
 
 // AddClient registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand.
-func (n *Node) AddClient(c Client) error {
+func (n *Node) AddClient(c client.Conn) error {
 	metricsRegistry.Counters.Inc("node_num_add_client_conn")
 	return n.hub.Add(c)
 }
 
 // RemoveClient removes client connection from connection registry.
-func (n *Node) RemoveClient(c Client) error {
+func (n *Node) RemoveClient(c client.Conn) error {
 	metricsRegistry.Counters.Inc("node_num_remove_client_conn")
 	return n.hub.Remove(c)
 }
 
 // AddSubscription registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
-func (n *Node) AddSubscription(ch string, c Client) error {
+func (n *Node) AddSubscription(ch string, c client.Conn) error {
 	metricsRegistry.Counters.Inc("node_num_add_client_sub")
 	first, err := n.hub.AddSub(ch, c)
 	if err != nil {
@@ -661,7 +662,7 @@ func (n *Node) AddSubscription(ch string, c Client) error {
 
 // RemoveSubscription removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
-func (n *Node) RemoveSubscription(ch string, c Client) error {
+func (n *Node) RemoveSubscription(ch string, c client.Conn) error {
 	metricsRegistry.Counters.Inc("node_num_remove_client_sub")
 	empty, err := n.hub.RemoveSub(ch, c)
 	if err != nil {
@@ -755,7 +756,7 @@ func (n *Node) disconnectUser(user string, reconnect bool) error {
 	userConnections := n.hub.UserConnections(user)
 	advice := &proto.Disconnect{Reason: "disconnect", Reconnect: reconnect}
 	for _, c := range userConnections {
-		go func(cc Client) {
+		go func(cc client.Conn) {
 			cc.Close(advice)
 		}(c)
 	}

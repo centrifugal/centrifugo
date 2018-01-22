@@ -1,4 +1,4 @@
-package client
+package clientconn
 
 import (
 	"context"
@@ -9,12 +9,13 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/lib/auth"
+	"github.com/centrifugal/centrifugo/lib/client"
+	"github.com/centrifugal/centrifugo/lib/events"
 	"github.com/centrifugal/centrifugo/lib/internal/queue"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/rpc"
 
 	"github.com/satori/go.uuid"
 )
@@ -39,14 +40,14 @@ func init() {
 	metricsRegistry.RegisterHDRHistogram("client_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
 }
 
-// client represents client connection to Centrifugo - at moment
+// conn represents client connection to Centrifugo - at moment
 // this can be Websocket or SockJS connection. Transport of incoming
 // connection abstracted away via Session interface.
-type client struct {
+type conn struct {
 	mu             sync.RWMutex
 	ctx            context.Context
 	node           *node.Node
-	session        Session
+	session        client.Session
 	uid            string
 	user           string
 	timestamp      int64
@@ -68,14 +69,14 @@ type client struct {
 }
 
 // New creates new client connection.
-func New(ctx context.Context, n *node.Node, s Session, enc proto.Encoding) node.Client {
+func New(ctx context.Context, n *node.Node, s client.Session, enc proto.Encoding) client.Conn {
 	config := n.Config()
 	staleCloseDelay := config.StaleConnectionCloseDelay
 	queueInitialCapacity := config.ClientQueueInitialCapacity
 	maxQueueSize := config.ClientQueueMaxSize
 	maxRequestSize := config.ClientRequestMaxSize
 
-	c := client{
+	c := conn{
 		ctx:            ctx,
 		uid:            uuid.NewV4().String(),
 		node:           n,
@@ -98,7 +99,7 @@ func New(ctx context.Context, n *node.Node, s Session, enc proto.Encoding) node.
 }
 
 // sendMessages waits for messages from queue and sends them to client.
-func (c *client) sendMessages() {
+func (c *conn) sendMessages() {
 	defer close(c.sendFinished)
 	for {
 		msg, ok := c.messages.Wait()
@@ -125,7 +126,7 @@ func (c *client) sendMessages() {
 // closeUnauthenticated closes connection if it's not authenticated yet.
 // At moment used to close connections which have not sent valid connect command
 // in a reasonable time interval after actually connected to Centrifugo.
-func (c *client) closeUnauthenticated() {
+func (c *conn) closeUnauthenticated() {
 	c.mu.RLock()
 	authenticated := c.authenticated
 	closed := c.closed
@@ -137,7 +138,7 @@ func (c *client) closeUnauthenticated() {
 
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
-func (c *client) updateChannelPresence(ch string) {
+func (c *conn) updateChannelPresence(ch string) {
 	chOpts, ok := c.node.ChannelOpts(ch)
 	if !ok {
 		return
@@ -149,7 +150,7 @@ func (c *client) updateChannelPresence(ch string) {
 }
 
 // updatePresence updates presence info for all client channels
-func (c *client) updatePresence() {
+func (c *conn) updatePresence() {
 	c.mu.RLock()
 	if c.closed {
 		return
@@ -164,7 +165,7 @@ func (c *client) updatePresence() {
 }
 
 // Lock must be held outside.
-func (c *client) addPresenceUpdate() {
+func (c *conn) addPresenceUpdate() {
 	if c.closed {
 		return
 	}
@@ -175,21 +176,25 @@ func (c *client) addPresenceUpdate() {
 
 // No lock here as uid set on client initialization and can not be changed - we
 // only read this value after.
-func (c *client) UID() string {
+func (c *conn) ID() string {
 	return c.uid
 }
 
 // No lock here as User() can not be called before we set user value in connect command.
 // After this we only read this value.
-func (c *client) User() string {
+func (c *conn) UserID() string {
 	return c.user
 }
 
-func (c *client) Encoding() proto.Encoding {
+func (c *conn) Encoding() proto.Encoding {
 	return c.encoding
 }
 
-func (c *client) Channels() []string {
+func (c *conn) Transport() string {
+	return c.session.Name()
+}
+
+func (c *conn) Channels() []string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	keys := make([]string, len(c.channels))
@@ -201,7 +206,7 @@ func (c *client) Channels() []string {
 	return keys
 }
 
-func (c *client) Unsubscribe(ch string) error {
+func (c *conn) Unsubscribe(ch string) error {
 	c.mu.Lock()
 	if c.closed {
 		c.mu.Unlock()
@@ -217,7 +222,7 @@ func (c *client) Unsubscribe(ch string) error {
 	return nil
 }
 
-func (c *client) sendUnsubscribe(ch string) error {
+func (c *conn) sendUnsubscribe(ch string) error {
 	var messageEncoder proto.MessageEncoder
 	if c.Encoding() == proto.EncodingJSON {
 		messageEncoder = proto.NewJSONMessageEncoder()
@@ -242,7 +247,7 @@ func (c *client) sendUnsubscribe(ch string) error {
 	return nil
 }
 
-func (c *client) enqueue(data []byte) error {
+func (c *conn) enqueue(data []byte) error {
 	ok := c.messages.Add(data)
 	if !ok {
 		return nil
@@ -256,13 +261,13 @@ func (c *client) enqueue(data []byte) error {
 	return nil
 }
 
-func (c *client) Send(data []byte) error {
+func (c *conn) Send(data []byte) error {
 	return c.enqueue(data)
 }
 
 // clean called when connection was closed to make different clean up
 // actions for a client
-func (c *client) Close(advice *proto.Disconnect) error {
+func (c *conn) Close(advice *proto.Disconnect) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -313,7 +318,7 @@ func (c *client) Close(advice *proto.Disconnect) error {
 	return nil
 }
 
-func (c *client) info(ch string) *proto.ClientInfo {
+func (c *conn) info(ch string) *proto.ClientInfo {
 	connInfo := c.connInfo
 	channelInfo, _ := c.channelInfo[ch]
 	return &proto.ClientInfo{
@@ -324,7 +329,7 @@ func (c *client) info(ch string) *proto.ClientInfo {
 	}
 }
 
-func (c *client) Handle(data []byte) error {
+func (c *conn) Handle(data []byte) error {
 	started := time.Now()
 	defer func() {
 		metrics.DefaultRegistry.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
@@ -375,7 +380,7 @@ func (c *client) Handle(data []byte) error {
 }
 
 // handleCmd dispatches clientCommand into correct command handler
-func (c *client) handleCmd(command *proto.Command) (*proto.Reply, *proto.Disconnect) {
+func (c *conn) handleCmd(command *proto.Command) (*proto.Reply, *proto.Disconnect) {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -415,15 +420,16 @@ func (c *client) handleCmd(command *proto.Command) (*proto.Reply, *proto.Disconn
 		case "ping":
 			replyRes, replyErr, disconnect = c.handlePing(params)
 		default:
-			handler := c.node.RPCHandler()
-			if handler != nil {
-				var rpcResponse *rpc.Response
-				rpcResponse, disconnect = handler(c.ctx, &rpc.Request{
+			mediator := c.node.Mediator()
+			if mediator != nil && mediator.RPCHandler != nil {
+				rpcReply, err := mediator.RPCHandler(c.ctx, &events.RPCContext{
 					Method: method,
 					Params: params,
 				})
-				replyRes = rpcResponse.Result
-				replyErr = rpcResponse.Error
+				if err != nil {
+					replyRes = rpcReply.Result
+					replyErr = rpcReply.Error
+				}
 			} else {
 				replyRes, replyErr = nil, proto.ErrMethodNotFound
 			}
@@ -445,7 +451,7 @@ func (c *client) handleCmd(command *proto.Command) (*proto.Reply, *proto.Disconn
 	return rep, nil
 }
 
-func (c *client) expire() {
+func (c *conn) expire() {
 	config := c.node.Config()
 	connLifetime := config.ConnLifetime
 
@@ -465,7 +471,7 @@ func (c *client) expire() {
 	return
 }
 
-func (c *client) handleConnect(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
+func (c *conn) handleConnect(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodeConnect(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding connect: %v", err)
@@ -486,7 +492,7 @@ func (c *client) handleConnect(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	return replyRes, nil, nil
 }
 
-func (c *client) handleRefresh(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
+func (c *conn) handleRefresh(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodeRefresh(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding refresh: %v", err)
@@ -507,7 +513,7 @@ func (c *client) handleRefresh(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	return replyRes, nil, nil
 }
 
-func (c *client) handleSubscribe(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
+func (c *conn) handleSubscribe(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodeSubscribe(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding subscribe: %v", err)
@@ -528,7 +534,7 @@ func (c *client) handleSubscribe(params proto.Raw) (proto.Raw, *proto.Error, *pr
 	return replyRes, nil, nil
 }
 
-func (c *client) handleUnsubscribe(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
+func (c *conn) handleUnsubscribe(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodeUnsubscribe(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding unsubscribe: %v", err)
@@ -549,7 +555,7 @@ func (c *client) handleUnsubscribe(params proto.Raw) (proto.Raw, *proto.Error, *
 	return replyRes, nil, nil
 }
 
-func (c *client) handlePublish(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
+func (c *conn) handlePublish(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodePublish(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding publish: %v", err)
@@ -570,7 +576,7 @@ func (c *client) handlePublish(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	return replyRes, nil, nil
 }
 
-func (c *client) handlePresence(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
+func (c *conn) handlePresence(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodePresence(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding presence: %v", err)
@@ -591,7 +597,7 @@ func (c *client) handlePresence(params proto.Raw) (proto.Raw, *proto.Error, *pro
 	return replyRes, nil, nil
 }
 
-func (c *client) handlePresenceStats(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
+func (c *conn) handlePresenceStats(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodePresenceStats(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding presence stats: %v", err)
@@ -612,7 +618,7 @@ func (c *client) handlePresenceStats(params proto.Raw) (proto.Raw, *proto.Error,
 	return replyRes, nil, nil
 }
 
-func (c *client) handleHistory(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
+func (c *conn) handleHistory(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodeHistory(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding history: %v", err)
@@ -633,7 +639,7 @@ func (c *client) handleHistory(params proto.Raw) (proto.Raw, *proto.Error, *prot
 	return replyRes, nil, nil
 }
 
-func (c *client) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
+func (c *conn) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodePing(params)
 	if err != nil {
 		logger.ERROR.Printf("error decoding ping: %v", err)
@@ -657,7 +663,7 @@ func (c *client) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *proto.D
 // connectCmd handles connect command from client - client must send this
 // command immediately after establishing Websocket or SockJS connection with
 // Centrifugo
-func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, *proto.Disconnect) {
+func (c *conn) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, *proto.Disconnect) {
 
 	metrics.DefaultRegistry.Counters.Inc("client_num_connect")
 
@@ -677,9 +683,9 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 	version := c.node.Version()
 	userConnectionLimit := config.UserConnectionLimit
 
-	var credentials *Credentials
-	if val := c.ctx.Value(CredentialsContextKey); val != nil {
-		if creds, ok := val.(*Credentials); ok {
+	var credentials *client.Credentials
+	if val := c.ctx.Value(client.CredentialsContextKey); val != nil {
+		if creds, ok := val.(*client.Credentials); ok {
 			credentials = creds
 		}
 	}
@@ -790,7 +796,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 
 // refreshCmd handle refresh command to update connection with new
 // timestamp - this is only required when connection lifetime option set.
-func (c *client) refreshCmd(cmd *proto.RefreshRequest) (*proto.RefreshResponse, *proto.Disconnect) {
+func (c *conn) refreshCmd(cmd *proto.RefreshRequest) (*proto.RefreshResponse, *proto.Disconnect) {
 
 	resp := &proto.RefreshResponse{}
 
@@ -883,7 +889,7 @@ func recoverMessages(last string, messages []*proto.Publication) ([]*proto.Publi
 // on channel, if channel if private then we must validate provided sign here before
 // actually subscribe client on channel. Optionally we can send missed messages to
 // client if it provided last message id seen in channel.
-func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResponse, *proto.Disconnect) {
+func (c *conn) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResponse, *proto.Disconnect) {
 
 	metrics.DefaultRegistry.Counters.Inc("client_num_subscribe")
 
@@ -922,7 +928,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 	}
 
 	if !c.node.UserAllowed(channel, c.user) || !c.node.ClientAllowed(channel, c.uid) {
-		logger.ERROR.Printf("user %s not allowed to subscribe on channel %s", c.User(), channel)
+		logger.ERROR.Printf("user %s not allowed to subscribe on channel %s", c.user, channel)
 		resp.Error = proto.ErrPermissionDenied
 		return resp, nil
 	}
@@ -1008,7 +1014,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 	return resp, nil
 }
 
-func (c *client) unsubscribe(channel string) error {
+func (c *conn) unsubscribe(channel string) error {
 	chOpts, ok := c.node.ChannelOpts(channel)
 	if !ok {
 		return proto.ErrNamespaceNotFound
@@ -1045,7 +1051,7 @@ func (c *client) unsubscribe(channel string) error {
 
 // unsubscribeCmd handles unsubscribe command from client - it allows to
 // unsubscribe connection from channel
-func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeRequest) (*proto.UnsubscribeResponse, *proto.Disconnect) {
+func (c *conn) unsubscribeCmd(cmd *proto.UnsubscribeRequest) (*proto.UnsubscribeResponse, *proto.Disconnect) {
 
 	channel := cmd.Channel
 	if channel == "" {
@@ -1068,7 +1074,7 @@ func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeRequest) (*proto.Unsubscri
 // channels themselves if `publish` allowed by channel options. In most cases clients not
 // allowed to publish into channels directly - web application publishes messages
 // itself via HTTP API or Redis.
-func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, *proto.Disconnect) {
+func (c *conn) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, *proto.Disconnect) {
 
 	ch := cmd.Channel
 	data := cmd.Data
@@ -1122,7 +1128,7 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 // are subscribed on channel at this moment. This method also checks if
 // presence information turned on for channel (based on channel options
 // for namespace or project)
-func (c *client) presenceCmd(cmd *proto.PresenceRequest) (*proto.PresenceResponse, *proto.Disconnect) {
+func (c *conn) presenceCmd(cmd *proto.PresenceRequest) (*proto.PresenceResponse, *proto.Disconnect) {
 
 	ch := cmd.Channel
 
@@ -1163,7 +1169,7 @@ func (c *client) presenceCmd(cmd *proto.PresenceRequest) (*proto.PresenceRespons
 }
 
 // presenceStatsCmd ...
-func (c *client) presenceStatsCmd(cmd *proto.PresenceStatsRequest) (*proto.PresenceStatsResponse, *proto.Disconnect) {
+func (c *conn) presenceStatsCmd(cmd *proto.PresenceStatsRequest) (*proto.PresenceStatsResponse, *proto.Disconnect) {
 
 	ch := cmd.Channel
 
@@ -1220,7 +1226,7 @@ func (c *client) presenceStatsCmd(cmd *proto.PresenceStatsRequest) (*proto.Prese
 // into channel. M is history size and can be configured for project or namespace
 // via channel options. Also this method checks that history available for channel
 // (also determined by channel options flag).
-func (c *client) historyCmd(cmd *proto.HistoryRequest) (*proto.HistoryResponse, *proto.Disconnect) {
+func (c *conn) historyCmd(cmd *proto.HistoryRequest) (*proto.HistoryResponse, *proto.Disconnect) {
 
 	ch := cmd.Channel
 
@@ -1261,7 +1267,7 @@ func (c *client) historyCmd(cmd *proto.HistoryRequest) (*proto.HistoryResponse, 
 }
 
 // pingCmd handles ping command from client.
-func (c *client) pingCmd(cmd *proto.PingRequest) (*proto.PingResponse, *proto.Disconnect) {
+func (c *conn) pingCmd(cmd *proto.PingRequest) (*proto.PingResponse, *proto.Disconnect) {
 	var res *proto.PingResult
 	if cmd.Data != "" {
 		res = &proto.PingResult{

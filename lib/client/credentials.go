@@ -17,4 +17,4 @@ type Credentials struct {
 type credentialsContextKeyType int
 
 // CredentialsContextKey ...
-var CredentialsContextKey credentialsContextKeyType = 1
+var CredentialsContextKey credentialsContextKeyType
