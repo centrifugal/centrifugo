@@ -47,7 +47,7 @@ type client struct {
 	mu             sync.RWMutex
 	ctx            context.Context
 	node           *node.Node
-	session        Session
+	transport      Transport
 	authenticated  bool
 	uid            string
 	user           string
@@ -69,7 +69,7 @@ type client struct {
 }
 
 // New creates new client connection.
-func New(ctx context.Context, n *node.Node, s Session, conf Config) conns.Client {
+func New(ctx context.Context, n *node.Node, t Transport, conf Config) conns.Client {
 
 	config := n.Config()
 	staleCloseDelay := config.ClientStaleCloseDelay
@@ -81,7 +81,7 @@ func New(ctx context.Context, n *node.Node, s Session, conf Config) conns.Client
 		ctx:            ctx,
 		uid:            uuid.NewV4().String(),
 		node:           n,
-		session:        s,
+		transport:      t,
 		messages:       queue.New(queueInitialCapacity),
 		closeCh:        make(chan struct{}),
 		sendFinished:   make(chan struct{}),
@@ -113,7 +113,7 @@ func (c *client) sendMessages() {
 		// Write timeout must be implemented inside session Send method.
 		// Slow client connections will be closed eventually anyway after
 		// exceeding client max queue size.
-		err := c.session.Send(msg)
+		err := c.transport.Send(msg)
 		if err != nil {
 			// Close in goroutine to let this function return.
 			go c.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
@@ -191,8 +191,8 @@ func (c *client) Encoding() proto.Encoding {
 	return c.encoding
 }
 
-func (c *client) Transport() string {
-	return c.session.Name()
+func (c *client) TransportName() string {
+	return c.transport.Name()
 }
 
 func (c *client) Channels() []string {
@@ -314,7 +314,7 @@ func (c *client) Close(advice *proto.Disconnect) error {
 		logger.DEBUG.Printf("Closing connection %s (user %s): %s", c.uid, c.user, advice.Reason)
 	}
 
-	c.session.Close(advice)
+	c.transport.Close(advice)
 
 	return nil
 }
@@ -730,20 +730,20 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 		if len(info) > 0 {
 			c.connInfo = proto.Raw(info)
 		}
-
-		if clientExpire && !insecure {
-			ttl = uint32(c.exp - time.Now().Unix())
-			if ttl <= 0 {
-				expired = true
-				ttl = 0
-			}
-		}
 	}
 
 	if userConnectionLimit > 0 && c.user != "" && len(c.node.Hub().UserConnections(c.user)) >= userConnectionLimit {
 		logger.ERROR.Printf("limit of connections %d for user %s reached", userConnectionLimit, c.user)
 		resp.Error = proto.ErrLimitExceeded
 		return resp, nil
+	}
+
+	if clientExpire && !insecure {
+		ttl = uint32(c.exp - time.Now().Unix())
+		if ttl <= 0 {
+			expired = true
+			ttl = 0
+		}
 	}
 
 	res := &proto.ConnectResult{
@@ -755,7 +755,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 
 	resp.Result = res
 
-	if res.Expired {
+	if expired {
 		// Can't authenticate client with expired credentials.
 		return resp, nil
 	}

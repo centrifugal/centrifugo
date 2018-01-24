@@ -21,8 +21,8 @@ type ClientInspector interface {
 	UserID() string
 	// Channels returns a slice of channels connection subscribed to at moment.
 	Channels() []string
-	// Transport returns name of transport used.
-	Transport() string
+	// TransportName returns name of transport used.
+	TransportName() string
 }
 
 // ClientExecutor represents functions to control client connection.

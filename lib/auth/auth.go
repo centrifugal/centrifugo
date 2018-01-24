@@ -17,11 +17,11 @@ const (
 )
 
 // GenerateClientSign generates client connection sign based on secret key
-// and provided connection parameters such as user ID, time, info and opts.
-func GenerateClientSign(secret, user, time, info, opts string) string {
+// and provided connection parameters such as user ID, exp, info and opts.
+func GenerateClientSign(secret, user, exp, info, opts string) string {
 	token := hmac.New(sha256.New, []byte(secret))
 	token.Write([]byte(user))
-	token.Write([]byte(time))
+	token.Write([]byte(exp))
 	token.Write([]byte(info))
 	token.Write([]byte(opts))
 	return hex.EncodeToString(token.Sum(nil))
@@ -29,11 +29,11 @@ func GenerateClientSign(secret, user, time, info, opts string) string {
 
 // CheckClientSign validates correctness of sign provided by client connection
 // comparing it with generated correct one.
-func CheckClientSign(secret, user, time, info, opts, providedToken string) bool {
+func CheckClientSign(secret, user, exp, info, opts, providedToken string) bool {
 	if len(providedToken) != HMACLength {
 		return false
 	}
-	token := GenerateClientSign(secret, user, time, info, opts)
+	token := GenerateClientSign(secret, user, exp, info, opts)
 	return hmac.Equal([]byte(token), []byte(providedToken))
 }
 
