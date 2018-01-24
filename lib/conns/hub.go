@@ -1,18 +1,17 @@
-package node
+package conns
 
 import (
 	"sync"
 
-	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/proto"
 )
 
 // Hub is an interface describing current client connections to node.
 type Hub interface {
-	Add(c client.Conn) error
-	Remove(c client.Conn) error
-	AddSub(ch string, c client.Conn) (bool, error)
-	RemoveSub(ch string, c client.Conn) (bool, error)
+	Add(c Client) error
+	Remove(c Client) error
+	AddSub(ch string, c Client) (bool, error)
+	RemoveSub(ch string, c Client) (bool, error)
 	BroadcastPublication(ch string, publication *proto.Publication) error
 	BroadcastJoin(ch string, join *proto.Join) error
 	BroadcastLeave(ch string, leave *proto.Leave) error
@@ -21,7 +20,9 @@ type Hub interface {
 	NumUniqueClients() int
 	NumChannels() int
 	Channels() []string
-	UserConnections(user string) map[string]client.Conn
+	UserConnections(user string) map[string]Client
+	Unsubscribe(user string, channel string) error
+	Disconnect(user string, reconnect bool) error
 	Shutdown() error
 }
 
@@ -30,7 +31,7 @@ type clientHub struct {
 	sync.RWMutex
 
 	// match ConnID with actual client connection.
-	conns map[string]client.Conn
+	conns map[string]Client
 
 	// registry to hold active client connections grouped by user.
 	users map[string]map[string]struct{}
@@ -42,7 +43,7 @@ type clientHub struct {
 // NewHub initializes clientHub.
 func NewHub() Hub {
 	return &clientHub{
-		conns: make(map[string]client.Conn),
+		conns: make(map[string]Client),
 		users: make(map[string]map[string]struct{}),
 		subs:  make(map[string]map[string]struct{}),
 	}
@@ -70,7 +71,7 @@ func (h *clientHub) Shutdown() error {
 				continue
 			}
 			sem <- struct{}{}
-			go func(cc client.Conn) {
+			go func(cc Client) {
 				defer func() { <-sem }()
 				for _, ch := range cc.Channels() {
 					cc.Unsubscribe(ch)
@@ -85,8 +86,40 @@ func (h *clientHub) Shutdown() error {
 	return nil
 }
 
+func (h *clientHub) Disconnect(user string, reconnect bool) error {
+	userConnections := h.UserConnections(user)
+	advice := &proto.Disconnect{Reason: "disconnect", Reconnect: reconnect}
+	for _, c := range userConnections {
+		go func(cc Client) {
+			cc.Close(advice)
+		}(c)
+	}
+	return nil
+}
+
+func (h *clientHub) Unsubscribe(user string, ch string) error {
+	userConnections := h.UserConnections(user)
+	for _, c := range userConnections {
+		var channels []string
+		if string(ch) == "" {
+			// unsubscribe from all channels
+			channels = c.Channels()
+		} else {
+			channels = []string{ch}
+		}
+
+		for _, channel := range channels {
+			err := c.Unsubscribe(channel)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // Add adds connection into clientHub connections registry.
-func (h *clientHub) Add(c client.Conn) error {
+func (h *clientHub) Add(c Client) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -104,7 +137,7 @@ func (h *clientHub) Add(c client.Conn) error {
 }
 
 // Remove removes connection from clientHub connections registry.
-func (h *clientHub) Remove(c client.Conn) error {
+func (h *clientHub) Remove(c Client) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -133,17 +166,17 @@ func (h *clientHub) Remove(c client.Conn) error {
 }
 
 // userConnections returns all connections of user with specified UserID.
-func (h *clientHub) UserConnections(user string) map[string]client.Conn {
+func (h *clientHub) UserConnections(user string) map[string]Client {
 	h.RLock()
 	defer h.RUnlock()
 
 	userConnections, ok := h.users[user]
 	if !ok {
-		return map[string]client.Conn{}
+		return map[string]Client{}
 	}
 
-	var conns map[string]client.Conn
-	conns = make(map[string]client.Conn, len(userConnections))
+	var conns map[string]Client
+	conns = make(map[string]Client, len(userConnections))
 	for uid := range userConnections {
 		c, ok := h.conns[uid]
 		if !ok {
@@ -156,7 +189,7 @@ func (h *clientHub) UserConnections(user string) map[string]client.Conn {
 }
 
 // AddSub adds connection into clientHub subscriptions registry.
-func (h *clientHub) AddSub(ch string, c client.Conn) (bool, error) {
+func (h *clientHub) AddSub(ch string, c Client) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -176,7 +209,7 @@ func (h *clientHub) AddSub(ch string, c client.Conn) (bool, error) {
 }
 
 // RemoveSub removes connection from clientHub subscriptions registry.
-func (h *clientHub) RemoveSub(ch string, c client.Conn) (bool, error) {
+func (h *clientHub) RemoveSub(ch string, c Client) (bool, error) {
 	h.Lock()
 	defer h.Unlock()
 

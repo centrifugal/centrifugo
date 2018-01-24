@@ -6,6 +6,12 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto/control"
 )
 
+// HistoryFilter allows to provide several parameters for history
+// extraction.
+type HistoryFilter struct {
+	Limit int
+}
+
 // Engine is an interface abstracting PUB/SUB mechanics and
 // history/presence data manipulations.
 type Engine interface {
@@ -54,7 +60,7 @@ type Engine interface {
 	// Integer limit sets the max amount of messages that must
 	// be returned. 0 means no limit - i.e. return all history
 	// messages (actually limited by configured history_size).
-	History(ch string, limit int) ([]*proto.Publication, error)
+	History(ch string, filter HistoryFilter) ([]*proto.Publication, error)
 	// RemoveHistory removes history from channel. This is in
 	// general not needed as history expires automatically (based
 	// on history_lifetime) but sometimes can be useful for

@@ -12,7 +12,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/lib/api"
 	"github.com/centrifugal/centrifugo/lib/auth"
-	"github.com/centrifugal/centrifugo/lib/client/clientconn"
+	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
@@ -146,7 +146,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 	// Separate goroutine for better GC of caller's data.
 	go func() {
 		session := newSockjsSession(sess)
-		c := clientconn.New(sess.Request().Context(), s.node, session, proto.EncodingJSON)
+		c := client.New(sess.Request().Context(), s.node, session, client.Config{Encoding: proto.EncodingJSON})
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {
@@ -231,7 +231,7 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			compressionMinSize: wsCompressionMinSize,
 		}
 		session := newWSSession(conn, opts)
-		c := clientconn.New(r.Context(), s.node, session, enc)
+		c := client.New(r.Context(), s.node, session, client.Config{Encoding: enc})
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {

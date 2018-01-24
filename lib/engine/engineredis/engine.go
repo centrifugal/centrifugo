@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/lib/engine"
+
 	"github.com/centrifugal/centrifugo/lib/channel"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
@@ -491,8 +493,8 @@ func (e *RedisEngine) Presence(ch string) (map[string]*proto.ClientInfo, error) 
 }
 
 // History - see engine interface description.
-func (e *RedisEngine) History(ch string, limit int) ([]*proto.Publication, error) {
-	return e.shards[e.shardIndex(ch)].History(ch, limit)
+func (e *RedisEngine) History(ch string, filter engine.HistoryFilter) ([]*proto.Publication, error) {
+	return e.shards[e.shardIndex(ch)].History(ch, filter)
 }
 
 // RemoveHistory - see engine interface description.
@@ -1183,7 +1185,8 @@ func (e *Shard) Presence(ch string) (map[string]*proto.ClientInfo, error) {
 }
 
 // History - see engine interface description.
-func (e *Shard) History(ch string, limit int) ([]*proto.Publication, error) {
+func (e *Shard) History(ch string, filter engine.HistoryFilter) ([]*proto.Publication, error) {
+	limit := filter.Limit
 	var rangeBound = -1
 	if limit > 0 {
 		rangeBound = limit - 1 // Redis includes last index into result

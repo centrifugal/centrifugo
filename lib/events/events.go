@@ -3,13 +3,13 @@ package events
 import (
 	"context"
 
-	"github.com/centrifugal/centrifugo/lib/client"
+	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/proto"
 )
 
 // EventContext ...
 type EventContext struct {
-	Client client.StateReader
+	Client conns.ClientInspector
 }
 
 // EventReply ...
@@ -32,7 +32,7 @@ type ConnectReply struct {
 // ConnectHandler ...
 type ConnectHandler func(context.Context, *ConnectContext) (*ConnectReply, error)
 
-//DisconnectContext ...
+// DisconnectContext ...
 type DisconnectContext struct {
 	EventContext
 	Disconnect *proto.Disconnect

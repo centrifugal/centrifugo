@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/lib/engine"
+
 	logger "github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/lib/channel"
 	"github.com/centrifugal/centrifugo/lib/internal/priority"
@@ -124,8 +126,8 @@ func (e *MemoryEngine) Presence(ch string) (map[string]*proto.ClientInfo, error)
 }
 
 // History extracts history from history hub.
-func (e *MemoryEngine) History(ch string, limit int) ([]*proto.Publication, error) {
-	return e.historyHub.get(ch, limit)
+func (e *MemoryEngine) History(ch string, filter engine.HistoryFilter) ([]*proto.Publication, error) {
+	return e.historyHub.get(ch, filter.Limit)
 }
 
 // RemoveHistory ...

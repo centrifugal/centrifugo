@@ -34,27 +34,18 @@ var (
 
 var (
 	// DEBUG logger.
-	DEBUG *gologger.LevelLogger
-	// INFO logger.
-	INFO *gologger.LevelLogger
-	// WARN logger.
-	WARN *gologger.LevelLogger
-	// ERROR logger.
-	ERROR *gologger.LevelLogger
-	// CRITICAL logger.
-	CRITICAL *gologger.LevelLogger
-	// FATAL logger
-	FATAL *gologger.LevelLogger
-)
-
-func init() {
 	DEBUG = gologger.DEBUG
+	// INFO logger.
 	INFO = gologger.INFO
+	// WARN logger.
 	WARN = gologger.WARN
+	// ERROR logger.
 	ERROR = gologger.ERROR
+	// CRITICAL logger.
 	CRITICAL = gologger.CRITICAL
+	// FATAL logger
 	FATAL = gologger.FATAL
-}
+)
 
 // SetLogThreshold establishes a threshold where anything matching or above will be logged.
 func SetLogThreshold(level gologger.Level) {

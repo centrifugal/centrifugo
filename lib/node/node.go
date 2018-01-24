@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/lib/channel"
-	"github.com/centrifugal/centrifugo/lib/client"
+	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/engine"
 	"github.com/centrifugal/centrifugo/lib/events"
 	"github.com/centrifugal/centrifugo/lib/logger"
@@ -36,11 +36,11 @@ type Node struct {
 	// startedAt is unix time of node start.
 	startedAt int64
 
-	// hub to manage client connections.
-	hub Hub
-
 	// config for node.
 	config *Config
+
+	// hub to manage client connections.
+	hub conns.Hub
 
 	// engine - in memory or redis.
 	engine engine.Engine
@@ -76,6 +76,7 @@ type Node struct {
 	// controlDecoder is decoder to decode control messages coming from engine.
 	controlDecoder control.Decoder
 
+	// mediator contains application event handlers.
 	mediator *events.Mediator
 }
 
@@ -133,7 +134,7 @@ func New(c *Config) *Node {
 		uid:             uid,
 		nodes:           newNodeRegistry(uid),
 		config:          c,
-		hub:             NewHub(),
+		hub:             conns.NewHub(),
 		startedAt:       time.Now().Unix(),
 		metricsSnapshot: make(map[string]int64),
 		shutdownCh:      make(chan struct{}),
@@ -196,7 +197,7 @@ func (n *Node) Engine() engine.Engine {
 }
 
 // Hub returns node's client hub.
-func (n *Node) Hub() Hub {
+func (n *Node) Hub() conns.Hub {
 	return n.hub
 }
 
@@ -413,14 +414,14 @@ func (n *Node) HandleControl(cmd *control.Command) error {
 			logger.ERROR.Printf("error decoding unsubscribe control params: %v", err)
 			return proto.ErrBadRequest
 		}
-		return n.unsubscribeUser(cmd.User, cmd.Channel)
+		return n.Hub().Unsubscribe(cmd.User, cmd.Channel)
 	case "disconnect":
 		cmd, err := n.ControlDecoder().DecodeDisconnect(params)
 		if err != nil {
 			logger.ERROR.Printf("error decoding disconnect control params: %v", err)
 			return proto.ErrBadRequest
 		}
-		return n.disconnectUser(cmd.User, false)
+		return n.Hub().Disconnect(cmd.User, false)
 	default:
 		logger.ERROR.Printf("unknown control message method: %s", method)
 		return proto.ErrBadRequest
@@ -635,20 +636,20 @@ func (n *Node) pubDisconnect(user string, reconnect bool) error {
 
 // AddClient registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand.
-func (n *Node) AddClient(c client.Conn) error {
+func (n *Node) AddClient(c conns.Client) error {
 	metricsRegistry.Counters.Inc("node_num_add_client_conn")
 	return n.hub.Add(c)
 }
 
 // RemoveClient removes client connection from connection registry.
-func (n *Node) RemoveClient(c client.Conn) error {
+func (n *Node) RemoveClient(c conns.Client) error {
 	metricsRegistry.Counters.Inc("node_num_remove_client_conn")
 	return n.hub.Remove(c)
 }
 
 // AddSubscription registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
-func (n *Node) AddSubscription(ch string, c client.Conn) error {
+func (n *Node) AddSubscription(ch string, c conns.Client) error {
 	metricsRegistry.Counters.Inc("node_num_add_client_sub")
 	first, err := n.hub.AddSub(ch, c)
 	if err != nil {
@@ -662,7 +663,7 @@ func (n *Node) AddSubscription(ch string, c client.Conn) error {
 
 // RemoveSubscription removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
-func (n *Node) RemoveSubscription(ch string, c client.Conn) error {
+func (n *Node) RemoveSubscription(ch string, c conns.Client) error {
 	metricsRegistry.Counters.Inc("node_num_remove_client_sub")
 	empty, err := n.hub.RemoveSub(ch, c)
 	if err != nil {
@@ -696,7 +697,7 @@ func (n *Node) Unsubscribe(user string, ch string) error {
 	}
 
 	// First unsubscribe on this node.
-	err := n.unsubscribeUser(user, ch)
+	err := n.Hub().Unsubscribe(user, ch)
 	if err != nil {
 		return proto.ErrInternalServerError
 	}
@@ -704,29 +705,6 @@ func (n *Node) Unsubscribe(user string, ch string) error {
 	err = n.pubUnsubscribe(user, ch)
 	if err != nil {
 		return proto.ErrInternalServerError
-	}
-	return nil
-}
-
-// unsubscribeUser unsubscribes user from channel on this node. If channel
-// is an empty string then user will be unsubscribed from all channels.
-func (n *Node) unsubscribeUser(user string, ch string) error {
-	userConnections := n.hub.UserConnections(user)
-	for _, c := range userConnections {
-		var channels []string
-		if string(ch) == "" {
-			// unsubscribe from all channels
-			channels = c.Channels()
-		} else {
-			channels = []string{ch}
-		}
-
-		for _, channel := range channels {
-			err := c.Unsubscribe(channel)
-			if err != nil {
-				return err
-			}
-		}
 	}
 	return nil
 }
@@ -739,7 +717,7 @@ func (n *Node) Disconnect(user string, reconnect bool) error {
 	}
 
 	// first disconnect user from this node
-	err := n.disconnectUser(user, reconnect)
+	err := n.Hub().Disconnect(user, reconnect)
 	if err != nil {
 		return proto.ErrInternalServerError
 	}
@@ -747,18 +725,6 @@ func (n *Node) Disconnect(user string, reconnect bool) error {
 	err = n.pubDisconnect(user, reconnect)
 	if err != nil {
 		return proto.ErrInternalServerError
-	}
-	return nil
-}
-
-// disconnectUser closes client connections of user on current node.
-func (n *Node) disconnectUser(user string, reconnect bool) error {
-	userConnections := n.hub.UserConnections(user)
-	advice := &proto.Disconnect{Reason: "disconnect", Reconnect: reconnect}
-	for _, c := range userConnections {
-		go func(cc client.Conn) {
-			cc.Close(advice)
-		}(c)
 	}
 	return nil
 }
@@ -812,7 +778,7 @@ func (n *Node) Presence(ch string) (map[string]*proto.ClientInfo, error) {
 func (n *Node) History(ch string) ([]*proto.Publication, error) {
 	metricsRegistry.Counters.Inc("node_num_history")
 
-	publications, err := n.engine.History(ch, 0)
+	publications, err := n.engine.History(ch, engine.HistoryFilter{Limit: 0})
 	if err != nil {
 		return nil, err
 	}
@@ -828,7 +794,7 @@ func (n *Node) RemoveHistory(ch string) error {
 // LastMessageID return last message id for channel.
 func (n *Node) LastMessageID(ch string) (string, error) {
 	metricsRegistry.Counters.Inc("node_num_last_message_id")
-	publications, err := n.engine.History(ch, 1)
+	publications, err := n.engine.History(ch, engine.HistoryFilter{Limit: 1})
 	if err != nil {
 		return "", err
 	}
