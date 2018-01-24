@@ -420,20 +420,21 @@ func (c *client) handleCmd(command *proto.Command) (*proto.Reply, *proto.Disconn
 			replyRes, replyErr, disconnect = c.handleHistory(params)
 		case "ping":
 			replyRes, replyErr, disconnect = c.handlePing(params)
-		default:
+		case "rpc":
 			mediator := c.node.Mediator()
 			if mediator != nil && mediator.RPCHandler != nil {
 				rpcReply, err := mediator.RPCHandler(c.ctx, &events.RPCContext{
-					Method: method,
-					Params: params,
+					Data: params,
 				})
 				if err != nil {
 					replyRes = rpcReply.Result
 					replyErr = rpcReply.Error
 				}
 			} else {
-				replyRes, replyErr = nil, proto.ErrMethodNotFound
+				replyRes, replyErr = nil, proto.ErrNotAvailable
 			}
+		default:
+			replyRes, replyErr = nil, proto.ErrMethodNotFound
 		}
 	}
 

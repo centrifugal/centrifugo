@@ -115,8 +115,7 @@ type RefreshHandler func(context.Context, *RefreshContext) (*RefreshReply, error
 // RPCContext ...
 type RPCContext struct {
 	EventContext
-	Method string
-	Params proto.Raw
+	Data proto.Raw
 }
 
 // RPCReply ...

@@ -16,8 +16,8 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/api"
 	"github.com/centrifugal/centrifugo/lib/proto/control"
-	"github.com/nats-io/nuid"
 
+	"github.com/nats-io/nuid"
 	"github.com/satori/go.uuid"
 )
 
