@@ -55,7 +55,6 @@ func main() {
 				"debug":                          false,
 				"name":                           "",
 				"secret":                         "",
-				"connection_lifetime":            0,
 				"watch":                          false,
 				"publish":                        false,
 				"anonymous":                      false,
@@ -71,8 +70,9 @@ func main() {
 				"node_ping_interval":             3,
 				"ping_interval":                  25,
 				"node_metrics_interval":          60,
-				"stale_connection_close_delay":   25,
-				"expired_connection_close_delay": 25,
+				"client_expire":                  false,
+				"client_expired_close_delay":     25,
+				"client_stale_close_delay":       25,
 				"client_message_write_timeout":   0,
 				"client_channel_limit":           128,
 				"client_request_max_size":        65536,    // 64KB
@@ -659,8 +659,9 @@ func newNodeConfig(v *viper.Viper) *node.Config {
 	cfg.UserChannelBoundary = v.GetString("user_channel_boundary")
 	cfg.UserChannelSeparator = v.GetString("user_channel_separator")
 	cfg.ClientChannelBoundary = v.GetString("client_channel_boundary")
-	cfg.ExpiredConnectionCloseDelay = time.Duration(v.GetInt("expired_connection_close_delay")) * time.Second
-	cfg.StaleConnectionCloseDelay = time.Duration(v.GetInt("stale_connection_close_delay")) * time.Second
+	cfg.ClientExpire = v.GetBool("client_expire")
+	cfg.ClientExpiredCloseDelay = time.Duration(v.GetInt("client_expired_close_delay")) * time.Second
+	cfg.ClientStaleCloseDelay = time.Duration(v.GetInt("client_stale_close_delay")) * time.Second
 	cfg.ClientRequestMaxSize = v.GetInt("client_request_max_size")
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientQueueInitialCapacity = v.GetInt("client_queue_initial_capacity")
@@ -670,7 +671,6 @@ func newNodeConfig(v *viper.Viper) *node.Config {
 	cfg.InsecureAPI = v.GetBool("insecure_api")
 	cfg.InsecureAdmin = v.GetBool("insecure_admin")
 	cfg.Secret = v.GetString("secret")
-	cfg.ConnLifetime = int64(v.GetInt("connection_lifetime"))
 	cfg.Watch = v.GetBool("watch")
 	cfg.Publish = v.GetBool("publish")
 	cfg.Anonymous = v.GetBool("anonymous")

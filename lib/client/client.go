@@ -48,11 +48,11 @@ type client struct {
 	ctx            context.Context
 	node           *node.Node
 	session        Session
+	authenticated  bool
 	uid            string
 	user           string
-	timestamp      int64
+	exp            int64
 	opts           string
-	authenticated  bool
 	connInfo       proto.Raw
 	channelInfo    map[string]proto.Raw
 	channels       map[string]struct{}
@@ -72,7 +72,7 @@ type client struct {
 func New(ctx context.Context, n *node.Node, s Session, conf Config) conns.Client {
 
 	config := n.Config()
-	staleCloseDelay := config.StaleConnectionCloseDelay
+	staleCloseDelay := config.ClientStaleCloseDelay
 	queueInitialCapacity := config.ClientQueueInitialCapacity
 	maxQueueSize := config.ClientQueueMaxSize
 	maxRequestSize := config.ClientRequestMaxSize
@@ -454,16 +454,16 @@ func (c *client) handleCmd(command *proto.Command) (*proto.Reply, *proto.Disconn
 
 func (c *client) expire() {
 	config := c.node.Config()
-	connLifetime := config.ConnLifetime
+	clientExpire := config.ClientExpire
 
-	if connLifetime <= 0 {
+	if !clientExpire {
 		return
 	}
 
 	c.mu.RLock()
-	timeToExpire := c.timestamp + connLifetime - time.Now().Unix()
+	ttl := c.exp - time.Now().Unix()
 	c.mu.RUnlock()
-	if timeToExpire > 0 {
+	if ttl > 0 {
 		// connection was successfully refreshed.
 		return
 	}
@@ -679,8 +679,8 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 
 	secret := config.Secret
 	insecure := config.Insecure
-	closeDelay := config.ExpiredConnectionCloseDelay
-	connLifetime := config.ConnLifetime
+	closeDelay := config.ClientExpiredCloseDelay
+	clientExpire := config.ClientExpire
 	version := c.node.Version()
 	userConnectionLimit := config.UserConnectionLimit
 
@@ -691,44 +691,38 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 		}
 	}
 
-	var timeToExpire int64
-	var expires bool
 	var expired bool
 	var ttl uint32
 
 	if credentials != nil {
 		c.user = credentials.UserID
 		c.connInfo = credentials.Info
-		c.timestamp = time.Now().Unix()
+		c.exp = credentials.Exp
+		ttl = uint32(c.exp - time.Now().Unix())
 	} else {
 		user := cmd.User
 		info := cmd.Info
 		opts := cmd.Opts
 
-		var timestamp string
+		var exp string
 		var sign string
 		if !insecure {
-			timestamp = cmd.Time
+			exp = cmd.Exp
 			sign = cmd.Sign
-		} else {
-			timestamp = ""
-			sign = ""
 		}
 
 		if !insecure {
-			isValid := auth.CheckClientSign(secret, string(user), timestamp, info, opts, sign)
+			isValid := auth.CheckClientSign(secret, user, exp, info, opts, sign)
 			if !isValid {
 				logger.ERROR.Println("invalid sign for user", user)
 				return resp, proto.DisconnectInvalidSign
 			}
-			ts, err := strconv.Atoi(timestamp)
+			timestamp, err := strconv.Atoi(exp)
 			if err != nil {
 				logger.ERROR.Printf("invalid timestamp: %v", err)
 				return resp, proto.DisconnectBadRequest
 			}
-			c.timestamp = int64(ts)
-		} else {
-			c.timestamp = time.Now().Unix()
+			c.exp = int64(timestamp)
 		}
 
 		c.user = user
@@ -737,13 +731,11 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 			c.connInfo = proto.Raw(info)
 		}
 
-		expires = connLifetime > 0
-		ttl = uint32(connLifetime)
-
-		if connLifetime > 0 && !insecure {
-			timeToExpire = c.timestamp + connLifetime - time.Now().Unix()
-			if timeToExpire <= 0 {
+		if clientExpire && !insecure {
+			ttl = uint32(c.exp - time.Now().Unix())
+			if ttl <= 0 {
 				expired = true
+				ttl = 0
 			}
 		}
 	}
@@ -756,7 +748,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 
 	res := &proto.ConnectResult{
 		Version: version,
-		Expires: expires,
+		Expires: clientExpire,
 		TTL:     ttl,
 		Expired: expired,
 	}
@@ -785,8 +777,8 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 		return resp, proto.DisconnectServerError
 	}
 
-	if timeToExpire > 0 {
-		duration := closeDelay + time.Duration(timeToExpire)*time.Second
+	if clientExpire && !expired {
+		duration := closeDelay + time.Duration(ttl)*time.Second
 		c.expireTimer = time.AfterFunc(duration, c.expire)
 	}
 
@@ -802,44 +794,44 @@ func (c *client) refreshCmd(cmd *proto.RefreshRequest) (*proto.RefreshResponse, 
 
 	user := cmd.User
 	info := cmd.Info
-	timestamp := cmd.Time
+	exp := cmd.Exp
 	opts := cmd.Opts
 	sign := cmd.Sign
 
 	config := c.node.Config()
 	secret := config.Secret
 
-	isValid := auth.CheckClientSign(secret, string(user), timestamp, info, opts, sign)
+	isValid := auth.CheckClientSign(secret, user, exp, info, opts, sign)
 	if !isValid {
 		logger.ERROR.Println("invalid refresh sign for user", user)
 		return resp, proto.DisconnectInvalidSign
 	}
 
-	ts, err := strconv.Atoi(timestamp)
+	timestamp, err := strconv.Atoi(exp)
 	if err != nil {
 		logger.ERROR.Printf("invalid timestamp: %v", err)
 		return resp, proto.DisconnectBadRequest
 	}
 
-	closeDelay := config.ExpiredConnectionCloseDelay
-	connLifetime := config.ConnLifetime
+	closeDelay := config.ClientExpiredCloseDelay
+	clientExpire := config.ClientExpire
 	version := c.node.Version()
 
 	res := &proto.RefreshResult{
 		Version: version,
-		Expires: connLifetime > 0,
-		TTL:     uint32(connLifetime),
+		Expires: clientExpire,
+		TTL:     uint32(int64(timestamp) - time.Now().Unix()),
 		Client:  c.uid,
 	}
 
 	resp.Result = res
 
-	if connLifetime > 0 {
+	if clientExpire {
 		// connection check enabled
-		timeToExpire := int64(ts) + connLifetime - time.Now().Unix()
+		timeToExpire := int64(timestamp) - time.Now().Unix()
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
-			c.timestamp = int64(ts)
+			c.exp = int64(timestamp)
 			c.connInfo = proto.Raw(info)
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()

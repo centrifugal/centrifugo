@@ -68,7 +68,7 @@ message Unsub {}
 
 message ConnectRequest {
     string User = 1 [(gogoproto.jsontag) = "user"];
-    string Time = 2 [(gogoproto.jsontag) = "time"];
+    string Exp = 2 [(gogoproto.jsontag) = "exp"];
     string Info = 3 [(gogoproto.jsontag) = "info"];
     string Opts = 4 [(gogoproto.jsontag) = "opts"];
     string Sign = 5 [(gogoproto.jsontag) = "sign"];
@@ -89,7 +89,7 @@ message ConnectResult {
 
 message RefreshRequest {
     string User = 1 [(gogoproto.jsontag) = "user"];
-    string Time = 2 [(gogoproto.jsontag) = "time"];
+    string Exp = 2 [(gogoproto.jsontag) = "exp"];
     string Info = 3 [(gogoproto.jsontag) = "info"];
     string Opts = 4 [(gogoproto.jsontag) = "opts"];
     string Sign = 5 [(gogoproto.jsontag) = "sign"];
@@ -115,7 +115,6 @@ message SubscribeRequest {
     string Sign = 4 [(gogoproto.jsontag) = "sign"];
     bool Recover = 5 [(gogoproto.jsontag) = "recover"];
     string Last = 6 [(gogoproto.jsontag) = "last"];
-    bool Passive = 7 [(gogoproto.jsontag) = "passive"];
 }
 
 message SubscribeResponse {
