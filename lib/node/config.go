@@ -21,20 +21,16 @@ type Config struct {
 	// AdminSecret is a secret to generate auth token for admin socket connection.
 	AdminSecret string `json:"-"`
 
+	// InsecureAdmin turns on insecure mode for admin endpoints - no auth required to
+	// connect to admin socket and web interface. Protect admin resources with firewall
+	// rules in production when enabling this option.
+	InsecureAdmin bool `json:"insecure_admin"`
+
 	// Insecure turns on insecure mode - when it's turned on then no authentication
 	// required at all when connecting to Centrifugo, anonymous access and publish
 	// allowed for all channels, no connection check performed. This can be suitable
 	// for demonstration or personal usage.
 	Insecure bool `json:"insecure"`
-	// InsecureAPI turns on insecure mode for HTTP API calls. This means that no
-	// API sign required when sending commands. This can be useful if you don't want
-	// to sign every request - for example if you closed API endpoint with firewall
-	// or you want to play with API commands from command line using CURL.
-	InsecureAPI bool `json:"insecure_api"`
-	// InsecureAdmin turns on insecure mode for admin endpoints - no auth required to
-	// connect to admin socket and web interface. Protect admin resources with firewall
-	// rules in production when enabling this option.
-	InsecureAdmin bool `json:"insecure_admin"`
 
 	// MaxChannelLength is a maximum length of channel name.
 	MaxChannelLength int `json:"max_channel_length"`
@@ -173,7 +169,6 @@ var DefaultConfig = &Config{
 	AdminPassword:              "",
 	AdminSecret:                "",
 	Insecure:                   false,
-	InsecureAPI:                false,
 	InsecureAdmin:              false,
 	MaxChannelLength:           255,
 	PingInterval:               25 * time.Second,

@@ -119,7 +119,7 @@ func main() {
 			}
 
 			bindEnvs := []string{
-				"engine", "debug", "insecure", "insecure_api", "admin", "admin_password",
+				"engine", "debug", "insecure", "api_insecure", "admin", "admin_password",
 				"admin_secret", "insecure_admin", "secret", "connection_lifetime", "watch",
 				"publish", "anonymous", "join_leave", "presence", "presence_stats",
 				"history_recover", "history_size", "history_lifetime", "history_drop_inactive",
@@ -131,7 +131,7 @@ func main() {
 
 			bindPFlags := []string{
 				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin",
-				"insecure", "insecure_admin", "insecure_api", "port", "api_port", "admin_port",
+				"insecure", "insecure_admin", "api_insecure", "port", "api_port", "admin_port",
 				"address", "web", "web_path", "insecure_web", "ssl", "ssl_cert", "ssl_key",
 				"redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
 				"redis_pool", "redis_master_name", "redis_sentinels",
@@ -228,18 +228,18 @@ func main() {
 			logger.INFO.Printf("Engine: %s", e.Name())
 			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
 			if c.Insecure {
-				logger.WARN.Println("Running in INSECURE client mode")
+				logger.WARN.Println("Start in INSECURE client mode")
 			}
-			if c.InsecureAPI {
-				logger.WARN.Println("Running in INSECURE API mode")
+			if viper.GetBool("api_insecure") {
+				logger.WARN.Println("INSECURE API mode enabled")
 			}
 			if c.InsecureAdmin {
-				logger.WARN.Println("Running in INSECURE admin mode")
+				logger.WARN.Println("INSECURE admin mode enabled")
 			}
 			if viper.GetBool("debug") {
-				logger.WARN.Println("Running in DEBUG mode")
+				logger.WARN.Println("DEBUG mode enabled")
 			}
-			logger.INFO.Printf("Start serving GRPC API on %s", grpcAddr)
+			logger.INFO.Printf("Serving GRPC API on %s", grpcAddr)
 
 			if err = runServer(nod, srv); err != nil {
 				logger.FATAL.Fatalf("Error running server: %v", err)
@@ -258,7 +258,7 @@ func main() {
 	rootCmd.Flags().StringP("name", "n", "", "unique node name")
 	rootCmd.Flags().BoolP("admin", "", false, "enable admin socket")
 	rootCmd.Flags().BoolP("insecure", "", false, "start in insecure client mode")
-	rootCmd.Flags().BoolP("insecure_api", "", false, "use insecure API mode")
+	rootCmd.Flags().BoolP("api_insecure", "", false, "use insecure API mode")
 	rootCmd.Flags().BoolP("insecure_admin", "", false, "use insecure admin mode – no auth required for admin socket")
 
 	rootCmd.Flags().BoolP("web", "w", false, "serve admin web interface application (warning: automatically enables admin socket)")
@@ -499,7 +499,7 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 
 		addr := net.JoinHostPort(httpAddress, handlerPort)
 
-		logger.INFO.Printf("Start serving %s endpoints on %s\n", handlerFlags, addr)
+		logger.INFO.Printf("Serving %s endpoints on %s\n", handlerFlags, addr)
 
 		wg.Add(1)
 		go func() {
@@ -689,7 +689,6 @@ func newNodeConfig(v *viper.Viper) *node.Config {
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
 	cfg.UserConnectionLimit = v.GetInt("user_connection_limit")
 	cfg.Insecure = v.GetBool("insecure")
-	cfg.InsecureAPI = v.GetBool("insecure_api")
 	cfg.InsecureAdmin = v.GetBool("insecure_admin")
 	cfg.Secret = v.GetString("secret")
 	cfg.Watch = v.GetBool("watch")
@@ -735,6 +734,8 @@ func namespacesFromConfig(v *viper.Viper) []channel.Namespace {
 // serverConfig creates new server config using viper.
 func serverConfig(getter *viper.Viper) *server.Config {
 	cfg := &server.Config{}
+	cfg.APIKey = getter.GetString("api_key")
+	cfg.APIInsecure = getter.GetBool("api_insecure")
 	cfg.WebsocketCompression = getter.GetBool("websocket_compression")
 	cfg.WebsocketCompressionLevel = getter.GetInt("websocket_compression_level")
 	cfg.WebsocketCompressionMinSize = getter.GetInt("websocket_compression_min_size")

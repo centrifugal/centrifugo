@@ -2,34 +2,39 @@ package server
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/centrifugal/centrifugo/lib/logger"
 )
 
-// apiAuth ...
-// func (s *HTTPServer) apiAuth(h http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		authorization := r.Header.Get("Authorization")
-// 		s.RLock()
-// 		apiKey := s.node.Config().APIKey
-// 		apiInsecure := s.node.Config().APIInsecure
-// 		s.RUnlock()
-// 		if !apiInsecure {
-// 			parts := strings.Fields(authorization)
-// 			if len(parts) != 2 {
-// 				w.WriteHeader(http.StatusUnauthorized)
-// 				return
-// 			}
-// 			authMethod := strings.ToLower(parts[0])
-// 			if authMethod != "apikey" || parts[1] != apiKey {
-// 				w.WriteHeader(http.StatusUnauthorized)
-// 				return
-// 			}
-// 		}
-// 		h.ServeHTTP(w, r)
-// 	})
-// }
+func (s *HTTPServer) apiAuth(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorization := r.Header.Get("Authorization")
+		s.RLock()
+		apiKey := s.config.APIKey
+		apiInsecure := s.config.APIInsecure
+		s.RUnlock()
+		if apiKey == "" {
+			logger.ERROR.Println("no API key found in configuration")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if !apiInsecure {
+			parts := strings.Fields(authorization)
+			if len(parts) != 2 {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			authMethod := strings.ToLower(parts[0])
+			if authMethod != "apikey" || parts[1] != apiKey {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+		}
+		h.ServeHTTP(w, r)
+	})
+}
 
 // checkAdminAuthToken checks admin connection token which Centrifugo returns after admin login.
 // func (s *HTTPServer) checkAdminAuthToken(token string) error {

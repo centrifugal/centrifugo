@@ -2,6 +2,16 @@ package server
 
 // Config contains HTTPServer configuration options.
 type Config struct {
+	// APIKey allows to protect API handler with API key authorization.
+	// This auth method makes sense when you deploy Centrifugo with TLS enabled.
+	// Otherwise we must strongly advice users protect API endpoint with firewall.
+	APIKey string `json:"api_key"`
+
+	// APIInsecure turns off API key check.
+	// This can be useful if API endpoint protected with firewall or someone wants
+	// to play with API (for example from command line using CURL).
+	APIInsecure bool `json:"api_insecure"`
+
 	// WebsocketCompression allows to enable websocket permessage-deflate
 	// compression support for raw websocket connections. It does not guarantee
 	// that compression will be used - i.e. it only says that Centrifugo will

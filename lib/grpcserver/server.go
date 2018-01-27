@@ -9,7 +9,12 @@ import (
 )
 
 // Config for GRPC API server.
-type Config struct{}
+type Config struct {
+	// APIKey ...
+	APIKey string
+	// APIInsecure ...
+	APIInsecure bool
+}
 
 // Server can answer on GRPC API requests.
 type Server struct {

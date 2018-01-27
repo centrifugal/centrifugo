@@ -111,7 +111,7 @@ func ServeMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
-		mux.Handle(prefix+"/api/", s.log(s.wrapShutdown(http.HandlerFunc(s.apiHandler))))
+		mux.Handle(prefix+"/api/", s.log(s.apiAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
 	}
 
 	if flags&HandlerAdmin != 0 {
