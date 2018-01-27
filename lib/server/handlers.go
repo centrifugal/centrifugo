@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -10,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/centrifugal/centrifugo/lib/api"
 	"github.com/centrifugal/centrifugo/lib/auth"
 	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/logger"
@@ -145,7 +145,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
 	// Separate goroutine for better GC of caller's data.
 	go func() {
-		session := newSockjsSession(sess)
+		session := newSockjsTransport(sess)
 		c := client.New(sess.Request().Context(), s.node, session, client.Config{Encoding: proto.EncodingJSON})
 		defer c.Close(nil)
 
@@ -225,12 +225,12 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Separate goroutine for better GC of caller's data.
 	go func() {
-		opts := &wsSessionOptions{
+		opts := &websocketTransportOptions{
 			pingInterval:       pingInterval,
 			writeTimeout:       writeTimeout,
 			compressionMinSize: wsCompressionMinSize,
 		}
-		session := newWSSession(conn, opts)
+		session := newWebsocketTransport(conn, opts)
 		c := client.New(r.Context(), s.node, session, client.Config{Encoding: enc})
 		defer c.Close(nil)
 
@@ -252,6 +252,192 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
+}
+
+func (s *HTTPServer) handleCommand(ctx context.Context, enc apiproto.Encoding, cmd *apiproto.Command) (*apiproto.Reply, error) {
+	var err error
+
+	method := cmd.Method
+	params := cmd.Params
+
+	rep := &apiproto.Reply{
+		ID: cmd.ID,
+	}
+
+	var replyRes proto.Raw
+
+	if method == "" {
+		logger.ERROR.Println("method required in API command")
+		rep.Error = apiproto.ErrBadRequest
+		return rep, nil
+	}
+
+	decoder := apiproto.GetDecoder(enc)
+	defer apiproto.PutDecoder(enc, decoder)
+
+	encoder := apiproto.GetEncoder(enc)
+	defer apiproto.PutEncoder(enc, encoder)
+
+	switch method {
+	case "publish":
+		cmd, err := decoder.DecodePublish(params)
+		if err != nil {
+			logger.ERROR.Printf("error decoding publish params: %v", err)
+			rep.Error = apiproto.ErrBadRequest
+			return rep, nil
+		}
+		resp := s.api.Publish(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodePublish(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case "broadcast":
+		cmd, err := decoder.DecodeBroadcast(params)
+		if err != nil {
+			logger.ERROR.Printf("error decoding broadcast params: %v", err)
+			rep.Error = apiproto.ErrBadRequest
+			return rep, nil
+		}
+		resp := s.api.Broadcast(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeBroadcast(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case "unsubscribe":
+		cmd, err := decoder.DecodeUnsubscribe(params)
+		if err != nil {
+			logger.ERROR.Printf("error decoding unsubscribe params: %v", err)
+			rep.Error = apiproto.ErrBadRequest
+			return rep, nil
+		}
+		resp := s.api.Unsubscribe(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeUnsubscribe(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case "disconnect":
+		cmd, err := decoder.DecodeDisconnect(params)
+		if err != nil {
+			logger.ERROR.Printf("error decoding disconnect params: %v", err)
+			rep.Error = apiproto.ErrBadRequest
+			return rep, nil
+		}
+		resp := s.api.Disconnect(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeDisconnect(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case "presence":
+		cmd, err := decoder.DecodePresence(params)
+		if err != nil {
+			logger.ERROR.Printf("error decoding presence params: %v", err)
+			rep.Error = apiproto.ErrBadRequest
+			return rep, nil
+		}
+		resp := s.api.Presence(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodePresence(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case "presence_stats":
+		cmd, err := decoder.DecodePresenceStats(params)
+		if err != nil {
+			logger.ERROR.Printf("error decoding presence_stats params: %v", err)
+			rep.Error = apiproto.ErrBadRequest
+			return rep, nil
+		}
+		resp := s.api.PresenceStats(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodePresenceStats(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case "history":
+		cmd, err := decoder.DecodeHistory(params)
+		if err != nil {
+			logger.ERROR.Printf("error decoding history params: %v", err)
+			rep.Error = apiproto.ErrBadRequest
+			return rep, nil
+		}
+		resp := s.api.History(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeHistory(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case "channels":
+		resp := s.api.Channels(ctx, &apiproto.ChannelsRequest{})
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeChannels(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case "info":
+		resp := s.api.Info(ctx, &apiproto.InfoRequest{})
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeInfo(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	default:
+		rep.Error = apiproto.ErrMethodNotFound
+	}
+
+	if replyRes != nil {
+		rep.Result = replyRes
+	}
+
+	return rep, nil
 }
 
 // apiHandler is responsible for receiving API commands over HTTP.
@@ -278,16 +464,13 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var apiHandler *api.Handler
 	var enc apiproto.Encoding
 
 	contentType := r.Header.Get("Content-Type")
 	if strings.HasPrefix(strings.ToLower(contentType), "application/octet-stream") {
 		enc = apiproto.EncodingProtobuf
-		apiHandler = s.protobufAPIHandler
 	} else {
 		enc = apiproto.EncodingJSON
-		apiHandler = s.jsonAPIHandler
 	}
 
 	encoder := apiproto.GetReplyEncoder(enc)
@@ -306,7 +489,7 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		rep, err := apiHandler.Handle(r.Context(), command)
+		rep, err := s.handleCommand(r.Context(), enc, command)
 		if err != nil {
 			logger.ERROR.Printf("error handling API command: %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

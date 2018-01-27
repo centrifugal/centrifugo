@@ -12,204 +12,13 @@ import (
 // Handler ...
 type Handler struct {
 	node *node.Node
-	enc  apiproto.Encoding
 }
 
 // NewHandler ...
-func NewHandler(n *node.Node, enc apiproto.Encoding) *Handler {
+func NewHandler(n *node.Node) *Handler {
 	return &Handler{
 		node: n,
-		enc:  enc,
 	}
-}
-
-// Handle extracts commands from data, run them sequentially and returns
-// encoded response.
-func (h *Handler) Handle(ctx context.Context, cmd *apiproto.Command) (*apiproto.Reply, error) {
-
-	var err error
-
-	method := cmd.Method
-	params := cmd.Params
-
-	rep := &apiproto.Reply{
-		ID: cmd.ID,
-	}
-
-	var replyRes proto.Raw
-
-	if method == "" {
-		logger.ERROR.Println("method required in API command")
-		rep.Error = apiproto.ErrBadRequest
-		return rep, nil
-	}
-
-	decoder := apiproto.GetDecoder(h.enc)
-	defer apiproto.PutDecoder(h.enc, decoder)
-
-	encoder := apiproto.GetEncoder(h.enc)
-	defer apiproto.PutEncoder(h.enc, encoder)
-
-	switch method {
-	case "publish":
-		cmd, err := decoder.DecodePublish(params)
-		if err != nil {
-			logger.ERROR.Printf("error decoding publish params: %v", err)
-			rep.Error = apiproto.ErrBadRequest
-			return rep, nil
-		}
-		resp := h.Publish(ctx, cmd)
-		if resp.Error != nil {
-			rep.Error = resp.Error
-		} else {
-			if resp.Result != nil {
-				replyRes, err = encoder.EncodePublish(resp.Result)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	case "broadcast":
-		cmd, err := decoder.DecodeBroadcast(params)
-		if err != nil {
-			logger.ERROR.Printf("error decoding broadcast params: %v", err)
-			rep.Error = apiproto.ErrBadRequest
-			return rep, nil
-		}
-		resp := h.Broadcast(ctx, cmd)
-		if resp.Error != nil {
-			rep.Error = resp.Error
-		} else {
-			if resp.Result != nil {
-				replyRes, err = encoder.EncodeBroadcast(resp.Result)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	case "unsubscribe":
-		cmd, err := decoder.DecodeUnsubscribe(params)
-		if err != nil {
-			logger.ERROR.Printf("error decoding unsubscribe params: %v", err)
-			rep.Error = apiproto.ErrBadRequest
-			return rep, nil
-		}
-		resp := h.Unsubscribe(ctx, cmd)
-		if resp.Error != nil {
-			rep.Error = resp.Error
-		} else {
-			if resp.Result != nil {
-				replyRes, err = encoder.EncodeUnsubscribe(resp.Result)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	case "disconnect":
-		cmd, err := decoder.DecodeDisconnect(params)
-		if err != nil {
-			logger.ERROR.Printf("error decoding disconnect params: %v", err)
-			rep.Error = apiproto.ErrBadRequest
-			return rep, nil
-		}
-		resp := h.Disconnect(ctx, cmd)
-		if resp.Error != nil {
-			rep.Error = resp.Error
-		} else {
-			if resp.Result != nil {
-				replyRes, err = encoder.EncodeDisconnect(resp.Result)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	case "presence":
-		cmd, err := decoder.DecodePresence(params)
-		if err != nil {
-			logger.ERROR.Printf("error decoding presence params: %v", err)
-			rep.Error = apiproto.ErrBadRequest
-			return rep, nil
-		}
-		resp := h.Presence(ctx, cmd)
-		if resp.Error != nil {
-			rep.Error = resp.Error
-		} else {
-			if resp.Result != nil {
-				replyRes, err = encoder.EncodePresence(resp.Result)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	case "presence_stats":
-		cmd, err := decoder.DecodePresenceStats(params)
-		if err != nil {
-			logger.ERROR.Printf("error decoding presence_stats params: %v", err)
-			rep.Error = apiproto.ErrBadRequest
-			return rep, nil
-		}
-		resp := h.PresenceStats(ctx, cmd)
-		if resp.Error != nil {
-			rep.Error = resp.Error
-		} else {
-			if resp.Result != nil {
-				replyRes, err = encoder.EncodePresenceStats(resp.Result)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	case "history":
-		cmd, err := decoder.DecodeHistory(params)
-		if err != nil {
-			logger.ERROR.Printf("error decoding history params: %v", err)
-			rep.Error = apiproto.ErrBadRequest
-			return rep, nil
-		}
-		resp := h.History(ctx, cmd)
-		if resp.Error != nil {
-			rep.Error = resp.Error
-		} else {
-			if resp.Result != nil {
-				replyRes, err = encoder.EncodeHistory(resp.Result)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	case "channels":
-		resp := h.Channels(ctx, &apiproto.ChannelsRequest{})
-		if resp.Error != nil {
-			rep.Error = resp.Error
-		} else {
-			if resp.Result != nil {
-				replyRes, err = encoder.EncodeChannels(resp.Result)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	case "info":
-		resp := h.Info(ctx, &apiproto.InfoRequest{})
-		if resp.Error != nil {
-			rep.Error = resp.Error
-		} else {
-			if resp.Result != nil {
-				replyRes, err = encoder.EncodeInfo(resp.Result)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	default:
-		rep.Error = apiproto.ErrMethodNotFound
-	}
-
-	if replyRes != nil {
-		rep.Result = replyRes
-	}
-
-	return rep, nil
 }
 
 // Publish publishes data into channel.
@@ -369,8 +178,13 @@ func (h *Handler) Presence(ctx context.Context, cmd *apiproto.PresenceRequest) *
 		return resp
 	}
 
+	apiPresence := make(map[string]*apiproto.ClientInfo, len(presence))
+	for k, v := range presence {
+		apiPresence[k] = (*apiproto.ClientInfo)(v)
+	}
+
 	resp.Result = &apiproto.PresenceResult{
-		Presence: presence,
+		Presence: apiPresence,
 	}
 	return resp
 }
@@ -455,8 +269,18 @@ func (h *Handler) History(ctx context.Context, cmd *apiproto.HistoryRequest) *ap
 		return resp
 	}
 
+	apiPublications := make([]*apiproto.Publication, len(history))
+
+	for i, publication := range history {
+		apiPublications[i] = &apiproto.Publication{
+			UID:  publication.UID,
+			Data: publication.Data,
+			Info: (*apiproto.ClientInfo)(publication.Info),
+		}
+	}
+
 	resp.Result = &apiproto.HistoryResult{
-		Publications: history,
+		Publications: apiPublications,
 	}
 	return resp
 }

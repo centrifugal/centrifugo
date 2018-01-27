@@ -7,7 +7,6 @@ import (
 	"github.com/centrifugal/centrifugo/lib/api"
 	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/node"
-	apiproto "github.com/centrifugal/centrifugo/lib/proto/api"
 )
 
 func init() {
@@ -26,23 +25,21 @@ func init() {
 // HTTPServer is a default builtin Centrifugo server.
 type HTTPServer struct {
 	sync.RWMutex
-	node               *node.Node
-	mux                *http.ServeMux
-	config             *Config
-	shutdown           bool
-	shutdownCh         chan struct{}
-	jsonAPIHandler     *api.Handler
-	protobufAPIHandler *api.Handler
+	node       *node.Node
+	mux        *http.ServeMux
+	config     *Config
+	shutdown   bool
+	shutdownCh chan struct{}
+	api        *api.Handler
 }
 
 // New initializes HTTPServer.
 func New(n *node.Node, config *Config) (*HTTPServer, error) {
 	return &HTTPServer{
-		node:               n,
-		config:             config,
-		shutdownCh:         make(chan struct{}),
-		jsonAPIHandler:     api.NewHandler(n, apiproto.EncodingJSON),
-		protobufAPIHandler: api.NewHandler(n, apiproto.EncodingProtobuf),
+		node:       n,
+		config:     config,
+		shutdownCh: make(chan struct{}),
+		api:        api.NewHandler(n),
 	}, nil
 }
 

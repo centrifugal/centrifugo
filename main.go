@@ -25,8 +25,10 @@ import (
 	"github.com/centrifugal/centrifugo/lib/engine"
 	"github.com/centrifugal/centrifugo/lib/engine/enginememory"
 	"github.com/centrifugal/centrifugo/lib/engine/engineredis"
+	"github.com/centrifugal/centrifugo/lib/grpcserver"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
+	"github.com/centrifugal/centrifugo/lib/proto/api"
 	"github.com/centrifugal/centrifugo/lib/server"
 	"github.com/centrifugal/centrifugo/lib/statik"
 
@@ -35,6 +37,7 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/acme/autocert"
+	"google.golang.org/grpc"
 )
 
 // VERSION of Centrifugo server. Set on build stage.
@@ -204,7 +207,20 @@ func main() {
 			sc := serverConfig(viper.GetViper())
 			srv, _ := server.New(nod, sc)
 
-			go handleSignals(nod, srv)
+			grpcAddr := fmt.Sprintf(":%d", 8001)
+			conn, err := net.Listen("tcp", grpcAddr)
+			if err != nil {
+				logger.FATAL.Fatalf("Cannot listen to address %s", grpcAddr)
+			}
+			grpcServer := grpc.NewServer()
+			api.RegisterCentrifugoServer(grpcServer, grpcserver.New(nod, grpcserver.Config{}))
+			go func() {
+				if err := grpcServer.Serve(conn); err != nil {
+					logger.FATAL.Fatalf("Serve GRPC: %v", err)
+				}
+			}()
+
+			go handleSignals(nod, srv, grpcServer)
 
 			logger.INFO.Printf("Config path: %s", absConfPath)
 			logger.INFO.Printf("Version: %s", VERSION)
@@ -223,6 +239,7 @@ func main() {
 			if viper.GetBool("debug") {
 				logger.WARN.Println("Running in DEBUG mode")
 			}
+			logger.INFO.Printf("Start serving GRPC API on %s", grpcAddr)
 
 			if err = runServer(nod, srv); err != nil {
 				logger.FATAL.Fatalf("Error running server: %v", err)
@@ -337,7 +354,7 @@ func setupLogging() {
 	}
 }
 
-func handleSignals(n *node.Node, s *server.HTTPServer) {
+func handleSignals(n *node.Node, s *server.HTTPServer, grpcServer *grpc.Server) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -376,6 +393,9 @@ func handleSignals(n *node.Node, s *server.HTTPServer) {
 			})
 			s.Shutdown()
 			n.Shutdown()
+			go func() {
+				grpcServer.GracefulStop()
+			}()
 			if pidFile != "" {
 				os.Remove(pidFile)
 			}
@@ -527,6 +547,7 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 			}
 		}()
 	}
+
 	wg.Wait()
 
 	return nil
