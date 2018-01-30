@@ -25,8 +25,8 @@ import (
 	"github.com/centrifugal/centrifugo/lib/engine"
 	"github.com/centrifugal/centrifugo/lib/engine/enginememory"
 	"github.com/centrifugal/centrifugo/lib/engine/engineredis"
-	"github.com/centrifugal/centrifugo/lib/grpcapi"
-	"github.com/centrifugal/centrifugo/lib/grpcclient"
+	"github.com/centrifugal/centrifugo/lib/grpc/apiserver"
+	"github.com/centrifugal/centrifugo/lib/grpc/clientserver"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
@@ -209,33 +209,33 @@ func main() {
 			sc := serverConfig(viper.GetViper())
 			srv, _ := server.New(nod, sc)
 
-			grpcAddr := fmt.Sprintf(":%d", 8001)
-			conn, err := net.Listen("tcp", grpcAddr)
+			grpcAPIAddr := fmt.Sprintf(":%d", 8001)
+			grpcAPIConn, err := net.Listen("tcp", grpcAPIAddr)
 			if err != nil {
-				logger.FATAL.Fatalf("Cannot listen to address %s", grpcAddr)
+				logger.FATAL.Fatalf("Cannot listen to address %s", grpcAPIAddr)
 			}
-			grpcServer := grpc.NewServer()
-			api.RegisterCentrifugoServer(grpcServer, grpcapi.New(nod, grpcapi.Config{}))
+			grpcAPIServer := grpc.NewServer()
+			api.RegisterCentrifugoServer(grpcAPIServer, apiserver.New(nod, apiserver.Config{}))
 			go func() {
-				if err := grpcServer.Serve(conn); err != nil {
+				if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
 					logger.FATAL.Fatalf("Serve GRPC: %v", err)
 				}
 			}()
 
 			grpcClientAddr := fmt.Sprintf(":%d", 8002)
-			conn2, err := net.Listen("tcp", grpcClientAddr)
+			grpcClientConn, err := net.Listen("tcp", grpcClientAddr)
 			if err != nil {
-				logger.FATAL.Fatalf("Cannot listen to address %s", grpcAddr)
+				logger.FATAL.Fatalf("Cannot listen to address %s", grpcClientAddr)
 			}
-			grpcServer2 := grpc.NewServer()
-			proto.RegisterCentrifugoServer(grpcServer2, grpcclient.New(nod, grpcclient.Config{}))
+			grpcClientServer := grpc.NewServer()
+			proto.RegisterCentrifugoServer(grpcClientServer, clientserver.New(nod, clientserver.Config{}))
 			go func() {
-				if err := grpcServer.Serve(conn2); err != nil {
+				if err := grpcClientServer.Serve(grpcClientConn); err != nil {
 					logger.FATAL.Fatalf("Serve GRPC: %v", err)
 				}
 			}()
 
-			go handleSignals(nod, srv, grpcServer)
+			go handleSignals(nod, srv, grpcAPIServer, grpcClientServer)
 
 			logger.INFO.Printf("Config path: %s", absConfPath)
 			logger.INFO.Printf("Version: %s", VERSION)
@@ -254,7 +254,7 @@ func main() {
 			if viper.GetBool("debug") {
 				logger.WARN.Println("DEBUG mode enabled")
 			}
-			logger.INFO.Printf("Serving GRPC API on %s", grpcAddr)
+			logger.INFO.Printf("Serving GRPC API on %s", grpcAPIAddr)
 			logger.INFO.Printf("Serving GRPC client protocol on %s", grpcClientAddr)
 
 			if err = runServer(nod, srv); err != nil {
@@ -370,7 +370,7 @@ func setupLogging() {
 	}
 }
 
-func handleSignals(n *node.Node, s *server.HTTPServer, grpcServer *grpc.Server) {
+func handleSignals(n *node.Node, s *server.HTTPServer, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -410,7 +410,10 @@ func handleSignals(n *node.Node, s *server.HTTPServer, grpcServer *grpc.Server) 
 			s.Shutdown()
 			n.Shutdown()
 			go func() {
-				grpcServer.GracefulStop()
+				grpcAPIServer.GracefulStop()
+			}()
+			go func() {
+				grpcClientServer.GracefulStop()
 			}()
 			if pidFile != "" {
 				os.Remove(pidFile)
