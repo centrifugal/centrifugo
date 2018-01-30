@@ -8,9 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/lib/engine"
-
 	"github.com/centrifugal/centrifugo/lib/channel"
+	"github.com/centrifugal/centrifugo/lib/engine"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"

@@ -2,8 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"strconv"
 	"sync"
 	"time"
@@ -11,7 +9,6 @@ import (
 	"github.com/centrifugal/centrifugo/lib/auth"
 	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/events"
-	"github.com/centrifugal/centrifugo/lib/internal/queue"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/node"
@@ -44,84 +41,42 @@ func init() {
 // this can be Websocket or SockJS connection. Transport of incoming
 // connection abstracted away via Session interface.
 type client struct {
-	mu             sync.RWMutex
-	ctx            context.Context
-	node           *node.Node
-	transport      Transport
-	authenticated  bool
-	uid            string
-	user           string
-	exp            int64
-	opts           string
-	connInfo       proto.Raw
-	channelInfo    map[string]proto.Raw
-	channels       map[string]struct{}
-	messages       queue.Queue
-	closeCh        chan struct{}
-	closed         bool
-	staleTimer     *time.Timer
-	expireTimer    *time.Timer
-	presenceTimer  *time.Timer
-	maxQueueSize   int
-	maxRequestSize int
-	sendFinished   chan struct{}
-	encoding       proto.Encoding
+	mu            sync.RWMutex
+	ctx           context.Context
+	node          *node.Node
+	transport     conns.Transport
+	authenticated bool
+	uid           string
+	user          string
+	exp           int64
+	opts          string
+	connInfo      proto.Raw
+	channelInfo   map[string]proto.Raw
+	channels      map[string]struct{}
+	closed        bool
+	staleTimer    *time.Timer
+	expireTimer   *time.Timer
+	presenceTimer *time.Timer
+	encoding      proto.Encoding
 }
 
 // New creates new client connection.
-func New(ctx context.Context, n *node.Node, t Transport, conf Config) conns.Client {
+func New(ctx context.Context, n *node.Node, t conns.Transport, conf Config) conns.Client {
+	c := &client{
+		ctx:       ctx,
+		uid:       uuid.NewV4().String(),
+		node:      n,
+		transport: t,
+		encoding:  conf.Encoding,
+	}
 
 	config := n.Config()
 	staleCloseDelay := config.ClientStaleCloseDelay
-	queueInitialCapacity := config.ClientQueueInitialCapacity
-	maxQueueSize := config.ClientQueueMaxSize
-	maxRequestSize := config.ClientRequestMaxSize
-
-	c := &client{
-		ctx:            ctx,
-		uid:            uuid.NewV4().String(),
-		node:           n,
-		transport:      t,
-		messages:       queue.New(queueInitialCapacity),
-		closeCh:        make(chan struct{}),
-		sendFinished:   make(chan struct{}),
-		maxQueueSize:   maxQueueSize,
-		maxRequestSize: maxRequestSize,
-		encoding:       conf.Encoding,
-	}
-
-	go c.sendMessages()
-
 	if staleCloseDelay > 0 && !c.authenticated {
 		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
 	}
 
 	return c
-}
-
-// sendMessages waits for messages from queue and sends them to client.
-func (c *client) sendMessages() {
-	defer close(c.sendFinished)
-	for {
-		msg, ok := c.messages.Wait()
-		if !ok {
-			if c.messages.Closed() {
-				return
-			}
-			continue
-		}
-		// Write timeout must be implemented inside session Send method.
-		// Slow client connections will be closed eventually anyway after
-		// exceeding client max queue size.
-		err := c.transport.Send(msg)
-		if err != nil {
-			// Close in goroutine to let this function return.
-			go c.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
-			return
-		}
-		metrics.DefaultRegistry.Counters.Inc("client_num_msg_sent")
-		metrics.DefaultRegistry.Counters.Add("client_bytes_out", int64(len(msg)))
-	}
 }
 
 // closeUnauthenticated closes connection if it's not authenticated yet.
@@ -181,8 +136,8 @@ func (c *client) ID() string {
 	return c.uid
 }
 
-// No lock here as User() can not be called before we set user value in connect command.
-// After this we only read this value.
+// UserID returns ID of user. No locking here as User() can not be called before
+// we set user value in connect command - after this we only read this value.
 func (c *client) UserID() string {
 	return c.user
 }
@@ -191,8 +146,8 @@ func (c *client) Encoding() proto.Encoding {
 	return c.encoding
 }
 
-func (c *client) TransportName() string {
-	return c.transport.Name()
+func (c *client) Transport() conns.Transport {
+	return c.transport
 }
 
 func (c *client) Channels() []string {
@@ -239,31 +194,12 @@ func (c *client) sendUnsubscribe(ch string) error {
 	if err != nil {
 		return nil
 	}
-	encoder := proto.GetReplyEncoder(c.Encoding())
-	defer proto.PutReplyEncoder(c.Encoding(), encoder)
-	encoder.Encode(&proto.Reply{
+
+	c.transport.Send(proto.NewPreparedReply(&proto.Reply{
 		Result: result,
-	})
-	c.enqueue(encoder.Finish())
-	return nil
-}
+	}, c.encoding))
 
-func (c *client) enqueue(data []byte) error {
-	ok := c.messages.Add(data)
-	if !ok {
-		return nil
-	}
-	metrics.DefaultRegistry.Counters.Inc("client_num_msg_queued")
-	if c.messages.Size() > c.maxQueueSize {
-		// Close in goroutine to not block message broadcast.
-		go c.Close(&proto.Disconnect{Reason: "slow", Reconnect: true})
-		return nil
-	}
 	return nil
-}
-
-func (c *client) Send(data []byte) error {
-	return c.enqueue(data)
 }
 
 // clean called when connection was closed to make different clean up
@@ -276,10 +212,7 @@ func (c *client) Close(advice *proto.Disconnect) error {
 		return nil
 	}
 
-	close(c.closeCh)
 	c.closed = true
-
-	c.messages.Close()
 
 	if len(c.channels) > 0 {
 		// unsubscribe from all channels
@@ -316,6 +249,14 @@ func (c *client) Close(advice *proto.Disconnect) error {
 
 	c.transport.Close(advice)
 
+	if c.node.Mediator() != nil && c.node.Mediator().DisconnectHandler != nil {
+		c.node.Mediator().DisconnectHandler(c.ctx, &events.DisconnectContext{
+			EventContext: events.EventContext{
+				Client: c,
+			},
+		})
+	}
+
 	return nil
 }
 
@@ -330,58 +271,8 @@ func (c *client) info(ch string) *proto.ClientInfo {
 	}
 }
 
-func (c *client) Handle(data []byte) error {
-	started := time.Now()
-	defer func() {
-		metrics.DefaultRegistry.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
-	}()
-	metrics.DefaultRegistry.Counters.Inc("client_api_num_requests")
-	metrics.DefaultRegistry.Counters.Add("client_bytes_in", int64(len(data)))
-
-	if len(data) == 0 {
-		logger.ERROR.Println("empty client request received")
-		c.Close(&proto.Disconnect{Reason: proto.ErrBadRequest.Error(), Reconnect: false})
-		return proto.ErrBadRequest
-	} else if len(data) > c.maxRequestSize {
-		logger.ERROR.Println("client request exceeds max request size limit")
-		c.Close(&proto.Disconnect{Reason: proto.ErrLimitExceeded.Error(), Reconnect: false})
-		return proto.ErrLimitExceeded
-	}
-
-	encoder := proto.GetReplyEncoder(c.encoding)
-	defer proto.PutReplyEncoder(c.encoding, encoder)
-
-	decoder := proto.GetCommandDecoder(c.encoding, data)
-	defer proto.PutCommandDecoder(c.encoding, decoder)
-
-	for {
-		cmd, err := decoder.Decode()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			logger.ERROR.Printf("error decoding request: %v", err)
-			c.Close(&proto.Disconnect{Reason: "malformed request", Reconnect: false})
-			return proto.ErrBadRequest
-		}
-		rep, disconnect := c.handleCmd(cmd)
-		if disconnect != nil {
-			logger.ERROR.Printf("disconnect after handling command %v: %v", cmd, disconnect)
-			c.Close(disconnect)
-			return fmt.Errorf("disconnect: %s", disconnect.Reason)
-		}
-		err = encoder.Encode(rep)
-		if err != nil {
-			logger.ERROR.Printf("error encoding reply %v: %v", rep, err)
-			c.Close(&proto.Disconnect{Reason: "internal error", Reconnect: true})
-			return err
-		}
-	}
-	return c.enqueue(encoder.Finish())
-}
-
-// handleCmd dispatches clientCommand into correct command handler
-func (c *client) handleCmd(command *proto.Command) (*proto.Reply, *proto.Disconnect) {
+// Handle dispatches Command into correct command handler.
+func (c *client) Handle(command *proto.Command) (*proto.Reply, *proto.Disconnect) {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -426,7 +317,8 @@ func (c *client) handleCmd(command *proto.Command) (*proto.Reply, *proto.Disconn
 				rpcReply, err := mediator.RPCHandler(c.ctx, &events.RPCContext{
 					Data: params,
 				})
-				if err != nil {
+				if err == nil {
+					disconnect = rpcReply.Disconnect
 					replyRes = rpcReply.Result
 					replyErr = rpcReply.Error
 				}
@@ -784,6 +676,16 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 	}
 
 	resp.Result.Client = c.uid
+
+	// TODO: check locking.
+	if c.node.Mediator() != nil && c.node.Mediator().ConnectHandler != nil {
+		c.node.Mediator().ConnectHandler(c.ctx, &events.ConnectContext{
+			EventContext: events.EventContext{
+				Client: c,
+			},
+		})
+	}
+
 	return resp, nil
 }
 
@@ -849,8 +751,7 @@ func (c *client) refreshCmd(cmd *proto.RefreshRequest) (*proto.RefreshResponse, 
 // NOTE: actually can be a part of engine history method, for
 // example if we eventually will work with Redis streams. For
 // this sth like HistoryFilter{limit int, from string} struct
-// can be added as History engine method argument instead of
-// just limit.
+// can be added as History engine method argument.
 func recoverMessages(last string, messages []*proto.Publication) ([]*proto.Publication, bool) {
 	if last == "" {
 		// Client wants to recover messages but it seems that there were no
@@ -953,6 +854,15 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 		}
 	}
 
+	if c.node.Mediator() != nil && c.node.Mediator().SubscribeHandler != nil {
+		c.node.Mediator().SubscribeHandler(c.ctx, &events.SubscribeContext{
+			EventContext: events.EventContext{
+				Client: c,
+			},
+			Channel: channel,
+		})
+	}
+
 	c.channels[channel] = struct{}{}
 
 	err := c.node.AddSubscription(channel, c)
@@ -1039,6 +949,16 @@ func (c *client) unsubscribe(channel string) error {
 			return err
 		}
 	}
+
+	if c.node.Mediator() != nil && c.node.Mediator().UnsubscribeHandler != nil {
+		c.node.Mediator().UnsubscribeHandler(c.ctx, &events.UnsubscribeContext{
+			EventContext: events.EventContext{
+				Client: c,
+			},
+			Channel: channel,
+		})
+	}
+
 	return nil
 }
 
@@ -1105,6 +1025,16 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 	publication := &proto.Publication{
 		Data: data,
 		Info: info,
+	}
+
+	if c.node.Mediator() != nil && c.node.Mediator().PublishHandler != nil {
+		c.node.Mediator().PublishHandler(c.ctx, &events.PublishContext{
+			EventContext: events.EventContext{
+				Client: c,
+			},
+			Channel:     ch,
+			Publication: publication,
+		})
 	}
 
 	err := <-c.node.Publish(ch, publication, &chOpts)

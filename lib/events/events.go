@@ -9,7 +9,7 @@ import (
 
 // EventContext ...
 type EventContext struct {
-	Client conns.ClientInspector
+	Client conns.Client
 }
 
 // EventReply ...
@@ -21,7 +21,6 @@ type EventReply struct {
 // ConnectContext ...
 type ConnectContext struct {
 	EventContext
-	Transport string
 }
 
 // ConnectReply ...
@@ -75,6 +74,7 @@ type UnsubscribeHandler func(context.Context, *UnsubscribeContext) (*Unsubscribe
 // PublishContext ...
 type PublishContext struct {
 	EventContext
+	Channel     string
 	Publication *proto.Publication
 }
 

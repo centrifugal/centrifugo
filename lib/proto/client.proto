@@ -204,3 +204,18 @@ message PingResponse {
 message PingResult {
     string Data = 1 [(gogoproto.jsontag) = "data"];
 }
+
+message ConsumeRequest {}
+
+message RPCRequest{
+    bytes Data = 1 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+}
+
+message RPCResponse{
+    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    bytes Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
+service Centrifugo {
+    rpc Communicate(stream Command) returns (stream Reply) {}
+}

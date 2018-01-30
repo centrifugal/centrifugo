@@ -67,8 +67,38 @@ func main() {
 		}, nil
 	}
 
+	handleConnect := func(ctx context.Context, req *events.ConnectContext) (*events.ConnectReply, error) {
+		log.Printf("user %s connected via %s", req.Client.UserID(), req.Client.Transport().Name())
+		return nil, nil
+	}
+
+	handleDisconnect := func(ctx context.Context, req *events.DisconnectContext) (*events.DisconnectReply, error) {
+		log.Printf("user %s disconnected", req.Client.UserID())
+		return nil, nil
+	}
+
+	handleSubscribe := func(ctx context.Context, req *events.SubscribeContext) (*events.SubscribeReply, error) {
+		log.Printf("user %s subscribes on %s", req.Client.UserID(), req.Channel)
+		return nil, nil
+	}
+
+	handleUnsubscribe := func(ctx context.Context, req *events.UnsubscribeContext) (*events.UnsubscribeReply, error) {
+		log.Printf("user %s unsubscribed from %s", req.Client.UserID(), req.Channel)
+		return nil, nil
+	}
+
+	handlePublish := func(ctx context.Context, req *events.PublishContext) (*events.PublishReply, error) {
+		log.Printf("user %s publishes into channel %s: %s", req.Client.UserID(), req.Channel, string(req.Publication.Data))
+		return nil, nil
+	}
+
 	mediator := &events.Mediator{
-		RPCHandler: handleRPC,
+		RPCHandler:         handleRPC,
+		ConnectHandler:     handleConnect,
+		DisconnectHandler:  handleDisconnect,
+		SubscribeHandler:   handleSubscribe,
+		UnsubscribeHandler: handleUnsubscribe,
+		PublishHandler:     handlePublish,
 	}
 
 	n.SetMediator(mediator)

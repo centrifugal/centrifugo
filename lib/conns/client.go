@@ -1,6 +1,8 @@
 package conns
 
-import "github.com/centrifugal/centrifugo/lib/proto"
+import (
+	"github.com/centrifugal/centrifugo/lib/proto"
+)
 
 // options contains various connection specific options.
 // TODO: ?
@@ -11,8 +13,8 @@ type options struct {
 	Hidden bool `json:"hidden,omitempty"`
 }
 
-// ClientInspector represents functions to inspect client connection.
-type ClientInspector interface {
+// Client represents functions to inspect and control client connection.
+type Client interface {
 	// Encoding returns connection protocol encoding.
 	Encoding() proto.Encoding
 	// ID returns unique connection id.
@@ -22,23 +24,11 @@ type ClientInspector interface {
 	// Channels returns a slice of channels connection subscribed to at moment.
 	Channels() []string
 	// TransportName returns name of transport used.
-	TransportName() string
-}
-
-// ClientExecutor represents functions to control client connection.
-type ClientExecutor interface {
+	Transport() Transport
 	// Handle data coming from connection transport.
-	Handle(data []byte) error
-	// Send data to connection transport.
-	Send(data []byte) error
+	Handle(*proto.Command) (*proto.Reply, *proto.Disconnect)
 	// Unsubscribe allows to unsubscribe connection from channel.
 	Unsubscribe(channel string) error
 	// Close closes client's connection.
 	Close(*proto.Disconnect) error
-}
-
-// Client represents functions to inspect and control client connection.
-type Client interface {
-	ClientInspector
-	ClientExecutor
 }

@@ -25,9 +25,11 @@ import (
 	"github.com/centrifugal/centrifugo/lib/engine"
 	"github.com/centrifugal/centrifugo/lib/engine/enginememory"
 	"github.com/centrifugal/centrifugo/lib/engine/engineredis"
-	"github.com/centrifugal/centrifugo/lib/grpcserver"
+	"github.com/centrifugal/centrifugo/lib/grpcapi"
+	"github.com/centrifugal/centrifugo/lib/grpcclient"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
+	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/api"
 	"github.com/centrifugal/centrifugo/lib/server"
 	"github.com/centrifugal/centrifugo/lib/statik"
@@ -213,9 +215,22 @@ func main() {
 				logger.FATAL.Fatalf("Cannot listen to address %s", grpcAddr)
 			}
 			grpcServer := grpc.NewServer()
-			api.RegisterCentrifugoServer(grpcServer, grpcserver.New(nod, grpcserver.Config{}))
+			api.RegisterCentrifugoServer(grpcServer, grpcapi.New(nod, grpcapi.Config{}))
 			go func() {
 				if err := grpcServer.Serve(conn); err != nil {
+					logger.FATAL.Fatalf("Serve GRPC: %v", err)
+				}
+			}()
+
+			grpcClientAddr := fmt.Sprintf(":%d", 8002)
+			conn2, err := net.Listen("tcp", grpcClientAddr)
+			if err != nil {
+				logger.FATAL.Fatalf("Cannot listen to address %s", grpcAddr)
+			}
+			grpcServer2 := grpc.NewServer()
+			proto.RegisterCentrifugoServer(grpcServer2, grpcclient.New(nod, grpcclient.Config{}))
+			go func() {
+				if err := grpcServer.Serve(conn2); err != nil {
 					logger.FATAL.Fatalf("Serve GRPC: %v", err)
 				}
 			}()
@@ -240,6 +255,7 @@ func main() {
 				logger.WARN.Println("DEBUG mode enabled")
 			}
 			logger.INFO.Printf("Serving GRPC API on %s", grpcAddr)
+			logger.INFO.Printf("Serving GRPC client protocol on %s", grpcClientAddr)
 
 			if err = runServer(nod, srv); err != nil {
 				logger.FATAL.Fatalf("Error running server: %v", err)

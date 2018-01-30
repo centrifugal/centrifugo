@@ -6,14 +6,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/lib/engine"
-
-	logger "github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/lib/channel"
+	"github.com/centrifugal/centrifugo/lib/engine"
 	"github.com/centrifugal/centrifugo/lib/internal/priority"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/control"
+
+	"github.com/FZambia/go-logger"
 )
 
 // MemoryEngine allows to run Centrifugo without using Redis at all.

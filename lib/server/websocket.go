@@ -12,7 +12,7 @@ import (
 
 const (
 	// We don't use specific websocket close codes because our client
-	// does not know transport specifics.
+	// have no notion about transport specifics.
 	websocketCloseStatus = 3000
 )
 
@@ -38,24 +38,28 @@ type websocketTransport struct {
 	closeCh   chan struct{}
 	opts      *websocketTransportOptions
 	pingTimer *time.Timer
+	writer    *writer
 }
 
 type websocketTransportOptions struct {
+	enc                proto.Encoding
 	pingInterval       time.Duration
 	writeTimeout       time.Duration
 	compressionMinSize int
 }
 
-func newWebsocketTransport(conn websocketConn, opts *websocketTransportOptions) *websocketTransport {
-	sess := &websocketTransport{
+func newWebsocketTransport(conn websocketConn, writer *writer, opts *websocketTransportOptions) *websocketTransport {
+	transport := &websocketTransport{
 		conn:    conn,
 		closeCh: make(chan struct{}),
 		opts:    opts,
+		writer:  writer,
 	}
+	writer.onWrite(transport.write)
 	if opts.pingInterval > 0 {
-		sess.addPing()
+		transport.addPing()
 	}
-	return sess
+	return transport
 }
 
 func (t *websocketTransport) ping() {
@@ -88,22 +92,34 @@ func (t *websocketTransport) Name() string {
 	return "websocket"
 }
 
-func (t *websocketTransport) Send(msg []byte) error {
+func (t *websocketTransport) Send(reply *proto.PreparedReply) error {
+	data := reply.Data()
+	disconnect := t.writer.write(data)
+	if disconnect != nil {
+		// Close in goroutine to not block message broadcast.
+		go t.Close(disconnect)
+	}
+	return nil
+}
+
+func (t *websocketTransport) write(data []byte) error {
 	select {
 	case <-t.closeCh:
 		return nil
 	default:
 		if t.opts.compressionMinSize > 0 {
-			t.conn.EnableWriteCompression(len(msg) > t.opts.compressionMinSize)
+			t.conn.EnableWriteCompression(len(data) > t.opts.compressionMinSize)
 		}
 		if t.opts.writeTimeout > 0 {
 			t.conn.SetWriteDeadline(time.Now().Add(t.opts.writeTimeout))
 		}
 		var err error
-		err = t.conn.WriteMessage(websocket.TextMessage, msg)
-
+		err = t.conn.WriteMessage(websocket.TextMessage, data)
 		if t.opts.writeTimeout > 0 {
 			t.conn.SetWriteDeadline(time.Time{})
+		}
+		if err != nil {
+			t.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
 		}
 		return err
 	}

@@ -15,7 +15,7 @@ gomplate -f api.template.proto
 Generate for internal Centrifugo usage.
 
 ```
-GOGO=1 gomplate -f api.template.proto > $GOPATH/src/github.com/centrifugal/centrifugo/lib/proto/api/api.proto
+GOGO=1 gomplate -f $GOPATH/src/github.com/centrifugal/centrifugo/extras/proto/api.template.proto > $GOPATH/src/github.com/centrifugal/centrifugo/lib/proto/api/api.proto
 ```
 
 ### Client ptoto
@@ -29,5 +29,5 @@ gomplate -f client.template.proto
 Generate for internal Centrifugo usage.
 
 ```
-GOGO=1 gomplate -f client.template.proto > $GOPATH/src/github.com/centrifugal/centrifugo/lib/proto/client.proto
+GOGO=1 gomplate -f $GOPATH/src/github.com/centrifugal/centrifugo/extras/proto/client.template.proto > $GOPATH/src/github.com/centrifugal/centrifugo/lib/proto/client.proto
 ```

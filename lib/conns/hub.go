@@ -246,8 +246,8 @@ func (h *clientHub) BroadcastPublication(channel string, publication *proto.Publ
 		return nil
 	}
 
-	var jsonData []byte
-	var protobufData []byte
+	var jsonReply *proto.PreparedReply
+	var protobufReply *proto.PreparedReply
 
 	// iterate over them and send message individually
 	for uid := range channelSubscriptions {
@@ -257,7 +257,7 @@ func (h *clientHub) BroadcastPublication(channel string, publication *proto.Publ
 		}
 		enc := c.Encoding()
 		if enc == proto.EncodingJSON {
-			if jsonData == nil {
+			if jsonReply == nil {
 				data, err := proto.GetMessageEncoder(enc).EncodePublication(publication)
 				if err != nil {
 					return err
@@ -266,17 +266,14 @@ func (h *clientHub) BroadcastPublication(channel string, publication *proto.Publ
 				if err != nil {
 					return err
 				}
-				encoder := proto.GetReplyEncoder(enc)
 				reply := &proto.Reply{
 					Result: messageBytes,
 				}
-				encoder.Encode(reply)
-				jsonData = encoder.Finish()
-				proto.PutReplyEncoder(enc, encoder)
+				jsonReply = proto.NewPreparedReply(reply, proto.EncodingJSON)
 			}
-			c.Send(jsonData)
+			c.Transport().Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
-			if protobufData == nil {
+			if protobufReply == nil {
 				data, err := proto.GetMessageEncoder(enc).EncodePublication(publication)
 				if err != nil {
 					return err
@@ -285,15 +282,12 @@ func (h *clientHub) BroadcastPublication(channel string, publication *proto.Publ
 				if err != nil {
 					return err
 				}
-				encoder := proto.GetReplyEncoder(enc)
 				reply := &proto.Reply{
 					Result: messageBytes,
 				}
-				encoder.Encode(reply)
-				protobufData = encoder.Finish()
-				proto.PutReplyEncoder(enc, encoder)
+				protobufReply = proto.NewPreparedReply(reply, proto.EncodingProtobuf)
 			}
-			c.Send(protobufData)
+			c.Transport().Send(protobufReply)
 		}
 	}
 	return nil
@@ -310,8 +304,8 @@ func (h *clientHub) BroadcastJoin(channel string, join *proto.Join) error {
 		return nil
 	}
 
-	var jsonData []byte
-	var protobufData []byte
+	var jsonReply *proto.PreparedReply
+	var protobufReply *proto.PreparedReply
 
 	// iterate over them and send message individually
 	for uid := range channelSubscriptions {
@@ -321,7 +315,7 @@ func (h *clientHub) BroadcastJoin(channel string, join *proto.Join) error {
 		}
 		enc := c.Encoding()
 		if enc == proto.EncodingJSON {
-			if jsonData == nil {
+			if jsonReply == nil {
 				data, err := proto.GetMessageEncoder(enc).EncodeJoin(join)
 				if err != nil {
 					return err
@@ -330,17 +324,14 @@ func (h *clientHub) BroadcastJoin(channel string, join *proto.Join) error {
 				if err != nil {
 					return err
 				}
-				encoder := proto.GetReplyEncoder(enc)
 				reply := &proto.Reply{
 					Result: messageBytes,
 				}
-				encoder.Encode(reply)
-				jsonData = encoder.Finish()
-				proto.PutReplyEncoder(enc, encoder)
+				jsonReply = proto.NewPreparedReply(reply, proto.EncodingJSON)
 			}
-			c.Send(jsonData)
+			c.Transport().Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
-			if protobufData == nil {
+			if protobufReply == nil {
 				data, err := proto.GetMessageEncoder(enc).EncodeJoin(join)
 				if err != nil {
 					return err
@@ -349,15 +340,12 @@ func (h *clientHub) BroadcastJoin(channel string, join *proto.Join) error {
 				if err != nil {
 					return err
 				}
-				encoder := proto.GetReplyEncoder(enc)
 				reply := &proto.Reply{
 					Result: messageBytes,
 				}
-				encoder.Encode(reply)
-				protobufData = encoder.Finish()
-				proto.PutReplyEncoder(enc, encoder)
+				protobufReply = proto.NewPreparedReply(reply, proto.EncodingProtobuf)
 			}
-			c.Send(protobufData)
+			c.Transport().Send(protobufReply)
 		}
 	}
 	return nil
@@ -374,8 +362,8 @@ func (h *clientHub) BroadcastLeave(channel string, leave *proto.Leave) error {
 		return nil
 	}
 
-	var jsonData []byte
-	var protobufData []byte
+	var jsonReply *proto.PreparedReply
+	var protobufReply *proto.PreparedReply
 
 	// iterate over them and send message individually
 	for uid := range channelSubscriptions {
@@ -385,7 +373,7 @@ func (h *clientHub) BroadcastLeave(channel string, leave *proto.Leave) error {
 		}
 		enc := c.Encoding()
 		if enc == proto.EncodingJSON {
-			if jsonData == nil {
+			if jsonReply == nil {
 				data, err := proto.GetMessageEncoder(enc).EncodeLeave(leave)
 				if err != nil {
 					return err
@@ -394,17 +382,14 @@ func (h *clientHub) BroadcastLeave(channel string, leave *proto.Leave) error {
 				if err != nil {
 					return err
 				}
-				encoder := proto.GetReplyEncoder(enc)
 				reply := &proto.Reply{
 					Result: messageBytes,
 				}
-				encoder.Encode(reply)
-				jsonData = encoder.Finish()
-				proto.PutReplyEncoder(enc, encoder)
+				jsonReply = proto.NewPreparedReply(reply, proto.EncodingJSON)
 			}
-			c.Send(jsonData)
+			c.Transport().Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
-			if protobufData == nil {
+			if protobufReply == nil {
 				data, err := proto.GetMessageEncoder(enc).EncodeLeave(leave)
 				if err != nil {
 					return err
@@ -413,15 +398,12 @@ func (h *clientHub) BroadcastLeave(channel string, leave *proto.Leave) error {
 				if err != nil {
 					return err
 				}
-				encoder := proto.GetReplyEncoder(enc)
 				reply := &proto.Reply{
 					Result: messageBytes,
 				}
-				encoder.Encode(reply)
-				protobufData = encoder.Finish()
-				proto.PutReplyEncoder(enc, encoder)
+				protobufReply = proto.NewPreparedReply(reply, proto.EncodingProtobuf)
 			}
-			c.Send(protobufData)
+			c.Transport().Send(protobufReply)
 		}
 	}
 	return nil

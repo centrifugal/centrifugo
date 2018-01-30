@@ -11,7 +11,7 @@ import (
 
 const (
 	// We don't use specific websocket close codes because our client
-	// does not know transport specifics.
+	// have no notion about transport specifics.
 	sockjsCloseStatus = 3000
 )
 
@@ -20,25 +20,43 @@ type sockjsTransport struct {
 	closed  bool
 	closeCh chan struct{}
 	session sockjs.Session
+	writer  *writer
 }
 
-func newSockjsTransport(s sockjs.Session) *sockjsTransport {
-	return &sockjsTransport{
+func newSockjsTransport(s sockjs.Session, w *writer) *sockjsTransport {
+	t := &sockjsTransport{
 		session: s,
+		writer:  w,
 		closeCh: make(chan struct{}),
 	}
+	w.onWrite(t.write)
+	return t
 }
 
 func (t *sockjsTransport) Name() string {
 	return "sockjs"
 }
 
-func (t *sockjsTransport) Send(msg []byte) error {
+func (t *sockjsTransport) Send(reply *proto.PreparedReply) error {
+	data := reply.Data()
+	disconnect := t.writer.write(data)
+	if disconnect != nil {
+		// Close in goroutine to not block message broadcast.
+		go t.Close(disconnect)
+	}
+	return nil
+}
+
+func (t *sockjsTransport) write(msg []byte) error {
 	select {
 	case <-t.closeCh:
 		return nil
 	default:
-		return t.session.Send(string(msg))
+		err := t.session.Send(string(msg))
+		if err != nil {
+			t.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
+		}
+		return err
 	}
 }
 

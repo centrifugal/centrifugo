@@ -145,8 +145,15 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
 	// Separate goroutine for better GC of caller's data.
 	go func() {
-		session := newSockjsTransport(sess)
-		c := client.New(sess.Request().Context(), s.node, session, client.Config{Encoding: proto.EncodingJSON})
+		config := s.node.Config()
+		writerConf := writerConfig{
+			MaxQueueSize:         config.ClientQueueMaxSize,
+			QueueInitialCapacity: config.ClientQueueInitialCapacity,
+		}
+		writer := newWriter(writerConf)
+		defer writer.close()
+		transport := newSockjsTransport(sess, writer)
+		c := client.New(sess.Request().Context(), s.node, transport, client.Config{Encoding: proto.EncodingJSON})
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {
@@ -156,12 +163,62 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 			}()
 		}
 
+		enc := proto.EncodingJSON
+
 		for {
 			if msg, err := sess.Recv(); err == nil {
-				err = c.Handle([]byte(msg))
-				if err != nil {
+				data := []byte(msg)
+
+				if len(data) == 0 {
+					logger.ERROR.Println("empty client request received")
+					transport.Close(&proto.Disconnect{Reason: proto.ErrBadRequest.Error(), Reconnect: false})
 					return
 				}
+
+				encoder := proto.GetReplyEncoder(enc)
+				decoder := proto.GetCommandDecoder(enc, data)
+
+				for {
+					cmd, err := decoder.Decode()
+					if err != nil {
+						if err == io.EOF {
+							break
+						}
+						logger.ERROR.Printf("error decoding request: %v", err)
+						transport.Close(proto.DisconnectBadRequest)
+						proto.PutCommandDecoder(enc, decoder)
+						proto.PutReplyEncoder(enc, encoder)
+						return
+					}
+					rep, disconnect := c.Handle(cmd)
+					if disconnect != nil {
+						logger.ERROR.Printf("disconnect after handling command %v: %v", cmd, disconnect)
+						transport.Close(disconnect)
+						proto.PutCommandDecoder(enc, decoder)
+						proto.PutReplyEncoder(enc, encoder)
+						return
+					}
+
+					err = encoder.Encode(rep)
+					if err != nil {
+						logger.ERROR.Printf("error encoding reply %v: %v", rep, err)
+						transport.Close(&proto.Disconnect{Reason: "internal error", Reconnect: true})
+						return
+					}
+				}
+
+				disconnect := writer.write(encoder.Finish())
+				if disconnect != nil {
+					logger.ERROR.Printf("disconnect after sending data to transport: %v", disconnect)
+					transport.Close(disconnect)
+					proto.PutCommandDecoder(enc, decoder)
+					proto.PutReplyEncoder(enc, encoder)
+					return
+				}
+
+				proto.PutCommandDecoder(enc, decoder)
+				proto.PutReplyEncoder(enc, encoder)
+
 				continue
 			}
 			break
@@ -229,32 +286,85 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			pingInterval:       pingInterval,
 			writeTimeout:       writeTimeout,
 			compressionMinSize: wsCompressionMinSize,
+			enc:                enc,
 		}
-		session := newWebsocketTransport(conn, opts)
-		c := client.New(r.Context(), s.node, session, client.Config{Encoding: enc})
+		writerConf := writerConfig{
+			MaxQueueSize:         config.ClientQueueMaxSize,
+			QueueInitialCapacity: config.ClientQueueInitialCapacity,
+		}
+		writer := newWriter(writerConf)
+		defer writer.close()
+		transport := newWebsocketTransport(conn, writer, opts)
+		c := client.New(r.Context(), s.node, transport, client.Config{Encoding: enc})
 		defer c.Close(nil)
 
 		if logger.DEBUG.Enabled() {
-			logger.DEBUG.Printf("New raw websocket session established with client ID %s\n", c.ID())
+			logger.DEBUG.Printf("New raw websocket connection established with client ID %s\n", c.ID())
 			defer func() {
-				logger.DEBUG.Printf("Raw websocket session with client ID %s completed", c.ID())
+				logger.DEBUG.Printf("Raw websocket connection with client ID %s completed", c.ID())
 			}()
 		}
 
 		for {
-			_, message, err := conn.ReadMessage()
+			_, data, err := conn.ReadMessage()
 			if err != nil {
 				return
 			}
-			err = c.Handle(message)
-			if err != nil {
+
+			if len(data) == 0 {
+				logger.ERROR.Println("empty client request received")
+				transport.Close(&proto.Disconnect{Reason: proto.ErrBadRequest.Error(), Reconnect: false})
 				return
 			}
+
+			encoder := proto.GetReplyEncoder(enc)
+			decoder := proto.GetCommandDecoder(enc, data)
+
+			for {
+				cmd, err := decoder.Decode()
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					logger.ERROR.Printf("error decoding request: %v", err)
+					transport.Close(proto.DisconnectBadRequest)
+					proto.PutCommandDecoder(enc, decoder)
+					proto.PutReplyEncoder(enc, encoder)
+					return
+				}
+				rep, disconnect := c.Handle(cmd)
+				if disconnect != nil {
+					logger.ERROR.Printf("disconnect after handling command %v: %v", cmd, disconnect)
+					transport.Close(disconnect)
+					proto.PutCommandDecoder(enc, decoder)
+					proto.PutReplyEncoder(enc, encoder)
+					return
+				}
+
+				err = encoder.Encode(rep)
+				if err != nil {
+					logger.ERROR.Printf("error encoding reply %v: %v", rep, err)
+					transport.Close(&proto.Disconnect{Reason: "internal error", Reconnect: true})
+					return
+				}
+			}
+
+			disconnect := writer.write(encoder.Finish())
+			if disconnect != nil {
+				logger.ERROR.Printf("disconnect after sending data to transport: %v", disconnect)
+				transport.Close(disconnect)
+				proto.PutCommandDecoder(enc, decoder)
+				proto.PutReplyEncoder(enc, encoder)
+				return
+			}
+
+			proto.PutCommandDecoder(enc, decoder)
+			proto.PutReplyEncoder(enc, encoder)
 		}
 	}()
 }
 
-func (s *HTTPServer) handleCommand(ctx context.Context, enc apiproto.Encoding, cmd *apiproto.Command) (*apiproto.Reply, error) {
+func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding, cmd *apiproto.Command) (*apiproto.Reply, error) {
 	var err error
 
 	method := cmd.Method
@@ -489,7 +599,7 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		rep, err := s.handleCommand(r.Context(), enc, command)
+		rep, err := s.handleAPICommand(r.Context(), enc, command)
 		if err != nil {
 			logger.ERROR.Printf("error handling API command: %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

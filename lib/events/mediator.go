@@ -10,6 +10,8 @@ type Mediator struct {
 	SubscribeHandler SubscribeHandler
 	// UnsubscribeHandler reacts on unsubscribe events.
 	UnsubscribeHandler UnsubscribeHandler
+	// PublishHandler reacts on publish requests.
+	PublishHandler PublishHandler
 	// PresenceHandler allows to register action to be executed on every
 	// periodic connection presence update.
 	PresenceHandler PresenceHandler
