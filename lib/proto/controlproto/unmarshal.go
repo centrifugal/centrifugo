@@ -1,4 +1,4 @@
-package control
+package controlproto
 
 // Decoder ...
 type Decoder interface {

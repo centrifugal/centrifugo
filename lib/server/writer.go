@@ -13,7 +13,7 @@ type writerConfig struct {
 	QueueInitialCapacity int
 }
 
-// writer must manage per-connection queue.
+// writer helps to manage per-connection message queue.
 type writer struct {
 	mu       sync.Mutex
 	config   writerConfig
@@ -43,7 +43,7 @@ func (w *writer) runWriteRoutine() {
 
 		err := w.fn(msg)
 		if err != nil {
-			// Write failed, transport must be closed, here we just return from func.
+			// Write failed, transport must close itself, here we just return from routine.
 			return
 		}
 		// TODO: move to transport.

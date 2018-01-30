@@ -13,7 +13,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/proto/control"
+	"github.com/centrifugal/centrifugo/lib/proto/controlproto"
 
 	"github.com/FZambia/go-sentinel"
 	"github.com/garyburd/redigo/redis"
@@ -462,7 +462,7 @@ func (e *RedisEngine) PublishLeave(ch string, leave *proto.Leave, opts *channel.
 }
 
 // PublishControl - see engine interface description.
-func (e *RedisEngine) PublishControl(message *control.Command) <-chan error {
+func (e *RedisEngine) PublishControl(message *controlproto.Command) <-chan error {
 	return e.shards[0].PublishControl(message)
 }
 
@@ -1096,7 +1096,7 @@ func (e *Shard) PublishLeave(ch string, leave *proto.Leave, opts *channel.Option
 }
 
 // PublishControl - see engine interface description.
-func (e *Shard) PublishControl(cmd *control.Command) <-chan error {
+func (e *Shard) PublishControl(cmd *controlproto.Command) <-chan error {
 	eChan := make(chan error, 1)
 
 	byteMessage, err := e.node.ControlEncoder().EncodeCommand(cmd)

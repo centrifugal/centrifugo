@@ -42,7 +42,7 @@ It has these top-level messages:
 	InfoResult
 	NodeResult
 */
-package api
+package apiproto
 
 import testing "testing"
 import rand "math/rand"

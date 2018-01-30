@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/lib/proto/control"
+	"github.com/centrifugal/centrifugo/lib/proto/controlproto"
 )
 
 type nodeRegistry struct {
@@ -13,7 +13,7 @@ type nodeRegistry struct {
 	// currentUID keeps uid of current node
 	currentUID string
 	// nodes is a map with information about known nodes.
-	nodes map[string]control.Node
+	nodes map[string]controlproto.Node
 	// updates track time we last received ping from node. Used to clean up nodes map.
 	updates map[string]int64
 }
@@ -21,14 +21,14 @@ type nodeRegistry struct {
 func newNodeRegistry(currentUID string) *nodeRegistry {
 	return &nodeRegistry{
 		currentUID: currentUID,
-		nodes:      make(map[string]control.Node),
+		nodes:      make(map[string]controlproto.Node),
 		updates:    make(map[string]int64),
 	}
 }
 
-func (r *nodeRegistry) list() []control.Node {
+func (r *nodeRegistry) list() []controlproto.Node {
 	r.mu.RLock()
-	nodes := make([]control.Node, len(r.nodes))
+	nodes := make([]controlproto.Node, len(r.nodes))
 	i := 0
 	for _, info := range r.nodes {
 		nodes[i] = info
@@ -38,14 +38,14 @@ func (r *nodeRegistry) list() []control.Node {
 	return nodes
 }
 
-func (r *nodeRegistry) get(uid string) control.Node {
+func (r *nodeRegistry) get(uid string) controlproto.Node {
 	r.mu.RLock()
 	info, _ := r.nodes[uid]
 	r.mu.RUnlock()
 	return info
 }
 
-func (r *nodeRegistry) add(info *control.Node) {
+func (r *nodeRegistry) add(info *controlproto.Node) {
 	r.mu.Lock()
 	currentInfo, ok := r.nodes[info.UID]
 	if !ok {

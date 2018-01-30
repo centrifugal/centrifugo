@@ -5,7 +5,7 @@
 // Note that we use vendored gogoprotobuf path in example above.
 syntax = "proto3";
 
-package control;
+package controlproto;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 

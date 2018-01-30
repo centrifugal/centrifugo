@@ -6,7 +6,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	apiproto "github.com/centrifugal/centrifugo/lib/proto/api"
+	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 )
 
 // Handler ...

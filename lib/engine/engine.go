@@ -3,7 +3,7 @@ package engine
 import (
 	"github.com/centrifugal/centrifugo/lib/channel"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/proto/control"
+	"github.com/centrifugal/centrifugo/lib/proto/controlproto"
 )
 
 // HistoryFilter allows to provide several parameters for history
@@ -37,7 +37,7 @@ type Engine interface {
 	// PublishLeave ...
 	PublishLeave(ch string, leave *proto.Leave, opts *channel.Options) <-chan error
 	// PublishControl allows to send control command to all running nodes.
-	PublishControl(*control.Command) <-chan error
+	PublishControl(*controlproto.Command) <-chan error
 
 	// Subscribe on channel.
 	Subscribe(ch string) error

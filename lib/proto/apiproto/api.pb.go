@@ -42,7 +42,7 @@
 		InfoResult
 		NodeResult
 */
-package api
+package apiproto
 
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"

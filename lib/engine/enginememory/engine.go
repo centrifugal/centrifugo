@@ -11,7 +11,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/internal/priority"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/proto/control"
+	"github.com/centrifugal/centrifugo/lib/proto/controlproto"
 
 	"github.com/FZambia/go-logger"
 )
@@ -89,7 +89,7 @@ func (e *MemoryEngine) PublishLeave(ch string, leave *proto.Leave, opts *channel
 }
 
 // PublishControl - see Engine interface description.
-func (e *MemoryEngine) PublishControl(message *control.Command) <-chan error {
+func (e *MemoryEngine) PublishControl(message *controlproto.Command) <-chan error {
 	eChan := make(chan error, 1)
 	eChan <- e.node.HandleControl(message)
 	return eChan

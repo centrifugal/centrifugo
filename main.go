@@ -30,7 +30,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/proto/api"
+	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 	"github.com/centrifugal/centrifugo/lib/server"
 	"github.com/centrifugal/centrifugo/lib/statik"
 
@@ -215,7 +215,7 @@ func main() {
 				logger.FATAL.Fatalf("Cannot listen to address %s", grpcAPIAddr)
 			}
 			grpcAPIServer := grpc.NewServer()
-			api.RegisterCentrifugoServer(grpcAPIServer, apiserver.New(nod, apiserver.Config{}))
+			apiproto.RegisterCentrifugoServer(grpcAPIServer, apiserver.New(nod, apiserver.Config{}))
 			go func() {
 				if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
 					logger.FATAL.Fatalf("Serve GRPC: %v", err)

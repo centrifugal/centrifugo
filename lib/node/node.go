@@ -14,8 +14,8 @@ import (
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/proto/api"
-	"github.com/centrifugal/centrifugo/lib/proto/control"
+	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
+	"github.com/centrifugal/centrifugo/lib/proto/controlproto"
 
 	"github.com/nats-io/nuid"
 	"github.com/satori/go.uuid"
@@ -71,10 +71,10 @@ type Node struct {
 	messageDecoder proto.MessageDecoder
 
 	// controlEncoder is encoder to encode control messages for engine.
-	controlEncoder control.Encoder
+	controlEncoder controlproto.Encoder
 
 	// controlDecoder is decoder to decode control messages coming from engine.
-	controlDecoder control.Decoder
+	controlDecoder controlproto.Decoder
 
 	// mediator contains application event handlers.
 	mediator *events.Mediator
@@ -140,8 +140,8 @@ func New(c *Config) *Node {
 		shutdownCh:      make(chan struct{}),
 		messageEncoder:  proto.NewProtobufMessageEncoder(),
 		messageDecoder:  proto.NewProtobufMessageDecoder(),
-		controlEncoder:  control.NewProtobufEncoder(),
-		controlDecoder:  control.NewProtobufDecoder(),
+		controlEncoder:  controlproto.NewProtobufEncoder(),
+		controlDecoder:  controlproto.NewProtobufDecoder(),
 	}
 
 	// Create initial snapshot with empty metric values.
@@ -212,12 +212,12 @@ func (n *Node) MessageDecoder() proto.MessageDecoder {
 }
 
 // ControlEncoder ...
-func (n *Node) ControlEncoder() control.Encoder {
+func (n *Node) ControlEncoder() controlproto.Encoder {
 	return n.controlEncoder
 }
 
 // ControlDecoder ...
-func (n *Node) ControlDecoder() control.Decoder {
+func (n *Node) ControlDecoder() controlproto.Decoder {
 	return n.controlDecoder
 }
 
@@ -333,11 +333,11 @@ func (n *Node) Channels() ([]string, error) {
 }
 
 // Info returns aggregated stats from all Centrifugo nodes.
-func (n *Node) Info() (*api.InfoResult, error) {
+func (n *Node) Info() (*apiproto.InfoResult, error) {
 	nodes := n.nodes.list()
-	nodeResults := make([]*api.NodeResult, len(nodes))
+	nodeResults := make([]*apiproto.NodeResult, len(nodes))
 	for i, nd := range nodes {
-		nodeResults[i] = &api.NodeResult{
+		nodeResults[i] = &apiproto.NodeResult{
 			UID:                   nd.UID,
 			Name:                  nd.Name,
 			StartedAt:             nd.StartedAt,
@@ -346,14 +346,14 @@ func (n *Node) Info() (*api.InfoResult, error) {
 		}
 	}
 
-	return &api.InfoResult{
+	return &apiproto.InfoResult{
 		Engine: n.Engine().Name(),
 		Nodes:  nodeResults,
 	}, nil
 }
 
 // Node returns raw information only from current node.
-func (n *Node) Node() (*control.Node, error) {
+func (n *Node) Node() (*controlproto.Node, error) {
 	info := n.nodes.get(n.uid)
 	info.Metrics = n.getRawMetrics()
 	return &info, nil
@@ -389,7 +389,7 @@ func (n *Node) getSnapshotMetrics() map[string]int64 {
 
 // HandleControl handles messages from control channel - control messages used for internal
 // communication between nodes to share state or proto.
-func (n *Node) HandleControl(cmd *control.Command) error {
+func (n *Node) HandleControl(cmd *controlproto.Command) error {
 	metricsRegistry.Counters.Inc("node_num_control_received")
 
 	if cmd.UID == n.uid {
@@ -543,7 +543,7 @@ func (n *Node) PublishLeave(ch string, leave *proto.Leave, opts *channel.Options
 
 // publishControl publishes message into control channel so all running
 // nodes will receive and handle it.
-func (n *Node) publishControl(msg *control.Command) <-chan error {
+func (n *Node) publishControl(msg *controlproto.Command) <-chan error {
 	metricsRegistry.Counters.Inc("node_num_control_sent")
 	return n.engine.PublishControl(msg)
 }
@@ -553,7 +553,7 @@ func (n *Node) publishControl(msg *control.Command) <-chan error {
 func (n *Node) pubNode() error {
 	n.mu.RLock()
 
-	node := &control.Node{
+	node := &controlproto.Node{
 		UID:                   n.uid,
 		Name:                  n.config.Name,
 		Version:               n.version,
@@ -581,7 +581,7 @@ func (n *Node) pubNode() error {
 
 	params, _ := n.ControlEncoder().EncodeNode(node)
 
-	cmd := &control.Command{
+	cmd := &controlproto.Command{
 		UID:    n.uid,
 		Method: "node",
 		Params: params,
@@ -600,13 +600,13 @@ func (n *Node) pubNode() error {
 func (n *Node) pubUnsubscribe(user string, ch string) error {
 
 	// TODO
-	unsubscribe := &control.Unsubscribe{
+	unsubscribe := &controlproto.Unsubscribe{
 		User: user,
 	}
 
 	params, _ := n.ControlEncoder().EncodeUnsubscribe(unsubscribe)
 
-	cmd := &control.Command{
+	cmd := &controlproto.Command{
 		UID:    n.uid,
 		Method: "unsubscribe",
 		Params: params,
@@ -619,13 +619,13 @@ func (n *Node) pubUnsubscribe(user string, ch string) error {
 // nodes could disconnect user from Centrifugo.
 func (n *Node) pubDisconnect(user string, reconnect bool) error {
 
-	disconnect := &control.Disconnect{
+	disconnect := &controlproto.Disconnect{
 		User: user,
 	}
 
 	params, _ := n.ControlEncoder().EncodeDisconnect(disconnect)
 
-	cmd := &control.Command{
+	cmd := &controlproto.Command{
 		UID:    n.uid,
 		Method: "unsubscribe",
 		Params: params,
@@ -676,7 +676,7 @@ func (n *Node) RemoveSubscription(ch string, c conns.Client) error {
 }
 
 // nodeCmd handles ping control command i.e. updates information about known nodes.
-func (n *Node) nodeCmd(node *control.Node) error {
+func (n *Node) nodeCmd(node *controlproto.Node) error {
 	n.nodes.add(node)
 	return nil
 }

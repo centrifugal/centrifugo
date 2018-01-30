@@ -13,7 +13,7 @@ It has these top-level messages:
 	Unsubscribe
 	Disconnect
 */
-package control
+package controlproto
 
 import testing "testing"
 import rand "math/rand"

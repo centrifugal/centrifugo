@@ -5,7 +5,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/lib/api"
 	"github.com/centrifugal/centrifugo/lib/node"
-	apiproto "github.com/centrifugal/centrifugo/lib/proto/api"
+	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 )
 
 // Config for GRPC API server.

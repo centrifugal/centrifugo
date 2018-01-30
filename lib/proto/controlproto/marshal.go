@@ -1,4 +1,4 @@
-package control
+package controlproto
 
 // Encoder ...
 type Encoder interface {

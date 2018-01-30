@@ -13,10 +13,11 @@ import (
 
 	"github.com/centrifugal/centrifugo/lib/auth"
 	"github.com/centrifugal/centrifugo/lib/client"
+	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	apiproto "github.com/centrifugal/centrifugo/lib/proto/api"
+	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 
 	"github.com/gorilla/websocket"
 	"github.com/igm/sockjs-go/sockjs"
@@ -138,6 +139,60 @@ func newSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Opti
 	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, s.sockJSHandler)
 }
 
+func handleClientData(c conns.Client, data []byte, enc proto.Encoding, transport conns.Transport, writer *writer) bool {
+	if len(data) == 0 {
+		logger.ERROR.Println("empty client request received")
+		transport.Close(&proto.Disconnect{Reason: proto.ErrBadRequest.Error(), Reconnect: false})
+		return false
+	}
+
+	encoder := proto.GetReplyEncoder(enc)
+	decoder := proto.GetCommandDecoder(enc, data)
+
+	for {
+		cmd, err := decoder.Decode()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			logger.ERROR.Printf("error decoding request: %v", err)
+			transport.Close(proto.DisconnectBadRequest)
+			proto.PutCommandDecoder(enc, decoder)
+			proto.PutReplyEncoder(enc, encoder)
+			return false
+		}
+		rep, disconnect := c.Handle(cmd)
+		if disconnect != nil {
+			logger.ERROR.Printf("disconnect after handling command %v: %v", cmd, disconnect)
+			transport.Close(disconnect)
+			proto.PutCommandDecoder(enc, decoder)
+			proto.PutReplyEncoder(enc, encoder)
+			return false
+		}
+
+		err = encoder.Encode(rep)
+		if err != nil {
+			logger.ERROR.Printf("error encoding reply %v: %v", rep, err)
+			transport.Close(&proto.Disconnect{Reason: "internal error", Reconnect: true})
+			return false
+		}
+	}
+
+	disconnect := writer.write(encoder.Finish())
+	if disconnect != nil {
+		logger.ERROR.Printf("disconnect after sending data to transport: %v", disconnect)
+		transport.Close(disconnect)
+		proto.PutCommandDecoder(enc, decoder)
+		proto.PutReplyEncoder(enc, encoder)
+		return false
+	}
+
+	proto.PutCommandDecoder(enc, decoder)
+	proto.PutReplyEncoder(enc, encoder)
+
+	return true
+}
+
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
@@ -167,58 +222,10 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 
 		for {
 			if msg, err := sess.Recv(); err == nil {
-				data := []byte(msg)
-
-				if len(data) == 0 {
-					logger.ERROR.Println("empty client request received")
-					transport.Close(&proto.Disconnect{Reason: proto.ErrBadRequest.Error(), Reconnect: false})
+				ok := handleClientData(c, []byte(msg), enc, transport, writer)
+				if !ok {
 					return
 				}
-
-				encoder := proto.GetReplyEncoder(enc)
-				decoder := proto.GetCommandDecoder(enc, data)
-
-				for {
-					cmd, err := decoder.Decode()
-					if err != nil {
-						if err == io.EOF {
-							break
-						}
-						logger.ERROR.Printf("error decoding request: %v", err)
-						transport.Close(proto.DisconnectBadRequest)
-						proto.PutCommandDecoder(enc, decoder)
-						proto.PutReplyEncoder(enc, encoder)
-						return
-					}
-					rep, disconnect := c.Handle(cmd)
-					if disconnect != nil {
-						logger.ERROR.Printf("disconnect after handling command %v: %v", cmd, disconnect)
-						transport.Close(disconnect)
-						proto.PutCommandDecoder(enc, decoder)
-						proto.PutReplyEncoder(enc, encoder)
-						return
-					}
-
-					err = encoder.Encode(rep)
-					if err != nil {
-						logger.ERROR.Printf("error encoding reply %v: %v", rep, err)
-						transport.Close(&proto.Disconnect{Reason: "internal error", Reconnect: true})
-						return
-					}
-				}
-
-				disconnect := writer.write(encoder.Finish())
-				if disconnect != nil {
-					logger.ERROR.Printf("disconnect after sending data to transport: %v", disconnect)
-					transport.Close(disconnect)
-					proto.PutCommandDecoder(enc, decoder)
-					proto.PutReplyEncoder(enc, encoder)
-					return
-				}
-
-				proto.PutCommandDecoder(enc, decoder)
-				proto.PutReplyEncoder(enc, encoder)
-
 				continue
 			}
 			break
@@ -310,56 +317,10 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return
 			}
-
-			if len(data) == 0 {
-				logger.ERROR.Println("empty client request received")
-				transport.Close(&proto.Disconnect{Reason: proto.ErrBadRequest.Error(), Reconnect: false})
+			ok := handleClientData(c, data, enc, transport, writer)
+			if !ok {
 				return
 			}
-
-			encoder := proto.GetReplyEncoder(enc)
-			decoder := proto.GetCommandDecoder(enc, data)
-
-			for {
-				cmd, err := decoder.Decode()
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					logger.ERROR.Printf("error decoding request: %v", err)
-					transport.Close(proto.DisconnectBadRequest)
-					proto.PutCommandDecoder(enc, decoder)
-					proto.PutReplyEncoder(enc, encoder)
-					return
-				}
-				rep, disconnect := c.Handle(cmd)
-				if disconnect != nil {
-					logger.ERROR.Printf("disconnect after handling command %v: %v", cmd, disconnect)
-					transport.Close(disconnect)
-					proto.PutCommandDecoder(enc, decoder)
-					proto.PutReplyEncoder(enc, encoder)
-					return
-				}
-
-				err = encoder.Encode(rep)
-				if err != nil {
-					logger.ERROR.Printf("error encoding reply %v: %v", rep, err)
-					transport.Close(&proto.Disconnect{Reason: "internal error", Reconnect: true})
-					return
-				}
-			}
-
-			disconnect := writer.write(encoder.Finish())
-			if disconnect != nil {
-				logger.ERROR.Printf("disconnect after sending data to transport: %v", disconnect)
-				transport.Close(disconnect)
-				proto.PutCommandDecoder(enc, decoder)
-				proto.PutReplyEncoder(enc, encoder)
-				return
-			}
-
-			proto.PutCommandDecoder(enc, decoder)
-			proto.PutReplyEncoder(enc, encoder)
 		}
 	}()
 }

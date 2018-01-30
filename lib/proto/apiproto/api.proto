@@ -3,7 +3,7 @@
 // python3 -m grpc_tools.protoc --proto_path $GOPATH/src:$GOPATH/src/github.com/centrifugal/centrifugo/vendor:. --python_out=. --grpc_python_out=. api.proto
 syntax = "proto3";
 
-package api;
+package apiproto;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 

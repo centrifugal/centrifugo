@@ -13,7 +13,7 @@
 		Unsubscribe
 		Disconnect
 */
-package control
+package controlproto
 
 import proto "github.com/gogo/protobuf/proto"
 import fmt "fmt"
