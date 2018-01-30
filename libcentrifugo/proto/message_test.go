@@ -11,7 +11,10 @@ import (
 )
 
 func TestMessage(t *testing.T) {
-	msg := NewMessage("test", []byte("{}"), "", nil)
+	uid := "12"
+	jsonData := "{\"_uid\": \"" + uid + "\"}"
+
+	msg := NewMessage("test", []byte(jsonData), "", nil)
 	assert.Equal(t, msg.Channel, "test")
 	msgBytes, err := json.Marshal(msg)
 	assert.Equal(t, nil, err)
@@ -19,6 +22,7 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"data\":{}"))
 	assert.Equal(t, false, strings.Contains(string(msgBytes), "\"client\":\"\"")) // empty field must be omitted
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"uid\":"))
+	assert.Equal(t, uid, msg.UID)
 	var unmarshalledMsg Message
 	err = json.Unmarshal(msgBytes, &unmarshalledMsg)
 	assert.Equal(t, nil, err)
