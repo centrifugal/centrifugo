@@ -39,9 +39,9 @@ enum MessageType {
 }
 
 message Message {
-    MessageType Type = 1 [(gogoproto.jsontag) = "t,omitempty"];
-    string Channel = 2 [(gogoproto.jsontag) = "c,omitempty"];
-    bytes Data = 3 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "d", (gogoproto.nullable) = false];
+    MessageType Type = 1 [(gogoproto.jsontag) = "type,omitempty"];
+    string Channel = 2 [(gogoproto.jsontag) = "channel,omitempty"];
+    bytes Data = 3 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
 }
 
 message ClientInfo {
@@ -204,8 +204,6 @@ message PingResponse {
 message PingResult {
     string Data = 1 [(gogoproto.jsontag) = "data"];
 }
-
-message ConsumeRequest {}
 
 message RPCRequest{
     bytes Data = 1 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];

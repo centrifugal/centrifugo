@@ -39,9 +39,9 @@ enum MessageType {
 }
 
 message Message {
-    MessageType Type = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "t,omitempty"]{{end}};
-    string Channel = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "c,omitempty"]{{end}};
-    bytes Data = 3{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "d", (gogoproto.nullable) = false]{{end}};
+    MessageType Type = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "type,omitempty"]{{end}};
+    string Channel = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "channel,omitempty"]{{end}};
+    bytes Data = 3{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false]{{end}};
 }
 
 message ClientInfo {
@@ -204,8 +204,6 @@ message PingResponse {
 message PingResult {
     string Data = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "data"]{{end}};
 }
-
-message ConsumeRequest {}
 
 message RPCRequest{
     bytes Data = 1{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false]{{end}};

@@ -100,12 +100,12 @@ func ServeMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 	}
 
 	if flags&HandlerWebsocket != 0 {
-		// register raw Websocket endpoint.
+		// register Websocket connection endpoint.
 		mux.Handle(prefix+"/connection/websocket", s.log(s.wrapShutdown(http.HandlerFunc(s.websocketHandler))))
 	}
 
 	if flags&HandlerSockJS != 0 {
-		// register SockJS endpoints.
+		// register SockJS connection endpoints.
 		sjsh := newSockJSHandler(s, path.Join(prefix, "/connection/sockjs"), muxOpts.SockjsOptions)
 		mux.Handle(path.Join(prefix, "/connection/sockjs")+"/", s.log(s.wrapShutdown(sjsh)))
 	}
@@ -118,7 +118,7 @@ func ServeMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
 		mux.Handle(prefix+"/admin/auth/", s.log(http.HandlerFunc(s.authHandler)))
-		mux.Handle(prefix+"/admin/api/", s.log(http.HandlerFunc(s.apiHandler)))
+		mux.Handle(prefix+"/admin/api/", s.log(s.adminAPIAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
 		// serve admin single-page web application.
 		if webPath != "" {
 			webPrefix := prefix + "/"
