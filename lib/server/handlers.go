@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/centrifugal/centrifugo/lib/auth"
 	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/logger"
@@ -19,6 +18,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 
+	"github.com/gorilla/securecookie"
 	"github.com/gorilla/websocket"
 	"github.com/igm/sockjs-go/sockjs"
 )
@@ -268,7 +268,7 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	config := s.node.Config()
-	pingInterval := config.PingInterval
+	pingInterval := config.ClientPingInterval
 	writeTimeout := config.ClientMessageWriteTimeout
 	maxRequestSize := config.ClientRequestMaxSize
 
@@ -584,10 +584,9 @@ const insecureWebToken = "insecure"
 func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
-	config := s.node.Config()
-	insecure := config.InsecureAdmin
-	adminPassword := config.AdminPassword
-	adminSecret := config.AdminSecret
+	insecure := s.config.AdminInsecure
+	adminPassword := s.config.AdminPassword
+	adminSecret := s.config.AdminSecret
 
 	if insecure {
 		w.Header().Set("Content-Type", "application/json")
@@ -604,7 +603,7 @@ func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 
 	if password == adminPassword {
 		w.Header().Set("Content-Type", "application/json")
-		token, err := auth.GenerateAdminToken(adminSecret)
+		token, err := GenerateAdminToken(adminSecret)
 		if err != nil {
 			logger.ERROR.Println(err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -617,4 +616,31 @@ func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Error(w, "Bad Request", http.StatusBadRequest)
+}
+
+const (
+	// AdminTokenKey is a key for admin authorization token.
+	AdminTokenKey = "token"
+	// AdminTokenValue is a value for secure admin authorization token.
+	AdminTokenValue = "authorized"
+)
+
+// GenerateAdminToken generates admin authentication token.
+func GenerateAdminToken(secret string) (string, error) {
+	s := securecookie.New([]byte(secret), nil)
+	return s.Encode(AdminTokenKey, AdminTokenValue)
+}
+
+// CheckAdminToken checks admin connection token which Centrifugo returns after admin login.
+func CheckAdminToken(secret string, token string) bool {
+	s := securecookie.New([]byte(secret), nil)
+	var val string
+	err := s.Decode(AdminTokenKey, token, &val)
+	if err != nil {
+		return false
+	}
+	if val != AdminTokenValue {
+		return false
+	}
+	return true
 }

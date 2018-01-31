@@ -114,7 +114,6 @@ func init() {
 	metricsRegistry.RegisterGauge("node_memory_heap_alloc", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("node_memory_stack_inuse", metrics.NewGauge())
 
-	metricsRegistry.RegisterGauge("node_cpu_usage", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("node_num_goroutine", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("node_num_clients", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("node_num_unique_clients", metrics.NewGauge())
@@ -268,9 +267,6 @@ func (n *Node) updateMetricsOnce() {
 	metricsRegistry.Gauges.Set("node_memory_heap_sys", int64(mem.HeapSys))
 	metricsRegistry.Gauges.Set("node_memory_heap_alloc", int64(mem.HeapAlloc))
 	metricsRegistry.Gauges.Set("node_memory_stack_inuse", int64(mem.StackInuse))
-	if usage, err := cpuUsage(); err == nil {
-		metricsRegistry.Gauges.Set("node_cpu_usage", int64(usage))
-	}
 	n.metricsMu.Lock()
 	metricsRegistry.Counters.UpdateDelta()
 	n.metricsSnapshot = n.getSnapshotMetrics()
@@ -731,9 +727,9 @@ func (n *Node) Disconnect(user string, reconnect bool) error {
 
 // namespaceName returns namespace name from channel if exists.
 func (n *Node) namespaceName(ch string) string {
-	cTrim := strings.TrimPrefix(ch, n.config.PrivateChannelPrefix)
-	if strings.Contains(cTrim, n.config.NamespaceChannelBoundary) {
-		parts := strings.SplitN(cTrim, n.config.NamespaceChannelBoundary, 2)
+	cTrim := strings.TrimPrefix(ch, n.config.ChannelPrivatePrefix)
+	if strings.Contains(cTrim, n.config.ChannelNamespaceBoundary) {
+		parts := strings.SplitN(cTrim, n.config.ChannelNamespaceBoundary, 2)
 		return parts[0]
 	}
 	return ""
@@ -809,7 +805,7 @@ func (n *Node) LastMessageID(ch string) (string, error) {
 func (n *Node) PrivateChannel(ch string) bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
-	return strings.HasPrefix(string(ch), n.config.PrivateChannelPrefix)
+	return strings.HasPrefix(string(ch), n.config.ChannelPrivatePrefix)
 }
 
 // UserAllowed checks if user can subscribe on channel - as channel
@@ -818,11 +814,11 @@ func (n *Node) PrivateChannel(ch string) bool {
 func (n *Node) UserAllowed(ch string, user string) bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
-	if !strings.Contains(ch, n.config.UserChannelBoundary) {
+	if !strings.Contains(ch, n.config.ChannelUserBoundary) {
 		return true
 	}
-	parts := strings.Split(ch, n.config.UserChannelBoundary)
-	allowedUsers := strings.Split(parts[len(parts)-1], n.config.UserChannelSeparator)
+	parts := strings.Split(ch, n.config.ChannelUserBoundary)
+	allowedUsers := strings.Split(parts[len(parts)-1], n.config.ChannelUserSeparator)
 	for _, allowedUser := range allowedUsers {
 		if string(user) == allowedUser {
 			return true
@@ -837,10 +833,10 @@ func (n *Node) UserAllowed(ch string, user string) bool {
 func (n *Node) ClientAllowed(ch string, client string) bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
-	if !strings.Contains(ch, n.config.ClientChannelBoundary) {
+	if !strings.Contains(ch, n.config.ChannelClientBoundary) {
 		return true
 	}
-	parts := strings.Split(ch, n.config.ClientChannelBoundary)
+	parts := strings.Split(ch, n.config.ChannelClientBoundary)
 	allowedClient := parts[len(parts)-1]
 	if string(client) == allowedClient {
 		return true

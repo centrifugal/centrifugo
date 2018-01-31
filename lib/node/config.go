@@ -14,38 +14,23 @@ type Config struct {
 	// and meaningful node identificator.
 	Name string `json:"name"`
 
-	// Admin enables admin socket.
-	Admin bool `json:"admin"`
-	// AdminPassword is an admin password.
-	AdminPassword string `json:"-"`
-	// AdminSecret is a secret to generate auth token for admin socket connection.
-	AdminSecret string `json:"-"`
+	// Secret is a secret key, used to sign API requests and client connection tokens.
+	Secret string `json:"secret"`
 
-	// InsecureAdmin turns on insecure mode for admin endpoints - no auth required to
-	// connect to admin socket and web interface. Protect admin resources with firewall
-	// rules in production when enabling this option.
-	InsecureAdmin bool `json:"insecure_admin"`
+	// channel.Options embedded to config.
+	channel.Options `json:"channel_options"`
 
-	// Insecure turns on insecure mode - when it's turned on then no authentication
-	// required at all when connecting to Centrifugo, anonymous access and publish
-	// allowed for all channels, no connection check performed. This can be suitable
-	// for demonstration or personal usage.
-	Insecure bool `json:"insecure"`
-
-	// MaxChannelLength is a maximum length of channel name.
-	MaxChannelLength int `json:"max_channel_length"`
-
-	// PingInterval sets interval server will send ping messages to clients.
-	PingInterval time.Duration `json:"ping_interval"`
+	// Namespaces - list of namespaces for custom channel options.
+	Namespaces []channel.Namespace `json:"namespaces"`
 
 	// NodePingInterval is an interval how often node must send ping
 	// control message.
 	NodePingInterval time.Duration `json:"node_ping_interval"`
-	// NodeInfoCleanInterval is an interval in seconds, how often node must clean
-	// information about other running nodes.
+	// NodeInfoCleanInterval is an interval in seconds, how often node must
+	// clean information about other running nodes.
 	NodeInfoCleanInterval time.Duration `json:"node_info_clean_interval"`
-	// NodeInfoMaxDelay is an interval in seconds – how many seconds node info
-	// considered actual.
+	// NodeInfoMaxDelay is an interval in seconds – how many seconds node
+	// info considered actual.
 	NodeInfoMaxDelay time.Duration `json:"node_info_max_delay"`
 	// NodeMetricsInterval detects interval node will use to aggregate metrics.
 	NodeMetricsInterval time.Duration `json:"node_metrics_interval"`
@@ -57,6 +42,13 @@ type Config struct {
 	// presence info valid after receiving presence ping.
 	PresenceExpireInterval time.Duration `json:"presence_expire_interval"`
 
+	// PingInterval sets interval server will send ping messages to clients.
+	ClientPingInterval time.Duration `json:"client_ping_interval"`
+	// ClientInsecure turns on insecure mode for client connections - when it's
+	// turned on then no authentication required at all when connecting to Centrifugo,
+	// anonymous access and publish allowed for all channels, no connection expire
+	// performed. This can be suitable for demonstration or personal usage.
+	ClientInsecure bool `json:"client_insecure"`
 	// ClientExpire turns on client connection expire mechanism so Centrifugo
 	// will close expired connections (if not refreshed).
 	ClientExpire bool `json:"client_expire"`
@@ -85,32 +77,28 @@ type Config struct {
 	ClientQueueInitialCapacity int `json:"client_queue_initial_capacity"`
 	// ClientChannelLimit sets upper limit of channels each client can subscribe to.
 	ClientChannelLimit int `json:"client_channel_limit"`
-	// UserConnectionLimit limits number of connections from user with the same ID.
+
+	// UserConnectionLimit limits number of connections from user with the
+	// same ID. 0 - unlimited.
 	UserConnectionLimit int `json:"user_connection_limit"`
+
 	// PrivateChannelPrefix is a prefix in channel name which indicates that
 	// channel is private.
-	PrivateChannelPrefix string `json:"private_channel_prefix"`
+	ChannelPrivatePrefix string `json:"private_channel_prefix"`
 	// NamespaceChannelBoundary is a string separator which must be put after
 	// namespace part in channel name.
-	NamespaceChannelBoundary string `json:"namespace_channel_boundary"`
+	ChannelNamespaceBoundary string `json:"namespace_channel_boundary"`
 	// UserChannelBoundary is a string separator which must be set before allowed
 	// users part in channel name.
-	UserChannelBoundary string `json:"user_channel_boundary"`
+	ChannelUserBoundary string `json:"user_channel_boundary"`
 	// UserChannelSeparator separates allowed users in user part of channel name.
-	UserChannelSeparator string `json:"user_channel_separator"`
+	ChannelUserSeparator string `json:"user_channel_separator"`
 	// ClientChannelBoundary is a string separator which must be set before client
 	// connection ID in channel name so only client with this ID can subscribe on
 	// that channel.
-	ClientChannelBoundary string `json:"client_channel_separator"`
-
-	// Secret is a secret key, used to sign API requests and client connection tokens.
-	Secret string `json:"secret"`
-
-	// channel.Options embedded to config.
-	channel.Options `json:"channel_options"`
-
-	// Namespaces - list of namespaces for custom channel options.
-	Namespaces []channel.Namespace `json:"namespaces"`
+	ChannelClientBoundary string `json:"client_channel_separator"`
+	// ChannelMaxLength is a maximum length of channel name.
+	ChannelMaxLength int `json:"max_channel_length"`
 }
 
 func stringInSlice(a string, list []string) bool {
@@ -164,26 +152,26 @@ const (
 
 // DefaultConfig is Config initialized with default values for all fields.
 var DefaultConfig = &Config{
-	Name:                       DefaultName,
-	Admin:                      false,
-	AdminPassword:              "",
-	AdminSecret:                "",
-	Insecure:                   false,
-	InsecureAdmin:              false,
-	MaxChannelLength:           255,
-	PingInterval:               25 * time.Second,
-	NodePingInterval:           DefaultNodePingInterval * time.Second,
-	NodeInfoCleanInterval:      DefaultNodePingInterval * 3 * time.Second,
-	NodeInfoMaxDelay:           DefaultNodePingInterval*2*time.Second + 1*time.Second,
-	NodeMetricsInterval:        60 * time.Second,
-	PresencePingInterval:       25 * time.Second,
-	PresenceExpireInterval:     60 * time.Second,
+	Name: DefaultName,
+
+	NodePingInterval:      DefaultNodePingInterval * time.Second,
+	NodeInfoCleanInterval: DefaultNodePingInterval * 3 * time.Second,
+	NodeInfoMaxDelay:      DefaultNodePingInterval*2*time.Second + 1*time.Second,
+	NodeMetricsInterval:   60 * time.Second,
+
+	PresencePingInterval:   25 * time.Second,
+	PresenceExpireInterval: 60 * time.Second,
+
+	ChannelMaxLength:         255,
+	ChannelPrivatePrefix:     "$", // so private channel will look like "$gossips"
+	ChannelNamespaceBoundary: ":", // so namespace "public" can be used "public:news"
+	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019"
+	ChannelUserBoundary:      "#", // so user limited channel is "user#2694" where "2696" is user ID
+	ChannelClientBoundary:    "&", // so client channel is sth like "client&7a37e561-c720-4608-52a8-a964a9db7a8a"
+
+	ClientPingInterval:         25 * time.Second,
+	ClientInsecure:             false,
 	ClientMessageWriteTimeout:  0,
-	PrivateChannelPrefix:       "$", // so private channel will look like "$gossips"
-	NamespaceChannelBoundary:   ":", // so namespace "public" can be used "public:news"
-	ClientChannelBoundary:      "&", // so client channel is sth like "client&7a37e561-c720-4608-52a8-a964a9db7a8a"
-	UserChannelBoundary:        "#", // so user limited channel is "user#2694" where "2696" is user ID
-	UserChannelSeparator:       ",", // so several users limited channel is "dialog#2694,3019"
 	ClientExpiredCloseDelay:    25 * time.Second,
 	ClientStaleCloseDelay:      25 * time.Second,
 	ClientRequestMaxSize:       65536,    // 64KB by default

@@ -70,11 +70,9 @@ func main() {
 				"history_recover":                false,
 				"history_drop_inactive":          false,
 				"namespaces":                     "",
-				"max_channel_length":             255,
-				"user_connection_limit":          0,
 				"node_ping_interval":             3,
-				"ping_interval":                  25,
 				"node_metrics_interval":          60,
+				"client_ping_interval":           25,
 				"client_expire":                  false,
 				"client_expired_close_delay":     25,
 				"client_stale_close_delay":       25,
@@ -85,17 +83,19 @@ func main() {
 				"client_queue_initial_capacity":  2,
 				"presence_ping_interval":         25,
 				"presence_expire_interval":       60,
-				"private_channel_prefix":         "$",
-				"namespace_channel_boundary":     ":",
-				"user_channel_boundary":          "#",
-				"user_channel_separator":         ",",
-				"client_channel_boundary":        "&",
+				"channel_max_length":             255,
+				"channel_private_prefix":         "$",
+				"channel_namespace_boundary":     ":",
+				"channel_user_boundary":          "#",
+				"channel_user_separator":         ",",
+				"channel_client_boundary":        "&",
+				"user_connection_limit":          0,
 				"http_prefix":                    "",
 				"admin":                          false,
+				"admin_web_path":                 "",
 				"admin_password":                 "",
 				"admin_secret":                   "",
-				"web":                            false,
-				"web_path":                       "",
+				"admin_insecure":                 false,
 				"sockjs_url":                     "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js",
 				"sockjs_heartbeat_delay":         25,
 				"websocket_compression":          false,
@@ -103,12 +103,12 @@ func main() {
 				"websocket_compression_level":    1,
 				"websocket_read_buffer_size":     0,
 				"websocket_write_buffer_size":    0,
-				"ssl_autocert":                   false,
-				"ssl_autocert_host_whitelist":    "",
-				"ssl_autocert_cache_dir":         "",
-				"ssl_autocert_email":             "",
-				"ssl_autocert_force_rsa":         false,
-				"ssl_autocert_server_name":       "",
+				"tls_autocert":                   false,
+				"tls_autocert_host_whitelist":    "",
+				"tls_autocert_cache_dir":         "",
+				"tls_autocert_email":             "",
+				"tls_autocert_force_rsa":         false,
+				"tls_autocert_server_name":       "",
 				"redis_prefix":                   "centrifugo",
 				"redis_connect_timeout":          1,
 				"redis_read_timeout":             10, // Must be greater than ping channel publish interval.
@@ -121,11 +121,11 @@ func main() {
 			}
 
 			bindEnvs := []string{
-				"engine", "debug", "insecure", "api_insecure", "admin", "admin_password",
-				"admin_secret", "insecure_admin", "secret", "connection_lifetime", "watch",
+				"engine", "debug", "secret", "connection_lifetime", "watch",
 				"publish", "anonymous", "join_leave", "presence", "presence_stats",
 				"history_recover", "history_size", "history_lifetime", "history_drop_inactive",
-				"web", "redis_host", "redis_port", "redis_url",
+				"client_insecure", "api_insecure", "admin", "admin_password", "admin_secret",
+				"admin_insecure", "redis_host", "redis_port", "redis_url",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -133,8 +133,8 @@ func main() {
 
 			bindPFlags := []string{
 				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin",
-				"insecure", "insecure_admin", "api_insecure", "port", "api_port", "admin_port",
-				"address", "web", "web_path", "insecure_web", "ssl", "ssl_cert", "ssl_key",
+				"client_insecure", "admin_insecure", "api_insecure", "port", "api_port", "admin_port",
+				"address", "tls", "tls_cert", "tls_key",
 				"redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
 				"redis_pool", "redis_master_name", "redis_sentinels",
 			}
@@ -242,13 +242,13 @@ func main() {
 			logger.INFO.Printf("PID: %d", os.Getpid())
 			logger.INFO.Printf("Engine: %s", e.Name())
 			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
-			if c.Insecure {
-				logger.WARN.Println("Start in INSECURE client mode")
+			if c.ClientInsecure {
+				logger.WARN.Println("INSECURE client mode enabled")
 			}
 			if viper.GetBool("api_insecure") {
 				logger.WARN.Println("INSECURE API mode enabled")
 			}
-			if c.InsecureAdmin {
+			if sc.AdminInsecure {
 				logger.WARN.Println("INSECURE admin mode enabled")
 			}
 			if viper.GetBool("debug") {
@@ -269,34 +269,31 @@ func main() {
 	rootCmd.Flags().StringP("log_level", "", "info", "set the log level: debug, info, error, critical, fatal or none")
 	rootCmd.Flags().StringP("log_file", "", "", "optional log file - if not specified logs go to STDOUT")
 	rootCmd.Flags().StringP("pid_file", "", "", "optional path to create PID file")
+	rootCmd.Flags().StringP("name", "n", "", "unique node name")
 
 	rootCmd.Flags().BoolP("debug", "d", false, "enable debug mode")
-	rootCmd.Flags().StringP("name", "n", "", "unique node name")
 	rootCmd.Flags().BoolP("admin", "", false, "enable admin socket")
-	rootCmd.Flags().BoolP("insecure", "", false, "start in insecure client mode")
+	rootCmd.Flags().BoolP("client_insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolP("api_insecure", "", false, "use insecure API mode")
-	rootCmd.Flags().BoolP("insecure_admin", "", false, "use insecure admin mode – no auth required for admin socket")
+	rootCmd.Flags().BoolP("admin_insecure", "", false, "use insecure admin mode – no auth required for admin socket")
 
-	rootCmd.Flags().BoolP("web", "w", false, "serve admin web interface application (warning: automatically enables admin socket)")
-	rootCmd.Flags().StringP("web_path", "", "", "optional path to custom web interface application")
+	rootCmd.Flags().BoolP("tls", "", false, "enable TLS, requires an X509 certificate and a key file")
+	rootCmd.Flags().StringP("tls_cert", "", "", "path to an X509 certificate file")
+	rootCmd.Flags().StringP("tls_key", "", "", "path to an X509 certificate key")
 
-	rootCmd.Flags().BoolP("ssl", "", false, "accept SSL connections. This requires an X509 certificate and a key file")
-	rootCmd.Flags().StringP("ssl_cert", "", "", "path to an X509 certificate file")
-	rootCmd.Flags().StringP("ssl_key", "", "", "path to an X509 certificate key")
-
-	rootCmd.Flags().StringP("address", "a", "", "address to listen on")
+	rootCmd.Flags().StringP("address", "a", "", "interface address to listen on")
 	rootCmd.Flags().StringP("port", "p", "8000", "port to bind HTTP server to")
-	rootCmd.Flags().StringP("api_port", "", "", "port to bind api endpoints to (optional)")
-	rootCmd.Flags().StringP("admin_port", "", "", "port to bind admin endpoints to (optional)")
+	rootCmd.Flags().StringP("api_port", "", "", "custom port for API endpoints")
+	rootCmd.Flags().StringP("admin_port", "", "", "custom port for admin endpoints")
 
-	rootCmd.Flags().StringP("redis_host", "", "127.0.0.1", "redis host (Redis engine)")
-	rootCmd.Flags().StringP("redis_port", "", "6379", "redis port (Redis engine)")
-	rootCmd.Flags().StringP("redis_password", "", "", "redis auth password (Redis engine)")
-	rootCmd.Flags().StringP("redis_db", "", "0", "redis database (Redis engine)")
-	rootCmd.Flags().StringP("redis_url", "", "", "redis connection URL in format redis://:password@hostname:port/db (Redis engine)")
+	rootCmd.Flags().StringP("redis_host", "", "127.0.0.1", "Redis host (Redis engine)")
+	rootCmd.Flags().StringP("redis_port", "", "6379", "Redis port (Redis engine)")
+	rootCmd.Flags().StringP("redis_password", "", "", "Redis auth password (Redis engine)")
+	rootCmd.Flags().StringP("redis_db", "", "0", "Redis database (Redis engine)")
+	rootCmd.Flags().StringP("redis_url", "", "", "Redis connection URL in format redis://:password@hostname:port/db (Redis engine)")
 	rootCmd.Flags().IntP("redis_pool", "", 256, "Redis pool size (Redis engine)")
-	rootCmd.Flags().StringP("redis_master_name", "", "", "Name of Redis master Sentinel monitors (Redis engine)")
-	rootCmd.Flags().StringP("redis_sentinels", "", "", "Comma separated list of Sentinels (Redis engine)")
+	rootCmd.Flags().StringP("redis_master_name", "", "", "name of Redis master Sentinel monitors (Redis engine)")
+	rootCmd.Flags().StringP("redis_sentinels", "", "", "comma-separated list of Sentinels (Redis engine)")
 
 	viper.SetEnvPrefix("centrifugo")
 
@@ -425,8 +422,8 @@ func handleSignals(n *node.Node, s *server.HTTPServer, grpcAPIServer *grpc.Serve
 
 func runServer(n *node.Node, s *server.HTTPServer) error {
 	debug := viper.GetBool("debug")
-	webEnabled := viper.GetBool("web")
-	webPath := viper.GetString("web_path")
+	admin := viper.GetBool("admin")
+	adminWebPath := viper.GetString("admin_web_path")
 	httpAddress := viper.GetString("address")
 	httpClientPort := viper.GetString("port")
 	httpAdminPort := viper.GetString("admin_port")
@@ -434,21 +431,21 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 	httpPrefix := viper.GetString("http_prefix")
 	sockjsURL := viper.GetString("sockjs_url")
 	sockjsHeartbeatDelay := viper.GetInt("sockjs_heartbeat_delay")
-	sslEnabled := viper.GetBool("ssl")
-	sslCert := viper.GetString("ssl_cert")
-	sslKey := viper.GetString("ssl_key")
-	sslAutocertEnabled := viper.GetBool("ssl_autocert")
-	autocertHostWhitelist := viper.GetString("ssl_autocert_host_whitelist")
-	var sslAutocertHostWhitelist []string
+	tlsEnabled := viper.GetBool("tls")
+	tlsCert := viper.GetString("tls_cert")
+	tlsKey := viper.GetString("tls_key")
+	tlsAutocertEnabled := viper.GetBool("tls_autocert")
+	autocertHostWhitelist := viper.GetString("tls_autocert_host_whitelist")
+	var tlsAutocertHostWhitelist []string
 	if autocertHostWhitelist != "" {
-		sslAutocertHostWhitelist = strings.Split(autocertHostWhitelist, ",")
+		tlsAutocertHostWhitelist = strings.Split(autocertHostWhitelist, ",")
 	} else {
-		sslAutocertHostWhitelist = nil
+		tlsAutocertHostWhitelist = nil
 	}
-	sslAutocertCacheDir := viper.GetString("ssl_autocert_cache_dir")
-	sslAutocertEmail := viper.GetString("ssl_autocert_email")
-	sslAutocertForceRSA := viper.GetBool("ssl_autocert_force_rsa")
-	sslAutocertServerName := viper.GetString("ssl_autocert_server_name")
+	tlsAutocertCacheDir := viper.GetString("tls_autocert_cache_dir")
+	tlsAutocertEmail := viper.GetString("tls_autocert_email")
+	tlsAutocertForceRSA := viper.GetBool("tls_autocert_force_rsa")
+	tlsAutocertServerName := viper.GetString("tls_autocert_server_name")
 	websocketReadBufferSize := viper.GetInt("websocket_read_buffer_size")
 	websocketWriteBufferSize := viper.GetInt("websocket_write_buffer_size")
 
@@ -469,7 +466,7 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 	sockjsOpts.HeartbeatDelay = time.Duration(sockjsHeartbeatDelay) * time.Second
 
 	var webFS http.FileSystem
-	if webEnabled {
+	if admin {
 		webFS = statik.FS
 	}
 
@@ -495,7 +492,7 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 	portToHandlerFlags[httpAPIPort] = portFlags
 
 	portFlags = portToHandlerFlags[httpAdminPort]
-	if webEnabled {
+	if admin {
 		portFlags |= server.HandlerAdmin
 	}
 	if debug {
@@ -507,9 +504,12 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 	// Iterate over port to flags mapping and start HTTP servers
 	// on separate ports serving handlers specified in flags.
 	for handlerPort, handlerFlags := range portToHandlerFlags {
+		if handlerFlags == 0 {
+			continue
+		}
 		muxOpts := server.MuxOptions{
 			Prefix:        httpPrefix,
-			WebPath:       webPath,
+			WebPath:       adminWebPath,
 			WebFS:         webFS,
 			HandlerFlags:  handlerFlags,
 			SockjsOptions: sockjsOpts,
@@ -524,17 +524,17 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 		go func() {
 			defer wg.Done()
 
-			if sslAutocertEnabled {
+			if tlsAutocertEnabled {
 				certManager := autocert.Manager{
 					Prompt:   autocert.AcceptTOS,
-					ForceRSA: sslAutocertForceRSA,
-					Email:    sslAutocertEmail,
+					ForceRSA: tlsAutocertForceRSA,
+					Email:    tlsAutocertEmail,
 				}
-				if sslAutocertHostWhitelist != nil {
-					certManager.HostPolicy = autocert.HostWhitelist(sslAutocertHostWhitelist...)
+				if tlsAutocertHostWhitelist != nil {
+					certManager.HostPolicy = autocert.HostWhitelist(tlsAutocertHostWhitelist...)
 				}
-				if sslAutocertCacheDir != "" {
-					certManager.Cache = autocert.DirCache(sslAutocertCacheDir)
+				if tlsAutocertCacheDir != "" {
+					certManager.Cache = autocert.DirCache(tlsAutocertCacheDir)
 				}
 				server := &http.Server{
 					Addr:    addr,
@@ -542,8 +542,8 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 					TLSConfig: &tls.Config{
 						GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 							// See https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819
-							if sslAutocertServerName != "" && hello.ServerName == "" {
-								hello.ServerName = sslAutocertServerName
+							if tlsAutocertServerName != "" && hello.ServerName == "" {
+								hello.ServerName = tlsAutocertServerName
 							}
 							return certManager.GetCertificate(hello)
 						},
@@ -553,10 +553,10 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 				if err := server.ListenAndServeTLS("", ""); err != nil {
 					logger.FATAL.Fatalf("ListenAndServe: %v", err)
 				}
-			} else if sslEnabled {
+			} else if tlsEnabled {
 				// Autocert disabled - just try to use provided SSL cert and key files.
 				server := &http.Server{Addr: addr, Handler: mux}
-				if err := server.ListenAndServeTLS(sslCert, sslKey); err != nil {
+				if err := server.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
 					logger.FATAL.Fatalf("ListenAndServe: %v", err)
 				}
 			} else {
@@ -682,33 +682,7 @@ func newNodeConfig(v *viper.Viper) *node.Config {
 	cfg := &node.Config{}
 
 	cfg.Name = applicationName(v)
-	cfg.Admin = v.GetBool("admin")
-	cfg.AdminPassword = v.GetString("admin_password")
-	cfg.AdminSecret = v.GetString("admin_secret")
-	cfg.MaxChannelLength = v.GetInt("max_channel_length")
-	cfg.PingInterval = time.Duration(v.GetInt("ping_interval")) * time.Second
-	cfg.NodePingInterval = time.Duration(v.GetInt("node_ping_interval")) * time.Second
-	cfg.NodeInfoCleanInterval = cfg.NodePingInterval * 3
-	cfg.NodeInfoMaxDelay = cfg.NodePingInterval*2 + 1*time.Second
-	cfg.NodeMetricsInterval = time.Duration(v.GetInt("node_metrics_interval")) * time.Second
-	cfg.PresencePingInterval = time.Duration(v.GetInt("presence_ping_interval")) * time.Second
-	cfg.PresenceExpireInterval = time.Duration(v.GetInt("presence_expire_interval")) * time.Second
-	cfg.ClientMessageWriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
-	cfg.PrivateChannelPrefix = v.GetString("private_channel_prefix")
-	cfg.NamespaceChannelBoundary = v.GetString("namespace_channel_boundary")
-	cfg.UserChannelBoundary = v.GetString("user_channel_boundary")
-	cfg.UserChannelSeparator = v.GetString("user_channel_separator")
-	cfg.ClientChannelBoundary = v.GetString("client_channel_boundary")
-	cfg.ClientExpire = v.GetBool("client_expire")
-	cfg.ClientExpiredCloseDelay = time.Duration(v.GetInt("client_expired_close_delay")) * time.Second
-	cfg.ClientStaleCloseDelay = time.Duration(v.GetInt("client_stale_close_delay")) * time.Second
-	cfg.ClientRequestMaxSize = v.GetInt("client_request_max_size")
-	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
-	cfg.ClientQueueInitialCapacity = v.GetInt("client_queue_initial_capacity")
-	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
-	cfg.UserConnectionLimit = v.GetInt("user_connection_limit")
-	cfg.Insecure = v.GetBool("insecure")
-	cfg.InsecureAdmin = v.GetBool("insecure_admin")
+
 	cfg.Secret = v.GetString("secret")
 	cfg.Watch = v.GetBool("watch")
 	cfg.Publish = v.GetBool("publish")
@@ -721,6 +695,35 @@ func newNodeConfig(v *viper.Viper) *node.Config {
 	cfg.HistoryDropInactive = v.GetBool("history_drop_inactive")
 	cfg.HistoryRecover = v.GetBool("history_recover")
 	cfg.Namespaces = namespacesFromConfig(v)
+
+	cfg.NodePingInterval = time.Duration(v.GetInt("node_ping_interval")) * time.Second
+	cfg.NodeInfoCleanInterval = cfg.NodePingInterval * 3
+	cfg.NodeInfoMaxDelay = cfg.NodePingInterval*2 + 1*time.Second
+	cfg.NodeMetricsInterval = time.Duration(v.GetInt("node_metrics_interval")) * time.Second
+
+	cfg.PresencePingInterval = time.Duration(v.GetInt("presence_ping_interval")) * time.Second
+	cfg.PresenceExpireInterval = time.Duration(v.GetInt("presence_expire_interval")) * time.Second
+
+	cfg.ChannelMaxLength = v.GetInt("channel_max_length")
+	cfg.ChannelPrivatePrefix = v.GetString("channel_private_prefix")
+	cfg.ChannelNamespaceBoundary = v.GetString("channel_namespace_boundary")
+	cfg.ChannelUserBoundary = v.GetString("channel_user_boundary")
+	cfg.ChannelUserSeparator = v.GetString("channel_user_separator")
+	cfg.ChannelClientBoundary = v.GetString("channel_client_boundary")
+
+	cfg.ClientPingInterval = time.Duration(v.GetInt("client_ping_interval")) * time.Second
+	cfg.ClientMessageWriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
+	cfg.ClientInsecure = v.GetBool("client_insecure")
+	cfg.ClientExpire = v.GetBool("client_expire")
+	cfg.ClientExpiredCloseDelay = time.Duration(v.GetInt("client_expired_close_delay")) * time.Second
+	cfg.ClientStaleCloseDelay = time.Duration(v.GetInt("client_stale_close_delay")) * time.Second
+	cfg.ClientRequestMaxSize = v.GetInt("client_request_max_size")
+	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
+	cfg.ClientQueueInitialCapacity = v.GetInt("client_queue_initial_capacity")
+	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
+
+	cfg.UserConnectionLimit = v.GetInt("user_connection_limit")
+
 	return cfg
 }
 
@@ -751,15 +754,18 @@ func namespacesFromConfig(v *viper.Viper) []channel.Namespace {
 }
 
 // serverConfig creates new server config using viper.
-func serverConfig(getter *viper.Viper) *server.Config {
+func serverConfig(v *viper.Viper) *server.Config {
 	cfg := &server.Config{}
-	cfg.APIKey = getter.GetString("api_key")
-	cfg.APIInsecure = getter.GetBool("api_insecure")
-	cfg.WebsocketCompression = getter.GetBool("websocket_compression")
-	cfg.WebsocketCompressionLevel = getter.GetInt("websocket_compression_level")
-	cfg.WebsocketCompressionMinSize = getter.GetInt("websocket_compression_min_size")
-	cfg.WebsocketReadBufferSize = getter.GetInt("websocket_read_buffer_size")
-	cfg.WebsocketWriteBufferSize = getter.GetInt("websocket_write_buffer_size")
+	cfg.APIKey = v.GetString("api_key")
+	cfg.APIInsecure = v.GetBool("api_insecure")
+	cfg.AdminPassword = v.GetString("admin_password")
+	cfg.AdminSecret = v.GetString("admin_secret")
+	cfg.AdminInsecure = v.GetBool("admin_insecure")
+	cfg.WebsocketCompression = v.GetBool("websocket_compression")
+	cfg.WebsocketCompressionLevel = v.GetInt("websocket_compression_level")
+	cfg.WebsocketCompressionMinSize = v.GetInt("websocket_compression_min_size")
+	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
+	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	return cfg
 }
 

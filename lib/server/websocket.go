@@ -5,9 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FZambia/websocket"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/proto"
+
+	"github.com/gorilla/websocket"
 )
 
 const (

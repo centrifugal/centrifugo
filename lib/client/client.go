@@ -571,7 +571,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 	config := c.node.Config()
 
 	secret := config.Secret
-	insecure := config.Insecure
+	insecure := config.ClientInsecure
 	closeDelay := config.ClientExpiredCloseDelay
 	clientExpire := config.ClientExpire
 	version := c.node.Version()
@@ -797,14 +797,14 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 
 	config := c.node.Config()
 	secret := config.Secret
-	maxChannelLength := config.MaxChannelLength
+	channelMaxLength := config.ChannelMaxLength
 	channelLimit := config.ClientChannelLimit
-	insecure := config.Insecure
+	insecure := config.ClientInsecure
 
 	res := &proto.SubscribeResult{}
 
-	if len(channel) > maxChannelLength {
-		logger.ERROR.Printf("channel too long: max %d, got %d", maxChannelLength, len(channel))
+	if len(channel) > channelMaxLength {
+		logger.ERROR.Printf("channel too long: max %d, got %d", channelMaxLength, len(channel))
 		resp.Error = proto.ErrLimitExceeded
 		return resp, nil
 	}
@@ -1013,7 +1013,7 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 		return resp, nil
 	}
 
-	insecure := c.node.Config().Insecure
+	insecure := c.node.Config().ClientInsecure
 
 	if !chOpts.Publish && !insecure {
 		resp.Error = proto.ErrPermissionDenied

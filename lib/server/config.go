@@ -12,6 +12,17 @@ type Config struct {
 	// to play with API (for example from command line using CURL).
 	APIInsecure bool `json:"api_insecure"`
 
+	// AdminPassword is an admin password.
+	AdminPassword string `json:"admin_password"`
+
+	// AdminSecret is a secret to generate auth token for admin socket connection.
+	AdminSecret string `json:"admin_secret"`
+
+	// AdminInsecure turns on insecure mode for admin endpoints - no auth required to
+	// connect to admin socket and web interface. Protect admin resources with firewall
+	// rules in production when enabling this option.
+	AdminInsecure bool `json:"admin_insecure"`
+
 	// WebsocketCompression allows to enable websocket permessage-deflate
 	// compression support for raw websocket connections. It does not guarantee
 	// that compression will be used - i.e. it only says that Centrifugo will
