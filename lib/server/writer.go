@@ -46,9 +46,6 @@ func (w *writer) runWriteRoutine() {
 			// Write failed, transport must close itself, here we just return from routine.
 			return
 		}
-		// TODO: move to transport.
-		// metrics.DefaultRegistry.Counters.Inc("client_num_msg_sent")
-		// metrics.DefaultRegistry.Counters.Add("client_bytes_out", int64(len(msg)))
 	}
 }
 

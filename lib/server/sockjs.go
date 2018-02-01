@@ -4,10 +4,16 @@ import (
 	"encoding/json"
 	"sync"
 
+	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
 
 	"github.com/igm/sockjs-go/sockjs"
 )
+
+func init() {
+	metrics.DefaultRegistry.RegisterCounter("transport.sockjs.messages_sent", metrics.NewCounter())
+	metrics.DefaultRegistry.RegisterCounter("transport.sockjs.bytes_out", metrics.NewCounter())
+}
 
 const (
 	// We don't use specific websocket close codes because our client
@@ -47,12 +53,14 @@ func (t *sockjsTransport) Send(reply *proto.PreparedReply) error {
 	return nil
 }
 
-func (t *sockjsTransport) write(msg []byte) error {
+func (t *sockjsTransport) write(data []byte) error {
 	select {
 	case <-t.closeCh:
 		return nil
 	default:
-		err := t.session.Send(string(msg))
+		metrics.DefaultRegistry.Counters.Inc("transport.sockjs.messages_sent")
+		metrics.DefaultRegistry.Counters.Add("transport.sockjs.bytes_out", int64(len(data)))
+		err := t.session.Send(string(data))
 		if err != nil {
 			t.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
 		}

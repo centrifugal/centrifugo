@@ -6,12 +6,12 @@ import (
 	"io"
 	"sync"
 
-	"google.golang.org/grpc/metadata"
-
 	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
+
+	"google.golang.org/grpc/metadata"
 )
 
 // Config for GRPC API server.

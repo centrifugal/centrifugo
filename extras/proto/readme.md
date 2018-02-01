@@ -18,7 +18,7 @@ Generate for internal Centrifugo usage.
 GOGO=1 gomplate -f $GOPATH/src/github.com/centrifugal/centrifugo/extras/proto/api.template.proto > $GOPATH/src/github.com/centrifugal/centrifugo/lib/proto/apiproto/api.proto
 ```
 
-### Client ptoto
+### Client proto
 
 Generate for cross-language client usage:
 

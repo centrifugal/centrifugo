@@ -10,9 +10,9 @@ import (
 )
 
 func init() {
-	metrics.DefaultRegistry.RegisterCounter("http_api_num_requests", metrics.NewCounter())
-	metrics.DefaultRegistry.RegisterCounter("http_raw_ws_num_requests", metrics.NewCounter())
-	metrics.DefaultRegistry.RegisterCounter("http_sockjs_num_requests", metrics.NewCounter())
+	metrics.DefaultRegistry.RegisterCounter("api.http.num_requests", metrics.NewCounter())
+	metrics.DefaultRegistry.RegisterCounter("transport.websocket.num_requests", metrics.NewCounter())
+	metrics.DefaultRegistry.RegisterCounter("transport.sockjs.num_requests", metrics.NewCounter())
 
 	quantiles := []float64{50, 90, 99, 99.99}
 	var minValue int64 = 1        // record latencies in microseconds, min resolution 1mks.

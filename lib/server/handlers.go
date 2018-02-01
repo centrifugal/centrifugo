@@ -517,7 +517,7 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		metrics.DefaultRegistry.HDRHistograms.RecordMicroseconds("http_api", time.Now().Sub(started))
 	}()
-	metrics.DefaultRegistry.Counters.Inc("http_api_num_requests")
+	metrics.DefaultRegistry.Counters.Inc("api.http.num_requests")
 
 	var data []byte
 	var err error
