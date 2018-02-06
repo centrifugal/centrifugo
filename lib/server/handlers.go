@@ -14,9 +14,9 @@ import (
 	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/logger"
-	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/websocket"
@@ -37,14 +37,17 @@ const (
 	HandlerAdmin
 	// HandlerDebug enables debug handlers.
 	HandlerDebug
+	// HandlerPrometheus enables Prometheus handler.
+	HandlerPrometheus
 )
 
 var handlerText = map[HandlerFlag]string{
-	HandlerWebsocket: "websocket",
-	HandlerSockJS:    "SockJS",
-	HandlerAPI:       "API",
-	HandlerAdmin:     "admin",
-	HandlerDebug:     "debug",
+	HandlerWebsocket:  "websocket",
+	HandlerSockJS:     "SockJS",
+	HandlerAPI:        "API",
+	HandlerAdmin:      "admin",
+	HandlerDebug:      "debug",
+	HandlerPrometheus: "prometheus",
 }
 
 func (flags HandlerFlag) String() string {
@@ -112,13 +115,17 @@ func ServeMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
-		mux.Handle(prefix+"/api/", s.log(s.apiAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
+		mux.Handle(prefix+"/api", s.log(s.apiAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
+	}
+
+	if flags&HandlerPrometheus != 0 || 1 > 0 {
+		mux.Handle(prefix+"/metrics", s.log(s.wrapShutdown(promhttp.Handler())))
 	}
 
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
-		mux.Handle(prefix+"/admin/auth/", s.log(http.HandlerFunc(s.authHandler)))
-		mux.Handle(prefix+"/admin/api/", s.log(s.adminAPIAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
+		mux.Handle(prefix+"/admin/auth", s.log(http.HandlerFunc(s.authHandler)))
+		mux.Handle(prefix+"/admin/api", s.log(s.adminAPIAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
 		// serve admin single-page web application.
 		if webPath != "" {
 			webPrefix := prefix + "/"
@@ -195,8 +202,7 @@ func handleClientData(c conns.Client, data []byte, enc proto.Encoding, transport
 
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
-
-	metrics.DefaultRegistry.Counters.Inc("http_sockjs_num_requests")
+	transportConnectCount.WithLabelValues("sockjs").Inc()
 
 	// Separate goroutine for better GC of caller's data.
 	go func() {
@@ -234,7 +240,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 }
 
 func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
-	metrics.DefaultRegistry.Counters.Inc("http_raw_ws_num_requests")
+	transportConnectCount.WithLabelValues("websocket").Inc()
 
 	s.RLock()
 	wsCompression := s.config.WebsocketCompression
@@ -513,11 +519,9 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 
 // apiHandler is responsible for receiving API commands over HTTP.
 func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
-	started := time.Now()
-	defer func() {
-		metrics.DefaultRegistry.HDRHistograms.RecordMicroseconds("http_api", time.Now().Sub(started))
-	}()
-	metrics.DefaultRegistry.Counters.Inc("api.http.num_requests")
+	defer func(started time.Time) {
+		apiHandlerDurationSummary.Observe(float64(time.Since(started).Seconds()))
+	}(time.Now())
 
 	var data []byte
 	var err error
@@ -560,7 +564,9 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
+		now := time.Now()
 		rep, err := s.handleAPICommand(r.Context(), enc, command)
+		apiCommandDurationSummary.WithLabelValues(command.Method).Observe(float64(time.Since(now).Seconds()))
 		if err != nil {
 			logger.ERROR.Printf("error handling API command: %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

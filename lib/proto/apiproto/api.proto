@@ -155,9 +155,10 @@ message NodeResult {
     string UID = 1 [(gogoproto.jsontag) = "uid"];
     string Name = 2 [(gogoproto.jsontag) = "name"];
     string Version = 3 [(gogoproto.jsontag) = "version"];
-    int64 StartedAt = 4 [(gogoproto.jsontag) = "started_at"];
-    uint64 MetricsUpdateInterval = 5 [(gogoproto.jsontag) = "metrics_update_interval"];
-    map <string, int64> Metrics = 6 [(gogoproto.jsontag) = "metrics"];
+    uint64 NumClients = 4 [(gogoproto.jsontag) = "num_clients"];
+    uint64 NumUsers = 5 [(gogoproto.jsontag) = "num_users"];
+    uint64 NumChannels = 6 [(gogoproto.jsontag) = "num_channels"];
+    uint64 Uptime = 7 [(gogoproto.jsontag) = "uptime"];
 }
 
 service Centrifugo {

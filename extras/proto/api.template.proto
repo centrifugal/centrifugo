@@ -155,9 +155,10 @@ message NodeResult {
     string UID = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "uid"]{{end}};
     string Name = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "name"]{{end}};
     string Version = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "version"]{{end}};
-    int64 StartedAt = 4{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "started_at"]{{end}};
-    uint64 MetricsUpdateInterval = 5{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "metrics_update_interval"]{{end}};
-    map <string, int64> Metrics = 6{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "metrics"]{{end}};
+    uint64 NumClients = 4{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "num_clients"]{{end}};
+    uint64 NumUsers = 5{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "num_users"]{{end}};
+    uint64 NumChannels = 6{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "num_channels"]{{end}};
+    uint64 Uptime = 7{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "uptime"]{{end}};
 }
 
 service Centrifugo {

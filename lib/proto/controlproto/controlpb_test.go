@@ -2,7 +2,7 @@
 // source: control.proto
 
 /*
-Package control is a generated protocol buffer package.
+Package controlproto is a generated protocol buffer package.
 
 It is generated from these files:
 	control.proto

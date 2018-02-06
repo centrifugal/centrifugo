@@ -16,7 +16,7 @@ func (s *HTTPServer) apiAuth(h http.Handler) http.Handler {
 		apiKey := s.config.APIKey
 		apiInsecure := s.config.APIInsecure
 		s.RUnlock()
-		if apiKey == "" {
+		if apiKey == "" && !apiInsecure {
 			logger.ERROR.Println("no API key found in configuration")
 			w.WriteHeader(http.StatusUnauthorized)
 			return

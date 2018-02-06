@@ -2,7 +2,7 @@
 // source: api.proto
 
 /*
-Package api is a generated protocol buffer package.
+Package apiproto is a generated protocol buffer package.
 
 It is generated from these files:
 	api.proto

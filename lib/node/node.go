@@ -2,7 +2,6 @@
 package node
 
 import (
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"github.com/centrifugal/centrifugo/lib/engine"
 	"github.com/centrifugal/centrifugo/lib/events"
 	"github.com/centrifugal/centrifugo/lib/logger"
-	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 	"github.com/centrifugal/centrifugo/lib/proto/controlproto"
@@ -80,47 +78,6 @@ type Node struct {
 	mediator *events.Mediator
 }
 
-// global metrics registry pointing to the same Registry plugin package uses.
-var metricsRegistry *metrics.Registry
-
-func init() {
-	metricsRegistry = metrics.DefaultRegistry
-
-	metricsRegistry.RegisterCounter("node_num_publication_sent", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_join_sent", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_leave_sent", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_admin_msg_sent", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_control_sent", metrics.NewCounter())
-
-	metricsRegistry.RegisterCounter("node_num_publication_received", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_join_received", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_leave_received", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_admin_msg_received", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_control_received", metrics.NewCounter())
-
-	metricsRegistry.RegisterCounter("node_num_add_client_conn", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_remove_client_conn", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_add_client_sub", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_remove_client_sub", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_presence", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_add_presence", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_remove_presence", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_history", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_remove_history", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("node_num_last_message_id", metrics.NewCounter())
-
-	metricsRegistry.RegisterGauge("node_memory_sys", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("node_memory_heap_sys", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("node_memory_heap_alloc", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("node_memory_stack_inuse", metrics.NewGauge())
-
-	metricsRegistry.RegisterGauge("node_num_goroutine", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("node_num_clients", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("node_num_unique_clients", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("node_num_channels", metrics.NewGauge())
-	metricsRegistry.RegisterGauge("node_uptime_seconds", metrics.NewGauge())
-}
-
 // VERSION of Centrifugo server node. Set on build stage.
 var VERSION string
 
@@ -142,12 +99,6 @@ func New(c *Config) *Node {
 		controlEncoder:  controlproto.NewProtobufEncoder(),
 		controlDecoder:  controlproto.NewProtobufDecoder(),
 	}
-
-	// Create initial snapshot with empty metric values.
-	n.metricsMu.Lock()
-	n.metricsSnapshot = n.getSnapshotMetrics()
-	n.metricsMu.Unlock()
-
 	return n
 }
 
@@ -261,17 +212,8 @@ func (n *Node) Shutdown() error {
 }
 
 func (n *Node) updateMetricsOnce() {
-	var mem runtime.MemStats
-	runtime.ReadMemStats(&mem)
-	metricsRegistry.Gauges.Set("node_memory_sys", int64(mem.Sys))
-	metricsRegistry.Gauges.Set("node_memory_heap_sys", int64(mem.HeapSys))
-	metricsRegistry.Gauges.Set("node_memory_heap_alloc", int64(mem.HeapAlloc))
-	metricsRegistry.Gauges.Set("node_memory_stack_inuse", int64(mem.StackInuse))
 	n.metricsMu.Lock()
-	metricsRegistry.Counters.UpdateDelta()
-	n.metricsSnapshot = n.getSnapshotMetrics()
-	n.metricsOnce = sync.Once{} // let metrics to be sent again.
-	metricsRegistry.HDRHistograms.Rotate()
+	n.metricsOnce = sync.Once{} // let gauges to be updated once in interval. TODO: actually not needed anymore.
 	n.metricsMu.Unlock()
 }
 
@@ -294,6 +236,7 @@ func (n *Node) sendNodePingMsg() {
 		n.mu.RLock()
 		interval := n.config.NodePingInterval
 		n.mu.RUnlock()
+
 		select {
 		case <-n.shutdownCh:
 			return
@@ -334,11 +277,12 @@ func (n *Node) Info() (*apiproto.InfoResult, error) {
 	nodeResults := make([]*apiproto.NodeResult, len(nodes))
 	for i, nd := range nodes {
 		nodeResults[i] = &apiproto.NodeResult{
-			UID:                   nd.UID,
-			Name:                  nd.Name,
-			StartedAt:             nd.StartedAt,
-			MetricsUpdateInterval: nd.MetricsUpdateInterval,
-			Metrics:               nd.Metrics,
+			UID:         nd.UID,
+			Name:        nd.Name,
+			NumClients:  nd.NumClients,
+			NumUsers:    nd.NumUsers,
+			NumChannels: nd.NumChannels,
+			Uptime:      nd.Uptime,
 		}
 	}
 
@@ -348,45 +292,10 @@ func (n *Node) Info() (*apiproto.InfoResult, error) {
 	}, nil
 }
 
-// Node returns raw information only from current node.
-func (n *Node) Node() (*controlproto.Node, error) {
-	info := n.nodes.get(n.uid)
-	info.Metrics = n.getRawMetrics()
-	return &info, nil
-}
-
-func (n *Node) getRawMetrics() map[string]int64 {
-	m := make(map[string]int64)
-	for name, val := range metricsRegistry.Counters.LoadValues() {
-		m[name] = val
-	}
-	for name, val := range metricsRegistry.HDRHistograms.LoadValues() {
-		m[name] = val
-	}
-	for name, val := range metricsRegistry.Gauges.LoadValues() {
-		m[name] = val
-	}
-	return m
-}
-
-func (n *Node) getSnapshotMetrics() map[string]int64 {
-	m := make(map[string]int64)
-	for name, val := range metricsRegistry.Counters.LoadIntervalValues() {
-		m[name] = val
-	}
-	for name, val := range metricsRegistry.HDRHistograms.LoadValues() {
-		m[name] = val
-	}
-	for name, val := range metricsRegistry.Gauges.LoadValues() {
-		m[name] = val
-	}
-	return m
-}
-
 // HandleControl handles messages from control channel - control messages used for internal
 // communication between nodes to share state or proto.
 func (n *Node) HandleControl(cmd *controlproto.Command) error {
-	metricsRegistry.Counters.Inc("node_num_control_received")
+	messagesReceivedCount.WithLabelValues("control").Inc()
 
 	if cmd.UID == n.uid {
 		// Sent by this node.
@@ -454,7 +363,7 @@ func (n *Node) HandleClientMessage(message *proto.Message) error {
 // The goal of this method to deliver this message to all clients on this node subscribed
 // on channel.
 func (n *Node) HandlePublication(ch string, publication *proto.Publication) error {
-	metricsRegistry.Counters.Inc("node_num_publication_received")
+	messagesReceivedCount.WithLabelValues("publication").Inc()
 	numSubscribers := n.hub.NumSubscribers(ch)
 	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
@@ -465,7 +374,7 @@ func (n *Node) HandlePublication(ch string, publication *proto.Publication) erro
 
 // HandleJoin handles join messages.
 func (n *Node) HandleJoin(ch string, join *proto.Join) error {
-	metricsRegistry.Counters.Inc("node_num_join_received")
+	messagesReceivedCount.WithLabelValues("join").Inc()
 	hasCurrentSubscribers := n.hub.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
@@ -475,7 +384,7 @@ func (n *Node) HandleJoin(ch string, join *proto.Join) error {
 
 // HandleLeave handles leave messages.
 func (n *Node) HandleLeave(ch string, leave *proto.Leave) error {
-	metricsRegistry.Counters.Inc("node_num_leave_received")
+	messagesReceivedCount.WithLabelValues("leave").Inc()
 	hasCurrentSubscribers := n.hub.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
@@ -500,7 +409,7 @@ func (n *Node) Publish(ch string, pub *proto.Publication, opts *channel.Options)
 		opts = &chOpts
 	}
 
-	metricsRegistry.Counters.Inc("node_num_publication_sent")
+	messagesSentCount.WithLabelValues("publication").Inc()
 
 	if pub.UID == "" {
 		pub.UID = nuid.Next()
@@ -519,7 +428,7 @@ func (n *Node) PublishJoin(ch string, join *proto.Join, opts *channel.Options) <
 		}
 		opts = &chOpts
 	}
-	metricsRegistry.Counters.Inc("node_num_join_sent")
+	messagesSentCount.WithLabelValues("join").Inc()
 	return n.engine.PublishJoin(ch, join, opts)
 }
 
@@ -533,14 +442,14 @@ func (n *Node) PublishLeave(ch string, leave *proto.Leave, opts *channel.Options
 		}
 		opts = &chOpts
 	}
-	metricsRegistry.Counters.Inc("node_num_leave_sent")
+	messagesSentCount.WithLabelValues("leave").Inc()
 	return n.engine.PublishLeave(ch, leave, opts)
 }
 
 // publishControl publishes message into control channel so all running
 // nodes will receive and handle it.
 func (n *Node) publishControl(msg *controlproto.Command) <-chan error {
-	metricsRegistry.Counters.Inc("node_num_control_sent")
+	messagesSentCount.WithLabelValues("control").Inc()
 	return n.engine.PublishControl(msg)
 }
 
@@ -550,26 +459,20 @@ func (n *Node) pubNode() error {
 	n.mu.RLock()
 
 	node := &controlproto.Node{
-		UID:                   n.uid,
-		Name:                  n.config.Name,
-		Version:               n.version,
-		StartedAt:             n.startedAt,
-		MetricsUpdateInterval: uint64(n.config.NodeMetricsInterval.Seconds()),
+		UID:         n.uid,
+		Name:        n.config.Name,
+		Version:     n.version,
+		NumClients:  uint64(n.hub.NumClients()),
+		NumUsers:    uint64(n.hub.NumUniqueClients()),
+		NumChannels: uint64(n.hub.NumChannels()),
+		Uptime:      uint64(time.Now().Unix() - n.startedAt),
 	}
 
 	n.metricsMu.RLock()
 	n.metricsOnce.Do(func() {
-		metricsRegistry.Gauges.Set("node_num_clients", int64(n.hub.NumClients()))
-		metricsRegistry.Gauges.Set("node_num_unique_clients", int64(n.hub.NumUniqueClients()))
-		metricsRegistry.Gauges.Set("node_num_channels", int64(n.hub.NumChannels()))
-		metricsRegistry.Gauges.Set("node_num_goroutine", int64(runtime.NumGoroutine()))
-		metricsRegistry.Gauges.Set("node_uptime_seconds", time.Now().Unix()-n.startedAt)
-
-		metricsSnapshot := make(map[string]int64)
-		for k, v := range n.metricsSnapshot {
-			metricsSnapshot[k] = v
-		}
-		node.Metrics = metricsSnapshot
+		numClientsGauge.Set(float64(n.hub.NumClients()))
+		numUsersGauge.Set(float64(n.hub.NumUniqueClients()))
+		numChannelsGauge.Set(float64(n.hub.NumChannels()))
 	})
 	n.metricsMu.RUnlock()
 
@@ -633,20 +536,20 @@ func (n *Node) pubDisconnect(user string, reconnect bool) error {
 // AddClient registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand.
 func (n *Node) AddClient(c conns.Client) error {
-	metricsRegistry.Counters.Inc("node_num_add_client_conn")
+	actionCount.WithLabelValues("add_client").Inc()
 	return n.hub.Add(c)
 }
 
 // RemoveClient removes client connection from connection registry.
 func (n *Node) RemoveClient(c conns.Client) error {
-	metricsRegistry.Counters.Inc("node_num_remove_client_conn")
+	actionCount.WithLabelValues("remove_client").Inc()
 	return n.hub.Remove(c)
 }
 
 // AddSubscription registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
 func (n *Node) AddSubscription(ch string, c conns.Client) error {
-	metricsRegistry.Counters.Inc("node_num_add_client_sub")
+	actionCount.WithLabelValues("add_subscription").Inc()
 	first, err := n.hub.AddSub(ch, c)
 	if err != nil {
 		return err
@@ -660,7 +563,7 @@ func (n *Node) AddSubscription(ch string, c conns.Client) error {
 // RemoveSubscription removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
 func (n *Node) RemoveSubscription(ch string, c conns.Client) error {
-	metricsRegistry.Counters.Inc("node_num_remove_client_sub")
+	actionCount.WithLabelValues("remove_subscription").Inc()
 	empty, err := n.hub.RemoveSub(ch, c)
 	if err != nil {
 		return err
@@ -747,21 +650,19 @@ func (n *Node) AddPresence(ch string, uid string, info *proto.ClientInfo) error 
 	n.mu.RLock()
 	expire := int(n.config.PresenceExpireInterval.Seconds())
 	n.mu.RUnlock()
-	metricsRegistry.Counters.Inc("node_num_add_presence")
+	actionCount.WithLabelValues("add_presence").Inc()
 	return n.engine.AddPresence(ch, uid, info, expire)
 }
 
 // RemovePresence proxies presence removing to engine.
 func (n *Node) RemovePresence(ch string, uid string) error {
-	metricsRegistry.Counters.Inc("node_num_remove_presence")
+	actionCount.WithLabelValues("remove_presence").Inc()
 	return n.engine.RemovePresence(ch, uid)
 }
 
 // Presence returns a map with information about active clients in channel.
 func (n *Node) Presence(ch string) (map[string]*proto.ClientInfo, error) {
-
-	metricsRegistry.Counters.Inc("node_num_presence")
-
+	actionCount.WithLabelValues("presence").Inc()
 	presence, err := n.engine.Presence(ch)
 	if err != nil {
 		logger.ERROR.Printf("error getting presence: %v", err)
@@ -772,8 +673,7 @@ func (n *Node) Presence(ch string) (map[string]*proto.ClientInfo, error) {
 
 // History returns a slice of last messages published into project channel.
 func (n *Node) History(ch string) ([]*proto.Publication, error) {
-	metricsRegistry.Counters.Inc("node_num_history")
-
+	actionCount.WithLabelValues("history").Inc()
 	publications, err := n.engine.History(ch, engine.HistoryFilter{Limit: 0})
 	if err != nil {
 		return nil, err
@@ -783,13 +683,13 @@ func (n *Node) History(ch string) ([]*proto.Publication, error) {
 
 // RemoveHistory removes channel history.
 func (n *Node) RemoveHistory(ch string) error {
-	metricsRegistry.Counters.Inc("node_num_remove_history")
+	actionCount.WithLabelValues("remove_history").Inc()
 	return n.engine.RemoveHistory(ch)
 }
 
 // LastMessageID return last message id for channel.
 func (n *Node) LastMessageID(ch string) (string, error) {
-	metricsRegistry.Counters.Inc("node_num_last_message_id")
+	actionCount.WithLabelValues("last_message_id").Inc()
 	publications, err := n.engine.History(ch, engine.HistoryFilter{Limit: 1})
 	if err != nil {
 		return "", err
