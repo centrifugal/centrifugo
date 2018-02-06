@@ -15,11 +15,7 @@ func init() {
 	metrics.DefaultRegistry.RegisterCounter("transport.sockjs.num_requests", metrics.NewCounter())
 
 	quantiles := []float64{50, 90, 99, 99.99}
-	var minValue int64 = 1        // record latencies in microseconds, min resolution 1mks.
-	var maxValue int64 = 60000000 // record latencies in microseconds, max resolution 60s.
-	numBuckets := 15              // histograms will be rotated every time we updating snapshot.
-	sigfigs := 3
-	metrics.DefaultRegistry.RegisterHDRHistogram("http_api", metrics.NewHDRHistogram(numBuckets, minValue, maxValue, sigfigs, quantiles, "microseconds"))
+	metrics.DefaultRegistry.RegisterHDRHistogram("http_api", metrics.NewHDRHistogram(15, 1, 60000000, 3, quantiles, "microseconds"))
 }
 
 // HTTPServer is a default builtin Centrifugo server.
