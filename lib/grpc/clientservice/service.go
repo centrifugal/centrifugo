@@ -1,4 +1,4 @@
-package clientserver
+package clientservice
 
 import (
 	"encoding/json"
@@ -14,27 +14,30 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-// Config for GRPC API server.
+// Config for GRPC client Service.
 type Config struct{}
 
-// Server can answer on GRPC API requests.
-type Server struct {
+// Service can work with client GRPC connections.
+type Service struct {
 	config Config
 	node   *node.Node
 }
 
-// New creates new server.
-func New(n *node.Node, c Config) *Server {
-	return &Server{
+// New creates new Service.
+func New(n *node.Node, c Config) *Service {
+	return &Service{
 		config: c,
 		node:   n,
 	}
 }
 
-// Communicate ...
-func (s *Server) Communicate(stream proto.Centrifugo_CommunicateServer) error {
+const replyBufferSize = 64
 
-	replies := make(chan *proto.Reply, 64)
+// Communicate is a bidirectional stream reading Command and
+// sending Reply to client.
+func (s *Service) Communicate(stream proto.Centrifugo_CommunicateServer) error {
+
+	replies := make(chan *proto.Reply, replyBufferSize)
 	transport := newGRPCTransport(stream, replies)
 
 	c := client.New(stream.Context(), s.node, transport, client.Config{})
@@ -55,7 +58,12 @@ func (s *Server) Communicate(stream proto.Centrifugo_CommunicateServer) error {
 				transport.Close(disconnect)
 				return
 			}
-			transport.Send(proto.NewPreparedReply(rep, proto.EncodingProtobuf))
+			err = transport.Send(proto.NewPreparedReply(rep, proto.EncodingProtobuf))
+			if err != nil {
+				transport.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
+				transport.Close(disconnect)
+				return
+			}
 		}
 	}()
 
@@ -68,7 +76,8 @@ func (s *Server) Communicate(stream proto.Centrifugo_CommunicateServer) error {
 	return nil
 }
 
-// grpcTransport ...
+// grpcTransport represents wrapper over stream to work with it
+// from outside in abstract way.
 type grpcTransport struct {
 	mu      sync.Mutex
 	closed  bool

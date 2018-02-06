@@ -25,8 +25,8 @@ import (
 	"github.com/centrifugal/centrifugo/lib/engine"
 	"github.com/centrifugal/centrifugo/lib/engine/enginememory"
 	"github.com/centrifugal/centrifugo/lib/engine/engineredis"
-	"github.com/centrifugal/centrifugo/lib/grpc/apiserver"
-	"github.com/centrifugal/centrifugo/lib/grpc/clientserver"
+	"github.com/centrifugal/centrifugo/lib/grpc/apiservice"
+	"github.com/centrifugal/centrifugo/lib/grpc/clientservice"
 	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
@@ -215,7 +215,7 @@ func main() {
 				logger.FATAL.Fatalf("Cannot listen to address %s", grpcAPIAddr)
 			}
 			grpcAPIServer := grpc.NewServer()
-			apiproto.RegisterCentrifugoServer(grpcAPIServer, apiserver.New(nod, apiserver.Config{}))
+			apiproto.RegisterCentrifugoServer(grpcAPIServer, apiservice.New(nod, apiservice.Config{}))
 			go func() {
 				if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
 					logger.FATAL.Fatalf("Serve GRPC: %v", err)
@@ -228,7 +228,7 @@ func main() {
 				logger.FATAL.Fatalf("Cannot listen to address %s", grpcClientAddr)
 			}
 			grpcClientServer := grpc.NewServer()
-			proto.RegisterCentrifugoServer(grpcClientServer, clientserver.New(nod, clientserver.Config{}))
+			proto.RegisterCentrifugoServer(grpcClientServer, clientservice.New(nod, clientservice.Config{}))
 			go func() {
 				if err := grpcClientServer.Serve(grpcClientConn); err != nil {
 					logger.FATAL.Fatalf("Serve GRPC: %v", err)
