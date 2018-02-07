@@ -972,8 +972,17 @@ func redisEngineConfig(getter *viper.Viper) (*engineredis.Config, error) {
 	}, nil
 }
 
+func setLogger(n *node.Node) {
+	level, ok := logging.StringToLevel[strings.ToLower(viper.GetString("log_level"))]
+	if !ok {
+		level = logging.INFO
+	}
+	handler := newLogHandler()
+	n.SetLogHandler(level, handler.handle)
+}
+
 type logHandler struct {
-	entries chan (logging.Entry)
+	entries chan logging.Entry
 	handler func(entry logging.Entry)
 }
 
@@ -981,27 +990,29 @@ func newLogHandler() *logHandler {
 	h := &logHandler{
 		entries: make(chan logging.Entry, 64),
 	}
-	go func() {
-		for entry := range h.entries {
-			var log *logger.LevelLogger
-			switch entry.Level {
-			case logging.TRACE:
-				log = logger.TRACE
-			case logging.DEBUG:
-				log = logger.DEBUG
-			case logging.INFO:
-				log = logger.INFO
-			case logging.ERROR:
-				log = logger.ERROR
-			}
-			if entry.Fields != nil {
-				log.Printf("%s: %v", entry.Message, entry.Fields)
-			} else {
-				log.Println(entry.Message)
-			}
-		}
-	}()
+	go h.readEntries()
 	return h
+}
+
+func (h *logHandler) readEntries() {
+	for entry := range h.entries {
+		var log *logger.LevelLogger
+		switch entry.Level {
+		case logging.DEBUG:
+			log = logger.DEBUG
+		case logging.INFO:
+			log = logger.INFO
+		case logging.ERROR:
+			log = logger.ERROR
+		case logging.CRITICAL:
+			log = logger.CRITICAL
+		}
+		if entry.Fields != nil {
+			log.Printf("%s: %v", entry.Message, entry.Fields)
+		} else {
+			log.Println(entry.Message)
+		}
+	}
 }
 
 func (h *logHandler) handle(entry logging.Entry) {
@@ -1010,13 +1021,4 @@ func (h *logHandler) handle(entry logging.Entry) {
 	default:
 		return
 	}
-}
-
-func setLogger(n *node.Node) {
-	lvl, ok := logging.StringToLevelMatches[strings.ToLower(viper.GetString("log_level"))]
-	if !ok {
-		lvl = logging.INFO
-	}
-	handler := newLogHandler()
-	n.SetLogHandler(lvl, handler.handle)
 }

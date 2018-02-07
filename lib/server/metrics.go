@@ -30,6 +30,20 @@ var (
 		Name:      "transport_connect_count",
 		Help:      "TODO.",
 	}, []string{"transport"})
+
+	transportMessagesSent = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: metricsNamespace,
+		Subsystem: metricsSubsystem,
+		Name:      "transport_messages_sent",
+		Help:      "TODO.",
+	}, []string{"transport"})
+
+	transportBytesOut = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: metricsNamespace,
+		Subsystem: metricsSubsystem,
+		Name:      "transport_bytes_out",
+		Help:      "TODO.",
+	}, []string{"transport"})
 )
 
 func init() {

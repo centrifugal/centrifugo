@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/centrifugal/centrifugo/lib/internal/queue"
-	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
 )
 
@@ -54,7 +53,6 @@ func (w *writer) write(data []byte) *proto.Disconnect {
 	if !ok {
 		return nil
 	}
-	metrics.DefaultRegistry.Counters.Inc("client_num_msg_queued")
 	if w.messages.Size() > w.config.MaxQueueSize {
 		return &proto.Disconnect{Reason: "slow", Reconnect: true}
 	}

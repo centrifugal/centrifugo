@@ -5,16 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
 
 	"github.com/gorilla/websocket"
 )
-
-func init() {
-	metrics.DefaultRegistry.RegisterCounter("transport.websocket.messages_sent", metrics.NewCounter())
-	metrics.DefaultRegistry.RegisterCounter("transport.websocket.bytes_out", metrics.NewCounter())
-}
 
 const (
 	// We don't use specific websocket close codes because our client
@@ -123,8 +117,8 @@ func (t *websocketTransport) write(data []byte) error {
 		if t.opts.writeTimeout > 0 {
 			t.conn.SetWriteDeadline(time.Time{})
 		}
-		metrics.DefaultRegistry.Counters.Inc("transport.websocket.messages_sent")
-		metrics.DefaultRegistry.Counters.Add("transport.websocket.bytes_out", int64(len(data)))
+		transportMessagesSent.WithLabelValues("websocket").Inc()
+		transportBytesOut.WithLabelValues("websocket").Add(float64(len(data)))
 		if err != nil {
 			t.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
 		}

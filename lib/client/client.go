@@ -10,7 +10,6 @@ import (
 	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/events"
 	"github.com/centrifugal/centrifugo/lib/logging"
-	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 
@@ -18,19 +17,9 @@ import (
 )
 
 func init() {
-	metricsRegistry := metrics.DefaultRegistry
-
-	metricsRegistry.RegisterCounter("client_num_msg_queued", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("client_num_msg_sent", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("client_num_msg_published", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("client_bytes_in", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("client_bytes_out", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("client_api_num_requests", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("client_num_connect", metrics.NewCounter())
-	metricsRegistry.RegisterCounter("client_num_subscribe", metrics.NewCounter())
-
-	quantiles := []float64{50, 90, 99, 99.99}
-	metricsRegistry.RegisterHDRHistogram("client_api", metrics.NewHDRHistogram(15, 1, 60000000, 3, quantiles, "microseconds"))
+	// TODO: move to transport?
+	// metricsRegistry.RegisterCounter("client_num_msg_queued", metrics.NewCounter())
+	// metricsRegistry.RegisterCounter("client_num_msg_sent", metrics.NewCounter())
 }
 
 // Client represents client connection to Centrifugo - at moment
@@ -288,6 +277,7 @@ func (c *client) Handle(command *proto.Command) (*proto.Reply, *proto.Disconnect
 		// Client must send connect command first.
 		replyErr = proto.ErrUnauthorized
 	} else {
+		started := time.Now()
 		switch method {
 		case "connect":
 			replyRes, replyErr, disconnect = c.handleConnect(params)
@@ -324,6 +314,7 @@ func (c *client) Handle(command *proto.Command) (*proto.Reply, *proto.Disconnect
 		default:
 			replyRes, replyErr = nil, proto.ErrMethodNotFound
 		}
+		commandDurationSummary.WithLabelValues(method).Observe(float64(time.Since(started).Seconds()))
 	}
 
 	if disconnect != nil {
@@ -555,8 +546,6 @@ func (c *client) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *proto.D
 // Centrifugo
 func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, *proto.Disconnect) {
 
-	metrics.DefaultRegistry.Counters.Inc("client_num_connect")
-
 	resp := &proto.ConnectResponse{}
 
 	if c.authenticated {
@@ -780,8 +769,6 @@ func recoverMessages(last string, messages []*proto.Publication) ([]*proto.Publi
 // actually subscribe client on channel. Optionally we can send missed messages to
 // client if it provided last message id seen in channel.
 func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResponse, *proto.Disconnect) {
-
-	metrics.DefaultRegistry.Counters.Inc("client_num_subscribe")
 
 	channel := cmd.Channel
 	if channel == "" {
@@ -1015,8 +1002,6 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 		resp.Error = proto.ErrPermissionDenied
 		return resp, nil
 	}
-
-	metrics.DefaultRegistry.Counters.Inc("client_num_msg_published")
 
 	publication := &proto.Publication{
 		Data: data,
