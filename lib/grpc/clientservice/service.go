@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/centrifugal/centrifugo/lib/client"
-	"github.com/centrifugal/centrifugo/lib/logger"
+	"github.com/centrifugal/centrifugo/lib/logging"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 
@@ -54,7 +54,7 @@ func (s *Service) Communicate(stream proto.Centrifugo_CommunicateServer) error {
 			}
 			rep, disconnect := c.Handle(cmd)
 			if disconnect != nil {
-				logger.ERROR.Printf("disconnect after handling command %v: %v", cmd, disconnect)
+				s.node.Logger().Log(logging.NewEntry(logging.ERROR, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
 				transport.Close(disconnect)
 				return
 			}

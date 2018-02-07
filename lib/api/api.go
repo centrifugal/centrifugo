@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"github.com/centrifugal/centrifugo/lib/logger"
+	"github.com/centrifugal/centrifugo/lib/logging"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
@@ -29,7 +29,7 @@ func (h *Handler) Publish(ctx context.Context, cmd *apiproto.PublishRequest) *ap
 	resp := &apiproto.PublishResponse{}
 
 	if string(ch) == "" || len(data) == 0 {
-		logger.ERROR.Printf("channel and data required for publish")
+		h.node.Logger().Log(logging.NewEntry(logging.ERROR, "channel and data required for publish", nil))
 		resp.Error = apiproto.ErrBadRequest
 		return resp
 	}
@@ -46,7 +46,7 @@ func (h *Handler) Publish(ctx context.Context, cmd *apiproto.PublishRequest) *ap
 
 	err := <-h.node.Publish(cmd.Channel, publication, &chOpts)
 	if err != nil {
-		logger.ERROR.Printf("error publishing message: %v", err)
+		h.node.Logger().Log(logging.NewEntry(logging.ERROR, "error publishing message in engine", map[string]interface{}{"error": err.Error()}))
 		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
@@ -62,13 +62,13 @@ func (h *Handler) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequest)
 	data := cmd.Data
 
 	if len(channels) == 0 {
-		logger.ERROR.Println("channels required for broadcast")
+		h.node.Logger().Log(logging.NewEntry(logging.ERROR, "channels required for broadcast", nil))
 		resp.Error = apiproto.ErrBadRequest
 		return resp
 	}
 
 	if len(data) == 0 {
-		logger.ERROR.Println("data required for broadcast")
+		h.node.Logger().Log(logging.NewEntry(logging.ERROR, "data required for broadcast", nil))
 		resp.Error = apiproto.ErrBadRequest
 		return resp
 	}
@@ -78,14 +78,14 @@ func (h *Handler) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequest)
 	for i, ch := range channels {
 
 		if string(ch) == "" {
-			logger.ERROR.Println("channel can not be blank in broadcast")
+			h.node.Logger().Log(logging.NewEntry(logging.ERROR, "channel can not be blank in broadcast", nil))
 			resp.Error = apiproto.ErrBadRequest
 			return resp
 		}
 
 		chOpts, ok := h.node.ChannelOpts(ch)
 		if !ok {
-			logger.ERROR.Panicf("can't find namespace for channel %s", ch)
+			h.node.Logger().Log(logging.NewEntry(logging.ERROR, "can't find namespace for channel", map[string]interface{}{"channel": ch}))
 			resp.Error = apiproto.ErrNamespaceNotFound
 		}
 
@@ -102,11 +102,11 @@ func (h *Handler) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequest)
 			if firstErr == nil {
 				firstErr = err
 			}
-			logger.ERROR.Printf("Error publishing into channel %s: %v", string(channels[i]), err.Error())
+			h.node.Logger().Log(logging.NewEntry(logging.ERROR, "error publishing into channel", map[string]interface{}{"channel": channels[i], "error": err.Error()}))
 		}
 	}
 	if firstErr != nil {
-		logger.ERROR.Printf("error broadcasting: %v", firstErr)
+		h.node.Logger().Log(logging.NewEntry(logging.ERROR, "error broadcasting data", map[string]interface{}{"error": firstErr.Error()}))
 		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
@@ -124,7 +124,7 @@ func (h *Handler) Unsubscribe(ctx context.Context, cmd *apiproto.UnsubscribeRequ
 
 	err := h.node.Unsubscribe(user, channel)
 	if err != nil {
-		logger.ERROR.Printf("error unsubscribing user %s from channel %s: %v", user, channel, err)
+		h.node.Logger().Log(logging.NewEntry(logging.ERROR, "error unsubscribing user from channel", map[string]interface{}{"channel": channel, "user": user, "error": err.Error()}))
 		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
@@ -141,7 +141,7 @@ func (h *Handler) Disconnect(ctx context.Context, cmd *apiproto.DisconnectReques
 
 	err := h.node.Disconnect(user, false)
 	if err != nil {
-		logger.ERROR.Printf("error disconnecting user with ID %s: %v", cmd.User, err)
+		h.node.Logger().Log(logging.NewEntry(logging.ERROR, "error disconnecting user", map[string]interface{}{"user": cmd.User, "error": err.Error()}))
 		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
@@ -173,7 +173,7 @@ func (h *Handler) Presence(ctx context.Context, cmd *apiproto.PresenceRequest) *
 
 	presence, err := h.node.Presence(ch)
 	if err != nil {
-		logger.ERROR.Printf("error calling presence: %v", err)
+		h.node.Logger().Log(logging.NewEntry(logging.ERROR, "error calling presence", map[string]interface{}{"error": err.Error()}))
 		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
@@ -214,7 +214,7 @@ func (h *Handler) PresenceStats(ctx context.Context, cmd *apiproto.PresenceStats
 
 	presence, err := h.node.Presence(cmd.Channel)
 	if err != nil {
-		logger.ERROR.Printf("error calling presence: %v", err)
+		h.node.Logger().Log(logging.NewEntry(logging.ERROR, "error calling presence", map[string]interface{}{"error": err.Error()}))
 		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
@@ -264,7 +264,7 @@ func (h *Handler) History(ctx context.Context, cmd *apiproto.HistoryRequest) *ap
 
 	history, err := h.node.History(ch)
 	if err != nil {
-		logger.ERROR.Printf("error calling history: %v", err)
+		h.node.Logger().Log(logging.NewEntry(logging.ERROR, "error calling history", map[string]interface{}{"error": err.Error()}))
 		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
@@ -292,7 +292,7 @@ func (h *Handler) Channels(ctx context.Context, cmd *apiproto.ChannelsRequest) *
 
 	channels, err := h.node.Channels()
 	if err != nil {
-		logger.ERROR.Printf("error calling channels: %v", err)
+		h.node.Logger().Log(logging.NewEntry(logging.ERROR, "error calling channels", map[string]interface{}{"error": err.Error()}))
 		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}
@@ -310,7 +310,7 @@ func (h *Handler) Info(ctx context.Context, cmd *apiproto.InfoRequest) *apiproto
 
 	info, err := h.node.Info()
 	if err != nil {
-		logger.ERROR.Printf("error calling stats: %v", err)
+		h.node.Logger().Log(logging.NewEntry(logging.ERROR, "error calling stats", map[string]interface{}{"error": err.Error()}))
 		resp.Error = apiproto.ErrInternalServerError
 		return resp
 	}

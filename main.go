@@ -27,13 +27,14 @@ import (
 	"github.com/centrifugal/centrifugo/lib/engine/engineredis"
 	"github.com/centrifugal/centrifugo/lib/grpc/apiservice"
 	"github.com/centrifugal/centrifugo/lib/grpc/clientservice"
-	"github.com/centrifugal/centrifugo/lib/logger"
+	"github.com/centrifugal/centrifugo/lib/logging"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 	"github.com/centrifugal/centrifugo/lib/server"
 	"github.com/centrifugal/centrifugo/lib/statik"
 
+	"github.com/FZambia/go-logger"
 	"github.com/FZambia/viper-lite"
 	"github.com/igm/sockjs-go/sockjs"
 	"github.com/satori/go.uuid"
@@ -161,6 +162,7 @@ func main() {
 			}
 
 			setupLogging()
+
 			err = writePidFile(viper.GetString("pid_file"))
 			if err != nil {
 				logger.FATAL.Fatalf("Error writing PID: %v", err)
@@ -186,6 +188,7 @@ func main() {
 
 			node.VERSION = VERSION
 			nod := node.New(c)
+			setLogger(nod)
 
 			engineName := viper.GetString("engine")
 
@@ -388,7 +391,9 @@ func handleSignals(n *node.Node, s *server.HTTPServer, grpcAPIServer *grpc.Serve
 					continue
 				}
 			}
+
 			setupLogging()
+
 			cfg := newNodeConfig(viper.GetViper())
 			if err := n.Reload(cfg); err != nil {
 				logger.CRITICAL.Println(err)
@@ -965,4 +970,53 @@ func redisEngineConfig(getter *viper.Viper) (*engineredis.Config, error) {
 	return &engineredis.Config{
 		Shards: shardConfigs,
 	}, nil
+}
+
+type logHandler struct {
+	entries chan (logging.Entry)
+	handler func(entry logging.Entry)
+}
+
+func newLogHandler() *logHandler {
+	h := &logHandler{
+		entries: make(chan logging.Entry, 64),
+	}
+	go func() {
+		for entry := range h.entries {
+			var log *logger.LevelLogger
+			switch entry.Level {
+			case logging.TRACE:
+				log = logger.TRACE
+			case logging.DEBUG:
+				log = logger.DEBUG
+			case logging.INFO:
+				log = logger.INFO
+			case logging.ERROR:
+				log = logger.ERROR
+			}
+			if entry.Fields != nil {
+				log.Printf("%s: %v", entry.Message, entry.Fields)
+			} else {
+				log.Println(entry.Message)
+			}
+		}
+	}()
+	return h
+}
+
+func (h *logHandler) handle(entry logging.Entry) {
+	select {
+	case h.entries <- entry:
+	default:
+		return
+	}
+}
+
+func setLogger(n *node.Node) {
+	lvl, ok := logging.StringToLevelMatches[strings.ToLower(viper.GetString("log_level"))]
+	if !ok {
+		lvl = logging.INFO
+	}
+	handler := newLogHandler()
+	n.SetLogHandler(lvl, handler.handle)
 }

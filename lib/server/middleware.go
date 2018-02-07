@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/centrifugal/centrifugo/lib/logger"
+	"github.com/centrifugal/centrifugo/lib/logging"
 )
 
 func (s *HTTPServer) apiAuth(h http.Handler) http.Handler {
@@ -17,7 +17,7 @@ func (s *HTTPServer) apiAuth(h http.Handler) http.Handler {
 		apiInsecure := s.config.APIInsecure
 		s.RUnlock()
 		if apiKey == "" && !apiInsecure {
-			logger.ERROR.Println("no API key found in configuration")
+			s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "no API key found in configuration"))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -102,11 +102,11 @@ func (s *HTTPServer) wrapShutdown(h http.Handler) http.Handler {
 func (s *HTTPServer) log(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var start time.Time
-		if logger.DEBUG.Enabled() {
+		if s.node.Logger().GetLevel() >= logging.DEBUG {
 			start = time.Now()
 		}
 		h.ServeHTTP(w, r)
-		if logger.DEBUG.Enabled() {
+		if s.node.Logger().GetLevel() >= logging.DEBUG {
 			addr := r.Header.Get("X-Real-IP")
 			if addr == "" {
 				addr = r.Header.Get("X-Forwarded-For")
@@ -114,7 +114,7 @@ func (s *HTTPServer) log(h http.Handler) http.Handler {
 					addr = r.RemoteAddr
 				}
 			}
-			logger.DEBUG.Printf("%s %s from %s completed in %s\n", r.Method, r.URL.Path, addr, time.Since(start))
+			s.node.Logger().Log(logging.NewEntry(logging.DEBUG, fmt.Sprintf("%s %s from %s completed in %s", r.Method, r.URL.Path, addr, time.Since(start))))
 		}
 		return
 	})

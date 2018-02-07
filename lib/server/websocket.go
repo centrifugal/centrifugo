@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/lib/logger"
 	"github.com/centrifugal/centrifugo/lib/metrics"
 	"github.com/centrifugal/centrifugo/lib/proto"
 
@@ -77,7 +76,6 @@ func (t *websocketTransport) ping() {
 		deadline := time.Now().Add(t.opts.pingInterval / 2)
 		err := t.conn.WriteControl(websocket.PingMessage, []byte("ping"), deadline)
 		if err != nil {
-			logger.ERROR.Printf("Error write ping: %v", err)
 			t.Close(proto.DisconnectServerError)
 			return
 		}

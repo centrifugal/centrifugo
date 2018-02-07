@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/conns"
-	"github.com/centrifugal/centrifugo/lib/logger"
+	"github.com/centrifugal/centrifugo/lib/logging"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -146,9 +147,9 @@ func newSockJSHandler(s *HTTPServer, sockjsPrefix string, sockjsOpts sockjs.Opti
 	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, s.sockJSHandler)
 }
 
-func handleClientData(c conns.Client, data []byte, enc proto.Encoding, transport conns.Transport, writer *writer) bool {
+func (s *HTTPServer) handleClientData(c conns.Client, data []byte, enc proto.Encoding, transport conns.Transport, writer *writer) bool {
 	if len(data) == 0 {
-		logger.ERROR.Println("empty client request received")
+		s.node.Logger().Log(logging.NewEntry(logging.ERROR, "empty client request received"))
 		transport.Close(&proto.Disconnect{Reason: proto.ErrBadRequest.Error(), Reconnect: false})
 		return false
 	}
@@ -162,7 +163,7 @@ func handleClientData(c conns.Client, data []byte, enc proto.Encoding, transport
 			if err == io.EOF {
 				break
 			}
-			logger.ERROR.Printf("error decoding request: %v", err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding request", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "error": err.Error()}))
 			transport.Close(proto.DisconnectBadRequest)
 			proto.PutCommandDecoder(enc, decoder)
 			proto.PutReplyEncoder(enc, encoder)
@@ -170,7 +171,7 @@ func handleClientData(c conns.Client, data []byte, enc proto.Encoding, transport
 		}
 		rep, disconnect := c.Handle(cmd)
 		if disconnect != nil {
-			logger.ERROR.Printf("disconnect after handling command %v: %v", cmd, disconnect)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
 			transport.Close(disconnect)
 			proto.PutCommandDecoder(enc, decoder)
 			proto.PutReplyEncoder(enc, encoder)
@@ -179,7 +180,7 @@ func handleClientData(c conns.Client, data []byte, enc proto.Encoding, transport
 
 		err = encoder.Encode(rep)
 		if err != nil {
-			logger.ERROR.Printf("error encoding reply %v: %v", rep, err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error encoding reply", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "client": c.ID(), "user": c.UserID(), "error": err.Error()}))
 			transport.Close(&proto.Disconnect{Reason: "internal error", Reconnect: true})
 			return false
 		}
@@ -187,7 +188,7 @@ func handleClientData(c conns.Client, data []byte, enc proto.Encoding, transport
 
 	disconnect := writer.write(encoder.Finish())
 	if disconnect != nil {
-		logger.ERROR.Printf("disconnect after sending data to transport: %v", disconnect)
+		s.node.Logger().Log(logging.NewEntry(logging.ERROR, "disconnect after sending data to transport", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
 		transport.Close(disconnect)
 		proto.PutCommandDecoder(enc, decoder)
 		proto.PutReplyEncoder(enc, encoder)
@@ -217,18 +218,16 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 		c := client.New(sess.Request().Context(), s.node, transport, client.Config{Encoding: proto.EncodingJSON})
 		defer c.Close(nil)
 
-		if logger.DEBUG.Enabled() {
-			logger.DEBUG.Printf("New SockJS session established with client ID %s\n", c.ID())
-			defer func() {
-				logger.DEBUG.Printf("SockJS session with client ID %s completed", c.ID())
-			}()
-		}
+		s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "SockJS connection established", map[string]interface{}{"client": c.ID()}))
+		defer func(started time.Time) {
+			s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "SockJS connection completed", map[string]interface{}{"client": c.ID(), "time": time.Since(started)}))
+		}(time.Now())
 
 		enc := proto.EncodingJSON
 
 		for {
 			if msg, err := sess.Recv(); err == nil {
-				ok := handleClientData(c, []byte(msg), enc, transport, writer)
+				ok := s.handleClientData(c, []byte(msg), enc, transport, writer)
 				if !ok {
 					return
 				}
@@ -262,14 +261,14 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		logger.DEBUG.Printf("Websocket connection upgrade error: %#v", err.Error())
+		s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "websocket upgrade error", map[string]interface{}{"error": err.Error()}))
 		return
 	}
 
 	if wsCompression {
 		err := conn.SetCompressionLevel(wsCompressionLevel)
 		if err != nil {
-			logger.ERROR.Printf("Error setting websocket compression level: %v", err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "websocket error setting compression level", map[string]interface{}{"error": err.Error()}))
 		}
 	}
 
@@ -311,19 +310,17 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 		c := client.New(r.Context(), s.node, transport, client.Config{Encoding: enc})
 		defer c.Close(nil)
 
-		if logger.DEBUG.Enabled() {
-			logger.DEBUG.Printf("New raw websocket connection established with client ID %s\n", c.ID())
-			defer func() {
-				logger.DEBUG.Printf("Raw websocket connection with client ID %s completed", c.ID())
-			}()
-		}
+		s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "websocket connection established", map[string]interface{}{"client": c.ID()}))
+		defer func(started time.Time) {
+			s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "websocket connection completed", map[string]interface{}{"client": c.ID(), "time": time.Since(started)}))
+		}(time.Now())
 
 		for {
 			_, data, err := conn.ReadMessage()
 			if err != nil {
 				return
 			}
-			ok := handleClientData(c, data, enc, transport, writer)
+			ok := s.handleClientData(c, data, enc, transport, writer)
 			if !ok {
 				return
 			}
@@ -344,7 +341,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	var replyRes proto.Raw
 
 	if method == "" {
-		logger.ERROR.Println("method required in API command")
+		s.node.Logger().Log(logging.NewEntry(logging.ERROR, "method required in API command"))
 		rep.Error = apiproto.ErrBadRequest
 		return rep, nil
 	}
@@ -359,7 +356,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case "publish":
 		cmd, err := decoder.DecodePublish(params)
 		if err != nil {
-			logger.ERROR.Printf("error decoding publish params: %v", err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding publish params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -377,7 +374,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case "broadcast":
 		cmd, err := decoder.DecodeBroadcast(params)
 		if err != nil {
-			logger.ERROR.Printf("error decoding broadcast params: %v", err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding broadcast params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -395,7 +392,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case "unsubscribe":
 		cmd, err := decoder.DecodeUnsubscribe(params)
 		if err != nil {
-			logger.ERROR.Printf("error decoding unsubscribe params: %v", err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding unsubscribe params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -413,7 +410,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case "disconnect":
 		cmd, err := decoder.DecodeDisconnect(params)
 		if err != nil {
-			logger.ERROR.Printf("error decoding disconnect params: %v", err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding disconnect params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -431,7 +428,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case "presence":
 		cmd, err := decoder.DecodePresence(params)
 		if err != nil {
-			logger.ERROR.Printf("error decoding presence params: %v", err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding presence params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -449,7 +446,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case "presence_stats":
 		cmd, err := decoder.DecodePresenceStats(params)
 		if err != nil {
-			logger.ERROR.Printf("error decoding presence_stats params: %v", err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding presence stats params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -467,7 +464,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case "history":
 		cmd, err := decoder.DecodeHistory(params)
 		if err != nil {
-			logger.ERROR.Printf("error decoding history params: %v", err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding history params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -528,13 +525,13 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	data, err = ioutil.ReadAll(r.Body)
 	if err != nil {
-		logger.ERROR.Printf("error reading body: %v", err)
+		s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error reading API request body", map[string]interface{}{"error": err.Error()}))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	if len(data) == 0 {
-		logger.ERROR.Println("no data found in API request")
+		s.node.Logger().Log(logging.NewEntry(logging.ERROR, "no data in API request"))
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -560,7 +557,7 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 			if err == io.EOF {
 				break
 			}
-			logger.ERROR.Printf("error decoding API data: %v", err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding API data", map[string]interface{}{"error": err.Error()}))
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
@@ -568,13 +565,13 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 		rep, err := s.handleAPICommand(r.Context(), enc, command)
 		apiCommandDurationSummary.WithLabelValues(command.Method).Observe(float64(time.Since(now).Seconds()))
 		if err != nil {
-			logger.ERROR.Printf("error handling API command: %v", err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error handling API command", map[string]interface{}{"error": err.Error()}))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		err = encoder.Encode(rep)
 		if err != nil {
-			logger.ERROR.Printf("error encoding API reply: %v", err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error encoding API reply", map[string]interface{}{"error": err.Error()}))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -602,7 +599,7 @@ func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if adminPassword == "" || adminSecret == "" {
-		logger.ERROR.Println("admin_password and admin_secret must be set in configuration")
+		s.node.Logger().Log(logging.NewEntry(logging.ERROR, "admin_password and admin_secret must be set in configuration"))
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -611,7 +608,7 @@ func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		token, err := GenerateAdminToken(adminSecret)
 		if err != nil {
-			logger.ERROR.Println(err)
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error generating admin token", map[string]interface{}{"error": err.Error()}))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}

@@ -6,11 +6,12 @@ import (
 	"sync"
 	"time"
 
+	logger "github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/lib/channel"
 	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/engine"
 	"github.com/centrifugal/centrifugo/lib/events"
-	"github.com/centrifugal/centrifugo/lib/logger"
+	"github.com/centrifugal/centrifugo/lib/logging"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 	"github.com/centrifugal/centrifugo/lib/proto/controlproto"
@@ -76,6 +77,8 @@ type Node struct {
 
 	// mediator contains application event handlers.
 	mediator *events.Mediator
+
+	logger *logging.Logger
 }
 
 // VERSION of Centrifugo server node. Set on build stage.
@@ -100,6 +103,16 @@ func New(c *Config) *Node {
 		controlDecoder:  controlproto.NewProtobufDecoder(),
 	}
 	return n
+}
+
+// SetLogHandler ...
+func (n *Node) SetLogHandler(level logging.Level, handler logging.Handler) {
+	n.logger = logging.New(level, handler)
+}
+
+// Logger ...
+func (n *Node) Logger() *logging.Logger {
+	return n.logger
 }
 
 // Config returns a copy of node Config.
@@ -189,7 +202,7 @@ func (n *Node) Run(e engine.Engine) error {
 
 	err := n.pubNode()
 	if err != nil {
-		logger.CRITICAL.Println(err)
+		logger.ERROR.Println(err)
 	}
 	go n.sendNodePingMsg()
 	go n.cleanNodeInfo()
@@ -243,7 +256,7 @@ func (n *Node) sendNodePingMsg() {
 		case <-time.After(interval):
 			err := n.pubNode()
 			if err != nil {
-				logger.CRITICAL.Println(err)
+				logger.ERROR.Println(err)
 			}
 		}
 	}

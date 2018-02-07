@@ -2,6 +2,7 @@ package engineredis
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"runtime"
 	"strings"
@@ -10,7 +11,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/lib/channel"
 	"github.com/centrifugal/centrifugo/lib/engine"
-	"github.com/centrifugal/centrifugo/lib/logger"
+	"github.com/centrifugal/centrifugo/lib/logging"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/controlproto"
@@ -157,7 +158,7 @@ func (sr *subRequest) result() error {
 	return <-sr.err
 }
 
-func newPool(conf *ShardConfig) *redis.Pool {
+func newPool(n *node.Node, conf *ShardConfig) *redis.Pool {
 
 	host := conf.Host
 	port := conf.Port
@@ -169,9 +170,9 @@ func newPool(conf *ShardConfig) *redis.Pool {
 
 	usingPassword := yesno(password != "")
 	if !useSentinel {
-		logger.INFO.Printf("Redis: %s/%d, pool: %d, using password: %s\n", serverAddr, db, conf.PoolSize, usingPassword)
+		n.Logger().Log(logging.NewEntry(logging.INFO, fmt.Sprintf("Redis: %s/%d, pool: %d, using password: %s\n", serverAddr, db, conf.PoolSize, usingPassword)))
 	} else {
-		logger.INFO.Printf("Redis: Sentinel for name: %s, db: %d, pool: %d, using password: %s\n", conf.MasterName, db, conf.PoolSize, usingPassword)
+		n.Logger().Log(logging.NewEntry(logging.INFO, fmt.Sprintf("Redis: Sentinel for name: %s, db: %d, pool: %d, using password: %s\n", conf.MasterName, db, conf.PoolSize, usingPassword)))
 	}
 
 	var lastMu sync.Mutex
@@ -191,7 +192,7 @@ func newPool(conf *ShardConfig) *redis.Pool {
 				timeout := 300 * time.Millisecond
 				c, err := redis.DialTimeout("tcp", addr, timeout, timeout, timeout)
 				if err != nil {
-					logger.CRITICAL.Println(err)
+					n.Logger().Log(logging.NewEntry(logging.ERROR, "error dialing to Sentinel", map[string]interface{}{"error": err.Error()}))
 					return nil, err
 				}
 				return c, nil
@@ -201,13 +202,13 @@ func newPool(conf *ShardConfig) *redis.Pool {
 		// Periodically discover new Sentinels.
 		go func() {
 			if err := sntnl.Discover(); err != nil {
-				logger.ERROR.Println(err)
+				n.Logger().Log(logging.NewEntry(logging.ERROR, "error discover Sentinel", map[string]interface{}{"error": err.Error()}))
 			}
 			for {
 				select {
 				case <-time.After(30 * time.Second):
 					if err := sntnl.Discover(); err != nil {
-						logger.ERROR.Println(err)
+						n.Logger().Log(logging.NewEntry(logging.ERROR, "error discover Sentinel", map[string]interface{}{"error": err.Error()}))
 					}
 				}
 			}
@@ -228,7 +229,7 @@ func newPool(conf *ShardConfig) *redis.Pool {
 				}
 				lastMu.Lock()
 				if serverAddr != lastMaster {
-					logger.INFO.Printf("Redis master discovered: %s", serverAddr)
+					n.Logger().Log(logging.NewEntry(logging.INFO, "Redis master discovered", map[string]interface{}{"addr": serverAddr}))
 					lastMaster = serverAddr
 				}
 				lastMu.Unlock()
@@ -236,14 +237,14 @@ func newPool(conf *ShardConfig) *redis.Pool {
 
 			c, err := redis.DialTimeout("tcp", serverAddr, conf.ConnectTimeout, conf.ReadTimeout, conf.WriteTimeout)
 			if err != nil {
-				logger.CRITICAL.Println(err)
+				n.Logger().Log(logging.NewEntry(logging.ERROR, "error dialing to Redis", map[string]interface{}{"error": err.Error()}))
 				return nil, err
 			}
 
 			if password != "" {
 				if _, err := c.Do("AUTH", password); err != nil {
 					c.Close()
-					logger.CRITICAL.Println(err)
+					n.Logger().Log(logging.NewEntry(logging.ERROR, "error auth in Redis", map[string]interface{}{"error": err.Error()}))
 					return nil, err
 				}
 			}
@@ -251,7 +252,7 @@ func newPool(conf *ShardConfig) *redis.Pool {
 			if db != 0 {
 				if _, err := c.Do("SELECT", db); err != nil {
 					c.Close()
-					logger.CRITICAL.Println(err)
+					n.Logger().Log(logging.NewEntry(logging.ERROR, "error selecting Redis db", map[string]interface{}{"error": err.Error()}))
 					return nil, err
 				}
 			}
@@ -261,7 +262,7 @@ func newPool(conf *ShardConfig) *redis.Pool {
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
 			if useSentinel {
 				if !sentinel.TestRole(c, "master") {
-					return errors.New("Failed master role check")
+					return errors.New("failed master role check")
 				}
 				return nil
 			}
@@ -277,7 +278,7 @@ func New(n *node.Node, config *Config) (*RedisEngine, error) {
 	var shards []*Shard
 
 	if len(config.Shards) > 1 {
-		logger.INFO.Printf("Redis sharding enabled: %d shards", len(config.Shards))
+		n.Logger().Log(logging.NewEntry(logging.INFO, fmt.Sprintf("Redis sharding enabled: %d shards", len(config.Shards))))
 	}
 
 	for _, conf := range config.Shards {
@@ -374,7 +375,7 @@ func NewShard(n *node.Node, conf *ShardConfig) (*Shard, error) {
 	shard := &Shard{
 		node:              n,
 		config:            conf,
-		pool:              newPool(conf),
+		pool:              newPool(n, conf),
 		pubScript:         redis.NewScript(2, pubScriptSource),
 		addPresenceScript: redis.NewScript(2, addPresenceSource),
 		remPresenceScript: redis.NewScript(2, remPresenceSource),
@@ -588,9 +589,9 @@ func (e *Shard) runPubSub() {
 		numWorkers = runtime.NumCPU()
 	}
 
-	logger.DEBUG.Printf("Running Redis PUB/SUB, num workers: %d", numWorkers)
+	e.node.Logger().Log(logging.NewEntry(logging.DEBUG, fmt.Sprintf("running Redis PUB/SUB, num workers: %d", numWorkers)))
 	defer func() {
-		logger.DEBUG.Printf("Stopping Redis PUB/SUB")
+		e.node.Logger().Log(logging.NewEntry(logging.DEBUG, "stopping Redis PUB/SUB"))
 	}()
 
 	poolConn := e.pool.Get()
@@ -609,10 +610,10 @@ func (e *Shard) runPubSub() {
 
 	// Run subscriber goroutine.
 	go func() {
-		logger.DEBUG.Println("Starting RedisEngine Subscriber")
+		e.node.Logger().Log(logging.NewEntry(logging.DEBUG, "Starting RedisEngine Subscriber"))
 
 		defer func() {
-			logger.DEBUG.Println("Stopping RedisEngine Subscriber")
+			e.node.Logger().Log(logging.NewEntry(logging.DEBUG, "Stopping RedisEngine Subscriber"))
 		}()
 		for {
 			select {
@@ -634,7 +635,7 @@ func (e *Shard) runPubSub() {
 				}
 
 				if opErr != nil {
-					logger.ERROR.Printf("RedisEngine Subscriber error: %v\n", opErr)
+					e.node.Logger().Log(logging.NewEntry(logging.ERROR, "RedisEngine Subscriber error", map[string]interface{}{"error": opErr.Error()}))
 					r.done(opErr)
 
 					// Close conn, this should cause Receive to return with err below
@@ -669,7 +670,7 @@ func (e *Shard) runPubSub() {
 					case controlChannel:
 						cmd, err := e.node.ControlDecoder().DecodeCommand(n.Data)
 						if err != nil {
-							logger.ERROR.Println(err)
+							e.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding control command", map[string]interface{}{"error": err.Error()}))
 							continue
 						}
 						e.node.HandleControl(cmd)
@@ -678,7 +679,7 @@ func (e *Shard) runPubSub() {
 					default:
 						err := e.handleRedisClientMessage(chID, n.Data)
 						if err != nil {
-							logger.ERROR.Println(err)
+							e.node.Logger().Log(logging.NewEntry(logging.ERROR, "error handling client message", map[string]interface{}{"error": err.Error()}))
 							continue
 						}
 					}
@@ -703,7 +704,7 @@ func (e *Shard) runPubSub() {
 			e.subCh <- r
 			err := r.result()
 			if err != nil {
-				logger.ERROR.Printf("Error subscribing: %v", err)
+				e.node.Logger().Log(logging.NewEntry(logging.ERROR, "error subscribing", map[string]interface{}{"error": err.Error()}))
 				return
 			}
 			batch = nil
@@ -715,12 +716,12 @@ func (e *Shard) runPubSub() {
 		e.subCh <- r
 		err := r.result()
 		if err != nil {
-			logger.ERROR.Printf("Error subscribing: %v", err)
+			e.node.Logger().Log(logging.NewEntry(logging.ERROR, "error subscribing", map[string]interface{}{"error": err.Error()}))
 			return
 		}
 	}
 
-	logger.DEBUG.Printf("Successfully subscribed to %d Redis channels", len(chIDs))
+	e.node.Logger().Log(logging.NewEntry(logging.DEBUG, fmt.Sprintf("Successfully subscribed to %d Redis channels", len(chIDs))))
 
 	for {
 		switch n := conn.Receive().(type) {
@@ -730,7 +731,7 @@ func (e *Shard) runPubSub() {
 			workers[index(n.Channel, numWorkers)] <- n
 		case redis.Subscription:
 		case error:
-			logger.ERROR.Printf("Redis receiver error: %v\n", n)
+			e.node.Logger().Log(logging.NewEntry(logging.ERROR, "Redis receiver error", map[string]interface{}{"error": n.Error()}))
 			return
 		}
 	}
@@ -778,7 +779,7 @@ func (e *Shard) runPublishPipeline() {
 
 	err := e.pubScript.Load(conn)
 	if err != nil {
-		logger.ERROR.Println(err)
+		e.node.Logger().Log(logging.NewEntry(logging.ERROR, "error loading publish Lua script", map[string]interface{}{"error": err.Error()}))
 		// Can not proceed if script has not been loaded - because we use EVALSHA command for
 		// publishing with history.
 		conn.Close()
@@ -802,7 +803,7 @@ func (e *Shard) runPublishPipeline() {
 			conn := e.pool.Get()
 			err := conn.Send("PUBLISH", e.pingChannelID(), nil)
 			if err != nil {
-				logger.ERROR.Printf("Error publish ping: %v", err)
+				e.node.Logger().Log(logging.NewEntry(logging.ERROR, "error publish ping to Redis channel", map[string]interface{}{"error": err.Error()}))
 				conn.Close()
 				return
 			}
@@ -823,7 +824,7 @@ func (e *Shard) runPublishPipeline() {
 				for i := range prs {
 					prs[i].done(err)
 				}
-				logger.ERROR.Printf("Error flushing publish pipeline: %v", err)
+				e.node.Logger().Log(logging.NewEntry(logging.ERROR, "error flushing publish pipeline", map[string]interface{}{"error": err.Error()}))
 				conn.Close()
 				return
 			}
@@ -915,7 +916,7 @@ func (e *Shard) runDataPipeline() {
 
 	err := e.addPresenceScript.Load(conn)
 	if err != nil {
-		logger.ERROR.Println(err)
+		e.node.Logger().Log(logging.NewEntry(logging.ERROR, "error loading add presence Lua", map[string]interface{}{"error": err.Error()}))
 		// Can not proceed if script has not been loaded.
 		conn.Close()
 		return
@@ -923,7 +924,7 @@ func (e *Shard) runDataPipeline() {
 
 	err = e.presenceScript.Load(conn)
 	if err != nil {
-		logger.ERROR.Println(err)
+		e.node.Logger().Log(logging.NewEntry(logging.ERROR, "error loading presence Lua", map[string]interface{}{"error": err.Error()}))
 		// Can not proceed if script has not been loaded.
 		conn.Close()
 		return
@@ -931,7 +932,7 @@ func (e *Shard) runDataPipeline() {
 
 	err = e.remPresenceScript.Load(conn)
 	if err != nil {
-		logger.ERROR.Println(err)
+		e.node.Logger().Log(logging.NewEntry(logging.ERROR, "error loading remove presence Lua", map[string]interface{}{"error": err.Error()}))
 		// Can not proceed if script has not been loaded.
 		conn.Close()
 		return
@@ -971,7 +972,7 @@ func (e *Shard) runDataPipeline() {
 				for i := range drs {
 					drs[i].done(nil, err)
 				}
-				logger.ERROR.Printf("Error flushing publish pipeline: %v", err)
+				e.node.Logger().Log(logging.NewEntry(logging.ERROR, "error flushing data pipeline", map[string]interface{}{"error": err.Error()}))
 				conn.Close()
 				return
 			}
@@ -1118,7 +1119,7 @@ func (e *Shard) PublishControl(cmd *controlproto.Command) <-chan error {
 
 // Subscribe - see engine interface description.
 func (e *Shard) Subscribe(ch string) error {
-	logger.DEBUG.Println("Subscribe node on channel", ch)
+	e.node.Logger().Log(logging.NewEntry(logging.DEBUG, "subscribe node on channel", map[string]interface{}{"channel": ch}))
 	channel := e.messageChannelID(ch)
 	r := newSubRequest([]channelID{channel}, true, true)
 	e.subCh <- r
@@ -1127,7 +1128,7 @@ func (e *Shard) Subscribe(ch string) error {
 
 // Unsubscribe - see engine interface description.
 func (e *Shard) Unsubscribe(ch string) error {
-	logger.DEBUG.Println("Unsubscribe node from channel", ch)
+	e.node.Logger().Log(logging.NewEntry(logging.DEBUG, "unsubscribe node from channel", map[string]interface{}{"channel": ch}))
 	channel := e.messageChannelID(ch)
 	r := newSubRequest([]channelID{channel}, false, true)
 	e.subCh <- r
