@@ -517,7 +517,6 @@ func (c *client) expire() {
 // command immediately after establishing Websocket or SockJS connection with
 // Centrifugo
 func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, error) {
-
 	plugin.Metrics.Counters.Inc("client_num_connect")
 
 	if c.authenticated {

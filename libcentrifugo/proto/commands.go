@@ -126,6 +126,7 @@ type PublishAPICommand struct {
 	Channel string  `json:"channel"`
 	Client  string  `json:"client"`
 	Data    raw.Raw `json:"data"`
+	UID     string	`json:"uid"`
 }
 
 // BroadcastAPICommand is used to publish messages into multiple channels.

@@ -11,7 +11,10 @@ import (
 )
 
 func TestMessage(t *testing.T) {
-	msg := NewMessage("test", []byte("{}"), "", nil)
+	uid := "12"
+	jsonData := "{}"
+
+	msg := NewMessage("test", []byte(jsonData), "", nil, uid)
 	assert.Equal(t, msg.Channel, "test")
 	msgBytes, err := json.Marshal(msg)
 	assert.Equal(t, nil, err)
@@ -19,6 +22,7 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"data\":{}"))
 	assert.Equal(t, false, strings.Contains(string(msgBytes), "\"client\":\"\"")) // empty field must be omitted
 	assert.Equal(t, true, strings.Contains(string(msgBytes), "\"uid\":"))
+	assert.Equal(t, uid, msg.UID)
 	var unmarshalledMsg Message
 	err = json.Unmarshal(msgBytes, &unmarshalledMsg)
 	assert.Equal(t, nil, err)
@@ -27,7 +31,7 @@ func TestMessage(t *testing.T) {
 
 func TestMarshalUnmarshal(t *testing.T) {
 	data := `{"key": "привет"}`
-	msg := NewMessage("test", []byte(data), "", nil)
+	msg := NewMessage("test", []byte(data), "", nil, "")
 	encoded, _ := msg.Marshal()
 	var newMsg Message
 	newMsg.Unmarshal(encoded)
@@ -35,7 +39,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 }
 
 func TestEngineEncodeDecode(t *testing.T) {
-	message := NewMessage(string("encode_decode_test"), []byte("{}"), "", nil)
+	message := NewMessage(string("encode_decode_test"), []byte("{}"), "", nil, "")
 	byteMessage, err := message.Marshal()
 	assert.Equal(t, nil, err)
 	assert.True(t, bytes.Contains(byteMessage, []byte("encode_decode_test")))
@@ -84,7 +88,7 @@ func TestEngineEncodeDecode(t *testing.T) {
 func BenchmarkClientResponseMarshalJSON(b *testing.B) {
 	responses := make([]*ClientMessageResponse, 10000)
 	for i := 0; i < 10000; i++ {
-		resp := NewClientMessage(NewMessage("test"+strconv.Itoa(i), []byte("{}"), "", nil))
+		resp := NewClientMessage(NewMessage("test"+strconv.Itoa(i), []byte("{}"), "", nil, ""))
 		responses[i] = resp
 	}
 	b.ResetTimer()
@@ -99,7 +103,7 @@ func BenchmarkClientResponseMarshalJSON(b *testing.B) {
 func BenchmarkClientResponseMarshalManual(b *testing.B) {
 	responses := make([]*ClientMessageResponse, 10000)
 	for i := 0; i < 10000; i++ {
-		resp := NewClientMessage(NewMessage("test"+strconv.Itoa(i), []byte("{}"), "", nil))
+		resp := NewClientMessage(NewMessage("test"+strconv.Itoa(i), []byte("{}"), "", nil, ""))
 		responses[i] = resp
 	}
 	b.ResetTimer()
@@ -112,7 +116,7 @@ func BenchmarkClientResponseMarshalManual(b *testing.B) {
 }
 
 func BenchmarkMsgMarshalJSON(b *testing.B) {
-	msg := NewMessage("test", []byte("{}"), "", nil)
+	msg := NewMessage("test", []byte("{}"), "", nil, "")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := json.Marshal(msg)
@@ -123,7 +127,7 @@ func BenchmarkMsgMarshalJSON(b *testing.B) {
 }
 
 func BenchmarkMsgMarshalGogoprotobuf(b *testing.B) {
-	msg := NewMessage("test", []byte("{}"), "", nil)
+	msg := NewMessage("test", []byte("{}"), "", nil, "")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := msg.Marshal()

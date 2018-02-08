@@ -16,10 +16,15 @@ func NewClientInfo(user string, client string, defaultInfo raw.Raw, channelInfo 
 }
 
 // NewMessage initializes new Message.
-func NewMessage(ch string, data []byte, client string, info *ClientInfo) *Message {
+func NewMessage(ch string, data []byte, client string, info *ClientInfo, uid string) *Message {
+	if uid == "" {
+		uid = nuid.Next()
+	}
+
 	raw := raw.Raw(data)
+
 	return &Message{
-		UID:     nuid.Next(),
+		UID:     uid,
 		Info:    info,
 		Channel: ch,
 		Data:    raw,
