@@ -23,7 +23,7 @@ func NewMessage(ch string, data []byte, client string, info *ClientInfo, uid str
 
 	raw := raw.Raw(data)
 	return &Message{
-		UID:     nuid.Next(),
+		UID:     uid,
 		Info:    info,
 		Channel: ch,
 		Data:    raw,
