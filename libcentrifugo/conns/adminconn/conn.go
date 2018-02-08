@@ -16,7 +16,6 @@ import (
 
 // checkAdminAuthToken checks admin connection token which Centrifugo returns after admin login.
 func checkAdminAuthToken(n *node.Node, token string) error {
-	return nil
 	config := n.Config()
 	insecure := config.InsecureAdmin
 	secret := config.AdminSecret

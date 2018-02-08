@@ -16,7 +16,6 @@ import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/queue"
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/satori/go.uuid"
-	"fmt"
 )
 
 func init() {
@@ -406,11 +405,8 @@ func (c *client) handleCmd(command proto.ClientCommand) (proto.Response, error) 
 
 	method := command.Method
 	params := command.Params
-	fmt.Println("TEST2")
-	logger.ERROR.Println("TEST2")
+
 	if method != "connect" && !c.authenticated {
-		fmt.Println("TEST3")
-		logger.ERROR.Println("TEST3")
 		return nil, proto.ErrUnauthorized
 	}
 
@@ -521,7 +517,6 @@ func (c *client) expire() {
 // command immediately after establishing Websocket or SockJS connection with
 // Centrifugo
 func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, error) {
-	logger.ERROR.Println("TEST");
 	plugin.Metrics.Counters.Inc("client_num_connect")
 
 	if c.authenticated {
@@ -671,7 +666,6 @@ func (c *client) refreshCmd(cmd *proto.RefreshClientCommand) (proto.Response, er
 }
 
 func recoverMessages(last string, messages []proto.Message) ([]proto.Message, bool) {
-	fmt.Println("LAST: " + last)
 	if last == "" {
 		// Client wants to recover messages but it seems that there were no
 		// messages in history before, so client missed all messages which
@@ -680,14 +674,11 @@ func recoverMessages(last string, messages []proto.Message) ([]proto.Message, bo
 	}
 	position := -1
 	for index, msg := range messages {
-		fmt.Println("MSG UID: " + msg.UID)
 		if msg.UID == last {
 			position = index
 			break
 		}
 	}
-	fmt.Println("POSITION: " + strconv.Itoa(position))
-	fmt.Println("MESSAGES COUNT: " + strconv.Itoa(len(messages)))
 	if position > -1 {
 		// Last uid provided found in history. Set recovered flag which means that
 		// Centrifugo thinks missed messages fully recovered.

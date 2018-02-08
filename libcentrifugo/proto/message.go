@@ -3,7 +3,6 @@ package proto
 import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/nats-io/nuid"
-	"fmt"
 )
 
 // NewClientInfo allows to initialize ClientInfo.
@@ -23,8 +22,6 @@ func NewMessage(ch string, data []byte, client string, info *ClientInfo, uid str
 	}
 
 	raw := raw.Raw(data)
-
-	fmt.Println("UID: " + uid)
 
 	return &Message{
 		UID:     uid,

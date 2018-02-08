@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 
 	"github.com/gorilla/securecookie"
-	"fmt"
 )
 
 // HMACLength used to validate length of token string we received.
@@ -30,13 +29,6 @@ func GenerateClientToken(secret, user, timestamp, info string) string {
 // CheckClientToken validates correctness of provided (by client connection) token
 // comparing it with generated one
 func CheckClientToken(secret, user, timestamp, info, providedToken string) bool {
-	fmt.Println("Secret: " + secret)
-	fmt.Println("User: " + user)
-	fmt.Println("Timestamp: " + timestamp)
-	fmt.Println("Info: " + info)
-	fmt.Println("Provided Token: " + providedToken)
-	fmt.Println("Generated Token: " + GenerateClientToken(secret, user, timestamp, info))
-	return true
 	if len(providedToken) != HMACLength {
 		return false
 	}
