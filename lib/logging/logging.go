@@ -52,13 +52,13 @@ type Entry struct {
 }
 
 // NewEntry helps to create Entry.
-func NewEntry(lvl Level, message string, fields ...map[string]interface{}) Entry {
+func NewEntry(level Level, message string, fields ...map[string]interface{}) Entry {
 	var f map[string]interface{}
 	if len(fields) > 0 {
 		f = fields[0]
 	}
 	return Entry{
-		Level:   lvl,
+		Level:   level,
 		Message: message,
 		Fields:  f,
 	}

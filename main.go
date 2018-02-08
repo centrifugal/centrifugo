@@ -81,7 +81,6 @@ func main() {
 				"client_channel_limit":           128,
 				"client_request_max_size":        65536,    // 64KB
 				"client_queue_max_size":          10485760, // 10MB
-				"client_queue_initial_capacity":  2,
 				"presence_ping_interval":         25,
 				"presence_expire_interval":       60,
 				"channel_max_length":             255,
@@ -724,7 +723,6 @@ func newNodeConfig(v *viper.Viper) *node.Config {
 	cfg.ClientStaleCloseDelay = time.Duration(v.GetInt("client_stale_close_delay")) * time.Second
 	cfg.ClientRequestMaxSize = v.GetInt("client_request_max_size")
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
-	cfg.ClientQueueInitialCapacity = v.GetInt("client_queue_initial_capacity")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
 
 	cfg.UserConnectionLimit = v.GetInt("user_connection_limit")

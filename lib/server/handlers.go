@@ -209,8 +209,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 	go func() {
 		config := s.node.Config()
 		writerConf := writerConfig{
-			MaxQueueSize:         config.ClientQueueMaxSize,
-			QueueInitialCapacity: config.ClientQueueInitialCapacity,
+			MaxQueueSize: config.ClientQueueMaxSize,
 		}
 		writer := newWriter(writerConf)
 		defer writer.close()
@@ -301,8 +300,7 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 			enc:                enc,
 		}
 		writerConf := writerConfig{
-			MaxQueueSize:         config.ClientQueueMaxSize,
-			QueueInitialCapacity: config.ClientQueueInitialCapacity,
+			MaxQueueSize: config.ClientQueueMaxSize,
 		}
 		writer := newWriter(writerConf)
 		defer writer.close()

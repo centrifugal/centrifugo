@@ -8,8 +8,7 @@ import (
 )
 
 type writerConfig struct {
-	MaxQueueSize         int
-	QueueInitialCapacity int
+	MaxQueueSize int
 }
 
 // writer helps to manage per-connection message queue.
@@ -24,7 +23,7 @@ type writer struct {
 func newWriter(config writerConfig) *writer {
 	w := &writer{
 		config:   config,
-		messages: queue.New(config.QueueInitialCapacity),
+		messages: queue.New(),
 	}
 	go w.runWriteRoutine()
 	return w

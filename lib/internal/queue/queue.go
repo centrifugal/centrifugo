@@ -60,8 +60,10 @@ type byteQueue struct {
 	initCap int
 }
 
+var initialCapacity = 2
+
 // New ByteQueue returns a new []byte queue with initial capacity.
-func New(initialCapacity int) Queue {
+func New() Queue {
 	sq := &byteQueue{
 		initCap: initialCapacity,
 		nodes:   make([][]byte, initialCapacity),

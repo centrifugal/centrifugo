@@ -52,16 +52,6 @@ type Node struct {
 	// shutdownCh is a channel which is closed when node shutdown initiated.
 	shutdownCh chan struct{}
 
-	// save metrics snapshot until next metrics interval.
-	metricsSnapshot map[string]int64
-
-	// metricsOnce helps to share metrics with other nodes only once after
-	// snapshot updated thus significantly reducing node control message size.
-	metricsOnce sync.Once
-
-	// protect access to metrics snapshot.
-	metricsMu sync.RWMutex
-
 	// messageEncoder is encoder to encode messages for engine.
 	messageEncoder proto.MessageEncoder
 
@@ -88,18 +78,17 @@ func New(c *Config) *Node {
 	uid := uuid.NewV4().String()
 
 	n := &Node{
-		version:         VERSION,
-		uid:             uid,
-		nodes:           newNodeRegistry(uid),
-		config:          c,
-		hub:             conns.NewHub(),
-		startedAt:       time.Now().Unix(),
-		metricsSnapshot: make(map[string]int64),
-		shutdownCh:      make(chan struct{}),
-		messageEncoder:  proto.NewProtobufMessageEncoder(),
-		messageDecoder:  proto.NewProtobufMessageDecoder(),
-		controlEncoder:  controlproto.NewProtobufEncoder(),
-		controlDecoder:  controlproto.NewProtobufDecoder(),
+		version:        VERSION,
+		uid:            uid,
+		nodes:          newNodeRegistry(uid),
+		config:         c,
+		hub:            conns.NewHub(),
+		startedAt:      time.Now().Unix(),
+		shutdownCh:     make(chan struct{}),
+		messageEncoder: proto.NewProtobufMessageEncoder(),
+		messageDecoder: proto.NewProtobufMessageDecoder(),
+		controlEncoder: controlproto.NewProtobufEncoder(),
+		controlDecoder: controlproto.NewProtobufDecoder(),
 	}
 	return n
 }
@@ -224,9 +213,9 @@ func (n *Node) Shutdown() error {
 }
 
 func (n *Node) updateMetricsOnce() {
-	n.metricsMu.Lock()
-	n.metricsOnce = sync.Once{} // let gauges to be updated once in interval. TODO: actually not needed anymore.
-	n.metricsMu.Unlock()
+	numClientsGauge.Set(float64(n.hub.NumClients()))
+	numUsersGauge.Set(float64(n.hub.NumUniqueClients()))
+	numChannelsGauge.Set(float64(n.hub.NumChannels()))
 }
 
 func (n *Node) updateMetrics() {
@@ -479,14 +468,6 @@ func (n *Node) pubNode() error {
 		NumChannels: uint64(n.hub.NumChannels()),
 		Uptime:      uint64(time.Now().Unix() - n.startedAt),
 	}
-
-	n.metricsMu.RLock()
-	n.metricsOnce.Do(func() {
-		numClientsGauge.Set(float64(n.hub.NumClients()))
-		numUsersGauge.Set(float64(n.hub.NumUniqueClients()))
-		numChannelsGauge.Set(float64(n.hub.NumChannels()))
-	})
-	n.metricsMu.RUnlock()
 
 	n.mu.RUnlock()
 

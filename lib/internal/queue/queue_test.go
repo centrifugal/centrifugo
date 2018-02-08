@@ -10,21 +10,16 @@ import (
 type testItem []byte
 
 func TestByteQueueResize(t *testing.T) {
-	initialCapacity := 100
-	q := New(initialCapacity)
+	q := New()
 	assert.Equal(t, 0, q.Len())
-	assert.Equal(t, initialCapacity, q.Cap())
 	assert.Equal(t, false, q.Closed())
 
 	for i := 0; i < initialCapacity; i++ {
 		q.Add(testItem([]byte(strconv.Itoa(i))))
 	}
-	assert.Equal(t, initialCapacity, q.Cap())
 	q.Add(testItem([]byte("resize here")))
 	assert.Equal(t, initialCapacity*2, q.Cap())
 	q.Remove()
-	// back to initial capacity
-	assert.Equal(t, initialCapacity, q.Cap())
 
 	q.Add(testItem([]byte("new resize here")))
 	assert.Equal(t, initialCapacity*2, q.Cap())
@@ -35,8 +30,7 @@ func TestByteQueueResize(t *testing.T) {
 }
 
 func TestByteQueueSize(t *testing.T) {
-	initialCapacity := 100
-	q := New(initialCapacity)
+	q := New()
 	assert.Equal(t, 0, q.Size())
 	q.Add(testItem([]byte("1")))
 	q.Add(testItem([]byte("2")))
@@ -46,18 +40,17 @@ func TestByteQueueSize(t *testing.T) {
 }
 
 func TestByteQueueWait(t *testing.T) {
-	initialCapacity := 100
-	q := New(initialCapacity)
+	q := New()
 	q.Add(testItem([]byte("1")))
 	q.Add(testItem([]byte("2")))
 
 	s, ok := q.Wait()
 	assert.Equal(t, true, ok)
-	assert.Equal(t, "1", string(s.(testItem)))
+	assert.Equal(t, "1", string(s))
 
 	s, ok = q.Wait()
 	assert.Equal(t, true, ok)
-	assert.Equal(t, "2", string(s.(testItem)))
+	assert.Equal(t, "2", string(s))
 
 	go func() {
 		q.Add(testItem([]byte("3")))
@@ -65,13 +58,12 @@ func TestByteQueueWait(t *testing.T) {
 
 	s, ok = q.Wait()
 	assert.Equal(t, true, ok)
-	assert.Equal(t, "3", string(s.(testItem)))
+	assert.Equal(t, "3", string(s))
 
 }
 
 func TestByteQueueClose(t *testing.T) {
-	initialCapacity := 100
-	q := New(initialCapacity)
+	q := New()
 
 	// test removing from empty queue
 	_, ok := q.Remove()
@@ -95,7 +87,7 @@ func TestByteQueueClose(t *testing.T) {
 }
 
 func TestByteQueueCloseRemaining(t *testing.T) {
-	q := New(100)
+	q := New()
 	q.Add(testItem([]byte("1")))
 	q.Add(testItem([]byte("2")))
 	msgs := q.CloseRemaining()
@@ -108,7 +100,7 @@ func TestByteQueueCloseRemaining(t *testing.T) {
 }
 
 func BenchmarkQueueAdd(b *testing.B) {
-	q := New(2)
+	q := New()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		q.Add(testItem([]byte("test")))
@@ -141,7 +133,7 @@ func addAndConsume(q Queue, n int) {
 }
 
 func BenchmarkQueueAddConsume(b *testing.B) {
-	q := New(2)
+	q := New()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		addAndConsume(q, 10000)

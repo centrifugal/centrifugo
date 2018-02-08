@@ -341,10 +341,6 @@ func (c *client) expire() {
 				Client: c,
 			},
 		})
-		if reply.Disconnect != nil {
-			c.Close(reply.Disconnect)
-			return
-		}
 		c.exp = reply.Exp
 		if reply.Info != nil {
 			c.connInfo = reply.Info
