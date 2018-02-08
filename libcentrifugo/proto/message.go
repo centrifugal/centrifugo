@@ -3,7 +3,7 @@ package proto
 import (
 	"github.com/centrifugal/centrifugo/libcentrifugo/raw"
 	"github.com/nats-io/nuid"
-	"encoding/json"
+	"fmt"
 )
 
 // NewClientInfo allows to initialize ClientInfo.
@@ -17,21 +17,14 @@ func NewClientInfo(user string, client string, defaultInfo raw.Raw, channelInfo 
 }
 
 // NewMessage initializes new Message.
-// NewMessage initializes new Message.
-func NewMessage(ch string, data []byte, client string, info *ClientInfo) *Message {
-	uid := ""
-
-	var decodedData map[string]interface{}
-
-	if err := json.Unmarshal(data, &decodedData); err == nil && decodedData["_uid"] != nil {
-		uid = decodedData["_uid"].(string)
-		delete(decodedData, "_uid")
-		data, err = json.Marshal(decodedData)
-	} else {
+func NewMessage(ch string, data []byte, client string, info *ClientInfo, uid string) *Message {
+	if uid == "" {
 		uid = nuid.Next()
 	}
 
 	raw := raw.Raw(data)
+
+	fmt.Println("UID: " + uid)
 
 	return &Message{
 		UID:     uid,
