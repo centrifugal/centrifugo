@@ -44,6 +44,7 @@ message Reply {
 message PublishRequest {
     string Channel = 1 [(gogoproto.jsontag) = "channel"];
     bytes Data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+    string UID = 3 [(gogoproto.jsontag) = "uid"];
 }
 
 message PublishResponse {
@@ -56,6 +57,7 @@ message PublishResult {}
 message BroadcastRequest {
     repeated string Channels = 1 [(gogoproto.jsontag) = "channels"];
     bytes Data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+    string UID = 3 [(gogoproto.jsontag) = "uid"];
 }
 
 message BroadcastResponse {

@@ -43,6 +43,9 @@ func (h *Handler) Publish(ctx context.Context, cmd *apiproto.PublishRequest) *ap
 	publication := &proto.Publication{
 		Data: cmd.Data,
 	}
+	if cmd.UID != "" {
+		publication.UID = cmd.UID
+	}
 
 	err := <-h.node.Publish(cmd.Channel, publication, &chOpts)
 	if err != nil {
@@ -91,6 +94,9 @@ func (h *Handler) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequest)
 
 		publication := &proto.Publication{
 			Data: cmd.Data,
+		}
+		if cmd.UID != "" {
+			publication.UID = cmd.UID
 		}
 		errs[i] = h.node.Publish(ch, publication, &chOpts)
 	}

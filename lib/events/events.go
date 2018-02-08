@@ -107,6 +107,8 @@ type RefreshContext struct {
 // RefreshReply ...
 type RefreshReply struct {
 	EventReply
+	Exp  int64
+	Info []byte
 }
 
 // RefreshHandler ...

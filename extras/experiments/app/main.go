@@ -93,12 +93,12 @@ func main() {
 	}
 
 	mediator := &events.Mediator{
-		RPCHandler:         handleRPC,
-		ConnectHandler:     handleConnect,
-		DisconnectHandler:  handleDisconnect,
-		SubscribeHandler:   handleSubscribe,
-		UnsubscribeHandler: handleUnsubscribe,
-		PublishHandler:     handlePublish,
+		RPC:         handleRPC,
+		Connect:     handleConnect,
+		Disconnect:  handleDisconnect,
+		Subscribe:   handleSubscribe,
+		Unsubscribe: handleUnsubscribe,
+		Publish:     handlePublish,
 	}
 
 	n.SetMediator(mediator)

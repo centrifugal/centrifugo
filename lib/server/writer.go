@@ -16,7 +16,7 @@ type writerConfig struct {
 type writer struct {
 	mu       sync.Mutex
 	config   writerConfig
-	fn       func([]byte) error
+	writeFn  func([]byte) error
 	messages queue.Queue
 	closed   bool
 }
@@ -40,7 +40,7 @@ func (w *writer) runWriteRoutine() {
 			continue
 		}
 
-		err := w.fn(msg)
+		err := w.writeFn(msg)
 		if err != nil {
 			// Write failed, transport must close itself, here we just return from routine.
 			return
@@ -59,8 +59,8 @@ func (w *writer) write(data []byte) *proto.Disconnect {
 	return nil
 }
 
-func (w *writer) onWrite(fn func([]byte) error) {
-	w.fn = fn
+func (w *writer) onWrite(writeFn func([]byte) error) {
+	w.writeFn = writeFn
 }
 
 func (w *writer) close() error {

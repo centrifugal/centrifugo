@@ -16,12 +16,6 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-func init() {
-	// TODO: move to transport?
-	// metricsRegistry.RegisterCounter("client_num_msg_queued", metrics.NewCounter())
-	// metricsRegistry.RegisterCounter("client_num_msg_sent", metrics.NewCounter())
-}
-
 // Client represents client connection to Centrifugo - at moment
 // this can be Websocket or SockJS connection. Transport of incoming
 // connection abstracted away via Session interface.
@@ -234,8 +228,8 @@ func (c *client) Close(advice *proto.Disconnect) error {
 
 	c.transport.Close(advice)
 
-	if c.node.Mediator() != nil && c.node.Mediator().DisconnectHandler != nil {
-		c.node.Mediator().DisconnectHandler(c.ctx, &events.DisconnectContext{
+	if c.node.Mediator() != nil && c.node.Mediator().Disconnect != nil {
+		c.node.Mediator().Disconnect(c.ctx, &events.DisconnectContext{
 			EventContext: events.EventContext{
 				Client: c,
 			},
@@ -299,8 +293,8 @@ func (c *client) Handle(command *proto.Command) (*proto.Reply, *proto.Disconnect
 			replyRes, replyErr, disconnect = c.handlePing(params)
 		case "rpc":
 			mediator := c.node.Mediator()
-			if mediator != nil && mediator.RPCHandler != nil {
-				rpcReply, err := mediator.RPCHandler(c.ctx, &events.RPCContext{
+			if mediator != nil && mediator.RPC != nil {
+				rpcReply, err := mediator.RPC(c.ctx, &events.RPCContext{
 					Data: params,
 				})
 				if err == nil {
@@ -338,6 +332,23 @@ func (c *client) expire() {
 
 	if !clientExpire {
 		return
+	}
+
+	mediator := c.node.Mediator()
+	if mediator != nil && mediator.Refresh != nil {
+		reply, _ := mediator.Refresh(c.ctx, &events.RefreshContext{
+			EventContext: events.EventContext{
+				Client: c,
+			},
+		})
+		if reply.Disconnect != nil {
+			c.Close(reply.Disconnect)
+			return
+		}
+		c.exp = reply.Exp
+		if reply.Info != nil {
+			c.connInfo = reply.Info
+		}
 	}
 
 	c.mu.RLock()
@@ -541,9 +552,8 @@ func (c *client) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *proto.D
 	return replyRes, nil, nil
 }
 
-// connectCmd handles connect command from client - client must send this
-// command immediately after establishing Websocket or SockJS connection with
-// Centrifugo
+// connectCmd handles connect command from client - client must send connect
+// command immediately after establishing connection with Centrifugo.
 func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, *proto.Disconnect) {
 
 	resp := &proto.ConnectResponse{}
@@ -663,8 +673,8 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 	resp.Result.Client = c.uid
 
 	// TODO: check locking.
-	if c.node.Mediator() != nil && c.node.Mediator().ConnectHandler != nil {
-		c.node.Mediator().ConnectHandler(c.ctx, &events.ConnectContext{
+	if c.node.Mediator() != nil && c.node.Mediator().Connect != nil {
+		c.node.Mediator().Connect(c.ctx, &events.ConnectContext{
 			EventContext: events.EventContext{
 				Client: c,
 			},
@@ -837,8 +847,8 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 		}
 	}
 
-	if c.node.Mediator() != nil && c.node.Mediator().SubscribeHandler != nil {
-		c.node.Mediator().SubscribeHandler(c.ctx, &events.SubscribeContext{
+	if c.node.Mediator() != nil && c.node.Mediator().Subscribe != nil {
+		c.node.Mediator().Subscribe(c.ctx, &events.SubscribeContext{
 			EventContext: events.EventContext{
 				Client: c,
 			},
@@ -933,8 +943,8 @@ func (c *client) unsubscribe(channel string) error {
 		}
 	}
 
-	if c.node.Mediator() != nil && c.node.Mediator().UnsubscribeHandler != nil {
-		c.node.Mediator().UnsubscribeHandler(c.ctx, &events.UnsubscribeContext{
+	if c.node.Mediator() != nil && c.node.Mediator().Unsubscribe != nil {
+		c.node.Mediator().Unsubscribe(c.ctx, &events.UnsubscribeContext{
 			EventContext: events.EventContext{
 				Client: c,
 			},
@@ -1008,8 +1018,8 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 		Info: info,
 	}
 
-	if c.node.Mediator() != nil && c.node.Mediator().PublishHandler != nil {
-		c.node.Mediator().PublishHandler(c.ctx, &events.PublishContext{
+	if c.node.Mediator() != nil && c.node.Mediator().Publish != nil {
+		c.node.Mediator().Publish(c.ctx, &events.PublishContext{
 			EventContext: events.EventContext{
 				Client: c,
 			},
