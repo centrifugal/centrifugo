@@ -924,7 +924,7 @@ func (c *client) publishCmd(cmd *proto.PublishClientCommand) (proto.Response, er
 
 	plugin.Metrics.Counters.Inc("client_num_msg_published")
 
-	message := proto.NewMessage(channel, data, c.uid, &info)
+	message := proto.NewMessage(channel, data, c.uid, &info, "")
 	if chOpts.Watch {
 		byteMessage, err := json.Marshal(message)
 		if err != nil {

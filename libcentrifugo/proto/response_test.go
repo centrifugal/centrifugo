@@ -77,7 +77,7 @@ func TestClientMessageMarshalManual(t *testing.T) {
 	}
 
 	for i := 0; i < 1000; i++ {
-		resp := NewClientMessage(NewMessage("test", []byte(payloads[i%len(payloads)]), "", nil))
+		resp := NewClientMessage(NewMessage("test", []byte(payloads[i%len(payloads)]), "", nil, ""))
 		responses[i] = resp
 	}
 
@@ -122,7 +122,7 @@ func TestClientMessageMarshalManualWithClientInfo(t *testing.T) {
 	}
 
 	payload := `{"input": "test"}`
-	resp := NewClientMessage(NewMessage("test", []byte(payload), "test_client", info))
+	resp := NewClientMessage(NewMessage("test", []byte(payload), "test_client", info, ""))
 	jsonData, err := resp.Marshal()
 	assert.Equal(t, nil, err)
 	assert.True(t, strings.Contains(string(jsonData), `"default_info":{"default": "info"}`))

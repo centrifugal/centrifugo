@@ -103,7 +103,7 @@ func NewTestConfig() *node.Config {
 }
 
 func newTestMessage() *proto.Message {
-	return proto.NewMessage(string("channel"), []byte("{}"), "", nil)
+	return proto.NewMessage(string("channel"), []byte("{}"), "", nil, "")
 }
 
 func NewTestRedisEngine() *RedisEngine {
@@ -448,7 +448,7 @@ func TestHandleClientMessage(t *testing.T) {
 
 	ch := string("test")
 	chID := shard.messageChannelID(ch)
-	testMsg := proto.NewMessage(ch, []byte("{\"hello world\": true}"), "", nil)
+	testMsg := proto.NewMessage(ch, []byte("{\"hello world\": true}"), "", nil, "")
 	byteMessage, _ := testMsg.Marshal() // protobuf
 	err := shard.handleRedisClientMessage(chID, byteMessage)
 	assert.Equal(t, nil, err)

@@ -678,7 +678,7 @@ func TestSubscribeRecover(t *testing.T) {
 
 	data, _ := json.Marshal(map[string]string{"input": "test"})
 
-	msg := proto.NewMessage("test", data, "", nil)
+	msg := proto.NewMessage("test", data, "", nil, "")
 	err = <-app.Publish(msg, nil)
 	assert.Equal(t, nil, err)
 
@@ -699,11 +699,11 @@ func TestSubscribeRecover(t *testing.T) {
 
 	// publish 2 messages since last
 	data, _ = json.Marshal(map[string]string{"input": "test1"})
-	msg = proto.NewMessage("test", data, "", nil)
+	msg = proto.NewMessage("test", data, "", nil, "")
 	err = <-app.Publish(msg, nil)
 	assert.Equal(t, nil, err)
 	data, _ = json.Marshal(map[string]string{"input": "test2"})
-	msg = proto.NewMessage("test", data, "", nil)
+	msg = proto.NewMessage("test", data, "", nil, "")
 	err = <-app.Publish(msg, nil)
 	assert.Equal(t, nil, err)
 
@@ -739,7 +739,7 @@ func TestSubscribeRecover(t *testing.T) {
 	// test part recover - when Centrifugo can not recover all missed messages
 	for i := 0; i < 10; i++ {
 		data, _ = json.Marshal(map[string]string{"input": "test1"})
-		msg = proto.NewMessage("test", data, "", nil)
+		msg = proto.NewMessage("test", data, "", nil, "")
 		err = <-app.Publish(msg, nil)
 		assert.Equal(t, nil, err)
 	}

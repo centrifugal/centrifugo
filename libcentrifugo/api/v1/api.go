@@ -170,6 +170,7 @@ func PublishCmd(n *node.Node, cmd proto.PublishAPICommand) (proto.Response, erro
 	ch := cmd.Channel
 	data := cmd.Data
 	client := cmd.Client
+	uid := cmd.UID
 
 	if string(ch) == "" || len(data) == 0 {
 		return nil, proto.ErrInvalidMessage
@@ -183,7 +184,7 @@ func PublishCmd(n *node.Node, cmd proto.PublishAPICommand) (proto.Response, erro
 		return resp, nil
 	}
 
-	message := proto.NewMessage(ch, data, client, nil)
+	message := proto.NewMessage(ch, data, client, nil, uid)
 	if chOpts.Watch {
 		byteMessage, err := json.Marshal(message)
 		if err != nil {
@@ -217,7 +218,7 @@ func PublishCmdAsync(n *node.Node, cmd proto.PublishAPICommand) <-chan error {
 		return makeErrChan(err)
 	}
 
-	message := proto.NewMessage(ch, data, client, nil)
+	message := proto.NewMessage(ch, data, client, nil, , "")
 	if chOpts.Watch {
 		byteMessage, err := json.Marshal(message)
 		if err != nil {
@@ -265,7 +266,7 @@ func BroadcastCmd(n *node.Node, cmd proto.BroadcastAPICommand) (proto.Response, 
 			return resp, nil
 		}
 
-		message := proto.NewMessage(ch, data, client, nil)
+		message := proto.NewMessage(ch, data, client, nil, , "")
 		if chOpts.Watch {
 			byteMessage, err := json.Marshal(message)
 			if err != nil {
@@ -322,7 +323,7 @@ func BroadcastCmdAsync(n *node.Node, cmd proto.BroadcastAPICommand) <-chan error
 			return makeErrChan(err)
 		}
 
-		message := proto.NewMessage(ch, data, client, nil)
+		message := proto.NewMessage(ch, data, client, nil, "")
 		if chOpts.Watch {
 			byteMessage, err := json.Marshal(message)
 			if err != nil {

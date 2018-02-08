@@ -254,7 +254,7 @@ func BenchmarkPubSubMessageReceive(b *testing.B) {
 		// subscribe client to channel so we need to encode message to JSON
 		app.ClientHub().AddSub(channel, c)
 		// add message to pool so we have messages for different channels.
-		testMsg := proto.NewMessage(channel, []byte("{\"hello world\": true}"), "", nil)
+		testMsg := proto.NewMessage(channel, []byte("{\"hello world\": true}"), "", nil, "")
 		byteMessage, _ := testMsg.Marshal() // protobuf
 		messagePool[i] = byteMessage
 	}
@@ -328,7 +328,7 @@ func BenchmarkClientMsg(b *testing.B) {
 		// subscribe client to channel so we need to encode message to JSON
 		app.ClientHub().AddSub(channel, c)
 		// add message to pool so we have messages for different channels.
-		testMsg := proto.NewMessage(channel, []byte("{\"hello world\": true}"), "", nil)
+		testMsg := proto.NewMessage(channel, []byte("{\"hello world\": true}"), "", nil, "")
 		messagePool[i] = testMsg
 	}
 	b.ResetTimer()
@@ -348,7 +348,7 @@ func BenchmarkEngineMessageUnmarshal(b *testing.B) {
 	for i := 0; i < len(messagePool); i++ {
 		channel := string("test" + strconv.Itoa(i))
 		// add message to pool so we have messages for different channels.
-		testMsg := proto.NewMessage(channel, []byte("{\"hello world\": true}"), "", nil)
+		testMsg := proto.NewMessage(channel, []byte("{\"hello world\": true}"), "", nil, "")
 		byteMessage, _ := testMsg.Marshal() // protobuf
 		messagePool[i] = byteMessage
 	}
@@ -389,7 +389,7 @@ func BenchmarkReceiveBroadcast(b *testing.B) {
 	for i := 0; i < nCommands; i++ {
 		suffix := i % nChannels
 		ch := string(fmt.Sprintf("channel-%d", suffix))
-		msg := proto.NewMessage(ch, []byte("{}"), "", nil)
+		msg := proto.NewMessage(ch, []byte("{}"), "", nil, "")
 		inputData = append(inputData, received{ch, msg})
 	}
 
@@ -435,7 +435,7 @@ func TestPublish(t *testing.T) {
 	app := NewTestMemoryNodeWithConfig(c)
 	createTestClients(app, 10, 1, nil)
 	data, _ := json.Marshal(map[string]string{"test": "publish"})
-	err := <-app.Publish(proto.NewMessage("channel-0", data, "", nil), nil)
+	err := <-app.Publish(proto.NewMessage("channel-0", data, "", nil, ""), nil)
 	assert.Nil(t, err)
 
 	// Check publish to subscribed channels did result in saved history
@@ -444,7 +444,7 @@ func TestPublish(t *testing.T) {
 	assert.Equal(t, 1, len(hist))
 
 	// Publishing to a channel no one is subscribed to should be a no-op
-	err = <-app.Publish(proto.NewMessage("some-other-channel", data, "", nil), nil)
+	err = <-app.Publish(proto.NewMessage("some-other-channel", data, "", nil, ""), nil)
 	assert.Nil(t, err)
 
 	hist, err = app.History("some-other-channel")

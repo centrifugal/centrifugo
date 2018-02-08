@@ -217,7 +217,7 @@ func TestPublishJoinLeave(t *testing.T) {
 func TestUpdateMetrics(t *testing.T) {
 	app := testNode()
 	data, _ := json.Marshal(map[string]string{"test": "publish"})
-	err := <-app.Publish(proto.NewMessage("channel-0", data, "", nil), nil)
+	err := <-app.Publish(proto.NewMessage("channel-0", data, "", nil, ""), nil)
 	assert.Equal(t, nil, err)
 
 	config := app.Config()

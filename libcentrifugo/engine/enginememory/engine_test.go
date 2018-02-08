@@ -79,7 +79,7 @@ func (t *TestConn) Close(adv *conns.DisconnectAdvice) error {
 }
 
 func newTestMessage() *proto.Message {
-	return proto.NewMessage("channel", []byte("{}"), "", nil)
+	return proto.NewMessage("channel", []byte("{}"), "", nil, "")
 }
 
 func TestMemoryEngine(t *testing.T) {
