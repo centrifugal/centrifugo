@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	logger "github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifugo/lib/channel"
 	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/engine"
@@ -202,7 +201,7 @@ func (n *Node) Run(e engine.Engine) error {
 
 	err := n.pubNode()
 	if err != nil {
-		logger.ERROR.Println(err)
+		n.Logger().Log(logging.NewEntry(logging.ERROR, "error publishing node control command", map[string]interface{}{"error": err.Error()}))
 	}
 	go n.sendNodePingMsg()
 	go n.cleanNodeInfo()
@@ -256,7 +255,7 @@ func (n *Node) sendNodePingMsg() {
 		case <-time.After(interval):
 			err := n.pubNode()
 			if err != nil {
-				logger.ERROR.Println(err)
+				n.Logger().Log(logging.NewEntry(logging.ERROR, "error publishing node control command", map[string]interface{}{"error": err.Error()}))
 			}
 		}
 	}
@@ -322,26 +321,26 @@ func (n *Node) HandleControl(cmd *controlproto.Command) error {
 	case "node":
 		cmd, err := n.ControlDecoder().DecodeNode(params)
 		if err != nil {
-			logger.ERROR.Printf("error decoding node control params: %v", err)
+			n.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding node control params", map[string]interface{}{"error": err.Error()}))
 			return proto.ErrBadRequest
 		}
 		return n.nodeCmd(cmd)
 	case "unsubscribe":
 		cmd, err := n.ControlDecoder().DecodeUnsubscribe(params)
 		if err != nil {
-			logger.ERROR.Printf("error decoding unsubscribe control params: %v", err)
+			n.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding unsubscribe control params", map[string]interface{}{"error": err.Error()}))
 			return proto.ErrBadRequest
 		}
 		return n.Hub().Unsubscribe(cmd.User, cmd.Channel)
 	case "disconnect":
 		cmd, err := n.ControlDecoder().DecodeDisconnect(params)
 		if err != nil {
-			logger.ERROR.Printf("error decoding disconnect control params: %v", err)
+			n.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding disconnect control params", map[string]interface{}{"error": err.Error()}))
 			return proto.ErrBadRequest
 		}
 		return n.Hub().Disconnect(cmd.User, false)
 	default:
-		logger.ERROR.Printf("unknown control message method: %s", method)
+		n.Logger().Log(logging.NewEntry(logging.ERROR, "unknown control message method", map[string]interface{}{"method": method}))
 		return proto.ErrBadRequest
 	}
 }
@@ -501,7 +500,7 @@ func (n *Node) pubNode() error {
 
 	err := n.nodeCmd(node)
 	if err != nil {
-		logger.ERROR.Println(err)
+		n.Logger().Log(logging.NewEntry(logging.ERROR, "error handling node command", map[string]interface{}{"error": err.Error()}))
 	}
 
 	return <-n.publishControl(cmd)
@@ -678,8 +677,7 @@ func (n *Node) Presence(ch string) (map[string]*proto.ClientInfo, error) {
 	actionCount.WithLabelValues("presence").Inc()
 	presence, err := n.engine.Presence(ch)
 	if err != nil {
-		logger.ERROR.Printf("error getting presence: %v", err)
-		return nil, proto.ErrInternalServerError
+		return nil, err
 	}
 	return presence, nil
 }
