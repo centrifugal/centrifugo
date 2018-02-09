@@ -86,7 +86,7 @@ func (l *Logger) Log(entry Entry) {
 	if l == nil {
 		return
 	}
-	if l.level >= entry.Level {
+	if entry.Level >= l.level {
 		l.handler(entry)
 	}
 }

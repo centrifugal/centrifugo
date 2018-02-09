@@ -551,7 +551,6 @@ func (c *client) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *proto.D
 // connectCmd handles connect command from client - client must send connect
 // command immediately after establishing connection with Centrifugo.
 func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, *proto.Disconnect) {
-
 	resp := &proto.ConnectResponse{}
 
 	if c.authenticated {

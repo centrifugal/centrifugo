@@ -118,7 +118,8 @@ func main() {
 				"grpc_api_port":                  8001,
 				"grpc_client":                    false,
 				"grpc_client_port":               8002,
-				"shutdown_period":                10,
+				"shutdown_time_limit":            30,
+				"shutdown_termination_delay":     1,
 			}
 
 			for k, v := range defaults {
@@ -390,7 +391,7 @@ func setupLogging() {
 	}
 }
 
-func handleSignals(n *node.Node, s *server.HTTPServer, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
+func handleSignals(n *node.Node, httpServer *server.HTTPServer, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -423,14 +424,13 @@ func handleSignals(n *node.Node, s *server.HTTPServer, grpcAPIServer *grpc.Serve
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
 			logger.INFO.Println("Shutting down")
 			pidFile := viper.GetString("pid_file")
-			go time.AfterFunc(time.Duration(viper.GetInt("shutdown_period"))*time.Second, func() {
+			go time.AfterFunc(time.Duration(viper.GetInt("shutdown_time_limit"))*time.Second, func() {
 				if pidFile != "" {
 					os.Remove(pidFile)
 				}
 				os.Exit(1)
 			})
-			s.Shutdown()
-			n.Shutdown()
+			httpServer.Shutdown()
 			go func() {
 				if grpcAPIServer != nil {
 					grpcAPIServer.GracefulStop()
@@ -441,9 +441,11 @@ func handleSignals(n *node.Node, s *server.HTTPServer, grpcAPIServer *grpc.Serve
 					grpcClientServer.GracefulStop()
 				}
 			}()
+			n.Shutdown()
 			if pidFile != "" {
 				os.Remove(pidFile)
 			}
+			time.Sleep(time.Duration(viper.GetInt("shutdown_termination_delay")) * time.Second)
 			os.Exit(0)
 		}
 	}
