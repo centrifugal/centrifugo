@@ -1,6 +1,6 @@
 {
   "secret": "secret",
-  "web": true,
+  "admin": true,
   "admin_password": "password",
   "admin_secret": "secret",
   "namespaces": [
@@ -12,7 +12,7 @@
       "join_leave": true,
       "presence": true,
       "history_size": 10,
-      "history_lifetime": 30,
+      "history_lifetime": 60,
       "history_recover": true
     }  
   ]

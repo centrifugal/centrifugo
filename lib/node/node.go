@@ -214,7 +214,7 @@ func (n *Node) Shutdown() error {
 
 func (n *Node) updateMetricsOnce() {
 	numClientsGauge.Set(float64(n.hub.NumClients()))
-	numUsersGauge.Set(float64(n.hub.NumUniqueClients()))
+	numUsersGauge.Set(float64(n.hub.NumUsers()))
 	numChannelsGauge.Set(float64(n.hub.NumChannels()))
 }
 
@@ -458,17 +458,15 @@ func (n *Node) publishControl(msg *controlproto.Command) <-chan error {
 // contains information about current node.
 func (n *Node) pubNode() error {
 	n.mu.RLock()
-
 	node := &controlproto.Node{
 		UID:         n.uid,
 		Name:        n.config.Name,
 		Version:     n.version,
 		NumClients:  uint64(n.hub.NumClients()),
-		NumUsers:    uint64(n.hub.NumUniqueClients()),
+		NumUsers:    uint64(n.hub.NumUsers()),
 		NumChannels: uint64(n.hub.NumChannels()),
 		Uptime:      uint64(time.Now().Unix() - n.startedAt),
 	}
-
 	n.mu.RUnlock()
 
 	params, _ := n.ControlEncoder().EncodeNode(node)
@@ -491,9 +489,10 @@ func (n *Node) pubNode() error {
 // nodes could unsubscribe user from channel.
 func (n *Node) pubUnsubscribe(user string, ch string) error {
 
-	// TODO
+	// TODO: looks it's already ok - need to check.
 	unsubscribe := &controlproto.Unsubscribe{
-		User: user,
+		User:    user,
+		Channel: ch,
 	}
 
 	params, _ := n.ControlEncoder().EncodeUnsubscribe(unsubscribe)
@@ -692,8 +691,8 @@ func (n *Node) LastMessageID(ch string) (string, error) {
 	return publications[0].UID, nil
 }
 
-// PrivateChannel checks if channel private and therefore subscription
-// request on it must be properly signed on web application backend.
+// PrivateChannel checks if channel private. In case of private channel
+// subscription request must contain a proper signature.
 func (n *Node) PrivateChannel(ch string) bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()

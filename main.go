@@ -52,7 +52,7 @@ func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "",
 		Short: "Centrifugo",
-		Long:  "Centrifugo – real-time messaging (Websockets or SockJS) server in Go",
+		Long:  "Centrifugo – real-time messaging server",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			defaults := map[string]interface{}{
@@ -114,6 +114,11 @@ func main() {
 				"redis_read_timeout":             10, // Must be greater than ping channel publish interval.
 				"redis_write_timeout":            1,
 				"redis_pubsub_num_workers":       0,
+				"grpc_api":                       false,
+				"grpc_api_port":                  8001,
+				"grpc_client":                    false,
+				"grpc_client_port":               8002,
+				"shutdown_period":                10,
 			}
 
 			for k, v := range defaults {
@@ -136,7 +141,7 @@ func main() {
 				"client_insecure", "admin_insecure", "api_insecure", "port", "api_port", "admin_port",
 				"address", "tls", "tls_cert", "tls_key",
 				"redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
-				"redis_pool", "redis_master_name", "redis_sentinels",
+				"redis_pool", "redis_master_name", "redis_sentinels", "grpc_api", "grpc_client",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -208,36 +213,48 @@ func main() {
 				logger.FATAL.Fatalf("Error running node: %v", err)
 			}
 
-			sc := serverConfig(viper.GetViper())
-			srv, _ := server.New(nod, sc)
+			httpServerConfig := serverConfig(viper.GetViper())
+			httpServer, _ := server.New(nod, httpServerConfig)
 
-			grpcAPIAddr := fmt.Sprintf(":%d", 8001)
-			grpcAPIConn, err := net.Listen("tcp", grpcAPIAddr)
-			if err != nil {
-				logger.FATAL.Fatalf("Cannot listen to address %s", grpcAPIAddr)
+			var grpcAPIServer *grpc.Server
+			var grpcAPIAddr string
+			if viper.GetBool("grpc_api") {
+				grpcAPIAddr = fmt.Sprintf(":%d", viper.GetInt("grpc_api_port"))
+				grpcAPIConn, err := net.Listen("tcp", grpcAPIAddr)
+				if err != nil {
+					logger.FATAL.Fatalf("Cannot listen to address %s", grpcAPIAddr)
+				}
+				grpcAPIServer = grpc.NewServer()
+				apiproto.RegisterCentrifugoServer(grpcAPIServer, apiservice.New(nod, apiservice.Config{}))
+				go func() {
+					if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
+						logger.FATAL.Fatalf("Serve GRPC: %v", err)
+					}
+				}()
 			}
-			grpcAPIServer := grpc.NewServer()
-			apiproto.RegisterCentrifugoServer(grpcAPIServer, apiservice.New(nod, apiservice.Config{}))
+
+			var grpcClientServer *grpc.Server
+			var grpcClientAddr string
+			if viper.GetBool("grpc_client") {
+				grpcClientAddr = fmt.Sprintf(":%d", viper.GetInt("grpc_client_port"))
+				grpcClientConn, err := net.Listen("tcp", grpcClientAddr)
+				if err != nil {
+					logger.FATAL.Fatalf("Cannot listen to address %s", grpcClientAddr)
+				}
+				grpcClientServer = grpc.NewServer()
+				proto.RegisterCentrifugoServer(grpcClientServer, clientservice.New(nod, clientservice.Config{}))
+				go func() {
+					if err := grpcClientServer.Serve(grpcClientConn); err != nil {
+						logger.FATAL.Fatalf("Serve GRPC: %v", err)
+					}
+				}()
+			}
+
 			go func() {
-				if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
-					logger.FATAL.Fatalf("Serve GRPC: %v", err)
+				if err = runServer(nod, httpServer); err != nil {
+					logger.FATAL.Fatalf("Error running server: %v", err)
 				}
 			}()
-
-			grpcClientAddr := fmt.Sprintf(":%d", 8002)
-			grpcClientConn, err := net.Listen("tcp", grpcClientAddr)
-			if err != nil {
-				logger.FATAL.Fatalf("Cannot listen to address %s", grpcClientAddr)
-			}
-			grpcClientServer := grpc.NewServer()
-			proto.RegisterCentrifugoServer(grpcClientServer, clientservice.New(nod, clientservice.Config{}))
-			go func() {
-				if err := grpcClientServer.Serve(grpcClientConn); err != nil {
-					logger.FATAL.Fatalf("Serve GRPC: %v", err)
-				}
-			}()
-
-			go handleSignals(nod, srv, grpcAPIServer, grpcClientServer)
 
 			logger.INFO.Printf("Config path: %s", absConfPath)
 			logger.INFO.Printf("Version: %s", VERSION)
@@ -250,19 +267,20 @@ func main() {
 			if viper.GetBool("api_insecure") {
 				logger.WARN.Println("INSECURE API mode enabled")
 			}
-			if sc.AdminInsecure {
+			if httpServerConfig.AdminInsecure {
 				logger.WARN.Println("INSECURE admin mode enabled")
 			}
 			if viper.GetBool("debug") {
 				logger.WARN.Println("DEBUG mode enabled")
 			}
-			logger.INFO.Printf("Serving GRPC API on %s", grpcAPIAddr)
-			logger.INFO.Printf("Serving GRPC client protocol on %s", grpcClientAddr)
-
-			if err = runServer(nod, srv); err != nil {
-				logger.FATAL.Fatalf("Error running server: %v", err)
+			if grpcAPIServer != nil {
+				logger.INFO.Printf("Serving GRPC API service on %s", grpcAPIAddr)
+			}
+			if grpcClientServer != nil {
+				logger.INFO.Printf("Serving GRPC client service on %s", grpcClientAddr)
 			}
 
+			handleSignals(nod, httpServer, grpcAPIServer, grpcClientServer)
 		},
 	}
 
@@ -288,6 +306,9 @@ func main() {
 	rootCmd.Flags().StringP("api_port", "", "", "custom port for API endpoints")
 	rootCmd.Flags().StringP("admin_port", "", "", "custom port for admin endpoints")
 
+	rootCmd.Flags().BoolP("grpc_api", "", false, "enable GRPC API server")
+	rootCmd.Flags().BoolP("grpc_client", "", false, "enable GRPC client server")
+
 	rootCmd.Flags().StringP("redis_host", "", "127.0.0.1", "Redis host (Redis engine)")
 	rootCmd.Flags().StringP("redis_port", "", "6379", "Redis port (Redis engine)")
 	rootCmd.Flags().StringP("redis_password", "", "", "Redis auth password (Redis engine)")
@@ -295,7 +316,7 @@ func main() {
 	rootCmd.Flags().StringP("redis_url", "", "", "Redis connection URL in format redis://:password@hostname:port/db (Redis engine)")
 	rootCmd.Flags().IntP("redis_pool", "", 256, "Redis pool size (Redis engine)")
 	rootCmd.Flags().StringP("redis_master_name", "", "", "name of Redis master Sentinel monitors (Redis engine)")
-	rootCmd.Flags().StringP("redis_sentinels", "", "", "comma-separated list of Sentinels (Redis engine)")
+	rootCmd.Flags().StringP("redis_sentinels", "", "", "comma-separated list of Sentinel addresses (Redis engine)")
 
 	viper.SetEnvPrefix("centrifugo")
 
@@ -364,7 +385,7 @@ func setupLogging() {
 
 	if viper.IsSet("log_file") && viper.GetString("log_file") != "" {
 		logger.SetLogFile(viper.GetString("log_file"))
-		// do not log into stdout when log file provided
+		// do not log into stdout when log file provided.
 		logger.SetStdoutThreshold(logger.LevelNone)
 	}
 }
@@ -377,7 +398,7 @@ func handleSignals(n *node.Node, s *server.HTTPServer, grpcAPIServer *grpc.Serve
 		logger.INFO.Println("Signal received:", sig)
 		switch sig {
 		case syscall.SIGHUP:
-			// reload application configuration on SIGHUP
+			// reload application configuration on SIGHUP.
 			logger.INFO.Println("Reloading configuration")
 			err := viper.ReadInConfig()
 			if err != nil {
@@ -402,7 +423,7 @@ func handleSignals(n *node.Node, s *server.HTTPServer, grpcAPIServer *grpc.Serve
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
 			logger.INFO.Println("Shutting down")
 			pidFile := viper.GetString("pid_file")
-			go time.AfterFunc(10*time.Second, func() {
+			go time.AfterFunc(time.Duration(viper.GetInt("shutdown_period"))*time.Second, func() {
 				if pidFile != "" {
 					os.Remove(pidFile)
 				}
@@ -411,10 +432,14 @@ func handleSignals(n *node.Node, s *server.HTTPServer, grpcAPIServer *grpc.Serve
 			s.Shutdown()
 			n.Shutdown()
 			go func() {
-				grpcAPIServer.GracefulStop()
+				if grpcAPIServer != nil {
+					grpcAPIServer.GracefulStop()
+				}
 			}()
 			go func() {
-				grpcClientServer.GracefulStop()
+				if grpcClientServer != nil {
+					grpcClientServer.GracefulStop()
+				}
 			}()
 			if pidFile != "" {
 				os.Remove(pidFile)

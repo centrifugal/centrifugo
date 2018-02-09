@@ -4,15 +4,6 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto"
 )
 
-// options contains various connection specific options.
-// TODO: ?
-type options struct {
-	// Hidden allows to hide connection from public visibility - i.e.
-	// connection  will be hidden from other clients - no join/leave events
-	// will be sent for it, connection will not be part of presence information.
-	Hidden bool `json:"hidden,omitempty"`
-}
-
 // Client represents functions to inspect and control client connection.
 type Client interface {
 	// Encoding returns connection protocol encoding.

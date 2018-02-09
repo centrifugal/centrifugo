@@ -120,6 +120,7 @@ func ServeMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 	}
 
 	if flags&HandlerPrometheus != 0 || 1 > 0 {
+		// register Prometheus metrics export endpoint.
 		mux.Handle(prefix+"/metrics", s.log(s.wrapShutdown(promhttp.Handler())))
 	}
 
@@ -591,7 +592,11 @@ func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 
 	if insecure {
 		w.Header().Set("Content-Type", "application/json")
-		resp := map[string]string{"token": insecureWebToken}
+		resp := struct {
+			Token string `json:"token"`
+		}{
+			Token: insecureWebToken,
+		}
 		json.NewEncoder(w).Encode(resp)
 		return
 	}

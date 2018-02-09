@@ -38,12 +38,6 @@
   revision = "4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/codahale/hdrhistogram"
-  packages = ["."]
-  revision = "3a0bb77429bd3a61596f5e8a3172445844342120"
-
-[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
@@ -139,7 +133,10 @@
 
 [[projects]]
   name = "github.com/prometheus/client_golang"
-  packages = ["prometheus"]
+  packages = [
+    "prometheus",
+    "prometheus/promhttp"
+  ]
   revision = "c5b7fccd204277076155f10851dad72b76a49317"
   version = "v0.8.0"
 
@@ -294,6 +291,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "364d580f93331eb167663bef26670e742f6cec7722d7325428d552a561e19641"
+  inputs-digest = "f26f6c6edb2d8e33022740f2723092ed4153a05defcd478873cea00fe740df88"
   solver-name = "gps-cdcl"
   solver-version = 1

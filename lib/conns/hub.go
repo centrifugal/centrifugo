@@ -17,7 +17,7 @@ type Hub interface {
 	BroadcastLeave(ch string, leave *proto.Leave) error
 	NumSubscribers(ch string) int
 	NumClients() int
-	NumUniqueClients() int
+	NumUsers() int
 	NumChannels() int
 	Channels() []string
 	UserConnections(user string) map[string]Client
@@ -420,8 +420,8 @@ func (h *clientHub) NumClients() int {
 	return total
 }
 
-// NumUniqueClients returns a number of unique users connected.
-func (h *clientHub) NumUniqueClients() int {
+// NumUsers returns a number of unique users connected.
+func (h *clientHub) NumUsers() int {
 	h.RLock()
 	defer h.RUnlock()
 	return len(h.users)
