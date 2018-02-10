@@ -430,18 +430,31 @@ func handleSignals(n *node.Node, httpServer *server.HTTPServer, grpcAPIServer *g
 				}
 				os.Exit(1)
 			})
+
 			httpServer.Shutdown()
-			go func() {
-				if grpcAPIServer != nil {
+
+			var wg sync.WaitGroup
+
+			if grpcAPIServer != nil {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
 					grpcAPIServer.GracefulStop()
-				}
-			}()
-			go func() {
-				if grpcClientServer != nil {
+				}()
+			}
+
+			if grpcClientServer != nil {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
 					grpcClientServer.GracefulStop()
-				}
-			}()
+				}()
+			}
+
 			n.Shutdown()
+
+			wg.Wait()
+
 			if pidFile != "" {
 				os.Remove(pidFile)
 			}
@@ -451,17 +464,7 @@ func handleSignals(n *node.Node, httpServer *server.HTTPServer, grpcAPIServer *g
 	}
 }
 
-func runServer(n *node.Node, s *server.HTTPServer) error {
-	debug := viper.GetBool("debug")
-	admin := viper.GetBool("admin")
-	adminWebPath := viper.GetString("admin_web_path")
-	httpAddress := viper.GetString("address")
-	httpClientPort := viper.GetString("port")
-	httpAdminPort := viper.GetString("admin_port")
-	httpAPIPort := viper.GetString("api_port")
-	httpPrefix := viper.GetString("http_prefix")
-	sockjsURL := viper.GetString("sockjs_url")
-	sockjsHeartbeatDelay := viper.GetInt("sockjs_heartbeat_delay")
+func getTLSConfig() (*tls.Config, error) {
 	tlsEnabled := viper.GetBool("tls")
 	tlsCert := viper.GetString("tls_cert")
 	tlsKey := viper.GetString("tls_key")
@@ -477,6 +480,57 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 	tlsAutocertEmail := viper.GetString("tls_autocert_email")
 	tlsAutocertForceRSA := viper.GetBool("tls_autocert_force_rsa")
 	tlsAutocertServerName := viper.GetString("tls_autocert_server_name")
+
+	if tlsAutocertEnabled {
+		certManager := autocert.Manager{
+			Prompt:   autocert.AcceptTOS,
+			ForceRSA: tlsAutocertForceRSA,
+			Email:    tlsAutocertEmail,
+		}
+		if tlsAutocertHostWhitelist != nil {
+			certManager.HostPolicy = autocert.HostWhitelist(tlsAutocertHostWhitelist...)
+		}
+		if tlsAutocertCacheDir != "" {
+			certManager.Cache = autocert.DirCache(tlsAutocertCacheDir)
+		}
+		return &tls.Config{
+			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+				// See https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819
+				if tlsAutocertServerName != "" && hello.ServerName == "" {
+					hello.ServerName = tlsAutocertServerName
+				}
+				return certManager.GetCertificate(hello)
+			},
+		}, nil
+
+	} else if tlsEnabled {
+		// Autocert disabled - just try to use provided SSL cert and key files.
+		tlsConfig := &tls.Config{}
+		tlsConfig = tlsConfig.Clone()
+		tlsConfig.Certificates = make([]tls.Certificate, 1)
+		var err error
+		tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(tlsCert, tlsKey)
+		if err != nil {
+			return nil, err
+		}
+		return tlsConfig, nil
+	}
+
+	return nil, nil
+}
+
+func runServer(n *node.Node, s *server.HTTPServer) error {
+	debug := viper.GetBool("debug")
+	admin := viper.GetBool("admin")
+	adminWebPath := viper.GetString("admin_web_path")
+	httpAddress := viper.GetString("address")
+	httpClientPort := viper.GetString("port")
+	httpAdminPort := viper.GetString("admin_port")
+	httpAPIPort := viper.GetString("api_port")
+	httpPrefix := viper.GetString("http_prefix")
+	sockjsURL := viper.GetString("sockjs_url")
+	sockjsHeartbeatDelay := viper.GetInt("sockjs_heartbeat_delay")
+
 	websocketReadBufferSize := viper.GetInt("websocket_read_buffer_size")
 	websocketWriteBufferSize := viper.GetInt("websocket_write_buffer_size")
 
@@ -555,43 +609,21 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 		go func() {
 			defer wg.Done()
 
-			if tlsAutocertEnabled {
-				certManager := autocert.Manager{
-					Prompt:   autocert.AcceptTOS,
-					ForceRSA: tlsAutocertForceRSA,
-					Email:    tlsAutocertEmail,
-				}
-				if tlsAutocertHostWhitelist != nil {
-					certManager.HostPolicy = autocert.HostWhitelist(tlsAutocertHostWhitelist...)
-				}
-				if tlsAutocertCacheDir != "" {
-					certManager.Cache = autocert.DirCache(tlsAutocertCacheDir)
-				}
-				server := &http.Server{
-					Addr:    addr,
-					Handler: mux,
-					TLSConfig: &tls.Config{
-						GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-							// See https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819
-							if tlsAutocertServerName != "" && hello.ServerName == "" {
-								hello.ServerName = tlsAutocertServerName
-							}
-							return certManager.GetCertificate(hello)
-						},
-					},
-				}
-
+			tlsConfig, err := getTLSConfig()
+			if err != nil {
+				logger.FATAL.Fatalf("Can not get TLS config: %v", err)
+			}
+			server := &http.Server{
+				Addr:      addr,
+				Handler:   mux,
+				TLSConfig: tlsConfig,
+			}
+			if tlsConfig != nil {
 				if err := server.ListenAndServeTLS("", ""); err != nil {
 					logger.FATAL.Fatalf("ListenAndServe: %v", err)
 				}
-			} else if tlsEnabled {
-				// Autocert disabled - just try to use provided SSL cert and key files.
-				server := &http.Server{Addr: addr, Handler: mux}
-				if err := server.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
-					logger.FATAL.Fatalf("ListenAndServe: %v", err)
-				}
 			} else {
-				if err := http.ListenAndServe(addr, mux); err != nil {
+				if err := server.ListenAndServe(); err != nil {
 					logger.FATAL.Fatalf("ListenAndServe: %v", err)
 				}
 			}
