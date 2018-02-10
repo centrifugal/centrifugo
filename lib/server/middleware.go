@@ -102,11 +102,11 @@ func (s *HTTPServer) wrapShutdown(h http.Handler) http.Handler {
 func (s *HTTPServer) log(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var start time.Time
-		if s.node.Logger().GetLevel() >= logging.DEBUG {
+		if s.node.Logger().Enabled(logging.DEBUG) {
 			start = time.Now()
 		}
 		h.ServeHTTP(w, r)
-		if s.node.Logger().GetLevel() >= logging.DEBUG {
+		if s.node.Logger().Enabled(logging.DEBUG) {
 			addr := r.Header.Get("X-Real-IP")
 			if addr == "" {
 				addr = r.Header.Get("X-Forwarded-For")

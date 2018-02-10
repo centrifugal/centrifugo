@@ -193,7 +193,7 @@ func main() {
 
 			node.VERSION = VERSION
 			nod := node.New(c)
-			setLogger(nod)
+			setLogHandler(nod)
 
 			engineName := viper.GetString("engine")
 
@@ -1029,13 +1029,13 @@ func redisEngineConfig(getter *viper.Viper) (*engineredis.Config, error) {
 	}, nil
 }
 
-func setLogger(n *node.Node) {
+func setLogHandler(n *node.Node) {
 	level, ok := logging.StringToLevel[strings.ToLower(viper.GetString("log_level"))]
 	if !ok {
 		level = logging.INFO
 	}
 	handler := newLogHandler()
-	n.SetLogHandler(level, handler.handle)
+	n.SetLogger(logging.New(level, handler.handle))
 }
 
 type logHandler struct {
