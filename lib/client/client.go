@@ -362,7 +362,7 @@ func (c *client) expire() {
 func (c *client) handleConnect(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodeConnect(params)
 	if err != nil {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding connect", map[string]interface{}{"error": err.Error()}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "error decoding connect", map[string]interface{}{"error": err.Error()}))
 		return nil, nil, proto.DisconnectBadRequest
 	}
 	resp, disconnect := c.connectCmd(cmd)
@@ -383,7 +383,7 @@ func (c *client) handleConnect(params proto.Raw) (proto.Raw, *proto.Error, *prot
 func (c *client) handleRefresh(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodeRefresh(params)
 	if err != nil {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding refresh", map[string]interface{}{"error": err.Error()}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "error decoding refresh", map[string]interface{}{"error": err.Error()}))
 		return nil, nil, proto.DisconnectBadRequest
 	}
 	resp, disconnect := c.refreshCmd(cmd)
@@ -404,7 +404,7 @@ func (c *client) handleRefresh(params proto.Raw) (proto.Raw, *proto.Error, *prot
 func (c *client) handleSubscribe(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodeSubscribe(params)
 	if err != nil {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding subscribe", map[string]interface{}{"error": err.Error()}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "error decoding subscribe", map[string]interface{}{"error": err.Error()}))
 		return nil, nil, proto.DisconnectBadRequest
 	}
 	resp, disconnect := c.subscribeCmd(cmd)
@@ -425,7 +425,7 @@ func (c *client) handleSubscribe(params proto.Raw) (proto.Raw, *proto.Error, *pr
 func (c *client) handleUnsubscribe(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodeUnsubscribe(params)
 	if err != nil {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding unsubscribe", map[string]interface{}{"error": err.Error()}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "error decoding unsubscribe", map[string]interface{}{"error": err.Error()}))
 		return nil, nil, proto.DisconnectBadRequest
 	}
 	resp, disconnect := c.unsubscribeCmd(cmd)
@@ -446,7 +446,7 @@ func (c *client) handleUnsubscribe(params proto.Raw) (proto.Raw, *proto.Error, *
 func (c *client) handlePublish(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodePublish(params)
 	if err != nil {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding publish", map[string]interface{}{"error": err.Error()}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "error decoding publish", map[string]interface{}{"error": err.Error()}))
 		return nil, nil, proto.DisconnectBadRequest
 	}
 	resp, disconnect := c.publishCmd(cmd)
@@ -467,7 +467,7 @@ func (c *client) handlePublish(params proto.Raw) (proto.Raw, *proto.Error, *prot
 func (c *client) handlePresence(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodePresence(params)
 	if err != nil {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding presence", map[string]interface{}{"error": err.Error()}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "error decoding presence", map[string]interface{}{"error": err.Error()}))
 		return nil, nil, proto.DisconnectBadRequest
 	}
 	resp, disconnect := c.presenceCmd(cmd)
@@ -488,7 +488,7 @@ func (c *client) handlePresence(params proto.Raw) (proto.Raw, *proto.Error, *pro
 func (c *client) handlePresenceStats(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodePresenceStats(params)
 	if err != nil {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding presence stats", map[string]interface{}{"error": err.Error()}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "error decoding presence stats", map[string]interface{}{"error": err.Error()}))
 		return nil, nil, proto.DisconnectBadRequest
 	}
 	resp, disconnect := c.presenceStatsCmd(cmd)
@@ -509,7 +509,7 @@ func (c *client) handlePresenceStats(params proto.Raw) (proto.Raw, *proto.Error,
 func (c *client) handleHistory(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodeHistory(params)
 	if err != nil {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding history", map[string]interface{}{"error": err.Error()}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "error decoding history", map[string]interface{}{"error": err.Error()}))
 		return nil, nil, proto.DisconnectBadRequest
 	}
 	resp, disconnect := c.historyCmd(cmd)
@@ -530,7 +530,7 @@ func (c *client) handleHistory(params proto.Raw) (proto.Raw, *proto.Error, *prot
 func (c *client) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *proto.Disconnect) {
 	cmd, err := proto.GetParamsDecoder(c.encoding).DecodePing(params)
 	if err != nil {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding ping", map[string]interface{}{"error": err.Error()}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "error decoding ping", map[string]interface{}{"error": err.Error()}))
 		return nil, nil, proto.DisconnectBadRequest
 	}
 	resp, disconnect := c.pingCmd(cmd)
@@ -554,7 +554,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 	resp := &proto.ConnectResponse{}
 
 	if c.authenticated {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "client already authenticated", map[string]interface{}{"client": c.uid, "user": c.user}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "client already authenticated", map[string]interface{}{"client": c.uid, "user": c.user}))
 		return nil, proto.DisconnectBadRequest
 	}
 
@@ -597,12 +597,12 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 		if !insecure {
 			isValid := auth.CheckClientSign(secret, user, exp, info, opts, sign)
 			if !isValid {
-				c.node.Logger().Log(logging.NewEntry(logging.ERROR, "invalid sign", map[string]interface{}{"user": user, "client": c.uid}))
+				c.node.Logger().Log(logging.NewEntry(logging.INFO, "invalid sign", map[string]interface{}{"user": user, "client": c.uid}))
 				return resp, proto.DisconnectInvalidSign
 			}
 			timestamp, err := strconv.Atoi(exp)
 			if err != nil {
-				c.node.Logger().Log(logging.NewEntry(logging.ERROR, "invalid timestamp", map[string]interface{}{"user": user, "client": c.uid, "error": err.Error()}))
+				c.node.Logger().Log(logging.NewEntry(logging.INFO, "invalid exp timestamp", map[string]interface{}{"user": user, "client": c.uid, "error": err.Error()}))
 				return resp, proto.DisconnectBadRequest
 			}
 			c.exp = int64(timestamp)
@@ -616,7 +616,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 	}
 
 	if userConnectionLimit > 0 && c.user != "" && len(c.node.Hub().UserConnections(c.user)) >= userConnectionLimit {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "limit of connections for user reached", map[string]interface{}{"user": c.user, "client": c.uid, "limit": userConnectionLimit}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "limit of connections for user reached", map[string]interface{}{"user": c.user, "client": c.uid, "limit": userConnectionLimit}))
 		resp.Error = proto.ErrLimitExceeded
 		return resp, nil
 	}
@@ -696,13 +696,13 @@ func (c *client) refreshCmd(cmd *proto.RefreshRequest) (*proto.RefreshResponse, 
 
 	isValid := auth.CheckClientSign(secret, user, exp, info, opts, sign)
 	if !isValid {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "invalid refresh sign", map[string]interface{}{"user": user, "client": c.uid}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "invalid refresh sign", map[string]interface{}{"user": user, "client": c.uid}))
 		return resp, proto.DisconnectInvalidSign
 	}
 
 	timestamp, err := strconv.Atoi(exp)
 	if err != nil {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "invalid refresh timestamp", map[string]interface{}{"user": user, "client": c.uid, "error": err.Error()}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "invalid refresh exp timestamp", map[string]interface{}{"user": user, "client": c.uid, "error": err.Error()}))
 		return resp, proto.DisconnectBadRequest
 	}
 
@@ -777,7 +777,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 
 	channel := cmd.Channel
 	if channel == "" {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "channel required for subscribe", map[string]interface{}{"user": c.user, "client": c.uid}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "channel required for subscribe", map[string]interface{}{"user": c.user, "client": c.uid}))
 		return nil, proto.DisconnectBadRequest
 	}
 
@@ -792,25 +792,25 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 	res := &proto.SubscribeResult{}
 
 	if len(channel) > channelMaxLength {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "channel too long", map[string]interface{}{"max": channelMaxLength, "channel": channel, "user": c.user, "client": c.uid}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "channel too long", map[string]interface{}{"max": channelMaxLength, "channel": channel, "user": c.user, "client": c.uid}))
 		resp.Error = proto.ErrLimitExceeded
 		return resp, nil
 	}
 
 	if len(c.channels) >= channelLimit {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "maximum limit of channels per client reached", map[string]interface{}{"limit": channelLimit, "user": c.user, "client": c.uid}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "maximum limit of channels per client reached", map[string]interface{}{"limit": channelLimit, "user": c.user, "client": c.uid}))
 		resp.Error = proto.ErrLimitExceeded
 		return resp, nil
 	}
 
 	if _, ok := c.channels[channel]; ok {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "client already subscribed on channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "client already subscribed on channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid}))
 		resp.Error = proto.ErrAlreadySubscribed
 		return resp, nil
 	}
 
 	if !c.node.UserAllowed(channel, c.user) || !c.node.ClientAllowed(channel, c.uid) {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "user not allowed to subscribe on channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "user not allowed to subscribe on channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid}))
 		resp.Error = proto.ErrPermissionDenied
 		return resp, nil
 	}
@@ -956,7 +956,7 @@ func (c *client) unsubscribeCmd(cmd *proto.UnsubscribeRequest) (*proto.Unsubscri
 
 	channel := cmd.Channel
 	if channel == "" {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "channel required for unsubscribe", map[string]interface{}{"user": c.user, "client": c.uid}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "channel required for unsubscribe", map[string]interface{}{"user": c.user, "client": c.uid}))
 		return nil, proto.DisconnectBadRequest
 	}
 
@@ -981,7 +981,7 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 	data := cmd.Data
 
 	if string(ch) == "" || len(data) == 0 {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "channel and data required for publish", map[string]interface{}{"user": c.user, "client": c.uid}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "channel and data required for publish", map[string]interface{}{"user": c.user, "client": c.uid}))
 		return nil, proto.DisconnectBadRequest
 	}
 
@@ -996,7 +996,7 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 
 	chOpts, ok := c.node.ChannelOpts(ch)
 	if !ok {
-		c.node.Logger().Log(logging.NewEntry(logging.ERROR, "attempt to subscribe on non-existing namespace", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid}))
+		c.node.Logger().Log(logging.NewEntry(logging.INFO, "attempt to subscribe on non-existing namespace", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid}))
 		resp.Error = proto.ErrNamespaceNotFound
 		return resp, nil
 	}

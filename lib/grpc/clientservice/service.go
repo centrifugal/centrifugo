@@ -62,7 +62,7 @@ func (s *Service) Communicate(stream proto.Centrifugo_CommunicateServer) error {
 			}
 			rep, disconnect := c.Handle(cmd)
 			if disconnect != nil {
-				s.node.Logger().Log(logging.NewEntry(logging.ERROR, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
+				s.node.Logger().Log(logging.NewEntry(logging.INFO, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
 				c.Close(disconnect)
 				return
 			}

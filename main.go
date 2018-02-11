@@ -287,7 +287,7 @@ func main() {
 
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringP("engine", "e", "memory", "engine to use: memory or redis")
-	rootCmd.Flags().StringP("log_level", "", "info", "set the log level: debug, info, error, critical, fatal or none")
+	rootCmd.Flags().StringP("log_level", "", "info", "set the log level: debug, info, error, fatal or none")
 	rootCmd.Flags().StringP("log_file", "", "", "optional log file - if not specified logs go to STDOUT")
 	rootCmd.Flags().StringP("pid_file", "", "", "optional path to create PID file")
 	rootCmd.Flags().StringP("name", "n", "", "unique node name")
@@ -1061,8 +1061,6 @@ func (h *logHandler) readEntries() {
 			log = logger.INFO
 		case logging.ERROR:
 			log = logger.ERROR
-		case logging.CRITICAL:
-			log = logger.CRITICAL
 		}
 		if entry.Fields != nil {
 			log.Printf("%s: %v", entry.Message, entry.Fields)

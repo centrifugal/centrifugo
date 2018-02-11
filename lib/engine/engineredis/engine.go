@@ -170,9 +170,9 @@ func newPool(n *node.Node, conf *ShardConfig) *redis.Pool {
 
 	usingPassword := yesno(password != "")
 	if !useSentinel {
-		n.Logger().Log(logging.NewEntry(logging.INFO, fmt.Sprintf("Redis: %s/%d, pool: %d, using password: %s\n", serverAddr, db, conf.PoolSize, usingPassword)))
+		n.Logger().Log(logging.NewEntry(logging.INFO, fmt.Sprintf("Redis: %s/%d, pool: %d, using password: %s", serverAddr, db, conf.PoolSize, usingPassword)))
 	} else {
-		n.Logger().Log(logging.NewEntry(logging.INFO, fmt.Sprintf("Redis: Sentinel for name: %s, db: %d, pool: %d, using password: %s\n", conf.MasterName, db, conf.PoolSize, usingPassword)))
+		n.Logger().Log(logging.NewEntry(logging.INFO, fmt.Sprintf("Redis: Sentinel for name: %s, db: %d, pool: %d, using password: %s", conf.MasterName, db, conf.PoolSize, usingPassword)))
 	}
 
 	var lastMu sync.Mutex

@@ -18,8 +18,7 @@ web:
 	./extras/scripts/update_web.sh
 
 bindata:
-	statik -src=extras/web -dest ./libcentrifugo/
-	gofmt -w libcentrifugo/statik/statik.go	
+	statik -src=extras/web -dest ./lib/
 
 package:
 	./extras/scripts/package.sh $(VERSION) $(ITERATION)

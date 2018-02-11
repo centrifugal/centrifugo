@@ -164,7 +164,7 @@ func (s *HTTPServer) handleClientData(c conns.Client, data []byte, enc proto.Enc
 			if err == io.EOF {
 				break
 			}
-			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding request", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "error": err.Error()}))
+			s.node.Logger().Log(logging.NewEntry(logging.INFO, "error decoding request", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "error": err.Error()}))
 			transport.Close(proto.DisconnectBadRequest)
 			proto.PutCommandDecoder(enc, decoder)
 			proto.PutReplyEncoder(enc, encoder)
@@ -172,7 +172,7 @@ func (s *HTTPServer) handleClientData(c conns.Client, data []byte, enc proto.Enc
 		}
 		rep, disconnect := c.Handle(cmd)
 		if disconnect != nil {
-			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
+			s.node.Logger().Log(logging.NewEntry(logging.INFO, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
 			transport.Close(disconnect)
 			proto.PutCommandDecoder(enc, decoder)
 			proto.PutReplyEncoder(enc, encoder)
@@ -189,7 +189,7 @@ func (s *HTTPServer) handleClientData(c conns.Client, data []byte, enc proto.Enc
 
 	disconnect := writer.write(encoder.Finish())
 	if disconnect != nil {
-		s.node.Logger().Log(logging.NewEntry(logging.ERROR, "disconnect after sending data to transport", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
+		s.node.Logger().Log(logging.NewEntry(logging.INFO, "disconnect after sending data to transport", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
 		transport.Close(disconnect)
 		proto.PutCommandDecoder(enc, decoder)
 		proto.PutReplyEncoder(enc, encoder)

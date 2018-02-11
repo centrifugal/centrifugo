@@ -9,31 +9,30 @@ const (
 	// DEBUG turns on debug logs - its generally too much for production in normal
 	// conditions but can help when developing and investigating problems in production.
 	DEBUG
-	// INFO is logs useful server information.
+	// INFO is logs useful server information. This includes various information
+	// about problems with client connections which is not Centrifugo errors but
+	// in most situations malformed client behaviour.
 	INFO
-	// ERROR level logs only errors.
+	// ERROR level logs only server errors. This is logging that means non-working
+	// Centrifugo and maybe effort from developers/administrators to make things
+	// work again.
 	ERROR
-	// CRITICAL is logging that means non-working Centrifugo and maybe effort from
-	// developers/administrators to make things work again.
-	CRITICAL
 )
 
 // levelToString has matches between Level and its string representation.
 var levelToString = map[Level]string{
-	NONE:     "none",
-	DEBUG:    "debug",
-	INFO:     "info",
-	ERROR:    "error",
-	CRITICAL: "critical",
+	NONE:  "none",
+	DEBUG: "debug",
+	INFO:  "info",
+	ERROR: "error",
 }
 
 // StringToLevel ...
 var StringToLevel = map[string]Level{
-	"none":     NONE,
-	"debug":    DEBUG,
-	"info":     INFO,
-	"error":    ERROR,
-	"critical": CRITICAL,
+	"none":  NONE,
+	"debug": DEBUG,
+	"info":  INFO,
+	"error": ERROR,
 }
 
 // LevelString transforms Level to its string representation.
