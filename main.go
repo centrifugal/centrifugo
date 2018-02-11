@@ -92,10 +92,10 @@ func main() {
 				"user_connection_limit":          0,
 				"http_prefix":                    "",
 				"admin":                          false,
-				"admin_web_path":                 "",
 				"admin_password":                 "",
 				"admin_secret":                   "",
 				"admin_insecure":                 false,
+				"admin_web_path":                 "",
 				"sockjs_url":                     "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js",
 				"sockjs_heartbeat_delay":         25,
 				"websocket_compression":          false,
@@ -116,9 +116,11 @@ func main() {
 				"redis_pubsub_num_workers":       0,
 				"grpc_api":                       false,
 				"grpc_api_port":                  8001,
+				"grpc_api_key":                   "",
+				"grpc_api_insecure":              false,
 				"grpc_client":                    false,
 				"grpc_client_port":               8002,
-				"shutdown_time_limit":            30,
+				"shutdown_timeout":               30,
 				"shutdown_termination_delay":     1,
 			}
 
@@ -405,7 +407,7 @@ func handleSignals(n *node.Node, httpServer *server.HTTPServer, grpcAPIServer *g
 			if err != nil {
 				switch err.(type) {
 				case viper.ConfigParseError:
-					logger.CRITICAL.Printf("Error parsing configuration: %s\n", err)
+					logger.CRITICAL.Printf("Error parsing configuration: %s", err)
 					continue
 				default:
 					logger.CRITICAL.Println("No config file found")
@@ -417,14 +419,14 @@ func handleSignals(n *node.Node, httpServer *server.HTTPServer, grpcAPIServer *g
 
 			cfg := newNodeConfig(viper.GetViper())
 			if err := n.Reload(cfg); err != nil {
-				logger.CRITICAL.Println(err)
+				logger.CRITICAL.Printf("Error reloading: %v", err)
 				continue
 			}
 			logger.INFO.Println("Configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
-			logger.INFO.Println("Shutting down")
+			logger.INFO.Println("Shutting down, wait...")
 			pidFile := viper.GetString("pid_file")
-			go time.AfterFunc(time.Duration(viper.GetInt("shutdown_time_limit"))*time.Second, func() {
+			go time.AfterFunc(time.Duration(viper.GetInt("shutdown_timeout"))*time.Second, func() {
 				if pidFile != "" {
 					os.Remove(pidFile)
 				}
