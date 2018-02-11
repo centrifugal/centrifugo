@@ -7,8 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/pprof"
-	"path"
 	"strings"
 	"time"
 
@@ -17,129 +15,11 @@ import (
 	"github.com/centrifugal/centrifugo/lib/logging"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/websocket"
 	"github.com/igm/sockjs-go/sockjs"
 )
-
-// HandlerFlag is a bit mask of handlers that must be enabled in mux.
-type HandlerFlag int
-
-const (
-	// HandlerWebsocket enables Raw Websocket handler.
-	HandlerWebsocket HandlerFlag = 1 << iota
-	// HandlerSockJS enables SockJS handler.
-	HandlerSockJS
-	// HandlerAPI enables API handler.
-	HandlerAPI
-	// HandlerAdmin enables admin web interface.
-	HandlerAdmin
-	// HandlerDebug enables debug handlers.
-	HandlerDebug
-	// HandlerPrometheus enables Prometheus handler.
-	HandlerPrometheus
-)
-
-var handlerText = map[HandlerFlag]string{
-	HandlerWebsocket:  "websocket",
-	HandlerSockJS:     "SockJS",
-	HandlerAPI:        "API",
-	HandlerAdmin:      "admin",
-	HandlerDebug:      "debug",
-	HandlerPrometheus: "prometheus",
-}
-
-func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerDebug}
-	endpoints := []string{}
-	for _, flag := range flagsOrdered {
-		text, ok := handlerText[flag]
-		if !ok {
-			continue
-		}
-		if flags&flag != 0 {
-			endpoints = append(endpoints, text)
-		}
-	}
-	return strings.Join(endpoints, ", ")
-}
-
-// MuxOptions contain various options for DefaultMux.
-type MuxOptions struct {
-	Prefix        string
-	WebPath       string
-	WebFS         http.FileSystem
-	SockjsOptions sockjs.Options
-	HandlerFlags  HandlerFlag
-}
-
-// defaultMuxOptions contain default Mux Options to start Centrifugo server.
-func defaultMuxOptions() MuxOptions {
-	sockjsOpts := sockjs.DefaultOptions
-	sockjsOpts.SockJSURL = "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js"
-	return MuxOptions{
-		HandlerFlags:  HandlerWebsocket | HandlerSockJS | HandlerAPI,
-		SockjsOptions: sockjs.DefaultOptions,
-	}
-}
-
-// ServeMux returns a mux including set of default handlers for Centrifugo server.
-func ServeMux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
-
-	mux := http.NewServeMux()
-
-	prefix := muxOpts.Prefix
-	webPath := muxOpts.WebPath
-	webFS := muxOpts.WebFS
-	flags := muxOpts.HandlerFlags
-
-	if flags&HandlerDebug != 0 {
-		mux.Handle(prefix+"/debug/pprof/", http.HandlerFunc(pprof.Index))
-		mux.Handle(prefix+"/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
-		mux.Handle(prefix+"/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
-		mux.Handle(prefix+"/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
-		mux.Handle(prefix+"/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
-	}
-
-	if flags&HandlerWebsocket != 0 {
-		// register Websocket connection endpoint.
-		mux.Handle(prefix+"/connection/websocket", s.log(s.wrapShutdown(http.HandlerFunc(s.websocketHandler))))
-	}
-
-	if flags&HandlerSockJS != 0 {
-		// register SockJS connection endpoints.
-		sjsh := newSockJSHandler(s, path.Join(prefix, "/connection/sockjs"), muxOpts.SockjsOptions)
-		mux.Handle(path.Join(prefix, "/connection/sockjs")+"/", s.log(s.wrapShutdown(sjsh)))
-	}
-
-	if flags&HandlerAPI != 0 {
-		// register HTTP API endpoint.
-		mux.Handle(prefix+"/api", s.log(s.apiAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
-	}
-
-	if flags&HandlerPrometheus != 0 || 1 > 0 {
-		// register Prometheus metrics export endpoint.
-		mux.Handle(prefix+"/metrics", s.log(s.wrapShutdown(promhttp.Handler())))
-	}
-
-	if flags&HandlerAdmin != 0 {
-		// register admin web interface API endpoints.
-		mux.Handle(prefix+"/admin/auth", s.log(http.HandlerFunc(s.authHandler)))
-		mux.Handle(prefix+"/admin/api", s.log(s.adminAPIAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
-		// serve admin single-page web application.
-		if webPath != "" {
-			webPrefix := prefix + "/"
-			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webPath))))
-		} else if webFS != nil {
-			webPrefix := prefix + "/"
-			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(webFS)))
-		}
-	}
-
-	return mux
-}
 
 // newSockJSHandler returns SockJS handler bind to sockjsPrefix url prefix.
 // SockJS handler has several handlers inside responsible for various tasks
@@ -238,6 +118,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 	}()
 }
 
+// websocketHandler ...
 func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 	transportConnectCount.WithLabelValues("websocket").Inc()
 
@@ -580,8 +461,6 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-const insecureWebToken = "insecure"
-
 // authHandler allows to get admin web interface token.
 func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
@@ -595,7 +474,7 @@ func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 		resp := struct {
 			Token string `json:"token"`
 		}{
-			Token: insecureWebToken,
+			Token: "insecure",
 		}
 		json.NewEncoder(w).Encode(resp)
 		return
@@ -609,7 +488,7 @@ func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 
 	if password == adminPassword {
 		w.Header().Set("Content-Type", "application/json")
-		token, err := GenerateAdminToken(adminSecret)
+		token, err := generateSecureAdminToken(adminSecret)
 		if err != nil {
 			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error generating admin token", map[string]interface{}{"error": err.Error()}))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -626,26 +505,26 @@ func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 
 const (
 	// AdminTokenKey is a key for admin authorization token.
-	AdminTokenKey = "token"
+	secureAdminTokenKey = "token"
 	// AdminTokenValue is a value for secure admin authorization token.
-	AdminTokenValue = "authorized"
+	secureAdminTokenValue = "authorized"
 )
 
-// GenerateAdminToken generates admin authentication token.
-func GenerateAdminToken(secret string) (string, error) {
+// generateSecureAdminToken generates admin authentication token.
+func generateSecureAdminToken(secret string) (string, error) {
 	s := securecookie.New([]byte(secret), nil)
-	return s.Encode(AdminTokenKey, AdminTokenValue)
+	return s.Encode(secureAdminTokenKey, secureAdminTokenValue)
 }
 
-// CheckAdminToken checks admin connection token which Centrifugo returns after admin login.
-func CheckAdminToken(secret string, token string) bool {
+// checkSecureAdminToken checks admin connection token which Centrifugo returns after admin login.
+func checkSecureAdminToken(secret string, token string) bool {
 	s := securecookie.New([]byte(secret), nil)
 	var val string
-	err := s.Decode(AdminTokenKey, token, &val)
+	err := s.Decode(secureAdminTokenKey, token, &val)
 	if err != nil {
 		return false
 	}
-	if val != AdminTokenValue {
+	if val != secureAdminTokenValue {
 		return false
 	}
 	return true

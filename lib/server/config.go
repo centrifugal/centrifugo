@@ -15,12 +15,12 @@ type Config struct {
 	// AdminPassword is an admin password.
 	AdminPassword string `json:"admin_password"`
 
-	// AdminSecret is a secret to generate auth token for admin socket connection.
+	// AdminSecret is a secret to generate auth token for admin requests.
 	AdminSecret string `json:"admin_secret"`
 
 	// AdminInsecure turns on insecure mode for admin endpoints - no auth required to
-	// connect to admin socket and web interface. Protect admin resources with firewall
-	// rules in production when enabling this option.
+	// connect to web interface and requests to admin API. Protect admin resources with
+	// firewall rules in production when enabling this option.
 	AdminInsecure bool `json:"admin_insecure"`
 
 	// WebsocketCompression allows to enable websocket permessage-deflate

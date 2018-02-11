@@ -11,21 +11,19 @@ import (
 // HTTPServer is a default builtin Centrifugo server.
 type HTTPServer struct {
 	sync.RWMutex
-	node       *node.Node
-	mux        *http.ServeMux
-	config     *Config
-	shutdown   bool
-	shutdownCh chan struct{}
-	api        *api.Handler
+	node     *node.Node
+	mux      *http.ServeMux
+	config   *Config
+	shutdown bool
+	api      *api.Handler
 }
 
 // New initializes HTTPServer.
 func New(n *node.Node, config *Config) (*HTTPServer, error) {
 	return &HTTPServer{
-		node:       n,
-		config:     config,
-		shutdownCh: make(chan struct{}),
-		api:        api.NewHandler(n),
+		node:   n,
+		config: config,
+		api:    api.NewHandler(n),
 	}, nil
 }
 
@@ -41,6 +39,5 @@ func (s *HTTPServer) Shutdown() error {
 		return nil
 	}
 	s.shutdown = true
-	close(s.shutdownCh)
 	return nil
 }

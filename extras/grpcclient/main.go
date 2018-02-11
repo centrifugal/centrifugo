@@ -3,13 +3,21 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"log"
 	"sync/atomic"
 
 	"github.com/centrifugal/centrifugo/lib/proto"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
+)
+
+var (
+	addr   = flag.String("addr", "localhost:8002", "Server address, e.g. :8000")
+	useTLS = flag.Bool("tls", false, "Use TLS")
+	cert   = flag.String("cert", "", "CA certificate file")
 )
 
 func init() {
@@ -45,12 +53,30 @@ func extractDisconnect(md metadata.MD) *Disconnect {
 	}
 }
 
-func connect() {
-	conn, err := grpc.Dial("localhost:8002", grpc.WithInsecure())
+// very naive Centrifugo GRPC client example.
+func run() {
+
+	var opts []grpc.DialOption
+	if *useTLS && *cert != "" {
+		// openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./server.key -out ./server.cert
+		cred, err := credentials.NewClientTLSFromFile(*cert, "")
+		if err != nil {
+			log.Fatal(err)
+		}
+		opts = append(opts, grpc.WithTransportCredentials(cred))
+	} else if *useTLS {
+		cred := credentials.NewTLS(nil)
+		opts = append(opts, grpc.WithTransportCredentials(cred))
+	} else {
+		opts = append(opts, grpc.WithInsecure())
+	}
+
+	conn, err := grpc.Dial(*addr, opts...)
 	if err != nil {
 		log.Fatalf("failed to connect: %s", err)
 	}
 	defer conn.Close()
+
 	cl := proto.NewCentrifugoClient(conn)
 
 	stream, err := cl.Communicate(context.Background())
@@ -150,5 +176,6 @@ func connect() {
 }
 
 func main() {
-	connect()
+	flag.Parse()
+	run()
 }

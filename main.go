@@ -21,6 +21,8 @@ import (
 	"syscall"
 	"time"
 
+	"google.golang.org/grpc/credentials"
+
 	"github.com/centrifugal/centrifugo/lib/channel"
 	"github.com/centrifugal/centrifugo/lib/engine"
 	"github.com/centrifugal/centrifugo/lib/engine/enginememory"
@@ -227,7 +229,15 @@ func main() {
 				if err != nil {
 					logger.FATAL.Fatalf("Cannot listen to address %s", grpcAPIAddr)
 				}
-				grpcAPIServer = grpc.NewServer()
+				grpcOpts := []grpc.ServerOption{}
+				tlsConfig, err := getTLSConfig()
+				if err != nil {
+					logger.FATAL.Fatalf("Error getting TLS config: %v", err)
+				}
+				if tlsConfig != nil {
+					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
+				}
+				grpcAPIServer = grpc.NewServer(grpcOpts...)
 				apiproto.RegisterCentrifugoServer(grpcAPIServer, apiservice.New(nod, apiservice.Config{}))
 				go func() {
 					if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
@@ -244,7 +254,17 @@ func main() {
 				if err != nil {
 					logger.FATAL.Fatalf("Cannot listen to address %s", grpcClientAddr)
 				}
-				grpcClientServer = grpc.NewServer()
+				grpcOpts := []grpc.ServerOption{
+					grpc.MaxRecvMsgSize(viper.GetInt("client_request_max_size")),
+				}
+				tlsConfig, err := getTLSConfig()
+				if err != nil {
+					logger.FATAL.Fatalf("Error getting TLS config: %v", err)
+				}
+				if tlsConfig != nil {
+					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
+				}
+				grpcClientServer = grpc.NewServer(grpcOpts...)
 				proto.RegisterCentrifugoServer(grpcClientServer, clientservice.New(nod, clientservice.Config{}))
 				go func() {
 					if err := grpcClientServer.Serve(grpcClientConn); err != nil {
@@ -601,7 +621,7 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 			HandlerFlags:  handlerFlags,
 			SockjsOptions: sockjsOpts,
 		}
-		mux := server.ServeMux(s, muxOpts)
+		mux := server.Mux(s, muxOpts)
 
 		addr := net.JoinHostPort(httpAddress, handlerPort)
 
