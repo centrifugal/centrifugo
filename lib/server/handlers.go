@@ -59,11 +59,13 @@ func (s *HTTPServer) handleClientData(c conns.Client, data []byte, enc proto.Enc
 			return false
 		}
 
-		err = encoder.Encode(rep)
-		if err != nil {
-			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error encoding reply", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "client": c.ID(), "user": c.UserID(), "error": err.Error()}))
-			transport.Close(&proto.Disconnect{Reason: "internal error", Reconnect: true})
-			return false
+		if rep != nil {
+			err = encoder.Encode(rep)
+			if err != nil {
+				s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error encoding reply", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "client": c.ID(), "user": c.UserID(), "error": err.Error()}))
+				transport.Close(&proto.Disconnect{Reason: "internal error", Reconnect: true})
+				return false
+			}
 		}
 	}
 
@@ -220,12 +222,6 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 
 	var replyRes proto.Raw
 
-	if method == "" {
-		s.node.Logger().Log(logging.NewEntry(logging.ERROR, "method required in API command"))
-		rep.Error = apiproto.ErrBadRequest
-		return rep, nil
-	}
-
 	decoder := apiproto.GetDecoder(enc)
 	defer apiproto.PutDecoder(enc, decoder)
 
@@ -233,7 +229,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	defer apiproto.PutEncoder(enc, encoder)
 
 	switch method {
-	case "publish":
+	case apiproto.MethodTypePublish:
 		cmd, err := decoder.DecodePublish(params)
 		if err != nil {
 			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding publish params", map[string]interface{}{"error": err.Error()}))
@@ -251,7 +247,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 				}
 			}
 		}
-	case "broadcast":
+	case apiproto.MethodTypeBroadcast:
 		cmd, err := decoder.DecodeBroadcast(params)
 		if err != nil {
 			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding broadcast params", map[string]interface{}{"error": err.Error()}))
@@ -269,7 +265,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 				}
 			}
 		}
-	case "unsubscribe":
+	case apiproto.MethodTypeUnsubscribe:
 		cmd, err := decoder.DecodeUnsubscribe(params)
 		if err != nil {
 			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding unsubscribe params", map[string]interface{}{"error": err.Error()}))
@@ -287,7 +283,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 				}
 			}
 		}
-	case "disconnect":
+	case apiproto.MethodTypeDisconnect:
 		cmd, err := decoder.DecodeDisconnect(params)
 		if err != nil {
 			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding disconnect params", map[string]interface{}{"error": err.Error()}))
@@ -305,7 +301,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 				}
 			}
 		}
-	case "presence":
+	case apiproto.MethodTypePresence:
 		cmd, err := decoder.DecodePresence(params)
 		if err != nil {
 			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding presence params", map[string]interface{}{"error": err.Error()}))
@@ -323,7 +319,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 				}
 			}
 		}
-	case "presence_stats":
+	case apiproto.MethodTypePresenceStats:
 		cmd, err := decoder.DecodePresenceStats(params)
 		if err != nil {
 			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding presence stats params", map[string]interface{}{"error": err.Error()}))
@@ -341,7 +337,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 				}
 			}
 		}
-	case "history":
+	case apiproto.MethodTypeHistory:
 		cmd, err := decoder.DecodeHistory(params)
 		if err != nil {
 			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding history params", map[string]interface{}{"error": err.Error()}))
@@ -359,7 +355,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 				}
 			}
 		}
-	case "channels":
+	case apiproto.MethodTypeChannels:
 		resp := s.api.Channels(ctx, &apiproto.ChannelsRequest{})
 		if resp.Error != nil {
 			rep.Error = resp.Error
@@ -371,7 +367,7 @@ func (s *HTTPServer) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 				}
 			}
 		}
-	case "info":
+	case apiproto.MethodTypeInfo:
 		resp := s.api.Info(ctx, &apiproto.InfoRequest{})
 		if resp.Error != nil {
 			rep.Error = resp.Error
@@ -443,7 +439,7 @@ func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		now := time.Now()
 		rep, err := s.handleAPICommand(r.Context(), enc, command)
-		apiCommandDurationSummary.WithLabelValues(command.Method).Observe(float64(time.Since(now).Seconds()))
+		apiCommandDurationSummary.WithLabelValues(strings.ToLower(apiproto.MethodType_name[int32(command.Method)])).Observe(float64(time.Since(now).Seconds()))
 		if err != nil {
 			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error handling API command", map[string]interface{}{"error": err.Error()}))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

@@ -127,3 +127,17 @@ type RPCReply struct {
 
 // RPCHandler must handle incoming command from client.
 type RPCHandler func(context.Context, *RPCContext) (*RPCReply, error)
+
+// MessageContext ...
+type MessageContext struct {
+	EventContext
+	Data proto.Raw
+}
+
+// MessageReply ...
+type MessageReply struct {
+	Disconnect *proto.Disconnect
+}
+
+// MessageHandler must handle incoming async message from client.
+type MessageHandler func(context.Context, *MessageContext) (*MessageReply, error)

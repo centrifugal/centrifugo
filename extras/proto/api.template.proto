@@ -29,9 +29,23 @@ message Error {
     string Message = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "message"]{{end}};
 }
 
+enum MethodType {
+    {{if env.Getenv "GOGO"}}option (gogoproto.goproto_enum_prefix) = false;{{end}}
+
+    PUBLISH = 0{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePublish"]{{end}};
+    BROADCAST = 1{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeBroadcast"]{{end}};
+    UNSUBSCRIBE = 2{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeUnsubscribe"]{{end}};
+    DISCONNECT = 3{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeDisconnect"]{{end}};
+    PRESENCE = 4{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePresence"]{{end}};
+    PRESENCE_STATS = 5{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePresenceStats"]{{end}};
+    HISTORY = 6{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeHistory"]{{end}};
+    CHANNELS = 7{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeChannels"]{{end}};
+    INFO = 8{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeInfo"]{{end}};
+}
+
 message Command {
     uint64 ID = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "id"]{{end}};
-    string Method = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "method"]{{end}};
+    MethodType Method = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "method"]{{end}};
     bytes Params = 3{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = false]{{end}};
 }
 

@@ -13,9 +13,17 @@ option (gogoproto.equal_all) = true;
 option (gogoproto.populate_all) = true;
 option (gogoproto.testgen_all) = true;
 
+enum MethodType {
+    option (gogoproto.goproto_enum_prefix) = false;
+
+    NODE = 0 [(gogoproto.enumvalue_customname) = "MethodTypeNode"];
+    UNSUBSCRIBE = 1 [(gogoproto.enumvalue_customname) = "MethodTypeUnsubscribe"];
+    DISCONNECT = 2 [(gogoproto.enumvalue_customname) = "MethodTypeDisconnect"];
+}
+
 message Command {
     string UID = 1;
-    string Method = 2;
+    MethodType Method = 2;
     bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.nullable) = false];
 }
 

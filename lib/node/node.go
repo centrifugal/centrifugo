@@ -310,21 +310,21 @@ func (n *Node) HandleControl(cmd *controlproto.Command) error {
 	params := cmd.Params
 
 	switch method {
-	case "node":
+	case controlproto.MethodTypeNode:
 		cmd, err := n.ControlDecoder().DecodeNode(params)
 		if err != nil {
 			n.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding node control params", map[string]interface{}{"error": err.Error()}))
 			return proto.ErrBadRequest
 		}
 		return n.nodeCmd(cmd)
-	case "unsubscribe":
+	case controlproto.MethodTypeUnsubscribe:
 		cmd, err := n.ControlDecoder().DecodeUnsubscribe(params)
 		if err != nil {
 			n.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding unsubscribe control params", map[string]interface{}{"error": err.Error()}))
 			return proto.ErrBadRequest
 		}
 		return n.Hub().Unsubscribe(cmd.User, cmd.Channel)
-	case "disconnect":
+	case controlproto.MethodTypeDisconnect:
 		cmd, err := n.ControlDecoder().DecodeDisconnect(params)
 		if err != nil {
 			n.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding disconnect control params", map[string]interface{}{"error": err.Error()}))
@@ -476,7 +476,7 @@ func (n *Node) pubNode() error {
 
 	cmd := &controlproto.Command{
 		UID:    n.uid,
-		Method: "node",
+		Method: controlproto.MethodTypeNode,
 		Params: params,
 	}
 
@@ -502,7 +502,7 @@ func (n *Node) pubUnsubscribe(user string, ch string) error {
 
 	cmd := &controlproto.Command{
 		UID:    n.uid,
-		Method: "unsubscribe",
+		Method: controlproto.MethodTypeUnsubscribe,
 		Params: params,
 	}
 
@@ -521,7 +521,7 @@ func (n *Node) pubDisconnect(user string, reconnect bool) error {
 
 	cmd := &controlproto.Command{
 		UID:    n.uid,
-		Method: "unsubscribe",
+		Method: controlproto.MethodTypeDisconnect,
 		Params: params,
 	}
 

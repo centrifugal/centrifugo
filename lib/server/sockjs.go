@@ -37,6 +37,10 @@ func (t *sockjsTransport) Name() string {
 	return "sockjs"
 }
 
+func (t *sockjsTransport) Encoding() proto.Encoding {
+	return proto.EncodingJSON
+}
+
 func (t *sockjsTransport) Send(reply *proto.PreparedReply) error {
 	data := reply.Data()
 	disconnect := t.writer.write(data)

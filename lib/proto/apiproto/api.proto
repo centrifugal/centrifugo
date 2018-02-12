@@ -29,9 +29,23 @@ message Error {
     string Message = 2 [(gogoproto.jsontag) = "message"];
 }
 
+enum MethodType {
+    option (gogoproto.goproto_enum_prefix) = false;
+
+    PUBLISH = 0 [(gogoproto.enumvalue_customname) = "MethodTypePublish"];
+    BROADCAST = 1 [(gogoproto.enumvalue_customname) = "MethodTypeBroadcast"];
+    UNSUBSCRIBE = 2 [(gogoproto.enumvalue_customname) = "MethodTypeUnsubscribe"];
+    DISCONNECT = 3 [(gogoproto.enumvalue_customname) = "MethodTypeDisconnect"];
+    PRESENCE = 4 [(gogoproto.enumvalue_customname) = "MethodTypePresence"];
+    PRESENCE_STATS = 5 [(gogoproto.enumvalue_customname) = "MethodTypePresenceStats"];
+    HISTORY = 6 [(gogoproto.enumvalue_customname) = "MethodTypeHistory"];
+    CHANNELS = 7 [(gogoproto.enumvalue_customname) = "MethodTypeChannels"];
+    INFO = 8 [(gogoproto.enumvalue_customname) = "MethodTypeInfo"];
+}
+
 message Command {
     uint64 ID = 1 [(gogoproto.jsontag) = "id"];
-    string Method = 2 [(gogoproto.jsontag) = "method"];
+    MethodType Method = 2 [(gogoproto.jsontag) = "method"];
     bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = false];
 }
 

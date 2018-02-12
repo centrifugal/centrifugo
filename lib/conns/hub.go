@@ -255,7 +255,7 @@ func (h *clientHub) BroadcastPublication(channel string, publication *proto.Publ
 		if !ok {
 			continue
 		}
-		enc := c.Encoding()
+		enc := c.Transport().Encoding()
 		if enc == proto.EncodingJSON {
 			if jsonReply == nil {
 				data, err := proto.GetMessageEncoder(enc).EncodePublication(publication)
@@ -313,7 +313,7 @@ func (h *clientHub) BroadcastJoin(channel string, join *proto.Join) error {
 		if !ok {
 			continue
 		}
-		enc := c.Encoding()
+		enc := c.Transport().Encoding()
 		if enc == proto.EncodingJSON {
 			if jsonReply == nil {
 				data, err := proto.GetMessageEncoder(enc).EncodeJoin(join)
@@ -371,7 +371,7 @@ func (h *clientHub) BroadcastLeave(channel string, leave *proto.Leave) error {
 		if !ok {
 			continue
 		}
-		enc := c.Encoding()
+		enc := c.Transport().Encoding()
 		if enc == proto.EncodingJSON {
 			if jsonReply == nil {
 				data, err := proto.GetMessageEncoder(enc).EncodeLeave(leave)

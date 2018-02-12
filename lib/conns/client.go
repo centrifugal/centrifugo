@@ -6,8 +6,6 @@ import (
 
 // Client represents functions to inspect and control client connection.
 type Client interface {
-	// Encoding returns connection protocol encoding.
-	Encoding() proto.Encoding
 	// ID returns unique connection id.
 	ID() string
 	// User return user ID associated with connection.

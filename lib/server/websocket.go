@@ -91,6 +91,10 @@ func (t *websocketTransport) Name() string {
 	return "websocket"
 }
 
+func (t *websocketTransport) Encoding() proto.Encoding {
+	return t.opts.enc
+}
+
 func (t *websocketTransport) Send(reply *proto.PreparedReply) error {
 	data := reply.Data()
 	disconnect := t.writer.write(data)

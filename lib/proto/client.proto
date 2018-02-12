@@ -17,9 +17,25 @@ message Error {
     string Message = 2 [(gogoproto.jsontag) = "message"];
 }
 
+enum MethodType {
+    option (gogoproto.goproto_enum_prefix) = false;
+
+    CONNECT = 0 [(gogoproto.enumvalue_customname) = "MethodTypeConnect"];
+    REFRESH = 1 [(gogoproto.enumvalue_customname) = "MethodTypeRefresh"];
+    SUBSCRIBE = 2 [(gogoproto.enumvalue_customname) = "MethodTypeSubscribe"];
+    UNSUBSCRIBE = 3 [(gogoproto.enumvalue_customname) = "MethodTypeUnsubscribe"];
+    PUBLISH = 4 [(gogoproto.enumvalue_customname) = "MethodTypePublish"];
+    PRESENCE = 5 [(gogoproto.enumvalue_customname) = "MethodTypePresence"];
+    PRESENCE_STATS = 6 [(gogoproto.enumvalue_customname) = "MethodTypePresenceStats"];
+    HISTORY = 7 [(gogoproto.enumvalue_customname) = "MethodTypeHistory"];
+    PING = 8 [(gogoproto.enumvalue_customname) = "MethodTypePing"];
+    RPC = 9 [(gogoproto.enumvalue_customname) = "MethodTypeRPC"];
+    MESSAGE = 10 [(gogoproto.enumvalue_customname) = "MethodTypeMessage"];
+}
+
 message Command {
     uint64 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
-    string Method = 2 [(gogoproto.jsontag) = "method,omitempty"];
+    MethodType Method = 2 [(gogoproto.jsontag) = "method,omitempty"];
     bytes Params = 3 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "params,omitempty", (gogoproto.nullable) = false];
 }
 

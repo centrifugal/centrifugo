@@ -41,7 +41,7 @@ func (s *Service) Communicate(stream proto.Centrifugo_CommunicateServer) error {
 	replies := make(chan *proto.Reply, replyBufferSize)
 	transport := newGRPCTransport(stream, replies)
 
-	c := client.New(stream.Context(), s.node, transport, client.Config{Encoding: proto.EncodingProtobuf})
+	c := client.New(stream.Context(), s.node, transport, client.Config{})
 	defer c.Close(proto.DisconnectNormal)
 
 	s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "GRPC connection established", map[string]interface{}{"client": c.ID()}))
@@ -66,10 +66,12 @@ func (s *Service) Communicate(stream proto.Centrifugo_CommunicateServer) error {
 				c.Close(disconnect)
 				return
 			}
-			err = transport.Send(proto.NewPreparedReply(rep, proto.EncodingProtobuf))
-			if err != nil {
-				c.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
-				return
+			if rep != nil {
+				err = transport.Send(proto.NewPreparedReply(rep, proto.EncodingProtobuf))
+				if err != nil {
+					c.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
+					return
+				}
 			}
 		}
 	}()
@@ -101,6 +103,10 @@ func newGRPCTransport(stream proto.Centrifugo_CommunicateServer, replies chan *p
 
 func (t *grpcTransport) Name() string {
 	return "grpc"
+}
+
+func (t *grpcTransport) Encoding() proto.Encoding {
+	return proto.EncodingProtobuf
 }
 
 func (t *grpcTransport) Send(reply *proto.PreparedReply) error {

@@ -19,4 +19,6 @@ type Mediator struct {
 	Refresh RefreshHandler
 	// RPC allows to register custom logic on incoming RPC calls.
 	RPC RPCHandler
+	// Message ...
+	Message MessageHandler
 }
