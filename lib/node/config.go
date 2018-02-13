@@ -13,13 +13,11 @@ type Config struct {
 	// Name of this server node - must be unique, used as human readable
 	// and meaningful node identificator.
 	Name string
-
 	// Secret is a secret key, used to generate signatures.
 	Secret string
 
 	// channel.Options embedded to config.
 	channel.Options
-
 	// Namespaces - list of namespaces for custom channel options.
 	Namespaces []channel.Namespace
 
@@ -35,15 +33,6 @@ type Config struct {
 	// NodeMetricsInterval detects interval node will use to aggregate metrics.
 	NodeMetricsInterval time.Duration
 
-	// PresencePingInterval is an interval how often connected clients
-	// must update presence info.
-	PresencePingInterval time.Duration
-	// PresenceExpireInterval is an interval how long to consider
-	// presence info valid after receiving presence ping.
-	PresenceExpireInterval time.Duration
-
-	// PingInterval sets interval server will send ping messages to clients.
-	ClientPingInterval time.Duration
 	// ClientInsecure turns on insecure mode for client connections - when it's
 	// turned on then no authentication required at all when connecting to Centrifugo,
 	// anonymous access and publish allowed for all channels, no connection expire
@@ -52,6 +41,14 @@ type Config struct {
 	// ClientExpire turns on client connection expire mechanism so Centrifugo
 	// will close expired connections (if not refreshed).
 	ClientExpire bool
+	// PresencePingInterval is an interval how often connected clients
+	// must update presence info.
+	ClientPresencePingInterval time.Duration
+	// PresenceExpireInterval is an interval how long to consider
+	// presence info valid after receiving presence ping.
+	ClientPresenceExpireInterval time.Duration
+	// PingInterval sets interval server will send ping messages to clients.
+	ClientPingInterval time.Duration
 	// ExpiredConnectionCloseDelay is an interval given to client to
 	// refresh its connection in the end of connection lifetime.
 	ClientExpiredCloseDelay time.Duration
@@ -153,9 +150,6 @@ var DefaultConfig = &Config{
 	NodeInfoMaxDelay:      DefaultNodePingInterval*2*time.Second + 1*time.Second,
 	NodeMetricsInterval:   60 * time.Second,
 
-	PresencePingInterval:   25 * time.Second,
-	PresenceExpireInterval: 60 * time.Second,
-
 	ChannelMaxLength:         255,
 	ChannelPrivatePrefix:     "$", // so private channel will look like "$gossips"
 	ChannelNamespaceBoundary: ":", // so namespace "public" can be used "public:news"
@@ -163,12 +157,14 @@ var DefaultConfig = &Config{
 	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019"
 	ChannelClientBoundary:    "&", // so client channel is sth like "client&7a37e561-c720-4608-52a8-a964a9db7a8a"
 
-	ClientInsecure:            false,
-	ClientMessageWriteTimeout: 0,
-	ClientPingInterval:        25 * time.Second,
-	ClientExpiredCloseDelay:   25 * time.Second,
-	ClientStaleCloseDelay:     25 * time.Second,
-	ClientRequestMaxSize:      65536,    // 64KB by default
-	ClientQueueMaxSize:        10485760, // 10MB by default
-	ClientChannelLimit:        128,
+	ClientInsecure:               false,
+	ClientPresencePingInterval:   25 * time.Second,
+	ClientPresenceExpireInterval: 60 * time.Second,
+	ClientMessageWriteTimeout:    0,
+	ClientPingInterval:           25 * time.Second,
+	ClientExpiredCloseDelay:      25 * time.Second,
+	ClientStaleCloseDelay:        25 * time.Second,
+	ClientRequestMaxSize:         65536,    // 64KB by default
+	ClientQueueMaxSize:           10485760, // 10MB by default
+	ClientChannelLimit:           128,
 }

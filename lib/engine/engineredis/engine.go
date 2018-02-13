@@ -861,6 +861,7 @@ const (
 	dataOpRemovePresence
 	dataOpPresence
 	dataOpHistory
+	dataOpHistoryRemove
 	dataOpChannels
 	dataOpHistoryTouch
 )
@@ -960,6 +961,8 @@ func (e *Shard) runDataPipeline() {
 					e.presenceScript.SendHash(conn, drs[i].args...)
 				case dataOpHistory:
 					conn.Send("LRANGE", drs[i].args...)
+				case dataOpHistoryRemove:
+					conn.Send("DEL", drs[i].args...)
 				case dataOpChannels:
 					conn.Send("PUBSUB", drs[i].args...)
 				case dataOpHistoryTouch:
@@ -1202,8 +1205,14 @@ func (e *Shard) History(ch string, filter engine.HistoryFilter) ([]*proto.Public
 }
 
 // RemoveHistory - see engine interface description.
-// TODO
 func (e *Shard) RemoveHistory(ch string) error {
+	historyKey := e.getHistoryKey(ch)
+	dr := newDataRequest(dataOpHistoryRemove, []interface{}{historyKey}, true)
+	e.dataCh <- dr
+	resp := dr.result()
+	if resp.err != nil {
+		return resp.err
+	}
 	return nil
 }
 

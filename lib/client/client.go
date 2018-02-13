@@ -104,7 +104,7 @@ func (c *client) addPresenceUpdate() {
 		return
 	}
 	config := c.node.Config()
-	presenceInterval := config.PresencePingInterval
+	presenceInterval := config.ClientPresencePingInterval
 	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
 }
 

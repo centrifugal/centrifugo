@@ -6,7 +6,8 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto"
 )
 
-// Hub is an interface describing current client connections to node.
+// Hub is an interface describing current client connections to node and
+// actions we can do with them.
 type Hub interface {
 	Add(c Client) error
 	Remove(c Client) error

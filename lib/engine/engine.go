@@ -24,24 +24,23 @@ type Engine interface {
 	// implementations can safely return nil without doing any work.
 	Shutdown() error
 
-	// Publish allows to send asynchronous message into channel.
+	// Publish allows to send Publication into channel.
 	// This message should be delivered to all clients subscribed on this
 	// channel at moment on any Centrifugo node. The returned value is
 	// channel in which we will send error as soon as engine finishes
-	// publish operation. Also this method should maintain history for
+	// publish operation. Also this method must maintain history for
 	// channels if enabled in channel options.
-	// TODO: refactor comment.
 	Publish(ch string, publication *proto.Publication, opts *channel.Options) <-chan error
-	// PublishJoin ...
+	// PublishJoin publishes Join message into channel.
 	PublishJoin(ch string, join *proto.Join, opts *channel.Options) <-chan error
-	// PublishLeave ...
+	// PublishLeave publishes Leave message into channel.
 	PublishLeave(ch string, leave *proto.Leave, opts *channel.Options) <-chan error
 	// PublishControl allows to send control command to all running nodes.
 	PublishControl(*controlproto.Command) <-chan error
 
-	// Subscribe on channel.
+	// Subscribe node on channel.
 	Subscribe(ch string) error
-	// Unsubscribe from channel.
+	// Unsubscribe node from channel.
 	Unsubscribe(ch string) error
 	// Channels returns slice of currently active channels (with
 	// one or more subscribers) on all Centrifugo nodes.

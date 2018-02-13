@@ -58,72 +58,72 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 
 			defaults := map[string]interface{}{
-				"gomaxprocs":                     0,
-				"engine":                         "memory",
-				"debug":                          false,
-				"name":                           "",
-				"secret":                         "",
-				"watch":                          false,
-				"publish":                        false,
-				"anonymous":                      false,
-				"presence":                       false,
-				"presence_stats":                 false,
-				"history_size":                   0,
-				"history_lifetime":               0,
-				"history_recover":                false,
-				"history_drop_inactive":          false,
-				"namespaces":                     "",
-				"node_ping_interval":             3,
-				"node_metrics_interval":          60,
-				"client_ping_interval":           25,
-				"client_expire":                  false,
-				"client_expired_close_delay":     25,
-				"client_stale_close_delay":       25,
-				"client_message_write_timeout":   0,
-				"client_channel_limit":           128,
-				"client_request_max_size":        65536,    // 64KB
-				"client_queue_max_size":          10485760, // 10MB
-				"presence_ping_interval":         25,
-				"presence_expire_interval":       60,
-				"channel_max_length":             255,
-				"channel_private_prefix":         "$",
-				"channel_namespace_boundary":     ":",
-				"channel_user_boundary":          "#",
-				"channel_user_separator":         ",",
-				"channel_client_boundary":        "&",
-				"user_connection_limit":          0,
-				"http_prefix":                    "",
-				"admin":                          false,
-				"admin_password":                 "",
-				"admin_secret":                   "",
-				"admin_insecure":                 false,
-				"admin_web_path":                 "",
-				"sockjs_url":                     "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js",
-				"sockjs_heartbeat_delay":         25,
-				"websocket_compression":          false,
-				"websocket_compression_min_size": 0,
-				"websocket_compression_level":    1,
-				"websocket_read_buffer_size":     0,
-				"websocket_write_buffer_size":    0,
-				"tls_autocert":                   false,
-				"tls_autocert_host_whitelist":    "",
-				"tls_autocert_cache_dir":         "",
-				"tls_autocert_email":             "",
-				"tls_autocert_force_rsa":         false,
-				"tls_autocert_server_name":       "",
-				"redis_prefix":                   "centrifugo",
-				"redis_connect_timeout":          1,
-				"redis_read_timeout":             10, // Must be greater than ping channel publish interval.
-				"redis_write_timeout":            1,
-				"redis_pubsub_num_workers":       0,
-				"grpc_api":                       false,
-				"grpc_api_port":                  8001,
-				"grpc_api_key":                   "",
-				"grpc_api_insecure":              false,
-				"grpc_client":                    false,
-				"grpc_client_port":               8002,
-				"shutdown_timeout":               30,
-				"shutdown_termination_delay":     1,
+				"gomaxprocs":                      0,
+				"engine":                          "memory",
+				"debug":                           false,
+				"name":                            "",
+				"secret":                          "",
+				"watch":                           false,
+				"publish":                         false,
+				"anonymous":                       false,
+				"presence":                        false,
+				"presence_stats":                  false,
+				"history_size":                    0,
+				"history_lifetime":                0,
+				"history_recover":                 false,
+				"history_drop_inactive":           false,
+				"namespaces":                      "",
+				"node_ping_interval":              3,
+				"node_metrics_interval":           60,
+				"client_ping_interval":            25,
+				"client_expire":                   false,
+				"client_expired_close_delay":      25,
+				"client_stale_close_delay":        25,
+				"client_message_write_timeout":    0,
+				"client_channel_limit":            128,
+				"client_request_max_size":         65536,    // 64KB
+				"client_queue_max_size":           10485760, // 10MB
+				"client_presence_ping_interval":   25,
+				"client_presence_expire_interval": 60,
+				"channel_max_length":              255,
+				"channel_private_prefix":          "$",
+				"channel_namespace_boundary":      ":",
+				"channel_user_boundary":           "#",
+				"channel_user_separator":          ",",
+				"channel_client_boundary":         "&",
+				"user_connection_limit":           0,
+				"http_prefix":                     "",
+				"admin":                           false,
+				"admin_password":                  "",
+				"admin_secret":                    "",
+				"admin_insecure":                  false,
+				"admin_web_path":                  "",
+				"sockjs_url":                      "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js",
+				"sockjs_heartbeat_delay":          25,
+				"websocket_compression":           false,
+				"websocket_compression_min_size":  0,
+				"websocket_compression_level":     1,
+				"websocket_read_buffer_size":      0,
+				"websocket_write_buffer_size":     0,
+				"tls_autocert":                    false,
+				"tls_autocert_host_whitelist":     "",
+				"tls_autocert_cache_dir":          "",
+				"tls_autocert_email":              "",
+				"tls_autocert_force_rsa":          false,
+				"tls_autocert_server_name":        "",
+				"redis_prefix":                    "centrifugo",
+				"redis_connect_timeout":           1,
+				"redis_read_timeout":              10, // Must be greater than ping channel publish interval.
+				"redis_write_timeout":             1,
+				"redis_pubsub_num_workers":        0,
+				"grpc_api":                        false,
+				"grpc_api_port":                   8001,
+				"grpc_api_key":                    "",
+				"grpc_api_insecure":               false,
+				"grpc_client":                     false,
+				"grpc_client_port":                8002,
+				"shutdown_timeout":                30,
+				"shutdown_termination_delay":      1,
 			}
 
 			for k, v := range defaults {
@@ -786,9 +786,6 @@ func newNodeConfig(v *viper.Viper) *node.Config {
 	cfg.NodeInfoMaxDelay = cfg.NodePingInterval*2 + 1*time.Second
 	cfg.NodeMetricsInterval = time.Duration(v.GetInt("node_metrics_interval")) * time.Second
 
-	cfg.PresencePingInterval = time.Duration(v.GetInt("presence_ping_interval")) * time.Second
-	cfg.PresenceExpireInterval = time.Duration(v.GetInt("presence_expire_interval")) * time.Second
-
 	cfg.ChannelMaxLength = v.GetInt("channel_max_length")
 	cfg.ChannelPrivatePrefix = v.GetString("channel_private_prefix")
 	cfg.ChannelNamespaceBoundary = v.GetString("channel_namespace_boundary")
@@ -796,6 +793,8 @@ func newNodeConfig(v *viper.Viper) *node.Config {
 	cfg.ChannelUserSeparator = v.GetString("channel_user_separator")
 	cfg.ChannelClientBoundary = v.GetString("channel_client_boundary")
 
+	cfg.ClientPresencePingInterval = time.Duration(v.GetInt("client_presence_ping_interval")) * time.Second
+	cfg.ClientPresenceExpireInterval = time.Duration(v.GetInt("client_presence_expire_interval")) * time.Second
 	cfg.ClientPingInterval = time.Duration(v.GetInt("client_ping_interval")) * time.Second
 	cfg.ClientMessageWriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
 	cfg.ClientInsecure = v.GetBool("client_insecure")

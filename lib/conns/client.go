@@ -4,7 +4,8 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto"
 )
 
-// Client represents functions to inspect and control client connection.
+// Client interface contains functions to inspect and control client
+// connection.
 type Client interface {
 	// ID returns unique connection id.
 	ID() string

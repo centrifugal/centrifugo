@@ -39,8 +39,9 @@ enum MethodType {
     PRESENCE = 4{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePresence"]{{end}};
     PRESENCE_STATS = 5{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePresenceStats"]{{end}};
     HISTORY = 6{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeHistory"]{{end}};
-    CHANNELS = 7{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeChannels"]{{end}};
-    INFO = 8{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeInfo"]{{end}};
+    HISTORY_REMOVE = 7{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeHistoryRemove"]{{end}};
+    CHANNELS = 8{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeChannels"]{{end}};
+    INFO = 9{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeInfo"]{{end}};
 }
 
 message Command {

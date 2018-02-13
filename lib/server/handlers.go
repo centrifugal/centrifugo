@@ -97,7 +97,7 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 		writer := newWriter(writerConf)
 		defer writer.close()
 		transport := newSockjsTransport(sess, writer)
-		c := client.New(sess.Request().Context(), s.node, transport, client.Config{Encoding: proto.EncodingJSON})
+		c := client.New(sess.Request().Context(), s.node, transport, client.Config{})
 		defer c.Close(nil)
 
 		s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "SockJS connection established", map[string]interface{}{"client": c.ID()}))
@@ -189,7 +189,7 @@ func (s *HTTPServer) websocketHandler(w http.ResponseWriter, r *http.Request) {
 		writer := newWriter(writerConf)
 		defer writer.close()
 		transport := newWebsocketTransport(conn, writer, opts)
-		c := client.New(r.Context(), s.node, transport, client.Config{Encoding: enc})
+		c := client.New(r.Context(), s.node, transport, client.Config{})
 		defer c.Close(nil)
 
 		s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "websocket connection established", map[string]interface{}{"client": c.ID()}))

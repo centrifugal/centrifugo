@@ -9,12 +9,12 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 )
 
-// Handler ...
+// Handler contains API methods.
 type Handler struct {
 	node *node.Node
 }
 
-// NewHandler ...
+// NewHandler creates new Handler.
 func NewHandler(n *node.Node) *Handler {
 	return &Handler{
 		node: n,
@@ -119,8 +119,8 @@ func (h *Handler) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequest)
 	return resp
 }
 
-// Unsubscribe unsubscribes project's user from channel and sends
-// unsubscribe control message to other nodes.
+// Unsubscribe unsubscribes user from channel and sends unsubscribe
+// control message to other nodes so they could also unsubscribe user.
 func (h *Handler) Unsubscribe(ctx context.Context, cmd *apiproto.UnsubscribeRequest) *apiproto.UnsubscribeResponse {
 
 	resp := &apiproto.UnsubscribeResponse{}
@@ -138,7 +138,7 @@ func (h *Handler) Unsubscribe(ctx context.Context, cmd *apiproto.UnsubscribeRequ
 }
 
 // Disconnect disconnects user by its ID and sends disconnect
-// control message to other nodes so they could also disconnect this user.
+// control message to other nodes so they could also disconnect user.
 func (h *Handler) Disconnect(ctx context.Context, cmd *apiproto.DisconnectRequest) *apiproto.DisconnectResponse {
 
 	resp := &apiproto.DisconnectResponse{}
@@ -309,7 +309,7 @@ func (h *Handler) Channels(ctx context.Context, cmd *apiproto.ChannelsRequest) *
 	return resp
 }
 
-// Info returns active node info.
+// Info returns information about running nodes.
 func (h *Handler) Info(ctx context.Context, cmd *apiproto.InfoRequest) *apiproto.InfoResponse {
 
 	resp := &apiproto.InfoResponse{}

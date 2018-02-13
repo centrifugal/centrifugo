@@ -12,42 +12,42 @@ var (
 		Namespace: metricsNamespace,
 		Subsystem: metricsSubsystem,
 		Name:      "messages_sent_count",
-		Help:      "TODO.",
+		Help:      "Number of messages sent.",
 	}, []string{"type"})
 
 	messagesReceivedCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsNamespace,
 		Subsystem: metricsSubsystem,
 		Name:      "messages_received_count",
-		Help:      "TODO.",
+		Help:      "Number of messages received.",
 	}, []string{"type"})
 
 	actionCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsNamespace,
 		Subsystem: metricsSubsystem,
 		Name:      "action_count",
-		Help:      "TODO.",
+		Help:      "Number of node actions called.",
 	}, []string{"action"})
 
 	numClientsGauge = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: metricsNamespace,
 		Subsystem: metricsSubsystem,
 		Name:      "num_clients",
-		Help:      "TODO.",
+		Help:      "Number of clients connected.",
 	})
 
 	numUsersGauge = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: metricsNamespace,
 		Subsystem: metricsSubsystem,
 		Name:      "num_users",
-		Help:      "TODO.",
+		Help:      "Number of unique users connected.",
 	})
 
 	numChannelsGauge = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: metricsNamespace,
 		Subsystem: metricsSubsystem,
 		Name:      "node_num_channels",
-		Help:      "TODO.",
+		Help:      "Number of channels with one or more subscribers.",
 	})
 )
 

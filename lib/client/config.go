@@ -2,13 +2,10 @@ package client
 
 import (
 	"time"
-
-	"github.com/centrifugal/centrifugo/lib/proto"
 )
 
 // Config contains client connection specific configuration.
 type Config struct {
-	Encoding        proto.Encoding
 	Credentials     *Credentials
 	StaleCloseDelay time.Duration
 }

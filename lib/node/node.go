@@ -643,7 +643,7 @@ func (n *Node) ChannelOpts(ch string) (channel.Options, bool) {
 // AddPresence proxies presence adding to engine.
 func (n *Node) AddPresence(ch string, uid string, info *proto.ClientInfo) error {
 	n.mu.RLock()
-	expire := int(n.config.PresenceExpireInterval.Seconds())
+	expire := int(n.config.ClientPresenceExpireInterval.Seconds())
 	n.mu.RUnlock()
 	actionCount.WithLabelValues("add_presence").Inc()
 	return n.engine.AddPresence(ch, uid, info, expire)

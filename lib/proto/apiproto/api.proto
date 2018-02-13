@@ -39,8 +39,9 @@ enum MethodType {
     PRESENCE = 4 [(gogoproto.enumvalue_customname) = "MethodTypePresence"];
     PRESENCE_STATS = 5 [(gogoproto.enumvalue_customname) = "MethodTypePresenceStats"];
     HISTORY = 6 [(gogoproto.enumvalue_customname) = "MethodTypeHistory"];
-    CHANNELS = 7 [(gogoproto.enumvalue_customname) = "MethodTypeChannels"];
-    INFO = 8 [(gogoproto.enumvalue_customname) = "MethodTypeInfo"];
+    HISTORY_REMOVE = 7 [(gogoproto.enumvalue_customname) = "MethodTypeHistoryRemove"];
+    CHANNELS = 8 [(gogoproto.enumvalue_customname) = "MethodTypeChannels"];
+    INFO = 9 [(gogoproto.enumvalue_customname) = "MethodTypeInfo"];
 }
 
 message Command {
