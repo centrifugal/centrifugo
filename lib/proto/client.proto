@@ -34,14 +34,14 @@ enum MethodType {
 }
 
 message Command {
-    uint64 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
+    uint32 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
     MethodType Method = 2 [(gogoproto.jsontag) = "method,omitempty"];
     bytes Params = 3 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "params,omitempty", (gogoproto.nullable) = false];
 }
 
 message Reply {
-    uint64 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
-    proto.Error Error = 2 [(gogoproto.jsontag) = "error,omitempty"];
+    uint32 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
+    Error Error = 2 [(gogoproto.jsontag) = "error,omitempty"];
     bytes Result = 3 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "result,omitempty", (gogoproto.nullable) = false];
 }
 
@@ -191,8 +191,8 @@ message PresenceStatsResponse {
 }
 
 message PresenceStatsResult {
-    uint64 NumClients = 1 [(gogoproto.jsontag) = "num_clients"];
-    uint64 NumUsers = 2 [(gogoproto.jsontag) = "num_users"];
+    uint32 NumClients = 1 [(gogoproto.jsontag) = "num_clients"];
+    uint32 NumUsers = 2 [(gogoproto.jsontag) = "num_users"];
 }
 
 message HistoryRequest {

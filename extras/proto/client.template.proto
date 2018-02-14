@@ -34,14 +34,14 @@ enum MethodType {
 }
 
 message Command {
-    uint64 ID = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "id,omitempty"]{{end}};
+    uint32 ID = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "id,omitempty"]{{end}};
     MethodType Method = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "method,omitempty"]{{end}};
     bytes Params = 3{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "params,omitempty", (gogoproto.nullable) = false]{{end}};
 }
 
 message Reply {
-    uint64 ID = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "id,omitempty"]{{end}};
-    proto.Error Error = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "error,omitempty"]{{end}};
+    uint32 ID = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "id,omitempty"]{{end}};
+    Error Error = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "error,omitempty"]{{end}};
     bytes Result = 3{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "result,omitempty", (gogoproto.nullable) = false]{{end}};
 }
 
@@ -191,8 +191,8 @@ message PresenceStatsResponse {
 }
 
 message PresenceStatsResult {
-    uint64 NumClients = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "num_clients"]{{end}};
-    uint64 NumUsers = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "num_users"]{{end}};
+    uint32 NumClients = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "num_clients"]{{end}};
+    uint32 NumUsers = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "num_users"]{{end}};
 }
 
 message HistoryRequest {
