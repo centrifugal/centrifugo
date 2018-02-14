@@ -1135,8 +1135,8 @@ func (c *client) presenceStatsCmd(cmd *proto.PresenceStatsRequest) (*proto.Prese
 	}
 
 	resp.Result = &proto.PresenceStatsResult{
-		NumClients: uint64(numClients),
-		NumUsers:   uint64(numUsers),
+		NumClients: uint32(numClients),
+		NumUsers:   uint32(numUsers),
 	}
 
 	return resp, nil

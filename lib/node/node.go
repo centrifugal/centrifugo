@@ -465,10 +465,10 @@ func (n *Node) pubNode() error {
 		UID:         n.uid,
 		Name:        n.config.Name,
 		Version:     n.version,
-		NumClients:  uint64(n.hub.NumClients()),
-		NumUsers:    uint64(n.hub.NumUsers()),
-		NumChannels: uint64(n.hub.NumChannels()),
-		Uptime:      uint64(time.Now().Unix() - n.startedAt),
+		NumClients:  uint32(n.hub.NumClients()),
+		NumUsers:    uint32(n.hub.NumUsers()),
+		NumChannels: uint32(n.hub.NumChannels()),
+		Uptime:      uint32(time.Now().Unix() - n.startedAt),
 	}
 	n.mu.RUnlock()
 

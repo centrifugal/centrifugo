@@ -31,10 +31,10 @@ message Node {
     string UID = 1;
     string Name = 2;
     string Version = 3;
-    uint64 NumClients = 4;
-    uint64 NumUsers = 5;
-    uint64 NumChannels = 6;
-    uint64 Uptime = 7;
+    uint32 NumClients = 4;
+    uint32 NumUsers = 5;
+    uint32 NumChannels = 6;
+    uint32 Uptime = 7;
 }
 
 message Unsubscribe {

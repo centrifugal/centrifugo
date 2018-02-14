@@ -238,8 +238,8 @@ func (h *Handler) PresenceStats(ctx context.Context, cmd *apiproto.PresenceStats
 	}
 
 	resp.Result = &apiproto.PresenceStatsResult{
-		NumClients: uint64(numClients),
-		NumUsers:   uint64(numUsers),
+		NumClients: uint32(numClients),
+		NumUsers:   uint32(numUsers),
 	}
 
 	return resp
