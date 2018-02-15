@@ -2,9 +2,14 @@ package server
 
 import (
 	"encoding/json"
+	"net/http"
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/lib/node"
+
+	"github.com/centrifugal/centrifugo/lib/client"
+	"github.com/centrifugal/centrifugo/lib/logging"
 	"github.com/centrifugal/centrifugo/lib/proto"
 
 	"github.com/gorilla/websocket"
@@ -154,4 +159,130 @@ func (t *websocketTransport) Close(disconnect *proto.Disconnect) error {
 		return t.conn.Close()
 	}
 	return t.conn.Close()
+}
+
+// WebsocketConfig ...
+type WebsocketConfig struct {
+	// WebsocketCompression allows to enable websocket permessage-deflate
+	// compression support for raw websocket connections. It does not guarantee
+	// that compression will be used - i.e. it only says that Centrifugo will
+	// try to negotiate it with client.
+	WebsocketCompression bool
+
+	// WebsocketCompressionLevel sets a level for websocket compression.
+	// See posiible value description at https://golang.org/pkg/compress/flate/#NewWriter
+	WebsocketCompressionLevel int
+
+	// WebsocketCompressionMinSize allows to set minimal limit in bytes for message to use
+	// compression when writing it into client connection. By default it's 0 - i.e. all messages
+	// will be compressed when WebsocketCompression enabled and compression negotiated with client.
+	WebsocketCompressionMinSize int
+
+	// WebsocketReadBufferSize is a parameter that is used for raw websocket Upgrader.
+	// If set to zero reasonable default value will be used.
+	WebsocketReadBufferSize int
+
+	// WebsocketWriteBufferSize is a parameter that is used for raw websocket Upgrader.
+	// If set to zero reasonable default value will be used.
+	WebsocketWriteBufferSize int
+}
+
+// WebsocketHandler ...
+type WebsocketHandler struct {
+	node   *node.Node
+	config WebsocketConfig
+}
+
+// NewWebsocketHandler ...
+func NewWebsocketHandler(n *node.Node, c WebsocketConfig) *WebsocketHandler {
+	return &WebsocketHandler{
+		node:   n,
+		config: c,
+	}
+}
+
+func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	transportConnectCount.WithLabelValues("websocket").Inc()
+
+	wsCompression := s.config.WebsocketCompression
+	wsCompressionLevel := s.config.WebsocketCompressionLevel
+	wsCompressionMinSize := s.config.WebsocketCompressionMinSize
+	wsReadBufferSize := s.config.WebsocketReadBufferSize
+	wsWriteBufferSize := s.config.WebsocketWriteBufferSize
+
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:    wsReadBufferSize,
+		WriteBufferSize:   wsWriteBufferSize,
+		EnableCompression: wsCompression,
+		CheckOrigin: func(r *http.Request) bool {
+			// Allow all connections.
+			return true
+		},
+	}
+
+	conn, err := upgrader.Upgrade(rw, r, nil)
+	if err != nil {
+		s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "websocket upgrade error", map[string]interface{}{"error": err.Error()}))
+		return
+	}
+
+	if wsCompression {
+		err := conn.SetCompressionLevel(wsCompressionLevel)
+		if err != nil {
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "websocket error setting compression level", map[string]interface{}{"error": err.Error()}))
+		}
+	}
+
+	config := s.node.Config()
+	pingInterval := config.ClientPingInterval
+	writeTimeout := config.ClientMessageWriteTimeout
+	maxRequestSize := config.ClientRequestMaxSize
+
+	if maxRequestSize > 0 {
+		conn.SetReadLimit(int64(maxRequestSize))
+	}
+	if pingInterval > 0 {
+		pongWait := pingInterval * 10 / 9
+		conn.SetReadDeadline(time.Now().Add(pongWait))
+		conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	}
+
+	var enc = proto.EncodingJSON
+	if r.URL.Query().Get("format") == "protobuf" {
+		enc = proto.EncodingProtobuf
+	}
+
+	// Separate goroutine for better GC of caller's data.
+	go func() {
+		opts := &websocketTransportOptions{
+			pingInterval:       pingInterval,
+			writeTimeout:       writeTimeout,
+			compressionMinSize: wsCompressionMinSize,
+			enc:                enc,
+		}
+		writerConf := writerConfig{
+			MaxQueueSize: config.ClientQueueMaxSize,
+		}
+		writer := newWriter(writerConf)
+		defer writer.close()
+		transport := newWebsocketTransport(conn, writer, opts)
+		c := client.New(r.Context(), s.node, transport, client.Config{})
+		defer c.Close(nil)
+
+		s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "websocket connection established", map[string]interface{}{"client": c.ID()}))
+		defer func(started time.Time) {
+			s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "websocket connection completed", map[string]interface{}{"client": c.ID(), "time": time.Since(started)}))
+		}(time.Now())
+
+		for {
+			_, data, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
+			ok := handleClientData(s.node, c, data, transport, writer)
+			if !ok {
+				return
+			}
+		}
+	}()
 }

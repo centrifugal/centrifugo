@@ -13,6 +13,7 @@ type Config struct {
 	// Name of this server node - must be unique, used as human readable
 	// and meaningful node identificator.
 	Name string
+
 	// Secret is a secret key, used to generate signatures.
 	Secret string
 
@@ -24,12 +25,15 @@ type Config struct {
 	// NodePingInterval is an interval how often node must send ping
 	// control message.
 	NodePingInterval time.Duration
+
 	// NodeInfoCleanInterval is an interval in seconds, how often node must
 	// clean information about other running nodes.
 	NodeInfoCleanInterval time.Duration
+
 	// NodeInfoMaxDelay is an interval in seconds – how many seconds node
 	// info considered actual.
 	NodeInfoMaxDelay time.Duration
+
 	// NodeMetricsInterval detects interval node will use to aggregate metrics.
 	NodeMetricsInterval time.Duration
 
@@ -38,34 +42,44 @@ type Config struct {
 	// anonymous access and publish allowed for all channels, no connection expire
 	// performed. This can be suitable for demonstration or personal usage.
 	ClientInsecure bool
+
 	// ClientExpire turns on client connection expire mechanism so Centrifugo
 	// will close expired connections (if not refreshed).
 	ClientExpire bool
+
 	// PresencePingInterval is an interval how often connected clients
 	// must update presence info.
 	ClientPresencePingInterval time.Duration
+
 	// PresenceExpireInterval is an interval how long to consider
 	// presence info valid after receiving presence ping.
 	ClientPresenceExpireInterval time.Duration
+
 	// PingInterval sets interval server will send ping messages to clients.
 	ClientPingInterval time.Duration
+
 	// ExpiredConnectionCloseDelay is an interval given to client to
 	// refresh its connection in the end of connection lifetime.
 	ClientExpiredCloseDelay time.Duration
+
 	// ClientStaleCloseDelay is an interval in seconds after which
 	// connection will be closed if still not authenticated.
 	ClientStaleCloseDelay time.Duration
+
 	// MessageWriteTimeout is maximum time of write message operation.
 	// Slow client will be disconnected. By default we don't use this option (i.e. it's 0)
 	// and slow client connections will be closed when there queue size exceeds
 	// ClientQueueMaxSize. In case of SockJS transport we don't have control over it so
 	// it only affects raw websocket.
 	ClientMessageWriteTimeout time.Duration
+
 	// ClientRequestMaxSize sets maximum size in bytes of allowed client request.
 	ClientRequestMaxSize int
+
 	// ClientQueueMaxSize is a maximum size of client's message queue in bytes.
 	// After this queue size exceeded Centrifugo closes client's connection.
 	ClientQueueMaxSize int
+
 	// ClientChannelLimit sets upper limit of channels each client can subscribe to.
 	ClientChannelLimit int
 
@@ -76,18 +90,23 @@ type Config struct {
 	// PrivateChannelPrefix is a prefix in channel name which indicates that
 	// channel is private.
 	ChannelPrivatePrefix string
+
 	// NamespaceChannelBoundary is a string separator which must be put after
 	// namespace part in channel name.
 	ChannelNamespaceBoundary string
+
 	// UserChannelBoundary is a string separator which must be set before allowed
 	// users part in channel name.
 	ChannelUserBoundary string
+
 	// UserChannelSeparator separates allowed users in user part of channel name.
 	ChannelUserSeparator string
+
 	// ClientChannelBoundary is a string separator which must be set before client
 	// connection ID in channel name so only client with this ID can subscribe on
 	// that channel.
 	ChannelClientBoundary string
+
 	// ChannelMaxLength is a maximum length of channel name.
 	ChannelMaxLength int
 }

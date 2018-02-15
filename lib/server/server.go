@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/centrifugal/centrifugo/lib/api"
 	"github.com/centrifugal/centrifugo/lib/node"
 )
 
@@ -15,15 +14,12 @@ type HTTPServer struct {
 	mux      *http.ServeMux
 	config   *Config
 	shutdown bool
-	api      *api.Handler
 }
 
 // New initializes HTTPServer.
 func New(n *node.Node, config *Config) (*HTTPServer, error) {
 	return &HTTPServer{
-		node:   n,
-		config: config,
-		api:    api.NewHandler(n),
+		node: n,
 	}, nil
 }
 

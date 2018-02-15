@@ -3,11 +3,9 @@ package server
 import (
 	"net/http"
 	"net/http/pprof"
-	"path"
 	"strings"
 
 	"github.com/igm/sockjs-go/sockjs"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
@@ -89,40 +87,40 @@ func Mux(s *HTTPServer, muxOpts MuxOptions) *http.ServeMux {
 		mux.Handle(prefix+"/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
 	}
 
-	if flags&HandlerWebsocket != 0 {
-		// register Websocket connection endpoint.
-		mux.Handle(prefix+"/connection/websocket", s.log(s.wrapShutdown(http.HandlerFunc(s.websocketHandler))))
-	}
+	// if flags&HandlerWebsocket != 0 {
+	// 	// register Websocket connection endpoint.
+	// 	mux.Handle(prefix+"/connection/websocket", s.LogRequest(s.WrapShutdown(http.HandlerFunc(s.websocketHandler))))
+	// }
 
-	if flags&HandlerSockJS != 0 {
-		// register SockJS connection endpoints.
-		sjsh := newSockJSHandler(s, path.Join(prefix, "/connection/sockjs"), muxOpts.SockjsOptions)
-		mux.Handle(path.Join(prefix, "/connection/sockjs")+"/", s.log(s.wrapShutdown(sjsh)))
-	}
+	// if flags&HandlerSockJS != 0 {
+	// 	// register SockJS connection endpoints.
+	// 	sjsh := newSockJSHandler(s, path.Join(prefix, "/connection/sockjs"), muxOpts.SockjsOptions)
+	// 	mux.Handle(path.Join(prefix, "/connection/sockjs")+"/", s.log(s.wrapShutdown(sjsh)))
+	// }
 
-	if flags&HandlerAPI != 0 {
-		// register HTTP API endpoint.
-		mux.Handle(prefix+"/api", s.log(s.apiKeyAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
-	}
+	// if flags&HandlerAPI != 0 {
+	// 	// register HTTP API endpoint.
+	// 	mux.Handle(prefix+"/api", s.log(s.apiKeyAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
+	// }
 
-	if flags&HandlerPrometheus != 0 {
-		// register Prometheus metrics export endpoint.
-		mux.Handle(prefix+"/metrics", s.log(s.wrapShutdown(promhttp.Handler())))
-	}
+	// if flags&HandlerPrometheus != 0 {
+	// 	// register Prometheus metrics export endpoint.
+	// 	mux.Handle(prefix+"/metrics", s.log(s.wrapShutdown(promhttp.Handler())))
+	// }
 
-	if flags&HandlerAdmin != 0 {
-		// register admin web interface API endpoints.
-		mux.Handle(prefix+"/admin/auth", s.log(http.HandlerFunc(s.authHandler)))
-		mux.Handle(prefix+"/admin/api", s.log(s.adminSecureTokenAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
-		// serve admin single-page web application.
-		if webPath != "" {
-			webPrefix := prefix + "/"
-			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webPath))))
-		} else if webFS != nil {
-			webPrefix := prefix + "/"
-			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(webFS)))
-		}
-	}
+	// if flags&HandlerAdmin != 0 {
+	// 	// register admin web interface API endpoints.
+	// 	mux.Handle(prefix+"/admin/auth", s.log(http.HandlerFunc(s.authHandler)))
+	// 	mux.Handle(prefix+"/admin/api", s.log(s.adminSecureTokenAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
+	// 	// serve admin single-page web application.
+	// 	if webPath != "" {
+	// 		webPrefix := prefix + "/"
+	// 		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webPath))))
+	// 	} else if webFS != nil {
+	// 		webPrefix := prefix + "/"
+	// 		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(webFS)))
+	// 	}
+	// }
 
 	return mux
 }

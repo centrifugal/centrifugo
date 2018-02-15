@@ -2,8 +2,14 @@ package server
 
 import (
 	"encoding/json"
+	"net/http"
 	"sync"
+	"time"
 
+	"github.com/centrifugal/centrifugo/lib/node"
+
+	"github.com/centrifugal/centrifugo/lib/client"
+	"github.com/centrifugal/centrifugo/lib/logging"
 	"github.com/centrifugal/centrifugo/lib/proto"
 
 	"github.com/igm/sockjs-go/sockjs"
@@ -83,4 +89,91 @@ func (t *sockjsTransport) Close(disconnect *proto.Disconnect) error {
 		return err
 	}
 	return t.session.Close(sockjsCloseStatus, string(reason))
+}
+
+// SockjsConfig ...
+type SockjsConfig struct {
+	// SockjsPrefix sets prefix for SockJS handler endpoint path.
+	SockjsPrefix string
+
+	// SockjsURL is URL to SockJS client javascript library.
+	SockjsURL string
+
+	// WebsocketReadBufferSize is a parameter that is used for raw websocket Upgrader.
+	// If set to zero reasonable default value will be used.
+	WebsocketReadBufferSize int
+
+	// WebsocketWriteBufferSize is a parameter that is used for raw websocket Upgrader.
+	// If set to zero reasonable default value will be used.
+	WebsocketWriteBufferSize int
+}
+
+// SockjsHandler ...
+type SockjsHandler struct {
+	node    *node.Node
+	config  SockjsConfig
+	handler http.Handler
+}
+
+// NewSockjsHandler ...
+func NewSockjsHandler(n *node.Node, c SockjsConfig) *SockjsHandler {
+	sockjs.WebSocketReadBufSize = c.WebsocketReadBufferSize
+	sockjs.WebSocketWriteBufSize = c.WebsocketWriteBufferSize
+
+	options := sockjs.DefaultOptions
+	options.SockJSURL = c.SockjsURL
+
+	s := &SockjsHandler{
+		node:   n,
+		config: c,
+	}
+
+	handler := newSockJSHandler(s, c.SockjsPrefix, options)
+	s.handler = handler
+	return s
+}
+
+func (s *SockjsHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	s.handler.ServeHTTP(rw, r)
+}
+
+// newSockJSHandler returns SockJS handler bind to sockjsPrefix url prefix.
+// SockJS handler has several handlers inside responsible for various tasks
+// according to SockJS protocol.
+func newSockJSHandler(s *SockjsHandler, sockjsPrefix string, sockjsOpts sockjs.Options) http.Handler {
+	return sockjs.NewHandler(sockjsPrefix, sockjsOpts, s.sockJSHandler)
+}
+
+// sockJSHandler called when new client connection comes to SockJS endpoint.
+func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
+	transportConnectCount.WithLabelValues("sockjs").Inc()
+
+	// Separate goroutine for better GC of caller's data.
+	go func() {
+		config := s.node.Config()
+		writerConf := writerConfig{
+			MaxQueueSize: config.ClientQueueMaxSize,
+		}
+		writer := newWriter(writerConf)
+		defer writer.close()
+		transport := newSockjsTransport(sess, writer)
+		c := client.New(sess.Request().Context(), s.node, transport, client.Config{})
+		defer c.Close(nil)
+
+		s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "SockJS connection established", map[string]interface{}{"client": c.ID()}))
+		defer func(started time.Time) {
+			s.node.Logger().Log(logging.NewEntry(logging.DEBUG, "SockJS connection completed", map[string]interface{}{"client": c.ID(), "time": time.Since(started)}))
+		}(time.Now())
+
+		for {
+			if msg, err := sess.Recv(); err == nil {
+				ok := handleClientData(s.node, c, []byte(msg), transport, writer)
+				if !ok {
+					return
+				}
+				continue
+			}
+			break
+		}
+	}()
 }
