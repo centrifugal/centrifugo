@@ -29,14 +29,15 @@ import (
 	"github.com/centrifugal/centrifugo/lib/engine/engineredis"
 	"github.com/centrifugal/centrifugo/lib/grpc/apiservice"
 	"github.com/centrifugal/centrifugo/lib/grpc/clientservice"
+	"github.com/centrifugal/centrifugo/lib/httpserver"
 	"github.com/centrifugal/centrifugo/lib/logging"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
-	"github.com/centrifugal/centrifugo/lib/server"
 	"github.com/centrifugal/centrifugo/lib/statik"
 
 	"github.com/FZambia/go-logger"
+	"github.com/FZambia/reborn/server"
 	"github.com/FZambia/viper-lite"
 	"github.com/igm/sockjs-go/sockjs"
 	"github.com/satori/go.uuid"
@@ -219,7 +220,7 @@ func main() {
 			}
 
 			httpServerConfig := serverConfig(viper.GetViper())
-			httpServer, _ := server.New(nod, httpServerConfig)
+			httpServer, _ := httpserver.New(nod, httpServerConfig)
 
 			var grpcAPIServer *grpc.Server
 			var grpcAPIAddr string
@@ -413,7 +414,7 @@ func setupLogging() {
 	}
 }
 
-func handleSignals(n *node.Node, httpServer *server.HTTPServer, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
+func handleSignals(n *node.Node, httpServer *httpserver.HTTPServer, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -541,7 +542,7 @@ func getTLSConfig() (*tls.Config, error) {
 	return nil, nil
 }
 
-func runServer(n *node.Node, s *server.HTTPServer) error {
+func runServer(n *node.Node, s *httpserver.HTTPServer) error {
 	debug := viper.GetBool("debug")
 	admin := viper.GetBool("admin")
 	adminWebPath := viper.GetString("admin_web_path")
@@ -586,24 +587,24 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 
 	// portToHandlerFlags contains mapping between ports and handler flags
 	// to serve on this port.
-	portToHandlerFlags := map[string]server.HandlerFlag{}
+	portToHandlerFlags := map[string]httpserver.HandlerFlag{}
 
-	var portFlags server.HandlerFlag
+	var portFlags httpserver.HandlerFlag
 
 	portFlags = portToHandlerFlags[httpClientPort]
-	portFlags |= server.HandlerWebsocket | server.HandlerSockJS
+	portFlags |= httpserver.HandlerWebsocket | httpserver.HandlerSockJS
 	portToHandlerFlags[httpClientPort] = portFlags
 
 	portFlags = portToHandlerFlags[httpAPIPort]
-	portFlags |= server.HandlerAPI
+	portFlags |= httpserver.HandlerAPI
 	portToHandlerFlags[httpAPIPort] = portFlags
 
 	portFlags = portToHandlerFlags[httpAdminPort]
 	if admin {
-		portFlags |= server.HandlerAdmin
+		portFlags |= httpserver.HandlerAdmin
 	}
 	if debug {
-		portFlags |= server.HandlerDebug
+		portFlags |= httpserver.HandlerDebug
 	}
 	portToHandlerFlags[httpAdminPort] = portFlags
 
@@ -614,14 +615,14 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 		if handlerFlags == 0 {
 			continue
 		}
-		muxOpts := server.MuxOptions{
+		muxOpts := httpserver.MuxOptions{
 			Prefix:        httpPrefix,
 			WebPath:       adminWebPath,
 			WebFS:         webFS,
 			HandlerFlags:  handlerFlags,
 			SockjsOptions: sockjsOpts,
 		}
-		mux := server.Mux(s, muxOpts)
+		mux := httpserver.Mux(s, muxOpts)
 
 		addr := net.JoinHostPort(httpAddress, handlerPort)
 
@@ -837,7 +838,7 @@ func namespacesFromConfig(v *viper.Viper) []channel.Namespace {
 }
 
 // serverConfig creates new server config using viper.
-func serverConfig(v *viper.Viper) *server.Config {
+func serverConfig(v *viper.Viper) *httpserver.Config {
 	cfg := &server.Config{}
 	cfg.APIKey = v.GetString("api_key")
 	cfg.APIInsecure = v.GetBool("api_insecure")
@@ -1097,4 +1098,122 @@ func (h *logHandler) handle(entry logging.Entry) {
 	default:
 		return
 	}
+}
+
+
+// HandlerFlag is a bit mask of handlers that must be enabled in mux.
+type HandlerFlag int
+
+const (
+	// HandlerWebsocket enables Raw Websocket handler.
+	HandlerWebsocket HandlerFlag = 1 << iota
+	// HandlerSockJS enables SockJS handler.
+	HandlerSockJS
+	// HandlerAPI enables API handler.
+	HandlerAPI
+	// HandlerAdmin enables admin web interface.
+	HandlerAdmin
+	// HandlerDebug enables debug handlers.
+	HandlerDebug
+	// HandlerPrometheus enables Prometheus handler.
+	HandlerPrometheus
+)
+
+var handlerText = map[HandlerFlag]string{
+	HandlerWebsocket:  "websocket",
+	HandlerSockJS:     "SockJS",
+	HandlerAPI:        "API",
+	HandlerAdmin:      "admin",
+	HandlerDebug:      "debug",
+	HandlerPrometheus: "prometheus",
+}
+
+func (flags HandlerFlag) String() string {
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerDebug}
+	endpoints := []string{}
+	for _, flag := range flagsOrdered {
+		text, ok := handlerText[flag]
+		if !ok {
+			continue
+		}
+		if flags&flag != 0 {
+			endpoints = append(endpoints, text)
+		}
+	}
+	return strings.Join(endpoints, ", ")
+}
+
+// MuxOptions contain various options for DefaultMux.
+type MuxOptions struct {
+	Prefix        string
+	WebPath       string
+	WebFS         http.FileSystem
+	SockjsOptions sockjs.Options
+	HandlerFlags  HandlerFlag
+}
+
+// defaultMuxOptions contain default Mux Options to start Centrifugo server.
+func defaultMuxOptions() MuxOptions {
+	sockjsOpts := sockjs.DefaultOptions
+	sockjsOpts.SockJSURL = "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js"
+	return MuxOptions{
+		HandlerFlags:  HandlerWebsocket | HandlerSockJS | HandlerAPI,
+		SockjsOptions: sockjs.DefaultOptions,
+	}
+}
+
+// Mux returns a mux including set of default handlers for Centrifugo server.
+func Mux(muxOpts MuxOptions) *http.ServeMux {
+
+	mux := http.NewServeMux()
+
+	prefix := muxOpts.Prefix
+	webPath := muxOpts.WebPath
+	webFS := muxOpts.WebFS
+	flags := muxOpts.HandlerFlags
+
+	if flags&HandlerDebug != 0 {
+		mux.Handle(prefix+"/debug/pprof/", http.HandlerFunc(pprof.Index))
+		mux.Handle(prefix+"/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+		mux.Handle(prefix+"/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+		mux.Handle(prefix+"/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+		mux.Handle(prefix+"/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
+	}
+
+	if flags&HandlerWebsocket != 0 {
+		// register Websocket connection endpoint.
+		mux.Handle(prefix+"/connection/websocket", s.LogRequest(s.WrapShutdown(http.HandlerFunc(s.websocketHandler))))
+	}
+
+	if flags&HandlerSockJS != 0 {
+		// register SockJS connection endpoints.
+		sjsh := newSockJSHandler(s, path.Join(prefix, "/connection/sockjs"), muxOpts.SockjsOptions)
+		mux.Handle(path.Join(prefix, "/connection/sockjs")+"/", s.log(s.wrapShutdown(sjsh)))
+	}
+
+	if flags&HandlerAPI != 0 {
+		// register HTTP API endpoint.
+		mux.Handle(prefix+"/api", s.log(s.apiKeyAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
+	}
+
+	if flags&HandlerPrometheus != 0 {
+		// register Prometheus metrics export endpoint.
+		mux.Handle(prefix+"/metrics", s.log(s.wrapShutdown(promhttp.Handler())))
+	}
+
+	if flags&HandlerAdmin != 0 {
+		// register admin web interface API endpoints.
+		mux.Handle(prefix+"/admin/auth", s.log(http.HandlerFunc(s.authHandler)))
+		mux.Handle(prefix+"/admin/api", s.log(s.adminSecureTokenAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
+		// serve admin single-page web application.
+		if webPath != "" {
+			webPrefix := prefix + "/"
+			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webPath))))
+		} else if webFS != nil {
+			webPrefix := prefix + "/"
+			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(webFS)))
+		}
+	}
+
+	return mux
 }

@@ -63,43 +63,37 @@ func NewEntry(level Level, message string, fields ...map[string]interface{}) Ent
 	}
 }
 
-// Logger can log entries.
-type Logger interface {
-	Log(entry Entry)
-	Enabled(Level) bool
-}
-
-// Handler handles log entries in whatever way it wants.
+// Handler handles log entries - i.e. writes into correct destination if necessary.
 type Handler func(Entry)
 
-// New creates Logger instance with selected Level and Handler.
-func New(level Level, handler Handler) *HandlerLogger {
-	return &HandlerLogger{
+// New creates Logger.
+func New(level Level, handler Handler) *Logger {
+	return &Logger{
 		level:   level,
 		handler: handler,
 	}
 }
 
-// HandlerLogger calls provided Handler func when Entry received.
-type HandlerLogger struct {
+// Logger can log entries.
+type Logger struct {
 	level   Level
 	handler Handler
 }
 
 // Log calls log handler with provided Entry.
-func (l *HandlerLogger) Log(entry Entry) {
+func (l *Logger) Log(entry Entry) {
 	if l == nil {
 		return
 	}
-	if entry.Level >= l.level && l.handler != nil {
+	if entry.Level >= l.level {
 		l.handler(entry)
 	}
 }
 
-// Enabled returns logging level used.
-func (l *HandlerLogger) Enabled(level Level) bool {
+// Enabled says whether specified Level enabled or not.
+func (l *Logger) Enabled(level Level) bool {
 	if l == nil {
 		return false
 	}
-	return level >= l.level
+	return l.level >= level
 }

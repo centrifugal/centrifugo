@@ -13,10 +13,15 @@ import (
 	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/engine/enginememory"
 	"github.com/centrifugal/centrifugo/lib/events"
+	"github.com/centrifugal/centrifugo/lib/httpserver"
+	"github.com/centrifugal/centrifugo/lib/logging"
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/server"
 )
+
+func handleLog(e logging.Entry) {
+	log.Printf("[centrifuge %s] %s: %v", logging.LevelString(e.Level), e.Message, e.Fields)
+}
 
 func authMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -102,29 +107,15 @@ func main() {
 	}
 
 	n.SetMediator(mediator)
+	n.SetLogHandler(logging.DEBUG, handleLog)
 
-	e, err := enginememory.New(n, &enginememory.Config{})
-	if err != nil {
-		panic(err)
-	}
+	e, _ := enginememory.New(n, &enginememory.Config{})
 
 	if err := n.Run(e); err != nil {
 		panic(err)
 	}
 
-	serverConfig := &server.Config{}
-	s, err := server.New(n, serverConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	opts := server.MuxOptions{
-		Prefix:       "", // can be sth like "/centrifugo" in theory
-		HandlerFlags: server.HandlerWebsocket,
-	}
-	mux := server.ServeMux(s, opts)
-
-	http.Handle("/", authMiddleware(mux))
+	http.Handle("/connection/websocket", authMiddleware(httpserver.NewWebsocketHandler(n, httpserver.WebsocketConfig{})))
 
 	go func() {
 		if err := http.ListenAndServe(":8000", nil); err != nil {

@@ -1,4 +1,4 @@
-package server
+package httpserver
 
 import (
 	"encoding/json"
@@ -6,31 +6,67 @@ import (
 	"strings"
 
 	"github.com/centrifugal/centrifugo/lib/logging"
+	"github.com/centrifugal/centrifugo/lib/node"
 
 	"github.com/gorilla/securecookie"
 )
 
-// AdminHandlerConfig ...
-type AdminHandlerConfig struct {
-	// AdminPassword is an admin password.
-	AdminPassword string `json:"admin_password"`
+// AdminConfig ...
+type AdminConfig struct {
+	// WebPath is path to admin web application to serve.
+	WebPath string
 
-	// AdminSecret is a secret to generate auth token for admin requests.
-	AdminSecret string `json:"admin_secret"`
+	// WebFS is custom filesystem to serve as admin web application.
+	WebFS http.FileSystem
 
-	// AdminInsecure turns on insecure mode for admin endpoints - no auth required to
-	// connect to web interface and requests to admin API. Protect admin resources with
-	// firewall rules in production when enabling this option.
-	AdminInsecure bool `json:"admin_insecure"`
+	// Password is an admin password.
+	Password string
+
+	// Secret is a secret to generate auth token for admin requests.
+	Secret string
+
+	// Insecure turns on insecure mode for admin endpoints - no auth
+	// required to connect to web interface and requests to admin API.
+	// Protect admin resources with firewall rules in production when
+	// enabling this option.
+	Insecure bool
+}
+
+// AdminHandler handles admin web interface endpoints.
+type AdminHandler struct {
+	mux    *http.ServeMux
+	node   *node.Node
+	config AdminConfig
+}
+
+// NewAdminHandler creates new AdminHandler.
+func NewAdminHandler(n *node.Node, c AdminConfig) *AdminHandler {
+	h := &AdminHandler{
+		node:   n,
+		config: c,
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/admin/auth", http.HandlerFunc(h.authHandler))
+	mux.Handle("/admin/api", h.adminSecureTokenAuth(NewAPIHandler(n, APIHandlerConfig{})))
+	webPrefix := "/"
+	if c.WebPath != "" {
+		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(c.WebPath))))
+	} else if c.WebFS != nil {
+		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(c.WebFS)))
+	}
+	h.mux = mux
+	return h
+}
+
+func (s *AdminHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+	s.mux.ServeHTTP(rw, r)
 }
 
 // adminSecureTokenAuth ...
-func (s *HTTPServer) adminSecureTokenAuth(h http.Handler) http.Handler {
+func (s *AdminHandler) adminSecureTokenAuth(h http.Handler) http.Handler {
 
-	s.RLock()
-	secret := s.config.AdminSecret
-	insecure := s.config.AdminInsecure
-	s.RUnlock()
+	secret := s.config.Secret
+	insecure := s.config.Insecure
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if insecure {
@@ -63,12 +99,12 @@ func (s *HTTPServer) adminSecureTokenAuth(h http.Handler) http.Handler {
 }
 
 // authHandler allows to get admin web interface token.
-func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
-	password := r.FormValue("password")
+func (s *AdminHandler) authHandler(w http.ResponseWriter, r *http.Request) {
+	formPassword := r.FormValue("password")
 
-	insecure := s.config.AdminInsecure
-	adminPassword := s.config.AdminPassword
-	adminSecret := s.config.AdminSecret
+	insecure := s.config.Insecure
+	password := s.config.Password
+	secret := s.config.Secret
 
 	if insecure {
 		w.Header().Set("Content-Type", "application/json")
@@ -81,15 +117,15 @@ func (s *HTTPServer) authHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if adminPassword == "" || adminSecret == "" {
+	if password == "" || secret == "" {
 		s.node.Logger().Log(logging.NewEntry(logging.ERROR, "admin_password and admin_secret must be set in configuration"))
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	if password == adminPassword {
+	if formPassword == password {
 		w.Header().Set("Content-Type", "application/json")
-		token, err := generateSecureAdminToken(adminSecret)
+		token, err := generateSecureAdminToken(secret)
 		if err != nil {
 			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error generating admin token", map[string]interface{}{"error": err.Error()}))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

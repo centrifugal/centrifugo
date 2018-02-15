@@ -67,7 +67,7 @@ type Node struct {
 	// mediator contains application event handlers.
 	mediator *events.Mediator
 
-	logger logging.Logger
+	logger *logging.Logger
 }
 
 // VERSION of Centrifugo server node. Set on build stage.
@@ -94,15 +94,13 @@ func New(c *Config) *Node {
 	return n
 }
 
-// SetLogger sets Logger to Node. It's not concurrency safe and should
-// only be called once at application start.
-func (n *Node) SetLogger(l logging.Logger) {
-	n.logger = l
+// SetLogHandler ...
+func (n *Node) SetLogHandler(level logging.Level, handler logging.Handler) {
+	n.logger = logging.New(level, handler)
 }
 
-// Logger returns registered Logger. If no logger registered we return
-// nil HandlerLogger which does not log anything.
-func (n *Node) Logger() logging.Logger {
+// Logger returns registered Logger.
+func (n *Node) Logger() *logging.Logger {
 	return n.logger
 }
 

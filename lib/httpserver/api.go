@@ -1,4 +1,4 @@
-package server
+package httpserver
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/centrifugal/centrifugo/lib/node"
 
 	"github.com/centrifugal/centrifugo/lib/api"
 	"github.com/centrifugal/centrifugo/lib/logging"
@@ -29,17 +31,17 @@ type APIHandlerConfig struct {
 
 // APIHandler is responsible for processing API commands over HTTP.
 type APIHandler struct {
-	server *HTTPServer
+	node   *node.Node
 	config APIHandlerConfig
 	api    *api.Handler
 }
 
-// NewAPIHandler ...
-func (s *HTTPServer) NewAPIHandler(c APIHandlerConfig) *APIHandler {
+// NewAPIHandler creates new APIHandler.
+func NewAPIHandler(n *node.Node, c APIHandlerConfig) *APIHandler {
 	return &APIHandler{
-		server: s,
+		node:   n,
 		config: c,
-		api:    api.NewHandler(s.node),
+		api:    api.NewHandler(n),
 	}
 }
 
@@ -53,13 +55,13 @@ func (s *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	data, err = ioutil.ReadAll(r.Body)
 	if err != nil {
-		s.server.node.Logger().Log(logging.NewEntry(logging.ERROR, "error reading API request body", map[string]interface{}{"error": err.Error()}))
+		s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error reading API request body", map[string]interface{}{"error": err.Error()}))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	if len(data) == 0 {
-		s.server.node.Logger().Log(logging.NewEntry(logging.ERROR, "no data in API request"))
+		s.node.Logger().Log(logging.NewEntry(logging.ERROR, "no data in API request"))
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -85,7 +87,7 @@ func (s *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if err == io.EOF {
 				break
 			}
-			s.server.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding API data", map[string]interface{}{"error": err.Error()}))
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding API data", map[string]interface{}{"error": err.Error()}))
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
@@ -93,13 +95,13 @@ func (s *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		rep, err := s.handleAPICommand(r.Context(), enc, command)
 		apiCommandDurationSummary.WithLabelValues(strings.ToLower(apiproto.MethodType_name[int32(command.Method)])).Observe(float64(time.Since(now).Seconds()))
 		if err != nil {
-			s.server.node.Logger().Log(logging.NewEntry(logging.ERROR, "error handling API command", map[string]interface{}{"error": err.Error()}))
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error handling API command", map[string]interface{}{"error": err.Error()}))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		err = encoder.Encode(rep)
 		if err != nil {
-			s.server.node.Logger().Log(logging.NewEntry(logging.ERROR, "error encoding API reply", map[string]interface{}{"error": err.Error()}))
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error encoding API reply", map[string]interface{}{"error": err.Error()}))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -131,7 +133,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case apiproto.MethodTypePublish:
 		cmd, err := decoder.DecodePublish(params)
 		if err != nil {
-			s.server.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding publish params", map[string]interface{}{"error": err.Error()}))
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding publish params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -149,7 +151,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case apiproto.MethodTypeBroadcast:
 		cmd, err := decoder.DecodeBroadcast(params)
 		if err != nil {
-			s.server.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding broadcast params", map[string]interface{}{"error": err.Error()}))
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding broadcast params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -167,7 +169,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case apiproto.MethodTypeUnsubscribe:
 		cmd, err := decoder.DecodeUnsubscribe(params)
 		if err != nil {
-			s.server.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding unsubscribe params", map[string]interface{}{"error": err.Error()}))
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding unsubscribe params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -185,7 +187,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case apiproto.MethodTypeDisconnect:
 		cmd, err := decoder.DecodeDisconnect(params)
 		if err != nil {
-			s.server.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding disconnect params", map[string]interface{}{"error": err.Error()}))
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding disconnect params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -203,7 +205,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case apiproto.MethodTypePresence:
 		cmd, err := decoder.DecodePresence(params)
 		if err != nil {
-			s.server.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding presence params", map[string]interface{}{"error": err.Error()}))
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding presence params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -221,7 +223,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case apiproto.MethodTypePresenceStats:
 		cmd, err := decoder.DecodePresenceStats(params)
 		if err != nil {
-			s.server.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding presence stats params", map[string]interface{}{"error": err.Error()}))
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding presence stats params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}
@@ -239,7 +241,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 	case apiproto.MethodTypeHistory:
 		cmd, err := decoder.DecodeHistory(params)
 		if err != nil {
-			s.server.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding history params", map[string]interface{}{"error": err.Error()}))
+			s.node.Logger().Log(logging.NewEntry(logging.ERROR, "error decoding history params", map[string]interface{}{"error": err.Error()}))
 			rep.Error = apiproto.ErrBadRequest
 			return rep, nil
 		}

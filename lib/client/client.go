@@ -564,7 +564,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 
 	if c.authenticated {
 		c.node.Logger().Log(logging.NewEntry(logging.INFO, "client already authenticated", map[string]interface{}{"client": c.uid, "user": c.user}))
-		return nil, proto.DisconnectBadRequest
+		return resp, proto.DisconnectBadRequest
 	}
 
 	config := c.node.Config()
