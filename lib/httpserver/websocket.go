@@ -20,24 +20,11 @@ const (
 	websocketCloseStatus = 3000
 )
 
-// websocketConn is an interface to mimic gorilla/websocket methods we use
-// in Centrifugo. Needed only to simplify websocketConn struct tests.
-// Description can be found in gorilla websocket docs:
-// https://godoc.org/github.com/gorilla/websocket.
-type websocketConn interface {
-	ReadMessage() (messageType int, p []byte, err error)
-	WriteMessage(messageType int, data []byte) error
-	WriteControl(messageType int, data []byte, deadline time.Time) error
-	SetWriteDeadline(t time.Time) error
-	EnableWriteCompression(enable bool)
-	Close() error
-}
-
 // websocketTransport is a wrapper struct over websocket connection to fit session
 // interface so client will accept it.
 type websocketTransport struct {
 	mu        sync.RWMutex
-	conn      websocketConn
+	conn      *websocket.Conn
 	closed    bool
 	closeCh   chan struct{}
 	opts      *websocketTransportOptions
@@ -52,7 +39,7 @@ type websocketTransportOptions struct {
 	compressionMinSize int
 }
 
-func newWebsocketTransport(conn websocketConn, writer *writer, opts *websocketTransportOptions) *websocketTransport {
+func newWebsocketTransport(conn *websocket.Conn, writer *writer, opts *websocketTransportOptions) *websocketTransport {
 	transport := &websocketTransport{
 		conn:    conn,
 		closeCh: make(chan struct{}),
@@ -109,7 +96,7 @@ func (t *websocketTransport) Send(reply *proto.PreparedReply) error {
 	return nil
 }
 
-func (t *websocketTransport) write(data []byte) error {
+func (t *websocketTransport) write(data ...[]byte) error {
 	select {
 	case <-t.closeCh:
 		return nil
@@ -120,15 +107,34 @@ func (t *websocketTransport) write(data []byte) error {
 		if t.opts.writeTimeout > 0 {
 			t.conn.SetWriteDeadline(time.Now().Add(t.opts.writeTimeout))
 		}
+
 		var err error
-		err = t.conn.WriteMessage(websocket.TextMessage, data)
-		if t.opts.writeTimeout > 0 {
-			t.conn.SetWriteDeadline(time.Time{})
+		var messageType = websocket.TextMessage
+		if t.Encoding() == proto.EncodingProtobuf {
+			messageType = websocket.BinaryMessage
 		}
-		transportMessagesSent.WithLabelValues("websocket").Inc()
-		transportBytesOut.WithLabelValues("websocket").Add(float64(len(data)))
+		writer, err := t.conn.NextWriter(messageType)
 		if err != nil {
 			t.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
+		}
+		bytesOut := 0
+		for _, payload := range data {
+			n, err := writer.Write(payload)
+			if n != len(payload) || err != nil {
+				t.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
+				return err
+			}
+			bytesOut += len(data)
+		}
+		err = writer.Close()
+		if err != nil {
+			t.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
+		} else {
+			if t.opts.writeTimeout > 0 {
+				t.conn.SetWriteDeadline(time.Time{})
+			}
+			transportMessagesSent.WithLabelValues("websocket").Add(float64(len(data)))
+			transportBytesOut.WithLabelValues("websocket").Add(float64(bytesOut))
 		}
 		return err
 	}

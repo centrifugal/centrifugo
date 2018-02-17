@@ -56,18 +56,22 @@ func (t *sockjsTransport) Send(reply *proto.PreparedReply) error {
 	return nil
 }
 
-func (t *sockjsTransport) write(data []byte) error {
+func (t *sockjsTransport) write(data ...[]byte) error {
 	select {
 	case <-t.closeCh:
 		return nil
 	default:
-		transportMessagesSent.WithLabelValues("sockjs").Inc()
-		transportBytesOut.WithLabelValues("sockjs").Add(float64(len(data)))
-		err := t.session.Send(string(data))
-		if err != nil {
-			t.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
+		for _, payload := range data {
+			// TODO: can actually be sent in single message as streaming JSON.
+			transportMessagesSent.WithLabelValues("sockjs").Inc()
+			transportBytesOut.WithLabelValues("sockjs").Add(float64(len(data)))
+			err := t.session.Send(string(payload))
+			if err != nil {
+				t.Close(&proto.Disconnect{Reason: "error sending message", Reconnect: true})
+				return err
+			}
 		}
-		return err
+		return nil
 	}
 }
 

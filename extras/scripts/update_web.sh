@@ -9,9 +9,9 @@ cleanup_exit() {
 }
 
 # uncomment and modify path if updating from local disk system.
-#cp -R /Users/fz/projects/centrifugal/web/ $TMP_WORK_DIR
+cp -R /Users/fz/projects/centrifugal/web/ $TMP_WORK_DIR
 
-git clone https://github.com/centrifugal/web.git $TMP_WORK_DIR
+#git clone https://github.com/centrifugal/web.git $TMP_WORK_DIR
 rm -rf $TMP_WORK_DIR/app/src
 
 if [ -d extras/web ]; then

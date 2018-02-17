@@ -10,6 +10,7 @@
       "publish": true,
       "join_leave": true,
       "presence": true,
+      "presence_stats": true,
       "history_size": 10,
       "history_lifetime": 60,
       "history_recover": true
