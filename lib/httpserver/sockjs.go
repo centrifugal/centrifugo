@@ -99,6 +99,8 @@ type SockjsConfig struct {
 	// SockjsURL is URL to SockJS client javascript library.
 	SockjsURL string
 
+	HeartbeatDelay time.Duration
+
 	// WebsocketReadBufferSize is a parameter that is used for raw websocket Upgrader.
 	// If set to zero reasonable default value will be used.
 	WebsocketReadBufferSize int
@@ -121,7 +123,14 @@ func NewSockjsHandler(n *node.Node, c SockjsConfig) *SockjsHandler {
 	sockjs.WebSocketWriteBufSize = c.WebsocketWriteBufferSize
 
 	options := sockjs.DefaultOptions
+
+	// Override sockjs url. It's important to use the same SockJS
+	// library version on client and server sides when using iframe
+	// based SockJS transports, otherwise SockJS will raise error
+	// about version mismatch.
 	options.SockJSURL = c.SockjsURL
+
+	options.HeartbeatDelay = c.HeartbeatDelay
 
 	s := &SockjsHandler{
 		node:   n,

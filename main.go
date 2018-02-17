@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"net/url"
 	"os"
 	"os/signal"
@@ -35,9 +36,9 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 	"github.com/centrifugal/centrifugo/lib/statik"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/FZambia/go-logger"
-	"github.com/FZambia/reborn/server"
 	"github.com/FZambia/viper-lite"
 	"github.com/igm/sockjs-go/sockjs"
 	"github.com/satori/go.uuid"
@@ -219,9 +220,6 @@ func main() {
 				logger.FATAL.Fatalf("Error running node: %v", err)
 			}
 
-			httpServerConfig := serverConfig(viper.GetViper())
-			httpServer, _ := httpserver.New(nod, httpServerConfig)
-
 			var grpcAPIServer *grpc.Server
 			var grpcAPIAddr string
 			if viper.GetBool("grpc_api") {
@@ -275,7 +273,7 @@ func main() {
 			}
 
 			go func() {
-				if err = runServer(nod, httpServer); err != nil {
+				if err = runHTTPServer(nod); err != nil {
 					logger.FATAL.Fatalf("Error running server: %v", err)
 				}
 			}()
@@ -291,7 +289,7 @@ func main() {
 			if viper.GetBool("api_insecure") {
 				logger.WARN.Println("INSECURE API mode enabled")
 			}
-			if httpServerConfig.AdminInsecure {
+			if viper.GetBool("admin_insecure") {
 				logger.WARN.Println("INSECURE admin mode enabled")
 			}
 			if viper.GetBool("debug") {
@@ -304,7 +302,7 @@ func main() {
 				logger.INFO.Printf("Serving GRPC client service on %s", grpcClientAddr)
 			}
 
-			handleSignals(nod, httpServer, grpcAPIServer, grpcClientServer)
+			handleSignals(nod, grpcAPIServer, grpcClientServer)
 		},
 	}
 
@@ -414,7 +412,7 @@ func setupLogging() {
 	}
 }
 
-func handleSignals(n *node.Node, httpServer *httpserver.HTTPServer, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
+func handleSignals(n *node.Node, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -454,7 +452,8 @@ func handleSignals(n *node.Node, httpServer *httpserver.HTTPServer, grpcAPIServe
 				os.Exit(1)
 			})
 
-			httpServer.Shutdown()
+			// TODO: http server shutdown.
+			// httpServer.Shutdown()
 
 			var wg sync.WaitGroup
 
@@ -542,41 +541,15 @@ func getTLSConfig() (*tls.Config, error) {
 	return nil, nil
 }
 
-func runServer(n *node.Node, s *httpserver.HTTPServer) error {
+func runHTTPServer(n *node.Node) error {
 	debug := viper.GetBool("debug")
+
 	admin := viper.GetBool("admin")
-	adminWebPath := viper.GetString("admin_web_path")
+
 	httpAddress := viper.GetString("address")
 	httpClientPort := viper.GetString("port")
 	httpAdminPort := viper.GetString("admin_port")
 	httpAPIPort := viper.GetString("api_port")
-	httpPrefix := viper.GetString("http_prefix")
-	sockjsURL := viper.GetString("sockjs_url")
-	sockjsHeartbeatDelay := viper.GetInt("sockjs_heartbeat_delay")
-
-	websocketReadBufferSize := viper.GetInt("websocket_read_buffer_size")
-	websocketWriteBufferSize := viper.GetInt("websocket_write_buffer_size")
-
-	sockjs.WebSocketReadBufSize = websocketReadBufferSize
-	sockjs.WebSocketWriteBufSize = websocketWriteBufferSize
-
-	sockjsOpts := sockjs.DefaultOptions
-
-	// Override sockjs url. It's important to use the same SockJS
-	// library version on client and server sides when using iframe
-	// based SockJS transports, otherwise SockJS will raise error
-	// about version mismatch.
-	if sockjsURL != "" {
-		logger.DEBUG.Println("SockJS url:", sockjsURL)
-		sockjsOpts.SockJSURL = sockjsURL
-	}
-
-	sockjsOpts.HeartbeatDelay = time.Duration(sockjsHeartbeatDelay) * time.Second
-
-	var webFS http.FileSystem
-	if admin {
-		webFS = statik.FS
-	}
 
 	if httpAPIPort == "" {
 		httpAPIPort = httpClientPort
@@ -587,24 +560,24 @@ func runServer(n *node.Node, s *httpserver.HTTPServer) error {
 
 	// portToHandlerFlags contains mapping between ports and handler flags
 	// to serve on this port.
-	portToHandlerFlags := map[string]httpserver.HandlerFlag{}
+	portToHandlerFlags := map[string]HandlerFlag{}
 
-	var portFlags httpserver.HandlerFlag
+	var portFlags HandlerFlag
 
 	portFlags = portToHandlerFlags[httpClientPort]
-	portFlags |= httpserver.HandlerWebsocket | httpserver.HandlerSockJS
+	portFlags |= HandlerWebsocket | HandlerSockJS
 	portToHandlerFlags[httpClientPort] = portFlags
 
 	portFlags = portToHandlerFlags[httpAPIPort]
-	portFlags |= httpserver.HandlerAPI
+	portFlags |= HandlerAPI
 	portToHandlerFlags[httpAPIPort] = portFlags
 
 	portFlags = portToHandlerFlags[httpAdminPort]
 	if admin {
-		portFlags |= httpserver.HandlerAdmin
+		portFlags |= HandlerAdmin
 	}
 	if debug {
-		portFlags |= httpserver.HandlerDebug
+		portFlags |= HandlerDebug
 	}
 	portToHandlerFlags[httpAdminPort] = portFlags
 
@@ -615,14 +588,7 @@ func runServer(n *node.Node, s *httpserver.HTTPServer) error {
 		if handlerFlags == 0 {
 			continue
 		}
-		muxOpts := httpserver.MuxOptions{
-			Prefix:        httpPrefix,
-			WebPath:       adminWebPath,
-			WebFS:         webFS,
-			HandlerFlags:  handlerFlags,
-			SockjsOptions: sockjsOpts,
-		}
-		mux := httpserver.Mux(s, muxOpts)
+		mux := Mux(n, handlerFlags)
 
 		addr := net.JoinHostPort(httpAddress, handlerPort)
 
@@ -631,7 +597,6 @@ func runServer(n *node.Node, s *httpserver.HTTPServer) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-
 			tlsConfig, err := getTLSConfig()
 			if err != nil {
 				logger.FATAL.Fatalf("Can not get TLS config: %v", err)
@@ -837,19 +802,32 @@ func namespacesFromConfig(v *viper.Viper) []channel.Namespace {
 	return ns
 }
 
-// serverConfig creates new server config using viper.
-func serverConfig(v *viper.Viper) *httpserver.Config {
-	cfg := &server.Config{}
-	cfg.APIKey = v.GetString("api_key")
-	cfg.APIInsecure = v.GetBool("api_insecure")
-	cfg.AdminPassword = v.GetString("admin_password")
-	cfg.AdminSecret = v.GetString("admin_secret")
-	cfg.AdminInsecure = v.GetBool("admin_insecure")
+func websocketHandlerConfig(v *viper.Viper) httpserver.WebsocketConfig {
+	cfg := httpserver.WebsocketConfig{}
 	cfg.WebsocketCompression = v.GetBool("websocket_compression")
 	cfg.WebsocketCompressionLevel = v.GetInt("websocket_compression_level")
 	cfg.WebsocketCompressionMinSize = v.GetInt("websocket_compression_min_size")
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
+	return cfg
+}
+
+func sockjsHandlerConfig(v *viper.Viper) httpserver.SockjsConfig {
+	cfg := httpserver.SockjsConfig{}
+	cfg.SockjsURL = v.GetString("sockjs_url")
+	cfg.HeartbeatDelay = time.Duration(v.GetInt("sockjs_heartbeat_delay")) * time.Second
+	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
+	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
+	return cfg
+}
+
+func adminHandlerConfig(v *viper.Viper) httpserver.AdminConfig {
+	cfg := httpserver.AdminConfig{}
+	cfg.WebFS = statik.FS
+	cfg.WebPath = v.GetString("admin_web_path")
+	cfg.Password = v.GetString("admin_password")
+	cfg.Secret = v.GetString("admin_secret")
+	cfg.Insecure = v.GetBool("admin_insecure")
 	return cfg
 }
 
@@ -1057,7 +1035,7 @@ func setLogHandler(n *node.Node) {
 		level = logging.INFO
 	}
 	handler := newLogHandler()
-	n.SetLogger(logging.New(level, handler.handle))
+	n.SetLogHandler(level, handler.handle)
 }
 
 type logHandler struct {
@@ -1099,7 +1077,6 @@ func (h *logHandler) handle(entry logging.Entry) {
 		return
 	}
 }
-
 
 // HandlerFlag is a bit mask of handlers that must be enabled in mux.
 type HandlerFlag int
@@ -1163,56 +1140,41 @@ func defaultMuxOptions() MuxOptions {
 }
 
 // Mux returns a mux including set of default handlers for Centrifugo server.
-func Mux(muxOpts MuxOptions) *http.ServeMux {
+func Mux(n *node.Node, flags HandlerFlag) *http.ServeMux {
 
 	mux := http.NewServeMux()
 
-	prefix := muxOpts.Prefix
-	webPath := muxOpts.WebPath
-	webFS := muxOpts.WebFS
-	flags := muxOpts.HandlerFlags
-
 	if flags&HandlerDebug != 0 {
-		mux.Handle(prefix+"/debug/pprof/", http.HandlerFunc(pprof.Index))
-		mux.Handle(prefix+"/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
-		mux.Handle(prefix+"/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
-		mux.Handle(prefix+"/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
-		mux.Handle(prefix+"/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
+		mux.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
+		mux.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+		mux.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+		mux.Handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+		mux.Handle("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
 	}
 
 	if flags&HandlerWebsocket != 0 {
 		// register Websocket connection endpoint.
-		mux.Handle(prefix+"/connection/websocket", s.LogRequest(s.WrapShutdown(http.HandlerFunc(s.websocketHandler))))
+		mux.Handle("/connection/websocket", httpserver.LogRequest(n, httpserver.NewWebsocketHandler(n, websocketHandlerConfig(viper.GetViper()))))
 	}
 
 	if flags&HandlerSockJS != 0 {
 		// register SockJS connection endpoints.
-		sjsh := newSockJSHandler(s, path.Join(prefix, "/connection/sockjs"), muxOpts.SockjsOptions)
-		mux.Handle(path.Join(prefix, "/connection/sockjs")+"/", s.log(s.wrapShutdown(sjsh)))
+		mux.Handle("/connection/sockjs", httpserver.LogRequest(n, httpserver.NewSockjsHandler(n, sockjsHandlerConfig(viper.GetViper()))))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
-		mux.Handle(prefix+"/api", s.log(s.apiKeyAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
+		mux.Handle("/api", httpserver.LogRequest(n, httpserver.NewAPIHandler(n, httpserver.APIConfig{})))
 	}
 
 	if flags&HandlerPrometheus != 0 {
 		// register Prometheus metrics export endpoint.
-		mux.Handle(prefix+"/metrics", s.log(s.wrapShutdown(promhttp.Handler())))
+		mux.Handle("/metrics", httpserver.LogRequest(n, promhttp.Handler()))
 	}
 
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
-		mux.Handle(prefix+"/admin/auth", s.log(http.HandlerFunc(s.authHandler)))
-		mux.Handle(prefix+"/admin/api", s.log(s.adminSecureTokenAuth(s.wrapShutdown(http.HandlerFunc(s.apiHandler)))))
-		// serve admin single-page web application.
-		if webPath != "" {
-			webPrefix := prefix + "/"
-			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(webPath))))
-		} else if webFS != nil {
-			webPrefix := prefix + "/"
-			mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(webFS)))
-		}
+		mux.Handle("/", httpserver.LogRequest(n, httpserver.NewAdminHandler(n, adminHandlerConfig(viper.GetViper()))))
 	}
 
 	return mux

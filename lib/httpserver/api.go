@@ -16,8 +16,8 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 )
 
-// APIHandlerConfig ...
-type APIHandlerConfig struct {
+// APIConfig ...
+type APIConfig struct {
 	// // APIKey allows to protect API handler with API key authorization.
 	// // This auth method makes sense when you deploy Centrifugo with TLS enabled.
 	// // Otherwise we must strongly advice users protect API endpoint with firewall.
@@ -32,12 +32,12 @@ type APIHandlerConfig struct {
 // APIHandler is responsible for processing API commands over HTTP.
 type APIHandler struct {
 	node   *node.Node
-	config APIHandlerConfig
+	config APIConfig
 	api    *api.Handler
 }
 
 // NewAPIHandler creates new APIHandler.
-func NewAPIHandler(n *node.Node, c APIHandlerConfig) *APIHandler {
+func NewAPIHandler(n *node.Node, c APIConfig) *APIHandler {
 	return &APIHandler{
 		node:   n,
 		config: c,
