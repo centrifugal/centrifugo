@@ -6,10 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/lib/node"
-
 	"github.com/centrifugal/centrifugo/lib/client"
 	"github.com/centrifugal/centrifugo/lib/logging"
+	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 
 	"github.com/igm/sockjs-go/sockjs"

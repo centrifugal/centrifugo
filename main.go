@@ -36,7 +36,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
-	"github.com/centrifugal/centrifugo/lib/statik"
+	"github.com/centrifugal/centrifugo/lib/webadmin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/FZambia/go-logger"
@@ -846,7 +846,7 @@ func apiHandlerConfig() httpserver.APIConfig {
 func adminHandlerConfig() httpserver.AdminConfig {
 	v := viper.GetViper()
 	cfg := httpserver.AdminConfig{}
-	cfg.WebFS = statik.FS
+	cfg.WebFS = webadmin.FS
 	cfg.WebPath = v.GetString("admin_web_path")
 	cfg.Password = v.GetString("admin_password")
 	cfg.Secret = v.GetString("admin_secret")

@@ -17,9 +17,8 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-// Client represents client connection to Centrifugo - at moment
-// this can be Websocket or SockJS connection. Transport of incoming
-// connection abstracted away via Session interface.
+// Client represents client connection to Centrifugo. Transport of
+// incoming connection abstracted away via Transport interface.
 type client struct {
 	mu            sync.RWMutex
 	ctx           context.Context

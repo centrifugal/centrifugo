@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/centrifugal/centrifugo/lib/node"
-
 	"github.com/centrifugal/centrifugo/lib/conns"
 	"github.com/centrifugal/centrifugo/lib/logging"
+	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 )
 
