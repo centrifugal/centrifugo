@@ -13,13 +13,6 @@ type Namespace struct {
 // Options represent channel specific configuration for namespace
 // or global channel options if set on top level of configuration.
 type Options struct {
-	// Watch determines if message published into channel will be also
-	// sent into admin channel. Note that this option must be used
-	// carefully in channels with high rate of messages. Use this option
-	// for testing or for channels with reasonable message rate.
-	// TODO: admin does not work at moment.
-	Watch bool `json:"watch"`
-
 	// Publish determines if client can publish messages into channel
 	// directly. This allows to use Centrifugo without backend. All
 	// messages go through Centrifugo and delivered to clients. But

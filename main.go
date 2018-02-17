@@ -23,8 +23,6 @@ import (
 	"syscall"
 	"time"
 
-	"google.golang.org/grpc/credentials"
-
 	"github.com/centrifugal/centrifugo/lib/channel"
 	"github.com/centrifugal/centrifugo/lib/engine"
 	"github.com/centrifugal/centrifugo/lib/engine/enginememory"
@@ -37,14 +35,15 @@ import (
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
 	"github.com/centrifugal/centrifugo/lib/webadmin"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/viper-lite"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/acme/autocert"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 // VERSION of Centrifugo server. Set on build stage.
@@ -59,75 +58,7 @@ func main() {
 		Long:  "Centrifugo – real-time messaging server",
 		Run: func(cmd *cobra.Command, args []string) {
 
-			defaults := map[string]interface{}{
-				"gomaxprocs":                      0,
-				"engine":                          "memory",
-				"name":                            "",
-				"secret":                          "",
-				"publish":                         false,
-				"anonymous":                       false,
-				"presence":                        false,
-				"presence_stats":                  false,
-				"history_size":                    0,
-				"history_lifetime":                0,
-				"history_recover":                 false,
-				"history_drop_inactive":           false,
-				"namespaces":                      "",
-				"node_ping_interval":              3,
-				"node_metrics_interval":           60,
-				"client_ping_interval":            25,
-				"client_expire":                   false,
-				"client_expired_close_delay":      25,
-				"client_stale_close_delay":        25,
-				"client_message_write_timeout":    0,
-				"client_channel_limit":            128,
-				"client_request_max_size":         65536,    // 64KB
-				"client_queue_max_size":           10485760, // 10MB
-				"client_presence_ping_interval":   25,
-				"client_presence_expire_interval": 60,
-				"channel_max_length":              255,
-				"channel_private_prefix":          "$",
-				"channel_namespace_boundary":      ":",
-				"channel_user_boundary":           "#",
-				"channel_user_separator":          ",",
-				"channel_client_boundary":         "&",
-				"user_connection_limit":           0,
-				"debug":                           false,
-				"prometheus":                      false,
-				"admin":                           false,
-				"admin_password":                  "",
-				"admin_secret":                    "",
-				"admin_insecure":                  false,
-				"admin_web_path":                  "",
-				"sockjs_url":                      "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js",
-				"sockjs_heartbeat_delay":          25,
-				"websocket_compression":           false,
-				"websocket_compression_min_size":  0,
-				"websocket_compression_level":     1,
-				"websocket_read_buffer_size":      0,
-				"websocket_write_buffer_size":     0,
-				"tls_autocert":                    false,
-				"tls_autocert_host_whitelist":     "",
-				"tls_autocert_cache_dir":          "",
-				"tls_autocert_email":              "",
-				"tls_autocert_force_rsa":          false,
-				"tls_autocert_server_name":        "",
-				"redis_prefix":                    "centrifugo",
-				"redis_connect_timeout":           1,
-				"redis_read_timeout":              10, // Must be greater than ping channel publish interval.
-				"redis_write_timeout":             1,
-				"redis_pubsub_num_workers":        0,
-				"grpc_api":                        false,
-				"grpc_api_port":                   8001,
-				"grpc_api_key":                    "",
-				"grpc_api_insecure":               false,
-				"grpc_client":                     false,
-				"grpc_client_port":                8002,
-				"shutdown_timeout":                30,
-				"shutdown_termination_delay":      1,
-			}
-
-			for k, v := range defaults {
+			for k, v := range configDefaults {
 				viper.SetDefault(k, v)
 			}
 
@@ -219,12 +150,12 @@ func main() {
 				logger.FATAL.Fatalf("Error running node: %v", err)
 			}
 
+			logger.INFO.Printf("Starting Centrifugo %s", VERSION)
 			logger.INFO.Printf("Config path: %s", absConfPath)
-			logger.INFO.Printf("Version: %s", VERSION)
 			logger.INFO.Printf("PID: %d", os.Getpid())
 			logger.INFO.Printf("Engine: %s", e.Name())
 			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
-			if c.ClientInsecure {
+			if viper.GetBool("client_insecure") {
 				logger.WARN.Println("INSECURE client mode enabled")
 			}
 			if viper.GetBool("api_insecure") {
@@ -234,7 +165,7 @@ func main() {
 				logger.WARN.Println("INSECURE admin mode enabled")
 			}
 			if viper.GetBool("debug") {
-				logger.WARN.Println("DEBUG mode enabled")
+				logger.WARN.Println("DEBUG mode enabled, see /debug/pprof")
 			}
 
 			var grpcAPIServer *grpc.Server
@@ -387,6 +318,74 @@ func main() {
 	rootCmd.Execute()
 }
 
+var configDefaults = map[string]interface{}{
+	"gomaxprocs":                      0,
+	"engine":                          "memory",
+	"name":                            "",
+	"secret":                          "",
+	"publish":                         false,
+	"anonymous":                       false,
+	"presence":                        false,
+	"presence_stats":                  false,
+	"history_size":                    0,
+	"history_lifetime":                0,
+	"history_recover":                 false,
+	"history_drop_inactive":           false,
+	"namespaces":                      "",
+	"node_ping_interval":              3,
+	"node_metrics_interval":           60,
+	"client_ping_interval":            25,
+	"client_expire":                   false,
+	"client_expired_close_delay":      25,
+	"client_stale_close_delay":        25,
+	"client_message_write_timeout":    0,
+	"client_channel_limit":            128,
+	"client_request_max_size":         65536,    // 64KB
+	"client_queue_max_size":           10485760, // 10MB
+	"client_presence_ping_interval":   25,
+	"client_presence_expire_interval": 60,
+	"channel_max_length":              255,
+	"channel_private_prefix":          "$",
+	"channel_namespace_boundary":      ":",
+	"channel_user_boundary":           "#",
+	"channel_user_separator":          ",",
+	"channel_client_boundary":         "&",
+	"user_connection_limit":           0,
+	"debug":                           false,
+	"prometheus":                      false,
+	"admin":                           false,
+	"admin_password":                  "",
+	"admin_secret":                    "",
+	"admin_insecure":                  false,
+	"admin_web_path":                  "",
+	"sockjs_url":                      "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js",
+	"sockjs_heartbeat_delay":          25,
+	"websocket_compression":           false,
+	"websocket_compression_min_size":  0,
+	"websocket_compression_level":     1,
+	"websocket_read_buffer_size":      0,
+	"websocket_write_buffer_size":     0,
+	"tls_autocert":                    false,
+	"tls_autocert_host_whitelist":     "",
+	"tls_autocert_cache_dir":          "",
+	"tls_autocert_email":              "",
+	"tls_autocert_force_rsa":          false,
+	"tls_autocert_server_name":        "",
+	"redis_prefix":                    "centrifugo",
+	"redis_connect_timeout":           1,
+	"redis_read_timeout":              10, // Must be greater than ping channel publish interval.
+	"redis_write_timeout":             1,
+	"redis_pubsub_num_workers":        0,
+	"grpc_api":                        false,
+	"grpc_api_port":                   8001,
+	"grpc_api_key":                    "",
+	"grpc_api_insecure":               false,
+	"grpc_client":                     false,
+	"grpc_client_port":                8002,
+	"shutdown_timeout":                30,
+	"shutdown_termination_delay":      1,
+}
+
 func writePidFile(pidFile string) error {
 	if pidFile == "" {
 		return nil
@@ -451,9 +450,6 @@ func handleSignals(n *node.Node, httpServers []*http.Server, grpcAPIServer *grpc
 				}
 				os.Exit(1)
 			})
-
-			// TODO: http server shutdown.
-			// httpServer.Shutdown()
 
 			var wg sync.WaitGroup
 
