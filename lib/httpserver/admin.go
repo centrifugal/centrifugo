@@ -47,7 +47,7 @@ func NewAdminHandler(n *node.Node, c AdminConfig) *AdminHandler {
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/admin/auth", http.HandlerFunc(h.authHandler))
-	mux.Handle("/admin/api", h.adminSecureTokenAuth(NewAPIHandler(n, APIConfig{})))
+	mux.Handle("/admin/api", h.adminSecureTokenAuth(NewAPIHandler(n, APIConfig{Insecure: true})))
 	webPrefix := "/"
 	if c.WebPath != "" {
 		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(c.WebPath))))

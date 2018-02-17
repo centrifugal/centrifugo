@@ -18,15 +18,15 @@ import (
 
 // APIConfig ...
 type APIConfig struct {
-	// // APIKey allows to protect API handler with API key authorization.
-	// // This auth method makes sense when you deploy Centrifugo with TLS enabled.
-	// // Otherwise we must strongly advice users protect API endpoint with firewall.
-	// APIKey string `json:"api_key"`
+	// Key allows to protect API handler with API key authorization.
+	// This auth method makes sense when you deploy Centrifugo with TLS enabled.
+	// Otherwise we must strongly advice users protect API endpoint with firewall.
+	Key string `json:"api_key"`
 
-	// // APIInsecure turns off API key check.
-	// // This can be useful if API endpoint protected with firewall or someone wants
-	// // to play with API (for example from command line using CURL).
-	// APIInsecure bool `json:"api_insecure"`
+	// Insecure turns off API key check.
+	// This can be useful if API endpoint protected with firewall or someone wants
+	// to play with API (for example from command line using CURL).
+	Insecure bool `json:"api_insecure"`
 }
 
 // APIHandler is responsible for processing API commands over HTTP.
@@ -46,6 +46,12 @@ func NewAPIHandler(n *node.Node, c APIConfig) *APIHandler {
 }
 
 func (s *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+
+	if !s.checkAuth(r) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	defer func(started time.Time) {
 		apiHandlerDurationSummary.Observe(float64(time.Since(started).Seconds()))
 	}(time.Now())
@@ -109,6 +115,26 @@ func (s *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	resp := encoder.Finish()
 	w.Header().Set("Content-Type", contentType)
 	w.Write(resp)
+}
+
+func (s *APIHandler) checkAuth(r *http.Request) bool {
+	apiKey := s.config.Key
+	if apiKey == "" && !s.config.Insecure {
+		s.node.Logger().Log(logging.NewEntry(logging.ERROR, "API key is not configured"))
+		return false
+	}
+	if !s.config.Insecure {
+		authorization := r.Header.Get("Authorization")
+		parts := strings.Fields(authorization)
+		if len(parts) != 2 {
+			return false
+		}
+		authMethod := strings.ToLower(parts[0])
+		if authMethod != "apikey" || parts[1] != apiKey {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding, cmd *apiproto.Command) (*apiproto.Reply, error) {

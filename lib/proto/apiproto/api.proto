@@ -12,21 +12,21 @@ option (gogoproto.populate_all) = true;
 option (gogoproto.testgen_all) = true;
 
 message ClientInfo {
-    string User = 1 [(gogoproto.jsontag) = "user"];
-    string Client = 2 [(gogoproto.jsontag) = "client"];
-    bytes ConnInfo = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "conn_info,omitempty", (gogoproto.nullable) = false];
-    bytes ChanInfo = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "chan_info,omitempty", (gogoproto.nullable) = false];
+    string user = 1 [(gogoproto.jsontag) = "user"];
+    string client = 2 [(gogoproto.jsontag) = "client"];
+    bytes conn_info = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "conn_info,omitempty", (gogoproto.nullable) = false];
+    bytes chan_info = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "chan_info,omitempty", (gogoproto.nullable) = false];
 }
 
 message Publication {
-    string UID = 1 [(gogoproto.jsontag) = "uid,omitempty"];
-    bytes Data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
-    ClientInfo Info = 3 [(gogoproto.jsontag) = "info,omitempty"];
+    string uid = 1 [(gogoproto.customname) = "UID", (gogoproto.jsontag) = "uid,omitempty"];
+    bytes data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+    ClientInfo info = 3 [(gogoproto.jsontag) = "info,omitempty"];
 }
 
 message Error {
-    uint32 Code = 1 [(gogoproto.jsontag) = "code"];
-    string Message = 2 [(gogoproto.jsontag) = "message"];
+    uint32 code = 1 [(gogoproto.jsontag) = "code"];
+    string message = 2 [(gogoproto.jsontag) = "message"];
 }
 
 enum MethodType {
@@ -45,137 +45,137 @@ enum MethodType {
 }
 
 message Command {
-    uint32 ID = 1 [(gogoproto.jsontag) = "id"];
-    MethodType Method = 2 [(gogoproto.jsontag) = "method"];
-    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = false];
+    uint32 id = 1 [(gogoproto.customname) = "ID", (gogoproto.jsontag) = "id"];
+    MethodType method = 2 [(gogoproto.jsontag) = "method"];
+    bytes params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = false];
 }
 
 message Reply {
-    uint32 ID = 1 [(gogoproto.jsontag) = "id,omitempty"];
-    Error Error = 2 [(gogoproto.jsontag) = "error,omitempty"];
-    bytes Result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "result,omitempty", (gogoproto.nullable) = false];
+    uint32 id = 1 [(gogoproto.customname) = "ID", (gogoproto.jsontag) = "id,omitempty"];
+    Error error = 2 [(gogoproto.jsontag) = "error,omitempty"];
+    bytes result = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "result,omitempty", (gogoproto.nullable) = false];
 }
 
 message PublishRequest {
-    string Channel = 1 [(gogoproto.jsontag) = "channel"];
-    bytes Data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
-    string UID = 3 [(gogoproto.jsontag) = "uid"];
+    string channel = 1 [(gogoproto.jsontag) = "channel"];
+    bytes data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+    string uid = 3 [(gogoproto.customname) = "UID", (gogoproto.jsontag) = "uid"];
 }
 
 message PublishResponse {
-    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
-    PublishResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+    Error error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    PublishResult result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message PublishResult {}
 
 message BroadcastRequest {
-    repeated string Channels = 1 [(gogoproto.jsontag) = "channels"];
-    bytes Data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
-    string UID = 3 [(gogoproto.jsontag) = "uid"];
+    repeated string channels = 1 [(gogoproto.jsontag) = "channels"];
+    bytes data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifugo/lib/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
+    string uid = 3 [(gogoproto.customname) = "UID", (gogoproto.jsontag) = "uid"];
 }
 
 message BroadcastResponse {
-    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
-    BroadcastResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+    Error error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    BroadcastResult result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message BroadcastResult {}
 
 message UnsubscribeRequest {
-    string Channel = 1 [(gogoproto.jsontag) = "channel"];
-    string User = 2 [(gogoproto.jsontag) = "user"];
+    string channel = 1 [(gogoproto.jsontag) = "channel"];
+    string user = 2 [(gogoproto.jsontag) = "user"];
 }
 
 message UnsubscribeResponse {
-    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
-    UnsubscribeResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+    Error error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    UnsubscribeResult result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message UnsubscribeResult {}
 
 message DisconnectRequest {
-    string User = 1 [(gogoproto.jsontag) = "user"];
+    string user = 1 [(gogoproto.jsontag) = "user"];
 }
 
 message DisconnectResponse {
-    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
-    DisconnectResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+    Error error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    DisconnectResult result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message DisconnectResult {}
 
 message PresenceRequest {
-    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+    string channel = 1 [(gogoproto.jsontag) = "channel"];
 }
 
 message PresenceResponse {
-    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
-    PresenceResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+    Error error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    PresenceResult result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message PresenceResult {
-    map<string, ClientInfo> Presence = 1 [(gogoproto.jsontag) = "presence"];
+    map<string, ClientInfo> presence = 1 [(gogoproto.jsontag) = "presence"];
 }
 
 message PresenceStatsRequest {
-    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+    string channel = 1 [(gogoproto.jsontag) = "channel"];
 }
 
 message PresenceStatsResponse {
-    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
-    PresenceStatsResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+    Error error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    PresenceStatsResult result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message PresenceStatsResult {
-    uint32 NumClients = 1 [(gogoproto.jsontag) = "num_clients"];
-    uint32 NumUsers = 2 [(gogoproto.jsontag) = "num_users"];
+    uint32 num_clients = 1 [(gogoproto.jsontag) = "num_clients"];
+    uint32 num_users = 2 [(gogoproto.jsontag) = "num_users"];
 }
 
 message HistoryRequest {
-    string Channel = 1 [(gogoproto.jsontag) = "channel"];
+    string channel = 1 [(gogoproto.jsontag) = "channel"];
 }
 
 message HistoryResponse {
-    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
-    HistoryResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+    Error error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    HistoryResult result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message HistoryResult {
-    repeated Publication Publications = 1 [(gogoproto.jsontag) = "publications", (gogoproto.nullable) = true];
+    repeated Publication publications = 1 [(gogoproto.jsontag) = "publications", (gogoproto.nullable) = true];
 }
 
 message ChannelsRequest {}
 
 message ChannelsResponse {
-    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
-    ChannelsResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+    Error error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    ChannelsResult result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message ChannelsResult {
-    repeated string Channels = 1 [(gogoproto.jsontag) = "channels"];
+    repeated string channels = 1 [(gogoproto.jsontag) = "channels"];
 }
 
 message InfoRequest {}
 
 message InfoResponse {
-    Error Error = 1 [(gogoproto.jsontag) = "error,omitempty"];
-    InfoResult Result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+    Error error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    InfoResult result = 2 [(gogoproto.jsontag) = "result,omitempty"];
 }
 
 message InfoResult {
-    string Engine = 1 [(gogoproto.jsontag) = "engine"];
-    repeated NodeResult Nodes = 2 [(gogoproto.jsontag) = "nodes"];
+    string engine = 1 [(gogoproto.jsontag) = "engine"];
+    repeated NodeResult nodes = 2 [(gogoproto.jsontag) = "nodes"];
 }
 
 message NodeResult {
-    string UID = 1 [(gogoproto.jsontag) = "uid"];
-    string Name = 2 [(gogoproto.jsontag) = "name"];
-    string Version = 3 [(gogoproto.jsontag) = "version"];
-    uint32 NumClients = 4 [(gogoproto.jsontag) = "num_clients"];
-    uint32 NumUsers = 5 [(gogoproto.jsontag) = "num_users"];
-    uint32 NumChannels = 6 [(gogoproto.jsontag) = "num_channels"];
-    uint32 Uptime = 7 [(gogoproto.jsontag) = "uptime"];
+    string uid = 1 [(gogoproto.customname) = "UID", (gogoproto.jsontag) = "uid"];
+    string name = 2 [(gogoproto.jsontag) = "name"];
+    string version = 3 [(gogoproto.jsontag) = "version"];
+    uint32 num_clients = 4 [(gogoproto.jsontag) = "num_clients"];
+    uint32 num_users = 5 [(gogoproto.jsontag) = "num_users"];
+    uint32 num_channels = 6 [(gogoproto.jsontag) = "num_channels"];
+    uint32 uptime = 7 [(gogoproto.jsontag) = "uptime"];
 }
 
 service Centrifugo {

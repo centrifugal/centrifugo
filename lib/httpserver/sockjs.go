@@ -93,12 +93,13 @@ func (t *sockjsTransport) Close(disconnect *proto.Disconnect) error {
 
 // SockjsConfig ...
 type SockjsConfig struct {
-	// SockjsPrefix sets prefix for SockJS handler endpoint path.
-	SockjsPrefix string
+	// HandlerPrefix sets prefix for SockJS handler endpoint path.
+	HandlerPrefix string
 
-	// SockjsURL is URL to SockJS client javascript library.
-	SockjsURL string
+	// URL is URL address to SockJS client javascript library.
+	URL string
 
+	// HeartbeatDelay sets how often to send heartbeat frames to clients.
 	HeartbeatDelay time.Duration
 
 	// WebsocketReadBufferSize is a parameter that is used for raw websocket Upgrader.
@@ -128,7 +129,7 @@ func NewSockjsHandler(n *node.Node, c SockjsConfig) *SockjsHandler {
 	// library version on client and server sides when using iframe
 	// based SockJS transports, otherwise SockJS will raise error
 	// about version mismatch.
-	options.SockJSURL = c.SockjsURL
+	options.SockJSURL = c.URL
 
 	options.HeartbeatDelay = c.HeartbeatDelay
 
@@ -137,7 +138,7 @@ func NewSockjsHandler(n *node.Node, c SockjsConfig) *SockjsHandler {
 		config: c,
 	}
 
-	handler := newSockJSHandler(s, c.SockjsPrefix, options)
+	handler := newSockJSHandler(s, c.HandlerPrefix, options)
 	s.handler = handler
 	return s
 }

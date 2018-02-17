@@ -1,6 +1,5 @@
 {
   "secret": "secret",
-  "admin": true,
   "admin_password": "password",
   "admin_secret": "secret",
   "namespaces": [

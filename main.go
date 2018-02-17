@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -40,7 +41,6 @@ import (
 
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/viper-lite"
-	"github.com/igm/sockjs-go/sockjs"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/acme/autocert"
@@ -62,10 +62,8 @@ func main() {
 			defaults := map[string]interface{}{
 				"gomaxprocs":                      0,
 				"engine":                          "memory",
-				"debug":                           false,
 				"name":                            "",
 				"secret":                          "",
-				"watch":                           false,
 				"publish":                         false,
 				"anonymous":                       false,
 				"presence":                        false,
@@ -94,7 +92,8 @@ func main() {
 				"channel_user_separator":          ",",
 				"channel_client_boundary":         "&",
 				"user_connection_limit":           0,
-				"http_prefix":                     "",
+				"debug":                           false,
+				"prometheus":                      false,
 				"admin":                           false,
 				"admin_password":                  "",
 				"admin_secret":                    "",
@@ -133,7 +132,7 @@ func main() {
 			}
 
 			bindEnvs := []string{
-				"engine", "debug", "secret", "connection_lifetime", "watch",
+				"engine", "debug", "secret", "connection_lifetime",
 				"publish", "anonymous", "join_leave", "presence", "presence_stats",
 				"history_recover", "history_size", "history_lifetime", "history_drop_inactive",
 				"client_insecure", "api_insecure", "admin", "admin_password", "admin_secret",
@@ -145,8 +144,8 @@ func main() {
 
 			bindPFlags := []string{
 				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin",
-				"client_insecure", "admin_insecure", "api_insecure", "port", "api_port", "admin_port",
-				"address", "tls", "tls_cert", "tls_key",
+				"client_insecure", "admin_insecure", "api_insecure", "port",
+				"address", "tls", "tls_cert", "tls_key", "internal_port", "prometheus",
 				"redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
 				"redis_pool", "redis_master_name", "redis_sentinels", "grpc_api", "grpc_client",
 			}
@@ -191,7 +190,7 @@ func main() {
 				}
 			}
 
-			c := newNodeConfig(viper.GetViper())
+			c := nodeConfig()
 			err = c.Validate()
 			if err != nil {
 				logger.FATAL.Fatalf("Error validating config: %v", err)
@@ -205,9 +204,9 @@ func main() {
 
 			var e engine.Engine
 			if engineName == "memory" {
-				e, err = memoryEngine(nod, viper.GetViper())
+				e, err = memoryEngine(nod)
 			} else if engineName == "redis" {
-				e, err = redisEngine(nod, viper.GetViper())
+				e, err = redisEngine(nod)
 			} else {
 				logger.FATAL.Fatalf("Unknown engine: %s", engineName)
 			}
@@ -218,6 +217,24 @@ func main() {
 
 			if err = nod.Run(e); err != nil {
 				logger.FATAL.Fatalf("Error running node: %v", err)
+			}
+
+			logger.INFO.Printf("Config path: %s", absConfPath)
+			logger.INFO.Printf("Version: %s", VERSION)
+			logger.INFO.Printf("PID: %d", os.Getpid())
+			logger.INFO.Printf("Engine: %s", e.Name())
+			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
+			if c.ClientInsecure {
+				logger.WARN.Println("INSECURE client mode enabled")
+			}
+			if viper.GetBool("api_insecure") {
+				logger.WARN.Println("INSECURE API mode enabled")
+			}
+			if viper.GetBool("admin_insecure") {
+				logger.WARN.Println("INSECURE admin mode enabled")
+			}
+			if viper.GetBool("debug") {
+				logger.WARN.Println("DEBUG mode enabled")
 			}
 
 			var grpcAPIServer *grpc.Server
@@ -272,29 +289,6 @@ func main() {
 				}()
 			}
 
-			go func() {
-				if err = runHTTPServer(nod); err != nil {
-					logger.FATAL.Fatalf("Error running server: %v", err)
-				}
-			}()
-
-			logger.INFO.Printf("Config path: %s", absConfPath)
-			logger.INFO.Printf("Version: %s", VERSION)
-			logger.INFO.Printf("PID: %d", os.Getpid())
-			logger.INFO.Printf("Engine: %s", e.Name())
-			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
-			if c.ClientInsecure {
-				logger.WARN.Println("INSECURE client mode enabled")
-			}
-			if viper.GetBool("api_insecure") {
-				logger.WARN.Println("INSECURE API mode enabled")
-			}
-			if viper.GetBool("admin_insecure") {
-				logger.WARN.Println("INSECURE admin mode enabled")
-			}
-			if viper.GetBool("debug") {
-				logger.WARN.Println("DEBUG mode enabled")
-			}
 			if grpcAPIServer != nil {
 				logger.INFO.Printf("Serving GRPC API service on %s", grpcAPIAddr)
 			}
@@ -302,7 +296,12 @@ func main() {
 				logger.INFO.Printf("Serving GRPC client service on %s", grpcClientAddr)
 			}
 
-			handleSignals(nod, grpcAPIServer, grpcClientServer)
+			servers, err := runHTTPServers(nod)
+			if err != nil {
+				logger.FATAL.Fatalf("Error running HTTP server: %v", err)
+			}
+
+			handleSignals(nod, servers, grpcAPIServer, grpcClientServer)
 		},
 	}
 
@@ -313,8 +312,10 @@ func main() {
 	rootCmd.Flags().StringP("pid_file", "", "", "optional path to create PID file")
 	rootCmd.Flags().StringP("name", "n", "", "unique node name")
 
-	rootCmd.Flags().BoolP("debug", "d", false, "enable debug mode")
-	rootCmd.Flags().BoolP("admin", "", false, "enable admin socket")
+	rootCmd.Flags().BoolP("debug", "", false, "enable debug endpoints")
+	rootCmd.Flags().BoolP("admin", "", false, "enable admin web interface")
+	rootCmd.Flags().BoolP("prometheus", "", false, "enable Prometheus metrics endpoint")
+
 	rootCmd.Flags().BoolP("client_insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolP("api_insecure", "", false, "use insecure API mode")
 	rootCmd.Flags().BoolP("admin_insecure", "", false, "use insecure admin mode – no auth required for admin socket")
@@ -325,8 +326,7 @@ func main() {
 
 	rootCmd.Flags().StringP("address", "a", "", "interface address to listen on")
 	rootCmd.Flags().StringP("port", "p", "8000", "port to bind HTTP server to")
-	rootCmd.Flags().StringP("api_port", "", "", "custom port for API endpoints")
-	rootCmd.Flags().StringP("admin_port", "", "", "custom port for admin endpoints")
+	rootCmd.Flags().StringP("internal_port", "", "", "custom port for internal endpoints")
 
 	rootCmd.Flags().BoolP("grpc_api", "", false, "enable GRPC API server")
 	rootCmd.Flags().BoolP("grpc_client", "", false, "enable GRPC client server")
@@ -412,7 +412,7 @@ func setupLogging() {
 	}
 }
 
-func handleSignals(n *node.Node, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
+func handleSignals(n *node.Node, httpServers []*http.Server, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -436,7 +436,7 @@ func handleSignals(n *node.Node, grpcAPIServer *grpc.Server, grpcClientServer *g
 
 			setupLogging()
 
-			cfg := newNodeConfig(viper.GetViper())
+			cfg := nodeConfig()
 			if err := n.Reload(cfg); err != nil {
 				logger.CRITICAL.Printf("Error reloading: %v", err)
 				continue
@@ -471,6 +471,14 @@ func handleSignals(n *node.Node, grpcAPIServer *grpc.Server, grpcClientServer *g
 					defer wg.Done()
 					grpcClientServer.GracefulStop()
 				}()
+			}
+
+			for _, srv := range httpServers {
+				wg.Add(1)
+				go func(srv *http.Server) {
+					defer wg.Done()
+					srv.Shutdown(context.Background())
+				}(srv)
 			}
 
 			n.Shutdown()
@@ -541,21 +549,18 @@ func getTLSConfig() (*tls.Config, error) {
 	return nil, nil
 }
 
-func runHTTPServer(n *node.Node) error {
+func runHTTPServers(n *node.Node) ([]*http.Server, error) {
 	debug := viper.GetBool("debug")
 
 	admin := viper.GetBool("admin")
+	prometheus := viper.GetBool("prometheus")
 
 	httpAddress := viper.GetString("address")
-	httpClientPort := viper.GetString("port")
-	httpAdminPort := viper.GetString("admin_port")
-	httpAPIPort := viper.GetString("api_port")
+	httpPort := viper.GetString("port")
+	httpInternalPort := viper.GetString("internal_port")
 
-	if httpAPIPort == "" {
-		httpAPIPort = httpClientPort
-	}
-	if httpAdminPort == "" {
-		httpAdminPort = httpClientPort
+	if httpInternalPort == "" {
+		httpInternalPort = httpPort
 	}
 
 	// portToHandlerFlags contains mapping between ports and handler flags
@@ -564,24 +569,26 @@ func runHTTPServer(n *node.Node) error {
 
 	var portFlags HandlerFlag
 
-	portFlags = portToHandlerFlags[httpClientPort]
+	portFlags = portToHandlerFlags[httpPort]
 	portFlags |= HandlerWebsocket | HandlerSockJS
-	portToHandlerFlags[httpClientPort] = portFlags
+	portToHandlerFlags[httpPort] = portFlags
 
-	portFlags = portToHandlerFlags[httpAPIPort]
+	portFlags = portToHandlerFlags[httpInternalPort]
 	portFlags |= HandlerAPI
-	portToHandlerFlags[httpAPIPort] = portFlags
 
-	portFlags = portToHandlerFlags[httpAdminPort]
 	if admin {
 		portFlags |= HandlerAdmin
+	}
+	if prometheus {
+		portFlags |= HandlerPrometheus
 	}
 	if debug {
 		portFlags |= HandlerDebug
 	}
-	portToHandlerFlags[httpAdminPort] = portFlags
+	portToHandlerFlags[httpInternalPort] = portFlags
 
-	var wg sync.WaitGroup
+	servers := []*http.Server{}
+
 	// Iterate over port to flags mapping and start HTTP servers
 	// on separate ports serving handlers specified in flags.
 	for handlerPort, handlerFlags := range portToHandlerFlags {
@@ -594,33 +601,36 @@ func runHTTPServer(n *node.Node) error {
 
 		logger.INFO.Printf("Serving %s endpoints on %s\n", handlerFlags, addr)
 
-		wg.Add(1)
+		tlsConfig, err := getTLSConfig()
+		if err != nil {
+			logger.FATAL.Fatalf("Can not get TLS config: %v", err)
+		}
+		server := &http.Server{
+			Addr:      addr,
+			Handler:   mux,
+			TLSConfig: tlsConfig,
+		}
+
+		servers = append(servers, server)
+
 		go func() {
-			defer wg.Done()
-			tlsConfig, err := getTLSConfig()
-			if err != nil {
-				logger.FATAL.Fatalf("Can not get TLS config: %v", err)
-			}
-			server := &http.Server{
-				Addr:      addr,
-				Handler:   mux,
-				TLSConfig: tlsConfig,
-			}
 			if tlsConfig != nil {
 				if err := server.ListenAndServeTLS("", ""); err != nil {
-					logger.FATAL.Fatalf("ListenAndServe: %v", err)
+					if err != http.ErrServerClosed {
+						logger.FATAL.Fatalf("ListenAndServe: %v", err)
+					}
 				}
 			} else {
 				if err := server.ListenAndServe(); err != nil {
-					logger.FATAL.Fatalf("ListenAndServe: %v", err)
+					if err != http.ErrServerClosed {
+						logger.FATAL.Fatalf("ListenAndServe: %v", err)
+					}
 				}
 			}
 		}()
 	}
 
-	wg.Wait()
-
-	return nil
+	return servers, nil
 }
 
 // pathExists returns whether the given file or directory exists or not
@@ -715,7 +725,7 @@ func validateConfig(f string) error {
 			return errors.New("Unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
 		}
 	}
-	c := newNodeConfig(v)
+	c := nodeConfig()
 	return c.Validate()
 }
 
@@ -728,14 +738,14 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-// newNodeConfig creates new node.Config using getter interface.
-func newNodeConfig(v *viper.Viper) *node.Config {
+func nodeConfig() *node.Config {
+	v := viper.GetViper()
+
 	cfg := &node.Config{}
 
-	cfg.Name = applicationName(v)
-
+	cfg.Name = applicationName()
 	cfg.Secret = v.GetString("secret")
-	cfg.Watch = v.GetBool("watch")
+
 	cfg.Publish = v.GetBool("publish")
 	cfg.Anonymous = v.GetBool("anonymous")
 	cfg.Presence = v.GetBool("presence")
@@ -778,7 +788,9 @@ func newNodeConfig(v *viper.Viper) *node.Config {
 
 // applicationName returns a name for this node. If no name provided
 // in configuration then it constructs node name based on hostname and port
-func applicationName(v *viper.Viper) string {
+func applicationName() string {
+	v := viper.GetViper()
+
 	name := v.GetString("name")
 	if name != "" {
 		return name
@@ -802,7 +814,8 @@ func namespacesFromConfig(v *viper.Viper) []channel.Namespace {
 	return ns
 }
 
-func websocketHandlerConfig(v *viper.Viper) httpserver.WebsocketConfig {
+func websocketHandlerConfig() httpserver.WebsocketConfig {
+	v := viper.GetViper()
 	cfg := httpserver.WebsocketConfig{}
 	cfg.WebsocketCompression = v.GetBool("websocket_compression")
 	cfg.WebsocketCompressionLevel = v.GetInt("websocket_compression_level")
@@ -812,16 +825,26 @@ func websocketHandlerConfig(v *viper.Viper) httpserver.WebsocketConfig {
 	return cfg
 }
 
-func sockjsHandlerConfig(v *viper.Viper) httpserver.SockjsConfig {
+func sockjsHandlerConfig() httpserver.SockjsConfig {
+	v := viper.GetViper()
 	cfg := httpserver.SockjsConfig{}
-	cfg.SockjsURL = v.GetString("sockjs_url")
+	cfg.URL = v.GetString("sockjs_url")
 	cfg.HeartbeatDelay = time.Duration(v.GetInt("sockjs_heartbeat_delay")) * time.Second
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	return cfg
 }
 
-func adminHandlerConfig(v *viper.Viper) httpserver.AdminConfig {
+func apiHandlerConfig() httpserver.APIConfig {
+	v := viper.GetViper()
+	cfg := httpserver.APIConfig{}
+	cfg.Key = v.GetString("api_key")
+	cfg.Insecure = v.GetBool("api_insecure")
+	return cfg
+}
+
+func adminHandlerConfig() httpserver.AdminConfig {
+	v := viper.GetViper()
 	cfg := httpserver.AdminConfig{}
 	cfg.WebFS = statik.FS
 	cfg.WebPath = v.GetString("admin_web_path")
@@ -831,37 +854,39 @@ func adminHandlerConfig(v *viper.Viper) httpserver.AdminConfig {
 	return cfg
 }
 
-func memoryEngine(n *node.Node, v *viper.Viper) (engine.Engine, error) {
-	c, err := memoryEngineConfig(v)
+func memoryEngine(n *node.Node) (engine.Engine, error) {
+	c, err := memoryEngineConfig()
 	if err != nil {
 		return nil, err
 	}
 	return enginememory.New(n, c)
 }
 
-func redisEngine(n *node.Node, v *viper.Viper) (engine.Engine, error) {
-	c, err := redisEngineConfig(v)
+func redisEngine(n *node.Node) (engine.Engine, error) {
+	c, err := redisEngineConfig()
 	if err != nil {
 		return nil, err
 	}
 	return engineredis.New(n, c)
 }
 
-func memoryEngineConfig(getter *viper.Viper) (*enginememory.Config, error) {
+func memoryEngineConfig() (*enginememory.Config, error) {
 	return &enginememory.Config{}, nil
 }
 
-func redisEngineConfig(getter *viper.Viper) (*engineredis.Config, error) {
+func redisEngineConfig() (*engineredis.Config, error) {
+	v := viper.GetViper()
+
 	numShards := 1
 
-	hostsConf := getter.GetString("redis_host")
-	portsConf := getter.GetString("redis_port")
-	urlsConf := getter.GetString("redis_url")
-	masterNamesConf := getter.GetString("redis_master_name")
-	sentinelsConf := getter.GetString("redis_sentinels")
+	hostsConf := v.GetString("redis_host")
+	portsConf := v.GetString("redis_port")
+	urlsConf := v.GetString("redis_url")
+	masterNamesConf := v.GetString("redis_master_name")
+	sentinelsConf := v.GetString("redis_sentinels")
 
-	password := getter.GetString("redis_password")
-	db := getter.GetString("redis_db")
+	password := v.GetString("redis_password")
+	db := v.GetString("redis_db")
 
 	hosts := []string{}
 	if hostsConf != "" {
@@ -1014,12 +1039,12 @@ func redisEngineConfig(getter *viper.Viper) (*engineredis.Config, error) {
 			DB:               dbs[i],
 			MasterName:       masterNames[i],
 			SentinelAddrs:    sentinelAddrs,
-			PoolSize:         getter.GetInt("redis_pool"),
-			Prefix:           getter.GetString("redis_prefix"),
-			PubSubNumWorkers: getter.GetInt("redis_pubsub_num_workers"),
-			ConnectTimeout:   time.Duration(getter.GetInt("redis_connect_timeout")) * time.Second,
-			ReadTimeout:      time.Duration(getter.GetInt("redis_read_timeout")) * time.Second,
-			WriteTimeout:     time.Duration(getter.GetInt("redis_write_timeout")) * time.Second,
+			PoolSize:         v.GetInt("redis_pool"),
+			Prefix:           v.GetString("redis_prefix"),
+			PubSubNumWorkers: v.GetInt("redis_pubsub_num_workers"),
+			ConnectTimeout:   time.Duration(v.GetInt("redis_connect_timeout")) * time.Second,
+			ReadTimeout:      time.Duration(v.GetInt("redis_read_timeout")) * time.Second,
+			WriteTimeout:     time.Duration(v.GetInt("redis_write_timeout")) * time.Second,
 		}
 		shardConfigs = append(shardConfigs, conf)
 	}
@@ -1030,7 +1055,8 @@ func redisEngineConfig(getter *viper.Viper) (*engineredis.Config, error) {
 }
 
 func setLogHandler(n *node.Node) {
-	level, ok := logging.StringToLevel[strings.ToLower(viper.GetString("log_level"))]
+	v := viper.GetViper()
+	level, ok := logging.StringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {
 		level = logging.INFO
 	}
@@ -1106,7 +1132,7 @@ var handlerText = map[HandlerFlag]string{
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerDebug}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug}
 	endpoints := []string{}
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -1118,25 +1144,6 @@ func (flags HandlerFlag) String() string {
 		}
 	}
 	return strings.Join(endpoints, ", ")
-}
-
-// MuxOptions contain various options for DefaultMux.
-type MuxOptions struct {
-	Prefix        string
-	WebPath       string
-	WebFS         http.FileSystem
-	SockjsOptions sockjs.Options
-	HandlerFlags  HandlerFlag
-}
-
-// defaultMuxOptions contain default Mux Options to start Centrifugo server.
-func defaultMuxOptions() MuxOptions {
-	sockjsOpts := sockjs.DefaultOptions
-	sockjsOpts.SockJSURL = "//cdn.jsdelivr.net/sockjs/1.1/sockjs.min.js"
-	return MuxOptions{
-		HandlerFlags:  HandlerWebsocket | HandlerSockJS | HandlerAPI,
-		SockjsOptions: sockjs.DefaultOptions,
-	}
 }
 
 // Mux returns a mux including set of default handlers for Centrifugo server.
@@ -1154,17 +1161,19 @@ func Mux(n *node.Node, flags HandlerFlag) *http.ServeMux {
 
 	if flags&HandlerWebsocket != 0 {
 		// register Websocket connection endpoint.
-		mux.Handle("/connection/websocket", httpserver.LogRequest(n, httpserver.NewWebsocketHandler(n, websocketHandlerConfig(viper.GetViper()))))
+		mux.Handle("/connection/websocket", httpserver.LogRequest(n, httpserver.NewWebsocketHandler(n, websocketHandlerConfig())))
 	}
 
 	if flags&HandlerSockJS != 0 {
 		// register SockJS connection endpoints.
-		mux.Handle("/connection/sockjs", httpserver.LogRequest(n, httpserver.NewSockjsHandler(n, sockjsHandlerConfig(viper.GetViper()))))
+		sockjsConfig := sockjsHandlerConfig()
+		sockjsConfig.HandlerPrefix = "/connection/sockjs"
+		mux.Handle(sockjsConfig.HandlerPrefix+"/", httpserver.LogRequest(n, httpserver.NewSockjsHandler(n, sockjsConfig)))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
-		mux.Handle("/api", httpserver.LogRequest(n, httpserver.NewAPIHandler(n, httpserver.APIConfig{})))
+		mux.Handle("/api", httpserver.LogRequest(n, httpserver.NewAPIHandler(n, apiHandlerConfig())))
 	}
 
 	if flags&HandlerPrometheus != 0 {
@@ -1174,7 +1183,7 @@ func Mux(n *node.Node, flags HandlerFlag) *http.ServeMux {
 
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
-		mux.Handle("/", httpserver.LogRequest(n, httpserver.NewAdminHandler(n, adminHandlerConfig(viper.GetViper()))))
+		mux.Handle("/", httpserver.LogRequest(n, httpserver.NewAdminHandler(n, adminHandlerConfig())))
 	}
 
 	return mux

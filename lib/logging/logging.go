@@ -95,5 +95,5 @@ func (l *Logger) Enabled(level Level) bool {
 	if l == nil {
 		return false
 	}
-	return l.level >= level
+	return level >= l.level
 }

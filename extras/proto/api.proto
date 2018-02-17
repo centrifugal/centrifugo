@@ -6,21 +6,21 @@ package apiproto;
 
 
 message ClientInfo {
-    string User = 1;
-    string Client = 2;
-    bytes ConnInfo = 3;
-    bytes ChanInfo = 4;
+    string user = 1;
+    string client = 2;
+    bytes conn_info = 3;
+    bytes chan_info = 4;
 }
 
 message Publication {
-    string UID = 1;
-    bytes Data = 2;
-    ClientInfo Info = 3;
+    string uid = 1;
+    bytes data = 2;
+    ClientInfo info = 3;
 }
 
 message Error {
-    uint32 Code = 1;
-    string Message = 2;
+    uint32 code = 1;
+    string message = 2;
 }
 
 enum MethodType {
@@ -39,137 +39,137 @@ enum MethodType {
 }
 
 message Command {
-    uint32 ID = 1;
-    MethodType Method = 2;
-    bytes Params = 3;
+    uint32 id = 1;
+    MethodType method = 2;
+    bytes params = 3;
 }
 
 message Reply {
-    uint32 ID = 1;
-    Error Error = 2;
-    bytes Result = 3;
+    uint32 id = 1;
+    Error error = 2;
+    bytes result = 3;
 }
 
 message PublishRequest {
-    string Channel = 1;
-    bytes Data = 2;
-    string UID = 3;
+    string channel = 1;
+    bytes data = 2;
+    string uid = 3;
 }
 
 message PublishResponse {
-    Error Error = 1;
-    PublishResult Result = 2;
+    Error error = 1;
+    PublishResult result = 2;
 }
 
 message PublishResult {}
 
 message BroadcastRequest {
-    repeated string Channels = 1;
-    bytes Data = 2;
-    string UID = 3;
+    repeated string channels = 1;
+    bytes data = 2;
+    string uid = 3;
 }
 
 message BroadcastResponse {
-    Error Error = 1;
-    BroadcastResult Result = 2;
+    Error error = 1;
+    BroadcastResult result = 2;
 }
 
 message BroadcastResult {}
 
 message UnsubscribeRequest {
-    string Channel = 1;
-    string User = 2;
+    string channel = 1;
+    string user = 2;
 }
 
 message UnsubscribeResponse {
-    Error Error = 1;
-    UnsubscribeResult Result = 2;
+    Error error = 1;
+    UnsubscribeResult result = 2;
 }
 
 message UnsubscribeResult {}
 
 message DisconnectRequest {
-    string User = 1;
+    string user = 1;
 }
 
 message DisconnectResponse {
-    Error Error = 1;
-    DisconnectResult Result = 2;
+    Error error = 1;
+    DisconnectResult result = 2;
 }
 
 message DisconnectResult {}
 
 message PresenceRequest {
-    string Channel = 1;
+    string channel = 1;
 }
 
 message PresenceResponse {
-    Error Error = 1;
-    PresenceResult Result = 2;
+    Error error = 1;
+    PresenceResult result = 2;
 }
 
 message PresenceResult {
-    map<string, ClientInfo> Presence = 1;
+    map<string, ClientInfo> presence = 1;
 }
 
 message PresenceStatsRequest {
-    string Channel = 1;
+    string channel = 1;
 }
 
 message PresenceStatsResponse {
-    Error Error = 1;
-    PresenceStatsResult Result = 2;
+    Error error = 1;
+    PresenceStatsResult result = 2;
 }
 
 message PresenceStatsResult {
-    uint32 NumClients = 1;
-    uint32 NumUsers = 2;
+    uint32 num_clients = 1;
+    uint32 num_users = 2;
 }
 
 message HistoryRequest {
-    string Channel = 1;
+    string channel = 1;
 }
 
 message HistoryResponse {
-    Error Error = 1;
-    HistoryResult Result = 2;
+    Error error = 1;
+    HistoryResult result = 2;
 }
 
 message HistoryResult {
-    repeated Publication Publications = 1;
+    repeated Publication publications = 1;
 }
 
 message ChannelsRequest {}
 
 message ChannelsResponse {
-    Error Error = 1;
-    ChannelsResult Result = 2;
+    Error error = 1;
+    ChannelsResult result = 2;
 }
 
 message ChannelsResult {
-    repeated string Channels = 1;
+    repeated string channels = 1;
 }
 
 message InfoRequest {}
 
 message InfoResponse {
-    Error Error = 1;
-    InfoResult Result = 2;
+    Error error = 1;
+    InfoResult result = 2;
 }
 
 message InfoResult {
-    string Engine = 1;
-    repeated NodeResult Nodes = 2;
+    string engine = 1;
+    repeated NodeResult nodes = 2;
 }
 
 message NodeResult {
-    string UID = 1;
-    string Name = 2;
-    string Version = 3;
-    uint32 NumClients = 4;
-    uint32 NumUsers = 5;
-    uint32 NumChannels = 6;
-    uint32 Uptime = 7;
+    string uid = 1;
+    string name = 2;
+    string version = 3;
+    uint32 num_clients = 4;
+    uint32 num_users = 5;
+    uint32 num_channels = 6;
+    uint32 uptime = 7;
 }
 
 service Centrifugo {

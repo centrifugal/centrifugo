@@ -6,8 +6,8 @@ package proto;
 
 
 message Error {
-    uint32 Code = 1;
-    string Message = 2;
+    uint32 code = 1;
+    string message = 2;
 }
 
 enum MethodType {
@@ -27,15 +27,15 @@ enum MethodType {
 }
 
 message Command {
-    uint32 ID = 1;
-    MethodType Method = 2;
-    bytes Params = 3;
+    uint32 id = 1;
+    MethodType method = 2;
+    bytes params = 3;
 }
 
 message Reply {
-    uint32 ID = 1;
-    Error Error = 2;
-    bytes Result = 3;
+    uint32 id = 1;
+    Error error = 2;
+    bytes result = 3;
 }
 
 enum MessageType {
@@ -48,179 +48,179 @@ enum MessageType {
 }
 
 message Message {
-    MessageType Type = 1;
-    string Channel = 2;
-    bytes Data = 3;
+    MessageType type = 1;
+    string channel = 2;
+    bytes data = 3;
 }
 
 message ClientInfo {
-    string User = 1;
-    string Client = 2;
-    bytes ConnInfo = 3;
-    bytes ChanInfo = 4;
+    string user = 1;
+    string client = 2;
+    bytes conn_info = 3;
+    bytes chan_info = 4;
 }
 
 message Publication {
-    string UID = 1;
-    bytes Data = 2;
-    ClientInfo Info = 3;
+    string uid = 1;
+    bytes data = 2;
+    ClientInfo info = 3;
 }
 
 message Join {
-    ClientInfo Info = 1;
+    ClientInfo info = 1;
 }
 
 message Leave {
-    ClientInfo Info = 1;
+    ClientInfo info = 1;
 }
 
 message Unsub {}
 
 message ConnectRequest {
-    string User = 1;
-    string Exp = 2;
-    string Info = 3;
-    string Opts = 4;
-    string Sign = 5;
+    string user = 1;
+    string exp = 2;
+    string info = 3;
+    string opts = 4;
+    string sign = 5;
 }
 
 message ConnectResponse {
-    Error Error = 1;
-    ConnectResult Result = 2;
+    Error error = 1;
+    ConnectResult result = 2;
 }
 
 message ConnectResult {
-    string Client = 1;
-    string Version = 2;
-    bool Expires = 3;
-    bool Expired = 4;
-    uint32 TTL = 5;
+    string client = 1;
+    string version = 2;
+    bool expires = 3;
+    bool expired = 4;
+    uint32 ttl = 5;
 }
 
 message RefreshRequest {
-    string User = 1;
-    string Exp = 2;
-    string Info = 3;
-    string Opts = 4;
-    string Sign = 5;
+    string user = 1;
+    string exp = 2;
+    string info = 3;
+    string opts = 4;
+    string sign = 5;
 }
 
 message RefreshResponse {
-    Error Error = 1;
-    RefreshResult Result = 2;
+    Error error = 1;
+    RefreshResult result = 2;
 }
 
 message RefreshResult {
-    string Client = 1;
-    string Version = 2;
-    bool Expires = 3;
-    bool Expired = 4;
-    uint32 TTL = 5;
+    string client = 1;
+    string version = 2;
+    bool expires = 3;
+    bool expired = 4;
+    uint32 ttl = 5;
 }
 
 message SubscribeRequest {
-    string Channel = 1;
-    string Client = 2;
-    string Info = 3;
-    string Sign = 4;
-    bool Recover = 5;
-    string Last = 6;
+    string channel = 1;
+    string client = 2;
+    string info = 3;
+    string sign = 4;
+    bool recover = 5;
+    string last = 6;
 }
 
 message SubscribeResponse {
-    Error Error = 1;
-    SubscribeResult Result = 2;
+    Error error = 1;
+    SubscribeResult result = 2;
 }
 
 message SubscribeResult {
-    string Last = 1;
-    bool Recovered = 2;
-    repeated Publication Publications = 3;
+    string last = 1;
+    bool recovered = 2;
+    repeated Publication publications = 3;
 }
 
 message UnsubscribeRequest {
-    string Channel = 1;
+    string channel = 1;
 }
 
 message UnsubscribeResponse {
-    Error Error = 1;
-    UnsubscribeResult Result = 2;
+    Error error = 1;
+    UnsubscribeResult result = 2;
 }
 
 message UnsubscribeResult {}
 
 message PublishRequest {
-    string Channel = 1;
-    bytes Data = 2;
+    string channel = 1;
+    bytes data = 2;
 }
 
 message PublishResponse {
-    Error Error = 1;
-    PublishResult Result = 2;
+    Error error = 1;
+    PublishResult result = 2;
 }
 
 message PublishResult {}
 
 message PresenceRequest {
-    string Channel = 1;
+    string channel = 1;
 }
 
 message PresenceResponse {
-    Error Error = 1;
-    PresenceResult Result = 2;
+    Error error = 1;
+    PresenceResult result = 2;
 }
 
 message PresenceResult {
-    map<string, ClientInfo> Presence = 1;
+    map<string, ClientInfo> presence = 1;
 }
 
 message PresenceStatsRequest {
-    string Channel = 1;
+    string channel = 1;
 }
 
 message PresenceStatsResponse {
-    Error Error = 1;
-    PresenceStatsResult Result = 2;
+    Error error = 1;
+    PresenceStatsResult result = 2;
 }
 
 message PresenceStatsResult {
-    uint32 NumClients = 1;
-    uint32 NumUsers = 2;
+    uint32 num_clients = 1;
+    uint32 num_users = 2;
 }
 
 message HistoryRequest {
-    string Channel = 1;
+    string channel = 1;
 }
 
 message HistoryResponse {
-    Error Error = 1;
-    HistoryResult Result = 2;
+    Error error = 1;
+    HistoryResult result = 2;
 }
 
 message HistoryResult {
-    repeated Publication Publications = 1;
+    repeated Publication publications = 1;
 }
 
 message PingRequest {
-    string Data = 1;
+    string data = 1;
 }
 
 message PingResponse {
-    Error Error = 1;
-    PingResult Result = 2;
+    Error error = 1;
+    PingResult result = 2;
 }
 
 message PingResult {
-    string Data = 1;
+    string data = 1;
 }
 
 message RPCRequest{
-    bytes Data = 1;
+    bytes data = 1;
 }
 
 message RPCResponse{
-    Error Error = 1;
-    bytes Result = 2;
+    Error error = 1;
+    bytes result = 2;
 }
 
 service Centrifugo {
