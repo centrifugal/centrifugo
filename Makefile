@@ -18,7 +18,7 @@ web:
 	./extras/scripts/update_web.sh
 
 bindata:
-	statik -src=extras/web -dest ./lib/ -package=webadmin
+	statik -src=extras/web -dest ./lib/ -package=webui
 
 package:
 	./extras/scripts/package.sh $(VERSION) $(ITERATION)

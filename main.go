@@ -34,7 +34,7 @@ import (
 	"github.com/centrifugal/centrifugo/lib/node"
 	"github.com/centrifugal/centrifugo/lib/proto"
 	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
-	"github.com/centrifugal/centrifugo/lib/webadmin"
+	"github.com/centrifugal/centrifugo/lib/webui"
 
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/viper-lite"
@@ -842,7 +842,7 @@ func apiHandlerConfig() httpserver.APIConfig {
 func adminHandlerConfig() httpserver.AdminConfig {
 	v := viper.GetViper()
 	cfg := httpserver.AdminConfig{}
-	cfg.WebFS = webadmin.FS
+	cfg.WebFS = webui.FS
 	cfg.WebPath = v.GetString("admin_web_path")
 	cfg.Password = v.GetString("admin_password")
 	cfg.Secret = v.GetString("admin_secret")
