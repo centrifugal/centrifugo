@@ -33,6 +33,18 @@ func authMiddleware(h http.Handler) http.Handler {
 	})
 }
 
+func waitExitSignal(n *node.Node) {
+	sigs := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		n.Shutdown()
+		done <- true
+	}()
+	<-done
+}
+
 func main() {
 	nodeConfig := node.DefaultConfig
 	nodeConfig.Secret = "secret"
@@ -123,16 +135,6 @@ func main() {
 		}
 	}()
 
-	sigs := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-sigs
-		n.Shutdown()
-		done <- true
-	}()
-
-	<-done
+	waitExitSignal(n)
 	fmt.Println("exiting")
 }

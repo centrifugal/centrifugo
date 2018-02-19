@@ -33,6 +33,13 @@ func handleClientData(n *node.Node, c conns.Client, data []byte, transport conns
 			proto.PutReplyEncoder(transport.Encoding(), encoder)
 			return false
 		}
+		if cmd.ID == 0 {
+			n.Logger().Log(logging.NewEntry(logging.INFO, "command ID required", map[string]interface{}{"client": c.ID(), "user": c.UserID()}))
+			c.Close(proto.DisconnectBadRequest)
+			proto.PutCommandDecoder(transport.Encoding(), decoder)
+			proto.PutReplyEncoder(transport.Encoding(), encoder)
+			return false
+		}
 		rep, disconnect := c.Handle(cmd)
 		if disconnect != nil {
 			n.Logger().Log(logging.NewEntry(logging.INFO, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))

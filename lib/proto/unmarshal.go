@@ -141,7 +141,7 @@ func (d *JSONCommandDecoder) Reset(data []byte) error {
 func (d *JSONCommandDecoder) Decode() (*Command, error) {
 	var c Command
 	err := d.decoder.Decode(&c)
-	if err == io.EOF {
+	if err != nil {
 		return nil, err
 	}
 	return &c, nil
