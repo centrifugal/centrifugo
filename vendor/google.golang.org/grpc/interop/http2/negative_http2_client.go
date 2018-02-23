@@ -36,6 +36,7 @@ import (
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/interop"
 	testpb "google.golang.org/grpc/interop/grpc_testing"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -77,8 +78,8 @@ func rstAfterHeader(tc testpb.TestServiceClient) {
 	if reply != nil {
 		grpclog.Fatalf("Client received reply despite server sending rst stream after header")
 	}
-	if grpc.Code(err) != codes.Internal {
-		grpclog.Fatalf("%v.UnaryCall() = _, %v, want _, %v", tc, grpc.Code(err), codes.Internal)
+	if status.Code(err) != codes.Internal {
+		grpclog.Fatalf("%v.UnaryCall() = _, %v, want _, %v", tc, status.Code(err), codes.Internal)
 	}
 }
 
@@ -88,8 +89,8 @@ func rstDuringData(tc testpb.TestServiceClient) {
 	if reply != nil {
 		grpclog.Fatalf("Client received reply despite server sending rst stream during data")
 	}
-	if grpc.Code(err) != codes.Unknown {
-		grpclog.Fatalf("%v.UnaryCall() = _, %v, want _, %v", tc, grpc.Code(err), codes.Unknown)
+	if status.Code(err) != codes.Unknown {
+		grpclog.Fatalf("%v.UnaryCall() = _, %v, want _, %v", tc, status.Code(err), codes.Unknown)
 	}
 }
 
@@ -99,8 +100,8 @@ func rstAfterData(tc testpb.TestServiceClient) {
 	if reply != nil {
 		grpclog.Fatalf("Client received reply despite server sending rst stream after data")
 	}
-	if grpc.Code(err) != codes.Internal {
-		grpclog.Fatalf("%v.UnaryCall() = _, %v, want _, %v", tc, grpc.Code(err), codes.Internal)
+	if status.Code(err) != codes.Internal {
+		grpclog.Fatalf("%v.UnaryCall() = _, %v, want _, %v", tc, status.Code(err), codes.Internal)
 	}
 }
 

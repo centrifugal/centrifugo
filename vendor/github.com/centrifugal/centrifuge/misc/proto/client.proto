@@ -1,0 +1,225 @@
+
+syntax = "proto3";
+
+package proto;
+
+message Error {
+    uint32 code = 1;
+    string message = 2;
+}
+
+enum MethodType {
+    
+    CONNECT = 0;
+    REFRESH = 1;
+    SUBSCRIBE = 2;
+    UNSUBSCRIBE = 3;
+    PUBLISH = 4;
+    PRESENCE = 5;
+    PRESENCE_STATS = 6;
+    HISTORY = 7;
+    PING = 8;
+    RPC = 9;
+    MESSAGE = 10;
+}
+
+message Command {
+    uint32 id = 1;
+    MethodType method = 2;
+    bytes params = 3;
+}
+
+message Reply {
+    uint32 id = 1;
+    Error error = 2;
+    bytes result = 3;
+}
+
+enum MessageType {
+    
+
+    PUBLICATION = 0;
+    JOIN = 1;
+    LEAVE = 2;
+    UNSUB = 3;
+}
+
+message Message {
+    MessageType type = 1;
+    string channel = 2;
+    bytes data = 3;
+}
+
+message ClientInfo {
+    string user = 1;
+    string client = 2;
+    bytes conn_info = 3;
+    bytes chan_info = 4;
+}
+
+message Publication {
+    string uid = 1;
+    bytes data = 2;
+    ClientInfo info = 3;
+}
+
+message Join {
+    ClientInfo info = 1;
+}
+
+message Leave {
+    ClientInfo info = 1;
+}
+
+message Unsub {}
+
+message ConnectRequest {
+    string user = 1;
+    string exp = 2;
+    string info = 3;
+    string opts = 4;
+    string sign = 5;
+}
+
+message ConnectResponse {
+    Error error = 1;
+    ConnectResult result = 2;
+}
+
+message ConnectResult {
+    string client = 1;
+    string version = 2;
+    bool expires = 3;
+    bool expired = 4;
+    uint32 ttl = 5;
+}
+
+message RefreshRequest {
+    string user = 1;
+    string exp = 2;
+    string info = 3;
+    string opts = 4;
+    string sign = 5;
+}
+
+message RefreshResponse {
+    Error error = 1;
+    RefreshResult result = 2;
+}
+
+message RefreshResult {
+    string client = 1;
+    string version = 2;
+    bool expires = 3;
+    bool expired = 4;
+    uint32 ttl = 5;
+}
+
+message SubscribeRequest {
+    string channel = 1;
+    string client = 2;
+    string info = 3;
+    string sign = 4;
+    bool recover = 5;
+    string last = 6;
+}
+
+message SubscribeResponse {
+    Error error = 1;
+    SubscribeResult result = 2;
+}
+
+message SubscribeResult {
+    string last = 1;
+    bool recovered = 2;
+    repeated Publication publications = 3;
+}
+
+message UnsubscribeRequest {
+    string channel = 1;
+}
+
+message UnsubscribeResponse {
+    Error error = 1;
+    UnsubscribeResult result = 2;
+}
+
+message UnsubscribeResult {}
+
+message PublishRequest {
+    string channel = 1;
+    bytes data = 2;
+}
+
+message PublishResponse {
+    Error error = 1;
+    PublishResult result = 2;
+}
+
+message PublishResult {}
+
+message PresenceRequest {
+    string channel = 1;
+}
+
+message PresenceResponse {
+    Error error = 1;
+    PresenceResult result = 2;
+}
+
+message PresenceResult {
+    map<string, ClientInfo> presence = 1;
+}
+
+message PresenceStatsRequest {
+    string channel = 1;
+}
+
+message PresenceStatsResponse {
+    Error error = 1;
+    PresenceStatsResult result = 2;
+}
+
+message PresenceStatsResult {
+    uint32 num_clients = 1;
+    uint32 num_users = 2;
+}
+
+message HistoryRequest {
+    string channel = 1;
+}
+
+message HistoryResponse {
+    Error error = 1;
+    HistoryResult result = 2;
+}
+
+message HistoryResult {
+    repeated Publication publications = 1;
+}
+
+message PingRequest {
+    string data = 1;
+}
+
+message PingResponse {
+    Error error = 1;
+    PingResult result = 2;
+}
+
+message PingResult {
+    string data = 1;
+}
+
+message RPCRequest{
+    bytes data = 1;
+}
+
+message RPCResponse{
+    Error error = 1;
+    bytes result = 2;
+}
+
+service Centrifuge {
+    rpc Communicate(stream Command) returns (stream Reply) {}
+}

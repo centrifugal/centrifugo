@@ -1,0 +1,47 @@
+// Install protoc compiler https://github.com/google/protobuf/releases 
+// Install gogofaster program:
+// go get -u github.com/gogo/protobuf/protoc-gen-gogofaster
+// protoc --proto_path=$GOPATH/src/github.com/centrifugal/centrifugo/vendor:. --gogofaster_out=. control.proto
+// Note that we use vendored gogoprotobuf path in example above.
+syntax = "proto3";
+
+package controlproto;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.equal_all) = true;
+option (gogoproto.populate_all) = true;
+option (gogoproto.testgen_all) = true;
+
+enum MethodType {
+    option (gogoproto.goproto_enum_prefix) = false;
+
+    NODE = 0 [(gogoproto.enumvalue_customname) = "MethodTypeNode"];
+    UNSUBSCRIBE = 1 [(gogoproto.enumvalue_customname) = "MethodTypeUnsubscribe"];
+    DISCONNECT = 2 [(gogoproto.enumvalue_customname) = "MethodTypeDisconnect"];
+}
+
+message Command {
+    string UID = 1;
+    MethodType Method = 2;
+    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifuge/internal/proto.Raw", (gogoproto.nullable) = false];
+}
+
+message Node {
+    string UID = 1;
+    string Name = 2;
+    string Version = 3;
+    uint32 NumClients = 4;
+    uint32 NumUsers = 5;
+    uint32 NumChannels = 6;
+    uint32 Uptime = 7;
+}
+
+message Unsubscribe {
+    string Channel = 1;
+    string User = 2;
+}
+
+message Disconnect {
+    string User = 1;
+}

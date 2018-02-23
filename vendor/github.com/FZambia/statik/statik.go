@@ -31,16 +31,16 @@ import (
 )
 
 const (
-	namePackage    = "statik"
 	nameSourceFile = "statik.go"
 )
 
 var (
-	flagSrc        = flag.String("src", path.Join(".", "public"), "The path of the source directory.")
-	flagDest       = flag.String("dest", ".", "The destination path of the generated package.")
-	flagNoMtime    = flag.Bool("m", false, "Ignore modification times on files.")
-	flagNoCompress = flag.Bool("Z", false, "Do not use compression to shrink the files.")
-	flagForce      = flag.Bool("f", false, "Overwrite destination file if it already exists.")
+	flagSrc         = flag.String("src", path.Join(".", "public"), "The path of the source directory.")
+	flagDest        = flag.String("dest", ".", "The destination path of the generated package.")
+	flagPackageName = flag.String("package", "statik", "The name of generated package.")
+	flagNoMtime     = flag.Bool("m", false, "Ignore modification times on files.")
+	flagNoCompress  = flag.Bool("Z", false, "Do not use compression to shrink the files.")
+	flagForce       = flag.Bool("f", false, "Overwrite destination file if it already exists.")
 )
 
 // mtimeDate holds the arbitrary mtime that we assign to files when
@@ -55,7 +55,7 @@ func main() {
 		exitWithError(err)
 	}
 
-	destDir := path.Join(*flagDest, namePackage)
+	destDir := path.Join(*flagDest, *flagPackageName)
 	err = os.MkdirAll(destDir, 0755)
 	if err != nil {
 		exitWithError(err)
@@ -119,7 +119,7 @@ func generateSource(srcPath string) (file *os.File, err error) {
 	)
 
 	zipWriter = &buffer
-	f, err := ioutil.TempFile("", namePackage)
+	f, err := ioutil.TempFile("", *flagPackageName)
 	if err != nil {
 		return
 	}
@@ -188,10 +188,14 @@ import (
 var FS http.FileSystem
 
 func init() {
-	data := "`, namePackage)
+	data := "`, *flagPackageName)
 	FprintZipData(&qb, buffer.Bytes())
 	fmt.Fprint(&qb, `"
-	FS, _ = fs.New(Data)
+	var err error
+	FS, err = fs.New(data)
+	if err != nil {
+		panic(err)
+	}
 }
 `)
 

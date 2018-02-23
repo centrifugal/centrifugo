@@ -2,6 +2,7 @@ package toml
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"testing"
 	"time"
@@ -72,6 +73,17 @@ func TestNumberInKey(t *testing.T) {
 	})
 }
 
+func TestIncorrectKeyExtraSquareBracket(t *testing.T) {
+	_, err := Load(`[a]b]
+zyx = 42`)
+	if err == nil {
+		t.Error("Error should have been returned.")
+	}
+	if err.Error() != "(1, 4): unexpected token" {
+		t.Error("Bad error message:", err.Error())
+	}
+}
+
 func TestSimpleNumbers(t *testing.T) {
 	tree, err := Load("a = +42\nb = -21\nc = +4.2\nd = -2.1")
 	assertTree(t, tree, err, map[string]interface{}{
@@ -80,6 +92,78 @@ func TestSimpleNumbers(t *testing.T) {
 		"c": float64(4.2),
 		"d": float64(-2.1),
 	})
+}
+
+func TestSpecialFloats(t *testing.T) {
+	tree, err := Load(`
+normalinf = inf
+plusinf = +inf
+minusinf = -inf
+normalnan = nan
+plusnan = +nan
+minusnan = -nan
+`)
+	assertTree(t, tree, err, map[string]interface{}{
+		"normalinf": math.Inf(1),
+		"plusinf":   math.Inf(1),
+		"minusinf":  math.Inf(-1),
+		"normalnan": math.NaN(),
+		"plusnan":   math.NaN(),
+		"minusnan":  math.NaN(),
+	})
+}
+
+func TestHexIntegers(t *testing.T) {
+	tree, err := Load(`a = 0xDEADBEEF`)
+	assertTree(t, tree, err, map[string]interface{}{"a": int64(3735928559)})
+
+	tree, err = Load(`a = 0xdeadbeef`)
+	assertTree(t, tree, err, map[string]interface{}{"a": int64(3735928559)})
+
+	tree, err = Load(`a = 0xdead_beef`)
+	assertTree(t, tree, err, map[string]interface{}{"a": int64(3735928559)})
+
+	_, err = Load(`a = 0x_1`)
+	if err.Error() != "(1, 5): invalid use of _ in hex number" {
+		t.Error("Bad error message:", err.Error())
+	}
+}
+
+func TestOctIntegers(t *testing.T) {
+	tree, err := Load(`a = 0o01234567`)
+	assertTree(t, tree, err, map[string]interface{}{"a": int64(342391)})
+
+	tree, err = Load(`a = 0o755`)
+	assertTree(t, tree, err, map[string]interface{}{"a": int64(493)})
+
+	_, err = Load(`a = 0o_1`)
+	if err.Error() != "(1, 5): invalid use of _ in number" {
+		t.Error("Bad error message:", err.Error())
+	}
+}
+
+func TestBinIntegers(t *testing.T) {
+	tree, err := Load(`a = 0b11010110`)
+	assertTree(t, tree, err, map[string]interface{}{"a": int64(214)})
+
+	_, err = Load(`a = 0b_1`)
+	if err.Error() != "(1, 5): invalid use of _ in number" {
+		t.Error("Bad error message:", err.Error())
+	}
+}
+
+func TestBadIntegerBase(t *testing.T) {
+	_, err := Load(`a = 0k1`)
+	if err.Error() != "(1, 5): unknown number base: k. possible options are x (hex) o (octal) b (binary)" {
+		t.Error("Error should have been returned.")
+	}
+}
+
+func TestIntegerNoDigit(t *testing.T) {
+	_, err := Load(`a = 0b`)
+	if err.Error() != "(1, 5): number needs at least one digit" {
+		t.Error("Bad error message:", err.Error())
+	}
 }
 
 func TestNumbersWithUnderscores(t *testing.T) {
@@ -152,6 +236,36 @@ func TestSpaceKey(t *testing.T) {
 	tree, err := Load("\"a b\" = \"hello world\"")
 	assertTree(t, tree, err, map[string]interface{}{
 		"a b": "hello world",
+	})
+}
+
+func TestDoubleQuotedKey(t *testing.T) {
+	tree, err := Load(`
+	"key"        = "a"
+	"\t"         = "b"
+	"\U0001F914" = "c"
+	"\u2764"     = "d"
+	`)
+	assertTree(t, tree, err, map[string]interface{}{
+		"key":        "a",
+		"\t":         "b",
+		"\U0001F914": "c",
+		"\u2764":     "d",
+	})
+}
+
+func TestSingleQuotedKey(t *testing.T) {
+	tree, err := Load(`
+	'key'        = "a"
+	'\t'         = "b"
+	'\U0001F914' = "c"
+	'\u2764'     = "d"
+	`)
+	assertTree(t, tree, err, map[string]interface{}{
+		`key`:        "a",
+		`\t`:         "b",
+		`\U0001F914`: "c",
+		`\u2764`:     "d",
 	})
 }
 
@@ -642,7 +756,7 @@ func TestTomlValueStringRepresentation(t *testing.T) {
 		{int64(12345), "12345"},
 		{uint64(50), "50"},
 		{float64(123.45), "123.45"},
-		{bool(true), "true"},
+		{true, "true"},
 		{"hello world", "\"hello world\""},
 		{"\b\t\n\f\r\"\\", "\"\\b\\t\\n\\f\\r\\\"\\\\\""},
 		{"\x05", "\"\\u0005\""},
@@ -652,7 +766,7 @@ func TestTomlValueStringRepresentation(t *testing.T) {
 			"[\"gamma\",\"delta\"]"},
 		{nil, ""},
 	} {
-		result, err := tomlValueStringRepresentation(item.Value)
+		result, err := tomlValueStringRepresentation(item.Value, "", false)
 		if err != nil {
 			t.Errorf("Test %d - unexpected error: %s", idx, err)
 		}

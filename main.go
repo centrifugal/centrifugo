@@ -23,21 +23,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/centrifugal/centrifugo/lib/channel"
-	"github.com/centrifugal/centrifugo/lib/engine"
-	"github.com/centrifugal/centrifugo/lib/engine/enginememory"
-	"github.com/centrifugal/centrifugo/lib/engine/engineredis"
-	"github.com/centrifugal/centrifugo/lib/grpc/apiservice"
-	"github.com/centrifugal/centrifugo/lib/grpc/clientservice"
-	"github.com/centrifugal/centrifugo/lib/httpserver"
-	"github.com/centrifugal/centrifugo/lib/logging"
-	"github.com/centrifugal/centrifugo/lib/node"
-	"github.com/centrifugal/centrifugo/lib/proto"
-	"github.com/centrifugal/centrifugo/lib/proto/apiproto"
+	"github.com/centrifugal/centrifugo/lib/admin"
 	"github.com/centrifugal/centrifugo/lib/webui"
 
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/viper-lite"
+	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
@@ -127,13 +118,13 @@ func main() {
 				logger.FATAL.Fatalf("Error validating config: %v", err)
 			}
 
-			node.VERSION = VERSION
-			nod := node.New(c)
+			centrifuge.VERSION = VERSION
+			nod := centrifuge.New(*c)
 			setLogHandler(nod)
 
 			engineName := viper.GetString("engine")
 
-			var e engine.Engine
+			var e centrifuge.Engine
 			if engineName == "memory" {
 				e, err = memoryEngine(nod)
 			} else if engineName == "redis" {
@@ -153,7 +144,7 @@ func main() {
 			logger.INFO.Printf("Starting Centrifugo %s", VERSION)
 			logger.INFO.Printf("Config path: %s", absConfPath)
 			logger.INFO.Printf("PID: %d", os.Getpid())
-			logger.INFO.Printf("Engine: %s", e.Name())
+			logger.INFO.Printf("Engine: %s", strings.ToTitle(engineName))
 			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
 			if viper.GetBool("client_insecure") {
 				logger.WARN.Println("INSECURE client mode enabled")
@@ -185,7 +176,7 @@ func main() {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 				}
 				grpcAPIServer = grpc.NewServer(grpcOpts...)
-				apiproto.RegisterCentrifugoServer(grpcAPIServer, apiservice.New(nod, apiservice.Config{}))
+				centrifuge.RegisterGRPCServerAPI(nod, grpcAPIServer, centrifuge.GRPCAPIServiceConfig{})
 				go func() {
 					if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
 						logger.FATAL.Fatalf("Serve GRPC: %v", err)
@@ -212,7 +203,7 @@ func main() {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 				}
 				grpcClientServer = grpc.NewServer(grpcOpts...)
-				proto.RegisterCentrifugoServer(grpcClientServer, clientservice.New(nod, clientservice.Config{}))
+				centrifuge.RegisterGRPCServerClient(nod, grpcClientServer, centrifuge.GRPCClientServiceConfig{})
 				go func() {
 					if err := grpcClientServer.Serve(grpcClientConn); err != nil {
 						logger.FATAL.Fatalf("Serve GRPC: %v", err)
@@ -344,13 +335,13 @@ var configDefaults = map[string]interface{}{
 	"client_queue_max_size":           10485760, // 10MB
 	"client_presence_ping_interval":   25,
 	"client_presence_expire_interval": 60,
+	"client_user_connection_limit":    0,
 	"channel_max_length":              255,
 	"channel_private_prefix":          "$",
 	"channel_namespace_boundary":      ":",
 	"channel_user_boundary":           "#",
 	"channel_user_separator":          ",",
 	"channel_client_boundary":         "&",
-	"user_connection_limit":           0,
 	"debug":                           false,
 	"prometheus":                      false,
 	"admin":                           false,
@@ -411,7 +402,7 @@ func setupLogging() {
 	}
 }
 
-func handleSignals(n *node.Node, httpServers []*http.Server, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
+func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -436,7 +427,7 @@ func handleSignals(n *node.Node, httpServers []*http.Server, grpcAPIServer *grpc
 			setupLogging()
 
 			cfg := nodeConfig()
-			if err := n.Reload(cfg); err != nil {
+			if err := n.Reload(*cfg); err != nil {
 				logger.CRITICAL.Printf("Error reloading: %v", err)
 				continue
 			}
@@ -545,7 +536,7 @@ func getTLSConfig() (*tls.Config, error) {
 	return nil, nil
 }
 
-func runHTTPServers(n *node.Node) ([]*http.Server, error) {
+func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 	debug := viper.GetBool("debug")
 
 	admin := viper.GetBool("admin")
@@ -734,10 +725,10 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func nodeConfig() *node.Config {
+func nodeConfig() *centrifuge.Config {
 	v := viper.GetViper()
 
-	cfg := &node.Config{}
+	cfg := &centrifuge.Config{}
 
 	cfg.Name = applicationName()
 	cfg.Secret = v.GetString("secret")
@@ -752,11 +743,6 @@ func nodeConfig() *node.Config {
 	cfg.HistoryDropInactive = v.GetBool("history_drop_inactive")
 	cfg.HistoryRecover = v.GetBool("history_recover")
 	cfg.Namespaces = namespacesFromConfig(v)
-
-	cfg.NodePingInterval = time.Duration(v.GetInt("node_ping_interval")) * time.Second
-	cfg.NodeInfoCleanInterval = cfg.NodePingInterval * 3
-	cfg.NodeInfoMaxDelay = cfg.NodePingInterval*2 + 1*time.Second
-	cfg.NodeMetricsInterval = time.Duration(v.GetInt("node_metrics_interval")) * time.Second
 
 	cfg.ChannelMaxLength = v.GetInt("channel_max_length")
 	cfg.ChannelPrivatePrefix = v.GetString("channel_private_prefix")
@@ -776,13 +762,12 @@ func nodeConfig() *node.Config {
 	cfg.ClientRequestMaxSize = v.GetInt("client_request_max_size")
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
-
-	cfg.UserConnectionLimit = v.GetInt("user_connection_limit")
+	cfg.ClientUserConnectionLimit = v.GetInt("client_user_connection_limit")
 
 	return cfg
 }
 
-// applicationName returns a name for this node. If no name provided
+// applicationName returns a name for this centrifuge. If no name provided
 // in configuration then it constructs node name based on hostname and port
 func applicationName() string {
 	v := viper.GetViper()
@@ -801,8 +786,8 @@ func applicationName() string {
 }
 
 // namespacesFromConfig allows to unmarshal channel namespaces.
-func namespacesFromConfig(v *viper.Viper) []channel.Namespace {
-	ns := []channel.Namespace{}
+func namespacesFromConfig(v *viper.Viper) []centrifuge.ChannelNamespace {
+	ns := []centrifuge.ChannelNamespace{}
 	if !v.IsSet("namespaces") {
 		return ns
 	}
@@ -810,9 +795,9 @@ func namespacesFromConfig(v *viper.Viper) []channel.Namespace {
 	return ns
 }
 
-func websocketHandlerConfig() httpserver.WebsocketConfig {
+func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	v := viper.GetViper()
-	cfg := httpserver.WebsocketConfig{}
+	cfg := centrifuge.WebsocketConfig{}
 	cfg.WebsocketCompression = v.GetBool("websocket_compression")
 	cfg.WebsocketCompressionLevel = v.GetInt("websocket_compression_level")
 	cfg.WebsocketCompressionMinSize = v.GetInt("websocket_compression_min_size")
@@ -821,9 +806,9 @@ func websocketHandlerConfig() httpserver.WebsocketConfig {
 	return cfg
 }
 
-func sockjsHandlerConfig() httpserver.SockjsConfig {
+func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	v := viper.GetViper()
-	cfg := httpserver.SockjsConfig{}
+	cfg := centrifuge.SockjsConfig{}
 	cfg.URL = v.GetString("sockjs_url")
 	cfg.HeartbeatDelay = time.Duration(v.GetInt("sockjs_heartbeat_delay")) * time.Second
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
@@ -831,17 +816,17 @@ func sockjsHandlerConfig() httpserver.SockjsConfig {
 	return cfg
 }
 
-func apiHandlerConfig() httpserver.APIConfig {
+func apiHandlerConfig() centrifuge.APIConfig {
 	v := viper.GetViper()
-	cfg := httpserver.APIConfig{}
+	cfg := centrifuge.APIConfig{}
 	cfg.Key = v.GetString("api_key")
 	cfg.Insecure = v.GetBool("api_insecure")
 	return cfg
 }
 
-func adminHandlerConfig() httpserver.AdminConfig {
+func adminHandlerConfig() admin.Config {
 	v := viper.GetViper()
-	cfg := httpserver.AdminConfig{}
+	cfg := admin.Config{}
 	cfg.WebFS = webui.FS
 	cfg.WebPath = v.GetString("admin_web_path")
 	cfg.Password = v.GetString("admin_password")
@@ -850,27 +835,27 @@ func adminHandlerConfig() httpserver.AdminConfig {
 	return cfg
 }
 
-func memoryEngine(n *node.Node) (engine.Engine, error) {
+func memoryEngine(n *centrifuge.Node) (centrifuge.Engine, error) {
 	c, err := memoryEngineConfig()
 	if err != nil {
 		return nil, err
 	}
-	return enginememory.New(n, c)
+	return centrifuge.NewMemoryEngine(n, *c)
 }
 
-func redisEngine(n *node.Node) (engine.Engine, error) {
+func redisEngine(n *centrifuge.Node) (centrifuge.Engine, error) {
 	c, err := redisEngineConfig()
 	if err != nil {
 		return nil, err
 	}
-	return engineredis.New(n, c)
+	return centrifuge.NewRedisEngine(n, *c)
 }
 
-func memoryEngineConfig() (*enginememory.Config, error) {
-	return &enginememory.Config{}, nil
+func memoryEngineConfig() (*centrifuge.MemoryEngineConfig, error) {
+	return &centrifuge.MemoryEngineConfig{}, nil
 }
 
-func redisEngineConfig() (*engineredis.Config, error) {
+func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 	v := viper.GetViper()
 
 	numShards := 1
@@ -1025,10 +1010,10 @@ func redisEngineConfig() (*engineredis.Config, error) {
 		ports[i] = port
 	}
 
-	var shardConfigs []*engineredis.ShardConfig
+	var shardConfigs []*centrifuge.ShardConfig
 
 	for i := 0; i < numShards; i++ {
-		conf := &engineredis.ShardConfig{
+		conf := &centrifuge.ShardConfig{
 			Host:             hosts[i],
 			Port:             ports[i],
 			Password:         passwords[i],
@@ -1045,29 +1030,29 @@ func redisEngineConfig() (*engineredis.Config, error) {
 		shardConfigs = append(shardConfigs, conf)
 	}
 
-	return &engineredis.Config{
+	return &centrifuge.RedisEngineConfig{
 		Shards: shardConfigs,
 	}, nil
 }
 
-func setLogHandler(n *node.Node) {
+func setLogHandler(n *centrifuge.Node) {
 	v := viper.GetViper()
-	level, ok := logging.StringToLevel[strings.ToLower(v.GetString("log_level"))]
+	level, ok := centrifuge.LogStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {
-		level = logging.INFO
+		level = centrifuge.LogLevelInfo
 	}
 	handler := newLogHandler()
 	n.SetLogHandler(level, handler.handle)
 }
 
 type logHandler struct {
-	entries chan logging.Entry
-	handler func(entry logging.Entry)
+	entries chan centrifuge.LogEntry
+	handler func(entry centrifuge.LogEntry)
 }
 
 func newLogHandler() *logHandler {
 	h := &logHandler{
-		entries: make(chan logging.Entry, 64),
+		entries: make(chan centrifuge.LogEntry, 64),
 	}
 	go h.readEntries()
 	return h
@@ -1077,11 +1062,11 @@ func (h *logHandler) readEntries() {
 	for entry := range h.entries {
 		var log *logger.LevelLogger
 		switch entry.Level {
-		case logging.DEBUG:
+		case centrifuge.LogLevelDebug:
 			log = logger.DEBUG
-		case logging.INFO:
+		case centrifuge.LogLevelInfo:
 			log = logger.INFO
-		case logging.ERROR:
+		case centrifuge.LogLevelError:
 			log = logger.ERROR
 		}
 		if entry.Fields != nil {
@@ -1092,7 +1077,7 @@ func (h *logHandler) readEntries() {
 	}
 }
 
-func (h *logHandler) handle(entry logging.Entry) {
+func (h *logHandler) handle(entry centrifuge.LogEntry) {
 	select {
 	case h.entries <- entry:
 	default:
@@ -1143,7 +1128,7 @@ func (flags HandlerFlag) String() string {
 }
 
 // Mux returns a mux including set of default handlers for Centrifugo server.
-func Mux(n *node.Node, flags HandlerFlag) *http.ServeMux {
+func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 
 	mux := http.NewServeMux()
 
@@ -1157,29 +1142,29 @@ func Mux(n *node.Node, flags HandlerFlag) *http.ServeMux {
 
 	if flags&HandlerWebsocket != 0 {
 		// register Websocket connection endpoint.
-		mux.Handle("/connection/websocket", httpserver.LogRequest(n, httpserver.NewWebsocketHandler(n, websocketHandlerConfig())))
+		mux.Handle("/connection/websocket", centrifuge.LogRequest(n, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))
 	}
 
 	if flags&HandlerSockJS != 0 {
 		// register SockJS connection endpoints.
 		sockjsConfig := sockjsHandlerConfig()
 		sockjsConfig.HandlerPrefix = "/connection/sockjs"
-		mux.Handle(sockjsConfig.HandlerPrefix+"/", httpserver.LogRequest(n, httpserver.NewSockjsHandler(n, sockjsConfig)))
+		mux.Handle(sockjsConfig.HandlerPrefix+"/", centrifuge.LogRequest(n, centrifuge.NewSockjsHandler(n, sockjsConfig)))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
-		mux.Handle("/api", httpserver.LogRequest(n, httpserver.NewAPIHandler(n, apiHandlerConfig())))
+		mux.Handle("/api", centrifuge.LogRequest(n, centrifuge.NewAPIHandler(n, apiHandlerConfig())))
 	}
 
 	if flags&HandlerPrometheus != 0 {
 		// register Prometheus metrics export endpoint.
-		mux.Handle("/metrics", httpserver.LogRequest(n, promhttp.Handler()))
+		mux.Handle("/metrics", centrifuge.LogRequest(n, promhttp.Handler()))
 	}
 
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
-		mux.Handle("/", httpserver.LogRequest(n, httpserver.NewAdminHandler(n, adminHandlerConfig())))
+		mux.Handle("/", centrifuge.LogRequest(n, admin.NewHandler(n, adminHandlerConfig())))
 	}
 
 	return mux
