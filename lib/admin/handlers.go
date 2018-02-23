@@ -46,7 +46,7 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/admin/auth", http.HandlerFunc(h.authHandler))
-	mux.Handle("/admin/api", h.adminSecureTokenAuth(centrifuge.NewAPIHandler(n, centrifuge.APIConfig{Insecure: true})))
+	mux.Handle("/admin/api", h.adminSecureTokenAuth(centrifuge.NewAPIHandler(n, centrifuge.APIConfig{})))
 	webPrefix := "/"
 	if c.WebPath != "" {
 		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(c.WebPath))))

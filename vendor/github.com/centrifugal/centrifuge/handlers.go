@@ -25,17 +25,7 @@ const (
 )
 
 // APIConfig ...
-type APIConfig struct {
-	// Key allows to protect API handler with API key authorization.
-	// This auth method makes sense when you deploy Centrifugo with TLS enabled.
-	// Otherwise we must strongly advice users protect API endpoint with firewall.
-	Key string `json:"api_key"`
-
-	// Insecure turns off API key check.
-	// This can be useful if API endpoint protected with firewall or someone wants
-	// to play with API (for example from command line using CURL).
-	Insecure bool `json:"api_insecure"`
-}
+type APIConfig struct{}
 
 // APIHandler is responsible for processing API commands over HTTP.
 type APIHandler struct {
@@ -54,11 +44,6 @@ func NewAPIHandler(n *Node, c APIConfig) *APIHandler {
 }
 
 func (s *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
-	if !s.checkAuth(r) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
 
 	defer func(started time.Time) {
 		apiHandlerDurationSummary.Observe(float64(time.Since(started).Seconds()))
@@ -123,26 +108,6 @@ func (s *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	resp := encoder.Finish()
 	w.Header().Set("Content-Type", contentType)
 	w.Write(resp)
-}
-
-func (s *APIHandler) checkAuth(r *http.Request) bool {
-	apiKey := s.config.Key
-	if apiKey == "" && !s.config.Insecure {
-		s.node.logger.log(newLogEntry(LogLevelError, "API key is not configured"))
-		return false
-	}
-	if !s.config.Insecure {
-		authorization := r.Header.Get("Authorization")
-		parts := strings.Fields(authorization)
-		if len(parts) != 2 {
-			return false
-		}
-		authMethod := strings.ToLower(parts[0])
-		if authMethod != "apikey" || parts[1] != apiKey {
-			return false
-		}
-	}
-	return true
 }
 
 func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding, cmd *apiproto.Command) (*apiproto.Reply, error) {
@@ -631,7 +596,6 @@ func (t *websocketTransport) write(data ...[]byte) error {
 func (t *websocketTransport) Close(disconnect *Disconnect) error {
 	t.mu.Lock()
 	if t.closed {
-		// Already closed, noop.
 		t.mu.Unlock()
 		return nil
 	}
@@ -654,7 +618,7 @@ func (t *websocketTransport) Close(disconnect *Disconnect) error {
 	return t.conn.Close()
 }
 
-// WebsocketConfig ...
+// WebsocketConfig represents config for WebsocketHandler.
 type WebsocketConfig struct {
 	// WebsocketCompression allows to enable websocket permessage-deflate
 	// compression support for raw websocket connections. It does not guarantee
@@ -891,30 +855,8 @@ func (w *writer) close() error {
 	return nil
 }
 
-// LogRequest middleware logs details of request.
-func LogRequest(n *Node, h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var start time.Time
-		if n.logger.enabled(LogLevelDebug) {
-			start = time.Now()
-		}
-		h.ServeHTTP(w, r)
-		if n.logger.enabled(LogLevelDebug) {
-			addr := r.Header.Get("X-Real-IP")
-			if addr == "" {
-				addr = r.Header.Get("X-Forwarded-For")
-				if addr == "" {
-					addr = r.RemoteAddr
-				}
-			}
-			n.logger.log(newLogEntry(LogLevelDebug, fmt.Sprintf("%s %s from %s completed in %s", r.Method, r.URL.Path, addr, time.Since(start))))
-		}
-		return
-	})
-}
-
 // common data handling logic for Websocket and Sockjs handlers.
-func handleClientData(n *Node, c Client, data []byte, transport Transport, writer *writer) bool {
+func handleClientData(n *Node, c *client, data []byte, transport Transport, writer *writer) bool {
 	transportBytesIn.WithLabelValues(transport.Name()).Add(float64(len(data)))
 
 	if len(data) == 0 {
@@ -945,7 +887,7 @@ func handleClientData(n *Node, c Client, data []byte, transport Transport, write
 			proto.PutReplyEncoder(transport.Encoding(), encoder)
 			return false
 		}
-		rep, disconnect := c.Handle(cmd)
+		rep, disconnect := c.handle(cmd)
 		if disconnect != nil {
 			n.logger.log(newLogEntry(LogLevelInfo, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
 			transport.Close(disconnect)

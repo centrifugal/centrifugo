@@ -70,7 +70,7 @@ type RedisEngine struct {
 type shard struct {
 	sync.RWMutex
 	node              *Node
-	config            *ShardConfig
+	config            *RedisShardConfig
 	pool              *redis.Pool
 	subCh             chan subRequest
 	pubCh             chan pubRequest
@@ -85,11 +85,11 @@ type shard struct {
 
 // RedisEngineConfig of Redis Engine.
 type RedisEngineConfig struct {
-	Shards []*ShardConfig
+	Shards []*RedisShardConfig
 }
 
-// ShardConfig is struct with Redis Engine options.
-type ShardConfig struct {
+// RedisShardConfig is struct with Redis Engine options.
+type RedisShardConfig struct {
 	// Host is Redis server host.
 	Host string
 	// Port is Redis server port.
@@ -155,7 +155,7 @@ func (sr *subRequest) result() error {
 	return <-sr.err
 }
 
-func newPool(n *Node, conf *ShardConfig) *redis.Pool {
+func newPool(n *Node, conf *RedisShardConfig) *redis.Pool {
 
 	host := conf.Host
 	port := conf.Port
@@ -368,7 +368,7 @@ return entries
 )
 
 // newShard initializes new Redis shard.
-func newShard(n *Node, conf *ShardConfig) (*shard, error) {
+func newShard(n *Node, conf *RedisShardConfig) (*shard, error) {
 	shard := &shard{
 		node:              n,
 		config:            conf,

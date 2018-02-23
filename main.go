@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/lib/admin"
+	"github.com/centrifugal/centrifugo/lib/middleware"
 	"github.com/centrifugal/centrifugo/lib/webui"
 
 	"github.com/FZambia/go-logger"
@@ -119,16 +120,16 @@ func main() {
 			}
 
 			centrifuge.VERSION = VERSION
-			nod := centrifuge.New(*c)
-			setLogHandler(nod)
+			node := centrifuge.New(*c)
+			setLogHandler(node)
 
 			engineName := viper.GetString("engine")
 
 			var e centrifuge.Engine
 			if engineName == "memory" {
-				e, err = memoryEngine(nod)
+				e, err = memoryEngine(node)
 			} else if engineName == "redis" {
-				e, err = redisEngine(nod)
+				e, err = redisEngine(node)
 			} else {
 				logger.FATAL.Fatalf("Unknown engine: %s", engineName)
 			}
@@ -137,7 +138,7 @@ func main() {
 				logger.FATAL.Fatalf("Error creating engine: %v", err)
 			}
 
-			if err = nod.Run(e); err != nil {
+			if err = node.Run(e); err != nil {
 				logger.FATAL.Fatalf("Error running node: %v", err)
 			}
 
@@ -176,7 +177,7 @@ func main() {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 				}
 				grpcAPIServer = grpc.NewServer(grpcOpts...)
-				centrifuge.RegisterGRPCServerAPI(nod, grpcAPIServer, centrifuge.GRPCAPIServiceConfig{})
+				centrifuge.RegisterGRPCServerAPI(node, grpcAPIServer, centrifuge.GRPCAPIServiceConfig{})
 				go func() {
 					if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
 						logger.FATAL.Fatalf("Serve GRPC: %v", err)
@@ -203,7 +204,7 @@ func main() {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 				}
 				grpcClientServer = grpc.NewServer(grpcOpts...)
-				centrifuge.RegisterGRPCServerClient(nod, grpcClientServer, centrifuge.GRPCClientServiceConfig{})
+				centrifuge.RegisterGRPCServerClient(node, grpcClientServer, centrifuge.GRPCClientServiceConfig{})
 				go func() {
 					if err := grpcClientServer.Serve(grpcClientConn); err != nil {
 						logger.FATAL.Fatalf("Serve GRPC: %v", err)
@@ -218,12 +219,12 @@ func main() {
 				logger.INFO.Printf("Serving GRPC client service on %s", grpcClientAddr)
 			}
 
-			servers, err := runHTTPServers(nod)
+			servers, err := runHTTPServers(node)
 			if err != nil {
 				logger.FATAL.Fatalf("Error running HTTP server: %v", err)
 			}
 
-			handleSignals(nod, servers, grpcAPIServer, grpcClientServer)
+			handleSignals(node, servers, grpcAPIServer, grpcClientServer)
 		},
 	}
 
@@ -816,14 +817,6 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	return cfg
 }
 
-func apiHandlerConfig() centrifuge.APIConfig {
-	v := viper.GetViper()
-	cfg := centrifuge.APIConfig{}
-	cfg.Key = v.GetString("api_key")
-	cfg.Insecure = v.GetBool("api_insecure")
-	return cfg
-}
-
 func adminHandlerConfig() admin.Config {
 	v := viper.GetViper()
 	cfg := admin.Config{}
@@ -1010,10 +1003,10 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 		ports[i] = port
 	}
 
-	var shardConfigs []*centrifuge.ShardConfig
+	var shardConfigs []*centrifuge.RedisShardConfig
 
 	for i := 0; i < numShards; i++ {
-		conf := &centrifuge.ShardConfig{
+		conf := &centrifuge.RedisShardConfig{
 			Host:             hosts[i],
 			Port:             ports[i],
 			Password:         passwords[i],
@@ -1142,29 +1135,34 @@ func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 
 	if flags&HandlerWebsocket != 0 {
 		// register Websocket connection endpoint.
-		mux.Handle("/connection/websocket", centrifuge.LogRequest(n, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))
+		mux.Handle("/connection/websocket", middleware.LogRequest(n, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))
 	}
 
 	if flags&HandlerSockJS != 0 {
 		// register SockJS connection endpoints.
 		sockjsConfig := sockjsHandlerConfig()
 		sockjsConfig.HandlerPrefix = "/connection/sockjs"
-		mux.Handle(sockjsConfig.HandlerPrefix+"/", centrifuge.LogRequest(n, centrifuge.NewSockjsHandler(n, sockjsConfig)))
+		mux.Handle(sockjsConfig.HandlerPrefix+"/", middleware.LogRequest(n, centrifuge.NewSockjsHandler(n, sockjsConfig)))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
-		mux.Handle("/api", centrifuge.LogRequest(n, centrifuge.NewAPIHandler(n, apiHandlerConfig())))
+		apiHandler := centrifuge.NewAPIHandler(n, centrifuge.APIConfig{})
+		if viper.GetBool("api_insecure") {
+			mux.Handle("/api", middleware.LogRequest(n, apiHandler))
+		} else {
+			mux.Handle("/api", middleware.LogRequest(n, middleware.APIKeyAuth(viper.GetString("api_key"), apiHandler)))
+		}
 	}
 
 	if flags&HandlerPrometheus != 0 {
 		// register Prometheus metrics export endpoint.
-		mux.Handle("/metrics", centrifuge.LogRequest(n, promhttp.Handler()))
+		mux.Handle("/metrics", middleware.LogRequest(n, promhttp.Handler()))
 	}
 
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
-		mux.Handle("/", centrifuge.LogRequest(n, admin.NewHandler(n, adminHandlerConfig())))
+		mux.Handle("/", middleware.LogRequest(n, admin.NewHandler(n, adminHandlerConfig())))
 	}
 
 	return mux

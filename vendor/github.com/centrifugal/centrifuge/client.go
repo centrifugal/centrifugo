@@ -15,19 +15,17 @@ import (
 // Client interface contains functions to inspect and control client
 // connection.
 type Client interface {
-	// ID returns unique connection id.
+	// ID returns unique client connection id.
 	ID() string
-	// User return user ID associated with connection.
+	// User return user ID associated with client connection.
 	UserID() string
-	// Channels returns a slice of channels connection subscribed to at moment.
+	// Channels returns a slice of channels client connection subscribed to at moment.
 	Channels() []string
-	// TransportName returns name of transport used.
+	// Transport returns transport used by client connection.
 	Transport() Transport
-	// Handle data coming from connection transport.
-	Handle(*proto.Command) (*proto.Reply, *Disconnect)
-	// Unsubscribe allows to unsubscribe connection from channel.
+	// Unsubscribe allows to unsubscribe client connection from channel.
 	Unsubscribe(channel string) error
-	// Close closes client's connection.
+	// Close closes client connection.
 	Close(*Disconnect) error
 }
 
@@ -71,7 +69,7 @@ type client struct {
 }
 
 // newClient creates new client connection.
-func newClient(ctx context.Context, n *Node, t Transport, conf clientConfig) Client {
+func newClient(ctx context.Context, n *Node, t Transport, conf clientConfig) *client {
 	c := &client{
 		ctx:       ctx,
 		uid:       uuid.NewV4().String(),
@@ -276,8 +274,8 @@ func (c *client) info(ch string) *proto.ClientInfo {
 	}
 }
 
-// Handle dispatches Command into correct command handler.
-func (c *client) Handle(command *proto.Command) (*proto.Reply, *Disconnect) {
+// handle dispatches Command into correct command handler.
+func (c *client) handle(command *proto.Command) (*proto.Reply, *Disconnect) {
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
