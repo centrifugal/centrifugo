@@ -1,0 +1,47 @@
+site_name: Centrifugo Documentation
+site_description: Centrifugo Documentation
+site_author: Centrifugal
+site_url: https://github.com/centrifugal/centrifugo
+dev_addr: 0.0.0.0:8000
+docs_dir: content
+edit_uri: https://github.com/centrifugal/documentation/edit/master/docs/
+repo_name: 'centrifugal/centrifugo'
+repo_url: 'https://github.com/centrifugal/centrifugo'
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc(permalink=true)
+  - pymdownx.betterem(smart_enable=all)
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.inlinehilite
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist(custom_checkbox=true)
+  - pymdownx.tilde
+
+theme:
+  name: 'material'
+  language: en
+  include_sidebar: true
+  favicon: images/logo.png
+  logo: images/logo.png
+  palette:
+    primary: 'blue'
+    accent: 'light blue'
+  feature:
+    tabs: false
+  palette:
+    primary: 'grey'
+    accent: 'cyan'
+  i18n:
+    prev: 'Previous'
+    next: 'Next'
+
+pages: 
+  - Getting Started: 'index.md'
+  - Basics: 'basics.md'
+  - Server:
+    - 'Overview': 'server/index.md'

@@ -4,7 +4,7 @@ TESTFOLDERS := $(shell go list ./... | grep -v /vendor/ | grep -v /extras/)
 
 DOC_IMAGE := centrifugo-docs
 DOCKER_RUN_DOC_PORT := 8000
-DOCKER_RUN_DOC_MOUNT := -v $(CURDIR):/mkdocs
+DOCKER_RUN_DOC_MOUNT := -v $(CURDIR)/docs:/mkdocs
 DOCKER_RUN_DOC_OPTS := --rm $(DOCKER_RUN_DOC_MOUNT) -p $(DOCKER_RUN_DOC_PORT):8000
 
 all: release
@@ -50,4 +50,4 @@ docs: docs-image
 	docker run  $(DOCKER_RUN_DOC_OPTS) $(DOC_IMAGE) mkdocs serve
 
 docs-image:
-	docker build -t $(DOC_IMAGE) -f docs.Dockerfile .
+	docker build -t $(DOC_IMAGE) -f docs/Dockerfile docs/
