@@ -23,9 +23,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/centrifugal/centrifugo/lib/admin"
-	"github.com/centrifugal/centrifugo/lib/middleware"
-	"github.com/centrifugal/centrifugo/lib/webui"
+	"github.com/centrifugal/centrifugo/internal/admin"
+	"github.com/centrifugal/centrifugo/internal/middleware"
+	"github.com/centrifugal/centrifugo/internal/webui"
 
 	"github.com/FZambia/go-logger"
 	"github.com/FZambia/viper-lite"
