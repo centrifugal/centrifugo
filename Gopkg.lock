@@ -49,7 +49,7 @@
     "internal/proto/controlproto",
     "internal/queue"
   ]
-  revision = "a5e88306e9c79fe1ad50e993e375c46e5671c93e"
+  revision = "cdb5e981048e809420d01bc0e253a2cbb7dcaaaf"
 
 [[projects]]
   name = "github.com/garyburd/redigo"

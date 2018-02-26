@@ -2,6 +2,7 @@ package centrifuge
 
 import (
 	"context"
+	"encoding/base64"
 	"strconv"
 	"strings"
 	"sync"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/centrifugal/centrifuge/internal/auth"
 	"github.com/centrifugal/centrifuge/internal/proto"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -58,8 +60,7 @@ type client struct {
 	uid           string
 	user          string
 	exp           int64
-	opts          string
-	connInfo      proto.Raw
+	info          proto.Raw
 	channelInfo   map[string]proto.Raw
 	channels      map[string]struct{}
 	closed        bool
@@ -109,7 +110,7 @@ func (c *client) updateChannelPresence(ch string) {
 	if !chOpts.Presence {
 		return
 	}
-	c.node.addPresence(ch, c.uid, c.info(ch))
+	c.node.addPresence(ch, c.uid, c.clientInfo(ch))
 }
 
 // updatePresence updates presence info for all client channels
@@ -263,13 +264,12 @@ func (c *client) Close(advice *Disconnect) error {
 	return nil
 }
 
-func (c *client) info(ch string) *proto.ClientInfo {
-	connInfo := c.connInfo
+func (c *client) clientInfo(ch string) *proto.ClientInfo {
 	channelInfo, _ := c.channelInfo[ch]
 	return &proto.ClientInfo{
 		User:     c.user,
 		Client:   c.uid,
-		ConnInfo: connInfo,
+		ConnInfo: c.info,
 		ChanInfo: channelInfo,
 	}
 }
@@ -291,7 +291,10 @@ func (c *client) handle(command *proto.Command) (*proto.Reply, *Disconnect) {
 	method := command.Method
 	params := command.Params
 
-	if method != proto.MethodTypeConnect && !c.authenticated {
+	if command.ID == 0 && method != proto.MethodTypeMessage {
+		c.node.logger.log(newLogEntry(LogLevelInfo, "command ID required for synchronous messages", map[string]interface{}{"client": c.ID(), "user": c.UserID()}))
+		replyErr = ErrBadRequest
+	} else if method != proto.MethodTypeConnect && !c.authenticated {
 		// Client must send connect command first.
 		replyErr = ErrUnauthorized
 	} else {
@@ -336,11 +339,16 @@ func (c *client) handle(command *proto.Command) (*proto.Reply, *Disconnect) {
 			mediator := c.node.Mediator()
 			if mediator != nil && mediator.Message != nil {
 				messageReply, err := mediator.Message(c.ctx, &MessageContext{
+					EventContext: EventContext{
+						Client: c,
+					},
 					Data: params,
 				})
 				if err == nil {
 					disconnect = messageReply.Disconnect
 				}
+			} else {
+				replyRes, replyErr = nil, ErrNotAvailable
 			}
 		default:
 			replyRes, replyErr = nil, ErrMethodNotFound
@@ -353,6 +361,7 @@ func (c *client) handle(command *proto.Command) (*proto.Reply, *Disconnect) {
 	}
 
 	if command.ID == 0 {
+		// Asynchronous message from client - no need to reply.
 		return nil, nil
 	}
 
@@ -384,7 +393,7 @@ func (c *client) expire() {
 		})
 		c.exp = reply.Exp
 		if reply.Info != nil {
-			c.connInfo = reply.Info
+			c.info = reply.Info
 		}
 	}
 
@@ -620,7 +629,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 
 	if credentials != nil {
 		c.user = credentials.UserID
-		c.connInfo = credentials.Info
+		c.info = credentials.Info
 		c.exp = credentials.Exp
 		if c.exp > 0 {
 			ttl = uint32(c.exp - time.Now().Unix())
@@ -652,9 +661,13 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 		}
 
 		c.user = user
-		c.opts = opts
 		if len(info) > 0 {
-			c.connInfo = proto.Raw(info)
+			byteInfo, err := base64.StdEncoding.DecodeString(info)
+			if err != nil {
+				c.node.logger.log(newLogEntry(LogLevelInfo, "can not decode provided info from base64", map[string]interface{}{"user": user, "client": c.uid, "error": err.Error()}))
+				return resp, DisconnectBadRequest
+			}
+			c.info = proto.Raw(byteInfo)
 		}
 	}
 
@@ -743,6 +756,16 @@ func (c *client) refreshCmd(cmd *proto.RefreshRequest) (*proto.RefreshResponse, 
 		return resp, DisconnectInvalidSign
 	}
 
+	var byteInfo []byte
+	if len(info) > 0 {
+		var err error
+		byteInfo, err = base64.StdEncoding.DecodeString(info)
+		if err != nil {
+			c.node.logger.log(newLogEntry(LogLevelInfo, "can not decode provided info from base64", map[string]interface{}{"user": user, "client": c.uid, "error": err.Error()}))
+			return resp, DisconnectBadRequest
+		}
+	}
+
 	timestamp, err := strconv.Atoi(exp)
 	if err != nil {
 		c.node.logger.log(newLogEntry(LogLevelInfo, "invalid refresh exp timestamp", map[string]interface{}{"user": user, "client": c.uid, "error": err.Error()}))
@@ -768,7 +791,9 @@ func (c *client) refreshCmd(cmd *proto.RefreshRequest) (*proto.RefreshResponse, 
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
 			c.exp = int64(timestamp)
-			c.connInfo = proto.Raw(info)
+			if len(byteInfo) > 0 {
+				c.info = proto.Raw(byteInfo)
+			}
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
@@ -902,7 +927,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 		return nil, DisconnectServerError
 	}
 
-	info := c.info(channel)
+	info := c.clientInfo(channel)
 
 	if chOpts.Presence {
 		err = c.node.addPresence(channel, c.uid, info)
@@ -954,7 +979,7 @@ func (c *client) unsubscribe(channel string) error {
 		return ErrNamespaceNotFound
 	}
 
-	info := c.info(channel)
+	info := c.clientInfo(channel)
 
 	_, ok = c.channels[channel]
 	if ok {
@@ -1039,7 +1064,7 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 		return resp, nil
 	}
 
-	info := c.info(ch)
+	info := c.clientInfo(ch)
 
 	chOpts, ok := c.node.ChannelOpts(ch)
 	if !ok {

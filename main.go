@@ -119,7 +119,6 @@ func main() {
 				logger.FATAL.Fatalf("Error validating config: %v", err)
 			}
 
-			centrifuge.VERSION = VERSION
 			node := centrifuge.New(*c)
 			setLogHandler(node)
 
@@ -731,6 +730,7 @@ func nodeConfig() *centrifuge.Config {
 
 	cfg := &centrifuge.Config{}
 
+	cfg.Version = VERSION
 	cfg.Name = applicationName()
 	cfg.Secret = v.GetString("secret")
 

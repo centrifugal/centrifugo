@@ -4,7 +4,7 @@ import (
 	"sync"
 )
 
-// PreparedReply ...
+// PreparedReply is structure for encoding reply only once.
 type PreparedReply struct {
 	Enc   Encoding
 	Reply *Reply
@@ -12,7 +12,7 @@ type PreparedReply struct {
 	once  sync.Once
 }
 
-// NewPreparedReply ...
+// NewPreparedReply initializes PreparedReply.
 func NewPreparedReply(reply *Reply, enc Encoding) *PreparedReply {
 	return &PreparedReply{
 		Reply: reply,
@@ -20,7 +20,7 @@ func NewPreparedReply(reply *Reply, enc Encoding) *PreparedReply {
 	}
 }
 
-// Data ...
+// Data returns data associated with reply which is only calculated once.
 func (r *PreparedReply) Data() []byte {
 	r.once.Do(func() {
 		encoder := GetReplyEncoder(r.Enc)

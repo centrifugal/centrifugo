@@ -21,9 +21,6 @@ import (
 type Node struct {
 	mu sync.RWMutex
 
-	// version of Centrifugo node.
-	version string
-
 	// unique id for this node.
 	uid string
 
@@ -66,15 +63,11 @@ type Node struct {
 	logger *logger
 }
 
-// VERSION of Centrifugo server node. Set on build stage.
-var VERSION string
-
 // New creates Node, the only required argument is config.
 func New(c Config) *Node {
 	uid := uuid.NewV4().String()
 
 	n := &Node{
-		version:        VERSION,
 		uid:            uid,
 		nodes:          newNodeRegistry(uid),
 		config:         c,
@@ -85,7 +78,7 @@ func New(c Config) *Node {
 		messageDecoder: proto.NewProtobufMessageDecoder(),
 		controlEncoder: controlproto.NewProtobufEncoder(),
 		controlDecoder: controlproto.NewProtobufDecoder(),
-		logger:         newLogger(LogLevelNone, nil),
+		logger:         nil,
 	}
 	return n
 }
@@ -120,7 +113,7 @@ func (n *Node) Hub() *Hub {
 
 // Version returns version of node.
 func (n *Node) Version() string {
-	return n.version
+	return n.Config().Version
 }
 
 // Reload node config.
@@ -417,7 +410,7 @@ func (n *Node) pubNode() error {
 	node := &controlproto.Node{
 		UID:         n.uid,
 		Name:        n.config.Name,
-		Version:     n.version,
+		Version:     n.config.Version,
 		NumClients:  uint32(n.hub.NumClients()),
 		NumUsers:    uint32(n.hub.NumUsers()),
 		NumChannels: uint32(n.hub.NumChannels()),

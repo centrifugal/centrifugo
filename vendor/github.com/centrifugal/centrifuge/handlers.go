@@ -867,6 +867,7 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 
 	encoder := proto.GetReplyEncoder(transport.Encoding())
 	decoder := proto.GetCommandDecoder(transport.Encoding(), data)
+	var numReplies int
 
 	for {
 		cmd, err := decoder.Decode()
@@ -880,13 +881,6 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 			proto.PutReplyEncoder(transport.Encoding(), encoder)
 			return false
 		}
-		if cmd.ID == 0 {
-			n.logger.log(newLogEntry(LogLevelInfo, "command ID required", map[string]interface{}{"client": c.ID(), "user": c.UserID()}))
-			c.Close(DisconnectBadRequest)
-			proto.PutCommandDecoder(transport.Encoding(), decoder)
-			proto.PutReplyEncoder(transport.Encoding(), encoder)
-			return false
-		}
 		rep, disconnect := c.handle(cmd)
 		if disconnect != nil {
 			n.logger.log(newLogEntry(LogLevelInfo, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
@@ -895,9 +889,9 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 			proto.PutReplyEncoder(transport.Encoding(), encoder)
 			return false
 		}
-
 		if rep != nil {
 			err = encoder.Encode(rep)
+			numReplies++
 			if err != nil {
 				n.logger.log(newLogEntry(LogLevelError, "error encoding reply", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "client": c.ID(), "user": c.UserID(), "error": err.Error()}))
 				transport.Close(DisconnectServerError)
@@ -906,13 +900,15 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 		}
 	}
 
-	disconnect := writer.write(encoder.Finish())
-	if disconnect != nil {
-		n.logger.log(newLogEntry(LogLevelInfo, "disconnect after sending data to transport", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
-		transport.Close(disconnect)
-		proto.PutCommandDecoder(transport.Encoding(), decoder)
-		proto.PutReplyEncoder(transport.Encoding(), encoder)
-		return false
+	if numReplies > 0 {
+		disconnect := writer.write(encoder.Finish())
+		if disconnect != nil {
+			n.logger.log(newLogEntry(LogLevelInfo, "disconnect after sending data to transport", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
+			transport.Close(disconnect)
+			proto.PutCommandDecoder(transport.Encoding(), decoder)
+			proto.PutReplyEncoder(transport.Encoding(), encoder)
+			return false
+		}
 	}
 
 	proto.PutCommandDecoder(transport.Encoding(), decoder)

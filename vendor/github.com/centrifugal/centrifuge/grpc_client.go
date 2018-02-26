@@ -64,11 +64,6 @@ func (s *grpcClientService) Communicate(stream proto.Centrifuge_CommunicateServe
 				c.Close(DisconnectNormal)
 				return
 			}
-			if cmd.ID == 0 {
-				s.node.logger.log(newLogEntry(LogLevelInfo, "command ID required", map[string]interface{}{"client": c.ID(), "user": c.UserID()}))
-				c.Close(DisconnectBadRequest)
-				return
-			}
 			rep, disconnect := c.handle(cmd)
 			if disconnect != nil {
 				s.node.logger.log(newLogEntry(LogLevelInfo, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))

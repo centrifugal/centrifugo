@@ -8,6 +8,10 @@ import (
 
 // Config contains Application configuration options.
 type Config struct {
+	// Version of server – will be sent on connection establishement phase in
+	// response to connect request.
+	Version string
+
 	// Name of this server node - must be unique, used as human readable
 	// and meaningful node identificator.
 	Name string
