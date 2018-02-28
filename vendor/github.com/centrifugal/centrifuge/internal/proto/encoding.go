@@ -49,6 +49,7 @@ func GetReplyEncoder(enc Encoding) ReplyEncoder {
 func PutReplyEncoder(enc Encoding, e ReplyEncoder) {
 	if enc == EncodingJSON {
 		jsonReplyEncoderPool.Put(e)
+		return
 	}
 	protobufReplyEncoderPool.Put(e)
 }

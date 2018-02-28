@@ -1,4 +1,5 @@
 #!/bin/bash
+go get github.com/hairyhenderson/gomplate
 
 gomplate -f $GOPATH/src/github.com/centrifugal/centrifuge/misc/proto/api.template.proto > $GOPATH/src/github.com/centrifugal/centrifuge/misc/proto/api.proto
 GOGO=1 gomplate -f $GOPATH/src/github.com/centrifugal/centrifuge/misc/proto/api.template.proto > $GOPATH/src/github.com/centrifugal/centrifuge/internal/proto/apiproto/api.proto

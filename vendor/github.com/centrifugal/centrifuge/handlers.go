@@ -865,8 +865,10 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 		return false
 	}
 
-	encoder := proto.GetReplyEncoder(transport.Encoding())
-	decoder := proto.GetCommandDecoder(transport.Encoding(), data)
+	enc := transport.Encoding()
+
+	encoder := proto.GetReplyEncoder(enc)
+	decoder := proto.GetCommandDecoder(enc, data)
 	var numReplies int
 
 	for {
@@ -877,16 +879,16 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 			}
 			n.logger.log(newLogEntry(LogLevelInfo, "error decoding request", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "error": err.Error()}))
 			transport.Close(DisconnectBadRequest)
-			proto.PutCommandDecoder(transport.Encoding(), decoder)
-			proto.PutReplyEncoder(transport.Encoding(), encoder)
+			proto.PutCommandDecoder(enc, decoder)
+			proto.PutReplyEncoder(enc, encoder)
 			return false
 		}
 		rep, disconnect := c.handle(cmd)
 		if disconnect != nil {
 			n.logger.log(newLogEntry(LogLevelInfo, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
 			transport.Close(disconnect)
-			proto.PutCommandDecoder(transport.Encoding(), decoder)
-			proto.PutReplyEncoder(transport.Encoding(), encoder)
+			proto.PutCommandDecoder(enc, decoder)
+			proto.PutReplyEncoder(enc, encoder)
 			return false
 		}
 		if rep != nil {
@@ -905,14 +907,14 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 		if disconnect != nil {
 			n.logger.log(newLogEntry(LogLevelInfo, "disconnect after sending data to transport", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
 			transport.Close(disconnect)
-			proto.PutCommandDecoder(transport.Encoding(), decoder)
-			proto.PutReplyEncoder(transport.Encoding(), encoder)
+			proto.PutCommandDecoder(enc, decoder)
+			proto.PutReplyEncoder(enc, encoder)
 			return false
 		}
 	}
 
-	proto.PutCommandDecoder(transport.Encoding(), decoder)
-	proto.PutReplyEncoder(transport.Encoding(), encoder)
+	proto.PutCommandDecoder(enc, decoder)
+	proto.PutReplyEncoder(enc, encoder)
 
 	return true
 }

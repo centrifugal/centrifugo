@@ -4,62 +4,37 @@ import (
 	"testing"
 )
 
-func TestGenerateClientToken(t *testing.T) {
+func TestGenerateClientSign(t *testing.T) {
 	var (
 		secretKey = "secret"
 		user      = "user"
-		timestamp = "1430669930"
+		exp       = "1430669930"
+		info      = "{}"
+		opts      = ""
 	)
-	tokenWithInfo := GenerateClientToken(secretKey, user, timestamp, "{}")
+	tokenWithInfo := GenerateClientSign(secretKey, user, exp, info, opts)
 	if len(tokenWithInfo) != 64 {
 		t.Error("sha256 token length must be 64")
 	}
 }
 
-func TestCheckClientToken(t *testing.T) {
+func TestCheckClientSign(t *testing.T) {
 	var (
 		secretKey     = "secret"
 		user          = "user"
-		timestamp     = "1430669930"
+		exp           = "1430669930"
 		info          = "{}"
+		opts          = ""
 		providedToken = "token"
 	)
-	result := CheckClientToken(secretKey, user, timestamp, info, providedToken)
+	result := CheckClientSign(secretKey, user, exp, info, opts, providedToken)
 	if result {
 		t.Error("provided token is wrong, but check passed")
 	}
-	correctToken := GenerateClientToken(secretKey, user, timestamp, info)
-	result = CheckClientToken(secretKey, user, timestamp, info, correctToken)
+	correctToken := GenerateClientSign(secretKey, user, exp, info, opts)
+	result = CheckClientSign(secretKey, user, exp, info, opts, correctToken)
 	if !result {
 		t.Error("correct client token must pass check")
-	}
-}
-
-func TestGenerateApiSign(t *testing.T) {
-	var (
-		secretKey   = "secret"
-		encodedData = []byte("{}")
-	)
-	sign := GenerateApiSign(secretKey, encodedData)
-	if len(sign) != 64 {
-		t.Error("sha256 sign length must be 64")
-	}
-}
-
-func TestCheckApiSign(t *testing.T) {
-	var (
-		secretKey    = "secret"
-		encodedData  = []byte("{}")
-		providedSign = "sign"
-	)
-	result := CheckApiSign(secretKey, encodedData, providedSign)
-	if result {
-		t.Error("provided sign is wrong, but check passed")
-	}
-	correctSign := GenerateApiSign(secretKey, encodedData)
-	result = CheckApiSign(secretKey, encodedData, correctSign)
-	if !result {
-		t.Error("correct sign must pass check")
 	}
 }
 

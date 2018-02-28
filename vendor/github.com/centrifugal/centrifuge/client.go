@@ -416,8 +416,11 @@ func (c *client) handleConnect(params proto.Raw) (proto.Raw, *proto.Error, *Disc
 		return nil, nil, DisconnectBadRequest
 	}
 	resp, disconnect := c.connectCmd(cmd)
-	if resp.Error != nil || disconnect != nil {
-		return nil, resp.Error, disconnect
+	if disconnect != nil {
+		return nil, nil, disconnect
+	}
+	if resp.Error != nil {
+		return nil, resp.Error, nil
 	}
 	var replyRes []byte
 	if resp.Result != nil {
@@ -437,8 +440,11 @@ func (c *client) handleRefresh(params proto.Raw) (proto.Raw, *proto.Error, *Disc
 		return nil, nil, DisconnectBadRequest
 	}
 	resp, disconnect := c.refreshCmd(cmd)
-	if resp.Error != nil || disconnect != nil {
-		return nil, resp.Error, disconnect
+	if disconnect != nil {
+		return nil, nil, disconnect
+	}
+	if resp.Error != nil {
+		return nil, resp.Error, nil
 	}
 	var replyRes []byte
 	if resp.Result != nil {
@@ -458,8 +464,11 @@ func (c *client) handleSubscribe(params proto.Raw) (proto.Raw, *proto.Error, *Di
 		return nil, nil, DisconnectBadRequest
 	}
 	resp, disconnect := c.subscribeCmd(cmd)
-	if resp.Error != nil || disconnect != nil {
-		return nil, resp.Error, disconnect
+	if disconnect != nil {
+		return nil, nil, disconnect
+	}
+	if resp.Error != nil {
+		return nil, resp.Error, nil
 	}
 	var replyRes []byte
 	if resp.Result != nil {
@@ -479,8 +488,11 @@ func (c *client) handleUnsubscribe(params proto.Raw) (proto.Raw, *proto.Error, *
 		return nil, nil, DisconnectBadRequest
 	}
 	resp, disconnect := c.unsubscribeCmd(cmd)
-	if resp.Error != nil || disconnect != nil {
-		return nil, resp.Error, disconnect
+	if disconnect != nil {
+		return nil, nil, disconnect
+	}
+	if resp.Error != nil {
+		return nil, resp.Error, nil
 	}
 	var replyRes []byte
 	if resp.Result != nil {
@@ -500,8 +512,11 @@ func (c *client) handlePublish(params proto.Raw) (proto.Raw, *proto.Error, *Disc
 		return nil, nil, DisconnectBadRequest
 	}
 	resp, disconnect := c.publishCmd(cmd)
-	if resp.Error != nil || disconnect != nil {
-		return nil, resp.Error, disconnect
+	if disconnect != nil {
+		return nil, nil, disconnect
+	}
+	if resp.Error != nil {
+		return nil, resp.Error, nil
 	}
 	var replyRes []byte
 	if resp.Result != nil {
@@ -521,8 +536,11 @@ func (c *client) handlePresence(params proto.Raw) (proto.Raw, *proto.Error, *Dis
 		return nil, nil, DisconnectBadRequest
 	}
 	resp, disconnect := c.presenceCmd(cmd)
-	if resp.Error != nil || disconnect != nil {
-		return nil, resp.Error, disconnect
+	if disconnect != nil {
+		return nil, nil, disconnect
+	}
+	if resp.Error != nil {
+		return nil, resp.Error, nil
 	}
 	var replyRes []byte
 	if resp.Result != nil {
@@ -542,8 +560,11 @@ func (c *client) handlePresenceStats(params proto.Raw) (proto.Raw, *proto.Error,
 		return nil, nil, DisconnectBadRequest
 	}
 	resp, disconnect := c.presenceStatsCmd(cmd)
-	if resp.Error != nil || disconnect != nil {
-		return nil, resp.Error, disconnect
+	if disconnect != nil {
+		return nil, nil, disconnect
+	}
+	if resp.Error != nil {
+		return nil, resp.Error, nil
 	}
 	var replyRes []byte
 	if resp.Result != nil {
@@ -563,8 +584,11 @@ func (c *client) handleHistory(params proto.Raw) (proto.Raw, *proto.Error, *Disc
 		return nil, nil, DisconnectBadRequest
 	}
 	resp, disconnect := c.historyCmd(cmd)
-	if resp.Error != nil || disconnect != nil {
-		return nil, resp.Error, disconnect
+	if disconnect != nil {
+		return nil, nil, disconnect
+	}
+	if resp.Error != nil {
+		return nil, resp.Error, nil
 	}
 	var replyRes []byte
 	if resp.Result != nil {
@@ -584,8 +608,11 @@ func (c *client) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *Disconn
 		return nil, nil, DisconnectBadRequest
 	}
 	resp, disconnect := c.pingCmd(cmd)
-	if resp.Error != nil || disconnect != nil {
-		return nil, resp.Error, disconnect
+	if disconnect != nil {
+		return nil, nil, disconnect
+	}
+	if resp.Error != nil {
+		return nil, resp.Error, nil
 	}
 	var replyRes []byte
 	if resp.Result != nil {
