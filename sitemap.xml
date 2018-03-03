@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+    
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/</loc>
+     <lastmod>2018-03-03</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/basics/</loc>
+     <lastmod>2018-03-03</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
+    
+        
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/server/</loc>
+     <lastmod>2018-03-03</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/server/protocol/</loc>
+     <lastmod>2018-03-03</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    
+
+</urlset>
