@@ -5,7 +5,6 @@ language: go
 go:
   # Use quotes to fill in safe:
   # https://github.com/travis-ci/gimme/issues/132
-  - '1.9.x'
   - '1.10.x'
   - 'tip'
 
@@ -22,7 +21,6 @@ services:
 before_install:
   - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
   - go get golang.org/x/tools/cmd/cover
-  - go get github.com/mitchellh/gox
 
 script: make test
 
