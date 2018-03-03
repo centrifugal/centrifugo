@@ -28,13 +28,13 @@ func (h *apiExecutor) Publish(ctx context.Context, cmd *apiproto.PublishRequest)
 
 	if string(ch) == "" || len(data) == 0 {
 		h.node.logger.log(newLogEntry(LogLevelError, "channel and data required for publish", nil))
-		resp.Error = apiproto.ErrBadRequest
+		resp.Error = apiproto.ErrorBadRequest
 		return resp
 	}
 
 	chOpts, ok := h.node.ChannelOpts(ch)
 	if !ok {
-		resp.Error = apiproto.ErrNamespaceNotFound
+		resp.Error = apiproto.ErrorNamespaceNotFound
 		return resp
 	}
 
@@ -48,7 +48,7 @@ func (h *apiExecutor) Publish(ctx context.Context, cmd *apiproto.PublishRequest)
 	err := <-h.node.publish(cmd.Channel, publication, &chOpts)
 	if err != nil {
 		h.node.logger.log(newLogEntry(LogLevelError, "error publishing message in engine", map[string]interface{}{"error": err.Error()}))
-		resp.Error = apiproto.ErrInternalServerError
+		resp.Error = apiproto.ErrorInternal
 		return resp
 	}
 	return resp
@@ -64,13 +64,13 @@ func (h *apiExecutor) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequ
 
 	if len(channels) == 0 {
 		h.node.logger.log(newLogEntry(LogLevelError, "channels required for broadcast", nil))
-		resp.Error = apiproto.ErrBadRequest
+		resp.Error = apiproto.ErrorBadRequest
 		return resp
 	}
 
 	if len(data) == 0 {
 		h.node.logger.log(newLogEntry(LogLevelError, "data required for broadcast", nil))
-		resp.Error = apiproto.ErrBadRequest
+		resp.Error = apiproto.ErrorBadRequest
 		return resp
 	}
 
@@ -80,14 +80,14 @@ func (h *apiExecutor) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequ
 
 		if string(ch) == "" {
 			h.node.logger.log(newLogEntry(LogLevelError, "channel can not be blank in broadcast", nil))
-			resp.Error = apiproto.ErrBadRequest
+			resp.Error = apiproto.ErrorBadRequest
 			return resp
 		}
 
 		chOpts, ok := h.node.ChannelOpts(ch)
 		if !ok {
 			h.node.logger.log(newLogEntry(LogLevelError, "can't find namespace for channel", map[string]interface{}{"channel": ch}))
-			resp.Error = apiproto.ErrNamespaceNotFound
+			resp.Error = apiproto.ErrorNamespaceNotFound
 		}
 
 		publication := &proto.Publication{
@@ -111,7 +111,7 @@ func (h *apiExecutor) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequ
 	}
 	if firstErr != nil {
 		h.node.logger.log(newLogEntry(LogLevelError, "error broadcasting data", map[string]interface{}{"error": firstErr.Error()}))
-		resp.Error = apiproto.ErrInternalServerError
+		resp.Error = apiproto.ErrorInternal
 		return resp
 	}
 	return resp
@@ -129,7 +129,7 @@ func (h *apiExecutor) Unsubscribe(ctx context.Context, cmd *apiproto.Unsubscribe
 	err := h.node.Unsubscribe(user, channel)
 	if err != nil {
 		h.node.logger.log(newLogEntry(LogLevelError, "error unsubscribing user from channel", map[string]interface{}{"channel": channel, "user": user, "error": err.Error()}))
-		resp.Error = apiproto.ErrInternalServerError
+		resp.Error = apiproto.ErrorInternal
 		return resp
 	}
 	return resp
@@ -146,7 +146,7 @@ func (h *apiExecutor) Disconnect(ctx context.Context, cmd *apiproto.DisconnectRe
 	err := h.node.Disconnect(user, false)
 	if err != nil {
 		h.node.logger.log(newLogEntry(LogLevelError, "error disconnecting user", map[string]interface{}{"user": cmd.User, "error": err.Error()}))
-		resp.Error = apiproto.ErrInternalServerError
+		resp.Error = apiproto.ErrorInternal
 		return resp
 	}
 	return resp
@@ -160,25 +160,25 @@ func (h *apiExecutor) Presence(ctx context.Context, cmd *apiproto.PresenceReques
 	ch := cmd.Channel
 
 	if string(ch) == "" {
-		resp.Error = apiproto.ErrBadRequest
+		resp.Error = apiproto.ErrorBadRequest
 		return resp
 	}
 
 	chOpts, ok := h.node.ChannelOpts(ch)
 	if !ok {
-		resp.Error = apiproto.ErrNamespaceNotFound
+		resp.Error = apiproto.ErrorNamespaceNotFound
 		return resp
 	}
 
 	if !chOpts.Presence {
-		resp.Error = apiproto.ErrNotAvailable
+		resp.Error = apiproto.ErrorNotAvailable
 		return resp
 	}
 
 	presence, err := h.node.Presence(ch)
 	if err != nil {
 		h.node.logger.log(newLogEntry(LogLevelError, "error calling presence", map[string]interface{}{"error": err.Error()}))
-		resp.Error = apiproto.ErrInternalServerError
+		resp.Error = apiproto.ErrorInternal
 		return resp
 	}
 
@@ -201,25 +201,25 @@ func (h *apiExecutor) PresenceStats(ctx context.Context, cmd *apiproto.PresenceS
 	ch := cmd.Channel
 
 	if string(ch) == "" {
-		resp.Error = apiproto.ErrBadRequest
+		resp.Error = apiproto.ErrorBadRequest
 		return resp
 	}
 
 	chOpts, ok := h.node.ChannelOpts(ch)
 	if !ok {
-		resp.Error = apiproto.ErrNamespaceNotFound
+		resp.Error = apiproto.ErrorNamespaceNotFound
 		return resp
 	}
 
 	if !chOpts.Presence || !chOpts.PresenceStats {
-		resp.Error = apiproto.ErrNotAvailable
+		resp.Error = apiproto.ErrorNotAvailable
 		return resp
 	}
 
 	presence, err := h.node.Presence(cmd.Channel)
 	if err != nil {
 		h.node.logger.log(newLogEntry(LogLevelError, "error calling presence", map[string]interface{}{"error": err.Error()}))
-		resp.Error = apiproto.ErrInternalServerError
+		resp.Error = apiproto.ErrorInternal
 		return resp
 	}
 
@@ -251,25 +251,25 @@ func (h *apiExecutor) History(ctx context.Context, cmd *apiproto.HistoryRequest)
 	ch := cmd.Channel
 
 	if string(ch) == "" {
-		resp.Error = apiproto.ErrBadRequest
+		resp.Error = apiproto.ErrorBadRequest
 		return resp
 	}
 
 	chOpts, ok := h.node.ChannelOpts(ch)
 	if !ok {
-		resp.Error = apiproto.ErrNamespaceNotFound
+		resp.Error = apiproto.ErrorNamespaceNotFound
 		return resp
 	}
 
 	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
-		resp.Error = apiproto.ErrNotAvailable
+		resp.Error = apiproto.ErrorNotAvailable
 		return resp
 	}
 
 	history, err := h.node.History(ch)
 	if err != nil {
 		h.node.logger.log(newLogEntry(LogLevelError, "error calling history", map[string]interface{}{"error": err.Error()}))
-		resp.Error = apiproto.ErrInternalServerError
+		resp.Error = apiproto.ErrorInternal
 		return resp
 	}
 
@@ -289,6 +289,39 @@ func (h *apiExecutor) History(ctx context.Context, cmd *apiproto.HistoryRequest)
 	return resp
 }
 
+// HistoryRemove removes all history information for channel.
+func (h *apiExecutor) HistoryRemove(ctx context.Context, cmd *apiproto.HistoryRemoveRequest) *apiproto.HistoryRemoveResponse {
+
+	resp := &apiproto.HistoryRemoveResponse{}
+
+	ch := cmd.Channel
+
+	if string(ch) == "" {
+		resp.Error = apiproto.ErrorBadRequest
+		return resp
+	}
+
+	chOpts, ok := h.node.ChannelOpts(ch)
+	if !ok {
+		resp.Error = apiproto.ErrorNamespaceNotFound
+		return resp
+	}
+
+	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 {
+		resp.Error = apiproto.ErrorNotAvailable
+		return resp
+	}
+
+	err := h.node.RemoveHistory(ch)
+	if err != nil {
+		h.node.logger.log(newLogEntry(LogLevelError, "error calling history remove", map[string]interface{}{"error": err.Error()}))
+		resp.Error = apiproto.ErrorInternal
+		return resp
+	}
+
+	return resp
+}
+
 // Channels returns active channels.
 func (h *apiExecutor) Channels(ctx context.Context, cmd *apiproto.ChannelsRequest) *apiproto.ChannelsResponse {
 
@@ -297,7 +330,7 @@ func (h *apiExecutor) Channels(ctx context.Context, cmd *apiproto.ChannelsReques
 	channels, err := h.node.Channels()
 	if err != nil {
 		h.node.logger.log(newLogEntry(LogLevelError, "error calling channels", map[string]interface{}{"error": err.Error()}))
-		resp.Error = apiproto.ErrInternalServerError
+		resp.Error = apiproto.ErrorInternal
 		return resp
 	}
 
@@ -315,7 +348,7 @@ func (h *apiExecutor) Info(ctx context.Context, cmd *apiproto.InfoRequest) *apip
 	info, err := h.node.Info()
 	if err != nil {
 		h.node.logger.log(newLogEntry(LogLevelError, "error calling stats", map[string]interface{}{"error": err.Error()}))
-		resp.Error = apiproto.ErrInternalServerError
+		resp.Error = apiproto.ErrorInternal
 		return resp
 	}
 

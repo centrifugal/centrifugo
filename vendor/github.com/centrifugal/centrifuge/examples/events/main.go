@@ -67,7 +67,7 @@ func main() {
 		}
 
 		log.Printf("RPC from user: %s, data: %s, encoding: %d", userID, string(req.Data), req.Client.Transport().Encoding())
-		result := []byte(`{"text": "rpc response"}`)
+		data := []byte(`{"text": "rpc response"}`)
 
 		go func() {
 			err := node.Publish("$public:chat", &centrifuge.Publication{Data: []byte(`{"input": "Booom!"}`)})
@@ -77,7 +77,7 @@ func main() {
 		}()
 
 		return &centrifuge.RPCReply{
-			Result: result,
+			Data: data,
 		}, nil
 	}
 

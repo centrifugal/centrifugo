@@ -11,7 +11,7 @@ type Hub struct {
 	mu sync.RWMutex
 
 	// match ConnID with actual client connection.
-	conns map[string]Client
+	conns map[string]*client
 
 	// registry to hold active client connections grouped by user.
 	users map[string]map[string]struct{}
@@ -23,7 +23,7 @@ type Hub struct {
 // newHub initializes Hub.
 func newHub() *Hub {
 	return &Hub{
-		conns: make(map[string]Client),
+		conns: make(map[string]*client),
 		users: make(map[string]map[string]struct{}),
 		subs:  make(map[string]map[string]struct{}),
 	}
@@ -51,7 +51,7 @@ func (h *Hub) shutdown() error {
 				continue
 			}
 			sem <- struct{}{}
-			go func(cc Client) {
+			go func(cc *client) {
 				defer func() { <-sem }()
 				cc.Close(advice)
 				wg.Done()
@@ -64,10 +64,10 @@ func (h *Hub) shutdown() error {
 }
 
 func (h *Hub) disconnect(user string, reconnect bool) error {
-	userConnections := h.UserConnections(user)
+	userConnections := h.userConnections(user)
 	advice := &Disconnect{Reason: "disconnect", Reconnect: reconnect}
 	for _, c := range userConnections {
-		go func(cc Client) {
+		go func(cc *client) {
 			cc.Close(advice)
 		}(c)
 	}
@@ -75,7 +75,7 @@ func (h *Hub) disconnect(user string, reconnect bool) error {
 }
 
 func (h *Hub) unsubscribe(user string, ch string) error {
-	userConnections := h.UserConnections(user)
+	userConnections := h.userConnections(user)
 	for _, c := range userConnections {
 		var channels []string
 		if string(ch) == "" {
@@ -96,7 +96,7 @@ func (h *Hub) unsubscribe(user string, ch string) error {
 }
 
 // add adds connection into clientHub connections registry.
-func (h *Hub) add(c Client) error {
+func (h *Hub) add(c *client) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -114,7 +114,7 @@ func (h *Hub) add(c Client) error {
 }
 
 // Remove removes connection from clientHub connections registry.
-func (h *Hub) remove(c Client) error {
+func (h *Hub) remove(c *client) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -142,18 +142,18 @@ func (h *Hub) remove(c Client) error {
 	return nil
 }
 
-// UserConnections returns all connections of user with specified UserID.
-func (h *Hub) UserConnections(userID string) map[string]Client {
+// userConnections returns all connections of user with specified UserID.
+func (h *Hub) userConnections(userID string) map[string]*client {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
 	userConnections, ok := h.users[userID]
 	if !ok {
-		return map[string]Client{}
+		return map[string]*client{}
 	}
 
-	var conns map[string]Client
-	conns = make(map[string]Client, len(userConnections))
+	var conns map[string]*client
+	conns = make(map[string]*client, len(userConnections))
 	for uid := range userConnections {
 		c, ok := h.conns[uid]
 		if !ok {
@@ -166,7 +166,7 @@ func (h *Hub) UserConnections(userID string) map[string]Client {
 }
 
 // addSub adds connection into clientHub subscriptions registry.
-func (h *Hub) addSub(ch string, c Client) (bool, error) {
+func (h *Hub) addSub(ch string, c *client) (bool, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -186,7 +186,7 @@ func (h *Hub) addSub(ch string, c Client) (bool, error) {
 }
 
 // removeSub removes connection from clientHub subscriptions registry.
-func (h *Hub) removeSub(ch string, c Client) (bool, error) {
+func (h *Hub) removeSub(ch string, c *client) (bool, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -248,7 +248,7 @@ func (h *Hub) broadcastPublication(channel string, publication *proto.Publicatio
 				}
 				jsonReply = proto.NewPreparedReply(reply, proto.EncodingJSON)
 			}
-			c.Transport().Send(jsonReply)
+			c.transport.Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
 			if protobufReply == nil {
 				data, err := proto.GetMessageEncoder(enc).EncodePublication(publication)
@@ -264,7 +264,7 @@ func (h *Hub) broadcastPublication(channel string, publication *proto.Publicatio
 				}
 				protobufReply = proto.NewPreparedReply(reply, proto.EncodingProtobuf)
 			}
-			c.Transport().Send(protobufReply)
+			c.transport.Send(protobufReply)
 		}
 	}
 	return nil
@@ -306,7 +306,7 @@ func (h *Hub) broadcastJoin(channel string, join *proto.Join) error {
 				}
 				jsonReply = proto.NewPreparedReply(reply, proto.EncodingJSON)
 			}
-			c.Transport().Send(jsonReply)
+			c.transport.Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
 			if protobufReply == nil {
 				data, err := proto.GetMessageEncoder(enc).EncodeJoin(join)
@@ -322,7 +322,7 @@ func (h *Hub) broadcastJoin(channel string, join *proto.Join) error {
 				}
 				protobufReply = proto.NewPreparedReply(reply, proto.EncodingProtobuf)
 			}
-			c.Transport().Send(protobufReply)
+			c.transport.Send(protobufReply)
 		}
 	}
 	return nil
@@ -364,7 +364,7 @@ func (h *Hub) broadcastLeave(channel string, leave *proto.Leave) error {
 				}
 				jsonReply = proto.NewPreparedReply(reply, proto.EncodingJSON)
 			}
-			c.Transport().Send(jsonReply)
+			c.transport.Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
 			if protobufReply == nil {
 				data, err := proto.GetMessageEncoder(enc).EncodeLeave(leave)
@@ -380,7 +380,7 @@ func (h *Hub) broadcastLeave(channel string, leave *proto.Leave) error {
 				}
 				protobufReply = proto.NewPreparedReply(reply, proto.EncodingProtobuf)
 			}
-			c.Transport().Send(protobufReply)
+			c.transport.Send(protobufReply)
 		}
 	}
 	return nil

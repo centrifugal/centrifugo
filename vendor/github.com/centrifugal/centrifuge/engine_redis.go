@@ -59,16 +59,15 @@ const (
 // This engine allows to scale Centrifugo - you can run several Centrifugo instances
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
-	sync.RWMutex
 	node     *Node
-	config   *Config
+	config   Config
 	sharding bool
 	shards   []*shard
 }
 
 // shard has everything to connect to Redis instance.
 type shard struct {
-	sync.RWMutex
+	mu                sync.RWMutex
 	node              *Node
 	config            *RedisShardConfig
 	pool              *redis.Pool
@@ -468,7 +467,8 @@ func (e *RedisEngine) unsubscribe(ch string) error {
 }
 
 // AddPresence - see engine interface description.
-func (e *RedisEngine) addPresence(ch string, uid string, info *proto.ClientInfo, expire int) error {
+func (e *RedisEngine) addPresence(ch string, uid string, info *proto.ClientInfo, exp time.Duration) error {
+	expire := int(exp.Seconds())
 	return e.shards[e.shardIndex(ch)].AddPresence(ch, uid, info, expire)
 }
 
@@ -555,9 +555,7 @@ func (e *shard) runForever(fn func()) {
 
 func (e *shard) blpopTimeout() int {
 	var timeout int
-	e.RLock()
 	readTimeout := e.config.ReadTimeout
-	e.RUnlock()
 	if readTimeout == 0 {
 		// No read timeout - we can block forever in BLPOP.
 		timeout = 0
@@ -572,9 +570,7 @@ func (e *shard) blpopTimeout() int {
 
 func (e *shard) runPubSub() {
 
-	e.RLock()
 	numWorkers := e.config.PubSubNumWorkers
-	e.RUnlock()
 	if numWorkers == 0 {
 		numWorkers = runtime.NumCPU()
 	}
@@ -780,9 +776,7 @@ func (e *shard) runPublishPipeline() {
 
 	var prs []pubRequest
 
-	e.RLock()
 	pingTimeout := e.config.ReadTimeout / 3
-	e.RUnlock()
 
 	for {
 		select {

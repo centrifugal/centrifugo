@@ -1,6 +1,8 @@
 package centrifuge
 
 import (
+	"time"
+
 	"github.com/centrifugal/centrifuge/internal/proto"
 	"github.com/centrifugal/centrifuge/internal/proto/controlproto"
 )
@@ -56,7 +58,7 @@ type Engine interface {
 
 	// AddPresence sets or updates presence information in channel
 	// for connection with specified identifier.
-	addPresence(ch string, connID string, info *proto.ClientInfo, expire int) error
+	addPresence(ch string, connID string, info *proto.ClientInfo, expire time.Duration) error
 	// RemovePresence removes presence information for connection
 	// with specified identifier.
 	removePresence(ch string, connID string) error

@@ -217,7 +217,15 @@ message RPCRequest{
 
 message RPCResponse{
     Error error = 1;
-    bytes result = 2;
+    RPCResult result = 2;
+}
+
+message RPCResult {
+    bytes data = 1 ;
+}
+
+message MessageRequest{
+    bytes data = 1;
 }
 
 service Centrifuge {

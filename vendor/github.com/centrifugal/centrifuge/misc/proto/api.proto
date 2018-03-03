@@ -136,6 +136,17 @@ message HistoryResult {
     repeated Publication publications = 1;
 }
 
+message HistoryRemoveRequest {
+    string channel = 1;
+}
+
+message HistoryRemoveResponse {
+    Error error = 1;
+    HistoryRemoveResult result = 2;
+}
+
+message HistoryRemoveResult {}
+
 message ChannelsRequest {}
 
 message ChannelsResponse {
@@ -177,6 +188,7 @@ service Centrifuge {
     rpc Presence (PresenceRequest) returns (PresenceResponse) {}
     rpc PresenceStats (PresenceStatsRequest) returns (PresenceStatsResponse) {}
     rpc History (HistoryRequest) returns (HistoryResponse) {}
+    rpc HistoryRemove (HistoryRemoveRequest) returns (HistoryRemoveResponse) {}
     rpc Channels (ChannelsRequest) returns (ChannelsResponse) {}
     rpc Info (InfoRequest) returns (InfoResponse) {}
 }

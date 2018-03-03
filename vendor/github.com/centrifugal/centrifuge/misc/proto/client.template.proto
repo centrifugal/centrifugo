@@ -228,7 +228,15 @@ message RPCRequest{
 
 message RPCResponse{
     Error error = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "error,omitempty"]{{end}};
-    bytes result = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "result,omitempty"]{{end}};
+    RPCResult result = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "result,omitempty"]{{end}};
+}
+
+message RPCResult {
+    bytes data = 1 {{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false]{{end}};
+}
+
+message MessageRequest{
+    bytes data = 1{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false]{{end}};
 }
 
 service Centrifuge {

@@ -10,6 +10,10 @@ type Transport interface {
 	Name() string
 	// Encoding returns transport encoding used.
 	Encoding() Encoding
+}
+
+type transport interface {
+	Transport
 	// Send sends data to session.
 	Send(*proto.PreparedReply) error
 	// Close closes the session with provided code and reason.

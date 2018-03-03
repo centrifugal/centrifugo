@@ -228,7 +228,15 @@ message RPCRequest{
 
 message RPCResponse{
     Error error = 1 [(gogoproto.jsontag) = "error,omitempty"];
-    bytes result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+    RPCResult result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
+message RPCResult {
+    bytes data = 1  [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false];
+}
+
+message MessageRequest{
+    bytes data = 1 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
 }
 
 service Centrifuge {

@@ -2,52 +2,52 @@ package centrifuge
 
 // Here we define well-known errors that can be used in client API replies.
 var (
-	// ErrInternalServerError means server error, if returned this is a signal
+	// ErrorInternal means server error, if returned this is a signal
 	// that something went wrong with Centrifugo itself.
-	ErrInternalServerError = &Error{
+	ErrorInternal = &Error{
 		Code:    100,
 		Message: "internal server error",
 	}
-	// ErrUnauthorized says that ...
-	ErrUnauthorized = &Error{
+	// ErrUnauthorized says that request is unauthorized.
+	ErrorUnauthorized = &Error{
 		Code:    101,
 		Message: "unauthorized",
 	}
-	// ErrNamespaceNotFound means that namespace in channel name does not exist.
-	ErrNamespaceNotFound = &Error{
+	// ErrorNamespaceNotFound means that namespace in channel name does not exist.
+	ErrorNamespaceNotFound = &Error{
 		Code:    102,
 		Message: "namespace not found",
 	}
-	// ErrPermissionDenied means that access to resource not allowed.
-	ErrPermissionDenied = &Error{
+	// ErrorPermissionDenied means that access to resource not allowed.
+	ErrorPermissionDenied = &Error{
 		Code:    103,
 		Message: "permission denied",
 	}
-	// ErrMethodNotFound means that method sent in command does not exist.
-	ErrMethodNotFound = &Error{
+	// ErrorMethodNotFound means that method sent in command does not exist.
+	ErrorMethodNotFound = &Error{
 		Code:    104,
 		Message: "method not found",
 	}
-	// ErrAlreadySubscribed returned when client wants to subscribe on channel
+	// ErrorAlreadySubscribed returned when client wants to subscribe on channel
 	// it already subscribed to.
-	ErrAlreadySubscribed = &Error{
+	ErrorAlreadySubscribed = &Error{
 		Code:    105,
 		Message: "already subscribed",
 	}
-	// ErrLimitExceeded says that some sort of limit exceeded, server logs should
+	// ErrorLimitExceeded says that some sort of limit exceeded, server logs should
 	// give more detailed information.
-	ErrLimitExceeded = &Error{
+	ErrorLimitExceeded = &Error{
 		Code:    106,
 		Message: "limit exceeded",
 	}
-	// ErrBadRequest says that Centrifugo can not parse received data
+	// ErrorBadRequest says that Centrifugo can not parse received data
 	// because it is malformed.
-	ErrBadRequest = &Error{
+	ErrorBadRequest = &Error{
 		Code:    107,
 		Message: "bad request",
 	}
-	// ErrNotAvailable means that resource is not enabled.
-	ErrNotAvailable = &Error{
+	// ErrorNotAvailable means that resource is not enabled.
+	ErrorNotAvailable = &Error{
 		Code:    108,
 		Message: "not available",
 	}

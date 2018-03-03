@@ -146,6 +146,17 @@ message HistoryResult {
     repeated Publication publications = 1 [(gogoproto.jsontag) = "publications", (gogoproto.nullable) = true];
 }
 
+message HistoryRemoveRequest {
+    string channel = 1 [(gogoproto.jsontag) = "channel"];
+}
+
+message HistoryRemoveResponse {
+    Error error = 1 [(gogoproto.jsontag) = "error,omitempty"];
+    HistoryRemoveResult result = 2 [(gogoproto.jsontag) = "result,omitempty"];
+}
+
+message HistoryRemoveResult {}
+
 message ChannelsRequest {}
 
 message ChannelsResponse {
@@ -187,6 +198,7 @@ service Centrifuge {
     rpc Presence (PresenceRequest) returns (PresenceResponse) {}
     rpc PresenceStats (PresenceStatsRequest) returns (PresenceStatsResponse) {}
     rpc History (HistoryRequest) returns (HistoryResponse) {}
+    rpc HistoryRemove (HistoryRemoveRequest) returns (HistoryRemoveResponse) {}
     rpc Channels (ChannelsRequest) returns (ChannelsResponse) {}
     rpc Info (InfoRequest) returns (InfoResponse) {}
 }

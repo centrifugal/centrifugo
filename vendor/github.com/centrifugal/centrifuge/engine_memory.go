@@ -106,7 +106,7 @@ func (e *MemoryEngine) unsubscribe(ch string) error {
 }
 
 // AddPresence adds client info into presence hub.
-func (e *MemoryEngine) addPresence(ch string, uid string, info *proto.ClientInfo, expire int) error {
+func (e *MemoryEngine) addPresence(ch string, uid string, info *proto.ClientInfo, exp time.Duration) error {
 	return e.presenceHub.add(ch, uid, info)
 }
 

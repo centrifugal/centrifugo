@@ -171,6 +171,7 @@ type ResultEncoder interface {
 	EncodePresenceStatsResult(*PresenceStatsResult) ([]byte, error)
 	EncodeHistoryResult(*HistoryResult) ([]byte, error)
 	EncodePingResult(*PingResult) ([]byte, error)
+	EncodeRPCResult(*RPCResult) ([]byte, error)
 }
 
 // JSONResultEncoder ...
@@ -226,6 +227,11 @@ func (e *JSONResultEncoder) EncodePingResult(res *PingResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
+// EncodeRPCResult ...
+func (e *JSONResultEncoder) EncodeRPCResult(res *RPCResult) ([]byte, error) {
+	return json.Marshal(res)
+}
+
 // ProtobufResultEncoder ...
 type ProtobufResultEncoder struct{}
 
@@ -276,5 +282,10 @@ func (e *ProtobufResultEncoder) EncodeHistoryResult(res *HistoryResult) ([]byte,
 
 // EncodePingResult ...
 func (e *ProtobufResultEncoder) EncodePingResult(res *PingResult) ([]byte, error) {
+	return res.Marshal()
+}
+
+// EncodeRPCResult ...
+func (e *ProtobufResultEncoder) EncodeRPCResult(res *RPCResult) ([]byte, error) {
 	return res.Marshal()
 }

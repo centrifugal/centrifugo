@@ -86,6 +86,7 @@ type Decoder interface {
 	DecodePresence([]byte) (*PresenceRequest, error)
 	DecodePresenceStats([]byte) (*PresenceStatsRequest, error)
 	DecodeHistory([]byte) (*HistoryRequest, error)
+	DecodeHistoryRemove([]byte) (*HistoryRemoveRequest, error)
 	DecodeChannels([]byte) (*ChannelsRequest, error)
 	DecodeInfo([]byte) (*InfoRequest, error)
 }
@@ -161,6 +162,16 @@ func (d *JSONDecoder) DecodePresenceStats(data []byte) (*PresenceStatsRequest, e
 // DecodeHistory ...
 func (d *JSONDecoder) DecodeHistory(data []byte) (*HistoryRequest, error) {
 	var p HistoryRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeHistoryRemove ...
+func (d *JSONDecoder) DecodeHistoryRemove(data []byte) (*HistoryRemoveRequest, error) {
+	var p HistoryRemoveRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err
@@ -259,6 +270,16 @@ func (d *ProtobufDecoder) DecodePresenceStats(data []byte) (*PresenceStatsReques
 // DecodeHistory ...
 func (d *ProtobufDecoder) DecodeHistory(data []byte) (*HistoryRequest, error) {
 	var p HistoryRequest
+	err := p.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeHistoryRemove ...
+func (d *ProtobufDecoder) DecodeHistoryRemove(data []byte) (*HistoryRemoveRequest, error) {
+	var p HistoryRemoveRequest
 	err := p.Unmarshal(data)
 	if err != nil {
 		return nil, err

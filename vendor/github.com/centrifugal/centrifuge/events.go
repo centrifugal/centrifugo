@@ -9,12 +9,6 @@ type EventContext struct {
 	Client Client
 }
 
-// EventReply ...
-type EventReply struct {
-	Error      *Error
-	Disconnect *Disconnect
-}
-
 // ConnectContext ...
 type ConnectContext struct {
 	EventContext
@@ -22,7 +16,8 @@ type ConnectContext struct {
 
 // ConnectReply ...
 type ConnectReply struct {
-	EventReply
+	Error      *Error
+	Disconnect *Disconnect
 }
 
 // ConnectHandler ...
@@ -48,7 +43,8 @@ type SubscribeContext struct {
 
 // SubscribeReply ...
 type SubscribeReply struct {
-	EventReply
+	Error      *Error
+	Disconnect *Disconnect
 }
 
 // SubscribeHandler ...
@@ -62,7 +58,8 @@ type UnsubscribeContext struct {
 
 // UnsubscribeReply ...
 type UnsubscribeReply struct {
-	EventReply
+	Error      *Error
+	Disconnect *Disconnect
 }
 
 // UnsubscribeHandler ...
@@ -77,7 +74,8 @@ type PublishContext struct {
 
 // PublishReply ...
 type PublishReply struct {
-	EventReply
+	Error      *Error
+	Disconnect *Disconnect
 }
 
 // PublishHandler ...
@@ -118,8 +116,9 @@ type RPCContext struct {
 
 // RPCReply ...
 type RPCReply struct {
-	EventReply
-	Result Raw
+	Error      *Error
+	Disconnect *Disconnect
+	Data       Raw
 }
 
 // RPCHandler must handle incoming command from client.

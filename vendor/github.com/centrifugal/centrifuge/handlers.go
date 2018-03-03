@@ -133,7 +133,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 		cmd, err := decoder.DecodePublish(params)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error decoding publish params", map[string]interface{}{"error": err.Error()}))
-			rep.Error = apiproto.ErrBadRequest
+			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
 		resp := s.api.Publish(ctx, cmd)
@@ -151,7 +151,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 		cmd, err := decoder.DecodeBroadcast(params)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error decoding broadcast params", map[string]interface{}{"error": err.Error()}))
-			rep.Error = apiproto.ErrBadRequest
+			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
 		resp := s.api.Broadcast(ctx, cmd)
@@ -169,7 +169,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 		cmd, err := decoder.DecodeUnsubscribe(params)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error decoding unsubscribe params", map[string]interface{}{"error": err.Error()}))
-			rep.Error = apiproto.ErrBadRequest
+			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
 		resp := s.api.Unsubscribe(ctx, cmd)
@@ -187,7 +187,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 		cmd, err := decoder.DecodeDisconnect(params)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error decoding disconnect params", map[string]interface{}{"error": err.Error()}))
-			rep.Error = apiproto.ErrBadRequest
+			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
 		resp := s.api.Disconnect(ctx, cmd)
@@ -205,7 +205,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 		cmd, err := decoder.DecodePresence(params)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error decoding presence params", map[string]interface{}{"error": err.Error()}))
-			rep.Error = apiproto.ErrBadRequest
+			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
 		resp := s.api.Presence(ctx, cmd)
@@ -223,7 +223,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 		cmd, err := decoder.DecodePresenceStats(params)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error decoding presence stats params", map[string]interface{}{"error": err.Error()}))
-			rep.Error = apiproto.ErrBadRequest
+			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
 		resp := s.api.PresenceStats(ctx, cmd)
@@ -241,7 +241,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 		cmd, err := decoder.DecodeHistory(params)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error decoding history params", map[string]interface{}{"error": err.Error()}))
-			rep.Error = apiproto.ErrBadRequest
+			rep.Error = apiproto.ErrorBadRequest
 			return rep, nil
 		}
 		resp := s.api.History(ctx, cmd)
@@ -250,6 +250,24 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 		} else {
 			if resp.Result != nil {
 				replyRes, err = encoder.EncodeHistory(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case apiproto.MethodTypeHistoryRemove:
+		cmd, err := decoder.DecodeHistoryRemove(params)
+		if err != nil {
+			s.node.logger.log(newLogEntry(LogLevelError, "error decoding history remove params", map[string]interface{}{"error": err.Error()}))
+			rep.Error = apiproto.ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.HistoryRemove(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeHistoryRemove(resp.Result)
 				if err != nil {
 					return nil, err
 				}
@@ -280,7 +298,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 			}
 		}
 	default:
-		rep.Error = apiproto.ErrMethodNotFound
+		rep.Error = apiproto.ErrorMethodNotFound
 	}
 
 	if replyRes != nil {
@@ -569,6 +587,7 @@ func (t *websocketTransport) write(data ...[]byte) error {
 		writer, err := t.conn.NextWriter(messageType)
 		if err != nil {
 			t.Close(&Disconnect{Reason: "error sending message", Reconnect: true})
+			return err
 		}
 		bytesOut := 0
 		for _, payload := range data {
@@ -582,13 +601,13 @@ func (t *websocketTransport) write(data ...[]byte) error {
 		err = writer.Close()
 		if err != nil {
 			t.Close(&Disconnect{Reason: "error sending message", Reconnect: true})
-		} else {
-			if t.opts.writeTimeout > 0 {
-				t.conn.SetWriteDeadline(time.Time{})
-			}
-			transportMessagesSent.WithLabelValues(transportWebsocket).Add(float64(len(data)))
-			transportBytesOut.WithLabelValues(transportWebsocket).Add(float64(bytesOut))
+			return err
 		}
+		if t.opts.writeTimeout > 0 {
+			t.conn.SetWriteDeadline(time.Time{})
+		}
+		transportMessagesSent.WithLabelValues(transportWebsocket).Add(float64(len(data)))
+		transportBytesOut.WithLabelValues(transportWebsocket).Add(float64(bytesOut))
 		return err
 	}
 }
@@ -620,28 +639,28 @@ func (t *websocketTransport) Close(disconnect *Disconnect) error {
 
 // WebsocketConfig represents config for WebsocketHandler.
 type WebsocketConfig struct {
-	// WebsocketCompression allows to enable websocket permessage-deflate
+	// Compression allows to enable websocket permessage-deflate
 	// compression support for raw websocket connections. It does not guarantee
 	// that compression will be used - i.e. it only says that Centrifugo will
 	// try to negotiate it with client.
-	WebsocketCompression bool
+	Compression bool
 
-	// WebsocketCompressionLevel sets a level for websocket compression.
+	// CompressionLevel sets a level for websocket compression.
 	// See posiible value description at https://golang.org/pkg/compress/flate/#NewWriter
-	WebsocketCompressionLevel int
+	CompressionLevel int
 
-	// WebsocketCompressionMinSize allows to set minimal limit in bytes for message to use
+	// CompressionMinSize allows to set minimal limit in bytes for message to use
 	// compression when writing it into client connection. By default it's 0 - i.e. all messages
 	// will be compressed when WebsocketCompression enabled and compression negotiated with client.
-	WebsocketCompressionMinSize int
+	CompressionMinSize int
 
-	// WebsocketReadBufferSize is a parameter that is used for raw websocket Upgrader.
+	// ReadBufferSize is a parameter that is used for raw websocket Upgrader.
 	// If set to zero reasonable default value will be used.
-	WebsocketReadBufferSize int
+	ReadBufferSize int
 
-	// WebsocketWriteBufferSize is a parameter that is used for raw websocket Upgrader.
+	// WriteBufferSize is a parameter that is used for raw websocket Upgrader.
 	// If set to zero reasonable default value will be used.
-	WebsocketWriteBufferSize int
+	WriteBufferSize int
 }
 
 // WebsocketHandler ...
@@ -661,16 +680,14 @@ func NewWebsocketHandler(n *Node, c WebsocketConfig) *WebsocketHandler {
 func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	transportConnectCount.WithLabelValues(transportWebsocket).Inc()
 
-	wsCompression := s.config.WebsocketCompression
-	wsCompressionLevel := s.config.WebsocketCompressionLevel
-	wsCompressionMinSize := s.config.WebsocketCompressionMinSize
-	wsReadBufferSize := s.config.WebsocketReadBufferSize
-	wsWriteBufferSize := s.config.WebsocketWriteBufferSize
+	compression := s.config.Compression
+	compressionLevel := s.config.CompressionLevel
+	compressionMinSize := s.config.CompressionMinSize
 
 	upgrader := websocket.Upgrader{
-		ReadBufferSize:    wsReadBufferSize,
-		WriteBufferSize:   wsWriteBufferSize,
-		EnableCompression: wsCompression,
+		ReadBufferSize:    s.config.ReadBufferSize,
+		WriteBufferSize:   s.config.WriteBufferSize,
+		EnableCompression: s.config.Compression,
 		CheckOrigin: func(r *http.Request) bool {
 			// Allow all connections.
 			return true
@@ -683,8 +700,8 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if wsCompression {
-		err := conn.SetCompressionLevel(wsCompressionLevel)
+	if compression {
+		err := conn.SetCompressionLevel(compressionLevel)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "websocket error setting compression level", map[string]interface{}{"error": err.Error()}))
 		}
@@ -714,7 +731,7 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		opts := &websocketTransportOptions{
 			pingInterval:       pingInterval,
 			writeTimeout:       writeTimeout,
-			compressionMinSize: wsCompressionMinSize,
+			compressionMinSize: compressionMinSize,
 			enc:                enc,
 		}
 		writerConf := writerConfig{
@@ -861,7 +878,7 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 
 	if len(data) == 0 {
 		n.logger.log(newLogEntry(LogLevelError, "empty client request received"))
-		transport.Close(DisconnectBadRequest)
+		c.Close(DisconnectBadRequest)
 		return false
 	}
 
@@ -878,7 +895,7 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 				break
 			}
 			n.logger.log(newLogEntry(LogLevelInfo, "error decoding request", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "error": err.Error()}))
-			transport.Close(DisconnectBadRequest)
+			c.Close(DisconnectBadRequest)
 			proto.PutCommandDecoder(enc, decoder)
 			proto.PutReplyEncoder(enc, encoder)
 			return false
@@ -886,7 +903,7 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 		rep, disconnect := c.handle(cmd)
 		if disconnect != nil {
 			n.logger.log(newLogEntry(LogLevelInfo, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
-			transport.Close(disconnect)
+			c.Close(disconnect)
 			proto.PutCommandDecoder(enc, decoder)
 			proto.PutReplyEncoder(enc, encoder)
 			return false
@@ -896,7 +913,7 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 			numReplies++
 			if err != nil {
 				n.logger.log(newLogEntry(LogLevelError, "error encoding reply", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "client": c.ID(), "user": c.UserID(), "error": err.Error()}))
-				transport.Close(DisconnectServerError)
+				c.Close(DisconnectServerError)
 				return false
 			}
 		}
@@ -906,7 +923,7 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 		disconnect := writer.write(encoder.Finish())
 		if disconnect != nil {
 			n.logger.log(newLogEntry(LogLevelInfo, "disconnect after sending data to transport", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
-			transport.Close(disconnect)
+			c.Close(disconnect)
 			proto.PutCommandDecoder(enc, decoder)
 			proto.PutReplyEncoder(enc, encoder)
 			return false

@@ -194,6 +194,8 @@ type ParamsDecoder interface {
 	DecodePresenceStats([]byte) (*PresenceStatsRequest, error)
 	DecodeHistory([]byte) (*HistoryRequest, error)
 	DecodePing([]byte) (*PingRequest, error)
+	DecodeRPC([]byte) (*RPCRequest, error)
+	DecodeMessage([]byte) (*MessageRequest, error)
 }
 
 // JSONParamsDecoder ...
@@ -296,6 +298,30 @@ func (d *JSONParamsDecoder) DecodePing(data []byte) (*PingRequest, error) {
 	return &p, nil
 }
 
+// DecodeRPC ...
+func (d *JSONParamsDecoder) DecodeRPC(data []byte) (*RPCRequest, error) {
+	var p RPCRequest
+	if data != nil {
+		err := json.Unmarshal(data, &p)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &p, nil
+}
+
+// DecodeMessage ...
+func (d *JSONParamsDecoder) DecodeMessage(data []byte) (*MessageRequest, error) {
+	var p MessageRequest
+	if data != nil {
+		err := json.Unmarshal(data, &p)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &p, nil
+}
+
 // ProtobufParamsDecoder ...
 type ProtobufParamsDecoder struct{}
 
@@ -387,6 +413,26 @@ func (d *ProtobufParamsDecoder) DecodeHistory(data []byte) (*HistoryRequest, err
 // DecodePing ...
 func (d *ProtobufParamsDecoder) DecodePing(data []byte) (*PingRequest, error) {
 	var p PingRequest
+	err := p.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeRPC ...
+func (d *ProtobufParamsDecoder) DecodeRPC(data []byte) (*RPCRequest, error) {
+	var p RPCRequest
+	err := p.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeMessage ...
+func (d *ProtobufParamsDecoder) DecodeMessage(data []byte) (*MessageRequest, error) {
+	var p MessageRequest
 	err := p.Unmarshal(data)
 	if err != nil {
 		return nil, err

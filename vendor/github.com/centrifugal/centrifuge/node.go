@@ -354,7 +354,7 @@ func (n *Node) publish(ch string, pub *Publication, opts *ChannelOptions) <-chan
 	if opts == nil {
 		chOpts, ok := n.ChannelOpts(ch)
 		if !ok {
-			return makeErrChan(ErrNamespaceNotFound)
+			return makeErrChan(ErrorNamespaceNotFound)
 		}
 		opts = &chOpts
 	}
@@ -374,7 +374,7 @@ func (n *Node) publishJoin(ch string, join *proto.Join, opts *ChannelOptions) <-
 	if opts == nil {
 		chOpts, ok := n.ChannelOpts(ch)
 		if !ok {
-			return makeErrChan(ErrNamespaceNotFound)
+			return makeErrChan(ErrorNamespaceNotFound)
 		}
 		opts = &chOpts
 	}
@@ -388,7 +388,7 @@ func (n *Node) publishLeave(ch string, leave *proto.Leave, opts *ChannelOptions)
 	if opts == nil {
 		chOpts, ok := n.ChannelOpts(ch)
 		if !ok {
-			return makeErrChan(ErrNamespaceNotFound)
+			return makeErrChan(ErrorNamespaceNotFound)
 		}
 		opts = &chOpts
 	}
@@ -476,20 +476,20 @@ func (n *Node) pubDisconnect(user string, reconnect bool) error {
 
 // addClient registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand.
-func (n *Node) addClient(c Client) error {
+func (n *Node) addClient(c *client) error {
 	actionCount.WithLabelValues("add_client").Inc()
 	return n.hub.add(c)
 }
 
 // removeClient removes client connection from connection registry.
-func (n *Node) removeClient(c Client) error {
+func (n *Node) removeClient(c *client) error {
 	actionCount.WithLabelValues("remove_client").Inc()
 	return n.hub.remove(c)
 }
 
 // addSubscription registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
-func (n *Node) addSubscription(ch string, c Client) error {
+func (n *Node) addSubscription(ch string, c *client) error {
 	actionCount.WithLabelValues("add_subscription").Inc()
 	first, err := n.hub.addSub(ch, c)
 	if err != nil {
@@ -503,7 +503,7 @@ func (n *Node) addSubscription(ch string, c Client) error {
 
 // removeSubscription removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
-func (n *Node) removeSubscription(ch string, c Client) error {
+func (n *Node) removeSubscription(ch string, c *client) error {
 	actionCount.WithLabelValues("remove_subscription").Inc()
 	empty, err := n.hub.removeSub(ch, c)
 	if err != nil {
@@ -526,25 +526,25 @@ func (n *Node) nodeCmd(node *controlproto.Node) error {
 func (n *Node) Unsubscribe(user string, ch string) error {
 
 	if string(user) == "" {
-		return ErrBadRequest
+		return ErrorBadRequest
 	}
 
 	if string(ch) != "" {
 		_, ok := n.ChannelOpts(ch)
 		if !ok {
-			return ErrNamespaceNotFound
+			return ErrorNamespaceNotFound
 		}
 	}
 
 	// First unsubscribe on this node.
 	err := n.hub.unsubscribe(user, ch)
 	if err != nil {
-		return ErrInternalServerError
+		return ErrorInternal
 	}
 	// Second send unsubscribe control message to other nodes.
 	err = n.pubUnsubscribe(user, ch)
 	if err != nil {
-		return ErrInternalServerError
+		return ErrorInternal
 	}
 	return nil
 }
@@ -553,18 +553,18 @@ func (n *Node) Unsubscribe(user string, ch string) error {
 func (n *Node) Disconnect(user string, reconnect bool) error {
 
 	if string(user) == "" {
-		return ErrBadRequest
+		return ErrorBadRequest
 	}
 
 	// first disconnect user from this node
 	err := n.hub.disconnect(user, reconnect)
 	if err != nil {
-		return ErrInternalServerError
+		return ErrorInternal
 	}
 	// second send disconnect control message to other nodes
 	err = n.pubDisconnect(user, reconnect)
 	if err != nil {
-		return ErrInternalServerError
+		return ErrorInternal
 	}
 	return nil
 }
@@ -589,7 +589,7 @@ func (n *Node) ChannelOpts(ch string) (ChannelOptions, bool) {
 // addPresence proxies presence adding to engine.
 func (n *Node) addPresence(ch string, uid string, info *proto.ClientInfo) error {
 	n.mu.RLock()
-	expire := int(n.config.ClientPresenceExpireInterval.Seconds())
+	expire := n.config.ClientPresenceExpireInterval
 	n.mu.RUnlock()
 	actionCount.WithLabelValues("add_presence").Inc()
 	return n.engine.addPresence(ch, uid, info, expire)

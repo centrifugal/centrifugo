@@ -146,6 +146,17 @@ message HistoryResult {
     repeated Publication publications = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "publications", (gogoproto.nullable) = true]{{end}};
 }
 
+message HistoryRemoveRequest {
+    string channel = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "channel"]{{end}};
+}
+
+message HistoryRemoveResponse {
+    Error error = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "error,omitempty"]{{end}};
+    HistoryRemoveResult result = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "result,omitempty"]{{end}};
+}
+
+message HistoryRemoveResult {}
+
 message ChannelsRequest {}
 
 message ChannelsResponse {
@@ -187,6 +198,7 @@ service Centrifuge {
     rpc Presence (PresenceRequest) returns (PresenceResponse) {}
     rpc PresenceStats (PresenceStatsRequest) returns (PresenceStatsResponse) {}
     rpc History (HistoryRequest) returns (HistoryResponse) {}
+    rpc HistoryRemove (HistoryRemoveRequest) returns (HistoryRemoveResponse) {}
     rpc Channels (ChannelsRequest) returns (ChannelsResponse) {}
     rpc Info (InfoRequest) returns (InfoResponse) {}
 }

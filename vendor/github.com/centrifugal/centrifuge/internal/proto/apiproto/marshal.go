@@ -92,6 +92,7 @@ type Encoder interface {
 	EncodePresence(*PresenceResult) ([]byte, error)
 	EncodePresenceStats(*PresenceStatsResult) ([]byte, error)
 	EncodeHistory(*HistoryResult) ([]byte, error)
+	EncodeHistoryRemove(*HistoryRemoveResult) ([]byte, error)
 	EncodeChannels(*ChannelsResult) ([]byte, error)
 	EncodeInfo(*InfoResult) ([]byte, error)
 }
@@ -136,6 +137,11 @@ func (e *JSONEncoder) EncodePresenceStats(res *PresenceStatsResult) ([]byte, err
 
 // EncodeHistoryResult ...
 func (e *JSONEncoder) EncodeHistory(res *HistoryResult) ([]byte, error) {
+	return json.Marshal(res)
+}
+
+// EncodeHistoryRemoveResult ...
+func (e *JSONEncoder) EncodeHistoryRemove(res *HistoryRemoveResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
@@ -189,6 +195,11 @@ func (e *ProtobufEncoder) EncodePresenceStats(res *PresenceStatsResult) ([]byte,
 
 // EncodeHistoryResult ...
 func (e *ProtobufEncoder) EncodeHistory(res *HistoryResult) ([]byte, error) {
+	return res.Marshal()
+}
+
+// EncodeHistoryRemoveResult ...
+func (e *ProtobufEncoder) EncodeHistoryRemove(res *HistoryRemoveResult) ([]byte, error) {
 	return res.Marshal()
 }
 

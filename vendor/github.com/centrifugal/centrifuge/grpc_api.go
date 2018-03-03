@@ -60,6 +60,11 @@ func (s *grpcAPIService) History(ctx context.Context, req *apiproto.HistoryReque
 	return s.api.History(ctx, req), nil
 }
 
+// HistoryRemove removes all history information for channel.
+func (s *grpcAPIService) HistoryRemove(ctx context.Context, req *apiproto.HistoryRemoveRequest) (*apiproto.HistoryRemoveResponse, error) {
+	return s.api.HistoryRemove(ctx, req), nil
+}
+
 // Presence in channel.
 func (s *grpcAPIService) Presence(ctx context.Context, req *apiproto.PresenceRequest) (*apiproto.PresenceResponse, error) {
 	return s.api.Presence(ctx, req), nil
