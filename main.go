@@ -799,11 +799,11 @@ func namespacesFromConfig(v *viper.Viper) []centrifuge.ChannelNamespace {
 func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.WebsocketConfig{}
-	cfg.WebsocketCompression = v.GetBool("websocket_compression")
-	cfg.WebsocketCompressionLevel = v.GetInt("websocket_compression_level")
-	cfg.WebsocketCompressionMinSize = v.GetInt("websocket_compression_min_size")
-	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
-	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
+	cfg.Compression = v.GetBool("websocket_compression")
+	cfg.CompressionLevel = v.GetInt("websocket_compression_level")
+	cfg.CompressionMinSize = v.GetInt("websocket_compression_min_size")
+	cfg.ReadBufferSize = v.GetInt("websocket_read_buffer_size")
+	cfg.WriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	return cfg
 }
 

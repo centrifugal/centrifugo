@@ -45,3 +45,4 @@ pages:
   - Basics: 'basics.md'
   - Server:
     - 'Overview': 'server/index.md'
+    - 'Client protocol': 'server/protocol.md'

@@ -5,7 +5,24 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"io"
+	"strconv"
+	"strings"
 )
+
+// UnmarshalJSON helps to unmarshal comamnd method when set as string.
+func (m *MethodType) UnmarshalJSON(data []byte) error {
+	val, err := strconv.Atoi(string(data))
+	if err != nil {
+		method := strings.Trim(strings.ToUpper(string(data)), `"`)
+		if v, ok := MethodType_value[method]; ok {
+			*m = MethodType(v)
+			return nil
+		}
+		return err
+	}
+	*m = MethodType(val)
+	return nil
+}
 
 // MessageDecoder ...
 type MessageDecoder interface {
