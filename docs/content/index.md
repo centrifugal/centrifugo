@@ -4,6 +4,8 @@
 
 ## Centrifugo
 
+**This is a work in progress documentation for Centrifugo v2**
+
 Centrifugo is a language-agnostic real-time server. It's main goal is to help adding real-time messages to your application. Language-agnostic means that it does not matter which programming language your application uses on frontend or backend sides - Centrifugo can work in conjunction with any. Real-time messages are messages that delivered to your clients almost immediately after some event happened - think live comments, real-time charts, updated counters.
 
 There are several main transports Centrifugo supports at moment:

@@ -47,7 +47,10 @@ packagecloud-rpm:
 	package_cloud push FZambia/centrifugo/el/6 PACKAGES/*.rpm
 
 docs: docs-image
-	docker run  $(DOCKER_RUN_DOC_OPTS) $(DOC_IMAGE) mkdocs serve
+	docker run $(DOCKER_RUN_DOC_OPTS) $(DOC_IMAGE) mkdocs serve
+
+docs-deploy: docs-image
+	cd docs && mkdocs gh-deploy
 
 docs-image:
 	docker build -t $(DOC_IMAGE) -f docs/Dockerfile docs/
