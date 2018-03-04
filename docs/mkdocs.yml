@@ -34,7 +34,7 @@ theme:
   feature:
     tabs: false
   palette:
-    primary: 'grey'
+    primary: 'indigo'
     accent: 'cyan'
   i18n:
     prev: 'Previous'
