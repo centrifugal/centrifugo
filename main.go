@@ -137,7 +137,9 @@ func main() {
 				logger.FATAL.Fatalf("Error creating engine: %v", err)
 			}
 
-			if err = node.Run(e); err != nil {
+			node.SetEngine(e)
+
+			if err = node.Run(); err != nil {
 				logger.FATAL.Fatalf("Error running node: %v", err)
 			}
 

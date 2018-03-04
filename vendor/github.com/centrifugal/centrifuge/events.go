@@ -84,6 +84,7 @@ type PublishHandler func(context.Context, *PublishContext) (*PublishReply, error
 // PresenceContext ...
 type PresenceContext struct {
 	EventContext
+	Channels []string
 }
 
 // PresenceReply ...

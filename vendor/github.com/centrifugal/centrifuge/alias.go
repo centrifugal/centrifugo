@@ -2,7 +2,6 @@ package centrifuge
 
 import (
 	"github.com/centrifugal/centrifuge/internal/proto"
-	"github.com/centrifugal/centrifuge/internal/proto/apiproto"
 )
 
 // Raw represents raw bytes.
@@ -19,6 +18,3 @@ type ClientInfo = proto.ClientInfo
 
 // Encoding represents client connection transport encoding format.
 type Encoding = proto.Encoding
-
-// NodeInfo represents summary of Centrifuge node cluster.
-type NodeInfo = apiproto.InfoResult

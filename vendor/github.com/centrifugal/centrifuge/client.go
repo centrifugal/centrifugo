@@ -115,6 +115,15 @@ func (c *client) updatePresence() {
 	if c.closed {
 		return
 	}
+	channels := c.Channels()
+	if c.node.Mediator() != nil && c.node.Mediator().Presence != nil {
+		c.node.Mediator().Presence(c.ctx, &PresenceContext{
+			EventContext: EventContext{
+				Client: c,
+			},
+			Channels: channels,
+		})
+	}
 	for _, channel := range c.Channels() {
 		c.updateChannelPresence(channel)
 	}
@@ -368,6 +377,17 @@ func (c *client) expire() {
 	c.mu.RLock()
 	ttl := c.exp - time.Now().Unix()
 	c.mu.RUnlock()
+
+	if mediator != nil && mediator.Refresh != nil {
+		if ttl > 0 {
+			if c.expireTimer != nil {
+				c.expireTimer.Stop()
+			}
+			duration := time.Duration(ttl) * time.Second
+			c.expireTimer = time.AfterFunc(duration, c.expire)
+		}
+	}
+
 	if ttl > 0 {
 		// connection was successfully refreshed.
 		return
@@ -646,7 +666,7 @@ func (c *client) handleMessage(params proto.Raw) *Disconnect {
 			},
 			Data: cmd.Data,
 		})
-		if err == nil && messageReply.Disconnect != nil {
+		if err == nil && messageReply != nil && messageReply.Disconnect != nil {
 			return messageReply.Disconnect
 		}
 		return nil
@@ -670,7 +690,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 	insecure := config.ClientInsecure
 	closeDelay := config.ClientExpiredCloseDelay
 	clientExpire := config.ClientExpire
-	version := c.node.Version()
+	version := config.Version
 	userConnectionLimit := config.ClientUserConnectionLimit
 
 	var credentials *Credentials
@@ -680,6 +700,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 		}
 	}
 
+	var expires bool
 	var expired bool
 	var ttl uint32
 
@@ -734,6 +755,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 	}
 
 	if clientExpire && !insecure {
+		expires = true
 		ttl = uint32(c.exp - time.Now().Unix())
 		if ttl <= 0 {
 			expired = true
@@ -743,9 +765,14 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 
 	res := &proto.ConnectResult{
 		Version: version,
-		Expires: clientExpire,
+		Expires: expires,
 		TTL:     ttl,
 		Expired: expired,
+	}
+
+	if c.node.Mediator() != nil && c.node.Mediator().Refresh != nil {
+		res.Expires = false
+		res.TTL = 0
 	}
 
 	resp.Result = res
@@ -830,7 +857,7 @@ func (c *client) refreshCmd(cmd *proto.RefreshRequest) (*proto.RefreshResponse, 
 
 	closeDelay := config.ClientExpiredCloseDelay
 	clientExpire := config.ClientExpire
-	version := c.node.Version()
+	version := config.Version
 
 	res := &proto.RefreshResult{
 		Version: version,

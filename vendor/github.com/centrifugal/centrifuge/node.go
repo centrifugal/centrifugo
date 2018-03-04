@@ -80,6 +80,8 @@ func New(c Config) *Node {
 		controlDecoder: controlproto.NewProtobufDecoder(),
 		logger:         nil,
 	}
+	e, _ := NewMemoryEngine(n, MemoryEngineConfig{})
+	n.SetEngine(e)
 	return n
 }
 
@@ -101,6 +103,11 @@ func (n *Node) SetMediator(m *Mediator) {
 	n.mediator = m
 }
 
+// SetEngine binds engine to node.
+func (n *Node) SetEngine(e Engine) {
+	n.engine = e
+}
+
 // Mediator binds config to node.
 func (n *Node) Mediator() *Mediator {
 	return n.mediator
@@ -109,11 +116,6 @@ func (n *Node) Mediator() *Mediator {
 // Hub returns node's Hub.
 func (n *Node) Hub() *Hub {
 	return n.hub
-}
-
-// Version returns version of node.
-func (n *Node) Version() string {
-	return n.Config().Version
 }
 
 // Reload node config.
@@ -134,11 +136,7 @@ func (n *Node) NotifyShutdown() chan struct{} {
 
 // Run performs all startup actions. At moment must be called once on start
 // after engine and structure set.
-func (n *Node) Run(e Engine) error {
-	n.mu.Lock()
-	n.engine = e
-	n.mu.Unlock()
-
+func (n *Node) Run() error {
 	if err := n.engine.run(); err != nil {
 		return err
 	}
@@ -217,8 +215,8 @@ func (n *Node) Channels() ([]string, error) {
 	return n.engine.channels()
 }
 
-// Info returns aggregated stats from all Centrifugo nodes.
-func (n *Node) Info() (*NodeInfo, error) {
+// info returns aggregated stats from all Centrifugo nodes.
+func (n *Node) info() (*apiproto.InfoResult, error) {
 	nodes := n.nodes.list()
 	nodeResults := make([]*apiproto.NodeResult, len(nodes))
 	for i, nd := range nodes {
@@ -232,7 +230,7 @@ func (n *Node) Info() (*NodeInfo, error) {
 		}
 	}
 
-	return &NodeInfo{
+	return &apiproto.InfoResult{
 		Engine: n.engine.name(),
 		Nodes:  nodeResults,
 	}, nil

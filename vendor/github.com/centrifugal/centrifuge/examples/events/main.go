@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -22,6 +23,7 @@ func authMiddleware(h http.Handler) http.Handler {
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, centrifuge.CredentialsContextKey, &centrifuge.Credentials{
 			UserID: "42",
+			Exp:    time.Now().Unix() + 10,
 			Info:   []byte(`{"name": "Alexander"}`),
 		})
 		r = r.WithContext(ctx)
@@ -44,6 +46,7 @@ func waitExitSignal(n *centrifuge.Node) {
 func main() {
 	cfg := centrifuge.DefaultConfig
 	cfg.Secret = "secret"
+	cfg.ClientExpire = true
 	cfg.Namespaces = []centrifuge.ChannelNamespace{
 		centrifuge.ChannelNamespace{
 			Name: "public",
@@ -58,27 +61,16 @@ func main() {
 	node := centrifuge.New(cfg)
 
 	handleRPC := func(ctx context.Context, req *centrifuge.RPCContext) (*centrifuge.RPCReply, error) {
-
-		var userID string
-		value := ctx.Value(centrifuge.CredentialsContextKey)
-		credentials, ok := value.(*centrifuge.Credentials)
-		if ok {
-			userID = credentials.UserID
-		}
-
-		log.Printf("RPC from user: %s, data: %s, encoding: %d", userID, string(req.Data), req.Client.Transport().Encoding())
-		data := []byte(`{"text": "rpc response"}`)
-
-		go func() {
-			err := node.Publish("$public:chat", &centrifuge.Publication{Data: []byte(`{"input": "Booom!"}`)})
-			if err != nil {
-				log.Fatalln(err)
-			}
-		}()
+		log.Printf("RPC from user: %s, data: %s, encoding: %d", req.Client.UserID(), string(req.Data), req.Client.Transport().Encoding())
 
 		return &centrifuge.RPCReply{
-			Data: data,
+			Data: []byte(`{"temperature": "-42"}`),
 		}, nil
+	}
+
+	handleMessage := func(ctc context.Context, req *centrifuge.MessageContext) (*centrifuge.MessageReply, error) {
+		log.Printf("Message from user: %s, data: %s", req.Client.UserID(), string(req.Data))
+		return nil, nil
 	}
 
 	handleConnect := func(ctx context.Context, req *centrifuge.ConnectContext) (*centrifuge.ConnectReply, error) {
@@ -106,20 +98,34 @@ func main() {
 		return nil, nil
 	}
 
+	handlePresence := func(ctx context.Context, req *centrifuge.PresenceContext) (*centrifuge.PresenceReply, error) {
+		log.Printf("user %s is active and subscribed on channels %#v", req.Client.UserID(), req.Channels)
+		return nil, nil
+	}
+
+	handleRefresh := func(ctx context.Context, req *centrifuge.RefreshContext) (*centrifuge.RefreshReply, error) {
+		log.Printf("user %s connection is going to expire, refresh it", req.Client.UserID())
+		return &centrifuge.RefreshReply{
+			Exp: time.Now().Unix() + 60,
+		}, nil
+	}
+
 	mediator := &centrifuge.Mediator{
 		RPC:         handleRPC,
+		Message:     handleMessage,
 		Connect:     handleConnect,
 		Disconnect:  handleDisconnect,
 		Subscribe:   handleSubscribe,
 		Unsubscribe: handleUnsubscribe,
 		Publish:     handlePublish,
+		Presence:    handlePresence,
+		Refresh:     handleRefresh,
 	}
 
 	node.SetMediator(mediator)
 	node.SetLogHandler(centrifuge.LogLevelDebug, handleLog)
 
-	engine, _ := centrifuge.NewMemoryEngine(node, centrifuge.MemoryEngineConfig{})
-	if err := node.Run(engine); err != nil {
+	if err := node.Run(); err != nil {
 		panic(err)
 	}
 
