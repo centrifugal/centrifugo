@@ -254,8 +254,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../../basics/" title="Basics" class="md-nav__link">
-      Basics
+    <a href="../../concepts/" title="Concepts" class="md-nav__link">
+      Concepts
     </a>
   </li>
 
@@ -672,9 +672,9 @@ subscribe on channels. To do this it must send <code class="codehilite">subscrib
 
 <p><code class="codehilite">result</code> can have the following fields:</p>
 <ul>
-<li>optional array <code class="codehilite">publications</code> -</li>
-<li>optional string <code class="codehilite">last</code> - </li>
-<li>optional bool <code class="codehilite">recovered</code> - </li>
+<li>optional array <code class="codehilite">publications</code> - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array</li>
+<li>optional string <code class="codehilite">last</code> - this field contains uid of last publication in channel. This allows fresh client which have not received publications before recover messages setting this value into next subscription request. </li>
+<li>optional bool <code class="codehilite">recovered</code> - this flag is set to <code class="codehilite">true</code> when server thinks that all missed publications were successfully recovered and <code class="codehilite">false</code> otherwise.</li>
 </ul>
 <p>After client received successful reply on <code class="codehilite">subscribe</code> command it will receive asynchronous 
 reply messages published to this channel. Messages can be of several types:</p>
@@ -712,6 +712,7 @@ reply messages published to this channel. Messages can be of several types:</p>
 </pre></div>
 
 <p>Just with actual <code class="codehilite">exp</code> and new <code class="codehilite">sign</code>.</p>
+<p>The tip whether or not connection must be refreshed comes in reply to <code class="codehilite">connect</code> command shown above - fields <code class="codehilite">expires</code>, <code class="codehilite">expired</code> and <code class="codehilite">ttl</code>.</p>
 <h3 id="rpc-like-calls-publish-history-presence">RPC-like calls: publish, history, presence<a class="headerlink" href="#rpc-like-calls-publish-history-presence" title="Permanent link">&para;</a></h3>
 <p>The mechanics of these calls is simple - client sends command and expects response from server.</p>
 <p><code class="codehilite">publish</code> command allows to publish message into channel from client.</p>
