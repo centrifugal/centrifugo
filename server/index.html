@@ -351,7 +351,8 @@
                 
                 <h1 id="server-overview">Server overview<a class="headerlink" href="#server-overview" title="Permanent link">&para;</a></h1>
 <p>Centrifugo server is written in Go language. It's an open-source software, the source code is available <a href="https://github.com/centrifugal/centrifugo">on Github</a>.</p>
-<p>Centrifugo is built around centrifuge library for Go language. That library defines custom protocol and message types which must be sent over various transports (Websocket, GRPC, SockJS). Our clients use that protocol internally and provide simple API to features - making persistent connection, subscribing on channels, calling RPC commands and more.</p>
+<p>Centrifugo is built around <a href="https://github.com/centrifugal/centrifuge">centrifuge</a> library for Go language. That library defines custom protocol and message types which must be sent over various transports (Websocket, GRPC, SockJS). Server clients use that protocol internally and provide simple API to features - making persistent connection, subscribing on channels, calling RPC commands and more.</p>
+<p>This documentation chapter covers some server concepts in detail. This is documentation for Centrifugo server but many things said here are also valid for centrifuge library as it's a core of Centrifugo server. </p>
                 
                   
                 
