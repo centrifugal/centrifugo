@@ -174,9 +174,9 @@ In response to subscribe client receives reply like:
 
 `result` can have the following fields:
 
-* optional array `publications` -
-* optional string `last` - 
-* optional bool `recovered` - 
+* optional array `publications` - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array
+* optional string `last` - this field contains uid of last publication in channel. This allows fresh client which have not received publications before recover messages setting this value into next subscription request. 
+* optional bool `recovered` - this flag is set to `true` when server thinks that all missed publications were successfully recovered and `false` otherwise.
 
 After client received successful reply on `subscribe` command it will receive asynchronous 
 reply messages published to this channel. Messages can be of several types:
@@ -222,6 +222,8 @@ It's possible to turn on client connection expiration mechanism on server. While
 ```
 
 Just with actual `exp` and new `sign`.
+
+The tip whether or not connection must be refreshed comes in reply to `connect` command shown above - fields `expires`, `expired` and `ttl`.
 
 ### RPC-like calls: publish, history, presence
 
