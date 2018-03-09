@@ -172,6 +172,7 @@ func (c *client) updateChannelPresence(ch string) {
 func (c *client) updatePresence() {
 	c.RLock()
 	if c.closed {
+		c.RUnlock()
 		return
 	}
 	for _, channel := range c.Channels() {
