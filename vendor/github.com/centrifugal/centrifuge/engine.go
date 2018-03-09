@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifuge/internal/proto"
-	"github.com/centrifugal/centrifuge/internal/proto/controlproto"
 )
 
 // historyFilter allows to provide several parameters for history
@@ -39,7 +38,7 @@ type Engine interface {
 	// PublishLeave publishes Leave message into channel.
 	publishLeave(ch string, leave *proto.Leave, opts *ChannelOptions) <-chan error
 	// PublishControl allows to send control command to all running nodes.
-	publishControl(*controlproto.Command) <-chan error
+	publishControl(data []byte) <-chan error
 
 	// Subscribe node on channel.
 	subscribe(ch string) error

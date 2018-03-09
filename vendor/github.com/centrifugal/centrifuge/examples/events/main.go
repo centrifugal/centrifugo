@@ -60,54 +60,54 @@ func main() {
 
 	node := centrifuge.New(cfg)
 
-	handleRPC := func(ctx context.Context, req *centrifuge.RPCContext) (*centrifuge.RPCReply, error) {
+	handleRPC := func(ctx context.Context, req centrifuge.RPCContext) centrifuge.RPCReply {
 		log.Printf("RPC from user: %s, data: %s, encoding: %d", req.Client.UserID(), string(req.Data), req.Client.Transport().Encoding())
 
-		return &centrifuge.RPCReply{
+		return centrifuge.RPCReply{
 			Data: []byte(`{"temperature": "-42"}`),
-		}, nil
+		}
 	}
 
-	handleMessage := func(ctc context.Context, req *centrifuge.MessageContext) (*centrifuge.MessageReply, error) {
+	handleMessage := func(ctc context.Context, req centrifuge.MessageContext) centrifuge.MessageReply {
 		log.Printf("Message from user: %s, data: %s", req.Client.UserID(), string(req.Data))
-		return nil, nil
+		return centrifuge.MessageReply{}
 	}
 
-	handleConnect := func(ctx context.Context, req *centrifuge.ConnectContext) (*centrifuge.ConnectReply, error) {
+	handleConnect := func(ctx context.Context, req centrifuge.ConnectContext) centrifuge.ConnectReply {
 		log.Printf("user %s connected via %s", req.Client.UserID(), req.Client.Transport().Name())
-		return nil, nil
+		return centrifuge.ConnectReply{}
 	}
 
-	handleDisconnect := func(ctx context.Context, req *centrifuge.DisconnectContext) (*centrifuge.DisconnectReply, error) {
-		log.Printf("user %s disconnected", req.Client.UserID())
-		return nil, nil
+	handleDisconnect := func(ctx context.Context, req centrifuge.DisconnectContext) centrifuge.DisconnectReply {
+		log.Printf("user %s disconnected, disconnect: %#v", req.Client.UserID(), req.Disconnect)
+		return centrifuge.DisconnectReply{}
 	}
 
-	handleSubscribe := func(ctx context.Context, req *centrifuge.SubscribeContext) (*centrifuge.SubscribeReply, error) {
+	handleSubscribe := func(ctx context.Context, req centrifuge.SubscribeContext) centrifuge.SubscribeReply {
 		log.Printf("user %s subscribes on %s", req.Client.UserID(), req.Channel)
-		return nil, nil
+		return centrifuge.SubscribeReply{}
 	}
 
-	handleUnsubscribe := func(ctx context.Context, req *centrifuge.UnsubscribeContext) (*centrifuge.UnsubscribeReply, error) {
+	handleUnsubscribe := func(ctx context.Context, req centrifuge.UnsubscribeContext) centrifuge.UnsubscribeReply {
 		log.Printf("user %s unsubscribed from %s", req.Client.UserID(), req.Channel)
-		return nil, nil
+		return centrifuge.UnsubscribeReply{}
 	}
 
-	handlePublish := func(ctx context.Context, req *centrifuge.PublishContext) (*centrifuge.PublishReply, error) {
+	handlePublish := func(ctx context.Context, req centrifuge.PublishContext) centrifuge.PublishReply {
 		log.Printf("user %s publishes into channel %s: %s", req.Client.UserID(), req.Channel, string(req.Publication.Data))
-		return nil, nil
+		return centrifuge.PublishReply{}
 	}
 
-	handlePresence := func(ctx context.Context, req *centrifuge.PresenceContext) (*centrifuge.PresenceReply, error) {
-		log.Printf("user %s is active and subscribed on channels %#v", req.Client.UserID(), req.Channels)
-		return nil, nil
+	handlePresence := func(ctx context.Context, req centrifuge.PresenceContext) centrifuge.PresenceReply {
+		log.Printf("user %s is online and subscribed on channels %#v", req.Client.UserID(), req.Channels)
+		return centrifuge.PresenceReply{}
 	}
 
-	handleRefresh := func(ctx context.Context, req *centrifuge.RefreshContext) (*centrifuge.RefreshReply, error) {
-		log.Printf("user %s connection is going to expire, refresh it", req.Client.UserID())
-		return &centrifuge.RefreshReply{
+	handleRefresh := func(ctx context.Context, req centrifuge.RefreshContext) centrifuge.RefreshReply {
+		log.Printf("user %s connection is going to expire, refreshing", req.Client.UserID())
+		return centrifuge.RefreshReply{
 			Exp: time.Now().Unix() + 60,
-		}, nil
+		}
 	}
 
 	mediator := &centrifuge.Mediator{

@@ -164,6 +164,7 @@ var DefaultConfig = Config{
 	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019"
 	ChannelClientBoundary:    "&", // so client channel is sth like "client&7a37e561-c720-4608-52a8-a964a9db7a8a"
 
+	ClientExpire:                 false,
 	ClientInsecure:               false,
 	ClientPresencePingInterval:   25 * time.Second,
 	ClientPresenceExpireInterval: 60 * time.Second,

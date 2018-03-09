@@ -5,7 +5,6 @@
   "namespaces": [
     {
       "name": "public",
-      "watch": true,
       "anonymous": true,
       "publish": true,
       "join_leave": true,

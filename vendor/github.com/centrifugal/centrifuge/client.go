@@ -27,12 +27,7 @@ type Client interface {
 	Transport() Transport
 }
 
-// ClientConfig contains client connection specific configuration.
-type clientConfig struct {
-	Credentials *Credentials
-}
-
-// Credentials ...
+// Credentials allows to authenticate connection when set into context.
 type Credentials struct {
 	UserID string
 	Exp    int64
@@ -42,7 +37,7 @@ type Credentials struct {
 // credentialsContextKeyType ...
 type credentialsContextKeyType int
 
-// CredentialsContextKey ...
+// CredentialsContextKey allows Go code to set Credentials into context.
 var CredentialsContextKey credentialsContextKeyType
 
 // client represents client connection to Centrifugo. Transport of
@@ -66,7 +61,7 @@ type client struct {
 }
 
 // newClient creates new client connection.
-func newClient(ctx context.Context, n *Node, t transport, conf clientConfig) *client {
+func newClient(ctx context.Context, n *Node, t transport) *client {
 	c := &client{
 		ctx:       ctx,
 		uid:       uuid.NewV4().String(),
@@ -117,7 +112,7 @@ func (c *client) updatePresence() {
 	}
 	channels := c.Channels()
 	if c.node.Mediator() != nil && c.node.Mediator().Presence != nil {
-		c.node.Mediator().Presence(c.ctx, &PresenceContext{
+		c.node.Mediator().Presence(c.ctx, PresenceContext{
 			EventContext: EventContext{
 				Client: c,
 			},
@@ -211,8 +206,7 @@ func (c *client) sendUnsubscribe(ch string) error {
 	return nil
 }
 
-// clean called when connection was closed to make different clean up
-// actions for a client
+// Close client connection with specific disconnect reason.
 func (c *client) Close(disconnect *Disconnect) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -259,10 +253,11 @@ func (c *client) Close(disconnect *Disconnect) error {
 	c.transport.Close(disconnect)
 
 	if c.node.Mediator() != nil && c.node.Mediator().Disconnect != nil {
-		c.node.Mediator().Disconnect(c.ctx, &DisconnectContext{
+		c.node.Mediator().Disconnect(c.ctx, DisconnectContext{
 			EventContext: EventContext{
 				Client: c,
 			},
+			Disconnect: disconnect,
 		})
 	}
 
@@ -363,14 +358,16 @@ func (c *client) expire() {
 
 	mediator := c.node.Mediator()
 	if mediator != nil && mediator.Refresh != nil {
-		reply, _ := mediator.Refresh(c.ctx, &RefreshContext{
+		reply := mediator.Refresh(c.ctx, RefreshContext{
 			EventContext: EventContext{
 				Client: c,
 			},
 		})
-		c.exp = reply.Exp
-		if reply.Info != nil {
-			c.info = reply.Info
+		if reply.Exp > 0 {
+			c.exp = reply.Exp
+			if reply.Info != nil {
+				c.info = reply.Info
+			}
 		}
 	}
 
@@ -621,33 +618,30 @@ func (c *client) handleRPC(params proto.Raw) (proto.Raw, *proto.Error, *Disconne
 			c.node.logger.log(newLogEntry(LogLevelInfo, "error decoding rpc", map[string]interface{}{"error": err.Error()}))
 			return nil, nil, DisconnectBadRequest
 		}
-		rpcReply, err := mediator.RPC(c.ctx, &RPCContext{
+		rpcReply := mediator.RPC(c.ctx, RPCContext{
 			EventContext: EventContext{
 				Client: c,
 			},
 			Data: cmd.Data,
 		})
-		if err == nil {
-			if rpcReply.Disconnect != nil {
-				return nil, nil, rpcReply.Disconnect
-			}
-			if rpcReply.Error != nil {
-				return nil, rpcReply.Error, nil
-			}
-
-			result := &proto.RPCResult{
-				Data: rpcReply.Data,
-			}
-
-			var replyRes []byte
-			replyRes, err = proto.GetResultEncoder(c.transport.Encoding()).EncodeRPCResult(result)
-			if err != nil {
-				c.node.logger.log(newLogEntry(LogLevelError, "error encoding rpc", map[string]interface{}{"error": err.Error()}))
-				return nil, nil, DisconnectServerError
-			}
-			return replyRes, nil, nil
+		if rpcReply.Disconnect != nil {
+			return nil, nil, rpcReply.Disconnect
 		}
-		return nil, ErrorInternal, nil
+		if rpcReply.Error != nil {
+			return nil, rpcReply.Error, nil
+		}
+
+		result := &proto.RPCResult{
+			Data: rpcReply.Data,
+		}
+
+		var replyRes []byte
+		replyRes, err = proto.GetResultEncoder(c.transport.Encoding()).EncodeRPCResult(result)
+		if err != nil {
+			c.node.logger.log(newLogEntry(LogLevelError, "error encoding rpc", map[string]interface{}{"error": err.Error()}))
+			return nil, nil, DisconnectServerError
+		}
+		return replyRes, nil, nil
 	}
 	return nil, ErrorNotAvailable, nil
 }
@@ -660,13 +654,13 @@ func (c *client) handleMessage(params proto.Raw) *Disconnect {
 			c.node.logger.log(newLogEntry(LogLevelInfo, "error decoding message", map[string]interface{}{"error": err.Error()}))
 			return DisconnectBadRequest
 		}
-		messageReply, err := mediator.Message(c.ctx, &MessageContext{
+		messageReply := mediator.Message(c.ctx, MessageContext{
 			EventContext: EventContext{
 				Client: c,
 			},
 			Data: cmd.Data,
 		})
-		if err == nil && messageReply != nil && messageReply.Disconnect != nil {
+		if messageReply.Disconnect != nil {
 			return messageReply.Disconnect
 		}
 		return nil
@@ -808,7 +802,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 
 	// TODO: check locking.
 	if c.node.Mediator() != nil && c.node.Mediator().Connect != nil {
-		c.node.Mediator().Connect(c.ctx, &ConnectContext{
+		c.node.Mediator().Connect(c.ctx, ConnectContext{
 			EventContext: EventContext{
 				Client: c,
 			},
@@ -994,12 +988,19 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 	}
 
 	if c.node.Mediator() != nil && c.node.Mediator().Subscribe != nil {
-		c.node.Mediator().Subscribe(c.ctx, &SubscribeContext{
+		reply := c.node.Mediator().Subscribe(c.ctx, SubscribeContext{
 			EventContext: EventContext{
 				Client: c,
 			},
 			Channel: channel,
 		})
+		if reply.Disconnect != nil {
+			return resp, reply.Disconnect
+		}
+		if reply.Error != nil {
+			resp.Error = reply.Error
+			return resp, nil
+		}
 	}
 
 	c.channels[channel] = struct{}{}
@@ -1036,11 +1037,11 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 			}
 		} else {
 			// Client don't want to recover messages yet, we just return last message id to him here.
-			lastMessageID, err := c.node.LastMessageID(channel)
+			lastPubUID, err := c.node.lastPublicationUID(channel)
 			if err != nil {
 				c.node.logger.log(newLogEntry(LogLevelError, "error getting last message ID for channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid, "error": err.Error()}))
 			} else {
-				res.Last = lastMessageID
+				res.Last = lastPubUID
 			}
 		}
 	}
@@ -1090,7 +1091,7 @@ func (c *client) unsubscribe(channel string) error {
 	}
 
 	if c.node.Mediator() != nil && c.node.Mediator().Unsubscribe != nil {
-		c.node.Mediator().Unsubscribe(c.ctx, &UnsubscribeContext{
+		c.node.Mediator().Unsubscribe(c.ctx, UnsubscribeContext{
 			EventContext: EventContext{
 				Client: c,
 			},
@@ -1169,13 +1170,20 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 	}
 
 	if c.node.Mediator() != nil && c.node.Mediator().Publish != nil {
-		c.node.Mediator().Publish(c.ctx, &PublishContext{
+		reply := c.node.Mediator().Publish(c.ctx, PublishContext{
 			EventContext: EventContext{
 				Client: c,
 			},
 			Channel:     ch,
 			Publication: publication,
 		})
+		if reply.Disconnect != nil {
+			return resp, reply.Disconnect
+		}
+		if reply.Error != nil {
+			resp.Error = reply.Error
+			return resp, nil
+		}
 	}
 
 	err := <-c.node.publish(ch, publication, &chOpts)

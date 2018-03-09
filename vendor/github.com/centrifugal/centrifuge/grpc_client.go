@@ -45,7 +45,7 @@ func (s *grpcClientService) Communicate(stream proto.Centrifuge_CommunicateServe
 	replies := make(chan *proto.Reply, replyBufferSize)
 	transport := newGRPCTransport(stream, replies)
 
-	c := newClient(stream.Context(), s.node, transport, clientConfig{})
+	c := newClient(stream.Context(), s.node, transport)
 	defer c.Close(DisconnectNormal)
 
 	s.node.logger.log(newLogEntry(LogLevelDebug, "GRPC connection established", map[string]interface{}{"client": c.ID()}))

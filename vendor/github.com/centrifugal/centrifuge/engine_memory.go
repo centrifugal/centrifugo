@@ -8,7 +8,6 @@ import (
 
 	"github.com/centrifugal/centrifuge/internal/priority"
 	"github.com/centrifugal/centrifuge/internal/proto"
-	"github.com/centrifugal/centrifuge/internal/proto/controlproto"
 )
 
 // MemoryEngine allows to run Centrifugo without using Redis at all.
@@ -84,9 +83,9 @@ func (e *MemoryEngine) publishLeave(ch string, leave *proto.Leave, opts *Channel
 }
 
 // PublishControl - see Engine interface description.
-func (e *MemoryEngine) publishControl(message *controlproto.Command) <-chan error {
+func (e *MemoryEngine) publishControl(data []byte) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.handleControl(message)
+	eChan <- e.node.handleControl(data)
 	return eChan
 }
 

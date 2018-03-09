@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifuge/internal/proto"
-	"github.com/centrifugal/centrifuge/internal/proto/controlproto"
 
 	"github.com/FZambia/go-sentinel"
 	"github.com/garyburd/redigo/redis"
@@ -80,6 +79,9 @@ type shard struct {
 	presenceScript    *redis.Script
 	lpopManyScript    *redis.Script
 	messagePrefix     string
+
+	messageEncoder proto.MessageEncoder
+	messageDecoder proto.MessageDecoder
 }
 
 // RedisEngineConfig of Redis Engine.
@@ -377,6 +379,8 @@ func newShard(n *Node, conf *RedisShardConfig) (*shard, error) {
 		remPresenceScript: redis.NewScript(2, remPresenceSource),
 		presenceScript:    redis.NewScript(2, presenceSource),
 		lpopManyScript:    redis.NewScript(1, lpopManySource),
+		messageEncoder:    proto.NewProtobufMessageEncoder(),
+		messageDecoder:    proto.NewProtobufMessageDecoder(),
 	}
 	shard.pubCh = make(chan pubRequest, redisPublishChannelSize)
 	shard.subCh = make(chan subRequest, redisSubscribeChannelSize)
@@ -452,8 +456,8 @@ func (e *RedisEngine) publishLeave(ch string, leave *proto.Leave, opts *ChannelO
 }
 
 // PublishControl - see engine interface description.
-func (e *RedisEngine) publishControl(message *controlproto.Command) <-chan error {
-	return e.shards[0].PublishControl(message)
+func (e *RedisEngine) publishControl(data []byte) <-chan error {
+	return e.shards[0].PublishControl(data)
 }
 
 // Subscribe - see engine interface description.
@@ -654,12 +658,7 @@ func (e *shard) runPubSub() {
 					}
 					switch chID {
 					case controlChannel:
-						cmd, err := e.node.controlDecoder.DecodeCommand(n.Data)
-						if err != nil {
-							e.node.logger.log(newLogEntry(LogLevelError, "error decoding control command", map[string]interface{}{"error": err.Error()}))
-							continue
-						}
-						e.node.handleControl(cmd)
+						e.node.handleControl(n.Data)
 					case pingChannel:
 						// Do nothing - this message just maintains connection open.
 					default:
@@ -729,7 +728,32 @@ func (e *shard) handleRedisClientMessage(chID channelID, data []byte) error {
 	if err != nil {
 		return err
 	}
-	return e.node.handleClientMessage(&message)
+	return e.handleClientMessage(&message)
+}
+
+func (e *shard) handleClientMessage(message *proto.Message) error {
+	switch message.Type {
+	case proto.MessageTypePublication:
+		publication, err := e.messageDecoder.DecodePublication(message.Data)
+		if err != nil {
+			return err
+		}
+		e.node.handlePublication(message.Channel, publication)
+	case proto.MessageTypeJoin:
+		join, err := e.messageDecoder.DecodeJoin(message.Data)
+		if err != nil {
+			return err
+		}
+		e.node.handleJoin(message.Channel, join)
+	case proto.MessageTypeLeave:
+		leave, err := e.messageDecoder.DecodeLeave(message.Data)
+		if err != nil {
+			return err
+		}
+		e.node.handleLeave(message.Channel, leave)
+	default:
+	}
+	return nil
 }
 
 type pubRequest struct {
@@ -994,12 +1018,12 @@ func (e *shard) Publish(ch string, pub *proto.Publication, opts *ChannelOptions)
 
 	eChan := make(chan error, 1)
 
-	data, err := e.node.messageEncoder.EncodePublication(pub)
+	data, err := e.messageEncoder.EncodePublication(pub)
 	if err != nil {
 		eChan <- err
 		return eChan
 	}
-	byteMessage, err := e.node.messageEncoder.Encode(proto.NewPublicationMessage(ch, data))
+	byteMessage, err := e.messageEncoder.Encode(proto.NewPublicationMessage(ch, data))
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -1034,12 +1058,12 @@ func (e *shard) PublishJoin(ch string, join *proto.Join, opts *ChannelOptions) <
 
 	eChan := make(chan error, 1)
 
-	data, err := e.node.messageEncoder.EncodeJoin(join)
+	data, err := e.messageEncoder.EncodeJoin(join)
 	if err != nil {
 		eChan <- err
 		return eChan
 	}
-	byteMessage, err := e.node.messageEncoder.Encode(proto.NewJoinMessage(ch, data))
+	byteMessage, err := e.messageEncoder.Encode(proto.NewJoinMessage(ch, data))
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -1061,12 +1085,12 @@ func (e *shard) PublishLeave(ch string, leave *proto.Leave, opts *ChannelOptions
 
 	eChan := make(chan error, 1)
 
-	data, err := e.node.messageEncoder.EncodeLeave(leave)
+	data, err := e.messageEncoder.EncodeLeave(leave)
 	if err != nil {
 		eChan <- err
 		return eChan
 	}
-	byteMessage, err := e.node.messageEncoder.Encode(proto.NewLeaveMessage(ch, data))
+	byteMessage, err := e.messageEncoder.Encode(proto.NewLeaveMessage(ch, data))
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -1084,20 +1108,14 @@ func (e *shard) PublishLeave(ch string, leave *proto.Leave, opts *ChannelOptions
 }
 
 // PublishControl - see engine interface description.
-func (e *shard) PublishControl(cmd *controlproto.Command) <-chan error {
+func (e *shard) PublishControl(data []byte) <-chan error {
 	eChan := make(chan error, 1)
-
-	byteMessage, err := e.node.controlEncoder.EncodeCommand(cmd)
-	if err != nil {
-		eChan <- err
-		return eChan
-	}
 
 	chID := e.controlChannelID()
 
 	pr := pubRequest{
 		channel: chID,
-		message: byteMessage,
+		message: data,
 		err:     &eChan,
 	}
 	e.pubCh <- pr
@@ -1185,7 +1203,7 @@ func (e *shard) History(ch string, filter historyFilter) ([]*proto.Publication, 
 	if resp.err != nil {
 		return nil, resp.err
 	}
-	return sliceOfMessages(e.node, resp.reply, nil)
+	return sliceOfMessages(e, resp.reply, nil)
 }
 
 // RemoveHistory - see engine interface description.
@@ -1250,7 +1268,7 @@ func mapStringClientInfo(result interface{}, err error) (map[string]*proto.Clien
 	return m, nil
 }
 
-func sliceOfMessages(n *Node, result interface{}, err error) ([]*proto.Publication, error) {
+func sliceOfMessages(n *shard, result interface{}, err error) ([]*proto.Publication, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err

@@ -4,118 +4,116 @@ import (
 	"context"
 )
 
-// EventContext ...
+// EventContext added to all specific event contexts.
 type EventContext struct {
 	Client Client
 }
 
-// ConnectContext ...
+// ConnectContext contains fields related to connect event.
 type ConnectContext struct {
 	EventContext
 }
 
-// ConnectReply ...
+// ConnectReply contains fields determining the reaction on connect event.
 type ConnectReply struct {
 	Error      *Error
 	Disconnect *Disconnect
 }
 
 // ConnectHandler ...
-type ConnectHandler func(context.Context, *ConnectContext) (*ConnectReply, error)
+type ConnectHandler func(context.Context, ConnectContext) ConnectReply
 
-// DisconnectContext ...
+// DisconnectContext contains fields related to disconnect event.
 type DisconnectContext struct {
 	EventContext
 	Disconnect *Disconnect
 }
 
-// DisconnectReply ...
+// DisconnectReply contains fields determining the reaction on disconnect event.
 type DisconnectReply struct{}
 
 // DisconnectHandler ...
-type DisconnectHandler func(context.Context, *DisconnectContext) (*DisconnectReply, error)
+type DisconnectHandler func(context.Context, DisconnectContext) DisconnectReply
 
-// SubscribeContext ...
+// SubscribeContext contains fields related to subscribe event.
 type SubscribeContext struct {
 	EventContext
 	Channel string
 }
 
-// SubscribeReply ...
+// SubscribeReply contains fields determining the reaction on subscribe event.
 type SubscribeReply struct {
 	Error      *Error
 	Disconnect *Disconnect
 }
 
 // SubscribeHandler ...
-type SubscribeHandler func(context.Context, *SubscribeContext) (*SubscribeReply, error)
+type SubscribeHandler func(context.Context, SubscribeContext) SubscribeReply
 
-// UnsubscribeContext ...
+// UnsubscribeContext contains fields related to unsubscribe event.
 type UnsubscribeContext struct {
 	EventContext
 	Channel string
 }
 
-// UnsubscribeReply ...
+// UnsubscribeReply contains fields determining the reaction on unsubscribe event.
 type UnsubscribeReply struct {
-	Error      *Error
-	Disconnect *Disconnect
 }
 
 // UnsubscribeHandler ...
-type UnsubscribeHandler func(context.Context, *UnsubscribeContext) (*UnsubscribeReply, error)
+type UnsubscribeHandler func(context.Context, UnsubscribeContext) UnsubscribeReply
 
-// PublishContext ...
+// PublishContext contains fields related to publish event.
 type PublishContext struct {
 	EventContext
 	Channel     string
 	Publication *Publication
 }
 
-// PublishReply ...
+// PublishReply contains fields determining the reaction on publish event.
 type PublishReply struct {
 	Error      *Error
 	Disconnect *Disconnect
 }
 
 // PublishHandler ...
-type PublishHandler func(context.Context, *PublishContext) (*PublishReply, error)
+type PublishHandler func(context.Context, PublishContext) PublishReply
 
-// PresenceContext ...
+// PresenceContext contains fields related to presence update event.
 type PresenceContext struct {
 	EventContext
 	Channels []string
 }
 
-// PresenceReply ...
+// PresenceReply contains fields determining the reaction on presence update event.
 type PresenceReply struct {
 	Disconnect *Disconnect
 }
 
 // PresenceHandler ...
-type PresenceHandler func(context.Context, *PresenceContext) (*PresenceReply, error)
+type PresenceHandler func(context.Context, PresenceContext) PresenceReply
 
-// RefreshContext ...
+// RefreshContext contains fields related to refresh event.
 type RefreshContext struct {
 	EventContext
 }
 
-// RefreshReply ...
+// RefreshReply contains fields determining the reaction on refresh event.
 type RefreshReply struct {
 	Exp  int64
 	Info []byte
 }
 
 // RefreshHandler ...
-type RefreshHandler func(context.Context, *RefreshContext) (*RefreshReply, error)
+type RefreshHandler func(context.Context, RefreshContext) RefreshReply
 
-// RPCContext ...
+// RPCContext contains fields related to rpc request.
 type RPCContext struct {
 	EventContext
 	Data Raw
 }
 
-// RPCReply ...
+// RPCReply contains fields determining the reaction on rpc request.
 type RPCReply struct {
 	Error      *Error
 	Disconnect *Disconnect
@@ -123,18 +121,18 @@ type RPCReply struct {
 }
 
 // RPCHandler must handle incoming command from client.
-type RPCHandler func(context.Context, *RPCContext) (*RPCReply, error)
+type RPCHandler func(context.Context, RPCContext) RPCReply
 
-// MessageContext ...
+// MessageContext contains fields related to message request.
 type MessageContext struct {
 	EventContext
 	Data Raw
 }
 
-// MessageReply ...
+// MessageReply contains fields determining the reaction on message request.
 type MessageReply struct {
 	Disconnect *Disconnect
 }
 
 // MessageHandler must handle incoming async message from client.
-type MessageHandler func(context.Context, *MessageContext) (*MessageReply, error)
+type MessageHandler func(context.Context, MessageContext) MessageReply

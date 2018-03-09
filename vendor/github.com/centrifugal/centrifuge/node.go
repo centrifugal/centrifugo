@@ -45,22 +45,13 @@ type Node struct {
 	// shutdownCh is a channel which is closed when node shutdown initiated.
 	shutdownCh chan struct{}
 
-	// messageEncoder is encoder to encode messages for engine.
-	messageEncoder proto.MessageEncoder
-
-	// messageEncoder is decoder to decode messages coming from engine.
-	messageDecoder proto.MessageDecoder
-
-	// controlEncoder is encoder to encode control messages for engine.
-	controlEncoder controlproto.Encoder
-
-	// controlDecoder is decoder to decode control messages coming from engine.
-	controlDecoder controlproto.Decoder
-
 	// mediator contains application event handlers.
 	mediator *Mediator
 
 	logger *logger
+
+	controlEncoder controlproto.Encoder
+	controlDecoder controlproto.Decoder
 }
 
 // New creates Node, the only required argument is config.
@@ -74,11 +65,9 @@ func New(c Config) *Node {
 		hub:            newHub(),
 		startedAt:      time.Now().Unix(),
 		shutdownCh:     make(chan struct{}),
-		messageEncoder: proto.NewProtobufMessageEncoder(),
-		messageDecoder: proto.NewProtobufMessageDecoder(),
+		logger:         nil,
 		controlEncoder: controlproto.NewProtobufEncoder(),
 		controlDecoder: controlproto.NewProtobufDecoder(),
-		logger:         nil,
 	}
 	e, _ := NewMemoryEngine(n, MemoryEngineConfig{})
 	n.SetEngine(e)
@@ -238,8 +227,14 @@ func (n *Node) info() (*apiproto.InfoResult, error) {
 
 // handleControl handles messages from control channel - control messages used for internal
 // communication between nodes to share state or proto.
-func (n *Node) handleControl(cmd *controlproto.Command) error {
+func (n *Node) handleControl(data []byte) error {
 	messagesReceivedCount.WithLabelValues("control").Inc()
+
+	cmd, err := n.controlDecoder.DecodeCommand(data)
+	if err != nil {
+		n.logger.log(newLogEntry(LogLevelError, "error decoding control command", map[string]interface{}{"error": err.Error()}))
+		return err
+	}
 
 	if cmd.UID == n.uid {
 		// Sent by this node.
@@ -275,32 +270,6 @@ func (n *Node) handleControl(cmd *controlproto.Command) error {
 		n.logger.log(newLogEntry(LogLevelError, "unknown control message method", map[string]interface{}{"method": method}))
 		return fmt.Errorf("control method not found: %d", method)
 	}
-}
-
-// handleClientMessage ...
-func (n *Node) handleClientMessage(message *proto.Message) error {
-	switch message.Type {
-	case proto.MessageTypePublication:
-		publication, err := n.messageDecoder.DecodePublication(message.Data)
-		if err != nil {
-			return err
-		}
-		n.handlePublication(message.Channel, publication)
-	case proto.MessageTypeJoin:
-		join, err := n.messageDecoder.DecodeJoin(message.Data)
-		if err != nil {
-			return err
-		}
-		n.handleJoin(message.Channel, join)
-	case proto.MessageTypeLeave:
-		leave, err := n.messageDecoder.DecodeLeave(message.Data)
-		if err != nil {
-			return err
-		}
-		n.handleLeave(message.Channel, leave)
-	default:
-	}
-	return nil
 }
 
 // handlePublication handles messages published by web application or client into channel.
@@ -396,9 +365,13 @@ func (n *Node) publishLeave(ch string, leave *proto.Leave, opts *ChannelOptions)
 
 // publishControl publishes message into control channel so all running
 // nodes will receive and handle it.
-func (n *Node) publishControl(msg *controlproto.Command) <-chan error {
+func (n *Node) publishControl(cmd *controlproto.Command) <-chan error {
 	messagesSentCount.WithLabelValues("control").Inc()
-	return n.engine.publishControl(msg)
+	data, err := n.controlEncoder.EncodeCommand(cmd)
+	if err != nil {
+		return makeErrChan(err)
+	}
+	return n.engine.publishControl(data)
 }
 
 // pubNode sends control message to all nodes - this message
@@ -625,9 +598,9 @@ func (n *Node) RemoveHistory(ch string) error {
 	return n.engine.removeHistory(ch)
 }
 
-// LastMessageID return last message id for channel.
-func (n *Node) LastMessageID(ch string) (string, error) {
-	actionCount.WithLabelValues("last_message_id").Inc()
+// lastPublicationUID return last message id for channel.
+func (n *Node) lastPublicationUID(ch string) (string, error) {
+	actionCount.WithLabelValues("last_publication_uid").Inc()
 	publications, err := n.engine.history(ch, historyFilter{Limit: 1})
 	if err != nil {
 		return "", err
