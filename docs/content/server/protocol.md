@@ -47,7 +47,10 @@ When JSON format is used then many `Command` can be sent from client to server i
 ```
 
 !!! note
-    This doc will use JSON format for examples because it's human-readable. Everything said here for JSON is also true for Protobuf encoded case.
+    This doc will use JSON format for examples because it's human-readable. Everything said here for JSON is also true for Protobuf encoded case. 
+    
+!!! note
+    Method is made as ENUM in protobuf schema and can be sent as integer value but it's possible to send it as string in JSON case – this was made to make JSON protocol human-friendly.
 
 When Protobuf format is used then many `Command` can be sent from client to server in length-delimited format where each individual `Command` marshaled to bytes prepended by `varint` length.
 
@@ -73,8 +76,7 @@ Besides `id` `Reply` from server to client have two important fields: `result` a
 ```javascript
 {
     "code": 100,
-    "message": "internal server error",
-    "retry": true
+    "message": "internal server error"
 }
 ```
 
@@ -176,7 +178,7 @@ In response to subscribe client receives reply like:
 
 * optional array `publications` - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array
 * optional string `last` - this field contains uid of last publication in channel. This allows fresh client which have not received publications before recover messages setting this value into next subscription request. 
-* optional bool `recovered` - this flag is set to `true` when server thinks that all missed publications were successfully recovered and `false` otherwise.
+* optional bool `recovered` - this flag is set to `true` when server thinks that all missed publications were successfully recovered and send in subscribe reply (in `publications` array) and `false` otherwise.
 
 After client received successful reply on `subscribe` command it will receive asynchronous 
 reply messages published to this channel. Messages can be of several types:
@@ -358,6 +360,8 @@ Errors can happen during various operations and can be handled in special way in
 
 Errors during `connect` must result in full client reconnect.
 
-Errors during `subscribe` must result in full client reconnect if error is temporary. And be sent to error event handler of subscription if persistent. Persistent errors are errors like `permission denied`, `bad request`, `namespace not found` etc. Persistent errors in most situation mean an error from developers side.
+Errors during `subscribe` must result in full client reconnect if error is temporary. And be sent to subscribe error event handler of subscription if received error is persistent. Persistent errors are errors like `permission denied`, `bad request`, `namespace not found` etc. Persistent errors in most situation mean a mistake from developers side.
+
+The special corner case is client-side timeout during `subscribe` operation. As protocol is asynchronous it's possible in this case that server will eventually subscribe client on channel but client will think that it's not subscribed. It's possible to retry subscription request and tolerate `already subscribed` error as expected. But the simplest solution is to reconnect entirely as this is simpler and gives client a chance to connect to working server instance.
 
 Errors during rpc-like operations can be just returned to caller - i.e. user javascript code. Calls like `history` and `presence` are idempotent. You should be accurate with unidempotent operations like `publish` - in case of client timeout it's possible to send the same message into channel twice if retry publish after timeout - so if you care about this case make sure you have some protection from displaying message twice on client side (maybe some sort of unique key in payload).
