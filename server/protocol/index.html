@@ -299,6 +299,30 @@
           
           
 
+
+  <li class="md-nav__item">
+    <a href="../install/" title="Installation" class="md-nav__link">
+      Installation
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../configuration/" title="Configuration" class="md-nav__link">
+      Configuration
+    </a>
+  </li>
+
+        
+          
+          
+          
+
   
 
 
@@ -576,7 +600,11 @@
 
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This doc will use JSON format for examples because it's human-readable. Everything said here for JSON is also true for Protobuf encoded case.</p>
+<p>This doc will use JSON format for examples because it's human-readable. Everything said here for JSON is also true for Protobuf encoded case. </p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Method is made as ENUM in protobuf schema and can be sent as integer value but it's possible to send it as string in JSON case – this was made to make JSON protocol human-friendly.</p>
 </div>
 <p>When Protobuf format is used then many <code class="codehilite">Command</code> can be sent from client to server in length-delimited format where each individual <code class="codehilite">Command</code> marshaled to bytes prepended by <code class="codehilite">varint</code> length.</p>
 <p>The same relates to many <code class="codehilite">Reply</code> in one response from server to client. Line-delimited JSON and varint-length prefixed Protobuf.</p>
@@ -592,8 +620,7 @@
 <p><code class="codehilite">error</code> objects looks like this:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
     <span class="s2">&quot;code&quot;</span><span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
-    <span class="s2">&quot;message&quot;</span><span class="o">:</span> <span class="s2">&quot;internal server error&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;retry&quot;</span><span class="o">:</span> <span class="kc">true</span>
+    <span class="s2">&quot;message&quot;</span><span class="o">:</span> <span class="s2">&quot;internal server error&quot;</span>
 <span class="p">}</span>
 </pre></div>
 
@@ -676,7 +703,7 @@ subscribe on channels. To do this it must send <code class="codehilite">subscrib
 <ul>
 <li>optional array <code class="codehilite">publications</code> - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array</li>
 <li>optional string <code class="codehilite">last</code> - this field contains uid of last publication in channel. This allows fresh client which have not received publications before recover messages setting this value into next subscription request. </li>
-<li>optional bool <code class="codehilite">recovered</code> - this flag is set to <code class="codehilite">true</code> when server thinks that all missed publications were successfully recovered and <code class="codehilite">false</code> otherwise.</li>
+<li>optional bool <code class="codehilite">recovered</code> - this flag is set to <code class="codehilite">true</code> when server thinks that all missed publications were successfully recovered and send in subscribe reply (in <code class="codehilite">publications</code> array) and <code class="codehilite">false</code> otherwise.</li>
 </ul>
 <p>After client received successful reply on <code class="codehilite">subscribe</code> command it will receive asynchronous 
 reply messages published to this channel. Messages can be of several types:</p>
@@ -715,6 +742,7 @@ reply messages published to this channel. Messages can be of several types:</p>
 
 <p>Just with actual <code class="codehilite">exp</code> and new <code class="codehilite">sign</code>.</p>
 <p>The tip whether or not connection must be refreshed comes in reply to <code class="codehilite">connect</code> command shown above - fields <code class="codehilite">expires</code>, <code class="codehilite">expired</code> and <code class="codehilite">ttl</code>.</p>
+<p>When client connection expire mechanism is on the value of field <code class="codehilite">expires</code> in connect reply is <code class="codehilite">true</code>. In this case client implementation should look at <code class="codehilite">ttl</code> value which is seconds left until connection will be considered expired. Client must send <code class="codehilite">refresh</code> command after this <code class="codehilite">ttl</code> seconds. Server gives client a configured window to refresh credentials after <code class="codehilite">ttl</code> passed and then closes connection if client have not updated its credentials. <code class="codehilite">expired</code> field set to <code class="codehilite">true</code> when client connection already expired. In this case client should immediately send <code class="codehilite">refresh</code> command to update credentials. And after doing this it can work the usual way.</p>
 <h3 id="rpc-like-calls-publish-history-presence">RPC-like calls: publish, history, presence<a class="headerlink" href="#rpc-like-calls-publish-history-presence" title="Permanent link">&para;</a></h3>
 <p>The mechanics of these calls is simple - client sends command and expects response from server.</p>
 <p><code class="codehilite">publish</code> command allows to publish message into channel from client.</p>
@@ -819,7 +847,8 @@ allows to distinguish it from <code class="codehilite">Reply</code> to <code cla
 <p>This section contains advices to error handling in client implementations.</p>
 <p>Errors can happen during various operations and can be handled in special way in context of some commands to tolerate network and server problems.</p>
 <p>Errors during <code class="codehilite">connect</code> must result in full client reconnect.</p>
-<p>Errors during <code class="codehilite">subscribe</code> must result in full client reconnect if error is temporary. And be sent to error event handler of subscription if persistent. Persistent errors are errors like <code class="codehilite">permission denied</code>, <code class="codehilite">bad request</code>, <code class="codehilite">namespace not found</code> etc. Persistent errors in most situation mean an error from developers side.</p>
+<p>Errors during <code class="codehilite">subscribe</code> must result in full client reconnect if error is temporary. And be sent to subscribe error event handler of subscription if received error is persistent. Persistent errors are errors like <code class="codehilite">permission denied</code>, <code class="codehilite">bad request</code>, <code class="codehilite">namespace not found</code> etc. Persistent errors in most situation mean a mistake from developers side.</p>
+<p>The special corner case is client-side timeout during <code class="codehilite">subscribe</code> operation. As protocol is asynchronous it's possible in this case that server will eventually subscribe client on channel but client will think that it's not subscribed. It's possible to retry subscription request and tolerate <code class="codehilite">already subscribed</code> error as expected. But the simplest solution is to reconnect entirely as this is simpler and gives client a chance to connect to working server instance.</p>
 <p>Errors during rpc-like operations can be just returned to caller - i.e. user javascript code. Calls like <code class="codehilite">history</code> and <code class="codehilite">presence</code> are idempotent. You should be accurate with unidempotent operations like <code class="codehilite">publish</code> - in case of client timeout it's possible to send the same message into channel twice if retry publish after timeout - so if you care about this case make sure you have some protection from displaying message twice on client side (maybe some sort of unique key in payload).</p>
                 
                   
@@ -839,7 +868,7 @@ allows to distinguish it from <code class="codehilite">Reply</code> to <code cla
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../" title="Overview" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../configuration/" title="Configuration" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -848,7 +877,7 @@ allows to distinguish it from <code class="codehilite">Reply</code> to <code cla
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Overview
+                Configuration
               </span>
             </div>
           </a>
