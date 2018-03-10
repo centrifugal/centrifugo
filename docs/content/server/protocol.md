@@ -227,6 +227,8 @@ Just with actual `exp` and new `sign`.
 
 The tip whether or not connection must be refreshed comes in reply to `connect` command shown above - fields `expires`, `expired` and `ttl`.
 
+When client connection expire mechanism is on the value of field `expires` in connect reply is `true`. In this case client implementation should look at `ttl` value which is seconds left until connection will be considered expired. Client must send `refresh` command after this `ttl` seconds. Server gives client a configured window to refresh credentials after `ttl` passed and then closes connection if client have not updated its credentials. `expired` field set to `true` when client connection already expired. In this case client should immediately send `refresh` command to update credentials. And after doing this it can work the usual way.
+
 ### RPC-like calls: publish, history, presence
 
 The mechanics of these calls is simple - client sends command and expects response from server.
