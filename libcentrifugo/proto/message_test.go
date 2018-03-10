@@ -25,9 +25,9 @@ func TestMessage(t *testing.T) {
 	assert.Equal(t, "test", unmarshalledMsg.Channel)
 }
 
-func TestMessageWithUid(t *testing.T) {
+func TestMessageWithUID(t *testing.T) {
 	uid := "12"
-	msg := NewMessageWithUid("test", []byte("{}"), "", nil, uid)
+	msg := NewMessageWithUID("test", []byte("{}"), "", nil, uid)
 	assert.Equal(t, uid, msg.UID)
 }
 

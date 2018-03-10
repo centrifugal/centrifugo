@@ -20,8 +20,8 @@ func NewMessage(ch string, data []byte, client string, info *ClientInfo) *Messag
 	return newMessage(ch, data, client, info, "")
 }
 
-// NewMessageWithUid initializes new Message with specified uid.
-func NewMessageWithUid(ch string, data []byte, client string, info *ClientInfo, uid string) *Message {
+// NewMessageWithUID initializes new Message with specified uid.
+func NewMessageWithUID(ch string, data []byte, client string, info *ClientInfo, uid string) *Message {
 	return newMessage(ch, data, client, info, uid)
 }
 
