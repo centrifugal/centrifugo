@@ -1,3 +1,21 @@
+v1.7.7
+======
+
+No backwards incompatible changes here.
+
+### Fixes
+
+* fix goroutine leak due to deadlock, see [#207](https://github.com/centrifugal/centrifugo/issues/207)
+
+### Features
+
+* possibility to set message `uid` via API request - see [#205](https://github.com/centrifugal/centrifugo/pull/205)
+
+### Internal
+
+* do not send `unsubscribe` messages to client on shutdown - it will unsubscribe automatically on disconnect on client side
+* using Go 1.10 for builds
+
 v1.7.6
 ======
 
