@@ -38,7 +38,29 @@
     </url>
         
     <url>
+     <loc>https://github.com/centrifugal/centrifugo/server/admin/</loc>
+     <lastmod>2018-03-11</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
      <loc>https://github.com/centrifugal/centrifugo/server/protocol/</loc>
+     <lastmod>2018-03-11</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    
+
+    
+        
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/libraries/client/</loc>
+     <lastmod>2018-03-11</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/libraries/api/</loc>
      <lastmod>2018-03-11</lastmod>
      <changefreq>daily</changefreq>
     </url>
