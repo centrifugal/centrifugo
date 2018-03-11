@@ -13,6 +13,8 @@
         <meta name="description" content="Centrifugo Documentation">
       
       
+        <link rel="canonical" href="https://github.com/centrifugal/centrifugo/deploy/tls/">
+      
       
         <meta name="author" content="Centrifugal">
       
@@ -35,22 +37,22 @@
       
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
-      <link rel="shortcut icon" href="/centrifugal/centrifugo/images/logo.png">
+      <link rel="shortcut icon" href="../../images/logo.png">
       <meta name="generator" content="mkdocs-0.17.2, mkdocs-material-2.6.6">
     
     
       
-        <title>Centrifugo Documentation</title>
+        <title>TLS - Centrifugo Documentation</title>
       
     
     
-      <link rel="stylesheet" href="/centrifugal/centrifugo/assets/stylesheets/application.78aab2dc.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/application.78aab2dc.css">
       
-        <link rel="stylesheet" href="/centrifugal/centrifugo/assets/stylesheets/application-palette.6079476c.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/application-palette.6079476c.css">
       
     
     
-      <script src="/centrifugal/centrifugo/assets/javascripts/modernizr.1aa3b519.js"></script>
+      <script src="../../assets/javascripts/modernizr.1aa3b519.js"></script>
     
     
       <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
@@ -61,7 +63,7 @@
       <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     
     
-      <link rel="stylesheet" href="/centrifugal/centrifugo/theme/styles/extra.css">
+      <link rel="stylesheet" href="../../theme/styles/extra.css">
     
     
   </head>
@@ -99,6 +101,10 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="search">
     <label class="md-overlay" data-md-component="overlay" for="drawer"></label>
     
+      <a href="#tls" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
     
       <header class="md-header" data-md-component="header">
   <nav class="md-header-nav md-grid">
@@ -106,7 +112,7 @@
       <div class="md-flex__cell md-flex__cell--shrink">
         <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo Documentation" class="md-header-nav__button md-logo">
           
-            <img src="/centrifugal/centrifugo/images/logo.png" width="24" height="24">
+            <img src="../../images/logo.png" width="24" height="24">
           
         </a>
       </div>
@@ -121,7 +127,7 @@
                 Centrifugo Documentation
               </span>
               <span class="md-header-nav__topic">
-                
+                TLS
               </span>
             
           
@@ -202,7 +208,7 @@
   <label class="md-nav__title md-nav__title--site" for="drawer">
     <span class="md-nav__button md-logo">
       
-        <img src="/centrifugal/centrifugo/images/logo.png" width="24" height="24">
+        <img src="../../images/logo.png" width="24" height="24">
       
     </span>
     Centrifugo Documentation
@@ -238,7 +244,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/" title="Getting Started" class="md-nav__link">
+    <a href="../.." title="Getting Started" class="md-nav__link">
       Getting Started
     </a>
   </li>
@@ -250,7 +256,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/concepts/" title="Concepts" class="md-nav__link">
+    <a href="../../concepts/" title="Concepts" class="md-nav__link">
       Concepts
     </a>
   </li>
@@ -281,7 +287,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/server/" title="Overview" class="md-nav__link">
+    <a href="../../server/" title="Overview" class="md-nav__link">
       Overview
     </a>
   </li>
@@ -293,7 +299,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/server/install/" title="Installation" class="md-nav__link">
+    <a href="../../server/install/" title="Installation" class="md-nav__link">
       Installation
     </a>
   </li>
@@ -305,7 +311,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/server/configuration/" title="Configuration" class="md-nav__link">
+    <a href="../../server/configuration/" title="Configuration" class="md-nav__link">
       Configuration
     </a>
   </li>
@@ -317,7 +323,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/server/protocol/" title="Client protocol" class="md-nav__link">
+    <a href="../../server/protocol/" title="Client protocol" class="md-nav__link">
       Client protocol
     </a>
   </li>
@@ -332,10 +338,12 @@
       
       
 
+  
 
-  <li class="md-nav__item md-nav__item--nested">
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" checked>
     
     <label class="md-nav__link" for="nav-4">
       Deploy
@@ -353,7 +361,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/packages/" title="RPM and DEB packages" class="md-nav__link">
+    <a href="../packages/" title="RPM and DEB packages" class="md-nav__link">
       RPM and DEB packages
     </a>
   </li>
@@ -365,7 +373,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/docker/" title="Docker image" class="md-nav__link">
+    <a href="../docker/" title="Docker image" class="md-nav__link">
       Docker image
     </a>
   </li>
@@ -377,7 +385,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/nginx/" title="Nginx configuration" class="md-nav__link">
+    <a href="../nginx/" title="Nginx configuration" class="md-nav__link">
       Nginx configuration
     </a>
   </li>
@@ -387,11 +395,56 @@
           
           
 
+  
 
-  <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/tls/" title="TLS" class="md-nav__link">
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        TLS
+      </label>
+    
+    <a href="./" title="TLS" class="md-nav__link md-nav__link--active">
       TLS
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#using-crt-and-key-files" title="Using crt and key files" class="md-nav__link">
+    Using crt and key files
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automatic-certificates" title="Automatic certificates" class="md-nav__link">
+    Automatic certificates
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
   </li>
 
         
@@ -401,7 +454,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/redis/" title="Redis HA" class="md-nav__link">
+    <a href="../redis/" title="Redis HA" class="md-nav__link">
       Redis HA
     </a>
   </li>
@@ -413,7 +466,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/tuning/" title="OS tuning" class="md-nav__link">
+    <a href="../tuning/" title="OS tuning" class="md-nav__link">
       OS tuning
     </a>
   </li>
@@ -430,7 +483,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/faq/" title="FAQ" class="md-nav__link">
+    <a href="../../faq/" title="FAQ" class="md-nav__link">
       FAQ
     </a>
   </li>
@@ -443,12 +496,114 @@
               </div>
             
             
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#using-crt-and-key-files" title="Using crt and key files" class="md-nav__link">
+    Using crt and key files
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automatic-certificates" title="Automatic certificates" class="md-nav__link">
+    Automatic certificates
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content">
             <article class="md-content__inner md-typeset">
               
-  <h1>404 - Not found</h1>
+                
+                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/deploy/tls.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
+                
+                
+                <h1 id="tls">TLS<a class="headerlink" href="#tls" title="Permanent link">&para;</a></h1>
+<p>TLS/SSL layer is very important not only for securing your connections but also to increase a
+chance to establish Websocket connection. <strong>In most situations you will put TLS termination task
+on your reverse proxy/load balancing software such as Nginx</strong>.</p>
+<p>There are situations though when you want to serve secure connections by Centrifugo itself.</p>
+<p>There are two ways to do this: using TLS certificate <code class="codehilite">cert</code> and <code class="codehilite">key</code> files that you've got
+from your CA provider or using automatic certificate handling via <a href="https://ietf-wg-acme.github.io/acme/">ACME</a> provider (only
+<a href="https://letsencrypt.org/">Let's Encrypt</a> at this moment).</p>
+<h3 id="using-crt-and-key-files">Using crt and key files<a class="headerlink" href="#using-crt-and-key-files" title="Permanent link">&para;</a></h3>
+<p>In first way you already have <code class="codehilite">cert</code> and <code class="codehilite">key</code> files. For development you can create self-signed
+certificate - see <a href="https://devcenter.heroku.com/articles/ssl-certificate-self">this instruction</a> as
+example.</p>
+<p>Then to start Centrifugo use the following command:</p>
+<div class="codehilite"><pre><span></span>./centrifugo --config=config.json --tls --tls_key=server.key --tls_cert=server.crt
+</pre></div>
 
+<p>Or just use configuration file:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="err">...</span>
+  <span class="nt">&quot;tls&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="nt">&quot;tls_key&quot;</span><span class="p">:</span> <span class="s2">&quot;server.key&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;tls_cert&quot;</span><span class="p">:</span> <span class="s2">&quot;server.crt&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>And run:</p>
+<div class="codehilite"><pre><span></span>./centrifugo --config=config.json
+</pre></div>
+
+<h3 id="automatic-certificates">Automatic certificates<a class="headerlink" href="#automatic-certificates" title="Permanent link">&para;</a></h3>
+<p>For automatic certificates from Let's Encrypt add into configuration file:</p>
+<div class="codehilite"><pre><span></span>{
+  ...
+  &quot;tls_autocert&quot;: true,
+  &quot;tls_autocert_host_whitelist&quot;: &quot;www.example.com&quot;,
+  &quot;tls_autocert_cache_dir&quot;: &quot;/tmp/certs&quot;,
+  &quot;tls_autocert_email&quot;: &quot;user@example.com&quot;
+}
+</pre></div>
+
+<p><code class="codehilite">tls_autocert</code> says Centrifugo that you want automatic certificate handling using ACME provider.</p>
+<p><code class="codehilite">tls_autocert_host_whitelist</code> is a string with your app domain address. This can be comma-separated
+list. It's optional but recommended for extra security.</p>
+<p><code class="codehilite">tls_autocert_cache_dir</code> is a path to a folder to cache issued certificate files. This is optional
+but will increase performance.</p>
+<p><code class="codehilite">tls_autocert_email</code> is optional - it's an email address ACME provider will send notifications
+about problems with your certificates.</p>
+<p>When configured correctly and your domain is valid (<code class="codehilite">localhost</code> will not work) - certificates
+will be retrieved on first request to Centrifugo.</p>
+<p>Also Let's Encrypt certificates will be automatically renewed.</p>
+<p>There are tho options (new in v1.6.5) that allow Centrifugo to support TLS client connections from older
+browsers such as Chrome 49 on Windows XP and IE8 on XP:</p>
+<ul>
+<li><code class="codehilite">tls_autocert_force_rsa</code> - this is a boolean option, by default <code class="codehilite">false</code>. When enabled it forces
+    autocert manager generate certificates with 2048-bit RSA keys.</li>
+<li><code class="codehilite">tls_autocert_server_name</code> - string option, allows to set server name for client handshake hello.
+    This can be useful to deal with old browsers without SNI support - see <a href="https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819">comment</a></li>
+</ul>
+                
+                  
+                
+              
               
                 
               
@@ -459,6 +614,41 @@
       
         
 <footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+        
+          <a href="../nginx/" title="Nginx configuration" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Nginx configuration
+              </span>
+            </div>
+          </a>
+        
+        
+          <a href="../redis/" title="Redis HA" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Redis HA
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -479,9 +669,9 @@
       
     </div>
     
-      <script src="/centrifugal/centrifugo/assets/javascripts/application.02434462.js"></script>
+      <script src="../../assets/javascripts/application.02434462.js"></script>
       
-      <script>app.initialize({version:"0.17.2",url:{base:"/centrifugal/centrifugo"}})</script>
+      <script>app.initialize({version:"0.17.2",url:{base:"../.."}})</script>
       
     
     

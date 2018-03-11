@@ -13,6 +13,8 @@
         <meta name="description" content="Centrifugo Documentation">
       
       
+        <link rel="canonical" href="https://github.com/centrifugal/centrifugo/deploy/tuning/">
+      
       
         <meta name="author" content="Centrifugal">
       
@@ -35,22 +37,22 @@
       
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
-      <link rel="shortcut icon" href="/centrifugal/centrifugo/images/logo.png">
+      <link rel="shortcut icon" href="../../images/logo.png">
       <meta name="generator" content="mkdocs-0.17.2, mkdocs-material-2.6.6">
     
     
       
-        <title>Centrifugo Documentation</title>
+        <title>OS tuning - Centrifugo Documentation</title>
       
     
     
-      <link rel="stylesheet" href="/centrifugal/centrifugo/assets/stylesheets/application.78aab2dc.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/application.78aab2dc.css">
       
-        <link rel="stylesheet" href="/centrifugal/centrifugo/assets/stylesheets/application-palette.6079476c.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/application-palette.6079476c.css">
       
     
     
-      <script src="/centrifugal/centrifugo/assets/javascripts/modernizr.1aa3b519.js"></script>
+      <script src="../../assets/javascripts/modernizr.1aa3b519.js"></script>
     
     
       <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
@@ -61,7 +63,7 @@
       <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     
     
-      <link rel="stylesheet" href="/centrifugal/centrifugo/theme/styles/extra.css">
+      <link rel="stylesheet" href="../../theme/styles/extra.css">
     
     
   </head>
@@ -99,6 +101,10 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="search">
     <label class="md-overlay" data-md-component="overlay" for="drawer"></label>
     
+      <a href="#tuning-operating-system" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
     
       <header class="md-header" data-md-component="header">
   <nav class="md-header-nav md-grid">
@@ -106,7 +112,7 @@
       <div class="md-flex__cell md-flex__cell--shrink">
         <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo Documentation" class="md-header-nav__button md-logo">
           
-            <img src="/centrifugal/centrifugo/images/logo.png" width="24" height="24">
+            <img src="../../images/logo.png" width="24" height="24">
           
         </a>
       </div>
@@ -121,7 +127,7 @@
                 Centrifugo Documentation
               </span>
               <span class="md-header-nav__topic">
-                
+                OS tuning
               </span>
             
           
@@ -202,7 +208,7 @@
   <label class="md-nav__title md-nav__title--site" for="drawer">
     <span class="md-nav__button md-logo">
       
-        <img src="/centrifugal/centrifugo/images/logo.png" width="24" height="24">
+        <img src="../../images/logo.png" width="24" height="24">
       
     </span>
     Centrifugo Documentation
@@ -238,7 +244,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/" title="Getting Started" class="md-nav__link">
+    <a href="../.." title="Getting Started" class="md-nav__link">
       Getting Started
     </a>
   </li>
@@ -250,7 +256,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/concepts/" title="Concepts" class="md-nav__link">
+    <a href="../../concepts/" title="Concepts" class="md-nav__link">
       Concepts
     </a>
   </li>
@@ -281,7 +287,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/server/" title="Overview" class="md-nav__link">
+    <a href="../../server/" title="Overview" class="md-nav__link">
       Overview
     </a>
   </li>
@@ -293,7 +299,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/server/install/" title="Installation" class="md-nav__link">
+    <a href="../../server/install/" title="Installation" class="md-nav__link">
       Installation
     </a>
   </li>
@@ -305,7 +311,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/server/configuration/" title="Configuration" class="md-nav__link">
+    <a href="../../server/configuration/" title="Configuration" class="md-nav__link">
       Configuration
     </a>
   </li>
@@ -317,7 +323,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/server/protocol/" title="Client protocol" class="md-nav__link">
+    <a href="../../server/protocol/" title="Client protocol" class="md-nav__link">
       Client protocol
     </a>
   </li>
@@ -332,10 +338,12 @@
       
       
 
+  
 
-  <li class="md-nav__item md-nav__item--nested">
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" checked>
     
     <label class="md-nav__link" for="nav-4">
       Deploy
@@ -353,7 +361,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/packages/" title="RPM and DEB packages" class="md-nav__link">
+    <a href="../packages/" title="RPM and DEB packages" class="md-nav__link">
       RPM and DEB packages
     </a>
   </li>
@@ -365,7 +373,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/docker/" title="Docker image" class="md-nav__link">
+    <a href="../docker/" title="Docker image" class="md-nav__link">
       Docker image
     </a>
   </li>
@@ -377,7 +385,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/nginx/" title="Nginx configuration" class="md-nav__link">
+    <a href="../nginx/" title="Nginx configuration" class="md-nav__link">
       Nginx configuration
     </a>
   </li>
@@ -389,7 +397,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/tls/" title="TLS" class="md-nav__link">
+    <a href="../tls/" title="TLS" class="md-nav__link">
       TLS
     </a>
   </li>
@@ -401,7 +409,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/redis/" title="Redis HA" class="md-nav__link">
+    <a href="../redis/" title="Redis HA" class="md-nav__link">
       Redis HA
     </a>
   </li>
@@ -411,11 +419,56 @@
           
           
 
+  
 
-  <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/tuning/" title="OS tuning" class="md-nav__link">
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        OS tuning
+      </label>
+    
+    <a href="./" title="OS tuning" class="md-nav__link md-nav__link--active">
       OS tuning
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#open-files-limit" title="open files limit" class="md-nav__link">
+    open files limit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lots-of-sockets-in-time_wait-state" title="lots of sockets in TIME_WAIT state." class="md-nav__link">
+    lots of sockets in TIME_WAIT state.
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
   </li>
 
         
@@ -430,7 +483,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/faq/" title="FAQ" class="md-nav__link">
+    <a href="../../faq/" title="FAQ" class="md-nav__link">
       FAQ
     </a>
   </li>
@@ -443,12 +496,96 @@
               </div>
             
             
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#open-files-limit" title="open files limit" class="md-nav__link">
+    open files limit
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lots-of-sockets-in-time_wait-state" title="lots of sockets in TIME_WAIT state." class="md-nav__link">
+    lots of sockets in TIME_WAIT state.
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content">
             <article class="md-content__inner md-typeset">
               
-  <h1>404 - Not found</h1>
+                
+                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/deploy/tuning.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
+                
+                
+                <h1 id="tuning-operating-system">Tuning operating system<a class="headerlink" href="#tuning-operating-system" title="Permanent link">&para;</a></h1>
+<p>As Centrifugo/Centrifuge deals with lots of persistent connections your operating system must be
+ready for it.</p>
+<h3 id="open-files-limit">open files limit<a class="headerlink" href="#open-files-limit" title="Permanent link">&para;</a></h3>
+<p>First of all you should increase a max number of open files your processes can open.</p>
+<p>To get you current open files limit run:</p>
+<div class="codehilite"><pre><span></span>ulimit -n
+</pre></div>
 
+<p>The result shows approximately how many clients your server can handle.</p>
+<p>See http://docs.basho.com/riak/latest/ops/tuning/open-files-limit/ to know how to increase this number.</p>
+<p>If you install Centrifugo using RPM from repo then it automatically sets max open files limit to 32768.</p>
+<p>You may also need to increase max open files for Nginx.</p>
+<h3 id="lots-of-sockets-in-time_wait-state">lots of sockets in TIME_WAIT state.<a class="headerlink" href="#lots-of-sockets-in-time_wait-state" title="Permanent link">&para;</a></h3>
+<p>Look how many socket descriptors in TIME_WAIT state.</p>
+<div class="codehilite"><pre><span></span>netstat -an |grep TIME_WAIT | grep CENTRIFUGO_PID | wc -l
+</pre></div>
+
+<p>Under load when lots of connections and disconnection happen lots of used socket descriptors can
+stay in TIME_WAIT state. Those descriptors can not be reused for a while. So you can get various
+errors when using Centrifugo. For example something like <code class="codehilite">(99: Cannot assign requested address)while connecting to upstream</code> in Nginx error log and 502 on client side. In this case there are
+several advices that can help.</p>
+<p>Nice article about TIME_WAIT sockets: http://vincent.bernat.im/en/blog/2014-tcp-time-wait-state-linux.html</p>
+<p>There is a perfect article about operating system tuning for lots of connections: https://engineering.gosquared.com/optimising-nginx-node-js-and-networking-for-heavy-workloads.</p>
+<p>To summarize:</p>
+<ol>
+<li>Increase ip_local_port_range</li>
+<li>If you are using Nginx set <code class="codehilite">keepalive</code> directive in upstream.</li>
+</ol>
+<div class="codehilite"><pre><span></span><span class="nt">upstream</span> <span class="nt">centrifugo</span> <span class="p">{</span>
+    <span class="err">#sticky</span><span class="p">;</span>
+    <span class="err">ip_hash</span><span class="p">;</span>
+    <span class="err">server</span> <span class="err">127.0.0.1:8000</span><span class="p">;</span>
+    <span class="err">keepalive</span> <span class="err">512</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<ol>
+<li>And finally if the problem is not gone away consider trying to enable <code class="codehilite">net.ipv4.tcp_tw_reuse</code></li>
+</ol>
+                
+                  
+                
+              
               
                 
               
@@ -459,6 +596,41 @@
       
         
 <footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+        
+          <a href="../redis/" title="Redis HA" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Redis HA
+              </span>
+            </div>
+          </a>
+        
+        
+          <a href="../../faq/" title="FAQ" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                FAQ
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -479,9 +651,9 @@
       
     </div>
     
-      <script src="/centrifugal/centrifugo/assets/javascripts/application.02434462.js"></script>
+      <script src="../../assets/javascripts/application.02434462.js"></script>
       
-      <script>app.initialize({version:"0.17.2",url:{base:"/centrifugal/centrifugo"}})</script>
+      <script>app.initialize({version:"0.17.2",url:{base:"../.."}})</script>
       
     
     

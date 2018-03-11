@@ -45,4 +45,52 @@
         
     
 
+    
+        
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/deploy/packages/</loc>
+     <lastmod>2018-03-11</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/deploy/docker/</loc>
+     <lastmod>2018-03-11</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/deploy/nginx/</loc>
+     <lastmod>2018-03-11</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/deploy/tls/</loc>
+     <lastmod>2018-03-11</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/deploy/redis/</loc>
+     <lastmod>2018-03-11</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/deploy/tuning/</loc>
+     <lastmod>2018-03-11</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    
+
+    
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/faq/</loc>
+     <lastmod>2018-03-11</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+    
+
 </urlset>

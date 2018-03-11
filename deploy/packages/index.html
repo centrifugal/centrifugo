@@ -13,6 +13,8 @@
         <meta name="description" content="Centrifugo Documentation">
       
       
+        <link rel="canonical" href="https://github.com/centrifugal/centrifugo/deploy/packages/">
+      
       
         <meta name="author" content="Centrifugal">
       
@@ -35,22 +37,22 @@
       
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
-      <link rel="shortcut icon" href="/centrifugal/centrifugo/images/logo.png">
+      <link rel="shortcut icon" href="../../images/logo.png">
       <meta name="generator" content="mkdocs-0.17.2, mkdocs-material-2.6.6">
     
     
       
-        <title>Centrifugo Documentation</title>
+        <title>RPM and DEB packages - Centrifugo Documentation</title>
       
     
     
-      <link rel="stylesheet" href="/centrifugal/centrifugo/assets/stylesheets/application.78aab2dc.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/application.78aab2dc.css">
       
-        <link rel="stylesheet" href="/centrifugal/centrifugo/assets/stylesheets/application-palette.6079476c.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/application-palette.6079476c.css">
       
     
     
-      <script src="/centrifugal/centrifugo/assets/javascripts/modernizr.1aa3b519.js"></script>
+      <script src="../../assets/javascripts/modernizr.1aa3b519.js"></script>
     
     
       <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
@@ -61,7 +63,7 @@
       <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     
     
-      <link rel="stylesheet" href="/centrifugal/centrifugo/theme/styles/extra.css">
+      <link rel="stylesheet" href="../../theme/styles/extra.css">
     
     
   </head>
@@ -99,6 +101,10 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="search">
     <label class="md-overlay" data-md-component="overlay" for="drawer"></label>
     
+      <a href="#rpm-and-deb-packages" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
     
       <header class="md-header" data-md-component="header">
   <nav class="md-header-nav md-grid">
@@ -106,7 +112,7 @@
       <div class="md-flex__cell md-flex__cell--shrink">
         <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo Documentation" class="md-header-nav__button md-logo">
           
-            <img src="/centrifugal/centrifugo/images/logo.png" width="24" height="24">
+            <img src="../../images/logo.png" width="24" height="24">
           
         </a>
       </div>
@@ -121,7 +127,7 @@
                 Centrifugo Documentation
               </span>
               <span class="md-header-nav__topic">
-                
+                RPM and DEB packages
               </span>
             
           
@@ -202,7 +208,7 @@
   <label class="md-nav__title md-nav__title--site" for="drawer">
     <span class="md-nav__button md-logo">
       
-        <img src="/centrifugal/centrifugo/images/logo.png" width="24" height="24">
+        <img src="../../images/logo.png" width="24" height="24">
       
     </span>
     Centrifugo Documentation
@@ -238,7 +244,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/" title="Getting Started" class="md-nav__link">
+    <a href="../.." title="Getting Started" class="md-nav__link">
       Getting Started
     </a>
   </li>
@@ -250,7 +256,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/concepts/" title="Concepts" class="md-nav__link">
+    <a href="../../concepts/" title="Concepts" class="md-nav__link">
       Concepts
     </a>
   </li>
@@ -281,7 +287,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/server/" title="Overview" class="md-nav__link">
+    <a href="../../server/" title="Overview" class="md-nav__link">
       Overview
     </a>
   </li>
@@ -293,7 +299,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/server/install/" title="Installation" class="md-nav__link">
+    <a href="../../server/install/" title="Installation" class="md-nav__link">
       Installation
     </a>
   </li>
@@ -305,7 +311,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/server/configuration/" title="Configuration" class="md-nav__link">
+    <a href="../../server/configuration/" title="Configuration" class="md-nav__link">
       Configuration
     </a>
   </li>
@@ -317,7 +323,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/server/protocol/" title="Client protocol" class="md-nav__link">
+    <a href="../../server/protocol/" title="Client protocol" class="md-nav__link">
       Client protocol
     </a>
   </li>
@@ -332,10 +338,12 @@
       
       
 
+  
 
-  <li class="md-nav__item md-nav__item--nested">
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" checked>
     
     <label class="md-nav__link" for="nav-4">
       Deploy
@@ -351,11 +359,20 @@
           
           
 
+  
 
-  <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/packages/" title="RPM and DEB packages" class="md-nav__link">
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
+    
+      
+    
+    
+    <a href="./" title="RPM and DEB packages" class="md-nav__link md-nav__link--active">
       RPM and DEB packages
     </a>
+    
   </li>
 
         
@@ -365,7 +382,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/docker/" title="Docker image" class="md-nav__link">
+    <a href="../docker/" title="Docker image" class="md-nav__link">
       Docker image
     </a>
   </li>
@@ -377,7 +394,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/nginx/" title="Nginx configuration" class="md-nav__link">
+    <a href="../nginx/" title="Nginx configuration" class="md-nav__link">
       Nginx configuration
     </a>
   </li>
@@ -389,7 +406,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/tls/" title="TLS" class="md-nav__link">
+    <a href="../tls/" title="TLS" class="md-nav__link">
       TLS
     </a>
   </li>
@@ -401,7 +418,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/redis/" title="Redis HA" class="md-nav__link">
+    <a href="../redis/" title="Redis HA" class="md-nav__link">
       Redis HA
     </a>
   </li>
@@ -413,7 +430,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/deploy/tuning/" title="OS tuning" class="md-nav__link">
+    <a href="../tuning/" title="OS tuning" class="md-nav__link">
       OS tuning
     </a>
   </li>
@@ -430,7 +447,7 @@
 
 
   <li class="md-nav__item">
-    <a href="/centrifugal/centrifugo/faq/" title="FAQ" class="md-nav__link">
+    <a href="../../faq/" title="FAQ" class="md-nav__link">
       FAQ
     </a>
   </li>
@@ -443,12 +460,52 @@
               </div>
             
             
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content">
             <article class="md-content__inner md-typeset">
               
-  <h1>404 - Not found</h1>
-
+                
+                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/deploy/packages.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
+                
+                
+                <h1 id="rpm-and-deb-packages">RPM and DEB packages<a class="headerlink" href="#rpm-and-deb-packages" title="Permanent link">&para;</a></h1>
+<p>Every time we make new Centrifugo release we upload rpm and deb packages for
+popular linux distributions on <a href="https://packagecloud.io/FZambia/centrifugo">packagecloud.io</a>.</p>
+<p>Currently we support versions of the following distributions:</p>
+<ul>
+<li>64-bit Debian 7 Wheezy</li>
+<li>64-bit Debian 8 Jessie</li>
+<li>64-bit Ubuntu 14.04 Trusty</li>
+<li>64-bit Ubuntu 16.04 Xenial</li>
+<li>64-bit Centos 7</li>
+<li>64-bit Centos 6</li>
+</ul>
+<p>See <a href="https://packagecloud.io/FZambia/centrifugo">full list of available packages</a> and
+<a href="https://packagecloud.io/FZambia/centrifugo/install">installation instructions</a>.</p>
+<p>Also note that if your linux distro is not in list you can ask us to package
+for it or just download appropriate package from packagecloud that fits your
+distribution.</p>
+<p>Centrifugo also works on 32-bit architectures, but we don't support packaging for it
+as 64-bit is more convenient for servers today.</p>
+                
+                  
+                
+              
               
                 
               
@@ -459,6 +516,41 @@
       
         
 <footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+        
+          <a href="../../server/protocol/" title="Client protocol" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Client protocol
+              </span>
+            </div>
+          </a>
+        
+        
+          <a href="../docker/" title="Docker image" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Docker image
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
@@ -479,9 +571,9 @@
       
     </div>
     
-      <script src="/centrifugal/centrifugo/assets/javascripts/application.02434462.js"></script>
+      <script src="../../assets/javascripts/application.02434462.js"></script>
       
-      <script>app.initialize({version:"0.17.2",url:{base:"/centrifugal/centrifugo"}})</script>
+      <script>app.initialize({version:"0.17.2",url:{base:"../.."}})</script>
       
     
     
