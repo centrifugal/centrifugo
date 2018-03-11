@@ -48,4 +48,18 @@ pages:
   - Concepts: 'concepts.md'
   - Server:
     - 'Overview': 'server/index.md'
+    - 'Installation': 'server/install.md'
+    - 'Configuration': 'server/configuration.md'
+    - 'Admin web interface': 'server/admin.md'
     - 'Client protocol': 'server/protocol.md'
+  - Libraries:
+    - 'Client libraries': 'libraries/client.md'
+    - 'API libraries': 'libraries/api.md'
+  - Deploy:
+    - 'RPM and DEB packages': 'deploy/packages.md'
+    - 'Docker image': 'deploy/docker.md'
+    - 'Nginx configuration': 'deploy/nginx.md'
+    - 'TLS': 'deploy/tls.md'
+    - 'Redis HA': 'deploy/redis.md'
+    - 'OS tuning': 'deploy/tuning.md'
+  - FAQ: 'faq.md'
