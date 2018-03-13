@@ -113,6 +113,18 @@ func New(n *node.Node, s conns.Session) (conns.ClientConn, error) {
 	if staleCloseDelay > 0 {
 		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
 	}
+	go func() {
+		i := 1
+		for {
+			c.updatePresence()
+			time.Sleep(100 * time.Millisecond)
+			i++
+			if i > 10 {
+				//go c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: true})
+				return
+			}
+		}
+	}()
 	return &c, nil
 }
 
@@ -191,7 +203,10 @@ func (c *client) addPresenceUpdate() {
 	}
 	config := c.node.Config()
 	presenceInterval := config.PresencePingInterval
-	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
+	if presenceInterval == 0 {
+		println(1)
+	}
+	c.presenceTimer = time.AfterFunc(100*time.Millisecond, c.updatePresence)
 }
 
 // No lock here as uid set on client initialization and can not be changed - we
@@ -597,7 +612,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 		c.staleTimer.Stop()
 	}
 
-	c.addPresenceUpdate()
+	//c.addPresenceUpdate()
 
 	err := c.node.AddClientConn(c)
 	if err != nil {

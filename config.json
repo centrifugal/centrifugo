@@ -3,6 +3,8 @@
   "web": true,
   "admin_password": "password",
   "admin_secret": "secret",
+  "presence_ping_interval": 1,
+  "presence_expire_interval": 3,
   "namespaces": [
     {
       "name": "public",
