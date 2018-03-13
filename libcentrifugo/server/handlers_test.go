@@ -112,13 +112,13 @@ func getTestNamespace(name channel.NamespaceKey) channel.Namespace {
 }
 
 func NewTestConfig() *node.Config {
-	c := node.DefaultConfig
+	c := *node.DefaultConfig
 	var ns []channel.Namespace
 	ns = append(ns, getTestNamespace("test"))
 	c.Namespaces = ns
 	c.Secret = "secret"
 	c.Options = getTestChannelOptions()
-	return c
+	return &c
 }
 
 func NewTestHTTPServer() *HTTPServer {

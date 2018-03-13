@@ -111,20 +111,10 @@ func New(n *node.Node, s conns.Session) (conns.ClientConn, error) {
 	}
 	go c.sendMessages()
 	if staleCloseDelay > 0 {
+		c.Lock()
 		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
+		c.Unlock()
 	}
-	go func() {
-		i := 1
-		for {
-			c.updatePresence()
-			time.Sleep(100 * time.Millisecond)
-			i++
-			if i > 10 {
-				//go c.Close(&conns.DisconnectAdvice{Reason: "slow", Reconnect: true})
-				return
-			}
-		}
-	}()
 	return &c, nil
 }
 
@@ -169,44 +159,38 @@ func (c *client) closeUnauthenticated() {
 
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
-func (c *client) updateChannelPresence(ch string) {
+func (c *client) updateChannelPresence(ch string) error {
 	chOpts, err := c.node.ChannelOpts(ch)
 	if err != nil {
-		return
+		return nil
 	}
 	if !chOpts.Presence {
-		return
+		return nil
 	}
-	c.node.AddPresence(ch, c.uid, c.info(ch))
+	return c.node.AddPresence(ch, c.uid, c.info(ch))
 }
 
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
-	c.RLock()
+	c.Lock()
+	defer c.Unlock()
 	if c.closed {
-		c.RUnlock()
 		return
 	}
-	for _, channel := range c.Channels() {
-		c.updateChannelPresence(channel)
+	for ch := range c.channels {
+		err := c.updateChannelPresence(ch)
+		if err != nil {
+			logger.ERROR.Println("error updating presence for channel %s: %v", ch, err)
+		}
 	}
-	c.RUnlock()
-	c.Lock()
 	c.addPresenceUpdate()
-	c.Unlock()
 }
 
 // Lock must be held outside.
 func (c *client) addPresenceUpdate() {
-	if c.closed {
-		return
-	}
 	config := c.node.Config()
 	presenceInterval := config.PresencePingInterval
-	if presenceInterval == 0 {
-		println(1)
-	}
-	c.presenceTimer = time.AfterFunc(100*time.Millisecond, c.updatePresence)
+	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
 }
 
 // No lock here as uid set on client initialization and can not be changed - we
@@ -612,7 +596,7 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 		c.staleTimer.Stop()
 	}
 
-	//c.addPresenceUpdate()
+	c.addPresenceUpdate()
 
 	err := c.node.AddClientConn(c)
 	if err != nil {

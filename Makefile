@@ -12,7 +12,7 @@ prepare:
 	go get github.com/mitchellh/gox
 
 test:
-	go test $(TESTFOLDERS) -cover
+	go test $(TESTFOLDERS) -cover -race
 
 web:
 	./extras/scripts/update_web.sh

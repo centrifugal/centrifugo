@@ -3,10 +3,10 @@
 	"ignore": "test github.com/ajstarks/svgo golang.org/x/net/websocket",
 	"package": [
 		{
-			"checksumSHA1": "QdY6HchsN9U9FQVEjOdoegkg8ic=",
+			"checksumSHA1": "8E71FJUPPapFzICQ0MiFF62Enpg=",
 			"path": "github.com/FZambia/go-logger",
-			"revision": "250d14e545ab5e21e2ba5974909d805b06199d70",
-			"revisionTime": "2017-01-25T12:59:37Z"
+			"revision": "5312b752874cb31cbcfe0a0198efd06b5ac01d19",
+			"revisionTime": "2018-03-13T20:16:08Z"
 		},
 		{
 			"path": "github.com/FZambia/go-sentinel",

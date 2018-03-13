@@ -94,7 +94,7 @@ func TestClientMessageMarshalManual(t *testing.T) {
 				panic(err)
 			}
 			mapLock.Lock()
-			resps[i] = resp
+			resps[num] = resp
 			mapLock.Unlock()
 		}(i)
 	}
