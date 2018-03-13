@@ -162,7 +162,7 @@ func (c *client) closeUnauthenticated() {
 func (c *client) updateChannelPresence(ch string) error {
 	chOpts, err := c.node.ChannelOpts(ch)
 	if err != nil {
-		return nil
+		return err
 	}
 	if !chOpts.Presence {
 		return nil
@@ -180,7 +180,7 @@ func (c *client) updatePresence() {
 	for ch := range c.channels {
 		err := c.updateChannelPresence(ch)
 		if err != nil {
-			logger.ERROR.Println("error updating presence for channel %s: %v", ch, err)
+			logger.ERROR.Printf("error updating presence for channel %s: %v", ch, err)
 		}
 	}
 	c.addPresenceUpdate()
