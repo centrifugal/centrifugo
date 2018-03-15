@@ -111,7 +111,9 @@ func New(n *node.Node, s conns.Session) (conns.ClientConn, error) {
 	}
 	go c.sendMessages()
 	if staleCloseDelay > 0 {
+		c.Lock()
 		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
+		c.Unlock()
 	}
 	return &c, nil
 }
@@ -157,38 +159,35 @@ func (c *client) closeUnauthenticated() {
 
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
-func (c *client) updateChannelPresence(ch string) {
+func (c *client) updateChannelPresence(ch string) error {
 	chOpts, err := c.node.ChannelOpts(ch)
 	if err != nil {
-		return
+		return err
 	}
 	if !chOpts.Presence {
-		return
+		return nil
 	}
-	c.node.AddPresence(ch, c.uid, c.info(ch))
+	return c.node.AddPresence(ch, c.uid, c.info(ch))
 }
 
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
-	c.RLock()
+	c.Lock()
+	defer c.Unlock()
 	if c.closed {
-		c.RUnlock()
 		return
 	}
-	for _, channel := range c.Channels() {
-		c.updateChannelPresence(channel)
+	for ch := range c.channels {
+		err := c.updateChannelPresence(ch)
+		if err != nil {
+			logger.ERROR.Printf("error updating presence for channel %s: %v", ch, err)
+		}
 	}
-	c.RUnlock()
-	c.Lock()
 	c.addPresenceUpdate()
-	c.Unlock()
 }
 
 // Lock must be held outside.
 func (c *client) addPresenceUpdate() {
-	if c.closed {
-		return
-	}
 	config := c.node.Config()
 	presenceInterval := config.PresencePingInterval
 	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
