@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 )
 
 type testWSConnection struct {
+	mu         sync.RWMutex
 	writeErr   bool
 	readErr    bool
 	controlErr bool
@@ -55,6 +57,8 @@ func (c *testWSConnection) EnableWriteCompression(enabled bool) {
 }
 
 func (c *testWSConnection) Close() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.closed = true
 	if c.closeErr {
 		return errors.New("error")
@@ -66,14 +70,20 @@ func TestWSConnPing(t *testing.T) {
 	ws := &testWSConnection{}
 	c := newWSSession(ws, 1*time.Nanosecond, 0, 0)
 	c.ping()
-	assert.Equal(t, false, c.ws.(*testWSConnection).closed)
+	conn := c.ws.(*testWSConnection)
+	conn.mu.Lock()
+	assert.Equal(t, false, conn.closed)
+	conn.mu.Unlock()
 }
 
 func TestWSConnPingFailed(t *testing.T) {
 	ws := &testWSConnection{controlErr: true}
 	c := newWSSession(ws, 1*time.Nanosecond, 0, 0)
 	c.ping()
-	assert.Equal(t, true, c.ws.(*testWSConnection).closed)
+	conn := c.ws.(*testWSConnection)
+	conn.mu.Lock()
+	assert.Equal(t, true, conn.closed)
+	conn.mu.Unlock()
 }
 
 func TestWSConnPingAfterClose(t *testing.T) {
@@ -82,7 +92,10 @@ func TestWSConnPingAfterClose(t *testing.T) {
 	err := c.Close(conns.DefaultDisconnectAdvice)
 	assert.Equal(t, nil, err)
 	c.ping()
-	assert.Equal(t, true, c.ws.(*testWSConnection).closed)
+	conn := c.ws.(*testWSConnection)
+	conn.mu.Lock()
+	assert.Equal(t, true, conn.closed)
+	conn.mu.Unlock()
 }
 
 func TestSendAfterClose(t *testing.T) {
