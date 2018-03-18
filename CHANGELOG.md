@@ -1,3 +1,12 @@
+v1.7.8
+======
+
+No backwards incompatible changes here.
+
+### Fixes
+
+* the fix of goroutine leak in 1.7.7 was incomplete - looks like in this release the problem described in [#207](https://github.com/centrifugal/centrifugo/issues/207) gone away.
+
 v1.7.7
 ======
 
