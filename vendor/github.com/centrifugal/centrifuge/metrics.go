@@ -4,7 +4,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var metricsNamespace = "centrifugo"
+var metricsNamespace = "centrifuge"
 
 var (
 	messagesSentCount = prometheus.NewCounterVec(prometheus.CounterOpts{

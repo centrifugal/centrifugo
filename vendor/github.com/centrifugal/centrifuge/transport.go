@@ -7,6 +7,34 @@ import (
 	"github.com/centrifugal/centrifuge/internal/queue"
 )
 
+// preparedReply is structure for encoding reply only once.
+type preparedReply struct {
+	Enc   proto.Encoding
+	Reply *proto.Reply
+	data  []byte
+	once  sync.Once
+}
+
+// newPreparedReply initializes PreparedReply.
+func newPreparedReply(reply *proto.Reply, enc proto.Encoding) *preparedReply {
+	return &preparedReply{
+		Reply: reply,
+		Enc:   enc,
+	}
+}
+
+// Data returns data associated with reply which is only calculated once.
+func (r *preparedReply) Data() []byte {
+	r.once.Do(func() {
+		encoder := proto.GetReplyEncoder(r.Enc)
+		encoder.Encode(r.Reply)
+		data := encoder.Finish()
+		proto.PutReplyEncoder(r.Enc, encoder)
+		r.data = data
+	})
+	return r.data
+}
+
 // Transport abstracts a connection transport between server and client.
 type Transport interface {
 	// Name returns a name of transport used for client connection.
@@ -18,13 +46,14 @@ type Transport interface {
 type transport interface {
 	Transport
 	// Send sends data to session.
-	Send(*proto.PreparedReply) error
+	Send(*preparedReply) error
 	// Close closes the session with provided code and reason.
 	Close(*Disconnect) error
 }
 
 type writerConfig struct {
-	MaxQueueSize int
+	MaxQueueSize       int
+	MaxMessagesInFrame int
 }
 
 // writer helps to manage per-connection message queue.
@@ -46,11 +75,15 @@ func newWriter(config writerConfig) *writer {
 }
 
 const (
-	mergeQueueMessages = true
-	maxMessagesInFrame = 4
+	defaultMaxMessagesInFrame = 4
 )
 
 func (w *writer) runWriteRoutine() {
+	maxMessagesInFrame := w.config.MaxMessagesInFrame
+	if maxMessagesInFrame == 0 {
+		maxMessagesInFrame = defaultMaxMessagesInFrame
+	}
+
 	for {
 		// Wait for message from queue.
 		msg, ok := w.messages.Wait()
@@ -64,7 +97,7 @@ func (w *writer) runWriteRoutine() {
 		var writeErr error
 
 		messageCount := w.messages.Len()
-		if mergeQueueMessages && messageCount > 0 {
+		if maxMessagesInFrame > 1 && messageCount > 0 {
 			// There are several more messages left in queue, try to send them in single frame,
 			// but no more than maxMessagesInFrame.
 
@@ -112,7 +145,7 @@ func (w *writer) write(data []byte) *Disconnect {
 	if !ok {
 		return nil
 	}
-	if w.messages.Size() > w.config.MaxQueueSize {
+	if w.config.MaxQueueSize > 0 && w.messages.Size() > w.config.MaxQueueSize {
 		return &Disconnect{Reason: "slow", Reconnect: true}
 	}
 	return nil

@@ -72,7 +72,9 @@ func newClient(ctx context.Context, n *Node, t transport) *client {
 	config := n.Config()
 	staleCloseDelay := config.ClientStaleCloseDelay
 	if staleCloseDelay > 0 && !c.authenticated {
+		c.mu.Lock()
 		c.staleTimer = time.AfterFunc(staleCloseDelay, c.closeUnauthenticated)
+		c.mu.Unlock()
 	}
 
 	return c
@@ -93,24 +95,30 @@ func (c *client) closeUnauthenticated() {
 
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect
-func (c *client) updateChannelPresence(ch string) {
+func (c *client) updateChannelPresence(ch string) error {
 	chOpts, ok := c.node.ChannelOpts(ch)
 	if !ok {
-		return
+		return ErrorNamespaceNotFound
 	}
 	if !chOpts.Presence {
-		return
+		return nil
 	}
-	c.node.addPresence(ch, c.uid, c.clientInfo(ch))
+	return c.node.addPresence(ch, c.uid, c.clientInfo(ch))
 }
 
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
-	c.mu.RLock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.closed {
 		return
 	}
-	channels := c.Channels()
+	channels := make([]string, len(c.channels))
+	i := 0
+	for k := range c.channels {
+		channels[i] = k
+		i++
+	}
 	if c.node.Mediator() != nil && c.node.Mediator().Presence != nil {
 		c.node.Mediator().Presence(c.ctx, PresenceContext{
 			EventContext: EventContext{
@@ -119,20 +127,17 @@ func (c *client) updatePresence() {
 			Channels: channels,
 		})
 	}
-	for _, channel := range c.Channels() {
-		c.updateChannelPresence(channel)
+	for _, channel := range channels {
+		err := c.updateChannelPresence(channel)
+		if err != nil {
+			c.node.logger.log(newLogEntry(LogLevelError, "error updating presence for channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid, "error": err.Error()}))
+		}
 	}
-	c.mu.RUnlock()
-	c.mu.Lock()
 	c.addPresenceUpdate()
-	c.mu.Unlock()
 }
 
 // Lock must be held outside.
 func (c *client) addPresenceUpdate() {
-	if c.closed {
-		return
-	}
 	config := c.node.Config()
 	presenceInterval := config.ClientPresencePingInterval
 	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
@@ -199,9 +204,11 @@ func (c *client) sendUnsubscribe(ch string) error {
 		return nil
 	}
 
-	c.transport.Send(proto.NewPreparedReply(&proto.Reply{
+	reply := newPreparedReply(&proto.Reply{
 		Result: result,
-	}, c.transport.Encoding()))
+	}, c.transport.Encoding())
+
+	c.transport.Send(reply)
 
 	return nil
 }
@@ -955,7 +962,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 	}
 
 	if !c.node.userAllowed(channel, c.user) || !c.node.clientAllowed(channel, c.uid) {
-		c.node.logger.log(newLogEntry(LogLevelInfo, "user not allowed to subscribe on channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid}))
+		c.node.logger.log(newLogEntry(LogLevelInfo, "user is not allowed to subscribe on channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid}))
 		resp.Error = ErrorPermissionDenied
 		return resp, nil
 	}
@@ -967,6 +974,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 	}
 
 	if !chOpts.Anonymous && c.user == "" && !insecure {
+		c.node.logger.log(newLogEntry(LogLevelInfo, "anonymous user is not allowed to subscribe on channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid}))
 		resp.Error = ErrorPermissionDenied
 		return resp, nil
 	}

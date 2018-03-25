@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title></title>
+        <style type="text/css">
+            input[type="text"] { width: 300px; }
+            .muted {color: #CCCCCC; font-size: 10px;}
+        </style>
+        <script src="https://unpkg.com/text-encoding@0.6.4/lib/encoding-indexes.js"></script>
+        <script src="https://unpkg.com/text-encoding@0.6.4/lib/encoding.js"></script>
+        <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+        <script type="text/javascript" src="centrifuge.min.js"></script>
+        <script type="text/javascript">
+            // helper functions to work with escaping html.
+            var tagsToReplace = {'&': '&amp;', '<': '&lt;', '>': '&gt;'};
+            function replaceTag(tag) {return tagsToReplace[tag] || tag;}
+            function safeTagsReplace(str) {return str.replace(/[&<>]/g, replaceTag);}
+
+            var channel = "chat:index";
+
+            $(function() {
+
+                var input = $("#input");
+                var container = $('#messages');
+
+                var centrifuge = new Centrifuge('ws://localhost:8000/connection/websocket?format=protobuf');
+
+                // bind listeners on centrifuge object instance events.
+                centrifuge.on('connect', function(ctx){
+                    drawText('Connected with client ID ' + ctx.client + ' over ' + ctx.transport);
+                    input.attr("disabled", false);
+                });
+
+                centrifuge.on('disconnect', function(ctx){
+                    drawText('Disconnected: ' + ctx.reason + (ctx.reconnect?", will try to reconnect":", won't try to reconnect"));
+                    input.attr("disabled", true);
+                });
+
+                // show how many users currently in channel.
+                function showPresence(sub) {
+                    sub.presence().then(function(result) {
+                        var count = 0;
+                        for (var key in result.presence){
+                            count++;
+                        }
+                        drawText('Now in this room: ' + count + ' clients');
+                    }, function(err) {
+                        console.log("presence error", err);
+                        drawText("Presence error");
+                    });
+                }
+
+                // subscribe on channel and bind various event listeners. Actual
+                // subscription request will be firer after client will connect to
+                // Centrifugo and will be authorized.
+                var sub = centrifuge.subscribe(channel, handleMessage)
+                        .on("join", handleJoin)
+                        .on("leave", handleLeave)
+                        .on("unsubscribe", handleUnsubscribe)
+                        .on("subscribe", handleSubscribe)
+                        .on("error", handleSubscribeError);
+
+                showPresence(sub);
+
+                // Trigger actual connection establishing with Centrifugo server.
+                // At this moment actual client work starts - i.e. subscriptions
+                // defined start subscribing etc.
+                centrifuge.connect();
+
+                function handleSubscribe(ctx) {
+                    drawText('Subscribed on channel ' + ctx.channel);
+                    if (ctx.isResubscribe) {
+                        showPresence(sub);
+                    }
+
+                    var rpcRequest = {"method": "getCurrentYear"}
+                    var binary = new TextEncoder("utf-8").encode(JSON.stringify(rpcRequest)); 
+
+                    centrifuge.rpc(binary).then(function(result){
+                        var str = new TextDecoder("utf-8").decode(result.data);
+                        drawText(str);
+                    }, function(err) {
+                        drawText(JSON.stringify(err));
+                    });
+                }
+
+                function handleSubscribeError(err) {
+                    drawText('Error subscribing on channel ' + err.channel);
+                    console.log("subscription failed", err);
+                }
+
+                function handleMessage(message) {
+                    console.log("new message received", message);
+                    var str = new TextDecoder("utf-8").decode(message.data);
+                    data = JSON.parse(str);
+                    var clientID;
+                    if (message.info){
+                        clientID = message.info.client;
+                    } else {
+                        clientID = null;
+                    }
+                    var inputText = data["input"].toString();
+                    var text = safeTagsReplace(inputText) + ' <span class="muted">from ' + clientID + '</span>';
+                    drawText(text);
+                }
+
+                function handleJoin(message) {
+                    console.log("subscription join event fired", message);
+                    drawText('Someone joined channel ' + this.channel + ' (uid ' + message.info["client"] + ', user '+ message.info["user"] +')');
+                }
+
+                function handleLeave(message) {
+                    console.log("subscription leave event fired", message);
+                    drawText('Someone left channel ' + this.channel + ' (uid ' + message.info["client"] + ', user '+ message.info["user"] +')');
+                }
+
+                function handleUnsubscribe(sub) {
+                    drawText('Unsubscribed from channel ' + sub.channel);
+                }
+
+                function drawText(text) {
+                    container.prepend($('<li/>').html([(new Date()).toString(), ' ' + text].join(':')));
+                }
+
+                $('#form').submit(function(event) {
+                    event.preventDefault();
+                    var data = {"input": input.val()};
+                    var binaryData = new TextEncoder("utf-8").encode(JSON.stringify(data)); 
+                    sub.publish(binaryData).then(function() {
+                        console.log('message accepted by server');
+                    }, function(err) {
+                        console.log('error publishing message', err);
+                    });
+                    input.val('');
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <form id="form">
+            <input type="text" id="input" autocomplete="off" />
+            <input type="submit" id="submit" value="»">
+        </form>
+        <ul id="messages"></ul>
+    </body>
+</html>

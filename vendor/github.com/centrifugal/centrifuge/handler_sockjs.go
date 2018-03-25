@@ -46,7 +46,7 @@ func (t *sockjsTransport) Encoding() proto.Encoding {
 	return proto.EncodingJSON
 }
 
-func (t *sockjsTransport) Send(reply *proto.PreparedReply) error {
+func (t *sockjsTransport) Send(reply *preparedReply) error {
 	data := reply.Data()
 	disconnect := t.writer.write(data)
 	if disconnect != nil {

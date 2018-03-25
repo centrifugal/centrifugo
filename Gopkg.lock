@@ -49,7 +49,7 @@
     "internal/proto/controlproto",
     "internal/queue"
   ]
-  revision = "35062e8cf600c16ea74985563ad9065b57df34c6"
+  revision = "f01e51f16d7039a36e2d57a64eba13329afb6f85"
 
 [[projects]]
   name = "github.com/garyburd/redigo"
@@ -286,6 +286,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "77f520e1fe7c546513604439020ac90afc9f648dd6524b8297ef7a8ea1463b81"
+  inputs-digest = "c0afaa249b95feda87a887b5e23f71e76f3fddbf7e53505e6f90cc44878219dc"
   solver-name = "gps-cdcl"
   solver-version = 1

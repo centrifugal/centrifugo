@@ -89,7 +89,7 @@ func (t *websocketTransport) Encoding() proto.Encoding {
 	return t.opts.enc
 }
 
-func (t *websocketTransport) Send(reply *proto.PreparedReply) error {
+func (t *websocketTransport) Send(reply *preparedReply) error {
 	data := reply.Data()
 	disconnect := t.writer.write(data)
 	if disconnect != nil {

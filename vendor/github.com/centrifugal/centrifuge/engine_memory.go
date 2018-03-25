@@ -20,7 +20,7 @@ type MemoryEngine struct {
 	historyHub  *historyHub
 }
 
-// MemoryEngineConfig is a memory engine congig struct.
+// MemoryEngineConfig is a memory engine config.
 type MemoryEngineConfig struct{}
 
 // NewMemoryEngine initializes Memory Engine.

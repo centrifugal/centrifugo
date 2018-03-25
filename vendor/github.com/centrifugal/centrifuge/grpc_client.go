@@ -71,7 +71,7 @@ func (s *grpcClientService) Communicate(stream proto.Centrifuge_CommunicateServe
 				return
 			}
 			if rep != nil {
-				err = transport.Send(proto.NewPreparedReply(rep, proto.EncodingProtobuf))
+				err = transport.Send(newPreparedReply(rep, proto.EncodingProtobuf))
 				if err != nil {
 					c.Close(&Disconnect{Reason: "error sending message", Reconnect: true})
 					return
@@ -117,7 +117,7 @@ func (t *grpcTransport) Encoding() proto.Encoding {
 	return proto.EncodingProtobuf
 }
 
-func (t *grpcTransport) Send(reply *proto.PreparedReply) error {
+func (t *grpcTransport) Send(reply *preparedReply) error {
 	select {
 	case t.replies <- reply.Reply:
 	default:

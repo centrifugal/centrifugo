@@ -223,8 +223,8 @@ func (h *Hub) broadcastPublication(channel string, publication *proto.Publicatio
 		return nil
 	}
 
-	var jsonReply *proto.PreparedReply
-	var protobufReply *proto.PreparedReply
+	var jsonReply *preparedReply
+	var protobufReply *preparedReply
 
 	// iterate over them and send message individually
 	for uid := range channelSubscriptions {
@@ -246,7 +246,7 @@ func (h *Hub) broadcastPublication(channel string, publication *proto.Publicatio
 				reply := &proto.Reply{
 					Result: messageBytes,
 				}
-				jsonReply = proto.NewPreparedReply(reply, proto.EncodingJSON)
+				jsonReply = newPreparedReply(reply, proto.EncodingJSON)
 			}
 			c.transport.Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
@@ -262,7 +262,7 @@ func (h *Hub) broadcastPublication(channel string, publication *proto.Publicatio
 				reply := &proto.Reply{
 					Result: messageBytes,
 				}
-				protobufReply = proto.NewPreparedReply(reply, proto.EncodingProtobuf)
+				protobufReply = newPreparedReply(reply, proto.EncodingProtobuf)
 			}
 			c.transport.Send(protobufReply)
 		}
@@ -281,8 +281,8 @@ func (h *Hub) broadcastJoin(channel string, join *proto.Join) error {
 		return nil
 	}
 
-	var jsonReply *proto.PreparedReply
-	var protobufReply *proto.PreparedReply
+	var jsonReply *preparedReply
+	var protobufReply *preparedReply
 
 	// iterate over them and send message individually
 	for uid := range channelSubscriptions {
@@ -304,7 +304,7 @@ func (h *Hub) broadcastJoin(channel string, join *proto.Join) error {
 				reply := &proto.Reply{
 					Result: messageBytes,
 				}
-				jsonReply = proto.NewPreparedReply(reply, proto.EncodingJSON)
+				jsonReply = newPreparedReply(reply, proto.EncodingJSON)
 			}
 			c.transport.Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
@@ -320,7 +320,7 @@ func (h *Hub) broadcastJoin(channel string, join *proto.Join) error {
 				reply := &proto.Reply{
 					Result: messageBytes,
 				}
-				protobufReply = proto.NewPreparedReply(reply, proto.EncodingProtobuf)
+				protobufReply = newPreparedReply(reply, proto.EncodingProtobuf)
 			}
 			c.transport.Send(protobufReply)
 		}
@@ -339,8 +339,8 @@ func (h *Hub) broadcastLeave(channel string, leave *proto.Leave) error {
 		return nil
 	}
 
-	var jsonReply *proto.PreparedReply
-	var protobufReply *proto.PreparedReply
+	var jsonReply *preparedReply
+	var protobufReply *preparedReply
 
 	// iterate over them and send message individually
 	for uid := range channelSubscriptions {
@@ -362,7 +362,7 @@ func (h *Hub) broadcastLeave(channel string, leave *proto.Leave) error {
 				reply := &proto.Reply{
 					Result: messageBytes,
 				}
-				jsonReply = proto.NewPreparedReply(reply, proto.EncodingJSON)
+				jsonReply = newPreparedReply(reply, proto.EncodingJSON)
 			}
 			c.transport.Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
@@ -378,7 +378,7 @@ func (h *Hub) broadcastLeave(channel string, leave *proto.Leave) error {
 				reply := &proto.Reply{
 					Result: messageBytes,
 				}
-				protobufReply = proto.NewPreparedReply(reply, proto.EncodingProtobuf)
+				protobufReply = newPreparedReply(reply, proto.EncodingProtobuf)
 			}
 			c.transport.Send(protobufReply)
 		}

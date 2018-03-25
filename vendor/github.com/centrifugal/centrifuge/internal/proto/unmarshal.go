@@ -226,9 +226,11 @@ func NewJSONParamsDecoder() *JSONParamsDecoder {
 // DecodeConnect ...
 func (d *JSONParamsDecoder) DecodeConnect(data []byte) (*ConnectRequest, error) {
 	var p ConnectRequest
-	err := json.Unmarshal(data, &p)
-	if err != nil {
-		return nil, err
+	if data != nil {
+		err := json.Unmarshal(data, &p)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &p, nil
 }
@@ -350,9 +352,11 @@ func NewProtobufParamsDecoder() *ProtobufParamsDecoder {
 // DecodeConnect ...
 func (d *ProtobufParamsDecoder) DecodeConnect(data []byte) (*ConnectRequest, error) {
 	var p ConnectRequest
-	err := p.Unmarshal(data)
-	if err != nil {
-		return nil, err
+	if data != nil {
+		err := p.Unmarshal(data)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &p, nil
 }
