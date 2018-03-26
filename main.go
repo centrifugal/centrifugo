@@ -326,7 +326,6 @@ var configDefaults = map[string]interface{}{
 	"history_drop_inactive":           false,
 	"namespaces":                      "",
 	"node_ping_interval":              3,
-	"node_metrics_interval":           60,
 	"client_ping_interval":            25,
 	"client_expire":                   false,
 	"client_expired_close_delay":      25,
@@ -369,12 +368,12 @@ var configDefaults = map[string]interface{}{
 	"redis_read_timeout":              10, // Must be greater than ping channel publish interval.
 	"redis_write_timeout":             1,
 	"redis_pubsub_num_workers":        0,
+	"grpc_client":                     false,
+	"grpc_client_port":                8001,
 	"grpc_api":                        false,
-	"grpc_api_port":                   8001,
+	"grpc_api_port":                   8002,
 	"grpc_api_key":                    "",
 	"grpc_api_insecure":               false,
-	"grpc_client":                     false,
-	"grpc_client_port":                8002,
 	"shutdown_timeout":                30,
 	"shutdown_termination_delay":      1,
 }

@@ -49,7 +49,7 @@
     "internal/proto/controlproto",
     "internal/queue"
   ]
-  revision = "f01e51f16d7039a36e2d57a64eba13329afb6f85"
+  revision = "d7fa0749558891ff24f2ee2439f8cdd458db861d"
 
 [[projects]]
   name = "github.com/garyburd/redigo"
@@ -131,13 +131,14 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/prometheus/client_golang"
   packages = [
     "prometheus",
+    "prometheus/graphite",
     "prometheus/promhttp"
   ]
-  revision = "c5b7fccd204277076155f10851dad72b76a49317"
-  version = "v0.8.0"
+  revision = "d49167c4b9f3c4451707560c5c71471ff5291aaa"
 
 [[projects]]
   branch = "master"
@@ -286,6 +287,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c0afaa249b95feda87a887b5e23f71e76f3fddbf7e53505e6f90cc44878219dc"
+  inputs-digest = "14e45db5fba0afcd544c0a14d7bb161fd4eddb39d294fea56e480ebb82d3af9e"
   solver-name = "gps-cdcl"
   solver-version = 1

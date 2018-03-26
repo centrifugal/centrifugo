@@ -3,6 +3,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/FZambia/go-logger"
+  packages = ["."]
+  revision = "5312b752874cb31cbcfe0a0198efd06b5ac01d19"
+
+[[projects]]
+  branch = "master"
   name = "github.com/FZambia/go-sentinel"
   packages = ["."]
   revision = "76bd05e8e22f9f8f5e1dd6d3a85b7951da7cce57"
@@ -61,6 +67,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/grpc-ecosystem/go-grpc-middleware"
+  packages = ["."]
+  revision = "aed189ae50cf2ee326c1de8c083f3187e574e0d8"
+
+[[projects]]
+  branch = "master"
   name = "github.com/igm/sockjs-go"
   packages = ["sockjs"]
   revision = "c8a8c6429d10e3b6865960ad8cb43779b8a834ef"
@@ -84,10 +96,10 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/prometheus/client_golang"
   packages = ["prometheus"]
-  revision = "c5b7fccd204277076155f10851dad72b76a49317"
-  version = "v0.8.0"
+  revision = "d49167c4b9f3c4451707560c5c71471ff5291aaa"
 
 [[projects]]
   branch = "master"
@@ -202,6 +214,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1f1858b6ff540e03e18ca122859bb9f3bfed8b9e00c62bcc10438ff1a870cefe"
+  inputs-digest = "345fd47370376a21018917562fb13179a21c8548179b666438431dafdfe747d5"
   solver-name = "gps-cdcl"
   solver-version = 1

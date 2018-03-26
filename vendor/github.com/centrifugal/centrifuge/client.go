@@ -299,7 +299,7 @@ func (c *client) handle(command *proto.Command) (*proto.Reply, *Disconnect) {
 	params := command.Params
 
 	if command.ID == 0 && method != proto.MethodTypeMessage {
-		c.node.logger.log(newLogEntry(LogLevelInfo, "command ID required for synchronous messages", map[string]interface{}{"client": c.ID(), "user": c.UserID()}))
+		c.node.logger.log(newLogEntry(LogLevelInfo, "command ID required for commands with reply expected", map[string]interface{}{"client": c.ID(), "user": c.UserID()}))
 		replyErr = ErrorBadRequest
 	} else if method != proto.MethodTypeConnect && !c.authenticated {
 		// Client must send connect command first.

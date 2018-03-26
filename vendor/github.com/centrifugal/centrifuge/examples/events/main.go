@@ -18,7 +18,7 @@ import (
 )
 
 func handleLog(e centrifuge.LogEntry) {
-	log.Printf("[centrifuge %s] %s: %v", centrifuge.LogLevelToString(e.Level), e.Message, e.Fields)
+	log.Printf("[centrifuge] %s: %v", e.Message, e.Fields)
 }
 
 func authMiddleware(h http.Handler) http.Handler {
