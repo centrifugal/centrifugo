@@ -233,7 +233,7 @@ func main() {
 					bridge, err := graphite.NewBridge(&graphite.Config{
 						URL:             net.JoinHostPort(viper.GetString("graphite_host"), strconv.Itoa(viper.GetInt("graphite_port"))),
 						Gatherer:        prometheus.DefaultGatherer,
-						Prefix:          viper.GetString("graphite_prefix"),
+						Prefix:          viper.GetString("graphite_prefix") + graphite.ReplaceInvalidRunes(c.Name) + ".",
 						Interval:        60 * time.Second,
 						CountersAsDelta: true,
 					})

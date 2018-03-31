@@ -53,18 +53,14 @@ const (
 )
 
 var metricCategoryPrefix = []string{
-	"proxy_",
-	"api_",
-	"page_",
-	"alerting_",
-	"aws_",
-	"db_",
-	"stat_",
 	"go_",
-	"process_",
+	"node_",
+	"http_",
+	"transport_",
+	"client_",
 }
 
-var trimMetricPrefix = []string{"grafana_"}
+var trimMetricPrefix = []string{"centrifuge_"}
 
 // Config defines the Graphite bridge config.
 type Config struct {
@@ -338,6 +334,15 @@ func writePrefix(buf *bufio.Writer, s string) error {
 	}
 
 	return nil
+}
+
+// ReplaceInvalidRunes normalizes string to be used with Graphite metric path.
+func ReplaceInvalidRunes(s string) string {
+	res := []string{}
+	for _, c := range s {
+		res = append(res, string(replaceInvalidRune(c)))
+	}
+	return strings.Join(res, "")
 }
 
 func writeSanitized(buf *bufio.Writer, s string) error {
