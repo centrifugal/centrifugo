@@ -23,7 +23,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/centrifugal/centrifugo/internal/admin"
+	"github.com/centrifugal/centrifugo/internal/graphite"
 	"github.com/centrifugal/centrifugo/internal/middleware"
 	"github.com/centrifugal/centrifugo/internal/webui"
 
@@ -225,6 +228,26 @@ func main() {
 				logger.FATAL.Fatalf("Error running HTTP server: %v", err)
 			}
 
+			if viper.GetBool("graphite") {
+				go func() {
+					bridge, err := graphite.NewBridge(&graphite.Config{
+						URL:             net.JoinHostPort(viper.GetString("graphite_host"), strconv.Itoa(viper.GetInt("graphite_port"))),
+						Gatherer:        prometheus.DefaultGatherer,
+						Prefix:          viper.GetString("graphite_prefix"),
+						Interval:        60 * time.Second,
+						CountersAsDelta: true,
+					})
+					if err != nil {
+						logger.FATAL.Fatalf("Error building Graphite bridge: %v", err)
+					}
+					err = bridge.Push()
+					if err != nil {
+						logger.FATAL.Fatalf("Error pushing initial metrics to Graphite: %v", err)
+					}
+					bridge.Run(context.Background())
+				}()
+			}
+
 			handleSignals(node, servers, grpcAPIServer, grpcClientServer)
 		},
 	}
@@ -376,6 +399,10 @@ var configDefaults = map[string]interface{}{
 	"grpc_api_insecure":               false,
 	"shutdown_timeout":                30,
 	"shutdown_termination_delay":      1,
+	"graphite":                        false,
+	"graphite_host":                   "localhost",
+	"graphite_port":                   2003,
+	"graphite_prefix":                 "centrifugo.",
 }
 
 func writePidFile(pidFile string) error {
