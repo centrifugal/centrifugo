@@ -48,4 +48,4 @@ Try our [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `
 
 ### Simplified scheme
 
-![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/master/docs/content/images/scheme.png)
+![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/c2/docs/content/images/scheme.png)
