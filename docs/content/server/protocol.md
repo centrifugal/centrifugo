@@ -367,3 +367,71 @@ Errors during `subscribe` must result in full client reconnect if error is tempo
 The special corner case is client-side timeout during `subscribe` operation. As protocol is asynchronous it's possible in this case that server will eventually subscribe client on channel but client will think that it's not subscribed. It's possible to retry subscription request and tolerate `already subscribed` error as expected. But the simplest solution is to reconnect entirely as this is simpler and gives client a chance to connect to working server instance.
 
 Errors during rpc-like operations can be just returned to caller - i.e. user javascript code. Calls like `history` and `presence` are idempotent. You should be accurate with unidempotent operations like `publish` - in case of client timeout it's possible to send the same message into channel twice if retry publish after timeout - so if you care about this case make sure you have some protection from displaying message twice on client side (maybe some sort of unique key in payload).
+
+### Client implementation advices
+
+Here are some advices about client public API. Examples here are in Javascript language. This is just an attempt to help in developing a client - but rules here is not obligatorily the best way to implement client.
+
+Create client instance:
+
+```javascript
+var centrifuge = new Centrifuge("ws://localhost:8000/connection/websocket", {});
+```
+
+Set signed credentials (in case of using Centrifugo):
+
+```javascript
+centrifuge.setCredentials({
+    user: "42",
+    exp: "150000000",
+    info: "",
+    sign: "..."
+})
+```
+
+Connect to server:
+
+```javascript
+centrifuge.connect();
+```
+
+2 event handlers can be set to `centrifuge` object: `connect` and `disconnect`
+
+```javascript
+centrifuge.on('connect', function(context) {
+    console.log(context);
+});
+
+centrifuge.on('disconnect', function(context) {
+    console.log(context);
+});
+```
+
+Client created in `disconnected` state with `reconnect` attribute set to `true` and `reconnecting` flag set to `false` . After `connect()` called state goes to `connecting`. It's only possible to connect from `disconnected` state. Every time `connect()` called `reconnect` flag of client must be set to `true`. After each failed connect attempt state must be set to `disconnected`, `disconnect` event must be emitted (only if `reconnecting` flag is `false`), and then `reconnecting` flag must be set to `true` (if client should continue reconnecting) to not emit `disconnect` event again after next in a row connect attempt failure. In case of failure next connection attempt must be scheduled automatically with backof strategy. On successful connect `reconnecting` flag must be set to `false`, backoff retry must be resetted and `connect` event must be emitted. When connection lost then the same set of actions as when connect failed must be performed.
+
+Client must allow to subscribe on channels:
+
+```javascript
+var subscription = centrifuge.subscribe("channel", eventHandlers);
+```
+
+Subscription object created and control immediately returned to caller - subscribing must be performed asynchronously. This is required because client can automatically reconnect later so event-based model better suites for subscriptions. 
+
+Subscription should support several event handlers:
+
+* handler for publication received from channel
+* join message handler
+* leave message handler
+* error handler
+* subscribe success event handler
+* unsubscribe event handler
+
+Every time client connects to server it must restore all subscriptions.
+
+Every time client disconnects from server it must call unsubscribe handlers for all active subscriptions and then emit disconnect event.
+
+Client must periodically (once in 25 secs, configurable) send ping messages to server. If pong has not beed received in 5 secs (configurable) then client must disconnect from server and try to reconnect with backoff strategy.
+
+Client can automatically batch several requests into one frame to server and also must be able to handle several replies received from server in one frame.
+
+Timeout on subscription requests must result in full client reconnect workflow.
