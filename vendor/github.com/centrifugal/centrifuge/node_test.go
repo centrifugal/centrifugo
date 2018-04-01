@@ -30,10 +30,6 @@ func (e *TestEngine) run() error {
 	return nil
 }
 
-func (e *TestEngine) shutdown() error {
-	return nil
-}
-
 func (e *TestEngine) publish(ch string, publication *proto.Publication, opts *ChannelOptions) <-chan error {
 	atomic.AddInt32(&e.publishCount, 1)
 	eChan := make(chan error, 1)
@@ -119,13 +115,6 @@ func TestSetConfig(t *testing.T) {
 	node := testNode()
 	err := node.Reload(DefaultConfig)
 	assert.NoError(t, err)
-}
-
-func TestClientAllowed(t *testing.T) {
-	node := testNode()
-	assert.True(t, node.clientAllowed("channel&67330d48-f668-4916-758b-f4eb1dd5b41d", string("67330d48-f668-4916-758b-f4eb1dd5b41d")))
-	assert.True(t, node.clientAllowed("channel", string("67330d48-f668-4916-758b-f4eb1dd5b41d")))
-	assert.False(t, node.clientAllowed("channel&long-client-id", string("wrong-client-id")))
 }
 
 func TestNodeRegistry(t *testing.T) {

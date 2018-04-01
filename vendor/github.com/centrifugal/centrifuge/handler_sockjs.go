@@ -15,8 +15,8 @@ const (
 )
 
 const (
-	// We don't use specific websocket close codes because our client
-	// have no notion about transport specifics.
+	// We don't use specific close codes because our connections
+	// can use another transport so there is no much sense to depend on this.
 	sockjsCloseStatus = 3000
 )
 

@@ -8,10 +8,10 @@
   revision = "250d14e545ab5e21e2ba5974909d805b06199d70"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/FZambia/go-sentinel"
+  name = "github.com/FZambia/sentinel"
   packages = ["."]
-  revision = "76bd05e8e22f9f8f5e1dd6d3a85b7951da7cce57"
+  revision = "e69a8dc549bb0aabdc63fbfd9e8bfe971a368153"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -49,7 +49,7 @@
     "internal/proto/controlproto",
     "internal/queue"
   ]
-  revision = "d7fa0749558891ff24f2ee2439f8cdd458db861d"
+  revision = "d2925a3994e1eadc3cfc3e5067baf8c386a3c657"
 
 [[projects]]
   name = "github.com/garyburd/redigo"
@@ -81,6 +81,15 @@
   ]
   revision = "925541529c1fa6821df4e44ce2723319eb2be768"
   version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/gomodule/redigo"
+  packages = [
+    "internal",
+    "redis"
+  ]
+  revision = "9c11da706d9b7902c6da69c592f75637793fe121"
+  version = "v2.0.0"
 
 [[projects]]
   name = "github.com/gorilla/securecookie"
@@ -135,7 +144,6 @@
   name = "github.com/prometheus/client_golang"
   packages = [
     "prometheus",
-    "prometheus/graphite",
     "prometheus/promhttp"
   ]
   revision = "d49167c4b9f3c4451707560c5c71471ff5291aaa"
@@ -287,6 +295,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "14e45db5fba0afcd544c0a14d7bb161fd4eddb39d294fea56e480ebb82d3af9e"
+  inputs-digest = "7abf723a4b8f22ada2f3ff3c1a9e89391dfd231aa199898548d146308a58be15"
   solver-name = "gps-cdcl"
   solver-version = 1

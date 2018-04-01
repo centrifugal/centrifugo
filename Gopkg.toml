@@ -49,14 +49,6 @@
   version = "1.1.0"
 
 [[constraint]]
-  name = "github.com/gorilla/websocket"
-  version = "1.2.0"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/igm/sockjs-go"
-
-[[constraint]]
   name = "github.com/prometheus/client_golang"
   branch = "master"
 

@@ -75,29 +75,29 @@ var (
 
 	transportConnectCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsNamespace,
-		Subsystem: "http",
-		Name:      "transport_connect_count",
+		Subsystem: "transport",
+		Name:      "connect_count",
 		Help:      "Number of connections to specific transport.",
 	}, []string{"transport"})
 
 	transportMessagesSent = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsNamespace,
-		Subsystem: "http",
-		Name:      "transport_messages_sent",
+		Subsystem: "transport",
+		Name:      "messages_sent",
 		Help:      "Number of messages sent over specific transport.",
 	}, []string{"transport"})
 
 	transportBytesIn = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsNamespace,
-		Subsystem: "http",
-		Name:      "transport_bytes_in",
+		Subsystem: "transport",
+		Name:      "bytes_in",
 		Help:      "Number of bytes received over specific transport.",
 	}, []string{"transport"})
 
 	transportBytesOut = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsNamespace,
-		Subsystem: "http",
-		Name:      "transport_bytes_out",
+		Subsystem: "transport",
+		Name:      "bytes_out",
 		Help:      "Number of bytes sent over specific transport.",
 	}, []string{"transport"})
 )
@@ -113,4 +113,7 @@ func init() {
 	prometheus.MustRegister(apiHandlerDurationSummary)
 	prometheus.MustRegister(apiCommandDurationSummary)
 	prometheus.MustRegister(transportConnectCount)
+	prometheus.MustRegister(transportMessagesSent)
+	prometheus.MustRegister(transportBytesIn)
+	prometheus.MustRegister(transportBytesOut)
 }

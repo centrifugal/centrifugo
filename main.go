@@ -365,7 +365,6 @@ var configDefaults = map[string]interface{}{
 	"channel_namespace_boundary":      ":",
 	"channel_user_boundary":           "#",
 	"channel_user_separator":          ",",
-	"channel_client_boundary":         "&",
 	"debug":                           false,
 	"prometheus":                      false,
 	"admin":                           false,
@@ -778,7 +777,6 @@ func nodeConfig() *centrifuge.Config {
 	cfg.ChannelNamespaceBoundary = v.GetString("channel_namespace_boundary")
 	cfg.ChannelUserBoundary = v.GetString("channel_user_boundary")
 	cfg.ChannelUserSeparator = v.GetString("channel_user_separator")
-	cfg.ChannelClientBoundary = v.GetString("channel_client_boundary")
 
 	cfg.ClientPresencePingInterval = time.Duration(v.GetInt("client_presence_ping_interval")) * time.Second
 	cfg.ClientPresenceExpireInterval = time.Duration(v.GetInt("client_presence_expire_interval")) * time.Second

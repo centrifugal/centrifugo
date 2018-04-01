@@ -18,8 +18,8 @@ const (
 )
 
 const (
-	// We don't use specific websocket close codes because our client
-	// have no notion about transport specifics.
+	// We don't use specific websocket close codes because our connections
+	// can use another transport so there is no much sense to depend on this.
 	websocketCloseStatus = 3000
 )
 
@@ -195,13 +195,13 @@ type WebsocketConfig struct {
 	WriteBufferSize int
 }
 
-// WebsocketHandler ...
+// WebsocketHandler handles websocket client connections.
 type WebsocketHandler struct {
 	node   *Node
 	config WebsocketConfig
 }
 
-// NewWebsocketHandler ...
+// NewWebsocketHandler creates new WebsocketHandler.
 func NewWebsocketHandler(n *Node, c WebsocketConfig) *WebsocketHandler {
 	return &WebsocketHandler{
 		node:   n,

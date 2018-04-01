@@ -90,11 +90,6 @@ type Config struct {
 	// UserChannelSeparator separates allowed users in user part of channel name.
 	ChannelUserSeparator string
 
-	// ClientChannelBoundary is a string separator which must be set before client
-	// connection ID in channel name so only client with this ID can subscribe on
-	// that channel.
-	ChannelClientBoundary string
-
 	// ChannelMaxLength is a maximum length of channel name.
 	ChannelMaxLength int
 }
@@ -162,7 +157,6 @@ var DefaultConfig = Config{
 	ChannelNamespaceBoundary: ":", // so namespace "public" can be used "public:news"
 	ChannelUserBoundary:      "#", // so user limited channel is "user#2694" where "2696" is user ID
 	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019"
-	ChannelClientBoundary:    "&", // so client channel is sth like "client&7a37e561-c720-4608-52a8-a964a9db7a8a"
 
 	ClientExpire:                 false,
 	ClientInsecure:               false,

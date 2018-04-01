@@ -118,11 +118,6 @@ func (n *Node) Reload(c Config) error {
 	return nil
 }
 
-// NotifyShutdown returns a channel which will be closed on node shutdown.
-func (n *Node) NotifyShutdown() chan struct{} {
-	return n.shutdownCh
-}
-
 // Run performs all startup actions. At moment must be called once on start
 // after engine and structure set.
 func (n *Node) Run() error {
@@ -634,23 +629,6 @@ func (n *Node) userAllowed(ch string, user string) bool {
 		if string(user) == allowedUser {
 			return true
 		}
-	}
-	return false
-}
-
-// clientAllowed checks if client can subscribe on channel - as channel
-// can contain special part in the end to indicate which client allowed
-// to subscribe on it.
-func (n *Node) clientAllowed(ch string, client string) bool {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	if !strings.Contains(ch, n.config.ChannelClientBoundary) {
-		return true
-	}
-	parts := strings.Split(ch, n.config.ChannelClientBoundary)
-	allowedClient := parts[len(parts)-1]
-	if string(client) == allowedClient {
-		return true
 	}
 	return false
 }

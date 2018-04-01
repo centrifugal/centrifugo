@@ -12,8 +12,8 @@ import (
 
 	"github.com/centrifugal/centrifuge/internal/proto"
 
-	"github.com/FZambia/go-sentinel"
-	"github.com/garyburd/redigo/redis"
+	"github.com/FZambia/sentinel"
+	"github.com/gomodule/redigo/redis"
 )
 
 const (
@@ -544,14 +544,8 @@ func (e *RedisEngine) shutdown() error {
 // the reason this loop is not inside the function itself is so that defer
 // can be used to cleanup nicely (defers only run at function return not end of block scope)
 func (e *shard) runForever(fn func()) {
-	shutdownCh := e.node.NotifyShutdown()
 	for {
-		select {
-		case <-shutdownCh:
-			return
-		default:
-			fn()
-		}
+		fn()
 		// Sleep for a while to prevent busy loop when reconnecting to Redis.
 		time.Sleep(300 * time.Millisecond)
 	}
@@ -1203,7 +1197,7 @@ func (e *shard) History(ch string, filter historyFilter) ([]*proto.Publication, 
 	if resp.err != nil {
 		return nil, resp.err
 	}
-	return sliceOfMessages(e, resp.reply, nil)
+	return sliceOfPublications(e, resp.reply, nil)
 }
 
 // RemoveHistory - see engine interface description.
@@ -1268,7 +1262,7 @@ func mapStringClientInfo(result interface{}, err error) (map[string]*proto.Clien
 	return m, nil
 }
 
-func sliceOfMessages(n *shard, result interface{}, err error) ([]*proto.Publication, error) {
+func sliceOfPublications(n *shard, result interface{}, err error) ([]*proto.Publication, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err

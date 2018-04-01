@@ -961,7 +961,7 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 		return resp, nil
 	}
 
-	if !c.node.userAllowed(channel, c.user) || !c.node.clientAllowed(channel, c.uid) {
+	if !c.node.userAllowed(channel, c.user) {
 		c.node.logger.log(newLogEntry(LogLevelInfo, "user is not allowed to subscribe on channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid}))
 		resp.Error = ErrorPermissionDenied
 		return resp, nil

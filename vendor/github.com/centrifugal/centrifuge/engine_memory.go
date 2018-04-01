@@ -2,7 +2,6 @@ package centrifuge
 
 import (
 	"container/heap"
-	"errors"
 	"sync"
 	"time"
 
@@ -43,11 +42,6 @@ func (e *MemoryEngine) name() string {
 // just after initialization.
 func (e *MemoryEngine) run() error {
 	return nil
-}
-
-// Shutdown shuts down engine.
-func (e *MemoryEngine) shutdown() error {
-	return errors.New("Shutdown not implemented")
 }
 
 // Publish adds message into history hub and calls node ClientMsg method to handle message.

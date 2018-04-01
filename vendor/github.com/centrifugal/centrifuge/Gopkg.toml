@@ -20,30 +20,22 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
+ignored = [
+  "github.com/FZambia/go-logger",
+  "github.com/grpc-ecosystem/go-grpc-middleware"
+]
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/FZambia/go-sentinel"
+  name = "github.com/FZambia/sentinel"
+  version = "1.0.0"
 
 [[constraint]]
-  name = "github.com/FZambia/statik"
-  version = "0.1.1"
-
-[[constraint]]
-  branch = "c2"
-  name = "github.com/centrifugal/centrifugo"
-
-[[constraint]]
-  name = "github.com/garyburd/redigo"
-  version = "1.5.0"
+  name = "github.com/gomodule/redigo"
+  version = "2.0.0"
 
 [[constraint]]
   name = "github.com/gogo/protobuf"
   version = "0.5.0"
-
-[[constraint]]
-  name = "github.com/gorilla/securecookie"
-  version = "1.1.0"
 
 [[constraint]]
   name = "github.com/gorilla/websocket"
@@ -58,10 +50,6 @@
   version = "1.0.0"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/nu7hatch/gouuid"
-
-[[constraint]]
   name = "github.com/prometheus/client_golang"
   branch = "master"
 
@@ -72,10 +60,6 @@
 [[constraint]]
   name = "github.com/stretchr/testify"
   version = "1.2.1"
-
-[[constraint]]
-  branch = "master"
-  name = "golang.org/x/net"
 
 [[constraint]]
   name = "google.golang.org/grpc"

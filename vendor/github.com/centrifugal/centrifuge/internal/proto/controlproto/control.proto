@@ -1,7 +1,7 @@
 // Install protoc compiler https://github.com/google/protobuf/releases 
 // Install gogofaster program:
 // go get -u github.com/gogo/protobuf/protoc-gen-gogofaster
-// protoc --proto_path=$GOPATH/src/github.com/centrifugal/centrifugo/vendor:. --gogofaster_out=. control.proto
+// protoc --proto_path=$GOPATH/src/github.com/centrifugal/centrifuge/vendor:. --gogofaster_out=. control.proto
 // Note that we use vendored gogoprotobuf path in example above.
 syntax = "proto3";
 
