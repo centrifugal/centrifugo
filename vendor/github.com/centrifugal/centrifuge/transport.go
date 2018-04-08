@@ -47,7 +47,7 @@ type transport interface {
 	Transport
 	// Send sends data to session.
 	Send(*preparedReply) error
-	// Close closes the session with provided code and reason.
+	// Close closes transport.
 	Close(*Disconnect) error
 }
 

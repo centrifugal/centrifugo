@@ -31,7 +31,7 @@
     "internal/proto/controlproto",
     "internal/queue"
   ]
-  revision = "6b9c95633169319302d19df8ab1c6da91bd40952"
+  revision = "d2925a3994e1eadc3cfc3e5067baf8c386a3c657"
 
 [[projects]]
   name = "github.com/gogo/protobuf"

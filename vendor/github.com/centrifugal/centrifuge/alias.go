@@ -10,8 +10,8 @@ type Error = proto.Error
 // Raw represents raw bytes.
 type Raw = proto.Raw
 
-// Publication allows to deliver custom payload to all channel subscribers.
-type Publication = proto.Publication
+// Pub allows to deliver custom payload to all channel subscribers.
+type Pub = proto.Pub
 
 // Join sent to channel after someone subscribed.
 type Join = proto.Join

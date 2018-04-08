@@ -1,9 +1,17 @@
 package proto
 
-// NewPublicationMessage returns initialized async data message.
-func NewPublicationMessage(ch string, data Raw) *Message {
+// NewPushMessage returns initialized async push message.
+func NewPushMessage(data Raw) *Message {
 	return &Message{
-		Type:    MessageTypePublication,
+		Type: MessageTypePush,
+		Data: data,
+	}
+}
+
+// NewPubMessage returns initialized async publication message.
+func NewPubMessage(ch string, data Raw) *Message {
+	return &Message{
+		Type:    MessageTypePub,
 		Channel: ch,
 		Data:    data,
 	}

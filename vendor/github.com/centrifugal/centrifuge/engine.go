@@ -27,7 +27,7 @@ type Engine interface {
 	// any Centrifugo node. The returned value is channel in which we will
 	// send error as soon as engine finishes publish operation. Also this
 	// method must maintain history for channels if enabled in channel options.
-	publish(ch string, publication *Publication, opts *ChannelOptions) <-chan error
+	publish(ch string, publication *Pub, opts *ChannelOptions) <-chan error
 	// PublishJoin publishes Join message into channel.
 	publishJoin(ch string, join *Join, opts *ChannelOptions) <-chan error
 	// PublishLeave publishes Leave message into channel.
@@ -44,7 +44,7 @@ type Engine interface {
 	channels() ([]string, error)
 
 	// History returns a slice of history messages for channel.
-	history(ch string, filter historyFilter) ([]*Publication, error)
+	history(ch string, filter historyFilter) ([]*Pub, error)
 	// RemoveHistory removes history from channel. This is in general not
 	// needed as history expires automatically (based on history_lifetime)
 	// but sometimes can be useful for application logic.

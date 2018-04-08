@@ -212,8 +212,8 @@ func (h *Hub) removeSub(ch string, c *client) (bool, error) {
 	return false, nil
 }
 
-// broadcast sends message to all clients subscribed on channel.
-func (h *Hub) broadcastPublication(channel string, publication *proto.Publication) error {
+// broadcastPub sends message to all clients subscribed on channel.
+func (h *Hub) broadcastPub(channel string, pub *proto.Pub) error {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -235,11 +235,11 @@ func (h *Hub) broadcastPublication(channel string, publication *proto.Publicatio
 		enc := c.Transport().Encoding()
 		if enc == proto.EncodingJSON {
 			if jsonReply == nil {
-				data, err := proto.GetMessageEncoder(enc).EncodePublication(publication)
+				data, err := proto.GetMessageEncoder(enc).EncodePub(pub)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewPublicationMessage(channel, data))
+				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewPubMessage(channel, data))
 				if err != nil {
 					return err
 				}
@@ -251,11 +251,11 @@ func (h *Hub) broadcastPublication(channel string, publication *proto.Publicatio
 			c.transport.Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
 			if protobufReply == nil {
-				data, err := proto.GetMessageEncoder(enc).EncodePublication(publication)
+				data, err := proto.GetMessageEncoder(enc).EncodePub(pub)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewPublicationMessage(channel, data))
+				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewPubMessage(channel, data))
 				if err != nil {
 					return err
 				}

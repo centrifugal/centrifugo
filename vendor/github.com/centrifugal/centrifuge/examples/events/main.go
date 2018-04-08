@@ -35,13 +35,14 @@ func authMiddleware(h http.Handler) http.Handler {
 	})
 }
 
-func waitExitSignal(n *centrifuge.Node) {
+func waitExitSignal(n *centrifuge.Node, srv *grpc.Server) {
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
 		n.Shutdown()
+		srv.GracefulStop()
 		done <- true
 	}()
 	<-done
@@ -70,8 +71,9 @@ func main() {
 		}
 	}
 
-	handleMessage := func(ctc context.Context, req centrifuge.MessageContext) centrifuge.MessageReply {
-		log.Printf("Message from user: %s, data: %s", req.Client.UserID(), string(req.Data))
+	handleMessage := func(ctx context.Context, req centrifuge.MessageContext) centrifuge.MessageReply {
+		log.Printf("message from user: %s, data: %s", req.Client.UserID(), string(req.Data))
+		req.Client.Send(req.Data)
 		return centrifuge.MessageReply{}
 	}
 
@@ -96,7 +98,7 @@ func main() {
 	}
 
 	handlePublish := func(ctx context.Context, req centrifuge.PublishContext) centrifuge.PublishReply {
-		log.Printf("user %s publishes into channel %s: %s", req.Client.UserID(), req.Channel, string(req.Publication.Data))
+		log.Printf("user %s publishes into channel %s: %s", req.Client.UserID(), req.Channel, string(req.Pub.Data))
 		return centrifuge.PublishReply{}
 	}
 
@@ -163,7 +165,6 @@ func main() {
 		}
 	}()
 
-	waitExitSignal(node)
+	waitExitSignal(node, grpcServer)
 	fmt.Println("exiting")
-	time.Sleep(time.Second)
 }

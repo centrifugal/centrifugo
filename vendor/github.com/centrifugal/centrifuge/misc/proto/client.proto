@@ -11,16 +11,16 @@ message Error {
 enum MethodType {
     
     CONNECT = 0;
-    REFRESH = 1;
-    SUBSCRIBE = 2;
-    UNSUBSCRIBE = 3;
-    PUBLISH = 4;
-    PRESENCE = 5;
-    PRESENCE_STATS = 6;
-    HISTORY = 7;
-    PING = 8;
+    SUBSCRIBE = 1;
+    UNSUBSCRIBE = 2;
+    PUBLISH = 3;
+    PRESENCE = 4;
+    PRESENCE_STATS = 5;
+    HISTORY = 6;
+    PING = 7;
+    MESSAGE = 8;
     RPC = 9;
-    MESSAGE = 10;
+    REFRESH = 10;
 }
 
 message Command {
@@ -37,11 +37,11 @@ message Reply {
 
 enum MessageType {
     
-
-    PUBLICATION = 0;
+    PUB = 0;
     JOIN = 1;
     LEAVE = 2;
     UNSUB = 3;
+    PUSH = 4;
 }
 
 message Message {
@@ -57,7 +57,11 @@ message ClientInfo {
     bytes chan_info = 4;
 }
 
-message Publication {
+message Push {
+    bytes data = 1;
+}
+
+message Pub {
     string uid = 1;
     bytes data = 2;
     ClientInfo info = 3;
@@ -132,7 +136,7 @@ message SubscribeResponse {
 message SubscribeResult {
     string last = 1;
     bool recovered = 2;
-    repeated Publication publications = 3;
+    repeated Pub pubs = 3;
 }
 
 message UnsubscribeRequest {
@@ -195,7 +199,7 @@ message HistoryResponse {
 }
 
 message HistoryResult {
-    repeated Publication publications = 1;
+    repeated Pub pubs = 1;
 }
 
 message PingRequest {

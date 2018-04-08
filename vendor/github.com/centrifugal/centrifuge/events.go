@@ -87,8 +87,8 @@ type UnsubscribeHandler func(context.Context, UnsubscribeContext) UnsubscribeRep
 // PublishContext contains fields related to publish event.
 type PublishContext struct {
 	EventContext
-	Channel     string
-	Publication *Publication
+	Channel string
+	Pub     *Pub
 }
 
 // PublishReply contains fields determining the reaction on publish event.

@@ -441,7 +441,7 @@ func (e *RedisEngine) run() error {
 }
 
 // Publish - see engine interface description.
-func (e *RedisEngine) publish(ch string, pub *proto.Publication, opts *ChannelOptions) <-chan error {
+func (e *RedisEngine) publish(ch string, pub *proto.Pub, opts *ChannelOptions) <-chan error {
 	return e.shards[e.shardIndex(ch)].Publish(ch, pub, opts)
 }
 
@@ -487,7 +487,7 @@ func (e *RedisEngine) presence(ch string) (map[string]*proto.ClientInfo, error) 
 }
 
 // History - see engine interface description.
-func (e *RedisEngine) history(ch string, filter historyFilter) ([]*proto.Publication, error) {
+func (e *RedisEngine) history(ch string, filter historyFilter) ([]*proto.Pub, error) {
 	return e.shards[e.shardIndex(ch)].History(ch, filter)
 }
 
@@ -727,12 +727,12 @@ func (e *shard) handleRedisClientMessage(chID channelID, data []byte) error {
 
 func (e *shard) handleClientMessage(message *proto.Message) error {
 	switch message.Type {
-	case proto.MessageTypePublication:
-		publication, err := e.messageDecoder.DecodePublication(message.Data)
+	case proto.MessageTypePub:
+		pub, err := e.messageDecoder.DecodePub(message.Data)
 		if err != nil {
 			return err
 		}
-		e.node.handlePublication(message.Channel, publication)
+		e.node.handlePub(message.Channel, pub)
 	case proto.MessageTypeJoin:
 		join, err := e.messageDecoder.DecodeJoin(message.Data)
 		if err != nil {
@@ -1008,16 +1008,16 @@ func (e *shard) runDataPipeline() {
 }
 
 // Publish - see engine interface description.
-func (e *shard) Publish(ch string, pub *proto.Publication, opts *ChannelOptions) <-chan error {
+func (e *shard) Publish(ch string, pub *proto.Pub, opts *ChannelOptions) <-chan error {
 
 	eChan := make(chan error, 1)
 
-	data, err := e.messageEncoder.EncodePublication(pub)
+	data, err := e.messageEncoder.EncodePub(pub)
 	if err != nil {
 		eChan <- err
 		return eChan
 	}
-	byteMessage, err := e.messageEncoder.Encode(proto.NewPublicationMessage(ch, data))
+	byteMessage, err := e.messageEncoder.Encode(proto.NewPubMessage(ch, data))
 	if err != nil {
 		eChan <- err
 		return eChan
@@ -1184,7 +1184,7 @@ func (e *shard) Presence(ch string) (map[string]*proto.ClientInfo, error) {
 }
 
 // History - see engine interface description.
-func (e *shard) History(ch string, filter historyFilter) ([]*proto.Publication, error) {
+func (e *shard) History(ch string, filter historyFilter) ([]*proto.Pub, error) {
 	limit := filter.Limit
 	var rangeBound = -1
 	if limit > 0 {
@@ -1197,7 +1197,7 @@ func (e *shard) History(ch string, filter historyFilter) ([]*proto.Publication, 
 	if resp.err != nil {
 		return nil, resp.err
 	}
-	return sliceOfPublications(e, resp.reply, nil)
+	return sliceOfPubs(e, resp.reply, nil)
 }
 
 // RemoveHistory - see engine interface description.
@@ -1262,12 +1262,12 @@ func mapStringClientInfo(result interface{}, err error) (map[string]*proto.Clien
 	return m, nil
 }
 
-func sliceOfPublications(n *shard, result interface{}, err error) ([]*proto.Publication, error) {
+func sliceOfPubs(n *shard, result interface{}, err error) ([]*proto.Pub, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err
 	}
-	msgs := make([]*proto.Publication, len(values))
+	msgs := make([]*proto.Pub, len(values))
 	for i := 0; i < len(values); i++ {
 		value, okValue := values[i].([]byte)
 		if !okValue {
@@ -1279,13 +1279,13 @@ func sliceOfPublications(n *shard, result interface{}, err error) ([]*proto.Publ
 			return nil, fmt.Errorf("can not unmarshal value to Message: %v", err)
 		}
 
-		if msg.Type != proto.MessageTypePublication {
+		if msg.Type != proto.MessageTypePub {
 			return nil, fmt.Errorf("wrong message type in history: %d", msg.Type)
 		}
 
-		publication, err := n.messageDecoder.DecodePublication(msg.Data)
+		publication, err := n.messageDecoder.DecodePub(msg.Data)
 		if err != nil {
-			return nil, fmt.Errorf("can not unmarshal value to Publication: %v", err)
+			return nil, fmt.Errorf("can not unmarshal value to Pub: %v", err)
 		}
 		msgs[i] = publication
 	}

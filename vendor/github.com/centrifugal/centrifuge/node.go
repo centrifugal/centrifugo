@@ -267,17 +267,17 @@ func (n *Node) handleControl(data []byte) error {
 	}
 }
 
-// handlePublication handles messages published by web application or client into channel.
+// handlePub handles messages published by web application or client into channel.
 // The goal of this method to deliver this message to all clients on this node subscribed
 // on channel.
-func (n *Node) handlePublication(ch string, publication *Publication) error {
-	messagesReceivedCount.WithLabelValues("publication").Inc()
+func (n *Node) handlePub(ch string, pub *Pub) error {
+	messagesReceivedCount.WithLabelValues("pub").Inc()
 	numSubscribers := n.hub.NumSubscribers(ch)
 	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
 		return nil
 	}
-	return n.hub.broadcastPublication(ch, publication)
+	return n.hub.broadcastPub(ch, pub)
 }
 
 // handleJoin handles join messages.
@@ -308,11 +308,11 @@ func makeErrChan(err error) <-chan error {
 
 // Publish sends a message to all clients subscribed on channel. All running nodes
 // will receive it and will send it to all clients on node subscribed on channel.
-func (n *Node) Publish(ch string, pub *Publication) error {
+func (n *Node) Publish(ch string, pub *Pub) error {
 	return <-n.publish(ch, pub, nil)
 }
 
-func (n *Node) publish(ch string, pub *Publication, opts *ChannelOptions) <-chan error {
+func (n *Node) publish(ch string, pub *Pub, opts *ChannelOptions) <-chan error {
 	if opts == nil {
 		chOpts, ok := n.ChannelOpts(ch)
 		if !ok {
@@ -578,13 +578,13 @@ func (n *Node) Presence(ch string) (map[string]*ClientInfo, error) {
 }
 
 // History returns a slice of last messages published into project channel.
-func (n *Node) History(ch string) ([]*Publication, error) {
+func (n *Node) History(ch string) ([]*Pub, error) {
 	actionCount.WithLabelValues("history").Inc()
-	publications, err := n.engine.history(ch, historyFilter{Limit: 0})
+	pubs, err := n.engine.history(ch, historyFilter{Limit: 0})
 	if err != nil {
 		return nil, err
 	}
-	return publications, nil
+	return pubs, nil
 }
 
 // RemoveHistory removes channel history.

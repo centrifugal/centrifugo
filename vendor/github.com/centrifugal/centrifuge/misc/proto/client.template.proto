@@ -22,16 +22,16 @@ enum MethodType {
     option (gogoproto.goproto_enum_prefix) = false;
     {{end}}
     CONNECT = 0{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeConnect"]{{end}};
-    REFRESH = 1{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeRefresh"]{{end}};
-    SUBSCRIBE = 2{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeSubscribe"]{{end}};
-    UNSUBSCRIBE = 3{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeUnsubscribe"]{{end}};
-    PUBLISH = 4{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePublish"]{{end}};
-    PRESENCE = 5{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePresence"]{{end}};
-    PRESENCE_STATS = 6{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePresenceStats"]{{end}};
-    HISTORY = 7{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeHistory"]{{end}};
-    PING = 8{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePing"]{{end}};
+    SUBSCRIBE = 1{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeSubscribe"]{{end}};
+    UNSUBSCRIBE = 2{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeUnsubscribe"]{{end}};
+    PUBLISH = 3{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePublish"]{{end}};
+    PRESENCE = 4{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePresence"]{{end}};
+    PRESENCE_STATS = 5{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePresenceStats"]{{end}};
+    HISTORY = 6{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeHistory"]{{end}};
+    PING = 7{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypePing"]{{end}};
+    MESSAGE = 8{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeMessage"]{{end}};
     RPC = 9{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeRPC"]{{end}};
-    MESSAGE = 10{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeMessage"]{{end}};
+    REFRESH = 10{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MethodTypeRefresh"]{{end}};
 }
 
 message Command {
@@ -48,11 +48,11 @@ message Reply {
 
 enum MessageType {
     {{if env.Getenv "GOGO"}}option (gogoproto.goproto_enum_prefix) = false;{{end}}
-
-    PUBLICATION = 0{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MessageTypePublication"]{{end}};
+    PUB = 0{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MessageTypePub"]{{end}};
     JOIN = 1{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MessageTypeJoin"]{{end}};
     LEAVE = 2{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MessageTypeLeave"]{{end}};
     UNSUB = 3{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MessageTypeUnsub"]{{end}};
+    PUSH = 4{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "MessageTypePush"]{{end}};
 }
 
 message Message {
@@ -68,7 +68,11 @@ message ClientInfo {
     bytes chan_info = 4{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "chan_info,omitempty", (gogoproto.nullable) = false]{{end}};
 }
 
-message Publication {
+message Push {
+    bytes data = 1{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false]{{end}};
+}
+
+message Pub {
     string uid = 1{{if env.Getenv "GOGO"}} [(gogoproto.customname) = "UID", (gogoproto.jsontag) = "uid,omitempty"]{{end}};
     bytes data = 2{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false]{{end}};
     ClientInfo info = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "info,omitempty"]{{end}};
@@ -143,7 +147,7 @@ message SubscribeResponse {
 message SubscribeResult {
     string last = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "last,omitempty"]{{end}};
     bool recovered = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "recovered,omitempty"]{{end}};
-    repeated Publication publications = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "publications,omitempty"]{{end}};
+    repeated Pub pubs = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "pubs,omitempty"]{{end}};
 }
 
 message UnsubscribeRequest {
@@ -206,7 +210,7 @@ message HistoryResponse {
 }
 
 message HistoryResult {
-    repeated Publication publications = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "publications"]{{end}};
+    repeated Pub pubs = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "pubs"]{{end}};
 }
 
 message PingRequest {

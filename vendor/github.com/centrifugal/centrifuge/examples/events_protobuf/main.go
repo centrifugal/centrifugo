@@ -92,7 +92,7 @@ func main() {
 	}
 
 	handlePublish := func(ctx context.Context, req centrifuge.PublishContext) centrifuge.PublishReply {
-		log.Printf("user %s publishes into channel %s: %s", req.Client.UserID(), req.Channel, string(req.Publication.Data))
+		log.Printf("user %s publishes into channel %s: %s", req.Client.UserID(), req.Channel, string(req.Pub.Data))
 		return centrifuge.PublishReply{}
 	}
 

@@ -38,14 +38,14 @@ func (h *apiExecutor) Publish(ctx context.Context, cmd *apiproto.PublishRequest)
 		return resp
 	}
 
-	publication := &proto.Publication{
+	pub := &proto.Pub{
 		Data: cmd.Data,
 	}
 	if cmd.UID != "" {
-		publication.UID = cmd.UID
+		pub.UID = cmd.UID
 	}
 
-	err := <-h.node.publish(cmd.Channel, publication, &chOpts)
+	err := <-h.node.publish(cmd.Channel, pub, &chOpts)
 	if err != nil {
 		h.node.logger.log(newLogEntry(LogLevelError, "error publishing message in engine", map[string]interface{}{"error": err.Error()}))
 		resp.Error = apiproto.ErrorInternal
@@ -90,13 +90,13 @@ func (h *apiExecutor) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequ
 			resp.Error = apiproto.ErrorNamespaceNotFound
 		}
 
-		publication := &proto.Publication{
+		pub := &proto.Pub{
 			Data: cmd.Data,
 		}
 		if cmd.UID != "" {
-			publication.UID = cmd.UID
+			pub.UID = cmd.UID
 		}
-		errs[i] = h.node.publish(ch, publication, &chOpts)
+		errs[i] = h.node.publish(ch, pub, &chOpts)
 	}
 
 	var firstErr error
@@ -273,18 +273,18 @@ func (h *apiExecutor) History(ctx context.Context, cmd *apiproto.HistoryRequest)
 		return resp
 	}
 
-	apiPublications := make([]*apiproto.Publication, len(history))
+	apiPubs := make([]*apiproto.Pub, len(history))
 
-	for i, publication := range history {
-		apiPublications[i] = &apiproto.Publication{
-			UID:  publication.UID,
-			Data: publication.Data,
-			Info: (*apiproto.ClientInfo)(publication.Info),
+	for i, pub := range history {
+		apiPubs[i] = &apiproto.Pub{
+			UID:  pub.UID,
+			Data: pub.Data,
+			Info: (*apiproto.ClientInfo)(pub.Info),
 		}
 	}
 
 	resp.Result = &apiproto.HistoryResult{
-		Publications: apiPublications,
+		Pubs: apiPubs,
 	}
 	return resp
 }

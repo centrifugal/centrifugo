@@ -23,6 +23,8 @@ type Client interface {
 	UserID() string
 	// Channels returns a slice of channels client connection subscribed to at moment.
 	Channels() []string
+	// Send data to client asynchronously.
+	Send(data Raw) error
 	// Transport returns transport used by client connection.
 	Transport() Transport
 }
@@ -169,6 +171,28 @@ func (c *client) Channels() []string {
 		i++
 	}
 	return keys
+}
+
+func (c *client) Send(data Raw) error {
+	p := &proto.Push{
+		Data: data,
+	}
+
+	messageEncoder := proto.GetMessageEncoder(c.transport.Encoding())
+	data, err := messageEncoder.EncodePush(p)
+	if err != nil {
+		return err
+	}
+	result, err := messageEncoder.Encode(proto.NewPushMessage(data))
+	if err != nil {
+		return nil
+	}
+
+	reply := newPreparedReply(&proto.Reply{
+		Result: result,
+	}, c.transport.Encoding())
+
+	return c.transport.Send(reply)
 }
 
 func (c *client) Unsubscribe(ch string) error {
@@ -894,7 +918,7 @@ func (c *client) refreshCmd(cmd *proto.RefreshRequest) (*proto.RefreshResponse, 
 // example if we eventually will work with Redis streams. For
 // this sth like HistoryFilter{limit int, from string} struct
 // can be added as History engine method argument.
-func recoverMessages(last string, messages []*proto.Publication) ([]*proto.Publication, bool) {
+func recoverMessages(last string, messages []*proto.Pub) ([]*proto.Pub, bool) {
 	if last == "" {
 		// Client wants to recover messages but it seems that there were no
 		// messages in history before, so client missed all messages which
@@ -1037,10 +1061,10 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 			messages, err := c.node.History(channel)
 			if err != nil {
 				c.node.logger.log(newLogEntry(LogLevelError, "error recovering messages", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid, "error": err.Error()}))
-				res.Publications = nil
+				res.Pubs = nil
 			} else {
 				recoveredMessages, recovered := recoverMessages(cmd.Last, messages)
-				res.Publications = recoveredMessages
+				res.Pubs = recoveredMessages
 				res.Recovered = recovered
 			}
 		} else {
@@ -1172,7 +1196,7 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 		return resp, nil
 	}
 
-	publication := &proto.Publication{
+	pub := &proto.Pub{
 		Data: data,
 		Info: info,
 	}
@@ -1182,8 +1206,8 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 			EventContext: EventContext{
 				Client: c,
 			},
-			Channel:     ch,
-			Publication: publication,
+			Channel: ch,
+			Pub:     pub,
 		})
 		if reply.Disconnect != nil {
 			return resp, reply.Disconnect
@@ -1194,7 +1218,7 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 		}
 	}
 
-	err := <-c.node.publish(ch, publication, &chOpts)
+	err := <-c.node.publish(ch, pub, &chOpts)
 	if err != nil {
 		c.node.logger.log(newLogEntry(LogLevelError, "error publishing", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid, "error": err.Error()}))
 		resp.Error = ErrorInternal
@@ -1332,7 +1356,7 @@ func (c *client) historyCmd(cmd *proto.HistoryRequest) (*proto.HistoryResponse, 
 		return resp, nil
 	}
 
-	publications, err := c.node.History(ch)
+	pubs, err := c.node.History(ch)
 	if err != nil {
 		c.node.logger.log(newLogEntry(LogLevelError, "error getting history", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid, "error": err.Error()}))
 		resp.Error = ErrorInternal
@@ -1340,7 +1364,7 @@ func (c *client) historyCmd(cmd *proto.HistoryRequest) (*proto.HistoryResponse, 
 	}
 
 	resp.Result = &proto.HistoryResult{
-		Publications: publications,
+		Pubs: pubs,
 	}
 
 	return resp, nil

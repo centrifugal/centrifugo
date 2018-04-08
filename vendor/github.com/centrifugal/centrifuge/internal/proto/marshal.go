@@ -9,7 +9,8 @@ import (
 // MessageEncoder ...
 type MessageEncoder interface {
 	Encode(*Message) ([]byte, error)
-	EncodePublication(*Publication) ([]byte, error)
+	EncodePush(*Push) ([]byte, error)
+	EncodePub(*Pub) ([]byte, error)
 	EncodeJoin(*Join) ([]byte, error)
 	EncodeLeave(*Leave) ([]byte, error)
 	EncodeUnsub(*Unsub) ([]byte, error)
@@ -29,8 +30,13 @@ func (e *JSONMessageEncoder) Encode(message *Message) ([]byte, error) {
 	return json.Marshal(message)
 }
 
-// EncodePublication ...
-func (e *JSONMessageEncoder) EncodePublication(message *Publication) ([]byte, error) {
+// EncodePub ...
+func (e *JSONMessageEncoder) EncodePub(message *Pub) ([]byte, error) {
+	return json.Marshal(message)
+}
+
+// EncodePush ...
+func (e *JSONMessageEncoder) EncodePush(message *Push) ([]byte, error) {
 	return json.Marshal(message)
 }
 
@@ -63,8 +69,13 @@ func (e *ProtobufMessageEncoder) Encode(message *Message) ([]byte, error) {
 	return message.Marshal()
 }
 
-// EncodePublication ...
-func (e *ProtobufMessageEncoder) EncodePublication(message *Publication) ([]byte, error) {
+// EncodePub ...
+func (e *ProtobufMessageEncoder) EncodePub(message *Pub) ([]byte, error) {
+	return message.Marshal()
+}
+
+// EncodePush ...
+func (e *ProtobufMessageEncoder) EncodePush(message *Push) ([]byte, error) {
 	return message.Marshal()
 }
 
