@@ -42,7 +42,7 @@ Try our [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `
 * Join/leave events for channels (client goes online/offline)
 * Automatically recover missed messages after network disconnect
 * Built-in administrative web interface
-* Ready to deploy (docker image, RPM/DEB packages, Nginx configuration, automatic Let's Encrypt TLS certificates)
+* Ready to deploy (Docker image, RPM/DEB packages, Nginx configuration, automatic Let's Encrypt TLS certificates)
 * MIT license
 
 ### Simplified scheme
