@@ -194,6 +194,8 @@ func ConfigureServer(setter config.Setter) error {
 		"ssl_autocert_email":             "",
 		"ssl_autocert_force_rsa":         false,
 		"ssl_autocert_server_name":       "",
+		"ssl_autocert_http":              false,
+		"ssl_autocert_http_addr":         ":80",
 	}
 
 	for k, v := range defaults {
@@ -260,6 +262,7 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 	sslAutocertEmail := viper.GetString("ssl_autocert_email")
 	sslAutocertForceRSA := viper.GetBool("ssl_autocert_force_rsa")
 	sslAutocertServerName := viper.GetString("ssl_autocert_server_name")
+	sslAutocertHTTP := viper.GetBool("ssl_autocert_http")
 	websocketReadBufferSize := viper.GetInt("websocket_read_buffer_size")
 	websocketWriteBufferSize := viper.GetInt("websocket_write_buffer_size")
 
@@ -365,6 +368,19 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 							return certManager.GetCertificate(hello)
 						},
 					},
+				}
+
+				if sslAutocertHTTP {
+					sslAutocertHTTPAddr := viper.GetString("ssl_autocert_http_addr")
+					acmeHTTPserver := &http.Server{
+						Handler: certManager.HTTPHandler(nil),
+						Addr:    sslAutocertHTTPAddr,
+					}
+					go func() {
+						if err := acmeHTTPserver.ListenAndServe(); err != nil {
+							logger.FATAL.Fatalf("Can't create server to serve acme http challenges: %v", err)
+						}
+					}()
 				}
 
 				if err := server.ListenAndServeTLS("", ""); err != nil {
