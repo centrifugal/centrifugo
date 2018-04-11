@@ -263,6 +263,7 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 	sslAutocertForceRSA := viper.GetBool("ssl_autocert_force_rsa")
 	sslAutocertServerName := viper.GetString("ssl_autocert_server_name")
 	sslAutocertHTTP := viper.GetBool("ssl_autocert_http")
+	sslAutocertHTTPAddr := viper.GetString("ssl_autocert_http_addr")
 	websocketReadBufferSize := viper.GetInt("websocket_read_buffer_size")
 	websocketWriteBufferSize := viper.GetInt("websocket_write_buffer_size")
 
@@ -371,12 +372,12 @@ func runServer(n *node.Node, s *server.HTTPServer) error {
 				}
 
 				if sslAutocertHTTP {
-					sslAutocertHTTPAddr := viper.GetString("ssl_autocert_http_addr")
 					acmeHTTPserver := &http.Server{
 						Handler: certManager.HTTPHandler(nil),
 						Addr:    sslAutocertHTTPAddr,
 					}
 					go func() {
+						logger.INFO.Printf("Serving ACME http_01 challenge on %s", sslAutocertHTTPAddr)
 						if err := acmeHTTPserver.ListenAndServe(); err != nil {
 							logger.FATAL.Fatalf("Can't create server to serve acme http challenges: %v", err)
 						}
