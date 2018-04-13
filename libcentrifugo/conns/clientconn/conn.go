@@ -653,7 +653,9 @@ func (c *client) refreshCmd(cmd *proto.RefreshClientCommand) (proto.Response, er
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
 			c.timestamp = int64(ts)
-			c.defaultInfo = raw.Raw(info)
+			if len(info) > 0 {
+				c.defaultInfo = raw.Raw(info)
+			}
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
 			}
