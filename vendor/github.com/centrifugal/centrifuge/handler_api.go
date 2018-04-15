@@ -34,7 +34,7 @@ func NewAPIHandler(n *Node, c APIConfig) *APIHandler {
 func (s *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	defer func(started time.Time) {
-		apiHandlerDurationSummary.Observe(float64(time.Since(started).Seconds()))
+		apiHandlerDurationSummary.Observe(time.Since(started).Seconds())
 	}(time.Now())
 
 	var data []byte
@@ -80,7 +80,7 @@ func (s *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		now := time.Now()
 		rep, err := s.handleAPICommand(r.Context(), enc, command)
-		apiCommandDurationSummary.WithLabelValues(strings.ToLower(apiproto.MethodType_name[int32(command.Method)])).Observe(float64(time.Since(now).Seconds()))
+		apiCommandDurationSummary.WithLabelValues(strings.ToLower(apiproto.MethodType_name[int32(command.Method)])).Observe(time.Since(now).Seconds())
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error handling API command", map[string]interface{}{"error": err.Error()}))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -99,7 +99,6 @@ func (s *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding, cmd *apiproto.Command) (*apiproto.Reply, error) {
-	var err error
 
 	method := cmd.Method
 	params := cmd.Params
@@ -267,6 +266,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 			rep.Error = resp.Error
 		} else {
 			if resp.Result != nil {
+				var err error
 				replyRes, err = encoder.EncodeChannels(resp.Result)
 				if err != nil {
 					return nil, err
@@ -279,6 +279,7 @@ func (s *APIHandler) handleAPICommand(ctx context.Context, enc apiproto.Encoding
 			rep.Error = resp.Error
 		} else {
 			if resp.Result != nil {
+				var err error
 				replyRes, err = encoder.EncodeInfo(resp.Result)
 				if err != nil {
 					return nil, err

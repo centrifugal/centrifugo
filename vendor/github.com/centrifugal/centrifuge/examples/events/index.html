@@ -33,6 +33,8 @@
 
                 centrifuge.on('message', function(data) {
                     drawText(JSON.stringify(data));
+                    // echo data back to server.
+                    centrifuge.send(data);
                 });
 
                 centrifuge.on('disconnect', function(ctx){

@@ -10,7 +10,7 @@ $(function(){
     paper.setup(canvas);
 
 	var doc = $(document)
-	var color = RandomColor();
+	var color = randomColor();
 	var points = 5;
 	var length = 15;
 	var tool = new Tool();
@@ -21,14 +21,16 @@ $(function(){
 	var clients = [];
 	var worms = [];
     
-    var centrifuge = new Centrifuge('http://localhost:8000/connection/websocket');
+    var centrifuge = new Centrifuge('ws://localhost:8000/connection/websocket');
 
     centrifuge.subscribe("moving", function(message) {
-        data = message.data;
+		data = message.data;
         var path = data.path[1];
 		if(!(data.id in clients)){
-			// New user has joined – create new worm.
-			worms[data.id] = createWorm(data.color);
+			if (data.id != id) {
+				// New user has joined – create new worm.
+				worms[data.id] = createWorm(data.color);
+			}
 		}
 		if (data.id !== id) {
         	worms[data.id].segments = path.segments;
@@ -42,7 +44,8 @@ $(function(){
 
     centrifuge.connect();
 
-	var myPath = createWorm(color);
+	var initialized = false;
+	var myPath;
 	
 	// Remove inactive clients after 10 seconds of inactivity
 	setInterval(function(){
@@ -57,7 +60,7 @@ $(function(){
 		}
 	}, 10000);
 
-	function createWorm(color, id){
+	function createWorm(color){
 		var path = new paper.Path({
 			strokeColor: color,
 			strokeWidth: 20,
@@ -72,7 +75,7 @@ $(function(){
 		return path;
 	}
 	
-	function RandomColor() {
+	function randomColor() {
 		colors = ['#5C4B51', '#8CBEB2', '#F3B562', '#F06060']
 		return colors[Math.floor(Math.random()*colors.length)];
 	}
@@ -81,6 +84,11 @@ $(function(){
     var lastEmit = $.now();
 
 	paper.tool.onMouseMove = function(event) {
+		if (!initialized) {
+			// initialize worm on first mouse move.
+			myPath = createWorm(color);
+			initialized = true;
+		}
 		myPath.firstSegment.point = event.point;
 		for (var i = 0; i < points - 1; i++) {
 			var segment = myPath.segments[i];
@@ -108,7 +116,7 @@ $(function(){
 	paper.tool.onMouseUp = function(event) {
 		var newColor = myPath.strokeColor;
         while(newColor === myPath.strokeColor){
-            newColor = RandomColor();
+            newColor = randomColor();
         }
         color = newColor;
         myPath.strokeColor = newColor;

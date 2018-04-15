@@ -13,11 +13,12 @@ Message transports:
 Features:
 
 * Fast and optimized for low-latency communication with thousands of client connections
-* Scaling to many nodes with Redis PUB/SUB, built-in Redis sharding
+* Scaling to many nodes with Redis PUB/SUB, built-in Redis sharding, Sentinel for HA
 * Presence information for channels (show all active clients in channel)
-* History information for channels (last messages sent into channels)
+* History information for channels (last messages sent into channel)
 * Join/leave events for channels (client goes online/offline)
 * Message recovery mechanism to survive short network disconnects
+* Bidirectional asynchronous message communication
 * RPC support to call custom handlers in your Go code
 * MIT license
 

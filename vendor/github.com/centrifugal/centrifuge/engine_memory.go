@@ -182,8 +182,7 @@ func (h *presenceHub) get(ch string) (map[string]*proto.ClientInfo, error) {
 		return nil, nil
 	}
 
-	var data map[string]*proto.ClientInfo
-	data = make(map[string]*proto.ClientInfo, len(presence))
+	data := make(map[string]*proto.ClientInfo, len(presence))
 	for k, v := range presence {
 		data[k] = v
 	}

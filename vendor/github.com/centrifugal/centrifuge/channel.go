@@ -41,11 +41,6 @@ type ChannelOptions struct {
 	// channel.
 	Presence bool `json:"presence"`
 
-	// PresenceStats turns on(off) presence stats information for channels.
-	// This is a short summary of presence which includes number of clients
-	// subscribed on channel and number of unique users at moment.
-	PresenceStats bool `mapstructure:"presence_stats" json:"presence_stats"`
-
 	// HistorySize determines max amount of history messages for channel,
 	// 0 means no history for channel. Centrifugo history has auxiliary
 	// role – it can not replace your backend persistent storage.

@@ -30,7 +30,15 @@
                 centrifuge.on('connect', function(ctx){
                     drawText('Connected with client ID ' + ctx.client + ' over ' + ctx.transport);
                     input.attr("disabled", false);
+                    centrifuge.send(new TextEncoder("utf-8").encode('hello'));
                 });
+
+                centrifuge.on('message', function(data) {
+                    var str = new TextDecoder("utf-8").decode(data);
+                    drawText(str);
+                    var echoData = new TextEncoder("utf-8").encode("ack " + str);
+                    centrifuge.send(echoData);
+                })
 
                 centrifuge.on('disconnect', function(ctx){
                     drawText('Disconnected: ' + ctx.reason + (ctx.reconnect?", will try to reconnect":", won't try to reconnect"));
@@ -130,6 +138,7 @@
                     sub.publish(binaryData).then(function() {
                         console.log('message accepted by server');
                     }, function(err) {
+                        drawText("Publish error: " + err.code + ' ' + err.message);
                         console.log('error publishing message', err);
                     });
                     input.val('');

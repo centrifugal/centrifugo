@@ -52,29 +52,29 @@ func main() {
 
 	node := centrifuge.New(cfg)
 
-	handleMessage := func(ctx context.Context, req centrifuge.MessageContext) centrifuge.MessageReply {
+	handleMessage := func(ctx context.Context, req centrifuge.MessageEvent) centrifuge.MessageReply {
 		var e event
 		_ = json.Unmarshal(req.Data, &e)
-		node.Publish("moving", &centrifuge.Publication{Data: []byte(e.Payload)})
+		node.Publish("moving", &centrifuge.Pub{Data: []byte(e.Payload)})
 		return centrifuge.MessageReply{}
 	}
 
-	handleConnect := func(ctx context.Context, req centrifuge.ConnectContext) centrifuge.ConnectReply {
+	handleConnect := func(ctx context.Context, req centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		log.Printf("worm connected via %s", req.Client.Transport().Name())
 		return centrifuge.ConnectReply{}
 	}
 
-	handleDisconnect := func(ctx context.Context, req centrifuge.DisconnectContext) centrifuge.DisconnectReply {
+	handleDisconnect := func(ctx context.Context, req centrifuge.DisconnectEvent) centrifuge.DisconnectReply {
 		log.Printf("worm disconnected, disconnect: %#v", req.Disconnect)
 		return centrifuge.DisconnectReply{}
 	}
 
-	handleSubscribe := func(ctx context.Context, req centrifuge.SubscribeContext) centrifuge.SubscribeReply {
+	handleSubscribe := func(ctx context.Context, req centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
 		log.Printf("worm subscribed on %s", req.Channel)
 		return centrifuge.SubscribeReply{}
 	}
 
-	handleUnsubscribe := func(ctx context.Context, req centrifuge.UnsubscribeContext) centrifuge.UnsubscribeReply {
+	handleUnsubscribe := func(ctx context.Context, req centrifuge.UnsubscribeEvent) centrifuge.UnsubscribeReply {
 		log.Printf("worm unsubscribed from %s", req.Channel)
 		return centrifuge.UnsubscribeReply{}
 	}

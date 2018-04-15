@@ -110,7 +110,7 @@ func (c *Config) Validate() error {
 
 	var nss []string
 	for _, n := range c.Namespaces {
-		name := string(n.Name)
+		name := n.Name
 		match, _ := regexp.MatchString(pattern, name)
 		if !match {
 			return errors.New(errPrefix + "wrong namespace name – " + name)

@@ -95,6 +95,7 @@ func (t *websocketTransport) Send(reply *preparedReply) error {
 	if disconnect != nil {
 		// Close in goroutine to not block message broadcast.
 		go t.Close(disconnect)
+		return io.EOF
 	}
 	return nil
 }
@@ -111,28 +112,27 @@ func (t *websocketTransport) write(data ...[]byte) error {
 			t.conn.SetWriteDeadline(time.Now().Add(t.opts.writeTimeout))
 		}
 
-		var err error
 		var messageType = websocket.TextMessage
 		if t.Encoding() == proto.EncodingProtobuf {
 			messageType = websocket.BinaryMessage
 		}
 		writer, err := t.conn.NextWriter(messageType)
 		if err != nil {
-			t.Close(&Disconnect{Reason: "error sending message", Reconnect: true})
+			t.Close(DisconnectWriteError)
 			return err
 		}
 		bytesOut := 0
 		for _, payload := range data {
 			n, err := writer.Write(payload)
 			if n != len(payload) || err != nil {
-				t.Close(&Disconnect{Reason: "error sending message", Reconnect: true})
+				t.Close(DisconnectWriteError)
 				return err
 			}
 			bytesOut += len(data)
 		}
 		err = writer.Close()
 		if err != nil {
-			t.Close(&Disconnect{Reason: "error sending message", Reconnect: true})
+			t.Close(DisconnectWriteError)
 			return err
 		}
 		if t.opts.writeTimeout > 0 {
@@ -140,7 +140,7 @@ func (t *websocketTransport) write(data ...[]byte) error {
 		}
 		transportMessagesSent.WithLabelValues(transportWebsocket).Add(float64(len(data)))
 		transportBytesOut.WithLabelValues(transportWebsocket).Add(float64(bytesOut))
-		return err
+		return nil
 	}
 }
 
@@ -150,12 +150,19 @@ func (t *websocketTransport) Close(disconnect *Disconnect) error {
 		t.mu.Unlock()
 		return nil
 	}
-	close(t.closeCh)
 	t.closed = true
 	if t.pingTimer != nil {
 		t.pingTimer.Stop()
 	}
 	t.mu.Unlock()
+
+	// Send messages remaining in queue.
+	t.writer.close()
+
+	t.mu.Lock()
+	close(t.closeCh)
+	t.mu.Unlock()
+
 	if disconnect != nil {
 		deadline := time.Now().Add(time.Second)
 		reason, err := json.Marshal(disconnect)
@@ -193,6 +200,10 @@ type WebsocketConfig struct {
 	// WriteBufferSize is a parameter that is used for raw websocket Upgrader.
 	// If set to zero reasonable default value will be used.
 	WriteBufferSize int
+
+	// CheckOrigin func to provide custom origin check logic.
+	// nil means allow all origins.
+	CheckOrigin func(r *http.Request) bool
 }
 
 // WebsocketHandler handles websocket client connections.
@@ -220,10 +231,14 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		ReadBufferSize:    s.config.ReadBufferSize,
 		WriteBufferSize:   s.config.WriteBufferSize,
 		EnableCompression: s.config.Compression,
-		CheckOrigin: func(r *http.Request) bool {
+	}
+	if s.config.CheckOrigin != nil {
+		upgrader.CheckOrigin = s.config.CheckOrigin
+	} else {
+		upgrader.CheckOrigin = func(r *http.Request) bool {
 			// Allow all connections.
 			return true
-		},
+		}
 	}
 
 	conn, err := upgrader.Upgrade(rw, r, nil)
@@ -273,7 +288,7 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		defer writer.close()
 		transport := newWebsocketTransport(conn, writer, opts)
 		c := newClient(r.Context(), s.node, transport)
-		defer c.Close(nil)
+		defer c.close(nil)
 
 		s.node.logger.log(newLogEntry(LogLevelDebug, "websocket connection established", map[string]interface{}{"client": c.ID()}))
 		defer func(started time.Time) {
@@ -299,7 +314,7 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 
 	if len(data) == 0 {
 		n.logger.log(newLogEntry(LogLevelError, "empty client request received"))
-		c.Close(DisconnectBadRequest)
+		c.close(DisconnectBadRequest)
 		return false
 	}
 
@@ -316,7 +331,7 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 				break
 			}
 			n.logger.log(newLogEntry(LogLevelInfo, "error decoding request", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "error": err.Error()}))
-			c.Close(DisconnectBadRequest)
+			c.close(DisconnectBadRequest)
 			proto.PutCommandDecoder(enc, decoder)
 			proto.PutReplyEncoder(enc, encoder)
 			return false
@@ -324,7 +339,7 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 		rep, disconnect := c.handle(cmd)
 		if disconnect != nil {
 			n.logger.log(newLogEntry(LogLevelInfo, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
-			c.Close(disconnect)
+			c.close(disconnect)
 			proto.PutCommandDecoder(enc, decoder)
 			proto.PutReplyEncoder(enc, encoder)
 			return false
@@ -334,7 +349,7 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 			numReplies++
 			if err != nil {
 				n.logger.log(newLogEntry(LogLevelError, "error encoding reply", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "client": c.ID(), "user": c.UserID(), "error": err.Error()}))
-				c.Close(DisconnectServerError)
+				c.close(DisconnectServerError)
 				return false
 			}
 		}
@@ -344,7 +359,7 @@ func handleClientData(n *Node, c *client, data []byte, transport Transport, writ
 		disconnect := writer.write(encoder.Finish())
 		if disconnect != nil {
 			n.logger.log(newLogEntry(LogLevelInfo, "disconnect after sending data to transport", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
-			c.Close(disconnect)
+			c.close(disconnect)
 			proto.PutCommandDecoder(enc, decoder)
 			proto.PutReplyEncoder(enc, encoder)
 			return false

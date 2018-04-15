@@ -34,8 +34,6 @@ const (
 	// redisPublishBatchLimit is a maximum limit of publish requests one batched publish
 	// operation can contain.
 	redisPublishBatchLimit = 2048
-	// redisDataBatchLimit limits amount of data operations combined in one pipeline.
-	redisDataBatchLimit = 8
 	// redisDataChannelSize is a buffer size of channel with data operation requests.
 	redisDataChannelSize = 256
 )
@@ -59,14 +57,12 @@ const (
 // connected to the same Redis and load balance clients between instances.
 type RedisEngine struct {
 	node     *Node
-	config   Config
 	sharding bool
 	shards   []*shard
 }
 
 // shard has everything to connect to Redis instance.
 type shard struct {
-	mu                sync.RWMutex
 	node              *Node
 	config            *RedisShardConfig
 	pool              *redis.Pool
@@ -535,11 +531,6 @@ func (e *shard) Run() error {
 	return nil
 }
 
-// Shutdown shuts down Redis engine.
-func (e *RedisEngine) shutdown() error {
-	return errors.New("Shutdown not implemented")
-}
-
 // runForever simple keeps another function running indefinitely
 // the reason this loop is not inside the function itself is so that defer
 // can be used to cleanup nicely (defers only run at function return not end of block scope)
@@ -549,21 +540,6 @@ func (e *shard) runForever(fn func()) {
 		// Sleep for a while to prevent busy loop when reconnecting to Redis.
 		time.Sleep(300 * time.Millisecond)
 	}
-}
-
-func (e *shard) blpopTimeout() int {
-	var timeout int
-	readTimeout := e.config.ReadTimeout
-	if readTimeout == 0 {
-		// No read timeout - we can block forever in BLPOP.
-		timeout = 0
-	} else {
-		timeout = int(readTimeout.Seconds() / 2)
-		if timeout == 0 {
-			timeout = 1
-		}
-	}
-	return timeout
 }
 
 func (e *shard) runPubSub() {
@@ -1232,7 +1208,7 @@ func (e *shard) Channels() ([]string, error) {
 			return nil, errors.New("error getting channelID value")
 		}
 		chID := channelID(value)
-		channels = append(channels, string(string(chID)[len(e.messagePrefix):]))
+		channels = append(channels, string(chID)[len(e.messagePrefix):])
 	}
 	return channels, nil
 }

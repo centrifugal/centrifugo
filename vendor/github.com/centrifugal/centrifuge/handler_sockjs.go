@@ -2,6 +2,7 @@ package centrifuge
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -52,6 +53,7 @@ func (t *sockjsTransport) Send(reply *preparedReply) error {
 	if disconnect != nil {
 		// Close in goroutine to not block message broadcast.
 		go t.Close(disconnect)
+		return io.EOF
 	}
 	return nil
 }
@@ -67,7 +69,7 @@ func (t *sockjsTransport) write(data ...[]byte) error {
 			transportBytesOut.WithLabelValues(transportSockJS).Add(float64(len(data)))
 			err := t.session.Send(string(payload))
 			if err != nil {
-				t.Close(&Disconnect{Reason: "error sending message", Reconnect: true})
+				t.Close(DisconnectWriteError)
 				return err
 			}
 		}
@@ -77,13 +79,21 @@ func (t *sockjsTransport) write(data ...[]byte) error {
 
 func (t *sockjsTransport) Close(disconnect *Disconnect) error {
 	t.mu.Lock()
-	defer t.mu.Unlock()
 	if t.closed {
 		// Already closed, noop.
+		t.mu.Unlock()
 		return nil
 	}
 	t.closed = true
+	t.mu.Unlock()
+
+	// Send messages remaining in queue.
+	t.writer.close()
+
+	t.mu.Lock()
 	close(t.closeCh)
+	t.mu.Unlock()
+
 	if disconnect == nil {
 		disconnect = DisconnectNormal
 	}
@@ -171,7 +181,7 @@ func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
 		defer writer.close()
 		transport := newSockjsTransport(sess, writer)
 		c := newClient(sess.Request().Context(), s.node, transport)
-		defer c.Close(nil)
+		defer c.close(nil)
 
 		s.node.logger.log(newLogEntry(LogLevelDebug, "SockJS connection established", map[string]interface{}{"client": c.ID()}))
 		defer func(started time.Time) {

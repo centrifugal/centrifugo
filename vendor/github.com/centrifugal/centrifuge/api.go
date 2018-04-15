@@ -26,7 +26,7 @@ func (h *apiExecutor) Publish(ctx context.Context, cmd *apiproto.PublishRequest)
 
 	resp := &apiproto.PublishResponse{}
 
-	if string(ch) == "" || len(data) == 0 {
+	if ch == "" || len(data) == 0 {
 		h.node.logger.log(newLogEntry(LogLevelError, "channel and data required for publish", nil))
 		resp.Error = apiproto.ErrorBadRequest
 		return resp
@@ -78,7 +78,7 @@ func (h *apiExecutor) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequ
 
 	for i, ch := range channels {
 
-		if string(ch) == "" {
+		if ch == "" {
 			h.node.logger.log(newLogEntry(LogLevelError, "channel can not be blank in broadcast", nil))
 			resp.Error = apiproto.ErrorBadRequest
 			return resp
@@ -159,7 +159,7 @@ func (h *apiExecutor) Presence(ctx context.Context, cmd *apiproto.PresenceReques
 
 	ch := cmd.Channel
 
-	if string(ch) == "" {
+	if ch == "" {
 		resp.Error = apiproto.ErrorBadRequest
 		return resp
 	}
@@ -200,7 +200,7 @@ func (h *apiExecutor) PresenceStats(ctx context.Context, cmd *apiproto.PresenceS
 
 	ch := cmd.Channel
 
-	if string(ch) == "" {
+	if ch == "" {
 		resp.Error = apiproto.ErrorBadRequest
 		return resp
 	}
@@ -211,7 +211,7 @@ func (h *apiExecutor) PresenceStats(ctx context.Context, cmd *apiproto.PresenceS
 		return resp
 	}
 
-	if !chOpts.Presence || !chOpts.PresenceStats {
+	if !chOpts.Presence {
 		resp.Error = apiproto.ErrorNotAvailable
 		return resp
 	}
@@ -250,7 +250,7 @@ func (h *apiExecutor) History(ctx context.Context, cmd *apiproto.HistoryRequest)
 
 	ch := cmd.Channel
 
-	if string(ch) == "" {
+	if ch == "" {
 		resp.Error = apiproto.ErrorBadRequest
 		return resp
 	}
@@ -296,7 +296,7 @@ func (h *apiExecutor) HistoryRemove(ctx context.Context, cmd *apiproto.HistoryRe
 
 	ch := cmd.Channel
 
-	if string(ch) == "" {
+	if ch == "" {
 		resp.Error = apiproto.ErrorBadRequest
 		return resp
 	}

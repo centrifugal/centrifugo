@@ -53,7 +53,7 @@ func (h *Hub) shutdown() error {
 			sem <- struct{}{}
 			go func(cc *client) {
 				defer func() { <-sem }()
-				cc.Close(advice)
+				cc.close(advice)
 				wg.Done()
 			}(cc)
 		}
@@ -68,7 +68,7 @@ func (h *Hub) disconnect(user string, reconnect bool) error {
 	advice := &Disconnect{Reason: "disconnect", Reconnect: reconnect}
 	for _, c := range userConnections {
 		go func(cc *client) {
-			cc.Close(advice)
+			cc.close(advice)
 		}(c)
 	}
 	return nil
@@ -77,19 +77,9 @@ func (h *Hub) disconnect(user string, reconnect bool) error {
 func (h *Hub) unsubscribe(user string, ch string) error {
 	userConnections := h.userConnections(user)
 	for _, c := range userConnections {
-		var channels []string
-		if string(ch) == "" {
-			// unsubscribe from all channels
-			channels = c.Channels()
-		} else {
-			channels = []string{ch}
-		}
-
-		for _, channel := range channels {
-			err := c.Unsubscribe(channel)
-			if err != nil {
-				return err
-			}
+		err := c.Unsubscribe(ch)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -152,8 +142,7 @@ func (h *Hub) userConnections(userID string) map[string]*client {
 		return map[string]*client{}
 	}
 
-	var conns map[string]*client
-	conns = make(map[string]*client, len(userConnections))
+	conns := make(map[string]*client, len(userConnections))
 	for uid := range userConnections {
 		c, ok := h.conns[uid]
 		if !ok {

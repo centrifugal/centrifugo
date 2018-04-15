@@ -59,7 +59,7 @@ func main() {
 
 			bindEnvs := []string{
 				"engine", "debug", "secret", "connection_lifetime",
-				"publish", "anonymous", "join_leave", "presence", "presence_stats",
+				"publish", "anonymous", "join_leave", "presence",
 				"history_recover", "history_size", "history_lifetime", "history_drop_inactive",
 				"client_insecure", "api_insecure", "admin", "admin_password", "admin_secret",
 				"admin_insecure", "redis_host", "redis_port", "redis_url",
@@ -342,7 +342,6 @@ var configDefaults = map[string]interface{}{
 	"publish":                         false,
 	"anonymous":                       false,
 	"presence":                        false,
-	"presence_stats":                  false,
 	"history_size":                    0,
 	"history_lifetime":                0,
 	"history_recover":                 false,
@@ -764,7 +763,6 @@ func nodeConfig() *centrifuge.Config {
 	cfg.Publish = v.GetBool("publish")
 	cfg.Anonymous = v.GetBool("anonymous")
 	cfg.Presence = v.GetBool("presence")
-	cfg.PresenceStats = v.GetBool("presence_stats")
 	cfg.JoinLeave = v.GetBool("join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryLifetime = v.GetInt("history_lifetime")

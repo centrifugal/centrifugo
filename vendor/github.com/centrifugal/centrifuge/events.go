@@ -1,6 +1,8 @@
 package centrifuge
 
-import "context"
+import (
+	"context"
+)
 
 // Mediator allows to proxy Centrifugo events to Go application code.
 type Mediator struct {
@@ -25,14 +27,14 @@ type Mediator struct {
 	Message MessageHandler
 }
 
-// EventContext added to all specific event contexts.
-type EventContext struct {
+// Event added to all specific event contexts.
+type Event struct {
 	Client Client
 }
 
-// ConnectContext contains fields related to connect event.
-type ConnectContext struct {
-	EventContext
+// ConnectEvent contains fields related to connect event.
+type ConnectEvent struct {
+	Event
 }
 
 // ConnectReply contains fields determining the reaction on connect event.
@@ -42,11 +44,11 @@ type ConnectReply struct {
 }
 
 // ConnectHandler ...
-type ConnectHandler func(context.Context, ConnectContext) ConnectReply
+type ConnectHandler func(context.Context, ConnectEvent) ConnectReply
 
-// DisconnectContext contains fields related to disconnect event.
-type DisconnectContext struct {
-	EventContext
+// DisconnectEvent contains fields related to disconnect event.
+type DisconnectEvent struct {
+	Event
 	Disconnect *Disconnect
 }
 
@@ -54,26 +56,27 @@ type DisconnectContext struct {
 type DisconnectReply struct{}
 
 // DisconnectHandler ...
-type DisconnectHandler func(context.Context, DisconnectContext) DisconnectReply
+type DisconnectHandler func(context.Context, DisconnectEvent) DisconnectReply
 
-// SubscribeContext contains fields related to subscribe event.
-type SubscribeContext struct {
-	EventContext
+// SubscribeEvent contains fields related to subscribe event.
+type SubscribeEvent struct {
+	Event
 	Channel string
 }
 
 // SubscribeReply contains fields determining the reaction on subscribe event.
 type SubscribeReply struct {
-	Error      *Error
-	Disconnect *Disconnect
+	Error       *Error
+	Disconnect  *Disconnect
+	ChannelInfo Raw
 }
 
 // SubscribeHandler ...
-type SubscribeHandler func(context.Context, SubscribeContext) SubscribeReply
+type SubscribeHandler func(context.Context, SubscribeEvent) SubscribeReply
 
-// UnsubscribeContext contains fields related to unsubscribe event.
-type UnsubscribeContext struct {
-	EventContext
+// UnsubscribeEvent contains fields related to unsubscribe event.
+type UnsubscribeEvent struct {
+	Event
 	Channel string
 }
 
@@ -82,11 +85,11 @@ type UnsubscribeReply struct {
 }
 
 // UnsubscribeHandler ...
-type UnsubscribeHandler func(context.Context, UnsubscribeContext) UnsubscribeReply
+type UnsubscribeHandler func(context.Context, UnsubscribeEvent) UnsubscribeReply
 
-// PublishContext contains fields related to publish event.
-type PublishContext struct {
-	EventContext
+// PublishEvent contains fields related to publish event.
+type PublishEvent struct {
+	Event
 	Channel string
 	Pub     *Pub
 }
@@ -98,12 +101,11 @@ type PublishReply struct {
 }
 
 // PublishHandler ...
-type PublishHandler func(context.Context, PublishContext) PublishReply
+type PublishHandler func(context.Context, PublishEvent) PublishReply
 
-// PresenceContext contains fields related to presence update event.
-type PresenceContext struct {
-	EventContext
-	Channels []string
+// PresenceEvent contains fields related to presence update event.
+type PresenceEvent struct {
+	Event
 }
 
 // PresenceReply contains fields determining the reaction on presence update event.
@@ -112,11 +114,11 @@ type PresenceReply struct {
 }
 
 // PresenceHandler ...
-type PresenceHandler func(context.Context, PresenceContext) PresenceReply
+type PresenceHandler func(context.Context, PresenceEvent) PresenceReply
 
-// RefreshContext contains fields related to refresh event.
-type RefreshContext struct {
-	EventContext
+// RefreshEvent contains fields related to refresh event.
+type RefreshEvent struct {
+	Event
 }
 
 // RefreshReply contains fields determining the reaction on refresh event.
@@ -126,11 +128,11 @@ type RefreshReply struct {
 }
 
 // RefreshHandler ...
-type RefreshHandler func(context.Context, RefreshContext) RefreshReply
+type RefreshHandler func(context.Context, RefreshEvent) RefreshReply
 
-// RPCContext contains fields related to rpc request.
-type RPCContext struct {
-	EventContext
+// RPCEvent contains fields related to rpc request.
+type RPCEvent struct {
+	Event
 	Data Raw
 }
 
@@ -142,11 +144,11 @@ type RPCReply struct {
 }
 
 // RPCHandler must handle incoming command from client.
-type RPCHandler func(context.Context, RPCContext) RPCReply
+type RPCHandler func(context.Context, RPCEvent) RPCReply
 
-// MessageContext contains fields related to message request.
-type MessageContext struct {
-	EventContext
+// MessageEvent contains fields related to message request.
+type MessageEvent struct {
+	Event
 	Data Raw
 }
 
@@ -156,4 +158,4 @@ type MessageReply struct {
 }
 
 // MessageHandler must handle incoming async message from client.
-type MessageHandler func(context.Context, MessageContext) MessageReply
+type MessageHandler func(context.Context, MessageEvent) MessageReply

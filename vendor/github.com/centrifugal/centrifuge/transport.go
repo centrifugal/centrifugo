@@ -116,9 +116,9 @@ func (w *writer) runWriteRoutine() {
 				if len(msgs) >= maxMessagesInFrame {
 					break
 				}
-				msg, ok := w.messages.Remove()
+				m, ok := w.messages.Remove()
 				if ok {
-					msgs = append(msgs, msg)
+					msgs = append(msgs, m)
 				} else {
 					if w.messages.Closed() {
 						return
@@ -127,11 +127,15 @@ func (w *writer) runWriteRoutine() {
 				}
 			}
 			if len(msgs) > 0 {
+				w.mu.Lock()
 				writeErr = w.writeFn(msgs...)
+				w.mu.Unlock()
 			}
 		} else {
 			// Write single message without allocating new [][]byte slice.
+			w.mu.Lock()
 			writeErr = w.writeFn(msg)
+			w.mu.Unlock()
 		}
 		if writeErr != nil {
 			// Write failed, transport must close itself, here we just return from routine.
@@ -143,10 +147,10 @@ func (w *writer) runWriteRoutine() {
 func (w *writer) write(data []byte) *Disconnect {
 	ok := w.messages.Add(data)
 	if !ok {
-		return nil
+		return DisconnectNormal
 	}
 	if w.config.MaxQueueSize > 0 && w.messages.Size() > w.config.MaxQueueSize {
-		return &Disconnect{Reason: "slow", Reconnect: true}
+		return DisconnectSlow
 	}
 	return nil
 }
@@ -161,8 +165,13 @@ func (w *writer) close() error {
 		w.mu.Unlock()
 		return nil
 	}
-	w.messages.Close()
 	w.closed = true
 	w.mu.Unlock()
+
+	remaining := w.messages.CloseRemaining()
+	w.mu.Lock()
+	w.writeFn(remaining...)
+	w.mu.Unlock()
+
 	return nil
 }

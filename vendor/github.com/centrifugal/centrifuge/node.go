@@ -491,11 +491,11 @@ func (n *Node) nodeCmd(node *controlproto.Node) error {
 // string then user will be unsubscribed from all channels.
 func (n *Node) Unsubscribe(user string, ch string) error {
 
-	if string(user) == "" {
+	if user == "" {
 		return ErrorBadRequest
 	}
 
-	if string(ch) != "" {
+	if ch != "" {
 		_, ok := n.ChannelOpts(ch)
 		if !ok {
 			return ErrorNamespaceNotFound
@@ -518,7 +518,7 @@ func (n *Node) Unsubscribe(user string, ch string) error {
 // Disconnect allows to close all user connections to Centrifugo.
 func (n *Node) Disconnect(user string, reconnect bool) error {
 
-	if string(user) == "" {
+	if user == "" {
 		return ErrorBadRequest
 	}
 
@@ -593,9 +593,9 @@ func (n *Node) RemoveHistory(ch string) error {
 	return n.engine.removeHistory(ch)
 }
 
-// lastPublicationUID return last message id for channel.
-func (n *Node) lastPublicationUID(ch string) (string, error) {
-	actionCount.WithLabelValues("last_publication_uid").Inc()
+// lastPubUID return last message id for channel.
+func (n *Node) lastPubUID(ch string) (string, error) {
+	actionCount.WithLabelValues("last_pub_uid").Inc()
 	publications, err := n.engine.history(ch, historyFilter{Limit: 1})
 	if err != nil {
 		return "", err
@@ -611,7 +611,7 @@ func (n *Node) lastPublicationUID(ch string) (string, error) {
 func (n *Node) privateChannel(ch string) bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
-	return strings.HasPrefix(string(ch), n.config.ChannelPrivatePrefix)
+	return strings.HasPrefix(ch, n.config.ChannelPrivatePrefix)
 }
 
 // userAllowed checks if user can subscribe on channel - as channel
@@ -626,7 +626,7 @@ func (n *Node) userAllowed(ch string, user string) bool {
 	parts := strings.Split(ch, n.config.ChannelUserBoundary)
 	allowedUsers := strings.Split(parts[len(parts)-1], n.config.ChannelUserSeparator)
 	for _, allowedUser := range allowedUsers {
-		if string(user) == allowedUser {
+		if user == allowedUser {
 			return true
 		}
 	}
@@ -666,7 +666,7 @@ func (r *nodeRegistry) list() []controlproto.Node {
 
 func (r *nodeRegistry) get(uid string) controlproto.Node {
 	r.mu.RLock()
-	info, _ := r.nodes[uid]
+	info := r.nodes[uid]
 	r.mu.RUnlock()
 	return info
 }

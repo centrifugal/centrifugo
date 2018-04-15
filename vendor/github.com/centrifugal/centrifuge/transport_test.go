@@ -97,18 +97,18 @@ func BenchmarkWriteMergeDisabled(b *testing.B) {
 	b.StopTimer()
 }
 
-type testTransport struct {
+type fakeTransport struct {
 	count int
 	ch    chan struct{}
 }
 
-func newTestTransport() *testTransport {
-	return &testTransport{
+func newFakeTransport() *fakeTransport {
+	return &fakeTransport{
 		ch: make(chan struct{}, 1),
 	}
 }
 
-func (t *testTransport) write(bufs ...[]byte) error {
+func (t *fakeTransport) write(bufs ...[]byte) error {
 	for range bufs {
 		t.count++
 		t.ch <- struct{}{}
@@ -118,7 +118,7 @@ func (t *testTransport) write(bufs ...[]byte) error {
 
 func TestWriter(t *testing.T) {
 	w := newWriter(writerConfig{MaxMessagesInFrame: 4})
-	transport := newTestTransport()
+	transport := newFakeTransport()
 	w.onWrite(transport.write)
 	disconnect := w.write([]byte("test"))
 	assert.Nil(t, disconnect)
@@ -130,7 +130,7 @@ func TestWriter(t *testing.T) {
 
 func TestWriterDisconnect(t *testing.T) {
 	w := newWriter(writerConfig{MaxQueueSize: 1})
-	transport := newTestTransport()
+	transport := newFakeTransport()
 	w.onWrite(transport.write)
 	disconnect := w.write([]byte("test"))
 	assert.NotNil(t, disconnect)

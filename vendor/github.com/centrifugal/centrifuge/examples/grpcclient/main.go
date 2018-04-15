@@ -157,8 +157,8 @@ func run() {
 				log.Println(err)
 				return
 			}
-			if message.Type == proto.MessageTypePublication {
-				var publication proto.Publication
+			if message.Type == proto.MessageTypePub {
+				var publication proto.Pub
 				err = publication.Unmarshal(message.Data)
 				if err != nil {
 					log.Println(err)

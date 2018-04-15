@@ -46,7 +46,7 @@ func (s *grpcClientService) Communicate(stream proto.Centrifuge_CommunicateServe
 	transport := newGRPCTransport(stream, replies)
 
 	c := newClient(stream.Context(), s.node, transport)
-	defer c.Close(DisconnectNormal)
+	defer c.close(DisconnectNormal)
 
 	s.node.logger.log(newLogEntry(LogLevelDebug, "GRPC connection established", map[string]interface{}{"client": c.ID()}))
 	defer func(started time.Time) {
@@ -57,23 +57,23 @@ func (s *grpcClientService) Communicate(stream proto.Centrifuge_CommunicateServe
 		for {
 			cmd, err := stream.Recv()
 			if err == io.EOF {
-				c.Close(DisconnectNormal)
+				c.close(DisconnectNormal)
 				return
 			}
 			if err != nil {
-				c.Close(DisconnectNormal)
+				c.close(DisconnectNormal)
 				return
 			}
 			rep, disconnect := c.handle(cmd)
 			if disconnect != nil {
 				s.node.logger.log(newLogEntry(LogLevelInfo, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
-				c.Close(disconnect)
+				c.close(disconnect)
 				return
 			}
 			if rep != nil {
 				err = transport.Send(newPreparedReply(rep, proto.EncodingProtobuf))
 				if err != nil {
-					c.Close(&Disconnect{Reason: "error sending message", Reconnect: true})
+					c.close(&Disconnect{Reason: "error sending message", Reconnect: true})
 					return
 				}
 			}
@@ -110,7 +110,7 @@ func newGRPCTransport(stream proto.Centrifuge_CommunicateServer, replies chan *p
 }
 
 func (t *grpcTransport) Name() string {
-	return "grpc"
+	return transportGRPC
 }
 
 func (t *grpcTransport) Encoding() proto.Encoding {
@@ -121,7 +121,8 @@ func (t *grpcTransport) Send(reply *preparedReply) error {
 	select {
 	case t.replies <- reply.Reply:
 	default:
-		return fmt.Errorf("error sending to transport: buffer channel is full")
+		go t.Close(DisconnectSlow)
+		return io.EOF
 	}
 	return nil
 }
