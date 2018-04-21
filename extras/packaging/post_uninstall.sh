@@ -1,9 +1,16 @@
 #!/bin/bash
 
 function disable_systemd {
-	systemctl stop centrifugo || :
-    systemctl disable centrifugo
-    rm -f /lib/systemd/system/centrifugo.service
+	systemctl is-active centrifugo &>/dev/null
+	if [[ $? -eq 0 ]]; then
+		systemctl stop centrifugo || :
+	fi
+	systemctl is-enabled centrifugo &>/dev/null
+	if [[ $? -ne 0 ]]; then
+		systemctl disable centrifugo &>/dev/null
+	fi
+	rm -f /lib/systemd/system/centrifugo.service
+	systemctl daemon-reload
 }
 
 function disable_upstart {

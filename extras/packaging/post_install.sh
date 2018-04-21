@@ -17,7 +17,11 @@ function install_initel6 {
 
 function install_systemd {
     cp -f $SCRIPT_DIR/centrifugo.service /lib/systemd/system/centrifugo.service
-    systemctl enable centrifugo
+    systemctl is-enabled centrifugo &>/dev/null
+    if [[ $? -ne 0 ]]; then
+        systemctl enable centrifugo &>/dev/null
+    fi
+    systemctl daemon-reload
 }
 
 function install_upstart {
