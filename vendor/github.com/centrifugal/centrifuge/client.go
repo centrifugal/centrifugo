@@ -10,8 +10,7 @@ import (
 
 	"github.com/centrifugal/centrifuge/internal/auth"
 	"github.com/centrifugal/centrifuge/internal/proto"
-
-	uuid "github.com/satori/go.uuid"
+	"github.com/centrifugal/centrifuge/internal/uuid"
 )
 
 // Client interface contains functions to inspect and control client
@@ -31,6 +30,34 @@ type Client interface {
 	Unsubscribe(ch string) error
 	// Close closes client connection.
 	Close(*Disconnect) error
+	// OnMessage allows to set MessageHandler.
+	// MessageHandler called when client sent asynchronous message.
+	// This method is not goroutine-safe and supposed to be called once on connect.
+	OnMessage(MessageHandler)
+	// OnDisconnect allows to set DisconnectHandler.
+	// DisconnectHandler called when client disconnected.
+	// This method is not goroutine-safe and supposed to be called once on connect.
+	OnDisconnect(DisconnectHandler)
+	// OnRPC allows to set RPCHandler.
+	// RPCHandler will be executed on every incoming RPC call.
+	// This method is not goroutine-safe and supposed to be called once on connect.
+	OnRPC(RPCHandler)
+	// OnPublish allows to set PublishHandler.
+	// PublishHandler called when client publishes message into channel.
+	// This method is not goroutine-safe and supposed to be called once on connect.
+	OnPublish(PublishHandler)
+	// OnSubscribe allows to set SubscribeHandler.
+	// SubscribeHandler called when client subscribes on channel.
+	// This method is not goroutine-safe and supposed to be called once on connect.
+	OnSubscribe(SubscribeHandler)
+	// OnUnsubscribe allows to set UnsubscribeHandler.
+	// UnsubscribeHandler called when client unsubscribes from channel.
+	// This method is not goroutine-safe and supposed to be called once on connect.
+	OnUnsubscribe(UnsubscribeHandler)
+	// OnRefresh allows to set RefreshHandler.
+	// RefreshHandler called when it's time to refresh connection credentials.
+	// This method is not goroutine-safe and supposed to be called once on connect.
+	OnRefresh(RefreshHandler)
 }
 
 // Credentials allows to authenticate connection when set into context.
@@ -75,13 +102,25 @@ type client struct {
 	presenceTimer *time.Timer
 
 	disconnect *Disconnect
+
+	disconnectHandler  DisconnectHandler
+	subscribeHandler   SubscribeHandler
+	unsubscribeHandler UnsubscribeHandler
+	publishHandler     PublishHandler
+	refreshHandler     RefreshHandler
+	rpcHandler         RPCHandler
+	messageHandler     MessageHandler
 }
 
 // newClient creates new client connection.
-func newClient(ctx context.Context, n *Node, t transport) *client {
+func newClient(ctx context.Context, n *Node, t transport) (*client, error) {
+	uuidObject, err := uuid.NewV4()
+	if err != nil {
+		return nil, err
+	}
 	c := &client{
 		ctx:       ctx,
-		uid:       uuid.NewV4().String(),
+		uid:       uuidObject.String(),
 		node:      n,
 		transport: t,
 	}
@@ -94,7 +133,7 @@ func newClient(ctx context.Context, n *Node, t transport) *client {
 		c.mu.Unlock()
 	}
 
-	return c
+	return c, nil
 }
 
 // closeUnauthenticated closes connection if it's not authenticated yet.
@@ -129,29 +168,11 @@ func (c *client) updateChannelPresence(ch string) error {
 // updatePresence updates presence info for all client channels
 func (c *client) updatePresence() {
 	c.mu.Lock()
-	if c.closed {
-		c.mu.Unlock()
-		return
-	}
-	c.mu.Unlock()
-
-	channels := c.Channels()
-
-	if c.node.Mediator() != nil && c.node.Mediator().Presence != nil {
-		c.node.Mediator().Presence(c.ctx, PresenceEvent{
-			Event: Event{
-				Client: c,
-			},
-		})
-	}
-
-	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.closed {
 		return
 	}
-
-	for channel := range channels {
+	for channel := range c.channels {
 		err := c.updateChannelPresence(channel)
 		if err != nil {
 			c.node.logger.log(newLogEntry(LogLevelError, "error updating presence for channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid, "error": err.Error()}))
@@ -191,6 +212,34 @@ func (c *client) Channels() map[string]ChannelContext {
 		channels[ch] = ctx
 	}
 	return channels
+}
+
+func (c *client) OnDisconnect(h DisconnectHandler) {
+	c.disconnectHandler = h
+}
+
+func (c *client) OnMessage(h MessageHandler) {
+	c.messageHandler = h
+}
+
+func (c *client) OnRPC(h RPCHandler) {
+	c.rpcHandler = h
+}
+
+func (c *client) OnRefresh(h RefreshHandler) {
+	c.refreshHandler = h
+}
+
+func (c *client) OnSubscribe(h SubscribeHandler) {
+	c.subscribeHandler = h
+}
+
+func (c *client) OnUnsubscribe(h UnsubscribeHandler) {
+	c.unsubscribeHandler = h
+}
+
+func (c *client) OnPublish(h PublishHandler) {
+	c.publishHandler = h
 }
 
 func (c *client) Send(data Raw) error {
@@ -319,11 +368,8 @@ func (c *client) close(disconnect *Disconnect) error {
 
 	c.transport.Close(disconnect)
 
-	if c.node.Mediator() != nil && c.node.Mediator().Disconnect != nil {
-		c.node.Mediator().Disconnect(c.ctx, DisconnectEvent{
-			Event: Event{
-				Client: c,
-			},
+	if c.disconnectHandler != nil {
+		c.disconnectHandler(DisconnectEvent{
 			Disconnect: disconnect,
 		})
 	}
@@ -424,13 +470,8 @@ func (c *client) expire() {
 		return
 	}
 
-	mediator := c.node.Mediator()
-	if mediator != nil && mediator.Refresh != nil {
-		reply := mediator.Refresh(c.ctx, RefreshEvent{
-			Event: Event{
-				Client: c,
-			},
-		})
+	if c.refreshHandler != nil {
+		reply := c.refreshHandler(RefreshEvent{})
 		if reply.Exp > 0 {
 			c.exp = reply.Exp
 			if reply.Info != nil {
@@ -445,7 +486,7 @@ func (c *client) expire() {
 
 	ttl := exp - time.Now().Unix()
 
-	if mediator != nil && mediator.Refresh != nil {
+	if c.refreshHandler != nil {
 		if ttl > 0 {
 			c.mu.RLock()
 			if c.expireTimer != nil {
@@ -686,17 +727,13 @@ func (c *client) handlePing(params proto.Raw) (proto.Raw, *proto.Error, *Disconn
 }
 
 func (c *client) handleRPC(params proto.Raw) (proto.Raw, *proto.Error, *Disconnect) {
-	mediator := c.node.Mediator()
-	if mediator != nil && mediator.RPC != nil {
+	if c.rpcHandler != nil {
 		cmd, err := proto.GetParamsDecoder(c.transport.Encoding()).DecodeRPC(params)
 		if err != nil {
 			c.node.logger.log(newLogEntry(LogLevelInfo, "error decoding rpc", map[string]interface{}{"error": err.Error()}))
 			return nil, nil, DisconnectBadRequest
 		}
-		rpcReply := mediator.RPC(c.ctx, RPCEvent{
-			Event: Event{
-				Client: c,
-			},
+		rpcReply := c.rpcHandler(RPCEvent{
 			Data: cmd.Data,
 		})
 		if rpcReply.Disconnect != nil {
@@ -722,17 +759,13 @@ func (c *client) handleRPC(params proto.Raw) (proto.Raw, *proto.Error, *Disconne
 }
 
 func (c *client) handleMessage(params proto.Raw) *Disconnect {
-	mediator := c.node.Mediator()
-	if mediator != nil && mediator.Message != nil {
+	if c.messageHandler != nil {
 		cmd, err := proto.GetParamsDecoder(c.transport.Encoding()).DecodeMessage(params)
 		if err != nil {
 			c.node.logger.log(newLogEntry(LogLevelInfo, "error decoding message", map[string]interface{}{"error": err.Error()}))
 			return DisconnectBadRequest
 		}
-		messageReply := mediator.Message(c.ctx, MessageEvent{
-			Event: Event{
-				Client: c,
-			},
+		messageReply := c.messageHandler(MessageEvent{
 			Data: cmd.Data,
 		})
 		if messageReply.Disconnect != nil {
@@ -863,7 +896,7 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 		Expired: expired,
 	}
 
-	if c.node.Mediator() != nil && c.node.Mediator().Refresh != nil {
+	if c.refreshHandler != nil {
 		res.Expires = false
 		res.TTL = 0
 	}
@@ -898,12 +931,8 @@ func (c *client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 		c.mu.Unlock()
 	}
 
-	if c.node.Mediator() != nil && c.node.Mediator().Connect != nil {
-		reply := c.node.Mediator().Connect(c.ctx, ConnectEvent{
-			Event: Event{
-				Client: c,
-			},
-		})
+	if c.node.ConnectHandler() != nil {
+		reply := c.node.ConnectHandler()(c.ctx, c, ConnectEvent{})
 		if reply.Disconnect != nil {
 			return resp, reply.Disconnect
 		}
@@ -1105,11 +1134,8 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 		}
 	}
 
-	if c.node.Mediator() != nil && c.node.Mediator().Subscribe != nil {
-		reply := c.node.Mediator().Subscribe(c.ctx, SubscribeEvent{
-			Event: Event{
-				Client: c,
-			},
+	if c.subscribeHandler != nil {
+		reply := c.subscribeHandler(SubscribeEvent{
 			Channel: channel,
 		})
 		if reply.Disconnect != nil {
@@ -1222,11 +1248,8 @@ func (c *client) unsubscribe(channel string) error {
 			return err
 		}
 
-		if c.node.Mediator() != nil && c.node.Mediator().Unsubscribe != nil {
-			c.node.Mediator().Unsubscribe(c.ctx, UnsubscribeEvent{
-				Event: Event{
-					Client: c,
-				},
+		if c.unsubscribeHandler != nil {
+			c.unsubscribeHandler(UnsubscribeEvent{
 				Channel: channel,
 			})
 		}
@@ -1308,11 +1331,8 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 		Info: info,
 	}
 
-	if c.node.Mediator() != nil && c.node.Mediator().Publish != nil {
-		reply := c.node.Mediator().Publish(c.ctx, PublishEvent{
-			Event: Event{
-				Client: c,
-			},
+	if c.publishHandler != nil {
+		reply := c.publishHandler(PublishEvent{
 			Channel: ch,
 			Pub:     pub,
 		})

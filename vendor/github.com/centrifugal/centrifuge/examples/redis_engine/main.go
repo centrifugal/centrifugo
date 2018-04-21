@@ -2,18 +2,23 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
 	_ "net/http/pprof"
 
 	"github.com/centrifugal/centrifuge"
+)
+
+var (
+	port = flag.Int("port", 8000, "Port to bind app to")
 )
 
 func handleLog(e centrifuge.LogEntry) {
@@ -26,7 +31,7 @@ func authMiddleware(h http.Handler) http.Handler {
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, centrifuge.CredentialsContextKey, &centrifuge.Credentials{
 			UserID: "42",
-			Exp:    time.Now().Unix() + 60,
+			Exp:    time.Now().Unix() + 10,
 			Info:   []byte(`{"name": "Alexander"}`),
 		})
 		r = r.WithContext(ctx)
@@ -47,15 +52,16 @@ func waitExitSignal(n *centrifuge.Node) {
 }
 
 func main() {
+	flag.Parse()
+
 	cfg := centrifuge.DefaultConfig
-	cfg.ClientExpire = true
 	cfg.Namespaces = []centrifuge.ChannelNamespace{
 		centrifuge.ChannelNamespace{
 			Name: "chat",
 			ChannelOptions: centrifuge.ChannelOptions{
 				Publish:   true,
-				Presence:  true,
 				JoinLeave: true,
+				Presence:  true,
 			},
 		},
 	}
@@ -79,46 +85,33 @@ func main() {
 			return centrifuge.PublishReply{}
 		})
 
-		client.OnRPC(func(e centrifuge.RPCEvent) centrifuge.RPCReply {
-			log.Printf("RPC from user: %s, data: %s", client.UserID(), string(e.Data))
-			return centrifuge.RPCReply{
-				Data: []byte(`{"year": "2018"}`),
-			}
-		})
-
-		client.OnMessage(func(e centrifuge.MessageEvent) centrifuge.MessageReply {
-			log.Printf("Message from user: %s, data: %s", client.UserID(), string(e.Data))
-			return centrifuge.MessageReply{}
-		})
-
-		client.OnRefresh(func(e centrifuge.RefreshEvent) centrifuge.RefreshReply {
-			log.Printf("user %s connection is going to expire, refreshing", client.UserID())
-			return centrifuge.RefreshReply{
-				Exp: time.Now().Unix() + 60,
-			}
-		})
-
 		client.OnDisconnect(func(e centrifuge.DisconnectEvent) centrifuge.DisconnectReply {
 			log.Printf("user %s disconnected, disconnect: %#v", client.UserID(), e.Disconnect)
 			return centrifuge.DisconnectReply{}
 		})
 
 		log.Printf("user %s connected via %s with encoding: %d", client.UserID(), client.Transport().Name(), client.Transport().Encoding())
-
-		go func() {
-			err := client.Send([]byte("hello"))
-			if err != nil {
-				if err == io.EOF {
-					return
-				}
-				log.Fatalln(err.Error())
-			}
-		}()
-
 		return centrifuge.ConnectReply{}
 	})
 
 	node.SetLogHandler(centrifuge.LogLevelDebug, handleLog)
+
+	engine, err := centrifuge.NewRedisEngine(node, centrifuge.RedisEngineConfig{
+		Shards: []centrifuge.RedisShardConfig{
+			centrifuge.RedisShardConfig{
+				Host: "localhost",
+				Port: 6379,
+			},
+			centrifuge.RedisShardConfig{
+				Host: "localhost",
+				Port: 6380,
+			},
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+	node.SetEngine(engine)
 
 	if err := node.Run(); err != nil {
 		panic(err)
@@ -128,7 +121,7 @@ func main() {
 	http.Handle("/", http.FileServer(http.Dir("./")))
 
 	go func() {
-		if err := http.ListenAndServe(":8000", nil); err != nil {
+		if err := http.ListenAndServe(":"+strconv.Itoa(*port), nil); err != nil {
 			panic(err)
 		}
 	}()

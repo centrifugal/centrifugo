@@ -6,6 +6,7 @@ import (
 	"hash/fnv"
 	"net"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -38,6 +39,14 @@ const (
 	redisDataChannelSize = 256
 )
 
+const (
+	defaultPrefix         = "centrifuge"
+	defaultReadTimeout    = 5 * time.Second
+	defaultWriteTimeout   = time.Second
+	defaultConnectTimeout = time.Second
+	defaultPoolSize       = 256
+)
+
 type (
 	// channelID is unique channel identificator in Redis.
 	channelID string
@@ -64,7 +73,7 @@ type RedisEngine struct {
 // shard has everything to connect to Redis instance.
 type shard struct {
 	node              *Node
-	config            *RedisShardConfig
+	config            RedisShardConfig
 	pool              *redis.Pool
 	subCh             chan subRequest
 	pubCh             chan pubRequest
@@ -82,7 +91,7 @@ type shard struct {
 
 // RedisEngineConfig of Redis Engine.
 type RedisEngineConfig struct {
-	Shards []*RedisShardConfig
+	Shards []RedisShardConfig
 }
 
 // RedisShardConfig is struct with Redis Engine options.
@@ -90,7 +99,7 @@ type RedisShardConfig struct {
 	// Host is Redis server host.
 	Host string
 	// Port is Redis server port.
-	Port string
+	Port int
 	// Password is password to use when connecting to Redis database. If empty then password not used.
 	Password string
 	// DB is Redis database number. If not set then database 0 used.
@@ -99,8 +108,6 @@ type RedisShardConfig struct {
 	MasterName string
 	// SentinelAddrs is a slice of Sentinel addresses.
 	SentinelAddrs []string
-	// PoolSize is a size of Redis connection pool.
-	PoolSize int
 	// Prefix to use before every channel name and key in Redis.
 	Prefix string
 	// PubSubNumWorkers sets how many PUB/SUB message processing workers will be started.
@@ -152,29 +159,31 @@ func (sr *subRequest) result() error {
 	return <-sr.err
 }
 
-func newPool(n *Node, conf *RedisShardConfig) *redis.Pool {
+func newPool(n *Node, conf RedisShardConfig) *redis.Pool {
 
 	host := conf.Host
 	port := conf.Port
 	password := conf.Password
 	db := conf.DB
 
-	serverAddr := net.JoinHostPort(host, port)
+	serverAddr := net.JoinHostPort(host, strconv.Itoa(port))
 	useSentinel := conf.MasterName != "" && len(conf.SentinelAddrs) > 0
 
 	usingPassword := password != ""
 	if !useSentinel {
-		n.logger.log(newLogEntry(LogLevelInfo, fmt.Sprintf("Redis: %s/%d, pool: %d, using password: %v", serverAddr, db, conf.PoolSize, usingPassword)))
+		n.logger.log(newLogEntry(LogLevelInfo, fmt.Sprintf("Redis: %s/%d, using password: %v", serverAddr, db, usingPassword)))
 	} else {
-		n.logger.log(newLogEntry(LogLevelInfo, fmt.Sprintf("Redis: Sentinel for name: %s, db: %d, pool: %d, using password: %v", conf.MasterName, db, conf.PoolSize, usingPassword)))
+		n.logger.log(newLogEntry(LogLevelInfo, fmt.Sprintf("Redis: Sentinel for name: %s, db: %d, using password: %v", conf.MasterName, db, usingPassword)))
 	}
 
 	var lastMu sync.Mutex
 	var lastMaster string
 
+	poolSize := defaultPoolSize
+
 	maxIdle := 10
-	if conf.PoolSize < maxIdle {
-		maxIdle = conf.PoolSize
+	if poolSize < maxIdle {
+		maxIdle = poolSize
 	}
 
 	var sntnl *sentinel.Sentinel
@@ -211,7 +220,7 @@ func newPool(n *Node, conf *RedisShardConfig) *redis.Pool {
 
 	return &redis.Pool{
 		MaxIdle:     maxIdle,
-		MaxActive:   conf.PoolSize,
+		MaxActive:   poolSize,
 		Wait:        true,
 		IdleTimeout: 240 * time.Second,
 		Dial: func() (redis.Conn, error) {
@@ -229,7 +238,20 @@ func newPool(n *Node, conf *RedisShardConfig) *redis.Pool {
 				lastMu.Unlock()
 			}
 
-			c, err := redis.DialTimeout("tcp", serverAddr, conf.ConnectTimeout, conf.ReadTimeout, conf.WriteTimeout)
+			var readTimeout = defaultReadTimeout
+			if conf.ReadTimeout != 0 {
+				readTimeout = conf.ReadTimeout
+			}
+			var writeTimeout = defaultWriteTimeout
+			if conf.WriteTimeout != 0 {
+				writeTimeout = conf.WriteTimeout
+			}
+			var connectTimeout = defaultConnectTimeout
+			if conf.ConnectTimeout != 0 {
+				connectTimeout = conf.ConnectTimeout
+			}
+
+			c, err := redis.DialTimeout("tcp", serverAddr, connectTimeout, readTimeout, writeTimeout)
 			if err != nil {
 				n.logger.log(newLogEntry(LogLevelError, "error dialing to Redis", map[string]interface{}{"error": err.Error()}))
 				return nil, err
@@ -270,6 +292,10 @@ func newPool(n *Node, conf *RedisShardConfig) *redis.Pool {
 func NewRedisEngine(n *Node, config RedisEngineConfig) (*RedisEngine, error) {
 
 	var shards []*shard
+
+	if len(config.Shards) == 0 {
+		return nil, errors.New("no Redis shards provided in configuration")
+	}
 
 	if len(config.Shards) > 1 {
 		n.logger.log(newLogEntry(LogLevelInfo, fmt.Sprintf("Redis sharding enabled: %d shards", len(config.Shards))))
@@ -365,7 +391,7 @@ return entries
 )
 
 // newShard initializes new Redis shard.
-func newShard(n *Node, conf *RedisShardConfig) (*shard, error) {
+func newShard(n *Node, conf RedisShardConfig) (*shard, error) {
 	shard := &shard{
 		node:              n,
 		config:            conf,
@@ -453,7 +479,19 @@ func (e *RedisEngine) publishLeave(ch string, leave *proto.Leave, opts *ChannelO
 
 // PublishControl - see engine interface description.
 func (e *RedisEngine) publishControl(data []byte) <-chan error {
-	return e.shards[0].PublishControl(data)
+	var err error
+	for _, shard := range e.shards {
+		err = <-shard.PublishControl(data)
+		if err != nil {
+			continue
+		}
+		errCh := make(chan error, 1)
+		errCh <- nil
+		return errCh
+	}
+	errCh := make(chan error, 1)
+	errCh <- fmt.Errorf("publish control error, all shards failed: last error: %v", err)
+	return errCh
 }
 
 // Subscribe - see engine interface description.
@@ -770,7 +808,12 @@ func (e *shard) runPublishPipeline() {
 
 	var prs []pubRequest
 
-	pingTimeout := e.config.ReadTimeout / 3
+	var readTimeout = defaultReadTimeout
+	if e.config.ReadTimeout != 0 {
+		readTimeout = e.config.ReadTimeout
+	}
+
+	pingTimeout := readTimeout / 3
 
 	for {
 		select {

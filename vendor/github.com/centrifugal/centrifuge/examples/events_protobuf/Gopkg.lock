@@ -2,10 +2,10 @@
 
 
 [[projects]]
-  branch = "master"
-  name = "github.com/FZambia/go-sentinel"
+  name = "github.com/FZambia/sentinel"
   packages = ["."]
-  revision = "76bd05e8e22f9f8f5e1dd6d3a85b7951da7cce57"
+  revision = "e69a8dc549bb0aabdc63fbfd9e8bfe971a368153"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -23,18 +23,10 @@
     "internal/proto",
     "internal/proto/apiproto",
     "internal/proto/controlproto",
-    "internal/queue"
+    "internal/queue",
+    "internal/uuid"
   ]
-  revision = "6a2fc23e68b070855d1f4684a6dc25538a9535e1"
-
-[[projects]]
-  name = "github.com/garyburd/redigo"
-  packages = [
-    "internal",
-    "redis"
-  ]
-  revision = "d1ed5c67e5794de818ea85e6b522fda02623a484"
-  version = "v1.5.0"
+  revision = "92b0089e7f334beacf18eb578064d8d8e934d661"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -59,10 +51,13 @@
   version = "v1.0.0"
 
 [[projects]]
-  name = "github.com/gorilla/securecookie"
-  packages = ["."]
-  revision = "667fe4e3466a040b780561fe9b51a83a3753eefc"
-  version = "v1.1"
+  name = "github.com/gomodule/redigo"
+  packages = [
+    "internal",
+    "redis"
+  ]
+  revision = "9c11da706d9b7902c6da69c592f75637793fe121"
+  version = "v2.0.0"
 
 [[projects]]
   name = "github.com/gorilla/websocket"
@@ -89,10 +84,10 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/prometheus/client_golang"
   packages = ["prometheus"]
-  revision = "c5b7fccd204277076155f10851dad72b76a49317"
-  version = "v0.8.0"
+  revision = "82f5ff156b29e276022b1a958f7d385870fb9814"
 
 [[projects]]
   branch = "master"
@@ -120,12 +115,6 @@
     "xfs"
   ]
   revision = "282c8707aa210456a825798969cc27edda34992a"
-
-[[projects]]
-  name = "github.com/satori/go.uuid"
-  packages = ["."]
-  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
-  version = "v1.2.0"
 
 [[projects]]
   branch = "master"

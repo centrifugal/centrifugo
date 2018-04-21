@@ -180,7 +180,11 @@ func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
 		writer := newWriter(writerConf)
 		defer writer.close()
 		transport := newSockjsTransport(sess, writer)
-		c := newClient(sess.Request().Context(), s.node, transport)
+		c, err := newClient(sess.Request().Context(), s.node, transport)
+		if err != nil {
+			s.node.logger.log(newLogEntry(LogLevelError, "error creating client", map[string]interface{}{"transport": transportSockJS}))
+			return
+		}
 		defer c.close(nil)
 
 		s.node.logger.log(newLogEntry(LogLevelDebug, "SockJS connection established", map[string]interface{}{"client": c.ID()}))

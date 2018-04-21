@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -66,68 +68,63 @@ func main() {
 
 	node := centrifuge.New(cfg)
 
-	handleRPC := func(ctx context.Context, req centrifuge.RPCEvent) centrifuge.RPCReply {
-		log.Printf("RPC from user: %s, data: %s, encoding: %d", req.Client.UserID(), string(req.Data), req.Client.Transport().Encoding())
-		return centrifuge.RPCReply{
-			Data: []byte(`{"year": "2018"}`),
-		}
-	}
+	node.OnConnect(func(ctx context.Context, client centrifuge.Client, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
 
-	handleMessage := func(ctx context.Context, req centrifuge.MessageEvent) centrifuge.MessageReply {
-		log.Printf("message from user: %s, data: %s", req.Client.UserID(), string(req.Data))
-		return centrifuge.MessageReply{}
-	}
+		client.OnSubscribe(func(e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
+			log.Printf("user %s subscribes on %s", client.UserID(), e.Channel)
+			return centrifuge.SubscribeReply{}
+		})
 
-	handleConnect := func(ctx context.Context, req centrifuge.ConnectEvent) centrifuge.ConnectReply {
-		log.Printf("user %s connected via %s", req.Client.UserID(), req.Client.Transport().Name())
+		client.OnUnsubscribe(func(e centrifuge.UnsubscribeEvent) centrifuge.UnsubscribeReply {
+			log.Printf("user %s unsubscribed from %s", client.UserID(), e.Channel)
+			return centrifuge.UnsubscribeReply{}
+		})
+
+		client.OnPublish(func(e centrifuge.PublishEvent) centrifuge.PublishReply {
+			log.Printf("user %s publishes into channel %s: %s", client.UserID(), e.Channel, string(e.Pub.Data))
+			return centrifuge.PublishReply{}
+		})
+
+		client.OnRPC(func(e centrifuge.RPCEvent) centrifuge.RPCReply {
+			log.Printf("RPC from user: %s, data: %s", client.UserID(), string(e.Data))
+			return centrifuge.RPCReply{
+				Data: []byte(`{"year": "2018"}`),
+			}
+		})
+
+		client.OnMessage(func(e centrifuge.MessageEvent) centrifuge.MessageReply {
+			log.Printf("Message from user: %s, data: %s", client.UserID(), string(e.Data))
+			return centrifuge.MessageReply{}
+		})
+
+		client.OnRefresh(func(e centrifuge.RefreshEvent) centrifuge.RefreshReply {
+			log.Printf("user %s connection is going to expire, refreshing", client.UserID())
+			return centrifuge.RefreshReply{
+				Exp: time.Now().Unix() + 60,
+			}
+		})
+
+		client.OnDisconnect(func(e centrifuge.DisconnectEvent) centrifuge.DisconnectReply {
+			log.Printf("user %s disconnected, disconnect: %#v", client.UserID(), e.Disconnect)
+			return centrifuge.DisconnectReply{}
+		})
+
+		log.Printf("user %s connected via %s with encoding: %d", client.UserID(), client.Transport().Name(), client.Transport().Encoding())
+
+		go func() {
+			messageData, _ := json.Marshal("hello")
+			err := client.Send(messageData)
+			if err != nil {
+				if err == io.EOF {
+					return
+				}
+				log.Fatalln(err.Error())
+			}
+		}()
+
 		return centrifuge.ConnectReply{}
-	}
+	})
 
-	handleDisconnect := func(ctx context.Context, req centrifuge.DisconnectEvent) centrifuge.DisconnectReply {
-		log.Printf("user %s disconnected, disconnect: %#v", req.Client.UserID(), req.Disconnect)
-		return centrifuge.DisconnectReply{}
-	}
-
-	handleSubscribe := func(ctx context.Context, req centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
-		log.Printf("user %s subscribes on %s", req.Client.UserID(), req.Channel)
-		return centrifuge.SubscribeReply{}
-	}
-
-	handleUnsubscribe := func(ctx context.Context, req centrifuge.UnsubscribeEvent) centrifuge.UnsubscribeReply {
-		log.Printf("user %s unsubscribed from %s", req.Client.UserID(), req.Channel)
-		return centrifuge.UnsubscribeReply{}
-	}
-
-	handlePublish := func(ctx context.Context, req centrifuge.PublishEvent) centrifuge.PublishReply {
-		log.Printf("user %s publishes into channel %s: %s", req.Client.UserID(), req.Channel, string(req.Pub.Data))
-		return centrifuge.PublishReply{}
-	}
-
-	handlePresence := func(ctx context.Context, req centrifuge.PresenceEvent) centrifuge.PresenceReply {
-		log.Printf("user %s is online and subscribed on channels %#v", req.Client.UserID(), req.Client.Channels())
-		return centrifuge.PresenceReply{}
-	}
-
-	handleRefresh := func(ctx context.Context, req centrifuge.RefreshEvent) centrifuge.RefreshReply {
-		log.Printf("user %s connection is going to expire, refreshing", req.Client.UserID())
-		return centrifuge.RefreshReply{
-			Exp: time.Now().Unix() + 60,
-		}
-	}
-
-	mediator := &centrifuge.Mediator{
-		RPC:         handleRPC,
-		Message:     handleMessage,
-		Connect:     handleConnect,
-		Disconnect:  handleDisconnect,
-		Subscribe:   handleSubscribe,
-		Unsubscribe: handleUnsubscribe,
-		Publish:     handlePublish,
-		Presence:    handlePresence,
-		Refresh:     handleRefresh,
-	}
-
-	node.SetMediator(mediator)
 	node.SetLogHandler(centrifuge.LogLevelDebug, handleLog)
 
 	if err := node.Run(); err != nil {

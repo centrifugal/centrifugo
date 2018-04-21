@@ -1,4 +1,7 @@
-// Package centrifuge is a real-time core for Centrifugo server.
+// Package centrifuge is a real-time messaging library that abstracts
+// several bidirectional transports (GRPC, Websocket, SockJS) and provides
+// primitives to build real-time applications with Go. It's also used as
+// core of Centrifugo server.
 package centrifuge
 
 import (
@@ -10,14 +13,14 @@ import (
 	"github.com/centrifugal/centrifuge/internal/proto"
 	"github.com/centrifugal/centrifuge/internal/proto/apiproto"
 	"github.com/centrifugal/centrifuge/internal/proto/controlproto"
+	"github.com/centrifugal/centrifuge/internal/uuid"
 
 	"github.com/nats-io/nuid"
-	uuid "github.com/satori/go.uuid"
 )
 
-// Node is a heart of Centrifugo – it internally keeps and manages client
-// connections, maintains information about other Centrifugo nodes, keeps
-// some useful references to things like engine, metrics etc.
+// Node is a heart of centrifuge library – it internally keeps and manages
+// client connections, maintains information about other centrifuge nodes,
+// keeps useful references to things like engine, hub etc.
 type Node struct {
 	mu sync.RWMutex
 
@@ -45,8 +48,8 @@ type Node struct {
 	// shutdownCh is a channel which is closed when node shutdown initiated.
 	shutdownCh chan struct{}
 
-	// mediator contains application event handlers.
-	mediator *Mediator
+	// connectHandler is a reaction to client connect.
+	connectHandler ConnectHandler
 
 	logger *logger
 
@@ -56,8 +59,7 @@ type Node struct {
 
 // New creates Node, the only required argument is config.
 func New(c Config) *Node {
-	uid := uuid.NewV4().String()
-
+	uid := uuid.Must(uuid.NewV4()).String()
 	n := &Node{
 		uid:            uid,
 		nodes:          newNodeRegistry(uid),
@@ -87,19 +89,19 @@ func (n *Node) Config() Config {
 	return c
 }
 
-// SetMediator binds mediator to node.
-func (n *Node) SetMediator(m *Mediator) {
-	n.mediator = m
+// OnConnect allows to set connect handler func to Node.
+func (n *Node) OnConnect(h ConnectHandler) {
+	n.connectHandler = h
+}
+
+// ConnectHandler returns connect handler binded to node or nil.
+func (n *Node) ConnectHandler() ConnectHandler {
+	return n.connectHandler
 }
 
 // SetEngine binds engine to node.
 func (n *Node) SetEngine(e Engine) {
 	n.engine = e
-}
-
-// Mediator binds config to node.
-func (n *Node) Mediator() *Mediator {
-	return n.mediator
 }
 
 // Hub returns node's Hub.

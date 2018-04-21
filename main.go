@@ -73,7 +73,7 @@ func main() {
 				"client_insecure", "admin_insecure", "api_insecure", "port",
 				"address", "tls", "tls_cert", "tls_key", "internal_port", "prometheus",
 				"redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
-				"redis_pool", "redis_master_name", "redis_sentinels", "grpc_api", "grpc_client",
+				"redis_master_name", "redis_sentinels", "grpc_api", "grpc_client",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -283,7 +283,6 @@ func main() {
 	rootCmd.Flags().StringP("redis_password", "", "", "Redis auth password (Redis engine)")
 	rootCmd.Flags().StringP("redis_db", "", "0", "Redis database (Redis engine)")
 	rootCmd.Flags().StringP("redis_url", "", "", "Redis connection URL in format redis://:password@hostname:port/db (Redis engine)")
-	rootCmd.Flags().IntP("redis_pool", "", 256, "Redis pool size (Redis engine)")
 	rootCmd.Flags().StringP("redis_master_name", "", "", "name of Redis master Sentinel monitors (Redis engine)")
 	rootCmd.Flags().StringP("redis_sentinels", "", "", "comma-separated list of Sentinel addresses (Redis engine)")
 
@@ -1027,17 +1026,20 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 		ports[i] = port
 	}
 
-	var shardConfigs []*centrifuge.RedisShardConfig
+	var shardConfigs []centrifuge.RedisShardConfig
 
 	for i := 0; i < numShards; i++ {
-		conf := &centrifuge.RedisShardConfig{
+		port, err := strconv.Atoi(ports[i])
+		if err != nil {
+			return nil, fmt.Errorf("malformed port: %v", err)
+		}
+		conf := centrifuge.RedisShardConfig{
 			Host:             hosts[i],
-			Port:             ports[i],
+			Port:             port,
 			Password:         passwords[i],
 			DB:               dbs[i],
 			MasterName:       masterNames[i],
 			SentinelAddrs:    sentinelAddrs,
-			PoolSize:         v.GetInt("redis_pool"),
 			Prefix:           v.GetString("redis_prefix"),
 			PubSubNumWorkers: v.GetInt("redis_pubsub_num_workers"),
 			ConnectTimeout:   time.Duration(v.GetInt("redis_connect_timeout")) * time.Second,

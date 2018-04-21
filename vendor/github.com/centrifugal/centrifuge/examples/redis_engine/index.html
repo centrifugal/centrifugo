@@ -7,10 +7,8 @@
             input[type="text"] { width: 300px; }
             .muted {color: #CCCCCC; font-size: 10px;}
         </style>
-        <script src="https://unpkg.com/text-encoding@0.6.4/lib/encoding-indexes.js"></script>
-        <script src="https://unpkg.com/text-encoding@0.6.4/lib/encoding.js"></script>
         <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-        <script type="text/javascript" src="centrifuge.protobuf.min.js"></script>
+        <script type="text/javascript" src="centrifuge.min.js"></script>
         <script type="text/javascript">
             // helper functions to work with escaping html.
             var tagsToReplace = {'&': '&amp;', '<': '&lt;', '>': '&gt;'};
@@ -24,21 +22,13 @@
                 var input = $("#input");
                 var container = $('#messages');
 
-                var centrifuge = new Centrifuge('ws://localhost:8000/connection/websocket?format=protobuf');
+                var centrifuge = new Centrifuge('ws://' + window.location.host + '/connection/websocket');
 
                 // bind listeners on centrifuge object instance events.
                 centrifuge.on('connect', function(ctx){
                     drawText('Connected with client ID ' + ctx.client + ' over ' + ctx.transport);
                     input.attr("disabled", false);
                 });
-
-                centrifuge.on('message', function(data) {
-                    var str = new TextDecoder("utf-8").decode(data);
-                    drawText(str);
-                    // echo data back to server with 'ack' prefix.
-                    var echoData = new TextEncoder("utf-8").encode("ack " + str);
-                    centrifuge.send(echoData);
-                })
 
                 centrifuge.on('disconnect', function(ctx){
                     drawText('Disconnected: ' + ctx.reason + (ctx.reconnect?", will try to reconnect":", won't try to reconnect"));
@@ -81,16 +71,6 @@
                     if (ctx.isResubscribe) {
                         showPresence(sub);
                     }
-
-                    var rpcRequest = {"method": "getCurrentYear"}
-                    var binary = new TextEncoder("utf-8").encode(JSON.stringify(rpcRequest)); 
-
-                    centrifuge.rpc(binary).then(function(result){
-                        var str = new TextDecoder("utf-8").decode(result.data);
-                        drawText(str);
-                    }, function(err) {
-                        drawText(JSON.stringify(err));
-                    });
                 }
 
                 function handleSubscribeError(err) {
@@ -100,27 +80,25 @@
 
                 function handleMessage(message) {
                     console.log("new message received", message);
-                    var str = new TextDecoder("utf-8").decode(message.data);
-                    data = JSON.parse(str);
                     var clientID;
                     if (message.info){
                         clientID = message.info.client;
                     } else {
                         clientID = null;
                     }
-                    var inputText = data["input"].toString();
+                    var inputText = message.data["input"].toString();
                     var text = safeTagsReplace(inputText) + ' <span class="muted">from ' + clientID + '</span>';
                     drawText(text);
                 }
 
                 function handleJoin(message) {
                     console.log("subscription join event fired", message);
-                    drawText('Someone joined channel ' + this.channel + ' (uid ' + message.info["client"] + ', user '+ message.info["user"] +')');
+                    drawText('Client joined channel ' + this.channel + ' (uid ' + message.info["client"] + ', user '+ message.info["user"] +')');
                 }
 
                 function handleLeave(message) {
                     console.log("subscription leave event fired", message);
-                    drawText('Someone left channel ' + this.channel + ' (uid ' + message.info["client"] + ', user '+ message.info["user"] +')');
+                    drawText('Client left channel ' + this.channel + ' (uid ' + message.info["client"] + ', user '+ message.info["user"] +')');
                 }
 
                 function handleUnsubscribe(sub) {
@@ -133,12 +111,9 @@
 
                 $('#form').submit(function(event) {
                     event.preventDefault();
-                    var data = {"input": input.val()};
-                    var binaryData = new TextEncoder("utf-8").encode(JSON.stringify(data)); 
-                    sub.publish(binaryData).then(function() {
+                    sub.publish({"input": input.val()}).then(function() {
                         console.log('message accepted by server');
                     }, function(err) {
-                        drawText("Publish error: " + err.code + ' ' + err.message);
                         console.log('error publishing message', err);
                     });
                     input.val('');

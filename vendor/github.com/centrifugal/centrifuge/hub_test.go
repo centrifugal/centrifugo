@@ -39,7 +39,8 @@ func (t *testTransport) Close(disconnect *Disconnect) error {
 
 func TestHub(t *testing.T) {
 	h := newHub()
-	c := newClient(context.Background(), testNode(), newTestTransport())
+	c, err := newClient(context.Background(), testNode(), newTestTransport())
+	assert.NoError(t, err)
 	c.user = "test"
 	h.add(c)
 	assert.Equal(t, len(h.users), 1)
@@ -54,7 +55,8 @@ func TestHub(t *testing.T) {
 
 func TestHubSubscriptions(t *testing.T) {
 	h := newHub()
-	c := newClient(context.Background(), testNode(), newTestTransport())
+	c, err := newClient(context.Background(), testNode(), newTestTransport())
+	assert.NoError(t, err)
 	h.addSub("test1", c)
 	h.addSub("test2", c)
 	assert.Equal(t, 2, h.NumChannels())

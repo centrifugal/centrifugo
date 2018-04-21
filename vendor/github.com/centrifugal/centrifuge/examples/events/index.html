@@ -28,7 +28,6 @@
                 centrifuge.on('connect', function(ctx){
                     drawText('Connected with client ID ' + ctx.client + ' over ' + ctx.transport);
                     input.attr("disabled", false);
-                    centrifuge.send({"x": 100, "y": 200});
                 });
 
                 centrifuge.on('message', function(data) {
