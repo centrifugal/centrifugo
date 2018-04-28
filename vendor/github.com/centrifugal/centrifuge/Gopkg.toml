@@ -35,7 +35,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/gogo/protobuf"
-  version = "0.5.0"
+  version = "1.0.0"
 
 [[constraint]]
   name = "github.com/gorilla/websocket"
@@ -51,7 +51,7 @@ ignored = [
 
 [[constraint]]
   name = "github.com/prometheus/client_golang"
-  branch = "master"
+  version = "0.8.0"
 
 [[constraint]]
   name = "github.com/stretchr/testify"

@@ -18,7 +18,7 @@ message ClientInfo {
     bytes chan_info = 4 [(gogoproto.customtype) = "github.com/centrifugal/centrifuge/internal/proto.Raw", (gogoproto.jsontag) = "chan_info,omitempty", (gogoproto.nullable) = false];
 }
 
-message Pub {
+message Publication {
     string uid = 1 [(gogoproto.customname) = "UID", (gogoproto.jsontag) = "uid,omitempty"];
     bytes data = 2 [(gogoproto.customtype) = "github.com/centrifugal/centrifuge/internal/proto.Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
     ClientInfo info = 3 [(gogoproto.jsontag) = "info,omitempty"];
@@ -143,7 +143,7 @@ message HistoryResponse {
 }
 
 message HistoryResult {
-    repeated Pub pubs = 1 [(gogoproto.jsontag) = "pubs", (gogoproto.nullable) = true];
+    repeated Publication publications = 1 [(gogoproto.jsontag) = "publications", (gogoproto.nullable) = true];
 }
 
 message HistoryRemoveRequest {

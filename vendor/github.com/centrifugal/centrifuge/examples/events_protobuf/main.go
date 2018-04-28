@@ -75,7 +75,7 @@ func main() {
 		})
 
 		client.OnPublish(func(e centrifuge.PublishEvent) centrifuge.PublishReply {
-			log.Printf("user %s publishes into channel %s: %s", client.UserID(), e.Channel, string(e.Pub.Data))
+			log.Printf("user %s publishes into channel %s: %s", client.UserID(), e.Channel, string(e.Data))
 			return centrifuge.PublishReply{}
 		})
 

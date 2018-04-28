@@ -38,7 +38,7 @@ func (h *apiExecutor) Publish(ctx context.Context, cmd *apiproto.PublishRequest)
 		return resp
 	}
 
-	pub := &proto.Pub{
+	pub := &proto.Publication{
 		Data: cmd.Data,
 	}
 	if cmd.UID != "" {
@@ -90,7 +90,7 @@ func (h *apiExecutor) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequ
 			resp.Error = apiproto.ErrorNamespaceNotFound
 		}
 
-		pub := &proto.Pub{
+		pub := &proto.Publication{
 			Data: cmd.Data,
 		}
 		if cmd.UID != "" {
@@ -273,10 +273,10 @@ func (h *apiExecutor) History(ctx context.Context, cmd *apiproto.HistoryRequest)
 		return resp
 	}
 
-	apiPubs := make([]*apiproto.Pub, len(history))
+	apiPubs := make([]*apiproto.Publication, len(history))
 
 	for i, pub := range history {
-		apiPubs[i] = &apiproto.Pub{
+		apiPubs[i] = &apiproto.Publication{
 			UID:  pub.UID,
 			Data: pub.Data,
 			Info: (*apiproto.ClientInfo)(pub.Info),
@@ -284,7 +284,7 @@ func (h *apiExecutor) History(ctx context.Context, cmd *apiproto.HistoryRequest)
 	}
 
 	resp.Result = &apiproto.HistoryResult{
-		Pubs: apiPubs,
+		Publications: apiPubs,
 	}
 	return resp
 }

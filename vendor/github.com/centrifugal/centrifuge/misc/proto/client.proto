@@ -18,7 +18,7 @@ enum MethodType {
     PRESENCE_STATS = 5;
     HISTORY = 6;
     PING = 7;
-    MESSAGE = 8;
+    SEND = 8;
     RPC = 9;
     REFRESH = 10;
 }
@@ -35,17 +35,17 @@ message Reply {
     bytes result = 3;
 }
 
-enum MessageType {
+enum PushType {
     
-    PUB = 0;
+    PUBLICATION = 0;
     JOIN = 1;
     LEAVE = 2;
     UNSUB = 3;
-    PUSH = 4;
+    MESSAGE = 4;
 }
 
-message Message {
-    MessageType type = 1;
+message Push {
+    PushType type = 1;
     string channel = 2;
     bytes data = 3;
 }
@@ -57,11 +57,7 @@ message ClientInfo {
     bytes chan_info = 4;
 }
 
-message Push {
-    bytes data = 1;
-}
-
-message Pub {
+message Publication {
     string uid = 1;
     bytes data = 2;
     ClientInfo info = 3;
@@ -76,6 +72,10 @@ message Leave {
 }
 
 message Unsub {}
+
+message Message {
+    bytes data = 1;
+}
 
 message ConnectRequest {
     string user = 1;
@@ -136,7 +136,7 @@ message SubscribeResponse {
 message SubscribeResult {
     string last = 1;
     bool recovered = 2;
-    repeated Pub pubs = 3;
+    repeated Publication publications = 3;
 }
 
 message UnsubscribeRequest {
@@ -199,7 +199,7 @@ message HistoryResponse {
 }
 
 message HistoryResult {
-    repeated Pub pubs = 1;
+    repeated Publication publications = 1;
 }
 
 message PingRequest {
@@ -228,7 +228,7 @@ message RPCResult {
     bytes data = 1 ;
 }
 
-message MessageRequest{
+message SendRequest{
     bytes data = 1;
 }
 

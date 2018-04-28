@@ -12,12 +12,12 @@ const (
 	EncodingProtobuf Encoding = 1
 )
 
-// GetMessageEncoder ...
-func GetMessageEncoder(enc Encoding) MessageEncoder {
+// GetPushEncoder ...
+func GetPushEncoder(enc Encoding) PushEncoder {
 	if enc == EncodingJSON {
-		return NewJSONMessageEncoder()
+		return NewJSONPushEncoder()
 	}
-	return NewProtobufMessageEncoder()
+	return NewProtobufPushEncoder()
 }
 
 var (

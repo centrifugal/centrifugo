@@ -1,44 +1,44 @@
 package proto
 
-// NewPushMessage returns initialized async push message.
-func NewPushMessage(data Raw) *Message {
-	return &Message{
-		Type: MessageTypePush,
+// NewMessage returns initialized async push message.
+func NewMessage(data Raw) *Push {
+	return &Push{
+		Type: PushTypeMessage,
 		Data: data,
 	}
 }
 
-// NewPubMessage returns initialized async publication message.
-func NewPubMessage(ch string, data Raw) *Message {
-	return &Message{
-		Type:    MessageTypePub,
+// NewPublication returns initialized async publication message.
+func NewPublication(ch string, data Raw) *Push {
+	return &Push{
+		Type:    PushTypePublication,
 		Channel: ch,
 		Data:    data,
 	}
 }
 
-// NewJoinMessage returns initialized async join message.
-func NewJoinMessage(ch string, data Raw) *Message {
-	return &Message{
-		Type:    MessageTypeJoin,
+// NewJoin returns initialized async join message.
+func NewJoin(ch string, data Raw) *Push {
+	return &Push{
+		Type:    PushTypeJoin,
 		Channel: ch,
 		Data:    data,
 	}
 }
 
-// NewLeaveMessage returns initialized async leave message.
-func NewLeaveMessage(ch string, data Raw) *Message {
-	return &Message{
-		Type:    MessageTypeLeave,
+// NewLeave returns initialized async leave message.
+func NewLeave(ch string, data Raw) *Push {
+	return &Push{
+		Type:    PushTypeLeave,
 		Channel: ch,
 		Data:    data,
 	}
 }
 
-// NewUnsubMessage returns initialized async unsubscribe message.
-func NewUnsubMessage(ch string, data Raw) *Message {
-	return &Message{
-		Type:    MessageTypeUnsub,
+// NewUnsub returns initialized async unsubscribe message.
+func NewUnsub(ch string, data Raw) *Push {
+	return &Push{
+		Type:    PushTypeUnsub,
 		Channel: ch,
 		Data:    data,
 	}

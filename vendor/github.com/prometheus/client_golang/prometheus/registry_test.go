@@ -209,34 +209,6 @@ metric: <
 	expectedMetricFamilyMergedWithExternalAsProtoCompactText := []byte(`name:"name" help:"docstring" type:COUNTER metric:<label:<name:"constname" value:"constvalue" > label:<name:"labelname" value:"different_val" > counter:<value:42 > > metric:<label:<name:"constname" value:"constvalue" > label:<name:"labelname" value:"val1" > counter:<value:1 > > metric:<label:<name:"constname" value:"constvalue" > label:<name:"labelname" value:"val2" > counter:<value:1 > > 
 `)
 
-	externalMetricFamilyWithInvalidLabelValue := &dto.MetricFamily{
-		Name: proto.String("name"),
-		Help: proto.String("docstring"),
-		Type: dto.MetricType_COUNTER.Enum(),
-		Metric: []*dto.Metric{
-			{
-				Label: []*dto.LabelPair{
-					{
-						Name:  proto.String("constname"),
-						Value: proto.String("\xFF"),
-					},
-					{
-						Name:  proto.String("labelname"),
-						Value: proto.String("different_val"),
-					},
-				},
-				Counter: &dto.Counter{
-					Value: proto.Float64(42),
-				},
-			},
-		},
-	}
-
-	expectedMetricFamilyInvalidLabelValueAsText := []byte(`An error has occurred during metrics gathering:
-
-collected metric's label constname is not utf8: "\xff"
-`)
-
 	type output struct {
 		headers map[string]string
 		body    []byte
@@ -254,7 +226,7 @@ collected metric's label constname is not utf8: "\xff"
 			},
 			out: output{
 				headers: map[string]string{
-					"Content-Type": `text/plain; version=0.0.4; charset=utf-8`,
+					"Content-Type": `text/plain; version=0.0.4`,
 				},
 				body: []byte{},
 			},
@@ -265,7 +237,7 @@ collected metric's label constname is not utf8: "\xff"
 			},
 			out: output{
 				headers: map[string]string{
-					"Content-Type": `text/plain; version=0.0.4; charset=utf-8`,
+					"Content-Type": `text/plain; version=0.0.4`,
 				},
 				body: []byte{},
 			},
@@ -276,7 +248,7 @@ collected metric's label constname is not utf8: "\xff"
 			},
 			out: output{
 				headers: map[string]string{
-					"Content-Type": `text/plain; version=0.0.4; charset=utf-8`,
+					"Content-Type": `text/plain; version=0.0.4`,
 				},
 				body: []byte{},
 			},
@@ -298,7 +270,7 @@ collected metric's label constname is not utf8: "\xff"
 			},
 			out: output{
 				headers: map[string]string{
-					"Content-Type": `text/plain; version=0.0.4; charset=utf-8`,
+					"Content-Type": `text/plain; version=0.0.4`,
 				},
 				body: expectedMetricFamilyAsText,
 			},
@@ -322,7 +294,7 @@ collected metric's label constname is not utf8: "\xff"
 			},
 			out: output{
 				headers: map[string]string{
-					"Content-Type": `text/plain; version=0.0.4; charset=utf-8`,
+					"Content-Type": `text/plain; version=0.0.4`,
 				},
 				body: externalMetricFamilyAsText,
 			},
@@ -365,7 +337,7 @@ collected metric's label constname is not utf8: "\xff"
 			},
 			out: output{
 				headers: map[string]string{
-					"Content-Type": `text/plain; version=0.0.4; charset=utf-8`,
+					"Content-Type": `text/plain; version=0.0.4`,
 				},
 				body: []byte{},
 			},
@@ -376,7 +348,7 @@ collected metric's label constname is not utf8: "\xff"
 			},
 			out: output{
 				headers: map[string]string{
-					"Content-Type": `text/plain; version=0.0.4; charset=utf-8`,
+					"Content-Type": `text/plain; version=0.0.4`,
 				},
 				body: expectedMetricFamilyAsText,
 			},
@@ -388,7 +360,7 @@ collected metric's label constname is not utf8: "\xff"
 			},
 			out: output{
 				headers: map[string]string{
-					"Content-Type": `text/plain; version=0.0.4; charset=utf-8`,
+					"Content-Type": `text/plain; version=0.0.4`,
 				},
 				body: bytes.Join(
 					[][]byte{
@@ -480,22 +452,6 @@ collected metric's label constname is not utf8: "\xff"
 				externalMetricFamilyWithSameName,
 			},
 		},
-		{ // 16
-			headers: map[string]string{
-				"Accept": "application/vnd.google.protobuf;proto=io.prometheus.client.MetricFamily;encoding=compact-text",
-			},
-			out: output{
-				headers: map[string]string{
-					"Content-Type": `text/plain; charset=utf-8`,
-				},
-				body: expectedMetricFamilyInvalidLabelValueAsText,
-			},
-			collector: metricVec,
-			externalMF: []*dto.MetricFamily{
-				externalMetricFamily,
-				externalMetricFamilyWithInvalidLabelValue,
-			},
-		},
 	}
 	for i, scenario := range scenarios {
 		registry := prometheus.NewPedanticRegistry()
@@ -570,21 +526,20 @@ func TestRegisterWithOrGet(t *testing.T) {
 		},
 		[]string{"foo", "bar"},
 	)
-	var err error
-	if err = prometheus.Register(original); err != nil {
+	if err := prometheus.Register(original); err != nil {
 		t.Fatal(err)
 	}
-	if err = prometheus.Register(equalButNotSame); err == nil {
+	if err := prometheus.Register(equalButNotSame); err == nil {
 		t.Fatal("expected error when registringe equal collector")
 	}
-	if are, ok := err.(prometheus.AlreadyRegisteredError); ok {
-		if are.ExistingCollector != original {
-			t.Error("expected original collector but got something else")
-		}
-		if are.ExistingCollector == equalButNotSame {
-			t.Error("expected original callector but got new one")
-		}
-	} else {
-		t.Error("unexpected error:", err)
+	existing, err := prometheus.RegisterOrGet(equalButNotSame)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if existing != original {
+		t.Error("expected original collector but got something else")
+	}
+	if existing == equalButNotSame {
+		t.Error("expected original callector but got new one")
 	}
 }

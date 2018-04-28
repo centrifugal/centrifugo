@@ -50,7 +50,7 @@
 
 [[constraint]]
   name = "github.com/prometheus/client_golang"
-  branch = "master"
+  version = "0.8.0"
 
 [[constraint]]
   name = "github.com/satori/go.uuid"
@@ -70,4 +70,4 @@
 
 [[constraint]]
   name = "google.golang.org/grpc"
-  version = "1.10.0"
+  version = "1.11.3"

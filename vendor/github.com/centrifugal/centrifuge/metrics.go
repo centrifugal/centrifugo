@@ -49,6 +49,13 @@ var (
 		Help:      "Number of channels with one or more subscribers.",
 	})
 
+	replyErrorCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: metricsNamespace,
+		Subsystem: "client",
+		Name:      "num_reply_errors",
+		Help:      "Number of errors in replies sent to clients.",
+	}, []string{"method"})
+
 	commandDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace:  metricsNamespace,
 		Subsystem:  "client",
@@ -110,6 +117,7 @@ func init() {
 	prometheus.MustRegister(numUsersGauge)
 	prometheus.MustRegister(numChannelsGauge)
 	prometheus.MustRegister(commandDurationSummary)
+	prometheus.MustRegister(replyErrorCount)
 	prometheus.MustRegister(apiHandlerDurationSummary)
 	prometheus.MustRegister(apiCommandDurationSummary)
 	prometheus.MustRegister(transportConnectCount)

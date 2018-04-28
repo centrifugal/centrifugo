@@ -30,7 +30,7 @@ func (e *TestEngine) run() error {
 	return nil
 }
 
-func (e *TestEngine) publish(ch string, pub *proto.Pub, opts *ChannelOptions) <-chan error {
+func (e *TestEngine) publish(ch string, pub *proto.Publication, opts *ChannelOptions) <-chan error {
 	atomic.AddInt32(&e.publishCount, 1)
 	eChan := make(chan error, 1)
 	eChan <- nil
@@ -78,8 +78,8 @@ func (e *TestEngine) presence(ch string) (map[string]*proto.ClientInfo, error) {
 	return map[string]*proto.ClientInfo{}, nil
 }
 
-func (e *TestEngine) history(ch string, filter historyFilter) ([]*proto.Pub, error) {
-	return []*proto.Pub{}, nil
+func (e *TestEngine) history(ch string, filter historyFilter) ([]*proto.Publication, error) {
+	return []*proto.Publication{}, nil
 }
 
 func (e *TestEngine) removeHistory(ch string) error {

@@ -10,7 +10,7 @@ message ClientInfo {
     bytes chan_info = 4;
 }
 
-message Pub {
+message Publication {
     string uid = 1;
     bytes data = 2;
     ClientInfo info = 3;
@@ -133,7 +133,7 @@ message HistoryResponse {
 }
 
 message HistoryResult {
-    repeated Pub pubs = 1;
+    repeated Publication publications = 1;
 }
 
 message HistoryRemoveRequest {

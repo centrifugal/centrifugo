@@ -75,8 +75,14 @@ func (s *grpcClientService) Communicate(stream proto.Centrifuge_CommunicateServe
 				return
 			}
 			if rep != nil {
+				if rep.Error != nil {
+					s.node.logger.log(newLogEntry(LogLevelInfo, "error in reply", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "client": c.ID(), "user": c.UserID(), "error": rep.Error.Error()}))
+				}
 				err = transport.Send(newPreparedReply(rep, proto.EncodingProtobuf))
 				if err != nil {
+					if s.node.logger.enabled(LogLevelDebug) {
+						s.node.logger.log(newLogEntry(LogLevelDebug, "disconnect after sending reply", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "client": c.ID(), "user": c.UserID()}))
+					}
 					c.close(&Disconnect{Reason: "error sending message", Reconnect: true})
 					return
 				}

@@ -9,7 +9,7 @@ It is generated from these files:
 
 It has these top-level messages:
 	ClientInfo
-	Pub
+	Publication
 	Error
 	Command
 	Reply
@@ -117,15 +117,15 @@ func TestClientInfoMarshalTo(t *testing.T) {
 	}
 }
 
-func TestPubProto(t *testing.T) {
+func TestPublicationProto(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedPub(popr, false)
+	p := NewPopulatedPublication(popr, false)
 	dAtA, err := proto.Marshal(p)
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
-	msg := &Pub{}
+	msg := &Publication{}
 	if err := proto.Unmarshal(dAtA, msg); err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
@@ -148,10 +148,10 @@ func TestPubProto(t *testing.T) {
 	}
 }
 
-func TestPubMarshalTo(t *testing.T) {
+func TestPublicationMarshalTo(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedPub(popr, false)
+	p := NewPopulatedPublication(popr, false)
 	size := p.Size()
 	dAtA := make([]byte, size)
 	for i := range dAtA {
@@ -161,7 +161,7 @@ func TestPubMarshalTo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
-	msg := &Pub{}
+	msg := &Publication{}
 	if err := proto.Unmarshal(dAtA, msg); err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
@@ -2095,16 +2095,16 @@ func TestClientInfoJSON(t *testing.T) {
 		t.Fatalf("seed = %d, %#v !Json Equal %#v", seed, msg, p)
 	}
 }
-func TestPubJSON(t *testing.T) {
+func TestPublicationJSON(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedPub(popr, true)
+	p := NewPopulatedPublication(popr, true)
 	marshaler := jsonpb.Marshaler{}
 	jsondata, err := marshaler.MarshalToString(p)
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
-	msg := &Pub{}
+	msg := &Publication{}
 	err = jsonpb.UnmarshalString(jsondata, msg)
 	if err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
@@ -2753,12 +2753,12 @@ func TestClientInfoProtoCompactText(t *testing.T) {
 	}
 }
 
-func TestPubProtoText(t *testing.T) {
+func TestPublicationProtoText(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedPub(popr, true)
+	p := NewPopulatedPublication(popr, true)
 	dAtA := proto.MarshalTextString(p)
-	msg := &Pub{}
+	msg := &Publication{}
 	if err := proto.UnmarshalText(dAtA, msg); err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
@@ -2767,12 +2767,12 @@ func TestPubProtoText(t *testing.T) {
 	}
 }
 
-func TestPubProtoCompactText(t *testing.T) {
+func TestPublicationProtoCompactText(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedPub(popr, true)
+	p := NewPopulatedPublication(popr, true)
 	dAtA := proto.CompactTextString(p)
-	msg := &Pub{}
+	msg := &Publication{}
 	if err := proto.UnmarshalText(dAtA, msg); err != nil {
 		t.Fatalf("seed = %d, err = %v", seed, err)
 	}
@@ -3755,10 +3755,10 @@ func TestClientInfoSize(t *testing.T) {
 	}
 }
 
-func TestPubSize(t *testing.T) {
+func TestPublicationSize(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := rand.New(rand.NewSource(seed))
-	p := NewPopulatedPub(popr, true)
+	p := NewPopulatedPublication(popr, true)
 	size2 := proto.Size(p)
 	dAtA, err := proto.Marshal(p)
 	if err != nil {

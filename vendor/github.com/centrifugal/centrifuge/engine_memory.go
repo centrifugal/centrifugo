@@ -46,7 +46,7 @@ func (e *MemoryEngine) run() error {
 
 // Publish adds message into history hub and calls node ClientMsg method to handle message.
 // We don't have any PUB/SUB here as Memory Engine is single node only.
-func (e *MemoryEngine) publish(ch string, pub *proto.Pub, opts *ChannelOptions) <-chan error {
+func (e *MemoryEngine) publish(ch string, pub *Publication, opts *ChannelOptions) <-chan error {
 
 	hasCurrentSubscribers := e.node.hub.NumSubscribers(ch) > 0
 
@@ -58,7 +58,7 @@ func (e *MemoryEngine) publish(ch string, pub *proto.Pub, opts *ChannelOptions) 
 	}
 
 	eChan := make(chan error, 1)
-	eChan <- e.node.handlePub(ch, pub)
+	eChan <- e.node.handlePublication(ch, pub)
 	return eChan
 }
 
@@ -114,7 +114,7 @@ func (e *MemoryEngine) presence(ch string) (map[string]*proto.ClientInfo, error)
 }
 
 // History extracts history from history hub.
-func (e *MemoryEngine) history(ch string, filter historyFilter) ([]*proto.Pub, error) {
+func (e *MemoryEngine) history(ch string, filter historyFilter) ([]*proto.Publication, error) {
 	return e.historyHub.get(ch, filter.Limit)
 }
 
@@ -190,7 +190,7 @@ func (h *presenceHub) get(ch string) (map[string]*proto.ClientInfo, error) {
 }
 
 type historyItem struct {
-	messages []*proto.Pub
+	messages []*proto.Publication
 	expireAt int64
 }
 
@@ -260,7 +260,7 @@ func (h *historyHub) touch(ch string, opts *ChannelOptions) {
 
 	if !ok {
 		h.history[ch] = historyItem{
-			messages: []*proto.Pub{},
+			messages: []*proto.Publication{},
 			expireAt: expireAt,
 		}
 	} else {
@@ -272,7 +272,7 @@ func (h *historyHub) touch(ch string, opts *ChannelOptions) {
 	}
 }
 
-func (h *historyHub) add(ch string, msg *proto.Pub, opts *ChannelOptions, hasSubscribers bool) error {
+func (h *historyHub) add(ch string, msg *proto.Publication, opts *ChannelOptions, hasSubscribers bool) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -287,12 +287,12 @@ func (h *historyHub) add(ch string, msg *proto.Pub, opts *ChannelOptions, hasSub
 	heap.Push(&h.queue, &priority.Item{Value: ch, Priority: expireAt})
 	if !ok {
 		h.history[ch] = historyItem{
-			messages: []*proto.Pub{msg},
+			messages: []*proto.Publication{msg},
 			expireAt: expireAt,
 		}
 	} else {
 		messages := h.history[ch].messages
-		messages = append([]*proto.Pub{msg}, messages...)
+		messages = append([]*proto.Publication{msg}, messages...)
 		if len(messages) > opts.HistorySize {
 			messages = messages[0:opts.HistorySize]
 		}
@@ -309,19 +309,19 @@ func (h *historyHub) add(ch string, msg *proto.Pub, opts *ChannelOptions, hasSub
 	return nil
 }
 
-func (h *historyHub) get(ch string, limit int) ([]*proto.Pub, error) {
+func (h *historyHub) get(ch string, limit int) ([]*proto.Publication, error) {
 	h.RLock()
 	defer h.RUnlock()
 
 	hItem, ok := h.history[ch]
 	if !ok {
 		// return empty slice
-		return []*proto.Pub{}, nil
+		return []*proto.Publication{}, nil
 	}
 	if hItem.isExpired() {
 		// return empty slice
 		delete(h.history, ch)
-		return []*proto.Pub{}, nil
+		return []*proto.Publication{}, nil
 	}
 	if limit == 0 || limit >= len(hItem.messages) {
 		return hItem.messages, nil

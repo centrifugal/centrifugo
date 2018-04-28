@@ -29,8 +29,8 @@
     "sortkeys",
     "types"
   ]
-  revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
-  version = "v0.5"
+  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -84,10 +84,10 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/prometheus/client_golang"
   packages = ["prometheus"]
-  revision = "d49167c4b9f3c4451707560c5c71471ff5291aaa"
+  revision = "c5b7fccd204277076155f10851dad72b76a49317"
+  version = "v0.8.0"
 
 [[projects]]
   branch = "master"
@@ -196,6 +196,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4a152b9710df442a32002098625e510385953dc455d87b9174196a33a84831a0"
+  inputs-digest = "17989b850d82aa77fadf128d9ff1b10ef7e30ba778f6c846ec1ef1112626edef"
   solver-name = "gps-cdcl"
   solver-version = 1

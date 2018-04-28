@@ -50,7 +50,7 @@
     "internal/queue",
     "internal/uuid"
   ]
-  revision = "2a3f58ea06dd22632e8d82e29ce637f7ea19076d"
+  revision = "815a5e6ae2ff541196e469b6b3fa8798a67d1f27"
 
 [[projects]]
   name = "github.com/garyburd/redigo"
@@ -68,8 +68,8 @@
     "proto",
     "protoc-gen-gogo/descriptor"
   ]
-  revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
-  version = "v0.5"
+  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -141,13 +141,13 @@
   version = "v1.1.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/prometheus/client_golang"
   packages = [
     "prometheus",
     "prometheus/promhttp"
   ]
-  revision = "d49167c4b9f3c4451707560c5c71471ff5291aaa"
+  revision = "c5b7fccd204277076155f10851dad72b76a49317"
+  version = "v0.8.0"
 
 [[projects]]
   branch = "master"
@@ -284,8 +284,8 @@
     "tap",
     "transport"
   ]
-  revision = "8e4536a86ab602859c20df5ebfd0bd4228d08655"
-  version = "v1.10.0"
+  revision = "d11072e7ca9811b1100b80ca0269ac831f06d024"
+  version = "v1.11.3"
 
 [[projects]]
   branch = "v2"
@@ -296,6 +296,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "7abf723a4b8f22ada2f3ff3c1a9e89391dfd231aa199898548d146308a58be15"
+  inputs-digest = "2815c6a5daeb304b5d814d9b8098002c3840e1574276f5753c3da18c7d5b9a02"
   solver-name = "gps-cdcl"
   solver-version = 1

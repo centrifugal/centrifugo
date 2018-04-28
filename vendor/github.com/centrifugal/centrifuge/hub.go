@@ -202,7 +202,7 @@ func (h *Hub) removeSub(ch string, c *client) (bool, error) {
 }
 
 // broadcastPub sends message to all clients subscribed on channel.
-func (h *Hub) broadcastPub(channel string, pub *proto.Pub) error {
+func (h *Hub) broadcastPublication(channel string, pub *Publication) error {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -224,11 +224,11 @@ func (h *Hub) broadcastPub(channel string, pub *proto.Pub) error {
 		enc := c.Transport().Encoding()
 		if enc == proto.EncodingJSON {
 			if jsonReply == nil {
-				data, err := proto.GetMessageEncoder(enc).EncodePub(pub)
+				data, err := proto.GetPushEncoder(enc).EncodePublication(pub)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewPubMessage(channel, data))
+				messageBytes, err := proto.GetPushEncoder(enc).Encode(proto.NewPublication(channel, data))
 				if err != nil {
 					return err
 				}
@@ -240,11 +240,11 @@ func (h *Hub) broadcastPub(channel string, pub *proto.Pub) error {
 			c.transport.Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
 			if protobufReply == nil {
-				data, err := proto.GetMessageEncoder(enc).EncodePub(pub)
+				data, err := proto.GetPushEncoder(enc).EncodePublication(pub)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewPubMessage(channel, data))
+				messageBytes, err := proto.GetPushEncoder(enc).Encode(proto.NewPublication(channel, data))
 				if err != nil {
 					return err
 				}
@@ -282,11 +282,11 @@ func (h *Hub) broadcastJoin(channel string, join *proto.Join) error {
 		enc := c.Transport().Encoding()
 		if enc == proto.EncodingJSON {
 			if jsonReply == nil {
-				data, err := proto.GetMessageEncoder(enc).EncodeJoin(join)
+				data, err := proto.GetPushEncoder(enc).EncodeJoin(join)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewJoinMessage(channel, data))
+				messageBytes, err := proto.GetPushEncoder(enc).Encode(proto.NewJoin(channel, data))
 				if err != nil {
 					return err
 				}
@@ -298,11 +298,11 @@ func (h *Hub) broadcastJoin(channel string, join *proto.Join) error {
 			c.transport.Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
 			if protobufReply == nil {
-				data, err := proto.GetMessageEncoder(enc).EncodeJoin(join)
+				data, err := proto.GetPushEncoder(enc).EncodeJoin(join)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewJoinMessage(channel, data))
+				messageBytes, err := proto.GetPushEncoder(enc).Encode(proto.NewJoin(channel, data))
 				if err != nil {
 					return err
 				}
@@ -340,11 +340,11 @@ func (h *Hub) broadcastLeave(channel string, leave *proto.Leave) error {
 		enc := c.Transport().Encoding()
 		if enc == proto.EncodingJSON {
 			if jsonReply == nil {
-				data, err := proto.GetMessageEncoder(enc).EncodeLeave(leave)
+				data, err := proto.GetPushEncoder(enc).EncodeLeave(leave)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewLeaveMessage(channel, data))
+				messageBytes, err := proto.GetPushEncoder(enc).Encode(proto.NewLeave(channel, data))
 				if err != nil {
 					return err
 				}
@@ -356,11 +356,11 @@ func (h *Hub) broadcastLeave(channel string, leave *proto.Leave) error {
 			c.transport.Send(jsonReply)
 		} else if enc == proto.EncodingProtobuf {
 			if protobufReply == nil {
-				data, err := proto.GetMessageEncoder(enc).EncodeLeave(leave)
+				data, err := proto.GetPushEncoder(enc).EncodeLeave(leave)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetMessageEncoder(enc).Encode(proto.NewLeaveMessage(channel, data))
+				messageBytes, err := proto.GetPushEncoder(enc).Encode(proto.NewLeave(channel, data))
 				if err != nil {
 					return err
 				}

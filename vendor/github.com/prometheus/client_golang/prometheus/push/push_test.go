@@ -11,6 +11,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Copyright (c) 2013, The Prometheus Authors
+// All rights reserved.
+//
+// Use of this source code is governed by a BSD-style license that can be found
+// in the LICENSE file.
+
 package push
 
 import (
@@ -18,6 +24,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/prometheus/common/expfmt"
@@ -32,6 +39,11 @@ func TestPush(t *testing.T) {
 		lastBody   []byte
 		lastPath   string
 	)
+
+	host, err := os.Hostname()
+	if err != nil {
+		t.Error(err)
+	}
 
 	// Fake a Pushgateway that always responds with 202.
 	pgwOK := httptest.NewServer(
@@ -86,32 +98,26 @@ func TestPush(t *testing.T) {
 	}
 	wantBody := buf.Bytes()
 
-	// Push some Collectors, all good.
-	if err := New(pgwOK.URL, "testjob").
-		Collector(metric1).
-		Collector(metric2).
-		Push(); err != nil {
+	// PushCollectors, all good.
+	if err := Collectors("testjob", HostnameGroupingKey(), pgwOK.URL, metric1, metric2); err != nil {
 		t.Fatal(err)
 	}
 	if lastMethod != "PUT" {
-		t.Error("want method PUT for Push, got", lastMethod)
+		t.Error("want method PUT for PushCollectors, got", lastMethod)
 	}
 	if bytes.Compare(lastBody, wantBody) != 0 {
 		t.Errorf("got body %v, want %v", lastBody, wantBody)
 	}
-	if lastPath != "/metrics/job/testjob" {
+	if lastPath != "/metrics/job/testjob/instance/"+host {
 		t.Error("unexpected path:", lastPath)
 	}
 
-	// Add some Collectors, with nil grouping, all good.
-	if err := New(pgwOK.URL, "testjob").
-		Collector(metric1).
-		Collector(metric2).
-		Add(); err != nil {
+	// PushAddCollectors, with nil grouping, all good.
+	if err := AddCollectors("testjob", nil, pgwOK.URL, metric1, metric2); err != nil {
 		t.Fatal(err)
 	}
 	if lastMethod != "POST" {
-		t.Error("want method POST for Add, got", lastMethod)
+		t.Error("want method POST for PushAddCollectors, got", lastMethod)
 	}
 	if bytes.Compare(lastBody, wantBody) != 0 {
 		t.Errorf("got body %v, want %v", lastBody, wantBody)
@@ -120,11 +126,8 @@ func TestPush(t *testing.T) {
 		t.Error("unexpected path:", lastPath)
 	}
 
-	// Push some Collectors with a broken PGW.
-	if err := New(pgwErr.URL, "testjob").
-		Collector(metric1).
-		Collector(metric2).
-		Push(); err == nil {
+	// PushCollectors with a broken PGW.
+	if err := Collectors("testjob", nil, pgwErr.URL, metric1, metric2); err == nil {
 		t.Error("push to broken Pushgateway succeeded")
 	} else {
 		if got, want := err.Error(), "unexpected status code 500 while pushing to "+pgwErr.URL+"/metrics/job/testjob: fake error\n"; got != want {
@@ -132,39 +135,22 @@ func TestPush(t *testing.T) {
 		}
 	}
 
-	// Push some Collectors with invalid grouping or job.
-	if err := New(pgwOK.URL, "testjob").
-		Grouping("foo", "bums").
-		Collector(metric1).
-		Collector(metric2).
-		Push(); err == nil {
+	// PushCollectors with invalid grouping or job.
+	if err := Collectors("testjob", map[string]string{"foo": "bums"}, pgwErr.URL, metric1, metric2); err == nil {
 		t.Error("push with grouping contained in metrics succeeded")
 	}
-	if err := New(pgwOK.URL, "test/job").
-		Collector(metric1).
-		Collector(metric2).
-		Push(); err == nil {
+	if err := Collectors("test/job", nil, pgwErr.URL, metric1, metric2); err == nil {
 		t.Error("push with invalid job value succeeded")
 	}
-	if err := New(pgwOK.URL, "testjob").
-		Grouping("foobar", "bu/ms").
-		Collector(metric1).
-		Collector(metric2).
-		Push(); err == nil {
+	if err := Collectors("testjob", map[string]string{"foo/bar": "bums"}, pgwErr.URL, metric1, metric2); err == nil {
 		t.Error("push with invalid grouping succeeded")
 	}
-	if err := New(pgwOK.URL, "testjob").
-		Grouping("foo-bar", "bums").
-		Collector(metric1).
-		Collector(metric2).
-		Push(); err == nil {
+	if err := Collectors("testjob", map[string]string{"foo-bar": "bums"}, pgwErr.URL, metric1, metric2); err == nil {
 		t.Error("push with invalid grouping succeeded")
 	}
 
 	// Push registry, all good.
-	if err := New(pgwOK.URL, "testjob").
-		Gatherer(reg).
-		Push(); err != nil {
+	if err := FromGatherer("testjob", HostnameGroupingKey(), pgwOK.URL, reg); err != nil {
 		t.Fatal(err)
 	}
 	if lastMethod != "PUT" {
@@ -174,16 +160,12 @@ func TestPush(t *testing.T) {
 		t.Errorf("got body %v, want %v", lastBody, wantBody)
 	}
 
-	// Add registry, all good.
-	if err := New(pgwOK.URL, "testjob").
-		Grouping("a", "x").
-		Grouping("b", "y").
-		Gatherer(reg).
-		Add(); err != nil {
+	// PushAdd registry, all good.
+	if err := AddFromGatherer("testjob", map[string]string{"a": "x", "b": "y"}, pgwOK.URL, reg); err != nil {
 		t.Fatal(err)
 	}
 	if lastMethod != "POST" {
-		t.Error("want method POST for Add, got", lastMethod)
+		t.Error("want method POSTT for PushAdd, got", lastMethod)
 	}
 	if bytes.Compare(lastBody, wantBody) != 0 {
 		t.Errorf("got body %v, want %v", lastBody, wantBody)

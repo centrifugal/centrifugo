@@ -243,16 +243,16 @@ func (c *client) OnPublish(h PublishHandler) {
 }
 
 func (c *client) Send(data Raw) error {
-	p := &proto.Push{
+	p := &proto.Message{
 		Data: data,
 	}
 
-	messageEncoder := proto.GetMessageEncoder(c.transport.Encoding())
-	data, err := messageEncoder.EncodePush(p)
+	pushEncoder := proto.GetPushEncoder(c.transport.Encoding())
+	data, err := pushEncoder.EncodeMessage(p)
 	if err != nil {
 		return err
 	}
-	result, err := messageEncoder.Encode(proto.NewPushMessage(data))
+	result, err := pushEncoder.Encode(proto.NewMessage(data))
 	if err != nil {
 		return err
 	}
@@ -281,18 +281,13 @@ func (c *client) Unsubscribe(ch string) error {
 }
 
 func (c *client) sendUnsub(ch string) error {
-	var messageEncoder proto.MessageEncoder
-	if c.transport.Encoding() == proto.EncodingJSON {
-		messageEncoder = proto.NewJSONMessageEncoder()
-	} else {
-		messageEncoder = proto.NewProtobufMessageEncoder()
-	}
+	pushEncoder := proto.GetPushEncoder(c.transport.Encoding())
 
-	data, err := messageEncoder.EncodeUnsub(&proto.Unsub{})
+	data, err := pushEncoder.EncodeUnsub(&proto.Unsub{})
 	if err != nil {
 		return err
 	}
-	result, err := messageEncoder.Encode(proto.NewUnsubMessage(ch, data))
+	result, err := pushEncoder.Encode(proto.NewUnsub(ch, data))
 	if err != nil {
 		return err
 	}
@@ -405,7 +400,7 @@ func (c *client) handle(command *proto.Command) (*proto.Reply, *Disconnect) {
 	method := command.Method
 	params := command.Params
 
-	if command.ID == 0 && method != proto.MethodTypeMessage {
+	if command.ID == 0 && method != proto.MethodTypeSend {
 		c.node.logger.log(newLogEntry(LogLevelInfo, "command ID required for commands with reply expected", map[string]interface{}{"client": c.ID(), "user": c.UserID()}))
 		replyErr = ErrorBadRequest
 	} else if method != proto.MethodTypeConnect && !c.authenticated {
@@ -434,8 +429,8 @@ func (c *client) handle(command *proto.Command) (*proto.Reply, *Disconnect) {
 			replyRes, replyErr, disconnect = c.handlePing(params)
 		case proto.MethodTypeRPC:
 			replyRes, replyErr, disconnect = c.handleRPC(params)
-		case proto.MethodTypeMessage:
-			disconnect = c.handleMessage(params)
+		case proto.MethodTypeSend:
+			disconnect = c.handleSend(params)
 		default:
 			replyRes, replyErr = nil, ErrorMethodNotFound
 		}
@@ -449,6 +444,10 @@ func (c *client) handle(command *proto.Command) (*proto.Reply, *Disconnect) {
 	if command.ID == 0 {
 		// Asynchronous message from client - no need to reply.
 		return nil, nil
+	}
+
+	if replyErr != nil {
+		replyErrorCount.WithLabelValues(strings.ToLower(proto.MethodType_name[int32(method)])).Inc()
 	}
 
 	rep := &proto.Reply{
@@ -758,9 +757,9 @@ func (c *client) handleRPC(params proto.Raw) (proto.Raw, *proto.Error, *Disconne
 	return nil, ErrorNotAvailable, nil
 }
 
-func (c *client) handleMessage(params proto.Raw) *Disconnect {
+func (c *client) handleSend(params proto.Raw) *Disconnect {
 	if c.messageHandler != nil {
-		cmd, err := proto.GetParamsDecoder(c.transport.Encoding()).DecodeMessage(params)
+		cmd, err := proto.GetParamsDecoder(c.transport.Encoding()).DecodeSend(params)
 		if err != nil {
 			c.node.logger.log(newLogEntry(LogLevelInfo, "error decoding message", map[string]interface{}{"error": err.Error()}))
 			return DisconnectBadRequest
@@ -1024,7 +1023,7 @@ func (c *client) refreshCmd(cmd *proto.RefreshRequest) (*proto.RefreshResponse, 
 // example if we eventually will work with Redis streams. For
 // this sth like HistoryFilter{limit int, from string} struct
 // can be added as History engine method argument.
-func recoverMessages(last string, messages []*proto.Pub) ([]*proto.Pub, bool) {
+func recoverMessages(last string, messages []*proto.Publication) ([]*proto.Publication, bool) {
 	if last == "" {
 		// Client wants to recover messages but it seems that there were no
 		// messages in history before, so client missed all messages which
@@ -1183,10 +1182,10 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 			messages, err := c.node.History(channel)
 			if err != nil {
 				c.node.logger.log(newLogEntry(LogLevelError, "error recovering messages", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid, "error": err.Error()}))
-				res.Pubs = nil
+				res.Publications = nil
 			} else {
 				recoveredMessages, recovered := recoverMessages(cmd.Last, messages)
-				res.Pubs = recoveredMessages
+				res.Publications = recoveredMessages
 				res.Recovered = recovered
 			}
 		} else {
@@ -1326,15 +1325,15 @@ func (c *client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 		return resp, nil
 	}
 
-	pub := &proto.Pub{
+	pub := &proto.Publication{
 		Data: data,
 		Info: info,
 	}
 
 	if c.publishHandler != nil {
 		reply := c.publishHandler(PublishEvent{
-			Channel: ch,
-			Pub:     pub,
+			Channel:     ch,
+			Publication: pub,
 		})
 		if reply.Disconnect != nil {
 			return resp, reply.Disconnect
@@ -1505,7 +1504,7 @@ func (c *client) historyCmd(cmd *proto.HistoryRequest) (*proto.HistoryResponse, 
 	}
 
 	resp.Result = &proto.HistoryResult{
-		Pubs: pubs,
+		Publications: pubs,
 	}
 
 	return resp, nil
