@@ -86,12 +86,17 @@ message Message {
     bytes data = 1 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
 }
 
-message ConnectRequest {
+message SignedCredentials {
     string user = 1 [(gogoproto.jsontag) = "user"];
     string exp = 2 [(gogoproto.jsontag) = "exp"];
     string info = 3 [(gogoproto.jsontag) = "info"];
     string opts = 4 [(gogoproto.jsontag) = "opts"];
     string sign = 5 [(gogoproto.jsontag) = "sign"];
+}
+
+message ConnectRequest {
+    SignedCredentials credentials = 1  [(gogoproto.jsontag) = "credentials"];
+    bytes data = 2 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false];
 }
 
 message ConnectResponse {
@@ -105,14 +110,11 @@ message ConnectResult {
     bool expires = 3 [(gogoproto.jsontag) = "expires,omitempty"];
     bool expired = 4 [(gogoproto.jsontag) = "expired,omitempty"];
     uint32 ttl = 5 [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"];
+    bytes data = 6 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false];
 }
 
 message RefreshRequest {
-    string user = 1 [(gogoproto.jsontag) = "user"];
-    string exp = 2 [(gogoproto.jsontag) = "exp"];
-    string info = 3 [(gogoproto.jsontag) = "info"];
-    string opts = 4 [(gogoproto.jsontag) = "opts"];
-    string sign = 5 [(gogoproto.jsontag) = "sign"];
+    SignedCredentials credentials = 1  [(gogoproto.jsontag) = "credentials"];
 }
 
 message RefreshResponse {
@@ -126,6 +128,7 @@ message RefreshResult {
     bool expires = 3 [(gogoproto.jsontag) = "expires,omitempty"];
     bool expired = 4 [(gogoproto.jsontag) = "expired,omitempty"];
     uint32 ttl = 5 [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"];
+    bytes meta = 6 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "meta,omitempty"];
 }
 
 message SubscribeRequest {

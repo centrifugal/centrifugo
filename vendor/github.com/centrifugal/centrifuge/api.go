@@ -216,28 +216,16 @@ func (h *apiExecutor) PresenceStats(ctx context.Context, cmd *apiproto.PresenceS
 		return resp
 	}
 
-	presence, err := h.node.Presence(cmd.Channel)
+	stats, err := h.node.presenceStats(cmd.Channel)
 	if err != nil {
-		h.node.logger.log(newLogEntry(LogLevelError, "error calling presence", map[string]interface{}{"error": err.Error()}))
+		h.node.logger.log(newLogEntry(LogLevelError, "error calling presence stats", map[string]interface{}{"error": err.Error()}))
 		resp.Error = apiproto.ErrorInternal
 		return resp
 	}
 
-	numClients := len(presence)
-	numUsers := 0
-	uniqueUsers := map[string]struct{}{}
-
-	for _, info := range presence {
-		userID := info.User
-		if _, ok := uniqueUsers[userID]; !ok {
-			uniqueUsers[userID] = struct{}{}
-			numUsers++
-		}
-	}
-
 	resp.Result = &apiproto.PresenceStatsResult{
-		NumClients: uint32(numClients),
-		NumUsers:   uint32(numUsers),
+		NumClients: uint32(stats.NumClients),
+		NumUsers:   uint32(stats.NumUsers),
 	}
 
 	return resp

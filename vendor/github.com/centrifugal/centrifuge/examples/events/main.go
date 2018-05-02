@@ -16,8 +16,8 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"google.golang.org/grpc"
-	//"github.com/grpc-ecosystem/go-grpc-middleware"
-	//"google.golang.org/grpc"
+	// "github.com/grpc-ecosystem/go-grpc-middleware"
+	// "google.golang.org/grpc"
 )
 
 func handleLog(e centrifuge.LogEntry) {
@@ -26,14 +26,13 @@ func handleLog(e centrifuge.LogEntry) {
 
 func authMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Our middleware logic goes here...
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, centrifuge.CredentialsContextKey, &centrifuge.Credentials{
+		newCtx := centrifuge.SetCredentials(ctx, &centrifuge.Credentials{
 			UserID: "42",
 			Exp:    time.Now().Unix() + 10,
 			Info:   []byte(`{"name": "Alexander"}`),
 		})
-		r = r.WithContext(ctx)
+		r = r.WithContext(newCtx)
 		h.ServeHTTP(w, r)
 	})
 }
@@ -123,7 +122,9 @@ func main() {
 			}
 		}()
 
-		return centrifuge.ConnectReply{}
+		return centrifuge.ConnectReply{
+			Data: []byte(`{"timezone": "Moscow/Europe"}`),
+		}
 	})
 
 	node.SetLogHandler(centrifuge.LogLevelDebug, handleLog)
@@ -144,7 +145,7 @@ func main() {
 	// // Also handle GRPC client connections on :8002.
 	// authInterceptor := func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	// 	ctx := ss.Context()
-	// 	newCtx := context.WithValue(ctx, centrifuge.CredentialsContextKey, &centrifuge.Credentials{
+	// 	newCtx := centrifuge.SetCredentials(ctx, &centrifuge.Credentials{
 	// 		UserID: "42",
 	// 		Exp:    time.Now().Unix() + 10,
 	// 		Info:   []byte(`{"name": "Alexander"}`),

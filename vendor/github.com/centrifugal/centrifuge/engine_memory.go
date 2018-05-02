@@ -113,9 +113,19 @@ func (e *MemoryEngine) presence(ch string) (map[string]*proto.ClientInfo, error)
 	return e.presenceHub.get(ch)
 }
 
+// PresenceStats extracts presence info from presence hub.
+func (e *MemoryEngine) presenceStats(ch string) (presenceStats, error) {
+	return e.presenceHub.getStats(ch)
+}
+
 // History extracts history from history hub.
 func (e *MemoryEngine) history(ch string, filter historyFilter) ([]*proto.Publication, error) {
 	return e.historyHub.get(ch, filter.Limit)
+}
+
+// RecoverHistory ...
+func (e *MemoryEngine) recoverHistory(ch string, lastUID string) ([]*proto.Publication, bool, error) {
+	return e.historyHub.recover(ch, lastUID)
 }
 
 // RemoveHistory ...
@@ -187,6 +197,34 @@ func (h *presenceHub) get(ch string) (map[string]*proto.ClientInfo, error) {
 		data[k] = v
 	}
 	return data, nil
+}
+
+func (h *presenceHub) getStats(ch string) (presenceStats, error) {
+	h.RLock()
+	defer h.RUnlock()
+
+	presence, ok := h.presence[ch]
+	if !ok {
+		// return empty map
+		return presenceStats{}, nil
+	}
+
+	numClients := len(presence)
+	numUsers := 0
+	uniqueUsers := map[string]struct{}{}
+
+	for _, info := range presence {
+		userID := info.User
+		if _, ok := uniqueUsers[userID]; !ok {
+			uniqueUsers[userID] = struct{}{}
+			numUsers++
+		}
+	}
+
+	return presenceStats{
+		NumClients: numClients,
+		NumUsers:   numUsers,
+	}, nil
 }
 
 type historyItem struct {
@@ -338,4 +376,37 @@ func (h *historyHub) remove(ch string) error {
 		delete(h.history, ch)
 	}
 	return nil
+}
+
+func (h *historyHub) recover(ch string, last string) ([]*proto.Publication, bool, error) {
+
+	publications, err := h.get(ch, 0)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if last == "" {
+		// Client wants to recover publications but it seems that there were no
+		// messages in history before, so client missed all existing messages.
+		return publications, false, nil
+	}
+
+	position := -1
+	for index, msg := range publications {
+		if msg.UID == last {
+			position = index
+			break
+		}
+	}
+	if position > -1 {
+		// Last uid provided found in history. Set recovered flag which means that
+		// server thinks missed messages fully recovered.
+		return publications[0:position], true, nil
+	}
+	// Provided last UID not found in history messages. This means that client
+	// most probably missed too many messages (or maybe wrong last uid provided but
+	// it's not a normal case). So we try to compensate as many as we can. But
+	// recovered flag stays false so we do not give a guarantee all missed messages
+	// recovered successfully.
+	return publications, false, nil
 }

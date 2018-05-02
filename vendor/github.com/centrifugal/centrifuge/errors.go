@@ -40,8 +40,8 @@ var (
 		Code:    106,
 		Message: "limit exceeded",
 	}
-	// ErrorBadRequest says that Centrifugo can not parse received data
-	// because it is malformed.
+	// ErrorBadRequest says that server can not process received
+	// data because it is malformed.
 	ErrorBadRequest = &Error{
 		Code:    107,
 		Message: "bad request",

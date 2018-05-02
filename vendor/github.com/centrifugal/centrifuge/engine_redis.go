@@ -520,9 +520,19 @@ func (e *RedisEngine) presence(ch string) (map[string]*proto.ClientInfo, error) 
 	return e.shards[e.shardIndex(ch)].Presence(ch)
 }
 
+// PresenceStats - see engine interface description.
+func (e *RedisEngine) presenceStats(ch string) (presenceStats, error) {
+	return e.shards[e.shardIndex(ch)].PresenceStats(ch)
+}
+
 // History - see engine interface description.
 func (e *RedisEngine) history(ch string, filter historyFilter) ([]*proto.Publication, error) {
 	return e.shards[e.shardIndex(ch)].History(ch, filter)
+}
+
+// RecoverHistory - see engine interface description.
+func (e *RedisEngine) recover(ch string, lastUID string) ([]*proto.Publication, bool, error) {
+	return e.shards[e.shardIndex(ch)].RecoverHistory(ch, lastUID)
 }
 
 // RemoveHistory - see engine interface description.
@@ -1202,6 +1212,31 @@ func (e *shard) Presence(ch string) (map[string]*proto.ClientInfo, error) {
 	return mapStringClientInfo(resp.reply, nil)
 }
 
+// Presence - see engine interface description.
+func (e *shard) PresenceStats(ch string) (presenceStats, error) {
+	presence, err := e.Presence(ch)
+	if err != nil {
+		return presenceStats{}, err
+	}
+
+	numClients := len(presence)
+	numUsers := 0
+	uniqueUsers := map[string]struct{}{}
+
+	for _, info := range presence {
+		userID := info.User
+		if _, ok := uniqueUsers[userID]; !ok {
+			uniqueUsers[userID] = struct{}{}
+			numUsers++
+		}
+	}
+
+	return presenceStats{
+		NumClients: numClients,
+		NumUsers:   numUsers,
+	}, nil
+}
+
 // History - see engine interface description.
 func (e *shard) History(ch string, filter historyFilter) ([]*proto.Publication, error) {
 	limit := filter.Limit
@@ -1217,6 +1252,39 @@ func (e *shard) History(ch string, filter historyFilter) ([]*proto.Publication, 
 		return nil, resp.err
 	}
 	return sliceOfPubs(e, resp.reply, nil)
+}
+
+// RecoverHistory - see engine interface description.
+func (e *shard) RecoverHistory(ch string, last string) ([]*proto.Publication, bool, error) {
+	publications, err := e.History(ch, historyFilter{Limit: 0})
+	if err != nil {
+		return nil, false, err
+	}
+
+	if last == "" {
+		// Client wants to recover publications but it seems that there were no
+		// messages in history before, so client missed all existing messages.
+		return publications, false, nil
+	}
+
+	position := -1
+	for index, msg := range publications {
+		if msg.UID == last {
+			position = index
+			break
+		}
+	}
+	if position > -1 {
+		// Last uid provided found in history. Set recovered flag which means that
+		// server thinks missed messages fully recovered.
+		return publications[0:position], true, nil
+	}
+	// Provided last UID not found in history messages. This means that client
+	// most probably missed too many messages (or maybe wrong last uid provided but
+	// it's not a normal case). So we try to compensate as many as we can. But
+	// recovered flag stays false so we do not give a guarantee all missed messages
+	// recovered successfully.
+	return publications, false, nil
 }
 
 // RemoveHistory - see engine interface description.

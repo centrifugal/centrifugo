@@ -38,7 +38,7 @@
                     // echo data back to server with 'ack' prefix.
                     var echoData = new TextEncoder("utf-8").encode("ack " + str);
                     centrifuge.send(echoData);
-                })
+                });
 
                 centrifuge.on('disconnect', function(ctx){
                     drawText('Disconnected: ' + ctx.reason + (ctx.reconnect?", will try to reconnect":", won't try to reconnect"));

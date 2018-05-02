@@ -24,7 +24,7 @@ func authMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Our middleware logic goes here...
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, centrifuge.CredentialsContextKey, &centrifuge.Credentials{
+		ctx = centrifuge.SetCredentials(ctx, &centrifuge.Credentials{
 			UserID: "42",
 			Exp:    time.Now().Unix() + 60,
 			Info:   []byte(`{"name": "Alexander"}`),

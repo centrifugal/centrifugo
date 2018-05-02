@@ -5,12 +5,15 @@ import (
 )
 
 // ConnectEvent contains fields related to connect event.
-type ConnectEvent struct{}
+type ConnectEvent struct {
+	Data Raw
+}
 
 // ConnectReply contains fields determining the reaction on connect event.
 type ConnectReply struct {
 	Error      *Error
 	Disconnect *Disconnect
+	Data       Raw
 }
 
 // ConnectHandler ...

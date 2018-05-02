@@ -26,7 +26,7 @@
     "internal/queue",
     "internal/uuid"
   ]
-  revision = "92b0089e7f334beacf18eb578064d8d8e934d661"
+  revision = "815a5e6ae2ff541196e469b6b3fa8798a67d1f27"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -35,8 +35,8 @@
     "proto",
     "protoc-gen-gogo/descriptor"
   ]
-  revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
-  version = "v0.5"
+  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -84,10 +84,10 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/prometheus/client_golang"
   packages = ["prometheus"]
-  revision = "82f5ff156b29e276022b1a958f7d385870fb9814"
+  revision = "c5b7fccd204277076155f10851dad72b76a49317"
+  version = "v0.8.0"
 
 [[projects]]
   branch = "master"

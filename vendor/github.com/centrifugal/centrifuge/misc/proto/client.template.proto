@@ -86,12 +86,17 @@ message Message {
     bytes data = 1{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false]{{end}};
 }
 
-message ConnectRequest {
+message SignedCredentials {
     string user = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "user"]{{end}};
     string exp = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "exp"]{{end}};
     string info = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "info"]{{end}};
     string opts = 4{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "opts"]{{end}};
     string sign = 5{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "sign"]{{end}};
+}
+
+message ConnectRequest {
+    SignedCredentials credentials = 1 {{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "credentials"]{{end}};
+    bytes data = 2{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false]{{end}};
 }
 
 message ConnectResponse {
@@ -105,14 +110,11 @@ message ConnectResult {
     bool expires = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "expires,omitempty"]{{end}};
     bool expired = 4{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "expired,omitempty"]{{end}};
     uint32 ttl = 5{{if env.Getenv "GOGO"}} [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"]{{end}};
+    bytes data = 6{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false]{{end}};
 }
 
 message RefreshRequest {
-    string user = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "user"]{{end}};
-    string exp = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "exp"]{{end}};
-    string info = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "info"]{{end}};
-    string opts = 4{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "opts"]{{end}};
-    string sign = 5{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "sign"]{{end}};
+    SignedCredentials credentials = 1 {{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "credentials"]{{end}};
 }
 
 message RefreshResponse {
@@ -126,6 +128,7 @@ message RefreshResult {
     bool expires = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "expires,omitempty"]{{end}};
     bool expired = 4{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "expired,omitempty"]{{end}};
     uint32 ttl = 5{{if env.Getenv "GOGO"}} [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"]{{end}};
+    bytes meta = 6{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "meta,omitempty"]{{end}};
 }
 
 message SubscribeRequest {

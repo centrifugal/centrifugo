@@ -24,9 +24,11 @@
 
                 var centrifuge = new Centrifuge('ws://localhost:8000/connection/websocket');
 
+                centrifuge.setConnectData({"user-agent": navigator.userAgent});
+
                 // bind listeners on centrifuge object instance events.
                 centrifuge.on('connect', function(ctx){
-                    drawText('Connected with client ID ' + ctx.client + ' over ' + ctx.transport);
+                    drawText('Connected with client ID ' + ctx.client + ' over ' + ctx.transport + ' with data: ' + JSON.stringify(ctx.data));
                     input.attr("disabled", false);
                 });
 

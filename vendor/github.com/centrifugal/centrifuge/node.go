@@ -579,6 +579,12 @@ func (n *Node) Presence(ch string) (map[string]*ClientInfo, error) {
 	return presence, nil
 }
 
+// presenceStats ...
+func (n *Node) presenceStats(ch string) (presenceStats, error) {
+	actionCount.WithLabelValues("presence_stats").Inc()
+	return n.engine.presenceStats(ch)
+}
+
 // History returns a slice of last messages published into project channel.
 func (n *Node) History(ch string) ([]*Publication, error) {
 	actionCount.WithLabelValues("history").Inc()
@@ -589,15 +595,21 @@ func (n *Node) History(ch string) ([]*Publication, error) {
 	return pubs, nil
 }
 
+// recoverHistory ...
+func (n *Node) recoverHistory(ch string, lastUID string) ([]*Publication, bool, error) {
+	actionCount.WithLabelValues("recover_history").Inc()
+	return n.engine.recoverHistory(ch, lastUID)
+}
+
 // RemoveHistory removes channel history.
 func (n *Node) RemoveHistory(ch string) error {
 	actionCount.WithLabelValues("remove_history").Inc()
 	return n.engine.removeHistory(ch)
 }
 
-// lastPubUID return last message id for channel.
-func (n *Node) lastPubUID(ch string) (string, error) {
-	actionCount.WithLabelValues("last_pub_uid").Inc()
+// lastPublicationUID return last message id for channel.
+func (n *Node) lastPublicationUID(ch string) (string, error) {
+	actionCount.WithLabelValues("last_publication_uid").Inc()
 	publications, err := n.engine.history(ch, historyFilter{Limit: 1})
 	if err != nil {
 		return "", err
