@@ -50,7 +50,7 @@
     "internal/queue",
     "internal/uuid"
   ]
-  revision = "c5ce31ba11198af79dce17ef3258310539024674"
+  revision = "7f6ddaf6ba02028f836549451fc87bbc9712f3dc"
 
 [[projects]]
   name = "github.com/garyburd/redigo"

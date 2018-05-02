@@ -531,7 +531,7 @@ func (e *RedisEngine) history(ch string, filter historyFilter) ([]*proto.Publica
 }
 
 // RecoverHistory - see engine interface description.
-func (e *RedisEngine) recover(ch string, lastUID string) ([]*proto.Publication, bool, error) {
+func (e *RedisEngine) recoverHistory(ch string, lastUID string) ([]*proto.Publication, bool, error) {
 	return e.shards[e.shardIndex(ch)].RecoverHistory(ch, lastUID)
 }
 
