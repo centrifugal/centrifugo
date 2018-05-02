@@ -330,7 +330,7 @@ func (c *client) Handle(msg []byte) error {
 		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrInvalidMessage.Error(), Reconnect: false})
 		return proto.ErrInvalidMessage
 	} else if len(msg) > c.maxRequestSize {
-		logger.ERROR.Println("client request exceeds max request size limit")
+		logger.ERROR.Printf("client request exceeds max request size limit, client: %s", c.uid)
 		c.Close(&conns.DisconnectAdvice{Reason: proto.ErrLimitExceeded.Error(), Reconnect: false})
 		return proto.ErrLimitExceeded
 	}
@@ -586,6 +586,8 @@ func (c *client) connectCmd(cmd *proto.ConnectClientCommand) (proto.Response, er
 	}
 
 	c.authenticated = true
+	logger.DEBUG.Printf("client %s authenticated as user %s", c.uid, c.user)
+
 	if len(info) > 0 {
 		c.defaultInfo = raw.Raw(info)
 	}
@@ -627,7 +629,7 @@ func (c *client) refreshCmd(cmd *proto.RefreshClientCommand) (proto.Response, er
 
 	isValid := auth.CheckClientToken(secret, string(user), timestamp, info, token)
 	if !isValid {
-		logger.ERROR.Println("invalid refresh token for user", user)
+		logger.ERROR.Printf("invalid refresh token for user: %s, client: %s", user, c.uid)
 		return nil, proto.ErrInvalidToken
 	}
 
@@ -719,14 +721,14 @@ func (c *client) subscribeCmd(cmd *proto.SubscribeClientCommand) (proto.Response
 	}
 
 	if len(channel) > maxChannelLength {
-		logger.ERROR.Printf("channel too long: max %d, got %d", maxChannelLength, len(channel))
+		logger.ERROR.Printf("channel too long: max %d, got %d, user: %s, client: %s", maxChannelLength, len(channel), c.user, c.uid)
 		resp := proto.NewClientSubscribeResponse(body)
 		resp.SetErr(proto.ResponseError{proto.ErrLimitExceeded, proto.ErrorAdviceFix})
 		return resp, nil
 	}
 
 	if len(c.channels) >= channelLimit {
-		logger.ERROR.Printf("maximum limit of channels per client reached: %d", channelLimit)
+		logger.ERROR.Printf("maximum limit of channels per client reached: %d, user: %s, client: %s", channelLimit, c.user, c.uid)
 		resp := proto.NewClientSubscribeResponse(body)
 		resp.SetErr(proto.ResponseError{proto.ErrLimitExceeded, proto.ErrorAdviceFix})
 		return resp, nil
