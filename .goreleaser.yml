@@ -23,27 +23,13 @@ builds:
   goarch:
   - amd64
   - "386"
-  - arm
-  - arm64
   ignore:
     - goos: darwin
       goarch: "386"
-    - goos: darwin
-      goarch: arm
-    - goos: darwin
-      goarch: arm64
     - goos: windows
       goarch: "386"
-    - goos: windows
-      goarch: arm
-    - goos: windows
-      goarch: arm64
     - goos: freebsd
       goarch: "386"
-    - goos: freebsd
-      goarch: arm
-    - goos: freebsd
-      goarch: arm64
   main: .
   ldflags: -s -w -X main.VERSION={{.Version}}
   binary: centrifugo
@@ -66,17 +52,6 @@ archive:
   format_overrides:
     - goos: windows
       format: zip
-# nfpm:
-#   name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm
-#     }}v{{ .Arm }}{{ end }}'
-#   homepage: https://github.com/centrifugal/centrifugo
-#   maintainer: Alexander Emelin <frvzmb@gmail.com>
-#   description: Centrifugo – real-time messaging server.
-#   license: MIT
-#   formats:
-#     - deb
-#     - rpm
-#   bindir: /usr/local/bin
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
 dist: dist

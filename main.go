@@ -658,14 +658,20 @@ func pathExists(path string) (bool, error) {
 }
 
 var jsonConfigTemplate = `{
-  "secret": "{{.Secret}}"
+  "secret": "{{.Secret}}",
+  "admin_password": "{{.AdminPassword}}",
+  "admin_secret": "{{.AdminSecret}}"
 }
 `
 
 var tomlConfigTemplate = `secret = {{.Secret}}
+admin_password = {{.AdminPassword}}
+admin_secret = {{.AdminSecret}}
 `
 
 var yamlConfigTemplate = `secret: {{.Secret}}
+admin_password: {{.AdminPassword}}
+admin_secret: {{.AdminSecret}}
 `
 
 // generateConfig generates configuration file at provided path.
@@ -705,8 +711,12 @@ func generateConfig(f string) error {
 
 	var output bytes.Buffer
 	t.Execute(&output, struct {
-		Secret string
+		Secret        string
+		AdminPassword string
+		AdminSecret   string
 	}{
+		uuid.NewV4().String(),
+		uuid.NewV4().String(),
 		uuid.NewV4().String(),
 	})
 
