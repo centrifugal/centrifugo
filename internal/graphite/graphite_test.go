@@ -128,7 +128,7 @@ func TestWriteSummary(t *testing.T) {
 		prometheus.SummaryOpts{
 			Name:        "name",
 			Help:        "docstring",
-			Namespace:   "grafana",
+			Namespace:   "centrifuge",
 			ConstLabels: prometheus.Labels{"constname": "constvalue"},
 			Objectives:  map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		},
@@ -188,7 +188,7 @@ func TestWriteHistogram(t *testing.T) {
 		prometheus.HistogramOpts{
 			Name:        "name",
 			Help:        "docstring",
-			Namespace:   "grafana",
+			Namespace:   "centrifuge",
 			ConstLabels: prometheus.Labels{"constname": "constvalue"},
 			Buckets:     []float64{0.01, 0.02, 0.05, 0.1},
 		},
@@ -249,8 +249,8 @@ prefix.name_bucket.constname.constvalue.labelname.val2.le._Inf 3 1477043
 func TestCounterVec(t *testing.T) {
 	cntVec := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name:        "page_response",
-			Namespace:   "grafana",
+			Name:        "client_response",
+			Namespace:   "centrifuge",
 			Help:        "docstring",
 			ConstLabels: prometheus.Labels{"constname": "constvalue"},
 		},
@@ -259,8 +259,8 @@ func TestCounterVec(t *testing.T) {
 
 	apicntVec := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name:        "api_response",
-			Namespace:   "grafana",
+			Name:        "http_response",
+			Namespace:   "centrifuge",
 			Help:        "docstring",
 			ConstLabels: prometheus.Labels{"constname": "constvalue"},
 		},
@@ -297,10 +297,10 @@ func TestCounterVec(t *testing.T) {
 		t.Fatalf("error: %v", err)
 	}
 
-	want := `prefix.api.response.constname.constvalue.labelname.val1.count 1 1477043
-prefix.api.response.constname.constvalue.labelname.val2.count 1 1477043
-prefix.page.response.constname.constvalue.labelname.val1.count 1 1477043
-prefix.page.response.constname.constvalue.labelname.val2.count 1 1477043
+	want := `prefix.client.response.constname.constvalue.labelname.val1.count 1 1477043
+prefix.client.response.constname.constvalue.labelname.val2.count 1 1477043
+prefix.http.response.constname.constvalue.labelname.val1.count 1 1477043
+prefix.http.response.constname.constvalue.labelname.val2.count 1 1477043
 `
 	if got := buf.String(); want != got {
 		t.Fatalf("wanted \n%s\n, got \n%s\n", want, got)
@@ -323,10 +323,10 @@ prefix.page.response.constname.constvalue.labelname.val2.count 1 1477043
 		t.Fatalf("error: %v", err)
 	}
 
-	want2 := `prefix.api.response.constname.constvalue.labelname.val1.count 1 1477053
-prefix.api.response.constname.constvalue.labelname.val2.count 1 1477053
-prefix.page.response.constname.constvalue.labelname.val1.count 1 1477053
-prefix.page.response.constname.constvalue.labelname.val2.count 1 1477053
+	want2 := `prefix.client.response.constname.constvalue.labelname.val1.count 1 1477053
+prefix.client.response.constname.constvalue.labelname.val2.count 1 1477053
+prefix.http.response.constname.constvalue.labelname.val1.count 1 1477053
+prefix.http.response.constname.constvalue.labelname.val2.count 1 1477053
 `
 	if got := buf.String(); want2 != got {
 		t.Fatalf("wanted \n%s\n, got \n%s\n", want2, got)
@@ -336,9 +336,9 @@ prefix.page.response.constname.constvalue.labelname.val2.count 1 1477053
 func TestCounter(t *testing.T) {
 	cntVec := prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name:        "page_response",
+			Name:        "http_response",
 			Help:        "docstring",
-			Namespace:   "grafana",
+			Namespace:   "centrifuge",
 			ConstLabels: prometheus.Labels{"constname": "constvalue"},
 		})
 
@@ -368,7 +368,7 @@ func TestCounter(t *testing.T) {
 		t.Fatalf("error: %v", err)
 	}
 
-	want := "prefix.page.response.constname.constvalue.count 1 1477043\n"
+	want := "prefix.http.response.constname.constvalue.count 1 1477043\n"
 	if got := buf.String(); want != got {
 		t.Fatalf("wanted \n%s\n, got \n%s\n", want, got)
 	}
@@ -387,7 +387,7 @@ func TestCounter(t *testing.T) {
 		t.Fatalf("error: %v", err)
 	}
 
-	want2 := "prefix.page.response.constname.constvalue.count 1 1477053\n"
+	want2 := "prefix.http.response.constname.constvalue.count 1 1477053\n"
 	if got := buf.String(); want2 != got {
 		t.Fatalf("wanted \n%s\n, got \n%s\n", want2, got)
 	}
@@ -427,7 +427,7 @@ func TestTrimGrafanaNamespace(t *testing.T) {
 		t.Fatalf("error: %v", err)
 	}
 
-	want := "prefix.http_request_total.constname.constvalue.count 1 1477043\n"
+	want := "prefix.http.request_total.constname.constvalue.count 1 1477043\n"
 	if got := buf.String(); want != got {
 		t.Fatalf("wanted \n%s\n, got \n%s\n", want, got)
 	}
@@ -465,8 +465,8 @@ func TestSkipNanValues(t *testing.T) {
 		t.Fatalf("error: %v", err)
 	}
 
-	want := `prefix.http_request_total_sum.constname.constvalue 0 1477043
-prefix.http_request_total_count.constname.constvalue.count 0 1477043
+	want := `prefix.http.request_total_sum.constname.constvalue 0 1477043
+prefix.http.request_total_count.constname.constvalue.count 0 1477043
 `
 
 	if got := buf.String(); want != got {
@@ -480,7 +480,7 @@ func TestPush(t *testing.T) {
 		prometheus.CounterOpts{
 			Name:        "name",
 			Help:        "docstring",
-			Namespace:   "grafana",
+			Namespace:   "centrifuge",
 			ConstLabels: prometheus.Labels{"constname": "constvalue"},
 		},
 		[]string{"labelname"},
