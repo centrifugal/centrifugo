@@ -31,5 +31,10 @@ deploy:
     on:
       tags: true
       condition: $TRAVIS_OS_NAME = linux
-      go: '1.10'
-
+      go: '1.10.2'
+  # - provider: script
+  #   script: extras/scripts/travis_packagecloud.sh
+  #   on:
+  #     tags: true 
+  #     condition: $TRAVIS_OS_NAME = linux
+  #     go: "1.10.2"
