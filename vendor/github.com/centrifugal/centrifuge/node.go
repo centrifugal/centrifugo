@@ -48,11 +48,14 @@ type Node struct {
 	// shutdownCh is a channel which is closed when node shutdown initiated.
 	shutdownCh chan struct{}
 
-	// connectHandler is a reaction to client connect.
-	connectHandler ConnectHandler
+	// eventHub to manage event handlers binded to node.
+	eventHub *NodeEventHub
 
+	// logger allows to log throughout library code and proxy log entries to
+	// configured log handler.
 	logger *logger
 
+	// cache control encoder/decoder in node.
 	controlEncoder controlproto.Encoder
 	controlDecoder controlproto.Decoder
 }
@@ -70,6 +73,7 @@ func New(c Config) *Node {
 		logger:         nil,
 		controlEncoder: controlproto.NewProtobufEncoder(),
 		controlDecoder: controlproto.NewProtobufDecoder(),
+		eventHub:       &NodeEventHub{},
 	}
 	e, _ := NewMemoryEngine(n, MemoryEngineConfig{})
 	n.SetEngine(e)
@@ -87,16 +91,6 @@ func (n *Node) Config() Config {
 	c := n.config
 	n.mu.RUnlock()
 	return c
-}
-
-// OnConnect allows to set connect handler func to Node.
-func (n *Node) OnConnect(h ConnectHandler) {
-	n.connectHandler = h
-}
-
-// ConnectHandler returns connect handler binded to node or nil.
-func (n *Node) ConnectHandler() ConnectHandler {
-	return n.connectHandler
 }
 
 // SetEngine binds engine to node.
@@ -136,6 +130,11 @@ func (n *Node) Run() error {
 	go n.updateMetrics()
 
 	return nil
+}
+
+// On allows access to NodeEventHub.
+func (n *Node) On() *NodeEventHub {
+	return n.eventHub
 }
 
 // Shutdown sets shutdown flag and does various clean ups.
@@ -444,20 +443,20 @@ func (n *Node) pubDisconnect(user string, reconnect bool) error {
 
 // addClient registers authenticated connection in clientConnectionHub
 // this allows to make operations with user connection on demand.
-func (n *Node) addClient(c *client) error {
+func (n *Node) addClient(c *Client) error {
 	actionCount.WithLabelValues("add_client").Inc()
 	return n.hub.add(c)
 }
 
 // removeClient removes client connection from connection registry.
-func (n *Node) removeClient(c *client) error {
+func (n *Node) removeClient(c *Client) error {
 	actionCount.WithLabelValues("remove_client").Inc()
 	return n.hub.remove(c)
 }
 
 // addSubscription registers subscription of connection on channel in both
 // engine and clientSubscriptionHub.
-func (n *Node) addSubscription(ch string, c *client) error {
+func (n *Node) addSubscription(ch string, c *Client) error {
 	actionCount.WithLabelValues("add_subscription").Inc()
 	first, err := n.hub.addSub(ch, c)
 	if err != nil {
@@ -471,7 +470,7 @@ func (n *Node) addSubscription(ch string, c *client) error {
 
 // removeSubscription removes subscription of connection on channel
 // from both engine and clientSubscriptionHub.
-func (n *Node) removeSubscription(ch string, c *client) error {
+func (n *Node) removeSubscription(ch string, c *Client) error {
 	actionCount.WithLabelValues("remove_subscription").Inc()
 	empty, err := n.hub.removeSub(ch, c)
 	if err != nil {
@@ -625,6 +624,9 @@ func (n *Node) lastPublicationUID(ch string) (string, error) {
 func (n *Node) privateChannel(ch string) bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
+	if n.config.ChannelPrivatePrefix == "" {
+		return false
+	}
 	return strings.HasPrefix(ch, n.config.ChannelPrivatePrefix)
 }
 
@@ -712,4 +714,15 @@ func (r *nodeRegistry) clean(delay time.Duration) {
 		}
 	}
 	r.mu.Unlock()
+}
+
+// NodeEventHub can deal with events binded to Node.
+// All its methods are not goroutine-safe.
+type NodeEventHub struct {
+	connectHandler ConnectHandler
+}
+
+// Connect allows to set ConnectHandler.
+func (h *NodeEventHub) Connect(handler ConnectHandler) {
+	h.connectHandler = handler
 }

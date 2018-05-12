@@ -313,7 +313,7 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 }
 
 // common data handling logic for Websocket and Sockjs handlers.
-func handleClientData(n *Node, c *client, data []byte, transport Transport, writer *writer) bool {
+func handleClientData(n *Node, c *Client, data []byte, transport Transport, writer *writer) bool {
 	transportBytesIn.WithLabelValues(transport.Name()).Add(float64(len(data)))
 
 	if len(data) == 0 {

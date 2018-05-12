@@ -13,32 +13,28 @@ type ChannelNamespace struct {
 // ChannelOptions represent channel specific configuration for namespace
 // or global channel options if set on top level of configuration.
 type ChannelOptions struct {
-	// Publish determines if client can publish messages into channel
-	// directly. This allows to use Centrifugo without backend. All
-	// messages go through Centrifugo and delivered to clients. But
-	// in this case you lose everything your backend code could give -
-	// validation, persistence etc.
-	// This option is useful mostly for demos, personal projects or
-	// prototyping.
+	// Publish enables possibility for clients to publish messages into channels.
 	Publish bool `json:"publish"`
 
-	// Anonymous determines is anonymous access (with empty user ID)
-	// allowed or not. In most situations your application works with
-	// authorized users so every user has its own unique user ID. But
-	// if you provide real-time features for public access you may need
-	// unauthorized access to channels. Turn on this option and use
-	// empty string as user ID.
+	// SubscribeToPublish turns on an automatic check that client subscribed
+	// on channel before allow it to publish into that channel.
+	SubscribeToPublish bool `mapstructure:"subscribe_to_publish" json:"subscribe_to_publish"`
+
+	// Anonymous enables anonymous access (with empty user ID) to channel
+	// In most situations your application works with authorized users so
+	// every user has its own unique user ID. But if you provide real-time
+	// features for public access you may need unauthorized access to channels.
+	// Turn on this option and use empty string as user ID.
 	Anonymous bool `json:"anonymous"`
 
-	// JoinLeave turns on(off) join/leave messages for channels.
+	// JoinLeave turns on join/leave messages for channels.
 	// When client subscribes on channel join message sent to all
 	// clients in this channel. When client leaves channel (unsubscribes)
 	// leave message sent.
 	JoinLeave bool `mapstructure:"join_leave" json:"join_leave"`
 
-	// Presence turns on(off) presence information for channels.
-	// Presence is a structure with clients currently subscribed on
-	// channel.
+	// Presence turns on presence information for channels.
+	// Presence is a structure with clients currently subscribed on channel.
 	Presence bool `json:"presence"`
 
 	// HistorySize determines max amount of history messages for channel,
@@ -47,14 +43,14 @@ type ChannelOptions struct {
 	HistorySize int `mapstructure:"history_size" json:"history_size"`
 
 	// HistoryLifetime determines time in seconds until expiration for
-	// history messages. As Centrifugo keeps history in memory (in process
-	// memory or in Redis process memory) it's important to remove old
-	// messages to prevent infinite memory grows.
+	// history messages. As Centrifuge-based server keeps history in memory
+	// (for example in process memory or in Redis process memory) it's
+	// important to remove old messages to prevent infinite memory grows.
 	HistoryLifetime int `mapstructure:"history_lifetime" json:"history_lifetime"`
 
 	// Recover enables recover mechanism for channels. This means that
-	// Centrifugo will try to recover missed messages for resubscribing
-	// client. This option uses messages from history and must be used
+	// server will try to recover missed messages for resubscribing
+	// client. This option uses publications from history and must be used
 	// with reasonable HistorySize and HistoryLifetime configuration.
 	HistoryRecover bool `mapstructure:"history_recover" json:"history_recover"`
 

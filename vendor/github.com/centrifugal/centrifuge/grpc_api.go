@@ -10,7 +10,7 @@ import (
 // GRPCAPIServiceConfig for GRPC API Service.
 type GRPCAPIServiceConfig struct{}
 
-// RegisterGRPCServerAPI ...
+// RegisterGRPCServerAPI registers GRPC API service in provided GRPC server.
 func RegisterGRPCServerAPI(n *Node, server *grpc.Server, config GRPCAPIServiceConfig) error {
 	apiproto.RegisterCentrifugeServer(server, newGRPCAPIService(n, config))
 	return nil

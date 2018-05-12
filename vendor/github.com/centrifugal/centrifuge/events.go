@@ -16,8 +16,8 @@ type ConnectReply struct {
 	Data       Raw
 }
 
-// ConnectHandler ...
-type ConnectHandler func(context.Context, Client, ConnectEvent) ConnectReply
+// ConnectHandler called when new client connects to server.
+type ConnectHandler func(context.Context, *Client, ConnectEvent) ConnectReply
 
 // DisconnectEvent contains fields related to disconnect event.
 type DisconnectEvent struct {
@@ -27,7 +27,7 @@ type DisconnectEvent struct {
 // DisconnectReply contains fields determining the reaction on disconnect event.
 type DisconnectReply struct{}
 
-// DisconnectHandler ...
+// DisconnectHandler called when client disconnects from server.
 type DisconnectHandler func(DisconnectEvent) DisconnectReply
 
 // SubscribeEvent contains fields related to subscribe event.
@@ -42,7 +42,7 @@ type SubscribeReply struct {
 	ChannelInfo Raw
 }
 
-// SubscribeHandler ...
+// SubscribeHandler called when client wants to subscribe on channel.
 type SubscribeHandler func(SubscribeEvent) SubscribeReply
 
 // UnsubscribeEvent contains fields related to unsubscribe event.
@@ -54,7 +54,7 @@ type UnsubscribeEvent struct {
 type UnsubscribeReply struct {
 }
 
-// UnsubscribeHandler ...
+// UnsubscribeHandler called when client unsubscribed from channel.
 type UnsubscribeHandler func(UnsubscribeEvent) UnsubscribeReply
 
 // PublishEvent contains fields related to publish event.
@@ -69,19 +69,8 @@ type PublishReply struct {
 	Disconnect *Disconnect
 }
 
-// PublishHandler ...
+// PublishHandler called when client publishes into channel.
 type PublishHandler func(PublishEvent) PublishReply
-
-// PresenceEvent contains fields related to presence update event.
-type PresenceEvent struct{}
-
-// PresenceReply contains fields determining the reaction on presence update event.
-type PresenceReply struct {
-	Disconnect *Disconnect
-}
-
-// PresenceHandler ...
-type PresenceHandler func(PresenceEvent) PresenceReply
 
 // RefreshEvent contains fields related to refresh event.
 type RefreshEvent struct{}
@@ -92,7 +81,8 @@ type RefreshReply struct {
 	Info []byte
 }
 
-// RefreshHandler ...
+// RefreshHandler called when it's time to validate client connection and
+// update it's expiration time.
 type RefreshHandler func(RefreshEvent) RefreshReply
 
 // RPCEvent contains fields related to rpc request.

@@ -29,7 +29,7 @@ func authMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Our middleware logic goes here...
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, centrifuge.CredentialsContextKey, &centrifuge.Credentials{
+		ctx = centrifuge.SetCredentials(ctx, &centrifuge.Credentials{
 			UserID: "42",
 			Exp:    time.Now().Unix() + 10,
 			Info:   []byte(`{"name": "Alexander"}`),
@@ -68,24 +68,24 @@ func main() {
 
 	node := centrifuge.New(cfg)
 
-	node.OnConnect(func(ctx context.Context, client centrifuge.Client, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connect(func(ctx context.Context, client *centrifuge.Client, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
 
-		client.OnSubscribe(func(e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
+		client.On().Subscribe(func(e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
 			log.Printf("user %s subscribes on %s", client.UserID(), e.Channel)
 			return centrifuge.SubscribeReply{}
 		})
 
-		client.OnUnsubscribe(func(e centrifuge.UnsubscribeEvent) centrifuge.UnsubscribeReply {
+		client.On().Unsubscribe(func(e centrifuge.UnsubscribeEvent) centrifuge.UnsubscribeReply {
 			log.Printf("user %s unsubscribed from %s", client.UserID(), e.Channel)
 			return centrifuge.UnsubscribeReply{}
 		})
 
-		client.OnPublish(func(e centrifuge.PublishEvent) centrifuge.PublishReply {
-			log.Printf("user %s publishes into channel %s: %s", client.UserID(), e.Channel, string(e.Pub.Data))
+		client.On().Publish(func(e centrifuge.PublishEvent) centrifuge.PublishReply {
+			log.Printf("user %s publishes into channel %s: %s", client.UserID(), e.Channel, string(e.Data))
 			return centrifuge.PublishReply{}
 		})
 
-		client.OnDisconnect(func(e centrifuge.DisconnectEvent) centrifuge.DisconnectReply {
+		client.On().Disconnect(func(e centrifuge.DisconnectEvent) centrifuge.DisconnectReply {
 			log.Printf("user %s disconnected, disconnect: %#v", client.UserID(), e.Disconnect)
 			return centrifuge.DisconnectReply{}
 		})

@@ -26,7 +26,7 @@ func authMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Our middleware logic goes here...
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, centrifuge.CredentialsContextKey, &centrifuge.Credentials{
+		ctx = centrifuge.SetCredentials(ctx, &centrifuge.Credentials{
 			UserID: "",
 		})
 		r = r.WithContext(ctx)
@@ -52,26 +52,26 @@ func main() {
 
 	node := centrifuge.New(cfg)
 
-	node.OnConnect(func(ctx context.Context, client centrifuge.Client, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connect(func(ctx context.Context, client *centrifuge.Client, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
 
-		client.OnMessage(func(e centrifuge.MessageEvent) centrifuge.MessageReply {
+		client.On().Message(func(e centrifuge.MessageEvent) centrifuge.MessageReply {
 			var ev event
 			_ = json.Unmarshal(e.Data, &ev)
-			node.Publish("moving", &centrifuge.Pub{Data: []byte(ev.Payload)})
+			node.Publish("moving", &centrifuge.Publication{Data: []byte(ev.Payload)})
 			return centrifuge.MessageReply{}
 		})
 
-		client.OnDisconnect(func(e centrifuge.DisconnectEvent) centrifuge.DisconnectReply {
+		client.On().Disconnect(func(e centrifuge.DisconnectEvent) centrifuge.DisconnectReply {
 			log.Printf("worm disconnected, disconnect: %#v", e.Disconnect)
 			return centrifuge.DisconnectReply{}
 		})
 
-		client.OnSubscribe(func(e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
+		client.On().Subscribe(func(e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
 			log.Printf("worm subscribed on %s", e.Channel)
 			return centrifuge.SubscribeReply{}
 		})
 
-		client.OnUnsubscribe(func(e centrifuge.UnsubscribeEvent) centrifuge.UnsubscribeReply {
+		client.On().Unsubscribe(func(e centrifuge.UnsubscribeEvent) centrifuge.UnsubscribeReply {
 			log.Printf("worm unsubscribed from %s", e.Channel)
 			return centrifuge.UnsubscribeReply{}
 		})

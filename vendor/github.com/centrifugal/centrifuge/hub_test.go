@@ -2,6 +2,8 @@ package centrifuge
 
 import (
 	"context"
+	"io"
+	"sync"
 	"testing"
 
 	"github.com/centrifugal/centrifuge/internal/proto"
@@ -9,6 +11,7 @@ import (
 )
 
 type testTransport struct {
+	mu     sync.Mutex
 	sink   chan *preparedReply
 	closed bool
 }
@@ -18,6 +21,11 @@ func newTestTransport() *testTransport {
 }
 
 func (t *testTransport) Send(rep *preparedReply) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.closed {
+		return io.EOF
+	}
 	if t.sink != nil {
 		t.sink <- rep
 	}
@@ -33,6 +41,8 @@ func (t *testTransport) Encoding() Encoding {
 }
 
 func (t *testTransport) Close(disconnect *Disconnect) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.closed = true
 	return nil
 }

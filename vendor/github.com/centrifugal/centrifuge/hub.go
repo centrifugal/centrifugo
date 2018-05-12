@@ -11,7 +11,7 @@ type Hub struct {
 	mu sync.RWMutex
 
 	// match ConnID with actual client connection.
-	conns map[string]*client
+	conns map[string]*Client
 
 	// registry to hold active client connections grouped by user.
 	users map[string]map[string]struct{}
@@ -23,7 +23,7 @@ type Hub struct {
 // newHub initializes Hub.
 func newHub() *Hub {
 	return &Hub{
-		conns: make(map[string]*client),
+		conns: make(map[string]*Client),
 		users: make(map[string]map[string]struct{}),
 		subs:  make(map[string]map[string]struct{}),
 	}
@@ -51,7 +51,7 @@ func (h *Hub) shutdown() error {
 				continue
 			}
 			sem <- struct{}{}
-			go func(cc *client) {
+			go func(cc *Client) {
 				defer func() { <-sem }()
 				cc.close(advice)
 				wg.Done()
@@ -67,7 +67,7 @@ func (h *Hub) disconnect(user string, reconnect bool) error {
 	userConnections := h.userConnections(user)
 	advice := &Disconnect{Reason: "disconnect", Reconnect: reconnect}
 	for _, c := range userConnections {
-		go func(cc *client) {
+		go func(cc *Client) {
 			cc.close(advice)
 		}(c)
 	}
@@ -86,7 +86,7 @@ func (h *Hub) unsubscribe(user string, ch string) error {
 }
 
 // add adds connection into clientHub connections registry.
-func (h *Hub) add(c *client) error {
+func (h *Hub) add(c *Client) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -104,7 +104,7 @@ func (h *Hub) add(c *client) error {
 }
 
 // Remove removes connection from clientHub connections registry.
-func (h *Hub) remove(c *client) error {
+func (h *Hub) remove(c *Client) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -133,16 +133,16 @@ func (h *Hub) remove(c *client) error {
 }
 
 // userConnections returns all connections of user with specified UserID.
-func (h *Hub) userConnections(userID string) map[string]*client {
+func (h *Hub) userConnections(userID string) map[string]*Client {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
 	userConnections, ok := h.users[userID]
 	if !ok {
-		return map[string]*client{}
+		return map[string]*Client{}
 	}
 
-	conns := make(map[string]*client, len(userConnections))
+	conns := make(map[string]*Client, len(userConnections))
 	for uid := range userConnections {
 		c, ok := h.conns[uid]
 		if !ok {
@@ -155,7 +155,7 @@ func (h *Hub) userConnections(userID string) map[string]*client {
 }
 
 // addSub adds connection into clientHub subscriptions registry.
-func (h *Hub) addSub(ch string, c *client) (bool, error) {
+func (h *Hub) addSub(ch string, c *Client) (bool, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -175,7 +175,7 @@ func (h *Hub) addSub(ch string, c *client) (bool, error) {
 }
 
 // removeSub removes connection from clientHub subscriptions registry.
-func (h *Hub) removeSub(ch string, c *client) (bool, error) {
+func (h *Hub) removeSub(ch string, c *Client) (bool, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 

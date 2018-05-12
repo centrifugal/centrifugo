@@ -104,7 +104,7 @@ func (t *sockjsTransport) Close(disconnect *Disconnect) error {
 	return t.session.Close(sockjsCloseStatus, string(reason))
 }
 
-// SockjsConfig ...
+// SockjsConfig represents config for SockJS handler.
 type SockjsConfig struct {
 	// HandlerPrefix sets prefix for SockJS handler endpoint path.
 	HandlerPrefix string
@@ -124,14 +124,14 @@ type SockjsConfig struct {
 	WebsocketWriteBufferSize int
 }
 
-// SockjsHandler ...
+// SockjsHandler accepts SockJS connections.
 type SockjsHandler struct {
 	node    *Node
 	config  SockjsConfig
 	handler http.Handler
 }
 
-// NewSockjsHandler ...
+// NewSockjsHandler creates new SockjsHandler.
 func NewSockjsHandler(n *Node, c SockjsConfig) *SockjsHandler {
 	sockjs.WebSocketReadBufSize = c.WebsocketReadBufferSize
 	sockjs.WebSocketWriteBufSize = c.WebsocketWriteBufferSize

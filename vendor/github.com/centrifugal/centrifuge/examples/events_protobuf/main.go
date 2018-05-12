@@ -62,43 +62,43 @@ func main() {
 
 	node := centrifuge.New(cfg)
 
-	node.OnConnect(func(ctx context.Context, client centrifuge.Client, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connect(func(ctx context.Context, client *centrifuge.Client, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
 
-		client.OnSubscribe(func(e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
+		client.On().Subscribe(func(e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
 			log.Printf("user %s subscribes on %s", client.UserID(), e.Channel)
 			return centrifuge.SubscribeReply{}
 		})
 
-		client.OnUnsubscribe(func(e centrifuge.UnsubscribeEvent) centrifuge.UnsubscribeReply {
+		client.On().Unsubscribe(func(e centrifuge.UnsubscribeEvent) centrifuge.UnsubscribeReply {
 			log.Printf("user %s unsubscribed from %s", client.UserID(), e.Channel)
 			return centrifuge.UnsubscribeReply{}
 		})
 
-		client.OnPublish(func(e centrifuge.PublishEvent) centrifuge.PublishReply {
+		client.On().Publish(func(e centrifuge.PublishEvent) centrifuge.PublishReply {
 			log.Printf("user %s publishes into channel %s: %s", client.UserID(), e.Channel, string(e.Data))
 			return centrifuge.PublishReply{}
 		})
 
-		client.OnRPC(func(e centrifuge.RPCEvent) centrifuge.RPCReply {
+		client.On().RPC(func(e centrifuge.RPCEvent) centrifuge.RPCReply {
 			log.Printf("RPC from user: %s, data: %s", client.UserID(), string(e.Data))
 			return centrifuge.RPCReply{
 				Data: []byte(`{"year": "2018"}`),
 			}
 		})
 
-		client.OnMessage(func(e centrifuge.MessageEvent) centrifuge.MessageReply {
+		client.On().Message(func(e centrifuge.MessageEvent) centrifuge.MessageReply {
 			log.Printf("Message from user: %s, data: %s", client.UserID(), string(e.Data))
 			return centrifuge.MessageReply{}
 		})
 
-		client.OnRefresh(func(e centrifuge.RefreshEvent) centrifuge.RefreshReply {
+		client.On().Refresh(func(e centrifuge.RefreshEvent) centrifuge.RefreshReply {
 			log.Printf("user %s connection is going to expire, refreshing", client.UserID())
 			return centrifuge.RefreshReply{
 				Exp: time.Now().Unix() + 60,
 			}
 		})
 
-		client.OnDisconnect(func(e centrifuge.DisconnectEvent) centrifuge.DisconnectReply {
+		client.On().Disconnect(func(e centrifuge.DisconnectEvent) centrifuge.DisconnectReply {
 			log.Printf("user %s disconnected, disconnect: %#v", client.UserID(), e.Disconnect)
 			return centrifuge.DisconnectReply{}
 		})
