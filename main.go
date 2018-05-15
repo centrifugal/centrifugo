@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -390,6 +389,8 @@ var configDefaults = map[string]interface{}{
 	"tls_autocert_email":              "",
 	"tls_autocert_force_rsa":          false,
 	"tls_autocert_server_name":        "",
+	"tls_autocert_http":               false,
+	"tls_autocert_http_addr":          ":80",
 	"redis_prefix":                    "centrifugo",
 	"redis_connect_timeout":           1,
 	"redis_read_timeout":              10, // Must be greater than ping channel publish interval.
@@ -542,6 +543,8 @@ func getTLSConfig() (*tls.Config, error) {
 	tlsAutocertEmail := viper.GetString("tls_autocert_email")
 	tlsAutocertForceRSA := viper.GetBool("tls_autocert_force_rsa")
 	tlsAutocertServerName := viper.GetString("tls_autocert_server_name")
+	tlsAutocertHTTP := viper.GetBool("tls_autocert_http")
+	tlsAutocertHTTPAddr := viper.GetString("tls_autocert_http_addr")
 
 	if tlsAutocertEnabled {
 		certManager := autocert.Manager{
@@ -555,6 +558,20 @@ func getTLSConfig() (*tls.Config, error) {
 		if tlsAutocertCacheDir != "" {
 			certManager.Cache = autocert.DirCache(tlsAutocertCacheDir)
 		}
+
+		if tlsAutocertHTTP {
+			acmeHTTPserver := &http.Server{
+				Handler: certManager.HTTPHandler(nil),
+				Addr:    tlsAutocertHTTPAddr,
+			}
+			go func() {
+				log.Info().Msgf("Serving ACME http_01 challenge on %s", tlsAutocertHTTPAddr)
+				if err := acmeHTTPserver.ListenAndServe(); err != nil {
+					log.Fatal().Msgf("Can't create server to serve acme http challenges: %v", err)
+				}
+			}()
+		}
+
 		return &tls.Config{
 			GetCertificate: func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 				// See https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819
