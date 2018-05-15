@@ -2,12 +2,6 @@
 
 
 [[projects]]
-  branch = "master"
-  name = "github.com/FZambia/go-logger"
-  packages = ["."]
-  revision = "5312b752874cb31cbcfe0a0198efd06b5ac01d19"
-
-[[projects]]
   name = "github.com/FZambia/sentinel"
   packages = ["."]
   revision = "e69a8dc549bb0aabdc63fbfd9e8bfe971a368153"
@@ -108,6 +102,12 @@
   version = "v1.0"
 
 [[projects]]
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
+  version = "v0.0.3"
+
+[[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
   revision = "3247c84500bff8d9fb6d579d800f20b3e091582c"
@@ -168,6 +168,17 @@
   revision = "8b1c2da0d56deffdbb9e48d4414b4e674bd8083e"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/rs/zerolog"
+  packages = [
+    ".",
+    "internal/cbor",
+    "internal/json",
+    "log"
+  ]
+  revision = "b5207c012d2c2d73bec68f517ef281fdad38114b"
+
+[[projects]]
   name = "github.com/satori/go.uuid"
   packages = ["."]
   revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
@@ -219,6 +230,12 @@
     "trace"
   ]
   revision = "2491c5de3490fced2f6cff376127c667efeed857"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
+  revision = "7c87d13f8e835d2fb3a70a2912c811ed0c1d241b"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -287,6 +304,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fd73e5869a3dabb4c9e98d50c45fba8d0eb3f15c71beb60d45341e394ed38c67"
+  inputs-digest = "c87586ffc270f3d1f8ce0c5bd0d04a677a734ab5c1248fd93dbce08a84388cb9"
   solver-name = "gps-cdcl"
   solver-version = 1

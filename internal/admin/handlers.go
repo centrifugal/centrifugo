@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/FZambia/go-logger"
 	"github.com/centrifugal/centrifuge"
 	"github.com/gorilla/securecookie"
+	"github.com/rs/zerolog/log"
 )
 
 // Config ...
@@ -74,7 +74,7 @@ func (s *Handler) adminSecureTokenAuth(h http.Handler) http.Handler {
 		}
 
 		if secret == "" {
-			logger.ERROR.Println("no admin secret key found in configuration")
+			log.Error().Msg("no admin secret key found in configuration")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -117,7 +117,7 @@ func (s *Handler) authHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if password == "" || secret == "" {
-		logger.ERROR.Println("admin_password and admin_secret must be set in configuration")
+		log.Error().Msg("admin_password and admin_secret must be set in configuration")
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -126,7 +126,7 @@ func (s *Handler) authHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		token, err := generateSecureAdminToken(secret)
 		if err != nil {
-			logger.ERROR.Printf("error generating admin token: %v", err)
+			log.Error().Msgf("error generating admin token: %v", err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}

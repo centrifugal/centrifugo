@@ -4,14 +4,14 @@ import (
 	"net/http"
 	"strings"
 
-	logger "github.com/FZambia/go-logger"
+	"github.com/rs/zerolog/log"
 )
 
 // APIKeyAuth middleware authorizes request using API key authorization.
 func APIKeyAuth(key string, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if key == "" {
-			logger.ERROR.Println("API key is empty")
+			log.Error().Msg("API key is empty")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

@@ -4,19 +4,19 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/FZambia/go-logger"
-	"github.com/centrifugal/centrifuge"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 // LogRequest middleware logs details of request.
-func LogRequest(n *centrifuge.Node, h http.Handler) http.Handler {
+func LogRequest(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var start time.Time
-		if logger.DEBUG.Enabled() {
+		if zerolog.GlobalLevel() <= zerolog.DebugLevel {
 			start = time.Now()
 		}
 		h.ServeHTTP(w, r)
-		if logger.DEBUG.Enabled() {
+		if zerolog.GlobalLevel() <= zerolog.DebugLevel {
 			addr := r.Header.Get("X-Real-IP")
 			if addr == "" {
 				addr = r.Header.Get("X-Forwarded-For")
@@ -24,7 +24,7 @@ func LogRequest(n *centrifuge.Node, h http.Handler) http.Handler {
 					addr = r.RemoteAddr
 				}
 			}
-			logger.DEBUG.Printf("%s %s from %s completed in %s", r.Method, r.URL.Path, addr, time.Since(start))
+			log.Debug().Str("method", r.Method).Str("path", r.URL.Path).Str("addr", addr).Dur("duration", time.Since(start)).Msgf("request completed")
 		}
 		return
 	})

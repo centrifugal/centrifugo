@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
+
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -23,17 +23,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/centrifugal/centrifugo/internal/admin"
 	"github.com/centrifugal/centrifugo/internal/graphite"
 	"github.com/centrifugal/centrifugo/internal/middleware"
 	"github.com/centrifugal/centrifugo/internal/webui"
 
-	"github.com/FZambia/go-logger"
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifuge"
+	"github.com/mattn/go-isatty"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/acme/autocert"
@@ -83,7 +84,7 @@ func main() {
 
 			absConfPath, err := filepath.Abs(configFile)
 			if err != nil {
-				logger.FATAL.Fatalf("Error retreiving config file absolute path: %v", err)
+				log.Fatal().Msgf("Error retreiving config file absolute path: %v", err)
 			}
 
 			err = viper.ReadInConfig()
@@ -91,21 +92,24 @@ func main() {
 			if err != nil {
 				switch err.(type) {
 				case viper.ConfigParseError:
-					logger.FATAL.Fatalf("Error parsing configuration: %s\n", err)
+					log.Fatal().Msgf("Error parsing configuration: %s\n", err)
 				default:
 					configFound = false
 				}
 			}
 
-			setupLogging()
+			file := setupLogging()
+			if file != nil {
+				defer file.Close()
+			}
 
 			err = writePidFile(viper.GetString("pid_file"))
 			if err != nil {
-				logger.FATAL.Fatalf("Error writing PID: %v", err)
+				log.Fatal().Msgf("Error writing PID: %v", err)
 			}
 
 			if !configFound {
-				logger.WARN.Println("No config file found")
+				log.Warn().Msg("No config file found")
 			}
 
 			if os.Getenv("GOMAXPROCS") == "" {
@@ -119,12 +123,12 @@ func main() {
 			c := nodeConfig()
 			err = c.Validate()
 			if err != nil {
-				logger.FATAL.Fatalf("Error validating config: %v", err)
+				log.Fatal().Msgf("Error validating config: %v", err)
 			}
 
 			node, err := centrifuge.New(*c)
 			if err != nil {
-				logger.FATAL.Fatalf("Error creating Centrifuge Node: %v", err)
+				log.Fatal().Msgf("Error creating Centrifuge Node: %v", err)
 			}
 			setLogHandler(node)
 
@@ -136,35 +140,35 @@ func main() {
 			} else if engineName == "redis" {
 				e, err = redisEngine(node)
 			} else {
-				logger.FATAL.Fatalf("Unknown engine: %s", engineName)
+				log.Fatal().Msgf("Unknown engine: %s", engineName)
 			}
 
 			if err != nil {
-				logger.FATAL.Fatalf("Error creating engine: %v", err)
+				log.Fatal().Msgf("Error creating engine: %v", err)
 			}
 
 			node.SetEngine(e)
 
 			if err = node.Run(); err != nil {
-				logger.FATAL.Fatalf("Error running node: %v", err)
+				log.Fatal().Msgf("Error running node: %v", err)
 			}
 
-			logger.INFO.Printf("Starting Centrifugo %s", VERSION)
-			logger.INFO.Printf("Config path: %s", absConfPath)
-			logger.INFO.Printf("PID: %d", os.Getpid())
-			logger.INFO.Printf("Engine: %s", strings.ToTitle(engineName))
-			logger.INFO.Printf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
+			log.Info().Msgf("Starting Centrifugo %s", VERSION)
+			log.Info().Msgf("Config path: %s", absConfPath)
+			log.Info().Msgf("PID: %d", os.Getpid())
+			log.Info().Msgf("Engine: %s", strings.ToTitle(engineName))
+			log.Info().Msgf("GOMAXPROCS: %d", runtime.GOMAXPROCS(0))
 			if viper.GetBool("client_insecure") {
-				logger.WARN.Println("INSECURE client mode enabled")
+				log.Warn().Msg("INSECURE client mode enabled")
 			}
 			if viper.GetBool("api_insecure") {
-				logger.WARN.Println("INSECURE API mode enabled")
+				log.Warn().Msg("INSECURE API mode enabled")
 			}
 			if viper.GetBool("admin_insecure") {
-				logger.WARN.Println("INSECURE admin mode enabled")
+				log.Warn().Msg("INSECURE admin mode enabled")
 			}
 			if viper.GetBool("debug") {
-				logger.WARN.Println("DEBUG mode enabled, see /debug/pprof")
+				log.Warn().Msg("DEBUG mode enabled, see /debug/pprof")
 			}
 
 			var grpcAPIServer *grpc.Server
@@ -173,12 +177,12 @@ func main() {
 				grpcAPIAddr = fmt.Sprintf(":%d", viper.GetInt("grpc_api_port"))
 				grpcAPIConn, err := net.Listen("tcp", grpcAPIAddr)
 				if err != nil {
-					logger.FATAL.Fatalf("Cannot listen to address %s", grpcAPIAddr)
+					log.Fatal().Msgf("Cannot listen to address %s", grpcAPIAddr)
 				}
 				grpcOpts := []grpc.ServerOption{}
 				tlsConfig, err := getTLSConfig()
 				if err != nil {
-					logger.FATAL.Fatalf("Error getting TLS config: %v", err)
+					log.Fatal().Msgf("Error getting TLS config: %v", err)
 				}
 				if tlsConfig != nil {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
@@ -187,7 +191,7 @@ func main() {
 				centrifuge.RegisterGRPCServerAPI(node, grpcAPIServer, centrifuge.GRPCAPIServiceConfig{})
 				go func() {
 					if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
-						logger.FATAL.Fatalf("Serve GRPC: %v", err)
+						log.Fatal().Msgf("Serve GRPC: %v", err)
 					}
 				}()
 			}
@@ -198,14 +202,14 @@ func main() {
 				grpcClientAddr = fmt.Sprintf(":%d", viper.GetInt("grpc_client_port"))
 				grpcClientConn, err := net.Listen("tcp", grpcClientAddr)
 				if err != nil {
-					logger.FATAL.Fatalf("Cannot listen to address %s", grpcClientAddr)
+					log.Fatal().Msgf("Cannot listen to address %s", grpcClientAddr)
 				}
 				grpcOpts := []grpc.ServerOption{
 					grpc.MaxRecvMsgSize(viper.GetInt("client_request_max_size")),
 				}
 				tlsConfig, err := getTLSConfig()
 				if err != nil {
-					logger.FATAL.Fatalf("Error getting TLS config: %v", err)
+					log.Fatal().Msgf("Error getting TLS config: %v", err)
 				}
 				if tlsConfig != nil {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
@@ -214,21 +218,21 @@ func main() {
 				centrifuge.RegisterGRPCServerClient(node, grpcClientServer, centrifuge.GRPCClientServiceConfig{})
 				go func() {
 					if err := grpcClientServer.Serve(grpcClientConn); err != nil {
-						logger.FATAL.Fatalf("Serve GRPC: %v", err)
+						log.Fatal().Msgf("Serve GRPC: %v", err)
 					}
 				}()
 			}
 
 			if grpcAPIServer != nil {
-				logger.INFO.Printf("Serving GRPC API service on %s", grpcAPIAddr)
+				log.Info().Msgf("Serving GRPC API service on %s", grpcAPIAddr)
 			}
 			if grpcClientServer != nil {
-				logger.INFO.Printf("Serving GRPC client service on %s", grpcClientAddr)
+				log.Info().Msgf("Serving GRPC client service on %s", grpcClientAddr)
 			}
 
 			servers, err := runHTTPServers(node)
 			if err != nil {
-				logger.FATAL.Fatalf("Error running HTTP server: %v", err)
+				log.Fatal().Msgf("Error running HTTP server: %v", err)
 			}
 
 			if viper.GetBool("graphite") {
@@ -241,11 +245,11 @@ func main() {
 						CountersAsDelta: true,
 					})
 					if err != nil {
-						logger.FATAL.Fatalf("Error building Graphite bridge: %v", err)
+						log.Fatal().Msgf("Error building Graphite bridge: %v", err)
 					}
 					err = bridge.Push()
 					if err != nil {
-						logger.FATAL.Fatalf("Error pushing initial metrics to Graphite: %v", err)
+						log.Fatal().Msgf("Error pushing initial metrics to Graphite: %v", err)
 					}
 					bridge.Run(context.Background())
 				}()
@@ -309,7 +313,7 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			err := validateConfig(checkConfigFile)
 			if err != nil {
-				logger.FATAL.Fatalf("%v", err)
+				log.Fatal().Msgf("%v", err)
 			}
 		},
 	}
@@ -324,7 +328,7 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			err := generateConfig(outputConfigFile)
 			if err != nil {
-				logger.FATAL.Fatalf("%v", err)
+				log.Fatal().Msgf("%v", err)
 			}
 		},
 	}
@@ -413,21 +417,37 @@ func writePidFile(pidFile string) error {
 	return ioutil.WriteFile(pidFile, pid, 0644)
 }
 
-func setupLogging() {
-	log.SetFlags(0)
-	log.SetOutput(logger.INFO)
-	logLevel, ok := logger.LevelMatches[strings.ToUpper(viper.GetString("log_level"))]
-	if !ok {
-		logLevel = logger.LevelInfo
+var logLevelMatches = map[string]zerolog.Level{
+	"NONE":  zerolog.NoLevel,
+	"DEBUG": zerolog.DebugLevel,
+	"INFO":  zerolog.InfoLevel,
+	"WARN":  zerolog.WarnLevel,
+	"ERROR": zerolog.ErrorLevel,
+	"FATAL": zerolog.FatalLevel,
+}
+
+func setupLogging() *os.File {
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
-	logger.SetLogThreshold(logLevel)
-	logger.SetStdoutThreshold(logLevel)
+
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	logLevel, ok := logLevelMatches[strings.ToUpper(viper.GetString("log_level"))]
+	if !ok {
+		logLevel = zerolog.InfoLevel
+	}
+	zerolog.SetGlobalLevel(logLevel)
 
 	if viper.IsSet("log_file") && viper.GetString("log_file") != "" {
-		logger.SetLogFile(viper.GetString("log_file"))
-		// do not log into stdout when log file provided.
-		logger.SetStdoutThreshold(logger.LevelNone)
+		f, err := os.OpenFile(viper.GetString("log_file"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			log.Fatal().Msgf("error opening log file: %v", err)
+		}
+		log.Logger = log.Output(f)
+		return f
 	}
+
+	return nil
 }
 
 func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
@@ -435,33 +455,30 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
 		sig := <-sigc
-		logger.INFO.Println("Signal received:", sig)
+		log.Info().Msgf("Signal received: %v", sig)
 		switch sig {
 		case syscall.SIGHUP:
 			// reload application configuration on SIGHUP.
-			logger.INFO.Println("Reloading configuration")
+			log.Info().Msg("Reloading configuration")
 			err := viper.ReadInConfig()
 			if err != nil {
 				switch err.(type) {
 				case viper.ConfigParseError:
-					logger.CRITICAL.Printf("Error parsing configuration: %s", err)
+					log.Error().Msgf("Error parsing configuration: %s", err)
 					continue
 				default:
-					logger.CRITICAL.Println("No config file found")
+					log.Error().Msg("No config file found")
 					continue
 				}
 			}
-
-			setupLogging()
-
 			cfg := nodeConfig()
 			if err := n.Reload(*cfg); err != nil {
-				logger.CRITICAL.Printf("Error reloading: %v", err)
+				log.Error().Msgf("Error reloading: %v", err)
 				continue
 			}
-			logger.INFO.Println("Configuration successfully reloaded")
+			log.Info().Msg("Configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
-			logger.INFO.Println("Shutting down, wait...")
+			log.Info().Msg("Shutting down, wait...")
 			pidFile := viper.GetString("pid_file")
 			go time.AfterFunc(time.Duration(viper.GetInt("shutdown_timeout"))*time.Second, func() {
 				if pidFile != "" {
@@ -614,11 +631,11 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 
 		addr := net.JoinHostPort(httpAddress, handlerPort)
 
-		logger.INFO.Printf("Serving %s endpoints on %s\n", handlerFlags, addr)
+		log.Info().Msgf("Serving %s endpoints on %s", handlerFlags, addr)
 
 		tlsConfig, err := getTLSConfig()
 		if err != nil {
-			logger.FATAL.Fatalf("Can not get TLS config: %v", err)
+			log.Fatal().Msgf("Can not get TLS config: %v", err)
 		}
 		server := &http.Server{
 			Addr:      addr,
@@ -632,13 +649,13 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 			if tlsConfig != nil {
 				if err := server.ListenAndServeTLS("", ""); err != nil {
 					if err != http.ErrServerClosed {
-						logger.FATAL.Fatalf("ListenAndServe: %v", err)
+						log.Fatal().Msgf("ListenAndServe: %v", err)
 					}
 				}
 			} else {
 				if err := server.ListenAndServe(); err != nil {
 					if err != http.ErrServerClosed {
-						logger.FATAL.Fatalf("ListenAndServe: %v", err)
+						log.Fatal().Msgf("ListenAndServe: %v", err)
 					}
 				}
 			}
@@ -1092,19 +1109,19 @@ func newLogHandler() *logHandler {
 
 func (h *logHandler) readEntries() {
 	for entry := range h.entries {
-		var log *logger.LevelLogger
+		var l *zerolog.Event
 		switch entry.Level {
 		case centrifuge.LogLevelDebug:
-			log = logger.DEBUG
+			l = log.Debug()
 		case centrifuge.LogLevelInfo:
-			log = logger.INFO
+			l = log.Info()
 		case centrifuge.LogLevelError:
-			log = logger.ERROR
+			l = log.Error()
 		}
 		if entry.Fields != nil {
-			log.Printf("%s: %v", entry.Message, entry.Fields)
+			l.Fields(entry.Fields).Msg(entry.Message)
 		} else {
-			log.Println(entry.Message)
+			l.Msg(entry.Message)
 		}
 	}
 }
@@ -1165,44 +1182,51 @@ func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	if flags&HandlerDebug != 0 {
-		mux.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
-		mux.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
-		mux.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
-		mux.Handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
-		mux.Handle("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
+		mux.Handle("/debug/pprof/", middleware.LogRequest(http.HandlerFunc(pprof.Index)))
+		mux.Handle("/debug/pprof/cmdline", middleware.LogRequest(http.HandlerFunc(pprof.Cmdline)))
+		mux.Handle("/debug/pprof/profile", middleware.LogRequest(http.HandlerFunc(pprof.Profile)))
+		mux.Handle("/debug/pprof/symbol", middleware.LogRequest(http.HandlerFunc(pprof.Symbol)))
+		mux.Handle("/debug/pprof/trace", middleware.LogRequest(http.HandlerFunc(pprof.Trace)))
 	}
 
 	if flags&HandlerWebsocket != 0 {
 		// register Websocket connection endpoint.
-		mux.Handle("/connection/websocket", middleware.LogRequest(n, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))
+		mux.Handle("/connection/websocket", middleware.LogRequest(centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))
 	}
 
 	if flags&HandlerSockJS != 0 {
 		// register SockJS connection endpoints.
 		sockjsConfig := sockjsHandlerConfig()
 		sockjsConfig.HandlerPrefix = "/connection/sockjs"
-		mux.Handle(sockjsConfig.HandlerPrefix+"/", middleware.LogRequest(n, centrifuge.NewSockjsHandler(n, sockjsConfig)))
+		mux.Handle(sockjsConfig.HandlerPrefix+"/", middleware.LogRequest(centrifuge.NewSockjsHandler(n, sockjsConfig)))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
 		apiHandler := centrifuge.NewAPIHandler(n, centrifuge.APIConfig{})
 		if viper.GetBool("api_insecure") {
-			mux.Handle("/api", middleware.LogRequest(n, apiHandler))
+			mux.Handle("/api", middleware.LogRequest(apiHandler))
 		} else {
-			mux.Handle("/api", middleware.LogRequest(n, middleware.APIKeyAuth(viper.GetString("api_key"), apiHandler)))
+			mux.Handle("/api", middleware.LogRequest(middleware.APIKeyAuth(viper.GetString("api_key"), apiHandler)))
 		}
 	}
 
 	if flags&HandlerPrometheus != 0 {
 		// register Prometheus metrics export endpoint.
-		mux.Handle("/metrics", middleware.LogRequest(n, promhttp.Handler()))
+		mux.Handle("/metrics", middleware.LogRequest(promhttp.Handler()))
 	}
 
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
-		mux.Handle("/", middleware.LogRequest(n, admin.NewHandler(n, adminHandlerConfig())))
+		mux.Handle("/", middleware.LogRequest(admin.NewHandler(n, adminHandlerConfig())))
+	} else {
+		mux.Handle("/", middleware.LogRequest(http.HandlerFunc(notFoundHandler)))
 	}
 
 	return mux
+}
+
+func notFoundHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotFound)
+	w.Write([]byte("404 page not found"))
 }
