@@ -4,29 +4,29 @@ import (
 	"time"
 )
 
-// historyFilter allows to provide several parameters for history
-// extraction.
-type historyFilter struct {
-	// Limit sets the max amount of messages that must
-	// be returned. 0 means no limit - i.e. return all history
-	// messages (limited by configured history_size). 1 means
-	// last message only, 2 - two last messages etc.
-	Limit int
-}
-
-// presenceStats ...
+// presenceStats represents a short presence information for channel.
 type presenceStats struct {
 	NumClients int
 	NumUsers   int
 }
 
-// Engine is an interface abstracting PUB/SUB mechanics and
-// history/presence data manipulations.
+// EngineEventHandler can handle messages received from PUB/SUB system.
+type EngineEventHandler interface {
+	// Publication must register callback func to handle Publications received.
+	HandlePublication(ch string, pub *Publication) error
+	// Join must register callback func to handle Join messages received.
+	HandleJoin(ch string, join *Join) error
+	// Leave must register callback func to handle Leave messages received.
+	HandleLeave(ch string, leave *Leave) error
+	// Control must register callback func to handle Control data received.
+	HandleControl([]byte) error
+}
+
+// Engine is responsible for PUB/SUB mechanics, channel history and
+// presence information.
 type Engine interface {
-	// Name returns a name of concrete engine implementation.
-	name() string
-	// Run called once on start just after engine set to node.
-	run() error
+	// Run called once on start when engine already set to node.
+	run(EngineEventHandler) error
 
 	// Publish allows to send Publication into channel. This message should
 	// be delivered to all clients subscribed on this channel at moment on
@@ -41,21 +41,26 @@ type Engine interface {
 	// PublishControl allows to send control command to all running nodes.
 	publishControl(data []byte) <-chan error
 
-	// Subscribe node on channel.
+	// Subscribe node on channel to listen all messages coming from channel.
 	subscribe(ch string) error
-	// Unsubscribe node from channel.
+	// Unsubscribe node from channel to stop listening messages from it.
 	unsubscribe(ch string) error
 	// Channels returns slice of currently active channels (with
-	// one or more subscribers) on all Centrifuge nodes.
+	// one or more subscribers) on all running nodes.
 	channels() ([]string, error)
 
 	// History returns a slice of history messages for channel.
-	history(ch string, filter historyFilter) ([]*Publication, error)
-	// recoverHistory allows to recover missed messages starting from last seen
-	// Publication UID provided by client. This method should return as many Publications
-	// as possible and boolean value indicating whether all Publications
-	// were successfully restored or not. The case when publications can not be
-	// fully restored can happen if old Publications already removed from history
+	// limit argument sets the max amount of messages that must
+	// be returned. 0 means no limit - i.e. return all history
+	// messages (though limited by configured history_size). 1 means
+	// last (most recent) message only, 2 - two last messages etc.
+	history(ch string, limit int) ([]*Publication, error)
+	// recoverHistory allows to recover missed messages starting
+	// from last seen Publication UID provided by client. This method
+	// should return as many Publications as possible and boolean value
+	// indicating whether all Publications were successfully restored
+	// or not. The case when publications can not be fully restored
+	// can happen if old Publications already removed from history
 	// due to size or lifetime limits.
 	recoverHistory(ch string, lastUID string) ([]*Publication, bool, error)
 	// RemoveHistory removes history from channel. This is in general not
@@ -65,12 +70,16 @@ type Engine interface {
 
 	// Presence returns actual presence information for channel.
 	presence(ch string) (map[string]*ClientInfo, error)
-	// PresenseStats returns short stats of current presence data.
+	// PresenseStats returns short stats of current presence data
+	// suitable for scenarios when caller does not need full client
+	// info returned by presence method.
 	presenceStats(ch string) (presenceStats, error)
 	// AddPresence sets or updates presence information in channel
-	// for connection with specified identifier.
-	addPresence(ch string, connID string, info *ClientInfo, expire time.Duration) error
+	// for connection with specified identifier. Engine should have a
+	// property to expire client information that was not updated
+	// (touched) after some configured time interval.
+	addPresence(ch string, clientID string, info *ClientInfo, expire time.Duration) error
 	// RemovePresence removes presence information for connection
 	// with specified identifier.
-	removePresence(ch string, connID string) error
+	removePresence(ch string, clientID string) error
 }

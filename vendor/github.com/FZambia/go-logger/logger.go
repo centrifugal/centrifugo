@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sync"
 	"sync/atomic"
 )
 
@@ -14,6 +15,7 @@ type Level int
 
 // LevelLogger represents levelled logger.
 type LevelLogger struct {
+	mu      sync.RWMutex
 	enabled int32
 	level   Level
 	prefix  string
@@ -44,7 +46,9 @@ func (n *LevelLogger) Print(v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
+	n.mu.RLock()
 	n.logger.Output(callDepth, fmt.Sprint(v...))
+	n.mu.RUnlock()
 }
 
 // Printf calls underlying Logger Printf func.
@@ -52,7 +56,9 @@ func (n *LevelLogger) Printf(format string, v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
+	n.mu.RLock()
 	n.logger.Output(callDepth, fmt.Sprintf(format, v...))
+	n.mu.RUnlock()
 }
 
 // Println calls underlying Logger Println func.
@@ -60,7 +66,9 @@ func (n *LevelLogger) Println(v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
+	n.mu.RLock()
 	n.logger.Output(callDepth, fmt.Sprintln(v...))
+	n.mu.RUnlock()
 }
 
 // Fatal calls underlying Logger Fatal func.
@@ -68,7 +76,9 @@ func (n *LevelLogger) Fatal(v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
+	n.mu.RLock()
 	n.logger.Output(callDepth, fmt.Sprint(v...))
+	n.mu.RUnlock()
 	os.Exit(1)
 }
 
@@ -77,7 +87,9 @@ func (n *LevelLogger) Fatalf(format string, v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
+	n.mu.RLock()
 	n.logger.Output(callDepth, fmt.Sprintf(format, v...))
+	n.mu.RUnlock()
 	os.Exit(1)
 }
 
@@ -86,7 +98,9 @@ func (n *LevelLogger) Fatalln(v ...interface{}) {
 	if !n.Enabled() {
 		return
 	}
+	n.mu.RLock()
 	n.logger.Output(callDepth, fmt.Sprintln(v...))
+	n.mu.RUnlock()
 	os.Exit(1)
 }
 
@@ -96,7 +110,9 @@ func (n *LevelLogger) Panic(v ...interface{}) {
 		return
 	}
 	s := fmt.Sprint(v...)
+	n.mu.RLock()
 	n.logger.Output(callDepth, s)
+	n.mu.RUnlock()
 	panic(s)
 }
 
@@ -106,7 +122,9 @@ func (n *LevelLogger) Panicf(format string, v ...interface{}) {
 		return
 	}
 	s := fmt.Sprintf(format, v...)
+	n.mu.RLock()
 	n.logger.Output(callDepth, s)
+	n.mu.RUnlock()
 	panic(s)
 }
 
@@ -116,7 +134,9 @@ func (n *LevelLogger) Panicln(v ...interface{}) {
 		return
 	}
 	s := fmt.Sprintln(v...)
+	n.mu.RLock()
 	n.logger.Output(callDepth, s)
+	n.mu.RUnlock()
 	panic(s)
 }
 
@@ -195,7 +215,9 @@ func initialize() {
 		}
 
 		atomic.StoreInt32(&l.enabled, 0)
+		l.mu.Lock()
 		l.logger = log.New(handler, l.prefix, Flag)
+		l.mu.Unlock()
 		atomic.StoreInt32(&l.enabled, enabled)
 	}
 }

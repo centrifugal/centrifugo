@@ -49,19 +49,19 @@ type Node struct {
 	shutdownCh chan struct{}
 
 	// eventHub to manage event handlers binded to node.
-	eventHub *NodeEventHub
+	eventHub *nodeEventHub
 
 	// logger allows to log throughout library code and proxy log entries to
 	// configured log handler.
 	logger *logger
 
-	// cache control encoder/decoder in node.
+	// cache control encoder/decoder in Node.
 	controlEncoder controlproto.Encoder
 	controlDecoder controlproto.Decoder
 }
 
 // New creates Node, the only required argument is config.
-func New(c Config) *Node {
+func New(c Config) (*Node, error) {
 	uid := uuid.Must(uuid.NewV4()).String()
 	n := &Node{
 		uid:            uid,
@@ -73,14 +73,15 @@ func New(c Config) *Node {
 		logger:         nil,
 		controlEncoder: controlproto.NewProtobufEncoder(),
 		controlDecoder: controlproto.NewProtobufDecoder(),
-		eventHub:       &NodeEventHub{},
+		eventHub:       &nodeEventHub{},
 	}
 	e, _ := NewMemoryEngine(n, MemoryEngineConfig{})
 	n.SetEngine(e)
-	return n
+	return n, nil
 }
 
-// SetLogHandler ...
+// SetLogHandler sets LogHandler to handle log messages with
+// severity higher than specific LogLevel.
 func (n *Node) SetLogHandler(level LogLevel, handler LogHandler) {
 	n.logger = newLogger(level, handler)
 }
@@ -117,7 +118,10 @@ func (n *Node) Reload(c Config) error {
 // Run performs all startup actions. At moment must be called once on start
 // after engine and structure set.
 func (n *Node) Run() error {
-	if err := n.engine.run(); err != nil {
+
+	eventHandler := &engineEventHandler{n}
+
+	if err := n.engine.run(eventHandler); err != nil {
 		return err
 	}
 
@@ -133,7 +137,7 @@ func (n *Node) Run() error {
 }
 
 // On allows access to NodeEventHub.
-func (n *Node) On() *NodeEventHub {
+func (n *Node) On() NodeEventHub {
 	return n.eventHub
 }
 
@@ -148,6 +152,11 @@ func (n *Node) Shutdown() error {
 	close(n.shutdownCh)
 	n.mu.Unlock()
 	return n.hub.shutdown()
+}
+
+// NotifyShutdown returns a channel which will be closed on node shutdown.
+func (n *Node) NotifyShutdown() chan struct{} {
+	return n.shutdownCh
 }
 
 func (n *Node) updateGauges() {
@@ -216,8 +225,7 @@ func (n *Node) info() (*apiproto.InfoResult, error) {
 	}
 
 	return &apiproto.InfoResult{
-		Engine: n.engine.name(),
-		Nodes:  nodeResults,
+		Nodes: nodeResults,
 	}, nil
 }
 
@@ -268,11 +276,11 @@ func (n *Node) handleControl(data []byte) error {
 	}
 }
 
-// handlePub handles messages published by web application or client into channel.
-// The goal of this method to deliver this message to all clients on this node subscribed
-// on channel.
+// handlePublication handles messages published into channel and
+// coming from engine. The goal of method is to deliver this message
+// to all clients on this node currently subscribed to channel.
 func (n *Node) handlePublication(ch string, pub *Publication) error {
-	messagesReceivedCount.WithLabelValues("pub").Inc()
+	messagesReceivedCount.WithLabelValues("publication").Inc()
 	numSubscribers := n.hub.NumSubscribers(ch)
 	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
@@ -281,7 +289,8 @@ func (n *Node) handlePublication(ch string, pub *Publication) error {
 	return n.hub.broadcastPublication(ch, pub)
 }
 
-// handleJoin handles join messages.
+// handleJoin handles join messages - i.e. broadcasts it to
+// interested local clients subscribed to channel.
 func (n *Node) handleJoin(ch string, join *proto.Join) error {
 	messagesReceivedCount.WithLabelValues("join").Inc()
 	hasCurrentSubscribers := n.hub.NumSubscribers(ch) > 0
@@ -291,7 +300,8 @@ func (n *Node) handleJoin(ch string, join *proto.Join) error {
 	return n.hub.broadcastJoin(ch, join)
 }
 
-// handleLeave handles leave messages.
+// handleLeave handles leave messages - i.e. broadcasts it to
+// interested local clients subscribed to channel.
 func (n *Node) handleLeave(ch string, leave *proto.Leave) error {
 	messagesReceivedCount.WithLabelValues("leave").Inc()
 	hasCurrentSubscribers := n.hub.NumSubscribers(ch) > 0
@@ -539,7 +549,7 @@ func (n *Node) Disconnect(user string, reconnect bool) error {
 // namespaceName returns namespace name from channel if exists.
 func (n *Node) namespaceName(ch string) string {
 	cTrim := strings.TrimPrefix(ch, n.config.ChannelPrivatePrefix)
-	if strings.Contains(cTrim, n.config.ChannelNamespaceBoundary) {
+	if n.config.ChannelNamespaceBoundary != "" && strings.Contains(cTrim, n.config.ChannelNamespaceBoundary) {
 		parts := strings.SplitN(cTrim, n.config.ChannelNamespaceBoundary, 2)
 		return parts[0]
 	}
@@ -578,7 +588,7 @@ func (n *Node) Presence(ch string) (map[string]*ClientInfo, error) {
 	return presence, nil
 }
 
-// presenceStats ...
+// presenceStats returns presence stats from engine.
 func (n *Node) presenceStats(ch string) (presenceStats, error) {
 	actionCount.WithLabelValues("presence_stats").Inc()
 	return n.engine.presenceStats(ch)
@@ -587,14 +597,14 @@ func (n *Node) presenceStats(ch string) (presenceStats, error) {
 // History returns a slice of last messages published into project channel.
 func (n *Node) History(ch string) ([]*Publication, error) {
 	actionCount.WithLabelValues("history").Inc()
-	pubs, err := n.engine.history(ch, historyFilter{Limit: 0})
+	pubs, err := n.engine.history(ch, 0)
 	if err != nil {
 		return nil, err
 	}
 	return pubs, nil
 }
 
-// recoverHistory ...
+// recoverHistory recovers publications since last UID seen by client.
 func (n *Node) recoverHistory(ch string, lastUID string) ([]*Publication, bool, error) {
 	actionCount.WithLabelValues("recover_history").Inc()
 	return n.engine.recoverHistory(ch, lastUID)
@@ -609,7 +619,7 @@ func (n *Node) RemoveHistory(ch string) error {
 // lastPublicationUID return last message id for channel.
 func (n *Node) lastPublicationUID(ch string) (string, error) {
 	actionCount.WithLabelValues("last_publication_uid").Inc()
-	publications, err := n.engine.history(ch, historyFilter{Limit: 1})
+	publications, err := n.engine.history(ch, 1)
 	if err != nil {
 		return "", err
 	}
@@ -636,11 +646,19 @@ func (n *Node) privateChannel(ch string) bool {
 func (n *Node) userAllowed(ch string, user string) bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
-	if !strings.Contains(ch, n.config.ChannelUserBoundary) {
+	userBoundary := n.config.ChannelUserBoundary
+	userSeparator := n.config.ChannelUserSeparator
+	if userBoundary == "" {
 		return true
 	}
-	parts := strings.Split(ch, n.config.ChannelUserBoundary)
-	allowedUsers := strings.Split(parts[len(parts)-1], n.config.ChannelUserSeparator)
+	if !strings.Contains(ch, userBoundary) {
+		return true
+	}
+	parts := strings.Split(ch, userBoundary)
+	if userSeparator == "" {
+		return parts[len(parts)-1] == user
+	}
+	allowedUsers := strings.Split(parts[len(parts)-1], userSeparator)
 	for _, allowedUser := range allowedUsers {
 		if user == allowedUser {
 			return true
@@ -717,12 +735,39 @@ func (r *nodeRegistry) clean(delay time.Duration) {
 }
 
 // NodeEventHub can deal with events binded to Node.
+// All its methods are not goroutine-safe as handlers must be
+// registered once before Node Run method called.
+type NodeEventHub interface {
+	Connect(handler ConnectHandler)
+}
+
+// nodeEventHub can deal with events binded to Node.
 // All its methods are not goroutine-safe.
-type NodeEventHub struct {
+type nodeEventHub struct {
 	connectHandler ConnectHandler
 }
 
 // Connect allows to set ConnectHandler.
-func (h *NodeEventHub) Connect(handler ConnectHandler) {
+func (h *nodeEventHub) Connect(handler ConnectHandler) {
 	h.connectHandler = handler
+}
+
+type engineEventHandler struct {
+	node *Node
+}
+
+func (h *engineEventHandler) HandlePublication(ch string, pub *Publication) error {
+	return h.node.handlePublication(ch, pub)
+}
+
+func (h *engineEventHandler) HandleJoin(ch string, join *Join) error {
+	return h.node.handleJoin(ch, join)
+}
+
+func (h *engineEventHandler) HandleLeave(ch string, leave *Leave) error {
+	return h.node.handleLeave(ch, leave)
+}
+
+func (h *engineEventHandler) HandleControl(data []byte) error {
+	return h.node.handleControl(data)
 }

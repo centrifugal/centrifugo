@@ -176,8 +176,7 @@ message InfoResponse {
 }
 
 message InfoResult {
-    string engine = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "engine"]{{end}};
-    repeated NodeResult nodes = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "nodes"]{{end}};
+    repeated NodeResult nodes = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "nodes"]{{end}};
 }
 
 message NodeResult {

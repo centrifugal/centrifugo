@@ -3,7 +3,8 @@ package centrifuge
 // Here we define well-known errors that can be used in client API replies.
 var (
 	// ErrorInternal means server error, if returned this is a signal
-	// that something went wrong with Centrifugo itself.
+	// that something went wrong with server itself and client most probably
+	// not guilty.
 	ErrorInternal = &Error{
 		Code:    100,
 		Message: "internal server error",

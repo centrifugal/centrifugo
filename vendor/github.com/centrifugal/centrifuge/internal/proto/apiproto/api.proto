@@ -176,8 +176,7 @@ message InfoResponse {
 }
 
 message InfoResult {
-    string engine = 1 [(gogoproto.jsontag) = "engine"];
-    repeated NodeResult nodes = 2 [(gogoproto.jsontag) = "nodes"];
+    repeated NodeResult nodes = 1 [(gogoproto.jsontag) = "nodes"];
 }
 
 message NodeResult {

@@ -1,0 +1,21 @@
+language: go
+
+go:
+  - "1.9.x"
+  - "1.10.x"
+  - tip
+
+services:
+  - redis-server
+
+before_install:
+  - go get -u github.com/golang/dep/cmd/dep
+  - go get -u github.com/alecthomas/gometalinter
+  - gometalinter --install
+
+install:
+  - dep ensure
+
+script:
+  # - gometalinter -t --vendor ./...
+  - go test -v -race -tags integration ./...

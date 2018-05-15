@@ -489,7 +489,9 @@ func TestClientCloseUnauthenticated(t *testing.T) {
 	newCtx := SetCredentials(ctx, &Credentials{UserID: "42"})
 	client, _ := newClient(newCtx, node, transport)
 	time.Sleep(100 * time.Millisecond)
+	client.mu.Lock()
 	assert.True(t, client.closed)
+	client.mu.Unlock()
 }
 
 func TestClientPresenceUpdate(t *testing.T) {

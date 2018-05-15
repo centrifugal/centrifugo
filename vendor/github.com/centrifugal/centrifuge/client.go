@@ -237,7 +237,7 @@ func (c *Client) Send(data Raw) error {
 	if err != nil {
 		return err
 	}
-	result, err := pushEncoder.Encode(proto.NewMessage(data))
+	result, err := pushEncoder.Encode(proto.NewMessagePush(data))
 	if err != nil {
 		return err
 	}
@@ -273,7 +273,7 @@ func (c *Client) sendUnsub(ch string) error {
 	if err != nil {
 		return err
 	}
-	result, err := pushEncoder.Encode(proto.NewUnsub(ch, data))
+	result, err := pushEncoder.Encode(proto.NewUnsubPush(ch, data))
 	if err != nil {
 		return err
 	}
@@ -1194,7 +1194,6 @@ func (c *Client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 		}
 		go c.node.publishJoin(channel, join, &chOpts)
 	}
-
 	resp.Result = res
 	return resp, nil
 }

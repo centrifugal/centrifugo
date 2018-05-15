@@ -45,6 +45,13 @@ func (s *grpcClientService) Communicate(stream proto.Centrifuge_CommunicateServe
 	replies := make(chan *proto.Reply, replyBufferSize)
 	transport := newGRPCTransport(stream, replies)
 
+	select {
+	case <-s.node.NotifyShutdown():
+		transport.Close(DisconnectShutdown)
+		return nil
+	default:
+	}
+
 	c, err := newClient(stream.Context(), s.node, transport)
 	if err != nil {
 		s.node.logger.log(newLogEntry(LogLevelError, "error creating client", map[string]interface{}{"transport": transportGRPC}))
@@ -94,6 +101,7 @@ func (s *grpcClientService) Communicate(stream proto.Centrifuge_CommunicateServe
 		if err := stream.Send(reply); err != nil {
 			return err
 		}
+		transportMessagesSent.WithLabelValues(transportGRPC).Add(1)
 	}
 
 	return nil
@@ -106,16 +114,19 @@ const (
 // grpcTransport represents wrapper over stream to work with it
 // from outside in abstract way.
 type grpcTransport struct {
-	mu      sync.Mutex
-	closed  bool
-	stream  proto.Centrifuge_CommunicateServer
-	replies chan *proto.Reply
+	mu            sync.Mutex
+	closed        bool
+	closeCh       chan struct{}
+	stream        proto.Centrifuge_CommunicateServer
+	replies       chan *proto.Reply
+	repliesClosed bool
 }
 
 func newGRPCTransport(stream proto.Centrifuge_CommunicateServer, replies chan *proto.Reply) *grpcTransport {
 	return &grpcTransport{
 		stream:  stream,
 		replies: replies,
+		closeCh: make(chan struct{}),
 	}
 }
 
@@ -129,6 +140,14 @@ func (t *grpcTransport) Encoding() proto.Encoding {
 
 func (t *grpcTransport) Send(reply *preparedReply) error {
 	select {
+	case <-t.closeCh:
+		t.mu.Lock()
+		if !t.repliesClosed {
+			close(t.replies)
+		}
+		t.repliesClosed = true
+		t.mu.Unlock()
+		return io.EOF
 	case t.replies <- reply.Reply:
 	default:
 		go t.Close(DisconnectSlow)
@@ -149,6 +168,6 @@ func (t *grpcTransport) Close(disconnect *Disconnect) error {
 		return err
 	}
 	t.stream.SetTrailer(metadata.Pairs("disconnect", string(disconnectJSON)))
-	close(t.replies)
+	close(t.closeCh)
 	return nil
 }

@@ -41,10 +41,6 @@
   name = "github.com/centrifugal/centrifuge"
 
 [[constraint]]
-  name = "github.com/garyburd/redigo"
-  version = "1.5.0"
-
-[[constraint]]
   name = "github.com/gorilla/securecookie"
   version = "1.1.0"
 
@@ -65,9 +61,5 @@
   name = "golang.org/x/crypto"
 
 [[constraint]]
-  branch = "master"
-  name = "golang.org/x/net"
-
-[[constraint]]
   name = "google.golang.org/grpc"
-  version = "1.11.3"
+  version = "1.12.0"

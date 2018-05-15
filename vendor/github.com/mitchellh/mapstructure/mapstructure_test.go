@@ -293,6 +293,36 @@ func TestDecode_BasicSquash(t *testing.T) {
 	}
 }
 
+func TestDecodeFrom_BasicSquash(t *testing.T) {
+	t.Parallel()
+
+	var v interface{}
+	var ok bool
+
+	input := BasicSquash{
+		Test: Basic{
+			Vstring: "foo",
+		},
+	}
+
+	var result map[string]interface{}
+	err := Decode(input, &result)
+	if err != nil {
+		t.Fatalf("got an err: %s", err.Error())
+	}
+
+	if _, ok = result["Test"]; ok {
+		t.Error("test should not be present in map")
+	}
+
+	v, ok = result["Vstring"]
+	if !ok {
+		t.Error("vstring should be present in map")
+	} else if !reflect.DeepEqual(v, "foo") {
+		t.Errorf("vstring value should be 'foo': %#v", v)
+	}
+}
+
 func TestDecode_Embedded(t *testing.T) {
 	t.Parallel()
 
@@ -413,6 +443,44 @@ func TestDecode_EmbeddedSquash(t *testing.T) {
 
 	if result.Vunique != "bar" {
 		t.Errorf("vunique value should be 'bar': %#v", result.Vunique)
+	}
+}
+
+func TestDecodeFrom_EmbeddedSquash(t *testing.T) {
+	t.Parallel()
+
+	var v interface{}
+	var ok bool
+
+	input := EmbeddedSquash{
+		Basic: Basic{
+			Vstring: "foo",
+		},
+		Vunique: "bar",
+	}
+
+	var result map[string]interface{}
+	err := Decode(input, &result)
+	if err != nil {
+		t.Fatalf("got an err: %s", err.Error())
+	}
+
+	if _, ok = result["Basic"]; ok {
+		t.Error("basic should not be present in map")
+	}
+
+	v, ok = result["Vstring"]
+	if !ok {
+		t.Error("vstring should be present in map")
+	} else if !reflect.DeepEqual(v, "foo") {
+		t.Errorf("vstring value should be 'foo': %#v", v)
+	}
+
+	v, ok = result["Vunique"]
+	if !ok {
+		t.Error("vunique should be present in map")
+	} else if !reflect.DeepEqual(v, "bar") {
+		t.Errorf("vunique value should be 'bar': %#v", v)
 	}
 }
 

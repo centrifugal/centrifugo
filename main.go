@@ -122,7 +122,10 @@ func main() {
 				logger.FATAL.Fatalf("Error validating config: %v", err)
 			}
 
-			node := centrifuge.New(*c)
+			node, err := centrifuge.New(*c)
+			if err != nil {
+				logger.FATAL.Fatalf("Error creating Centrifuge Node: %v", err)
+			}
 			setLogHandler(node)
 
 			engineName := viper.GetString("engine")

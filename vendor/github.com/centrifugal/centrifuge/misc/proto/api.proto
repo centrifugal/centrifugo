@@ -166,8 +166,7 @@ message InfoResponse {
 }
 
 message InfoResult {
-    string engine = 1;
-    repeated NodeResult nodes = 2;
+    repeated NodeResult nodes = 1;
 }
 
 message NodeResult {

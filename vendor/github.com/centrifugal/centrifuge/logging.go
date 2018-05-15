@@ -19,7 +19,7 @@ const (
 	LogLevelError
 )
 
-// levelToString has matches between Level and its string representation.
+// levelToString matches LogLevel to its string representation.
 var levelToString = map[LogLevel]string{
 	LogLevelNone:  "none",
 	LogLevelDebug: "debug",
@@ -27,7 +27,7 @@ var levelToString = map[LogLevel]string{
 	LogLevelError: "error",
 }
 
-// LogStringToLevel ...
+// LogStringToLevel matches level string to LogLevel.
 var LogStringToLevel = map[string]LogLevel{
 	"none":  LogLevelNone,
 	"debug": LogLevelDebug,

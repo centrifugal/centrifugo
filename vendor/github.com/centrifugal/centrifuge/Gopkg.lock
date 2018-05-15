@@ -41,8 +41,8 @@
     "ptypes/duration",
     "ptypes/timestamp"
   ]
-  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
-  version = "v1.0.0"
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/gomodule/redigo"
@@ -170,6 +170,7 @@
     "balancer",
     "balancer/base",
     "balancer/roundrobin",
+    "channelz",
     "codes",
     "connectivity",
     "credentials",
@@ -190,12 +191,12 @@
     "tap",
     "transport"
   ]
-  revision = "8e4536a86ab602859c20df5ebfd0bd4228d08655"
-  version = "v1.10.0"
+  revision = "41344da2231b913fa3d983840a57a6b1b7b631a1"
+  version = "v1.12.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "17989b850d82aa77fadf128d9ff1b10ef7e30ba778f6c846ec1ef1112626edef"
+  inputs-digest = "5a68deb65652c0cb5692500d55a7bd1c5fdb3c6257f515b5a410f3143ed7467d"
   solver-name = "gps-cdcl"
   solver-version = 1

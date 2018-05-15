@@ -335,7 +335,7 @@ func (h *apiExecutor) Info(ctx context.Context, cmd *apiproto.InfoRequest) *apip
 
 	info, err := h.node.info()
 	if err != nil {
-		h.node.logger.log(newLogEntry(LogLevelError, "error calling stats", map[string]interface{}{"error": err.Error()}))
+		h.node.logger.log(newLogEntry(LogLevelError, "error calling info", map[string]interface{}{"error": err.Error()}))
 		resp.Error = apiproto.ErrorInternal
 		return resp
 	}

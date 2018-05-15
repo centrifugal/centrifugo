@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifuge/internal/priority"
-	"github.com/centrifugal/centrifuge/internal/proto"
 )
 
 // MemoryEngine allows to run Centrifugo without using Redis at all.
@@ -14,9 +13,10 @@ import (
 // only run single Centrifugo node. If you need to scale you should
 // use Redis engine instead.
 type MemoryEngine struct {
-	node        *Node
-	presenceHub *presenceHub
-	historyHub  *historyHub
+	node         *Node
+	eventHandler EngineEventHandler
+	presenceHub  *presenceHub
+	historyHub   *historyHub
 }
 
 // MemoryEngineConfig is a memory engine config.
@@ -33,14 +33,10 @@ func NewMemoryEngine(n *Node, conf MemoryEngineConfig) (*MemoryEngine, error) {
 	return e, nil
 }
 
-// Name returns a name of engine.
-func (e *MemoryEngine) name() string {
-	return "Memory"
-}
-
 // Run runs memory engine - we do not have any logic here as Memory Engine ready to work
 // just after initialization.
-func (e *MemoryEngine) run() error {
+func (e *MemoryEngine) run(h EngineEventHandler) error {
+	e.eventHandler = h
 	return nil
 }
 
@@ -58,28 +54,28 @@ func (e *MemoryEngine) publish(ch string, pub *Publication, opts *ChannelOptions
 	}
 
 	eChan := make(chan error, 1)
-	eChan <- e.node.handlePublication(ch, pub)
+	eChan <- e.eventHandler.HandlePublication(ch, pub)
 	return eChan
 }
 
-// PublishJoin ...
-func (e *MemoryEngine) publishJoin(ch string, join *proto.Join, opts *ChannelOptions) <-chan error {
+// PublishJoin - see engine interface description.
+func (e *MemoryEngine) publishJoin(ch string, join *Join, opts *ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.handleJoin(ch, join)
+	eChan <- e.eventHandler.HandleJoin(ch, join)
 	return eChan
 }
 
-// PublishLeave ...
-func (e *MemoryEngine) publishLeave(ch string, leave *proto.Leave, opts *ChannelOptions) <-chan error {
+// PublishLeave - see engine interface description.
+func (e *MemoryEngine) publishLeave(ch string, leave *Leave, opts *ChannelOptions) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.handleLeave(ch, leave)
+	eChan <- e.eventHandler.HandleLeave(ch, leave)
 	return eChan
 }
 
 // PublishControl - see Engine interface description.
 func (e *MemoryEngine) publishControl(data []byte) <-chan error {
 	eChan := make(chan error, 1)
-	eChan <- e.node.handleControl(data)
+	eChan <- e.eventHandler.HandleControl(data)
 	return eChan
 }
 
@@ -88,9 +84,9 @@ func (e *MemoryEngine) subscribe(ch string) error {
 	return nil
 }
 
-// Unsubscribe node from Channel In case of memory engine
-// its only job is to touch channel history for history
-// lifetime period. See https://github.com/centrifugal/centrifugo/pull/148
+// Unsubscribe node from Channel In case of memory engine its only job is
+// to touch channel history for history lifetime period.
+// See https://github.com/centrifugal/centrifugo/pull/148
 func (e *MemoryEngine) unsubscribe(ch string) error {
 	if chOpts, ok := e.node.ChannelOpts(ch); ok && chOpts.HistoryDropInactive {
 		e.historyHub.touch(ch, &chOpts)
@@ -98,64 +94,64 @@ func (e *MemoryEngine) unsubscribe(ch string) error {
 	return nil
 }
 
-// AddPresence adds client info into presence hub.
-func (e *MemoryEngine) addPresence(ch string, uid string, info *proto.ClientInfo, exp time.Duration) error {
+// AddPresence - see engine interface description.
+func (e *MemoryEngine) addPresence(ch string, uid string, info *ClientInfo, exp time.Duration) error {
 	return e.presenceHub.add(ch, uid, info)
 }
 
-// RemovePresence removes client info from presence hub.
+// RemovePresence - see engine interface description.
 func (e *MemoryEngine) removePresence(ch string, uid string) error {
 	return e.presenceHub.remove(ch, uid)
 }
 
-// Presence extracts presence info from presence hub.
-func (e *MemoryEngine) presence(ch string) (map[string]*proto.ClientInfo, error) {
+// Presence - see engine interface description.
+func (e *MemoryEngine) presence(ch string) (map[string]*ClientInfo, error) {
 	return e.presenceHub.get(ch)
 }
 
-// PresenceStats extracts presence info from presence hub.
+// PresenceStats - see engine interface description.
 func (e *MemoryEngine) presenceStats(ch string) (presenceStats, error) {
 	return e.presenceHub.getStats(ch)
 }
 
-// History extracts history from history hub.
-func (e *MemoryEngine) history(ch string, filter historyFilter) ([]*proto.Publication, error) {
-	return e.historyHub.get(ch, filter.Limit)
+// History - see engine interface description.
+func (e *MemoryEngine) history(ch string, limit int) ([]*Publication, error) {
+	return e.historyHub.get(ch, limit)
 }
 
-// RecoverHistory ...
-func (e *MemoryEngine) recoverHistory(ch string, lastUID string) ([]*proto.Publication, bool, error) {
+// RecoverHistory - see engine interface description.
+func (e *MemoryEngine) recoverHistory(ch string, lastUID string) ([]*Publication, bool, error) {
 	return e.historyHub.recover(ch, lastUID)
 }
 
-// RemoveHistory ...
+// RemoveHistory - see engine interface description.
 func (e *MemoryEngine) removeHistory(ch string) error {
 	return e.historyHub.remove(ch)
 }
 
-// Channels returns all channels node currently subscribed on.
+// Channels - see engine interface description.
 func (e *MemoryEngine) channels() ([]string, error) {
 	return e.node.hub.Channels(), nil
 }
 
 type presenceHub struct {
 	sync.RWMutex
-	presence map[string]map[string]*proto.ClientInfo
+	presence map[string]map[string]*ClientInfo
 }
 
 func newPresenceHub() *presenceHub {
 	return &presenceHub{
-		presence: make(map[string]map[string]*proto.ClientInfo),
+		presence: make(map[string]map[string]*ClientInfo),
 	}
 }
 
-func (h *presenceHub) add(ch string, uid string, info *proto.ClientInfo) error {
+func (h *presenceHub) add(ch string, uid string, info *ClientInfo) error {
 	h.Lock()
 	defer h.Unlock()
 
 	_, ok := h.presence[ch]
 	if !ok {
-		h.presence[ch] = make(map[string]*proto.ClientInfo)
+		h.presence[ch] = make(map[string]*ClientInfo)
 	}
 	h.presence[ch][uid] = info
 	return nil
@@ -182,7 +178,7 @@ func (h *presenceHub) remove(ch string, uid string) error {
 	return nil
 }
 
-func (h *presenceHub) get(ch string) (map[string]*proto.ClientInfo, error) {
+func (h *presenceHub) get(ch string) (map[string]*ClientInfo, error) {
 	h.RLock()
 	defer h.RUnlock()
 
@@ -192,7 +188,7 @@ func (h *presenceHub) get(ch string) (map[string]*proto.ClientInfo, error) {
 		return nil, nil
 	}
 
-	data := make(map[string]*proto.ClientInfo, len(presence))
+	data := make(map[string]*ClientInfo, len(presence))
 	for k, v := range presence {
 		data[k] = v
 	}
@@ -228,7 +224,7 @@ func (h *presenceHub) getStats(ch string) (presenceStats, error) {
 }
 
 type historyItem struct {
-	messages []*proto.Publication
+	messages []*Publication
 	expireAt int64
 }
 
@@ -298,7 +294,7 @@ func (h *historyHub) touch(ch string, opts *ChannelOptions) {
 
 	if !ok {
 		h.history[ch] = historyItem{
-			messages: []*proto.Publication{},
+			messages: []*Publication{},
 			expireAt: expireAt,
 		}
 	} else {
@@ -310,7 +306,7 @@ func (h *historyHub) touch(ch string, opts *ChannelOptions) {
 	}
 }
 
-func (h *historyHub) add(ch string, msg *proto.Publication, opts *ChannelOptions, hasSubscribers bool) error {
+func (h *historyHub) add(ch string, msg *Publication, opts *ChannelOptions, hasSubscribers bool) error {
 	h.Lock()
 	defer h.Unlock()
 
@@ -325,12 +321,12 @@ func (h *historyHub) add(ch string, msg *proto.Publication, opts *ChannelOptions
 	heap.Push(&h.queue, &priority.Item{Value: ch, Priority: expireAt})
 	if !ok {
 		h.history[ch] = historyItem{
-			messages: []*proto.Publication{msg},
+			messages: []*Publication{msg},
 			expireAt: expireAt,
 		}
 	} else {
 		messages := h.history[ch].messages
-		messages = append([]*proto.Publication{msg}, messages...)
+		messages = append([]*Publication{msg}, messages...)
 		if len(messages) > opts.HistorySize {
 			messages = messages[0:opts.HistorySize]
 		}
@@ -347,19 +343,19 @@ func (h *historyHub) add(ch string, msg *proto.Publication, opts *ChannelOptions
 	return nil
 }
 
-func (h *historyHub) get(ch string, limit int) ([]*proto.Publication, error) {
+func (h *historyHub) get(ch string, limit int) ([]*Publication, error) {
 	h.RLock()
 	defer h.RUnlock()
 
 	hItem, ok := h.history[ch]
 	if !ok {
 		// return empty slice
-		return []*proto.Publication{}, nil
+		return []*Publication{}, nil
 	}
 	if hItem.isExpired() {
 		// return empty slice
 		delete(h.history, ch)
-		return []*proto.Publication{}, nil
+		return []*Publication{}, nil
 	}
 	if limit == 0 || limit >= len(hItem.messages) {
 		return hItem.messages, nil
@@ -378,7 +374,7 @@ func (h *historyHub) remove(ch string) error {
 	return nil
 }
 
-func (h *historyHub) recover(ch string, last string) ([]*proto.Publication, bool, error) {
+func (h *historyHub) recover(ch string, last string) ([]*Publication, bool, error) {
 
 	publications, err := h.get(ch, 0)
 	if err != nil {
