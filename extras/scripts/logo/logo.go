@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -8,6 +9,11 @@ import (
 	"strings"
 
 	"github.com/ajstarks/svgo"
+)
+
+var (
+	outer = flag.String("outer", "#e74c3c", "Outer color")
+	inner = flag.String("inner", "#2980b9", "Inner color")
 )
 
 func f64s(val float64) string {
@@ -48,17 +54,18 @@ const (
 )
 
 func main() {
+	flag.Parse()
 
 	centerX := float64(canvasSize / 2)
 	centerY := float64(canvasSize / 2)
 
 	outerRadius := float64(canvasSize) / 2
 	outerWidth := outerWidthProp * float64(canvasSize)
-	outerFill := "fill:#e74c3c;"
+	outerFill := "fill:" + *outer + ";"
 
 	innerRadius := float64(canvasSize)/2 - outerWidth - innerOuterGapProp*float64(canvasSize)
 	innerWidth := innerWidthProp * float64(canvasSize)
-	innerFill := "fill:#2980b9;"
+	innerFill := "fill:" + *inner + ";"
 
 	rotate := func(angle int) string {
 		return fmt.Sprintf("transform=\"rotate(%d %d %d)\"", angle, int(centerX), int(centerY))
