@@ -1,0 +1,911 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      
+        <meta name="description" content="Centrifugo Documentation">
+      
+      
+        <link rel="canonical" href="https://github.com/centrifugal/centrifugo/server/api/">
+      
+      
+        <meta name="author" content="Centrifugal">
+      
+      
+        <meta name="lang:clipboard.copy" content="Copy to clipboard">
+      
+        <meta name="lang:clipboard.copied" content="Copied to clipboard">
+      
+        <meta name="lang:search.language" content="en">
+      
+        <meta name="lang:search.pipeline.stopwords" content="True">
+      
+        <meta name="lang:search.pipeline.trimmer" content="True">
+      
+        <meta name="lang:search.result.none" content="No matching documents">
+      
+        <meta name="lang:search.result.one" content="1 matching document">
+      
+        <meta name="lang:search.result.other" content="# matching documents">
+      
+        <meta name="lang:search.tokenizer" content="[\s\-]+">
+      
+      <link rel="shortcut icon" href="../../images/logo.png">
+      <meta name="generator" content="mkdocs-0.17.2, mkdocs-material-2.6.6">
+    
+    
+      
+        <title>Server HTTP API - Centrifugo Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/application.78aab2dc.css">
+      
+        <link rel="stylesheet" href="../../assets/stylesheets/application-palette.6079476c.css">
+      
+    
+    
+      <script src="../../assets/javascripts/modernizr.1aa3b519.js"></script>
+    
+    
+      <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+      
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
+        <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
+      
+      <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    
+    
+      <link rel="stylesheet" href="../../theme/styles/extra.css">
+    
+    
+  </head>
+  
+    
+    
+    <body dir="ltr" data-md-color-primary="indigo" data-md-color-accent="cyan">
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+          <svg xmlns="http://www.w3.org/2000/svg" width="416" height="448"
+    viewBox="0 0 416 448" id="github">
+  <path fill="currentColor" d="M160 304q0 10-3.125 20.5t-10.75 19-18.125
+        8.5-18.125-8.5-10.75-19-3.125-20.5 3.125-20.5 10.75-19 18.125-8.5
+        18.125 8.5 10.75 19 3.125 20.5zM320 304q0 10-3.125 20.5t-10.75
+        19-18.125 8.5-18.125-8.5-10.75-19-3.125-20.5 3.125-20.5 10.75-19
+        18.125-8.5 18.125 8.5 10.75 19 3.125 20.5zM360
+        304q0-30-17.25-51t-46.75-21q-10.25 0-48.75 5.25-17.75 2.75-39.25
+        2.75t-39.25-2.75q-38-5.25-48.75-5.25-29.5 0-46.75 21t-17.25 51q0 22 8
+        38.375t20.25 25.75 30.5 15 35 7.375 37.25 1.75h42q20.5 0
+        37.25-1.75t35-7.375 30.5-15 20.25-25.75 8-38.375zM416 260q0 51.75-15.25
+        82.75-9.5 19.25-26.375 33.25t-35.25 21.5-42.5 11.875-42.875 5.5-41.75
+        1.125q-19.5 0-35.5-0.75t-36.875-3.125-38.125-7.5-34.25-12.875-30.25-20.25-21.5-28.75q-15.5-30.75-15.5-82.75
+        0-59.25 34-99-6.75-20.5-6.75-42.5 0-29 12.75-54.5 27 0 47.5 9.875t47.25
+        30.875q36.75-8.75 77.25-8.75 37 0 70 8 26.25-20.5
+        46.75-30.25t47.25-9.75q12.75 25.5 12.75 54.5 0 21.75-6.75 42 34 40 34
+        99.5z" />
+</svg>
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="drawer">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="search">
+    <label class="md-overlay" data-md-component="overlay" for="drawer"></label>
+    
+      <a href="#server-http-api" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo Documentation" class="md-header-nav__button md-logo">
+          
+            <img src="../../images/logo.png" width="24" height="24">
+          
+        </a>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button" for="drawer"></label>
+      </div>
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <div class="md-flex__ellipsis md-header-nav__title" data-md-component="title">
+          
+            
+              <span class="md-header-nav__topic">
+                Centrifugo Documentation
+              </span>
+              <span class="md-header-nav__topic">
+                Server HTTP API
+              </span>
+            
+          
+        </div>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          
+            <label class="md-icon md-icon--search md-header-nav__button" for="search"></label>
+            
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+      <label class="md-icon md-search__icon" for="search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
+        &#xE5CD;
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result">
+          <div class="md-search-result__meta">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+          
+        
+      </div>
+      
+        <div class="md-flex__cell md-flex__cell--shrink">
+          <div class="md-header-nav__source">
+            
+
+
+  
+
+
+  <a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source" data-md-source="github">
+    
+      <div class="md-source__icon">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <use xlink:href="#github" width="24" height="24"></use>
+        </svg>
+      </div>
+    
+    <div class="md-source__repository">
+      centrifugal/centrifugo
+    </div>
+  </a>
+
+          </div>
+        </div>
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+        
+      
+      
+      <main class="md-main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="drawer">
+    <span class="md-nav__button md-logo">
+      
+        <img src="../../images/logo.png" width="24" height="24">
+      
+    </span>
+    Centrifugo Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      
+
+
+  
+
+
+  <a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source" data-md-source="github">
+    
+      <div class="md-source__icon">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <use xlink:href="#github" width="24" height="24"></use>
+        </svg>
+      </div>
+    
+    <div class="md-source__repository">
+      centrifugal/centrifugo
+    </div>
+  </a>
+
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../.." title="Getting Started" class="md-nav__link">
+      Getting Started
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../concepts/" title="Concepts" class="md-nav__link">
+      Concepts
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" checked>
+    
+    <label class="md-nav__link" for="nav-3">
+      Server
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-3">
+        Server
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../" title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../install/" title="Installation" class="md-nav__link">
+      Installation
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../configuration/" title="Configuration" class="md-nav__link">
+      Configuration
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../admin/" title="Admin web interface" class="md-nav__link">
+      Admin web interface
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../protocol/" title="Client protocol" class="md-nav__link">
+      Client protocol
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        Server HTTP API
+      </label>
+    
+    <a href="./" title="Server HTTP API" class="md-nav__link md-nav__link--active">
+      Server HTTP API
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#publish" title="publish" class="md-nav__link">
+    publish
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#broadcast" title="broadcast" class="md-nav__link">
+    broadcast
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unsubscribe" title="unsubscribe" class="md-nav__link">
+    unsubscribe
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#disconnect" title="disconnect" class="md-nav__link">
+    disconnect
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#presence" title="presence" class="md-nav__link">
+    presence
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#history" title="history" class="md-nav__link">
+    history
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#channels" title="channels" class="md-nav__link">
+    channels
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#info" title="info" class="md-nav__link">
+    info
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+    
+    <label class="md-nav__link" for="nav-4">
+      Libraries
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-4">
+        Libraries
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../libraries/client/" title="Client libraries" class="md-nav__link">
+      Client libraries
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../libraries/api/" title="API libraries" class="md-nav__link">
+      API libraries
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
+    
+    <label class="md-nav__link" for="nav-5">
+      Deploy
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-5">
+        Deploy
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/packages/" title="RPM and DEB packages" class="md-nav__link">
+      RPM and DEB packages
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/docker/" title="Docker image" class="md-nav__link">
+      Docker image
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
+      Nginx configuration
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/tls/" title="TLS" class="md-nav__link">
+      TLS
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/redis/" title="Redis HA" class="md-nav__link">
+      Redis HA
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/tuning/" title="OS tuning" class="md-nav__link">
+      OS tuning
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../faq/" title="FAQ" class="md-nav__link">
+      FAQ
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#publish" title="publish" class="md-nav__link">
+    publish
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#broadcast" title="broadcast" class="md-nav__link">
+    broadcast
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unsubscribe" title="unsubscribe" class="md-nav__link">
+    unsubscribe
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#disconnect" title="disconnect" class="md-nav__link">
+    disconnect
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#presence" title="presence" class="md-nav__link">
+    presence
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#history" title="history" class="md-nav__link">
+    history
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#channels" title="channels" class="md-nav__link">
+    channels
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#info" title="info" class="md-nav__link">
+    info
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/server/api.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
+                
+                
+                <h1 id="server-http-api">Server HTTP API<a class="headerlink" href="#server-http-api" title="Permanent link">&para;</a></h1>
+<p>HTTP API is a way to send commands to Centrifugo.</p>
+<p>Why we need API?</p>
+<p>If you look at project and namespace options you see option called <code class="codehilite">publish</code>. When turned on this option allows browser clients to publish into channels directly. If client publishes a message into channel directly - your application will not receive that message (it just goes through Centrifugo towards subscribed clients). This pattern can be useful sometimes but in most cases you first need to send new event from client to backend over non-Centrifugo transport (for example AJAX request in web application), then on app backend process it - probably validate, save into main app database and then <code class="codehilite">publish</code> into Centrifugo using HTTP API and Centrifugo
+will then broadcast message to all subscribed clients.</p>
+<p>Server API works on <code class="codehilite">/api</code> endpoint. It's very simple to use: you just have to send POST request with JSON command to this endpoint.</p>
+<p>We have several client libraries for different languages so you don't have to construct proper HTTP requests manually:</p>
+<ul>
+<li><a href="https://github.com/centrifugal/cent">cent</a> for Python</li>
+<li>rubycent (not ready yet) for Ruby</li>
+<li>phpcent (not ready yet) for PHP</li>
+<li>jscent (not ready yet) for NodeJS</li>
+<li>gocent (not ready yet) for Go</li>
+</ul>
+<p>In this chapter we will look at API protocol internals - for new API client library authors and just if you are curious how existing API clients work.</p>
+<p>API request is a POST HTTP request with <code class="codehilite">application/json</code> Content-Type and JSON payload in request body.</p>
+<p>API protected by <code class="codehilite">api_key</code> secret key set in Centrifugo configuration. This API key must be set in request <code class="codehilite">Authorization</code> header in this way:</p>
+<div class="codehilite"><pre><span></span><span class="n">Authorization</span><span class="o">:</span> <span class="n">apikey</span> <span class="o">&lt;</span><span class="n">KEY</span><span class="o">&gt;</span>
+</pre></div>
+
+<p>It's possible to disable API key check on Centrifugo side using <code class="codehilite">api_insecure</code> configuration option. Be sure to protect API endpoint by firewall rules in this case to prevent anyone in internet to send commands over your unprotected Centrifugo API. API key auth is not very safe for man-in-the-middle so recommended way is running Centrifugo with TLS (we are in 2018 in the end).</p>
+<p>Command is a JSON object with two properties: <code class="codehilite">method</code> and <code class="codehilite">params</code>.</p>
+<p><code class="codehilite">method</code> is a name of command you want to call.
+<code class="codehilite">params</code> is an object with command arguments.</p>
+<p>There are several commands available. Let's investigate each of available server API commands.</p>
+<h3 id="publish">publish<a class="headerlink" href="#publish" title="Permanent link">&para;</a></h3>
+<p>Publish command allows to publish data into channel. It looks like this:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;publish&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;chat&quot;</span><span class="p">,</span> 
+        <span class="nt">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="nt">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;hello&quot;</span>
+        <span class="p">}</span>
+    <span class="p">}</span> 
+<span class="p">}</span>
+</pre></div>
+
+<p>Let's apply all information said above and send publish command to Centrifugo. We will send request using <code class="codehilite">requests</code> library for Python. </p>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="n">command</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;publish&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;docs&quot;</span><span class="p">,</span> 
+        <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;1&quot;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="n">api_key</span> <span class="o">=</span> <span class="s2">&quot;YOUR_API_KEY&quot;</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">commands</span><span class="p">)</span>
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">,</span> <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;apikey &#39;</span> <span class="o">+</span> <span class="n">api_key</span><span class="p">}</span>
+<span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;https://centrifuge.example.com/api&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">encoded_data</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+</pre></div>
+
+<p><code class="codehilite">publish</code> command is the main command you need. Again - remember that we have client API libraries that can help you avoid some boilerplate we just wrote and help to properly handle error responses from Centrifugo.</p>
+<p>Let's look at other available commands:</p>
+<h3 id="broadcast">broadcast<a class="headerlink" href="#broadcast" title="Permanent link">&para;</a></h3>
+<p>Similar to <code class="codehilite">publish</code> but allows to send the same data into many channels.</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;broadcast&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;CHANNEL_1&quot;</span><span class="p">,</span> <span class="s2">&quot;CHANNEL_2&quot;</span><span class="p">],</span>
+        <span class="nt">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="nt">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;hello&quot;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3 id="unsubscribe">unsubscribe<a class="headerlink" href="#unsubscribe" title="Permanent link">&para;</a></h3>
+<p><code class="codehilite">unsubscribe</code> allows to unsubscribe user from channel. <code class="codehilite">params</code> is an objects with two keys: <code class="codehilite">channel</code> and <code class="codehilite">user</code> (user ID you want to unsubscribe)</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;unsubscribe&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;CHANNEL NAME&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;USER ID&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3 id="disconnect">disconnect<a class="headerlink" href="#disconnect" title="Permanent link">&para;</a></h3>
+<p><code class="codehilite">disconnect</code> allows to disconnect user by ID. <code class="codehilite">params</code> in an object with <code class="codehilite">user</code> key.</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;disconnect&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;USER ID&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3 id="presence">presence<a class="headerlink" href="#presence" title="Permanent link">&para;</a></h3>
+<p><code class="codehilite">presence</code> allows to get channel presence information (all clients currently subscribed on
+this channel). <code class="codehilite">params</code> is an object with <code class="codehilite">channel</code> key.</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;presence&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;chat&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3 id="history">history<a class="headerlink" href="#history" title="Permanent link">&para;</a></h3>
+<p><code class="codehilite">history</code> allows to get channel history information (list of last messages published into channel).</p>
+<p><code class="codehilite">params</code> is an object with <code class="codehilite">channel</code> key:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;history&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;chat&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3 id="channels">channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h3>
+<p><code class="codehilite">channels</code> allows to get list of active (with one or more subscribers) channels.</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;channels&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{}</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3 id="info">info<a class="headerlink" href="#info" title="Permanent link">&para;</a></h3>
+<p><code class="codehilite">info</code> method allows to get information about running Centrifugo nodes.</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;info&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{}</span>
+<span class="p">}</span>
+</pre></div>
+                
+                  
+                
+              
+              
+                
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+        
+          <a href="../protocol/" title="Client protocol" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Client protocol
+              </span>
+            </div>
+          </a>
+        
+        
+          <a href="../../libraries/client/" title="Client libraries" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Client libraries
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        powered by
+        <a href="http://www.mkdocs.org">MkDocs</a>
+        and
+        <a href="https://squidfunk.github.io/mkdocs-material/">
+          Material for MkDocs</a>
+      </div>
+      
+        
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+      <script src="../../assets/javascripts/application.02434462.js"></script>
+      
+      <script>app.initialize({version:"0.17.2",url:{base:"../.."}})</script>
+      
+    
+    
+      
+    
+  </body>
+</html>

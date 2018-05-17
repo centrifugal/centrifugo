@@ -440,6 +440,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#client-implementation-advices" title="Client implementation advices" class="md-nav__link">
+    Client implementation advices
+  </a>
+  
+</li>
+      
       
       
       
@@ -448,6 +455,18 @@
   
 </nav>
     
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../api/" title="Server HTTP API" class="md-nav__link">
+      Server HTTP API
+    </a>
   </li>
 
         
@@ -705,6 +724,13 @@
         <li class="md-nav__item">
   <a href="#handle-errors" title="Handle errors" class="md-nav__link">
     Handle errors
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#client-implementation-advices" title="Client implementation advices" class="md-nav__link">
+    Client implementation advices
   </a>
   
 </li>
@@ -1018,6 +1044,55 @@ allows to distinguish it from <code class="codehilite">Reply</code> to <code cla
 <p>Errors during <code class="codehilite">subscribe</code> must result in full client reconnect if error is temporary. And be sent to subscribe error event handler of subscription if received error is persistent. Persistent errors are errors like <code class="codehilite">permission denied</code>, <code class="codehilite">bad request</code>, <code class="codehilite">namespace not found</code> etc. Persistent errors in most situation mean a mistake from developers side.</p>
 <p>The special corner case is client-side timeout during <code class="codehilite">subscribe</code> operation. As protocol is asynchronous it's possible in this case that server will eventually subscribe client on channel but client will think that it's not subscribed. It's possible to retry subscription request and tolerate <code class="codehilite">already subscribed</code> error as expected. But the simplest solution is to reconnect entirely as this is simpler and gives client a chance to connect to working server instance.</p>
 <p>Errors during rpc-like operations can be just returned to caller - i.e. user javascript code. Calls like <code class="codehilite">history</code> and <code class="codehilite">presence</code> are idempotent. You should be accurate with unidempotent operations like <code class="codehilite">publish</code> - in case of client timeout it's possible to send the same message into channel twice if retry publish after timeout - so if you care about this case make sure you have some protection from displaying message twice on client side (maybe some sort of unique key in payload).</p>
+<h3 id="client-implementation-advices">Client implementation advices<a class="headerlink" href="#client-implementation-advices" title="Permanent link">&para;</a></h3>
+<p>Here are some advices about client public API. Examples here are in Javascript language. This is just an attempt to help in developing a client - but rules here is not obligatorily the best way to implement client.</p>
+<p>Create client instance:</p>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">centrifuge</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Centrifuge</span><span class="p">(</span><span class="s2">&quot;ws://localhost:8000/connection/websocket&quot;</span><span class="p">,</span> <span class="p">{});</span>
+</pre></div>
+
+<p>Set signed credentials (in case of using Centrifugo):</p>
+<div class="codehilite"><pre><span></span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">setCredentials</span><span class="p">({</span>
+    <span class="nx">user</span><span class="o">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span>
+    <span class="nx">exp</span><span class="o">:</span> <span class="s2">&quot;150000000&quot;</span><span class="p">,</span>
+    <span class="nx">info</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="nx">sign</span><span class="o">:</span> <span class="s2">&quot;...&quot;</span>
+<span class="p">})</span>
+</pre></div>
+
+<p>Connect to server:</p>
+<div class="codehilite"><pre><span></span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">connect</span><span class="p">();</span>
+</pre></div>
+
+<p>2 event handlers can be set to <code class="codehilite">centrifuge</code> object: <code class="codehilite">connect</code> and <code class="codehilite">disconnect</code></p>
+<div class="codehilite"><pre><span></span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;connect&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">context</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">context</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nx">centrifuge</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;disconnect&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">context</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">context</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
+<p>Client created in <code class="codehilite">disconnected</code> state with <code class="codehilite">reconnect</code> attribute set to <code class="codehilite">true</code> and <code class="codehilite">reconnecting</code> flag set to <code class="codehilite">false</code> . After <code class="codehilite">connect()</code> called state goes to <code class="codehilite">connecting</code>. It's only possible to connect from <code class="codehilite">disconnected</code> state. Every time <code class="codehilite">connect()</code> called <code class="codehilite">reconnect</code> flag of client must be set to <code class="codehilite">true</code>. After each failed connect attempt state must be set to <code class="codehilite">disconnected</code>, <code class="codehilite">disconnect</code> event must be emitted (only if <code class="codehilite">reconnecting</code> flag is <code class="codehilite">false</code>), and then <code class="codehilite">reconnecting</code> flag must be set to <code class="codehilite">true</code> (if client should continue reconnecting) to not emit <code class="codehilite">disconnect</code> event again after next in a row connect attempt failure. In case of failure next connection attempt must be scheduled automatically with backof strategy. On successful connect <code class="codehilite">reconnecting</code> flag must be set to <code class="codehilite">false</code>, backoff retry must be resetted and <code class="codehilite">connect</code> event must be emitted. When connection lost then the same set of actions as when connect failed must be performed.</p>
+<p>Client must allow to subscribe on channels:</p>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">subscription</span> <span class="o">=</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">subscribe</span><span class="p">(</span><span class="s2">&quot;channel&quot;</span><span class="p">,</span> <span class="nx">eventHandlers</span><span class="p">);</span>
+</pre></div>
+
+<p>Subscription object created and control immediately returned to caller - subscribing must be performed asynchronously. This is required because client can automatically reconnect later so event-based model better suites for subscriptions. </p>
+<p>Subscription should support several event handlers:</p>
+<ul>
+<li>handler for publication received from channel</li>
+<li>join message handler</li>
+<li>leave message handler</li>
+<li>error handler</li>
+<li>subscribe success event handler</li>
+<li>unsubscribe event handler</li>
+</ul>
+<p>Every time client connects to server it must restore all subscriptions.</p>
+<p>Every time client disconnects from server it must call unsubscribe handlers for all active subscriptions and then emit disconnect event.</p>
+<p>Client must periodically (once in 25 secs, configurable) send ping messages to server. If pong has not beed received in 5 secs (configurable) then client must disconnect from server and try to reconnect with backoff strategy.</p>
+<p>Client can automatically batch several requests into one frame to server and also must be able to handle several replies received from server in one frame.</p>
+<p>Timeout on subscription requests must result in full client reconnect workflow.</p>
                 
                   
                 
@@ -1051,13 +1126,13 @@ allows to distinguish it from <code class="codehilite">Reply</code> to <code cla
           </a>
         
         
-          <a href="../../libraries/client/" title="Client libraries" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../api/" title="Server HTTP API" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Client libraries
+                Server HTTP API
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">
