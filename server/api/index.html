@@ -411,6 +411,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#presence_stats" title="presence_stats" class="md-nav__link">
+    presence_stats
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#history" title="history" class="md-nav__link">
     history
   </a>
@@ -659,6 +666,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#presence_stats" title="presence_stats" class="md-nav__link">
+    presence_stats
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#history" title="history" class="md-nav__link">
     history
   </a>
@@ -757,6 +771,52 @@ will then broadcast message to all subscribed clients.</p>
 <span class="k">print</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
 </pre></div>
 
+<p>The same using <code class="codehilite">httpie</code> console tool:</p>
+<div class="codehilite"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;publish&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;chat&quot;, &quot;data&quot;: {&quot;text&quot;: &quot;hello&quot;}}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span> -vvv
+POST /api HTTP/1.1
+Accept: application/json, */*
+Accept-Encoding: gzip, deflate
+Authorization: apikey KEY
+Connection: keep-alive
+Content-Length: <span class="m">80</span>
+Content-Type: application/json
+Host: localhost:8000
+User-Agent: HTTPie/0.9.8
+
+<span class="o">{</span>
+    <span class="s2">&quot;method&quot;</span>: <span class="s2">&quot;publish&quot;</span>,
+    <span class="s2">&quot;params&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;channel&quot;</span>: <span class="s2">&quot;chat&quot;</span>,
+        <span class="s2">&quot;data&quot;</span>: <span class="o">{</span>
+            <span class="s2">&quot;text&quot;</span>: <span class="s2">&quot;hello&quot;</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">3</span>
+Content-Type: application/json
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:01:42 GMT
+
+<span class="o">{}</span>
+</pre></div>
+
+<p>In case of error response object will contain <code class="codehilite">error</code> field:</p>
+<div class="codehilite"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;publish&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;unknown:chat&quot;, &quot;data&quot;: {&quot;text&quot;: &quot;hello&quot;}}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span>
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">55</span>
+Content-Type: application/json
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:03:09 GMT
+
+<span class="o">{</span>
+    <span class="s2">&quot;error&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;code&quot;</span>: <span class="m">102</span>,
+        <span class="s2">&quot;message&quot;</span>: <span class="s2">&quot;namespace not found&quot;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<p><code class="codehilite">error</code> object contains error code and message - this also the same for other commands described below.</p>
 <p><code class="codehilite">publish</code> command is the main command you need. Again - remember that we have client API libraries that can help you avoid some boilerplate we just wrote and help to properly handle error responses from Centrifugo.</p>
 <p>Let's look at other available commands:</p>
 <h3 id="broadcast">broadcast<a class="headerlink" href="#broadcast" title="Permanent link">&para;</a></h3>
@@ -804,6 +864,54 @@ this channel). <code class="codehilite">params</code> is an object with <code cl
 <span class="p">}</span>
 </pre></div>
 
+<p>Example:</p>
+<div class="codehilite"><pre><span></span>fz@centrifugo: <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;presence&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;chat&quot;}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span>
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">127</span>
+Content-Type: application/json
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:13:17 GMT
+
+<span class="o">{</span>
+    <span class="s2">&quot;result&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;presence&quot;</span>: <span class="o">{</span>
+            <span class="s2">&quot;c54313b2-0442-499a-a70c-051f8588020f&quot;</span>: <span class="o">{</span>
+                <span class="s2">&quot;client&quot;</span>: <span class="s2">&quot;c54313b2-0442-499a-a70c-051f8588020f&quot;</span>,
+                <span class="s2">&quot;user&quot;</span>: <span class="s2">&quot;42&quot;</span>
+            <span class="o">}</span>,
+            <span class="s2">&quot;adad13b1-0442-499a-a70c-051f858802da&quot;</span>: <span class="o">{</span>
+                <span class="s2">&quot;client&quot;</span>: <span class="s2">&quot;adad13b1-0442-499a-a70c-051f858802da&quot;</span>,
+                <span class="s2">&quot;user&quot;</span>: <span class="s2">&quot;42&quot;</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
+<h3 id="presence_stats">presence_stats<a class="headerlink" href="#presence_stats" title="Permanent link">&para;</a></h3>
+<p><code class="codehilite">presence_stats</code> allows to get short channel presence information.</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;presence_stats&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;chat&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>Example:</p>
+<div class="codehilite"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;presence_stats&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;public:chat&quot;}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span>
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">43</span>
+Content-Type: application/json
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:09:44 GMT
+
+<span class="o">{</span>
+    <span class="s2">&quot;result&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;num_clients&quot;</span>: <span class="m">0</span>,
+        <span class="s2">&quot;num_users&quot;</span>: <span class="m">0</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
 <h3 id="history">history<a class="headerlink" href="#history" title="Permanent link">&para;</a></h3>
 <p><code class="codehilite">history</code> allows to get channel history information (list of last messages published into channel).</p>
 <p><code class="codehilite">params</code> is an object with <code class="codehilite">channel</code> key:</p>
@@ -815,6 +923,32 @@ this channel). <code class="codehilite">params</code> is an object with <code cl
 <span class="p">}</span>
 </pre></div>
 
+<p>Example:</p>
+<div class="codehilite"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;history&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;public:chat&quot;}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span>
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">87</span>
+Content-Type: application/json
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:14:10 GMT
+
+<span class="o">{</span>
+    <span class="s2">&quot;result&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;publications&quot;</span>: <span class="o">[</span>
+            <span class="o">{</span>
+                <span class="s2">&quot;data&quot;</span>: <span class="o">{</span>
+                    <span class="s2">&quot;text&quot;</span>: <span class="s2">&quot;hello&quot;</span>
+                <span class="o">}</span>,
+                <span class="s2">&quot;uid&quot;</span>: <span class="s2">&quot;BWcn14OTBrqUhTXyjNg0fg&quot;</span>
+            <span class="o">}</span>, <span class="o">{</span>
+                <span class="s2">&quot;data&quot;</span>: <span class="o">{</span>
+                    <span class="s2">&quot;text&quot;</span>: <span class="s2">&quot;hi!&quot;</span>
+                <span class="o">}</span>,
+                <span class="s2">&quot;uid&quot;</span>: <span class="s2">&quot;Ascn14OTBrq14OXyjNg0hg&quot;</span>
+            <span class="o">}</span>
+        <span class="o">]</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
 <h3 id="channels">channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h3>
 <p><code class="codehilite">channels</code> allows to get list of active (with one or more subscribers) channels.</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
@@ -823,12 +957,52 @@ this channel). <code class="codehilite">params</code> is an object with <code cl
 <span class="p">}</span>
 </pre></div>
 
+<p>Example:</p>
+<div class="codehilite"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;channels&quot;, &quot;params&quot;: {}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span>
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">27</span>
+Content-Type: application/json
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:08:31 GMT
+
+<span class="o">{</span>
+    <span class="s2">&quot;result&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;channels&quot;</span>: <span class="o">[</span>
+            <span class="s2">&quot;chat&quot;</span>
+        <span class="o">]</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
 <h3 id="info">info<a class="headerlink" href="#info" title="Permanent link">&para;</a></h3>
 <p><code class="codehilite">info</code> method allows to get information about running Centrifugo nodes.</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
     <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;info&quot;</span><span class="p">,</span>
     <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{}</span>
 <span class="p">}</span>
+</pre></div>
+
+<p>Example:</p>
+<div class="codehilite"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;info&quot;, &quot;params&quot;: {}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span>
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">184</span>
+Content-Type: application/json
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:07:58 GMT
+
+<span class="o">{</span>
+    <span class="s2">&quot;result&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;nodes&quot;</span>: <span class="o">[</span>
+            <span class="o">{</span>
+                <span class="s2">&quot;name&quot;</span>: <span class="s2">&quot;Alexanders-MacBook-Pro.local_8000&quot;</span>,
+                <span class="s2">&quot;num_channels&quot;</span>: <span class="m">0</span>,
+                <span class="s2">&quot;num_clients&quot;</span>: <span class="m">0</span>,
+                <span class="s2">&quot;num_users&quot;</span>: <span class="m">0</span>,
+                <span class="s2">&quot;uid&quot;</span>: <span class="s2">&quot;f844a2ed-5edf-4815-b83c-271974003db9&quot;</span>,
+                <span class="s2">&quot;uptime&quot;</span>: <span class="m">0</span>,
+                <span class="s2">&quot;version&quot;</span>: <span class="s2">&quot;&quot;</span>
+            <span class="o">}</span>
+        <span class="o">]</span>
+    <span class="o">}</span>
+<span class="o">}</span>
 </pre></div>
                 
                   
