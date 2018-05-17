@@ -52,6 +52,7 @@ pages:
     - 'Configuration': 'server/configuration.md'
     - 'Admin web interface': 'server/admin.md'
     - 'Client protocol': 'server/protocol.md'
+    - 'Server HTTP API': 'server/api.md'
   - Libraries:
     - 'Client libraries': 'libraries/client.md'
     - 'API libraries': 'libraries/api.md'
