@@ -274,8 +274,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#overview" title="Overview" class="md-nav__link">
-    Overview
+  <a href="#motivation-of-project" title="Motivation of project" class="md-nav__link">
+    Motivation of project
   </a>
   
 </li>
@@ -581,8 +581,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#overview" title="Overview" class="md-nav__link">
-    Overview
+  <a href="#motivation-of-project" title="Motivation of project" class="md-nav__link">
+    Motivation of project
   </a>
   
 </li>
@@ -608,20 +608,19 @@
                 
                   <h1>Getting Started</h1>
                 
-                <p><a href="https://github.com/centrifugal/centrifugo"><img alt="Docs" src="https://img.shields.io/badge/docs-current-brightgreen.svg" /></a>
-<a href="https://github.com/containous/traefik/blob/master/LICENSE.md"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg" /></a>
-<a href="https://gitter.im/centrifugal/centrifugo?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img alt="Join the chat at https://gitter.im/centrifugal/centrifugo" src="https://badges.gitter.im/Join%20Chat.svg" /></a></p>
+                <p><a href="https://gitter.im/centrifugal/centrifugo?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img alt="Join the chat at https://gitter.im/centrifugal/centrifugo" src="https://badges.gitter.im/Join%20Chat.svg" /></a>
+<a href="https://github.com/containous/traefik/blob/master/LICENSE.md"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue.svg" /></a></p>
 <h2 id="centrifugo">Centrifugo<a class="headerlink" href="#centrifugo" title="Permanent link">&para;</a></h2>
 <p><strong>This is a work in progress documentation for Centrifugo v2</strong></p>
-<p>Centrifugo is a language-agnostic real-time server. It's main goal is to help adding real-time messages to your application. Language-agnostic means that it does not matter which programming language your application uses on frontend or backend sides - Centrifugo can work in conjunction with any. Real-time messages are messages that delivered to your clients almost immediately after some event happened - think live comments, real-time charts, updated counters.</p>
+<p>Centrifugo is a language-agnostic real-time messaging server. Language-agnostic means that it does not matter which programming language your application uses on frontend or backend sides - Centrifugo can work in conjunction with any. Real-time messages are messages that delivered to your clients almost immediately after some event happened - think live comments, real-time charts, dynamic counters.</p>
 <p>There are several main transports Centrifugo supports at moment:</p>
 <ul>
-<li>SockJS (library that tries to establish Websocket connection and falls back to HTTP transports automatically in case of problems with Websockets)</li>
 <li>Websocket (JSON or binary Protobuf)</li>
+<li>SockJS (library that tries to establish Websocket connection and falls back to HTTP transports automatically in case of problems with Websocket)</li>
 <li>GRPC</li>
 </ul>
-<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>Overview</p>
+<h2 id="motivation-of-project">Motivation of project<a class="headerlink" href="#motivation-of-project" title="Permanent link">&para;</a></h2>
+<p>Centrifugo was originally born to help applications written in language or framework without builtin concurency support to introduce real-time updates. For example frameworks like Django, Flask, Yii, Laravel, Ruby on Rails etc has poor support of working with many persistent connections. Centrifugo aims to help with this and continue to write backend in your favorite language and favorite framework. It also has some features that can simplify your life as a developer even if you are writing backend in asynchronous concurrent language.</p>
                 
                   
                 
