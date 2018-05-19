@@ -3,13 +3,13 @@ package proto
 import "sync"
 
 // Encoding determines connection protocol encoding in use.
-type Encoding int
+type Encoding string
 
 const (
 	// EncodingJSON means JSON protocol.
-	EncodingJSON Encoding = 0
+	EncodingJSON Encoding = "json"
 	// EncodingProtobuf means protobuf protocol.
-	EncodingProtobuf Encoding = 1
+	EncodingProtobuf Encoding = "protobuf"
 )
 
 // GetPushEncoder ...

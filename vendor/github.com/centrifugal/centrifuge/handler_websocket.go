@@ -299,9 +299,9 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 		defer c.close(nil)
 
-		s.node.logger.log(newLogEntry(LogLevelDebug, "websocket connection established", map[string]interface{}{"client": c.ID()}))
+		s.node.logger.log(newLogEntry(LogLevelDebug, "client connection established", map[string]interface{}{"client": c.ID(), "transport": transportWebsocket}))
 		defer func(started time.Time) {
-			s.node.logger.log(newLogEntry(LogLevelDebug, "websocket connection completed", map[string]interface{}{"client": c.ID(), "time": time.Since(started)}))
+			s.node.logger.log(newLogEntry(LogLevelDebug, "client connection completed", map[string]interface{}{"client": c.ID(), "transport": transportWebsocket, "duration": time.Since(started)}))
 		}(time.Now())
 
 		for {

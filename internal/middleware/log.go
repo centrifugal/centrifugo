@@ -24,7 +24,7 @@ func LogRequest(h http.Handler) http.Handler {
 					addr = r.RemoteAddr
 				}
 			}
-			log.Debug().Str("method", r.Method).Str("path", r.URL.Path).Str("addr", addr).Dur("duration", time.Since(start)).Msgf("request completed")
+			log.Debug().Str("method", r.Method).Str("path", r.URL.Path).Str("addr", addr).Dur("duration", time.Since(start)).Msgf("http request")
 		}
 		return
 	})

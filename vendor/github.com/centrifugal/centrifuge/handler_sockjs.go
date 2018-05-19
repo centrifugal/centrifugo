@@ -192,9 +192,9 @@ func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
 		}
 		defer c.close(nil)
 
-		s.node.logger.log(newLogEntry(LogLevelDebug, "SockJS connection established", map[string]interface{}{"client": c.ID()}))
+		s.node.logger.log(newLogEntry(LogLevelDebug, "client connection established", map[string]interface{}{"client": c.ID(), "transport": transportSockJS}))
 		defer func(started time.Time) {
-			s.node.logger.log(newLogEntry(LogLevelDebug, "SockJS connection completed", map[string]interface{}{"client": c.ID(), "time": time.Since(started)}))
+			s.node.logger.log(newLogEntry(LogLevelDebug, "client connection completed", map[string]interface{}{"client": c.ID(), "transport": transportSockJS, "duration": time.Since(started)}))
 		}(time.Now())
 
 		for {

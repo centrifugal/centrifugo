@@ -59,9 +59,9 @@ func (s *grpcClientService) Communicate(stream proto.Centrifuge_CommunicateServe
 	}
 	defer c.close(DisconnectNormal)
 
-	s.node.logger.log(newLogEntry(LogLevelDebug, "GRPC connection established", map[string]interface{}{"client": c.ID()}))
+	s.node.logger.log(newLogEntry(LogLevelDebug, "client connection established", map[string]interface{}{"client": c.ID(), "transport": transportGRPC}))
 	defer func(started time.Time) {
-		s.node.logger.log(newLogEntry(LogLevelDebug, "GRPC connection completed", map[string]interface{}{"client": c.ID(), "time": time.Since(started)}))
+		s.node.logger.log(newLogEntry(LogLevelDebug, "client connection completed", map[string]interface{}{"client": c.ID(), "transport": transportGRPC, "duration": time.Since(started)}))
 	}(time.Now())
 
 	go func() {
