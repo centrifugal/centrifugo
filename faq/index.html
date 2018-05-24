@@ -323,8 +323,56 @@
 
 
   <li class="md-nav__item">
+    <a href="../server/channels/" title="Channels" class="md-nav__link">
+      Channels
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/authentication/" title="Authentication" class="md-nav__link">
+      Authentication
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/engines/" title="Engines" class="md-nav__link">
+      Engines
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../server/admin/" title="Admin web interface" class="md-nav__link">
       Admin web interface
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/monitoring/" title="Monitoring" class="md-nav__link">
+      Monitoring
     </a>
   </li>
 
@@ -353,6 +401,42 @@
   </li>
 
         
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/recover/" title="Message recovery" class="md-nav__link">
+      Message recovery
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/signals/" title="Signal handling" class="md-nav__link">
+      Signal handling
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/connection_expiration/" title="Connection expiration" class="md-nav__link">
+      Connection expiration
+    </a>
+  </li>
+
+        
       </ul>
     </nav>
   </li>
@@ -368,10 +452,82 @@
       <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
     
     <label class="md-nav__link" for="nav-4">
-      Libraries
+      Transports
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
       <label class="md-nav__title" for="nav-4">
+        Transports
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../transports/" title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../transports/websocket/" title="Websocket" class="md-nav__link">
+      Websocket
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../transports/sockjs/" title="SockJS" class="md-nav__link">
+      SockJS
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../transports/grpc/" title="GRPC" class="md-nav__link">
+      GRPC
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
+    
+    <label class="md-nav__link" for="nav-5">
+      Libraries
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-5">
         Libraries
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -413,13 +569,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
     
-    <label class="md-nav__link" for="nav-5">
+    <label class="md-nav__link" for="nav-6">
       Deploy
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-5">
+      <label class="md-nav__title" for="nav-6">
         Deploy
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -549,6 +705,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#message-delivery-model-and-message-order-guarantees" title="Message delivery model and message order guarantees" class="md-nav__link">
+    Message delivery model and message order guarantees
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#centrifugo-stops-accepting-new-connections-why" title="Centrifugo stops accepting new connections, why?" class="md-nav__link">
     Centrifugo stops accepting new connections, why?
   </a>
@@ -671,6 +834,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#message-delivery-model-and-message-order-guarantees" title="Message delivery model and message order guarantees" class="md-nav__link">
+    Message delivery model and message order guarantees
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#centrifugo-stops-accepting-new-connections-why" title="Centrifugo stops accepting new connections, why?" class="md-nav__link">
     Centrifugo stops accepting new connections, why?
   </a>
@@ -772,6 +942,10 @@
 <p>This depends on many factors. Hardware, message rate, size of messages, channel options enabled, client distribution over channels, websocket compression on/off etc. So no certain answer on this question exists. Common sense, tests and monitoring can help here. Generally we suggest to not put more than 50-100k clients on one node - but you should measure.</p>
 <h3 id="can-centrifugo-scale-horizontally">Can Centrifugo scale horizontally?<a class="headerlink" href="#can-centrifugo-scale-horizontally" title="Permanent link">&para;</a></h3>
 <p>Yes, it can. It can do this using builtin Redis Engine. Redis is very fast – for example it can handle hundreds of thousands requests per second. This should be OK for most applications in internet. But if you are using Centrifugo and approaching this limit then it's possible to add sharding support to balance queries between different Redis instances.</p>
+<h3 id="message-delivery-model-and-message-order-guarantees">Message delivery model and message order guarantees<a class="headerlink" href="#message-delivery-model-and-message-order-guarantees" title="Permanent link">&para;</a></h3>
+<p>The model of message delivery of Centrifugo server is at most once.</p>
+<p>This means that message you send to Centrifugo can be theoretically lost while moving towards your clients. Centrifugo tries to do a best effort to prevent message losses but you should be aware of this fact. Your application should tolerate this. Centrifugo has an option to automatically recover messages that have been lost because of short network disconnections. But there are cases when Centrifugo can't guarantee message delivery. We also recommend to model your applications in a way that users don't notice when message have been lost. For example if your user posts a new comment over AJAX call to your application backend - you should not rely only on Centrifugo to get new comment form and display it - you should return new comment data in AJAX call response and render it. Be careful to not draw comments twice in this case.</p>
+<p>Message order in channels guaranteed to be the same while you publish messages into channel one after another or publish them in one request. If you do parallel publishes into the same channel then Centrifugo can't guarantee message order.</p>
 <h3 id="centrifugo-stops-accepting-new-connections-why">Centrifugo stops accepting new connections, why?<a class="headerlink" href="#centrifugo-stops-accepting-new-connections-why" title="Permanent link">&para;</a></h3>
 <p>The most popular reason behind this is reaching open file limit. Just make it higher, we described how to do this nearby in this doc.</p>
 <h3 id="can-i-use-centrifugo-without-reverse-proxy-like-nginx-before-it">Can I use Centrifugo without reverse-proxy like Nginx before it?<a class="headerlink" href="#can-i-use-centrifugo-without-reverse-proxy-like-nginx-before-it" title="Permanent link">&para;</a></h3>

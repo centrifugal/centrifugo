@@ -522,8 +522,56 @@
 
 
   <li class="md-nav__item">
+    <a href="../channels/" title="Channels" class="md-nav__link">
+      Channels
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../authentication/" title="Authentication" class="md-nav__link">
+      Authentication
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../engines/" title="Engines" class="md-nav__link">
+      Engines
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../admin/" title="Admin web interface" class="md-nav__link">
       Admin web interface
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../monitoring/" title="Monitoring" class="md-nav__link">
+      Monitoring
     </a>
   </li>
 
@@ -552,6 +600,42 @@
   </li>
 
         
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../recover/" title="Message recovery" class="md-nav__link">
+      Message recovery
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../signals/" title="Signal handling" class="md-nav__link">
+      Signal handling
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
+      Connection expiration
+    </a>
+  </li>
+
+        
       </ul>
     </nav>
   </li>
@@ -567,10 +651,82 @@
       <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
     
     <label class="md-nav__link" for="nav-4">
-      Libraries
+      Transports
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
       <label class="md-nav__title" for="nav-4">
+        Transports
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../transports/" title="Overview" class="md-nav__link">
+      Overview
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../transports/websocket/" title="Websocket" class="md-nav__link">
+      Websocket
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../transports/sockjs/" title="SockJS" class="md-nav__link">
+      SockJS
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../transports/grpc/" title="GRPC" class="md-nav__link">
+      GRPC
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
+    
+    <label class="md-nav__link" for="nav-5">
+      Libraries
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-5">
         Libraries
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -612,13 +768,13 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
     
-    <label class="md-nav__link" for="nav-5">
+    <label class="md-nav__link" for="nav-6">
       Deploy
     </label>
     <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-5">
+      <label class="md-nav__title" for="nav-6">
         Deploy
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -1030,6 +1186,9 @@ log_level = &quot;debug&quot;
 <p><code class="codehilite">publish</code> – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. Note that client can only publish data into channel after successfully subscribed on it. By default it's <code class="codehilite">false</code>.</p>
 </li>
 <li>
+<p><code class="codehilite">subscribe_to_publish</code> - when <code class="codehilite">publish</code> option enabled client can publish into channel without beong subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.</p>
+</li>
+<li>
 <p><code class="codehilite">anonymous</code> – this option enables anonymous access (with empty user ID in connection parameters). In most situations your application works with authorized users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID. By default <code class="codehilite">false</code>.</p>
 </li>
 <li>
@@ -1045,7 +1204,7 @@ log_level = &quot;debug&quot;
 <p><code class="codehilite">history_lifetime</code> – interval in seconds how long to keep channel history messages. As all history is storing in memory it is also very important to get rid of old history data for unused (inactive for a long time) channels. By default history lifetime is <code class="codehilite">0</code> – this means that channels will have no history messages at all. <strong>So to get history messages you should wisely configure both <code class="codehilite">history_size</code> and <code class="codehilite">history_lifetime</code> options</strong>.</p>
 </li>
 <li>
-<p><code class="codehilite">history_recover</code> (<strong>new in v1.2.0</strong>) – boolean option, when enabled Centrifugo will try to recover missed messages published while client was disconnected for some reason (bad internet connection for example). By default <code class="codehilite">false</code>. This option must be used in conjunction with reasonably configured message history for channel i.e. <code class="codehilite">history_size</code> and <code class="codehilite">history_lifetime</code> <strong>must be set</strong> (because Centrifugo uses channel message history to recover messages). Also note that note all real-time events require this feature turned on so think wisely when you need this. See more details about how this option works in <a href="recover.md">special chapter</a>.</p>
+<p><code class="codehilite">history_recover</code> (<strong>new in v1.2.0</strong>) – boolean option, when enabled Centrifugo will try to recover missed messages published while client was disconnected for some reason (bad internet connection for example). By default <code class="codehilite">false</code>. This option must be used in conjunction with reasonably configured message history for channel i.e. <code class="codehilite">history_size</code> and <code class="codehilite">history_lifetime</code> <strong>must be set</strong> (because Centrifugo uses channel message history to recover messages). Also note that note all real-time events require this feature turned on so think wisely when you need this. See more details about how this option works in <a href="../recover/">special chapter</a>.</p>
 </li>
 <li>
 <p><code class="codehilite">history_drop_inactive</code> (<strong>new in v1.3.0</strong>) – boolean option, allows to drastically reduce resource usage (engine memory usage, messages travelling around) when you use message history for channels. In couple of words when enabled Centrifugo will drop history messages that no one needs. Please, see <a href="https://github.com/centrifugal/centrifugo/issues/50">issue on Github</a> to get more information about option use case scenario and edge cases it involves.</p>
@@ -1056,6 +1215,7 @@ log_level = &quot;debug&quot;
     <span class="s2">&quot;secret&quot;</span><span class="o">:</span> <span class="s2">&quot;my-secret-key&quot;</span><span class="p">,</span>
     <span class="s2">&quot;anonymous&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
     <span class="s2">&quot;publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="s2">&quot;subscribe_to_publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
     <span class="s2">&quot;presence&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
     <span class="s2">&quot;join_leave&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
     <span class="s2">&quot;history_size&quot;</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span>
@@ -1245,13 +1405,13 @@ when using Amazon ELB. In this case you can change ports on which your admin and
           </a>
         
         
-          <a href="../admin/" title="Admin web interface" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../channels/" title="Channels" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Admin web interface
+                Channels
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">
