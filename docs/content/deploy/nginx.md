@@ -14,7 +14,7 @@ Websocket connections.
 There are 2 ways: running Centrifugo server as separate service on its own
 domain or embed it to a location of your web site (for example to `/centrifugo`).
 
-### separate domain for Centrifugo
+## Separate domain for Centrifugo
 
 ```
 upstream centrifugo {
@@ -95,7 +95,7 @@ server {
 }
 ```
 
-### embed to a location of web site
+## Embed to a location of web site
 
 ```
 upstream centrifugo {
@@ -147,7 +147,7 @@ server {
 }
 ```
 
-### sticky
+## sticky
 
 You may be noticed commented `sticky;` directive in nginx upstream configuration.
 
@@ -165,7 +165,7 @@ during development - when all clients connecting from localhost.
 So the best solution would be using something like [nginx-sticky-module](https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/overview)
 which uses setting a special cookie to track the upstream server for client.
 
-### worker_connections
+## worker_connections
 
 You may also need to update `worker_connections` option of Nginx:
 
@@ -175,6 +175,10 @@ events {
 }
 ```
 
-### upstream keepalive
+## Upstream keepalive
 
 See chapter about operating system tuning for more details.
+
+## Serving GRPC
+
+See example in [centrifuge](https://github.com/centrifugal/centrifuge) repo.

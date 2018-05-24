@@ -10,6 +10,14 @@ This depends on many factors. Hardware, message rate, size of messages, channel 
 
 Yes, it can. It can do this using builtin Redis Engine. Redis is very fast – for example it can handle hundreds of thousands requests per second. This should be OK for most applications in internet. But if you are using Centrifugo and approaching this limit then it's possible to add sharding support to balance queries between different Redis instances.
 
+### Message delivery model and message order guarantees
+
+The model of message delivery of Centrifugo server is at most once.
+
+This means that message you send to Centrifugo can be theoretically lost while moving towards your clients. Centrifugo tries to do a best effort to prevent message losses but you should be aware of this fact. Your application should tolerate this. Centrifugo has an option to automatically recover messages that have been lost because of short network disconnections. But there are cases when Centrifugo can't guarantee message delivery. We also recommend to model your applications in a way that users don't notice when message have been lost. For example if your user posts a new comment over AJAX call to your application backend - you should not rely only on Centrifugo to get new comment form and display it - you should return new comment data in AJAX call response and render it. Be careful to not draw comments twice in this case.
+
+Message order in channels guaranteed to be the same while you publish messages into channel one after another or publish them in one request. If you do parallel publishes into the same channel then Centrifugo can't guarantee message order.
+
 ### Centrifugo stops accepting new connections, why?
 
 The most popular reason behind this is reaching open file limit. Just make it higher, we described how to do this nearby in this doc.

@@ -49,27 +49,33 @@ For automatic certificates from Let's Encrypt add into configuration file:
   "tls_autocert": true,
   "tls_autocert_host_whitelist": "www.example.com",
   "tls_autocert_cache_dir": "/tmp/certs",
-  "tls_autocert_email": "user@example.com"
+  "tls_autocert_email": "user@example.com",
+  "tls_autocert_http": true,
+  "tls_autocert_http_addr": ":80"
 }
 ```
 
-`tls_autocert` says Centrifugo that you want automatic certificate handling using ACME provider.
+`tls_autocert` (boolean) says Centrifugo that you want automatic certificate handling using ACME provider.
 
-`tls_autocert_host_whitelist` is a string with your app domain address. This can be comma-separated
+`tls_autocert_host_whitelist` (string) is a string with your app domain address. This can be comma-separated
 list. It's optional but recommended for extra security.
 
-`tls_autocert_cache_dir` is a path to a folder to cache issued certificate files. This is optional
+`tls_autocert_cache_dir` (string) is a path to a folder to cache issued certificate files. This is optional
 but will increase performance.
 
-`tls_autocert_email` is optional - it's an email address ACME provider will send notifications
+`tls_autocert_email` (string) is optional - it's an email address ACME provider will send notifications
 about problems with your certificates.
+
+`tls_autocert_http` (boolean) is an option to handle http_01 ACME challenge on non-TLS port.
+
+`tls_autocert_http_addr` (string) can be used to set address for handling http_01 ACME challenge (default is `:80`)
 
 When configured correctly and your domain is valid (`localhost` will not work) - certificates
 will be retrieved on first request to Centrifugo.
 
 Also Let's Encrypt certificates will be automatically renewed.
 
-There are tho options (new in v1.6.5) that allow Centrifugo to support TLS client connections from older
+There are tho options that allow Centrifugo to support TLS client connections from older
 browsers such as Chrome 49 on Windows XP and IE8 on XP:
 
 * `tls_autocert_force_rsa` - this is a boolean option, by default `false`. When enabled it forces

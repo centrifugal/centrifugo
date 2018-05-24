@@ -143,6 +143,8 @@ Let's look on options related to channels. Channel is an entity to which clients
 
 * `publish` – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. Note that client can only publish data into channel after successfully subscribed on it. By default it's `false`.
 
+* `subscribe_to_publish` - when `publish` option enabled client can publish into channel without beong subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.
+
 * `anonymous` – this option enables anonymous access (with empty user ID in connection parameters). In most situations your application works with authorized users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID. By default `false`.
 
 * `presence` – enable/disable presence information. Presence is a structure with clients currently subscribed on channel. By default `false` – i.e. no presence information available for channels.
@@ -164,6 +166,7 @@ Let's look how to set some of these options in config:
     "secret": "my-secret-key",
     "anonymous": true,
     "publish": true,
+    "subscribe_to_publish": true,
     "presence": true,
     "join_leave": true,
     "history_size": 10,

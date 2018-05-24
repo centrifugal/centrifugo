@@ -12,10 +12,4 @@ Run:
 docker run --ulimit nofile=65536:65536 -v /host/dir/with/config/file:/centrifugo -p 8000:8000 centrifugo/centrifugo centrifugo -c config.json
 ```
 
-Note that docker allows to set nofile limits in command-line arguments.
-
-To run with admin web interface:
-
-```bash
-docker run --ulimit nofile=65536:65536 -v /host/dir/with/config/file:/centrifugo -p 8000:8000 centrifugo/centrifugo centrifugo -c config.json --web
-```
+Note that docker allows to set `nofile` limits in command-line arguments which is pretty important to handle lots of simultenious persistent connections.
