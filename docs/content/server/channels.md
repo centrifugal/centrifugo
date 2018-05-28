@@ -12,13 +12,13 @@ First, channel name length is limited by `255` characters by default (can be cha
 
 Second, `:`, `#` and `$` symbols have a special role in channel name.
 
-### namespace channel boundary
+### namespace channel boundary (:)
 
 ``:`` - is a channel namespace boundary.
 
 If channel is `public:chat` - then Centrifugo will apply options to this channel from channel namespace with name `public`.
 
-### user channel boundary
+### user channel boundary (#)
 
 `#` is a user boundary - separator to create private channels for users (user limited channels) without sending POST request to your web application. For example if channel is `news#42` then only user with ID `42` can subscribe on this channel (Centrifugo knows user ID as clients provide it in connection credentials).
 
@@ -26,6 +26,6 @@ Moreover you can provide several user IDs in channel name separated by comma: `d
 
 This is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.
 
-### private channel prefix
+### $ private channel prefix ($)
 
 If channel starts with `$` then it considered private. Subscription on private channel must be properly signed by your web application. Read special chapter in docs about private channel subscriptions.
