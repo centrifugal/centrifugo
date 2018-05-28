@@ -2,7 +2,7 @@
 
 When you are using [centrifuge](https://github.com/centrifugal/centrifuge) library from Go language you can implement any user authentication. In Centrifugo case you need to tell server who is connecting in well-known predefined way. This chapter will describe this mechanism. We will use Javascript client here for example snippets.
 
-When connectiong to Centrifugo client must provide connection authentication credentials. Credentials are several string fields: `user`, `exp`, `info` and `sign`. What do they mean? Let's describe in detail.
+When connecting to Centrifugo client must provide connection authentication credentials. Credentials are several string fields: `user`, `exp`, `info` and `sign`. What do they mean? Let's describe in detail.
 
 ### user
 
@@ -25,6 +25,8 @@ import time
 
 exp = str(int(time.time()) + 10 * 60)
 ```
+
+Read more about connection expiration in special chapter.
 
 ### info
 
