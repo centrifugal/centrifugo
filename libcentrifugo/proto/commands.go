@@ -9,6 +9,7 @@ import (
 // NodeInfo contains information and statistics about Centrifugo node.
 type NodeInfo struct {
 	UID     string           `json:"uid"`
+	Version string           `json:"version"`
 	Name    string           `json:"name"`
 	Started int64            `json:"started_at"`
 	Metrics map[string]int64 `json:"metrics"`
