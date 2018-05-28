@@ -518,6 +518,7 @@ func (n *Node) pubPing() error {
 
 	info := proto.NodeInfo{
 		UID:     n.uid,
+		Version: n.version,
 		Name:    n.config.Name,
 		Started: n.started,
 		Metrics: metricsSnapshot,
