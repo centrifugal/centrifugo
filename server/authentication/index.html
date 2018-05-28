@@ -800,7 +800,7 @@
                 
                 <h1 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h1>
 <p>When you are using <a href="https://github.com/centrifugal/centrifuge">centrifuge</a> library from Go language you can implement any user authentication. In Centrifugo case you need to tell server who is connecting in well-known predefined way. This chapter will describe this mechanism. We will use Javascript client here for example snippets.</p>
-<p>When connectiong to Centrifugo client must provide connection authentication credentials. Credentials are several string fields: <code class="codehilite">user</code>, <code class="codehilite">exp</code>, <code class="codehilite">info</code> and <code class="codehilite">sign</code>. What do they mean? Let's describe in detail.</p>
+<p>When connecting to Centrifugo client must provide connection authentication credentials. Credentials are several string fields: <code class="codehilite">user</code>, <code class="codehilite">exp</code>, <code class="codehilite">info</code> and <code class="codehilite">sign</code>. What do they mean? Let's describe in detail.</p>
 <h3 id="user">user<a class="headerlink" href="#user" title="Permanent link">&para;</a></h3>
 <p>This is simple - it's an ID of current application user (<strong>as string</strong>). </p>
 <p>If your user not currently authenticated in your application but you want to let him connect to Centrifugo anyway you can use empty string as user ID. This is called anonymous access. In this case <code class="codehilite">anonymous</code> option must be enabled in Centrifugo configuration for channels that client will subscribe to.</p>
@@ -814,6 +814,7 @@
 <span class="n">exp</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
 </pre></div>
 
+<p>Read more about connection expiration in special chapter.</p>
 <h3 id="info">info<a class="headerlink" href="#info" title="Permanent link">&para;</a></h3>
 <p>This field is optional - this is additional information about client connection that can be provided fot Centrifugo. This information will be included in presence information, join/leave events and in channel publication message if it was published from client side.</p>
 <p>This field contains <code class="codehilite">base64</code> string. In case of using JSON protocol this is JSON object converted to UTF-8 bytes and then encoded with <code class="codehilite">base64</code> codec. In case of using Protobuf protocol this can be random bytes also encoded to <code class="codehilite">base64</code> format. Base64 encoding was chosen to help pass bytes in web environment. </p>
