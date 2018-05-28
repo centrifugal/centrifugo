@@ -224,7 +224,8 @@ func ConfigureServer(setter config.Setter) error {
 	}
 
 	bindEnvs := []string{
-		"web",
+		"port", "api_port", "admin_port", "address", "web", "web_path",
+		"insecure_web", "ssl", "ssl_cert", "ssl_key",
 	}
 
 	for _, env := range bindEnvs {
