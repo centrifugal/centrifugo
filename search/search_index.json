@@ -167,7 +167,7 @@
         },
         {
             "location": "/server/channels/",
-            "text": "Channels\n\u00b6\n\n\nChannel is a route for publication messages. Clients can subscribe to channel to receive events related to this channel \u2013 new publications, join/leave events etc. Also client must be subscribed on channel to get channel presence or history information.\n\n\nChannel is just a string - \nnews\n, \ncomments\n are valid channel names.\n\n\nOnly ASCII symbols must be used in channel string.\n\n\nBUT!\n You should know several things.\n\n\nFirst, channel name length is limited by \n255\n characters by default (can be changed via configuration file option \nchannel_max_length\n)\n\n\nSecond, \n:\n, \n#\n and \n$\n symbols have a special role in channel name.\n\n\nnamespace channel boundary\n\u00b6\n\n\n:\n - is a channel namespace boundary.\n\n\nIf channel is \npublic\n:\nchat\n - then Centrifugo will apply options to this channel from channel namespace with name \npublic\n.\n\n\nuser channel boundary\n\u00b6\n\n\n#\n is a user boundary - separator to create private channels for users (user limited channels) without sending POST request to your web application. For example if channel is \nnews#42\n then only user with ID \n42\n can subscribe on this channel (Centrifugo knows user ID as clients provide it in connection credentials).\n\n\nMoreover you can provide several user IDs in channel name separated by comma: \ndialog#42,43\n \u2013 in this case only user with ID \n42\n and user with ID \n43\n will be able to subscribe on this channel.\n\n\nThis is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.\n\n\nprivate channel prefix\n\u00b6\n\n\nIf channel starts with \n$\n then it considered private. Subscription on private channel must be properly signed by your web application. Read special chapter in docs about private channel subscriptions.",
+            "text": "Channels\n\u00b6\n\n\nChannel is a route for publication messages. Clients can subscribe to channel to receive events related to this channel \u2013 new publications, join/leave events etc. Also client must be subscribed on channel to get channel presence or history information.\n\n\nChannel is just a string - \nnews\n, \ncomments\n are valid channel names.\n\n\nOnly ASCII symbols must be used in channel string.\n\n\nBUT!\n You should know several things.\n\n\nFirst, channel name length is limited by \n255\n characters by default (can be changed via configuration file option \nchannel_max_length\n)\n\n\nSecond, \n:\n, \n#\n and \n$\n symbols have a special role in channel name.\n\n\nnamespace channel boundary (:)\n\u00b6\n\n\n:\n - is a channel namespace boundary.\n\n\nIf channel is \npublic\n:\nchat\n - then Centrifugo will apply options to this channel from channel namespace with name \npublic\n.\n\n\nuser channel boundary (#)\n\u00b6\n\n\n#\n is a user boundary - separator to create private channels for users (user limited channels) without sending POST request to your web application. For example if channel is \nnews#42\n then only user with ID \n42\n can subscribe on this channel (Centrifugo knows user ID as clients provide it in connection credentials).\n\n\nMoreover you can provide several user IDs in channel name separated by comma: \ndialog#42,43\n \u2013 in this case only user with ID \n42\n and user with ID \n43\n will be able to subscribe on this channel.\n\n\nThis is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.\n\n\n$ private channel prefix ($)\n\u00b6\n\n\nIf channel starts with \n$\n then it considered private. Subscription on private channel must be properly signed by your web application. Read special chapter in docs about private channel subscriptions.",
             "title": "Channels"
         },
         {
@@ -178,17 +178,17 @@
         {
             "location": "/server/channels/#namespace-channel-boundary",
             "text": ":  - is a channel namespace boundary.  If channel is  public : chat  - then Centrifugo will apply options to this channel from channel namespace with name  public .",
-            "title": "namespace channel boundary"
+            "title": "namespace channel boundary (:)"
         },
         {
             "location": "/server/channels/#user-channel-boundary",
             "text": "#  is a user boundary - separator to create private channels for users (user limited channels) without sending POST request to your web application. For example if channel is  news#42  then only user with ID  42  can subscribe on this channel (Centrifugo knows user ID as clients provide it in connection credentials).  Moreover you can provide several user IDs in channel name separated by comma:  dialog#42,43  \u2013 in this case only user with ID  42  and user with ID  43  will be able to subscribe on this channel.  This is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.",
-            "title": "user channel boundary"
+            "title": "user channel boundary (#)"
         },
         {
             "location": "/server/channels/#private-channel-prefix",
             "text": "If channel starts with  $  then it considered private. Subscription on private channel must be properly signed by your web application. Read special chapter in docs about private channel subscriptions.",
-            "title": "private channel prefix"
+            "title": "$ private channel prefix ($)"
         },
         {
             "location": "/server/authentication/",
@@ -242,13 +242,23 @@
         },
         {
             "location": "/server/monitoring/",
-            "text": "Monitoring\n\u00b6\n\n\nIn progress.",
+            "text": "Monitoring\n\u00b6\n\n\nCentrifugo supports reporting metrics in Prometheus format and can automatically export metrics to Graphite.\n\n\nPrometheus\n\u00b6\n\n\nTo enable Prometheus endpoint start Centrifugo with \nprometheus\n option on:\n\n\n{\n\n    \n...\n\n    \n\"prometheus\"\n:\n \ntrue\n\n\n}\n\n\n\n\n\n./centrifugo --config=config.json\n\n\n\n\nThis will eneble \n/metrics\n endpoint so Centrifugo instance can be monitored by your Prometheus server.\n\n\nGraphite\n\u00b6\n\n\nTo enable automatic export to Graphite (via TCP):\n\n\n{\n\n    \n\"graphite\"\n:\n \ntrue\n,\n\n    \n\"graphite_host\"\n:\n \n\"localhost\"\n,\n\n    \n\"graphite_port\"\n:\n \n2003\n\n\n}",
             "title": "Monitoring"
         },
         {
             "location": "/server/monitoring/#monitoring",
-            "text": "In progress.",
+            "text": "Centrifugo supports reporting metrics in Prometheus format and can automatically export metrics to Graphite.",
             "title": "Monitoring"
+        },
+        {
+            "location": "/server/monitoring/#prometheus",
+            "text": "To enable Prometheus endpoint start Centrifugo with  prometheus  option on:  { \n     ... \n     \"prometheus\" :   true  }   ./centrifugo --config=config.json  This will eneble  /metrics  endpoint so Centrifugo instance can be monitored by your Prometheus server.",
+            "title": "Prometheus"
+        },
+        {
+            "location": "/server/monitoring/#graphite",
+            "text": "To enable automatic export to Graphite (via TCP):  { \n     \"graphite\" :   true , \n     \"graphite_host\" :   \"localhost\" , \n     \"graphite_port\" :   2003  }",
+            "title": "Graphite"
         },
         {
             "location": "/server/protocol/",
