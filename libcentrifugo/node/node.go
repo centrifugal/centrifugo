@@ -93,6 +93,10 @@ func init() {
 	metricsRegistry.RegisterGauge("node_memory_stack_inuse", metrics.NewGauge())
 
 	metricsRegistry.RegisterGauge("node_cpu_usage", metrics.NewGauge())
+
+	metricsRegistry.RegisterGauge("node_rusage_utime", metrics.NewGauge())
+	metricsRegistry.RegisterGauge("node_rusage_stime", metrics.NewGauge())
+
 	metricsRegistry.RegisterGauge("node_num_goroutine", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("node_num_clients", metrics.NewGauge())
 	metricsRegistry.RegisterGauge("node_num_unique_clients", metrics.NewGauge())
@@ -219,7 +223,11 @@ func (n *Node) updateMetricsOnce() {
 	metricsRegistry.Gauges.Set("node_memory_heap_alloc", int64(mem.HeapAlloc))
 	metricsRegistry.Gauges.Set("node_memory_stack_inuse", int64(mem.StackInuse))
 	if usage, err := cpuUsage(); err == nil {
-		metricsRegistry.Gauges.Set("node_cpu_usage", int64(usage))
+		metricsRegistry.Gauges.Set("node_cpu_usage", usage)
+	}
+	if uTime, sTime, err := cpuUsageSeparated(); err == nil {
+		metricsRegistry.Gauges.Set("node_rusage_utime", uTime)
+		metricsRegistry.Gauges.Set("node_rusage_stime", sTime)
 	}
 	n.metricsMu.Lock()
 	metricsRegistry.Counters.UpdateDelta()
