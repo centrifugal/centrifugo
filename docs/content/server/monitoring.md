@@ -17,7 +17,7 @@ To enable Prometheus endpoint start Centrifugo with `prometheus` option on:
 ./centrifugo --config=config.json
 ```
 
-This will eneble `/metrics` endpoint so Centrifugo instance can be monitored by your Prometheus server.
+This will enable `/metrics` endpoint so Centrifugo instance can be monitored by your Prometheus server.
 
 ### Graphite
 
