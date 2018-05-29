@@ -357,9 +357,59 @@
       
     
     
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        Engines
+      </label>
+    
     <a href="./" title="Engines" class="md-nav__link md-nav__link--active">
       Engines
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#memory-engine" title="Memory engine" class="md-nav__link">
+    Memory engine
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#redis-engine" title="Redis engine" class="md-nav__link">
+    Redis engine
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scaling-with-redis-tutorial" title="Scaling with Redis tutorial" class="md-nav__link">
+    Scaling with Redis tutorial
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#redis-sharding" title="Redis sharding" class="md-nav__link">
+    Redis sharding
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
     
   </li>
 
@@ -698,6 +748,43 @@
     
   
   
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#memory-engine" title="Memory engine" class="md-nav__link">
+    Memory engine
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#redis-engine" title="Redis engine" class="md-nav__link">
+    Redis engine
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scaling-with-redis-tutorial" title="Scaling with Redis tutorial" class="md-nav__link">
+    Scaling with Redis tutorial
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#redis-sharding" title="Redis sharding" class="md-nav__link">
+    Redis sharding
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -712,7 +799,86 @@
                 
                 
                 <h1 id="engines">Engines<a class="headerlink" href="#engines" title="Permanent link">&para;</a></h1>
-<p>In progress.</p>
+<ul>
+<li><a href="#memory-engine">Memory engine</a></li>
+<li><a href="#redis-engine">Redis engine</a></li>
+</ul>
+<p>Engine in Centrifugo is responsible for publishing messages between nodes, handle PUB/SUB broker subscriptions, save/retrieve presence and history data.</p>
+<p>By default Centrifugo uses Memory engine. There is also Redis engine available.</p>
+<p>The difference between them - with Memory engine you can start only one node of Centrifugo, while Redis engine allows to run several nodes on different machines and they will be connected via Redis, will know about each other due to Redis and will also keep history and presence data in Redis instead of Centrifugo node process memory so this data can be accessed from each node.</p>
+<p>To set engine you can use <code class="codehilite">engine</code> configuration option. Available values are <code class="codehilite">memory</code> and <code class="codehilite">redis</code>. Default value is <code class="codehilite">memory</code>.</p>
+<p>For example to work with Redis engine:</p>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --engine=redis
+</pre></div>
+
+<p>Or just set <code class="codehilite">engine</code> in config:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="err">...</span>
+    <span class="nt">&quot;engine&quot;</span><span class="p">:</span> <span class="s2">&quot;redis&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
+<h3 id="memory-engine">Memory engine<a class="headerlink" href="#memory-engine" title="Permanent link">&para;</a></h3>
+<p>Supports only one node. Nice choice to start with. Supports all features keeping everything in Centrifugo node process memory. You don't need to install Redis when using this engine.</p>
+<p>Advantages:</p>
+<ul>
+<li>fast</li>
+<li>does not require separate Redis setup</li>
+</ul>
+<p>Disadvantages:</p>
+<ul>
+<li>does not allow to scale nodes (actually you still can scale Centrifugo with Memory engine but you have to publish data into each Centrifugo node and you won't have consistent state of presence)</li>
+</ul>
+<h3 id="redis-engine">Redis engine<a class="headerlink" href="#redis-engine" title="Permanent link">&para;</a></h3>
+<p>Allows scaling Centrifugo nodes to different machines. Nodes will use Redis as message broker. Redis engine keeps presence and history data in Redis, uses Redis PUB/SUB for internal nodes communication.</p>
+<p>Several configuration options related to Redis engine:</p>
+<ul>
+<li><code class="codehilite">redis_host</code> (string, default <code class="codehilite">&quot;127.0.0.1&quot;</code>) - Redis server host</li>
+<li><code class="codehilite">redis_port</code> (int, default <code class="codehilite">6379</code>) - Redis server port</li>
+<li><code class="codehilite">redis_url</code> (string, default <code class="codehilite">&quot;&quot;</code>) - optional Redis connection URL</li>
+<li><code class="codehilite">redis_password</code> (string, default <code class="codehilite">&quot;&quot;</code>) - Redis password</li>
+<li><code class="codehilite">redis_db</code> (int, default <code class="codehilite">0</code>) - number of Redis db to use</li>
+<li><code class="codehilite">redis_sentinels</code> (string, default <code class="codehilite">&quot;&quot;</code>) - comma separated list of Sentinels for HA</li>
+<li><code class="codehilite">redis_master_name</code> (string, default <code class="codehilite">&quot;&quot;</code>) - name of Redis master Sentinel monitors</li>
+</ul>
+<p>Most of these options has clear meaning.</p>
+<p><code class="codehilite">redis_url</code> allows to set Redis connection parameters in a form of URL in format <code class="codehilite">redis://:password@hostname:port/db_number</code>.</p>
+<p>When <code class="codehilite">redis_url</code> set Centrifugo will use URL instead of values provided in <code class="codehilite">redis_host</code>,
+<code class="codehilite">redis_port</code>, <code class="codehilite">redis_password</code>, <code class="codehilite">redis_db</code> options.</p>
+<h3 id="scaling-with-redis-tutorial">Scaling with Redis tutorial<a class="headerlink" href="#scaling-with-redis-tutorial" title="Permanent link">&para;</a></h3>
+<p>Let's see how to start several Centrifugo nodes using Redis engine. We will start 3 Centrifugo nodes and all those nodes will be connected via Redis.</p>
+<p>First, you should have Redis running. As soon as it's running - we can launch 3 Centrifugo instances. Open your terminal and start first one:</p>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --port=8000 --engine=redis --redis_host=127.0.0.1 --redis_port=6379
+</pre></div>
+
+<p>If your Redis on the same machine and runs on its default port you can omit <code class="codehilite">redis_host</code> and <code class="codehilite">redis_port</code> options in command above.</p>
+<p>Then open another terminal and start another Centrifugo instance:</p>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --port=8001 --engine=redis --redis_host=127.0.0.1 --redis_port=6379
+</pre></div>
+
+<p>Note that we use another port number (<code class="codehilite">8001</code>) as port 8000 already busy by our first Centrifugo instance. If you are starting Centrifugo instances on different machines then you most probably can use
+the same port number (<code class="codehilite">8000</code> or whatever you want) for all instances.</p>
+<p>And finally let's start third instance:</p>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --port=8002 --engine=redis --redis_host=127.0.0.1 --redis_port=6379
+</pre></div>
+
+<p>Now you have 3 Centrifugo instances running on ports 8000, 8001, 8002 and clients can connect to any of them. You can also send API requests to any of those nodes – as all nodes connected over Redis PUB/SUB message will be delivered to all interested clients on all nodes.</p>
+<p>To load balance clients between nodes you can use Nginx – you can find its configuration here in documentation.</p>
+<h3 id="redis-sharding">Redis sharding<a class="headerlink" href="#redis-sharding" title="Permanent link">&para;</a></h3>
+<p>Centrifugo has a built-in Redis sharding support.</p>
+<p>This resolves situation when Redis becoming a bottleneck on large Centrifugo setup. Redis is single-threaded server, it's very fast but it's power is not infinite so when your Redis approaches 100% CPU usage then sharding feature can help your application to scale.</p>
+<p>At moment Centrifugo supports simple comma-based approach to configuring Redis shards. Let's just look on examples.</p>
+<p>To start Centrifugo with 2 Redis shards on localhost running on port 6379 and port 6380:</p>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --engine=redis --redis_port=6379,6380
+</pre></div>
+
+<p>To start Centrifugo with Redis instances on different hosts:</p>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --engine=redis --redis_host=192.168.1.34,192.168.1.35
+</pre></div>
+
+<p>If you also need to customize AUTH password, Redis DB number then you can use <code class="codehilite">redis_url</code> option.</p>
+<p>Note, that due to how Redis PUB/SUB work it's not possible (and it's pretty useless anyway) to run shards in one Redis instances using different Redis DB numbers.</p>
+<p>When sharding enabled Centrifugo will spread channels and history/presence keys over configured Redis instances using consistent hashing algorithm. At moment we use Jump consistent hash algorithm (see <a href="https://arxiv.org/pdf/1406.2294.pdf">paper</a> and <a href="https://github.com/dgryski/go-jump">implementation</a>)</p>
                 
                   
                 
