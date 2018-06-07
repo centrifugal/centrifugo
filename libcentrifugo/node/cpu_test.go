@@ -10,3 +10,8 @@ func TestCPUUsage(t *testing.T) {
 	_, err := cpuUsage()
 	assert.Equal(t, nil, err)
 }
+
+func TestCPUUsageSeparate(t *testing.T) {
+	_, _, err := cpuUsageSeparated()
+	assert.Equal(t, nil, err)
+}

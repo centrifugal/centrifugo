@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"syscall"
+	"fmt"
 )
 
 // cpuUsage is the simplest possible method to extract CPU usage info on most of platforms
@@ -47,4 +49,15 @@ func cpuUsage() (int64, error) {
 		return int64(cpu), nil
 	}
 	return 0, errors.New("no cpu info found")
+}
+
+// And here is another implementation using syscall
+func cpuUsageSeparated() (int64, int64, error) {
+	rusage := &syscall.Rusage{}
+	err := syscall.Getrusage(syscall.RUSAGE_SELF, rusage)
+	if nil != err {
+		return 0, 0, fmt.Errorf("getrusage: %v", err)
+	}
+
+	return syscall.TimevalToNsec(rusage.Utime), syscall.TimevalToNsec(rusage.Stime), nil
 }
