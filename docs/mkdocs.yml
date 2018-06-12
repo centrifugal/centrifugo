@@ -64,7 +64,6 @@ pages:
     - 'Overview': 'transports/index.md'
     - 'Websocket': 'transports/websocket.md'
     - 'SockJS': 'transports/sockjs.md'
-    - 'GRPC': 'transports/grpc.md'
   - Libraries:
     - 'Client libraries': 'libraries/client.md'
     - 'API libraries': 'libraries/api.md'

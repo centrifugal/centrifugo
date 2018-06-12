@@ -3,7 +3,6 @@ package centrifuge
 import (
 	"context"
 
-	"github.com/centrifugal/centrifuge/internal/proto"
 	"github.com/centrifugal/centrifuge/internal/proto/apiproto"
 )
 
@@ -38,7 +37,7 @@ func (h *apiExecutor) Publish(ctx context.Context, cmd *apiproto.PublishRequest)
 		return resp
 	}
 
-	pub := &proto.Publication{
+	pub := &Publication{
 		Data: cmd.Data,
 	}
 	if cmd.UID != "" {
@@ -90,7 +89,7 @@ func (h *apiExecutor) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequ
 			resp.Error = apiproto.ErrorNamespaceNotFound
 		}
 
-		pub := &proto.Publication{
+		pub := &Publication{
 			Data: cmd.Data,
 		}
 		if cmd.UID != "" {

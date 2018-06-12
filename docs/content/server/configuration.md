@@ -2,7 +2,7 @@
 
 Centrifugo expects JSON, TOML or YAML as format of configuration file. Thanks to brilliant Go library for application configuration - [viper](https://github.com/spf13/viper).
 
-But first let's inspect all available command-line options:
+First let's look at all available command-line options:
 
 ```bash
 centrifugo -h
@@ -33,7 +33,6 @@ Flags:
       --debug                      enable debug endpoints
   -e, --engine string              engine to use: memory or redis (default "memory")
       --grpc_api                   enable GRPC API server
-      --grpc_client                enable GRPC client server
   -h, --help                       help for this command
       --internal_port string       custom port for internal endpoints
       --log_file string            optional log file - if not specified logs go to STDOUT

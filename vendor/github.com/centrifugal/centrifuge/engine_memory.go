@@ -381,12 +381,6 @@ func (h *historyHub) recover(ch string, last string) ([]*Publication, bool, erro
 		return nil, false, err
 	}
 
-	if last == "" {
-		// Client wants to recover publications but it seems that there were no
-		// messages in history before, so client missed all existing messages.
-		return publications, false, nil
-	}
-
 	position := -1
 	for index, msg := range publications {
 		if msg.UID == last {
@@ -395,14 +389,14 @@ func (h *historyHub) recover(ch string, last string) ([]*Publication, bool, erro
 		}
 	}
 	if position > -1 {
-		// Last uid provided found in history. Set recovered flag which means that
-		// server thinks missed messages fully recovered.
+		// Provided last UID found in history. In this case we can be
+		// sure that all missed messages will be recovered.
 		return publications[0:position], true, nil
 	}
-	// Provided last UID not found in history messages. This means that client
-	// most probably missed too many messages (or maybe wrong last uid provided but
-	// it's not a normal case). So we try to compensate as many as we can. But
-	// recovered flag stays false so we do not give a guarantee all missed messages
-	// recovered successfully.
+	// Provided last UID not found in history messages. This means that
+	// client most probably missed too many messages or publication with
+	// last UID already expired (or maybe wrong last uid provided but
+	// it's not a normal case). So we try to compensate as many as we
+	// can but get caller know about missing UID.
 	return publications, false, nil
 }

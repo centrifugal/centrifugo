@@ -150,11 +150,11 @@ const (
 
 // DefaultConfig is Config initialized with default values for all fields.
 var DefaultConfig = Config{
-	Name: "centrifugo",
+	Name: "centrifuge",
 
 	ChannelMaxLength:         255,
 	ChannelPrivatePrefix:     "$", // so private channel will look like "$gossips"
-	ChannelNamespaceBoundary: ":", // so namespace "public" can be used "public:news"
+	ChannelNamespaceBoundary: ":", // so namespace "public" can be used as "public:news"
 	ChannelUserBoundary:      "#", // so user limited channel is "user#2694" where "2696" is user ID
 	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019"
 

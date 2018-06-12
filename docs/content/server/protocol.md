@@ -19,7 +19,6 @@ At moment Centrifuge/Centrifugo can work with several transports:
 
 * Websocket
 * SockJS
-* GRPC
 
  This document describes protocol specifics for Websocket transport which supports binary and text formats to transfer data. As Centrifuge has various types of messages it serializes protocol messages using JSON or Protobuf (in case of binary websockets).
 

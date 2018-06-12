@@ -12,7 +12,7 @@ import (
 	"github.com/centrifugal/centrifuge/internal/proto/apiproto"
 )
 
-// APIConfig ...
+// APIConfig configures APIHandler.
 type APIConfig struct{}
 
 // APIHandler is responsible for processing API commands over HTTP.

@@ -8,7 +8,7 @@ func (e Error) Error() string {
 	return fmt.Sprintf("%d: %s", e.Code, e.Message)
 }
 
-// Here we define errors that can be exposed in server and client API replies.
+// Here we define errors that can be exposed in server API replies.
 var (
 	// ErrorInternal means server error, if returned this is a signal
 	// that something went wrong with Centrifugo itself.

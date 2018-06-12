@@ -5,12 +5,11 @@ popular linux distributions on [packagecloud.io](https://packagecloud.io/FZambia
 
 Currently we support versions of the following distributions:
 
-* 64-bit Debian 7 Wheezy
 * 64-bit Debian 8 Jessie
-* 64-bit Ubuntu 14.04 Trusty
+* 64-bit Debian 9 Stretch
 * 64-bit Ubuntu 16.04 Xenial
+* 64-bit Ubuntu 18.04 Bionic
 * 64-bit Centos 7
-* 64-bit Centos 6
 
 See [full list of available packages](https://packagecloud.io/FZambia/centrifugo) and
 [installation instructions](https://packagecloud.io/FZambia/centrifugo/install).

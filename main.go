@@ -73,7 +73,7 @@ func main() {
 				"client_insecure", "admin_insecure", "api_insecure", "port",
 				"address", "tls", "tls_cert", "tls_key", "internal_port", "prometheus",
 				"redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
-				"redis_master_name", "redis_sentinels", "grpc_api", "grpc_client",
+				"redis_master_name", "redis_sentinels", "grpc_api",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -195,38 +195,8 @@ func main() {
 				}()
 			}
 
-			var grpcClientServer *grpc.Server
-			var grpcClientAddr string
-			if viper.GetBool("grpc_client") {
-				grpcClientAddr = fmt.Sprintf(":%d", viper.GetInt("grpc_client_port"))
-				grpcClientConn, err := net.Listen("tcp", grpcClientAddr)
-				if err != nil {
-					log.Fatal().Msgf("Cannot listen to address %s", grpcClientAddr)
-				}
-				grpcOpts := []grpc.ServerOption{
-					grpc.MaxRecvMsgSize(viper.GetInt("client_request_max_size")),
-				}
-				tlsConfig, err := getTLSConfig()
-				if err != nil {
-					log.Fatal().Msgf("Error getting TLS config: %v", err)
-				}
-				if tlsConfig != nil {
-					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
-				}
-				grpcClientServer = grpc.NewServer(grpcOpts...)
-				centrifuge.RegisterGRPCServerClient(node, grpcClientServer, centrifuge.GRPCClientServiceConfig{})
-				go func() {
-					if err := grpcClientServer.Serve(grpcClientConn); err != nil {
-						log.Fatal().Msgf("Serve GRPC: %v", err)
-					}
-				}()
-			}
-
 			if grpcAPIServer != nil {
 				log.Info().Msgf("Serving GRPC API service on %s", grpcAPIAddr)
-			}
-			if grpcClientServer != nil {
-				log.Info().Msgf("Serving GRPC client service on %s", grpcClientAddr)
 			}
 
 			servers, err := runHTTPServers(node)
@@ -254,7 +224,7 @@ func main() {
 				}()
 			}
 
-			handleSignals(node, servers, grpcAPIServer, grpcClientServer)
+			handleSignals(node, servers, grpcAPIServer)
 		},
 	}
 
@@ -282,7 +252,6 @@ func main() {
 	rootCmd.Flags().StringP("internal_port", "", "", "custom port for internal endpoints")
 
 	rootCmd.Flags().BoolP("grpc_api", "", false, "enable GRPC API server")
-	rootCmd.Flags().BoolP("grpc_client", "", false, "enable GRPC client server")
 
 	rootCmd.Flags().StringP("redis_host", "", "127.0.0.1", "Redis host (Redis engine)")
 	rootCmd.Flags().StringP("redis_port", "", "6379", "Redis port (Redis engine)")
@@ -396,10 +365,8 @@ var configDefaults = map[string]interface{}{
 	"redis_read_timeout":              10, // Must be greater than ping channel publish interval.
 	"redis_write_timeout":             1,
 	"redis_pubsub_num_workers":        0,
-	"grpc_client":                     false,
-	"grpc_client_port":                8001,
 	"grpc_api":                        false,
-	"grpc_api_port":                   8002,
+	"grpc_api_port":                   10000,
 	"grpc_api_key":                    "",
 	"grpc_api_insecure":               false,
 	"shutdown_timeout":                30,
@@ -451,7 +418,7 @@ func setupLogging() *os.File {
 	return nil
 }
 
-func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer *grpc.Server, grpcClientServer *grpc.Server) {
+func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer *grpc.Server) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -495,14 +462,6 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 				go func() {
 					defer wg.Done()
 					grpcAPIServer.GracefulStop()
-				}()
-			}
-
-			if grpcClientServer != nil {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					grpcClientServer.GracefulStop()
 				}()
 			}
 

@@ -178,7 +178,3 @@ events {
 ## Upstream keepalive
 
 See chapter about operating system tuning for more details.
-
-## Serving GRPC
-
-See example in [centrifuge](https://github.com/centrifugal/centrifuge) repo.

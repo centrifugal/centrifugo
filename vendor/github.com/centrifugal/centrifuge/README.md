@@ -8,7 +8,6 @@ Centrifuge library represents real-time core for [Centrifugo](https://github.com
 Message transports:
 
 * Websocket transport with JSON or binary Protobuf protocol
-* GRPC bidirectional streaming over HTTP/2
 * SockJS polyfill library support (JSON only)
 
 Features:

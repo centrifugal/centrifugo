@@ -10,8 +10,7 @@ Centrifugo is a language-agnostic real-time messaging server. Language-agnostic 
 There are several main transports Centrifugo supports at moment:
 
 * Websocket (JSON or binary Protobuf)
-* SockJS (library that tries to establish Websocket connection and falls back to HTTP transports automatically in case of problems with Websocket)
-* GRPC
+* SockJS (library that tries to establish Websocket connection first and then falls back to HTTP transports automatically in case of problems with Websocket connection)
 
 ## Motivation of project
 
