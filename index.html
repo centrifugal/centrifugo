@@ -538,18 +538,6 @@
   </li>
 
         
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="transports/grpc/" title="GRPC" class="md-nav__link">
-      GRPC
-    </a>
-  </li>
-
-        
       </ul>
     </nav>
   </li>
@@ -772,8 +760,7 @@
 <p>There are several main transports Centrifugo supports at moment:</p>
 <ul>
 <li>Websocket (JSON or binary Protobuf)</li>
-<li>SockJS (library that tries to establish Websocket connection and falls back to HTTP transports automatically in case of problems with Websocket)</li>
-<li>GRPC</li>
+<li>SockJS (library that tries to establish Websocket connection first and then falls back to HTTP transports automatically in case of problems with Websocket connection)</li>
 </ul>
 <h2 id="motivation-of-project">Motivation of project<a class="headerlink" href="#motivation-of-project" title="Permanent link">&para;</a></h2>
 <p>Centrifugo was originally born to help applications written in language or framework without builtin concurency support to introduce real-time updates. For example frameworks like Django, Flask, Yii, Laravel, Ruby on Rails etc has poor support of working with many persistent connections. Centrifugo aims to help with this and continue to write backend in your favorite language and favorite framework. It also has some features that can simplify your life as a developer even if you are writing backend in asynchronous concurrent language.</p>

@@ -696,18 +696,6 @@
   </li>
 
         
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../transports/grpc/" title="GRPC" class="md-nav__link">
-      GRPC
-    </a>
-  </li>
-
-        
       </ul>
     </nav>
   </li>
@@ -1076,7 +1064,7 @@
                 
                 <h1 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h1>
 <p>Centrifugo expects JSON, TOML or YAML as format of configuration file. Thanks to brilliant Go library for application configuration - <a href="https://github.com/spf13/viper">viper</a>.</p>
-<p>But first let's inspect all available command-line options:</p>
+<p>First let's look at all available command-line options:</p>
 <div class="codehilite"><pre><span></span>centrifugo -h
 </pre></div>
 
@@ -1103,7 +1091,6 @@ Flags:
       --debug                      enable debug endpoints
   -e, --engine string              engine to use: memory or redis (default &quot;memory&quot;)
       --grpc_api                   enable GRPC API server
-      --grpc_client                enable GRPC client server
   -h, --help                       help for this command
       --internal_port string       custom port for internal endpoints
       --log_file string            optional log file - if not specified logs go to STDOUT

@@ -417,9 +417,38 @@
       
     
     
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        Message recovery
+      </label>
+    
     <a href="./" title="Message recovery" class="md-nav__link md-nav__link--active">
       Message recovery
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#recovery-on-example" title="Recovery on example" class="md-nav__link">
+    Recovery on example
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
     
   </li>
 
@@ -504,18 +533,6 @@
   <li class="md-nav__item">
     <a href="../../transports/sockjs/" title="SockJS" class="md-nav__link">
       SockJS
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../transports/grpc/" title="GRPC" class="md-nav__link">
-      GRPC
     </a>
   </li>
 
@@ -698,6 +715,22 @@
     
   
   
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#recovery-on-example" title="Recovery on example" class="md-nav__link">
+    Recovery on example
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -712,7 +745,29 @@
                 
                 
                 <h1 id="how-message-recovery-works">How message recovery works<a class="headerlink" href="#how-message-recovery-works" title="Permanent link">&para;</a></h1>
-<p>In progress.</p>
+<p>One of the most important features of Centrifugo is message recovery after short network disconnects. This is often the case when we are moving around - for example sudden tunnel can result in internet connection lost. Or when we switching networks on our device. Message recovery feature is especially useful when dealing with Centrifugo node restart - many client connection disconnect and then reconnect at once - if users subscribed on channels with important data it's a good practice to restore missed state on successful reconnect. In general you would query your application backend for actual state on every network/shutdown reconnect - but message recovery feature allows Centrifugo itself to deal with this and restore missed messages from history cache thus reducing load on your application backend during reconnects.</p>
+<p>When subscribing on channels Centrifugo will return missed <code class="codehilite">publications</code> to client and also special <code class="codehilite">recovered</code> boolean flag to indicate whether all messages were recovered after disconnect or not.</p>
+<p>To enable recovery mechanism for channels set <code class="codehilite">history_recover</code> boolean configuration option to <code class="codehilite">true</code> on configuration top level or for channel namespace.</p>
+<p>Centrifugo recovery model based on two fields in protocol: <code class="codehilite">last</code> and <code class="codehilite">away</code>. Both fields are managed automatically by Centrifugo client libraries but it's good to know how recovery works under the hood.</p>
+<p>Every time client receives a new publication from channel client library remembers <code class="codehilite">uid</code> of received <code class="codehilite">Publication</code>. When resubscribing to channel after reconnect client passes last seen publication <code class="codehilite">uid</code> in subscribe command.</p>
+<p>Client also passes <code class="codehilite">away</code> field when resubscribing which is a number of seconds client was in unsubscribed state. This is a number of seconds rounded to the upper value. Client also adds timeout values in seconds to this interval to compensate possible network latencies when communicating with server.</p>
+<p>When server receives subscribe request with <code class="codehilite">last</code> field set it can look at history cache and find all next publications (following one with provided <code class="codehilite">last</code> uid). If <code class="codehilite">last</code> field not provided (for example there were no new messages in channel for a long time) then server will only rely on <code class="codehilite">away</code> field. In this case server will set <code class="codehilite">recovered</code> flag to <code class="codehilite">true</code> only if client was away (absent) for an interval of time that is not larger than history lifetime and amount of messages in history cache less than configured history size.</p>
+<p>Message recovery in Centrifugo is not a 100% bulletproof scheme (as it has some assumptions regarding to time) but it should work for significant amount of real life cases without message loss. If you need more reliability in channel message recovery then you can manually implement your own recovery algorithm on top of basic PUB/SUB possibilities that Centrifugo provides.</p>
+<p>And you can always simply ask your backend for an actual state after client reconnect completely bypassing recovery mechanism described here.</p>
+<h3 id="recovery-on-example">Recovery on example<a class="headerlink" href="#recovery-on-example" title="Permanent link">&para;</a></h3>
+<p>Consider channel <code class="codehilite">chat_messages</code> client subscribed to.</p>
+<p>First let's imagine a situation when client receives new message from this channel. Let the <code class="codehilite">uid</code> value of that message be a <code class="codehilite">ZZaavc</code>.</p>
+<p>And then client disconnects because of lost internet connection.</p>
+<p>When connection lost client saves current time for each subscription. This saved time will be used to calculate <code class="codehilite">away</code> field value when client will do resubscription attempt.</p>
+<p>Let's suppose client will be 5 seconds in disconnected state and then connection will be restored and client will resubscribe on channel.</p>
+<p>It will pass two fields in subscribe command:</p>
+<ul>
+<li><code class="codehilite">last</code> - in this case <code class="codehilite">ZZaavc</code></li>
+<li><code class="codehilite">away</code> - in this case <code class="codehilite">5</code> + client request timeout. I.e <code class="codehilite">10</code> in case of client request timeout of <code class="codehilite">5 seconds</code>.</li>
+</ul>
+<p>If server finds publication with <code class="codehilite">ZZaavc</code> uid in history it can be sure that all following messages are all messages client lost during reconnect (and will set <code class="codehilite">recovered</code> flag to <code class="codehilite">true</code>). </p>
+<p>If there were no publication with uid <code class="codehilite">ZZaavc</code> in history then <code class="codehilite">recovered</code> flag will be set to true only if provided <code class="codehilite">away</code> value is less than channel <code class="codehilite">history_lifetime</code> and history currently contains amount of publications strictly less than <code class="codehilite">history_size</code>. Actually server adds one more second to <code class="codehilite">away</code> value to compensate rounding errors.</p>
+<p>This means that if <code class="codehilite">history_size</code> is <code class="codehilite">10</code> and <code class="codehilite">history_lifetime</code> is <code class="codehilite">60</code> then client must reconnect in 0-49 seconds to be sure all missed publications were successfully recovered.</p>
                 
                   
                 

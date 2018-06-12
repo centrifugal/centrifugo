@@ -508,18 +508,6 @@
   </li>
 
         
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../transports/grpc/" title="GRPC" class="md-nav__link">
-      GRPC
-    </a>
-  </li>
-
-        
       </ul>
     </nav>
   </li>
@@ -712,7 +700,12 @@
                 
                 
                 <h1 id="signal-handling">Signal handling<a class="headerlink" href="#signal-handling" title="Permanent link">&para;</a></h1>
-<p>In progress.</p>
+<p>You can send HUP signal to Centrifugo to reload configuration:</p>
+<div class="codehilite"><pre><span></span>kill -HUP &lt;PID&gt;
+</pre></div>
+
+<p>Though at moment this will only reload channel and namespace configuration.</p>
+<p>Also Centrifugo tries to gracefully shutdown client connections when SIGINT or SIGTERM signals received.</p>
                 
                   
                 
