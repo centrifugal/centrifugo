@@ -44,7 +44,7 @@
     "internal/queue",
     "internal/uuid"
   ]
-  revision = "9d85166fececf2e5b8fdfaf7dd3a1af1a91d1e94"
+  revision = "f727696cbfad688ff7bcf5a12a807236eabbf89b"
 
 [[projects]]
   name = "github.com/gogo/protobuf"

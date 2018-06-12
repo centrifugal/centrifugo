@@ -42,6 +42,13 @@ var (
 		Help:      "Number of unique users connected.",
 	})
 
+	buildInfoGauge = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: metricsNamespace,
+		Subsystem: "node",
+		Name:      "build",
+		Help:      "Node build info.",
+	}, []string{"version"})
+
 	numChannelsGauge = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: metricsNamespace,
 		Subsystem: "node",
@@ -108,4 +115,5 @@ func init() {
 	prometheus.MustRegister(apiCommandDurationSummary)
 	prometheus.MustRegister(transportConnectCount)
 	prometheus.MustRegister(transportMessagesSent)
+	prometheus.MustRegister(buildInfoGauge)
 }

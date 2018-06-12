@@ -265,8 +265,8 @@ func main() {
 
 	var versionCmd = &cobra.Command{
 		Use:   "version",
-		Short: "Centrifugo version number",
-		Long:  `Print the version number of Centrifugo`,
+		Short: "Centrifugo version information",
+		Long:  `Print the version information of Centrifugo`,
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Printf("Centrifugo v%s (Go version: %s)\n", VERSION, runtime.Version())
 		},
