@@ -1,14 +1,16 @@
+// +build !windows
+
 package node
 
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"syscall"
-	"fmt"
 )
 
 // cpuUsage is the simplest possible method to extract CPU usage info on most of platforms
