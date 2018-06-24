@@ -1,3 +1,20 @@
+v1.8.0
+======
+
+No backwards incompatible changes here.
+
+### Features
+
+* package for Ubuntu 18.04
+* add Centrifugo `version` to stats output. Also add rusage stime and utime values to metrics. See [#222](https://github.com/centrifugal/centrifugo/issues/222) for details. Thanks to @Sannis for contributions
+* expose more configuration options to be set over environment variables. See [commit](https://github.com/centrifugal/centrifugo/commit/bf8655914ef94aaa4b2579d943b64fc63e7b9b08) and [related issue](https://github.com/centrifugal/centrifugo/issues/223)
+* more context in debug logs regarding to client connection. See [#201](https://github.com/centrifugal/centrifugo/issues/201)
+* fix deb package upgrade - see [#219](https://github.com/centrifugal/centrifugo/issues/219) for details
+
+### Internal
+
+* using Go 1.10.3 for builds
+
 v1.7.9
 ======
 
