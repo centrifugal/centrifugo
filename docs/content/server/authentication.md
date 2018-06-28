@@ -81,7 +81,6 @@ print(token)
 
 ```python
 import jwt
-import time
 
 token = jwt.encode({"user": "42", "info": {"name": "Alexander Emelin"}}, "secret").decode()
 

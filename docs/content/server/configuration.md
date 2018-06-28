@@ -131,21 +131,21 @@ Some of the most important options you can configure when running Centrifugo:
 
 * `address` – bind your Centrifugo to specific interface address (by default `""`)
 * `port` – port to bind Centrifugo to (by default `8000`)
-* `engine` – engine to use - `memory` or `redis` (by default `memory`). Read more about engines in next sections.
+* `engine` – engine to use - `memory` or `redis` (by default `memory`). Read more about engines in [special chapter](../engines).
 
 Note that some options can be set via command-line. Command-line options are more valuable when set than configuration file's options. See description of [viper](https://github.com/spf13/viper) – to see more details about configuration options priority.
 
 ### Channel options
 
-Let's look on options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see special chapter to find more information about channels). The following options will affect channel behaviour:
+Let's look on options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see [special chapter](../channels) to find more information about channels). The following options will affect channel behaviour:
 
-* `publish` – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. Note that client can only publish data into channel after successfully subscribed on it. By default it's `false`.
+* `publish` – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. Note that client can only publish data into channel after successfully subscribed on it. By default it's `false`.
 
 * `subscribe_to_publish` - when `publish` option enabled client can publish into channel without beong subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.
 
-* `anonymous` – this option enables anonymous access (with empty user ID in connection parameters). In most situations your application works with authorized users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID. By default `false`.
+* `anonymous` – this option enables anonymous access (with empty `user` ID in connection token). In most situations your application works with authorized users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID. By default `false`.
 
-* `presence` – enable/disable presence information. Presence is a structure with clients currently subscribed on channel. By default `false` – i.e. no presence information available for channels.
+* `presence` – enable/disable presence information. Presence is a structure with clients currently subscribed on channel. By default `false` – i.e. no presence information will be available for channels.
 
 * `join_leave` – enable/disable sending join(leave) messages when client subscribes on channel (unsubscribes from channel). By default `false`.
 
@@ -325,13 +325,9 @@ First is enabling admin endpoints:
 }
 ```
 
-This makes the following endpoint available:
+This makes the following endpoint available: http://localhost:8000
 
-```
-ws://localhost:8000
-```
-
-At this address you will see embedded admin web interface. You can log into it using `admin_password` value shown above.
+At this address you will see admin web interface. You can log into it using `admin_password` value shown above.
 
 #### Debug endpoints.
 
@@ -350,7 +346,7 @@ And endpoint:
 http://localhost:8000/debug/pprof/
 ```
 
-– will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting.
+– will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See [wiki page](https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues) for more info.
 
 #### Custom admin and API ports
 
