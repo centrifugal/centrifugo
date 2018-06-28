@@ -366,8 +366,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#private-channel-prefix" title="$ private channel prefix ($)" class="md-nav__link">
-    $ private channel prefix ($)
+  <a href="#private-channel-prefix" title="private channel prefix ($)" class="md-nav__link">
+    private channel prefix ($)
   </a>
   
 </li>
@@ -487,6 +487,18 @@
   <li class="md-nav__item">
     <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
       Connection expiration
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../private_channels/" title="Private channels" class="md-nav__link">
+      Private channels
     </a>
   </li>
 
@@ -747,8 +759,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#private-channel-prefix" title="$ private channel prefix ($)" class="md-nav__link">
-    $ private channel prefix ($)
+  <a href="#private-channel-prefix" title="private channel prefix ($)" class="md-nav__link">
+    private channel prefix ($)
   </a>
   
 </li>
@@ -786,7 +798,7 @@
 <p><code class="codehilite">#</code> is a user boundary - separator to create private channels for users (user limited channels) without sending POST request to your web application. For example if channel is <code class="codehilite">news#42</code> then only user with ID <code class="codehilite">42</code> can subscribe on this channel (Centrifugo knows user ID as clients provide it in connection credentials).</p>
 <p>Moreover you can provide several user IDs in channel name separated by comma: <code class="codehilite">dialog#42,43</code> – in this case only user with ID <code class="codehilite">42</code> and user with ID <code class="codehilite">43</code> will be able to subscribe on this channel.</p>
 <p>This is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.</p>
-<h3 id="private-channel-prefix">$ private channel prefix ($)<a class="headerlink" href="#private-channel-prefix" title="Permanent link">&para;</a></h3>
+<h3 id="private-channel-prefix">private channel prefix ($)<a class="headerlink" href="#private-channel-prefix" title="Permanent link">&para;</a></h3>
 <p>If channel starts with <code class="codehilite">$</code> then it considered private. Subscription on private channel must be properly signed by your web application. Read special chapter in docs about private channel subscriptions.</p>
                 
                   

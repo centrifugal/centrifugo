@@ -167,7 +167,7 @@
         },
         {
             "location": "/server/channels/",
-            "text": "Channels\n\u00b6\n\n\nChannel is a route for publication messages. Clients can subscribe to channel to receive events related to this channel \u2013 new publications, join/leave events etc. Also client must be subscribed on channel to get channel presence or history information.\n\n\nChannel is just a string - \nnews\n, \ncomments\n are valid channel names.\n\n\nOnly ASCII symbols must be used in channel string.\n\n\nBUT!\n You should know several things.\n\n\nFirst, channel name length is limited by \n255\n characters by default (can be changed via configuration file option \nchannel_max_length\n)\n\n\nSecond, \n:\n, \n#\n and \n$\n symbols have a special role in channel name.\n\n\nnamespace channel boundary (:)\n\u00b6\n\n\n:\n - is a channel namespace boundary.\n\n\nIf channel is \npublic\n:\nchat\n - then Centrifugo will apply options to this channel from channel namespace with name \npublic\n.\n\n\nuser channel boundary (#)\n\u00b6\n\n\n#\n is a user boundary - separator to create private channels for users (user limited channels) without sending POST request to your web application. For example if channel is \nnews#42\n then only user with ID \n42\n can subscribe on this channel (Centrifugo knows user ID as clients provide it in connection credentials).\n\n\nMoreover you can provide several user IDs in channel name separated by comma: \ndialog#42,43\n \u2013 in this case only user with ID \n42\n and user with ID \n43\n will be able to subscribe on this channel.\n\n\nThis is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.\n\n\n$ private channel prefix ($)\n\u00b6\n\n\nIf channel starts with \n$\n then it considered private. Subscription on private channel must be properly signed by your web application. Read special chapter in docs about private channel subscriptions.",
+            "text": "Channels\n\u00b6\n\n\nChannel is a route for publication messages. Clients can subscribe to channel to receive events related to this channel \u2013 new publications, join/leave events etc. Also client must be subscribed on channel to get channel presence or history information.\n\n\nChannel is just a string - \nnews\n, \ncomments\n are valid channel names.\n\n\nOnly ASCII symbols must be used in channel string.\n\n\nBUT!\n You should know several things.\n\n\nFirst, channel name length is limited by \n255\n characters by default (can be changed via configuration file option \nchannel_max_length\n)\n\n\nSecond, \n:\n, \n#\n and \n$\n symbols have a special role in channel name.\n\n\nnamespace channel boundary (:)\n\u00b6\n\n\n:\n - is a channel namespace boundary.\n\n\nIf channel is \npublic\n:\nchat\n - then Centrifugo will apply options to this channel from channel namespace with name \npublic\n.\n\n\nuser channel boundary (#)\n\u00b6\n\n\n#\n is a user boundary - separator to create private channels for users (user limited channels) without sending POST request to your web application. For example if channel is \nnews#42\n then only user with ID \n42\n can subscribe on this channel (Centrifugo knows user ID as clients provide it in connection credentials).\n\n\nMoreover you can provide several user IDs in channel name separated by comma: \ndialog#42,43\n \u2013 in this case only user with ID \n42\n and user with ID \n43\n will be able to subscribe on this channel.\n\n\nThis is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.\n\n\nprivate channel prefix ($)\n\u00b6\n\n\nIf channel starts with \n$\n then it considered private. Subscription on private channel must be properly signed by your web application. Read special chapter in docs about private channel subscriptions.",
             "title": "Channels"
         },
         {
@@ -188,7 +188,7 @@
         {
             "location": "/server/channels/#private-channel-prefix",
             "text": "If channel starts with  $  then it considered private. Subscription on private channel must be properly signed by your web application. Read special chapter in docs about private channel subscriptions.",
-            "title": "$ private channel prefix ($)"
+            "title": "private channel prefix ($)"
         },
         {
             "location": "/server/authentication/",
@@ -464,6 +464,46 @@
             "location": "/server/connection_expiration/#connection-expiration",
             "text": "In authentication chapter we mentioned  exp  claim in connection token that allows to expire client connection at some point of time. In this chapter we will look at details on what happens when Centrifugo detects that connection is going to expire.  So first you should do is enable client expiration mechanism in Centrifugo providing connection token with expiration:  import   jwt  import   time  token   =   jwt . encode ({ \"user\" :   \"42\" ,   \"exp\" :   int ( time . time ())   +   10 * 60 },   \"secret\" ) . decode ()  print ( token )   Let's suppose that you set  exp  field to timestamp that will expire in 10 minutes and client connected to Centrifugo with this token. During 10 mins connection will be kept by Centrifugo. When this time passed Centrifugo gives connection some time (configured, 25 seconds by default) to refresh its credentials and provide new valid token with new  exp .  When client first connects to Centrifugo it receives  ttl  value in connect reply. That  ttl  value contains number of seconds after which client must send  refresh  command with new credentials to Centrifugo. Centrifugo clients must handle this  ttl  field and automatically start refresh process.  For example Javascript browser client  will send AJAX POST request to your application when it's time to refresh credentials. By default this request goes to  /centrifuge/refresh  url endpoint. In response your server must return JSON with new connection token:  { \n     \"token\" :   token  }   So you must just return the same connection token for  user  when rendering page initially. But with actual  exp . Javascript client will then send them to Centrifugo server and connection will be refreshed for a time you set in  exp .  In this case you know which user want to refresh its connection because this is just a general request to your app - so your session mechanism will tell you about the user.  If you don't want to refresh connection for this user - just return 403 Forbidden on refresh request to your application backend.  Javascript client also has options to hook into refresh mechanism to implement your custom way of refreshing. Other Centrifugo clients also should have hooks to refresh credentials but depending on client API for this can be different - see specific client docs.",
             "title": "Connection expiration"
+        },
+        {
+            "location": "/server/private_channels/",
+            "text": "Private channels\n\u00b6\n\n\nIn channels chapter we mentioned private channels. This chapter has more information about private channel mechanism in Centrifugo. We will use Javascript client for client-side examples and Python for server-side code.\n\n\nAll channels starting with \n$\n considered private. In this case your backend should additionally provide token for subscription request. The way how this token is obtained varies depending on client implementation.\n\n\nFor example in Javascript client AJAX POST request is automatically made to\u00a0\n/centrifuge/subscribe\n endpoint. Other client libraries can provide a hook for your custom code that will obtain private subscription token from application backend. \n\n\nThe subscription token is similar to connection token. It's also JWT. But has different claims.\n\n\nClaims\n\u00b6\n\n\nPrivate subscription claims are: \nclient\n, \nchannels\n, \ninfo\n and \nb64info\n. What do they mean? Let's describe in detail.\n\n\nclient\n\u00b6\n\n\nRequired. Client ID which wants to subscribe on channel (\nstring\n).\n\n\nchannel\n\u00b6\n\n\nRequired. Channel that client tries to subscribe to (\nstring\n).\n\n\ninfo\n\u00b6\n\n\nOptional. Additional information for connection regarding to channel (\nvalid JSON\n).\n\n\nb64info\n\u00b6\n\n\nOptional. Additional information for connection regarding to channel in base64 format (\nstring\n).\n\n\nExample\n\u00b6\n\n\nSo to generate subscription token you can use smth like this in Python (assuming client ID is \nXXX\n and private channel is \n$gossips\n):\n\n\nimport\n \njwt\n\n\n\ntoken\n \n=\n \njwt\n.\nencode\n({\n\"client\"\n:\n \n\"XXX\"\n,\n \n\"channel\"\n:\n \n\"gossips\"\n},\n \n\"secret\"\n)\n.\ndecode\n()\n\n\n\nprint\n(\ntoken\n)\n\n\n\n\n\nAgain - the same \nsecret\n from Centrifugo configuration is used to generate JWT.",
+            "title": "Private channels"
+        },
+        {
+            "location": "/server/private_channels/#private-channels",
+            "text": "In channels chapter we mentioned private channels. This chapter has more information about private channel mechanism in Centrifugo. We will use Javascript client for client-side examples and Python for server-side code.  All channels starting with  $  considered private. In this case your backend should additionally provide token for subscription request. The way how this token is obtained varies depending on client implementation.  For example in Javascript client AJAX POST request is automatically made to\u00a0 /centrifuge/subscribe  endpoint. Other client libraries can provide a hook for your custom code that will obtain private subscription token from application backend.   The subscription token is similar to connection token. It's also JWT. But has different claims.",
+            "title": "Private channels"
+        },
+        {
+            "location": "/server/private_channels/#claims",
+            "text": "Private subscription claims are:  client ,  channels ,  info  and  b64info . What do they mean? Let's describe in detail.",
+            "title": "Claims"
+        },
+        {
+            "location": "/server/private_channels/#client",
+            "text": "Required. Client ID which wants to subscribe on channel ( string ).",
+            "title": "client"
+        },
+        {
+            "location": "/server/private_channels/#channel",
+            "text": "Required. Channel that client tries to subscribe to ( string ).",
+            "title": "channel"
+        },
+        {
+            "location": "/server/private_channels/#info",
+            "text": "Optional. Additional information for connection regarding to channel ( valid JSON ).",
+            "title": "info"
+        },
+        {
+            "location": "/server/private_channels/#b64info",
+            "text": "Optional. Additional information for connection regarding to channel in base64 format ( string ).",
+            "title": "b64info"
+        },
+        {
+            "location": "/server/private_channels/#example",
+            "text": "So to generate subscription token you can use smth like this in Python (assuming client ID is  XXX  and private channel is  $gossips ):  import   jwt  token   =   jwt . encode ({ \"client\" :   \"XXX\" ,   \"channel\" :   \"gossips\" },   \"secret\" ) . decode ()  print ( token )   Again - the same  secret  from Centrifugo configuration is used to generate JWT.",
+            "title": "Example"
         },
         {
             "location": "/transports/",
