@@ -72,7 +72,7 @@ Token that will be valid for 5 minutes:
 import jwt
 import time
 
-token = jwt.encode({"user": "42", "exp": int(time.time()) + 5*60}, "secret").decode()
+token = jwt.encode({"user": "42", "exp": int(time.time()) + 5*60}, "secret", algorithm="HS256").decode()
 
 print(token)
 ```
@@ -82,7 +82,7 @@ print(token)
 ```python
 import jwt
 
-token = jwt.encode({"user": "42", "info": {"name": "Alexander Emelin"}}, "secret").decode()
+token = jwt.encode({"user": "42", "info": {"name": "Alexander Emelin"}}, "secret", algorithm="HS256").decode()
 
 print(token)
 ```

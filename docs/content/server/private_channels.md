@@ -35,9 +35,9 @@ So to generate subscription token you can use smth like this in Python (assuming
 ```python
 import jwt
 
-token = jwt.encode({"client": "XXX", "channel": "gossips"}, "secret").decode()
+token = jwt.encode({"client": "XXX", "channel": "$gossips"}, "secret", algorithm="HS256").decode()
 
 print(token)
 ```
 
-Again - the same `secret` from Centrifugo configuration is used to generate JWT.
+Again - the same `secret` from Centrifugo configuration is used to generate JWT. And as with connection JWT only `HS256` algorithm is supported at moment.
