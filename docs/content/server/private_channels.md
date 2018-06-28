@@ -1,6 +1,6 @@
 # Private channels
 
-In channels chapter we mentioned private channels. This chapter has more information about private channel mechanism in Centrifugo. We will use Javascript client for client-side examples and Python for server-side code.
+In channels chapter we mentioned private channels. This chapter has more information about private channel mechanism in Centrifugo.
 
 All channels starting with `$` considered private. In this case your backend should additionally provide token for subscription request. The way how this token is obtained varies depending on client implementation.
 
@@ -10,7 +10,7 @@ The subscription token is similar to connection token. It's also JWT. But has di
 
 ## Claims
 
-Private subscription claims are: `client`, `channels`, `info` and `b64info`. What do they mean? Let's describe in detail.
+Private subscription claims are: `client`, `channel`, `info` and `b64info`. What do they mean? Let's describe in detail.
 
 ### client
 

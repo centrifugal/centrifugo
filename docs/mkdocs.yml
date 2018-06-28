@@ -45,7 +45,6 @@ extra_css:
 
 pages: 
   - Getting Started: 'index.md'
-  - Concepts: 'concepts.md'
   - Server:
     - 'Overview': 'server/index.md'
     - 'Installation': 'server/install.md'
