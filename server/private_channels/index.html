@@ -845,12 +845,12 @@
 <p>So to generate subscription token you can use smth like this in Python (assuming client ID is <code class="codehilite">XXX</code> and private channel is <code class="codehilite">$gossips</code>):</p>
 <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
 
-<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;client&quot;</span><span class="p">:</span> <span class="s2">&quot;XXX&quot;</span><span class="p">,</span> <span class="s2">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;gossips&quot;</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;client&quot;</span><span class="p">:</span> <span class="s2">&quot;XXX&quot;</span><span class="p">,</span> <span class="s2">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;$gossips&quot;</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s2">&quot;HS256&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
 <span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 </pre></div>
 
-<p>Again - the same <code class="codehilite">secret</code> from Centrifugo configuration is used to generate JWT.</p>
+<p>Again - the same <code class="codehilite">secret</code> from Centrifugo configuration is used to generate JWT. And as with connection JWT only <code class="codehilite">HS256</code> algorithm is supported at moment.</p>
                 
                   
                 
