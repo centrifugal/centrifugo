@@ -60,12 +60,6 @@
     </url>
         
     <url>
-     <loc>https://github.com/centrifugal/centrifugo/server/protocol/</loc>
-     <lastmod>2018-06-28</lastmod>
-     <changefreq>daily</changefreq>
-    </url>
-        
-    <url>
      <loc>https://github.com/centrifugal/centrifugo/server/api/</loc>
      <lastmod>2018-06-28</lastmod>
      <changefreq>daily</changefreq>
@@ -91,6 +85,12 @@
         
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/private_channels/</loc>
+     <lastmod>2018-06-28</lastmod>
+     <changefreq>daily</changefreq>
+    </url>
+        
+    <url>
+     <loc>https://github.com/centrifugal/centrifugo/server/protocol/</loc>
      <lastmod>2018-06-28</lastmod>
      <changefreq>daily</changefreq>
     </url>

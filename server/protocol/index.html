@@ -371,6 +371,66 @@
           
           
 
+
+  <li class="md-nav__item">
+    <a href="../api/" title="Server HTTP API" class="md-nav__link">
+      Server HTTP API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../recover/" title="Message recovery" class="md-nav__link">
+      Message recovery
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../signals/" title="Signal handling" class="md-nav__link">
+      Signal handling
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
+      Connection expiration
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../private_channels/" title="Private channels" class="md-nav__link">
+      Private channels
+    </a>
+  </li>
+
+        
+          
+          
+          
+
   
 
 
@@ -491,66 +551,6 @@
   
 </nav>
     
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../api/" title="Server HTTP API" class="md-nav__link">
-      Server HTTP API
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../recover/" title="Message recovery" class="md-nav__link">
-      Message recovery
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../signals/" title="Signal handling" class="md-nav__link">
-      Signal handling
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
-      Connection expiration
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../private_channels/" title="Private channels" class="md-nav__link">
-      Private channels
-    </a>
   </li>
 
         
@@ -906,6 +906,7 @@
 <ul>
 <li>connect to server and authenticate. Depending on transport endpoint address can differ. For example Centrifugo JSON-encoded Websocket endpoint is <code class="codehilite">ws://centrifugo.example.com/connection/websocket</code>.</li>
 <li>subscribe on channels developer wants. This allows to recieve messages published into channels in real-time.</li>
+<li>handle private channel subscriptions.</li>
 <li>have a possibility to make RPC calls, publish, asking for presence etc.</li>
 <li>refresh client connection credentials when connection session lifetime is going to expire.</li>
 <li>handle ping/pong messaging with server under the hood to maintain connection alive and detect broken connection.</li>
@@ -920,10 +921,6 @@
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>SockJS works almost the same way as JSON websocket described here but has its own extra framing on top of Centrifuge protocol messages. SockJS can only work with JSON - it's not possible to transfer binary data over it. SockJS is only needed as fallback to Websocket in web browsers.</p>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>GRPC support is an experimental at moment. GRPC works similar to what described here but it has its own transport details - Centrifuge library can not control how data travel over network and just uses GRPC generated API to pass messages between server and client over bidirectional streaming.</p>
 </div>
 <h3 id="top-level-framing">Top level framing<a class="headerlink" href="#top-level-framing" title="Permanent link">&para;</a></h3>
 <p>Centrifuge protocol defined in <a href="https://github.com/centrifugal/centrifuge/blob/master/misc/proto/client.proto">Protobuf schema</a>. That schema is a source of truth and all protocol description below describes messages from that schema.</p>
@@ -980,20 +977,16 @@
     <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
     <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;connect&quot;</span><span class="p">,</span>
     <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span>
-        <span class="s2">&quot;user&quot;</span><span class="o">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;exp&quot;</span><span class="o">:</span> <span class="s2">&quot;1520094208&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;info&quot;</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;sign&quot;</span><span class="o">:</span> <span class="s2">&quot;xxx&quot;</span>
+        <span class="s2">&quot;token&quot;</span><span class="o">:</span> <span class="s2">&quot;JWT&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;data&quot;</span><span class="o">:</span> <span class="p">{}</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 
 <p>Where params fields are passed to client from application backend:</p>
 <ul>
-<li>string <code class="codehilite">user</code> - current user ID. Can be empty string for unauthorized user.</li>
-<li>string <code class="codehilite">exp</code> - timestamp seconds when client connection expires.</li>
-<li>string <code class="codehilite">info</code> - optional base64 encoded information about connection. This is JSON object encoded to base64 in case of JSON format used and arbitrary bytes for Protobuf format.</li>
-<li>string <code class="codehilite">sign</code> - HMAC SHA-256 sign generated on backend side from Centrifugo secret and fields above. This sign helps to prove the fact that client passed valid <code class="codehilite">user</code>, <code class="codehilite">exp</code>, <code class="codehilite">info</code> fields to server.</li>
+<li>string <code class="codehilite">token</code> - connection token.</li>
+<li>JSON <code class="codehilite">data</code> - this is only available for Centrifuge library and not for Centrifugo server. It contains custom connect data, for example it can contain client settings. </li>
 </ul>
 <p>In response to <code class="codehilite">connect</code> command server sends connect reply. It looks this way:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
@@ -1069,17 +1062,14 @@ reply messages published to this channel. Messages can be of several types:</p>
     <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">4</span><span class="p">,</span>
     <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;refresh&quot;</span><span class="p">,</span>
     <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span>
-        <span class="s2">&quot;user&quot;</span><span class="o">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;exp&quot;</span><span class="o">:</span> <span class="s2">&quot;1520096218&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;info&quot;</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;sign&quot;</span><span class="o">:</span> <span class="s2">&quot;xxx&quot;</span>
+        <span class="s2">&quot;token&quot;</span><span class="o">:</span> <span class="s2">&quot;JWT&quot;</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 
 <p>Just with actual <code class="codehilite">exp</code> and new <code class="codehilite">sign</code>.</p>
 <p>The tip whether or not connection must be refreshed comes in reply to <code class="codehilite">connect</code> command shown above - fields <code class="codehilite">expires</code>, <code class="codehilite">expired</code> and <code class="codehilite">ttl</code>.</p>
-<p>When client connection expire mechanism is on the value of field <code class="codehilite">expires</code> in connect reply is <code class="codehilite">true</code>. In this case client implementation should look at <code class="codehilite">ttl</code> value which is seconds left until connection will be considered expired. Client must send <code class="codehilite">refresh</code> command after this <code class="codehilite">ttl</code> seconds. Server gives client a configured window to refresh credentials after <code class="codehilite">ttl</code> passed and then closes connection if client have not updated its credentials. <code class="codehilite">expired</code> field set to <code class="codehilite">true</code> when client connection already expired. In this case client should immediately send <code class="codehilite">refresh</code> command to update credentials. And after doing this it can work the usual way.</p>
+<p>When client connection expire mechanism is on the value of field <code class="codehilite">expires</code> in connect reply is <code class="codehilite">true</code>. In this case client implementation should look at <code class="codehilite">ttl</code> value which is seconds left until connection will be considered expired. Client must send <code class="codehilite">refresh</code> command after this <code class="codehilite">ttl</code> seconds. Server gives client a configured window to refresh token after <code class="codehilite">ttl</code> passed and then closes connection if client have not updated its token. <code class="codehilite">expired</code> field set to <code class="codehilite">true</code> when client connection already expired. In this case client should immediately send <code class="codehilite">refresh</code> command to update token. And after doing this it can work the usual way.</p>
 <h3 id="rpc-like-calls-publish-history-presence">RPC-like calls: publish, history, presence<a class="headerlink" href="#rpc-like-calls-publish-history-presence" title="Permanent link">&para;</a></h3>
 <p>The mechanics of these calls is simple - client sends command and expects response from server.</p>
 <p><code class="codehilite">publish</code> command allows to publish message into channel from client.</p>
@@ -1193,13 +1183,8 @@ allows to distinguish it from <code class="codehilite">Reply</code> to <code cla
 <div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">centrifuge</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Centrifuge</span><span class="p">(</span><span class="s2">&quot;ws://localhost:8000/connection/websocket&quot;</span><span class="p">,</span> <span class="p">{});</span>
 </pre></div>
 
-<p>Set signed credentials (in case of using Centrifugo):</p>
-<div class="codehilite"><pre><span></span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">setCredentials</span><span class="p">({</span>
-    <span class="nx">user</span><span class="o">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span>
-    <span class="nx">exp</span><span class="o">:</span> <span class="s2">&quot;150000000&quot;</span><span class="p">,</span>
-    <span class="nx">info</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-    <span class="nx">sign</span><span class="o">:</span> <span class="s2">&quot;...&quot;</span>
-<span class="p">})</span>
+<p>Set connection token (in case of using Centrifugo):</p>
+<div class="codehilite"><pre><span></span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">setToken</span><span class="p">(</span><span class="s2">&quot;XXX&quot;</span><span class="p">)</span>
 </pre></div>
 
 <p>Connect to server:</p>
@@ -1254,7 +1239,7 @@ allows to distinguish it from <code class="codehilite">Reply</code> to <code cla
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../monitoring/" title="Monitoring" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../private_channels/" title="Private channels" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -1263,19 +1248,19 @@ allows to distinguish it from <code class="codehilite">Reply</code> to <code cla
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Monitoring
+                Private channels
               </span>
             </div>
           </a>
         
         
-          <a href="../api/" title="Server HTTP API" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../../transports/" title="Overview" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Server HTTP API
+                Overview
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">
