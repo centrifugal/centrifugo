@@ -1162,23 +1162,23 @@ log_level = &quot;debug&quot;
 <ul>
 <li><code class="codehilite">address</code> – bind your Centrifugo to specific interface address (by default <code class="codehilite">&quot;&quot;</code>)</li>
 <li><code class="codehilite">port</code> – port to bind Centrifugo to (by default <code class="codehilite">8000</code>)</li>
-<li><code class="codehilite">engine</code> – engine to use - <code class="codehilite">memory</code> or <code class="codehilite">redis</code> (by default <code class="codehilite">memory</code>). Read more about engines in next sections.</li>
+<li><code class="codehilite">engine</code> – engine to use - <code class="codehilite">memory</code> or <code class="codehilite">redis</code> (by default <code class="codehilite">memory</code>). Read more about engines in <a href="../../engines">special chapter</a>.</li>
 </ul>
 <p>Note that some options can be set via command-line. Command-line options are more valuable when set than configuration file's options. See description of <a href="https://github.com/spf13/viper">viper</a> – to see more details about configuration options priority.</p>
 <h3 id="channel-options">Channel options<a class="headerlink" href="#channel-options" title="Permanent link">&para;</a></h3>
-<p>Let's look on options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see special chapter to find more information about channels). The following options will affect channel behaviour:</p>
+<p>Let's look on options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see <a href="../../channels">special chapter</a> to find more information about channels). The following options will affect channel behaviour:</p>
 <ul>
 <li>
-<p><code class="codehilite">publish</code> – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. Note that client can only publish data into channel after successfully subscribed on it. By default it's <code class="codehilite">false</code>.</p>
+<p><code class="codehilite">publish</code> – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. Note that client can only publish data into channel after successfully subscribed on it. By default it's <code class="codehilite">false</code>.</p>
 </li>
 <li>
 <p><code class="codehilite">subscribe_to_publish</code> - when <code class="codehilite">publish</code> option enabled client can publish into channel without beong subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.</p>
 </li>
 <li>
-<p><code class="codehilite">anonymous</code> – this option enables anonymous access (with empty user ID in connection parameters). In most situations your application works with authorized users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID. By default <code class="codehilite">false</code>.</p>
+<p><code class="codehilite">anonymous</code> – this option enables anonymous access (with empty <code class="codehilite">user</code> ID in connection token). In most situations your application works with authorized users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID. By default <code class="codehilite">false</code>.</p>
 </li>
 <li>
-<p><code class="codehilite">presence</code> – enable/disable presence information. Presence is a structure with clients currently subscribed on channel. By default <code class="codehilite">false</code> – i.e. no presence information available for channels.</p>
+<p><code class="codehilite">presence</code> – enable/disable presence information. Presence is a structure with clients currently subscribed on channel. By default <code class="codehilite">false</code> – i.e. no presence information will be available for channels.</p>
 </li>
 <li>
 <p><code class="codehilite">join_leave</code> – enable/disable sending join(leave) messages when client subscribes on channel (unsubscribes from channel). By default <code class="codehilite">false</code>.</p>
@@ -1310,11 +1310,8 @@ don't need (and you really should not) change them. This chapter is about such o
 }
 </pre></div>
 
-<p>This makes the following endpoint available:</p>
-<div class="codehilite"><pre><span></span>ws://localhost:8000
-</pre></div>
-
-<p>At this address you will see embedded admin web interface. You can log into it using <code class="codehilite">admin_password</code> value shown above.</p>
+<p>This makes the following endpoint available: http://localhost:8000</p>
+<p>At this address you will see admin web interface. You can log into it using <code class="codehilite">admin_password</code> value shown above.</p>
 <h4 id="debug-endpoints">Debug endpoints.<a class="headerlink" href="#debug-endpoints" title="Permanent link">&para;</a></h4>
 <p>Next, when Centrifugo started in debug mode some extra debug endpoints become available. To start in debug mode add <code class="codehilite">debug</code> option to config:</p>
 <div class="codehilite"><pre><span></span>{
@@ -1327,7 +1324,7 @@ don't need (and you really should not) change them. This chapter is about such o
 <div class="codehilite"><pre><span></span>http://localhost:8000/debug/pprof/
 </pre></div>
 
-<p>– will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting.</p>
+<p>– will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See <a href="https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues">wiki page</a> for more info.</p>
 <h4 id="custom-admin-and-api-ports">Custom admin and API ports<a class="headerlink" href="#custom-admin-and-api-ports" title="Permanent link">&para;</a></h4>
 <p>We strongly recommend to not expose admin, debug and API endpoints to Internet. In case of admin endpoint this step provides extra protection to <code class="codehilite">/</code>, <code class="codehilite">/admin/auth</code>, <code class="codehilite">/admin/api</code> endpoints, debug endpoints. Protecting API endpoint will allow you to use <code class="codehilite">api_insecure</code> mode to omit passing API key in each request.</p>
 <p>So it's a good practice to protect admin and API endpoints with firewall. For example you can do this in <code class="codehilite">location</code> section of Nginx configuration.</p>
