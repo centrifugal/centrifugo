@@ -36,7 +36,6 @@
   name = "github.com/centrifugal/centrifuge"
   packages = [
     ".",
-    "internal/auth",
     "internal/priority",
     "internal/proto",
     "internal/proto/apiproto",
@@ -44,7 +43,13 @@
     "internal/queue",
     "internal/uuid"
   ]
-  revision = "f727696cbfad688ff7bcf5a12a807236eabbf89b"
+  revision = "6e261f29fd234791658c88024587ca5559b0ce5a"
+
+[[projects]]
+  name = "github.com/dgrijalva/jwt-go"
+  packages = ["."]
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
 
 [[projects]]
   name = "github.com/gogo/protobuf"

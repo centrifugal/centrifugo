@@ -39,6 +39,7 @@ type SubscribeEvent struct {
 type SubscribeReply struct {
 	Error       *Error
 	Disconnect  *Disconnect
+	ExpireAt    int64
 	ChannelInfo Raw
 }
 
@@ -77,13 +78,29 @@ type RefreshEvent struct{}
 
 // RefreshReply contains fields determining the reaction on refresh event.
 type RefreshReply struct {
-	Exp  int64
-	Info []byte
+	ExpireAt int64
+	Info     Raw
 }
 
 // RefreshHandler called when it's time to validate client connection and
 // update it's expiration time.
 type RefreshHandler func(RefreshEvent) RefreshReply
+
+// SubRefreshEvent contains fields related to subscription refresh event.
+type SubRefreshEvent struct {
+	Channel string
+}
+
+// SubRefreshReply contains fields determining the reaction on
+// subscription refresh event.
+type SubRefreshReply struct {
+	ExpireAt int64
+	Info     Raw
+}
+
+// SubRefreshHandler called when it's time to validate client subscription to channel and
+// update it's state if needed.
+type SubRefreshHandler func(SubRefreshEvent) SubRefreshReply
 
 // RPCEvent contains fields related to rpc request.
 type RPCEvent struct {

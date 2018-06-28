@@ -55,3 +55,7 @@
 [[constraint]]
   name = "google.golang.org/grpc"
   version = "1.12.0"
+
+[[constraint]]
+  name = "github.com/dgrijalva/jwt-go"
+  version = "3.2.0"

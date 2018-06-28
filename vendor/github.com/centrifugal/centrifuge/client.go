@@ -3,14 +3,15 @@ package centrifuge
 import (
 	"context"
 	"encoding/base64"
-	"strconv"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifuge/internal/auth"
 	"github.com/centrifugal/centrifuge/internal/proto"
 	"github.com/centrifugal/centrifuge/internal/uuid"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 // ClientEventHub allows to deal with client event handlers.
@@ -69,9 +70,9 @@ func (c *ClientEventHub) Publish(h PublishHandler) {
 
 // Credentials allows to authenticate connection when set into context.
 type Credentials struct {
-	UserID string
-	Exp    int64
-	Info   []byte
+	UserID   string
+	ExpireAt int64
+	Info     []byte
 }
 
 // credentialsContextKeyType ...
@@ -88,7 +89,8 @@ func SetCredentials(ctx context.Context, creds *Credentials) context.Context {
 
 // ChannelContext contains extra context for channel connection subscribed to.
 type ChannelContext struct {
-	Info proto.Raw
+	Info     proto.Raw
+	expireAt int64
 }
 
 // Client represents client connection to server.
@@ -455,26 +457,26 @@ func (c *Client) handle(command *proto.Command) (*proto.Reply, *Disconnect) {
 }
 
 func (c *Client) expire() {
-	config := c.node.Config()
-	clientExpire := config.ClientExpire
-
-	if !clientExpire {
-		return
-	}
 
 	if c.eventHub.refreshHandler != nil {
 		reply := c.eventHub.refreshHandler(RefreshEvent{})
-		if reply.Exp > 0 {
-			c.exp = reply.Exp
+		if reply.ExpireAt > 0 {
+			c.mu.Lock()
+			c.exp = reply.ExpireAt
 			if reply.Info != nil {
 				c.info = reply.Info
 			}
+			c.mu.Unlock()
 		}
 	}
 
 	c.mu.RLock()
 	exp := c.exp
 	c.mu.RUnlock()
+
+	if exp == 0 {
+		return
+	}
 
 	ttl := exp - time.Now().Unix()
 
@@ -768,8 +770,23 @@ func (c *Client) handleSend(params proto.Raw) *Disconnect {
 	return nil
 }
 
+type connectTokenClaims struct {
+	User       string    `json:"user"`
+	Info       proto.Raw `json:"info"`
+	Base64Info string    `json:"b64info"`
+	jwt.StandardClaims
+}
+
+type subscribeTokenClaims struct {
+	Client     string    `json:"client"`
+	Channel    string    `json:"channel"`
+	Info       proto.Raw `json:"info"`
+	Base64Info string    `json:"b64info"`
+	jwt.StandardClaims
+}
+
 // connectCmd handles connect command from client - client must send connect
-// command immediately after establishing connection with Centrifugo.
+// command immediately after establishing connection with server.
 func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, *Disconnect) {
 	resp := &proto.ConnectResponse{}
 
@@ -790,7 +807,6 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 	config := c.node.Config()
 	version := config.Version
 	insecure := config.ClientInsecure
-	clientExpire := config.ClientExpire
 	closeDelay := config.ClientExpiredCloseDelay
 	userConnectionLimit := config.ClientUserConnectionLimit
 
@@ -806,49 +822,68 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 	var ttl uint32
 
 	if credentials != nil {
+		// Server-side auth.
 		c.mu.Lock()
 		c.user = credentials.UserID
 		c.info = credentials.Info
-		c.exp = credentials.Exp
+		c.exp = credentials.ExpireAt
 		c.mu.Unlock()
 	} else {
-		// explicit authentication Credentials not provided in middlewares, look
-		// for signed credentials in connect command.
-		signedCredentials := cmd.Credentials
-		if signedCredentials != nil {
-			user := signedCredentials.User
-			info := signedCredentials.Info
-			opts := signedCredentials.Opts
+		// explicit auth Credentials not provided in context, try to look
+		// for credentials in connect token.
+		token := cmd.Token
+		if token != "" {
+			var user string
+			var info proto.Raw
+			var b64info string
+			var exp int64
 
-			var exp string
-			var sign string
-			if !insecure {
-				exp = signedCredentials.Exp
-				sign = signedCredentials.Sign
+			parsedToken, err := jwt.ParseWithClaims(token, &connectTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				}
+				if config.Secret == "" {
+					return nil, fmt.Errorf("secret not set")
+				}
+				return []byte(config.Secret), nil
+			})
+			if parsedToken == nil && err != nil {
+				c.node.logger.log(newLogEntry(LogLevelInfo, "invalid connection token", map[string]interface{}{"error": err.Error(), "client": c.uid, "user": c.UserID()}))
+				return resp, DisconnectInvalidToken
 			}
-			if !insecure {
-				secret := config.Secret
-				isValid := auth.CheckClientSign(secret, user, exp, info, opts, sign)
-				if !isValid {
-					c.node.logger.log(newLogEntry(LogLevelInfo, "invalid sign", map[string]interface{}{"user": user, "client": c.uid}))
-					return resp, DisconnectInvalidSign
+			if claims, ok := parsedToken.Claims.(*connectTokenClaims); ok && parsedToken.Valid {
+				user = claims.User
+				info = claims.Info
+				b64info = claims.Base64Info
+				exp = claims.StandardClaims.ExpiresAt
+			} else {
+				if validationErr, ok := err.(*jwt.ValidationError); ok {
+					if validationErr.Errors == jwt.ValidationErrorExpired {
+						// The only problem with token is its expiration - no other
+						// errors set in Errors bitfield.
+						exp = claims.StandardClaims.ExpiresAt
+					} else {
+						c.node.logger.log(newLogEntry(LogLevelInfo, "invalid connection token", map[string]interface{}{"error": err.Error(), "client": c.uid}))
+						return resp, DisconnectInvalidToken
+					}
+				} else {
+					c.node.logger.log(newLogEntry(LogLevelInfo, "invalid connection token", map[string]interface{}{"error": err.Error(), "client": c.uid}))
+					return resp, DisconnectInvalidToken
 				}
-				timestamp, err := strconv.Atoi(exp)
-				if err != nil {
-					c.node.logger.log(newLogEntry(LogLevelInfo, "invalid exp timestamp", map[string]interface{}{"user": user, "client": c.uid, "error": err.Error()}))
-					return resp, DisconnectBadRequest
-				}
-				c.mu.Lock()
-				c.exp = int64(timestamp)
-				c.mu.Unlock()
 			}
 
 			c.mu.Lock()
 			c.user = user
+			c.exp = exp
 			c.mu.Unlock()
 
 			if len(info) > 0 {
-				byteInfo, err := base64.StdEncoding.DecodeString(info)
+				c.mu.Lock()
+				c.info = info
+				c.mu.Unlock()
+			}
+			if b64info != "" {
+				byteInfo, err := base64.StdEncoding.DecodeString(b64info)
 				if err != nil {
 					c.node.logger.log(newLogEntry(LogLevelInfo, "can not decode provided info from base64", map[string]interface{}{"user": user, "client": c.uid, "error": err.Error()}))
 					return resp, DisconnectBadRequest
@@ -859,7 +894,7 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 			}
 		} else {
 			if !insecure {
-				c.node.logger.log(newLogEntry(LogLevelInfo, "client credentials not provided in connect", map[string]interface{}{"client": c.uid, "user": c.user}))
+				c.node.logger.log(newLogEntry(LogLevelInfo, "client credentials not found", map[string]interface{}{"client": c.uid}))
 				return resp, DisconnectBadRequest
 			}
 		}
@@ -867,6 +902,7 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 
 	c.mu.RLock()
 	user := c.user
+	exp := c.exp
 	c.mu.RUnlock()
 
 	c.node.logger.log(newLogEntry(LogLevelDebug, "client authenticated", map[string]interface{}{"client": c.uid, "user": c.user}))
@@ -877,11 +913,10 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 		return resp, nil
 	}
 
-	if clientExpire && !insecure {
+	c.mu.RLock()
+	if exp > 0 && !insecure {
 		expires = true
-		c.mu.RLock()
-		diff := c.exp - time.Now().Unix()
-		c.mu.RUnlock()
+		diff := exp - time.Now().Unix()
 		if diff <= 0 {
 			expired = true
 			ttl = 0
@@ -889,6 +924,7 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 			ttl = uint32(diff)
 		}
 	}
+	c.mu.RUnlock()
 
 	res := &proto.ConnectResult{
 		Version: version,
@@ -904,7 +940,7 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 			// In case of native Go authentication disconnect user.
 			return nil, DisconnectExpired
 		}
-		// In case of using signed credentials initiate refresh workflow.
+		// In case of using connect token initiate refresh workflow.
 		return resp, nil
 	}
 
@@ -924,7 +960,7 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 		return resp, DisconnectServerError
 	}
 
-	if clientExpire && !expired {
+	if exp > 0 && !expired {
 		duration := closeDelay + time.Duration(ttl)*time.Second
 		c.mu.Lock()
 		c.expireTimer = time.AfterFunc(duration, c.expire)
@@ -963,69 +999,88 @@ func (c *Client) refreshCmd(cmd *proto.RefreshRequest) (*proto.RefreshResponse, 
 
 	resp := &proto.RefreshResponse{}
 
-	signedCredentials := cmd.Credentials
-	if signedCredentials == nil {
-		c.node.logger.log(newLogEntry(LogLevelInfo, "client credentials not provided in refresh", map[string]interface{}{"user": c.user, "client": c.uid}))
+	token := cmd.Token
+	if token == "" {
+		c.node.logger.log(newLogEntry(LogLevelInfo, "client token required to refresh", map[string]interface{}{"user": c.user, "client": c.uid}))
 		return resp, DisconnectBadRequest
 	}
-
-	user := signedCredentials.User
-	exp := signedCredentials.Exp
-	info := signedCredentials.Info
-	opts := signedCredentials.Opts
-	sign := signedCredentials.Sign
 
 	config := c.node.Config()
 	secret := config.Secret
 
-	isValid := auth.CheckClientSign(secret, user, exp, info, opts, sign)
-	if !isValid {
-		c.node.logger.log(newLogEntry(LogLevelInfo, "invalid refresh sign", map[string]interface{}{"user": user, "client": c.uid}))
-		return resp, DisconnectInvalidSign
-	}
+	var user string
+	var exp int64
+	var info proto.Raw
+	var b64info string
 
-	var byteInfo []byte
-	if len(info) > 0 {
-		var err error
-		byteInfo, err = base64.StdEncoding.DecodeString(info)
-		if err != nil {
-			c.node.logger.log(newLogEntry(LogLevelInfo, "can not decode provided info from base64", map[string]interface{}{"user": user, "client": c.uid, "error": err.Error()}))
-			return resp, DisconnectBadRequest
+	parsedToken, err := jwt.ParseWithClaims(token, &connectTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		if secret == "" {
+			return nil, fmt.Errorf("secret not set")
+		}
+		return []byte(secret), nil
+	})
+	if parsedToken == nil && err != nil {
+		c.node.logger.log(newLogEntry(LogLevelInfo, "invalid refresh token", map[string]interface{}{"error": err.Error(), "client": c.uid, "user": c.UserID()}))
+		return resp, DisconnectInvalidToken
+	}
+	if claims, ok := parsedToken.Claims.(*connectTokenClaims); ok && parsedToken.Valid {
+		user = claims.User
+		info = claims.Info
+		b64info = claims.Base64Info
+		exp = claims.StandardClaims.ExpiresAt
+	} else {
+		if validationErr, ok := err.(*jwt.ValidationError); ok {
+			if validationErr.Errors == jwt.ValidationErrorExpired {
+				// The only problem with token is its expiration - no other errors set in bitfield.
+				exp = claims.StandardClaims.ExpiresAt
+			} else {
+				c.node.logger.log(newLogEntry(LogLevelInfo, "invalid refresh token", map[string]interface{}{"error": err.Error(), "client": c.uid, "user": c.UserID()}))
+				return resp, DisconnectInvalidToken
+			}
+		} else {
+			c.node.logger.log(newLogEntry(LogLevelInfo, "invalid refresh token", map[string]interface{}{"error": err.Error(), "client": c.uid, "user": c.UserID()}))
+			return resp, DisconnectInvalidToken
 		}
 	}
 
-	timestamp, err := strconv.Atoi(exp)
-	if err != nil {
-		c.node.logger.log(newLogEntry(LogLevelInfo, "invalid refresh exp timestamp", map[string]interface{}{"user": user, "client": c.uid, "error": err.Error()}))
-		return resp, DisconnectBadRequest
-	}
-
 	closeDelay := config.ClientExpiredCloseDelay
-	clientExpire := config.ClientExpire
 	version := config.Version
 
 	res := &proto.RefreshResult{
 		Version: version,
-		Expires: clientExpire,
+		Expires: exp > 0,
 		Client:  c.uid,
 	}
 
-	diff := int64(timestamp) - time.Now().Unix()
+	diff := exp - time.Now().Unix()
 	if diff > 0 {
 		res.TTL = uint32(diff)
 	}
 
 	resp.Result = res
 
-	if clientExpire {
+	if exp > 0 {
 		// connection check enabled
-		timeToExpire := int64(timestamp) - time.Now().Unix()
+		timeToExpire := exp - time.Now().Unix()
 		if timeToExpire > 0 {
 			// connection refreshed, update client timestamp and set new expiration timeout
 			c.mu.Lock()
-			c.exp = int64(timestamp)
-			if len(byteInfo) > 0 {
-				c.info = proto.Raw(byteInfo)
+			c.exp = exp
+			if len(info) > 0 {
+				c.info = info
+			}
+			var byteInfo []byte
+			if b64info != "" {
+				var err error
+				byteInfo, err = base64.StdEncoding.DecodeString(b64info)
+				if err != nil {
+					c.node.logger.log(newLogEntry(LogLevelInfo, "can not decode provided info from base64", map[string]interface{}{"user": user, "client": c.uid, "error": err.Error()}))
+					return resp, DisconnectBadRequest
+				}
+				c.info = byteInfo
 			}
 			if c.expireTimer != nil {
 				c.expireTimer.Stop()
@@ -1107,19 +1162,60 @@ func (c *Client) subscribeCmd(cmd *proto.SubscribeRequest) (*proto.SubscribeResp
 	}
 
 	var channelInfo proto.Raw
+
 	if c.node.privateChannel(channel) {
-		// private channel - subscription must be properly signed
-		if c.uid != cmd.Client {
+		// private channel - subscription request must have valid token.
+
+		var tokenChannel string
+		var tokenClient string
+		var tokenInfo proto.Raw
+		var tokenB64info string
+
+		parsedToken, err := jwt.ParseWithClaims(cmd.Token, &subscribeTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			if secret == "" {
+				return nil, fmt.Errorf("secret not set")
+			}
+			return []byte(secret), nil
+		})
+		if parsedToken == nil && err != nil {
+			c.node.logger.log(newLogEntry(LogLevelInfo, "invalid subscription token", map[string]interface{}{"error": err.Error(), "client": c.uid, "user": c.UserID()}))
 			resp.Error = ErrorPermissionDenied
 			return resp, nil
 		}
-		isValid := auth.CheckChannelSign(secret, cmd.Client, channel, cmd.Info, cmd.Sign)
-		if !isValid {
+		if claims, ok := parsedToken.Claims.(*subscribeTokenClaims); ok && parsedToken.Valid {
+			tokenChannel = claims.Channel
+			tokenInfo = claims.Info
+			tokenB64info = claims.Base64Info
+			tokenClient = claims.Client
+		} else {
+			c.node.logger.log(newLogEntry(LogLevelInfo, "invalid subscription token", map[string]interface{}{"error": err.Error(), "client": c.uid, "user": c.UserID()}))
 			resp.Error = ErrorPermissionDenied
 			return resp, nil
 		}
-		if len(cmd.Info) > 0 {
-			channelInfo = proto.Raw(cmd.Info)
+
+		if c.uid != tokenClient {
+			resp.Error = ErrorPermissionDenied
+			return resp, nil
+		}
+		if cmd.Channel != tokenChannel {
+			resp.Error = ErrorPermissionDenied
+			return resp, nil
+		}
+
+		if len(tokenInfo) > 0 {
+			channelInfo = tokenInfo
+		}
+
+		if tokenB64info != "" {
+			byteInfo, err := base64.StdEncoding.DecodeString(tokenB64info)
+			if err != nil {
+				c.node.logger.log(newLogEntry(LogLevelInfo, "can not decode provided info from base64", map[string]interface{}{"user": c.UserID(), "client": c.uid, "error": err.Error()}))
+				return resp, DisconnectBadRequest
+			}
+			channelInfo = byteInfo
 		}
 	}
 

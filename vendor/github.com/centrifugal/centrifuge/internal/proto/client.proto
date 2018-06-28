@@ -86,16 +86,8 @@ message Message {
     bytes data = 1 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
 }
 
-message SignedCredentials {
-    string user = 1 [(gogoproto.jsontag) = "user"];
-    string exp = 2 [(gogoproto.jsontag) = "exp"];
-    string info = 3 [(gogoproto.jsontag) = "info"];
-    string opts = 4 [(gogoproto.jsontag) = "opts"];
-    string sign = 5 [(gogoproto.jsontag) = "sign"];
-}
-
 message ConnectRequest {
-    SignedCredentials credentials = 1  [(gogoproto.jsontag) = "credentials"];
+    string token = 1  [(gogoproto.jsontag) = "token"];
     bytes data = 2 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false];
 }
 
@@ -109,7 +101,7 @@ message ConnectResult {
 }
 
 message RefreshRequest {
-    SignedCredentials credentials = 1  [(gogoproto.jsontag) = "credentials"];
+    string token = 1  [(gogoproto.jsontag) = "token"];
 }
 
 message RefreshResult {
@@ -118,23 +110,23 @@ message RefreshResult {
     bool expires = 3 [(gogoproto.jsontag) = "expires,omitempty"];
     bool expired = 4 [(gogoproto.jsontag) = "expired,omitempty"];
     uint32 ttl = 5 [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"];
-    bytes meta = 6 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "meta,omitempty"];
 }
 
 message SubscribeRequest {
     string channel = 1 [(gogoproto.jsontag) = "channel"];
-    string client = 2 [(gogoproto.jsontag) = "client"];
-    string info = 3 [(gogoproto.jsontag) = "info"];
-    string sign = 4 [(gogoproto.jsontag) = "sign"];
-    bool recover = 5 [(gogoproto.jsontag) = "recover"];
-    string last = 6 [(gogoproto.jsontag) = "last"];
-    uint32 away = 7 [(gogoproto.jsontag) = "away"];
+    bool recover = 2 [(gogoproto.jsontag) = "recover"];
+    string last = 3 [(gogoproto.jsontag) = "last"];
+    uint32 away = 4 [(gogoproto.jsontag) = "away"];
+    string token = 5  [(gogoproto.jsontag) = "token"];
 }
 
 message SubscribeResult {
     string last = 1 [(gogoproto.jsontag) = "last,omitempty"];
     bool recovered = 2 [(gogoproto.jsontag) = "recovered,omitempty"];
     repeated Publication publications = 3 [(gogoproto.jsontag) = "publications,omitempty"];
+    bool expires = 4 [(gogoproto.jsontag) = "expires,omitempty"];
+    bool expired = 5 [(gogoproto.jsontag) = "expired,omitempty"];
+    uint32 ttl = 6 [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"];
 }
 
 message UnsubscribeRequest {

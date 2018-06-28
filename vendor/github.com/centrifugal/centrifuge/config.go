@@ -31,10 +31,6 @@ type Config struct {
 	// performed. This can be suitable for demonstration or personal usage.
 	ClientInsecure bool
 
-	// ClientExpire turns on client connection expire mechanism so Centrifugo
-	// will close expired connections (if not refreshed).
-	ClientExpire bool
-
 	// PresencePingInterval is an interval how often connected clients
 	// must update presence info.
 	ClientPresencePingInterval time.Duration
@@ -158,7 +154,6 @@ var DefaultConfig = Config{
 	ChannelUserBoundary:      "#", // so user limited channel is "user#2694" where "2696" is user ID
 	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019"
 
-	ClientExpire:                 false,
 	ClientInsecure:               false,
 	ClientPresencePingInterval:   25 * time.Second,
 	ClientPresenceExpireInterval: 60 * time.Second,

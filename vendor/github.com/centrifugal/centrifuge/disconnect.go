@@ -21,9 +21,9 @@ var (
 		Reason:    "shutdown",
 		Reconnect: true,
 	}
-	// DisconnectInvalidSign sent when client came with wrong sign.
-	DisconnectInvalidSign = &Disconnect{
-		Reason:    "invalid sign",
+	// DisconnectInvalidToken sent when client came with invalid token.
+	DisconnectInvalidToken = &Disconnect{
+		Reason:    "invalid token",
 		Reconnect: false,
 	}
 	// DisconnectBadRequest sent when client uses malformed protocol

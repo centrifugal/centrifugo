@@ -32,6 +32,12 @@ func NewAPIHandler(n *Node, c APIConfig) *APIHandler {
 }
 
 func (s *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	select {
+	case <-s.node.NotifyShutdown():
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	default:
+	}
 
 	defer func(started time.Time) {
 		apiHandlerDurationSummary.Observe(time.Since(started).Seconds())
