@@ -859,17 +859,8 @@
                 <h1 id="server-http-api">Server HTTP API<a class="headerlink" href="#server-http-api" title="Permanent link">&para;</a></h1>
 <p>HTTP API is a way to send commands to Centrifugo.</p>
 <p>Why we need API?</p>
-<p>If you look at project and namespace options you see option called <code class="codehilite">publish</code>. When turned on this option allows browser clients to publish into channels directly. If client publishes a message into channel directly - your application will not receive that message (it just goes through Centrifugo towards subscribed clients). This pattern can be useful sometimes but in most cases you first need to send new event from client to backend over non-Centrifugo transport (for example AJAX request in web application), then on app backend process it - probably validate, save into main app database and then <code class="codehilite">publish</code> into Centrifugo using HTTP API and Centrifugo
-will then broadcast message to all subscribed clients.</p>
+<p>If you look at configuration options you see an option called <code class="codehilite">publish</code> defined on configuration top level and for channel namespace. When turned on this option allows browser clients to publish into channels directly. If client publishes a message into channel directly – your application will not receive that message (it just goes through Centrifugo towards subscribed clients). This pattern can be useful sometimes but in most cases you first need to send new event from client to backend over non-Centrifugo transport (for example via AJAX request in web application), then process it on application backend side – probably validate, save into main app database – and then <code class="codehilite">publish</code> into Centrifugo using HTTP API so Centrifugo broadcast message to all clients subscribed on channel.</p>
 <p>Server API works on <code class="codehilite">/api</code> endpoint. It's very simple to use: you just have to send POST request with JSON command to this endpoint.</p>
-<p>We have several client libraries for different languages so you don't have to construct proper HTTP requests manually:</p>
-<ul>
-<li><a href="https://github.com/centrifugal/cent">cent</a> for Python</li>
-<li>rubycent (not ready yet) for Ruby</li>
-<li>phpcent (not ready yet) for PHP</li>
-<li>jscent (not ready yet) for NodeJS</li>
-<li>gocent (not ready yet) for Go</li>
-</ul>
 <p>In this chapter we will look at API protocol internals - for new API client library authors and just if you are curious how existing API clients work.</p>
 <p>API request is a POST HTTP request with <code class="codehilite">application/json</code> Content-Type and JSON payload in request body.</p>
 <p>API protected by <code class="codehilite">api_key</code> secret key set in Centrifugo configuration. This API key must be set in request <code class="codehilite">Authorization</code> header in this way:</p>

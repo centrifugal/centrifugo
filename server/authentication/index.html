@@ -364,30 +364,77 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#claims" title="Claims" class="md-nav__link">
+    Claims
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#user" title="user" class="md-nav__link">
     user
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#exp" title="exp" class="md-nav__link">
     exp
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#info" title="info" class="md-nav__link">
     info
   </a>
   
 </li>
+        
+          <li class="md-nav__item">
+  <a href="#b64info" title="b64info" class="md-nav__link">
+    b64info
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#sign" title="sign" class="md-nav__link">
-    sign
+  <a href="#examples" title="Examples" class="md-nav__link">
+    Examples
   </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simplest-token" title="Simplest token" class="md-nav__link">
+    Simplest token
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-with-expiration" title="Token with expiration" class="md-nav__link">
+    Token with expiration
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-with-additional-connection-info" title="Token with additional connection info" class="md-nav__link">
+    Token with additional connection info
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -740,30 +787,77 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#claims" title="Claims" class="md-nav__link">
+    Claims
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#user" title="user" class="md-nav__link">
     user
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#exp" title="exp" class="md-nav__link">
     exp
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#info" title="info" class="md-nav__link">
     info
   </a>
   
 </li>
+        
+          <li class="md-nav__item">
+  <a href="#b64info" title="b64info" class="md-nav__link">
+    b64info
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#sign" title="sign" class="md-nav__link">
-    sign
+  <a href="#examples" title="Examples" class="md-nav__link">
+    Examples
   </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simplest-token" title="Simplest token" class="md-nav__link">
+    Simplest token
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-with-expiration" title="Token with expiration" class="md-nav__link">
+    Token with expiration
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-with-additional-connection-info" title="Token with additional connection info" class="md-nav__link">
+    Token with additional connection info
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -787,56 +881,60 @@
                 
                 
                 <h1 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h1>
-<p>When you are using <a href="https://github.com/centrifugal/centrifuge">centrifuge</a> library from Go language you can implement any user authentication. In Centrifugo case you need to tell server who is connecting in well-known predefined way. This chapter will describe this mechanism. We will use Javascript client here for example snippets.</p>
-<p>When connecting to Centrifugo client must provide connection authentication credentials. Credentials are several string fields: <code class="codehilite">user</code>, <code class="codehilite">exp</code>, <code class="codehilite">info</code> and <code class="codehilite">sign</code>. What do they mean? Let's describe in detail.</p>
+<p>When you are using <a href="https://github.com/centrifugal/centrifuge">centrifuge</a> library from Go language you can implement any user authentication using middleware. In Centrifugo case you need to tell server who is connecting in well-known predefined way. This chapter will describe this mechanism.</p>
+<p>When connecting to Centrifugo client must provide connection JWT token with several predefined credential claims. If you've never heard about JWT before - refer to <a href="https://jwt.io/">jwt.io</a> page.</p>
+<p>At moment <strong>the only supported JWT algorithm is HS256</strong> - i.e. HMAC SHA-256. This can be extended later.</p>
+<p>We will use Javascript Centrifugo client here for example snippets for client side and <a href="https://github.com/jpadilla/pyjwt">PyJWT</a> Python library to generate connection token on backend side.</p>
+<h2 id="claims">Claims<a class="headerlink" href="#claims" title="Permanent link">&para;</a></h2>
+<p>Credential claims are: <code class="codehilite">user</code>, <code class="codehilite">exp</code>, <code class="codehilite">info</code> and <code class="codehilite">b64info</code>. What do they mean? Let's describe in detail.</p>
 <h3 id="user">user<a class="headerlink" href="#user" title="Permanent link">&para;</a></h3>
 <p>This is simple - it's an ID of current application user (<strong>as string</strong>). </p>
 <p>If your user not currently authenticated in your application but you want to let him connect to Centrifugo anyway you can use empty string as user ID. This is called anonymous access. In this case <code class="codehilite">anonymous</code> option must be enabled in Centrifugo configuration for channels that client will subscribe to.</p>
 <h3 id="exp">exp<a class="headerlink" href="#exp" title="Permanent link">&para;</a></h3>
-<p>This is a UNIX timestamp seconds when user connection must be considered expired. By default Centrifugo won't expire any connections but you can enable expiration mechanism in its options. When on this mechanism will find connections with <code class="codehilite">exp</code> in the past and activate connection refresh mechanism. Refresh mechanism allows connection to survive and be prolonged. In case of refresh failure client connection will be eventually closed by Centrifugo and won't be accepted until new valid and actual credentials provided.</p>
-<p>You can use connection expiration mechanism in cases when you don't want users of your app be subscribed on channels after being banned/deactivated in application.</p>
-<p>Choose <code class="codehilite">exp</code> value wisely, you don't need to small values because refresh mechanism will hit your application often. But setting this value too large can lead to non very fast user connection  deactivation. This is trade off.</p>
-<p>Let's look how we can create <code class="codehilite">exp</code> value in Python and make client credentials valid for 10 minutes:</p>
-<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">time</span>
-
-<span class="n">exp</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
-</pre></div>
-
+<p>This is an a UNIX timestamp seconds when token will expire. This is standard JWT claim - all JWT libraries for different languages provide an API to set it.</p>
+<p>If <code class="codehilite">exp</code> claim not provided then Centrifugo won't expire any connections. When provided special algorithm will find connections with <code class="codehilite">exp</code> in the past and activate connection refresh mechanism. Refresh mechanism allows connection to survive and be prolonged. In case of refresh failure client connection will be eventually closed by Centrifugo and won't be accepted until new valid and actual credentials provided in connection token.</p>
+<p>You can use connection expiration mechanism in cases when you don't want users of your app be subscribed on channels after being banned/deactivated in application. Or to protect your users from token leak (providing reasonably small time of expiration).</p>
+<p>Choose <code class="codehilite">exp</code> value wisely, you don't need to small values because refresh mechanism will hit your application often with refresh requests. But setting this value too large can lead to non very fast user connection deactivation. This is a trade off.</p>
 <p>Read more about connection expiration in special chapter.</p>
 <h3 id="info">info<a class="headerlink" href="#info" title="Permanent link">&para;</a></h3>
-<p>This field is optional - this is additional information about client connection that can be provided fot Centrifugo. This information will be included in presence information, join/leave events and in channel publication message if it was published from client side.</p>
-<p>This field contains <code class="codehilite">base64</code> string. In case of using JSON protocol this is JSON object converted to UTF-8 bytes and then encoded with <code class="codehilite">base64</code> codec. In case of using Protobuf protocol this can be random bytes also encoded to <code class="codehilite">base64</code> format. Base64 encoding was chosen to help pass bytes in web environment. </p>
-<p>After receiving Centrifugo will decode base64 back to bytes and will embed them into various places described above.</p>
-<h3 id="sign">sign<a class="headerlink" href="#sign" title="Permanent link">&para;</a></h3>
-<p>Finally <code class="codehilite">sign</code>. It could be very simple for malicious client to provide wrong userID, exp or info without this field. <code class="codehilite">sign</code> is an SHA256 HMAC hexdigest that client must provide to prove that connection credentials are valid and not modified.</p>
-<p>You must generate this HMAC sign on your backend based on secret key you set in Centrifugo config. The only two who must know that secret key is your application backend and Centrifugo itself. You should never show secret key to your users. Our API libraries have helper functions to help your backend generate this sign. But this is not very hard even without our libraries:</p>
-<p>For example in Python 3:</p>
-<div class="codehilite"><pre><span></span><span class="k">def</span> <span class="nf">generate_client_sign</span><span class="p">(</span><span class="n">secret</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">exp</span><span class="p">,</span> <span class="n">info</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
-    <span class="n">sign</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">secret</span><span class="p">,</span> <span class="s2">&quot;utf-8&quot;</span><span class="p">),</span> <span class="n">digestmod</span><span class="o">=</span><span class="n">sha256</span><span class="p">)</span>
-    <span class="n">sign</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
-    <span class="n">sign</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
-    <span class="n">sign</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">sign</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+<p>This claim is optional - this is additional information about client connection that can be provided for Centrifugo. This information will be included in presence information, join/leave events and in channel publication message if it was published from client side.</p>
+<h3 id="b64info">b64info<a class="headerlink" href="#b64info" title="Permanent link">&para;</a></h3>
+<p>If you are using binary protobuf protocol you may want info to be custom bytes. Use this field in this case.</p>
+<p>This field contains a <code class="codehilite">base64</code> representation of your bytes. After receiving Centrifugo will decode base64 back to bytes and will embed result into various places described above.</p>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<p>Let's look how to generate connection JWT in Python:</p>
+<h3 id="simplest-token">Simplest token<a class="headerlink" href="#simplest-token" title="Permanent link">&para;</a></h3>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
 
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
-<span class="n">secret</span> <span class="o">=</span> <span class="s2">&quot;secret&quot;</span>
-<span class="n">user</span> <span class="o">=</span> <span class="s2">&quot;42&quot;</span>
-<span class="n">exp</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="mi">10</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
-
-<span class="n">sign</span> <span class="o">=</span> <span class="n">generate_client_sign</span><span class="p">(</span><span class="n">secret</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">exp</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 </pre></div>
 
-<p>Then you can pass credentials to your client side to use when connection to Centrifugo:</p>
+<p>Note that we use the value of <code class="codehilite">secret</code> from Centrifugo config here (in this case <code class="codehilite">secret</code> value is just <code class="codehilite">secret</code>). The only two who must know secret key is your application backend which generates JWT and Centrifugo itself. You should never show secret key to your users. </p>
+<p>Then you can pass this token to your client side and use it when connecting to Centrifugo:</p>
 <div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">centrifuge</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Centrifuge</span><span class="p">(</span><span class="s2">&quot;ws://localhost:8000/connection/websocket&quot;</span><span class="p">);</span>
-
-<span class="nx">centrifuge</span><span class="p">.</span><span class="nx">setCredentials</span><span class="p">({</span>
-    <span class="s2">&quot;user&quot;</span><span class="o">:</span> <span class="nx">user</span><span class="p">,</span>
-    <span class="s2">&quot;exp&quot;</span><span class="o">:</span> <span class="nx">exp</span><span class="p">,</span>
-    <span class="s2">&quot;info&quot;</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;sign&quot;</span><span class="o">:</span> <span class="nx">sign</span>
-<span class="p">});</span>
-
+<span class="nx">centrifuge</span><span class="p">.</span><span class="nx">setToken</span><span class="p">(</span><span class="nx">token</span><span class="p">);</span>
 <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">connect</span><span class="p">();</span>
+</pre></div>
+
+<h3 id="token-with-expiration">Token with expiration<a class="headerlink" href="#token-with-expiration" title="Permanent link">&para;</a></h3>
+<p>Token that will be valid for 5 minutes:</p>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span> <span class="s2">&quot;exp&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="mi">5</span><span class="o">*</span><span class="mi">60</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+
+<span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+</pre></div>
+
+<h3 id="token-with-additional-connection-info">Token with additional connection info<a class="headerlink" href="#token-with-additional-connection-info" title="Permanent link">&para;</a></h3>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span> <span class="s2">&quot;info&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Alexander Emelin&quot;</span><span class="p">}},</span> <span class="s2">&quot;secret&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+
+<span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 </pre></div>
                 
                   
