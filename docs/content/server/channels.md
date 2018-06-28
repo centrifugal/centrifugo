@@ -26,6 +26,6 @@ Moreover you can provide several user IDs in channel name separated by comma: `d
 
 This is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.
 
-### $ private channel prefix ($)
+### private channel prefix ($)
 
 If channel starts with `$` then it considered private. Subscription on private channel must be properly signed by your web application. Read special chapter in docs about private channel subscriptions.

@@ -60,6 +60,7 @@ pages:
     - 'Message recovery': 'server/recover.md'
     - 'Signal handling': 'server/signals.md'
     - 'Connection expiration': 'server/connection_expiration.md'
+    - 'Private channels': 'server/private_channels.md'
   - Transports:
     - 'Overview': 'transports/index.md'
     - 'Websocket': 'transports/websocket.md'
