@@ -1,6 +1,6 @@
 VERSION := $(shell git describe --tags | sed -e 's/^v//g' | awk -F "-" '{print $$1}')
 ITERATION := $(shell git describe --tags --long | awk -F "-" '{print $$2}')
-TESTFOLDERS := $(shell go list ./... | grep -v /vendor/ | grep -v /extras/)
+TESTFOLDERS := $(shell go list ./... | grep -v /vendor/ | grep -v /misc/)
 
 DOC_IMAGE := centrifugo-docs
 DOCKER_RUN_DOC_PORT := 8000
@@ -11,7 +11,7 @@ all: release
 
 release:
 	@read -p "Enter new release version: " version; \
-	./extras/scripts/release.sh $$version
+	./misc/scripts/release.sh $$version
 
 prepare:
 	go get github.com/mitchellh/gox
@@ -20,13 +20,13 @@ test:
 	go test $(TESTFOLDERS) -cover
 
 web:
-	./extras/scripts/update_web.sh
+	./misc/scripts/update_web.sh
 
 bindata:
-	statik -src=extras/web -dest ./internal/ -package=webui
+	statik -src=misc/web -dest ./internal/ -package=webui
 
 package:
-	./extras/scripts/package.sh $(VERSION) $(ITERATION)
+	./misc/scripts/package.sh $(VERSION) $(ITERATION)
 
 packagecloud:
 	make packagecloud-deb

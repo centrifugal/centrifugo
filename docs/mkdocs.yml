@@ -54,12 +54,12 @@ pages:
     - 'Engines': 'server/engines.md'
     - 'Admin web interface': 'server/admin.md'
     - 'Monitoring': 'server/monitoring.md'
-    - 'Client protocol': 'server/protocol.md'
     - 'Server HTTP API': 'server/api.md'
     - 'Message recovery': 'server/recover.md'
     - 'Signal handling': 'server/signals.md'
     - 'Connection expiration': 'server/connection_expiration.md'
     - 'Private channels': 'server/private_channels.md'
+    - 'Client protocol': 'server/protocol.md'
   - Transports:
     - 'Overview': 'transports/index.md'
     - 'Websocket': 'transports/websocket.md'

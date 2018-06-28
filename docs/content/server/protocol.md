@@ -10,6 +10,7 @@ When you are using Centrifuge/Centrifugo client you expect some core things from
 
 * connect to server and authenticate. Depending on transport endpoint address can differ. For example Centrifugo JSON-encoded Websocket endpoint is `ws://centrifugo.example.com/connection/websocket`.
 * subscribe on channels developer wants. This allows to recieve messages published into channels in real-time.
+* handle private channel subscriptions.
 * have a possibility to make RPC calls, publish, asking for presence etc.
 * refresh client connection credentials when connection session lifetime is going to expire.
 * handle ping/pong messaging with server under the hood to maintain connection alive and detect broken connection.
@@ -24,9 +25,6 @@ At moment Centrifuge/Centrifugo can work with several transports:
 
 !!! note
     SockJS works almost the same way as JSON websocket described here but has its own extra framing on top of Centrifuge protocol messages. SockJS can only work with JSON - it's not possible to transfer binary data over it. SockJS is only needed as fallback to Websocket in web browsers.
-
-!!! note
-    GRPC support is an experimental at moment. GRPC works similar to what described here but it has its own transport details - Centrifuge library can not control how data travel over network and just uses GRPC generated API to pass messages between server and client over bidirectional streaming.
 
 ### Top level framing
 
@@ -110,20 +108,16 @@ After successful dial to websocket endpoint client must send `connect` command t
     "id": 1,
     "method": "connect",
     "params": {
-        "user": "42",
-        "exp": "1520094208",
-        "info": "",
-        "sign": "xxx"
+        "token": "JWT",
+        "data": {}
     }
 }
 ```
 
 Where params fields are passed to client from application backend:
 
-* string `user` - current user ID. Can be empty string for unauthorized user.
-* string `exp` - timestamp seconds when client connection expires.
-* string `info` - optional base64 encoded information about connection. This is JSON object encoded to base64 in case of JSON format used and arbitrary bytes for Protobuf format.
-* string `sign` - HMAC SHA-256 sign generated on backend side from Centrifugo secret and fields above. This sign helps to prove the fact that client passed valid `user`, `exp`, `info` fields to server.
+* string `token` - connection token.
+* JSON `data` - this is only available for Centrifuge library and not for Centrifugo server. It contains custom connect data, for example it can contain client settings. 
 
 In response to `connect` command server sends connect reply. It looks this way:
 
@@ -214,10 +208,7 @@ It's possible to turn on client connection expiration mechanism on server. While
     "id": 4,
     "method": "refresh",
     "params": {
-        "user": "42",
-        "exp": "1520096218",
-        "info": "",
-        "sign": "xxx"
+        "token": "JWT"
     }
 }
 ```
@@ -226,7 +217,7 @@ Just with actual `exp` and new `sign`.
 
 The tip whether or not connection must be refreshed comes in reply to `connect` command shown above - fields `expires`, `expired` and `ttl`.
 
-When client connection expire mechanism is on the value of field `expires` in connect reply is `true`. In this case client implementation should look at `ttl` value which is seconds left until connection will be considered expired. Client must send `refresh` command after this `ttl` seconds. Server gives client a configured window to refresh credentials after `ttl` passed and then closes connection if client have not updated its credentials. `expired` field set to `true` when client connection already expired. In this case client should immediately send `refresh` command to update credentials. And after doing this it can work the usual way.
+When client connection expire mechanism is on the value of field `expires` in connect reply is `true`. In this case client implementation should look at `ttl` value which is seconds left until connection will be considered expired. Client must send `refresh` command after this `ttl` seconds. Server gives client a configured window to refresh token after `ttl` passed and then closes connection if client have not updated its token. `expired` field set to `true` when client connection already expired. In this case client should immediately send `refresh` command to update token. And after doing this it can work the usual way.
 
 ### RPC-like calls: publish, history, presence
 
@@ -377,15 +368,10 @@ Create client instance:
 var centrifuge = new Centrifuge("ws://localhost:8000/connection/websocket", {});
 ```
 
-Set signed credentials (in case of using Centrifugo):
+Set connection token (in case of using Centrifugo):
 
 ```javascript
-centrifuge.setCredentials({
-    user: "42",
-    exp: "150000000",
-    info: "",
-    sign: "..."
-})
+centrifuge.setToken("XXX")
 ```
 
 Connect to server:

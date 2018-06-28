@@ -5,7 +5,7 @@ language: go
 go:
   # Use quotes to fill in safe:
   # https://github.com/travis-ci/gimme/issues/132
-  - '1.10.2'
+  - '1.10.3'
   - 'tip'
 
 addons:
@@ -30,9 +30,9 @@ deploy:
     script: curl -sL http://git.io/goreleaser | bash
     on:
       tags: true
-      go: '1.10.2'
+      go: '1.10.3'
   # - provider: script
-  #   script: extras/scripts/travis_packagecloud.sh
+  #   script: misc/scripts/travis_packagecloud.sh
   #   on:
   #     tags: true 
-  #     go: "1.10.2"
+  #     go: "1.10.3"

@@ -29,15 +29,15 @@ LOGROTATE_DIR=/etc/logrotate.d
 DATA_DIR=/var/lib/centrifugo
 SCRIPT_DIR=/usr/lib/centrifugo
 
-SAMPLE_CONFIGURATION=extras/packaging/config.json
-INITD_SCRIPT=extras/packaging/initd.sh
-INITD_EL6_SCRIPT=extras/packaging/initd.el6.sh
-UPSTART_SCRIPT=extras/packaging/centrifugo.upstart
-SYSTEMD_SCRIPT=extras/packaging/centrifugo.service
-POSTINSTALL_SCRIPT=extras/packaging/post_install.sh
-PREINSTALL_SCRIPT=extras/packaging/pre_install.sh
-POSTUNINSTALL_SCRIPT=extras/packaging/post_uninstall.sh
-LOGROTATE=extras/packaging/logrotate
+SAMPLE_CONFIGURATION=misc/packaging/config.json
+INITD_SCRIPT=misc/packaging/initd.sh
+INITD_EL6_SCRIPT=misc/packaging/initd.el6.sh
+UPSTART_SCRIPT=misc/packaging/centrifugo.upstart
+SYSTEMD_SCRIPT=misc/packaging/centrifugo.service
+POSTINSTALL_SCRIPT=misc/packaging/post_install.sh
+PREINSTALL_SCRIPT=misc/packaging/pre_install.sh
+POSTUNINSTALL_SCRIPT=misc/packaging/post_uninstall.sh
+LOGROTATE=misc/packaging/logrotate
 
 TMP_WORK_DIR=`mktemp -d`
 TMP_BINARIES_DIR=`mktemp -d`

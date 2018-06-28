@@ -7,9 +7,9 @@ fi
 
 MAIN_DIR=`pwd`
 DOCKERFILE=$MAIN_DIR/Dockerfile
-DOCKERFILE_TEMPLATE=$MAIN_DIR/extras/scripts/dockerfile.template
+DOCKERFILE_TEMPLATE=$MAIN_DIR/misc/scripts/dockerfile.template
 HOMEBREWFILE=$MAIN_DIR/centrifugo.rb
-HOMEBREWFILE_TEMPLATE=$MAIN_DIR/extras/scripts/homebrew.template
+HOMEBREWFILE_TEMPLATE=$MAIN_DIR/misc/scripts/homebrew.template
 
 mkdir -p BUILDS
 mkdir -p BUILDS/$1

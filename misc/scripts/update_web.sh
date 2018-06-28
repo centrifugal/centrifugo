@@ -14,10 +14,10 @@ cp -R /Users/fz/projects/centrifugal/web/ $TMP_WORK_DIR
 #git clone https://github.com/centrifugal/web.git $TMP_WORK_DIR
 rm -rf $TMP_WORK_DIR/app/src
 
-if [ -d extras/web ]; then
-	rm -rf extras/web
+if [ -d misc/web ]; then
+	rm -rf misc/web
 fi
 
-cp -r $TMP_WORK_DIR/app/ extras/web
+cp -r $TMP_WORK_DIR/app/ misc/web
 
 cleanup_exit 0
