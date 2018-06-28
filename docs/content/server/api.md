@@ -4,18 +4,9 @@ HTTP API is a way to send commands to Centrifugo.
 
 Why we need API?
 
-If you look at project and namespace options you see option called `publish`. When turned on this option allows browser clients to publish into channels directly. If client publishes a message into channel directly - your application will not receive that message (it just goes through Centrifugo towards subscribed clients). This pattern can be useful sometimes but in most cases you first need to send new event from client to backend over non-Centrifugo transport (for example AJAX request in web application), then on app backend process it - probably validate, save into main app database and then `publish` into Centrifugo using HTTP API and Centrifugo
-will then broadcast message to all subscribed clients.
+If you look at configuration options you see an option called `publish` defined on configuration top level and for channel namespace. When turned on this option allows browser clients to publish into channels directly. If client publishes a message into channel directly – your application will not receive that message (it just goes through Centrifugo towards subscribed clients). This pattern can be useful sometimes but in most cases you first need to send new event from client to backend over non-Centrifugo transport (for example via AJAX request in web application), then process it on application backend side – probably validate, save into main app database – and then `publish` into Centrifugo using HTTP API so Centrifugo broadcast message to all clients subscribed on channel.
 
 Server API works on `/api` endpoint. It's very simple to use: you just have to send POST request with JSON command to this endpoint.
-
-We have several client libraries for different languages so you don't have to construct proper HTTP requests manually:
-
-* [cent](https://github.com/centrifugal/cent) for Python
-* rubycent (not ready yet) for Ruby
-* phpcent (not ready yet) for PHP
-* jscent (not ready yet) for NodeJS
-* gocent (not ready yet) for Go
 
 In this chapter we will look at API protocol internals - for new API client library authors and just if you are curious how existing API clients work.
 

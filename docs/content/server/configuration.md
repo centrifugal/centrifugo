@@ -21,7 +21,7 @@ Available Commands:
   checkconfig Check configuration file
   genconfig   Generate simple configuration file to start with
   help        Help about any command
-  version     Centrifugo version number
+  version     Centrifugo version information
 
 Flags:
   -a, --address string             interface address to listen on
@@ -45,7 +45,6 @@ Flags:
       --redis_host string          Redis host (Redis engine) (default "127.0.0.1")
       --redis_master_name string   name of Redis master Sentinel monitors (Redis engine)
       --redis_password string      Redis auth password (Redis engine)
-      --redis_pool int             Redis pool size (Redis engine) (default 256)
       --redis_port string          Redis port (Redis engine) (default "6379")
       --redis_sentinels string     comma-separated list of Sentinel addresses (Redis engine)
       --redis_url string           Redis connection URL in format redis://:password@hostname:port/db (Redis engine)

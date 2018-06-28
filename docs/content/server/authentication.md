@@ -1,8 +1,16 @@
 # Authentication
 
-When you are using [centrifuge](https://github.com/centrifugal/centrifuge) library from Go language you can implement any user authentication. In Centrifugo case you need to tell server who is connecting in well-known predefined way. This chapter will describe this mechanism. We will use Javascript client here for example snippets.
+When you are using [centrifuge](https://github.com/centrifugal/centrifuge) library from Go language you can implement any user authentication using middleware. In Centrifugo case you need to tell server who is connecting in well-known predefined way. This chapter will describe this mechanism.
 
-When connecting to Centrifugo client must provide connection authentication credentials. Credentials are several string fields: `user`, `exp`, `info` and `sign`. What do they mean? Let's describe in detail.
+When connecting to Centrifugo client must provide connection JWT token with several predefined credential claims. If you've never heard about JWT before - refer to [jwt.io](https://jwt.io/) page.
+
+At moment **the only supported JWT algorithm is HS256** - i.e. HMAC SHA-256. This can be extended later.
+
+We will use Javascript Centrifugo client here for example snippets for client side and [PyJWT](https://github.com/jpadilla/pyjwt) Python library to generate connection token on backend side.
+
+## Claims
+
+Credential claims are: `user`, `exp`, `info` and `b64info`. What do they mean? Let's describe in detail.
 
 ### user
 
@@ -12,66 +20,70 @@ If your user not currently authenticated in your application but you want to let
 
 ### exp
 
-This is a UNIX timestamp seconds when user connection must be considered expired. By default Centrifugo won't expire any connections but you can enable expiration mechanism in its options. When on this mechanism will find connections with `exp` in the past and activate connection refresh mechanism. Refresh mechanism allows connection to survive and be prolonged. In case of refresh failure client connection will be eventually closed by Centrifugo and won't be accepted until new valid and actual credentials provided.
+This is an a UNIX timestamp seconds when token will expire. This is standard JWT claim - all JWT libraries for different languages provide an API to set it.
 
-You can use connection expiration mechanism in cases when you don't want users of your app be subscribed on channels after being banned/deactivated in application.
+If `exp` claim not provided then Centrifugo won't expire any connections. When provided special algorithm will find connections with `exp` in the past and activate connection refresh mechanism. Refresh mechanism allows connection to survive and be prolonged. In case of refresh failure client connection will be eventually closed by Centrifugo and won't be accepted until new valid and actual credentials provided in connection token.
 
-Choose `exp` value wisely, you don't need to small values because refresh mechanism will hit your application often. But setting this value too large can lead to non very fast user connection  deactivation. This is trade off.
+You can use connection expiration mechanism in cases when you don't want users of your app be subscribed on channels after being banned/deactivated in application. Or to protect your users from token leak (providing reasonably small time of expiration).
 
-Let's look how we can create `exp` value in Python and make client credentials valid for 10 minutes:
-
-```python
-import time
-
-exp = str(int(time.time()) + 10 * 60)
-```
+Choose `exp` value wisely, you don't need to small values because refresh mechanism will hit your application often with refresh requests. But setting this value too large can lead to non very fast user connection deactivation. This is a trade off.
 
 Read more about connection expiration in special chapter.
 
 ### info
 
-This field is optional - this is additional information about client connection that can be provided fot Centrifugo. This information will be included in presence information, join/leave events and in channel publication message if it was published from client side.
+This claim is optional - this is additional information about client connection that can be provided for Centrifugo. This information will be included in presence information, join/leave events and in channel publication message if it was published from client side.
 
-This field contains `base64` string. In case of using JSON protocol this is JSON object converted to UTF-8 bytes and then encoded with `base64` codec. In case of using Protobuf protocol this can be random bytes also encoded to `base64` format. Base64 encoding was chosen to help pass bytes in web environment. 
+### b64info
 
-After receiving Centrifugo will decode base64 back to bytes and will embed them into various places described above.
+If you are using binary protobuf protocol you may want info to be custom bytes. Use this field in this case.
 
-### sign
+This field contains a `base64` representation of your bytes. After receiving Centrifugo will decode base64 back to bytes and will embed result into various places described above.
 
-Finally `sign`. It could be very simple for malicious client to provide wrong userID, exp or info without this field. `sign` is an SHA256 HMAC hexdigest that client must provide to prove that connection credentials are valid and not modified.
+## Examples
 
-You must generate this HMAC sign on your backend based on secret key you set in Centrifugo config. The only two who must know that secret key is your application backend and Centrifugo itself. You should never show secret key to your users. Our API libraries have helper functions to help your backend generate this sign. But this is not very hard even without our libraries:
+Let's look how to generate connection JWT in Python:
 
-For example in Python 3:
-
+### Simplest token
 
 ```python
-def generate_client_sign(secret, user, exp, info=""):
-    sign = hmac.new(bytes(secret, "utf-8"), digestmod=sha256)
-    sign.update(bytes(user, "utf-8"))
-    sign.update(bytes(exp, "utf-8"))
-    sign.update(bytes(info, "utf-8"))
-    return sign.hexdigest()
+import jwt
 
+token = jwt.encode({"user": "42"}, "secret").decode()
 
-secret = "secret"
-user = "42"
-exp = str(int(time.time()) + 10 * 60)
+print(token)
+```
 
-sign = generate_client_sign(secret, user, exp)
-``` 
+Note that we use the value of `secret` from Centrifugo config here (in this case `secret` value is just `secret`). The only two who must know secret key is your application backend which generates JWT and Centrifugo itself. You should never show secret key to your users. 
 
-Then you can pass credentials to your client side to use when connection to Centrifugo:
+Then you can pass this token to your client side and use it when connecting to Centrifugo:
 
 ```javascript
 var centrifuge = new Centrifuge("ws://localhost:8000/connection/websocket");
-
-centrifuge.setCredentials({
-    "user": user,
-    "exp": exp,
-    "info": "",
-    "sign": sign
-});
-
+centrifuge.setToken(token);
 centrifuge.connect();
+```
+
+### Token with expiration
+
+Token that will be valid for 5 minutes:
+
+```python
+import jwt
+import time
+
+token = jwt.encode({"user": "42", "exp": int(time.time()) + 5*60}, "secret").decode()
+
+print(token)
+```
+
+### Token with additional connection info
+
+```python
+import jwt
+import time
+
+token = jwt.encode({"user": "42", "info": {"name": "Alexander Emelin"}}, "secret").decode()
+
+print(token)
 ```
