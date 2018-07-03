@@ -902,20 +902,24 @@
 <p>This chapter describes internal client-server protocol in details to help developers build custom client libraries.</p>
 <p>Note that you can always look at existing client implementations in case of any questions, for example <a href="https://github.com/centrifugal/centrifuge-js/blob/master/src/centrifuge.js">centrifuge-js</a>.</p>
 <h3 id="what-client-should-do">What client should do<a class="headerlink" href="#what-client-should-do" title="Permanent link">&para;</a></h3>
-<p>When you are using Centrifuge/Centrifugo client you expect some core things from it:</p>
+<p>Here we will look at list of features client library should support. Depending on client implementation some features can be not implemented. If you an author of such library you can use this list as checklist:</p>
 <ul>
-<li>connect to server and authenticate. Depending on transport endpoint address can differ. For example Centrifugo JSON-encoded Websocket endpoint is <code class="codehilite">ws://centrifugo.example.com/connection/websocket</code>.</li>
-<li>subscribe on channels developer wants. This allows to recieve messages published into channels in real-time.</li>
-<li>handle private channel subscriptions.</li>
-<li>have a possibility to make RPC calls, publish, asking for presence etc.</li>
-<li>refresh client connection credentials when connection session lifetime is going to expire.</li>
-<li>handle ping/pong messaging with server under the hood to maintain connection alive and detect broken connection.</li>
-<li>handle protocol-specific errors, reconnect and recover missed messages automatically.</li>
-</ul>
-<p>At moment Centrifuge/Centrifugo can work with several transports:</p>
-<ul>
-<li>Websocket</li>
-<li>SockJS</li>
+<li>connect to server using JSON protocol format</li>
+<li>connect to server using Protobuf protocol format</li>
+<li>support automatic reconnect in case of errors, network problems etc</li>
+<li>subscribe on channel and handle asynchronous Publications</li>
+<li>handle Join and Leave messages</li>
+<li>handle unsubscribe notifications</li>
+<li>send asynchronous messages to server</li>
+<li>handle asynchronous messages from server</li>
+<li>send RPC commands</li>
+<li>connect with JWT</li>
+<li>subscribe to private channels with JWT</li>
+<li>call <code class="codehilite">publish</code>, <code class="codehilite">presence</code>, <code class="codehilite">presence_stats</code>, <code class="codehilite">history</code> methods.</li>
+<li>support connection JWT refresh</li>
+<li>support private channel subscription JWT refresh</li>
+<li>ping/pong to find broken connection</li>
+<li>support message recovery mechanism</li>
 </ul>
 <p>This document describes protocol specifics for Websocket transport which supports binary and text formats to transfer data. As Centrifuge has various types of messages it serializes protocol messages using JSON or Protobuf (in case of binary websockets).</p>
 <div class="admonition note">
