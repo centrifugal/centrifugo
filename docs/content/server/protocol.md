@@ -6,22 +6,26 @@ Note that you can always look at existing client implementations in case of any 
 
 ### What client should do
 
-When you are using Centrifuge/Centrifugo client you expect some core things from it:
+Here we will look at list of features client library should support. Depending on client implementation some features can be not implemented. If you an author of such library you can use this list as checklist:
 
-* connect to server and authenticate. Depending on transport endpoint address can differ. For example Centrifugo JSON-encoded Websocket endpoint is `ws://centrifugo.example.com/connection/websocket`.
-* subscribe on channels developer wants. This allows to recieve messages published into channels in real-time.
-* handle private channel subscriptions.
-* have a possibility to make RPC calls, publish, asking for presence etc.
-* refresh client connection credentials when connection session lifetime is going to expire.
-* handle ping/pong messaging with server under the hood to maintain connection alive and detect broken connection.
-* handle protocol-specific errors, reconnect and recover missed messages automatically.
+* connect to server using JSON protocol format
+* connect to server using Protobuf protocol format
+* support automatic reconnect in case of errors, network problems etc
+* subscribe on channel and handle asynchronous Publications
+* handle Join and Leave messages
+* handle unsubscribe notifications
+* send asynchronous messages to server
+* handle asynchronous messages from server
+* send RPC commands
+* connect with JWT
+* subscribe to private channels with JWT
+* call `publish`, `presence`, `presence_stats`, `history` methods.
+* support connection JWT refresh
+* support private channel subscription JWT refresh
+* ping/pong to find broken connection
+* support message recovery mechanism
 
-At moment Centrifuge/Centrifugo can work with several transports:
-
-* Websocket
-* SockJS
-
- This document describes protocol specifics for Websocket transport which supports binary and text formats to transfer data. As Centrifuge has various types of messages it serializes protocol messages using JSON or Protobuf (in case of binary websockets).
+This document describes protocol specifics for Websocket transport which supports binary and text formats to transfer data. As Centrifuge has various types of messages it serializes protocol messages using JSON or Protobuf (in case of binary websockets).
 
 !!! note
     SockJS works almost the same way as JSON websocket described here but has its own extra framing on top of Centrifuge protocol messages. SockJS can only work with JSON - it's not possible to transfer binary data over it. SockJS is only needed as fallback to Websocket in web browsers.
