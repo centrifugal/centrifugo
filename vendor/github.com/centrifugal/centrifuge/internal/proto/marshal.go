@@ -176,6 +176,7 @@ type ResultEncoder interface {
 	EncodeConnectResult(*ConnectResult) ([]byte, error)
 	EncodeRefreshResult(*RefreshResult) ([]byte, error)
 	EncodeSubscribeResult(*SubscribeResult) ([]byte, error)
+	EncodeSubRefreshResult(*SubRefreshResult) ([]byte, error)
 	EncodeUnsubscribeResult(*UnsubscribeResult) ([]byte, error)
 	EncodePublishResult(*PublishResult) ([]byte, error)
 	EncodePresenceResult(*PresenceResult) ([]byte, error)
@@ -205,6 +206,11 @@ func (e *JSONResultEncoder) EncodeRefreshResult(res *RefreshResult) ([]byte, err
 
 // EncodeSubscribeResult ...
 func (e *JSONResultEncoder) EncodeSubscribeResult(res *SubscribeResult) ([]byte, error) {
+	return json.Marshal(res)
+}
+
+// EncodeSubRefreshResult ...
+func (e *JSONResultEncoder) EncodeSubRefreshResult(res *SubRefreshResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
@@ -263,6 +269,11 @@ func (e *ProtobufResultEncoder) EncodeRefreshResult(res *RefreshResult) ([]byte,
 
 // EncodeSubscribeResult ...
 func (e *ProtobufResultEncoder) EncodeSubscribeResult(res *SubscribeResult) ([]byte, error) {
+	return res.Marshal()
+}
+
+// EncodeSubRefreshResult ...
+func (e *ProtobufResultEncoder) EncodeSubRefreshResult(res *SubRefreshResult) ([]byte, error) {
 	return res.Marshal()
 }
 

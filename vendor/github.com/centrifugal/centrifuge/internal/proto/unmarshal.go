@@ -205,6 +205,7 @@ type ParamsDecoder interface {
 	DecodeConnect([]byte) (*ConnectRequest, error)
 	DecodeRefresh([]byte) (*RefreshRequest, error)
 	DecodeSubscribe([]byte) (*SubscribeRequest, error)
+	DecodeSubRefresh([]byte) (*SubRefreshRequest, error)
 	DecodeUnsubscribe([]byte) (*UnsubscribeRequest, error)
 	DecodePublish([]byte) (*PublishRequest, error)
 	DecodePresence([]byte) (*PresenceRequest, error)
@@ -248,6 +249,16 @@ func (d *JSONParamsDecoder) DecodeRefresh(data []byte) (*RefreshRequest, error) 
 // DecodeSubscribe ...
 func (d *JSONParamsDecoder) DecodeSubscribe(data []byte) (*SubscribeRequest, error) {
 	var p SubscribeRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeSubRefresh ...
+func (d *JSONParamsDecoder) DecodeSubRefresh(data []byte) (*SubRefreshRequest, error) {
+	var p SubRefreshRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err
@@ -374,6 +385,16 @@ func (d *ProtobufParamsDecoder) DecodeRefresh(data []byte) (*RefreshRequest, err
 // DecodeSubscribe ...
 func (d *ProtobufParamsDecoder) DecodeSubscribe(data []byte) (*SubscribeRequest, error) {
 	var p SubscribeRequest
+	err := p.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeSubRefresh ...
+func (d *ProtobufParamsDecoder) DecodeSubRefresh(data []byte) (*SubRefreshRequest, error) {
+	var p SubRefreshRequest
 	err := p.Unmarshal(data)
 	if err != nil {
 		return nil, err

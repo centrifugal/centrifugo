@@ -62,6 +62,12 @@ type SubscribeResponse struct {
 	Result *SubscribeResult `json:"result,omitempty"`
 }
 
+// SubRefreshResponse ...
+type SubRefreshResponse struct {
+	Error  *Error            `json:"error,omitempty"`
+	Result *SubRefreshResult `json:"result,omitempty"`
+}
+
 // UnsubscribeResponse ...
 type UnsubscribeResponse struct {
 	Error  *Error             `json:"error,omitempty"`

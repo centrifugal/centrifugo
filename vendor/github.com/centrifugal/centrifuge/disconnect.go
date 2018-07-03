@@ -8,8 +8,8 @@ type Disconnect struct {
 	Reconnect bool `json:"reconnect"`
 }
 
-// Some predefined disconnect structures. Though it's always
-// possible to create Disconnect with any field values on the fly.
+// Some predefined disconnect structures used by library internally. Though
+// it's always possible to create Disconnect with any field values on the fly.
 var (
 	// DisconnectNormal is clean disconnect when client cleanly closes connection.
 	DisconnectNormal = &Disconnect{

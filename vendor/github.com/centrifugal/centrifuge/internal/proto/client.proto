@@ -30,6 +30,7 @@ enum MethodType {
     SEND = 8 [(gogoproto.enumvalue_customname) = "MethodTypeSend"];
     RPC = 9 [(gogoproto.enumvalue_customname) = "MethodTypeRPC"];
     REFRESH = 10 [(gogoproto.enumvalue_customname) = "MethodTypeRefresh"];
+    SUB_REFRESH = 11 [(gogoproto.enumvalue_customname) = "MethodTypeSubRefresh"];
 }
 
 message Command {
@@ -80,14 +81,16 @@ message Leave {
     ClientInfo info = 1 [(gogoproto.jsontag) = "info", (gogoproto.nullable) = false];
 }
 
-message Unsub {}
+message Unsub {
+    bool resubscribe =1 [(gogoproto.jsontag) = "resubscribe,omitempty"];
+}
 
 message Message {
     bytes data = 1 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false];
 }
 
 message ConnectRequest {
-    string token = 1  [(gogoproto.jsontag) = "token"];
+    string token = 1 [(gogoproto.jsontag) = "token"];
     bytes data = 2 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false];
 }
 
@@ -95,21 +98,19 @@ message ConnectResult {
     string client = 1 [(gogoproto.jsontag) = "client"];
     string version = 2 [(gogoproto.jsontag) = "version"];
     bool expires = 3 [(gogoproto.jsontag) = "expires,omitempty"];
-    bool expired = 4 [(gogoproto.jsontag) = "expired,omitempty"];
-    uint32 ttl = 5 [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"];
-    bytes data = 6 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false];
+    uint32 ttl = 4 [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"];
+    bytes data = 5 [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false];
 }
 
 message RefreshRequest {
-    string token = 1  [(gogoproto.jsontag) = "token"];
+    string token = 1 [(gogoproto.jsontag) = "token"];
 }
 
 message RefreshResult {
     string client = 1 [(gogoproto.jsontag) = "client"];
     string version = 2 [(gogoproto.jsontag) = "version"];
     bool expires = 3 [(gogoproto.jsontag) = "expires,omitempty"];
-    bool expired = 4 [(gogoproto.jsontag) = "expired,omitempty"];
-    uint32 ttl = 5 [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"];
+    uint32 ttl = 4 [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"];
 }
 
 message SubscribeRequest {
@@ -125,8 +126,17 @@ message SubscribeResult {
     bool recovered = 2 [(gogoproto.jsontag) = "recovered,omitempty"];
     repeated Publication publications = 3 [(gogoproto.jsontag) = "publications,omitempty"];
     bool expires = 4 [(gogoproto.jsontag) = "expires,omitempty"];
-    bool expired = 5 [(gogoproto.jsontag) = "expired,omitempty"];
-    uint32 ttl = 6 [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"];
+    uint32 ttl = 5 [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"];
+}
+
+message SubRefreshRequest {
+    string channel = 1 [(gogoproto.jsontag) = "channel"];
+    string token = 2 [(gogoproto.jsontag) = "token"];
+}
+
+message SubRefreshResult {
+    bool expires = 1 [(gogoproto.jsontag) = "expires,omitempty"];
+    uint32 ttl = 2 [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"];
 }
 
 message UnsubscribeRequest {

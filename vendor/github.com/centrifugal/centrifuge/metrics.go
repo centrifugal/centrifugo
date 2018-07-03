@@ -61,7 +61,7 @@ var (
 		Subsystem: "client",
 		Name:      "num_reply_errors",
 		Help:      "Number of errors in replies sent to clients.",
-	}, []string{"method"})
+	}, []string{"method", "code"})
 
 	commandDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace:  metricsNamespace,

@@ -94,6 +94,7 @@ type SubRefreshEvent struct {
 // SubRefreshReply contains fields determining the reaction on
 // subscription refresh event.
 type SubRefreshReply struct {
+	Expired  bool
 	ExpireAt int64
 	Info     Raw
 }

@@ -69,7 +69,7 @@
   branch = "master"
   name = "github.com/igm/sockjs-go"
   packages = ["sockjs"]
-  revision = "c8a8c6429d10e3b6865960ad8cb43779b8a834ef"
+  revision = "4e63e74d3787fb81d6568e1d9640bf869ca5ddf7"
 
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"

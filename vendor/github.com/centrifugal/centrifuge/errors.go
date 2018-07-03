@@ -52,4 +52,14 @@ var (
 		Code:    108,
 		Message: "not available",
 	}
+	// ErrorTokenExpired ...
+	ErrorTokenExpired = &Error{
+		Code:    109,
+		Message: "token expired",
+	}
+	// ErrorExpired ...
+	ErrorExpired = &Error{
+		Code:    110,
+		Message: "expired",
+	}
 )
