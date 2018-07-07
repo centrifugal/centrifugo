@@ -578,7 +578,7 @@ var (
 	// KEYS[2] - history touch object key
 	// ARGV[1] - channel to publish message to
 	// ARGV[2] - message payload
-	// ARGV[3] - history size
+	// ARGV[3] - history ltrim right bound
 	// ARGV[4] - history lifetime
 	// ARGV[5] - history drop inactive flag - "0" or "1"
 	pubScriptSource = `
@@ -1179,7 +1179,7 @@ func (e *Shard) runPublishPipeline() {
 			conn := e.pool.Get()
 			for i := range prs {
 				if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
-					e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].touchKey, prs[i].channel, prs[i].message, prs[i].opts.HistorySize, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
+					e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].touchKey, prs[i].channel, prs[i].message, prs[i].opts.HistorySize-1, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
 				} else {
 					conn.Send("PUBLISH", prs[i].channel, prs[i].message)
 				}

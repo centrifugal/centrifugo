@@ -194,6 +194,8 @@ func TestRedisEngine(t *testing.T) {
 	assert.Equal(t, nil, <-e.PublishMessage(&msg, &channel.Options{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
 	assert.Equal(t, nil, <-e.PublishMessage(&msg, &channel.Options{HistorySize: 1, HistoryLifetime: 1, HistoryDropInactive: false}))
 	h, err = e.History("channel", 2)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 1, len(h))
 
 	// HistoryDropInactive tests - new channel to avoid conflicts with test above
 	// 1. add history with DropInactive = true should be a no-op if history is empty
