@@ -1,9 +1,10 @@
-[![Join the chat at https://gitter.im/centrifugal/centrifugo](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/centrifugal/centrifugo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/centrifugal/centrifugo/master/LICENSE)
-
 ## Centrifugo overview
 
 **This is a work in progress documentation for Centrifugo v2**
+
+First of all we have chat on Gitter – welcome!
+
+[![Join the chat at https://gitter.im/centrifugal/centrifugo](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/centrifugal/centrifugo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Centrifugo is a language-agnostic real-time messaging server. Language-agnostic means that it does not matter which programming language your application uses on frontend or backend sides - Centrifugo can work in conjunction with any. Real-time messages are messages that delivered to your clients almost immediately after some event happened - think live comments, chats, real-time charts, dynamic counters.
 
