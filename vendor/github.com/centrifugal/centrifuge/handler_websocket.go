@@ -175,18 +175,19 @@ func (t *websocketTransport) Close(disconnect *Disconnect) error {
 // WebsocketConfig represents config for WebsocketHandler.
 type WebsocketConfig struct {
 	// Compression allows to enable websocket permessage-deflate
-	// compression support for raw websocket connections. It does not guarantee
-	// that compression will be used - i.e. it only says that Centrifugo will
-	// try to negotiate it with client.
+	// compression support for raw websocket connections. It does
+	// not guarantee that compression will be used - i.e. it only
+	// says that server will try to negotiate it with client.
 	Compression bool
 
 	// CompressionLevel sets a level for websocket compression.
 	// See posiible value description at https://golang.org/pkg/compress/flate/#NewWriter
 	CompressionLevel int
 
-	// CompressionMinSize allows to set minimal limit in bytes for message to use
-	// compression when writing it into client connection. By default it's 0 - i.e. all messages
-	// will be compressed when WebsocketCompression enabled and compression negotiated with client.
+	// CompressionMinSize allows to set minimal limit in bytes for
+	// message to use compression when writing it into client connection.
+	// By default it's 0 - i.e. all messages will be compressed when
+	// WebsocketCompression enabled and compression negotiated with client.
 	CompressionMinSize int
 
 	// ReadBufferSize is a parameter that is used for raw websocket Upgrader.

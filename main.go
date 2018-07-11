@@ -363,6 +363,7 @@ var configDefaults = map[string]interface{}{
 	"redis_connect_timeout":           1,
 	"redis_read_timeout":              10, // Must be greater than ping channel publish interval.
 	"redis_write_timeout":             1,
+	"redis_idle_timeout":              0,
 	"redis_pubsub_num_workers":        0,
 	"grpc_api":                        false,
 	"grpc_api_port":                   10000,
@@ -447,7 +448,8 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
 			log.Info().Msg("Shutting down, wait...")
 			pidFile := viper.GetString("pid_file")
-			go time.AfterFunc(time.Duration(viper.GetInt("shutdown_timeout"))*time.Second, func() {
+			shutdownTimeout := time.Duration(viper.GetInt("shutdown_timeout")) * time.Second
+			go time.AfterFunc(shutdownTimeout, func() {
 				if pidFile != "" {
 					os.Remove(pidFile)
 				}
@@ -464,15 +466,18 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 				}()
 			}
 
+			ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+			defer cancel()
+
 			for _, srv := range httpServers {
 				wg.Add(1)
 				go func(srv *http.Server) {
 					defer wg.Done()
-					srv.Shutdown(context.Background())
+					srv.Shutdown(ctx)
 				}(srv)
 			}
 
-			n.Shutdown()
+			n.Shutdown(ctx)
 
 			wg.Wait()
 
@@ -1045,6 +1050,7 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 			MasterName:       masterNames[i],
 			SentinelAddrs:    sentinelAddrs,
 			Prefix:           v.GetString("redis_prefix"),
+			IdleTimeout:      time.Duration(v.GetInt("redis_idle_timeout")) * time.Second,
 			PubSubNumWorkers: v.GetInt("redis_pubsub_num_workers"),
 			ConnectTimeout:   time.Duration(v.GetInt("redis_connect_timeout")) * time.Second,
 			ReadTimeout:      time.Duration(v.GetInt("redis_read_timeout")) * time.Second,

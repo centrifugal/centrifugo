@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifuge/internal/proto"
+
 	"github.com/igm/sockjs-go/sockjs"
 )
 

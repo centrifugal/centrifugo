@@ -11,7 +11,6 @@ type apiExecutor struct {
 	node *Node
 }
 
-// newHandler creates new Handler.
 func newAPIExecutor(n *Node) *apiExecutor {
 	return &apiExecutor{
 		node: n,
@@ -53,7 +52,7 @@ func (h *apiExecutor) Publish(ctx context.Context, cmd *apiproto.PublishRequest)
 	return resp
 }
 
-// Broadcast publishes data into multiple channels.
+// Broadcast publishes the same data into many channels.
 func (h *apiExecutor) Broadcast(ctx context.Context, cmd *apiproto.BroadcastRequest) *apiproto.BroadcastResponse {
 
 	resp := &apiproto.BroadcastResponse{}

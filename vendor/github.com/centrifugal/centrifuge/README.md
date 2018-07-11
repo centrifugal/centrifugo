@@ -1,5 +1,6 @@
 [![Join the chat at https://gitter.im/centrifugal/centrifuge](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/centrifugal/centrifuge?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/centrifugal/centrifuge.svg)](https://travis-ci.org/centrifugal/centrifuge)
+[![GoDoc](https://godoc.org/github.com/centrifugal/centrifuge?status.svg)](https://godoc.org/github.com/centrifugal/centrifuge)
 
 **Work in progress**. *Library has all features working but in active development stage so API is not stable at all. It has not been tested in production yet so use with caution. Feedback is highly appreciated.*
 

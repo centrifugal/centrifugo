@@ -1,6 +1,7 @@
 package centrifuge
 
 import (
+	"context"
 	"sync"
 
 	"github.com/centrifugal/centrifuge/internal/proto"
@@ -36,8 +37,7 @@ const (
 )
 
 // shutdown unsubscribes users from all channels and disconnects them.
-func (h *Hub) shutdown() error {
-	var wg sync.WaitGroup
+func (h *Hub) shutdown(ctx context.Context) error {
 	advice := DisconnectShutdown
 
 	// Limit concurrency here to prevent resource usage burst on shutdown.
@@ -52,19 +52,37 @@ func (h *Hub) shutdown() error {
 	}
 	h.mu.RUnlock()
 
+	closeFinishedCh := make(chan struct{}, len(clients))
+	finished := 0
+
+	if len(clients) == 0 {
+		return nil
+	}
+
 	for _, client := range clients {
-		wg.Add(1)
-		sem <- struct{}{}
+		select {
+		case sem <- struct{}{}:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 		go func(cc *Client) {
 			defer func() { <-sem }()
-			defer wg.Done()
+			defer func() { closeFinishedCh <- struct{}{} }()
 			cc.close(advice)
 		}(client)
 	}
 
-	wg.Wait()
-
-	return nil
+	for {
+		select {
+		case <-closeFinishedCh:
+			finished++
+			if finished == len(clients) {
+				return nil
+			}
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 }
 
 func (h *Hub) disconnect(user string, reconnect bool) error {
