@@ -59,7 +59,7 @@ The same relates to many `Reply` in one response from server to client. Line-del
 
 As you see above each `Command` has `id` field. This is an incremental integer field. This field will be echoed in server to client replies to commands so client could match a certain `Reply` to `Command` sent before. This is important because Websocket is asynchronous protocol where server and client both send messages in full-duplex mode.
 
-So you can expect something like this when sending commands to server:
+So you can expect something like this in response after sending commands to server:
 
 ```javascript
 {"id": 1, "result": {}}
@@ -140,7 +140,6 @@ In response to `connect` command server sends connect reply. It looks this way:
 * string `client` - unique client connection ID server issued to this connection
 * string `version` - server version
 * optional bool `expires` - whether or not server will expire connection
-* optional bool `expired` - whether or not connection credentials already expired and must be refreshed
 * optional int32 `ttl` - time in seconds until connection will expire
 
 ### Subscribe
@@ -219,9 +218,11 @@ It's possible to turn on client connection expiration mechanism on server. While
 
 Just with actual `exp` and new `sign`.
 
-The tip whether or not connection must be refreshed comes in reply to `connect` command shown above - fields `expires`, `expired` and `ttl`.
+The tip whether or not connection must be refreshed comes in reply to `connect` command shown above - fields `expires` and `ttl`.
 
-When client connection expire mechanism is on the value of field `expires` in connect reply is `true`. In this case client implementation should look at `ttl` value which is seconds left until connection will be considered expired. Client must send `refresh` command after this `ttl` seconds. Server gives client a configured window to refresh token after `ttl` passed and then closes connection if client have not updated its token. `expired` field set to `true` when client connection already expired. In this case client should immediately send `refresh` command to update token. And after doing this it can work the usual way.
+When client connection expire mechanism is on the value of field `expires` in connect reply is `true`. In this case client implementation should look at `ttl` value which is seconds left until connection will be considered expired. Client must send `refresh` command after this `ttl` seconds. Server gives client a configured window to refresh token after `ttl` passed and then closes connection if client have not updated its token.
+
+When connecting with already expired token an error will be returned (with code `110`). In this case client should refresh its token and reconnect with exponential backoff. 
 
 ### RPC-like calls: publish, history, presence
 
@@ -354,13 +355,13 @@ This section contains advices to error handling in client implementations.
 
 Errors can happen during various operations and can be handled in special way in context of some commands to tolerate network and server problems.
 
-Errors during `connect` must result in full client reconnect.
+Errors during `connect` must result in full client reconnect with exponential backoff strategy. The special case is error with code `110` which signals that connection token already expired. As we said above client should update its connection JWT before connecting to server again.  
 
-Errors during `subscribe` must result in full client reconnect if error is temporary. And be sent to subscribe error event handler of subscription if received error is persistent. Persistent errors are errors like `permission denied`, `bad request`, `namespace not found` etc. Persistent errors in most situation mean a mistake from developers side.
+Errors during `subscribe` must result in full client reconnect in case of internal error (code `100`). And be sent to subscribe error event handler of subscription if received error is persistent. Persistent errors are errors like `permission denied`, `bad request`, `namespace not found` etc. Persistent errors in most situation mean a mistake from developers side.
 
-The special corner case is client-side timeout during `subscribe` operation. As protocol is asynchronous it's possible in this case that server will eventually subscribe client on channel but client will think that it's not subscribed. It's possible to retry subscription request and tolerate `already subscribed` error as expected. But the simplest solution is to reconnect entirely as this is simpler and gives client a chance to connect to working server instance.
+The special corner case is client-side timeout during `subscribe` operation. As protocol is asynchronous it's possible in this case that server will eventually subscribe client on channel but client will think that it's not subscribed. It's possible to retry subscription request and tolerate `already subscribed` (code `105`) error as expected. But the simplest solution is to reconnect entirely as this is simpler and gives client a chance to connect to working server instance.
 
-Errors during rpc-like operations can be just returned to caller - i.e. user javascript code. Calls like `history` and `presence` are idempotent. You should be accurate with unidempotent operations like `publish` - in case of client timeout it's possible to send the same message into channel twice if retry publish after timeout - so if you care about this case make sure you have some protection from displaying message twice on client side (maybe some sort of unique key in payload).
+Errors during rpc-like operations can be just returned to caller - i.e. user javascript code. Calls like `history` and `presence` are idempotent. You should be accurate with unidempotent operations like `publish` - in case of client timeout it's possible to send the same message into channel twice if retry publish after timeout - so users of libraries must care about this case – making sure they have some protection from displaying message twice on client side (maybe some sort of unique key in payload).
 
 ### Client implementation advices
 
@@ -396,7 +397,7 @@ centrifuge.on('disconnect', function(context) {
 });
 ```
 
-Client created in `disconnected` state with `reconnect` attribute set to `true` and `reconnecting` flag set to `false` . After `connect()` called state goes to `connecting`. It's only possible to connect from `disconnected` state. Every time `connect()` called `reconnect` flag of client must be set to `true`. After each failed connect attempt state must be set to `disconnected`, `disconnect` event must be emitted (only if `reconnecting` flag is `false`), and then `reconnecting` flag must be set to `true` (if client should continue reconnecting) to not emit `disconnect` event again after next in a row connect attempt failure. In case of failure next connection attempt must be scheduled automatically with backof strategy. On successful connect `reconnecting` flag must be set to `false`, backoff retry must be resetted and `connect` event must be emitted. When connection lost then the same set of actions as when connect failed must be performed.
+Client created in `disconnected` state with `reconnect` attribute set to `true` and `reconnecting` flag set to `false` . After `connect()` called state goes to `connecting`. It's only possible to connect from `disconnected` state. Every time `connect()` called `reconnect` flag of client must be set to `true`. After each failed connect attempt state must be set to `disconnected`, `disconnect` event must be emitted (only if `reconnecting` flag is `false`), and then `reconnecting` flag must be set to `true` (if client should continue reconnecting) to not emit `disconnect` event again after next in a row connect attempt failure. In case of failure next connection attempt must be scheduled automatically with backoff strategy. On successful connect `reconnecting` flag must be set to `false`, backoff retry must be resetted and `connect` event must be emitted. When connection lost then the same set of actions as when connect failed must be performed.
 
 Client must allow to subscribe on channels:
 
@@ -422,5 +423,3 @@ Every time client disconnects from server it must call unsubscribe handlers for 
 Client must periodically (once in 25 secs, configurable) send ping messages to server. If pong has not beed received in 5 secs (configurable) then client must disconnect from server and try to reconnect with backoff strategy.
 
 Client can automatically batch several requests into one frame to server and also must be able to handle several replies received from server in one frame.
-
-Timeout on subscription requests must result in full client reconnect workflow.

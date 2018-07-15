@@ -129,7 +129,7 @@ type Client struct {
 	eventHub *ClientEventHub
 }
 
-// newClient creates new client connection.
+// newClient initializes new Client.
 func newClient(ctx context.Context, n *Node, t transport) (*Client, error) {
 	uuidObject, err := uuid.NewV4()
 	if err != nil {
@@ -874,6 +874,7 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 	config := c.node.Config()
 	version := config.Version
 	insecure := config.ClientInsecure
+	clientAnonymous := config.ClientAnonymous
 	closeDelay := config.ClientExpiredCloseDelay
 	userConnectionLimit := config.ClientUserConnectionLimit
 
@@ -895,7 +896,7 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 		c.exp = credentials.ExpireAt
 		c.mu.Unlock()
 	} else if cmd.Token != "" {
-		// explicit auth Credentials not provided in context, try to look
+		// Explicit auth Credentials not provided in context, try to look
 		// for credentials in connect token.
 		token := cmd.Token
 
@@ -958,7 +959,7 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 			c.mu.Unlock()
 		}
 	} else {
-		if !insecure {
+		if !insecure && !clientAnonymous {
 			c.node.logger.log(newLogEntry(LogLevelInfo, "client credentials not found", map[string]interface{}{"client": c.uid}))
 			return resp, DisconnectBadRequest
 		}
@@ -1702,8 +1703,8 @@ func (c *Client) presenceCmd(cmd *proto.PresenceRequest) (*proto.PresenceRespons
 	return resp, nil
 }
 
-// presenceStatsCmd handle request to get presence stats – short summary
-// about clients in channel.
+// presenceStatsCmd handles request to get presence stats – short summary
+// about active clients in channel.
 func (c *Client) presenceStatsCmd(cmd *proto.PresenceStatsRequest) (*proto.PresenceStatsResponse, *Disconnect) {
 
 	ch := cmd.Channel

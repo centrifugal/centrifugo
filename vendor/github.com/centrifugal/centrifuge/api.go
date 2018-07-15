@@ -24,8 +24,14 @@ func (h *apiExecutor) Publish(ctx context.Context, cmd *apiproto.PublishRequest)
 
 	resp := &apiproto.PublishResponse{}
 
-	if ch == "" || len(data) == 0 {
-		h.node.logger.log(newLogEntry(LogLevelError, "channel and data required for publish", nil))
+	if ch == "" {
+		h.node.logger.log(newLogEntry(LogLevelError, "channel required for publish", nil))
+		resp.Error = apiproto.ErrorBadRequest
+		return resp
+	}
+
+	if len(data) == 0 {
+		h.node.logger.log(newLogEntry(LogLevelError, "data required for publish", nil))
 		resp.Error = apiproto.ErrorBadRequest
 		return resp
 	}
@@ -124,6 +130,20 @@ func (h *apiExecutor) Unsubscribe(ctx context.Context, cmd *apiproto.Unsubscribe
 	user := cmd.User
 	channel := cmd.Channel
 
+	if user == "" {
+		h.node.logger.log(newLogEntry(LogLevelError, "user required for unsubscribe", map[string]interface{}{"channel": channel, "user": user}))
+		resp.Error = apiproto.ErrorBadRequest
+		return resp
+	}
+
+	if channel != "" {
+		_, ok := h.node.ChannelOpts(channel)
+		if !ok {
+			resp.Error = apiproto.ErrorNamespaceNotFound
+			return resp
+		}
+	}
+
 	err := h.node.Unsubscribe(user, channel)
 	if err != nil {
 		h.node.logger.log(newLogEntry(LogLevelError, "error unsubscribing user from channel", map[string]interface{}{"channel": channel, "user": user, "error": err.Error()}))
@@ -140,6 +160,11 @@ func (h *apiExecutor) Disconnect(ctx context.Context, cmd *apiproto.DisconnectRe
 	resp := &apiproto.DisconnectResponse{}
 
 	user := cmd.User
+	if user == "" {
+		h.node.logger.log(newLogEntry(LogLevelError, "user required for disconnect", map[string]interface{}{}))
+		resp.Error = apiproto.ErrorBadRequest
+		return resp
+	}
 
 	err := h.node.Disconnect(user, false)
 	if err != nil {

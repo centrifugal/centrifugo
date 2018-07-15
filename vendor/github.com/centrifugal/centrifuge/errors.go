@@ -1,6 +1,9 @@
 package centrifuge
 
 // Here we define well-known errors that can be used in client API replies.
+// Library user can define own application specific errors. When define new
+// custom error it is recommended to use error codes > 1000 assuming that
+// codes in interval 0-999 reserved by Centrifuge.
 var (
 	// ErrorInternal means server error, if returned this is a signal
 	// that something went wrong with server itself and client most probably

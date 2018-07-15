@@ -43,7 +43,7 @@
     "internal/queue",
     "internal/uuid"
   ]
-  revision = "9639b70c0cdc7afefd84e3ab2e37a3a3133b4efd"
+  revision = "c5ee04ff41f0034b236643a685b9756d7c4bb161"
 
 [[projects]]
   name = "github.com/dgrijalva/jwt-go"

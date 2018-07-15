@@ -25,6 +25,11 @@ type Config struct {
 	// anonymous access and publish allowed for all channels, no connection expire
 	// performed. This can be suitable for demonstration or personal usage.
 	ClientInsecure bool
+	// ClientAnonymous when set to true, allows connect requests without specifying
+	// a token or setting Credentials in authentication middleware. The resulting
+	// user will have empty string for user ID, meaning user can only subscribe
+	// to anonymous channels.
+	ClientAnonymous bool
 	// ClientPresencePingInterval is an interval how often connected clients
 	// must update presence info.
 	ClientPresencePingInterval time.Duration
@@ -139,6 +144,7 @@ var DefaultConfig = Config{
 	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019"
 
 	ClientInsecure:               false,
+	ClientAnonymous:              false,
 	ClientPresencePingInterval:   25 * time.Second,
 	ClientPresenceExpireInterval: 60 * time.Second,
 	ClientMessageWriteTimeout:    0,
