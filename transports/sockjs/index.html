@@ -700,8 +700,16 @@
                 
                 
                 <h1 id="sockjs">SockJS<a class="headerlink" href="#sockjs" title="Permanent link">&para;</a></h1>
-<p>https://github.com/sockjs/sockjs-client</p>
-<p>This chapter is work in progress.</p>
+<p>SockJS is a polyfill browser library which provides HTTP-based fallback transports in case when it's not possible to establish Websocket connection. This can happen in old client browsers or because of some proxy behind client and server that cuts of Websocket traffic. You can find more information on <a href="https://github.com/sockjs/sockjs-client">SockJS project Github page</a>.</p>
+<p>If you have a requirement to work everywhere SockJS is the solution. SockJS will automatically choose best fallback transport if Websocket connection failed for some reason. Some of the fallback transports are:</p>
+<ul>
+<li>Eventsource (SSE)</li>
+<li>XHR-streaming</li>
+<li>Long-polling</li>
+<li>And more (see SockJS docs)</li>
+</ul>
+<p>One caveat when using SockJS is that <strong>you need to use sticky sessions mechanism if you have many Centrifugo nodes running</strong>. This mechanism is usually supported by load balancers (for example Nginx). Sticky sessions mean that all request from the same client must come to the same Centrifugo node. This is necessary because SockJS maintains connection session in process memory thus allowing bidirectional communication between client and server. Sticky mechnism is not required if you only use one Centrifugo node on backend. See how enable sticky sessions in Nginx in deploy section of this doc.</p>
+<p>SockJS connection endpoint in Centrifugo is <code class="codehilite">/connection/sockjs</code>. SockJS does not support binary so you only limited in using JSON with it. </p>
                 
                   
                 

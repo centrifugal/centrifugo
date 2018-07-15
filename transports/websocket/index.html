@@ -700,8 +700,9 @@
                 
                 
                 <h1 id="websocket">Websocket<a class="headerlink" href="#websocket" title="Permanent link">&para;</a></h1>
-<p>https://en.wikipedia.org/wiki/WebSocket</p>
-<p>This chapter is work in progress.</p>
+<p><a href="https://en.wikipedia.org/wiki/WebSocket">Websocket</a> is the main transport in Centrifugo. It's a very efficient low-overhead protocol on top of TCP.</p>
+<p>The biggest advantage is that Websocket works out of the box in all modern browsers and almost all programming languages have Websocket implementations. This makes Websocket a pretty universal transport that can even be used to connect to Centrifugo from web apps and mobile apps and other environments.</p>
+<p>Websocket connection endpoint in Centrifugo is <code class="codehilite">/connection/websocket</code>. If you want to use Protobuf binary protocol then you have to connect to <code class="codehilite">/connection/websocket?format=protobuf</code></p>
                 
                   
                 
