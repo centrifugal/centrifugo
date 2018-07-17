@@ -80,6 +80,10 @@ No - Centrifugo is best-effort transport. This means that if you want strongly g
 
 Centrifugo can keep message history for a while and you can want to rely on it for your needs. Centrifugo is not designed as data storage - it uses message history mostly for recovering missed messages after short client internet connection disconnects. It's not designed to be used to sync client state after being offline for a long time - this logic should be on your app backend.
 
+### What is the difference between Centrifugo and Centrifuge
+
+[Centrifugo](https://github.com/centrifugal/centrifugo) is server built on top of [Centrifuge](https://github.com/centrifugal/centrifuge) library for Go language.
+
 ### I have not found an answer on my question here:
 
 We have [gitter chat room](https://gitter.im/centrifugal/centrifugo) - welcome!

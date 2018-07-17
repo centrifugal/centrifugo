@@ -222,7 +222,7 @@ The tip whether or not connection must be refreshed comes in reply to `connect` 
 
 When client connection expire mechanism is on the value of field `expires` in connect reply is `true`. In this case client implementation should look at `ttl` value which is seconds left until connection will be considered expired. Client must send `refresh` command after this `ttl` seconds. Server gives client a configured window to refresh token after `ttl` passed and then closes connection if client have not updated its token.
 
-When connecting with already expired token an error will be returned (with code `110`). In this case client should refresh its token and reconnect with exponential backoff. 
+When connecting with already expired token an error will be returned (with code `109`). In this case client should refresh its token and reconnect with exponential backoff. 
 
 ### RPC-like calls: publish, history, presence
 

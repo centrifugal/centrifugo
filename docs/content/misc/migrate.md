@@ -14,7 +14,7 @@ Centrifugo v2 simplified communication with API - requests should not be signed 
 
 Centrifugo v1 could process messages published in Redis queue. In v2 this possibility was removed because this technique is not good in terms of error handling and non-deterministic delay before message will be processed by Centrifugo node worker. Migrate to using HTTP or GRPC API.
 
-### Use JWT instead of hand-crafted token
+### Use JWT instead of hand-crafted connection token
 
 In Centrifugo v2 you must use JWT instead of hand-crafted tokens of v1. This means that you need to download JWT library for your language (there are plenty of them – see jwt.io) and build connection token with it.
 
@@ -22,4 +22,7 @@ See dedicated docs chapter to see how token can be built.
 
 All connection information will be passed inside this single token string. This means you only need to pass one string to your frontend. No need to pass `user`, `timestamp`, `info` anymore. This also means that you will have less problems with escaping features of template engines - because JWT is safe base64 string. 
 
-### 
+### Use JWT instead of hand-crafted signature for private subscriptions
+
+Read chapter about private subscriptions to find how you should now use JWT for private channel subscriptions.
+
