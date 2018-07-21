@@ -6,8 +6,6 @@ then
 fi
 
 MAIN_DIR=`pwd`
-DOCKERFILE=$MAIN_DIR/Dockerfile
-DOCKERFILE_TEMPLATE=$MAIN_DIR/misc/scripts/dockerfile.template
 HOMEBREWFILE=$MAIN_DIR/centrifugo.rb
 HOMEBREWFILE_TEMPLATE=$MAIN_DIR/misc/scripts/homebrew.template
 
@@ -28,11 +26,6 @@ for i in */; do
   shasum -a 256 "${i%/}.zip" >> sha256sum.txt
   rm -r $i
 done
-
-CHECKSUM=`cat sha256sum.txt | grep "linux-amd64" | awk -F "  " '{print $1}'`
-echo "SHA 256 sum for Dockerfile: $CHECKSUM"
-sed -e "s;%version%;$1;g" -e "s;%checksum%;$CHECKSUM;g" $DOCKERFILE_TEMPLATE > $DOCKERFILE
-echo "Centos 7 Dockerfile updated"
 
 CHECKSUM=`cat sha256sum.txt | grep "darwin-amd64" | awk -F "  " '{print $1}'`
 echo "SHA 256 sum for Homebrew formula file: $CHECKSUM"
