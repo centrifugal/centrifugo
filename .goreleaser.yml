@@ -4,16 +4,17 @@ release:
     owner: centrifugal
     name: centrifugo
   name_template: '{{.Tag}}'
-  # If set to true, will not auto-publish the release.
   draft: true
-  # If set to true, will mark the release as not ready for production.
   prerelease: true
 brew:
+  github:
+    owner: centrifugal
+    name: homebrew-centrifugo
   commit_author:
     name: Alexander Emelin
     email: frvzmb@gmail.com
   install: bin.install "centrifugo"
-  skip_upload: true
+  homepage: "https://github.com/centrifugal/centrifugo"
 builds:
 - goos:
   - linux
