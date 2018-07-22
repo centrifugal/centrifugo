@@ -162,9 +162,9 @@ func (s *HTTPServer) sockJSHandler(sess sockjs.Session) {
 		defer c.Close(nil)
 
 		logger.DEBUG.Printf("New SockJS session established with uid %s\n", c.UID())
-		defer func() {
-			logger.DEBUG.Printf("SockJS session with uid %s completed", c.UID())
-		}()
+
+		defer logger.DEBUG.Printf("SockJS session with uid %s completed", c.UID())
+
 
 		for {
 			if msg, err := sess.Recv(); err == nil {
@@ -240,9 +240,9 @@ func (s *HTTPServer) rawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 		defer c.Close(nil)
 
 		logger.DEBUG.Printf("New raw websocket session established with uid %s\n", c.UID())
-		defer func() {
-			logger.DEBUG.Printf("Raw websocket session with uid %s completed", c.UID())
-		}()
+
+		defer logger.DEBUG.Printf("Raw websocket session with uid %s completed", c.UID())
+
 
 		for {
 			_, message, err := ws.ReadMessage()
@@ -260,9 +260,8 @@ func (s *HTTPServer) rawWebsocketHandler(w http.ResponseWriter, r *http.Request)
 // apiHandler is responsible for receiving API commands over HTTP.
 func (s *HTTPServer) apiHandler(w http.ResponseWriter, r *http.Request) {
 	started := time.Now()
-	defer func() {
-		plugin.Metrics.HDRHistograms.RecordMicroseconds("http_api", time.Now().Sub(started))
-	}()
+	defer plugin.Metrics.HDRHistograms.RecordMicroseconds("http_api", time.Now().Sub(started))
+
 	plugin.Metrics.Counters.Inc("http_api_num_requests")
 
 	contentType := r.Header.Get("Content-Type")
@@ -449,9 +448,7 @@ func (s *HTTPServer) adminWebsocketHandler(w http.ResponseWriter, r *http.Reques
 
 		start := time.Now()
 		logger.DEBUG.Printf("New admin session established with uid %s\n", c.UID())
-		defer func() {
-			logger.DEBUG.Printf("Admin session completed in %s, uid %s", time.Since(start), c.UID())
-		}()
+		defer logger.DEBUG.Printf("Admin session completed in %s, uid %s", time.Since(start), c.UID())
 
 		for {
 			_, message, err := sess.ws.ReadMessage()

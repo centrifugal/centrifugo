@@ -922,9 +922,8 @@ func (e *Shard) runPubSub() {
 	}
 
 	logger.DEBUG.Printf("Running Redis PUB/SUB, num workers: %d", numWorkers)
-	defer func() {
-		logger.DEBUG.Printf("Stopping Redis PUB/SUB")
-	}()
+
+	defer logger.DEBUG.Printf("Stopping Redis PUB/SUB")
 
 	poolConn := e.pool.Get()
 	if poolConn.Err() != nil {
@@ -944,9 +943,8 @@ func (e *Shard) runPubSub() {
 	go func() {
 		logger.TRACE.Println("Starting RedisEngine Subscriber")
 
-		defer func() {
-			logger.TRACE.Println("Stopping RedisEngine Subscriber")
-		}()
+		defer logger.TRACE.Println("Stopping RedisEngine Subscriber")
+
 		for {
 			select {
 			case <-done:

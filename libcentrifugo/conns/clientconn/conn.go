@@ -319,9 +319,8 @@ func (c *client) info(ch string) proto.ClientInfo {
 
 func (c *client) Handle(msg []byte) error {
 	started := time.Now()
-	defer func() {
-		plugin.Metrics.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
-	}()
+	defer plugin.Metrics.HDRHistograms.RecordMicroseconds("client_api", time.Now().Sub(started))
+
 	plugin.Metrics.Counters.Inc("client_api_num_requests")
 	plugin.Metrics.Counters.Add("client_bytes_in", int64(len(msg)))
 
