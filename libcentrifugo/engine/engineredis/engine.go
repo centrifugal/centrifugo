@@ -1386,9 +1386,8 @@ func (e *Shard) typeFromChannelID(chID ChannelID) string {
 		return "join"
 	} else if strings.HasPrefix(string(chID), e.leavePrefix) {
 		return "leave"
-	} else {
-		return "unknown"
 	}
+	return "unknown"
 }
 
 // PublishMessage - see engine interface description.
