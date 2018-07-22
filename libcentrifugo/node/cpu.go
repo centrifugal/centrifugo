@@ -4,7 +4,6 @@ package node
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -50,7 +49,6 @@ func cpuUsage() (int64, error) {
 		}
 		return int64(cpu), nil
 	}
-	return 0, errors.New("no cpu info found")
 }
 
 // And here is another implementation using syscall
