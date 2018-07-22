@@ -84,6 +84,8 @@ Centrifugo can keep message history for a while and you can want to rely on it f
 
 [Centrifugo](https://github.com/centrifugal/centrifugo) is server built on top of [Centrifuge](https://github.com/centrifugal/centrifuge) library for Go language.
 
+This documentation was built to describe Centrifugo. Though many things said here can be considered as extra documentation for Centrifuge library.
+
 ### I have not found an answer on my question here:
 
 We have [gitter chat room](https://gitter.im/centrifugal/centrifugo) - welcome!

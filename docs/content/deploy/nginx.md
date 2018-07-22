@@ -91,7 +91,6 @@ server {
     location = /50x.html {
         root   /usr/share/nginx/html;
     }
-
 }
 ```
 
@@ -143,7 +142,6 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
     }
-
 }
 ```
 

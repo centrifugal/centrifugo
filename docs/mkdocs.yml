@@ -74,4 +74,6 @@ pages:
     - 'TLS': 'deploy/tls.md'
     - 'Redis HA': 'deploy/redis.md'
     - 'OS tuning': 'deploy/tuning.md'
+  - Misc:
+    - 'Migrate from Centrifugo v1': 'misc/migrate.md'
   - FAQ: 'faq.md'

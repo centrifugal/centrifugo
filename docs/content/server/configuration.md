@@ -217,11 +217,13 @@ All things together here is an example of `config.json` which includes registere
 }
 ```
 
-Channel `news` will use global project options.
+Channel `news` will use globally defined channel options.
 
 Channel `public:news` will use `public` namespace's options.
 
 Channel `gossips:news` will use `gossips` namespace's options.
+
+There is no inheritance in channel options and namespaces – so if for example you defined `presence: true` on top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. 
 
 ### Advanced configuration
 

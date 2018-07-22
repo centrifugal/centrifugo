@@ -22,9 +22,6 @@ test:
 web:
 	./misc/scripts/update_web.sh
 
-bindata:
-	statik -src=misc/web -dest ./internal/ -package=webui
-
 package:
 	./misc/scripts/package.sh $(VERSION) $(ITERATION)
 
