@@ -45,6 +45,12 @@ func (t *sockjsTransport) Encoding() proto.Encoding {
 	return proto.EncodingJSON
 }
 
+func (t *sockjsTransport) Info() TransportInfo {
+	return TransportInfo{
+		Request: t.session.Request(),
+	}
+}
+
 func (t *sockjsTransport) Send(reply *preparedReply) error {
 	data := reply.Data()
 	disconnect := t.writer.write(data)

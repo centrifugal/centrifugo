@@ -25,6 +25,7 @@ const (
 type websocketTransport struct {
 	mu        sync.RWMutex
 	conn      *websocket.Conn
+	req       *http.Request
 	closed    bool
 	closeCh   chan struct{}
 	opts      *websocketTransportOptions
@@ -39,9 +40,10 @@ type websocketTransportOptions struct {
 	compressionMinSize int
 }
 
-func newWebsocketTransport(conn *websocket.Conn, writer *writer, opts *websocketTransportOptions) *websocketTransport {
+func newWebsocketTransport(conn *websocket.Conn, req *http.Request, writer *writer, opts *websocketTransportOptions) *websocketTransport {
 	transport := &websocketTransport{
 		conn:    conn,
+		req:     req,
 		closeCh: make(chan struct{}),
 		opts:    opts,
 		writer:  writer,
@@ -84,6 +86,12 @@ func (t *websocketTransport) Name() string {
 
 func (t *websocketTransport) Encoding() proto.Encoding {
 	return t.opts.enc
+}
+
+func (t *websocketTransport) Info() TransportInfo {
+	return TransportInfo{
+		Request: t.req,
+	}
 }
 
 func (t *websocketTransport) Send(reply *preparedReply) error {
@@ -284,7 +292,7 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		writer := newWriter(writerConf)
 		defer writer.close()
 
-		transport := newWebsocketTransport(conn, writer, opts)
+		transport := newWebsocketTransport(conn, r, writer, opts)
 
 		select {
 		case <-s.node.NotifyShutdown():
