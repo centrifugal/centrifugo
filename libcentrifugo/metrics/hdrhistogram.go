@@ -69,7 +69,8 @@ func (h *HDRHistogram) LoadValues() map[string]int64 {
 	nHistograms := strconv.Itoa(h.nHistograms)
 	currentSnapshot := h.Snapshot()
 	mergedSnapshot := h.MergedSnapshot()
-	quantity := h.quantity
+	var quantity string
+
 	if h.quantity == "" {
 		quantity = ""
 	} else {
