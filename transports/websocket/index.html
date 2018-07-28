@@ -37,7 +37,7 @@
       
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
-      <link rel="shortcut icon" href="../../images/logo.png">
+      <link rel="shortcut icon" href="../../images/favicon.png">
       <meta name="generator" content="mkdocs-0.17.2, mkdocs-material-2.6.6">
     
     
@@ -489,9 +489,38 @@
       
     
     
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        Websocket
+      </label>
+    
     <a href="./" title="Websocket" class="md-nav__link md-nav__link--active">
       Websocket
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#websocket-compression" title="Websocket compression" class="md-nav__link">
+    Websocket compression
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
     
   </li>
 
@@ -662,6 +691,42 @@
       
 
 
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+    
+    <label class="md-nav__link" for="nav-6">
+      Misc
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-6">
+        Misc
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
+      Migrate from Centrifugo v1
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
   <li class="md-nav__item">
     <a href="../../faq/" title="FAQ" class="md-nav__link">
       FAQ
@@ -686,6 +751,22 @@
     
   
   
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#websocket-compression" title="Websocket compression" class="md-nav__link">
+    Websocket compression
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -702,7 +783,14 @@
                 <h1 id="websocket">Websocket<a class="headerlink" href="#websocket" title="Permanent link">&para;</a></h1>
 <p><a href="https://en.wikipedia.org/wiki/WebSocket">Websocket</a> is the main transport in Centrifugo. It's a very efficient low-overhead protocol on top of TCP.</p>
 <p>The biggest advantage is that Websocket works out of the box in all modern browsers and almost all programming languages have Websocket implementations. This makes Websocket a pretty universal transport that can even be used to connect to Centrifugo from web apps and mobile apps and other environments.</p>
-<p>Websocket connection endpoint in Centrifugo is <code class="codehilite">/connection/websocket</code>. If you want to use Protobuf binary protocol then you have to connect to <code class="codehilite">/connection/websocket?format=protobuf</code></p>
+<p>Websocket connection endpoint in Centrifugo is <code class="codehilite">/connection/websocket</code>. If you want to use Protobuf binary protocol then you need to connect to <code class="codehilite">/connection/websocket?format=protobuf</code></p>
+<h3 id="websocket-compression">Websocket compression<a class="headerlink" href="#websocket-compression" title="Permanent link">&para;</a></h3>
+<p>An experimental feature for raw websocket endpoint - <code class="codehilite">permessage-deflate</code> compression for  websocket messages. Btw look at <a href="https://www.igvita.com/2013/11/27/configuring-and-optimizing-websocket-compression/">great article</a> about websocket compression.</p>
+<p>We consider this experimental because this websocket compression is experimental in <a href="https://github.com/gorilla/websocket">Gorilla Websocket</a> library that Centrifugo uses internally.</p>
+<p>Websocket compression can reduce amount of traffic travelling over the wire. But keep in mind that <strong>enabling websocket compression will result in much slower Centrifugo performance and more memory usage</strong> – depending on your message rate this can be very noticeable.</p>
+<p>To enable websocket compression for raw websocket endpoint set <code class="codehilite"><span class="n">websocket_compression</span><span class="o">:</span> <span class="kc">true</span></code> in configuration file. After this clients that support permessage-deflate will negotiate compression with server automatically. Note that enabling compression does not mean that every connection will use it - this depends on client support for this feature.</p>
+<p>Another option is <code class="codehilite">websocket_compression_min_size</code>. Default 0. This is a minimal size of message in bytes for which we use <code class="codehilite">deflate</code> compression when writing it to client's connection. Default value <code class="codehilite">0</code> means that we will compress all messages when <code class="codehilite">websocket_compression</code> enabled and compression support negotiated with client.</p>
+<p>It's also possible to control websocket compression level defined at <a href="https://golang.org/pkg/compress/flate/#NewWriter">compress/flate</a> By default when compression with client negotiated Centrifugo uses compression level 1 (BestSpeed). If you want to set custom compression level use <code class="codehilite">websocket_compression_level</code> configuration option.</p>
                 
                   
                 

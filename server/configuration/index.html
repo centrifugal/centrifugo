@@ -37,7 +37,7 @@
       
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
-      <link rel="shortcut icon" href="../../images/logo.png">
+      <link rel="shortcut icon" href="../../images/favicon.png">
       <meta name="generator" content="mkdocs-0.17.2, mkdocs-material-2.6.6">
     
     
@@ -850,6 +850,42 @@
       
 
 
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+    
+    <label class="md-nav__link" for="nav-6">
+      Misc
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-6">
+        Misc
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
+      Migrate from Centrifugo v1
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
   <li class="md-nav__item">
     <a href="../../faq/" title="FAQ" class="md-nav__link">
       FAQ
@@ -1247,9 +1283,10 @@ channel name with <code class="codehilite">:</code> as separator:</p>
 <span class="p">}</span>
 </pre></div>
 
-<p>Channel <code class="codehilite">news</code> will use global project options.</p>
+<p>Channel <code class="codehilite">news</code> will use globally defined channel options.</p>
 <p>Channel <code class="codehilite"><span class="kd">public</span><span class="o">:</span><span class="n">news</span></code> will use <code class="codehilite">public</code> namespace's options.</p>
 <p>Channel <code class="codehilite"><span class="n">gossips</span><span class="o">:</span><span class="n">news</span></code> will use <code class="codehilite">gossips</code> namespace's options.</p>
+<p>There is no inheritance in channel options and namespaces – so if for example you defined <code class="codehilite"><span class="n">presence</span><span class="o">:</span> <span class="kc">true</span></code> on top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. </p>
 <h3 id="advanced-configuration">Advanced configuration<a class="headerlink" href="#advanced-configuration" title="Permanent link">&para;</a></h3>
 <p>Centrifugo has some options for which default values make sense for most applications. In many case you
 don't need (and you really should not) change them. This chapter is about such options.</p>

@@ -37,7 +37,7 @@
       
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
-      <link rel="shortcut icon" href="../images/logo.png">
+      <link rel="shortcut icon" href="../images/favicon.png">
       <meta name="generator" content="mkdocs-0.17.2, mkdocs-material-2.6.6">
     
     
@@ -650,6 +650,42 @@
       
       
 
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+    
+    <label class="md-nav__link" for="nav-6">
+      Misc
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-6">
+        Misc
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
+      Migrate from Centrifugo v1
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
   
 
 
@@ -765,6 +801,13 @@
         <li class="md-nav__item">
   <a href="#can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery" title="Can I rely on Centrifugo and its message history for guaranteed message delivery?" class="md-nav__link">
     Can I rely on Centrifugo and its message history for guaranteed message delivery?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-the-difference-between-centrifugo-and-centrifuge" title="What is the difference between Centrifugo and Centrifuge" class="md-nav__link">
+    What is the difference between Centrifugo and Centrifuge
   </a>
   
 </li>
@@ -899,6 +942,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-is-the-difference-between-centrifugo-and-centrifuge" title="What is the difference between Centrifugo and Centrifuge" class="md-nav__link">
+    What is the difference between Centrifugo and Centrifuge
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#i-have-not-found-an-answer-on-my-question-here" title="I have not found an answer on my question here:" class="md-nav__link">
     I have not found an answer on my question here:
   </a>
@@ -970,6 +1020,9 @@ on your backend.</p>
 <h3 id="can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery">Can I rely on Centrifugo and its message history for guaranteed message delivery?<a class="headerlink" href="#can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery" title="Permanent link">&para;</a></h3>
 <p>No - Centrifugo is best-effort transport. This means that if you want strongly guaranteed message delivery to your clients then you can't just rely on Centrifugo and its message history cache. In this case you still can use Centrifugo for real-time but you should build some additional logic on top your application backend and main data storage to satisfy your guarantees.</p>
 <p>Centrifugo can keep message history for a while and you can want to rely on it for your needs. Centrifugo is not designed as data storage - it uses message history mostly for recovering missed messages after short client internet connection disconnects. It's not designed to be used to sync client state after being offline for a long time - this logic should be on your app backend.</p>
+<h3 id="what-is-the-difference-between-centrifugo-and-centrifuge">What is the difference between Centrifugo and Centrifuge<a class="headerlink" href="#what-is-the-difference-between-centrifugo-and-centrifuge" title="Permanent link">&para;</a></h3>
+<p><a href="https://github.com/centrifugal/centrifugo">Centrifugo</a> is server built on top of <a href="https://github.com/centrifugal/centrifuge">Centrifuge</a> library for Go language.</p>
+<p>This documentation was built to describe Centrifugo. Though many things said here can be considered as extra documentation for Centrifuge library.</p>
 <h3 id="i-have-not-found-an-answer-on-my-question-here">I have not found an answer on my question here:<a class="headerlink" href="#i-have-not-found-an-answer-on-my-question-here" title="Permanent link">&para;</a></h3>
 <p>We have <a href="https://gitter.im/centrifugal/centrifugo">gitter chat room</a> - welcome!</p>
                 
@@ -990,7 +1043,7 @@ on your backend.</p>
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../deploy/tuning/" title="OS tuning" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../misc/migrate/" title="Migrate from Centrifugo v1" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -999,7 +1052,7 @@ on your backend.</p>
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                OS tuning
+                Migrate from Centrifugo v1
               </span>
             </div>
           </a>

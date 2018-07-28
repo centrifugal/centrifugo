@@ -37,7 +37,7 @@
       
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
-      <link rel="shortcut icon" href="../../images/logo.png">
+      <link rel="shortcut icon" href="../../images/favicon.png">
       <meta name="generator" content="mkdocs-0.17.2, mkdocs-material-2.6.6">
     
     
@@ -340,6 +340,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#channel-name-rules" title="Channel name rules" class="md-nav__link">
+    Channel name rules
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#namespace-channel-boundary" title="namespace channel boundary (:)" class="md-nav__link">
     namespace channel boundary (:)
   </a>
@@ -347,15 +354,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#user-channel-boundary" title="user channel boundary (#)" class="md-nav__link">
-    user channel boundary (#)
+  <a href="#private-channel-prefix" title="private channel prefix ($)" class="md-nav__link">
+    private channel prefix ($)
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#private-channel-prefix" title="private channel prefix ($)" class="md-nav__link">
-    private channel prefix ($)
+  <a href="#user-channel-boundary" title="user channel boundary (#)" class="md-nav__link">
+    user channel boundary (#)
   </a>
   
 </li>
@@ -705,6 +712,42 @@
       
 
 
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+    
+    <label class="md-nav__link" for="nav-6">
+      Misc
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-6">
+        Misc
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
+      Migrate from Centrifugo v1
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
   <li class="md-nav__item">
     <a href="../../faq/" title="FAQ" class="md-nav__link">
       FAQ
@@ -733,6 +776,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#channel-name-rules" title="Channel name rules" class="md-nav__link">
+    Channel name rules
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#namespace-channel-boundary" title="namespace channel boundary (:)" class="md-nav__link">
     namespace channel boundary (:)
   </a>
@@ -740,15 +790,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#user-channel-boundary" title="user channel boundary (#)" class="md-nav__link">
-    user channel boundary (#)
+  <a href="#private-channel-prefix" title="private channel prefix ($)" class="md-nav__link">
+    private channel prefix ($)
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#private-channel-prefix" title="private channel prefix ($)" class="md-nav__link">
-    private channel prefix ($)
+  <a href="#user-channel-boundary" title="user channel boundary (#)" class="md-nav__link">
+    user channel boundary (#)
   </a>
   
 </li>
@@ -775,19 +825,26 @@
                 <h1 id="channels">Channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h1>
 <p>Channel is a route for publication messages. Clients can subscribe to channel to receive events related to this channel – new publications, join/leave events etc. Also client must be subscribed on channel to get channel presence or history information.</p>
 <p>Channel is just a string - <code class="codehilite">news</code>, <code class="codehilite">comments</code> are valid channel names.</p>
+<h3 id="channel-name-rules">Channel name rules<a class="headerlink" href="#channel-name-rules" title="Permanent link">&para;</a></h3>
 <p>Only ASCII symbols must be used in channel string.</p>
-<p><strong>BUT!</strong> You should know several things.</p>
-<p>First, channel name length is limited by <code class="codehilite">255</code> characters by default (can be changed via configuration file option <code class="codehilite">channel_max_length</code>)</p>
-<p>Second, <code class="codehilite">:</code>, <code class="codehilite">#</code> and <code class="codehilite">$</code> symbols have a special role in channel name.</p>
+<p>Channel name length is limited by <code class="codehilite">255</code> characters by default (can be changed via configuration file option <code class="codehilite">channel_max_length</code>).</p>
+<p>Several symbols in channel names are reserved for Centrifugo internal needs:</p>
+<ul>
+<li><code class="codehilite">:</code> – for namespace channel boundary (see below)</li>
+<li><code class="codehilite">$</code> – for private channel prefix (see below)</li>
+<li><code class="codehilite">#</code> – for user channel boundary (see below)</li>
+<li><code class="codehilite">*</code> – for future Centrifugo needs</li>
+<li><code class="codehilite">&amp;</code> – for future Centrifugo needs</li>
+</ul>
 <h3 id="namespace-channel-boundary">namespace channel boundary (:)<a class="headerlink" href="#namespace-channel-boundary" title="Permanent link">&para;</a></h3>
-<p><code class="codehilite">:</code> - is a channel namespace boundary.</p>
+<p><code class="codehilite">:</code> – is a channel namespace boundary.</p>
 <p>If channel is <code class="codehilite"><span class="kd">public</span><span class="o">:</span><span class="n">chat</span></code> - then Centrifugo will apply options to this channel from channel namespace with name <code class="codehilite">public</code>.</p>
-<h3 id="user-channel-boundary">user channel boundary (#)<a class="headerlink" href="#user-channel-boundary" title="Permanent link">&para;</a></h3>
-<p><code class="codehilite">#</code> is a user boundary - separator to create private channels for users (user limited channels) without sending POST request to your web application. For example if channel is <code class="codehilite">news#42</code> then only user with ID <code class="codehilite">42</code> can subscribe on this channel (Centrifugo knows user ID as clients provide it in connection credentials).</p>
-<p>Moreover you can provide several user IDs in channel name separated by comma: <code class="codehilite">dialog#42,43</code> – in this case only user with ID <code class="codehilite">42</code> and user with ID <code class="codehilite">43</code> will be able to subscribe on this channel.</p>
-<p>This is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.</p>
 <h3 id="private-channel-prefix">private channel prefix ($)<a class="headerlink" href="#private-channel-prefix" title="Permanent link">&para;</a></h3>
 <p>If channel starts with <code class="codehilite">$</code> then it considered private. Subscription on private channel must be properly signed by your web application. Read special chapter in docs about private channel subscriptions.</p>
+<h3 id="user-channel-boundary">user channel boundary (#)<a class="headerlink" href="#user-channel-boundary" title="Permanent link">&para;</a></h3>
+<p><code class="codehilite">#</code> – is a user channel boundary. This is a separator to create private channels for users (user limited channels) without sending POST request to your web application. For example if channel is <code class="codehilite">news#42</code> then only user with ID <code class="codehilite">42</code> can subscribe on this channel (Centrifugo knows user ID as clients provide it in connection credentials).</p>
+<p>Moreover you can provide several user IDs in channel name separated by comma: <code class="codehilite">dialog#42,43</code> – in this case only user with ID <code class="codehilite">42</code> and user with ID <code class="codehilite">43</code> will be able to subscribe on this channel.</p>
+<p>This is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.</p>
                 
                   
                 
