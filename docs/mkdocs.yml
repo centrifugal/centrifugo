@@ -26,7 +26,7 @@ theme:
   name: 'material'
   language: en
   include_sidebar: true
-  favicon: images/logo.png
+  favicon: images/favicon.png
   logo: images/logo.png
   palette:
     primary: 'blue'
