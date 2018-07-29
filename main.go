@@ -58,11 +58,11 @@ func main() {
 			}
 
 			bindEnvs := []string{
-				"engine", "debug", "secret", "connection_lifetime",
-				"publish", "anonymous", "join_leave", "presence",
-				"history_recover", "history_size", "history_lifetime", "history_drop_inactive",
-				"client_insecure", "api_insecure", "admin", "admin_password", "admin_secret",
-				"admin_insecure", "redis_host", "redis_port", "redis_url",
+				"engine", "debug", "secret", "publish", "subscribe_to_publish", "anonymous",
+				"join_leave", "presence", "history_recover", "history_size", "history_lifetime",
+				"history_drop_inactive", "client_insecure", "api_insecure", "admin",
+				"admin_password", "admin_secret", "admin_insecure", "redis_host",
+				"redis_port", "redis_url",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -314,6 +314,7 @@ var configDefaults = map[string]interface{}{
 	"name":                            "",
 	"secret":                          "",
 	"publish":                         false,
+	"subscribe_to_publish":            false,
 	"anonymous":                       false,
 	"presence":                        false,
 	"history_size":                    0,
@@ -770,6 +771,7 @@ func nodeConfig() *centrifuge.Config {
 	cfg.Secret = v.GetString("secret")
 
 	cfg.Publish = v.GetBool("publish")
+	cfg.SubscribeToPublish = v.GetBool("subscribe_to_publish")
 	cfg.Anonymous = v.GetBool("anonymous")
 	cfg.Presence = v.GetBool("presence")
 	cfg.JoinLeave = v.GetBool("join_leave")

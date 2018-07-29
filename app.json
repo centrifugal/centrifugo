@@ -17,6 +17,7 @@
       "generator": "secret"
     },
     "CENTRIFUGO_PUBLISH": "0",
+    "CENTRIFUGO_SUBSCRIBE_TO_PUBLISH": "0",
     "CENTRIFUGO_ANONYMOUS": "0",
     "CENTRIFUGO_JOIN_LEAVE": "0",
     "CENTRIFUGO_PRESENCE": "0",
