@@ -346,7 +346,7 @@ func handleClientData(n *Node, c *Client, data []byte, transport Transport, writ
 			if err == io.EOF {
 				break
 			}
-			n.logger.log(newLogEntry(LogLevelInfo, "error decoding command", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "error": err.Error()}))
+			n.logger.log(newLogEntry(LogLevelInfo, "error decoding command", map[string]interface{}{"data": string(data), "client": c.ID(), "user": c.UserID(), "error": err.Error()}))
 			c.close(DisconnectBadRequest)
 			proto.PutCommandDecoder(enc, decoder)
 			proto.PutReplyEncoder(enc, encoder)
@@ -362,12 +362,12 @@ func handleClientData(n *Node, c *Client, data []byte, transport Transport, writ
 		}
 		if rep != nil {
 			if rep.Error != nil {
-				n.logger.log(newLogEntry(LogLevelInfo, "error in reply", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "client": c.ID(), "user": c.UserID(), "error": rep.Error.Error()}))
+				n.logger.log(newLogEntry(LogLevelInfo, "error in reply", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "error": rep.Error.Error()}))
 			}
 			err = encoder.Encode(rep)
 			numReplies++
 			if err != nil {
-				n.logger.log(newLogEntry(LogLevelError, "error encoding reply", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "client": c.ID(), "user": c.UserID(), "error": err.Error()}))
+				n.logger.log(newLogEntry(LogLevelError, "error encoding reply", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "error": err.Error()}))
 				c.close(DisconnectServerError)
 				return false
 			}

@@ -42,6 +42,11 @@ var (
 		Reason:    "expired",
 		Reconnect: true,
 	}
+	// DisconnectSubExpired sent when client subscription expired.
+	DisconnectSubExpired = &Disconnect{
+		Reason:    "subscription expired",
+		Reconnect: true,
+	}
 	// DisconnectStale sent to close connection that did not become
 	// authenticated in configured interval after dialing.
 	DisconnectStale = &Disconnect{

@@ -203,7 +203,7 @@ func (c *Client) updatePresence() {
 				// Give subscription a chance to be refreshed via SubRefreshHandler.
 				reply := c.eventHub.subRefreshHandler(SubRefreshEvent{Channel: channel})
 				if reply.Expired || (reply.ExpireAt > 0 && reply.ExpireAt < now) {
-					go c.Unsubscribe(channel, true)
+					go c.Close(DisconnectSubExpired)
 					// No need to update channel presence.
 					continue
 				}
@@ -217,7 +217,7 @@ func (c *Client) updatePresence() {
 				// The only way subscription could be refreshed in this case is via
 				// SUB_REFRESH command sent from client but looks like that command
 				// with new refreshed token have not been received in configured window.
-				go c.Unsubscribe(channel, true)
+				go c.Close(DisconnectSubExpired)
 				// No need to update channel presence.
 				continue
 			}

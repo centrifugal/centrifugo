@@ -326,6 +326,7 @@ var configDefaults = map[string]interface{}{
 	"node_ping_interval":              3,
 	"client_ping_interval":            25,
 	"client_expired_close_delay":      25,
+	"client_expired_sub_close_delay":  25,
 	"client_stale_close_delay":        25,
 	"client_message_write_timeout":    0,
 	"client_channel_limit":            128,
@@ -794,6 +795,7 @@ func nodeConfig() *centrifuge.Config {
 	cfg.ClientMessageWriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
 	cfg.ClientInsecure = v.GetBool("client_insecure")
 	cfg.ClientExpiredCloseDelay = time.Duration(v.GetInt("client_expired_close_delay")) * time.Second
+	cfg.ClientExpiredSubCloseDelay = time.Duration(v.GetInt("client_expired_sub_close_delay")) * time.Second
 	cfg.ClientStaleCloseDelay = time.Duration(v.GetInt("client_stale_close_delay")) * time.Second
 	cfg.ClientRequestMaxSize = v.GetInt("client_request_max_size")
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
