@@ -1,6 +1,7 @@
 package centrifuge
 
-// Here we define well-known errors that can be used in client API replies.
+// Here we define well-known errors that can be used in client protocol
+// replies.
 // Library user can define own application specific errors. When define new
 // custom error it is recommended to use error codes > 1000 assuming that
 // codes in interval 0-999 reserved by Centrifuge.

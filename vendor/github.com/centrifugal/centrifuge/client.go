@@ -1645,7 +1645,7 @@ func (c *Client) publishCmd(cmd *proto.PublishRequest) (*proto.PublishResponse, 
 		}
 	}
 
-	err := <-c.node.publish(ch, pub, &chOpts)
+	err := <-c.node.PublishAsync(ch, pub)
 	if err != nil {
 		c.node.logger.log(newLogEntry(LogLevelError, "error publishing", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid, "error": err.Error()}))
 		resp.Error = ErrorInternal
@@ -1735,7 +1735,7 @@ func (c *Client) presenceStatsCmd(cmd *proto.PresenceStatsRequest) (*proto.Prese
 		return resp, nil
 	}
 
-	stats, err := c.node.presenceStats(ch)
+	stats, err := c.node.PresenceStats(ch)
 	if err != nil {
 		c.node.logger.log(newLogEntry(LogLevelError, "error getting presence stats", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid, "error": err.Error()}))
 		resp.Error = ErrorInternal

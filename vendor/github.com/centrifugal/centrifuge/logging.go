@@ -63,6 +63,11 @@ func newLogEntry(level LogLevel, message string, fields ...map[string]interface{
 	}
 }
 
+// NewLogEntry creates new LogEntry.
+func NewLogEntry(level LogLevel, message string, fields ...map[string]interface{}) LogEntry {
+	return newLogEntry(level, message, fields...)
+}
+
 // LogHandler handles log entries - i.e. writes into correct destination if necessary.
 type LogHandler func(LogEntry)
 

@@ -524,7 +524,7 @@ func (e *RedisEngine) presence(ch string) (map[string]*ClientInfo, error) {
 }
 
 // PresenceStats - see engine interface description.
-func (e *RedisEngine) presenceStats(ch string) (presenceStats, error) {
+func (e *RedisEngine) presenceStats(ch string) (PresenceStats, error) {
 	return e.shards[e.shardIndex(ch)].PresenceStats(ch)
 }
 
@@ -1217,10 +1217,10 @@ func (e *shard) Presence(ch string) (map[string]*ClientInfo, error) {
 }
 
 // Presence - see engine interface description.
-func (e *shard) PresenceStats(ch string) (presenceStats, error) {
+func (e *shard) PresenceStats(ch string) (PresenceStats, error) {
 	presence, err := e.Presence(ch)
 	if err != nil {
-		return presenceStats{}, err
+		return PresenceStats{}, err
 	}
 
 	numClients := len(presence)
@@ -1235,7 +1235,7 @@ func (e *shard) PresenceStats(ch string) (presenceStats, error) {
 		}
 	}
 
-	return presenceStats{
+	return PresenceStats{
 		NumClients: numClients,
 		NumUsers:   numUsers,
 	}, nil

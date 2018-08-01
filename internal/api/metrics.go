@@ -1,10 +1,10 @@
-package centrifuge
+package api
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var metricsNamespace = "centrifuge"
+var metricsNamespace = "centrifugo"
 
 var (
 	messagesSentCount = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -71,6 +71,22 @@ var (
 		Help:       "Client command duration summary.",
 	}, []string{"method"})
 
+	apiHandlerDurationSummary = prometheus.NewSummary(prometheus.SummaryOpts{
+		Namespace:  metricsNamespace,
+		Subsystem:  "http",
+		Name:       "api_request_duration_seconds",
+		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		Help:       "Duration of API handler in general.",
+	})
+
+	apiCommandDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		Namespace:  metricsNamespace,
+		Subsystem:  "http",
+		Name:       "api_request_command_duration_seconds",
+		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		Help:       "Duration of API per command.",
+	}, []string{"method"})
+
 	transportConnectCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsNamespace,
 		Subsystem: "transport",
@@ -87,15 +103,6 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(messagesSentCount)
-	prometheus.MustRegister(messagesReceivedCount)
-	prometheus.MustRegister(actionCount)
-	prometheus.MustRegister(numClientsGauge)
-	prometheus.MustRegister(numUsersGauge)
-	prometheus.MustRegister(numChannelsGauge)
-	prometheus.MustRegister(commandDurationSummary)
-	prometheus.MustRegister(replyErrorCount)
-	prometheus.MustRegister(transportConnectCount)
-	prometheus.MustRegister(transportMessagesSent)
-	prometheus.MustRegister(buildInfoGauge)
+	prometheus.MustRegister(apiHandlerDurationSummary)
+	prometheus.MustRegister(apiCommandDurationSummary)
 }

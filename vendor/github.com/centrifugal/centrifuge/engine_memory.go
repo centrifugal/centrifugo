@@ -110,7 +110,7 @@ func (e *MemoryEngine) presence(ch string) (map[string]*ClientInfo, error) {
 }
 
 // PresenceStats - see engine interface description.
-func (e *MemoryEngine) presenceStats(ch string) (presenceStats, error) {
+func (e *MemoryEngine) presenceStats(ch string) (PresenceStats, error) {
 	return e.presenceHub.getStats(ch)
 }
 
@@ -195,14 +195,14 @@ func (h *presenceHub) get(ch string) (map[string]*ClientInfo, error) {
 	return data, nil
 }
 
-func (h *presenceHub) getStats(ch string) (presenceStats, error) {
+func (h *presenceHub) getStats(ch string) (PresenceStats, error) {
 	h.RLock()
 	defer h.RUnlock()
 
 	presence, ok := h.presence[ch]
 	if !ok {
 		// return empty map
-		return presenceStats{}, nil
+		return PresenceStats{}, nil
 	}
 
 	numClients := len(presence)
@@ -217,7 +217,7 @@ func (h *presenceHub) getStats(ch string) (presenceStats, error) {
 		}
 	}
 
-	return presenceStats{
+	return PresenceStats{
 		NumClients: numClients,
 		NumUsers:   numUsers,
 	}, nil

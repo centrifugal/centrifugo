@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// presenceStats represents a short presence information for channel.
-type presenceStats struct {
+// PresenceStats represents a short presence information for channel.
+type PresenceStats struct {
 	NumClients int
 	NumUsers   int
 }
@@ -73,7 +73,7 @@ type Engine interface {
 	// PresenseStats returns short stats of current presence data
 	// suitable for scenarios when caller does not need full client
 	// info returned by presence method.
-	presenceStats(ch string) (presenceStats, error)
+	presenceStats(ch string) (PresenceStats, error)
 	// AddPresence sets or updates presence information in channel
 	// for connection with specified identifier. Engine should have a
 	// property to expire client information that was not updated

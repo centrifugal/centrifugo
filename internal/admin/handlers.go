@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/centrifugo/internal/api"
 	"github.com/gorilla/securecookie"
 	"github.com/rs/zerolog/log"
 )
@@ -46,7 +47,7 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/admin/auth", http.HandlerFunc(h.authHandler))
-	mux.Handle("/admin/api", h.adminSecureTokenAuth(centrifuge.NewAPIHandler(n, centrifuge.APIConfig{})))
+	mux.Handle("/admin/api", h.adminSecureTokenAuth(api.NewHandler(n, api.Config{})))
 	webPrefix := "/"
 	if c.WebPath != "" {
 		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(c.WebPath))))

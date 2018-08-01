@@ -4,7 +4,7 @@
   "admin_secret": "secret",
   "namespaces": [
     {
-      "name": "public",
+      "name": "chat",
       "anonymous": true,
       "publish": true,
       "join_leave": true,

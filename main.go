@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/internal/admin"
+	"github.com/centrifugal/centrifugo/internal/api"
 	"github.com/centrifugal/centrifugo/internal/graphite"
 	"github.com/centrifugal/centrifugo/internal/middleware"
 	"github.com/centrifugal/centrifugo/internal/webui"
@@ -187,7 +188,7 @@ func main() {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 				}
 				grpcAPIServer = grpc.NewServer(grpcOpts...)
-				centrifuge.RegisterGRPCServerAPI(node, grpcAPIServer, centrifuge.GRPCAPIServiceConfig{})
+				api.RegisterGRPCServerAPI(node, grpcAPIServer, api.GRPCAPIServiceConfig{})
 				go func() {
 					if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
 						log.Fatal().Msgf("Serve GRPC: %v", err)
@@ -1185,7 +1186,7 @@ func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
-		apiHandler := centrifuge.NewAPIHandler(n, centrifuge.APIConfig{})
+		apiHandler := api.NewHandler(n, api.Config{})
 		if viper.GetBool("api_insecure") {
 			mux.Handle("/api", middleware.LogRequest(apiHandler))
 		} else {
