@@ -203,6 +203,13 @@ func (c *Client) updatePresence() {
 				// Give subscription a chance to be refreshed via SubRefreshHandler.
 				reply := c.eventHub.subRefreshHandler(SubRefreshEvent{Channel: channel})
 				if reply.Expired || (reply.ExpireAt > 0 && reply.ExpireAt < now) {
+					// Ideally we should deal with single expired subscription in this
+					// case - i.e. unsubscribe client from channel and give an advice
+					// to resubscribe. But there is scenario when browser goes online
+					// after computer was in sleeping mode which I have not managed to
+					// handle reliably on client side when unsubscribe with resubscribe
+					// flag was used. So I decided to stick with disconnect for now -
+					// it seems to work fine and drastically simplifies client code.
 					go c.Close(DisconnectSubExpired)
 					// No need to update channel presence.
 					continue
