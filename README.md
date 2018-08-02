@@ -49,3 +49,9 @@ Try our [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `
 <br>
 
 ![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/c2/docs/content/images/scheme.png)
+
+### Support project
+
+If you like Centrifugo and want to thank Centrifugo author you can by him a coffee:
+
+<a href="https://www.buymeacoffee.com/FZambia" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
