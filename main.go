@@ -398,7 +398,7 @@ var logLevelMatches = map[string]zerolog.Level{
 }
 
 func setupLogging() *os.File {
-	if isatty.IsTerminal(os.Stdout.Fd()) {
+	if isatty.IsTerminal(os.Stdout.Fd()) && runtime.GOOS != "windows" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 
