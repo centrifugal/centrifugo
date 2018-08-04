@@ -6,6 +6,8 @@ See server [documentation](https://centrifugal.github.io/centrifugo/).
 
 You can also find [this introduction post](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) interesting – this is a story and motivation of Centrifugo.
 
+![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/c2/docs/content/images/scheme.png)
+
 ### How to install
 
 Releases available as single executable files – just [download latest release](https://github.com/centrifugal/centrifugo/releases) for your platform, unpack and run.
