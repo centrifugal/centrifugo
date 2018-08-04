@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -29,6 +30,10 @@ var consoleBufPool = sync.Pool{
 		return bytes.NewBuffer(make([]byte, 0, 100))
 	},
 }
+
+// LevelWidth defines the desired character width of the log level column.
+// Default 0 does not trim or pad (variable width based level text, e.g. "INFO" or "ERROR")
+var LevelWidth = 0
 
 // ConsoleWriter reads a JSON object per write operation and output an
 // optionally colored human readable version on the Out writer.
@@ -54,10 +59,17 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 		if !w.NoColor {
 			lvlColor = levelColor(l)
 		}
-		level = strings.ToUpper(l)[0:4]
+		level = strings.ToUpper(l)
+		if LevelWidth > 0 {
+			if padding := LevelWidth - len(level); padding > 0 {
+				level += strings.Repeat(" ", padding)
+			} else {
+				level = level[0:LevelWidth]
+			}
+		}
 	}
 	fmt.Fprintf(buf, "%s |%s| %s",
-		colorize(event[TimestampFieldName], cDarkGray, !w.NoColor),
+		colorize(formatTime(event[TimestampFieldName]), cDarkGray, !w.NoColor),
 		colorize(level, lvlColor, !w.NoColor),
 		colorize(event[MessageFieldName], cReset, !w.NoColor))
 	fields := make([]string, 0, len(event))
@@ -93,6 +105,17 @@ func (w ConsoleWriter) Write(p []byte) (n int, err error) {
 	buf.WriteTo(w.Out)
 	n = len(p)
 	return
+}
+
+func formatTime(t interface{}) string {
+	switch t := t.(type) {
+	case string:
+		return t
+	case json.Number:
+		u, _ := t.Int64()
+		return time.Unix(u, 0).Format(time.RFC3339)
+	}
+	return "<nil>"
 }
 
 func colorize(s interface{}, color int, enabled bool) string {

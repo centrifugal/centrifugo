@@ -1,6 +1,8 @@
+// +build linux,go1.9,!appengine
+
 /*
  *
- * Copyright 2017 gRPC authors.
+ * Copyright 2018 gRPC authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +18,22 @@
  *
  */
 
-// See internal/backoff package for the backoff implementation. This file is
-// kept for the exported types and API backward compatility.
-
-package grpc
+package channelz
 
 import (
-	"time"
+	"syscall"
 )
 
-// DefaultBackoffConfig uses values specified for backoff in
-// https://github.com/grpc/grpc/blob/master/doc/connection-backoff.md.
-var DefaultBackoffConfig = BackoffConfig{
-	MaxDelay: 120 * time.Second,
-}
-
-// BackoffConfig defines the parameters for the default gRPC backoff strategy.
-type BackoffConfig struct {
-	// MaxDelay is the upper bound of backoff delay.
-	MaxDelay time.Duration
+// GetSocketOption gets the socket option info of the conn.
+func GetSocketOption(socket interface{}) *SocketOptionData {
+	c, ok := socket.(syscall.Conn)
+	if !ok {
+		return nil
+	}
+	data := &SocketOptionData{}
+	if rawConn, err := c.SyscallConn(); err == nil {
+		rawConn.Control(data.Getsockopt)
+		return data
+	}
+	return nil
 }

@@ -23,30 +23,6 @@ import (
 	"math"
 	"sync"
 	"sync/atomic"
-	"time"
-)
-
-const (
-	// The default value of flow control window size in HTTP2 spec.
-	defaultWindowSize = 65535
-	// The initial window size for flow control.
-	initialWindowSize             = defaultWindowSize // for an RPC
-	infinity                      = time.Duration(math.MaxInt64)
-	defaultClientKeepaliveTime    = infinity
-	defaultClientKeepaliveTimeout = 20 * time.Second
-	defaultMaxStreamsClient       = 100
-	defaultMaxConnectionIdle      = infinity
-	defaultMaxConnectionAge       = infinity
-	defaultMaxConnectionAgeGrace  = infinity
-	defaultServerKeepaliveTime    = 2 * time.Hour
-	defaultServerKeepaliveTimeout = 20 * time.Second
-	defaultKeepalivePolicyMinTime = 5 * time.Minute
-	// max window limit set by HTTP2 Specs.
-	maxWindowSize = math.MaxInt32
-	// defaultWriteQuota is the default value for number of data
-	// bytes that each stream can schedule before some of it being
-	// flushed out.
-	defaultWriteQuota = 64 * 1024
 )
 
 // writeQuota is a soft limit on the amount of data a stream can
@@ -58,14 +34,20 @@ type writeQuota struct {
 	ch chan struct{}
 	// done is triggered in error case.
 	done <-chan struct{}
+	// replenish is called by loopyWriter to give quota back to.
+	// It is implemented as a field so that it can be updated
+	// by tests.
+	replenish func(n int)
 }
 
 func newWriteQuota(sz int32, done <-chan struct{}) *writeQuota {
-	return &writeQuota{
+	w := &writeQuota{
 		quota: sz,
 		ch:    make(chan struct{}, 1),
 		done:  done,
 	}
+	w.replenish = w.realReplenish
+	return w
 }
 
 func (w *writeQuota) get(sz int32) error {
@@ -83,7 +65,7 @@ func (w *writeQuota) get(sz int32) error {
 	}
 }
 
-func (w *writeQuota) replenish(n int) {
+func (w *writeQuota) realReplenish(n int) {
 	sz := int32(n)
 	a := atomic.AddInt32(&w.quota, sz)
 	b := a - sz

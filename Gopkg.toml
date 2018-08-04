@@ -78,7 +78,7 @@
 
 [[constraint]]
   name = "google.golang.org/grpc"
-  version = "1.12.0"
+  version = "1.14.0"
 
 [prune]
   go-tests = true

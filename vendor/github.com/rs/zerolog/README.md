@@ -243,7 +243,7 @@ logger.Info().Str("foo", "bar").Msg("hello world")
 
 ```go
 sublogger := log.With().
-                 Str("component": "foo").
+                 Str("component", "foo").
                  Logger()
 sublogger.Info().Msg("hello world")
 
@@ -293,15 +293,24 @@ log.Info().Msg("hello world")
 log.Logger = log.With().Str("foo", "bar").Logger()
 ```
 
+### Add file and line number to log
+
+```go
+log.Logger = log.With().Caller().Logger()
+log.Info().Msg("hello world")
+
+// Output: {"level": "info", "message": "hello world", "caller": "/go/src/your_project/some_file:21"}
+```
+
+
 ### Thread-safe, lock-free, non-blocking writer
 
 If your writer might be slow or not thread-safe and you need your log producers to never get slowed down by a slow writer, you can use a `diode.Writer` as follow:
 
 ```go
-d := diodes.NewManyToOne(1000, diodes.AlertFunc(func(missed int) {
-    fmt.Printf("Dropped %d messages\n", missed)
-}))
-w := diode.NewWriter(os.Stdout, d, 10*time.Millisecond)
+wr := diode.NewWriter(os.Stdout, 1000, 10*time.Millisecond, func(missed int) {
+		fmt.Printf("Logger Dropped %d messages", missed)
+	})
 log := zerolog.New(w)
 log.Print("test")
 ```

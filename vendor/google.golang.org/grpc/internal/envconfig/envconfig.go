@@ -1,6 +1,6 @@
 /*
  *
- * Copyright 2017 gRPC authors.
+ * Copyright 2018 gRPC authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,20 @@
  *
  */
 
-// See internal/backoff package for the backoff implementation. This file is
-// kept for the exported types and API backward compatility.
-
-package grpc
+// Package envconfig contains grpc settings configured by environment variables.
+package envconfig
 
 import (
-	"time"
+	"os"
+	"strings"
 )
 
-// DefaultBackoffConfig uses values specified for backoff in
-// https://github.com/grpc/grpc/blob/master/doc/connection-backoff.md.
-var DefaultBackoffConfig = BackoffConfig{
-	MaxDelay: 120 * time.Second,
-}
+const (
+	prefix   = "GRPC_GO_"
+	retryStr = prefix + "RETRY"
+)
 
-// BackoffConfig defines the parameters for the default gRPC backoff strategy.
-type BackoffConfig struct {
-	// MaxDelay is the upper bound of backoff delay.
-	MaxDelay time.Duration
-}
+var (
+	// Retry is set if retry is explicitly enabled via "GRPC_GO_RETRY=on".
+	Retry = strings.EqualFold(os.Getenv(retryStr), "on")
+)

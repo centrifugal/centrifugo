@@ -2,7 +2,7 @@
 
 /*
  *
- * Copyright 2016 gRPC authors.
+ * Copyright 2018 gRPC authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,35 +18,27 @@
  *
  */
 
-package transport
+package status
 
 import (
 	"context"
-	"net"
-	"net/http"
-
-	"google.golang.org/grpc/codes"
 
 	netctx "golang.org/x/net/context"
+	"google.golang.org/grpc/codes"
 )
 
-// dialContext connects to the address on the named network.
-func dialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	return (&net.Dialer{}).DialContext(ctx, network, address)
-}
-
-// ContextErr converts the error from context package into a StreamError.
-func ContextErr(err error) StreamError {
+// FromContextError converts a context error into a Status.  It returns a
+// Status with codes.OK if err is nil, or a Status with codes.Unknown if err is
+// non-nil and not a context error.
+func FromContextError(err error) *Status {
 	switch err {
+	case nil:
+		return New(codes.OK, "")
 	case context.DeadlineExceeded, netctx.DeadlineExceeded:
-		return streamErrorf(codes.DeadlineExceeded, "%v", err)
+		return New(codes.DeadlineExceeded, err.Error())
 	case context.Canceled, netctx.Canceled:
-		return streamErrorf(codes.Canceled, "%v", err)
+		return New(codes.Canceled, err.Error())
+	default:
+		return New(codes.Unknown, err.Error())
 	}
-	return streamErrorf(codes.Internal, "Unexpected error from context packet: %v", err)
-}
-
-// contextFromRequest returns a context from the HTTP Request.
-func contextFromRequest(r *http.Request) context.Context {
-	return r.Context()
 }

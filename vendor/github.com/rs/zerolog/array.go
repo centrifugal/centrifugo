@@ -43,7 +43,7 @@ func (a *Array) write(dst []byte) []byte {
 }
 
 // Object marshals an object that implement the LogObjectMarshaler
-// interface and enc.Append it to the array.
+// interface and append append it to the array.
 func (a *Array) Object(obj LogObjectMarshaler) *Array {
 	e := Dict()
 	obj.MarshalZerologObject(e)
@@ -53,121 +53,136 @@ func (a *Array) Object(obj LogObjectMarshaler) *Array {
 	return a
 }
 
-// Str enc.Append the val as a string to the array.
+// Str append append the val as a string to the array.
 func (a *Array) Str(val string) *Array {
 	a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), val)
 	return a
 }
 
-// Bytes enc.Append the val as a string to the array.
+// Bytes append append the val as a string to the array.
 func (a *Array) Bytes(val []byte) *Array {
 	a.buf = enc.AppendBytes(enc.AppendArrayDelim(a.buf), val)
 	return a
 }
 
-// Hex enc.Append the val as a hex string to the array.
+// Hex append append the val as a hex string to the array.
 func (a *Array) Hex(val []byte) *Array {
 	a.buf = enc.AppendHex(enc.AppendArrayDelim(a.buf), val)
 	return a
 }
 
-// Err enc.Append the err as a string to the array.
+// Err serializes and appends the err to the array.
 func (a *Array) Err(err error) *Array {
-	a.buf = enc.AppendError(enc.AppendArrayDelim(a.buf), err)
+	marshaled := ErrorMarshalFunc(err)
+	switch m := marshaled.(type) {
+	case LogObjectMarshaler:
+		e := newEvent(nil, 0)
+		e.buf = e.buf[:0]
+		e.appendObject(m)
+		a.buf = append(enc.AppendArrayDelim(a.buf), e.buf...)
+		eventPool.Put(e)
+	case error:
+		a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m.Error())
+	case string:
+		a.buf = enc.AppendString(enc.AppendArrayDelim(a.buf), m)
+	default:
+		a.buf = enc.AppendInterface(enc.AppendArrayDelim(a.buf), m)
+	}
+
 	return a
 }
 
-// Bool enc.Append the val as a bool to the array.
+// Bool append append the val as a bool to the array.
 func (a *Array) Bool(b bool) *Array {
 	a.buf = enc.AppendBool(enc.AppendArrayDelim(a.buf), b)
 	return a
 }
 
-// Int enc.Append i as a int to the array.
+// Int append append i as a int to the array.
 func (a *Array) Int(i int) *Array {
 	a.buf = enc.AppendInt(enc.AppendArrayDelim(a.buf), i)
 	return a
 }
 
-// Int8 enc.Append i as a int8 to the array.
+// Int8 append append i as a int8 to the array.
 func (a *Array) Int8(i int8) *Array {
 	a.buf = enc.AppendInt8(enc.AppendArrayDelim(a.buf), i)
 	return a
 }
 
-// Int16 enc.Append i as a int16 to the array.
+// Int16 append append i as a int16 to the array.
 func (a *Array) Int16(i int16) *Array {
 	a.buf = enc.AppendInt16(enc.AppendArrayDelim(a.buf), i)
 	return a
 }
 
-// Int32 enc.Append i as a int32 to the array.
+// Int32 append append i as a int32 to the array.
 func (a *Array) Int32(i int32) *Array {
 	a.buf = enc.AppendInt32(enc.AppendArrayDelim(a.buf), i)
 	return a
 }
 
-// Int64 enc.Append i as a int64 to the array.
+// Int64 append append i as a int64 to the array.
 func (a *Array) Int64(i int64) *Array {
 	a.buf = enc.AppendInt64(enc.AppendArrayDelim(a.buf), i)
 	return a
 }
 
-// Uint enc.Append i as a uint to the array.
+// Uint append append i as a uint to the array.
 func (a *Array) Uint(i uint) *Array {
 	a.buf = enc.AppendUint(enc.AppendArrayDelim(a.buf), i)
 	return a
 }
 
-// Uint8 enc.Append i as a uint8 to the array.
+// Uint8 append append i as a uint8 to the array.
 func (a *Array) Uint8(i uint8) *Array {
 	a.buf = enc.AppendUint8(enc.AppendArrayDelim(a.buf), i)
 	return a
 }
 
-// Uint16 enc.Append i as a uint16 to the array.
+// Uint16 append append i as a uint16 to the array.
 func (a *Array) Uint16(i uint16) *Array {
 	a.buf = enc.AppendUint16(enc.AppendArrayDelim(a.buf), i)
 	return a
 }
 
-// Uint32 enc.Append i as a uint32 to the array.
+// Uint32 append append i as a uint32 to the array.
 func (a *Array) Uint32(i uint32) *Array {
 	a.buf = enc.AppendUint32(enc.AppendArrayDelim(a.buf), i)
 	return a
 }
 
-// Uint64 enc.Append i as a uint64 to the array.
+// Uint64 append append i as a uint64 to the array.
 func (a *Array) Uint64(i uint64) *Array {
 	a.buf = enc.AppendUint64(enc.AppendArrayDelim(a.buf), i)
 	return a
 }
 
-// Float32 enc.Append f as a float32 to the array.
+// Float32 append append f as a float32 to the array.
 func (a *Array) Float32(f float32) *Array {
 	a.buf = enc.AppendFloat32(enc.AppendArrayDelim(a.buf), f)
 	return a
 }
 
-// Float64 enc.Append f as a float64 to the array.
+// Float64 append append f as a float64 to the array.
 func (a *Array) Float64(f float64) *Array {
 	a.buf = enc.AppendFloat64(enc.AppendArrayDelim(a.buf), f)
 	return a
 }
 
-// Time enc.Append t formated as string using zerolog.TimeFieldFormat.
+// Time append append t formated as string using zerolog.TimeFieldFormat.
 func (a *Array) Time(t time.Time) *Array {
 	a.buf = enc.AppendTime(enc.AppendArrayDelim(a.buf), t, TimeFieldFormat)
 	return a
 }
 
-// Dur enc.Append d to the array.
+// Dur append append d to the array.
 func (a *Array) Dur(d time.Duration) *Array {
 	a.buf = enc.AppendDuration(enc.AppendArrayDelim(a.buf), d, DurationFieldUnit, DurationFieldInteger)
 	return a
 }
 
-// Interface enc.Append i marshaled using reflection.
+// Interface append append i marshaled using reflection.
 func (a *Array) Interface(i interface{}) *Array {
 	if obj, ok := i.(LogObjectMarshaler); ok {
 		return a.Object(obj)

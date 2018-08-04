@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"math/rand"
 	"net"
 	"strconv"
 	"sync"
@@ -36,9 +35,11 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
 
-	"google.golang.org/grpc/channelz"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/internal/channelz"
+	"google.golang.org/grpc/internal/grpcrand"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -47,9 +48,14 @@ import (
 	"google.golang.org/grpc/tap"
 )
 
-// ErrIllegalHeaderWrite indicates that setting header is illegal because of
-// the stream's state.
-var ErrIllegalHeaderWrite = errors.New("transport: the stream is done or WriteHeader was already called")
+var (
+	// ErrIllegalHeaderWrite indicates that setting header is illegal because of
+	// the stream's state.
+	ErrIllegalHeaderWrite = errors.New("transport: the stream is done or WriteHeader was already called")
+	// ErrHeaderListSizeLimitViolation indicates that the header list size is larger
+	// than the limit set by peer.
+	ErrHeaderListSizeLimitViolation = errors.New("transport: trying to send header list size larger than the limit set by peer")
+)
 
 // http2Server implements the ServerTransport interface with HTTP2.
 type http2Server struct {
@@ -88,9 +94,10 @@ type http2Server struct {
 	// Flag to signify that number of ping strikes should be reset to 0.
 	// This is set whenever data or header frames are sent.
 	// 1 means yes.
-	resetPingStrikes  uint32 // Accessed atomically.
-	initialWindowSize int32
-	bdpEst            *bdpEstimator
+	resetPingStrikes      uint32 // Accessed atomically.
+	initialWindowSize     int32
+	bdpEst                *bdpEstimator
+	maxSendHeaderListSize *uint32
 
 	mu sync.Mutex // guard the following
 
@@ -129,15 +136,13 @@ type http2Server struct {
 // newHTTP2Server constructs a ServerTransport based on HTTP2. ConnectionError is
 // returned if something goes wrong.
 func newHTTP2Server(conn net.Conn, config *ServerConfig) (_ ServerTransport, err error) {
-	writeBufSize := defaultWriteBufSize
-	if config.WriteBufferSize > 0 {
-		writeBufSize = config.WriteBufferSize
+	writeBufSize := config.WriteBufferSize
+	readBufSize := config.ReadBufferSize
+	maxHeaderListSize := defaultServerMaxHeaderListSize
+	if config.MaxHeaderListSize != nil {
+		maxHeaderListSize = *config.MaxHeaderListSize
 	}
-	readBufSize := defaultReadBufSize
-	if config.ReadBufferSize > 0 {
-		readBufSize = config.ReadBufferSize
-	}
-	framer := newFramer(conn, writeBufSize, readBufSize)
+	framer := newFramer(conn, writeBufSize, readBufSize, maxHeaderListSize)
 	// Send initial settings as connection preface to client.
 	var isettings []http2.Setting
 	// TODO(zhaoq): Have a better way to signal "no limit" because 0 is
@@ -166,6 +171,12 @@ func newHTTP2Server(conn net.Conn, config *ServerConfig) (_ ServerTransport, err
 		isettings = append(isettings, http2.Setting{
 			ID:  http2.SettingInitialWindowSize,
 			Val: uint32(iwz)})
+	}
+	if config.MaxHeaderListSize != nil {
+		isettings = append(isettings, http2.Setting{
+			ID:  http2.SettingMaxHeaderListSize,
+			Val: *config.MaxHeaderListSize,
+		})
 	}
 	if err := framer.fr.WriteSettings(isettings...); err != nil {
 		return nil, connectionErrorf(false, err, "transport: %v", err)
@@ -273,7 +284,9 @@ func newHTTP2Server(conn net.Conn, config *ServerConfig) (_ ServerTransport, err
 	go func() {
 		t.loopy = newLoopyWriter(serverSide, t.framer, t.controlBuf, t.bdpEst)
 		t.loopy.ssGoAwayHandler = t.outgoingGoAwayHandler
-		t.loopy.run()
+		if err := t.loopy.run(); err != nil {
+			errorf("transport: loopyWriter.run returning. Err: %v", err)
+		}
 		t.conn.Close()
 		close(t.writerDone)
 	}()
@@ -284,19 +297,17 @@ func newHTTP2Server(conn net.Conn, config *ServerConfig) (_ ServerTransport, err
 // operateHeader takes action on the decoded headers.
 func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(*Stream), traceCtx func(context.Context, string) context.Context) (close bool) {
 	streamID := frame.Header().StreamID
-	var state decodeState
-	for _, hf := range frame.Fields {
-		if err := state.processHeaderField(hf); err != nil {
-			if se, ok := err.(StreamError); ok {
-				t.controlBuf.put(&cleanupStream{
-					streamID: streamID,
-					rst:      true,
-					rstCode:  statusCodeConvTab[se.Code],
-					onWrite:  func() {},
-				})
-			}
-			return
+	state := decodeState{serverSide: true}
+	if err := state.decodeHeader(frame); err != nil {
+		if se, ok := status.FromError(err); ok {
+			t.controlBuf.put(&cleanupStream{
+				streamID: streamID,
+				rst:      true,
+				rstCode:  statusCodeConvTab[se.Code()],
+				onWrite:  func() {},
+			})
 		}
+		return
 	}
 
 	buf := newRecvBuffer()
@@ -413,6 +424,11 @@ func (t *http2Server) operateHeaders(frame *http2.MetaHeadersFrame, handle func(
 			t.updateWindow(s, uint32(n))
 		},
 	}
+	// Register the stream with loopy.
+	t.controlBuf.put(&registerStream{
+		streamID: s.id,
+		wq:       s.wq,
+	})
 	handle(s)
 	return
 }
@@ -611,11 +627,25 @@ func (t *http2Server) handleSettings(f *http2.SettingsFrame) {
 		return
 	}
 	var ss []http2.Setting
+	var updateFuncs []func()
 	f.ForeachSetting(func(s http2.Setting) error {
-		ss = append(ss, s)
+		switch s.ID {
+		case http2.SettingMaxHeaderListSize:
+			updateFuncs = append(updateFuncs, func() {
+				t.maxSendHeaderListSize = new(uint32)
+				*t.maxSendHeaderListSize = s.Val
+			})
+		default:
+			ss = append(ss, s)
+		}
 		return nil
 	})
-	t.controlBuf.put(&incomingSettings{
+	t.controlBuf.executeAndPut(func(interface{}) bool {
+		for _, f := range updateFuncs {
+			f()
+		}
+		return true
+	}, &incomingSettings{
 		ss: ss,
 	})
 }
@@ -682,28 +712,7 @@ func (t *http2Server) handleWindowUpdate(f *http2.WindowUpdateFrame) {
 	})
 }
 
-// WriteHeader sends the header metedata md back to the client.
-func (t *http2Server) WriteHeader(s *Stream, md metadata.MD) error {
-	if s.headerOk || s.getState() == streamDone {
-		return ErrIllegalHeaderWrite
-	}
-	s.headerOk = true
-	if md.Len() > 0 {
-		if s.header.Len() > 0 {
-			s.header = metadata.Join(s.header, md)
-		} else {
-			s.header = md
-		}
-	}
-	md = s.header
-	// TODO(mmukhi): Benchmark if the performance gets better if count the metadata and other header fields
-	// first and create a slice of that exact size.
-	headerFields := make([]hpack.HeaderField, 0, 2) // at least :status, content-type will be there if none else.
-	headerFields = append(headerFields, hpack.HeaderField{Name: ":status", Value: "200"})
-	headerFields = append(headerFields, hpack.HeaderField{Name: "content-type", Value: contentType(s.contentSubtype)})
-	if s.sendCompress != "" {
-		headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-encoding", Value: s.sendCompress})
-	}
+func appendHeaderFieldsFromMD(headerFields []hpack.HeaderField, md metadata.MD) []hpack.HeaderField {
 	for k, vv := range md {
 		if isReservedHeader(k) {
 			// Clients don't tolerate reading restricted headers after some non restricted ones were sent.
@@ -713,15 +722,70 @@ func (t *http2Server) WriteHeader(s *Stream, md metadata.MD) error {
 			headerFields = append(headerFields, hpack.HeaderField{Name: k, Value: encodeMetadataHeader(k, v)})
 		}
 	}
-	t.controlBuf.put(&headerFrame{
+	return headerFields
+}
+
+func (t *http2Server) checkForHeaderListSize(it interface{}) bool {
+	if t.maxSendHeaderListSize == nil {
+		return true
+	}
+	hdrFrame := it.(*headerFrame)
+	var sz int64
+	for _, f := range hdrFrame.hf {
+		if sz += int64(f.Size()); sz > int64(*t.maxSendHeaderListSize) {
+			errorf("header list size to send violates the maximum size (%d bytes) set by client", *t.maxSendHeaderListSize)
+			return false
+		}
+	}
+	return true
+}
+
+// WriteHeader sends the header metedata md back to the client.
+func (t *http2Server) WriteHeader(s *Stream, md metadata.MD) error {
+	if s.updateHeaderSent() || s.getState() == streamDone {
+		return ErrIllegalHeaderWrite
+	}
+	s.hdrMu.Lock()
+	if md.Len() > 0 {
+		if s.header.Len() > 0 {
+			s.header = metadata.Join(s.header, md)
+		} else {
+			s.header = md
+		}
+	}
+	if err := t.writeHeaderLocked(s); err != nil {
+		s.hdrMu.Unlock()
+		return err
+	}
+	s.hdrMu.Unlock()
+	return nil
+}
+
+func (t *http2Server) writeHeaderLocked(s *Stream) error {
+	// TODO(mmukhi): Benchmark if the performance gets better if count the metadata and other header fields
+	// first and create a slice of that exact size.
+	headerFields := make([]hpack.HeaderField, 0, 2) // at least :status, content-type will be there if none else.
+	headerFields = append(headerFields, hpack.HeaderField{Name: ":status", Value: "200"})
+	headerFields = append(headerFields, hpack.HeaderField{Name: "content-type", Value: contentType(s.contentSubtype)})
+	if s.sendCompress != "" {
+		headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-encoding", Value: s.sendCompress})
+	}
+	headerFields = appendHeaderFieldsFromMD(headerFields, s.header)
+	success, err := t.controlBuf.executeAndPut(t.checkForHeaderListSize, &headerFrame{
 		streamID:  s.id,
 		hf:        headerFields,
 		endStream: false,
 		onWrite: func() {
 			atomic.StoreUint32(&t.resetPingStrikes, 1)
 		},
-		wq: s.wq,
 	})
+	if !success {
+		if err != nil {
+			return err
+		}
+		t.closeStream(s, true, http2.ErrCodeInternal, nil, false)
+		return ErrHeaderListSizeLimitViolation
+	}
 	if t.stats != nil {
 		// Note: WireLength is not set in outHeader.
 		// TODO(mmukhi): Revisit this later, if needed.
@@ -736,21 +800,23 @@ func (t *http2Server) WriteHeader(s *Stream, md metadata.MD) error {
 // TODO(zhaoq): Now it indicates the end of entire stream. Revisit if early
 // OK is adopted.
 func (t *http2Server) WriteStatus(s *Stream, st *status.Status) error {
-	if !s.headerOk && s.header.Len() > 0 {
-		if err := t.WriteHeader(s, nil); err != nil {
-			return err
-		}
-	} else {
-		if s.getState() == streamDone {
-			return nil
-		}
+	if s.getState() == streamDone {
+		return nil
 	}
+	s.hdrMu.Lock()
 	// TODO(mmukhi): Benchmark if the performance gets better if count the metadata and other header fields
 	// first and create a slice of that exact size.
 	headerFields := make([]hpack.HeaderField, 0, 2) // grpc-status and grpc-message will be there if none else.
-	if !s.headerOk {
-		headerFields = append(headerFields, hpack.HeaderField{Name: ":status", Value: "200"})
-		headerFields = append(headerFields, hpack.HeaderField{Name: "content-type", Value: contentType(s.contentSubtype)})
+	if !s.updateHeaderSent() {                      // No headers have been sent.
+		if len(s.header) > 0 { // Send a separate header frame.
+			if err := t.writeHeaderLocked(s); err != nil {
+				s.hdrMu.Unlock()
+				return err
+			}
+		} else { // Send a trailer only response.
+			headerFields = append(headerFields, hpack.HeaderField{Name: ":status", Value: "200"})
+			headerFields = append(headerFields, hpack.HeaderField{Name: "content-type", Value: contentType(s.contentSubtype)})
+		}
 	}
 	headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-status", Value: strconv.Itoa(int(st.Code()))})
 	headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-message", Value: encodeGrpcMessage(st.Message())})
@@ -759,23 +825,15 @@ func (t *http2Server) WriteStatus(s *Stream, st *status.Status) error {
 		stBytes, err := proto.Marshal(p)
 		if err != nil {
 			// TODO: return error instead, when callers are able to handle it.
-			panic(err)
+			grpclog.Errorf("transport: failed to marshal rpc status: %v, error: %v", p, err)
+		} else {
+			headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-status-details-bin", Value: encodeBinHeader(stBytes)})
 		}
-
-		headerFields = append(headerFields, hpack.HeaderField{Name: "grpc-status-details-bin", Value: encodeBinHeader(stBytes)})
 	}
 
 	// Attach the trailer metadata.
-	for k, vv := range s.trailer {
-		// Clients don't tolerate reading restricted headers after some non restricted ones were sent.
-		if isReservedHeader(k) {
-			continue
-		}
-		for _, v := range vv {
-			headerFields = append(headerFields, hpack.HeaderField{Name: k, Value: encodeMetadataHeader(k, v)})
-		}
-	}
-	trailer := &headerFrame{
+	headerFields = appendHeaderFieldsFromMD(headerFields, s.trailer)
+	trailingHeader := &headerFrame{
 		streamID:  s.id,
 		hf:        headerFields,
 		endStream: true,
@@ -783,7 +841,16 @@ func (t *http2Server) WriteStatus(s *Stream, st *status.Status) error {
 			atomic.StoreUint32(&t.resetPingStrikes, 1)
 		},
 	}
-	t.closeStream(s, false, 0, trailer, true)
+	s.hdrMu.Unlock()
+	success, err := t.controlBuf.execute(t.checkForHeaderListSize, trailingHeader)
+	if !success {
+		if err != nil {
+			return err
+		}
+		t.closeStream(s, true, http2.ErrCodeInternal, nil, false)
+		return ErrHeaderListSizeLimitViolation
+	}
+	t.closeStream(s, false, 0, trailingHeader, true)
 	if t.stats != nil {
 		t.stats.HandleRPC(s.Context(), &stats.OutTrailer{})
 	}
@@ -793,10 +860,10 @@ func (t *http2Server) WriteStatus(s *Stream, st *status.Status) error {
 // Write converts the data into HTTP2 data frame and sends it out. Non-nil error
 // is returns if it fails (e.g., framing error, transport error).
 func (t *http2Server) Write(s *Stream, hdr []byte, data []byte, opts *Options) error {
-	if !s.headerOk { // Headers haven't been written yet.
+	if !s.isHeaderSent() { // Headers haven't been written yet.
 		if err := t.WriteHeader(s, nil); err != nil {
 			// TODO(mmukhi, dfawley): Make sure this is the right code to return.
-			return streamErrorf(codes.Internal, "transport: %v", err)
+			return status.Errorf(codes.Internal, "transport: %v", err)
 		}
 	} else {
 		// Writing headers checks for this condition.
@@ -1083,11 +1150,13 @@ func (t *http2Server) ChannelzMetric() *channelz.SocketInternalMetric {
 		LastMessageSentTimestamp:         t.lastMsgSent,
 		LastMessageReceivedTimestamp:     t.lastMsgRecv,
 		LocalFlowControlWindow:           int64(t.fc.getSize()),
-		//socket options
-		LocalAddr:  t.localAddr,
-		RemoteAddr: t.remoteAddr,
-		// Security
+		SocketOptions:                    channelz.GetSocketOption(t.conn),
+		LocalAddr:                        t.localAddr,
+		RemoteAddr:                       t.remoteAddr,
 		// RemoteName :
+	}
+	if au, ok := t.authInfo.(credentials.ChannelzSecurityInfo); ok {
+		s.Security = au.GetSecurityValue()
 	}
 	t.czmu.RUnlock()
 	s.RemoteFlowControlWindow = t.getOutFlowWindow()
@@ -1123,14 +1192,12 @@ func (t *http2Server) getOutFlowWindow() int64 {
 	}
 }
 
-var rgen = rand.New(rand.NewSource(time.Now().UnixNano()))
-
 func getJitter(v time.Duration) time.Duration {
 	if v == infinity {
 		return 0
 	}
 	// Generate a jitter between +/- 10% of the value.
 	r := int64(v / 10)
-	j := rgen.Int63n(2*r) - r
+	j := grpcrand.Int63n(2*r) - r
 	return time.Duration(j)
 }

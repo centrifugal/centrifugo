@@ -18,6 +18,11 @@ var eventPool = &sync.Pool{
 	},
 }
 
+// ErrorMarshalFunc allows customization of global error marshaling
+var ErrorMarshalFunc = func(err error) interface{} {
+	return err
+}
+
 // Event represents a log event. It is instanced by one of the level method of
 // Logger and finalized by the Msg or Msgf method.
 type Event struct {
@@ -55,10 +60,12 @@ func (e *Event) write() (err error) {
 	if e == nil {
 		return nil
 	}
-	e.buf = enc.AppendEndMarker(e.buf)
-	e.buf = enc.AppendLineBreak(e.buf)
-	if e.w != nil {
-		_, err = e.w.WriteLevel(e.level, e.buf)
+	if e.level != Disabled {
+		e.buf = enc.AppendEndMarker(e.buf)
+		e.buf = enc.AppendLineBreak(e.buf)
+		if e.w != nil {
+			_, err = e.w.WriteLevel(e.level, e.buf)
+		}
 	}
 	eventPool.Put(e)
 	return
@@ -67,7 +74,13 @@ func (e *Event) write() (err error) {
 // Enabled return false if the *Event is going to be filtered out by
 // log level or sampling.
 func (e *Event) Enabled() bool {
-	return e != nil
+	return e != nil && e.level != Disabled
+}
+
+// Discard disables the event so Msg(f) won't print it.
+func (e *Event) Discard() *Event {
+	e.level = Disabled
+	return nil
 }
 
 // Msg sends the *Event with msg added as the message field if not empty.
@@ -78,6 +91,21 @@ func (e *Event) Msg(msg string) {
 	if e == nil {
 		return
 	}
+	e.msg(msg)
+}
+
+// Msgf sends the event with formated msg added as the message field if not empty.
+//
+// NOTICE: once this methid is called, the *Event should be disposed.
+// Calling Msg twice can have unexpected result.
+func (e *Event) Msgf(format string, v ...interface{}) {
+	if e == nil {
+		return
+	}
+	e.msg(fmt.Sprintf(format, v...))
+}
+
+func (e *Event) msg(msg string) {
 	if len(e.ch) > 0 {
 		e.ch[0].Run(e, e.level, msg)
 		if len(e.ch) > 1 {
@@ -103,17 +131,6 @@ func (e *Event) Msg(msg string) {
 	if err := e.write(); err != nil {
 		fmt.Fprintf(os.Stderr, "zerolog: could not write event: %v", err)
 	}
-}
-
-// Msgf sends the event with formated msg added as the message field if not empty.
-//
-// NOTICE: once this methid is called, the *Event should be disposed.
-// Calling Msg twice can have unexpected result.
-func (e *Event) Msgf(format string, v ...interface{}) {
-	if e == nil {
-		return
-	}
-	e.Msg(fmt.Sprintf(format, v...))
 }
 
 // Fields is a helper function to use a map to set fields using type assertion.
@@ -179,6 +196,15 @@ func (e *Event) Object(key string, obj LogObjectMarshaler) *Event {
 	return e
 }
 
+// Object marshals an object that implement the LogObjectMarshaler interface.
+func (e *Event) EmbedObject(obj LogObjectMarshaler) *Event {
+	if e == nil {
+		return e
+	}
+	obj.MarshalZerologObject(e)
+	return e
+}
+
 // Str adds the field key with val as a string to the *Event context.
 func (e *Event) Str(key, val string) *Event {
 	if e == nil {
@@ -230,39 +256,54 @@ func (e *Event) RawJSON(key string, b []byte) *Event {
 	return e
 }
 
-// AnErr adds the field key with err as a string to the *Event context.
+// AnErr adds the field key with serialized err to the *Event context.
 // If err is nil, no field is added.
 func (e *Event) AnErr(key string, err error) *Event {
-	if e == nil {
+	marshaled := ErrorMarshalFunc(err)
+	switch m := marshaled.(type) {
+	case nil:
 		return e
+	case LogObjectMarshaler:
+		return e.Object(key, m)
+	case error:
+		return e.Str(key, m.Error())
+	case string:
+		return e.Str(key, m)
+	default:
+		return e.Interface(key, m)
 	}
-	if err != nil {
-		e.buf = enc.AppendError(enc.AppendKey(e.buf, key), err)
-	}
-	return e
 }
 
-// Errs adds the field key with errs as an array of strings to the *Event context.
-// If err is nil, no field is added.
+// Errs adds the field key with errs as an array of serialized errors to the
+// *Event context.
 func (e *Event) Errs(key string, errs []error) *Event {
 	if e == nil {
 		return e
 	}
-	e.buf = enc.AppendErrors(enc.AppendKey(e.buf, key), errs)
-	return e
+
+	arr := Arr()
+	for _, err := range errs {
+		marshaled := ErrorMarshalFunc(err)
+		switch m := marshaled.(type) {
+		case LogObjectMarshaler:
+			arr = arr.Object(m)
+		case error:
+			arr = arr.Err(m)
+		case string:
+			arr = arr.Str(m)
+		default:
+			arr = arr.Interface(m)
+		}
+	}
+
+	return e.Array(key, arr)
 }
 
-// Err adds the field "error" with err as a string to the *Event context.
+// Err adds the field "error" with serialized err to the *Event context.
 // If err is nil, no field is added.
 // To customize the key name, change zerolog.ErrorFieldName.
 func (e *Event) Err(err error) *Event {
-	if e == nil {
-		return e
-	}
-	if err != nil {
-		e.buf = enc.AppendError(enc.AppendKey(e.buf, ErrorFieldName), err)
-	}
-	return e
+	return e.AnErr(ErrorFieldName, err)
 }
 
 // Bool adds the field key with val as a bool to the *Event context.
@@ -581,7 +622,7 @@ func (e *Event) Interface(key string, i interface{}) *Event {
 
 // Caller adds the file:line of the caller with the zerolog.CallerFieldName key.
 func (e *Event) Caller() *Event {
-	return e.caller(2)
+	return e.caller(CallerSkipFrameCount)
 }
 
 func (e *Event) caller(skip int) *Event {

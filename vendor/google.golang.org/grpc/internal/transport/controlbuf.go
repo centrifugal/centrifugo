@@ -28,6 +28,10 @@ import (
 	"golang.org/x/net/http2/hpack"
 )
 
+var updateHeaderTblSize = func(e *hpack.Encoder, v uint32) {
+	e.SetMaxDynamicTableSizeLimit(v)
+}
+
 type itemNode struct {
 	it   interface{}
 	next *itemNode
@@ -80,6 +84,13 @@ func (il *itemList) isEmpty() bool {
 // the control buffer of transport. They represent different aspects of
 // control tasks, e.g., flow control, settings, streaming resetting, etc.
 
+// registerStream is used to register an incoming stream with loopy writer.
+type registerStream struct {
+	streamID uint32
+	wq       *writeQuota
+}
+
+// headerFrame is also used to register stream on the client-side.
 type headerFrame struct {
 	streamID   uint32
 	hf         []hpack.HeaderField
@@ -218,6 +229,12 @@ func (l *outStreamList) dequeue() *outStream {
 	return b
 }
 
+// controlBuffer is a way to pass information to loopy.
+// Information is passed as specific struct types called control frames.
+// A control frame not only represents data, messages or headers to be sent out
+// but can also be used to instruct loopy to update its internal state.
+// It shouldn't be confused with an HTTP2 frame, although some of the control frames
+// like dataFrame and headerFrame do go out on wire as HTTP2 frames.
 type controlBuffer struct {
 	ch              chan struct{}
 	done            <-chan struct{}
@@ -265,6 +282,21 @@ func (c *controlBuffer) executeAndPut(f func(it interface{}) bool, it interface{
 		default:
 		}
 	}
+	return true, nil
+}
+
+// Note argument f should never be nil.
+func (c *controlBuffer) execute(f func(it interface{}) bool, it interface{}) (bool, error) {
+	c.mu.Lock()
+	if c.err != nil {
+		c.mu.Unlock()
+		return false, c.err
+	}
+	if !f(it) { // f wasn't successful
+		c.mu.Unlock()
+		return false, nil
+	}
+	c.mu.Unlock()
 	return true, nil
 }
 
@@ -324,13 +356,29 @@ const (
 	serverSide
 )
 
+// Loopy receives frames from the control buffer.
+// Each frame is handled individually; most of the work done by loopy goes
+// into handling data frames. Loopy maintains a queue of active streams, and each
+// stream maintains a queue of data frames; as loopy receives data frames
+// it gets added to the queue of the relevant stream.
+// Loopy goes over this list of active streams by processing one node every iteration,
+// thereby closely resemebling to a round-robin scheduling over all streams. While
+// processing a stream, loopy writes out data bytes from this stream capped by the min
+// of http2MaxFrameLen, connection-level flow control and stream-level flow control.
 type loopyWriter struct {
-	side          side
-	cbuf          *controlBuffer
-	sendQuota     uint32
-	oiws          uint32                // outbound initial window size.
-	estdStreams   map[uint32]*outStream // Established streams.
-	activeStreams *outStreamList        // Streams that are sending data.
+	side      side
+	cbuf      *controlBuffer
+	sendQuota uint32
+	oiws      uint32 // outbound initial window size.
+	// estdStreams is map of all established streams that are not cleaned-up yet.
+	// On client-side, this is all streams whose headers were sent out.
+	// On server-side, this is all streams whose headers were received.
+	estdStreams map[uint32]*outStream // Established streams.
+	// activeStreams is a linked-list of all streams that have data to send and some
+	// stream-level flow control quota.
+	// Each of these streams internally have a list of data items(and perhaps trailers
+	// on the server-side) to be sent out.
+	activeStreams *outStreamList
 	framer        *framer
 	hBuf          *bytes.Buffer  // The buffer for HPACK encoding.
 	hEnc          *hpack.Encoder // HPACK encoder.
@@ -361,44 +409,62 @@ func newLoopyWriter(s side, fr *framer, cbuf *controlBuffer, bdpEst *bdpEstimato
 const minBatchSize = 1000
 
 // run should be run in a separate goroutine.
-func (l *loopyWriter) run() {
-	var (
-		it      interface{}
-		err     error
-		isEmpty bool
-	)
+// It reads control frames from controlBuf and processes them by:
+// 1. Updating loopy's internal state, or/and
+// 2. Writing out HTTP2 frames on the wire.
+//
+// Loopy keeps all active streams with data to send in a linked-list.
+// All streams in the activeStreams linked-list must have both:
+// 1. Data to send, and
+// 2. Stream level flow control quota available.
+//
+// In each iteration of run loop, other than processing the incoming control
+// frame, loopy calls processData, which processes one node from the activeStreams linked-list.
+// This results in writing of HTTP2 frames into an underlying write buffer.
+// When there's no more control frames to read from controlBuf, loopy flushes the write buffer.
+// As an optimization, to increase the batch size for each flush, loopy yields the processor, once
+// if the batch size is too low to give stream goroutines a chance to fill it up.
+func (l *loopyWriter) run() (err error) {
 	defer func() {
-		errorf("transport: loopyWriter.run returning. Err: %v", err)
+		if err == ErrConnClosing {
+			// Don't log ErrConnClosing as error since it happens
+			// 1. When the connection is closed by some other known issue.
+			// 2. User closed the connection.
+			// 3. A graceful close of connection.
+			infof("transport: loopyWriter.run returning. %v", err)
+			err = nil
+		}
 	}()
 	for {
-		it, err = l.cbuf.get(true)
+		it, err := l.cbuf.get(true)
 		if err != nil {
-			return
+			return err
 		}
 		if err = l.handle(it); err != nil {
-			return
+			return err
 		}
 		if _, err = l.processData(); err != nil {
-			return
+			return err
 		}
 		gosched := true
 	hasdata:
 		for {
-			it, err = l.cbuf.get(false)
+			it, err := l.cbuf.get(false)
 			if err != nil {
-				return
+				return err
 			}
 			if it != nil {
 				if err = l.handle(it); err != nil {
-					return
+					return err
 				}
 				if _, err = l.processData(); err != nil {
-					return
+					return err
 				}
 				continue hasdata
 			}
-			if isEmpty, err = l.processData(); err != nil {
-				return
+			isEmpty, err := l.processData()
+			if err != nil {
+				return err
 			}
 			if !isEmpty {
 				continue hasdata
@@ -450,30 +516,39 @@ func (l *loopyWriter) incomingSettingsHandler(s *incomingSettings) error {
 	return l.framer.fr.WriteSettingsAck()
 }
 
+func (l *loopyWriter) registerStreamHandler(h *registerStream) error {
+	str := &outStream{
+		id:    h.streamID,
+		state: empty,
+		itl:   &itemList{},
+		wq:    h.wq,
+	}
+	l.estdStreams[h.streamID] = str
+	return nil
+}
+
 func (l *loopyWriter) headerHandler(h *headerFrame) error {
 	if l.side == serverSide {
-		if h.endStream { // Case 1.A: Server wants to close stream.
-			// Make sure it's not a trailers only response.
-			if str, ok := l.estdStreams[h.streamID]; ok {
-				if str.state != empty { // either active or waiting on stream quota.
-					// add it str's list of items.
-					str.itl.enqueue(h)
-					return nil
-				}
-			}
-			if err := l.writeHeader(h.streamID, h.endStream, h.hf, h.onWrite); err != nil {
-				return err
-			}
-			return l.cleanupStreamHandler(h.cleanup)
+		str, ok := l.estdStreams[h.streamID]
+		if !ok {
+			warningf("transport: loopy doesn't recognize the stream: %d", h.streamID)
+			return nil
 		}
-		// Case 1.B: Server is responding back with headers.
-		str := &outStream{
-			state: empty,
-			itl:   &itemList{},
-			wq:    h.wq,
+		// Case 1.A: Server is responding back with headers.
+		if !h.endStream {
+			return l.writeHeader(h.streamID, h.endStream, h.hf, h.onWrite)
 		}
-		l.estdStreams[h.streamID] = str
-		return l.writeHeader(h.streamID, h.endStream, h.hf, h.onWrite)
+		// else:  Case 1.B: Server wants to close stream.
+
+		if str.state != empty { // either active or waiting on stream quota.
+			// add it str's list of items.
+			str.itl.enqueue(h)
+			return nil
+		}
+		if err := l.writeHeader(h.streamID, h.endStream, h.hf, h.onWrite); err != nil {
+			return err
+		}
+		return l.cleanupStreamHandler(h.cleanup)
 	}
 	// Case 2: Client wants to originate stream.
 	str := &outStream{
@@ -632,6 +707,8 @@ func (l *loopyWriter) handle(i interface{}) error {
 		return l.outgoingSettingsHandler(i)
 	case *headerFrame:
 		return l.headerHandler(i)
+	case *registerStream:
+		return l.registerStreamHandler(i)
 	case *cleanupStream:
 		return l.cleanupStreamHandler(i)
 	case *incomingGoAway:
@@ -664,26 +741,37 @@ func (l *loopyWriter) applySettings(ss []http2.Setting) error {
 					}
 				}
 			}
+		case http2.SettingHeaderTableSize:
+			updateHeaderTblSize(l.hEnc, s.Val)
 		}
 	}
 	return nil
 }
 
+// processData removes the first stream from active streams, writes out at most 16KB
+// of its data and then puts it at the end of activeStreams if there's still more data
+// to be sent and stream has some stream-level flow control.
 func (l *loopyWriter) processData() (bool, error) {
 	if l.sendQuota == 0 {
 		return true, nil
 	}
-	str := l.activeStreams.dequeue()
+	str := l.activeStreams.dequeue() // Remove the first stream.
 	if str == nil {
 		return true, nil
 	}
-	dataItem := str.itl.peek().(*dataFrame)
-	if len(dataItem.h) == 0 && len(dataItem.d) == 0 {
+	dataItem := str.itl.peek().(*dataFrame) // Peek at the first data item this stream.
+	// A data item is represented by a dataFrame, since it later translates into
+	// multiple HTTP2 data frames.
+	// Every dataFrame has two buffers; h that keeps grpc-message header and d that is acutal data.
+	// As an optimization to keep wire traffic low, data from d is copied to h to make as big as the
+	// maximum possilbe HTTP2 frame size.
+
+	if len(dataItem.h) == 0 && len(dataItem.d) == 0 { // Empty data frame
 		// Client sends out empty data frame with endStream = true
 		if err := l.framer.fr.WriteData(dataItem.streamID, dataItem.endStream, nil); err != nil {
 			return false, err
 		}
-		str.itl.dequeue()
+		str.itl.dequeue() // remove the empty data item from stream
 		if str.itl.isEmpty() {
 			str.state = empty
 		} else if trailer, ok := str.itl.peek().(*headerFrame); ok { // the next item is trailers.
@@ -712,21 +800,20 @@ func (l *loopyWriter) processData() (bool, error) {
 	if len(buf) < size {
 		size = len(buf)
 	}
-	if strQuota := int(l.oiws) - str.bytesOutStanding; strQuota <= 0 {
+	if strQuota := int(l.oiws) - str.bytesOutStanding; strQuota <= 0 { // stream-level flow control.
 		str.state = waitingOnStreamQuota
 		return false, nil
 	} else if strQuota < size {
 		size = strQuota
 	}
 
-	if l.sendQuota < uint32(size) {
+	if l.sendQuota < uint32(size) { // connection-level flow control.
 		size = int(l.sendQuota)
 	}
 	// Now that outgoing flow controls are checked we can replenish str's write quota
 	str.wq.replenish(size)
 	var endStream bool
-	// This last data message on this stream and all
-	// of it can be written in this go.
+	// If this is the last data message on this stream and all of it can be written in this iteration.
 	if dataItem.endStream && size == len(buf) {
 		// buf contains either data or it contains header but data is empty.
 		if idx == 1 || len(dataItem.d) == 0 {
