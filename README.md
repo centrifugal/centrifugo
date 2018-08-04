@@ -6,7 +6,7 @@ See server [documentation](https://centrifugal.github.io/centrifugo/).
 
 You can also find [this introduction post](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) interesting – this is a story and motivation of Centrifugo.
 
-![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/c2/docs/content/images/scheme.png)
+![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/c2/docs/content/images/scheme_small_wide.png)
 
 ### How to install
 
