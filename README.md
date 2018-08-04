@@ -17,7 +17,7 @@ brew tap centrifugal/centrifugo https://github.com/centrifugal/centrifugo
 brew install centrifugo
 ```
 
-See official [Docker image](https://hub.docker.com/r/centrifugo/centrifugo/) and [Kubernetes Helm Chart](https://github.com/kubernetes/charts/tree/master/stable/centrifugo).
+See official [Docker image](https://hub.docker.com/r/centrifugo/centrifugo/).
 
 There are also [packages for 64-bit Debian, Centos and Ubuntu](https://packagecloud.io/FZambia/centrifugo).
 
@@ -31,7 +31,7 @@ Try our [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `
 
 * Fast server capable to serve thousands of simultaneous connections
 * Easily integrates with existing application – no need to rewrite your code base to introduce real-time events
-* HTTP API to communicate from your application backend (publish messages in channels etc)
+* HTTP and GRPC API to communicate from your application backend (publish messages in channels etc)
 * JSON and binary Protobuf Websocket protocol 
 * SockJS polyfill for web browsers without Websocket support (JSON only)
 * Scale with Redis PUB/SUB, Redis Sentinel for high availability, consistent sharding support
@@ -43,12 +43,6 @@ Try our [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `
 * Built-in administrative web interface
 * Ready to deploy (Docker image, RPM/DEB packages, Nginx configuration, automatic Let's Encrypt TLS certificates)
 * MIT license
-
-### Simplified scheme
-
-<br>
-
-![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/c2/docs/content/images/scheme.png)
 
 ### Support project
 
