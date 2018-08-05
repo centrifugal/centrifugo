@@ -17,6 +17,7 @@ Several symbols in channel names are reserved for Centrifugo internal needs:
 * `#` – for user channel boundary (see below)
 * `*` – for future Centrifugo needs
 * `&` – for future Centrifugo needs
+* `/` – for future Centrifugo needs
 
 ### namespace channel boundary (:)
 

@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -26,7 +25,7 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 	return &Handler{
 		node:   n,
 		config: c,
-		api:    newAPIExecutor(n),
+		api:    newAPIExecutor(n, "http"),
 	}
 }
 
@@ -37,10 +36,6 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 	}
-
-	defer func(started time.Time) {
-		apiHandlerDurationSummary.Observe(time.Since(started).Seconds())
-	}(time.Now())
 
 	var data []byte
 	var err error
@@ -83,9 +78,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		now := time.Now()
 		rep, err := s.handleAPICommand(r.Context(), enc, command)
-		apiCommandDurationSummary.WithLabelValues(strings.ToLower(MethodType_name[int32(command.Method)])).Observe(time.Since(now).Seconds())
 		if err != nil {
 			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error handling API command", map[string]interface{}{"error": err.Error()}))
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)

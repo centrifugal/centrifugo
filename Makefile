@@ -7,17 +7,13 @@ DOCKER_RUN_DOC_PORT := 8000
 DOCKER_RUN_DOC_MOUNT := -v $(CURDIR)/docs:/mkdocs
 DOCKER_RUN_DOC_OPTS := --rm $(DOCKER_RUN_DOC_MOUNT) -p $(DOCKER_RUN_DOC_PORT):8000
 
-all: release
-
-release:
-	@read -p "Enter new release version: " version; \
-	./misc/scripts/release.sh $$version
+all: test
 
 prepare:
 	go get github.com/mitchellh/gox
 
 test:
-	go test $(TESTFOLDERS) -cover
+	go test $(TESTFOLDERS) -cover -race
 
 web:
 	./misc/scripts/update_web.sh

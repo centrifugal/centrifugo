@@ -26,7 +26,7 @@ type grpcAPIService struct {
 func newGRPCAPIService(n *centrifuge.Node, c GRPCAPIServiceConfig) *grpcAPIService {
 	return &grpcAPIService{
 		config: c,
-		api:    newAPIExecutor(n),
+		api:    newAPIExecutor(n, "grpc"),
 	}
 }
 

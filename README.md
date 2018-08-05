@@ -32,6 +32,7 @@ Try our [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `
 ### Highlights
 
 * Fast server capable to serve thousands of simultaneous connections
+* Simple to install and cross platform – works on Linux, MacOS and Windows
 * Easily integrates with existing application – no need to rewrite your code base to introduce real-time events
 * HTTP and GRPC API to communicate from your application backend (publish messages in channels etc)
 * JSON and binary Protobuf Websocket protocol 

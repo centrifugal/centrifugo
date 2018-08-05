@@ -14,7 +14,7 @@ Currently we support versions of the following distributions:
 See [full list of available packages](https://packagecloud.io/FZambia/centrifugo) and
 [installation instructions](https://packagecloud.io/FZambia/centrifugo/install).
 
-Also note that if your linux distro is not in list you can ask us to package
+Also note that if your Linux distro is not in list you can ask us to package
 for it or just download appropriate package from packagecloud that fits your
 distribution.
 

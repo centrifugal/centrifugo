@@ -2,23 +2,30 @@ package api
 
 import (
 	"context"
+	"time"
 
 	"github.com/centrifugal/centrifuge"
 )
 
 // apiExecutor can run API methods.
 type apiExecutor struct {
-	node *centrifuge.Node
+	node     *centrifuge.Node
+	protocol string
 }
 
-func newAPIExecutor(n *centrifuge.Node) *apiExecutor {
+func newAPIExecutor(n *centrifuge.Node, protocol string) *apiExecutor {
 	return &apiExecutor{
-		node: n,
+		node:     n,
+		protocol: protocol,
 	}
 }
 
 // Publish publishes data into channel.
 func (h *apiExecutor) Publish(ctx context.Context, cmd *PublishRequest) *PublishResponse {
+	defer func(started time.Time) {
+		apiCommandDurationSummary.WithLabelValues(h.protocol, "publish").Observe(time.Since(started).Seconds())
+	}(time.Now())
+
 	ch := cmd.Channel
 	data := cmd.Data
 
@@ -60,6 +67,9 @@ func (h *apiExecutor) Publish(ctx context.Context, cmd *PublishRequest) *Publish
 
 // Broadcast publishes the same data into many channels.
 func (h *apiExecutor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *BroadcastResponse {
+	defer func(started time.Time) {
+		apiCommandDurationSummary.WithLabelValues(h.protocol, "broadcast").Observe(time.Since(started).Seconds())
+	}(time.Now())
 
 	resp := &BroadcastResponse{}
 
@@ -125,6 +135,9 @@ func (h *apiExecutor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Bro
 // Unsubscribe unsubscribes user from channel and sends unsubscribe
 // control message to other nodes so they could also unsubscribe user.
 func (h *apiExecutor) Unsubscribe(ctx context.Context, cmd *UnsubscribeRequest) *UnsubscribeResponse {
+	defer func(started time.Time) {
+		apiCommandDurationSummary.WithLabelValues(h.protocol, "unsibscribe").Observe(time.Since(started).Seconds())
+	}(time.Now())
 
 	resp := &UnsubscribeResponse{}
 
@@ -157,6 +170,9 @@ func (h *apiExecutor) Unsubscribe(ctx context.Context, cmd *UnsubscribeRequest) 
 // Disconnect disconnects user by its ID and sends disconnect
 // control message to other nodes so they could also disconnect user.
 func (h *apiExecutor) Disconnect(ctx context.Context, cmd *DisconnectRequest) *DisconnectResponse {
+	defer func(started time.Time) {
+		apiCommandDurationSummary.WithLabelValues(h.protocol, "disconnect").Observe(time.Since(started).Seconds())
+	}(time.Now())
 
 	resp := &DisconnectResponse{}
 
@@ -178,6 +194,9 @@ func (h *apiExecutor) Disconnect(ctx context.Context, cmd *DisconnectRequest) *D
 
 // Presence returns response with presence information for channel.
 func (h *apiExecutor) Presence(ctx context.Context, cmd *PresenceRequest) *PresenceResponse {
+	defer func(started time.Time) {
+		apiCommandDurationSummary.WithLabelValues(h.protocol, "presence").Observe(time.Since(started).Seconds())
+	}(time.Now())
 
 	resp := &PresenceResponse{}
 
@@ -224,6 +243,9 @@ func (h *apiExecutor) Presence(ctx context.Context, cmd *PresenceRequest) *Prese
 
 // PresenceStats returns response with presence stats information for channel.
 func (h *apiExecutor) PresenceStats(ctx context.Context, cmd *PresenceStatsRequest) *PresenceStatsResponse {
+	defer func(started time.Time) {
+		apiCommandDurationSummary.WithLabelValues(h.protocol, "presence_stats").Observe(time.Since(started).Seconds())
+	}(time.Now())
 
 	resp := &PresenceStatsResponse{}
 
@@ -262,6 +284,9 @@ func (h *apiExecutor) PresenceStats(ctx context.Context, cmd *PresenceStatsReque
 
 // History returns response with history information for channel.
 func (h *apiExecutor) History(ctx context.Context, cmd *HistoryRequest) *HistoryResponse {
+	defer func(started time.Time) {
+		apiCommandDurationSummary.WithLabelValues(h.protocol, "history").Observe(time.Since(started).Seconds())
+	}(time.Now())
 
 	resp := &HistoryResponse{}
 
@@ -316,6 +341,9 @@ func (h *apiExecutor) History(ctx context.Context, cmd *HistoryRequest) *History
 
 // HistoryRemove removes all history information for channel.
 func (h *apiExecutor) HistoryRemove(ctx context.Context, cmd *HistoryRemoveRequest) *HistoryRemoveResponse {
+	defer func(started time.Time) {
+		apiCommandDurationSummary.WithLabelValues(h.protocol, "history_remove").Observe(time.Since(started).Seconds())
+	}(time.Now())
 
 	resp := &HistoryRemoveResponse{}
 
@@ -349,6 +377,9 @@ func (h *apiExecutor) HistoryRemove(ctx context.Context, cmd *HistoryRemoveReque
 
 // Channels returns active channels.
 func (h *apiExecutor) Channels(ctx context.Context, cmd *ChannelsRequest) *ChannelsResponse {
+	defer func(started time.Time) {
+		apiCommandDurationSummary.WithLabelValues(h.protocol, "channels").Observe(time.Since(started).Seconds())
+	}(time.Now())
 
 	resp := &ChannelsResponse{}
 
@@ -367,6 +398,9 @@ func (h *apiExecutor) Channels(ctx context.Context, cmd *ChannelsRequest) *Chann
 
 // Info returns information about running nodes.
 func (h *apiExecutor) Info(ctx context.Context, cmd *InfoRequest) *InfoResponse {
+	defer func(started time.Time) {
+		apiCommandDurationSummary.WithLabelValues(h.protocol, "info").Observe(time.Since(started).Seconds())
+	}(time.Now())
 
 	resp := &InfoResponse{}
 
