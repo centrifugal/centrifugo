@@ -23,7 +23,7 @@ func nodeWithMemoryEngine() *centrifuge.Node {
 
 func TestPublishAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	api := newAPIExecutor(node)
+	api := newAPIExecutor(node, "test")
 	resp := api.Publish(context.Background(), &PublishRequest{})
 	assert.Equal(t, ErrorBadRequest, resp.Error)
 
@@ -39,7 +39,7 @@ func TestPublishAPI(t *testing.T) {
 
 func TestBroadcastAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	api := newAPIExecutor(node)
+	api := newAPIExecutor(node, "test")
 	resp := api.Broadcast(context.Background(), &BroadcastRequest{})
 	assert.Equal(t, ErrorBadRequest, resp.Error)
 
@@ -58,7 +58,7 @@ func TestBroadcastAPI(t *testing.T) {
 
 func TestHistoryAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	api := newAPIExecutor(node)
+	api := newAPIExecutor(node, "test")
 	resp := api.History(context.Background(), &HistoryRequest{})
 	assert.Equal(t, ErrorBadRequest, resp.Error)
 	resp = api.History(context.Background(), &HistoryRequest{Channel: "test"})
@@ -75,7 +75,7 @@ func TestHistoryAPI(t *testing.T) {
 
 func TestHistoryRemoveAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	api := newAPIExecutor(node)
+	api := newAPIExecutor(node, "test")
 	resp := api.HistoryRemove(context.Background(), &HistoryRemoveRequest{})
 	assert.Equal(t, ErrorBadRequest, resp.Error)
 	resp = api.HistoryRemove(context.Background(), &HistoryRemoveRequest{Channel: "test"})
@@ -92,7 +92,7 @@ func TestHistoryRemoveAPI(t *testing.T) {
 
 func TestPresenceAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	api := newAPIExecutor(node)
+	api := newAPIExecutor(node, "test")
 	resp := api.Presence(context.Background(), &PresenceRequest{})
 	assert.Equal(t, ErrorBadRequest, resp.Error)
 	resp = api.Presence(context.Background(), &PresenceRequest{Channel: "test"})
@@ -109,7 +109,7 @@ func TestPresenceAPI(t *testing.T) {
 
 func TestPresenceStatsAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	api := newAPIExecutor(node)
+	api := newAPIExecutor(node, "test")
 	resp := api.PresenceStats(context.Background(), &PresenceStatsRequest{})
 	assert.Equal(t, ErrorBadRequest, resp.Error)
 	resp = api.PresenceStats(context.Background(), &PresenceStatsRequest{Channel: "test"})
@@ -125,7 +125,7 @@ func TestPresenceStatsAPI(t *testing.T) {
 
 func TestDisconnectAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	api := newAPIExecutor(node)
+	api := newAPIExecutor(node, "test")
 	resp := api.Disconnect(context.Background(), &DisconnectRequest{})
 	assert.Equal(t, ErrorBadRequest, resp.Error)
 	resp = api.Disconnect(context.Background(), &DisconnectRequest{
@@ -136,7 +136,7 @@ func TestDisconnectAPI(t *testing.T) {
 
 func TestUnsubscribeAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	api := newAPIExecutor(node)
+	api := newAPIExecutor(node, "test")
 	resp := api.Unsubscribe(context.Background(), &UnsubscribeRequest{})
 	assert.Equal(t, ErrorBadRequest, resp.Error)
 	resp = api.Unsubscribe(context.Background(), &UnsubscribeRequest{
@@ -148,14 +148,14 @@ func TestUnsubscribeAPI(t *testing.T) {
 
 func TestChannelsAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	api := newAPIExecutor(node)
+	api := newAPIExecutor(node, "test")
 	resp := api.Channels(context.Background(), &ChannelsRequest{})
 	assert.Nil(t, resp.Error)
 }
 
 func TestInfoAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	api := newAPIExecutor(node)
+	api := newAPIExecutor(node, "test")
 	resp := api.Info(context.Background(), &InfoRequest{})
 	assert.Nil(t, resp.Error)
 }
