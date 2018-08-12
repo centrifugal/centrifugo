@@ -555,6 +555,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#important-client-scenarios" title="Important client scenarios" class="md-nav__link">
+    Important client scenarios
+  </a>
+  
+</li>
+      
       
       
       
@@ -927,6 +934,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#important-client-scenarios" title="Important client scenarios" class="md-nav__link">
+    Important client scenarios
+  </a>
+  
+</li>
+      
       
       
       
@@ -1272,6 +1286,18 @@ allows to distinguish it from <code class="codehilite">Reply</code> to <code cla
 <p>Every time client disconnects from server it must call unsubscribe handlers for all active subscriptions and then emit disconnect event.</p>
 <p>Client must periodically (once in 25 secs, configurable) send ping messages to server. If pong has not beed received in 5 secs (configurable) then client must disconnect from server and try to reconnect with backoff strategy.</p>
 <p>Client can automatically batch several requests into one frame to server and also must be able to handle several replies received from server in one frame.</p>
+<h3 id="important-client-scenarios">Important client scenarios<a class="headerlink" href="#important-client-scenarios" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Client must survive server reload and internet connection lost. In this case client must try to reconnect with exponentioal backoff strategy</li>
+<li>Client should handle disconnect reason. In case of Websocket it is sent by server in CLOSE Websocket frame. This is a string containing JSON object with fields: <code class="codehilite">reason</code> (string) and <code class="codehilite">reconnect</code> (bool). Client should give users access to these fields in disconnect event and automatically follow <code class="codehilite">reconnect</code> advice</li>
+<li>Client must send periodic <code class="codehilite">ping</code> commands to server and thus detect broken connection. If no ping reply received from server in configured window reconnect workflow must be initiated</li>
+<li>Client should fully reconnect if subscription request timed out. Timeout can be configured by client library users</li>
+<li>Client should automatically recover messages and set appropriate fields in subscribe event context. Two important fields are <code class="codehilite">recovered</code> and <code class="codehilite">isResubscribe</code>. First field let user know what server thinks about subscription state - were all messages recovered or not. The second field must only be true if resubscribe was caused by temporary network connection lost. If user initiated resubscribe himself (calling <code class="codehilite">unsubscribe</code> method and then <code class="codehilite">subscribe</code> method) then recover workflow should not be used and <code class="codehilite">isResubscribe</code> must be <code class="codehilite">false</code>. Of cause fields in subscribe event context can have different names depending on programmer's taste and language style guide</li>
+<li>Client should work both with Centrifugo and Centrifuge library based server</li>
+<li>Client must have a method to set connection token</li>
+<li>Client should support connection token refresh mechanism</li>
+<li>Client should support private channel subscriptions and private subscription token refresh mechanism</li>
+</ul>
                 
                   
                 
