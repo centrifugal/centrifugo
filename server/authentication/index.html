@@ -360,8 +360,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#user" title="user" class="md-nav__link">
-    user
+  <a href="#sub" title="sub" class="md-nav__link">
+    sub
   </a>
   
 </li>
@@ -843,8 +843,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#user" title="user" class="md-nav__link">
-    user
+  <a href="#sub" title="sub" class="md-nav__link">
+    sub
   </a>
   
 </li>
@@ -934,10 +934,10 @@
 <p>At moment <strong>the only supported JWT algorithm is HS256</strong> - i.e. HMAC SHA-256. This can be extended later.</p>
 <p>We will use Javascript Centrifugo client here for example snippets for client side and <a href="https://github.com/jpadilla/pyjwt">PyJWT</a> Python library to generate connection token on backend side.</p>
 <h2 id="claims">Claims<a class="headerlink" href="#claims" title="Permanent link">&para;</a></h2>
-<p>Credential claims are: <code class="codehilite">user</code>, <code class="codehilite">exp</code>, <code class="codehilite">info</code> and <code class="codehilite">b64info</code>. What do they mean? Let's describe in detail.</p>
-<h3 id="user">user<a class="headerlink" href="#user" title="Permanent link">&para;</a></h3>
-<p>This is simple - it's an ID of current application user (<strong>as string</strong>). </p>
-<p>If your user not currently authenticated in your application but you want to let him connect to Centrifugo anyway you can use empty string as user ID. This is called anonymous access. In this case <code class="codehilite">anonymous</code> option must be enabled in Centrifugo configuration for channels that client will subscribe to.</p>
+<p>Centrifugo uses the following claims in JWT: <code class="codehilite">sub</code>, <code class="codehilite">exp</code>, <code class="codehilite">info</code> and <code class="codehilite">b64info</code>. What do they mean? Let's describe in detail.</p>
+<h3 id="sub">sub<a class="headerlink" href="#sub" title="Permanent link">&para;</a></h3>
+<p>This is a standard JWT claim which must contain an ID of current application user (<strong>as string</strong>). </p>
+<p>If your user is not currently authenticated in your application but you want to let him connect to Centrifugo anyway you can use empty string as user ID in this <code class="codehilite">sub</code> claim. This is called anonymous access. In this case <code class="codehilite">anonymous</code> option must be enabled in Centrifugo configuration for channels that client will subscribe to.</p>
 <h3 id="exp">exp<a class="headerlink" href="#exp" title="Permanent link">&para;</a></h3>
 <p>This is an a UNIX timestamp seconds when token will expire. This is standard JWT claim - all JWT libraries for different languages provide an API to set it.</p>
 <p>If <code class="codehilite">exp</code> claim not provided then Centrifugo won't expire any connections. When provided special algorithm will find connections with <code class="codehilite">exp</code> in the past and activate connection refresh mechanism. Refresh mechanism allows connection to survive and be prolonged. In case of refresh failure client connection will be eventually closed by Centrifugo and won't be accepted until new valid and actual credentials provided in connection token.</p>
@@ -954,7 +954,7 @@
 <h3 id="simplest-token">Simplest token<a class="headerlink" href="#simplest-token" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
 
-<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;sub&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
 <span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 </pre></div>
@@ -971,7 +971,7 @@
 <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
 <span class="kn">import</span> <span class="nn">time</span>
 
-<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span> <span class="s2">&quot;exp&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="mi">5</span><span class="o">*</span><span class="mi">60</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s2">&quot;HS256&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;sub&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span> <span class="s2">&quot;exp&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="mi">5</span><span class="o">*</span><span class="mi">60</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s2">&quot;HS256&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
 <span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 </pre></div>
@@ -979,7 +979,7 @@
 <h3 id="token-with-additional-connection-info">Token with additional connection info<a class="headerlink" href="#token-with-additional-connection-info" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
 
-<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span> <span class="s2">&quot;info&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Alexander Emelin&quot;</span><span class="p">}},</span> <span class="s2">&quot;secret&quot;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s2">&quot;HS256&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;sub&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span> <span class="s2">&quot;info&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Alexander Emelin&quot;</span><span class="p">}},</span> <span class="s2">&quot;secret&quot;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s2">&quot;HS256&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
 <span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 </pre></div>

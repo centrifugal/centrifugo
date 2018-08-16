@@ -753,7 +753,7 @@
 <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
 <span class="kn">import</span> <span class="nn">time</span>
 
-<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span> <span class="s2">&quot;exp&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="mi">10</span><span class="o">*</span><span class="mi">60</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;sub&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span> <span class="s2">&quot;exp&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="mi">10</span><span class="o">*</span><span class="mi">60</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
 <span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 </pre></div>
@@ -766,7 +766,7 @@
 <span class="p">}</span>
 </pre></div>
 
-<p>So you must just return the same connection token for <code class="codehilite">user</code> when rendering page initially. But with actual <code class="codehilite">exp</code>. Javascript client will then send them to Centrifugo server and connection will be refreshed for a time you set in <code class="codehilite">exp</code>.</p>
+<p>So you must just return the same connection token for your user when rendering page initially. But with actual valid <code class="codehilite">exp</code>. Javascript client will then send them to Centrifugo server and connection will be refreshed for a time you set in <code class="codehilite">exp</code>.</p>
 <p>In this case you know which user want to refresh its connection because this is just a general request to your app - so your session mechanism will tell you about the user.</p>
 <p>If you don't want to refresh connection for this user - just return 403 Forbidden on refresh request to your application backend.</p>
 <p>Javascript client also has options to hook into refresh mechanism to implement your custom way of refreshing. Other Centrifugo clients also should have hooks to refresh credentials but depending on client API for this can be different - see specific client docs.</p>
