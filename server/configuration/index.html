@@ -1174,7 +1174,7 @@ Use &quot; [command] --help&quot; for more information about a command.
 <span class="p">}</span>
 </pre></div>
 
-<p>The only field that is required is <strong>secret</strong>. Secret used to create HMAC signs. Keep it strong and in secret!</p>
+<p>The only field that is required is <strong>secret</strong>. Secret used to check JWT signature (more about JWT later). Keep it strong and in secret as its name says.</p>
 <h3 id="toml-file">TOML file<a class="headerlink" href="#toml-file" title="Permanent link">&para;</a></h3>
 <p>Centrifugo also supports TOML format for configuration file:</p>
 <div class="codehilite"><pre><span></span>centrifugo --config=config.toml
@@ -1185,7 +1185,7 @@ Use &quot; [command] --help&quot; for more information about a command.
 log_level = &quot;debug&quot;
 </pre></div>
 
-<p>I.e. the same configuration as JSON file above. We will talk about what is <code class="codehilite">namespaces</code> field soon.</p>
+<p>I.e. the same configuration as JSON file above with one extra option.</p>
 <h3 id="yaml-file">YAML file<a class="headerlink" href="#yaml-file" title="Permanent link">&para;</a></h3>
 <p>And YAML config also supported. <code class="codehilite">config.yaml</code>:</p>
 <div class="codehilite"><pre><span></span><span class="n">secret</span><span class="o">:</span> <span class="n">secret</span>
@@ -1214,34 +1214,34 @@ log_level = &quot;debug&quot;
 </ul>
 <p>Note that some options can be set via command-line. Command-line options are more valuable when set than configuration file's options. See description of <a href="https://github.com/spf13/viper">viper</a> – to see more details about configuration options priority.</p>
 <h3 id="channel-options">Channel options<a class="headerlink" href="#channel-options" title="Permanent link">&para;</a></h3>
-<p>Let's look on options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see <a href="../channels">special chapter</a> to find more information about channels). The following options will affect channel behaviour:</p>
+<p>Let's look at options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see <a href="../channels">special chapter</a> to find more information about channels). The following options will affect channel behaviour:</p>
 <ul>
 <li>
-<p><code class="codehilite">publish</code> – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. Note that client can only publish data into channel after successfully subscribed on it. By default it's <code class="codehilite">false</code>.</p>
+<p><code class="codehilite">publish</code> – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. By default it's <code class="codehilite">false</code>.</p>
 </li>
 <li>
-<p><code class="codehilite">subscribe_to_publish</code> - when <code class="codehilite">publish</code> option enabled client can publish into channel without beong subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.</p>
+<p><code class="codehilite">subscribe_to_publish</code> - when <code class="codehilite">publish</code> option enabled client can publish into channel without being subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.</p>
 </li>
 <li>
-<p><code class="codehilite">anonymous</code> – this option enables anonymous access (with empty <code class="codehilite">user</code> ID in connection token). In most situations your application works with authorized users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID. By default <code class="codehilite">false</code>.</p>
+<p><code class="codehilite">anonymous</code> – this option enables anonymous access (with empty <code class="codehilite">sub</code> claim in connection token). In most situations your application works with authenticated users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID. By default <code class="codehilite">false</code>.</p>
 </li>
 <li>
-<p><code class="codehilite">presence</code> – enable/disable presence information. Presence is a structure with clients currently subscribed on channel. By default <code class="codehilite">false</code> – i.e. no presence information will be available for channels.</p>
+<p><code class="codehilite">presence</code> – enable/disable presence information. Presence is an information about clients currently subscribed on channel. By default <code class="codehilite">false</code> – i.e. no presence information will be available for channels.</p>
 </li>
 <li>
 <p><code class="codehilite">join_leave</code> – enable/disable sending join(leave) messages when client subscribes on channel (unsubscribes from channel). By default <code class="codehilite">false</code>.</p>
 </li>
 <li>
-<p><code class="codehilite">history_size</code> – history size (amount of messages) for channels. As Centrifugo keeps all history messages in memory it's very important to limit maximum amount of messages in channel history to reasonable minimum. By default history size is <code class="codehilite">0</code> - this means that channels will have no history messages at all. As soon as history enabled then <code class="codehilite">history_size</code> defines maximum amount of messages that Centrifugo will keep for <strong>each</strong> channel in namespace during history lifetime (see below).</p>
+<p><code class="codehilite">history_size</code> – history size (amount of messages) for channels. As Centrifugo keeps all history messages in memory it's very important to limit maximum amount of messages in channel history to reasonable value. <code class="codehilite">history_size</code> defines maximum amount of messages that Centrifugo will keep for <strong>each</strong> channel in namespace during history lifetime (see below). By default history size is <code class="codehilite">0</code> - this means that channels will have no history messages at all.</p>
 </li>
 <li>
-<p><code class="codehilite">history_lifetime</code> – interval in seconds how long to keep channel history messages. As all history is storing in memory it is also very important to get rid of old history data for unused (inactive for a long time) channels. By default history lifetime is <code class="codehilite">0</code> – this means that channels will have no history messages at all. <strong>So to get history messages you should wisely configure both <code class="codehilite">history_size</code> and <code class="codehilite">history_lifetime</code> options</strong>.</p>
+<p><code class="codehilite">history_lifetime</code> – interval in seconds how long to keep channel history messages. As all history is storing in memory it is also very important to get rid of old history data for unused (inactive for a long time) channels. By default history lifetime is <code class="codehilite">0</code> – this means that channels will have no history messages at all. <strong>So to turn on keeping history messages you should wisely configure both <code class="codehilite">history_size</code> and <code class="codehilite">history_lifetime</code> options</strong>.</p>
 </li>
 <li>
-<p><code class="codehilite">history_recover</code> (<strong>new in v1.2.0</strong>) – boolean option, when enabled Centrifugo will try to recover missed messages published while client was disconnected for some reason (bad internet connection for example). By default <code class="codehilite">false</code>. This option must be used in conjunction with reasonably configured message history for channel i.e. <code class="codehilite">history_size</code> and <code class="codehilite">history_lifetime</code> <strong>must be set</strong> (because Centrifugo uses channel message history to recover messages). Also note that note all real-time events require this feature turned on so think wisely when you need this. See more details about how this option works in <a href="../recover/">special chapter</a>.</p>
+<p><code class="codehilite">history_recover</code> – boolean option, when enabled Centrifugo will try to recover missed messages published while client was disconnected for some reason (bad internet connection for example). By default <code class="codehilite">false</code>. This option must be used in conjunction with reasonably configured message history for channel i.e. <code class="codehilite">history_size</code> and <code class="codehilite">history_lifetime</code> <strong>must be set</strong> (because Centrifugo uses channel message history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. See more details about how this option works in <a href="../recover/">special chapter</a>.</p>
 </li>
 <li>
-<p><code class="codehilite">history_drop_inactive</code> (<strong>new in v1.3.0</strong>) – boolean option, allows to drastically reduce resource usage (engine memory usage, messages travelling around) when you use message history for channels. In couple of words when enabled Centrifugo will drop history messages that no one needs. Please, see <a href="https://github.com/centrifugal/centrifugo/issues/50">issue on Github</a> to get more information about option use case scenario and edge cases it involves.</p>
+<p><code class="codehilite">history_drop_inactive</code> – boolean option, allows to drastically reduce resource usage (engine memory usage, messages travelling around) when you use message history for channels. In couple of words when enabled Centrifugo will drop history messages that no one needs. Please, see <a href="https://github.com/centrifugal/centrifugo/issues/50">issue on Github</a> to get more information about option use case scenario and edge cases it involves.</p>
 </li>
 </ul>
 <p>Let's look how to set some of these options in config:</p>
