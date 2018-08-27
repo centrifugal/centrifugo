@@ -1238,7 +1238,7 @@ log_level = &quot;debug&quot;
 <p><code class="codehilite">history_lifetime</code> – interval in seconds how long to keep channel history messages. As all history is storing in memory it is also very important to get rid of old history data for unused (inactive for a long time) channels. By default history lifetime is <code class="codehilite">0</code> – this means that channels will have no history messages at all. <strong>So to turn on keeping history messages you should wisely configure both <code class="codehilite">history_size</code> and <code class="codehilite">history_lifetime</code> options</strong>.</p>
 </li>
 <li>
-<p><code class="codehilite">history_recover</code> – boolean option, when enabled Centrifugo will try to recover missed messages published while client was disconnected for some reason (bad internet connection for example). By default <code class="codehilite">false</code>. This option must be used in conjunction with reasonably configured message history for channel i.e. <code class="codehilite">history_size</code> and <code class="codehilite">history_lifetime</code> <strong>must be set</strong> (because Centrifugo uses channel message history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. See more details about how this option works in <a href="../recover/">special chapter</a>.</p>
+<p><code class="codehilite">history_recover</code> – boolean option, when enabled Centrifugo will try to recover missed messages published while client was disconnected for some reason (bad internet connection for example). By default <code class="codehilite">false</code>. This option must be used in conjunction with reasonably configured message history for channel i.e. <code class="codehilite">history_size</code> and <code class="codehilite">history_lifetime</code> <strong>must be set</strong> (because Centrifugo uses channel message history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel. See more details about how this option works in <a href="../recover/">special chapter</a>.</p>
 </li>
 <li>
 <p><code class="codehilite">history_drop_inactive</code> – boolean option, allows to drastically reduce resource usage (engine memory usage, messages travelling around) when you use message history for channels. In couple of words when enabled Centrifugo will drop history messages that no one needs. Please, see <a href="https://github.com/centrifugal/centrifugo/issues/50">issue on Github</a> to get more information about option use case scenario and edge cases it involves.</p>
@@ -1253,7 +1253,7 @@ log_level = &quot;debug&quot;
     <span class="s2">&quot;presence&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
     <span class="s2">&quot;join_leave&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
     <span class="s2">&quot;history_size&quot;</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span>
-    <span class="s2">&quot;history_lifetime&quot;</span><span class="o">:</span> <span class="mi">30</span><span class="p">,</span>
+    <span class="s2">&quot;history_lifetime&quot;</span><span class="o">:</span> <span class="mi">300</span><span class="p">,</span>
     <span class="s2">&quot;history_recover&quot;</span><span class="o">:</span> <span class="kc">true</span>
 <span class="p">}</span>
 </pre></div>
@@ -1283,7 +1283,7 @@ channel name with <code class="codehilite">:</code> as separator:</p>
           <span class="s2">&quot;publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
           <span class="s2">&quot;anonymous&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
           <span class="s2">&quot;history_size&quot;</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span>
-          <span class="s2">&quot;history_lifetime&quot;</span><span class="o">:</span> <span class="mi">30</span><span class="p">,</span>
+          <span class="s2">&quot;history_lifetime&quot;</span><span class="o">:</span> <span class="mi">300</span><span class="p">,</span>
           <span class="s2">&quot;history_recover&quot;</span><span class="o">:</span> <span class="kc">true</span>
         <span class="p">},</span>
         <span class="p">{</span>
