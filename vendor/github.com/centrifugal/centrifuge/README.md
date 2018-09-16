@@ -25,9 +25,9 @@ Features:
 
 Clients (also work in progress but with most features already supported):
 
-* [centrifuge-js](https://github.com/centrifugal/centrifuge-js/tree/c2) – for browser, NodeJS and React Native.
-* [centrifuge-go](https://github.com/centrifugal/centrifuge-go/tree/c2) - for Go language.
-* [centrifuge-mobile](https://github.com/centrifugal/centrifuge-mobile/c2) - for iOS and Android using `centrifuge-go` and `gomobile` project.
+* [centrifuge-js](https://github.com/centrifugal/centrifuge-js) – for browser, NodeJS and React Native.
+* [centrifuge-go](https://github.com/centrifugal/centrifuge-go) - for Go language.
+* [centrifuge-mobile](https://github.com/centrifugal/centrifuge-mobile) - for iOS and Android using `centrifuge-go` and `gomobile` project.
 
 [Godoc](https://godoc.org/github.com/centrifugal/centrifuge) and [examples](https://github.com/centrifugal/centrifuge/tree/master/examples)
 

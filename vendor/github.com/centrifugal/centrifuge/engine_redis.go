@@ -342,7 +342,7 @@ var (
 	// ARGV[5] - history drop inactive flag - "0" or "1"
 	pubScriptSource = `
 local sequence = redis.call("incr", KEYS[3])
-local payload = sequence .. ":" .. ARGV[2]
+local payload = "__" .. sequence .. "__" .. ARGV[2]
 local num_subscribed_nodes = redis.call("publish", ARGV[1], payload)
 local m = 0
 if ARGV[5] == "1" and num_subscribed_nodes == 0 and redis.call("exists", KEYS[2]) == 0 then
@@ -787,9 +787,7 @@ func (e *shard) runPubSub() {
 }
 
 func (e *shard) handleRedisClientMessage(chID channelID, data []byte) error {
-	parts := bytes.SplitN(data, []byte(":"), 2)
-	sequence, _ := strconv.ParseUint(string(parts[0]), 10, 64)
-	pushData := parts[1]
+	pushData, seq, gen := extractPushData(data)
 	var push proto.Push
 	err := push.Unmarshal(pushData)
 	if err != nil {
@@ -801,7 +799,6 @@ func (e *shard) handleRedisClientMessage(chID channelID, data []byte) error {
 		if err != nil {
 			return err
 		}
-		seq, gen := unpackUint64(sequence)
 		pub.Seq = seq
 		pub.Gen = gen
 		e.eventHandler.HandlePublication(push.Channel, pub)
@@ -1154,7 +1151,7 @@ func (e *shard) PublishJoin(ch string, join *Join, opts *ChannelOptions) <-chan 
 
 	pr := pubRequest{
 		channel: chID,
-		message: append([]byte("0:"), byteMessage...),
+		message: byteMessage,
 		err:     &eChan,
 	}
 	e.pubCh <- pr
@@ -1181,7 +1178,7 @@ func (e *shard) PublishLeave(ch string, leave *Leave, opts *ChannelOptions) <-ch
 
 	pr := pubRequest{
 		channel: chID,
-		message: append([]byte("0:"), byteMessage...),
+		message: byteMessage,
 		err:     &eChan,
 	}
 	e.pubCh <- pr
@@ -1456,6 +1453,17 @@ func mapStringClientInfo(result interface{}, err error) (map[string]*ClientInfo,
 	return m, nil
 }
 
+func extractPushData(data []byte) ([]byte, uint32, uint32) {
+	var seq, gen uint32
+	if bytes.HasPrefix(data, []byte("__")) {
+		parts := bytes.SplitN(data, []byte("__"), 3)
+		sequence, _ := strconv.ParseUint(string(parts[1]), 10, 64)
+		seq, gen = unpackUint64(sequence)
+		return parts[2], seq, gen
+	}
+	return data, seq, gen
+}
+
 func sliceOfPubs(n *shard, result interface{}, err error) ([]*Publication, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
@@ -1468,9 +1476,7 @@ func sliceOfPubs(n *shard, result interface{}, err error) ([]*Publication, error
 			return nil, errors.New("error getting Message value")
 		}
 
-		parts := bytes.SplitN(value, []byte(":"), 2)
-		sequence, _ := strconv.ParseUint(string(parts[0]), 10, 64)
-		pushData := parts[1]
+		pushData, seq, gen := extractPushData(value)
 
 		msg, err := n.pushDecoder.Decode(pushData)
 		if err != nil {
@@ -1486,7 +1492,6 @@ func sliceOfPubs(n *shard, result interface{}, err error) ([]*Publication, error
 			return nil, fmt.Errorf("can not unmarshal value to Pub: %v", err)
 		}
 
-		seq, gen := unpackUint64(sequence)
 		publication.Seq = seq
 		publication.Gen = gen
 		msgs[i] = publication
