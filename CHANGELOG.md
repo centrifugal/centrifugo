@@ -3,9 +3,9 @@ v2.0.0
 
 This is a new major version of Centrifugo. New version has some important changes and useful features.
 
-Centrifugo v2 serves the same purpose as Centrifugo v1 but is not backwards compatible – migration to it will require adapting both backend and frontend sides of your application (of course if you decide to migrate).
+Centrifugo v2 serves the same purpose as Centrifugo v1. Centrifugo v2 is not backwards compatible with v1 – migration to it will require adapting both backend and frontend sides of your application (of course if you decide to migrate).
 
-Centrifugo is now based on new library [centrifuge](https://github.com/centrifugal/centrifuge) for Go language. That library can be used standalone to get even more than Centrifugo server provides – like custom auth, permissions, asynchronous message passing and RPC calls.
+Centrifugo is now based on new library [centrifuge](https://github.com/centrifugal/centrifuge) for Go language. That library can be used standalone to get even more than Centrifugo server provides – like custom authentication, your own permission management, asynchronous message passing, RPC calls etc.
 
 Highlights of v2:
 
@@ -30,6 +30,10 @@ Some things were removed from Centrifugo in v2 release:
 * Websocket prepared message support (though this one can be pushed back at some point).
 
 [New documentation](https://centrifugal.github.io/centrifugo/) contains actual information and tips about migration from v1.
+
+As said above new version uses JWT tokens for authentication and private channel authorization. And there is no API request body signing anymore. This all means that there is no real need using API clients (like `cent`, `phpcent`, `jscent`, `rubycent`, `gocent` before) – you can use any JWT library for your language and just send commands from your code – this is just simple JSON objects. Though those libraries still make sense to simplify integration a bit.
+
+At moment there are no native mobile clients. I.e. `centrifuge-ios` and `centrifuge-android` have not been updated to Centrifugo v2 yet.
 
 v1.8.0
 ======
