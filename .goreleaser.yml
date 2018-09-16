@@ -65,7 +65,7 @@ dockers:
     goos: linux
     goarch: amd64
     goarm: ''
-    image: fzambia/centrifugo2
+    image: centrifugo/centrifugo
     tag_templates:
     - "{{ .Tag }}"
     - "v{{ .Major }}"
