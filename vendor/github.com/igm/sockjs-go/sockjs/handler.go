@@ -64,6 +64,9 @@ func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler
 	if opts.Websocket {
 		h.mappings = append(h.mappings, newMapping("GET", sessionPrefix+"/websocket$", h.sockjsWebsocket))
 	}
+	if opts.RawWebsocket {
+		h.mappings = append(h.mappings, newMapping("GET", prefix+"/websocket$", h.rawWebsocket))
+	}
 	return h
 }
 

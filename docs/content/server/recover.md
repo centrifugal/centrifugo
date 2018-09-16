@@ -1,0 +1,15 @@
+# How message recovery works
+
+One of the most interesting features of Centrifugo is message recovery after short network disconnects. This mechanism allows client to automatically get missed message on successful resubscribe to channel after being disconnected for a while. In general you would query your application backend for actual state on every client reconnect - but message recovery feature allows Centrifugo itself to deal with this and restore missed messages from history cache thus reducing load on your application backend in some scenarios.
+
+To enable recovery mechanism for channels set `history_recover` boolean configuration option to `true` on configuration top level or for channel namespace.
+
+When subscribing on channels Centrifugo will return missed `publications` to client in subscribe Reply and also special `recovered` boolean flag to indicate whether all messages were recovered after disconnect or not.
+
+Centrifugo recovery model based on three fields in protocol: `seq`, `gen` and `epoch`. All fields are managed automatically by Centrifugo client libraries but it's good to know how recovery works under the hood.
+
+Once `history_recover` option enabled every publication will have incremental (inside channel) `seq` field. Once `seq` exceeds maximum value for `uint32` we increment another field `gen` (also `uint32`) by one. The reason we use 2 `uint32` fields instead of one `uint64` is that our main target environment - browser Javascript - does not work well with big numbers so we use 2 separate fields as workaround (another possible solution could be passing numbers as strings). Another field is string `epoch`. It exists to handle cases when history storage has been restarted while client was in disconnected state so publication numeration in channel started from scratch. For example at moment Memory engine does not persist publication sequences on disk so every restart will start numeration from scratch, after each restart new `epoch` field generated and we can understand in recovery process that client could miss messages thus returning it correct `recovered` flag. This also applies to Redis engine – if you do not use AOF with fsync then sequences can be lost after Redis restart. When using Redis engine you need to use fully in-memory model strategy or AOF with fsync to guarantee reliability of `recovered` flag sent by Centrifugo.
+
+When server receives subscribe request with `seq`, `gen` and `epoch` set in subscribe command it can look at history cache and find all missed publications. Recovered messages will be passed to client in subscribe reply in correct order and your publication handler will be automatically called to process each missed message.
+
+You can also manually implement your own recovery algorithm on top of basic PUB/SUB possibilities that Centrifugo provides. As we said above you can simply ask your backend for an actual state after every client reconnect completely bypassing recovery mechanism described here.

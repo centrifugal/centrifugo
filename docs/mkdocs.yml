@@ -1,0 +1,80 @@
+site_name: Centrifugo Documentation
+site_description: Centrifugo Documentation
+site_author: Centrifugal
+site_url: https://github.com/centrifugal/centrifugo
+dev_addr: 0.0.0.0:8000
+docs_dir: content
+edit_uri: https://github.com/centrifugal/documentation/edit/master/docs/
+repo_name: 'centrifugal/centrifugo'
+repo_url: 'https://github.com/centrifugal/centrifugo'
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc(permalink=true)
+  - pymdownx.betterem(smart_enable=all)
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.inlinehilite
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist(custom_checkbox=true)
+  - pymdownx.tilde
+
+theme:
+  name: 'material'
+  language: en
+  include_sidebar: true
+  favicon: images/favicon.png
+  logo: images/logo.png
+  palette:
+    primary: 'blue'
+    accent: 'light blue'
+  feature:
+    tabs: false
+  palette:
+    primary: 'indigo'
+    accent: 'cyan'
+  i18n:
+    prev: 'Previous'
+    next: 'Next'
+
+extra_css:
+  - theme/styles/extra.css
+
+pages: 
+  - Getting Started: 'index.md'
+  - Server:
+    - 'Overview': 'server/index.md'
+    - 'Installation': 'server/install.md'
+    - 'Configuration': 'server/configuration.md'
+    - 'Channels': 'server/channels.md'
+    - 'Authentication': 'server/authentication.md'
+    - 'Engines': 'server/engines.md'
+    - 'Admin web interface': 'server/admin.md'
+    - 'Monitoring': 'server/monitoring.md'
+    - 'Server HTTP API': 'server/api.md'
+    - 'Message recovery': 'server/recover.md'
+    - 'Signal handling': 'server/signals.md'
+    - 'Connection expiration': 'server/connection_expiration.md'
+    - 'Private channels': 'server/private_channels.md'
+    - 'Protobuf protocol': 'server/protobuf.md'
+    - 'Client protocol': 'server/protocol.md'
+  - Transports:
+    - 'Overview': 'transports/index.md'
+    - 'Websocket': 'transports/websocket.md'
+    - 'SockJS': 'transports/sockjs.md'
+  - Libraries:
+    - 'Client libraries': 'libraries/client.md'
+    - 'API libraries': 'libraries/api.md'
+  - Deploy:
+    - 'RPM and DEB packages': 'deploy/packages.md'
+    - 'Docker image': 'deploy/docker.md'
+    - 'Nginx configuration': 'deploy/nginx.md'
+    - 'TLS': 'deploy/tls.md'
+    - 'Redis HA': 'deploy/redis.md'
+    - 'OS tuning': 'deploy/tuning.md'
+  - Misc:
+    - 'Migrate from Centrifugo v1': 'misc/migrate.md'
+  - FAQ: 'faq.md'

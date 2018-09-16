@@ -46,6 +46,9 @@ type session struct {
 	msgEncoder *gob.Encoder
 	msgDecoder *gob.Decoder
 
+	// do not use SockJS framing for raw websocket connections
+	raw bool
+
 	// closeFrame to send after session is closed
 	closeFrame string
 
@@ -122,12 +125,16 @@ func (s *session) attachReceiver(recv receiver) error {
 	}(recv)
 
 	if s.state == SessionClosing {
-		s.recv.sendFrame(s.closeFrame)
+		if !s.raw {
+			s.recv.sendFrame(s.closeFrame)
+		}
 		s.recv.close()
 		return nil
 	}
 	if s.state == SessionOpening {
-		s.recv.sendFrame("o")
+		if !s.raw {
+			s.recv.sendFrame("o")
+		}
 		s.state = SessionActive
 	}
 	s.recv.sendBulk(s.sendBuffer...)

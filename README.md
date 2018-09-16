@@ -1,10 +1,12 @@
-[![Join the chat at https://gitter.im/centrifugal/centrifugo](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/centrifugal/centrifugo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/centrifugal/centrifugo](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/centrifugal/centrifugo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Join the chat at https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ](https://img.shields.io/badge/Telegram-Group-blue.svg)](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ)
 
-Centrifugo is a real-time messaging server. It's language-agnostic and can be used in conjunction with application backend written in any language - Python, Ruby, Perl, PHP, Javascript, Java, Objective-C etc.
+Centrifugo is a real-time messaging server. It's language-agnostic and can be used in conjunction with application backend written in any programming language. Centrifugo runs as separate service and keeps persistent Websocket or SockJS connections from your application clients (from web browsers or other environments like iOS/Android apps). When you need to deliver event to your clients in real-time you publish it to Centrifugo API and Centrifugo then broadcasts event to all connected clients interested in this event (i.e. clients subscribed on event channel). In other words – this is PUB/SUB server.
 
-Centrifugo runs as separate service and keeps persistent Websocket or SockJS connections from your application clients (from [web](https://github.com/centrifugal/centrifuge-js) browsers or other environments like [iOS](https://github.com/centrifugal/centrifuge-ios) or [Android](https://github.com/centrifugal/centrifuge-android) apps). When some event happens you can broadcast it to all interested clients using Centrifugo API.
+See server [documentation](https://centrifugal.github.io/centrifugo/).
 
-[Documentation](http://fzambia.gitbooks.io/centrifugal/content/) is a good start to get all details. You can also find [this introduction post](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) interesting – this is a story behind Centrifugo.
+You can also find [this introduction post](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) interesting – this is a story and motivation of Centrifugo.
+
+![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/c2/docs/content/images/scheme_small_wide.png)
 
 ### How to install
 
@@ -17,35 +19,36 @@ brew tap centrifugal/centrifugo https://github.com/centrifugal/centrifugo
 brew install centrifugo
 ```
 
-See official [Docker image](https://hub.docker.com/r/centrifugo/centrifugo/) and [Kubernetes Helm Chart](https://github.com/kubernetes/charts/tree/master/stable/centrifugo).
+See official [Docker image](https://hub.docker.com/r/centrifugo/centrifugo/).
 
 There are also [packages for 64-bit Debian, Centos and Ubuntu](https://packagecloud.io/FZambia/centrifugo).
 
 ### Demo
 
-Try our [demo instance](https://centrifugo.herokuapp.com/) on Heroku (password `demo`). Or deploy your own Centrifugo instance in one click:
+Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (password `password`). Or deploy your own Centrifugo instance in one click:
 
 [![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/centrifugal/centrifugo)
 
 ### Highlights
 
 * Fast server capable to serve thousands of simultaneous connections
-* Easily integrates with existing application – no need to rewrite your backend code to introduce real-time events
-* HTTP API to communicate from your application backend (publish messages in channels etc.). API clients for Python, Ruby, PHP, Go, NodeJS. Simple to implement new one
-* Javascript client to connect from web browser over SockJS or pure Websocket protocol. Clients for iOS and Android on top of Websocket
-* Scale to several machines with Redis, Redis Sentinel for high availability, consistent hash sharding.
-* SHA-256 HMAC-based connection authentication and private channel authorization
-* Different types of channels – private, user limited, client limited channels
-* Flexible configuration of channels via namespaces
+* Simple to install and cross platform – works on Linux, MacOS and Windows
+* Easily integrates with existing application – no need to rewrite your code base to introduce real-time events
+* HTTP and GRPC API to communicate from your application backend (publish messages in channels etc)
+* JSON and binary Protobuf Websocket protocol 
+* SockJS polyfill for web browsers without Websocket support (JSON only)
+* Scale with Redis PUB/SUB, Redis Sentinel for high availability, consistent sharding support
+* JWT-based user authentication and private channel authorization
 * Presence information for channels (show all active clients in channel)
-* History information for channels (last messages sent into channels)
+* History information for channels (last messages published into channel)
 * Join/leave events for channels (client goes online/offline)
-* Recover missed messages after network disconnect
+* Automatically recover missed messages after network disconnect
 * Built-in administrative web interface
-* Possibility to use as WebRTC signaling server
-* Ready to deploy (docker image, RPM/DEB packages, Nginx configuration, automatic Let's Encrypt TLS certificates)
+* Ready to deploy (Docker image, RPM/DEB packages, Nginx configuration, automatic Let's Encrypt TLS certificates)
 * MIT license
 
-### Simplified scheme
+### Support project
 
-![scheme](https://raw.githubusercontent.com/centrifugal/documentation/master/assets/images/scheme.png)
+If you like Centrifugo and want to thank Centrifugo author you can by him a coffee:
+
+<a href="https://www.buymeacoffee.com/FZambia" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>

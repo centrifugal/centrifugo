@@ -1,16 +1,38 @@
 sudo: required
+
 language: go
+
 go:
-  - "1.10.3"
+  # Use quotes to fill in safe:
+  # https://github.com/travis-ci/gimme/issues/132
+  - '1.11.x'
+  - 'tip'
+
+addons:
+  apt:
+    packages:
+    # needed for the nfpm pipe:
+    - rpm
+
 services:
+  - docker
   - redis-server  
+
 before_install:
+  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
   - go get golang.org/x/tools/cmd/cover
-  - go get github.com/mitchellh/gox
+
 script: make test
+
 deploy:
   - provider: script
-    script: extras/scripts/travis_packagecloud.sh
+    skip_cleanup: true
+    script: misc/release/release.sh --release-notes=misc/release/notes.md
+    on:
+      tags: true
+      go: '1.11'
+  - provider: script
+    script: misc/scripts/travis_packagecloud.sh
     on:
       tags: true 
-      go: "1.10.3"
+      go: '1.11'

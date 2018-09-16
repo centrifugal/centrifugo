@@ -101,6 +101,8 @@ var (
 	errTimestampTooNew      = cookieError{typ: decodeError, msg: "timestamp is too new"}
 	errTimestampExpired     = cookieError{typ: decodeError, msg: "expired timestamp"}
 	errDecryptionFailed     = cookieError{typ: decodeError, msg: "the value could not be decrypted"}
+	errValueNotByte         = cookieError{typ: decodeError, msg: "value not a []byte."}
+	errValueNotBytePtr      = cookieError{typ: decodeError, msg: "value not a pointer to []byte."}
 
 	// ErrMacInvalid indicates that cookie decoding failed because the HMAC
 	// could not be extracted and verified.  Direct use of this error
@@ -180,6 +182,11 @@ type GobEncoder struct{}
 // encode complex types need to satisfy the json.Marshaller and
 // json.Unmarshaller interfaces.
 type JSONEncoder struct{}
+
+// NopEncoder does not encode cookie values, and instead simply accepts a []byte
+// (as an interface{}) and returns a []byte. This is particularly useful when
+// you encoding an object upstream and do not wish to re-encode it.
+type NopEncoder struct{}
 
 // MaxLength restricts the maximum length, in bytes, for the cookie value.
 //
@@ -455,6 +462,24 @@ func (e JSONEncoder) Deserialize(src []byte, dst interface{}) error {
 		return cookieError{cause: err, typ: decodeError}
 	}
 	return nil
+}
+
+// Serialize passes a []byte through as-is.
+func (e NopEncoder) Serialize(src interface{}) ([]byte, error) {
+	if b, ok := src.([]byte); ok {
+		return b, nil
+	}
+
+	return nil, errValueNotByte
+}
+
+// Deserialize passes a []byte through as-is.
+func (e NopEncoder) Deserialize(src []byte, dst interface{}) error {
+	if dat, ok := dst.(*[]byte); ok {
+		*dat = src
+		return nil
+	}
+	return errValueNotBytePtr
 }
 
 // Encoding -------------------------------------------------------------------

@@ -1,31 +1,30 @@
 {
   "name": "Centrifugo",
-  "description": "Real-time messaging server for web applications",
+  "description": "Centrifugo – real-time messaging server",
   "repository": "https://github.com/centrifugal/centrifugo",
   "logo": "https://avatars1.githubusercontent.com/u/6236442?v=3&s=200",
-  "keywords": ["go", "pubsub", "websocket", "real-time", "sockjs", "redis"],
+  "keywords": ["go", "pubsub", "websocket", "real-time", "sockjs", "redis", "json", "protobuf"],
   "env": {
     "GO_LINKER_SYMBOL": "main.VERSION",
     "GO_LINKER_VALUE": "dev",
     "CENTRIFUGO_ADMIN_PASSWORD": "password",
     "CENTRIFUGO_ADMIN_SECRET": {
-      "description": "Web Secret",
+      "description": "Admin secret used to generate admin access token",
       "generator": "secret"
     },
     "CENTRIFUGO_SECRET": {
-      "description": "Project Secret",
+      "description": "Centrifugo secret to generate token signatures",
       "generator": "secret"
     },
-    "CENTRIFUGO_CONNECTION_LIFETIME": "0",
     "CENTRIFUGO_PUBLISH": "0",
-    "CENTRIFUGO_WATCH": "0",
+    "CENTRIFUGO_SUBSCRIBE_TO_PUBLISH": "0",
     "CENTRIFUGO_ANONYMOUS": "0",
     "CENTRIFUGO_JOIN_LEAVE": "0",
     "CENTRIFUGO_PRESENCE": "0",
     "CENTRIFUGO_HISTORY_SIZE": "0",
     "CENTRIFUGO_HISTORY_LIFETIME": "0",
     "CENTRIFUGO_HISTORY_DROP_INACTIVE": "0",
-    "CENTRIFUGO_RECOVER": "0",
+    "CENTRIFUGO_HISTORY_RECOVER": "0",
     "CENTRIFUGO_DEBUG": "0"
   }
 }
