@@ -24,6 +24,7 @@ Some things were removed from Centrifugo in v2 release:
 * Publishing over Redis queue
 * Admin websocket endpoint
 * Client limited channels
+* `history_drop_inactive` channel option now gone
 * Websocket prepared message support (though this one can be pushed back at some point).
 
 [New documentation](https://centrifugal.github.io/centrifugo/) contains actual information and tips about migration from v1.

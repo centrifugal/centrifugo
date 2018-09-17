@@ -333,28 +333,20 @@ var (
 	// list maintaining history size and expiration time. This is an optimization to make
 	// 1 round trip to Redis instead of 2.
 	// KEYS[1] - history list key
-	// KEYS[2] - history touch object key
-	// KEYS[3] - history sequence key
+	// KEYS[2] - history sequence key
 	// ARGV[1] - channel to publish message to
 	// ARGV[2] - message payload
 	// ARGV[3] - history size ltrim right bound
 	// ARGV[4] - history lifetime
-	// ARGV[5] - history drop inactive flag - "0" or "1"
 	pubScriptSource = `
-local sequence = redis.call("incr", KEYS[3])
+local sequence = redis.call("incr", KEYS[2])
 local payload = "__" .. sequence .. "__" .. ARGV[2]
-local num_subscribed_nodes = redis.call("publish", ARGV[1], payload)
-local m = 0
-if ARGV[5] == "1" and num_subscribed_nodes == 0 and redis.call("exists", KEYS[2]) == 0 then
-  m = redis.call("lpushx", KEYS[1], payload)
-else
-  m = redis.call("lpush", KEYS[1], payload)
-end
+local m = redis.call("lpush", KEYS[1], payload)
 if m > 0 then
   redis.call("ltrim", KEYS[1], 0, ARGV[3])
   redis.call("expire", KEYS[1], ARGV[4])
 end
-return num_subscribed_nodes
+return redis.call("publish", ARGV[1], payload)
 	`
 
 	// KEYS[1] - presence set key
@@ -424,7 +416,7 @@ func newShard(n *Node, conf RedisShardConfig) (*shard, error) {
 		node:              n,
 		config:            conf,
 		pool:              newPool(n, conf),
-		pubScript:         redis.NewScript(3, pubScriptSource),
+		pubScript:         redis.NewScript(2, pubScriptSource),
 		addPresenceScript: redis.NewScript(2, addPresenceSource),
 		remPresenceScript: redis.NewScript(2, remPresenceSource),
 		presenceScript:    redis.NewScript(2, presenceSource),
@@ -470,10 +462,6 @@ func (e *shard) gethistorySeqKey(ch string) channelID {
 
 func (e *shard) gethistoryEpochKey(ch string) channelID {
 	return channelID(e.config.Prefix + ".history.epoch." + ch)
-}
-
-func (e *shard) getHistoryTouchKey(ch string) channelID {
-	return channelID(e.config.Prefix + ".history.touch." + ch)
 }
 
 func (e *RedisEngine) shardIndex(channel string) int {
@@ -823,7 +811,6 @@ type pubRequest struct {
 	channel    channelID
 	message    []byte
 	historyKey channelID
-	touchKey   channelID
 	indexKey   channelID
 	opts       *ChannelOptions
 	err        *chan error
@@ -891,7 +878,7 @@ func (e *shard) runPublishPipeline() {
 			conn := e.pool.Get()
 			for i := range prs {
 				if prs[i].opts != nil && prs[i].opts.HistorySize > 0 && prs[i].opts.HistoryLifetime > 0 {
-					e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].touchKey, prs[i].indexKey, prs[i].channel, prs[i].message, prs[i].opts.HistorySize-1, prs[i].opts.HistoryLifetime, prs[i].opts.HistoryDropInactive)
+					e.pubScript.SendHash(conn, prs[i].historyKey, prs[i].indexKey, prs[i].channel, prs[i].message, prs[i].opts.HistorySize-1, prs[i].opts.HistoryLifetime)
 				} else {
 					conn.Send("PUBLISH", prs[i].channel, prs[i].message)
 				}
@@ -941,7 +928,6 @@ const (
 	dataOphistorySeq
 	dataOpHistoryRemove
 	dataOpChannels
-	dataOpHistoryTouch
 )
 
 type dataResponse struct {
@@ -1051,8 +1037,6 @@ func (e *shard) runDataPipeline() {
 				conn.Send("DEL", drs[i].args...)
 			case dataOpChannels:
 				conn.Send("PUBSUB", drs[i].args...)
-			case dataOpHistoryTouch:
-				conn.Send("SETEX", drs[i].args...)
 			}
 		}
 
@@ -1113,7 +1097,6 @@ func (e *shard) Publish(ch string, pub *Publication, opts *ChannelOptions) <-cha
 			channel:    chID,
 			message:    byteMessage,
 			historyKey: e.getHistoryKey(ch),
-			touchKey:   e.getHistoryTouchKey(ch),
 			indexKey:   e.gethistorySeqKey(ch),
 			opts:       opts,
 			err:        &eChan,
@@ -1215,16 +1198,6 @@ func (e *shard) Unsubscribe(ch string) error {
 	channel := e.messageChannelID(ch)
 	r := newSubRequest([]channelID{channel}, false, true)
 	e.subCh <- r
-
-	if chOpts, ok := e.node.ChannelOpts(ch); ok && chOpts.HistoryDropInactive {
-		// Waiting for response here is not actually required. But this seems
-		// semantically correct and allows avoid races in drop inactive tests.
-		// It does not seem a big bottleneck for real usage but can be tuned in
-		// future if we find any problems with it.
-		dr := newDataRequest(dataOpHistoryTouch, []interface{}{e.getHistoryTouchKey(ch), chOpts.HistoryLifetime, ""}, true)
-		e.dataCh <- dr
-		dr.result()
-	}
 	return r.result()
 }
 

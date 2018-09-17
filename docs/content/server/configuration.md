@@ -155,8 +155,6 @@ Let's look at options related to channels. Channel is an entity to which clients
 
 * `history_recover` – boolean option, when enabled Centrifugo will try to recover missed publications while client was disconnected for some reason (bad internet connection for example). By default `false`. This option must be used in conjunction with reasonably configured message history for channel i.e. `history_size` and `history_lifetime` **must be set** (because Centrifugo uses channel history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel (currently Centrifugo returns recovered publications in order and without duplicates but this is implementation detail that can be theoretically changed in future). See more details about how recovery works in [special chapter](recover.md).
 
-* `history_drop_inactive` – boolean option (default is `false`), allows to drastically reduce resource usage (engine memory usage, messages travelling around) when you use message history for channels. In couple of words when enabled Centrifugo will drop history messages that no one needs – i.e. there are no active subscribers to channel. See [issue on Github](https://github.com/centrifugal/centrifugo/issues/50) to get more information about option use case scenario and motivation.
-
 Let's look how to set some of these options in config:
 
 ```javascript

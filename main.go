@@ -61,9 +61,8 @@ func main() {
 			bindEnvs := []string{
 				"engine", "debug", "secret", "publish", "subscribe_to_publish", "anonymous",
 				"join_leave", "presence", "history_recover", "history_size", "history_lifetime",
-				"history_drop_inactive", "client_insecure", "api_insecure", "admin",
-				"admin_password", "admin_secret", "admin_insecure", "redis_host",
-				"redis_port", "redis_url",
+				"client_insecure", "api_insecure", "admin", "admin_password", "admin_secret",
+				"admin_insecure", "redis_host", "redis_port", "redis_url",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -325,7 +324,6 @@ var configDefaults = map[string]interface{}{
 	"history_size":                    0,
 	"history_lifetime":                0,
 	"history_recover":                 false,
-	"history_drop_inactive":           false,
 	"namespaces":                      "",
 	"node_ping_interval":              3,
 	"client_ping_interval":            25,
@@ -781,7 +779,6 @@ func nodeConfig() *centrifuge.Config {
 	cfg.JoinLeave = v.GetBool("join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryLifetime = v.GetInt("history_lifetime")
-	cfg.HistoryDropInactive = v.GetBool("history_drop_inactive")
 	cfg.HistoryRecover = v.GetBool("history_recover")
 	cfg.Namespaces = namespacesFromConfig(v)
 

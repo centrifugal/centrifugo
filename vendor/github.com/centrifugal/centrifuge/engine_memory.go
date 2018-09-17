@@ -50,12 +50,12 @@ func (e *MemoryEngine) shutdown(ctx context.Context) error {
 // We don't have any PUB/SUB here as Memory Engine is single node only.
 func (e *MemoryEngine) publish(ch string, pub *Publication, opts *ChannelOptions) <-chan error {
 
-	hasCurrentSubscribers := e.node.hub.NumSubscribers(ch) > 0
-
 	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
-		err := e.historyHub.add(ch, pub, opts, hasCurrentSubscribers)
+		err := e.historyHub.add(ch, pub, opts)
 		if err != nil {
-			e.node.logger.log(newLogEntry(LogLevelError, "error adding into history hub", map[string]interface{}{"error": err.Error()}))
+			eChan := make(chan error, 1)
+			eChan <- err
+			return eChan
 		}
 	}
 
@@ -90,13 +90,8 @@ func (e *MemoryEngine) subscribe(ch string) error {
 	return nil
 }
 
-// Unsubscribe node from Channel In case of memory engine its only job is
-// to touch channel history for history lifetime period.
-// See https://github.com/centrifugal/centrifugo/pull/148
+// Unsubscribe node from channel.
 func (e *MemoryEngine) unsubscribe(ch string) error {
-	if chOpts, ok := e.node.ChannelOpts(ch); ok && chOpts.HistoryDropInactive {
-		e.historyHub.touch(ch, &chOpts)
-	}
 	return nil
 }
 
@@ -328,41 +323,13 @@ func (h *historyHub) getSequence(ch string) (uint32, uint32, string) {
 	return seq, gen, h.epoch
 }
 
-func (h *historyHub) touch(ch string, opts *ChannelOptions) {
-	h.Lock()
-	defer h.Unlock()
-
-	item, ok := h.history[ch]
-	expireAt := time.Now().Unix() + int64(opts.HistoryLifetime)
-
-	heap.Push(&h.queue, &priority.Item{Value: ch, Priority: expireAt})
-
-	if !ok {
-		h.history[ch] = historyItem{
-			messages: []*Publication{},
-			expireAt: expireAt,
-		}
-	} else {
-		item.expireAt = expireAt
-	}
-
-	if h.nextCheck == 0 || h.nextCheck > expireAt {
-		h.nextCheck = expireAt
-	}
-}
-
-func (h *historyHub) add(ch string, pub *Publication, opts *ChannelOptions, hasSubscribers bool) error {
+func (h *historyHub) add(ch string, pub *Publication, opts *ChannelOptions) error {
 	h.Lock()
 	defer h.Unlock()
 
 	pub.Seq, pub.Gen = h.next(ch)
 
 	_, ok := h.history[ch]
-
-	if opts.HistoryDropInactive && !hasSubscribers && !ok {
-		// No active history for this channel so don't bother storing at all
-		return nil
-	}
 
 	expireAt := time.Now().Unix() + int64(opts.HistoryLifetime)
 	heap.Push(&h.queue, &priority.Item{Value: ch, Priority: expireAt})

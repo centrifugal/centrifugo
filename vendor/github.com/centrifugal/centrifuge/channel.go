@@ -58,9 +58,4 @@ type ChannelOptions struct {
 	// client. This option uses publications from history and must be used
 	// with reasonable HistorySize and HistoryLifetime configuration.
 	HistoryRecover bool `mapstructure:"history_recover" json:"history_recover"`
-
-	// HistoryDropInactive enables an optimization where history is
-	// only saved for channels that have at least one active subscriber.
-	// This can give a huge memory saving in suitable scenarios.
-	HistoryDropInactive bool `mapstructure:"history_drop_inactive" json:"history_drop_inactive"`
 }
