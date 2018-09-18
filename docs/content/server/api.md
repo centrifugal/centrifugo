@@ -60,9 +60,9 @@ command = {
 }
 
 api_key = "YOUR_API_KEY"
-data = json.dumps(commands)
+data = json.dumps(command)
 headers = {'Content-type': 'application/json', 'Authorization': 'apikey ' + api_key}
-resp = requests.post("https://centrifuge.example.com/api", data=encoded_data, headers=headers)
+resp = requests.post("https://centrifuge.example.com/api", data=data, headers=headers)
 print(resp.json())
 ```
 
