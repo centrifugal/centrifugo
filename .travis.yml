@@ -19,7 +19,7 @@ services:
   - redis-server  
 
 before_install:
-  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"; fi'
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mitchellh/gox
 
