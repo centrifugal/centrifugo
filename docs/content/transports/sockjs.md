@@ -9,6 +9,6 @@ If you have a requirement to work everywhere SockJS is the solution. SockJS will
 * Long-polling
 * And more (see SockJS docs)
 
-One caveat when using SockJS is that **you need to use sticky sessions mechanism if you have many Centrifugo nodes running**. This mechanism is usually supported by load balancers (for example Nginx). Sticky sessions mean that all requests from the same client will come to the same Centrifugo node. This is necessary because SockJS maintains connection session in process memory thus allowing bidirectional communication between client and server. Sticky mechnism is not required if you only use one Centrifugo node on backend. See how enable sticky sessions in Nginx in deploy section of this doc.
+One caveat when using SockJS is that **you need to use sticky sessions mechanism if you have many Centrifugo nodes running**. This mechanism is usually supported by load balancers (for example Nginx). Sticky sessions mean that all requests from the same client will come to the same Centrifugo node. This is necessary because SockJS maintains connection session in process memory thus allowing bidirectional communication between client and server. Sticky mechanism is not required if you only use one Centrifugo node on backend. See how enable sticky sessions in Nginx in deploy section of this doc.
 
 SockJS connection endpoint in Centrifugo is `/connection/sockjs`. SockJS does not support binary so you only limited in using JSON with it. 

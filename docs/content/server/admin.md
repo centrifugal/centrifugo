@@ -45,7 +45,7 @@ If you don't want to use embedded web interface you can specify path to your own
 
 This can be useful if you want to modify official [web interface code](https://github.com/centrifugal/web) in some way.
 
-There is also an option to run Centrifugo in insecure admin mode - in this case you don't need to set `admin_password` and `admin_secret` in config – in web interface you will be logged in automatically without any password. Note that this is only an option for productionr if you protected admin web interface with firewall rules. Otherwide anyone in internet will have full access to admin functionality described above. To start Centrifugo with admin web interface in insecure admin mode run:
+There is also an option to run Centrifugo in insecure admin mode - in this case you don't need to set `admin_password` and `admin_secret` in config – in web interface you will be logged in automatically without any password. Note that this is only an option for production if you protected admin web interface with firewall rules. Otherwise anyone in internet will have full access to admin functionality described above. To start Centrifugo with admin web interface in insecure admin mode run:
 
 ```
 centrifugo --config=config.json --admin --admin_insecure

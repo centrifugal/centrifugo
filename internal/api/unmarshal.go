@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// UnmarshalJSON helps to unmarshal comamnd method when set as string.
+// UnmarshalJSON helps to unmarshal command method when set as string.
 func (m *MethodType) UnmarshalJSON(data []byte) error {
 	val, err := strconv.Atoi(string(data))
 	if err != nil {

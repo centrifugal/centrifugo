@@ -136,7 +136,7 @@ func (h *apiExecutor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Bro
 // control message to other nodes so they could also unsubscribe user.
 func (h *apiExecutor) Unsubscribe(ctx context.Context, cmd *UnsubscribeRequest) *UnsubscribeResponse {
 	defer func(started time.Time) {
-		apiCommandDurationSummary.WithLabelValues(h.protocol, "unsibscribe").Observe(time.Since(started).Seconds())
+		apiCommandDurationSummary.WithLabelValues(h.protocol, "unsubscribe").Observe(time.Since(started).Seconds())
 	}(time.Now())
 
 	resp := &UnsubscribeResponse{}
