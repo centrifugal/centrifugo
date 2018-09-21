@@ -289,7 +289,10 @@ func writeMetric(buf *bufio.Writer, m model.Metric, mf *dto.MetricFamily) error 
 		}
 	}
 
-	return err
+	if err = addExtensionConventionForRollups(buf, mf, m); err != nil {
+		return err
+	}
+	return nil
 }
 
 func addExtensionConventionForRollups(buf *bufio.Writer, mf *dto.MetricFamily, m model.Metric) error {
