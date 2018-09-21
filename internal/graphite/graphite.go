@@ -99,7 +99,7 @@ type Config struct {
 type Bridge struct {
 	url              string
 	prefix           string
-	countersAsDetlas bool
+	countersAsDeltas bool
 	interval         time.Duration
 	timeout          time.Duration
 
@@ -156,7 +156,7 @@ func NewBridge(c *Config) (*Bridge, error) {
 
 	b.errorHandling = c.ErrorHandling
 	b.lastValue = map[model.Fingerprint]float64{}
-	b.countersAsDetlas = c.CountersAsDelta
+	b.countersAsDeltas = c.CountersAsDelta
 
 	return b, nil
 }
@@ -289,14 +289,10 @@ func writeMetric(buf *bufio.Writer, m model.Metric, mf *dto.MetricFamily) error 
 		}
 	}
 
-	if err = addExtentionConventionForRollups(buf, mf, m); err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
-func addExtentionConventionForRollups(buf *bufio.Writer, mf *dto.MetricFamily, m model.Metric) error {
+func addExtensionConventionForRollups(buf *bufio.Writer, mf *dto.MetricFamily, m model.Metric) error {
 	// Adding `.count` `.sum` suffix makes it possible to configure
 	// different rollup strategies based on metric type
 
@@ -384,7 +380,7 @@ func replaceInvalidRune(c rune) rune {
 }
 
 func (b *Bridge) replaceCounterWithDelta(mf *dto.MetricFamily, metric model.Metric, value model.SampleValue) float64 {
-	if !b.countersAsDetlas {
+	if !b.countersAsDeltas {
 		return float64(value)
 	}
 

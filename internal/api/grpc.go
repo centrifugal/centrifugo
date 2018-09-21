@@ -40,7 +40,7 @@ func (s *grpcAPIService) Broadcast(ctx context.Context, req *BroadcastRequest) (
 	return s.api.Broadcast(ctx, req), nil
 }
 
-// Channels allows to retrive list of channels.
+// Channels allows to retrieve list of channels.
 func (s *grpcAPIService) Channels(ctx context.Context, req *ChannelsRequest) (*ChannelsResponse, error) {
 	return s.api.Channels(ctx, req), nil
 }

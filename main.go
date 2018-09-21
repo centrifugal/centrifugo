@@ -83,7 +83,7 @@ func main() {
 
 			absConfPath, err := filepath.Abs(configFile)
 			if err != nil {
-				log.Fatal().Msgf("Error retreiving config file absolute path: %v", err)
+				log.Fatal().Msgf("Error retrieving config file absolute path: %v", err)
 			}
 
 			err = viper.ReadInConfig()
