@@ -289,10 +289,7 @@ func writeMetric(buf *bufio.Writer, m model.Metric, mf *dto.MetricFamily) error 
 		}
 	}
 
-	if err = addExtensionConventionForRollups(buf, mf, m); err != nil {
-		return err
-	}
-	return nil
+	return addExtensionConventionForRollups(buf, mf, m)
 }
 
 func addExtensionConventionForRollups(buf *bufio.Writer, mf *dto.MetricFamily, m model.Metric) error {
@@ -337,7 +334,7 @@ func writePrefix(buf *bufio.Writer, s string) error {
 
 // ReplaceInvalidRunes normalizes string to be used with Graphite metric path.
 func ReplaceInvalidRunes(s string) string {
-	res := []string{}
+	var res []string
 	for _, c := range s {
 		res = append(res, string(replaceInvalidRune(c)))
 	}
