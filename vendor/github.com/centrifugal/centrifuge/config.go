@@ -91,7 +91,7 @@ func stringInSlice(a string, list []string) bool {
 // Validate validates config and returns error if problems found
 func (c *Config) Validate() error {
 	errPrefix := "config error: "
-	pattern := "^[-a-zA-Z0-9_]{2,}$"
+	pattern := "^[-a-zA-Z0-9_.]{2,}$"
 	patternRegexp, err := regexp.Compile(pattern)
 	if err != nil {
 		return err

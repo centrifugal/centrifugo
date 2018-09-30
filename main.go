@@ -739,9 +739,8 @@ func generateConfig(f string) error {
 
 // validateConfig validates config file located at provided path.
 func validateConfig(f string) error {
-	v := viper.New()
-	v.SetConfigFile(f)
-	err := v.ReadInConfig()
+	viper.SetConfigFile(f)
+	err := viper.ReadInConfig()
 	if err != nil {
 		switch err.(type) {
 		case viper.ConfigParseError:

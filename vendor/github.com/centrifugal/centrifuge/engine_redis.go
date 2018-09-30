@@ -341,11 +341,9 @@ var (
 	pubScriptSource = `
 local sequence = redis.call("incr", KEYS[2])
 local payload = "__" .. sequence .. "__" .. ARGV[2]
-local m = redis.call("lpush", KEYS[1], payload)
-if m > 0 then
-  redis.call("ltrim", KEYS[1], 0, ARGV[3])
-  redis.call("expire", KEYS[1], ARGV[4])
-end
+redis.call("lpush", KEYS[1], payload)
+redis.call("ltrim", KEYS[1], 0, ARGV[3])
+redis.call("expire", KEYS[1], ARGV[4])
 return redis.call("publish", ARGV[1], payload)
 	`
 
