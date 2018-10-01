@@ -855,10 +855,12 @@ func (e *shard) runPublishPipeline() {
 	}
 
 	pingTimeout := readTimeout / 3
+	pingTicker := time.NewTicker(pingTimeout)
+	defer pingTicker.Stop()
 
 	for {
 		select {
-		case <-time.After(pingTimeout):
+		case <-pingTicker.C:
 			// We have to PUBLISH pings into connection to prevent connection close after read timeout.
 			// In our case it's important to maintain PUB/SUB receiver connection alive to prevent
 			// resubscribing on all our subscriptions again and again.
