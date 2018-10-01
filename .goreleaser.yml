@@ -9,6 +9,8 @@ brew:
   github:
     owner: centrifugal
     name: homebrew-centrifugo
+  folder: Formula
+  description: "Real-time messaging server"
   commit_author:
     name: Alexander Emelin
     email: frvzmb@gmail.com

@@ -15,7 +15,7 @@ Releases available as single executable files – just [download latest release]
 If you are on MacOS:
 
 ```
-brew tap centrifugal/centrifugo https://github.com/centrifugal/centrifugo
+brew tap centrifugal/centrifugo
 brew install centrifugo
 ```
 
