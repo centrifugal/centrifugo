@@ -137,17 +137,12 @@ type subRequest struct {
 }
 
 // newSubRequest creates a new request to subscribe or unsubscribe form a channel.
-// If the caller cares about response they should set wantResponse and then call
-// result() on the request once it has been pushed to the appropriate chan.
-func newSubRequest(chIDs []channelID, subscribe bool, wantResponse bool) subRequest {
-	r := subRequest{
+func newSubRequest(chIDs []channelID, subscribe bool) subRequest {
+	return subRequest{
 		channels:  chIDs,
 		subscribe: subscribe,
+		err:       make(chan error, 1),
 	}
-	if wantResponse {
-		r.err = make(chan error, 1)
-	}
-	return r
 }
 
 func (sr *subRequest) done(err error) {
@@ -607,9 +602,9 @@ func (e *shard) Run(h EngineEventHandler) error {
 	return nil
 }
 
-// runForever simple keeps another function running indefinitely
-// the reason this loop is not inside the function itself is so that defer
-// can be used to cleanup nicely (defers only run at function return not end of block scope)
+// runForever keeps another function running indefinitely.
+// The reason this loop is not inside the function itself is
+// so that defer can be used to cleanup nicely.
 func (e *shard) runForever(fn func()) {
 	for {
 		fn()
@@ -647,7 +642,6 @@ func (e *shard) runPubSub() {
 	// Run subscriber goroutine.
 	go func() {
 		e.node.logger.log(newLogEntry(LogLevelDebug, "starting RedisEngine Subscriber"))
-
 		defer func() {
 			e.node.logger.log(newLogEntry(LogLevelDebug, "stopping RedisEngine Subscriber"))
 		}()
@@ -656,30 +650,78 @@ func (e *shard) runPubSub() {
 			case <-done:
 				return
 			case r := <-e.subCh:
-				chIDs := make([]interface{}, len(r.channels))
-				i := 0
+				isSubscribe := r.subscribe
+				channelBatch := []subRequest{r}
+
+				chIDs := make([]interface{}, 0, len(r.channels))
 				for _, ch := range r.channels {
-					chIDs[i] = ch
-					i++
+					chIDs = append(chIDs, ch)
+				}
+
+				var otherR *subRequest
+
+			loop:
+				for len(chIDs) < redisSubscribeBatchLimit {
+					select {
+					case r := <-e.subCh:
+						if r.subscribe != isSubscribe {
+							// We can not mix subscribe and unsubscribe request into one batch
+							// so must stop here. As we consumed a subRequest value from channel
+							// we should take care of it later.
+							otherR = &r
+							break loop
+						}
+						channelBatch = append(channelBatch, r)
+						for _, ch := range r.channels {
+							chIDs = append(chIDs, ch)
+						}
+					default:
+						break loop
+					}
 				}
 
 				var opErr error
-				if r.subscribe {
+				if isSubscribe {
 					opErr = conn.Subscribe(chIDs...)
 				} else {
 					opErr = conn.Unsubscribe(chIDs...)
 				}
 
 				if opErr != nil {
-					e.node.logger.log(newLogEntry(LogLevelError, "Redis engine subscriber error", map[string]interface{}{"error": opErr.Error()}))
-					r.done(opErr)
-
+					for _, r := range channelBatch {
+						r.done(opErr)
+					}
+					if otherR != nil {
+						otherR.done(opErr)
+					}
 					// Close conn, this should cause Receive to return with err below
 					// and whole runPubSub method to restart.
 					conn.Close()
 					return
 				}
-				r.done(nil)
+				for _, r := range channelBatch {
+					r.done(nil)
+				}
+				if otherR != nil {
+					chIDs := make([]interface{}, 0, len(otherR.channels))
+					for _, ch := range otherR.channels {
+						chIDs = append(chIDs, ch)
+					}
+					var opErr error
+					if otherR.subscribe {
+						opErr = conn.Subscribe(chIDs...)
+					} else {
+						opErr = conn.Unsubscribe(chIDs...)
+					}
+					if opErr != nil {
+						otherR.done(opErr)
+						// Close conn, this should cause Receive to return with err below
+						// and whole runPubSub method to restart.
+						conn.Close()
+						return
+					}
+					otherR.done(nil)
+				}
 			}
 		}
 	}()
@@ -723,46 +765,46 @@ func (e *shard) runPubSub() {
 		}(workerCh)
 	}
 
-	chIDs := make([]channelID, 2)
-	chIDs[0] = controlChannel
-	chIDs[1] = pingChannel
+	go func() {
+		chIDs := make([]channelID, 2)
+		chIDs[0] = controlChannel
+		chIDs[1] = pingChannel
 
-	for _, ch := range e.node.hub.Channels() {
-		chIDs = append(chIDs, e.messageChannelID(ch))
-	}
+		for _, ch := range e.node.hub.Channels() {
+			chIDs = append(chIDs, e.messageChannelID(ch))
+		}
 
-	batch := make([]channelID, 0)
+		batch := make([]channelID, 0)
 
-	for i, ch := range chIDs {
-		if len(batch) > 0 && i%redisSubscribeBatchLimit == 0 {
-			r := newSubRequest(batch, true, true)
+		for i, ch := range chIDs {
+			if len(batch) > 0 && i%redisSubscribeBatchLimit == 0 {
+				r := newSubRequest(batch, true)
+				e.subCh <- r
+				err := r.result()
+				if err != nil {
+					e.node.logger.log(newLogEntry(LogLevelError, "error subscribing", map[string]interface{}{"error": err.Error()}))
+					return
+				}
+				batch = nil
+			}
+			batch = append(batch, ch)
+		}
+		if len(batch) > 0 {
+			r := newSubRequest(batch, true)
 			e.subCh <- r
 			err := r.result()
 			if err != nil {
 				e.node.logger.log(newLogEntry(LogLevelError, "error subscribing", map[string]interface{}{"error": err.Error()}))
 				return
 			}
-			batch = nil
 		}
-		batch = append(batch, ch)
-	}
-	if len(batch) > 0 {
-		r := newSubRequest(batch, true, true)
-		e.subCh <- r
-		err := r.result()
-		if err != nil {
-			e.node.logger.log(newLogEntry(LogLevelError, "error subscribing", map[string]interface{}{"error": err.Error()}))
-			return
-		}
-	}
-
-	e.node.logger.log(newLogEntry(LogLevelDebug, fmt.Sprintf("successfully subscribed to %d Redis channels", len(chIDs))))
+	}()
 
 	for {
-		switch n := conn.Receive().(type) {
+		switch n := conn.ReceiveWithTimeout(10 * time.Second).(type) {
 		case redis.Message:
-			// Add message to worker channel preserving message order - i.e. messages from
-			// the same channel will be processed in the same worker.
+			// Add message to worker channel preserving message order - i.e. messages
+			// from the same channel will be processed in the same worker.
 			workers[index(n.Channel, numWorkers)] <- n
 		case redis.Subscription:
 		case error:
@@ -849,21 +891,14 @@ func (e *shard) runPublishPipeline() {
 
 	var prs []pubRequest
 
-	var readTimeout = defaultReadTimeout
-	if e.config.ReadTimeout != 0 {
-		readTimeout = e.config.ReadTimeout
-	}
-
-	pingTimeout := readTimeout / 3
-	pingTicker := time.NewTicker(pingTimeout)
+	pingTicker := time.NewTicker(time.Second)
 	defer pingTicker.Stop()
 
 	for {
 		select {
 		case <-pingTicker.C:
-			// We have to PUBLISH pings into connection to prevent connection close after read timeout.
-			// In our case it's important to maintain PUB/SUB receiver connection alive to prevent
-			// resubscribing on all our subscriptions again and again.
+			// Publish periodically to maintain PUB/SUB connection alive and allow
+			// PUB/SUB connection to close early if no data received for a period of time.
 			conn := e.pool.Get()
 			err := conn.Send("PUBLISH", e.pingChannelID(), nil)
 			if err != nil {
@@ -1185,18 +1220,22 @@ func (e *shard) PublishControl(data []byte) <-chan error {
 
 // Subscribe - see engine interface description.
 func (e *shard) Subscribe(ch string) error {
-	e.node.logger.log(newLogEntry(LogLevelDebug, "subscribe node on channel", map[string]interface{}{"channel": ch}))
+	if e.node.logger.enabled(LogLevelDebug) {
+		e.node.logger.log(newLogEntry(LogLevelDebug, "subscribe node on channel", map[string]interface{}{"channel": ch}))
+	}
 	channel := e.messageChannelID(ch)
-	r := newSubRequest([]channelID{channel}, true, true)
+	r := newSubRequest([]channelID{channel}, true)
 	e.subCh <- r
 	return r.result()
 }
 
 // Unsubscribe - see engine interface description.
 func (e *shard) Unsubscribe(ch string) error {
-	e.node.logger.log(newLogEntry(LogLevelDebug, "unsubscribe node from channel", map[string]interface{}{"channel": ch}))
+	if e.node.logger.enabled(LogLevelDebug) {
+		e.node.logger.log(newLogEntry(LogLevelDebug, "unsubscribe node from channel", map[string]interface{}{"channel": ch}))
+	}
 	channel := e.messageChannelID(ch)
-	r := newSubRequest([]channelID{channel}, false, true)
+	r := newSubRequest([]channelID{channel}, false)
 	e.subCh <- r
 	return r.result()
 }

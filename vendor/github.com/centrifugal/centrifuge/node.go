@@ -50,11 +50,23 @@ type Node struct {
 	controlEncoder controlproto.Encoder
 	// cache control decoder in Node.
 	controlDecoder controlproto.Decoder
+	// subLocks synchronizes access to adding/removing subscriptions.
+	subLocks map[int]*sync.Mutex
 }
+
+const (
+	numSubLocks = 16384
+)
 
 // New creates Node, the only required argument is config.
 func New(c Config) (*Node, error) {
 	uid := uuid.Must(uuid.NewV4()).String()
+
+	subLocks := make(map[int]*sync.Mutex, numSubLocks)
+	for i := 0; i < numSubLocks; i++ {
+		subLocks[i] = &sync.Mutex{}
+	}
+
 	n := &Node{
 		uid:            uid,
 		nodes:          newNodeRegistry(uid),
@@ -66,10 +78,15 @@ func New(c Config) (*Node, error) {
 		controlEncoder: controlproto.NewProtobufEncoder(),
 		controlDecoder: controlproto.NewProtobufDecoder(),
 		eventHub:       &nodeEventHub{},
+		subLocks:       subLocks,
 	}
 	e, _ := NewMemoryEngine(n, MemoryEngineConfig{})
 	n.SetEngine(e)
 	return n, nil
+}
+
+func (n *Node) subLock(ch string) *sync.Mutex {
+	return n.subLocks[index(ch, numSubLocks)]
 }
 
 // SetLogHandler sets LogHandler to handle log messages with
@@ -481,12 +498,19 @@ func (n *Node) removeClient(c *Client) error {
 // engine and clientSubscriptionHub.
 func (n *Node) addSubscription(ch string, c *Client) error {
 	actionCount.WithLabelValues("add_subscription").Inc()
+	mu := n.subLock(ch)
+	mu.Lock()
+	defer mu.Unlock()
 	first, err := n.hub.addSub(ch, c)
 	if err != nil {
 		return err
 	}
 	if first {
-		return n.engine.subscribe(ch)
+		err := n.engine.subscribe(ch)
+		if err != nil {
+			n.hub.removeSub(ch, c)
+			return err
+		}
 	}
 	return nil
 }
@@ -495,6 +519,9 @@ func (n *Node) addSubscription(ch string, c *Client) error {
 // from both engine and clientSubscriptionHub.
 func (n *Node) removeSubscription(ch string, c *Client) error {
 	actionCount.WithLabelValues("remove_subscription").Inc()
+	mu := n.subLock(ch)
+	mu.Lock()
+	defer mu.Unlock()
 	empty, err := n.hub.removeSub(ch, c)
 	if err != nil {
 		return err
