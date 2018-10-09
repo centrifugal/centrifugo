@@ -31,7 +31,20 @@ type Event struct {
 	level Level
 	done  func(msg string)
 	ch    []Hook // hooks from context
-	h     []Hook
+}
+
+func putEvent(e *Event) {
+	// Proper usage of a sync.Pool requires each entry to have approximately
+	// the same memory cost. To obtain this property when the stored type
+	// contains a variably-sized buffer, we add a hard limit on the maximum buffer
+	// to place back in the pool.
+	//
+	// See https://golang.org/issue/23199
+	const maxSize = 1 << 16 // 64KiB
+	if cap(e.buf) > maxSize {
+		return
+	}
+	eventPool.Put(e)
 }
 
 // LogObjectMarshaler provides a strongly-typed and encoding-agnostic interface
@@ -49,7 +62,7 @@ type LogArrayMarshaler interface {
 func newEvent(w LevelWriter, level Level) *Event {
 	e := eventPool.Get().(*Event)
 	e.buf = e.buf[:0]
-	e.h = e.h[:0]
+	e.ch = nil
 	e.buf = enc.AppendBeginMarker(e.buf)
 	e.w = w
 	e.level = level
@@ -67,7 +80,7 @@ func (e *Event) write() (err error) {
 			_, err = e.w.WriteLevel(e.level, e.buf)
 		}
 	}
-	eventPool.Put(e)
+	putEvent(e)
 	return
 }
 
@@ -79,6 +92,9 @@ func (e *Event) Enabled() bool {
 
 // Discard disables the event so Msg(f) won't print it.
 func (e *Event) Discard() *Event {
+	if e == nil {
+		return e
+	}
 	e.level = Disabled
 	return nil
 }
@@ -114,14 +130,6 @@ func (e *Event) msg(msg string) {
 			}
 		}
 	}
-	if len(e.h) > 0 {
-		e.h[0].Run(e, e.level, msg)
-		if len(e.h) > 1 {
-			for _, hook := range e.h[1:] {
-				hook.Run(e, e.level, msg)
-			}
-		}
-	}
 	if msg != "" {
 		e.buf = enc.AppendString(enc.AppendKey(e.buf, MessageFieldName), msg)
 	}
@@ -150,7 +158,7 @@ func (e *Event) Dict(key string, dict *Event) *Event {
 	}
 	dict.buf = enc.AppendEndMarker(dict.buf)
 	e.buf = append(enc.AppendKey(e.buf, key), dict.buf...)
-	eventPool.Put(dict)
+	putEvent(dict)
 	return e
 }
 

@@ -60,7 +60,7 @@ func main() {
 
 // Output: {"time":1516134303,"level":"debug","message":"hello world"}
 ```
-
+> Note: By default log writes to `os.Stderr`  
 > Note: The default log level for `log.Print` is *debug*
 
 ### Contextual Logging
@@ -364,7 +364,7 @@ hooked.Warn().Msg("")
 ### Pass a sub-logger by context
 
 ```go
-ctx := log.With("component", "module").Logger().WithContext(ctx)
+ctx := log.With().Str("component", "module").Logger().WithContext(ctx)
 
 log.Ctx(ctx).Info().Msg("hello world")
 
@@ -444,7 +444,7 @@ if err := http.ListenAndServe(":8080", nil); err != nil {
 Some settings can be changed and will by applied to all loggers:
 
 * `log.Logger`: You can set this value to customize the global logger (the one used by package level methods).
-* `zerolog.SetGlobalLevel`: Can raise the minimum level of all loggers. Set this to `zerolog.Disable` to disable logging altogether (quiet mode).
+* `zerolog.SetGlobalLevel`: Can raise the minimum level of all loggers. Set this to `zerolog.Disabled` to disable logging altogether (quiet mode).
 * `zerolog.DisableSampling`: If argument is `true`, all sampled loggers will stop sampling and issue 100% of their log events.
 * `zerolog.TimestampFieldName`: Can be set to customize `Timestamp` field name.
 * `zerolog.LevelFieldName`: Can be set to customize level field name.
@@ -491,6 +491,8 @@ with zerolog library is [CSD](https://github.com/toravir/csd/).
 * [grpc-zerolog](https://github.com/cheapRoc/grpc-zerolog): Implementation of `grpclog.LoggerV2` interface using `zerolog`
 
 ## Benchmarks
+
+See [logbench](http://hackemist.com/logbench/) for more comprehensive and up-to-date benchmarks.
 
 All operations are allocation free (those numbers *include* JSON encoding):
 

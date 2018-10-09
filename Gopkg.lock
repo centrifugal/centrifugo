@@ -230,7 +230,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ed97472740aaec2b8cea4960ec8bccf9df9bd569892e403f0b163b36194afc9d"
+  digest = "1:7cdd0b79acf3cb954eb800228c922c16ea3b95458c1fd755352acb2c518edf67"
   name = "github.com/rs/zerolog"
   packages = [
     ".",
@@ -239,7 +239,7 @@
     "log",
   ]
   pruneopts = "UT"
-  revision = "71e1f5e052d017a22320883199723057e89f3ec8"
+  revision = "8e36cbf881d3eadd0c6455d55588af60c7cc4736"
 
 [[projects]]
   digest = "1:274f67cb6fed9588ea2521ecdac05a6d62a8c51c074c1fccc6a49a40ba80e925"
