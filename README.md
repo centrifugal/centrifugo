@@ -49,6 +49,6 @@ Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (password 
 
 ### Support project
 
-If you like Centrifugo and want to thank Centrifugo author you can by him a coffee:
+If you like Centrifugo and want to thank Centrifugo author you can buy him a coffee:
 
 <a href="https://www.buymeacoffee.com/FZambia" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
