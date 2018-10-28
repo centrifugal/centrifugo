@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.org/centrifugal/centrifuge.svg)](https://travis-ci.org/centrifugal/centrifuge)
 [![GoDoc](https://godoc.org/github.com/centrifugal/centrifuge?status.svg)](https://godoc.org/github.com/centrifugal/centrifuge)
 
-**Work in progress**. *Library has all features working but in active development stage so API is not stable at all. It has not been tested in production yet so use with caution. Feedback is highly appreciated.*
+**Work in progress**. *This library has no stable release yet so API can be changed.*
 
 Centrifuge library represents real-time core for [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also aimed to be a general purpose real-time messaging library for Go programming language.
 

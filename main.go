@@ -62,7 +62,7 @@ func main() {
 				"engine", "debug", "secret", "publish", "subscribe_to_publish", "anonymous",
 				"join_leave", "presence", "history_recover", "history_size", "history_lifetime",
 				"client_insecure", "api_insecure", "admin", "admin_password", "admin_secret",
-				"admin_insecure", "redis_host", "redis_port", "redis_url",
+				"admin_insecure", "redis_host", "redis_port", "redis_url", "redis_tls", "redis_tls_skip_verify",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -73,7 +73,7 @@ func main() {
 				"client_insecure", "admin_insecure", "api_insecure", "port",
 				"address", "tls", "tls_cert", "tls_key", "internal_port", "prometheus",
 				"redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
-				"redis_master_name", "redis_sentinels", "grpc_api",
+				"redis_tls", "redis_tls_skip_verify", "redis_master_name", "redis_sentinels", "grpc_api",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -262,6 +262,8 @@ func main() {
 	rootCmd.Flags().StringP("redis_password", "", "", "Redis auth password (Redis engine)")
 	rootCmd.Flags().IntP("redis_db", "", 0, "Redis database (Redis engine)")
 	rootCmd.Flags().StringP("redis_url", "", "", "Redis connection URL in format redis://:password@hostname:port/db (Redis engine)")
+	rootCmd.Flags().BoolP("redis_tls", "", false, "enable Redis TLS connection")
+	rootCmd.Flags().BoolP("redis_tls_skip_verify", "", false, "enable Redis TLS host verification")
 	rootCmd.Flags().StringP("redis_master_name", "", "", "name of Redis master Sentinel monitors (Redis engine)")
 	rootCmd.Flags().StringP("redis_sentinels", "", "", "comma-separated list of Sentinel addresses (Redis engine)")
 
@@ -891,6 +893,8 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 	hostsConf := v.GetString("redis_host")
 	portsConf := v.GetString("redis_port")
 	urlsConf := v.GetString("redis_url")
+	redisTLS := v.GetBool("redis_tls")
+	redisTLSSkipVerify := v.GetBool("redis_tls_skip_verify")
 	masterNamesConf := v.GetString("redis_master_name")
 	sentinelsConf := v.GetString("redis_sentinels")
 
@@ -1046,6 +1050,8 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 			Port:             port,
 			Password:         passwords[i],
 			DB:               dbs[i],
+			UseTLS:           redisTLS,
+			TLSSkipVerify:    redisTLSSkipVerify,
 			MasterName:       masterNames[i],
 			SentinelAddrs:    sentinelAddrs,
 			Prefix:           v.GetString("redis_prefix"),
