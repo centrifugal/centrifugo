@@ -3,6 +3,7 @@ package centrifuge
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -108,6 +109,12 @@ type RedisShardConfig struct {
 	Password string
 	// DB is Redis database number. If not set then database 0 used.
 	DB int
+	// Whether to use TLS connection or not.
+	UseTLS bool
+	// Whether to skip hostname verification as part of TLS handshake.
+	TLSSkipVerify bool
+	// Connection TLS configuration.
+	TLSConfig *tls.Config
 	// MasterName is a name of Redis instance master Sentinel monitors.
 	MasterName string
 	// SentinelAddrs is a slice of Sentinel addresses.
@@ -194,7 +201,12 @@ func newPool(n *Node, conf RedisShardConfig) *redis.Pool {
 			MasterName: conf.MasterName,
 			Dial: func(addr string) (redis.Conn, error) {
 				timeout := 300 * time.Millisecond
-				c, err := redis.DialTimeout("tcp", addr, timeout, timeout, timeout)
+				opts := []redis.DialOption{
+					redis.DialConnectTimeout(timeout),
+					redis.DialReadTimeout(timeout),
+					redis.DialWriteTimeout(timeout),
+				}
+				c, err := redis.Dial("tcp", addr, opts...)
 				if err != nil {
 					n.logger.log(newLogEntry(LogLevelError, "error dialing to Sentinel", map[string]interface{}{"error": err.Error()}))
 					return nil, err
@@ -252,7 +264,21 @@ func newPool(n *Node, conf RedisShardConfig) *redis.Pool {
 				connectTimeout = conf.ConnectTimeout
 			}
 
-			c, err := redis.DialTimeout("tcp", serverAddr, connectTimeout, readTimeout, writeTimeout)
+			opts := []redis.DialOption{
+				redis.DialConnectTimeout(connectTimeout),
+				redis.DialReadTimeout(readTimeout),
+				redis.DialWriteTimeout(writeTimeout),
+			}
+			if conf.UseTLS {
+				opts = append(opts, redis.DialUseTLS(true))
+				if conf.TLSConfig != nil {
+					opts = append(opts, redis.DialTLSConfig(conf.TLSConfig))
+				}
+				if conf.TLSSkipVerify {
+					opts = append(opts, redis.DialTLSSkipVerify(true))
+				}
+			}
+			c, err := redis.Dial("tcp", serverAddr, opts...)
 			if err != nil {
 				n.logger.log(newLogEntry(LogLevelError, "error dialing to Redis", map[string]interface{}{"error": err.Error()}))
 				return nil, err
