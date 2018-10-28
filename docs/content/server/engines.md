@@ -50,6 +50,8 @@ Several configuration options related to Redis engine:
 * `redis_url` (string, default `""`) - optional Redis connection URL
 * `redis_password` (string, default `""`) - Redis password
 * `redis_db` (int, default `0`) - number of Redis db to use
+* `redis_tls` (boolean, default `false`) - enable Redis TLS connection
+* `redis_tls_skip_verify` (boolean, default `false`) - disable Redis TLS host verification
 * `redis_sentinels` (string, default `""`) - comma separated list of Sentinels for HA
 * `redis_master_name` (string, default `""`) - name of Redis master Sentinel monitors
 
