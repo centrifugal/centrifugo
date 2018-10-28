@@ -263,7 +263,7 @@ func main() {
 	rootCmd.Flags().IntP("redis_db", "", 0, "Redis database (Redis engine)")
 	rootCmd.Flags().StringP("redis_url", "", "", "Redis connection URL in format redis://:password@hostname:port/db (Redis engine)")
 	rootCmd.Flags().BoolP("redis_tls", "", false, "enable Redis TLS connection")
-	rootCmd.Flags().BoolP("redis_tls_skip_verify", "", false, "enable Redis TLS host verification")
+	rootCmd.Flags().BoolP("redis_tls_skip_verify", "", false, "disable Redis TLS host verification")
 	rootCmd.Flags().StringP("redis_master_name", "", "", "name of Redis master Sentinel monitors (Redis engine)")
 	rootCmd.Flags().StringP("redis_sentinels", "", "", "comma-separated list of Sentinel addresses (Redis engine)")
 
