@@ -348,47 +348,38 @@ http://localhost:8000/debug/pprof/
 
 – will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See [wiki page](https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues) for more info.
 
-#### Custom admin and API ports
+#### Custom internal ports
 
-We strongly recommend to not expose admin, debug and API endpoints to Internet. In case of admin endpoint this step provides extra protection to `/`, `/admin/auth`, `/admin/api` endpoints, debug endpoints. Protecting API endpoint will allow you to use `api_insecure` mode to omit passing API key in each request.
+We strongly recommend to not expose API, admin, debug and prometheus endpoints to Internet. The following Centrifugo endpoints are considered internal:
 
-So it's a good practice to protect admin and API endpoints with firewall. For example you can do this in `location` section of Nginx configuration.
+* API endpoint (`/api`) - for HTTP API requests
+* Admin web interface endpoints (`/`, `/admin/auth`, `/admin/api`) - used by web interface
+* Prometheus endpoint (`/metrics`) - used for exposing server metrics in Prometheus format 
+* debug endpoints (`/debug/pprof`) - used to inspect internal server state
 
-Though sometimes you don't have access to per-location configuration in your proxy/load balancer software. For example
-when using Amazon ELB. In this case you can change ports on which your admin and API endpoints work.
+It's a good practice to protect those endpoints with firewall. For example you can do this in `location` section of Nginx configuration.
 
-To run admin endpoints on custom port use `admin_port` option:
+Though sometimes you don't have access to per-location configuration in your proxy/load balancer software. For example when using Amazon ELB. In this case you can change ports on which your internal endpoints work.
+
+To run internal endpoints on custom port use `internal_port` option:
 
 ```
 {
     ...
-    "admin_port": 10000
+    "internal_port": 9000
 }
 ```
 
 So admin web interface will work on address:
  
 ```
-ws://localhost:10000
+ws://localhost:9000
 ```
 
-Also debug page will be available on new custom admin port too:
+Also debug page will be available on new custom port too:
 
 ```
-http://localhost:10000/debug/pprof/
+http://localhost:9000/debug/pprof/
 ```
 
-To run API server on it's own port use `api_port` option:
-
-```
-{
-    ...
-    "api_port": 10001
-}
-```
-
-Now you should send API requests to:
-
-```
-http://localhost:10001/api
-```
+The same for API and prometheus endpoint.
