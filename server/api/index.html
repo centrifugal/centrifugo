@@ -779,6 +779,18 @@
 
 
   <li class="md-nav__item">
+    <a href="../../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
+      Insecure modes
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
       Migrate from Centrifugo v1
     </a>
@@ -911,7 +923,14 @@
 <p>Server API works on <code class="codehilite">/api</code> endpoint. It's very simple to use: you just have to send POST request with JSON command to this endpoint.</p>
 <p>In this chapter we will look at API protocol internals - for new API client library authors and just if you are curious how existing API clients work.</p>
 <p>API request is a POST HTTP request with <code class="codehilite">application/json</code> Content-Type and JSON payload in request body.</p>
-<p>API protected by <code class="codehilite">api_key</code> secret key set in Centrifugo configuration. This API key must be set in request <code class="codehilite">Authorization</code> header in this way:</p>
+<p>API protected by <code class="codehilite">api_key</code> set in Centrifugo configuration. I.e. <code class="codehilite">api_key</code> must be added to config, like:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="p">...</span>
+    <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR API KEY&gt;&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>This API key must be set in request <code class="codehilite">Authorization</code> header in this way:</p>
 <div class="codehilite"><pre><span></span><span class="n">Authorization</span><span class="o">:</span> <span class="n">apikey</span> <span class="o">&lt;</span><span class="n">KEY</span><span class="o">&gt;</span>
 </pre></div>
 

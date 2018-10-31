@@ -482,8 +482,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#custom-admin-and-api-ports" title="Custom admin and API ports" class="md-nav__link">
-    Custom admin and API ports
+  <a href="#custom-internal-ports" title="Custom internal ports" class="md-nav__link">
+    Custom internal ports
   </a>
   
 </li>
@@ -882,6 +882,18 @@
 
 
   <li class="md-nav__item">
+    <a href="../../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
+      Insecure modes
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
       Migrate from Centrifugo v1
     </a>
@@ -1080,8 +1092,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#custom-admin-and-api-ports" title="Custom admin and API ports" class="md-nav__link">
-    Custom admin and API ports
+  <a href="#custom-internal-ports" title="Custom internal ports" class="md-nav__link">
+    Custom internal ports
   </a>
   
 </li>
@@ -1371,36 +1383,32 @@ don't need (and you really should not) change them. This chapter is about such o
 </pre></div>
 
 <p>– will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See <a href="https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues">wiki page</a> for more info.</p>
-<h4 id="custom-admin-and-api-ports">Custom admin and API ports<a class="headerlink" href="#custom-admin-and-api-ports" title="Permanent link">&para;</a></h4>
-<p>We strongly recommend to not expose admin, debug and API endpoints to Internet. In case of admin endpoint this step provides extra protection to <code class="codehilite">/</code>, <code class="codehilite">/admin/auth</code>, <code class="codehilite">/admin/api</code> endpoints, debug endpoints. Protecting API endpoint will allow you to use <code class="codehilite">api_insecure</code> mode to omit passing API key in each request.</p>
-<p>So it's a good practice to protect admin and API endpoints with firewall. For example you can do this in <code class="codehilite">location</code> section of Nginx configuration.</p>
-<p>Though sometimes you don't have access to per-location configuration in your proxy/load balancer software. For example
-when using Amazon ELB. In this case you can change ports on which your admin and API endpoints work.</p>
-<p>To run admin endpoints on custom port use <code class="codehilite">admin_port</code> option:</p>
+<h4 id="custom-internal-ports">Custom internal ports<a class="headerlink" href="#custom-internal-ports" title="Permanent link">&para;</a></h4>
+<p>We strongly recommend to not expose API, admin, debug and prometheus endpoints to Internet. The following Centrifugo endpoints are considered internal:</p>
+<ul>
+<li>API endpoint (<code class="codehilite">/api</code>) - for HTTP API requests</li>
+<li>Admin web interface endpoints (<code class="codehilite">/</code>, <code class="codehilite">/admin/auth</code>, <code class="codehilite">/admin/api</code>) - used by web interface</li>
+<li>Prometheus endpoint (<code class="codehilite">/metrics</code>) - used for exposing server metrics in Prometheus format </li>
+<li>debug endpoints (<code class="codehilite">/debug/pprof</code>) - used to inspect internal server state</li>
+</ul>
+<p>It's a good practice to protect those endpoints with firewall. For example you can do this in <code class="codehilite">location</code> section of Nginx configuration.</p>
+<p>Though sometimes you don't have access to per-location configuration in your proxy/load balancer software. For example when using Amazon ELB. In this case you can change ports on which your internal endpoints work.</p>
+<p>To run internal endpoints on custom port use <code class="codehilite">internal_port</code> option:</p>
 <div class="codehilite"><pre><span></span>{
     ...
-    &quot;admin_port&quot;: 10000
+    &quot;internal_port&quot;: 9000
 }
 </pre></div>
 
 <p>So admin web interface will work on address:</p>
-<div class="codehilite"><pre><span></span>ws://localhost:10000
+<div class="codehilite"><pre><span></span>ws://localhost:9000
 </pre></div>
 
-<p>Also debug page will be available on new custom admin port too:</p>
-<div class="codehilite"><pre><span></span>http://localhost:10000/debug/pprof/
+<p>Also debug page will be available on new custom port too:</p>
+<div class="codehilite"><pre><span></span>http://localhost:9000/debug/pprof/
 </pre></div>
 
-<p>To run API server on it's own port use <code class="codehilite">api_port</code> option:</p>
-<div class="codehilite"><pre><span></span>{
-    ...
-    &quot;api_port&quot;: 10001
-}
-</pre></div>
-
-<p>Now you should send API requests to:</p>
-<div class="codehilite"><pre><span></span>http://localhost:10001/api
-</pre></div>
+<p>The same for API and prometheus endpoint.</p>
                 
                   
                 
