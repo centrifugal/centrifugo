@@ -886,15 +886,14 @@
 <li><code class="codehilite">redis_url</code> (string, default <code class="codehilite">&quot;&quot;</code>) - optional Redis connection URL</li>
 <li><code class="codehilite">redis_password</code> (string, default <code class="codehilite">&quot;&quot;</code>) - Redis password</li>
 <li><code class="codehilite">redis_db</code> (int, default <code class="codehilite">0</code>) - number of Redis db to use</li>
-<li><code class="codehilite">redis_tls</code> (boolean, default <code class="codehilite">false</code>) - enable Redis TLS connection</li>
-<li><code class="codehilite">redis_tls_skip_verify</code> (boolean, default <code class="codehilite">false</code>) - disable Redis TLS host verification</li>
+<li><code class="codehilite">redis_tls</code> (boolean, default <code class="codehilite">false</code>) - enable Redis TLS connection (new in v2.0.2)</li>
+<li><code class="codehilite">redis_tls_skip_verify</code> (boolean, default <code class="codehilite">false</code>) - disable Redis TLS host verification (new in v2.0.2)</li>
 <li><code class="codehilite">redis_sentinels</code> (string, default <code class="codehilite">&quot;&quot;</code>) - comma separated list of Sentinels for HA</li>
 <li><code class="codehilite">redis_master_name</code> (string, default <code class="codehilite">&quot;&quot;</code>) - name of Redis master Sentinel monitors</li>
+<li><code class="codehilite">redis_prefix</code> (string, default <code class="codehilite">&quot;centrifugo&quot;</code>) – custom prefix to use for channels and keys in Redis</li>
 </ul>
-<p>Most of these options has clear meaning.</p>
-<p><code class="codehilite">redis_url</code> allows to set Redis connection parameters in a form of URL in format <code class="codehilite">redis://:password@hostname:port/db_number</code>.</p>
-<p>When <code class="codehilite">redis_url</code> set Centrifugo will use URL instead of values provided in <code class="codehilite">redis_host</code>,
-<code class="codehilite">redis_port</code>, <code class="codehilite">redis_password</code>, <code class="codehilite">redis_db</code> options.</p>
+<p>Some of these options can be set over command-line arguments (see <code class="codehilite">centrifugo -h</code> output), some only over configuration file.</p>
+<p>Let's describe a bit more <code class="codehilite">redis_url</code> option. <code class="codehilite">redis_url</code> allows to set Redis connection parameters in a form of URL in format <code class="codehilite">redis://:password@hostname:port/db_number</code>. When <code class="codehilite">redis_url</code> set Centrifugo will use URL instead of values provided in <code class="codehilite">redis_host</code>, <code class="codehilite">redis_port</code>, <code class="codehilite">redis_password</code>, <code class="codehilite">redis_db</code> options.</p>
 <h3 id="scaling-with-redis-tutorial">Scaling with Redis tutorial<a class="headerlink" href="#scaling-with-redis-tutorial" title="Permanent link">&para;</a></h3>
 <p>Let's see how to start several Centrifugo nodes using Redis engine. We will start 3 Centrifugo nodes and all those nodes will be connected via Redis.</p>
 <p>First, you should have Redis running. As soon as it's running - we can launch 3 Centrifugo instances. Open your terminal and start first one:</p>
