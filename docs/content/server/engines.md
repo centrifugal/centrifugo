@@ -50,17 +50,15 @@ Several configuration options related to Redis engine:
 * `redis_url` (string, default `""`) - optional Redis connection URL
 * `redis_password` (string, default `""`) - Redis password
 * `redis_db` (int, default `0`) - number of Redis db to use
-* `redis_tls` (boolean, default `false`) - enable Redis TLS connection
-* `redis_tls_skip_verify` (boolean, default `false`) - disable Redis TLS host verification
+* `redis_tls` (boolean, default `false`) - enable Redis TLS connection (new in v2.0.2)
+* `redis_tls_skip_verify` (boolean, default `false`) - disable Redis TLS host verification (new in v2.0.2)
 * `redis_sentinels` (string, default `""`) - comma separated list of Sentinels for HA
 * `redis_master_name` (string, default `""`) - name of Redis master Sentinel monitors
+* `redis_prefix` (string, default `"centrifugo"`) – custom prefix to use for channels and keys in Redis
 
-Most of these options has clear meaning.
+Some of these options can be set over command-line arguments (see `centrifugo -h` output), some only over configuration file.
 
-`redis_url` allows to set Redis connection parameters in a form of URL in format `redis://:password@hostname:port/db_number`.
-
-When `redis_url` set Centrifugo will use URL instead of values provided in `redis_host`,
-`redis_port`, `redis_password`, `redis_db` options.
+Let's describe a bit more `redis_url` option. `redis_url` allows to set Redis connection parameters in a form of URL in format `redis://:password@hostname:port/db_number`. When `redis_url` set Centrifugo will use URL instead of values provided in `redis_host`, `redis_port`, `redis_password`, `redis_db` options.
 
 ### Scaling with Redis tutorial
 
