@@ -8,4 +8,4 @@ We have several client libraries for different languages so you don't have to co
 * [rubycent](https://github.com/centrifugal/rubycent) for Ruby (**not available for Centrifugo v2 yet**)
 * [phpcent](https://github.com/centrifugal/phpcent) for PHP (**not available for Centrifugo v2 yet**)
 * [jscent](https://github.com/centrifugal/jscent) for NodeJS (**not available for Centrifugo v2 yet**)
-* [gocent](https://github.com/centrifugal/gocent) for Go (**not available for Centrifugo v2 yet**)
+* [gocent](https://github.com/centrifugal/gocent) for Go
