@@ -257,7 +257,6 @@ The most important message is `Publication`:
     "result":{
         "channel":"ch1",
         "data":{
-            "uid":"Ry4z8l6GvNMejwMxB7Sohe",
             "data":{"input":"1"},
             "info":{
                 "user":"2694",
