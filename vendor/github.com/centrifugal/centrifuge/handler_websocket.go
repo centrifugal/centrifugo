@@ -122,21 +122,21 @@ func (t *websocketTransport) write(data ...[]byte) error {
 		}
 		writer, err := t.conn.NextWriter(messageType)
 		if err != nil {
-			t.Close(DisconnectWriteError)
+			go t.Close(DisconnectWriteError)
 			return err
 		}
 		bytesOut := 0
 		for _, payload := range data {
 			n, err := writer.Write(payload)
 			if n != len(payload) || err != nil {
-				t.Close(DisconnectWriteError)
+				go t.Close(DisconnectWriteError)
 				return err
 			}
 			bytesOut += len(data)
 		}
 		err = writer.Close()
 		if err != nil {
-			t.Close(DisconnectWriteError)
+			go t.Close(DisconnectWriteError)
 			return err
 		}
 		if t.opts.writeTimeout > 0 {

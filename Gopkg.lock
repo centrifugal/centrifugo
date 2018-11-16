@@ -43,7 +43,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a8330e7a6fe67ab7d257487dbf633ca9e1cffc55ca18837691ca6f27b080a9d1"
+  digest = "1:628132e40d37ebafadac440cc6dce01af5283404681db84bc577089dd90455c3"
   name = "github.com/centrifugal/centrifuge"
   packages = [
     ".",
@@ -51,10 +51,11 @@
     "internal/proto",
     "internal/proto/controlproto",
     "internal/queue",
+    "internal/timers",
     "internal/uuid",
   ]
   pruneopts = "UT"
-  revision = "3624b26218753c901df07667436d7ca673151e97"
+  revision = "b165c2301b30551dc8d4be558863a661f5e0f92d"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"

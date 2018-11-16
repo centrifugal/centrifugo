@@ -21,18 +21,18 @@ const (
 
 // levelToString matches LogLevel to its string representation.
 var levelToString = map[LogLevel]string{
-	LogLevelNone:  "none",
 	LogLevelDebug: "debug",
 	LogLevelInfo:  "info",
 	LogLevelError: "error",
+	LogLevelNone:  "none",
 }
 
 // LogStringToLevel matches level string to LogLevel.
 var LogStringToLevel = map[string]LogLevel{
-	"none":  LogLevelNone,
 	"debug": LogLevelDebug,
 	"info":  LogLevelInfo,
 	"error": LogLevelError,
+	"none":  LogLevelNone,
 }
 
 // LogLevelToString transforms Level to its string representation.
@@ -89,7 +89,7 @@ func (l *logger) log(entry LogEntry) {
 	if l == nil {
 		return
 	}
-	if entry.Level >= l.level {
+	if l.enabled(entry.Level) {
 		l.handler(entry)
 	}
 }
@@ -99,5 +99,5 @@ func (l *logger) enabled(level LogLevel) bool {
 	if l == nil {
 		return false
 	}
-	return level >= l.level
+	return level >= l.level && l.level != LogLevelNone
 }

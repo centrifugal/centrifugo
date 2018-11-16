@@ -71,7 +71,7 @@ func (t *sockjsTransport) write(data ...[]byte) error {
 			// TODO: can actually be sent in single message as streaming JSON.
 			err := t.session.Send(string(payload))
 			if err != nil {
-				t.Close(DisconnectWriteError)
+				go t.Close(DisconnectWriteError)
 				return err
 			}
 			transportMessagesSent.WithLabelValues(transportSockJS).Inc()

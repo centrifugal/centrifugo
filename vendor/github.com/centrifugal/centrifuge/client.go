@@ -1526,7 +1526,7 @@ func (c *Client) subscribeCmd(cmd *proto.SubscribeRequest, rw *replyWriter) *Dis
 		} else {
 			recovery, err := c.node.currentRecoveryState(channel)
 			if err != nil {
-				c.node.logger.log(newLogEntry(LogLevelError, "error getting last publication ID for channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid, "error": err.Error()}))
+				c.node.logger.log(newLogEntry(LogLevelError, "error getting recovery state for channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid, "error": err.Error()}))
 				if chOpts.HistoryRecover {
 					c.setInSubscribe(channel, false)
 				}

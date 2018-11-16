@@ -179,7 +179,11 @@ func (n *Node) updateGauges() {
 	numClientsGauge.Set(float64(n.hub.NumClients()))
 	numUsersGauge.Set(float64(n.hub.NumUsers()))
 	numChannelsGauge.Set(float64(n.hub.NumChannels()))
-	buildInfoGauge.WithLabelValues(n.Config().Version).Set(1)
+	version := n.Config().Version
+	if version == "" {
+		version = "_"
+	}
+	buildInfoGauge.WithLabelValues(version).Set(1)
 }
 
 func (n *Node) updateMetrics() {
