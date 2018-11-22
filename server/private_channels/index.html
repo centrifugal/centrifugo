@@ -483,6 +483,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#exp" title="exp" class="md-nav__link">
+    exp
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -855,6 +862,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#exp" title="exp" class="md-nav__link">
+    exp
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -892,7 +906,7 @@
 <p>For example in Javascript client AJAX POST request is automatically made to <code class="codehilite">/centrifuge/subscribe</code> endpoint. Other client libraries can provide a hook for your custom code that will obtain private subscription token from application backend. </p>
 <p>The subscription token is similar to connection token. It's also JWT. But has different claims.</p>
 <h2 id="claims">Claims<a class="headerlink" href="#claims" title="Permanent link">&para;</a></h2>
-<p>Private subscription claims are: <code class="codehilite">client</code>, <code class="codehilite">channel</code>, <code class="codehilite">info</code> and <code class="codehilite">b64info</code>. What do they mean? Let's describe in detail.</p>
+<p>Private subscription claims are: <code class="codehilite">client</code>, <code class="codehilite">channel</code>, <code class="codehilite">info</code>, <code class="codehilite">b64info</code> and <code class="codehilite">exp</code>. What do they mean? Let's describe in detail.</p>
 <h3 id="client">client<a class="headerlink" href="#client" title="Permanent link">&para;</a></h3>
 <p>Required. Client ID which wants to subscribe on channel (<strong>string</strong>).</p>
 <h3 id="channel">channel<a class="headerlink" href="#channel" title="Permanent link">&para;</a></h3>
@@ -901,6 +915,10 @@
 <p>Optional. Additional information for connection regarding to channel (<strong>valid JSON</strong>).</p>
 <h3 id="b64info">b64info<a class="headerlink" href="#b64info" title="Permanent link">&para;</a></h3>
 <p>Optional. Additional information for connection regarding to channel in base64 format (<strong>string</strong>).</p>
+<h3 id="exp">exp<a class="headerlink" href="#exp" title="Permanent link">&para;</a></h3>
+<p>Optional. This is standard JWT claim that allows to set private channel subscription token expiration time.</p>
+<p>At moment if subscription token expires client connection will be closed and client will try to reconnect. In most cases you don't need this and should prefer using <code class="codehilite">exp</code> of connection token to deactivate connection. But if you need more granular per-channel control this may fit your needs.</p>
+<p>Once <code class="codehilite">exp</code> set in token every subscription token must be periodically refreshed. Refer to specific client documentation in order to see how to refresh subscription tokens.</p>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
 <p>So to generate subscription token you can use smth like this in Python (assuming client ID is <code class="codehilite">XXX</code> and private channel is <code class="codehilite">$gossips</code>):</p>
 <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>

@@ -427,6 +427,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#client_anonymous" title="client_anonymous" class="md-nav__link">
+    client_anonymous
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sockjs_heartbeat_delay" title="sockjs_heartbeat_delay" class="md-nav__link">
     sockjs_heartbeat_delay
   </a>
@@ -1037,6 +1044,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#client_anonymous" title="client_anonymous" class="md-nav__link">
+    client_anonymous
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sockjs_heartbeat_delay" title="sockjs_heartbeat_delay" class="md-nav__link">
     sockjs_heartbeat_delay
   </a>
@@ -1326,12 +1340,15 @@ don't need (and you really should not) change them. This chapter is about such o
 <h4 id="client_queue_max_size">client_queue_max_size<a class="headerlink" href="#client_queue_max_size" title="Permanent link">&para;</a></h4>
 <p>Default: 10485760</p>
 <p>Maximum client message queue size in bytes to close slow reader connections. By default - 10mb.</p>
+<h4 id="client_anonymous">client_anonymous<a class="headerlink" href="#client_anonymous" title="Permanent link">&para;</a></h4>
+<p>Default: false</p>
+<p>Enable mode when all clients can connect to Centrifugo without JWT connection token. In this case all connections will be treated as anonymous (i.e. with empty user ID) and only can subscribe to channels with <code class="codehilite">anonymous</code> option enabled.</p>
 <h4 id="sockjs_heartbeat_delay">sockjs_heartbeat_delay<a class="headerlink" href="#sockjs_heartbeat_delay" title="Permanent link">&para;</a></h4>
 <p>Default: 25</p>
 <p>Interval in seconds how often to send SockJS h-frames to client.</p>
 <h4 id="websocket_compression">websocket_compression<a class="headerlink" href="#websocket_compression" title="Permanent link">&para;</a></h4>
 <p>Default: false</p>
-<p>Enable websocket compression, see special chapter in docs.</p>
+<p>Enable websocket compression, see chapter about websocket transport for more details.</p>
 <h4 id="gomaxprocs">gomaxprocs<a class="headerlink" href="#gomaxprocs" title="Permanent link">&para;</a></h4>
 <p>Default: 0</p>
 <p>By default Centrifugo runs on all available CPU cores. If you want to limit amount of cores Centrifugo can utilize in one moment use this option.</p>
