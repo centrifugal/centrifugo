@@ -10,7 +10,7 @@ The subscription token is similar to connection token. It's also JWT. But has di
 
 ## Claims
 
-Private subscription claims are: `client`, `channel`, `info` and `b64info`. What do they mean? Let's describe in detail.
+Private subscription claims are: `client`, `channel`, `info`, `b64info` and `exp`. What do they mean? Let's describe in detail.
 
 ### client
 
@@ -27,6 +27,14 @@ Optional. Additional information for connection regarding to channel (**valid JS
 ### b64info
 
 Optional. Additional information for connection regarding to channel in base64 format (**string**).
+
+### exp
+
+Optional. This is standard JWT claim that allows to set private channel subscription token expiration time.
+
+At moment if subscription token expires client connection will be closed and client will try to reconnect. In most cases you don't need this and should prefer using `exp` of connection token to deactivate connection. But if you need more granular per-channel control this may fit your needs.
+
+Once `exp` set in token every subscription token must be periodically refreshed. Refer to specific client documentation in order to see how to refresh subscription tokens.
 
 ## Example
 

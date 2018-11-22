@@ -258,6 +258,12 @@ Default: 10485760
 
 Maximum client message queue size in bytes to close slow reader connections. By default - 10mb.
 
+#### client_anonymous
+
+Default: false
+
+Enable mode when all clients can connect to Centrifugo without JWT connection token. In this case all connections will be treated as anonymous (i.e. with empty user ID) and only can subscribe to channels with `anonymous` option enabled.
+
 #### sockjs_heartbeat_delay
 
 Default: 25
@@ -268,7 +274,7 @@ Interval in seconds how often to send SockJS h-frames to client.
 
 Default: false
 
-Enable websocket compression, see special chapter in docs.
+Enable websocket compression, see chapter about websocket transport for more details.
 
 #### gomaxprocs
 
