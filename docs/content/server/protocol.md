@@ -1,8 +1,8 @@
 # Client protocol
 
-This chapter describes internal client-server protocol in details to help developers build custom client libraries.
+This chapter describes internal client-server protocol in details to help developers build new client libraries and understand how existing client libraries work.
 
-Note that you can always look at existing client implementations in case of any questions, for example [centrifuge-js](https://github.com/centrifugal/centrifuge-js/blob/master/src/centrifuge.js).
+Note that you can always look at existing client implementations in case of any questions, for example [centrifuge-js](https://github.com/centrifugal/centrifuge-js) or [centrifuge-go](https://github.com/centrifugal/centrifuge-go).
 
 ### Client implementation checklist
 
@@ -49,24 +49,59 @@ Server sends `Reply` to client.
 
 One request from client to server and one response from server to client can have more than one `Command` or `Reply`.
 
-When JSON format is used then many `Command` can be sent from client to server in JSON streaming line-delimited format. I.e. many commands delimited by new line symbol `\n`.
+When JSON format is used then many `Command` can be sent from client to server in JSON streaming line-delimited format. I.e. each individual `Command` encoded to JSON and then commands joined together using new line symbol `\n`:
 
 ```javascript
 {"id": 1, "method": "subscribe", "params": {"channel": "ch1"}}
 {"id": 2, "method": "subscribe", "params": {"channel": "ch2"}}
 ```
 
+For example here is how we do this in Javascript client when JSON format used:
+
+```javascript
+function encodeCommands(commands) {
+    const encodedCommands = [];
+    for (const i in commands) {
+      if (commands.hasOwnProperty(i)) {
+        encodedCommands.push(JSON.stringify(commands[i]));
+      }
+    }
+    return encodedCommands.join('\n');
+}
+```
+
 !!! note
-    This doc will use JSON format for examples because it's human-readable. Everything said here for JSON is also true for Protobuf encoded case. 
-    
+    This doc will use JSON format for examples because it's human-readable. Everything said here for JSON is also true for Protobuf encoded case. The only difference is how several individual `Command` or server `Reply` joined into one request – see below.
+
 !!! note
     Method is made as ENUM in protobuf schema and can be sent as integer value but it's possible to send it as string in JSON case – this was made to make JSON protocol human-friendly.
 
-When Protobuf format is used then many `Command` can be sent from client to server in length-delimited format where each individual `Command` marshaled to bytes prepended by `varint` length.
+When Protobuf format is used then many `Command` can be sent from client to server in length-delimited format where each individual `Command` marshaled to bytes prepended by `varint` length. See existing client implementations for encoding example.
 
-The same relates to many `Reply` in one response from server to client. Line-delimited JSON and varint-length prefixed Protobuf.
+The same rules relate to many `Reply` in one response from server to client. Line-delimited JSON and varint-length prefixed Protobuf.
 
-As you see above each `Command` has `id` field. This is an incremental integer field. This field will be echoed in server to client replies to commands so client could match a certain `Reply` to `Command` sent before. This is important because Websocket is asynchronous protocol where server and client both send messages in full-duplex mode.
+For example here is how we read server response and extracting individual replies in Javascript client when JSON format used:
+
+```javascript
+function decodeReplies(data) {
+    const replies = [];
+    const encodedReplies = data.split('\n');
+    for (const i in encodedReplies) {
+      if (encodedReplies.hasOwnProperty(i)) {
+        if (!encodedReplies[i]) {
+          continue;
+        }
+        const reply = JSON.parse(encodedReplies[i]);
+        replies.push(reply);
+      }
+    }
+    return replies;
+}
+```
+
+For Protobuf case see existing client implementations for decoding example.
+
+As you can see each `Command` has `id` field. This is an incremental integer field. This field will be echoed in server to client replies to commands so client could match a certain `Reply` to `Command` sent before. This is important because Websocket is asynchronous protocol where server and client both send messages at any moment and there is no builtin request-response pattern. Having `id` allows to match reply to command send before.
 
 So you can expect something like this in response after sending commands to server:
 
@@ -181,8 +216,13 @@ In response to subscribe client receives reply like:
 
 `result` can have the following fields:
 
-* optional array `publications` - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array
-* optional string `last` - this field contains uid of last publication in channel. This allows fresh client which have not received publications before recover messages setting this value into next subscription request. 
+* optional bool `expires` - indicates whether subscription expires or not.
+* optional uint32 `ttl` - number of seconds until subscription expire.
+* optional bool `recoverable` - means that messages can be recovered in this subscription.
+* optional int32 `seq` - current publication sequence inside channel
+* optional int32 `gen` - current publication generation inside channel
+* optional string `epoch` - current epoch inside channel
+* optional array `publications` - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array.
 * optional bool `recovered` - this flag is set to `true` when server thinks that all missed publications were successfully recovered and send in subscribe reply (in `publications` array) and `false` otherwise.
 
 After client received successful reply on `subscribe` command it will receive asynchronous 
