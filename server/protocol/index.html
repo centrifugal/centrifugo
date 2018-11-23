@@ -959,8 +959,8 @@
                 
                 
                 <h1 id="client-protocol">Client protocol<a class="headerlink" href="#client-protocol" title="Permanent link">&para;</a></h1>
-<p>This chapter describes internal client-server protocol in details to help developers build custom client libraries.</p>
-<p>Note that you can always look at existing client implementations in case of any questions, for example <a href="https://github.com/centrifugal/centrifuge-js/blob/master/src/centrifuge.js">centrifuge-js</a>.</p>
+<p>This chapter describes internal client-server protocol in details to help developers build new client libraries and understand how existing client libraries work.</p>
+<p>Note that you can always look at existing client implementations in case of any questions, for example <a href="https://github.com/centrifugal/centrifuge-js">centrifuge-js</a> or <a href="https://github.com/centrifugal/centrifuge-go">centrifuge-go</a>.</p>
 <h3 id="client-implementation-checklist">Client implementation checklist<a class="headerlink" href="#client-implementation-checklist" title="Permanent link">&para;</a></h3>
 <p>First we will look at list of features client library should support. Depending on client implementation some features can be not implemented. If you an author of client library you can use this list as checklist.</p>
 <div class="admonition note">
@@ -999,22 +999,52 @@
 <p>Client sends <code class="codehilite">Command</code> to server.</p>
 <p>Server sends <code class="codehilite">Reply</code> to client.</p>
 <p>One request from client to server and one response from server to client can have more than one <code class="codehilite">Command</code> or <code class="codehilite">Reply</code>.</p>
-<p>When JSON format is used then many <code class="codehilite">Command</code> can be sent from client to server in JSON streaming line-delimited format. I.e. many commands delimited by new line symbol <code class="codehilite">\n</code>.</p>
+<p>When JSON format is used then many <code class="codehilite">Command</code> can be sent from client to server in JSON streaming line-delimited format. I.e. each individual <code class="codehilite">Command</code> encoded to JSON and then commands joined together using new line symbol <code class="codehilite">\n</code>:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;subscribe&quot;</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span><span class="s2">&quot;channel&quot;</span><span class="o">:</span> <span class="s2">&quot;ch1&quot;</span><span class="p">}}</span>
 <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;subscribe&quot;</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span><span class="s2">&quot;channel&quot;</span><span class="o">:</span> <span class="s2">&quot;ch2&quot;</span><span class="p">}}</span>
 </pre></div>
 
+<p>For example here is how we do this in Javascript client when JSON format used:</p>
+<div class="codehilite"><pre><span></span><span class="kd">function</span> <span class="nx">encodeCommands</span><span class="p">(</span><span class="nx">commands</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kr">const</span> <span class="nx">encodedCommands</span> <span class="o">=</span> <span class="p">[];</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">i</span> <span class="k">in</span> <span class="nx">commands</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="nx">commands</span><span class="p">.</span><span class="nx">hasOwnProperty</span><span class="p">(</span><span class="nx">i</span><span class="p">))</span> <span class="p">{</span>
+        <span class="nx">encodedCommands</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">commands</span><span class="p">[</span><span class="nx">i</span><span class="p">]));</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="nx">encodedCommands</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This doc will use JSON format for examples because it's human-readable. Everything said here for JSON is also true for Protobuf encoded case. </p>
+<p>This doc will use JSON format for examples because it's human-readable. Everything said here for JSON is also true for Protobuf encoded case. The only difference is how several individual <code class="codehilite">Command</code> or server <code class="codehilite">Reply</code> joined into one request – see below.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Method is made as ENUM in protobuf schema and can be sent as integer value but it's possible to send it as string in JSON case – this was made to make JSON protocol human-friendly.</p>
 </div>
-<p>When Protobuf format is used then many <code class="codehilite">Command</code> can be sent from client to server in length-delimited format where each individual <code class="codehilite">Command</code> marshaled to bytes prepended by <code class="codehilite">varint</code> length.</p>
-<p>The same relates to many <code class="codehilite">Reply</code> in one response from server to client. Line-delimited JSON and varint-length prefixed Protobuf.</p>
-<p>As you see above each <code class="codehilite">Command</code> has <code class="codehilite">id</code> field. This is an incremental integer field. This field will be echoed in server to client replies to commands so client could match a certain <code class="codehilite">Reply</code> to <code class="codehilite">Command</code> sent before. This is important because Websocket is asynchronous protocol where server and client both send messages in full-duplex mode.</p>
+<p>When Protobuf format is used then many <code class="codehilite">Command</code> can be sent from client to server in length-delimited format where each individual <code class="codehilite">Command</code> marshaled to bytes prepended by <code class="codehilite">varint</code> length. See existing client implementations for encoding example.</p>
+<p>The same rules relate to many <code class="codehilite">Reply</code> in one response from server to client. Line-delimited JSON and varint-length prefixed Protobuf.</p>
+<p>For example here is how we read server response and extracting individual replies in Javascript client when JSON format used:</p>
+<div class="codehilite"><pre><span></span><span class="kd">function</span> <span class="nx">decodeReplies</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kr">const</span> <span class="nx">replies</span> <span class="o">=</span> <span class="p">[];</span>
+    <span class="kr">const</span> <span class="nx">encodedReplies</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">i</span> <span class="k">in</span> <span class="nx">encodedReplies</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="nx">encodedReplies</span><span class="p">.</span><span class="nx">hasOwnProperty</span><span class="p">(</span><span class="nx">i</span><span class="p">))</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">encodedReplies</span><span class="p">[</span><span class="nx">i</span><span class="p">])</span> <span class="p">{</span>
+          <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="kr">const</span> <span class="nx">reply</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">encodedReplies</span><span class="p">[</span><span class="nx">i</span><span class="p">]);</span>
+        <span class="nx">replies</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">reply</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="nx">replies</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>For Protobuf case see existing client implementations for decoding example.</p>
+<p>As you can see each <code class="codehilite">Command</code> has <code class="codehilite">id</code> field. This is an incremental integer field. This field will be echoed in server to client replies to commands so client could match a certain <code class="codehilite">Reply</code> to <code class="codehilite">Command</code> sent before. This is important because Websocket is asynchronous protocol where server and client both send messages at any moment and there is no builtin request-response pattern. Having <code class="codehilite">id</code> allows to match reply to command send before.</p>
 <p>So you can expect something like this in response after sending commands to server:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;result&quot;</span><span class="o">:</span> <span class="p">{}}</span>
 <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;result&quot;</span><span class="o">:</span> <span class="p">{}}</span>
@@ -1102,8 +1132,13 @@ subscribe on channels. To do this it must send <code class="codehilite">subscrib
 
 <p><code class="codehilite">result</code> can have the following fields:</p>
 <ul>
-<li>optional array <code class="codehilite">publications</code> - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array</li>
-<li>optional string <code class="codehilite">last</code> - this field contains uid of last publication in channel. This allows fresh client which have not received publications before recover messages setting this value into next subscription request. </li>
+<li>optional bool <code class="codehilite">expires</code> - indicates whether subscription expires or not.</li>
+<li>optional uint32 <code class="codehilite">ttl</code> - number of seconds until subscription expire.</li>
+<li>optional bool <code class="codehilite">recoverable</code> - means that messages can be recovered in this subscription.</li>
+<li>optional int32 <code class="codehilite">seq</code> - current publication sequence inside channel</li>
+<li>optional int32 <code class="codehilite">gen</code> - current publication generation inside channel</li>
+<li>optional string <code class="codehilite">epoch</code> - current epoch inside channel</li>
+<li>optional array <code class="codehilite">publications</code> - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array.</li>
 <li>optional bool <code class="codehilite">recovered</code> - this flag is set to <code class="codehilite">true</code> when server thinks that all missed publications were successfully recovered and send in subscribe reply (in <code class="codehilite">publications</code> array) and <code class="codehilite">false</code> otherwise.</li>
 </ul>
 <p>After client received successful reply on <code class="codehilite">subscribe</code> command it will receive asynchronous 
