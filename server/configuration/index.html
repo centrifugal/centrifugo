@@ -1173,18 +1173,18 @@ Flags:
       --pid_file string            optional path to create PID file
   -p, --port string                port to bind HTTP server to (default &quot;8000&quot;)
       --prometheus                 enable Prometheus metrics endpoint
-      --redis_db string            Redis database (Redis engine) (default &quot;0&quot;)
+      --redis_db int               Redis database (Redis engine)
       --redis_host string          Redis host (Redis engine) (default &quot;127.0.0.1&quot;)
       --redis_master_name string   name of Redis master Sentinel monitors (Redis engine)
       --redis_password string      Redis auth password (Redis engine)
       --redis_port string          Redis port (Redis engine) (default &quot;6379&quot;)
       --redis_sentinels string     comma-separated list of Sentinel addresses (Redis engine)
+      --redis_tls                  enable Redis TLS connection
+      --redis_tls_skip_verify      disable Redis TLS host verification
       --redis_url string           Redis connection URL in format redis://:password@hostname:port/db (Redis engine)
       --tls                        enable TLS, requires an X509 certificate and a key file
       --tls_cert string            path to an X509 certificate file
       --tls_key string             path to an X509 certificate key
-
-Use &quot; [command] --help&quot; for more information about a command.
 </pre></div>
 
 <h3 id="version">version<a class="headerlink" href="#version" title="Permanent link">&para;</a></h3>
@@ -1355,12 +1355,12 @@ don't need (and you really should not) change them. This chapter is about such o
 <h3 id="advanced-endpoint-configuration">Advanced endpoint configuration.<a class="headerlink" href="#advanced-endpoint-configuration" title="Permanent link">&para;</a></h3>
 <p>After you started Centrifugo you have several endpoints available. As soon as you have not provided any extra options you have 3 endpoints by default.</p>
 <h4 id="default-endpoints">Default endpoints.<a class="headerlink" href="#default-endpoints" title="Permanent link">&para;</a></h4>
-<p>First is SockJS endpoint - it's needed to serve client connections that use SockJS library:</p>
-<div class="codehilite"><pre><span></span>http://localhost:8000/connection/sockjs
+<p>The main endpoint is raw Websocket endpoint to serve client connections that use pure Websocket protocol:</p>
+<div class="codehilite"><pre><span></span>ws://localhost:8000/connection/websocket
 </pre></div>
 
-<p>Next is raw Websocket endpoint to serve client connections that use pure Websocket protocol:</p>
-<div class="codehilite"><pre><span></span>ws://localhost:8000/connection/websocket
+<p>Then there is SockJS endpoint - it's needed to serve client connections that use SockJS library:</p>
+<div class="codehilite"><pre><span></span>http://localhost:8000/connection/sockjs
 </pre></div>
 
 <p>And finally you have API endpoint to <code class="codehilite">publish</code> messages to channels (and execute other available API commands):</p>

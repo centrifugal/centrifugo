@@ -1130,24 +1130,27 @@ subscribe on channels. To do this it must send <code class="codehilite">subscrib
 <span class="p">}</span>
 </pre></div>
 
-<p><code class="codehilite">result</code> can have the following fields:</p>
+<p><code class="codehilite">result</code> can have the following fields that relate to subscription expiration:</p>
 <ul>
 <li>optional bool <code class="codehilite">expires</code> - indicates whether subscription expires or not.</li>
 <li>optional uint32 <code class="codehilite">ttl</code> - number of seconds until subscription expire.</li>
+</ul>
+<p>And several fields that relate to message recovery:</p>
+<ul>
 <li>optional bool <code class="codehilite">recoverable</code> - means that messages can be recovered in this subscription.</li>
-<li>optional int32 <code class="codehilite">seq</code> - current publication sequence inside channel</li>
-<li>optional int32 <code class="codehilite">gen</code> - current publication generation inside channel</li>
+<li>optional uint32 <code class="codehilite">seq</code> - current publication sequence inside channel</li>
+<li>optional uint32 <code class="codehilite">gen</code> - current publication generation inside channel</li>
 <li>optional string <code class="codehilite">epoch</code> - current epoch inside channel</li>
 <li>optional array <code class="codehilite">publications</code> - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array.</li>
 <li>optional bool <code class="codehilite">recovered</code> - this flag is set to <code class="codehilite">true</code> when server thinks that all missed publications were successfully recovered and send in subscribe reply (in <code class="codehilite">publications</code> array) and <code class="codehilite">false</code> otherwise.</li>
 </ul>
-<p>After client received successful reply on <code class="codehilite">subscribe</code> command it will receive asynchronous 
-reply messages published to this channel. Messages can be of several types:</p>
+<p>See more about meaning of recovery related fields in <a href="../recover/">special doc chapter</a>.</p>
+<p>After client received successful reply on <code class="codehilite">subscribe</code> command it will receive asynchronous reply messages published to this channel. Messages can be of several types:</p>
 <ul>
-<li>Publication message</li>
-<li>Join message</li>
-<li>Leave message</li>
-<li>Unsub message</li>
+<li><code class="codehilite">Publication</code> message</li>
+<li><code class="codehilite">Join</code> message</li>
+<li><code class="codehilite">Leave</code> message</li>
+<li><code class="codehilite">Unsub</code> message</li>
 </ul>
 <p>See more about asynchronous messages below. </p>
 <h3 id="unsubscribe">Unsubscribe<a class="headerlink" href="#unsubscribe" title="Permanent link">&para;</a></h3>

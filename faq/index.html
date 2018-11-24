@@ -843,6 +843,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#i-want-to-contribute-to-this-awesome-project" title="I want to contribute to this awesome project" class="md-nav__link">
+    I want to contribute to this awesome project
+  </a>
+  
+</li>
+      
       
       
       
@@ -979,6 +986,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#i-want-to-contribute-to-this-awesome-project" title="I want to contribute to this awesome project" class="md-nav__link">
+    I want to contribute to this awesome project
+  </a>
+  
+</li>
+      
       
       
       
@@ -1033,8 +1047,8 @@ on your backend.</p>
 <h3 id="how-to-create-secure-channel-for-two-users-only-private-chat-case">How to create secure channel for two users only (private chat case)?<a class="headerlink" href="#how-to-create-secure-channel-for-two-users-only-private-chat-case" title="Permanent link">&para;</a></h3>
 <p>There are several ways to achieve it:</p>
 <ul>
-<li>use private channel (starting with <code class="codehilite">$</code>) - every time user will try to subscribe on it your backend should provide sign to confirm that subscription request. Read more in <a href="https://fzambia.gitbooks.io/centrifugal/content/mixed/private_channels.html">special chapter about private channels</a></li>
-<li>next is <a href="https://fzambia.gitbooks.io/centrifugal/content/server/channels.html#user-channel-boundary">user limited channels</a> (with <code class="codehilite">#</code>) - you can create channel with name like <code class="codehilite">dialog#42,567</code> to limit subscribers only to user with id <code class="codehilite">42</code> and user with ID <code class="codehilite">567</code></li>
+<li>use private channel (starting with <code class="codehilite">$</code>) - every time user will try to subscribe on it your backend should provide sign to confirm that subscription request. Read more in <a href="https://centrifugal.github.io/centrifugo/server/channels/#private-channel-prefix">special chapter about channels</a></li>
+<li>next is <a href="https://centrifugal.github.io/centrifugo/server/channels/#user-channel-boundary">user limited channels</a> (with <code class="codehilite">#</code>) - you can create channel with name like <code class="codehilite">dialog#42,567</code> to limit subscribers only to user with id <code class="codehilite">42</code> and user with ID <code class="codehilite">567</code></li>
 <li>finally you can create hard to guess channel name (based on some secret key and user IDs or just generate and save this long unique name into your main app database) so other users won't know this channel to subscribe on it. This is the simplest but not the safest way - but can be reasonable to consider in many situations.</li>
 </ul>
 <h3 id="whats-a-best-way-to-organize-channel-configuration">What's a best way to organize channel configuration?<a class="headerlink" href="#whats-a-best-way-to-organize-channel-configuration" title="Permanent link">&para;</a></h3>
@@ -1048,7 +1062,9 @@ on your backend.</p>
 <p><a href="https://github.com/centrifugal/centrifugo">Centrifugo</a> is server built on top of <a href="https://github.com/centrifugal/centrifuge">Centrifuge</a> library for Go language.</p>
 <p>This documentation was built to describe Centrifugo. Though many things said here can be considered as extra documentation for Centrifuge library.</p>
 <h3 id="i-have-not-found-an-answer-on-my-question-here">I have not found an answer on my question here:<a class="headerlink" href="#i-have-not-found-an-answer-on-my-question-here" title="Permanent link">&para;</a></h3>
-<p>We have <a href="https://gitter.im/centrifugal/centrifugo">gitter chat room</a> - welcome!</p>
+<p>We have <a href="https://gitter.im/centrifugal/centrifugo">Gitter chat room</a> and <a href="https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ">Telegram group</a> - welcome!</p>
+<h3 id="i-want-to-contribute-to-this-awesome-project">I want to contribute to this awesome project<a class="headerlink" href="#i-want-to-contribute-to-this-awesome-project" title="Permanent link">&para;</a></h3>
+<p>We have many things you can help with – just ask us in our chat rooms.</p>
                 
                   
                 

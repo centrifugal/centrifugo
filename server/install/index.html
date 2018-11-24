@@ -297,9 +297,52 @@
       
     
     
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        Installation
+      </label>
+    
     <a href="./" title="Installation" class="md-nav__link md-nav__link--active">
       Installation
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#binary-releases" title="Binary releases" class="md-nav__link">
+    Binary releases
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#linux-packages" title="Linux packages" class="md-nav__link">
+    Linux packages
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#docker-image" title="Docker image" class="md-nav__link">
+    Docker image
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
     
   </li>
 
@@ -746,6 +789,36 @@
     
   
   
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#binary-releases" title="Binary releases" class="md-nav__link">
+    Binary releases
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#linux-packages" title="Linux packages" class="md-nav__link">
+    Linux packages
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#docker-image" title="Docker image" class="md-nav__link">
+    Docker image
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -760,6 +833,8 @@
                 
                 
                 <h1 id="install-and-quick-start">Install and quick start<a class="headerlink" href="#install-and-quick-start" title="Permanent link">&para;</a></h1>
+<p>In this chapter we will look at how you can get Centrifugo.</p>
+<h3 id="binary-releases">Binary releases<a class="headerlink" href="#binary-releases" title="Permanent link">&para;</a></h3>
 <p>Go language gives developers an opportunity to build single binary executable file with application and cross-compile application for all common operating systems. This means that all you need to get Centrifugo – <a href="https://github.com/centrifugal/centrifugo/releases">download latest release</a> for you operating system, unpack it and you are done!</p>
 <p>Now you can see help information for Centrifugo:</p>
 <div class="codehilite"><pre><span></span>./centrifugo -h
@@ -778,8 +853,10 @@
 <div class="codehilite"><pre><span></span>centrifugo --config<span class="o">=</span>config.json
 </pre></div>
 
-<p>In production you will need to daemonize Centrifugo. We have prebuilt <code class="codehilite">rpm</code> and <code class="codehilite">deb</code> packages for
-most popular Linux distributions and Docker image. See <code class="codehilite">Deploy</code> section for more information.</p>
+<h3 id="linux-packages">Linux packages<a class="headerlink" href="#linux-packages" title="Permanent link">&para;</a></h3>
+<p>We have prebuilt <code class="codehilite">rpm</code> and <code class="codehilite">deb</code> packages for most popular Linux distributions and Docker image. See <a href="../../deploy/packages/">this chapter</a> for more information.</p>
+<h3 id="docker-image">Docker image<a class="headerlink" href="#docker-image" title="Permanent link">&para;</a></h3>
+<p>And of course we have official Docker image – see <a href="../../deploy/docker/">this chapter</a> for more information.</p>
                 
                   
                 
