@@ -214,24 +214,28 @@ In response to subscribe client receives reply like:
 }
 ```
 
-`result` can have the following fields:
+`result` can have the following fields that relate to subscription expiration:
 
 * optional bool `expires` - indicates whether subscription expires or not.
 * optional uint32 `ttl` - number of seconds until subscription expire.
+
+And several fields that relate to message recovery:
+
 * optional bool `recoverable` - means that messages can be recovered in this subscription.
-* optional int32 `seq` - current publication sequence inside channel
-* optional int32 `gen` - current publication generation inside channel
+* optional uint32 `seq` - current publication sequence inside channel
+* optional uint32 `gen` - current publication generation inside channel
 * optional string `epoch` - current epoch inside channel
 * optional array `publications` - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array.
 * optional bool `recovered` - this flag is set to `true` when server thinks that all missed publications were successfully recovered and send in subscribe reply (in `publications` array) and `false` otherwise.
 
-After client received successful reply on `subscribe` command it will receive asynchronous 
-reply messages published to this channel. Messages can be of several types:
+See more about meaning of recovery related fields in [special doc chapter](recover.md).
 
-* Publication message
-* Join message
-* Leave message
-* Unsub message
+After client received successful reply on `subscribe` command it will receive asynchronous reply messages published to this channel. Messages can be of several types:
+
+* `Publication` message
+* `Join` message
+* `Leave` message
+* `Unsub` message
 
 See more about asynchronous messages below. 
 

@@ -26,7 +26,7 @@ If `exp` claim not provided then Centrifugo won't expire any connections. When p
 
 You can use connection expiration mechanism in cases when you don't want users of your app be subscribed on channels after being banned/deactivated in application. Or to protect your users from token leak (providing reasonably small time of expiration).
 
-Choose `exp` value wisely, you don't need to small values because refresh mechanism will hit your application often with refresh requests. But setting this value too large can lead to non very fast user connection deactivation. This is a trade off.
+Choose `exp` value wisely, you don't need small values because refresh mechanism will hit your application often with refresh requests. But setting this value too large can lead to non very fast user connection deactivation. This is a trade off.
 
 Read more about connection expiration in special chapter.
 

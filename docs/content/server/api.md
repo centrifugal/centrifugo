@@ -350,3 +350,7 @@ Date: Thu, 17 May 2018 22:07:58 GMT
     }
 }
 ```
+
+## Command pipelining
+
+It's possible to combine several commands into one request to Centrifugo. To do this use [JSON streaming](https://en.wikipedia.org/wiki/JSON_streaming) format. This can improve server throughput and reduce traffic travelling around.

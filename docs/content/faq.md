@@ -62,8 +62,8 @@ on your backend.
 
 There are several ways to achieve it:
 
-* use private channel (starting with `$`) - every time user will try to subscribe on it your backend should provide sign to confirm that subscription request. Read more in [special chapter about private channels](https://fzambia.gitbooks.io/centrifugal/content/mixed/private_channels.html)
-* next is [user limited channels](https://fzambia.gitbooks.io/centrifugal/content/server/channels.html#user-channel-boundary) (with `#`) - you can create channel with name like `dialog#42,567` to limit subscribers only to user with id `42` and user with ID `567`
+* use private channel (starting with `$`) - every time user will try to subscribe on it your backend should provide sign to confirm that subscription request. Read more in [special chapter about channels](https://centrifugal.github.io/centrifugo/server/channels/#private-channel-prefix)
+* next is [user limited channels](https://centrifugal.github.io/centrifugo/server/channels/#user-channel-boundary) (with `#`) - you can create channel with name like `dialog#42,567` to limit subscribers only to user with id `42` and user with ID `567`
 * finally you can create hard to guess channel name (based on some secret key and user IDs or just generate and save this long unique name into your main app database) so other users won't know this channel to subscribe on it. This is the simplest but not the safest way - but can be reasonable to consider in many situations.
 
 ### What's a best way to organize channel configuration?
@@ -88,4 +88,8 @@ This documentation was built to describe Centrifugo. Though many things said her
 
 ### I have not found an answer on my question here:
 
-We have [gitter chat room](https://gitter.im/centrifugal/centrifugo) - welcome!
+We have [Gitter chat room](https://gitter.im/centrifugal/centrifugo) and [Telegram group](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ) - welcome!
+
+### I want to contribute to this awesome project
+
+We have many things you can help with – just ask us in our chat rooms.

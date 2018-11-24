@@ -175,4 +175,4 @@ events {
 
 ## Upstream keepalive
 
-See chapter about operating system tuning for more details.
+See [chapter about operating system tuning](tuning.md) for more details.

@@ -41,18 +41,18 @@ Flags:
       --pid_file string            optional path to create PID file
   -p, --port string                port to bind HTTP server to (default "8000")
       --prometheus                 enable Prometheus metrics endpoint
-      --redis_db string            Redis database (Redis engine) (default "0")
+      --redis_db int               Redis database (Redis engine)
       --redis_host string          Redis host (Redis engine) (default "127.0.0.1")
       --redis_master_name string   name of Redis master Sentinel monitors (Redis engine)
       --redis_password string      Redis auth password (Redis engine)
       --redis_port string          Redis port (Redis engine) (default "6379")
       --redis_sentinels string     comma-separated list of Sentinel addresses (Redis engine)
+      --redis_tls                  enable Redis TLS connection
+      --redis_tls_skip_verify      disable Redis TLS host verification
       --redis_url string           Redis connection URL in format redis://:password@hostname:port/db (Redis engine)
       --tls                        enable TLS, requires an X509 certificate and a key file
       --tls_cert string            path to an X509 certificate file
       --tls_key string             path to an X509 certificate key
-
-Use " [command] --help" for more information about a command.
 ```
 
 ### version
@@ -288,16 +288,16 @@ After you started Centrifugo you have several endpoints available. As soon as yo
 
 #### Default endpoints.
 
-First is SockJS endpoint - it's needed to serve client connections that use SockJS library:
-
-```
-http://localhost:8000/connection/sockjs
-```
-
-Next is raw Websocket endpoint to serve client connections that use pure Websocket protocol:
+The main endpoint is raw Websocket endpoint to serve client connections that use pure Websocket protocol:
 
 ```
 ws://localhost:8000/connection/websocket
+```
+
+Then there is SockJS endpoint - it's needed to serve client connections that use SockJS library:
+
+```
+http://localhost:8000/connection/sockjs
 ```
 
 And finally you have API endpoint to `publish` messages to channels (and execute other available API commands):

@@ -1,5 +1,9 @@
 # Install and quick start
 
+In this chapter we will look at how you can get Centrifugo.
+
+### Binary releases
+
 Go language gives developers an opportunity to build single binary executable file with application and cross-compile application for all common operating systems. This means that all you need to get Centrifugo – [download latest release](https://github.com/centrifugal/centrifugo/releases) for you operating system, unpack it and you are done!
 
 Now you can see help information for Centrifugo:
@@ -28,5 +32,10 @@ You can also put or symlink `centrifugo` into your `bin` OS directory and run it
 centrifugo --config=config.json
 ```
 
-In production you will need to daemonize Centrifugo. We have prebuilt `rpm` and `deb` packages for
-most popular Linux distributions and Docker image. See `Deploy` section for more information.
+### Linux packages
+
+We have prebuilt `rpm` and `deb` packages for most popular Linux distributions and Docker image. See [this chapter](../deploy/packages.md) for more information.
+
+### Docker image
+
+And of course we have official Docker image – see [this chapter](../deploy/docker.md) for more information.

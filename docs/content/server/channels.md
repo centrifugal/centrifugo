@@ -27,7 +27,7 @@ If channel is `public:chat` - then Centrifugo will apply options to this channel
 
 ### private channel prefix ($)
 
-If channel starts with `$` then it considered private. Subscription on private channel must be properly signed by your web application. Read special chapter in docs about private channel subscriptions.
+If channel starts with `$` then it considered private. Subscription on private channel must be properly signed by your web application. Read [special chapter in docs](private_channels.md) about private channel subscriptions.
 
 ### user channel boundary (#)
 

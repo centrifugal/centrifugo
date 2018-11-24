@@ -1,6 +1,6 @@
 # HTTP API clients
 
-If you look at server API docs you will find that sending API request to Centrifugo is a very simple task to do in any programming language - this is just a POST request with JSON payload in body and `Authorization` header. See more in special chapter in server section.
+If you look at server API docs you will find that sending API request to Centrifugo is a very simple task to do in any programming language - this is just a POST request with JSON payload in body and `Authorization` header. See more in [special chapter](../server/api.md) in server section.
 
 We have several client libraries for different languages so you don't have to construct proper HTTP requests manually:
 
