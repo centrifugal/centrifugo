@@ -71,11 +71,12 @@ This is a minimal Centrifugo configuration file:
 
 ```javascript
 {
-  "secret": "secret"
+  "secret": "<YOUR-SECRET-STRING-HERE>",
+  "api_key": "<YOUR-API-KEY-HERE>"
 }
 ```
 
-The only field that is required is **secret**. Secret used to check JWT signature (more about JWT later). Keep it strong and in secret as its name says.
+The only two fields required are **secret** and **api_key**. Secret used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](api.md). Keep both values in secret and never reveal to clients.
 
 ### TOML file
 
@@ -88,7 +89,8 @@ centrifugo --config=config.toml
 Where `config.toml` contains:
 
 ```
-secret = "secret"
+secret = "<YOUR-SECRET-STRING-HERE>"
+api_key = "<YOUR-API-KEY-HERE>"
 log_level = "debug"
 ```
 
@@ -99,7 +101,8 @@ I.e. the same configuration as JSON file above with one extra option.
 And YAML config also supported. `config.yaml`:
 
 ```
-secret: secret
+secret: "<YOUR-SECRET-STRING-HERE>"
+api_key: "<YOUR-API-KEY-HERE>"
 log_level: debug
 ```
 

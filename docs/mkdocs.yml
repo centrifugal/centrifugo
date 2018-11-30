@@ -45,6 +45,7 @@ extra_css:
 
 pages: 
   - Getting Started: 'index.md'
+  - Integration Guide: 'guide.md'
   - Server:
     - 'Overview': 'server/index.md'
     - 'Installation': 'server/install.md'
