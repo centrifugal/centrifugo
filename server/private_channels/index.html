@@ -915,10 +915,14 @@
                 <h1 id="private-channels">Private channels<a class="headerlink" href="#private-channels" title="Permanent link">&para;</a></h1>
 <p>In channels chapter we mentioned private channels. This chapter has more information about private channel mechanism in Centrifugo.</p>
 <p>All channels starting with <code class="codehilite">$</code> considered private. In this case your backend should additionally provide token for subscription request. The way how this token is obtained varies depending on client implementation.</p>
-<p>For example in Javascript client AJAX POST request is automatically made to <code class="codehilite">/centrifuge/subscribe</code> endpoint. Other client libraries can provide a hook for your custom code that will obtain private subscription token from application backend. </p>
-<p>The subscription token is similar to connection token. It's also JWT. But has different claims.</p>
+<p>For example in Javascript client AJAX POST request is automatically sent to <code class="codehilite">/centrifuge/subscribe</code> endpoint on every private channel subscription attempt. Other client libraries can provide a hook for your custom code that will obtain private channel subscription token from application backend.</p>
+<p>Private channel subscription token is also JWT (like connection token described in <a href="../authentication/">authentication chapter</a>). But it has different claims.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Connection token and private channel subscription token are different entities. Though both are JWT and you can generate them using any JWT library.</p>
+</div>
 <h2 id="claims">Claims<a class="headerlink" href="#claims" title="Permanent link">&para;</a></h2>
-<p>Private subscription claims are: <code class="codehilite">client</code>, <code class="codehilite">channel</code>, <code class="codehilite">info</code>, <code class="codehilite">b64info</code> and <code class="codehilite">exp</code>. What do they mean? Let's describe in detail.</p>
+<p>Private channel subscription token claims are: <code class="codehilite">client</code>, <code class="codehilite">channel</code>, <code class="codehilite">info</code>, <code class="codehilite">b64info</code> and <code class="codehilite">exp</code>. What do they mean? Let's describe in detail.</p>
 <h3 id="client">client<a class="headerlink" href="#client" title="Permanent link">&para;</a></h3>
 <p>Required. Client ID which wants to subscribe on channel (<strong>string</strong>).</p>
 <h3 id="channel">channel<a class="headerlink" href="#channel" title="Permanent link">&para;</a></h3>
@@ -940,7 +944,7 @@
 <span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 </pre></div>
 
-<p>Again - the same <code class="codehilite">secret</code> from Centrifugo configuration is used to generate JWT. And as with connection JWT only <code class="codehilite">HS256</code> algorithm is supported at moment.</p>
+<p>Again - the same <code class="codehilite">secret</code> from Centrifugo configuration is used to generate private channel JWT as was used to generate connection JWT. And as with connection JWT only <code class="codehilite">HS256</code> algorithm is supported at moment.</p>
                 
                   
                 
