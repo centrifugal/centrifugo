@@ -592,12 +592,12 @@
         },
         {
             "location": "/libraries/api/",
-            "text": "HTTP API clients\n\u00b6\n\n\nIf you look at server API docs you will find that sending API request to Centrifugo is a very simple task to do in any programming language - this is just a POST request with JSON payload in body and \nAuthorization\n header. See more in \nspecial chapter\n in server section.\n\n\nWe have several client libraries for different languages so you don't have to construct proper HTTP requests manually:\n\n\n\n\ncent\n for Python\n\n\nrubycent\n for Ruby (\nnot available for Centrifugo v2 yet\n)\n\n\nphpcent\n for PHP (\nnot available for Centrifugo v2 yet\n)\n\n\njscent\n for NodeJS (\nnot available for Centrifugo v2 yet\n)\n\n\ngocent\n for Go",
+            "text": "HTTP API clients\n\u00b6\n\n\nIf you look at server API docs you will find that sending API request to Centrifugo is a very simple task to do in any programming language - this is just a POST request with JSON payload in body and \nAuthorization\n header. See more in \nspecial chapter\n in server section.\n\n\nWe have several client libraries for different languages so you don't have to construct proper HTTP requests manually:\n\n\n\n\ncent\n for Python\n\n\nphpcent\n for PHP\n\n\ngocent\n for Go\n\n\nrubycent\n for Ruby (\nnot available for Centrifugo v2 yet\n)\n\n\njscent\n for NodeJS (\nnot available for Centrifugo v2 yet\n)",
             "title": "API libraries"
         },
         {
             "location": "/libraries/api/#http-api-clients",
-            "text": "If you look at server API docs you will find that sending API request to Centrifugo is a very simple task to do in any programming language - this is just a POST request with JSON payload in body and  Authorization  header. See more in  special chapter  in server section.  We have several client libraries for different languages so you don't have to construct proper HTTP requests manually:   cent  for Python  rubycent  for Ruby ( not available for Centrifugo v2 yet )  phpcent  for PHP ( not available for Centrifugo v2 yet )  jscent  for NodeJS ( not available for Centrifugo v2 yet )  gocent  for Go",
+            "text": "If you look at server API docs you will find that sending API request to Centrifugo is a very simple task to do in any programming language - this is just a POST request with JSON payload in body and  Authorization  header. See more in  special chapter  in server section.  We have several client libraries for different languages so you don't have to construct proper HTTP requests manually:   cent  for Python  phpcent  for PHP  gocent  for Go  rubycent  for Ruby ( not available for Centrifugo v2 yet )  jscent  for NodeJS ( not available for Centrifugo v2 yet )",
             "title": "HTTP API clients"
         },
         {
