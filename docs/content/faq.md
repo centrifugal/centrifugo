@@ -51,7 +51,9 @@ You can but Centrifugo does not have such API. What you have to do to ensure you
 
 ### Can I publish new messages over websocket connection from client?
 
-Centrifugo designed to stream messages from server to client. Even though it's possible to publish messages into channels directly from client (when `publish` channel option enabled) - we strongly discourage this in production usage as those messages will go through Centrifugo without any control. Of course Centrifugo could resend those message to your application endpoint but it would be very inefficient and much worse than just sending new events from client to your backend.
+Centrifugo designed to stream messages from server to client. Even though it's possible to publish messages into channels directly from client (when `publish` channel option enabled) - we strongly discourage this in production usage as those messages will go through Centrifugo without any control.
+
+Theoretically Centrifugo could resend messages published from client to your application backend endpoint (i.e. having some sort of webhook built in) but it does not seem beneficial it terms of overall performance and application architecture at moment. And this will require extra layer of convetions about Centrifugo-to-backend communication. 
 
 So in general when user generates an event it must be first delivered to your app backend using a convenient way (for example AJAX POST request for web application), processed on backend (validated, saved into main application database) and then published to Centrifugo using Centrifugo HTTP API or Redis queue.
 
