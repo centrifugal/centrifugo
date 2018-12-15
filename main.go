@@ -25,6 +25,7 @@ import (
 	"github.com/centrifugal/centrifugo/internal/admin"
 	"github.com/centrifugal/centrifugo/internal/api"
 	"github.com/centrifugal/centrifugo/internal/graphite"
+	"github.com/centrifugal/centrifugo/internal/health"
 	"github.com/centrifugal/centrifugo/internal/middleware"
 	"github.com/centrifugal/centrifugo/internal/webui"
 
@@ -71,7 +72,7 @@ func main() {
 			bindPFlags := []string{
 				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin",
 				"client_insecure", "admin_insecure", "api_insecure", "port",
-				"address", "tls", "tls_cert", "tls_key", "internal_port", "prometheus",
+				"address", "tls", "tls_cert", "tls_key", "internal_port", "prometheus", "health",
 				"redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
 				"redis_tls", "redis_tls_skip_verify", "redis_master_name", "redis_sentinels", "grpc_api",
 			}
@@ -242,6 +243,7 @@ func main() {
 	rootCmd.Flags().BoolP("debug", "", false, "enable debug endpoints")
 	rootCmd.Flags().BoolP("admin", "", false, "enable admin web interface")
 	rootCmd.Flags().BoolP("prometheus", "", false, "enable Prometheus metrics endpoint")
+	rootCmd.Flags().BoolP("health", "", false, "enable Health endpoint")
 
 	rootCmd.Flags().BoolP("client_insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolP("api_insecure", "", false, "use insecure API mode")
@@ -346,6 +348,7 @@ var configDefaults = map[string]interface{}{
 	"channel_user_separator":          ",",
 	"debug":                           false,
 	"prometheus":                      false,
+	"health":                          false,
 	"admin":                           false,
 	"admin_password":                  "",
 	"admin_secret":                    "",
@@ -571,6 +574,7 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 
 	admin := viper.GetBool("admin")
 	prometheus := viper.GetBool("prometheus")
+	health := viper.GetBool("health")
 
 	httpAddress := viper.GetString("address")
 	httpPort := viper.GetString("port")
@@ -601,6 +605,9 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 	}
 	if debug {
 		portFlags |= HandlerDebug
+	}
+	if health {
+		portFlags |= HandlerHealth
 	}
 	portToHandlerFlags[httpInternalPort] = portFlags
 
@@ -1140,6 +1147,8 @@ const (
 	HandlerDebug
 	// HandlerPrometheus enables Prometheus handler.
 	HandlerPrometheus
+	// HandlerHealth enables Health check endpoint.
+	HandlerHealth
 )
 
 var handlerText = map[HandlerFlag]string{
@@ -1149,10 +1158,11 @@ var handlerText = map[HandlerFlag]string{
 	HandlerAdmin:      "admin",
 	HandlerDebug:      "debug",
 	HandlerPrometheus: "prometheus",
+	HandlerHealth:     "health",
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth}
 	endpoints := []string{}
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -1211,6 +1221,10 @@ func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 		mux.Handle("/", middleware.LogRequest(admin.NewHandler(n, adminHandlerConfig())))
 	} else {
 		mux.Handle("/", middleware.LogRequest(http.HandlerFunc(notFoundHandler)))
+	}
+
+	if flags&HandlerHealth != 0 {
+		mux.Handle("/health", middleware.LogRequest(health.NewHandler(n, health.Config{})))
 	}
 
 	return mux
