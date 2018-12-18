@@ -187,6 +187,12 @@ message NodeResult {
     uint32 num_users = 5{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "num_users"]{{end}};
     uint32 num_channels = 6{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "num_channels"]{{end}};
     uint32 uptime = 7{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "uptime"]{{end}};
+    Metrics metrics = 8{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "metrics"]{{end}};
+}
+
+message Metrics {
+    double interval = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "interval"]{{end}};
+    map<string, double> items = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "items"]{{end}};
 }
 
 service Centrifuge {

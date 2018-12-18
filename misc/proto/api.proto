@@ -177,6 +177,12 @@ message NodeResult {
     uint32 num_users = 5;
     uint32 num_channels = 6;
     uint32 uptime = 7;
+    Metrics metrics = 8;
+}
+
+message Metrics {
+    double interval = 1;
+    map<string, double> items = 2;
 }
 
 service Centrifuge {

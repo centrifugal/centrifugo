@@ -420,6 +420,10 @@ func (h *apiExecutor) Info(ctx context.Context, cmd *InfoRequest) *InfoResponse 
 			NumUsers:    nd.NumUsers,
 			NumChannels: nd.NumChannels,
 			Uptime:      nd.Uptime,
+			Metrics: &Metrics{
+				Interval: nd.Metrics.Interval,
+				Items:    nd.Metrics.Items,
+			},
 		}
 	}
 	resp.Result = &InfoResult{
