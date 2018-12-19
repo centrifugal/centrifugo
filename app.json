@@ -13,7 +13,11 @@
       "generator": "secret"
     },
     "CENTRIFUGO_SECRET": {
-      "description": "Centrifugo secret to generate token signatures",
+      "description": "Centrifugo secret to generate JWT",
+      "generator": "secret"
+    },
+    "CENTRIFUGO_API_KEY": {
+      "description": "Centrifugo API key",
       "generator": "secret"
     },
     "CENTRIFUGO_PUBLISH": "0",
