@@ -26,12 +26,6 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// err := h.node.Health()
-	// if err != nil {
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// } else {
-	// 	w.WriteHeader(http.StatusOK)
-	// }
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{}`))
 }
