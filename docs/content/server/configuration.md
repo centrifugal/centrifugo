@@ -1,6 +1,6 @@
 # Configuration
 
-Centrifugo expects JSON, TOML or YAML as format of configuration file. Thanks to brilliant Go library for application configuration - [viper](https://github.com/spf13/viper).
+Centrifugo expects JSON, TOML or YAML as configuration file format. Thanks to brilliant Go library for application configuration - [viper](https://github.com/spf13/viper).
 
 First let's look at all available command-line options:
 
@@ -126,7 +126,7 @@ Another command is `genconfig`:
 centrifugo genconfig -c config.json
 ```
 
-It will generate the minimal required configuration file automatically.
+It will automatically generate the minimal required configuration file.
 
 ### Important options
 
@@ -163,6 +163,7 @@ Let's look how to set some of these options in config:
 ```javascript
 {
     "secret": "my-secret-key",
+    "api_key": "secret-api-key",
     "anonymous": true,
     "publish": true,
     "subscribe_to_publish": true,
@@ -178,7 +179,7 @@ And the last channel specific option is `namespaces`. `namespaces` are optional 
 
 Namespace has a name and the same channel options (with same defaults) as described above.
 
-* `name` - unique namespace name (name must must consist of letters, numbers, underscores or hyphens and be more than 2 symbols length i.e. satisfy regexp `^[-a-zA-Z0-9_]{2,}$`).
+* `name` - unique namespace name (name must consist of letters, numbers, underscores or hyphens and be more than 2 symbols length i.e. satisfy regexp `^[-a-zA-Z0-9_]{2,}$`).
 
 If you want to use namespace options for channel - you must include namespace name into
 channel name with `:` as separator:
@@ -194,6 +195,7 @@ All things together here is an example of `config.json` which includes registere
 ```javascript
 {
     "secret": "very-long-secret-key",
+    "api_key": "secret-api-key",
     "anonymous": true,
     "publish": true,
     "presence": true,
@@ -228,8 +230,7 @@ There is no inheritance in channel options and namespaces – so if for example 
 
 ### Advanced configuration
 
-Centrifugo has some options for which default values make sense for most applications. In many case you
-don't need (and you really should not) change them. This chapter is about such options.
+Centrifugo has some options for which default values make sense for most applications. In many case you don't need (and you really should not) change them. This chapter is about such options.
 
 #### client_channel_limit
 
@@ -382,7 +383,7 @@ To run internal endpoints on custom port use `internal_port` option:
 So admin web interface will work on address:
  
 ```
-ws://localhost:9000
+http://localhost:9000
 ```
 
 Also debug page will be available on new custom port too:
