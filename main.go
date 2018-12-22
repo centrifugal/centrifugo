@@ -64,6 +64,7 @@ func main() {
 				"join_leave", "presence", "history_recover", "history_size", "history_lifetime",
 				"client_insecure", "api_key", "api_insecure", "admin", "admin_password", "admin_secret",
 				"admin_insecure", "redis_host", "redis_port", "redis_url", "redis_tls", "redis_tls_skip_verify",
+				"port", "internal_port", "tls", "tls_cert", "tls_key",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
