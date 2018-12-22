@@ -77,6 +77,9 @@ type Config struct {
 	ChannelUserSeparator string
 	// ChannelMaxLength is a maximum length of channel name.
 	ChannelMaxLength int
+	// NodeInfoMetricsAggregateInterval sets interval for automatic metrics aggregation.
+	// It's not very reasonable to have it less than one second.
+	NodeInfoMetricsAggregateInterval time.Duration
 }
 
 func stringInSlice(a string, list []string) bool {
@@ -126,8 +129,8 @@ func (c *Config) channelOpts(namespaceName string) (ChannelOptions, bool) {
 }
 
 const (
-	// nodeInfoPublishInterval is an interval how often node must publish node info
-	// control message.
+	// nodeInfoPublishInterval is an interval how often node must publish
+	// node control message.
 	nodeInfoPublishInterval = 3 * time.Second
 	// nodeInfoCleanInterval is an interval in seconds, how often node must
 	// clean information about other running nodes.
@@ -140,6 +143,8 @@ const (
 // DefaultConfig is Config initialized with default values for all fields.
 var DefaultConfig = Config{
 	Name: "centrifuge",
+
+	NodeInfoMetricsAggregateInterval: 60 * time.Second,
 
 	ChannelMaxLength:         255,
 	ChannelPrivatePrefix:     "$", // so private channel will look like "$gossips"

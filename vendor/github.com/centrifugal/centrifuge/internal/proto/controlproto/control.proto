@@ -22,26 +22,32 @@ enum MethodType {
 }
 
 message Command {
-    string UID = 1;
-    MethodType Method = 2;
-    bytes Params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifuge/internal/proto.Raw", (gogoproto.nullable) = false];
+    string uid = 1 [(gogoproto.customname) = "UID", (gogoproto.jsontag) = "uid"];
+    MethodType method = 2 [(gogoproto.jsontag) = "method"];
+    bytes params = 3 [(gogoproto.customtype) = "github.com/centrifugal/centrifuge/internal/proto.Raw", (gogoproto.jsontag) = "params", (gogoproto.nullable) = false];
 }
 
 message Node {
-    string UID = 1;
-    string Name = 2;
-    string Version = 3;
-    uint32 NumClients = 4;
-    uint32 NumUsers = 5;
-    uint32 NumChannels = 6;
-    uint32 Uptime = 7;
+    string uid = 1 [(gogoproto.customname) = "UID", (gogoproto.jsontag) = "uid"];
+    string name = 2 [(gogoproto.jsontag) = "name"];
+    string version = 3 [(gogoproto.jsontag) = "version"];
+    uint32 num_clients = 4 [(gogoproto.jsontag) = "num_clients"];
+    uint32 num_users = 5 [(gogoproto.jsontag) = "num_users"];
+    uint32 num_channels = 6 [(gogoproto.jsontag) = "num_channels"];
+    uint32 uptime = 7 [(gogoproto.jsontag) = "uptime"];
+    Metrics metrics = 8 [(gogoproto.jsontag) = "metrics"];
+}
+
+message Metrics {
+    double interval = 1 [(gogoproto.jsontag) = "interval"];
+    map<string, double> items = 2 [(gogoproto.jsontag) = "items"];
 }
 
 message Unsubscribe {
-    string Channel = 1;
-    string User = 2;
+    string channel = 1 [(gogoproto.jsontag) = "channel"];
+    string user = 2 [(gogoproto.jsontag) = "user"];
 }
 
 message Disconnect {
-    string User = 1;
+    string user = 1 [(gogoproto.jsontag) = "user"];
 }
