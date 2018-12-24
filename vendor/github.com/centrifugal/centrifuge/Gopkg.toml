@@ -36,7 +36,7 @@ ignored = ["github.com/centrifugal/centrifuge/examples*"]
 
 [[constraint]]
   name = "github.com/gorilla/websocket"
-  version = "1.2.0"
+  version = "1.4.0"
 
 [[constraint]]
   name = "github.com/igm/sockjs-go"
@@ -53,3 +53,7 @@ ignored = ["github.com/centrifugal/centrifuge/examples*"]
 [[constraint]]
   name = "github.com/dgrijalva/jwt-go"
   version = "3.2.0"
+
+[[constraint]]
+  name = "github.com/FZambia/eagle"
+  branch = "master"

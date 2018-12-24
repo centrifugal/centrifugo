@@ -18,6 +18,9 @@ import (
 	"github.com/centrifugal/centrifuge/internal/proto"
 	"github.com/centrifugal/centrifuge/internal/proto/controlproto"
 	"github.com/centrifugal/centrifuge/internal/uuid"
+
+	"github.com/FZambia/eagle"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Node is a heart of centrifuge library – it internally keeps and manages
@@ -52,6 +55,10 @@ type Node struct {
 	controlDecoder controlproto.Decoder
 	// subLocks synchronizes access to adding/removing subscriptions.
 	subLocks map[int]*sync.Mutex
+
+	metricsMu       sync.Mutex
+	metricsExporter *eagle.Eagle
+	metricsSnapshot *eagle.Metrics
 }
 
 const (
@@ -127,21 +134,23 @@ func (n *Node) Reload(c Config) error {
 // Run performs node startup actions. At moment must be called once on start
 // after engine set to Node.
 func (n *Node) Run() error {
-
 	eventHandler := &engineEventHandler{n}
-
 	if err := n.engine.run(eventHandler); err != nil {
 		return err
 	}
-
-	err := n.pubNode()
+	err := n.initMetrics()
+	if err != nil {
+		n.logger.log(newLogEntry(LogLevelError, "error on init metrics", map[string]interface{}{"error": err.Error()}))
+		return err
+	}
+	err = n.pubNode()
 	if err != nil {
 		n.logger.log(newLogEntry(LogLevelError, "error publishing node control command", map[string]interface{}{"error": err.Error()}))
+		return err
 	}
 	go n.sendNodePing()
 	go n.cleanNodeInfo()
 	go n.updateMetrics()
-
 	return nil
 }
 
@@ -198,6 +207,41 @@ func (n *Node) updateMetrics() {
 	}
 }
 
+// Centrifuge library uses Prometheus metrics for instrumentation. But we also try to
+// aggregate Prometheus metrics periodically and share this information between nodes.
+// At moment this allows to show metrics in Centrifugo admin interface.
+func (n *Node) initMetrics() error {
+	if n.config.NodeInfoMetricsAggregateInterval == 0 {
+		return nil
+	}
+	metricsSink := make(chan eagle.Metrics)
+	n.metricsExporter = eagle.New(eagle.Config{
+		Gatherer: prometheus.DefaultGatherer,
+		Interval: n.config.NodeInfoMetricsAggregateInterval,
+		Sink:     metricsSink,
+	})
+	metrics, err := n.metricsExporter.Export()
+	if err != nil {
+		return err
+	}
+	n.metricsMu.Lock()
+	n.metricsSnapshot = &metrics
+	n.metricsMu.Unlock()
+	go func() {
+		for {
+			select {
+			case <-n.NotifyShutdown():
+				return
+			case metrics := <-metricsSink:
+				n.metricsMu.Lock()
+				n.metricsSnapshot = &metrics
+				n.metricsMu.Unlock()
+			}
+		}
+	}()
+	return nil
+}
+
 func (n *Node) sendNodePing() {
 	for {
 		select {
@@ -238,6 +282,12 @@ type Info struct {
 	Nodes []NodeInfo
 }
 
+// Metrics aggregation over time interval for node.
+type Metrics struct {
+	Interval float64
+	Items    map[string]float64
+}
+
 // NodeInfo contains information about node.
 type NodeInfo struct {
 	UID         string
@@ -247,6 +297,7 @@ type NodeInfo struct {
 	NumUsers    uint32
 	NumChannels uint32
 	Uptime      uint32
+	Metrics     *Metrics
 }
 
 // Info returns aggregated stats from all nodes.
@@ -254,7 +305,7 @@ func (n *Node) Info() (Info, error) {
 	nodes := n.nodes.list()
 	nodeResults := make([]NodeInfo, len(nodes))
 	for i, nd := range nodes {
-		nodeResults[i] = NodeInfo{
+		info := NodeInfo{
 			UID:         nd.UID,
 			Name:        nd.Name,
 			NumClients:  nd.NumClients,
@@ -262,6 +313,13 @@ func (n *Node) Info() (Info, error) {
 			NumChannels: nd.NumChannels,
 			Uptime:      nd.Uptime,
 		}
+		if nd.Metrics != nil {
+			info.Metrics = &Metrics{
+				Interval: nd.Metrics.Interval,
+				Items:    nd.Metrics.Items,
+			}
+		}
+		nodeResults[i] = info
 	}
 
 	return Info{
@@ -379,7 +437,6 @@ func (n *Node) PublishAsync(ch string, pub *Publication) <-chan error {
 	if !ok {
 		return makeErrChan(ErrNoChannelOptions)
 	}
-
 	messagesSentCount.WithLabelValues("publication").Inc()
 	return n.engine.publish(ch, pub, &chOpts)
 }
@@ -423,6 +480,13 @@ func (n *Node) publishControl(cmd *controlproto.Command) <-chan error {
 	return n.engine.publishControl(data)
 }
 
+func (n *Node) getMetrics(metrics eagle.Metrics) *controlproto.Metrics {
+	return &controlproto.Metrics{
+		Interval: n.config.NodeInfoMetricsAggregateInterval.Seconds(),
+		Items:    metrics.Flatten("."),
+	}
+}
+
 // pubNode sends control message to all nodes - this message
 // contains information about current node.
 func (n *Node) pubNode() error {
@@ -436,6 +500,15 @@ func (n *Node) pubNode() error {
 		NumChannels: uint32(n.hub.NumChannels()),
 		Uptime:      uint32(time.Now().Unix() - n.startedAt),
 	}
+
+	n.metricsMu.Lock()
+	if n.metricsSnapshot != nil {
+		node.Metrics = n.getMetrics(*n.metricsSnapshot)
+	}
+	// We only send metrics once when updated.
+	n.metricsSnapshot = nil
+	n.metricsMu.Unlock()
+
 	n.mu.RUnlock()
 
 	params, _ := n.controlEncoder.EncodeNode(node)
@@ -720,7 +793,19 @@ func (r *nodeRegistry) get(uid string) controlproto.Node {
 
 func (r *nodeRegistry) add(info *controlproto.Node) {
 	r.mu.Lock()
-	r.nodes[info.UID] = *info
+	if node, ok := r.nodes[info.UID]; ok {
+		if info.Metrics != nil {
+			r.nodes[info.UID] = *info
+		} else {
+			node.Version = info.Version
+			node.NumClients = info.NumClients
+			node.NumUsers = info.NumUsers
+			node.Uptime = info.Uptime
+			r.nodes[info.UID] = node
+		}
+	} else {
+		r.nodes[info.UID] = *info
+	}
 	r.updates[info.UID] = time.Now().Unix()
 	r.mu.Unlock()
 }

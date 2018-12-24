@@ -187,6 +187,12 @@ message NodeResult {
     uint32 num_users = 5 [(gogoproto.jsontag) = "num_users"];
     uint32 num_channels = 6 [(gogoproto.jsontag) = "num_channels"];
     uint32 uptime = 7 [(gogoproto.jsontag) = "uptime"];
+    Metrics metrics = 8 [(gogoproto.jsontag) = "metrics"];
+}
+
+message Metrics {
+    double interval = 1 [(gogoproto.jsontag) = "interval"];
+    map<string, double> items = 2 [(gogoproto.jsontag) = "items"];
 }
 
 service Centrifuge {

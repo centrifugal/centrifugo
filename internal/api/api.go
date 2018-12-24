@@ -413,7 +413,7 @@ func (h *apiExecutor) Info(ctx context.Context, cmd *InfoRequest) *InfoResponse 
 
 	nodes := make([]*NodeResult, len(info.Nodes))
 	for i, nd := range info.Nodes {
-		nodes[i] = &NodeResult{
+		res := &NodeResult{
 			UID:         nd.UID,
 			Name:        nd.Name,
 			NumClients:  nd.NumClients,
@@ -421,6 +421,13 @@ func (h *apiExecutor) Info(ctx context.Context, cmd *InfoRequest) *InfoResponse 
 			NumChannels: nd.NumChannels,
 			Uptime:      nd.Uptime,
 		}
+		if nd.Metrics != nil {
+			res.Metrics = &Metrics{
+				Interval: nd.Metrics.Interval,
+				Items:    nd.Metrics.Items,
+			}
+		}
+		nodes[i] = res
 	}
 	resp.Result = &InfoResult{
 		Nodes: nodes,
