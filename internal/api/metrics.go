@@ -11,7 +11,7 @@ var (
 		Namespace:  metricsNamespace,
 		Subsystem:  "api",
 		Name:       "command_duration_seconds",
-		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		Objectives: map[float64]float64{0.5: 0.05, 0.99: 0.001, 0.999: 0.0001},
 		Help:       "Duration of API per command.",
 	}, []string{"protocol", "method"})
 )

@@ -2,6 +2,7 @@
   "secret": "secret",
   "admin_password": "password",
   "admin_secret": "secret",
+  "graphite": true,
   "namespaces": [
     {
       "name": "chat",
