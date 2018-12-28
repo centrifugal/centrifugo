@@ -3,11 +3,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:834aa94f5057313fa445e8edc125b08ada68aaca56d9251a15b8ba3072624444"
+  digest = "1:3e331e33d6d0337d25393e3e30c595b91a6a5bbca9bbe103491ecb48a3272db9"
   name = "github.com/FZambia/eagle"
   packages = ["."]
   pruneopts = ""
-  revision = "4e40d1a59dfe2c4f6290295e90bb77f42c1dc079"
+  revision = "e14cdafa019627b5b74689ab7173f6b6ed93a55b"
 
 [[projects]]
   digest = "1:8e379117c74df8f21127a82e1599de345efad7770fa91dd2ea20195471014fb4"

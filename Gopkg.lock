@@ -51,7 +51,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:fc8e043a9058c73e7e9e8a7c881464a34f4387f0b714bf3f02af165dd64a3b04"
+  digest = "1:11b796229841065c949a6bfb59dd4cab176f6e6bb6a7f71d1695b0a51458acdb"
   name = "github.com/centrifugal/centrifuge"
   packages = [
     ".",
@@ -63,7 +63,7 @@
     "internal/uuid",
   ]
   pruneopts = "UT"
-  revision = "0cb69979d160d009b51110a0085ac9da70d72e55"
+  revision = "e42ff7af2f9d1614e3add9966d0a21b6e5999e23"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
@@ -411,6 +411,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/FZambia/eagle",
     "github.com/FZambia/statik/fs",
     "github.com/FZambia/viper-lite",
     "github.com/ajstarks/svgo",

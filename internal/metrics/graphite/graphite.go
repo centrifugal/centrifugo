@@ -12,8 +12,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// PrepareForGraphite cleans string to be used as Graphite metric path.
-func PrepareForGraphite(s string) string {
+// PreparePathComponent cleans string to be used as Graphite metric path.
+func PreparePathComponent(s string) string {
 	return strings.Replace(s, ".", "_", -1)
 }
 

@@ -3,6 +3,8 @@
   "admin_password": "password",
   "admin_secret": "secret",
   "graphite": true,
+  "graphte_host": "localhost",
+  "graphite_port": 2003,
   "namespaces": [
     {
       "name": "chat",

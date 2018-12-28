@@ -215,7 +215,7 @@ func main() {
 				exporter = graphite.New(graphite.Config{
 					Address:  net.JoinHostPort(viper.GetString("graphite_host"), strconv.Itoa(viper.GetInt("graphite_port"))),
 					Gatherer: prometheus.DefaultGatherer,
-					Prefix:   strings.TrimSuffix(viper.GetString("graphite_prefix"), ".") + "." + graphite.PrepareForGraphite(c.Name),
+					Prefix:   strings.TrimSuffix(viper.GetString("graphite_prefix"), ".") + "." + graphite.PreparePathComponent(c.Name),
 					Interval: time.Duration(viper.GetInt("graphite_interval")) * time.Second,
 					Tags:     viper.GetBool("graphite_tags"),
 				})
@@ -375,7 +375,7 @@ var configDefaults = map[string]interface{}{
 	"graphite_host":                        "localhost",
 	"graphite_port":                        2003,
 	"graphite_prefix":                      "centrifugo",
-	"graphite_interval":                    15,
+	"graphite_interval":                    10,
 	"graphite_tags":                        false,
 }
 
