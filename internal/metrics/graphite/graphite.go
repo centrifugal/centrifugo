@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -12,8 +13,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+var re = regexp.MustCompile("[[:^ascii:]]")
+
 // PreparePathComponent cleans string to be used as Graphite metric path.
 func PreparePathComponent(s string) string {
+	s = re.ReplaceAllLiteralString(s, "_")
 	return strings.Replace(s, ".", "_", -1)
 }
 
