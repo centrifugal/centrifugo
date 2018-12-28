@@ -15,7 +15,7 @@ import (
 	dto "github.com/prometheus/client_model/go"
 )
 
-const sep = "."
+const defaultQuantileSep = "."
 
 // MetricType is a type for different supported metric types.
 type MetricType string
@@ -30,32 +30,38 @@ const (
 // Eagle allows to periodically export Prometheus metrics
 // aggregated over configured time interval.
 type Eagle struct {
-	mu        sync.RWMutex
-	gatherer  prometheus.Gatherer
-	interval  time.Duration
-	sink      chan<- Metrics
-	values    map[string]float64
-	deltas    map[string]float64
-	closeOnce sync.Once
-	closeCh   chan struct{}
+	mu          sync.RWMutex
+	gatherer    prometheus.Gatherer
+	interval    time.Duration
+	sink        chan<- Metrics
+	quantileSep string
+	values      map[string]float64
+	deltas      map[string]float64
+	closeOnce   sync.Once
+	closeCh     chan struct{}
 }
 
 // Config of Eagle instance.
 type Config struct {
-	Gatherer prometheus.Gatherer
-	Interval time.Duration
-	Sink     chan<- Metrics
+	Gatherer    prometheus.Gatherer
+	Interval    time.Duration
+	Sink        chan<- Metrics
+	QuantileSep string
 }
 
 // New creates new Eagle.
 func New(c Config) *Eagle {
 	e := &Eagle{
-		gatherer: c.Gatherer,
-		interval: c.Interval,
-		sink:     c.Sink,
-		values:   make(map[string]float64),
-		deltas:   make(map[string]float64),
-		closeCh:  make(chan struct{}),
+		gatherer:    c.Gatherer,
+		interval:    c.Interval,
+		sink:        c.Sink,
+		quantileSep: defaultQuantileSep,
+		values:      make(map[string]float64),
+		deltas:      make(map[string]float64),
+		closeCh:     make(chan struct{}),
+	}
+	if c.QuantileSep != "" {
+		e.quantileSep = c.QuantileSep
 	}
 	go e.aggregate()
 	return e
@@ -124,12 +130,12 @@ type metricLabel struct {
 
 func getCacheKey(name string, labels []metricLabel, suffix string) string {
 	key := name
-	path := joinLabels(labels)
+	path := joinLabels(labels, ".")
 	if path != "" {
-		key += sep + path
+		key += "." + path
 	}
 	if suffix != "" {
-		key += sep + suffix
+		key += "." + suffix
 	}
 	return key
 }
@@ -232,7 +238,7 @@ func flattenLabels(labels []metricLabel) []string {
 	return l
 }
 
-func joinLabels(labels []metricLabel) string {
+func joinLabels(labels []metricLabel, sep string) string {
 	chunks := []string{}
 	for _, lbl := range labels {
 		chunks = append(chunks, lbl.Name)
@@ -333,7 +339,7 @@ func (e *Eagle) getMetrics(mfs []*dto.MetricFamily) (Metrics, error) {
 						continue
 					}
 					v := MetricValue{
-						Name:   "quantile_" + quantileString(quantile.GetQuantile()),
+						Name:   "quantile" + e.quantileSep + quantileString(quantile.GetQuantile()),
 						Labels: flattenLabels(labels),
 						Value:  quantile.GetValue(),
 					}

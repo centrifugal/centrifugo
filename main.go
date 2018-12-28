@@ -24,8 +24,8 @@ import (
 
 	"github.com/centrifugal/centrifugo/internal/admin"
 	"github.com/centrifugal/centrifugo/internal/api"
-	"github.com/centrifugal/centrifugo/internal/graphite"
 	"github.com/centrifugal/centrifugo/internal/health"
+	"github.com/centrifugal/centrifugo/internal/metrics/graphite"
 	"github.com/centrifugal/centrifugo/internal/middleware"
 	"github.com/centrifugal/centrifugo/internal/webui"
 
@@ -210,27 +210,18 @@ func main() {
 				log.Fatal().Msgf("error running HTTP server: %v", err)
 			}
 
+			var exporter *graphite.Exporter
 			if viper.GetBool("graphite") {
-				go func() {
-					bridge, err := graphite.NewBridge(&graphite.Config{
-						URL:             net.JoinHostPort(viper.GetString("graphite_host"), strconv.Itoa(viper.GetInt("graphite_port"))),
-						Gatherer:        prometheus.DefaultGatherer,
-						Prefix:          viper.GetString("graphite_prefix") + graphite.ReplaceInvalidRunes(c.Name) + ".",
-						Interval:        60 * time.Second,
-						CountersAsDelta: true,
-					})
-					if err != nil {
-						log.Fatal().Msgf("error building Graphite bridge: %v", err)
-					}
-					err = bridge.Push()
-					if err != nil {
-						log.Fatal().Msgf("error pushing initial metrics to Graphite: %v", err)
-					}
-					bridge.Run(context.Background())
-				}()
+				exporter = graphite.New(graphite.Config{
+					Address:  net.JoinHostPort(viper.GetString("graphite_host"), strconv.Itoa(viper.GetInt("graphite_port"))),
+					Gatherer: prometheus.DefaultGatherer,
+					Prefix:   strings.TrimSuffix(viper.GetString("graphite_prefix"), ".") + "." + graphite.PreparePathComponent(c.Name),
+					Interval: time.Duration(viper.GetInt("graphite_interval")) * time.Second,
+					Tags:     viper.GetBool("graphite_tags"),
+				})
 			}
 
-			handleSignals(node, servers, grpcAPIServer)
+			handleSignals(node, servers, grpcAPIServer, exporter)
 		},
 	}
 
@@ -383,7 +374,9 @@ var configDefaults = map[string]interface{}{
 	"graphite":                             false,
 	"graphite_host":                        "localhost",
 	"graphite_port":                        2003,
-	"graphite_prefix":                      "centrifugo.",
+	"graphite_prefix":                      "centrifugo",
+	"graphite_interval":                    10,
+	"graphite_tags":                        false,
 }
 
 func writePidFile(pidFile string) error {
@@ -427,7 +420,7 @@ func setupLogging() *os.File {
 	return nil
 }
 
-func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer *grpc.Server) {
+func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer *grpc.Server, exporter *graphite.Exporter) {
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -464,6 +457,8 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 				}
 				os.Exit(1)
 			})
+
+			exporter.Close()
 
 			var wg sync.WaitGroup
 
