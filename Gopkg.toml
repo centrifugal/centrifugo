@@ -53,14 +53,6 @@
   version = "0.8.0"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/prometheus/client_model"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/prometheus/common"
-
-[[constraint]]
   name = "github.com/rs/zerolog"
   branch = "master"
 
