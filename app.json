@@ -7,7 +7,10 @@
   "env": {
     "GO_LINKER_SYMBOL": "main.VERSION",
     "GO_LINKER_VALUE": "dev",
-    "CENTRIFUGO_ADMIN_PASSWORD": "password",
+    "CENTRIFUGO_ADMIN_PASSWORD": {
+      "description": "Admin password used to log into admin web panel",
+      "generator": "secret"
+    },
     "CENTRIFUGO_ADMIN_SECRET": {
       "description": "Admin secret used to generate admin access token",
       "generator": "secret"

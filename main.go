@@ -458,7 +458,9 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 				os.Exit(1)
 			})
 
-			exporter.Close()
+			if exporter != nil {
+				exporter.Close()
+			}
 
 			var wg sync.WaitGroup
 

@@ -308,6 +308,7 @@ func (n *Node) Info() (Info, error) {
 		info := NodeInfo{
 			UID:         nd.UID,
 			Name:        nd.Name,
+			Version:     nd.Version,
 			NumClients:  nd.NumClients,
 			NumUsers:    nd.NumUsers,
 			NumChannels: nd.NumChannels,

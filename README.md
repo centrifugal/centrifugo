@@ -25,7 +25,7 @@ There are also [packages for 64-bit Debian, Centos and Ubuntu](https://packagecl
 
 ### Demo
 
-Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (password `password`). Or deploy your own Centrifugo instance in one click:
+Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (admin password is `password`, secret is `secret`, API key is `api_key`). Or deploy your own Centrifugo instance in one click:
 
 [![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/centrifugal/centrifugo)
 

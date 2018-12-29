@@ -415,6 +415,7 @@ func (h *apiExecutor) Info(ctx context.Context, cmd *InfoRequest) *InfoResponse 
 	for i, nd := range info.Nodes {
 		res := &NodeResult{
 			UID:         nd.UID,
+			Version:     nd.Version,
 			Name:        nd.Name,
 			NumClients:  nd.NumClients,
 			NumUsers:    nd.NumUsers,
