@@ -33,4 +33,4 @@ To enable automatic export to Graphite (via TCP):
 
 By default stats will be aggregated over 10 seconds interval inside Centrifugo and then pushed to Graphite over TCP connection.
 
-If you need to change this aggregation interval use `graphite_interval` option (in seconds, default `10`).
+If you need to change this aggregation interval use `graphite_interval` option (in seconds, default `10`). This option available since v2.1.0

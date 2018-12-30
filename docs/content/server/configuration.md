@@ -358,6 +358,16 @@ http://localhost:8000/debug/pprof/
 
 – will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See [wiki page](https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues) for more info.
 
+#### Healthcheck endpoint
+
+New in v2.1.0
+
+Use `health` boolean option (by default `false`) to enable healthcheck endpoint which will be available on path `/health`. Also available over command-line flag:
+
+```bash
+./centrifugo -c config.json --health
+```
+
 #### Custom internal ports
 
 We strongly recommend to not expose API, admin, debug and prometheus endpoints to Internet. The following Centrifugo endpoints are considered internal:
@@ -365,7 +375,8 @@ We strongly recommend to not expose API, admin, debug and prometheus endpoints t
 * API endpoint (`/api`) - for HTTP API requests
 * Admin web interface endpoints (`/`, `/admin/auth`, `/admin/api`) - used by web interface
 * Prometheus endpoint (`/metrics`) - used for exposing server metrics in Prometheus format 
-* debug endpoints (`/debug/pprof`) - used to inspect internal server state
+* Healthcheck endpoint (`/health`) - used to do healthchecks
+* Debug endpoints (`/debug/pprof`) - used to inspect internal server state
 
 It's a good practice to protect those endpoints with firewall. For example you can do this in `location` section of Nginx configuration.
 
