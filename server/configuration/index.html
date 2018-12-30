@@ -501,6 +501,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#healthcheck-endpoint" title="Healthcheck endpoint" class="md-nav__link">
+    Healthcheck endpoint
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#custom-internal-ports" title="Custom internal ports" class="md-nav__link">
     Custom internal ports
   </a>
@@ -1118,6 +1125,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#healthcheck-endpoint" title="Healthcheck endpoint" class="md-nav__link">
+    Healthcheck endpoint
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#custom-internal-ports" title="Custom internal ports" class="md-nav__link">
     Custom internal ports
   </a>
@@ -1149,7 +1163,7 @@
                 
                 
                 <h1 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h1>
-<p>Centrifugo expects JSON, TOML or YAML as format of configuration file. Thanks to brilliant Go library for application configuration - <a href="https://github.com/spf13/viper">viper</a>.</p>
+<p>Centrifugo expects JSON, TOML or YAML as configuration file format. Thanks to brilliant Go library for application configuration - <a href="https://github.com/spf13/viper">viper</a>.</p>
 <p>First let's look at all available command-line options:</p>
 <div class="codehilite"><pre><span></span>centrifugo -h
 </pre></div>
@@ -1245,7 +1259,7 @@ log_level: debug
 <div class="codehilite"><pre><span></span>centrifugo genconfig -c config.json
 </pre></div>
 
-<p>It will generate the minimal required configuration file automatically.</p>
+<p>It will automatically generate the minimal required configuration file.</p>
 <h3 id="important-options">Important options<a class="headerlink" href="#important-options" title="Permanent link">&para;</a></h3>
 <p>Some of the most important options you can configure when running Centrifugo:</p>
 <ul>
@@ -1285,6 +1299,7 @@ log_level: debug
 <p>Let's look how to set some of these options in config:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
     <span class="s2">&quot;secret&quot;</span><span class="o">:</span> <span class="s2">&quot;my-secret-key&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
     <span class="s2">&quot;anonymous&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
     <span class="s2">&quot;publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
     <span class="s2">&quot;subscribe_to_publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
@@ -1299,7 +1314,7 @@ log_level: debug
 <p>And the last channel specific option is <code class="codehilite">namespaces</code>. <code class="codehilite">namespaces</code> are optional and if set must be an array of namespace objects. Namespace allows to configure custom options for channels starting with namespace name. This provides a great control over channel behaviour.</p>
 <p>Namespace has a name and the same channel options (with same defaults) as described above.</p>
 <ul>
-<li><code class="codehilite">name</code> - unique namespace name (name must must consist of letters, numbers, underscores or hyphens and be more than 2 symbols length i.e. satisfy regexp <code class="codehilite">^[-a-zA-Z0-9_]{2,}$</code>).</li>
+<li><code class="codehilite">name</code> - unique namespace name (name must consist of letters, numbers, underscores or hyphens and be more than 2 symbols length i.e. satisfy regexp <code class="codehilite">^[-a-zA-Z0-9_]{2,}$</code>).</li>
 </ul>
 <p>If you want to use namespace options for channel - you must include namespace name into
 channel name with <code class="codehilite">:</code> as separator:</p>
@@ -1309,6 +1324,7 @@ channel name with <code class="codehilite">:</code> as separator:</p>
 <p>All things together here is an example of <code class="codehilite">config.json</code> which includes registered project with all options set and 2 additional namespaces in it:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
     <span class="s2">&quot;secret&quot;</span><span class="o">:</span> <span class="s2">&quot;very-long-secret-key&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
     <span class="s2">&quot;anonymous&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
     <span class="s2">&quot;publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
     <span class="s2">&quot;presence&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
@@ -1338,8 +1354,7 @@ channel name with <code class="codehilite">:</code> as separator:</p>
 <p>Channel <code class="codehilite"><span class="n">gossips</span><span class="o">:</span><span class="n">news</span></code> will use <code class="codehilite">gossips</code> namespace's options.</p>
 <p>There is no inheritance in channel options and namespaces – so if for example you defined <code class="codehilite"><span class="n">presence</span><span class="o">:</span> <span class="kc">true</span></code> on top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. </p>
 <h3 id="advanced-configuration">Advanced configuration<a class="headerlink" href="#advanced-configuration" title="Permanent link">&para;</a></h3>
-<p>Centrifugo has some options for which default values make sense for most applications. In many case you
-don't need (and you really should not) change them. This chapter is about such options.</p>
+<p>Centrifugo has some options for which default values make sense for most applications. In many case you don't need (and you really should not) change them. This chapter is about such options.</p>
 <h4 id="client_channel_limit">client_channel_limit<a class="headerlink" href="#client_channel_limit" title="Permanent link">&para;</a></h4>
 <p>Default: 128</p>
 <p>Sets maximum number of different channel subscriptions single client can have.</p>
@@ -1415,13 +1430,20 @@ don't need (and you really should not) change them. This chapter is about such o
 </pre></div>
 
 <p>– will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See <a href="https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues">wiki page</a> for more info.</p>
+<h4 id="healthcheck-endpoint">Healthcheck endpoint<a class="headerlink" href="#healthcheck-endpoint" title="Permanent link">&para;</a></h4>
+<p>New in v2.1.0</p>
+<p>Use <code class="codehilite">health</code> boolean option (by default <code class="codehilite">false</code>) to enable healthcheck endpoint which will be available on path <code class="codehilite">/health</code>. Also available over command-line flag:</p>
+<div class="codehilite"><pre><span></span>./centrifugo -c config.json --health
+</pre></div>
+
 <h4 id="custom-internal-ports">Custom internal ports<a class="headerlink" href="#custom-internal-ports" title="Permanent link">&para;</a></h4>
 <p>We strongly recommend to not expose API, admin, debug and prometheus endpoints to Internet. The following Centrifugo endpoints are considered internal:</p>
 <ul>
 <li>API endpoint (<code class="codehilite">/api</code>) - for HTTP API requests</li>
 <li>Admin web interface endpoints (<code class="codehilite">/</code>, <code class="codehilite">/admin/auth</code>, <code class="codehilite">/admin/api</code>) - used by web interface</li>
 <li>Prometheus endpoint (<code class="codehilite">/metrics</code>) - used for exposing server metrics in Prometheus format </li>
-<li>debug endpoints (<code class="codehilite">/debug/pprof</code>) - used to inspect internal server state</li>
+<li>Healthcheck endpoint (<code class="codehilite">/health</code>) - used to do healthchecks</li>
+<li>Debug endpoints (<code class="codehilite">/debug/pprof</code>) - used to inspect internal server state</li>
 </ul>
 <p>It's a good practice to protect those endpoints with firewall. For example you can do this in <code class="codehilite">location</code> section of Nginx configuration.</p>
 <p>Though sometimes you don't have access to per-location configuration in your proxy/load balancer software. For example when using Amazon ELB. In this case you can change ports on which your internal endpoints work.</p>
@@ -1433,7 +1455,7 @@ don't need (and you really should not) change them. This chapter is about such o
 </pre></div>
 
 <p>So admin web interface will work on address:</p>
-<div class="codehilite"><pre><span></span>ws://localhost:9000
+<div class="codehilite"><pre><span></span>http://localhost:9000
 </pre></div>
 
 <p>Also debug page will be available on new custom port too:</p>
