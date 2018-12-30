@@ -46,9 +46,3 @@ Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (admin pas
 * Built-in administrative web interface
 * Ready to deploy (Docker image, RPM/DEB packages, Nginx configuration, automatic Let's Encrypt TLS certificates)
 * MIT license
-
-### Support project
-
-If you like Centrifugo and want to thank Centrifugo author you can buy him a coffee:
-
-<a href="https://www.buymeacoffee.com/FZambia" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
