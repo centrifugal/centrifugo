@@ -64,18 +64,18 @@ func main() {
 				"join_leave", "presence", "history_recover", "history_size", "history_lifetime",
 				"client_insecure", "api_key", "api_insecure", "admin", "admin_password", "admin_secret",
 				"admin_insecure", "redis_host", "redis_port", "redis_url", "redis_tls", "redis_tls_skip_verify",
-				"port", "internal_port", "tls", "tls_cert", "tls_key",
+				"port", "internal_port", "internal_address", "tls", "tls_cert", "tls_key",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
 			}
 
 			bindPFlags := []string{
-				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin",
-				"client_insecure", "admin_insecure", "api_insecure", "port",
-				"address", "tls", "tls_cert", "tls_key", "internal_port", "prometheus", "health",
-				"redis_host", "redis_port", "redis_password", "redis_db", "redis_url",
-				"redis_tls", "redis_tls_skip_verify", "redis_master_name", "redis_sentinels", "grpc_api",
+				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin", "admin_external",
+				"client_insecure", "admin_insecure", "api_insecure", "port", "address", "tls",
+				"tls_cert", "tls_key", "internal_port", "internal_address", "prometheus", "health",
+				"redis_host", "redis_port", "redis_password", "redis_db", "redis_url", "redis_tls",
+				"redis_tls_skip_verify", "redis_master_name", "redis_sentinels", "grpc_api",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -234,6 +234,7 @@ func main() {
 
 	rootCmd.Flags().BoolP("debug", "", false, "enable debug endpoints")
 	rootCmd.Flags().BoolP("admin", "", false, "enable admin web interface")
+	rootCmd.Flags().BoolP("admin_external", "", false, "enable admin web interface on external port")
 	rootCmd.Flags().BoolP("prometheus", "", false, "enable Prometheus metrics endpoint")
 	rootCmd.Flags().BoolP("health", "", false, "enable Health endpoint")
 
@@ -247,6 +248,7 @@ func main() {
 
 	rootCmd.Flags().StringP("address", "a", "", "interface address to listen on")
 	rootCmd.Flags().StringP("port", "p", "8000", "port to bind HTTP server to")
+	rootCmd.Flags().StringP("internal_address", "", "", "custom interface address to listen on for internal endpoints")
 	rootCmd.Flags().StringP("internal_port", "", "", "custom port for internal endpoints")
 
 	rootCmd.Flags().BoolP("grpc_api", "", false, "enable GRPC API server")
@@ -569,33 +571,48 @@ func getTLSConfig() (*tls.Config, error) {
 
 func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 	debug := viper.GetBool("debug")
-
 	admin := viper.GetBool("admin")
 	prometheus := viper.GetBool("prometheus")
 	health := viper.GetBool("health")
 
+	adminExternal := viper.GetBool("admin_external")
+
 	httpAddress := viper.GetString("address")
 	httpPort := viper.GetString("port")
+	httpInternalAddress := viper.GetString("internal_address")
 	httpInternalPort := viper.GetString("internal_port")
 
+	if httpInternalAddress == "" && httpAddress != "" {
+		// If custom internal address not explicitely set we try to reuse main
+		// address for internal endpoints too.
+		httpInternalAddress = httpAddress
+	}
+
 	if httpInternalPort == "" {
+		// If custom internal port not set we use default http port for
+		// internal endpoints too.
 		httpInternalPort = httpPort
 	}
 
-	// portToHandlerFlags contains mapping between ports and handler flags
-	// to serve on this port.
-	portToHandlerFlags := map[string]HandlerFlag{}
+	// addrToHandlerFlags contains mapping between HTTP server address and
+	// handler flags to serve on this address.
+	addrToHandlerFlags := map[string]HandlerFlag{}
 
 	var portFlags HandlerFlag
 
-	portFlags = portToHandlerFlags[httpPort]
+	externalAddr := net.JoinHostPort(httpAddress, httpPort)
+	portFlags = addrToHandlerFlags[externalAddr]
 	portFlags |= HandlerWebsocket | HandlerSockJS
-	portToHandlerFlags[httpPort] = portFlags
+	if admin && adminExternal {
+		portFlags |= HandlerAdmin
+	}
+	addrToHandlerFlags[externalAddr] = portFlags
 
-	portFlags = portToHandlerFlags[httpInternalPort]
+	internalAddr := net.JoinHostPort(httpInternalAddress, httpInternalPort)
+	portFlags = addrToHandlerFlags[internalAddr]
 	portFlags |= HandlerAPI
 
-	if admin {
+	if admin && !adminExternal {
 		portFlags |= HandlerAdmin
 	}
 	if prometheus {
@@ -607,19 +624,17 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 	if health {
 		portFlags |= HandlerHealth
 	}
-	portToHandlerFlags[httpInternalPort] = portFlags
+	addrToHandlerFlags[internalAddr] = portFlags
 
 	servers := []*http.Server{}
 
 	// Iterate over port to flags mapping and start HTTP servers
 	// on separate ports serving handlers specified in flags.
-	for handlerPort, handlerFlags := range portToHandlerFlags {
+	for addr, handlerFlags := range addrToHandlerFlags {
 		if handlerFlags == 0 {
 			continue
 		}
 		mux := Mux(n, handlerFlags)
-
-		addr := net.JoinHostPort(httpAddress, handlerPort)
 
 		log.Info().Msgf("serving %s endpoints on %s", handlerFlags, addr)
 
