@@ -1,6 +1,6 @@
 [![Join the chat at https://gitter.im/centrifugal/centrifugo](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/centrifugal/centrifugo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Join the chat at https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ](https://img.shields.io/badge/Telegram-Group-blue.svg)](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ)
 
-Centrifugo is a real-time messaging server. It's language-agnostic and can be used in conjunction with application backend written in any programming language. Centrifugo runs as separate service and keeps persistent Websocket or SockJS connections from your application clients (from web browsers or other environments like iOS/Android apps). When you need to deliver event to your clients in real-time you publish it to Centrifugo API and Centrifugo then broadcasts event to all connected clients interested in this event (i.e. clients subscribed on event channel). In other words – this is PUB/SUB server.
+Centrifugo is a real-time messaging server. It's language-agnostic and can be used in conjunction with application backend written in any programming language. Centrifugo runs as separate service and keeps persistent Websocket or SockJS connections from your application clients (from web browsers or other environments like iOS/Android apps). When you need to deliver event to your clients in real-time you publish it to Centrifugo API and Centrifugo then broadcasts event to all connected clients interested in this event (i.e. clients subscribed on event channel). In other words – this is a user-facing PUB/SUB server.
 
 See server [documentation](https://centrifugal.github.io/centrifugo/).
 
@@ -42,13 +42,13 @@ Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (admin pas
 * Presence information for channels (show all active clients in channel)
 * History information for channels (last messages published into channel)
 * Join/leave events for channels (client goes online/offline)
-* Automatically recover missed messages after network disconnect
+* Automatically recover missed messages after network disconnect over configured window
 * Built-in administrative web interface
-* Ready to deploy (Docker image, RPM/DEB packages, Nginx configuration, automatic Let's Encrypt TLS certificates)
+* Ready to deploy (Docker, RPM/DEB packages, Nginx configuration, automatic Let's Encrypt TLS certificates, Prometheus/Graphite monitoring)
 * MIT license
 
 ### Support project
 
-If you like Centrifugo and want to support project development you can its author a coffee:
+If you use Centrifugo and like it consider supporting project development buying its author a coffee:
 
 <a href="https://www.buymeacoffee.com/FZambia" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>

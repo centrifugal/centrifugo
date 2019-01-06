@@ -197,12 +197,11 @@ func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
 			s.node.logger.log(newLogEntry(LogLevelError, "error creating client", map[string]interface{}{"transport": transportSockJS}))
 			return
 		}
-		defer c.close(nil)
-
 		s.node.logger.log(newLogEntry(LogLevelDebug, "client connection established", map[string]interface{}{"client": c.ID(), "transport": transportSockJS}))
 		defer func(started time.Time) {
 			s.node.logger.log(newLogEntry(LogLevelDebug, "client connection completed", map[string]interface{}{"client": c.ID(), "transport": transportSockJS, "duration": time.Since(started)}))
 		}(time.Now())
+		defer c.close(nil)
 
 		for {
 			if msg, err := sess.Recv(); err == nil {
