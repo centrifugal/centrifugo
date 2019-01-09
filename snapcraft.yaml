@@ -1,0 +1,24 @@
+name: centrifugo
+version: '1.0'
+summary: Language-agnostic real-time messaging server  
+description: |
+  Language-agnostic real-time messaging server (Websocket and SockJS). 
+grade: stable
+confinement: strict
+base: core18
+parts:
+  centrifugo:
+    plugin: go
+    source: https://github.com/centrifugal/centrifugo.git
+    go-importpath: github.com/centrifugal/centrifugo
+    build-packages:
+      - build-essential
+apps:
+  centrifugo:
+    command: bin/centrifugo
+    daemon: simple
+    restart-condition: on-abnormal
+    plugs:
+      - home
+      - network
+      - network-bind
