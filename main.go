@@ -64,7 +64,7 @@ func main() {
 				"join_leave", "presence", "history_recover", "history_size", "history_lifetime",
 				"client_insecure", "api_key", "api_insecure", "admin", "admin_password", "admin_secret",
 				"admin_insecure", "redis_host", "redis_port", "redis_url", "redis_tls", "redis_tls_skip_verify",
-				"port", "internal_port", "internal_address", "tls", "tls_cert", "tls_key",
+				"port", "internal_port", "internal_address", "tls", "tls_cert", "tls_key", "tls_external",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -73,8 +73,8 @@ func main() {
 			bindPFlags := []string{
 				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin", "admin_external",
 				"client_insecure", "admin_insecure", "api_insecure", "port", "address", "tls",
-				"tls_cert", "tls_key", "internal_port", "internal_address", "prometheus", "health",
-				"redis_host", "redis_port", "redis_password", "redis_db", "redis_url", "redis_tls",
+				"tls_cert", "tls_key", "tls_external", "internal_port", "internal_address", "prometheus",
+				"health", "redis_host", "redis_port", "redis_password", "redis_db", "redis_url", "redis_tls",
 				"redis_tls_skip_verify", "redis_master_name", "redis_sentinels", "grpc_api",
 			}
 			for _, flag := range bindPFlags {
@@ -245,6 +245,7 @@ func main() {
 	rootCmd.Flags().BoolP("tls", "", false, "enable TLS, requires an X509 certificate and a key file")
 	rootCmd.Flags().StringP("tls_cert", "", "", "path to an X509 certificate file")
 	rootCmd.Flags().StringP("tls_key", "", "", "path to an X509 certificate key")
+	rootCmd.Flags().BoolP("tls_external", "", false, "enable TLS only for external endpoints")
 
 	rootCmd.Flags().StringP("address", "a", "", "interface address to listen on")
 	rootCmd.Flags().StringP("port", "p", "8000", "port to bind HTTP server to")
@@ -638,9 +639,14 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 
 		log.Info().Msgf("serving %s endpoints on %s", handlerFlags, addr)
 
-		tlsConfig, err := getTLSConfig()
-		if err != nil {
-			log.Fatal().Msgf("can not get TLS config: %v", err)
+		var tlsConfig *tls.Config
+		var err error
+		tlsExternal := viper.GetBool("tls_external")
+		if !tlsExternal || addr == externalAddr {
+			tlsConfig, err = getTLSConfig()
+			if err != nil {
+				log.Fatal().Msgf("can not get TLS config: %v", err)
+			}
 		}
 		server := &http.Server{
 			Addr:      addr,
