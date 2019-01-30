@@ -90,6 +90,9 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+		if rep.Error != nil {
+			w.WriteHeader(400)
+		}
 	}
 	resp := encoder.Finish()
 	w.Header().Set("Content-Type", contentType)
