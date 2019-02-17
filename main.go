@@ -373,7 +373,7 @@ var configDefaults = map[string]interface{}{
 	"grpc_api":                             false,
 	"grpc_api_port":                        10000,
 	"shutdown_timeout":                     30,
-	"shutdown_termination_delay":           1,
+	"shutdown_termination_delay":           0,
 	"graphite":                             false,
 	"graphite_host":                        "localhost",
 	"graphite_port":                        2003,
