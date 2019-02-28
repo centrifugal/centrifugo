@@ -844,25 +844,28 @@ from your CA provider or using automatic certificate handling via <a href="https
 certificate - see <a href="https://devcenter.heroku.com/articles/ssl-certificate-self">this instruction</a> as
 example.</p>
 <p>Then to start Centrifugo use the following command:</p>
-<pre><code>./centrifugo --config=config.json --tls --tls_key=server.key --tls_cert=server.crt
-</code></pre>
+<div class="codehilite"><pre><span></span>./centrifugo --config=config.json --tls --tls_key=server.key --tls_cert=server.crt
+</pre></div>
+
 
 <p>Or just use configuration file:</p>
-<pre><code class="json">{
-  ...
-  &quot;tls&quot;: true,
-  &quot;tls_key&quot;: &quot;server.key&quot;,
-  &quot;tls_cert&quot;: &quot;server.crt&quot;
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="err">...</span>
+  <span class="nt">&quot;tls&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="nt">&quot;tls_key&quot;</span><span class="p">:</span> <span class="s2">&quot;server.key&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;tls_cert&quot;</span><span class="p">:</span> <span class="s2">&quot;server.crt&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>And run:</p>
-<pre><code>./centrifugo --config=config.json
-</code></pre>
+<div class="codehilite"><pre><span></span>./centrifugo --config=config.json
+</pre></div>
+
 
 <h3 id="automatic-certificates">Automatic certificates<a class="headerlink" href="#automatic-certificates" title="Permanent link">&para;</a></h3>
 <p>For automatic certificates from Let&rsquo;s Encrypt add into configuration file:</p>
-<pre><code>{
+<div class="codehilite"><pre><span></span>{
   ...
   &quot;tls_autocert&quot;: true,
   &quot;tls_autocert_host_whitelist&quot;: &quot;www.example.com&quot;,
@@ -871,7 +874,8 @@ example.</p>
   &quot;tls_autocert_http&quot;: true,
   &quot;tls_autocert_http_addr&quot;: &quot;:80&quot;
 }
-</code></pre>
+</pre></div>
+
 
 <p><code>tls_autocert</code> (boolean) says Centrifugo that you want automatic certificate handling using ACME provider.</p>
 <p><code>tls_autocert_host_whitelist</code> (string) is a string with your app domain address. This can be comma-separated

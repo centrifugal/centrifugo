@@ -936,12 +936,13 @@
 <p>Once <code>exp</code> set in token every subscription token must be periodically refreshed. Refer to specific client documentation in order to see how to refresh subscription tokens.</p>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
 <p>So to generate subscription token you can use smth like this in Python (assuming client ID is <code>XXX</code> and private channel is <code>$gossips</code>):</p>
-<pre><code class="python">import jwt
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
 
-token = jwt.encode({&quot;client&quot;: &quot;XXX&quot;, &quot;channel&quot;: &quot;$gossips&quot;}, &quot;secret&quot;, algorithm=&quot;HS256&quot;).decode()
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;client&quot;</span><span class="p">:</span> <span class="s2">&quot;XXX&quot;</span><span class="p">,</span> <span class="s2">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;$gossips&quot;</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s2">&quot;HS256&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
-print(token)
-</code></pre>
+<span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+</pre></div>
+
 
 <p>Again - the same <code>secret</code> from Centrifugo configuration is used to generate private channel JWT as was used to generate connection JWT. And as with connection JWT only <code>HS256</code> algorithm is supported at moment.</p>
                 

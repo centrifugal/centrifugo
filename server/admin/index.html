@@ -781,16 +781,18 @@
 </ul>
 <p>For <code>publish</code> command Ace JSON editor helps to write JSON to send into channel.</p>
 <p>To enable admin interface you must run <code>centrifugo</code> with <code>--admin</code> and provide some security options in configuration file.</p>
-<pre><code class="bash">centrifugo --config=config.json --admin
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo --config<span class="o">=</span>config.json --admin
+</pre></div>
+
 
 <p>Also you must set two options in config: <code>admin_password</code> and <code>admin_secret</code>:</p>
-<pre><code class="json">{
-    ...,
-    &quot;admin_password&quot;: &quot;&lt;PASSWORD&gt;&quot;,
-    &quot;admin_secret&quot;: &quot;&lt;SECRET&gt;&quot;
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="err">...,</span>
+    <span class="nt">&quot;admin_password&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;PASSWORD&gt;&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;admin_secret&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;SECRET&gt;&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <ul>
 <li><code>admin_password</code> – this is a password to log into admin web interface</li>
@@ -799,18 +801,19 @@
 <p>Make both strong and keep in secret.</p>
 <p>After setting this in config go to http://localhost:8000 (by default) - and you should see web interface. Although there is <code>password</code> based authentication a good advice is to protect web interface by firewall rules in production.</p>
 <p>If you don&rsquo;t want to use embedded web interface you can specify path to your own custom web interface directory:</p>
-<pre><code class="json">{
-    ...,
-    &quot;admin_password&quot;: &quot;&lt;PASSWORD&gt;&quot;,
-    &quot;admin_secret&quot;: &quot;&lt;SECRET&gt;&quot;,
-    &quot;admin_web_path&quot;: &quot;&lt;PATH&gt;&quot;
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="err">...,</span>
+    <span class="nt">&quot;admin_password&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;PASSWORD&gt;&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;admin_secret&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;SECRET&gt;&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;admin_web_path&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;PATH&gt;&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>This can be useful if you want to modify official <a href="https://github.com/centrifugal/web">web interface code</a> in some way.</p>
 <p>There is also an option to run Centrifugo in insecure admin mode - in this case you don&rsquo;t need to set <code>admin_password</code> and <code>admin_secret</code> in config – in web interface you will be logged in automatically without any password. Note that this is only an option for production if you protected admin web interface with firewall rules. Otherwise anyone in internet will have full access to admin functionality described above. To start Centrifugo with admin web interface in insecure admin mode run:</p>
-<pre><code>centrifugo --config=config.json --admin --admin_insecure
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --admin --admin_insecure
+</pre></div>
                 
                   
                 

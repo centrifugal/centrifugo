@@ -951,15 +951,17 @@
 <p>In this chapter we will look at API protocol internals - for new API client library authors and just if you are curious how existing API clients work.</p>
 <p>API request is a POST HTTP request with <code>application/json</code> Content-Type and JSON payload in request body.</p>
 <p>API protected by <code>api_key</code> set in Centrifugo configuration. I.e. <code>api_key</code> must be added to config, like:</p>
-<pre><code class="javascript">{
-    ...
-    &quot;api_key&quot;: &quot;&lt;YOUR API KEY&gt;&quot;
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="p">...</span>
+    <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR API KEY&gt;&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>This API key must be set in request <code>Authorization</code> header in this way:</p>
-<pre><code>Authorization: apikey &lt;KEY&gt;
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="n">Authorization</span><span class="o">:</span> <span class="n">apikey</span> <span class="o">&lt;</span><span class="n">KEY</span><span class="o">&gt;</span>
+</pre></div>
+
 
 <p>It&rsquo;s possible to disable API key check on Centrifugo side using <code>api_insecure</code> configuration option. Be sure to protect API endpoint by firewall rules in this case to prevent anyone in internet to send commands over your unprotected Centrifugo API. API key auth is not very safe for man-in-the-middle so recommended way is running Centrifugo with TLS (we are in 2018 in the end).</p>
 <p>Command is a JSON object with two properties: <code>method</code> and <code>params</code>.</p>
@@ -968,271 +970,288 @@
 <p>There are several commands available. Let&rsquo;s investigate each of available server API commands.</p>
 <h3 id="publish">publish<a class="headerlink" href="#publish" title="Permanent link">&para;</a></h3>
 <p>Publish command allows to publish data into channel. It looks like this:</p>
-<pre><code class="json">{
-    &quot;method&quot;: &quot;publish&quot;,
-    &quot;params&quot;: {
-        &quot;channel&quot;: &quot;chat&quot;, 
-        &quot;data&quot;: {
-            &quot;text&quot;: &quot;hello&quot;
-        }
-    } 
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;publish&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;chat&quot;</span><span class="p">,</span> 
+        <span class="nt">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="nt">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;hello&quot;</span>
+        <span class="p">}</span>
+    <span class="p">}</span> 
+<span class="p">}</span>
+</pre></div>
+
 
 <p>Let&rsquo;s apply all information said above and send publish command to Centrifugo. We will send request using <code>requests</code> library for Python. </p>
-<pre><code class="python">import json
-import requests
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">requests</span>
 
-command = {
-    &quot;method&quot;: &quot;publish&quot;,
-    &quot;params&quot;: {
-        &quot;channel&quot;: &quot;docs&quot;, 
-        &quot;data&quot;: {
-            &quot;content&quot;: &quot;1&quot;
-        }
-    }
-}
+<span class="n">command</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;publish&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;docs&quot;</span><span class="p">,</span> 
+        <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;1&quot;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 
-api_key = &quot;YOUR_API_KEY&quot;
-data = json.dumps(command)
-headers = {'Content-type': 'application/json', 'Authorization': 'apikey ' + api_key}
-resp = requests.post(&quot;https://centrifuge.example.com/api&quot;, data=data, headers=headers)
-print(resp.json())
-</code></pre>
+<span class="n">api_key</span> <span class="o">=</span> <span class="s2">&quot;YOUR_API_KEY&quot;</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+<span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">,</span> <span class="s1">&#39;Authorization&#39;</span><span class="p">:</span> <span class="s1">&#39;apikey &#39;</span> <span class="o">+</span> <span class="n">api_key</span><span class="p">}</span>
+<span class="n">resp</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;https://centrifuge.example.com/api&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">json</span><span class="p">())</span>
+</pre></div>
+
 
 <p>The same using <code>httpie</code> console tool:</p>
-<pre><code class="bash">$ echo '{&quot;method&quot;: &quot;publish&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;chat&quot;, &quot;data&quot;: {&quot;text&quot;: &quot;hello&quot;}}}' | http &quot;localhost:8000/api&quot; Authorization:&quot;apikey KEY&quot; -vvv
+<div class="codehilite"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;publish&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;chat&quot;, &quot;data&quot;: {&quot;text&quot;: &quot;hello&quot;}}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span> -vvv
 POST /api HTTP/1.1
 Accept: application/json, */*
 Accept-Encoding: gzip, deflate
 Authorization: apikey KEY
 Connection: keep-alive
-Content-Length: 80
+Content-Length: <span class="m">80</span>
 Content-Type: application/json
 Host: localhost:8000
 User-Agent: HTTPie/0.9.8
 
-{
-    &quot;method&quot;: &quot;publish&quot;,
-    &quot;params&quot;: {
-        &quot;channel&quot;: &quot;chat&quot;,
-        &quot;data&quot;: {
-            &quot;text&quot;: &quot;hello&quot;
-        }
-    }
-}
+<span class="o">{</span>
+    <span class="s2">&quot;method&quot;</span>: <span class="s2">&quot;publish&quot;</span>,
+    <span class="s2">&quot;params&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;channel&quot;</span>: <span class="s2">&quot;chat&quot;</span>,
+        <span class="s2">&quot;data&quot;</span>: <span class="o">{</span>
+            <span class="s2">&quot;text&quot;</span>: <span class="s2">&quot;hello&quot;</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
 
-HTTP/1.1 200 OK
-Content-Length: 3
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">3</span>
 Content-Type: application/json
-Date: Thu, 17 May 2018 22:01:42 GMT
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:01:42 GMT
 
-{}
-</code></pre>
+<span class="o">{}</span>
+</pre></div>
+
 
 <p>In case of error response object will contain <code>error</code> field:</p>
-<pre><code class="bash">$ echo '{&quot;method&quot;: &quot;publish&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;unknown:chat&quot;, &quot;data&quot;: {&quot;text&quot;: &quot;hello&quot;}}}' | http &quot;localhost:8000/api&quot; Authorization:&quot;apikey KEY&quot;
-HTTP/1.1 200 OK
-Content-Length: 55
+<div class="codehilite"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;publish&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;unknown:chat&quot;, &quot;data&quot;: {&quot;text&quot;: &quot;hello&quot;}}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span>
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">55</span>
 Content-Type: application/json
-Date: Thu, 17 May 2018 22:03:09 GMT
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:03:09 GMT
 
-{
-    &quot;error&quot;: {
-        &quot;code&quot;: 102,
-        &quot;message&quot;: &quot;namespace not found&quot;
-    }
-}
-</code></pre>
+<span class="o">{</span>
+    <span class="s2">&quot;error&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;code&quot;</span>: <span class="m">102</span>,
+        <span class="s2">&quot;message&quot;</span>: <span class="s2">&quot;namespace not found&quot;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
 
 <p><code>error</code> object contains error code and message - this also the same for other commands described below.</p>
 <p><code>publish</code> command is the main command you need. Again - remember that we have client API libraries that can help you avoid some boilerplate we just wrote and help to properly handle error responses from Centrifugo.</p>
 <p>Let&rsquo;s look at other available commands:</p>
 <h3 id="broadcast">broadcast<a class="headerlink" href="#broadcast" title="Permanent link">&para;</a></h3>
 <p>Similar to <code>publish</code> but allows to send the same data into many channels.</p>
-<pre><code class="json">{
-    &quot;method&quot;: &quot;broadcast&quot;,
-    &quot;params&quot;: {
-        &quot;channels&quot;: [&quot;CHANNEL_1&quot;, &quot;CHANNEL_2&quot;],
-        &quot;data&quot;: {
-            &quot;text&quot;: &quot;hello&quot;
-        }
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;broadcast&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;CHANNEL_1&quot;</span><span class="p">,</span> <span class="s2">&quot;CHANNEL_2&quot;</span><span class="p">],</span>
+        <span class="nt">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="nt">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;hello&quot;</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <h3 id="unsubscribe">unsubscribe<a class="headerlink" href="#unsubscribe" title="Permanent link">&para;</a></h3>
 <p><code>unsubscribe</code> allows to unsubscribe user from channel. <code>params</code> is an objects with two keys: <code>channel</code> and <code>user</code> (user ID you want to unsubscribe)</p>
-<pre><code class="json">{
-    &quot;method&quot;: &quot;unsubscribe&quot;,
-    &quot;params&quot;: {
-        &quot;channel&quot;: &quot;CHANNEL NAME&quot;,
-        &quot;user&quot;: &quot;USER ID&quot;
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;unsubscribe&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;CHANNEL NAME&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;USER ID&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <h3 id="disconnect">disconnect<a class="headerlink" href="#disconnect" title="Permanent link">&para;</a></h3>
 <p><code>disconnect</code> allows to disconnect user by ID. <code>params</code> in an object with <code>user</code> key.</p>
-<pre><code class="json">{
-    &quot;method&quot;: &quot;disconnect&quot;,
-    &quot;params&quot;: {
-        &quot;user&quot;: &quot;USER ID&quot;
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;disconnect&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;USER ID&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <h3 id="presence">presence<a class="headerlink" href="#presence" title="Permanent link">&para;</a></h3>
 <p><code>presence</code> allows to get channel presence information (all clients currently subscribed on
 this channel). <code>params</code> is an object with <code>channel</code> key.</p>
-<pre><code class="json">{
-    &quot;method&quot;: &quot;presence&quot;,
-    &quot;params&quot;: {
-        &quot;channel&quot;: &quot;chat&quot;
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;presence&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;chat&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>Example:</p>
-<pre><code class="bash">fz@centrifugo: echo '{&quot;method&quot;: &quot;presence&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;chat&quot;}}' | http &quot;localhost:8000/api&quot; Authorization:&quot;apikey KEY&quot;
-HTTP/1.1 200 OK
-Content-Length: 127
+<div class="codehilite"><pre><span></span>fz@centrifugo: <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;presence&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;chat&quot;}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span>
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">127</span>
 Content-Type: application/json
-Date: Thu, 17 May 2018 22:13:17 GMT
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:13:17 GMT
 
-{
-    &quot;result&quot;: {
-        &quot;presence&quot;: {
-            &quot;c54313b2-0442-499a-a70c-051f8588020f&quot;: {
-                &quot;client&quot;: &quot;c54313b2-0442-499a-a70c-051f8588020f&quot;,
-                &quot;user&quot;: &quot;42&quot;
-            },
-            &quot;adad13b1-0442-499a-a70c-051f858802da&quot;: {
-                &quot;client&quot;: &quot;adad13b1-0442-499a-a70c-051f858802da&quot;,
-                &quot;user&quot;: &quot;42&quot;
-            }
-        }
-    }
-}
-</code></pre>
+<span class="o">{</span>
+    <span class="s2">&quot;result&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;presence&quot;</span>: <span class="o">{</span>
+            <span class="s2">&quot;c54313b2-0442-499a-a70c-051f8588020f&quot;</span>: <span class="o">{</span>
+                <span class="s2">&quot;client&quot;</span>: <span class="s2">&quot;c54313b2-0442-499a-a70c-051f8588020f&quot;</span>,
+                <span class="s2">&quot;user&quot;</span>: <span class="s2">&quot;42&quot;</span>
+            <span class="o">}</span>,
+            <span class="s2">&quot;adad13b1-0442-499a-a70c-051f858802da&quot;</span>: <span class="o">{</span>
+                <span class="s2">&quot;client&quot;</span>: <span class="s2">&quot;adad13b1-0442-499a-a70c-051f858802da&quot;</span>,
+                <span class="s2">&quot;user&quot;</span>: <span class="s2">&quot;42&quot;</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
 
 <h3 id="presence_stats">presence_stats<a class="headerlink" href="#presence_stats" title="Permanent link">&para;</a></h3>
 <p><code>presence_stats</code> allows to get short channel presence information.</p>
-<pre><code class="json">{
-    &quot;method&quot;: &quot;presence_stats&quot;,
-    &quot;params&quot;: {
-        &quot;channel&quot;: &quot;chat&quot;
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;presence_stats&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;chat&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>Example:</p>
-<pre><code class="bash">$ echo '{&quot;method&quot;: &quot;presence_stats&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;public:chat&quot;}}' | http &quot;localhost:8000/api&quot; Authorization:&quot;apikey KEY&quot;
-HTTP/1.1 200 OK
-Content-Length: 43
+<div class="codehilite"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;presence_stats&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;public:chat&quot;}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span>
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">43</span>
 Content-Type: application/json
-Date: Thu, 17 May 2018 22:09:44 GMT
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:09:44 GMT
 
-{
-    &quot;result&quot;: {
-        &quot;num_clients&quot;: 0,
-        &quot;num_users&quot;: 0
-    }
-}
-</code></pre>
+<span class="o">{</span>
+    <span class="s2">&quot;result&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;num_clients&quot;</span>: <span class="m">0</span>,
+        <span class="s2">&quot;num_users&quot;</span>: <span class="m">0</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
 
 <h3 id="history">history<a class="headerlink" href="#history" title="Permanent link">&para;</a></h3>
 <p><code>history</code> allows to get channel history information (list of last messages published into channel).</p>
 <p><code>params</code> is an object with <code>channel</code> key:</p>
-<pre><code class="json">{
-    &quot;method&quot;: &quot;history&quot;,
-    &quot;params&quot;: {
-        &quot;channel&quot;: &quot;chat&quot;
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;history&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;chat&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>Example:</p>
-<pre><code class="bash">$ echo '{&quot;method&quot;: &quot;history&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;public:chat&quot;}}' | http &quot;localhost:8000/api&quot; Authorization:&quot;apikey KEY&quot;
-HTTP/1.1 200 OK
-Content-Length: 87
+<div class="codehilite"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;history&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;public:chat&quot;}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span>
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">87</span>
 Content-Type: application/json
-Date: Thu, 17 May 2018 22:14:10 GMT
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:14:10 GMT
 
-{
-    &quot;result&quot;: {
-        &quot;publications&quot;: [
-            {
-                &quot;data&quot;: {
-                    &quot;text&quot;: &quot;hello&quot;
-                },
-                &quot;uid&quot;: &quot;BWcn14OTBrqUhTXyjNg0fg&quot;
-            }, {
-                &quot;data&quot;: {
-                    &quot;text&quot;: &quot;hi!&quot;
-                },
-                &quot;uid&quot;: &quot;Ascn14OTBrq14OXyjNg0hg&quot;
-            }
-        ]
-    }
-}
-</code></pre>
+<span class="o">{</span>
+    <span class="s2">&quot;result&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;publications&quot;</span>: <span class="o">[</span>
+            <span class="o">{</span>
+                <span class="s2">&quot;data&quot;</span>: <span class="o">{</span>
+                    <span class="s2">&quot;text&quot;</span>: <span class="s2">&quot;hello&quot;</span>
+                <span class="o">}</span>,
+                <span class="s2">&quot;uid&quot;</span>: <span class="s2">&quot;BWcn14OTBrqUhTXyjNg0fg&quot;</span>
+            <span class="o">}</span>, <span class="o">{</span>
+                <span class="s2">&quot;data&quot;</span>: <span class="o">{</span>
+                    <span class="s2">&quot;text&quot;</span>: <span class="s2">&quot;hi!&quot;</span>
+                <span class="o">}</span>,
+                <span class="s2">&quot;uid&quot;</span>: <span class="s2">&quot;Ascn14OTBrq14OXyjNg0hg&quot;</span>
+            <span class="o">}</span>
+        <span class="o">]</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
 
 <h3 id="channels">channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h3>
 <p><code>channels</code> allows to get list of active (with one or more subscribers) channels.</p>
-<pre><code class="json">{
-    &quot;method&quot;: &quot;channels&quot;,
-    &quot;params&quot;: {}
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;channels&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>Example:</p>
-<pre><code class="bash">$ echo '{&quot;method&quot;: &quot;channels&quot;, &quot;params&quot;: {}}' | http &quot;localhost:8000/api&quot; Authorization:&quot;apikey KEY&quot;
-HTTP/1.1 200 OK
-Content-Length: 27
+<div class="codehilite"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;channels&quot;, &quot;params&quot;: {}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span>
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">27</span>
 Content-Type: application/json
-Date: Thu, 17 May 2018 22:08:31 GMT
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:08:31 GMT
 
-{
-    &quot;result&quot;: {
-        &quot;channels&quot;: [
-            &quot;chat&quot;
-        ]
-    }
-}
-</code></pre>
+<span class="o">{</span>
+    <span class="s2">&quot;result&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;channels&quot;</span>: <span class="o">[</span>
+            <span class="s2">&quot;chat&quot;</span>
+        <span class="o">]</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
 
 <h3 id="info">info<a class="headerlink" href="#info" title="Permanent link">&para;</a></h3>
 <p><code>info</code> method allows to get information about running Centrifugo nodes.</p>
-<pre><code class="javascript">{
-    &quot;method&quot;: &quot;info&quot;,
-    &quot;params&quot;: {}
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;info&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>Example:</p>
-<pre><code class="bash">$ echo '{&quot;method&quot;: &quot;info&quot;, &quot;params&quot;: {}}' | http &quot;localhost:8000/api&quot; Authorization:&quot;apikey KEY&quot;
-HTTP/1.1 200 OK
-Content-Length: 184
+<div class="codehilite"><pre><span></span>$ <span class="nb">echo</span> <span class="s1">&#39;{&quot;method&quot;: &quot;info&quot;, &quot;params&quot;: {}}&#39;</span> <span class="p">|</span> http <span class="s2">&quot;localhost:8000/api&quot;</span> Authorization:<span class="s2">&quot;apikey KEY&quot;</span>
+HTTP/1.1 <span class="m">200</span> OK
+Content-Length: <span class="m">184</span>
 Content-Type: application/json
-Date: Thu, 17 May 2018 22:07:58 GMT
+Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class="m">22</span>:07:58 GMT
 
-{
-    &quot;result&quot;: {
-        &quot;nodes&quot;: [
-            {
-                &quot;name&quot;: &quot;Alexanders-MacBook-Pro.local_8000&quot;,
-                &quot;num_channels&quot;: 0,
-                &quot;num_clients&quot;: 0,
-                &quot;num_users&quot;: 0,
-                &quot;uid&quot;: &quot;f844a2ed-5edf-4815-b83c-271974003db9&quot;,
-                &quot;uptime&quot;: 0,
-                &quot;version&quot;: &quot;&quot;
-            }
-        ]
-    }
-}
-</code></pre>
+<span class="o">{</span>
+    <span class="s2">&quot;result&quot;</span>: <span class="o">{</span>
+        <span class="s2">&quot;nodes&quot;</span>: <span class="o">[</span>
+            <span class="o">{</span>
+                <span class="s2">&quot;name&quot;</span>: <span class="s2">&quot;Alexanders-MacBook-Pro.local_8000&quot;</span>,
+                <span class="s2">&quot;num_channels&quot;</span>: <span class="m">0</span>,
+                <span class="s2">&quot;num_clients&quot;</span>: <span class="m">0</span>,
+                <span class="s2">&quot;num_users&quot;</span>: <span class="m">0</span>,
+                <span class="s2">&quot;uid&quot;</span>: <span class="s2">&quot;f844a2ed-5edf-4815-b83c-271974003db9&quot;</span>,
+                <span class="s2">&quot;uptime&quot;</span>: <span class="m">0</span>,
+                <span class="s2">&quot;version&quot;</span>: <span class="s2">&quot;&quot;</span>
+            <span class="o">}</span>
+        <span class="o">]</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
+
 
 <h2 id="command-pipelining">Command pipelining<a class="headerlink" href="#command-pipelining" title="Permanent link">&para;</a></h2>
 <p>It&rsquo;s possible to combine several commands into one request to Centrifugo. To do this use <a href="https://en.wikipedia.org/wiki/JSON_streaming">JSON streaming</a> format. This can improve server throughput and reduce traffic travelling around.</p>

@@ -780,8 +780,9 @@
 <li>you can sacrifice human-readable JSON for your application</li>
 </ul>
 <p>Binary protobuf protocol only works for raw Websocket connections (as SockJS can&rsquo;t deal with binary). With most clients to use binary you just need to provide query parameter <code>format</code> to Websocket URL, so final URL look like:</p>
-<pre><code>wss://centrifugo.example.com/connection/websocket?format=protobuf
-</code></pre>
+<div class="codehilite"><pre><span></span>wss://centrifugo.example.com/connection/websocket?format=protobuf
+</pre></div>
+
 
 <p>After doing this Centrifugo will use binary frames to pass data between client and server. Your application specific payload can be random bytes.</p>
 <p>!!! note

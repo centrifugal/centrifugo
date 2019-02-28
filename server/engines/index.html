@@ -869,15 +869,17 @@
 <p>The difference between them - with Memory engine you can start only one node of Centrifugo, while Redis engine allows to run several nodes on different machines and they will be connected via Redis, will know about each other due to Redis and will also keep history and presence data in Redis instead of Centrifugo node process memory so this data can be accessed from each node.</p>
 <p>To set engine you can use <code>engine</code> configuration option. Available values are <code>memory</code> and <code>redis</code>. Default value is <code>memory</code>.</p>
 <p>For example to work with Redis engine:</p>
-<pre><code>centrifugo --config=config.json --engine=redis
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --engine=redis
+</pre></div>
+
 
 <p>Or just set <code>engine</code> in config:</p>
-<pre><code class="json">{
-    ...
-    &quot;engine&quot;: &quot;redis&quot;
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="err">...</span>
+    <span class="nt">&quot;engine&quot;</span><span class="p">:</span> <span class="s2">&quot;redis&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <h3 id="memory-engine">Memory engine<a class="headerlink" href="#memory-engine" title="Permanent link">&para;</a></h3>
 <p>Supports only one node. Nice choice to start with. Supports all features keeping everything in Centrifugo node process memory. You don&rsquo;t need to install Redis when using this engine.</p>
@@ -910,19 +912,22 @@
 <h3 id="scaling-with-redis-tutorial">Scaling with Redis tutorial<a class="headerlink" href="#scaling-with-redis-tutorial" title="Permanent link">&para;</a></h3>
 <p>Let&rsquo;s see how to start several Centrifugo nodes using Redis engine. We will start 3 Centrifugo nodes and all those nodes will be connected via Redis.</p>
 <p>First, you should have Redis running. As soon as it&rsquo;s running - we can launch 3 Centrifugo instances. Open your terminal and start first one:</p>
-<pre><code>centrifugo --config=config.json --port=8000 --engine=redis --redis_host=127.0.0.1 --redis_port=6379
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --port=8000 --engine=redis --redis_host=127.0.0.1 --redis_port=6379
+</pre></div>
+
 
 <p>If your Redis on the same machine and runs on its default port you can omit <code>redis_host</code> and <code>redis_port</code> options in command above.</p>
 <p>Then open another terminal and start another Centrifugo instance:</p>
-<pre><code>centrifugo --config=config.json --port=8001 --engine=redis --redis_host=127.0.0.1 --redis_port=6379
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --port=8001 --engine=redis --redis_host=127.0.0.1 --redis_port=6379
+</pre></div>
+
 
 <p>Note that we use another port number (<code>8001</code>) as port 8000 already busy by our first Centrifugo instance. If you are starting Centrifugo instances on different machines then you most probably can use
 the same port number (<code>8000</code> or whatever you want) for all instances.</p>
 <p>And finally let&rsquo;s start third instance:</p>
-<pre><code>centrifugo --config=config.json --port=8002 --engine=redis --redis_host=127.0.0.1 --redis_port=6379
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --port=8002 --engine=redis --redis_host=127.0.0.1 --redis_port=6379
+</pre></div>
+
 
 <p>Now you have 3 Centrifugo instances running on ports 8000, 8001, 8002 and clients can connect to any of them. You can also send API requests to any of those nodes – as all nodes connected over Redis PUB/SUB message will be delivered to all interested clients on all nodes.</p>
 <p>To load balance clients between nodes you can use Nginx – you can find its configuration here in documentation.</p>
@@ -931,12 +936,14 @@ the same port number (<code>8000</code> or whatever you want) for all instances.
 <p>This resolves situation when Redis becoming a bottleneck on large Centrifugo setup. Redis is single-threaded server, it&rsquo;s very fast but it&rsquo;s power is not infinite so when your Redis approaches 100% CPU usage then sharding feature can help your application to scale.</p>
 <p>At moment Centrifugo supports simple comma-based approach to configuring Redis shards. Let&rsquo;s just look on examples.</p>
 <p>To start Centrifugo with 2 Redis shards on localhost running on port 6379 and port 6380:</p>
-<pre><code>centrifugo --config=config.json --engine=redis --redis_port=6379,6380
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --engine=redis --redis_port=6379,6380
+</pre></div>
+
 
 <p>To start Centrifugo with Redis instances on different hosts:</p>
-<pre><code>centrifugo --config=config.json --engine=redis --redis_host=192.168.1.34,192.168.1.35
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --engine=redis --redis_host=192.168.1.34,192.168.1.35
+</pre></div>
+
 
 <p>If you also need to customize AUTH password, Redis DB number then you can use <code>redis_url</code> option.</p>
 <p>Note, that due to how Redis PUB/SUB work it&rsquo;s not possible (and it&rsquo;s pretty useless anyway) to run shards in one Redis instances using different Redis DB numbers.</p>

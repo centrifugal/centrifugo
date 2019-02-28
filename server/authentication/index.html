@@ -977,37 +977,40 @@
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <p>Let&rsquo;s look how to generate connection JWT in Python:</p>
 <h3 id="simplest-token">Simplest token<a class="headerlink" href="#simplest-token" title="Permanent link">&para;</a></h3>
-<pre><code class="python">import jwt
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
 
-token = jwt.encode({&quot;sub&quot;: &quot;42&quot;}, &quot;secret&quot;).decode()
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;sub&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
-print(token)
-</code></pre>
+<span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+</pre></div>
+
 
 <p>Note that we use the value of <code>secret</code> from Centrifugo config here (in this case <code>secret</code> value is just <code>secret</code>). The only two who must know secret key is your application backend which generates JWT and Centrifugo itself. You should never show secret key to your users. </p>
 <p>Then you can pass this token to your client side and use it when connecting to Centrifugo:</p>
-<pre><code class="javascript">var centrifuge = new Centrifuge(&quot;ws://localhost:8000/connection/websocket&quot;);
-centrifuge.setToken(token);
-centrifuge.connect();
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">centrifuge</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Centrifuge</span><span class="p">(</span><span class="s2">&quot;ws://localhost:8000/connection/websocket&quot;</span><span class="p">);</span>
+<span class="nx">centrifuge</span><span class="p">.</span><span class="nx">setToken</span><span class="p">(</span><span class="nx">token</span><span class="p">);</span>
+<span class="nx">centrifuge</span><span class="p">.</span><span class="nx">connect</span><span class="p">();</span>
+</pre></div>
+
 
 <h3 id="token-with-expiration">Token with expiration<a class="headerlink" href="#token-with-expiration" title="Permanent link">&para;</a></h3>
 <p>Token that will be valid for 5 minutes:</p>
-<pre><code class="python">import jwt
-import time
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
+<span class="kn">import</span> <span class="nn">time</span>
 
-token = jwt.encode({&quot;sub&quot;: &quot;42&quot;, &quot;exp&quot;: int(time.time()) + 5*60}, &quot;secret&quot;, algorithm=&quot;HS256&quot;).decode()
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;sub&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span> <span class="s2">&quot;exp&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="mi">5</span><span class="o">*</span><span class="mi">60</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s2">&quot;HS256&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
-print(token)
-</code></pre>
+<span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+</pre></div>
+
 
 <h3 id="token-with-additional-connection-info">Token with additional connection info<a class="headerlink" href="#token-with-additional-connection-info" title="Permanent link">&para;</a></h3>
-<pre><code class="python">import jwt
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
 
-token = jwt.encode({&quot;sub&quot;: &quot;42&quot;, &quot;info&quot;: {&quot;name&quot;: &quot;Alexander Emelin&quot;}}, &quot;secret&quot;, algorithm=&quot;HS256&quot;).decode()
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;sub&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span> <span class="s2">&quot;info&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Alexander Emelin&quot;</span><span class="p">}},</span> <span class="s2">&quot;secret&quot;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s2">&quot;HS256&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
-print(token)
-</code></pre>
+<span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+</pre></div>
                 
                   
                 

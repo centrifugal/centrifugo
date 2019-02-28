@@ -774,8 +774,9 @@
                 
                 <h1 id="signal-handling">Signal handling<a class="headerlink" href="#signal-handling" title="Permanent link">&para;</a></h1>
 <p>You can send HUP signal to Centrifugo to reload configuration:</p>
-<pre><code>kill -HUP &lt;PID&gt;
-</code></pre>
+<div class="codehilite"><pre><span></span>kill -HUP &lt;PID&gt;
+</pre></div>
+
 
 <p>Though at moment this will only reload channel and namespace configuration.</p>
 <p>Also Centrifugo tries to gracefully shutdown client connections when SIGINT or SIGTERM signals received. By default maximum graceful shutdown period is 30 seconds but can be changed using <code>shutdown_timeout</code> configuration option.</p>

@@ -837,8 +837,9 @@ ready for it.</p>
 <h3 id="open-files-limit">open files limit<a class="headerlink" href="#open-files-limit" title="Permanent link">&para;</a></h3>
 <p>First of all you should increase a max number of open files your processes can open.</p>
 <p>To get you current open files limit run:</p>
-<pre><code>ulimit -n
-</code></pre>
+<div class="codehilite"><pre><span></span>ulimit -n
+</pre></div>
+
 
 <p>The result shows approximately how many clients your server can handle.</p>
 <p>See http://docs.basho.com/riak/latest/ops/tuning/open-files-limit/ to know how to increase this number.</p>
@@ -846,8 +847,9 @@ ready for it.</p>
 <p>You may also need to increase max open files for Nginx.</p>
 <h3 id="lots-of-sockets-in-time_wait-state">lots of sockets in TIME_WAIT state.<a class="headerlink" href="#lots-of-sockets-in-time_wait-state" title="Permanent link">&para;</a></h3>
 <p>Look how many socket descriptors in TIME_WAIT state.</p>
-<pre><code>netstat -an |grep TIME_WAIT | grep CENTRIFUGO_PID | wc -l
-</code></pre>
+<div class="codehilite"><pre><span></span>netstat -an |grep TIME_WAIT | grep CENTRIFUGO_PID | wc -l
+</pre></div>
+
 
 <p>Under load when lots of connections and disconnection happen lots of used socket descriptors can
 stay in TIME_WAIT state. Those descriptors can not be reused for a while. So you can get various
@@ -861,13 +863,14 @@ several advices that can help.</p>
 <li>Increase ip_local_port_range</li>
 <li>If you are using Nginx set <code>keepalive</code> directive in upstream.</li>
 </ol>
-<pre><code>upstream centrifugo {
-    #sticky;
-    ip_hash;
-    server 127.0.0.1:8000;
-    keepalive 512;
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="nt">upstream</span> <span class="nt">centrifugo</span> <span class="p">{</span>
+    <span class="err">#sticky</span><span class="p">;</span>
+    <span class="err">ip_hash</span><span class="p">;</span>
+    <span class="err">server</span> <span class="err">127.0.0.1:8000</span><span class="p">;</span>
+    <span class="err">keepalive</span> <span class="err">512</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <ol start="3">
 <li>And finally if the problem is not gone away consider trying to enable <code>net.ipv4.tcp_tw_reuse</code></li>

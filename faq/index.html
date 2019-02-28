@@ -1043,8 +1043,9 @@ be very useful for load balancing clients for example.</p>
 <h3 id="does-centrifugo-work-with-http2">Does Centrifugo work with HTTP/2?<a class="headerlink" href="#does-centrifugo-work-with-http2" title="Permanent link">&para;</a></h3>
 <p>Yes, Centrifugo works with HTTP/2.</p>
 <p>You can disable HTTP/2 running Centrifugo server with <code>GODEBUG</code> environment variable:</p>
-<pre><code>GODEBUG=&quot;http2server=0&quot; centrifugo -c config.json
-</code></pre>
+<div class="codehilite"><pre><span></span>GODEBUG=&quot;http2server=0&quot; centrifugo -c config.json
+</pre></div>
+
 
 <h3 id="is-there-a-way-to-use-single-connection-to-centrifugo-from-different-browser-tabs">Is there a way to use single connection to Centrifugo from different browser tabs?<a class="headerlink" href="#is-there-a-way-to-use-single-connection-to-centrifugo-from-different-browser-tabs" title="Permanent link">&para;</a></h3>
 <p>If underlying transport is HTTP-based and you use HTTP/2 then this will work automatically. In case of websocket connection there is a way to do this using <code>SharedWorker</code> object though we have no support to work this way in our Javascript library.</p>

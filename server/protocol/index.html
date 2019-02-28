@@ -1009,21 +1009,23 @@
 <p>Server sends <code>Reply</code> to client.</p>
 <p>One request from client to server and one response from server to client can have more than one <code>Command</code> or <code>Reply</code>.</p>
 <p>When JSON format is used then many <code>Command</code> can be sent from client to server in JSON streaming line-delimited format. I.e. each individual <code>Command</code> encoded to JSON and then commands joined together using new line symbol <code>\n</code>:</p>
-<pre><code class="javascript">{&quot;id&quot;: 1, &quot;method&quot;: &quot;subscribe&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;ch1&quot;}}
-{&quot;id&quot;: 2, &quot;method&quot;: &quot;subscribe&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;ch2&quot;}}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;subscribe&quot;</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span><span class="s2">&quot;channel&quot;</span><span class="o">:</span> <span class="s2">&quot;ch1&quot;</span><span class="p">}}</span>
+<span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;subscribe&quot;</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span><span class="s2">&quot;channel&quot;</span><span class="o">:</span> <span class="s2">&quot;ch2&quot;</span><span class="p">}}</span>
+</pre></div>
+
 
 <p>For example here is how we do this in Javascript client when JSON format used:</p>
-<pre><code class="javascript">function encodeCommands(commands) {
-    const encodedCommands = [];
-    for (const i in commands) {
-      if (commands.hasOwnProperty(i)) {
-        encodedCommands.push(JSON.stringify(commands[i]));
-      }
-    }
-    return encodedCommands.join('\n');
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="kd">function</span> <span class="nx">encodeCommands</span><span class="p">(</span><span class="nx">commands</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kr">const</span> <span class="nx">encodedCommands</span> <span class="o">=</span> <span class="p">[];</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">i</span> <span class="k">in</span> <span class="nx">commands</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="nx">commands</span><span class="p">.</span><span class="nx">hasOwnProperty</span><span class="p">(</span><span class="nx">i</span><span class="p">))</span> <span class="p">{</span>
+        <span class="nx">encodedCommands</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">commands</span><span class="p">[</span><span class="nx">i</span><span class="p">]));</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="nx">encodedCommands</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>!!! note
     This doc will use JSON format for examples because it&rsquo;s human-readable. Everything said here for JSON is also true for Protobuf encoded case. The only difference is how several individual <code>Command</code> or server <code>Reply</code> joined into one request – see below.</p>
@@ -1032,38 +1034,41 @@
 <p>When Protobuf format is used then many <code>Command</code> can be sent from client to server in length-delimited format where each individual <code>Command</code> marshaled to bytes prepended by <code>varint</code> length. See existing client implementations for encoding example.</p>
 <p>The same rules relate to many <code>Reply</code> in one response from server to client. Line-delimited JSON and varint-length prefixed Protobuf.</p>
 <p>For example here is how we read server response and extracting individual replies in Javascript client when JSON format used:</p>
-<pre><code class="javascript">function decodeReplies(data) {
-    const replies = [];
-    const encodedReplies = data.split('\n');
-    for (const i in encodedReplies) {
-      if (encodedReplies.hasOwnProperty(i)) {
-        if (!encodedReplies[i]) {
-          continue;
-        }
-        const reply = JSON.parse(encodedReplies[i]);
-        replies.push(reply);
-      }
-    }
-    return replies;
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="kd">function</span> <span class="nx">decodeReplies</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kr">const</span> <span class="nx">replies</span> <span class="o">=</span> <span class="p">[];</span>
+    <span class="kr">const</span> <span class="nx">encodedReplies</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;\n&#39;</span><span class="p">);</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">i</span> <span class="k">in</span> <span class="nx">encodedReplies</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="nx">encodedReplies</span><span class="p">.</span><span class="nx">hasOwnProperty</span><span class="p">(</span><span class="nx">i</span><span class="p">))</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">encodedReplies</span><span class="p">[</span><span class="nx">i</span><span class="p">])</span> <span class="p">{</span>
+          <span class="k">continue</span><span class="p">;</span>
+        <span class="p">}</span>
+        <span class="kr">const</span> <span class="nx">reply</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">encodedReplies</span><span class="p">[</span><span class="nx">i</span><span class="p">]);</span>
+        <span class="nx">replies</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">reply</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="nx">replies</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>For Protobuf case see existing client implementations for decoding example.</p>
 <p>As you can see each <code>Command</code> has <code>id</code> field. This is an incremental integer field. This field will be echoed in server to client replies to commands so client could match a certain <code>Reply</code> to <code>Command</code> sent before. This is important because Websocket is asynchronous protocol where server and client both send messages at any moment and there is no builtin request-response pattern. Having <code>id</code> allows to match reply to command send before.</p>
 <p>So you can expect something like this in response after sending commands to server:</p>
-<pre><code class="javascript">{&quot;id&quot;: 1, &quot;result&quot;: {}}
-{&quot;id&quot;: 2, &quot;result&quot;: {}}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;result&quot;</span><span class="o">:</span> <span class="p">{}}</span>
+<span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;result&quot;</span><span class="o">:</span> <span class="p">{}}</span>
+</pre></div>
+
 
 <p>Besides <code>id</code> <code>Reply</code> from server to client have two important fields: <code>result</code> and <code>error</code>.</p>
 <p><code>result</code> contains useful payload object which can be different depending on <code>Reply</code>.</p>
 <p><code>error</code> contains error object in case of <code>Command</code> processing resulted in some error on server. <code>error</code> is optional and if <code>Reply</code> does not have <code>error</code> then it means that <code>Command</code> processed successfuly and client can parse <code>result</code> object in an appropriate way.</p>
 <p><code>error</code> objects looks like this:</p>
-<pre><code class="javascript">{
-    &quot;code&quot;: 100,
-    &quot;message&quot;: &quot;internal server error&quot;
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;code&quot;</span><span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="s2">&quot;message&quot;</span><span class="o">:</span> <span class="s2">&quot;internal server error&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>We will talk more about error handling below.</p>
 <p>The special type of <code>Reply</code> is asynchronous <code>Reply</code>. Those replies have no <code>id</code> field set (or <code>id</code> can be equal to zero). Async replies can come to client in any moment - not as reaction to issued <code>Command</code> but as message from server to client in arbitrary time. For example this can be message published into channel.</p>
@@ -1071,24 +1076,27 @@
 <h3 id="connect">Connect<a class="headerlink" href="#connect" title="Permanent link">&para;</a></h3>
 <p>First of all client must dial with server and then send <code>connect</code> <code>Command</code> to it.</p>
 <p>Default Websocket endpoint in Centrifugo is:</p>
-<pre><code>ws://centrifugo.example.com/connection/websocket
-</code></pre>
+<div class="codehilite"><pre><span></span>ws://centrifugo.example.com/connection/websocket
+</pre></div>
+
 
 <p>In case of using TLS:</p>
-<pre><code>wss://centrifugo.example.com/connection/websocket
-</code></pre>
+<div class="codehilite"><pre><span></span>wss://centrifugo.example.com/connection/websocket
+</pre></div>
+
 
 <p>After successful dial to websocket endpoint client must send <code>connect</code> command to server to authorize itself.</p>
 <p><code>connect</code> command looks like:</p>
-<pre><code class="javascript">{
-    &quot;id&quot;: 1,
-    &quot;method&quot;: &quot;connect&quot;,
-    &quot;params&quot;: {
-        &quot;token&quot;: &quot;JWT&quot;,
-        &quot;data&quot;: {}
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;connect&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;token&quot;</span><span class="o">:</span> <span class="s2">&quot;JWT&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;data&quot;</span><span class="o">:</span> <span class="p">{}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>Where params fields are passed to client from application backend:</p>
 <ul>
@@ -1096,14 +1104,15 @@
 <li>JSON <code>data</code> - this is only available for Centrifuge library and not for Centrifugo server. It contains custom connect data, for example it can contain client settings. </li>
 </ul>
 <p>In response to <code>connect</code> command server sends connect reply. It looks this way:</p>
-<pre><code class="javascript">{
-    &quot;id&quot;:1,
-    &quot;result&quot;:{
-        &quot;client&quot;:&quot;421bf374-dd01-4f82-9def-8c31697e956f&quot;,
-        &quot;version&quot;:&quot;2.0.0&quot;
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;id&quot;</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{</span>
+        <span class="s2">&quot;client&quot;</span><span class="o">:</span><span class="s2">&quot;421bf374-dd01-4f82-9def-8c31697e956f&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;version&quot;</span><span class="o">:</span><span class="s2">&quot;2.0.0&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p><code>result</code> has some fields:</p>
 <ul>
@@ -1115,25 +1124,27 @@
 <h3 id="subscribe">Subscribe<a class="headerlink" href="#subscribe" title="Permanent link">&para;</a></h3>
 <p>As soon as client successfully connected and got unique connection ID it is ready to
 subscribe on channels. To do this it must send <code>subscribe</code> command to server:</p>
-<pre><code class="javascript">{
-    &quot;id&quot;: 2,
-    &quot;method&quot;: &quot;subscribe&quot;,
-    &quot;params&quot;: {
-        &quot;channel&quot;: &quot;ch1&quot;
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;subscribe&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;channel&quot;</span><span class="o">:</span> <span class="s2">&quot;ch1&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>Fields that can be set in <code>params</code> are:</p>
 <ul>
 <li>string <code>channel</code> - channel to subscribe</li>
 </ul>
 <p>In response to subscribe client receives reply like:</p>
-<pre><code class="javascript">{
-    &quot;id&quot;:2,
-    &quot;result&quot;:{}
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;id&quot;</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span>
+    <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p><code>result</code> can have the following fields that relate to subscription expiration:</p>
 <ul>
@@ -1160,26 +1171,28 @@ subscribe on channels. To do this it must send <code>subscribe</code> command to
 <p>See more about asynchronous messages below. </p>
 <h3 id="unsubscribe">Unsubscribe<a class="headerlink" href="#unsubscribe" title="Permanent link">&para;</a></h3>
 <p>This is simple. When client wants to unsubscribe from channel and therefore stop receiving asynchronous subscription messages from connection related to channel it must call <code>unsubscribe</code> command:</p>
-<pre><code class="javascript">{
-    &quot;id&quot;: 3,
-    &quot;method&quot;: &quot;unsubscribe&quot;,
-    &quot;params&quot;: {
-        &quot;channel&quot;: &quot;ch1&quot;
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;unsubscribe&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;channel&quot;</span><span class="o">:</span> <span class="s2">&quot;ch1&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>Actually server response does not mean a lot for client - it must immediately remove channel subscription from internal implementation data structures and ignore all messages related to channel.</p>
 <h3 id="refresh">Refresh<a class="headerlink" href="#refresh" title="Permanent link">&para;</a></h3>
 <p>It&rsquo;s possible to turn on client connection expiration mechanism on server. While enabled server will keep track of connections whose time of life (defined by <code>exp</code> timestamp) is close to the end. In this case connection will be closed. Client can prevent closing connection refreshing it&rsquo;s connection credentials. To do this it must send <code>refresh</code> command to server. <code>refresh</code> command similar to <code>connect</code>:</p>
-<pre><code class="javascript">{
-    &quot;id&quot;: 4,
-    &quot;method&quot;: &quot;refresh&quot;,
-    &quot;params&quot;: {
-        &quot;token&quot;: &quot;JWT&quot;
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;refresh&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;token&quot;</span><span class="o">:</span> <span class="s2">&quot;JWT&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>Just with actual <code>exp</code> and new <code>sign</code>.</p>
 <p>The tip whether or not connection must be refreshed comes in reply to <code>connect</code> command shown above - fields <code>expires</code> and <code>ttl</code>.</p>
@@ -1195,88 +1208,94 @@ subscribe on channels. To do this it must send <code>subscribe</code> command to
 <h3 id="asynchronous-server-to-client-messages">Asynchronous server-to-client messages<a class="headerlink" href="#asynchronous-server-to-client-messages" title="Permanent link">&para;</a></h3>
 <p>There are several types of asynchronous messages that can come from server to client. All of them relate to current client subscriptions.</p>
 <p>The most important message is <code>Publication</code>:</p>
-<pre><code class="javascript">{
-    &quot;result&quot;:{
-        &quot;channel&quot;:&quot;ch1&quot;,
-        &quot;data&quot;:{
-            &quot;data&quot;:{&quot;input&quot;:&quot;1&quot;},
-            &quot;info&quot;:{
-                &quot;user&quot;:&quot;2694&quot;,
-                &quot;client&quot;:&quot;5c48510e-cf49-4fa8-a9b2-490b22231e74&quot;,
-                &quot;conn_info&quot;:{&quot;name&quot;:&quot;Alexander&quot;},
-                &quot;chan_info&quot;:{}
-            }
-        }
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{</span>
+        <span class="s2">&quot;channel&quot;</span><span class="o">:</span><span class="s2">&quot;ch1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;data&quot;</span><span class="o">:</span><span class="p">{</span>
+            <span class="s2">&quot;data&quot;</span><span class="o">:</span><span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="o">:</span><span class="s2">&quot;1&quot;</span><span class="p">},</span>
+            <span class="s2">&quot;info&quot;</span><span class="o">:</span><span class="p">{</span>
+                <span class="s2">&quot;user&quot;</span><span class="o">:</span><span class="s2">&quot;2694&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;client&quot;</span><span class="o">:</span><span class="s2">&quot;5c48510e-cf49-4fa8-a9b2-490b22231e74&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;conn_info&quot;</span><span class="o">:</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="o">:</span><span class="s2">&quot;Alexander&quot;</span><span class="p">},</span>
+                <span class="s2">&quot;chan_info&quot;</span><span class="o">:</span><span class="p">{}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p><code>Publication</code> is a message published into channel. Note that there is no <code>id</code> field in this message - this symptom
 allows to distinguish it from <code>Reply</code> to <code>Command</code>.  </p>
 <p>Next message is <code>Join</code> message:</p>
-<pre><code class="javascript">{
-    &quot;result&quot;:{
-        &quot;type&quot;:1,
-        &quot;channel&quot;:&quot;ch1&quot;,
-        &quot;data&quot;:{
-            &quot;info&quot;:{
-                &quot;user&quot;:&quot;2694&quot;,
-                &quot;client&quot;:&quot;5c48510e-cf49-4fa8-a9b2-490b22231e74&quot;,
-                &quot;conn_info&quot;:{&quot;name&quot;:&quot;Alexander&quot;},
-                &quot;chan_info&quot;:{}
-            }
-        }
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{</span>
+        <span class="s2">&quot;type&quot;</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;channel&quot;</span><span class="o">:</span><span class="s2">&quot;ch1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;data&quot;</span><span class="o">:</span><span class="p">{</span>
+            <span class="s2">&quot;info&quot;</span><span class="o">:</span><span class="p">{</span>
+                <span class="s2">&quot;user&quot;</span><span class="o">:</span><span class="s2">&quot;2694&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;client&quot;</span><span class="o">:</span><span class="s2">&quot;5c48510e-cf49-4fa8-a9b2-490b22231e74&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;conn_info&quot;</span><span class="o">:</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="o">:</span><span class="s2">&quot;Alexander&quot;</span><span class="p">},</span>
+                <span class="s2">&quot;chan_info&quot;</span><span class="o">:</span><span class="p">{}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p><code>Join</code> messages sent when someone joined (subscribed on) channel.</p>
 <p>!!! note
     To enable <code>Join</code> and <code>Leave</code> messages <code>join_leave</code> option must be enabled on server globally or for channel namespace.</p>
 <p><code>Leave</code> messages sent when someone left (unsubscribed from) channel.</p>
-<pre><code class="javascript">{
-    &quot;result&quot;:{
-        &quot;type&quot;:2,
-        &quot;channel&quot;:&quot;ch1&quot;,
-        &quot;data&quot;:{
-            &quot;info&quot;:{
-                &quot;user&quot;:&quot;2694&quot;,
-                &quot;client&quot;:&quot;5c48510e-cf49-4fa8-a9b2-490b22231e74&quot;,
-                &quot;conn_info&quot;:{&quot;name&quot;:&quot;Alexander&quot;},
-                &quot;chan_info&quot;:{}
-            }
-        }
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{</span>
+        <span class="s2">&quot;type&quot;</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;channel&quot;</span><span class="o">:</span><span class="s2">&quot;ch1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;data&quot;</span><span class="o">:</span><span class="p">{</span>
+            <span class="s2">&quot;info&quot;</span><span class="o">:</span><span class="p">{</span>
+                <span class="s2">&quot;user&quot;</span><span class="o">:</span><span class="s2">&quot;2694&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;client&quot;</span><span class="o">:</span><span class="s2">&quot;5c48510e-cf49-4fa8-a9b2-490b22231e74&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;conn_info&quot;</span><span class="o">:</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="o">:</span><span class="s2">&quot;Alexander&quot;</span><span class="p">},</span>
+                <span class="s2">&quot;chan_info&quot;</span><span class="o">:</span><span class="p">{}</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>And finally <code>Unsub</code> message that means that server unsubscribed current client from channel:</p>
-<pre><code class="javascript">{
-    &quot;result&quot;:{
-        &quot;type&quot;:3,
-        &quot;channel&quot;:&quot;ch1&quot;,
-        &quot;data&quot;:{}
-    }
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{</span>
+        <span class="s2">&quot;type&quot;</span><span class="o">:</span><span class="mi">3</span><span class="p">,</span>
+        <span class="s2">&quot;channel&quot;</span><span class="o">:</span><span class="s2">&quot;ch1&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;data&quot;</span><span class="o">:</span><span class="p">{}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>It&rsquo;s possible to distinguish between different types of asynchronous messages looking at <code>type</code> field (for <code>Publication</code> this field not set or <code>0</code>).</p>
 <h3 id="ping-pong">Ping Pong<a class="headerlink" href="#ping-pong" title="Permanent link">&para;</a></h3>
 <p>To maintain connection alive and detect broken connections client must periodically send <code>ping</code> commands to server and expect replies to it. Ping command looks like:</p>
-<pre><code class="javascript">{
-    &quot;id&quot;:32,
-    &quot;method&quot;:&quot;ping&quot;
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;id&quot;</span><span class="o">:</span><span class="mi">32</span><span class="p">,</span>
+    <span class="s2">&quot;method&quot;</span><span class="o">:</span><span class="s2">&quot;ping&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>Server just echoes this command back. When client does not receive ping reply for some time it must consider connection broken and try to reconnect. Recommended ping interval is 25 seconds, recommended period to wait for pong is 1-5 seconds. Though those numbers can vary.</p>
 <h3 id="handle-disconnects">Handle disconnects<a class="headerlink" href="#handle-disconnects" title="Permanent link">&para;</a></h3>
 <p>Client should handle disconnect advices from server. In websocket case disconnect advice is sent in reason field of CLOSE Websocket frame. Reason contains string which is <code>disconnect</code> object encoded into JSON (even in case of Protobuf scenario). That objects looks like:</p>
-<pre><code class="javascript">{
-    &quot;reason&quot;: &quot;shutdown&quot;,
-    &quot;reconnect&quot;: true 
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;reason&quot;</span><span class="o">:</span> <span class="s2">&quot;shutdown&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;reconnect&quot;</span><span class="o">:</span> <span class="kc">true</span> 
+<span class="p">}</span>
+</pre></div>
+
 
 <p>It contains string reason of connection closing and advice to reconnect or not. Client should take this reconnect advice into account.</p>
 <p>In case of network problems and random disconnect from server without well known reason client should always try to  reconnect with exponential intervals.</p>
@@ -1290,31 +1309,36 @@ allows to distinguish it from <code>Reply</code> to <code>Command</code>.  </p>
 <h3 id="client-implementation-advices">Client implementation advices<a class="headerlink" href="#client-implementation-advices" title="Permanent link">&para;</a></h3>
 <p>Here are some advices about client public API. Examples here are in Javascript language. This is just an attempt to help in developing a client - but rules here is not obligatorily the best way to implement client.</p>
 <p>Create client instance:</p>
-<pre><code class="javascript">var centrifuge = new Centrifuge(&quot;ws://localhost:8000/connection/websocket&quot;, {});
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">centrifuge</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Centrifuge</span><span class="p">(</span><span class="s2">&quot;ws://localhost:8000/connection/websocket&quot;</span><span class="p">,</span> <span class="p">{});</span>
+</pre></div>
+
 
 <p>Set connection token (in case of using Centrifugo):</p>
-<pre><code class="javascript">centrifuge.setToken(&quot;XXX&quot;)
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">setToken</span><span class="p">(</span><span class="s2">&quot;XXX&quot;</span><span class="p">)</span>
+</pre></div>
+
 
 <p>Connect to server:</p>
-<pre><code class="javascript">centrifuge.connect();
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">connect</span><span class="p">();</span>
+</pre></div>
+
 
 <p>2 event handlers can be set to <code>centrifuge</code> object: <code>connect</code> and <code>disconnect</code></p>
-<pre><code class="javascript">centrifuge.on('connect', function(context) {
-    console.log(context);
-});
+<div class="codehilite"><pre><span></span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;connect&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">context</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">context</span><span class="p">);</span>
+<span class="p">});</span>
 
-centrifuge.on('disconnect', function(context) {
-    console.log(context);
-});
-</code></pre>
+<span class="nx">centrifuge</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;disconnect&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">context</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">context</span><span class="p">);</span>
+<span class="p">});</span>
+</pre></div>
+
 
 <p>Client created in <code>disconnected</code> state with <code>reconnect</code> attribute set to <code>true</code> and <code>reconnecting</code> flag set to <code>false</code> . After <code>connect()</code> called state goes to <code>connecting</code>. It&rsquo;s only possible to connect from <code>disconnected</code> state. Every time <code>connect()</code> called <code>reconnect</code> flag of client must be set to <code>true</code>. After each failed connect attempt state must be set to <code>disconnected</code>, <code>disconnect</code> event must be emitted (only if <code>reconnecting</code> flag is <code>false</code>), and then <code>reconnecting</code> flag must be set to <code>true</code> (if client should continue reconnecting) to not emit <code>disconnect</code> event again after next in a row connect attempt failure. In case of failure next connection attempt must be scheduled automatically with backoff strategy. On successful connect <code>reconnecting</code> flag must be set to <code>false</code>, backoff retry must be resetted and <code>connect</code> event must be emitted. When connection lost then the same set of actions as when connect failed must be performed.</p>
 <p>Client must allow to subscribe on channels:</p>
-<pre><code class="javascript">var subscription = centrifuge.subscribe(&quot;channel&quot;, eventHandlers);
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="kd">var</span> <span class="nx">subscription</span> <span class="o">=</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">subscribe</span><span class="p">(</span><span class="s2">&quot;channel&quot;</span><span class="p">,</span> <span class="nx">eventHandlers</span><span class="p">);</span>
+</pre></div>
+
 
 <p>Subscription object created and control immediately returned to caller - subscribing must be performed asynchronously. This is required because client can automatically reconnect later so event-based model better suites for subscriptions. </p>
 <p>Subscription should support several event handlers:</p>

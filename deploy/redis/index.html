@@ -839,15 +839,17 @@
 <p><code>redis_master_name</code> - is a name of master your Sentinels monitor.</p>
 <p><code>redis_sentinels</code> - comma-separated addresses of Sentinel servers. At least one known server required.</p>
 <p>So you can start Centrifugo which will use Sentinels to discover redis master instance like this:</p>
-<pre><code>centrifugo --config=config.json --engine=redis --redis_master_name=mymaster --redis_sentinels=&quot;:26379&quot;
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --engine=redis --redis_master_name=mymaster --redis_sentinels=&quot;:26379&quot;
+</pre></div>
+
 
 <p>Sentinel configuration files can look like this:</p>
-<pre><code>port 26379
+<div class="codehilite"><pre><span></span>port 26379
 sentinel monitor mymaster 127.0.0.1 6379 2
 sentinel down-after-milliseconds mymaster 10000
 sentinel failover-timeout mymaster 60000
-</code></pre>
+</pre></div>
+
 
 <p>You can find how to properly setup Sentinels <a href="http://redis.io/topics/sentinel">in official documentation</a>.</p>
 <p>Note that when your redis master instance down there will be small downtime interval until Sentinels
@@ -856,7 +858,7 @@ Sentinel configuration.</p>
 <h3 id="haproxy">Haproxy<a class="headerlink" href="#haproxy" title="Permanent link">&para;</a></h3>
 <p>Alternatively you can use Haproxy between Centrifugo and Redis to let it properly balance traffic to Redis master. In this case you still need to configure Sentinels but you can omit Sentinel specifics from Centrifugo configuration and just use Redis address as in simple non-HA case.</p>
 <p>For example you can use something like this in Haproxy config:</p>
-<pre><code>listen redis
+<div class="codehilite"><pre><span></span>listen redis
     server redis-01 127.0.0.1:6380 check port 6380 check inter 2s weight 1 inter 2s downinter 5s rise 10 fall 2
     server redis-02 127.0.0.1:6381 check port 6381 check inter 2s weight 1 inter 2s downinter 5s rise 10 fall 2 backup
     bind *:16379
@@ -871,11 +873,12 @@ Sentinel configuration.</p>
     tcp-check send QUIT\r\n
     tcp-check expect string +OK
     balance roundrobin
-</code></pre>
+</pre></div>
+
 
 <p>And then just point Centrifugo to this Haproxy:</p>
-<pre><code>centrifugo --config=config.json --engine=redis --redis_host=localhost --redis_port=16379
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --engine=redis --redis_host=localhost --redis_port=16379
+</pre></div>
                 
                   
                 

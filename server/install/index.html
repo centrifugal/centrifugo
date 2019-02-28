@@ -850,21 +850,25 @@
 <h3 id="binary-releases">Binary releases<a class="headerlink" href="#binary-releases" title="Permanent link">&para;</a></h3>
 <p>Go language gives developers an opportunity to build single binary executable file with application and cross-compile application for all common operating systems. This means that all you need to get Centrifugo – <a href="https://github.com/centrifugal/centrifugo/releases">download latest release</a> for you operating system, unpack it and you are done!</p>
 <p>Now you can see help information for Centrifugo:</p>
-<pre><code>./centrifugo -h
-</code></pre>
+<div class="codehilite"><pre><span></span>./centrifugo -h
+</pre></div>
+
 
 <p>Centrifugo server node requires configuration file with secret key. If you are new to Centrifugo then there is <code>genconfig</code> command which generates minimal required configuration file:</p>
-<pre><code class="bash">./centrifugo genconfig
-</code></pre>
+<div class="codehilite"><pre><span></span>./centrifugo genconfig
+</pre></div>
+
 
 <p>It generates secret key automatically and creates configuration file <code>config.json</code> in current directory (by default) so you can finally run Centrifugo instance:</p>
-<pre><code class="bash">./centrifugo --config=config.json
-</code></pre>
+<div class="codehilite"><pre><span></span>./centrifugo --config<span class="o">=</span>config.json
+</pre></div>
+
 
 <p>We will talk about configuration in detail in next sections.</p>
 <p>You can also put or symlink <code>centrifugo</code> into your <code>bin</code> OS directory and run it from anywhere:</p>
-<pre><code class="bash">centrifugo --config=config.json
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo --config<span class="o">=</span>config.json
+</pre></div>
+
 
 <h3 id="linux-packages">Linux packages<a class="headerlink" href="#linux-packages" title="Permanent link">&para;</a></h3>
 <p>We have prebuilt <code>rpm</code> and <code>deb</code> packages for most popular Linux distributions and Docker image. See <a href="../../deploy/packages/">this chapter</a> for more information.</p>

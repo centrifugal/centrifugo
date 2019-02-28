@@ -774,12 +774,14 @@
                 
                 <h1 id="docker-image">Docker image<a class="headerlink" href="#docker-image" title="Permanent link">&para;</a></h1>
 <p>Centrifugo server has docker image <a href="https://hub.docker.com/r/centrifugo/centrifugo/">available on Docker Hub</a>.</p>
-<pre><code>docker pull centrifugo/centrifugo
-</code></pre>
+<div class="codehilite"><pre><span></span>docker pull centrifugo/centrifugo
+</pre></div>
+
 
 <p>Run:</p>
-<pre><code class="bash">docker run --ulimit nofile=65536:65536 -v /host/dir/with/config/file:/centrifugo -p 8000:8000 centrifugo/centrifugo centrifugo -c config.json
-</code></pre>
+<div class="codehilite"><pre><span></span>docker run --ulimit <span class="nv">nofile</span><span class="o">=</span><span class="m">65536</span>:65536 -v /host/dir/with/config/file:/centrifugo -p <span class="m">8000</span>:8000 centrifugo/centrifugo centrifugo -c config.json
+</pre></div>
+
 
 <p>Note that docker allows to set <code>nofile</code> limits in command-line arguments which is pretty important to handle lots of simultaneous persistent connections and not run out of open file limit.</p>
                 

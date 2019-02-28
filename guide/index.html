@@ -779,8 +779,9 @@
 <p>Here let&rsquo;s suppose you already have 2 of 3 elements: clients and backend. And you want to add Centrifugo for real-time events.</p>
 <p>1) First you need to do is download/install Centrifugo server. See <a href="../server/install/">install</a> chapter for details.</p>
 <p>2) Create basic configuration file with <code>secret</code> and <code>api_key</code> set and then run Centrifugo. See <a href="../server/configuration/">this chapter</a> for details about secret key and <a href="../server/api/">chapter about API</a> for API description. The simplest way to do this automatically is by using <code>genconfig</code> command:</p>
-<pre><code>./centrifugo genconfig
-</code></pre>
+<div class="codehilite"><pre><span></span>./centrifugo genconfig
+</pre></div>
+
 
 <p>– which will generate <code>config.json</code> file for you with all required fields.</p>
 <p>3) In configuration file <strong>of your application backend</strong> register several variables: Centrifugo secret and Centrifugo API key you set on previous step and Centrifugo API address. By default API address is <code>http://localhost:8000/api</code>. You <strong>must never reveal secret and API key to your users</strong>.</p>

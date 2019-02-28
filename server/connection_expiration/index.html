@@ -775,21 +775,23 @@
                 <h1 id="connection-expiration">Connection expiration<a class="headerlink" href="#connection-expiration" title="Permanent link">&para;</a></h1>
 <p>In authentication chapter we mentioned <code>exp</code> claim in connection token that allows to expire client connection at some point of time. In this chapter we will look at details on what happens when Centrifugo detects that connection is going to expire.</p>
 <p>So first you should do is enable client expiration mechanism in Centrifugo providing connection token with expiration:</p>
-<pre><code class="python">import jwt
-import time
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
+<span class="kn">import</span> <span class="nn">time</span>
 
-token = jwt.encode({&quot;sub&quot;: &quot;42&quot;, &quot;exp&quot;: int(time.time()) + 10*60}, &quot;secret&quot;).decode()
+<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;sub&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span> <span class="s2">&quot;exp&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="mi">10</span><span class="o">*</span><span class="mi">60</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
 
-print(token)
-</code></pre>
+<span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+</pre></div>
+
 
 <p>Let&rsquo;s suppose that you set <code>exp</code> field to timestamp that will expire in 10 minutes and client connected to Centrifugo with this token. During 10 mins connection will be kept by Centrifugo. When this time passed Centrifugo gives connection some time (configured, 25 seconds by default) to refresh its credentials and provide new valid token with new <code>exp</code>.</p>
 <p>When client first connects to Centrifugo it receives <code>ttl</code> value in connect reply. That <code>ttl</code> value contains number of seconds after which client must send <code>refresh</code> command with new credentials to Centrifugo. Centrifugo clients must handle this <code>ttl</code> field and automatically start refresh process.</p>
 <p>For example Javascript browser client  will send AJAX POST request to your application when it&rsquo;s time to refresh credentials. By default this request goes to <code>/centrifuge/refresh</code> url endpoint. In response your server must return JSON with new connection token:</p>
-<pre><code class="python">{
-    &quot;token&quot;: token
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="n">token</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>So you must just return the same connection token for your user when rendering page initially. But with actual valid <code>exp</code>. Javascript client will then send them to Centrifugo server and connection will be refreshed for a time you set in <code>exp</code>.</p>
 <p>In this case you know which user want to refresh its connection because this is just a general request to your app - so your session mechanism will tell you about the user.</p>

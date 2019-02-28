@@ -835,24 +835,27 @@
 <p>Centrifugo supports reporting metrics in Prometheus format and can automatically export metrics to Graphite.</p>
 <h3 id="prometheus">Prometheus<a class="headerlink" href="#prometheus" title="Permanent link">&para;</a></h3>
 <p>To enable Prometheus endpoint start Centrifugo with <code>prometheus</code> option on:</p>
-<pre><code class="json">{
-    ...
-    &quot;prometheus&quot;: true
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="err">...</span>
+    <span class="nt">&quot;prometheus&quot;</span><span class="p">:</span> <span class="kc">true</span>
+<span class="p">}</span>
+</pre></div>
 
-<pre><code>./centrifugo --config=config.json
-</code></pre>
+
+<div class="codehilite"><pre><span></span>./centrifugo --config=config.json
+</pre></div>
+
 
 <p>This will enable <code>/metrics</code> endpoint so Centrifugo instance can be monitored by your Prometheus server.</p>
 <h3 id="graphite">Graphite<a class="headerlink" href="#graphite" title="Permanent link">&para;</a></h3>
 <p>To enable automatic export to Graphite (via TCP):</p>
-<pre><code class="json">{
-    &quot;graphite&quot;: true,
-    &quot;graphite_host&quot;: &quot;localhost&quot;,
-    &quot;graphite_port&quot;: 2003
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="nt">&quot;graphite&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;graphite_host&quot;</span><span class="p">:</span> <span class="s2">&quot;localhost&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;graphite_port&quot;</span><span class="p">:</span> <span class="mi">2003</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>By default stats will be aggregated over 10 seconds interval inside Centrifugo and then pushed to Graphite over TCP connection.</p>
 <p>If you need to change this aggregation interval use <code>graphite_interval</code> option (in seconds, default <code>10</code>). This option available since v2.1.0</p>

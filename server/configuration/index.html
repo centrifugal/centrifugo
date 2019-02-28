@@ -1166,11 +1166,12 @@
                 <h1 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h1>
 <p>Centrifugo expects JSON, TOML or YAML as configuration file format. Thanks to brilliant Go library for application configuration - <a href="https://github.com/spf13/viper">viper</a>.</p>
 <p>First let&rsquo;s look at all available command-line options:</p>
-<pre><code class="bash">centrifugo -h
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo -h
+</pre></div>
+
 
 <p>You should see something like this as output:</p>
-<pre><code>Centrifugo – real-time messaging server
+<div class="codehilite"><pre><span></span>Centrifugo – real-time messaging server
 
 Usage:
    [flags]
@@ -1212,53 +1213,61 @@ Flags:
       --tls                        enable TLS, requires an X509 certificate and a key file
       --tls_cert string            path to an X509 certificate file
       --tls_key string             path to an X509 certificate key
-</code></pre>
+</pre></div>
+
 
 <h3 id="version">version<a class="headerlink" href="#version" title="Permanent link">&para;</a></h3>
 <p>To show version and exit run:</p>
-<pre><code>centrifugo version
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo version
+</pre></div>
+
 
 <h3 id="json-file">JSON file<a class="headerlink" href="#json-file" title="Permanent link">&para;</a></h3>
 <p>Centrifugo requires configuration file on start. As was mentioned earlier it must be a file with valid JSON.</p>
 <p>This is a minimal Centrifugo configuration file:</p>
-<pre><code class="javascript">{
-  &quot;secret&quot;: &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;,
-  &quot;api_key&quot;: &quot;&lt;YOUR-API-KEY-HERE&gt;&quot;
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;secret&quot;</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR-API-KEY-HERE&gt;&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>The only two fields required are <strong>secret</strong> and <strong>api_key</strong>. Secret used to check JWT signature (more about JWT in <a href="../authentication/">authentication chapter</a>). API key used for Centrifugo API endpoint authorization, see more in <a href="../api/">chapter about server HTTP API</a>. Keep both values in secret and never reveal to clients.</p>
 <h3 id="toml-file">TOML file<a class="headerlink" href="#toml-file" title="Permanent link">&para;</a></h3>
 <p>Centrifugo also supports TOML format for configuration file:</p>
-<pre><code>centrifugo --config=config.toml
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.toml
+</pre></div>
+
 
 <p>Where <code>config.toml</code> contains:</p>
-<pre><code>secret = &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;
+<div class="codehilite"><pre><span></span>secret = &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;
 api_key = &quot;&lt;YOUR-API-KEY-HERE&gt;&quot;
 log_level = &quot;debug&quot;
-</code></pre>
+</pre></div>
+
 
 <p>I.e. the same configuration as JSON file above with one extra option.</p>
 <h3 id="yaml-file">YAML file<a class="headerlink" href="#yaml-file" title="Permanent link">&para;</a></h3>
 <p>And YAML config also supported. <code>config.yaml</code>:</p>
-<pre><code>secret: &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;
+<div class="codehilite"><pre><span></span>secret: &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;
 api_key: &quot;&lt;YOUR-API-KEY-HERE&gt;&quot;
 log_level: debug
-</code></pre>
+</pre></div>
+
 
 <p>With YAML remember to use spaces, not tabs when writing configuration file.</p>
 <h3 id="checkconfig-command">checkconfig command<a class="headerlink" href="#checkconfig-command" title="Permanent link">&para;</a></h3>
 <p>Centrifugo has special command to check configuration file <code>checkconfig</code>:</p>
-<pre><code class="bash">centrifugo checkconfig --config=config.json
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo checkconfig --config<span class="o">=</span>config.json
+</pre></div>
+
 
 <p>If any errors found during validation – program will exit with error message and exit code 1.</p>
 <h3 id="genconfig-command">genconfig command<a class="headerlink" href="#genconfig-command" title="Permanent link">&para;</a></h3>
 <p>Another command is <code>genconfig</code>:</p>
-<pre><code>centrifugo genconfig -c config.json
-</code></pre>
+<div class="codehilite"><pre><span></span>centrifugo genconfig -c config.json
+</pre></div>
+
 
 <p>It will automatically generate the minimal required configuration file.</p>
 <h3 id="important-options">Important options<a class="headerlink" href="#important-options" title="Permanent link">&para;</a></h3>
@@ -1298,19 +1307,20 @@ log_level: debug
 </li>
 </ul>
 <p>Let&rsquo;s look how to set some of these options in config:</p>
-<pre><code class="javascript">{
-    &quot;secret&quot;: &quot;my-secret-key&quot;,
-    &quot;api_key&quot;: &quot;secret-api-key&quot;,
-    &quot;anonymous&quot;: true,
-    &quot;publish&quot;: true,
-    &quot;subscribe_to_publish&quot;: true,
-    &quot;presence&quot;: true,
-    &quot;join_leave&quot;: true,
-    &quot;history_size&quot;: 10,
-    &quot;history_lifetime&quot;: 300,
-    &quot;history_recover&quot;: true
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;secret&quot;</span><span class="o">:</span> <span class="s2">&quot;my-secret-key&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;anonymous&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="s2">&quot;publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="s2">&quot;subscribe_to_publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="s2">&quot;presence&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="s2">&quot;join_leave&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="s2">&quot;history_size&quot;</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="s2">&quot;history_lifetime&quot;</span><span class="o">:</span> <span class="mi">300</span><span class="p">,</span>
+    <span class="s2">&quot;history_recover&quot;</span><span class="o">:</span> <span class="kc">true</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>And the last channel specific option is <code>namespaces</code>. <code>namespaces</code> are optional and if set must be an array of namespace objects. Namespace allows to configure custom options for channels starting with namespace name. This provides a great control over channel behaviour.</p>
 <p>Namespace has a name and the same channel options (with same defaults) as described above.</p>
@@ -1323,32 +1333,33 @@ channel name with <code>:</code> as separator:</p>
 <p><code>gossips:messages</code></p>
 <p>Where <code>public</code> and <code>gossips</code> are namespace names from project <code>namespaces</code>.</p>
 <p>All things together here is an example of <code>config.json</code> which includes registered project with all options set and 2 additional namespaces in it:</p>
-<pre><code class="javascript">{
-    &quot;secret&quot;: &quot;very-long-secret-key&quot;,
-    &quot;api_key&quot;: &quot;secret-api-key&quot;,
-    &quot;anonymous&quot;: true,
-    &quot;publish&quot;: true,
-    &quot;presence&quot;: true,
-    &quot;join_leave&quot;: true,
-    &quot;history_size&quot;: 10,
-    &quot;history_lifetime&quot;: 30,
-    &quot;namespaces&quot;: [
-        {
-          &quot;name&quot;: &quot;public&quot;,
-          &quot;publish&quot;: true,
-          &quot;anonymous&quot;: true,
-          &quot;history_size&quot;: 10,
-          &quot;history_lifetime&quot;: 300,
-          &quot;history_recover&quot;: true
-        },
-        {
-          &quot;name&quot;: &quot;gossips&quot;,
-          &quot;presence&quot;: true,
-          &quot;join_leave&quot;: true
-        }
-    ]
-}
-</code></pre>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;secret&quot;</span><span class="o">:</span> <span class="s2">&quot;very-long-secret-key&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;anonymous&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="s2">&quot;publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="s2">&quot;presence&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="s2">&quot;join_leave&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="s2">&quot;history_size&quot;</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="s2">&quot;history_lifetime&quot;</span><span class="o">:</span> <span class="mi">30</span><span class="p">,</span>
+    <span class="s2">&quot;namespaces&quot;</span><span class="o">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+          <span class="s2">&quot;name&quot;</span><span class="o">:</span> <span class="s2">&quot;public&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+          <span class="s2">&quot;anonymous&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+          <span class="s2">&quot;history_size&quot;</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span>
+          <span class="s2">&quot;history_lifetime&quot;</span><span class="o">:</span> <span class="mi">300</span><span class="p">,</span>
+          <span class="s2">&quot;history_recover&quot;</span><span class="o">:</span> <span class="kc">true</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+          <span class="s2">&quot;name&quot;</span><span class="o">:</span> <span class="s2">&quot;gossips&quot;</span><span class="p">,</span>
+          <span class="s2">&quot;presence&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+          <span class="s2">&quot;join_leave&quot;</span><span class="o">:</span> <span class="kc">true</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
 
 <p>Channel <code>news</code> will use globally defined channel options.</p>
 <p>Channel <code>public:news</code> will use <code>public</code> namespace&rsquo;s options.</p>
@@ -1387,55 +1398,63 @@ channel name with <code>:</code> as separator:</p>
 <p>After you started Centrifugo you have several endpoints available. As soon as you have not provided any extra options you have 3 endpoints by default.</p>
 <h4 id="default-endpoints">Default endpoints.<a class="headerlink" href="#default-endpoints" title="Permanent link">&para;</a></h4>
 <p>The main endpoint is raw Websocket endpoint to serve client connections that use pure Websocket protocol:</p>
-<pre><code>ws://localhost:8000/connection/websocket
-</code></pre>
+<div class="codehilite"><pre><span></span>ws://localhost:8000/connection/websocket
+</pre></div>
+
 
 <p>Then there is SockJS endpoint - it&rsquo;s needed to serve client connections that use SockJS library:</p>
-<pre><code>http://localhost:8000/connection/sockjs
-</code></pre>
+<div class="codehilite"><pre><span></span>http://localhost:8000/connection/sockjs
+</pre></div>
+
 
 <p>And finally you have API endpoint to <code>publish</code> messages to channels (and execute other available API commands):</p>
-<pre><code>http://localhost:8000/api
-</code></pre>
+<div class="codehilite"><pre><span></span>http://localhost:8000/api
+</pre></div>
+
 
 <p>By default all endpoints work on port <code>8000</code>. You can change it using <code>port</code> option:</p>
-<pre><code>{
+<div class="codehilite"><pre><span></span>{
     &quot;port&quot;: 9000
 }
-</code></pre>
+</pre></div>
+
 
 <p>In production setup you will have your domain name in endpoint addresses above instead of <code>localhost</code>. Also if your Centrifugo will be behind proxy or load balancer software you most probably won&rsquo;t have ports in your endpoint addresses. What will always be the same as shown above are URL paths: <code>/connection/sockjs</code>, <code>/connection/websocket</code>, <code>/api</code>.</p>
 <p>Let&rsquo;s look at possibilities to tweak available endpoints.</p>
 <h4 id="admin-endpoints">Admin endpoints.<a class="headerlink" href="#admin-endpoints" title="Permanent link">&para;</a></h4>
 <p>First is enabling admin endpoints:</p>
-<pre><code>{
+<div class="codehilite"><pre><span></span>{
     ...
     &quot;admin&quot;: true,
     &quot;admin_password&quot;: &quot;password&quot;,
     &quot;admin_secret&quot;: &quot;secret&quot;
 }
-</code></pre>
+</pre></div>
+
 
 <p>This makes the following endpoint available: http://localhost:8000</p>
 <p>At this address you will see admin web interface. You can log into it using <code>admin_password</code> value shown above.</p>
 <h4 id="debug-endpoints">Debug endpoints.<a class="headerlink" href="#debug-endpoints" title="Permanent link">&para;</a></h4>
 <p>Next, when Centrifugo started in debug mode some extra debug endpoints become available. To start in debug mode add <code>debug</code> option to config:</p>
-<pre><code>{
+<div class="codehilite"><pre><span></span>{
     ...
     &quot;debug&quot;: true
 }
-</code></pre>
+</pre></div>
+
 
 <p>And endpoint:</p>
-<pre><code>http://localhost:8000/debug/pprof/
-</code></pre>
+<div class="codehilite"><pre><span></span>http://localhost:8000/debug/pprof/
+</pre></div>
+
 
 <p>– will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See <a href="https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues">wiki page</a> for more info.</p>
 <h4 id="healthcheck-endpoint">Healthcheck endpoint<a class="headerlink" href="#healthcheck-endpoint" title="Permanent link">&para;</a></h4>
 <p>New in v2.1.0</p>
 <p>Use <code>health</code> boolean option (by default <code>false</code>) to enable healthcheck endpoint which will be available on path <code>/health</code>. Also available over command-line flag:</p>
-<pre><code class="bash">./centrifugo -c config.json --health
-</code></pre>
+<div class="codehilite"><pre><span></span>./centrifugo -c config.json --health
+</pre></div>
+
 
 <h4 id="custom-internal-ports">Custom internal ports<a class="headerlink" href="#custom-internal-ports" title="Permanent link">&para;</a></h4>
 <p>We strongly recommend to not expose API, admin, debug and prometheus endpoints to Internet. The following Centrifugo endpoints are considered internal:</p>
@@ -1449,19 +1468,22 @@ channel name with <code>:</code> as separator:</p>
 <p>It&rsquo;s a good practice to protect those endpoints with firewall. For example you can do this in <code>location</code> section of Nginx configuration.</p>
 <p>Though sometimes you don&rsquo;t have access to per-location configuration in your proxy/load balancer software. For example when using Amazon ELB. In this case you can change ports on which your internal endpoints work.</p>
 <p>To run internal endpoints on custom port use <code>internal_port</code> option:</p>
-<pre><code>{
+<div class="codehilite"><pre><span></span>{
     ...
     &quot;internal_port&quot;: 9000
 }
-</code></pre>
+</pre></div>
+
 
 <p>So admin web interface will work on address:</p>
-<pre><code>http://localhost:9000
-</code></pre>
+<div class="codehilite"><pre><span></span>http://localhost:9000
+</pre></div>
+
 
 <p>Also debug page will be available on new custom port too:</p>
-<pre><code>http://localhost:9000/debug/pprof/
-</code></pre>
+<div class="codehilite"><pre><span></span>http://localhost:9000/debug/pprof/
+</pre></div>
+
 
 <p>The same for API and prometheus endpoint.</p>
                 
