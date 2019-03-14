@@ -14,9 +14,6 @@ import (
 
 const (
 	transportSockJS = "sockjs"
-	// We don't use specific close codes here because our connections
-	// can use other transport that do not have the same code semantics as SockJS.
-	sockjsCloseStatus = 3000
 )
 
 type sockjsTransport struct {
@@ -104,7 +101,7 @@ func (t *sockjsTransport) Close(disconnect *Disconnect) error {
 	if err != nil {
 		return err
 	}
-	return t.session.Close(sockjsCloseStatus, string(reason))
+	return t.session.Close(uint32(disconnect.Code), string(reason))
 }
 
 // SockjsConfig represents config for SockJS handler.

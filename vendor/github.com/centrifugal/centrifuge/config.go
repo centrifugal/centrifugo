@@ -82,15 +82,6 @@ type Config struct {
 	NodeInfoMetricsAggregateInterval time.Duration
 }
 
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
 // Validate validates config and returns error if problems found
 func (c *Config) Validate() error {
 	errPrefix := "config error: "

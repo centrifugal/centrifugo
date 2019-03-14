@@ -14,9 +14,6 @@ import (
 
 const (
 	transportWebsocket = "websocket"
-	// We don't use specific close codes here because our connections
-	// can use other transport that do not have the same code semantics as Websocket.
-	websocketCloseStatus = 3000
 )
 
 // websocketTransport is a wrapper struct over websocket connection to fit session
@@ -172,7 +169,7 @@ func (t *websocketTransport) Close(disconnect *Disconnect) error {
 		if err != nil {
 			return err
 		}
-		msg := websocket.FormatCloseMessage(websocketCloseStatus, string(reason))
+		msg := websocket.FormatCloseMessage(disconnect.Code, string(reason))
 		t.conn.WriteControl(websocket.CloseMessage, msg, deadline)
 		return t.conn.Close()
 	}

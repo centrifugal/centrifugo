@@ -1098,7 +1098,8 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 	}
 
 	return &centrifuge.RedisEngineConfig{
-		Shards: shardConfigs,
+		PublishOnHistoryAdd: true,
+		Shards:              shardConfigs,
 	}, nil
 }
 
