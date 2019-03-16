@@ -3,9 +3,9 @@ sudo: required
 language: go
 
 go:
-  # Use quotes to fill in safe:
+  # Use quotes here:
   # https://github.com/travis-ci/gimme/issues/132
-  - '1.11.x'
+  - '1.12.x'
   - 'tip'
 
 addons:
@@ -31,9 +31,9 @@ deploy:
     script: misc/release/release.sh --release-notes=misc/release/notes.md
     on:
       tags: true
-      go: '1.11.x'
+      go: '1.12.x'
   - provider: script
     script: misc/scripts/travis_packagecloud.sh
     on:
       tags: true 
-      go: '1.11.x'
+      go: '1.12.x'
