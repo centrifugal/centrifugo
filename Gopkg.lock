@@ -63,7 +63,7 @@
     "internal/uuid",
   ]
   pruneopts = "UT"
-  revision = "0b783697a7796b8f47440ae926a87ee7097f0752"
+  revision = "2c87884c4219348efcdea4656a1aa8be11244453"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
