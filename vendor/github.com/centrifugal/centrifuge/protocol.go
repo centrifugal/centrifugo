@@ -23,4 +23,13 @@ type (
 	ClientInfo = proto.ClientInfo
 	// Encoding represents client connection transport encoding format.
 	Encoding = proto.Encoding
+	// Push wraps Publication, Join or Leave.
+	Push = proto.Push
+)
+
+// Push types.
+var (
+	PushTypePublication = proto.PushTypePublication
+	PushTypeJoin        = proto.PushTypeJoin
+	PushTypeLeave       = proto.PushTypeLeave
 )

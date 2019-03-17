@@ -2,7 +2,7 @@ package centrifuge
 
 import (
 	"container/heap"
-	"context"
+	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -10,15 +10,21 @@ import (
 	"github.com/centrifugal/centrifuge/internal/priority"
 )
 
-// MemoryEngine allows to run Centrifugo without using Redis at all.
-// All data managed inside process memory. With this engine you can
-// only run single Centrifugo node. If you need to scale you should
-// use Redis engine instead.
+// MemoryEngine is builtin default engine which allows to run Centrifuge-based
+// server without any external brokers/storages. All data managed inside process
+// memory.
+//
+// With this engine you can only run single Centrifuge node. If you need to scale
+// you should use another engine implementation instead – for example Redis engine.
+//
+// Running single node can be sufficient for many use cases especially when you
+// need maximum performance and do not too many online clients. Consider configuring
+// your load balancer to have one backup Centrifuge node for HA in this case.
 type MemoryEngine struct {
 	node         *Node
-	eventHandler EngineEventHandler
 	presenceHub  *presenceHub
 	historyHub   *historyHub
+	eventHandler BrokerEventHandler
 }
 
 // MemoryEngineConfig is a memory engine config.
@@ -37,102 +43,80 @@ func NewMemoryEngine(n *Node, conf MemoryEngineConfig) (*MemoryEngine, error) {
 
 // Run runs memory engine - we do not have any logic here as Memory Engine ready to work
 // just after initialization.
-func (e *MemoryEngine) run(h EngineEventHandler) error {
+func (e *MemoryEngine) Run(h BrokerEventHandler) error {
 	e.eventHandler = h
-	return nil
-}
-
-func (e *MemoryEngine) shutdown(ctx context.Context) error {
 	return nil
 }
 
 // Publish adds message into history hub and calls node ClientMsg method to handle message.
 // We don't have any PUB/SUB here as Memory Engine is single node only.
-func (e *MemoryEngine) publish(ch string, pub *Publication, opts *ChannelOptions) <-chan error {
-
-	if opts != nil && opts.HistorySize > 0 && opts.HistoryLifetime > 0 {
-		err := e.historyHub.add(ch, pub, opts)
-		if err != nil {
-			eChan := make(chan error, 1)
-			eChan <- err
-			return eChan
-		}
-	}
-
-	eChan := make(chan error, 1)
-	eChan <- e.eventHandler.HandlePublication(ch, pub)
-	return eChan
+func (e *MemoryEngine) Publish(ch string, pub *Publication, opts *ChannelOptions) error {
+	return e.eventHandler.HandlePublication(ch, pub)
 }
 
 // PublishJoin - see engine interface description.
-func (e *MemoryEngine) publishJoin(ch string, join *Join, opts *ChannelOptions) <-chan error {
-	eChan := make(chan error, 1)
-	eChan <- e.eventHandler.HandleJoin(ch, join)
-	return eChan
+func (e *MemoryEngine) PublishJoin(ch string, join *Join, opts *ChannelOptions) error {
+	return e.eventHandler.HandleJoin(ch, join)
 }
 
 // PublishLeave - see engine interface description.
-func (e *MemoryEngine) publishLeave(ch string, leave *Leave, opts *ChannelOptions) <-chan error {
-	eChan := make(chan error, 1)
-	eChan <- e.eventHandler.HandleLeave(ch, leave)
-	return eChan
+func (e *MemoryEngine) PublishLeave(ch string, leave *Leave, opts *ChannelOptions) error {
+	return e.eventHandler.HandleLeave(ch, leave)
 }
 
 // PublishControl - see Engine interface description.
-func (e *MemoryEngine) publishControl(data []byte) <-chan error {
-	eChan := make(chan error, 1)
-	eChan <- e.eventHandler.HandleControl(data)
-	return eChan
+func (e *MemoryEngine) PublishControl(data []byte) error {
+	return e.eventHandler.HandleControl(data)
 }
 
 // Subscribe is noop here.
-func (e *MemoryEngine) subscribe(ch string) error {
+func (e *MemoryEngine) Subscribe(ch string) error {
 	return nil
 }
 
 // Unsubscribe node from channel.
-func (e *MemoryEngine) unsubscribe(ch string) error {
+func (e *MemoryEngine) Unsubscribe(ch string) error {
 	return nil
 }
 
 // AddPresence - see engine interface description.
-func (e *MemoryEngine) addPresence(ch string, uid string, info *ClientInfo, exp time.Duration) error {
+func (e *MemoryEngine) AddPresence(ch string, uid string, info *ClientInfo, exp time.Duration) error {
 	return e.presenceHub.add(ch, uid, info)
 }
 
 // RemovePresence - see engine interface description.
-func (e *MemoryEngine) removePresence(ch string, uid string) error {
+func (e *MemoryEngine) RemovePresence(ch string, uid string) error {
 	return e.presenceHub.remove(ch, uid)
 }
 
 // Presence - see engine interface description.
-func (e *MemoryEngine) presence(ch string) (map[string]*ClientInfo, error) {
+func (e *MemoryEngine) Presence(ch string) (map[string]*ClientInfo, error) {
 	return e.presenceHub.get(ch)
 }
 
 // PresenceStats - see engine interface description.
-func (e *MemoryEngine) presenceStats(ch string) (PresenceStats, error) {
+func (e *MemoryEngine) PresenceStats(ch string) (PresenceStats, error) {
 	return e.presenceHub.getStats(ch)
 }
 
 // History - see engine interface description.
-func (e *MemoryEngine) history(ch string, limit int) ([]*Publication, error) {
-	return e.historyHub.get(ch, limit)
+func (e *MemoryEngine) History(ch string, filter HistoryFilter) ([]*Publication, RecoveryPosition, error) {
+	return e.historyHub.get(ch, filter)
 }
 
-// RecoverHistory - see engine interface description.
-func (e *MemoryEngine) recoverHistory(ch string, since *recovery) ([]*Publication, bool, recovery, error) {
-	return e.historyHub.recover(ch, since)
+// AddHistory - see engine interface description.
+func (e *MemoryEngine) AddHistory(ch string, pub *Publication, opts *ChannelOptions) (*Publication, error) {
+	return e.historyHub.add(ch, pub, opts)
 }
 
 // RemoveHistory - see engine interface description.
-func (e *MemoryEngine) removeHistory(ch string) error {
+func (e *MemoryEngine) RemoveHistory(ch string) error {
 	return e.historyHub.remove(ch)
 }
 
 // Channels - see engine interface description.
-func (e *MemoryEngine) channels() ([]string, error) {
-	return e.node.hub.Channels(), nil
+func (e *MemoryEngine) Channels() ([]string, error) {
+	return e.node.Hub().Channels(), nil
 }
 
 type presenceHub struct {
@@ -290,7 +274,7 @@ func (h *historyHub) expire() {
 	}
 }
 
-func (h *historyHub) next(ch string) (uint32, uint32) {
+func (h *historyHub) next(ch string) uint64 {
 	var val uint64
 	h.sequencesMu.Lock()
 	top, ok := h.sequences[ch]
@@ -303,7 +287,7 @@ func (h *historyHub) next(ch string) (uint32, uint32) {
 		val = top
 	}
 	h.sequencesMu.Unlock()
-	return unpackUint64(val)
+	return val
 }
 
 func unpackUint64(val uint64) (uint32, uint32) {
@@ -323,11 +307,12 @@ func (h *historyHub) getSequence(ch string) (uint32, uint32, string) {
 	return seq, gen, h.epoch
 }
 
-func (h *historyHub) add(ch string, pub *Publication, opts *ChannelOptions) error {
+func (h *historyHub) add(ch string, pub *Publication, opts *ChannelOptions) (*Publication, error) {
 	h.Lock()
 	defer h.Unlock()
 
-	pub.Seq, pub.Gen = h.next(ch)
+	index := h.next(ch)
+	pub.Seq, pub.Gen = unpackUint64(index)
 
 	_, ok := h.history[ch]
 
@@ -354,34 +339,86 @@ func (h *historyHub) add(ch string, pub *Publication, opts *ChannelOptions) erro
 		h.nextCheck = expireAt
 	}
 
-	return nil
+	return pub, nil
 }
 
-func (h *historyHub) get(ch string, limit int) ([]*Publication, error) {
+func (h *historyHub) get(ch string, filter HistoryFilter) ([]*Publication, RecoveryPosition, error) {
 	h.RLock()
 	defer h.RUnlock()
-	return h.getUnsafe(ch, limit)
+	return h.getUnsafe(ch, filter)
 }
 
-func (h *historyHub) getUnsafe(ch string, limit int) ([]*Publication, error) {
+func (h *historyHub) getPublications(ch string) []*Publication {
 	hItem, ok := h.history[ch]
 	if !ok {
-		// return empty slice
-		return []*Publication{}, nil
+		return []*Publication{}
 	}
 	if hItem.isExpired() {
-		// return empty slice
 		delete(h.history, ch)
-		return []*Publication{}, nil
+		return []*Publication{}
 	}
-	if limit == 0 || limit >= len(hItem.messages) {
-		pubs := make([]*Publication, len(hItem.messages))
-		copy(pubs, hItem.messages)
-		return pubs, nil
+	pubs := hItem.messages
+	pubsCopy := make([]*Publication, len(pubs))
+	copy(pubsCopy, pubs)
+
+	for i := len(pubsCopy)/2 - 1; i >= 0; i-- {
+		opp := len(pubsCopy) - 1 - i
+		pubsCopy[i], pubsCopy[opp] = pubsCopy[opp], pubsCopy[i]
 	}
-	pubs := make([]*Publication, len(hItem.messages[:limit]))
-	copy(pubs, hItem.messages[:limit])
-	return hItem.messages[:limit], nil
+	return pubsCopy
+}
+
+func (h *historyHub) getUnsafe(ch string, filter HistoryFilter) ([]*Publication, RecoveryPosition, error) {
+	latestSeq, latestGen, latestEpoch := h.getSequence(ch)
+	latestPosition := RecoveryPosition{Seq: latestSeq, Gen: latestGen, Epoch: latestEpoch}
+
+	if filter.Since == nil {
+		if filter.Limit == 0 {
+			return nil, latestPosition, nil
+		}
+		allPubs := h.getPublications(ch)
+		if filter.Limit == -1 || filter.Limit >= len(allPubs) {
+			return allPubs, latestPosition, nil
+		}
+		return allPubs[:filter.Limit], latestPosition, nil
+	}
+
+	allPubs := h.getPublications(ch)
+
+	since := filter.Since
+
+	if latestSeq == since.Seq && since.Gen == latestGen && since.Epoch == latestEpoch {
+		return nil, latestPosition, nil
+	}
+
+	nextSeq, nextGen := nextSeqGen(since.Seq, since.Gen)
+
+	position := -1
+
+	for i := 0; i < len(allPubs); i++ {
+		pub := allPubs[i]
+		if pub.Seq == since.Seq && pub.Gen == since.Gen {
+			position = i + 1
+			break
+		}
+		if pub.Seq == nextSeq && pub.Gen == nextGen {
+			position = i
+			break
+		}
+	}
+
+	if position > -1 {
+		pubs := allPubs[position:]
+		if filter.Limit >= 0 {
+			return pubs[:filter.Limit], latestPosition, nil
+		}
+		return pubs, latestPosition, nil
+	}
+
+	if filter.Limit >= 0 {
+		return allPubs[:filter.Limit], latestPosition, nil
+	}
+	return allPubs, latestPosition, nil
 }
 
 func (h *historyHub) remove(ch string) error {
@@ -396,52 +433,6 @@ func (h *historyHub) remove(ch string) error {
 }
 
 const (
-	maxSeq = 4294967295 // maximum uint32 value
-	maxGen = 4294967295 // maximum uint32 value
+	maxSeq uint32 = math.MaxUint32 // maximum uint32 value
+	maxGen uint32 = math.MaxUint32 // maximum uint32 value
 )
-
-func (h *historyHub) recover(ch string, since *recovery) ([]*Publication, bool, recovery, error) {
-	h.RLock()
-	defer h.RUnlock()
-
-	currentSeq, currentGen, currentEpoch := h.getSequence(ch)
-	if since == nil {
-		return nil, false, recovery{currentSeq, currentGen, currentEpoch}, nil
-	}
-
-	if currentSeq == since.Seq && since.Gen == currentGen && since.Epoch == currentEpoch {
-		return nil, true, recovery{currentSeq, currentGen, currentEpoch}, nil
-	}
-
-	publications, err := h.getUnsafe(ch, 0)
-	if err != nil {
-		return nil, false, recovery{}, err
-	}
-
-	nextSeq := since.Seq + 1
-	nextGen := since.Gen
-
-	if nextSeq > maxSeq {
-		nextSeq = 0
-		nextGen = nextGen + 1
-	}
-
-	position := -1
-
-	for i := len(publications) - 1; i >= 0; i-- {
-		msg := publications[i]
-		if msg.Seq == since.Seq && msg.Gen == since.Gen {
-			position = i
-			break
-		}
-		if msg.Seq == nextSeq && msg.Gen == nextGen {
-			position = i + 1
-			break
-		}
-	}
-	if position > -1 {
-		return publications[0:position], since.Epoch == currentEpoch, recovery{currentSeq, currentGen, currentEpoch}, nil
-	}
-
-	return publications, false, recovery{currentSeq, currentGen, currentEpoch}, nil
-}

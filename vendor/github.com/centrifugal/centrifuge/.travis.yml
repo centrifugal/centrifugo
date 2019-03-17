@@ -1,8 +1,8 @@
 language: go
 
 go:
-  - "1.10.x"
   - "1.11.x"
+  - "1.12.x"
   - tip
 
 services:
@@ -10,12 +10,9 @@ services:
 
 before_install:
   - go get -u github.com/golang/dep/cmd/dep
-  - go get -u github.com/alecthomas/gometalinter
-  - gometalinter --install
 
 install:
   - dep ensure
 
 script:
-  # - gometalinter -t --vendor ./...
-  - go test -v -race -tags integration $(go list ./... | grep -v /examples/)
+  - go test -v -race -tags integration $(go list ./... | grep -v /_examples/)

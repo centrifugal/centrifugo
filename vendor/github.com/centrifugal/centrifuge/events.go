@@ -61,7 +61,8 @@ type UnsubscribeHandler func(UnsubscribeEvent) UnsubscribeReply
 // PublishEvent contains fields related to publish event.
 type PublishEvent struct {
 	Channel string
-	*Publication
+	Data    Raw
+	Info    *ClientInfo
 }
 
 // PublishReply contains fields determining the reaction on publish event.

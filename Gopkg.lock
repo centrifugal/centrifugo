@@ -2,12 +2,12 @@
 
 
 [[projects]]
-  branch = "master"
   digest = "1:ec388815e7c8b18a47865b15ba6dd8d40803820a0412d7592d9d9bd09baaa691"
   name = "github.com/FZambia/eagle"
   packages = ["."]
   pruneopts = "UT"
   revision = "e14cdafa019627b5b74689ab7173f6b6ed93a55b"
+  version = "v0.0.1"
 
 [[projects]]
   digest = "1:8e379117c74df8f21127a82e1599de345efad7770fa91dd2ea20195471014fb4"
@@ -51,7 +51,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:25ad4b227fbfd72a5d23d77d134134aa6cda00198ddf6d84c5c20535bdafb3f5"
+  digest = "1:981c1aef93a6ffdd80e7d249912b0da8409ba704593f081283349cdaf803637f"
   name = "github.com/centrifugal/centrifuge"
   packages = [
     ".",
@@ -63,7 +63,7 @@
     "internal/uuid",
   ]
   pruneopts = "UT"
-  revision = "2ab7e8f43f3d49e5b3a01fb8d907f2e1459c7fd7"
+  revision = "2c87884c4219348efcdea4656a1aa8be11244453"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
@@ -82,7 +82,7 @@
   version = "v3.2.0"
 
 [[projects]]
-  digest = "1:295c678b7bcd8a28f77c5bdb565b4f56a7710fcbf3754d78d2465bfdf44aef68"
+  digest = "1:95e1006e41c641abd2f365dfa0f1213c04da294e7cd5f0bf983af234b775db64"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -93,8 +93,8 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "1adfc126b41513cc696b209667c8656ea7aac67c"
-  version = "v1.0.0"
+  revision = "ba06b47c162d49f2af050fb4c75bcbc86a159d5c"
+  version = "v1.2.1"
 
 [[projects]]
   digest = "1:17fe264ee908afc795734e8c4e63db2accabaf57326dbf21763a7d6b86096260"
@@ -194,15 +194,16 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:d14a5f4bfecf017cb780bdde1b6483e5deb87e12c332544d2c430eda58734bcb"
+  digest = "1:93a746f1060a8acbcf69344862b2ceced80f854170e1caae089b2834c5fbf7f4"
   name = "github.com/prometheus/client_golang"
   packages = [
     "prometheus",
+    "prometheus/internal",
     "prometheus/promhttp",
   ]
   pruneopts = "UT"
-  revision = "c5b7fccd204277076155f10851dad72b76a49317"
-  version = "v0.8.0"
+  revision = "505eaef017263e299324067d40ca2c48f6a2cf50"
+  version = "v0.9.2"
 
 [[projects]]
   branch = "master"

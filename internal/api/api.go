@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifuge"
@@ -49,14 +50,7 @@ func (h *apiExecutor) Publish(ctx context.Context, cmd *PublishRequest) *Publish
 		return resp
 	}
 
-	pub := &centrifuge.Publication{
-		Data: centrifuge.Raw(cmd.Data),
-	}
-	if cmd.UID != "" {
-		pub.UID = cmd.UID
-	}
-
-	err := <-h.node.PublishAsync(cmd.Channel, pub)
+	err := h.node.Publish(cmd.Channel, cmd.Data)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing message in engine", map[string]interface{}{"error": err.Error()}))
 		resp.Error = ErrorInternal
@@ -88,7 +82,9 @@ func (h *apiExecutor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Bro
 		return resp
 	}
 
-	errs := make([]<-chan error, len(channels))
+	errs := make([]error, len(channels))
+
+	var wg sync.WaitGroup
 
 	for i, ch := range channels {
 
@@ -105,18 +101,17 @@ func (h *apiExecutor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Bro
 			return resp
 		}
 
-		pub := &centrifuge.Publication{
-			Data: centrifuge.Raw(cmd.Data),
-		}
-		if cmd.UID != "" {
-			pub.UID = cmd.UID
-		}
-		errs[i] = h.node.PublishAsync(ch, pub)
+		wg.Add(1)
+		go func(i int, ch string) {
+			errs[i] = h.node.Publish(ch, data)
+			wg.Done()
+		}(i, ch)
 	}
+	wg.Wait()
 
 	var firstErr error
 	for i := range errs {
-		err := <-errs[i]
+		err := errs[i]
 		if err != nil {
 			if firstErr == nil {
 				firstErr = err
