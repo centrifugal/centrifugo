@@ -50,7 +50,6 @@ message Reply {
 message PublishRequest {
     string channel = 1;
     bytes data = 2;
-    string uid = 3;
 }
 
 message PublishResponse {
@@ -63,7 +62,6 @@ message PublishResult {}
 message BroadcastRequest {
     repeated string channels = 1;
     bytes data = 2;
-    string uid = 3;
 }
 
 message BroadcastResponse {

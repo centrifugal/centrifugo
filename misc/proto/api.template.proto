@@ -60,7 +60,6 @@ message Reply {
 message PublishRequest {
     string channel = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "channel"]{{end}};
     bytes data = 2{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false]{{end}};
-    string uid = 3{{if env.Getenv "GOGO"}} [(gogoproto.customname) = "UID", (gogoproto.jsontag) = "uid"]{{end}};
 }
 
 message PublishResponse {
@@ -73,7 +72,6 @@ message PublishResult {}
 message BroadcastRequest {
     repeated string channels = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "channels"]{{end}};
     bytes data = 2{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false]{{end}};
-    string uid = 3{{if env.Getenv "GOGO"}} [(gogoproto.customname) = "UID", (gogoproto.jsontag) = "uid"]{{end}};
 }
 
 message BroadcastResponse {
