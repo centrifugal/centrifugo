@@ -64,14 +64,27 @@ func (t *sockjsTransport) write(data ...[]byte) error {
 	case <-t.closeCh:
 		return nil
 	default:
-		for _, payload := range data {
-			// TODO: can actually be sent in single message as streaming JSON.
+		if len(data) == 1 {
+			payload := data[0]
 			err := t.session.Send(string(payload))
 			if err != nil {
 				go t.Close(DisconnectWriteError)
 				return err
 			}
 			transportMessagesSent.WithLabelValues(transportSockJS).Inc()
+		} else {
+			buf := getBuffer()
+			for _, payload := range data {
+				buf.Write(payload)
+			}
+			err := t.session.Send(buf.String())
+			if err != nil {
+				go t.Close(DisconnectWriteError)
+				putBuffer(buf)
+				return err
+			}
+			putBuffer(buf)
+			transportMessagesSent.WithLabelValues(transportSockJS).Add(float64(len(data)))
 		}
 		return nil
 	}

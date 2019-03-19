@@ -180,9 +180,11 @@ func (w *writer) close() error {
 	w.mu.Unlock()
 
 	remaining := w.messages.CloseRemaining()
-	w.mu.Lock()
-	w.writeFn(remaining...)
-	w.mu.Unlock()
+	if len(remaining) > 0 {
+		w.mu.Lock()
+		w.writeFn(remaining...)
+		w.mu.Unlock()
+	}
 
 	return nil
 }

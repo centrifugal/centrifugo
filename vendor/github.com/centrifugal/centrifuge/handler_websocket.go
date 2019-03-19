@@ -117,24 +117,27 @@ func (t *websocketTransport) write(data ...[]byte) error {
 		if t.Encoding() == proto.EncodingProtobuf {
 			messageType = websocket.BinaryMessage
 		}
-		writer, err := t.conn.NextWriter(messageType)
-		if err != nil {
-			go t.Close(DisconnectWriteError)
-			return err
-		}
-		bytesOut := 0
-		for _, payload := range data {
-			n, err := writer.Write(payload)
-			if n != len(payload) || err != nil {
+
+		if len(data) == 1 {
+			// no need in extra byte buffers in this path.
+			payload := data[0]
+			err := t.conn.WriteMessage(messageType, payload)
+			if err != nil {
 				go t.Close(DisconnectWriteError)
 				return err
 			}
-			bytesOut += len(data)
-		}
-		err = writer.Close()
-		if err != nil {
-			go t.Close(DisconnectWriteError)
-			return err
+		} else {
+			buf := getBuffer()
+			for _, payload := range data {
+				buf.Write(payload)
+			}
+			err := t.conn.WriteMessage(messageType, buf.Bytes())
+			if err != nil {
+				go t.Close(DisconnectWriteError)
+				putBuffer(buf)
+				return err
+			}
+			putBuffer(buf)
 		}
 		if t.opts.writeTimeout > 0 {
 			t.conn.SetWriteDeadline(time.Time{})
