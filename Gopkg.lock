@@ -336,7 +336,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1811b911718313b3aee5520657d353d66078023b1021420a2b6af2f1e63cea55"
+  digest = "1:572b6df89eb19c339c9f4f10f18fab002eb0a8d6c972c43525783d1c345a3256"
   name = "golang.org/x/crypto"
   packages = [
     "acme",
@@ -345,7 +345,7 @@
     "ed25519/internal/edwards25519",
   ]
   pruneopts = "UT"
-  revision = "1a580b3eff7814fc9b40602fd35256c63b50f491"
+  revision = "a1f597ede03a7bef967a422b5b3a5bd08805a01e"
 
 [[projects]]
   branch = "master"
