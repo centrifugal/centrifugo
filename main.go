@@ -27,6 +27,7 @@ import (
 	"github.com/centrifugal/centrifugo/internal/health"
 	"github.com/centrifugal/centrifugo/internal/metrics/graphite"
 	"github.com/centrifugal/centrifugo/internal/middleware"
+	"github.com/centrifugal/centrifugo/internal/natsbroker"
 	"github.com/centrifugal/centrifugo/internal/webui"
 
 	"github.com/FZambia/viper-lite"
@@ -75,7 +76,7 @@ func main() {
 				"client_insecure", "admin_insecure", "api_insecure", "port", "address", "tls",
 				"tls_cert", "tls_key", "tls_external", "internal_port", "internal_address", "prometheus",
 				"health", "redis_host", "redis_port", "redis_password", "redis_db", "redis_url", "redis_tls",
-				"redis_tls_skip_verify", "redis_master_name", "redis_sentinels", "grpc_api",
+				"redis_tls_skip_verify", "redis_master_name", "redis_sentinels", "grpc_api", "broker",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -134,12 +135,13 @@ func main() {
 			setLogHandler(node)
 
 			engineName := viper.GetString("engine")
+			brokerName := viper.GetString("broker")
 
 			var e centrifuge.Engine
 			if engineName == "memory" {
 				e, err = memoryEngine(node)
 			} else if engineName == "redis" {
-				e, err = redisEngine(node)
+				e, err = redisEngine(node, brokerName == "")
 			} else {
 				log.Fatal().Msgf("Unknown engine: %s", engineName)
 			}
@@ -149,6 +151,16 @@ func main() {
 			}
 
 			node.SetEngine(e)
+
+			if brokerName == "nats" {
+				broker, err := natsbroker.New(node, natsbroker.Config{
+					Prefix: viper.GetString("nats_prefix"),
+				})
+				if err != nil {
+					log.Fatal().Msgf("Error creating broker: %v", err)
+				}
+				node.SetBroker(broker)
+			}
 
 			if err = node.Run(); err != nil {
 				log.Fatal().Msgf("Error running node: %v", err)
@@ -227,6 +239,7 @@ func main() {
 
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringP("engine", "e", "memory", "engine to use: memory or redis")
+	rootCmd.Flags().StringP("broker", "", "", "custom broker to use: ex. nats")
 	rootCmd.Flags().StringP("log_level", "", "info", "set the log level: debug, info, error, fatal or none")
 	rootCmd.Flags().StringP("log_file", "", "", "optional log file - if not specified logs go to STDOUT")
 	rootCmd.Flags().StringP("pid_file", "", "", "optional path to create PID file")
@@ -314,6 +327,7 @@ func main() {
 var configDefaults = map[string]interface{}{
 	"gomaxprocs":                           0,
 	"engine":                               "memory",
+	"broker":                               "",
 	"name":                                 "",
 	"secret":                               "",
 	"publish":                              false,
@@ -380,6 +394,7 @@ var configDefaults = map[string]interface{}{
 	"graphite_prefix":                      "centrifugo",
 	"graphite_interval":                    10,
 	"graphite_tags":                        false,
+	"nats_prefix":                          "centrifugo",
 }
 
 func writePidFile(pidFile string) error {
@@ -906,8 +921,8 @@ func memoryEngine(n *centrifuge.Node) (centrifuge.Engine, error) {
 	return centrifuge.NewMemoryEngine(n, *c)
 }
 
-func redisEngine(n *centrifuge.Node) (centrifuge.Engine, error) {
-	c, err := redisEngineConfig()
+func redisEngine(n *centrifuge.Node, publishOnHistoryAdd bool) (centrifuge.Engine, error) {
+	c, err := redisEngineConfig(publishOnHistoryAdd)
 	if err != nil {
 		return nil, err
 	}
@@ -918,7 +933,7 @@ func memoryEngineConfig() (*centrifuge.MemoryEngineConfig, error) {
 	return &centrifuge.MemoryEngineConfig{}, nil
 }
 
-func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
+func redisEngineConfig(publishOnHistoryAdd bool) (*centrifuge.RedisEngineConfig, error) {
 	v := viper.GetViper()
 
 	numShards := 1
@@ -1098,7 +1113,7 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 	}
 
 	return &centrifuge.RedisEngineConfig{
-		PublishOnHistoryAdd: true,
+		PublishOnHistoryAdd: publishOnHistoryAdd,
 		Shards:              shardConfigs,
 	}, nil
 }
