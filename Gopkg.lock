@@ -178,6 +178,41 @@
   revision = "bb74f1db0675b241733089d5a1faa5dd8b0ef57b"
 
 [[projects]]
+  digest = "1:95837473f879ea39a76b82c43c7badf93a4b27b2d5654182ec3d1728f8ebec30"
+  name = "github.com/nats-io/go-nats"
+  packages = [
+    "encoders/builtin",
+    "util",
+  ]
+  pruneopts = "UT"
+  revision = "70fe06cee50d4b6f98248d9675fb55f2a3aa7228"
+  version = "v1.7.2"
+
+[[projects]]
+  digest = "1:dcb8019bc74228b95b7cd74fd8eaced3ea528290d85cc8cc864b071e98422ee9"
+  name = "github.com/nats-io/nats"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "70fe06cee50d4b6f98248d9675fb55f2a3aa7228"
+  version = "v1.7.2"
+
+[[projects]]
+  digest = "1:0b5d91120efc54504bc253fda90b08c4be88cd78a4023ef60019e95bb0cdc136"
+  name = "github.com/nats-io/nkeys"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "1546a3320a8f195a5b5c84aef8309377c2e411d5"
+  version = "v0.0.2"
+
+[[projects]]
+  digest = "1:c3cd663f2f30b92536b9f290ac85c6310dae36a14cb8961553ae9ccf0d85ae41"
+  name = "github.com/nats-io/nuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "289cccf02c178dc782430d534e3c1f5b72af807f"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:7231124c9669dfb54b82ef8b89f2735cf5d5d2529a23c6ac93a8c4b8bbb28b28"
   name = "github.com/pelletier/go-toml"
   packages = ["."]
@@ -301,11 +336,13 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:507fa82feeba6c3651d3cfb7593a498144ae6455e1b00dde2e0c344cdfdc9c4d"
+  digest = "1:1811b911718313b3aee5520657d353d66078023b1021420a2b6af2f1e63cea55"
   name = "golang.org/x/crypto"
   packages = [
     "acme",
     "acme/autocert",
+    "ed25519",
+    "ed25519/internal/edwards25519",
   ]
   pruneopts = "UT"
   revision = "1a580b3eff7814fc9b40602fd35256c63b50f491"
@@ -422,6 +459,7 @@
     "github.com/gogo/protobuf/proto",
     "github.com/gorilla/securecookie",
     "github.com/mattn/go-isatty",
+    "github.com/nats-io/nats",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/prometheus/client_golang/prometheus/promhttp",
     "github.com/rs/zerolog",

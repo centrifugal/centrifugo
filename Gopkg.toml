@@ -72,6 +72,10 @@
   name = "google.golang.org/grpc"
   version = "1.14.0"
 
+[[constraint]]
+  name = "github.com/nats-io/nats"
+  version = "1.7.2"
+
 [prune]
   go-tests = true
   unused-packages = true
