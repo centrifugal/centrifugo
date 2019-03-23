@@ -48,6 +48,10 @@ type Config struct {
 	// closed if still not authenticated (i.e. no valid connect command
 	// received yet).
 	ClientStaleCloseDelay time.Duration
+	// ClientChannelPositionCheckDelay defines minimal time from previous
+	// client position check in channel. If client does not pass check it will
+	// be disconnected with DisconnectInsufficientState.
+	ClientChannelPositionCheckDelay time.Duration
 	// ClientMessageWriteTimeout is maximum time of write message operation.
 	// Slow client will be disconnected. By default we don't use this option (i.e. it's 0)
 	// and slow client connections will be closed when there queue size exceeds
@@ -143,16 +147,17 @@ var DefaultConfig = Config{
 	ChannelUserBoundary:      "#", // so user limited channel is "user#2694" where "2696" is user ID
 	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019"
 
-	ClientInsecure:               false,
-	ClientAnonymous:              false,
-	ClientPresencePingInterval:   25 * time.Second,
-	ClientPresenceExpireInterval: 60 * time.Second,
-	ClientMessageWriteTimeout:    0,
-	ClientPingInterval:           25 * time.Second,
-	ClientExpiredCloseDelay:      25 * time.Second,
-	ClientExpiredSubCloseDelay:   25 * time.Second,
-	ClientStaleCloseDelay:        25 * time.Second,
-	ClientRequestMaxSize:         65536,    // 64KB by default
-	ClientQueueMaxSize:           10485760, // 10MB by default
-	ClientChannelLimit:           128,
+	ClientInsecure:                  false,
+	ClientAnonymous:                 false,
+	ClientPresencePingInterval:      25 * time.Second,
+	ClientPresenceExpireInterval:    60 * time.Second,
+	ClientMessageWriteTimeout:       0,
+	ClientPingInterval:              25 * time.Second,
+	ClientExpiredCloseDelay:         25 * time.Second,
+	ClientExpiredSubCloseDelay:      25 * time.Second,
+	ClientStaleCloseDelay:           25 * time.Second,
+	ClientChannelPositionCheckDelay: 40 * time.Second,
+	ClientRequestMaxSize:            65536,    // 64KB by default
+	ClientQueueMaxSize:              10485760, // 10MB by default
+	ClientChannelLimit:              128,
 }

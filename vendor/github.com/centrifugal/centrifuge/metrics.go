@@ -63,6 +63,13 @@ var (
 		Help:      "Number of errors in replies sent to clients.",
 	}, []string{"method", "code"})
 
+	serverDisconnectCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: metricsNamespace,
+		Subsystem: "client",
+		Name:      "num_server_disconnects",
+		Help:      "Number of server initiated disconnects.",
+	}, []string{"code"})
+
 	commandDurationSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
 		Namespace:  metricsNamespace,
 		Subsystem:  "client",
@@ -102,6 +109,7 @@ func init() {
 	prometheus.MustRegister(numChannelsGauge)
 	prometheus.MustRegister(commandDurationSummary)
 	prometheus.MustRegister(replyErrorCount)
+	prometheus.MustRegister(serverDisconnectCount)
 	prometheus.MustRegister(recoverCount)
 	prometheus.MustRegister(transportConnectCount)
 	prometheus.MustRegister(transportMessagesSent)

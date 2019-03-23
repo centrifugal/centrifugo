@@ -5,7 +5,7 @@
 
 **This library has no v1 release yet so API can be changed. Use with strict versioning.**
 
-Centrifuge library represents real-time core for [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also aimed to be a general purpose real-time messaging library for Go programming language.
+Centrifuge library is a real-time core of [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also aimed to be a general purpose real-time messaging library for Go programming language.
 
 Message transports:
 
@@ -15,13 +15,16 @@ Message transports:
 Features:
 
 * Fast and optimized for low-latency communication with thousands of client connections
-* Scaling to many nodes with Redis PUB/SUB, built-in Redis sharding, Sentinel for HA
-* Bidirectional asynchronous message communication, RPC calls
+* JSON and binary Protobuf protocol support 
+* Built-in horizontal scalability with Redis PUB/SUB, Redis sharding, Sentinel for HA
+* Possibility to register custom PUB/SUB broker, history and presence storage
+* Native authentication over middleware or JWT-based.
+* Bidirectional asynchronous message communication and RPC calls
 * Channel (room) concept to broadcast message to all channel subscribers
 * Presence information for channels (show all active clients in channel)
 * History information for channels (last messages published into channel)
 * Join/leave events for channels (aka client goes online/offline)
-* Message recovery mechanism for channels to survive short network disconnects
+* Message recovery mechanism for channels to survive short network disconnects or node restart
 * MIT license
 
 Client libraries:
@@ -229,7 +232,9 @@ Keep in mind that Centrifuge library is not a framework to build chat apps. It's
 
 ### For contributors
 
-Currently library uses `dep` to manage dependencies. This is how you can clone library and install all required dependencies locally:
+Library uses both `dep` and `go mod` to manage dependencies.
+
+Here is an example on how you can clone library and install all required dependencies locally:
 
 ```bash
 mkdir -p $GOPATH/src/github.com/centrifugal

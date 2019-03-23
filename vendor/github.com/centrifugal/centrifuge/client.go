@@ -101,10 +101,10 @@ func SetCredentials(ctx context.Context, creds *Credentials) context.Context {
 
 // ChannelContext contains extra context for channel connection subscribed to.
 type ChannelContext struct {
-	Info             proto.Raw
-	expireAt         int64
-	lastPubTime      int64
-	recoveryPosition RecoveryPosition
+	Info              proto.Raw
+	expireAt          int64
+	positionCheckTime time.Time
+	recoveryPosition  RecoveryPosition
 }
 
 // Client represents client connection to server.
@@ -190,11 +190,11 @@ func (c *Client) closeUnauthenticated() {
 }
 
 // updateChannelPresence updates client presence info for channel so it
-// won't expire until client disconnect
+// won't expire until client disconnect.
 func (c *Client) updateChannelPresence(ch string) error {
 	chOpts, ok := c.node.ChannelOpts(ch)
 	if !ok {
-		return ErrorNamespaceNotFound
+		return nil
 	}
 	if !chOpts.Presence {
 		return nil
@@ -214,12 +214,15 @@ func (c *Client) checkSubscriptionExpiration(channel string, channelContext Chan
 			if reply.Expired || (reply.ExpireAt > 0 && reply.ExpireAt < now) {
 				return false
 			}
-			ctx := c.channels[channel]
-			if len(reply.Info) > 0 {
-				ctx.Info = reply.Info
+			c.mu.Lock()
+			if ctx, ok := c.channels[channel]; ok {
+				if len(reply.Info) > 0 {
+					ctx.Info = reply.Info
+				}
+				ctx.expireAt = reply.ExpireAt
+				c.channels[channel] = ctx
 			}
-			ctx.expireAt = reply.ExpireAt
-			c.channels[channel] = ctx
+			c.mu.Unlock()
 		} else {
 			// The only way subscription could be refreshed in this case is via
 			// SUB_REFRESH command sent from client but looks like that command
@@ -230,11 +233,7 @@ func (c *Client) checkSubscriptionExpiration(channel string, channelContext Chan
 	return true
 }
 
-// updatePresence updates presence info for all client channels.
-// At moment it also checks for expired subscriptions. As this happens
-// once in configured presence ping interval then subscription
-// expiration time resolution is pretty big. Though on practice
-// this should be reasonable for most use cases.
+// updatePresence used for various periodic actions we need to do with client connections.
 func (c *Client) updatePresence() {
 	c.presenceMu.Lock()
 	defer c.presenceMu.Unlock()
@@ -263,7 +262,8 @@ func (c *Client) updatePresence() {
 			return
 		}
 
-		if !c.checkPosition(channel, channelContext) {
+		checkDelay := config.ClientChannelPositionCheckDelay
+		if checkDelay > 0 && !c.checkPosition(checkDelay, channel, channelContext) {
 			go c.Close(DisconnectInsufficientState)
 			// No need to proceed after close.
 			return
@@ -286,22 +286,8 @@ func (c *Client) addPresenceUpdate() {
 	c.presenceTimer = time.AfterFunc(presenceInterval, c.updatePresence)
 }
 
-const (
-	// insufficientStateDelaySeconds used as minimal interval in seconds we use to
-	// prevent insufficient state check. If we recently received message from channel
-	// then we can delay calling channel history till next time. This drastically
-	// optimizes number of history calls in channels with pretty message rate.
-	insufficientStateDelaySeconds = 25
-)
-
 // Lock must be held outside.
-func (c *Client) checkPosition(ch string, channelContext ChannelContext) bool {
-	now := time.Now().Unix()
-	needCheckPosition := channelContext.lastPubTime == 0 || now-channelContext.lastPubTime > insufficientStateDelaySeconds
-	if !needCheckPosition {
-		return true
-	}
-	position := channelContext.recoveryPosition
+func (c *Client) checkPosition(checkDelay time.Duration, ch string, channelContext ChannelContext) bool {
 	chOpts, ok := c.node.ChannelOpts(ch)
 	if !ok {
 		return true
@@ -309,10 +295,22 @@ func (c *Client) checkPosition(ch string, channelContext ChannelContext) bool {
 	if !chOpts.HistoryRecover {
 		return true
 	}
+	now := time.Now()
+	needCheckPosition := channelContext.positionCheckTime.IsZero() || now.Sub(channelContext.positionCheckTime) > checkDelay
+	if !needCheckPosition {
+		return true
+	}
+	position := channelContext.recoveryPosition
 	streamPosition, err := c.node.currentRecoveryState(ch)
 	if err != nil {
 		return true
 	}
+	c.mu.Lock()
+	if channelContext, ok = c.channels[ch]; ok {
+		channelContext.positionCheckTime = now
+		c.channels[ch] = channelContext
+	}
+	c.mu.Unlock()
 	return streamPosition.Seq == position.Seq && streamPosition.Gen == position.Gen && streamPosition.Epoch == position.Epoch
 }
 
@@ -472,6 +470,9 @@ func (c *Client) close(disconnect *Disconnect) error {
 		c.node.logger.log(newLogEntry(LogLevelDebug, "closing client connection", map[string]interface{}{"client": c.uid, "user": c.user, "reason": disconnect.Reason, "reconnect": disconnect.Reconnect}))
 	}
 
+	if disconnect != nil {
+		serverDisconnectCount.WithLabelValues(strconv.Itoa(disconnect.Code)).Inc()
+	}
 	c.transport.Close(disconnect)
 
 	if c.eventHub.disconnectHandler != nil {
@@ -1654,6 +1655,9 @@ func (c *Client) subscribeCmd(cmd *proto.SubscribeRequest, rw *replyWriter) *Dis
 			Epoch: latestEpoch,
 		},
 	}
+	if chOpts.HistoryRecover {
+		channelContext.positionCheckTime = time.Now()
+	}
 	c.mu.Lock()
 	c.channels[channel] = channelContext
 	c.mu.Unlock()
@@ -1679,7 +1683,7 @@ func (c *Client) writePublicationUpdatePosition(ch string, pub *Publication, rep
 			c.mu.Unlock()
 			return nil
 		}
-		channelContext.lastPubTime = time.Now().Unix()
+		channelContext.positionCheckTime = time.Now()
 		channelContext.recoveryPosition.Seq = pub.Seq
 		channelContext.recoveryPosition.Gen = pub.Gen
 		c.channels[ch] = channelContext

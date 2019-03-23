@@ -336,6 +336,7 @@ var configDefaults = map[string]interface{}{
 	"client_presence_ping_interval":        25,
 	"client_presence_expire_interval":      60,
 	"client_user_connection_limit":         0,
+	"client_channel_position_check_delay":  40,
 	"channel_max_length":                   255,
 	"channel_private_prefix":               "$",
 	"channel_namespace_boundary":           ":",
@@ -832,6 +833,7 @@ func nodeConfig() *centrifuge.Config {
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
 	cfg.ClientUserConnectionLimit = v.GetInt("client_user_connection_limit")
+	cfg.ClientChannelPositionCheckDelay = time.Duration(v.GetInt("client_channel_position_check_delay")) * time.Second
 
 	cfg.NodeInfoMetricsAggregateInterval = time.Duration(v.GetInt("node_info_metrics_aggregate_interval")) * time.Second
 
