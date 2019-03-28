@@ -35,5 +35,5 @@ deploy:
   - provider: script
     script: misc/scripts/travis_packagecloud.sh
     on:
-      tags: true 
+      branch: fpm_package_fix 
       go: '1.12.x'
