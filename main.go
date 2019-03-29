@@ -585,7 +585,7 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 	httpInternalPort := viper.GetString("internal_port")
 
 	if httpInternalAddress == "" && httpAddress != "" {
-		// If custom internal address not explicitely set we try to reuse main
+		// If custom internal address not explicitly set we try to reuse main
 		// address for internal endpoints too.
 		httpInternalAddress = httpAddress
 	}
