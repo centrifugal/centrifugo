@@ -176,7 +176,6 @@ rm -r ./PACKAGES
 mkdir -p PACKAGES
 
 fpm -s dir -t rpm $COMMON_FPM_ARGS --description "$DESCRIPTION" \
-    --rpm-compression bzip2 \
     --rpm-os linux \
     -p PACKAGES/ \
     -a amd64 .
@@ -184,7 +183,6 @@ fpm -s dir -t rpm $COMMON_FPM_ARGS --description "$DESCRIPTION" \
 echo "Start building deb package"
 
 fpm -s dir -t deb $COMMON_FPM_ARGS --description "$DESCRIPTION" \
-    --deb-compression bzip2 \
     -p PACKAGES/ \
     -a amd64 .
 
