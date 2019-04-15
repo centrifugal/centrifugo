@@ -14,7 +14,7 @@ Here let's suppose you already have 2 of 3 elements: clients and backend. And yo
 
 1) First you need to do is download/install Centrifugo server. See [install](server/install.md) chapter for details.
 
-2) Create basic configuration file with `secret` and `api_key` set and then run Centrifugo. See [this chapter](server/configuration.md) for details about secret key and [chapter about API](server/api.md) for API description. The simplest way to do this automatically is by using `genconfig` command:
+2) Create basic configuration file with `secret` and `api_key` set and then run Centrifugo. See [this chapter](server/configuration.md) for details about secret key and [chapter about API](server/http_api.md) for API description. The simplest way to do this automatically is by using `genconfig` command:
 
 ```
 ./centrifugo genconfig
@@ -28,7 +28,7 @@ Here let's suppose you already have 2 of 3 elements: clients and backend. And yo
 
 5) After connecting to Centrifugo subscribe clients to channels they are interested in. See more about channels in [special chapter](server/channels.md). All client libraries provide a way to handle messages coming to client from channel after subscribing to it.
 
-6) So everything should work now – as soon as user opens some page of your application it must successfully connect to Centrifugo and subscribe to channel (or channels). Now let's imagine you want to send real-time message to users subscribed on specific channel. This message can be a reaction on some event happened in your app: someone posted new comment, administrator just created new post, user pressed like button etc. Anyway this is an event your backend just got and you want to immediately share it with interested users. You can do this using Centrifugo [HTTP API](server/api.md). To simplify your life [we have several API libraries](libraries/api.md) for different languages. You can publish message into channel using one of those libraries or you can simply [follow API description](server/api.md) to construct API request yourself - this is very simple. As soon as you published message to channel it must be delivered to your client.
+6) So everything should work now – as soon as user opens some page of your application it must successfully connect to Centrifugo and subscribe to channel (or channels). Now let's imagine you want to send real-time message to users subscribed on specific channel. This message can be a reaction on some event happened in your app: someone posted new comment, administrator just created new post, user pressed like button etc. Anyway this is an event your backend just got and you want to immediately share it with interested users. You can do this using Centrifugo [HTTP API](server/http_api.md). To simplify your life [we have several API libraries](libraries/api.md) for different languages. You can publish message into channel using one of those libraries or you can simply [follow API description](server/http_api.md) to construct API request yourself - this is very simple. Also Centrifugo supports [GRPC API](server/grpc_api.md). As soon as you published message to channel it must be delivered to your client.
 
 7) To put this all into production you need to deploy Centrifugo on your production server. To help you with this we have many things like Docker image, `rpm` and `deb` packages, Nginx configuration. You can find more information in Deploy section of this doc.
 

@@ -76,7 +76,7 @@ This is a minimal Centrifugo configuration file:
 }
 ```
 
-The only two fields required are **secret** and **api_key**. Secret used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](api.md). Keep both values in secret and never reveal to clients.
+The only two fields required are **secret** and **api_key**. Secret used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](http_api.md). Keep both values in secret and never reveal to clients.
 
 ### TOML file
 
