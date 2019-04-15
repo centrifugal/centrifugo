@@ -12,7 +12,7 @@ type GRPCAPIServiceConfig struct{}
 
 // RegisterGRPCServerAPI registers GRPC API service in provided GRPC server.
 func RegisterGRPCServerAPI(n *centrifuge.Node, server *grpc.Server, config GRPCAPIServiceConfig) error {
-	RegisterCentrifugeServer(server, newGRPCAPIService(n, config))
+	RegisterCentrifugoServer(server, newGRPCAPIService(n, config))
 	return nil
 }
 
