@@ -84,4 +84,17 @@ var (
 		Reason:    "insufficient state",
 		Reconnect: true,
 	}
+	// DisconnectForceReconnect sent when server forcely disconnects connection.
+	DisconnectForceReconnect = &Disconnect{
+		Code:      3011,
+		Reason:    "force reconnect",
+		Reconnect: true,
+	}
+	// DisconnectForceNoReconnect sent when server forcely disconnects connection
+	// and asks it to not reconnect again.
+	DisconnectForceNoReconnect = &Disconnect{
+		Code:      3012,
+		Reason:    "force disconnect",
+		Reconnect: false,
+	}
 )

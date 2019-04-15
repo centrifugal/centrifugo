@@ -1169,7 +1169,7 @@ func (s *shard) PublishJoin(ch string, join *Join, opts *ChannelOptions) error {
 		return err
 	}
 	push := &Push{
-		Type:    PushTypeLeave,
+		Type:    PushTypeJoin,
 		Channel: ch,
 		Data:    data,
 	}

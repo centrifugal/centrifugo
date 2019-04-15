@@ -131,7 +131,6 @@ func main() {
 			if err != nil {
 				log.Fatal().Msgf("Error creating Centrifuge Node: %v", err)
 			}
-			setLogHandler(node)
 
 			engineName := viper.GetString("engine")
 
@@ -837,6 +836,13 @@ func nodeConfig() *centrifuge.Config {
 
 	cfg.NodeInfoMetricsAggregateInterval = time.Duration(v.GetInt("node_info_metrics_aggregate_interval")) * time.Second
 
+	level, ok := centrifuge.LogStringToLevel[strings.ToLower(v.GetString("log_level"))]
+	if !ok {
+		level = centrifuge.LogLevelInfo
+	}
+	cfg.LogLevel = level
+	cfg.LogHandler = newLogHandler().handle
+
 	return cfg
 }
 
@@ -1105,19 +1111,8 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 	}, nil
 }
 
-func setLogHandler(n *centrifuge.Node) {
-	v := viper.GetViper()
-	level, ok := centrifuge.LogStringToLevel[strings.ToLower(v.GetString("log_level"))]
-	if !ok {
-		level = centrifuge.LogLevelInfo
-	}
-	handler := newLogHandler()
-	n.SetLogHandler(level, handler.handle)
-}
-
 type logHandler struct {
 	entries chan centrifuge.LogEntry
-	handler func(entry centrifuge.LogEntry)
 }
 
 func newLogHandler() *logHandler {
