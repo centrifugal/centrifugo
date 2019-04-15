@@ -183,7 +183,7 @@ message Metrics {
     map<string, double> items = 2;
 }
 
-service Centrifuge {
+service Centrifugo {
     rpc Publish (PublishRequest) returns (PublishResponse) {}
     rpc Broadcast (BroadcastRequest) returns (BroadcastResponse) {}
     rpc Unsubscribe (UnsubscribeRequest) returns (UnsubscribeResponse) {}

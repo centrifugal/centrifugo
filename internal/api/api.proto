@@ -193,7 +193,7 @@ message Metrics {
     map<string, double> items = 2 [(gogoproto.jsontag) = "items"];
 }
 
-service Centrifuge {
+service Centrifugo {
     rpc Publish (PublishRequest) returns (PublishResponse) {}
     rpc Broadcast (BroadcastRequest) returns (BroadcastResponse) {}
     rpc Unsubscribe (UnsubscribeRequest) returns (UnsubscribeResponse) {}

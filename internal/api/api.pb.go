@@ -1901,9 +1901,9 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for Centrifuge service
+// Client API for Centrifugo service
 
-type CentrifugeClient interface {
+type CentrifugoClient interface {
 	Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error)
 	Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*BroadcastResponse, error)
 	Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error)
@@ -1916,107 +1916,107 @@ type CentrifugeClient interface {
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
 }
 
-type centrifugeClient struct {
+type centrifugoClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewCentrifugeClient(cc *grpc.ClientConn) CentrifugeClient {
-	return &centrifugeClient{cc}
+func NewCentrifugoClient(cc *grpc.ClientConn) CentrifugoClient {
+	return &centrifugoClient{cc}
 }
 
-func (c *centrifugeClient) Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error) {
+func (c *centrifugoClient) Publish(ctx context.Context, in *PublishRequest, opts ...grpc.CallOption) (*PublishResponse, error) {
 	out := new(PublishResponse)
-	err := grpc.Invoke(ctx, "/api.Centrifuge/Publish", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Publish", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *centrifugeClient) Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*BroadcastResponse, error) {
+func (c *centrifugoClient) Broadcast(ctx context.Context, in *BroadcastRequest, opts ...grpc.CallOption) (*BroadcastResponse, error) {
 	out := new(BroadcastResponse)
-	err := grpc.Invoke(ctx, "/api.Centrifuge/Broadcast", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Broadcast", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *centrifugeClient) Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error) {
+func (c *centrifugoClient) Unsubscribe(ctx context.Context, in *UnsubscribeRequest, opts ...grpc.CallOption) (*UnsubscribeResponse, error) {
 	out := new(UnsubscribeResponse)
-	err := grpc.Invoke(ctx, "/api.Centrifuge/Unsubscribe", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Unsubscribe", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *centrifugeClient) Disconnect(ctx context.Context, in *DisconnectRequest, opts ...grpc.CallOption) (*DisconnectResponse, error) {
+func (c *centrifugoClient) Disconnect(ctx context.Context, in *DisconnectRequest, opts ...grpc.CallOption) (*DisconnectResponse, error) {
 	out := new(DisconnectResponse)
-	err := grpc.Invoke(ctx, "/api.Centrifuge/Disconnect", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Disconnect", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *centrifugeClient) Presence(ctx context.Context, in *PresenceRequest, opts ...grpc.CallOption) (*PresenceResponse, error) {
+func (c *centrifugoClient) Presence(ctx context.Context, in *PresenceRequest, opts ...grpc.CallOption) (*PresenceResponse, error) {
 	out := new(PresenceResponse)
-	err := grpc.Invoke(ctx, "/api.Centrifuge/Presence", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Presence", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *centrifugeClient) PresenceStats(ctx context.Context, in *PresenceStatsRequest, opts ...grpc.CallOption) (*PresenceStatsResponse, error) {
+func (c *centrifugoClient) PresenceStats(ctx context.Context, in *PresenceStatsRequest, opts ...grpc.CallOption) (*PresenceStatsResponse, error) {
 	out := new(PresenceStatsResponse)
-	err := grpc.Invoke(ctx, "/api.Centrifuge/PresenceStats", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/PresenceStats", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *centrifugeClient) History(ctx context.Context, in *HistoryRequest, opts ...grpc.CallOption) (*HistoryResponse, error) {
+func (c *centrifugoClient) History(ctx context.Context, in *HistoryRequest, opts ...grpc.CallOption) (*HistoryResponse, error) {
 	out := new(HistoryResponse)
-	err := grpc.Invoke(ctx, "/api.Centrifuge/History", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/History", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *centrifugeClient) HistoryRemove(ctx context.Context, in *HistoryRemoveRequest, opts ...grpc.CallOption) (*HistoryRemoveResponse, error) {
+func (c *centrifugoClient) HistoryRemove(ctx context.Context, in *HistoryRemoveRequest, opts ...grpc.CallOption) (*HistoryRemoveResponse, error) {
 	out := new(HistoryRemoveResponse)
-	err := grpc.Invoke(ctx, "/api.Centrifuge/HistoryRemove", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/HistoryRemove", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *centrifugeClient) Channels(ctx context.Context, in *ChannelsRequest, opts ...grpc.CallOption) (*ChannelsResponse, error) {
+func (c *centrifugoClient) Channels(ctx context.Context, in *ChannelsRequest, opts ...grpc.CallOption) (*ChannelsResponse, error) {
 	out := new(ChannelsResponse)
-	err := grpc.Invoke(ctx, "/api.Centrifuge/Channels", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Channels", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *centrifugeClient) Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error) {
+func (c *centrifugoClient) Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error) {
 	out := new(InfoResponse)
-	err := grpc.Invoke(ctx, "/api.Centrifuge/Info", in, out, c.cc, opts...)
+	err := grpc.Invoke(ctx, "/api.Centrifugo/Info", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for Centrifuge service
+// Server API for Centrifugo service
 
-type CentrifugeServer interface {
+type CentrifugoServer interface {
 	Publish(context.Context, *PublishRequest) (*PublishResponse, error)
 	Broadcast(context.Context, *BroadcastRequest) (*BroadcastResponse, error)
 	Unsubscribe(context.Context, *UnsubscribeRequest) (*UnsubscribeResponse, error)
@@ -2029,233 +2029,233 @@ type CentrifugeServer interface {
 	Info(context.Context, *InfoRequest) (*InfoResponse, error)
 }
 
-func RegisterCentrifugeServer(s *grpc.Server, srv CentrifugeServer) {
-	s.RegisterService(&_Centrifuge_serviceDesc, srv)
+func RegisterCentrifugoServer(s *grpc.Server, srv CentrifugoServer) {
+	s.RegisterService(&_Centrifugo_serviceDesc, srv)
 }
 
-func _Centrifuge_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Centrifugo_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PublishRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugeServer).Publish(ctx, in)
+		return srv.(CentrifugoServer).Publish(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Centrifuge/Publish",
+		FullMethod: "/api.Centrifugo/Publish",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugeServer).Publish(ctx, req.(*PublishRequest))
+		return srv.(CentrifugoServer).Publish(ctx, req.(*PublishRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Centrifuge_Broadcast_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Centrifugo_Broadcast_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BroadcastRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugeServer).Broadcast(ctx, in)
+		return srv.(CentrifugoServer).Broadcast(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Centrifuge/Broadcast",
+		FullMethod: "/api.Centrifugo/Broadcast",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugeServer).Broadcast(ctx, req.(*BroadcastRequest))
+		return srv.(CentrifugoServer).Broadcast(ctx, req.(*BroadcastRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Centrifuge_Unsubscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Centrifugo_Unsubscribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UnsubscribeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugeServer).Unsubscribe(ctx, in)
+		return srv.(CentrifugoServer).Unsubscribe(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Centrifuge/Unsubscribe",
+		FullMethod: "/api.Centrifugo/Unsubscribe",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugeServer).Unsubscribe(ctx, req.(*UnsubscribeRequest))
+		return srv.(CentrifugoServer).Unsubscribe(ctx, req.(*UnsubscribeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Centrifuge_Disconnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Centrifugo_Disconnect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DisconnectRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugeServer).Disconnect(ctx, in)
+		return srv.(CentrifugoServer).Disconnect(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Centrifuge/Disconnect",
+		FullMethod: "/api.Centrifugo/Disconnect",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugeServer).Disconnect(ctx, req.(*DisconnectRequest))
+		return srv.(CentrifugoServer).Disconnect(ctx, req.(*DisconnectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Centrifuge_Presence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Centrifugo_Presence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PresenceRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugeServer).Presence(ctx, in)
+		return srv.(CentrifugoServer).Presence(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Centrifuge/Presence",
+		FullMethod: "/api.Centrifugo/Presence",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugeServer).Presence(ctx, req.(*PresenceRequest))
+		return srv.(CentrifugoServer).Presence(ctx, req.(*PresenceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Centrifuge_PresenceStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Centrifugo_PresenceStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PresenceStatsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugeServer).PresenceStats(ctx, in)
+		return srv.(CentrifugoServer).PresenceStats(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Centrifuge/PresenceStats",
+		FullMethod: "/api.Centrifugo/PresenceStats",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugeServer).PresenceStats(ctx, req.(*PresenceStatsRequest))
+		return srv.(CentrifugoServer).PresenceStats(ctx, req.(*PresenceStatsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Centrifuge_History_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Centrifugo_History_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(HistoryRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugeServer).History(ctx, in)
+		return srv.(CentrifugoServer).History(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Centrifuge/History",
+		FullMethod: "/api.Centrifugo/History",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugeServer).History(ctx, req.(*HistoryRequest))
+		return srv.(CentrifugoServer).History(ctx, req.(*HistoryRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Centrifuge_HistoryRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Centrifugo_HistoryRemove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(HistoryRemoveRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugeServer).HistoryRemove(ctx, in)
+		return srv.(CentrifugoServer).HistoryRemove(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Centrifuge/HistoryRemove",
+		FullMethod: "/api.Centrifugo/HistoryRemove",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugeServer).HistoryRemove(ctx, req.(*HistoryRemoveRequest))
+		return srv.(CentrifugoServer).HistoryRemove(ctx, req.(*HistoryRemoveRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Centrifuge_Channels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Centrifugo_Channels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ChannelsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugeServer).Channels(ctx, in)
+		return srv.(CentrifugoServer).Channels(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Centrifuge/Channels",
+		FullMethod: "/api.Centrifugo/Channels",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugeServer).Channels(ctx, req.(*ChannelsRequest))
+		return srv.(CentrifugoServer).Channels(ctx, req.(*ChannelsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Centrifuge_Info_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Centrifugo_Info_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(InfoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CentrifugeServer).Info(ctx, in)
+		return srv.(CentrifugoServer).Info(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Centrifuge/Info",
+		FullMethod: "/api.Centrifugo/Info",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CentrifugeServer).Info(ctx, req.(*InfoRequest))
+		return srv.(CentrifugoServer).Info(ctx, req.(*InfoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Centrifuge_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "api.Centrifuge",
-	HandlerType: (*CentrifugeServer)(nil),
+var _Centrifugo_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "api.Centrifugo",
+	HandlerType: (*CentrifugoServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Publish",
-			Handler:    _Centrifuge_Publish_Handler,
+			Handler:    _Centrifugo_Publish_Handler,
 		},
 		{
 			MethodName: "Broadcast",
-			Handler:    _Centrifuge_Broadcast_Handler,
+			Handler:    _Centrifugo_Broadcast_Handler,
 		},
 		{
 			MethodName: "Unsubscribe",
-			Handler:    _Centrifuge_Unsubscribe_Handler,
+			Handler:    _Centrifugo_Unsubscribe_Handler,
 		},
 		{
 			MethodName: "Disconnect",
-			Handler:    _Centrifuge_Disconnect_Handler,
+			Handler:    _Centrifugo_Disconnect_Handler,
 		},
 		{
 			MethodName: "Presence",
-			Handler:    _Centrifuge_Presence_Handler,
+			Handler:    _Centrifugo_Presence_Handler,
 		},
 		{
 			MethodName: "PresenceStats",
-			Handler:    _Centrifuge_PresenceStats_Handler,
+			Handler:    _Centrifugo_PresenceStats_Handler,
 		},
 		{
 			MethodName: "History",
-			Handler:    _Centrifuge_History_Handler,
+			Handler:    _Centrifugo_History_Handler,
 		},
 		{
 			MethodName: "HistoryRemove",
-			Handler:    _Centrifuge_HistoryRemove_Handler,
+			Handler:    _Centrifugo_HistoryRemove_Handler,
 		},
 		{
 			MethodName: "Channels",
-			Handler:    _Centrifuge_Channels_Handler,
+			Handler:    _Centrifugo_Channels_Handler,
 		},
 		{
 			MethodName: "Info",
-			Handler:    _Centrifuge_Info_Handler,
+			Handler:    _Centrifugo_Info_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -8428,7 +8428,7 @@ var fileDescriptorApi = []byte{
 	0xbf, 0xd9, 0xff, 0x79, 0x9b, 0xcf, 0xc4, 0x99, 0x46, 0x52, 0x24, 0x91, 0xb5, 0xb5, 0xbb, 0xdd,
 	0xed, 0xb6, 0xf7, 0x7a, 0x7c, 0x36, 0x2e, 0xab, 0x1f, 0x85, 0x2b, 0x90, 0xea, 0x74, 0x5f, 0xef,
 	0xf3, 0xb9, 0x3a, 0x1a, 0x5f, 0x37, 0x4b, 0x01, 0x06, 0x79, 0xe4, 0xf5, 0xd4, 0xef, 0xfe, 0xd6,
-	0x98, 0xdb, 0xf8, 0x98, 0x02, 0x68, 0x29, 0x9a, 0x65, 0xa8, 0xa7, 0xf6, 0x99, 0x82, 0x9e, 0x41,
+	0x98, 0xdb, 0xf8, 0x98, 0x02, 0x68, 0x29, 0x9a, 0x65, 0xa8, 0xa7, 0xf6, 0x99, 0x8e, 0x9e, 0x41,
 	0xc6, 0xf3, 0x46, 0x39, 0x3a, 0x83, 0xd1, 0x44, 0x55, 0xaf, 0xc4, 0x06, 0x33, 0x9a, 0xad, 0xc4,
 	0x39, 0xf4, 0x23, 0xc8, 0x05, 0xfe, 0xa9, 0xc6, 0xc7, 0x16, 0x46, 0xbb, 0x74, 0x6b, 0x9a, 0xf1,
 	0xa8, 0x25, 0xc8, 0x87, 0x7d, 0xb6, 0x7c, 0xbb, 0xeb, 0x67, 0x1c, 0x6a, 0x53, 0xc6, 0x01, 0x8f,
@@ -8441,5 +8441,5 @@ var fileDescriptorApi = []byte{
 	0x54, 0x75, 0x18, 0xc9, 0x62, 0xb8, 0x0e, 0xb9, 0xe8, 0xd2, 0xca, 0xc7, 0xff, 0x37, 0xb8, 0x7f,
 	0xde, 0x34, 0xb8, 0x7f, 0xdf, 0x34, 0xb8, 0xf7, 0x37, 0x0d, 0xee, 0xc3, 0x4d, 0x83, 0xfb, 0xdf,
 	0x4d, 0x83, 0x7b, 0xf7, 0x55, 0x63, 0xee, 0x64, 0x9e, 0xfe, 0x6b, 0xb7, 0xf9, 0x75, 0x00, 0x00,
-	0x00, 0xff, 0xff, 0x93, 0xce, 0x84, 0x92, 0xf6, 0x13, 0x00, 0x00,
+	0x00, 0xff, 0xff, 0xa1, 0xdb, 0x2d, 0xdd, 0xf6, 0x13, 0x00, 0x00,
 }
