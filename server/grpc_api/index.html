@@ -13,7 +13,7 @@
         <meta name="description" content="Centrifugo Documentation">
       
       
-        <link rel="canonical" href="https://github.com/centrifugal/centrifugo/server/connection_expiration/">
+        <link rel="canonical" href="https://github.com/centrifugal/centrifugo/server/grpc_api/">
       
       
         <meta name="author" content="Centrifugal">
@@ -42,7 +42,7 @@
     
     
       
-        <title>Connection expiration - Centrifugo Documentation</title>
+        <title>Server GRPC API - Centrifugo Documentation</title>
       
     
     
@@ -110,7 +110,7 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
-      <a href="#connection-expiration" tabindex="1" class="md-skip">
+      <a href="#server-grpc-api" tabindex="1" class="md-skip">
         Skip to content
       </a>
     
@@ -135,7 +135,7 @@
               Centrifugo Documentation
             </span>
             <span class="md-header-nav__topic">
-              Connection expiration
+              Server GRPC API
             </span>
           
         </div>
@@ -396,11 +396,49 @@
           
           
 
+  
 
-  <li class="md-nav__item">
-    <a href="../grpc_api/" title="Server GRPC API" class="md-nav__link">
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Server GRPC API
+      </label>
+    
+    <a href="./" title="Server GRPC API" class="md-nav__link md-nav__link--active">
       Server GRPC API
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example-for-python" title="Example for Python" class="md-nav__link">
+    Example for Python
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
   </li>
 
         
@@ -432,20 +470,11 @@
           
           
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-    
-      
-    
-    
-    <a href="./" title="Connection expiration" class="md-nav__link md-nav__link--active">
+  <li class="md-nav__item">
+    <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
       Connection expiration
     </a>
-    
   </li>
 
         
@@ -771,6 +800,22 @@
     
   
   
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example-for-python" title="Example for Python" class="md-nav__link">
+    Example for Python
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -781,34 +826,57 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/server/connection_expiration.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
+                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/server/grpc_api.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
                 
                 
-                <h1 id="connection-expiration">Connection expiration<a class="headerlink" href="#connection-expiration" title="Permanent link">&para;</a></h1>
-<p>In authentication chapter we mentioned <code>exp</code> claim in connection token that allows to expire client connection at some point of time. In this chapter we will look at details on what happens when Centrifugo detects that connection is going to expire.</p>
-<p>So first you should do is enable client expiration mechanism in Centrifugo providing connection token with expiration:</p>
-<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
-<span class="kn">import</span> <span class="nn">time</span>
-
-<span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;sub&quot;</span><span class="p">:</span> <span class="s2">&quot;42&quot;</span><span class="p">,</span> <span class="s2">&quot;exp&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span> <span class="o">+</span> <span class="mi">10</span><span class="o">*</span><span class="mi">60</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
-
-<span class="k">print</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+                <h1 id="server-grpc-api">Server GRPC API<a class="headerlink" href="#server-grpc-api" title="Permanent link">&para;</a></h1>
+<p>Centrifugo also supports <a href="https://grpc.io/">GRPC</a> API. With GRPC it&rsquo;s possible to communicate with Centrifugo using more compact binary representation of commands and use the power of HTTP/2 which is the transport behind GRPC.</p>
+<p>GRPC API is also useful if you want to publish binary data to Centrifugo channels.</p>
+<p>You can enable GRPC API in Centrifugo using <code>grpc_api</code> option:</p>
+<div class="codehilite"><pre><span></span>./centrifugo --config=config.json --grpc_api
 </pre></div>
 
 
-<p>Let&rsquo;s suppose that you set <code>exp</code> field to timestamp that will expire in 10 minutes and client connected to Centrifugo with this token. During 10 mins connection will be kept by Centrifugo. When this time passed Centrifugo gives connection some time (configured, 25 seconds by default) to refresh its credentials and provide new valid token with new <code>exp</code>.</p>
-<p>When client first connects to Centrifugo it receives <code>ttl</code> value in connect reply. That <code>ttl</code> value contains number of seconds after which client must send <code>refresh</code> command with new credentials to Centrifugo. Centrifugo clients must handle this <code>ttl</code> field and automatically start refresh process.</p>
-<p>For example Javascript browser client  will send AJAX POST request to your application when it&rsquo;s time to refresh credentials. By default this request goes to <code>/centrifuge/refresh</code> url endpoint. In response your server must return JSON with new connection token:</p>
+<p>As always in Centrifugo you can just add <code>grpc_api</code> option to configuration file:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="n">token</span>
+    <span class="err">...</span>
+    <span class="nt">&quot;grpc_api&quot;</span><span class="p">:</span> <span class="kc">true</span>
 <span class="p">}</span>
 </pre></div>
 
 
-<p>So you must just return the same connection token for your user when rendering page initially. But with actual valid <code>exp</code>. Javascript client will then send them to Centrifugo server and connection will be refreshed for a time you set in <code>exp</code>.</p>
-<p>In this case you know which user want to refresh its connection because this is just a general request to your app - so your session mechanism will tell you about the user.</p>
-<p>If you don&rsquo;t want to refresh connection for this user - just return 403 Forbidden on refresh request to your application backend.</p>
-<p>Javascript client also has options to hook into refresh mechanism to implement your custom way of refreshing. Other Centrifugo clients also should have hooks to refresh credentials but depending on client API for this can be different - see specific client docs.</p>
+<p>By default GRPC will be served on port <code>10000</code> but you can change it using <code>grpc_api_port</code> option.</p>
+<p>Now as soon as Centrifugo started you can send GRPC commands to it. To do this get our API Protocol Buffer definitions <a href="https://github.com/centrifugal/centrifugo/blob/master/misc/proto/api.proto">from this file</a>.</p>
+<p>Then see <a href="https://grpc.io/docs/">GRPC docs specific to your language</a> to find out how to generate client code from definitions and use generated code to communicate with Centrifugo.</p>
+<h2 id="example-for-python">Example for Python<a class="headerlink" href="#example-for-python" title="Permanent link">&para;</a></h2>
+<p>For example for Python you need to run sth like this according to GRPC docs:</p>
+<div class="codehilite"><pre><span></span>python -m grpc_tools.protoc -I../../protos --python_out=. --grpc_python_out=. api.proto
+</pre></div>
+
+
+<p>As soon as you run command you will have 2 generated files: <code>api_pb2.py</code> and <code>api_pb2_grpc.py</code>. Now all you need is to write simple program that uses generated code and sends GRPC requests to Centrifugo:</p>
+<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">grpc</span>
+<span class="kn">import</span> <span class="nn">api_pb2_grpc</span> <span class="kn">as</span> <span class="nn">api_grpc</span>
+<span class="kn">import</span> <span class="nn">api_pb2</span> <span class="kn">as</span> <span class="nn">api_pb</span>
+
+<span class="n">channel</span> <span class="o">=</span> <span class="n">grpc</span><span class="o">.</span><span class="n">insecure_channel</span><span class="p">(</span><span class="s1">&#39;localhost:10000&#39;</span><span class="p">)</span>
+<span class="n">stub</span> <span class="o">=</span> <span class="n">api_grpc</span><span class="o">.</span><span class="n">CentrifugoStub</span><span class="p">(</span><span class="n">channel</span><span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">stub</span><span class="o">.</span><span class="n">Info</span><span class="p">(</span><span class="n">api_pb</span><span class="o">.</span><span class="n">InfoRequest</span><span class="p">())</span>
+<span class="k">except</span> <span class="n">grpc</span><span class="o">.</span><span class="n">RpcError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+    <span class="c1"># GRPC level error.</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">code</span><span class="p">(),</span> <span class="n">err</span><span class="o">.</span><span class="n">details</span><span class="p">())</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">code</span><span class="p">:</span>
+        <span class="c1"># Centrifugo server level error.</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">resp</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Note that you need to explicitly handle Centrifugo API level error which is not transformed automatically into GRPC protocol level error.</p>
                 
                   
                 
@@ -829,7 +897,7 @@
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../signals/" title="Signal handling" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../http_api/" title="Server HTTP API" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -838,19 +906,19 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Signal handling
+                Server HTTP API
               </span>
             </div>
           </a>
         
         
-          <a href="../private_channels/" title="Private channels" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../recover/" title="Message recovery" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Private channels
+                Message recovery
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">
