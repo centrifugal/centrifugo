@@ -84,6 +84,11 @@ type Config struct {
 	// NodeInfoMetricsAggregateInterval sets interval for automatic metrics aggregation.
 	// It's not very reasonable to have it less than one second.
 	NodeInfoMetricsAggregateInterval time.Duration
+
+	// LogLevel is a log level to use. By default nothing will be logged.
+	LogLevel LogLevel
+	// LogHandler is a handler func node will send logs to.
+	LogHandler LogHandler
 }
 
 // Validate validates config and returns error if problems found

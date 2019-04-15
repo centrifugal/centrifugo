@@ -1,10 +1,3 @@
-// Package centrifuge is a real-time messaging library that abstracts
-// several bidirectional transports (Websocket, SockJS) and provides
-// primitives to build real-time applications with Go. It's also used as
-// core of Centrifugo server.
-//
-// The API of this library is almost all goroutine-safe except cases where
-// one-time operations like setting callback handlers performed.
 package centrifuge
 
 import (
@@ -37,11 +30,11 @@ type Node struct {
 	config Config
 	// hub to manage client connections.
 	hub *Hub
-	// broker ...
+	// broker is responsible for PUB/SUB mechanics.
 	broker Broker
-	// historyManager ...
+	// historyManager is responsible for managing channel Publication history.
 	historyManager HistoryManager
-	// presenceManager ...
+	// presenceManager is responsible for presence information management.
 	presenceManager PresenceManager
 	// nodes contains registry of known nodes.
 	nodes *nodeRegistry
@@ -92,6 +85,11 @@ func New(c Config) (*Node, error) {
 		eventHub:       &nodeEventHub{},
 		subLocks:       subLocks,
 	}
+
+	if c.LogHandler != nil {
+		n.logger = newLogger(c.LogLevel, c.LogHandler)
+	}
+
 	e, _ := NewMemoryEngine(n, MemoryEngineConfig{})
 	n.SetEngine(e)
 	return n, nil
@@ -108,12 +106,6 @@ func (n *Node) subLock(ch string) *sync.Mutex {
 	return n.subLocks[index(ch, numSubLocks)]
 }
 
-// SetLogHandler sets LogHandler to handle log messages with
-// severity higher than specific LogLevel.
-func (n *Node) SetLogHandler(level LogLevel, handler LogHandler) {
-	n.logger = newLogger(level, handler)
-}
-
 // Config returns a copy of node Config.
 func (n *Node) Config() Config {
 	n.mu.RLock()
@@ -122,24 +114,24 @@ func (n *Node) Config() Config {
 	return c
 }
 
-// SetEngine binds engine to node.
+// SetEngine binds Engine to node.
 func (n *Node) SetEngine(e Engine) {
 	n.broker = e.(Broker)
 	n.historyManager = e.(HistoryManager)
 	n.presenceManager = e.(PresenceManager)
 }
 
-// SetBroker ...
+// SetBroker allows to set Broker implementation to use.
 func (n *Node) SetBroker(b Broker) {
 	n.broker = b
 }
 
-// SetHistoryManager ...
+// SetHistoryManager allows to set HistoryManager to use.
 func (n *Node) SetHistoryManager(m HistoryManager) {
 	n.historyManager = m
 }
 
-// SetPresenceManager ...
+// SetPresenceManager allows to set PresenceManager to use.
 func (n *Node) SetPresenceManager(m PresenceManager) {
 	n.presenceManager = m
 }
@@ -427,7 +419,11 @@ func (n *Node) handlePublication(ch string, pub *Publication) error {
 	if !hasCurrentSubscribers {
 		return nil
 	}
-	return n.hub.broadcastPublication(ch, pub)
+	chOpts, ok := n.ChannelOpts(ch)
+	if !ok {
+		return ErrNoChannelOptions
+	}
+	return n.hub.broadcastPublication(ch, pub, &chOpts)
 }
 
 // handleJoin handles join messages - i.e. broadcasts it to
@@ -915,21 +911,33 @@ func (r *nodeRegistry) clean(delay time.Duration) {
 // All its methods are not goroutine-safe as handlers must be
 // registered once before Node Run method called.
 type NodeEventHub interface {
-	Connect(handler ConnectHandler)
+	// Auth happens when client sends Connect command to server. In this handler client
+	// can reject connection or provide Credentials for it.
+	ClientConnecting(handler ConnectingHandler)
+	// Connect called after client connection has been successfully established,
+	// authenticated and connect reply already sent to client. This is a place
+	// where application should set all required connection event callbacks and
+	// can start communicating with client.
+	ClientConnected(handler ConnectedHandler)
 }
 
 // nodeEventHub can deal with events binded to Node.
 // All its methods are not goroutine-safe.
 type nodeEventHub struct {
-	connectHandler ConnectHandler
+	connectingHandler ConnectingHandler
+	connectedHandler  ConnectedHandler
 }
 
-// Connect allows to set ConnectHandler.
-func (h *nodeEventHub) Connect(handler ConnectHandler) {
-	h.connectHandler = handler
+// ClientConnecting ...
+func (h *nodeEventHub) ClientConnecting(handler ConnectingHandler) {
+	h.connectingHandler = handler
 }
 
-// brokerEventHandler ...
+// Connect allows to set ConnectedHandler.
+func (h *nodeEventHub) ClientConnected(handler ConnectedHandler) {
+	h.connectedHandler = handler
+}
+
 type brokerEventHandler struct {
 	node *Node
 }

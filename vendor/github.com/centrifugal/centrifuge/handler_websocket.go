@@ -2,7 +2,6 @@ package centrifuge
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -26,7 +25,6 @@ type websocketTransport struct {
 	closeCh   chan struct{}
 	opts      *websocketTransportOptions
 	pingTimer *time.Timer
-	writer    *writer
 }
 
 type websocketTransportOptions struct {
@@ -36,15 +34,13 @@ type websocketTransportOptions struct {
 	compressionMinSize int
 }
 
-func newWebsocketTransport(conn *websocket.Conn, req *http.Request, writer *writer, opts *websocketTransportOptions) *websocketTransport {
+func newWebsocketTransport(conn *websocket.Conn, req *http.Request, opts *websocketTransportOptions) *websocketTransport {
 	transport := &websocketTransport{
 		conn:    conn,
 		req:     req,
 		closeCh: make(chan struct{}),
 		opts:    opts,
-		writer:  writer,
 	}
-	writer.onWrite(transport.write)
 	if opts.pingInterval > 0 {
 		transport.addPing()
 	}
@@ -90,18 +86,7 @@ func (t *websocketTransport) Info() TransportInfo {
 	}
 }
 
-func (t *websocketTransport) Send(reply *preparedReply) error {
-	data := reply.Data()
-	disconnect := t.writer.write(data)
-	if disconnect != nil {
-		// Close in goroutine to not block message broadcast.
-		go t.Close(disconnect)
-		return io.EOF
-	}
-	return nil
-}
-
-func (t *websocketTransport) write(data ...[]byte) error {
+func (t *websocketTransport) Write(data []byte) error {
 	select {
 	case <-t.closeCh:
 		return nil
@@ -118,31 +103,14 @@ func (t *websocketTransport) write(data ...[]byte) error {
 			messageType = websocket.BinaryMessage
 		}
 
-		if len(data) == 1 {
-			// no need in extra byte buffers in this path.
-			payload := data[0]
-			err := t.conn.WriteMessage(messageType, payload)
-			if err != nil {
-				go t.Close(DisconnectWriteError)
-				return err
-			}
-		} else {
-			buf := getBuffer()
-			for _, payload := range data {
-				buf.Write(payload)
-			}
-			err := t.conn.WriteMessage(messageType, buf.Bytes())
-			if err != nil {
-				go t.Close(DisconnectWriteError)
-				putBuffer(buf)
-				return err
-			}
-			putBuffer(buf)
+		err := t.conn.WriteMessage(messageType, data)
+		if err != nil {
+			return err
 		}
+
 		if t.opts.writeTimeout > 0 {
 			t.conn.SetWriteDeadline(time.Time{})
 		}
-		transportMessagesSent.WithLabelValues(transportWebsocket).Add(float64(len(data)))
 		return nil
 	}
 }
@@ -157,12 +125,6 @@ func (t *websocketTransport) Close(disconnect *Disconnect) error {
 	if t.pingTimer != nil {
 		t.pingTimer.Stop()
 	}
-	t.mu.Unlock()
-
-	// Send messages remaining in queue.
-	t.writer.close()
-
-	t.mu.Lock()
 	close(t.closeCh)
 	t.mu.Unlock()
 
@@ -285,13 +247,8 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			compressionMinSize: compressionMinSize,
 			enc:                enc,
 		}
-		writerConf := writerConfig{
-			MaxQueueSize: config.ClientQueueMaxSize,
-		}
-		writer := newWriter(writerConf)
-		defer writer.close()
 
-		transport := newWebsocketTransport(conn, r, writer, opts)
+		transport := newWebsocketTransport(conn, r, opts)
 
 		select {
 		case <-s.node.NotifyShutdown():
@@ -309,14 +266,14 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		defer func(started time.Time) {
 			s.node.logger.log(newLogEntry(LogLevelDebug, "client connection completed", map[string]interface{}{"client": c.ID(), "transport": transportWebsocket, "duration": time.Since(started)}))
 		}(time.Now())
-		defer c.close(nil)
+		defer c.Close(nil)
 
 		for {
 			_, data, err := conn.ReadMessage()
 			if err != nil {
 				return
 			}
-			ok := c.handleRawData(data, writer)
+			ok := c.handleRawData(data)
 			if !ok {
 				return
 			}
