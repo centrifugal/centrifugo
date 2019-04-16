@@ -43,6 +43,8 @@ Disadvantages:
 
 Allows scaling Centrifugo nodes to different machines. Nodes will use Redis as message broker. Redis engine keeps presence and history data in Redis, uses Redis PUB/SUB for internal nodes communication.
 
+**Minimal Redis version is 3.2.0**
+
 Several configuration options related to Redis engine:
 
 * `redis_host` (string, default `"127.0.0.1"`) - Redis server host
