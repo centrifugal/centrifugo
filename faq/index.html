@@ -855,6 +855,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#does-centrifugo-support-webhooks" title="Does Centrifugo support webhooks?" class="md-nav__link">
+    Does Centrifugo support webhooks?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-is-the-difference-between-centrifugo-and-centrifuge" title="What is the difference between Centrifugo and Centrifuge" class="md-nav__link">
     What is the difference between Centrifugo and Centrifuge
   </a>
@@ -998,6 +1005,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#does-centrifugo-support-webhooks" title="Does Centrifugo support webhooks?" class="md-nav__link">
+    Does Centrifugo support webhooks?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-is-the-difference-between-centrifugo-and-centrifuge" title="What is the difference between Centrifugo and Centrifuge" class="md-nav__link">
     What is the difference between Centrifugo and Centrifuge
   </a>
@@ -1085,6 +1099,9 @@ on your backend.</p>
 <h3 id="can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery">Can I rely on Centrifugo and its message history for guaranteed message delivery?<a class="headerlink" href="#can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery" title="Permanent link">&para;</a></h3>
 <p>No - Centrifugo is best-effort transport. This means that if you want strongly guaranteed message delivery to your clients then you can&rsquo;t just rely on Centrifugo and its message history cache. In this case you still can use Centrifugo for real-time but you should build some additional logic on top your application backend and main data storage to satisfy your guarantees.</p>
 <p>Centrifugo can keep message history for a while and you can want to rely on it for your needs. Centrifugo is not designed as data storage - it uses message history mostly for recovering missed messages after short client internet connection disconnects. It&rsquo;s not designed to be used to sync client state after being offline for a long time - this logic should be on your app backend.</p>
+<h3 id="does-centrifugo-support-webhooks">Does Centrifugo support webhooks?<a class="headerlink" href="#does-centrifugo-support-webhooks" title="Permanent link">&para;</a></h3>
+<p>Not at moment. Centrifugo designed in a way where messages mostly from one direction: from server to client. If you need any callbacks you can call your application backend yourself from client side. There are several reasons why we can&rsquo;t simply add webhooks – some of them described in <a href="https://github.com/centrifugal/centrifugo/issues/195">this issue</a>.</p>
+<p>If you need to know that client disconnected and program your business logic around this fact then a reasonable approach is periodically call your backend from client side and update user status somewhere on backend (use Redis maybe). This is a pretty robust solution where you can&rsquo;t occasionally miss disconnect event. </p>
 <h3 id="what-is-the-difference-between-centrifugo-and-centrifuge">What is the difference between Centrifugo and Centrifuge<a class="headerlink" href="#what-is-the-difference-between-centrifugo-and-centrifuge" title="Permanent link">&para;</a></h3>
 <p><a href="https://github.com/centrifugal/centrifugo">Centrifugo</a> is server built on top of <a href="https://github.com/centrifugal/centrifuge">Centrifuge</a> library for Go language.</p>
 <p>This documentation was built to describe Centrifugo. Though many things said here can be considered as extra documentation for Centrifuge library.</p>
