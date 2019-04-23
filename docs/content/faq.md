@@ -82,6 +82,12 @@ No - Centrifugo is best-effort transport. This means that if you want strongly g
 
 Centrifugo can keep message history for a while and you can want to rely on it for your needs. Centrifugo is not designed as data storage - it uses message history mostly for recovering missed messages after short client internet connection disconnects. It's not designed to be used to sync client state after being offline for a long time - this logic should be on your app backend.
 
+### Does Centrifugo support webhooks?
+
+Not at moment. Centrifugo designed in a way where messages mostly from one direction: from server to client. If you need any callbacks you can call your application backend yourself from client side. There are several reasons why we can't simply add webhooks – some of them described in [this issue](https://github.com/centrifugal/centrifugo/issues/195).
+
+If you need to know that client disconnected and program your business logic around this fact then a reasonable approach is periodically call your backend from client side and update user status somewhere on backend (use Redis maybe). This is a pretty robust solution where you can't occasionally miss disconnect event. 
+
 ### What is the difference between Centrifugo and Centrifuge
 
 [Centrifugo](https://github.com/centrifugal/centrifugo) is server built on top of [Centrifuge](https://github.com/centrifugal/centrifuge) library for Go language.
