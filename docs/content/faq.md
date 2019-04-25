@@ -84,9 +84,9 @@ Centrifugo can keep message history for a while and you can want to rely on it f
 
 ### Does Centrifugo support webhooks?
 
-Not at moment. Centrifugo designed in a way where messages mostly from one direction: from server to client. If you need any callbacks you can call your application backend yourself from client side. There are several reasons why we can't simply add webhooks – some of them described in [this issue](https://github.com/centrifugal/centrifugo/issues/195).
+Not at moment. Centrifugo designed in a way where messages mostly flow one direction: from server to client. In idiomatic case you publish messages to your backend first, then after saving to your main database publish to channel over Centrifugo API to deliver real-time message to all active channel subscribers. Now if you need any extra callbacks/webhooks you can call your application backend yourself from client side (for example just after connect event fired in client library). There are several reasons why we can't simply add webhooks – some of them described in [this issue](https://github.com/centrifugal/centrifugo/issues/195).
 
-If you need to know that client disconnected and program your business logic around this fact then a reasonable approach is periodically call your backend from client side and update user status somewhere on backend (use Redis maybe). This is a pretty robust solution where you can't occasionally miss disconnect event. 
+A bit tricky thing are disconnects. It's pretty hard as there are no guarantee that disconnect code will have time to execute (as client can just switch off its device or simply lose internet connection). If you need to know that client disconnected and program your business logic around this fact then a reasonable approach is periodically call your backend from client side and update user status somewhere on backend (use Redis maybe). This is a pretty robust solution where you can't occasionally miss disconnect event.
 
 ### What is the difference between Centrifugo and Centrifuge
 
