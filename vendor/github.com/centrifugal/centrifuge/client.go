@@ -1309,6 +1309,10 @@ func (c *Client) refreshCmd(cmd *proto.RefreshRequest) (*proto.RefreshResponse, 
 	var info proto.Raw
 	var b64info string
 
+	if cmd.Token == "" {
+		c.node.logger.log(newLogEntry(LogLevelInfo, "refresh token required", map[string]interface{}{"client": c.uid, "user": c.UserID()}))
+		return resp, DisconnectInvalidToken
+	}
 	parsedToken, err := jwt.ParseWithClaims(token, &connectTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -1465,6 +1469,11 @@ func (c *Client) subscribeCmd(cmd *proto.SubscribeRequest, rw *replyWriter) *Dis
 		var tokenInfo proto.Raw
 		var tokenB64info string
 
+		if cmd.Token == "" {
+			c.node.logger.log(newLogEntry(LogLevelInfo, "subscription token required", map[string]interface{}{"client": c.uid, "user": c.UserID()}))
+			rw.write(&proto.Reply{Error: ErrorPermissionDenied})
+			return nil
+		}
 		parsedToken, err := jwt.ParseWithClaims(cmd.Token, &subscribeTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -1809,6 +1818,11 @@ func (c *Client) subRefreshCmd(cmd *proto.SubRefreshRequest) (*proto.SubRefreshR
 	var tokenInfo proto.Raw
 	var tokenB64info string
 
+	if cmd.Token == "" {
+		c.node.logger.log(newLogEntry(LogLevelInfo, "subscription refresh token required", map[string]interface{}{"client": c.uid, "user": c.UserID()}))
+		resp.Error = ErrorBadRequest
+		return resp, nil
+	}
 	parsedToken, err := jwt.ParseWithClaims(cmd.Token, &subscribeTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
