@@ -431,6 +431,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#example-for-go" title="Example for Go" class="md-nav__link">
+    Example for Go
+  </a>
+  
+</li>
+      
       
       
       
@@ -810,6 +817,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#example-for-go" title="Example for Go" class="md-nav__link">
+    Example for Go
+  </a>
+  
+</li>
+      
       
       
       
@@ -877,6 +891,63 @@
 
 
 <p>Note that you need to explicitly handle Centrifugo API level error which is not transformed automatically into GRPC protocol level error.</p>
+<h2 id="example-for-go">Example for Go<a class="headerlink" href="#example-for-go" title="Permanent link">&para;</a></h2>
+<p>Here is a simple example on how to run Centrifugo with GRPC Go client.</p>
+<p>First start Centrifugo itself:</p>
+<div class="codehilite"><pre><span></span>centrifugo --config config.json --grpc_api
+</pre></div>
+
+
+<p>In another terminal tab:</p>
+<div class="codehilite"><pre><span></span><span class="nb">cd</span> ~
+mkdir centrifugo_grpc_example
+<span class="nb">cd</span> centrifugo_grpc_example/
+wget https://raw.githubusercontent.com/centrifugal/centrifugo/master/misc/proto/api.proto -O api.proto
+protoc api.proto --go_out<span class="o">=</span><span class="nv">plugins</span><span class="o">=</span>grpc,import_path<span class="o">=</span>main:./
+touch main.go
+</pre></div>
+
+
+<p>Put the following code to <code>main.go</code> file (created on last step above):</p>
+<div class="codehilite"><pre><span></span><span class="kn">package</span> <span class="nx">main</span>
+
+<span class="kn">import</span> <span class="p">(</span>
+    <span class="s">&quot;context&quot;</span>
+    <span class="s">&quot;log&quot;</span>
+    <span class="s">&quot;time&quot;</span>
+
+    <span class="s">&quot;google.golang.org/grpc&quot;</span>
+<span class="p">)</span>
+
+<span class="kd">func</span> <span class="nx">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">conn</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">grpc</span><span class="p">.</span><span class="nx">Dial</span><span class="p">(</span><span class="s">&quot;localhost:10000&quot;</span><span class="p">,</span> <span class="nx">grpc</span><span class="p">.</span><span class="nx">WithInsecure</span><span class="p">())</span>
+    <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nx">Fatalln</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="k">defer</span> <span class="nx">conn</span><span class="p">.</span><span class="nx">Close</span><span class="p">()</span>
+    <span class="nx">client</span> <span class="o">:=</span> <span class="nx">NewCentrifugoClient</span><span class="p">(</span><span class="nx">conn</span><span class="p">)</span>
+    <span class="k">for</span> <span class="p">{</span>
+        <span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">client</span><span class="p">.</span><span class="nx">Publish</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span> <span class="o">&amp;</span><span class="nx">PublishRequest</span><span class="p">{</span>
+            <span class="nx">Channel</span><span class="p">:</span> <span class="s">&quot;chat:index&quot;</span><span class="p">,</span>
+            <span class="nx">Data</span><span class="p">:</span>    <span class="p">[]</span><span class="nb">byte</span><span class="p">(</span><span class="s">`{&quot;input&quot;: &quot;hello from GRPC&quot;}`</span><span class="p">),</span>
+        <span class="p">})</span>
+        <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+            <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">())</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;successfully published&quot;</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="nx">time</span><span class="p">.</span><span class="nx">Sleep</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Then run:</p>
+<div class="codehilite"><pre><span></span><span class="nv">GO111MODULE</span><span class="o">=</span>on go run *.go
+</pre></div>
+
+
+<p>The program starts and periodically publishes the same payload into <code>chat:index</code> channel.</p>
                 
                   
                 
