@@ -100,14 +100,19 @@ func main() {
 	defer conn.Close()
 	client := NewCentrifugoClient(conn)
 	for {
-		_, err := client.Publish(context.Background(), &PublishRequest{
+		resp, err := client.Publish(context.Background(), &PublishRequest{
 			Channel: "chat:index",
 			Data:    []byte(`{"input": "hello from GRPC"}`),
 		})
 		if err != nil {
-			log.Println(err.Error())
+			log.Printf("Transport level error: %v", err)
 		} else {
-			log.Println("successfully published")
+			if resp.GetError() != nil {
+                respError := resp.GetError()
+				log.Printf("Error %d (%s)", respError.Code, respError.Message)
+			} else {
+				log.Println("Successfully published")
+			}
 		}
 		time.Sleep(time.Second)
 	}
