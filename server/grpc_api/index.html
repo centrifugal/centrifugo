@@ -927,14 +927,19 @@ touch main.go
     <span class="k">defer</span> <span class="nx">conn</span><span class="p">.</span><span class="nx">Close</span><span class="p">()</span>
     <span class="nx">client</span> <span class="o">:=</span> <span class="nx">NewCentrifugoClient</span><span class="p">(</span><span class="nx">conn</span><span class="p">)</span>
     <span class="k">for</span> <span class="p">{</span>
-        <span class="nx">_</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">client</span><span class="p">.</span><span class="nx">Publish</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span> <span class="o">&amp;</span><span class="nx">PublishRequest</span><span class="p">{</span>
+        <span class="nx">resp</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">client</span><span class="p">.</span><span class="nx">Publish</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span> <span class="o">&amp;</span><span class="nx">PublishRequest</span><span class="p">{</span>
             <span class="nx">Channel</span><span class="p">:</span> <span class="s">&quot;chat:index&quot;</span><span class="p">,</span>
             <span class="nx">Data</span><span class="p">:</span>    <span class="p">[]</span><span class="nb">byte</span><span class="p">(</span><span class="s">`{&quot;input&quot;: &quot;hello from GRPC&quot;}`</span><span class="p">),</span>
         <span class="p">})</span>
         <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-            <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">())</span>
+            <span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Transport level error: %v&quot;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
         <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-            <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;successfully published&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nx">resp</span><span class="p">.</span><span class="nx">GetError</span><span class="p">()</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+                <span class="nx">respError</span> <span class="o">:=</span> <span class="nx">resp</span><span class="p">.</span><span class="nx">GetError</span><span class="p">()</span>
+                <span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Error %d (%s)&quot;</span><span class="p">,</span> <span class="nx">respError</span><span class="p">.</span><span class="nx">Code</span><span class="p">,</span> <span class="nx">respError</span><span class="p">.</span><span class="nx">Message</span><span class="p">)</span>
+            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Successfully published&quot;</span><span class="p">)</span>
+            <span class="p">}</span>
         <span class="p">}</span>
         <span class="nx">time</span><span class="p">.</span><span class="nx">Sleep</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span>
     <span class="p">}</span>
