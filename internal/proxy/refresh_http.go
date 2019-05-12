@@ -13,21 +13,17 @@ type RefreshRequestHTTP struct {
 
 // HTTPRefreshProxy ...
 type HTTPRefreshProxy struct {
-	Endpoint   string
-	HTTPClient *http.Client
 	httpCaller HTTPCaller
 }
 
 // NewHTTPRefreshProxy ...
 func NewHTTPRefreshProxy(endpoint string, httpClient *http.Client) *HTTPRefreshProxy {
 	return &HTTPRefreshProxy{
-		Endpoint:   endpoint,
-		HTTPClient: httpClient,
 		httpCaller: NewHTTPCaller(endpoint, httpClient),
 	}
 }
 
-// ProxyRefresh ...
+// ProxyRefresh proxies refresh to application backend.
 func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req RefreshRequest) (*RefreshResult, error) {
 	httpRequest := req.Transport.Info().Request
 

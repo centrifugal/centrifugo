@@ -2,20 +2,21 @@ package proxy
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/centrifugal/centrifuge"
 )
 
 // RPCRequest ...
 type RPCRequest struct {
-	Data      []byte
+	Data      centrifuge.Raw
 	UserID    string
 	Transport centrifuge.Transport
 }
 
 // RPCResult ...
 type RPCResult struct {
-	Data       []byte                 `json:"data"`
+	Data       json.RawMessage        `json:"data"`
 	Base64Data string                 `json:"b64data"`
 	Error      *centrifuge.Error      `json:"error"`
 	Disconnect *centrifuge.Disconnect `json:"disconnect"`

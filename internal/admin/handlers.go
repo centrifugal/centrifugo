@@ -17,6 +17,8 @@ type Config struct {
 	WebPath string
 
 	// WebFS is custom filesystem to serve as admin web application.
+	// In our case we pass embedded web interface which implements
+	// FileSystem interface.
 	WebFS http.FileSystem
 
 	// Password is an admin password.
@@ -26,9 +28,10 @@ type Config struct {
 	Secret string
 
 	// Insecure turns on insecure mode for admin endpoints - no auth
-	// required to connect to web interface and requests to admin API.
-	// Protect admin resources with firewall rules in production when
-	// enabling this option.
+	// required to connect to web interface and for requests to admin API.
+	// Admin resources must be protected by firewall rules in production when
+	// this option enabled otherwise everyone from internet can make admin
+	// actions.
 	Insecure bool
 }
 

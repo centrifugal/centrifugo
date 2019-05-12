@@ -10,6 +10,7 @@ import (
 // ConnectRequest ...
 type ConnectRequest struct {
 	Transport centrifuge.Transport
+	Data      centrifuge.Raw
 }
 
 // ConnectCredentials ...

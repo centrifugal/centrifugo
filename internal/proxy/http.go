@@ -5,10 +5,11 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
-	"strings"
 )
+
+// DefaultMaxIdleConnsPerHost is a reasonable value for all HTTP clients.
+const DefaultMaxIdleConnsPerHost = 255
 
 // HTTPCaller ...
 type HTTPCaller interface {
@@ -49,9 +50,6 @@ func (c *httpCaller) CallHTTP(ctx context.Context, header http.Header, reqData [
 func getProxyHeader(request *http.Request) http.Header {
 	header := http.Header{}
 	copyHeader(header, request.Header)
-	if clientIP, _, err := net.SplitHostPort(request.RemoteAddr); err == nil {
-		appendHostToXForwardHeader(header, clientIP)
-	}
 	return header
 }
 
@@ -81,14 +79,4 @@ func stringInSlice(a string, list []string) bool {
 		}
 	}
 	return false
-}
-
-func appendHostToXForwardHeader(header http.Header, host string) {
-	// If we aren't the first proxy retain prior
-	// X-Forwarded-For information as a comma+space
-	// separated list and fold multiple headers into one.
-	if prior, ok := header["X-Forwarded-For"]; ok {
-		host = strings.Join(prior, ", ") + ", " + host
-	}
-	header.Set("X-Forwarded-For", host)
 }

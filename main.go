@@ -148,96 +148,38 @@ func main() {
 				log.Fatal().Msgf("Error creating engine: %v", err)
 			}
 
-			if viper.GetString("proxy_connect_endpoint") != "" {
-
-				connectProxy := proxy.NewHTTPConnectProxy(viper.GetString("proxy_connect_endpoint"), &http.Client{Transport: &http.Transport{
-					MaxIdleConnsPerHost: 100,
-				}, Timeout: time.Duration(viper.GetFloat64("proxy_connect_timeout")*1000) * time.Millisecond})
-
-				node.On().ClientConnecting(func(ctx context.Context, t centrifuge.Transport, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
-					connectResp, err := connectProxy.ProxyConnect(context.Background(), proxy.ConnectRequest{
-						Transport: t,
-					})
-					if err != nil {
-						return centrifuge.ConnectReply{
-							Error: centrifuge.ErrorInternal,
-						}
-					}
-					if connectResp.Disconnect != nil {
-						return centrifuge.ConnectReply{
-							Disconnect: connectResp.Disconnect,
-						}
-					}
-					if connectResp.Error != nil {
-						return centrifuge.ConnectReply{
-							Error: connectResp.Error,
-						}
-					}
-					return centrifuge.ConnectReply{
-						Credentials: &centrifuge.Credentials{
-							UserID:   connectResp.Credentials.UserID,
-							ExpireAt: connectResp.Credentials.ExpireAt,
-						},
-					}
+			if viper.GetString("proxy_http_connect_endpoint") != "" {
+				connectHandler := proxy.NewConnectHandler(proxy.ConnectHandlerConfig{
+					Proxy: proxy.NewHTTPConnectProxy(
+						viper.GetString("proxy_http_connect_endpoint"),
+						proxyHTTPClient(viper.GetFloat64("proxy_http_connect_timeout")),
+					),
 				})
+				node.On().ClientConnecting(connectHandler.Handle(node))
 			}
 
-			rpcProxy := proxy.NewHTTPRPCProxy(viper.GetString("proxy_rpc_endpoint"), &http.Client{Transport: &http.Transport{
-				MaxIdleConnsPerHost: 100,
-			}, Timeout: time.Duration(viper.GetFloat64("proxy_rpc_timeout")*1000) * time.Millisecond})
+			rpcHandler := proxy.NewRPCHandler(proxy.RPCHandlerConfig{
+				Proxy: proxy.NewHTTPRPCProxy(
+					viper.GetString("proxy_http_rpc_endpoint"),
+					proxyHTTPClient(viper.GetFloat64("proxy_http_rpc_timeout")),
+				),
+			})
+			rpcHandlerEnabled := viper.GetString("proxy_http_rpc_endpoint") != ""
 
-			refreshProxy := proxy.NewHTTPRefreshProxy(viper.GetString("proxy_refresh_endpoint"), &http.Client{Transport: &http.Transport{
-				MaxIdleConnsPerHost: 100,
-			}, Timeout: time.Duration(viper.GetFloat64("proxy_refresh_timeout")*1000) * time.Millisecond})
+			refreshHandler := proxy.NewRefreshHandler(proxy.RefreshHandlerConfig{
+				Proxy: proxy.NewHTTPRefreshProxy(
+					viper.GetString("proxy_http_refresh_endpoint"),
+					proxyHTTPClient(viper.GetFloat64("proxy_http_refresh_timeout")),
+				),
+			})
+			refreshHandlerEnabled := viper.GetString("proxy_http_refresh_endpoint") != ""
 
 			node.On().ClientConnected(func(ctx context.Context, client *centrifuge.Client) {
-
-				if viper.GetString("proxy_rpc_endpoint") != "" {
-					client.On().RPC(func(e centrifuge.RPCEvent) centrifuge.RPCReply {
-						rpcResp, err := rpcProxy.ProxyRPC(context.Background(), proxy.RPCRequest{
-							Data:      e.Data,
-							UserID:    client.UserID(),
-							Transport: client.Transport(),
-						})
-						if err != nil {
-							log.Error().Msgf("Error proxing RPC: %v", err)
-							return centrifuge.RPCReply{
-								Error: centrifuge.ErrorInternal,
-							}
-						}
-						if rpcResp.Disconnect != nil {
-							return centrifuge.RPCReply{
-								Disconnect: rpcResp.Disconnect,
-							}
-						}
-						if rpcResp.Error != nil {
-							return centrifuge.RPCReply{
-								Error: rpcResp.Error,
-							}
-						}
-						return centrifuge.RPCReply{
-							Data: rpcResp.Data,
-						}
-					})
+				if rpcHandlerEnabled {
+					client.On().RPC(rpcHandler.Handle(node, client))
 				}
-
-				if viper.GetString("proxy_refresh_endpoint") != "" {
-					client.On().Refresh(func(e centrifuge.RefreshEvent) centrifuge.RefreshReply {
-						refreshResp, err := refreshProxy.ProxyRefresh(context.Background(), proxy.RefreshRequest{
-							UserID:    client.UserID(),
-							Transport: client.Transport(),
-						})
-						if err != nil {
-							// TODO: add retries.
-							log.Error().Msgf("Error proxing refresh: %v", err)
-							return centrifuge.RefreshReply{}
-						}
-						// TODO: add Disconnect to Refreshreply.
-						return centrifuge.RefreshReply{
-							ExpireAt: refreshResp.Credentials.ExpireAt,
-							Info:     centrifuge.Raw(refreshResp.Credentials.Info),
-						}
-					})
+				if refreshHandlerEnabled {
+					client.On().Refresh(refreshHandler.Handle(node, client))
 				}
 			})
 
@@ -475,12 +417,12 @@ var configDefaults = map[string]interface{}{
 	"graphite_interval":                    10,
 	"graphite_tags":                        false,
 
-	"proxy_connect_endpoint": "http://localhost:3000/centrifugo/connect",
-	"proxy_connect_timeout":  0.5,
-	"proxy_rpc_endpoint":     "http://localhost:3000/centrifugo/rpc",
-	"proxy_rpc_timeout":      0.5,
-	"proxy_refresh_endpoint": "http://localhost:3000/centrifugo/refresh",
-	"proxy_refresh_timeout":  0.5,
+	"proxy_http_connect_endpoint": "",
+	"proxy_http_connect_timeout":  1,
+	"proxy_http_rpc_endpoint":     "",
+	"proxy_http_rpc_timeout":      1,
+	"proxy_http_refresh_endpoint": "",
+	"proxy_http_refresh_timeout":  1,
 }
 
 func writePidFile(pidFile string) error {
@@ -597,6 +539,15 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 			time.Sleep(time.Duration(viper.GetInt("shutdown_termination_delay")) * time.Second)
 			os.Exit(0)
 		}
+	}
+}
+
+func proxyHTTPClient(timeout float64) *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: proxy.DefaultMaxIdleConnsPerHost,
+		},
+		Timeout: time.Duration(timeout*1000) * time.Millisecond,
 	}
 }
 
@@ -973,24 +924,6 @@ func namespacesFromConfig(v *viper.Viper) []centrifuge.ChannelNamespace {
 	}
 	v.UnmarshalKey("namespaces", &ns)
 	return ns
-}
-
-func connectProxyConfig() proxy.ConnectHandlerConfig {
-	v := viper.GetViper()
-	cfg := proxy.ConnectHandlerConfig{}
-	return cfg
-}
-
-func rpcProxyConfig() proxy.RPCHandlerConfig {
-	v := viper.GetViper()
-	cfg := proxy.RPCHandlerConfig{}
-	return cfg
-}
-
-func refreshProxyConfig() proxy.RefreshHandlerConfig {
-	v := viper.GetViper()
-	cfg := proxy.RefreshhandlerConfig{}
-	return cfg
 }
 
 func websocketHandlerConfig() centrifuge.WebsocketConfig {

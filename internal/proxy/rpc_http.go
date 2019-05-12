@@ -2,29 +2,28 @@ package proxy
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 )
 
 // HTTPRPCProxy ...
 type HTTPRPCProxy struct {
-	Endpoint   string
-	HTTPClient *http.Client
 	httpCaller HTTPCaller
 }
 
 // RPCRequestHTTP ...
 type RPCRequestHTTP struct {
-	UserID     string `json:"user_id"`
-	Data       []byte `json:"data,omitempty"`
+	Encoding string          `json:"encoding"`
+	UserID   string          `json:"user_id"`
+	Data     json.RawMessage `json:"data,omitempty"`
+	// Base64Data to proxy protobuf data.
 	Base64Data string `json:"b64data,omitempty"`
 }
 
 // NewHTTPRPCProxy ...
 func NewHTTPRPCProxy(endpoint string, httpClient *http.Client) *HTTPRPCProxy {
 	return &HTTPRPCProxy{
-		Endpoint:   endpoint,
-		HTTPClient: httpClient,
 		httpCaller: NewHTTPCaller(endpoint, httpClient),
 	}
 }
@@ -34,8 +33,14 @@ func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req RPCRequest) (*RPCResult
 	httpRequest := req.Transport.Info().Request
 
 	rpcHTTPReq := RPCRequestHTTP{
-		UserID: req.UserID,
-		Data:   req.Data,
+		Encoding: string(req.Transport.Encoding()),
+		UserID:   req.UserID,
+	}
+
+	if req.Transport.Encoding() == "json" {
+		rpcHTTPReq.Data = json.RawMessage(req.Data)
+	} else {
+		rpcHTTPReq.Base64Data = base64.StdEncoding.EncodeToString(req.Data)
 	}
 
 	data, err := json.Marshal(rpcHTTPReq)
