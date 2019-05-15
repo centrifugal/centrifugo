@@ -38,6 +38,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -551,6 +552,9 @@ func getTLSConfig() (*tls.Config, error) {
 					hello.ServerName = tlsAutocertServerName
 				}
 				return certManager.GetCertificate(hello)
+			},
+			NextProtos: []string{
+				"h2", "http/1.1", acme.ALPNProto,
 			},
 		}, nil
 
