@@ -159,14 +159,6 @@ func main() {
 				node.On().ClientConnecting(connectHandler.Handle(node))
 			}
 
-			rpcHandler := proxy.NewRPCHandler(proxy.RPCHandlerConfig{
-				Proxy: proxy.NewHTTPRPCProxy(
-					viper.GetString("proxy_http_rpc_endpoint"),
-					proxyHTTPClient(viper.GetFloat64("proxy_http_rpc_timeout")),
-				),
-			})
-			rpcHandlerEnabled := viper.GetString("proxy_http_rpc_endpoint") != ""
-
 			refreshHandler := proxy.NewRefreshHandler(proxy.RefreshHandlerConfig{
 				Proxy: proxy.NewHTTPRefreshProxy(
 					viper.GetString("proxy_http_refresh_endpoint"),
@@ -175,12 +167,21 @@ func main() {
 			})
 			refreshHandlerEnabled := viper.GetString("proxy_http_refresh_endpoint") != ""
 
+			if refreshHandlerEnabled {
+				node.On().ClientRefresh(refreshHandler.Handle(node))
+			}
+
+			rpcHandler := proxy.NewRPCHandler(proxy.RPCHandlerConfig{
+				Proxy: proxy.NewHTTPRPCProxy(
+					viper.GetString("proxy_http_rpc_endpoint"),
+					proxyHTTPClient(viper.GetFloat64("proxy_http_rpc_timeout")),
+				),
+			})
+			rpcHandlerEnabled := viper.GetString("proxy_http_rpc_endpoint") != ""
+
 			node.On().ClientConnected(func(ctx context.Context, client *centrifuge.Client) {
 				if rpcHandlerEnabled {
 					client.On().RPC(rpcHandler.Handle(node, client))
-				}
-				if refreshHandlerEnabled {
-					client.On().Refresh(refreshHandler.Handle(node, client))
 				}
 			})
 
