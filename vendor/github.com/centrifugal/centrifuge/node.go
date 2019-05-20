@@ -919,6 +919,8 @@ type NodeEventHub interface {
 	// where application should set all required connection event callbacks and
 	// can start communicating with client.
 	ClientConnected(handler ConnectedHandler)
+	// ClientRefresh called when it's time to refresh expiring client connection.
+	ClientRefresh(handler RefreshHandler)
 }
 
 // nodeEventHub can deal with events binded to Node.
@@ -926,6 +928,7 @@ type NodeEventHub interface {
 type nodeEventHub struct {
 	connectingHandler ConnectingHandler
 	connectedHandler  ConnectedHandler
+	refreshHandler    RefreshHandler
 }
 
 // ClientConnecting ...
@@ -933,9 +936,14 @@ func (h *nodeEventHub) ClientConnecting(handler ConnectingHandler) {
 	h.connectingHandler = handler
 }
 
-// Connect allows to set ConnectedHandler.
+// ClientConnected allows to set ConnectedHandler.
 func (h *nodeEventHub) ClientConnected(handler ConnectedHandler) {
 	h.connectedHandler = handler
+}
+
+// ClientRefresh allows to set RefreshHandler.
+func (h *nodeEventHub) ClientRefresh(handler RefreshHandler) {
+	h.refreshHandler = handler
 }
 
 type brokerEventHandler struct {

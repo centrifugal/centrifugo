@@ -57,3 +57,72 @@ else:
 ```
 
 Note that you need to explicitly handle Centrifugo API level error which is not transformed automatically into GRPC protocol level error.
+
+## Example for Go
+
+Here is a simple example on how to run Centrifugo with GRPC Go client.
+
+First start Centrifugo itself:
+
+```bash
+centrifugo --config config.json --grpc_api
+```
+
+In another terminal tab:
+
+```bash
+cd ~
+mkdir centrifugo_grpc_example
+cd centrifugo_grpc_example/
+wget https://raw.githubusercontent.com/centrifugal/centrifugo/master/misc/proto/api.proto -O api.proto
+protoc api.proto --go_out=plugins=grpc,import_path=main:./
+touch main.go
+```
+
+Put the following code to `main.go` file (created on last step above):
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+	"time"
+
+	"google.golang.org/grpc"
+)
+
+func main() {
+	conn, err := grpc.Dial("localhost:10000", grpc.WithInsecure())
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer conn.Close()
+	client := NewCentrifugoClient(conn)
+	for {
+		resp, err := client.Publish(context.Background(), &PublishRequest{
+			Channel: "chat:index",
+			Data:    []byte(`{"input": "hello from GRPC"}`),
+		})
+		if err != nil {
+			log.Printf("Transport level error: %v", err)
+		} else {
+			if resp.GetError() != nil {
+                respError := resp.GetError()
+				log.Printf("Error %d (%s)", respError.Code, respError.Message)
+			} else {
+				log.Println("Successfully published")
+			}
+		}
+		time.Sleep(time.Second)
+	}
+}
+```
+
+Then run:
+
+```bash
+GO111MODULE=on go run *.go
+```
+
+The program starts and periodically publishes the same payload into `chat:index` channel.

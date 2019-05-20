@@ -9,3 +9,5 @@ We have several client libraries for different languages so you don't have to co
 * [gocent](https://github.com/centrifugal/gocent) for Go
 * [rubycent](https://github.com/centrifugal/rubycent) for Ruby (**not available for Centrifugo v2 yet**)
 * [jscent](https://github.com/centrifugal/jscent) for NodeJS (**not available for Centrifugo v2 yet**)
+
+Also keep in mind that Centrifugo [has GRPC API](../server/grpc_api.md) so you can automatically generate client API code for your language.
