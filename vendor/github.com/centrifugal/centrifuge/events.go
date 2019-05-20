@@ -36,6 +36,19 @@ type ConnectingHandler func(context.Context, Transport, ConnectEvent) ConnectRep
 // ConnectedHandler called when new client connects to server.
 type ConnectedHandler func(context.Context, *Client)
 
+// RefreshEvent contains fields related to refresh event.
+type RefreshEvent struct{}
+
+// RefreshReply contains fields determining the reaction on refresh event.
+type RefreshReply struct {
+	ExpireAt int64
+	Info     Raw
+}
+
+// RefreshHandler called when it's time to validate client connection and
+// update it's expiration time.
+type RefreshHandler func(context.Context, *Client, RefreshEvent) RefreshReply
+
 // DisconnectEvent contains fields related to disconnect event.
 type DisconnectEvent struct {
 	Disconnect *Disconnect
@@ -90,19 +103,6 @@ type PublishReply struct {
 
 // PublishHandler called when client publishes into channel.
 type PublishHandler func(PublishEvent) PublishReply
-
-// RefreshEvent contains fields related to refresh event.
-type RefreshEvent struct{}
-
-// RefreshReply contains fields determining the reaction on refresh event.
-type RefreshReply struct {
-	ExpireAt int64
-	Info     Raw
-}
-
-// RefreshHandler called when it's time to validate client connection and
-// update it's expiration time.
-type RefreshHandler func(RefreshEvent) RefreshReply
 
 // SubRefreshEvent contains fields related to subscription refresh event.
 type SubRefreshEvent struct {

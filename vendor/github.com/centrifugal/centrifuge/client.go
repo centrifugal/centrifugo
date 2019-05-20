@@ -25,7 +25,6 @@ type ClientEventHub struct {
 	subscribeHandler   SubscribeHandler
 	unsubscribeHandler UnsubscribeHandler
 	publishHandler     PublishHandler
-	refreshHandler     RefreshHandler
 	subRefreshHandler  SubRefreshHandler
 	rpcHandler         RPCHandler
 	messageHandler     MessageHandler
@@ -47,12 +46,6 @@ func (c *ClientEventHub) Message(h MessageHandler) {
 // RPCHandler will be executed on every incoming RPC call.
 func (c *ClientEventHub) RPC(h RPCHandler) {
 	c.rpcHandler = h
-}
-
-// Refresh allows to set RefreshHandler.
-// RefreshHandler called when it's time to refresh client connection credentials.
-func (c *ClientEventHub) Refresh(h RefreshHandler) {
-	c.refreshHandler = h
 }
 
 // SubRefresh allows to set SubRefreshHandler.
@@ -708,8 +701,8 @@ func (c *Client) expire() {
 		return
 	}
 
-	if c.eventHub.refreshHandler != nil {
-		reply := c.eventHub.refreshHandler(RefreshEvent{})
+	if c.node.eventHub.refreshHandler != nil {
+		reply := c.node.eventHub.refreshHandler(c.ctx, c, RefreshEvent{})
 		if reply.ExpireAt > 0 {
 			c.mu.Lock()
 			c.exp = reply.ExpireAt
@@ -730,7 +723,7 @@ func (c *Client) expire() {
 
 	ttl := exp - time.Now().Unix()
 
-	if c.eventHub.refreshHandler != nil {
+	if c.node.eventHub.refreshHandler != nil {
 		if ttl > 0 {
 			c.mu.RLock()
 			if c.expireTimer != nil {
@@ -1112,9 +1105,6 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 			resp.Error = reply.Error
 			return resp, nil
 		}
-		if reply.Data != nil {
-			resp.Result.Data = reply.Data
-		}
 		if reply.Credentials != nil {
 			credentials = reply.Credentials
 		}
@@ -1276,7 +1266,8 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 		c.mu.Unlock()
 	}
 
-	if c.eventHub.refreshHandler != nil {
+	if c.node.eventHub.refreshHandler != nil {
+		// Only require client-side refresh when no refresh handler set.
 		resp.Result.Expires = false
 		resp.Result.TTL = 0
 	}
