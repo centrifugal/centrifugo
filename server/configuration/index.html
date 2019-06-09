@@ -1291,7 +1291,7 @@ log_level: debug
 </ul>
 <p>Note that some options can be set via command-line. Command-line options are more valuable when set than configuration file&rsquo;s options. See description of <a href="https://github.com/spf13/viper">viper</a> – to see more details about configuration options priority.</p>
 <h3 id="channel-options">Channel options<a class="headerlink" href="#channel-options" title="Permanent link">&para;</a></h3>
-<p>Let&rsquo;s look at options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see <a href="channels">special chapter</a> to find more information about channels). The following options will affect channel behaviour:</p>
+<p>Let&rsquo;s look at options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see <a href="../channels/">special chapter</a> to find more information about channels). The following options will affect channel behaviour:</p>
 <ul>
 <li>
 <p><code>publish</code> – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. By default it&rsquo;s <code>false</code>.</p>
