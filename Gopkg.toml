@@ -74,7 +74,7 @@
 
 [[constraint]]
   name = "github.com/nats-io/nats"
-  version = "1.7.2"
+  version = "1.8.1"
 
 [prune]
   go-tests = true

@@ -178,23 +178,23 @@
   revision = "bb74f1db0675b241733089d5a1faa5dd8b0ef57b"
 
 [[projects]]
+  digest = "1:6de8b539649786932d077d1c035570d68526e9dd76519009c4a736c91762d033"
+  name = "github.com/nats-io/nats"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e2837a2879e82886f6e21715e3a0217fdc46d370"
+  version = "v1.8.1"
+
+[[projects]]
   digest = "1:95837473f879ea39a76b82c43c7badf93a4b27b2d5654182ec3d1728f8ebec30"
-  name = "github.com/nats-io/go-nats"
+  name = "github.com/nats-io/nats.go"
   packages = [
     "encoders/builtin",
     "util",
   ]
   pruneopts = "UT"
-  revision = "70fe06cee50d4b6f98248d9675fb55f2a3aa7228"
-  version = "v1.7.2"
-
-[[projects]]
-  digest = "1:dcb8019bc74228b95b7cd74fd8eaced3ea528290d85cc8cc864b071e98422ee9"
-  name = "github.com/nats-io/nats"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "70fe06cee50d4b6f98248d9675fb55f2a3aa7228"
-  version = "v1.7.2"
+  revision = "e2837a2879e82886f6e21715e3a0217fdc46d370"
+  version = "v1.8.1"
 
 [[projects]]
   digest = "1:0b5d91120efc54504bc253fda90b08c4be88cd78a4023ef60019e95bb0cdc136"

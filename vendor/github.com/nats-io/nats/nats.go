@@ -36,15 +36,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/nats-io/go-nats/util"
+	"github.com/nats-io/nats.go/util"
 	"github.com/nats-io/nkeys"
 	"github.com/nats-io/nuid"
 )
 
 // Default Constants
 const (
-	Version                 = "1.7.2"
-	DefaultURL              = "nats://localhost:4222"
+	Version                 = "1.8.1"
+	DefaultURL              = "nats://127.0.0.1:4222"
 	DefaultPort             = 4222
 	DefaultMaxReconnect     = 60
 	DefaultReconnectWait    = 2 * time.Second
@@ -107,7 +107,13 @@ var (
 	ErrNkeysNotSupported      = errors.New("nats: nkeys not supported by the server")
 	ErrStaleConnection        = errors.New("nats: " + STALE_CONNECTION)
 	ErrTokenAlreadySet        = errors.New("nats: token and token handler both set")
+	ErrMsgNotBound            = errors.New("nats: message is not bound to subscription/connection")
+	ErrMsgNoReply             = errors.New("nats: message does not have a reply")
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 // GetDefaultOptions returns default configuration options for the client.
 func GetDefaultOptions() Options {
@@ -145,6 +151,10 @@ const (
 // ConnHandler is used for asynchronous events such as
 // disconnected and closed connections.
 type ConnHandler func(*Conn)
+
+// ConnErrHandler is used to process asynchronous events like
+// disconnected connection with the error (if any).
+type ConnErrHandler func(*Conn, error)
 
 // ErrHandler is used to process asynchronous errors encountered
 // while processing inbound messages.
@@ -262,7 +272,16 @@ type Options struct {
 
 	// DisconnectedCB sets the disconnected handler that is called
 	// whenever the connection is disconnected.
+	// Will not be called if DisconnectedErrCB is set
+	// DEPRECATED. Use DisconnectedErrCB which passes error that caused
+	// the disconnect event.
 	DisconnectedCB ConnHandler
+
+	// DisconnectedErrCB sets the disconnected error handler that is called
+	// whenever the connection is disconnected.
+	// Disconnected error could be nil, for instance when user explicitly closes the connection.
+	// DisconnectedCB will not be called if DisconnectedErrCB is set
+	DisconnectedErrCB ConnErrHandler
 
 	// ReconnectedCB sets the reconnected handler called whenever
 	// the connection is successfully reconnected.
@@ -330,7 +349,7 @@ const (
 	defaultBufSize = 32768
 
 	// The buffered size of the flush "kick" channel
-	flushChanSize = 1024
+	flushChanSize = 1
 
 	// Default server pool size
 	srvPoolSize = 4
@@ -350,7 +369,7 @@ type Conn struct {
 	// atomic.* functions crash on 32bit machines if operand is not aligned
 	// at 64bit. See https://github.com/golang/go/issues/599
 	Statistics
-	mu sync.Mutex
+	mu sync.RWMutex
 	// Opts holds the configuration of the Conn.
 	// Modifying the configuration of a running Conn is a race.
 	Opts    Options
@@ -683,7 +702,16 @@ func DrainTimeout(t time.Duration) Option {
 	}
 }
 
+// DisconnectErrHandler is an Option to set the disconnected error handler.
+func DisconnectErrHandler(cb ConnErrHandler) Option {
+	return func(o *Options) error {
+		o.DisconnectedErrCB = cb
+		return nil
+	}
+}
+
 // DisconnectHandler is an Option to set the disconnected handler.
+// DEPRECATED: Use DisconnectErrHandler.
 func DisconnectHandler(cb ConnHandler) Option {
 	return func(o *Options) error {
 		o.DisconnectedCB = cb
@@ -847,6 +875,7 @@ func UseOldRequestStyle() Option {
 // Handler processing
 
 // SetDisconnectHandler will set the disconnect event handler.
+// DEPRECATED: Use SetDisconnectErrHandler
 func (nc *Conn) SetDisconnectHandler(dcb ConnHandler) {
 	if nc == nil {
 		return
@@ -854,6 +883,16 @@ func (nc *Conn) SetDisconnectHandler(dcb ConnHandler) {
 	nc.mu.Lock()
 	defer nc.mu.Unlock()
 	nc.Opts.DisconnectedCB = dcb
+}
+
+// SetDisconnectErrHandler will set the disconnect event handler.
+func (nc *Conn) SetDisconnectErrHandler(dcb ConnErrHandler) {
+	if nc == nil {
+		return
+	}
+	nc.mu.Lock()
+	defer nc.mu.Unlock()
+	nc.Opts.DisconnectedErrCB = dcb
 }
 
 // SetReconnectHandler will set the reconnect event handler.
@@ -1189,18 +1228,18 @@ func (nc *Conn) createConn() (err error) {
 	}
 
 	// We will auto-expand host names if they resolve to multiple IPs
-	hosts := map[string]struct{}{}
+	hosts := []string{}
 	u := nc.current.url
 
 	if net.ParseIP(u.Hostname()) == nil {
 		addrs, _ := net.LookupHost(u.Hostname())
 		for _, addr := range addrs {
-			hosts[net.JoinHostPort(addr, u.Port())] = struct{}{}
+			hosts = append(hosts, net.JoinHostPort(addr, u.Port()))
 		}
 	}
 	// Fall back to what we were given.
 	if len(hosts) == 0 {
-		hosts[u.Host] = struct{}{}
+		hosts = append(hosts, u.Host)
 	}
 
 	// CustomDialer takes precedence. If not set, use Opts.Dialer which
@@ -1214,7 +1253,12 @@ func (nc *Conn) createConn() (err error) {
 		dialer = &copyDialer
 	}
 
-	for host := range hosts {
+	if len(hosts) > 1 && !nc.Opts.NoRandomize {
+		rand.Shuffle(len(hosts), func(i, j int) {
+			hosts[i], hosts[j] = hosts[j], hosts[i]
+		})
+	}
+	for _, host := range hosts {
 		nc.conn, err = dialer.Dial("tcp", host)
 		if err == nil {
 			break
@@ -1283,8 +1327,10 @@ func (nc *Conn) ConnectedUrl() string {
 	if nc == nil {
 		return _EMPTY_
 	}
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
+
 	if nc.status != CONNECTED {
 		return _EMPTY_
 	}
@@ -1296,8 +1342,10 @@ func (nc *Conn) ConnectedAddr() string {
 	if nc == nil {
 		return _EMPTY_
 	}
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
+
 	if nc.status != CONNECTED {
 		return _EMPTY_
 	}
@@ -1309,8 +1357,10 @@ func (nc *Conn) ConnectedServerId() string {
 	if nc == nil {
 		return _EMPTY_
 	}
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
+
 	if nc.status != CONNECTED {
 		return _EMPTY_
 	}
@@ -1400,7 +1450,7 @@ func (nc *Conn) connect() error {
 			} else {
 				returnedErr = err
 				nc.mu.Unlock()
-				nc.close(DISCONNECTED, false)
+				nc.close(DISCONNECTED, false, err)
 				nc.mu.Lock()
 				nc.current = nil
 			}
@@ -1413,11 +1463,10 @@ func (nc *Conn) connect() error {
 		}
 	}
 	nc.initc = false
-	defer nc.mu.Unlock()
-
 	if returnedErr == nil && nc.status != CONNECTED {
 		returnedErr = ErrNoServers
 	}
+	nc.mu.Unlock()
 	return returnedErr
 }
 
@@ -1705,7 +1754,7 @@ func (nc *Conn) stopPingTimer() {
 
 // Try to reconnect using the option parameters.
 // This function assumes we are allowed to reconnect.
-func (nc *Conn) doReconnect() {
+func (nc *Conn) doReconnect(err error) {
 	// We want to make sure we have the other watchers shutdown properly
 	// here before we proceed past this point.
 	nc.waitForExits()
@@ -1724,7 +1773,10 @@ func (nc *Conn) doReconnect() {
 	// Clear any errors.
 	nc.err = nil
 	// Perform appropriate callback if needed for a disconnect.
-	if nc.Opts.DisconnectedCB != nil {
+	// DisconnectedErrCB has priority over deprecated DisconnectedCB
+	if nc.Opts.DisconnectedErrCB != nil {
+		nc.ach.push(func() { nc.Opts.DisconnectedErrCB(nc, err) })
+	} else if nc.Opts.DisconnectedCB != nil {
 		nc.ach.push(func() { nc.Opts.DisconnectedCB(nc) })
 	}
 
@@ -1872,7 +1924,7 @@ func (nc *Conn) processOpErr(err error) {
 		nc.pending = new(bytes.Buffer)
 		nc.bw.Reset(nc.pending)
 
-		go nc.doReconnect()
+		go nc.doReconnect(err)
 		nc.mu.Unlock()
 		return
 	}
@@ -1962,14 +2014,14 @@ func (nc *Conn) readLoop() {
 	b := make([]byte, defaultBufSize)
 
 	for {
-		// FIXME(dlc): RWLock here?
-		nc.mu.Lock()
+		// ps is thread safe, so RLock is okay
+		nc.mu.RLock()
 		sb := nc.isClosed() || nc.isReconnecting()
 		if sb {
 			nc.ps = &parseState{}
 		}
 		conn := nc.conn
-		nc.mu.Unlock()
+		nc.mu.RUnlock()
 
 		if sb || conn == nil {
 			break
@@ -2276,6 +2328,7 @@ func (nc *Conn) processInfo(info string) error {
 	if err := json.Unmarshal([]byte(info), &ncInfo); err != nil {
 		return err
 	}
+
 	// Copy content into connection's info structure.
 	nc.info = ncInfo
 	// The array could be empty/not present on initial connect,
@@ -2322,10 +2375,8 @@ func (nc *Conn) processInfo(info string) error {
 		}
 	}
 	// Figure out if we should save off the current non-IP hostname if we encounter a bare IP.
-	var saveTLS bool
-	if nc.current != nil && nc.Opts.Secure && !hostIsIP(nc.current.url) {
-		saveTLS = true
-	}
+	saveTLS := nc.current != nil && !hostIsIP(nc.current.url)
+
 	// If there are any left in the tmp map, these are new (or restarted) servers
 	// and need to be added to the pool.
 	for curl := range tmp {
@@ -2360,9 +2411,9 @@ func (nc *Conn) LastError() error {
 	if nc == nil {
 		return ErrInvalidConnection
 	}
-	nc.mu.Lock()
+	nc.mu.RLock()
 	err := nc.err
-	nc.mu.Unlock()
+	nc.mu.RUnlock()
 	return err
 }
 
@@ -2632,7 +2683,7 @@ func (nc *Conn) oldRequest(subj string, data []byte, timeout time.Duration) (*Ms
 	inbox := NewInbox()
 	ch := make(chan *Msg, RequestChanLen)
 
-	s, err := nc.subscribe(inbox, _EMPTY_, nil, ch)
+	s, err := nc.subscribe(inbox, _EMPTY_, nil, ch, false)
 	if err != nil {
 		return nil, err
 	}
@@ -2712,14 +2763,14 @@ func respToken(respInbox string) string {
 // can have wildcards (partial:*, full:>). Messages will be delivered
 // to the associated MsgHandler.
 func (nc *Conn) Subscribe(subj string, cb MsgHandler) (*Subscription, error) {
-	return nc.subscribe(subj, _EMPTY_, cb, nil)
+	return nc.subscribe(subj, _EMPTY_, cb, nil, false)
 }
 
 // ChanSubscribe will express interest in the given subject and place
 // all messages received on the channel.
 // You should not close the channel until sub.Unsubscribe() has been called.
 func (nc *Conn) ChanSubscribe(subj string, ch chan *Msg) (*Subscription, error) {
-	return nc.subscribe(subj, _EMPTY_, nil, ch)
+	return nc.subscribe(subj, _EMPTY_, nil, ch, false)
 }
 
 // ChanQueueSubscribe will express interest in the given subject.
@@ -2729,7 +2780,7 @@ func (nc *Conn) ChanSubscribe(subj string, ch chan *Msg) (*Subscription, error) 
 // You should not close the channel until sub.Unsubscribe() has been called.
 // Note: This is the same than QueueSubscribeSyncWithChan.
 func (nc *Conn) ChanQueueSubscribe(subj, group string, ch chan *Msg) (*Subscription, error) {
-	return nc.subscribe(subj, group, nil, ch)
+	return nc.subscribe(subj, group, nil, ch, false)
 }
 
 // SubscribeSync will express interest on the given subject. Messages will
@@ -2739,10 +2790,7 @@ func (nc *Conn) SubscribeSync(subj string) (*Subscription, error) {
 		return nil, ErrInvalidConnection
 	}
 	mch := make(chan *Msg, nc.Opts.SubChanLen)
-	s, e := nc.subscribe(subj, _EMPTY_, nil, mch)
-	if s != nil {
-		s.typ = SyncSubscription
-	}
+	s, e := nc.subscribe(subj, _EMPTY_, nil, mch, true)
 	return s, e
 }
 
@@ -2751,7 +2799,7 @@ func (nc *Conn) SubscribeSync(subj string) (*Subscription, error) {
 // only one member of the group will be selected to receive any given
 // message asynchronously.
 func (nc *Conn) QueueSubscribe(subj, queue string, cb MsgHandler) (*Subscription, error) {
-	return nc.subscribe(subj, queue, cb, nil)
+	return nc.subscribe(subj, queue, cb, nil, false)
 }
 
 // QueueSubscribeSync creates a synchronous queue subscriber on the given
@@ -2760,10 +2808,7 @@ func (nc *Conn) QueueSubscribe(subj, queue string, cb MsgHandler) (*Subscription
 // given message synchronously using Subscription.NextMsg().
 func (nc *Conn) QueueSubscribeSync(subj, queue string) (*Subscription, error) {
 	mch := make(chan *Msg, nc.Opts.SubChanLen)
-	s, e := nc.subscribe(subj, queue, nil, mch)
-	if s != nil {
-		s.typ = SyncSubscription
-	}
+	s, e := nc.subscribe(subj, queue, nil, mch, true)
 	return s, e
 }
 
@@ -2774,11 +2819,11 @@ func (nc *Conn) QueueSubscribeSync(subj, queue string) (*Subscription, error) {
 // You should not close the channel until sub.Unsubscribe() has been called.
 // Note: This is the same than ChanQueueSubscribe.
 func (nc *Conn) QueueSubscribeSyncWithChan(subj, queue string, ch chan *Msg) (*Subscription, error) {
-	return nc.subscribe(subj, queue, nil, ch)
+	return nc.subscribe(subj, queue, nil, ch, false)
 }
 
 // subscribe is the internal subscribe function that indicates interest in a subject.
-func (nc *Conn) subscribe(subj, queue string, cb MsgHandler, ch chan *Msg) (*Subscription, error) {
+func (nc *Conn) subscribe(subj, queue string, cb MsgHandler, ch chan *Msg, isSync bool) (*Subscription, error) {
 	if nc == nil {
 		return nil, ErrInvalidConnection
 	}
@@ -2809,8 +2854,11 @@ func (nc *Conn) subscribe(subj, queue string, cb MsgHandler, ch chan *Msg) (*Sub
 		sub.typ = AsyncSubscription
 		sub.pCond = sync.NewCond(&sub.mu)
 		go nc.waitForMsgs(sub)
-	} else {
+	} else if !isSync {
 		sub.typ = ChanSubscription
+		sub.mch = ch
+	} else { // Sync Subscription
+		sub.typ = SyncSubscription
 		sub.mch = ch
 	}
 
@@ -2835,8 +2883,8 @@ func (nc *Conn) subscribe(subj, queue string, cb MsgHandler, ch chan *Msg) (*Sub
 
 // NumSubscriptions returns active number of subscriptions.
 func (nc *Conn) NumSubscriptions() int {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	return len(nc.subs)
 }
 
@@ -3265,6 +3313,21 @@ func (s *Subscription) Dropped() (int, error) {
 	return s.dropped, nil
 }
 
+// Respond allows a convenient way to respond to requests in service based subscriptions.
+func (m *Msg) Respond(data []byte) error {
+	if m == nil || m.Sub == nil {
+		return ErrMsgNotBound
+	}
+	if m.Reply == "" {
+		return ErrMsgNoReply
+	}
+	m.Sub.mu.Lock()
+	nc := m.Sub.conn
+	m.Sub.mu.Unlock()
+	// No need to check the connection here since the call to publish will do all the checking.
+	return nc.Publish(m.Reply, data)
+}
+
 // FIXME: This is a hack
 // removeFlushEntry is needed when we need to discard queued up responses
 // for our pings as part of a flush call. This happens when we have a flush
@@ -3366,8 +3429,8 @@ func (nc *Conn) Flush() error {
 // Buffered will return the number of bytes buffered to be sent to the server.
 // FIXME(dlc) take into account disconnected state.
 func (nc *Conn) Buffered() (int, error) {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	if nc.isClosed() || nc.bw == nil {
 		return -1, ErrConnectionClosed
 	}
@@ -3441,7 +3504,7 @@ func (nc *Conn) clearPendingRequestCalls() {
 // desired status. Also controls whether user defined callbacks
 // will be triggered. The lock should not be held entering this
 // function. This function will handle the locking manually.
-func (nc *Conn) close(status Status, doCBs bool) {
+func (nc *Conn) close(status Status, doCBs bool, err error) {
 	nc.mu.Lock()
 	if nc.isClosed() {
 		nc.status = status
@@ -3501,8 +3564,12 @@ func (nc *Conn) close(status Status, doCBs bool) {
 
 	// Perform appropriate callback if needed for a disconnect.
 	if doCBs {
-		if nc.Opts.DisconnectedCB != nil && nc.conn != nil {
-			nc.ach.push(func() { nc.Opts.DisconnectedCB(nc) })
+		if nc.conn != nil {
+			if nc.Opts.DisconnectedErrCB != nil {
+				nc.ach.push(func() { nc.Opts.DisconnectedErrCB(nc, err) })
+			} else if nc.Opts.DisconnectedCB != nil {
+				nc.ach.push(func() { nc.Opts.DisconnectedCB(nc) })
+			}
 		}
 		if nc.Opts.ClosedCB != nil {
 			nc.ach.push(func() { nc.Opts.ClosedCB(nc) })
@@ -3515,27 +3582,29 @@ func (nc *Conn) close(status Status, doCBs bool) {
 // Close will close the connection to the server. This call will release
 // all blocking calls, such as Flush() and NextMsg()
 func (nc *Conn) Close() {
-	nc.close(CLOSED, true)
+	if nc != nil {
+		nc.close(CLOSED, true, nil)
+	}
 }
 
 // IsClosed tests if a Conn has been closed.
 func (nc *Conn) IsClosed() bool {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	return nc.isClosed()
 }
 
 // IsReconnecting tests if a Conn is reconnecting.
 func (nc *Conn) IsReconnecting() bool {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	return nc.isReconnecting()
 }
 
 // IsConnected tests if a Conn is connected.
 func (nc *Conn) IsConnected() bool {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	return nc.isConnected()
 }
 
@@ -3627,8 +3696,8 @@ func (nc *Conn) Drain() error {
 
 // IsDraining tests if a Conn is in the draining state.
 func (nc *Conn) IsDraining() bool {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	return nc.isDraining()
 }
 
@@ -3651,8 +3720,8 @@ func (nc *Conn) getServers(implicitOnly bool) []string {
 // authentication is enabled, use UserInfo or Token when connecting with
 // these urls.
 func (nc *Conn) Servers() []string {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	return nc.getServers(false)
 }
 
@@ -3660,15 +3729,15 @@ func (nc *Conn) Servers() []string {
 // after a connection has been established. If authentication is enabled,
 // use UserInfo or Token when connecting with these urls.
 func (nc *Conn) DiscoveredServers() []string {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	return nc.getServers(true)
 }
 
 // Status returns the current state of the connection.
 func (nc *Conn) Status() Status {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	return nc.status
 }
 
@@ -3724,22 +3793,22 @@ func (nc *Conn) Stats() Statistics {
 // This is set by the server configuration and delivered to the client
 // upon connect.
 func (nc *Conn) MaxPayload() int64 {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	return nc.info.MaxPayload
 }
 
 // AuthRequired will return if the connected server requires authorization.
 func (nc *Conn) AuthRequired() bool {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	return nc.info.AuthRequired
 }
 
 // TLSRequired will return if the connected server requires TLS connections.
 func (nc *Conn) TLSRequired() bool {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	return nc.info.TLSRequired
 }
 
@@ -3797,8 +3866,8 @@ func (nc *Conn) Barrier(f func()) error {
 // This function returns ErrNoClientIDReturned if the server is of a
 // version prior to 1.2.0.
 func (nc *Conn) GetClientID() (uint64, error) {
-	nc.mu.Lock()
-	defer nc.mu.Unlock()
+	nc.mu.RLock()
+	defer nc.mu.RUnlock()
 	if nc.isClosed() {
 		return 0, ErrConnectionClosed
 	}
