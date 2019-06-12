@@ -15,7 +15,7 @@ ulimit -n
 
 The result shows approximately how many clients your server can handle.
 
-See https://docs.riak.com/riak/kv/2.2.3/using/performance/open-files-limit.1.html to know how to increase this number.
+See [this document](https://docs.riak.com/riak/kv/2.2.3/using/performance/open-files-limit.1.html) to get more info on how to increase this number.
 
 If you install Centrifugo using RPM from repo then it automatically sets max open files limit to 32768.
 

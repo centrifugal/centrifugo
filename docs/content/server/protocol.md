@@ -2,7 +2,7 @@
 
 This chapter describes internal client-server protocol in details to help developers build new client libraries and understand how existing client libraries work.
 
-Note that you can always look at existing client implementations in case of any questions, for example [centrifuge-js](https://github.com/centrifugal/centrifuge-js) or [centrifuge-go](https://github.com/centrifugal/centrifuge-go).
+Note that you can always look at [existing client implementations](../libraries/client.md) in case of any questions.
 
 ### Client implementation checklist
 

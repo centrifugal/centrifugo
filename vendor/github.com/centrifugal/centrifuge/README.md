@@ -5,24 +5,24 @@
 
 **This library has no v1 release yet so API can be changed. Use with strict versioning.**
 
-Centrifuge library represents real-time core for [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also aimed to be a general purpose real-time messaging library for Go programming language.
-
-Message transports:
-
-* Websocket transport with JSON or binary Protobuf protocol
-* SockJS polyfill library support (JSON only)
+Centrifuge library is a real-time core of [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also aimed to be a general purpose real-time messaging library for Go programming language.
 
 Features:
 
 * Fast and optimized for low-latency communication with thousands of client connections
-* Scaling to many nodes with Redis PUB/SUB, built-in Redis sharding, Sentinel for HA
-* Bidirectional asynchronous message communication, RPC calls
+* WebSocket with JSON or binary Protobuf protocol
+* SockJS polyfill library support for browsers where WebSocket not available (JSON only)
+* Built-in horizontal scalability with Redis PUB/SUB, Redis sharding, Sentinel for HA
+* Possibility to register custom PUB/SUB broker, history and presence storage implementations
+* Native authentication over middleware or JWT-based
+* Bidirectional asynchronous message communication and RPC calls
 * Channel (room) concept to broadcast message to all channel subscribers
 * Presence information for channels (show all active clients in channel)
 * History information for channels (last messages published into channel)
 * Join/leave events for channels (aka client goes online/offline)
-* Message recovery mechanism for channels to survive short network disconnects
-* MIT license
+* Message recovery mechanism for channels to survive short network disconnects or node restart
+* Prometheus instrumentation
+* Client libraries for main application environments (see below)
 
 Client libraries:
 
@@ -100,16 +100,20 @@ func main() {
 	// option to true we allow them to publish.
 	cfg.Publish = true
 
+	// Centrifuge library exposes logs with different log level. In your app
+	// you can set special function to handle these log entries in a way you want.
+	cfg.LogLevel = centrifuge.LogLevelDebug
+	cfg.LogHandler = handleLog
+
 	// Node is the core object in Centrifuge library responsible for many useful
 	// things. Here we initialize new Node instance and pass config to it.
 	node, _ := centrifuge.New(cfg)
 
-	// On().Connect() method is a point where you create a binding between
-	// Centrifuge and your app business logic. Callback function you pass
-	// to On().Connect will be called every time new connection established
-	// with server. Inside this callback function you can set various event
-	// handlers for incoming client connection.
-	node.On().Connect(func(ctx context.Context, client *centrifuge.Client, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	// ClientConnected node event handler is a point where you generally create a 
+	// binding between Centrifuge and your app business logic. Callback function you 
+	// pass here will be called every time new connection established with server. 
+	// Inside this callback function you can set various event handlers for connection.
+	node.On().ClientConnected(func(ctx context.Context, client *centrifuge.Client) {
 		// Set Subscribe Handler to react on every channel subscribtion attempt
 		// initiated by client. Here you can theoretically return an error or
 		// disconnect client from server if needed. But now we just accept
@@ -140,15 +144,9 @@ func main() {
 		transportEncoding := client.Transport().Encoding()
 
 		log.Printf("client connected via %s (%s)", transportName, transportEncoding)
-		return centrifuge.ConnectReply{}
 	})
 
-	// Centrifuge library exposes logs with different log level. In your app
-	// you can set special function to handle these log entries in a way you want.
-	node.SetLogHandler(centrifuge.LogLevelDebug, handleLog)
-
-	// Run node will start node's underlying Engine, launch several
-	// internal goroutines.
+	// Run node.
 	if err := node.Run(); err != nil {
 		panic(err)
 	}
@@ -189,17 +187,17 @@ Also create file `index.html` near `main.go` with content:
             var centrifuge = new Centrifuge('ws://localhost:8000/connection/websocket');
             function drawText(text) {
                 var div = document.createElement('div');
-                div.innerHTML = text;
+                div.innerHTML = text + '<br>';
                 document.body.appendChild(div);
             }
             centrifuge.on('connect', function(ctx){
-                drawText('Connected over ' + ctx.transport + '<br>');
+                drawText('Connected over ' + ctx.transport);
             });
             centrifuge.on('disconnect', function(ctx){
-                drawText('Disconnected: ' + ctx.reason + '<br>');
+                drawText('Disconnected: ' + ctx.reason);
             });
             var sub = centrifuge.subscribe("chat", function(message) {
-                drawText(JSON.stringify(message) + '<br>');
+                drawText(JSON.stringify(message));
             })
             var input = document.getElementById("input");
             input.addEventListener('keyup', function(e) {
@@ -229,7 +227,9 @@ Keep in mind that Centrifuge library is not a framework to build chat apps. It's
 
 ### For contributors
 
-Currently library uses `dep` to manage dependencies. This is how you can clone library and install all required dependencies locally:
+Library uses both `dep` and `go mod` to manage dependencies.
+
+Here is an example on how you can clone library and install all required dependencies locally:
 
 ```bash
 mkdir -p $GOPATH/src/github.com/centrifugal

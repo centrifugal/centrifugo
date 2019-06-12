@@ -76,7 +76,7 @@ This is a minimal Centrifugo configuration file:
 }
 ```
 
-The only two fields required are **secret** and **api_key**. Secret used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](api.md). Keep both values in secret and never reveal to clients.
+The only two fields required are **secret** and **api_key**. Secret used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](http_api.md). Keep both values in secret and never reveal to clients.
 
 ### TOML file
 
@@ -140,7 +140,7 @@ Note that some options can be set via command-line. Command-line options are mor
 
 ### Channel options
 
-Let's look at options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see [special chapter](channels) to find more information about channels). The following options will affect channel behaviour:
+Let's look at options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see [special chapter](channels.md) to find more information about channels). The following options will affect channel behaviour:
 
 * `publish` – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. By default it's `false`.
 

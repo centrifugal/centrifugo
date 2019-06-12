@@ -39,6 +39,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -132,7 +133,6 @@ func main() {
 			if err != nil {
 				log.Fatal().Msgf("Error creating Centrifuge Node: %v", err)
 			}
-			setLogHandler(node)
 
 			engineName := viper.GetString("engine")
 			brokerName := viper.GetString("broker")
@@ -151,6 +151,13 @@ func main() {
 			}
 
 			node.SetEngine(e)
+
+			if engineName == "memory" && brokerName == "nats" {
+				// Presence and History won't work with Memory engine in distributed case.
+				log.Warn().Msgf("presence and history disabled with Memory engine and Nats broker")
+				node.SetHistoryManager(nil)
+				node.SetPresenceManager(nil)
+			}
 
 			if brokerName == "nats" {
 				broker, err := natsbroker.New(node, natsbroker.Config{
@@ -350,6 +357,7 @@ var configDefaults = map[string]interface{}{
 	"client_presence_ping_interval":        25,
 	"client_presence_expire_interval":      60,
 	"client_user_connection_limit":         0,
+	"client_channel_position_check_delay":  40,
 	"channel_max_length":                   255,
 	"channel_private_prefix":               "$",
 	"channel_namespace_boundary":           ":",
@@ -567,6 +575,9 @@ func getTLSConfig() (*tls.Config, error) {
 				}
 				return certManager.GetCertificate(hello)
 			},
+			NextProtos: []string{
+				"h2", "http/1.1", acme.ALPNProto,
+			},
 		}, nil
 
 	} else if tlsEnabled {
@@ -599,7 +610,7 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 	httpInternalPort := viper.GetString("internal_port")
 
 	if httpInternalAddress == "" && httpAddress != "" {
-		// If custom internal address not explicitely set we try to reuse main
+		// If custom internal address not explicitly set we try to reuse main
 		// address for internal endpoints too.
 		httpInternalAddress = httpAddress
 	}
@@ -847,8 +858,16 @@ func nodeConfig() *centrifuge.Config {
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
 	cfg.ClientUserConnectionLimit = v.GetInt("client_user_connection_limit")
+	cfg.ClientChannelPositionCheckDelay = time.Duration(v.GetInt("client_channel_position_check_delay")) * time.Second
 
 	cfg.NodeInfoMetricsAggregateInterval = time.Duration(v.GetInt("node_info_metrics_aggregate_interval")) * time.Second
+
+	level, ok := centrifuge.LogStringToLevel[strings.ToLower(v.GetString("log_level"))]
+	if !ok {
+		level = centrifuge.LogLevelInfo
+	}
+	cfg.LogLevel = level
+	cfg.LogHandler = newLogHandler().handle
 
 	return cfg
 }
@@ -1118,19 +1137,8 @@ func redisEngineConfig(publishOnHistoryAdd bool) (*centrifuge.RedisEngineConfig,
 	}, nil
 }
 
-func setLogHandler(n *centrifuge.Node) {
-	v := viper.GetViper()
-	level, ok := centrifuge.LogStringToLevel[strings.ToLower(v.GetString("log_level"))]
-	if !ok {
-		level = centrifuge.LogLevelInfo
-	}
-	handler := newLogHandler()
-	n.SetLogHandler(level, handler.handle)
-}
-
 type logHandler struct {
 	entries chan centrifuge.LogEntry
-	handler func(entry centrifuge.LogEntry)
 }
 
 func newLogHandler() *logHandler {

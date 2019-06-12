@@ -76,10 +76,25 @@ var (
 		Reason:    "write error",
 		Reconnect: true,
 	}
-	// DisconnectInsufficientState ...
+	// DisconnectInsufficientState sent when server detects wrong client
+	// position in channel Publication stream. Disconnect allows client
+	// to restore missed publications on reconnect.
 	DisconnectInsufficientState = &Disconnect{
 		Code:      3010,
 		Reason:    "insufficient state",
 		Reconnect: true,
+	}
+	// DisconnectForceReconnect sent when server forcely disconnects connection.
+	DisconnectForceReconnect = &Disconnect{
+		Code:      3011,
+		Reason:    "force reconnect",
+		Reconnect: true,
+	}
+	// DisconnectForceNoReconnect sent when server forcely disconnects connection
+	// and asks it to not reconnect again.
+	DisconnectForceNoReconnect = &Disconnect{
+		Code:      3012,
+		Reason:    "force disconnect",
+		Reconnect: false,
 	}
 )

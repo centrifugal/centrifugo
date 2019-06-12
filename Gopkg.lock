@@ -51,7 +51,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6b0bc2ac92dc47ad0d0aaffc7850a2390e7dd64e80371874dbdf65c5e09c25dd"
+  digest = "1:15a6c6b012d5b43b4562ecf5f14483c035496b36507d0681dc9cbcc2df37f739"
   name = "github.com/centrifugal/centrifuge"
   packages = [
     ".",
@@ -63,7 +63,7 @@
     "internal/uuid",
   ]
   pruneopts = "UT"
-  revision = "cbcf21ca2972776825611143885bbb0e2bebd094"
+  revision = "08d47fc34cc6905da12dc99de85a794e023b55e0"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
@@ -336,7 +336,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:572b6df89eb19c339c9f4f10f18fab002eb0a8d6c972c43525783d1c345a3256"
+  digest = "1:dd51913a1a404391c96a6ccdf1c3b44b8def584c3d9ce3ec8bafa2c0de900a35"
   name = "golang.org/x/crypto"
   packages = [
     "acme",
@@ -345,7 +345,7 @@
     "ed25519/internal/edwards25519",
   ]
   pruneopts = "UT"
-  revision = "a1f597ede03a7bef967a422b5b3a5bd08805a01e"
+  revision = "5c40567a22f818bd14a1ea7245dad9f8ef0691aa"
 
 [[projects]]
   branch = "master"
@@ -467,6 +467,7 @@
     "github.com/satori/go.uuid",
     "github.com/spf13/cobra",
     "github.com/stretchr/testify/assert",
+    "golang.org/x/crypto/acme",
     "golang.org/x/crypto/acme/autocert",
     "golang.org/x/net/context",
     "google.golang.org/grpc",

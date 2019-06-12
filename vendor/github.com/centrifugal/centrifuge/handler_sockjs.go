@@ -2,7 +2,6 @@ package centrifuge
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -21,16 +20,13 @@ type sockjsTransport struct {
 	closed  bool
 	closeCh chan struct{}
 	session sockjs.Session
-	writer  *writer
 }
 
-func newSockjsTransport(s sockjs.Session, w *writer) *sockjsTransport {
+func newSockjsTransport(s sockjs.Session) *sockjsTransport {
 	t := &sockjsTransport{
 		session: s,
-		writer:  w,
 		closeCh: make(chan struct{}),
 	}
-	w.onWrite(t.write)
 	return t
 }
 
@@ -48,45 +44,12 @@ func (t *sockjsTransport) Info() TransportInfo {
 	}
 }
 
-func (t *sockjsTransport) Send(reply *preparedReply) error {
-	data := reply.Data()
-	disconnect := t.writer.write(data)
-	if disconnect != nil {
-		// Close in goroutine to not block message broadcast.
-		go t.Close(disconnect)
-		return io.EOF
-	}
-	return nil
-}
-
-func (t *sockjsTransport) write(data ...[]byte) error {
+func (t *sockjsTransport) Write(data []byte) error {
 	select {
 	case <-t.closeCh:
 		return nil
 	default:
-		if len(data) == 1 {
-			payload := data[0]
-			err := t.session.Send(string(payload))
-			if err != nil {
-				go t.Close(DisconnectWriteError)
-				return err
-			}
-			transportMessagesSent.WithLabelValues(transportSockJS).Inc()
-		} else {
-			buf := getBuffer()
-			for _, payload := range data {
-				buf.Write(payload)
-			}
-			err := t.session.Send(buf.String())
-			if err != nil {
-				go t.Close(DisconnectWriteError)
-				putBuffer(buf)
-				return err
-			}
-			putBuffer(buf)
-			transportMessagesSent.WithLabelValues(transportSockJS).Add(float64(len(data)))
-		}
-		return nil
+		return t.session.Send(string(data))
 	}
 }
 
@@ -98,12 +61,6 @@ func (t *sockjsTransport) Close(disconnect *Disconnect) error {
 		return nil
 	}
 	t.closed = true
-	t.mu.Unlock()
-
-	// Send messages remaining in queue.
-	t.writer.close()
-
-	t.mu.Lock()
 	close(t.closeCh)
 	t.mu.Unlock()
 
@@ -186,14 +143,7 @@ func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
 
 	// Separate goroutine for better GC of caller's data.
 	go func() {
-		config := s.node.Config()
-		writerConf := writerConfig{
-			MaxQueueSize: config.ClientQueueMaxSize,
-		}
-		writer := newWriter(writerConf)
-		defer writer.close()
-
-		transport := newSockjsTransport(sess, writer)
+		transport := newSockjsTransport(sess)
 
 		select {
 		case <-s.node.NotifyShutdown():
@@ -211,11 +161,11 @@ func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
 		defer func(started time.Time) {
 			s.node.logger.log(newLogEntry(LogLevelDebug, "client connection completed", map[string]interface{}{"client": c.ID(), "transport": transportSockJS, "duration": time.Since(started)}))
 		}(time.Now())
-		defer c.close(nil)
+		defer c.Close(nil)
 
 		for {
 			if msg, err := sess.Recv(); err == nil {
-				ok := c.handleRawData([]byte(msg), writer)
+				ok := c.handleRawData([]byte(msg))
 				if !ok {
 					return
 				}
