@@ -500,6 +500,8 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 	}
 }
 
+var startHTTPChallengeServerOnce sync.Once // TODO: refactor to get rid of global here.
+
 func getTLSConfig() (*tls.Config, error) {
 	tlsEnabled := viper.GetBool("tls")
 	tlsCert := viper.GetString("tls_cert")
@@ -533,16 +535,19 @@ func getTLSConfig() (*tls.Config, error) {
 		}
 
 		if tlsAutocertHTTP {
-			acmeHTTPserver := &http.Server{
-				Handler: certManager.HTTPHandler(nil),
-				Addr:    tlsAutocertHTTPAddr,
-			}
-			go func() {
-				log.Info().Msgf("serving ACME http_01 challenge on %s", tlsAutocertHTTPAddr)
-				if err := acmeHTTPserver.ListenAndServe(); err != nil {
-					log.Fatal().Msgf("can't create server on %s to serve acme http challenge: %v", tlsAutocertHTTPAddr, err)
+			startHTTPChallengeServerOnce.Do(func() {
+				// getTLSConfig can be called several times.
+				acmeHTTPserver := &http.Server{
+					Handler: certManager.HTTPHandler(nil),
+					Addr:    tlsAutocertHTTPAddr,
 				}
-			}()
+				go func() {
+					log.Info().Msgf("serving ACME http_01 challenge on %s", tlsAutocertHTTPAddr)
+					if err := acmeHTTPserver.ListenAndServe(); err != nil {
+						log.Fatal().Msgf("can't create server on %s to serve acme http challenge: %v", tlsAutocertHTTPAddr, err)
+					}
+				}()
+			})
 		}
 
 		return &tls.Config{
@@ -633,6 +638,11 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 
 	servers := []*http.Server{}
 
+	tlsConfig, err := getTLSConfig()
+	if err != nil {
+		log.Fatal().Msgf("can not get TLS config: %v", err)
+	}
+
 	// Iterate over port to flags mapping and start HTTP servers
 	// on separate ports serving handlers specified in flags.
 	for addr, handlerFlags := range addrToHandlerFlags {
@@ -643,19 +653,14 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 
 		log.Info().Msgf("serving %s endpoints on %s", handlerFlags, addr)
 
-		var tlsConfig *tls.Config
-		var err error
-		tlsExternal := viper.GetBool("tls_external")
-		if !tlsExternal || addr == externalAddr {
-			tlsConfig, err = getTLSConfig()
-			if err != nil {
-				log.Fatal().Msgf("can not get TLS config: %v", err)
-			}
+		var addrTLSConfig *tls.Config
+		if !viper.GetBool("tls_external") || addr == externalAddr {
+			addrTLSConfig = tlsConfig
 		}
 		server := &http.Server{
 			Addr:      addr,
 			Handler:   mux,
-			TLSConfig: tlsConfig,
+			TLSConfig: addrTLSConfig,
 		}
 
 		servers = append(servers, server)
