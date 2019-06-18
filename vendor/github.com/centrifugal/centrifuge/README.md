@@ -5,9 +5,9 @@
 
 **This library has no v1 release yet so API can be changed. Use with strict versioning.**
 
-Centrifuge library is a real-time core of [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also aimed to be a general purpose real-time messaging library for Go programming language.
+Centrifuge library is a real-time core of [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also supposed to be a general purpose real-time messaging library for Go programming language. The library is based on a strict client-server protocol based on Protobuf schema and solves several problems developer may come across when building complex real-time applications – like scalability, proper connection management, fallback option.
 
-Features:
+Library highlights:
 
 * Fast and optimized for low-latency communication with thousands of client connections
 * WebSocket with JSON or binary Protobuf protocol
