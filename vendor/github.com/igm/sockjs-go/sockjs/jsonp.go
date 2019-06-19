@@ -16,6 +16,9 @@ func (h *handler) jsonp(rw http.ResponseWriter, req *http.Request) {
 	if callback == "" {
 		http.Error(rw, `"callback" parameter required`, http.StatusInternalServerError)
 		return
+	} else if invalidCallback.MatchString(callback) {
+		http.Error(rw, `invalid character in "callback" parameter`, http.StatusBadRequest)
+		return
 	}
 	rw.WriteHeader(http.StatusOK)
 	rw.(http.Flusher).Flush()

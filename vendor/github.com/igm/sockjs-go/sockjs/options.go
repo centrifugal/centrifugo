@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 var (
@@ -38,6 +40,12 @@ type Options struct {
 	Websocket bool
 	// This option can be used to enable raw websockets support by the server. By default raw websockets are disabled.
 	RawWebsocket bool
+	// Provide a custom Upgrader for Websocket connections to enable features like compression.
+	// See https://godoc.org/github.com/gorilla/websocket#Upgrader for more details.
+	WebsocketUpgrader *websocket.Upgrader
+	// WebsocketWriteTimeout is a custom write timeout for Websocket underlying network connection.
+	// A zero value means writes will not time out.
+	WebsocketWriteTimeout time.Duration
 	// In order to keep proxies and load balancers from closing long running http requests we need to pretend that the connection is active
 	// and send a heartbeat packet once in a while. This setting controls how often this is done.
 	// By default a heartbeat packet is sent every 25 seconds.
@@ -54,13 +62,14 @@ type Options struct {
 
 // DefaultOptions is a convenient set of options to be used for sockjs
 var DefaultOptions = Options{
-	Websocket:       true,
-	RawWebsocket:    false,
-	JSessionID:      nil,
-	SockJSURL:       "//cdnjs.cloudflare.com/ajax/libs/sockjs-client/0.3.4/sockjs.min.js",
-	HeartbeatDelay:  25 * time.Second,
-	DisconnectDelay: 5 * time.Second,
-	ResponseLimit:   128 * 1024,
+	Websocket:         true,
+	RawWebsocket:      false,
+	JSessionID:        nil,
+	SockJSURL:         "//cdnjs.cloudflare.com/ajax/libs/sockjs-client/0.3.4/sockjs.min.js",
+	HeartbeatDelay:    25 * time.Second,
+	DisconnectDelay:   5 * time.Second,
+	ResponseLimit:     128 * 1024,
+	WebsocketUpgrader: nil,
 }
 
 type info struct {

@@ -1,9 +1,7 @@
 package sockjs
 
 import (
-	"encoding/gob"
 	"errors"
-	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -35,22 +33,14 @@ type session struct {
 	id    string
 	req   *http.Request
 	state SessionState
-	// protocol dependent receiver (xhr, eventsource, ...)
-	recv receiver
-	// messages to be sent to client
-	sendBuffer []string
-	// messages received from client to be consumed by application
-	// receivedBuffer chan string
-	msgReader  *io.PipeReader
-	msgWriter  *io.PipeWriter
-	msgEncoder *gob.Encoder
-	msgDecoder *gob.Decoder
+
+	recv       receiver       // protocol dependent receiver (xhr, eventsource, ...)
+	sendBuffer []string       // messages to be sent to client
+	recvBuffer *messageBuffer // messages received from client to be consumed by application
+	closeFrame string         // closeFrame to send after session is closed
 
 	// do not use SockJS framing for raw websocket connections
 	raw bool
-
-	// closeFrame to send after session is closed
-	closeFrame string
 
 	// internal timer used to handle session expiration if no receiver is attached, or heartbeats if recevier is attached
 	sessionTimeoutInterval time.Duration
@@ -76,17 +66,16 @@ type receiver interface {
 
 // Session is a central component that handles receiving and sending frames. It maintains internal state
 func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
-	r, w := io.Pipe()
+
 	s := &session{
-		id:                     sessionID,
-		req:                    req,
-		msgReader:              r,
-		msgWriter:              w,
-		msgEncoder:             gob.NewEncoder(w),
-		msgDecoder:             gob.NewDecoder(r),
+		id:  sessionID,
+		req: req,
 		sessionTimeoutInterval: sessionTimeoutInterval,
 		heartbeatInterval:      heartbeatInterval,
-		closeCh:                make(chan struct{})}
+		recvBuffer:             newMessageBuffer(),
+		closeCh:                make(chan struct{}),
+	}
+
 	s.Lock() // "go test -race" complains if ommited, not sure why as no race can happen here
 	s.timer = time.AfterFunc(sessionTimeoutInterval, s.close)
 	s.Unlock()
@@ -148,28 +137,23 @@ func (s *session) attachReceiver(recv receiver) error {
 
 func (s *session) detachReceiver() {
 	s.Lock()
-	defer s.Unlock()
 	s.timer.Stop()
 	s.timer = time.AfterFunc(s.sessionTimeoutInterval, s.close)
 	s.recv = nil
+	s.Unlock()
 }
 
 func (s *session) heartbeat() {
 	s.Lock()
-	defer s.Unlock()
 	if s.recv != nil { // timer could have fired between Lock and timer.Stop in detachReceiver
 		s.recv.sendFrame("h")
 		s.timer = time.AfterFunc(s.heartbeatInterval, s.heartbeat)
 	}
+	s.Unlock()
 }
 
 func (s *session) accept(messages ...string) error {
-	for _, msg := range messages {
-		if err := s.msgEncoder.Encode(msg); err != nil {
-			return err
-		}
-	}
-	return nil
+	return s.recvBuffer.push(messages...)
 }
 
 // idempotent operation
@@ -177,9 +161,8 @@ func (s *session) closing() {
 	s.Lock()
 	defer s.Unlock()
 	if s.state < SessionClosing {
-		s.msgReader.Close()
-		s.msgWriter.Close()
 		s.state = SessionClosing
+		s.recvBuffer.close()
 		if s.recv != nil {
 			s.recv.sendFrame(s.closeFrame)
 			s.recv.close()
@@ -215,12 +198,7 @@ func (s *session) Close(status uint32, reason string) error {
 }
 
 func (s *session) Recv() (string, error) {
-	var msg string
-	err := s.msgDecoder.Decode(&msg)
-	if err == io.ErrClosedPipe {
-		err = ErrSessionNotOpen
-	}
-	return msg, err
+	return s.recvBuffer.pop()
 }
 
 func (s *session) Send(msg string) error {
