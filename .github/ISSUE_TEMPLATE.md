@@ -2,10 +2,9 @@
 
 _Put an `x` in the boxes that apply:_
 
-* [ ] This is a question (did you check the [FAQ](https://centrifugal.github.io/centrifugo/faq/) btw?)
 * [ ] This is a bug report
 * [ ] This is a feature request
-* [ ] This is just a usage report (much appreciated!)
+* [ ] This is a question (did you check the [FAQ](https://centrifugal.github.io/centrifugo/faq/) btw?)
 
 ## Description
 
@@ -32,7 +31,7 @@ _Put an `x` in the boxes that apply:_
 * [ ] Can you reliably reproduce the problem?
 * [ ] Reproduces on latest Centrifugo version?
 
-## Usage report (optional)
+## Usage information (optional)
 
 Please share some information about your Centrifugo usage. This section will help us to understand how developers work with Centrifugo so we could focus on improving demanded functionality.
 
