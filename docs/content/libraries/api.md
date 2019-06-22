@@ -12,6 +12,7 @@ We have several official client libraries for different languages so you don't h
 
 Also there are libraries supported by community:
 
+* [laracent](https://github.com/AlexHnydiuk/laracent) for Laravel framework
 * [crystalcent](https://github.com/devops-israel/crystalcent) for Crystal language
 
 Also keep in mind that Centrifugo [has GRPC API](../server/grpc_api.md) so you can automatically generate client API code for your language.
