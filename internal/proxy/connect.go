@@ -9,14 +9,15 @@ import (
 
 // ConnectRequest ...
 type ConnectRequest struct {
+	ClientID  string
 	Transport centrifuge.Transport
 	Data      centrifuge.Raw
 }
 
 // ConnectCredentials ...
 type ConnectCredentials struct {
-	UserID     string          `json:"user_id"`
-	ExpireAt   int64           `json:"expire_at"`
+	UserID     string          `json:"user"`
+	ExpireAt   int64           `json:"exp"`
 	Info       json.RawMessage `json:"info"`
 	Base64Info string          `json:"b64info"`
 }

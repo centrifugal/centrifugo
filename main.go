@@ -87,7 +87,7 @@ func main() {
 
 			absConfPath, err := filepath.Abs(configFile)
 			if err != nil {
-				log.Fatal().Msgf("Error retrieving config file absolute path: %v", err)
+				log.Fatal().Msgf("error retrieving config file absolute path: %v", err)
 			}
 
 			err = viper.ReadInConfig()
@@ -95,7 +95,7 @@ func main() {
 			if err != nil {
 				switch err.(type) {
 				case viper.ConfigParseError:
-					log.Fatal().Msgf("Error parsing configuration: %s\n", err)
+					log.Fatal().Msgf("error parsing configuration: %s\n", err)
 				default:
 					configFound = false
 				}
@@ -108,7 +108,7 @@ func main() {
 
 			err = writePidFile(viper.GetString("pid_file"))
 			if err != nil {
-				log.Fatal().Msgf("Error writing PID: %v", err)
+				log.Fatal().Msgf("error writing PID: %v", err)
 			}
 
 			if !configFound {
@@ -126,12 +126,12 @@ func main() {
 			c := nodeConfig(VERSION)
 			err = c.Validate()
 			if err != nil {
-				log.Fatal().Msgf("Error validating config: %v", err)
+				log.Fatal().Msgf("error validating config: %v", err)
 			}
 
 			node, err := centrifuge.New(*c)
 			if err != nil {
-				log.Fatal().Msgf("Error creating Centrifuge Node: %v", err)
+				log.Fatal().Msgf("error creating Centrifuge Node: %v", err)
 			}
 
 			engineName := viper.GetString("engine")
@@ -142,14 +142,15 @@ func main() {
 			} else if engineName == "redis" {
 				e, err = redisEngine(node)
 			} else {
-				log.Fatal().Msgf("Unknown engine: %s", engineName)
+				log.Fatal().Msgf("unknown engine: %s", engineName)
 			}
 
 			if err != nil {
-				log.Fatal().Msgf("Error creating engine: %v", err)
+				log.Fatal().Msgf("error creating engine: %v", err)
 			}
 
-			if viper.GetString("proxy_http_connect_endpoint") != "" {
+			connectHandlerEnabled := viper.GetString("proxy_http_connect_endpoint") != ""
+			if connectHandlerEnabled {
 				connectHandler := proxy.NewConnectHandler(proxy.ConnectHandlerConfig{
 					Proxy: proxy.NewHTTPConnectProxy(
 						viper.GetString("proxy_http_connect_endpoint"),
@@ -166,7 +167,6 @@ func main() {
 				),
 			})
 			refreshHandlerEnabled := viper.GetString("proxy_http_refresh_endpoint") != ""
-
 			if refreshHandlerEnabled {
 				node.On().ClientRefresh(refreshHandler.Handle(node))
 			}
@@ -177,8 +177,8 @@ func main() {
 					proxyHTTPClient(viper.GetFloat64("proxy_http_rpc_timeout")),
 				),
 			})
-			rpcHandlerEnabled := viper.GetString("proxy_http_rpc_endpoint") != ""
 
+			rpcHandlerEnabled := viper.GetString("proxy_http_rpc_endpoint") != ""
 			node.On().ClientConnected(func(ctx context.Context, client *centrifuge.Client) {
 				if rpcHandlerEnabled {
 					client.On().RPC(rpcHandler.Handle(node, client))
@@ -188,18 +188,31 @@ func main() {
 			node.SetEngine(e)
 
 			if err = node.Run(); err != nil {
-				log.Fatal().Msgf("Error running node: %v", err)
+				log.Fatal().Msgf("error running node: %v", err)
 			}
 
 			version := VERSION
 			if version == "" {
 				version = "dev"
 			}
-			log.Info().Msgf("starting Centrifugo %s (%s)", version, runtime.Version())
-			log.Info().Msgf("config path: %s", absConfPath)
-			log.Info().Msgf("pid: %d", os.Getpid())
-			log.Info().Msgf("engine: %s", strings.Title(engineName))
-			log.Info().Msgf("gomaxprocs: %d", runtime.GOMAXPROCS(0))
+
+			log.Info().Str(
+				"version", version).Str(
+				"runtime", runtime.Version()).Int(
+				"pid", os.Getpid()).Str(
+				"engine", strings.Title(engineName)).Int("gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
+			log.Info().Str("path", absConfPath).Msg("using config")
+
+			if connectHandlerEnabled {
+				log.Info().Str("endpoint", viper.GetString("proxy_http_connect_endpoint")).Msg("proxy connect over HTTP")
+			}
+			if refreshHandlerEnabled {
+				log.Info().Str("endpoint", viper.GetString("proxy_http_refresh_endpoint")).Msg("proxy refresh over HTTP")
+			}
+			if rpcHandlerEnabled {
+				log.Info().Str("endpoint", viper.GetString("proxy_http_rpc_endpoint")).Msg("proxy RPC over HTTP")
+			}
+
 			if viper.GetBool("client_insecure") {
 				log.Warn().Msg("INSECURE client mode enabled")
 			}
@@ -553,6 +566,8 @@ func proxyHTTPClient(timeout float64) *http.Client {
 	}
 }
 
+var startHTTPChallengeServerOnce sync.Once // TODO: refactor to get rid of global here.
+
 func getTLSConfig() (*tls.Config, error) {
 	tlsEnabled := viper.GetBool("tls")
 	tlsCert := viper.GetString("tls_cert")
@@ -586,16 +601,19 @@ func getTLSConfig() (*tls.Config, error) {
 		}
 
 		if tlsAutocertHTTP {
-			acmeHTTPserver := &http.Server{
-				Handler: certManager.HTTPHandler(nil),
-				Addr:    tlsAutocertHTTPAddr,
-			}
-			go func() {
-				log.Info().Msgf("serving ACME http_01 challenge on %s", tlsAutocertHTTPAddr)
-				if err := acmeHTTPserver.ListenAndServe(); err != nil {
-					log.Fatal().Msgf("can't create server on %s to serve acme http challenge: %v", tlsAutocertHTTPAddr, err)
+			startHTTPChallengeServerOnce.Do(func() {
+				// getTLSConfig can be called several times.
+				acmeHTTPserver := &http.Server{
+					Handler: certManager.HTTPHandler(nil),
+					Addr:    tlsAutocertHTTPAddr,
 				}
-			}()
+				go func() {
+					log.Info().Msgf("serving ACME http_01 challenge on %s", tlsAutocertHTTPAddr)
+					if err := acmeHTTPserver.ListenAndServe(); err != nil {
+						log.Fatal().Msgf("can't create server on %s to serve acme http challenge: %v", tlsAutocertHTTPAddr, err)
+					}
+				}()
+			})
 		}
 
 		return &tls.Config{
@@ -686,6 +704,11 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 
 	servers := []*http.Server{}
 
+	tlsConfig, err := getTLSConfig()
+	if err != nil {
+		log.Fatal().Msgf("can not get TLS config: %v", err)
+	}
+
 	// Iterate over port to flags mapping and start HTTP servers
 	// on separate ports serving handlers specified in flags.
 	for addr, handlerFlags := range addrToHandlerFlags {
@@ -696,19 +719,14 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 
 		log.Info().Msgf("serving %s endpoints on %s", handlerFlags, addr)
 
-		var tlsConfig *tls.Config
-		var err error
-		tlsExternal := viper.GetBool("tls_external")
-		if !tlsExternal || addr == externalAddr {
-			tlsConfig, err = getTLSConfig()
-			if err != nil {
-				log.Fatal().Msgf("can not get TLS config: %v", err)
-			}
+		var addrTLSConfig *tls.Config
+		if !viper.GetBool("tls_external") || addr == externalAddr {
+			addrTLSConfig = tlsConfig
 		}
 		server := &http.Server{
 			Addr:      addr,
 			Handler:   mux,
-			TLSConfig: tlsConfig,
+			TLSConfig: addrTLSConfig,
 		}
 
 		servers = append(servers, server)

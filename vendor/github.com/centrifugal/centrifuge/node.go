@@ -204,11 +204,15 @@ func (n *Node) Shutdown(ctx context.Context) error {
 	if closer, ok := n.broker.(Closer); ok {
 		defer closer.Close(ctx)
 	}
-	if closer, ok := n.historyManager.(Closer); ok {
-		defer closer.Close(ctx)
+	if n.historyManager != nil {
+		if closer, ok := n.historyManager.(Closer); ok {
+			defer closer.Close(ctx)
+		}
 	}
-	if closer, ok := n.presenceManager.(Closer); ok {
-		defer closer.Close(ctx)
+	if n.presenceManager != nil {
+		if closer, ok := n.presenceManager.(Closer); ok {
+			defer closer.Close(ctx)
+		}
 	}
 	return n.hub.shutdown(ctx)
 }
@@ -736,7 +740,7 @@ func (n *Node) removePresence(ch string, uid string) error {
 // Presence returns a map with information about active clients in channel.
 func (n *Node) Presence(ch string) (map[string]*ClientInfo, error) {
 	if n.presenceManager == nil {
-		return nil, nil
+		return nil, ErrorNotAvailable
 	}
 	actionCount.WithLabelValues("presence").Inc()
 	presence, err := n.presenceManager.Presence(ch)
@@ -758,6 +762,9 @@ func (n *Node) PresenceStats(ch string) (PresenceStats, error) {
 // History returns a slice of last messages published into project channel.
 func (n *Node) History(ch string) ([]*Publication, error) {
 	actionCount.WithLabelValues("history").Inc()
+	if n.historyManager == nil {
+		return nil, ErrorNotAvailable
+	}
 	pubs, _, err := n.historyManager.History(ch, HistoryFilter{
 		Limit: -1,
 		Since: nil,
@@ -768,6 +775,9 @@ func (n *Node) History(ch string) ([]*Publication, error) {
 // recoverHistory recovers publications since last UID seen by client.
 func (n *Node) recoverHistory(ch string, since RecoveryPosition) ([]*Publication, RecoveryPosition, error) {
 	actionCount.WithLabelValues("recover_history").Inc()
+	if n.historyManager == nil {
+		return nil, RecoveryPosition{}, ErrorNotAvailable
+	}
 	return n.historyManager.History(ch, HistoryFilter{
 		Limit: -1,
 		Since: &since,
@@ -777,12 +787,18 @@ func (n *Node) recoverHistory(ch string, since RecoveryPosition) ([]*Publication
 // RemoveHistory removes channel history.
 func (n *Node) RemoveHistory(ch string) error {
 	actionCount.WithLabelValues("remove_history").Inc()
+	if n.historyManager == nil {
+		return ErrorNotAvailable
+	}
 	return n.historyManager.RemoveHistory(ch)
 }
 
 // currentRecoveryState returns current recovery state for channel.
 func (n *Node) currentRecoveryState(ch string) (RecoveryPosition, error) {
 	actionCount.WithLabelValues("history_recovery_state").Inc()
+	if n.historyManager == nil {
+		return RecoveryPosition{}, ErrorNotAvailable
+	}
 	_, recoveryPosition, err := n.historyManager.History(ch, HistoryFilter{
 		Limit: 0,
 		Since: nil,

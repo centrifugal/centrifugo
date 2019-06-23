@@ -9,6 +9,7 @@ import (
 
 // ConnectRequestHTTP ...
 type ConnectRequestHTTP struct {
+	ClientID  string          `json:"client"`
 	Transport string          `json:"transport"`
 	Encoding  string          `json:"encoding"`
 	Data      json.RawMessage `json:"data,omitempty"`
@@ -33,6 +34,7 @@ func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req ConnectRequest)
 	httpRequest := req.Transport.Info().Request
 
 	connectHTTPReq := ConnectRequestHTTP{
+		ClientID:  req.ClientID,
 		Transport: req.Transport.Name(),
 		Encoding:  string(req.Transport.Encoding()),
 	}

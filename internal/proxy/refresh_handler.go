@@ -28,12 +28,13 @@ func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *centrifuge.Client, centrifuge.RefreshEvent) centrifuge.RefreshReply {
 	return func(ctx context.Context, client *centrifuge.Client, e centrifuge.RefreshEvent) centrifuge.RefreshReply {
 		refreshResp, err := h.config.Proxy.ProxyRefresh(context.Background(), RefreshRequest{
+			ClientID:  client.ID(),
 			UserID:    client.UserID(),
 			Transport: client.Transport(),
 		})
 		if err != nil {
 			// TODO: add retries.
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxing refresh", map[string]interface{}{"error": err.Error()}))
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying refresh", map[string]interface{}{"error": err.Error()}))
 			return centrifuge.RefreshReply{}
 		}
 

@@ -12,6 +12,7 @@ type Disconnect struct {
 
 // Some predefined disconnect structures used by library internally. Though
 // it's always possible to create Disconnect with any field values on the fly.
+// Library users supposed to use codes in range 4000-4999 for custom disconnects.
 var (
 	// DisconnectNormal is clean disconnect when client cleanly closed connection.
 	DisconnectNormal = &Disconnect{

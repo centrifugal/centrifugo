@@ -10,6 +10,7 @@ import (
 // RPCRequest ...
 type RPCRequest struct {
 	Data      centrifuge.Raw
+	ClientID  string
 	UserID    string
 	Transport centrifuge.Transport
 }

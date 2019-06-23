@@ -15,7 +15,8 @@ type HTTPRPCProxy struct {
 // RPCRequestHTTP ...
 type RPCRequestHTTP struct {
 	Encoding string          `json:"encoding"`
-	UserID   string          `json:"user_id"`
+	ClientID string          `json:"client"`
+	UserID   string          `json:"user"`
 	Data     json.RawMessage `json:"data,omitempty"`
 	// Base64Data to proxy protobuf data.
 	Base64Data string `json:"b64data,omitempty"`
@@ -34,6 +35,7 @@ func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req RPCRequest) (*RPCResult
 
 	rpcHTTPReq := RPCRequestHTTP{
 		Encoding: string(req.Transport.Encoding()),
+		ClientID: req.ClientID,
 		UserID:   req.UserID,
 	}
 

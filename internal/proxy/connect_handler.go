@@ -35,11 +35,12 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 		}
 
 		connectResp, err := h.config.Proxy.ProxyConnect(context.Background(), ConnectRequest{
+			ClientID:  e.ClientID,
 			Transport: t,
 			Data:      e.Data,
 		})
 		if err != nil {
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxing connect", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying connect", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
 			return centrifuge.ConnectReply{
 				Error: centrifuge.ErrorInternal,
 			}

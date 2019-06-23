@@ -29,11 +29,12 @@ func (h *RPCHandler) Handle(node *centrifuge.Node, client *centrifuge.Client) fu
 	return func(e centrifuge.RPCEvent) centrifuge.RPCReply {
 		rpcResp, err := h.config.Proxy.ProxyRPC(context.Background(), RPCRequest{
 			Data:      e.Data,
+			ClientID:  client.ID(),
 			UserID:    client.UserID(),
 			Transport: client.Transport(),
 		})
 		if err != nil {
-			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxing RPC", map[string]interface{}{"error": err.Error()}))
+			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying RPC", map[string]interface{}{"error": err.Error()}))
 			return centrifuge.RPCReply{
 				Error: centrifuge.ErrorInternal,
 			}

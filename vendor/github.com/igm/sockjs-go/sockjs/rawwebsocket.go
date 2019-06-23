@@ -3,12 +3,21 @@ package sockjs
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 func (h *handler) rawWebsocket(rw http.ResponseWriter, req *http.Request) {
-	conn, err := websocket.Upgrade(rw, req, nil, WebSocketReadBufSize, WebSocketWriteBufSize)
+	var conn *websocket.Conn
+	var err error
+	if h.options.WebsocketUpgrader != nil {
+		conn, err = h.options.WebsocketUpgrader.Upgrade(rw, req, nil)
+	} else {
+		// use default as before, so that those 2 buffer size variables are used as before
+		conn, err = websocket.Upgrade(rw, req, nil, WebSocketReadBufSize, WebSocketWriteBufSize)
+	}
+
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(rw, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
 		return
@@ -24,7 +33,7 @@ func (h *handler) rawWebsocket(rw http.ResponseWriter, req *http.Request) {
 		go h.handlerFunc(sess)
 	}
 
-	receiver := newRawWsReceiver(conn)
+	receiver := newRawWsReceiver(conn, h.options.WebsocketWriteTimeout)
 	sess.attachReceiver(receiver)
 	readCloseCh := make(chan struct{})
 	go func() {
@@ -49,20 +58,25 @@ func (h *handler) rawWebsocket(rw http.ResponseWriter, req *http.Request) {
 }
 
 type rawWsReceiver struct {
-	conn    *websocket.Conn
-	closeCh chan struct{}
+	conn         *websocket.Conn
+	closeCh      chan struct{}
+	writeTimeout time.Duration
 }
 
-func newRawWsReceiver(conn *websocket.Conn) *rawWsReceiver {
+func newRawWsReceiver(conn *websocket.Conn, writeTimeout time.Duration) *rawWsReceiver {
 	return &rawWsReceiver{
-		conn:    conn,
-		closeCh: make(chan struct{}),
+		conn:         conn,
+		closeCh:      make(chan struct{}),
+		writeTimeout: writeTimeout,
 	}
 }
 
 func (w *rawWsReceiver) sendBulk(messages ...string) {
 	if len(messages) > 0 {
 		for _, m := range messages {
+			if w.writeTimeout != 0 {
+				w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout))
+			}
 			err := w.conn.WriteMessage(websocket.TextMessage, []byte(m))
 			if err != nil {
 				w.close()
@@ -74,6 +88,9 @@ func (w *rawWsReceiver) sendBulk(messages ...string) {
 }
 
 func (w *rawWsReceiver) sendFrame(frame string) {
+	if w.writeTimeout != 0 {
+		w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout))
+	}
 	var err error
 	if frame == "h" {
 		err = w.conn.WriteMessage(websocket.PingMessage, []byte{})

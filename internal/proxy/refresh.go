@@ -9,6 +9,7 @@ import (
 
 // RefreshRequest ...
 type RefreshRequest struct {
+	ClientID  string
 	UserID    string
 	Transport centrifuge.Transport
 }
