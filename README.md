@@ -4,7 +4,9 @@ Centrifugo is a real-time messaging server. It's language-agnostic and can be us
 
 See server [documentation](https://centrifugal.github.io/centrifugo/).
 
-You can also find [this introduction post](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) interesting – this is a story and motivation of Centrifugo.
+You can also find the following posts interesting:
+* [Four years in Centrifuge](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) – this is a story and motivation of Centrifugo
+* [How Centrifugo solves real problems of real-time applications](https://medium.com/@fzambia/how-centrifugo-solves-real-problems-of-real-time-messaging-applications-a15d6b8fc8ac) – this is a write-up about Centrifugo benefits
 
 ![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/c2/docs/content/images/scheme_small_wide.png)
 
