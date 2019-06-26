@@ -874,6 +874,7 @@
                 <h1 id="channels">Channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h1>
 <p>Channel is a route for publication messages. Clients can subscribe to channel to receive events related to this channel – new publications, join/leave events etc. Also client must be subscribed on channel to get channel presence or history information.</p>
 <p>Channel is just a string - <code>news</code>, <code>comments</code> are valid channel names.</p>
+<p>Channel is an ephemeral entity – you don&rsquo;t need to create it explicitly. Channel created automatically by Centrifugo as soon as first client subscribes to it. And as soon as last subscriber leaves channel - it&rsquo;s automatically deleted.</p>
 <h3 id="channel-name-rules">Channel name rules<a class="headerlink" href="#channel-name-rules" title="Permanent link">&para;</a></h3>
 <p>Only ASCII symbols must be used in channel string.</p>
 <p>Channel name length is limited by <code>255</code> characters by default (can be changed via configuration file option <code>channel_max_length</code>).</p>

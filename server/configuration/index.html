@@ -1396,7 +1396,7 @@ channel name with <code>:</code> as separator:</p>
 <p>Maximum client message queue size in bytes to close slow reader connections. By default - 10mb.</p>
 <h4 id="client_anonymous">client_anonymous<a class="headerlink" href="#client_anonymous" title="Permanent link">&para;</a></h4>
 <p>Default: false</p>
-<p>Enable mode when all clients can connect to Centrifugo without JWT connection token. In this case all connections will be treated as anonymous (i.e. with empty user ID) and only can subscribe to channels with <code>anonymous</code> option enabled.</p>
+<p>Enable mode when all clients can connect to Centrifugo without JWT connection token. In this case all connections without token will be treated as anonymous (i.e. with empty user ID) and only can subscribe to channels with <code>anonymous</code> option enabled.</p>
 <h4 id="sockjs_heartbeat_delay">sockjs_heartbeat_delay<a class="headerlink" href="#sockjs_heartbeat_delay" title="Permanent link">&para;</a></h4>
 <p>Default: 25</p>
 <p>Interval in seconds how often to send SockJS h-frames to client.</p>
