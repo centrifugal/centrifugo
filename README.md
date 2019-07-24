@@ -4,11 +4,11 @@ Centrifugo is a real-time messaging server. It's language-agnostic and can be us
 
 See server [documentation](https://centrifugal.github.io/centrifugo/).
 
+![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/c2/docs/content/images/scheme_small_wide.png)
+
 You can also find the following posts interesting:
 * [Four years in Centrifuge](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) – this is a story and motivation of Centrifugo
 * [How Centrifugo solves real problems of real-time applications](https://medium.com/@fzambia/how-centrifugo-solves-real-problems-of-real-time-messaging-applications-a15d6b8fc8ac) – this is a write-up about Centrifugo benefits
-
-![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/c2/docs/content/images/scheme_small_wide.png)
 
 ### How to install
 
@@ -34,17 +34,17 @@ Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (admin pas
 ### Highlights
 
 * Fast server capable to serve thousands of simultaneous connections
-* Simple to install and cross platform – works on Linux, MacOS and Windows
-* Easily integrates with existing application – no need to rewrite your code base to introduce real-time events
+* Scale to millions of connections with Redis PUB/SUB, Redis Sentinel for high availability, consistent sharding support
+* Easily integrates with any application – works as separate self-hosted service
 * HTTP and GRPC API to communicate from your application backend (publish messages in channels etc)
-* JSON and binary Protobuf Websocket protocol 
+* JSON and binary Protobuf Websocket client protocol
 * SockJS polyfill for web browsers without Websocket support (JSON only)
-* Scale with Redis PUB/SUB, Redis Sentinel for high availability, consistent sharding support
 * JWT-based user authentication and private channel authorization
 * Presence information for channels (show all active clients in channel)
 * History information for channels (last messages published into channel)
 * Join/leave events for channels (client goes online/offline)
-* Automatically recover missed messages after network disconnect over configured window
-* Built-in administrative web interface
+* Automatically recover missed messages between client reconnects over configured retention period
+* Built-in admin web panel
+* Cross platform – works on Linux, MacOS and Windows
 * Ready to deploy (Docker, RPM/DEB packages, Nginx configuration, automatic Let's Encrypt TLS certificates, Prometheus/Graphite monitoring)
 * MIT license
