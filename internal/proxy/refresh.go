@@ -16,7 +16,7 @@ type RefreshRequest struct {
 
 // RefreshCredentials ...
 type RefreshCredentials struct {
-	ExpireAt   int64           `json:"expire_at"`
+	ExpireAt   int64           `json:"exp"`
 	Info       json.RawMessage `json:"info"`
 	Base64Info string          `json:"b64info"`
 }
