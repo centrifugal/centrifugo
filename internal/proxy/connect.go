@@ -22,15 +22,15 @@ type ConnectCredentials struct {
 	Base64Info string          `json:"b64info"`
 }
 
-// ConnectResult ...
-type ConnectResult struct {
-	Credentials *ConnectCredentials    `json:"credentials"`
-	Error       *centrifuge.Error      `json:"error"`
-	Disconnect  *centrifuge.Disconnect `json:"disconnect"`
+// ConnectReply ...
+type ConnectReply struct {
+	Result     *ConnectCredentials    `json:"result"`
+	Error      *centrifuge.Error      `json:"error"`
+	Disconnect *centrifuge.Disconnect `json:"disconnect"`
 }
 
 // ConnectProxy allows to proxy connect requests to application backend to
 // authenticate client connection.
 type ConnectProxy interface {
-	ProxyConnect(context.Context, ConnectRequest) (*ConnectResult, error)
+	ProxyConnect(context.Context, ConnectRequest) (*ConnectReply, error)
 }

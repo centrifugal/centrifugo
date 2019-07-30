@@ -25,7 +25,7 @@ func NewHTTPRefreshProxy(endpoint string, httpClient *http.Client) *HTTPRefreshP
 }
 
 // ProxyRefresh proxies refresh to application backend.
-func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req RefreshRequest) (*RefreshResult, error) {
+func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req RefreshRequest) (*RefreshReply, error) {
 	httpRequest := req.Transport.Info().Request
 
 	refreshHTTPReq := RefreshRequestHTTP{
@@ -42,7 +42,7 @@ func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req RefreshRequest)
 	if err != nil {
 		return nil, err
 	}
-	var res RefreshResult
+	var res RefreshReply
 	err = json.Unmarshal(respData, &res)
 	if err != nil {
 		return nil, err

@@ -30,7 +30,7 @@ func NewHTTPRPCProxy(endpoint string, httpClient *http.Client) *HTTPRPCProxy {
 }
 
 // ProxyRPC ...
-func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req RPCRequest) (*RPCResult, error) {
+func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req RPCRequest) (*RPCReply, error) {
 	httpRequest := req.Transport.Info().Request
 
 	rpcHTTPReq := RPCRequestHTTP{
@@ -54,7 +54,7 @@ func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req RPCRequest) (*RPCResult
 	if err != nil {
 		return nil, err
 	}
-	var res RPCResult
+	var res RPCReply
 	err = json.Unmarshal(respData, &res)
 	if err != nil {
 		return nil, err

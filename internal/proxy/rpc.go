@@ -15,15 +15,20 @@ type RPCRequest struct {
 	Transport centrifuge.Transport
 }
 
-// RPCResult ...
-type RPCResult struct {
-	Data       json.RawMessage        `json:"data"`
-	Base64Data string                 `json:"b64data"`
+// RPCData ...
+type RPCData struct {
+	Data       json.RawMessage `json:"data"`
+	Base64Data string          `json:"b64data"`
+}
+
+// RPCReply ...
+type RPCReply struct {
+	Result     *RPCData               `json:"result"`
 	Error      *centrifuge.Error      `json:"error"`
 	Disconnect *centrifuge.Disconnect `json:"disconnect"`
 }
 
 // RPCProxy allows to proxy RPC requests to application backend.
 type RPCProxy interface {
-	ProxyRPC(context.Context, RPCRequest) (*RPCResult, error)
+	ProxyRPC(context.Context, RPCRequest) (*RPCReply, error)
 }

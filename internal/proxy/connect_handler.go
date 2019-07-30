@@ -34,7 +34,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 			}
 		}
 
-		connectResp, err := h.config.Proxy.ProxyConnect(context.Background(), ConnectRequest{
+		connectRep, err := h.config.Proxy.ProxyConnect(context.Background(), ConnectRequest{
 			ClientID:  e.ClientID,
 			Transport: t,
 			Data:      e.Data,
@@ -45,23 +45,30 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 				Error: centrifuge.ErrorInternal,
 			}
 		}
-		if connectResp.Disconnect != nil {
+		if connectRep.Disconnect != nil {
 			return centrifuge.ConnectReply{
-				Disconnect: connectResp.Disconnect,
+				Disconnect: connectRep.Disconnect,
 			}
 		}
-		if connectResp.Error != nil {
+		if connectRep.Error != nil {
 			return centrifuge.ConnectReply{
-				Error: connectResp.Error,
+				Error: connectRep.Error,
+			}
+		}
+
+		credentials := connectRep.Result
+		if credentials == nil {
+			return centrifuge.ConnectReply{
+				Credentials: nil,
 			}
 		}
 
 		var info []byte
 		if t.Encoding() == "json" {
-			info = connectResp.Credentials.Info
+			info = credentials.Info
 		} else {
-			if connectResp.Credentials.Base64Info != "" {
-				decodedInfo, err := base64.StdEncoding.DecodeString(connectResp.Credentials.Base64Info)
+			if credentials.Base64Info != "" {
+				decodedInfo, err := base64.StdEncoding.DecodeString(credentials.Base64Info)
 				if err != nil {
 					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
 					return centrifuge.ConnectReply{
@@ -74,8 +81,8 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
-				UserID:   connectResp.Credentials.UserID,
-				ExpireAt: connectResp.Credentials.ExpireAt,
+				UserID:   credentials.UserID,
+				ExpireAt: credentials.ExpireAt,
 				Info:     info,
 			},
 		}

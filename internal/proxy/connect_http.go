@@ -30,7 +30,7 @@ func NewHTTPConnectProxy(endpoint string, httpClient *http.Client) *HTTPConnectP
 }
 
 // ProxyConnect proxies connect control to application backend.
-func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req ConnectRequest) (*ConnectResult, error) {
+func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req ConnectRequest) (*ConnectReply, error) {
 	httpRequest := req.Transport.Info().Request
 
 	connectHTTPReq := ConnectRequestHTTP{
@@ -54,7 +54,7 @@ func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req ConnectRequest)
 	if err != nil {
 		return nil, err
 	}
-	var res ConnectResult
+	var res ConnectReply
 	err = json.Unmarshal(respData, &res)
 	if err != nil {
 		return nil, err
