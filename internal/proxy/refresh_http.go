@@ -8,8 +8,10 @@ import (
 
 // RefreshRequestHTTP ...
 type RefreshRequestHTTP struct {
-	ClientID string `json:"client"`
-	UserID   string `json:"user"`
+	ClientID  string `json:"client"`
+	UserID    string `json:"user"`
+	Transport string `json:"transport"`
+	Encoding  string `json:"encoding"`
 }
 
 // HTTPRefreshProxy ...
@@ -29,8 +31,10 @@ func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req RefreshRequest)
 	httpRequest := req.Transport.Info().Request
 
 	refreshHTTPReq := RefreshRequestHTTP{
-		ClientID: req.ClientID,
-		UserID:   req.UserID,
+		ClientID:  req.ClientID,
+		UserID:    req.UserID,
+		Transport: req.Transport.Name(),
+		Encoding:  string(req.Transport.Encoding()),
 	}
 
 	data, err := json.Marshal(refreshHTTPReq)
