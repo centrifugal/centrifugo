@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+
+	"github.com/centrifugal/centrifuge"
 )
 
 // HTTPRPCProxy ...
@@ -18,7 +20,7 @@ type RPCRequestHTTP struct {
 	ClientID string          `json:"client"`
 	UserID   string          `json:"user"`
 	Data     json.RawMessage `json:"data,omitempty"`
-	// Base64Data to proxy protobuf data.
+	// Base64Data to proxy binary data.
 	Base64Data string `json:"b64data,omitempty"`
 }
 
@@ -39,7 +41,7 @@ func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req RPCRequest) (*RPCReply,
 		UserID:   req.UserID,
 	}
 
-	if req.Transport.Encoding() == "json" {
+	if req.Transport.Encoding() == centrifuge.EncodingJSON {
 		rpcHTTPReq.Data = json.RawMessage(req.Data)
 	} else {
 		rpcHTTPReq.Base64Data = base64.StdEncoding.EncodeToString(req.Data)
