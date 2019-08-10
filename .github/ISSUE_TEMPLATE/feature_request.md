@@ -1,7 +1,7 @@
 ---
-name: Feature request
+name: "\U0001F4A1Feature proposal"
 about: Suggest an idea for this project
-title: "[FEATURE] "
+title: "[feature] "
 labels: ''
 assignees: ''
 
@@ -13,7 +13,7 @@ assignees: ''
 …
 
 **Describe the solution you'd like**
->What would the feature look like? How would it work? How would it change the API?
+> What would the feature look like? How would it work? How would it change the API?
 
 …
 
