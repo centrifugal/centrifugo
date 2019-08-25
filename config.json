@@ -2,7 +2,6 @@
   "secret": "secret",
   "admin_password": "password",
   "admin_secret": "secret",
-  "client_request_max_size": 10000,
   "namespaces": [
     {
       "name": "chat",
