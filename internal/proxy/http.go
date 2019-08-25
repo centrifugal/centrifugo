@@ -56,6 +56,7 @@ func getProxyHeader(request *http.Request) http.Header {
 var proxyHeaders = []string{
 	"User-Agent",
 	"Cookie",
+	"Authorization",
 	"X-Forwarded-For",
 	"X-Real-Ip",
 	"X-Request-Id",

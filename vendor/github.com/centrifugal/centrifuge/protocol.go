@@ -21,15 +21,29 @@ type (
 	Leave = proto.Leave
 	// ClientInfo is short information about client connection.
 	ClientInfo = proto.ClientInfo
-	// Encoding represents client connection transport encoding format.
-	Encoding = proto.Encoding
+	// ProtocolType represents client connection transport encoding format.
+	ProtocolType = proto.ProtocolType
+	// EncodingType represents client payload encoding format.
+	EncodingType = proto.EncodingType
 	// Push wraps Publication, Join or Leave.
 	Push = proto.Push
 )
 
 // Push types.
-var (
+const (
 	PushTypePublication = proto.PushTypePublication
 	PushTypeJoin        = proto.PushTypeJoin
 	PushTypeLeave       = proto.PushTypeLeave
+)
+
+// Protocol types.
+const (
+	ProtocolTypeJSON     = proto.ProtocolTypeJSON
+	ProtocolTypeProtobuf = proto.ProtocolTypeProtobuf
+)
+
+// Encoding types.
+const (
+	EncodingTypeJSON   = proto.EncodingTypeJSON
+	EncodingTypeBinary = proto.EncodingTypeBinary
 )

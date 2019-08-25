@@ -10,7 +10,7 @@ import (
 // ConnectRequest ...
 type ConnectRequest struct {
 	ClientID  string
-	Transport centrifuge.Transport
+	Transport centrifuge.TransportInfo
 	Data      centrifuge.Raw
 }
 

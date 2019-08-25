@@ -25,8 +25,8 @@ func NewConnectHandler(c ConnectHandlerConfig) *ConnectHandler {
 }
 
 // Handle returns connecting handler func.
-func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context, t centrifuge.Transport, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
-	return func(ctx context.Context, t centrifuge.Transport, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
+func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context, t centrifuge.TransportInfo, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	return func(ctx context.Context, t centrifuge.TransportInfo, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		if e.Token != "" {
 			// As soon as token provided we do not try to proxy connect to application backend.
 			return centrifuge.ConnectReply{

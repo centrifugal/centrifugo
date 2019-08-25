@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifuge/internal/proto"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -28,7 +26,8 @@ type websocketTransport struct {
 }
 
 type websocketTransportOptions struct {
-	enc                proto.Encoding
+	encType            EncodingType
+	protoType          ProtocolType
 	pingInterval       time.Duration
 	writeTimeout       time.Duration
 	compressionMinSize int
@@ -76,12 +75,16 @@ func (t *websocketTransport) Name() string {
 	return transportWebsocket
 }
 
-func (t *websocketTransport) Encoding() proto.Encoding {
-	return t.opts.enc
+func (t *websocketTransport) Protocol() ProtocolType {
+	return t.opts.protoType
 }
 
-func (t *websocketTransport) Info() TransportInfo {
-	return TransportInfo{
+func (t *websocketTransport) Encoding() EncodingType {
+	return t.opts.encType
+}
+
+func (t *websocketTransport) Meta() TransportMeta {
+	return TransportMeta{
 		Request: t.req,
 	}
 }
@@ -95,11 +98,11 @@ func (t *websocketTransport) Write(data []byte) error {
 			t.conn.EnableWriteCompression(len(data) > t.opts.compressionMinSize)
 		}
 		if t.opts.writeTimeout > 0 {
-			t.conn.SetWriteDeadline(time.Now().Add(t.opts.writeTimeout))
+			_ = t.conn.SetWriteDeadline(time.Now().Add(t.opts.writeTimeout))
 		}
 
 		var messageType = websocket.TextMessage
-		if t.Encoding() == proto.EncodingProtobuf {
+		if t.Protocol() == ProtocolTypeProtobuf {
 			messageType = websocket.BinaryMessage
 		}
 
@@ -109,7 +112,7 @@ func (t *websocketTransport) Write(data []byte) error {
 		}
 
 		if t.opts.writeTimeout > 0 {
-			t.conn.SetWriteDeadline(time.Time{})
+			_ = t.conn.SetWriteDeadline(time.Time{})
 		}
 		return nil
 	}
@@ -135,11 +138,18 @@ func (t *websocketTransport) Close(disconnect *Disconnect) error {
 			return err
 		}
 		msg := websocket.FormatCloseMessage(disconnect.Code, string(reason))
-		t.conn.WriteControl(websocket.CloseMessage, msg, deadline)
+		_ = t.conn.WriteControl(websocket.CloseMessage, msg, deadline)
 		return t.conn.Close()
 	}
 	return t.conn.Close()
 }
+
+// Defaults.
+const (
+	DefaultWebsocketPingInterval     = 25 * time.Second
+	DefaultWebsocketWriteTimeout     = 1 * time.Second
+	DefaultWebsocketMessageSizeLimit = 65536 // 64KB
+)
 
 // WebsocketConfig represents config for WebsocketHandler.
 type WebsocketConfig struct {
@@ -170,6 +180,19 @@ type WebsocketConfig struct {
 	// CheckOrigin func to provide custom origin check logic.
 	// nil means allow all origins.
 	CheckOrigin func(r *http.Request) bool
+
+	// PingInterval sets interval server will send ping messages to clients.
+	// By default DefaultPingInterval will be used.
+	PingInterval time.Duration
+
+	// WriteTimeout is maximum time of write message operation.
+	// Slow client will be disconnected.
+	// By default DefaultWebsocketWriteTimeout will be used.
+	WriteTimeout time.Duration
+
+	// MessageSizeLimit sets the maximum size in bytes of allowed message from client.
+	// By default DefaultWebsocketMaxMessageSize will be used.
+	MessageSizeLimit int
 }
 
 // WebsocketHandler handles websocket client connections.
@@ -220,23 +243,39 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	config := s.node.Config()
-	pingInterval := config.ClientPingInterval
-	writeTimeout := config.ClientMessageWriteTimeout
-	maxRequestSize := config.ClientRequestMaxSize
+	pingInterval := s.config.PingInterval
+	if pingInterval == 0 {
+		pingInterval = DefaultWebsocketPingInterval
+	}
+	writeTimeout := s.config.WriteTimeout
+	if writeTimeout == 0 {
+		writeTimeout = DefaultWebsocketWriteTimeout
+	}
+	messageSizeLimit := s.config.MessageSizeLimit
+	if messageSizeLimit == 0 {
+		messageSizeLimit = DefaultWebsocketMessageSizeLimit
+	}
 
-	if maxRequestSize > 0 {
-		conn.SetReadLimit(int64(maxRequestSize))
+	if messageSizeLimit > 0 {
+		conn.SetReadLimit(int64(messageSizeLimit))
 	}
 	if pingInterval > 0 {
 		pongWait := pingInterval * 10 / 9
-		conn.SetReadDeadline(time.Now().Add(pongWait))
-		conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+		_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+		conn.SetPongHandler(func(string) error {
+			_ = conn.SetReadDeadline(time.Now().Add(pongWait))
+			return nil
+		})
 	}
 
-	var enc = proto.EncodingJSON
-	if r.URL.Query().Get("format") == "protobuf" {
-		enc = proto.EncodingProtobuf
+	var protocol = ProtocolTypeJSON
+	if r.URL.Query().Get("format") == "protobuf" || r.URL.Query().Get("protocol") == "protobuf" {
+		protocol = ProtocolTypeProtobuf
+	}
+
+	var enc = EncodingTypeJSON
+	if r.URL.Query().Get("encoding") == "binary" {
+		enc = EncodingTypeBinary
 	}
 
 	// Separate goroutine for better GC of caller's data.
@@ -245,7 +284,8 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			pingInterval:       pingInterval,
 			writeTimeout:       writeTimeout,
 			compressionMinSize: compressionMinSize,
-			enc:                enc,
+			encType:            enc,
+			protoType:          protocol,
 		}
 
 		transport := newWebsocketTransport(conn, r, opts)
@@ -257,7 +297,7 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		default:
 		}
 
-		c, err := newClient(r.Context(), s.node, transport)
+		c, err := NewClient(r.Context(), s.node, transport)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error creating client", map[string]interface{}{"transport": transportWebsocket}))
 			return
@@ -273,7 +313,7 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return
 			}
-			ok := c.handleRawData(data)
+			ok := c.Handle(data)
 			if !ok {
 				return
 			}

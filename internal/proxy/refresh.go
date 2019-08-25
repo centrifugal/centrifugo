@@ -11,7 +11,7 @@ import (
 type RefreshRequest struct {
 	ClientID  string
 	UserID    string
-	Transport centrifuge.Transport
+	Transport centrifuge.TransportInfo
 }
 
 // RefreshCredentials ...

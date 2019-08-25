@@ -83,6 +83,11 @@ func main() {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
 			}
 
+			// For backwards compatibility.
+			viper.RegisterAlias("websocket_ping_interval", "client_ping_interval")
+			viper.RegisterAlias("websocket_write_timeout", "client_message_write_timeout")
+			viper.RegisterAlias("websocket_message_size_limit", "client_request_max_size")
+
 			viper.SetConfigFile(configFile)
 
 			absConfPath, err := filepath.Abs(configFile)
@@ -375,13 +380,10 @@ var configDefaults = map[string]interface{}{
 	"history_recover":                      false,
 	"namespaces":                           "",
 	"node_info_metrics_aggregate_interval": 60,
-	"client_ping_interval":                 25,
 	"client_expired_close_delay":           25,
 	"client_expired_sub_close_delay":       25,
 	"client_stale_close_delay":             25,
-	"client_message_write_timeout":         0,
 	"client_channel_limit":                 128,
-	"client_request_max_size":              65536,    // 64KB
 	"client_queue_max_size":                10485760, // 10MB
 	"client_presence_ping_interval":        25,
 	"client_presence_expire_interval":      60,
@@ -407,6 +409,9 @@ var configDefaults = map[string]interface{}{
 	"websocket_compression_level":          1,
 	"websocket_read_buffer_size":           0,
 	"websocket_write_buffer_size":          0,
+	"websocket_ping_interval":              25,
+	"websocket_write_timeout":              0,
+	"websocket_message_size_limit":         65536, // 64KB
 	"tls_autocert":                         false,
 	"tls_autocert_host_whitelist":          "",
 	"tls_autocert_cache_dir":               "",
@@ -897,13 +902,10 @@ func nodeConfig(version string) *centrifuge.Config {
 
 	cfg.ClientPresencePingInterval = time.Duration(v.GetInt("client_presence_ping_interval")) * time.Second
 	cfg.ClientPresenceExpireInterval = time.Duration(v.GetInt("client_presence_expire_interval")) * time.Second
-	cfg.ClientPingInterval = time.Duration(v.GetInt("client_ping_interval")) * time.Second
-	cfg.ClientMessageWriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
 	cfg.ClientInsecure = v.GetBool("client_insecure")
 	cfg.ClientExpiredCloseDelay = time.Duration(v.GetInt("client_expired_close_delay")) * time.Second
 	cfg.ClientExpiredSubCloseDelay = time.Duration(v.GetInt("client_expired_sub_close_delay")) * time.Second
 	cfg.ClientStaleCloseDelay = time.Duration(v.GetInt("client_stale_close_delay")) * time.Second
-	cfg.ClientRequestMaxSize = v.GetInt("client_request_max_size")
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
 	cfg.ClientUserConnectionLimit = v.GetInt("client_user_connection_limit")
@@ -957,6 +959,9 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	cfg.CompressionMinSize = v.GetInt("websocket_compression_min_size")
 	cfg.ReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WriteBufferSize = v.GetInt("websocket_write_buffer_size")
+	cfg.PingInterval = time.Duration(v.GetInt("websocket_ping_interval")) * time.Second
+	cfg.WriteTimeout = time.Duration(v.GetInt("websocket_write_timeout")) * time.Second
+	cfg.MessageSizeLimit = v.GetInt("websocket_message_size_limit")
 	return cfg
 }
 

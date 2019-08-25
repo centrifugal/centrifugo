@@ -5,12 +5,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"time"
+
+	"github.com/centrifugal/centrifuge"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // ConnectRequestHTTP ...
 type ConnectRequestHTTP struct {
 	ClientID  string          `json:"client"`
 	Transport string          `json:"transport"`
+	Protocol  string          `json:"protocol"`
 	Encoding  string          `json:"encoding"`
 	Data      json.RawMessage `json:"data,omitempty"`
 	// Base64Data to proxy protobuf data.
@@ -20,26 +25,31 @@ type ConnectRequestHTTP struct {
 // HTTPConnectProxy ...
 type HTTPConnectProxy struct {
 	httpCaller HTTPCaller
+	summary    prometheus.Observer
+	errCount   prometheus.Counter
 }
 
 // NewHTTPConnectProxy ...
 func NewHTTPConnectProxy(endpoint string, httpClient *http.Client) *HTTPConnectProxy {
 	return &HTTPConnectProxy{
 		httpCaller: NewHTTPCaller(endpoint, httpClient),
+		summary:    proxyCallDurationSummary.WithLabelValues("http", "connect"),
+		errCount:   proxyCallErrorCount.WithLabelValues("http", "connect"),
 	}
 }
 
 // ProxyConnect proxies connect control to application backend.
 func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req ConnectRequest) (*ConnectReply, error) {
-	httpRequest := req.Transport.Info().Request
+	httpRequest := req.Transport.Meta().Request
 
 	connectHTTPReq := ConnectRequestHTTP{
 		ClientID:  req.ClientID,
 		Transport: req.Transport.Name(),
+		Protocol:  string(req.Transport.Protocol()),
 		Encoding:  string(req.Transport.Encoding()),
 	}
 
-	if req.Transport.Encoding() == "json" {
+	if req.Transport.Encoding() == centrifuge.EncodingTypeJSON {
 		connectHTTPReq.Data = json.RawMessage(req.Data)
 	} else {
 		connectHTTPReq.Base64Data = base64.StdEncoding.EncodeToString(req.Data)
@@ -50,8 +60,11 @@ func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req ConnectRequest)
 		return nil, err
 	}
 
+	started := time.Now()
 	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest), data)
+	p.summary.Observe(time.Since(started).Seconds())
 	if err != nil {
+		p.errCount.Inc()
 		return nil, err
 	}
 	var res ConnectReply

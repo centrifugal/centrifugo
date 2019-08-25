@@ -51,7 +51,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:67537eebd6f94fecc05418d3105db4ca0a352b8b140e5150c0e36bdefbf0481c"
+  digest = "1:6a38e89e9d74ebb13e79d2f89cbc78381c90d57affeb5582e4920aefb86d625c"
   name = "github.com/centrifugal/centrifuge"
   packages = [
     ".",
@@ -63,7 +63,7 @@
     "internal/uuid",
   ]
   pruneopts = "UT"
-  revision = "26bd0345f0c4315d789d8ab46d0bcbd1cc23c88d"
+  revision = "05bd61314e5414dd68404b828bf0b45c96b87db9"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
@@ -139,11 +139,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:12ce99d1a9015a1dfec541fa8a9715a0e95a574c1626897af13412d173c4c31e"
+  digest = "1:9bc80e83ce8f8676455d05a86e3b03e429ab990328b327f9ceabdcf09d24cf53"
   name = "github.com/igm/sockjs-go"
   packages = ["sockjs"]
   pruneopts = "UT"
-  revision = "1840ed98ab88f0d08228ade56e36731e4e369ab2"
+  revision = "1a1bca4e69c325bed0942996eebe48b316eb7a48"
 
 [[projects]]
   digest = "1:870d441fe217b8e689d7949fef6e43efbc787e50f200cb1e70dbca9204a1d6be"

@@ -37,7 +37,7 @@ func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler
 		handlerFunc: handlerFunc,
 		sessions:    make(map[string]*session),
 	}
-
+	xhrCors := xhrCorsFactory(opts)
 	sessionPrefix := prefix + "/[^/.]+/[^/.]+"
 	h.mappings = []*mapping{
 		newMapping("GET", prefix+"[/]?$", welcomeHandler),
