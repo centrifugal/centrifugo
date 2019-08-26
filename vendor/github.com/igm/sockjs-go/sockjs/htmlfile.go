@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -21,6 +22,8 @@ var iframeTemplate = `<!doctype html>
   </script>
 `
 
+var invalidCallback = regexp.MustCompile("[^a-zA-Z0-9\\_\\.]")
+
 func init() {
 	iframeTemplate += strings.Repeat(" ", 1024-len(iframeTemplate)+14)
 	iframeTemplate += "\r\n\r\n"
@@ -33,6 +36,9 @@ func (h *handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 	callback := req.Form.Get("c")
 	if callback == "" {
 		http.Error(rw, `"callback" parameter required`, http.StatusInternalServerError)
+		return
+	} else if invalidCallback.MatchString(callback) {
+		http.Error(rw, `invalid character in "callback" parameter`, http.StatusBadRequest)
 		return
 	}
 	rw.WriteHeader(http.StatusOK)

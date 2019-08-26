@@ -1,10 +1,9 @@
-This release fixes two regressions introduced by v2.2.0.
+No backwards incompatible changes here.
 
 Improvements:
 
-* [New documentation chapter](https://centrifugal.github.io/centrifugo/server/grpc_api/) about GRPC API in Centrifugo.
+* Support for `tls-alpn-01` ACME challenge, see [#283](https://github.com/centrifugal/centrifugo/issues/283)
 
 Fixes:
 
-* Fix client disconnect in channels with enabled history but disabled recovery
-* Fix wrong Push type sent in Redis engine: Leave message was used where Join required
+* fix running HTTP server several times when http-01 ACME challenge used, see [#288](https://github.com/centrifugal/centrifugo/issues/288)

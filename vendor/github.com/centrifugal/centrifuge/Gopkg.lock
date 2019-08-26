@@ -85,11 +85,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4e43a9d89cc03a5bf460989e699d086a75ba4264c66e5d32ada18b4e83445f44"
+  digest = "1:8deef3f1b28a787dc25e4b4df1cefb4068845b67e689032304933032acc5f977"
   name = "github.com/igm/sockjs-go"
   packages = ["sockjs"]
   pruneopts = ""
-  revision = "4e63e74d3787fb81d6568e1d9640bf869ca5ddf7"
+  revision = "1840ed98ab88f0d08228ade56e36731e4e369ab2"
 
 [[projects]]
   digest = "1:4c23ced97a470b17d9ffd788310502a077b9c1f60221a85563e49696276b4147"

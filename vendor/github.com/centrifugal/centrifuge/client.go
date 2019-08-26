@@ -2075,6 +2075,10 @@ func (c *Client) presenceCmd(cmd *proto.PresenceRequest) (*proto.PresenceRespons
 	presence, err := c.node.Presence(ch)
 	if err != nil {
 		c.node.logger.log(newLogEntry(LogLevelError, "error getting presence", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid, "error": err.Error()}))
+		if clientErr, ok := err.(*Error); ok {
+			resp.Error = clientErr
+			return resp, nil
+		}
 		resp.Error = ErrorInternal
 		return resp, nil
 	}
