@@ -55,6 +55,8 @@ Flags:
       --tls_key string             path to an X509 certificate key
 ```
 
+Keep in mind that all command-line options of Centrifugo can be set via configuration file with the same name (without `--` prefix of course). 
+
 ### version
 
 To show version and exit run:

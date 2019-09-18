@@ -58,7 +58,7 @@ Several configuration options related to Redis engine:
 * `redis_master_name` (string, default `""`) - name of Redis master Sentinel monitors
 * `redis_prefix` (string, default `"centrifugo"`) – custom prefix to use for channels and keys in Redis
 
-Some of these options can be set over command-line arguments (see `centrifugo -h` output), some only over configuration file.
+All of these options can be set over configuration file. Some of them can be set over command-line arguments (see `centrifugo -h` output).
 
 Let's describe a bit more `redis_url` option. `redis_url` allows to set Redis connection parameters in a form of URL in format `redis://:password@hostname:port/db_number`. When `redis_url` set Centrifugo will use URL instead of values provided in `redis_host`, `redis_port`, `redis_password`, `redis_db` options.
 
