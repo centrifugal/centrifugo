@@ -920,7 +920,7 @@
 <li><code>redis_master_name</code> (string, default <code>""</code>) - name of Redis master Sentinel monitors</li>
 <li><code>redis_prefix</code> (string, default <code>"centrifugo"</code>) – custom prefix to use for channels and keys in Redis</li>
 </ul>
-<p>Some of these options can be set over command-line arguments (see <code>centrifugo -h</code> output), some only over configuration file.</p>
+<p>All of these options can be set over configuration file. Some of them can be set over command-line arguments (see <code>centrifugo -h</code> output).</p>
 <p>Let&rsquo;s describe a bit more <code>redis_url</code> option. <code>redis_url</code> allows to set Redis connection parameters in a form of URL in format <code>redis://:password@hostname:port/db_number</code>. When <code>redis_url</code> set Centrifugo will use URL instead of values provided in <code>redis_host</code>, <code>redis_port</code>, <code>redis_password</code>, <code>redis_db</code> options.</p>
 <h3 id="scaling-with-redis-tutorial">Scaling with Redis tutorial<a class="headerlink" href="#scaling-with-redis-tutorial" title="Permanent link">&para;</a></h3>
 <p>Let&rsquo;s see how to start several Centrifugo nodes using Redis engine. We will start 3 Centrifugo nodes and all those nodes will be connected via Redis.</p>
