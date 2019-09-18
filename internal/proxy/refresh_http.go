@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/centrifugal/centrifugo/internal/middleware"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -36,7 +37,7 @@ func NewHTTPRefreshProxy(endpoint string, httpClient *http.Client) *HTTPRefreshP
 
 // ProxyRefresh proxies refresh to application backend.
 func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req RefreshRequest) (*RefreshReply, error) {
-	httpRequest := req.Transport.Meta().Request
+	httpRequest := middleware.HeadersFromContext(ctx)
 
 	refreshHTTPReq := RefreshRequestHTTP{
 		ClientID:  req.ClientID,

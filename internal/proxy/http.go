@@ -47,10 +47,10 @@ func (c *httpCaller) CallHTTP(ctx context.Context, header http.Header, reqData [
 	return respData, nil
 }
 
-func getProxyHeader(request *http.Request) http.Header {
-	header := http.Header{}
-	copyHeader(header, request.Header)
-	return header
+func getProxyHeader(allHeader http.Header) http.Header {
+	proxyHeader := http.Header{}
+	copyHeader(proxyHeader, allHeader)
+	return proxyHeader
 }
 
 var proxyHeaders = []string{

@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/centrifugal/centrifugo/internal/middleware"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -40,7 +42,7 @@ func NewHTTPConnectProxy(endpoint string, httpClient *http.Client) *HTTPConnectP
 
 // ProxyConnect proxies connect control to application backend.
 func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req ConnectRequest) (*ConnectReply, error) {
-	httpRequest := req.Transport.Meta().Request
+	httpRequest := middleware.HeadersFromContext(ctx)
 
 	connectHTTPReq := ConnectRequestHTTP{
 		ClientID:  req.ClientID,

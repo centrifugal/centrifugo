@@ -34,7 +34,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 			}
 		}
 
-		connectRep, err := h.config.Proxy.ProxyConnect(context.Background(), ConnectRequest{
+		connectRep, err := h.config.Proxy.ProxyConnect(ctx, ConnectRequest{
 			ClientID:  e.ClientID,
 			Transport: t,
 			Data:      e.Data,

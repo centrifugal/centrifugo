@@ -186,7 +186,7 @@ func main() {
 			rpcHandlerEnabled := viper.GetString("proxy_http_rpc_endpoint") != ""
 			node.On().ClientConnected(func(ctx context.Context, client *centrifuge.Client) {
 				if rpcHandlerEnabled {
-					client.On().RPC(rpcHandler.Handle(node, client))
+					client.On().RPC(rpcHandler.Handle(ctx, node, client))
 				}
 			})
 
@@ -1288,16 +1288,18 @@ func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 		mux.Handle("/debug/pprof/trace", middleware.LogRequest(http.HandlerFunc(pprof.Trace)))
 	}
 
+	proxyEnabled := viper.GetString("proxy_http_connect_endpoint") != "" || viper.GetString("proxy_http_refresh_endpoint") != "" || viper.GetString("proxy_http_rpc_endpoint") != ""
+
 	if flags&HandlerWebsocket != 0 {
 		// register Websocket connection endpoint.
-		mux.Handle("/connection/websocket", middleware.LogRequest(centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))
+		mux.Handle("/connection/websocket", middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig()))))
 	}
 
 	if flags&HandlerSockJS != 0 {
 		// register SockJS connection endpoints.
 		sockjsConfig := sockjsHandlerConfig()
 		sockjsConfig.HandlerPrefix = "/connection/sockjs"
-		mux.Handle(sockjsConfig.HandlerPrefix+"/", middleware.LogRequest(centrifuge.NewSockjsHandler(n, sockjsConfig)))
+		mux.Handle(sockjsConfig.HandlerPrefix+"/", middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewSockjsHandler(n, sockjsConfig))))
 	}
 
 	if flags&HandlerAPI != 0 {

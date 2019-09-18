@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/centrifugo/internal/middleware"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -40,7 +41,7 @@ func NewHTTPRPCProxy(endpoint string, httpClient *http.Client) *HTTPRPCProxy {
 
 // ProxyRPC ...
 func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req RPCRequest) (*RPCReply, error) {
-	httpRequest := req.Transport.Meta().Request
+	httpRequest := middleware.HeadersFromContext(ctx)
 
 	rpcHTTPReq := RPCRequestHTTP{
 		Protocol: string(req.Transport.Protocol()),

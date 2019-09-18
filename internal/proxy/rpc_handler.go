@@ -25,9 +25,9 @@ func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 }
 
 // Handle RPC.
-func (h *RPCHandler) Handle(node *centrifuge.Node, client *centrifuge.Client) func(e centrifuge.RPCEvent) centrifuge.RPCReply {
+func (h *RPCHandler) Handle(ctx context.Context, node *centrifuge.Node, client *centrifuge.Client) func(e centrifuge.RPCEvent) centrifuge.RPCReply {
 	return func(e centrifuge.RPCEvent) centrifuge.RPCReply {
-		rpcRep, err := h.config.Proxy.ProxyRPC(context.Background(), RPCRequest{
+		rpcRep, err := h.config.Proxy.ProxyRPC(ctx, RPCRequest{
 			Data:      e.Data,
 			ClientID:  client.ID(),
 			UserID:    client.UserID(),
