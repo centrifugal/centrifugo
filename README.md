@@ -8,7 +8,7 @@ See server [documentation](https://centrifugal.github.io/centrifugo/).
 
 You can also find the following posts interesting:
 * [Four years in Centrifuge](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) – this is a story and motivation of Centrifugo
-* [How Centrifugo solves real problems of real-time applications](https://medium.com/@fzambia/how-centrifugo-solves-real-problems-of-real-time-messaging-applications-a15d6b8fc8ac) – this is a write-up about Centrifugo benefits
+* [Building real-time messaging server in Go](https://medium.com/@fzambia/building-real-time-messaging-server-in-go-5661c0a45248) – this is a write-up about some Centrifugo internals and decisions
 
 ### How to install
 
