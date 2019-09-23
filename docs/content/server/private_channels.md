@@ -11,6 +11,8 @@ Private channel subscription token is also JWT (like connection token described 
 !!! note
     Connection token and private channel subscription token are different entities. Though both are JWT and you can generate them using any JWT library.
     
+!!! import
+    Even when use subscribeEndpoint to get subscription tokens for private channel, connection token is still needed when connect to the ws server. Otherwise, you'll got a "103 permission denied" error
 
 ## Claims
 
