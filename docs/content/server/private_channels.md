@@ -12,7 +12,7 @@ Private channel subscription token is also JWT (like connection token described 
     Connection token and private channel subscription token are different entities. Though both are JWT and you can generate them using any JWT library.
     
 !!! import
-    Even when use subscribeEndpoint to get subscription tokens for private channel, connection token is still needed when connect to the ws server. Otherwise, you'll got a "103 permission denied" error
+    Even when authorizing subscription to private channel with private subscription JWT you should set a proper connection JWT for a client as it provides user authentication details to Centrifugo.
 
 ## Claims
 
