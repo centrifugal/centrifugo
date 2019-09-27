@@ -932,6 +932,8 @@
 <p>Private channel subscription token is also JWT (like connection token described in <a href="../authentication/">authentication chapter</a>). But it has different claims.</p>
 <p>!!! note
     Connection token and private channel subscription token are different entities. Though both are JWT and you can generate them using any JWT library.</p>
+<p>!!! import
+    Even when authorizing subscription to private channel with private subscription JWT you should set a proper connection JWT for a client as it provides user authentication details to Centrifugo.</p>
 <h2 id="claims">Claims<a class="headerlink" href="#claims" title="Permanent link">&para;</a></h2>
 <p>Private channel subscription token claims are: <code>client</code>, <code>channel</code>, <code>info</code>, <code>b64info</code> and <code>exp</code>. What do they mean? Let&rsquo;s describe in detail.</p>
 <h3 id="client">client<a class="headerlink" href="#client" title="Permanent link">&para;</a></h3>
