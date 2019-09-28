@@ -86,3 +86,7 @@ claims = {"sub": "42", "info": {"name": "Alexander Emelin"}}
 token = jwt.encode(claims, "secret", algorithm="HS256").decode()
 print(token)
 ```
+
+### Investigating problems with JWT
+
+You can use [jwt.io](https://jwt.io/) site to investigate contents of your tokens. Also server logs usually contain some useful information.
