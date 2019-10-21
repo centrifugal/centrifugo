@@ -13,7 +13,7 @@
         <meta name="description" content="Centrifugo Documentation">
       
       
-        <link rel="canonical" href="https://github.com/centrifugal/centrifugo/server/protobuf/">
+        <link rel="canonical" href="https://github.com/centrifugal/centrifugo/misc/benchmark/">
       
       
         <meta name="author" content="Centrifugal">
@@ -42,7 +42,7 @@
     
     
       
-        <title>Protobuf protocol - Centrifugo Documentation</title>
+        <title>Benchmarking server - Centrifugo Documentation</title>
       
     
     
@@ -110,7 +110,7 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
-      <a href="#protobuf-binary-protocol" tabindex="1" class="md-skip">
+      <a href="#benchmark" tabindex="1" class="md-skip">
         Skip to content
       </a>
     
@@ -135,7 +135,7 @@
               Centrifugo Documentation
             </span>
             <span class="md-header-nav__topic">
-              Protobuf protocol
+              Benchmarking server
             </span>
           
         </div>
@@ -267,12 +267,10 @@
       
       
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+  <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" checked>
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
     
     <label class="md-nav__link" for="nav-3">
       Server
@@ -290,7 +288,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../" title="Overview" class="md-nav__link">
+    <a href="../../server/" title="Overview" class="md-nav__link">
       Overview
     </a>
   </li>
@@ -302,7 +300,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../install/" title="Installation" class="md-nav__link">
+    <a href="../../server/install/" title="Installation" class="md-nav__link">
       Installation
     </a>
   </li>
@@ -314,7 +312,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../configuration/" title="Configuration" class="md-nav__link">
+    <a href="../../server/configuration/" title="Configuration" class="md-nav__link">
       Configuration
     </a>
   </li>
@@ -326,7 +324,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../channels/" title="Channels" class="md-nav__link">
+    <a href="../../server/channels/" title="Channels" class="md-nav__link">
       Channels
     </a>
   </li>
@@ -338,7 +336,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../authentication/" title="Authentication" class="md-nav__link">
+    <a href="../../server/authentication/" title="Authentication" class="md-nav__link">
       Authentication
     </a>
   </li>
@@ -350,7 +348,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../engines/" title="Engines" class="md-nav__link">
+    <a href="../../server/engines/" title="Engines" class="md-nav__link">
       Engines
     </a>
   </li>
@@ -362,7 +360,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../admin/" title="Admin web interface" class="md-nav__link">
+    <a href="../../server/admin/" title="Admin web interface" class="md-nav__link">
       Admin web interface
     </a>
   </li>
@@ -374,7 +372,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../monitoring/" title="Monitoring" class="md-nav__link">
+    <a href="../../server/monitoring/" title="Monitoring" class="md-nav__link">
       Monitoring
     </a>
   </li>
@@ -386,7 +384,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../http_api/" title="Server HTTP API" class="md-nav__link">
+    <a href="../../server/http_api/" title="Server HTTP API" class="md-nav__link">
       Server HTTP API
     </a>
   </li>
@@ -398,7 +396,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../grpc_api/" title="Server GRPC API" class="md-nav__link">
+    <a href="../../server/grpc_api/" title="Server GRPC API" class="md-nav__link">
       Server GRPC API
     </a>
   </li>
@@ -410,7 +408,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../recover/" title="Message recovery" class="md-nav__link">
+    <a href="../../server/recover/" title="Message recovery" class="md-nav__link">
       Message recovery
     </a>
   </li>
@@ -422,7 +420,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../signals/" title="Signal handling" class="md-nav__link">
+    <a href="../../server/signals/" title="Signal handling" class="md-nav__link">
       Signal handling
     </a>
   </li>
@@ -434,7 +432,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
+    <a href="../../server/connection_expiration/" title="Connection expiration" class="md-nav__link">
       Connection expiration
     </a>
   </li>
@@ -446,7 +444,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../private_channels/" title="Private channels" class="md-nav__link">
+    <a href="../../server/private_channels/" title="Private channels" class="md-nav__link">
       Private channels
     </a>
   </li>
@@ -456,20 +454,11 @@
           
           
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-    
-      
-    
-    
-    <a href="./" title="Protobuf protocol" class="md-nav__link md-nav__link--active">
+  <li class="md-nav__item">
+    <a href="../../server/protobuf/" title="Protobuf protocol" class="md-nav__link">
       Protobuf protocol
     </a>
-    
   </li>
 
         
@@ -479,7 +468,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../protocol/" title="Client protocol" class="md-nav__link">
+    <a href="../../server/protocol/" title="Client protocol" class="md-nav__link">
       Client protocol
     </a>
   </li>
@@ -698,10 +687,12 @@
       
       
 
+  
 
-  <li class="md-nav__item md-nav__item--nested">
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7" checked>
     
     <label class="md-nav__link" for="nav-7">
       Misc
@@ -719,7 +710,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
+    <a href="../insecure_modes/" title="Insecure modes" class="md-nav__link">
       Insecure modes
     </a>
   </li>
@@ -731,7 +722,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
+    <a href="../migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
       Migrate from Centrifugo v1
     </a>
   </li>
@@ -741,11 +732,20 @@
           
           
 
+  
 
-  <li class="md-nav__item">
-    <a href="../../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+    <a href="./" title="Benchmarking server" class="md-nav__link md-nav__link--active">
       Benchmarking server
     </a>
+    
   </li>
 
         
@@ -793,24 +793,50 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/server/protobuf.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
+                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/misc/benchmark.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
                 
                 
-                <h1 id="protobuf-binary-protocol">Protobuf binary protocol<a class="headerlink" href="#protobuf-binary-protocol" title="Permanent link">&para;</a></h1>
-<p>In most cases you will use Centrifugo with JSON protocol which is used by default. It consists of simple human-readable frames that can be easily inspected. Also it&rsquo;s a very simple task to publish JSON encoded data to HTTP API endpoint. You may want to use binary Protobuf client protocol if:</p>
+                <h1 id="benchmark">Benchmark<a class="headerlink" href="#benchmark" title="Permanent link">&para;</a></h1>
+<p>In order to get an understanding about possible hardware requirements for reasonably massive Centrifugo setup we made a test stand inside Kubernetes.</p>
+<p>Our goal was to run server based on Centrifuge library (the core of Centrifugo server) with one million WebSocket connections and send many messages to connected clients. While sending many messages we have been looking at delivery time latency. In fact we will see that about 30 million messages per minute (500k messages per second) will be delivered to connected clients and latency won&rsquo;t be larger than 200ms in 99 percentile.</p>
+<p>Server nodes have been run on machines with the following configuration:</p>
 <ul>
-<li>you want less traffic on wire as Protobuf is very compact</li>
-<li>you want maximum performance as Protobuf encoding/decoding is very efficient</li>
-<li>you can sacrifice human-readable JSON for your application</li>
+<li>CPU Intel(R) Xeon(R) CPU E5-2640 v4 @ 2.40GHz</li>
+<li>Linux Debian 4.9.65-3+deb9u1 (2017-12-23) x86_64 GNU/Linux </li>
 </ul>
-<p>Binary protobuf protocol only works for raw Websocket connections (as SockJS can&rsquo;t deal with binary). With most clients to use binary you just need to provide query parameter <code>format</code> to Websocket URL, so final URL look like:</p>
-<div class="codehilite"><pre><span></span>wss://centrifugo.example.com/connection/websocket?format=protobuf
+<p>Some <code>sysctl</code> values:</p>
+<div class="codehilite"><pre><span></span>fs.file-max = 3276750
+fs.nr_open = 1048576
+net.ipv4.tcp_mem = 3086496  4115330 6172992
+net.ipv4.tcp_rmem = 8192    8388608 16777216
+net.ipv4.tcp_wmem = 4096    4194394 16777216
+net.core.rmem_max = 33554432
+net.core.wmem_max = 33554432
 </pre></div>
 
 
-<p>After doing this Centrifugo will use binary frames to pass data between client and server. Your application specific payload can be random bytes.</p>
-<p>!!! note
-    You still can continue to encode your application specific data as JSON when using Protobuf protocol thus have a possibility to coexist with clients that use JSON protocol on the same Centrifugo installation inside the same channels.</p>
+<p>Kubernetes used these machines as its nodes. </p>
+<p>We started 20 Centrifuge-based server pods. Our clients connected to server pods using Centrifuge Protobuf protocol. To scale horizontally we used Redis Engine and sharded it to 5 different Redis instances (each Redis instance consumes 1 CPU max).</p>
+<p>To achieve many client connections we used 100 Kubernetes pods each generating about 10k client connections to server.</p>
+<p>Here are some numbers we achieved:</p>
+<ul>
+<li>1 million WebSocket connections</li>
+<li>28 million messages per minute (about 500k per second) <strong>delivered</strong> to clients</li>
+<li>200k per minute constant connect/disconnect rate to simulate real-life situation where clients connect/disconnect from server</li>
+<li>200ms delivery latency in 99 percentile</li>
+<li>The size of each published message was about 100kb</li>
+</ul>
+<p>And here are some numbers about final resource usage on server side (we don&rsquo;t actually interested in client side resource usage here):</p>
+<ul>
+<li>40 CPU total for server nodes when load achieved values claimed above (20 pods, ~2 CPU each)</li>
+<li>27 GB of RAM used mostly to handle 1 mln WebSocket connections, i.e. about 30kb RAM per connection</li>
+<li>0.32 CPU usage on every Redis instance</li>
+<li>100 mbit/sec rx и 150 mbit/sec tx of network used on each server pod</li>
+</ul>
+<p>The picture that demonstrates experiment (better to open image in new tab):</p>
+<p><img alt="Benchmark" src="/images/benchmark.gif" /></p>
+<p>If we enable history and history message recover features we see an increased Redis CPU usage: 64% instead of 32% on the same workload. Other resources usage is pretty the same.</p>
+<p>The results mean that one can theoretically achieve the comparable numbers on single modern server machine. But numbers can vary a lot in case of different load scenarios. In this benchmark we looked at basic use case where we only connect many clients and send Publications to them. There are many features in Centrifuge library and in Centrifugo not covered by this artificial experiment. Also note that though benchmark was made for Centrifuge library for Centrifugo you can expect similar results.</p>
                 
                   
                 
@@ -831,7 +857,7 @@
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../private_channels/" title="Private channels" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../migrate/" title="Migrate from Centrifugo v1" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -840,19 +866,19 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Private channels
+                Migrate from Centrifugo v1
               </span>
             </div>
           </a>
         
         
-          <a href="../protocol/" title="Client protocol" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../../faq/" title="FAQ" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Client protocol
+                FAQ
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">

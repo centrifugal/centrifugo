@@ -726,6 +726,18 @@
   </li>
 
         
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
+      Benchmarking server
+    </a>
+  </li>
+
+        
       </ul>
     </nav>
   </li>
@@ -1054,7 +1066,7 @@
                 <h1 id="faq">FAQ<a class="headerlink" href="#faq" title="Permanent link">&para;</a></h1>
 <p>Answers on various questions here.</p>
 <h3 id="how-many-connections-can-one-centrifugo-instance-handle">How many connections can one Centrifugo instance handle?<a class="headerlink" href="#how-many-connections-can-one-centrifugo-instance-handle" title="Permanent link">&para;</a></h3>
-<p>This depends on many factors. Hardware, message rate, size of messages, channel options enabled, client distribution over channels, websocket compression on/off etc. So no certain answer on this question exists. Common sense, tests and monitoring can help here. Generally we suggest to not put more than 50-100k clients on one node - but you should measure.</p>
+<p>This depends on many factors. Hardware, message rate, size of messages, channel options enabled, client distribution over channels, websocket compression on/off etc. So no certain answer on this question exists. Common sense, tests and monitoring can help here. Generally we suggest to not put more than 50-100k clients on one node - but you should measure for your personal use case.</p>
 <h3 id="can-centrifugo-scale-horizontally">Can Centrifugo scale horizontally?<a class="headerlink" href="#can-centrifugo-scale-horizontally" title="Permanent link">&para;</a></h3>
 <p>Yes, it can. It can do this using builtin Redis Engine. Redis is very fast – for example it can handle hundreds of thousands requests per second. This should be OK for most applications in internet. But if you are using Centrifugo and approaching this limit then it&rsquo;s possible to add sharding support to balance queries between different Redis instances.</p>
 <h3 id="message-delivery-model-and-message-order-guarantees">Message delivery model and message order guarantees<a class="headerlink" href="#message-delivery-model-and-message-order-guarantees" title="Permanent link">&para;</a></h3>
@@ -1129,7 +1141,7 @@ on your backend.</p>
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../misc/migrate/" title="Migrate from Centrifugo v1" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../misc/benchmark/" title="Benchmarking server" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -1138,7 +1150,7 @@ on your backend.</p>
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Migrate from Centrifugo v1
+                Benchmarking server
               </span>
             </div>
           </a>
