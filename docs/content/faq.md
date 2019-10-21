@@ -6,6 +6,8 @@ Answers on various questions here.
 
 This depends on many factors. Hardware, message rate, size of messages, channel options enabled, client distribution over channels, websocket compression on/off etc. So no certain answer on this question exists. Common sense, tests and monitoring can help here. Generally we suggest to not put more than 50-100k clients on one node - but you should measure for your personal use case.
 
+You can find a benchmark we did in [this docs chapter](/misc/benchmark/) – but the point above is still valid, measure and monitor your own setup.
+
 ### Can Centrifugo scale horizontally?
 
 Yes, it can. It can do this using builtin Redis Engine. Redis is very fast – for example it can handle hundreds of thousands requests per second. This should be OK for most applications in internet. But if you are using Centrifugo and approaching this limit then it's possible to add sharding support to balance queries between different Redis instances.
