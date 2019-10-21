@@ -834,7 +834,7 @@ net.core.wmem_max = 33554432
 <li>100 mbit/sec rx и 150 mbit/sec tx of network used on each server pod</li>
 </ul>
 <p>The picture that demonstrates experiment (better to open image in new tab):</p>
-<p><img alt="Benchmark" src="/images/benchmark.gif" /></p>
+<p><img alt="Benchmark" src="../../images/benchmark.gif" /></p>
 <p>If we enable history and history message recover features we see an increased Redis CPU usage: 64% instead of 32% on the same workload. Other resources usage is pretty the same.</p>
 <p>The results mean that one can theoretically achieve the comparable numbers on single modern server machine. But numbers can vary a lot in case of different load scenarios. In this benchmark we looked at basic use case where we only connect many clients and send Publications to them. There are many features in Centrifuge library and in Centrifugo not covered by this artificial experiment. Also note that though benchmark was made for Centrifuge library for Centrifugo you can expect similar results.</p>
                 
