@@ -73,4 +73,5 @@ pages:
   - Misc:
     - 'Insecure modes': 'misc/insecure_modes.md'
     - 'Migrate from Centrifugo v1': 'misc/migrate.md'
+    - 'Benchmarking server': 'misc/benchmark.md'
   - FAQ: 'faq.md'
