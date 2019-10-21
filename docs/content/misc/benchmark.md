@@ -49,3 +49,13 @@ The picture that demonstrates experiment (better to open image in new tab):
 If we enable history and history message recover features we see an increased Redis CPU usage: 64% instead of 32% on the same workload. Other resources usage is pretty the same.
 
 The results mean that one can theoretically achieve the comparable numbers on single modern server machine. But numbers can vary a lot in case of different load scenarios. In this benchmark we looked at basic use case where we only connect many clients and send Publications to them. There are many features in Centrifuge library and in Centrifugo not covered by this artificial experiment. Also note that though benchmark was made for Centrifuge library for Centrifugo you can expect similar results.
+
+Read and write buffer sizes of websocket connections were set to 512 kb on server side (sizes of buffers affect memory usage), with Centrifugo this means that to reproduce the same configuration you need to set:
+
+```json
+{
+    ...
+    "websocket_read_buffer_size": 512,
+    "websocket_write_buffer_size": 512
+}
+```
