@@ -44,7 +44,7 @@ And here are some numbers about final resource usage on server side (we don't ac
 
 The picture that demonstrates experiment (better to open image in new tab):
 
-![Benchmark](/images/benchmark.gif)
+![Benchmark](../images/benchmark.gif)
 
 If we enable history and history message recover features we see an increased Redis CPU usage: 64% instead of 32% on the same workload. Other resources usage is pretty the same.
 
