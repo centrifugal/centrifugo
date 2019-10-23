@@ -37,7 +37,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
@@ -954,6 +954,10 @@ func namespacesFromConfig(v *viper.Viper) []centrifuge.ChannelNamespace {
 func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.WebsocketConfig{}
+
+	cfg.PingInterval = time.Duration(v.GetInt("client_ping_interval")) * time.Second
+	cfg.WriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
+	cfg.MessageSizeLimit = v.GetInt("client_request_max_size")
 	cfg.Compression = v.GetBool("websocket_compression")
 	cfg.CompressionLevel = v.GetInt("websocket_compression_level")
 	cfg.CompressionMinSize = v.GetInt("websocket_compression_min_size")

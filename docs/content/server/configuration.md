@@ -55,6 +55,8 @@ Flags:
       --tls_key string             path to an X509 certificate key
 ```
 
+Keep in mind that all command-line options of Centrifugo can be set via configuration file with the same name (without `--` prefix of course). 
+
 ### version
 
 To show version and exit run:
@@ -266,7 +268,7 @@ Maximum client message queue size in bytes to close slow reader connections. By 
 
 Default: false
 
-Enable mode when all clients can connect to Centrifugo without JWT connection token. In this case all connections will be treated as anonymous (i.e. with empty user ID) and only can subscribe to channels with `anonymous` option enabled.
+Enable mode when all clients can connect to Centrifugo without JWT connection token. In this case all connections without token will be treated as anonymous (i.e. with empty user ID) and only can subscribe to channels with `anonymous` option enabled.
 
 #### sockjs_heartbeat_delay
 

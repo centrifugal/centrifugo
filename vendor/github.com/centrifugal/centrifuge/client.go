@@ -72,12 +72,18 @@ func (c *ClientEventHub) Publish(h PublishHandler) {
 	c.publishHandler = h
 }
 
+// We poll current position check from history storage periodically.
+// If client position is wrong maxCheckPositionFailures times in a row
+// then client will be disconnected.
+const maxCheckPositionFailures int64 = 2
+
 // ChannelContext contains extra context for channel connection subscribed to.
 type ChannelContext struct {
-	Info              proto.Raw
-	expireAt          int64
-	positionCheckTime time.Time
-	recoveryPosition  RecoveryPosition
+	Info                  proto.Raw
+	expireAt              int64
+	positionCheckTime     int64
+	positionCheckFailures int64
+	recoveryPosition      RecoveryPosition
 }
 
 // Client represents client connection to server.
@@ -124,19 +130,8 @@ type Client struct {
 	messageWriter *writer
 }
 
-// ClientOptions ...
-type ClientOptions struct{}
-
-// ClientOption ...
-type ClientOption func(*ClientOptions)
-
 // NewClient initializes new Client.
-func NewClient(ctx context.Context, n *Node, t Transport, opts ...ClientOption) (*Client, error) {
-
-	clientOptions := &ClientOptions{}
-	for _, opt := range opts {
-		opt(clientOptions)
-	}
+func NewClient(ctx context.Context, n *Node, t Transport) (*Client, error) {
 
 	uuidObject, err := uuid.NewV4()
 	if err != nil {
@@ -328,8 +323,8 @@ func (c *Client) checkPosition(checkDelay time.Duration, ch string, channelConte
 	if !chOpts.HistoryRecover {
 		return true
 	}
-	now := time.Now()
-	needCheckPosition := channelContext.positionCheckTime.IsZero() || now.Sub(channelContext.positionCheckTime) > checkDelay
+	nowUnix := time.Now().Unix()
+	needCheckPosition := channelContext.positionCheckTime == 0 || nowUnix-channelContext.positionCheckTime > int64(checkDelay.Seconds())
 	if !needCheckPosition {
 		return true
 	}
@@ -338,13 +333,22 @@ func (c *Client) checkPosition(checkDelay time.Duration, ch string, channelConte
 	if err != nil {
 		return true
 	}
+
+	isValidPosition := streamPosition.Seq == position.Seq && streamPosition.Gen == position.Gen && streamPosition.Epoch == position.Epoch
+	keepConnection := true
 	c.mu.Lock()
 	if channelContext, ok = c.channels[ch]; ok {
-		channelContext.positionCheckTime = now
+		channelContext.positionCheckTime = nowUnix
+		if !isValidPosition {
+			channelContext.positionCheckFailures++
+			keepConnection = channelContext.positionCheckFailures < maxCheckPositionFailures
+		} else {
+			channelContext.positionCheckFailures = 0
+		}
 		c.channels[ch] = channelContext
 	}
 	c.mu.Unlock()
-	return streamPosition.Seq == position.Seq && streamPosition.Gen == position.Gen && streamPosition.Epoch == position.Epoch
+	return keepConnection
 }
 
 // ID returns unique client connection id.
@@ -453,12 +457,15 @@ func (c *Client) Close(disconnect *Disconnect) error {
 		disconnect = c.disconnect
 	}
 
-	channels := c.channels
+	channels := make(map[string]ChannelContext, len(c.channels))
+	for channel, channelContext := range c.channels {
+		channels[channel] = channelContext
+	}
 	c.mu.Unlock()
 
 	if len(channels) > 0 {
 		// Unsubscribe from all channels.
-		for channel := range c.channels {
+		for channel := range channels {
 			err := c.unsubscribe(channel)
 			if err != nil {
 				c.node.logger.log(newLogEntry(LogLevelError, "error unsubscribing client from channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid, "error": err.Error()}))
@@ -548,6 +555,13 @@ func (c *Client) clientInfo(ch string) *proto.ClientInfo {
 
 // Handle raw data encoded with Centrifuge protocol. Not goroutine-safe.
 func (c *Client) Handle(data []byte) bool {
+	c.mu.Lock()
+	if c.closed {
+		c.mu.Unlock()
+		return false
+	}
+	c.mu.Unlock()
+
 	if len(data) == 0 {
 		c.node.logger.log(newLogEntry(LogLevelError, "empty client request received", map[string]interface{}{"client": c.ID(), "user": c.UserID()}))
 		c.Close(DisconnectBadRequest)
@@ -1089,7 +1103,7 @@ func (c *Client) connectCmd(cmd *proto.ConnectRequest) (*proto.ConnectResponse, 
 	c.mu.RUnlock()
 
 	if closed {
-		return nil, nil
+		return resp, DisconnectNormal
 	}
 
 	if authenticated {
@@ -1637,12 +1651,7 @@ func (c *Client) subscribeCmd(cmd *proto.SubscribeRequest, rw *replyWriter) *Dis
 
 			recoveredPubs = publications
 
-			nextSeq := cmd.Seq + 1
-			nextGen := cmd.Gen
-			if nextSeq > maxSeq {
-				nextSeq = 0
-				nextGen = nextGen + 1
-			}
+			nextSeq, nextGen := nextSeqGen(cmd.Seq, cmd.Gen)
 			var recovered bool
 			if len(publications) == 0 {
 				recovered = latestSeq == cmd.Seq && latestGen == cmd.Gen && latestEpoch == cmd.Epoch
@@ -1704,6 +1713,12 @@ func (c *Client) subscribeCmd(cmd *proto.SubscribeRequest, rw *replyWriter) *Dis
 	}
 	rw.write(&proto.Reply{Result: replyRes})
 
+	if len(recoveredPubs) > 0 {
+		// recoveredPubs are in descending order.
+		latestSeq = recoveredPubs[0].Seq
+		latestGen = recoveredPubs[0].Gen
+	}
+
 	if chOpts.HistoryRecover {
 		rw.flush()
 		c.setInSubscribe(channel, false)
@@ -1730,7 +1745,7 @@ func (c *Client) subscribeCmd(cmd *proto.SubscribeRequest, rw *replyWriter) *Dis
 		},
 	}
 	if chOpts.HistoryRecover {
-		channelContext.positionCheckTime = time.Now()
+		channelContext.positionCheckTime = time.Now().Unix()
 	}
 	c.mu.Lock()
 	c.channels[channel] = channelContext
@@ -1751,13 +1766,22 @@ func (c *Client) writePublicationUpdatePosition(ch string, pub *Publication, rep
 			c.mu.Unlock()
 			return nil
 		}
-		nextSeq, nextGen := nextSeqGen(channelContext.recoveryPosition.Seq, channelContext.recoveryPosition.Gen)
-		if pub.Seq != nextSeq || pub.Gen != nextGen {
+		currentPositionSequence := uint64Sequence(channelContext.recoveryPosition.Seq, channelContext.recoveryPosition.Gen)
+		nextExpectedSequence := currentPositionSequence + 1
+		pubSequence := uint64Sequence(pub.Seq, pub.Gen)
+		if pubSequence < nextExpectedSequence {
+			// Looks like client already stepped over this sequence – skip sending.
+			c.mu.Unlock()
+			return nil
+		}
+		if pubSequence > nextExpectedSequence {
+			// Oops: sth lost, let client reconnect to recover missed messages.
 			go c.Close(DisconnectInsufficientState)
 			c.mu.Unlock()
 			return nil
 		}
-		channelContext.positionCheckTime = time.Now()
+		channelContext.positionCheckTime = time.Now().Unix()
+		channelContext.positionCheckFailures = 0
 		channelContext.recoveryPosition.Seq = pub.Seq
 		channelContext.recoveryPosition.Gen = pub.Gen
 		c.channels[ch] = channelContext

@@ -4,6 +4,8 @@ Channel is a route for publication messages. Clients can subscribe to channel to
 
 Channel is just a string - `news`, `comments` are valid channel names.
 
+Channel is an ephemeral entity – you don't need to create it explicitly. Channel created automatically by Centrifugo as soon as first client subscribes to it. And as soon as last subscriber leaves channel - it's automatically deleted.
+
 ### Channel name rules
 
 Only ASCII symbols must be used in channel string.

@@ -41,12 +41,6 @@ func (t *sockjsTransport) Encoding() EncodingType {
 	return EncodingTypeJSON
 }
 
-func (t *sockjsTransport) Meta() TransportMeta {
-	return TransportMeta{
-		Request: t.session.Request(),
-	}
-}
-
 func (t *sockjsTransport) Write(data []byte) error {
 	select {
 	case <-t.closeCh:
@@ -175,7 +169,9 @@ func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
 		default:
 		}
 
-		c, err := NewClient(sess.Request().Context(), s.node, transport)
+		ctxCh := make(chan struct{})
+		defer close(ctxCh)
+		c, err := NewClient(newCustomCancelContext(sess.Request().Context(), ctxCh), s.node, transport)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error creating client", map[string]interface{}{"transport": transportSockJS}))
 			return
