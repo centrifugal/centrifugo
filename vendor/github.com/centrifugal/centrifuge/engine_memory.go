@@ -2,7 +2,6 @@ package centrifuge
 
 import (
 	"container/heap"
-	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -290,10 +289,6 @@ func (h *historyHub) next(ch string) uint64 {
 	return val
 }
 
-func unpackUint64(val uint64) (uint32, uint32) {
-	return uint32(val), uint32(val >> 32)
-}
-
 func (h *historyHub) getSequence(ch string) (uint32, uint32, string) {
 	h.sequencesMu.Lock()
 	defer h.sequencesMu.Unlock()
@@ -431,8 +426,3 @@ func (h *historyHub) remove(ch string) error {
 	}
 	return nil
 }
-
-const (
-	maxSeq uint32 = math.MaxUint32 // maximum uint32 value
-	maxGen uint32 = math.MaxUint32 // maximum uint32 value
-)

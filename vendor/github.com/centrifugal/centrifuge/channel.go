@@ -42,6 +42,10 @@ type ChannelOptions struct {
 	// Presence is a structure with clients currently subscribed on channel.
 	Presence bool `json:"presence"`
 
+	// PresenceDisableForClient prevents presence to be asked by clients.
+	// In this case it's available only over server-side presence call.
+	PresenceDisableForClient bool `mapstructure:"presence_disable_for_client" json:"presence_disable_for_client"`
+
 	// HistorySize determines max amount of history messages for channel,
 	// 0 means no history for channel. Centrifugo history has auxiliary
 	// role – it can not replace your backend persistent storage.
@@ -58,4 +62,10 @@ type ChannelOptions struct {
 	// client. This option uses publications from history and must be used
 	// with reasonable HistorySize and HistoryLifetime configuration.
 	HistoryRecover bool `mapstructure:"history_recover" json:"history_recover"`
+
+	// HistoryDisableForClient prevents history to be asked by clients.
+	// In this case it's available only over server-side history call.
+	// History recover mechanism if enabled will continue to work for
+	// clients anyway.
+	HistoryDisableForClient bool `mapstructure:"history_disable_for_client" json:"history_disable_for_client"`
 }

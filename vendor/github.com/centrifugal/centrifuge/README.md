@@ -5,16 +5,16 @@
 
 **This library has no v1 release yet so API can be changed. Use with strict versioning.**
 
-Centrifuge library is a real-time core of [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also supposed to be a general purpose real-time messaging library for Go programming language. The library is based on a strict client-server protocol based on Protobuf schema and solves several problems developer may come across when building complex real-time applications – like scalability, proper connection management, fallback option.
+Centrifuge library is a real-time core of [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also supposed to be a general purpose real-time messaging library for Go programming language. The library is based on a strict client-server protocol based on Protobuf schema and solves several problems developer may come across when building complex real-time applications – like scalability (millions of connections), proper connection management, fast reconnect with message recovery, fallback option.
 
 Library highlights:
 
-* Fast and optimized for low-latency communication with thousands of client connections
+* Fast and optimized for low-latency communication with thousands of client connections. See [benchmark](https://centrifugal.github.io/centrifugo/misc/benchmark/)
 * WebSocket with JSON or binary Protobuf protocol
 * SockJS polyfill library support for browsers where WebSocket not available (JSON only)
 * Built-in horizontal scalability with Redis PUB/SUB, Redis sharding, Sentinel for HA
 * Possibility to register custom PUB/SUB broker, history and presence storage implementations
-* Native authentication over middleware or JWT-based
+* Native authentication over HTTP middleware or JWT-based
 * Bidirectional asynchronous message communication and RPC calls
 * Channel (room) concept to broadcast message to all channel subscribers
 * Presence information for channels (show all active clients in channel)
@@ -37,13 +37,13 @@ Client libraries:
 
 ### Installation
 
-To install globally into $GOPATH use:
+To install use:
 
 ```bash
 go get -u github.com/centrifugal/centrifuge
 ```
 
-But recommended way is using tools like `dep` or `go mod` to add this library as dependency to your project.
+The recommended way of adding this library to your project dependencies is using tools like `dep` or `go mod`.
 
 ### Quick example
 
@@ -229,17 +229,13 @@ Keep in mind that Centrifuge library is not a framework to build chat apps. It's
 
 Library uses both `dep` and `go mod` to manage dependencies.
 
-Here is an example on how you can clone library and install all required dependencies locally:
+With `go mod` and Go >= 1.13 things should work transparently.
+
+To develop library with `dep` you can clone library and install all required dependencies locally:
 
 ```bash
 mkdir -p $GOPATH/src/github.com/centrifugal
 git clone https://github.com/centrifugal/centrifuge.git $GOPATH/src/github.com/centrifugal/centrifuge
 cd $GOPATH/src/github.com/centrifugal/centrifuge
 dep ensure
-```
-
-Another way is using `go get` but all dependencies will be downloaded into your global $GOPATH in this case:
-
-```bash
-go get -u github.com/centrifugal/centrifuge
 ```

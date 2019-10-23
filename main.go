@@ -36,7 +36,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
@@ -831,13 +831,10 @@ func nodeConfig() *centrifuge.Config {
 
 	cfg.ClientPresencePingInterval = time.Duration(v.GetInt("client_presence_ping_interval")) * time.Second
 	cfg.ClientPresenceExpireInterval = time.Duration(v.GetInt("client_presence_expire_interval")) * time.Second
-	cfg.ClientPingInterval = time.Duration(v.GetInt("client_ping_interval")) * time.Second
-	cfg.ClientMessageWriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
 	cfg.ClientInsecure = v.GetBool("client_insecure")
 	cfg.ClientExpiredCloseDelay = time.Duration(v.GetInt("client_expired_close_delay")) * time.Second
 	cfg.ClientExpiredSubCloseDelay = time.Duration(v.GetInt("client_expired_sub_close_delay")) * time.Second
 	cfg.ClientStaleCloseDelay = time.Duration(v.GetInt("client_stale_close_delay")) * time.Second
-	cfg.ClientRequestMaxSize = v.GetInt("client_request_max_size")
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
 	cfg.ClientUserConnectionLimit = v.GetInt("client_user_connection_limit")
@@ -886,6 +883,10 @@ func namespacesFromConfig(v *viper.Viper) []centrifuge.ChannelNamespace {
 func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.WebsocketConfig{}
+
+	cfg.PingInterval = time.Duration(v.GetInt("client_ping_interval")) * time.Second
+	cfg.WriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
+	cfg.MessageSizeLimit = v.GetInt("client_request_max_size")
 	cfg.Compression = v.GetBool("websocket_compression")
 	cfg.CompressionLevel = v.GetInt("websocket_compression_level")
 	cfg.CompressionMinSize = v.GetInt("websocket_compression_min_size")
