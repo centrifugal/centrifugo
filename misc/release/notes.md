@@ -7,7 +7,7 @@ Improvements:
 
 Fixes:
 
-* Fix crash due to race condition, race reproduced when history recover option was on. See [commit](https://github.com/centrifugal/centrifuge/pull/73/files) with with
+* Fix crash due to race condition, race reproduced when history recover option was on. See [commit](https://github.com/centrifugal/centrifuge/pull/73/files) with fix details
 * Fix lack of `client_anonymous` option. See [#304](https://github.com/centrifugal/centrifugo/issues/304)
 
-This release based on Go 1.13.x
+This release is based on Go 1.13.x
