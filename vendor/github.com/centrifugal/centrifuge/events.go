@@ -41,6 +41,8 @@ type RefreshEvent struct{}
 
 // RefreshReply contains fields determining the reaction on refresh event.
 type RefreshReply struct {
+	// Expired when set mean that connection must be closed with DisconnectExpired reason.
+	Expired bool
 	// ExpireAt defines time in future when connection should expire,
 	// zero value means no expiration.
 	ExpireAt int64

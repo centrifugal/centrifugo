@@ -728,8 +728,14 @@ func (c *Client) expire() {
 		return
 	}
 
+	now := time.Now().Unix()
+
 	if c.node.eventHub.refreshHandler != nil {
 		reply := c.node.eventHub.refreshHandler(c.ctx, c, RefreshEvent{})
+		if reply.Expired {
+			c.Close(DisconnectExpired)
+			return
+		}
 		if reply.ExpireAt > 0 {
 			c.mu.Lock()
 			c.exp = reply.ExpireAt
@@ -748,7 +754,7 @@ func (c *Client) expire() {
 		return
 	}
 
-	ttl := exp - time.Now().Unix()
+	ttl := exp - now
 
 	if c.node.eventHub.refreshHandler != nil {
 		if ttl > 0 {
