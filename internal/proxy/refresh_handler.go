@@ -35,7 +35,11 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *ce
 		})
 		if err != nil {
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying refresh", map[string]interface{}{"error": err.Error()}))
-			// In case of an error give connection one more minute and then try to check again.
+			// In case of an error give connection one more minute to live and
+			// then try to check again. This way we gracefully handle temporary
+			// problems on application backend side.
+			// NOTE: this interval must be configurable maybe, but for now looks
+			// like a reasonable value.
 			return centrifuge.RefreshReply{
 				ExpireAt: time.Now().Unix() + 60,
 			}
@@ -45,7 +49,9 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *ce
 		if credentials == nil {
 			// User will be disconnected.
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no refresh credentials found", map[string]interface{}{}))
-			return centrifuge.RefreshReply{}
+			return centrifuge.RefreshReply{
+				Expired: true,
+			}
 		}
 
 		var info []byte

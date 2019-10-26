@@ -40,6 +40,9 @@ func (c *httpCaller) CallHTTP(ctx context.Context, header http.Header, reqData [
 		return nil, fmt.Errorf("HTTP request error: %v", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected HTTP status code: %d", resp.StatusCode)
+	}
 	respData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading HTTP body: %v", err)
