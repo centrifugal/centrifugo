@@ -63,7 +63,7 @@ func main() {
 			bindEnvs := []string{
 				"engine", "debug", "secret", "publish", "subscribe_to_publish", "anonymous",
 				"join_leave", "presence", "history_recover", "history_size", "history_lifetime",
-				"client_insecure", "api_key", "api_insecure", "admin", "admin_password", "admin_secret",
+				"client_insecure", "client_anonymous", "api_key", "api_insecure", "admin", "admin_password", "admin_secret",
 				"admin_insecure", "redis_host", "redis_port", "redis_url", "redis_tls", "redis_tls_skip_verify",
 				"port", "internal_port", "internal_address", "tls", "tls_cert", "tls_key", "tls_external",
 			}
@@ -325,6 +325,7 @@ var configDefaults = map[string]interface{}{
 	"history_recover":                      false,
 	"namespaces":                           "",
 	"node_info_metrics_aggregate_interval": 60,
+	"client_anonymous":                     false,
 	"client_ping_interval":                 25,
 	"client_expired_close_delay":           25,
 	"client_expired_sub_close_delay":       25,
@@ -832,6 +833,7 @@ func nodeConfig() *centrifuge.Config {
 	cfg.ClientPresencePingInterval = time.Duration(v.GetInt("client_presence_ping_interval")) * time.Second
 	cfg.ClientPresenceExpireInterval = time.Duration(v.GetInt("client_presence_expire_interval")) * time.Second
 	cfg.ClientInsecure = v.GetBool("client_insecure")
+	cfg.ClientAnonymous = v.GetBool("client_anonymous")
 	cfg.ClientExpiredCloseDelay = time.Duration(v.GetInt("client_expired_close_delay")) * time.Second
 	cfg.ClientExpiredSubCloseDelay = time.Duration(v.GetInt("client_expired_sub_close_delay")) * time.Second
 	cfg.ClientStaleCloseDelay = time.Duration(v.GetInt("client_stale_close_delay")) * time.Second
