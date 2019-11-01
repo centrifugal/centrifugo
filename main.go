@@ -902,6 +902,8 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	cfg := centrifuge.SockjsConfig{}
 	cfg.URL = v.GetString("sockjs_url")
 	cfg.HeartbeatDelay = time.Duration(v.GetInt("sockjs_heartbeat_delay")) * time.Second
+	cfg.CheckOrigin = func(*http.Request) bool { return true }
+	cfg.WebsocketCheckOrigin = func(r *http.Request) bool { return true }
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	return cfg
