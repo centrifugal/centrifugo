@@ -51,7 +51,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b28331c7e2ed6f7663e302f525aa3128e1e1ad9e88c49cc3e4502b46876c2a10"
+  digest = "1:cf3674eeb2f7b68c6a2a1a383042c938df00eeb63d7e8e4e6f84e1d84266f8fd"
   name = "github.com/centrifugal/centrifuge"
   packages = [
     ".",
@@ -63,7 +63,7 @@
     "internal/uuid",
   ]
   pruneopts = "UT"
-  revision = "564e0615e74a7e2236e5bb1ffd595fa534c7e499"
+  revision = "28c241aa62e05c3453c70cd21c1fee49ea9c6670"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
@@ -82,7 +82,7 @@
   version = "v3.2.0"
 
 [[projects]]
-  digest = "1:95e1006e41c641abd2f365dfa0f1213c04da294e7cd5f0bf983af234b775db64"
+  digest = "1:2fc13c72e191ca921adb98f9f4991b1a036d5431b4128fa21dbdd974b9b45822"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -93,8 +93,8 @@
     "types",
   ]
   pruneopts = "UT"
-  revision = "ba06b47c162d49f2af050fb4c75bcbc86a159d5c"
-  version = "v1.2.1"
+  revision = "5628607bb4c51c3157aacc3a50f0ab707582b805"
+  version = "v1.3.1"
 
 [[projects]]
   digest = "1:17fe264ee908afc795734e8c4e63db2accabaf57326dbf21763a7d6b86096260"

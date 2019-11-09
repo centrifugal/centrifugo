@@ -351,7 +351,7 @@ var configDefaults = map[string]interface{}{
 	"admin_secret":                         "",
 	"admin_insecure":                       false,
 	"admin_web_path":                       "",
-	"sockjs_url":                           "https://cdn.jsdelivr.net/npm/sockjs-client@1.3/dist/sockjs.min.js",
+	"sockjs_url":                           "https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
 	"sockjs_heartbeat_delay":               25,
 	"websocket_compression":                false,
 	"websocket_compression_min_size":       0,
