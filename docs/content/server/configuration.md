@@ -152,6 +152,8 @@ Let's look at options related to channels. Channel is an entity to which clients
 
 * `presence` – enable/disable presence information. Presence is an information about clients currently subscribed on channel. By default `false` – i.e. no presence information will be available for channels.
 
+* `presence_disable_for_client` (available since v2.2.3) – allows to make presence calls available only for server side API. By default `false` – i.e. presence information is available for both client and server side APIs.
+
 * `join_leave` – enable/disable sending join(leave) messages when client subscribes on channel (unsubscribes from channel). By default `false`.
 
 * `history_size` – history size (amount of messages) for channels. As Centrifugo keeps all history messages in memory it's very important to limit maximum amount of messages in channel history to reasonable value. `history_size` defines maximum amount of messages that Centrifugo will keep for **each** channel in namespace during history lifetime (see below). By default history size is `0` - this means that channels will have no history messages at all.
@@ -159,6 +161,8 @@ Let's look at options related to channels. Channel is an entity to which clients
 * `history_lifetime` – interval in seconds how long to keep channel history messages. As all history is storing in memory it is also very important to get rid of old history data for unused (inactive for a long time) channels. By default history lifetime is `0` – this means that channels will have no history messages at all. **So to turn on keeping history messages you should wisely configure both `history_size` and `history_lifetime` options**.
 
 * `history_recover` – boolean option, when enabled Centrifugo will try to recover missed publications while client was disconnected for some reason (bad internet connection for example). By default `false`. This option must be used in conjunction with reasonably configured message history for channel i.e. `history_size` and `history_lifetime` **must be set** (because Centrifugo uses channel history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel (currently Centrifugo returns recovered publications in order and without duplicates but this is implementation detail that can be theoretically changed in future). See more details about how recovery works in [special chapter](recover.md).
+
+* `history_disable_for_client` (available since v2.2.3) – allows to make history available only for server side API. By default `false` – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if `history_disable_for_client` is on.
 
 Let's look how to set some of these options in config:
 

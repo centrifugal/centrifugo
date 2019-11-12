@@ -2,8 +2,8 @@ No backwards incompatible changes here.
 
 Improvements:
 
-* Support for `tls-alpn-01` ACME challenge, see [#283](https://github.com/centrifugal/centrifugo/issues/283)
+* Improve web interface: show total client information (sum of all client connections on all running nodes)
 
 Fixes:
 
-* fix running HTTP server several times when http-01 ACME challenge used, see [#288](https://github.com/centrifugal/centrifugo/issues/288)
+* Fixes SockJS WebSocket 403 response for cross domain requests: this is a regression in v2.2.3

@@ -30,6 +30,7 @@ To achieve many client connections we used 100 Kubernetes pods each generating a
 Here are some numbers we achieved:
 
 * 1 million WebSocket connections
+* Each connection subscribed to 2 channels: one personal channel and one group channel (with 10 subscribers in it), i.e. we had 2 millions of active channels at each moment.
 * 28 million messages per minute (about 500k per second) **delivered** to clients
 * 200k per minute constant connect/disconnect rate to simulate real-life situation where clients connect/disconnect from server
 * 200ms delivery latency in 99 percentile
@@ -46,7 +47,9 @@ The picture that demonstrates experiment (better to open image in new tab):
 
 ![Benchmark](../images/benchmark.gif)
 
-If we enable history and history message recover features we see an increased Redis CPU usage: 64% instead of 32% on the same workload. Other resources usage is pretty the same.
+This also demonstrates that to handle one million of WebSocket connections without many messages sent to clients you need about 10 CPU total for server nodes and about 5% of CPU on each of Redis instances. In this case CPU mostly spent on connect/disconnect flow, ping/pong frames, subscriptions to channels.
+
+If we enable history and history message recovery features we see an increased Redis CPU usage: 64% instead of 32% on the same workload. Other resources usage is pretty the same.
 
 The results mean that one can theoretically achieve the comparable numbers on single modern server machine. But numbers can vary a lot in case of different load scenarios. In this benchmark we looked at basic use case where we only connect many clients and send Publications to them. There are many features in Centrifuge library and in Centrifugo not covered by this artificial experiment. Also note that though benchmark was made for Centrifuge library for Centrifugo you can expect similar results.
 

@@ -404,7 +404,7 @@ var configDefaults = map[string]interface{}{
 	"admin_secret":                         "",
 	"admin_insecure":                       false,
 	"admin_web_path":                       "",
-	"sockjs_url":                           "https://cdn.jsdelivr.net/npm/sockjs-client@1.3/dist/sockjs.min.js",
+	"sockjs_url":                           "https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
 	"sockjs_heartbeat_delay":               25,
 	"websocket_compression":                false,
 	"websocket_compression_min_size":       0,
@@ -977,6 +977,8 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	cfg := centrifuge.SockjsConfig{}
 	cfg.URL = v.GetString("sockjs_url")
 	cfg.HeartbeatDelay = time.Duration(v.GetInt("sockjs_heartbeat_delay")) * time.Second
+	cfg.CheckOrigin = func(*http.Request) bool { return true }
+	cfg.WebsocketCheckOrigin = func(r *http.Request) bool { return true }
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	return cfg

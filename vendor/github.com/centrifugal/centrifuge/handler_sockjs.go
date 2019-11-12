@@ -118,6 +118,7 @@ func NewSockjsHandler(n *Node, c SockjsConfig) *SockjsHandler {
 		ReadBufferSize:  c.WebsocketReadBufferSize,
 		WriteBufferSize: c.WebsocketWriteBufferSize,
 		CheckOrigin:     c.WebsocketCheckOrigin,
+		Error:           func(w http.ResponseWriter, r *http.Request, status int, reason error) {},
 	}
 	// Override sockjs url. It's important to use the same SockJS
 	// library version on client and server sides when using iframe
