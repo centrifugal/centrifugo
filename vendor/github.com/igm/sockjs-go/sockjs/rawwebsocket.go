@@ -29,12 +29,12 @@ func (h *handler) rawWebsocket(rw http.ResponseWriter, req *http.Request) {
 	sessID := ""
 	sess := newSession(req, sessID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
 	sess.raw = true
-	if h.handlerFunc != nil {
-		go h.handlerFunc(sess)
-	}
 
 	receiver := newRawWsReceiver(conn, h.options.WebsocketWriteTimeout)
 	sess.attachReceiver(receiver)
+	if h.handlerFunc != nil {
+		go h.handlerFunc(sess)
+	}
 	readCloseCh := make(chan struct{})
 	go func() {
 		for {

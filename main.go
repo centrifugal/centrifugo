@@ -382,6 +382,12 @@ var configDefaults = map[string]interface{}{
 	"graphite_prefix":                      "centrifugo",
 	"graphite_interval":                    10,
 	"graphite_tags":                        false,
+	"admin_handler_prefix":                 "",
+	"websocket_handler_prefix":             "/connection/websocket",
+	"sockjs_handler_prefix":                "/connection/sockjs",
+	"api_handler_prefix":                   "/api",
+	"prometheus_handler_prefix":            "/metrics",
+	"health_handler_prefix":                "/health",
 }
 
 func writePidFile(pidFile string) error {
@@ -917,6 +923,7 @@ func adminHandlerConfig() admin.Config {
 	cfg.Password = v.GetString("admin_password")
 	cfg.Secret = v.GetString("admin_secret")
 	cfg.Insecure = v.GetBool("admin_insecure")
+	cfg.Prefix = v.GetString("admin_handler_prefix")
 	return cfg
 }
 
@@ -1214,6 +1221,8 @@ func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 
 	mux := http.NewServeMux()
 
+	v := viper.GetViper()
+
 	if flags&HandlerDebug != 0 {
 		mux.Handle("/debug/pprof/", middleware.LogRequest(http.HandlerFunc(pprof.Index)))
 		mux.Handle("/debug/pprof/cmdline", middleware.LogRequest(http.HandlerFunc(pprof.Cmdline)))
@@ -1224,40 +1233,56 @@ func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 
 	if flags&HandlerWebsocket != 0 {
 		// register Websocket connection endpoint.
-		mux.Handle("/connection/websocket", middleware.LogRequest(centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))
+		wsPrefix := strings.TrimRight(v.GetString("websocket_handler_prefix"), "/")
+		if wsPrefix == "" {
+			wsPrefix = "/"
+		}
+		mux.Handle(wsPrefix, middleware.LogRequest(centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))
 	}
 
 	if flags&HandlerSockJS != 0 {
 		// register SockJS connection endpoints.
 		sockjsConfig := sockjsHandlerConfig()
-		sockjsConfig.HandlerPrefix = "/connection/sockjs"
-		mux.Handle(sockjsConfig.HandlerPrefix+"/", middleware.LogRequest(centrifuge.NewSockjsHandler(n, sockjsConfig)))
+		sockjsPrefix := strings.TrimRight(v.GetString("sockjs_handler_prefix"), "/")
+		sockjsConfig.HandlerPrefix = sockjsPrefix
+		mux.Handle(sockjsPrefix+"/", middleware.LogRequest(centrifuge.NewSockjsHandler(n, sockjsConfig)))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
 		apiHandler := api.NewHandler(n, api.Config{})
+		apiPrefix := strings.TrimRight(v.GetString("api_handler_prefix"), "/")
+		if apiPrefix == "" {
+			apiPrefix = "/"
+		}
 		if viper.GetBool("api_insecure") {
-			mux.Handle("/api", middleware.LogRequest(apiHandler))
+			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(apiHandler)))
 		} else {
-			mux.Handle("/api", middleware.LogRequest(middleware.APIKeyAuth(viper.GetString("api_key"), apiHandler)))
+			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), apiHandler))))
 		}
 	}
 
 	if flags&HandlerPrometheus != 0 {
 		// register Prometheus metrics export endpoint.
-		mux.Handle("/metrics", middleware.LogRequest(promhttp.Handler()))
+		prometheusPrefix := strings.TrimRight(v.GetString("prometheus_handler_prefix"), "/")
+		if prometheusPrefix == "" {
+			prometheusPrefix = "/"
+		}
+		mux.Handle(prometheusPrefix, middleware.LogRequest(promhttp.Handler()))
 	}
 
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
-		mux.Handle("/", middleware.LogRequest(admin.NewHandler(n, adminHandlerConfig())))
-	} else {
-		mux.Handle("/", middleware.LogRequest(http.HandlerFunc(notFoundHandler)))
+		adminPrefix := strings.TrimRight(v.GetString("admin_handler_prefix"), "/")
+		mux.Handle(adminPrefix+"/", middleware.LogRequest(admin.NewHandler(n, adminHandlerConfig())))
 	}
 
 	if flags&HandlerHealth != 0 {
-		mux.Handle("/health", middleware.LogRequest(health.NewHandler(n, health.Config{})))
+		healthPrefix := strings.TrimRight(v.GetString("health_handler_prefix"), "/")
+		if healthPrefix == "" {
+			healthPrefix = "/"
+		}
+		mux.Handle(healthPrefix, middleware.LogRequest(health.NewHandler(n, health.Config{})))
 	}
 
 	return mux

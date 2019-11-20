@@ -38,11 +38,15 @@ func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler
 		sessions:    make(map[string]*session),
 	}
 	xhrCors := xhrCorsFactory(opts)
-	sessionPrefix := prefix + "/[^/.]+/[^/.]+"
+	matchPrefix := prefix
+	if matchPrefix == "" {
+		matchPrefix = "^"
+	}
+	sessionPrefix := matchPrefix + "/[^/.]+/[^/.]+"
 	h.mappings = []*mapping{
-		newMapping("GET", prefix+"[/]?$", welcomeHandler),
-		newMapping("OPTIONS", prefix+"/info$", opts.cookie, xhrCors, cacheFor, opts.info),
-		newMapping("GET", prefix+"/info$", xhrCors, noCache, opts.info),
+		newMapping("GET", matchPrefix+"[/]?$", welcomeHandler),
+		newMapping("OPTIONS", matchPrefix+"/info$", opts.cookie, xhrCors, cacheFor, opts.info),
+		newMapping("GET", matchPrefix+"/info$", xhrCors, noCache, opts.info),
 		// XHR
 		newMapping("POST", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, noCache, h.xhrSend),
 		newMapping("OPTIONS", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, cacheFor, xhrOptions),
@@ -59,13 +63,13 @@ func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler
 		newMapping("OPTIONS", sessionPrefix+"/jsonp$", opts.cookie, xhrCors, cacheFor, xhrOptions),
 		newMapping("POST", sessionPrefix+"/jsonp_send$", opts.cookie, xhrCors, noCache, h.jsonpSend),
 		// IFrame
-		newMapping("GET", prefix+"/iframe[0-9-.a-z_]*.html$", cacheFor, h.iframe),
+		newMapping("GET", matchPrefix+"/iframe[0-9-.a-z_]*.html$", cacheFor, h.iframe),
 	}
 	if opts.Websocket {
 		h.mappings = append(h.mappings, newMapping("GET", sessionPrefix+"/websocket$", h.sockjsWebsocket))
 	}
 	if opts.RawWebsocket {
-		h.mappings = append(h.mappings, newMapping("GET", prefix+"/websocket$", h.rawWebsocket))
+		h.mappings = append(h.mappings, newMapping("GET", matchPrefix+"/websocket$", h.rawWebsocket))
 	}
 	return h
 }
