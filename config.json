@@ -2,7 +2,6 @@
   "secret": "secret",
   "admin_password": "password",
   "admin_secret": "secret",
-  "sockjs_handler_prefix": "",
   "namespaces": [
     {
       "name": "chat",
