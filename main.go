@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -61,22 +62,45 @@ func main() {
 			}
 
 			bindEnvs := []string{
-				"engine", "debug", "secret", "publish", "subscribe_to_publish", "anonymous",
-				"join_leave", "presence", "history_recover", "history_size", "history_lifetime",
-				"client_insecure", "client_anonymous", "api_key", "api_insecure", "admin", "admin_password", "admin_secret",
-				"admin_insecure", "redis_host", "redis_port", "redis_url", "redis_tls", "redis_tls_skip_verify",
-				"port", "internal_port", "internal_address", "tls", "tls_cert", "tls_key", "tls_external",
+				"address", "admin", "admin_external", "admin_insecure", "admin_password",
+				"admin_secret", "admin_web_path", "anonymous", "api_insecure", "api_key",
+				"channel_max_length", "channel_namespace_boundary", "channel_private_prefix",
+				"channel_user_boundary", "channel_user_separator", "client_anonymous",
+				"client_channel_limit", "client_channel_position_check_delay",
+				"client_expired_close_delay", "client_expired_sub_close_delay",
+				"client_insecure", "client_message_write_timeout", "client_ping_interval",
+				"client_presence_expire_interval", "client_presence_ping_interval",
+				"client_queue_max_size", "client_request_max_size", "client_stale_close_delay",
+				"debug", "engine", "graphite", "graphite_host", "graphite_interval",
+				"graphite_port", "graphite_prefix", "graphite_tags", "grpc_api",
+				"grpc_api_port", "health", "history_lifetime", "history_recover",
+				"history_size", "internal_address", "internal_port", "join_leave", "log_file",
+				"log_level", "name", "namespaces", "node_info_metrics_aggregate_interval",
+				"pid_file", "port", "presence", "prometheus", "publish", "redis_connect_timeout",
+				"redis_db", "redis_host", "redis_idle_timeout", "redis_master_name",
+				"redis_password", "redis_port", "redis_prefix", "redis_pubsub_num_workers",
+				"redis_read_timeout", "redis_sentinels", "redis_tls", "redis_tls_skip_verify",
+				"redis_url", "redis_write_timeout", "secret", "shutdown_termination_delay",
+				"shutdown_timeout", "sockjs_heartbeat_delay", "sockjs_url", "subscribe_to_publish",
+				"tls", "tls_autocert", "tls_autocert_cache_dir", "tls_autocert_email",
+				"tls_autocert_force_rsa", "tls_autocert_host_whitelist", "tls_autocert_http",
+				"tls_autocert_http_addr", "tls_autocert_server_name", "tls_cert", "tls_external",
+				"tls_key", "websocket_compression", "websocket_compression_level",
+				"websocket_compression_min_size", "websocket_read_buffer_size",
+				"websocket_write_buffer_size", "history_disable_for_client",
+				"presence_disable_for_client",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
 			}
 
 			bindPFlags := []string{
-				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin", "admin_external",
-				"client_insecure", "admin_insecure", "api_insecure", "port", "address", "tls",
-				"tls_cert", "tls_key", "tls_external", "internal_port", "internal_address", "prometheus",
-				"health", "redis_host", "redis_port", "redis_password", "redis_db", "redis_url", "redis_tls",
-				"redis_tls_skip_verify", "redis_master_name", "redis_sentinels", "grpc_api",
+				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin",
+				"admin_external", "client_insecure", "admin_insecure", "api_insecure",
+				"port", "address", "tls", "tls_cert", "tls_key", "tls_external", "internal_port",
+				"internal_address", "prometheus", "health", "redis_host", "redis_port",
+				"redis_password", "redis_db", "redis_url", "redis_tls", "redis_tls_skip_verify",
+				"redis_master_name", "redis_sentinels", "grpc_api",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -320,9 +344,11 @@ var configDefaults = map[string]interface{}{
 	"subscribe_to_publish":                 false,
 	"anonymous":                            false,
 	"presence":                             false,
+	"presence_disable_for_client":          false,
 	"history_size":                         0,
 	"history_lifetime":                     0,
 	"history_recover":                      false,
+	"history_disable_for_client":           false,
 	"namespaces":                           "",
 	"node_info_metrics_aggregate_interval": 60,
 	"client_anonymous":                     false,
@@ -818,10 +844,12 @@ func nodeConfig() *centrifuge.Config {
 	cfg.SubscribeToPublish = v.GetBool("subscribe_to_publish")
 	cfg.Anonymous = v.GetBool("anonymous")
 	cfg.Presence = v.GetBool("presence")
+	cfg.PresenceDisableForClient = v.GetBool("presence_disable_for_client")
 	cfg.JoinLeave = v.GetBool("join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryLifetime = v.GetInt("history_lifetime")
 	cfg.HistoryRecover = v.GetBool("history_recover")
+	cfg.HistoryDisableForClient = v.GetBool("history_disable_for_client")
 	cfg.Namespaces = namespacesFromConfig(v)
 
 	cfg.ChannelMaxLength = v.GetInt("channel_max_length")
@@ -878,7 +906,19 @@ func namespacesFromConfig(v *viper.Viper) []centrifuge.ChannelNamespace {
 	if !v.IsSet("namespaces") {
 		return ns
 	}
-	v.UnmarshalKey("namespaces", &ns)
+	var err error
+	switch val := v.Get("namespaces").(type) {
+	case string:
+		err = json.Unmarshal([]byte(val), &ns)
+	case []interface{}:
+		err = v.UnmarshalKey("namespaces", &ns)
+	default:
+		err = fmt.Errorf("unknown namespaces type: %T", val)
+	}
+	if err != nil {
+		log.Error().Err(err).Msg("malformed namespaces")
+		os.Exit(1)
+	}
 	return ns
 }
 
