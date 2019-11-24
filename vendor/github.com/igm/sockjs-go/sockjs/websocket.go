@@ -35,12 +35,11 @@ func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 	}
 	sessID, _ := h.parseSessionID(req.URL)
 	sess := newSession(req, sessID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
+	receiver := newWsReceiver(conn, h.options.WebsocketWriteTimeout)
+	sess.attachReceiver(receiver)
 	if h.handlerFunc != nil {
 		go h.handlerFunc(sess)
 	}
-
-	receiver := newWsReceiver(conn, h.options.WebsocketWriteTimeout)
-	sess.attachReceiver(receiver)
 	readCloseCh := make(chan struct{})
 	go func() {
 		var d []string
