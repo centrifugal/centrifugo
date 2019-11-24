@@ -88,7 +88,9 @@ func main() {
 				"tls_key", "websocket_compression", "websocket_compression_level",
 				"websocket_compression_min_size", "websocket_read_buffer_size",
 				"websocket_write_buffer_size", "history_disable_for_client",
-				"presence_disable_for_client",
+				"presence_disable_for_client", "admin_handler_prefix", "websocket_handler_prefix",
+				"sockjs_handler_prefix", "api_handler_prefix", "prometheus_handler_prefix",
+				"health_handler_prefix",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
