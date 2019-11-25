@@ -55,7 +55,7 @@ Flags:
       --tls_key string             path to an X509 certificate key
 ```
 
-Keep in mind that all command-line options of Centrifugo can be set via configuration file with the same name (without `--` prefix of course). 
+Keep in mind that all command-line options of Centrifugo can be set via configuration file with the same name (without `--` prefix of course). Also all available options can be set over environment variables in format `CENTRIFUGO_<OPTION_NAME>`.
 
 ### version
 
@@ -410,3 +410,14 @@ http://localhost:9000/debug/pprof/
 ```
 
 The same for API and prometheus endpoint.
+
+#### Customize handler endpoinds
+
+Starting from Centrifugo v2.2.5 it's possible to customize server HTTP handler endpoints. To do this Centrifugo supports several options:
+
+* `admin_handler_prefix` (default `""`) - to control Admin panel URL prefix
+* `websocket_handler_prefix` (default `"/connection/websocket"`) - to control WebSocket URL prefix
+* `sockjs_handler_prefix` (default `"/connection/sockjs"`) - to control SockJS URL prefix
+* `api_handler_prefix` (default `"/api"`) - to control HTTP API URL prefix
+* `prometheus_handler_prefix` (default `"/metrics"`) - to control Prometheus URL prefix
+* `health_handler_prefix` (default `"/health"`) - to control health check URL prefix
