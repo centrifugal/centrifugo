@@ -90,7 +90,8 @@ func main() {
 				"websocket_write_buffer_size", "history_disable_for_client",
 				"presence_disable_for_client", "admin_handler_prefix", "websocket_handler_prefix",
 				"sockjs_handler_prefix", "api_handler_prefix", "prometheus_handler_prefix",
-				"health_handler_prefix",
+				"health_handler_prefix", "grpc_api_tls", "grpc_api_tls_disable",
+				"grpc_api_tls_cert", "grpc_api_tls_key",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -102,7 +103,8 @@ func main() {
 				"port", "address", "tls", "tls_cert", "tls_key", "tls_external", "internal_port",
 				"internal_address", "prometheus", "health", "redis_host", "redis_port",
 				"redis_password", "redis_db", "redis_url", "redis_tls", "redis_tls_skip_verify",
-				"redis_master_name", "redis_sentinels", "grpc_api",
+				"redis_master_name", "redis_sentinels", "grpc_api", "grpc_api_tls",
+				"grpc_api_tls_disable", "grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -211,9 +213,16 @@ func main() {
 					log.Fatal().Msgf("cannot listen to address %s", grpcAPIAddr)
 				}
 				grpcOpts := []grpc.ServerOption{}
-				tlsConfig, err := getTLSConfig()
-				if err != nil {
-					log.Fatal().Msgf("error getting TLS config: %v", err)
+				var tlsConfig *tls.Config
+				var tlsErr error
+
+				if viper.GetBool("grpc_api_tls") {
+					tlsConfig, tlsErr = tlsConfigForGRPC()
+				} else if !viper.GetBool("grpc_api_tls_disable") {
+					tlsConfig, tlsErr = getTLSConfig()
+				}
+				if tlsErr != nil {
+					log.Fatal().Msgf("error getting TLS config: %v", tlsErr)
 				}
 				if tlsConfig != nil {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
@@ -262,23 +271,28 @@ func main() {
 	rootCmd.Flags().BoolP("admin", "", false, "enable admin web interface")
 	rootCmd.Flags().BoolP("admin_external", "", false, "enable admin web interface on external port")
 	rootCmd.Flags().BoolP("prometheus", "", false, "enable Prometheus metrics endpoint")
-	rootCmd.Flags().BoolP("health", "", false, "enable Health endpoint")
+	rootCmd.Flags().BoolP("health", "", false, "enable health check endpoint")
 
 	rootCmd.Flags().BoolP("client_insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolP("api_insecure", "", false, "use insecure API mode")
 	rootCmd.Flags().BoolP("admin_insecure", "", false, "use insecure admin mode – no auth required for admin socket")
-
-	rootCmd.Flags().BoolP("tls", "", false, "enable TLS, requires an X509 certificate and a key file")
-	rootCmd.Flags().StringP("tls_cert", "", "", "path to an X509 certificate file")
-	rootCmd.Flags().StringP("tls_key", "", "", "path to an X509 certificate key")
-	rootCmd.Flags().BoolP("tls_external", "", false, "enable TLS only for external endpoints")
 
 	rootCmd.Flags().StringP("address", "a", "", "interface address to listen on")
 	rootCmd.Flags().StringP("port", "p", "8000", "port to bind HTTP server to")
 	rootCmd.Flags().StringP("internal_address", "", "", "custom interface address to listen on for internal endpoints")
 	rootCmd.Flags().StringP("internal_port", "", "", "custom port for internal endpoints")
 
+	rootCmd.Flags().BoolP("tls", "", false, "enable TLS, requires an X509 certificate and a key file")
+	rootCmd.Flags().StringP("tls_cert", "", "", "path to an X509 certificate file")
+	rootCmd.Flags().StringP("tls_key", "", "", "path to an X509 certificate key")
+	rootCmd.Flags().BoolP("tls_external", "", false, "enable TLS only for external endpoints")
+
 	rootCmd.Flags().BoolP("grpc_api", "", false, "enable GRPC API server")
+	rootCmd.Flags().IntP("grpc_api_port", "", 10000, "port to bind GRPC API server to")
+	rootCmd.Flags().BoolP("grpc_api_tls", "", false, "enable TLS for GRPC API server, requires an X509 certificate and a key file")
+	rootCmd.Flags().StringP("grpc_api_tls_cert", "", "", "path to an X509 certificate file for GRPC API server")
+	rootCmd.Flags().StringP("grpc_api_tls_key", "", "", "path to an X509 certificate key for GRPC API server")
+	rootCmd.Flags().BoolP("grpc_api_tls_disable", "", false, "disable general TLS for GRPC API server")
 
 	rootCmd.Flags().StringP("redis_host", "", "127.0.0.1", "Redis host (Redis engine)")
 	rootCmd.Flags().StringP("redis_port", "", "6379", "Redis port (Redis engine)")
@@ -612,6 +626,19 @@ func getTLSConfig() (*tls.Config, error) {
 	}
 
 	return nil, nil
+}
+
+func tlsConfigForGRPC() (*tls.Config, error) {
+	tlsCert := viper.GetString("grpc_api_tls_cert")
+	tlsKey := viper.GetString("grpc_api_tls_key")
+	tlsConfig := &tls.Config{}
+	tlsConfig.Certificates = make([]tls.Certificate, 1)
+	var err error
+	tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(tlsCert, tlsKey)
+	if err != nil {
+		return nil, err
+	}
+	return tlsConfig, nil
 }
 
 func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
