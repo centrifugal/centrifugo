@@ -515,6 +515,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#customize-handler-endpoinds" title="Customize handler endpoinds" class="md-nav__link">
+    Customize handler endpoinds
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1163,6 +1170,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#customize-handler-endpoinds" title="Customize handler endpoinds" class="md-nav__link">
+    Customize handler endpoinds
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1240,7 +1254,7 @@ Flags:
 </pre></div>
 
 
-<p>Keep in mind that all command-line options of Centrifugo can be set via configuration file with the same name (without <code>--</code> prefix of course). </p>
+<p>Keep in mind that all command-line options of Centrifugo can be set via configuration file with the same name (without <code>--</code> prefix of course). Also all available options can be set over environment variables in format <code>CENTRIFUGO_&lt;OPTION_NAME&gt;</code>.</p>
 <h3 id="version">version<a class="headerlink" href="#version" title="Permanent link">&para;</a></h3>
 <p>To show version and exit run:</p>
 <div class="codehilite"><pre><span></span>centrifugo version
@@ -1517,6 +1531,16 @@ channel name with <code>:</code> as separator:</p>
 
 
 <p>The same for API and prometheus endpoint.</p>
+<h4 id="customize-handler-endpoinds">Customize handler endpoinds<a class="headerlink" href="#customize-handler-endpoinds" title="Permanent link">&para;</a></h4>
+<p>Starting from Centrifugo v2.2.5 it&rsquo;s possible to customize server HTTP handler endpoints. To do this Centrifugo supports several options:</p>
+<ul>
+<li><code>admin_handler_prefix</code> (default <code>""</code>) - to control Admin panel URL prefix</li>
+<li><code>websocket_handler_prefix</code> (default <code>"/connection/websocket"</code>) - to control WebSocket URL prefix</li>
+<li><code>sockjs_handler_prefix</code> (default <code>"/connection/sockjs"</code>) - to control SockJS URL prefix</li>
+<li><code>api_handler_prefix</code> (default <code>"/api"</code>) - to control HTTP API URL prefix</li>
+<li><code>prometheus_handler_prefix</code> (default <code>"/metrics"</code>) - to control Prometheus URL prefix</li>
+<li><code>health_handler_prefix</code> (default <code>"/health"</code>) - to control health check URL prefix</li>
+</ul>
                 
                   
                 

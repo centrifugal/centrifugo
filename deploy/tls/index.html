@@ -690,6 +690,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#custom-tls-for-grpc-api" title="Custom TLS for GRPC API" class="md-nav__link">
+    Custom TLS for GRPC API
+  </a>
+  
+</li>
+      
       
       
       
@@ -836,6 +843,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#custom-tls-for-grpc-api" title="Custom TLS for GRPC API" class="md-nav__link">
+    Custom TLS for GRPC API
+  </a>
+  
+</li>
+      
       
       
       
@@ -920,6 +934,14 @@ browsers such as Chrome 49 on Windows XP and IE8 on XP:</p>
     autocert manager generate certificates with 2048-bit RSA keys.</li>
 <li><code>tls_autocert_server_name</code> - string option, allows to set server name for client handshake hello.
     This can be useful to deal with old browsers without SNI support - see <a href="https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819">comment</a></li>
+</ul>
+<p><code>grpc_api_tls_disable</code> boolean flag allows to disable TLS for GRPC API server but keep it on for HTTP endpoints.</p>
+<h3 id="custom-tls-for-grpc-api">Custom TLS for GRPC API<a class="headerlink" href="#custom-tls-for-grpc-api" title="Permanent link">&para;</a></h3>
+<p>Starting from Centrifugo v2.2.5 you can provide custom certificate files to configure TLS for GRPC API server in custom way.</p>
+<ul>
+<li><code>grpc_api_tls</code> boolean flag enables TLS for GRPC API server, requires an X509 certificate and a key file</li>
+<li><code>grpc_api_tls_cert</code> string provides a path to an X509 certificate file for GRPC API server</li>
+<li><code>grpc_api_tls_key</code> string provides a path to an X509 certificate key for GRPC API server</li>
 </ul>
                 
                   

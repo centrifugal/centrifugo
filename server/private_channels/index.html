@@ -946,6 +946,8 @@
     Connection token and private channel subscription token are different entities. Though both are JWT and you can generate them using any JWT library.</p>
 <p>!!! import
     Even when authorizing subscription to private channel with private subscription JWT you should set a proper connection JWT for a client as it provides user authentication details to Centrifugo.</p>
+<p>!!! note
+    When you need to use namespace for private channel then the name of namespace should be written after <code>$</code> symbol, i.e. if you have namespace name <code>chat</code> then private channel which belongs to that namespace must be written as sth like <code>$chat:stream</code>.</p>
 <h2 id="claims">Claims<a class="headerlink" href="#claims" title="Permanent link">&para;</a></h2>
 <p>Private channel subscription token claims are: <code>client</code>, <code>channel</code>, <code>info</code>, <code>b64info</code> and <code>exp</code>. What do they mean? Let&rsquo;s describe in detail.</p>
 <h3 id="client">client<a class="headerlink" href="#client" title="Permanent link">&para;</a></h3>
