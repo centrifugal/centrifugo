@@ -5,6 +5,7 @@ Improvements:
 * support setting all configuration options over environment variables in format `CENTRIFUGO_<OPTION_NAME>`. This was available before but starting from this release we will support setting **all** options over env
 * show HTTP status code in logs when debug log level on
 * option to customize HTTP handler endpoints, see [docs](https://centrifugal.github.io/centrifugo/server/configuration/#customize-handler-endpoints)
+* possibility to provide custom key and cert files for GRPC API server TLS, see `centrifugo -h` for a bunch of new options 
 
 Fixes:
 

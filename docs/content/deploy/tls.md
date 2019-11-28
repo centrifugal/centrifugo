@@ -82,3 +82,13 @@ browsers such as Chrome 49 on Windows XP and IE8 on XP:
     autocert manager generate certificates with 2048-bit RSA keys.
 * `tls_autocert_server_name` - string option, allows to set server name for client handshake hello.
     This can be useful to deal with old browsers without SNI support - see [comment](https://github.com/centrifugal/centrifugo/issues/144#issuecomment-279393819)
+
+`grpc_api_tls_disable` boolean flag allows to disable TLS for GRPC API server.
+
+### Custom TLS for GRPC API server
+
+You can provide custom certificate files to configure TLS for GRPC API server in custom way.
+
+* `grpc_api_tls` boolean flag enables TLS for GRPC API server, requires an X509 certificate and a key file
+* `grpc_api_tls_cert` string provides a path to an X509 certificate file for GRPC API server
+* `grpc_api_tls_key` string provides a path to an X509 certificate key for GRPC API server
