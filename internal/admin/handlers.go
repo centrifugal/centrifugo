@@ -5,14 +5,19 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/centrifugo/internal/api"
+	"github.com/centrifugal/centrifugo/internal/middleware"
+
+	"github.com/centrifugal/centrifuge"
 	"github.com/gorilla/securecookie"
 	"github.com/rs/zerolog/log"
 )
 
 // Config ...
 type Config struct {
+	// Prefix is a custom prefix to handle admin endpoints on.
+	Prefix string
+
 	// WebPath is path to admin web application to serve.
 	WebPath string
 
@@ -49,9 +54,10 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 		config: c,
 	}
 	mux := http.NewServeMux()
-	mux.Handle("/admin/auth", http.HandlerFunc(h.authHandler))
-	mux.Handle("/admin/api", h.adminSecureTokenAuth(api.NewHandler(n, api.Config{})))
-	webPrefix := "/"
+	prefix := strings.TrimRight(h.config.Prefix, "/")
+	mux.Handle(prefix+"/admin/auth", middleware.Post(http.HandlerFunc(h.authHandler)))
+	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, api.Config{}))))
+	webPrefix := prefix + "/"
 	if c.WebPath != "" {
 		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(c.WebPath))))
 	} else if c.WebFS != nil {

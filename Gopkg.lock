@@ -51,7 +51,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:cf3674eeb2f7b68c6a2a1a383042c938df00eeb63d7e8e4e6f84e1d84266f8fd"
+  digest = "1:47d367213dd5589f64966bfe050dba0a0e0cff172527386e5021ee2090555bb8"
   name = "github.com/centrifugal/centrifuge"
   packages = [
     ".",
@@ -63,7 +63,7 @@
     "internal/uuid",
   ]
   pruneopts = "UT"
-  revision = "28c241aa62e05c3453c70cd21c1fee49ea9c6670"
+  revision = "53f68cdc8627a7ce372b63f5e4818a154c84758d"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"
@@ -139,11 +139,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9bc80e83ce8f8676455d05a86e3b03e429ab990328b327f9ceabdcf09d24cf53"
+  digest = "1:270b700e7405fcf8feeb55e5c44fff501c55a76580079a38c6e63914a6d74427"
   name = "github.com/igm/sockjs-go"
   packages = ["sockjs"]
   pruneopts = "UT"
-  revision = "1a1bca4e69c325bed0942996eebe48b316eb7a48"
+  revision = "cd6986df5bcc018f38ce4c5e07a2dfa6c268fc64"
 
 [[projects]]
   digest = "1:870d441fe217b8e689d7949fef6e43efbc787e50f200cb1e70dbca9204a1d6be"
@@ -301,14 +301,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9ebbac90dda5bf921f6243b64d5abd0674ada63cdee056ff671f8658a00034ab"
+  digest = "1:fbbd9f56883eff5452a90778db8ec2c344ab556f38d8bb4424b2fade40a1e952"
   name = "golang.org/x/crypto"
   packages = [
     "acme",
     "acme/autocert",
   ]
   pruneopts = "UT"
-  revision = "cbcb750295291b33242907a04be40e80801d0cfc"
+  revision = "4f8c1d86b1ba699e7a66cd649947ed270a74e0bb"
 
 [[projects]]
   branch = "master"

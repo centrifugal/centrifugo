@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -62,22 +63,51 @@ func main() {
 			}
 
 			bindEnvs := []string{
-				"engine", "debug", "secret", "publish", "subscribe_to_publish", "anonymous",
-				"join_leave", "presence", "history_recover", "history_size", "history_lifetime",
-				"client_insecure", "client_anonymous", "api_key", "api_insecure", "admin", "admin_password", "admin_secret",
-				"admin_insecure", "redis_host", "redis_port", "redis_url", "redis_tls", "redis_tls_skip_verify",
-				"port", "internal_port", "internal_address", "tls", "tls_cert", "tls_key", "tls_external",
+				"address", "admin", "admin_external", "admin_insecure", "admin_password",
+				"admin_secret", "admin_web_path", "anonymous", "api_insecure", "api_key",
+				"channel_max_length", "channel_namespace_boundary", "channel_private_prefix",
+				"channel_user_boundary", "channel_user_separator", "client_anonymous",
+				"client_channel_limit", "client_channel_position_check_delay",
+				"client_expired_close_delay", "client_expired_sub_close_delay",
+				"client_insecure", "client_message_write_timeout", "client_ping_interval",
+				"client_presence_expire_interval", "client_presence_ping_interval",
+				"client_queue_max_size", "client_request_max_size", "client_stale_close_delay",
+				"debug", "engine", "graphite", "graphite_host", "graphite_interval",
+				"graphite_port", "graphite_prefix", "graphite_tags", "grpc_api",
+				"grpc_api_port", "health", "history_lifetime", "history_recover",
+				"history_size", "internal_address", "internal_port", "join_leave", "log_file",
+				"log_level", "name", "namespaces", "node_info_metrics_aggregate_interval",
+				"pid_file", "port", "presence", "prometheus", "publish", "redis_connect_timeout",
+				"redis_db", "redis_host", "redis_idle_timeout", "redis_master_name",
+				"redis_password", "redis_port", "redis_prefix", "redis_pubsub_num_workers",
+				"redis_read_timeout", "redis_sentinels", "redis_tls", "redis_tls_skip_verify",
+				"redis_url", "redis_write_timeout", "secret", "shutdown_termination_delay",
+				"shutdown_timeout", "sockjs_heartbeat_delay", "sockjs_url", "subscribe_to_publish",
+				"tls", "tls_autocert", "tls_autocert_cache_dir", "tls_autocert_email",
+				"tls_autocert_force_rsa", "tls_autocert_host_whitelist", "tls_autocert_http",
+				"tls_autocert_http_addr", "tls_autocert_server_name", "tls_cert", "tls_external",
+				"tls_key", "websocket_compression", "websocket_compression_level",
+				"websocket_compression_min_size", "websocket_read_buffer_size",
+				"websocket_write_buffer_size", "history_disable_for_client",
+				"presence_disable_for_client", "admin_handler_prefix", "websocket_handler_prefix",
+				"sockjs_handler_prefix", "api_handler_prefix", "prometheus_handler_prefix",
+				"health_handler_prefix", "grpc_api_tls", "grpc_api_tls_disable",
+				"grpc_api_tls_cert", "grpc_api_tls_key", "proxy_connect_endpoint",
+				"proxy_connect_timeout", "proxy_rpc_endpoint", "proxy_rpc_timeout",
+				"proxy_refresh_endpoint", "proxy_refresh_timeout",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
 			}
 
 			bindPFlags := []string{
-				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin", "admin_external",
-				"client_insecure", "admin_insecure", "api_insecure", "port", "address", "tls",
-				"tls_cert", "tls_key", "tls_external", "internal_port", "internal_address", "prometheus",
-				"health", "redis_host", "redis_port", "redis_password", "redis_db", "redis_url", "redis_tls",
-				"redis_tls_skip_verify", "redis_master_name", "redis_sentinels", "grpc_api",
+				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin",
+				"admin_external", "client_insecure", "admin_insecure", "api_insecure",
+				"port", "address", "tls", "tls_cert", "tls_key", "tls_external", "internal_port",
+				"internal_address", "prometheus", "health", "redis_host", "redis_port",
+				"redis_password", "redis_db", "redis_url", "redis_tls", "redis_tls_skip_verify",
+				"redis_master_name", "redis_sentinels", "grpc_api", "grpc_api_tls",
+				"grpc_api_tls_disable", "grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port",
 			}
 			for _, flag := range bindPFlags {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -154,12 +184,12 @@ func main() {
 				log.Fatal().Msgf("error creating engine: %v", err)
 			}
 
-			connectHandlerEnabled := viper.GetString("proxy_http_connect_endpoint") != ""
+			connectHandlerEnabled := viper.GetString("proxy_connect_endpoint") != ""
 			if connectHandlerEnabled {
 				connectHandler := proxy.NewConnectHandler(proxy.ConnectHandlerConfig{
 					Proxy: proxy.NewHTTPConnectProxy(
-						viper.GetString("proxy_http_connect_endpoint"),
-						proxyHTTPClient(viper.GetFloat64("proxy_http_connect_timeout")),
+						viper.GetString("proxy_connect_endpoint"),
+						proxyHTTPClient(viper.GetFloat64("proxy_connect_timeout")),
 					),
 				})
 				node.On().ClientConnecting(connectHandler.Handle(node))
@@ -167,23 +197,23 @@ func main() {
 
 			refreshHandler := proxy.NewRefreshHandler(proxy.RefreshHandlerConfig{
 				Proxy: proxy.NewHTTPRefreshProxy(
-					viper.GetString("proxy_http_refresh_endpoint"),
-					proxyHTTPClient(viper.GetFloat64("proxy_http_refresh_timeout")),
+					viper.GetString("proxy_refresh_endpoint"),
+					proxyHTTPClient(viper.GetFloat64("proxy_refresh_timeout")),
 				),
 			})
-			refreshHandlerEnabled := viper.GetString("proxy_http_refresh_endpoint") != ""
+			refreshHandlerEnabled := viper.GetString("proxy_refresh_endpoint") != ""
 			if refreshHandlerEnabled {
 				node.On().ClientRefresh(refreshHandler.Handle(node))
 			}
 
 			rpcHandler := proxy.NewRPCHandler(proxy.RPCHandlerConfig{
 				Proxy: proxy.NewHTTPRPCProxy(
-					viper.GetString("proxy_http_rpc_endpoint"),
-					proxyHTTPClient(viper.GetFloat64("proxy_http_rpc_timeout")),
+					viper.GetString("proxy_rpc_endpoint"),
+					proxyHTTPClient(viper.GetFloat64("proxy_rpc_timeout")),
 				),
 			})
 
-			rpcHandlerEnabled := viper.GetString("proxy_http_rpc_endpoint") != ""
+			rpcHandlerEnabled := viper.GetString("proxy_rpc_endpoint") != ""
 			node.On().ClientConnected(func(ctx context.Context, client *centrifuge.Client) {
 				if rpcHandlerEnabled {
 					client.On().RPC(rpcHandler.Handle(ctx, node, client))
@@ -205,17 +235,19 @@ func main() {
 				"version", version).Str(
 				"runtime", runtime.Version()).Int(
 				"pid", os.Getpid()).Str(
-				"engine", strings.Title(engineName)).Int("gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
+				"engine", strings.Title(engineName)).Int(
+				"gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
+
 			log.Info().Str("path", absConfPath).Msg("using config")
 
 			if connectHandlerEnabled {
-				log.Info().Str("endpoint", viper.GetString("proxy_http_connect_endpoint")).Msg("proxy connect over HTTP")
+				log.Info().Str("endpoint", viper.GetString("proxy_connect_endpoint")).Msg("proxy connect over HTTP")
 			}
 			if refreshHandlerEnabled {
-				log.Info().Str("endpoint", viper.GetString("proxy_http_refresh_endpoint")).Msg("proxy refresh over HTTP")
+				log.Info().Str("endpoint", viper.GetString("proxy_refresh_endpoint")).Msg("proxy refresh over HTTP")
 			}
 			if rpcHandlerEnabled {
-				log.Info().Str("endpoint", viper.GetString("proxy_http_rpc_endpoint")).Msg("proxy RPC over HTTP")
+				log.Info().Str("endpoint", viper.GetString("proxy_rpc_endpoint")).Msg("proxy RPC over HTTP")
 			}
 
 			if viper.GetBool("client_insecure") {
@@ -240,9 +272,16 @@ func main() {
 					log.Fatal().Msgf("cannot listen to address %s", grpcAPIAddr)
 				}
 				grpcOpts := []grpc.ServerOption{}
-				tlsConfig, err := getTLSConfig()
-				if err != nil {
-					log.Fatal().Msgf("error getting TLS config: %v", err)
+				var tlsConfig *tls.Config
+				var tlsErr error
+
+				if viper.GetBool("grpc_api_tls") {
+					tlsConfig, tlsErr = tlsConfigForGRPC()
+				} else if !viper.GetBool("grpc_api_tls_disable") {
+					tlsConfig, tlsErr = getTLSConfig()
+				}
+				if tlsErr != nil {
+					log.Fatal().Msgf("error getting TLS config: %v", tlsErr)
 				}
 				if tlsConfig != nil {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
@@ -291,23 +330,28 @@ func main() {
 	rootCmd.Flags().BoolP("admin", "", false, "enable admin web interface")
 	rootCmd.Flags().BoolP("admin_external", "", false, "enable admin web interface on external port")
 	rootCmd.Flags().BoolP("prometheus", "", false, "enable Prometheus metrics endpoint")
-	rootCmd.Flags().BoolP("health", "", false, "enable Health endpoint")
+	rootCmd.Flags().BoolP("health", "", false, "enable health check endpoint")
 
 	rootCmd.Flags().BoolP("client_insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolP("api_insecure", "", false, "use insecure API mode")
 	rootCmd.Flags().BoolP("admin_insecure", "", false, "use insecure admin mode – no auth required for admin socket")
-
-	rootCmd.Flags().BoolP("tls", "", false, "enable TLS, requires an X509 certificate and a key file")
-	rootCmd.Flags().StringP("tls_cert", "", "", "path to an X509 certificate file")
-	rootCmd.Flags().StringP("tls_key", "", "", "path to an X509 certificate key")
-	rootCmd.Flags().BoolP("tls_external", "", false, "enable TLS only for external endpoints")
 
 	rootCmd.Flags().StringP("address", "a", "", "interface address to listen on")
 	rootCmd.Flags().StringP("port", "p", "8000", "port to bind HTTP server to")
 	rootCmd.Flags().StringP("internal_address", "", "", "custom interface address to listen on for internal endpoints")
 	rootCmd.Flags().StringP("internal_port", "", "", "custom port for internal endpoints")
 
+	rootCmd.Flags().BoolP("tls", "", false, "enable TLS, requires an X509 certificate and a key file")
+	rootCmd.Flags().StringP("tls_cert", "", "", "path to an X509 certificate file")
+	rootCmd.Flags().StringP("tls_key", "", "", "path to an X509 certificate key")
+	rootCmd.Flags().BoolP("tls_external", "", false, "enable TLS only for external endpoints")
+
 	rootCmd.Flags().BoolP("grpc_api", "", false, "enable GRPC API server")
+	rootCmd.Flags().IntP("grpc_api_port", "", 10000, "port to bind GRPC API server to")
+	rootCmd.Flags().BoolP("grpc_api_tls", "", false, "enable TLS for GRPC API server, requires an X509 certificate and a key file")
+	rootCmd.Flags().StringP("grpc_api_tls_cert", "", "", "path to an X509 certificate file for GRPC API server")
+	rootCmd.Flags().StringP("grpc_api_tls_key", "", "", "path to an X509 certificate key for GRPC API server")
+	rootCmd.Flags().BoolP("grpc_api_tls_disable", "", false, "disable general TLS for GRPC API server")
 
 	rootCmd.Flags().StringP("redis_host", "", "127.0.0.1", "Redis host (Redis engine)")
 	rootCmd.Flags().StringP("redis_port", "", "6379", "Redis port (Redis engine)")
@@ -375,9 +419,11 @@ var configDefaults = map[string]interface{}{
 	"subscribe_to_publish":                 false,
 	"anonymous":                            false,
 	"presence":                             false,
+	"presence_disable_for_client":          false,
 	"history_size":                         0,
 	"history_lifetime":                     0,
 	"history_recover":                      false,
+	"history_disable_for_client":           false,
 	"namespaces":                           "",
 	"node_info_metrics_aggregate_interval": 60,
 	"client_anonymous":                     false,
@@ -438,13 +484,18 @@ var configDefaults = map[string]interface{}{
 	"graphite_prefix":                      "centrifugo",
 	"graphite_interval":                    10,
 	"graphite_tags":                        false,
-
-	"proxy_http_connect_endpoint": "",
-	"proxy_http_connect_timeout":  1,
-	"proxy_http_rpc_endpoint":     "",
-	"proxy_http_rpc_timeout":      1,
-	"proxy_http_refresh_endpoint": "",
-	"proxy_http_refresh_timeout":  1,
+	"admin_handler_prefix":                 "",
+	"websocket_handler_prefix":             "/connection/websocket",
+	"sockjs_handler_prefix":                "/connection/sockjs",
+	"api_handler_prefix":                   "/api",
+	"prometheus_handler_prefix":            "/metrics",
+	"health_handler_prefix":                "/health",
+	"proxy_connect_endpoint":               "",
+	"proxy_connect_timeout":                1,
+	"proxy_rpc_endpoint":                   "",
+	"proxy_rpc_timeout":                    1,
+	"proxy_refresh_endpoint":               "",
+	"proxy_refresh_timeout":                1,
 }
 
 func writePidFile(pidFile string) error {
@@ -650,6 +701,19 @@ func getTLSConfig() (*tls.Config, error) {
 	}
 
 	return nil, nil
+}
+
+func tlsConfigForGRPC() (*tls.Config, error) {
+	tlsCert := viper.GetString("grpc_api_tls_cert")
+	tlsKey := viper.GetString("grpc_api_tls_key")
+	tlsConfig := &tls.Config{}
+	tlsConfig.Certificates = make([]tls.Certificate, 1)
+	var err error
+	tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(tlsCert, tlsKey)
+	if err != nil {
+		return nil, err
+	}
+	return tlsConfig, nil
 }
 
 func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
@@ -890,10 +954,12 @@ func nodeConfig(version string) *centrifuge.Config {
 	cfg.SubscribeToPublish = v.GetBool("subscribe_to_publish")
 	cfg.Anonymous = v.GetBool("anonymous")
 	cfg.Presence = v.GetBool("presence")
+	cfg.PresenceDisableForClient = v.GetBool("presence_disable_for_client")
 	cfg.JoinLeave = v.GetBool("join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
 	cfg.HistoryLifetime = v.GetInt("history_lifetime")
 	cfg.HistoryRecover = v.GetBool("history_recover")
+	cfg.HistoryDisableForClient = v.GetBool("history_disable_for_client")
 	cfg.Namespaces = namespacesFromConfig(v)
 
 	cfg.ChannelMaxLength = v.GetInt("channel_max_length")
@@ -950,7 +1016,19 @@ func namespacesFromConfig(v *viper.Viper) []centrifuge.ChannelNamespace {
 	if !v.IsSet("namespaces") {
 		return ns
 	}
-	v.UnmarshalKey("namespaces", &ns)
+	var err error
+	switch val := v.Get("namespaces").(type) {
+	case string:
+		err = json.Unmarshal([]byte(val), &ns)
+	case []interface{}:
+		err = v.UnmarshalKey("namespaces", &ns)
+	default:
+		err = fmt.Errorf("unknown namespaces type: %T", val)
+	}
+	if err != nil {
+		log.Error().Err(err).Msg("malformed namespaces")
+		os.Exit(1)
+	}
 	return ns
 }
 
@@ -992,6 +1070,7 @@ func adminHandlerConfig() admin.Config {
 	cfg.Password = v.GetString("admin_password")
 	cfg.Secret = v.GetString("admin_secret")
 	cfg.Insecure = v.GetBool("admin_insecure")
+	cfg.Prefix = v.GetString("admin_handler_prefix")
 	return cfg
 }
 
@@ -1289,6 +1368,8 @@ func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 
 	mux := http.NewServeMux()
 
+	v := viper.GetViper()
+
 	if flags&HandlerDebug != 0 {
 		mux.Handle("/debug/pprof/", middleware.LogRequest(http.HandlerFunc(pprof.Index)))
 		mux.Handle("/debug/pprof/cmdline", middleware.LogRequest(http.HandlerFunc(pprof.Cmdline)))
@@ -1297,44 +1378,60 @@ func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 		mux.Handle("/debug/pprof/trace", middleware.LogRequest(http.HandlerFunc(pprof.Trace)))
 	}
 
-	proxyEnabled := viper.GetString("proxy_http_connect_endpoint") != "" || viper.GetString("proxy_http_refresh_endpoint") != "" || viper.GetString("proxy_http_rpc_endpoint") != ""
+	proxyEnabled := viper.GetString("proxy_connect_endpoint") != "" || viper.GetString("proxy_refresh_endpoint") != "" || viper.GetString("proxy_rpc_endpoint") != ""
 
 	if flags&HandlerWebsocket != 0 {
 		// register Websocket connection endpoint.
-		mux.Handle("/connection/websocket", middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig()))))
+		wsPrefix := strings.TrimRight(v.GetString("websocket_handler_prefix"), "/")
+		if wsPrefix == "" {
+			wsPrefix = "/"
+		}
+		mux.Handle(wsPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig()))))
 	}
 
 	if flags&HandlerSockJS != 0 {
 		// register SockJS connection endpoints.
 		sockjsConfig := sockjsHandlerConfig()
-		sockjsConfig.HandlerPrefix = "/connection/sockjs"
-		mux.Handle(sockjsConfig.HandlerPrefix+"/", middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewSockjsHandler(n, sockjsConfig))))
+		sockjsPrefix := strings.TrimRight(v.GetString("sockjs_handler_prefix"), "/")
+		sockjsConfig.HandlerPrefix = sockjsPrefix
+		mux.Handle(sockjsPrefix+"/", middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewSockjsHandler(n, sockjsConfig))))
 	}
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
 		apiHandler := api.NewHandler(n, api.Config{})
+		apiPrefix := strings.TrimRight(v.GetString("api_handler_prefix"), "/")
+		if apiPrefix == "" {
+			apiPrefix = "/"
+		}
 		if viper.GetBool("api_insecure") {
-			mux.Handle("/api", middleware.LogRequest(apiHandler))
+			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(apiHandler)))
 		} else {
-			mux.Handle("/api", middleware.LogRequest(middleware.APIKeyAuth(viper.GetString("api_key"), apiHandler)))
+			mux.Handle(apiPrefix, middleware.LogRequest(middleware.Post(middleware.APIKeyAuth(viper.GetString("api_key"), apiHandler))))
 		}
 	}
 
 	if flags&HandlerPrometheus != 0 {
 		// register Prometheus metrics export endpoint.
-		mux.Handle("/metrics", middleware.LogRequest(promhttp.Handler()))
+		prometheusPrefix := strings.TrimRight(v.GetString("prometheus_handler_prefix"), "/")
+		if prometheusPrefix == "" {
+			prometheusPrefix = "/"
+		}
+		mux.Handle(prometheusPrefix, middleware.LogRequest(promhttp.Handler()))
 	}
 
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
-		mux.Handle("/", middleware.LogRequest(admin.NewHandler(n, adminHandlerConfig())))
-	} else {
-		mux.Handle("/", middleware.LogRequest(http.HandlerFunc(notFoundHandler)))
+		adminPrefix := strings.TrimRight(v.GetString("admin_handler_prefix"), "/")
+		mux.Handle(adminPrefix+"/", middleware.LogRequest(admin.NewHandler(n, adminHandlerConfig())))
 	}
 
 	if flags&HandlerHealth != 0 {
-		mux.Handle("/health", middleware.LogRequest(health.NewHandler(n, health.Config{})))
+		healthPrefix := strings.TrimRight(v.GetString("health_handler_prefix"), "/")
+		if healthPrefix == "" {
+			healthPrefix = "/"
+		}
+		mux.Handle(healthPrefix, middleware.LogRequest(health.NewHandler(n, health.Config{})))
 	}
 
 	return mux
