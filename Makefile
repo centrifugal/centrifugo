@@ -17,6 +17,8 @@ test:
 
 web:
 	./misc/scripts/update_web.sh
+build:
+	export GOPROXY=https://goproxy.cn && go build -v -o bin/centrifugo main.go
 
 package:
 	./misc/scripts/package.sh $(VERSION) $(ITERATION)

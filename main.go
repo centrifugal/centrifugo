@@ -23,12 +23,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/admin"
-	"github.com/centrifugal/centrifugo/internal/api"
-	"github.com/centrifugal/centrifugo/internal/health"
-	"github.com/centrifugal/centrifugo/internal/metrics/graphite"
-	"github.com/centrifugal/centrifugo/internal/middleware"
-	"github.com/centrifugal/centrifugo/internal/webui"
+	"internal/admin"
+	"internal/api"
+	"internal/health"
+	"internal/metrics/graphite"
+	"internal/middleware"
+	"internal/webui"
 
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifuge"
