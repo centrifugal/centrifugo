@@ -365,7 +365,6 @@ var configDefaults = map[string]interface{}{
 	"history_lifetime":                     0,
 	"history_recover":                      false,
 	"history_disable_for_client":           false,
-	"namespaces":                           "",
 	"node_info_metrics_aggregate_interval": 60,
 	"client_anonymous":                     false,
 	"client_ping_interval":                 25,
