@@ -431,7 +431,6 @@
     "github.com/rs/zerolog/log",
     "github.com/satori/go.uuid",
     "github.com/spf13/cobra",
-    "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
     "golang.org/x/crypto/acme",
     "golang.org/x/crypto/acme/autocert",
