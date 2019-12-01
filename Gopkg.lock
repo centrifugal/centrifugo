@@ -292,9 +292,12 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:18752d0b95816a1b777505a97f71c7467a8445b8ffb55631a7bf779f6ba4fa83"
+  digest = "1:c40d65817cdd41fac9aa7af8bed56927bb2d6d47e4fea566a74880f5c2b1c41e"
   name = "github.com/stretchr/testify"
-  packages = ["assert"]
+  packages = [
+    "assert",
+    "require",
+  ]
   pruneopts = "UT"
   revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
   version = "v1.2.2"
@@ -428,7 +431,7 @@
     "github.com/rs/zerolog/log",
     "github.com/satori/go.uuid",
     "github.com/spf13/cobra",
-    "github.com/stretchr/testify/assert",
+    "github.com/stretchr/testify/require",
     "golang.org/x/crypto/acme",
     "golang.org/x/crypto/acme/autocert",
     "golang.org/x/net/context",
