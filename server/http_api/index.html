@@ -987,6 +987,7 @@
 </pre></div>
 
 
+<p>Starting from Centrifugo v2.2.7 it&rsquo;s also possible to pass API key over URL query param. This solves some edge cases where it&rsquo;s not possible to use <code>Authorization</code> header. Simply add <code>?api_key=&lt;YOUR API KEY&gt;</code> query param to API endpoint. Keep in mind that passing API key in <code>Authorization</code> header is a recommended way. </p>
 <p>It&rsquo;s possible to disable API key check on Centrifugo side using <code>api_insecure</code> configuration option. Be sure to protect API endpoint by firewall rules in this case to prevent anyone in internet to send commands over your unprotected Centrifugo API. API key auth is not very safe for man-in-the-middle so recommended way is running Centrifugo with TLS (we are in 2018 in the end).</p>
 <p>Command is a JSON object with two properties: <code>method</code> and <code>params</code>.</p>
 <p><code>method</code> is a name of command you want to call.
