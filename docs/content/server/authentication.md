@@ -4,7 +4,7 @@ When you are using [centrifuge](https://github.com/centrifugal/centrifuge) libra
 
 When connecting to Centrifugo client must provide connection JWT token with several predefined credential claims. If you've never heard about JWT before - refer to [jwt.io](https://jwt.io/) page.
 
-At moment **the only supported JWT algorithm is HS256** - i.e. HMAC SHA-256. This can be extended later.
+At moment **the only supported JWT algorithms are HS256 and RSA ** - i.e. HMAC SHA-256, RSA256, RSA512. This can be extended later.
 
 We will use Javascript Centrifugo client here for example snippets for client side and [PyJWT](https://github.com/jpadilla/pyjwt) Python library to generate connection token on backend side.
 
