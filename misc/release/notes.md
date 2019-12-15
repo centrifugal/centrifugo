@@ -1,1 +1,3 @@
-This is a quick fix release. Fixes an error on start when `namespaces` not set in configuration file,the bug was introduced in v2.2.5, see [#319](https://github.com/centrifugal/centrifugo/issues/319) for details.
+Improvements:
+
+* Support passing `api_key` over URL param, see [#317](https://github.com/centrifugal/centrifugo/issues/317) for reasoning behind this feature

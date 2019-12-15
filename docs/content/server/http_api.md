@@ -27,6 +27,8 @@ This API key must be set in request `Authorization` header in this way:
 Authorization: apikey <KEY>
 ```
 
+Starting from Centrifugo v2.2.7 it's also possible to pass API key over URL query param. This solves some edge cases where it's not possible to use `Authorization` header. Simply add `?api_key=<YOUR API KEY>` query param to API endpoint. Keep in mind that passing API key in `Authorization` header is a recommended way. 
+
 It's possible to disable API key check on Centrifugo side using `api_insecure` configuration option. Be sure to protect API endpoint by firewall rules in this case to prevent anyone in internet to send commands over your unprotected Centrifugo API. API key auth is not very safe for man-in-the-middle so recommended way is running Centrifugo with TLS (we are in 2018 in the end).
 
 Command is a JSON object with two properties: `method` and `params`.

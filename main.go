@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	stdlog "log"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -661,8 +662,9 @@ func getTLSConfig() (*tls.Config, error) {
 			startHTTPChallengeServerOnce.Do(func() {
 				// getTLSConfig can be called several times.
 				acmeHTTPserver := &http.Server{
-					Handler: certManager.HTTPHandler(nil),
-					Addr:    tlsAutocertHTTPAddr,
+					Handler:  certManager.HTTPHandler(nil),
+					Addr:     tlsAutocertHTTPAddr,
+					ErrorLog: stdlog.New(&httpErrorLogWriter{log.Logger}, "", 0),
 				}
 				go func() {
 					log.Info().Msgf("serving ACME http_01 challenge on %s", tlsAutocertHTTPAddr)
@@ -713,6 +715,15 @@ func tlsConfigForGRPC() (*tls.Config, error) {
 		return nil, err
 	}
 	return tlsConfig, nil
+}
+
+type httpErrorLogWriter struct {
+	zerolog.Logger
+}
+
+func (w *httpErrorLogWriter) Write(data []byte) (int, error) {
+	w.Logger.Warn().Msg(strings.TrimSpace(string(data)))
+	return len(data), nil
 }
 
 func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
@@ -797,6 +808,7 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 			Addr:      addr,
 			Handler:   mux,
 			TLSConfig: addrTLSConfig,
+			ErrorLog:  stdlog.New(&httpErrorLogWriter{log.Logger}, "", 0),
 		}
 
 		servers = append(servers, server)
