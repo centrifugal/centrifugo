@@ -11,7 +11,7 @@ import (
 // DefaultMaxIdleConnsPerHost is a reasonable value for all HTTP clients.
 const DefaultMaxIdleConnsPerHost = 255
 
-// HTTPCaller ...
+// HTTPCaller is responsible for calling HTTP.
 type HTTPCaller interface {
 	CallHTTP(context.Context, http.Header, []byte) ([]byte, error)
 }
@@ -21,7 +21,7 @@ type httpCaller struct {
 	HTTPClient *http.Client
 }
 
-// NewHTTPCaller ...
+// NewHTTPCaller creates new HTTPCaller.
 func NewHTTPCaller(endpoint string, httpClient *http.Client) HTTPCaller {
 	return &httpCaller{
 		Endpoint:   endpoint,
