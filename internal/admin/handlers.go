@@ -27,7 +27,7 @@ type Config struct {
 	// Password is an admin password.
 	Password string
 
-	// Secret is a secret to generate auth token for admin requests.
+	// TokenHMACSecretKey is a secret to generate auth token for admin requests.
 	Secret string
 
 	// Insecure turns on insecure mode for admin endpoints - no auth

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"html/template"
 	"io/ioutil"
 	stdlog "log"
@@ -771,20 +772,20 @@ func pathExists(path string) (bool, error) {
 }
 
 var jsonConfigTemplate = `{
-  "secret": "{{.Secret}}",
+  "secret": "{{.TokenHMACSecretKey}}",
   "admin_password": "{{.AdminPassword}}",
   "admin_secret": "{{.AdminSecret}}",
   "api_key": "{{.APIKey}}"
 }
 `
 
-var tomlConfigTemplate = `secret = {{.Secret}}
+var tomlConfigTemplate = `secret = {{.TokenHMACSecretKey}}
 admin_password = {{.AdminPassword}}
 admin_secret = {{.AdminSecret}}
 api_key = {{.APIKey}}
 `
 
-var yamlConfigTemplate = `secret: {{.Secret}}
+var yamlConfigTemplate = `secret: {{.TokenHMACSecretKey}}
 admin_password: {{.AdminPassword}}
 admin_secret: {{.AdminSecret}}
 api_key: {{.APIKey}}
@@ -884,7 +885,12 @@ func nodeConfig() *centrifuge.Config {
 
 	cfg.Version = VERSION
 	cfg.Name = applicationName()
-	cfg.Secret = v.GetString("secret")
+	cfg.TokenHMACSecretKey = v.GetString("token_hmac_secret_key")
+
+	RSAPublicKey := v.GetString("token_rsa_public_key")
+	if RSAPublicKey != "" {
+		cfg.TokenRSAPublicKey, _ = jwt.ParseRSAPublicKeyFromPEM([]byte(RSAPublicKey))
+	}
 
 	cfg.Publish = v.GetBool("publish")
 	cfg.SubscribeToPublish = v.GetBool("subscribe_to_publish")
