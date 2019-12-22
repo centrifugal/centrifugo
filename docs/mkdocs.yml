@@ -54,6 +54,7 @@ pages:
     - 'Signal handling': 'server/signals.md'
     - 'Connection expiration': 'server/connection_expiration.md'
     - 'Private channels': 'server/private_channels.md'
+    - 'Proxy to backend': 'server/proxy.md'
     - 'Protobuf protocol': 'server/protobuf.md'
     - 'Client protocol': 'server/protocol.md'
   - Transports:

@@ -17,7 +17,7 @@ type ConnectRequest struct {
 // ConnectCredentials ...
 type ConnectCredentials struct {
 	UserID     string          `json:"user"`
-	ExpireAt   int64           `json:"exp"`
+	ExpireAt   int64           `json:"expire_at"`
 	Info       json.RawMessage `json:"info"`
 	Base64Info string          `json:"b64info"`
 }

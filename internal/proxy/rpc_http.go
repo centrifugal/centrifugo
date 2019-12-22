@@ -17,11 +17,10 @@ type HTTPRPCProxy struct {
 
 // RPCRequestHTTP ...
 type RPCRequestHTTP struct {
-	Protocol string          `json:"protocol"`
-	Encoding string          `json:"encoding"`
-	ClientID string          `json:"client"`
-	UserID   string          `json:"user"`
-	Data     json.RawMessage `json:"data,omitempty"`
+	baseRequestHTTP
+
+	UserID string          `json:"user"`
+	Data   json.RawMessage `json:"data,omitempty"`
 	// Base64Data to proxy binary data.
 	Base64Data string `json:"b64data,omitempty"`
 }
@@ -38,10 +37,13 @@ func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req RPCRequest) (*RPCReply,
 	httpRequest := middleware.HeadersFromContext(ctx)
 
 	rpcHTTPReq := RPCRequestHTTP{
-		Protocol: string(req.Transport.Protocol()),
-		Encoding: string(req.Transport.Encoding()),
-		ClientID: req.ClientID,
-		UserID:   req.UserID,
+		baseRequestHTTP: baseRequestHTTP{
+			Protocol:  string(req.Transport.Protocol()),
+			Encoding:  string(req.Transport.Encoding()),
+			Transport: req.Transport.Name(),
+			ClientID:  req.ClientID,
+		},
+		UserID: req.UserID,
 	}
 
 	if req.Transport.Encoding() == centrifuge.EncodingTypeJSON {

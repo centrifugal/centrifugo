@@ -8,6 +8,13 @@ import (
 	"net/http"
 )
 
+type baseRequestHTTP struct {
+	ClientID  string `json:"client"`
+	Transport string `json:"transport"`
+	Protocol  string `json:"protocol"`
+	Encoding  string `json:"encoding"`
+}
+
 // DefaultMaxIdleConnsPerHost is a reasonable value for all HTTP clients.
 const DefaultMaxIdleConnsPerHost = 255
 

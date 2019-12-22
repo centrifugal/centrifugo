@@ -13,11 +13,9 @@ import (
 
 // ConnectRequestHTTP ...
 type ConnectRequestHTTP struct {
-	ClientID  string          `json:"client"`
-	Transport string          `json:"transport"`
-	Protocol  string          `json:"protocol"`
-	Encoding  string          `json:"encoding"`
-	Data      json.RawMessage `json:"data,omitempty"`
+	baseRequestHTTP
+
+	Data json.RawMessage `json:"data,omitempty"`
 	// Base64Data to proxy protobuf data.
 	Base64Data string `json:"b64data,omitempty"`
 }
@@ -44,10 +42,12 @@ func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req ConnectRequest)
 	httpRequest := middleware.HeadersFromContext(ctx)
 
 	connectHTTPReq := ConnectRequestHTTP{
-		ClientID:  req.ClientID,
-		Transport: req.Transport.Name(),
-		Protocol:  string(req.Transport.Protocol()),
-		Encoding:  string(req.Transport.Encoding()),
+		baseRequestHTTP: baseRequestHTTP{
+			ClientID:  req.ClientID,
+			Transport: req.Transport.Name(),
+			Protocol:  string(req.Transport.Protocol()),
+			Encoding:  string(req.Transport.Encoding()),
+		},
 	}
 
 	if req.Transport.Encoding() == centrifuge.EncodingTypeJSON {
