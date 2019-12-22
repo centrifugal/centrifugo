@@ -358,6 +358,8 @@ var configDefaults = map[string]interface{}{
 	"engine":                               "memory",
 	"name":                                 "",
 	"secret":                               "",
+	"token_hmac_secret_key":                "",
+	"token_rsa_public_key":                 "",
 	"publish":                              false,
 	"subscribe_to_publish":                 false,
 	"anonymous":                            false,
@@ -772,20 +774,20 @@ func pathExists(path string) (bool, error) {
 }
 
 var jsonConfigTemplate = `{
-  "secret": "{{.TokenHMACSecretKey}}",
+  "secret": "{{.Secret}}",
   "admin_password": "{{.AdminPassword}}",
   "admin_secret": "{{.AdminSecret}}",
   "api_key": "{{.APIKey}}"
 }
 `
 
-var tomlConfigTemplate = `secret = {{.TokenHMACSecretKey}}
+var tomlConfigTemplate = `secret = {{.Secret}}
 admin_password = {{.AdminPassword}}
 admin_secret = {{.AdminSecret}}
 api_key = {{.APIKey}}
 `
 
-var yamlConfigTemplate = `secret: {{.TokenHMACSecretKey}}
+var yamlConfigTemplate = `secret: {{.Secret}}
 admin_password: {{.AdminPassword}}
 admin_secret: {{.AdminSecret}}
 api_key: {{.APIKey}}
@@ -885,6 +887,10 @@ func nodeConfig() *centrifuge.Config {
 
 	cfg.Version = VERSION
 	cfg.Name = applicationName()
+	cfg.Secret = v.GetString("secret")
+	if cfg.Secret != ""{
+		log.Warn().Msg("config.secret is deprecated and will be removed soon, please use token_hmac_secret_key instead")
+	}
 	cfg.TokenHMACSecretKey = v.GetString("token_hmac_secret_key")
 
 	RSAPublicKey := v.GetString("token_rsa_public_key")

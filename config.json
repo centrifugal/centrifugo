@@ -1,6 +1,7 @@
 {
+  "secret": "secret",
   "token_hmac_secret_key": "secret",
-  "token_rsa_public_key": "-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAJ+A48YVz4XVzEIHEQAYdmBg9Y4yaNhu\nMTAfeZ9BZRaYTNNMloE0MGLII4aZukRjiW0pjT96i1PRezH7jk10HzcCAwEAAQ==\n-----END PUBLIC KEY-----",
+  "token_rsa_public_key": "",
   "admin_password": "password",
   "admin_secret": "secret",
   "namespaces": [
