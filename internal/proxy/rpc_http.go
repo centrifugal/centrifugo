@@ -5,18 +5,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/centrifugo/internal/middleware"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // HTTPRPCProxy ...
 type HTTPRPCProxy struct {
 	httpCaller HTTPCaller
-	summary    prometheus.Observer
-	errCount   prometheus.Counter
 }
 
 // RPCRequestHTTP ...
@@ -34,8 +30,6 @@ type RPCRequestHTTP struct {
 func NewHTTPRPCProxy(endpoint string, httpClient *http.Client) *HTTPRPCProxy {
 	return &HTTPRPCProxy{
 		httpCaller: NewHTTPCaller(endpoint, httpClient),
-		summary:    proxyCallDurationSummary.WithLabelValues("http", "rpc"),
-		errCount:   proxyCallErrorCount.WithLabelValues("http", "rpc"),
 	}
 }
 
@@ -61,17 +55,20 @@ func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req RPCRequest) (*RPCReply,
 		return nil, err
 	}
 
-	started := time.Now()
 	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest), data)
-	p.summary.Observe(time.Since(started).Seconds())
 	if err != nil {
-		p.errCount.Inc()
 		return nil, err
 	}
+
 	var res RPCReply
 	err = json.Unmarshal(respData, &res)
 	if err != nil {
 		return nil, err
 	}
 	return &res, nil
+}
+
+// Protocol ...
+func (p *HTTPRPCProxy) Protocol() string {
+	return "http"
 }

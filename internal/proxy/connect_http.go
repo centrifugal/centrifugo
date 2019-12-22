@@ -5,12 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/centrifugal/centrifugo/internal/middleware"
 
 	"github.com/centrifugal/centrifuge"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // ConnectRequestHTTP ...
@@ -27,17 +25,18 @@ type ConnectRequestHTTP struct {
 // HTTPConnectProxy ...
 type HTTPConnectProxy struct {
 	httpCaller HTTPCaller
-	summary    prometheus.Observer
-	errCount   prometheus.Counter
 }
 
 // NewHTTPConnectProxy ...
 func NewHTTPConnectProxy(endpoint string, httpClient *http.Client) *HTTPConnectProxy {
 	return &HTTPConnectProxy{
 		httpCaller: NewHTTPCaller(endpoint, httpClient),
-		summary:    proxyCallDurationSummary.WithLabelValues("http", "connect"),
-		errCount:   proxyCallErrorCount.WithLabelValues("http", "connect"),
 	}
+}
+
+// Protocol ...
+func (p *HTTPConnectProxy) Protocol() string {
+	return "http"
 }
 
 // ProxyConnect proxies connect control to application backend.
@@ -62,13 +61,11 @@ func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req ConnectRequest)
 		return nil, err
 	}
 
-	started := time.Now()
 	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest), data)
-	p.summary.Observe(time.Since(started).Seconds())
 	if err != nil {
-		p.errCount.Inc()
 		return nil, err
 	}
+
 	var res ConnectReply
 	err = json.Unmarshal(respData, &res)
 	if err != nil {

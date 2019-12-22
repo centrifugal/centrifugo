@@ -31,4 +31,6 @@ type RefreshReply struct {
 // RefreshProxy allows to send refresh requests.
 type RefreshProxy interface {
 	ProxyRefresh(context.Context, RefreshRequest) (*RefreshReply, error)
+	// Protocol for metrics and logging.
+	Protocol() string
 }

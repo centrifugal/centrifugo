@@ -3,9 +3,11 @@ package proxy
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"time"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // RefreshHandlerConfig ...
@@ -15,25 +17,35 @@ type RefreshHandlerConfig struct {
 
 // RefreshHandler ...
 type RefreshHandler struct {
-	config RefreshHandlerConfig
+	config  RefreshHandlerConfig
+	summary prometheus.Observer
+	errors  prometheus.Counter
 }
 
 // NewRefreshHandler ...
 func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 	return &RefreshHandler{
-		config: c,
+		config:  c,
+		summary: proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "refresh"),
+		errors:  proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "refresh"),
 	}
 }
 
 // Handle refresh.
 func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *centrifuge.Client, centrifuge.RefreshEvent) centrifuge.RefreshReply {
 	return func(ctx context.Context, client *centrifuge.Client, e centrifuge.RefreshEvent) centrifuge.RefreshReply {
+		started := time.Now()
 		refreshRep, err := h.config.Proxy.ProxyRefresh(ctx, RefreshRequest{
 			ClientID:  client.ID(),
 			UserID:    client.UserID(),
 			Transport: client.Transport(),
 		})
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return centrifuge.RefreshReply{}
+			}
+			h.summary.Observe(time.Since(started).Seconds())
+			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying refresh", map[string]interface{}{"error": err.Error()}))
 			// In case of an error give connection one more minute to live and
 			// then try to check again. This way we gracefully handle temporary
@@ -44,6 +56,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *ce
 				ExpireAt: time.Now().Unix() + 60,
 			}
 		}
+		h.summary.Observe(time.Since(started).Seconds())
 
 		credentials := refreshRep.Result
 		if credentials == nil {

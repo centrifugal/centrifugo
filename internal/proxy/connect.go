@@ -33,4 +33,6 @@ type ConnectReply struct {
 // authenticate client connection.
 type ConnectProxy interface {
 	ProxyConnect(context.Context, ConnectRequest) (*ConnectReply, error)
+	// Protocol for metrics and logging.
+	Protocol() string
 }

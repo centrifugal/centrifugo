@@ -3,8 +3,11 @@ package proxy
 import (
 	"context"
 	"encoding/base64"
+	"errors"
+	"time"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // RPCHandlerConfig ...
@@ -14,19 +17,24 @@ type RPCHandlerConfig struct {
 
 // RPCHandler ...
 type RPCHandler struct {
-	config RPCHandlerConfig
+	config  RPCHandlerConfig
+	summary prometheus.Observer
+	errors  prometheus.Counter
 }
 
 // NewRPCHandler ...
 func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 	return &RPCHandler{
-		config: c,
+		config:  c,
+		summary: proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "rpc"),
+		errors:  proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "rpc"),
 	}
 }
 
 // Handle RPC.
 func (h *RPCHandler) Handle(ctx context.Context, node *centrifuge.Node, client *centrifuge.Client) func(e centrifuge.RPCEvent) centrifuge.RPCReply {
 	return func(e centrifuge.RPCEvent) centrifuge.RPCReply {
+		started := time.Now()
 		rpcRep, err := h.config.Proxy.ProxyRPC(ctx, RPCRequest{
 			Data:      e.Data,
 			ClientID:  client.ID(),
@@ -34,11 +42,17 @@ func (h *RPCHandler) Handle(ctx context.Context, node *centrifuge.Node, client *
 			Transport: client.Transport(),
 		})
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return centrifuge.RPCReply{}
+			}
+			h.summary.Observe(time.Since(started).Seconds())
+			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying RPC", map[string]interface{}{"error": err.Error()}))
 			return centrifuge.RPCReply{
 				Error: centrifuge.ErrorInternal,
 			}
 		}
+		h.summary.Observe(time.Since(started).Seconds())
 		if rpcRep.Disconnect != nil {
 			return centrifuge.RPCReply{
 				Disconnect: rpcRep.Disconnect,

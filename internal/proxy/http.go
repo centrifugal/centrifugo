@@ -29,23 +29,31 @@ func NewHTTPCaller(endpoint string, httpClient *http.Client) HTTPCaller {
 	}
 }
 
+type statusCodeError struct {
+	Code int
+}
+
+func (e *statusCodeError) Error() string {
+	return fmt.Sprintf("unexpected HTTP status code: %d", e.Code)
+}
+
 func (c *httpCaller) CallHTTP(ctx context.Context, header http.Header, reqData []byte) ([]byte, error) {
 	req, err := http.NewRequest("POST", c.Endpoint, bytes.NewReader(reqData))
 	if err != nil {
-		return nil, fmt.Errorf("error constructing HTTP request: %v", err)
+		return nil, fmt.Errorf("error constructing HTTP request: %w", err)
 	}
 	req.Header = header
 	resp, err := c.HTTPClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return nil, fmt.Errorf("HTTP request error: %v", err)
+		return nil, fmt.Errorf("HTTP request error: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected HTTP status code: %d", resp.StatusCode)
+		return nil, &statusCodeError{resp.StatusCode}
 	}
 	respData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error reading HTTP body: %v", err)
+		return nil, fmt.Errorf("error reading HTTP body: %w", err)
 	}
 	return respData, nil
 }

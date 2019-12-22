@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/centrifugal/centrifugo/internal/middleware"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // RefreshRequestHTTP ...
@@ -22,16 +20,12 @@ type RefreshRequestHTTP struct {
 // HTTPRefreshProxy ...
 type HTTPRefreshProxy struct {
 	httpCaller HTTPCaller
-	summary    prometheus.Observer
-	errCount   prometheus.Counter
 }
 
 // NewHTTPRefreshProxy ...
 func NewHTTPRefreshProxy(endpoint string, httpClient *http.Client) *HTTPRefreshProxy {
 	return &HTTPRefreshProxy{
 		httpCaller: NewHTTPCaller(endpoint, httpClient),
-		summary:    proxyCallDurationSummary.WithLabelValues("http", "refresh"),
-		errCount:   proxyCallErrorCount.WithLabelValues("http", "refresh"),
 	}
 }
 
@@ -52,17 +46,20 @@ func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req RefreshRequest)
 		return nil, err
 	}
 
-	started := time.Now()
 	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest), data)
-	p.summary.Observe(time.Since(started).Seconds())
 	if err != nil {
-		p.errCount.Inc()
 		return nil, err
 	}
+
 	var res RefreshReply
 	err = json.Unmarshal(respData, &res)
 	if err != nil {
 		return nil, err
 	}
 	return &res, nil
+}
+
+// Protocol ...
+func (p *HTTPRefreshProxy) Protocol() string {
+	return "http"
 }

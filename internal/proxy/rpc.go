@@ -31,4 +31,6 @@ type RPCReply struct {
 // RPCProxy allows to proxy RPC requests to application backend.
 type RPCProxy interface {
 	ProxyRPC(context.Context, RPCRequest) (*RPCReply, error)
+	// Protocol for metrics and logging.
+	Protocol() string
 }
