@@ -26,6 +26,6 @@
       "history_size": 10,
       "history_lifetime": 60,
       "history_recover": true
-    }  
+    }
   ]
 }
