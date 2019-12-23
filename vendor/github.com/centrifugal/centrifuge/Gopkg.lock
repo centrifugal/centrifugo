@@ -26,6 +26,14 @@
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
 
 [[projects]]
+  digest = "1:94f9fe82352eceefb41dec81279c3d3bdc842fdf369f5f19237710caf4edef51"
+  name = "github.com/centrifugal/protocol"
+  packages = ["."]
+  pruneopts = ""
+  revision = "33b44672940bda32f2d74414d1d4fb1603d5fd48"
+  version = "v0.1.0"
+
+[[projects]]
   digest = "1:56c130d885a4aacae1dd9c7b71cfe39912c7ebc1ff7d2b46083c8812996dc43b"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -168,6 +176,7 @@
   input-imports = [
     "github.com/FZambia/eagle",
     "github.com/FZambia/sentinel",
+    "github.com/centrifugal/protocol",
     "github.com/dgrijalva/jwt-go",
     "github.com/gogo/protobuf/gogoproto",
     "github.com/gogo/protobuf/jsonpb",

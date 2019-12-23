@@ -94,8 +94,8 @@
 //            Msg("dup")
 //     // Output: {"level":"info","time":1494567715,"time":1494567715,"message":"dup"}
 //
-// However, it’s not a big deal though as JSON accepts dup keys,
-// the last one prevails.
+// In this case, many consumers will take the last value,
+// but this is not guaranteed; check yours if in doubt.
 package zerolog
 
 import (
@@ -107,7 +107,7 @@ import (
 )
 
 // Level defines log levels.
-type Level uint8
+type Level int8
 
 const (
 	// DebugLevel defines debug log level.
@@ -126,10 +126,15 @@ const (
 	NoLevel
 	// Disabled disables the logger.
 	Disabled
+
+	// TraceLevel defines trace log level.
+	TraceLevel Level = -1
 )
 
 func (l Level) String() string {
 	switch l {
+	case TraceLevel:
+		return "trace"
 	case DebugLevel:
 		return "debug"
 	case InfoLevel:
@@ -152,19 +157,21 @@ func (l Level) String() string {
 // returns an error if the input string does not match known values.
 func ParseLevel(levelStr string) (Level, error) {
 	switch levelStr {
-	case DebugLevel.String():
+	case LevelFieldMarshalFunc(TraceLevel):
+		return TraceLevel, nil
+	case LevelFieldMarshalFunc(DebugLevel):
 		return DebugLevel, nil
-	case InfoLevel.String():
+	case LevelFieldMarshalFunc(InfoLevel):
 		return InfoLevel, nil
-	case WarnLevel.String():
+	case LevelFieldMarshalFunc(WarnLevel):
 		return WarnLevel, nil
-	case ErrorLevel.String():
+	case LevelFieldMarshalFunc(ErrorLevel):
 		return ErrorLevel, nil
-	case FatalLevel.String():
+	case LevelFieldMarshalFunc(FatalLevel):
 		return FatalLevel, nil
-	case PanicLevel.String():
+	case LevelFieldMarshalFunc(PanicLevel):
 		return PanicLevel, nil
-	case NoLevel.String():
+	case LevelFieldMarshalFunc(NoLevel):
 		return NoLevel, nil
 	}
 	return NoLevel, fmt.Errorf("Unknown Level String: '%s', defaulting to NoLevel", levelStr)
@@ -198,7 +205,7 @@ func New(w io.Writer) Logger {
 	if !ok {
 		lw = levelWriterAdapter{w}
 	}
-	return Logger{w: lw}
+	return Logger{w: lw, level: TraceLevel}
 }
 
 // Nop returns a disabled logger for which all operation are no-op.
@@ -251,6 +258,11 @@ func (l Logger) Level(lvl Level) Logger {
 	return l
 }
 
+// GetLevel returns the current Level of l.
+func (l Logger) GetLevel() Level {
+	return l.level
+}
+
 // Sample returns a logger with the s sampler.
 func (l Logger) Sample(s Sampler) Logger {
 	l.sampler = s
@@ -261,6 +273,13 @@ func (l Logger) Sample(s Sampler) Logger {
 func (l Logger) Hook(h Hook) Logger {
 	l.hooks = append(l.hooks, h)
 	return l
+}
+
+// Trace starts a new message with trace level.
+//
+// You must call Msg on the returned event in order to send the event.
+func (l *Logger) Trace() *Event {
+	return l.newEvent(TraceLevel, nil)
 }
 
 // Debug starts a new message with debug level.
@@ -291,6 +310,18 @@ func (l *Logger) Error() *Event {
 	return l.newEvent(ErrorLevel, nil)
 }
 
+// Err starts a new message with error level with err as a field if not nil or
+// with info level if err is nil.
+//
+// You must call Msg on the returned event in order to send the event.
+func (l *Logger) Err(err error) *Event {
+	if err != nil {
+		return l.Error().Err(err)
+	}
+
+	return l.Info()
+}
+
 // Fatal starts a new message with fatal level. The os.Exit(1) function
 // is called by the Msg method, which terminates the program immediately.
 //
@@ -314,6 +345,8 @@ func (l *Logger) Panic() *Event {
 // You must call Msg on the returned event in order to send the event.
 func (l *Logger) WithLevel(level Level) *Event {
 	switch level {
+	case TraceLevel:
+		return l.Trace()
 	case DebugLevel:
 		return l.Debug()
 	case InfoLevel:
@@ -380,7 +413,7 @@ func (l *Logger) newEvent(level Level, done func(string)) *Event {
 	e.done = done
 	e.ch = l.hooks
 	if level != NoLevel {
-		e.Str(LevelFieldName, level.String())
+		e.Str(LevelFieldName, LevelFieldMarshalFunc(level))
 	}
 	if l.context != nil && len(l.context) > 0 {
 		e.buf = enc.AppendObjectData(e.buf, l.context)

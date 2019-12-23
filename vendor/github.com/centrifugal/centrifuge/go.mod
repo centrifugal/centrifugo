@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/FZambia/eagle v0.0.1
 	github.com/FZambia/sentinel v1.1.0
+	github.com/centrifugal/protocol v0.1.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gogo/protobuf v1.3.1
 	github.com/gomodule/redigo v2.0.0+incompatible
