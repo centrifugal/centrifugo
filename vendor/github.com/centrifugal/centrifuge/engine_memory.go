@@ -26,6 +26,8 @@ type MemoryEngine struct {
 	eventHandler BrokerEventHandler
 }
 
+var _ Engine = (*MemoryEngine)(nil)
+
 // MemoryEngineConfig is a memory engine config.
 type MemoryEngineConfig struct{}
 

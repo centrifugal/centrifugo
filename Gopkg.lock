@@ -51,19 +51,27 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:47d367213dd5589f64966bfe050dba0a0e0cff172527386e5021ee2090555bb8"
+  digest = "1:fa43e8d80eb014d6fe2928b5ab2683c43bac30d9547df633eecb932efa926e68"
   name = "github.com/centrifugal/centrifuge"
   packages = [
     ".",
+    "internal/clientproto",
+    "internal/controlproto",
     "internal/priority",
-    "internal/proto",
-    "internal/proto/controlproto",
     "internal/queue",
     "internal/timers",
     "internal/uuid",
   ]
   pruneopts = "UT"
-  revision = "53f68cdc8627a7ce372b63f5e4818a154c84758d"
+  revision = "b7f7e9b7c1278c9cd073d25438c986145b890019"
+
+[[projects]]
+  digest = "1:12db72c3065d1ca53e39675d9ef4a83eeaffde537ff8121f3dcf1d191c4837ac"
+  name = "github.com/centrifugal/protocol"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "33b44672940bda32f2d74414d1d4fb1603d5fd48"
+  version = "v0.1.0"
 
 [[projects]]
   digest = "1:a2c1d0e43bd3baaa071d1b9ed72c27d78169b2b269f71c105ac4ba34b1be4a39"

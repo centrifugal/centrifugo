@@ -1,9 +1,12 @@
-package proto
+package protocol
 
 import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
+
+	"github.com/gogo/protobuf/proto"
 )
 
 // PushEncoder ...
@@ -310,4 +313,81 @@ func (e *ProtobufResultEncoder) EncodePingResult(res *PingResult) ([]byte, error
 // EncodeRPCResult ...
 func (e *ProtobufResultEncoder) EncodeRPCResult(res *RPCResult) ([]byte, error) {
 	return res.Marshal()
+}
+
+// CommandEncoder ...
+type CommandEncoder interface {
+	Encode(cmd *Command) ([]byte, error)
+}
+
+// JSONCommandEncoder ...
+type JSONCommandEncoder struct {
+}
+
+// NewJSONCommandEncoder ...
+func NewJSONCommandEncoder() *JSONCommandEncoder {
+	return &JSONCommandEncoder{}
+}
+
+// Encode ...
+func (e *JSONCommandEncoder) Encode(cmd *Command) ([]byte, error) {
+	return json.Marshal(cmd)
+}
+
+// ProtobufCommandEncoder ...
+type ProtobufCommandEncoder struct {
+}
+
+// NewProtobufCommandEncoder ...
+func NewProtobufCommandEncoder() *ProtobufCommandEncoder {
+	return &ProtobufCommandEncoder{}
+}
+
+// Encode ...
+func (e *ProtobufCommandEncoder) Encode(cmd *Command) ([]byte, error) {
+	commandBytes, err := cmd.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	bs := make([]byte, 8)
+	n := binary.PutUvarint(bs, uint64(len(commandBytes)))
+	var buf bytes.Buffer
+	buf.Write(bs[:n])
+	buf.Write(commandBytes)
+	return buf.Bytes(), nil
+}
+
+// ParamsEncoder ...
+type ParamsEncoder interface {
+	Encode(request interface{}) ([]byte, error)
+}
+
+// JSONParamsEncoder ...
+type JSONParamsEncoder struct{}
+
+// NewJSONParamsEncoder ...
+func NewJSONParamsEncoder() *JSONParamsEncoder {
+	return &JSONParamsEncoder{}
+}
+
+// Encode ...
+func (d *JSONParamsEncoder) Encode(r interface{}) ([]byte, error) {
+	return json.Marshal(r)
+}
+
+// ProtobufParamsEncoder ...
+type ProtobufParamsEncoder struct{}
+
+// NewProtobufParamsEncoder ...
+func NewProtobufParamsEncoder() *ProtobufParamsEncoder {
+	return &ProtobufParamsEncoder{}
+}
+
+// Encode ...
+func (d *ProtobufParamsEncoder) Encode(r interface{}) ([]byte, error) {
+	m, ok := r.(proto.Marshaler)
+	if !ok {
+		return nil, fmt.Errorf("can not marshal type %T to Protobuf", r)
+	}
+	return m.Marshal()
 }
