@@ -67,6 +67,12 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *ce
 			}
 		}
 
+		if credentials.Expired {
+			return centrifuge.RefreshReply{
+				Expired: true,
+			}
+		}
+
 		var info []byte
 		if client.Transport().Encoding() == "json" {
 			info = credentials.Info
