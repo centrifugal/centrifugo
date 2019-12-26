@@ -14,7 +14,7 @@ With the following options in configuration file:
 
 ```json
 {
-	...
+  ...
   "proxy_connect_endpoint": "http://localhost:3000/centrifugo/connect",
   "proxy_connect_timeout":  1
 }
