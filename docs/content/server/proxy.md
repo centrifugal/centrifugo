@@ -1,10 +1,10 @@
 # Proxy calls to app backend
 
-Starting from Centrifugo v2.3.0 it's possible to proxy some client connection events over HTTP to application backend and react to them in a way you need.
+Starting from Centrifugo v2.3.0 it's possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example you can authenticate connection via request from Centrifugo to you app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.
 
 ### Proxy headers
 
-All proxy calls are HTTP POST requests which include `Cookie`, `User-Agent`, `X-Real-Ip`, `X-Forwarded-For`, `X-Request-Id`, `Authorization` headers from original client request and include some additional info as JSON body (for example data sent by client in RPC call etc).
+All proxy calls are **HTTP POST** requests which include `Cookie`, `User-Agent`, `X-Real-Ip`, `X-Forwarded-For`, `X-Request-Id`, `Authorization` headers from original client request and include some additional info as JSON body (for example data sent by client in RPC call etc).
 
 Below we will look at all supported proxy calls and what you can achieve using them.
 
@@ -14,9 +14,9 @@ With the following options in configuration file:
 
 ```json
 {
-    ...
-	"proxy_connect_endpoint": "http://localhost:3000/centrifugo/connect",
-	"proxy_connect_timeout":  1
+	...
+  "proxy_connect_endpoint": "http://localhost:3000/centrifugo/connect",
+  "proxy_connect_timeout":  1
 }
 ```
 
@@ -63,9 +63,9 @@ With the following options in configuration file:
 
 ```json
 {
-    ...
-	"proxy_refresh_endpoint": "http://localhost:3000/centrifugo/refresh",
-	"proxy_refresh_timeout":  1
+  ...
+  "proxy_refresh_endpoint": "http://localhost:3000/centrifugo/refresh",
+  "proxy_refresh_timeout":  1
 }
 ```
 
@@ -109,9 +109,9 @@ With the following option in configuration file:
 
 ```json
 {
-    ...
-	"proxy_rpc_endpoint": "http://localhost:3000/centrifugo/connect",
-	"proxy_rpc_timeout":  1
+  ...
+  "proxy_rpc_endpoint": "http://localhost:3000/centrifugo/connect",
+  "proxy_rpc_timeout":  1
 }
 ```
 
