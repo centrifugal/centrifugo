@@ -97,7 +97,7 @@ func main() {
 				"grpc_api_tls_cert", "grpc_api_tls_key", "proxy_connect_endpoint",
 				"proxy_connect_timeout", "proxy_rpc_endpoint", "proxy_rpc_timeout",
 				"proxy_refresh_endpoint", "proxy_refresh_timeout",
-        "token_rsa_public_key", "token_hmac_secret_key",
+				"token_rsa_public_key", "token_hmac_secret_key",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
