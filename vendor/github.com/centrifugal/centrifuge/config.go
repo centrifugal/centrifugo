@@ -1,6 +1,7 @@
 package centrifuge
 
 import (
+	"crypto/rsa"
 	"errors"
 	"regexp"
 	"time"
@@ -15,7 +16,15 @@ type Config struct {
 	// and meaningful node identificator.
 	Name string
 	// Secret is a secret key used to generate connection and subscription tokens.
+	//
+	// Deprecated: Use TokenHMACSecretKey instead.
 	Secret string
+	// TokenHMACSecretKey is a secret key used to validate connection and subscription tokens generated using HMAC.
+	// Zero value means that HMAC tokens won't be allowed.
+	TokenHMACSecretKey string
+	// TokenRSAPublicKey is a public key used to validate connection and subscription tokens generated using RSA.
+	// Zero value means that RSA tokens won't be allowed.
+	TokenRSAPublicKey *rsa.PublicKey
 	// ChannelOptions embedded.
 	ChannelOptions
 	// Namespaces – list of namespaces for custom channel options.

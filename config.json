@@ -1,5 +1,5 @@
 {
-  "secret": "secret",
+  "token_hmac_secret_key": "secret",
   "admin_password": "password",
   "admin_secret": "secret",
   "namespaces": [

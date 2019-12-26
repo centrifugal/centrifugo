@@ -61,6 +61,6 @@ token = jwt.encode({"client": "XXX", "channel": "$gossips"}, "secret", algorithm
 print(token)
 ```
 
-Again - the same `secret` from Centrifugo configuration is used to generate private channel JWT as was used to generate connection JWT. And as with connection JWT only `HS256` algorithm is supported at moment.
+Again - the same `secret` from Centrifugo configuration is used to generate private channel JWT as was used to generate connection JWT. And as with connection JWT only `HS256 and RSA` algorithms are supported at moment.
 
 

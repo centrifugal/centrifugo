@@ -1,14 +1,14 @@
-package proto
+package controlproto
 
 import (
 	"bytes"
 	"errors"
 )
 
-// Raw type used by Centrifugo as type for fields in structs which value
-// we want to left untouched. For example custom application specific JSON
+// Raw type used by Centrifuge protocol as a type for fields in structs which
+// value we want to stay untouched. For example custom application specific JSON
 // payload data in published message. This is very similar to json.RawMessage
-// type but have some extra methods to fit gogoprotobuf custom type interface.
+// type but have some extra methods to fit gogo/protobuf custom type interface.
 type Raw []byte
 
 // Marshal encodes Raw to slice of bytes. Exists to fit gogoprotobuf custom

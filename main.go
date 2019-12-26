@@ -27,6 +27,7 @@ import (
 	"github.com/centrifugal/centrifugo/internal/admin"
 	"github.com/centrifugal/centrifugo/internal/api"
 	"github.com/centrifugal/centrifugo/internal/health"
+	"github.com/centrifugal/centrifugo/internal/jwt"
 	"github.com/centrifugal/centrifugo/internal/metrics/graphite"
 	"github.com/centrifugal/centrifugo/internal/middleware"
 	"github.com/centrifugal/centrifugo/internal/proxy"
@@ -96,6 +97,7 @@ func main() {
 				"grpc_api_tls_cert", "grpc_api_tls_key", "proxy_connect_endpoint",
 				"proxy_connect_timeout", "proxy_rpc_endpoint", "proxy_rpc_timeout",
 				"proxy_refresh_endpoint", "proxy_refresh_timeout",
+        "token_rsa_public_key", "token_hmac_secret_key",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -416,6 +418,8 @@ var configDefaults = map[string]interface{}{
 	"engine":                               "memory",
 	"name":                                 "",
 	"secret":                               "",
+	"token_hmac_secret_key":                "",
+	"token_rsa_public_key":                 "",
 	"publish":                              false,
 	"subscribe_to_publish":                 false,
 	"anonymous":                            false,
@@ -846,20 +850,20 @@ func pathExists(path string) (bool, error) {
 }
 
 var jsonConfigTemplate = `{
-  "secret": "{{.Secret}}",
+  "token_hmac_secret_key": "{{.TokenSecret}}",
   "admin_password": "{{.AdminPassword}}",
   "admin_secret": "{{.AdminSecret}}",
   "api_key": "{{.APIKey}}"
 }
 `
 
-var tomlConfigTemplate = `secret = {{.Secret}}
+var tomlConfigTemplate = `token_hmac_secret_key = {{.TokenSecret}}
 admin_password = {{.AdminPassword}}
 admin_secret = {{.AdminSecret}}
 api_key = {{.APIKey}}
 `
 
-var yamlConfigTemplate = `secret: {{.Secret}}
+var yamlConfigTemplate = `token_hmac_secret_key: {{.TokenSecret}}
 admin_password: {{.AdminPassword}}
 admin_secret: {{.AdminSecret}}
 api_key: {{.APIKey}}
@@ -902,7 +906,7 @@ func generateConfig(f string) error {
 
 	var output bytes.Buffer
 	t.Execute(&output, struct {
-		Secret        string
+		TokenSecret   string
 		AdminPassword string
 		AdminSecret   string
 		APIKey        string
@@ -959,7 +963,25 @@ func nodeConfig(version string) *centrifuge.Config {
 
 	cfg.Version = version
 	cfg.Name = applicationName()
-	cfg.Secret = v.GetString("secret")
+
+	hmacSecretKey := v.GetString("token_hmac_secret_key")
+	if hmacSecretKey != "" {
+		cfg.TokenHMACSecretKey = hmacSecretKey
+	} else {
+		if v.GetString("secret") != "" {
+			log.Warn().Msg("secret is deprecated, use token_hmac_secret_key instead")
+		}
+		cfg.TokenHMACSecretKey = v.GetString("secret")
+	}
+
+	rsaPublicKey := v.GetString("token_rsa_public_key")
+	if rsaPublicKey != "" {
+		pubKey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(rsaPublicKey))
+		if err != nil {
+			log.Fatal().Msgf("error parsing RSA public key: %v", err)
+		}
+		cfg.TokenRSAPublicKey = pubKey
+	}
 
 	cfg.Publish = v.GetBool("publish")
 	cfg.SubscribeToPublish = v.GetBool("subscribe_to_publish")

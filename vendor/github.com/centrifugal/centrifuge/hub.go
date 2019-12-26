@@ -4,19 +4,21 @@ import (
 	"context"
 	"sync"
 
-	"github.com/centrifugal/centrifuge/internal/proto"
+	"github.com/centrifugal/centrifuge/internal/clientproto"
+
+	"github.com/centrifugal/protocol"
 )
 
 // preparedReply is structure for protoTypeoding reply only once.
 type preparedReply struct {
-	ProtoType proto.ProtocolType
-	Reply     *proto.Reply
+	ProtoType ProtocolType
+	Reply     *protocol.Reply
 	data      []byte
 	once      sync.Once
 }
 
 // newPreparedReply initializes PreparedReply.
-func newPreparedReply(reply *proto.Reply, protoType proto.ProtocolType) *preparedReply {
+func newPreparedReply(reply *protocol.Reply, protoType ProtocolType) *preparedReply {
 	return &preparedReply{
 		Reply:     reply,
 		ProtoType: protoType,
@@ -26,10 +28,10 @@ func newPreparedReply(reply *proto.Reply, protoType proto.ProtocolType) *prepare
 // Data returns data associated with reply which is only calculated once.
 func (r *preparedReply) Data() []byte {
 	r.once.Do(func() {
-		encoder := proto.GetReplyEncoder(r.ProtoType)
+		encoder := protocol.GetReplyEncoder(r.ProtoType)
 		encoder.Encode(r.Reply)
 		data := encoder.Finish()
-		proto.PutReplyEncoder(r.ProtoType, encoder)
+		protocol.PutReplyEncoder(r.ProtoType, encoder)
 		r.data = data
 	})
 	return r.data
@@ -275,36 +277,36 @@ func (h *Hub) broadcastPublication(channel string, pub *Publication, chOpts *Cha
 			continue
 		}
 		protoType := c.Transport().Protocol()
-		if protoType == proto.ProtocolTypeJSON {
+		if protoType == protocol.TypeJSON {
 			if jsonReply == nil {
-				data, err := proto.GetPushEncoder(protoType).EncodePublication(pub)
+				data, err := protocol.GetPushEncoder(protoType).EncodePublication(pub)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetPushEncoder(protoType).Encode(proto.NewPublicationPush(channel, data))
+				messageBytes, err := protocol.GetPushEncoder(protoType).Encode(clientproto.NewPublicationPush(channel, data))
 				if err != nil {
 					return err
 				}
-				reply := &proto.Reply{
+				reply := &protocol.Reply{
 					Result: messageBytes,
 				}
-				jsonReply = newPreparedReply(reply, proto.ProtocolTypeJSON)
+				jsonReply = newPreparedReply(reply, protocol.TypeJSON)
 			}
 			c.writePublication(channel, pub, jsonReply, chOpts)
-		} else if protoType == proto.ProtocolTypeProtobuf {
+		} else if protoType == protocol.TypeProtobuf {
 			if protobufReply == nil {
-				data, err := proto.GetPushEncoder(protoType).EncodePublication(pub)
+				data, err := protocol.GetPushEncoder(protoType).EncodePublication(pub)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetPushEncoder(protoType).Encode(proto.NewPublicationPush(channel, data))
+				messageBytes, err := protocol.GetPushEncoder(protoType).Encode(clientproto.NewPublicationPush(channel, data))
 				if err != nil {
 					return err
 				}
-				reply := &proto.Reply{
+				reply := &protocol.Reply{
 					Result: messageBytes,
 				}
-				protobufReply = newPreparedReply(reply, proto.ProtocolTypeProtobuf)
+				protobufReply = newPreparedReply(reply, protocol.TypeProtobuf)
 			}
 			c.writePublication(channel, pub, protobufReply, chOpts)
 		}
@@ -313,7 +315,7 @@ func (h *Hub) broadcastPublication(channel string, pub *Publication, chOpts *Cha
 }
 
 // broadcastJoin sends message to all clients subscribed on channel.
-func (h *Hub) broadcastJoin(channel string, join *proto.Join) error {
+func (h *Hub) broadcastJoin(channel string, join *Join) error {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -333,36 +335,36 @@ func (h *Hub) broadcastJoin(channel string, join *proto.Join) error {
 			continue
 		}
 		protoType := c.Transport().Protocol()
-		if protoType == proto.ProtocolTypeJSON {
+		if protoType == protocol.TypeJSON {
 			if jsonReply == nil {
-				data, err := proto.GetPushEncoder(protoType).EncodeJoin(join)
+				data, err := protocol.GetPushEncoder(protoType).EncodeJoin(join)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetPushEncoder(protoType).Encode(proto.NewJoinPush(channel, data))
+				messageBytes, err := protocol.GetPushEncoder(protoType).Encode(clientproto.NewJoinPush(channel, data))
 				if err != nil {
 					return err
 				}
-				reply := &proto.Reply{
+				reply := &protocol.Reply{
 					Result: messageBytes,
 				}
-				jsonReply = newPreparedReply(reply, proto.ProtocolTypeJSON)
+				jsonReply = newPreparedReply(reply, protocol.TypeJSON)
 			}
 			c.writeJoin(channel, jsonReply)
-		} else if protoType == proto.ProtocolTypeProtobuf {
+		} else if protoType == protocol.TypeProtobuf {
 			if protobufReply == nil {
-				data, err := proto.GetPushEncoder(protoType).EncodeJoin(join)
+				data, err := protocol.GetPushEncoder(protoType).EncodeJoin(join)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetPushEncoder(protoType).Encode(proto.NewJoinPush(channel, data))
+				messageBytes, err := protocol.GetPushEncoder(protoType).Encode(clientproto.NewJoinPush(channel, data))
 				if err != nil {
 					return err
 				}
-				reply := &proto.Reply{
+				reply := &protocol.Reply{
 					Result: messageBytes,
 				}
-				protobufReply = newPreparedReply(reply, proto.ProtocolTypeProtobuf)
+				protobufReply = newPreparedReply(reply, protocol.TypeProtobuf)
 			}
 			c.writeJoin(channel, protobufReply)
 		}
@@ -371,7 +373,7 @@ func (h *Hub) broadcastJoin(channel string, join *proto.Join) error {
 }
 
 // broadcastLeave sends message to all clients subscribed on channel.
-func (h *Hub) broadcastLeave(channel string, leave *proto.Leave) error {
+func (h *Hub) broadcastLeave(channel string, leave *Leave) error {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -391,36 +393,36 @@ func (h *Hub) broadcastLeave(channel string, leave *proto.Leave) error {
 			continue
 		}
 		protoType := c.Transport().Protocol()
-		if protoType == proto.ProtocolTypeJSON {
+		if protoType == protocol.TypeJSON {
 			if jsonReply == nil {
-				data, err := proto.GetPushEncoder(protoType).EncodeLeave(leave)
+				data, err := protocol.GetPushEncoder(protoType).EncodeLeave(leave)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetPushEncoder(protoType).Encode(proto.NewLeavePush(channel, data))
+				messageBytes, err := protocol.GetPushEncoder(protoType).Encode(clientproto.NewLeavePush(channel, data))
 				if err != nil {
 					return err
 				}
-				reply := &proto.Reply{
+				reply := &protocol.Reply{
 					Result: messageBytes,
 				}
-				jsonReply = newPreparedReply(reply, proto.ProtocolTypeJSON)
+				jsonReply = newPreparedReply(reply, protocol.TypeJSON)
 			}
 			c.writeLeave(channel, jsonReply)
-		} else if protoType == proto.ProtocolTypeProtobuf {
+		} else if protoType == protocol.TypeProtobuf {
 			if protobufReply == nil {
-				data, err := proto.GetPushEncoder(protoType).EncodeLeave(leave)
+				data, err := protocol.GetPushEncoder(protoType).EncodeLeave(leave)
 				if err != nil {
 					return err
 				}
-				messageBytes, err := proto.GetPushEncoder(protoType).Encode(proto.NewLeavePush(channel, data))
+				messageBytes, err := protocol.GetPushEncoder(protoType).Encode(clientproto.NewLeavePush(channel, data))
 				if err != nil {
 					return err
 				}
-				reply := &proto.Reply{
+				reply := &protocol.Reply{
 					Result: messageBytes,
 				}
-				protobufReply = newPreparedReply(reply, proto.ProtocolTypeProtobuf)
+				protobufReply = newPreparedReply(reply, protocol.TypeProtobuf)
 			}
 			c.writeLeave(channel, protobufReply)
 		}
