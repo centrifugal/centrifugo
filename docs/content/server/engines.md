@@ -57,6 +57,7 @@ Several configuration options related to Redis engine:
 * `redis_sentinels` (string, default `""`) - comma separated list of Sentinels for HA
 * `redis_master_name` (string, default `""`) - name of Redis master Sentinel monitors
 * `redis_prefix` (string, default `"centrifugo"`) – custom prefix to use for channels and keys in Redis
+* `redis_sequence_ttl` (int, default `0`) - sets a time in seconds of sequence data expiration in Redis Engine. Sequence meta key in Redis is a HASH that contains current sequence number in channel and epoch value. By default sequence data for channels does not expire. Though in some cases – when channels created for а short time and then not used anymore – created sequence meta data can stay in memory while not actually useful. For example you can have a personal user channel but after using your app for a while user left it forever. In long-term perspective this can be an unwanted memory leak. Setting a reasonable value to this option (usually much bigger than history retention period) can help. In this case unused channel sequence data will eventually expire. Available since v2.3.0
 
 All of these options can be set over configuration file. Some of them can be set over command-line arguments (see `centrifugo -h` output).
 
