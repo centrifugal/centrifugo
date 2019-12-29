@@ -84,21 +84,6 @@ type Config struct {
 	// It's not very reasonable to have it less than one second.
 	NodeInfoMetricsAggregateInterval time.Duration
 
-	// SequenceTTL sets a time of sequence data expiration in Engine.
-	// For example sequence meta key in Redis is a HASH that contains current
-	// sequence number in channel and epoch value. By default sequence data for
-	// channels do not expire.
-	// Though in some cases – when channels created for а short time and then
-	// not used anymore – created sequence meta data can stay in memory while
-	// not actually useful. For example you can have a personal user channel but
-	// after using your app for a while user left it forever. In long-term
-	// perspective this can be an unwanted memory leak. Setting a reasonable
-	// value to this option (usually much bigger than history retention period)
-	// can help. In this case unused channel sequence data will eventually expire.
-	//
-	// At moment this option only supported by Redis Engine (with seconds resolution).
-	SequenceTTL time.Duration
-
 	// LogLevel is a log level to use. By default nothing will be logged.
 	LogLevel LogLevel
 	// LogHandler is a handler func node will send logs to.

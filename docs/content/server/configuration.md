@@ -292,20 +292,6 @@ Default: 0
 
 By default Centrifugo runs on all available CPU cores. If you want to limit amount of cores Centrifugo can utilize in one moment use this option.
 
-#### sequence_ttl
-
-Default: 0
-
-Sequence TTL in seconds.
-
-This option sets a time of sequence data expiration in Engine. For example sequence meta key in Redis is a HASH that contains current sequence number in channel and epoch value. By default sequence data for channels does not expire.
-
-Though in some cases – when channels created for а short time and then not used anymore – created sequence meta data can stay in memory while not actually useful. For example you can have a personal user channel but after using your app for a while user left it forever. In long-term perspective this can be an unwanted memory leak. Setting a reasonable value to this option (usually much bigger than history retention period) can help. In this case unused channel sequence data will eventually expire.
-
-At moment this option **only supported by Redis Engine** (with seconds resolution).
-
-Available since v2.3.0
-
 ### Advanced endpoint configuration.
 
 After you started Centrifugo you have several endpoints available. As soon as you have not provided any extra options you have 3 endpoints by default.

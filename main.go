@@ -94,7 +94,7 @@ func main() {
 				"sockjs_handler_prefix", "api_handler_prefix", "prometheus_handler_prefix",
 				"health_handler_prefix", "grpc_api_tls", "grpc_api_tls_disable",
 				"grpc_api_tls_cert", "grpc_api_tls_key", "token_rsa_public_key",
-				"token_hmac_secret_key", "sequence_ttl",
+				"token_hmac_secret_key", "redis_sequence_ttl",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -418,7 +418,7 @@ var configDefaults = map[string]interface{}{
 	"redis_write_timeout":                  1,
 	"redis_idle_timeout":                   0,
 	"redis_pubsub_num_workers":             0,
-	"sequence_ttl":                         0,
+	"redis_sequence_ttl":                   0,
 	"grpc_api":                             false,
 	"grpc_api_port":                        10000,
 	"shutdown_timeout":                     30,
@@ -939,8 +939,6 @@ func nodeConfig() *centrifuge.Config {
 	cfg.ClientUserConnectionLimit = v.GetInt("client_user_connection_limit")
 	cfg.ClientChannelPositionCheckDelay = time.Duration(v.GetInt("client_channel_position_check_delay")) * time.Second
 
-	cfg.SequenceTTL = time.Duration(v.GetInt("sequence_ttl")) * time.Second
-
 	cfg.NodeInfoMetricsAggregateInterval = time.Duration(v.GetInt("node_info_metrics_aggregate_interval")) * time.Second
 
 	level, ok := centrifuge.LogStringToLevel[strings.ToLower(v.GetString("log_level"))]
@@ -1233,6 +1231,7 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 
 	return &centrifuge.RedisEngineConfig{
 		PublishOnHistoryAdd: true,
+		SequenceTTL:         time.Duration(v.GetInt("redis_sequence_ttl")) * time.Second,
 		Shards:              shardConfigs,
 	}, nil
 }
