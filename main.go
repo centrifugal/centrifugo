@@ -97,7 +97,7 @@ func main() {
 				"grpc_api_tls_cert", "grpc_api_tls_key", "proxy_connect_endpoint",
 				"proxy_connect_timeout", "proxy_rpc_endpoint", "proxy_rpc_timeout",
 				"proxy_refresh_endpoint", "proxy_refresh_timeout",
-				"token_rsa_public_key", "token_hmac_secret_key",
+				"token_rsa_public_key", "token_hmac_secret_key", "redis_sequence_ttl",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -478,6 +478,7 @@ var configDefaults = map[string]interface{}{
 	"redis_write_timeout":                  1,
 	"redis_idle_timeout":                   0,
 	"redis_pubsub_num_workers":             0,
+	"redis_sequence_ttl":                   0,
 	"grpc_api":                             false,
 	"grpc_api_port":                        10000,
 	"shutdown_timeout":                     30,
@@ -1308,6 +1309,7 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 
 	return &centrifuge.RedisEngineConfig{
 		PublishOnHistoryAdd: true,
+		SequenceTTL:         time.Duration(v.GetInt("redis_sequence_ttl")) * time.Second,
 		Shards:              shardConfigs,
 	}, nil
 }
