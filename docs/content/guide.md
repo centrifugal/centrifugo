@@ -14,7 +14,7 @@ Here let's suppose you already have 2 of 3 elements: clients and backend. And yo
 
 1) First you need to do is download/install Centrifugo server. See [install](server/install.md) chapter for details.
 
-2) Create basic configuration file with `secret` and `api_key` set and then run Centrifugo. See [this chapter](server/configuration.md) for details about secret key and [chapter about API](server/http_api.md) for API description. The simplest way to do this automatically is by using `genconfig` command:
+2) Create basic configuration file with `token_hmac_secret_key` (or `token_rsa_public_key`) and `api_key` set and then run Centrifugo. See [this chapter](server/configuration.md) for details about `token_hmac_secret_key`/`token_rsa_public_key`  and [chapter about API](server/http_api.md) for API description. The simplest way to do this automatically is by using `genconfig` command:
 
 ```
 ./centrifugo genconfig
@@ -22,9 +22,9 @@ Here let's suppose you already have 2 of 3 elements: clients and backend. And yo
 
 – which will generate `config.json` file for you with all required fields.
 
-3) In configuration file **of your application backend** register several variables: Centrifugo secret and Centrifugo API key you set on previous step and Centrifugo API address. By default API address is `http://localhost:8000/api`. You **must never reveal secret and API key to your users**.
+3) In configuration file **of your application backend** register several variables: Centrifugo secret and Centrifugo API key you set on previous step and Centrifugo API address. By default API address is `http://localhost:8000/api`. You **must never reveal token secret and API key to your users**.
 
-4) Now your users can start connecting to Centrifugo. You should get client library (see [list of available client libraries](libraries/client.md)) for your application frontend. Every library has method to connect to Centrifugo. See information about Centrifugo connection endpoints [here](https://centrifugal.github.io/centrifugo/server/configuration/#advanced-endpoint-configuration). Every client should provide connection token (JWT) on connect. You must generate this token on your backend side using Centrifugo secret key you set to backend configuration. See how to generate this JWT [in special chapter](server/authentication.md). You pass this token from backend to your frontend app (pass it in template context or use separate request from client side to get user specific JWT from backend side). And use this token when connecting to Centrifugo (for example browser client has special method `setToken`).
+4) Now your users can start connecting to Centrifugo. You should get client library (see [list of available client libraries](libraries/client.md)) for your application frontend. Every library has method to connect to Centrifugo. See information about Centrifugo connection endpoints [here](https://centrifugal.github.io/centrifugo/server/configuration/#advanced-endpoint-configuration). Every client should provide connection token (JWT) on connect. You must generate this token on your backend side using Centrifugo secret key you set to backend configuration (note that in case of RSA tokens you are generating JWT with private key). See how to generate this JWT [in special chapter](server/authentication.md). You pass this token from backend to your frontend app (pass it in template context or use separate request from client side to get user specific JWT from backend side). And use this token when connecting to Centrifugo (for example browser client has special method `setToken`).
 
 5) After connecting to Centrifugo subscribe clients to channels they are interested in. See more about channels in [special chapter](server/channels.md). All client libraries provide a way to handle messages coming to client from channel after subscribing to it.
 

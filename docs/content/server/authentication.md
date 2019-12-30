@@ -4,9 +4,27 @@ When you are using [centrifuge](https://github.com/centrifugal/centrifuge) libra
 
 When connecting to Centrifugo client must provide connection JWT token with several predefined credential claims. If you've never heard about JWT before - refer to [jwt.io](https://jwt.io/) page.
 
-At moment **the only supported JWT algorithms are HS256 and RSA ** - i.e. HMAC SHA-256, RSA256, RSA512. This can be extended later.
+At moment **the only supported JWT algorithms are HMAC and RSA ** - i.e. HS256, HS384, HS512, RSA256, RSA384, RSA512. This can be extended later. RSA algorithm is available since v2.3.0 release.
 
 We will use Javascript Centrifugo client here for example snippets for client side and [PyJWT](https://github.com/jpadilla/pyjwt) Python library to generate connection token on backend side.
+
+To add HMAC secret key to Centrifugo add `token_hmac_secret_key` to configuration file:
+
+```javascript
+{
+  "token_hmac_secret_key": "<YOUR-SECRET-STRING-HERE>",
+  ...
+}
+```
+
+To add RSA public key (must be PEM encoded string) add `token_rsa_public_key` option, ex:
+
+```javascript
+{
+  "token_rsa_public_key": "-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZ...",
+  ...
+}
+```
 
 ## Claims
 
@@ -42,7 +60,7 @@ This field contains a `base64` representation of your bytes. After receiving Cen
 
 ## Examples
 
-Let's look how to generate connection JWT in Python:
+Let's look how to generate connection HS256 JWT in Python:
 
 ### Simplest token
 

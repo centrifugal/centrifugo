@@ -73,12 +73,12 @@ This is a minimal Centrifugo configuration file:
 
 ```javascript
 {
-  "secret": "<YOUR-SECRET-STRING-HERE>",
+  "token_hmac_secret_key": "<YOUR-SECRET-STRING-HERE>",
   "api_key": "<YOUR-API-KEY-HERE>"
 }
 ```
 
-The only two fields required are **secret** and **api_key**. Secret used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](http_api.md). Keep both values in secret and never reveal to clients.
+The only two fields required are **token_hmac_secret_key** and **api_key**. `token_hmac_secret_key` used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](http_api.md). Keep both values in secret and never reveal to clients.
 
 ### TOML file
 
@@ -91,7 +91,7 @@ centrifugo --config=config.toml
 Where `config.toml` contains:
 
 ```
-secret = "<YOUR-SECRET-STRING-HERE>"
+token_hmac_secret_key = "<YOUR-SECRET-STRING-HERE>"
 api_key = "<YOUR-API-KEY-HERE>"
 log_level = "debug"
 ```
@@ -103,7 +103,7 @@ I.e. the same configuration as JSON file above with one extra option.
 And YAML config also supported. `config.yaml`:
 
 ```
-secret: "<YOUR-SECRET-STRING-HERE>"
+token_hmac_secret_key: "<YOUR-SECRET-STRING-HERE>"
 api_key: "<YOUR-API-KEY-HERE>"
 log_level: debug
 ```
@@ -168,7 +168,7 @@ Let's look how to set some of these options in config:
 
 ```javascript
 {
-    "secret": "my-secret-key",
+    "token_hmac_secret_key": "my-secret-key",
     "api_key": "secret-api-key",
     "anonymous": true,
     "publish": true,
@@ -200,7 +200,7 @@ All things together here is an example of `config.json` which includes registere
 
 ```javascript
 {
-    "secret": "very-long-secret-key",
+    "token_hmac_secret_key": "very-long-secret-key",
     "api_key": "secret-api-key",
     "anonymous": true,
     "publish": true,
