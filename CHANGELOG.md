@@ -1,3 +1,19 @@
+v2.3.0
+======
+
+This release is a big shift in Centrifugo possibilities due to HTTP request proxy feature. It was a pretty long term work but the final result opens a new commucation direction: from client to server – see details below.
+
+Release has some internal backwards incompatible changes in Redis engine and deprecations. **Migration must be smooth but we strongly suggest to test your functionality** before running new version in production. Read release notes below for more information.
+
+Improvements:
+
+* It's now possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections. More information in [new documentation chapter](https://centrifugal.github.io/centrifugo/server/proxy/)
+* Centrifugo now supports RSA-based JWT. You can enable this by setting `token_rsa_public_key` option. See [updated authentication chapter](https://centrifugal.github.io/centrifugo/server/authentication/) in docs for more details. Due to this addition we also renamed `secret` option to `token_hmac_secret_key` so it's much more meaningful in modern context. But don't worry - old `secret` option will work and continue to set token HMAC secret key until Centrifugo v3 release (which is not even planned yet). But we adjusted docs and `genconfig` command to use new naming
+* New option `redis_sequence_ttl` for Redis engine. It allows to expire internal keys related to history sequnce meta data in Redis – current sequence number in channel and epoch value. See more motivation behind this option in [its description in Redis Engine docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-engine). While adding this feature we changed how sequence and epoch values are stored in Redis - both are now fields of single Redis HASH key. This means that after updating to this version your clients won't recover missed messages - but your frontend application will receive `recovered: false` in subscription context so it should tolerate this loss gracefully recovering state from your main database (if everything done right on your client side of course)
+* More validation of configuration file is now performed. Specifically we now check history recovery configuration - see [this issue](https://github.com/centrifugal/centrifuge-js/issues/99) to see how absence of such misconfiguration check resulted in confused Centrifugo behaviour - no messages were received by subscribers
+* Go internal logs from HTTP server are now wrapped in our structured logging mechanism - those errors will look as warns in Centrifugo logs now
+* Alpine 3.10 instead of Alpine 3.8 as Centrifugo docker image base
+
 v2.2.7
 ======
 
