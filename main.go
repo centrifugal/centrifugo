@@ -30,6 +30,7 @@ import (
 	"github.com/centrifugal/centrifugo/internal/jwt"
 	"github.com/centrifugal/centrifugo/internal/metrics/graphite"
 	"github.com/centrifugal/centrifugo/internal/middleware"
+	"github.com/centrifugal/centrifugo/internal/proxy"
 	"github.com/centrifugal/centrifugo/internal/webui"
 
 	"github.com/FZambia/viper-lite"
@@ -93,8 +94,10 @@ func main() {
 				"presence_disable_for_client", "admin_handler_prefix", "websocket_handler_prefix",
 				"sockjs_handler_prefix", "api_handler_prefix", "prometheus_handler_prefix",
 				"health_handler_prefix", "grpc_api_tls", "grpc_api_tls_disable",
-				"grpc_api_tls_cert", "grpc_api_tls_key", "token_rsa_public_key",
-				"token_hmac_secret_key", "redis_sequence_ttl",
+				"grpc_api_tls_cert", "grpc_api_tls_key", "proxy_connect_endpoint",
+				"proxy_connect_timeout", "proxy_rpc_endpoint", "proxy_rpc_timeout",
+				"proxy_refresh_endpoint", "proxy_refresh_timeout",
+				"token_rsa_public_key", "token_hmac_secret_key", "redis_sequence_ttl",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -113,11 +116,16 @@ func main() {
 				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
 			}
 
+			// For backwards compatibility.
+			viper.RegisterAlias("websocket_ping_interval", "client_ping_interval")
+			viper.RegisterAlias("websocket_write_timeout", "client_message_write_timeout")
+			viper.RegisterAlias("websocket_message_size_limit", "client_request_max_size")
+
 			viper.SetConfigFile(configFile)
 
 			absConfPath, err := filepath.Abs(configFile)
 			if err != nil {
-				log.Fatal().Msgf("Error retrieving config file absolute path: %v", err)
+				log.Fatal().Msgf("error retrieving config file absolute path: %v", err)
 			}
 
 			err = viper.ReadInConfig()
@@ -125,7 +133,7 @@ func main() {
 			if err != nil {
 				switch err.(type) {
 				case viper.ConfigParseError:
-					log.Fatal().Msgf("Error parsing configuration: %s\n", err)
+					log.Fatal().Msgf("error parsing configuration: %s\n", err)
 				default:
 					configFound = false
 				}
@@ -138,7 +146,7 @@ func main() {
 
 			err = writePidFile(viper.GetString("pid_file"))
 			if err != nil {
-				log.Fatal().Msgf("Error writing PID: %v", err)
+				log.Fatal().Msgf("error writing PID: %v", err)
 			}
 
 			if !configFound {
@@ -153,15 +161,15 @@ func main() {
 				}
 			}
 
-			c := nodeConfig()
+			c := nodeConfig(VERSION)
 			err = c.Validate()
 			if err != nil {
-				log.Fatal().Msgf("Error validating config: %v", err)
+				log.Fatal().Msgf("error validating config: %v", err)
 			}
 
 			node, err := centrifuge.New(*c)
 			if err != nil {
-				log.Fatal().Msgf("Error creating Centrifuge Node: %v", err)
+				log.Fatal().Msgf("error creating Centrifuge Node: %v", err)
 			}
 
 			engineName := viper.GetString("engine")
@@ -172,28 +180,79 @@ func main() {
 			} else if engineName == "redis" {
 				e, err = redisEngine(node)
 			} else {
-				log.Fatal().Msgf("Unknown engine: %s", engineName)
+				log.Fatal().Msgf("unknown engine: %s", engineName)
 			}
 
 			if err != nil {
-				log.Fatal().Msgf("Error creating engine: %v", err)
+				log.Fatal().Msgf("error creating engine: %v", err)
 			}
+
+			connectHandlerEnabled := viper.GetString("proxy_connect_endpoint") != ""
+			if connectHandlerEnabled {
+				connectHandler := proxy.NewConnectHandler(proxy.ConnectHandlerConfig{
+					Proxy: proxy.NewHTTPConnectProxy(
+						viper.GetString("proxy_connect_endpoint"),
+						proxyHTTPClient(viper.GetFloat64("proxy_connect_timeout")),
+					),
+				})
+				node.On().ClientConnecting(connectHandler.Handle(node))
+			}
+
+			refreshHandler := proxy.NewRefreshHandler(proxy.RefreshHandlerConfig{
+				Proxy: proxy.NewHTTPRefreshProxy(
+					viper.GetString("proxy_refresh_endpoint"),
+					proxyHTTPClient(viper.GetFloat64("proxy_refresh_timeout")),
+				),
+			})
+			refreshHandlerEnabled := viper.GetString("proxy_refresh_endpoint") != ""
+			if refreshHandlerEnabled {
+				node.On().ClientRefresh(refreshHandler.Handle(node))
+			}
+
+			rpcHandler := proxy.NewRPCHandler(proxy.RPCHandlerConfig{
+				Proxy: proxy.NewHTTPRPCProxy(
+					viper.GetString("proxy_rpc_endpoint"),
+					proxyHTTPClient(viper.GetFloat64("proxy_rpc_timeout")),
+				),
+			})
+
+			rpcHandlerEnabled := viper.GetString("proxy_rpc_endpoint") != ""
+			node.On().ClientConnected(func(ctx context.Context, client *centrifuge.Client) {
+				if rpcHandlerEnabled {
+					client.On().RPC(rpcHandler.Handle(ctx, node, client))
+				}
+			})
 
 			node.SetEngine(e)
 
 			if err = node.Run(); err != nil {
-				log.Fatal().Msgf("Error running node: %v", err)
+				log.Fatal().Msgf("error running node: %v", err)
 			}
 
 			version := VERSION
 			if version == "" {
 				version = "dev"
 			}
-			log.Info().Msgf("starting Centrifugo %s (%s)", version, runtime.Version())
-			log.Info().Msgf("config path: %s", absConfPath)
-			log.Info().Msgf("pid: %d", os.Getpid())
-			log.Info().Msgf("engine: %s", strings.Title(engineName))
-			log.Info().Msgf("gomaxprocs: %d", runtime.GOMAXPROCS(0))
+
+			log.Info().Str(
+				"version", version).Str(
+				"runtime", runtime.Version()).Int(
+				"pid", os.Getpid()).Str(
+				"engine", strings.Title(engineName)).Int(
+				"gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
+
+			log.Info().Str("path", absConfPath).Msg("using config")
+
+			if connectHandlerEnabled {
+				log.Info().Str("endpoint", viper.GetString("proxy_connect_endpoint")).Msg("proxy connect over HTTP")
+			}
+			if refreshHandlerEnabled {
+				log.Info().Str("endpoint", viper.GetString("proxy_refresh_endpoint")).Msg("proxy refresh over HTTP")
+			}
+			if rpcHandlerEnabled {
+				log.Info().Str("endpoint", viper.GetString("proxy_rpc_endpoint")).Msg("proxy RPC over HTTP")
+			}
+
 			if viper.GetBool("client_insecure") {
 				log.Warn().Msg("INSECURE client mode enabled")
 			}
@@ -376,9 +435,7 @@ var configDefaults = map[string]interface{}{
 	"client_expired_close_delay":           25,
 	"client_expired_sub_close_delay":       25,
 	"client_stale_close_delay":             25,
-	"client_message_write_timeout":         0,
 	"client_channel_limit":                 128,
-	"client_request_max_size":              65536,    // 64KB
 	"client_queue_max_size":                10485760, // 10MB
 	"client_presence_ping_interval":        25,
 	"client_presence_expire_interval":      60,
@@ -404,6 +461,9 @@ var configDefaults = map[string]interface{}{
 	"websocket_compression_level":          1,
 	"websocket_read_buffer_size":           0,
 	"websocket_write_buffer_size":          0,
+	"websocket_ping_interval":              25,
+	"websocket_write_timeout":              0,
+	"websocket_message_size_limit":         65536, // 64KB
 	"tls_autocert":                         false,
 	"tls_autocert_host_whitelist":          "",
 	"tls_autocert_cache_dir":               "",
@@ -435,6 +495,12 @@ var configDefaults = map[string]interface{}{
 	"api_handler_prefix":                   "/api",
 	"prometheus_handler_prefix":            "/metrics",
 	"health_handler_prefix":                "/health",
+	"proxy_connect_endpoint":               "",
+	"proxy_connect_timeout":                1,
+	"proxy_rpc_endpoint":                   "",
+	"proxy_rpc_timeout":                    1,
+	"proxy_refresh_endpoint":               "",
+	"proxy_refresh_timeout":                1,
 }
 
 func writePidFile(pidFile string) error {
@@ -499,7 +565,7 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 					continue
 				}
 			}
-			cfg := nodeConfig()
+			cfg := nodeConfig(VERSION)
 			if err := n.Reload(*cfg); err != nil {
 				log.Error().Msgf("error reloading: %v", err)
 				continue
@@ -551,6 +617,15 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 			time.Sleep(time.Duration(viper.GetInt("shutdown_termination_delay")) * time.Second)
 			os.Exit(0)
 		}
+	}
+}
+
+func proxyHTTPClient(timeout float64) *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: proxy.DefaultMaxIdleConnsPerHost,
+		},
+		Timeout: time.Duration(timeout*1000) * time.Millisecond,
 	}
 }
 
@@ -869,7 +944,7 @@ func validateConfig(f string) error {
 			return errors.New("unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
 		}
 	}
-	c := nodeConfig()
+	c := nodeConfig(VERSION)
 	return c.Validate()
 }
 
@@ -882,12 +957,12 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func nodeConfig() *centrifuge.Config {
+func nodeConfig(version string) *centrifuge.Config {
 	v := viper.GetViper()
 
 	cfg := &centrifuge.Config{}
 
-	cfg.Version = VERSION
+	cfg.Version = version
 	cfg.Name = applicationName()
 
 	hmacSecretKey := v.GetString("token_hmac_secret_key")
@@ -1003,6 +1078,9 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	cfg.CompressionMinSize = v.GetInt("websocket_compression_min_size")
 	cfg.ReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WriteBufferSize = v.GetInt("websocket_write_buffer_size")
+	cfg.PingInterval = time.Duration(v.GetInt("websocket_ping_interval")) * time.Second
+	cfg.WriteTimeout = time.Duration(v.GetInt("websocket_write_timeout")) * time.Second
+	cfg.MessageSizeLimit = v.GetInt("websocket_message_size_limit")
 	return cfg
 }
 
@@ -1335,13 +1413,15 @@ func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 		mux.Handle("/debug/pprof/trace", middleware.LogRequest(http.HandlerFunc(pprof.Trace)))
 	}
 
+	proxyEnabled := viper.GetString("proxy_connect_endpoint") != "" || viper.GetString("proxy_refresh_endpoint") != "" || viper.GetString("proxy_rpc_endpoint") != ""
+
 	if flags&HandlerWebsocket != 0 {
 		// register Websocket connection endpoint.
 		wsPrefix := strings.TrimRight(v.GetString("websocket_handler_prefix"), "/")
 		if wsPrefix == "" {
 			wsPrefix = "/"
 		}
-		mux.Handle(wsPrefix, middleware.LogRequest(centrifuge.NewWebsocketHandler(n, websocketHandlerConfig())))
+		mux.Handle(wsPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig()))))
 	}
 
 	if flags&HandlerSockJS != 0 {
@@ -1349,7 +1429,7 @@ func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 		sockjsConfig := sockjsHandlerConfig()
 		sockjsPrefix := strings.TrimRight(v.GetString("sockjs_handler_prefix"), "/")
 		sockjsConfig.HandlerPrefix = sockjsPrefix
-		mux.Handle(sockjsPrefix+"/", middleware.LogRequest(centrifuge.NewSockjsHandler(n, sockjsConfig)))
+		mux.Handle(sockjsPrefix+"/", middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewSockjsHandler(n, sockjsConfig))))
 	}
 
 	if flags&HandlerAPI != 0 {
