@@ -571,6 +571,18 @@
 
 
   <li class="md-nav__item">
+    <a href="../proxy/" title="Proxy to backend" class="md-nav__link">
+      Proxy to backend
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../protobuf/" title="Protobuf protocol" class="md-nav__link">
       Protobuf protocol
     </a>
@@ -994,8 +1006,24 @@
                 <h1 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h1>
 <p>When you are using <a href="https://github.com/centrifugal/centrifuge">centrifuge</a> library from Go language you can implement any user authentication using middleware. In Centrifugo case you need to tell server who is connecting in well-known predefined way. This chapter will describe this mechanism.</p>
 <p>When connecting to Centrifugo client must provide connection JWT token with several predefined credential claims. If you&rsquo;ve never heard about JWT before - refer to <a href="https://jwt.io/">jwt.io</a> page.</p>
-<p>At moment <strong>the only supported JWT algorithm is HS256</strong> - i.e. HMAC SHA-256. This can be extended later.</p>
+<p>At moment <strong>the only supported JWT algorithms are HMAC and RSA </strong> - i.e. HS256, HS384, HS512, RSA256, RSA384, RSA512. This can be extended later. RSA algorithm is available since v2.3.0 release.</p>
 <p>We will use Javascript Centrifugo client here for example snippets for client side and <a href="https://github.com/jpadilla/pyjwt">PyJWT</a> Python library to generate connection token on backend side.</p>
+<p>To add HMAC secret key to Centrifugo add <code>token_hmac_secret_key</code> to configuration file:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;token_hmac_secret_key&quot;</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;</span><span class="p">,</span>
+  <span class="p">...</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>To add RSA public key (must be PEM encoded string) add <code>token_rsa_public_key</code> option, ex:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;token_rsa_public_key&quot;</span><span class="o">:</span> <span class="s2">&quot;-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZ...&quot;</span><span class="p">,</span>
+  <span class="p">...</span>
+<span class="p">}</span>
+</pre></div>
+
+
 <h2 id="claims">Claims<a class="headerlink" href="#claims" title="Permanent link">&para;</a></h2>
 <p>Centrifugo uses the following claims in JWT: <code>sub</code>, <code>exp</code>, <code>info</code> and <code>b64info</code>. What do they mean? Let&rsquo;s describe in detail.</p>
 <h3 id="sub">sub<a class="headerlink" href="#sub" title="Permanent link">&para;</a></h3>
@@ -1013,7 +1041,7 @@
 <p>If you are using binary protobuf protocol you may want info to be custom bytes. Use this field in this case.</p>
 <p>This field contains a <code>base64</code> representation of your bytes. After receiving Centrifugo will decode base64 back to bytes and will embed result into various places described above.</p>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
-<p>Let&rsquo;s look how to generate connection JWT in Python:</p>
+<p>Let&rsquo;s look how to generate connection HS256 JWT in Python:</p>
 <h3 id="simplest-token">Simplest token<a class="headerlink" href="#simplest-token" title="Permanent link">&para;</a></h3>
 <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
 

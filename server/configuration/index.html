@@ -676,6 +676,18 @@
 
 
   <li class="md-nav__item">
+    <a href="../proxy/" title="Proxy to backend" class="md-nav__link">
+      Proxy to backend
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../protobuf/" title="Protobuf protocol" class="md-nav__link">
       Protobuf protocol
     </a>
@@ -1265,13 +1277,13 @@ Flags:
 <p>Centrifugo requires configuration file on start. As was mentioned earlier it must be a file with valid JSON.</p>
 <p>This is a minimal Centrifugo configuration file:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
-  <span class="s2">&quot;secret&quot;</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;token_hmac_secret_key&quot;</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;</span><span class="p">,</span>
   <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR-API-KEY-HERE&gt;&quot;</span>
 <span class="p">}</span>
 </pre></div>
 
 
-<p>The only two fields required are <strong>secret</strong> and <strong>api_key</strong>. Secret used to check JWT signature (more about JWT in <a href="../authentication/">authentication chapter</a>). API key used for Centrifugo API endpoint authorization, see more in <a href="../http_api/">chapter about server HTTP API</a>. Keep both values in secret and never reveal to clients.</p>
+<p>The only two fields required are <strong>token_hmac_secret_key</strong> and <strong>api_key</strong>. <code>token_hmac_secret_key</code> used to check JWT signature (more about JWT in <a href="../authentication/">authentication chapter</a>). API key used for Centrifugo API endpoint authorization, see more in <a href="../http_api/">chapter about server HTTP API</a>. Keep both values in secret and never reveal to clients.</p>
 <h3 id="toml-file">TOML file<a class="headerlink" href="#toml-file" title="Permanent link">&para;</a></h3>
 <p>Centrifugo also supports TOML format for configuration file:</p>
 <div class="codehilite"><pre><span></span>centrifugo --config=config.toml
@@ -1279,7 +1291,7 @@ Flags:
 
 
 <p>Where <code>config.toml</code> contains:</p>
-<div class="codehilite"><pre><span></span>secret = &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;
+<div class="codehilite"><pre><span></span>token_hmac_secret_key = &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;
 api_key = &quot;&lt;YOUR-API-KEY-HERE&gt;&quot;
 log_level = &quot;debug&quot;
 </pre></div>
@@ -1288,7 +1300,7 @@ log_level = &quot;debug&quot;
 <p>I.e. the same configuration as JSON file above with one extra option.</p>
 <h3 id="yaml-file">YAML file<a class="headerlink" href="#yaml-file" title="Permanent link">&para;</a></h3>
 <p>And YAML config also supported. <code>config.yaml</code>:</p>
-<div class="codehilite"><pre><span></span>secret: &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;
+<div class="codehilite"><pre><span></span>token_hmac_secret_key: &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;
 api_key: &quot;&lt;YOUR-API-KEY-HERE&gt;&quot;
 log_level: debug
 </pre></div>
@@ -1353,7 +1365,7 @@ log_level: debug
 </ul>
 <p>Let&rsquo;s look how to set some of these options in config:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;secret&quot;</span><span class="o">:</span> <span class="s2">&quot;my-secret-key&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;token_hmac_secret_key&quot;</span><span class="o">:</span> <span class="s2">&quot;my-secret-key&quot;</span><span class="p">,</span>
     <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
     <span class="s2">&quot;anonymous&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
     <span class="s2">&quot;publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
@@ -1379,7 +1391,7 @@ channel name with <code>:</code> as separator:</p>
 <p>Where <code>public</code> and <code>gossips</code> are namespace names from project <code>namespaces</code>.</p>
 <p>All things together here is an example of <code>config.json</code> which includes registered project with all options set and 2 additional namespaces in it:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;secret&quot;</span><span class="o">:</span> <span class="s2">&quot;very-long-secret-key&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;token_hmac_secret_key&quot;</span><span class="o">:</span> <span class="s2">&quot;very-long-secret-key&quot;</span><span class="p">,</span>
     <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
     <span class="s2">&quot;anonymous&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
     <span class="s2">&quot;publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>

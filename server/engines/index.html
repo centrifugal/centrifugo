@@ -517,6 +517,18 @@
 
 
   <li class="md-nav__item">
+    <a href="../proxy/" title="Proxy to backend" class="md-nav__link">
+      Proxy to backend
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../protobuf/" title="Protobuf protocol" class="md-nav__link">
       Protobuf protocol
     </a>
@@ -931,6 +943,7 @@
 <li><code>redis_sentinels</code> (string, default <code>""</code>) - comma separated list of Sentinels for HA</li>
 <li><code>redis_master_name</code> (string, default <code>""</code>) - name of Redis master Sentinel monitors</li>
 <li><code>redis_prefix</code> (string, default <code>"centrifugo"</code>) – custom prefix to use for channels and keys in Redis</li>
+<li><code>redis_sequence_ttl</code> (int, default <code>0</code>) - sets a time in seconds of sequence data expiration in Redis Engine. Sequence meta key in Redis is a HASH that contains current sequence number in channel and epoch value. By default sequence data for channels does not expire. Though in some cases – when channels created for а short time and then not used anymore – created sequence meta data can stay in memory while not actually useful. For example you can have a personal user channel but after using your app for a while user left it forever. In long-term perspective this can be an unwanted memory leak. Setting a reasonable value to this option (usually much bigger than history retention period) can help. In this case unused channel sequence data will eventually expire. Available since v2.3.0</li>
 </ul>
 <p>All of these options can be set over configuration file. Some of them can be set over command-line arguments (see <code>centrifugo -h</code> output).</p>
 <p>Let&rsquo;s describe a bit more <code>redis_url</code> option. <code>redis_url</code> allows to set Redis connection parameters in a form of URL in format <code>redis://:password@hostname:port/db_number</code>. When <code>redis_url</code> set Centrifugo will use URL instead of values provided in <code>redis_host</code>, <code>redis_port</code>, <code>redis_password</code>, <code>redis_db</code> options.</p>

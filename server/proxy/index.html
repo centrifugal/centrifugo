@@ -13,7 +13,7 @@
         <meta name="description" content="Centrifugo Documentation">
       
       
-        <link rel="canonical" href="https://github.com/centrifugal/centrifugo/server/grpc_api/">
+        <link rel="canonical" href="https://github.com/centrifugal/centrifugo/server/proxy/">
       
       
         <meta name="author" content="Centrifugal">
@@ -42,7 +42,7 @@
     
     
       
-        <title>Server GRPC API - Centrifugo Documentation</title>
+        <title>Proxy to backend - Centrifugo Documentation</title>
       
     
     
@@ -110,7 +110,7 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
-      <a href="#server-grpc-api" tabindex="1" class="md-skip">
+      <a href="#proxy-calls-to-app-backend" tabindex="1" class="md-skip">
         Skip to content
       </a>
     
@@ -135,7 +135,7 @@
               Centrifugo Documentation
             </span>
             <span class="md-header-nav__topic">
-              Server GRPC API
+              Proxy to backend
             </span>
           
         </div>
@@ -396,56 +396,11 @@
           
           
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-    
-      
-    
-    
-      <label class="md-nav__link md-nav__link--active" for="__toc">
-        Server GRPC API
-      </label>
-    
-    <a href="./" title="Server GRPC API" class="md-nav__link md-nav__link--active">
+  <li class="md-nav__item">
+    <a href="../grpc_api/" title="Server GRPC API" class="md-nav__link">
       Server GRPC API
     </a>
-    
-      
-<nav class="md-nav md-nav--secondary">
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">Table of contents</label>
-    <ul class="md-nav__list" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#example-for-python" title="Example for Python" class="md-nav__link">
-    Example for Python
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example-for-go" title="Example for Go" class="md-nav__link">
-    Example for Go
-  </a>
-  
-</li>
-      
-      
-      
-      
-      
-    </ul>
-  
-</nav>
-    
   </li>
 
         
@@ -501,11 +456,84 @@
           
           
 
+  
 
-  <li class="md-nav__item">
-    <a href="../proxy/" title="Proxy to backend" class="md-nav__link">
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Proxy to backend
+      </label>
+    
+    <a href="./" title="Proxy to backend" class="md-nav__link md-nav__link--active">
       Proxy to backend
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#proxy-headers" title="Proxy headers" class="md-nav__link">
+    Proxy headers
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connect-proxy" title="connect proxy" class="md-nav__link">
+    connect proxy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#refresh-proxy" title="refresh proxy" class="md-nav__link">
+    refresh proxy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rpc-proxy" title="rpc proxy" class="md-nav__link">
+    rpc proxy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#return-custom-error" title="Return custom error" class="md-nav__link">
+    Return custom error
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#return-custom-disconnect" title="Return custom disconnect" class="md-nav__link">
+    Return custom disconnect
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
   </li>
 
         
@@ -835,15 +863,43 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#example-for-python" title="Example for Python" class="md-nav__link">
-    Example for Python
+  <a href="#proxy-headers" title="Proxy headers" class="md-nav__link">
+    Proxy headers
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#example-for-go" title="Example for Go" class="md-nav__link">
-    Example for Go
+  <a href="#connect-proxy" title="connect proxy" class="md-nav__link">
+    connect proxy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#refresh-proxy" title="refresh proxy" class="md-nav__link">
+    refresh proxy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rpc-proxy" title="rpc proxy" class="md-nav__link">
+    rpc proxy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#return-custom-error" title="Return custom error" class="md-nav__link">
+    Return custom error
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#return-custom-disconnect" title="Return custom disconnect" class="md-nav__link">
+    Return custom disconnect
   </a>
   
 </li>
@@ -864,119 +920,160 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/server/grpc_api.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
+                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/server/proxy.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
                 
                 
-                <h1 id="server-grpc-api">Server GRPC API<a class="headerlink" href="#server-grpc-api" title="Permanent link">&para;</a></h1>
-<p>Centrifugo also supports <a href="https://grpc.io/">GRPC</a> API. With GRPC it&rsquo;s possible to communicate with Centrifugo using more compact binary representation of commands and use the power of HTTP/2 which is the transport behind GRPC.</p>
-<p>GRPC API is also useful if you want to publish binary data to Centrifugo channels.</p>
-<p>You can enable GRPC API in Centrifugo using <code>grpc_api</code> option:</p>
-<div class="codehilite"><pre><span></span>./centrifugo --config=config.json --grpc_api
-</pre></div>
-
-
-<p>As always in Centrifugo you can just add <code>grpc_api</code> option to configuration file:</p>
+                <h1 id="proxy-calls-to-app-backend">Proxy calls to app backend<a class="headerlink" href="#proxy-calls-to-app-backend" title="Permanent link">&para;</a></h1>
+<p>Starting from Centrifugo v2.3.0 it&rsquo;s possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.</p>
+<h3 id="proxy-headers">Proxy headers<a class="headerlink" href="#proxy-headers" title="Permanent link">&para;</a></h3>
+<p>All proxy calls are <strong>HTTP POST</strong> requests which include <code>Cookie</code>, <code>User-Agent</code>, <code>X-Real-Ip</code>, <code>X-Forwarded-For</code>, <code>X-Request-Id</code>, <code>Authorization</code> headers from original client request and include some additional info as JSON body (for example data sent by client in RPC call etc).</p>
+<p>Below we will look at all supported proxy calls and what you can achieve using them.</p>
+<h3 id="connect-proxy">connect proxy<a class="headerlink" href="#connect-proxy" title="Permanent link">&para;</a></h3>
+<p>With the following options in configuration file:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
-    <span class="err">...</span>
-    <span class="nt">&quot;grpc_api&quot;</span><span class="p">:</span> <span class="kc">true</span>
+  <span class="err">...</span>
+  <span class="nt">&quot;proxy_connect_endpoint&quot;</span><span class="p">:</span> <span class="s2">&quot;http://localhost:3000/centrifugo/connect&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;proxy_connect_timeout&quot;</span><span class="p">:</span>  <span class="mi">1</span>
 <span class="p">}</span>
 </pre></div>
 
 
-<p>By default GRPC will be served on port <code>10000</code> but you can change it using <code>grpc_api_port</code> option.</p>
-<p>Now as soon as Centrifugo started you can send GRPC commands to it. To do this get our API Protocol Buffer definitions <a href="https://github.com/centrifugal/centrifugo/blob/master/misc/proto/api.proto">from this file</a>.</p>
-<p>Then see <a href="https://grpc.io/docs/">GRPC docs specific to your language</a> to find out how to generate client code from definitions and use generated code to communicate with Centrifugo.</p>
-<h2 id="example-for-python">Example for Python<a class="headerlink" href="#example-for-python" title="Permanent link">&para;</a></h2>
-<p>For example for Python you need to run sth like this according to GRPC docs:</p>
-<div class="codehilite"><pre><span></span>python -m grpc_tools.protoc -I../../protos --python_out=. --grpc_python_out=. api.proto
-</pre></div>
-
-
-<p>As soon as you run command you will have 2 generated files: <code>api_pb2.py</code> and <code>api_pb2_grpc.py</code>. Now all you need is to write simple program that uses generated code and sends GRPC requests to Centrifugo:</p>
-<div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">grpc</span>
-<span class="kn">import</span> <span class="nn">api_pb2_grpc</span> <span class="kn">as</span> <span class="nn">api_grpc</span>
-<span class="kn">import</span> <span class="nn">api_pb2</span> <span class="kn">as</span> <span class="nn">api_pb</span>
-
-<span class="n">channel</span> <span class="o">=</span> <span class="n">grpc</span><span class="o">.</span><span class="n">insecure_channel</span><span class="p">(</span><span class="s1">&#39;localhost:10000&#39;</span><span class="p">)</span>
-<span class="n">stub</span> <span class="o">=</span> <span class="n">api_grpc</span><span class="o">.</span><span class="n">CentrifugoStub</span><span class="p">(</span><span class="n">channel</span><span class="p">)</span>
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="n">resp</span> <span class="o">=</span> <span class="n">stub</span><span class="o">.</span><span class="n">Info</span><span class="p">(</span><span class="n">api_pb</span><span class="o">.</span><span class="n">InfoRequest</span><span class="p">())</span>
-<span class="k">except</span> <span class="n">grpc</span><span class="o">.</span><span class="n">RpcError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
-    <span class="c1"># GRPC level error.</span>
-    <span class="k">print</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">code</span><span class="p">(),</span> <span class="n">err</span><span class="o">.</span><span class="n">details</span><span class="p">())</span>
-<span class="k">else</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">code</span><span class="p">:</span>
-        <span class="c1"># Centrifugo server level error.</span>
-        <span class="k">print</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">code</span><span class="p">,</span> <span class="n">resp</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">print</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">result</span><span class="p">)</span>
-</pre></div>
-
-
-<p>Note that you need to explicitly handle Centrifugo API level error which is not transformed automatically into GRPC protocol level error.</p>
-<h2 id="example-for-go">Example for Go<a class="headerlink" href="#example-for-go" title="Permanent link">&para;</a></h2>
-<p>Here is a simple example on how to run Centrifugo with GRPC Go client.</p>
-<p>First start Centrifugo itself:</p>
-<div class="codehilite"><pre><span></span>centrifugo --config config.json --grpc_api
-</pre></div>
-
-
-<p>In another terminal tab:</p>
-<div class="codehilite"><pre><span></span><span class="nb">cd</span> ~
-mkdir centrifugo_grpc_example
-<span class="nb">cd</span> centrifugo_grpc_example/
-wget https://raw.githubusercontent.com/centrifugal/centrifugo/master/misc/proto/api.proto -O api.proto
-protoc api.proto --go_out<span class="o">=</span><span class="nv">plugins</span><span class="o">=</span>grpc,import_path<span class="o">=</span>main:./
-touch main.go
-</pre></div>
-
-
-<p>Put the following code to <code>main.go</code> file (created on last step above):</p>
-<div class="codehilite"><pre><span></span><span class="kn">package</span> <span class="nx">main</span>
-
-<span class="kn">import</span> <span class="p">(</span>
-    <span class="s">&quot;context&quot;</span>
-    <span class="s">&quot;log&quot;</span>
-    <span class="s">&quot;time&quot;</span>
-
-    <span class="s">&quot;google.golang.org/grpc&quot;</span>
-<span class="p">)</span>
-
-<span class="kd">func</span> <span class="nx">main</span><span class="p">()</span> <span class="p">{</span>
-    <span class="nx">conn</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">grpc</span><span class="p">.</span><span class="nx">Dial</span><span class="p">(</span><span class="s">&quot;localhost:10000&quot;</span><span class="p">,</span> <span class="nx">grpc</span><span class="p">.</span><span class="nx">WithInsecure</span><span class="p">())</span>
-    <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-        <span class="nx">log</span><span class="p">.</span><span class="nx">Fatalln</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
-    <span class="p">}</span>
-    <span class="k">defer</span> <span class="nx">conn</span><span class="p">.</span><span class="nx">Close</span><span class="p">()</span>
-    <span class="nx">client</span> <span class="o">:=</span> <span class="nx">NewCentrifugoClient</span><span class="p">(</span><span class="nx">conn</span><span class="p">)</span>
-    <span class="k">for</span> <span class="p">{</span>
-        <span class="nx">resp</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">client</span><span class="p">.</span><span class="nx">Publish</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span> <span class="o">&amp;</span><span class="nx">PublishRequest</span><span class="p">{</span>
-            <span class="nx">Channel</span><span class="p">:</span> <span class="s">&quot;chat:index&quot;</span><span class="p">,</span>
-            <span class="nx">Data</span><span class="p">:</span>    <span class="p">[]</span><span class="nb">byte</span><span class="p">(</span><span class="s">`{&quot;input&quot;: &quot;hello from GRPC&quot;}`</span><span class="p">),</span>
-        <span class="p">})</span>
-        <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-            <span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Transport level error: %v&quot;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-            <span class="k">if</span> <span class="nx">resp</span><span class="p">.</span><span class="nx">GetError</span><span class="p">()</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-                <span class="nx">respError</span> <span class="o">:=</span> <span class="nx">resp</span><span class="p">.</span><span class="nx">GetError</span><span class="p">()</span>
-                <span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Error %d (%s)&quot;</span><span class="p">,</span> <span class="nx">respError</span><span class="p">.</span><span class="nx">Code</span><span class="p">,</span> <span class="nx">respError</span><span class="p">.</span><span class="nx">Message</span><span class="p">)</span>
-            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-                <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Successfully published&quot;</span><span class="p">)</span>
-            <span class="p">}</span>
-        <span class="p">}</span>
-        <span class="nx">time</span><span class="p">.</span><span class="nx">Sleep</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span>
-    <span class="p">}</span>
+<p>– connection requests <strong>without JWT set</strong> will be proxied to <code>proxy_connect_endpoint</code> URL endpoint. On your backend side you can authenticate incoming connection and return client credentials to Centrifugo in response to proxied request.</p>
+<p>This means you don&rsquo;t need to generate JWT token and pass it to client side and can rely on cookie while authenticating user. <strong>Centrifugo should work on same domain in this case so your site cookie could be passed to Centrifugo</strong>. This also means that <strong>every</strong> new connection from user will result in HTTP POST request to your application backend. While with JWT token you usually generate it once on application page reload, if client reconnects due to Centrifugo restart or internet connection loss it uses the same JWT it had before thus usually no additional requests generated during reconnect process (until JWT expired).</p>
+<p>Payload example that will be sent to app backend when client without token wants to establish connection with Centrifugo and <code>proxy_connect_endpoint</code> is set to non-empty URL string:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;client&quot;</span><span class="p">:</span><span class="s2">&quot;9336a229-2400-4ebc-8c50-0a643d22e8a0&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="s2">&quot;websocket&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;encoding&quot;</span><span class="p">:</span><span class="s2">&quot;json&quot;</span>
 <span class="p">}</span>
 </pre></div>
 
 
-<p>Then run:</p>
-<div class="codehilite"><pre><span></span><span class="nv">GO111MODULE</span><span class="o">=</span>on go run *.go
+<p>Request fields:</p>
+<ul>
+<li><code>client</code> is a unique client ID generated by Centrifugo for each incoming connection</li>
+<li><code>transport</code> is transport name (<code>websocket</code> or <code>sockjs</code> at moment)</li>
+<li><code>protocol</code> is a protocol type used by client (<code>json</code> or <code>protobuf</code> at moment)</li>
+<li><code>encoding</code> is a protocol encoding type used (<code>json</code> or <code>binary</code> at moment)</li>
+</ul>
+<p>Response expected:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span><span class="nt">&quot;result&quot;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&quot;user&quot;</span><span class="p">:</span> <span class="s2">&quot;56&quot;</span><span class="p">}}</span>
 </pre></div>
 
 
-<p>The program starts and periodically publishes the same payload into <code>chat:index</code> channel.</p>
+<p>Result fields you can set:</p>
+<ul>
+<li><code>user</code> (string) is user ID (calculated on app backend based on request cookie header for example). Return it as empty string for accepting unauthenticated request</li>
+<li><code>expire_at</code> (optional integer) is a timestamp when connection must be considered expired. If not set or set to <code>0</code> connection won&rsquo;t expire at all</li>
+<li><code>info</code> (optional JSON) is a connection info JSON</li>
+<li><code>b64info</code> (optional string) is a binary connection info encoded in base64 format</li>
+</ul>
+<p><code>proxy_connect_timeout</code> (float, in seconds) controls timeout of HTTP POST request sent to app backend.</p>
+<h3 id="refresh-proxy">refresh proxy<a class="headerlink" href="#refresh-proxy" title="Permanent link">&para;</a></h3>
+<p>With the following options in configuration file:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="err">...</span>
+  <span class="nt">&quot;proxy_refresh_endpoint&quot;</span><span class="p">:</span> <span class="s2">&quot;http://localhost:3000/centrifugo/refresh&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;proxy_refresh_timeout&quot;</span><span class="p">:</span>  <span class="mi">1</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>– Centrifugo will call <code>proxy_refresh_endpoint</code> when it&rsquo;s time to refresh connection. Centrifugo itself will ask your backend about connection validity instead of refresh workflow on client side.</p>
+<p>Payload sent to app backend in refresh request (when connection is going to expire):</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;client&quot;</span><span class="p">:</span><span class="s2">&quot;9336a229-2400-4ebc-8c50-0a643d22e8a0&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="s2">&quot;websocket&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;encoding&quot;</span><span class="p">:</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="s2">&quot;56&quot;</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Request fields:</p>
+<ul>
+<li><code>client</code>, <code>transport</code>, <code>protocol</code>, <code>encoding</code> are the same as described for connect request payload</li>
+<li><code>user</code> is a connection user ID obtained during authentication process</li>
+</ul>
+<p>Response expected:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span><span class="nt">&quot;result&quot;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&quot;exp&quot;</span><span class="p">:</span> <span class="mi">1565436268</span><span class="p">}}</span>
+</pre></div>
+
+
+<p>Result fields:</p>
+<p><code>expired</code> (boolean) is a flag to mark connection as expired - client will be diconnected
+<code>expire_at</code> (integer) is a next timestamp when connection must be considered expired
+<code>info</code> (optional JSON) is a connection info JSON
+<code>b64info</code> (optional string) is a binary connection info encoded in base64 format</p>
+<p><code>proxy_refresh_timeout</code> (float, in seconds) controls timeout of HTTP POST request sent to app backend.</p>
+<h3 id="rpc-proxy">rpc proxy<a class="headerlink" href="#rpc-proxy" title="Permanent link">&para;</a></h3>
+<p>With the following option in configuration file:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="err">...</span>
+  <span class="nt">&quot;proxy_rpc_endpoint&quot;</span><span class="p">:</span> <span class="s2">&quot;http://localhost:3000/centrifugo/connect&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;proxy_rpc_timeout&quot;</span><span class="p">:</span>  <span class="mi">1</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>RPC calls over client connection will be proxied to <code>proxy_rpc_endpoint</code>. This allows developer to utilize WebSocket (or SockJS) connection in bidirectional way.</p>
+<p>Payload sent to app backend in RPC request:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;client&quot;</span><span class="p">:</span><span class="s2">&quot;9336a229-2400-4ebc-8c50-0a643d22e8a0&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="s2">&quot;websocket&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;encoding&quot;</span><span class="p">:</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="s2">&quot;56&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;data&quot;</span><span class="p">:{</span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="s2">&quot;getCurrentYear&quot;</span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Request fields:</p>
+<ul>
+<li><code>client</code>, <code>transport</code>, <code>protocol</code>, <code>encoding</code> are the same as described for connect request payload</li>
+<li><code>user</code> is a connection user ID obtained during authentication process</li>
+<li><code>data</code> is an RPC data sent by client</li>
+<li><code>b64data</code> will be set instead of <code>data</code> field for connections that use binary payload encoding</li>
+</ul>
+<p>Response expected:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span><span class="nt">&quot;result&quot;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&quot;data&quot;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&quot;answer&quot;</span><span class="p">:</span> <span class="s2">&quot;2019&quot;</span><span class="p">}}}</span>
+</pre></div>
+
+
+<p>Result fields:</p>
+<p><code>data</code> (JSON) is and RPC response - any valid JSON is supported
+<code>b64data</code> string can be set instead of <code>data</code> for binary response encoded in base64 format</p>
+<h3 id="return-custom-error">Return custom error<a class="headerlink" href="#return-custom-error" title="Permanent link">&para;</a></h3>
+<p>Application backend can return JSON object that contain an error to return it to client:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;error&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;code&quot;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span>
+    <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;custom error&quot;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Application can use error codes &gt;= 1000, error codes in range 0-999 are reserved by Centrifugo internal protocol.</p>
+<p>This <strong>does not apply to response on refresh request</strong> as there is no sense in returning an error (will not reach client anyway). </p>
+<p><code>proxy_rpc_timeout</code> (float, in seconds) controls timeout of HTTP POST request sent to app backend.</p>
+<h3 id="return-custom-disconnect">Return custom disconnect<a class="headerlink" href="#return-custom-disconnect" title="Permanent link">&para;</a></h3>
+<p>Application backend can return JSON object that contain an custom disconnect object to disconnect client in custom way:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="nt">&quot;disconnect&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;code&quot;</span><span class="p">:</span> <span class="mi">4000</span><span class="p">,</span>
+    <span class="nt">&quot;reconnect&quot;</span><span class="p">:</span> <span class="kc">false</span><span class="p">,</span>
+    <span class="nt">&quot;reason&quot;</span><span class="p">:</span> <span class="s2">&quot;custom disconnect&quot;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Application can use numbers in range 4000-4999 for custom disconnect codes. Numbers below 4000 are reserved by Centrifugo internal protocol. Keep in mind that <strong>due to WebSocket protocol limitations and Centrifugo internal protocol needs you need to keep disconnect reason string no longer than 32 symbols</strong>.</p>
+<p>This <strong>does not apply to response on refresh request</strong> as there is no way to control disconnect at moment - client will always be disconnected with <code>expired</code> disconnect reason.</p>
                 
                   
                 
@@ -997,7 +1094,7 @@ touch main.go
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../http_api/" title="Server HTTP API" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../private_channels/" title="Private channels" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -1006,19 +1103,19 @@ touch main.go
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Server HTTP API
+                Private channels
               </span>
             </div>
           </a>
         
         
-          <a href="../recover/" title="Message recovery" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../protobuf/" title="Protobuf protocol" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Message recovery
+                Protobuf protocol
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">

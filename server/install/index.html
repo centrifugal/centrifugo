@@ -510,6 +510,18 @@
 
 
   <li class="md-nav__item">
+    <a href="../proxy/" title="Proxy to backend" class="md-nav__link">
+      Proxy to backend
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../protobuf/" title="Protobuf protocol" class="md-nav__link">
       Protobuf protocol
     </a>
@@ -878,12 +890,12 @@
 </pre></div>
 
 
-<p>Centrifugo server node requires configuration file with secret key. If you are new to Centrifugo then there is <code>genconfig</code> command which generates minimal required configuration file:</p>
+<p>Centrifugo server node requires configuration file with some secret keys. If you are new to Centrifugo then there is <code>genconfig</code> command which generates minimal required configuration file:</p>
 <div class="codehilite"><pre><span></span>./centrifugo genconfig
 </pre></div>
 
 
-<p>It generates secret key automatically and creates configuration file <code>config.json</code> in current directory (by default) so you can finally run Centrifugo instance:</p>
+<p>It generates secret keys automatically and creates configuration file <code>config.json</code> in current directory (by default) so you can finally run Centrifugo instance:</p>
 <div class="codehilite"><pre><span></span>./centrifugo --config<span class="o">=</span>config.json
 </pre></div>
 

@@ -544,6 +544,18 @@
 
 
   <li class="md-nav__item">
+    <a href="../proxy/" title="Proxy to backend" class="md-nav__link">
+      Proxy to backend
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../protobuf/" title="Protobuf protocol" class="md-nav__link">
       Protobuf protocol
     </a>
@@ -975,7 +987,7 @@ If you using <a href="https://github.com/centrifugal/centrifuge-js">Centrifuge-J
 </pre></div>
 
 
-<p>Again - the same <code>secret</code> from Centrifugo configuration is used to generate private channel JWT as was used to generate connection JWT. And as with connection JWT only <code>HS256</code> algorithm is supported at moment.</p>
+<p>Again - the same <code>secret</code> from Centrifugo configuration is used to generate private channel JWT as was used to generate connection JWT. And as with connection JWT only <code>HS256 and RSA</code> algorithms are supported at moment. But for RSA tokens you need to use private key known only by your backend.</p>
                 
                   
                 
@@ -1011,13 +1023,13 @@ If you using <a href="https://github.com/centrifugal/centrifuge-js">Centrifuge-J
           </a>
         
         
-          <a href="../protobuf/" title="Protobuf protocol" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+          <a href="../proxy/" title="Proxy to backend" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
             <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
               <span class="md-flex__ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Protobuf protocol
+                Proxy to backend
               </span>
             </div>
             <div class="md-flex__cell md-flex__cell--shrink">
