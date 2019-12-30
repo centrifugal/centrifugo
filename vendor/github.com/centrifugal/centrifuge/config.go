@@ -3,6 +3,7 @@ package centrifuge
 import (
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"regexp"
 	"time"
 )
@@ -99,6 +100,10 @@ func (c *Config) Validate() error {
 		return err
 	}
 
+	if c.HistoryRecover && (c.HistorySize == 0 || c.HistoryLifetime == 0) {
+		return errors.New("both history size and history lifetime required for history recovery")
+	}
+
 	var nss []string
 	for _, n := range c.Namespaces {
 		name := n.Name
@@ -108,6 +113,9 @@ func (c *Config) Validate() error {
 		}
 		if stringInSlice(name, nss) {
 			return errors.New(errPrefix + "namespace name must be unique")
+		}
+		if n.HistoryRecover && (n.HistorySize == 0 || n.HistoryLifetime == 0) {
+			return fmt.Errorf("namespace %s: both history size and history lifetime required for history recovery", name)
 		}
 		nss = append(nss, name)
 	}

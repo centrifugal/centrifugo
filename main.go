@@ -149,10 +149,6 @@ func main() {
 				log.Fatal().Msgf("error writing PID: %v", err)
 			}
 
-			if !configFound {
-				log.Warn().Msg("No config file found")
-			}
-
 			if os.Getenv("GOMAXPROCS") == "" {
 				if viper.IsSet("gomaxprocs") && viper.GetInt("gomaxprocs") > 0 {
 					runtime.GOMAXPROCS(viper.GetInt("gomaxprocs"))
@@ -241,7 +237,11 @@ func main() {
 				"engine", strings.Title(engineName)).Int(
 				"gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
 
-			log.Info().Str("path", absConfPath).Msg("using config")
+			log.Info().Str("path", absConfPath).Msg("using config file")
+
+			if !configFound {
+				log.Warn().Msg("config file not found")
+			}
 
 			if connectHandlerEnabled {
 				log.Info().Str("endpoint", viper.GetString("proxy_connect_endpoint")).Msg("proxy connect over HTTP")
@@ -572,7 +572,7 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 			}
 			log.Info().Msg("configuration successfully reloaded")
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
-			log.Info().Msg("shutting down, wait...")
+			log.Info().Msg("shutting down ...")
 			pidFile := viper.GetString("pid_file")
 			shutdownTimeout := time.Duration(viper.GetInt("shutdown_timeout")) * time.Second
 			go time.AfterFunc(shutdownTimeout, func() {
