@@ -53,9 +53,44 @@ Result fields you can set:
 * `user` (string) is user ID (calculated on app backend based on request cookie header for example). Return it as empty string for accepting unauthenticated request
 * `expire_at` (optional integer) is a timestamp when connection must be considered expired. If not set or set to `0` connection won't expire at all
 * `info` (optional JSON) is a connection info JSON
-* `b64info` (optional string) is a binary connection info encoded in base64 format
+* `b64info` (optional string) is a binary connection info encoded in base64 format, will be decoded to raw bytes on Centrifugo before using in messages
+* `data` (optional JSON) is a custom data to send to client in connect command response
+* `b64data` (optional string) is a custom data to send to client in connect command response for binary connections, will be decoded to raw bytes on Centrifugo side before sending to client
 
 `proxy_connect_timeout` (float, in seconds) controls timeout of HTTP POST request sent to app backend.
+
+Here is the simplest example of connect handler in Tornado Python framework (note that in real system you need to authenticate user on your backend side, here we just return `"56"` as user ID):
+
+```python
+class CentrifugoConnectHandler(tornado.web.RequestHandler):
+
+    def check_xsrf_cookie(self):
+        pass
+
+    def post(self):
+        self.set_header('Content-Type', 'application/json; charset="utf-8"')
+        data = json.dumps({
+            'result': {
+                'user': '56'
+            }
+        })
+        self.write(data)
+
+
+def main():
+    options.parse_command_line()
+    app = tornado.web.Application([
+      (r'/centrifugo/connect', CentrifugoConnectHandler),
+    ])
+    app.listen(3000)
+    tornado.ioloop.IOLoop.instance().start()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+This example should help you to implement similar HTTP handler in any language/framework you are using on backend side.
 
 ### refresh proxy
 

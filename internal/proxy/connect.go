@@ -20,6 +20,8 @@ type ConnectCredentials struct {
 	ExpireAt   int64           `json:"expire_at"`
 	Info       json.RawMessage `json:"info"`
 	Base64Info string          `json:"b64info"`
+	Data       json.RawMessage `json:"data"`
+	Base64Data string          `json:"b64data"`
 }
 
 // ConnectReply ...
