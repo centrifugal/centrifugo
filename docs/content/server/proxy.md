@@ -10,7 +10,7 @@ All proxy calls are **HTTP POST** requests that will be sent from Centrifugo to 
 
 By default the following headers from original client request will be copied to proxied request:
 
-* `Origin`
+* `Origin` (Centrifugo >= v2.3.1)
 * `User-Agent`
 * `Cookie`
 * `Authorization`
