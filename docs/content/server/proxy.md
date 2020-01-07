@@ -2,11 +2,37 @@
 
 Starting from Centrifugo v2.3.0 it's possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.
 
+### Proxy request structure
+
+All proxy calls are **HTTP POST** requests that will be sent from Centrifugo to configured endpoints with configured timeout. These requests will have some headers copied from original client request (see details below) and include JSON body which varies depending on call type (for example data sent by client in RPC call etc, see more details about JSON bodies below).
+
 ### Proxy headers
 
-All proxy calls are **HTTP POST** requests which include `Cookie`, `User-Agent`, `X-Real-Ip`, `X-Forwarded-For`, `X-Request-Id`, `Authorization` headers from original client request and include some additional info as JSON body (for example data sent by client in RPC call etc).
+By default the following headers from original client request will be copied to proxied request:
 
-Below we will look at all supported proxy calls and what you can achieve using them.
+* `Origin`
+* `User-Agent`
+* `Cookie`
+* `Authorization`
+* `X-Real-Ip`
+* `X-Forwarded-For`
+* `X-Request-Id`
+
+It's possible to add extra headers using `proxy_extra_http_headers` configuration option. This is an array of strings in configuration file, ex:
+
+```json
+{
+  ...
+  "proxy_extra_http_headers": ["X-B3-TraceId", "X-B3-SpanId"]
+}
+```
+
+Or alternatively you can set extra headers via environment variable (space separated):
+
+```
+export CENTRIFUGO_PROXY_EXTRA_HTTP_HEADERS="X-B3-TraceId X-B3-SpanId"
+./centrifugo
+```
 
 ### connect proxy
 

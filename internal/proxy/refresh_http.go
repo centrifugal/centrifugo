@@ -18,12 +18,18 @@ type RefreshRequestHTTP struct {
 // HTTPRefreshProxy ...
 type HTTPRefreshProxy struct {
 	httpCaller HTTPCaller
+	options    Options
 }
 
 // NewHTTPRefreshProxy ...
-func NewHTTPRefreshProxy(endpoint string, httpClient *http.Client) *HTTPRefreshProxy {
+func NewHTTPRefreshProxy(endpoint string, httpClient *http.Client, opts ...Option) *HTTPRefreshProxy {
+	options := &Options{}
+	for _, opt := range opts {
+		opt(options)
+	}
 	return &HTTPRefreshProxy{
 		httpCaller: NewHTTPCaller(endpoint, httpClient),
+		options:    *options,
 	}
 }
 
@@ -46,7 +52,7 @@ func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req RefreshRequest)
 		return nil, err
 	}
 
-	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest), data)
+	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest, p.options.ExtraHeaders), data)
 	if err != nil {
 		return nil, err
 	}

@@ -23,12 +23,18 @@ type ConnectRequestHTTP struct {
 // HTTPConnectProxy ...
 type HTTPConnectProxy struct {
 	httpCaller HTTPCaller
+	options    Options
 }
 
 // NewHTTPConnectProxy ...
-func NewHTTPConnectProxy(endpoint string, httpClient *http.Client) *HTTPConnectProxy {
+func NewHTTPConnectProxy(endpoint string, httpClient *http.Client, opts ...Option) *HTTPConnectProxy {
+	options := &Options{}
+	for _, opt := range opts {
+		opt(options)
+	}
 	return &HTTPConnectProxy{
 		httpCaller: NewHTTPCaller(endpoint, httpClient),
+		options:    *options,
 	}
 }
 
@@ -61,7 +67,7 @@ func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req ConnectRequest)
 		return nil, err
 	}
 
-	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest), data)
+	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest, p.options.ExtraHeaders), data)
 	if err != nil {
 		return nil, err
 	}

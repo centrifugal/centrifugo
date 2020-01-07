@@ -98,6 +98,7 @@ func main() {
 				"proxy_connect_timeout", "proxy_rpc_endpoint", "proxy_rpc_timeout",
 				"proxy_refresh_endpoint", "proxy_refresh_timeout",
 				"token_rsa_public_key", "token_hmac_secret_key", "redis_sequence_ttl",
+				"proxy_extra_http_headers",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -189,6 +190,7 @@ func main() {
 					Proxy: proxy.NewHTTPConnectProxy(
 						viper.GetString("proxy_connect_endpoint"),
 						proxyHTTPClient(viper.GetFloat64("proxy_connect_timeout")),
+						proxy.WithExtraHeaders(viper.GetStringSlice("proxy_extra_http_headers")),
 					),
 				})
 				node.On().ClientConnecting(connectHandler.Handle(node))
@@ -198,6 +200,7 @@ func main() {
 				Proxy: proxy.NewHTTPRefreshProxy(
 					viper.GetString("proxy_refresh_endpoint"),
 					proxyHTTPClient(viper.GetFloat64("proxy_refresh_timeout")),
+					proxy.WithExtraHeaders(viper.GetStringSlice("proxy_extra_http_headers")),
 				),
 			})
 			refreshHandlerEnabled := viper.GetString("proxy_refresh_endpoint") != ""
@@ -209,6 +212,7 @@ func main() {
 				Proxy: proxy.NewHTTPRPCProxy(
 					viper.GetString("proxy_rpc_endpoint"),
 					proxyHTTPClient(viper.GetFloat64("proxy_rpc_timeout")),
+					proxy.WithExtraHeaders(viper.GetStringSlice("proxy_extra_http_headers")),
 				),
 			})
 
