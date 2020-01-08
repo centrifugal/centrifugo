@@ -65,13 +65,14 @@ func (c *httpCaller) CallHTTP(ctx context.Context, header http.Header, reqData [
 	return respData, nil
 }
 
-func getProxyHeader(allHeader http.Header) http.Header {
+func getProxyHeader(allHeader http.Header, extraHeaders []string) http.Header {
 	proxyHeader := http.Header{}
-	copyHeader(proxyHeader, allHeader)
+	copyHeader(proxyHeader, allHeader, extraHeaders)
 	return proxyHeader
 }
 
-var proxyHeaders = []string{
+var defaultProxyHeaders = []string{
+	"Origin",
 	"User-Agent",
 	"Cookie",
 	"Authorization",
@@ -80,9 +81,9 @@ var proxyHeaders = []string{
 	"X-Request-Id",
 }
 
-func copyHeader(dst, src http.Header) {
+func copyHeader(dst, src http.Header, extraHeaders []string) {
 	for k, vv := range src {
-		if !stringInSlice(k, proxyHeaders) {
+		if !stringInSlice(k, defaultProxyHeaders) && !stringInSlice(k, extraHeaders) {
 			continue
 		}
 		for _, v := range vv {

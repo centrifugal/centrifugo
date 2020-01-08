@@ -13,6 +13,7 @@ import (
 // HTTPRPCProxy ...
 type HTTPRPCProxy struct {
 	httpCaller HTTPCaller
+	options    Options
 }
 
 // RPCRequestHTTP ...
@@ -26,9 +27,14 @@ type RPCRequestHTTP struct {
 }
 
 // NewHTTPRPCProxy ...
-func NewHTTPRPCProxy(endpoint string, httpClient *http.Client) *HTTPRPCProxy {
+func NewHTTPRPCProxy(endpoint string, httpClient *http.Client, opts ...Option) *HTTPRPCProxy {
+	options := &Options{}
+	for _, opt := range opts {
+		opt(options)
+	}
 	return &HTTPRPCProxy{
 		httpCaller: NewHTTPCaller(endpoint, httpClient),
+		options:    *options,
 	}
 }
 
@@ -57,7 +63,7 @@ func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req RPCRequest) (*RPCReply,
 		return nil, err
 	}
 
-	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest), data)
+	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest, p.options.ExtraHeaders), data)
 	if err != nil {
 		return nil, err
 	}
