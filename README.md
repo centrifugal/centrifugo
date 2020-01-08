@@ -39,7 +39,10 @@ Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (admin pas
 * HTTP and GRPC API to communicate from your application backend (publish messages in channels etc)
 * JSON and binary Protobuf Websocket client protocol
 * SockJS polyfill for web browsers without Websocket support (JSON only)
-* JWT-based user authentication and private channel authorization
+* User authentication with JWT generated on your backend or over proxy request to configured HTTP endpoint
+* Connection expiration control over JWT or request to configured HTTP endpoint
+* JWT-based private channel authorization
+* Transform RPC calls over WebSocket/SockJS to configured HTTP endpoint call 
 * Presence information for channels (show all active clients in channel)
 * History information for channels (last messages published into channel)
 * Join/leave events for channels (client goes online/offline)
