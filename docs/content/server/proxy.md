@@ -1,6 +1,6 @@
 # Proxy calls to app backend
 
-Starting from Centrifugo v2.3.0 it's possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.
+**Starting from Centrifugo v2.3.0** it's possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.
 
 ### Proxy request structure
 
@@ -18,7 +18,7 @@ By default the following headers from original client request will be copied to 
 * `X-Forwarded-For`
 * `X-Request-Id`
 
-It's possible to add extra headers using `proxy_extra_http_headers` configuration option. This is an array of strings in configuration file, ex:
+It's possible to add extra headers using `proxy_extra_http_headers` configuration option (available since v2.3.1). This is an array of strings in configuration file, ex:
 
 ```json
 {
@@ -80,8 +80,8 @@ Result fields you can set:
 * `expire_at` (optional integer) is a timestamp when connection must be considered expired. If not set or set to `0` connection won't expire at all
 * `info` (optional JSON) is a connection info JSON
 * `b64info` (optional string) is a binary connection info encoded in base64 format, will be decoded to raw bytes on Centrifugo before using in messages
-* `data` (optional JSON) is a custom data to send to client in connect command response
-* `b64data` (optional string) is a custom data to send to client in connect command response for binary connections, will be decoded to raw bytes on Centrifugo side before sending to client
+* `data` (optional JSON) is a custom data to send to client in connect command response. Supported since v2.3.1
+* `b64data` (optional string) is a custom data to send to client in connect command response for binary connections, will be decoded to raw bytes on Centrifugo side before sending to client. Supported since v2.3.1
 
 `proxy_connect_timeout` (float, in seconds) controls timeout of HTTP POST request sent to app backend.
 
