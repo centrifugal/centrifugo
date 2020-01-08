@@ -96,12 +96,33 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 			}
 		}
 
-		return centrifuge.ConnectReply{
+		var data []byte
+		if t.Encoding() == "json" {
+			data = credentials.Data
+		} else {
+			if credentials.Base64Data != "" {
+				decodedData, err := base64.StdEncoding.DecodeString(credentials.Base64Data)
+				if err != nil {
+					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
+					return centrifuge.ConnectReply{
+						Error: centrifuge.ErrorInternal,
+					}
+				}
+				data = decodedData
+			}
+		}
+
+		reply := centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID:   credentials.UserID,
 				ExpireAt: credentials.ExpireAt,
 				Info:     info,
 			},
 		}
+		if len(data) > 0 {
+			reply.Data = data
+		}
+
+		return reply
 	}
 }
