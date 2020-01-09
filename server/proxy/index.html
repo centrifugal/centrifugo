@@ -485,6 +485,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#proxy-request-structure" title="Proxy request structure" class="md-nav__link">
+    Proxy request structure
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#proxy-headers" title="Proxy headers" class="md-nav__link">
     Proxy headers
   </a>
@@ -863,6 +870,13 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#proxy-request-structure" title="Proxy request structure" class="md-nav__link">
+    Proxy request structure
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#proxy-headers" title="Proxy headers" class="md-nav__link">
     Proxy headers
   </a>
@@ -924,10 +938,34 @@
                 
                 
                 <h1 id="proxy-calls-to-app-backend">Proxy calls to app backend<a class="headerlink" href="#proxy-calls-to-app-backend" title="Permanent link">&para;</a></h1>
-<p>Starting from Centrifugo v2.3.0 it&rsquo;s possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.</p>
+<p><strong>Starting from Centrifugo v2.3.0</strong> it&rsquo;s possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.</p>
+<h3 id="proxy-request-structure">Proxy request structure<a class="headerlink" href="#proxy-request-structure" title="Permanent link">&para;</a></h3>
+<p>All proxy calls are <strong>HTTP POST</strong> requests that will be sent from Centrifugo to configured endpoints with configured timeout. These requests will have some headers copied from original client request (see details below) and include JSON body which varies depending on call type (for example data sent by client in RPC call etc, see more details about JSON bodies below).</p>
 <h3 id="proxy-headers">Proxy headers<a class="headerlink" href="#proxy-headers" title="Permanent link">&para;</a></h3>
-<p>All proxy calls are <strong>HTTP POST</strong> requests which include <code>Cookie</code>, <code>User-Agent</code>, <code>X-Real-Ip</code>, <code>X-Forwarded-For</code>, <code>X-Request-Id</code>, <code>Authorization</code> headers from original client request and include some additional info as JSON body (for example data sent by client in RPC call etc).</p>
-<p>Below we will look at all supported proxy calls and what you can achieve using them.</p>
+<p>By default the following headers from original client request will be copied to proxied request:</p>
+<ul>
+<li><code>Origin</code> (Centrifugo &gt;= v2.3.1)</li>
+<li><code>User-Agent</code></li>
+<li><code>Cookie</code></li>
+<li><code>Authorization</code></li>
+<li><code>X-Real-Ip</code></li>
+<li><code>X-Forwarded-For</code></li>
+<li><code>X-Request-Id</code></li>
+</ul>
+<p>It&rsquo;s possible to add extra headers using <code>proxy_extra_http_headers</code> configuration option (available since v2.3.1). This is an array of strings in configuration file, ex:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+  <span class="err">...</span>
+  <span class="nt">&quot;proxy_extra_http_headers&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;X-B3-TraceId&quot;</span><span class="p">,</span> <span class="s2">&quot;X-B3-SpanId&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Or alternatively you can set extra headers via environment variable (space separated):</p>
+<div class="codehilite"><pre><span></span>export CENTRIFUGO_PROXY_EXTRA_HTTP_HEADERS=&quot;X-B3-TraceId X-B3-SpanId&quot;
+./centrifugo
+</pre></div>
+
+
 <h3 id="connect-proxy">connect proxy<a class="headerlink" href="#connect-proxy" title="Permanent link">&para;</a></h3>
 <p>With the following options in configuration file:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
@@ -967,9 +1005,42 @@
 <li><code>user</code> (string) is user ID (calculated on app backend based on request cookie header for example). Return it as empty string for accepting unauthenticated request</li>
 <li><code>expire_at</code> (optional integer) is a timestamp when connection must be considered expired. If not set or set to <code>0</code> connection won&rsquo;t expire at all</li>
 <li><code>info</code> (optional JSON) is a connection info JSON</li>
-<li><code>b64info</code> (optional string) is a binary connection info encoded in base64 format</li>
+<li><code>b64info</code> (optional string) is a binary connection info encoded in base64 format, will be decoded to raw bytes on Centrifugo before using in messages</li>
+<li><code>data</code> (optional JSON) is a custom data to send to client in connect command response. Supported since v2.3.1</li>
+<li><code>b64data</code> (optional string) is a custom data to send to client in connect command response for binary connections, will be decoded to raw bytes on Centrifugo side before sending to client. Supported since v2.3.1</li>
 </ul>
 <p><code>proxy_connect_timeout</code> (float, in seconds) controls timeout of HTTP POST request sent to app backend.</p>
+<p>Here is the simplest example of connect handler in Tornado Python framework (note that in real system you need to authenticate user on your backend side, here we just return <code>"56"</code> as user ID):</p>
+<div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">CentrifugoConnectHandler</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">RequestHandler</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">check_xsrf_cookie</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_header</span><span class="p">(</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">,</span> <span class="s1">&#39;application/json; charset=&quot;utf-8&quot;&#39;</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+            <span class="s1">&#39;result&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="s1">&#39;56&#39;</span>
+            <span class="p">}</span>
+        <span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">options</span><span class="o">.</span><span class="n">parse_command_line</span><span class="p">()</span>
+    <span class="n">app</span> <span class="o">=</span> <span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">Application</span><span class="p">([</span>
+      <span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/centrifugo/connect&#39;</span><span class="p">,</span> <span class="n">CentrifugoConnectHandler</span><span class="p">),</span>
+    <span class="p">])</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">listen</span><span class="p">(</span><span class="mi">3000</span><span class="p">)</span>
+    <span class="n">tornado</span><span class="o">.</span><span class="n">ioloop</span><span class="o">.</span><span class="n">IOLoop</span><span class="o">.</span><span class="n">instance</span><span class="p">()</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+
+<p>This example should help you to implement similar HTTP handler in any language/framework you are using on backend side.</p>
 <h3 id="refresh-proxy">refresh proxy<a class="headerlink" href="#refresh-proxy" title="Permanent link">&para;</a></h3>
 <p>With the following options in configuration file:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>

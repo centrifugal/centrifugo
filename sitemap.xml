@@ -2,172 +2,172 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
      <loc>https://github.com/centrifugal/centrifugo/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/guide/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/install/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/configuration/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/channels/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/authentication/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/engines/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/admin/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/monitoring/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/http_api/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/grpc_api/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/recover/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/signals/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/connection_expiration/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/private_channels/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/proxy/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/protobuf/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/server/protocol/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/transports/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/transports/websocket/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/transports/sockjs/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/libraries/client/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/libraries/api/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/deploy/packages/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/deploy/docker/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/deploy/nginx/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/deploy/tls/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/deploy/redis/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/deploy/tuning/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/misc/insecure_modes/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/misc/migrate/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/misc/benchmark/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
      <loc>https://github.com/centrifugal/centrifugo/faq/</loc>
-     <lastmod>2019-12-31</lastmod>
+     <lastmod>2020-01-09</lastmod>
      <changefreq>daily</changefreq>
     </url>
 </urlset>
