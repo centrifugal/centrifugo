@@ -17,17 +17,19 @@ type ConnectHandlerConfig struct {
 
 // ConnectHandler ...
 type ConnectHandler struct {
-	config  ConnectHandlerConfig
-	summary prometheus.Observer
-	errors  prometheus.Counter
+	config    ConnectHandlerConfig
+	summary   prometheus.Observer
+	histogram prometheus.Observer
+	errors    prometheus.Counter
 }
 
 // NewConnectHandler ...
 func NewConnectHandler(c ConnectHandlerConfig) *ConnectHandler {
 	return &ConnectHandler{
-		config:  c,
-		summary: proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect"),
-		errors:  proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		config:    c,
+		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect"),
 	}
 }
 
@@ -48,20 +50,23 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 			Transport: t,
 			Data:      e.Data,
 		})
+		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				return centrifuge.ConnectReply{
 					Disconnect: centrifuge.DisconnectNormal,
 				}
 			}
-			h.summary.Observe(time.Since(started).Seconds())
+			h.summary.Observe(duration)
+			h.histogram.Observe(duration)
 			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying connect", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
 			return centrifuge.ConnectReply{
 				Error: centrifuge.ErrorInternal,
 			}
 		}
-		h.summary.Observe(time.Since(started).Seconds())
+		h.summary.Observe(duration)
+		h.histogram.Observe(duration)
 		if connectRep.Disconnect != nil {
 			return centrifuge.ConnectReply{
 				Disconnect: connectRep.Disconnect,
