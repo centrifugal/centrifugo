@@ -17,17 +17,19 @@ type RefreshHandlerConfig struct {
 
 // RefreshHandler ...
 type RefreshHandler struct {
-	config  RefreshHandlerConfig
-	summary prometheus.Observer
-	errors  prometheus.Counter
+	config    RefreshHandlerConfig
+	summary   prometheus.Observer
+	histogram prometheus.Observer
+	errors    prometheus.Counter
 }
 
 // NewRefreshHandler ...
 func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 	return &RefreshHandler{
-		config:  c,
-		summary: proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "refresh"),
-		errors:  proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "refresh"),
+		config:    c,
+		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "refresh"),
+		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "refresh"),
+		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "refresh"),
 	}
 }
 
@@ -40,11 +42,13 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *ce
 			UserID:    client.UserID(),
 			Transport: client.Transport(),
 		})
+		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				return centrifuge.RefreshReply{}
 			}
-			h.summary.Observe(time.Since(started).Seconds())
+			h.summary.Observe(duration)
+			h.histogram.Observe(duration)
 			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying refresh", map[string]interface{}{"error": err.Error()}))
 			// In case of an error give connection one more minute to live and
@@ -56,7 +60,8 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *ce
 				ExpireAt: time.Now().Unix() + 60,
 			}
 		}
-		h.summary.Observe(time.Since(started).Seconds())
+		h.summary.Observe(duration)
+		h.histogram.Observe(duration)
 
 		credentials := refreshRep.Result
 		if credentials == nil {

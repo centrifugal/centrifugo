@@ -17,17 +17,19 @@ type RPCHandlerConfig struct {
 
 // RPCHandler ...
 type RPCHandler struct {
-	config  RPCHandlerConfig
-	summary prometheus.Observer
-	errors  prometheus.Counter
+	config    RPCHandlerConfig
+	summary   prometheus.Observer
+	histogram prometheus.Observer
+	errors    prometheus.Counter
 }
 
 // NewRPCHandler ...
 func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 	return &RPCHandler{
-		config:  c,
-		summary: proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "rpc"),
-		errors:  proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "rpc"),
+		config:    c,
+		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "rpc"),
+		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "rpc"),
+		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "rpc"),
 	}
 }
 
@@ -41,18 +43,21 @@ func (h *RPCHandler) Handle(ctx context.Context, node *centrifuge.Node, client *
 			UserID:    client.UserID(),
 			Transport: client.Transport(),
 		})
+		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				return centrifuge.RPCReply{}
 			}
-			h.summary.Observe(time.Since(started).Seconds())
+			h.summary.Observe(duration)
+			h.histogram.Observe(duration)
 			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying RPC", map[string]interface{}{"error": err.Error()}))
 			return centrifuge.RPCReply{
 				Error: centrifuge.ErrorInternal,
 			}
 		}
-		h.summary.Observe(time.Since(started).Seconds())
+		h.summary.Observe(duration)
+		h.histogram.Observe(duration)
 		if rpcRep.Disconnect != nil {
 			return centrifuge.RPCReply{
 				Disconnect: rpcRep.Disconnect,
