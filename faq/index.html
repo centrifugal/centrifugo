@@ -809,6 +809,27 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#should-i-create-channels-explicitly" title="Should I create channels explicitly?" class="md-nav__link">
+    Should I create channels explicitly?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-about-best-practices-with-amount-of-channels" title="What about best practices with amount of channels?" class="md-nav__link">
+    What about best practices with amount of channels?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#presence-for-chat-apps-online-status-of-your-contacts" title="Presence for chat apps - online status of your contacts" class="md-nav__link">
+    Presence for chat apps - online status of your contacts
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#centrifugo-stops-accepting-new-connections-why" title="Centrifugo stops accepting new connections, why?" class="md-nav__link">
     Centrifugo stops accepting new connections, why?
   </a>
@@ -959,6 +980,27 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#should-i-create-channels-explicitly" title="Should I create channels explicitly?" class="md-nav__link">
+    Should I create channels explicitly?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-about-best-practices-with-amount-of-channels" title="What about best practices with amount of channels?" class="md-nav__link">
+    What about best practices with amount of channels?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#presence-for-chat-apps-online-status-of-your-contacts" title="Presence for chat apps - online status of your contacts" class="md-nav__link">
+    Presence for chat apps - online status of your contacts
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#centrifugo-stops-accepting-new-connections-why" title="Centrifugo stops accepting new connections, why?" class="md-nav__link">
     Centrifugo stops accepting new connections, why?
   </a>
@@ -1083,9 +1125,19 @@
 <h3 id="can-centrifugo-scale-horizontally">Can Centrifugo scale horizontally?<a class="headerlink" href="#can-centrifugo-scale-horizontally" title="Permanent link">&para;</a></h3>
 <p>Yes, it can. It can do this using builtin Redis Engine. Redis is very fast – for example it can handle hundreds of thousands requests per second. This should be OK for most applications in internet. But if you are using Centrifugo and approaching this limit then it&rsquo;s possible to add sharding support to balance queries between different Redis instances.</p>
 <h3 id="message-delivery-model-and-message-order-guarantees">Message delivery model and message order guarantees<a class="headerlink" href="#message-delivery-model-and-message-order-guarantees" title="Permanent link">&para;</a></h3>
-<p>The model of message delivery of Centrifugo server is at most once.</p>
-<p>This means that message you send to Centrifugo can be theoretically lost while moving towards your clients. Centrifugo tries to do a best effort to prevent message losses but you should be aware of this fact. Your application should tolerate this. Centrifugo has an option to automatically recover messages that have been lost because of short network disconnections. But there are cases when Centrifugo can&rsquo;t guarantee message delivery. We also recommend to model your applications in a way that users don&rsquo;t notice when message have been lost. For example if your user posts a new comment over AJAX call to your application backend - you should not rely only on Centrifugo to get new comment form and display it - you should return new comment data in AJAX call response and render it. Be careful to not draw comments twice in this case.</p>
+<p>The model of message delivery of Centrifugo server is at most once. With recovery feature it&rsquo;s possible to achieve at least once guarantee during retention period to recover missed messages after temporary disconnect.</p>
+<p>So without recovery feature message you send to Centrifugo can be theoretically lost while moving towards your clients. Offline clients do not receive messages. Centrifugo tries to do a best effort to prevent message losses on a way to online clients but you should be aware of message lost possibility. Your application should tolerate this. </p>
+<p>As said above Centrifugo has an option to automatically recover messages that have been lost because of short network disconnections. Also it prevents message loss on a way from Redis to nodes over Redis PUB/SUB using additional sequence check and periodical synchronization.</p>
+<p>We also recommend to model your applications in a way that users don&rsquo;t notice when Centrifugo does not work at all. Use graceful degradation. For example if your user posts a new comment over AJAX call to your application backend - you should not rely only on Centrifugo to get new comment form and display it - you should return new comment data in AJAX call response and render it. This way user that posts a comment will think that everything works just fine. Be careful to not draw comments twice in this case.</p>
 <p>Message order in channels guaranteed to be the same while you publish messages into channel one after another or publish them in one request. If you do parallel publishes into the same channel then Centrifugo can&rsquo;t guarantee message order.</p>
+<h3 id="should-i-create-channels-explicitly">Should I create channels explicitly?<a class="headerlink" href="#should-i-create-channels-explicitly" title="Permanent link">&para;</a></h3>
+<p>No. By default channels created automatically as soon as first client subscribed to it. And destroyed automatically when last client unsubscribes from channel.</p>
+<p>When history is on then a window of last messages is kept automatically during retention period. So client that comes later and subscribes to channel can retrieve those messages using call to history.</p>
+<h3 id="what-about-best-practices-with-amount-of-channels">What about best practices with amount of channels?<a class="headerlink" href="#what-about-best-practices-with-amount-of-channels" title="Permanent link">&para;</a></h3>
+<p>Channels is a very lighweight entity - Centrifugo can deal with lots of them, don&rsquo;t be afraid to use many channels.</p>
+<p><strong>But</strong> keep in mind that one client should not be subscribed to lots of channels at the same moment. Use channels for separate real-time features. Using no more than several channels for client is what you should try to achieve. A good anology is writing SQL queries – you need to make sure that you return content using fixed amount of database queries, as soon as more entries on your page result in more queries - your pages start working very slow at some point. The same for channels - you better to deliver real-time events over fixed amount of channels. It takes a separate frame for client to subscribe to single channel – more frames mean more heavy initial connection.</p>
+<h3 id="presence-for-chat-apps-online-status-of-your-contacts">Presence for chat apps - online status of your contacts<a class="headerlink" href="#presence-for-chat-apps-online-status-of-your-contacts" title="Permanent link">&para;</a></h3>
+<p>While presence is good feature it does not fit well some apps. For example if you make chat app - you may probably use single personal channel for each user. In this case you can not find who is online at moment using builtin Centrifugo presence feature as users do not share common channel. You can solve this using your own separate service that tracks online status of your users (for example in Redis) and has bulk API that returns online status approximation for a list of users. This way you will have efficient scalable way to deal with online statuses. </p>
 <h3 id="centrifugo-stops-accepting-new-connections-why">Centrifugo stops accepting new connections, why?<a class="headerlink" href="#centrifugo-stops-accepting-new-connections-why" title="Permanent link">&para;</a></h3>
 <p>The most popular reason behind this is reaching open file limit. Just make it higher, we described how to do this nearby in this doc.</p>
 <h3 id="can-i-use-centrifugo-without-reverse-proxy-like-nginx-before-it">Can I use Centrifugo without reverse-proxy like Nginx before it?<a class="headerlink" href="#can-i-use-centrifugo-without-reverse-proxy-like-nginx-before-it" title="Permanent link">&para;</a></h3>
