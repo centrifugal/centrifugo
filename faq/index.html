@@ -907,6 +907,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#how-scalable-is-presence-and-joinleave-information" title="How scalable is presence and join/leave information?" class="md-nav__link">
+    How scalable is presence and join/leave information?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-is-the-difference-between-centrifugo-and-centrifuge" title="What is the difference between Centrifugo and Centrifuge" class="md-nav__link">
     What is the difference between Centrifugo and Centrifuge
   </a>
@@ -1078,6 +1085,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#how-scalable-is-presence-and-joinleave-information" title="How scalable is presence and join/leave information?" class="md-nav__link">
+    How scalable is presence and join/leave information?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-is-the-difference-between-centrifugo-and-centrifuge" title="What is the difference between Centrifugo and Centrifuge" class="md-nav__link">
     What is the difference between Centrifugo and Centrifuge
   </a>
@@ -1178,7 +1192,11 @@ on your backend.</p>
 <p>Centrifugo can keep message history for a while and you can want to rely on it for your needs. Centrifugo is not designed as data storage - it uses message history mostly for recovering missed messages after short client internet connection disconnects. It&rsquo;s not designed to be used to sync client state after being offline for a long time - this logic should be on your app backend.</p>
 <h3 id="does-centrifugo-support-webhooks">Does Centrifugo support webhooks?<a class="headerlink" href="#does-centrifugo-support-webhooks" title="Permanent link">&para;</a></h3>
 <p>Not at moment. Centrifugo designed in a way where messages mostly flow one direction: from server to client. In idiomatic case you publish messages to your backend first, then after saving to your main database publish to channel over Centrifugo API to deliver real-time message to all active channel subscribers. Now if you need any extra callbacks/webhooks you can call your application backend yourself from client side (for example just after connect event fired in client library). There are several reasons why we can&rsquo;t simply add webhooks – some of them described in <a href="https://github.com/centrifugal/centrifugo/issues/195">this issue</a>.</p>
-<p>A bit tricky thing are disconnects. It&rsquo;s pretty hard as there are no guarantee that disconnect code will have time to execute (as client can just switch off its device or simply lose internet connection). If you need to know that client disconnected and program your business logic around this fact then a reasonable approach is periodically call your backend from client side and update user status somewhere on backend (use Redis maybe). This is a pretty robust solution where you can&rsquo;t occasionally miss disconnect event.</p>
+<p>A bit tricky thing are disconnects. It&rsquo;s pretty hard as there are no guarantee that disconnect code will have time to execute on client side (as client can just switch off its device or simply lose internet connection). If you need to know that client disconnected and program your business logic around this fact then a reasonable approach is periodically call your backend from client side and update user status somewhere on backend (use Redis maybe). This is a pretty robust solution where you can&rsquo;t occasionally miss disconnect event.</p>
+<p>HTTP <a href="https://centrifugal.github.io/centrifugo/server/proxy/">proxy feature</a> added in v2.3.0 allows to integrate Centrifugo with your own session mechanism and provides a way to react on connection events. Also it opens a road for bidirectional communication with RPC calls. But the note above about disconnects is still true - we can&rsquo;t simply call your app in case of client disconnects as loosing one such event can result in broken business logic inside your app.</p>
+<h3 id="how-scalable-is-presence-and-joinleave-information">How scalable is presence and join/leave information?<a class="headerlink" href="#how-scalable-is-presence-and-joinleave-information" title="Permanent link">&para;</a></h3>
+<p>Presence is good for small channels with reasonable amount of subscribers, as soon as there are tons of subscribers presence info becomes very expensive in terms of bandwidth (as it contains information about all clients in channel). There is <code>presence stats</code> API method that can be helpful if you only need to know amount of clients (or unique users) in channel. But in case of Redis engine even <code>presence stats</code> not optimized for channels with more that several thousands active subscribers. You may consider using separate service to deal with presense status information that provides information in near real-time maybe with some reasonable approximation.</p>
+<p>The same is true for join/leave messages - as soon as you turning on join/leave events for a channel with many subscribers every join/leave event (which generally happen relatively frequently) result into many messages sent to each subscriber in channel, drastically multiplying amount of messages travelling through the system. So be careful and estimate possible load.</p>
 <h3 id="what-is-the-difference-between-centrifugo-and-centrifuge">What is the difference between Centrifugo and Centrifuge<a class="headerlink" href="#what-is-the-difference-between-centrifugo-and-centrifuge" title="Permanent link">&para;</a></h3>
 <p><a href="https://github.com/centrifugal/centrifugo">Centrifugo</a> is server built on top of <a href="https://github.com/centrifugal/centrifuge">Centrifuge</a> library for Go language.</p>
 <p>This documentation was built to describe Centrifugo. Though many things said here can be considered as extra documentation for Centrifuge library.</p>
