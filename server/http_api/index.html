@@ -1256,6 +1256,7 @@ Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class
 </pre></div>
 
 
+<p>Keep in mind that as <code>channels</code> API command returns all active channels snapshot it can be really heavy for massive deployments. At moment there is no way to paginate over channels list and we don&rsquo;t know a case where this could be useful and not error prone. At moment we mostly suppose that channels command will be used in development process and in not very massive Centrifugo setups (with no more than 10k channels). Also <code>channels</code> command is considered optional in engine implementations.</p>
 <h3 id="info">info<a class="headerlink" href="#info" title="Permanent link">&para;</a></h3>
 <p><code>info</code> method allows to get information about running Centrifugo nodes.</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
