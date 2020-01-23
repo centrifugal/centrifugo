@@ -30,7 +30,7 @@ To achieve many client connections we used 100 Kubernetes pods each generating a
 Here are some numbers we achieved:
 
 * 1 million WebSocket connections
-* Each connection subscribed to 2 channels: one personal channel and one group channel (with 10 subscribers in it), i.e. we had 2 millions of active channels at each moment.
+* Each connection subscribed to 2 channels: one personal channel and one group channel (with 10 subscribers in it), i.e. we had about 1.1 million active channels at each moment.
 * 28 million messages per minute (about 500k per second) **delivered** to clients
 * 200k per minute constant connect/disconnect rate to simulate real-life situation where clients connect/disconnect from server
 * 200ms delivery latency in 99 percentile
