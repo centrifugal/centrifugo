@@ -316,6 +316,8 @@ Date: Thu, 17 May 2018 22:08:31 GMT
 }
 ```
 
+Keep in mind that as `channels` API command returns all active channels snapshot it can be really heavy for massive deployments. At moment there is no way to paginate over channels list and we don't know a case where this could be useful and not error prone. At moment we mostly suppose that channels command will be used in development process and in not very massive Centrifugo setups (with no more than 10k channels). Also `channels` command is considered optional in engine implementations.
+
 ### info
 
 `info` method allows to get information about running Centrifugo nodes.
