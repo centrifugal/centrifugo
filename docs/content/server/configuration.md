@@ -250,7 +250,7 @@ Default: 255
 
 Sets maximum length of channel name.
 
-#### channel_user_connection_limit
+#### client_user_connection_limit
 
 Default: 0
 
