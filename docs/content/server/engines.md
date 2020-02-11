@@ -119,3 +119,13 @@ If you also need to customize AUTH password, Redis DB number then you can use `r
 Note, that due to how Redis PUB/SUB work it's not possible (and it's pretty useless anyway) to run shards in one Redis instances using different Redis DB numbers.
 
 When sharding enabled Centrifugo will spread channels and history/presence keys over configured Redis instances using consistent hashing algorithm. At moment we use Jump consistent hash algorithm (see [paper](https://arxiv.org/pdf/1406.2294.pdf) and [implementation](https://github.com/dgryski/go-jump))
+
+### KeyDB engine
+
+Centrifugo Redis engine seamlessly works with [KeyDB](https://keydb.dev/). KeyDB server is compatible with Redis and provides several additional features beyond. 
+
+Though we can't give any promises about compatibility with KeyDB in future Centrifugo releases - while KeyDB is fully compatible with Redis things should work fine. That's why we consider this as **EXPERIMENTAL** feature.
+
+Use KeyDB instead of Redis only if you are really sure you need it. Nothing stops you from running several Redis instances per each core you have, configure sharding and obtain even better performance that KeyDB can provide (due to lack of synchronization between threads in Redis).
+
+In order to run Centrifugo with KeyDB all you need to do is use `redis` engine option and run KeyDB server instead of Redis.
