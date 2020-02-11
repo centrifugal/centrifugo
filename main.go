@@ -823,7 +823,7 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 		servers = append(servers, server)
 
 		go func() {
-			if tlsConfig != nil {
+			if addrTLSConfig != nil {
 				if err := server.ListenAndServeTLS("", ""); err != nil {
 					if err != http.ErrServerClosed {
 						log.Fatal().Msgf("ListenAndServe: %v", err)
