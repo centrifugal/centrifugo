@@ -1009,7 +1009,7 @@
 <li><code>data</code> (optional JSON) is a custom data to send to client in connect command response. Supported since v2.3.1</li>
 <li><code>b64data</code> (optional string) is a custom data to send to client in connect command response for binary connections, will be decoded to raw bytes on Centrifugo side before sending to client. Supported since v2.3.1</li>
 </ul>
-<p><code>proxy_connect_timeout</code> (float, in seconds) controls timeout of HTTP POST request sent to app backend.</p>
+<p><code>proxy_connect_timeout</code> (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.</p>
 <p>Here is the simplest example of connect handler in Tornado Python framework (note that in real system you need to authenticate user on your backend side, here we just return <code>"56"</code> as user ID):</p>
 <div class="codehilite"><pre><span></span><span class="k">class</span> <span class="nc">CentrifugoConnectHandler</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">web</span><span class="o">.</span><span class="n">RequestHandler</span><span class="p">):</span>
 
@@ -1069,16 +1069,18 @@
 <li><code>user</code> is a connection user ID obtained during authentication process</li>
 </ul>
 <p>Response expected:</p>
-<div class="codehilite"><pre><span></span><span class="p">{</span><span class="nt">&quot;result&quot;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&quot;exp&quot;</span><span class="p">:</span> <span class="mi">1565436268</span><span class="p">}}</span>
+<div class="codehilite"><pre><span></span><span class="p">{</span><span class="nt">&quot;result&quot;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&quot;expire_at&quot;</span><span class="p">:</span> <span class="mi">1565436268</span><span class="p">}}</span>
 </pre></div>
 
 
 <p>Result fields:</p>
-<p><code>expired</code> (boolean) is a flag to mark connection as expired - client will be diconnected
-<code>expire_at</code> (integer) is a next timestamp when connection must be considered expired
-<code>info</code> (optional JSON) is a connection info JSON
-<code>b64info</code> (optional string) is a binary connection info encoded in base64 format</p>
-<p><code>proxy_refresh_timeout</code> (float, in seconds) controls timeout of HTTP POST request sent to app backend.</p>
+<ul>
+<li><code>expired</code> (boolean) is a flag to mark connection as expired - client will be diconnected</li>
+<li><code>expire_at</code> (integer) is a next timestamp when connection must be considered expired</li>
+<li><code>info</code> (optional JSON) is a connection info JSON</li>
+<li><code>b64info</code> (optional string) is a binary connection info encoded in base64 format</li>
+</ul>
+<p><code>proxy_refresh_timeout</code> (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.</p>
 <h3 id="rpc-proxy">rpc proxy<a class="headerlink" href="#rpc-proxy" title="Permanent link">&para;</a></h3>
 <p>With the following option in configuration file:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
@@ -1115,8 +1117,11 @@
 
 
 <p>Result fields:</p>
-<p><code>data</code> (JSON) is and RPC response - any valid JSON is supported
-<code>b64data</code> string can be set instead of <code>data</code> for binary response encoded in base64 format</p>
+<ul>
+<li><code>data</code> (JSON) is and RPC response - any valid JSON is supported</li>
+<li><code>b64data</code> string can be set instead of <code>data</code> for binary response encoded in base64 format</li>
+</ul>
+<p><code>proxy_rpc_timeout</code> (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.</p>
 <h3 id="return-custom-error">Return custom error<a class="headerlink" href="#return-custom-error" title="Permanent link">&para;</a></h3>
 <p>Application backend can return JSON object that contain an error to return it to client:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
