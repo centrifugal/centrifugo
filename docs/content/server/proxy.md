@@ -83,7 +83,7 @@ Result fields you can set:
 * `data` (optional JSON) is a custom data to send to client in connect command response. Supported since v2.3.1
 * `b64data` (optional string) is a custom data to send to client in connect command response for binary connections, will be decoded to raw bytes on Centrifugo side before sending to client. Supported since v2.3.1
 
-`proxy_connect_timeout` (float, in seconds) controls timeout of HTTP POST request sent to app backend.
+`proxy_connect_timeout` (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.
 
 Here is the simplest example of connect handler in Tornado Python framework (note that in real system you need to authenticate user on your backend side, here we just return `"56"` as user ID):
 
@@ -152,17 +152,17 @@ Request fields:
 Response expected:
 
 ```json
-{"result": {"exp": 1565436268}}
+{"result": {"expire_at": 1565436268}}
 ```
 
 Result fields:
 
-`expired` (boolean) is a flag to mark connection as expired - client will be diconnected
-`expire_at` (integer) is a next timestamp when connection must be considered expired
-`info` (optional JSON) is a connection info JSON
-`b64info` (optional string) is a binary connection info encoded in base64 format
+* `expired` (boolean) is a flag to mark connection as expired - client will be diconnected
+* `expire_at` (integer) is a next timestamp when connection must be considered expired
+* `info` (optional JSON) is a connection info JSON
+* `b64info` (optional string) is a binary connection info encoded in base64 format
 
-`proxy_refresh_timeout` (float, in seconds) controls timeout of HTTP POST request sent to app backend.
+`proxy_refresh_timeout` (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.
 
 ### rpc proxy
 
@@ -206,8 +206,10 @@ Response expected:
 
 Result fields:
 
-`data` (JSON) is and RPC response - any valid JSON is supported
-`b64data` string can be set instead of `data` for binary response encoded in base64 format
+* `data` (JSON) is and RPC response - any valid JSON is supported
+* `b64data` string can be set instead of `data` for binary response encoded in base64 format
+
+`proxy_rpc_timeout` (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.
 
 ### Return custom error
 
