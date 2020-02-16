@@ -1040,7 +1040,7 @@
 <p>!!! note
     SockJS works almost the same way as JSON websocket described here but has its own extra framing on top of Centrifuge protocol messages. SockJS can only work with JSON - it&rsquo;s not possible to transfer binary data over it. SockJS is only needed as fallback to Websocket in web browsers.</p>
 <h3 id="top-level-framing">Top level framing<a class="headerlink" href="#top-level-framing" title="Permanent link">&para;</a></h3>
-<p>Centrifuge protocol defined in <a href="https://github.com/centrifugal/centrifuge/blob/master/misc/proto/client.proto">Protobuf schema</a>. That schema is a source of truth and all protocol description below describes messages from that schema.</p>
+<p>Centrifuge protocol defined in <a href="https://github.com/centrifugal/protocol/blob/master/definitions/client.proto">Protobuf schema</a>. That schema is a source of truth and all protocol description below describes messages from that schema.</p>
 <p>Client sends <code>Command</code> to server.</p>
 <p>Server sends <code>Reply</code> to client.</p>
 <p>One request from client to server and one response from server to client can have more than one <code>Command</code> or <code>Reply</code>.</p>
