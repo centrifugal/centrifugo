@@ -196,8 +196,8 @@ Also create file `index.html` near `main.go` with content:
             centrifuge.on('disconnect', function(ctx){
                 drawText('Disconnected: ' + ctx.reason);
             });
-            var sub = centrifuge.subscribe("chat", function(message) {
-                drawText(JSON.stringify(message));
+            var sub = centrifuge.subscribe("chat", function(ctx) {
+                drawText(JSON.stringify(ctx.data));
             })
             var input = document.getElementById("input");
             input.addEventListener('keyup', function(e) {

@@ -5,37 +5,10 @@ import (
 	"sync"
 
 	"github.com/centrifugal/centrifuge/internal/clientproto"
+	"github.com/centrifugal/centrifuge/internal/prepared"
 
 	"github.com/centrifugal/protocol"
 )
-
-// preparedReply is structure for protoTypeoding reply only once.
-type preparedReply struct {
-	ProtoType ProtocolType
-	Reply     *protocol.Reply
-	data      []byte
-	once      sync.Once
-}
-
-// newPreparedReply initializes PreparedReply.
-func newPreparedReply(reply *protocol.Reply, protoType ProtocolType) *preparedReply {
-	return &preparedReply{
-		Reply:     reply,
-		ProtoType: protoType,
-	}
-}
-
-// Data returns data associated with reply which is only calculated once.
-func (r *preparedReply) Data() []byte {
-	r.once.Do(func() {
-		encoder := protocol.GetReplyEncoder(r.ProtoType)
-		encoder.Encode(r.Reply)
-		data := encoder.Finish()
-		protocol.PutReplyEncoder(r.ProtoType, encoder)
-		r.data = data
-	})
-	return r.data
-}
 
 // Hub manages client connections.
 type Hub struct {
@@ -132,7 +105,7 @@ func (h *Hub) disconnect(user string, reconnect bool) error {
 func (h *Hub) unsubscribe(user string, ch string) error {
 	userConnections := h.userConnections(user)
 	for _, c := range userConnections {
-		err := c.Unsubscribe(ch, false)
+		err := c.Unsubscribe(ch)
 		if err != nil {
 			return err
 		}
@@ -261,16 +234,16 @@ func (h *Hub) broadcastPublication(channel string, pub *Publication, chOpts *Cha
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	// get connections currently subscribed on channel
+	// get connections currently subscribed on channel.
 	channelSubscriptions, ok := h.subs[channel]
 	if !ok {
 		return nil
 	}
 
-	var jsonReply *preparedReply
-	var protobufReply *preparedReply
+	var jsonPublicationReply *prepared.Reply
+	var protobufPublicationReply *prepared.Reply
 
-	// iterate over them and send message individually
+	// Iterate over channel subscribers and send message.
 	for uid := range channelSubscriptions {
 		c, ok := h.conns[uid]
 		if !ok {
@@ -278,7 +251,7 @@ func (h *Hub) broadcastPublication(channel string, pub *Publication, chOpts *Cha
 		}
 		protoType := c.Transport().Protocol()
 		if protoType == protocol.TypeJSON {
-			if jsonReply == nil {
+			if jsonPublicationReply == nil {
 				data, err := protocol.GetPushEncoder(protoType).EncodePublication(pub)
 				if err != nil {
 					return err
@@ -290,11 +263,11 @@ func (h *Hub) broadcastPublication(channel string, pub *Publication, chOpts *Cha
 				reply := &protocol.Reply{
 					Result: messageBytes,
 				}
-				jsonReply = newPreparedReply(reply, protocol.TypeJSON)
+				jsonPublicationReply = prepared.NewReply(reply, protocol.TypeJSON)
 			}
-			c.writePublication(channel, pub, jsonReply, chOpts)
+			c.writePublication(channel, pub, jsonPublicationReply, chOpts)
 		} else if protoType == protocol.TypeProtobuf {
-			if protobufReply == nil {
+			if protobufPublicationReply == nil {
 				data, err := protocol.GetPushEncoder(protoType).EncodePublication(pub)
 				if err != nil {
 					return err
@@ -306,9 +279,9 @@ func (h *Hub) broadcastPublication(channel string, pub *Publication, chOpts *Cha
 				reply := &protocol.Reply{
 					Result: messageBytes,
 				}
-				protobufReply = newPreparedReply(reply, protocol.TypeProtobuf)
+				protobufPublicationReply = prepared.NewReply(reply, protocol.TypeProtobuf)
 			}
-			c.writePublication(channel, pub, protobufReply, chOpts)
+			c.writePublication(channel, pub, protobufPublicationReply, chOpts)
 		}
 	}
 	return nil
@@ -319,16 +292,14 @@ func (h *Hub) broadcastJoin(channel string, join *Join) error {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	// get connections currently subscribed on channel
 	channelSubscriptions, ok := h.subs[channel]
 	if !ok {
 		return nil
 	}
 
-	var jsonReply *preparedReply
-	var protobufReply *preparedReply
+	var jsonReply *prepared.Reply
+	var protobufReply *prepared.Reply
 
-	// iterate over them and send message individually
 	for uid := range channelSubscriptions {
 		c, ok := h.conns[uid]
 		if !ok {
@@ -348,7 +319,7 @@ func (h *Hub) broadcastJoin(channel string, join *Join) error {
 				reply := &protocol.Reply{
 					Result: messageBytes,
 				}
-				jsonReply = newPreparedReply(reply, protocol.TypeJSON)
+				jsonReply = prepared.NewReply(reply, protocol.TypeJSON)
 			}
 			c.writeJoin(channel, jsonReply)
 		} else if protoType == protocol.TypeProtobuf {
@@ -364,7 +335,7 @@ func (h *Hub) broadcastJoin(channel string, join *Join) error {
 				reply := &protocol.Reply{
 					Result: messageBytes,
 				}
-				protobufReply = newPreparedReply(reply, protocol.TypeProtobuf)
+				protobufReply = prepared.NewReply(reply, protocol.TypeProtobuf)
 			}
 			c.writeJoin(channel, protobufReply)
 		}
@@ -377,16 +348,14 @@ func (h *Hub) broadcastLeave(channel string, leave *Leave) error {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
-	// get connections currently subscribed on channel
 	channelSubscriptions, ok := h.subs[channel]
 	if !ok {
 		return nil
 	}
 
-	var jsonReply *preparedReply
-	var protobufReply *preparedReply
+	var jsonReply *prepared.Reply
+	var protobufReply *prepared.Reply
 
-	// iterate over them and send message individually
 	for uid := range channelSubscriptions {
 		c, ok := h.conns[uid]
 		if !ok {
@@ -406,7 +375,7 @@ func (h *Hub) broadcastLeave(channel string, leave *Leave) error {
 				reply := &protocol.Reply{
 					Result: messageBytes,
 				}
-				jsonReply = newPreparedReply(reply, protocol.TypeJSON)
+				jsonReply = prepared.NewReply(reply, protocol.TypeJSON)
 			}
 			c.writeLeave(channel, jsonReply)
 		} else if protoType == protocol.TypeProtobuf {
@@ -422,7 +391,7 @@ func (h *Hub) broadcastLeave(channel string, leave *Leave) error {
 				reply := &protocol.Reply{
 					Result: messageBytes,
 				}
-				protobufReply = newPreparedReply(reply, protocol.TypeProtobuf)
+				protobufReply = prepared.NewReply(reply, protocol.TypeProtobuf)
 			}
 			c.writeLeave(channel, protobufReply)
 		}

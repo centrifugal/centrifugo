@@ -48,6 +48,15 @@ func NewUnsubPush(ch string, data protocol.Raw) *protocol.Push {
 	}
 }
 
+// NewSubPush returns initialized async subscribe message.
+func NewSubPush(ch string, data protocol.Raw) *protocol.Push {
+	return &protocol.Push{
+		Type:    protocol.PushTypeSub,
+		Channel: ch,
+		Data:    data,
+	}
+}
+
 // ConnectResponse ...
 type ConnectResponse struct {
 	Error  *protocol.Error         `json:"error,omitempty"`

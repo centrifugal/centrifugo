@@ -123,11 +123,11 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 				ExpireAt: credentials.ExpireAt,
 				Info:     info,
 			},
+			Channels: credentials.Channels,
 		}
 		if len(data) > 0 {
 			reply.Data = data
 		}
-
 		return reply
 	}
 }

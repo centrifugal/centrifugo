@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Config contains Application configuration options.
+// Config contains Node configuration options.
 type Config struct {
 	// Version of server – will be sent to client on connection establishement
 	// phase in response to connect request.
@@ -16,15 +16,11 @@ type Config struct {
 	// Name of this server node - must be unique, used as human readable
 	// and meaningful node identificator.
 	Name string
-	// Secret is a secret key used to generate connection and subscription tokens.
-	//
-	// Deprecated: Use TokenHMACSecretKey instead.
-	Secret string
-	// TokenHMACSecretKey is a secret key used to validate connection and subscription tokens generated using HMAC.
-	// Zero value means that HMAC tokens won't be allowed.
+	// TokenHMACSecretKey is a secret key used to validate connection and subscription
+	// tokens generated using HMAC. Zero value means that HMAC tokens won't be allowed.
 	TokenHMACSecretKey string
-	// TokenRSAPublicKey is a public key used to validate connection and subscription tokens generated using RSA.
-	// Zero value means that RSA tokens won't be allowed.
+	// TokenRSAPublicKey is a public key used to validate connection and subscription
+	// tokens generated using RSA. Zero value means that RSA tokens won't be allowed.
 	TokenRSAPublicKey *rsa.PublicKey
 	// ChannelOptions embedded.
 	ChannelOptions
@@ -68,6 +64,12 @@ type Config struct {
 	// ClientUserConnectionLimit limits number of client connections from user with the
 	// same ID. 0 - unlimited.
 	ClientUserConnectionLimit int
+	// UserSubscribePersonal enables automatic subscribing to personal channel by user.
+	// Only users with user ID defined will subscribe to personal channels, anonymous
+	// users are ignored.
+	UserSubscribePersonal bool
+	// UserPersonalChannelPrefix defines prefix to be added to user personal channel.
+	UserPersonalChannelPrefix string
 	// ChannelPrivatePrefix is a prefix in channel name which indicates that
 	// channel is private.
 	ChannelPrivatePrefix string
@@ -153,14 +155,13 @@ var DefaultConfig = Config{
 
 	NodeInfoMetricsAggregateInterval: 60 * time.Second,
 
-	ChannelMaxLength:         255,
-	ChannelPrivatePrefix:     "$", // so private channel will look like "$gossips"
-	ChannelNamespaceBoundary: ":", // so namespace "public" can be used as "public:news"
-	ChannelUserBoundary:      "#", // so user limited channel is "user#2694" where "2696" is user ID
-	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019"
+	ChannelMaxLength:          255,
+	ChannelPrivatePrefix:      "$", // so private channel will look like "$gossips"
+	ChannelNamespaceBoundary:  ":", // so namespace "public" can be used as "public:news"
+	ChannelUserBoundary:       "#", // so user limited channel is "user#2694" where "2696" is user ID
+	ChannelUserSeparator:      ",", // so several users limited channel is "dialog#2694,3019"
+	UserPersonalChannelPrefix: "",  // so personal channel by default will be like #3019
 
-	ClientInsecure:                  false,
-	ClientAnonymous:                 false,
 	ClientPresencePingInterval:      25 * time.Second,
 	ClientPresenceExpireInterval:    60 * time.Second,
 	ClientExpiredCloseDelay:         25 * time.Second,

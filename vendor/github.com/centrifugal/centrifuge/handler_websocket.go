@@ -6,8 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifuge/internal/timers"
 	"github.com/gorilla/websocket"
+
+	"github.com/centrifugal/centrifuge/internal/timers"
 )
 
 const (
@@ -182,6 +183,9 @@ type WebsocketConfig struct {
 	// If set to zero reasonable default value will be used.
 	WriteBufferSize int
 
+	// UseWriteBufferPool enables using buffer pool for writes.
+	UseWriteBufferPool bool
+
 	// CheckOrigin func to provide custom origin check logic.
 	// nil means allow all origins.
 	CheckOrigin func(r *http.Request) bool
@@ -202,15 +206,36 @@ type WebsocketConfig struct {
 
 // WebsocketHandler handles websocket client connections.
 type WebsocketHandler struct {
-	node   *Node
-	config WebsocketConfig
+	node     *Node
+	upgrader *websocket.Upgrader
+	config   WebsocketConfig
 }
+
+var writeBufferPool = &sync.Pool{}
 
 // NewWebsocketHandler creates new WebsocketHandler.
 func NewWebsocketHandler(n *Node, c WebsocketConfig) *WebsocketHandler {
+	upgrader := &websocket.Upgrader{
+		ReadBufferSize:    c.ReadBufferSize,
+		EnableCompression: c.Compression,
+	}
+	if c.UseWriteBufferPool {
+		upgrader.WriteBufferPool = writeBufferPool
+	} else {
+		upgrader.WriteBufferSize = c.WriteBufferSize
+	}
+	if c.CheckOrigin != nil {
+		upgrader.CheckOrigin = c.CheckOrigin
+	} else {
+		upgrader.CheckOrigin = func(r *http.Request) bool {
+			// Allow all connections.
+			return true
+		}
+	}
 	return &WebsocketHandler{
-		node:   n,
-		config: c,
+		node:     n,
+		config:   c,
+		upgrader: upgrader,
 	}
 }
 
@@ -221,21 +246,7 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	compressionLevel := s.config.CompressionLevel
 	compressionMinSize := s.config.CompressionMinSize
 
-	upgrader := websocket.Upgrader{
-		ReadBufferSize:    s.config.ReadBufferSize,
-		WriteBufferSize:   s.config.WriteBufferSize,
-		EnableCompression: s.config.Compression,
-	}
-	if s.config.CheckOrigin != nil {
-		upgrader.CheckOrigin = s.config.CheckOrigin
-	} else {
-		upgrader.CheckOrigin = func(r *http.Request) bool {
-			// Allow all connections.
-			return true
-		}
-	}
-
-	conn, err := upgrader.Upgrade(rw, r, nil)
+	conn, err := s.upgrader.Upgrade(rw, r, nil)
 	if err != nil {
 		s.node.logger.log(newLogEntry(LogLevelDebug, "websocket upgrade error", map[string]interface{}{"error": err.Error()}))
 		return
@@ -332,6 +343,8 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			}
 			handleMu.RUnlock()
 			go func() {
+				// We use goroutine here for proper handling of Websocket closing handshake.
+				// See https://github.com/gorilla/websocket/issues/448.
 				handleMu.Lock()
 				closed = !c.Handle(data)
 				handleMu.Unlock()
