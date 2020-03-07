@@ -470,6 +470,18 @@
 
 
   <li class="md-nav__item">
+    <a href="../server_subs/" title="Server-side subscriptions" class="md-nav__link">
+      Server-side subscriptions
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../protobuf/" title="Protobuf protocol" class="md-nav__link">
       Protobuf protocol
     </a>
@@ -1012,8 +1024,10 @@
 <p>Note that you can always look at <a href="../../libraries/client/">existing client implementations</a> in case of any questions.</p>
 <h3 id="client-implementation-checklist">Client implementation checklist<a class="headerlink" href="#client-implementation-checklist" title="Permanent link">&para;</a></h3>
 <p>First we will look at list of features client library should support. Depending on client implementation some features can be not implemented. If you an author of client library you can use this list as checklist.</p>
-<p>!!! note
-    Field and method names presented in this checklist can have different names depending on programmer&rsquo;s taste and language style guide</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Field and method names presented in this checklist can have different names depending on programmer&rsquo;s taste and language style guide</p>
+</div>
 <p>So, client:</p>
 <ul>
 <li>Should work both with Centrifugo and Centrifuge library based server. To work with Centrifugo client must have a method to set connection token. To work with Centrifuge lib client must provide a method to set custom headers (the only exception is browser clients where browser automatically sets headers with respect to domain rules)</li>
@@ -1037,8 +1051,10 @@
 </ul>
 <p>Below in this document we will describe protocol concepts in detail.</p>
 <p>This document describes protocol specifics for Websocket transport which supports binary and text formats to transfer data. As Centrifuge has various types of messages it serializes protocol messages using JSON or Protobuf (in case of binary websockets).</p>
-<p>!!! note
-    SockJS works almost the same way as JSON websocket described here but has its own extra framing on top of Centrifuge protocol messages. SockJS can only work with JSON - it&rsquo;s not possible to transfer binary data over it. SockJS is only needed as fallback to Websocket in web browsers.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>SockJS works almost the same way as JSON websocket described here but has its own extra framing on top of Centrifuge protocol messages. SockJS can only work with JSON - it&rsquo;s not possible to transfer binary data over it. SockJS is only needed as fallback to Websocket in web browsers.</p>
+</div>
 <h3 id="top-level-framing">Top level framing<a class="headerlink" href="#top-level-framing" title="Permanent link">&para;</a></h3>
 <p>Centrifuge protocol defined in <a href="https://github.com/centrifugal/protocol/blob/master/definitions/client.proto">Protobuf schema</a>. That schema is a source of truth and all protocol description below describes messages from that schema.</p>
 <p>Client sends <code>Command</code> to server.</p>
@@ -1063,10 +1079,14 @@
 </pre></div>
 
 
-<p>!!! note
-    This doc will use JSON format for examples because it&rsquo;s human-readable. Everything said here for JSON is also true for Protobuf encoded case. The only difference is how several individual <code>Command</code> or server <code>Reply</code> joined into one request – see below.</p>
-<p>!!! note
-    Method is made as ENUM in protobuf schema and can be sent as integer value but it&rsquo;s possible to send it as string in JSON case – this was made to make JSON protocol human-friendly.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This doc will use JSON format for examples because it&rsquo;s human-readable. Everything said here for JSON is also true for Protobuf encoded case. The only difference is how several individual <code>Command</code> or server <code>Reply</code> joined into one request – see below.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Method is made as ENUM in protobuf schema and can be sent as integer value but it&rsquo;s possible to send it as string in JSON case – this was made to make JSON protocol human-friendly.</p>
+</div>
 <p>When Protobuf format is used then many <code>Command</code> can be sent from client to server in length-delimited format where each individual <code>Command</code> marshaled to bytes prepended by <code>varint</code> length. See existing client implementations for encoding example.</p>
 <p>The same rules relate to many <code>Reply</code> in one response from server to client. Line-delimited JSON and varint-length prefixed Protobuf.</p>
 <p>For example here is how we read server response and extracting individual replies in Javascript client when JSON format used:</p>
@@ -1237,8 +1257,10 @@ subscribe on channels. To do this it must send <code>subscribe</code> command to
 <h3 id="rpc-like-calls-publish-history-presence">RPC-like calls: publish, history, presence<a class="headerlink" href="#rpc-like-calls-publish-history-presence" title="Permanent link">&para;</a></h3>
 <p>The mechanics of these calls is simple - client sends command and expects response from server.</p>
 <p><code>publish</code> command allows to publish message into channel from client.</p>
-<p>!!! note
-    To publish from client <code>publish</code> option in server configuration must be set to <code>true</code></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To publish from client <code>publish</code> option in server configuration must be set to <code>true</code></p>
+</div>
 <p><code>history</code> allows to ask server for channel history if enabled.</p>
 <p><code>presence</code> allows to ask server for channel presence information if enabled.</p>
 <h3 id="asynchronous-server-to-client-messages">Asynchronous server-to-client messages<a class="headerlink" href="#asynchronous-server-to-client-messages" title="Permanent link">&para;</a></h3>
@@ -1282,8 +1304,10 @@ allows to distinguish it from <code>Reply</code> to <code>Command</code>.  </p>
 
 
 <p><code>Join</code> messages sent when someone joined (subscribed on) channel.</p>
-<p>!!! note
-    To enable <code>Join</code> and <code>Leave</code> messages <code>join_leave</code> option must be enabled on server globally or for channel namespace.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To enable <code>Join</code> and <code>Leave</code> messages <code>join_leave</code> option must be enabled on server globally or for channel namespace.</p>
+</div>
 <p><code>Leave</code> messages sent when someone left (unsubscribed from) channel.</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
     <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{</span>

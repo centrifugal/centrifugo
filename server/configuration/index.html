@@ -516,6 +516,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#disable-default-endpoints" title="Disable default endpoints" class="md-nav__link">
+    Disable default endpoints
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#customize-handler-endpoinds" title="Customize handler endpoinds" class="md-nav__link">
     Customize handler endpoinds
   </a>
@@ -678,6 +685,18 @@
   <li class="md-nav__item">
     <a href="../proxy/" title="Proxy to backend" class="md-nav__link">
       Proxy to backend
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server_subs/" title="Server-side subscriptions" class="md-nav__link">
+      Server-side subscriptions
     </a>
   </li>
 
@@ -1183,6 +1202,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#disable-default-endpoints" title="Disable default endpoints" class="md-nav__link">
+    Disable default endpoints
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#customize-handler-endpoinds" title="Customize handler endpoinds" class="md-nav__link">
     Customize handler endpoinds
   </a>
@@ -1360,7 +1386,10 @@ log_level: debug
 <p><code>history_recover</code> – boolean option, when enabled Centrifugo will try to recover missed publications while client was disconnected for some reason (bad internet connection for example). By default <code>false</code>. This option must be used in conjunction with reasonably configured message history for channel i.e. <code>history_size</code> and <code>history_lifetime</code> <strong>must be set</strong> (because Centrifugo uses channel history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel (currently Centrifugo returns recovered publications in order and without duplicates but this is implementation detail that can be theoretically changed in future). See more details about how recovery works in <a href="../recover/">special chapter</a>.</p>
 </li>
 <li>
-<p><code>history_disable_for_client</code> (available since v2.2.3) – allows to make history available only for server side API. By default <code>false</code> – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if <code>history_disable_for_client</code> is on.</p>
+<p><code>history_disable_for_client</code> (boolean, available since v2.2.3) – allows to make history available only for server side API. By default <code>false</code> – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if <code>history_disable_for_client</code> is on.</p>
+</li>
+<li>
+<p><code>server_side</code> (boolean, available since v2.4.0) – when enabled then all client-side subscription requests to channels in namespace will be rejected with <code>PermissionDenied</code> error. By default <code>false</code>.</p>
 </li>
 </ul>
 <p>Let&rsquo;s look how to set some of these options in config:</p>
@@ -1543,6 +1572,11 @@ channel name with <code>:</code> as separator:</p>
 
 
 <p>The same for API and prometheus endpoint.</p>
+<h4 id="disable-default-endpoints">Disable default endpoints<a class="headerlink" href="#disable-default-endpoints" title="Permanent link">&para;</a></h4>
+<p>These options available since v2.4.0</p>
+<p>To disable websocket endpoint set <code>websocket_disable</code> boolean option to <code>true</code>.</p>
+<p>To disable SockJS endpoint set <code>sockjs_disable</code> boolean option to <code>true</code>.</p>
+<p>To disable API endpoint set <code>api_disable</code> boolean option to <code>true</code>.</p>
 <h4 id="customize-handler-endpoinds">Customize handler endpoinds<a class="headerlink" href="#customize-handler-endpoinds" title="Permanent link">&para;</a></h4>
 <p>Starting from Centrifugo v2.2.5 it&rsquo;s possible to customize server HTTP handler endpoints. To do this Centrifugo supports several options:</p>
 <ul>

@@ -400,6 +400,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#channels" title="channels" class="md-nav__link">
+    channels
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -573,6 +580,18 @@
   <li class="md-nav__item">
     <a href="../proxy/" title="Proxy to backend" class="md-nav__link">
       Proxy to backend
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server_subs/" title="Server-side subscriptions" class="md-nav__link">
+      Server-side subscriptions
     </a>
   </li>
 
@@ -938,6 +957,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#channels" title="channels" class="md-nav__link">
+    channels
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1040,6 +1066,9 @@
 <h3 id="b64info">b64info<a class="headerlink" href="#b64info" title="Permanent link">&para;</a></h3>
 <p>If you are using binary protobuf protocol you may want info to be custom bytes. Use this field in this case.</p>
 <p>This field contains a <code>base64</code> representation of your bytes. After receiving Centrifugo will decode base64 back to bytes and will embed result into various places described above.</p>
+<h3 id="channels">channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h3>
+<p>New in v2.4.0</p>
+<p>Optional array of strings with server-side channels. See more details about <a href="../server_subs/">server-side subscriptions</a>.</p>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <p>Let&rsquo;s look how to generate connection HS256 JWT in Python:</p>
 <h3 id="simplest-token">Simplest token<a class="headerlink" href="#simplest-token" title="Permanent link">&para;</a></h3>
