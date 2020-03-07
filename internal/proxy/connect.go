@@ -22,6 +22,7 @@ type ConnectCredentials struct {
 	Base64Info string          `json:"b64info"`
 	Data       json.RawMessage `json:"data"`
 	Base64Data string          `json:"b64data"`
+	Channels   []string        `json:"channels"`
 }
 
 // ConnectReply ...

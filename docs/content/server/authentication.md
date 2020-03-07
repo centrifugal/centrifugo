@@ -58,6 +58,12 @@ If you are using binary protobuf protocol you may want info to be custom bytes. 
 
 This field contains a `base64` representation of your bytes. After receiving Centrifugo will decode base64 back to bytes and will embed result into various places described above.
 
+### channels
+
+New in v2.4.0
+
+Optional array of strings with server-side channels. See more details about [server-side subscriptions](server_subs.md).
+
 ## Examples
 
 Let's look how to generate connection HS256 JWT in Python:

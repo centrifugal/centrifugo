@@ -13,6 +13,11 @@ type ChannelNamespace struct {
 // ChannelOptions represent channel specific configuration for namespace
 // or global channel options if set on top level of configuration.
 type ChannelOptions struct {
+	// ServerSide marks all channels in namespace as server side, when on then
+	// all client subscribe requests to these channels will be rejected with
+	// PermissionDenied error.
+	ServerSide bool `mapstructure:"server_side" json:"server_side"`
+
 	// Publish enables possibility for clients to publish messages into channels.
 	// Once enabled client can publish into channel and that publication will be
 	// broadcasted to all current channel subscribers. You can control publishing

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifuge/internal/controlproto"
+	"github.com/centrifugal/centrifuge/internal/dissolve"
 	"github.com/centrifugal/centrifuge/internal/uuid"
 
 	"github.com/FZambia/eagle"
@@ -31,6 +32,8 @@ type Node struct {
 	hub *Hub
 	// broker is responsible for PUB/SUB mechanics.
 	broker Broker
+	// tokenVerifier is responsible to verify client tokens
+	tokenVerifier tokenVerifier
 	// historyManager is responsible for managing channel Publication history.
 	historyManager HistoryManager
 	// presenceManager is responsible for presence information management.
@@ -56,10 +59,13 @@ type Node struct {
 	metricsMu       sync.Mutex
 	metricsExporter *eagle.Eagle
 	metricsSnapshot *eagle.Metrics
+
+	subDissolver *dissolve.Dissolver
 }
 
 const (
-	numSubLocks = 16384
+	numSubLocks            = 16384
+	numSubDissolverWorkers = 64
 )
 
 // New creates Node, the only required argument is config.
@@ -83,6 +89,8 @@ func New(c Config) (*Node, error) {
 		controlDecoder: controlproto.NewProtobufDecoder(),
 		eventHub:       &nodeEventHub{},
 		subLocks:       subLocks,
+		subDissolver:   dissolve.New(numSubDissolverWorkers),
+		tokenVerifier:  newTokenVerifierJWT(c.TokenHMACSecretKey, c.TokenRSAPublicKey),
 	}
 
 	if c.LogHandler != nil {
@@ -148,6 +156,7 @@ func (n *Node) Reload(c Config) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	n.config = c
+	n.tokenVerifier.Reload(c)
 	return nil
 }
 
@@ -171,6 +180,7 @@ func (n *Node) Run() error {
 	go n.sendNodePing()
 	go n.cleanNodeInfo()
 	go n.updateMetrics()
+	n.subDissolver.Run()
 	return nil
 }
 
@@ -213,6 +223,7 @@ func (n *Node) Shutdown(ctx context.Context) error {
 			defer closer.Close(ctx)
 		}
 	}
+	n.subDissolver.Close()
 	return n.hub.shutdown(ctx)
 }
 
@@ -632,7 +643,7 @@ func (n *Node) removeClient(c *Client) error {
 }
 
 // addSubscription registers subscription of connection on channel in both
-// engine and clientSubscriptionHub.
+// hub and engine.
 func (n *Node) addSubscription(ch string, c *Client) error {
 	actionCount.WithLabelValues("add_subscription").Inc()
 	mu := n.subLock(ch)
@@ -653,7 +664,7 @@ func (n *Node) addSubscription(ch string, c *Client) error {
 }
 
 // removeSubscription removes subscription of connection on channel
-// from both engine and clientSubscriptionHub.
+// from hub and engine.
 func (n *Node) removeSubscription(ch string, c *Client) error {
 	actionCount.WithLabelValues("remove_subscription").Inc()
 	mu := n.subLock(ch)
@@ -664,7 +675,21 @@ func (n *Node) removeSubscription(ch string, c *Client) error {
 		return err
 	}
 	if empty {
-		return n.broker.Unsubscribe(ch)
+		submittedAt := time.Now()
+		n.subDissolver.Submit(func() error {
+			timeSpent := time.Since(submittedAt)
+			if timeSpent < time.Second {
+				time.Sleep(time.Second - timeSpent)
+			}
+			mu := n.subLock(ch)
+			mu.Lock()
+			defer mu.Unlock()
+			empty := n.hub.NumSubscribers(ch) == 0
+			if empty {
+				return n.broker.Unsubscribe(ch)
+			}
+			return nil
+		})
 	}
 	return nil
 }
@@ -713,6 +738,15 @@ func (n *Node) ChannelOpts(ch string) (ChannelOptions, bool) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 	return n.config.channelOpts(n.namespaceName(ch))
+}
+
+// PersonalChannel returns personal channel for user based on node configuration.
+func (n *Node) PersonalChannel(user string) string {
+	config := n.Config()
+	if config.UserPersonalChannelNamespace == "" {
+		return config.ChannelUserBoundary + user
+	}
+	return config.UserPersonalChannelNamespace + config.ChannelNamespaceBoundary + config.ChannelUserBoundary + user
 }
 
 // addPresence proxies presence adding to engine.
@@ -841,6 +875,14 @@ func (n *Node) userAllowed(ch string, user string) bool {
 		}
 	}
 	return false
+}
+
+func (n *Node) verifyConnectToken(token string) (connectToken, error) {
+	return n.tokenVerifier.VerifyConnectToken(token)
+}
+
+func (n *Node) verifySubscribeToken(token string) (subscribeToken, error) {
+	return n.tokenVerifier.VerifySubscribeToken(token)
 }
 
 type nodeRegistry struct {
