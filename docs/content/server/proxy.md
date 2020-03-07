@@ -82,6 +82,7 @@ Result fields you can set:
 * `b64info` (optional string) is a binary connection info encoded in base64 format, will be decoded to raw bytes on Centrifugo before using in messages
 * `data` (optional JSON) is a custom data to send to client in connect command response. Supported since v2.3.1
 * `b64data` (optional string) is a custom data to send to client in connect command response for binary connections, will be decoded to raw bytes on Centrifugo side before sending to client. Supported since v2.3.1
+* `channels` (optional array of strings) - allows to provide a list of server-side channels to subscribe connection to. See more details about [server-side subscriptions](server_subs.md). Supported since v2.4.0
 
 `proxy_connect_timeout` (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.
 
