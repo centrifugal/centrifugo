@@ -411,6 +411,16 @@ http://localhost:9000/debug/pprof/
 
 The same for API and prometheus endpoint.
 
+#### Disable default endpoints
+
+These options available since v2.4.0
+
+To disable websocket endpoint set `websocket_disable` boolean option to `true`.
+
+To disable SockJS endpoint set `sockjs_disable` boolean option to `true`.
+
+To disable API endpoint set `api_disable` boolean option to `true`.
+
 #### Customize handler endpoinds
 
 Starting from Centrifugo v2.2.5 it's possible to customize server HTTP handler endpoints. To do this Centrifugo supports several options:
