@@ -1262,7 +1262,7 @@ func (c *Client) connectCmd(cmd *protocol.ConnectRequest, rw *replyWriter) *Disc
 		resp.Result.Data = authData
 	}
 
-	if config.UserSubscribePersonal && c.user != "" {
+	if config.UserSubscribeToPersonal && c.user != "" {
 		channels = append(channels, c.node.PersonalChannel(c.user))
 	}
 

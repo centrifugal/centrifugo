@@ -64,12 +64,12 @@ type Config struct {
 	// ClientUserConnectionLimit limits number of client connections from user with the
 	// same ID. 0 - unlimited.
 	ClientUserConnectionLimit int
-	// UserSubscribePersonal enables automatic subscribing to personal channel by user.
+	// UserSubscribeToPersonal enables automatic subscribing to personal channel by user.
 	// Only users with user ID defined will subscribe to personal channels, anonymous
 	// users are ignored.
-	UserSubscribePersonal bool
+	UserSubscribeToPersonal bool
 	// UserPersonalChannelPrefix defines prefix to be added to user personal channel.
-	UserPersonalChannelPrefix string
+	UserPersonalChannelNamespace string
 	// ChannelPrivatePrefix is a prefix in channel name which indicates that
 	// channel is private.
 	ChannelPrivatePrefix string
@@ -106,6 +106,13 @@ func (c *Config) Validate() error {
 		return errors.New("both history size and history lifetime required for history recovery")
 	}
 
+	usePersonalChannel := c.UserSubscribeToPersonal
+	personalChannelNamespace := c.UserPersonalChannelNamespace
+	var validPersonalChannelNamespace bool
+	if !usePersonalChannel || personalChannelNamespace == "" {
+		validPersonalChannelNamespace = true
+	}
+
 	var nss []string
 	for _, n := range c.Namespaces {
 		name := n.Name
@@ -119,8 +126,16 @@ func (c *Config) Validate() error {
 		if n.HistoryRecover && (n.HistorySize == 0 || n.HistoryLifetime == 0) {
 			return fmt.Errorf("namespace %s: both history size and history lifetime required for history recovery", name)
 		}
+		if name == personalChannelNamespace {
+			validPersonalChannelNamespace = true
+		}
 		nss = append(nss, name)
 	}
+
+	if !validPersonalChannelNamespace {
+		return fmt.Errorf("namespace for user personal channel not found: %s", personalChannelNamespace)
+	}
+
 	return nil
 }
 
@@ -155,12 +170,11 @@ var DefaultConfig = Config{
 
 	NodeInfoMetricsAggregateInterval: 60 * time.Second,
 
-	ChannelMaxLength:          255,
-	ChannelPrivatePrefix:      "$", // so private channel will look like "$gossips"
-	ChannelNamespaceBoundary:  ":", // so namespace "public" can be used as "public:news"
-	ChannelUserBoundary:       "#", // so user limited channel is "user#2694" where "2696" is user ID
-	ChannelUserSeparator:      ",", // so several users limited channel is "dialog#2694,3019"
-	UserPersonalChannelPrefix: "",  // so personal channel by default will be like #3019
+	ChannelMaxLength:         255,
+	ChannelPrivatePrefix:     "$", // so private channel will look like "$gossips"
+	ChannelNamespaceBoundary: ":", // so namespace "public" can be used as "public:news"
+	ChannelUserBoundary:      "#", // so user limited channel is "user#2694" where "2696" is user ID
+	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019"
 
 	ClientPresencePingInterval:      25 * time.Second,
 	ClientPresenceExpireInterval:    60 * time.Second,

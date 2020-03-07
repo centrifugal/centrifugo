@@ -98,8 +98,8 @@ func main() {
 				"proxy_connect_timeout", "proxy_rpc_endpoint", "proxy_rpc_timeout",
 				"proxy_refresh_endpoint", "proxy_refresh_timeout",
 				"token_rsa_public_key", "token_hmac_secret_key", "redis_sequence_ttl",
-				"proxy_extra_http_headers", "server_side", "user_subscribe_personal",
-				"user_personal_channel_prefix", "websocket_use_write_buffer_pool",
+				"proxy_extra_http_headers", "server_side", "user_subscribe_to_personal",
+				"user_personal_channel_namespace", "websocket_use_write_buffer_pool",
 				"websocket_disable", "sockjs_disable", "api_disable",
 			}
 			for _, env := range bindEnvs {
@@ -426,6 +426,7 @@ var configDefaults = map[string]interface{}{
 	"secret":                               "",
 	"token_hmac_secret_key":                "",
 	"token_rsa_public_key":                 "",
+	"server_side":                          false,
 	"publish":                              false,
 	"subscribe_to_publish":                 false,
 	"anonymous":                            false,
@@ -435,7 +436,6 @@ var configDefaults = map[string]interface{}{
 	"history_lifetime":                     0,
 	"history_recover":                      false,
 	"history_disable_for_client":           false,
-	"server_side":                          false,
 	"node_info_metrics_aggregate_interval": 60,
 	"client_anonymous":                     false,
 	"client_ping_interval":                 25,
@@ -453,8 +453,8 @@ var configDefaults = map[string]interface{}{
 	"channel_namespace_boundary":           ":",
 	"channel_user_boundary":                "#",
 	"channel_user_separator":               ",",
-	"user_subscribe_personal":              false,
-	"user_personal_channel_prefix":         "",
+	"user_subscribe_to_personal":           false,
+	"user_personal_channel_namespace":      "",
 	"debug":                                false,
 	"prometheus":                           false,
 	"health":                               false,
@@ -1023,8 +1023,8 @@ func nodeConfig(version string) *centrifuge.Config {
 	cfg.ChannelUserBoundary = v.GetString("channel_user_boundary")
 	cfg.ChannelUserSeparator = v.GetString("channel_user_separator")
 
-	cfg.UserSubscribePersonal = v.GetBool("user_subscribe_personal")
-	cfg.UserPersonalChannelPrefix = v.GetString("user_personal_channel_prefix")
+	cfg.UserSubscribeToPersonal = v.GetBool("user_subscribe_to_personal")
+	cfg.UserPersonalChannelNamespace = v.GetString("user_personal_channel_namespace")
 
 	cfg.ClientPresencePingInterval = time.Duration(v.GetInt("client_presence_ping_interval")) * time.Second
 	cfg.ClientPresenceExpireInterval = time.Duration(v.GetInt("client_presence_expire_interval")) * time.Second
@@ -1118,6 +1118,7 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	cfg.WebsocketCheckOrigin = func(r *http.Request) bool { return true }
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
+	cfg.WebsocketUseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
 	return cfg
 }
 

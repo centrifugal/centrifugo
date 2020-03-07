@@ -1,3 +1,9 @@
+v0.7.0
+======
+
+* Refactor automatic subscribing to personal channel option. Option that enables feature renamed from `UserSubscribePersonal` to `UserSubscribeToPersonal`, also instead of `UserPersonalChannelPrefix` users can set `UserPersonalChannelNamespace` option, the general advice here is to create separate namespace for automatic personal channels if one requires custom channel options
+* `WebsocketUseWriteBufferPool` option for SockJS handler
+
 v0.6.0
 ======
 

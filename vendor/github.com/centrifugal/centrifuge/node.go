@@ -743,7 +743,10 @@ func (n *Node) ChannelOpts(ch string) (ChannelOptions, bool) {
 // PersonalChannel returns personal channel for user based on node configuration.
 func (n *Node) PersonalChannel(user string) string {
 	config := n.Config()
-	return config.UserPersonalChannelPrefix + config.ChannelUserBoundary + user
+	if config.UserPersonalChannelNamespace == "" {
+		return config.ChannelUserBoundary + user
+	}
+	return config.UserPersonalChannelNamespace + config.ChannelNamespaceBoundary + config.ChannelUserBoundary + user
 }
 
 // addPresence proxies presence adding to engine.
