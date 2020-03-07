@@ -52,6 +52,7 @@ enum PushType {
     LEAVE = 2{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "PushTypeLeave"]{{end}};
     UNSUB = 3{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "PushTypeUnsub"]{{end}};
     MESSAGE = 4{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "PushTypeMessage"]{{end}};
+    SUB = 5{{if env.Getenv "GOGO"}} [(gogoproto.enumvalue_customname) = "PushTypeSub"]{{end}};
 }
 
 message Push {
@@ -87,6 +88,13 @@ message Unsub {
     bool resubscribe =1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "resubscribe,omitempty"]{{end}};
 }
 
+message Sub {
+    bool recoverable = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "recoverable,omitempty"]{{end}};
+    uint32 seq = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "seq,omitempty"]{{end}};
+    uint32 gen = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "gen,omitempty"]{{end}};
+    string epoch = 4{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "epoch,omitempty"]{{end}};   
+}
+
 message Message {
     bytes data = 1{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false]{{end}};
 }
@@ -94,6 +102,7 @@ message Message {
 message ConnectRequest {
     string token = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "token"]{{end}};
     bytes data = 2{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false]{{end}};
+    map<string, SubscribeRequest> subs = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "subs,omitempty"]{{end}};
 }
 
 message ConnectResult {
@@ -102,6 +111,7 @@ message ConnectResult {
     bool expires = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "expires,omitempty"]{{end}};
     uint32 ttl = 4{{if env.Getenv "GOGO"}} [(gogoproto.customname) = "TTL", (gogoproto.jsontag) = "ttl,omitempty"]{{end}};
     bytes data = 5{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false]{{end}};
+    map<string, SubscribeResult> subs = 6{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "subs,omitempty"]{{end}};
 }
 
 message RefreshRequest {

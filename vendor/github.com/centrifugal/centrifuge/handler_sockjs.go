@@ -98,6 +98,9 @@ type SockjsConfig struct {
 	// If set to zero reasonable default value will be used.
 	WebsocketWriteBufferSize int
 
+	// WebsocketUseWriteBufferPool enables using buffer pool for writes in Websocket transport.
+	WebsocketUseWriteBufferPool bool
+
 	// WriteTimeout is maximum time of write message operation.
 	// Slow client will be disconnected.
 	// By default DefaultWebsocketWriteTimeout will be used.
@@ -114,12 +117,18 @@ type SockjsHandler struct {
 // NewSockjsHandler creates new SockjsHandler.
 func NewSockjsHandler(n *Node, c SockjsConfig) *SockjsHandler {
 	options := sockjs.DefaultOptions
-	options.WebsocketUpgrader = &websocket.Upgrader{
+	wsUpgrader := &websocket.Upgrader{
 		ReadBufferSize:  c.WebsocketReadBufferSize,
 		WriteBufferSize: c.WebsocketWriteBufferSize,
 		CheckOrigin:     c.WebsocketCheckOrigin,
 		Error:           func(w http.ResponseWriter, r *http.Request, status int, reason error) {},
 	}
+	if c.WebsocketUseWriteBufferPool {
+		wsUpgrader.WriteBufferPool = writeBufferPool
+	} else {
+		wsUpgrader.WriteBufferSize = c.WebsocketWriteBufferSize
+	}
+	options.WebsocketUpgrader = wsUpgrader
 	// Override sockjs url. It's important to use the same SockJS
 	// library version on client and server sides when using iframe
 	// based SockJS transports, otherwise SockJS will raise error

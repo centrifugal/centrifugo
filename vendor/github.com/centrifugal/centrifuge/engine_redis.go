@@ -431,7 +431,7 @@ redis.call("expire", KEYS[1], ARGV[1])
 redis.call("expire", KEYS[2], ARGV[1])
 	`
 
-	// Remove client presense.
+	// Remove client presence.
 	// KEYS[1] - presence set key
 	// KEYS[2] - presence hash key
 	// ARGV[1] - client ID
@@ -868,7 +868,7 @@ func (s *shard) runPubSub(eventHandler BrokerEventHandler) {
 	}
 }
 
-func (s *shard) handleRedisClientMessage(eventHandler BrokerEventHandler, chID channelID, data []byte) error {
+func (s *shard) handleRedisClientMessage(eventHandler BrokerEventHandler, _ channelID, data []byte) error {
 	// NOTE: this is mostly for backwards compatibility at moment - now
 	// publications do not have sequence prefix when sen over PUB/SUB.
 	// Though if we decide to return to 1 RTT history save and publish
@@ -911,12 +911,9 @@ func (s *shard) handleRedisClientMessage(eventHandler BrokerEventHandler, chID c
 }
 
 type pubRequest struct {
-	channel    channelID
-	message    []byte
-	historyKey channelID
-	indexKey   channelID
-	opts       *ChannelOptions
-	err        chan error
+	channel channelID
+	message []byte
+	err     chan error
 }
 
 func (pr *pubRequest) done(err error) {
@@ -1159,7 +1156,7 @@ var (
 )
 
 // Publish - see engine interface description.
-func (s *shard) Publish(ch string, pub *Publication, opts *ChannelOptions) error {
+func (s *shard) Publish(ch string, pub *Publication, _ *ChannelOptions) error {
 	eChan := make(chan error, 1)
 
 	data, err := pub.Marshal()
@@ -1198,7 +1195,7 @@ func (s *shard) Publish(ch string, pub *Publication, opts *ChannelOptions) error
 }
 
 // PublishJoin - see engine interface description.
-func (s *shard) PublishJoin(ch string, join *Join, opts *ChannelOptions) error {
+func (s *shard) PublishJoin(ch string, join *Join, _ *ChannelOptions) error {
 
 	eChan := make(chan error, 1)
 
@@ -1238,7 +1235,7 @@ func (s *shard) PublishJoin(ch string, join *Join, opts *ChannelOptions) error {
 }
 
 // PublishLeave - see engine interface description.
-func (s *shard) PublishLeave(ch string, leave *Leave, opts *ChannelOptions) error {
+func (s *shard) PublishLeave(ch string, leave *Leave, _ *ChannelOptions) error {
 
 	eChan := make(chan error, 1)
 
@@ -1453,7 +1450,7 @@ func (s *shard) History(ch string, filter HistoryFilter, seqTTL time.Duration) (
 
 	var publications []*Publication
 	if includePubs {
-		publications, err = sliceOfPubs(s, results[2], nil)
+		publications, err = sliceOfPubs(results[2], nil)
 		if err != nil {
 			return nil, RecoveryPosition{}, err
 		}
@@ -1591,7 +1588,7 @@ func mapStringClientInfo(result interface{}, err error) (map[string]*ClientInfo,
 		key, okKey := values[i].([]byte)
 		value, okValue := values[i+1].([]byte)
 		if !okKey || !okValue {
-			return nil, errors.New("ScanMap key not a bulk string value")
+			return nil, errors.New("scanMap key not a bulk string value")
 		}
 		var f ClientInfo
 		err = f.Unmarshal(value)
@@ -1614,7 +1611,7 @@ func extractPushData(data []byte) ([]byte, uint32, uint32) {
 	return data, seq, gen
 }
 
-func sliceOfPubs(n *shard, result interface{}, err error) ([]*Publication, error) {
+func sliceOfPubs(result interface{}, err error) ([]*Publication, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err

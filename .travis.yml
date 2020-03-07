@@ -9,6 +9,7 @@ go:
   # Use quotes here:
   # https://github.com/travis-ci/gimme/issues/132
   - '1.13.x'
+  - '1.14.x'
   - 'tip'
 
 addons:

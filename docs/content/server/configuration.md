@@ -162,7 +162,9 @@ Let's look at options related to channels. Channel is an entity to which clients
 
 * `history_recover` – boolean option, when enabled Centrifugo will try to recover missed publications while client was disconnected for some reason (bad internet connection for example). By default `false`. This option must be used in conjunction with reasonably configured message history for channel i.e. `history_size` and `history_lifetime` **must be set** (because Centrifugo uses channel history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel (currently Centrifugo returns recovered publications in order and without duplicates but this is implementation detail that can be theoretically changed in future). See more details about how recovery works in [special chapter](recover.md).
 
-* `history_disable_for_client` (available since v2.2.3) – allows to make history available only for server side API. By default `false` – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if `history_disable_for_client` is on.
+* `history_disable_for_client` (boolean, available since v2.2.3) – allows to make history available only for server side API. By default `false` – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if `history_disable_for_client` is on.
+
+* `server_side` (boolean, available since v2.4.0) – when enabled then all client-side subscription requests to channels in namespace will be rejected with `PermissionDenied` error. By default `false`.
 
 Let's look how to set some of these options in config:
 

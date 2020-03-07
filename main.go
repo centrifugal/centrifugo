@@ -98,7 +98,9 @@ func main() {
 				"proxy_connect_timeout", "proxy_rpc_endpoint", "proxy_rpc_timeout",
 				"proxy_refresh_endpoint", "proxy_refresh_timeout",
 				"token_rsa_public_key", "token_hmac_secret_key", "redis_sequence_ttl",
-				"proxy_extra_http_headers",
+				"proxy_extra_http_headers", "server_side", "user_subscribe_to_personal",
+				"user_personal_channel_namespace", "websocket_use_write_buffer_pool",
+				"websocket_disable", "sockjs_disable", "api_disable",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -424,6 +426,7 @@ var configDefaults = map[string]interface{}{
 	"secret":                               "",
 	"token_hmac_secret_key":                "",
 	"token_rsa_public_key":                 "",
+	"server_side":                          false,
 	"publish":                              false,
 	"subscribe_to_publish":                 false,
 	"anonymous":                            false,
@@ -450,6 +453,8 @@ var configDefaults = map[string]interface{}{
 	"channel_namespace_boundary":           ":",
 	"channel_user_boundary":                "#",
 	"channel_user_separator":               ",",
+	"user_subscribe_to_personal":           false,
+	"user_personal_channel_namespace":      "",
 	"debug":                                false,
 	"prometheus":                           false,
 	"health":                               false,
@@ -464,6 +469,7 @@ var configDefaults = map[string]interface{}{
 	"websocket_compression_min_size":       0,
 	"websocket_compression_level":          1,
 	"websocket_read_buffer_size":           0,
+	"websocket_use_write_buffer_pool":      false,
 	"websocket_write_buffer_size":          0,
 	"websocket_ping_interval":              25,
 	"websocket_write_timeout":              0,
@@ -493,6 +499,9 @@ var configDefaults = map[string]interface{}{
 	"graphite_prefix":                      "centrifugo",
 	"graphite_interval":                    10,
 	"graphite_tags":                        false,
+	"websocket_disable":                    false,
+	"sockjs_disable":                       false,
+	"api_disable":                          false,
 	"admin_handler_prefix":                 "",
 	"websocket_handler_prefix":             "/connection/websocket",
 	"sockjs_handler_prefix":                "/connection/sockjs",
@@ -768,7 +777,12 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 
 	externalAddr := net.JoinHostPort(httpAddress, httpPort)
 	portFlags = addrToHandlerFlags[externalAddr]
-	portFlags |= HandlerWebsocket | HandlerSockJS
+	if !viper.GetBool("websocket_disable") {
+		portFlags |= HandlerWebsocket
+	}
+	if !viper.GetBool("sockjs_disable") {
+		portFlags |= HandlerSockJS
+	}
 	if admin && adminExternal {
 		portFlags |= HandlerAdmin
 	}
@@ -776,7 +790,9 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 
 	internalAddr := net.JoinHostPort(httpInternalAddress, httpInternalPort)
 	portFlags = addrToHandlerFlags[internalAddr]
-	portFlags |= HandlerAPI
+	if !viper.GetBool("api_disable") {
+		portFlags |= HandlerAPI
+	}
 
 	if admin && !adminExternal {
 		portFlags |= HandlerAdmin
@@ -998,6 +1014,7 @@ func nodeConfig(version string) *centrifuge.Config {
 	cfg.HistoryLifetime = v.GetInt("history_lifetime")
 	cfg.HistoryRecover = v.GetBool("history_recover")
 	cfg.HistoryDisableForClient = v.GetBool("history_disable_for_client")
+	cfg.ServerSide = v.GetBool("server_side")
 	cfg.Namespaces = namespacesFromConfig(v)
 
 	cfg.ChannelMaxLength = v.GetInt("channel_max_length")
@@ -1005,6 +1022,9 @@ func nodeConfig(version string) *centrifuge.Config {
 	cfg.ChannelNamespaceBoundary = v.GetString("channel_namespace_boundary")
 	cfg.ChannelUserBoundary = v.GetString("channel_user_boundary")
 	cfg.ChannelUserSeparator = v.GetString("channel_user_separator")
+
+	cfg.UserSubscribeToPersonal = v.GetBool("user_subscribe_to_personal")
+	cfg.UserPersonalChannelNamespace = v.GetString("user_personal_channel_namespace")
 
 	cfg.ClientPresencePingInterval = time.Duration(v.GetInt("client_presence_ping_interval")) * time.Second
 	cfg.ClientPresenceExpireInterval = time.Duration(v.GetInt("client_presence_expire_interval")) * time.Second
@@ -1082,6 +1102,7 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	cfg.CompressionMinSize = v.GetInt("websocket_compression_min_size")
 	cfg.ReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WriteBufferSize = v.GetInt("websocket_write_buffer_size")
+	cfg.UseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
 	cfg.PingInterval = time.Duration(v.GetInt("websocket_ping_interval")) * time.Second
 	cfg.WriteTimeout = time.Duration(v.GetInt("websocket_write_timeout")) * time.Second
 	cfg.MessageSizeLimit = v.GetInt("websocket_message_size_limit")
@@ -1097,6 +1118,7 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	cfg.WebsocketCheckOrigin = func(r *http.Request) bool { return true }
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
+	cfg.WebsocketUseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
 	return cfg
 }
 
