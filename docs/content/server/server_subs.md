@@ -41,7 +41,7 @@ To enable this you need to enable `user_subscribe_to_personal` boolean option (b
 
 For example, if you set this option and user with ID `87334` connects to Centrifugo it will be automatically subscribed to channel `#87334` and you can process personal publications on client side in the same way as shown above.
 
-As you can see by default generated personal channel name belongs to default namespace (i.e. no explicit namespace used). To set custom namespace name use `user_personal_channel_namespace` option (string, default `""`) – i.e. the name of namespace from configured configuration namespaces array. In this case if you set `user_personal_channel_namespace` to `personal` for example the generated personal channel will be `personal:#87334` – so you can use it to publish personal notifications to user.
+As you can see by default generated personal channel name belongs to default namespace (i.e. no explicit namespace used). To set custom namespace name use `user_personal_channel_namespace` option (string, default `""`) – i.e. the name of namespace from configured configuration namespaces array. In this case if you set `user_personal_channel_namespace` to `personal` for example – then the automatically generated personal channel will be `personal:#87334` – user will be automatically subscribed to it on connect and you can use this channel name to publish personal notifications to online user.
 
 ### Mark namespace as server-side
 
