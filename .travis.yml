@@ -3,7 +3,7 @@ sudo: required
 language: go
 
 env:
-  - GO111MODULE=off
+  - GO111MODULE=on
 
 go:
   # Use quotes here:
