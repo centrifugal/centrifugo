@@ -2,10 +2,6 @@
   "token_hmac_secret_key": "secret",
   "admin_password": "password",
   "admin_secret": "secret",
-  "redis_cluster_addrs": [
-    "localhost:30001,localhost:30002,localhost:30003",
-    "localhost:30101,localhost:30102,localhost:30103"
-  ],
   "namespaces": [
     {
       "name": "chat",
