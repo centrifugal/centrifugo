@@ -388,26 +388,53 @@
     Redis engine
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#scaling-with-redis-tutorial" title="Scaling with Redis tutorial" class="md-nav__link">
     Scaling with Redis tutorial
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
+  <a href="#redis-sentinel-for-high-availability" title="Redis Sentinel for high availability" class="md-nav__link">
+    Redis Sentinel for high availability
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#haproxy-instead-of-sentinel-configuration" title="Haproxy instead of Sentinel configuration" class="md-nav__link">
+    Haproxy instead of Sentinel configuration
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#redis-sharding" title="Redis sharding" class="md-nav__link">
     Redis sharding
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#keydb-engine" title="KeyDB engine" class="md-nav__link">
-    KeyDB engine
+        
+          <li class="md-nav__item">
+  <a href="#redis-cluster" title="Redis cluster" class="md-nav__link">
+    Redis cluster
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keydb" title="KeyDB" class="md-nav__link">
+    KeyDB
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -752,18 +779,6 @@
 
 
   <li class="md-nav__item">
-    <a href="../../deploy/redis/" title="Redis HA" class="md-nav__link">
-      Redis HA
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
     <a href="../../deploy/tuning/" title="OS tuning" class="md-nav__link">
       OS tuning
     </a>
@@ -879,26 +894,53 @@
     Redis engine
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#scaling-with-redis-tutorial" title="Scaling with Redis tutorial" class="md-nav__link">
     Scaling with Redis tutorial
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
+  <a href="#redis-sentinel-for-high-availability" title="Redis Sentinel for high availability" class="md-nav__link">
+    Redis Sentinel for high availability
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#haproxy-instead-of-sentinel-configuration" title="Haproxy instead of Sentinel configuration" class="md-nav__link">
+    Haproxy instead of Sentinel configuration
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#redis-sharding" title="Redis sharding" class="md-nav__link">
     Redis sharding
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#keydb-engine" title="KeyDB engine" class="md-nav__link">
-    KeyDB engine
+        
+          <li class="md-nav__item">
+  <a href="#redis-cluster" title="Redis cluster" class="md-nav__link">
+    Redis cluster
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#keydb" title="KeyDB" class="md-nav__link">
+    KeyDB
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -943,7 +985,7 @@
 </pre></div>
 
 
-<h3 id="memory-engine">Memory engine<a class="headerlink" href="#memory-engine" title="Permanent link">&para;</a></h3>
+<h2 id="memory-engine">Memory engine<a class="headerlink" href="#memory-engine" title="Permanent link">&para;</a></h2>
 <p>Supports only one node. Nice choice to start with. Supports all features keeping everything in Centrifugo node process memory. You don&rsquo;t need to install Redis when using this engine.</p>
 <p>Advantages:</p>
 <ul>
@@ -954,7 +996,7 @@
 <ul>
 <li>does not allow to scale nodes (actually you still can scale Centrifugo with Memory engine but you have to publish data into each Centrifugo node and you won&rsquo;t have consistent state of presence)</li>
 </ul>
-<h3 id="redis-engine">Redis engine<a class="headerlink" href="#redis-engine" title="Permanent link">&para;</a></h3>
+<h2 id="redis-engine">Redis engine<a class="headerlink" href="#redis-engine" title="Permanent link">&para;</a></h2>
 <p>Allows scaling Centrifugo nodes to different machines. Nodes will use Redis as message broker. Redis engine keeps presence and history data in Redis, uses Redis PUB/SUB for internal nodes communication.</p>
 <p><strong>Minimal Redis version is 3.2.0</strong></p>
 <p>Several configuration options related to Redis engine:</p>
@@ -995,6 +1037,54 @@ the same port number (<code>8000</code> or whatever you want) for all instances.
 
 <p>Now you have 3 Centrifugo instances running on ports 8000, 8001, 8002 and clients can connect to any of them. You can also send API requests to any of those nodes – as all nodes connected over Redis PUB/SUB message will be delivered to all interested clients on all nodes.</p>
 <p>To load balance clients between nodes you can use Nginx – you can find its configuration here in documentation.</p>
+<h3 id="redis-sentinel-for-high-availability">Redis Sentinel for high availability<a class="headerlink" href="#redis-sentinel-for-high-availability" title="Permanent link">&para;</a></h3>
+<p>Centrifugo supports official way to add high availability to Redis - Redis <a href="http://redis.io/topics/sentinel">Sentinel</a>.</p>
+<p>For this you only need to utilize 2 Redis Engine options: <code>redis_master_name</code> and <code>redis_sentinels</code>.</p>
+<p><code>redis_master_name</code> - is a name of master your Sentinels monitor.</p>
+<p><code>redis_sentinels</code> - comma-separated addresses of Sentinel servers. At least one known server required.</p>
+<p>So you can start Centrifugo which will use Sentinels to discover redis master instance like this:</p>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --engine=redis --redis_master_name=mymaster --redis_sentinels=&quot;:26379&quot;
+</pre></div>
+
+
+<p>Sentinel configuration files can look like this:</p>
+<div class="codehilite"><pre><span></span>port 26379
+sentinel monitor mymaster 127.0.0.1 6379 2
+sentinel down-after-milliseconds mymaster 10000
+sentinel failover-timeout mymaster 60000
+</pre></div>
+
+
+<p>You can find how to properly setup Sentinels <a href="http://redis.io/topics/sentinel">in official documentation</a>.</p>
+<p>Note that when your redis master instance down there will be small downtime interval until Sentinels
+discover a problem and come to quorum decision about new master. The length of this period depends on
+Sentinel configuration.</p>
+<h3 id="haproxy-instead-of-sentinel-configuration">Haproxy instead of Sentinel configuration<a class="headerlink" href="#haproxy-instead-of-sentinel-configuration" title="Permanent link">&para;</a></h3>
+<p>Alternatively you can use Haproxy between Centrifugo and Redis to let it properly balance traffic to Redis master. In this case you still need to configure Sentinels but you can omit Sentinel specifics from Centrifugo configuration and just use Redis address as in simple non-HA case.</p>
+<p>For example you can use something like this in Haproxy config:</p>
+<div class="codehilite"><pre><span></span>listen redis
+    server redis-01 127.0.0.1:6380 check port 6380 check inter 2s weight 1 inter 2s downinter 5s rise 10 fall 2
+    server redis-02 127.0.0.1:6381 check port 6381 check inter 2s weight 1 inter 2s downinter 5s rise 10 fall 2 backup
+    bind *:16379
+    mode tcp
+    option tcpka
+    option tcplog
+    option tcp-check
+    tcp-check send PING\r\n
+    tcp-check expect string +PONG
+    tcp-check send info\ replication\r\n
+    tcp-check expect string role:master
+    tcp-check send QUIT\r\n
+    tcp-check expect string +OK
+    balance roundrobin
+</pre></div>
+
+
+<p>And then just point Centrifugo to this Haproxy:</p>
+<div class="codehilite"><pre><span></span>centrifugo --config=config.json --engine=redis --redis_host=localhost --redis_port=16379
+</pre></div>
+
+
 <h3 id="redis-sharding">Redis sharding<a class="headerlink" href="#redis-sharding" title="Permanent link">&para;</a></h3>
 <p>Centrifugo has a built-in Redis sharding support.</p>
 <p>This resolves situation when Redis becoming a bottleneck on large Centrifugo setup. Redis is single-threaded server, it&rsquo;s very fast but it&rsquo;s power is not infinite so when your Redis approaches 100% CPU usage then sharding feature can help your application to scale.</p>
@@ -1012,7 +1102,42 @@ the same port number (<code>8000</code> or whatever you want) for all instances.
 <p>If you also need to customize AUTH password, Redis DB number then you can use <code>redis_url</code> option.</p>
 <p>Note, that due to how Redis PUB/SUB work it&rsquo;s not possible (and it&rsquo;s pretty useless anyway) to run shards in one Redis instances using different Redis DB numbers.</p>
 <p>When sharding enabled Centrifugo will spread channels and history/presence keys over configured Redis instances using consistent hashing algorithm. At moment we use Jump consistent hash algorithm (see <a href="https://arxiv.org/pdf/1406.2294.pdf">paper</a> and <a href="https://github.com/dgryski/go-jump">implementation</a>)</p>
-<h3 id="keydb-engine">KeyDB engine<a class="headerlink" href="#keydb-engine" title="Permanent link">&para;</a></h3>
+<h3 id="redis-cluster">Redis cluster<a class="headerlink" href="#redis-cluster" title="Permanent link">&para;</a></h3>
+<p>Redis cluster is supported since Centrifugo v2.4.1</p>
+<p>Running Centrifugo with Redis cluster is simple and can be achieved using <code>redis_cluster_addrs</code> option. This is an array of strings. Each element of array is a comma-separated Redis cluster seed nodes. For example:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="err">...</span>
+    <span class="nt">&quot;redis_cluster_addrs&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;localhost:30001,localhost:30002,localhost:30003&quot;</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Actually you don&rsquo;t need to list all Redis cluster nodes in config – only several working nodes is enough to start.</p>
+<p>To set the same over environment variable:</p>
+<div class="codehilite"><pre><span></span><span class="nv">CENTRIFUGO_REDIS_CLUSTER_ADDRS</span><span class="o">=</span><span class="s2">&quot;localhost:30001&quot;</span> <span class="nv">CENTRIFUGO_ENGINE</span><span class="o">=</span>redis ./centrifugo
+</pre></div>
+
+
+<p>If you need to shard data between several Redis clusters then simply add one more string with seed nodes of another cluster to this array:</p>
+<div class="codehilite"><pre><span></span><span class="p">{</span>
+    <span class="err">...</span>
+    <span class="nt">&quot;redis_cluster_addrs&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;localhost:30001,localhost:30002,localhost:30003&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;localhost:30101,localhost:30102,localhost:30103&quot;</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p>Sharding between different Redis clusters can make sense due to the fact how PUB/SUB works in Redis cluster. It does not scale linearly when adding nodes as all PUB/SUB messages got copied to every cluster node. See <a href="https://github.com/antirez/redis/issues/2672">this discussion</a> for more information on topic. To spread data between different Redis clusters Centrifugo uses the same consistent hashing algorithm described above (i.e. <code>Jump</code>).</p>
+<p>To reproduce the same over environment variable use <code>space</code> to separate different clusters:</p>
+<div class="codehilite"><pre><span></span><span class="nv">CENTRIFUGO_REDIS_CLUSTER_ADDRS</span><span class="o">=</span><span class="s2">&quot;localhost:30001,localhost:30002 localhost:30101,localhost:30102&quot;</span> <span class="nv">CENTRIFUGO_ENGINE</span><span class="o">=</span>redis ./centrifugo
+</pre></div>
+
+
+<h3 id="keydb">KeyDB<a class="headerlink" href="#keydb" title="Permanent link">&para;</a></h3>
 <p>Centrifugo Redis engine seamlessly works with <a href="https://keydb.dev/">KeyDB</a>. KeyDB server is compatible with Redis and provides several additional features beyond. </p>
 <p>Though we can&rsquo;t give any promises about compatibility with KeyDB in future Centrifugo releases - while KeyDB is fully compatible with Redis things should work fine. That&rsquo;s why we consider this as <strong>EXPERIMENTAL</strong> feature.</p>
 <p>Use KeyDB instead of Redis only if you are really sure you need it. Nothing stops you from running several Redis instances per each core you have, configure sharding and obtain even better performance that KeyDB can provide (due to lack of synchronization between threads in Redis).</p>
