@@ -183,7 +183,7 @@ When sharding enabled Centrifugo will spread channels and history/presence keys 
 
 ### Redis cluster
 
-Redis cluster supported since Centrifugo v2.4.1 
+Redis cluster is supported since Centrifugo v2.4.1
 
 Running Centrifugo with Redis cluster is simple and can be achieved using `redis_cluster_addrs` option. This is an array of strings. Each element of array is a comma-separated Redis cluster seed nodes. For example:
 
@@ -201,10 +201,10 @@ Actually you don't need to list all Redis cluster nodes in config – only sever
 To set the same over environment variable:
 
 ```bash
-CENTRIFUGO_ENGINE=redis CENTRIFUGO_REDIS_CLUSTER_ADDRS="localhost:30001" ./centrifugo
+CENTRIFUGO_REDIS_CLUSTER_ADDRS="localhost:30001" CENTRIFUGO_ENGINE=redis ./centrifugo
 ```
 
-If you need to shard data between several Redis clusters then simply add one more string with seed nodes to this array:
+If you need to shard data between several Redis clusters then simply add one more string with seed nodes of another cluster to this array:
 
 ```json
 {
@@ -216,12 +216,12 @@ If you need to shard data between several Redis clusters then simply add one mor
 }
 ```
 
-Sharding between different Redis clusters can make sense due to the fact how PUB/SUB works in Redis cluster. It does not scale linearly when adding nodes as all PUB/SUB messages got copied to every cluster node. See https://github.com/antirez/redis/issues/2672 for more information on topic. To spread data between different Redis clusters Centrifugo uses the same consistent hashing algorithm described above (i.e. Jump).
+Sharding between different Redis clusters can make sense due to the fact how PUB/SUB works in Redis cluster. It does not scale linearly when adding nodes as all PUB/SUB messages got copied to every cluster node. See [this discussion](https://github.com/antirez/redis/issues/2672) for more information on topic. To spread data between different Redis clusters Centrifugo uses the same consistent hashing algorithm described above (i.e. `Jump`).
 
-To set the same over environment variable use space to separate different clusters:
+To reproduce the same over environment variable use `space` to separate different clusters:
 
 ```bash
-CENTRIFUGO_ENGINE=redis CENTRIFUGO_REDIS_CLUSTER_ADDRS="localhost:30001 localhost:30101" ./centrifugo
+CENTRIFUGO_REDIS_CLUSTER_ADDRS="localhost:30001,localhost:30002 localhost:30101,localhost:30102" CENTRIFUGO_ENGINE=redis ./centrifugo
 ```
 
 ### KeyDB
