@@ -100,7 +100,7 @@ func main() {
 				"token_rsa_public_key", "token_hmac_secret_key", "redis_sequence_ttl",
 				"proxy_extra_http_headers", "server_side", "user_subscribe_to_personal",
 				"user_personal_channel_namespace", "websocket_use_write_buffer_pool",
-				"websocket_disable", "sockjs_disable", "api_disable",
+				"websocket_disable", "sockjs_disable", "api_disable", "redis_cluster_addrs",
 			}
 			for _, env := range bindEnvs {
 				viper.BindEnv(env)
@@ -1154,183 +1154,204 @@ func memoryEngineConfig() (*centrifuge.MemoryEngineConfig, error) {
 	return &centrifuge.MemoryEngineConfig{}, nil
 }
 
+func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
+	v := viper.GetViper()
+	shardConf.Password = v.GetString("redis_password")
+	shardConf.Prefix = v.GetString("redis_prefix")
+	shardConf.UseTLS = v.GetBool("redis_tls")
+	shardConf.TLSSkipVerify = v.GetBool("redis_tls_skip_verify")
+	shardConf.IdleTimeout = time.Duration(v.GetInt("redis_idle_timeout")) * time.Second
+	shardConf.PubSubNumWorkers = v.GetInt("redis_pubsub_num_workers")
+	shardConf.ConnectTimeout = time.Duration(v.GetInt("redis_connect_timeout")) * time.Second
+	shardConf.ReadTimeout = time.Duration(v.GetInt("redis_read_timeout")) * time.Second
+	shardConf.WriteTimeout = time.Duration(v.GetInt("redis_write_timeout")) * time.Second
+}
+
 func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 	v := viper.GetViper()
 
-	numShards := 1
-
-	hostsConf := v.GetString("redis_host")
-	portsConf := v.GetString("redis_port")
-	urlsConf := v.GetString("redis_url")
-	redisTLS := v.GetBool("redis_tls")
-	redisTLSSkipVerify := v.GetBool("redis_tls_skip_verify")
-	masterNamesConf := v.GetString("redis_master_name")
-	sentinelsConf := v.GetString("redis_sentinels")
-
-	password := v.GetString("redis_password")
-	db := v.GetInt("redis_db")
-
-	hosts := []string{}
-	if hostsConf != "" {
-		hosts = strings.Split(hostsConf, ",")
-		if len(hosts) > numShards {
-			numShards = len(hosts)
-		}
-	}
-
-	ports := []string{}
-	if portsConf != "" {
-		ports = strings.Split(portsConf, ",")
-		if len(ports) > numShards {
-			numShards = len(ports)
-		}
-	}
-
-	urls := []string{}
-	if urlsConf != "" {
-		urls = strings.Split(urlsConf, ",")
-		if len(urls) > numShards {
-			numShards = len(urls)
-		}
-	}
-
-	masterNames := []string{}
-	if masterNamesConf != "" {
-		masterNames = strings.Split(masterNamesConf, ",")
-		if len(masterNames) > numShards {
-			numShards = len(masterNames)
-		}
-	}
-
-	if masterNamesConf != "" && sentinelsConf == "" {
-		return nil, fmt.Errorf("provide at least one Sentinel address")
-	}
-
-	if masterNamesConf != "" && len(masterNames) < numShards {
-		return nil, fmt.Errorf("Redis master name must be set for every Redis shard when Sentinel used")
-	}
-
-	sentinelAddrs := []string{}
-	if sentinelsConf != "" {
-		for _, addr := range strings.Split(sentinelsConf, ",") {
-			addr := strings.TrimSpace(addr)
-			if addr == "" {
-				continue
-			}
-			if _, _, err := net.SplitHostPort(addr); err != nil {
-				return nil, fmt.Errorf("malformed Sentinel address: %s", addr)
-			}
-			sentinelAddrs = append(sentinelAddrs, addr)
-		}
-	}
-
-	if len(hosts) <= 1 {
-		newHosts := make([]string, numShards)
-		for i := 0; i < numShards; i++ {
-			if len(hosts) == 0 {
-				newHosts[i] = ""
-			} else {
-				newHosts[i] = hosts[0]
-			}
-		}
-		hosts = newHosts
-	} else if len(hosts) != numShards {
-		return nil, fmt.Errorf("malformed sharding configuration: wrong number of redis hosts")
-	}
-
-	if len(ports) <= 1 {
-		newPorts := make([]string, numShards)
-		for i := 0; i < numShards; i++ {
-			if len(ports) == 0 {
-				newPorts[i] = ""
-			} else {
-				newPorts[i] = ports[0]
-			}
-		}
-		ports = newPorts
-	} else if len(ports) != numShards {
-		return nil, fmt.Errorf("malformed sharding configuration: wrong number of redis ports")
-	}
-
-	if len(urls) > 0 && len(urls) != numShards {
-		return nil, fmt.Errorf("malformed sharding configuration: wrong number of redis urls")
-	}
-
-	if len(masterNames) == 0 {
-		newMasterNames := make([]string, numShards)
-		for i := 0; i < numShards; i++ {
-			newMasterNames[i] = ""
-		}
-		masterNames = newMasterNames
-	}
-
-	passwords := make([]string, numShards)
-	for i := 0; i < numShards; i++ {
-		passwords[i] = password
-	}
-
-	dbs := make([]int, numShards)
-	for i := 0; i < numShards; i++ {
-		dbs[i] = db
-	}
-
-	for i, confURL := range urls {
-		if confURL == "" {
-			continue
-		}
-		// If URL set then prefer it over other parameters.
-		u, err := url.Parse(confURL)
-		if err != nil {
-			return nil, fmt.Errorf("%v", err)
-		}
-		if u.User != nil {
-			var ok bool
-			pass, ok := u.User.Password()
-			if !ok {
-				pass = ""
-			}
-			passwords[i] = pass
-		}
-		host, port, err := net.SplitHostPort(u.Host)
-		if err != nil {
-			return nil, fmt.Errorf("%v", err)
-		}
-		path := u.Path
-		if path != "" {
-			dbNum, err := strconv.Atoi(path[1:])
-			if err != nil {
-				return nil, fmt.Errorf("malformed Redis db number: %s", path[1:])
-			}
-			dbs[i] = dbNum
-		}
-		hosts[i] = host
-		ports[i] = port
+	clusterConf := v.GetStringSlice("redis_cluster_addrs")
+	var useCluster bool
+	if len(clusterConf) > 0 {
+		useCluster = true
 	}
 
 	var shardConfigs []centrifuge.RedisShardConfig
 
-	for i := 0; i < numShards; i++ {
-		port, err := strconv.Atoi(ports[i])
-		if err != nil {
-			return nil, fmt.Errorf("malformed port: %v", err)
+	if useCluster {
+		for _, clusterAddrsStr := range clusterConf {
+			clusterAddrs := strings.Split(clusterAddrsStr, ",")
+			conf := &centrifuge.RedisShardConfig{
+				ClusterAddrs: clusterAddrs,
+			}
+			addRedisShardCommonSettings(conf)
+			shardConfigs = append(shardConfigs, *conf)
 		}
-		conf := centrifuge.RedisShardConfig{
-			Host:             hosts[i],
-			Port:             port,
-			Password:         passwords[i],
-			DB:               dbs[i],
-			UseTLS:           redisTLS,
-			TLSSkipVerify:    redisTLSSkipVerify,
-			MasterName:       masterNames[i],
-			SentinelAddrs:    sentinelAddrs,
-			Prefix:           v.GetString("redis_prefix"),
-			IdleTimeout:      time.Duration(v.GetInt("redis_idle_timeout")) * time.Second,
-			PubSubNumWorkers: v.GetInt("redis_pubsub_num_workers"),
-			ConnectTimeout:   time.Duration(v.GetInt("redis_connect_timeout")) * time.Second,
-			ReadTimeout:      time.Duration(v.GetInt("redis_read_timeout")) * time.Second,
-			WriteTimeout:     time.Duration(v.GetInt("redis_write_timeout")) * time.Second,
+	} else {
+		numShards := 1
+
+		hostsConf := v.GetString("redis_host")
+		portsConf := v.GetString("redis_port")
+		urlsConf := v.GetString("redis_url")
+		masterNamesConf := v.GetString("redis_master_name")
+		sentinelsConf := v.GetString("redis_sentinels")
+
+		password := v.GetString("redis_password")
+		db := v.GetInt("redis_db")
+
+		hosts := []string{}
+		if hostsConf != "" {
+			hosts = strings.Split(hostsConf, ",")
+			if len(hosts) > numShards {
+				numShards = len(hosts)
+			}
 		}
-		shardConfigs = append(shardConfigs, conf)
+
+		ports := []string{}
+		if portsConf != "" {
+			ports = strings.Split(portsConf, ",")
+			if len(ports) > numShards {
+				numShards = len(ports)
+			}
+		}
+
+		urls := []string{}
+		if urlsConf != "" {
+			urls = strings.Split(urlsConf, ",")
+			if len(urls) > numShards {
+				numShards = len(urls)
+			}
+		}
+
+		masterNames := []string{}
+		if masterNamesConf != "" {
+			masterNames = strings.Split(masterNamesConf, ",")
+			if len(masterNames) > numShards {
+				numShards = len(masterNames)
+			}
+		}
+
+		if masterNamesConf != "" && sentinelsConf == "" {
+			return nil, fmt.Errorf("provide at least one Sentinel address")
+		}
+
+		if masterNamesConf != "" && len(masterNames) < numShards {
+			return nil, fmt.Errorf("Redis master name must be set for every Redis shard when Sentinel used")
+		}
+
+		sentinelAddrs := []string{}
+		if sentinelsConf != "" {
+			for _, addr := range strings.Split(sentinelsConf, ",") {
+				addr := strings.TrimSpace(addr)
+				if addr == "" {
+					continue
+				}
+				if _, _, err := net.SplitHostPort(addr); err != nil {
+					return nil, fmt.Errorf("malformed Sentinel address: %s", addr)
+				}
+				sentinelAddrs = append(sentinelAddrs, addr)
+			}
+		}
+
+		if len(hosts) <= 1 {
+			newHosts := make([]string, numShards)
+			for i := 0; i < numShards; i++ {
+				if len(hosts) == 0 {
+					newHosts[i] = ""
+				} else {
+					newHosts[i] = hosts[0]
+				}
+			}
+			hosts = newHosts
+		} else if len(hosts) != numShards {
+			return nil, fmt.Errorf("malformed sharding configuration: wrong number of redis hosts")
+		}
+
+		if len(ports) <= 1 {
+			newPorts := make([]string, numShards)
+			for i := 0; i < numShards; i++ {
+				if len(ports) == 0 {
+					newPorts[i] = ""
+				} else {
+					newPorts[i] = ports[0]
+				}
+			}
+			ports = newPorts
+		} else if len(ports) != numShards {
+			return nil, fmt.Errorf("malformed sharding configuration: wrong number of redis ports")
+		}
+
+		if len(urls) > 0 && len(urls) != numShards {
+			return nil, fmt.Errorf("malformed sharding configuration: wrong number of redis urls")
+		}
+
+		if len(masterNames) == 0 {
+			newMasterNames := make([]string, numShards)
+			for i := 0; i < numShards; i++ {
+				newMasterNames[i] = ""
+			}
+			masterNames = newMasterNames
+		}
+
+		passwords := make([]string, numShards)
+		for i := 0; i < numShards; i++ {
+			passwords[i] = password
+		}
+
+		dbs := make([]int, numShards)
+		for i := 0; i < numShards; i++ {
+			dbs[i] = db
+		}
+
+		for i, confURL := range urls {
+			if confURL == "" {
+				continue
+			}
+			// If URL set then prefer it over other parameters.
+			u, err := url.Parse(confURL)
+			if err != nil {
+				return nil, fmt.Errorf("%v", err)
+			}
+			if u.User != nil {
+				var ok bool
+				pass, ok := u.User.Password()
+				if !ok {
+					pass = ""
+				}
+				passwords[i] = pass
+			}
+			host, port, err := net.SplitHostPort(u.Host)
+			if err != nil {
+				return nil, fmt.Errorf("%v", err)
+			}
+			path := u.Path
+			if path != "" {
+				dbNum, err := strconv.Atoi(path[1:])
+				if err != nil {
+					return nil, fmt.Errorf("malformed Redis db number: %s", path[1:])
+				}
+				dbs[i] = dbNum
+			}
+			hosts[i] = host
+			ports[i] = port
+		}
+
+		for i := 0; i < numShards; i++ {
+			port, err := strconv.Atoi(ports[i])
+			if err != nil {
+				return nil, fmt.Errorf("malformed port: %v", err)
+			}
+			conf := &centrifuge.RedisShardConfig{
+				Host:          hosts[i],
+				Port:          port,
+				DB:            dbs[i],
+				MasterName:    masterNames[i],
+				SentinelAddrs: sentinelAddrs,
+			}
+			addRedisShardCommonSettings(conf)
+			conf.Password = passwords[i]
+			shardConfigs = append(shardConfigs, *conf)
+		}
 	}
 
 	return &centrifuge.RedisEngineConfig{

@@ -71,7 +71,6 @@ nav:
     - 'Docker image': 'deploy/docker.md'
     - 'Nginx configuration': 'deploy/nginx.md'
     - 'TLS': 'deploy/tls.md'
-    - 'Redis HA': 'deploy/redis.md'
     - 'OS tuning': 'deploy/tuning.md'
   - Misc:
     - 'Insecure modes': 'misc/insecure_modes.md'
