@@ -29,13 +29,16 @@ packagecloud-deb:
 	# PACKAGECLOUD_TOKEN env must be set
 	package_cloud push FZambia/centrifugo/debian/jessie PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/debian/stretch PACKAGES/*.deb
+	package_cloud push FZambia/centrifugo/debian/buster PACKAGES/*.deb
 
 	package_cloud push FZambia/centrifugo/ubuntu/xenial PACKAGES/*.deb
 	package_cloud push FZambia/centrifugo/ubuntu/bionic PACKAGES/*.deb
+	package_cloud push FZambia/centrifugo/ubuntu/focal PACKAGES/*.deb
 
 packagecloud-rpm:
 	# PACKAGECLOUD_TOKEN env must be set
 	package_cloud push FZambia/centrifugo/el/7 PACKAGES/*.rpm
+	package_cloud push FZambia/centrifugo/el/8 PACKAGES/*.rpm
 
 docs: docs-image
 	docker run $(DOCKER_RUN_DOC_OPTS) $(DOC_IMAGE) mkdocs serve
