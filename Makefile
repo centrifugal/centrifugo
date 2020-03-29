@@ -54,3 +54,8 @@ docs-image:
 deps:
 	go mod download
 	go mod vendor
+
+build:
+	CGO_ENABLED=0 go build -mod=vendor -a -o
+
+ci: deps test
