@@ -52,6 +52,10 @@ docs-image:
 	docker build -t $(DOC_IMAGE) -f docs/Dockerfile docs/
 
 deps:
+	go mod vendor
+
+local-deps:
+	go mod tidy
 	go mod download
 	go mod vendor
 
