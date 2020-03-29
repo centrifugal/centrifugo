@@ -12,6 +12,7 @@ require (
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/gorilla/websocket v1.4.1
 	github.com/igm/sockjs-go v0.0.0-20191119074118-cd6986df5bcc
+	github.com/mna/redisc v1.1.7
 	github.com/prometheus/client_golang v0.9.2
 	github.com/stretchr/testify v1.4.0
 )

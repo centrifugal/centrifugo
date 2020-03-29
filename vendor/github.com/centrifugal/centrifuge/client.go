@@ -1177,9 +1177,7 @@ func (c *Client) connectCmd(cmd *protocol.ConnectRequest, rw *replyWriter) *Disc
 			c.mu.Unlock()
 		}
 
-		for _, ch := range token.Channels {
-			channels = append(channels, ch)
-		}
+		channels = append(channels, token.Channels...)
 	} else {
 		if !insecure && !clientAnonymous {
 			c.node.logger.log(newLogEntry(LogLevelInfo, "client credentials not found", map[string]interface{}{"client": c.uid}))
@@ -1890,10 +1888,6 @@ func (c *Client) writeJoin(_ string, reply *prepared.Reply) error {
 }
 
 func (c *Client) writeLeave(_ string, reply *prepared.Reply) error {
-	return c.transportEnqueue(reply)
-}
-
-func (c *Client) writeMessage(reply *prepared.Reply) error {
 	return c.transportEnqueue(reply)
 }
 
