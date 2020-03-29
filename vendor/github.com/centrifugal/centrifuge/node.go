@@ -104,6 +104,9 @@ func New(c Config) (*Node, error) {
 
 // index chooses bucket number in range [0, numBuckets).
 func index(s string, numBuckets int) int {
+	if numBuckets == 1 {
+		return 0
+	}
 	hash := fnv.New64a()
 	hash.Write([]byte(s))
 	return int(hash.Sum64() % uint64(numBuckets))

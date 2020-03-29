@@ -14,6 +14,8 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 h1:xJ4a3vCFaGF/jqvzLM
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/centrifugal/centrifuge v0.7.0 h1:vYGX6rz5tvNLSoLnbtCWTi8k7jgZMrtWNKh/LTw0pHM=
 github.com/centrifugal/centrifuge v0.7.0/go.mod h1:JdC0AH0DHB1XOhQZC25Hw75qqG8ydEQrnQCjb5MdzG8=
+github.com/centrifugal/centrifuge v0.7.1-0.20200324180038-7166011066cb h1:bwOmeggJyoviA+xsWehCPiPbIqm0SrwkZRGu8io4JQY=
+github.com/centrifugal/centrifuge v0.7.1-0.20200324180038-7166011066cb/go.mod h1:btC7iH4aAonpA3o73O7PCZbCzBQZCZDxBr6njBAApZk=
 github.com/centrifugal/protocol v0.2.0 h1:WEGDWoVcJUuPbzWY8uZGWeI1WhqrC5nqrIsJwm4P3DA=
 github.com/centrifugal/protocol v0.2.0/go.mod h1:2YbBCaDwQHl37ErRdMrKSj18X2yVvpkQYtSX6aVbe5A=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -46,6 +48,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0j
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/mitchellh/mapstructure v0.0.0-20180511142126-bb74f1db0675 h1:/rdJjIiKG5rRdwG5yxHmSE/7ZREjpyC0kL7GxGT/qJw=
 github.com/mitchellh/mapstructure v0.0.0-20180511142126-bb74f1db0675/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
+github.com/mna/redisc v1.1.7 h1:FdmtJsfTjoIjNXiQf4ozgNjuE+zxWH+fJSe+I/dD4vc=
+github.com/mna/redisc v1.1.7/go.mod h1:GXeOb7zyYKiT+K8MKdIiJvuv7MfhDoQGcuzfiJQmqQI=
 github.com/pelletier/go-toml v1.1.0 h1:cmiOvKzEunMsAxyhXSzpL5Q1CRKpVv0KQsnAIcSEVYM=
 github.com/pelletier/go-toml v1.1.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

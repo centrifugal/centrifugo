@@ -17,6 +17,7 @@ import (
 
 	"github.com/FZambia/sentinel"
 	"github.com/gomodule/redigo/redis"
+	"github.com/mna/redisc"
 )
 
 const (
@@ -40,7 +41,7 @@ const (
 	defaultReadTimeout    = time.Second
 	defaultWriteTimeout   = time.Second
 	defaultConnectTimeout = time.Second
-	defaultPoolSize       = 256
+	defaultPoolSize       = 128
 )
 
 type (
@@ -71,12 +72,16 @@ type RedisEngine struct {
 
 var _ Engine = (*RedisEngine)(nil)
 
+type redisConnPool interface {
+	Get() redis.Conn
+}
+
 // shard has everything to connect to Redis instance.
 type shard struct {
 	node              *Node
 	engine            *RedisEngine
 	config            RedisShardConfig
-	pool              *redis.Pool
+	pool              redisConnPool
 	subCh             chan subRequest
 	pubCh             chan pubRequest
 	dataCh            chan dataRequest
@@ -143,6 +148,8 @@ type RedisShardConfig struct {
 	MasterName string
 	// SentinelAddrs is a slice of Sentinel addresses.
 	SentinelAddrs []string
+	// ClusterAddrs is a slice of seed cluster addrs for this shard.
+	ClusterAddrs []string
 	// Prefix to use before every channel name and key in Redis.
 	Prefix string
 	// IdleTimeout is timeout after which idle connections to Redis will be closed.
@@ -185,22 +192,11 @@ func (sr *subRequest) result() error {
 	return <-sr.err
 }
 
-func newPool(n *Node, conf RedisShardConfig) *redis.Pool {
-
-	host := conf.Host
-	port := conf.Port
+func makePoolFactory(s *shard, n *Node, conf RedisShardConfig) func(addr string, options ...redis.DialOption) (*redis.Pool, error) {
 	password := conf.Password
 	db := conf.DB
 
-	serverAddr := net.JoinHostPort(host, strconv.Itoa(port))
 	useSentinel := conf.MasterName != "" && len(conf.SentinelAddrs) > 0
-
-	usingPassword := password != ""
-	if !useSentinel {
-		n.Log(NewLogEntry(LogLevelInfo, fmt.Sprintf("Redis: %s/%d, using password: %v", serverAddr, db, usingPassword)))
-	} else {
-		n.Log(NewLogEntry(LogLevelInfo, fmt.Sprintf("Redis: Sentinel for name: %s, db: %d, using password: %v", conf.MasterName, db, usingPassword)))
-	}
 
 	var lastMu sync.Mutex
 	var lastMaster string
@@ -249,88 +245,136 @@ func newPool(n *Node, conf RedisShardConfig) *redis.Pool {
 		}()
 	}
 
-	return &redis.Pool{
-		MaxIdle:     maxIdle,
-		MaxActive:   poolSize,
-		Wait:        true,
-		IdleTimeout: conf.IdleTimeout,
-		Dial: func() (redis.Conn, error) {
-			var err error
-			if useSentinel {
-				serverAddr, err = sntnl.MasterAddr()
+	return func(serverAddr string, dialOpts ...redis.DialOption) (*redis.Pool, error) {
+		pool := &redis.Pool{
+			MaxIdle:     maxIdle,
+			MaxActive:   poolSize,
+			Wait:        true,
+			IdleTimeout: conf.IdleTimeout,
+			Dial: func() (redis.Conn, error) {
+				var err error
+				if useSentinel {
+					serverAddr, err = sntnl.MasterAddr()
+					if err != nil {
+						return nil, err
+					}
+					lastMu.Lock()
+					if serverAddr != lastMaster {
+						n.Log(NewLogEntry(LogLevelInfo, "Redis master discovered", map[string]interface{}{"addr": serverAddr}))
+						lastMaster = serverAddr
+					}
+					lastMu.Unlock()
+				}
+
+				c, err := redis.Dial("tcp", serverAddr, dialOpts...)
 				if err != nil {
+					n.Log(NewLogEntry(LogLevelError, "error dialing to Redis", map[string]interface{}{"error": err.Error()}))
 					return nil, err
 				}
-				lastMu.Lock()
-				if serverAddr != lastMaster {
-					n.Log(NewLogEntry(LogLevelInfo, "Redis master discovered", map[string]interface{}{"addr": serverAddr}))
-					lastMaster = serverAddr
-				}
-				lastMu.Unlock()
-			}
 
-			var readTimeout = defaultReadTimeout
-			if conf.ReadTimeout != 0 {
-				readTimeout = conf.ReadTimeout
-			}
-			var writeTimeout = defaultWriteTimeout
-			if conf.WriteTimeout != 0 {
-				writeTimeout = conf.WriteTimeout
-			}
-			var connectTimeout = defaultConnectTimeout
-			if conf.ConnectTimeout != 0 {
-				connectTimeout = conf.ConnectTimeout
-			}
+				if password != "" {
+					if _, err := c.Do("AUTH", password); err != nil {
+						c.Close()
+						n.Log(NewLogEntry(LogLevelError, "error auth in Redis", map[string]interface{}{"error": err.Error()}))
+						return nil, err
+					}
+				}
 
-			opts := []redis.DialOption{
-				redis.DialConnectTimeout(connectTimeout),
-				redis.DialReadTimeout(readTimeout),
-				redis.DialWriteTimeout(writeTimeout),
-			}
-			if conf.UseTLS {
-				opts = append(opts, redis.DialUseTLS(true))
-				if conf.TLSConfig != nil {
-					opts = append(opts, redis.DialTLSConfig(conf.TLSConfig))
+				if db != 0 {
+					if _, err := c.Do("SELECT", db); err != nil {
+						c.Close()
+						n.Log(NewLogEntry(LogLevelError, "error selecting Redis db", map[string]interface{}{"error": err.Error()}))
+						return nil, err
+					}
 				}
-				if conf.TLSSkipVerify {
-					opts = append(opts, redis.DialTLSSkipVerify(true))
+				return c, nil
+			},
+			TestOnBorrow: func(c redis.Conn, t time.Time) error {
+				if useSentinel {
+					if !sentinel.TestRole(c, "master") {
+						return errors.New("failed master role check")
+					}
+					return nil
 				}
-			}
-			c, err := redis.Dial("tcp", serverAddr, opts...)
-			if err != nil {
-				n.Log(NewLogEntry(LogLevelError, "error dialing to Redis", map[string]interface{}{"error": err.Error()}))
-				return nil, err
-			}
-
-			if password != "" {
-				if _, err := c.Do("AUTH", password); err != nil {
-					c.Close()
-					n.Log(NewLogEntry(LogLevelError, "error auth in Redis", map[string]interface{}{"error": err.Error()}))
-					return nil, err
+				if s.useCluster() {
+					// No need in this optimization outside cluster
+					// use case due to utilization of pipelining.
+					if time.Since(t) < time.Second {
+						return nil
+					}
 				}
-			}
-
-			if db != 0 {
-				if _, err := c.Do("SELECT", db); err != nil {
-					c.Close()
-					n.Log(NewLogEntry(LogLevelError, "error selecting Redis db", map[string]interface{}{"error": err.Error()}))
-					return nil, err
-				}
-			}
-
-			return c, err
-		},
-		TestOnBorrow: func(c redis.Conn, t time.Time) error {
-			if useSentinel {
-				if !sentinel.TestRole(c, "master") {
-					return errors.New("failed master role check")
-				}
-				return nil
-			}
-			_, err := c.Do("PING")
-			return err
-		},
+				_, err := c.Do("PING")
+				return err
+			},
+		}
+		return pool, nil
 	}
+}
+
+func getDialOpts(conf RedisShardConfig) []redis.DialOption {
+	var readTimeout = defaultReadTimeout
+	if conf.ReadTimeout != 0 {
+		readTimeout = conf.ReadTimeout
+	}
+	var writeTimeout = defaultWriteTimeout
+	if conf.WriteTimeout != 0 {
+		writeTimeout = conf.WriteTimeout
+	}
+	var connectTimeout = defaultConnectTimeout
+	if conf.ConnectTimeout != 0 {
+		connectTimeout = conf.ConnectTimeout
+	}
+
+	dialOpts := []redis.DialOption{
+		redis.DialConnectTimeout(connectTimeout),
+		redis.DialReadTimeout(readTimeout),
+		redis.DialWriteTimeout(writeTimeout),
+	}
+	if conf.UseTLS {
+		dialOpts = append(dialOpts, redis.DialUseTLS(true))
+		if conf.TLSConfig != nil {
+			dialOpts = append(dialOpts, redis.DialTLSConfig(conf.TLSConfig))
+		}
+		if conf.TLSSkipVerify {
+			dialOpts = append(dialOpts, redis.DialTLSSkipVerify(true))
+		}
+	}
+	return dialOpts
+}
+
+func newPool(s *shard, n *Node, conf RedisShardConfig) (redisConnPool, error) {
+	host := conf.Host
+	port := conf.Port
+	password := conf.Password
+	db := conf.DB
+
+	useSentinel := conf.MasterName != "" && len(conf.SentinelAddrs) > 0
+	usingPassword := password != ""
+
+	poolFactory := makePoolFactory(s, n, conf)
+
+	if !s.useCluster() {
+		serverAddr := net.JoinHostPort(host, strconv.Itoa(port))
+		if !useSentinel {
+			n.Log(NewLogEntry(LogLevelInfo, fmt.Sprintf("Redis: %s/%d, using password: %v", serverAddr, db, usingPassword)))
+		} else {
+			n.Log(NewLogEntry(LogLevelInfo, fmt.Sprintf("Redis: Sentinel for name: %s, db: %d, using password: %v", conf.MasterName, db, usingPassword)))
+		}
+		pool, _ := poolFactory(serverAddr, getDialOpts(conf)...)
+		return pool, nil
+	}
+	// OK, we should work with cluster.
+	n.Log(NewLogEntry(LogLevelInfo, fmt.Sprintf("Redis: cluster addrs: %+v, using password: %v", conf.ClusterAddrs, usingPassword)))
+	cluster := &redisc.Cluster{
+		DialOptions:  getDialOpts(conf),
+		StartupNodes: conf.ClusterAddrs,
+		CreatePool:   poolFactory,
+	}
+	// Initialize cluster mapping.
+	if err := cluster.Refresh(); err != nil {
+		return nil, err
+	}
+	return cluster, nil
 }
 
 // NewRedisEngine initializes Redis Engine.
@@ -463,11 +507,6 @@ func (e *RedisEngine) getShard(channel string) *shard {
 	return e.shards[consistentIndex(channel, len(e.shards))]
 }
 
-// Name returns name of engine.
-func (e *RedisEngine) name() string {
-	return "Redis"
-}
-
 // Run runs engine after node initialized.
 func (e *RedisEngine) Run(h BrokerEventHandler) error {
 	for _, shard := range e.shards {
@@ -570,11 +609,9 @@ func (e *RedisEngine) Channels() ([]string, error) {
 			channelMap[ch] = struct{}{}
 		}
 	}
-	channels := make([]string, len(channelMap))
-	j := 0
+	channels := make([]string, 0, len(channelMap))
 	for ch := range channelMap {
-		channels[j] = ch
-		j++
+		channels = append(channels, ch)
 	}
 	return channels, nil
 }
@@ -584,25 +621,36 @@ func newShard(n *Node, conf RedisShardConfig) (*shard, error) {
 	shard := &shard{
 		node:              n,
 		config:            conf,
-		pool:              newPool(n, conf),
 		addPresenceScript: redis.NewScript(2, addPresenceSource),
 		remPresenceScript: redis.NewScript(2, remPresenceSource),
 		presenceScript:    redis.NewScript(2, presenceSource),
 		historyScript:     redis.NewScript(2, historySource),
 		addHistoryScript:  redis.NewScript(2, addHistorySource),
 	}
-	shard.pubCh = make(chan pubRequest)
+	pool, err := newPool(shard, n, conf)
+	if err != nil {
+		return nil, err
+	}
+	shard.pool = pool
+
 	shard.subCh = make(chan subRequest)
+	shard.pubCh = make(chan pubRequest)
 	shard.dataCh = make(chan dataRequest)
+
 	shard.messagePrefix = conf.Prefix + redisClientChannelPrefix
-	go shard.runForever(func() {
-		shard.runDataPipeline()
-	})
+
+	if !shard.useCluster() {
+		// Only need data pipeline in non-cluster scenario.
+		go shard.runForever(func() {
+			shard.runDataPipeline()
+		})
+	}
+
 	return shard, nil
 }
 
-func (s *shard) messageChannelID(ch string) channelID {
-	return channelID(s.messagePrefix + ch)
+func (s *shard) useCluster() bool {
+	return len(s.config.ClusterAddrs) != 0
 }
 
 func (s *shard) controlChannelID() channelID {
@@ -613,19 +661,35 @@ func (s *shard) pingChannelID() channelID {
 	return channelID(s.config.Prefix + redisPingChannelSuffix)
 }
 
+func (s *shard) messageChannelID(ch string) channelID {
+	return channelID(s.messagePrefix + ch)
+}
+
 func (s *shard) presenceHashKey(ch string) channelID {
+	if s.useCluster() {
+		ch = "{" + ch + "}"
+	}
 	return channelID(s.config.Prefix + ".presence.data." + ch)
 }
 
 func (s *shard) presenceSetKey(ch string) channelID {
+	if s.useCluster() {
+		ch = "{" + ch + "}"
+	}
 	return channelID(s.config.Prefix + ".presence.expire." + ch)
 }
 
 func (s *shard) historyListKey(ch string) channelID {
+	if s.useCluster() {
+		ch = "{" + ch + "}"
+	}
 	return channelID(s.config.Prefix + ".history.list." + ch)
 }
 
 func (s *shard) sequenceMetaKey(ch string) channelID {
+	if s.useCluster() {
+		ch = "{" + ch + "}"
+	}
 	return channelID(s.config.Prefix + ".seq.meta." + ch)
 }
 
@@ -633,6 +697,9 @@ func (s *shard) sequenceMetaKey(ch string) channelID {
 func (s *shard) Run(h BrokerEventHandler) error {
 	go s.runForever(func() {
 		s.runPublishPipeline()
+	})
+	go s.runForever(func() {
+		s.runPubSubPing()
 	})
 	go s.runForever(func() {
 		s.runPubSub(h)
@@ -793,9 +860,6 @@ func (s *shard) runPubSub(eventHandler BrokerEventHandler) {
 					return
 				case n := <-ch:
 					chID := channelID(n.Channel)
-					if len(n.Data) == 0 {
-						continue
-					}
 					switch chID {
 					case controlChannel:
 						err := eventHandler.HandleControl(n.Data)
@@ -869,10 +933,6 @@ func (s *shard) runPubSub(eventHandler BrokerEventHandler) {
 }
 
 func (s *shard) handleRedisClientMessage(eventHandler BrokerEventHandler, _ channelID, data []byte) error {
-	// NOTE: this is mostly for backwards compatibility at moment - now
-	// publications do not have sequence prefix when sen over PUB/SUB.
-	// Though if we decide to return to 1 RTT history save and publish
-	// in case of Redis engine this still can be useful.
 	pushData, seq, gen := extractPushData(data)
 	var push Push
 	err := push.Unmarshal(pushData)
@@ -924,12 +984,9 @@ func (pr *pubRequest) result() error {
 	return <-pr.err
 }
 
-func (s *shard) runPublishPipeline() {
-	var prs []pubRequest
-
+func (s *shard) runPubSubPing() {
 	pingTicker := time.NewTicker(time.Second)
 	defer pingTicker.Stop()
-
 	for {
 		select {
 		case <-pingTicker.C:
@@ -943,6 +1000,15 @@ func (s *shard) runPublishPipeline() {
 				return
 			}
 			conn.Close()
+		}
+	}
+}
+
+func (s *shard) runPublishPipeline() {
+	var prs []pubRequest
+
+	for {
+		select {
 		case pr := <-s.pubCh:
 			prs = append(prs, pr)
 		loop:
@@ -967,23 +1033,11 @@ func (s *shard) runPublishPipeline() {
 				conn.Close()
 				return
 			}
-			var noScriptError bool
 			for i := range prs {
 				_, err := conn.Receive()
-				if err != nil {
-					// Check for NOSCRIPT error. In normal circumstances this should never happen.
-					// The only possible situation is when Redis scripts were flushed. In this case
-					// we will return from this func and load publish script from scratch.
-					// Redigo does the same check but for single EVALSHA command: see
-					// https://github.com/garyburd/redigo/blob/master/redis/script.go#L64
-					if e, ok := err.(redis.Error); ok && strings.HasPrefix(string(e), "NOSCRIPT ") {
-						noScriptError = true
-					}
-				}
 				prs[i].done(err)
 			}
-			if noScriptError {
-				// Start this func from the beginning and LOAD missing script.
+			if conn.Err() != nil {
 				conn.Close()
 				return
 			}
@@ -1035,50 +1089,72 @@ func (dr *dataRequest) result() *dataResponse {
 	return <-dr.resp
 }
 
-func (s *shard) runDataPipeline() {
-
+func (s *shard) processClusterDataRequest(dr dataRequest) (interface{}, error) {
 	conn := s.pool.Get()
+	defer conn.Close()
 
-	err := s.addPresenceScript.Load(conn)
-	if err != nil {
-		s.node.Log(NewLogEntry(LogLevelError, "error loading add presence Lua", map[string]interface{}{"error": err.Error()}))
-		// Can not proceed if script has not been loaded.
-		conn.Close()
-		return
+	var err error
+
+	var key string
+	switch dr.op {
+	case dataOpAddPresence, dataOpRemovePresence, dataOpPresence, dataOpHistory, dataOpAddHistory:
+		key = fmt.Sprintf("%s", dr.args[0])
+	default:
+	}
+	if key != "" {
+		if c, ok := conn.(*redisc.Conn); ok {
+			err := c.Bind(key)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	err = s.presenceScript.Load(conn)
+	// Handle redirections automatically.
+	conn, err = redisc.RetryConn(conn, 3, 50*time.Millisecond)
 	if err != nil {
-		s.node.Log(NewLogEntry(LogLevelError, "error loading presence Lua", map[string]interface{}{"error": err.Error()}))
-		// Can not proceed if script has not been loaded.
-		conn.Close()
-		return
+		return nil, err
 	}
 
-	err = s.remPresenceScript.Load(conn)
-	if err != nil {
-		s.node.Log(NewLogEntry(LogLevelError, "error loading remove presence Lua", map[string]interface{}{"error": err.Error()}))
-		// Can not proceed if script has not been loaded.
-		conn.Close()
-		return
-	}
+	var reply interface{}
 
-	err = s.historyScript.Load(conn)
-	if err != nil {
-		s.node.Log(NewLogEntry(LogLevelError, "error loading history Lua", map[string]interface{}{"error": err.Error()}))
-		// Can not proceed if script has not been loaded.
-		conn.Close()
-		return
+	switch dr.op {
+	case dataOpAddPresence:
+		reply, err = s.addPresenceScript.Do(conn, dr.args...)
+	case dataOpRemovePresence:
+		reply, err = s.remPresenceScript.Do(conn, dr.args...)
+	case dataOpPresence:
+		reply, err = s.presenceScript.Do(conn, dr.args...)
+	case dataOpHistory:
+		reply, err = s.historyScript.Do(conn, dr.args...)
+	case dataOpAddHistory:
+		reply, err = s.addHistoryScript.Do(conn, dr.args...)
+	case dataOpHistoryRemove:
+		reply, err = conn.Do("DEL", dr.args...)
+	case dataOpChannels:
+		reply, err = conn.Do("PUBSUB", dr.args...)
 	}
+	return reply, err
+}
 
-	err = s.addHistoryScript.Load(conn)
-	if err != nil {
-		s.node.Log(NewLogEntry(LogLevelError, "error loading add history Lua", map[string]interface{}{"error": err.Error()}))
-		// Can not proceed if script has not been loaded.
-		conn.Close()
-		return
+func (s *shard) runDataPipeline() {
+	conn := s.pool.Get()
+	scripts := []*redis.Script{
+		s.addPresenceScript,
+		s.presenceScript,
+		s.remPresenceScript,
+		s.historyScript,
+		s.addHistoryScript,
 	}
-
+	for _, script := range scripts {
+		err := script.Load(conn)
+		if err != nil {
+			s.node.Log(NewLogEntry(LogLevelError, "error loading Lua script", map[string]interface{}{"error": err.Error()}))
+			// Can not proceed if script has not been loaded.
+			conn.Close()
+			return
+		}
+	}
 	conn.Close()
 
 	var drs []dataRequest
@@ -1139,6 +1215,10 @@ func (s *shard) runDataPipeline() {
 				}
 			}
 			drs[i].done(reply, err)
+		}
+		if conn.Err() != nil {
+			conn.Close()
+			return
 		}
 		if noScriptError {
 			// Start this func from the beginning and LOAD missing script.
@@ -1333,6 +1413,13 @@ func (s *shard) Unsubscribe(ch string) error {
 }
 
 func (s *shard) getDataResponse(r dataRequest) *dataResponse {
+	if s.useCluster() {
+		reply, err := s.processClusterDataRequest(r)
+		return &dataResponse{
+			reply: reply,
+			err:   err,
+		}
+	}
 	select {
 	case s.dataCh <- r:
 	default:
@@ -1554,6 +1641,9 @@ func (s *shard) RemoveHistory(ch string) error {
 // Channels - see engine interface description.
 // Requires Redis >= 2.8.0 (http://redis.io/commands/pubsub)
 func (s *shard) Channels() ([]string, error) {
+	if s.useCluster() {
+		return nil, errors.New("channels command not supported when Redis Cluster is used")
+	}
 	dr := newDataRequest(dataOpChannels, []interface{}{"CHANNELS", s.messagePrefix + "*"})
 	resp := s.getDataResponse(dr)
 	if resp.err != nil {

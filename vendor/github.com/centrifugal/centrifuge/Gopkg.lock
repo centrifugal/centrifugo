@@ -108,6 +108,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:7004bc77c078b62082a4d60106c14dfba36095308ed9601795da86c274671d01"
+  name = "github.com/mna/redisc"
+  packages = ["."]
+  pruneopts = ""
+  revision = "3ead1690290260d40878296feac41941af71c29f"
+  version = "v1.1.7"
+
+[[projects]]
   digest = "1:256484dbbcd271f9ecebc6795b2df8cad4c458dd0f5fd82a8c2fa0c29f233411"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -192,6 +200,7 @@
     "github.com/gomodule/redigo/redis",
     "github.com/gorilla/websocket",
     "github.com/igm/sockjs-go/sockjs",
+    "github.com/mna/redisc",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
