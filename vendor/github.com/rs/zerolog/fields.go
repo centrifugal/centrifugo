@@ -4,7 +4,12 @@ import (
 	"net"
 	"sort"
 	"time"
+	"unsafe"
 )
+
+func isNilValue(i interface{}) bool {
+	return (*[2]uintptr)(unsafe.Pointer(&i))[1] == 0
+}
 
 func appendFields(dst []byte, fields map[string]interface{}) []byte {
 	keys := make([]string, 0, len(fields))
@@ -29,8 +34,7 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 		case []byte:
 			dst = enc.AppendBytes(dst, val)
 		case error:
-			marshaled := ErrorMarshalFunc(val)
-			switch m := marshaled.(type) {
+			switch m := ErrorMarshalFunc(val).(type) {
 			case LogObjectMarshaler:
 				e := newEvent(nil, 0)
 				e.buf = e.buf[:0]
@@ -38,7 +42,11 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 				dst = append(dst, e.buf...)
 				putEvent(e)
 			case error:
-				dst = enc.AppendString(dst, m.Error())
+				if m == nil || isNilValue(m) {
+					dst = enc.AppendNil(dst)
+				} else {
+					dst = enc.AppendString(dst, m.Error())
+				}
 			case string:
 				dst = enc.AppendString(dst, m)
 			default:
@@ -47,8 +55,7 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 		case []error:
 			dst = enc.AppendArrayStart(dst)
 			for i, err := range val {
-				marshaled := ErrorMarshalFunc(err)
-				switch m := marshaled.(type) {
+				switch m := ErrorMarshalFunc(err).(type) {
 				case LogObjectMarshaler:
 					e := newEvent(nil, 0)
 					e.buf = e.buf[:0]
@@ -56,7 +63,11 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 					dst = append(dst, e.buf...)
 					putEvent(e)
 				case error:
-					dst = enc.AppendString(dst, m.Error())
+					if m == nil || isNilValue(m) {
+						dst = enc.AppendNil(dst)
+					} else {
+						dst = enc.AppendString(dst, m.Error())
+					}
 				case string:
 					dst = enc.AppendString(dst, m)
 				default:
@@ -99,37 +110,101 @@ func appendFields(dst []byte, fields map[string]interface{}) []byte {
 		case time.Duration:
 			dst = enc.AppendDuration(dst, val, DurationFieldUnit, DurationFieldInteger)
 		case *string:
-			dst = enc.AppendString(dst, *val)
+			if val != nil {
+				dst = enc.AppendString(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *bool:
-			dst = enc.AppendBool(dst, *val)
+			if val != nil {
+				dst = enc.AppendBool(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *int:
-			dst = enc.AppendInt(dst, *val)
+			if val != nil {
+				dst = enc.AppendInt(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *int8:
-			dst = enc.AppendInt8(dst, *val)
+			if val != nil {
+				dst = enc.AppendInt8(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *int16:
-			dst = enc.AppendInt16(dst, *val)
+			if val != nil {
+				dst = enc.AppendInt16(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *int32:
-			dst = enc.AppendInt32(dst, *val)
+			if val != nil {
+				dst = enc.AppendInt32(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *int64:
-			dst = enc.AppendInt64(dst, *val)
+			if val != nil {
+				dst = enc.AppendInt64(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *uint:
-			dst = enc.AppendUint(dst, *val)
+			if val != nil {
+				dst = enc.AppendUint(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *uint8:
-			dst = enc.AppendUint8(dst, *val)
+			if val != nil {
+				dst = enc.AppendUint8(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *uint16:
-			dst = enc.AppendUint16(dst, *val)
+			if val != nil {
+				dst = enc.AppendUint16(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *uint32:
-			dst = enc.AppendUint32(dst, *val)
+			if val != nil {
+				dst = enc.AppendUint32(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *uint64:
-			dst = enc.AppendUint64(dst, *val)
+			if val != nil {
+				dst = enc.AppendUint64(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *float32:
-			dst = enc.AppendFloat32(dst, *val)
+			if val != nil {
+				dst = enc.AppendFloat32(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *float64:
-			dst = enc.AppendFloat64(dst, *val)
+			if val != nil {
+				dst = enc.AppendFloat64(dst, *val)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *time.Time:
-			dst = enc.AppendTime(dst, *val, TimeFieldFormat)
+			if val != nil {
+				dst = enc.AppendTime(dst, *val, TimeFieldFormat)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case *time.Duration:
-			dst = enc.AppendDuration(dst, *val, DurationFieldUnit, DurationFieldInteger)
+			if val != nil {
+				dst = enc.AppendDuration(dst, *val, DurationFieldUnit, DurationFieldInteger)
+			} else {
+				dst = enc.AppendNil(dst)
+			}
 		case []string:
 			dst = enc.AppendStrings(dst, val)
 		case []bool:

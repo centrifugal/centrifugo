@@ -28,6 +28,7 @@ import (
 	"github.com/centrifugal/centrifugo/internal/api"
 	"github.com/centrifugal/centrifugo/internal/health"
 	"github.com/centrifugal/centrifugo/internal/jwt"
+	"github.com/centrifugal/centrifugo/internal/logutils"
 	"github.com/centrifugal/centrifugo/internal/metrics/graphite"
 	"github.com/centrifugal/centrifugo/internal/middleware"
 	"github.com/centrifugal/centrifugo/internal/proxy"
@@ -535,7 +536,13 @@ var logLevelMatches = map[string]zerolog.Level{
 
 func setupLogging() *os.File {
 	if isatty.IsTerminal(os.Stdout.Fd()) && runtime.GOOS != "windows" {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+		log.Logger = log.Output(zerolog.ConsoleWriter{
+			Out:                 os.Stdout,
+			TimeFormat:          "2006-01-02 15:04:05",
+			FormatLevel:         logutils.ConsoleFormatLevel(),
+			FormatErrFieldName:  logutils.ConsoleFormatErrFieldName(),
+			FormatErrFieldValue: logutils.ConsoleFormatErrFieldValue(),
+		})
 	}
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
