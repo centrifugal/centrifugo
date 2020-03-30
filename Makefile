@@ -60,6 +60,6 @@ local-deps:
 	go mod vendor
 
 build:
-	CGO_ENABLED=0 go build -mod=vendor -a -o
+	CGO_ENABLED=0 go build -mod=vendor
 
 ci: deps test
