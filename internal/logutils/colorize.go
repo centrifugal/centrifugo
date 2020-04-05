@@ -10,9 +10,9 @@ const (
 	colorRed = iota + 31
 	colorGreen
 	colorYellow
-	colorBlue
+	_
 	colorMagenta
-	colorCyan
+	_
 
 	colorBold = 1
 )

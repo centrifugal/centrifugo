@@ -89,7 +89,7 @@ func (h *RPCHandler) Handle(ctx context.Context, node *centrifuge.Node, client *
 		}
 
 		return centrifuge.RPCReply{
-			Data: centrifuge.Raw(data),
+			Data: data,
 		}
 	}
 }

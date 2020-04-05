@@ -94,7 +94,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *ce
 
 		return centrifuge.RefreshReply{
 			ExpireAt: credentials.ExpireAt,
-			Info:     centrifuge.Raw(info),
+			Info:     info,
 		}
 	}
 }

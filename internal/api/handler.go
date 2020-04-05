@@ -93,7 +93,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	resp := encoder.Finish()
 	w.Header().Set("Content-Type", contentType)
-	w.Write(resp)
+	_, _ = w.Write(resp)
 }
 
 func (s *Handler) handleAPICommand(ctx context.Context, enc Encoding, cmd *Command) (*Reply, error) {

@@ -67,7 +67,7 @@ func (e *Exporter) run() {
 		case <-e.closeCh:
 			return
 		case metrics := <-e.sink:
-			e.exportOnce(metrics)
+			_ = e.exportOnce(metrics)
 		}
 	}
 }
@@ -76,7 +76,7 @@ func (e *Exporter) run() {
 func (e *Exporter) Close() error {
 	e.closeOnce.Do(func() {
 		close(e.closeCh)
-		e.eagle.Close()
+		_ = e.eagle.Close()
 	})
 	return nil
 }
@@ -87,7 +87,7 @@ func (e *Exporter) exportOnce(metrics eagle.Metrics) error {
 		return err
 	}
 	defer conn.Close()
-	e.write(conn, metrics)
+	_ = e.write(conn, metrics)
 	return nil
 }
 
@@ -95,7 +95,7 @@ func makeTags(labels []string) string {
 	if len(labels) == 0 {
 		return ""
 	}
-	tagParts := []string{}
+	var tagParts []string
 	for i := 0; i < len(labels); i += 2 {
 		tagParts = append(tagParts, fmt.Sprintf("%s=%s", labels[i], labels[i+1]))
 	}

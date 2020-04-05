@@ -122,7 +122,7 @@ func (s *Handler) authHandler(w http.ResponseWriter, r *http.Request) {
 		}{
 			Token: "insecure",
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 		return
 	}
 
@@ -143,7 +143,7 @@ func (s *Handler) authHandler(w http.ResponseWriter, r *http.Request) {
 		resp := map[string]string{
 			"token": token,
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 		return
 	}
 	http.Error(w, "Bad Request", http.StatusBadRequest)

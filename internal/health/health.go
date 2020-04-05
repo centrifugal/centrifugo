@@ -25,7 +25,7 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 	return h
 }
 
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{}`))
+	_, _ = w.Write([]byte(`{}`))
 }

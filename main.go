@@ -104,7 +104,7 @@ func main() {
 				"websocket_disable", "sockjs_disable", "api_disable", "redis_cluster_addrs",
 			}
 			for _, env := range bindEnvs {
-				viper.BindEnv(env)
+				_ = viper.BindEnv(env)
 			}
 
 			bindPFlags := []string{
@@ -117,7 +117,7 @@ func main() {
 				"grpc_api_tls_disable", "grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port",
 			}
 			for _, flag := range bindPFlags {
-				viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
+				_ = viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
 			}
 
 			// For backwards compatibility.
@@ -281,7 +281,7 @@ func main() {
 				if err != nil {
 					log.Fatal().Msgf("cannot listen to address %s", grpcAPIAddr)
 				}
-				grpcOpts := []grpc.ServerOption{}
+				var grpcOpts []grpc.ServerOption
 				var tlsConfig *tls.Config
 				var tlsErr error
 
@@ -297,7 +297,7 @@ func main() {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 				}
 				grpcAPIServer = grpc.NewServer(grpcOpts...)
-				api.RegisterGRPCServerAPI(node, grpcAPIServer, api.GRPCAPIServiceConfig{})
+				_ = api.RegisterGRPCServerAPI(node, grpcAPIServer, api.GRPCAPIServiceConfig{})
 				go func() {
 					if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
 						log.Fatal().Msgf("serve GRPC: %v", err)
@@ -417,7 +417,7 @@ func main() {
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(checkConfigCmd)
 	rootCmd.AddCommand(generateConfigCmd)
-	rootCmd.Execute()
+	_ = rootCmd.Execute()
 }
 
 var configDefaults = map[string]interface{}{
@@ -565,10 +565,10 @@ func setupLogging() *os.File {
 }
 
 func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer *grpc.Server, exporter *graphite.Exporter) {
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
-		sig := <-sigc
+		sig := <-sigCh
 		log.Info().Msgf("signal received: %v", sig)
 		switch sig {
 		case syscall.SIGHUP:
@@ -597,13 +597,13 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 			shutdownTimeout := time.Duration(viper.GetInt("shutdown_timeout")) * time.Second
 			go time.AfterFunc(shutdownTimeout, func() {
 				if pidFile != "" {
-					os.Remove(pidFile)
+					_ = os.Remove(pidFile)
 				}
 				os.Exit(1)
 			})
 
 			if exporter != nil {
-				exporter.Close()
+				_ = exporter.Close()
 			}
 
 			var wg sync.WaitGroup
@@ -616,23 +616,22 @@ func handleSignals(n *centrifuge.Node, httpServers []*http.Server, grpcAPIServer
 				}()
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
-			defer cancel()
+			ctx, _ := context.WithTimeout(context.Background(), shutdownTimeout)
 
 			for _, srv := range httpServers {
 				wg.Add(1)
 				go func(srv *http.Server) {
 					defer wg.Done()
-					srv.Shutdown(ctx)
+					_ = srv.Shutdown(ctx)
 				}(srv)
 			}
 
-			n.Shutdown(ctx)
+			_ = n.Shutdown(ctx)
 
 			wg.Wait()
 
 			if pidFile != "" {
-				os.Remove(pidFile)
+				_ = os.Remove(pidFile)
 			}
 			time.Sleep(time.Duration(viper.GetInt("shutdown_termination_delay")) * time.Second)
 			os.Exit(0)
@@ -753,9 +752,9 @@ func (w *httpErrorLogWriter) Write(data []byte) (int, error) {
 
 func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 	debug := viper.GetBool("debug")
-	admin := viper.GetBool("admin")
-	prometheus := viper.GetBool("prometheus")
-	health := viper.GetBool("health")
+	useAdmin := viper.GetBool("useAdmin")
+	usePrometheus := viper.GetBool("usePrometheus")
+	useHealth := viper.GetBool("useHealth")
 
 	adminExternal := viper.GetBool("admin_external")
 
@@ -790,7 +789,7 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 	if !viper.GetBool("sockjs_disable") {
 		portFlags |= HandlerSockJS
 	}
-	if admin && adminExternal {
+	if useAdmin && adminExternal {
 		portFlags |= HandlerAdmin
 	}
 	addrToHandlerFlags[externalAddr] = portFlags
@@ -801,21 +800,21 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 		portFlags |= HandlerAPI
 	}
 
-	if admin && !adminExternal {
+	if useAdmin && !adminExternal {
 		portFlags |= HandlerAdmin
 	}
-	if prometheus {
+	if usePrometheus {
 		portFlags |= HandlerPrometheus
 	}
 	if debug {
 		portFlags |= HandlerDebug
 	}
-	if health {
+	if useHealth {
 		portFlags |= HandlerHealth
 	}
 	addrToHandlerFlags[internalAddr] = portFlags
 
-	servers := []*http.Server{}
+	var servers []*http.Server
 
 	tlsConfig, err := getTLSConfig()
 	if err != nil {
@@ -933,7 +932,7 @@ func generateConfig(f string) error {
 	}
 
 	var output bytes.Buffer
-	t.Execute(&output, struct {
+	_ = t.Execute(&output, struct {
 		TokenSecret   string
 		AdminPassword string
 		AdminSecret   string
@@ -1077,7 +1076,7 @@ func applicationName() string {
 
 // namespacesFromConfig allows to unmarshal channel namespaces.
 func namespacesFromConfig(v *viper.Viper) []centrifuge.ChannelNamespace {
-	ns := []centrifuge.ChannelNamespace{}
+	var ns []centrifuge.ChannelNamespace
 	if !v.IsSet("namespaces") {
 		return ns
 	}
@@ -1206,7 +1205,7 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 		password := v.GetString("redis_password")
 		db := v.GetInt("redis_db")
 
-		hosts := []string{}
+		var hosts []string
 		if hostsConf != "" {
 			hosts = strings.Split(hostsConf, ",")
 			if len(hosts) > numShards {
@@ -1214,7 +1213,7 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 			}
 		}
 
-		ports := []string{}
+		var ports []string
 		if portsConf != "" {
 			ports = strings.Split(portsConf, ",")
 			if len(ports) > numShards {
@@ -1222,7 +1221,7 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 			}
 		}
 
-		urls := []string{}
+		var urls []string
 		if urlsConf != "" {
 			urls = strings.Split(urlsConf, ",")
 			if len(urls) > numShards {
@@ -1230,7 +1229,7 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 			}
 		}
 
-		masterNames := []string{}
+		var masterNames []string
 		if masterNamesConf != "" {
 			masterNames = strings.Split(masterNamesConf, ",")
 			if len(masterNames) > numShards {
@@ -1246,7 +1245,7 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 			return nil, fmt.Errorf("Redis master name must be set for every Redis shard when Sentinel used")
 		}
 
-		sentinelAddrs := []string{}
+		var sentinelAddrs []string
 		if sentinelsConf != "" {
 			for _, addr := range strings.Split(sentinelsConf, ",") {
 				addr := strings.TrimSpace(addr)
@@ -1390,6 +1389,8 @@ func (h *logHandler) readEntries() {
 			l = log.Info()
 		case centrifuge.LogLevelError:
 			l = log.Error()
+		default:
+			continue
 		}
 		if entry.Fields != nil {
 			l.Fields(entry.Fields).Msg(entry.Message)
@@ -1439,7 +1440,7 @@ var handlerText = map[HandlerFlag]string{
 
 func (flags HandlerFlag) String() string {
 	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth}
-	endpoints := []string{}
+	var endpoints []string
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
 		if !ok {
@@ -1524,9 +1525,4 @@ func Mux(n *centrifuge.Node, flags HandlerFlag) *http.ServeMux {
 	}
 
 	return mux
-}
-
-func notFoundHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotFound)
-	w.Write([]byte("404 page not found"))
 }

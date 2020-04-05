@@ -67,7 +67,7 @@ func TestHistoryAPI(t *testing.T) {
 	config := node.Config()
 	config.HistorySize = 1
 	config.HistoryLifetime = 1
-	node.Reload(config)
+	_ = node.Reload(config)
 
 	resp = api.History(context.Background(), &HistoryRequest{Channel: "test"})
 	require.Nil(t, resp.Error)
@@ -84,7 +84,7 @@ func TestHistoryRemoveAPI(t *testing.T) {
 	config := node.Config()
 	config.HistorySize = 1
 	config.HistoryLifetime = 1
-	node.Reload(config)
+	_ = node.Reload(config)
 
 	resp = api.HistoryRemove(context.Background(), &HistoryRemoveRequest{Channel: "test"})
 	require.Nil(t, resp.Error)
@@ -101,7 +101,7 @@ func TestPresenceAPI(t *testing.T) {
 
 	config := node.Config()
 	config.Presence = true
-	node.Reload(config)
+	_ = node.Reload(config)
 
 	resp = api.Presence(context.Background(), &PresenceRequest{Channel: "test"})
 	require.Nil(t, resp.Error)
@@ -117,7 +117,7 @@ func TestPresenceStatsAPI(t *testing.T) {
 
 	config := node.Config()
 	config.Presence = true
-	node.Reload(config)
+	_ = node.Reload(config)
 
 	resp = api.PresenceStats(context.Background(), &PresenceStatsRequest{Channel: "test"})
 	require.Nil(t, resp.Error)
