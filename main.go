@@ -752,9 +752,9 @@ func (w *httpErrorLogWriter) Write(data []byte) (int, error) {
 
 func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 	debug := viper.GetBool("debug")
-	useAdmin := viper.GetBool("useAdmin")
-	usePrometheus := viper.GetBool("usePrometheus")
-	useHealth := viper.GetBool("useHealth")
+	useAdmin := viper.GetBool("admin")
+	usePrometheus := viper.GetBool("prometheus")
+	useHealth := viper.GetBool("health")
 
 	adminExternal := viper.GetBool("admin_external")
 
