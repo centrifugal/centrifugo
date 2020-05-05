@@ -41,7 +41,7 @@ This document describes protocol specifics for Websocket transport which support
 
 ### Top level framing
 
-Centrifuge protocol defined in [Protobuf schema](https://github.com/centrifugal/centrifuge/blob/master/misc/proto/client.proto). That schema is a source of truth and all protocol description below describes messages from that schema.
+Centrifuge protocol defined in [Protobuf schema](https://github.com/centrifugal/protocol/blob/master/definitions/client.proto). That schema is a source of truth and all protocol description below describes messages from that schema.
 
 Client sends `Command` to server.
 

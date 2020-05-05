@@ -55,6 +55,8 @@ Flags:
       --tls_key string             path to an X509 certificate key
 ```
 
+Keep in mind that all command-line options of Centrifugo can be set via configuration file with the same name (without `--` prefix of course). Also all available options can be set over environment variables in format `CENTRIFUGO_<OPTION_NAME>`.
+
 ### version
 
 To show version and exit run:
@@ -71,12 +73,12 @@ This is a minimal Centrifugo configuration file:
 
 ```javascript
 {
-  "secret": "<YOUR-SECRET-STRING-HERE>",
+  "token_hmac_secret_key": "<YOUR-SECRET-STRING-HERE>",
   "api_key": "<YOUR-API-KEY-HERE>"
 }
 ```
 
-The only two fields required are **secret** and **api_key**. Secret used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](http_api.md). Keep both values in secret and never reveal to clients.
+The only two fields required are **token_hmac_secret_key** and **api_key**. `token_hmac_secret_key` used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](http_api.md). Keep both values in secret and never reveal to clients.
 
 ### TOML file
 
@@ -89,7 +91,7 @@ centrifugo --config=config.toml
 Where `config.toml` contains:
 
 ```
-secret = "<YOUR-SECRET-STRING-HERE>"
+token_hmac_secret_key = "<YOUR-SECRET-STRING-HERE>"
 api_key = "<YOUR-API-KEY-HERE>"
 log_level = "debug"
 ```
@@ -101,7 +103,7 @@ I.e. the same configuration as JSON file above with one extra option.
 And YAML config also supported. `config.yaml`:
 
 ```
-secret: "<YOUR-SECRET-STRING-HERE>"
+token_hmac_secret_key: "<YOUR-SECRET-STRING-HERE>"
 api_key: "<YOUR-API-KEY-HERE>"
 log_level: debug
 ```
@@ -150,6 +152,8 @@ Let's look at options related to channels. Channel is an entity to which clients
 
 * `presence` – enable/disable presence information. Presence is an information about clients currently subscribed on channel. By default `false` – i.e. no presence information will be available for channels.
 
+* `presence_disable_for_client` (available since v2.2.3) – allows to make presence calls available only for server side API. By default `false` – i.e. presence information is available for both client and server side APIs.
+
 * `join_leave` – enable/disable sending join(leave) messages when client subscribes on channel (unsubscribes from channel). By default `false`.
 
 * `history_size` – history size (amount of messages) for channels. As Centrifugo keeps all history messages in memory it's very important to limit maximum amount of messages in channel history to reasonable value. `history_size` defines maximum amount of messages that Centrifugo will keep for **each** channel in namespace during history lifetime (see below). By default history size is `0` - this means that channels will have no history messages at all.
@@ -158,11 +162,15 @@ Let's look at options related to channels. Channel is an entity to which clients
 
 * `history_recover` – boolean option, when enabled Centrifugo will try to recover missed publications while client was disconnected for some reason (bad internet connection for example). By default `false`. This option must be used in conjunction with reasonably configured message history for channel i.e. `history_size` and `history_lifetime` **must be set** (because Centrifugo uses channel history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel (currently Centrifugo returns recovered publications in order and without duplicates but this is implementation detail that can be theoretically changed in future). See more details about how recovery works in [special chapter](recover.md).
 
+* `history_disable_for_client` (boolean, available since v2.2.3) – allows to make history available only for server side API. By default `false` – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if `history_disable_for_client` is on.
+
+* `server_side` (boolean, available since v2.4.0) – when enabled then all client-side subscription requests to channels in namespace will be rejected with `PermissionDenied` error. By default `false`.
+
 Let's look how to set some of these options in config:
 
 ```javascript
 {
-    "secret": "my-secret-key",
+    "token_hmac_secret_key": "my-secret-key",
     "api_key": "secret-api-key",
     "anonymous": true,
     "publish": true,
@@ -194,7 +202,7 @@ All things together here is an example of `config.json` which includes registere
 
 ```javascript
 {
-    "secret": "very-long-secret-key",
+    "token_hmac_secret_key": "very-long-secret-key",
     "api_key": "secret-api-key",
     "anonymous": true,
     "publish": true,
@@ -244,7 +252,7 @@ Default: 255
 
 Sets maximum length of channel name.
 
-#### channel_user_connection_limit
+#### client_user_connection_limit
 
 Default: 0
 
@@ -404,3 +412,24 @@ http://localhost:9000/debug/pprof/
 ```
 
 The same for API and prometheus endpoint.
+
+#### Disable default endpoints
+
+These options available since v2.4.0
+
+To disable websocket endpoint set `websocket_disable` boolean option to `true`.
+
+To disable SockJS endpoint set `sockjs_disable` boolean option to `true`.
+
+To disable API endpoint set `api_disable` boolean option to `true`.
+
+#### Customize handler endpoinds
+
+Starting from Centrifugo v2.2.5 it's possible to customize server HTTP handler endpoints. To do this Centrifugo supports several options:
+
+* `admin_handler_prefix` (default `""`) - to control Admin panel URL prefix
+* `websocket_handler_prefix` (default `"/connection/websocket"`) - to control WebSocket URL prefix
+* `sockjs_handler_prefix` (default `"/connection/sockjs"`) - to control SockJS URL prefix
+* `api_handler_prefix` (default `"/api"`) - to control HTTP API URL prefix
+* `prometheus_handler_prefix` (default `"/metrics"`) - to control Prometheus URL prefix
+* `health_handler_prefix` (default `"/health"`) - to control health check URL prefix

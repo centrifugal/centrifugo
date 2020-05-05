@@ -2,10 +2,14 @@ sudo: required
 
 language: go
 
+env:
+  - GO111MODULE=on
+
 go:
   # Use quotes here:
   # https://github.com/travis-ci/gimme/issues/132
-  - '1.12.x'
+  - '1.13.x'
+  - '1.14.x'
   - 'tip'
 
 addons:
@@ -23,7 +27,7 @@ before_install:
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mitchellh/gox
 
-script: make test
+script: make ci
 
 deploy:
   - provider: script
@@ -31,9 +35,9 @@ deploy:
     script: misc/release/release.sh --release-notes=misc/release/notes.md
     on:
       tags: true
-      go: '1.12.x'
+      go: '1.13.x'
   - provider: script
     script: misc/scripts/travis_packagecloud.sh
     on:
       tags: true 
-      go: '1.12.x'
+      go: '1.13.x'

@@ -1,4 +1,4 @@
-// Copyright 2018 The NATS Authors
+// Copyright 2018-2019 The NATS Authors
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -19,8 +19,8 @@ import (
 	"errors"
 )
 
-// Version
-const Version = "0.0.2"
+// Version is our current version
+const Version = "0.1.4"
 
 // Errors
 var (
@@ -33,6 +33,7 @@ var (
 	ErrInvalidSignature  = errors.New("nkeys: signature verification failed")
 	ErrCannotSign        = errors.New("nkeys: can not sign, no private key available")
 	ErrPublicKeyOnly     = errors.New("nkeys: no seed or private key available")
+	ErrIncompatibleKey   = errors.New("nkeys: incompatible key")
 )
 
 // KeyPair provides the central interface to nkeys.
@@ -93,7 +94,7 @@ func FromSeed(seed []byte) (KeyPair, error) {
 	return &kp{copy}, nil
 }
 
-// Create a KeyPair from the raw 32 byte seed for a given type.
+// FromRawSeed will create a KeyPair from the raw 32 byte seed for a given type.
 func FromRawSeed(prefix PrefixByte, rawSeed []byte) (KeyPair, error) {
 	seed, err := EncodeSeed(prefix, rawSeed)
 	if err != nil {

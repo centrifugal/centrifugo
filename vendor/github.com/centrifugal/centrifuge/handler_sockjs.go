@@ -6,8 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifuge/internal/proto"
-
+	"github.com/gorilla/websocket"
 	"github.com/igm/sockjs-go/sockjs"
 )
 
@@ -34,14 +33,12 @@ func (t *sockjsTransport) Name() string {
 	return transportSockJS
 }
 
-func (t *sockjsTransport) Encoding() proto.Encoding {
-	return proto.EncodingJSON
+func (t *sockjsTransport) Protocol() ProtocolType {
+	return ProtocolTypeJSON
 }
 
-func (t *sockjsTransport) Info() TransportInfo {
-	return TransportInfo{
-		Request: t.session.Request(),
-	}
+func (t *sockjsTransport) Encoding() EncodingType {
+	return EncodingTypeJSON
 }
 
 func (t *sockjsTransport) Write(data []byte) error {
@@ -85,6 +82,14 @@ type SockjsConfig struct {
 	// HeartbeatDelay sets how often to send heartbeat frames to clients.
 	HeartbeatDelay time.Duration
 
+	// CheckOrigin allows to decide whether to use CORS or not in XHR case.
+	// When false returned then CORS headers won't be set.
+	CheckOrigin func(*http.Request) bool
+
+	// WebsocketCheckOrigin allows to set custom CheckOrigin func for underlying
+	// gorilla Websocket based Upgrader.
+	WebsocketCheckOrigin func(*http.Request) bool
+
 	// WebsocketReadBufferSize is a parameter that is used for raw websocket Upgrader.
 	// If set to zero reasonable default value will be used.
 	WebsocketReadBufferSize int
@@ -92,6 +97,14 @@ type SockjsConfig struct {
 	// WebsocketWriteBufferSize is a parameter that is used for raw websocket Upgrader.
 	// If set to zero reasonable default value will be used.
 	WebsocketWriteBufferSize int
+
+	// WebsocketUseWriteBufferPool enables using buffer pool for writes in Websocket transport.
+	WebsocketUseWriteBufferPool bool
+
+	// WriteTimeout is maximum time of write message operation.
+	// Slow client will be disconnected.
+	// By default DefaultWebsocketWriteTimeout will be used.
+	WebsocketWriteTimeout time.Duration
 }
 
 // SockjsHandler accepts SockJS connections.
@@ -103,18 +116,32 @@ type SockjsHandler struct {
 
 // NewSockjsHandler creates new SockjsHandler.
 func NewSockjsHandler(n *Node, c SockjsConfig) *SockjsHandler {
-	sockjs.WebSocketReadBufSize = c.WebsocketReadBufferSize
-	sockjs.WebSocketWriteBufSize = c.WebsocketWriteBufferSize
-
 	options := sockjs.DefaultOptions
-
+	wsUpgrader := &websocket.Upgrader{
+		ReadBufferSize:  c.WebsocketReadBufferSize,
+		WriteBufferSize: c.WebsocketWriteBufferSize,
+		CheckOrigin:     c.WebsocketCheckOrigin,
+		Error:           func(w http.ResponseWriter, r *http.Request, status int, reason error) {},
+	}
+	if c.WebsocketUseWriteBufferPool {
+		wsUpgrader.WriteBufferPool = writeBufferPool
+	} else {
+		wsUpgrader.WriteBufferSize = c.WebsocketWriteBufferSize
+	}
+	options.WebsocketUpgrader = wsUpgrader
 	// Override sockjs url. It's important to use the same SockJS
 	// library version on client and server sides when using iframe
 	// based SockJS transports, otherwise SockJS will raise error
 	// about version mismatch.
 	options.SockJSURL = c.URL
+	options.CheckOrigin = c.CheckOrigin
 
 	options.HeartbeatDelay = c.HeartbeatDelay
+	wsWriteTimeout := c.WebsocketWriteTimeout
+	if wsWriteTimeout == 0 {
+		wsWriteTimeout = DefaultWebsocketWriteTimeout
+	}
+	options.WebsocketWriteTimeout = wsWriteTimeout
 
 	s := &SockjsHandler{
 		node:   n,
@@ -152,7 +179,9 @@ func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
 		default:
 		}
 
-		c, err := newClient(sess.Request().Context(), s.node, transport)
+		ctxCh := make(chan struct{})
+		defer close(ctxCh)
+		c, err := NewClient(newCustomCancelContext(sess.Request().Context(), ctxCh), s.node, transport)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error creating client", map[string]interface{}{"transport": transportSockJS}))
 			return
@@ -165,7 +194,7 @@ func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
 
 		for {
 			if msg, err := sess.Recv(); err == nil {
-				ok := c.handleRawData([]byte(msg))
+				ok := c.Handle([]byte(msg))
 				if !ok {
 					return
 				}

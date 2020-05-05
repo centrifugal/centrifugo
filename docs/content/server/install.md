@@ -12,13 +12,13 @@ Now you can see help information for Centrifugo:
 ./centrifugo -h
 ```
 
-Centrifugo server node requires configuration file with secret key. If you are new to Centrifugo then there is `genconfig` command which generates minimal required configuration file:
+Centrifugo server node requires configuration file with some secret keys. If you are new to Centrifugo then there is `genconfig` command which generates minimal required configuration file:
 
 ```bash
 ./centrifugo genconfig
 ```
 
-It generates secret key automatically and creates configuration file `config.json` in current directory (by default) so you can finally run Centrifugo instance:
+It generates secret keys automatically and creates configuration file `config.json` in current directory (by default) so you can finally run Centrifugo instance:
 
 ```bash
 ./centrifugo --config=config.json

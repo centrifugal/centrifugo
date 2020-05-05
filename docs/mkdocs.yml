@@ -14,6 +14,7 @@ markdown_extensions:
       permalink: True
   - sane_lists
   - codehilite
+  - markdown.extensions.admonition:
 
 theme:
   name: 'material'
@@ -36,7 +37,7 @@ theme:
 extra_css:
   - theme/styles/extra.css
 
-pages: 
+nav: 
   - Getting Started: 'index.md'
   - Integration Guide: 'guide.md'
   - Server:
@@ -54,6 +55,8 @@ pages:
     - 'Signal handling': 'server/signals.md'
     - 'Connection expiration': 'server/connection_expiration.md'
     - 'Private channels': 'server/private_channels.md'
+    - 'Proxy to backend': 'server/proxy.md'
+    - 'Server-side subscriptions': 'server/server_subs.md'
     - 'Protobuf protocol': 'server/protobuf.md'
     - 'Client protocol': 'server/protocol.md'
   - Transports:
@@ -68,9 +71,9 @@ pages:
     - 'Docker image': 'deploy/docker.md'
     - 'Nginx configuration': 'deploy/nginx.md'
     - 'TLS': 'deploy/tls.md'
-    - 'Redis HA': 'deploy/redis.md'
     - 'OS tuning': 'deploy/tuning.md'
   - Misc:
     - 'Insecure modes': 'misc/insecure_modes.md'
     - 'Migrate from Centrifugo v1': 'misc/migrate.md'
+    - 'Benchmarking server': 'misc/benchmark.md'
   - FAQ: 'faq.md'

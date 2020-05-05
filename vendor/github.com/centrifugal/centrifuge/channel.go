@@ -13,6 +13,11 @@ type ChannelNamespace struct {
 // ChannelOptions represent channel specific configuration for namespace
 // or global channel options if set on top level of configuration.
 type ChannelOptions struct {
+	// ServerSide marks all channels in namespace as server side, when on then
+	// all client subscribe requests to these channels will be rejected with
+	// PermissionDenied error.
+	ServerSide bool `mapstructure:"server_side" json:"server_side"`
+
 	// Publish enables possibility for clients to publish messages into channels.
 	// Once enabled client can publish into channel and that publication will be
 	// broadcasted to all current channel subscribers. You can control publishing
@@ -42,6 +47,10 @@ type ChannelOptions struct {
 	// Presence is a structure with clients currently subscribed on channel.
 	Presence bool `json:"presence"`
 
+	// PresenceDisableForClient prevents presence to be asked by clients.
+	// In this case it's available only over server-side presence call.
+	PresenceDisableForClient bool `mapstructure:"presence_disable_for_client" json:"presence_disable_for_client"`
+
 	// HistorySize determines max amount of history messages for channel,
 	// 0 means no history for channel. Centrifugo history has auxiliary
 	// role – it can not replace your backend persistent storage.
@@ -58,4 +67,10 @@ type ChannelOptions struct {
 	// client. This option uses publications from history and must be used
 	// with reasonable HistorySize and HistoryLifetime configuration.
 	HistoryRecover bool `mapstructure:"history_recover" json:"history_recover"`
+
+	// HistoryDisableForClient prevents history to be asked by clients.
+	// In this case it's available only over server-side history call.
+	// History recover mechanism if enabled will continue to work for
+	// clients anyway.
+	HistoryDisableForClient bool `mapstructure:"history_disable_for_client" json:"history_disable_for_client"`
 }

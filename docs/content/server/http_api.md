@@ -27,6 +27,8 @@ This API key must be set in request `Authorization` header in this way:
 Authorization: apikey <KEY>
 ```
 
+Starting from Centrifugo v2.2.7 it's also possible to pass API key over URL query param. This solves some edge cases where it's not possible to use `Authorization` header. Simply add `?api_key=<YOUR API KEY>` query param to API endpoint. Keep in mind that passing API key in `Authorization` header is a recommended way. 
+
 It's possible to disable API key check on Centrifugo side using `api_insecure` configuration option. Be sure to protect API endpoint by firewall rules in this case to prevent anyone in internet to send commands over your unprotected Centrifugo API. API key auth is not very safe for man-in-the-middle so recommended way is running Centrifugo with TLS (we are in 2018 in the end).
 
 Command is a JSON object with two properties: `method` and `params`.
@@ -313,6 +315,8 @@ Date: Thu, 17 May 2018 22:08:31 GMT
     }
 }
 ```
+
+Keep in mind that as `channels` API command returns all active channels snapshot it can be really heavy for massive deployments. At moment there is no way to paginate over channels list and we don't know a case where this could be useful and not error prone. At moment we mostly suppose that channels command will be used in development process and in not very massive Centrifugo setups (with no more than 10k channels). Also `channels` command is considered optional in engine implementations.
 
 ### info
 

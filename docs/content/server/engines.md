@@ -26,7 +26,7 @@ Or just set `engine` in config:
 }
 ```
 
-### Memory engine
+## Memory engine
 
 Supports only one node. Nice choice to start with. Supports all features keeping everything in Centrifugo node process memory. You don't need to install Redis when using this engine.
 
@@ -39,7 +39,7 @@ Disadvantages:
 
 * does not allow to scale nodes (actually you still can scale Centrifugo with Memory engine but you have to publish data into each Centrifugo node and you won't have consistent state of presence)
 
-### Redis engine
+## Redis engine
 
 Allows scaling Centrifugo nodes to different machines. Nodes will use Redis as message broker. Redis engine keeps presence and history data in Redis, uses Redis PUB/SUB for internal nodes communication.
 
@@ -57,8 +57,9 @@ Several configuration options related to Redis engine:
 * `redis_sentinels` (string, default `""`) - comma separated list of Sentinels for HA
 * `redis_master_name` (string, default `""`) - name of Redis master Sentinel monitors
 * `redis_prefix` (string, default `"centrifugo"`) – custom prefix to use for channels and keys in Redis
+* `redis_sequence_ttl` (int, default `0`) - sets a time in seconds of sequence data expiration in Redis Engine. Sequence meta key in Redis is a HASH that contains current sequence number in channel and epoch value. By default sequence data for channels does not expire. Though in some cases – when channels created for а short time and then not used anymore – created sequence meta data can stay in memory while not actually useful. For example you can have a personal user channel but after using your app for a while user left it forever. In long-term perspective this can be an unwanted memory leak. Setting a reasonable value to this option (usually much bigger than history retention period) can help. In this case unused channel sequence data will eventually expire. Available since v2.3.0
 
-Some of these options can be set over command-line arguments (see `centrifugo -h` output), some only over configuration file.
+All of these options can be set over configuration file. Some of them can be set over command-line arguments (see `centrifugo -h` output).
 
 Let's describe a bit more `redis_url` option. `redis_url` allows to set Redis connection parameters in a form of URL in format `redis://:password@hostname:port/db_number`. When `redis_url` set Centrifugo will use URL instead of values provided in `redis_host`, `redis_port`, `redis_password`, `redis_db` options.
 
@@ -93,6 +94,67 @@ Now you have 3 Centrifugo instances running on ports 8000, 8001, 8002 and client
 
 To load balance clients between nodes you can use Nginx – you can find its configuration here in documentation.
 
+### Redis Sentinel for high availability
+
+Centrifugo supports official way to add high availability to Redis - Redis [Sentinel](http://redis.io/topics/sentinel).
+
+For this you only need to utilize 2 Redis Engine options: `redis_master_name` and `redis_sentinels`.
+
+`redis_master_name` - is a name of master your Sentinels monitor.
+
+`redis_sentinels` - comma-separated addresses of Sentinel servers. At least one known server required.
+
+So you can start Centrifugo which will use Sentinels to discover redis master instance like this:
+
+```
+centrifugo --config=config.json --engine=redis --redis_master_name=mymaster --redis_sentinels=":26379"
+```
+
+Sentinel configuration files can look like this:
+
+```
+port 26379
+sentinel monitor mymaster 127.0.0.1 6379 2
+sentinel down-after-milliseconds mymaster 10000
+sentinel failover-timeout mymaster 60000
+```
+
+You can find how to properly setup Sentinels [in official documentation](http://redis.io/topics/sentinel).
+
+Note that when your redis master instance down there will be small downtime interval until Sentinels
+discover a problem and come to quorum decision about new master. The length of this period depends on
+Sentinel configuration.
+
+### Haproxy instead of Sentinel configuration
+
+Alternatively you can use Haproxy between Centrifugo and Redis to let it properly balance traffic to Redis master. In this case you still need to configure Sentinels but you can omit Sentinel specifics from Centrifugo configuration and just use Redis address as in simple non-HA case.
+
+For example you can use something like this in Haproxy config:
+
+```
+listen redis
+    server redis-01 127.0.0.1:6380 check port 6380 check inter 2s weight 1 inter 2s downinter 5s rise 10 fall 2
+    server redis-02 127.0.0.1:6381 check port 6381 check inter 2s weight 1 inter 2s downinter 5s rise 10 fall 2 backup
+    bind *:16379
+    mode tcp
+    option tcpka
+    option tcplog
+    option tcp-check
+    tcp-check send PING\r\n
+    tcp-check expect string +PONG
+    tcp-check send info\ replication\r\n
+    tcp-check expect string role:master
+    tcp-check send QUIT\r\n
+    tcp-check expect string +OK
+    balance roundrobin
+```
+
+And then just point Centrifugo to this Haproxy:
+
+```
+centrifugo --config=config.json --engine=redis --redis_host=localhost --redis_port=16379
+```
+
 ### Redis sharding
 
 Centrifugo has a built-in Redis sharding support.
@@ -118,3 +180,56 @@ If you also need to customize AUTH password, Redis DB number then you can use `r
 Note, that due to how Redis PUB/SUB work it's not possible (and it's pretty useless anyway) to run shards in one Redis instances using different Redis DB numbers.
 
 When sharding enabled Centrifugo will spread channels and history/presence keys over configured Redis instances using consistent hashing algorithm. At moment we use Jump consistent hash algorithm (see [paper](https://arxiv.org/pdf/1406.2294.pdf) and [implementation](https://github.com/dgryski/go-jump))
+
+### Redis cluster
+
+Redis cluster is supported since Centrifugo v2.4.1
+
+Running Centrifugo with Redis cluster is simple and can be achieved using `redis_cluster_addrs` option. This is an array of strings. Each element of array is a comma-separated Redis cluster seed nodes. For example:
+
+```json
+{
+    ...
+    "redis_cluster_addrs": [
+        "localhost:30001,localhost:30002,localhost:30003"
+    ]
+}
+```
+
+Actually you don't need to list all Redis cluster nodes in config – only several working nodes is enough to start.
+
+To set the same over environment variable:
+
+```bash
+CENTRIFUGO_REDIS_CLUSTER_ADDRS="localhost:30001" CENTRIFUGO_ENGINE=redis ./centrifugo
+```
+
+If you need to shard data between several Redis clusters then simply add one more string with seed nodes of another cluster to this array:
+
+```json
+{
+    ...
+    "redis_cluster_addrs": [
+        "localhost:30001,localhost:30002,localhost:30003",
+        "localhost:30101,localhost:30102,localhost:30103"
+    ]
+}
+```
+
+Sharding between different Redis clusters can make sense due to the fact how PUB/SUB works in Redis cluster. It does not scale linearly when adding nodes as all PUB/SUB messages got copied to every cluster node. See [this discussion](https://github.com/antirez/redis/issues/2672) for more information on topic. To spread data between different Redis clusters Centrifugo uses the same consistent hashing algorithm described above (i.e. `Jump`).
+
+To reproduce the same over environment variable use `space` to separate different clusters:
+
+```bash
+CENTRIFUGO_REDIS_CLUSTER_ADDRS="localhost:30001,localhost:30002 localhost:30101,localhost:30102" CENTRIFUGO_ENGINE=redis ./centrifugo
+```
+
+### KeyDB
+
+Centrifugo Redis engine seamlessly works with [KeyDB](https://keydb.dev/). KeyDB server is compatible with Redis and provides several additional features beyond. 
+
+Though we can't give any promises about compatibility with KeyDB in future Centrifugo releases - while KeyDB is fully compatible with Redis things should work fine. That's why we consider this as **EXPERIMENTAL** feature.
+
+Use KeyDB instead of Redis only if you are really sure you need it. Nothing stops you from running several Redis instances per each core you have, configure sharding and obtain even better performance that KeyDB can provide (due to lack of synchronization between threads in Redis).
+
+In order to run Centrifugo with KeyDB all you need to do is use `redis` engine option and run KeyDB server instead of Redis.

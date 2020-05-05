@@ -10,12 +10,12 @@
   version = "v0.0.1"
 
 [[projects]]
-  digest = "1:8e379117c74df8f21127a82e1599de345efad7770fa91dd2ea20195471014fb4"
+  digest = "1:74304fe46313d93f638aa2e11177aa5a08e6b39af503dce2fed216eaeaeed23d"
   name = "github.com/FZambia/sentinel"
   packages = ["."]
   pruneopts = ""
-  revision = "e69a8dc549bb0aabdc63fbfd9e8bfe971a368153"
-  version = "v1.0.0"
+  revision = "f57c7b5fd3c67c6f12bf1a29d757af6e5add30b4"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -24,6 +24,14 @@
   packages = ["quantile"]
   pruneopts = ""
   revision = "3a771d992973f24aa725d07868b467d1ddfceafb"
+
+[[projects]]
+  digest = "1:9c9688fd7898bd9ef81786a0ceaa3a58caef16ff9640d1bb4a498c468ef100b7"
+  name = "github.com/centrifugal/protocol"
+  packages = ["."]
+  pruneopts = ""
+  revision = "f504d16148ee951406144e58809324fc9f4528d3"
+  version = "v0.2.0"
 
 [[projects]]
   digest = "1:56c130d885a4aacae1dd9c7b71cfe39912c7ebc1ff7d2b46083c8812996dc43b"
@@ -42,7 +50,7 @@
   version = "v3.2.0"
 
 [[projects]]
-  digest = "1:fd53b471edb4c28c7d297f617f4da0d33402755f58d6301e7ca1197ef0a90937"
+  digest = "1:d69d2ba23955582a64e367ff2b0808cdbd048458c178cea48f11ab8c40bd7aea"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -53,8 +61,8 @@
     "types",
   ]
   pruneopts = ""
-  revision = "ba06b47c162d49f2af050fb4c75bcbc86a159d5c"
-  version = "v1.2.1"
+  revision = "5628607bb4c51c3157aacc3a50f0ab707582b805"
+  version = "v1.3.1"
 
 [[projects]]
   digest = "1:f958a1c137db276e52f0b50efee41a1a389dcdded59a69711f3e872757dab34b"
@@ -76,20 +84,20 @@
   version = "v2.0.0"
 
 [[projects]]
-  digest = "1:09aa5dd1332b93c96bde671bafb053249dc813febf7d5ca84e8f382ba255d67d"
+  digest = "1:03168f6041f164c06dc6acaaab4ed3ad1c6088b717c365cec892b35c80f4ffc7"
   name = "github.com/gorilla/websocket"
   packages = ["."]
   pruneopts = ""
-  revision = "66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d"
-  version = "v1.4.0"
+  revision = "c3e18be99d19e6b3e8f1559eea2c161a665c4b6b"
+  version = "v1.4.1"
 
 [[projects]]
   branch = "master"
-  digest = "1:8deef3f1b28a787dc25e4b4df1cefb4068845b67e689032304933032acc5f977"
+  digest = "1:493fefe2791cb5f58e39a38d5b09e71bf9af89524b1c68b45eea5d3874c17c72"
   name = "github.com/igm/sockjs-go"
   packages = ["sockjs"]
   pruneopts = ""
-  revision = "1840ed98ab88f0d08228ade56e36731e4e369ab2"
+  revision = "cd6986df5bcc018f38ce4c5e07a2dfa6c268fc64"
 
 [[projects]]
   digest = "1:4c23ced97a470b17d9ffd788310502a077b9c1f60221a85563e49696276b4147"
@@ -98,6 +106,14 @@
   pruneopts = ""
   revision = "3247c84500bff8d9fb6d579d800f20b3e091582c"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:7004bc77c078b62082a4d60106c14dfba36095308ed9601795da86c274671d01"
+  name = "github.com/mna/redisc"
+  packages = ["."]
+  pruneopts = ""
+  revision = "3ead1690290260d40878296feac41941af71c29f"
+  version = "v1.1.7"
 
 [[projects]]
   digest = "1:256484dbbcd271f9ecebc6795b2df8cad4c458dd0f5fd82a8c2fa0c29f233411"
@@ -152,12 +168,23 @@
   revision = "780932d4fbbe0e69b84c34c20f5c8d0981e109ea"
 
 [[projects]]
-  digest = "1:381bcbeb112a51493d9d998bbba207a529c73dbb49b3fd789e48c63fac1f192c"
+  digest = "1:cc4eb6813da8d08694e557fcafae8fcc24f47f61a0717f952da130ca9a486dfc"
   name = "github.com/stretchr/testify"
-  packages = ["assert"]
+  packages = [
+    "assert",
+    "require",
+  ]
   pruneopts = ""
-  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
-  version = "v1.3.0"
+  revision = "3ebf1ddaeb260c4b1ae502a01c7844fa8c1fa0e9"
+  version = "v1.5.1"
+
+[[projects]]
+  digest = "1:2efc9662a6a1ff28c65c84fc2f9030f13d3afecdb2ecad445f3b0c80e75fc281"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  pruneopts = ""
+  revision = "53403b58ad1b561927d19068c655246f2db79d48"
+  version = "v2.2.8"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -165,6 +192,7 @@
   input-imports = [
     "github.com/FZambia/eagle",
     "github.com/FZambia/sentinel",
+    "github.com/centrifugal/protocol",
     "github.com/dgrijalva/jwt-go",
     "github.com/gogo/protobuf/gogoproto",
     "github.com/gogo/protobuf/jsonpb",
@@ -172,8 +200,10 @@
     "github.com/gomodule/redigo/redis",
     "github.com/gorilla/websocket",
     "github.com/igm/sockjs-go/sockjs",
+    "github.com/mna/redisc",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/stretchr/testify/assert",
+    "github.com/stretchr/testify/require",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIHandler(t *testing.T) {
@@ -21,28 +21,28 @@ func TestAPIHandler(t *testing.T) {
 	// nil body.
 	req, _ := http.NewRequest("POST", server.URL+"/api", nil)
 	resp, err := http.DefaultClient.Do(req)
-	assert.NoError(t, err)
-	assert.Equal(t, resp.StatusCode, http.StatusBadRequest)
+	require.NoError(t, err)
+	require.Equal(t, resp.StatusCode, http.StatusBadRequest)
 
 	// empty body.
 	req, _ = http.NewRequest("POST", server.URL+"/api", strings.NewReader(""))
 	resp, err = http.DefaultClient.Do(req)
-	assert.NoError(t, err)
-	assert.Equal(t, resp.StatusCode, http.StatusBadRequest)
+	require.NoError(t, err)
+	require.Equal(t, resp.StatusCode, http.StatusBadRequest)
 
 	// valid JSON request.
 	data := `{"method":"publish","params":{"channel": "test", "data":{}}}`
 	req, _ = http.NewRequest("POST", server.URL+"/api", bytes.NewBuffer([]byte(data)))
 	req.Header.Add("Content-Type", "application/json")
 	resp, err = http.DefaultClient.Do(req)
-	assert.NoError(t, err)
-	assert.Equal(t, resp.StatusCode, http.StatusOK)
+	require.NoError(t, err)
+	require.Equal(t, resp.StatusCode, http.StatusOK)
 
 	// request with unknown method.
 	data = `{"method":"unknown","params":{"channel": "test", "data":{}}}`
 	req, _ = http.NewRequest("POST", server.URL+"/api", bytes.NewBuffer([]byte(data)))
 	req.Header.Add("Content-Type", "application/json")
 	resp, err = http.DefaultClient.Do(req)
-	assert.NoError(t, err)
-	assert.Equal(t, resp.StatusCode, http.StatusBadRequest)
+	require.NoError(t, err)
+	require.Equal(t, resp.StatusCode, http.StatusBadRequest)
 }

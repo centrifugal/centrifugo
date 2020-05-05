@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifuge/internal/proto"
-	"github.com/centrifugal/centrifuge/internal/proto/controlproto"
+	"github.com/centrifugal/centrifuge/internal/controlproto"
+	"github.com/centrifugal/centrifuge/internal/dissolve"
 	"github.com/centrifugal/centrifuge/internal/uuid"
 
 	"github.com/FZambia/eagle"
@@ -32,6 +32,8 @@ type Node struct {
 	hub *Hub
 	// broker is responsible for PUB/SUB mechanics.
 	broker Broker
+	// tokenVerifier is responsible to verify client tokens
+	tokenVerifier tokenVerifier
 	// historyManager is responsible for managing channel Publication history.
 	historyManager HistoryManager
 	// presenceManager is responsible for presence information management.
@@ -57,10 +59,13 @@ type Node struct {
 	metricsMu       sync.Mutex
 	metricsExporter *eagle.Eagle
 	metricsSnapshot *eagle.Metrics
+
+	subDissolver *dissolve.Dissolver
 }
 
 const (
-	numSubLocks = 16384
+	numSubLocks            = 16384
+	numSubDissolverWorkers = 64
 )
 
 // New creates Node, the only required argument is config.
@@ -84,6 +89,8 @@ func New(c Config) (*Node, error) {
 		controlDecoder: controlproto.NewProtobufDecoder(),
 		eventHub:       &nodeEventHub{},
 		subLocks:       subLocks,
+		subDissolver:   dissolve.New(numSubDissolverWorkers),
+		tokenVerifier:  newTokenVerifierJWT(c.TokenHMACSecretKey, c.TokenRSAPublicKey),
 	}
 
 	if c.LogHandler != nil {
@@ -97,6 +104,9 @@ func New(c Config) (*Node, error) {
 
 // index chooses bucket number in range [0, numBuckets).
 func index(s string, numBuckets int) int {
+	if numBuckets == 1 {
+		return 0
+	}
 	hash := fnv.New64a()
 	hash.Write([]byte(s))
 	return int(hash.Sum64() % uint64(numBuckets))
@@ -149,6 +159,7 @@ func (n *Node) Reload(c Config) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	n.config = c
+	n.tokenVerifier.Reload(c)
 	return nil
 }
 
@@ -172,6 +183,7 @@ func (n *Node) Run() error {
 	go n.sendNodePing()
 	go n.cleanNodeInfo()
 	go n.updateMetrics()
+	n.subDissolver.Run()
 	return nil
 }
 
@@ -214,6 +226,7 @@ func (n *Node) Shutdown(ctx context.Context) error {
 			defer closer.Close(ctx)
 		}
 	}
+	n.subDissolver.Close()
 	return n.hub.shutdown(ctx)
 }
 
@@ -369,7 +382,7 @@ func (n *Node) Info() (Info, error) {
 // handleControl handles messages from control channel - control messages used for internal
 // communication between nodes to share state or proto.
 func (n *Node) handleControl(data []byte) error {
-	messagesReceivedCount.WithLabelValues("control").Inc()
+	messagesReceivedCountControl.Inc()
 
 	cmd, err := n.controlDecoder.DecodeCommand(data)
 	if err != nil {
@@ -417,7 +430,7 @@ func (n *Node) handleControl(data []byte) error {
 // coming from engine. The goal of method is to deliver this message
 // to all clients on this node currently subscribed to channel.
 func (n *Node) handlePublication(ch string, pub *Publication) error {
-	messagesReceivedCount.WithLabelValues("publication").Inc()
+	messagesReceivedCountPublication.Inc()
 	numSubscribers := n.hub.NumSubscribers(ch)
 	hasCurrentSubscribers := numSubscribers > 0
 	if !hasCurrentSubscribers {
@@ -432,8 +445,8 @@ func (n *Node) handlePublication(ch string, pub *Publication) error {
 
 // handleJoin handles join messages - i.e. broadcasts it to
 // interested local clients subscribed to channel.
-func (n *Node) handleJoin(ch string, join *proto.Join) error {
-	messagesReceivedCount.WithLabelValues("join").Inc()
+func (n *Node) handleJoin(ch string, join *Join) error {
+	messagesReceivedCountJoin.Inc()
 	hasCurrentSubscribers := n.hub.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
@@ -443,8 +456,8 @@ func (n *Node) handleJoin(ch string, join *proto.Join) error {
 
 // handleLeave handles leave messages - i.e. broadcasts it to
 // interested local clients subscribed to channel.
-func (n *Node) handleLeave(ch string, leave *proto.Leave) error {
-	messagesReceivedCount.WithLabelValues("leave").Inc()
+func (n *Node) handleLeave(ch string, leave *Leave) error {
+	messagesReceivedCountLeave.Inc()
 	hasCurrentSubscribers := n.hub.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
 		return nil
@@ -468,7 +481,7 @@ func (n *Node) publish(ch string, data []byte, info *ClientInfo, opts ...Publish
 		Info: info,
 	}
 
-	messagesSentCount.WithLabelValues("publication").Inc()
+	messagesSentCountPublication.Inc()
 
 	// If history enabled for channel we add Publication to history first and then
 	// publish to Broker.
@@ -504,7 +517,7 @@ var (
 
 // publishJoin allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (n *Node) publishJoin(ch string, join *proto.Join, opts *ChannelOptions) error {
+func (n *Node) publishJoin(ch string, join *Join, opts *ChannelOptions) error {
 	if opts == nil {
 		chOpts, ok := n.ChannelOpts(ch)
 		if !ok {
@@ -512,13 +525,13 @@ func (n *Node) publishJoin(ch string, join *proto.Join, opts *ChannelOptions) er
 		}
 		opts = &chOpts
 	}
-	messagesSentCount.WithLabelValues("join").Inc()
+	messagesSentCountJoin.Inc()
 	return n.broker.PublishJoin(ch, join, opts)
 }
 
 // publishLeave allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (n *Node) publishLeave(ch string, leave *proto.Leave, opts *ChannelOptions) error {
+func (n *Node) publishLeave(ch string, leave *Leave, opts *ChannelOptions) error {
 	if opts == nil {
 		chOpts, ok := n.ChannelOpts(ch)
 		if !ok {
@@ -526,14 +539,14 @@ func (n *Node) publishLeave(ch string, leave *proto.Leave, opts *ChannelOptions)
 		}
 		opts = &chOpts
 	}
-	messagesSentCount.WithLabelValues("leave").Inc()
+	messagesSentCountLeave.Inc()
 	return n.broker.PublishLeave(ch, leave, opts)
 }
 
 // publishControl publishes message into control channel so all running
 // nodes will receive and handle it.
 func (n *Node) publishControl(cmd *controlproto.Command) error {
-	messagesSentCount.WithLabelValues("control").Inc()
+	messagesSentCountControl.Inc()
 	data, err := n.controlEncoder.EncodeCommand(cmd)
 	if err != nil {
 		return err
@@ -633,7 +646,7 @@ func (n *Node) removeClient(c *Client) error {
 }
 
 // addSubscription registers subscription of connection on channel in both
-// engine and clientSubscriptionHub.
+// hub and engine.
 func (n *Node) addSubscription(ch string, c *Client) error {
 	actionCount.WithLabelValues("add_subscription").Inc()
 	mu := n.subLock(ch)
@@ -654,7 +667,7 @@ func (n *Node) addSubscription(ch string, c *Client) error {
 }
 
 // removeSubscription removes subscription of connection on channel
-// from both engine and clientSubscriptionHub.
+// from hub and engine.
 func (n *Node) removeSubscription(ch string, c *Client) error {
 	actionCount.WithLabelValues("remove_subscription").Inc()
 	mu := n.subLock(ch)
@@ -665,7 +678,21 @@ func (n *Node) removeSubscription(ch string, c *Client) error {
 		return err
 	}
 	if empty {
-		return n.broker.Unsubscribe(ch)
+		submittedAt := time.Now()
+		n.subDissolver.Submit(func() error {
+			timeSpent := time.Since(submittedAt)
+			if timeSpent < time.Second {
+				time.Sleep(time.Second - timeSpent)
+			}
+			mu := n.subLock(ch)
+			mu.Lock()
+			defer mu.Unlock()
+			empty := n.hub.NumSubscribers(ch) == 0
+			if empty {
+				return n.broker.Unsubscribe(ch)
+			}
+			return nil
+		})
 	}
 	return nil
 }
@@ -716,8 +743,17 @@ func (n *Node) ChannelOpts(ch string) (ChannelOptions, bool) {
 	return n.config.channelOpts(n.namespaceName(ch))
 }
 
+// PersonalChannel returns personal channel for user based on node configuration.
+func (n *Node) PersonalChannel(user string) string {
+	config := n.Config()
+	if config.UserPersonalChannelNamespace == "" {
+		return config.ChannelUserBoundary + user
+	}
+	return config.UserPersonalChannelNamespace + config.ChannelNamespaceBoundary + config.ChannelUserBoundary + user
+}
+
 // addPresence proxies presence adding to engine.
-func (n *Node) addPresence(ch string, uid string, info *proto.ClientInfo) error {
+func (n *Node) addPresence(ch string, uid string, info *ClientInfo) error {
 	if n.presenceManager == nil {
 		return nil
 	}
@@ -842,6 +878,14 @@ func (n *Node) userAllowed(ch string, user string) bool {
 		}
 	}
 	return false
+}
+
+func (n *Node) verifyConnectToken(token string) (connectToken, error) {
+	return n.tokenVerifier.VerifyConnectToken(token)
+}
+
+func (n *Node) verifySubscribeToken(token string) (subscribeToken, error) {
+	return n.tokenVerifier.VerifySubscribeToken(token)
 }
 
 type nodeRegistry struct {

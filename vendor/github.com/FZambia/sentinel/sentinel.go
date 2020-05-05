@@ -222,11 +222,6 @@ func (s *Sentinel) doUntilSuccess(f func(redis.Conn) (interface{}, error)) (inte
 		if err != nil {
 			lastErr = err
 			s.mu.Lock()
-			pool, ok := s.pools[addr]
-			if ok {
-				pool.Close()
-				delete(s.pools, addr)
-			}
 			s.putToBottom(addr)
 			s.mu.Unlock()
 			continue

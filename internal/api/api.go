@@ -22,10 +22,8 @@ func newAPIExecutor(n *centrifuge.Node, protocol string) *apiExecutor {
 }
 
 // Publish publishes data into channel.
-func (h *apiExecutor) Publish(ctx context.Context, cmd *PublishRequest) *PublishResponse {
-	defer func(started time.Time) {
-		apiCommandDurationSummary.WithLabelValues(h.protocol, "publish").Observe(time.Since(started).Seconds())
-	}(time.Now())
+func (h *apiExecutor) Publish(_ context.Context, cmd *PublishRequest) *PublishResponse {
+	defer observe(time.Now(), h.protocol, "publish")
 
 	ch := cmd.Channel
 	data := cmd.Data
@@ -60,10 +58,8 @@ func (h *apiExecutor) Publish(ctx context.Context, cmd *PublishRequest) *Publish
 }
 
 // Broadcast publishes the same data into many channels.
-func (h *apiExecutor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *BroadcastResponse {
-	defer func(started time.Time) {
-		apiCommandDurationSummary.WithLabelValues(h.protocol, "broadcast").Observe(time.Since(started).Seconds())
-	}(time.Now())
+func (h *apiExecutor) Broadcast(_ context.Context, cmd *BroadcastRequest) *BroadcastResponse {
+	defer observe(time.Now(), h.protocol, "broadcast")
 
 	resp := &BroadcastResponse{}
 
@@ -129,10 +125,8 @@ func (h *apiExecutor) Broadcast(ctx context.Context, cmd *BroadcastRequest) *Bro
 
 // Unsubscribe unsubscribes user from channel and sends unsubscribe
 // control message to other nodes so they could also unsubscribe user.
-func (h *apiExecutor) Unsubscribe(ctx context.Context, cmd *UnsubscribeRequest) *UnsubscribeResponse {
-	defer func(started time.Time) {
-		apiCommandDurationSummary.WithLabelValues(h.protocol, "unsubscribe").Observe(time.Since(started).Seconds())
-	}(time.Now())
+func (h *apiExecutor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *UnsubscribeResponse {
+	defer observe(time.Now(), h.protocol, "unsubscribe")
 
 	resp := &UnsubscribeResponse{}
 
@@ -164,10 +158,8 @@ func (h *apiExecutor) Unsubscribe(ctx context.Context, cmd *UnsubscribeRequest) 
 
 // Disconnect disconnects user by its ID and sends disconnect
 // control message to other nodes so they could also disconnect user.
-func (h *apiExecutor) Disconnect(ctx context.Context, cmd *DisconnectRequest) *DisconnectResponse {
-	defer func(started time.Time) {
-		apiCommandDurationSummary.WithLabelValues(h.protocol, "disconnect").Observe(time.Since(started).Seconds())
-	}(time.Now())
+func (h *apiExecutor) Disconnect(_ context.Context, cmd *DisconnectRequest) *DisconnectResponse {
+	defer observe(time.Now(), h.protocol, "disconnect")
 
 	resp := &DisconnectResponse{}
 
@@ -188,10 +180,8 @@ func (h *apiExecutor) Disconnect(ctx context.Context, cmd *DisconnectRequest) *D
 }
 
 // Presence returns response with presence information for channel.
-func (h *apiExecutor) Presence(ctx context.Context, cmd *PresenceRequest) *PresenceResponse {
-	defer func(started time.Time) {
-		apiCommandDurationSummary.WithLabelValues(h.protocol, "presence").Observe(time.Since(started).Seconds())
-	}(time.Now())
+func (h *apiExecutor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceResponse {
+	defer observe(time.Now(), h.protocol, "presence")
 
 	resp := &PresenceResponse{}
 
@@ -237,10 +227,8 @@ func (h *apiExecutor) Presence(ctx context.Context, cmd *PresenceRequest) *Prese
 }
 
 // PresenceStats returns response with presence stats information for channel.
-func (h *apiExecutor) PresenceStats(ctx context.Context, cmd *PresenceStatsRequest) *PresenceStatsResponse {
-	defer func(started time.Time) {
-		apiCommandDurationSummary.WithLabelValues(h.protocol, "presence_stats").Observe(time.Since(started).Seconds())
-	}(time.Now())
+func (h *apiExecutor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *PresenceStatsResponse {
+	defer observe(time.Now(), h.protocol, "presence_stats")
 
 	resp := &PresenceStatsResponse{}
 
@@ -278,10 +266,8 @@ func (h *apiExecutor) PresenceStats(ctx context.Context, cmd *PresenceStatsReque
 }
 
 // History returns response with history information for channel.
-func (h *apiExecutor) History(ctx context.Context, cmd *HistoryRequest) *HistoryResponse {
-	defer func(started time.Time) {
-		apiCommandDurationSummary.WithLabelValues(h.protocol, "history").Observe(time.Since(started).Seconds())
-	}(time.Now())
+func (h *apiExecutor) History(_ context.Context, cmd *HistoryRequest) *HistoryResponse {
+	defer observe(time.Now(), h.protocol, "history")
 
 	resp := &HistoryResponse{}
 
@@ -335,10 +321,8 @@ func (h *apiExecutor) History(ctx context.Context, cmd *HistoryRequest) *History
 }
 
 // HistoryRemove removes all history information for channel.
-func (h *apiExecutor) HistoryRemove(ctx context.Context, cmd *HistoryRemoveRequest) *HistoryRemoveResponse {
-	defer func(started time.Time) {
-		apiCommandDurationSummary.WithLabelValues(h.protocol, "history_remove").Observe(time.Since(started).Seconds())
-	}(time.Now())
+func (h *apiExecutor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *HistoryRemoveResponse {
+	defer observe(time.Now(), h.protocol, "history_remove")
 
 	resp := &HistoryRemoveResponse{}
 
@@ -371,10 +355,8 @@ func (h *apiExecutor) HistoryRemove(ctx context.Context, cmd *HistoryRemoveReque
 }
 
 // Channels returns active channels.
-func (h *apiExecutor) Channels(ctx context.Context, cmd *ChannelsRequest) *ChannelsResponse {
-	defer func(started time.Time) {
-		apiCommandDurationSummary.WithLabelValues(h.protocol, "channels").Observe(time.Since(started).Seconds())
-	}(time.Now())
+func (h *apiExecutor) Channels(_ context.Context, _ *ChannelsRequest) *ChannelsResponse {
+	defer observe(time.Now(), h.protocol, "channels")
 
 	resp := &ChannelsResponse{}
 
@@ -392,10 +374,8 @@ func (h *apiExecutor) Channels(ctx context.Context, cmd *ChannelsRequest) *Chann
 }
 
 // Info returns information about running nodes.
-func (h *apiExecutor) Info(ctx context.Context, cmd *InfoRequest) *InfoResponse {
-	defer func(started time.Time) {
-		apiCommandDurationSummary.WithLabelValues(h.protocol, "info").Observe(time.Since(started).Seconds())
-	}(time.Now())
+func (h *apiExecutor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
+	defer observe(time.Now(), h.protocol, "info")
 
 	resp := &InfoResponse{}
 

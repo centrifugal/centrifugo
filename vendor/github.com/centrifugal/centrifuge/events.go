@@ -28,10 +28,12 @@ type ConnectReply struct {
 	Credentials *Credentials
 	// Data allows to set custom data in connect reply.
 	Data Raw
+	// Channels slice contains channels to subscribe connection to on server-side.
+	Channels []string
 }
 
 // ConnectingHandler called when new client authenticates on server.
-type ConnectingHandler func(context.Context, Transport, ConnectEvent) ConnectReply
+type ConnectingHandler func(context.Context, TransportInfo, ConnectEvent) ConnectReply
 
 // ConnectedHandler called when new client connects to server.
 type ConnectedHandler func(context.Context, *Client)
@@ -41,8 +43,13 @@ type RefreshEvent struct{}
 
 // RefreshReply contains fields determining the reaction on refresh event.
 type RefreshReply struct {
+	// Expired when set mean that connection must be closed with DisconnectExpired reason.
+	Expired bool
+	// ExpireAt defines time in future when connection should expire,
+	// zero value means no expiration.
 	ExpireAt int64
-	Info     Raw
+	// Info allows to modify connection information, zero value means no modification.
+	Info Raw
 }
 
 // RefreshHandler called when it's time to validate client connection and
@@ -67,9 +74,14 @@ type SubscribeEvent struct {
 
 // SubscribeReply contains fields determining the reaction on subscribe event.
 type SubscribeReply struct {
-	Error       *Error
-	Disconnect  *Disconnect
-	ExpireAt    int64
+	// Error to return, nil value means no error.
+	Error *Error
+	// Disconnect client, nil value means no disconnect.
+	Disconnect *Disconnect
+	// ExpireAt defines time in future when subscription should expire,
+	// zero value means no expiration.
+	ExpireAt int64
+	// ChannelInfo defines custom channel information, zero value means no channel information.
 	ChannelInfo Raw
 }
 
@@ -97,8 +109,13 @@ type PublishEvent struct {
 
 // PublishReply contains fields determining the reaction on publish event.
 type PublishReply struct {
-	Error      *Error
+	// Error to return, nil value means no error.
+	Error *Error
+	// Disconnect client, nil value means no disconnect.
 	Disconnect *Disconnect
+	// Data is modified data to publish, zero value means no modification
+	// of original data published by client.
+	Data Raw
 }
 
 // PublishHandler called when client publishes into channel.
@@ -128,9 +145,12 @@ type RPCEvent struct {
 
 // RPCReply contains fields determining the reaction on rpc request.
 type RPCReply struct {
-	Error      *Error
+	// Error to return, nil value means no error.
+	Error *Error
+	// Disconnect client, nil value means no disconnect.
 	Disconnect *Disconnect
-	Data       Raw
+	// Data to return in RPC reply to client.
+	Data Raw
 }
 
 // RPCHandler must handle incoming command from client.

@@ -1,21 +1,15 @@
 language: go
 
 env:
-  - GO111MODULE=off
+  - GO111MODULE=on
 
 go:
-  - "1.11.x"
-  - "1.12.x"
+  - "1.13.x"
+  - "1.14.x"
   - tip
 
 services:
   - redis-server
-
-before_install:
-  - go get -u github.com/golang/dep/cmd/dep
-
-install:
-  - dep ensure
 
 script:
   - go test -v -race -tags integration $(go list ./... | grep -v /_examples/)

@@ -20,7 +20,7 @@ func (r Raw) Marshal() ([]byte, error) {
 	return []byte(r), nil
 }
 
-// MarshalTo exists to fit gogoprotobuf custom type interface.
+// MarshalTo exists to fit gogo/protobuf custom type interface.
 func (r Raw) MarshalTo(data []byte) (n int, err error) {
 	if len(r) == 0 {
 		return 0, nil
@@ -80,7 +80,7 @@ type intn interface {
 	Intn(n int) int
 }
 
-// NewPopulatedRaw required for gogoprotobuf custom type.
+// NewPopulatedRaw required for gogo/protobuf custom type.
 func NewPopulatedRaw(r intn) *Raw {
 	v1 := r.Intn(100)
 	data := make([]byte, v1)

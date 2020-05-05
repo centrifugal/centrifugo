@@ -100,6 +100,18 @@ var (
 	}, []string{"transport"})
 )
 
+var (
+	messagesReceivedCountPublication prometheus.Counter
+	messagesReceivedCountJoin        prometheus.Counter
+	messagesReceivedCountLeave       prometheus.Counter
+	messagesReceivedCountControl     prometheus.Counter
+
+	messagesSentCountPublication prometheus.Counter
+	messagesSentCountJoin        prometheus.Counter
+	messagesSentCountLeave       prometheus.Counter
+	messagesSentCountControl     prometheus.Counter
+)
+
 func init() {
 	prometheus.MustRegister(messagesSentCount)
 	prometheus.MustRegister(messagesReceivedCount)
@@ -114,4 +126,14 @@ func init() {
 	prometheus.MustRegister(transportConnectCount)
 	prometheus.MustRegister(transportMessagesSent)
 	prometheus.MustRegister(buildInfoGauge)
+
+	messagesReceivedCountPublication = messagesReceivedCount.WithLabelValues("publication")
+	messagesReceivedCountJoin = messagesReceivedCount.WithLabelValues("join")
+	messagesReceivedCountLeave = messagesReceivedCount.WithLabelValues("leave")
+	messagesReceivedCountControl = messagesReceivedCount.WithLabelValues("control")
+
+	messagesSentCountPublication = messagesSentCount.WithLabelValues("publication")
+	messagesSentCountJoin = messagesReceivedCount.WithLabelValues("join")
+	messagesSentCountLeave = messagesReceivedCount.WithLabelValues("leave")
+	messagesSentCountControl = messagesReceivedCount.WithLabelValues("control")
 }

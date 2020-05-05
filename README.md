@@ -8,7 +8,7 @@ See server [documentation](https://centrifugal.github.io/centrifugo/).
 
 You can also find the following posts interesting:
 * [Four years in Centrifuge](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) – this is a story and motivation of Centrifugo
-* [How Centrifugo solves real problems of real-time applications](https://medium.com/@fzambia/how-centrifugo-solves-real-problems-of-real-time-messaging-applications-a15d6b8fc8ac) – this is a write-up about Centrifugo benefits
+* [Building real-time messaging server in Go](https://medium.com/@fzambia/building-real-time-messaging-server-in-go-5661c0a45248) – this is a write-up about some Centrifugo internals and decisions
 
 ### How to install
 
@@ -29,7 +29,7 @@ There are also [packages for 64-bit Debian, Centos and Ubuntu](https://packagecl
 
 Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (admin password is `password`, secret is `secret`, API key is `api_key`). Or deploy your own Centrifugo instance in one click:
 
-[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/centrifugal/centrifugo)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/centrifugal/centrifugo)
 
 ### Highlights
 
@@ -39,7 +39,10 @@ Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (admin pas
 * HTTP and GRPC API to communicate from your application backend (publish messages in channels etc)
 * JSON and binary Protobuf Websocket client protocol
 * SockJS polyfill for web browsers without Websocket support (JSON only)
-* JWT-based user authentication and private channel authorization
+* User authentication with JWT generated on your backend or over proxy request to configured HTTP endpoint
+* Connection expiration control over JWT or request to configured HTTP endpoint
+* JWT-based private channel authorization
+* Transform RPC calls over WebSocket/SockJS to configured HTTP endpoint call 
 * Presence information for channels (show all active clients in channel)
 * History information for channels (last messages published into channel)
 * Join/leave events for channels (client goes online/offline)

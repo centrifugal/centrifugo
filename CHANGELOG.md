@@ -1,3 +1,113 @@
+v2.4.0
+======
+
+This release is a step towards new interesting possibilities with Centrifugo. It adds server-side subscriptions support and some sugar on top of it. With server-side subscriptions you don't need to call `Subscribe` method on client side at all. Follow release notes to know more.
+
+No backwards incompatible changes here.
+
+Improvements:
+
+* Server-side subscriptions, this functionality requires updating client code so at moment usage is limited to `centrifuge-js`. Also there is a possibility to automatically subscribe user connection to personal notifications channel. More info in [new documentation chapter](https://centrifugal.github.io/centrifugo/server/server_subs/)
+* New private subscription JWT `eto` claim - see [its description in docs](https://centrifugal.github.io/centrifugo/server/private_channels/#eto)
+* Options to disable WebSocket, SockJS and API handlers – [see docs](https://centrifugal.github.io/centrifugo/server/configuration/#disable-default-endpoints)
+* New option `websocket_use_write_buffer_pool` – [see docs](https://centrifugal.github.io/centrifugo/transports/websocket/)
+* Metrics now include histograms of requests durations - [pull request](https://github.com/centrifugal/centrifugo/pull/337)
+* Add Linux ARM binary release
+
+Fixes:
+
+* Fix unreliable unsubscriptions from Redis PUB/SUB channels under load, now we unsubscribe nodes from PUB/SUB channels over in-memory queue
+* Fix `tls_external` option regression
+
+v2.3.1
+======
+
+This release contains several improvements to proxy feature introduced in v2.3.0, no backwards incompatible changes here.
+
+Improvements:
+
+* With `proxy_extra_http_headers` configuration option it's now possible to set a list of extra headers that should be copied from original client request to proxied HTTP request - see [#334](https://github.com/centrifugal/centrifugo/issues/334) for motivation and [updated proxy docs](https://centrifugal.github.io/centrifugo/server/proxy/)
+* You can pass custom data in response to connect event and this data will be available in `connect` event callback context on client side. See [#332](https://github.com/centrifugal/centrifugo/issues/332) for more details
+* Starting from this release `Origin` header is proxied to your backend by default - see [full list in docs](https://centrifugal.github.io/centrifugo/server/proxy/#proxy-headers)
+
+v2.3.0
+======
+
+This release is a big shift in Centrifugo possibilities due to HTTP request proxy feature. It was a pretty long term work but the final result opens a new commucation direction: from client to server – see details below.
+
+Release has some internal backwards incompatible changes in Redis engine and deprecations. **Migration must be smooth but we strongly suggest to test your functionality** before running new version in production. Read release notes below for more information.
+
+Improvements:
+
+* It's now possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections. More information in [new documentation chapter](https://centrifugal.github.io/centrifugo/server/proxy/)
+* Centrifugo now supports RSA-based JWT. You can enable this by setting `token_rsa_public_key` option. See [updated authentication chapter](https://centrifugal.github.io/centrifugo/server/authentication/) in docs for more details. Due to this addition we also renamed `secret` option to `token_hmac_secret_key` so it's much more meaningful in modern context. But don't worry - old `secret` option will work and continue to set token HMAC secret key until Centrifugo v3 release (which is not even planned yet). But we adjusted docs and `genconfig` command to use new naming
+* New option `redis_sequence_ttl` for Redis engine. It allows to expire internal keys related to history sequnce meta data in Redis – current sequence number in channel and epoch value. See more motivation behind this option in [its description in Redis Engine docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-engine). While adding this feature we changed how sequence and epoch values are stored in Redis - both are now fields of single Redis HASH key. This means that after updating to this version your clients won't recover missed messages - but your frontend application will receive `recovered: false` in subscription context so it should tolerate this loss gracefully recovering state from your main database (if everything done right on your client side of course)
+* More validation of configuration file is now performed. Specifically we now check history recovery configuration - see [this issue](https://github.com/centrifugal/centrifuge-js/issues/99) to see how absence of such misconfiguration check resulted in confused Centrifugo behaviour - no messages were received by subscribers
+* Go internal logs from HTTP server are now wrapped in our structured logging mechanism - those errors will look as warns in Centrifugo logs now
+* Alpine 3.10 instead of Alpine 3.8 as Centrifugo docker image base
+
+v2.2.7
+======
+
+Improvements:
+
+* Support passing `api_key` over URL param, see [#317](https://github.com/centrifugal/centrifugo/issues/317) for reasoning behind this feature
+
+v2.2.6
+======
+
+This is a quick fix release. Fixes an error on start when `namespaces` not set in configuration file,the bug was introduced in v2.2.5, see [#319](https://github.com/centrifugal/centrifugo/issues/319) for details.
+
+v2.2.5
+======
+
+Centrifugo now uses `https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js` as default SockJS url. This allows Centrifugo to always be in sync with recent v1 SockJS client. This is important to note because SockJS requires client versions to exactly match on server and client sides when using transports involving iframe. Don't forget that Centrifugo has `sockjs_url` option to set custom SockJS URL to use on server side.
+
+Improvements:
+
+* support setting all configuration options over environment variables in format `CENTRIFUGO_<OPTION_NAME>`. This was available before but starting from this release we will support setting **all** options over env
+* show HTTP status code in logs when debug log level on
+* option to customize HTTP handler endpoints, see [docs](https://centrifugal.github.io/centrifugo/server/configuration/#customize-handler-endpoints)
+* possibility to provide custom key and cert files for GRPC API server TLS, see `centrifugo -h` for a bunch of new options 
+
+Fixes:
+
+* Fix setting `presence_disable_for_client` and `history_disable_for_client` on config top level
+* Fix Let's Encrypt integration by updating to ACMEv2 / RFC 8555 compilant acme library, see [#311](https://github.com/centrifugal/centrifugo/issues/311)
+
+
+v2.2.4
+======
+
+No backwards incompatible changes here.
+
+Improvements:
+
+* Improve web interface: show total client information (sum of all client connections on all running nodes)
+
+Fixes:
+
+* Fixes SockJS WebSocket 403 response for cross domain requests: this is a regression in v2.2.3
+
+
+v2.2.3
+======
+
+No backwards incompatible changes here.
+
+Improvements:
+
+* New chapter in docs: [Benchmarking server](https://centrifugal.github.io/centrifugo/misc/benchmark/). This chapter contains information about test stand inside Kubernetes with million WebSocket connections to a server based on Centrifuge library (the core of Centrifugo). It gives some numbers and insights about hardware requirements and scalability of Centrifugo
+* New channel and channel namespace options: `presence_disable_for_client` and `history_disable_for_client`. `presence_disable_for_client` allows to make presence available only for server side API. `history_disable_for_client` allows to make history available only for server side API. Previously when enabled presence and history were available for both client and server APIs. Now you can disable for client side. History recovery mechanism if enabled will continue to work for clients anyway even if `history_disable_for_client` is on
+* Wait for close handshake completion before terminating WebSocket connection from server side. This allows to gracefully shutdown WebSocket sessions
+
+Fixes:
+
+* Fix crash due to race condition, race reproduced when history recover option was on. See [commit](https://github.com/centrifugal/centrifuge/pull/73/files) with fix details
+* Fix lack of `client_anonymous` option. See [#304](https://github.com/centrifugal/centrifugo/issues/304)
+
+This release is based on Go 1.13.x
+
 v2.2.2
 ======
 

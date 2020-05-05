@@ -2,7 +2,6 @@ package centrifuge
 
 import (
 	"container/heap"
-	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -27,11 +26,13 @@ type MemoryEngine struct {
 	eventHandler BrokerEventHandler
 }
 
+var _ Engine = (*MemoryEngine)(nil)
+
 // MemoryEngineConfig is a memory engine config.
 type MemoryEngineConfig struct{}
 
 // NewMemoryEngine initializes Memory Engine.
-func NewMemoryEngine(n *Node, conf MemoryEngineConfig) (*MemoryEngine, error) {
+func NewMemoryEngine(n *Node, _ MemoryEngineConfig) (*MemoryEngine, error) {
 	e := &MemoryEngine{
 		node:        n,
 		presenceHub: newPresenceHub(),
@@ -50,17 +51,17 @@ func (e *MemoryEngine) Run(h BrokerEventHandler) error {
 
 // Publish adds message into history hub and calls node ClientMsg method to handle message.
 // We don't have any PUB/SUB here as Memory Engine is single node only.
-func (e *MemoryEngine) Publish(ch string, pub *Publication, opts *ChannelOptions) error {
+func (e *MemoryEngine) Publish(ch string, pub *Publication, _ *ChannelOptions) error {
 	return e.eventHandler.HandlePublication(ch, pub)
 }
 
 // PublishJoin - see engine interface description.
-func (e *MemoryEngine) PublishJoin(ch string, join *Join, opts *ChannelOptions) error {
+func (e *MemoryEngine) PublishJoin(ch string, join *Join, _ *ChannelOptions) error {
 	return e.eventHandler.HandleJoin(ch, join)
 }
 
 // PublishLeave - see engine interface description.
-func (e *MemoryEngine) PublishLeave(ch string, leave *Leave, opts *ChannelOptions) error {
+func (e *MemoryEngine) PublishLeave(ch string, leave *Leave, _ *ChannelOptions) error {
 	return e.eventHandler.HandleLeave(ch, leave)
 }
 
@@ -70,17 +71,17 @@ func (e *MemoryEngine) PublishControl(data []byte) error {
 }
 
 // Subscribe is noop here.
-func (e *MemoryEngine) Subscribe(ch string) error {
+func (e *MemoryEngine) Subscribe(_ string) error {
 	return nil
 }
 
 // Unsubscribe node from channel.
-func (e *MemoryEngine) Unsubscribe(ch string) error {
+func (e *MemoryEngine) Unsubscribe(_ string) error {
 	return nil
 }
 
 // AddPresence - see engine interface description.
-func (e *MemoryEngine) AddPresence(ch string, uid string, info *ClientInfo, exp time.Duration) error {
+func (e *MemoryEngine) AddPresence(ch string, uid string, info *ClientInfo, _ time.Duration) error {
 	return e.presenceHub.add(ch, uid, info)
 }
 
@@ -290,10 +291,6 @@ func (h *historyHub) next(ch string) uint64 {
 	return val
 }
 
-func unpackUint64(val uint64) (uint32, uint32) {
-	return uint32(val), uint32(val >> 32)
-}
-
 func (h *historyHub) getSequence(ch string) (uint32, uint32, string) {
 	h.sequencesMu.Lock()
 	defer h.sequencesMu.Unlock()
@@ -431,8 +428,3 @@ func (h *historyHub) remove(ch string) error {
 	}
 	return nil
 }
-
-const (
-	maxSeq uint32 = math.MaxUint32 // maximum uint32 value
-	maxGen uint32 = math.MaxUint32 // maximum uint32 value
-)

@@ -5,18 +5,25 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/centrifugo/internal/api"
+	"github.com/centrifugal/centrifugo/internal/middleware"
+
+	"github.com/centrifugal/centrifuge"
 	"github.com/gorilla/securecookie"
 	"github.com/rs/zerolog/log"
 )
 
 // Config ...
 type Config struct {
+	// Prefix is a custom prefix to handle admin endpoints on.
+	Prefix string
+
 	// WebPath is path to admin web application to serve.
 	WebPath string
 
 	// WebFS is custom filesystem to serve as admin web application.
+	// In our case we pass embedded web interface which implements
+	// FileSystem interface.
 	WebFS http.FileSystem
 
 	// Password is an admin password.
@@ -26,9 +33,10 @@ type Config struct {
 	Secret string
 
 	// Insecure turns on insecure mode for admin endpoints - no auth
-	// required to connect to web interface and requests to admin API.
-	// Protect admin resources with firewall rules in production when
-	// enabling this option.
+	// required to connect to web interface and for requests to admin API.
+	// Admin resources must be protected by firewall rules in production when
+	// this option enabled otherwise everyone from internet can make admin
+	// actions.
 	Insecure bool
 }
 
@@ -46,9 +54,10 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 		config: c,
 	}
 	mux := http.NewServeMux()
-	mux.Handle("/admin/auth", http.HandlerFunc(h.authHandler))
-	mux.Handle("/admin/api", h.adminSecureTokenAuth(api.NewHandler(n, api.Config{})))
-	webPrefix := "/"
+	prefix := strings.TrimRight(h.config.Prefix, "/")
+	mux.Handle(prefix+"/admin/auth", middleware.Post(http.HandlerFunc(h.authHandler)))
+	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, api.Config{}))))
+	webPrefix := prefix + "/"
 	if c.WebPath != "" {
 		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(c.WebPath))))
 	} else if c.WebFS != nil {
@@ -113,7 +122,7 @@ func (s *Handler) authHandler(w http.ResponseWriter, r *http.Request) {
 		}{
 			Token: "insecure",
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 		return
 	}
 
@@ -134,7 +143,7 @@ func (s *Handler) authHandler(w http.ResponseWriter, r *http.Request) {
 		resp := map[string]string{
 			"token": token,
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 		return
 	}
 	http.Error(w, "Bad Request", http.StatusBadRequest)

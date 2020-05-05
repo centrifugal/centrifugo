@@ -7,7 +7,8 @@ import (
 )
 
 type writerConfig struct {
-	WriteFn            func(...[]byte) error
+	WriteManyFn        func(...[]byte) error
+	WriteFn            func([]byte) error
 	MaxQueueSize       int
 	MaxMessagesInFrame int
 }
@@ -84,7 +85,11 @@ func (w *writer) runWriteRoutine() {
 			}
 			if len(msgs) > 0 {
 				w.mu.Lock()
-				writeErr = w.config.WriteFn(msgs...)
+				if len(msgs) == 1 {
+					writeErr = w.config.WriteFn(msgs[0])
+				} else {
+					writeErr = w.config.WriteManyFn(msgs...)
+				}
 				w.mu.Unlock()
 			}
 		} else {
@@ -123,7 +128,7 @@ func (w *writer) close() error {
 	remaining := w.messages.CloseRemaining()
 	if len(remaining) > 0 {
 		w.mu.Lock()
-		w.config.WriteFn(remaining...)
+		w.config.WriteManyFn(remaining...)
 		w.mu.Unlock()
 	}
 

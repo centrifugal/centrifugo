@@ -5,17 +5,18 @@ release:
     name: centrifugo
   name_template: '{{.Tag}}'
   prerelease: false
-brew:
-  github:
-    owner: centrifugal
-    name: homebrew-centrifugo
-  folder: Formula
-  description: "Real-time messaging server"
-  commit_author:
-    name: Alexander Emelin
-    email: frvzmb@gmail.com
-  install: bin.install "centrifugo"
-  homepage: "https://github.com/centrifugal/centrifugo"
+brews:
+  -
+    github:
+      owner: centrifugal
+      name: homebrew-centrifugo
+    folder: Formula
+    description: "Real-time messaging server"
+    commit_author:
+      name: Alexander Emelin
+      email: frvzmb@gmail.com
+    install: bin.install "centrifugo"
+    homepage: "https://github.com/centrifugal/centrifugo"
 builds:
 - goos:
   - linux
@@ -25,6 +26,7 @@ builds:
   goarch:
   - amd64
   - "386"
+  - arm  
   ignore:
     - goos: darwin
       goarch: "386"
@@ -32,44 +34,52 @@ builds:
       goarch: "386"
     - goos: freebsd
       goarch: "386"
+    - goos: darwin
+      goarch: arm
+    - goos: windows
+      goarch: arm
+    - goos: freebsd
+      goarch: arm
   main: .
   ldflags: -s -w -X main.VERSION={{.Version}}
   binary: centrifugo
   env:
     # https://github.com/goreleaser/goreleaser/issues/225
     - CGO_ENABLED=0
-archive:
-  name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm
-    }}v{{ .Arm }}{{ end }}'
-  format: tar.gz
-  files:
-  - LICENSE*
-  - README*
-  - CHANGELOG*
-  format_overrides:
-    - goos: windows
-      format: zip
+archives:
+  - id: centrifugo
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm
+      }}v{{ .Arm }}{{ end }}'
+    format: tar.gz
+    files:
+    - LICENSE*
+    - README*
+    - CHANGELOG*
+    format_overrides:
+      - goos: windows
+        format: zip
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
 dist: dist
-sign:
-  cmd: gpg
-  args:
-  - --output
-  - $signature
-  - --detach-sig
-  - $artifact
-  signature: ${artifact}.sig
-  artifacts: none
+signs:
+  -
+    cmd: gpg
+    args:
+    - --output
+    - $signature
+    - --detach-sig
+    - $artifact
+    signature: ${artifact}.sig
+    artifacts: none
 dockers:
   -
-    binary: centrifugo
+    binaries:
+      - centrifugo
     goos: linux
     goarch: amd64
     goarm: ''
-    image: centrifugo/centrifugo
-    tag_templates:
-    - "{{ .Tag }}"
-    - "v{{ .Major }}"
-    - "v{{ .Major }}.{{ .Minor }}"
-    - latest
+    image_templates:
+    - "centrifugo/centrifugo:{{ .Tag }}"
+    - "centrifugo/centrifugo:v{{ .Major }}"
+    - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}"
+    - "centrifugo/centrifugo:latest"
