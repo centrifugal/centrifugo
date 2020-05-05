@@ -62,7 +62,7 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 	}
 	nc, err := nats.Connect(url, nats.ReconnectBufSize(-1), nats.MaxReconnects(math.MaxInt64))
 	if err != nil {
-		return err
+		return fmt.Errorf("error connecting to %s: %w", url, err)
 	}
 	_, err = nc.Subscribe(string(b.controlChannel()), b.handleControl)
 	if err != nil {

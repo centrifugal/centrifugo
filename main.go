@@ -117,7 +117,7 @@ func main() {
 				"redis_password", "redis_db", "redis_url", "redis_tls", "redis_tls_skip_verify",
 				"redis_master_name", "redis_sentinels", "grpc_api", "grpc_api_tls",
 				"grpc_api_tls_disable", "grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port",
-				"broker",
+				"broker", "nats_url",
 			}
 			for _, flag := range bindPFlags {
 				_ = viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -259,7 +259,7 @@ func main() {
 			logEvent.Msg("starting Centrifugo")
 
 			if disableHistoryPresence {
-				log.Warn().Msgf("presence and history disabled with Memory engine and Nats broker")
+				log.Warn().Msgf("presence, history and recovery disabled with Memory engine and Nats broker")
 			}
 
 			log.Info().Str("path", absConfPath).Msg("using config file")
@@ -406,6 +406,8 @@ func main() {
 	rootCmd.Flags().BoolP("redis_tls_skip_verify", "", false, "disable Redis TLS host verification")
 	rootCmd.Flags().StringP("redis_master_name", "", "", "name of Redis master Sentinel monitors (Redis engine)")
 	rootCmd.Flags().StringP("redis_sentinels", "", "", "comma-separated list of Sentinel addresses (Redis engine)")
+
+	rootCmd.Flags().StringP("nats_url", "", "", "Nats connection URL in format nats://user:pass@localhost:4222 (Nats broker)")
 
 	viper.SetEnvPrefix("centrifugo")
 
