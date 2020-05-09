@@ -4,11 +4,12 @@ import (
 	"sync"
 
 	"github.com/centrifugal/centrifuge/internal/prepared"
+	"github.com/centrifugal/protocol"
 )
 
 type preparedPub struct {
 	reply   *prepared.Reply
-	pub     *Publication
+	pub     *protocol.Publication
 	chOpts  *ChannelOptions
 	channel string
 }
@@ -75,7 +76,7 @@ func (q *pubQueue) Add(i preparedPub) bool {
 	return true
 }
 
-// Close the queue and discard all entried in the queue
+// Close the queue and discard all entries in the queue
 // all goroutines in wait() will return
 func (q *pubQueue) Close() {
 	q.mu.Lock()

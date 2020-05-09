@@ -10,32 +10,35 @@ import (
 
 // Config contains Node configuration options.
 type Config struct {
-	// Version of server – will be sent to client on connection establishement
-	// phase in response to connect request.
-	Version string
-	// Name of this server node - must be unique, used as human readable
-	// and meaningful node identificator.
-	Name string
-	// TokenHMACSecretKey is a secret key used to validate connection and subscription
-	// tokens generated using HMAC. Zero value means that HMAC tokens won't be allowed.
-	TokenHMACSecretKey string
-	// TokenRSAPublicKey is a public key used to validate connection and subscription
-	// tokens generated using RSA. Zero value means that RSA tokens won't be allowed.
-	TokenRSAPublicKey *rsa.PublicKey
 	// ChannelOptions embedded.
 	ChannelOptions
 	// Namespaces – list of namespaces for custom channel options.
 	Namespaces []ChannelNamespace
-	// ClientInsecure turns on insecure mode for client connections - when it's
-	// turned on then no authentication required at all when connecting to Centrifugo,
-	// anonymous access and publish allowed for all channels, no connection expire
-	// performed. This can be suitable for demonstration or personal usage.
-	ClientInsecure bool
-	// ClientAnonymous when set to true, allows connect requests without specifying
-	// a token or setting Credentials in authentication middleware. The resulting
-	// user will have empty string for user ID, meaning user can only subscribe
-	// to anonymous channels.
-	ClientAnonymous bool
+	// Version of server – will be sent to client on connection establishment
+	// phase in response to connect request.
+	Version string
+	// Name of this server node - must be unique, used as human readable
+	// and meaningful node identifier.
+	Name string
+	// TokenHMACSecretKey is a secret key used to validate connection and subscription
+	// tokens generated using HMAC. Zero value means that HMAC tokens won't be allowed.
+	TokenHMACSecretKey string
+	// UserPersonalChannelPrefix defines prefix to be added to user personal channel.
+	UserPersonalChannelNamespace string
+	// ChannelPrivatePrefix is a prefix in channel name which indicates that
+	// channel is private.
+	ChannelPrivatePrefix string
+	// ChannelNamespaceBoundary is a string separator which must be put after
+	// namespace part in channel name.
+	ChannelNamespaceBoundary string
+	// ChannelUserBoundary is a string separator which must be set before allowed
+	// users part in channel name.
+	ChannelUserBoundary string
+	// ChannelUserSeparator separates allowed users in user part of channel name.
+	ChannelUserSeparator string
+	// TokenRSAPublicKey is a public key used to validate connection and subscription
+	// tokens generated using RSA. Zero value means that RSA tokens won't be allowed.
+	TokenRSAPublicKey *rsa.PublicKey
 	// ClientPresencePingInterval is an interval how often connected clients
 	// must update presence info.
 	ClientPresencePingInterval time.Duration
@@ -56,6 +59,13 @@ type Config struct {
 	// client position check in channel. If client does not pass check it will
 	// be disconnected with DisconnectInsufficientState.
 	ClientChannelPositionCheckDelay time.Duration
+	// NodeInfoMetricsAggregateInterval sets interval for automatic metrics aggregation.
+	// It's not very reasonable to have it less than one second.
+	NodeInfoMetricsAggregateInterval time.Duration
+	// LogLevel is a log level to use. By default nothing will be logged.
+	LogLevel LogLevel
+	// LogHandler is a handler func node will send logs to.
+	LogHandler LogHandler
 	// ClientQueueMaxSize is a maximum size of client's message queue in bytes.
 	// After this queue size exceeded Centrifugo closes client's connection.
 	ClientQueueMaxSize int
@@ -64,33 +74,22 @@ type Config struct {
 	// ClientUserConnectionLimit limits number of client connections from user with the
 	// same ID. 0 - unlimited.
 	ClientUserConnectionLimit int
+	// ChannelMaxLength is a maximum length of channel name.
+	ChannelMaxLength int
+	// ClientInsecure turns on insecure mode for client connections - when it's
+	// turned on then no authentication required at all when connecting to Centrifugo,
+	// anonymous access and publish allowed for all channels, no connection expire
+	// performed. This can be suitable for demonstration or personal usage.
+	ClientInsecure bool
+	// ClientAnonymous when set to true, allows connect requests without specifying
+	// a token or setting Credentials in authentication middleware. The resulting
+	// user will have empty string for user ID, meaning user can only subscribe
+	// to anonymous channels.
+	ClientAnonymous bool
 	// UserSubscribeToPersonal enables automatic subscribing to personal channel by user.
 	// Only users with user ID defined will subscribe to personal channels, anonymous
 	// users are ignored.
 	UserSubscribeToPersonal bool
-	// UserPersonalChannelPrefix defines prefix to be added to user personal channel.
-	UserPersonalChannelNamespace string
-	// ChannelPrivatePrefix is a prefix in channel name which indicates that
-	// channel is private.
-	ChannelPrivatePrefix string
-	// ChannelNamespaceBoundary is a string separator which must be put after
-	// namespace part in channel name.
-	ChannelNamespaceBoundary string
-	// ChannelUserBoundary is a string separator which must be set before allowed
-	// users part in channel name.
-	ChannelUserBoundary string
-	// ChannelUserSeparator separates allowed users in user part of channel name.
-	ChannelUserSeparator string
-	// ChannelMaxLength is a maximum length of channel name.
-	ChannelMaxLength int
-	// NodeInfoMetricsAggregateInterval sets interval for automatic metrics aggregation.
-	// It's not very reasonable to have it less than one second.
-	NodeInfoMetricsAggregateInterval time.Duration
-
-	// LogLevel is a log level to use. By default nothing will be logged.
-	LogLevel LogLevel
-	// LogHandler is a handler func node will send logs to.
-	LogHandler LogHandler
 }
 
 // Validate validates config and returns error if problems found
@@ -113,7 +112,7 @@ func (c *Config) Validate() error {
 		validPersonalChannelNamespace = true
 	}
 
-	var nss []string
+	var nss = make([]string, 0, len(c.Namespaces))
 	for _, n := range c.Namespaces {
 		name := n.Name
 		match := patternRegexp.MatchString(name)

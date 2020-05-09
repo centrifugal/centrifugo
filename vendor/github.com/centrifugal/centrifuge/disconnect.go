@@ -1,6 +1,9 @@
 package centrifuge
 
 // Disconnect allows to configure how client will be disconnected from server.
+// The important note that Disconnect serialized to JSON must be less than 127 bytes
+// due to WebSocket protocol limitations (because at moment we send Disconnect inside
+// reason field of WebSocket close handshake).
 type Disconnect struct {
 	// Code is disconnect code.
 	Code int `json:"-"`

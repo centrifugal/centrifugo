@@ -1,4 +1,4 @@
-Centrifuge client protocol definitions.
+Centrifuge client protocol definitions. [Docs on go.dev](https://pkg.go.dev/github.com/centrifugal/protocol).
 
 To make changes in proto first install `protoc`.
 

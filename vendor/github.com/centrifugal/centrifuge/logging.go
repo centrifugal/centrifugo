@@ -27,14 +27,6 @@ var levelToString = map[LogLevel]string{
 	LogLevelNone:  "none",
 }
 
-// LogStringToLevel matches level string to LogLevel.
-var LogStringToLevel = map[string]LogLevel{
-	"debug": LogLevelDebug,
-	"info":  LogLevelInfo,
-	"error": LogLevelError,
-	"none":  LogLevelNone,
-}
-
 // LogLevelToString transforms Level to its string representation.
 func LogLevelToString(l LogLevel) string {
 	if t, ok := levelToString[l]; ok {

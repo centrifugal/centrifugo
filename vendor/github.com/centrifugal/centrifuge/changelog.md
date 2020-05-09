@@ -1,3 +1,34 @@
+v0.8.0
+======
+
+This release is huge. In general, it does not change any previously defined semantics but changes API. The [list of changes is big enough](https://gist.github.com/FZambia/f59ce1c82ceb23286ccf427623a45e37) but fixes you need to do for this version adoption are mostly minimal. Except one thing emphasized below.
+
+**So here is that thing.** Centrifuge now uses new `offset` `uint64` protocol field for Publication position inside history stream instead of previously used `seq` and `gen` (both `uint32`) fields. It replaces both `seq` and `gen`. This change required to simplify working with history API in perspective. This is a breaking change for library users in case of using history recovery feature – read migration steps below.
+
+Our client libraries `centrifuge-js` and `centrifuge-go` were updated to use `offset` field. So if you are using these two libraries and utilizing recovery feature then you need to update `centrifuge-js` to at least `2.6.0`, and `centrifuge-go` to at least `0.5.0` to match server protocol (see the possibility to be backwards compatible on server below). All other client libraries do not support recovery at this moment so should not be affected by field changes described here.
+
+It's important to mention that to provide backwards compatibility on client side both `centrifuge-js` and `centrifuge-go` will continue to properly work with a server which is using old `seq` and `gen` fields for recovery in its current form until v1 version of this library. It's possible to explicitly enable using old `seq` and `gen` fields on server side by calling:
+
+```
+centrifuge.CompatibilityFlags |= centrifuge.UseSeqGen
+```
+
+This allows doing migration to v0.8.0 and keeping everything compatible. Those `CompatibilityFlags` **will be supported until v1 library release**. Then we will only have one way to do things.
+
+Other release highlights:
+
+* support [Redis Streams](https://redis.io/topics/streams-intro) - radically reduces amount of allocations during recovery in large history streams, also provides a possibility to paginate over history stream (an API for pagination over stream added to `Node` - see `History` method)
+* support [Redis Cluster](https://redis.io/topics/cluster-tutorial), client-side sharding between different Redis Clusters also works
+* use [alternative library](https://github.com/cristalhq/jwt) for JWT parsing and verification - HMAC-based JWT parsing is about 2 times faster now. Related issues: [#109](https://github.com/centrifugal/centrifuge/pull/109) and [#107](https://github.com/centrifugal/centrifuge/pull/107).
+* new data structure for in-memory streams (linked list + hash table) for faster insertion and recovery in large streams, also it's now possible to expire a stream meta information in case of Memory engine
+* fix server side subscriptions to private channels (were ignored before)
+* fix `channels` counter update frequency ([commit](https://github.com/centrifugal/centrifuge/commit/23a87fd538e44894f220146ced47a7e946bcf60d))
+* drop Dep support - library now uses Go mod only for dependency management
+* slightly improved test coverage
+* lots of internal refactoring and style fixes
+
+Thanks to [@Skarm](https://github.com/Skarm), [@cristaloleg](https://github.com/cristaloleg) and [@GSokol](https://github.com/GSokol) for contributions.
+
 v0.7.0
 ======
 

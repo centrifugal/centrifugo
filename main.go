@@ -102,6 +102,7 @@ func main() {
 				"proxy_extra_http_headers", "server_side", "user_subscribe_to_personal",
 				"user_personal_channel_namespace", "websocket_use_write_buffer_pool",
 				"websocket_disable", "sockjs_disable", "api_disable", "redis_cluster_addrs",
+				"use_seq_gen", "history_meta_ttl",
 			}
 			for _, env := range bindEnvs {
 				_ = viper.BindEnv(env)
@@ -165,6 +166,10 @@ func main() {
 			err = c.Validate()
 			if err != nil {
 				log.Fatal().Msgf("error validating config: %v", err)
+			}
+
+			if viper.GetBool("use_seq_gen") {
+				centrifuge.CompatibilityFlags |= centrifuge.UseSeqGen
 			}
 
 			node, err := centrifuge.New(*c)
@@ -515,6 +520,8 @@ var configDefaults = map[string]interface{}{
 	"proxy_rpc_timeout":                    1,
 	"proxy_refresh_endpoint":               "",
 	"proxy_refresh_timeout":                1,
+	"history_meta_ttl":                     0,
+	"use_seq_gen":                          false,
 }
 
 func writePidFile(pidFile string) error {
@@ -685,14 +692,14 @@ func getTLSConfig() (*tls.Config, error) {
 		if tlsAutocertHTTP {
 			startHTTPChallengeServerOnce.Do(func() {
 				// getTLSConfig can be called several times.
-				acmeHTTPserver := &http.Server{
+				acmeHTTPServer := &http.Server{
 					Handler:  certManager.HTTPHandler(nil),
 					Addr:     tlsAutocertHTTPAddr,
 					ErrorLog: stdlog.New(&httpErrorLogWriter{log.Logger}, "", 0),
 				}
 				go func() {
 					log.Info().Msgf("serving ACME http_01 challenge on %s", tlsAutocertHTTPAddr)
-					if err := acmeHTTPserver.ListenAndServe(); err != nil {
+					if err := acmeHTTPServer.ListenAndServe(); err != nil {
 						log.Fatal().Msgf("can't create server on %s to serve acme http challenge: %v", tlsAutocertHTTPAddr, err)
 					}
 				}()
@@ -1046,7 +1053,7 @@ func nodeConfig(version string) *centrifuge.Config {
 
 	cfg.NodeInfoMetricsAggregateInterval = time.Duration(v.GetInt("node_info_metrics_aggregate_interval")) * time.Second
 
-	level, ok := centrifuge.LogStringToLevel[strings.ToLower(v.GetString("log_level"))]
+	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {
 		level = centrifuge.LogLevelInfo
 	}
@@ -1054,6 +1061,14 @@ func nodeConfig(version string) *centrifuge.Config {
 	cfg.LogHandler = newLogHandler().handle
 
 	return cfg
+}
+
+// LogStringToLevel matches level string to Centrifuge LogLevel.
+var logStringToLevel = map[string]centrifuge.LogLevel{
+	"debug": centrifuge.LogLevelDebug,
+	"info":  centrifuge.LogLevelInfo,
+	"error": centrifuge.LogLevelError,
+	"none":  centrifuge.LogLevelNone,
 }
 
 // applicationName returns a name for this centrifuge. If no name provided
@@ -1157,7 +1172,9 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Engine, error) {
 }
 
 func memoryEngineConfig() (*centrifuge.MemoryEngineConfig, error) {
-	return &centrifuge.MemoryEngineConfig{}, nil
+	return &centrifuge.MemoryEngineConfig{
+		HistoryMetaTTL: time.Duration(viper.GetInt("history_meta_ttl")) * time.Second,
+	}, nil
 }
 
 func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
@@ -1242,7 +1259,7 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 		}
 
 		if masterNamesConf != "" && len(masterNames) < numShards {
-			return nil, fmt.Errorf("Redis master name must be set for every Redis shard when Sentinel used")
+			return nil, fmt.Errorf("master name must be set for every Redis shard when Sentinel used")
 		}
 
 		var sentinelAddrs []string
@@ -1360,9 +1377,16 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 		}
 	}
 
+	var historyMetaTTL time.Duration
+	if v.IsSet("history_meta_ttl") {
+		historyMetaTTL = time.Duration(v.GetInt("history_meta_ttl")) * time.Second
+	} else {
+		historyMetaTTL = time.Duration(v.GetInt("redis_sequence_ttl")) * time.Second
+	}
+
 	return &centrifuge.RedisEngineConfig{
 		PublishOnHistoryAdd: true,
-		SequenceTTL:         time.Duration(v.GetInt("redis_sequence_ttl")) * time.Second,
+		HistoryMetaTTL:      historyMetaTTL,
 		Shards:              shardConfigs,
 	}, nil
 }

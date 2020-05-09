@@ -74,6 +74,7 @@ message Publication {
     string uid = 3{{if env.Getenv "GOGO"}} [(gogoproto.customname) = "UID", (gogoproto.jsontag) = "uid,omitempty"]{{end}};
     bytes data = 4{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false]{{end}};
     ClientInfo info = 5{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "info,omitempty"]{{end}};
+    uint64 offset = 6{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "offset,omitempty"]{{end}};
 }
 
 message Join {
@@ -92,7 +93,8 @@ message Sub {
     bool recoverable = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "recoverable,omitempty"]{{end}};
     uint32 seq = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "seq,omitempty"]{{end}};
     uint32 gen = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "gen,omitempty"]{{end}};
-    string epoch = 4{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "epoch,omitempty"]{{end}};   
+    string epoch = 4{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "epoch,omitempty"]{{end}};
+    uint64 offset = 5{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "offset,omitempty"]{{end}};
 }
 
 message Message {
@@ -100,7 +102,7 @@ message Message {
 }
 
 message ConnectRequest {
-    string token = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "token"]{{end}};
+    string token = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "token,omitempty"]{{end}};
     bytes data = 2{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data,omitempty", (gogoproto.nullable) = false]{{end}};
     map<string, SubscribeRequest> subs = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "subs,omitempty"]{{end}};
 }
@@ -127,11 +129,12 @@ message RefreshResult {
 
 message SubscribeRequest {
     string channel = 1{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "channel"]{{end}};
-    string token = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "token"]{{end}};
-    bool recover = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "recover"]{{end}};
-    uint32 seq = 4{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "seq"]{{end}};
-    uint32 gen = 5{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "gen"]{{end}};
-    string epoch = 6{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "epoch"]{{end}};
+    string token = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "token,omitempty"]{{end}};
+    bool recover = 3{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "recover,omitempty"]{{end}};
+    uint32 seq = 4{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "seq,omitempty"]{{end}};
+    uint32 gen = 5{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "gen,omitempty"]{{end}};
+    string epoch = 6{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "epoch,omitempty"]{{end}};
+    uint64 offset = 7{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "offset,omitempty"]{{end}};
 }
 
 message SubscribeResult {
@@ -143,6 +146,7 @@ message SubscribeResult {
     string epoch = 6{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "epoch,omitempty"]{{end}};   
     repeated Publication publications = 7{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "publications,omitempty"]{{end}};
     bool recovered = 8{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "recovered,omitempty"]{{end}};
+    uint64 offset = 9{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "offset,omitempty"]{{end}};
 }
 
 message SubRefreshRequest {
@@ -201,6 +205,7 @@ message PingResult {
 
 message RPCRequest{
     bytes data = 1{{if env.Getenv "GOGO"}} [(gogoproto.customtype) = "Raw", (gogoproto.jsontag) = "data", (gogoproto.nullable) = false]{{end}};
+    string method = 2{{if env.Getenv "GOGO"}} [(gogoproto.jsontag) = "method,omitempty"]{{end}};
 }
 
 message RPCResult {

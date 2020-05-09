@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifuge/internal/cancelctx"
+
 	"github.com/gorilla/websocket"
 
 	"github.com/centrifugal/centrifuge/internal/timers"
@@ -56,7 +58,7 @@ func (t *websocketTransport) ping() {
 		deadline := time.Now().Add(t.opts.pingInterval / 2)
 		err := t.conn.WriteControl(websocket.PingMessage, []byte("ping"), deadline)
 		if err != nil {
-			t.Close(DisconnectServerError)
+			_ = t.Close(DisconnectServerError)
 			return
 		}
 		t.addPing()
@@ -159,12 +161,6 @@ const (
 
 // WebsocketConfig represents config for WebsocketHandler.
 type WebsocketConfig struct {
-	// Compression allows to enable websocket permessage-deflate
-	// compression support for raw websocket connections. It does
-	// not guarantee that compression will be used - i.e. it only
-	// says that server will try to negotiate it with client.
-	Compression bool
-
 	// CompressionLevel sets a level for websocket compression.
 	// See posiible value description at https://golang.org/pkg/compress/flate/#NewWriter
 	CompressionLevel int
@@ -183,8 +179,9 @@ type WebsocketConfig struct {
 	// If set to zero reasonable default value will be used.
 	WriteBufferSize int
 
-	// UseWriteBufferPool enables using buffer pool for writes.
-	UseWriteBufferPool bool
+	// MessageSizeLimit sets the maximum size in bytes of allowed message from client.
+	// By default DefaultWebsocketMaxMessageSize will be used.
+	MessageSizeLimit int
 
 	// CheckOrigin func to provide custom origin check logic.
 	// nil means allow all origins.
@@ -199,9 +196,14 @@ type WebsocketConfig struct {
 	// By default DefaultWebsocketWriteTimeout will be used.
 	WriteTimeout time.Duration
 
-	// MessageSizeLimit sets the maximum size in bytes of allowed message from client.
-	// By default DefaultWebsocketMaxMessageSize will be used.
-	MessageSizeLimit int
+	// Compression allows to enable websocket permessage-deflate
+	// compression support for raw websocket connections. It does
+	// not guarantee that compression will be used - i.e. it only
+	// says that server will try to negotiate it with client.
+	Compression bool
+
+	// UseWriteBufferPool enables using buffer pool for writes.
+	UseWriteBufferPool bool
 }
 
 // WebsocketHandler handles websocket client connections.
@@ -309,7 +311,7 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 		select {
 		case <-s.node.NotifyShutdown():
-			transport.Close(DisconnectShutdown)
+			_ = transport.Close(DisconnectShutdown)
 			return
 		default:
 		}
@@ -317,7 +319,7 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		ctxCh := make(chan struct{})
 		defer close(ctxCh)
 
-		c, err := NewClient(newCustomCancelContext(r.Context(), ctxCh), s.node, transport)
+		c, err := NewClient(cancelctx.New(r.Context(), ctxCh), s.node, transport)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error creating client", map[string]interface{}{"transport": transportWebsocket}))
 			return
@@ -326,10 +328,12 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		defer func(started time.Time) {
 			s.node.logger.log(newLogEntry(LogLevelDebug, "client connection completed", map[string]interface{}{"client": c.ID(), "transport": transportWebsocket, "duration": time.Since(started)}))
 		}(time.Now())
-		defer c.Close(nil)
+		defer func() { _ = c.Close(nil) }()
 
-		var handleMu sync.RWMutex
-		var closed bool
+		var (
+			handleMu sync.RWMutex
+			closed   bool
+		)
 		for {
 			_, data, err := conn.ReadMessage()
 			if err != nil {

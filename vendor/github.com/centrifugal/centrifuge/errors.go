@@ -1,5 +1,28 @@
 package centrifuge
 
+import (
+	"fmt"
+
+	"github.com/centrifugal/protocol"
+)
+
+// Error represents client reply error.
+type Error struct {
+	Code    uint32
+	Message string
+}
+
+func (e *Error) toProto() *protocol.Error {
+	return &protocol.Error{
+		Code:    e.Code,
+		Message: e.Message,
+	}
+}
+
+func (e Error) Error() string {
+	return fmt.Sprintf("%d: %s", e.Code, e.Message)
+}
+
 // Here we define well-known errors that can be used in client protocol
 // replies.
 // Library user can define own application specific errors. When define new

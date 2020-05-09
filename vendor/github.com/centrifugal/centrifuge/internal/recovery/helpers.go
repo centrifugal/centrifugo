@@ -7,16 +7,12 @@ import (
 	"github.com/centrifugal/protocol"
 )
 
-const (
-	maxSeq uint32 = math.MaxUint32 // maximum uint32 value
-)
-
 // uniquePublications returns slice of unique Publications.
 func uniquePublications(s []*protocol.Publication) []*protocol.Publication {
 	keys := make(map[uint64]struct{})
-	list := []*protocol.Publication{}
+	list := make([]*protocol.Publication, 0, len(s))
 	for _, entry := range s {
-		val := (uint64(entry.Seq))<<32 | uint64(entry.Gen)
+		val := entry.Offset
 		if _, value := keys[val]; !value {
 			keys[val] = struct{}{}
 			list = append(list, entry)
@@ -25,47 +21,47 @@ func uniquePublications(s []*protocol.Publication) []*protocol.Publication {
 	return list
 }
 
-// MergePublications ...
-func MergePublications(recoveredPubs []*protocol.Publication, bufferedPubs []*protocol.Publication) ([]*protocol.Publication, bool) {
+// MergePublications allows to merge recovered pubs with buffered pubs
+// collected during extracting recovered so result is ordered and with
+// duplicates removed.
+func MergePublications(recoveredPubs []*protocol.Publication, bufferedPubs []*protocol.Publication, isLegacyOrder bool) ([]*protocol.Publication, bool) {
 	if len(bufferedPubs) > 0 {
 		recoveredPubs = append(recoveredPubs, bufferedPubs...)
 	}
-	sort.Slice(recoveredPubs, func(i, j int) bool {
-		if recoveredPubs[i].Gen != recoveredPubs[j].Gen {
-			return recoveredPubs[i].Gen > recoveredPubs[j].Gen
-		}
-		return recoveredPubs[i].Seq > recoveredPubs[j].Seq
-	})
+	if isLegacyOrder {
+		sort.Slice(recoveredPubs, func(i, j int) bool {
+			return recoveredPubs[i].Offset > recoveredPubs[j].Offset
+		})
+	} else {
+		sort.Slice(recoveredPubs, func(i, j int) bool {
+			return recoveredPubs[i].Offset < recoveredPubs[j].Offset
+		})
+	}
 	if len(bufferedPubs) > 0 {
-		recoveredPubs = uniquePublications(recoveredPubs)
-		prevSeq := Uint64Sequence(recoveredPubs[0].Seq, recoveredPubs[0].Gen)
+		if len(recoveredPubs) > 1 {
+			recoveredPubs = uniquePublications(recoveredPubs)
+		}
+		prevOffset := recoveredPubs[0].Offset
 		for _, p := range recoveredPubs[1:] {
-			pubSequence := Uint64Sequence(p.Seq, p.Gen)
-			if pubSequence != prevSeq+1 {
+			pubOffset := p.Offset
+			var isWrongOffset bool
+			if isLegacyOrder {
+				isWrongOffset = pubOffset != prevOffset-1
+			} else {
+				isWrongOffset = pubOffset != prevOffset+1
+			}
+			if isWrongOffset {
 				return nil, false
 			}
-			prevSeq = pubSequence
+			prevOffset = pubOffset
 		}
 	}
 	return recoveredPubs, true
 }
 
-// Uint64Sequence ...
-func Uint64Sequence(currentSeq, currentGen uint32) uint64 {
-	return uint64(currentGen)*uint64(math.MaxUint32) + uint64(currentSeq)
-}
-
-// NextSeqGen ...
-func NextSeqGen(currentSeq, currentGen uint32) (uint32, uint32) {
-	var nextSeq uint32
-	nextGen := currentGen
-	if currentSeq == maxSeq {
-		nextSeq = 0
-		nextGen++
-	} else {
-		nextSeq = currentSeq + 1
-	}
-	return nextSeq, nextGen
+// PackUint64 ...
+func PackUint64(seq, gen uint32) uint64 {
+	return uint64(gen)*uint64(math.MaxUint32) + uint64(seq)
 }
 
 // UnpackUint64 ...

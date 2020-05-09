@@ -1,4 +1,4 @@
-// Package priority provides priority queue for libcentrifugo package Memory Engine.
+// Package priority provides priority queue.
 package priority
 
 import (
