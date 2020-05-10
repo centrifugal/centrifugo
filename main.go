@@ -58,7 +58,7 @@ func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "",
 		Short: "Centrifugo",
-		Long:  "Centrifugo – real-time messaging server",
+		Long:  "Centrifugo – scalable real-time messaging server in language-agnostic way",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			for k, v := range configDefaults {

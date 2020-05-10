@@ -8,7 +8,6 @@ env:
 go:
   # Use quotes here:
   # https://github.com/travis-ci/gimme/issues/132
-  - '1.13.x'
   - '1.14.x'
   - 'tip'
 
@@ -20,7 +19,7 @@ addons:
 
 services:
   - docker
-  - redis-server  
+  - redis
 
 before_install:
   - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"; fi'
@@ -35,9 +34,9 @@ deploy:
     script: misc/release/release.sh --release-notes=misc/release/notes.md
     on:
       tags: true
-      go: '1.13.x'
+      go: '1.14.x'
   - provider: script
     script: misc/scripts/travis_packagecloud.sh
     on:
       tags: true 
-      go: '1.13.x'
+      go: '1.14.x'
