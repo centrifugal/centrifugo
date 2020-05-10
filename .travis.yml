@@ -23,8 +23,8 @@ services:
 
 before_install:
   - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"; fi'
-  - go get golang.org/x/tools/cmd/cover
-  - go get github.com/mitchellh/gox
+  - GO111MODULE=off go get golang.org/x/tools/cmd/cover
+  - GO111MODULE=off go get github.com/mitchellh/gox
 
 script: make ci
 
