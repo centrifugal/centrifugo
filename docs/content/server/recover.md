@@ -1,7 +1,16 @@
 # How message recovery works
 
+This description uses `offset` field available since Centrifugo v2.5.0 which replaced two `uint32` fields `seq` and `gen` in client protocol schema. This means that here we describe a case when Centrifugo config contains `v3_use_offset` option enabled:
+
+```json
+{
+  ...
+  "v3_use_offset": true
+}
+```
+
 !!! note
-    Before Centrifugo v2.5.0 client protocol used two `uint32` fields `seq` and `gen` to represent position inside stream. Since v2.5.0 both fields replaced with one `uint64` field called `offset`. 
+    For `seq` and `gen` recovery works in similar way, but we have two `uint32` fields instead of single `uint64` `offset`.
 
 One of the most interesting features of Centrifugo is message recovery after short network disconnects. This mechanism allows client to automatically get missed publications on successful resubscribe to channel after being disconnected for a while. In general, you would query your application backend for actual state on every client reconnect - but message recovery feature allows Centrifugo to deal with this and restore missed publications from history cache thus radically reducing load on your application backend and your main database in some scenarios.
 

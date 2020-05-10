@@ -102,7 +102,7 @@ func main() {
 				"proxy_extra_http_headers", "server_side", "user_subscribe_to_personal",
 				"user_personal_channel_namespace", "websocket_use_write_buffer_pool",
 				"websocket_disable", "sockjs_disable", "api_disable", "redis_cluster_addrs",
-				"use_seq_gen", "redis_history_meta_ttl", "redis_streams", "memory_history_meta_ttl",
+				"v3_use_offset", "redis_history_meta_ttl", "redis_streams", "memory_history_meta_ttl",
 			}
 			for _, env := range bindEnvs {
 				_ = viper.BindEnv(env)
@@ -184,7 +184,7 @@ func main() {
 				log.Fatal().Msgf("error validating config: %v", err)
 			}
 
-			if viper.GetBool("use_seq_gen") {
+			if !viper.GetBool("v3_use_offset") {
 				centrifuge.CompatibilityFlags |= centrifuge.UseSeqGen
 			}
 
@@ -522,7 +522,7 @@ var configDefaults = map[string]interface{}{
 	"proxy_refresh_timeout":                1,
 	"memory_history_meta_ttl":              0,
 	"redis_history_meta_ttl":               0,
-	"use_seq_gen":                          false,
+	"v3_use_offset":                        false,
 }
 
 func writePidFile(pidFile string) error {
@@ -885,6 +885,7 @@ func pathExists(path string) (bool, error) {
 }
 
 var jsonConfigTemplate = `{
+  "v3_use_offset": true,
   "token_hmac_secret_key": "{{.TokenSecret}}",
   "admin_password": "{{.AdminPassword}}",
   "admin_secret": "{{.AdminSecret}}",
@@ -892,13 +893,15 @@ var jsonConfigTemplate = `{
 }
 `
 
-var tomlConfigTemplate = `token_hmac_secret_key = {{.TokenSecret}}
+var tomlConfigTemplate = `v3_use_offset = true
+token_hmac_secret_key = {{.TokenSecret}}
 admin_password = {{.AdminPassword}}
 admin_secret = {{.AdminSecret}}
 api_key = {{.APIKey}}
 `
 
-var yamlConfigTemplate = `token_hmac_secret_key: {{.TokenSecret}}
+var yamlConfigTemplate = `v3_use_offset: true
+token_hmac_secret_key: {{.TokenSecret}}
 admin_password: {{.AdminPassword}}
 admin_secret: {{.AdminSecret}}
 api_key: {{.APIKey}}

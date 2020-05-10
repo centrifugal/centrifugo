@@ -1,4 +1,5 @@
 {
+  "v3_use_offset": true,
   "token_hmac_secret_key": "secret",
   "admin_password": "password",
   "admin_secret": "secret",
