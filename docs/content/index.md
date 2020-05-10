@@ -4,7 +4,7 @@ First of all we have chats on Gitter and in Telegram – welcome!
 
 [![Join the chat at https://gitter.im/centrifugal/centrifugo](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/centrifugal/centrifugo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Join the chat at https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ](https://img.shields.io/badge/Telegram-Group-blue.svg)](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ)
 
-Centrifugo is a language-agnostic real-time messaging server. Language-agnostic means that it does not matter which programming language your application uses on frontend or backend sides – Centrifugo can work in conjunction with any.
+Centrifugo is a language-agnostic real-time messaging server. Language-agnostic means that it does not matter which programming language your application uses on a frontend or backend sides – Centrifugo can work in conjunction with any.
 
 Real-time messages are messages that delivered to your application users almost immediately after some event happened - think live comments, chats, real-time charts, dynamic counters and games.
 

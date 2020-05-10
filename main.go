@@ -36,12 +36,12 @@ import (
 
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifuge"
+	"github.com/google/uuid"
 	"github.com/mattn/go-isatty"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
@@ -58,7 +58,7 @@ func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "",
 		Short: "Centrifugo",
-		Long:  "Centrifugo – real-time messaging server",
+		Long:  "Centrifugo – scalable real-time messaging server in language-agnostic way",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			for k, v := range configDefaults {
@@ -102,6 +102,7 @@ func main() {
 				"proxy_extra_http_headers", "server_side", "user_subscribe_to_personal",
 				"user_personal_channel_namespace", "websocket_use_write_buffer_pool",
 				"websocket_disable", "sockjs_disable", "api_disable", "redis_cluster_addrs",
+				"use_seq_gen", "redis_history_meta_ttl", "redis_streams", "memory_history_meta_ttl",
 			}
 			for _, env := range bindEnvs {
 				_ = viper.BindEnv(env)
@@ -161,18 +162,36 @@ func main() {
 				}
 			}
 
+			version := VERSION
+			if version == "" {
+				version = "dev"
+			}
+
+			engineName := viper.GetString("engine")
+
+			log.Info().Str(
+				"version", version).Str(
+				"runtime", runtime.Version()).Int(
+				"pid", os.Getpid()).Str(
+				"engine", strings.Title(engineName)).Int(
+				"gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
+
+			log.Info().Str("path", absConfPath).Msg("using config file")
+
 			c := nodeConfig(VERSION)
 			err = c.Validate()
 			if err != nil {
 				log.Fatal().Msgf("error validating config: %v", err)
 			}
 
+			if viper.GetBool("use_seq_gen") {
+				centrifuge.CompatibilityFlags |= centrifuge.UseSeqGen
+			}
+
 			node, err := centrifuge.New(*c)
 			if err != nil {
 				log.Fatal().Msgf("error creating Centrifuge Node: %v", err)
 			}
-
-			engineName := viper.GetString("engine")
 
 			var e centrifuge.Engine
 			if engineName == "memory" {
@@ -231,20 +250,6 @@ func main() {
 			if err = node.Run(); err != nil {
 				log.Fatal().Msgf("error running node: %v", err)
 			}
-
-			version := VERSION
-			if version == "" {
-				version = "dev"
-			}
-
-			log.Info().Str(
-				"version", version).Str(
-				"runtime", runtime.Version()).Int(
-				"pid", os.Getpid()).Str(
-				"engine", strings.Title(engineName)).Int(
-				"gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
-
-			log.Info().Str("path", absConfPath).Msg("using config file")
 
 			if !configFound {
 				log.Warn().Msg("config file not found")
@@ -515,6 +520,9 @@ var configDefaults = map[string]interface{}{
 	"proxy_rpc_timeout":                    1,
 	"proxy_refresh_endpoint":               "",
 	"proxy_refresh_timeout":                1,
+	"memory_history_meta_ttl":              0,
+	"redis_history_meta_ttl":               0,
+	"use_seq_gen":                          false,
 }
 
 func writePidFile(pidFile string) error {
@@ -685,14 +693,14 @@ func getTLSConfig() (*tls.Config, error) {
 		if tlsAutocertHTTP {
 			startHTTPChallengeServerOnce.Do(func() {
 				// getTLSConfig can be called several times.
-				acmeHTTPserver := &http.Server{
+				acmeHTTPServer := &http.Server{
 					Handler:  certManager.HTTPHandler(nil),
 					Addr:     tlsAutocertHTTPAddr,
 					ErrorLog: stdlog.New(&httpErrorLogWriter{log.Logger}, "", 0),
 				}
 				go func() {
 					log.Info().Msgf("serving ACME http_01 challenge on %s", tlsAutocertHTTPAddr)
-					if err := acmeHTTPserver.ListenAndServe(); err != nil {
+					if err := acmeHTTPServer.ListenAndServe(); err != nil {
 						log.Fatal().Msgf("can't create server on %s to serve acme http challenge: %v", tlsAutocertHTTPAddr, err)
 					}
 				}()
@@ -938,10 +946,10 @@ func generateConfig(f string) error {
 		AdminSecret   string
 		APIKey        string
 	}{
-		uuid.NewV4().String(),
-		uuid.NewV4().String(),
-		uuid.NewV4().String(),
-		uuid.NewV4().String(),
+		uuid.New().String(),
+		uuid.New().String(),
+		uuid.New().String(),
+		uuid.New().String(),
 	})
 
 	err = ioutil.WriteFile(f, output.Bytes(), 0644)
@@ -1046,7 +1054,7 @@ func nodeConfig(version string) *centrifuge.Config {
 
 	cfg.NodeInfoMetricsAggregateInterval = time.Duration(v.GetInt("node_info_metrics_aggregate_interval")) * time.Second
 
-	level, ok := centrifuge.LogStringToLevel[strings.ToLower(v.GetString("log_level"))]
+	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {
 		level = centrifuge.LogLevelInfo
 	}
@@ -1054,6 +1062,14 @@ func nodeConfig(version string) *centrifuge.Config {
 	cfg.LogHandler = newLogHandler().handle
 
 	return cfg
+}
+
+// LogStringToLevel matches level string to Centrifuge LogLevel.
+var logStringToLevel = map[string]centrifuge.LogLevel{
+	"debug": centrifuge.LogLevelDebug,
+	"info":  centrifuge.LogLevelInfo,
+	"error": centrifuge.LogLevelError,
+	"none":  centrifuge.LogLevelNone,
 }
 
 // applicationName returns a name for this centrifuge. If no name provided
@@ -1157,7 +1173,9 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Engine, error) {
 }
 
 func memoryEngineConfig() (*centrifuge.MemoryEngineConfig, error) {
-	return &centrifuge.MemoryEngineConfig{}, nil
+	return &centrifuge.MemoryEngineConfig{
+		HistoryMetaTTL: time.Duration(viper.GetInt("memory_history_meta_ttl")) * time.Second,
+	}, nil
 }
 
 func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
@@ -1242,7 +1260,7 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 		}
 
 		if masterNamesConf != "" && len(masterNames) < numShards {
-			return nil, fmt.Errorf("Redis master name must be set for every Redis shard when Sentinel used")
+			return nil, fmt.Errorf("master name must be set for every Redis shard when Sentinel used")
 		}
 
 		var sentinelAddrs []string
@@ -1360,9 +1378,18 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 		}
 	}
 
+	var historyMetaTTL time.Duration
+	if v.IsSet("redis_history_meta_ttl") {
+		historyMetaTTL = time.Duration(v.GetInt("redis_history_meta_ttl")) * time.Second
+	} else {
+		// TODO v3: remove compatibility.
+		historyMetaTTL = time.Duration(v.GetInt("redis_sequence_ttl")) * time.Second
+	}
+
 	return &centrifuge.RedisEngineConfig{
 		PublishOnHistoryAdd: true,
-		SequenceTTL:         time.Duration(v.GetInt("redis_sequence_ttl")) * time.Second,
+		UseStreams:          v.GetBool("redis_streams"),
+		HistoryMetaTTL:      historyMetaTTL,
 		Shards:              shardConfigs,
 	}, nil
 }

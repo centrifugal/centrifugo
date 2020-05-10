@@ -26,7 +26,7 @@ func NewReply(reply *protocol.Reply, protoType protocol.Type) *Reply {
 func (r *Reply) Data() []byte {
 	r.once.Do(func() {
 		encoder := protocol.GetReplyEncoder(r.ProtoType)
-		encoder.Encode(r.Reply)
+		_ = encoder.Encode(r.Reply)
 		data := encoder.Finish()
 		protocol.PutReplyEncoder(r.ProtoType, encoder)
 		r.data = data

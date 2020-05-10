@@ -5,9 +5,9 @@
 
 Engine in Centrifugo is responsible for publishing messages between nodes, handle PUB/SUB broker subscriptions, save/retrieve presence and history data.
 
-By default Centrifugo uses Memory engine. There is also Redis engine available.
+By default, Centrifugo uses Memory engine. There is also Redis engine available.
 
-The difference between them - with Memory engine you can start only one node of Centrifugo, while Redis engine allows to run several nodes on different machines and they will be connected via Redis, will know about each other due to Redis and will also keep history and presence data in Redis instead of Centrifugo node process memory so this data can be accessed from each node.
+The difference between them - with Memory engine you can start only one node of Centrifugo, while Redis engine allows running several nodes on different machines and they will be connected via Redis, will know about each other due to Redis and will also keep history and presence data in Redis instead of Centrifugo node process memory so this data can be accessed from each node.
 
 To set engine you can use `engine` configuration option. Available values are `memory` and `redis`. Default value is `memory`.
 
@@ -37,7 +37,11 @@ Advantages:
 
 Disadvantages:
 
-* does not allow to scale nodes (actually you still can scale Centrifugo with Memory engine but you have to publish data into each Centrifugo node and you won't have consistent state of presence)
+* does not allow scaling nodes (actually you still can scale Centrifugo with Memory engine but you have to publish data into each Centrifugo node and you won't have consistent state of presence)
+
+Several configuration options related to Memory engine:
+
+* `memory_history_meta_ttl` (int, default `0`) - sets a time in seconds of history stream metadata expiration. Stream metadata is an information about current offset number in channel and epoch value. By default, metadata for channels does not expire. Though in some cases – when channels created for а short time and then not used anymore – created metadata can stay in memory while not actually useful. For example, you can have a personal user channel but after using your app for a while user left it forever. In long-term perspective this can be an unwanted memory leak. Setting a reasonable value to this option (usually much bigger than history retention period) can help. In this case unused channel metadata will eventually expire. Available since v2.5.0
 
 ## Redis engine
 
@@ -57,7 +61,8 @@ Several configuration options related to Redis engine:
 * `redis_sentinels` (string, default `""`) - comma separated list of Sentinels for HA
 * `redis_master_name` (string, default `""`) - name of Redis master Sentinel monitors
 * `redis_prefix` (string, default `"centrifugo"`) – custom prefix to use for channels and keys in Redis
-* `redis_sequence_ttl` (int, default `0`) - sets a time in seconds of sequence data expiration in Redis Engine. Sequence meta key in Redis is a HASH that contains current sequence number in channel and epoch value. By default sequence data for channels does not expire. Though in some cases – when channels created for а short time and then not used anymore – created sequence meta data can stay in memory while not actually useful. For example you can have a personal user channel but after using your app for a while user left it forever. In long-term perspective this can be an unwanted memory leak. Setting a reasonable value to this option (usually much bigger than history retention period) can help. In this case unused channel sequence data will eventually expire. Available since v2.3.0
+* `redis_history_meta_ttl` (int, default `0`) - sets a time in seconds of history stream metadata expiration in Redis Engine. Meta key in Redis is a HASH that contains current offset number in channel and epoch value. By default, metadata for channels does not expire. Though in some cases – when channels created for а short time and then not used anymore – created stream metadata can stay in memory while not actually useful. For example, you can have a personal user channel but after using your app for a while user left it forever. In long-term perspective this can be an unwanted memory leak. Setting a reasonable value to this option (usually much bigger than history retention period) can help. In this case unused channel metadata will eventually expire. Available since v2.3.0
+* `redis_streams` (boolean, default `false`) – turns on using Redis Streams instead of List data structure for keeping history
 
 All of these options can be set over configuration file. Some of them can be set over command-line arguments (see `centrifugo -h` output).
 
@@ -183,7 +188,7 @@ When sharding enabled Centrifugo will spread channels and history/presence keys 
 
 ### Redis cluster
 
-Redis cluster is supported since Centrifugo v2.4.1
+Redis cluster supported since Centrifugo v2.5.0
 
 Running Centrifugo with Redis cluster is simple and can be achieved using `redis_cluster_addrs` option. This is an array of strings. Each element of array is a comma-separated Redis cluster seed nodes. For example:
 

@@ -48,7 +48,7 @@ func (h *apiExecutor) Publish(_ context.Context, cmd *PublishRequest) *PublishRe
 		return resp
 	}
 
-	err := h.node.Publish(cmd.Channel, cmd.Data)
+	_, err := h.node.Publish(cmd.Channel, cmd.Data)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing message in engine", map[string]interface{}{"error": err.Error()}))
 		resp.Error = ErrorInternal
@@ -99,7 +99,8 @@ func (h *apiExecutor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broad
 
 		wg.Add(1)
 		go func(i int, ch string) {
-			errs[i] = h.node.Publish(ch, data)
+			_, err := h.node.Publish(ch, data)
+			errs[i] = err
 			wg.Done()
 		}(i, ch)
 	}
@@ -165,14 +166,14 @@ func (h *apiExecutor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Dis
 
 	user := cmd.User
 	if user == "" {
-		// h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "user required for disconnect", map[string]interface{}{}))
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "user required for disconnect"))
 		resp.Error = ErrorBadRequest
 		return resp
 	}
 
-	err := h.node.Disconnect(user, false)
+	err := h.node.Disconnect(user)
 	if err != nil {
-		// h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error disconnecting user", map[string]interface{}{"user": cmd.User, "error": errError()}))
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error disconnecting user", map[string]interface{}{"user": cmd.User, "error": err.Error()}))
 		resp.Error = ErrorInternal
 		return resp
 	}
@@ -289,16 +290,16 @@ func (h *apiExecutor) History(_ context.Context, cmd *HistoryRequest) *HistoryRe
 		return resp
 	}
 
-	history, err := h.node.History(ch)
+	history, err := h.node.History(ch, centrifuge.WithNoLimit())
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling history", map[string]interface{}{"error": err.Error()}))
 		resp.Error = ErrorInternal
 		return resp
 	}
 
-	apiPubs := make([]*Publication, len(history))
+	apiPubs := make([]*Publication, len(history.Publications))
 
-	for i, pub := range history {
+	for i, pub := range history.Publications {
 		apiPub := &Publication{
 			UID:  pub.UID,
 			Data: Raw(pub.Data),

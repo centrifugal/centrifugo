@@ -11,7 +11,7 @@ centrifugo -h
 You should see something like this as output:
 
 ```
-Centrifugo – real-time messaging server
+Centrifugo – scalable real-time messaging server in language-agnostic way
 
 Usage:
    [flags]
@@ -26,6 +26,7 @@ Available Commands:
 Flags:
   -a, --address string             interface address to listen on
       --admin                      enable admin web interface
+      --admin_external             enable admin web interface on external port
       --admin_insecure             use insecure admin mode – no auth required for admin socket
       --api_insecure               use insecure API mode
       --client_insecure            start in insecure client mode
@@ -33,7 +34,14 @@ Flags:
       --debug                      enable debug endpoints
   -e, --engine string              engine to use: memory or redis (default "memory")
       --grpc_api                   enable GRPC API server
+      --grpc_api_port int          port to bind GRPC API server to (default 10000)
+      --grpc_api_tls               enable TLS for GRPC API server, requires an X509 certificate and a key file
+      --grpc_api_tls_cert string   path to an X509 certificate file for GRPC API server
+      --grpc_api_tls_disable       disable general TLS for GRPC API server
+      --grpc_api_tls_key string    path to an X509 certificate key for GRPC API server
+      --health                     enable health check endpoint
   -h, --help                       help for this command
+      --internal_address string    custom interface address to listen on for internal endpoints
       --internal_port string       custom port for internal endpoints
       --log_file string            optional log file - if not specified logs go to STDOUT
       --log_level string           set the log level: debug, info, error, fatal or none (default "info")
@@ -52,6 +60,7 @@ Flags:
       --redis_url string           Redis connection URL in format redis://:password@hostname:port/db (Redis engine)
       --tls                        enable TLS, requires an X509 certificate and a key file
       --tls_cert string            path to an X509 certificate file
+      --tls_external               enable TLS only for external endpoints
       --tls_key string             path to an X509 certificate key
 ```
 

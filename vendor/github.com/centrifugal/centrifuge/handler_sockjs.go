@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifuge/internal/cancelctx"
+
 	"github.com/gorilla/websocket"
 	"github.com/igm/sockjs-go/sockjs"
 )
@@ -174,14 +176,14 @@ func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
 
 		select {
 		case <-s.node.NotifyShutdown():
-			transport.Close(DisconnectShutdown)
+			_ = transport.Close(DisconnectShutdown)
 			return
 		default:
 		}
 
 		ctxCh := make(chan struct{})
 		defer close(ctxCh)
-		c, err := NewClient(newCustomCancelContext(sess.Request().Context(), ctxCh), s.node, transport)
+		c, err := NewClient(cancelctx.New(sess.Request().Context(), ctxCh), s.node, transport)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error creating client", map[string]interface{}{"transport": transportSockJS}))
 			return
@@ -190,12 +192,11 @@ func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
 		defer func(started time.Time) {
 			s.node.logger.log(newLogEntry(LogLevelDebug, "client connection completed", map[string]interface{}{"client": c.ID(), "transport": transportSockJS, "duration": time.Since(started)}))
 		}(time.Now())
-		defer c.Close(nil)
+		defer func() { _ = c.Close(nil) }()
 
 		for {
 			if msg, err := sess.Recv(); err == nil {
-				ok := c.Handle([]byte(msg))
-				if !ok {
+				if ok := c.Handle([]byte(msg)); !ok {
 					return
 				}
 				continue

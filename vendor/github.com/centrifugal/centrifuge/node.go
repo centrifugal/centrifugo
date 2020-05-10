@@ -9,11 +9,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifuge/internal/controlpb"
 	"github.com/centrifugal/centrifuge/internal/controlproto"
 	"github.com/centrifugal/centrifuge/internal/dissolve"
-	"github.com/centrifugal/centrifuge/internal/uuid"
+	"github.com/centrifugal/centrifuge/internal/recovery"
 
 	"github.com/FZambia/eagle"
+	"github.com/centrifugal/protocol"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -44,7 +47,7 @@ type Node struct {
 	shutdown bool
 	// shutdownCh is a channel which is closed when node shutdown initiated.
 	shutdownCh chan struct{}
-	// eventHub to manage event handlers binded to node.
+	// eventHub to manage event handlers attached to node.
 	eventHub *nodeEventHub
 	// logger allows to log throughout library code and proxy log entries to
 	// configured log handler.
@@ -70,7 +73,7 @@ const (
 
 // New creates Node, the only required argument is config.
 func New(c Config) (*Node, error) {
-	uid := uuid.Must(uuid.NewV4()).String()
+	uid := uuid.Must(uuid.NewRandom()).String()
 
 	subLocks := make(map[int]*sync.Mutex, numSubLocks)
 	for i := 0; i < numSubLocks; i++ {
@@ -108,7 +111,7 @@ func index(s string, numBuckets int) int {
 		return 0
 	}
 	hash := fnv.New64a()
-	hash.Write([]byte(s))
+	_, _ = hash.Write([]byte(s))
 	return int(hash.Sum64() % uint64(numBuckets))
 }
 
@@ -158,8 +161,10 @@ func (n *Node) Reload(c Config) error {
 	}
 	n.mu.Lock()
 	defer n.mu.Unlock()
+	if err := n.tokenVerifier.Reload(c); err != nil {
+		return err
+	}
 	n.config = c
-	n.tokenVerifier.Reload(c)
 	return nil
 }
 
@@ -183,8 +188,7 @@ func (n *Node) Run() error {
 	go n.sendNodePing()
 	go n.cleanNodeInfo()
 	go n.updateMetrics()
-	n.subDissolver.Run()
-	return nil
+	return n.subDissolver.Run()
 }
 
 // Log allows to log entry.
@@ -214,19 +218,19 @@ func (n *Node) Shutdown(ctx context.Context) error {
 	close(n.shutdownCh)
 	n.mu.Unlock()
 	if closer, ok := n.broker.(Closer); ok {
-		defer closer.Close(ctx)
+		defer func() { _ = closer.Close(ctx) }()
 	}
 	if n.historyManager != nil {
 		if closer, ok := n.historyManager.(Closer); ok {
-			defer closer.Close(ctx)
+			defer func() { _ = closer.Close(ctx) }()
 		}
 	}
 	if n.presenceManager != nil {
 		if closer, ok := n.presenceManager.(Closer); ok {
-			defer closer.Close(ctx)
+			defer func() { _ = closer.Close(ctx) }()
 		}
 	}
-	n.subDissolver.Close()
+	_ = n.subDissolver.Close()
 	return n.hub.shutdown(ctx)
 }
 
@@ -399,21 +403,21 @@ func (n *Node) handleControl(data []byte) error {
 	params := cmd.Params
 
 	switch method {
-	case controlproto.MethodTypeNode:
+	case controlpb.MethodTypeNode:
 		cmd, err := n.controlDecoder.DecodeNode(params)
 		if err != nil {
 			n.logger.log(newLogEntry(LogLevelError, "error decoding node control params", map[string]interface{}{"error": err.Error()}))
 			return err
 		}
 		return n.nodeCmd(cmd)
-	case controlproto.MethodTypeUnsubscribe:
+	case controlpb.MethodTypeUnsubscribe:
 		cmd, err := n.controlDecoder.DecodeUnsubscribe(params)
 		if err != nil {
 			n.logger.log(newLogEntry(LogLevelError, "error decoding unsubscribe control params", map[string]interface{}{"error": err.Error()}))
 			return err
 		}
 		return n.hub.unsubscribe(cmd.User, cmd.Channel)
-	case controlproto.MethodTypeDisconnect:
+	case controlpb.MethodTypeDisconnect:
 		cmd, err := n.controlDecoder.DecodeDisconnect(params)
 		if err != nil {
 			n.logger.log(newLogEntry(LogLevelError, "error decoding disconnect control params", map[string]interface{}{"error": err.Error()}))
@@ -429,7 +433,7 @@ func (n *Node) handleControl(data []byte) error {
 // handlePublication handles messages published into channel and
 // coming from engine. The goal of method is to deliver this message
 // to all clients on this node currently subscribed to channel.
-func (n *Node) handlePublication(ch string, pub *Publication) error {
+func (n *Node) handlePublication(ch string, pub *protocol.Publication) error {
 	messagesReceivedCountPublication.Inc()
 	numSubscribers := n.hub.NumSubscribers(ch)
 	hasCurrentSubscribers := numSubscribers > 0
@@ -445,7 +449,7 @@ func (n *Node) handlePublication(ch string, pub *Publication) error {
 
 // handleJoin handles join messages - i.e. broadcasts it to
 // interested local clients subscribed to channel.
-func (n *Node) handleJoin(ch string, join *Join) error {
+func (n *Node) handleJoin(ch string, join *protocol.Join) error {
 	messagesReceivedCountJoin.Inc()
 	hasCurrentSubscribers := n.hub.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
@@ -456,7 +460,7 @@ func (n *Node) handleJoin(ch string, join *Join) error {
 
 // handleLeave handles leave messages - i.e. broadcasts it to
 // interested local clients subscribed to channel.
-func (n *Node) handleLeave(ch string, leave *Leave) error {
+func (n *Node) handleLeave(ch string, leave *protocol.Leave) error {
 	messagesReceivedCountLeave.Inc()
 	hasCurrentSubscribers := n.hub.NumSubscribers(ch) > 0
 	if !hasCurrentSubscribers {
@@ -465,10 +469,10 @@ func (n *Node) handleLeave(ch string, leave *Leave) error {
 	return n.hub.broadcastLeave(ch, leave)
 }
 
-func (n *Node) publish(ch string, data []byte, info *ClientInfo, opts ...PublishOption) error {
+func (n *Node) publish(ch string, data []byte, info *protocol.ClientInfo, opts ...PublishOption) (PublishResult, error) {
 	chOpts, ok := n.ChannelOpts(ch)
 	if !ok {
-		return ErrNoChannelOptions
+		return PublishResult{}, ErrNoChannelOptions
 	}
 
 	publishOpts := &PublishOptions{}
@@ -476,7 +480,7 @@ func (n *Node) publish(ch string, data []byte, info *ClientInfo, opts ...Publish
 		opt(publishOpts)
 	}
 
-	pub := &Publication{
+	pub := &protocol.Publication{
 		Data: data,
 		Info: info,
 	}
@@ -486,27 +490,46 @@ func (n *Node) publish(ch string, data []byte, info *ClientInfo, opts ...Publish
 	// If history enabled for channel we add Publication to history first and then
 	// publish to Broker.
 	if n.historyManager != nil && !publishOpts.SkipHistory && chOpts.HistorySize > 0 && chOpts.HistoryLifetime > 0 {
-		pub, err := n.historyManager.AddHistory(ch, pub, &chOpts)
+		streamPos, published, err := n.historyManager.AddHistory(ch, pub, &chOpts)
 		if err != nil {
-			return err
+			return PublishResult{}, err
 		}
-		if pub != nil {
+		if !published {
+			pub.Offset = streamPos.Offset
 			// Publication added to history, no need to handle Publish error here.
-			// In this case we rely on the fact that clients will eventually restore
-			// Publication from history.
-			n.broker.Publish(ch, pub, &chOpts)
+			// In this case we rely on the fact that clients will automatically detect
+			// missed publication and restore its state from history on reconnect.
+			_ = n.broker.Publish(ch, pub, &chOpts)
 		}
-		return nil
+		return PublishResult{StreamPosition: streamPos}, nil
 	}
 	// If no history enabled - just publish to Broker. In this case we want to handle
 	// error as message will be lost forever otherwise.
-	return n.broker.Publish(ch, pub, &chOpts)
+	err := n.broker.Publish(ch, pub, &chOpts)
+	return PublishResult{}, err
 }
 
-// Publish sends data to all clients subscribed on channel. All running nodes
-// will receive it and will send it to all clients on node subscribed on channel.
-func (n *Node) Publish(ch string, data []byte, opts ...PublishOption) error {
-	return n.publish(ch, data, nil, opts...)
+// PublishResult ...
+type PublishResult struct {
+	StreamPosition
+}
+
+// Publish sends data to all clients subscribed on channel. All running nodes will
+// receive it and send to all local channel subscribers.
+//
+// Data expected to be valid marshaled JSON or any binary payload.
+// Connections that work over JSON protocol can not handle custom binary payloads.
+// Connections that work over Protobuf protocol can work both with JSON and binary payloads.
+//
+// So the rule here: if you have channel subscribers that work using JSON
+// protocol then you can not publish binary data to these channel.
+//
+// The returned PublishResult contains embedded StreamPosition that describes
+// position inside stream Publication was added too. For channels without history
+// enabled (i.e. when Publications only sent to PUB/SUB system) StreamPosition will
+// be an empty struct (i.e. PublishResult.Offset will be zero).
+func (n *Node) Publish(channel string, data []byte, opts ...PublishOption) (PublishResult, error) {
+	return n.publish(channel, data, nil, opts...)
 }
 
 var (
@@ -517,7 +540,7 @@ var (
 
 // publishJoin allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (n *Node) publishJoin(ch string, join *Join, opts *ChannelOptions) error {
+func (n *Node) publishJoin(ch string, join *protocol.Join, opts *ChannelOptions) error {
 	if opts == nil {
 		chOpts, ok := n.ChannelOpts(ch)
 		if !ok {
@@ -531,7 +554,7 @@ func (n *Node) publishJoin(ch string, join *Join, opts *ChannelOptions) error {
 
 // publishLeave allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (n *Node) publishLeave(ch string, leave *Leave, opts *ChannelOptions) error {
+func (n *Node) publishLeave(ch string, leave *protocol.Leave, opts *ChannelOptions) error {
 	if opts == nil {
 		chOpts, ok := n.ChannelOpts(ch)
 		if !ok {
@@ -545,7 +568,7 @@ func (n *Node) publishLeave(ch string, leave *Leave, opts *ChannelOptions) error
 
 // publishControl publishes message into control channel so all running
 // nodes will receive and handle it.
-func (n *Node) publishControl(cmd *controlproto.Command) error {
+func (n *Node) publishControl(cmd *controlpb.Command) error {
 	messagesSentCountControl.Inc()
 	data, err := n.controlEncoder.EncodeCommand(cmd)
 	if err != nil {
@@ -554,8 +577,8 @@ func (n *Node) publishControl(cmd *controlproto.Command) error {
 	return n.broker.PublishControl(data)
 }
 
-func (n *Node) getMetrics(metrics eagle.Metrics) *controlproto.Metrics {
-	return &controlproto.Metrics{
+func (n *Node) getMetrics(metrics eagle.Metrics) *controlpb.Metrics {
+	return &controlpb.Metrics{
 		Interval: n.config.NodeInfoMetricsAggregateInterval.Seconds(),
 		Items:    metrics.Flatten("."),
 	}
@@ -565,7 +588,7 @@ func (n *Node) getMetrics(metrics eagle.Metrics) *controlproto.Metrics {
 // contains information about current node.
 func (n *Node) pubNode() error {
 	n.mu.RLock()
-	node := &controlproto.Node{
+	node := &controlpb.Node{
 		UID:         n.uid,
 		Name:        n.config.Name,
 		Version:     n.config.Version,
@@ -587,9 +610,9 @@ func (n *Node) pubNode() error {
 
 	params, _ := n.controlEncoder.EncodeNode(node)
 
-	cmd := &controlproto.Command{
+	cmd := &controlpb.Command{
 		UID:    n.uid,
-		Method: controlproto.MethodTypeNode,
+		Method: controlpb.MethodTypeNode,
 		Params: params,
 	}
 
@@ -604,14 +627,14 @@ func (n *Node) pubNode() error {
 // pubUnsubscribe publishes unsubscribe control message to all nodes – so all
 // nodes could unsubscribe user from channel.
 func (n *Node) pubUnsubscribe(user string, ch string) error {
-	unsubscribe := &controlproto.Unsubscribe{
+	unsubscribe := &controlpb.Unsubscribe{
 		User:    user,
 		Channel: ch,
 	}
 	params, _ := n.controlEncoder.EncodeUnsubscribe(unsubscribe)
-	cmd := &controlproto.Command{
+	cmd := &controlpb.Command{
 		UID:    n.uid,
-		Method: controlproto.MethodTypeUnsubscribe,
+		Method: controlpb.MethodTypeUnsubscribe,
 		Params: params,
 	}
 	return n.publishControl(cmd)
@@ -620,13 +643,14 @@ func (n *Node) pubUnsubscribe(user string, ch string) error {
 // pubDisconnect publishes disconnect control message to all nodes – so all
 // nodes could disconnect user from Centrifugo.
 func (n *Node) pubDisconnect(user string, reconnect bool) error {
-	disconnect := &controlproto.Disconnect{
+	// TODO: handle reconnect flag.
+	disconnect := &controlpb.Disconnect{
 		User: user,
 	}
 	params, _ := n.controlEncoder.EncodeDisconnect(disconnect)
-	cmd := &controlproto.Command{
+	cmd := &controlpb.Command{
 		UID:    n.uid,
-		Method: controlproto.MethodTypeDisconnect,
+		Method: controlpb.MethodTypeDisconnect,
 		Params: params,
 	}
 	return n.publishControl(cmd)
@@ -659,7 +683,7 @@ func (n *Node) addSubscription(ch string, c *Client) error {
 	if first {
 		err := n.broker.Subscribe(ch)
 		if err != nil {
-			n.hub.removeSub(ch, c)
+			_, _ = n.hub.removeSub(ch, c)
 			return err
 		}
 	}
@@ -679,7 +703,7 @@ func (n *Node) removeSubscription(ch string, c *Client) error {
 	}
 	if empty {
 		submittedAt := time.Now()
-		n.subDissolver.Submit(func() error {
+		_ = n.subDissolver.Submit(func() error {
 			timeSpent := time.Since(submittedAt)
 			if timeSpent < time.Second {
 				time.Sleep(time.Second - timeSpent)
@@ -698,16 +722,20 @@ func (n *Node) removeSubscription(ch string, c *Client) error {
 }
 
 // nodeCmd handles ping control command i.e. updates information about known nodes.
-func (n *Node) nodeCmd(node *controlproto.Node) error {
+func (n *Node) nodeCmd(node *controlpb.Node) error {
 	n.nodes.add(node)
 	return nil
 }
 
 // Unsubscribe unsubscribes user from channel, if channel is equal to empty
 // string then user will be unsubscribed from all channels.
-func (n *Node) Unsubscribe(user string, ch string) error {
+func (n *Node) Unsubscribe(user string, ch string, opts ...UnsubscribeOption) error {
+	unsubscribeOpts := &UnsubscribeOptions{}
+	for _, opt := range opts {
+		opt(unsubscribeOpts)
+	}
 	// First unsubscribe on this node.
-	err := n.hub.unsubscribe(user, ch)
+	err := n.hub.unsubscribe(user, ch, opts...)
 	if err != nil {
 		return err
 	}
@@ -715,15 +743,19 @@ func (n *Node) Unsubscribe(user string, ch string) error {
 	return n.pubUnsubscribe(user, ch)
 }
 
-// Disconnect allows to close all user connections to Centrifugo.
-func (n *Node) Disconnect(user string, reconnect bool) error {
+// Disconnect allows to close all user connections through all nodes.
+func (n *Node) Disconnect(user string, opts ...DisconnectOption) error {
+	disconnectOpts := &DisconnectOptions{}
+	for _, opt := range opts {
+		opt(disconnectOpts)
+	}
 	// first disconnect user from this node
-	err := n.hub.disconnect(user, reconnect)
+	err := n.hub.disconnect(user, disconnectOpts.Reconnect)
 	if err != nil {
 		return err
 	}
 	// second send disconnect control message to other nodes
-	return n.pubDisconnect(user, reconnect)
+	return n.pubDisconnect(user, disconnectOpts.Reconnect)
 }
 
 // namespaceName returns namespace name from channel if exists.
@@ -753,7 +785,7 @@ func (n *Node) PersonalChannel(user string) string {
 }
 
 // addPresence proxies presence adding to engine.
-func (n *Node) addPresence(ch string, uid string, info *ClientInfo) error {
+func (n *Node) addPresence(ch string, uid string, info *protocol.ClientInfo) error {
 	if n.presenceManager == nil {
 		return nil
 	}
@@ -795,51 +827,71 @@ func (n *Node) PresenceStats(ch string) (PresenceStats, error) {
 	return n.presenceManager.PresenceStats(ch)
 }
 
-// History returns a slice of last messages published into project channel.
-func (n *Node) History(ch string) ([]*Publication, error) {
-	actionCount.WithLabelValues("history").Inc()
+// HistoryResult contains Publications and current stream top StreamPosition.
+type HistoryResult struct {
+	// StreamPosition embedded here describes current stream top offset and epoch.
+	StreamPosition
+	// Publications extracted from history storage according to HistoryFilter.
+	Publications []*Publication
+}
+
+// History allows to extract Publications in channel.
+// The channel must belong to namespace where history is on.
+func (n *Node) History(ch string, opts ...HistoryOption) (HistoryResult, error) {
 	if n.historyManager == nil {
-		return nil, ErrorNotAvailable
+		return HistoryResult{}, ErrorNotAvailable
 	}
-	pubs, _, err := n.historyManager.History(ch, HistoryFilter{
-		Limit: -1,
-		Since: nil,
+	historyOpts := &HistoryOptions{}
+	for _, opt := range opts {
+		opt(historyOpts)
+	}
+	pubs, streamTop, err := n.historyManager.History(ch, HistoryFilter{
+		Limit: historyOpts.Limit,
+		Since: historyOpts.Since,
 	})
-	return pubs, err
+	if err != nil {
+		return HistoryResult{}, err
+	}
+	if hasFlag(CompatibilityFlags, UseSeqGen) {
+		for i := 0; i < len(pubs); i++ {
+			pubs[i].Seq, pubs[i].Gen = recovery.UnpackUint64(pubs[i].Offset)
+		}
+	}
+	return HistoryResult{
+		StreamPosition: streamTop,
+		Publications:   pubs,
+	}, nil
+}
+
+// fullHistory extracts full history in channel.
+func (n *Node) fullHistory(ch string) (HistoryResult, error) {
+	actionCount.WithLabelValues("history_full").Inc()
+	return n.History(ch, WithNoLimit())
 }
 
 // recoverHistory recovers publications since last UID seen by client.
-func (n *Node) recoverHistory(ch string, since RecoveryPosition) ([]*Publication, RecoveryPosition, error) {
-	actionCount.WithLabelValues("recover_history").Inc()
-	if n.historyManager == nil {
-		return nil, RecoveryPosition{}, ErrorNotAvailable
+func (n *Node) recoverHistory(ch string, since StreamPosition) (HistoryResult, error) {
+	actionCount.WithLabelValues("history_recover").Inc()
+	return n.History(ch, WithNoLimit(), Since(since))
+}
+
+// streamTop returns current stream top position for channel.
+func (n *Node) streamTop(ch string) (StreamPosition, error) {
+	actionCount.WithLabelValues("history_stream_top").Inc()
+	historyResult, err := n.History(ch)
+	if err != nil {
+		return StreamPosition{}, err
 	}
-	return n.historyManager.History(ch, HistoryFilter{
-		Limit: -1,
-		Since: &since,
-	})
+	return historyResult.StreamPosition, nil
 }
 
 // RemoveHistory removes channel history.
 func (n *Node) RemoveHistory(ch string) error {
-	actionCount.WithLabelValues("remove_history").Inc()
+	actionCount.WithLabelValues("history_remove").Inc()
 	if n.historyManager == nil {
 		return ErrorNotAvailable
 	}
 	return n.historyManager.RemoveHistory(ch)
-}
-
-// currentRecoveryState returns current recovery state for channel.
-func (n *Node) currentRecoveryState(ch string) (RecoveryPosition, error) {
-	actionCount.WithLabelValues("history_recovery_state").Inc()
-	if n.historyManager == nil {
-		return RecoveryPosition{}, ErrorNotAvailable
-	}
-	_, recoveryPosition, err := n.historyManager.History(ch, HistoryFilter{
-		Limit: 0,
-		Since: nil,
-	})
-	return recoveryPosition, err
 }
 
 // privateChannel checks if channel private. In case of private channel
@@ -894,7 +946,7 @@ type nodeRegistry struct {
 	// currentUID keeps uid of current node
 	currentUID string
 	// nodes is a map with information about known nodes.
-	nodes map[string]controlproto.Node
+	nodes map[string]controlpb.Node
 	// updates track time we last received ping from node. Used to clean up nodes map.
 	updates map[string]int64
 }
@@ -902,14 +954,14 @@ type nodeRegistry struct {
 func newNodeRegistry(currentUID string) *nodeRegistry {
 	return &nodeRegistry{
 		currentUID: currentUID,
-		nodes:      make(map[string]controlproto.Node),
+		nodes:      make(map[string]controlpb.Node),
 		updates:    make(map[string]int64),
 	}
 }
 
-func (r *nodeRegistry) list() []controlproto.Node {
+func (r *nodeRegistry) list() []controlpb.Node {
 	r.mu.RLock()
-	nodes := make([]controlproto.Node, len(r.nodes))
+	nodes := make([]controlpb.Node, len(r.nodes))
 	i := 0
 	for _, info := range r.nodes {
 		nodes[i] = info
@@ -919,20 +971,21 @@ func (r *nodeRegistry) list() []controlproto.Node {
 	return nodes
 }
 
-func (r *nodeRegistry) get(uid string) controlproto.Node {
+func (r *nodeRegistry) get(uid string) controlpb.Node {
 	r.mu.RLock()
 	info := r.nodes[uid]
 	r.mu.RUnlock()
 	return info
 }
 
-func (r *nodeRegistry) add(info *controlproto.Node) {
+func (r *nodeRegistry) add(info *controlpb.Node) {
 	r.mu.Lock()
 	if node, ok := r.nodes[info.UID]; ok {
 		if info.Metrics != nil {
 			r.nodes[info.UID] = *info
 		} else {
 			node.Version = info.Version
+			node.NumChannels = info.NumChannels
 			node.NumClients = info.NumClients
 			node.NumUsers = info.NumUsers
 			node.Uptime = info.Uptime
@@ -1011,17 +1064,17 @@ type brokerEventHandler struct {
 }
 
 // HandlePublication ...
-func (h *brokerEventHandler) HandlePublication(ch string, pub *Publication) error {
+func (h *brokerEventHandler) HandlePublication(ch string, pub *protocol.Publication) error {
 	return h.node.handlePublication(ch, pub)
 }
 
 // HandleJoin ...
-func (h *brokerEventHandler) HandleJoin(ch string, join *Join) error {
+func (h *brokerEventHandler) HandleJoin(ch string, join *protocol.Join) error {
 	return h.node.handleJoin(ch, join)
 }
 
 // HandleLeave ...
-func (h *brokerEventHandler) HandleLeave(ch string, leave *Leave) error {
+func (h *brokerEventHandler) HandleLeave(ch string, leave *protocol.Leave) error {
 	return h.node.handleLeave(ch, leave)
 }
 
