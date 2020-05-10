@@ -18,7 +18,7 @@ All other client libraries except `centrifuge-js`, `centrifuge-go` and `centrifu
 
 It's important to mention that `centrifuge-js`, `centrifuge-go` and `centrifuge-mobile` will continue to work with a server which is using `seq` and `gen` fields for recovery until Centrifugo v3 release. With Centrifugo v3 release those libraries will be updated to only work with `offset` field.
 
-Command `centrifugo genconfig` will now generate config file with `v3_use_offset` option enabled.
+Command `centrifugo genconfig` will now generate config file with `v3_use_offset` option enabled. Documentation has been updated to suggest turning on this option for fresh installations.
 
 Improvements:
 
@@ -31,7 +31,7 @@ Improvements:
 Fixes:
 
 * fix server side subscriptions to private channels (were ignored before)
-* fix `channels` counter update frequency in server `info` – this includes how fast `channels` counter updated in admin web interface (previously `num clients` and `num users` updated once in 5 seconds while `num channels` only once in a minute, now `num channels` updated once in 5 seconds too)
+* fix `channels` counter update frequency in server `info` – this includes how fast `channels` counter updated in admin web interface (previously `num clients` and `num users` updated once in 3 seconds while `num channels` only once in a minute, now `num channels` updated once in 3 seconds too)
 
 This release based on Go 1.14.x
 

@@ -80,14 +80,17 @@ Centrifugo requires configuration file on start. As was mentioned earlier it mus
 
 This is a minimal Centrifugo configuration file:
 
-```javascript
+```json
 {
+  "v3_use_offset": true,
   "token_hmac_secret_key": "<YOUR-SECRET-STRING-HERE>",
-  "api_key": "<YOUR-API-KEY-HERE>"
+  "api_key": "<YOUR-API-KEY-HERE>",
 }
 ```
 
 The only two fields required are **token_hmac_secret_key** and **api_key**. `token_hmac_secret_key` used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](http_api.md). Keep both values in secret and never reveal to clients.
+
+The option `v3_use_offset` turns on using latest client-server protocol `offset` field (will be used by default in Centrifugo v3 so better to use it from start).
 
 ### TOML file
 
@@ -100,6 +103,7 @@ centrifugo --config=config.toml
 Where `config.toml` contains:
 
 ```
+v3_use_offset = true
 token_hmac_secret_key = "<YOUR-SECRET-STRING-HERE>"
 api_key = "<YOUR-API-KEY-HERE>"
 log_level = "debug"
@@ -112,6 +116,7 @@ I.e. the same configuration as JSON file above with one extra option.
 And YAML config also supported. `config.yaml`:
 
 ```
+v3_use_offset: true
 token_hmac_secret_key: "<YOUR-SECRET-STRING-HERE>"
 api_key: "<YOUR-API-KEY-HERE>"
 log_level: debug
@@ -153,32 +158,33 @@ Note that some options can be set via command-line. Command-line options are mor
 
 Let's look at options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see [special chapter](channels.md) to find more information about channels). The following options will affect channel behaviour:
 
-* `publish` – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. By default it's `false`.
+* `publish` (boolean, default `false`) – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. By default it's `false`.
 
-* `subscribe_to_publish` - when `publish` option enabled client can publish into channel without being subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.
+* `subscribe_to_publish` (boolean, default `false`) - when `publish` option enabled client can publish into channel without being subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.
 
-* `anonymous` – this option enables anonymous access (with empty `sub` claim in connection token). In most situations your application works with authenticated users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID. By default `false`.
+* `anonymous` (boolean, default `false`) – this option enables anonymous access (with empty `sub` claim in connection token). In most situations your application works with authenticated users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID.
 
-* `presence` – enable/disable presence information. Presence is an information about clients currently subscribed on channel. By default `false` – i.e. no presence information will be available for channels.
+* `presence` (boolean, default `false`) – enable/disable presence information. Presence is an information about clients currently subscribed on channel. By default this option is off so no presence information will be available for channels.
 
-* `presence_disable_for_client` (available since v2.2.3) – allows to make presence calls available only for server side API. By default `false` – i.e. presence information is available for both client and server side APIs.
+* `presence_disable_for_client` (boolean, default `false`, available since v2.2.3) – allows making presence calls available only for server side API. By default presence information is available for both client and server side APIs.
 
-* `join_leave` – enable/disable sending join(leave) messages when client subscribes on channel (unsubscribes from channel). By default `false`.
+* `join_leave` (boolean, default `false`) – enable/disable sending join(leave) messages when client subscribes on a channel (unsubscribes from channel).
 
-* `history_size` – history size (amount of messages) for channels. As Centrifugo keeps all history messages in memory it's very important to limit maximum amount of messages in channel history to reasonable value. `history_size` defines maximum amount of messages that Centrifugo will keep for **each** channel in namespace during history lifetime (see below). By default history size is `0` - this means that channels will have no history messages at all.
+* `history_size` (integer, default `0`) – history size (amount of messages) for channels. As Centrifugo keeps all history messages in memory it's very important to limit maximum amount of messages in channel history to reasonable value. `history_size` defines maximum amount of messages that Centrifugo will keep for **each** channel in namespace during history lifetime (see below). By default history size is `0` - this means that channels will have no history messages at all.
 
-* `history_lifetime` – interval in seconds how long to keep channel history messages. As all history is storing in memory it is also very important to get rid of old history data for unused (inactive for a long time) channels. By default history lifetime is `0` – this means that channels will have no history messages at all. **So to turn on keeping history messages you should wisely configure both `history_size` and `history_lifetime` options**.
+* `history_lifetime` (integer, default `0`) – interval in seconds how long to keep channel history messages. As all history is storing in memory it is also very important to get rid of old history data for unused (inactive for a long time) channels. By default history lifetime is `0` – this means that channels will have no history messages at all. **So to turn on keeping history messages you should wisely configure both `history_size` and `history_lifetime` options**.
 
-* `history_recover` – boolean option, when enabled Centrifugo will try to recover missed publications while client was disconnected for some reason (bad internet connection for example). By default `false`. This option must be used in conjunction with reasonably configured message history for channel i.e. `history_size` and `history_lifetime` **must be set** (because Centrifugo uses channel history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel (currently Centrifugo returns recovered publications in order and without duplicates but this is implementation detail that can be theoretically changed in future). See more details about how recovery works in [special chapter](recover.md).
+* `history_recover` (boolean, default `0`) – when enabled Centrifugo will try to recover missed publications while client was disconnected for some reason (bad internet connection for example). By default this feature is off. This option must be used in conjunction with reasonably configured message history for channel i.e. `history_size` and `history_lifetime` **must be set** (because Centrifugo uses channel history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel (currently Centrifugo returns recovered publications in order and without duplicates but this is implementation detail that can be theoretically changed in future). See more details about how recovery works in [special chapter](recover.md).
 
-* `history_disable_for_client` (boolean, available since v2.2.3) – allows to make history available only for server side API. By default `false` – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if `history_disable_for_client` is on.
+* `history_disable_for_client` (boolean, default `false`, available since v2.2.3) – allows making history available only for server side API. By default `false` – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if `history_disable_for_client` is on.
 
-* `server_side` (boolean, available since v2.4.0) – when enabled then all client-side subscription requests to channels in namespace will be rejected with `PermissionDenied` error. By default `false`.
+* `server_side` (boolean, default `false`, available since v2.4.0) – when enabled then all client-side subscription requests to channels in namespace will be rejected with `PermissionDenied` error.
 
 Let's look how to set some of these options in config:
 
-```javascript
+```json
 {
+    "v3_use_offset": true,
     "token_hmac_secret_key": "my-secret-key",
     "api_key": "secret-api-key",
     "anonymous": true,

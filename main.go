@@ -185,6 +185,7 @@ func main() {
 			}
 
 			if !viper.GetBool("v3_use_offset") {
+				log.Warn().Msgf("consider migrating to offset protocol field, details: https://github.com/centrifugal/centrifugo/releases/tag/v2.5.0")
 				centrifuge.CompatibilityFlags |= centrifuge.UseSeqGen
 			}
 
@@ -894,10 +895,10 @@ var jsonConfigTemplate = `{
 `
 
 var tomlConfigTemplate = `v3_use_offset = true
-token_hmac_secret_key = {{.TokenSecret}}
-admin_password = {{.AdminPassword}}
-admin_secret = {{.AdminSecret}}
-api_key = {{.APIKey}}
+token_hmac_secret_key = "{{.TokenSecret}}"
+admin_password = "{{.AdminPassword}}"
+admin_secret = "{{.AdminSecret}}"
+api_key = "{{.APIKey}}"
 `
 
 var yamlConfigTemplate = `v3_use_offset: true
