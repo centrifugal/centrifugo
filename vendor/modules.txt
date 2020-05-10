@@ -10,7 +10,7 @@ github.com/FZambia/viper-lite
 github.com/ajstarks/svgo
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/centrifugal/centrifuge v0.8.0
+# github.com/centrifugal/centrifuge v0.8.1-0.20200510075015-d24832cd40bb
 github.com/centrifugal/centrifuge
 github.com/centrifugal/centrifuge/internal/cancelctx
 github.com/centrifugal/centrifuge/internal/clientproto
@@ -27,8 +27,8 @@ github.com/centrifugal/centrifuge/internal/timers
 github.com/centrifugal/protocol
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/cristalhq/jwt/v2 v2.0.0
-github.com/cristalhq/jwt/v2
+# github.com/cristalhq/jwt/v3 v3.0.0
+github.com/cristalhq/jwt/v3
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/gogo/protobuf v1.3.1
@@ -87,8 +87,6 @@ github.com/rs/zerolog
 github.com/rs/zerolog/internal/cbor
 github.com/rs/zerolog/internal/json
 github.com/rs/zerolog/log
-# github.com/satori/go.uuid v1.2.0
-github.com/satori/go.uuid
 # github.com/spf13/cast v1.3.1
 github.com/spf13/cast
 # github.com/spf13/cobra v0.0.7

@@ -69,6 +69,10 @@ func (h esAlg) Algorithm() Algorithm {
 	return h.alg
 }
 
+func (h esAlg) SignSize() int {
+	return 2 * h.curveBits
+}
+
 func (h esAlg) Sign(payload []byte) ([]byte, error) {
 	signed, err := h.sign(payload)
 	if err != nil {
@@ -79,25 +83,18 @@ func (h esAlg) Sign(payload []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	curveBits := h.privateKey.Curve.Params().BitSize
 
+	curveBits := h.privateKey.Curve.Params().BitSize
 	keyBytes := curveBits / 8
 	if curveBits%8 > 0 {
 		keyBytes++
 	}
 
-	// Serialize r and s into big-endian byte slices and round up size to keyBytes.
-	rb := r.Bytes()
-	rbPadded := make([]byte, keyBytes)
-	copy(rbPadded[keyBytes-len(rb):], rb)
-
-	sb := s.Bytes()
-	sbPadded := make([]byte, keyBytes)
-	copy(sbPadded[keyBytes-len(sb):], sb)
-
-	out := append(rbPadded, sbPadded...)
-
-	return out, nil
+	rBytes, sBytes := r.Bytes(), s.Bytes()
+	signature := make([]byte, keyBytes*2)
+	copy(signature[keyBytes-len(rBytes):], rBytes)
+	copy(signature[keyBytes*2-len(sBytes):], sBytes)
+	return signature, nil
 }
 
 func (h esAlg) Verify(payload, signature []byte) error {

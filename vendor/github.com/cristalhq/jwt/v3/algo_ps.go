@@ -78,6 +78,10 @@ type psAlg struct {
 	opts       *rsa.PSSOptions
 }
 
+func (h psAlg) SignSize() int {
+	return h.privateKey.Size()
+}
+
 func (h psAlg) Algorithm() Algorithm {
 	return h.alg
 }

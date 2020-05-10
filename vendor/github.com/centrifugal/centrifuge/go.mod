@@ -6,7 +6,7 @@ require (
 	github.com/FZambia/eagle v0.0.1
 	github.com/FZambia/sentinel v1.1.0
 	github.com/centrifugal/protocol v0.3.3
-	github.com/cristalhq/jwt/v2 v2.0.0
+	github.com/cristalhq/jwt/v3 v3.0.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.3.3 // indirect
 	github.com/gomodule/redigo v1.8.0

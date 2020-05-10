@@ -8,6 +8,7 @@ import (
 // Signer is used to sign tokens.
 type Signer interface {
 	Algorithm() Algorithm
+	SignSize() int
 	Sign(payload []byte) ([]byte, error)
 }
 
@@ -19,6 +20,8 @@ type Verifier interface {
 
 // Algorithm for signing and verifying.
 type Algorithm string
+
+func (a Algorithm) String() string { return string(a) }
 
 // Algorithm names for signing and verifying.
 const (

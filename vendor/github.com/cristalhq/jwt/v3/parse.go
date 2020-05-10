@@ -69,7 +69,7 @@ func ParseAndVerify(raw []byte, verifier Verifier) (*Token, error) {
 	if token.Header().Algorithm != verifier.Algorithm() {
 		return nil, ErrAlgorithmMismatch
 	}
-	if err := verifier.Verify(token.payload, token.signature); err != nil {
+	if err := verifier.Verify(token.Payload(), token.Signature()); err != nil {
 		return nil, err
 	}
 	return token, nil

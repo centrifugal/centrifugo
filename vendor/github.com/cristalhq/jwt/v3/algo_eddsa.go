@@ -36,6 +36,10 @@ func (h edDSAAlg) Algorithm() Algorithm {
 	return h.alg
 }
 
+func (h edDSAAlg) SignSize() int {
+	return ed25519.SignatureSize
+}
+
 func (h edDSAAlg) Sign(payload []byte) ([]byte, error) {
 	return ed25519.Sign(h.privateKey, payload), nil
 }

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cristalhq/jwt/v2"
+	"github.com/cristalhq/jwt/v3"
 )
 
 type tokenVerifierJWT struct {

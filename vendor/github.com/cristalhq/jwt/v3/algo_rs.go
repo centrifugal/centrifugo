@@ -62,6 +62,10 @@ func (h rsAlg) Algorithm() Algorithm {
 	return h.alg
 }
 
+func (h rsAlg) SignSize() int {
+	return h.privateKey.Size()
+}
+
 func (h rsAlg) Sign(payload []byte) ([]byte, error) {
 	signed, err := h.sign(payload)
 	if err != nil {
