@@ -18,8 +18,8 @@ There is a way to enable option to migrate to this version of server and be **fu
 
 Improvements:
 
-* support [Redis Streams](https://redis.io/topics/streams-intro) - radically reduces amount of allocations during recovery in large history streams, this also opens a road to paginate over history stream in future releases, see description of new `redis_streams` option [in Redis engine docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-engine)
-* support [Redis Cluster](https://redis.io/topics/cluster-tutorial), client-side sharding between different Redis Clusters also works, see [in docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-cluster)
+* support [Redis Streams](https://redis.io/topics/streams-intro) - radically reduces amount of memory allocations during recovery in large history streams, this also opens a road to paginate over history stream in future releases, see description of new `redis_streams` option [in Redis engine docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-engine)
+* support [Redis Cluster](https://redis.io/topics/cluster-tutorial), client-side sharding between different Redis Clusters also works, see more [in docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-cluster)
 * faster HMAC-based JWT parsing
 * faster Memory engine, possibility to expire history stream metadata (more [in docs](https://centrifugal.github.io/centrifugo/server/engines/#memory-engine))
 * releases for Centos 8, Debian Buster, Ubuntu Focal Fossa
@@ -27,7 +27,7 @@ Improvements:
 Fixes:
 
 * fix server side subscriptions to private channels (were ignored before)
-* fix `channels` counter update frequency ([commit](https://github.com/centrifugal/centrifuge/commit/23a87fd538e44894f220146ced47a7e946bcf60d)) – this includes how fast `channels` counter updated in admin web interface (previously `num clients` and `num users` updated once in 5 seconds while `num channels` only once in a minute, now `num channels` updated once in 5 seconds too)
+* fix `channels` counter update frequency in server `info` – this includes how fast `channels` counter updated in admin web interface (previously `num clients` and `num users` updated once in 5 seconds while `num channels` only once in a minute, now `num channels` updated once in 5 seconds too)
 
 This release based on Go 1.14.x
 
