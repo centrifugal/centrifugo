@@ -427,6 +427,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#redis-streams" title="Redis Streams" class="md-nav__link">
+    Redis Streams
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#keydb" title="KeyDB" class="md-nav__link">
     KeyDB
   </a>
@@ -933,6 +940,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#redis-streams" title="Redis Streams" class="md-nav__link">
+    Redis Streams
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#keydb" title="KeyDB" class="md-nav__link">
     KeyDB
   </a>
@@ -969,8 +983,8 @@
 <li><a href="#redis-engine">Redis engine</a></li>
 </ul>
 <p>Engine in Centrifugo is responsible for publishing messages between nodes, handle PUB/SUB broker subscriptions, save/retrieve presence and history data.</p>
-<p>By default Centrifugo uses Memory engine. There is also Redis engine available.</p>
-<p>The difference between them - with Memory engine you can start only one node of Centrifugo, while Redis engine allows to run several nodes on different machines and they will be connected via Redis, will know about each other due to Redis and will also keep history and presence data in Redis instead of Centrifugo node process memory so this data can be accessed from each node.</p>
+<p>By default, Centrifugo uses Memory engine. There is also Redis engine available.</p>
+<p>The difference between them - with Memory engine you can start only one node of Centrifugo, while Redis engine allows running several nodes on different machines and they will be connected via Redis, will know about each other due to Redis and will also keep history and presence data in Redis instead of Centrifugo node process memory so this data can be accessed from each node.</p>
 <p>To set engine you can use <code>engine</code> configuration option. Available values are <code>memory</code> and <code>redis</code>. Default value is <code>memory</code>.</p>
 <p>For example to work with Redis engine:</p>
 <div class="codehilite"><pre><span></span>centrifugo --config=config.json --engine=redis
@@ -994,7 +1008,11 @@
 </ul>
 <p>Disadvantages:</p>
 <ul>
-<li>does not allow to scale nodes (actually you still can scale Centrifugo with Memory engine but you have to publish data into each Centrifugo node and you won&rsquo;t have consistent state of presence)</li>
+<li>does not allow scaling nodes (actually you still can scale Centrifugo with Memory engine but you have to publish data into each Centrifugo node and you won&rsquo;t have consistent state of presence)</li>
+</ul>
+<p>Several configuration options related to Memory engine:</p>
+<ul>
+<li><code>memory_history_meta_ttl</code> (int, default <code>0</code>) - sets a time in seconds of history stream metadata expiration. Stream metadata is an information about current offset number in channel and epoch value. By default, metadata for channels does not expire. Though in some cases – when channels created for а short time and then not used anymore – created metadata can stay in memory while not actually useful. For example, you can have a personal user channel but after using your app for a while user left it forever. In long-term perspective this can be an unwanted memory leak. Setting a reasonable value to this option (usually much bigger than history retention period) can help. In this case unused channel metadata will eventually expire. Available since v2.5.0</li>
 </ul>
 <h2 id="redis-engine">Redis engine<a class="headerlink" href="#redis-engine" title="Permanent link">&para;</a></h2>
 <p>Allows scaling Centrifugo nodes to different machines. Nodes will use Redis as message broker. Redis engine keeps presence and history data in Redis, uses Redis PUB/SUB for internal nodes communication.</p>
@@ -1011,7 +1029,8 @@
 <li><code>redis_sentinels</code> (string, default <code>""</code>) - comma separated list of Sentinels for HA</li>
 <li><code>redis_master_name</code> (string, default <code>""</code>) - name of Redis master Sentinel monitors</li>
 <li><code>redis_prefix</code> (string, default <code>"centrifugo"</code>) – custom prefix to use for channels and keys in Redis</li>
-<li><code>redis_sequence_ttl</code> (int, default <code>0</code>) - sets a time in seconds of sequence data expiration in Redis Engine. Sequence meta key in Redis is a HASH that contains current sequence number in channel and epoch value. By default sequence data for channels does not expire. Though in some cases – when channels created for а short time and then not used anymore – created sequence meta data can stay in memory while not actually useful. For example you can have a personal user channel but after using your app for a while user left it forever. In long-term perspective this can be an unwanted memory leak. Setting a reasonable value to this option (usually much bigger than history retention period) can help. In this case unused channel sequence data will eventually expire. Available since v2.3.0</li>
+<li><code>redis_history_meta_ttl</code> (int, default <code>0</code>) - sets a time in seconds of history stream metadata expiration in Redis Engine. Meta key in Redis is a HASH that contains current offset number in channel and epoch value. By default, metadata for channels does not expire. Though in some cases – when channels created for а short time and then not used anymore – created stream metadata can stay in memory while not actually useful. For example, you can have a personal user channel but after using your app for a while user left it forever. In long-term perspective this can be an unwanted memory leak. Setting a reasonable value to this option (usually much bigger than history retention period) can help. In this case unused channel metadata will eventually expire. Available since v2.3.0</li>
+<li><code>redis_streams</code> (boolean, default <code>false</code>) – turns on using Redis Streams instead of List data structure for keeping history</li>
 </ul>
 <p>All of these options can be set over configuration file. Some of them can be set over command-line arguments (see <code>centrifugo -h</code> output).</p>
 <p>Let&rsquo;s describe a bit more <code>redis_url</code> option. <code>redis_url</code> allows to set Redis connection parameters in a form of URL in format <code>redis://:password@hostname:port/db_number</code>. When <code>redis_url</code> set Centrifugo will use URL instead of values provided in <code>redis_host</code>, <code>redis_port</code>, <code>redis_password</code>, <code>redis_db</code> options.</p>
@@ -1103,7 +1122,7 @@ Sentinel configuration.</p>
 <p>Note, that due to how Redis PUB/SUB work it&rsquo;s not possible (and it&rsquo;s pretty useless anyway) to run shards in one Redis instances using different Redis DB numbers.</p>
 <p>When sharding enabled Centrifugo will spread channels and history/presence keys over configured Redis instances using consistent hashing algorithm. At moment we use Jump consistent hash algorithm (see <a href="https://arxiv.org/pdf/1406.2294.pdf">paper</a> and <a href="https://github.com/dgryski/go-jump">implementation</a>)</p>
 <h3 id="redis-cluster">Redis cluster<a class="headerlink" href="#redis-cluster" title="Permanent link">&para;</a></h3>
-<p>Redis cluster is supported since Centrifugo v2.4.1</p>
+<p>Redis cluster supported since Centrifugo v2.5.0</p>
 <p>Running Centrifugo with Redis cluster is simple and can be achieved using <code>redis_cluster_addrs</code> option. This is an array of strings. Each element of array is a comma-separated Redis cluster seed nodes. For example:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
     <span class="err">...</span>
@@ -1137,6 +1156,11 @@ Sentinel configuration.</p>
 </pre></div>
 
 
+<h3 id="redis-streams">Redis Streams<a class="headerlink" href="#redis-streams" title="Permanent link">&para;</a></h3>
+<p>Since Centrifugo v2.5.0 it&rsquo;s possible to use <a href="https://redis.io/topics/streams-intro">Redis Stream</a> data structure to keep Publication history inside channels.</p>
+<p>Redis streams can help to reduce number of memory allocations Centrifugo does during message recovery process upon client reconnect inside large history streams. This can be critical for massive Centrifugo deployments that utilize recovery feature.</p>
+<p>To turn on using Redis streams use boolean option <code>redis_streams</code>, default <code>false</code>.</p>
+<p>Redis Streams can become default data structure to keep Publication history in Centrifugo v3.</p>
 <h3 id="keydb">KeyDB<a class="headerlink" href="#keydb" title="Permanent link">&para;</a></h3>
 <p>Centrifugo Redis engine seamlessly works with <a href="https://keydb.dev/">KeyDB</a>. KeyDB server is compatible with Redis and provides several additional features beyond. </p>
 <p>Though we can&rsquo;t give any promises about compatibility with KeyDB in future Centrifugo releases - while KeyDB is fully compatible with Redis things should work fine. That&rsquo;s why we consider this as <strong>EXPERIMENTAL</strong> feature.</p>

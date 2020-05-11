@@ -383,6 +383,20 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gentoken-command" title="gentoken command" class="md-nav__link">
+    gentoken command
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#checktoken-command" title="checktoken command" class="md-nav__link">
+    checktoken command
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#important-options" title="Important options" class="md-nav__link">
     Important options
   </a>
@@ -1057,6 +1071,20 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gentoken-command" title="gentoken command" class="md-nav__link">
+    gentoken command
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#checktoken-command" title="checktoken command" class="md-nav__link">
+    checktoken command
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#important-options" title="Important options" class="md-nav__link">
     Important options
   </a>
@@ -1235,7 +1263,7 @@
 
 
 <p>You should see something like this as output:</p>
-<div class="codehilite"><pre><span></span>Centrifugo – real-time messaging server
+<div class="codehilite"><pre><span></span>Centrifugo – scalable real-time messaging server in language-agnostic way
 
 Usage:
    [flags]
@@ -1243,13 +1271,16 @@ Usage:
 
 Available Commands:
   checkconfig Check configuration file
-  genconfig   Generate simple configuration file to start with
+  checktoken  Check connection JWT
+  genconfig   Generate minimal configuration file to start with
+  gentoken    Generate sample connection JWT for user
   help        Help about any command
   version     Centrifugo version information
 
 Flags:
   -a, --address string             interface address to listen on
       --admin                      enable admin web interface
+      --admin_external             enable admin web interface on external port
       --admin_insecure             use insecure admin mode – no auth required for admin socket
       --api_insecure               use insecure API mode
       --client_insecure            start in insecure client mode
@@ -1257,7 +1288,14 @@ Flags:
       --debug                      enable debug endpoints
   -e, --engine string              engine to use: memory or redis (default &quot;memory&quot;)
       --grpc_api                   enable GRPC API server
+      --grpc_api_port int          port to bind GRPC API server to (default 10000)
+      --grpc_api_tls               enable TLS for GRPC API server, requires an X509 certificate and a key file
+      --grpc_api_tls_cert string   path to an X509 certificate file for GRPC API server
+      --grpc_api_tls_disable       disable general TLS for GRPC API server
+      --grpc_api_tls_key string    path to an X509 certificate key for GRPC API server
+      --health                     enable health check endpoint
   -h, --help                       help for this command
+      --internal_address string    custom interface address to listen on for internal endpoints
       --internal_port string       custom port for internal endpoints
       --log_file string            optional log file - if not specified logs go to STDOUT
       --log_level string           set the log level: debug, info, error, fatal or none (default &quot;info&quot;)
@@ -1276,6 +1314,7 @@ Flags:
       --redis_url string           Redis connection URL in format redis://:password@hostname:port/db (Redis engine)
       --tls                        enable TLS, requires an X509 certificate and a key file
       --tls_cert string            path to an X509 certificate file
+      --tls_external               enable TLS only for external endpoints
       --tls_key string             path to an X509 certificate key
 </pre></div>
 
@@ -1291,13 +1330,15 @@ Flags:
 <p>Centrifugo requires configuration file on start. As was mentioned earlier it must be a file with valid JSON.</p>
 <p>This is a minimal Centrifugo configuration file:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
-  <span class="s2">&quot;token_hmac_secret_key&quot;</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;</span><span class="p">,</span>
-  <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR-API-KEY-HERE&gt;&quot;</span>
+  <span class="nt">&quot;v3_use_offset&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="nt">&quot;token_hmac_secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;YOUR-API-KEY-HERE&gt;&quot;</span><span class="p">,</span>
 <span class="p">}</span>
 </pre></div>
 
 
 <p>The only two fields required are <strong>token_hmac_secret_key</strong> and <strong>api_key</strong>. <code>token_hmac_secret_key</code> used to check JWT signature (more about JWT in <a href="../authentication/">authentication chapter</a>). API key used for Centrifugo API endpoint authorization, see more in <a href="../http_api/">chapter about server HTTP API</a>. Keep both values in secret and never reveal to clients.</p>
+<p>The option <code>v3_use_offset</code> turns on using latest client-server protocol <code>offset</code> field (will be used by default in Centrifugo v3 so better to use it from start).</p>
 <h3 id="toml-file">TOML file<a class="headerlink" href="#toml-file" title="Permanent link">&para;</a></h3>
 <p>Centrifugo also supports TOML format for configuration file:</p>
 <div class="codehilite"><pre><span></span>centrifugo --config=config.toml
@@ -1305,7 +1346,8 @@ Flags:
 
 
 <p>Where <code>config.toml</code> contains:</p>
-<div class="codehilite"><pre><span></span>token_hmac_secret_key = &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;
+<div class="codehilite"><pre><span></span>v3_use_offset = true
+token_hmac_secret_key = &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;
 api_key = &quot;&lt;YOUR-API-KEY-HERE&gt;&quot;
 log_level = &quot;debug&quot;
 </pre></div>
@@ -1314,9 +1356,10 @@ log_level = &quot;debug&quot;
 <p>I.e. the same configuration as JSON file above with one extra option.</p>
 <h3 id="yaml-file">YAML file<a class="headerlink" href="#yaml-file" title="Permanent link">&para;</a></h3>
 <p>And YAML config also supported. <code>config.yaml</code>:</p>
-<div class="codehilite"><pre><span></span>token_hmac_secret_key: &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;
-api_key: &quot;&lt;YOUR-API-KEY-HERE&gt;&quot;
-log_level: debug
+<div class="codehilite"><pre><span></span><span class="n">v3_use_offset</span><span class="o">:</span> <span class="kc">true</span>
+<span class="n">token_hmac_secret_key</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;</span>
+<span class="n">api_key</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR-API-KEY-HERE&gt;&quot;</span>
+<span class="n">log_level</span><span class="o">:</span> <span class="n">debug</span>
 </pre></div>
 
 
@@ -1335,6 +1378,29 @@ log_level: debug
 
 
 <p>It will automatically generate the minimal required configuration file.</p>
+<p>If any errors happen – program will exit with error message and exit code 1.</p>
+<h3 id="gentoken-command">gentoken command<a class="headerlink" href="#gentoken-command" title="Permanent link">&para;</a></h3>
+<p>Another command is <code>gentoken</code>:</p>
+<div class="codehilite"><pre><span></span>centrifugo gentoken -c config.json -u 28282
+</pre></div>
+
+
+<p>It will automatically generate HMAC SHA-256 based token for user with ID <code>28282</code> (which expires in 1 week).</p>
+<p>You can change token TTL with <code>-t</code> flag (number of seconds):</p>
+<div class="codehilite"><pre><span></span>centrifugo gentoken -c config.json -u 28282 -t 3600
+</pre></div>
+
+
+<p>This way generated token will be valid for 1 hour.</p>
+<p>If any errors happen – program will exit with error message and exit code 1.</p>
+<h3 id="checktoken-command">checktoken command<a class="headerlink" href="#checktoken-command" title="Permanent link">&para;</a></h3>
+<p>One more command is <code>checktoken</code>:</p>
+<div class="codehilite"><pre><span></span>centrifugo checktoken -c config.json &lt;TOKEN&gt;
+</pre></div>
+
+
+<p>It will validate your connection JWT, so you can test it before using while developing application.</p>
+<p>If any errors happen or validation failed – program will exit with error message and exit code 1.</p>
 <h3 id="important-options">Important options<a class="headerlink" href="#important-options" title="Permanent link">&para;</a></h3>
 <p>Some of the most important options you can configure when running Centrifugo:</p>
 <ul>
@@ -1347,51 +1413,52 @@ log_level: debug
 <p>Let&rsquo;s look at options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see <a href="../channels/">special chapter</a> to find more information about channels). The following options will affect channel behaviour:</p>
 <ul>
 <li>
-<p><code>publish</code> – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. By default it&rsquo;s <code>false</code>.</p>
+<p><code>publish</code> (boolean, default <code>false</code>) – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. By default it&rsquo;s <code>false</code>.</p>
 </li>
 <li>
-<p><code>subscribe_to_publish</code> - when <code>publish</code> option enabled client can publish into channel without being subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.</p>
+<p><code>subscribe_to_publish</code> (boolean, default <code>false</code>) - when <code>publish</code> option enabled client can publish into channel without being subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.</p>
 </li>
 <li>
-<p><code>anonymous</code> – this option enables anonymous access (with empty <code>sub</code> claim in connection token). In most situations your application works with authenticated users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID. By default <code>false</code>.</p>
+<p><code>anonymous</code> (boolean, default <code>false</code>) – this option enables anonymous access (with empty <code>sub</code> claim in connection token). In most situations your application works with authenticated users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID.</p>
 </li>
 <li>
-<p><code>presence</code> – enable/disable presence information. Presence is an information about clients currently subscribed on channel. By default <code>false</code> – i.e. no presence information will be available for channels.</p>
+<p><code>presence</code> (boolean, default <code>false</code>) – enable/disable presence information. Presence is an information about clients currently subscribed on channel. By default this option is off so no presence information will be available for channels.</p>
 </li>
 <li>
-<p><code>presence_disable_for_client</code> (available since v2.2.3) – allows to make presence calls available only for server side API. By default <code>false</code> – i.e. presence information is available for both client and server side APIs.</p>
+<p><code>presence_disable_for_client</code> (boolean, default <code>false</code>, available since v2.2.3) – allows making presence calls available only for server side API. By default presence information is available for both client and server side APIs.</p>
 </li>
 <li>
-<p><code>join_leave</code> – enable/disable sending join(leave) messages when client subscribes on channel (unsubscribes from channel). By default <code>false</code>.</p>
+<p><code>join_leave</code> (boolean, default <code>false</code>) – enable/disable sending join(leave) messages when client subscribes on a channel (unsubscribes from channel).</p>
 </li>
 <li>
-<p><code>history_size</code> – history size (amount of messages) for channels. As Centrifugo keeps all history messages in memory it&rsquo;s very important to limit maximum amount of messages in channel history to reasonable value. <code>history_size</code> defines maximum amount of messages that Centrifugo will keep for <strong>each</strong> channel in namespace during history lifetime (see below). By default history size is <code>0</code> - this means that channels will have no history messages at all.</p>
+<p><code>history_size</code> (integer, default <code>0</code>) – history size (amount of messages) for channels. As Centrifugo keeps all history messages in memory it&rsquo;s very important to limit maximum amount of messages in channel history to reasonable value. <code>history_size</code> defines maximum amount of messages that Centrifugo will keep for <strong>each</strong> channel in namespace during history lifetime (see below). By default history size is <code>0</code> - this means that channels will have no history messages at all.</p>
 </li>
 <li>
-<p><code>history_lifetime</code> – interval in seconds how long to keep channel history messages. As all history is storing in memory it is also very important to get rid of old history data for unused (inactive for a long time) channels. By default history lifetime is <code>0</code> – this means that channels will have no history messages at all. <strong>So to turn on keeping history messages you should wisely configure both <code>history_size</code> and <code>history_lifetime</code> options</strong>.</p>
+<p><code>history_lifetime</code> (integer, default <code>0</code>) – interval in seconds how long to keep channel history messages. As all history is storing in memory it is also very important to get rid of old history data for unused (inactive for a long time) channels. By default history lifetime is <code>0</code> – this means that channels will have no history messages at all. <strong>So to turn on keeping history messages you should wisely configure both <code>history_size</code> and <code>history_lifetime</code> options</strong>.</p>
 </li>
 <li>
-<p><code>history_recover</code> – boolean option, when enabled Centrifugo will try to recover missed publications while client was disconnected for some reason (bad internet connection for example). By default <code>false</code>. This option must be used in conjunction with reasonably configured message history for channel i.e. <code>history_size</code> and <code>history_lifetime</code> <strong>must be set</strong> (because Centrifugo uses channel history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel (currently Centrifugo returns recovered publications in order and without duplicates but this is implementation detail that can be theoretically changed in future). See more details about how recovery works in <a href="../recover/">special chapter</a>.</p>
+<p><code>history_recover</code> (boolean, default <code>false</code>) – when enabled Centrifugo will try to recover missed publications while client was disconnected for some reason (bad internet connection for example). By default this feature is off. This option must be used in conjunction with reasonably configured message history for channel i.e. <code>history_size</code> and <code>history_lifetime</code> <strong>must be set</strong> (because Centrifugo uses channel history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel (currently Centrifugo returns recovered publications in order and without duplicates but this is implementation detail that can be theoretically changed in future). See more details about how recovery works in <a href="../recover/">special chapter</a>.</p>
 </li>
 <li>
-<p><code>history_disable_for_client</code> (boolean, available since v2.2.3) – allows to make history available only for server side API. By default <code>false</code> – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if <code>history_disable_for_client</code> is on.</p>
+<p><code>history_disable_for_client</code> (boolean, default <code>false</code>, available since v2.2.3) – allows making history available only for server side API. By default <code>false</code> – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if <code>history_disable_for_client</code> is on.</p>
 </li>
 <li>
-<p><code>server_side</code> (boolean, available since v2.4.0) – when enabled then all client-side subscription requests to channels in namespace will be rejected with <code>PermissionDenied</code> error. By default <code>false</code>.</p>
+<p><code>server_side</code> (boolean, default <code>false</code>, available since v2.4.0) – when enabled then all client-side subscription requests to channels in namespace will be rejected with <code>PermissionDenied</code> error.</p>
 </li>
 </ul>
 <p>Let&rsquo;s look how to set some of these options in config:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;token_hmac_secret_key&quot;</span><span class="o">:</span> <span class="s2">&quot;my-secret-key&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;anonymous&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="s2">&quot;publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="s2">&quot;subscribe_to_publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="s2">&quot;presence&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="s2">&quot;join_leave&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="s2">&quot;history_size&quot;</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span>
-    <span class="s2">&quot;history_lifetime&quot;</span><span class="o">:</span> <span class="mi">300</span><span class="p">,</span>
-    <span class="s2">&quot;history_recover&quot;</span><span class="o">:</span> <span class="kc">true</span>
+    <span class="nt">&quot;v3_use_offset&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;token_hmac_secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;my-secret-key&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;anonymous&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;subscribe_to_publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;presence&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;join_leave&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;history_size&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="nt">&quot;history_lifetime&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
+    <span class="nt">&quot;history_recover&quot;</span><span class="p">:</span> <span class="kc">true</span>
 <span class="p">}</span>
 </pre></div>
 
@@ -1408,27 +1475,28 @@ channel name with <code>:</code> as separator:</p>
 <p>Where <code>public</code> and <code>gossips</code> are namespace names from project <code>namespaces</code>.</p>
 <p>All things together here is an example of <code>config.json</code> which includes registered project with all options set and 2 additional namespaces in it:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
-    <span class="s2">&quot;token_hmac_secret_key&quot;</span><span class="o">:</span> <span class="s2">&quot;very-long-secret-key&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;anonymous&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="s2">&quot;publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="s2">&quot;presence&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="s2">&quot;join_leave&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="s2">&quot;history_size&quot;</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span>
-    <span class="s2">&quot;history_lifetime&quot;</span><span class="o">:</span> <span class="mi">30</span><span class="p">,</span>
-    <span class="s2">&quot;namespaces&quot;</span><span class="o">:</span> <span class="p">[</span>
+    <span class="nt">&quot;v3_use_offset&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;token_hmac_secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;very-long-secret-key&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;anonymous&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;presence&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;join_leave&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;history_size&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="nt">&quot;history_lifetime&quot;</span><span class="p">:</span> <span class="mi">30</span><span class="p">,</span>
+    <span class="nt">&quot;namespaces&quot;</span><span class="p">:</span> <span class="p">[</span>
         <span class="p">{</span>
-          <span class="s2">&quot;name&quot;</span><span class="o">:</span> <span class="s2">&quot;public&quot;</span><span class="p">,</span>
-          <span class="s2">&quot;publish&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-          <span class="s2">&quot;anonymous&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-          <span class="s2">&quot;history_size&quot;</span><span class="o">:</span> <span class="mi">10</span><span class="p">,</span>
-          <span class="s2">&quot;history_lifetime&quot;</span><span class="o">:</span> <span class="mi">300</span><span class="p">,</span>
-          <span class="s2">&quot;history_recover&quot;</span><span class="o">:</span> <span class="kc">true</span>
+          <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;public&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+          <span class="nt">&quot;anonymous&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+          <span class="nt">&quot;history_size&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+          <span class="nt">&quot;history_lifetime&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
+          <span class="nt">&quot;history_recover&quot;</span><span class="p">:</span> <span class="kc">true</span>
         <span class="p">},</span>
         <span class="p">{</span>
-          <span class="s2">&quot;name&quot;</span><span class="o">:</span> <span class="s2">&quot;gossips&quot;</span><span class="p">,</span>
-          <span class="s2">&quot;presence&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
-          <span class="s2">&quot;join_leave&quot;</span><span class="o">:</span> <span class="kc">true</span>
+          <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;gossips&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;presence&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+          <span class="nt">&quot;join_leave&quot;</span><span class="p">:</span> <span class="kc">true</span>
         <span class="p">}</span>
     <span class="p">]</span>
 <span class="p">}</span>

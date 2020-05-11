@@ -896,13 +896,13 @@
                 
                 
                 <h1 id="channels">Channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h1>
-<p>Channel is a route for publication messages. Clients can subscribe to channel to receive events related to this channel – new publications, join/leave events etc. Also client must be subscribed on channel to get channel presence or history information.</p>
+<p>Channel is a route for publication messages. Clients can subscribe to channel to receive messages published to this channel – new publications, join/leave events (if enabled for a channel namespace) etc. Channel subscriber can ask for channel presence or channel history information (if enabled for a channel namespace) .</p>
 <p>Channel is just a string - <code>news</code>, <code>comments</code> are valid channel names.</p>
-<p>Channel is an ephemeral entity – you don&rsquo;t need to create it explicitly. Channel created automatically by Centrifugo as soon as first client subscribes to it. And as soon as last subscriber leaves channel - it&rsquo;s automatically deleted.</p>
+<p>Channel is an ephemeral entity – <strong>you don&rsquo;t need to create it explicitly</strong>. Channel created automatically by Centrifugo as soon as first client subscribes to it. As soon as last subscriber leaves channel - it&rsquo;s automatically cleaned up.</p>
 <h3 id="channel-name-rules">Channel name rules<a class="headerlink" href="#channel-name-rules" title="Permanent link">&para;</a></h3>
 <p>Only ASCII symbols must be used in channel string.</p>
-<p>Channel name length is limited by <code>255</code> characters by default (can be changed via configuration file option <code>channel_max_length</code>).</p>
-<p>Several symbols in channel names are reserved for Centrifugo internal needs:</p>
+<p>Channel name length limited by <code>255</code> characters by default (can be changed via configuration file option <code>channel_max_length</code>).</p>
+<p>Several symbols in channel names reserved for Centrifugo internal needs:</p>
 <ul>
 <li><code>:</code> – for namespace channel boundary (see below)</li>
 <li><code>$</code> – for private channel prefix (see below)</li>
@@ -915,10 +915,12 @@
 <p><code>:</code> – is a channel namespace boundary.</p>
 <p>If channel is <code>public:chat</code> - then Centrifugo will apply options to this channel from channel namespace with name <code>public</code>.</p>
 <h3 id="private-channel-prefix">private channel prefix ($)<a class="headerlink" href="#private-channel-prefix" title="Permanent link">&para;</a></h3>
-<p>If channel starts with <code>$</code> then it considered private. Subscription on private channel must be properly signed by your web application. Read <a href="../private_channels/">special chapter in docs</a> about private channel subscriptions.</p>
+<p>If channel starts with <code>$</code> then it considered private. Subscription on a private channel must be properly signed by your web application.</p>
+<p>For example <code>$secrets</code> is a private channel, <code>$public:chat</code> - is a private channel that belongs namespace <code>public</code>.</p>
+<p>Read <a href="../private_channels/">special chapter in docs</a> about private channel subscriptions.</p>
 <h3 id="user-channel-boundary">user channel boundary (#)<a class="headerlink" href="#user-channel-boundary" title="Permanent link">&para;</a></h3>
 <p><code>#</code> – is a user channel boundary. This is a separator to create private channels for users (user limited channels) without sending POST request to your web application. For example if channel is <code>news#42</code> then only user with ID <code>42</code> can subscribe on this channel (Centrifugo knows user ID as clients provide it in connection credentials).</p>
-<p>Moreover you can provide several user IDs in channel name separated by comma: <code>dialog#42,43</code> – in this case only user with ID <code>42</code> and user with ID <code>43</code> will be able to subscribe on this channel.</p>
+<p>Moreover, you can provide several user IDs in channel name separated by a comma: <code>dialog#42,43</code> – in this case only user with ID <code>42</code> and user with ID <code>43</code> will be able to subscribe on this channel.</p>
 <p>This is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.</p>
                 
                   

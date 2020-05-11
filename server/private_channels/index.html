@@ -965,12 +965,12 @@
                 
                 <h1 id="private-channels">Private channels<a class="headerlink" href="#private-channels" title="Permanent link">&para;</a></h1>
 <p>In channels chapter we mentioned private channels. This chapter has more information about private channel mechanism in Centrifugo.</p>
-<p>All channels starting with <code>$</code> considered private. In this case your backend should additionally provide token for subscription request. The way how this token is obtained varies depending on client implementation.</p>
-<p>For example in Javascript client AJAX POST request is automatically sent to <code>/centrifuge/subscribe</code> endpoint on every private channel subscription attempt. Other client libraries can provide a hook for your custom code that will obtain private channel subscription token from application backend.</p>
+<p>All channels starting with <code>$</code> considered private. In this case your backend should additionally provide token for subscription request. The way how this token obtained varies depending on client implementation.</p>
+<p>For example in Javascript client AJAX POST request automatically sent to <code>/centrifuge/subscribe</code> endpoint on every private channel subscription attempt. Other client libraries can provide a hook for your custom code that will obtain private channel subscription token from application backend.</p>
 <p>Private channel subscription token is also JWT (like connection token described in <a href="../authentication/">authentication chapter</a>). But it has different claims.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Connection token and private channel subscription token are different entities. Though both are JWT and you can generate them using any JWT library.</p>
+<p>Connection token and private channel subscription token are different entities. Though both are JWT, and you can generate them using any JWT library.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -980,10 +980,11 @@
 <p class="admonition-title">Note</p>
 <p>When you need to use namespace for private channel then the name of namespace should be written after <code>$</code> symbol, i.e. if you have namespace name <code>chat</code> then private channel which belongs to that namespace must be written as sth like <code>$chat:stream</code>.</p>
 </div>
+<p>Supported JWT algorithms for private subscription tokens match algorithms to create connection JWT.</p>
 <h2 id="claims">Claims<a class="headerlink" href="#claims" title="Permanent link">&para;</a></h2>
 <p>Private channel subscription token claims are: <code>client</code>, <code>channel</code>, <code>info</code>, <code>b64info</code>, <code>exp</code> and <code>eto</code>. What do they mean? Let&rsquo;s describe in detail.</p>
 <h3 id="client">client<a class="headerlink" href="#client" title="Permanent link">&para;</a></h3>
-<p>Required. Client ID which wants to subscribe on channel (<strong>string</strong>).</p>
+<p>Required. Client ID which wants to subscribe on a channel (<strong>string</strong>).</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Centrifugo server sets a unique client ID for each incoming connection. This client ID regenerated on every reconnect. You must use this client ID for private channel subscription token. 
@@ -992,17 +993,17 @@ If you are using <a href="https://github.com/centrifugal/centrifuge-js">centrifu
 <h3 id="channel">channel<a class="headerlink" href="#channel" title="Permanent link">&para;</a></h3>
 <p>Required. Channel that client tries to subscribe to (<strong>string</strong>).</p>
 <h3 id="info">info<a class="headerlink" href="#info" title="Permanent link">&para;</a></h3>
-<p>Optional. Additional information for connection regarding to channel (<strong>valid JSON</strong>).</p>
+<p>Optional. Additional information for connection inside this channel (<strong>valid JSON</strong>).</p>
 <h3 id="b64info">b64info<a class="headerlink" href="#b64info" title="Permanent link">&para;</a></h3>
-<p>Optional. Additional information for connection regarding to channel in base64 format (<strong>string</strong>).</p>
+<p>Optional. Additional information for connection inside this channel in base64 format (<strong>string</strong>).</p>
 <h3 id="exp">exp<a class="headerlink" href="#exp" title="Permanent link">&para;</a></h3>
 <p>Optional. This is standard JWT claim that allows to set private channel subscription token expiration time.</p>
 <p>At moment if subscription token expires client connection will be closed and client will try to reconnect. In most cases you don&rsquo;t need this and should prefer using <code>exp</code> of connection token to deactivate connection. But if you need more granular per-channel control this may fit your needs.</p>
 <p>Once <code>exp</code> set in token every subscription token must be periodically refreshed. Refer to specific client documentation in order to see how to refresh subscription tokens.</p>
 <h3 id="eto">eto<a class="headerlink" href="#eto" title="Permanent link">&para;</a></h3>
-<p>Optional. <code>eto</code> boolean flag can be used to indicate that Centrifugo must only check token expiration but not turn on Subscription expiration checks on server side. This allows to implement one-time subcription tokens.</p>
+<p>Optional. An <code>eto</code> boolean flag can be used to indicate that Centrifugo must only check token expiration but not turn on Subscription expiration checks on server side. This allows to implement one-time subcription tokens.</p>
 <h2 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h2>
-<p>So to generate subscription token you can use smth like this in Python (assuming client ID is <code>XXX</code> and private channel is <code>$gossips</code>):</p>
+<p>So to generate subscription token you can use something like this in Python (assuming client ID is <code>XXX</code> and private channel is <code>$gossips</code>):</p>
 <div class="codehilite"><pre><span></span><span class="kn">import</span> <span class="nn">jwt</span>
 
 <span class="n">token</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">({</span><span class="s2">&quot;client&quot;</span><span class="p">:</span> <span class="s2">&quot;XXX&quot;</span><span class="p">,</span> <span class="s2">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;$gossips&quot;</span><span class="p">},</span> <span class="s2">&quot;secret&quot;</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="s2">&quot;HS256&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
@@ -1011,7 +1012,7 @@ If you are using <a href="https://github.com/centrifugal/centrifuge-js">centrifu
 </pre></div>
 
 
-<p>Again - the same <code>secret</code> from Centrifugo configuration is used to generate private channel JWT as was used to generate connection JWT. And as with connection JWT only <code>HS256 and RSA</code> algorithms are supported at moment. But for RSA tokens you need to use private key known only by your backend.</p>
+<p>Where <code>"secret"</code> is the <code>token_hmac_secret_key</code> from Centrifugo configuration (we use HMAC tokens in this example which relies on shared secret key, for RSA tokens you need to use private key known only by your backend).</p>
                 
                   
                 

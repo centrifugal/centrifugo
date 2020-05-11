@@ -1024,16 +1024,16 @@
 <p>We will use Javascript Centrifugo client here for example snippets for client side and <a href="https://github.com/jpadilla/pyjwt">PyJWT</a> Python library to generate connection token on backend side.</p>
 <p>To add HMAC secret key to Centrifugo add <code>token_hmac_secret_key</code> to configuration file:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
-  <span class="s2">&quot;token_hmac_secret_key&quot;</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;</span><span class="p">,</span>
-  <span class="p">...</span>
+  <span class="nt">&quot;token_hmac_secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;</span><span class="p">,</span>
+  <span class="err">...</span>
 <span class="p">}</span>
 </pre></div>
 
 
 <p>To add RSA public key (must be PEM encoded string) add <code>token_rsa_public_key</code> option, ex:</p>
 <div class="codehilite"><pre><span></span><span class="p">{</span>
-  <span class="s2">&quot;token_rsa_public_key&quot;</span><span class="o">:</span> <span class="s2">&quot;-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZ...&quot;</span><span class="p">,</span>
-  <span class="p">...</span>
+  <span class="nt">&quot;token_rsa_public_key&quot;</span><span class="p">:</span> <span class="s2">&quot;-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZ...&quot;</span><span class="p">,</span>
+  <span class="err">...</span>
 <span class="p">}</span>
 </pre></div>
 

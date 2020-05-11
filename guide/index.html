@@ -265,9 +265,94 @@
       
     
     
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Integration Guide
+      </label>
+    
     <a href="./" title="Integration Guide" class="md-nav__link md-nav__link--active">
       Integration Guide
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-install" title="1. Install" class="md-nav__link">
+    1. Install
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-configure-centrifugo" title="2. Configure Centrifugo" class="md-nav__link">
+    2. Configure Centrifugo
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-configure-your-backend" title="3. Configure your backend" class="md-nav__link">
+    3. Configure your backend
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-connect-to-centrifugo" title="4. Connect to Centrifugo" class="md-nav__link">
+    4. Connect to Centrifugo
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-subscribe-to-channels" title="5. Subscribe to channels" class="md-nav__link">
+    5. Subscribe to channels
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-publish-to-channel" title="6. Publish to channel" class="md-nav__link">
+    6. Publish to channel
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-deploy-to-production" title="7. Deploy to production" class="md-nav__link">
+    7. Deploy to production
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-monitor-centrifugo" title="8. Monitor Centrifugo" class="md-nav__link">
+    8. Monitor Centrifugo
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-read-faq" title="9. Read FAQ" class="md-nav__link">
+    9. Read FAQ
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
     
   </li>
 
@@ -793,6 +878,78 @@
     
   
   
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-install" title="1. Install" class="md-nav__link">
+    1. Install
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-configure-centrifugo" title="2. Configure Centrifugo" class="md-nav__link">
+    2. Configure Centrifugo
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-configure-your-backend" title="3. Configure your backend" class="md-nav__link">
+    3. Configure your backend
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-connect-to-centrifugo" title="4. Connect to Centrifugo" class="md-nav__link">
+    4. Connect to Centrifugo
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-subscribe-to-channels" title="5. Subscribe to channels" class="md-nav__link">
+    5. Subscribe to channels
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-publish-to-channel" title="6. Publish to channel" class="md-nav__link">
+    6. Publish to channel
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-deploy-to-production" title="7. Deploy to production" class="md-nav__link">
+    7. Deploy to production
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-monitor-centrifugo" title="8. Monitor Centrifugo" class="md-nav__link">
+    8. Monitor Centrifugo
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-read-faq" title="9. Read FAQ" class="md-nav__link">
+    9. Read FAQ
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -807,27 +964,37 @@
                 
                 
                 <h1 id="centrifugo-integration-guide">Centrifugo integration guide<a class="headerlink" href="#centrifugo-integration-guide" title="Permanent link">&para;</a></h1>
-<p>This chapter aims to help you get started with Centrifugo. We will look at step-by-step workflow of integrating your application with Centrifugo providing links to relevant parts of this documentation.</p>
+<p>This chapter aims to help you get started with Centrifugo. We will look at a step-by-step workflow of integrating your application with Centrifugo providing links to relevant parts of this documentation.</p>
 <p>As Centrifugo is language-agnostic and can be used together with any language/framework we won&rsquo;t be specific here about any backend or frontend technology your application can be built with. Only abstract steps which you can extrapolate to your stack.</p>
-<p>So first of all let&rsquo;s look again at simplified scheme:</p>
+<p>So first of all let&rsquo;s look again at a simplified scheme:</p>
 <p><img alt="Centrifugo scheme" src="../images/scheme.png" /></p>
 <p>There are three parts involved into idiomatic Centrifugo usage scenario: your clients (frontend app), your application backend and Centrifugo. It&rsquo;s possible to use Centrifugo without any application backend involved but here we won&rsquo;t consider this use case. </p>
 <p>Here let&rsquo;s suppose you already have 2 of 3 elements: clients and backend. And you want to add Centrifugo for real-time events.</p>
-<p>1) First you need to do is download/install Centrifugo server. See <a href="../server/install/">install</a> chapter for details.</p>
-<p>2) Create basic configuration file with <code>token_hmac_secret_key</code> (or <code>token_rsa_public_key</code>) and <code>api_key</code> set and then run Centrifugo. See <a href="../server/configuration/">this chapter</a> for details about <code>token_hmac_secret_key</code>/<code>token_rsa_public_key</code>  and <a href="../server/http_api/">chapter about API</a> for API description. The simplest way to do this automatically is by using <code>genconfig</code> command:</p>
+<h2 id="1-install">1. Install<a class="headerlink" href="#1-install" title="Permanent link">&para;</a></h2>
+<p>First you need to do is download/install Centrifugo server. See <a href="../server/install/">install</a> chapter for details.</p>
+<h2 id="2-configure-centrifugo">2. Configure Centrifugo<a class="headerlink" href="#2-configure-centrifugo" title="Permanent link">&para;</a></h2>
+<p>Create basic configuration file with <code>token_hmac_secret_key</code> (or <code>token_rsa_public_key</code>) and <code>api_key</code> set and then run Centrifugo. See <a href="../server/configuration/">this chapter</a> for details about <code>token_hmac_secret_key</code>/<code>token_rsa_public_key</code> and <a href="../server/http_api/">chapter about API</a> for API description. The simplest way to do this automatically is by using <code>genconfig</code> command:</p>
 <div class="codehilite"><pre><span></span>./centrifugo genconfig
 </pre></div>
 
 
 <p>– which will generate <code>config.json</code> file for you with all required fields.</p>
-<p>3) In configuration file <strong>of your application backend</strong> register several variables: Centrifugo secret and Centrifugo API key you set on previous step and Centrifugo API address. By default API address is <code>http://localhost:8000/api</code>. You <strong>must never reveal token secret and API key to your users</strong>.</p>
-<p>4) Now your users can start connecting to Centrifugo. You should get client library (see <a href="../libraries/client/">list of available client libraries</a>) for your application frontend. Every library has method to connect to Centrifugo. See information about Centrifugo connection endpoints <a href="https://centrifugal.github.io/centrifugo/server/configuration/#advanced-endpoint-configuration">here</a>. Every client should provide connection token (JWT) on connect. You must generate this token on your backend side using Centrifugo secret key you set to backend configuration (note that in case of RSA tokens you are generating JWT with private key). See how to generate this JWT <a href="../server/authentication/">in special chapter</a>. You pass this token from backend to your frontend app (pass it in template context or use separate request from client side to get user specific JWT from backend side). And use this token when connecting to Centrifugo (for example browser client has special method <code>setToken</code>).</p>
+<p>A generated configuration also includes <code>v3_use_offset</code> option set to <code>true</code>. This is an option that enables using actual <code>offset</code> field in client-server protocol and will be used by default in Centrifugo v3. This option available since Centrifugo v2.5.0 and described in detail <a href="https://github.com/centrifugal/centrifugo/releases/tag/v2.5.0">in v2.5.0 release notes</a>.</p>
+<h2 id="3-configure-your-backend">3. Configure your backend<a class="headerlink" href="#3-configure-your-backend" title="Permanent link">&para;</a></h2>
+<p>In configuration file <strong>of your application backend</strong> register several variables: Centrifugo secret and Centrifugo API key you set on a previous step and Centrifugo API address. By default, API address is <code>http://localhost:8000/api</code>. You <strong>must never reveal token secret and API key to your users</strong>.</p>
+<h2 id="4-connect-to-centrifugo">4. Connect to Centrifugo<a class="headerlink" href="#4-connect-to-centrifugo" title="Permanent link">&para;</a></h2>
+<p>Now your users can start connecting to Centrifugo. You should get client library (see <a href="../libraries/client/">list of available client libraries</a>) for your application frontend. Every library has method to connect to Centrifugo. See information about Centrifugo connection endpoints <a href="https://centrifugal.github.io/centrifugo/server/configuration/#advanced-endpoint-configuration">here</a>. Every client should provide connection token (JWT) on connect. You must generate this token on your backend side using Centrifugo secret key you set to backend configuration (note that in case of RSA tokens you are generating JWT with private key). See how to generate this JWT <a href="../server/authentication/">in special chapter</a>. You pass this token from backend to your frontend app (pass it in template context or use separate request from client side to get user specific JWT from backend side). And use this token when connecting to Centrifugo (for example browser client has special method <code>setToken</code>).</p>
 <p>Since Centrifugo v2.3.0 there is a way to authenticate connections without using JWT - see <a href="../server/proxy/">chapter about proxying to backend</a>.</p>
-<p>5) After connecting to Centrifugo subscribe clients to channels they are interested in. See more about channels in <a href="../server/channels/">special chapter</a>. All client libraries provide a way to handle messages coming to client from channel after subscribing to it.</p>
-<p>Since Centrifugo v2.4.0 there is a way to subscribe connection to a list of channels on server side at the moment of connection establishement. See chapter about <a href="../server/server_subs/">server-side subscriptions</a>.</p>
-<p>6) So everything should work now – as soon as user opens some page of your application it must successfully connect to Centrifugo and subscribe to channel (or channels). Now let&rsquo;s imagine you want to send real-time message to users subscribed on specific channel. This message can be a reaction on some event happened in your app: someone posted new comment, administrator just created new post, user pressed like button etc. Anyway this is an event your backend just got and you want to immediately share it with interested users. You can do this using Centrifugo <a href="../server/http_api/">HTTP API</a>. To simplify your life <a href="../libraries/api/">we have several API libraries</a> for different languages. You can publish message into channel using one of those libraries or you can simply <a href="../server/http_api/">follow API description</a> to construct API request yourself - this is very simple. Also Centrifugo supports <a href="../server/grpc_api/">GRPC API</a>. As soon as you published message to channel it must be delivered to your client.</p>
-<p>7) To put this all into production you need to deploy Centrifugo on your production server. To help you with this we have many things like Docker image, <code>rpm</code> and <code>deb</code> packages, Nginx configuration. You can find more information in Deploy section of this doc.</p>
-<p>8) Don&rsquo;t forget to <a href="../server/monitoring/">monitor</a> your production Centrifugo setup.</p>
+<h2 id="5-subscribe-to-channels">5. Subscribe to channels<a class="headerlink" href="#5-subscribe-to-channels" title="Permanent link">&para;</a></h2>
+<p>After connecting to Centrifugo subscribe clients to channels they are interested in. See more about channels in <a href="../server/channels/">special chapter</a>. All client libraries provide a way to handle messages coming to client from a channel after subscribing to it.</p>
+<p>Since Centrifugo v2.4.0 there is a way to subscribe connection to a list of channels on server side at the moment of connection establishment. See chapter about <a href="../server/server_subs/">server-side subscriptions</a>.</p>
+<h2 id="6-publish-to-channel">6. Publish to channel<a class="headerlink" href="#6-publish-to-channel" title="Permanent link">&para;</a></h2>
+<p>So everything should work now – as soon as user opens some page of your application it must successfully connect to Centrifugo and subscribe to a channel (or channels). Now let&rsquo;s imagine you want to send a real-time message to users subscribed on a specific channel. This message can be a reaction on some event happened in your app: someone posted new comment, administrator just created new post, user pressed like button etc. Anyway this is an event your backend just got, and you want to immediately share it with interested users. You can do this using Centrifugo <a href="../server/http_api/">HTTP API</a>. To simplify your life <a href="../libraries/api/">we have several API libraries</a> for different languages. You can publish message into channel using one of those libraries or you can simply <a href="../server/http_api/">follow API description</a> to construct API request yourself - this is very simple. Also Centrifugo supports <a href="../server/grpc_api/">GRPC API</a>. As soon as you published message to channel it must be delivered to your client.</p>
+<h2 id="7-deploy-to-production">7. Deploy to production<a class="headerlink" href="#7-deploy-to-production" title="Permanent link">&para;</a></h2>
+<p>To put this all into production you need to deploy Centrifugo on your production server. To help you with this we have many things like Docker image, <code>rpm</code> and <code>deb</code> packages, Nginx configuration. You can find more information in Deploy section of this doc.</p>
+<h2 id="8-monitor-centrifugo">8. Monitor Centrifugo<a class="headerlink" href="#8-monitor-centrifugo" title="Permanent link">&para;</a></h2>
+<p>Don&rsquo;t forget to <a href="../server/monitoring/">monitor</a> your production Centrifugo setup.</p>
+<h2 id="9-read-faq">9. Read FAQ<a class="headerlink" href="#9-read-faq" title="Permanent link">&para;</a></h2>
 <p>That&rsquo;s all for basics. Documentation actually covers lots of other concepts Centrifugo server has: like scalability, private channels, admin web interface, SockJS fallback, Protobuf support and more. And don&rsquo;t forget to read our <a href="../faq/">FAQ</a>.</p>
                 
                   

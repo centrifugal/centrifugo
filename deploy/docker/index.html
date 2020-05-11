@@ -819,7 +819,7 @@
 </pre></div>
 
 
-<p>Note that docker allows to set <code>nofile</code> limits in command-line arguments which is pretty important to handle lots of simultaneous persistent connections and not run out of open file limit.</p>
+<p>Note that docker allows setting <code>nofile</code> limits in command-line arguments which is pretty important to handle lots of simultaneous persistent connections and not run out of open file limit (each connection requires one file descriptor).</p>
                 
                   
                 
