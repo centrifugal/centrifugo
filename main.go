@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	stdlog "log"
 	"net"
@@ -24,6 +22,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/centrifugal/centrifugo/internal/tools"
+
 	"github.com/centrifugal/centrifugo/internal/admin"
 	"github.com/centrifugal/centrifugo/internal/api"
 	"github.com/centrifugal/centrifugo/internal/health"
@@ -36,7 +36,6 @@ import (
 
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifuge"
-	"github.com/google/uuid"
 	"github.com/mattn/go-isatty"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -397,9 +396,10 @@ func main() {
 		Short: "Check configuration file",
 		Long:  `Check Centrifugo configuration file`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := validateConfig(checkConfigFile)
+			_, err := validateConfig(checkConfigFile)
 			if err != nil {
-				log.Fatal().Msgf("%v", err)
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
 			}
 		},
 	}
@@ -407,22 +407,91 @@ func main() {
 
 	var outputConfigFile string
 
-	var generateConfigCmd = &cobra.Command{
+	var genConfigCmd = &cobra.Command{
 		Use:   "genconfig",
-		Short: "Generate simple configuration file to start with",
-		Long:  `Generate simple configuration file to start with`,
+		Short: "Generate minimal configuration file to start with",
+		Long:  `Generate minimal configuration file to start with`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := generateConfig(outputConfigFile)
+			err := tools.GenerateConfig(outputConfigFile)
 			if err != nil {
-				log.Fatal().Msgf("%v", err)
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			_, err = validateConfig(outputConfigFile)
+			if err != nil {
+				_ = os.Remove(outputConfigFile)
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
 			}
 		},
 	}
-	generateConfigCmd.Flags().StringVarP(&outputConfigFile, "config", "c", "config.json", "path to output config file")
+	genConfigCmd.Flags().StringVarP(&outputConfigFile, "config", "c", "config.json", "path to output config file")
+
+	var genTokenConfigFile string
+	var genTokenUser string
+	var genTokenTTL int64
+
+	var genTokenCmd = &cobra.Command{
+		Use:   "gentoken",
+		Short: "Generate sample connection JWT for user",
+		Long:  `Generate sample connection JWT for user`,
+		Run: func(cmd *cobra.Command, args []string) {
+			c, err := validateConfig(genTokenConfigFile)
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			token, err := tools.GenerateToken(c, genTokenUser, genTokenTTL)
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			var user = fmt.Sprintf("user %s", genTokenUser)
+			if genTokenUser == "" {
+				user = "anonymous user"
+			}
+			fmt.Printf("HMAC SHA-256 JWT for %s with expiration TTL %s:\n%s\n", user, time.Duration(genTokenTTL)*time.Second, token)
+		},
+	}
+	genTokenCmd.Flags().StringVarP(&genTokenConfigFile, "config", "c", "config.json", "path to config file")
+	genTokenCmd.Flags().StringVarP(&genTokenUser, "user", "u", "", "user ID")
+	genTokenCmd.Flags().Int64VarP(&genTokenTTL, "ttl", "t", 3600*24*7, "token TTL in seconds")
+
+	var checkTokenConfigFile string
+
+	var checkTokenCmd = &cobra.Command{
+		Use:   "checktoken [TOKEN]",
+		Short: "Check connection JWT",
+		Long:  `Check connection JWT`,
+		Run: func(cmd *cobra.Command, args []string) {
+			c, err := validateConfig(checkTokenConfigFile)
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			if len(args) != 1 {
+				fmt.Printf("error: provide token to check [centrifugo checktoken <TOKEN>]\n")
+				os.Exit(1)
+			}
+			subject, payload, err := tools.CheckToken(c, args[0])
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			var user = fmt.Sprintf("user %s", subject)
+			if subject == "" {
+				user = "anonymous user"
+			}
+			fmt.Printf("valid token for %s\npayload: %s\n", user, string(payload))
+		},
+	}
+	checkTokenCmd.Flags().StringVarP(&checkTokenConfigFile, "config", "c", "config.json", "path to config file")
 
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(checkConfigCmd)
-	rootCmd.AddCommand(generateConfigCmd)
+	rootCmd.AddCommand(genConfigCmd)
+	rootCmd.AddCommand(genTokenCmd)
+	rootCmd.AddCommand(checkTokenCmd)
 	_ = rootCmd.Execute()
 }
 
@@ -543,7 +612,7 @@ var logLevelMatches = map[string]zerolog.Level{
 	"FATAL": zerolog.FatalLevel,
 }
 
-func setupLogging() *os.File {
+func detectTerminalAttached() {
 	if isatty.IsTerminal(os.Stdout.Fd()) && runtime.GOOS != "windows" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{
 			Out:                 os.Stdout,
@@ -553,6 +622,10 @@ func setupLogging() *os.File {
 			FormatErrFieldValue: logutils.ConsoleFormatErrFieldValue(),
 		})
 	}
+}
+
+func setupLogging() *os.File {
+	detectTerminalAttached()
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	logLevel, ok := logLevelMatches[strings.ToUpper(viper.GetString("log_level"))]
@@ -873,126 +946,24 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 	return servers, nil
 }
 
-// pathExists returns whether the given file or directory exists or not
-func pathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
-}
-
-var jsonConfigTemplate = `{
-  "v3_use_offset": true,
-  "token_hmac_secret_key": "{{.TokenSecret}}",
-  "admin_password": "{{.AdminPassword}}",
-  "admin_secret": "{{.AdminSecret}}",
-  "api_key": "{{.APIKey}}"
-}
-`
-
-var tomlConfigTemplate = `v3_use_offset = true
-token_hmac_secret_key = "{{.TokenSecret}}"
-admin_password = "{{.AdminPassword}}"
-admin_secret = "{{.AdminSecret}}"
-api_key = "{{.APIKey}}"
-`
-
-var yamlConfigTemplate = `v3_use_offset: true
-token_hmac_secret_key: {{.TokenSecret}}
-admin_password: {{.AdminPassword}}
-admin_secret: {{.AdminSecret}}
-api_key: {{.APIKey}}
-`
-
-// generateConfig generates configuration file at provided path.
-func generateConfig(f string) error {
-	exists, err := pathExists(f)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return errors.New("output config file already exists: " + f)
-	}
-	ext := filepath.Ext(f)
-
-	if len(ext) > 1 {
-		ext = ext[1:]
-	}
-
-	supportedExts := []string{"json", "toml", "yaml", "yml"}
-
-	if !stringInSlice(ext, supportedExts) {
-		return errors.New("output config file must have one of supported extensions: " + strings.Join(supportedExts, ", "))
-	}
-
-	var t *template.Template
-
-	switch ext {
-	case "json":
-		t, err = template.New("config").Parse(jsonConfigTemplate)
-	case "toml":
-		t, err = template.New("config").Parse(tomlConfigTemplate)
-	case "yaml", "yml":
-		t, err = template.New("config").Parse(yamlConfigTemplate)
-	}
-	if err != nil {
-		return err
-	}
-
-	var output bytes.Buffer
-	_ = t.Execute(&output, struct {
-		TokenSecret   string
-		AdminPassword string
-		AdminSecret   string
-		APIKey        string
-	}{
-		uuid.New().String(),
-		uuid.New().String(),
-		uuid.New().String(),
-		uuid.New().String(),
-	})
-
-	err = ioutil.WriteFile(f, output.Bytes(), 0644)
-	if err != nil {
-		return err
-	}
-
-	err = validateConfig(f)
-	if err != nil {
-		_ = os.Remove(f)
-		return err
-	}
-
-	return nil
-}
-
 // validateConfig validates config file located at provided path.
-func validateConfig(f string) error {
+func validateConfig(f string) (centrifuge.Config, error) {
 	viper.SetConfigFile(f)
 	err := viper.ReadInConfig()
 	if err != nil {
 		switch err.(type) {
 		case viper.ConfigParseError:
-			return err
+			return centrifuge.Config{}, err
 		default:
-			return errors.New("unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
+			return centrifuge.Config{}, errors.New("unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
 		}
 	}
 	c := nodeConfig(VERSION)
-	return c.Validate()
-}
-
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
+	err = c.Validate()
+	if err != nil {
+		return centrifuge.Config{}, err
 	}
-	return false
+	return *c, nil
 }
 
 func nodeConfig(version string) *centrifuge.Config {

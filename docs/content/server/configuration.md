@@ -19,7 +19,9 @@ Usage:
 
 Available Commands:
   checkconfig Check configuration file
-  genconfig   Generate simple configuration file to start with
+  checktoken  Check connection JWT
+  genconfig   Generate minimal configuration file to start with
+  gentoken    Generate sample connection JWT for user
   help        Help about any command
   version     Centrifugo version information
 
@@ -143,6 +145,40 @@ centrifugo genconfig -c config.json
 ```
 
 It will automatically generate the minimal required configuration file.
+
+If any errors happen – program will exit with error message and exit code 1.
+
+### gentoken command
+
+Another command is `gentoken`:
+
+```
+centrifugo gentoken -c config.json -u 28282
+```
+
+It will automatically generate HMAC SHA-256 based token for user with ID `28282` (which expires in 1 week).
+
+You can change token TTL with `-t` flag (number of seconds):
+
+```
+centrifugo gentoken -c config.json -u 28282 -t 3600
+```
+
+This way generated token will be valid for 1 hour.
+
+If any errors happen – program will exit with error message and exit code 1.
+
+### checktoken command
+
+One more command is `checktoken`:
+
+```
+centrifugo checktoken -c config.json <TOKEN>
+```
+
+It will validate your connection JWT, so you can test it before using while developing application.
+
+If any errors happen or validation failed – program will exit with error message and exit code 1.
 
 ### Important options
 

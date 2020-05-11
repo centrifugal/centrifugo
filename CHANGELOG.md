@@ -22,11 +22,13 @@ Command `centrifugo genconfig` will now generate config file with `v3_use_offset
 
 Improvements:
 
-* support [Redis Streams](https://redis.io/topics/streams-intro) - radically reduces amount of memory allocations during recovery in large history streams, this also opens a road to paginate over history stream in future releases, see description of new `redis_streams` option [in Redis engine docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-engine)
+* support [Redis Streams](https://redis.io/topics/streams-intro) - radically reduces amount of memory allocations during recovery in large history streams. This also opens a road to paginate over history stream in future releases, see description of new `redis_streams` option [in Redis engine docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-streams)
 * support [Redis Cluster](https://redis.io/topics/cluster-tutorial), client-side sharding between different Redis Clusters also works, see more [in docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-cluster)
 * faster HMAC-based JWT parsing
 * faster Memory engine, possibility to expire history stream metadata (more [in docs](https://centrifugal.github.io/centrifugo/server/engines/#memory-engine))
 * releases for Centos 8, Debian Buster, Ubuntu Focal Fossa
+* new cli-command `centrifugo gentoken` to quickly generate HMAC SHA256 based connection JWT, [see docs](https://centrifugal.github.io/centrifugo/server/configuration/#gentoken-command)
+* new cli-command `centrifugo checktoken` to quickly validate connection JWT while developing application, [see docs](https://centrifugal.github.io/centrifugo/server/configuration/#checktoken-command)
 
 Fixes:
 

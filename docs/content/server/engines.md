@@ -229,6 +229,16 @@ To reproduce the same over environment variable use `space` to separate differen
 CENTRIFUGO_REDIS_CLUSTER_ADDRS="localhost:30001,localhost:30002 localhost:30101,localhost:30102" CENTRIFUGO_ENGINE=redis ./centrifugo
 ```
 
+### Redis Streams
+
+Since Centrifugo v2.5.0 it's possible to use [Redis Stream](https://redis.io/topics/streams-intro) data structure to keep Publication history inside channels.
+
+Redis streams can help to reduce number of memory allocations Centrifugo does during message recovery process upon client reconnect inside large history streams. This can be critical for massive Centrifugo deployments that utilize recovery feature.
+
+To turn on using Redis streams use boolean option `redis_streams`, default `false`.
+
+Redis Streams can become default data structure to keep Publication history in Centrifugo v3.
+
 ### KeyDB
 
 Centrifugo Redis engine seamlessly works with [KeyDB](https://keydb.dev/). KeyDB server is compatible with Redis and provides several additional features beyond. 
