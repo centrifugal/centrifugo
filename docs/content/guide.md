@@ -26,7 +26,7 @@ Create basic configuration file with `token_hmac_secret_key` (or `token_rsa_publ
 
 – which will generate `config.json` file for you with all required fields.
 
-A generated configuration also includes `v3_use_offset` option set to `true`. This is an option that enables using actual `offset` field in client-server protocol and will be used by default in Centrifugo v3.
+A generated configuration also includes `v3_use_offset` option set to `true`. This is an option that enables using actual `offset` field in client-server protocol and will be used by default in Centrifugo v3. This option available since Centrifugo v2.5.0.
 
 ## 3. Configure your backend
 
@@ -40,13 +40,13 @@ Since Centrifugo v2.3.0 there is a way to authenticate connections without using
 
 ## 5. Subscribe to channels
 
-After connecting to Centrifugo subscribe clients to channels they are interested in. See more about channels in [special chapter](server/channels.md). All client libraries provide a way to handle messages coming to client from channel after subscribing to it.
+After connecting to Centrifugo subscribe clients to channels they are interested in. See more about channels in [special chapter](server/channels.md). All client libraries provide a way to handle messages coming to client from a channel after subscribing to it.
 
-Since Centrifugo v2.4.0 there is a way to subscribe connection to a list of channels on server side at the moment of connection establishement. See chapter about [server-side subscriptions](server/server_subs.md).
+Since Centrifugo v2.4.0 there is a way to subscribe connection to a list of channels on server side at the moment of connection establishment. See chapter about [server-side subscriptions](server/server_subs.md).
 
 ## 6. Publish to channel
 
-So everything should work now – as soon as user opens some page of your application it must successfully connect to Centrifugo and subscribe to channel (or channels). Now let's imagine you want to send real-time message to users subscribed on specific channel. This message can be a reaction on some event happened in your app: someone posted new comment, administrator just created new post, user pressed like button etc. Anyway this is an event your backend just got and you want to immediately share it with interested users. You can do this using Centrifugo [HTTP API](server/http_api.md). To simplify your life [we have several API libraries](libraries/api.md) for different languages. You can publish message into channel using one of those libraries or you can simply [follow API description](server/http_api.md) to construct API request yourself - this is very simple. Also Centrifugo supports [GRPC API](server/grpc_api.md). As soon as you published message to channel it must be delivered to your client.
+So everything should work now – as soon as user opens some page of your application it must successfully connect to Centrifugo and subscribe to a channel (or channels). Now let's imagine you want to send a real-time message to users subscribed on a specific channel. This message can be a reaction on some event happened in your app: someone posted new comment, administrator just created new post, user pressed like button etc. Anyway this is an event your backend just got, and you want to immediately share it with interested users. You can do this using Centrifugo [HTTP API](server/http_api.md). To simplify your life [we have several API libraries](libraries/api.md) for different languages. You can publish message into channel using one of those libraries or you can simply [follow API description](server/http_api.md) to construct API request yourself - this is very simple. Also Centrifugo supports [GRPC API](server/grpc_api.md). As soon as you published message to channel it must be delivered to your client.
 
 ## 7. Deploy to production
 
