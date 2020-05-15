@@ -1,6 +1,8 @@
 # Configuration
 
-Centrifugo expects JSON, TOML or YAML as configuration file format. Thanks to brilliant Go library for application configuration - [viper](https://github.com/spf13/viper).
+Here we will look at how Centrifugo can be configured.
+
+## Getting help
 
 First let's look at all available command-line options:
 
@@ -66,17 +68,16 @@ Flags:
       --tls_key string             path to an X509 certificate key
 ```
 
-Keep in mind that all command-line options of Centrifugo can be set via configuration file with the same name (without `--` prefix of course). Also all available options can be set over environment variables in format `CENTRIFUGO_<OPTION_NAME>`.
+Not all available Centrifugo options available to be set over command-line flags – here we can see only some frequently used.
 
-### version
+!!!note
+    All command-line options of Centrifugo can be set via configuration file with the same name (without `--` prefix of course). Also all available options can be set over environment variables in format `CENTRIFUGO_<OPTION_NAME>`.
 
-To show version and exit run:
+## Config file formats
 
-```
-centrifugo version
-```
+Centrifugo supports different configuration file formats. 
 
-### JSON file
+### JSON config format
 
 Centrifugo requires configuration file on start. As was mentioned earlier it must be a file with valid JSON.
 
@@ -94,7 +95,7 @@ The only two fields required are **token_hmac_secret_key** and **api_key**. `tok
 
 The option `v3_use_offset` turns on using latest client-server protocol `offset` field (will be used by default in Centrifugo v3 so better to use it from start).
 
-### TOML file
+### TOML config format
 
 Centrifugo also supports TOML format for configuration file:
 
@@ -111,9 +112,9 @@ api_key = "<YOUR-API-KEY-HERE>"
 log_level = "debug"
 ```
 
-I.e. the same configuration as JSON file above with one extra option.
+I.e. the same configuration as JSON file above with one extra option to define logging level.
 
-### YAML file
+### YAML config format
 
 And YAML config also supported. `config.yaml`:
 
@@ -126,7 +127,15 @@ log_level: debug
 
 With YAML remember to use spaces, not tabs when writing configuration file.
 
-### checkconfig command
+## version command
+
+To show Centrifugo version and exit run:
+
+```
+centrifugo version
+```
+
+## checkconfig command
 
 Centrifugo has special command to check configuration file `checkconfig`:
 
@@ -136,7 +145,7 @@ centrifugo checkconfig --config=config.json
 
 If any errors found during validation – program will exit with error message and exit code 1.
 
-### genconfig command
+## genconfig command
 
 Another command is `genconfig`:
 
@@ -148,7 +157,7 @@ It will automatically generate the minimal required configuration file.
 
 If any errors happen – program will exit with error message and exit code 1.
 
-### gentoken command
+## gentoken command
 
 Another command is `gentoken`:
 
@@ -168,7 +177,7 @@ This way generated token will be valid for 1 hour.
 
 If any errors happen – program will exit with error message and exit code 1.
 
-### checktoken command
+## checktoken command
 
 One more command is `checktoken`:
 
@@ -180,7 +189,7 @@ It will validate your connection JWT, so you can test it before using while deve
 
 If any errors happen or validation failed – program will exit with error message and exit code 1.
 
-### Important options
+## Important options
 
 Some of the most important options you can configure when running Centrifugo:
 
@@ -190,7 +199,7 @@ Some of the most important options you can configure when running Centrifugo:
 
 Note that some options can be set via command-line. Command-line options are more valuable when set than configuration file's options. See description of [viper](https://github.com/spf13/viper) – to see more details about configuration options priority.
 
-### Channel options
+## Channel options
 
 Let's look at options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see [special chapter](channels.md) to find more information about channels). The following options will affect channel behaviour:
 
@@ -288,69 +297,69 @@ Channel `gossips:news` will use `gossips` namespace's options.
 
 There is no inheritance in channel options and namespaces – so if for example you defined `presence: true` on top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. 
 
-### Advanced configuration
+## Advanced configuration
 
 Centrifugo has some options for which default values make sense for most applications. In many case you don't need (and you really should not) change them. This chapter is about such options.
 
-#### client_channel_limit
+### client_channel_limit
 
 Default: 128
 
 Sets maximum number of different channel subscriptions single client can have.
 
-#### channel_max_length
+### channel_max_length
 
 Default: 255
 
 Sets maximum length of channel name.
 
-#### client_user_connection_limit
+### client_user_connection_limit
 
 Default: 0
 
 Maximum number of connections from user (with known user ID) to Centrifugo node. By default - unlimited.
 
-#### client_request_max_size
+### client_request_max_size
 
 Default: 65536
 
 Maximum allowed size of request from client in bytes.
 
-#### client_queue_max_size
+### client_queue_max_size
 
 Default: 10485760
 
 Maximum client message queue size in bytes to close slow reader connections. By default - 10mb.
 
-#### client_anonymous
+### client_anonymous
 
 Default: false
 
 Enable mode when all clients can connect to Centrifugo without JWT connection token. In this case all connections without token will be treated as anonymous (i.e. with empty user ID) and only can subscribe to channels with `anonymous` option enabled.
 
-#### sockjs_heartbeat_delay
+### sockjs_heartbeat_delay
 
 Default: 25
 
 Interval in seconds how often to send SockJS h-frames to client.
 
-#### websocket_compression
+### websocket_compression
 
 Default: false
 
 Enable websocket compression, see chapter about websocket transport for more details.
 
-#### gomaxprocs
+### gomaxprocs
 
 Default: 0
 
 By default Centrifugo runs on all available CPU cores. If you want to limit amount of cores Centrifugo can utilize in one moment use this option.
 
-### Advanced endpoint configuration.
+## Advanced endpoint configuration.
 
 After you started Centrifugo you have several endpoints available. As soon as you have not provided any extra options you have 3 endpoints by default.
 
-#### Default endpoints.
+### Default endpoints.
 
 The main endpoint is raw Websocket endpoint to serve client connections that use pure Websocket protocol:
 
@@ -382,7 +391,7 @@ In production setup you will have your domain name in endpoint addresses above i
 
 Let's look at possibilities to tweak available endpoints.
 
-#### Admin endpoints.
+### Admin endpoints.
 
 First is enabling admin endpoints:
 
@@ -399,7 +408,7 @@ This makes the following endpoint available: http://localhost:8000
 
 At this address you will see admin web interface. You can log into it using `admin_password` value shown above.
 
-#### Debug endpoints.
+### Debug endpoints.
 
 Next, when Centrifugo started in debug mode some extra debug endpoints become available. To start in debug mode add `debug` option to config:
 
@@ -418,7 +427,7 @@ http://localhost:8000/debug/pprof/
 
 – will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See [wiki page](https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues) for more info.
 
-#### Healthcheck endpoint
+### Healthcheck endpoint
 
 New in v2.1.0
 
@@ -428,7 +437,7 @@ Use `health` boolean option (by default `false`) to enable healthcheck endpoint 
 ./centrifugo -c config.json --health
 ```
 
-#### Custom internal ports
+### Custom internal ports
 
 We strongly recommend to not expose API, admin, debug and prometheus endpoints to Internet. The following Centrifugo endpoints are considered internal:
 
@@ -465,7 +474,7 @@ http://localhost:9000/debug/pprof/
 
 The same for API and prometheus endpoint.
 
-#### Disable default endpoints
+### Disable default endpoints
 
 These options available since v2.4.0
 
@@ -475,7 +484,7 @@ To disable SockJS endpoint set `sockjs_disable` boolean option to `true`.
 
 To disable API endpoint set `api_disable` boolean option to `true`.
 
-#### Customize handler endpoinds
+### Customize handler endpoinds
 
 Starting from Centrifugo v2.2.5 it's possible to customize server HTTP handler endpoints. To do this Centrifugo supports several options:
 
