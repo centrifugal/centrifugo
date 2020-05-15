@@ -1,15 +1,23 @@
-First of all we have chats on Gitter and in Telegram – welcome!
+# What is Centrifugo
 
-[![Join the chat at https://gitter.im/centrifugal/centrifugo](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/centrifugal/centrifugo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Join the chat at https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ](https://img.shields.io/badge/Telegram-Group-blue.svg)](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ)
+Centrifugo is a scalable real-time messaging server in language-agnostic way.
 
-Centrifugo is a language-agnostic real-time messaging server. Language-agnostic means that it does not matter which programming language your application uses on a frontend or backend sides – Centrifugo can work in conjunction with any.
+The term language-agnostic in this definition means that it does not matter which programming language your application uses on a frontend or backend sides – Centrifugo can work in conjunction with any. 
 
-Real-time messages are messages that delivered to your application users almost immediately after some event happened - think live comments, chats, real-time charts, dynamic counters and games.
+Centrifugo is fast and scales well to support millions of client connections. 
+
+Real-time messages are messages delivered to your application users almost immediately after some event happened - think live comments, chat apps, real-time charts, dynamic counters and multiplayer games.
 
 There are several real-time messaging transports Centrifugo supports at moment:
 
 * [Websocket](https://en.wikipedia.org/wiki/WebSocket) with JSON or binary Protobuf protocols
 * [SockJS](https://github.com/sockjs/sockjs-client) – library that tries to establish Websocket connection first and then falls back to HTTP transports (Server-Sent Events, XHR-streaming, XHR-polling etc) automatically in case of problems with Websocket connection
+
+## Join community
+
+We have chats on Gitter and in Telegram – welcome!
+
+[![Join the chat at https://gitter.im/centrifugal/centrifugo](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/centrifugal/centrifugo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Join the chat at https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ](https://img.shields.io/badge/Telegram-Group-blue.svg)](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ)
 
 ## Motivation of project
 
