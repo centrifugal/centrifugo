@@ -14,7 +14,7 @@ Here let's suppose you already have 2 of 3 elements: clients and backend. And yo
 
 ## 1. Install
 
-First you need to do is download/install Centrifugo server. See [install](server/install.md) chapter for details.
+First you need to do is download/install Centrifugo server. See [install](install.md) chapter for details.
 
 ## 2. Configure Centrifugo
 
@@ -54,7 +54,7 @@ To put this all into production you need to deploy Centrifugo on your production
 
 ## 8. Monitor Centrifugo
 
-Don't forget to [monitor](server/monitoring.md) your production Centrifugo setup.
+Don't forget to [monitor](deploy/monitoring.md) your production Centrifugo setup.
 
 ## 9. Read FAQ
 
