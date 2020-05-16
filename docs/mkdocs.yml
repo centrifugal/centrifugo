@@ -69,8 +69,8 @@ nav:
   - Getting Started:
     - What is Centrifugo: 'getting_started.md'
     - Installation: 'install.md'
-    - Integration Guide: 'guide.md'
     - Quick start: 'quick_start.md'
+    - Integration Guide: 'guide.md'
   - Server:
     - Configuration: 'server/configuration.md'
     - Channels: 'server/channels.md'
