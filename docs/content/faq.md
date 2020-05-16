@@ -1,4 +1,4 @@
-# FAQ
+# Frequently Asked Questions
 
 Answers on various questions here.
 
