@@ -1,0 +1,1156 @@
+
+
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Centrifugo is a scalable real-time messaging server in language-agnostic way">
+      
+      
+        <link rel="canonical" href="https://github.com/centrifugal/centrifugo/install/">
+      
+      
+        <meta name="author" content="Centrifugal organization">
+      
+      <link rel="shortcut icon" href="../images/favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.1.6">
+    
+    
+      
+        <title>Installation - Centrifugo</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.4b9ffd7b.min.css">
+      
+        <link rel="stylesheet" href="../assets/stylesheets/palette.b79bcd20.min.css">
+      
+      
+        
+        
+        <meta name="theme-color" content="">
+      
+    
+    
+    
+      
+        <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+      
+    
+    
+    
+      <link rel="stylesheet" href="../theme/styles/extra.css">
+    
+    
+      
+    
+    
+  </head>
+  
+  
+    
+    
+    <body dir="ltr" data-md-color-primary="black" data-md-color-accent="cyan">
+  
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#server-overview-and-installation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo" class="md-header-nav__button md-logo" aria-label="Centrifugo">
+      
+  <img src="../images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            Centrifugo
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
+              Installation
+            
+          </span>
+        </div>
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header-nav__source">
+        
+<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    centrifugal/centrifugo
+  </div>
+</a>
+      </div>
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+        
+      
+      
+        
+          
+
+  
+
+<nav class="md-tabs md-tabs--active" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-tabs__inner md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  <li class="md-tabs__item">
+    
+      <a href=".." class="md-tabs__link">
+        Home
+      </a>
+    
+  </li>
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../getting_started/" class="md-tabs__link md-tabs__link--active">
+          Getting Started
+        </a>
+      
+    </li>
+  
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../server/configuration/" class="md-tabs__link">
+          Server
+        </a>
+      
+    </li>
+  
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../libraries/client/" class="md-tabs__link">
+          Libraries
+        </a>
+      
+    </li>
+  
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../faq/" class="md-tabs__link">
+          FAQ
+        </a>
+      
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo" class="md-nav__button md-logo" aria-label="Centrifugo">
+      
+  <img src="../images/logo.png" alt="logo">
+
+    </a>
+    Centrifugo
+  </label>
+  
+    <div class="md-nav__source">
+      
+<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    centrifugal/centrifugo
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href=".." title="Home" class="md-nav__link">
+      Home
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2" checked>
+    
+    <label class="md-nav__link" for="nav-2">
+      Getting Started
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Getting Started" data-md-level="1">
+      <label class="md-nav__title" for="nav-2">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Getting Started
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../getting_started/" title="What is Centrifugo" class="md-nav__link">
+      What is Centrifugo
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Installation
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
+      </label>
+    
+    <a href="./" title="Installation" class="md-nav__link md-nav__link--active">
+      Installation
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install-from-binary-release" class="md-nav__link">
+    Install from binary release
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#docker-image" class="md-nav__link">
+    Docker image
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rpm-and-deb-packages-for-linux" class="md-nav__link">
+    RPM and DEB packages for Linux
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../quick_start/" title="Quick start" class="md-nav__link">
+      Quick start
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../guide/" title="Integration Guide" class="md-nav__link">
+      Integration Guide
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
+    
+    <label class="md-nav__link" for="nav-3">
+      Server
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Server" data-md-level="1">
+      <label class="md-nav__title" for="nav-3">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Server
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/configuration/" title="Configuration" class="md-nav__link">
+      Configuration
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/channels/" title="Channels" class="md-nav__link">
+      Channels
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/authentication/" title="Authentication" class="md-nav__link">
+      Authentication
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/private_channels/" title="Private channels'" class="md-nav__link">
+      Private channels'
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/engines/" title="Engines" class="md-nav__link">
+      Engines
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/http_api/" title="Server HTTP API" class="md-nav__link">
+      Server HTTP API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/grpc_api/" title="Server GRPC API" class="md-nav__link">
+      Server GRPC API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/admin/" title="Admin web interface" class="md-nav__link">
+      Admin web interface
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/proxy/" title="Proxy to backend" class="md-nav__link">
+      Proxy to backend
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/server_subs/" title="Server-side subscriptions" class="md-nav__link">
+      Server-side subscriptions
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/recover/" title="Message recovery" class="md-nav__link">
+      Message recovery
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/signals/" title="Signal handling" class="md-nav__link">
+      Signal handling
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/connection_expiration/" title="Connection expiration" class="md-nav__link">
+      Connection expiration
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
+    
+    <label class="md-nav__link" for="nav-3-14">
+      Transports
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Transports" data-md-level="2">
+      <label class="md-nav__title" for="nav-3-14">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Transports
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../transports/" title="Transports overview" class="md-nav__link">
+      Transports overview
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../transports/websocket/" title="Websocket" class="md-nav__link">
+      Websocket
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../transports/sockjs/" title="SockJS" class="md-nav__link">
+      SockJS
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
+    
+    <label class="md-nav__link" for="nav-3-15">
+      Deploy
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Deploy" data-md-level="2">
+      <label class="md-nav__title" for="nav-3-15">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Deploy
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
+      Nginx configuration
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../deploy/monitoring/" title="Monitoring" class="md-nav__link">
+      Monitoring
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../deploy/tuning/" title="OS tuning" class="md-nav__link">
+      OS tuning
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../deploy/tls/" title="TLS" class="md-nav__link">
+      TLS
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/protobuf/" title="Protobuf protocol" class="md-nav__link">
+      Protobuf protocol
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox" id="nav-3-17">
+    
+    <label class="md-nav__link" for="nav-3-17">
+      Misc
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Misc" data-md-level="2">
+      <label class="md-nav__title" for="nav-3-17">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Misc
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
+      Insecure modes
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
+      Benchmarking server
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
+      Migrate from Centrifugo v1
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/protocol/" title="Client protocol" class="md-nav__link">
+      Client protocol
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+    
+    <label class="md-nav__link" for="nav-4">
+      Libraries
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Libraries" data-md-level="1">
+      <label class="md-nav__title" for="nav-4">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Libraries
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../libraries/client/" title="Client libraries" class="md-nav__link">
+      Client libraries
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../libraries/api/" title="API libraries" class="md-nav__link">
+      API libraries
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
+    
+    <label class="md-nav__link" for="nav-5">
+      FAQ
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="FAQ" data-md-level="1">
+      <label class="md-nav__title" for="nav-5">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        FAQ
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../faq/" title="Frequently Asked Questions" class="md-nav__link">
+      Frequently Asked Questions
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install-from-binary-release" class="md-nav__link">
+    Install from binary release
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#docker-image" class="md-nav__link">
+    Docker image
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rpm-and-deb-packages-for-linux" class="md-nav__link">
+    RPM and DEB packages for Linux
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/install.md" title="Edit this page" class="md-content__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+                  </a>
+                
+                
+                  
+                
+                
+                <h1 id="server-overview-and-installation">Server overview and installation<a class="headerlink" href="#server-overview-and-installation" title="Permanent link">&para;</a></h1>
+<p>Centrifugo server is written in Go language. It's an open-source software, the source code is available <a href="https://github.com/centrifugal/centrifugo">on Github</a>.</p>
+<p>Centrifugo is built around <a href="https://github.com/centrifugal/centrifuge">Centrifuge</a> library for Go language. That library defines custom protocol and message types which must be sent over various transports (Websocket, SockJS). Server clients use that protocol internally and provide simple API to features - making persistent connection, subscribing on channels, calling RPC commands and more.</p>
+<p>Server documentation covers a lot of server concepts in detail. Here we start with ways to install Centrifugo on your system. </p>
+<h2 id="install-from-binary-release">Install from binary release<a class="headerlink" href="#install-from-binary-release" title="Permanent link">&para;</a></h2>
+<p>Binary releases available on Github. <a href="https://github.com/centrifugal/centrifugo/releases">Download latest release</a> for your operating system, unpack it and you are done. Centrifugo is pre-builded for:</p>
+<ul>
+<li>Linux 64-bit (linux_amd64)</li>
+<li>Linux 32-bit (linux_386)</li>
+<li>MacOS (darwin_amd64)</li>
+<li>Windows (windows_amd64)</li>
+<li>FreeBSD (freebsd_amd64)</li>
+<li>ARM v6 (linux_armv6)</li>
+</ul>
+<p>Archives contain a single statically compiled binary <code>centrifugo</code> file which is ready to run: </p>
+<div class="highlight"><pre><span></span><code>./centrifugo -h
+</code></pre></div>
+
+<p>See version of Centrifugo:</p>
+<div class="highlight"><pre><span></span><code>./centrifugo version
+</code></pre></div>
+
+<p>Centrifugo server node requires configuration file with some secret keys. If you are new to Centrifugo then there is <code>genconfig</code> command which generates minimal required configuration file:</p>
+<div class="highlight"><pre><span></span><code>./centrifugo genconfig
+</code></pre></div>
+
+<p>It generates secret keys automatically and creates configuration file <code>config.json</code> in current directory (by default) so you can finally run Centrifugo instance:</p>
+<div class="highlight"><pre><span></span><code>./centrifugo --config<span class="o">=</span>config.json
+</code></pre></div>
+
+<p>We will talk about configuration in detail in next sections.</p>
+<p>You can also put or symlink <code>centrifugo</code> into your <code>bin</code> OS directory and run it from anywhere:</p>
+<div class="highlight"><pre><span></span><code>centrifugo --config<span class="o">=</span>config.json
+</code></pre></div>
+
+<h2 id="docker-image">Docker image<a class="headerlink" href="#docker-image" title="Permanent link">&para;</a></h2>
+<p>Centrifugo server has docker image <a href="https://hub.docker.com/r/centrifugo/centrifugo/">available on Docker Hub</a>.</p>
+<div class="highlight"><pre><span></span><code>docker pull centrifugo/centrifugo
+</code></pre></div>
+
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>docker run --ulimit <span class="nv">nofile</span><span class="o">=</span><span class="m">65536</span>:65536 -v /host/dir/with/config/file:/centrifugo -p <span class="m">8000</span>:8000 centrifugo/centrifugo centrifugo -c config.json
+</code></pre></div>
+
+<p>Note that docker allows setting <code>nofile</code> limits in command-line arguments which is pretty important to handle lots of simultaneous persistent connections and not run out of open file limit (each connection requires one file descriptor). See also <a href="../deploy/tuning/">OS tuning chapter</a>.</p>
+<h2 id="rpm-and-deb-packages-for-linux">RPM and DEB packages for Linux<a class="headerlink" href="#rpm-and-deb-packages-for-linux" title="Permanent link">&para;</a></h2>
+<p>Every time we make new Centrifugo release we upload rpm and deb packages for popular linux distributions on <a href="https://packagecloud.io/FZambia/centrifugo">packagecloud.io</a>.</p>
+<p>Currently we support versions of the following distributions:</p>
+<ul>
+<li>64-bit Debian 8 Jessie</li>
+<li>64-bit Debian 9 Stretch</li>
+<li>64-bit Debian 10 Buster</li>
+<li>64-bit Ubuntu 16.04 Xenial</li>
+<li>64-bit Ubuntu 18.04 Bionic</li>
+<li>64-bit Ubuntu 20.04 Focal Fossa</li>
+<li>64-bit Centos 7</li>
+<li>64-bit Centos 8</li>
+</ul>
+<p>See <a href="https://packagecloud.io/FZambia/centrifugo">full list of available packages</a> and <a href="https://packagecloud.io/FZambia/centrifugo/install">installation instructions</a>.</p>
+<p>Also note that if your Linux distro is not in list you can ask us to package for it or just download appropriate package from packagecloud that fits your distribution.</p>
+<p>Centrifugo also works on 32-bit architecture, but we don't support packaging for it since 64-bit is more convenient for servers today.</p>
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+    
+    <div class="md-footer-nav">
+        <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+            
+            <a href="../getting_started/" title="What is Centrifugo" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+                <div class="md-footer-nav__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+                </div>
+                <div class="md-footer-nav__title">
+                    <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                        What is Centrifugo
+                    </div>
+                </div>
+            </a>
+            
+            
+            <a href="../quick_start/" title="Quick start" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+                <div class="md-footer-nav__title">
+                    <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                        Quick start
+                    </div>
+                </div>
+                <div class="md-footer-nav__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+                </div>
+            </a>
+            
+        </nav>
+    </div>
+    
+    <div class="md-footer-meta md-typeset">
+        <div class="md-footer-meta__inner md-grid">
+            <div class="md-footer-copyright">
+                
+                <div class="md-footer-copyright__highlight">
+                    Copyright &copy; 2020 Centrifugal
+                </div>
+                
+                <style>
+
+                    /* Preserve link color */
+                    .md-announce a,
+                    .md-announce a:focus,
+                    .md-announce a:hover {
+                        color: currentColor;
+                    }
+
+                    /* Don't wrap name of blog article */
+                    .md-announce strong {
+                        white-space: nowrap;
+                    }
+
+                    /* Twitter icon */
+                    .md-announce .twitter {
+                        margin-left: .2em;
+                        color: #00acee;
+                    }
+                </style>
+                <a href="https://www.buymeacoffee.com/FZambia">
+                    Accepting donations via <strong>Buy me a coffee</strong>!
+                </a>
+            </div>
+            
+        </div>
+    </div>
+</footer>
+      
+    </div>
+    
+      <script src="../assets/javascripts/vendor.a0c4167b.min.js"></script>
+      <script src="../assets/javascripts/bundle.fb26dd1d.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      
+      <script>
+        app = initialize({
+          base: "..",
+          features: ["tabs"],
+          search: Object.assign({
+            worker: "../assets/javascripts/worker/search.37585f48.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
+      
+    
+  </body>
+</html>

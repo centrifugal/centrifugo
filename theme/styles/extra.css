@@ -13,3 +13,7 @@
         background-color: rgb(255, 46, 45);
     }
 }
+
+.md-typeset h1 {
+    margin: 0 0 0;
+}

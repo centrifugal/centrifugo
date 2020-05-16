@@ -1,72 +1,48 @@
 
 
 
-
 <!doctype html>
 <html lang="en" class="no-js">
   <head>
     
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
-      <meta http-equiv="x-ua-compatible" content="ie=edge">
       
-        <meta name="description" content="Centrifugo Documentation">
+        <meta name="description" content="Centrifugo is a scalable real-time messaging server in language-agnostic way">
       
       
         <link rel="canonical" href="https://github.com/centrifugal/centrifugo/server/channels/">
       
       
-        <meta name="author" content="Centrifugal">
-      
-      
-        <meta name="lang:clipboard.copy" content="Copy to clipboard">
-      
-        <meta name="lang:clipboard.copied" content="Copied to clipboard">
-      
-        <meta name="lang:search.language" content="en">
-      
-        <meta name="lang:search.pipeline.stopwords" content="True">
-      
-        <meta name="lang:search.pipeline.trimmer" content="True">
-      
-        <meta name="lang:search.result.none" content="No matching documents">
-      
-        <meta name="lang:search.result.one" content="1 matching document">
-      
-        <meta name="lang:search.result.other" content="# matching documents">
-      
-        <meta name="lang:search.tokenizer" content="[\s\-]+">
+        <meta name="author" content="Centrifugal organization">
       
       <link rel="shortcut icon" href="../../images/favicon.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.0.1">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.1.6">
     
     
       
-        <title>Channels - Centrifugo Documentation</title>
+        <title>Channels - Centrifugo</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/application.982221ab.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4b9ffd7b.min.css">
       
-        <link rel="stylesheet" href="../../assets/stylesheets/application-palette.224b79ff.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.b79bcd20.min.css">
       
       
         
         
-        <meta name="theme-color" content="#3f51b5">
+        <meta name="theme-color" content="">
       
     
-    
-      <script src="../../assets/javascripts/modernizr.1f0bcf2b.js"></script>
     
     
       
         <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
-        <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
       
     
-    <link rel="stylesheet" href="../../assets/fonts/material-icons.css">
     
     
       <link rel="stylesheet" href="../../theme/styles/extra.css">
@@ -77,88 +53,73 @@
     
   </head>
   
-    
-    
-    <body dir="ltr" data-md-color-primary="indigo" data-md-color-accent="cyan">
   
-    <svg class="md-svg">
-      <defs>
-        
-        
-          <svg xmlns="http://www.w3.org/2000/svg" width="416" height="448"
-    viewBox="0 0 416 448" id="__github">
-  <path fill="currentColor" d="M160 304q0 10-3.125 20.5t-10.75 19-18.125
-        8.5-18.125-8.5-10.75-19-3.125-20.5 3.125-20.5 10.75-19 18.125-8.5
-        18.125 8.5 10.75 19 3.125 20.5zM320 304q0 10-3.125 20.5t-10.75
-        19-18.125 8.5-18.125-8.5-10.75-19-3.125-20.5 3.125-20.5 10.75-19
-        18.125-8.5 18.125 8.5 10.75 19 3.125 20.5zM360
-        304q0-30-17.25-51t-46.75-21q-10.25 0-48.75 5.25-17.75 2.75-39.25
-        2.75t-39.25-2.75q-38-5.25-48.75-5.25-29.5 0-46.75 21t-17.25 51q0 22 8
-        38.375t20.25 25.75 30.5 15 35 7.375 37.25 1.75h42q20.5 0
-        37.25-1.75t35-7.375 30.5-15 20.25-25.75 8-38.375zM416 260q0 51.75-15.25
-        82.75-9.5 19.25-26.375 33.25t-35.25 21.5-42.5 11.875-42.875 5.5-41.75
-        1.125q-19.5 0-35.5-0.75t-36.875-3.125-38.125-7.5-34.25-12.875-30.25-20.25-21.5-28.75q-15.5-30.75-15.5-82.75
-        0-59.25 34-99-6.75-20.5-6.75-42.5 0-29 12.75-54.5 27 0 47.5 9.875t47.25
-        30.875q36.75-8.75 77.25-8.75 37 0 70 8 26.25-20.5
-        46.75-30.25t47.25-9.75q12.75 25.5 12.75 54.5 0 21.75-6.75 42 34 40 34
-        99.5z" />
-</svg>
-        
-      </defs>
-    </svg>
+    
+    
+    <body dir="ltr" data-md-color-primary="black" data-md-color-accent="cyan">
+  
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
-    <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
-    
-      <a href="#channels" tabindex="1" class="md-skip">
-        Skip to content
-      </a>
-    
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#channels" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
     
       <header class="md-header" data-md-component="header">
-  <nav class="md-header-nav md-grid">
-    <div class="md-flex">
-      <div class="md-flex__cell md-flex__cell--shrink">
-        <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo Documentation" class="md-header-nav__button md-logo">
-          
-            <img src="../../images/logo.png" width="24" height="24">
-          
-        </a>
-      </div>
-      <div class="md-flex__cell md-flex__cell--shrink">
-        <label class="md-icon md-icon--menu md-header-nav__button" for="__drawer"></label>
-      </div>
-      <div class="md-flex__cell md-flex__cell--stretch">
-        <div class="md-flex__ellipsis md-header-nav__title" data-md-component="title">
-          
-            <span class="md-header-nav__topic">
-              Centrifugo Documentation
-            </span>
-            <span class="md-header-nav__topic">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo" class="md-header-nav__button md-logo" aria-label="Centrifugo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            Centrifugo
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
               Channels
-            </span>
-          
+            
+          </span>
         </div>
-      </div>
-      <div class="md-flex__cell md-flex__cell--shrink">
-        
-          <label class="md-icon md-icon--search md-header-nav__button" for="__search"></label>
-          
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
 <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
-      <label class="md-icon md-search__icon" for="__search"></label>
-      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
-        &#xE5CD;
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
       </button>
     </form>
     <div class="md-search__output">
       <div class="md-search__scrollwrap" data-md-scrollfix>
-        <div class="md-search-result" data-md-component="result">
+        <div class="md-search-result" data-md-component="search-result">
           <div class="md-search-result__meta">
-            Type to start searching
+            Initializing search
           </div>
           <ol class="md-search-result__list"></ol>
         </div>
@@ -166,71 +127,129 @@
     </div>
   </div>
 </div>
+    
+    
+      <div class="md-header-nav__source">
         
-      </div>
-      
-        <div class="md-flex__cell md-flex__cell--shrink">
-          <div class="md-header-nav__source">
-            
-
-
-  
-
-<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source" data-md-source="github">
-  
-    <div class="md-source__icon">
-      <svg viewBox="0 0 24 24" width="24" height="24">
-        <use xlink:href="#__github" width="24" height="24"></use>
-      </svg>
-    </div>
-  
+<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
   <div class="md-source__repository">
     centrifugal/centrifugo
   </div>
 </a>
-          </div>
-        </div>
-      
-    </div>
+      </div>
+    
   </nav>
 </header>
     
-    <div class="md-container">
+    <div class="md-container" data-md-component="container">
       
         
       
       
-      <main class="md-main">
-        <div class="md-main__inner md-grid" data-md-component="container">
+        
+          
+
+  
+
+<nav class="md-tabs md-tabs--active" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-tabs__inner md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  <li class="md-tabs__item">
+    
+      <a href="../.." class="md-tabs__link">
+        Home
+      </a>
+    
+  </li>
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../../getting_started/" class="md-tabs__link">
+          Getting Started
+        </a>
+      
+    </li>
+  
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../configuration/" class="md-tabs__link md-tabs__link--active">
+          Server
+        </a>
+      
+    </li>
+  
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../../libraries/client/" class="md-tabs__link">
+          Libraries
+        </a>
+      
+    </li>
+  
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../../faq/" class="md-tabs__link">
+          FAQ
+        </a>
+      
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
           
             
               <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
-                    <nav class="md-nav md-nav--primary" data-md-level="0">
-  <label class="md-nav__title md-nav__title--site" for="__drawer">
-    <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo Documentation" class="md-nav__button md-logo">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo" class="md-nav__button md-logo" aria-label="Centrifugo">
       
-        <img src="../../images/logo.png" width="48" height="48">
-      
+  <img src="../../images/logo.png" alt="logo">
+
     </a>
-    Centrifugo Documentation
+    Centrifugo
   </label>
   
     <div class="md-nav__source">
       
-
-
-  
-
-<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source" data-md-source="github">
-  
-    <div class="md-source__icon">
-      <svg viewBox="0 0 24 24" width="24" height="24">
-        <use xlink:href="#__github" width="24" height="24"></use>
-      </svg>
-    </div>
-  
+<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
   <div class="md-source__repository">
     centrifugal/centrifugo
   </div>
@@ -245,8 +264,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../.." title="Getting Started" class="md-nav__link">
-      Getting Started
+    <a href="../.." title="Home" class="md-nav__link">
+      Home
     </a>
   </li>
 
@@ -256,10 +275,76 @@
       
 
 
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2">
+    
+    <label class="md-nav__link" for="nav-2">
+      Getting Started
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Getting Started" data-md-level="1">
+      <label class="md-nav__title" for="nav-2">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Getting Started
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../getting_started/" title="What is Centrifugo" class="md-nav__link">
+      What is Centrifugo
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../install/" title="Installation" class="md-nav__link">
+      Installation
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../quick_start/" title="Quick start" class="md-nav__link">
+      Quick start
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
   <li class="md-nav__item">
     <a href="../../guide/" title="Integration Guide" class="md-nav__link">
       Integration Guide
     </a>
+  </li>
+
+        
+      </ul>
+    </nav>
   </li>
 
     
@@ -272,41 +357,23 @@
 
   <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" checked>
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" checked>
     
     <label class="md-nav__link" for="nav-3">
       Server
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+    <nav class="md-nav" aria-label="Server" data-md-level="1">
       <label class="md-nav__title" for="nav-3">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
         Server
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
         
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../" title="Overview" class="md-nav__link">
-      Overview
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../install/" title="Installation" class="md-nav__link">
-      Installation
-    </a>
-  </li>
-
         
           
           
@@ -329,13 +396,16 @@
 
   <li class="md-nav__item md-nav__item--active">
     
-    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
     
       
     
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
         Channels
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
       </label>
     
     <a href="./" title="Channels" class="md-nav__link md-nav__link--active">
@@ -343,46 +413,47 @@
     </a>
     
       
-<nav class="md-nav md-nav--secondary">
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
     
   
   
-    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#channel-name-rules" title="Channel name rules" class="md-nav__link">
+  <a href="#channel-name-rules" class="md-nav__link">
     Channel name rules
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#namespace-channel-boundary" title="namespace channel boundary (:)" class="md-nav__link">
+  <a href="#namespace-channel-boundary" class="md-nav__link">
     namespace channel boundary (:)
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#private-channel-prefix" title="private channel prefix ($)" class="md-nav__link">
+  <a href="#private-channel-prefix" class="md-nav__link">
     private channel prefix ($)
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#user-channel-boundary" title="user channel boundary (#)" class="md-nav__link">
+  <a href="#user-channel-boundary" class="md-nav__link">
     user channel boundary (#)
   </a>
   
 </li>
-      
-      
-      
-      
       
     </ul>
   
@@ -409,32 +480,20 @@
 
 
   <li class="md-nav__item">
+    <a href="../private_channels/" title="Private channels'" class="md-nav__link">
+      Private channels'
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../engines/" title="Engines" class="md-nav__link">
       Engines
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../admin/" title="Admin web interface" class="md-nav__link">
-      Admin web interface
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../monitoring/" title="Monitoring" class="md-nav__link">
-      Monitoring
     </a>
   </li>
 
@@ -459,6 +518,42 @@
   <li class="md-nav__item">
     <a href="../grpc_api/" title="Server GRPC API" class="md-nav__link">
       Server GRPC API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../admin/" title="Admin web interface" class="md-nav__link">
+      Admin web interface
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../proxy/" title="Proxy to backend" class="md-nav__link">
+      Proxy to backend
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server_subs/" title="Server-side subscriptions" class="md-nav__link">
+      Server-side subscriptions
     </a>
   </li>
 
@@ -504,80 +599,21 @@
           
 
 
-  <li class="md-nav__item">
-    <a href="../private_channels/" title="Private channels" class="md-nav__link">
-      Private channels
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../proxy/" title="Proxy to backend" class="md-nav__link">
-      Proxy to backend
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../server_subs/" title="Server-side subscriptions" class="md-nav__link">
-      Server-side subscriptions
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../protobuf/" title="Protobuf protocol" class="md-nav__link">
-      Protobuf protocol
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../protocol/" title="Client protocol" class="md-nav__link">
-      Client protocol
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
-
-
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
     
-    <label class="md-nav__link" for="nav-4">
+    <label class="md-nav__link" for="nav-3-14">
       Transports
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-4">
+    <nav class="md-nav" aria-label="Transports" data-md-level="2">
+      <label class="md-nav__title" for="nav-3-14">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
         Transports
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -589,8 +625,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/" title="Overview" class="md-nav__link">
-      Overview
+    <a href="../../transports/" title="Transports overview" class="md-nav__link">
+      Transports overview
     </a>
   </li>
 
@@ -623,6 +659,179 @@
     </nav>
   </li>
 
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
+    
+    <label class="md-nav__link" for="nav-3-15">
+      Deploy
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Deploy" data-md-level="2">
+      <label class="md-nav__title" for="nav-3-15">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Deploy
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
+      Nginx configuration
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/monitoring/" title="Monitoring" class="md-nav__link">
+      Monitoring
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/tuning/" title="OS tuning" class="md-nav__link">
+      OS tuning
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/tls/" title="TLS" class="md-nav__link">
+      TLS
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../protobuf/" title="Protobuf protocol" class="md-nav__link">
+      Protobuf protocol
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox" id="nav-3-17">
+    
+    <label class="md-nav__link" for="nav-3-17">
+      Misc
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Misc" data-md-level="2">
+      <label class="md-nav__title" for="nav-3-17">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Misc
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
+      Insecure modes
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
+      Benchmarking server
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
+      Migrate from Centrifugo v1
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../protocol/" title="Client protocol" class="md-nav__link">
+      Client protocol
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
     
       
       
@@ -631,13 +840,19 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
     
-    <label class="md-nav__link" for="nav-5">
+    <label class="md-nav__link" for="nav-4">
       Libraries
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-5">
+    <nav class="md-nav" aria-label="Libraries" data-md-level="1">
+      <label class="md-nav__title" for="nav-4">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
         Libraries
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -679,152 +894,38 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
     
-    <label class="md-nav__link" for="nav-6">
-      Deploy
-    </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-6">
-        Deploy
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../deploy/packages/" title="RPM and DEB packages" class="md-nav__link">
-      RPM and DEB packages
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../deploy/docker/" title="Docker image" class="md-nav__link">
-      Docker image
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
-      Nginx configuration
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../deploy/tls/" title="TLS" class="md-nav__link">
-      TLS
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../deploy/tuning/" title="OS tuning" class="md-nav__link">
-      OS tuning
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
-    
-    <label class="md-nav__link" for="nav-7">
-      Misc
-    </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-7">
-        Misc
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
-      Insecure modes
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
-      Migrate from Centrifugo v1
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
-      Benchmarking server
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../../faq/" title="FAQ" class="md-nav__link">
+    <label class="md-nav__link" for="nav-5">
       FAQ
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="FAQ" data-md-level="1">
+      <label class="md-nav__title" for="nav-5">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        FAQ
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../faq/" title="Frequently Asked Questions" class="md-nav__link">
+      Frequently Asked Questions
     </a>
+  </li>
+
+        
+      </ul>
+    </nav>
   </li>
 
     
@@ -839,46 +940,47 @@
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
-<nav class="md-nav md-nav--secondary">
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
     
   
   
-    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#channel-name-rules" title="Channel name rules" class="md-nav__link">
+  <a href="#channel-name-rules" class="md-nav__link">
     Channel name rules
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#namespace-channel-boundary" title="namespace channel boundary (:)" class="md-nav__link">
+  <a href="#namespace-channel-boundary" class="md-nav__link">
     namespace channel boundary (:)
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#private-channel-prefix" title="private channel prefix ($)" class="md-nav__link">
+  <a href="#private-channel-prefix" class="md-nav__link">
     private channel prefix ($)
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#user-channel-boundary" title="user channel boundary (#)" class="md-nav__link">
+  <a href="#user-channel-boundary" class="md-nav__link">
     user channel boundary (#)
   </a>
   
 </li>
-      
-      
-      
-      
       
     </ul>
   
@@ -892,13 +994,18 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/server/channels.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
+                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/server/channels.md" title="Edit this page" class="md-content__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+                  </a>
+                
+                
+                  
                 
                 
                 <h1 id="channels">Channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h1>
 <p>Channel is a route for publication messages. Clients can subscribe to channel to receive messages published to this channel – new publications, join/leave events (if enabled for a channel namespace) etc. Channel subscriber can ask for channel presence or channel history information (if enabled for a channel namespace) .</p>
 <p>Channel is just a string - <code>news</code>, <code>comments</code> are valid channel names.</p>
-<p>Channel is an ephemeral entity – <strong>you don&rsquo;t need to create it explicitly</strong>. Channel created automatically by Centrifugo as soon as first client subscribes to it. As soon as last subscriber leaves channel - it&rsquo;s automatically cleaned up.</p>
+<p>Channel is an ephemeral entity – <strong>you don't need to create it explicitly</strong>. Channel created automatically by Centrifugo as soon as first client subscribes to it. As soon as last subscriber leaves channel - it's automatically cleaned up.</p>
 <h3 id="channel-name-rules">Channel name rules<a class="headerlink" href="#channel-name-rules" title="Permanent link">&para;</a></h3>
 <p>Only ASCII symbols must be used in channel string.</p>
 <p>Channel name length limited by <code>255</code> characters by default (can be changed via configuration file option <code>channel_max_length</code>).</p>
@@ -923,8 +1030,6 @@
 <p>Moreover, you can provide several user IDs in channel name separated by a comma: <code>dialog#42,43</code> – in this case only user with ID <code>42</code> and user with ID <code>43</code> will be able to subscribe on this channel.</p>
 <p>This is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.</p>
                 
-                  
-                
               
               
                 
@@ -938,62 +1043,93 @@
       
         
 <footer class="md-footer">
-  
+    
     <div class="md-footer-nav">
-      <nav class="md-footer-nav__inner md-grid">
-        
-          <a href="../configuration/" title="Configuration" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
-            <div class="md-flex__cell md-flex__cell--shrink">
-              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
-            </div>
-            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
-              <span class="md-flex__ellipsis">
+        <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+            
+            <a href="../configuration/" title="Configuration" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+                <div class="md-footer-nav__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+                </div>
+                <div class="md-footer-nav__title">
+                    <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Configuration
-              </span>
-            </div>
-          </a>
-        
-        
-          <a href="../authentication/" title="Authentication" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
-            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
-              <span class="md-flex__ellipsis">
+                        Configuration
+                    </div>
+                </div>
+            </a>
+            
+            
+            <a href="../authentication/" title="Authentication" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+                <div class="md-footer-nav__title">
+                    <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                Authentication
-              </span>
-            </div>
-            <div class="md-flex__cell md-flex__cell--shrink">
-              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
-            </div>
-          </a>
-        
-      </nav>
+                        Authentication
+                    </div>
+                </div>
+                <div class="md-footer-nav__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+                </div>
+            </a>
+            
+        </nav>
     </div>
-  
-  <div class="md-footer-meta md-typeset">
-    <div class="md-footer-meta__inner md-grid">
-      <div class="md-footer-copyright">
-        
-        powered by
-        <a href="https://www.mkdocs.org">MkDocs</a>
-        and
-        <a href="https://squidfunk.github.io/mkdocs-material/">
-          Material for MkDocs</a>
-      </div>
-      
+    
+    <div class="md-footer-meta md-typeset">
+        <div class="md-footer-meta__inner md-grid">
+            <div class="md-footer-copyright">
+                
+                <div class="md-footer-copyright__highlight">
+                    Copyright &copy; 2020 Centrifugal
+                </div>
+                
+                <style>
+
+                    /* Preserve link color */
+                    .md-announce a,
+                    .md-announce a:focus,
+                    .md-announce a:hover {
+                        color: currentColor;
+                    }
+
+                    /* Don't wrap name of blog article */
+                    .md-announce strong {
+                        white-space: nowrap;
+                    }
+
+                    /* Twitter icon */
+                    .md-announce .twitter {
+                        margin-left: .2em;
+                        color: #00acee;
+                    }
+                </style>
+                <a href="https://www.buymeacoffee.com/FZambia">
+                    Accepting donations via <strong>Buy me a coffee</strong>!
+                </a>
+            </div>
+            
+        </div>
     </div>
-  </div>
 </footer>
       
     </div>
     
-      <script src="../../assets/javascripts/application.b806dc00.js"></script>
+      <script src="../../assets/javascripts/vendor.a0c4167b.min.js"></script>
+      <script src="../../assets/javascripts/bundle.fb26dd1d.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
       
-      <script>app.initialize({version:"1.0.4",url:{base:"../.."}})</script>
+      <script>
+        app = initialize({
+          base: "../..",
+          features: ["tabs"],
+          search: Object.assign({
+            worker: "../../assets/javascripts/worker/search.37585f48.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
       
     
   </body>

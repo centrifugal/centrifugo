@@ -1,72 +1,48 @@
 
 
 
-
 <!doctype html>
 <html lang="en" class="no-js">
   <head>
     
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
-      <meta http-equiv="x-ua-compatible" content="ie=edge">
       
-        <meta name="description" content="Centrifugo Documentation">
+        <meta name="description" content="Centrifugo is a scalable real-time messaging server in language-agnostic way">
       
       
         <link rel="canonical" href="https://github.com/centrifugal/centrifugo/faq/">
       
       
-        <meta name="author" content="Centrifugal">
-      
-      
-        <meta name="lang:clipboard.copy" content="Copy to clipboard">
-      
-        <meta name="lang:clipboard.copied" content="Copied to clipboard">
-      
-        <meta name="lang:search.language" content="en">
-      
-        <meta name="lang:search.pipeline.stopwords" content="True">
-      
-        <meta name="lang:search.pipeline.trimmer" content="True">
-      
-        <meta name="lang:search.result.none" content="No matching documents">
-      
-        <meta name="lang:search.result.one" content="1 matching document">
-      
-        <meta name="lang:search.result.other" content="# matching documents">
-      
-        <meta name="lang:search.tokenizer" content="[\s\-]+">
+        <meta name="author" content="Centrifugal organization">
       
       <link rel="shortcut icon" href="../images/favicon.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.0.1">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.1.6">
     
     
       
-        <title>FAQ - Centrifugo Documentation</title>
+        <title>Frequently Asked Questions - Centrifugo</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/application.982221ab.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.4b9ffd7b.min.css">
       
-        <link rel="stylesheet" href="../assets/stylesheets/application-palette.224b79ff.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.b79bcd20.min.css">
       
       
         
         
-        <meta name="theme-color" content="#3f51b5">
+        <meta name="theme-color" content="">
       
     
-    
-      <script src="../assets/javascripts/modernizr.1f0bcf2b.js"></script>
     
     
       
         <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
-        <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
       
     
-    <link rel="stylesheet" href="../assets/fonts/material-icons.css">
     
     
       <link rel="stylesheet" href="../theme/styles/extra.css">
@@ -77,88 +53,73 @@
     
   </head>
   
-    
-    
-    <body dir="ltr" data-md-color-primary="indigo" data-md-color-accent="cyan">
   
-    <svg class="md-svg">
-      <defs>
-        
-        
-          <svg xmlns="http://www.w3.org/2000/svg" width="416" height="448"
-    viewBox="0 0 416 448" id="__github">
-  <path fill="currentColor" d="M160 304q0 10-3.125 20.5t-10.75 19-18.125
-        8.5-18.125-8.5-10.75-19-3.125-20.5 3.125-20.5 10.75-19 18.125-8.5
-        18.125 8.5 10.75 19 3.125 20.5zM320 304q0 10-3.125 20.5t-10.75
-        19-18.125 8.5-18.125-8.5-10.75-19-3.125-20.5 3.125-20.5 10.75-19
-        18.125-8.5 18.125 8.5 10.75 19 3.125 20.5zM360
-        304q0-30-17.25-51t-46.75-21q-10.25 0-48.75 5.25-17.75 2.75-39.25
-        2.75t-39.25-2.75q-38-5.25-48.75-5.25-29.5 0-46.75 21t-17.25 51q0 22 8
-        38.375t20.25 25.75 30.5 15 35 7.375 37.25 1.75h42q20.5 0
-        37.25-1.75t35-7.375 30.5-15 20.25-25.75 8-38.375zM416 260q0 51.75-15.25
-        82.75-9.5 19.25-26.375 33.25t-35.25 21.5-42.5 11.875-42.875 5.5-41.75
-        1.125q-19.5 0-35.5-0.75t-36.875-3.125-38.125-7.5-34.25-12.875-30.25-20.25-21.5-28.75q-15.5-30.75-15.5-82.75
-        0-59.25 34-99-6.75-20.5-6.75-42.5 0-29 12.75-54.5 27 0 47.5 9.875t47.25
-        30.875q36.75-8.75 77.25-8.75 37 0 70 8 26.25-20.5
-        46.75-30.25t47.25-9.75q12.75 25.5 12.75 54.5 0 21.75-6.75 42 34 40 34
-        99.5z" />
-</svg>
-        
-      </defs>
-    </svg>
+    
+    
+    <body dir="ltr" data-md-color-primary="black" data-md-color-accent="cyan">
+  
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
-    <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
-    
-      <a href="#faq" tabindex="1" class="md-skip">
-        Skip to content
-      </a>
-    
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#frequently-asked-questions" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
     
       <header class="md-header" data-md-component="header">
-  <nav class="md-header-nav md-grid">
-    <div class="md-flex">
-      <div class="md-flex__cell md-flex__cell--shrink">
-        <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo Documentation" class="md-header-nav__button md-logo">
-          
-            <img src="../images/logo.png" width="24" height="24">
-          
-        </a>
-      </div>
-      <div class="md-flex__cell md-flex__cell--shrink">
-        <label class="md-icon md-icon--menu md-header-nav__button" for="__drawer"></label>
-      </div>
-      <div class="md-flex__cell md-flex__cell--stretch">
-        <div class="md-flex__ellipsis md-header-nav__title" data-md-component="title">
-          
-            <span class="md-header-nav__topic">
-              Centrifugo Documentation
-            </span>
-            <span class="md-header-nav__topic">
-              FAQ
-            </span>
-          
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo" class="md-header-nav__button md-logo" aria-label="Centrifugo">
+      
+  <img src="../images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      
+        <div class="md-header-nav__ellipsis">
+          <span class="md-header-nav__topic md-ellipsis">
+            Centrifugo
+          </span>
+          <span class="md-header-nav__topic md-ellipsis">
+            
+              Frequently Asked Questions
+            
+          </span>
         </div>
-      </div>
-      <div class="md-flex__cell md-flex__cell--shrink">
-        
-          <label class="md-icon md-icon--search md-header-nav__button" for="__search"></label>
-          
+      
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
 <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
-      <label class="md-icon md-search__icon" for="__search"></label>
-      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
-        &#xE5CD;
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
       </button>
     </form>
     <div class="md-search__output">
       <div class="md-search__scrollwrap" data-md-scrollfix>
-        <div class="md-search-result" data-md-component="result">
+        <div class="md-search-result" data-md-component="search-result">
           <div class="md-search-result__meta">
-            Type to start searching
+            Initializing search
           </div>
           <ol class="md-search-result__list"></ol>
         </div>
@@ -166,71 +127,129 @@
     </div>
   </div>
 </div>
+    
+    
+      <div class="md-header-nav__source">
         
-      </div>
-      
-        <div class="md-flex__cell md-flex__cell--shrink">
-          <div class="md-header-nav__source">
-            
-
-
-  
-
-<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source" data-md-source="github">
-  
-    <div class="md-source__icon">
-      <svg viewBox="0 0 24 24" width="24" height="24">
-        <use xlink:href="#__github" width="24" height="24"></use>
-      </svg>
-    </div>
-  
+<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
   <div class="md-source__repository">
     centrifugal/centrifugo
   </div>
 </a>
-          </div>
-        </div>
-      
-    </div>
+      </div>
+    
   </nav>
 </header>
     
-    <div class="md-container">
+    <div class="md-container" data-md-component="container">
       
         
       
       
-      <main class="md-main">
-        <div class="md-main__inner md-grid" data-md-component="container">
+        
+          
+
+  
+
+<nav class="md-tabs md-tabs--active" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-tabs__inner md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  <li class="md-tabs__item">
+    
+      <a href=".." class="md-tabs__link">
+        Home
+      </a>
+    
+  </li>
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../getting_started/" class="md-tabs__link">
+          Getting Started
+        </a>
+      
+    </li>
+  
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../server/configuration/" class="md-tabs__link">
+          Server
+        </a>
+      
+    </li>
+  
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../libraries/client/" class="md-tabs__link">
+          Libraries
+        </a>
+      
+    </li>
+  
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="./" class="md-tabs__link md-tabs__link--active">
+          FAQ
+        </a>
+      
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
           
             
               <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
-                    <nav class="md-nav md-nav--primary" data-md-level="0">
-  <label class="md-nav__title md-nav__title--site" for="__drawer">
-    <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo Documentation" class="md-nav__button md-logo">
+                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://github.com/centrifugal/centrifugo" title="Centrifugo" class="md-nav__button md-logo" aria-label="Centrifugo">
       
-        <img src="../images/logo.png" width="48" height="48">
-      
+  <img src="../images/logo.png" alt="logo">
+
     </a>
-    Centrifugo Documentation
+    Centrifugo
   </label>
   
     <div class="md-nav__source">
       
-
-
-  
-
-<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source" data-md-source="github">
-  
-    <div class="md-source__icon">
-      <svg viewBox="0 0 24 24" width="24" height="24">
-        <use xlink:href="#__github" width="24" height="24"></use>
-      </svg>
-    </div>
-  
+<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
   <div class="md-source__repository">
     centrifugal/centrifugo
   </div>
@@ -245,20 +264,8 @@
 
 
   <li class="md-nav__item">
-    <a href=".." title="Getting Started" class="md-nav__link">
-      Getting Started
-    </a>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item">
-    <a href="../guide/" title="Integration Guide" class="md-nav__link">
-      Integration Guide
+    <a href=".." title="Home" class="md-nav__link">
+      Home
     </a>
   </li>
 
@@ -270,14 +277,20 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2">
     
-    <label class="md-nav__link" for="nav-3">
-      Server
+    <label class="md-nav__link" for="nav-2">
+      Getting Started
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-3">
-        Server
+    <nav class="md-nav" aria-label="Getting Started" data-md-level="1">
+      <label class="md-nav__title" for="nav-2">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Getting Started
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
         
@@ -288,8 +301,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/" title="Overview" class="md-nav__link">
-      Overview
+    <a href="../getting_started/" title="What is Centrifugo" class="md-nav__link">
+      What is Centrifugo
     </a>
   </li>
 
@@ -300,11 +313,65 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/install/" title="Installation" class="md-nav__link">
+    <a href="../install/" title="Installation" class="md-nav__link">
       Installation
     </a>
   </li>
 
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../quick_start/" title="Quick start" class="md-nav__link">
+      Quick start
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../guide/" title="Integration Guide" class="md-nav__link">
+      Integration Guide
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
+    
+    <label class="md-nav__link" for="nav-3">
+      Server
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Server" data-md-level="1">
+      <label class="md-nav__title" for="nav-3">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Server
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
         
           
           
@@ -348,32 +415,20 @@
 
 
   <li class="md-nav__item">
+    <a href="../server/private_channels/" title="Private channels'" class="md-nav__link">
+      Private channels'
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../server/engines/" title="Engines" class="md-nav__link">
       Engines
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../server/admin/" title="Admin web interface" class="md-nav__link">
-      Admin web interface
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../server/monitoring/" title="Monitoring" class="md-nav__link">
-      Monitoring
     </a>
   </li>
 
@@ -398,6 +453,42 @@
   <li class="md-nav__item">
     <a href="../server/grpc_api/" title="Server GRPC API" class="md-nav__link">
       Server GRPC API
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/admin/" title="Admin web interface" class="md-nav__link">
+      Admin web interface
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/proxy/" title="Proxy to backend" class="md-nav__link">
+      Proxy to backend
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/server_subs/" title="Server-side subscriptions" class="md-nav__link">
+      Server-side subscriptions
     </a>
   </li>
 
@@ -443,80 +534,21 @@
           
 
 
-  <li class="md-nav__item">
-    <a href="../server/private_channels/" title="Private channels" class="md-nav__link">
-      Private channels
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../server/proxy/" title="Proxy to backend" class="md-nav__link">
-      Proxy to backend
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../server/server_subs/" title="Server-side subscriptions" class="md-nav__link">
-      Server-side subscriptions
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../server/protobuf/" title="Protobuf protocol" class="md-nav__link">
-      Protobuf protocol
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../server/protocol/" title="Client protocol" class="md-nav__link">
-      Client protocol
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
-
-
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
     
-    <label class="md-nav__link" for="nav-4">
+    <label class="md-nav__link" for="nav-3-14">
       Transports
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-4">
+    <nav class="md-nav" aria-label="Transports" data-md-level="2">
+      <label class="md-nav__title" for="nav-3-14">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
         Transports
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -528,8 +560,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../transports/" title="Overview" class="md-nav__link">
-      Overview
+    <a href="../transports/" title="Transports overview" class="md-nav__link">
+      Transports overview
     </a>
   </li>
 
@@ -562,6 +594,179 @@
     </nav>
   </li>
 
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
+    
+    <label class="md-nav__link" for="nav-3-15">
+      Deploy
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Deploy" data-md-level="2">
+      <label class="md-nav__title" for="nav-3-15">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Deploy
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
+      Nginx configuration
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../deploy/monitoring/" title="Monitoring" class="md-nav__link">
+      Monitoring
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../deploy/tuning/" title="OS tuning" class="md-nav__link">
+      OS tuning
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../deploy/tls/" title="TLS" class="md-nav__link">
+      TLS
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/protobuf/" title="Protobuf protocol" class="md-nav__link">
+      Protobuf protocol
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox" id="nav-3-17">
+    
+    <label class="md-nav__link" for="nav-3-17">
+      Misc
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Misc" data-md-level="2">
+      <label class="md-nav__title" for="nav-3-17">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Misc
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
+      Insecure modes
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
+      Benchmarking server
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
+      Migrate from Centrifugo v1
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../server/protocol/" title="Client protocol" class="md-nav__link">
+      Client protocol
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
     
       
       
@@ -570,13 +775,19 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
     
-    <label class="md-nav__link" for="nav-5">
+    <label class="md-nav__link" for="nav-4">
       Libraries
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-5">
+    <nav class="md-nav" aria-label="Libraries" data-md-level="1">
+      <label class="md-nav__title" for="nav-4">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
         Libraries
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -615,17 +826,25 @@
       
       
 
+  
 
-  <li class="md-nav__item md-nav__item--nested">
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5" checked>
     
-    <label class="md-nav__link" for="nav-6">
-      Deploy
+    <label class="md-nav__link" for="nav-5">
+      FAQ
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
     </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-6">
-        Deploy
+    <nav class="md-nav" aria-label="FAQ" data-md-level="1">
+      <label class="md-nav__title" for="nav-5">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        FAQ
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
         
@@ -633,315 +852,199 @@
           
           
           
-
-
-  <li class="md-nav__item">
-    <a href="../deploy/packages/" title="RPM and DEB packages" class="md-nav__link">
-      RPM and DEB packages
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../deploy/docker/" title="Docker image" class="md-nav__link">
-      Docker image
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
-      Nginx configuration
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../deploy/tls/" title="TLS" class="md-nav__link">
-      TLS
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../deploy/tuning/" title="OS tuning" class="md-nav__link">
-      OS tuning
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
-    
-    <label class="md-nav__link" for="nav-7">
-      Misc
-    </label>
-    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
-      <label class="md-nav__title" for="nav-7">
-        Misc
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
-      Insecure modes
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
-      Migrate from Centrifugo v1
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
-      Benchmarking server
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-    
-      
-      
-      
 
   
 
 
   <li class="md-nav__item md-nav__item--active">
     
-    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
     
       
     
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
-        FAQ
+        Frequently Asked Questions
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
       </label>
     
-    <a href="./" title="FAQ" class="md-nav__link md-nav__link--active">
-      FAQ
+    <a href="./" title="Frequently Asked Questions" class="md-nav__link md-nav__link--active">
+      Frequently Asked Questions
     </a>
     
       
-<nav class="md-nav md-nav--secondary">
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
     
   
   
-    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#how-many-connections-can-one-centrifugo-instance-handle" title="How many connections can one Centrifugo instance handle?" class="md-nav__link">
+  <a href="#how-many-connections-can-one-centrifugo-instance-handle" class="md-nav__link">
     How many connections can one Centrifugo instance handle?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-centrifugo-scale-horizontally" title="Can Centrifugo scale horizontally?" class="md-nav__link">
+  <a href="#can-centrifugo-scale-horizontally" class="md-nav__link">
     Can Centrifugo scale horizontally?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#message-delivery-model-and-message-order-guarantees" title="Message delivery model and message order guarantees" class="md-nav__link">
+  <a href="#message-delivery-model-and-message-order-guarantees" class="md-nav__link">
     Message delivery model and message order guarantees
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#should-i-create-channels-explicitly" title="Should I create channels explicitly?" class="md-nav__link">
+  <a href="#should-i-create-channels-explicitly" class="md-nav__link">
     Should I create channels explicitly?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-about-best-practices-with-amount-of-channels" title="What about best practices with amount of channels?" class="md-nav__link">
+  <a href="#what-about-best-practices-with-amount-of-channels" class="md-nav__link">
     What about best practices with amount of channels?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#presence-for-chat-apps-online-status-of-your-contacts" title="Presence for chat apps - online status of your contacts" class="md-nav__link">
+  <a href="#presence-for-chat-apps-online-status-of-your-contacts" class="md-nav__link">
     Presence for chat apps - online status of your contacts
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#centrifugo-stops-accepting-new-connections-why" title="Centrifugo stops accepting new connections, why?" class="md-nav__link">
+  <a href="#centrifugo-stops-accepting-new-connections-why" class="md-nav__link">
     Centrifugo stops accepting new connections, why?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-i-use-centrifugo-without-reverse-proxy-like-nginx-before-it" title="Can I use Centrifugo without reverse-proxy like Nginx before it?" class="md-nav__link">
+  <a href="#can-i-use-centrifugo-without-reverse-proxy-like-nginx-before-it" class="md-nav__link">
     Can I use Centrifugo without reverse-proxy like Nginx before it?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#does-centrifugo-work-with-http2" title="Does Centrifugo work with HTTP/2?" class="md-nav__link">
+  <a href="#does-centrifugo-work-with-http2" class="md-nav__link">
     Does Centrifugo work with HTTP/2?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#is-there-a-way-to-use-single-connection-to-centrifugo-from-different-browser-tabs" title="Is there a way to use single connection to Centrifugo from different browser tabs?" class="md-nav__link">
+  <a href="#is-there-a-way-to-use-single-connection-to-centrifugo-from-different-browser-tabs" class="md-nav__link">
     Is there a way to use single connection to Centrifugo from different browser tabs?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-if-i-need-to-send-push-notifications-to-mobile-or-web-applications" title="What if I need to send push notifications to mobile or web applications?" class="md-nav__link">
+  <a href="#what-if-i-need-to-send-push-notifications-to-mobile-or-web-applications" class="md-nav__link">
     What if I need to send push notifications to mobile or web applications?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-i-know-message-was-really-delivered-to-client" title="Can I know message was really delivered to client?" class="md-nav__link">
+  <a href="#can-i-know-message-was-really-delivered-to-client" class="md-nav__link">
     Can I know message was really delivered to client?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-i-publish-new-messages-over-websocket-connection-from-client" title="Can I publish new messages over websocket connection from client?" class="md-nav__link">
+  <a href="#can-i-publish-new-messages-over-websocket-connection-from-client" class="md-nav__link">
     Can I publish new messages over websocket connection from client?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-to-create-secure-channel-for-two-users-only-private-chat-case" title="How to create secure channel for two users only (private chat case)?" class="md-nav__link">
+  <a href="#how-to-create-secure-channel-for-two-users-only-private-chat-case" class="md-nav__link">
     How to create secure channel for two users only (private chat case)?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#whats-a-best-way-to-organize-channel-configuration" title="What's a best way to organize channel configuration?" class="md-nav__link">
+  <a href="#whats-a-best-way-to-organize-channel-configuration" class="md-nav__link">
     What's a best way to organize channel configuration?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery" title="Can I rely on Centrifugo and its message history for guaranteed message delivery?" class="md-nav__link">
+  <a href="#can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery" class="md-nav__link">
     Can I rely on Centrifugo and its message history for guaranteed message delivery?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#does-centrifugo-support-webhooks" title="Does Centrifugo support webhooks?" class="md-nav__link">
+  <a href="#does-centrifugo-support-webhooks" class="md-nav__link">
     Does Centrifugo support webhooks?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-scalable-is-presence-and-joinleave-information" title="How scalable is presence and join/leave information?" class="md-nav__link">
+  <a href="#how-scalable-is-presence-and-joinleave-information" class="md-nav__link">
     How scalable is presence and join/leave information?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-is-the-difference-between-centrifugo-and-centrifuge" title="What is the difference between Centrifugo and Centrifuge" class="md-nav__link">
+  <a href="#what-is-the-difference-between-centrifugo-and-centrifuge" class="md-nav__link">
     What is the difference between Centrifugo and Centrifuge
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#i-have-not-found-an-answer-on-my-question-here" title="I have not found an answer on my question here:" class="md-nav__link">
+  <a href="#i-have-not-found-an-answer-on-my-question-here" class="md-nav__link">
     I have not found an answer on my question here:
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#i-want-to-contribute-to-this-awesome-project" title="I want to contribute to this awesome project" class="md-nav__link">
+  <a href="#i-want-to-contribute-to-this-awesome-project" class="md-nav__link">
     I want to contribute to this awesome project
   </a>
   
 </li>
       
-      
-      
-      
-      
     </ul>
   
 </nav>
     
+  </li>
+
+        
+      </ul>
+    </nav>
   </li>
 
     
@@ -956,165 +1059,166 @@
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
-<nav class="md-nav md-nav--secondary">
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
     
   
   
-    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#how-many-connections-can-one-centrifugo-instance-handle" title="How many connections can one Centrifugo instance handle?" class="md-nav__link">
+  <a href="#how-many-connections-can-one-centrifugo-instance-handle" class="md-nav__link">
     How many connections can one Centrifugo instance handle?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-centrifugo-scale-horizontally" title="Can Centrifugo scale horizontally?" class="md-nav__link">
+  <a href="#can-centrifugo-scale-horizontally" class="md-nav__link">
     Can Centrifugo scale horizontally?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#message-delivery-model-and-message-order-guarantees" title="Message delivery model and message order guarantees" class="md-nav__link">
+  <a href="#message-delivery-model-and-message-order-guarantees" class="md-nav__link">
     Message delivery model and message order guarantees
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#should-i-create-channels-explicitly" title="Should I create channels explicitly?" class="md-nav__link">
+  <a href="#should-i-create-channels-explicitly" class="md-nav__link">
     Should I create channels explicitly?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-about-best-practices-with-amount-of-channels" title="What about best practices with amount of channels?" class="md-nav__link">
+  <a href="#what-about-best-practices-with-amount-of-channels" class="md-nav__link">
     What about best practices with amount of channels?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#presence-for-chat-apps-online-status-of-your-contacts" title="Presence for chat apps - online status of your contacts" class="md-nav__link">
+  <a href="#presence-for-chat-apps-online-status-of-your-contacts" class="md-nav__link">
     Presence for chat apps - online status of your contacts
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#centrifugo-stops-accepting-new-connections-why" title="Centrifugo stops accepting new connections, why?" class="md-nav__link">
+  <a href="#centrifugo-stops-accepting-new-connections-why" class="md-nav__link">
     Centrifugo stops accepting new connections, why?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-i-use-centrifugo-without-reverse-proxy-like-nginx-before-it" title="Can I use Centrifugo without reverse-proxy like Nginx before it?" class="md-nav__link">
+  <a href="#can-i-use-centrifugo-without-reverse-proxy-like-nginx-before-it" class="md-nav__link">
     Can I use Centrifugo without reverse-proxy like Nginx before it?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#does-centrifugo-work-with-http2" title="Does Centrifugo work with HTTP/2?" class="md-nav__link">
+  <a href="#does-centrifugo-work-with-http2" class="md-nav__link">
     Does Centrifugo work with HTTP/2?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#is-there-a-way-to-use-single-connection-to-centrifugo-from-different-browser-tabs" title="Is there a way to use single connection to Centrifugo from different browser tabs?" class="md-nav__link">
+  <a href="#is-there-a-way-to-use-single-connection-to-centrifugo-from-different-browser-tabs" class="md-nav__link">
     Is there a way to use single connection to Centrifugo from different browser tabs?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-if-i-need-to-send-push-notifications-to-mobile-or-web-applications" title="What if I need to send push notifications to mobile or web applications?" class="md-nav__link">
+  <a href="#what-if-i-need-to-send-push-notifications-to-mobile-or-web-applications" class="md-nav__link">
     What if I need to send push notifications to mobile or web applications?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-i-know-message-was-really-delivered-to-client" title="Can I know message was really delivered to client?" class="md-nav__link">
+  <a href="#can-i-know-message-was-really-delivered-to-client" class="md-nav__link">
     Can I know message was really delivered to client?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-i-publish-new-messages-over-websocket-connection-from-client" title="Can I publish new messages over websocket connection from client?" class="md-nav__link">
+  <a href="#can-i-publish-new-messages-over-websocket-connection-from-client" class="md-nav__link">
     Can I publish new messages over websocket connection from client?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-to-create-secure-channel-for-two-users-only-private-chat-case" title="How to create secure channel for two users only (private chat case)?" class="md-nav__link">
+  <a href="#how-to-create-secure-channel-for-two-users-only-private-chat-case" class="md-nav__link">
     How to create secure channel for two users only (private chat case)?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#whats-a-best-way-to-organize-channel-configuration" title="What's a best way to organize channel configuration?" class="md-nav__link">
+  <a href="#whats-a-best-way-to-organize-channel-configuration" class="md-nav__link">
     What's a best way to organize channel configuration?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery" title="Can I rely on Centrifugo and its message history for guaranteed message delivery?" class="md-nav__link">
+  <a href="#can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery" class="md-nav__link">
     Can I rely on Centrifugo and its message history for guaranteed message delivery?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#does-centrifugo-support-webhooks" title="Does Centrifugo support webhooks?" class="md-nav__link">
+  <a href="#does-centrifugo-support-webhooks" class="md-nav__link">
     Does Centrifugo support webhooks?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-scalable-is-presence-and-joinleave-information" title="How scalable is presence and join/leave information?" class="md-nav__link">
+  <a href="#how-scalable-is-presence-and-joinleave-information" class="md-nav__link">
     How scalable is presence and join/leave information?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-is-the-difference-between-centrifugo-and-centrifuge" title="What is the difference between Centrifugo and Centrifuge" class="md-nav__link">
+  <a href="#what-is-the-difference-between-centrifugo-and-centrifuge" class="md-nav__link">
     What is the difference between Centrifugo and Centrifuge
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#i-have-not-found-an-answer-on-my-question-here" title="I have not found an answer on my question here:" class="md-nav__link">
+  <a href="#i-have-not-found-an-answer-on-my-question-here" class="md-nav__link">
     I have not found an answer on my question here:
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#i-want-to-contribute-to-this-awesome-project" title="I want to contribute to this awesome project" class="md-nav__link">
+  <a href="#i-want-to-contribute-to-this-awesome-project" class="md-nav__link">
     I want to contribute to this awesome project
   </a>
   
 </li>
-      
-      
-      
-      
       
     </ul>
   
@@ -1128,27 +1232,32 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/faq.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
+                  <a href="https://github.com/centrifugal/documentation/edit/master/docs/faq.md" title="Edit this page" class="md-content__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+                  </a>
                 
                 
-                <h1 id="faq">FAQ<a class="headerlink" href="#faq" title="Permanent link">&para;</a></h1>
+                  
+                
+                
+                <h1 id="frequently-asked-questions">Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permanent link">&para;</a></h1>
 <p>Answers on various questions here.</p>
 <h3 id="how-many-connections-can-one-centrifugo-instance-handle">How many connections can one Centrifugo instance handle?<a class="headerlink" href="#how-many-connections-can-one-centrifugo-instance-handle" title="Permanent link">&para;</a></h3>
 <p>This depends on many factors. Hardware, message rate, size of messages, channel options enabled, client distribution over channels, websocket compression on/off etc. So no certain answer on this question exists. Common sense, tests and monitoring can help here. Generally we suggest to not put more than 50-100k clients on one node - but you should measure for your personal use case.</p>
 <p>You can find a benchmark we did in <a href="../misc/benchmark/">this docs chapter</a> – but the point above is still valid, measure and monitor your own setup.</p>
 <h3 id="can-centrifugo-scale-horizontally">Can Centrifugo scale horizontally?<a class="headerlink" href="#can-centrifugo-scale-horizontally" title="Permanent link">&para;</a></h3>
-<p>Yes, it can. It can do this using builtin Redis Engine. Redis is very fast – for example it can handle hundreds of thousands requests per second. This should be OK for most applications in internet. But if you are using Centrifugo and approaching this limit then it&rsquo;s possible to add sharding support to balance queries between different Redis instances.</p>
+<p>Yes, it can. It can do this using builtin Redis Engine. Redis is very fast – for example it can handle hundreds of thousands requests per second. This should be OK for most applications in internet. But if you are using Centrifugo and approaching this limit then it's possible to add sharding support to balance queries between different Redis instances.</p>
 <h3 id="message-delivery-model-and-message-order-guarantees">Message delivery model and message order guarantees<a class="headerlink" href="#message-delivery-model-and-message-order-guarantees" title="Permanent link">&para;</a></h3>
-<p>The model of message delivery of Centrifugo server is at most once. With recovery feature it&rsquo;s possible to achieve at least once guarantee during retention period to recover missed messages after temporary disconnect.</p>
+<p>The model of message delivery of Centrifugo server is at most once. With recovery feature it's possible to achieve at least once guarantee during retention period to recover missed messages after temporary disconnect.</p>
 <p>So without recovery feature message you send to Centrifugo can be theoretically lost while moving towards your clients. Offline clients do not receive messages. Centrifugo tries to do a best effort to prevent message losses on a way to online clients but you should be aware of message lost possibility. Your application should tolerate this. </p>
 <p>As said above Centrifugo has an option to automatically recover messages that have been lost because of short network disconnections. Also it prevents message loss on a way from Redis to nodes over Redis PUB/SUB using additional sequence check and periodical synchronization.</p>
-<p>We also recommend to model your applications in a way that users don&rsquo;t notice when Centrifugo does not work at all. Use graceful degradation. For example if your user posts a new comment over AJAX call to your application backend - you should not rely only on Centrifugo to get new comment form and display it - you should return new comment data in AJAX call response and render it. This way user that posts a comment will think that everything works just fine. Be careful to not draw comments twice in this case.</p>
-<p>Message order in channels guaranteed to be the same while you publish messages into channel one after another or publish them in one request. If you do parallel publishes into the same channel then Centrifugo can&rsquo;t guarantee message order.</p>
+<p>We also recommend to model your applications in a way that users don't notice when Centrifugo does not work at all. Use graceful degradation. For example if your user posts a new comment over AJAX call to your application backend - you should not rely only on Centrifugo to get new comment form and display it - you should return new comment data in AJAX call response and render it. This way user that posts a comment will think that everything works just fine. Be careful to not draw comments twice in this case.</p>
+<p>Message order in channels guaranteed to be the same while you publish messages into channel one after another or publish them in one request. If you do parallel publishes into the same channel then Centrifugo can't guarantee message order.</p>
 <h3 id="should-i-create-channels-explicitly">Should I create channels explicitly?<a class="headerlink" href="#should-i-create-channels-explicitly" title="Permanent link">&para;</a></h3>
 <p>No. By default channels created automatically as soon as first client subscribed to it. And destroyed automatically when last client unsubscribes from channel.</p>
 <p>When history is on then a window of last messages is kept automatically during retention period. So client that comes later and subscribes to channel can retrieve those messages using call to history.</p>
 <h3 id="what-about-best-practices-with-amount-of-channels">What about best practices with amount of channels?<a class="headerlink" href="#what-about-best-practices-with-amount-of-channels" title="Permanent link">&para;</a></h3>
-<p>Channels is a very lighweight entity - Centrifugo can deal with lots of them, don&rsquo;t be afraid to use many channels.</p>
+<p>Channels is a very lighweight entity - Centrifugo can deal with lots of them, don't be afraid to use many channels.</p>
 <p><strong>But</strong> keep in mind that one client should not be subscribed to lots of channels at the same moment. Use channels for separate real-time features. Using no more than several channels for client is what you should try to achieve. A good anology is writing SQL queries – you need to make sure that you return content using fixed amount of database queries, as soon as more entries on your page result in more queries - your pages start working very slow at some point. The same for channels - you better to deliver real-time events over fixed amount of channels. It takes a separate frame for client to subscribe to single channel – more frames mean more heavy initial connection.</p>
 <h3 id="presence-for-chat-apps-online-status-of-your-contacts">Presence for chat apps - online status of your contacts<a class="headerlink" href="#presence-for-chat-apps-online-status-of-your-contacts" title="Permanent link">&para;</a></h3>
 <p>While presence is good feature it does not fit well some apps. For example if you make chat app - you may probably use single personal channel for each user. In this case you can not find who is online at moment using builtin Centrifugo presence feature as users do not share common channel. You can solve this using your own separate service that tracks online status of your users (for example in Redis) and has bulk API that returns online status approximation for a list of users. This way you will have efficient scalable way to deal with online statuses. </p>
@@ -1160,40 +1269,39 @@ be very useful for load balancing clients for example.</p>
 <h3 id="does-centrifugo-work-with-http2">Does Centrifugo work with HTTP/2?<a class="headerlink" href="#does-centrifugo-work-with-http2" title="Permanent link">&para;</a></h3>
 <p>Yes, Centrifugo works with HTTP/2.</p>
 <p>You can disable HTTP/2 running Centrifugo server with <code>GODEBUG</code> environment variable:</p>
-<div class="codehilite"><pre><span></span>GODEBUG=&quot;http2server=0&quot; centrifugo -c config.json
-</pre></div>
-
+<div class="highlight"><pre><span></span><code>GODEBUG=&quot;http2server=0&quot; centrifugo -c config.json
+</code></pre></div>
 
 <h3 id="is-there-a-way-to-use-single-connection-to-centrifugo-from-different-browser-tabs">Is there a way to use single connection to Centrifugo from different browser tabs?<a class="headerlink" href="#is-there-a-way-to-use-single-connection-to-centrifugo-from-different-browser-tabs" title="Permanent link">&para;</a></h3>
 <p>If underlying transport is HTTP-based and you use HTTP/2 then this will work automatically. In case of websocket connection there is a way to do this using <code>SharedWorker</code> object though we have no support to work this way in our Javascript library.</p>
 <h3 id="what-if-i-need-to-send-push-notifications-to-mobile-or-web-applications">What if I need to send push notifications to mobile or web applications?<a class="headerlink" href="#what-if-i-need-to-send-push-notifications-to-mobile-or-web-applications" title="Permanent link">&para;</a></h3>
-<p>Sometimes it&rsquo;s confusing to see a difference between real-time messages and push notifications. Centrifugo is a real-time messaging server. It can not send push notifications to devices - to Apple iOS devices via APNS, Android devices via GCM or browsers over Web Push API. This is a goal for another software. But the reasonable question here is how can I know when I need to send real-time message to client online or push notification to its device because application closed at client&rsquo;s device at moment. The solution is pretty simple. You can keep critical notifications for client in database. And when client read message send ack to your backend marking that notification as read by client, you save this ack too. Periodically you can check which notifications were sent to clients but they have not read it (no ack received). For such notification you can send push notification to its device using your own or another open-source solution. Look at Firebase for example!</p>
+<p>Sometimes it's confusing to see a difference between real-time messages and push notifications. Centrifugo is a real-time messaging server. It can not send push notifications to devices - to Apple iOS devices via APNS, Android devices via GCM or browsers over Web Push API. This is a goal for another software. But the reasonable question here is how can I know when I need to send real-time message to client online or push notification to its device because application closed at client's device at moment. The solution is pretty simple. You can keep critical notifications for client in database. And when client read message send ack to your backend marking that notification as read by client, you save this ack too. Periodically you can check which notifications were sent to clients but they have not read it (no ack received). For such notification you can send push notification to its device using your own or another open-source solution. Look at Firebase for example!</p>
 <h3 id="can-i-know-message-was-really-delivered-to-client">Can I know message was really delivered to client?<a class="headerlink" href="#can-i-know-message-was-really-delivered-to-client" title="Permanent link">&para;</a></h3>
 <p>You can but Centrifugo does not have such API. What you have to do to ensure your client received message is sending confirmation ack from your client to your application backend as soon as client processed message coming from Centrifugo channel.</p>
 <h3 id="can-i-publish-new-messages-over-websocket-connection-from-client">Can I publish new messages over websocket connection from client?<a class="headerlink" href="#can-i-publish-new-messages-over-websocket-connection-from-client" title="Permanent link">&para;</a></h3>
-<p>Centrifugo designed to stream messages from server to client. Even though it&rsquo;s possible to publish messages into channels directly from client (when <code>publish</code> channel option enabled) - we strongly discourage this in production usage as those messages will go through Centrifugo without any control.</p>
+<p>Centrifugo designed to stream messages from server to client. Even though it's possible to publish messages into channels directly from client (when <code>publish</code> channel option enabled) - we strongly discourage this in production usage as those messages will go through Centrifugo without any control.</p>
 <p>Theoretically Centrifugo could resend messages published from client to your application backend endpoint (i.e. having some sort of webhook built in) but it does not seem beneficial it terms of overall performance and application architecture at moment. And this will require extra layer of convetions about Centrifugo-to-backend communication. </p>
 <p>So in general when user generates an event it must be first delivered to your app backend using a convenient way (for example AJAX POST request for web application), processed on backend (validated, saved into main application database) and then published to Centrifugo using Centrifugo HTTP or GRPC API.</p>
-<p>Sometimes publishing from client directly into channel can be useful though - for personal projects, for demonstrations (like we do in our <a href="https://github.com/centrifugal/examples">examples</a>) or if you trust your users and want to build application without backend. In all cases when you don&rsquo;t need any message control
+<p>Sometimes publishing from client directly into channel can be useful though - for personal projects, for demonstrations (like we do in our <a href="https://github.com/centrifugal/examples">examples</a>) or if you trust your users and want to build application without backend. In all cases when you don't need any message control
 on your backend.</p>
 <h3 id="how-to-create-secure-channel-for-two-users-only-private-chat-case">How to create secure channel for two users only (private chat case)?<a class="headerlink" href="#how-to-create-secure-channel-for-two-users-only-private-chat-case" title="Permanent link">&para;</a></h3>
 <p>There are several ways to achieve it:</p>
 <ul>
 <li>use private channel (starting with <code>$</code>) - every time user will try to subscribe on it your backend should provide sign to confirm that subscription request. Read more in <a href="https://centrifugal.github.io/centrifugo/server/channels/#private-channel-prefix">special chapter about channels</a></li>
 <li>next is <a href="https://centrifugal.github.io/centrifugo/server/channels/#user-channel-boundary">user limited channels</a> (with <code>#</code>) - you can create channel with name like <code>dialog#42,567</code> to limit subscribers only to user with id <code>42</code> and user with ID <code>567</code></li>
-<li>finally you can create hard to guess channel name (based on some secret key and user IDs or just generate and save this long unique name into your main app database) so other users won&rsquo;t know this channel to subscribe on it. This is the simplest but not the safest way - but can be reasonable to consider in many situations.</li>
+<li>finally you can create hard to guess channel name (based on some secret key and user IDs or just generate and save this long unique name into your main app database) so other users won't know this channel to subscribe on it. This is the simplest but not the safest way - but can be reasonable to consider in many situations.</li>
 </ul>
-<h3 id="whats-a-best-way-to-organize-channel-configuration">What&rsquo;s a best way to organize channel configuration?<a class="headerlink" href="#whats-a-best-way-to-organize-channel-configuration" title="Permanent link">&para;</a></h3>
+<h3 id="whats-a-best-way-to-organize-channel-configuration">What's a best way to organize channel configuration?<a class="headerlink" href="#whats-a-best-way-to-organize-channel-configuration" title="Permanent link">&para;</a></h3>
 <p>In most situations your application need several real-time features. We suggest to use namespaces for every real-time feature if it requires some option enabled.</p>
 <p>For example if you need join/leave messages for chat app - create special channel namespace with this <code>join_leave</code> option enabled. Otherwise your other channels will receive join/leave messages too - increasing load and traffic in system but not actually used by clients.</p>
 <p>The same relates to other channel options.</p>
 <h3 id="can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery">Can I rely on Centrifugo and its message history for guaranteed message delivery?<a class="headerlink" href="#can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery" title="Permanent link">&para;</a></h3>
-<p>No - Centrifugo is best-effort transport. This means that if you want strongly guaranteed message delivery to your clients then you can&rsquo;t just rely on Centrifugo and its message history cache. In this case you still can use Centrifugo for real-time but you should build some additional logic on top your application backend and main data storage to satisfy your guarantees.</p>
-<p>Centrifugo can keep message history for a while and you can want to rely on it for your needs. Centrifugo is not designed as data storage - it uses message history mostly for recovering missed messages after short client internet connection disconnects. It&rsquo;s not designed to be used to sync client state after being offline for a long time - this logic should be on your app backend.</p>
+<p>No - Centrifugo is best-effort transport. This means that if you want strongly guaranteed message delivery to your clients then you can't just rely on Centrifugo and its message history cache. In this case you still can use Centrifugo for real-time but you should build some additional logic on top your application backend and main data storage to satisfy your guarantees.</p>
+<p>Centrifugo can keep message history for a while and you can want to rely on it for your needs. Centrifugo is not designed as data storage - it uses message history mostly for recovering missed messages after short client internet connection disconnects. It's not designed to be used to sync client state after being offline for a long time - this logic should be on your app backend.</p>
 <h3 id="does-centrifugo-support-webhooks">Does Centrifugo support webhooks?<a class="headerlink" href="#does-centrifugo-support-webhooks" title="Permanent link">&para;</a></h3>
-<p>Not at moment. Centrifugo designed in a way where messages mostly flow one direction: from server to client. In idiomatic case you publish messages to your backend first, then after saving to your main database publish to channel over Centrifugo API to deliver real-time message to all active channel subscribers. Now if you need any extra callbacks/webhooks you can call your application backend yourself from client side (for example just after connect event fired in client library). There are several reasons why we can&rsquo;t simply add webhooks – some of them described in <a href="https://github.com/centrifugal/centrifugo/issues/195">this issue</a>.</p>
-<p>A bit tricky thing are disconnects. It&rsquo;s pretty hard as there are no guarantee that disconnect code will have time to execute on client side (as client can just switch off its device or simply lose internet connection). If you need to know that client disconnected and program your business logic around this fact then a reasonable approach is periodically call your backend from client side and update user status somewhere on backend (use Redis maybe). This is a pretty robust solution where you can&rsquo;t occasionally miss disconnect event.</p>
-<p>HTTP <a href="https://centrifugal.github.io/centrifugo/server/proxy/">proxy feature</a> added in v2.3.0 allows to integrate Centrifugo with your own session mechanism and provides a way to react on connection events. Also it opens a road for bidirectional communication with RPC calls. But the note above about disconnects is still true - we can&rsquo;t simply call your app in case of client disconnects as loosing one such event can result in broken business logic inside your app.</p>
+<p>Not at moment. Centrifugo designed in a way where messages mostly flow one direction: from server to client. In idiomatic case you publish messages to your backend first, then after saving to your main database publish to channel over Centrifugo API to deliver real-time message to all active channel subscribers. Now if you need any extra callbacks/webhooks you can call your application backend yourself from client side (for example just after connect event fired in client library). There are several reasons why we can't simply add webhooks – some of them described in <a href="https://github.com/centrifugal/centrifugo/issues/195">this issue</a>.</p>
+<p>A bit tricky thing are disconnects. It's pretty hard as there are no guarantee that disconnect code will have time to execute on client side (as client can just switch off its device or simply lose internet connection). If you need to know that client disconnected and program your business logic around this fact then a reasonable approach is periodically call your backend from client side and update user status somewhere on backend (use Redis maybe). This is a pretty robust solution where you can't occasionally miss disconnect event.</p>
+<p>HTTP <a href="https://centrifugal.github.io/centrifugo/server/proxy/">proxy feature</a> added in v2.3.0 allows to integrate Centrifugo with your own session mechanism and provides a way to react on connection events. Also it opens a road for bidirectional communication with RPC calls. But the note above about disconnects is still true - we can't simply call your app in case of client disconnects as loosing one such event can result in broken business logic inside your app.</p>
 <h3 id="how-scalable-is-presence-and-joinleave-information">How scalable is presence and join/leave information?<a class="headerlink" href="#how-scalable-is-presence-and-joinleave-information" title="Permanent link">&para;</a></h3>
 <p>Presence is good for small channels with reasonable amount of subscribers, as soon as there are tons of subscribers presence info becomes very expensive in terms of bandwidth (as it contains information about all clients in channel). There is <code>presence stats</code> API method that can be helpful if you only need to know amount of clients (or unique users) in channel. But in case of Redis engine even <code>presence stats</code> not optimized for channels with more that several thousands active subscribers. You may consider using separate service to deal with presense status information that provides information in near real-time maybe with some reasonable approximation.</p>
 <p>The same is true for join/leave messages - as soon as you turning on join/leave events for a channel with many subscribers every join/leave event (which generally happen relatively frequently) result into many messages sent to each subscriber in channel, drastically multiplying amount of messages travelling through the system. So be careful and estimate possible load.</p>
@@ -1204,8 +1312,6 @@ on your backend.</p>
 <p>We have <a href="https://gitter.im/centrifugal/centrifugo">Gitter chat room</a> and <a href="https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ">Telegram group</a> - welcome!</p>
 <h3 id="i-want-to-contribute-to-this-awesome-project">I want to contribute to this awesome project<a class="headerlink" href="#i-want-to-contribute-to-this-awesome-project" title="Permanent link">&para;</a></h3>
 <p>We have many things you can help with – just ask us in our chat rooms.</p>
-                
-                  
                 
               
               
@@ -1220,48 +1326,79 @@ on your backend.</p>
       
         
 <footer class="md-footer">
-  
+    
     <div class="md-footer-nav">
-      <nav class="md-footer-nav__inner md-grid">
-        
-          <a href="../misc/benchmark/" title="Benchmarking server" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
-            <div class="md-flex__cell md-flex__cell--shrink">
-              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
-            </div>
-            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
-              <span class="md-flex__ellipsis">
+        <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+            
+            <a href="../libraries/api/" title="API libraries" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+                <div class="md-footer-nav__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+                </div>
+                <div class="md-footer-nav__title">
+                    <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Benchmarking server
-              </span>
+                        API libraries
+                    </div>
+                </div>
+            </a>
+            
+            
+        </nav>
+    </div>
+    
+    <div class="md-footer-meta md-typeset">
+        <div class="md-footer-meta__inner md-grid">
+            <div class="md-footer-copyright">
+                
+                <div class="md-footer-copyright__highlight">
+                    Copyright &copy; 2020 Centrifugal
+                </div>
+                
+                <style>
+
+                    /* Preserve link color */
+                    .md-announce a,
+                    .md-announce a:focus,
+                    .md-announce a:hover {
+                        color: currentColor;
+                    }
+
+                    /* Don't wrap name of blog article */
+                    .md-announce strong {
+                        white-space: nowrap;
+                    }
+
+                    /* Twitter icon */
+                    .md-announce .twitter {
+                        margin-left: .2em;
+                        color: #00acee;
+                    }
+                </style>
+                <a href="https://www.buymeacoffee.com/FZambia">
+                    Accepting donations via <strong>Buy me a coffee</strong>!
+                </a>
             </div>
-          </a>
-        
-        
-      </nav>
+            
+        </div>
     </div>
-  
-  <div class="md-footer-meta md-typeset">
-    <div class="md-footer-meta__inner md-grid">
-      <div class="md-footer-copyright">
-        
-        powered by
-        <a href="https://www.mkdocs.org">MkDocs</a>
-        and
-        <a href="https://squidfunk.github.io/mkdocs-material/">
-          Material for MkDocs</a>
-      </div>
-      
-    </div>
-  </div>
 </footer>
       
     </div>
     
-      <script src="../assets/javascripts/application.b806dc00.js"></script>
+      <script src="../assets/javascripts/vendor.a0c4167b.min.js"></script>
+      <script src="../assets/javascripts/bundle.fb26dd1d.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
       
-      <script>app.initialize({version:"1.0.4",url:{base:".."}})</script>
+      <script>
+        app = initialize({
+          base: "..",
+          features: ["tabs"],
+          search: Object.assign({
+            worker: "../assets/javascripts/worker/search.37585f48.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
       
     
   </body>
