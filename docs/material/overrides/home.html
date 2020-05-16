@@ -207,17 +207,6 @@
                     setTimeout(cb, 17);
                 };
 
-            function drawText() {
-                ctx.save();
-                ctx.fillStyle = segmentColor;
-                ctx.font = textSize + 'px' + " Geneva"
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.shadowBlur = blur;
-                ctx.fillText(text, X / 2, Y / 2 - radius*2.65 - textSize);
-                ctx.restore();
-            }
-
             function Line(ctx, x, y) {
                 this.ctx = ctx;
                 this.init(x, y);
@@ -331,7 +320,7 @@
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = segmentColor;
                 ctx.shadowColor = segmentColor;
-                ctx.shadowBlur = blur;
+                // ctx.shadowBlur = blur;
                 this.drawSegment(4 + this.angleDiff, 86 - this.angleDiff, this.rotate + this.a);
                 ctx.restore();
             };
