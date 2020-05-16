@@ -1,7 +1,7 @@
 site_name: Centrifugo
 site_description: Centrifugo is a scalable real-time messaging server in language-agnostic way
 site_author: Centrifugal organization
-site_url: https://github.com/centrifugal/centrifugo
+site_url: https://centrifugal.github.io/centrifugo/
 dev_addr: 0.0.0.0:8000
 docs_dir: content
 edit_uri: https://github.com/centrifugal/documentation/edit/master/docs/

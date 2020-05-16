@@ -10,7 +10,7 @@
 {% endif %}
 
 <!-- The image needs to have an absolute URL -->
-{% set image = config.site_url ~ 'assets/images/banner.png' %}
+{% set image = config.site_url ~ 'images/favicon.png' %}
 
 <!-- Open graph meta tags -->
 <meta property="og:type" content="website" />
@@ -19,33 +19,6 @@
 <meta property="og:url" content="{{ page.canonical_url }}" />
 <meta property="og:image" content="{{ image }}" />
 <meta property="og:image:type" content="image/png" />
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="630" />
-{% endblock %}
-
-<!-- Announcement bar -->
-{% block announce %}
-<style>
-
-    /* Preserve link color */
-    .md-announce a,
-    .md-announce a:focus,
-    .md-announce a:hover {
-        color: currentColor;
-    }
-
-    /* Don't wrap name of blog article */
-    .md-announce strong {
-        white-space: nowrap;
-    }
-
-    /* Twitter icon */
-    .md-announce .twitter {
-        margin-left: .2em;
-        color: #00acee;
-    }
-</style>
-<a href="https://www.buymeacoffee.com/FZambia">
-    Now accepting donations via <strong>Buy me a coffee</strong>!
-</a>
+<meta property="og:image:width" content="960" />
+<meta property="og:image:height" content="960" />
 {% endblock %}
