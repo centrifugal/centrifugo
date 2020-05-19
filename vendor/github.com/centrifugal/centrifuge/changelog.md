@@ -1,3 +1,14 @@
+v0.8.2
+======
+
+* Fix Disconnect Code field unmarshalling, introduce helper method `Disconnect.CloseText()` to build close text sent to client in Close Frame. 
+* Fix server-side Join event wrong channel when server subscribed client to several channels with JoinLeave feature on
+
+v0.8.1
+======
+
+* Fix closing connections with `insufficient state` after publish when history recovery feature is on and `PublishOnHistoryAdd` is `false` in Redis Engine config. [#119](https://github.com/centrifugal/centrifuge/issues/119).
+
 v0.8.0
 ======
 

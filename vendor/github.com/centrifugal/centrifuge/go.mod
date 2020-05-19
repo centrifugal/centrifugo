@@ -9,7 +9,7 @@ require (
 	github.com/cristalhq/jwt/v3 v3.0.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.3.3 // indirect
-	github.com/gomodule/redigo v1.8.0
+	github.com/gomodule/redigo v1.8.1
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/websocket v1.4.2
 	github.com/igm/sockjs-go v0.0.0-20191119074118-cd6986df5bcc

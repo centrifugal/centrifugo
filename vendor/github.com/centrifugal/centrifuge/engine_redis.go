@@ -1038,7 +1038,12 @@ func (s *shard) handleRedisClientMessage(eventHandler BrokerEventHandler, _ chan
 		if err != nil {
 			return err
 		}
-		pub.Offset = offset
+		if pub.Offset == 0 {
+			// When adding to history and publishing happens atomically in Redis Engine
+			// offset is prepended to Publication payload. In this case we should attach
+			// it to unmarshalled Publication.
+			pub.Offset = offset
+		}
 		_ = eventHandler.HandlePublication(push.Channel, &pub)
 	case protocol.PushTypeJoin:
 		var join protocol.Join

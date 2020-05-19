@@ -1,16 +1,14 @@
 package centrifuge
 
 import (
-	"encoding/json"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/centrifugal/centrifuge/internal/cancelctx"
+	"github.com/centrifugal/centrifuge/internal/timers"
 
 	"github.com/gorilla/websocket"
-
-	"github.com/centrifugal/centrifuge/internal/timers"
 )
 
 const (
@@ -130,12 +128,8 @@ func (t *websocketTransport) Close(disconnect *Disconnect) error {
 	t.mu.Unlock()
 
 	if disconnect != nil {
-		reason, err := json.Marshal(disconnect)
-		if err != nil {
-			return err
-		}
-		msg := websocket.FormatCloseMessage(disconnect.Code, string(reason))
-		err = t.conn.WriteControl(websocket.CloseMessage, msg, time.Now().Add(time.Second))
+		msg := websocket.FormatCloseMessage(disconnect.Code, disconnect.CloseText())
+		err := t.conn.WriteControl(websocket.CloseMessage, msg, time.Now().Add(time.Second))
 		if err != nil {
 			return t.conn.Close()
 		}
