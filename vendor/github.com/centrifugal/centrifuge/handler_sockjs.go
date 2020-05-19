@@ -1,7 +1,6 @@
 package centrifuge
 
 import (
-	"encoding/json"
 	"net/http"
 	"sync"
 	"time"
@@ -66,11 +65,7 @@ func (t *sockjsTransport) Close(disconnect *Disconnect) error {
 	if disconnect == nil {
 		disconnect = DisconnectNormal
 	}
-	reason, err := json.Marshal(disconnect)
-	if err != nil {
-		return err
-	}
-	return t.session.Close(uint32(disconnect.Code), string(reason))
+	return t.session.Close(uint32(disconnect.Code), disconnect.CloseText())
 }
 
 // SockjsConfig represents config for SockJS handler.

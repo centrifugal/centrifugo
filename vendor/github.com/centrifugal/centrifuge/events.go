@@ -58,6 +58,11 @@ type RefreshHandler func(context.Context, *Client, RefreshEvent) RefreshReply
 
 // DisconnectEvent contains fields related to disconnect event.
 type DisconnectEvent struct {
+	// Disconnect can optionally contain a custom disconnect object that
+	// was sent from server to client with closing handshake. If this field
+	// exists then client connection was closed from server. If this field
+	// is nil then this means that client disconnected normally and connection
+	// closing was initiated by client side.
 	Disconnect *Disconnect
 }
 
@@ -106,9 +111,12 @@ type UnsubscribeHandler func(UnsubscribeEvent) UnsubscribeReply
 // so handler has an option to reject this publication returning
 // an error in PublishReply.
 type PublishEvent struct {
+	// Channel client wants to publish data to.
 	Channel string
-	Data    []byte
-	Info    *ClientInfo
+	// Data client wants to publish.
+	Data []byte
+	// Info about client connection.
+	Info *ClientInfo
 }
 
 // PublishReply contains fields determining the reaction on publish event.
@@ -127,7 +135,7 @@ type PublishHandler func(PublishEvent) PublishReply
 
 // SubRefreshEvent contains fields related to subscription refresh event.
 type SubRefreshEvent struct {
-	// Channel to which SubRefreshEvent belongs.
+	// Channel to which SubRefreshEvent belongs to.
 	Channel string
 }
 
@@ -173,6 +181,7 @@ type MessageEvent struct {
 
 // MessageReply contains fields determining the reaction on message request.
 type MessageReply struct {
+	// Disconnect allows to disconnect client.
 	Disconnect *Disconnect
 }
 

@@ -1334,12 +1334,14 @@ func (c *Client) connectCmd(cmd *protocol.ConnectRequest, rw *replyWriter) *Disc
 
 	if len(subCtxMap) > 0 {
 		for channel, subCtx := range subCtxMap {
-			if subCtx.chOpts.JoinLeave && subCtx.clientInfo != nil {
-				join := &protocol.Join{
-					Info: *subCtx.clientInfo,
+			go func(channel string, subCtx subscribeContext) {
+				if subCtx.chOpts.JoinLeave && subCtx.clientInfo != nil {
+					join := &protocol.Join{
+						Info: *subCtx.clientInfo,
+					}
+					_ = c.node.publishJoin(channel, join, &subCtx.chOpts)
 				}
-				go func() { _ = c.node.publishJoin(channel, join, &subCtx.chOpts) }()
-			}
+			}(channel, subCtx)
 		}
 	}
 
