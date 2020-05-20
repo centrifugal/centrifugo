@@ -1066,11 +1066,12 @@
 <span class="p">}</span>
 </code></pre></div>
 
-<p>Or alternatively you can set extra headers via environment variable (space separated):</p>
+<p>Alternatively you can set extra headers via environment variable (space separated):</p>
 <div class="highlight"><pre><span></span><code>export CENTRIFUGO_PROXY_EXTRA_HTTP_HEADERS=&quot;X-B3-TraceId X-B3-SpanId&quot;
 ./centrifugo
 </code></pre></div>
 
+<p>Since v2.5.1 Centrifugo also forces <code>Content-Type</code> header to be <code>application/json</code> in all proxy HTTP requests since it sends body in JSON format to application backend.</p>
 <h3 id="connect-proxy">connect proxy<a class="headerlink" href="#connect-proxy" title="Permanent link">&para;</a></h3>
 <p>With the following options in configuration file:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
