@@ -85,3 +85,12 @@ See [full list of available packages](https://packagecloud.io/FZambia/centrifugo
 Also note that if your Linux distro is not in list you can ask us to package for it or just download appropriate package from packagecloud that fits your distribution.
 
 Centrifugo also works on 32-bit architecture, but we don't support packaging for it since 64-bit is more convenient for servers today.
+
+## With brew on MacOS
+
+If you are developing on MacOS then you can install Centrifugo over `brew`:
+
+```
+brew tap centrifugal/centrifugo
+brew install centrifugo
+```
