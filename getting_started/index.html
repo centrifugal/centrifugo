@@ -358,6 +358,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#highlights" class="md-nav__link">
+    Highlights
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -968,6 +975,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#highlights" class="md-nav__link">
+    Highlights
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -990,8 +1004,8 @@
                 
                 <h1 id="what-is-centrifugo">What is Centrifugo<a class="headerlink" href="#what-is-centrifugo" title="Permanent link">&para;</a></h1>
 <p>Centrifugo is a scalable real-time messaging server in language-agnostic way.</p>
-<p>The term language-agnostic in this definition means that it does not matter which programming language your application uses on a frontend or backend sides – Centrifugo can work in conjunction with any. </p>
-<p>Centrifugo is fast and scales well to support millions of client connections. </p>
+<p>The term <code>language-agnostic</code> in this definition means that it does not matter which programming language your application uses on a frontend or backend sides – Centrifugo works in conjunction with any. </p>
+<p>Centrifugo is fast and scales well to support millions of client connections.</p>
 <p>Real-time messages are messages delivered to your application users almost immediately after some event happened - think live comments, chat apps, real-time charts, dynamic counters and multiplayer games.</p>
 <p>There are several real-time messaging transports Centrifugo supports at moment:</p>
 <ul>
@@ -1002,11 +1016,34 @@
 <p>We have chats on Gitter and in Telegram – welcome!</p>
 <p><a href="https://gitter.im/centrifugal/centrifugo?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img alt="Join the chat at https://gitter.im/centrifugal/centrifugo" src="https://badges.gitter.im/Join%20Chat.svg" /></a> <a href="https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ"><img alt="Join the chat at https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ" src="https://img.shields.io/badge/Telegram-Group-blue.svg" /></a></p>
 <h2 id="motivation-of-project">Motivation of project<a class="headerlink" href="#motivation-of-project" title="Permanent link">&para;</a></h2>
-<p>Centrifugo was originally born to help applications written in language or framework without builtin concurency support to introduce real-time updates. For example frameworks like Django, Flask, Yii, Laravel, Ruby on Rails etc has poor support of working with many persistent connections. Centrifugo aims to help with this and continue to write backend in your favorite language and favorite framework. It also has some features (performance, scalability, connection management, message recovery on reconnect etc) that can simplify your life as a developer even if you are writing backend in asynchronous concurrent language.</p>
+<p>Centrifugo was originally born to help applications with server side written in language or framework without built-in concurrency support. In this case Centrifugo is a very straightforward and non-obtrusive way to introduce real-time updates. For example frameworks like Django, Flask, Yii, Laravel, Ruby on Rails etc has poor or not very performant support of working with many persistent connections. Centrifugo aims to help with this and continue to write a backend with your favorite language or favorite framework. Centrifugo also has some features (performance, scalability, connection management, message recovery on reconnect etc) that can simplify your life as a developer even if you are writing backend in asynchronous concurrent language.</p>
 <h2 id="concepts">Concepts<a class="headerlink" href="#concepts" title="Permanent link">&para;</a></h2>
-<p>Centrifugo runs as standalone server and takes care of handling persistent connections from your application users. Your application backend and frontend can be written in any programming language. Your clients connect to Centrifugo from frontend using connection token (JWT) provided by your application backend and subscribe to channels. As soon as some event happens your application backend can publish message with event into channel using Centrifugo API. And that message will be delivered to all clients currently subscribed on channel. So actually Centrifugo is a user-facing PUB/SUB server. Here is a simplified scheme: 
+<p>Centrifugo runs as standalone server and takes care of handling persistent connections from your application users. Your application backend and frontend can be written in any programming language. Your clients connect to Centrifugo from a frontend and subscribe to channels. As soon as some event happens your application backend can publish a message with event into a channel using Centrifugo API. That message will be delivered to all clients currently subscribed on a channel. So actually Centrifugo is a user-facing PUB/SUB server. Here is a simplified scheme: 
 <br><br>
 <img alt="Centrifugo scheme" src="../images/scheme.png" /></p>
+<h2 id="highlights">Highlights<a class="headerlink" href="#highlights" title="Permanent link">&para;</a></h2>
+<p>Here is a list with main Centrifugo highlights:</p>
+<ul>
+<li>Centrifugo is fast and capable to scale to millions of simultaneous connections</li>
+<li>Simple integration with any application – works as separate service</li>
+<li>Simple server API (HTTP or GRPC)</li>
+<li>Client-side libraries for popular frontend environments</li>
+<li>JSON and binary Protobuf Websocket client protocol based on strict schema</li>
+<li>SockJS polyfill for web browsers without Websocket support</li>
+<li>User authentication with JWT or over connection request proxy to configured HTTP endpoint</li>
+<li>Proper connection management and expiration control</li>
+<li>Various types of channels: private, user-limited</li>
+<li>Various types of subscriptions: client-side or server-side</li>
+<li>Transform RPC calls over WebSocket/SockJS to configured HTTP endpoint call</li>
+<li>Presence information for channels (show all active clients in channel)</li>
+<li>History information for channels (last messages published into channel)</li>
+<li>Join/leave events for channels (client goes online/offline)</li>
+<li>Automatic recovery of missed messages between client reconnects over configured retention period</li>
+<li>Built-in administrative web panel</li>
+<li>Cross platform – works on Linux, MacOS and Windows</li>
+<li>Ready to deploy (Docker, RPM/DEB packages, automatic Let's Encrypt TLS certificates, Prometheus/Graphite monitoring)</li>
+<li>MIT license</li>
+</ul>
                 
               
               
