@@ -35,13 +35,13 @@ Centrifugo server node requires configuration file with some secret keys. If you
 ./centrifugo genconfig
 ```
 
-It generates secret keys automatically and creates configuration file `config.json` in current directory (by default) so you can finally run Centrifugo instance:
+It generates secret keys automatically and creates configuration file `config.json` in a current directory (by default) so you can finally run Centrifugo instance:
 
 ```bash
 ./centrifugo --config=config.json
 ```
 
-We will talk about configuration in detail in next sections.
+We will talk about a configuration in detail in next sections.
 
 You can also put or symlink `centrifugo` into your `bin` OS directory and run it from anywhere:
 
@@ -69,7 +69,7 @@ Note that docker allows setting `nofile` limits in command-line arguments which 
 
 Every time we make new Centrifugo release we upload rpm and deb packages for popular linux distributions on [packagecloud.io](https://packagecloud.io/FZambia/centrifugo).
 
-Currently we support versions of the following distributions:
+At moment, we support versions of the following distributions:
 
 * 64-bit Debian 8 Jessie
 * 64-bit Debian 9 Stretch
@@ -81,8 +81,6 @@ Currently we support versions of the following distributions:
 * 64-bit Centos 8
 
 See [full list of available packages](https://packagecloud.io/FZambia/centrifugo) and [installation instructions](https://packagecloud.io/FZambia/centrifugo/install).
-
-Also note that if your Linux distro is not in list you can ask us to package for it or just download appropriate package from packagecloud that fits your distribution.
 
 Centrifugo also works on 32-bit architecture, but we don't support packaging for it since 64-bit is more convenient for servers today.
 

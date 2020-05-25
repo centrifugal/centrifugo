@@ -145,3 +145,7 @@ curl --header "Content-Type: application/json" \
 – where for `Authorization` header we set `api_key` value from Centrifugo config file generated above.
 
 We did it! We built the simplest app with Centrifugo and its Javascript client. It does not have backend, it's not very useful to be honest, but it should give you an insight on how to start working with Centrifugo server. Read more about Centrifugo server in next documentations chapters – it can do much-much more than we just showed here. [Integration guide](guide.md) describes a process of idiomatic Centrifugo integration with your application backend.
+
+### More examples
+
+Several more examples located on Github – [check out this repo](https://github.com/centrifugal/examples)
