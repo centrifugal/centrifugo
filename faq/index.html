@@ -918,8 +918,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-about-best-practices-with-amount-of-channels" class="md-nav__link">
-    What about best practices with amount of channels?
+  <a href="#what-about-best-practices-with-number-of-channels" class="md-nav__link">
+    What about best practices with number of channels?
   </a>
   
 </li>
@@ -967,15 +967,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-i-know-message-was-really-delivered-to-client" class="md-nav__link">
-    Can I know message was really delivered to client?
+  <a href="#how-can-i-know-a-message-really-delivered-to-a-client" class="md-nav__link">
+    How can I know a message really delivered to a client?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-i-publish-new-messages-over-websocket-connection-from-client" class="md-nav__link">
-    Can I publish new messages over websocket connection from client?
+  <a href="#can-i-publish-new-messages-over-websocket-connection-from-a-client" class="md-nav__link">
+    Can I publish new messages over websocket connection from a client?
   </a>
   
 </li>
@@ -988,8 +988,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#whats-a-best-way-to-organize-channel-configuration" class="md-nav__link">
-    What's a best way to organize channel configuration?
+  <a href="#whats-the-best-way-to-organize-channel-configuration" class="md-nav__link">
+    What's the best way to organize channel configuration?
   </a>
   
 </li>
@@ -1102,8 +1102,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#what-about-best-practices-with-amount-of-channels" class="md-nav__link">
-    What about best practices with amount of channels?
+  <a href="#what-about-best-practices-with-number-of-channels" class="md-nav__link">
+    What about best practices with number of channels?
   </a>
   
 </li>
@@ -1151,15 +1151,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-i-know-message-was-really-delivered-to-client" class="md-nav__link">
-    Can I know message was really delivered to client?
+  <a href="#how-can-i-know-a-message-really-delivered-to-a-client" class="md-nav__link">
+    How can I know a message really delivered to a client?
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#can-i-publish-new-messages-over-websocket-connection-from-client" class="md-nav__link">
-    Can I publish new messages over websocket connection from client?
+  <a href="#can-i-publish-new-messages-over-websocket-connection-from-a-client" class="md-nav__link">
+    Can I publish new messages over websocket connection from a client?
   </a>
   
 </li>
@@ -1172,8 +1172,8 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#whats-a-best-way-to-organize-channel-configuration" class="md-nav__link">
-    What's a best way to organize channel configuration?
+  <a href="#whats-the-best-way-to-organize-channel-configuration" class="md-nav__link">
+    What's the best way to organize channel configuration?
   </a>
   
 </li>
@@ -1244,23 +1244,23 @@
 <p>Answers on various questions here.</p>
 <h3 id="how-many-connections-can-one-centrifugo-instance-handle">How many connections can one Centrifugo instance handle?<a class="headerlink" href="#how-many-connections-can-one-centrifugo-instance-handle" title="Permanent link">&para;</a></h3>
 <p>This depends on many factors. Hardware, message rate, size of messages, channel options enabled, client distribution over channels, websocket compression on/off etc. So no certain answer on this question exists. Common sense, tests and monitoring can help here. Generally we suggest to not put more than 50-100k clients on one node - but you should measure for your personal use case.</p>
-<p>You can find a benchmark we did in <a href="../misc/benchmark/">this docs chapter</a> – but the point above is still valid, measure and monitor your own setup.</p>
+<p>You can find a benchmark we did in <a href="../misc/benchmark/">this docs chapter</a> – though the point above is still valid, measure and monitor your own setup.</p>
 <h3 id="can-centrifugo-scale-horizontally">Can Centrifugo scale horizontally?<a class="headerlink" href="#can-centrifugo-scale-horizontally" title="Permanent link">&para;</a></h3>
-<p>Yes, it can. It can do this using builtin Redis Engine. Redis is very fast – for example it can handle hundreds of thousands requests per second. This should be OK for most applications in internet. But if you are using Centrifugo and approaching this limit then it's possible to add sharding support to balance queries between different Redis instances.</p>
+<p>Yes, it can. It can do this using builtin Redis Engine. Redis is very fast – for example it can handle hundreds of thousands requests per second. This should be OK for most applications in an internet. But if you are using Centrifugo and approaching this limit then it's possible to add sharding support to balance queries between different Redis instances.</p>
 <h3 id="message-delivery-model-and-message-order-guarantees">Message delivery model and message order guarantees<a class="headerlink" href="#message-delivery-model-and-message-order-guarantees" title="Permanent link">&para;</a></h3>
-<p>The model of message delivery of Centrifugo server is at most once. With recovery feature it's possible to achieve at least once guarantee during retention period to recover missed messages after temporary disconnect.</p>
+<p>The model of message delivery of Centrifugo server is at most once. With recovery feature it's possible to achieve at least once guarantee during retention period to recover missed messages after a temporary disconnect.</p>
 <p>So without recovery feature message you send to Centrifugo can be theoretically lost while moving towards your clients. Offline clients do not receive messages. Centrifugo tries to do a best effort to prevent message losses on a way to online clients but you should be aware of message lost possibility. Your application should tolerate this. </p>
 <p>As said above Centrifugo has an option to automatically recover messages that have been lost because of short network disconnections. Also it prevents message loss on a way from Redis to nodes over Redis PUB/SUB using additional sequence check and periodical synchronization.</p>
-<p>We also recommend to model your applications in a way that users don't notice when Centrifugo does not work at all. Use graceful degradation. For example if your user posts a new comment over AJAX call to your application backend - you should not rely only on Centrifugo to get new comment form and display it - you should return new comment data in AJAX call response and render it. This way user that posts a comment will think that everything works just fine. Be careful to not draw comments twice in this case.</p>
+<p>We also recommend modeling your applications in a way that users don't notice when Centrifugo does not work at all. Use graceful degradation. For example if your user posts a new comment over AJAX call to your application backend - you should not rely only on Centrifugo to get new comment form and display it - you should return new comment data in AJAX call response and render it. This way user that posts a comment will think that everything works just fine. Be careful to not draw comments twice in this case.</p>
 <p>Message order in channels guaranteed to be the same while you publish messages into channel one after another or publish them in one request. If you do parallel publishes into the same channel then Centrifugo can't guarantee message order.</p>
 <h3 id="should-i-create-channels-explicitly">Should I create channels explicitly?<a class="headerlink" href="#should-i-create-channels-explicitly" title="Permanent link">&para;</a></h3>
-<p>No. By default channels created automatically as soon as first client subscribed to it. And destroyed automatically when last client unsubscribes from channel.</p>
-<p>When history is on then a window of last messages is kept automatically during retention period. So client that comes later and subscribes to channel can retrieve those messages using call to history.</p>
-<h3 id="what-about-best-practices-with-amount-of-channels">What about best practices with amount of channels?<a class="headerlink" href="#what-about-best-practices-with-amount-of-channels" title="Permanent link">&para;</a></h3>
-<p>Channels is a very lighweight entity - Centrifugo can deal with lots of them, don't be afraid to use many channels.</p>
-<p><strong>But</strong> keep in mind that one client should not be subscribed to lots of channels at the same moment. Use channels for separate real-time features. Using no more than several channels for client is what you should try to achieve. A good anology is writing SQL queries – you need to make sure that you return content using fixed amount of database queries, as soon as more entries on your page result in more queries - your pages start working very slow at some point. The same for channels - you better to deliver real-time events over fixed amount of channels. It takes a separate frame for client to subscribe to single channel – more frames mean more heavy initial connection.</p>
+<p>No. By default, channels created automatically as soon as first client subscribed to it. And destroyed automatically when last client unsubscribes from channel.</p>
+<p>When history is on then a window of last messages kept automatically during retention period. So client that comes later and subscribes to channel can retrieve those messages using call to history.</p>
+<h3 id="what-about-best-practices-with-number-of-channels">What about best practices with number of channels?<a class="headerlink" href="#what-about-best-practices-with-number-of-channels" title="Permanent link">&para;</a></h3>
+<p>Channel is a very lightweight entity - Centrifugo can deal with lots of channels, don't be afraid to use many channels.</p>
+<p><strong>But</strong> keep in mind that one client should not be subscribed to lots of channels at the same moment. Use channels for separate real-time features. Using no more than several channels for a client is what you should try to achieve. A good analogy is writing SQL queries – you need to make sure you return content using fixed amount of database queries, as soon as more entries on your page result in more queries - your pages start working very slow at some point. The same for channels - you better to deliver real-time events over fixed amount of channels. It takes a separate frame for a client to subscribe to single channel – more frames mean more heavy initial connection.</p>
 <h3 id="presence-for-chat-apps-online-status-of-your-contacts">Presence for chat apps - online status of your contacts<a class="headerlink" href="#presence-for-chat-apps-online-status-of-your-contacts" title="Permanent link">&para;</a></h3>
-<p>While presence is good feature it does not fit well some apps. For example if you make chat app - you may probably use single personal channel for each user. In this case you can not find who is online at moment using builtin Centrifugo presence feature as users do not share common channel. You can solve this using your own separate service that tracks online status of your users (for example in Redis) and has bulk API that returns online status approximation for a list of users. This way you will have efficient scalable way to deal with online statuses. </p>
+<p>While presence is a good feature it does not fit well some apps. For example if you make chat app - you may probably use single personal channel for each user. In this case you cannot find who is online at moment using builtin Centrifugo presence feature as users do not share a common channel. You can solve this using your own separate service that tracks online status of your users (for example in Redis) and has bulk API that returns online status approximation for a list of users. This way you will have efficient scalable way to deal with online statuses. </p>
 <h3 id="centrifugo-stops-accepting-new-connections-why">Centrifugo stops accepting new connections, why?<a class="headerlink" href="#centrifugo-stops-accepting-new-connections-why" title="Permanent link">&para;</a></h3>
 <p>The most popular reason behind this is reaching open file limit. Just make it higher, we described how to do this nearby in this doc.</p>
 <h3 id="can-i-use-centrifugo-without-reverse-proxy-like-nginx-before-it">Can I use Centrifugo without reverse-proxy like Nginx before it?<a class="headerlink" href="#can-i-use-centrifugo-without-reverse-proxy-like-nginx-before-it" title="Permanent link">&para;</a></h3>
@@ -1276,14 +1276,15 @@ be very useful for load balancing clients for example.</p>
 <p>If underlying transport is HTTP-based and you use HTTP/2 then this will work automatically. In case of websocket connection there is a way to do this using <code>SharedWorker</code> object though we have no support to work this way in our Javascript library.</p>
 <h3 id="what-if-i-need-to-send-push-notifications-to-mobile-or-web-applications">What if I need to send push notifications to mobile or web applications?<a class="headerlink" href="#what-if-i-need-to-send-push-notifications-to-mobile-or-web-applications" title="Permanent link">&para;</a></h3>
 <p>Sometimes it's confusing to see a difference between real-time messages and push notifications. Centrifugo is a real-time messaging server. It can not send push notifications to devices - to Apple iOS devices via APNS, Android devices via GCM or browsers over Web Push API. This is a goal for another software. But the reasonable question here is how can I know when I need to send real-time message to client online or push notification to its device because application closed at client's device at moment. The solution is pretty simple. You can keep critical notifications for client in database. And when client read message send ack to your backend marking that notification as read by client, you save this ack too. Periodically you can check which notifications were sent to clients but they have not read it (no ack received). For such notification you can send push notification to its device using your own or another open-source solution. Look at Firebase for example!</p>
-<h3 id="can-i-know-message-was-really-delivered-to-client">Can I know message was really delivered to client?<a class="headerlink" href="#can-i-know-message-was-really-delivered-to-client" title="Permanent link">&para;</a></h3>
+<h3 id="how-can-i-know-a-message-really-delivered-to-a-client">How can I know a message really delivered to a client?<a class="headerlink" href="#how-can-i-know-a-message-really-delivered-to-a-client" title="Permanent link">&para;</a></h3>
 <p>You can but Centrifugo does not have such API. What you have to do to ensure your client received message is sending confirmation ack from your client to your application backend as soon as client processed message coming from Centrifugo channel.</p>
-<h3 id="can-i-publish-new-messages-over-websocket-connection-from-client">Can I publish new messages over websocket connection from client?<a class="headerlink" href="#can-i-publish-new-messages-over-websocket-connection-from-client" title="Permanent link">&para;</a></h3>
-<p>Centrifugo designed to stream messages from server to client. Even though it's possible to publish messages into channels directly from client (when <code>publish</code> channel option enabled) - we strongly discourage this in production usage as those messages will go through Centrifugo without any control.</p>
+<h3 id="can-i-publish-new-messages-over-websocket-connection-from-a-client">Can I publish new messages over websocket connection from a client?<a class="headerlink" href="#can-i-publish-new-messages-over-websocket-connection-from-a-client" title="Permanent link">&para;</a></h3>
+<p>Centrifugo designed to stream messages from server to client. Even though it's possible to publish messages into channels directly from a client (when <code>publish</code> channel option enabled) - we strongly discourage this in production usage as those messages will go through Centrifugo without any control.</p>
 <p>Theoretically Centrifugo could resend messages published from client to your application backend endpoint (i.e. having some sort of webhook built in) but it does not seem beneficial it terms of overall performance and application architecture at moment. And this will require extra layer of convetions about Centrifugo-to-backend communication. </p>
 <p>So in general when user generates an event it must be first delivered to your app backend using a convenient way (for example AJAX POST request for web application), processed on backend (validated, saved into main application database) and then published to Centrifugo using Centrifugo HTTP or GRPC API.</p>
-<p>Sometimes publishing from client directly into channel can be useful though - for personal projects, for demonstrations (like we do in our <a href="https://github.com/centrifugal/examples">examples</a>) or if you trust your users and want to build application without backend. In all cases when you don't need any message control
+<p>Sometimes publishing from a client directly into a channel can be useful though - for personal projects, for demonstrations (like we do in our <a href="https://github.com/centrifugal/examples">examples</a>) or if you trust your users and want to build application without backend. In all cases when you don't need any message control
 on your backend.</p>
+<p>Since Centrifugo v2.3.0 it's possible to utilize RPC proxy feature – in this case you can call RPC over Centrifugo WebSocket which will be translated to HTTP request to your backend. This way you can utilize WebSocket transport in bidirectional way.</p>
 <h3 id="how-to-create-secure-channel-for-two-users-only-private-chat-case">How to create secure channel for two users only (private chat case)?<a class="headerlink" href="#how-to-create-secure-channel-for-two-users-only-private-chat-case" title="Permanent link">&para;</a></h3>
 <p>There are several ways to achieve it:</p>
 <ul>
@@ -1291,7 +1292,7 @@ on your backend.</p>
 <li>next is <a href="https://centrifugal.github.io/centrifugo/server/channels/#user-channel-boundary">user limited channels</a> (with <code>#</code>) - you can create channel with name like <code>dialog#42,567</code> to limit subscribers only to user with id <code>42</code> and user with ID <code>567</code></li>
 <li>finally you can create hard to guess channel name (based on some secret key and user IDs or just generate and save this long unique name into your main app database) so other users won't know this channel to subscribe on it. This is the simplest but not the safest way - but can be reasonable to consider in many situations.</li>
 </ul>
-<h3 id="whats-a-best-way-to-organize-channel-configuration">What's a best way to organize channel configuration?<a class="headerlink" href="#whats-a-best-way-to-organize-channel-configuration" title="Permanent link">&para;</a></h3>
+<h3 id="whats-the-best-way-to-organize-channel-configuration">What's the best way to organize channel configuration?<a class="headerlink" href="#whats-the-best-way-to-organize-channel-configuration" title="Permanent link">&para;</a></h3>
 <p>In most situations your application need several real-time features. We suggest to use namespaces for every real-time feature if it requires some option enabled.</p>
 <p>For example if you need join/leave messages for chat app - create special channel namespace with this <code>join_leave</code> option enabled. Otherwise your other channels will receive join/leave messages too - increasing load and traffic in system but not actually used by clients.</p>
 <p>The same relates to other channel options.</p>
@@ -1301,13 +1302,13 @@ on your backend.</p>
 <h3 id="does-centrifugo-support-webhooks">Does Centrifugo support webhooks?<a class="headerlink" href="#does-centrifugo-support-webhooks" title="Permanent link">&para;</a></h3>
 <p>Not at moment. Centrifugo designed in a way where messages mostly flow one direction: from server to client. In idiomatic case you publish messages to your backend first, then after saving to your main database publish to channel over Centrifugo API to deliver real-time message to all active channel subscribers. Now if you need any extra callbacks/webhooks you can call your application backend yourself from client side (for example just after connect event fired in client library). There are several reasons why we can't simply add webhooks – some of them described in <a href="https://github.com/centrifugal/centrifugo/issues/195">this issue</a>.</p>
 <p>A bit tricky thing are disconnects. It's pretty hard as there are no guarantee that disconnect code will have time to execute on client side (as client can just switch off its device or simply lose internet connection). If you need to know that client disconnected and program your business logic around this fact then a reasonable approach is periodically call your backend from client side and update user status somewhere on backend (use Redis maybe). This is a pretty robust solution where you can't occasionally miss disconnect event.</p>
-<p>HTTP <a href="https://centrifugal.github.io/centrifugo/server/proxy/">proxy feature</a> added in v2.3.0 allows to integrate Centrifugo with your own session mechanism and provides a way to react on connection events. Also it opens a road for bidirectional communication with RPC calls. But the note above about disconnects is still true - we can't simply call your app in case of client disconnects as loosing one such event can result in broken business logic inside your app.</p>
+<p>HTTP <a href="https://centrifugal.github.io/centrifugo/server/proxy/">proxy feature</a> added in v2.3.0 allows integrating Centrifugo with your own session mechanism and provides a way to react on connection events. Also it opens a road for bidirectional communication with RPC calls. But the note above about disconnects is still true - we can't simply call your app in case of client disconnects as loosing one such event can result in broken business logic inside your app.</p>
 <h3 id="how-scalable-is-presence-and-joinleave-information">How scalable is presence and join/leave information?<a class="headerlink" href="#how-scalable-is-presence-and-joinleave-information" title="Permanent link">&para;</a></h3>
-<p>Presence is good for small channels with reasonable amount of subscribers, as soon as there are tons of subscribers presence info becomes very expensive in terms of bandwidth (as it contains information about all clients in channel). There is <code>presence stats</code> API method that can be helpful if you only need to know amount of clients (or unique users) in channel. But in case of Redis engine even <code>presence stats</code> not optimized for channels with more that several thousands active subscribers. You may consider using separate service to deal with presense status information that provides information in near real-time maybe with some reasonable approximation.</p>
-<p>The same is true for join/leave messages - as soon as you turning on join/leave events for a channel with many subscribers every join/leave event (which generally happen relatively frequently) result into many messages sent to each subscriber in channel, drastically multiplying amount of messages travelling through the system. So be careful and estimate possible load.</p>
+<p>Presence is good for small channels with a reasonable number of subscribers, as soon as there are tons of subscribers presence info becomes very expensive in terms of bandwidth (as it contains information about all clients in channel). There is <code>presence stats</code> API method that can be helpful if you only need to know amount of clients (or unique users) in a channel. But in case of Redis engine even <code>presence stats</code> not optimized for channels with more that several thousands active subscribers. You may consider using separate service to deal with presense status information that provides information in near real-time maybe with some reasonable approximation.</p>
+<p>The same is true for join/leave messages - as soon as you turn on join/leave events for a channel with many subscribers every join/leave event (which generally happen relatively frequently) result into many messages sent to each subscriber in channel, drastically multiplying amount of messages travelling through the system. So be careful and estimate possible load.</p>
 <h3 id="what-is-the-difference-between-centrifugo-and-centrifuge">What is the difference between Centrifugo and Centrifuge<a class="headerlink" href="#what-is-the-difference-between-centrifugo-and-centrifuge" title="Permanent link">&para;</a></h3>
-<p><a href="https://github.com/centrifugal/centrifugo">Centrifugo</a> is server built on top of <a href="https://github.com/centrifugal/centrifuge">Centrifuge</a> library for Go language.</p>
-<p>This documentation was built to describe Centrifugo. Though many things said here can be considered as extra documentation for Centrifuge library.</p>
+<p><a href="https://github.com/centrifugal/centrifugo">Centrifugo</a> is a server built on top of <a href="https://github.com/centrifugal/centrifuge">Centrifuge</a> library for Go language.</p>
+<p>This documentation built to describe Centrifugo. Though many things said here can be considered as extra documentation for Centrifuge library.</p>
 <h3 id="i-have-not-found-an-answer-on-my-question-here">I have not found an answer on my question here:<a class="headerlink" href="#i-have-not-found-an-answer-on-my-question-here" title="Permanent link">&para;</a></h3>
 <p>We have <a href="https://gitter.im/centrifugal/centrifugo">Gitter chat room</a> and <a href="https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ">Telegram group</a> - welcome!</p>
 <h3 id="i-want-to-contribute-to-this-awesome-project">I want to contribute to this awesome project<a class="headerlink" href="#i-want-to-contribute-to-this-awesome-project" title="Permanent link">&para;</a></h3>

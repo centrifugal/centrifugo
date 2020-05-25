@@ -1028,11 +1028,11 @@
 <div class="highlight"><pre><span></span><code>./centrifugo genconfig
 </code></pre></div>
 
-<p>It generates secret keys automatically and creates configuration file <code>config.json</code> in current directory (by default) so you can finally run Centrifugo instance:</p>
+<p>It generates secret keys automatically and creates configuration file <code>config.json</code> in a current directory (by default) so you can finally run Centrifugo instance:</p>
 <div class="highlight"><pre><span></span><code>./centrifugo --config<span class="o">=</span>config.json
 </code></pre></div>
 
-<p>We will talk about configuration in detail in next sections.</p>
+<p>We will talk about a configuration in detail in next sections.</p>
 <p>You can also put or symlink <code>centrifugo</code> into your <code>bin</code> OS directory and run it from anywhere:</p>
 <div class="highlight"><pre><span></span><code>centrifugo --config<span class="o">=</span>config.json
 </code></pre></div>
@@ -1049,7 +1049,7 @@
 <p>Note that docker allows setting <code>nofile</code> limits in command-line arguments which is pretty important to handle lots of simultaneous persistent connections and not run out of open file limit (each connection requires one file descriptor). See also <a href="../deploy/tuning/">OS tuning chapter</a>.</p>
 <h2 id="rpm-and-deb-packages-for-linux">RPM and DEB packages for Linux<a class="headerlink" href="#rpm-and-deb-packages-for-linux" title="Permanent link">&para;</a></h2>
 <p>Every time we make new Centrifugo release we upload rpm and deb packages for popular linux distributions on <a href="https://packagecloud.io/FZambia/centrifugo">packagecloud.io</a>.</p>
-<p>Currently we support versions of the following distributions:</p>
+<p>At moment, we support versions of the following distributions:</p>
 <ul>
 <li>64-bit Debian 8 Jessie</li>
 <li>64-bit Debian 9 Stretch</li>
@@ -1061,7 +1061,6 @@
 <li>64-bit Centos 8</li>
 </ul>
 <p>See <a href="https://packagecloud.io/FZambia/centrifugo">full list of available packages</a> and <a href="https://packagecloud.io/FZambia/centrifugo/install">installation instructions</a>.</p>
-<p>Also note that if your Linux distro is not in list you can ask us to package for it or just download appropriate package from packagecloud that fits your distribution.</p>
 <p>Centrifugo also works on 32-bit architecture, but we don't support packaging for it since 64-bit is more convenient for servers today.</p>
 <h2 id="with-brew-on-macos">With brew on MacOS<a class="headerlink" href="#with-brew-on-macos" title="Permanent link">&para;</a></h2>
 <p>If you are developing on MacOS then you can install Centrifugo over <code>brew</code>:</p>
