@@ -22,8 +22,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/tools"
-
 	"github.com/centrifugal/centrifugo/internal/admin"
 	"github.com/centrifugal/centrifugo/internal/api"
 	"github.com/centrifugal/centrifugo/internal/health"
@@ -32,6 +30,7 @@ import (
 	"github.com/centrifugal/centrifugo/internal/metrics/graphite"
 	"github.com/centrifugal/centrifugo/internal/middleware"
 	"github.com/centrifugal/centrifugo/internal/proxy"
+	"github.com/centrifugal/centrifugo/internal/tools"
 	"github.com/centrifugal/centrifugo/internal/webui"
 
 	"github.com/FZambia/viper-lite"
@@ -102,6 +101,8 @@ func main() {
 				"user_personal_channel_namespace", "websocket_use_write_buffer_pool",
 				"websocket_disable", "sockjs_disable", "api_disable", "redis_cluster_addrs",
 				"v3_use_offset", "redis_history_meta_ttl", "redis_streams", "memory_history_meta_ttl",
+				"proxy_publish_endpoint", "proxy_publish_timeout", "proxy_subscribe_endpoint",
+				"proxy_subscribe_timeout",
 			}
 			for _, env := range bindEnvs {
 				_ = viper.BindEnv(env)
@@ -238,10 +239,34 @@ func main() {
 				),
 			})
 
+			publishHandler := proxy.NewPublishHandler(proxy.PublishHandlerConfig{
+				Proxy: proxy.NewHTTPPublishProxy(
+					viper.GetString("proxy_publish_endpoint"),
+					proxyHTTPClient(viper.GetFloat64("proxy_publish_timeout")),
+					proxy.WithExtraHeaders(viper.GetStringSlice("proxy_extra_http_headers")),
+				),
+			})
+
+			subscribeHandler := proxy.NewSubscribeHandler(proxy.SubscribeHandlerConfig{
+				Proxy: proxy.NewHTTPSubscribeProxy(
+					viper.GetString("proxy_subscribe_endpoint"),
+					proxyHTTPClient(viper.GetFloat64("proxy_subscribe_timeout")),
+					proxy.WithExtraHeaders(viper.GetStringSlice("proxy_extra_http_headers")),
+				),
+			})
+
+			publishHandlerEnabled := viper.GetString("proxy_publish_endpoint") != ""
+			subscribeHandlerEnabled := viper.GetString("proxy_subscribe_endpoint") != ""
 			rpcHandlerEnabled := viper.GetString("proxy_rpc_endpoint") != ""
 			node.On().ClientConnected(func(ctx context.Context, client *centrifuge.Client) {
 				if rpcHandlerEnabled {
 					client.On().RPC(rpcHandler.Handle(ctx, node, client))
+				}
+				if publishHandlerEnabled {
+					client.On().Publish(publishHandler.Handle(ctx, node, client))
+				}
+				if subscribeHandlerEnabled {
+					client.On().Subscribe(subscribeHandler.Handle(ctx, node, client))
 				}
 			})
 
@@ -263,6 +288,12 @@ func main() {
 			}
 			if rpcHandlerEnabled {
 				log.Info().Str("endpoint", viper.GetString("proxy_rpc_endpoint")).Msg("proxy RPC over HTTP")
+			}
+			if publishHandlerEnabled {
+				log.Info().Str("endpoint", viper.GetString("proxy_publish_endpoint")).Msg("proxy publish over HTTP")
+			}
+			if subscribeHandlerEnabled {
+				log.Info().Str("endpoint", viper.GetString("proxy_subscribe_endpoint")).Msg("proxy subscribe over HTTP")
 			}
 
 			if viper.GetBool("client_insecure") {

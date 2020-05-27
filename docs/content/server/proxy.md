@@ -8,7 +8,7 @@ All proxy calls are **HTTP POST** requests that will be sent from Centrifugo to 
 
 ### Proxy headers
 
-By default the following headers from original client request will be copied to proxied request:
+By default, the following headers from original client request will be copied to proxied request:
 
 * `Origin` (Centrifugo >= v2.3.1)
 * `User-Agent`
@@ -214,6 +214,110 @@ Result fields:
 
 `proxy_rpc_timeout` (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.
 
+See below on how to return a custom error.
+
+### publish proxy
+
+Available since Centrifugo v2.5.2
+
+With the following option in configuration file:
+
+```json
+{
+  ...
+  "proxy_publish_endpoint": "http://localhost:3000/centrifugo/publish",
+  "proxy_publish_timeout":  1
+}
+```
+
+Publish calls sent over client connection will be proxied to `proxy_publish_endpoint`. This request happens BEFORE a message actually published to a channel, so your backend can validate whether client can publish data to channel.
+
+Keep in mind that this will only work if `publish` channel option is on for a channel namespace (or globally if no channel namespace used).
+
+Payload sent to app backend in publish request:
+
+```json
+{
+  "client":"9336a229-2400-4ebc-8c50-0a643d22e8a0",
+  "transport":"websocket",
+  "protocol": "json",
+  "encoding":"json",
+  "user":"56",
+  "channel": "chat:index",
+  "data":{"input":"hello"}
+}
+```
+
+Request fields:
+
+* `client`, `transport`, `protocol`, `encoding` are the same as described for connect request payload
+* `user` is a connection user ID obtained during authentication process
+* `data` is an RPC data sent by client
+* `b64data` will be set instead of `data` field for connections that use binary payload encoding
+* `channel` is a string channel client wants to publish to.
+
+Response expected:
+
+```json
+{"result": {}}
+```
+
+Result fields: no fields at moment.
+
+See below on how to return an error in case you don't want to allow publishing.
+
+`proxy_publish_timeout` (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.
+
+### subscribe proxy
+
+Available since Centrifugo v2.5.2
+
+With the following option in configuration file:
+
+```json
+{
+  ...
+  "proxy_subscribe_endpoint": "http://localhost:3000/centrifugo/subscribe",
+  "proxy_subscribe_timeout":  1
+}
+```
+
+Subscribe requests sent over client connection will be proxied to `proxy_subscribe_endpoint`. This allows you to check access of client to channel.
+
+Payload sent to app backend in subscribe request:
+
+```json
+{
+  "client":"9336a229-2400-4ebc-8c50-0a643d22e8a0",
+  "transport":"websocket",
+  "protocol": "json",
+  "encoding":"json",
+  "user":"56",
+  "channel": "chat:index"
+}
+```
+
+Request fields:
+
+* `client`, `transport`, `protocol`, `encoding` are the same as described for connect request payload
+* `user` is a connection user ID obtained during authentication process
+* `channel` is a string channel client wants to publish to.
+
+Response expected:
+
+```json
+{"result": {}}
+```
+
+Result fields:
+
+* `info` (optional JSON) is a channel info JSON
+* `b64info` (optional string) is a binary connection channel info encoded in base64 format, will be decoded to raw bytes on Centrifugo before using
+
+See below on how to return an error in case you don't want to allow subscribing.
+
+`proxy_subscribe_timeout` (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.
+
 ### Return custom error
 
 Application backend can return JSON object that contain an error to return it to client:
@@ -225,7 +329,7 @@ Application backend can return JSON object that contain an error to return it to
     "message": "custom error"
   }
 }
-``` 
+```
 
 Application can use error codes >= 1000, error codes in range 0-999 are reserved by Centrifugo internal protocol.
 
