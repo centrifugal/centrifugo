@@ -102,7 +102,7 @@ func main() {
 				"proxy_extra_http_headers", "server_side", "user_subscribe_to_personal",
 				"user_personal_channel_namespace", "websocket_use_write_buffer_pool",
 				"websocket_disable", "sockjs_disable", "api_disable", "redis_cluster_addrs",
-				"broker", "nats_prefix", "nats_url",
+				"broker", "nats_prefix", "nats_url", "nats_dial_timeout", "nats_write_timeout",
 				"v3_use_offset", "redis_history_meta_ttl", "redis_streams", "memory_history_meta_ttl",
 			}
 			for _, env := range bindEnvs {
@@ -270,8 +270,10 @@ func main() {
 
 			if brokerName == "nats" {
 				broker, err := natsbroker.New(node, natsbroker.Config{
-					URL:    viper.GetString("nats_url"),
-					Prefix: viper.GetString("nats_prefix"),
+					URL:          viper.GetString("nats_url"),
+					Prefix:       viper.GetString("nats_prefix"),
+					DialTimeout:  time.Duration(viper.GetInt("nats_dial_timeout")) * time.Second,
+					WriteTimeout: time.Duration(viper.GetInt("nats_write_timeout")) * time.Second,
 				})
 				if err != nil {
 					log.Fatal().Msgf("Error creating broker: %v", err)
@@ -609,6 +611,8 @@ var configDefaults = map[string]interface{}{
 	"graphite_tags":                        false,
 	"nats_prefix":                          "centrifugo",
 	"nats_url":                             "",
+	"nats_dial_timeout":                    1,
+	"nats_write_timeout":                   1,
 	"websocket_disable":                    false,
 	"sockjs_disable":                       false,
 	"api_disable":                          false,
@@ -1396,7 +1400,7 @@ func redisEngineConfig(publishOnHistoryAdd bool) (*centrifuge.RedisEngineConfig,
 	}
 
 	return &centrifuge.RedisEngineConfig{
-		PublishOnHistoryAdd: true,
+		PublishOnHistoryAdd: publishOnHistoryAdd,
 		UseStreams:          v.GetBool("redis_streams"),
 		HistoryMetaTTL:      historyMetaTTL,
 		Shards:              shardConfigs,

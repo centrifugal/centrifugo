@@ -7,6 +7,7 @@ import (
 	"math"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
@@ -18,10 +19,12 @@ type (
 	channelID string
 )
 
-// Config of NatsEngine.
+// Config of NatsBroker.
 type Config struct {
-	URL    string
-	Prefix string
+	URL          string
+	Prefix       string
+	DialTimeout  time.Duration
+	WriteTimeout time.Duration
 }
 
 // NatsBroker is a broker on top of Nats messaging system.
@@ -35,7 +38,7 @@ type NatsBroker struct {
 	eventHandler centrifuge.BrokerEventHandler
 }
 
-// New creates NatsEngine.
+// New creates NatsBroker.
 func New(n *centrifuge.Node, conf Config) (*NatsBroker, error) {
 	b := &NatsBroker{
 		node:   n,
@@ -60,7 +63,13 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 	if url == "" {
 		url = nats.DefaultURL
 	}
-	nc, err := nats.Connect(url, nats.ReconnectBufSize(-1), nats.MaxReconnects(math.MaxInt64))
+	nc, err := nats.Connect(
+		url,
+		nats.ReconnectBufSize(-1),
+		nats.MaxReconnects(math.MaxInt64),
+		nats.Timeout(b.config.DialTimeout),
+		nats.FlusherTimeout(b.config.WriteTimeout),
+	)
 	if err != nil {
 		return fmt.Errorf("error connecting to %s: %w", url, err)
 	}
@@ -78,7 +87,7 @@ func (b *NatsBroker) Close(_ context.Context) error {
 	return nil
 }
 
-// Publish - see Engine interface description.
+// Publish - see Broker interface description.
 func (b *NatsBroker) Publish(ch string, pub *protocol.Publication, _ *centrifuge.ChannelOptions) error {
 	data, err := pub.Marshal()
 	if err != nil {
@@ -96,7 +105,7 @@ func (b *NatsBroker) Publish(ch string, pub *protocol.Publication, _ *centrifuge
 	return b.nc.Publish(string(b.clientChannel(ch)), byteMessage)
 }
 
-// PublishJoin - see Engine interface description.
+// PublishJoin - see Broker interface description.
 func (b *NatsBroker) PublishJoin(ch string, join *protocol.Join, _ *centrifuge.ChannelOptions) error {
 	data, err := join.Marshal()
 	if err != nil {
@@ -114,7 +123,7 @@ func (b *NatsBroker) PublishJoin(ch string, join *protocol.Join, _ *centrifuge.C
 	return b.nc.Publish(string(b.clientChannel(ch)), byteMessage)
 }
 
-// PublishLeave - see Engine interface description.
+// PublishLeave - see Broker interface description.
 func (b *NatsBroker) PublishLeave(ch string, leave *protocol.Leave, _ *centrifuge.ChannelOptions) error {
 	data, err := leave.Marshal()
 	if err != nil {
@@ -132,7 +141,7 @@ func (b *NatsBroker) PublishLeave(ch string, leave *protocol.Leave, _ *centrifug
 	return b.nc.Publish(string(b.clientChannel(ch)), byteMessage)
 }
 
-// PublishControl - see Engine interface description.
+// PublishControl - see Broker interface description.
 func (b *NatsBroker) PublishControl(data []byte) error {
 	return b.nc.Publish(string(b.controlChannel()), data)
 }
@@ -178,7 +187,7 @@ func (b *NatsBroker) handleControl(m *nats.Msg) {
 	_ = b.eventHandler.HandleControl(m.Data)
 }
 
-// Subscribe - see Engine interface description.
+// Subscribe - see Broker interface description.
 func (b *NatsBroker) Subscribe(ch string) error {
 	if strings.Contains(ch, "*") || strings.Contains(ch, ">") {
 		// Do not support wildcard subscriptions.
@@ -198,7 +207,7 @@ func (b *NatsBroker) Subscribe(ch string) error {
 	return nil
 }
 
-// Unsubscribe - see Engine interface description.
+// Unsubscribe - see Broker interface description.
 func (b *NatsBroker) Unsubscribe(ch string) error {
 	b.subsMu.Lock()
 	defer b.subsMu.Unlock()
@@ -209,7 +218,7 @@ func (b *NatsBroker) Unsubscribe(ch string) error {
 	return nil
 }
 
-// Channels - see Engine interface description.
+// Channels - see Broker interface description.
 func (b *NatsBroker) Channels() ([]string, error) {
 	return nil, nil
 }
