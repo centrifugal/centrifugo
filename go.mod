@@ -10,6 +10,7 @@ require (
 	github.com/FZambia/viper-lite v0.0.0-20171108064948-d5a31e6aa18b
 	github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af
 	github.com/centrifugal/centrifuge v0.8.3-0.20200517115537-63326343fc56
+	github.com/centrifugal/protocol v0.3.3
 	github.com/cristalhq/jwt/v3 v3.0.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.2 // indirect
@@ -17,6 +18,8 @@ require (
 	github.com/gorilla/securecookie v1.1.1
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/mapstructure v1.2.2 // indirect
+	github.com/nats-io/nats-server/v2 v2.1.6 // indirect
+	github.com/nats-io/nats.go v1.10.0
 	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/prometheus/client_golang v1.6.0
 	github.com/prometheus/common v0.10.0 // indirect

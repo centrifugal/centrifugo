@@ -64,6 +64,16 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/mitchellh/mapstructure
 # github.com/mna/redisc v1.1.7
 github.com/mna/redisc
+# github.com/nats-io/jwt v0.3.2
+github.com/nats-io/jwt
+# github.com/nats-io/nats.go v1.10.0
+github.com/nats-io/nats.go
+github.com/nats-io/nats.go/encoders/builtin
+github.com/nats-io/nats.go/util
+# github.com/nats-io/nkeys v0.1.4
+github.com/nats-io/nkeys
+# github.com/nats-io/nuid v1.0.1
+github.com/nats-io/nuid
 # github.com/pelletier/go-toml v1.6.0
 github.com/pelletier/go-toml
 # github.com/pmezard/go-difflib v1.0.0
@@ -101,6 +111,8 @@ github.com/stretchr/testify/require
 # golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
+golang.org/x/crypto/ed25519
+golang.org/x/crypto/ed25519/internal/edwards25519
 # golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 golang.org/x/net/context
 golang.org/x/net/http/httpguts

@@ -31,6 +31,7 @@ import (
 	"github.com/centrifugal/centrifugo/internal/logutils"
 	"github.com/centrifugal/centrifugo/internal/metrics/graphite"
 	"github.com/centrifugal/centrifugo/internal/middleware"
+	"github.com/centrifugal/centrifugo/internal/natsbroker"
 	"github.com/centrifugal/centrifugo/internal/proxy"
 	"github.com/centrifugal/centrifugo/internal/webui"
 
@@ -101,6 +102,7 @@ func main() {
 				"proxy_extra_http_headers", "server_side", "user_subscribe_to_personal",
 				"user_personal_channel_namespace", "websocket_use_write_buffer_pool",
 				"websocket_disable", "sockjs_disable", "api_disable", "redis_cluster_addrs",
+				"broker", "nats_prefix", "nats_url", "nats_dial_timeout", "nats_write_timeout",
 				"v3_use_offset", "redis_history_meta_ttl", "redis_streams", "memory_history_meta_ttl",
 			}
 			for _, env := range bindEnvs {
@@ -115,6 +117,7 @@ func main() {
 				"redis_password", "redis_db", "redis_url", "redis_tls", "redis_tls_skip_verify",
 				"redis_master_name", "redis_sentinels", "grpc_api", "grpc_api_tls",
 				"grpc_api_tls_disable", "grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port",
+				"broker", "nats_url",
 			}
 			for _, flag := range bindPFlags {
 				_ = viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -193,11 +196,13 @@ func main() {
 				log.Fatal().Msgf("error creating Centrifuge Node: %v", err)
 			}
 
+			brokerName := viper.GetString("broker")
+
 			var e centrifuge.Engine
 			if engineName == "memory" {
 				e, err = memoryEngine(node)
 			} else if engineName == "redis" {
-				e, err = redisEngine(node)
+				e, err = redisEngine(node, brokerName == "")
 			} else {
 				log.Fatal().Msgf("unknown engine: %s", engineName)
 			}
@@ -247,12 +252,37 @@ func main() {
 
 			node.SetEngine(e)
 
-			if err = node.Run(); err != nil {
-				log.Fatal().Msgf("error running node: %v", err)
+			var disableHistoryPresence bool
+			if engineName == "memory" && brokerName == "nats" {
+				// Presence and History won't work with Memory engine in distributed case.
+				disableHistoryPresence = true
+				node.SetHistoryManager(nil)
+				node.SetPresenceManager(nil)
+			}
+
+			if disableHistoryPresence {
+				log.Warn().Msgf("presence, history and recovery disabled with Memory engine and Nats broker")
 			}
 
 			if !configFound {
 				log.Warn().Msg("config file not found")
+			}
+
+			if brokerName == "nats" {
+				broker, err := natsbroker.New(node, natsbroker.Config{
+					URL:          viper.GetString("nats_url"),
+					Prefix:       viper.GetString("nats_prefix"),
+					DialTimeout:  time.Duration(viper.GetInt("nats_dial_timeout")) * time.Second,
+					WriteTimeout: time.Duration(viper.GetInt("nats_write_timeout")) * time.Second,
+				})
+				if err != nil {
+					log.Fatal().Msgf("Error creating broker: %v", err)
+				}
+				node.SetBroker(broker)
+			}
+
+			if err = node.Run(); err != nil {
+				log.Fatal().Msgf("error running node: %v", err)
 			}
 
 			if connectHandlerEnabled {
@@ -336,6 +366,7 @@ func main() {
 
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringP("engine", "e", "memory", "engine to use: memory or redis")
+	rootCmd.Flags().StringP("broker", "", "", "custom broker to use: ex. nats")
 	rootCmd.Flags().StringP("log_level", "", "info", "set the log level: debug, info, error, fatal or none")
 	rootCmd.Flags().StringP("log_file", "", "", "optional log file - if not specified logs go to STDOUT")
 	rootCmd.Flags().StringP("pid_file", "", "", "optional path to create PID file")
@@ -377,6 +408,8 @@ func main() {
 	rootCmd.Flags().BoolP("redis_tls_skip_verify", "", false, "disable Redis TLS host verification")
 	rootCmd.Flags().StringP("redis_master_name", "", "", "name of Redis master Sentinel monitors (Redis engine)")
 	rootCmd.Flags().StringP("redis_sentinels", "", "", "comma-separated list of Sentinel addresses (Redis engine)")
+
+	rootCmd.Flags().StringP("nats_url", "", "", "Nats connection URL in format nats://user:pass@localhost:4222 (Nats broker)")
 
 	viper.SetEnvPrefix("centrifugo")
 
@@ -498,6 +531,7 @@ func main() {
 var configDefaults = map[string]interface{}{
 	"gomaxprocs":                           0,
 	"engine":                               "memory",
+	"broker":                               "",
 	"name":                                 "",
 	"secret":                               "",
 	"token_hmac_secret_key":                "",
@@ -575,6 +609,10 @@ var configDefaults = map[string]interface{}{
 	"graphite_prefix":                      "centrifugo",
 	"graphite_interval":                    10,
 	"graphite_tags":                        false,
+	"nats_prefix":                          "centrifugo",
+	"nats_url":                             "",
+	"nats_dial_timeout":                    1,
+	"nats_write_timeout":                   1,
 	"websocket_disable":                    false,
 	"sockjs_disable":                       false,
 	"api_disable":                          false,
@@ -1139,8 +1177,8 @@ func memoryEngine(n *centrifuge.Node) (centrifuge.Engine, error) {
 	return centrifuge.NewMemoryEngine(n, *c)
 }
 
-func redisEngine(n *centrifuge.Node) (centrifuge.Engine, error) {
-	c, err := redisEngineConfig()
+func redisEngine(n *centrifuge.Node, publishOnHistoryAdd bool) (centrifuge.Engine, error) {
+	c, err := redisEngineConfig(publishOnHistoryAdd)
 	if err != nil {
 		return nil, err
 	}
@@ -1166,7 +1204,7 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
 	shardConf.WriteTimeout = time.Duration(v.GetInt("redis_write_timeout")) * time.Second
 }
 
-func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
+func redisEngineConfig(publishOnHistoryAdd bool) (*centrifuge.RedisEngineConfig, error) {
 	v := viper.GetViper()
 
 	clusterConf := v.GetStringSlice("redis_cluster_addrs")
@@ -1362,7 +1400,7 @@ func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 	}
 
 	return &centrifuge.RedisEngineConfig{
-		PublishOnHistoryAdd: true,
+		PublishOnHistoryAdd: publishOnHistoryAdd,
 		UseStreams:          v.GetBool("redis_streams"),
 		HistoryMetaTTL:      historyMetaTTL,
 		Shards:              shardConfigs,
