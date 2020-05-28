@@ -11,7 +11,7 @@ type ConnectEvent struct {
 	// Token received from client as part of Connect Command.
 	Token string
 	// Data received from client as part of Connect Command.
-	Data Raw
+	Data []byte
 }
 
 // ConnectReply contains fields determining the reaction on auth event.
@@ -27,7 +27,7 @@ type ConnectReply struct {
 	// or via JWT token.
 	Credentials *Credentials
 	// Data allows to set custom data in connect reply.
-	Data Raw
+	Data []byte
 	// Channels slice contains channels to subscribe connection to on server-side.
 	Channels []string
 }
@@ -49,7 +49,7 @@ type RefreshReply struct {
 	// zero value means no expiration.
 	ExpireAt int64
 	// Info allows to modify connection information, zero value means no modification.
-	Info Raw
+	Info []byte
 }
 
 // RefreshHandler called when it's time to validate client connection and
@@ -58,6 +58,11 @@ type RefreshHandler func(context.Context, *Client, RefreshEvent) RefreshReply
 
 // DisconnectEvent contains fields related to disconnect event.
 type DisconnectEvent struct {
+	// Disconnect can optionally contain a custom disconnect object that
+	// was sent from server to client with closing handshake. If this field
+	// exists then client connection was closed from server. If this field
+	// is nil then this means that client disconnected normally and connection
+	// closing was initiated by client side.
 	Disconnect *Disconnect
 }
 
@@ -82,7 +87,7 @@ type SubscribeReply struct {
 	// zero value means no expiration.
 	ExpireAt int64
 	// ChannelInfo defines custom channel information, zero value means no channel information.
-	ChannelInfo Raw
+	ChannelInfo []byte
 }
 
 // SubscribeHandler called when client wants to subscribe on channel.
@@ -90,6 +95,7 @@ type SubscribeHandler func(SubscribeEvent) SubscribeReply
 
 // UnsubscribeEvent contains fields related to unsubscribe event.
 type UnsubscribeEvent struct {
+	// Channel client unsubscribed from.
 	Channel string
 }
 
@@ -101,10 +107,16 @@ type UnsubscribeReply struct {
 type UnsubscribeHandler func(UnsubscribeEvent) UnsubscribeReply
 
 // PublishEvent contains fields related to publish event.
+// Note that this event called before actual publish to Engine
+// so handler has an option to reject this publication returning
+// an error in PublishReply.
 type PublishEvent struct {
+	// Channel client wants to publish data to.
 	Channel string
-	Data    Raw
-	Info    *ClientInfo
+	// Data client wants to publish.
+	Data []byte
+	// Info about client connection.
+	Info *ClientInfo
 }
 
 // PublishReply contains fields determining the reaction on publish event.
@@ -115,7 +127,7 @@ type PublishReply struct {
 	Disconnect *Disconnect
 	// Data is modified data to publish, zero value means no modification
 	// of original data published by client.
-	Data Raw
+	Data []byte
 }
 
 // PublishHandler called when client publishes into channel.
@@ -123,6 +135,7 @@ type PublishHandler func(PublishEvent) PublishReply
 
 // SubRefreshEvent contains fields related to subscription refresh event.
 type SubRefreshEvent struct {
+	// Channel to which SubRefreshEvent belongs to.
 	Channel string
 }
 
@@ -131,7 +144,7 @@ type SubRefreshEvent struct {
 type SubRefreshReply struct {
 	Expired  bool
 	ExpireAt int64
-	Info     Raw
+	Info     []byte
 }
 
 // SubRefreshHandler called when it's time to validate client subscription to channel and
@@ -140,7 +153,11 @@ type SubRefreshHandler func(SubRefreshEvent) SubRefreshReply
 
 // RPCEvent contains fields related to rpc request.
 type RPCEvent struct {
-	Data Raw
+	// Method is an optional string that contains RPC method name client wants to call.
+	// This is an optional field, by default clients send RPC without any method set.
+	Method string
+	// Data contains RPC untouched payload.
+	Data []byte
 }
 
 // RPCReply contains fields determining the reaction on rpc request.
@@ -150,7 +167,7 @@ type RPCReply struct {
 	// Disconnect client, nil value means no disconnect.
 	Disconnect *Disconnect
 	// Data to return in RPC reply to client.
-	Data Raw
+	Data []byte
 }
 
 // RPCHandler must handle incoming command from client.
@@ -158,11 +175,13 @@ type RPCHandler func(RPCEvent) RPCReply
 
 // MessageEvent contains fields related to message request.
 type MessageEvent struct {
-	Data Raw
+	// Data contains message untouched payload.
+	Data []byte
 }
 
 // MessageReply contains fields determining the reaction on message request.
 type MessageReply struct {
+	// Disconnect allows to disconnect client.
 	Disconnect *Disconnect
 }
 

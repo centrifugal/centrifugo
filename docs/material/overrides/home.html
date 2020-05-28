@@ -1,0 +1,410 @@
+{% extends "overrides/main.html" %}
+
+<!-- Render hero under tabs -->
+{% block tabs %}
+{{ super() }}
+
+<!-- Additional styles for landing page -->
+<style>
+
+    /* Application header should be static for the landing page */
+    .md-header {
+        position: initial;
+    }
+
+    /* Remove spacing, as we cannot hide it completely */
+    .md-main__inner {
+        margin: 0;
+    }
+
+    /* Hide main content for now */
+    .md-content {
+        display: none;
+    }
+
+    .tx-container {
+        height: 200px;
+        width: 436px;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        margin-top: -100px;
+        margin-left: -218px;
+    }
+
+    /* Set inverted text color on hero */
+    .tx-hero {
+        margin: 0 .8rem;
+        color: var(--md-primary-bg-color);
+    }
+
+    .tx-hero h1 {
+        margin-bottom: 2rem;
+        color: currentColor;
+        font-weight: 900;
+        font-size: 4rem;
+    }
+
+    .tx-hero__content {
+        text-align: center;
+    }
+
+    /* Adjust spacing of buttons and invert them */
+    .tx-hero .md-button {
+        margin-top: .5rem;
+        margin-right: .5rem;
+        color: var(--md-primary-bg-color);
+    }
+
+    /* Invert primary button */
+    .tx-hero .md-button--primary {
+        color: rgb(254, 55, 55);
+        border-color: var(--md-primary-bg-color);
+    }
+
+    .md-typeset .md-button--primary {
+        background: none;
+    }
+
+    /* Invert hover and focus button states */
+    .tx-hero .md-button:hover,
+    .tx-hero .md-button:focus {
+        background-color: #cd0b0b;
+        color: white;
+        border-color: white;
+    }
+
+    /* [mobile portrait -]: Adjust headline */
+    @media screen and (max-width: 30em) {
+
+        /* Make main headline smaller */
+        .tx-hero h1 {
+            font-size: 2.4rem;
+        }
+    }
+
+    /* [tablet landscape +]: Display content and image next to each other */
+    @media screen and (min-width: 60em) {
+
+        /* Hide table of contents */
+        .md-sidebar--secondary {
+            display: none;
+        }
+
+        /* Use flex layout to align items */
+        .tx-hero {
+            display: flex;
+            align-items: stretch;
+        }
+
+        /* Swap with teaser and set dimensions */
+        .tx-hero__image {
+            width: 38rem;
+            order: 1;
+            transform: translateX(4rem);
+        }
+    }
+
+    /* [screen +]: Adjust spacing */
+    @media screen and (min-width: 76.25em) {
+
+        /* Hide navigation */
+        .md-sidebar--primary {
+            display: none;
+        }
+
+        /* Ensure the image aligns with the repository information */
+        .tx-hero__image {
+            transform: translateX(8rem);
+        }
+    }
+
+    body {
+        background: black;
+    }
+
+    canvas#canvas {
+        display: block;
+        background: black;
+    }
+
+    .welcome {
+        padding-top: 40px;
+        width: 99.9%;
+        display: inline-block;
+        vertical-align: middle;
+        z-index: 2;
+        text-align: center;
+    }
+
+    .valign {
+        display: inline-block;
+        vertical-align: middle;
+        width: .1%;
+        height: 100%;
+    }
+
+    .inner {
+        width: 100%;
+        max-width: 980px;
+        padding: 0 20px;
+        margin: 0 auto;
+        position: relative;
+    }
+</style>
+<canvas id="canvas">Canvas not supported.</canvas>
+<script type="text/javascript">
+    (function() {
+        'use strict';
+        window.addEventListener('load', function() {
+            var canvas = document.getElementById('canvas');
+
+            if (!canvas || !canvas.getContext) {
+                return false;
+            }
+
+            var viewportOffset = canvas.getBoundingClientRect();
+            var top = viewportOffset.top;
+
+            var ctx = canvas.getContext('2d');
+            var X = canvas.width = window.innerWidth;
+            var Y = canvas.height = window.innerHeight - top;
+            var centerX = X / 2;
+            var centerY = Y / 2;
+            var lineColor = '#9c090e';
+            var segmentColor = '#300808';
+
+            var linesNum = 3;
+            var lines = [];
+
+            var segments = [];
+            var radius = Y / 10;
+            var lw = radius / 16;
+            var blur = 5;
+
+            function rand(min, max) {
+                return Math.floor(Math.random() * (max - min + 1) + min);
+            }
+
+            function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+                var angleInRadians = angleInDegrees * Math.PI / 180.0;
+                var x = centerX + (radius * Math.cos(angleInRadians));
+                var y = centerY + (radius * Math.sin(angleInRadians));
+                return [x, y];
+            }
+
+            function cartesianToPolar(centerX, centerY, radius, X, Y) {
+                var radians = Math.atan2(Y-centerY, X-centerX);
+                return radians * 180 / Math.PI;
+            }
+
+            window.requestAnimationFrame =
+                window.requestAnimationFrame ||
+                window.mozRequestAnimationFrame ||
+                window.webkitRequestAnimationFrame ||
+                window.msRequestAnimationFrame ||
+                function(cb) {
+                    setTimeout(cb, 17);
+                };
+
+            function Line(ctx, x, y) {
+                this.ctx = ctx;
+                this.init(x, y);
+            }
+
+            Line.prototype.init = function(x, y) {
+                this.x = x;
+                this.y = y;
+                this.c = lineColor;
+                this.lw = 1;
+                this.v = {
+                    x: 2 * Math.random(),
+                    y: 2 * Math.random()
+                };
+            };
+
+            Line.prototype.draw = function() {
+                var ctx = this.ctx;
+                ctx.save();
+                ctx.lineWidth = this.lw;
+                ctx.strokeStyle = this.c;
+                ctx.beginPath();
+                ctx.moveTo(0, this.y);
+                ctx.lineTo(X, this.y);
+                ctx.stroke();
+                ctx.lineWidth = this.lw;
+                ctx.beginPath();
+                ctx.moveTo(this.x, 0);
+                ctx.lineTo(this.x, Y);
+                ctx.stroke();
+                ctx.restore();
+            };
+
+            Line.prototype.updatePosition = function() {
+                this.x += this.v.x;
+                this.y += this.v.y;
+            };
+
+            Line.prototype.wrapPosition = function() {
+                if (this.x < 0) this.x = X;
+                if (this.x > X) this.x = 0;
+                if (this.y < 0) this.y = Y;
+                if (this.y > Y) this.y = 0;
+            };
+
+            Line.prototype.updateParams = function() {
+            };
+
+            Line.prototype.render = function() {
+                this.updatePosition();
+                this.wrapPosition();
+                this.updateParams();
+                this.draw();
+            };
+
+            for (var i = 0; i < linesNum; i++) {
+                var line = new Line(ctx, rand(0, X), rand(0, Y));
+                lines.push(line);
+            }
+
+            function Segment(ctx, x, y, r, w, rotate, speed, angleDiff) {
+                this.ctx = ctx;
+                this.init(x, y, r, w, rotate, speed, angleDiff);
+            }
+
+            Segment.prototype.init = function(x, y, r, w, rotate, speed, angleDiff) {
+                this.x = x;
+                this.y = y;
+                this.r = r;
+                this.w = w;
+                this.c = segmentColor;
+                this.rotate = rotate;
+                this.speed = speed;
+                this.angleDiff = angleDiff;
+                this.a = 0;
+            };
+
+            Segment.prototype.drawSegment = function(fromAngle, toAngle, rotateAngle) {
+                ctx.translate(this.x, this.y);
+                ctx.rotate(rotateAngle * Math.PI / 180 );
+                ctx.translate(-this.x, -this.y);
+                ctx.beginPath();
+
+                var res = polarToCartesian(this.x, this.y, this.r, fromAngle);
+                var startX = res[0];
+                var startY = res[1];
+                var res = polarToCartesian(this.x, this.y, this.r, toAngle);
+                var endX = res[0];
+                var endY = res[1];
+
+                var anotherX = startX - this.w;
+                var anotherY = endY - this.w;
+                var innerAngleStart = cartesianToPolar(this.x, this.y, this.r, anotherX, startY);
+                var innerAngleEnd = cartesianToPolar(this.x, this.y, this.r, endX, anotherY);
+                var toAngleRad = toAngle * Math.PI / 180;
+                var fromAngleRad = fromAngle * Math.PI / 180;
+                var innerAngleStartRad = innerAngleStart * Math.PI / 180;
+                var innerAngleEndRad = innerAngleEnd * Math.PI / 180;
+
+                ctx.arc(this.x, this.y, this.r, toAngleRad, fromAngleRad, true);
+                ctx.arc(this.x, this.y, this.r-this.w, innerAngleStartRad, innerAngleEndRad, false);
+                ctx.closePath();
+                ctx.fillStyle = segmentColor;
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            Segment.prototype.draw = function() {
+                var ctx = this.ctx;
+                ctx.save();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = segmentColor;
+                ctx.shadowColor = segmentColor;
+                // ctx.shadowBlur = blur;
+                this.drawSegment(4 + this.angleDiff, 86 - this.angleDiff, this.rotate + this.a);
+                ctx.restore();
+            };
+
+            Segment.prototype.resize = function() {
+                this.x = X / 2;
+                this.y = Y / 2;
+            };
+
+            Segment.prototype.updateParams = function() {
+                this.a += this.speed * radius/this.r;
+            };
+
+            Segment.prototype.render = function() {
+                this.updateParams();
+                this.draw();
+            };
+
+            segments.push(new Segment(ctx, centerX, centerY, radius * 2.65, lw * 9, 0, -1.5, 0));
+            segments.push(new Segment(ctx, centerX, centerY, radius * 2.65, lw * 9, 90, -1.5, 0));
+            segments.push(new Segment(ctx, centerX, centerY, radius * 2.65, lw * 9, 180, -1.5, 0));
+            segments.push(new Segment(ctx, centerX, centerY, radius * 2.65, lw * 9, 270, -1.5, 0));
+            segments.push(new Segment(ctx, centerX, centerY, radius * 1.45, lw * 8, 45, 1.5, 2));
+            segments.push(new Segment(ctx, centerX, centerY, radius * 1.45, lw * 8, 135, 1.5, 2));
+            segments.push(new Segment(ctx, centerX, centerY, radius * 1.45, lw * 8, 225, 1.5, 2));
+
+            function render(){
+                ctx.clearRect(0, 0, X, Y);
+                for (var i = 0; i < lines.length; i++) {
+                    lines[i].render();
+                }
+                for (var i = 0; i < segments.length; i++) {
+                    segments[i].render();
+                }
+                requestAnimationFrame(render);
+            }
+
+            render();
+
+            function onResize() {
+                X = canvas.width = window.innerWidth;
+                Y = canvas.height = window.innerHeight;
+                for (let i = 0; i < segments.length; i++) {
+                    segments[i].resize();
+                }
+            }
+
+            window.addEventListener('resize', function() {
+                onResize();
+            });
+        });
+    })();
+</script>
+
+<section class="tx-container">
+    <div class="md-grid md-typeset tx-wrapper">
+        <div class="tx-hero">
+            <!-- Hero content -->
+            <div class="tx-hero__content">
+                <h1>Centrifugo</h1>
+                <p>{{ config.site_description }}. Set up once and forever.</p>
+                <a
+                        href="{{ page.next_page.url | url }}"
+                        title="{{ page.next_page.title | striptags }}"
+                        class="md-button md-button--primary"
+                >
+                    Get started
+                </a>
+                <a
+                        href="{{ config.repo_url }}"
+                        title="{{ lang.t('source.link.title') }}"
+                        class="md-button"
+                >
+                    Go to GitHub
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+<!-- Content -->
+{% block content %}{% endblock %}
+
+<!-- Application footer -->
+{% block footer %}{% endblock %}

@@ -1,5 +1,33 @@
 package centrifuge
 
+import "github.com/centrifugal/protocol"
+
+// ProtocolType represents client connection transport encoding format.
+type ProtocolType string
+
+func (t ProtocolType) toProto() protocol.Type {
+	return protocol.Type(t)
+}
+
+const (
+	// ProtocolTypeJSON means JSON protocol - i.e. data encoded in
+	// JSON-streaming format.
+	ProtocolTypeJSON ProtocolType = "json"
+	// ProtocolTypeProtobuf means protobuf protocol - i.e. data encoded
+	// as length-delimited protobuf messages.
+	ProtocolTypeProtobuf ProtocolType = "protobuf"
+)
+
+// EncodingType represents client payload encoding format.
+type EncodingType string
+
+const (
+	// EncodingTypeJSON means JSON payload.
+	EncodingTypeJSON EncodingType = "json"
+	// EncodingTypeBinary means binary payload.
+	EncodingTypeBinary EncodingType = "binary"
+)
+
 // TransportInfo has read-only transport description methods.
 type TransportInfo interface {
 	// Name returns a name of transport used for client connection.

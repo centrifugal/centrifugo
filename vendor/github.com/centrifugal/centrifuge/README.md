@@ -1,6 +1,6 @@
-[![Join the chat at https://gitter.im/centrifugal/centrifuge](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/centrifugal/centrifuge?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Join the chat at https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ](https://img.shields.io/badge/Telegram-Group-blue.svg)](https://t.me/joinchat/ABFVWBE0AhkyyhREoaboXQ)
 [![Build Status](https://travis-ci.org/centrifugal/centrifuge.svg?branch=master)](https://travis-ci.org/centrifugal/centrifuge)
+[![Coverage Status](https://coveralls.io/repos/github/centrifugal/centrifuge/badge.svg?branch=master)](https://coveralls.io/github/centrifugal/centrifuge?branch=master)
 [![GoDoc](https://godoc.org/github.com/centrifugal/centrifuge?status.svg)](https://godoc.org/github.com/centrifugal/centrifuge)
 
 **This library has no v1 release yet so API can be changed. Use with strict versioning.**
@@ -33,21 +33,21 @@ Client libraries:
 * [centrifuge-swift](https://github.com/centrifugal/centrifuge-swift) – for native iOS development
 * [centrifuge-java](https://github.com/centrifugal/centrifuge-java) – for native Android development and general Java
 
-[Godoc](https://godoc.org/github.com/centrifugal/centrifuge) and [examples](https://github.com/centrifugal/centrifuge/tree/master/_examples)
+See [Godoc](https://godoc.org/github.com/centrifugal/centrifuge) and [examples](https://github.com/centrifugal/centrifuge/tree/master/_examples). You can also consider [Centrifugo server documentation](https://centrifugal.github.io/centrifugo/) as extra doc for this package (because it's built on top of Centrifuge library).
 
 ### Installation
 
 To install use:
 
 ```bash
-go get -u github.com/centrifugal/centrifuge
+go get github.com/centrifugal/centrifuge
 ```
 
-The recommended way of adding this library to your project dependencies is using tools like `dep` or `go mod`.
+`go mod` is a recommended way of adding this library to your project dependencies.
 
 ### Quick example
 
-Let's take a look on how to build the simplest real-time chat ever with Centrifuge library. Clients will be able to open page in browser, connect to server over Websocket, send message into channel and this message will be instantly delivered to all active channel subscribers. On server side we will accept all connections and will work as simple PUB/SUB proxy without worrying too much about permissions. In this example we will use Centrifuge Javascript client on frontend.
+Let's take a look on how to build the simplest real-time chat ever with Centrifuge library. Clients will be able to connect to server over Websocket, send a message into channel and this message will be instantly delivered to all active channel subscribers. On server side we will accept all connections and will work as simple PUB/SUB proxy without worrying too much about permissions. In this example we will use Centrifuge Javascript client on a frontend.
 
 Create file `main.go` with the following code:
 
@@ -73,14 +73,14 @@ func handleLog(e centrifuge.LogEntry) {
 
 // Wait until program interrupted. When interrupted gracefully shutdown Node.
 func waitExitSignal(n *centrifuge.Node) {
-	sigs := make(chan os.Signal, 1)
+	sigCh := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		<-sigs
+		<-sigCh
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		n.Shutdown(ctx)
+		_ = n.Shutdown(ctx)
 		done <- true
 	}()
 	<-done
@@ -166,7 +166,7 @@ func main() {
 		}
 	}()
 
-	// Run program until interrupted.
+	// Run until interrupted.
 	waitExitSignal(node)
 }
 ```
@@ -175,18 +175,19 @@ Also create file `index.html` near `main.go` with content:
 
 ```html
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="utf-8">
         <script type="text/javascript" src="https://rawgit.com/centrifugal/centrifuge-js/master/dist/centrifuge.min.js"></script>
+        <title>Centrifuge library chat example</title>
     </head>
     <body>
         <input type="text" id="input" />
         <script type="text/javascript">
             // Create Centrifuge object with Websocket endpoint address set in main.go
-            var centrifuge = new Centrifuge('ws://localhost:8000/connection/websocket');
+            const centrifuge = new Centrifuge('ws://localhost:8000/connection/websocket');
             function drawText(text) {
-                var div = document.createElement('div');
+                const div = document.createElement('div');
                 div.innerHTML = text + '<br>';
                 document.body.appendChild(div);
             }
@@ -196,12 +197,12 @@ Also create file `index.html` near `main.go` with content:
             centrifuge.on('disconnect', function(ctx){
                 drawText('Disconnected: ' + ctx.reason);
             });
-            var sub = centrifuge.subscribe("chat", function(ctx) {
+            const sub = centrifuge.subscribe("chat", function(ctx) {
                 drawText(JSON.stringify(ctx.data));
             })
-            var input = document.getElementById("input");
+            const input = document.getElementById("input");
             input.addEventListener('keyup', function(e) {
-                if (e.keyCode == 13) { // ENTER key pressed
+                if (e.keyCode === 13) {
                     sub.publish(this.value);
                     input.value = '';
                 }
@@ -213,7 +214,7 @@ Also create file `index.html` near `main.go` with content:
 </html>
 ```
 
-Then run Go program as usual:
+Then run as usual:
 
 ```bash
 go run main.go
@@ -221,21 +222,6 @@ go run main.go
 
 Open several browser tabs with http://localhost:8000 and see chat in action.
 
-This example is only the top of an iceberg. But it should give you an insight on library API. 
+This example is only the top of an iceberg. Though it should give you an insight on library API. 
 
 Keep in mind that Centrifuge library is not a framework to build chat apps. It's a general purpose real-time transport for your messages with some helpful primitives. You can build many kinds of real-time apps on top of this library including chats but depending on application you may need to write business logic yourself.
-
-### For contributors
-
-Library uses both `dep` and `go mod` to manage dependencies.
-
-With `go mod` and Go >= 1.13 things should work transparently.
-
-To develop library with `dep` you can clone library and install all required dependencies locally:
-
-```bash
-mkdir -p $GOPATH/src/github.com/centrifugal
-git clone https://github.com/centrifugal/centrifuge.git $GOPATH/src/github.com/centrifugal/centrifuge
-cd $GOPATH/src/github.com/centrifugal/centrifuge
-dep ensure
-```

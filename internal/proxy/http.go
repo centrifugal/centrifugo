@@ -68,6 +68,7 @@ func (c *httpCaller) CallHTTP(ctx context.Context, header http.Header, reqData [
 func getProxyHeader(allHeader http.Header, extraHeaders []string) http.Header {
 	proxyHeader := http.Header{}
 	copyHeader(proxyHeader, allHeader, extraHeaders)
+	proxyHeader.Set("Content-Type", "application/json")
 	return proxyHeader
 }
 

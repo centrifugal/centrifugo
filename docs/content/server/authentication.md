@@ -10,7 +10,7 @@ We will use Javascript Centrifugo client here for example snippets for client si
 
 To add HMAC secret key to Centrifugo add `token_hmac_secret_key` to configuration file:
 
-```javascript
+```json
 {
   "token_hmac_secret_key": "<YOUR-SECRET-STRING-HERE>",
   ...
@@ -19,7 +19,7 @@ To add HMAC secret key to Centrifugo add `token_hmac_secret_key` to configuratio
 
 To add RSA public key (must be PEM encoded string) add `token_rsa_public_key` option, ex:
 
-```javascript
+```json
 {
   "token_rsa_public_key": "-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZ...",
   ...

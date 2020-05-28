@@ -1,79 +1,107 @@
-site_name: Centrifugo Documentation
-site_description: Centrifugo Documentation
-site_author: Centrifugal
-site_url: https://github.com/centrifugal/centrifugo
+site_name: Centrifugo
+site_description: Centrifugo is a scalable real-time messaging server in language-agnostic way
+site_author: Centrifugal organization
+site_url: https://centrifugal.github.io/centrifugo/
 dev_addr: 0.0.0.0:8000
 docs_dir: content
 edit_uri: https://github.com/centrifugal/documentation/edit/master/docs/
 repo_name: 'centrifugal/centrifugo'
 repo_url: 'https://github.com/centrifugal/centrifugo'
 
+copyright: Copyright &copy; 2020 Centrifugal
+
 markdown_extensions:
-  - smarty
-  - toc:
-      permalink: True
-  - sane_lists
-  - codehilite
-  - markdown.extensions.admonition:
+  - markdown.extensions.admonition
+  - markdown.extensions.attr_list
+  - markdown.extensions.codehilite:
+      guess_lang: false
+  - markdown.extensions.def_list
+  - markdown.extensions.footnotes
+  - markdown.extensions.meta
+  - markdown.extensions.toc:
+      permalink: true
+  - pymdownx.arithmatex
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: squidfunk
+      repo: mkdocs-material
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
 
 theme:
   name: 'material'
+  custom_dir: material
   language: en
   include_sidebar: true
   favicon: images/favicon.png
   logo: images/logo.png
   palette:
-    primary: 'blue'
-    accent: 'light blue'
-  feature:
-    tabs: false
-  palette:
-    primary: 'indigo'
+    primary: 'black'
     accent: 'cyan'
   i18n:
     prev: 'Previous'
     next: 'Next'
+  features:
+    - tabs
 
 extra_css:
   - theme/styles/extra.css
 
-nav: 
-  - Getting Started: 'index.md'
-  - Integration Guide: 'guide.md'
+nav:
+  - Home: 'index.md'
+  - Getting Started:
+    - What is Centrifugo: 'getting_started.md'
+    - Installation: 'install.md'
+    - Quick start: 'quick_start.md'
+    - Integration Guide: 'guide.md'
   - Server:
-    - 'Overview': 'server/index.md'
-    - 'Installation': 'server/install.md'
-    - 'Configuration': 'server/configuration.md'
-    - 'Channels': 'server/channels.md'
-    - 'Authentication': 'server/authentication.md'
-    - 'Engines': 'server/engines.md'
-    - 'Admin web interface': 'server/admin.md'
-    - 'Monitoring': 'server/monitoring.md'
-    - 'Server HTTP API': 'server/http_api.md'
-    - 'Server GRPC API': 'server/grpc_api.md'
-    - 'Message recovery': 'server/recover.md'
-    - 'Signal handling': 'server/signals.md'
-    - 'Connection expiration': 'server/connection_expiration.md'
-    - 'Private channels': 'server/private_channels.md'
-    - 'Proxy to backend': 'server/proxy.md'
-    - 'Server-side subscriptions': 'server/server_subs.md'
-    - 'Protobuf protocol': 'server/protobuf.md'
-    - 'Client protocol': 'server/protocol.md'
-  - Transports:
-    - 'Overview': 'transports/index.md'
-    - 'Websocket': 'transports/websocket.md'
-    - 'SockJS': 'transports/sockjs.md'
+    - Configuration: 'server/configuration.md'
+    - Channels: 'server/channels.md'
+    - Authentication: 'server/authentication.md'
+    - Private channels': 'server/private_channels.md'
+    - Engines: 'server/engines.md'
+    - Server HTTP API: 'server/http_api.md'
+    - Server GRPC API: 'server/grpc_api.md'
+    - Admin web interface: 'server/admin.md'
+    - Proxy to backend: 'server/proxy.md'
+    - Server-side subscriptions: 'server/server_subs.md'
+    - Message recovery: 'server/recover.md'
+    - Signal handling: 'server/signals.md'
+    - Connection expiration: 'server/connection_expiration.md'
+    - Transports:
+      - Transports overview: 'transports/index.md'
+      - Websocket: 'transports/websocket.md'
+      - SockJS: 'transports/sockjs.md'
+    - Deploy:
+        - Nginx configuration: 'deploy/nginx.md'
+        - Monitoring: 'deploy/monitoring.md'
+        - OS tuning: 'deploy/tuning.md'
+        - TLS: 'deploy/tls.md'
+    - Protobuf protocol: 'server/protobuf.md'
+    - Misc:
+        - Insecure modes: 'misc/insecure_modes.md'
+        - Benchmarking server: 'misc/benchmark.md'
+        - Migrate from Centrifugo v1: 'misc/migrate.md'
+    - Client protocol: 'server/protocol.md'
   - Libraries:
-    - 'Client libraries': 'libraries/client.md'
-    - 'API libraries': 'libraries/api.md'
-  - Deploy:
-    - 'RPM and DEB packages': 'deploy/packages.md'
-    - 'Docker image': 'deploy/docker.md'
-    - 'Nginx configuration': 'deploy/nginx.md'
-    - 'TLS': 'deploy/tls.md'
-    - 'OS tuning': 'deploy/tuning.md'
-  - Misc:
-    - 'Insecure modes': 'misc/insecure_modes.md'
-    - 'Migrate from Centrifugo v1': 'misc/migrate.md'
-    - 'Benchmarking server': 'misc/benchmark.md'
-  - FAQ: 'faq.md'
+    - Client libraries: 'libraries/client.md'
+    - API libraries: 'libraries/api.md'
+  - FAQ:
+    - 'faq.md'

@@ -15,9 +15,8 @@ type writerConfig struct {
 
 // writer helps to manage per-connection message queue.
 type writer struct {
-	mu     sync.Mutex
-	config writerConfig
-
+	mu       sync.Mutex
+	config   writerConfig
 	messages queue.Queue
 	closed   bool
 }
@@ -128,7 +127,7 @@ func (w *writer) close() error {
 	remaining := w.messages.CloseRemaining()
 	if len(remaining) > 0 {
 		w.mu.Lock()
-		w.config.WriteManyFn(remaining...)
+		_ = w.config.WriteManyFn(remaining...)
 		w.mu.Unlock()
 	}
 

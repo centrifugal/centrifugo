@@ -44,42 +44,103 @@ func cannotConvert(d reflect.Value, s interface{}) error {
 		sname = "Redis bulk string"
 	case []interface{}:
 		sname = "Redis array"
+	case nil:
+		sname = "Redis nil"
 	default:
 		sname = reflect.TypeOf(s).String()
 	}
 	return fmt.Errorf("cannot convert from %s to %s", sname, d.Type())
 }
 
-func convertAssignBulkString(d reflect.Value, s []byte) (err error) {
+func convertAssignNil(d reflect.Value) (err error) {
+	switch d.Type().Kind() {
+	case reflect.Slice, reflect.Interface:
+		d.Set(reflect.Zero(d.Type()))
+	default:
+		err = cannotConvert(d, nil)
+	}
+	return err
+}
+
+func convertAssignError(d reflect.Value, s Error) (err error) {
+	if d.Kind() == reflect.String {
+		d.SetString(string(s))
+	} else if d.Kind() == reflect.Slice && d.Type().Elem().Kind() == reflect.Uint8 {
+		d.SetBytes([]byte(s))
+	} else {
+		err = cannotConvert(d, s)
+	}
+	return
+}
+
+func convertAssignString(d reflect.Value, s string) (err error) {
 	switch d.Type().Kind() {
 	case reflect.Float32, reflect.Float64:
 		var x float64
-		x, err = strconv.ParseFloat(string(s), d.Type().Bits())
+		x, err = strconv.ParseFloat(s, d.Type().Bits())
 		d.SetFloat(x)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var x int64
-		x, err = strconv.ParseInt(string(s), 10, d.Type().Bits())
+		x, err = strconv.ParseInt(s, 10, d.Type().Bits())
 		d.SetInt(x)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		var x uint64
-		x, err = strconv.ParseUint(string(s), 10, d.Type().Bits())
+		x, err = strconv.ParseUint(s, 10, d.Type().Bits())
 		d.SetUint(x)
 	case reflect.Bool:
 		var x bool
-		x, err = strconv.ParseBool(string(s))
+		x, err = strconv.ParseBool(s)
 		d.SetBool(x)
 	case reflect.String:
-		d.SetString(string(s))
+		d.SetString(s)
 	case reflect.Slice:
-		if d.Type().Elem().Kind() != reflect.Uint8 {
-			err = cannotConvert(d, s)
+		if d.Type().Elem().Kind() == reflect.Uint8 {
+			d.SetBytes([]byte(s))
 		} else {
-			d.SetBytes(s)
+			err = cannotConvert(d, s)
 		}
+	case reflect.Ptr:
+		err = convertAssignString(d.Elem(), s)
 	default:
 		err = cannotConvert(d, s)
 	}
 	return
+}
+
+func convertAssignBulkString(d reflect.Value, s []byte) (err error) {
+	switch d.Type().Kind() {
+	case reflect.Slice:
+		// Handle []byte destination here to avoid unnecessary
+		// []byte -> string -> []byte converion.
+		if d.Type().Elem().Kind() == reflect.Uint8 {
+			d.SetBytes(s)
+		} else {
+			err = cannotConvert(d, s)
+		}
+	case reflect.Ptr:
+		if d.CanInterface() && d.CanSet() {
+			if s == nil {
+				if d.IsNil() {
+					return nil
+				}
+
+				d.Set(reflect.Zero(d.Type()))
+				return nil
+			}
+
+			if d.IsNil() {
+				d.Set(reflect.New(d.Type().Elem()))
+			}
+
+			if sc, ok := d.Interface().(Scanner); ok {
+				return sc.RedisScan(s)
+			}
+		}
+		err = convertAssignString(d, string(s))
+	default:
+		err = convertAssignString(d, string(s))
+	}
+	return err
 }
 
 func convertAssignInt(d reflect.Value, s int64) (err error) {
@@ -130,10 +191,16 @@ func convertAssignValue(d reflect.Value, s interface{}) (err error) {
 	}
 
 	switch s := s.(type) {
+	case nil:
+		err = convertAssignNil(d)
 	case []byte:
 		err = convertAssignBulkString(d, s)
 	case int64:
 		err = convertAssignInt(d, s)
+	case string:
+		err = convertAssignString(d, s)
+	case Error:
+		err = convertAssignError(d, s)
 	default:
 		err = cannotConvert(d, s)
 	}
@@ -579,7 +646,15 @@ func flattenStruct(args Args, v reflect.Value) Args {
 				continue
 			}
 		}
-		args = append(args, fs.name, fv.Interface())
+		if arg, ok := fv.Interface().(Argument); ok {
+			args = append(args, fs.name, arg.RedisArg())
+		} else if fv.Kind() == reflect.Ptr {
+			if !fv.IsNil() {
+				args = append(args, fs.name, fv.Elem().Interface())
+			}
+		} else {
+			args = append(args, fs.name, fv.Interface())
+		}
 	}
 	return args
 }

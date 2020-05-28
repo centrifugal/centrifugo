@@ -1,11 +1,13 @@
 package controlproto
 
+import "github.com/centrifugal/centrifuge/internal/controlpb"
+
 // Encoder ...
 type Encoder interface {
-	EncodeCommand(*Command) ([]byte, error)
-	EncodeNode(*Node) ([]byte, error)
-	EncodeUnsubscribe(*Unsubscribe) ([]byte, error)
-	EncodeDisconnect(*Disconnect) ([]byte, error)
+	EncodeCommand(*controlpb.Command) ([]byte, error)
+	EncodeNode(*controlpb.Node) ([]byte, error)
+	EncodeUnsubscribe(*controlpb.Unsubscribe) ([]byte, error)
+	EncodeDisconnect(*controlpb.Disconnect) ([]byte, error)
 }
 
 // ProtobufEncoder ...
@@ -18,21 +20,21 @@ func NewProtobufEncoder() *ProtobufEncoder {
 }
 
 // EncodeCommand ...
-func (e *ProtobufEncoder) EncodeCommand(cmd *Command) ([]byte, error) {
+func (e *ProtobufEncoder) EncodeCommand(cmd *controlpb.Command) ([]byte, error) {
 	return cmd.Marshal()
 }
 
 // EncodeNode ...
-func (e *ProtobufEncoder) EncodeNode(cmd *Node) ([]byte, error) {
+func (e *ProtobufEncoder) EncodeNode(cmd *controlpb.Node) ([]byte, error) {
 	return cmd.Marshal()
 }
 
 // EncodeUnsubscribe ...
-func (e *ProtobufEncoder) EncodeUnsubscribe(cmd *Unsubscribe) ([]byte, error) {
+func (e *ProtobufEncoder) EncodeUnsubscribe(cmd *controlpb.Unsubscribe) ([]byte, error) {
 	return cmd.Marshal()
 }
 
 // EncodeDisconnect ...
-func (e *ProtobufEncoder) EncodeDisconnect(cmd *Disconnect) ([]byte, error) {
+func (e *ProtobufEncoder) EncodeDisconnect(cmd *controlpb.Disconnect) ([]byte, error) {
 	return cmd.Marshal()
 }

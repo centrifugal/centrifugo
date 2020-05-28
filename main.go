@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	stdlog "log"
 	"net"
@@ -23,6 +21,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/centrifugal/centrifugo/internal/tools"
 
 	"github.com/centrifugal/centrifugo/internal/admin"
 	"github.com/centrifugal/centrifugo/internal/api"
@@ -42,7 +42,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	uuid "github.com/satori/go.uuid"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
@@ -59,7 +58,7 @@ func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "",
 		Short: "Centrifugo",
-		Long:  "Centrifugo – real-time messaging server",
+		Long:  "Centrifugo – scalable real-time messaging server in language-agnostic way",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			for k, v := range configDefaults {
@@ -104,6 +103,7 @@ func main() {
 				"user_personal_channel_namespace", "websocket_use_write_buffer_pool",
 				"websocket_disable", "sockjs_disable", "api_disable", "redis_cluster_addrs",
 				"broker", "nats_prefix", "nats_url",
+				"v3_use_offset", "redis_history_meta_ttl", "redis_streams", "memory_history_meta_ttl",
 			}
 			for _, env := range bindEnvs {
 				_ = viper.BindEnv(env)
@@ -164,10 +164,31 @@ func main() {
 				}
 			}
 
+			version := VERSION
+			if version == "" {
+				version = "dev"
+			}
+
+			engineName := viper.GetString("engine")
+
+			log.Info().Str(
+				"version", version).Str(
+				"runtime", runtime.Version()).Int(
+				"pid", os.Getpid()).Str(
+				"engine", strings.Title(engineName)).Int(
+				"gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
+
+			log.Info().Str("path", absConfPath).Msg("using config file")
+
 			c := nodeConfig(VERSION)
 			err = c.Validate()
 			if err != nil {
 				log.Fatal().Msgf("error validating config: %v", err)
+			}
+
+			if !viper.GetBool("v3_use_offset") {
+				log.Warn().Msgf("consider migrating to offset protocol field, details: https://github.com/centrifugal/centrifugo/releases/tag/v2.5.0")
+				centrifuge.CompatibilityFlags |= centrifuge.UseSeqGen
 			}
 
 			node, err := centrifuge.New(*c)
@@ -175,7 +196,6 @@ func main() {
 				log.Fatal().Msgf("error creating Centrifuge Node: %v", err)
 			}
 
-			engineName := viper.GetString("engine")
 			brokerName := viper.GetString("broker")
 
 			var e centrifuge.Engine
@@ -239,24 +259,6 @@ func main() {
 				node.SetHistoryManager(nil)
 				node.SetPresenceManager(nil)
 			}
-
-			version := VERSION
-			if version == "" {
-				version = "dev"
-			}
-
-			logEvent := log.Info().Str(
-				"version", version).Str(
-				"runtime", runtime.Version()).Int(
-				"pid", os.Getpid()).Str(
-				"engine", strings.Title(engineName)).Int(
-				"gomaxprocs", runtime.GOMAXPROCS(0))
-
-			if brokerName != "" {
-				logEvent.Str("broker", brokerName)
-			}
-
-			logEvent.Msg("starting Centrifugo")
 
 			if disableHistoryPresence {
 				log.Warn().Msgf("presence, history and recovery disabled with Memory engine and Nats broker")
@@ -427,9 +429,10 @@ func main() {
 		Short: "Check configuration file",
 		Long:  `Check Centrifugo configuration file`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := validateConfig(checkConfigFile)
+			_, err := validateConfig(checkConfigFile)
 			if err != nil {
-				log.Fatal().Msgf("%v", err)
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
 			}
 		},
 	}
@@ -437,22 +440,91 @@ func main() {
 
 	var outputConfigFile string
 
-	var generateConfigCmd = &cobra.Command{
+	var genConfigCmd = &cobra.Command{
 		Use:   "genconfig",
-		Short: "Generate simple configuration file to start with",
-		Long:  `Generate simple configuration file to start with`,
+		Short: "Generate minimal configuration file to start with",
+		Long:  `Generate minimal configuration file to start with`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := generateConfig(outputConfigFile)
+			err := tools.GenerateConfig(outputConfigFile)
 			if err != nil {
-				log.Fatal().Msgf("%v", err)
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			_, err = validateConfig(outputConfigFile)
+			if err != nil {
+				_ = os.Remove(outputConfigFile)
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
 			}
 		},
 	}
-	generateConfigCmd.Flags().StringVarP(&outputConfigFile, "config", "c", "config.json", "path to output config file")
+	genConfigCmd.Flags().StringVarP(&outputConfigFile, "config", "c", "config.json", "path to output config file")
+
+	var genTokenConfigFile string
+	var genTokenUser string
+	var genTokenTTL int64
+
+	var genTokenCmd = &cobra.Command{
+		Use:   "gentoken",
+		Short: "Generate sample connection JWT for user",
+		Long:  `Generate sample connection JWT for user`,
+		Run: func(cmd *cobra.Command, args []string) {
+			c, err := validateConfig(genTokenConfigFile)
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			token, err := tools.GenerateToken(c, genTokenUser, genTokenTTL)
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			var user = fmt.Sprintf("user %s", genTokenUser)
+			if genTokenUser == "" {
+				user = "anonymous user"
+			}
+			fmt.Printf("HMAC SHA-256 JWT for %s with expiration TTL %s:\n%s\n", user, time.Duration(genTokenTTL)*time.Second, token)
+		},
+	}
+	genTokenCmd.Flags().StringVarP(&genTokenConfigFile, "config", "c", "config.json", "path to config file")
+	genTokenCmd.Flags().StringVarP(&genTokenUser, "user", "u", "", "user ID")
+	genTokenCmd.Flags().Int64VarP(&genTokenTTL, "ttl", "t", 3600*24*7, "token TTL in seconds")
+
+	var checkTokenConfigFile string
+
+	var checkTokenCmd = &cobra.Command{
+		Use:   "checktoken [TOKEN]",
+		Short: "Check connection JWT",
+		Long:  `Check connection JWT`,
+		Run: func(cmd *cobra.Command, args []string) {
+			c, err := validateConfig(checkTokenConfigFile)
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			if len(args) != 1 {
+				fmt.Printf("error: provide token to check [centrifugo checktoken <TOKEN>]\n")
+				os.Exit(1)
+			}
+			subject, payload, err := tools.CheckToken(c, args[0])
+			if err != nil {
+				fmt.Printf("error: %v\n", err)
+				os.Exit(1)
+			}
+			var user = fmt.Sprintf("user %s", subject)
+			if subject == "" {
+				user = "anonymous user"
+			}
+			fmt.Printf("valid token for %s\npayload: %s\n", user, string(payload))
+		},
+	}
+	checkTokenCmd.Flags().StringVarP(&checkTokenConfigFile, "config", "c", "config.json", "path to config file")
 
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(checkConfigCmd)
-	rootCmd.AddCommand(generateConfigCmd)
+	rootCmd.AddCommand(genConfigCmd)
+	rootCmd.AddCommand(genTokenCmd)
+	rootCmd.AddCommand(checkTokenCmd)
 	_ = rootCmd.Execute()
 }
 
@@ -554,6 +626,9 @@ var configDefaults = map[string]interface{}{
 	"proxy_rpc_timeout":                    1,
 	"proxy_refresh_endpoint":               "",
 	"proxy_refresh_timeout":                1,
+	"memory_history_meta_ttl":              0,
+	"redis_history_meta_ttl":               0,
+	"v3_use_offset":                        false,
 }
 
 func writePidFile(pidFile string) error {
@@ -573,7 +648,7 @@ var logLevelMatches = map[string]zerolog.Level{
 	"FATAL": zerolog.FatalLevel,
 }
 
-func setupLogging() *os.File {
+func detectTerminalAttached() {
 	if isatty.IsTerminal(os.Stdout.Fd()) && runtime.GOOS != "windows" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{
 			Out:                 os.Stdout,
@@ -583,6 +658,10 @@ func setupLogging() *os.File {
 			FormatErrFieldValue: logutils.ConsoleFormatErrFieldValue(),
 		})
 	}
+}
+
+func setupLogging() *os.File {
+	detectTerminalAttached()
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	logLevel, ok := logLevelMatches[strings.ToUpper(viper.GetString("log_level"))]
@@ -724,14 +803,14 @@ func getTLSConfig() (*tls.Config, error) {
 		if tlsAutocertHTTP {
 			startHTTPChallengeServerOnce.Do(func() {
 				// getTLSConfig can be called several times.
-				acmeHTTPserver := &http.Server{
+				acmeHTTPServer := &http.Server{
 					Handler:  certManager.HTTPHandler(nil),
 					Addr:     tlsAutocertHTTPAddr,
 					ErrorLog: stdlog.New(&httpErrorLogWriter{log.Logger}, "", 0),
 				}
 				go func() {
 					log.Info().Msgf("serving ACME http_01 challenge on %s", tlsAutocertHTTPAddr)
-					if err := acmeHTTPserver.ListenAndServe(); err != nil {
+					if err := acmeHTTPServer.ListenAndServe(); err != nil {
 						log.Fatal().Msgf("can't create server on %s to serve acme http challenge: %v", tlsAutocertHTTPAddr, err)
 					}
 				}()
@@ -903,123 +982,24 @@ func runHTTPServers(n *centrifuge.Node) ([]*http.Server, error) {
 	return servers, nil
 }
 
-// pathExists returns whether the given file or directory exists or not
-func pathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
-}
-
-var jsonConfigTemplate = `{
-  "token_hmac_secret_key": "{{.TokenSecret}}",
-  "admin_password": "{{.AdminPassword}}",
-  "admin_secret": "{{.AdminSecret}}",
-  "api_key": "{{.APIKey}}"
-}
-`
-
-var tomlConfigTemplate = `token_hmac_secret_key = {{.TokenSecret}}
-admin_password = {{.AdminPassword}}
-admin_secret = {{.AdminSecret}}
-api_key = {{.APIKey}}
-`
-
-var yamlConfigTemplate = `token_hmac_secret_key: {{.TokenSecret}}
-admin_password: {{.AdminPassword}}
-admin_secret: {{.AdminSecret}}
-api_key: {{.APIKey}}
-`
-
-// generateConfig generates configuration file at provided path.
-func generateConfig(f string) error {
-	exists, err := pathExists(f)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return errors.New("output config file already exists: " + f)
-	}
-	ext := filepath.Ext(f)
-
-	if len(ext) > 1 {
-		ext = ext[1:]
-	}
-
-	supportedExts := []string{"json", "toml", "yaml", "yml"}
-
-	if !stringInSlice(ext, supportedExts) {
-		return errors.New("output config file must have one of supported extensions: " + strings.Join(supportedExts, ", "))
-	}
-
-	var t *template.Template
-
-	switch ext {
-	case "json":
-		t, err = template.New("config").Parse(jsonConfigTemplate)
-	case "toml":
-		t, err = template.New("config").Parse(tomlConfigTemplate)
-	case "yaml", "yml":
-		t, err = template.New("config").Parse(yamlConfigTemplate)
-	}
-	if err != nil {
-		return err
-	}
-
-	var output bytes.Buffer
-	_ = t.Execute(&output, struct {
-		TokenSecret   string
-		AdminPassword string
-		AdminSecret   string
-		APIKey        string
-	}{
-		uuid.NewV4().String(),
-		uuid.NewV4().String(),
-		uuid.NewV4().String(),
-		uuid.NewV4().String(),
-	})
-
-	err = ioutil.WriteFile(f, output.Bytes(), 0644)
-	if err != nil {
-		return err
-	}
-
-	err = validateConfig(f)
-	if err != nil {
-		_ = os.Remove(f)
-		return err
-	}
-
-	return nil
-}
-
 // validateConfig validates config file located at provided path.
-func validateConfig(f string) error {
+func validateConfig(f string) (centrifuge.Config, error) {
 	viper.SetConfigFile(f)
 	err := viper.ReadInConfig()
 	if err != nil {
 		switch err.(type) {
 		case viper.ConfigParseError:
-			return err
+			return centrifuge.Config{}, err
 		default:
-			return errors.New("unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
+			return centrifuge.Config{}, errors.New("unable to locate config file, use \"centrifugo genconfig -c " + f + "\" command to generate one")
 		}
 	}
 	c := nodeConfig(VERSION)
-	return c.Validate()
-}
-
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
+	err = c.Validate()
+	if err != nil {
+		return centrifuge.Config{}, err
 	}
-	return false
+	return *c, nil
 }
 
 func nodeConfig(version string) *centrifuge.Config {
@@ -1085,7 +1065,7 @@ func nodeConfig(version string) *centrifuge.Config {
 
 	cfg.NodeInfoMetricsAggregateInterval = time.Duration(v.GetInt("node_info_metrics_aggregate_interval")) * time.Second
 
-	level, ok := centrifuge.LogStringToLevel[strings.ToLower(v.GetString("log_level"))]
+	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {
 		level = centrifuge.LogLevelInfo
 	}
@@ -1093,6 +1073,14 @@ func nodeConfig(version string) *centrifuge.Config {
 	cfg.LogHandler = newLogHandler().handle
 
 	return cfg
+}
+
+// LogStringToLevel matches level string to Centrifuge LogLevel.
+var logStringToLevel = map[string]centrifuge.LogLevel{
+	"debug": centrifuge.LogLevelDebug,
+	"info":  centrifuge.LogLevelInfo,
+	"error": centrifuge.LogLevelError,
+	"none":  centrifuge.LogLevelNone,
 }
 
 // applicationName returns a name for this centrifuge. If no name provided
@@ -1196,7 +1184,9 @@ func redisEngine(n *centrifuge.Node, publishOnHistoryAdd bool) (centrifuge.Engin
 }
 
 func memoryEngineConfig() (*centrifuge.MemoryEngineConfig, error) {
-	return &centrifuge.MemoryEngineConfig{}, nil
+	return &centrifuge.MemoryEngineConfig{
+		HistoryMetaTTL: time.Duration(viper.GetInt("memory_history_meta_ttl")) * time.Second,
+	}, nil
 }
 
 func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
@@ -1281,7 +1271,7 @@ func redisEngineConfig(publishOnHistoryAdd bool) (*centrifuge.RedisEngineConfig,
 		}
 
 		if masterNamesConf != "" && len(masterNames) < numShards {
-			return nil, fmt.Errorf("Redis master name must be set for every Redis shard when Sentinel used")
+			return nil, fmt.Errorf("master name must be set for every Redis shard when Sentinel used")
 		}
 
 		var sentinelAddrs []string
@@ -1399,9 +1389,18 @@ func redisEngineConfig(publishOnHistoryAdd bool) (*centrifuge.RedisEngineConfig,
 		}
 	}
 
+	var historyMetaTTL time.Duration
+	if v.IsSet("redis_history_meta_ttl") {
+		historyMetaTTL = time.Duration(v.GetInt("redis_history_meta_ttl")) * time.Second
+	} else {
+		// TODO v3: remove compatibility.
+		historyMetaTTL = time.Duration(v.GetInt("redis_sequence_ttl")) * time.Second
+	}
+
 	return &centrifuge.RedisEngineConfig{
-		PublishOnHistoryAdd: publishOnHistoryAdd,
-		SequenceTTL:         time.Duration(v.GetInt("redis_sequence_ttl")) * time.Second,
+		PublishOnHistoryAdd: true,
+		UseStreams:          v.GetBool("redis_streams"),
+		HistoryMetaTTL:      historyMetaTTL,
 		Shards:              shardConfigs,
 	}, nil
 }

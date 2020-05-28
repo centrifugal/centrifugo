@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 )
 
 // ErrNil indicates that a reply value is nil.
@@ -55,7 +56,7 @@ func Int(reply interface{}, err error) (int, error) {
 }
 
 // Int64 is a helper that converts a command reply to 64 bit integer. If err is
-// not equal to nil, then Int returns 0, err. Otherwise, Int64 converts the
+// not equal to nil, then Int64 returns 0, err. Otherwise, Int64 converts the
 // reply to an int64 as follows:
 //
 //  Reply type    Result
@@ -81,14 +82,16 @@ func Int64(reply interface{}, err error) (int64, error) {
 	return 0, fmt.Errorf("redigo: unexpected type for Int64, got type %T", reply)
 }
 
-var errNegativeInt = errors.New("redigo: unexpected value for Uint64")
+func errNegativeInt(v int64) error {
+	return fmt.Errorf("redigo: unexpected negative value %v for Uint64", v)
+}
 
-// Uint64 is a helper that converts a command reply to 64 bit integer. If err is
-// not equal to nil, then Int returns 0, err. Otherwise, Int64 converts the
-// reply to an int64 as follows:
+// Uint64 is a helper that converts a command reply to 64 bit unsigned integer.
+// If err is not equal to nil, then Uint64 returns 0, err. Otherwise, Uint64 converts the
+// reply to an uint64 as follows:
 //
 //  Reply type    Result
-//  integer       reply, nil
+//  +integer      reply, nil
 //  bulk string   parsed reply, nil
 //  nil           0, ErrNil
 //  other         0, error
@@ -99,7 +102,7 @@ func Uint64(reply interface{}, err error) (uint64, error) {
 	switch reply := reply.(type) {
 	case int64:
 		if reply < 0 {
-			return 0, errNegativeInt
+			return 0, errNegativeInt(reply)
 		}
 		return uint64(reply), nil
 	case []byte:
@@ -476,4 +479,105 @@ func Positions(result interface{}, err error) ([]*[2]float64, error) {
 		positions[i] = &[2]float64{lat, long}
 	}
 	return positions, nil
+}
+
+// Uint64s is a helper that converts an array command reply to a []uint64.
+// If err is not equal to nil, then Uint64s returns nil, err. Nil array
+// items are stay nil. Uint64s returns an error if an array item is not a
+// bulk string or nil.
+func Uint64s(reply interface{}, err error) ([]uint64, error) {
+	var result []uint64
+	err = sliceHelper(reply, err, "Uint64s", func(n int) { result = make([]uint64, n) }, func(i int, v interface{}) error {
+		switch v := v.(type) {
+		case uint64:
+			result[i] = v
+			return nil
+		case []byte:
+			n, err := strconv.ParseUint(string(v), 10, 64)
+			result[i] = n
+			return err
+		default:
+			return fmt.Errorf("redigo: unexpected element type for Uint64s, got type %T", v)
+		}
+	})
+	return result, err
+}
+
+// Uint64Map is a helper that converts an array of strings (alternating key, value)
+// into a map[string]uint64. The HGETALL commands return replies in this format.
+// Requires an even number of values in result.
+func Uint64Map(result interface{}, err error) (map[string]uint64, error) {
+	values, err := Values(result, err)
+	if err != nil {
+		return nil, err
+	}
+	if len(values)%2 != 0 {
+		return nil, errors.New("redigo: Uint64Map expects even number of values result")
+	}
+	m := make(map[string]uint64, len(values)/2)
+	for i := 0; i < len(values); i += 2 {
+		key, ok := values[i].([]byte)
+		if !ok {
+			return nil, errors.New("redigo: Uint64Map key not a bulk string value")
+		}
+		value, err := Uint64(values[i+1], nil)
+		if err != nil {
+			return nil, err
+		}
+		m[string(key)] = value
+	}
+	return m, nil
+}
+
+// SlowLogs is a helper that parse the SLOWLOG GET command output and
+// return the array of SlowLog
+func SlowLogs(result interface{}, err error) ([]SlowLog, error) {
+	rawLogs, err := Values(result, err)
+	if err != nil {
+		return nil, err
+	}
+	logs := make([]SlowLog, len(rawLogs))
+	for i, rawLog := range rawLogs {
+		rawLog, ok := rawLog.([]interface{})
+		if !ok {
+			return nil, errors.New("redigo: slowlog element is not an array")
+		}
+
+		var log SlowLog
+
+		if len(rawLog) < 4 {
+			return nil, errors.New("redigo: slowlog element has less than four elements")
+		}
+		log.ID, ok = rawLog[0].(int64)
+		if !ok {
+			return nil, errors.New("redigo: slowlog element[0] not an int64")
+		}
+		timestamp, ok := rawLog[1].(int64)
+		if !ok {
+			return nil, errors.New("redigo: slowlog element[1] not an int64")
+		}
+		log.Time = time.Unix(timestamp, 0)
+		duration, ok := rawLog[2].(int64)
+		if !ok {
+			return nil, errors.New("redigo: slowlog element[2] not an int64")
+		}
+		log.ExecutionTime = time.Duration(duration) * time.Microsecond
+
+		log.Args, err = Strings(rawLog[3], nil)
+		if err != nil {
+			return nil, fmt.Errorf("redigo: slowlog element[3] is not array of string. actual error is : %s", err.Error())
+		}
+		if len(rawLog) >= 6 {
+			log.ClientAddr, err = String(rawLog[4], nil)
+			if err != nil {
+				return nil, fmt.Errorf("redigo: slowlog element[4] is not a string. actual error is : %s", err.Error())
+			}
+			log.ClientName, err = String(rawLog[5], nil)
+			if err != nil {
+				return nil, fmt.Errorf("redigo: slowlog element[5] is not a string. actual error is : %s", err.Error())
+			}
+		}
+		logs[i] = log
+	}
+	return logs, nil
 }

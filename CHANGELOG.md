@@ -1,3 +1,60 @@
+v2.5.1
+======
+
+No backwards incompatible changes here.
+
+Improvements:
+
+* refreshed [documentation design](https://centrifugal.github.io/centrifugo/)
+* new [Quick start](https://centrifugal.github.io/centrifugo/quick_start/) chapter for those who just start working with Centrifugo 
+* faster marshal of disconnect messages into close frame texts, significantly reduces amount of memory allocations during server graceful shutdown in deployments with many connections
+* one beautiful Centrifugo integration with Symfony framework from our community - [check it out](https://github.com/fre5h/CentrifugoBundle)
+
+Fixes:
+
+* add `Content-Type: application/json` header to outgoing HTTP proxy requests to app backend for better integration with some frameworks. [#368](https://github.com/centrifugal/centrifugo/issues/368)
+* fix wrong channel name in Join messages sent to client in case of server-side subscription to many channels
+* fix disconnect code unmarshalling after receiving response from HTTP proxy requests, it was ignored previously
+
+v2.5.0
+======
+
+No backwards incompatible changes here.
+
+Starting from this release we begin migration to new `offset` `uint64` client-server protocol field for Publication position inside history stream instead of currently used `seq` and `gen` (both `uint32`) fields. This `offset` field will be used in Centrifugo v3 by default. This change required to simplify working with history API, and due to this change history API can be later extended with pagination features.
+
+Our client libraries `centrifuge-js`, `centrifuge-go` and `centrifuge-mobile` were updated to support `offset` field. If you are using these libraries then you can update `centrifuge-js` to at least `2.6.0`, `centrifuge-go` to at least `0.5.0` and `centrifuge-mobile` to at least `0.5.0` to work with the newest client-server protocol. As soon as you upgraded mentioned libraries you can enable `offset` support without waiting for Centrifugo v3 release with `v3_use_offset` option:
+
+```json
+{
+  ...
+  "v3_use_offset": true
+}
+```
+
+All other client libraries except `centrifuge-js`, `centrifuge-go` and `centrifuge-mobile` do not support recovery at this moment and will only work with `offset` field in the future.
+
+It's important to mention that `centrifuge-js`, `centrifuge-go` and `centrifuge-mobile` will continue to work with a server which is using `seq` and `gen` fields for recovery until Centrifugo v3 release. With Centrifugo v3 release those libraries will be updated to only work with `offset` field.
+
+Command `centrifugo genconfig` will now generate config file with `v3_use_offset` option enabled. Documentation has been updated to suggest turning on this option for fresh installations.
+
+Improvements:
+
+* support [Redis Streams](https://redis.io/topics/streams-intro) - radically reduces amount of memory allocations during recovery in large history streams. This also opens a road to paginate over history stream in future releases, see description of new `redis_streams` option [in Redis engine docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-streams)
+* support [Redis Cluster](https://redis.io/topics/cluster-tutorial), client-side sharding between different Redis Clusters also works, see more [in docs](https://centrifugal.github.io/centrifugo/server/engines/#redis-cluster)
+* faster HMAC-based JWT parsing
+* faster Memory engine, possibility to expire history stream metadata (more [in docs](https://centrifugal.github.io/centrifugo/server/engines/#memory-engine))
+* releases for Centos 8, Debian Buster, Ubuntu Focal Fossa
+* new cli-command `centrifugo gentoken` to quickly generate HMAC SHA256 based connection JWT, [see docs](https://centrifugal.github.io/centrifugo/server/configuration/#gentoken-command)
+* new cli-command `centrifugo checktoken` to quickly validate connection JWT while developing application, [see docs](https://centrifugal.github.io/centrifugo/server/configuration/#checktoken-command)
+
+Fixes:
+
+* fix server side subscriptions to private channels (were ignored before)
+* fix `channels` counter update frequency in server `info` – this includes how fast `channels` counter updated in admin web interface (previously `num clients` and `num users` updated once in 3 seconds while `num channels` only once in a minute, now `num channels` updated once in 3 seconds too)
+
+This release based on Go 1.14.x
+
 v2.4.0
 ======
 
@@ -106,7 +163,7 @@ Fixes:
 * Fix crash due to race condition, race reproduced when history recover option was on. See [commit](https://github.com/centrifugal/centrifuge/pull/73/files) with fix details
 * Fix lack of `client_anonymous` option. See [#304](https://github.com/centrifugal/centrifugo/issues/304)
 
-This release is based on Go 1.13.x
+This release based on Go 1.13.x
 
 v2.2.2
 ======
@@ -139,7 +196,7 @@ Fixes:
 v2.2.0
 ======
 
-This release is based on latest refactoring of Centrifuge library. The refactoring opens a road for possible interesting improvements in Centrifugo – such as possibility to use any PUB/SUB broker instead of Redis (here is an [example of possible integration](https://github.com/centrifugal/centrifugo/pull/273) with Nats server), or even combine another broker with existing Redis engine features to still have recovery and presence features. Though these ideas are not implemented in Centrifugo yet. Performance of broadcast operations can be slightly decreased due to some internal changes in Centrifuge library. Also take a close look at backwards incompatible changes section below for one breaking change.
+This release based on latest refactoring of Centrifuge library. The refactoring opens a road for possible interesting improvements in Centrifugo – such as possibility to use any PUB/SUB broker instead of Redis (here is an [example of possible integration](https://github.com/centrifugal/centrifugo/pull/273) with Nats server), or even combine another broker with existing Redis engine features to still have recovery and presence features. Though these ideas are not implemented in Centrifugo yet. Performance of broadcast operations can be slightly decreased due to some internal changes in Centrifuge library. Also take a close look at backwards incompatible changes section below for one breaking change.
 
 Improvements:
 
@@ -152,7 +209,7 @@ Backwards incompatible changes:
 
 * This release removes a possibility to set `uid` to Publication over API. This feature was not documented in [API reference](https://centrifugal.github.io/centrifugo/server/api/) and `uid` field does not make sense to be kept on client protocol top level as in Centrifugo v2 it does not serve any internal protocol purpose. This is just an application specific information that can be put into `data` payload
 
-Release is based on Go 1.12.x
+Release based on Go 1.12.x
 
 v2.1.0
 ======
@@ -645,7 +702,7 @@ How to migrate
 
 Message before:
 
-```javascript
+```json
 {
 	"uid":"442586d4-688c-4a0d-52ad-d0a13d201dfc",
 	"timestamp":"1450817253",
@@ -658,12 +715,12 @@ Message before:
 
 Message now:
 
-```javascript
+```json
 {
 	"uid":"442586d4-688c-4a0d-52ad-d0a13d201dfc",
 	"timestamp":"1450817253",
 	"channel":"$public:chat",
-	"data":{"input":"1"},
+	"data":{"input":"1"}
 }
 ```
 
@@ -671,7 +728,7 @@ I.e. not using empty `client` and `info` keys. If those keys are non empty then 
 
 Join message before:
 
-```javascript
+```json
 {
 	"user":"2694",
 	"client":"93615872-4e45-4da2-4733-55c955133436",
@@ -682,7 +739,7 @@ Join message before:
 
 Join message now:
 
-```javascript
+```json
 {
 	"user":"2694",
 	"client":"93615872-4e45-4da2-4733-55c955133436"
@@ -691,7 +748,7 @@ Join message now:
 
 If "default_info" or "channel_info" exist then they would be included:
 
-```javascript
+```json
 {
 	"user":"2694",
 	"client":"93615872-4e45-4da2-4733-55c955133436",

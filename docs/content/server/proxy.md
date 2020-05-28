@@ -27,12 +27,14 @@ It's possible to add extra headers using `proxy_extra_http_headers` configuratio
 }
 ```
 
-Or alternatively you can set extra headers via environment variable (space separated):
+Alternatively you can set extra headers via environment variable (space separated):
 
 ```
 export CENTRIFUGO_PROXY_EXTRA_HTTP_HEADERS="X-B3-TraceId X-B3-SpanId"
 ./centrifugo
 ```
+
+Since v2.5.1 Centrifugo also forces `Content-Type` header to be `application/json` in all proxy HTTP requests since it sends body in JSON format to application backend.
 
 ### connect proxy
 

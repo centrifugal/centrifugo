@@ -9,7 +9,7 @@ Note that you can always look at [existing client implementations](../libraries/
 First we will look at list of features client library should support. Depending on client implementation some features can be not implemented. If you an author of client library you can use this list as checklist.
 
 !!! note
-    Field and method names presented in this checklist can have different names depending on programmer's taste and language style guide
+    Field and method names presented in this checklist can have different names depending on the programmer's taste and language style guide.
 
 So, client:
 

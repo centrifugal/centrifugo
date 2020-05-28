@@ -6,6 +6,7 @@ import (
 
 	"github.com/centrifugal/centrifuge/internal/clientproto"
 	"github.com/centrifugal/centrifuge/internal/prepared"
+	"github.com/centrifugal/centrifuge/internal/recovery"
 
 	"github.com/centrifugal/protocol"
 )
@@ -71,7 +72,7 @@ func (h *Hub) shutdown(ctx context.Context) error {
 		go func(cc *Client) {
 			defer func() { <-sem }()
 			defer func() { closeFinishedCh <- struct{}{} }()
-			cc.Close(advice)
+			_ = cc.Close(advice)
 		}(client)
 	}
 
@@ -96,16 +97,16 @@ func (h *Hub) disconnect(user string, reconnect bool) error {
 	}
 	for _, c := range userConnections {
 		go func(cc *Client) {
-			cc.Close(advice)
+			_ = cc.Close(advice)
 		}(c)
 	}
 	return nil
 }
 
-func (h *Hub) unsubscribe(user string, ch string) error {
+func (h *Hub) unsubscribe(user string, ch string, opts ...UnsubscribeOption) error {
 	userConnections := h.userConnections(user)
 	for _, c := range userConnections {
-		err := c.Unsubscribe(ch)
+		err := c.Unsubscribe(ch, opts...)
 		if err != nil {
 			return err
 		}
@@ -123,8 +124,7 @@ func (h *Hub) add(c *Client) error {
 
 	h.conns[uid] = c
 
-	_, ok := h.users[user]
-	if !ok {
+	if _, ok := h.users[user]; !ok {
 		h.users[user] = make(map[string]struct{})
 	}
 	h.users[user][uid] = struct{}{}
@@ -229,8 +229,13 @@ func (h *Hub) removeSub(ch string, c *Client) (bool, error) {
 	return false, nil
 }
 
-// broadcastPub sends message to all clients subscribed on channel.
-func (h *Hub) broadcastPublication(channel string, pub *Publication, chOpts *ChannelOptions) error {
+// broadcastPublication sends message to all clients subscribed on channel.
+func (h *Hub) broadcastPublication(channel string, pub *protocol.Publication, chOpts *ChannelOptions) error {
+	useSeqGen := hasFlag(CompatibilityFlags, UseSeqGen)
+	if useSeqGen {
+		pub.Seq, pub.Gen = recovery.UnpackUint64(pub.Offset)
+	}
+
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -249,12 +254,21 @@ func (h *Hub) broadcastPublication(channel string, pub *Publication, chOpts *Cha
 		if !ok {
 			continue
 		}
-		protoType := c.Transport().Protocol()
+		protoType := c.Transport().Protocol().toProto()
 		if protoType == protocol.TypeJSON {
 			if jsonPublicationReply == nil {
+				// Do not send offset to clients for now.
+				var offset uint64
+				if useSeqGen {
+					offset = pub.Offset
+					pub.Offset = 0
+				}
 				data, err := protocol.GetPushEncoder(protoType).EncodePublication(pub)
 				if err != nil {
 					return err
+				}
+				if useSeqGen {
+					pub.Offset = offset
 				}
 				messageBytes, err := protocol.GetPushEncoder(protoType).Encode(clientproto.NewPublicationPush(channel, data))
 				if err != nil {
@@ -265,12 +279,21 @@ func (h *Hub) broadcastPublication(channel string, pub *Publication, chOpts *Cha
 				}
 				jsonPublicationReply = prepared.NewReply(reply, protocol.TypeJSON)
 			}
-			c.writePublication(channel, pub, jsonPublicationReply, chOpts)
+			_ = c.writePublication(channel, pub, jsonPublicationReply, chOpts)
 		} else if protoType == protocol.TypeProtobuf {
 			if protobufPublicationReply == nil {
+				// Do not send offset to clients for now.
+				var offset uint64
+				if useSeqGen {
+					offset = pub.Offset
+					pub.Offset = 0
+				}
 				data, err := protocol.GetPushEncoder(protoType).EncodePublication(pub)
 				if err != nil {
 					return err
+				}
+				if useSeqGen {
+					pub.Offset = offset
 				}
 				messageBytes, err := protocol.GetPushEncoder(protoType).Encode(clientproto.NewPublicationPush(channel, data))
 				if err != nil {
@@ -281,14 +304,14 @@ func (h *Hub) broadcastPublication(channel string, pub *Publication, chOpts *Cha
 				}
 				protobufPublicationReply = prepared.NewReply(reply, protocol.TypeProtobuf)
 			}
-			c.writePublication(channel, pub, protobufPublicationReply, chOpts)
+			_ = c.writePublication(channel, pub, protobufPublicationReply, chOpts)
 		}
 	}
 	return nil
 }
 
 // broadcastJoin sends message to all clients subscribed on channel.
-func (h *Hub) broadcastJoin(channel string, join *Join) error {
+func (h *Hub) broadcastJoin(channel string, join *protocol.Join) error {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -297,15 +320,17 @@ func (h *Hub) broadcastJoin(channel string, join *Join) error {
 		return nil
 	}
 
-	var jsonReply *prepared.Reply
-	var protobufReply *prepared.Reply
+	var (
+		jsonReply     *prepared.Reply
+		protobufReply *prepared.Reply
+	)
 
 	for uid := range channelSubscriptions {
 		c, ok := h.conns[uid]
 		if !ok {
 			continue
 		}
-		protoType := c.Transport().Protocol()
+		protoType := c.Transport().Protocol().toProto()
 		if protoType == protocol.TypeJSON {
 			if jsonReply == nil {
 				data, err := protocol.GetPushEncoder(protoType).EncodeJoin(join)
@@ -321,7 +346,7 @@ func (h *Hub) broadcastJoin(channel string, join *Join) error {
 				}
 				jsonReply = prepared.NewReply(reply, protocol.TypeJSON)
 			}
-			c.writeJoin(channel, jsonReply)
+			_ = c.writeJoin(channel, jsonReply)
 		} else if protoType == protocol.TypeProtobuf {
 			if protobufReply == nil {
 				data, err := protocol.GetPushEncoder(protoType).EncodeJoin(join)
@@ -337,14 +362,14 @@ func (h *Hub) broadcastJoin(channel string, join *Join) error {
 				}
 				protobufReply = prepared.NewReply(reply, protocol.TypeProtobuf)
 			}
-			c.writeJoin(channel, protobufReply)
+			_ = c.writeJoin(channel, protobufReply)
 		}
 	}
 	return nil
 }
 
 // broadcastLeave sends message to all clients subscribed on channel.
-func (h *Hub) broadcastLeave(channel string, leave *Leave) error {
+func (h *Hub) broadcastLeave(channel string, leave *protocol.Leave) error {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
@@ -353,15 +378,17 @@ func (h *Hub) broadcastLeave(channel string, leave *Leave) error {
 		return nil
 	}
 
-	var jsonReply *prepared.Reply
-	var protobufReply *prepared.Reply
+	var (
+		jsonReply     *prepared.Reply
+		protobufReply *prepared.Reply
+	)
 
 	for uid := range channelSubscriptions {
 		c, ok := h.conns[uid]
 		if !ok {
 			continue
 		}
-		protoType := c.Transport().Protocol()
+		protoType := c.Transport().Protocol().toProto()
 		if protoType == protocol.TypeJSON {
 			if jsonReply == nil {
 				data, err := protocol.GetPushEncoder(protoType).EncodeLeave(leave)
@@ -377,7 +404,7 @@ func (h *Hub) broadcastLeave(channel string, leave *Leave) error {
 				}
 				jsonReply = prepared.NewReply(reply, protocol.TypeJSON)
 			}
-			c.writeLeave(channel, jsonReply)
+			_ = c.writeLeave(channel, jsonReply)
 		} else if protoType == protocol.TypeProtobuf {
 			if protobufReply == nil {
 				data, err := protocol.GetPushEncoder(protoType).EncodeLeave(leave)
@@ -393,7 +420,7 @@ func (h *Hub) broadcastLeave(channel string, leave *Leave) error {
 				}
 				protobufReply = prepared.NewReply(reply, protocol.TypeProtobuf)
 			}
-			c.writeLeave(channel, protobufReply)
+			_ = c.writeLeave(channel, protobufReply)
 		}
 	}
 	return nil
