@@ -264,8 +264,6 @@ func main() {
 				log.Warn().Msgf("presence, history and recovery disabled with Memory engine and Nats broker")
 			}
 
-			log.Info().Str("path", absConfPath).Msg("using config file")
-
 			if !configFound {
 				log.Warn().Msg("config file not found")
 			}
