@@ -377,6 +377,20 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#using-go-get" class="md-nav__link">
+    Using go get
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-from-source" class="md-nav__link">
+    Build from source
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -982,6 +996,20 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#using-go-get" class="md-nav__link">
+    Using go get
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-from-source" class="md-nav__link">
+    Build from source
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1003,7 +1031,7 @@
                 
                 
                 <h1 id="server-overview-and-installation">Server overview and installation<a class="headerlink" href="#server-overview-and-installation" title="Permanent link">&para;</a></h1>
-<p>Centrifugo server is written in Go language. It's an open-source software, the source code is available <a href="https://github.com/centrifugal/centrifugo">on Github</a>.</p>
+<p>Centrifugo server written in Go language. It's an open-source software, the source code is available <a href="https://github.com/centrifugal/centrifugo">on Github</a>.</p>
 <p>Centrifugo is built around <a href="https://github.com/centrifugal/centrifuge">Centrifuge</a> library for Go language. That library defines custom protocol and message types which must be sent over various transports (Websocket, SockJS). Server clients use that protocol internally and provide simple API to features - making persistent connection, subscribing on channels, calling RPC commands and more.</p>
 <p>Server documentation covers a lot of server concepts in detail. Here we start with ways to install Centrifugo on your system. </p>
 <h2 id="install-from-binary-release">Install from binary release<a class="headerlink" href="#install-from-binary-release" title="Permanent link">&para;</a></h2>
@@ -1066,6 +1094,21 @@
 <p>If you are developing on MacOS then you can install Centrifugo over <code>brew</code>:</p>
 <div class="highlight"><pre><span></span><code>brew tap centrifugal/centrifugo
 brew install centrifugo
+</code></pre></div>
+
+<h2 id="using-go-get">Using go get<a class="headerlink" href="#using-go-get" title="Permanent link">&para;</a></h2>
+<p>If you are Go developer then you can quickly try Centrifugo with <code>go get</code>:</p>
+<div class="highlight"><pre><span></span><code>go get github.com/centrifugal/centrifugo
+centrifugo
+</code></pre></div>
+
+<p>This will install Centrifugo to your Go bin directory.</p>
+<h2 id="build-from-source">Build from source<a class="headerlink" href="#build-from-source" title="Permanent link">&para;</a></h2>
+<p>You need Go language installed:</p>
+<div class="highlight"><pre><span></span><code>git clone https://github.com/centrifugal/centrifugo.git
+cd centrifugo
+go build
+./centrifugo
 </code></pre></div>
                 
               

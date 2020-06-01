@@ -1095,8 +1095,8 @@
 <p>API request is a POST HTTP request with <code>application/json</code> Content-Type and JSON payload in request body.</p>
 <p>API protected by <code>api_key</code> set in Centrifugo configuration. I.e. <code>api_key</code> must be added to config, like:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="p">...</span>
-    <span class="s2">&quot;api_key&quot;</span><span class="o">:</span> <span class="s2">&quot;&lt;YOUR API KEY&gt;&quot;</span>
+    <span class="err">...</span>
+    <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;YOUR API KEY&gt;&quot;</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -1111,7 +1111,7 @@
 <code>params</code> is an object with command arguments.</p>
 <p>There are several commands available. Let's investigate each of available server API commands.</p>
 <h3 id="publish">publish<a class="headerlink" href="#publish" title="Permanent link">&para;</a></h3>
-<p>Publish command allows to publish data into channel. It looks like this:</p>
+<p>Publish command allows publishing data into a channel. It looks like this:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
     <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;publish&quot;</span><span class="p">,</span>
     <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -1206,7 +1206,7 @@ Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class
 </code></pre></div>
 
 <h3 id="unsubscribe">unsubscribe<a class="headerlink" href="#unsubscribe" title="Permanent link">&para;</a></h3>
-<p><code>unsubscribe</code> allows to unsubscribe user from channel. <code>params</code> is an objects with two keys: <code>channel</code> and <code>user</code> (user ID you want to unsubscribe)</p>
+<p><code>unsubscribe</code> allows unsubscribing user from a channel. <code>params</code> is an object with two keys: <code>channel</code> and <code>user</code> (user ID you want to unsubscribe)</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
     <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;unsubscribe&quot;</span><span class="p">,</span>
     <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -1217,7 +1217,7 @@ Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class
 </code></pre></div>
 
 <h3 id="disconnect">disconnect<a class="headerlink" href="#disconnect" title="Permanent link">&para;</a></h3>
-<p><code>disconnect</code> allows to disconnect user by ID. <code>params</code> in an object with <code>user</code> key.</p>
+<p><code>disconnect</code> allows disconnecting user by ID. <code>params</code> in an object with <code>user</code> key.</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
     <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;disconnect&quot;</span><span class="p">,</span>
     <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -1227,8 +1227,7 @@ Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class
 </code></pre></div>
 
 <h3 id="presence">presence<a class="headerlink" href="#presence" title="Permanent link">&para;</a></h3>
-<p><code>presence</code> allows to get channel presence information (all clients currently subscribed on
-this channel). <code>params</code> is an object with <code>channel</code> key.</p>
+<p><code>presence</code> allows getting channel presence information (all clients currently subscribed on this channel). <code>params</code> is an object with <code>channel</code> key.</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
     <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;presence&quot;</span><span class="p">,</span>
     <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -1261,7 +1260,7 @@ Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class
 </code></pre></div>
 
 <h3 id="presence_stats">presence_stats<a class="headerlink" href="#presence_stats" title="Permanent link">&para;</a></h3>
-<p><code>presence_stats</code> allows to get short channel presence information.</p>
+<p><code>presence_stats</code> allows getting short channel presence information.</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
     <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;presence_stats&quot;</span><span class="p">,</span>
     <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
@@ -1286,7 +1285,7 @@ Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class
 </code></pre></div>
 
 <h3 id="history">history<a class="headerlink" href="#history" title="Permanent link">&para;</a></h3>
-<p><code>history</code> allows to get channel history information (list of last messages published into channel).</p>
+<p><code>history</code> allows getting channel history information (list of last messages published into channel).</p>
 <p><code>params</code> is an object with <code>channel</code> key:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
     <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;history&quot;</span><span class="p">,</span>
@@ -1323,7 +1322,7 @@ Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class
 </code></pre></div>
 
 <h3 id="channels">channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h3>
-<p><code>channels</code> allows to get list of active (with one or more subscribers) channels.</p>
+<p><code>channels</code> allows getting list of active (with one or more subscribers) channels.</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
     <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;channels&quot;</span><span class="p">,</span>
     <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{}</span>
@@ -1346,12 +1345,12 @@ Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class
 <span class="o">}</span>
 </code></pre></div>
 
-<p>Keep in mind that as <code>channels</code> API command returns all active channels snapshot it can be really heavy for massive deployments. At moment there is no way to paginate over channels list and we don't know a case where this could be useful and not error prone. At moment we mostly suppose that channels command will be used in development process and in not very massive Centrifugo setups (with no more than 10k channels). Also <code>channels</code> command is considered optional in engine implementations.</p>
+<p>Keep in mind that as <code>channels</code> API command returns all active channel snapshot it can be really heavy for massive deployments. At moment there is no way to paginate over channels list and we don't know a case where this could be useful and not error prone. At moment we mostly suppose that channels command will be used in development process and in not very massive Centrifugo setups (with no more than 10k channels). Also <code>channels</code> command is considered optional in engine implementations.</p>
 <h3 id="info">info<a class="headerlink" href="#info" title="Permanent link">&para;</a></h3>
-<p><code>info</code> method allows to get information about running Centrifugo nodes.</p>
+<p><code>info</code> method allows getting information about running Centrifugo nodes.</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;info&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{}</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;info&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{}</span>
 <span class="p">}</span>
 </code></pre></div>
 
