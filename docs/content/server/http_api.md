@@ -14,7 +14,7 @@ API request is a POST HTTP request with `application/json` Content-Type and JSON
 
 API protected by `api_key` set in Centrifugo configuration. I.e. `api_key` must be added to config, like:
 
-```javascript
+```json
 {
     ...
     "api_key": "<YOUR API KEY>"
@@ -40,7 +40,7 @@ There are several commands available. Let's investigate each of available server
 
 ### publish
 
-Publish command allows to publish data into channel. It looks like this:
+Publish command allows publishing data into a channel. It looks like this:
 
 ```json
 {
@@ -150,7 +150,7 @@ Similar to `publish` but allows to send the same data into many channels.
 
 ### unsubscribe
 
-`unsubscribe` allows to unsubscribe user from channel. `params` is an objects with two keys: `channel` and `user` (user ID you want to unsubscribe)
+`unsubscribe` allows unsubscribing user from a channel. `params` is an object with two keys: `channel` and `user` (user ID you want to unsubscribe)
 
 ```json
 {
@@ -164,7 +164,7 @@ Similar to `publish` but allows to send the same data into many channels.
 
 ### disconnect
 
-`disconnect` allows to disconnect user by ID. `params` in an object with `user` key.
+`disconnect` allows disconnecting user by ID. `params` in an object with `user` key.
 
 ```json
 {
@@ -177,8 +177,7 @@ Similar to `publish` but allows to send the same data into many channels.
 
 ### presence
 
-`presence` allows to get channel presence information (all clients currently subscribed on
-this channel). `params` is an object with `channel` key.
+`presence` allows getting channel presence information (all clients currently subscribed on this channel). `params` is an object with `channel` key.
 
 ```json
 {
@@ -216,7 +215,7 @@ Date: Thu, 17 May 2018 22:13:17 GMT
 
 ### presence_stats
 
-`presence_stats` allows to get short channel presence information.
+`presence_stats` allows getting short channel presence information.
 
 ```json
 {
@@ -246,7 +245,7 @@ Date: Thu, 17 May 2018 22:09:44 GMT
 
 ### history
 
-`history` allows to get channel history information (list of last messages published into channel).
+`history` allows getting channel history information (list of last messages published into channel).
 
 `params` is an object with `channel` key:
 
@@ -289,7 +288,7 @@ Date: Thu, 17 May 2018 22:14:10 GMT
 
 ### channels
 
-`channels` allows to get list of active (with one or more subscribers) channels.
+`channels` allows getting list of active (with one or more subscribers) channels.
 
 ```json
 {
@@ -316,13 +315,13 @@ Date: Thu, 17 May 2018 22:08:31 GMT
 }
 ```
 
-Keep in mind that as `channels` API command returns all active channels snapshot it can be really heavy for massive deployments. At moment there is no way to paginate over channels list and we don't know a case where this could be useful and not error prone. At moment we mostly suppose that channels command will be used in development process and in not very massive Centrifugo setups (with no more than 10k channels). Also `channels` command is considered optional in engine implementations.
+Keep in mind that as `channels` API command returns all active channel snapshot it can be really heavy for massive deployments. At moment there is no way to paginate over channels list and we don't know a case where this could be useful and not error prone. At moment we mostly suppose that channels command will be used in development process and in not very massive Centrifugo setups (with no more than 10k channels). Also `channels` command is considered optional in engine implementations.
 
 ### info
 
-`info` method allows to get information about running Centrifugo nodes.
+`info` method allows getting information about running Centrifugo nodes.
 
-```javascript
+```json
 {
     "method": "info",
     "params": {}

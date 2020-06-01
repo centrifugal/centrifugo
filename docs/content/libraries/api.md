@@ -16,4 +16,4 @@ Also there are libraries supported by community:
 * [crystalcent](https://github.com/devops-israel/crystalcent) for Crystal language
 * [CentrifugoBundle](https://github.com/fre5h/CentrifugoBundle) for Symfony framework
 
-Also keep in mind that Centrifugo [has GRPC API](../server/grpc_api.md) so you can automatically generate client API code for your language.
+Also, keep in mind that Centrifugo [has GRPC API](../server/grpc_api.md) so you can automatically generate client API code for your language.

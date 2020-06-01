@@ -19,7 +19,7 @@ As always in Centrifugo you can just add `grpc_api` option to configuration file
 }
 ```
 
-By default GRPC will be served on port `10000` but you can change it using `grpc_api_port` option.
+By default, GRPC will be served on port `10000` but you can change it using `grpc_api_port` option.
 
 Now as soon as Centrifugo started you can send GRPC commands to it. To do this get our API Protocol Buffer definitions [from this file](https://github.com/centrifugal/centrifugo/blob/master/misc/proto/api.proto).
 
