@@ -8,7 +8,7 @@ Server documentation covers a lot of server concepts in detail. Here we start wi
 
 ## Install from binary release
 
-Binary releases available on Github. [Download latest release](https://github.com/centrifugal/centrifugo/releases) for your operating system, unpack it and you are done. Centrifugo is pre-builded for:
+Binary releases available on Github. [Download latest release](https://github.com/centrifugal/centrifugo/releases) for your operating system, unpack it and you are done. Centrifugo is pre-built for:
 
 * Linux 64-bit (linux_amd64)
 * Linux 32-bit (linux_386)
