@@ -480,8 +480,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../private_channels/" title="Private channels'" class="md-nav__link">
-      Private channels'
+    <a href="../private_channels/" title="Private channels" class="md-nav__link">
+      Private channels
     </a>
   </li>
 
@@ -1003,11 +1003,11 @@
                 
                 
                 <h1 id="channels">Channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h1>
-<p>Channel is a route for publication messages. Clients can subscribe to channel to receive messages published to this channel – new publications, join/leave events (if enabled for a channel namespace) etc. Channel subscriber can ask for channel presence or channel history information (if enabled for a channel namespace) .</p>
+<p>Channel is a route for publication messages. Clients can subscribe to a channel to receive messages published to this channel – new publications, join/leave events (if enabled for a channel namespace) etc. Channel subscriber can also ask for channel presence or channel history information (if enabled for a channel namespace).</p>
 <p>Channel is just a string - <code>news</code>, <code>comments</code> are valid channel names.</p>
 <p>Channel is an ephemeral entity – <strong>you don't need to create it explicitly</strong>. Channel created automatically by Centrifugo as soon as first client subscribes to it. As soon as last subscriber leaves channel - it's automatically cleaned up.</p>
 <h3 id="channel-name-rules">Channel name rules<a class="headerlink" href="#channel-name-rules" title="Permanent link">&para;</a></h3>
-<p>Only ASCII symbols must be used in channel string.</p>
+<p><strong>Only ASCII symbols must be used in channel string</strong>.</p>
 <p>Channel name length limited by <code>255</code> characters by default (can be changed via configuration file option <code>channel_max_length</code>).</p>
 <p>Several symbols in channel names reserved for Centrifugo internal needs:</p>
 <ul>
@@ -1019,16 +1019,19 @@
 <li><code>/</code> – for future Centrifugo needs</li>
 </ul>
 <h3 id="namespace-channel-boundary">namespace channel boundary (:)<a class="headerlink" href="#namespace-channel-boundary" title="Permanent link">&para;</a></h3>
-<p><code>:</code> – is a channel namespace boundary.</p>
+<p><code>:</code> – is a channel namespace boundary. Namespaces used to set custom options to a group of channels. Each channel belonging to the same namespace will have the same channel options. Read more about available channel options in <a href="../configuration/">configuration chapter</a>.</p>
 <p>If channel is <code>public:chat</code> - then Centrifugo will apply options to this channel from channel namespace with name <code>public</code>.</p>
 <h3 id="private-channel-prefix">private channel prefix ($)<a class="headerlink" href="#private-channel-prefix" title="Permanent link">&para;</a></h3>
-<p>If channel starts with <code>$</code> then it considered private. Subscription on a private channel must be properly signed by your web application.</p>
+<p>If channel starts with <code>$</code> then it is considered <code>private</code>. Subscription on a private channel must be properly signed by your backend.</p>
+<p>Use private channels if you pass sensitive data inside channel and want to control access permissions on your backend.</p>
 <p>For example <code>$secrets</code> is a private channel, <code>$public:chat</code> - is a private channel that belongs namespace <code>public</code>.</p>
-<p>Read <a href="../private_channels/">special chapter in docs</a> about private channel subscriptions.</p>
+<p>Subscription request to private channels requires additional JWT from your backend. Read <a href="../private_channels/">detailed chapter about private channels</a>.</p>
+<p>If you need a personal channel for a single user (or maybe channel for short and stable set of users) then consider using <code>user-limited</code> channel (see below) as a simpler alternative which does not require additional subscription token from your backend.</p>
 <h3 id="user-channel-boundary">user channel boundary (#)<a class="headerlink" href="#user-channel-boundary" title="Permanent link">&para;</a></h3>
-<p><code>#</code> – is a user channel boundary. This is a separator to create private channels for users (user limited channels) without sending POST request to your web application. For example if channel is <code>news#42</code> then only user with ID <code>42</code> can subscribe on this channel (Centrifugo knows user ID as clients provide it in connection credentials).</p>
+<p><code>#</code> – is a user channel boundary. This is a separator to create personal channels for users (we call this <code>user-limited channels</code>) without need to provide subscription token.</p>
+<p>For example if channel is <code>news#42</code> then only user with ID <code>42</code> can subscribe on this channel (Centrifugo knows user ID because clients provide it in connection credentials with connection JWT).</p>
 <p>Moreover, you can provide several user IDs in channel name separated by a comma: <code>dialog#42,43</code> – in this case only user with ID <code>42</code> and user with ID <code>43</code> will be able to subscribe on this channel.</p>
-<p>This is useful for channels with static allowed users, for example for user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.</p>
+<p>This is useful for channels with static list of allowed users, for example for single user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.</p>
                 
               
               
