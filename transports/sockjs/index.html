@@ -919,10 +919,10 @@
 <li>Eventsource (SSE)</li>
 <li>XHR-streaming</li>
 <li>Long-polling</li>
-<li>And more (see SockJS docs)</li>
+<li>And more (see <a href="https://github.com/sockjs/sockjs-client">SockJS docs</a>)</li>
 </ul>
-<p>One caveat when using SockJS is that <strong>you need to use sticky sessions mechanism if you have many Centrifugo nodes running</strong>. This mechanism is usually supported by load balancers (for example Nginx). Sticky sessions mean that all requests from the same client will come to the same Centrifugo node. This is necessary because SockJS maintains connection session in process memory thus allowing bidirectional communication between client and server. Sticky mechanism is not required if you only use one Centrifugo node on backend. See how enable sticky sessions in Nginx in deploy section of this doc.</p>
-<p>SockJS connection endpoint in Centrifugo is <code>/connection/sockjs</code>. SockJS does not support binary so you only limited in using JSON with it. </p>
+<p>One caveat when using SockJS is that <strong>you need to use sticky sessions mechanism if you have many Centrifugo nodes running</strong>. This mechanism usually supported by load balancers (for example Nginx). Sticky sessions mean that all requests from the same client will come to the same Centrifugo node. This is necessary because SockJS maintains connection session in process memory thus allowing bidirectional communication between a client and a server. Sticky mechanism not required if you only use one Centrifugo node on a backend. See how enable sticky sessions in Nginx in deploy section of this doc.</p>
+<p>SockJS connection endpoint in Centrifugo is <code>/connection/sockjs</code>. SockJS does not support binary data, so you are limited in using JSON with it.</p>
                 
               
               

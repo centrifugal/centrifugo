@@ -1294,7 +1294,7 @@ on your backend.</p>
 </ul>
 <h3 id="whats-the-best-way-to-organize-channel-configuration">What's the best way to organize channel configuration?<a class="headerlink" href="#whats-the-best-way-to-organize-channel-configuration" title="Permanent link">&para;</a></h3>
 <p>In most situations your application need several real-time features. We suggest to use namespaces for every real-time feature if it requires some option enabled.</p>
-<p>For example if you need join/leave messages for chat app - create special channel namespace with this <code>join_leave</code> option enabled. Otherwise your other channels will receive join/leave messages too - increasing load and traffic in system but not actually used by clients.</p>
+<p>For example if you need join/leave messages for chat app - create a special channel namespace with this <code>join_leave</code> option enabled. Otherwise, your other channels will receive join/leave messages too - increasing load and traffic in system but not actually used by clients.</p>
 <p>The same relates to other channel options.</p>
 <h3 id="can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery">Can I rely on Centrifugo and its message history for guaranteed message delivery?<a class="headerlink" href="#can-i-rely-on-centrifugo-and-its-message-history-for-guaranteed-message-delivery" title="Permanent link">&para;</a></h3>
 <p>No - Centrifugo is best-effort transport. This means that if you want strongly guaranteed message delivery to your clients then you can't just rely on Centrifugo and its message history cache. In this case you still can use Centrifugo for real-time but you should build some additional logic on top your application backend and main data storage to satisfy your guarantees.</p>
