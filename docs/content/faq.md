@@ -96,7 +96,7 @@ There are several ways to achieve it:
 
 In most situations your application need several real-time features. We suggest to use namespaces for every real-time feature if it requires some option enabled.
 
-For example if you need join/leave messages for chat app - create special channel namespace with this `join_leave` option enabled. Otherwise your other channels will receive join/leave messages too - increasing load and traffic in system but not actually used by clients.
+For example if you need join/leave messages for chat app - create a special channel namespace with this `join_leave` option enabled. Otherwise, your other channels will receive join/leave messages too - increasing load and traffic in system but not actually used by clients.
 
 The same relates to other channel options.
 

@@ -12,7 +12,7 @@ An experimental feature for raw websocket endpoint - `permessage-deflate` compre
 
 We consider this experimental because this websocket compression is experimental in [Gorilla Websocket](https://github.com/gorilla/websocket) library that Centrifugo uses internally.
 
-Websocket compression can reduce amount of traffic travelling over the wire. But keep in mind that **enabling websocket compression will result in much slower Centrifugo performance and more memory usage** – depending on your message rate this can be very noticeable.
+Websocket compression can reduce an amount of traffic travelling over the wire. But keep in mind that **enabling websocket compression will result in much slower Centrifugo performance and more memory usage** – depending on your message rate this can be very noticeable.
 
 To enable websocket compression for raw websocket endpoint set `websocket_compression: true` in configuration file. After this clients that support permessage-deflate will negotiate compression with server automatically. Note that enabling compression does not mean that every connection will use it - this depends on client support for this feature.
 
