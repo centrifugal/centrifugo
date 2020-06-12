@@ -1,4 +1,4 @@
-Test proxy.
+Create 10k conns to channel `channel`.
 
 Run with:
 
