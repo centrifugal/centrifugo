@@ -9,3 +9,4 @@ protoc-3*
 .vscode
 .idea
 docs/site
+internal/ultra

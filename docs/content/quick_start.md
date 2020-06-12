@@ -41,7 +41,7 @@ Now let's create `index.html` file with our simple app:
     </head>
     <body>
         <div id="counter">-</div>
-        <script src="https://cdn.rawgit.com/centrifugal/centrifuge-js/2.6.0/dist/centrifuge.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/centrifugal/centrifuge-js@2.6.2/dist/centrifuge.min.js"></script>
         <script type="text/javascript">
             const container = document.getElementById('counter')
             const centrifuge = new Centrifuge("ws://localhost:8000/connection/websocket");
@@ -66,7 +66,7 @@ Now let's create `index.html` file with our simple app:
 </html>
 ```
 
-Note that we are using `centrifuge-js` 2.6.0 in this example, you better use its latest version for a moment of reading this.
+Note that we are using `centrifuge-js` 2.6.2 in this example, you better use its latest version for a moment of reading this.
 
 We create an instance of client providing it Centrifugo default WebSocket endpoint address, then we subscribe to channel `channel` and provide callback function to process real-time messages. Then we call `connect` method to create WebSocket connection. 
 
