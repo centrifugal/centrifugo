@@ -990,7 +990,7 @@
     <span class="p">&lt;/</span><span class="nt">head</span><span class="p">&gt;</span>
     <span class="p">&lt;</span><span class="nt">body</span><span class="p">&gt;</span>
         <span class="p">&lt;</span><span class="nt">div</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;counter&quot;</span><span class="p">&gt;</span>-<span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
-        <span class="p">&lt;</span><span class="nt">script</span> <span class="na">src</span><span class="o">=</span><span class="s">&quot;https://cdn.rawgit.com/centrifugal/centrifuge-js/2.6.0/dist/centrifuge.min.js&quot;</span><span class="p">&gt;&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
+        <span class="p">&lt;</span><span class="nt">script</span> <span class="na">src</span><span class="o">=</span><span class="s">&quot;https://cdn.jsdelivr.net/gh/centrifugal/centrifuge-js@2.6.2/dist/centrifuge.min.js&quot;</span><span class="p">&gt;&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
         <span class="p">&lt;</span><span class="nt">script</span> <span class="na">type</span><span class="o">=</span><span class="s">&quot;text/javascript&quot;</span><span class="p">&gt;</span>
             <span class="kr">const</span> <span class="nx">container</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;counter&#39;</span><span class="p">)</span>
             <span class="kr">const</span> <span class="nx">centrifuge</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Centrifuge</span><span class="p">(</span><span class="s2">&quot;ws://localhost:8000/connection/websocket&quot;</span><span class="p">);</span>
@@ -1015,7 +1015,7 @@
 <span class="p">&lt;/</span><span class="nt">html</span><span class="p">&gt;</span>
 </code></pre></div>
 
-<p>Note that we are using <code>centrifuge-js</code> 2.6.0 in this example, you better use its latest version for a moment of reading this.</p>
+<p>Note that we are using <code>centrifuge-js</code> 2.6.2 in this example, you better use its latest version for a moment of reading this.</p>
 <p>We create an instance of client providing it Centrifugo default WebSocket endpoint address, then we subscribe to channel <code>channel</code> and provide callback function to process real-time messages. Then we call <code>connect</code> method to create WebSocket connection. </p>
 <p>You need to open this file in a browser, for example on MacOS:</p>
 <div class="highlight"><pre><span></span><code>open index.html
