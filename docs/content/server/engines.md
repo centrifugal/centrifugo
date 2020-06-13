@@ -38,6 +38,7 @@ Advantages:
 Disadvantages:
 
 * does not allow scaling nodes (actually you still can scale Centrifugo with Memory engine but you have to publish data into each Centrifugo node and you won't have consistent state of presence)
+* does not persist message history in channels between Centrifugo restarts
 
 Several configuration options related to Memory engine:
 
@@ -45,7 +46,7 @@ Several configuration options related to Memory engine:
 
 ## Redis engine
 
-Allows scaling Centrifugo nodes to different machines. Nodes will use Redis as message broker. Redis engine keeps presence and history data in Redis, uses Redis PUB/SUB for internal nodes communication.
+Allows scaling Centrifugo nodes to different machines. Nodes will use Redis as message broker. Redis engine keeps presence and history data in Redis, uses Redis PUB/SUB for internal node communication.
 
 **Minimal Redis version is 3.2.0**
 
