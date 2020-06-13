@@ -1114,13 +1114,14 @@
 <p>Disadvantages:</p>
 <ul>
 <li>does not allow scaling nodes (actually you still can scale Centrifugo with Memory engine but you have to publish data into each Centrifugo node and you won't have consistent state of presence)</li>
+<li>does not persist message history in channels between Centrifugo restarts</li>
 </ul>
 <p>Several configuration options related to Memory engine:</p>
 <ul>
 <li><code>memory_history_meta_ttl</code> (int, default <code>0</code>) - sets a time in seconds of history stream metadata expiration. Stream metadata is an information about current offset number in channel and epoch value. By default, metadata for channels does not expire. Though in some cases – when channels created for а short time and then not used anymore – created metadata can stay in memory while not actually useful. For example, you can have a personal user channel but after using your app for a while user left it forever. In long-term perspective this can be an unwanted memory leak. Setting a reasonable value to this option (usually much bigger than history retention period) can help. In this case unused channel metadata will eventually expire. Available since v2.5.0</li>
 </ul>
 <h2 id="redis-engine">Redis engine<a class="headerlink" href="#redis-engine" title="Permanent link">&para;</a></h2>
-<p>Allows scaling Centrifugo nodes to different machines. Nodes will use Redis as message broker. Redis engine keeps presence and history data in Redis, uses Redis PUB/SUB for internal nodes communication.</p>
+<p>Allows scaling Centrifugo nodes to different machines. Nodes will use Redis as message broker. Redis engine keeps presence and history data in Redis, uses Redis PUB/SUB for internal node communication.</p>
 <p><strong>Minimal Redis version is 3.2.0</strong></p>
 <p>Several configuration options related to Redis engine:</p>
 <ul>
