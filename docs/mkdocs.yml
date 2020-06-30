@@ -105,3 +105,8 @@ nav:
     - API libraries: 'libraries/api.md'
   - FAQ:
     - 'faq.md'
+  - Blog:
+    - About this blog: 'blog/index.md'
+    - June 2020:
+      - Introduction to Centrifuge library for Go: 'blog/centrifuge_intro.md'
+      - Scaling WebSocket in Go: 'blog/scaling_websocket.md'
