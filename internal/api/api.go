@@ -46,8 +46,12 @@ func (h *apiExecutor) Publish(_ context.Context, cmd *PublishRequest) *PublishRe
 		return resp
 	}
 
-	_, err := h.ruleContainer.NamespacedChannelOptions(ch)
+	_, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
 	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
 		resp.Error = ErrorNamespaceNotFound
 		return resp
 	}
@@ -94,8 +98,13 @@ func (h *apiExecutor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broad
 			return resp
 		}
 
-		_, err := h.ruleContainer.NamespacedChannelOptions(ch)
+		_, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
 		if err != nil {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting options for channel", map[string]interface{}{"channel": ch, "error": err.Error()}))
+			resp.Error = ErrorInternal
+			return resp
+		}
+		if !found {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "can't find namespace for channel", map[string]interface{}{"channel": ch}))
 			resp.Error = ErrorNamespaceNotFound
 			return resp
@@ -145,8 +154,12 @@ func (h *apiExecutor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *U
 	}
 
 	if channel != "" {
-		_, err := h.ruleContainer.NamespacedChannelOptions(channel)
+		_, found, err := h.ruleContainer.NamespacedChannelOptions(channel)
 		if err != nil {
+			resp.Error = ErrorInternal
+			return resp
+		}
+		if !found {
 			resp.Error = ErrorNamespaceNotFound
 			return resp
 		}
@@ -197,8 +210,12 @@ func (h *apiExecutor) Presence(_ context.Context, cmd *PresenceRequest) *Presenc
 		return resp
 	}
 
-	chOpts, err := h.ruleContainer.NamespacedChannelOptions(ch)
+	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
 	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
 		resp.Error = ErrorNamespaceNotFound
 		return resp
 	}
@@ -244,8 +261,12 @@ func (h *apiExecutor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest
 		return resp
 	}
 
-	chOpts, err := h.ruleContainer.NamespacedChannelOptions(ch)
+	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
 	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
 		resp.Error = ErrorNamespaceNotFound
 		return resp
 	}
@@ -283,8 +304,12 @@ func (h *apiExecutor) History(_ context.Context, cmd *HistoryRequest) *HistoryRe
 		return resp
 	}
 
-	chOpts, err := h.ruleContainer.NamespacedChannelOptions(ch)
+	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
 	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
 		resp.Error = ErrorNamespaceNotFound
 		return resp
 	}
@@ -338,8 +363,12 @@ func (h *apiExecutor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest
 		return resp
 	}
 
-	chOpts, err := h.ruleContainer.NamespacedChannelOptions(ch)
+	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
 	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
 		resp.Error = ErrorNamespaceNotFound
 		return resp
 	}

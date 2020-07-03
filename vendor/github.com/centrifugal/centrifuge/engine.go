@@ -120,7 +120,7 @@ type HistoryManager interface {
 
 // PresenceManager is responsible for channel presence management.
 type PresenceManager interface {
-	// Alive returns actual presence information for channel.
+	// Presence returns actual presence information for channel.
 	Presence(ch string) (map[string]*protocol.ClientInfo, error)
 	// PresenceStats returns short stats of current presence data
 	// suitable for scenarios when caller does not need full client

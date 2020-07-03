@@ -73,8 +73,13 @@ func handleLog(e centrifuge.LogEntry) {
 func auth(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		// Put authentication credentials into context, since we don't have
+		// Put authentication credentials into context. Since we don't have
 		// any session backend here – simply set user ID as empty string.
+		// Users with empty ID called anonymous users, in real app you should
+		// decide whether anonymous users allowed to connect to your server
+		// or not. There is also another way to set Credentials - ClientConnecting
+		// handler which is called after client sent first command to server
+		// called Connect. Without Credentials set connection won't be accepted.
 		cred := &centrifuge.Credentials{
 			UserID: "",
 		}
@@ -151,10 +156,10 @@ func main() {
 	// The second route is for serving index.html file.
 	http.Handle("/", http.FileServer(http.Dir("./")))
 
-    log.Printf("Starting server, visit http://localhost:8000")
-    if err := http.ListenAndServe(":8000", nil); err != nil {
-        panic(err)
-    }
+	log.Printf("Starting server, visit http://localhost:8000")
+	if err := http.ListenAndServe(":8000", nil); err != nil {
+		panic(err)
+	}
 }
 ```
 

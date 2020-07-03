@@ -1,3 +1,19 @@
+v0.9.1
+======
+
+* fix `Close` method – do not use error channel since this leads to deadlock anyway, just close in goroutine.
+* fix presence timer scheduling
+
+```
+gorelease -base=v0.9.0 -version=v0.9.1
+github.com/centrifugal/centrifuge
+---------------------------------
+Incompatible changes:
+- (*Client).Close: changed from func(*Disconnect) chan error to func(*Disconnect) error
+
+v0.9.1 is a valid semantic version for this release.
+```
+
 v0.9.0
 ======
 

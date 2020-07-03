@@ -133,14 +133,14 @@ func (n *ChannelRuleContainer) Reload(c ChannelRuleConfig) error {
 }
 
 // ChannelOptions returns channel options for channel.
-func (n *ChannelRuleContainer) ChannelOptions(ch string) (centrifuge.ChannelOptions, error) {
+func (n *ChannelRuleContainer) ChannelOptions(ch string) (centrifuge.ChannelOptions, bool, error) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
-	opts, err := n.config.channelOpts(n.namespaceName(ch))
+	opts, found, err := n.config.channelOpts(n.namespaceName(ch))
 	if err != nil {
-		return centrifuge.ChannelOptions{}, err
+		return centrifuge.ChannelOptions{}, false, err
 	}
-	return opts.ChannelOptions, nil
+	return opts.ChannelOptions, found, nil
 }
 
 // namespaceName returns namespace name from channel if exists.
@@ -154,23 +154,23 @@ func (n *ChannelRuleContainer) namespaceName(ch string) string {
 }
 
 // ChannelOpts returns channel options for channel using current channel config.
-func (n *ChannelRuleContainer) NamespacedChannelOptions(ch string) (NamespaceChannelOptions, error) {
+func (n *ChannelRuleContainer) NamespacedChannelOptions(ch string) (NamespaceChannelOptions, bool, error) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 	return n.config.channelOpts(n.namespaceName(ch))
 }
 
 // channelOpts searches for channel options for specified namespace key.
-func (c *ChannelRuleConfig) channelOpts(namespaceName string) (NamespaceChannelOptions, error) {
+func (c *ChannelRuleConfig) channelOpts(namespaceName string) (NamespaceChannelOptions, bool, error) {
 	if namespaceName == "" {
-		return c.NamespaceChannelOptions, nil
+		return c.NamespaceChannelOptions, true, nil
 	}
 	for _, n := range c.Namespaces {
 		if n.Name == namespaceName {
-			return n.NamespaceChannelOptions, nil
+			return n.NamespaceChannelOptions, true, nil
 		}
 	}
-	return NamespaceChannelOptions{}, ErrorNamespaceNotFound
+	return NamespaceChannelOptions{}, false, nil
 }
 
 // PersonalChannel returns personal channel for user based on node configuration.

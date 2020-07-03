@@ -102,11 +102,11 @@ func New(c Config) (*Node, error) {
 
 var defaultChannelOptions = ChannelOptions{}
 
-func (n *Node) channelOptions(ch string) (ChannelOptions, error) {
+func (n *Node) channelOptions(ch string) (ChannelOptions, bool, error) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 	if n.config.ChannelOptionsFunc == nil {
-		return defaultChannelOptions, nil
+		return defaultChannelOptions, true, nil
 	}
 	return n.config.ChannelOptionsFunc(ch)
 }
@@ -443,9 +443,12 @@ func (n *Node) handlePublication(ch string, pub *protocol.Publication) error {
 	if !hasCurrentSubscribers {
 		return nil
 	}
-	chOpts, err := n.channelOptions(ch)
+	chOpts, found, err := n.channelOptions(ch)
 	if err != nil {
 		return err
+	}
+	if !found {
+		return nil
 	}
 	return n.hub.broadcastPublication(ch, pub, &chOpts)
 }
@@ -473,9 +476,12 @@ func (n *Node) handleLeave(ch string, leave *protocol.Leave) error {
 }
 
 func (n *Node) publish(ch string, data []byte, info *protocol.ClientInfo, opts ...PublishOption) (PublishResult, error) {
-	chOpts, err := n.channelOptions(ch)
+	chOpts, found, err := n.channelOptions(ch)
 	if err != nil {
 		return PublishResult{}, err
+	}
+	if !found {
+		return PublishResult{}, ErrorUnknownChannel
 	}
 
 	publishOpts := &PublishOptions{}
@@ -539,9 +545,12 @@ func (n *Node) Publish(channel string, data []byte, opts ...PublishOption) (Publ
 // or leave message when someone unsubscribes from channel.
 func (n *Node) publishJoin(ch string, join *protocol.Join, opts *ChannelOptions) error {
 	if opts == nil {
-		chOpts, err := n.channelOptions(ch)
+		chOpts, found, err := n.channelOptions(ch)
 		if err != nil {
 			return err
+		}
+		if !found {
+			return nil
 		}
 		opts = &chOpts
 	}
@@ -553,9 +562,12 @@ func (n *Node) publishJoin(ch string, join *protocol.Join, opts *ChannelOptions)
 // or leave message when someone unsubscribes from channel.
 func (n *Node) publishLeave(ch string, leave *protocol.Leave, opts *ChannelOptions) error {
 	if opts == nil {
-		chOpts, err := n.channelOptions(ch)
+		chOpts, found, err := n.channelOptions(ch)
 		if err != nil {
 			return err
+		}
+		if !found {
+			return nil
 		}
 		opts = &chOpts
 	}

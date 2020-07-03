@@ -155,22 +155,11 @@ type Client struct {
 	clientSideRefresh bool
 }
 
-type CloseFunc func() error
-
-type TransportClient struct {
-	c *Client
-}
-
-func (c *TransportClient) ID() string {
-	return c.c.ID()
-}
-
-func (c *TransportClient) Handle(data []byte) bool {
-	return c.c.handle(data)
-}
+// ClientCloseFunc should be called on Transport implementation close.
+type ClientCloseFunc func() error
 
 // NewClient initializes new Client.
-func NewClient(ctx context.Context, n *Node, t Transport) (*TransportClient, CloseFunc, error) {
+func NewClient(ctx context.Context, n *Node, t Transport) (*Client, ClientCloseFunc, error) {
 	uuidObject, err := uuid.NewRandom()
 	if err != nil {
 		return nil, nil, err
@@ -227,7 +216,7 @@ func NewClient(ctx context.Context, n *Node, t Transport) (*TransportClient, Clo
 		c.mu.Unlock()
 	}
 
-	return &TransportClient{c: c}, func() error { return c.close(nil) }, nil
+	return c, func() error { return c.close(nil) }, nil
 }
 
 func (c *Client) onTimerOp() {
@@ -323,8 +312,8 @@ func (c *Client) transportEnqueue(reply *prepared.Reply) error {
 // updateChannelPresence updates client presence info for channel so it
 // won't expire until client disconnect.
 func (c *Client) updateChannelPresence(ch string) error {
-	chOpts, err := c.node.channelOptions(ch)
-	if err != nil {
+	chOpts, found, err := c.node.channelOptions(ch)
+	if err != nil || !found {
 		return nil
 	}
 	if !chOpts.Presence {
@@ -414,8 +403,8 @@ func (c *Client) updatePresence() {
 }
 
 func (c *Client) checkPosition(checkDelay time.Duration, ch string, channelContext ChannelContext) bool {
-	chOpts, err := c.node.channelOptions(ch)
-	if err != nil {
+	chOpts, found, err := c.node.channelOptions(ch)
+	if err != nil || !found {
 		return true
 	}
 	if !chOpts.HistoryRecover {
@@ -554,9 +543,9 @@ func (c *Client) sendUnsub(ch string, resubscribe bool) error {
 // Close client connection with specific disconnect reason.
 // This method internally creates a new goroutine at moment to do
 // closing stuff. An extra goroutine is required to solve disconnect
-// and presence callback ordering problems. Will be a noop if client
-// already closed. Since this method run a separate goroutine client
-// connection will be closed eventually (i.e. not always immediately).
+// and alive callback ordering problems. Will be a noop if client
+// already closed. Since this method runs a separate goroutine client
+// connection will be closed eventually (i.e. not immediately).
 func (c *Client) Close(disconnect *Disconnect) error {
 	go func() {
 		_ = c.close(disconnect)
@@ -645,7 +634,7 @@ func (c *Client) clientInfo(ch string) *protocol.ClientInfo {
 }
 
 // Handle raw data encoded with Centrifuge protocol. Not goroutine-safe.
-func (c *Client) handle(data []byte) bool {
+func (c *Client) Handle(data []byte) bool {
 	c.mu.Lock()
 	if c.closed {
 		c.mu.Unlock()
@@ -1559,11 +1548,14 @@ func (c *Client) validateSubscribeRequest(cmd *protocol.SubscribeRequest) (Chann
 		return ChannelOptions{}, nil, DisconnectBadRequest
 	}
 
-	chOpts, err := c.node.channelOptions(channel)
+	chOpts, found, err := c.node.channelOptions(channel)
 	if err != nil {
-		// TODO: handle Centrifuge.Error.
-		c.node.logger.log(newLogEntry(LogLevelInfo, "attempt to subscribe on non existing namespace", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid}))
-		return ChannelOptions{}, ErrorNamespaceNotFound, nil
+		c.node.logger.log(newLogEntry(LogLevelError, "error getting channel options", map[string]interface{}{"error": err.Error(), "channel": channel, "user": c.user, "client": c.uid}))
+		return ChannelOptions{}, toClientErr(err), nil
+	}
+	if !found {
+		c.node.logger.log(newLogEntry(LogLevelInfo, "subscription to unknown channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid}))
+		return ChannelOptions{}, toClientErr(err), nil
 	}
 
 	config := c.node.Config()
@@ -2029,9 +2021,8 @@ func (c *Client) subRefreshCmd(cmd *protocol.SubRefreshRequest) (*clientproto.Su
 
 // Lock must be held outside.
 func (c *Client) unsubscribe(channel string) error {
-	chOpts, err := c.node.channelOptions(channel)
+	chOpts, _, err := c.node.channelOptions(channel)
 	if err != nil {
-		// TODO: check error handling here.
 		return err
 	}
 
@@ -2089,11 +2080,7 @@ func (c *Client) unsubscribeCmd(cmd *protocol.UnsubscribeRequest) (*clientproto.
 	resp := &clientproto.UnsubscribeResponse{}
 
 	if err := c.unsubscribe(channel); err != nil {
-		if err == ErrorNamespaceNotFound {
-			resp.Error = ErrorNamespaceNotFound.toProto()
-		} else {
-			resp.Error = ErrorInternal.toProto()
-		}
+		resp.Error = toClientErr(err).toProto()
 		return resp, nil
 	}
 
@@ -2172,9 +2159,13 @@ func (c *Client) presenceCmd(cmd *protocol.PresenceRequest) (*clientproto.Presen
 
 	resp := &clientproto.PresenceResponse{}
 
-	chOpts, err := c.node.channelOptions(ch)
+	chOpts, found, err := c.node.channelOptions(ch)
 	if err != nil {
 		resp.Error = toClientErr(err).toProto()
+		return resp, nil
+	}
+	if !found {
+		resp.Error = ErrorUnknownChannel.toProto()
 		return resp, nil
 	}
 	if !chOpts.Presence || c.eventHub.presenceHandler == nil {
@@ -2217,9 +2208,13 @@ func (c *Client) presenceStatsCmd(cmd *protocol.PresenceStatsRequest) (*clientpr
 
 	resp := &clientproto.PresenceStatsResponse{}
 
-	chOpts, err := c.node.channelOptions(ch)
+	chOpts, found, err := c.node.channelOptions(ch)
 	if err != nil {
 		resp.Error = toClientErr(err).toProto()
+		return resp, nil
+	}
+	if !found {
+		resp.Error = ErrorUnknownChannel.toProto()
 		return resp, nil
 	}
 	if !chOpts.Presence || c.eventHub.presenceStatsHandler == nil {
@@ -2266,9 +2261,13 @@ func (c *Client) historyCmd(cmd *protocol.HistoryRequest) (*clientproto.HistoryR
 
 	resp := &clientproto.HistoryResponse{}
 
-	chOpts, err := c.node.channelOptions(ch)
+	chOpts, found, err := c.node.channelOptions(ch)
 	if err != nil {
 		resp.Error = toClientErr(err).toProto()
+		return resp, nil
+	}
+	if !found {
+		resp.Error = ErrorUnknownChannel.toProto()
 		return resp, nil
 	}
 	if chOpts.HistorySize <= 0 || chOpts.HistoryLifetime <= 0 || c.eventHub.historyHandler == nil {

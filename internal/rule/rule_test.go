@@ -9,8 +9,9 @@ import (
 
 func TestChannelNotFound(t *testing.T) {
 	c := DefaultRuleConfig
-	_, err := c.channelOpts("xxx")
-	require.Equal(t, ErrorNamespaceNotFound, err)
+	_, found, err := c.channelOpts("xxx")
+	require.False(t, found)
+	require.NoError(t, err)
 }
 
 func TestConfigValidateDefault(t *testing.T) {

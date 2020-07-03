@@ -1,20 +1,32 @@
 package centrifuge
 
 // ChannelOptionsFunc is a function that Centrifuge will call every time
-// it needs to get ChannelOptions for a channel. Calls to this func can
-// happen concurrently – so you need to synchronize code inside function
-// implementation. The obvious advice regarding to ChannelOptions - only
+// it needs to get ChannelOptions for a channel. These calls will happen
+// in rather hot paths – on publish to channel (by client side or by call
+// to server API), on client subscribe, on call to history or recovering
+// missed publications etc. This means that if you need to load ChannelOptions
+// from external storage then consider adding cache inside implementation.
+//
+// Another important thing is that calls to this func will happen concurrently
+// from different goroutines – so you must synchronize code inside function
+// implementation.
+//
+// The obvious advice regarding to ChannelOptions usage on practice - only
 // turn on various ChannelOptions features for channels where feature is
 // required. For example – if you don't want collecting Presence information
-// for channel then do not return options with Presence on – since every
-// enabled option requires additional work on server and affects overall
-// server performance.
-type ChannelOptionsFunc func(channel string) (ChannelOptions, error)
+// for a specific channel then do not turn on Presence for it. If you don't
+// need history – don't enable it. Every enabled option requires additional
+// work on server and can affect overall server performance.
+//
+// Second return argument means whether channel exists in system. If second
+// return argument is false then ErrorUnknownChannel will be returned to client
+// in replies to commands with such channel.
+type ChannelOptionsFunc func(channel string) (ChannelOptions, bool, error)
 
 // ChannelOptions represent channel configuration. It contains several
-// options to tune features for channel – for example tell Centrifuge to
-// maintain presence information inside channel, or configure a window of
-// Publication messages that will be kept for a channel.
+// options to tune core Centrifuge features for channel – for example tell
+// Centrifuge to maintain presence information inside channel, or configure
+// a window of Publication messages (history) that will be kept for a channel.
 type ChannelOptions struct {
 	// Presence turns on presence information for channel. Presence has
 	// information about all clients currently subscribed to a channel.
