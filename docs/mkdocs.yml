@@ -4,7 +4,7 @@ site_author: Centrifugal organization
 site_url: https://centrifugal.github.io/centrifugo/
 dev_addr: 0.0.0.0:8000
 docs_dir: content
-edit_uri: https://github.com/centrifugal/documentation/edit/master/docs/
+edit_uri: https://github.com/centrifugal/centrifugo/edit/master/docs/content/
 repo_name: 'centrifugal/centrifugo'
 repo_url: 'https://github.com/centrifugal/centrifugo'
 
