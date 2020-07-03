@@ -2,11 +2,6 @@ package rule
 
 import "github.com/centrifugal/centrifuge"
 
-var ErrorNamespaceNotFound = &centrifuge.Error{
-	Code:    4000,
-	Message: "namespace not found",
-}
-
 // ChannelNamespace allows to create channels with different channel options.
 type ChannelNamespace struct {
 	// Name is a unique namespace name.
