@@ -10,7 +10,7 @@ github.com/FZambia/viper-lite
 github.com/ajstarks/svgo
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/centrifugal/centrifuge v0.8.3-0.20200517115537-63326343fc56
+# github.com/centrifugal/centrifuge v0.9.1-0.20200629193108-b7ef8cb4969d
 github.com/centrifugal/centrifuge
 github.com/centrifugal/centrifuge/internal/cancelctx
 github.com/centrifugal/centrifuge/internal/clientproto
@@ -44,7 +44,7 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/gomodule/redigo v1.8.1
+# github.com/gomodule/redigo v1.8.2
 github.com/gomodule/redigo/redis
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
@@ -52,8 +52,8 @@ github.com/google/uuid
 github.com/gorilla/securecookie
 # github.com/gorilla/websocket v1.4.2
 github.com/gorilla/websocket
-# github.com/igm/sockjs-go v0.0.0-20191119074118-cd6986df5bcc
-github.com/igm/sockjs-go/sockjs
+# github.com/igm/sockjs-go/v3 v3.0.0
+github.com/igm/sockjs-go/v3/sockjs
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
 # github.com/mattn/go-isatty v0.0.12

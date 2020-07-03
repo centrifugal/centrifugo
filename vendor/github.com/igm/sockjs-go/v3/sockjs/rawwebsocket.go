@@ -8,21 +8,13 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func (h *handler) rawWebsocket(rw http.ResponseWriter, req *http.Request) {
-	var conn *websocket.Conn
-	var err error
-	if h.options.WebsocketUpgrader != nil {
-		conn, err = h.options.WebsocketUpgrader.Upgrade(rw, req, nil)
-	} else {
-		// use default as before, so that those 2 buffer size variables are used as before
-		conn, err = websocket.Upgrade(rw, req, nil, WebSocketReadBufSize, WebSocketWriteBufSize)
+func (h *Handler) rawWebsocket(rw http.ResponseWriter, req *http.Request) {
+	upgrader := h.options.WebsocketUpgrader
+	if upgrader == nil {
+		upgrader = new(websocket.Upgrader)
 	}
-
-	if _, ok := err.(websocket.HandshakeError); ok {
-		http.Error(rw, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
-		return
-	} else if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
+	conn, err := upgrader.Upgrade(rw, req, nil)
+	if err != nil {
 		return
 	}
 
@@ -31,9 +23,12 @@ func (h *handler) rawWebsocket(rw http.ResponseWriter, req *http.Request) {
 	sess.raw = true
 
 	receiver := newRawWsReceiver(conn, h.options.WebsocketWriteTimeout)
-	sess.attachReceiver(receiver)
+	if err := sess.attachReceiver(receiver); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if h.handlerFunc != nil {
-		go h.handlerFunc(sess)
+		go h.handlerFunc(Session{sess})
 	}
 	readCloseCh := make(chan struct{})
 	go func() {
@@ -44,7 +39,10 @@ func (h *handler) rawWebsocket(rw http.ResponseWriter, req *http.Request) {
 				return
 			}
 			if frameType == websocket.TextMessage || frameType == websocket.BinaryMessage {
-				sess.accept(string(p))
+				if err := sess.accept(string(p)); err != nil {
+					close(readCloseCh)
+					return
+				}
 			}
 		}
 	}()
@@ -54,7 +52,10 @@ func (h *handler) rawWebsocket(rw http.ResponseWriter, req *http.Request) {
 	case <-receiver.doneNotify():
 	}
 	sess.close()
-	conn.Close()
+	if err := conn.Close(); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 type rawWsReceiver struct {
@@ -71,44 +72,66 @@ func newRawWsReceiver(conn *websocket.Conn, writeTimeout time.Duration) *rawWsRe
 	}
 }
 
-func (w *rawWsReceiver) sendBulk(messages ...string) {
+func (w *rawWsReceiver) sendBulk(messages ...string) error {
 	if len(messages) > 0 {
 		for _, m := range messages {
 			if w.writeTimeout != 0 {
-				w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout))
+				if err := w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout)); err != nil {
+					w.close()
+					return err
+				}
 			}
-			err := w.conn.WriteMessage(websocket.TextMessage, []byte(m))
-			if err != nil {
+			if err := w.conn.WriteMessage(websocket.TextMessage, []byte(m)); err != nil {
 				w.close()
-				break
+				return err
 			}
 
 		}
 	}
+	return nil
 }
 
-func (w *rawWsReceiver) sendFrame(frame string) {
+func (w *rawWsReceiver) sendFrame(frame string) error {
 	if w.writeTimeout != 0 {
-		w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout))
+		if err := w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout)); err != nil {
+			w.close()
+			return err
+		}
 	}
-	var err error
 	if frame == "h" {
-		err = w.conn.WriteMessage(websocket.PingMessage, []byte{})
+		if err := w.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+			w.close()
+			return err
+		}
 	} else if len(frame) > 0 && frame[0] == 'c' {
-		status, reason := parseCloseFrame(frame)
+		status, reason, err := parseCloseFrame(frame)
+		if err != nil {
+			w.close()
+			return err
+		}
 		msg := websocket.FormatCloseMessage(int(status), reason)
-		err = w.conn.WriteMessage(websocket.CloseMessage, msg)
+		if err := w.conn.WriteMessage(websocket.CloseMessage, msg); err != nil {
+			w.close()
+			return err
+		}
 	} else {
-		err = w.conn.WriteMessage(websocket.TextMessage, []byte(frame))
+		if err := w.conn.WriteMessage(websocket.TextMessage, []byte(frame)); err != nil {
+			w.close()
+			return err
+		}
 	}
-	if err != nil {
-		w.close()
-	}
+	return nil
 }
 
-func parseCloseFrame(frame string) (status uint32, reason string) {
+func (w *rawWsReceiver) receiverType() ReceiverType {
+	return ReceiverTypeRawWebsocket
+}
+
+func parseCloseFrame(frame string) (status uint32, reason string, err error) {
 	var items [2]interface{}
-	json.Unmarshal([]byte(frame)[1:], &items)
+	if err := json.Unmarshal([]byte(frame)[1:], &items); err != nil {
+		return 0, "", err
+	}
 	statusF, _ := items[0].(float64)
 	status = uint32(statusF)
 	reason, _ = items[1].(string)

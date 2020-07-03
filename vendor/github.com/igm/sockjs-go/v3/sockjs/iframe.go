@@ -9,10 +9,13 @@ import (
 
 var tmpl = template.Must(template.New("iframe").Parse(iframeBody))
 
-func (h *handler) iframe(rw http.ResponseWriter, req *http.Request) {
+func (h *Handler) iframe(rw http.ResponseWriter, req *http.Request) {
 	etagReq := req.Header.Get("If-None-Match")
 	hash := md5.New()
-	hash.Write([]byte(iframeBody))
+	if _, err := hash.Write([]byte(iframeBody)); err!=nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	etag := fmt.Sprintf("%x", hash.Sum(nil))
 	if etag == etagReq {
 		rw.WriteHeader(http.StatusNotModified)
@@ -21,7 +24,10 @@ func (h *handler) iframe(rw http.ResponseWriter, req *http.Request) {
 
 	rw.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	rw.Header().Add("ETag", etag)
-	tmpl.Execute(rw, h.options.SockJSURL)
+	if err := tmpl.Execute(rw, h.options.SockJSURL); err!=nil {
+			http.Error(rw, "could not render iframe content: "+err.Error(), http.StatusInternalServerError)
+			return
+	}
 }
 
 var iframeBody = `<!DOCTYPE html>

@@ -58,11 +58,11 @@ func noCache(rw http.ResponseWriter, req *http.Request) {
 
 func welcomeHandler(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("content-type", "text/plain;charset=UTF-8")
-	fmt.Fprintf(rw, "Welcome to SockJS!\n")
+	fmt.Fprint(rw, "Welcome to SockJS!\n")
 }
 
 func httpError(w http.ResponseWriter, error string, code int) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(code)
-	fmt.Fprintf(w, error)
+	fmt.Fprint(w, error)
 }

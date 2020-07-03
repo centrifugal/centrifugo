@@ -31,7 +31,7 @@ func (d *Disconnect) String() string {
 	return fmt.Sprintf("code: %d, reason: %s, reconnect: %t", d.Code, d.Reason, d.Reconnect)
 }
 
-// CloseText allows to build disconnect advice sent inside close frame.
+// CloseText allows to build disconnect advice sent inside Close frame.
 // At moment we don't encode Code here to not duplicate information
 // since it is sent separately as Code of WebSocket/SockJS Close Frame.
 func (d *Disconnect) CloseText() string {

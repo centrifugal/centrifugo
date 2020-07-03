@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 
+	"github.com/centrifugal/centrifugo/internal/rule"
+
 	"github.com/centrifugal/centrifuge"
 	"google.golang.org/grpc"
 )
@@ -11,8 +13,8 @@ import (
 type GRPCAPIServiceConfig struct{}
 
 // RegisterGRPCServerAPI registers GRPC API service in provided GRPC server.
-func RegisterGRPCServerAPI(n *centrifuge.Node, server *grpc.Server, config GRPCAPIServiceConfig) error {
-	RegisterCentrifugoServer(server, newGRPCAPIService(n, config))
+func RegisterGRPCServerAPI(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, server *grpc.Server, config GRPCAPIServiceConfig) error {
+	RegisterCentrifugoServer(server, newGRPCAPIService(n, ruleContainer, config))
 	return nil
 }
 
@@ -23,10 +25,10 @@ type grpcAPIService struct {
 }
 
 // newGRPCAPIService creates new Service.
-func newGRPCAPIService(n *centrifuge.Node, c GRPCAPIServiceConfig) *grpcAPIService {
+func newGRPCAPIService(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, c GRPCAPIServiceConfig) *grpcAPIService {
 	return &grpcAPIService{
 		config: c,
-		api:    newAPIExecutor(n, "grpc"),
+		api:    newAPIExecutor(n, ruleContainer, "grpc"),
 	}
 }
 

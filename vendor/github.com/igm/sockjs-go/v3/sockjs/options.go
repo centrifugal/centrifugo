@@ -75,11 +75,11 @@ var DefaultOptions = Options{
 	Websocket:         true,
 	RawWebsocket:      false,
 	JSessionID:        nil,
-	SockJSURL:         "//cdnjs.cloudflare.com/ajax/libs/sockjs-client/0.3.4/sockjs.min.js",
+	SockJSURL:         "//cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
 	HeartbeatDelay:    25 * time.Second,
 	DisconnectDelay:   5 * time.Second,
 	ResponseLimit:     128 * 1024,
-	WebsocketUpgrader: nil,
+	WebsocketUpgrader: &websocket.Upgrader{},
 }
 
 type info struct {
@@ -91,15 +91,17 @@ type info struct {
 
 func (options *Options) info(rw http.ResponseWriter, req *http.Request) {
 	switch req.Method {
-	case "GET":
+	case http.MethodGet:
 		rw.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		json.NewEncoder(rw).Encode(info{
+		if err := json.NewEncoder(rw).Encode(info{
 			Websocket:    options.Websocket,
 			CookieNeeded: options.JSessionID != nil,
 			Origins:      []string{"*:*"},
 			Entropy:      generateEntropy(),
-		})
-	case "OPTIONS":
+		}); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+	case http.MethodOptions:
 		rw.Header().Set("Access-Control-Allow-Methods", "OPTIONS, GET")
 		rw.Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", 365*24*60*60))
 		rw.WriteHeader(http.StatusNoContent) // 204

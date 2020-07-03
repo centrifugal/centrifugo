@@ -1570,7 +1570,7 @@ func (s *shard) Presence(ch string) (map[string]*protocol.ClientInfo, error) {
 	return mapStringClientInfo(resp.reply, nil)
 }
 
-// Presence - see engine interface description.
+// PresenceStats - see engine interface description.
 func (s *shard) PresenceStats(ch string) (PresenceStats, error) {
 	presence, err := s.Presence(ch)
 	if err != nil {

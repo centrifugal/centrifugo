@@ -9,36 +9,24 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// WebSocketReadBufSize is a parameter that is used for WebSocket Upgrader.
-// https://github.com/gorilla/websocket/blob/master/server.go#L230
-var WebSocketReadBufSize = 4096
-
-// WebSocketWriteBufSize is a parameter that is used for WebSocket Upgrader
-// https://github.com/gorilla/websocket/blob/master/server.go#L230
-var WebSocketWriteBufSize = 4096
-
-func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
-	var conn *websocket.Conn
-	var err error
-	if h.options.WebsocketUpgrader != nil {
-		conn, err = h.options.WebsocketUpgrader.Upgrade(rw, req, nil)
-	} else {
-		// use default as before, so that those 2 buffer size variables are used as before
-		conn, err = websocket.Upgrade(rw, req, nil, WebSocketReadBufSize, WebSocketWriteBufSize)
+func (h *Handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
+	upgrader := h.options.WebsocketUpgrader
+	if upgrader == nil {
+		upgrader = new(websocket.Upgrader)
 	}
-	if _, ok := err.(websocket.HandshakeError); ok {
-		http.Error(rw, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
-		return
-	} else if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
+	conn, err := upgrader.Upgrade(rw, req, nil)
+	if err != nil {
 		return
 	}
 	sessID, _ := h.parseSessionID(req.URL)
 	sess := newSession(req, sessID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
 	receiver := newWsReceiver(conn, h.options.WebsocketWriteTimeout)
-	sess.attachReceiver(receiver)
+	if err := sess.attachReceiver(receiver); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if h.handlerFunc != nil {
-		go h.handlerFunc(sess)
+		go h.handlerFunc(Session{sess})
 	}
 	readCloseCh := make(chan struct{})
 	go func() {
@@ -49,7 +37,10 @@ func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 				close(readCloseCh)
 				return
 			}
-			sess.accept(d...)
+			if err := sess.accept(d...); err != nil {
+				close(readCloseCh)
+				return
+			}
 		}
 	}()
 
@@ -58,7 +49,10 @@ func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 	case <-receiver.doneNotify():
 	}
 	sess.close()
-	conn.Close()
+	if err := conn.Close(); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 type wsReceiver struct {
@@ -75,19 +69,25 @@ func newWsReceiver(conn *websocket.Conn, writeTimeout time.Duration) *wsReceiver
 	}
 }
 
-func (w *wsReceiver) sendBulk(messages ...string) {
+func (w *wsReceiver) sendBulk(messages ...string) error {
 	if len(messages) > 0 {
-		w.sendFrame(fmt.Sprintf("a[%s]", strings.Join(transform(messages, quote), ",")))
+		return w.sendFrame(fmt.Sprintf("a[%s]", strings.Join(transform(messages, quote), ",")))
 	}
+	return nil
 }
 
-func (w *wsReceiver) sendFrame(frame string) {
+func (w *wsReceiver) sendFrame(frame string) error {
 	if w.writeTimeout != 0 {
-		w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout))
+		if err := w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout)); err != nil {
+			w.close()
+			return err
+		}
 	}
 	if err := w.conn.WriteMessage(websocket.TextMessage, []byte(frame)); err != nil {
 		w.close()
+		return err
 	}
+	return nil
 }
 
 func (w *wsReceiver) close() {
@@ -107,3 +107,4 @@ func (w *wsReceiver) canSend() bool {
 }
 func (w *wsReceiver) doneNotify() <-chan struct{}        { return w.closeCh }
 func (w *wsReceiver) interruptedNotify() <-chan struct{} { return nil }
+func (w *wsReceiver) receiverType() ReceiverType         { return ReceiverTypeWebsocket }

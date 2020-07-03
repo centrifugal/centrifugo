@@ -1,6 +1,9 @@
 package sockjs
 
-import "sync"
+import (
+	"context"
+	"sync"
+)
 
 // messageBuffer is an unbounded buffer that blocks on
 // pop if it's empty until the new element is enqueued.
@@ -29,12 +32,14 @@ func (b *messageBuffer) push(messages ...string) error {
 	return nil
 }
 
-func (b *messageBuffer) pop() (string, error) {
+func (b *messageBuffer) pop(ctx context.Context) (string, error) {
 	select {
 	case msg := <-b.popCh:
 		return msg, nil
 	case <-b.closeCh:
 		return "", ErrSessionNotOpen
+	case <-ctx.Done():
+		return "", ctx.Err()
 	}
 }
 

@@ -1,3 +1,43 @@
+v0.9.0
+======
+
+This release has some API changes. Here is a list of all changes in release:
+
+```
+Incompatible changes:
+- (*Client).Close: changed from func(*Disconnect) error to func(*Disconnect) chan error
+- (*Client).Handle: removed
+- Config.ClientPresencePingInterval: removed
+- NewClient: changed from func(context.Context, *Node, Transport) (*Client, error) to func(context.Context, *Node, Transport) (*TransportClient, CloseFunc, error)
+- NodeEventHub.ClientRefresh: removed
+- RefreshHandler: changed from func(context.Context, *Client, RefreshEvent) RefreshReply to func(RefreshEvent) RefreshReply
+Compatible changes:
+- (*ClientEventHub).Presence: added
+- (*ClientEventHub).Refresh: added
+- CloseFunc: added
+- Config.ClientPresenceUpdateInterval: added
+- ConnectReply.ClientSideRefresh: added
+- PresenceEvent: added
+- PresenceHandler: added
+- PresenceReply: added
+- RefreshEvent.Token: added
+- RefreshReply.Disconnect: added
+- TransportClient: added
+```
+
+Now let's try to highlight most notable changes and reasoning behind:
+
+* `NewClient` returns `TransportClient` and `CloseFunc` to limit possible API on transport implementation level
+* `ClientPresencePingInterval` config option renamed to `ClientPresenceUpdateInterval`
+* Centrifuge now has `client.On().Presence` handler which will be called periodically while connection alive every `ClientPresenceUpdateInterval`
+* `Client.Close` method now creates a goroutine internally - this was required to prevent deadlock when closing client from Presence and SubRefresh callback handlers. 
+* Refresh handler moved to `Client` scope instead of being `Node` event handler
+* `ConnectReply` now has new `ClientSideRefresh` field which allows setting what kind of refresh mechanism should be used for a client: server-side refresh or client-side refresh.
+* It's now possible to do client-side refresh with custom token implementation ([example](https://github.com/centrifugal/centrifuge/tree/master/_examples/custom_token))
+* Library now uses one concurrent timer per each connection instead of 3 - should perform a bit better
+
+All examples updated to reflect all changes here. 
+
 v0.8.2
 ======
 

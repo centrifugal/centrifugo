@@ -3,7 +3,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/centrifugal/centrifuge/badge.svg?branch=master)](https://coveralls.io/github/centrifugal/centrifuge?branch=master)
 [![GoDoc](https://godoc.org/github.com/centrifugal/centrifuge?status.svg)](https://godoc.org/github.com/centrifugal/centrifuge)
 
-**This library has no v1 release yet so API can be changed. Use with strict versioning.**
+**This library has no v1 release yet, API still evolves. Use with strict versioning.**
 
 Centrifuge library is a real-time core of [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also supposed to be a general purpose real-time messaging library for Go programming language. The library is based on a strict client-server protocol based on Protobuf schema and solves several problems developer may come across when building complex real-time applications – like scalability (millions of connections), proper connection management, fast reconnect with message recovery, fallback option.
 
@@ -12,7 +12,7 @@ Library highlights:
 * Fast and optimized for low-latency communication with thousands of client connections. See [benchmark](https://centrifugal.github.io/centrifugo/misc/benchmark/)
 * WebSocket with JSON or binary Protobuf protocol
 * SockJS polyfill library support for browsers where WebSocket not available (JSON only)
-* Built-in horizontal scalability with Redis PUB/SUB, Redis sharding, Sentinel for HA
+* Built-in horizontal scalability with Redis PUB/SUB, consistent Redis sharding, Sentinel and Redis Cluster for HA
 * Possibility to register custom PUB/SUB broker, history and presence storage implementations
 * Native authentication over HTTP middleware or JWT-based
 * Bidirectional asynchronous message communication and RPC calls
@@ -58,48 +58,36 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	// Import this library.
 	"github.com/centrifugal/centrifuge"
 )
 
+// Function to handle Centrifuge internal logs.
 func handleLog(e centrifuge.LogEntry) {
 	log.Printf("%s: %v", e.Message, e.Fields)
 }
 
-// Wait until program interrupted. When interrupted gracefully shutdown Node.
-func waitExitSignal(n *centrifuge.Node) {
-	sigCh := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigCh
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-		_ = n.Shutdown(ctx)
-		done <- true
-	}()
-	<-done
+// Authentication middleware. Centrifuge expects Credentials
+// with current user ID.
+func auth(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		// Put authentication credentials into context, since we don't have
+		// any session backend here – simply set user ID as empty string.
+		cred := &centrifuge.Credentials{
+			UserID: "",
+		}
+		newCtx := centrifuge.SetCredentials(ctx, cred)
+		r = r.WithContext(newCtx)
+		h.ServeHTTP(w, r)
+	})
 }
 
 func main() {
 	// We use default config here as starting point. Default config contains
 	// reasonable values for available options.
 	cfg := centrifuge.DefaultConfig
-	// In this example we want client to do all possible actions with server
-	// without any authentication and authorization. Insecure flag DISABLES
-	// many security related checks in library. This is only to make example
-	// short. In real app you most probably want authenticate and authorize
-	// access to server. See godoc and examples in repo for more details.
-	cfg.ClientInsecure = true
-	// By default clients can not publish messages into channels. Setting this
-	// option to true we allow them to publish.
-	cfg.Publish = true
-
 	// Centrifuge library exposes logs with different log level. In your app
 	// you can set special function to handle these log entries in a way you want.
 	cfg.LogLevel = centrifuge.LogLevelDebug
@@ -109,30 +97,33 @@ func main() {
 	// things. Here we initialize new Node instance and pass config to it.
 	node, _ := centrifuge.New(cfg)
 
-	// ClientConnected node event handler is a point where you generally create a 
-	// binding between Centrifuge and your app business logic. Callback function you 
-	// pass here will be called every time new connection established with server. 
+	// ClientConnected node event handler is a point where you generally create a
+	// binding between Centrifuge and your app business logic. Callback function you
+	// pass here will be called every time new connection established with server.
 	// Inside this callback function you can set various event handlers for connection.
 	node.On().ClientConnected(func(ctx context.Context, client *centrifuge.Client) {
-		// Set Subscribe Handler to react on every channel subscribtion attempt
+		// Set Subscribe Handler to react on every channel subscription attempt
 		// initiated by client. Here you can theoretically return an error or
 		// disconnect client from server if needed. But now we just accept
-		// all subscriptions.
+		// all subscriptions to all channels. In real life you can use a more
+		// complex permission check here.
 		client.On().Subscribe(func(e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
 			log.Printf("client subscribes on channel %s", e.Channel)
 			return centrifuge.SubscribeReply{}
 		})
 
-		// Set Publish Handler to react on every channel Publication sent by client.
-		// Inside this method you can validate client permissions to publish into
-		// channel. But in our simple chat app we allow everyone to publish into
-		// any channel.
+		// By default, clients can not publish messages into channels. By setting this
+		// event handler we tell Centrifuge that publish is possible. Now each time
+		// client calls publish method this handler will be called and you have a
+		// possibility to validate publication request before message will be published
+		// into channel and reach subscribers. In our simple chat app we allow everyone
+		// to publish into any channel.
 		client.On().Publish(func(e centrifuge.PublishEvent) centrifuge.PublishReply {
 			log.Printf("client publishes into channel %s: %s", e.Channel, string(e.Data))
 			return centrifuge.PublishReply{}
 		})
 
-		// Set Disconnect Handler to react on client disconnect events.
+		// Set Disconnect handler to react on client disconnect events.
 		client.On().Disconnect(func(e centrifuge.DisconnectEvent) centrifuge.DisconnectReply {
 			log.Printf("client disconnected")
 			return centrifuge.DisconnectReply{}
@@ -146,28 +137,24 @@ func main() {
 		log.Printf("client connected via %s (%s)", transportName, transportEncoding)
 	})
 
-	// Run node.
+	// Run node. This method does not block.
 	if err := node.Run(); err != nil {
 		panic(err)
 	}
 
-	// Configure http routes.
+	// Now configure http routes.
 
 	// The first route is for handling Websocket connections.
-	http.Handle("/connection/websocket", centrifuge.NewWebsocketHandler(node, centrifuge.WebsocketConfig{}))
+	wsHandler := centrifuge.NewWebsocketHandler(node, centrifuge.WebsocketConfig{})
+	http.Handle("/connection/websocket", auth(wsHandler))
 
 	// The second route is for serving index.html file.
 	http.Handle("/", http.FileServer(http.Dir("./")))
 
-	// Start HTTP server.
-	go func() {
-		if err := http.ListenAndServe(":8000", nil); err != nil {
-			panic(err)
-		}
-	}()
-
-	// Run until interrupted.
-	waitExitSignal(node)
+    log.Printf("Starting server, visit http://localhost:8000")
+    if err := http.ListenAndServe(":8000", nil); err != nil {
+        panic(err)
+    }
 }
 ```
 

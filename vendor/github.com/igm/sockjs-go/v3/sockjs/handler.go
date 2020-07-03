@@ -1,7 +1,6 @@
 package sockjs
 
 import (
-	"errors"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -9,12 +8,7 @@ import (
 	"sync"
 )
 
-var (
-	prefixRegexp   = make(map[string]*regexp.Regexp)
-	prefixRegexpMu sync.Mutex // protects prefixRegexp
-)
-
-type handler struct {
+type Handler struct {
 	prefix      string
 	options     Options
 	handlerFunc func(Session)
@@ -24,29 +18,27 @@ type handler struct {
 	sessions    map[string]*session
 }
 
+const sessionPrefix = "^/([^/.]+)/([^/.]+)"
+
+var sessionRegExp = regexp.MustCompile(sessionPrefix)
+
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
 // It takes path prefix, options and sockjs handler function as parameters
-func NewHandler(prefix string, opts Options, handleFunc func(Session)) http.Handler {
-	return newHandler(prefix, opts, handleFunc)
-}
-
-func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler {
-	h := &handler{
+func NewHandler(prefix string, opts Options, handlerFunc func(Session)) *Handler {
+	if handlerFunc == nil {
+		handlerFunc = func(s Session) {}
+	}
+	h := &Handler{
 		prefix:      prefix,
 		options:     opts,
 		handlerFunc: handlerFunc,
 		sessions:    make(map[string]*session),
 	}
 	xhrCors := xhrCorsFactory(opts)
-	matchPrefix := prefix
-	if matchPrefix == "" {
-		matchPrefix = "^"
-	}
-	sessionPrefix := matchPrefix + "/[^/.]+/[^/.]+"
 	h.mappings = []*mapping{
-		newMapping("GET", matchPrefix+"[/]?$", welcomeHandler),
-		newMapping("OPTIONS", matchPrefix+"/info$", opts.cookie, xhrCors, cacheFor, opts.info),
-		newMapping("GET", matchPrefix+"/info$", xhrCors, noCache, opts.info),
+		newMapping("GET", "^[/]?$", welcomeHandler),
+		newMapping("OPTIONS", "^/info$", opts.cookie, xhrCors, cacheFor, opts.info),
+		newMapping("GET", "^/info$", opts.cookie, xhrCors, noCache, opts.info),
 		// XHR
 		newMapping("POST", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, noCache, h.xhrSend),
 		newMapping("OPTIONS", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, cacheFor, xhrOptions),
@@ -63,59 +55,52 @@ func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler
 		newMapping("OPTIONS", sessionPrefix+"/jsonp$", opts.cookie, xhrCors, cacheFor, xhrOptions),
 		newMapping("POST", sessionPrefix+"/jsonp_send$", opts.cookie, xhrCors, noCache, h.jsonpSend),
 		// IFrame
-		newMapping("GET", matchPrefix+"/iframe[0-9-.a-z_]*.html$", cacheFor, h.iframe),
+		newMapping("GET", "^/iframe[0-9-.a-z_]*.html$", cacheFor, h.iframe),
 	}
 	if opts.Websocket {
 		h.mappings = append(h.mappings, newMapping("GET", sessionPrefix+"/websocket$", h.sockjsWebsocket))
 	}
 	if opts.RawWebsocket {
-		h.mappings = append(h.mappings, newMapping("GET", matchPrefix+"/websocket$", h.rawWebsocket))
+		h.mappings = append(h.mappings, newMapping("GET", "^/websocket$", h.rawWebsocket))
 	}
 	return h
 }
 
-func (h *handler) Prefix() string { return h.prefix }
+func (h *Handler) Prefix() string { return h.prefix }
 
-func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	// iterate over mappings
-	allowedMethods := []string{}
-	for _, mapping := range h.mappings {
-		if match, method := mapping.matches(req); match == fullMatch {
-			for _, hf := range mapping.chain {
-				hf(rw, req)
+	http.StripPrefix(h.prefix, http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		var allowedMethods []string
+		for _, mapping := range h.mappings {
+			if match, method := mapping.matches(req); match == fullMatch {
+				for _, hf := range mapping.chain {
+					hf(rw, req)
+				}
+				return
+			} else if match == pathMatch {
+				allowedMethods = append(allowedMethods, method)
 			}
-			return
-		} else if match == pathMatch {
-			allowedMethods = append(allowedMethods, method)
 		}
-	}
-	if len(allowedMethods) > 0 {
-		rw.Header().Set("allow", strings.Join(allowedMethods, ", "))
-		rw.Header().Set("Content-Type", "")
-		rw.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
-	http.NotFound(rw, req)
+		if len(allowedMethods) > 0 {
+			rw.Header().Set("allow", strings.Join(allowedMethods, ", "))
+			rw.Header().Set("Content-Type", "")
+			rw.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		http.NotFound(rw, req)
+	})).ServeHTTP(rw, req)
 }
 
-func (h *handler) parseSessionID(url *url.URL) (string, error) {
-	// cache compiled regexp objects for most used prefixes
-	prefixRegexpMu.Lock()
-	session, ok := prefixRegexp[h.prefix]
-	if !ok {
-		session = regexp.MustCompile(h.prefix + "/(?P<server>[^/.]+)/(?P<session>[^/.]+)/.*")
-		prefixRegexp[h.prefix] = session
-	}
-	prefixRegexpMu.Unlock()
-
-	matches := session.FindStringSubmatch(url.Path)
+func (h *Handler) parseSessionID(url *url.URL) (string, error) {
+	matches := sessionRegExp.FindStringSubmatch(url.Path)
 	if len(matches) == 3 {
 		return matches[2], nil
 	}
-	return "", errors.New("unable to parse URL for session")
+	return "", errSessionParse
 }
 
-func (h *handler) sessionByRequest(req *http.Request) (*session, error) {
+func (h *Handler) sessionByRequest(req *http.Request) (*session, error) {
 	h.sessionsMux.Lock()
 	defer h.sessionsMux.Unlock()
 	sessionID, err := h.parseSessionID(req.URL)
@@ -126,15 +111,13 @@ func (h *handler) sessionByRequest(req *http.Request) (*session, error) {
 	if !exists {
 		sess = newSession(req, sessionID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
 		h.sessions[sessionID] = sess
-		if h.handlerFunc != nil {
-			go h.handlerFunc(sess)
-		}
 		go func() {
-			<-sess.closedNotify()
+			<-sess.closeCh
 			h.sessionsMux.Lock()
 			delete(h.sessions, sessionID)
 			h.sessionsMux.Unlock()
 		}()
 	}
+	sess.setCurrentRequest(req)
 	return sess, nil
 }
