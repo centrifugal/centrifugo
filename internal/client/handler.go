@@ -62,40 +62,38 @@ func (h *Handler) Setup() {
 	}).Handle(h.node)
 	rpcProxyEnabled := h.proxyConfig.RPCEndpoint != ""
 
-	h.node.On().ClientConnecting(func(ctx context.Context, info centrifuge.TransportInfo, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	h.node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return h.OnClientConnecting(ctx, info, e, connectProxyHandler, refreshProxyEnabled)
 	})
 
-	h.node.On().ClientConnected(func(ctx context.Context, client *centrifuge.Client) {
-		client.On().Refresh(func(event centrifuge.RefreshEvent) centrifuge.RefreshReply {
-			if refreshProxyEnabled {
-				return refreshProxyHandler(ctx, client, event)
-			}
-			return h.OnRefresh(client, event)
-		})
-		if rpcProxyEnabled {
-			client.On().RPC(func(event centrifuge.RPCEvent) centrifuge.RPCReply {
-				return rpcProxyHandler(ctx, client, event)
-			})
+	h.node.On().Refresh(func(ctx context.Context, client *centrifuge.Client, event centrifuge.RefreshEvent) centrifuge.RefreshReply {
+		if refreshProxyEnabled {
+			return refreshProxyHandler(ctx, client, event)
 		}
-		client.On().Subscribe(func(event centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
-			return h.OnSubscribe(client, event)
+		return h.OnRefresh(client, event)
+	})
+	if rpcProxyEnabled {
+		h.node.On().RPC(func(ctx context.Context, client *centrifuge.Client, event centrifuge.RPCEvent) centrifuge.RPCReply {
+			return rpcProxyHandler(ctx, client, event)
 		})
-		client.On().Publish(func(event centrifuge.PublishEvent) centrifuge.PublishReply {
-			return h.OnPublish(client, event)
-		})
-		client.On().SubRefresh(func(event centrifuge.SubRefreshEvent) centrifuge.SubRefreshReply {
-			return h.OnSubRefresh(client, event)
-		})
-		client.On().Presence(func(event centrifuge.PresenceEvent) centrifuge.PresenceReply {
-			return h.OnPresence(client, event)
-		})
-		client.On().PresenceStats(func(event centrifuge.PresenceStatsEvent) centrifuge.PresenceStatsReply {
-			return h.OnPresenceStats(client, event)
-		})
-		client.On().History(func(event centrifuge.HistoryEvent) centrifuge.HistoryReply {
-			return h.OnHistory(client, event)
-		})
+	}
+	h.node.On().Subscribe(func(ctx context.Context, client *centrifuge.Client, event centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
+		return h.OnSubscribe(client, event)
+	})
+	h.node.On().Publish(func(ctx context.Context, client *centrifuge.Client, event centrifuge.PublishEvent) centrifuge.PublishReply {
+		return h.OnPublish(client, event)
+	})
+	h.node.On().SubRefresh(func(ctx context.Context, client *centrifuge.Client, event centrifuge.SubRefreshEvent) centrifuge.SubRefreshReply {
+		return h.OnSubRefresh(client, event)
+	})
+	h.node.On().Presence(func(ctx context.Context, client *centrifuge.Client, event centrifuge.PresenceEvent) centrifuge.PresenceReply {
+		return h.OnPresence(client, event)
+	})
+	h.node.On().PresenceStats(func(ctx context.Context, client *centrifuge.Client, event centrifuge.PresenceStatsEvent) centrifuge.PresenceStatsReply {
+		return h.OnPresenceStats(client, event)
+	})
+	h.node.On().History(func(ctx context.Context, client *centrifuge.Client, event centrifuge.HistoryEvent) centrifuge.HistoryReply {
+		return h.OnHistory(client, event)
 	})
 }
 

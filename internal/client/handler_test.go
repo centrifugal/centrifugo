@@ -162,13 +162,11 @@ func nodeWithMemoryEngineNoHandlers() *centrifuge.Node {
 
 func nodeWithMemoryEngine() *centrifuge.Node {
 	n := nodeWithMemoryEngineNoHandlers()
-	n.On().ClientConnected(func(ctx context.Context, client *centrifuge.Client) {
-		client.On().Subscribe(func(_ centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
-			return centrifuge.SubscribeReply{}
-		})
-		client.On().Publish(func(_ centrifuge.PublishEvent) centrifuge.PublishReply {
-			return centrifuge.PublishReply{}
-		})
+	n.On().Subscribe(func(_ context.Context, _ *centrifuge.Client, _ centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
+		return centrifuge.SubscribeReply{}
+	})
+	n.On().Publish(func(_ context.Context, _ *centrifuge.Client, _ centrifuge.PublishEvent) centrifuge.PublishReply {
+		return centrifuge.PublishReply{}
 	})
 	return n
 }
@@ -489,7 +487,7 @@ func TestClientSubscribeChannel(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().ClientConnecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
@@ -529,7 +527,7 @@ func TestClientSubscribeChannelServerSide(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().ClientConnecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
@@ -568,7 +566,7 @@ func TestClientSubscribeChannelUserLimited(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().ClientConnecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
@@ -607,7 +605,7 @@ func TestClientSubscribePrivateChannelWithToken(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().ClientConnecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
@@ -683,7 +681,7 @@ func TestClientSubscribePrivateChannelWithTokenAnonymous(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().ClientConnecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "",
@@ -724,7 +722,7 @@ func TestClientSideSubRefresh(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().ClientConnecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
@@ -791,7 +789,7 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousNotAllowed(t *testing.T)
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().ClientConnecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "",
@@ -832,7 +830,7 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousAllowed(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().ClientConnecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "",
