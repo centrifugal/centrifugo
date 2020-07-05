@@ -30,6 +30,8 @@ github.com/centrifugal/centrifuge v0.9.2-0.20200703194212-1f8a8b5e8842 h1:Pac4fP
 github.com/centrifugal/centrifuge v0.9.2-0.20200703194212-1f8a8b5e8842/go.mod h1:mkuUdBuYFqz2GincQhkwWmHuVs9VWEHhMjzMcdUk6oA=
 github.com/centrifugal/centrifuge v0.9.2-0.20200704161937-29581c548052 h1:Ph5uOn9Ai3DrKNn9i1Oo9aeSZvcbMqay6fUV/6FrI5s=
 github.com/centrifugal/centrifuge v0.9.2-0.20200704161937-29581c548052/go.mod h1:mkuUdBuYFqz2GincQhkwWmHuVs9VWEHhMjzMcdUk6oA=
+github.com/centrifugal/centrifuge v0.9.2-0.20200705091651-c012f27c3bb4 h1:Z4id2h/jgGqS6H5v+pWS6ZX+latRmjb4q6F0CEImn2M=
+github.com/centrifugal/centrifuge v0.9.2-0.20200705091651-c012f27c3bb4/go.mod h1:mkuUdBuYFqz2GincQhkwWmHuVs9VWEHhMjzMcdUk6oA=
 github.com/centrifugal/protocol v0.3.3 h1:GCNee3RFsjQu6SyKBX0Ir7ByUrp+Gw0MU/PsIc2CM2s=
 github.com/centrifugal/protocol v0.3.3/go.mod h1:2YbBCaDwQHl37ErRdMrKSj18X2yVvpkQYtSX6aVbe5A=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=

@@ -162,10 +162,10 @@ func nodeWithMemoryEngineNoHandlers() *centrifuge.Node {
 
 func nodeWithMemoryEngine() *centrifuge.Node {
 	n := nodeWithMemoryEngineNoHandlers()
-	n.On().Subscribe(func(_ context.Context, _ *centrifuge.Client, _ centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
+	n.On().Subscribe(func(_ *centrifuge.Client, _ centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
 		return centrifuge.SubscribeReply{}
 	})
-	n.On().Publish(func(_ context.Context, _ *centrifuge.Client, _ centrifuge.PublishEvent) centrifuge.PublishReply {
+	n.On().Publish(func(_ *centrifuge.Client, _ centrifuge.PublishEvent) centrifuge.PublishReply {
 		return centrifuge.PublishReply{}
 	})
 	return n
@@ -209,9 +209,9 @@ func TestClientConnectingNoCredentialsNoToken(t *testing.T) {
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
-	transport := newTestTransport()
-
-	reply := h.OnClientConnecting(context.Background(), transport, centrifuge.ConnectEvent{}, nil, false)
+	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+		Transport: newTestTransport(),
+	}, nil, false)
 	require.Nil(t, reply.Error)
 	require.Nil(t, reply.Disconnect)
 	require.Nil(t, reply.Credentials)
@@ -226,9 +226,7 @@ func TestClientConnectingNoCredentialsNoTokenInsecure(t *testing.T) {
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
-	transport := newTestTransport()
-
-	reply := h.OnClientConnecting(context.Background(), transport, centrifuge.ConnectEvent{}, nil, false)
+	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false)
 	require.Nil(t, reply.Error)
 	require.Nil(t, reply.Disconnect)
 	require.NotNil(t, reply.Credentials)
@@ -244,9 +242,7 @@ func TestClientConnectNoCredentialsNoTokenAnonymous(t *testing.T) {
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
-	transport := newTestTransport()
-
-	reply := h.OnClientConnecting(context.Background(), transport, centrifuge.ConnectEvent{}, nil, false)
+	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false)
 	require.Nil(t, reply.Error)
 	require.Nil(t, reply.Disconnect)
 	require.NotNil(t, reply.Credentials)
@@ -263,9 +259,7 @@ func TestClientConnectWithMalformedToken(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	transport := newTestTransport()
-
-	reply := h.OnClientConnecting(context.Background(), transport, centrifuge.ConnectEvent{
+	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: "bad bad token",
 	}, nil, false)
 	require.Equal(t, centrifuge.DisconnectInvalidToken, reply.Disconnect)
@@ -281,9 +275,7 @@ func TestClientConnectWithValidTokenHMAC(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	transport := newTestTransport()
-
-	reply := h.OnClientConnecting(context.Background(), transport, centrifuge.ConnectEvent{
+	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnTokenHS("42", 0),
 	}, nil, false)
 	require.Nil(t, reply.Error)
@@ -303,9 +295,7 @@ func TestClientConnectWithProxy(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	transport := newTestTransport()
-
-	connectProxyHandler := func(context.Context, centrifuge.TransportInfo, centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	connectProxyHandler := func(context.Context, centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID:   "34",
@@ -316,7 +306,7 @@ func TestClientConnectWithProxy(t *testing.T) {
 		}
 	}
 
-	reply := h.OnClientConnecting(context.Background(), transport, centrifuge.ConnectEvent{}, connectProxyHandler, true)
+	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, connectProxyHandler, true)
 	require.Nil(t, reply.Error)
 	require.Nil(t, reply.Disconnect)
 	require.NotNil(t, reply.Credentials)
@@ -338,9 +328,7 @@ func TestClientConnectWithValidTokenRSA(t *testing.T) {
 		RSAPublicKey: pubKey,
 	}), proxy.Config{})
 
-	transport := newTestTransport()
-
-	reply := h.OnClientConnecting(context.Background(), transport, centrifuge.ConnectEvent{
+	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnToken("42", 0, privateKey),
 	}, nil, false)
 	require.Nil(t, reply.Error)
@@ -361,9 +349,7 @@ func TestClientConnectWithExpiringToken(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	transport := newTestTransport()
-
-	reply := h.OnClientConnecting(context.Background(), transport, centrifuge.ConnectEvent{
+	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnTokenHS("42", time.Now().Unix()+10),
 	}, nil, false)
 	require.Nil(t, reply.Error)
@@ -384,9 +370,7 @@ func TestClientConnectWithExpiredToken(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	transport := newTestTransport()
-
-	reply := h.OnClientConnecting(context.Background(), transport, centrifuge.ConnectEvent{
+	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnTokenHS("42", 1525541722),
 	}, nil, false)
 	require.Equal(t, centrifuge.ErrorTokenExpired, reply.Error)
@@ -447,8 +431,6 @@ func TestClientUserPersonalChannel(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	transport := newTestTransport()
-
 	var tests = []struct {
 		Name      string
 		Namespace string
@@ -464,7 +446,7 @@ func TestClientUserPersonalChannel(t *testing.T) {
 			config.UserPersonalChannelNamespace = tt.Namespace
 			err := ruleContainer.Reload(config)
 			require.NoError(t, err)
-			reply := h.OnClientConnecting(context.Background(), transport, centrifuge.ConnectEvent{
+			reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 				Token: getConnTokenHS("42", 0),
 			}, nil, false)
 			stringInSlice(ruleContainer.PersonalChannel("42"), reply.Channels)
@@ -487,7 +469,7 @@ func TestClientSubscribeChannel(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
@@ -527,7 +509,7 @@ func TestClientSubscribeChannelServerSide(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
@@ -566,7 +548,7 @@ func TestClientSubscribeChannelUserLimited(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
@@ -605,7 +587,7 @@ func TestClientSubscribePrivateChannelWithToken(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
@@ -681,7 +663,7 @@ func TestClientSubscribePrivateChannelWithTokenAnonymous(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "",
@@ -722,7 +704,7 @@ func TestClientSideSubRefresh(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
@@ -789,7 +771,7 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousNotAllowed(t *testing.T)
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "",
@@ -830,7 +812,7 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousAllowed(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "",

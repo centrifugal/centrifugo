@@ -33,7 +33,7 @@ func proxyHTTPClient(timeout time.Duration) *http.Client {
 }
 
 func (h *Handler) Setup() {
-	var connectProxyHandler func(ctx context.Context, t centrifuge.TransportInfo, e centrifuge.ConnectEvent) centrifuge.ConnectReply
+	var connectProxyHandler func(ctx context.Context, e centrifuge.ConnectEvent) centrifuge.ConnectReply
 	if h.proxyConfig.ConnectEndpoint != "" {
 		connectProxyHandler = proxy.NewConnectHandler(proxy.ConnectHandlerConfig{
 			Proxy: proxy.NewHTTPConnectProxy(
@@ -62,37 +62,37 @@ func (h *Handler) Setup() {
 	}).Handle(h.node)
 	rpcProxyEnabled := h.proxyConfig.RPCEndpoint != ""
 
-	h.node.On().Connecting(func(ctx context.Context, info centrifuge.TransportInfo, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
-		return h.OnClientConnecting(ctx, info, e, connectProxyHandler, refreshProxyEnabled)
+	h.node.On().Connecting(func(ctx context.Context, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
+		return h.OnClientConnecting(ctx, e, connectProxyHandler, refreshProxyEnabled)
 	})
 
-	h.node.On().Refresh(func(ctx context.Context, client *centrifuge.Client, event centrifuge.RefreshEvent) centrifuge.RefreshReply {
+	h.node.On().Refresh(func(client *centrifuge.Client, event centrifuge.RefreshEvent) centrifuge.RefreshReply {
 		if refreshProxyEnabled {
-			return refreshProxyHandler(ctx, client, event)
+			return refreshProxyHandler(client.Context(), client, event)
 		}
 		return h.OnRefresh(client, event)
 	})
 	if rpcProxyEnabled {
-		h.node.On().RPC(func(ctx context.Context, client *centrifuge.Client, event centrifuge.RPCEvent) centrifuge.RPCReply {
-			return rpcProxyHandler(ctx, client, event)
+		h.node.On().RPC(func(client *centrifuge.Client, event centrifuge.RPCEvent) centrifuge.RPCReply {
+			return rpcProxyHandler(client.Context(), client, event)
 		})
 	}
-	h.node.On().Subscribe(func(ctx context.Context, client *centrifuge.Client, event centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
+	h.node.On().Subscribe(func(client *centrifuge.Client, event centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
 		return h.OnSubscribe(client, event)
 	})
-	h.node.On().Publish(func(ctx context.Context, client *centrifuge.Client, event centrifuge.PublishEvent) centrifuge.PublishReply {
+	h.node.On().Publish(func(client *centrifuge.Client, event centrifuge.PublishEvent) centrifuge.PublishReply {
 		return h.OnPublish(client, event)
 	})
-	h.node.On().SubRefresh(func(ctx context.Context, client *centrifuge.Client, event centrifuge.SubRefreshEvent) centrifuge.SubRefreshReply {
+	h.node.On().SubRefresh(func(client *centrifuge.Client, event centrifuge.SubRefreshEvent) centrifuge.SubRefreshReply {
 		return h.OnSubRefresh(client, event)
 	})
-	h.node.On().Presence(func(ctx context.Context, client *centrifuge.Client, event centrifuge.PresenceEvent) centrifuge.PresenceReply {
+	h.node.On().Presence(func(client *centrifuge.Client, event centrifuge.PresenceEvent) centrifuge.PresenceReply {
 		return h.OnPresence(client, event)
 	})
-	h.node.On().PresenceStats(func(ctx context.Context, client *centrifuge.Client, event centrifuge.PresenceStatsEvent) centrifuge.PresenceStatsReply {
+	h.node.On().PresenceStats(func(client *centrifuge.Client, event centrifuge.PresenceStatsEvent) centrifuge.PresenceStatsReply {
 		return h.OnPresenceStats(client, event)
 	})
-	h.node.On().History(func(ctx context.Context, client *centrifuge.Client, event centrifuge.HistoryEvent) centrifuge.HistoryReply {
+	h.node.On().History(func(client *centrifuge.Client, event centrifuge.HistoryEvent) centrifuge.HistoryReply {
 		return h.OnHistory(client, event)
 	})
 }
@@ -106,7 +106,6 @@ func toClientErr(err error) *centrifuge.Error {
 
 func (h *Handler) OnClientConnecting(
 	ctx context.Context,
-	info centrifuge.TransportInfo,
 	e centrifuge.ConnectEvent,
 	connectProxyHandler centrifuge.ConnectingHandler,
 	refreshProxyEnabled bool,
@@ -141,7 +140,7 @@ func (h *Handler) OnClientConnecting(
 
 		channels = append(channels, token.Channels...)
 	} else if connectProxyHandler != nil {
-		connectReply := connectProxyHandler(ctx, info, e)
+		connectReply := connectProxyHandler(ctx, e)
 		if connectReply.Error != nil {
 			return centrifuge.ConnectReply{Error: connectReply.Error}
 		}

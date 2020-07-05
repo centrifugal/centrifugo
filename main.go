@@ -103,14 +103,11 @@ func main() {
 			"websocket_disable", "sockjs_disable", "api_disable", "redis_cluster_addrs",
 			"broker", "nats_prefix", "nats_url", "nats_dial_timeout", "nats_write_timeout",
 			"v3_use_offset", "redis_history_meta_ttl", "redis_streams", "memory_history_meta_ttl",
+			"websocket_ping_interval", "websocket_write_timeout", "websocket_message_size_limit",
 		}
 		for _, env := range bindEnvs {
 			_ = viper.BindEnv(env)
 		}
-		// For backwards compatibility.
-		viper.RegisterAlias("websocket_ping_interval", "client_ping_interval")
-		viper.RegisterAlias("websocket_write_timeout", "client_message_write_timeout")
-		viper.RegisterAlias("websocket_message_size_limit", "client_request_max_size")
 	}
 
 	var rootCmd = &cobra.Command{
@@ -532,7 +529,6 @@ var configDefaults = map[string]interface{}{
 	"history_disable_for_client":           false,
 	"node_info_metrics_aggregate_interval": 60,
 	"client_anonymous":                     false,
-	"client_ping_interval":                 25,
 	"client_expired_close_delay":           25,
 	"client_expired_sub_close_delay":       25,
 	"client_stale_close_delay":             25,
@@ -565,8 +561,11 @@ var configDefaults = map[string]interface{}{
 	"websocket_read_buffer_size":           0,
 	"websocket_use_write_buffer_pool":      false,
 	"websocket_write_buffer_size":          0,
+	"client_ping_interval":                 25, // TODO v3: remove.
 	"websocket_ping_interval":              25,
-	"websocket_write_timeout":              0,
+	"client_message_write_timeout":         1, // TODO v3: remove.
+	"websocket_write_timeout":              1,
+	"client_request_max_size":              65536, // TODO v3: remove.
 	"websocket_message_size_limit":         65536, // 64KB
 	"tls_autocert":                         false,
 	"tls_autocert_host_whitelist":          "",
@@ -1141,17 +1140,27 @@ func namespacesFromConfig(v *viper.Viper) []rule.ChannelNamespace {
 func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.WebsocketConfig{}
-	cfg.PingInterval = time.Duration(v.GetInt("client_ping_interval")) * time.Second
-	cfg.WriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
-	cfg.MessageSizeLimit = v.GetInt("client_request_max_size")
 	cfg.Compression = v.GetBool("websocket_compression")
 	cfg.CompressionLevel = v.GetInt("websocket_compression_level")
 	cfg.CompressionMinSize = v.GetInt("websocket_compression_min_size")
 	cfg.ReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	cfg.UseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
-	cfg.PingInterval = time.Duration(v.GetInt("websocket_ping_interval")) * time.Second
-	cfg.WriteTimeout = time.Duration(v.GetInt("websocket_write_timeout")) * time.Second
+	if v.IsSet("websocket_ping_interval") {
+		cfg.PingInterval = time.Duration(v.GetInt("websocket_ping_interval")) * time.Second
+	} else {
+		cfg.PingInterval = time.Duration(v.GetInt("client_ping_interval")) * time.Second
+	}
+	if v.IsSet("websocket_write_timeout") {
+		cfg.WriteTimeout = time.Duration(v.GetInt("websocket_write_timeout")) * time.Second
+	} else {
+		cfg.WriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
+	}
+	if v.IsSet("websocket_message_size_limit") {
+		cfg.MessageSizeLimit = v.GetInt("websocket_message_size_limit")
+	} else {
+		cfg.MessageSizeLimit = v.GetInt("client_request_max_size")
+	}
 	return cfg
 }
 
@@ -1165,6 +1174,11 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	cfg.WebsocketUseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
+	if v.IsSet("websocket_write_timeout") {
+		cfg.WebsocketWriteTimeout = time.Duration(v.GetInt("websocket_write_timeout")) * time.Second
+	} else {
+		cfg.WebsocketWriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
+	}
 	return cfg
 }
 

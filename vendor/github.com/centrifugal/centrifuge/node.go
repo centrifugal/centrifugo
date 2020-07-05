@@ -10,6 +10,7 @@ import (
 	"github.com/centrifugal/centrifuge/internal/controlpb"
 	"github.com/centrifugal/centrifuge/internal/controlproto"
 	"github.com/centrifugal/centrifuge/internal/dissolve"
+	"github.com/centrifugal/centrifuge/internal/nowtime"
 	"github.com/centrifugal/centrifuge/internal/recovery"
 
 	"github.com/FZambia/eagle"
@@ -60,6 +61,9 @@ type Node struct {
 	metricsSnapshot *eagle.Metrics
 
 	subDissolver *dissolve.Dissolver
+
+	// nowTimeGetter provides access to current time.
+	nowTimeGetter nowtime.Getter
 }
 
 const (
@@ -89,6 +93,7 @@ func New(c Config) (*Node, error) {
 		clientEvents:   &ClientEventHub{},
 		subLocks:       subLocks,
 		subDissolver:   dissolve.New(numSubDissolverWorkers),
+		nowTimeGetter:  nowtime.Get,
 	}
 
 	if c.LogHandler != nil {
@@ -267,7 +272,6 @@ func (n *Node) updateMetrics() {
 
 // Centrifuge library uses Prometheus metrics for instrumentation. But we also try to
 // aggregate Prometheus metrics periodically and share this information between nodes.
-// At moment this allows to show metrics in Centrifugo admin interface.
 func (n *Node) initMetrics() error {
 	if n.config.NodeInfoMetricsAggregateInterval == 0 {
 		return nil
@@ -650,7 +654,7 @@ func (n *Node) pubUnsubscribe(user string, ch string) error {
 }
 
 // pubDisconnect publishes disconnect control message to all nodes – so all
-// nodes could disconnect user from Centrifugo.
+// nodes could disconnect user from server.
 func (n *Node) pubDisconnect(user string, reconnect bool) error {
 	// TODO: handle reconnect flag.
 	disconnect := &controlpb.Disconnect{

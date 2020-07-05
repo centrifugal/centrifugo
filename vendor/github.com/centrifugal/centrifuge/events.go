@@ -12,6 +12,8 @@ type ConnectEvent struct {
 	Token string
 	// Data received from client as part of Connect Command.
 	Data []byte
+	// Transport contains information about transport used by client.
+	Transport TransportInfo
 }
 
 // ConnectReply contains fields determining the reaction on auth event.
@@ -42,10 +44,10 @@ type ConnectReply struct {
 // ConnectingHandler called when new client authenticates on server.
 // This handler will be called from many goroutines, remember to synchronize
 // your operations inside.
-type ConnectingHandler func(context.Context, TransportInfo, ConnectEvent) ConnectReply
+type ConnectingHandler func(context.Context, ConnectEvent) ConnectReply
 
 // ConnectHandler called when client connected to server and ready to communicate.
-type ConnectHandler func(context.Context, *Client)
+type ConnectHandler func(*Client)
 
 // RefreshEvent contains fields related to refresh event.
 type RefreshEvent struct {
@@ -85,7 +87,7 @@ type RefreshReply struct {
 // in a custom way. In you rely on builtin Centrifuge JWT support then connection
 // refresh will happen without involving your application at all so you must skip
 // setting this handler on connection.
-type RefreshHandler func(context.Context, *Client, RefreshEvent) RefreshReply
+type RefreshHandler func(*Client, RefreshEvent) RefreshReply
 
 // AliveEvent can contain some connection stuff in future. But not at moment.
 type AliveEvent struct{}
@@ -93,7 +95,7 @@ type AliveEvent struct{}
 // AliveHandler called periodically while connection alive. This is a helper
 // to do periodic things which can tolerate some approximation in time. This
 // callback will run every ClientPresenceUpdateInterval and can save you a timer.
-type AliveHandler func(context.Context, *Client, AliveEvent)
+type AliveHandler func(*Client, AliveEvent)
 
 // DisconnectEvent contains fields related to disconnect event.
 type DisconnectEvent struct {
@@ -110,7 +112,7 @@ type DisconnectEvent struct {
 // clean up non-expiring resources (in your database for example). Why? Because
 // in case of any non-graceful node shutdown (kill -9, process crash, machine lost)
 // disconnect handler will never be called (obviously) so you can have stale data.
-type DisconnectHandler func(context.Context, *Client, DisconnectEvent)
+type DisconnectHandler func(*Client, DisconnectEvent)
 
 // SubscribeEvent contains fields related to subscribe event.
 type SubscribeEvent struct {
@@ -139,7 +141,7 @@ type SubscribeReply struct {
 }
 
 // SubscribeHandler called when client wants to subscribe on channel.
-type SubscribeHandler func(context.Context, *Client, SubscribeEvent) SubscribeReply
+type SubscribeHandler func(*Client, SubscribeEvent) SubscribeReply
 
 // UnsubscribeEvent contains fields related to unsubscribe event.
 type UnsubscribeEvent struct {
@@ -148,7 +150,7 @@ type UnsubscribeEvent struct {
 }
 
 // UnsubscribeHandler called when client unsubscribed from channel.
-type UnsubscribeHandler func(context.Context, *Client, UnsubscribeEvent)
+type UnsubscribeHandler func(*Client, UnsubscribeEvent)
 
 // PublishEvent contains fields related to publish event.
 // Note that this event called before actual publish to Engine
@@ -175,7 +177,7 @@ type PublishReply struct {
 }
 
 // PublishHandler called when client publishes into channel.
-type PublishHandler func(context.Context, *Client, PublishEvent) PublishReply
+type PublishHandler func(*Client, PublishEvent) PublishReply
 
 // SubRefreshEvent contains fields related to subscription refresh event.
 type SubRefreshEvent struct {
@@ -207,7 +209,7 @@ type SubRefreshReply struct {
 // in a custom way. In you rely on builtin Centrifuge JWT support then connection
 // refresh will happen without involving your application at all so you must skip
 // setting this handler on connection.
-type SubRefreshHandler func(context.Context, *Client, SubRefreshEvent) SubRefreshReply
+type SubRefreshHandler func(*Client, SubRefreshEvent) SubRefreshReply
 
 // RPCEvent contains fields related to rpc request.
 type RPCEvent struct {
@@ -229,7 +231,7 @@ type RPCReply struct {
 }
 
 // RPCHandler must handle incoming command from client.
-type RPCHandler func(context.Context, *Client, RPCEvent) RPCReply
+type RPCHandler func(*Client, RPCEvent) RPCReply
 
 // MessageEvent contains fields related to message request.
 type MessageEvent struct {
@@ -244,7 +246,7 @@ type MessageReply struct {
 }
 
 // MessageHandler must handle incoming async message from client.
-type MessageHandler func(context.Context, *Client, MessageEvent) MessageReply
+type MessageHandler func(*Client, MessageEvent) MessageReply
 
 // PresenceEvent contains info of presence call.
 type PresenceEvent struct {
@@ -260,7 +262,7 @@ type PresenceReply struct {
 }
 
 // PresenceHandler called when presence request received from client.
-type PresenceHandler func(context.Context, *Client, PresenceEvent) PresenceReply
+type PresenceHandler func(*Client, PresenceEvent) PresenceReply
 
 // PresenceStatsEvent ...
 type PresenceStatsEvent struct {
@@ -276,7 +278,7 @@ type PresenceStatsReply struct {
 }
 
 // PresenceStatsHandler must handle incoming command from client.
-type PresenceStatsHandler func(context.Context, *Client, PresenceStatsEvent) PresenceStatsReply
+type PresenceStatsHandler func(*Client, PresenceStatsEvent) PresenceStatsReply
 
 // HistoryEvent ...
 type HistoryEvent struct {
@@ -292,4 +294,4 @@ type HistoryReply struct {
 }
 
 // HistoryHandler must handle incoming command from client.
-type HistoryHandler func(context.Context, *Client, HistoryEvent) HistoryReply
+type HistoryHandler func(*Client, HistoryEvent) HistoryReply
