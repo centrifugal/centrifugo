@@ -319,7 +319,7 @@ func (c *Client) updatePresence() {
 	}
 	c.mu.Unlock()
 	if c.node.clientEvents.aliveHandler != nil && c.hasEvent(EventAlive) {
-		c.node.clientEvents.aliveHandler(c, AliveEvent{})
+		c.node.clientEvents.aliveHandler(c)
 	}
 	for channel, channelContext := range channels {
 		if !c.checkSubscriptionExpiration(channel, channelContext, config.ClientExpiredSubCloseDelay) {

@@ -89,13 +89,10 @@ type RefreshReply struct {
 // you must skip setting this handler on connection.
 type RefreshHandler func(*Client, RefreshEvent) RefreshReply
 
-// AliveEvent can contain some connection stuff in future. But not at moment.
-type AliveEvent struct{}
-
 // AliveHandler called periodically while connection alive. This is a helper
 // to do periodic things which can tolerate some approximation in time. This
 // callback will run every ClientPresenceUpdateInterval and can save you a timer.
-type AliveHandler func(*Client, AliveEvent)
+type AliveHandler func(*Client)
 
 // DisconnectEvent contains fields related to disconnect event.
 type DisconnectEvent struct {
