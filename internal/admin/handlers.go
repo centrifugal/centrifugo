@@ -5,10 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/internal/rule"
-
 	"github.com/centrifugal/centrifugo/internal/api"
 	"github.com/centrifugal/centrifugo/internal/middleware"
+	"github.com/centrifugal/centrifugo/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/gorilla/securecookie"
