@@ -10,7 +10,8 @@ type Config struct {
 	// establishment phase in response to connect request.
 	Version string
 	// Name of this server node - must be unique, used as human readable
-	// and meaningful node identifier.
+	// and meaningful node identifier. If not set then os.Hostname will be
+	// used.
 	Name string
 	// ClientPresenceUpdateInterval is an interval how often connected
 	// clients must update presence information.
@@ -46,8 +47,8 @@ type Config struct {
 	ClientQueueMaxSize int
 	// ClientChannelLimit sets upper limit of channels each client can subscribe to.
 	ClientChannelLimit int
-	// ClientUserConnectionLimit limits number of client connections from user
-	// with the same ID. Zero value means unlimited.
+	// ClientUserConnectionLimit limits number of client connections to single Node
+	// from user with the same ID. Zero value means unlimited.
 	ClientUserConnectionLimit int
 	// ChannelMaxLength is a maximum length of channel name.
 	ChannelMaxLength int
@@ -55,11 +56,6 @@ type Config struct {
 	// If not set then all channels will use default ChannelOptions with all
 	// features off.
 	ChannelOptionsFunc ChannelOptionsFunc
-}
-
-// Validate validates config and returns error if problems found
-func (c *Config) Validate() error {
-	return nil
 }
 
 const (
@@ -76,7 +72,6 @@ const (
 
 // DefaultConfig is Config initialized with default values for all fields.
 var DefaultConfig = Config{
-	Name:                             "centrifuge",
 	ChannelMaxLength:                 255,
 	NodeInfoMetricsAggregateInterval: 60 * time.Second,
 	ClientPresenceUpdateInterval:     25 * time.Second,

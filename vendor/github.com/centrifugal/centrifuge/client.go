@@ -112,8 +112,6 @@ func NewClient(ctx context.Context, n *Node, t Transport) (*Client, ClientCloseF
 		return nil, nil, err
 	}
 
-	config := n.Config()
-
 	c := &Client{
 		ctx:          ctx,
 		uid:          uuidObject.String(),
@@ -128,7 +126,7 @@ func NewClient(ctx context.Context, n *Node, t Transport) (*Client, ClientCloseF
 	transportMessagesSentCounter := transportMessagesSent.WithLabelValues(t.Name())
 
 	messageWriterConf := writerConfig{
-		MaxQueueSize: config.ClientQueueMaxSize,
+		MaxQueueSize: n.config.ClientQueueMaxSize,
 		WriteFn: func(data []byte) error {
 			if err := t.Write(data); err != nil {
 				go func() { _ = c.close(DisconnectWriteError) }()
@@ -155,7 +153,7 @@ func NewClient(ctx context.Context, n *Node, t Transport) (*Client, ClientCloseF
 
 	c.messageWriter = newWriter(messageWriterConf)
 
-	staleCloseDelay := config.ClientStaleCloseDelay
+	staleCloseDelay := n.config.ClientStaleCloseDelay
 	if staleCloseDelay > 0 && !c.authenticated {
 		c.mu.Lock()
 		c.timerOp = timerOpStale
@@ -219,7 +217,7 @@ func (c *Client) stopTimer() {
 
 // Lock must be held outside.
 func (c *Client) addPresenceUpdate() {
-	config := c.node.Config()
+	config := c.node.config
 	presenceInterval := config.ClientPresenceUpdateInterval
 	c.nextPresence = time.Now().Add(presenceInterval).UnixNano()
 	c.scheduleNextTimer()
@@ -309,7 +307,7 @@ func (c *Client) checkSubscriptionExpiration(channel string, channelContext Chan
 func (c *Client) updatePresence() {
 	c.presenceMu.Lock()
 	defer c.presenceMu.Unlock()
-	config := c.node.Config()
+	config := c.node.config
 	c.mu.Lock()
 	if c.status == statusClosed {
 		c.mu.Unlock()
@@ -856,7 +854,7 @@ func (c *Client) scheduleOnConnectTimers() {
 	if c.exp > 0 {
 		expireAfter := time.Duration(c.exp-time.Now().Unix()) * time.Second
 		if c.clientSideRefresh {
-			conf := c.node.Config()
+			conf := c.node.config
 			expireAfter += conf.ClientExpiredCloseDelay
 		}
 		c.addExpireUpdate(expireAfter)
@@ -1175,7 +1173,7 @@ func (c *Client) connectCmd(cmd *protocol.ConnectRequest, rw *replyWriter) *Disc
 		return DisconnectBadRequest
 	}
 
-	config := c.node.Config()
+	config := c.node.config
 	version := config.Version
 	userConnectionLimit := config.ClientUserConnectionLimit
 
@@ -1442,7 +1440,7 @@ func (c *Client) refreshCmd(cmd *protocol.RefreshRequest) (*clientproto.RefreshR
 		return resp, DisconnectBadRequest
 	}
 
-	config := c.node.Config()
+	config := c.node.config
 
 	c.mu.RLock()
 	clientSideRefresh := c.clientSideRefresh
@@ -1523,7 +1521,7 @@ func (c *Client) validateSubscribeRequest(cmd *protocol.SubscribeRequest) (Chann
 		return ChannelOptions{}, toClientErr(err), nil
 	}
 
-	config := c.node.Config()
+	config := c.node.config
 	channelMaxLength := config.ChannelMaxLength
 	channelLimit := config.ClientChannelLimit
 

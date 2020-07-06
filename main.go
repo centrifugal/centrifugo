@@ -191,12 +191,7 @@ func main() {
 			}
 			ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 
-			nodeConfig := nodeConfig(VERSION)
-			nodeConfig.ChannelOptionsFunc = ruleContainer.ChannelOptions
-			err = nodeConfig.Validate()
-			if err != nil {
-				log.Fatal().Msgf("error validating config: %v", err)
-			}
+			nodeConfig := nodeConfig(VERSION, ruleContainer.ChannelOptions)
 
 			if !viper.GetBool("v3_use_offset") {
 				log.Warn().Msgf("consider migrating to offset protocol field, details: https://github.com/centrifugal/centrifugo/releases/tag/v2.5.0")
@@ -682,13 +677,8 @@ func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Ch
 				log.Error().Msgf("error parsing configuration: %s", err)
 				continue
 			}
-			nodeConfig := nodeConfig(VERSION)
 			ruleConfig := ruleConfig()
 			if err := tokenVerifier.Reload(jwtVerifierConfig()); err != nil {
-				log.Error().Msgf("error reloading: %v", err)
-				continue
-			}
-			if err := n.Reload(nodeConfig); err != nil {
 				log.Error().Msgf("error reloading: %v", err)
 				continue
 			}
@@ -984,10 +974,6 @@ func validateConfig(f string) error {
 	if err != nil {
 		return err
 	}
-	nodeConfig := nodeConfig(VERSION)
-	if err := nodeConfig.Validate(); err != nil {
-		return err
-	}
 	ruleConfig := ruleConfig()
 	if err := ruleConfig.Validate(); err != nil {
 		return err
@@ -1063,7 +1049,7 @@ func proxyConfig() proxy.Config {
 	return cfg
 }
 
-func nodeConfig(version string) centrifuge.Config {
+func nodeConfig(version string, chOptsFunc centrifuge.ChannelOptionsFunc) centrifuge.Config {
 	v := viper.GetViper()
 	cfg := centrifuge.Config{}
 	cfg.Version = version
@@ -1079,6 +1065,7 @@ func nodeConfig(version string) centrifuge.Config {
 	cfg.ClientUserConnectionLimit = v.GetInt("client_user_connection_limit")
 	cfg.ClientChannelPositionCheckDelay = time.Duration(v.GetInt("client_channel_position_check_delay")) * time.Second
 	cfg.NodeInfoMetricsAggregateInterval = time.Duration(v.GetInt("node_info_metrics_aggregate_interval")) * time.Second
+	cfg.ChannelOptionsFunc = chOptsFunc
 
 	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {

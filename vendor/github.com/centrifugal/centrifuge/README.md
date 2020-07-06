@@ -5,7 +5,7 @@
 
 **This library has no v1 release yet, API still evolves. Use with strict versioning.**
 
-Centrifuge library is a real-time core of [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also supposed to be a general purpose real-time messaging library for Go programming language. The library is based on a strict client-server protocol based on Protobuf schema and solves several problems developer may come across when building complex real-time applications – like scalability (millions of connections), proper connection management, fast reconnect with message recovery, fallback option.
+Centrifuge library is a real-time core of [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also supposed to be a general purpose real-time messaging library for Go programming language. The library built on top of strict client-server protocol schema and exposes various real-time oriented primitives for a developer. Centrifuge solves several problems a developer may come across when building complex real-time applications – like scalability (millions of connections), proper persistent connection management and invalidation, fast reconnect with message recovery, WebSocket fallback option.
 
 Library highlights:
 
@@ -14,13 +14,14 @@ Library highlights:
 * SockJS polyfill library support for browsers where WebSocket not available (JSON only)
 * Built-in horizontal scalability with Redis PUB/SUB, consistent Redis sharding, Sentinel and Redis Cluster for HA
 * Possibility to register custom PUB/SUB broker, history and presence storage implementations
-* Native authentication over HTTP middleware or JWT-based
+* Native authentication over HTTP middleware or token-based
 * Bidirectional asynchronous message communication and RPC calls
-* Channel (room) concept to broadcast message to all channel subscribers
+* Channel concept to broadcast message to active subscribers
+* Client-side and server-side subscriptions
 * Presence information for channels (show all active clients in channel)
 * History information for channels (last messages published into channel)
 * Join/leave events for channels (aka client goes online/offline)
-* Message recovery mechanism for channels to survive short network disconnects or node restart
+* Message recovery mechanism for channels to survive PUB/SUB delivery problems, short network disconnects or node restart
 * Prometheus instrumentation
 * Client libraries for main application environments (see below)
 
@@ -67,18 +68,18 @@ func handleLog(e centrifuge.LogEntry) {
 	log.Printf("%s: %v", e.Message, e.Fields)
 }
 
-// Authentication middleware. Centrifuge expects Credentials
-// with current user ID.
+// Authentication middleware. Centrifuge expects Credentials with current user ID.
 func auth(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		// Put authentication credentials into context. Since we don't have
-		// any session backend here – simply set user ID as empty string.
+		// Put authentication credentials into request Context. Since we don't
+		// have any session backend here we simply set user ID as empty string.
 		// Users with empty ID called anonymous users, in real app you should
 		// decide whether anonymous users allowed to connect to your server
-		// or not. There is also another way to set Credentials - ClientConnecting
-		// handler which is called after client sent first command to server
-		// called Connect. Without Credentials set connection won't be accepted.
+		// or not. There is also another way to set Credentials - returning them
+		// from ConnectingHandler which is called after client sent first command
+		// to server called Connect. Without provided Credentials connection won't
+		// be accepted.
 		cred := &centrifuge.Credentials{
 			UserID: "",
 		}
@@ -141,7 +142,7 @@ func main() {
 		panic(err)
 	}
 
-	// Now configure http routes.
+	// Now configure HTTP routes.
 
 	// Serve Websocket connections using WebsocketHandler.
 	wsHandler := centrifuge.NewWebsocketHandler(node, centrifuge.WebsocketConfig{})
@@ -208,6 +209,6 @@ go run main.go
 
 Open several browser tabs with http://localhost:8000 and see chat in action.
 
-This example is only the top of an iceberg. Though it should give you an insight on library API. 
+This example is only the top of an iceberg. Though it should give you an insight on library API.
 
 Keep in mind that Centrifuge library is not a framework to build chat apps. It's a general purpose real-time transport for your messages with some helpful primitives. You can build many kinds of real-time apps on top of this library including chats but depending on application you may need to write business logic yourself.

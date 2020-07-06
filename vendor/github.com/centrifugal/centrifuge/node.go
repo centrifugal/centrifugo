@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
+	"os"
 	"sync"
 	"time"
 
@@ -80,6 +81,14 @@ func New(c Config) (*Node, error) {
 		subLocks[i] = &sync.Mutex{}
 	}
 
+	if c.Name == "" {
+		hostname, err := os.Hostname()
+		if err != nil {
+			return nil, err
+		}
+		c.Name = hostname
+	}
+
 	n := &Node{
 		uid:            uid,
 		nodes:          newNodeRegistry(uid),
@@ -130,14 +139,6 @@ func (n *Node) subLock(ch string) *sync.Mutex {
 	return n.subLocks[index(ch, numSubLocks)]
 }
 
-// Config returns a copy of node Config.
-func (n *Node) Config() Config {
-	n.mu.RLock()
-	c := n.config
-	n.mu.RUnlock()
-	return c
-}
-
 // SetEngine binds Engine to node.
 func (n *Node) SetEngine(e Engine) {
 	n.broker = e.(Broker)
@@ -163,17 +164,6 @@ func (n *Node) SetPresenceManager(m PresenceManager) {
 // Hub returns node's Hub.
 func (n *Node) Hub() *Hub {
 	return n.hub
-}
-
-// Reload node config.
-func (n *Node) Reload(c Config) error {
-	if err := c.Validate(); err != nil {
-		return err
-	}
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	n.config = c
-	return nil
 }
 
 // Run performs node startup actions. At moment must be called once on start
@@ -251,7 +241,7 @@ func (n *Node) updateGauges() {
 	numClientsGauge.Set(float64(n.hub.NumClients()))
 	numUsersGauge.Set(float64(n.hub.NumUsers()))
 	numChannelsGauge.Set(float64(n.hub.NumChannels()))
-	version := n.Config().Version
+	version := n.config.Version
 	if version == "" {
 		version = "_"
 	}

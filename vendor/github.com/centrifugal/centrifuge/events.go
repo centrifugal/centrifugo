@@ -36,7 +36,7 @@ type ConnectReply struct {
 	// i.e. send refresh commands with new connection JWT. If not set
 	// then server-side refresh handler will be used.
 	ClientSideRefresh bool
-	// Events to be called for connection. Zero value means all events for
+	// Events mask to be called for connection. Zero value means all events for
 	// all client event handlers set to Node.
 	Events Event
 }
@@ -83,10 +83,10 @@ type RefreshReply struct {
 // library uses client-side refresh mechanism. In this case library relies on
 // Refresh commands sent from client periodically to refresh connection. Refresh
 // command contains updated connection token. In case of using client-side refresh
-// you only need to set this callback if you want to validate connection token yourself
-// in a custom way. In you rely on builtin Centrifuge JWT support then connection
-// refresh will happen without involving your application at all so you must skip
-// setting this handler on connection.
+// you only need to set this callback if you want to validate connection token
+// yourself in a custom way. In you rely on builtin Centrifuge JWT support then
+// connection refresh will happen without involving your application at all so
+// you must skip setting this handler on connection.
 type RefreshHandler func(*Client, RefreshEvent) RefreshReply
 
 // AliveEvent can contain some connection stuff in future. But not at moment.
