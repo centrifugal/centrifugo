@@ -9,14 +9,14 @@ Centrifuge library is a real-time core of [Centrifugo](https://github.com/centri
 
 Library highlights:
 
-* Fast and optimized for low-latency communication with thousands of client connections. See [benchmark](https://centrifugal.github.io/centrifugo/misc/benchmark/)
+* Fast and optimized for low-latency communication with millions of client connections. See [benchmark](https://centrifugal.github.io/centrifugo/misc/benchmark/)
 * WebSocket with JSON or binary Protobuf protocol
 * SockJS polyfill library support for browsers where WebSocket not available (JSON only)
 * Built-in horizontal scalability with Redis PUB/SUB, consistent Redis sharding, Sentinel and Redis Cluster for HA
 * Possibility to register custom PUB/SUB broker, history and presence storage implementations
-* Native authentication over HTTP middleware or token-based
+* Native authentication over HTTP middleware or custom token-based
 * Bidirectional asynchronous message communication and RPC calls
-* Channel concept to broadcast message to active subscribers
+* Channel concept to broadcast message to all active subscribers
 * Client-side and server-side subscriptions
 * Presence information for channels (show all active clients in channel)
 * History information for channels (last messages published into channel)
@@ -27,9 +27,9 @@ Library highlights:
 
 Client libraries:
 
-* [centrifuge-js](https://github.com/centrifugal/centrifuge-js) – for browser, NodeJS and React Native
+* [centrifuge-js](https://github.com/centrifugal/centrifuge-js) – for a browser, NodeJS and React Native
 * [centrifuge-go](https://github.com/centrifugal/centrifuge-go) - for Go language
-* [centrifuge-mobile](https://github.com/centrifugal/centrifuge-mobile) - for iOS and Android using `centrifuge-go` as basis and `gomobile` project to create bindings
+* [centrifuge-mobile](https://github.com/centrifugal/centrifuge-mobile) - for iOS/Android with `centrifuge-go` as basis and [gomobile](https://github.com/golang/mobile)
 * [centrifuge-dart](https://github.com/centrifugal/centrifuge-dart) - for Dart and Flutter
 * [centrifuge-swift](https://github.com/centrifugal/centrifuge-swift) – for native iOS development
 * [centrifuge-java](https://github.com/centrifugal/centrifuge-java) – for native Android development and general Java
@@ -69,17 +69,18 @@ func handleLog(e centrifuge.LogEntry) {
 }
 
 // Authentication middleware. Centrifuge expects Credentials with current user ID.
+// Without provided Credentials client connection won't be accepted.
 func auth(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		// Put authentication credentials into request Context. Since we don't
+		// Put authentication Credentials into request Context. Since we don't
 		// have any session backend here we simply set user ID as empty string.
 		// Users with empty ID called anonymous users, in real app you should
 		// decide whether anonymous users allowed to connect to your server
 		// or not. There is also another way to set Credentials - returning them
 		// from ConnectingHandler which is called after client sent first command
-		// to server called Connect. Without provided Credentials connection won't
-		// be accepted.
+		// to server called Connect. See _examples folder in repo to find real-life
+		// auth samples (OAuth2, Gin sessions, JWT etc).
 		cred := &centrifuge.Credentials{
 			UserID: "",
 		}
@@ -99,10 +100,15 @@ func main() {
 	cfg.LogHandler = handleLog
 
 	// Node is the core object in Centrifuge library responsible for many useful
-	// things. Here we initialize new Node instance and pass Config to it.
+	// things. For example Node allows to publish messages to channels from server
+	// side with its Publish method, but in this example we will publish messages
+	// only from client side.
 	node, _ := centrifuge.New(cfg)
 
-	// Set ConnectHandler called when client successfully connected to Node.
+	// Set ConnectHandler called when client successfully connected to Node. Your code
+	// inside handler must be synchronized since it will be called concurrently from
+	// different goroutines (belonging to different client connections). This is also
+	// true for other event handlers.
 	node.On().Connect(func(c *centrifuge.Client) {
 		// In our example transport will always be Websocket but it can also be SockJS.
 		transportName := c.Transport().Name()
