@@ -1,10 +1,10 @@
 # Proxy calls to app backend
 
-**Starting from Centrifugo v2.3.0** it's possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.
+It's possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example, you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.
 
 ### Proxy request structure
 
-All proxy calls are **HTTP POST** requests that will be sent from Centrifugo to configured endpoints with configured timeout. These requests will have some headers copied from original client request (see details below) and include JSON body which varies depending on call type (for example data sent by client in RPC call etc, see more details about JSON bodies below).
+All proxy calls are **HTTP POST** requests that will be sent from Centrifugo to configured endpoints with a configured timeout. These requests will have some headers copied from original client request (see details below) and include JSON body which varies depending on call type (for example data sent by client in RPC call etc, see more details about JSON bodies below).
 
 ### Proxy headers
 
@@ -36,7 +36,7 @@ export CENTRIFUGO_PROXY_EXTRA_HTTP_HEADERS="X-B3-TraceId X-B3-SpanId"
 
 Since v2.5.1 Centrifugo also forces `Content-Type` header to be `application/json` in all proxy HTTP requests since it sends body in JSON format to application backend.
 
-### connect proxy
+### Connect proxy
 
 With the following options in configuration file:
 
@@ -121,7 +121,7 @@ if __name__ == '__main__':
 
 This example should help you to implement similar HTTP handler in any language/framework you are using on backend side.
 
-### refresh proxy
+### Refresh proxy
 
 With the following options in configuration file:
 
@@ -167,7 +167,7 @@ Result fields:
 
 `proxy_refresh_timeout` (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.
 
-### rpc proxy
+### RPC proxy
 
 With the following option in configuration file:
 
@@ -216,61 +216,9 @@ Result fields:
 
 See below on how to return a custom error.
 
-### publish proxy
+### Subscribe proxy
 
-Available since Centrifugo v2.5.2
-
-With the following option in configuration file:
-
-```json
-{
-  ...
-  "proxy_publish_endpoint": "http://localhost:3000/centrifugo/publish",
-  "proxy_publish_timeout":  1
-}
-```
-
-Publish calls sent over client connection will be proxied to `proxy_publish_endpoint`. This request happens BEFORE a message actually published to a channel, so your backend can validate whether client can publish data to channel.
-
-Keep in mind that this will only work if `publish` channel option is on for a channel namespace (or globally if no channel namespace used).
-
-Payload sent to app backend in publish request:
-
-```json
-{
-  "client":"9336a229-2400-4ebc-8c50-0a643d22e8a0",
-  "transport":"websocket",
-  "protocol": "json",
-  "encoding":"json",
-  "user":"56",
-  "channel": "chat:index",
-  "data":{"input":"hello"}
-}
-```
-
-Request fields:
-
-* `client`, `transport`, `protocol`, `encoding` are the same as described for connect request payload
-* `user` is a connection user ID obtained during authentication process
-* `data` is an RPC data sent by client
-* `b64data` will be set instead of `data` field for connections that use binary payload encoding
-* `channel` is a string channel client wants to publish to.
-
-Response expected:
-
-```json
-{"result": {}}
-```
-
-Result fields: no fields at moment.
-
-See below on how to return an error in case you don't want to allow publishing.
-
-`proxy_publish_timeout` (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.
-
-### subscribe proxy
-
-Available since Centrifugo v2.5.2
+Available since Centrifugo v2.6.0
 
 With the following option in configuration file:
 
@@ -282,7 +230,37 @@ With the following option in configuration file:
 }
 ```
 
-Subscribe requests sent over client connection will be proxied to `proxy_subscribe_endpoint`. This allows you to check access of client to channel.
+– subscribe requests sent over client connection will be proxied to `proxy_subscribe_endpoint`. This allows you to check access of client to a channel.
+
+!!!danger
+    **Subscribe proxy does not proxy [private](channels.md#private-channel-prefix) and [user-limited](channels.md#user-channel-boundary) channels at moment**.
+
+Unlike proxy types described above subscribe proxy must be enabled per channel namespace. This means that every namespace (including global one) has a boolean option `proxy_subscribe` that enables subscribe proxy for channels in namespace.
+
+So to enable subscribe proxy for channels without namespace define `proxy_subscribe` on a top configuration level:
+
+```json
+{
+  ...
+  "proxy_subscribe_endpoint": "http://localhost:3000/centrifugo/subscribe",
+  "proxy_subscribe_timeout":  1,
+  "proxy_subscribe": true
+}
+```
+
+Or for channels in namespace `sun`:
+
+```json
+{
+  ...
+  "proxy_subscribe_endpoint": "http://localhost:3000/centrifugo/subscribe",
+  "proxy_subscribe_timeout":  1,
+  "namespaces": [{
+    "name": "sun",
+    "proxy_subscribe": true
+  }]
+}
+```
 
 Payload sent to app backend in subscribe request:
 
@@ -317,6 +295,89 @@ Result fields:
 See below on how to return an error in case you don't want to allow subscribing.
 
 `proxy_subscribe_timeout` (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.
+
+### Publish proxy
+
+Available since Centrifugo v2.6.0
+
+With the following option in configuration file:
+
+```json
+{
+  ...
+  "proxy_publish_endpoint": "http://localhost:3000/centrifugo/publish",
+  "proxy_publish_timeout":  1
+}
+```
+
+– publish calls sent by a client will be proxied to `proxy_publish_endpoint`.
+
+This request happens BEFORE a message actually published to a channel, so your backend can validate whether client can publish data to a channel. An important thing here is that publication to channel can fail after your backend successfully validated publish request (for example publish to Redis by Centrifugo returned an error). In this case your backend won't know about error happened but this error will propagate to client side. 
+
+Like subscribe proxy publish proxy must be enabled per channel namespace. This means that every namespace (including global one) has a boolean option `proxy_publish` that enables publish proxy for channels in namespace. All other namespace options will be taken into account before making proxy request, so you also need to turn on `publish` option too.
+
+So to enable publish proxy for channels without namespace define `proxy_publish` and `publish` on a top configuration level:
+
+```json
+{
+  ...
+  "proxy_publish_endpoint": "http://localhost:3000/centrifugo/publish",
+  "proxy_publish_timeout":  1,
+  "publish": true,
+  "proxy_publish": true
+}
+```
+
+Or for channels in namespace `sun`:
+
+```json
+{
+  ...
+  "proxy_publish_endpoint": "http://localhost:3000/centrifugo/publish",
+  "proxy_publish_timeout":  1,
+  "namespaces": [{
+    "name": "sun",
+    "publish": true,
+    "proxy_publish": true
+  }]
+}
+```
+
+Keep in mind that this will only work if `publish` channel option is on for a channel namespace (or for global top-level namespace).
+
+Payload sent to app backend in publish request:
+
+```json
+{
+  "client":"9336a229-2400-4ebc-8c50-0a643d22e8a0",
+  "transport":"websocket",
+  "protocol": "json",
+  "encoding":"json",
+  "user":"56",
+  "channel": "chat:index",
+  "data":{"input":"hello"}
+}
+```
+
+Request fields:
+
+* `client`, `transport`, `protocol`, `encoding` are the same as described for connect request payload
+* `user` is a connection user ID obtained during authentication process
+* `data` is an RPC data sent by client
+* `b64data` will be set instead of `data` field for connections that use binary payload encoding
+* `channel` is a string channel client wants to publish to.
+
+Response expected:
+
+```json
+{"result": {}}
+```
+
+Result fields: no fields at moment.
+
+See below on how to return an error in case you don't want to allow publishing.
+
+`proxy_publish_timeout` (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.
 
 ### Return custom error
 

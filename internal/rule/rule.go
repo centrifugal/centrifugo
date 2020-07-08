@@ -201,6 +201,17 @@ func (n *ChannelRuleContainer) IsTokenChannel(ch string) bool {
 	return strings.HasPrefix(ch, n.config.TokenChannelPrefix)
 }
 
+// IsUserLimited returns whether channel is user-limited.
+func (n *ChannelRuleContainer) IsUserLimited(ch string) bool {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	userBoundary := n.config.ChannelUserBoundary
+	if userBoundary == "" {
+		return false
+	}
+	return strings.Contains(ch, userBoundary)
+}
+
 // UserAllowed checks if user can subscribe on channel - as channel
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it.

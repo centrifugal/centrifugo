@@ -86,3 +86,11 @@ func TestUserAllowed(t *testing.T) {
 	require.True(t, rules.UserAllowed("channel#1,2", "2"))
 	require.False(t, rules.UserAllowed("channel#1,2", "3"))
 }
+
+func TestIsUserLimited(t *testing.T) {
+	rules := NewNamespaceRuleContainer(DefaultRuleConfig)
+	require.True(t, rules.IsUserLimited("#12"))
+	require.True(t, rules.IsUserLimited("test#12"))
+	rules.config.ChannelUserBoundary = ""
+	require.False(t, rules.IsUserLimited("#12"))
+}

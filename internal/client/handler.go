@@ -279,7 +279,7 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 			expireAt = 0
 		}
 		channelInfo = token.Info
-	} else if chOpts.ProxySubscribe {
+	} else if chOpts.ProxySubscribe && !h.ruleContainer.IsUserLimited(e.Channel) {
 		if subscribeProxyHandler == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeReply{}, centrifuge.ErrorNotAvailable
