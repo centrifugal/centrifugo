@@ -10,7 +10,7 @@ github.com/FZambia/viper-lite
 github.com/ajstarks/svgo
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/centrifugal/centrifuge v0.9.2-0.20200707073628-e7c62699a026
+# github.com/centrifugal/centrifuge v0.9.2-0.20200708152209-c6ef638d9bdf
 github.com/centrifugal/centrifuge
 github.com/centrifugal/centrifuge/internal/cancelctx
 github.com/centrifugal/centrifuge/internal/clientproto

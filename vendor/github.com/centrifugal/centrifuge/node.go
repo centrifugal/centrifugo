@@ -46,7 +46,7 @@ type Node struct {
 	// shutdownCh is a channel which is closed when node shutdown initiated.
 	shutdownCh chan struct{}
 	// clientEvents to manage event handlers attached to node.
-	clientEvents *ClientEventHub
+	clientEvents *clientEventHub
 	// logger allows to log throughout library code and proxy log entries to
 	// configured log handler.
 	logger *logger
@@ -99,7 +99,7 @@ func New(c Config) (*Node, error) {
 		logger:         nil,
 		controlEncoder: controlproto.NewProtobufEncoder(),
 		controlDecoder: controlproto.NewProtobufDecoder(),
-		clientEvents:   &ClientEventHub{},
+		clientEvents:   &clientEventHub{},
 		subLocks:       subLocks,
 		subDissolver:   dissolve.New(numSubDissolverWorkers),
 		nowTimeGetter:  nowtime.Get,
@@ -197,11 +197,6 @@ func (n *Node) Log(entry LogEntry) {
 // LogEnabled allows to log entry.
 func (n *Node) LogEnabled(level LogLevel) bool {
 	return n.logger.enabled(level)
-}
-
-// On allows access to NodeEventHub.
-func (n *Node) On() *ClientEventHub {
-	return n.clientEvents
 }
 
 // Shutdown sets shutdown flag to Node so handlers could stop accepting
@@ -782,26 +777,40 @@ func (n *Node) removePresence(ch string, uid string) error {
 	return n.presenceManager.RemovePresence(ch, uid)
 }
 
+// PresenceResult wraps presence.
+type PresenceResult struct {
+	Presence map[string]*ClientInfo
+}
+
 // Presence returns a map with information about active clients in channel.
-func (n *Node) Presence(ch string) (map[string]*ClientInfo, error) {
+func (n *Node) Presence(ch string) (PresenceResult, error) {
 	if n.presenceManager == nil {
-		return nil, ErrorNotAvailable
+		return PresenceResult{}, ErrorNotAvailable
 	}
 	actionCount.WithLabelValues("presence").Inc()
 	presence, err := n.presenceManager.Presence(ch)
 	if err != nil {
-		return nil, err
+		return PresenceResult{}, err
 	}
-	return presence, nil
+	return PresenceResult{Presence: presence}, nil
+}
+
+// PresenceStatsResult wraps presence stats.
+type PresenceStatsResult struct {
+	PresenceStats
 }
 
 // PresenceStats returns presence stats from engine.
-func (n *Node) PresenceStats(ch string) (PresenceStats, error) {
+func (n *Node) PresenceStats(ch string) (PresenceStatsResult, error) {
 	if n.presenceManager == nil {
-		return PresenceStats{}, nil
+		return PresenceStatsResult{}, nil
 	}
 	actionCount.WithLabelValues("presence_stats").Inc()
-	return n.presenceManager.PresenceStats(ch)
+	presenceStats, err := n.presenceManager.PresenceStats(ch)
+	if err != nil {
+		return PresenceStatsResult{}, err
+	}
+	return PresenceStatsResult{PresenceStats: presenceStats}, nil
 }
 
 // HistoryResult contains Publications and current stream top StreamPosition.
@@ -951,18 +960,18 @@ func (r *nodeRegistry) clean(delay time.Duration) {
 	r.mu.Unlock()
 }
 
-// ClientEventHub allows binding client event handlers.
-// All ClientEventHub methods are not goroutine-safe and supposed
+// clientEventHub allows binding client event handlers.
+// All clientEventHub methods are not goroutine-safe and supposed
 // to be called once before Node Run called.
-type ClientEventHub struct {
+type clientEventHub struct {
 	connectingHandler    ConnectingHandler
 	connectHandler       ConnectHandler
 	aliveHandler         AliveHandler
-	refreshHandler       RefreshHandler
 	disconnectHandler    DisconnectHandler
 	subscribeHandler     SubscribeHandler
 	unsubscribeHandler   UnsubscribeHandler
 	publishHandler       PublishHandler
+	refreshHandler       RefreshHandler
 	subRefreshHandler    SubRefreshHandler
 	rpcHandler           RPCHandler
 	messageHandler       MessageHandler
@@ -971,94 +980,94 @@ type ClientEventHub struct {
 	historyHandler       HistoryHandler
 }
 
-// Connecting allows setting ConnectingHandler.
+// OnConnecting allows setting ConnectingHandler.
 // ConnectingHandler will be called when client sends Connect command to server.
 // In this handler server can reject connection or provide Credentials for it.
-func (c *ClientEventHub) Connecting(handler ConnectingHandler) {
-	c.connectingHandler = handler
+func (n *Node) OnConnecting(handler ConnectingHandler) {
+	n.clientEvents.connectingHandler = handler
 }
 
-// Connect allows setting ConnectHandler.
+// OnConnect allows setting ConnectHandler.
 // ConnectHandler called after client connection successfully established,
 // authenticated and Connect Reply already sent to client. This is a place where
 // application can start communicating with client.
-func (c *ClientEventHub) Connect(handler ConnectHandler) {
-	c.connectHandler = handler
+func (n *Node) OnConnect(handler ConnectHandler) {
+	n.clientEvents.connectHandler = handler
 }
 
-// Alive allows setting AliveHandler.
+// OnAlive allows setting AliveHandler.
 // AliveHandler called periodically for active client connection.
-func (c *ClientEventHub) Alive(h AliveHandler) {
-	c.aliveHandler = h
+func (n *Node) OnAlive(h AliveHandler) {
+	n.clientEvents.aliveHandler = h
 }
 
-// Refresh allows setting RefreshHandler.
+// OnRefresh allows setting RefreshHandler.
 // RefreshHandler called when it's time to refresh expiring client connection.
-func (c *ClientEventHub) Refresh(h RefreshHandler) {
-	c.refreshHandler = h
+func (n *Node) OnRefresh(h RefreshHandler) {
+	n.clientEvents.refreshHandler = h
 }
 
-// Disconnect allows setting DisconnectHandler.
+// OnDisconnect allows setting DisconnectHandler.
 // DisconnectHandler called when client disconnected from Node.
-func (c *ClientEventHub) Disconnect(h DisconnectHandler) {
-	c.disconnectHandler = h
+func (n *Node) OnDisconnect(h DisconnectHandler) {
+	n.clientEvents.disconnectHandler = h
 }
 
-// Message allows setting MessageHandler.
+// OnMessage allows setting MessageHandler.
 // MessageHandler called when client sent asynchronous message.
-func (c *ClientEventHub) Message(h MessageHandler) {
-	c.messageHandler = h
+func (n *Node) OnMessage(h MessageHandler) {
+	n.clientEvents.messageHandler = h
 }
 
-// RPC allows setting RPCHandler.
+// OnRPC allows setting RPCHandler.
 // RPCHandler will be executed on every incoming RPC call.
-func (c *ClientEventHub) RPC(h RPCHandler) {
-	c.rpcHandler = h
+func (n *Node) OnRPC(h RPCHandler) {
+	n.clientEvents.rpcHandler = h
 }
 
-// SubRefresh allows setting SubRefreshHandler.
+// OnSubRefresh allows setting SubRefreshHandler.
 // SubRefreshHandler called when it's time to refresh client subscription.
-func (c *ClientEventHub) SubRefresh(h SubRefreshHandler) {
-	c.subRefreshHandler = h
+func (n *Node) OnSubRefresh(h SubRefreshHandler) {
+	n.clientEvents.subRefreshHandler = h
 }
 
-// Subscribe allows setting SubscribeHandler.
+// OnSubscribe allows setting SubscribeHandler.
 // SubscribeHandler called when client subscribes on channel.
-func (c *ClientEventHub) Subscribe(h SubscribeHandler) {
-	c.subscribeHandler = h
+func (n *Node) OnSubscribe(h SubscribeHandler) {
+	n.clientEvents.subscribeHandler = h
 }
 
-// Unsubscribe allows setting UnsubscribeHandler.
+// OnUnsubscribe allows setting UnsubscribeHandler.
 // UnsubscribeHandler called when client unsubscribes from channel.
-func (c *ClientEventHub) Unsubscribe(h UnsubscribeHandler) {
-	c.unsubscribeHandler = h
+func (n *Node) OnUnsubscribe(h UnsubscribeHandler) {
+	n.clientEvents.unsubscribeHandler = h
 }
 
-// Publish allows setting PublishHandler.
+// OnPublish allows setting PublishHandler.
 // PublishHandler called when client publishes message into channel.
-func (c *ClientEventHub) Publish(h PublishHandler) {
-	c.publishHandler = h
+func (n *Node) OnPublish(h PublishHandler) {
+	n.clientEvents.publishHandler = h
 }
 
-// Presence allows setting PresenceHandler.
+// OnPresence allows setting PresenceHandler.
 // PresenceHandler called when Presence request from client received.
 // At this moment you can only return a custom error or disconnect client.
-func (c *ClientEventHub) Presence(h PresenceHandler) {
-	c.presenceHandler = h
+func (n *Node) OnPresence(h PresenceHandler) {
+	n.clientEvents.presenceHandler = h
 }
 
-// PresenceStats allows settings PresenceStatsHandler.
+// OnPresenceStats allows settings PresenceStatsHandler.
 // PresenceStatsHandler called when PresenceStats request from client received.
 // At this moment you can only return a custom error or disconnect client.
-func (c *ClientEventHub) PresenceStats(h PresenceStatsHandler) {
-	c.presenceStatsHandler = h
+func (n *Node) OnPresenceStats(h PresenceStatsHandler) {
+	n.clientEvents.presenceStatsHandler = h
 }
 
-// History allows settings HistoryHandler.
+// OnHistory allows settings HistoryHandler.
 // HistoryHandler called when History request from client received.
 // At this moment you can only return a custom error or disconnect client.
-func (c *ClientEventHub) History(h HistoryHandler) {
-	c.historyHandler = h
+func (n *Node) OnHistory(h HistoryHandler) {
+	n.clientEvents.historyHandler = h
 }
 
 type brokerEventHandler struct {

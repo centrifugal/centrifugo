@@ -6,13 +6,19 @@ import (
 
 // Config contains Node configuration options.
 type Config struct {
-	// Version of server – will be sent to client on connection
-	// establishment phase in response to connect request.
+	// Version of server – will be sent to client on connection establishment
+	// phase in response to connect request.
 	Version string
-	// Name of this server node - must be unique, used as human readable
-	// and meaningful node identifier. If not set then os.Hostname will be
-	// used.
+	// Name of this server node - must be unique, used as human readable and
+	// meaningful node identifier. If not set then os.Hostname will be used.
 	Name string
+	// LogLevel is a log level to use. By default nothing will be logged.
+	LogLevel LogLevel
+	// LogHandler is a handler func node will send logs to.
+	LogHandler LogHandler
+	// NodeInfoMetricsAggregateInterval sets interval for automatic metrics
+	// aggregation. It's not reasonable to have it less than one second.
+	NodeInfoMetricsAggregateInterval time.Duration
 	// ClientPresenceUpdateInterval is an interval how often connected
 	// clients must update presence information.
 	ClientPresenceUpdateInterval time.Duration
@@ -35,13 +41,6 @@ type Config struct {
 	// client position check in channel. If client does not pass check it will
 	// be disconnected with DisconnectInsufficientState.
 	ClientChannelPositionCheckDelay time.Duration
-	// NodeInfoMetricsAggregateInterval sets interval for automatic metrics
-	// aggregation. It's not reasonable to have it less than one second.
-	NodeInfoMetricsAggregateInterval time.Duration
-	// LogLevel is a log level to use. By default nothing will be logged.
-	LogLevel LogLevel
-	// LogHandler is a handler func node will send logs to.
-	LogHandler LogHandler
 	// ClientQueueMaxSize is a maximum size of client's message queue in bytes.
 	// After this queue size exceeded Centrifugo closes client's connection.
 	ClientQueueMaxSize int

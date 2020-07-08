@@ -232,8 +232,8 @@ func (h *apiExecutor) Presence(_ context.Context, cmd *PresenceRequest) *Presenc
 		return resp
 	}
 
-	apiPresence := make(map[string]*ClientInfo, len(presence))
-	for k, v := range presence {
+	apiPresence := make(map[string]*ClientInfo, len(presence.Presence))
+	for k, v := range presence.Presence {
 		apiPresence[k] = &ClientInfo{
 			User:     v.User,
 			Client:   v.Client,

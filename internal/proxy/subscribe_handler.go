@@ -34,8 +34,8 @@ func NewSubscribeHandler(c SubscribeHandlerConfig) *SubscribeHandler {
 }
 
 // Handle Subscribe.
-func (h *SubscribeHandler) Handle(node *centrifuge.Node) func(client *centrifuge.Client, e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
-	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
+func (h *SubscribeHandler) Handle(node *centrifuge.Node) func(client *centrifuge.Client, e centrifuge.SubscribeEvent) (centrifuge.SubscribeReply, error) {
+	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent) (centrifuge.SubscribeReply, error) {
 		started := time.Now()
 		subscribeRep, err := h.config.Proxy.ProxySubscribe(client.Context(), SubscribeRequest{
 			ClientID:  client.ID(),
@@ -47,28 +47,22 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) func(client *centrifuge
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				return centrifuge.SubscribeReply{}
+				return centrifuge.SubscribeReply{}, nil
 			}
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
 			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying subscribe", map[string]interface{}{"error": err.Error()}))
-			return centrifuge.SubscribeReply{
-				Error: centrifuge.ErrorInternal,
-			}
+			return centrifuge.SubscribeReply{}, centrifuge.ErrorInternal
 		}
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)
 
 		if subscribeRep.Disconnect != nil {
-			return centrifuge.SubscribeReply{
-				Disconnect: subscribeRep.Disconnect,
-			}
+			return centrifuge.SubscribeReply{}, subscribeRep.Disconnect
 		}
 		if subscribeRep.Error != nil {
-			return centrifuge.SubscribeReply{
-				Error: subscribeRep.Error,
-			}
+			return centrifuge.SubscribeReply{}, subscribeRep.Error
 		}
 
 		var info []byte
@@ -80,9 +74,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) func(client *centrifuge
 					decodedInfo, err := base64.StdEncoding.DecodeString(subscribeRep.Result.Base64Info)
 					if err != nil {
 						node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
-						return centrifuge.SubscribeReply{
-							Error: centrifuge.ErrorInternal,
-						}
+						return centrifuge.SubscribeReply{}, centrifuge.ErrorInternal
 					}
 					info = decodedInfo
 				}
@@ -92,6 +84,6 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) func(client *centrifuge
 		return centrifuge.SubscribeReply{
 			ChannelInfo:       info,
 			ClientSideRefresh: true,
-		}
+		}, nil
 	}
 }

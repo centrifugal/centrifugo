@@ -34,8 +34,8 @@ func NewConnectHandler(c ConnectHandlerConfig) *ConnectHandler {
 }
 
 // Handle returns connecting handler func.
-func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
-	return func(ctx context.Context, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
+func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+	return func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		started := time.Now()
 		connectRep, err := h.config.Proxy.ProxyConnect(ctx, ConnectRequest{
 			ClientID:  e.ClientID,
@@ -45,36 +45,26 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				return centrifuge.ConnectReply{
-					Disconnect: centrifuge.DisconnectNormal,
-				}
+				return centrifuge.ConnectReply{}, centrifuge.DisconnectNormal
 			}
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
 			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying connect", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
-			return centrifuge.ConnectReply{
-				Error: centrifuge.ErrorInternal,
-			}
+			return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
 		}
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)
 		if connectRep.Disconnect != nil {
-			return centrifuge.ConnectReply{
-				Disconnect: connectRep.Disconnect,
-			}
+			return centrifuge.ConnectReply{}, connectRep.Disconnect
 		}
 		if connectRep.Error != nil {
-			return centrifuge.ConnectReply{
-				Error: connectRep.Error,
-			}
+			return centrifuge.ConnectReply{}, connectRep.Error
 		}
 
 		credentials := connectRep.Result
 		if credentials == nil {
-			return centrifuge.ConnectReply{
-				Credentials: nil,
-			}
+			return centrifuge.ConnectReply{Credentials: nil}, nil
 		}
 
 		var info []byte
@@ -85,9 +75,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 				decodedInfo, err := base64.StdEncoding.DecodeString(credentials.Base64Info)
 				if err != nil {
 					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
-					return centrifuge.ConnectReply{
-						Error: centrifuge.ErrorInternal,
-					}
+					return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
 				}
 				info = decodedInfo
 			}
@@ -101,9 +89,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 				decodedData, err := base64.StdEncoding.DecodeString(credentials.Base64Data)
 				if err != nil {
 					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
-					return centrifuge.ConnectReply{
-						Error: centrifuge.ErrorInternal,
-					}
+					return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
 				}
 				data = decodedData
 			}
@@ -120,6 +106,6 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 		if len(data) > 0 {
 			reply.Data = data
 		}
-		return reply
+		return reply, nil
 	}
 }

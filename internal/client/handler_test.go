@@ -162,11 +162,11 @@ func nodeWithMemoryEngineNoHandlers() *centrifuge.Node {
 
 func nodeWithMemoryEngine() *centrifuge.Node {
 	n := nodeWithMemoryEngineNoHandlers()
-	n.On().Subscribe(func(_ *centrifuge.Client, _ centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
-		return centrifuge.SubscribeReply{}
+	n.OnSubscribe(func(_ *centrifuge.Client, _ centrifuge.SubscribeEvent) (centrifuge.SubscribeReply, error) {
+		return centrifuge.SubscribeReply{}, nil
 	})
-	n.On().Publish(func(_ *centrifuge.Client, _ centrifuge.PublishEvent) centrifuge.PublishReply {
-		return centrifuge.PublishReply{}
+	n.OnPublish(func(_ *centrifuge.Client, _ centrifuge.PublishEvent) (centrifuge.PublishReply, error) {
+		return centrifuge.PublishReply{}, nil
 	})
 	return n
 }
@@ -209,11 +209,10 @@ func TestClientConnectingNoCredentialsNoToken(t *testing.T) {
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
-	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Transport: newTestTransport(),
 	}, nil, false)
-	require.Nil(t, reply.Error)
-	require.Nil(t, reply.Disconnect)
+	require.NoError(t, err)
 	require.Nil(t, reply.Credentials)
 }
 
@@ -226,9 +225,9 @@ func TestClientConnectingNoCredentialsNoTokenInsecure(t *testing.T) {
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
-	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false)
-	require.Nil(t, reply.Error)
-	require.Nil(t, reply.Disconnect)
+	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false)
+	require.NoError(t, err)
+
 	require.NotNil(t, reply.Credentials)
 	require.Equal(t, "", reply.Credentials.UserID)
 }
@@ -242,9 +241,9 @@ func TestClientConnectNoCredentialsNoTokenAnonymous(t *testing.T) {
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
-	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false)
-	require.Nil(t, reply.Error)
-	require.Nil(t, reply.Disconnect)
+	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false)
+	require.NoError(t, err)
+
 	require.NotNil(t, reply.Credentials)
 	require.Equal(t, "", reply.Credentials.UserID)
 }
@@ -259,10 +258,10 @@ func TestClientConnectWithMalformedToken(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+	_, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: "bad bad token",
 	}, nil, false)
-	require.Equal(t, centrifuge.DisconnectInvalidToken, reply.Disconnect)
+	require.Error(t, err)
 }
 
 func TestClientConnectWithValidTokenHMAC(t *testing.T) {
@@ -275,11 +274,11 @@ func TestClientConnectWithValidTokenHMAC(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnTokenHS("42", 0),
 	}, nil, false)
-	require.Nil(t, reply.Error)
-	require.Nil(t, reply.Disconnect)
+	require.NoError(t, err)
+
 	require.NotNil(t, reply.Credentials)
 	require.Equal(t, "42", reply.Credentials.UserID)
 	require.Equal(t, int64(0), reply.Credentials.ExpireAt)
@@ -295,7 +294,7 @@ func TestClientConnectWithProxy(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	connectProxyHandler := func(context.Context, centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	connectProxyHandler := func(context.Context, centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID:   "34",
@@ -303,12 +302,12 @@ func TestClientConnectWithProxy(t *testing.T) {
 				Info:     []byte(`{"key": "value"}`),
 			},
 			Channels: []string{"channel1"},
-		}
+		}, nil
 	}
 
-	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, connectProxyHandler, true)
-	require.Nil(t, reply.Error)
-	require.Nil(t, reply.Disconnect)
+	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, connectProxyHandler, true)
+	require.NoError(t, err)
+
 	require.NotNil(t, reply.Credentials)
 	require.Equal(t, "34", reply.Credentials.UserID)
 	require.Equal(t, int64(14), reply.Credentials.ExpireAt)
@@ -328,11 +327,11 @@ func TestClientConnectWithValidTokenRSA(t *testing.T) {
 		RSAPublicKey: pubKey,
 	}), proxy.Config{})
 
-	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnToken("42", 0, privateKey),
 	}, nil, false)
-	require.Nil(t, reply.Error)
-	require.Nil(t, reply.Disconnect)
+	require.NoError(t, err)
+
 	require.NotNil(t, reply.Credentials)
 	require.Equal(t, "42", reply.Credentials.UserID)
 	require.Equal(t, int64(0), reply.Credentials.ExpireAt)
@@ -349,11 +348,11 @@ func TestClientConnectWithExpiringToken(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnTokenHS("42", time.Now().Unix()+10),
 	}, nil, false)
-	require.Nil(t, reply.Error)
-	require.Nil(t, reply.Disconnect)
+	require.NoError(t, err)
+
 	require.NotNil(t, reply.Credentials)
 	require.Equal(t, "42", reply.Credentials.UserID)
 	require.True(t, reply.Credentials.ExpireAt > 0)
@@ -370,10 +369,10 @@ func TestClientConnectWithExpiredToken(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+	_, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 		Token: getConnTokenHS("42", 1525541722),
 	}, nil, false)
-	require.Equal(t, centrifuge.ErrorTokenExpired, reply.Error)
+	require.Equal(t, centrifuge.ErrorTokenExpired, err)
 }
 
 func TestClientSideRefresh(t *testing.T) {
@@ -387,20 +386,21 @@ func TestClientSideRefresh(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	reply := h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
+	reply, err := h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
 		Token: getConnTokenHS("42", 123),
 	})
+	require.NoError(t, err)
 	require.True(t, reply.Expired)
 
-	reply = h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
+	_, err = h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
 		Token: "invalid",
 	})
-	require.Equal(t, centrifuge.DisconnectInvalidToken, reply.Disconnect)
+	require.Error(t, err)
 
-	reply = h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
+	reply, err = h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
 		Token: getConnTokenHS("42", 2525637058),
 	})
-	require.Nil(t, reply.Disconnect)
+	require.NoError(t, err)
 	require.False(t, reply.Expired)
 	require.Equal(t, int64(2525637058), reply.ExpireAt)
 }
@@ -446,9 +446,10 @@ func TestClientUserPersonalChannel(t *testing.T) {
 			config.UserPersonalChannelNamespace = tt.Namespace
 			err := ruleContainer.Reload(config)
 			require.NoError(t, err)
-			reply := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
+			reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
 				Token: getConnTokenHS("42", 0),
 			}, nil, false)
+			require.NoError(t, err)
 			stringInSlice(ruleContainer.PersonalChannel("42"), reply.Channels)
 		})
 	}
@@ -469,12 +470,12 @@ func TestClientSubscribeChannel(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
 			},
-		}
+		}, nil
 	})
 
 	connectCommand := &protocol.Command{
@@ -486,11 +487,10 @@ func TestClientSubscribeChannel(t *testing.T) {
 	ok := client.Handle(data)
 	require.True(t, ok)
 
-	reply := h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "non_existing_namespace:test1",
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorUnknownChannel, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorUnknownChannel, err)
 }
 
 func TestClientSubscribeChannelServerSide(t *testing.T) {
@@ -509,12 +509,12 @@ func TestClientSubscribeChannelServerSide(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
 			},
-		}
+		}, nil
 	})
 
 	connectCommand := &protocol.Command{
@@ -526,11 +526,10 @@ func TestClientSubscribeChannelServerSide(t *testing.T) {
 	ok := client.Handle(data)
 	require.True(t, ok)
 
-	reply := h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "test1",
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
 func TestClientSubscribeChannelUserLimited(t *testing.T) {
@@ -548,12 +547,12 @@ func TestClientSubscribeChannelUserLimited(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
 			},
-		}
+		}, nil
 	})
 
 	connectCommand := &protocol.Command{
@@ -565,11 +564,10 @@ func TestClientSubscribeChannelUserLimited(t *testing.T) {
 	ok := client.Handle(data)
 	require.True(t, ok)
 
-	reply := h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "test#13",
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
 func TestClientSubscribePrivateChannelWithToken(t *testing.T) {
@@ -587,12 +585,12 @@ func TestClientSubscribePrivateChannelWithToken(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
 			},
-		}
+		}, nil
 	})
 
 	connectCommand := &protocol.Command{
@@ -604,47 +602,41 @@ func TestClientSubscribePrivateChannelWithToken(t *testing.T) {
 	ok := client.Handle(data)
 	require.True(t, ok)
 
-	reply := h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("$wrong_channel", "wrong client", 0),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 
-	reply = h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("$test1", "wrong client", 0),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 
-	reply = h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   "",
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 
-	reply = h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   "invalid",
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 
-	reply = h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 123),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorTokenExpired, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorTokenExpired, err)
 
-	reply = h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	reply, err := h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 0),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Nil(t, reply.Error)
+	}, nil)
+	require.NoError(t, err)
 	require.Zero(t, reply.ExpireAt)
 }
 
@@ -663,12 +655,12 @@ func TestClientSubscribePrivateChannelWithTokenAnonymous(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "",
 			},
-		}
+		}, nil
 	})
 
 	connectCommand := &protocol.Command{
@@ -680,12 +672,11 @@ func TestClientSubscribePrivateChannelWithTokenAnonymous(t *testing.T) {
 	ok := client.Handle(data)
 	require.True(t, ok)
 
-	reply := h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 0),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
 func TestClientSideSubRefresh(t *testing.T) {
@@ -704,12 +695,12 @@ func TestClientSideSubRefresh(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "12",
 			},
-		}
+		}, nil
 	})
 
 	connectCommand := &protocol.Command{
@@ -721,37 +712,37 @@ func TestClientSideSubRefresh(t *testing.T) {
 	ok := client.Handle(data)
 	require.True(t, ok)
 
-	reply := h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	reply, err := h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("$test1", client.ID(), time.Now().Unix()+10),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Nil(t, reply.Error)
+	}, nil)
+	require.NoError(t, err)
 	require.True(t, reply.ExpireAt > 0)
 
-	subRefreshReply := h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
+	subRefreshReply, err := h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
 		Channel: "$test2",
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 123),
 	})
+	require.NoError(t, err)
 	require.True(t, subRefreshReply.Expired)
 
-	subRefreshReply = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
+	subRefreshReply, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
 		Channel: "$test2",
 		Token:   "invalid",
 	})
-	require.Equal(t, centrifuge.DisconnectInvalidToken, subRefreshReply.Disconnect)
+	require.Equal(t, centrifuge.DisconnectInvalidToken, err)
 
-	subRefreshReply = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
+	subRefreshReply, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
 		Channel: "$test2",
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 2525637058),
 	})
-	require.Equal(t, centrifuge.DisconnectInvalidToken, subRefreshReply.Disconnect)
+	require.Equal(t, centrifuge.DisconnectInvalidToken, err)
 
-	subRefreshReply = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
+	subRefreshReply, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 2525637058),
 	})
-	require.Nil(t, subRefreshReply.Disconnect)
+	require.NoError(t, err)
 	require.False(t, subRefreshReply.Expired)
 	require.Equal(t, int64(2525637058), subRefreshReply.ExpireAt)
 }
@@ -771,12 +762,12 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousNotAllowed(t *testing.T)
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "",
 			},
-		}
+		}, nil
 	})
 
 	connectCommand := &protocol.Command{
@@ -788,12 +779,11 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousNotAllowed(t *testing.T)
 	ok := client.Handle(data)
 	require.True(t, ok)
 
-	reply := h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	_, err = h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 0),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
 func TestClientSubscribePrivateChannelWithTokenAnonymousAllowed(t *testing.T) {
@@ -812,12 +802,12 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousAllowed(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = closeFn() }()
 
-	node.On().Connecting(func(ctx context.Context, event centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	node.OnConnecting(func(ctx context.Context, event centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
 				UserID: "",
 			},
-		}
+		}, nil
 	})
 
 	connectCommand := &protocol.Command{
@@ -829,12 +819,11 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousAllowed(t *testing.T) {
 	ok := client.Handle(data)
 	require.True(t, ok)
 
-	reply := h.OnSubscribe(client, centrifuge.SubscribeEvent{
+	reply, err := h.OnSubscribe(client, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 0),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Nil(t, reply.Error)
+	}, nil)
+	require.NoError(t, err)
 	require.Zero(t, reply.ExpireAt)
 }
 
@@ -849,12 +838,11 @@ func TestClientSubscribePrivateChannelWithExpiringToken(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	reply := h.OnSubscribe(&centrifuge.Client{}, centrifuge.SubscribeEvent{
+	_, err := h.OnSubscribe(&centrifuge.Client{}, centrifuge.SubscribeEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("$test1", "id", 10),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorTokenExpired, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorTokenExpired, err)
 }
 
 func TestClientSubscribePermissionDeniedForAnonymous(t *testing.T) {
@@ -867,11 +855,10 @@ func TestClientSubscribePermissionDeniedForAnonymous(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	reply := h.OnSubscribe(&centrifuge.Client{}, centrifuge.SubscribeEvent{
+	_, err := h.OnSubscribe(&centrifuge.Client{}, centrifuge.SubscribeEvent{
 		Channel: "test1",
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
 func TestClientPublishNotAllowed(t *testing.T) {
@@ -884,19 +871,17 @@ func TestClientPublishNotAllowed(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	reply := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
+	_, err := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
 		Channel: "non_existing_namespace:test1",
 		Data:    []byte(`{}`),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorUnknownChannel, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorUnknownChannel, err)
 
-	reply = h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
+	_, err = h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
 		Channel: "test1",
 		Data:    []byte(`{}`),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
 func TestClientPublishAllowed(t *testing.T) {
@@ -910,12 +895,11 @@ func TestClientPublishAllowed(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	reply := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
+	_, err := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
 		Channel: "test1",
 		Data:    []byte(`{}`),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Nil(t, reply.Error)
+	}, nil)
+	require.NoError(t, err)
 }
 
 func TestClientSubscribeToPublish(t *testing.T) {
@@ -930,12 +914,11 @@ func TestClientSubscribeToPublish(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	reply := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
+	_, err := h.OnPublish(&centrifuge.Client{}, centrifuge.PublishEvent{
 		Channel: "test1",
 		Data:    []byte(`{}`),
-	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	}, nil)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
 func TestClientHistory(t *testing.T) {
@@ -954,11 +937,10 @@ func TestClientHistory(t *testing.T) {
 	defer func() { _ = closeFn() }()
 	require.NoError(t, client.Subscribe("test1"))
 
-	reply := h.OnHistory(client, centrifuge.HistoryEvent{
+	_, err = h.OnHistory(client, centrifuge.HistoryEvent{
 		Channel: "test1",
 	})
-	require.Nil(t, reply.Disconnect)
-	require.Nil(t, reply.Error)
+	require.NoError(t, err)
 }
 
 func TestClientHistoryError(t *testing.T) {
@@ -972,27 +954,24 @@ func TestClientHistoryError(t *testing.T) {
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
 
-	reply := h.OnHistory(&centrifuge.Client{}, centrifuge.HistoryEvent{
+	_, err := h.OnHistory(&centrifuge.Client{}, centrifuge.HistoryEvent{
 		Channel: "non_existing_namespace:test1",
 	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorUnknownChannel, reply.Error)
+	require.Equal(t, centrifuge.ErrorUnknownChannel, err)
 
-	reply = h.OnHistory(&centrifuge.Client{}, centrifuge.HistoryEvent{
+	_, err = h.OnHistory(&centrifuge.Client{}, centrifuge.HistoryEvent{
 		Channel: "test1",
 	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorNotAvailable, reply.Error)
+	require.Equal(t, centrifuge.ErrorNotAvailable, err)
 
 	ruleConfig = ruleContainer.Config()
 	ruleConfig.HistoryDisableForClient = false
 	require.NoError(t, ruleContainer.Reload(ruleConfig))
 
-	reply = h.OnHistory(&centrifuge.Client{}, centrifuge.HistoryEvent{
+	_, err = h.OnHistory(&centrifuge.Client{}, centrifuge.HistoryEvent{
 		Channel: "test1",
 	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
 func TestClientPresence(t *testing.T) {
@@ -1011,11 +990,10 @@ func TestClientPresence(t *testing.T) {
 	defer func() { _ = closeFn() }()
 	require.NoError(t, client.Subscribe("test1"))
 
-	reply := h.OnPresence(client, centrifuge.PresenceEvent{
+	_, err = h.OnPresence(client, centrifuge.PresenceEvent{
 		Channel: "test1",
 	})
-	require.Nil(t, reply.Disconnect)
-	require.Nil(t, reply.Error)
+	require.NoError(t, err)
 }
 
 func TestClientPresenceError(t *testing.T) {
@@ -1027,27 +1005,24 @@ func TestClientPresenceError(t *testing.T) {
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
-	reply := h.OnPresence(&centrifuge.Client{}, centrifuge.PresenceEvent{
+	_, err := h.OnPresence(&centrifuge.Client{}, centrifuge.PresenceEvent{
 		Channel: "non_existing_namespace:test1",
 	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorUnknownChannel, reply.Error)
+	require.Equal(t, centrifuge.ErrorUnknownChannel, err)
 
-	reply = h.OnPresence(&centrifuge.Client{}, centrifuge.PresenceEvent{
+	_, err = h.OnPresence(&centrifuge.Client{}, centrifuge.PresenceEvent{
 		Channel: "test1",
 	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorNotAvailable, reply.Error)
+	require.Equal(t, centrifuge.ErrorNotAvailable, err)
 
 	ruleConfig = ruleContainer.Config()
 	ruleConfig.PresenceDisableForClient = false
 	require.NoError(t, ruleContainer.Reload(ruleConfig))
 
-	reply = h.OnPresence(&centrifuge.Client{}, centrifuge.PresenceEvent{
+	_, err = h.OnPresence(&centrifuge.Client{}, centrifuge.PresenceEvent{
 		Channel: "test1",
 	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
 
 func TestClientPresenceStats(t *testing.T) {
@@ -1066,11 +1041,10 @@ func TestClientPresenceStats(t *testing.T) {
 	defer func() { _ = closeFn() }()
 	require.NoError(t, client.Subscribe("test1"))
 
-	reply := h.OnPresenceStats(client, centrifuge.PresenceStatsEvent{
+	_, err = h.OnPresenceStats(client, centrifuge.PresenceStatsEvent{
 		Channel: "test1",
 	})
-	require.Nil(t, reply.Disconnect)
-	require.Nil(t, reply.Error)
+	require.NoError(t, err)
 }
 
 func TestClientPresenceStatsError(t *testing.T) {
@@ -1082,25 +1056,22 @@ func TestClientPresenceStatsError(t *testing.T) {
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
-	reply := h.OnPresenceStats(&centrifuge.Client{}, centrifuge.PresenceStatsEvent{
+	_, err := h.OnPresenceStats(&centrifuge.Client{}, centrifuge.PresenceStatsEvent{
 		Channel: "non_existing_namespace:test1",
 	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorUnknownChannel, reply.Error)
+	require.Equal(t, centrifuge.ErrorUnknownChannel, err)
 
-	reply = h.OnPresenceStats(&centrifuge.Client{}, centrifuge.PresenceStatsEvent{
+	_, err = h.OnPresenceStats(&centrifuge.Client{}, centrifuge.PresenceStatsEvent{
 		Channel: "test1",
 	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorNotAvailable, reply.Error)
+	require.Equal(t, centrifuge.ErrorNotAvailable, err)
 
 	ruleConfig = ruleContainer.Config()
 	ruleConfig.PresenceDisableForClient = false
 	require.NoError(t, ruleContainer.Reload(ruleConfig))
 
-	reply = h.OnPresenceStats(&centrifuge.Client{}, centrifuge.PresenceStatsEvent{
+	_, err = h.OnPresenceStats(&centrifuge.Client{}, centrifuge.PresenceStatsEvent{
 		Channel: "test1",
 	})
-	require.Nil(t, reply.Disconnect)
-	require.Equal(t, centrifuge.ErrorPermissionDenied, reply.Error)
+	require.Equal(t, centrifuge.ErrorPermissionDenied, err)
 }
