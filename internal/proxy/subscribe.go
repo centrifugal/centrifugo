@@ -13,6 +13,7 @@ type SubscribeRequest struct {
 	UserID    string
 	Channel   string
 	Transport centrifuge.TransportInfo
+	Token     string
 }
 
 type SubscribeResult struct {

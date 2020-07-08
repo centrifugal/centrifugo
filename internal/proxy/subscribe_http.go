@@ -14,6 +14,7 @@ type SubscribeRequestHTTP struct {
 
 	UserID  string `json:"user"`
 	Channel string `json:"channel"`
+	Token   string `json:"token,omitempty"`
 }
 
 // HTTPSubscribeProxy ...
@@ -47,6 +48,7 @@ func (p *HTTPSubscribeProxy) ProxySubscribe(ctx context.Context, req SubscribeRe
 		},
 		UserID:  req.UserID,
 		Channel: req.Channel,
+		Token:   req.Token,
 	}
 
 	data, err := json.Marshal(subscribeHTTPReq)

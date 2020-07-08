@@ -34,20 +34,12 @@ func NewConnectHandler(c ConnectHandlerConfig) *ConnectHandler {
 }
 
 // Handle returns connecting handler func.
-func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context, t centrifuge.TransportInfo, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
-	return func(ctx context.Context, t centrifuge.TransportInfo, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
-
-		if e.Token != "" {
-			// As soon as token provided we do not proxy connect to application backend.
-			return centrifuge.ConnectReply{
-				Credentials: nil,
-			}
-		}
-
+func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
+	return func(ctx context.Context, e centrifuge.ConnectEvent) centrifuge.ConnectReply {
 		started := time.Now()
 		connectRep, err := h.config.Proxy.ProxyConnect(ctx, ConnectRequest{
 			ClientID:  e.ClientID,
-			Transport: t,
+			Transport: e.Transport,
 			Data:      e.Data,
 		})
 		duration := time.Since(started).Seconds()
@@ -86,7 +78,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 		}
 
 		var info []byte
-		if t.Encoding() == "json" {
+		if e.Transport.Encoding() == "json" {
 			info = credentials.Info
 		} else {
 			if credentials.Base64Info != "" {
@@ -102,7 +94,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context,
 		}
 
 		var data []byte
-		if t.Encoding() == "json" {
+		if e.Transport.Encoding() == "json" {
 			data = credentials.Data
 		} else {
 			if credentials.Base64Data != "" {

@@ -34,13 +34,14 @@ func NewSubscribeHandler(c SubscribeHandlerConfig) *SubscribeHandler {
 }
 
 // Handle Subscribe.
-func (h *SubscribeHandler) Handle(ctx context.Context, node *centrifuge.Node, client *centrifuge.Client) func(e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
-	return func(e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
+func (h *SubscribeHandler) Handle(node *centrifuge.Node) func(client *centrifuge.Client, e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
+	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent) centrifuge.SubscribeReply {
 		started := time.Now()
-		subscribeRep, err := h.config.Proxy.ProxySubscribe(ctx, SubscribeRequest{
+		subscribeRep, err := h.config.Proxy.ProxySubscribe(client.Context(), SubscribeRequest{
 			ClientID:  client.ID(),
 			UserID:    client.UserID(),
 			Channel:   e.Channel,
+			Token:     e.Token,
 			Transport: client.Transport(),
 		})
 		duration := time.Since(started).Seconds()
@@ -89,7 +90,8 @@ func (h *SubscribeHandler) Handle(ctx context.Context, node *centrifuge.Node, cl
 		}
 
 		return centrifuge.SubscribeReply{
-			ChannelInfo: info,
+			ChannelInfo:       info,
+			ClientSideRefresh: true,
 		}
 	}
 }

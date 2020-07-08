@@ -1,6 +1,6 @@
 Test proxy.
 
-Example:
+Run with:
 
 ```
 artillery run load.yml

@@ -1,6 +1,6 @@
 # Server overview and installation
 
-Centrifugo server is written in Go language. It's an open-source software, the source code is available [on Github](https://github.com/centrifugal/centrifugo).
+Centrifugo server written in Go language. It's an open-source software, the source code is available [on Github](https://github.com/centrifugal/centrifugo).
 
 Centrifugo is built around [Centrifuge](https://github.com/centrifugal/centrifuge) library for Go language. That library defines custom protocol and message types which must be sent over various transports (Websocket, SockJS). Server clients use that protocol internally and provide simple API to features - making persistent connection, subscribing on channels, calling RPC commands and more.
 
@@ -8,7 +8,7 @@ Server documentation covers a lot of server concepts in detail. Here we start wi
 
 ## Install from binary release
 
-Binary releases available on Github. [Download latest release](https://github.com/centrifugal/centrifugo/releases) for your operating system, unpack it and you are done. Centrifugo is pre-builded for:
+Binary releases available on Github. [Download latest release](https://github.com/centrifugal/centrifugo/releases) for your operating system, unpack it and you are done. Centrifugo is pre-built for:
 
 * Linux 64-bit (linux_amd64)
 * Linux 32-bit (linux_386)
@@ -91,4 +91,26 @@ If you are developing on MacOS then you can install Centrifugo over `brew`:
 ```
 brew tap centrifugal/centrifugo
 brew install centrifugo
+```
+
+## Using go get
+
+If you are Go developer then you can quickly try Centrifugo with `go get`:
+
+```bash
+go get github.com/centrifugal/centrifugo
+centrifugo
+```
+
+This will install Centrifugo to your Go bin directory.
+
+## Build from source
+
+You need Go language installed:
+
+```
+git clone https://github.com/centrifugal/centrifugo.git
+cd centrifugo
+go build
+./centrifugo
 ```

@@ -1,76 +1,63 @@
 package centrifuge
 
-// ChannelNamespace allows to create channels with different channel options.
-type ChannelNamespace struct {
-	// Name is a unique namespace name.
-	Name string `json:"name"`
+// ChannelOptionsFunc is a function that Centrifuge will call every time
+// it needs to get ChannelOptions for a channel. These calls will happen
+// in rather hot paths – on publish to channel (by client side or by call
+// to server API), on client subscribe, on call to history or recovering
+// missed publications etc. This means that if you need to load ChannelOptions
+// from external storage then consider adding cache inside implementation.
+//
+// Another important thing is that calls to this func will happen concurrently
+// from different goroutines – so you must synchronize code inside function
+// implementation.
+//
+// The obvious advice regarding to ChannelOptions usage on practice - only
+// turn on various ChannelOptions features for channels where feature is
+// required. For example – if you don't want collecting Presence information
+// for a specific channel then do not turn on Presence for it. If you don't
+// need history – don't enable it. Every enabled option requires additional
+// work on server and can affect overall server performance.
+//
+// Second return argument means whether channel exists in system. If second
+// return argument is false then ErrorUnknownChannel will be returned to client
+// in replies to commands with such channel.
+type ChannelOptionsFunc func(channel string) (ChannelOptions, bool, error)
 
-	// Options for namespace determine channel options for channels
-	// belonging to this namespace.
-	ChannelOptions `mapstructure:",squash"`
-}
-
-// ChannelOptions represent channel specific configuration for namespace
-// or global channel options if set on top level of configuration.
+// ChannelOptions represent channel configuration. It contains several
+// options to tune core Centrifuge features for channel – for example tell
+// Centrifuge to maintain presence information inside channel, or configure
+// a window of Publication messages (history) that will be kept for a channel.
 type ChannelOptions struct {
-	// ServerSide marks all channels in namespace as server side, when on then
-	// all client subscribe requests to these channels will be rejected with
-	// PermissionDenied error.
-	ServerSide bool `mapstructure:"server_side" json:"server_side"`
+	// Presence turns on presence information for channel. Presence has
+	// information about all clients currently subscribed to a channel.
+	Presence bool `mapstructure:"presence" json:"presence"`
 
-	// Publish enables possibility for clients to publish messages into channels.
-	// Once enabled client can publish into channel and that publication will be
-	// broadcasted to all current channel subscribers. You can control publishing
-	// on server-side setting On().Publish callback to client connection.
-	Publish bool `json:"publish"`
-
-	// SubscribeToPublish turns on an automatic check that client subscribed
-	// on channel before allow it to publish into that channel.
-	SubscribeToPublish bool `mapstructure:"subscribe_to_publish" json:"subscribe_to_publish"`
-
-	// Anonymous enables anonymous access (with empty user ID) to channel.
-	// In most situations your application works with authenticated users so
-	// every user has its own unique user ID. But if you provide real-time
-	// features for public access you may need unauthenticated access to channels.
-	// Turn on this option and use empty string as user ID.
-	Anonymous bool `json:"anonymous"`
-
-	// JoinLeave turns on join/leave messages for channels.
-	// When client subscribes on channel join message sent to all
-	// clients in this channel. When client leaves channel (unsubscribes)
-	// leave message sent. This option does not fit well for channels with
-	// many subscribers because every subscribe/unsubscribe event results
-	// into join/leave event broadcast to all other active subscribers.
+	// JoinLeave turns on join/leave messages for a channel.
+	// When client subscribes on a channel join message sent to all
+	// subscribers in this channel (including current client). When client
+	// leaves channel (unsubscribes) leave message sent. This option does
+	// not fit well for channels with many subscribers because every
+	// subscribe/unsubscribe event results into join/leave event broadcast
+	// to all other active subscribers thus overloads server with tons of
+	// messages. Use accurately for channels with small number of active
+	// subscribers.
 	JoinLeave bool `mapstructure:"join_leave" json:"join_leave"`
 
-	// Presence turns on presence information for channels.
-	// Presence is a structure with clients currently subscribed on channel.
-	Presence bool `json:"presence"`
-
-	// PresenceDisableForClient prevents presence to be asked by clients.
-	// In this case it's available only over server-side presence call.
-	PresenceDisableForClient bool `mapstructure:"presence_disable_for_client" json:"presence_disable_for_client"`
-
-	// HistorySize determines max amount of history messages for channel,
-	// 0 means no history for channel. Centrifugo history has auxiliary
-	// role – it can not replace your backend persistent storage.
+	// HistorySize determines max amount of history messages for a channel,
+	// Zero value means no history for channel. Centrifuge history has an
+	// auxiliary role with current Engines – it can not replace your backend
+	// persistent storage.
 	HistorySize int `mapstructure:"history_size" json:"history_size"`
 
-	// HistoryLifetime determines time in seconds until expiration for
-	// history messages. As Centrifuge-based server keeps history in memory
-	// (for example in process memory or in Redis process memory) it's
-	// important to remove old messages to prevent infinite memory grows.
+	// HistoryLifetime determines time in seconds until expiration happens
+	// for history cache. As Centrifuge-based server maintains a window of
+	// messages in memory (or in Redis with Redis engine), to prevent infinite
+	// memory grows it's important to remove history for inactive channels.
 	HistoryLifetime int `mapstructure:"history_lifetime" json:"history_lifetime"`
 
-	// Recover enables recover mechanism for channels. This means that
-	// server will try to recover missed messages for resubscribing
-	// client. This option uses publications from history and must be used
-	// with reasonable HistorySize and HistoryLifetime configuration.
+	// HistoryRecover enables recovery mechanism for channels. This means that
+	// server will try to recover missed messages for resubscribing client.
+	// This option uses publications from history and must be used with reasonable
+	// HistorySize and HistoryLifetime configuration.
 	HistoryRecover bool `mapstructure:"history_recover" json:"history_recover"`
-
-	// HistoryDisableForClient prevents history to be asked by clients.
-	// In this case it's available only over server-side history call.
-	// History recover mechanism if enabled will continue to work for
-	// clients anyway.
-	HistoryDisableForClient bool `mapstructure:"history_disable_for_client" json:"history_disable_for_client"`
 }

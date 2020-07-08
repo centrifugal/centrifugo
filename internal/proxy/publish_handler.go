@@ -33,10 +33,10 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 }
 
 // Handle Publish.
-func (h *PublishHandler) Handle(ctx context.Context, node *centrifuge.Node, client *centrifuge.Client) func(e centrifuge.PublishEvent) centrifuge.PublishReply {
-	return func(e centrifuge.PublishEvent) centrifuge.PublishReply {
+func (h *PublishHandler) Handle(node *centrifuge.Node) func(client *centrifuge.Client, e centrifuge.PublishEvent) centrifuge.PublishReply {
+	return func(client *centrifuge.Client, e centrifuge.PublishEvent) centrifuge.PublishReply {
 		started := time.Now()
-		publishRep, err := h.config.Proxy.ProxyPublish(ctx, PublishRequest{
+		publishRep, err := h.config.Proxy.ProxyPublish(client.Context(), PublishRequest{
 			ClientID:  client.ID(),
 			UserID:    client.UserID(),
 			Channel:   e.Channel,

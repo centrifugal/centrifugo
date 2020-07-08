@@ -7,6 +7,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/internal/api"
 	"github.com/centrifugal/centrifugo/internal/middleware"
+	"github.com/centrifugal/centrifugo/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/gorilla/securecookie"
@@ -48,7 +49,7 @@ type Handler struct {
 }
 
 // NewHandler creates new Handler.
-func NewHandler(n *centrifuge.Node, c Config) *Handler {
+func NewHandler(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, c Config) *Handler {
 	h := &Handler{
 		node:   n,
 		config: c,
@@ -56,7 +57,7 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 	mux := http.NewServeMux()
 	prefix := strings.TrimRight(h.config.Prefix, "/")
 	mux.Handle(prefix+"/admin/auth", middleware.Post(http.HandlerFunc(h.authHandler)))
-	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, api.Config{}))))
+	mux.Handle(prefix+"/admin/api", middleware.Post(h.adminSecureTokenAuth(api.NewHandler(n, ruleContainer, api.Config{}))))
 	webPrefix := prefix + "/"
 	if c.WebPath != "" {
 		mux.Handle(webPrefix, http.StripPrefix(webPrefix, http.FileServer(http.Dir(c.WebPath))))

@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/centrifugal/centrifugo/internal/rule"
+
 	"github.com/centrifugal/centrifuge"
 )
 
@@ -21,11 +23,11 @@ type Handler struct {
 }
 
 // NewHandler creates new APIHandler.
-func NewHandler(n *centrifuge.Node, c Config) *Handler {
+func NewHandler(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, c Config) *Handler {
 	return &Handler{
 		node:   n,
 		config: c,
-		api:    newAPIExecutor(n, "http"),
+		api:    newAPIExecutor(n, ruleContainer, "http"),
 	}
 }
 

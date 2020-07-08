@@ -75,7 +75,7 @@ nav:
     - Configuration: 'server/configuration.md'
     - Channels: 'server/channels.md'
     - Authentication: 'server/authentication.md'
-    - Private channels': 'server/private_channels.md'
+    - Private channels: 'server/private_channels.md'
     - Engines: 'server/engines.md'
     - Server HTTP API: 'server/http_api.md'
     - Server GRPC API: 'server/grpc_api.md'

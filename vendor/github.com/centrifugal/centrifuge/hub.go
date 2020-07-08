@@ -14,13 +14,10 @@ import (
 // Hub manages client connections.
 type Hub struct {
 	mu sync.RWMutex
-
 	// match client ID with actual client connection.
 	conns map[string]*Client
-
 	// registry to hold active client connections grouped by user.
 	users map[string]map[string]struct{}
-
 	// registry to hold active subscriptions of clients to channels.
 	subs map[string]map[string]struct{}
 }
@@ -35,8 +32,8 @@ func newHub() *Hub {
 }
 
 const (
-	// hubShutdownSemaphoreSize limits graceful disconnects concurrency on
-	// node shutdown.
+	// hubShutdownSemaphoreSize limits graceful disconnects concurrency
+	// on node shutdown.
 	hubShutdownSemaphoreSize = 128
 )
 
@@ -72,7 +69,7 @@ func (h *Hub) shutdown(ctx context.Context) error {
 		go func(cc *Client) {
 			defer func() { <-sem }()
 			defer func() { closeFinishedCh <- struct{}{} }()
-			_ = cc.Close(advice)
+			_ = cc.close(advice)
 		}(client)
 	}
 
@@ -97,7 +94,7 @@ func (h *Hub) disconnect(user string, reconnect bool) error {
 	}
 	for _, c := range userConnections {
 		go func(cc *Client) {
-			_ = cc.Close(advice)
+			_ = cc.close(advice)
 		}(c)
 	}
 	return nil
@@ -247,7 +244,6 @@ func (h *Hub) broadcastPublication(channel string, pub *protocol.Publication, ch
 
 	var jsonPublicationReply *prepared.Reply
 	var protobufPublicationReply *prepared.Reply
-
 	// Iterate over channel subscribers and send message.
 	for uid := range channelSubscriptions {
 		c, ok := h.conns[uid]

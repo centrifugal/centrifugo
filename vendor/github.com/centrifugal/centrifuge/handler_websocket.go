@@ -313,16 +313,17 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		ctxCh := make(chan struct{})
 		defer close(ctxCh)
 
-		c, err := NewClient(cancelctx.New(r.Context(), ctxCh), s.node, transport)
+		c, closeFn, err := NewClient(cancelctx.New(r.Context(), ctxCh), s.node, transport)
 		if err != nil {
 			s.node.logger.log(newLogEntry(LogLevelError, "error creating client", map[string]interface{}{"transport": transportWebsocket}))
 			return
 		}
+		defer func() { _ = closeFn() }()
+
 		s.node.logger.log(newLogEntry(LogLevelDebug, "client connection established", map[string]interface{}{"client": c.ID(), "transport": transportWebsocket}))
 		defer func(started time.Time) {
 			s.node.logger.log(newLogEntry(LogLevelDebug, "client connection completed", map[string]interface{}{"client": c.ID(), "transport": transportWebsocket, "duration": time.Since(started)}))
 		}(time.Now())
-		defer func() { _ = c.Close(nil) }()
 
 		var (
 			handleMu sync.RWMutex

@@ -1,3 +1,74 @@
+v0.10.0
+=======
+
+This release is a massive rewrite of Centrifuge library (actually of some part of it) which should make library a more generic solution. Several opinionated and restrictive parts removed to make Centrifuge feel as a reasonably thin wrapper on top of strict client-server protocol.
+
+* Layer with namespace configuration and channel rules removed. Now developer is responsible for all permission checks and channel rules.
+* Hard dependency on JWT and predefined claims removed. Users are now free to use any token implementation – like [Paceto](https://github.com/paragonie/paseto) tokens for example, use any custom claims etc.
+* Event handlers that not set now always lead to `Not available` error returned to client.
+* All event handlers now should be set to `Node` before calling its `Run` method.
+* Centrifuge still needs to know some core options for channels to understand whether to use presence inside channels, keep Publication history stream or not. It's now done over user-defined callback function in Node Config called `ChannelOptionsFunc`. See its detailed description in [library docs](https://godoc.org/github.com/centrifugal/centrifuge#ChannelOptionsFunc).
+
+Look at updated [example in README](https://github.com/centrifugal/centrifuge#quick-example) and [examples](https://github.com/centrifugal/centrifuge/tree/master/_examples) folder to find out more. 
+
+I hope to provide more guidance about library concepts in the future. I feel sorry for breaking things here but since we don't have v1 release yet, I believe this is acceptable. An important note is that while this release has lots of removed parts it's still possible (and not too hard) to implement the same functionality as before on top of this library. Feel free to ask any questions in our community chats.
+
+v0.9.1
+======
+
+* fix `Close` method – do not use error channel since this leads to deadlock anyway, just close in goroutine.
+* fix presence timer scheduling
+
+```
+gorelease -base=v0.9.0 -version=v0.9.1
+github.com/centrifugal/centrifuge
+---------------------------------
+Incompatible changes:
+- (*Client).Close: changed from func(*Disconnect) chan error to func(*Disconnect) error
+
+v0.9.1 is a valid semantic version for this release.
+```
+
+v0.9.0
+======
+
+This release has some API changes. Here is a list of all changes in release:
+
+```
+Incompatible changes:
+- (*Client).Close: changed from func(*Disconnect) error to func(*Disconnect) chan error
+- (*Client).Handle: removed
+- Config.ClientPresencePingInterval: removed
+- NewClient: changed from func(context.Context, *Node, Transport) (*Client, error) to func(context.Context, *Node, Transport) (*TransportClient, CloseFunc, error)
+- NodeEventHub.ClientRefresh: removed
+- RefreshHandler: changed from func(context.Context, *Client, RefreshEvent) RefreshReply to func(RefreshEvent) RefreshReply
+Compatible changes:
+- (*ClientEventHub).Presence: added
+- (*ClientEventHub).Refresh: added
+- CloseFunc: added
+- Config.ClientPresenceUpdateInterval: added
+- ConnectReply.ClientSideRefresh: added
+- PresenceEvent: added
+- PresenceHandler: added
+- PresenceReply: added
+- RefreshEvent.Token: added
+- RefreshReply.Disconnect: added
+- TransportClient: added
+```
+
+Now let's try to highlight most notable changes and reasoning behind:
+
+* `NewClient` returns `TransportClient` and `CloseFunc` to limit possible API on transport implementation level
+* `ClientPresencePingInterval` config option renamed to `ClientPresenceUpdateInterval`
+* Centrifuge now has `client.On().Presence` handler which will be called periodically while connection alive every `ClientPresenceUpdateInterval`
+* `Client.Close` method now creates a goroutine internally - this was required to prevent deadlock when closing client from Presence and SubRefresh callback handlers. 
+* Refresh handler moved to `Client` scope instead of being `Node` event handler
+* `ConnectReply` now has new `ClientSideRefresh` field which allows setting what kind of refresh mechanism should be used for a client: server-side refresh or client-side refresh.
+* It's now possible to do client-side refresh with custom token implementation ([example](https://github.com/centrifugal/centrifuge/tree/master/_examples/custom_token))
+* Library now uses one concurrent timer per each connection instead of 3 - should perform a bit better
+
+All examples updated to reflect all changes here. 
+
 v0.8.2
 ======
 
