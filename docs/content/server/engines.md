@@ -262,7 +262,7 @@ Known limitations:
 
 First start Nats server:
 
-```bash
+```
 $ nats-server
 [3569] 2020/07/08 20:28:44.324269 [INF] Starting nats-server version 2.1.7
 [3569] 2020/07/08 20:28:44.324400 [INF] Git commit [not set]
@@ -276,6 +276,14 @@ Then start Centrifugo with `broker` option:
 ```bash
 centrifugo --broker=nats --config=config.json
 ```
+
+And one more Centrifugo on another port (of course in real life you will start another Centrifugo on another machine):
+
+```bash
+centrifugo --broker=nats --config=config.json --port=8001
+```
+
+Now you can scale connections over Centrifugo instances, instances will be connected over Nats server.
 
 Available options:
 
