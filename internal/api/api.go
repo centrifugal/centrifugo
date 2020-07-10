@@ -58,7 +58,7 @@ func (h *apiExecutor) Publish(_ context.Context, cmd *PublishRequest) *PublishRe
 
 	_, err = h.node.Publish(cmd.Channel, cmd.Data)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing message in engine", map[string]interface{}{"error": err.Error()}))
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing message in engine", map[string]interface{}{"error": err.Error(), "channel": cmd.Channel}))
 		resp.Error = ErrorInternal
 		return resp
 	}

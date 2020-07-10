@@ -89,8 +89,16 @@ func (b *NatsBroker) Close(_ context.Context) error {
 	return nil
 }
 
+func isUnsupportedChannel(ch string) bool {
+	return strings.Contains(ch, "*") || strings.Contains(ch, ">")
+}
+
 // Publish - see Broker interface description.
 func (b *NatsBroker) Publish(ch string, pub *centrifuge.Publication, _ *centrifuge.ChannelOptions) error {
+	if isUnsupportedChannel(ch) {
+		// Do not support wildcard subscriptions.
+		return centrifuge.ErrorBadRequest
+	}
 	protoPub := pubToProto(pub)
 	data, err := protoPub.Marshal()
 	if err != nil {
@@ -192,7 +200,7 @@ func (b *NatsBroker) handleControl(m *nats.Msg) {
 
 // Subscribe - see Broker interface description.
 func (b *NatsBroker) Subscribe(ch string) error {
-	if strings.Contains(ch, "*") || strings.Contains(ch, ">") {
+	if isUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.ErrorBadRequest
 	}
