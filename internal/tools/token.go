@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/centrifugo/internal/jwtverify"
+
 	"github.com/cristalhq/jwt/v3"
 )
 
 // GenerateToken generates sample JWT for user.
-func GenerateToken(config centrifuge.Config, user string, ttlSeconds int64) (string, error) {
-	if config.TokenHMACSecretKey == "" {
-		return "", fmt.Errorf("no token_hmac_secret_key found in config")
+func GenerateToken(config jwtverify.VerifierConfig, user string, ttlSeconds int64) (string, error) {
+	if config.HMACSecretKey == "" {
+		return "", fmt.Errorf("no HMAC secret key set")
 	}
-	signer, _ := jwt.NewSignerHS(jwt.HS256, []byte(config.TokenHMACSecretKey))
+	signer, _ := jwt.NewSignerHS(jwt.HS256, []byte(config.HMACSecretKey))
 	builder := jwt.NewBuilder(signer)
 	token, err := builder.Build(jwt.StandardClaims{
 		Subject:   user,
@@ -26,53 +27,14 @@ func GenerateToken(config centrifuge.Config, user string, ttlSeconds int64) (str
 	return token.String(), nil
 }
 
-func verify(config centrifuge.Config, token *jwt.Token) error {
-	var verifier jwt.Verifier
-	errDisabled := fmt.Errorf("algorithm is not enabled in configuration file: %s", string(token.Header().Algorithm))
-	switch token.Header().Algorithm {
-	case jwt.HS256:
-		if config.TokenHMACSecretKey == "" {
-			return errDisabled
-		}
-		verifier, _ = jwt.NewVerifierHS(jwt.HS256, []byte(config.TokenHMACSecretKey))
-	case jwt.HS384:
-		if config.TokenHMACSecretKey == "" {
-			return errDisabled
-		}
-		verifier, _ = jwt.NewVerifierHS(jwt.HS384, []byte(config.TokenHMACSecretKey))
-	case jwt.HS512:
-		if config.TokenHMACSecretKey == "" {
-			return errDisabled
-		}
-		verifier, _ = jwt.NewVerifierHS(jwt.HS512, []byte(config.TokenHMACSecretKey))
-	case jwt.RS256:
-		if config.TokenRSAPublicKey == nil {
-			return errDisabled
-		}
-		verifier, _ = jwt.NewVerifierRS(jwt.RS256, config.TokenRSAPublicKey)
-	case jwt.RS384:
-		if config.TokenRSAPublicKey == nil {
-			return errDisabled
-		}
-		verifier, _ = jwt.NewVerifierRS(jwt.RS256, config.TokenRSAPublicKey)
-	case jwt.RS512:
-		if config.TokenRSAPublicKey == nil {
-			return errDisabled
-		}
-		verifier, _ = jwt.NewVerifierRS(jwt.RS256, config.TokenRSAPublicKey)
-	default:
-		return fmt.Errorf("unsupported JWT algorithm: %s", string(token.Header().Algorithm))
-	}
-	return verifier.Verify(token.Payload(), token.Signature())
+func verify(config jwtverify.VerifierConfig, token string) (jwtverify.ConnectToken, error) {
+	verifier := jwtverify.NewTokenVerifierJWT(config)
+	return verifier.VerifyConnectToken(token)
 }
 
 // CheckToken checks JWT for user.
-func CheckToken(config centrifuge.Config, t string) (string, []byte, error) {
+func CheckToken(config jwtverify.VerifierConfig, t string) (string, []byte, error) {
 	token, err := jwt.Parse([]byte(t))
-	if err != nil {
-		return "", nil, err
-	}
-	err = verify(config, token)
 	if err != nil {
 		return "", nil, err
 	}
@@ -83,14 +45,10 @@ func CheckToken(config centrifuge.Config, t string) (string, []byte, error) {
 		return "", nil, err
 	}
 
-	now := time.Now()
-	if !claims.IsValidExpiresAt(now) {
-		return "", nil, fmt.Errorf("expired token for user %s", claims.Subject)
+	ct, err := verify(config, t)
+	if err != nil {
+		return "", nil, fmt.Errorf("token with algorithm %s and claims %s has error: %v", token.Header().Algorithm, string(token.RawClaims()), err)
 	}
 
-	if !claims.IsValidNotBefore(now) {
-		return "", nil, fmt.Errorf("token can not be used yet for user %s", claims.Subject)
-	}
-
-	return claims.Subject, token.RawClaims(), nil
+	return ct.UserID, token.RawClaims(), nil
 }

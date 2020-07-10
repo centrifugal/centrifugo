@@ -21,7 +21,7 @@ type queue interface {
 	// or 2) the queue is closed.
 	Remove() (Job, bool)
 
-	// Close the queue and discard all entried in the queue
+	// Close the queue and discard all entries in the queue
 	// all goroutines in wait() will return
 	Close()
 
@@ -99,7 +99,7 @@ func (q *queueImpl) Add(i Job) bool {
 	return true
 }
 
-// Close the queue and discard all entried in the queue
+// Close the queue and discard all entries in the queue
 // all goroutines in wait() will return
 func (q *queueImpl) Close() {
 	q.mu.Lock()

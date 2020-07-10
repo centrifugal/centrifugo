@@ -11,7 +11,7 @@ import (
 type ConnectRequest struct {
 	ClientID  string
 	Transport centrifuge.TransportInfo
-	Data      centrifuge.Raw
+	Data      []byte
 }
 
 // ConnectCredentials ...

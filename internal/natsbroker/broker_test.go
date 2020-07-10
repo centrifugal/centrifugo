@@ -24,8 +24,8 @@ func NewTestNatsBrokerWithPrefix(prefix string) *NatsBroker {
 
 func BenchmarkNatsEnginePublish(b *testing.B) {
 	broker := newTestNatsBroker()
-	rawData := centrifuge.Raw([]byte(`{"bench": true}`))
-	pub := &centrifuge.Publication{UID: "test UID", Data: rawData}
+	rawData := []byte(`{"bench": true}`)
+	pub := &centrifuge.Publication{Data: rawData}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		err := broker.Publish("channel", pub, &centrifuge.ChannelOptions{HistorySize: 0, HistoryLifetime: 0})
@@ -37,8 +37,8 @@ func BenchmarkNatsEnginePublish(b *testing.B) {
 
 func BenchmarkNatsEnginePublishParallel(b *testing.B) {
 	broker := newTestNatsBroker()
-	rawData := centrifuge.Raw([]byte(`{"bench": true}`))
-	pub := &centrifuge.Publication{UID: "test UID", Data: rawData}
+	rawData := []byte(`{"bench": true}`)
+	pub := &centrifuge.Publication{Data: rawData}
 	b.SetParallelism(128)
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {

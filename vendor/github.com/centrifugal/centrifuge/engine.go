@@ -3,9 +3,30 @@ package centrifuge
 import (
 	"context"
 	"time"
-
-	"github.com/centrifugal/protocol"
 )
+
+// Publication is a data sent to channel.
+type Publication struct {
+	// Offset is an incremental position number inside history stream.
+	Offset uint64
+	// Data published to channel.
+	Data []byte
+	// Info is an optional information about client connection published this data.
+	Info *ClientInfo
+}
+
+// ClientInfo contains information about client connection.
+type ClientInfo struct {
+	// ClientID is a client unique id.
+	ClientID string
+	// UserID is an ID of authenticated user. Zero value means anonymous user.
+	UserID string
+	// ConnInfo is an additional information about connection.
+	ConnInfo []byte
+	// ChanInfo is an additional information about connection in context of
+	// channel subscription.
+	ChanInfo []byte
+}
 
 // PresenceStats represents a short presence information for channel.
 type PresenceStats struct {
@@ -18,11 +39,11 @@ type PresenceStats struct {
 // BrokerEventHandler can handle messages received from PUB/SUB system.
 type BrokerEventHandler interface {
 	// HandlePublication to handle received Publications.
-	HandlePublication(ch string, pub *protocol.Publication) error
+	HandlePublication(ch string, pub *Publication) error
 	// HandleJoin to handle received Join messages.
-	HandleJoin(ch string, join *protocol.Join) error
+	HandleJoin(ch string, info *ClientInfo) error
 	// HandleLeave to handle received Leave messages.
-	HandleLeave(ch string, leave *protocol.Leave) error
+	HandleLeave(ch string, info *ClientInfo) error
 	// HandleControl to handle received control data.
 	HandleControl(data []byte) error
 }
@@ -76,11 +97,11 @@ type Broker interface {
 	// Publish allows to send Publication Push into channel. Publications should
 	// be delivered to all clients subscribed on this channel at moment on
 	// any Centrifuge node (with at most once delivery guarantee).
-	Publish(ch string, pub *protocol.Publication, opts *ChannelOptions) error
+	Publish(ch string, pub *Publication, opts *ChannelOptions) error
 	// PublishJoin publishes Join Push message into channel.
-	PublishJoin(ch string, join *protocol.Join, opts *ChannelOptions) error
+	PublishJoin(ch string, info *ClientInfo, opts *ChannelOptions) error
 	// PublishLeave publishes Leave Push message into channel.
-	PublishLeave(ch string, leave *protocol.Leave, opts *ChannelOptions) error
+	PublishLeave(ch string, info *ClientInfo, opts *ChannelOptions) error
 	// PublishControl allows to send control command data to all running nodes.
 	PublishControl(data []byte) error
 
@@ -99,7 +120,7 @@ type HistoryManager interface {
 	// to set several filtering options.
 	// StreamPosition returned describes current history stream top
 	// offset and epoch.
-	History(ch string, filter HistoryFilter) ([]*protocol.Publication, StreamPosition, error)
+	History(ch string, filter HistoryFilter) ([]*Publication, StreamPosition, error)
 	// AddHistory adds Publication to channel history. Storage should
 	// automatically maintain history size and lifetime according to
 	// channel options if needed.
@@ -111,7 +132,7 @@ type HistoryManager interface {
 	// for situations when HistoryManager can atomically save Publication
 	// to history and publish it towards online subscribers (ex. over Lua
 	// in Redis via single RTT).
-	AddHistory(ch string, pub *protocol.Publication, opts *ChannelOptions) (StreamPosition, bool, error)
+	AddHistory(ch string, pub *Publication, opts *ChannelOptions) (StreamPosition, bool, error)
 	// RemoveHistory removes history from channel. This is in general not
 	// needed as history expires automatically (based on history_lifetime)
 	// but sometimes can be useful for application logic.
@@ -121,7 +142,7 @@ type HistoryManager interface {
 // PresenceManager is responsible for channel presence management.
 type PresenceManager interface {
 	// Presence returns actual presence information for channel.
-	Presence(ch string) (map[string]*protocol.ClientInfo, error)
+	Presence(ch string) (map[string]*ClientInfo, error)
 	// PresenceStats returns short stats of current presence data
 	// suitable for scenarios when caller does not need full client
 	// info returned by presence method.
@@ -130,7 +151,7 @@ type PresenceManager interface {
 	// for connection with specified identifier. Engine should have a
 	// property to expire client information that was not updated
 	// (touched) after some configured time interval.
-	AddPresence(ch string, clientID string, info *protocol.ClientInfo, expire time.Duration) error
+	AddPresence(ch string, clientID string, info *ClientInfo, expire time.Duration) error
 	// RemovePresence removes presence information for connection
 	// with specified identifier.
 	RemovePresence(ch string, clientID string) error

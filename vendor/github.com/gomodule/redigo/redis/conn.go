@@ -17,6 +17,7 @@ package redis
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -77,8 +78,9 @@ type dialOptions struct {
 	readTimeout  time.Duration
 	writeTimeout time.Duration
 	dialer       *net.Dialer
-	dial         func(network, addr string) (net.Conn, error)
+	dialContext  func(ctx context.Context, network, addr string) (net.Conn, error)
 	db           int
+	username     string
 	password     string
 	clientName   string
 	useTLS       bool
@@ -123,7 +125,18 @@ func DialKeepAlive(d time.Duration) DialOption {
 // DialNetDial overrides DialConnectTimeout and DialKeepAlive.
 func DialNetDial(dial func(network, addr string) (net.Conn, error)) DialOption {
 	return DialOption{func(do *dialOptions) {
-		do.dial = dial
+		do.dialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return dial(network, addr)
+		}
+	}}
+}
+
+// DialContextFunc specifies a custom dial function with context for creating TCP
+// connections, otherwise a net.Dialer customized via the other options is used.
+// DialContextFunc overrides DialConnectTimeout and DialKeepAlive.
+func DialContextFunc(f func(ctx context.Context, network, addr string) (net.Conn, error)) DialOption {
+	return DialOption{func(do *dialOptions) {
+		do.dialContext = f
 	}}
 }
 
@@ -139,6 +152,14 @@ func DialDatabase(db int) DialOption {
 func DialPassword(password string) DialOption {
 	return DialOption{func(do *dialOptions) {
 		do.password = password
+	}}
+}
+
+// DialUsername specifies the username to use when connecting to
+// the Redis server when Redis ACLs are used.
+func DialUsername(username string) DialOption {
+	return DialOption{func(do *dialOptions) {
+		do.username = username
 	}}
 }
 
@@ -177,6 +198,12 @@ func DialUseTLS(useTLS bool) DialOption {
 // Dial connects to the Redis server at the given network and
 // address using the specified options.
 func Dial(network, address string, options ...DialOption) (Conn, error) {
+	return DialContext(context.Background(), network, address, options...)
+}
+
+// DialContext connects to the Redis server at the given network and
+// address using the specified options and context.
+func DialContext(ctx context.Context, network, address string, options ...DialOption) (Conn, error) {
 	do := dialOptions{
 		dialer: &net.Dialer{
 			KeepAlive: time.Minute * 5,
@@ -185,11 +212,11 @@ func Dial(network, address string, options ...DialOption) (Conn, error) {
 	for _, option := range options {
 		option.f(&do)
 	}
-	if do.dial == nil {
-		do.dial = do.dialer.Dial
+	if do.dialContext == nil {
+		do.dialContext = do.dialer.DialContext
 	}
 
-	netConn, err := do.dial(network, address)
+	netConn, err := do.dialContext(ctx, network, address)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +254,12 @@ func Dial(network, address string, options ...DialOption) (Conn, error) {
 	}
 
 	if do.password != "" {
-		if _, err := c.Do("AUTH", do.password); err != nil {
+		authArgs := make([]interface{}, 0, 2)
+		if do.username != "" {
+			authArgs = append(authArgs, do.username)
+		}
+		authArgs = append(authArgs, do.password)
+		if _, err := c.Do("AUTH", authArgs...); err != nil {
 			netConn.Close()
 			return nil, err
 		}
@@ -285,7 +317,7 @@ func DialURL(rawurl string, options ...DialOption) (Conn, error) {
 	if u.User != nil {
 		password, isSet := u.User.Password()
 		if isSet {
-			options = append(options, DialPassword(password))
+			options = append(options, DialUsername(u.User.Username()), DialPassword(password))
 		}
 	}
 
