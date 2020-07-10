@@ -7,7 +7,6 @@ import (
 
 	"github.com/centrifugal/centrifuge/internal/memstream"
 	"github.com/centrifugal/centrifuge/internal/priority"
-	"github.com/centrifugal/protocol"
 )
 
 // MemoryEngine is builtin default engine which allows to run Centrifuge-based
@@ -62,18 +61,18 @@ func (e *MemoryEngine) Run(h BrokerEventHandler) error {
 
 // Publish adds message into history hub and calls node ClientMsg method to handle message.
 // We don't have any PUB/SUB here as Memory Engine is single node only.
-func (e *MemoryEngine) Publish(ch string, pub *protocol.Publication, _ *ChannelOptions) error {
+func (e *MemoryEngine) Publish(ch string, pub *Publication, _ *ChannelOptions) error {
 	return e.eventHandler.HandlePublication(ch, pub)
 }
 
 // PublishJoin - see engine interface description.
-func (e *MemoryEngine) PublishJoin(ch string, join *protocol.Join, _ *ChannelOptions) error {
-	return e.eventHandler.HandleJoin(ch, join)
+func (e *MemoryEngine) PublishJoin(ch string, info *ClientInfo, _ *ChannelOptions) error {
+	return e.eventHandler.HandleJoin(ch, info)
 }
 
 // PublishLeave - see engine interface description.
-func (e *MemoryEngine) PublishLeave(ch string, leave *protocol.Leave, _ *ChannelOptions) error {
-	return e.eventHandler.HandleLeave(ch, leave)
+func (e *MemoryEngine) PublishLeave(ch string, info *ClientInfo, _ *ChannelOptions) error {
+	return e.eventHandler.HandleLeave(ch, info)
 }
 
 // PublishControl - see Engine interface description.
@@ -92,7 +91,7 @@ func (e *MemoryEngine) Unsubscribe(_ string) error {
 }
 
 // AddPresence - see engine interface description.
-func (e *MemoryEngine) AddPresence(ch string, uid string, info *protocol.ClientInfo, _ time.Duration) error {
+func (e *MemoryEngine) AddPresence(ch string, uid string, info *ClientInfo, _ time.Duration) error {
 	return e.presenceHub.add(ch, uid, info)
 }
 
@@ -102,7 +101,7 @@ func (e *MemoryEngine) RemovePresence(ch string, uid string) error {
 }
 
 // Presence - see engine interface description.
-func (e *MemoryEngine) Presence(ch string) (map[string]*protocol.ClientInfo, error) {
+func (e *MemoryEngine) Presence(ch string) (map[string]*ClientInfo, error) {
 	return e.presenceHub.get(ch)
 }
 
@@ -112,12 +111,12 @@ func (e *MemoryEngine) PresenceStats(ch string) (PresenceStats, error) {
 }
 
 // History - see engine interface description.
-func (e *MemoryEngine) History(ch string, filter HistoryFilter) ([]*protocol.Publication, StreamPosition, error) {
+func (e *MemoryEngine) History(ch string, filter HistoryFilter) ([]*Publication, StreamPosition, error) {
 	return e.historyHub.get(ch, filter)
 }
 
 // AddHistory - see engine interface description.
-func (e *MemoryEngine) AddHistory(ch string, pub *protocol.Publication, opts *ChannelOptions) (StreamPosition, bool, error) {
+func (e *MemoryEngine) AddHistory(ch string, pub *Publication, opts *ChannelOptions) (StreamPosition, bool, error) {
 	streamTop, err := e.historyHub.add(ch, pub, opts)
 	return streamTop, false, err
 }
@@ -134,22 +133,22 @@ func (e *MemoryEngine) Channels() ([]string, error) {
 
 type presenceHub struct {
 	sync.RWMutex
-	presence map[string]map[string]*protocol.ClientInfo
+	presence map[string]map[string]*ClientInfo
 }
 
 func newPresenceHub() *presenceHub {
 	return &presenceHub{
-		presence: make(map[string]map[string]*protocol.ClientInfo),
+		presence: make(map[string]map[string]*ClientInfo),
 	}
 }
 
-func (h *presenceHub) add(ch string, uid string, info *protocol.ClientInfo) error {
+func (h *presenceHub) add(ch string, uid string, info *ClientInfo) error {
 	h.Lock()
 	defer h.Unlock()
 
 	_, ok := h.presence[ch]
 	if !ok {
-		h.presence[ch] = make(map[string]*protocol.ClientInfo)
+		h.presence[ch] = make(map[string]*ClientInfo)
 	}
 	h.presence[ch][uid] = info
 	return nil
@@ -176,7 +175,7 @@ func (h *presenceHub) remove(ch string, uid string) error {
 	return nil
 }
 
-func (h *presenceHub) get(ch string) (map[string]*protocol.ClientInfo, error) {
+func (h *presenceHub) get(ch string) (map[string]*ClientInfo, error) {
 	h.RLock()
 	defer h.RUnlock()
 
@@ -186,7 +185,7 @@ func (h *presenceHub) get(ch string) (map[string]*protocol.ClientInfo, error) {
 		return nil, nil
 	}
 
-	data := make(map[string]*protocol.ClientInfo, len(presence))
+	data := make(map[string]*ClientInfo, len(presence))
 	for k, v := range presence {
 		data[k] = v
 	}
@@ -208,7 +207,7 @@ func (h *presenceHub) getStats(ch string) (PresenceStats, error) {
 	uniqueUsers := map[string]struct{}{}
 
 	for _, info := range presence {
-		userID := info.User
+		userID := info.UserID
 		if _, ok := uniqueUsers[userID]; !ok {
 			uniqueUsers[userID] = struct{}{}
 			numUsers++
@@ -323,7 +322,7 @@ func (h *historyHub) expireStreams() {
 	}
 }
 
-func (h *historyHub) add(ch string, pub *protocol.Publication, opts *ChannelOptions) (StreamPosition, error) {
+func (h *historyHub) add(ch string, pub *Publication, opts *ChannelOptions) (StreamPosition, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -381,7 +380,7 @@ func getPosition(stream *memstream.Stream) StreamPosition {
 	return streamPosition
 }
 
-func (h *historyHub) get(ch string, filter HistoryFilter) ([]*protocol.Publication, StreamPosition, error) {
+func (h *historyHub) get(ch string, filter HistoryFilter) ([]*Publication, StreamPosition, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -409,9 +408,9 @@ func (h *historyHub) get(ch string, filter HistoryFilter) ([]*protocol.Publicati
 		if err != nil {
 			return nil, StreamPosition{}, err
 		}
-		pubs := make([]*protocol.Publication, 0, len(items))
+		pubs := make([]*Publication, 0, len(items))
 		for _, item := range items {
-			pub := item.Value.(*protocol.Publication)
+			pub := item.Value.(*Publication)
 			pubs = append(pubs, pub)
 		}
 		return pubs, getPosition(stream), nil
@@ -431,9 +430,9 @@ func (h *historyHub) get(ch string, filter HistoryFilter) ([]*protocol.Publicati
 		return nil, StreamPosition{}, err
 	}
 
-	pubs := make([]*protocol.Publication, 0, len(items))
+	pubs := make([]*Publication, 0, len(items))
 	for _, item := range items {
-		pub := item.Value.(*protocol.Publication)
+		pub := item.Value.(*Publication)
 		pubs = append(pubs, pub)
 	}
 	return pubs, streamPosition, nil

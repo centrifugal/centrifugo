@@ -38,6 +38,7 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) func(ctx context.Context, cli
 	return func(ctx context.Context, client *centrifuge.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
 		started := time.Now()
 		rpcRep, err := h.config.Proxy.ProxyRPC(ctx, RPCRequest{
+			Method:    e.Method,
 			Data:      e.Data,
 			ClientID:  client.ID(),
 			UserID:    client.UserID(),

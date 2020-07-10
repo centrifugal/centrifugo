@@ -235,8 +235,8 @@ func (h *apiExecutor) Presence(_ context.Context, cmd *PresenceRequest) *Presenc
 	apiPresence := make(map[string]*ClientInfo, len(presence.Presence))
 	for k, v := range presence.Presence {
 		apiPresence[k] = &ClientInfo{
-			User:     v.User,
-			Client:   v.Client,
+			User:     v.UserID,
+			Client:   v.ClientID,
 			ConnInfo: Raw(v.ConnInfo),
 			ChanInfo: Raw(v.ChanInfo),
 		}
@@ -330,15 +330,14 @@ func (h *apiExecutor) History(_ context.Context, cmd *HistoryRequest) *HistoryRe
 
 	for i, pub := range history.Publications {
 		apiPub := &Publication{
-			UID:  pub.UID,
 			Data: Raw(pub.Data),
 		}
 		if pub.Info != nil {
 			apiPub.Info = &ClientInfo{
-				User:     pub.Info.User,
-				Client:   pub.Info.Client,
-				ConnInfo: Raw(pub.Info.ConnInfo),
-				ChanInfo: Raw(pub.Info.ChanInfo),
+				User:     pub.Info.UserID,
+				Client:   pub.Info.ClientID,
+				ConnInfo: pub.Info.ConnInfo,
+				ChanInfo: pub.Info.ChanInfo,
 			}
 		}
 		apiPubs[i] = apiPub

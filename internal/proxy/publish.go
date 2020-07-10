@@ -11,7 +11,7 @@ type PublishRequest struct {
 	ClientID  string
 	UserID    string
 	Channel   string
-	Data      centrifuge.Raw
+	Data      []byte
 	Transport centrifuge.TransportInfo
 }
 

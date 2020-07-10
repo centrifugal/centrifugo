@@ -9,7 +9,8 @@ import (
 
 // RPCRequest ...
 type RPCRequest struct {
-	Data      centrifuge.Raw
+	Method    string
+	Data      []byte
 	ClientID  string
 	UserID    string
 	Transport centrifuge.TransportInfo

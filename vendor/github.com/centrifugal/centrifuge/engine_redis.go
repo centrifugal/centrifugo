@@ -598,18 +598,18 @@ func (e *RedisEngine) Run(h BrokerEventHandler) error {
 }
 
 // Publish - see engine interface description.
-func (e *RedisEngine) Publish(ch string, pub *protocol.Publication, opts *ChannelOptions) error {
+func (e *RedisEngine) Publish(ch string, pub *Publication, opts *ChannelOptions) error {
 	return e.getShard(ch).Publish(ch, pub, opts)
 }
 
 // PublishJoin - see engine interface description.
-func (e *RedisEngine) PublishJoin(ch string, join *protocol.Join, opts *ChannelOptions) error {
-	return e.getShard(ch).PublishJoin(ch, join, opts)
+func (e *RedisEngine) PublishJoin(ch string, info *ClientInfo, opts *ChannelOptions) error {
+	return e.getShard(ch).PublishJoin(ch, info, opts)
 }
 
 // PublishLeave - see engine interface description.
-func (e *RedisEngine) PublishLeave(ch string, leave *protocol.Leave, opts *ChannelOptions) error {
-	return e.getShard(ch).PublishLeave(ch, leave, opts)
+func (e *RedisEngine) PublishLeave(ch string, info *ClientInfo, opts *ChannelOptions) error {
+	return e.getShard(ch).PublishLeave(ch, info, opts)
 }
 
 // PublishControl - see engine interface description.
@@ -636,7 +636,7 @@ func (e *RedisEngine) Unsubscribe(ch string) error {
 }
 
 // AddPresence - see engine interface description.
-func (e *RedisEngine) AddPresence(ch string, uid string, info *protocol.ClientInfo, exp time.Duration) error {
+func (e *RedisEngine) AddPresence(ch string, uid string, info *ClientInfo, exp time.Duration) error {
 	expire := int(exp.Seconds())
 	return e.getShard(ch).AddPresence(ch, uid, info, expire)
 }
@@ -647,7 +647,7 @@ func (e *RedisEngine) RemovePresence(ch string, uid string) error {
 }
 
 // Presence - see engine interface description.
-func (e *RedisEngine) Presence(ch string) (map[string]*protocol.ClientInfo, error) {
+func (e *RedisEngine) Presence(ch string) (map[string]*ClientInfo, error) {
 	return e.getShard(ch).Presence(ch)
 }
 
@@ -657,12 +657,12 @@ func (e *RedisEngine) PresenceStats(ch string) (PresenceStats, error) {
 }
 
 // History - see engine interface description.
-func (e *RedisEngine) History(ch string, filter HistoryFilter) ([]*protocol.Publication, StreamPosition, error) {
+func (e *RedisEngine) History(ch string, filter HistoryFilter) ([]*Publication, StreamPosition, error) {
 	return e.getShard(ch).History(ch, filter)
 }
 
 // AddHistory - see engine interface description.
-func (e *RedisEngine) AddHistory(ch string, pub *protocol.Publication, opts *ChannelOptions) (StreamPosition, bool, error) {
+func (e *RedisEngine) AddHistory(ch string, pub *Publication, opts *ChannelOptions) (StreamPosition, bool, error) {
 	streamTop, err := e.getShard(ch).AddHistory(ch, pub, opts, e.config.PublishOnHistoryAdd)
 	return streamTop, e.config.PublishOnHistoryAdd, err
 }
@@ -764,14 +764,14 @@ func (s *shard) historyListKey(ch string) channelID {
 	if s.useCluster() {
 		ch = "{" + ch + "}"
 	}
-	return channelID(s.config.Prefix + ".history.list." + ch)
+	return channelID(s.config.Prefix + ".list." + ch)
 }
 
 func (s *shard) historyStreamKey(ch string) channelID {
 	if s.useCluster() {
 		ch = "{" + ch + "}"
 	}
-	return channelID(s.config.Prefix + ".history.stream." + ch)
+	return channelID(s.config.Prefix + ".stream." + ch)
 }
 
 func (s *shard) historyMetaKey(ch string) channelID {
@@ -781,8 +781,7 @@ func (s *shard) historyMetaKey(ch string) channelID {
 	if s.useStreams {
 		return channelID(s.config.Prefix + ".stream.meta." + ch)
 	}
-	// TODO v1: rename to list.meta.
-	return channelID(s.config.Prefix + ".seq.meta." + ch)
+	return channelID(s.config.Prefix + ".list.meta." + ch)
 }
 
 // Run Redis shard.
@@ -1024,17 +1023,22 @@ func (s *shard) runPubSub(eventHandler BrokerEventHandler) {
 	}
 }
 
-func (s *shard) handleRedisClientMessage(eventHandler BrokerEventHandler, _ channelID, data []byte) error {
-	pushData, offset := extractPushData(data)
-	var push protocol.Push
-	err := push.Unmarshal(pushData)
-	if err != nil {
-		return err
-	}
-	switch push.Type {
-	case protocol.PushTypePublication:
+func (s *shard) extractChannel(chID channelID) string {
+	return strings.TrimPrefix(string(chID), s.messagePrefix)
+}
+
+// Define prefixes to distinguish Join and Leave messages coming from PUB/SUB.
+var (
+	joinTypePrefix  = []byte("__j__")
+	leaveTypePrefix = []byte("__l__")
+)
+
+func (s *shard) handleRedisClientMessage(eventHandler BrokerEventHandler, chID channelID, data []byte) error {
+	pushData, pushType, offset := extractPushData(data)
+	channel := s.extractChannel(chID)
+	if pushType == pubPushType {
 		var pub protocol.Publication
-		err := pub.Unmarshal(push.Data)
+		err := pub.Unmarshal(pushData)
 		if err != nil {
 			return err
 		}
@@ -1044,22 +1048,21 @@ func (s *shard) handleRedisClientMessage(eventHandler BrokerEventHandler, _ chan
 			// it to unmarshalled Publication.
 			pub.Offset = offset
 		}
-		_ = eventHandler.HandlePublication(push.Channel, &pub)
-	case protocol.PushTypeJoin:
-		var join protocol.Join
-		err := join.Unmarshal(push.Data)
+		_ = eventHandler.HandlePublication(channel, pubFromProto(&pub))
+	} else if pushType == joinPushType {
+		var info protocol.ClientInfo
+		err := info.Unmarshal(pushData)
 		if err != nil {
 			return err
 		}
-		_ = eventHandler.HandleJoin(push.Channel, &join)
-	case protocol.PushTypeLeave:
-		var leave protocol.Leave
-		err := leave.Unmarshal(push.Data)
+		_ = eventHandler.HandleJoin(channel, infoFromProto(&info))
+	} else if pushType == leavePushType {
+		var info protocol.ClientInfo
+		err := info.Unmarshal(pushData)
 		if err != nil {
 			return err
 		}
-		_ = eventHandler.HandleLeave(push.Channel, &leave)
-	default:
+		_ = eventHandler.HandleLeave(channel, infoFromProto(&info))
 	}
 	return nil
 }
@@ -1336,19 +1339,10 @@ func (s *shard) runDataPipeline() {
 }
 
 // Publish - see engine interface description.
-func (s *shard) Publish(ch string, pub *protocol.Publication, _ *ChannelOptions) error {
+func (s *shard) Publish(ch string, pub *Publication, _ *ChannelOptions) error {
 	eChan := make(chan error, 1)
 
-	data, err := pub.Marshal()
-	if err != nil {
-		return err
-	}
-	push := &protocol.Push{
-		Type:    protocol.PushTypePublication,
-		Channel: ch,
-		Data:    data,
-	}
-	byteMessage, err := push.Marshal()
+	byteMessage, err := pubToProto(pub).Marshal()
 	if err != nil {
 		return err
 	}
@@ -1375,20 +1369,11 @@ func (s *shard) Publish(ch string, pub *protocol.Publication, _ *ChannelOptions)
 }
 
 // PublishJoin - see engine interface description.
-func (s *shard) PublishJoin(ch string, join *protocol.Join, _ *ChannelOptions) error {
+func (s *shard) PublishJoin(ch string, info *ClientInfo, _ *ChannelOptions) error {
 
 	eChan := make(chan error, 1)
 
-	data, err := join.Marshal()
-	if err != nil {
-		return err
-	}
-	push := &protocol.Push{
-		Type:    protocol.PushTypeJoin,
-		Channel: ch,
-		Data:    data,
-	}
-	byteMessage, err := push.Marshal()
+	byteMessage, err := infoToProto(info).Marshal()
 	if err != nil {
 		return err
 	}
@@ -1397,7 +1382,7 @@ func (s *shard) PublishJoin(ch string, join *protocol.Join, _ *ChannelOptions) e
 
 	pr := pubRequest{
 		channel: chID,
-		message: byteMessage,
+		message: append(joinTypePrefix, byteMessage...),
 		err:     eChan,
 	}
 	select {
@@ -1415,20 +1400,11 @@ func (s *shard) PublishJoin(ch string, join *protocol.Join, _ *ChannelOptions) e
 }
 
 // PublishLeave - see engine interface description.
-func (s *shard) PublishLeave(ch string, leave *protocol.Leave, _ *ChannelOptions) error {
+func (s *shard) PublishLeave(ch string, info *ClientInfo, _ *ChannelOptions) error {
 
 	eChan := make(chan error, 1)
 
-	data, err := leave.Marshal()
-	if err != nil {
-		return err
-	}
-	push := &protocol.Push{
-		Type:    protocol.PushTypeLeave,
-		Channel: ch,
-		Data:    data,
-	}
-	byteMessage, err := push.Marshal()
+	byteMessage, err := infoToProto(info).Marshal()
 	if err != nil {
 		return err
 	}
@@ -1437,7 +1413,7 @@ func (s *shard) PublishLeave(ch string, leave *protocol.Leave, _ *ChannelOptions
 
 	pr := pubRequest{
 		channel: chID,
-		message: byteMessage,
+		message: append(leaveTypePrefix, byteMessage...),
 		err:     eChan,
 	}
 	select {
@@ -1535,8 +1511,8 @@ func (s *shard) getDataResponse(r dataRequest) *dataResponse {
 }
 
 // AddPresence - see engine interface description.
-func (s *shard) AddPresence(ch string, uid string, info *protocol.ClientInfo, expire int) error {
-	infoJSON, err := info.Marshal()
+func (s *shard) AddPresence(ch string, uid string, info *ClientInfo, expire int) error {
+	infoJSON, err := infoToProto(info).Marshal()
 	if err != nil {
 		return err
 	}
@@ -1558,7 +1534,7 @@ func (s *shard) RemovePresence(ch string, uid string) error {
 }
 
 // Presence - see engine interface description.
-func (s *shard) Presence(ch string) (map[string]*protocol.ClientInfo, error) {
+func (s *shard) Presence(ch string) (map[string]*ClientInfo, error) {
 	hashKey := s.presenceHashKey(ch)
 	setKey := s.presenceSetKey(ch)
 	now := int(time.Now().Unix())
@@ -1582,7 +1558,7 @@ func (s *shard) PresenceStats(ch string) (PresenceStats, error) {
 	uniqueUsers := map[string]struct{}{}
 
 	for _, info := range presence {
-		userID := info.User
+		userID := info.UserID
 		if _, ok := uniqueUsers[userID]; !ok {
 			uniqueUsers[userID] = struct{}{}
 			numUsers++
@@ -1596,7 +1572,7 @@ func (s *shard) PresenceStats(ch string) (PresenceStats, error) {
 }
 
 // History - see engine interface description.
-func (s *shard) History(ch string, filter HistoryFilter) ([]*protocol.Publication, StreamPosition, error) {
+func (s *shard) History(ch string, filter HistoryFilter) ([]*Publication, StreamPosition, error) {
 	if s.useStreams {
 		return s.historyStream(ch, filter)
 	}
@@ -1622,7 +1598,7 @@ func (s *shard) extractHistoryResponse(reply interface{}, includePubs bool) (Str
 	streamPosition := StreamPosition{Offset: offset, Epoch: epoch}
 
 	if includePubs {
-		var publications []*protocol.Publication
+		var publications []*Publication
 		if s.useStreams {
 			publications, err = sliceOfPubsStream(results[2], nil)
 		} else {
@@ -1637,7 +1613,7 @@ func (s *shard) extractHistoryResponse(reply interface{}, includePubs bool) (Str
 	return streamPosition, nil, nil
 }
 
-func (s *shard) historyStream(ch string, filter HistoryFilter) ([]*protocol.Publication, StreamPosition, error) {
+func (s *shard) historyStream(ch string, filter HistoryFilter) ([]*Publication, StreamPosition, error) {
 	historyKey := s.historyStreamKey(ch)
 	historyMetaKey := s.historyMetaKey(ch)
 
@@ -1670,7 +1646,7 @@ func (s *shard) historyStream(ch string, filter HistoryFilter) ([]*protocol.Publ
 	return publications, latestPosition, nil
 }
 
-func (s *shard) historyList(ch string, filter HistoryFilter) ([]*protocol.Publication, StreamPosition, error) {
+func (s *shard) historyList(ch string, filter HistoryFilter) ([]*Publication, StreamPosition, error) {
 	historyKey := s.historyListKey(ch)
 	historyMetaKey := s.historyMetaKey(ch)
 
@@ -1748,17 +1724,8 @@ func (s *shard) historyList(ch string, filter HistoryFilter) ([]*protocol.Public
 	return publications, latestPosition, nil
 }
 
-func (s *shard) AddHistory(ch string, pub *protocol.Publication, opts *ChannelOptions, publishOnHistoryAdd bool) (StreamPosition, error) {
-	data, err := pub.Marshal()
-	if err != nil {
-		return StreamPosition{}, err
-	}
-	push := &protocol.Push{
-		Type:    protocol.PushTypePublication,
-		Channel: ch,
-		Data:    data,
-	}
-	byteMessage, err := push.Marshal()
+func (s *shard) AddHistory(ch string, pub *Publication, opts *ChannelOptions, publishOnHistoryAdd bool) (StreamPosition, error) {
+	byteMessage, err := pubToProto(pub).Marshal()
 	if err != nil {
 		return StreamPosition{}, err
 	}
@@ -1840,7 +1807,7 @@ func (s *shard) Channels() ([]string, error) {
 	return channels, nil
 }
 
-func mapStringClientInfo(result interface{}, err error) (map[string]*protocol.ClientInfo, error) {
+func mapStringClientInfo(result interface{}, err error) (map[string]*ClientInfo, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err
@@ -1848,7 +1815,7 @@ func mapStringClientInfo(result interface{}, err error) (map[string]*protocol.Cl
 	if len(values)%2 != 0 {
 		return nil, errors.New("mapStringClientInfo expects even number of values result")
 	}
-	m := make(map[string]*protocol.ClientInfo, len(values)/2)
+	m := make(map[string]*ClientInfo, len(values)/2)
 	for i := 0; i < len(values); i += 2 {
 		key, okKey := values[i].([]byte)
 		value, okValue := values[i+1].([]byte)
@@ -1860,27 +1827,40 @@ func mapStringClientInfo(result interface{}, err error) (map[string]*protocol.Cl
 		if err != nil {
 			return nil, errors.New("can not unmarshal value to ClientInfo")
 		}
-		m[string(key)] = &f
+		m[string(key)] = infoFromProto(&f)
 	}
 	return m, nil
 }
 
-func extractPushData(data []byte) ([]byte, uint64) {
+type pushType int
+
+const (
+	pubPushType   pushType = 0
+	joinPushType  pushType = 1
+	leavePushType pushType = 2
+)
+
+func extractPushData(data []byte) ([]byte, pushType, uint64) {
 	var offset uint64
 	if bytes.HasPrefix(data, []byte("__")) {
 		parts := bytes.SplitN(data, []byte("__"), 3)
+		if bytes.Equal(parts[1], []byte("j")) {
+			return parts[2], joinPushType, 0
+		} else if bytes.Equal(parts[1], []byte("l")) {
+			return parts[2], leavePushType, 0
+		}
 		offset, _ := strconv.ParseUint(string(parts[1]), 10, 64)
-		return parts[2], offset
+		return parts[2], pubPushType, offset
 	}
-	return data, offset
+	return data, pubPushType, offset
 }
 
-func sliceOfPubsStream(result interface{}, err error) ([]*protocol.Publication, error) {
+func sliceOfPubsStream(result interface{}, err error) ([]*Publication, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err
 	}
-	pubs := make([]*protocol.Publication, 0, len(values))
+	pubs := make([]*Publication, 0, len(values))
 
 	useSeqGen := hasFlag(CompatibilityFlags, UseSeqGen)
 
@@ -1915,18 +1895,8 @@ func sliceOfPubsStream(result interface{}, err error) ([]*protocol.Publication, 
 			return nil, errors.New("error getting value")
 		}
 
-		var push protocol.Push
-		err = push.Unmarshal(pushData)
-		if err != nil {
-			return nil, fmt.Errorf("can not unmarshal value to Message: %v", err)
-		}
-
-		if push.Type != protocol.PushTypePublication {
-			return nil, fmt.Errorf("wrong message type in history: %d", push.Type)
-		}
-
 		var pub protocol.Publication
-		err = pub.Unmarshal(push.Data)
+		err = pub.Unmarshal(pushData)
 		if err != nil {
 			return nil, fmt.Errorf("can not unmarshal value to Pub: %v", err)
 		}
@@ -1935,17 +1905,17 @@ func sliceOfPubsStream(result interface{}, err error) ([]*protocol.Publication, 
 		} else {
 			pub.Offset = offset
 		}
-		pubs = append(pubs, &pub)
+		pubs = append(pubs, pubFromProto(&pub))
 	}
 	return pubs, nil
 }
 
-func sliceOfPubs(result interface{}, err error) ([]*protocol.Publication, error) {
+func sliceOfPubs(result interface{}, err error) ([]*Publication, error) {
 	values, err := redis.Values(result, err)
 	if err != nil {
 		return nil, err
 	}
-	pubs := make([]*protocol.Publication, 0, len(values))
+	pubs := make([]*Publication, 0, len(values))
 
 	useSeqGen := hasFlag(CompatibilityFlags, UseSeqGen)
 
@@ -1955,20 +1925,10 @@ func sliceOfPubs(result interface{}, err error) ([]*protocol.Publication, error)
 			return nil, errors.New("error getting Message value")
 		}
 
-		pushData, offset := extractPushData(value)
-
-		var push protocol.Push
-		err := push.Unmarshal(pushData)
-		if err != nil {
-			return nil, fmt.Errorf("can not unmarshal value to Message: %v", err)
-		}
-
-		if push.Type != protocol.PushTypePublication {
-			return nil, fmt.Errorf("wrong message type in history: %d", push.Type)
-		}
+		pushData, _, offset := extractPushData(value)
 
 		var pub protocol.Publication
-		err = pub.Unmarshal(push.Data)
+		err = pub.Unmarshal(pushData)
 		if err != nil {
 			return nil, fmt.Errorf("can not unmarshal value to Pub: %v", err)
 		}
@@ -1978,7 +1938,7 @@ func sliceOfPubs(result interface{}, err error) ([]*protocol.Publication, error)
 		} else {
 			pub.Offset = offset
 		}
-		pubs = append(pubs, &pub)
+		pubs = append(pubs, pubFromProto(&pub))
 	}
 	return pubs, nil
 }

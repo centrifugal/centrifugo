@@ -190,7 +190,8 @@ Payload sent to app backend in RPC request:
   "protocol": "json",
   "encoding":"json",
   "user":"56",
-  "data":{"method":"getCurrentYear"}
+  "method": "getCurrentPrice",
+  "data":{"params": {"object_id": 12}}
 }
 ```
 
@@ -198,7 +199,8 @@ Request fields:
 
 * `client`, `transport`, `protocol`, `encoding` are the same as described for connect request payload
 * `user` is a connection user ID obtained during authentication process
-* `data` is an RPC data sent by client
+* `method` is an RPC method string, if client does not use named RPC call then method will be omitted (available since v2.6.0)
+* `data` is an RPC custom data sent by client
 * `b64data` will be set instead of `data` field for connections that use binary payload encoding
 
 Response expected:

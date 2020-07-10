@@ -12,7 +12,6 @@ import (
 	"github.com/centrifugal/centrifuge/internal/controlproto"
 	"github.com/centrifugal/centrifuge/internal/dissolve"
 	"github.com/centrifugal/centrifuge/internal/nowtime"
-	"github.com/centrifugal/centrifuge/internal/recovery"
 
 	"github.com/FZambia/eagle"
 	"github.com/centrifugal/protocol"
@@ -464,7 +463,7 @@ func (n *Node) handleLeave(ch string, leave *protocol.Leave) error {
 	return n.hub.broadcastLeave(ch, leave)
 }
 
-func (n *Node) publish(ch string, data []byte, info *protocol.ClientInfo, opts ...PublishOption) (PublishResult, error) {
+func (n *Node) publish(ch string, data []byte, info *ClientInfo, opts ...PublishOption) (PublishResult, error) {
 	chOpts, found, err := n.channelOptions(ch)
 	if err != nil {
 		return PublishResult{}, err
@@ -478,7 +477,7 @@ func (n *Node) publish(ch string, data []byte, info *protocol.ClientInfo, opts .
 		opt(publishOpts)
 	}
 
-	pub := &protocol.Publication{
+	pub := &Publication{
 		Data: data,
 		Info: info,
 	}
@@ -532,7 +531,7 @@ func (n *Node) Publish(channel string, data []byte, opts ...PublishOption) (Publ
 
 // publishJoin allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (n *Node) publishJoin(ch string, join *protocol.Join, opts *ChannelOptions) error {
+func (n *Node) publishJoin(ch string, info *ClientInfo, opts *ChannelOptions) error {
 	if opts == nil {
 		chOpts, found, err := n.channelOptions(ch)
 		if err != nil {
@@ -544,12 +543,12 @@ func (n *Node) publishJoin(ch string, join *protocol.Join, opts *ChannelOptions)
 		opts = &chOpts
 	}
 	messagesSentCountJoin.Inc()
-	return n.broker.PublishJoin(ch, join, opts)
+	return n.broker.PublishJoin(ch, info, opts)
 }
 
 // publishLeave allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (n *Node) publishLeave(ch string, leave *protocol.Leave, opts *ChannelOptions) error {
+func (n *Node) publishLeave(ch string, info *ClientInfo, opts *ChannelOptions) error {
 	if opts == nil {
 		chOpts, found, err := n.channelOptions(ch)
 		if err != nil {
@@ -561,7 +560,7 @@ func (n *Node) publishLeave(ch string, leave *protocol.Leave, opts *ChannelOptio
 		opts = &chOpts
 	}
 	messagesSentCountLeave.Inc()
-	return n.broker.PublishLeave(ch, leave, opts)
+	return n.broker.PublishLeave(ch, info, opts)
 }
 
 // publishControl publishes message into control channel so all running
@@ -757,7 +756,7 @@ func (n *Node) Disconnect(user string, opts ...DisconnectOption) error {
 }
 
 // addPresence proxies presence adding to engine.
-func (n *Node) addPresence(ch string, uid string, info *protocol.ClientInfo) error {
+func (n *Node) addPresence(ch string, uid string, info *ClientInfo) error {
 	if n.presenceManager == nil {
 		return nil
 	}
@@ -793,6 +792,62 @@ func (n *Node) Presence(ch string) (PresenceResult, error) {
 		return PresenceResult{}, err
 	}
 	return PresenceResult{Presence: presence}, nil
+}
+
+func infoFromProto(v *protocol.ClientInfo) *ClientInfo {
+	if v == nil {
+		return nil
+	}
+	info := &ClientInfo{
+		ClientID: v.GetClient(),
+		UserID:   v.GetUser(),
+	}
+	if len(v.ConnInfo) > 0 {
+		info.ConnInfo = v.ConnInfo
+	}
+	if len(v.ChanInfo) > 0 {
+		info.ChanInfo = v.ChanInfo
+	}
+	return info
+}
+
+func infoToProto(v *ClientInfo) *protocol.ClientInfo {
+	if v == nil {
+		return nil
+	}
+	info := &protocol.ClientInfo{
+		Client: v.ClientID,
+		User:   v.UserID,
+	}
+	if len(v.ConnInfo) > 0 {
+		info.ConnInfo = v.ConnInfo
+	}
+	if len(v.ChanInfo) > 0 {
+		info.ChanInfo = v.ChanInfo
+	}
+	return info
+}
+
+func pubToProto(pub *Publication) *protocol.Publication {
+	if pub == nil {
+		return nil
+	}
+	return &protocol.Publication{
+		Offset: pub.Offset,
+		Data:   pub.Data,
+		Info:   infoToProto(pub.Info),
+	}
+}
+
+func pubFromProto(pub *protocol.Publication) *Publication {
+	if pub == nil {
+		return nil
+	}
+	return &Publication{
+		Offset: pub.GetOffset(),
+		Data:   pub.Data,
+		Info:   infoFromProto(pub.GetInfo()),
+	}
 }
 
 // PresenceStatsResult wraps presence stats.
@@ -837,11 +892,6 @@ func (n *Node) History(ch string, opts ...HistoryOption) (HistoryResult, error) 
 	})
 	if err != nil {
 		return HistoryResult{}, err
-	}
-	if hasFlag(CompatibilityFlags, UseSeqGen) {
-		for i := 0; i < len(pubs); i++ {
-			pubs[i].Seq, pubs[i].Gen = recovery.UnpackUint64(pubs[i].Offset)
-		}
 	}
 	return HistoryResult{
 		StreamPosition: streamTop,
@@ -1075,18 +1125,27 @@ type brokerEventHandler struct {
 }
 
 // HandlePublication coming from Engine.
-func (h *brokerEventHandler) HandlePublication(ch string, pub *protocol.Publication) error {
-	return h.node.handlePublication(ch, pub)
+func (h *brokerEventHandler) HandlePublication(ch string, pub *Publication) error {
+	if pub == nil {
+		panic("nil Publication received, this should never happen")
+	}
+	return h.node.handlePublication(ch, pubToProto(pub))
 }
 
 // HandleJoin coming from Engine.
-func (h *brokerEventHandler) HandleJoin(ch string, join *protocol.Join) error {
-	return h.node.handleJoin(ch, join)
+func (h *brokerEventHandler) HandleJoin(ch string, info *ClientInfo) error {
+	if info == nil {
+		panic("nil join info received, this should never happen")
+	}
+	return h.node.handleJoin(ch, &protocol.Join{Info: *infoToProto(info)})
 }
 
 // HandleLeave coming from Engine.
-func (h *brokerEventHandler) HandleLeave(ch string, leave *protocol.Leave) error {
-	return h.node.handleLeave(ch, leave)
+func (h *brokerEventHandler) HandleLeave(ch string, info *ClientInfo) error {
+	if info == nil {
+		panic("nil leave info received, this should never happen")
+	}
+	return h.node.handleLeave(ch, &protocol.Leave{Info: *infoToProto(info)})
 }
 
 // HandleControl coming from Engine.

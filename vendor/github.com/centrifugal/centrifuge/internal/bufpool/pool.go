@@ -1,18 +1,9 @@
-package centrifuge
+package bufpool
 
 import (
 	"bytes"
 	"sync"
 )
-
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
 
 var bufferPool = sync.Pool{
 	// New is called when a new instance is needed
@@ -21,11 +12,11 @@ var bufferPool = sync.Pool{
 	},
 }
 
-func getBuffer() *bytes.Buffer {
+func GetBuffer() *bytes.Buffer {
 	return bufferPool.Get().(*bytes.Buffer)
 }
 
-func putBuffer(buf *bytes.Buffer) {
+func PutBuffer(buf *bytes.Buffer) {
 	buf.Reset()
 	bufferPool.Put(buf)
 }
