@@ -6,6 +6,8 @@ import (
 	"github.com/centrifugal/protocol"
 )
 
+var _ error = (*Error)(nil)
+
 // Error represents client reply error.
 type Error struct {
 	Code    uint32
@@ -41,10 +43,10 @@ var (
 		Code:    101,
 		Message: "unauthorized",
 	}
-	// ErrorNamespaceNotFound means that namespace in channel name does not exist.
-	ErrorNamespaceNotFound = &Error{
+	// ErrorUnknownChannel means that channel name does not exist.
+	ErrorUnknownChannel = &Error{
 		Code:    102,
-		Message: "namespace not found",
+		Message: "unknown channel",
 	}
 	// ErrorPermissionDenied means that access to resource not allowed.
 	ErrorPermissionDenied = &Error{

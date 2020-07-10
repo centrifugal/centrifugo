@@ -34,8 +34,8 @@ func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 }
 
 // Handle refresh.
-func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *centrifuge.Client, centrifuge.RefreshEvent) centrifuge.RefreshReply {
-	return func(ctx context.Context, client *centrifuge.Client, e centrifuge.RefreshEvent) centrifuge.RefreshReply {
+func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *centrifuge.Client, centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
+	return func(ctx context.Context, client *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
 		started := time.Now()
 		refreshRep, err := h.config.Proxy.ProxyRefresh(ctx, RefreshRequest{
 			ClientID:  client.ID(),
@@ -45,7 +45,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *ce
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				return centrifuge.RefreshReply{}
+				return centrifuge.RefreshReply{}, nil
 			}
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
@@ -58,7 +58,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *ce
 			// like a reasonable value.
 			return centrifuge.RefreshReply{
 				ExpireAt: time.Now().Unix() + 60,
-			}
+			}, nil
 		}
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)
@@ -69,13 +69,13 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *ce
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no refresh credentials found", map[string]interface{}{}))
 			return centrifuge.RefreshReply{
 				Expired: true,
-			}
+			}, nil
 		}
 
 		if credentials.Expired {
 			return centrifuge.RefreshReply{
 				Expired: true,
-			}
+			}, nil
 		}
 
 		var info []byte
@@ -86,7 +86,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *ce
 				decodedInfo, err := base64.StdEncoding.DecodeString(credentials.Base64Info)
 				if err != nil {
 					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
-					return centrifuge.RefreshReply{}
+					return centrifuge.RefreshReply{}, centrifuge.ErrorInternal
 				}
 				info = decodedInfo
 			}
@@ -95,6 +95,6 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *ce
 		return centrifuge.RefreshReply{
 			ExpireAt: credentials.ExpireAt,
 			Info:     info,
-		}
+		}, nil
 	}
 }

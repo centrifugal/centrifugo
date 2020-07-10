@@ -34,10 +34,11 @@ func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 }
 
 // Handle RPC.
-func (h *RPCHandler) Handle(ctx context.Context, node *centrifuge.Node, client *centrifuge.Client) func(e centrifuge.RPCEvent) centrifuge.RPCReply {
-	return func(e centrifuge.RPCEvent) centrifuge.RPCReply {
+func (h *RPCHandler) Handle(node *centrifuge.Node) func(ctx context.Context, client *centrifuge.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
+	return func(ctx context.Context, client *centrifuge.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
 		started := time.Now()
 		rpcRep, err := h.config.Proxy.ProxyRPC(ctx, RPCRequest{
+			Method:    e.Method,
 			Data:      e.Data,
 			ClientID:  client.ID(),
 			UserID:    client.UserID(),
@@ -46,27 +47,21 @@ func (h *RPCHandler) Handle(ctx context.Context, node *centrifuge.Node, client *
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				return centrifuge.RPCReply{}
+				return centrifuge.RPCReply{}, nil
 			}
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
 			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying RPC", map[string]interface{}{"error": err.Error()}))
-			return centrifuge.RPCReply{
-				Error: centrifuge.ErrorInternal,
-			}
+			return centrifuge.RPCReply{}, centrifuge.ErrorInternal
 		}
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)
 		if rpcRep.Disconnect != nil {
-			return centrifuge.RPCReply{
-				Disconnect: rpcRep.Disconnect,
-			}
+			return centrifuge.RPCReply{}, rpcRep.Disconnect
 		}
 		if rpcRep.Error != nil {
-			return centrifuge.RPCReply{
-				Error: rpcRep.Error,
-			}
+			return centrifuge.RPCReply{}, rpcRep.Error
 		}
 
 		rpcData := rpcRep.Result
@@ -79,9 +74,7 @@ func (h *RPCHandler) Handle(ctx context.Context, node *centrifuge.Node, client *
 					decodedData, err := base64.StdEncoding.DecodeString(rpcData.Base64Data)
 					if err != nil {
 						node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
-						return centrifuge.RPCReply{
-							Error: centrifuge.ErrorInternal,
-						}
+						return centrifuge.RPCReply{}, centrifuge.ErrorInternal
 					}
 					data = decodedData
 				}
@@ -90,6 +83,6 @@ func (h *RPCHandler) Handle(ctx context.Context, node *centrifuge.Node, client *
 
 		return centrifuge.RPCReply{
 			Data: data,
-		}
+		}, nil
 	}
 }

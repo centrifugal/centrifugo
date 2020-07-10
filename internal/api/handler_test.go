@@ -7,14 +7,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/internal/rule"
+
 	"github.com/stretchr/testify/require"
 )
 
 func TestAPIHandler(t *testing.T) {
 	n := nodeWithMemoryEngine()
 
+	ruleConfig := rule.DefaultRuleConfig
+	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+
 	mux := http.NewServeMux()
-	mux.Handle("/api", NewHandler(n, Config{}))
+	mux.Handle("/api", NewHandler(n, ruleContainer, Config{}))
 	server := httptest.NewServer(mux)
 	defer server.Close()
 

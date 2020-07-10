@@ -2,6 +2,7 @@
 
 * [Memory engine](#memory-engine)
 * [Redis engine](#redis-engine)
+* [Nats broker](#nats-broker)
 
 Engine in Centrifugo is responsible for publishing messages between nodes, handle PUB/SUB broker subscriptions, save/retrieve presence and history data.
 
@@ -107,8 +108,8 @@ Centrifugo supports official way to add high availability to Redis - Redis [Sent
 For this you only need to utilize 2 Redis Engine options: `redis_master_name` and `redis_sentinels`.
 
 `redis_master_name` - is a name of master your Sentinels monitor.
-
 `redis_sentinels` - comma-separated addresses of Sentinel servers. At least one known server required.
+`redis_sentinel_password` – optional string password for your Sentinel, works with Redis Sentinel >= 5.0.1 (available since Centrifugo v2.6.0)
 
 So you can start Centrifugo which will use Sentinels to discover redis master instance like this:
 
@@ -249,3 +250,46 @@ Though we can't give any promises about compatibility with KeyDB in future Centr
 Use KeyDB instead of Redis only if you are really sure you need it. Nothing stops you from running several Redis instances per each core you have, configure sharding and obtain even better performance that KeyDB can provide (due to lack of synchronization between threads in Redis).
 
 In order to run Centrifugo with KeyDB all you need to do is use `redis` engine option and run KeyDB server instead of Redis.
+
+## Nats broker
+
+Starting from Centrifugo v2.6.0 it's possible to scale with [Nats](https://nats.io/) PUB/SUB server.
+
+Known limitations:
+
+* **Nats integration works only for unreliable at most once PUB/SUB**. This means that history, presence and message recovery Centrifugo features won't be available.
+* Nats wildcard channel subscriptions with symbols `*` and `>` **not supported**.
+
+First start Nats server:
+
+```
+$ nats-server
+[3569] 2020/07/08 20:28:44.324269 [INF] Starting nats-server version 2.1.7
+[3569] 2020/07/08 20:28:44.324400 [INF] Git commit [not set]
+[3569] 2020/07/08 20:28:44.325600 [INF] Listening for client connections on 0.0.0.0:4222
+[3569] 2020/07/08 20:28:44.325612 [INF] Server id is NDAM7GEHUXAKS5SGMA3QE6ZSO4IQUJP6EL3G2E2LJYREVMAMIOBE7JT4
+[3569] 2020/07/08 20:28:44.325617 [INF] Server is ready
+```
+
+Then start Centrifugo with `broker` option:
+
+```bash
+centrifugo --broker=nats --config=config.json
+```
+
+And one more Centrifugo on another port (of course in real life you will start another Centrifugo on another machine):
+
+```bash
+centrifugo --broker=nats --config=config.json --port=8001
+```
+
+Now you can scale connections over Centrifugo instances, instances will be connected over Nats server.
+
+Available options:
+
+* `nats_url` - connection url in format `nats://derek:pass@localhost:4222`, by default `nats://127.0.0.1:4222`.
+* `nats_prefix` - prefix for channels used by Centrifugo inside Nats. By default, `centrifugo`.
+* `nats_dial_timeout` - timeout for dialing to Nats in seconds, default `1`.
+* `nats_write_timeout` - write (and flush) timeout on a connection to Nats in seconds, default `1`.
+
+It's theoretically possible to use Redis Engine together with Nats broker for message history, recovery and presence. If you are interested in this – please write to our community chat rooms.

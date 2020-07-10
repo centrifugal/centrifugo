@@ -38,6 +38,8 @@ type NatsBroker struct {
 	eventHandler centrifuge.BrokerEventHandler
 }
 
+var _ centrifuge.Broker = (*NatsBroker)(nil)
+
 // New creates NatsBroker.
 func New(n *centrifuge.Node, conf Config) (*NatsBroker, error) {
 	b := &NatsBroker{
@@ -87,9 +89,18 @@ func (b *NatsBroker) Close(_ context.Context) error {
 	return nil
 }
 
+func isUnsupportedChannel(ch string) bool {
+	return strings.Contains(ch, "*") || strings.Contains(ch, ">")
+}
+
 // Publish - see Broker interface description.
-func (b *NatsBroker) Publish(ch string, pub *protocol.Publication, _ *centrifuge.ChannelOptions) error {
-	data, err := pub.Marshal()
+func (b *NatsBroker) Publish(ch string, pub *centrifuge.Publication, _ *centrifuge.ChannelOptions) error {
+	if isUnsupportedChannel(ch) {
+		// Do not support wildcard subscriptions.
+		return centrifuge.ErrorBadRequest
+	}
+	protoPub := pubToProto(pub)
+	data, err := protoPub.Marshal()
 	if err != nil {
 		return err
 	}
@@ -106,8 +117,8 @@ func (b *NatsBroker) Publish(ch string, pub *protocol.Publication, _ *centrifuge
 }
 
 // PublishJoin - see Broker interface description.
-func (b *NatsBroker) PublishJoin(ch string, join *protocol.Join, _ *centrifuge.ChannelOptions) error {
-	data, err := join.Marshal()
+func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo, _ *centrifuge.ChannelOptions) error {
+	data, err := infoToProto(info).Marshal()
 	if err != nil {
 		return err
 	}
@@ -124,8 +135,8 @@ func (b *NatsBroker) PublishJoin(ch string, join *protocol.Join, _ *centrifuge.C
 }
 
 // PublishLeave - see Broker interface description.
-func (b *NatsBroker) PublishLeave(ch string, leave *protocol.Leave, _ *centrifuge.ChannelOptions) error {
-	data, err := leave.Marshal()
+func (b *NatsBroker) PublishLeave(ch string, info *centrifuge.ClientInfo, _ *centrifuge.ChannelOptions) error {
+	data, err := infoToProto(info).Marshal()
 	if err != nil {
 		return err
 	}
@@ -159,21 +170,21 @@ func (b *NatsBroker) handleClientMessage(data []byte) error {
 		if err != nil {
 			return err
 		}
-		_ = b.eventHandler.HandlePublication(push.Channel, &pub)
+		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(&pub))
 	case protocol.PushTypeJoin:
-		var join protocol.Join
-		err := join.Unmarshal(push.Data)
+		var info protocol.ClientInfo
+		err := info.Unmarshal(push.Data)
 		if err != nil {
 			return err
 		}
-		_ = b.eventHandler.HandleJoin(push.Channel, &join)
+		_ = b.eventHandler.HandleJoin(push.Channel, infoFromProto(&info))
 	case protocol.PushTypeLeave:
-		var leave protocol.Leave
-		err := leave.Unmarshal(push.Data)
+		var info protocol.ClientInfo
+		err := info.Unmarshal(push.Data)
 		if err != nil {
 			return err
 		}
-		_ = b.eventHandler.HandleLeave(push.Channel, &leave)
+		_ = b.eventHandler.HandleLeave(push.Channel, infoFromProto(&info))
 	default:
 	}
 	return nil
@@ -189,7 +200,7 @@ func (b *NatsBroker) handleControl(m *nats.Msg) {
 
 // Subscribe - see Broker interface description.
 func (b *NatsBroker) Subscribe(ch string) error {
-	if strings.Contains(ch, "*") || strings.Contains(ch, ">") {
+	if isUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.ErrorBadRequest
 	}
@@ -221,4 +232,60 @@ func (b *NatsBroker) Unsubscribe(ch string) error {
 // Channels - see Broker interface description.
 func (b *NatsBroker) Channels() ([]string, error) {
 	return nil, nil
+}
+
+func infoFromProto(v *protocol.ClientInfo) *centrifuge.ClientInfo {
+	if v == nil {
+		return nil
+	}
+	info := &centrifuge.ClientInfo{
+		ClientID: v.GetClient(),
+		UserID:   v.GetUser(),
+	}
+	if len(v.ConnInfo) > 0 {
+		info.ConnInfo = v.ConnInfo
+	}
+	if len(v.ChanInfo) > 0 {
+		info.ChanInfo = v.ChanInfo
+	}
+	return info
+}
+
+func infoToProto(v *centrifuge.ClientInfo) *protocol.ClientInfo {
+	if v == nil {
+		return nil
+	}
+	info := &protocol.ClientInfo{
+		Client: v.ClientID,
+		User:   v.UserID,
+	}
+	if len(v.ConnInfo) > 0 {
+		info.ConnInfo = v.ConnInfo
+	}
+	if len(v.ChanInfo) > 0 {
+		info.ChanInfo = v.ChanInfo
+	}
+	return info
+}
+
+func pubToProto(pub *centrifuge.Publication) *protocol.Publication {
+	if pub == nil {
+		return nil
+	}
+	return &protocol.Publication{
+		Offset: pub.Offset,
+		Data:   pub.Data,
+		Info:   infoToProto(pub.Info),
+	}
+}
+
+func pubFromProto(pub *protocol.Publication) *centrifuge.Publication {
+	if pub == nil {
+		return nil
+	}
+	return &centrifuge.Publication{
+		Offset: pub.GetOffset(),
+		Data:   pub.Data,
+		Info:   infoFromProto(pub.GetInfo()),
+	}
 }

@@ -5,19 +5,23 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/internal/rule"
+
 	"github.com/centrifugal/centrifuge"
 )
 
 // apiExecutor can run API methods.
 type apiExecutor struct {
-	node     *centrifuge.Node
-	protocol string
+	node          *centrifuge.Node
+	ruleContainer *rule.ChannelRuleContainer
+	protocol      string
 }
 
-func newAPIExecutor(n *centrifuge.Node, protocol string) *apiExecutor {
+func newAPIExecutor(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, protocol string) *apiExecutor {
 	return &apiExecutor{
-		node:     n,
-		protocol: protocol,
+		node:          n,
+		ruleContainer: ruleContainer,
+		protocol:      protocol,
 	}
 }
 
@@ -42,15 +46,19 @@ func (h *apiExecutor) Publish(_ context.Context, cmd *PublishRequest) *PublishRe
 		return resp
 	}
 
-	_, ok := h.node.ChannelOpts(ch)
-	if !ok {
+	_, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
 		resp.Error = ErrorNamespaceNotFound
 		return resp
 	}
 
-	_, err := h.node.Publish(cmd.Channel, cmd.Data)
+	_, err = h.node.Publish(cmd.Channel, cmd.Data)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing message in engine", map[string]interface{}{"error": err.Error()}))
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing message in engine", map[string]interface{}{"error": err.Error(), "channel": cmd.Channel}))
 		resp.Error = ErrorInternal
 		return resp
 	}
@@ -90,8 +98,13 @@ func (h *apiExecutor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broad
 			return resp
 		}
 
-		_, ok := h.node.ChannelOpts(ch)
-		if !ok {
+		_, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
+		if err != nil {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting options for channel", map[string]interface{}{"channel": ch, "error": err.Error()}))
+			resp.Error = ErrorInternal
+			return resp
+		}
+		if !found {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "can't find namespace for channel", map[string]interface{}{"channel": ch}))
 			resp.Error = ErrorNamespaceNotFound
 			return resp
@@ -141,8 +154,12 @@ func (h *apiExecutor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *U
 	}
 
 	if channel != "" {
-		_, ok := h.node.ChannelOpts(channel)
-		if !ok {
+		_, found, err := h.ruleContainer.NamespacedChannelOptions(channel)
+		if err != nil {
+			resp.Error = ErrorInternal
+			return resp
+		}
+		if !found {
 			resp.Error = ErrorNamespaceNotFound
 			return resp
 		}
@@ -193,8 +210,12 @@ func (h *apiExecutor) Presence(_ context.Context, cmd *PresenceRequest) *Presenc
 		return resp
 	}
 
-	chOpts, ok := h.node.ChannelOpts(ch)
-	if !ok {
+	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
 		resp.Error = ErrorNamespaceNotFound
 		return resp
 	}
@@ -211,11 +232,11 @@ func (h *apiExecutor) Presence(_ context.Context, cmd *PresenceRequest) *Presenc
 		return resp
 	}
 
-	apiPresence := make(map[string]*ClientInfo, len(presence))
-	for k, v := range presence {
+	apiPresence := make(map[string]*ClientInfo, len(presence.Presence))
+	for k, v := range presence.Presence {
 		apiPresence[k] = &ClientInfo{
-			User:     v.User,
-			Client:   v.Client,
+			User:     v.UserID,
+			Client:   v.ClientID,
 			ConnInfo: Raw(v.ConnInfo),
 			ChanInfo: Raw(v.ChanInfo),
 		}
@@ -240,8 +261,12 @@ func (h *apiExecutor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest
 		return resp
 	}
 
-	chOpts, ok := h.node.ChannelOpts(ch)
-	if !ok {
+	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
 		resp.Error = ErrorNamespaceNotFound
 		return resp
 	}
@@ -279,8 +304,12 @@ func (h *apiExecutor) History(_ context.Context, cmd *HistoryRequest) *HistoryRe
 		return resp
 	}
 
-	chOpts, ok := h.node.ChannelOpts(ch)
-	if !ok {
+	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
 		resp.Error = ErrorNamespaceNotFound
 		return resp
 	}
@@ -301,15 +330,14 @@ func (h *apiExecutor) History(_ context.Context, cmd *HistoryRequest) *HistoryRe
 
 	for i, pub := range history.Publications {
 		apiPub := &Publication{
-			UID:  pub.UID,
 			Data: Raw(pub.Data),
 		}
 		if pub.Info != nil {
 			apiPub.Info = &ClientInfo{
-				User:     pub.Info.User,
-				Client:   pub.Info.Client,
-				ConnInfo: Raw(pub.Info.ConnInfo),
-				ChanInfo: Raw(pub.Info.ChanInfo),
+				User:     pub.Info.UserID,
+				Client:   pub.Info.ClientID,
+				ConnInfo: pub.Info.ConnInfo,
+				ChanInfo: pub.Info.ChanInfo,
 			}
 		}
 		apiPubs[i] = apiPub
@@ -334,8 +362,12 @@ func (h *apiExecutor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest
 		return resp
 	}
 
-	chOpts, ok := h.node.ChannelOpts(ch)
-	if !ok {
+	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
+	if err != nil {
+		resp.Error = ErrorInternal
+		return resp
+	}
+	if !found {
 		resp.Error = ErrorNamespaceNotFound
 		return resp
 	}
@@ -345,7 +377,7 @@ func (h *apiExecutor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest
 		return resp
 	}
 
-	err := h.node.RemoveHistory(ch)
+	err = h.node.RemoveHistory(ch)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling history remove", map[string]interface{}{"error": err.Error()}))
 		resp.Error = ErrorInternal
