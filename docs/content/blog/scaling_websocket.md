@@ -177,18 +177,18 @@ maxBatchSize := 50
 
 for {
     select {
-    case channel := <-subCh:
-        batch := []string{channel}
+    case item := <-sourceCh:
+        batch := []string{item}
     loop:
         for len(batch) < maxBatchSize {
             select {
-            case channel := <-subCh:
-                batch = append(batch, channel)
+            case item := <-sourceCh:
+                batch = append(batch, item)
             default:
                 break loop
             }
         }
-        // Do sth with collected batch.
+        // Do sth with collected batch of items.
         println(len(batch))
     }
 }
