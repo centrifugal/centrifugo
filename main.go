@@ -214,7 +214,7 @@ func main() {
 			"v3_use_offset", "redis_history_meta_ttl", "redis_streams", "memory_history_meta_ttl",
 			"websocket_ping_interval", "websocket_write_timeout", "websocket_message_size_limit",
 			"proxy_publish_endpoint", "proxy_publish_timeout", "proxy_subscribe_endpoint",
-			"proxy_subscribe_timeout", "proxy_subscribe", "proxy_publish",
+			"proxy_subscribe_timeout", "proxy_subscribe", "proxy_publish", "redis_sentinel_password",
 		}
 
 		for _, env := range bindEnvs {
@@ -235,9 +235,9 @@ func main() {
 				"port", "address", "tls", "tls_cert", "tls_key", "tls_external", "internal_port",
 				"internal_address", "prometheus", "health", "redis_host", "redis_port",
 				"redis_password", "redis_db", "redis_url", "redis_tls", "redis_tls_skip_verify",
-				"redis_master_name", "redis_sentinels", "grpc_api", "grpc_api_tls",
-				"grpc_api_tls_disable", "grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port",
-				"broker", "nats_url",
+				"redis_master_name", "redis_sentinels", "redis_sentinel_password", "grpc_api",
+				"grpc_api_tls", "grpc_api_tls_disable", "grpc_api_tls_cert", "grpc_api_tls_key",
+				"grpc_api_port", "broker", "nats_url",
 			}
 			for _, flag := range bindPFlags {
 				_ = viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -500,6 +500,7 @@ func main() {
 	rootCmd.Flags().BoolP("redis_tls_skip_verify", "", false, "disable Redis TLS host verification")
 	rootCmd.Flags().StringP("redis_master_name", "", "", "name of Redis master Sentinel monitors (Redis engine)")
 	rootCmd.Flags().StringP("redis_sentinels", "", "", "comma-separated list of Sentinel addresses (Redis engine)")
+	rootCmd.Flags().StringP("redis_sentinel_password", "", "", "Redis Sentinel auth password (Redis engine)")
 
 	rootCmd.Flags().StringP("nats_url", "", "", "Nats connection URL in format nats://user:pass@localhost:4222 (Nats broker)")
 
@@ -1270,6 +1271,8 @@ func redisEngineConfig(publishOnHistoryAdd bool) (*centrifuge.RedisEngineConfig,
 		password := v.GetString("redis_password")
 		db := v.GetInt("redis_db")
 
+		sentinelPassword := v.GetString("redis_sentinel_password")
+
 		var hosts []string
 		if hostsConf != "" {
 			hosts = strings.Split(hostsConf, ",")
@@ -1365,8 +1368,10 @@ func redisEngineConfig(publishOnHistoryAdd bool) (*centrifuge.RedisEngineConfig,
 		}
 
 		passwords := make([]string, numShards)
+		sentinelPasswords := make([]string, numShards)
 		for i := 0; i < numShards; i++ {
 			passwords[i] = password
+			sentinelPasswords[i] = sentinelPassword
 		}
 
 		dbs := make([]int, numShards)
@@ -1413,14 +1418,15 @@ func redisEngineConfig(publishOnHistoryAdd bool) (*centrifuge.RedisEngineConfig,
 				return nil, fmt.Errorf("malformed port: %v", err)
 			}
 			conf := &centrifuge.RedisShardConfig{
-				Host:          hosts[i],
-				Port:          port,
-				DB:            dbs[i],
-				MasterName:    masterNames[i],
-				SentinelAddrs: sentinelAddrs,
+				Host:               hosts[i],
+				Port:               port,
+				DB:                 dbs[i],
+				SentinelMasterName: masterNames[i],
+				SentinelAddrs:      sentinelAddrs,
 			}
 			addRedisShardCommonSettings(conf)
 			conf.Password = passwords[i]
+			conf.SentinelPassword = sentinelPasswords[i]
 			shardConfigs = append(shardConfigs, *conf)
 		}
 	}

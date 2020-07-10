@@ -6,6 +6,8 @@ import (
 	"github.com/centrifugal/protocol"
 )
 
+var _ error = (*Error)(nil)
+
 // Error represents client reply error.
 type Error struct {
 	Code    uint32

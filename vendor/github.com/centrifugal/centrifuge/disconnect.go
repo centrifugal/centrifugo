@@ -26,6 +26,8 @@ type Disconnect struct {
 	cachedCloseText string
 }
 
+var _ error = (*Disconnect)(nil)
+
 // String representation.
 func (d *Disconnect) String() string {
 	return fmt.Sprintf("code: %d, reason: %s, reconnect: %t", d.Code, d.Reason, d.Reconnect)

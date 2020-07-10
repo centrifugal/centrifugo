@@ -108,8 +108,8 @@ Centrifugo supports official way to add high availability to Redis - Redis [Sent
 For this you only need to utilize 2 Redis Engine options: `redis_master_name` and `redis_sentinels`.
 
 `redis_master_name` - is a name of master your Sentinels monitor.
-
 `redis_sentinels` - comma-separated addresses of Sentinel servers. At least one known server required.
+`redis_sentinel_password` – optional string password for your Sentinel, works with Redis Sentinel >= 5.0.1 (available since Centrifugo v2.6.0)
 
 So you can start Centrifugo which will use Sentinels to discover redis master instance like this:
 

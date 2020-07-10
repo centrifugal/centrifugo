@@ -2182,11 +2182,7 @@ func (c *Client) presenceCmd(cmd *protocol.PresenceRequest) (*clientproto.Presen
 
 	result, err := c.node.Presence(ch)
 	if err != nil {
-		logLevel := LogLevelInfo
-		if err != ErrorNotAvailable {
-			logLevel = LogLevelError
-		}
-		c.node.logger.log(newLogEntry(logLevel, "error getting presence", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid, "error": err.Error()}))
+		c.node.logger.log(newLogEntry(errLogLevel(err), "error getting presence", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid, "error": err.Error()}))
 		resp.Error = toClientErr(err).toProto()
 		return resp, nil
 	}
@@ -2242,11 +2238,7 @@ func (c *Client) presenceStatsCmd(cmd *protocol.PresenceStatsRequest) (*clientpr
 
 	stats, err := c.node.PresenceStats(ch)
 	if err != nil {
-		logLevel := LogLevelInfo
-		if err != ErrorNotAvailable {
-			logLevel = LogLevelError
-		}
-		c.node.logger.log(newLogEntry(logLevel, "error getting presence stats", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid, "error": err.Error()}))
+		c.node.logger.log(newLogEntry(errLogLevel(err), "error getting presence stats", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid, "error": err.Error()}))
 		resp.Error = ErrorInternal.toProto()
 		return resp, nil
 	}
@@ -2301,11 +2293,7 @@ func (c *Client) historyCmd(cmd *protocol.HistoryRequest) (*clientproto.HistoryR
 
 	historyResult, err := c.node.fullHistory(ch)
 	if err != nil {
-		logLevel := LogLevelInfo
-		if err != ErrorNotAvailable {
-			logLevel = LogLevelError
-		}
-		c.node.logger.log(newLogEntry(logLevel, "error getting history", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid, "error": err.Error()}))
+		c.node.logger.log(newLogEntry(errLogLevel(err), "error getting history", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid, "error": err.Error()}))
 		resp.Error = ErrorInternal.toProto()
 		return resp, nil
 	}
@@ -2329,4 +2317,12 @@ func (c *Client) historyCmd(cmd *protocol.HistoryRequest) (*clientproto.HistoryR
 // pingCmd handles ping command from client.
 func (c *Client) pingCmd(_ *protocol.PingRequest) (*clientproto.PingResponse, *Disconnect) {
 	return &clientproto.PingResponse{}, nil
+}
+
+func errLogLevel(err error) LogLevel {
+	logLevel := LogLevelInfo
+	if err != ErrorNotAvailable {
+		logLevel = LogLevelError
+	}
+	return logLevel
 }
