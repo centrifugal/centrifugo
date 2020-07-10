@@ -13,6 +13,8 @@ Release highlights:
 * All event handlers now should be set to `Node` before calling its `Run` method.
 * Centrifuge still needs to know some core options for channels to understand whether to use presence inside channels, keep Publication history stream or not. It's now done over user-defined callback function in Node Config called `ChannelOptionsFunc`. See its detailed description in [library docs](https://godoc.org/github.com/centrifugal/centrifuge#ChannelOptionsFunc).
 * More idiomatic error handling in event handlers, see [#134](https://github.com/centrifugal/centrifuge/pull/134).
+* Aliases to `Raw`, `Publication` and `ClientInfo` Protobuf types removed from library public API, see [#136](https://github.com/centrifugal/centrifuge/issues/136)
+* Support Redis Sentinel password option
 
 Look at updated [example in README](https://github.com/centrifugal/centrifuge#quick-example) and [examples](https://github.com/centrifugal/centrifuge/tree/master/_examples) folder to find out more. 
 

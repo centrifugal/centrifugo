@@ -9,7 +9,7 @@ type Config struct {
 	// Version of server – will be sent to client on connection establishment
 	// phase in response to connect request.
 	Version string
-	// Name of this server node - must be unique, used as human readable and
+	// Name of this server Node - must be unique, used as human readable and
 	// meaningful node identifier. If not set then os.Hostname will be used.
 	Name string
 	// LogLevel is a log level to use. By default nothing will be logged.

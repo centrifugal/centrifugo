@@ -157,10 +157,12 @@ type RedisShardConfig struct {
 	TLSSkipVerify bool
 	// Connection TLS configuration.
 	TLSConfig *tls.Config
-	// MasterName is a name of Redis instance master Sentinel monitors.
-	MasterName string
 	// SentinelAddrs is a slice of Sentinel addresses.
 	SentinelAddrs []string
+	// SentinelMasterName is a name of Redis instance master Sentinel monitors.
+	SentinelMasterName string
+	// SentinelPassword is a password for Sentinel. Works with Sentinel >= 5.0.1.
+	SentinelPassword string
 	// ClusterAddrs is a slice of seed cluster addrs for this shard.
 	ClusterAddrs []string
 	// Prefix to use before every channel name and key in Redis.
@@ -209,7 +211,7 @@ func makePoolFactory(s *shard, n *Node, conf RedisShardConfig) func(addr string,
 	password := conf.Password
 	db := conf.DB
 
-	useSentinel := conf.MasterName != "" && len(conf.SentinelAddrs) > 0
+	useSentinel := conf.SentinelMasterName != "" && len(conf.SentinelAddrs) > 0
 
 	var lastMu sync.Mutex
 	var lastMaster string
@@ -221,7 +223,7 @@ func makePoolFactory(s *shard, n *Node, conf RedisShardConfig) func(addr string,
 	if useSentinel {
 		sntnl = &sentinel.Sentinel{
 			Addrs:      conf.SentinelAddrs,
-			MasterName: conf.MasterName,
+			MasterName: conf.SentinelMasterName,
 			Dial: func(addr string) (redis.Conn, error) {
 				timeout := 300 * time.Millisecond
 				opts := []redis.DialOption{
@@ -233,6 +235,13 @@ func makePoolFactory(s *shard, n *Node, conf RedisShardConfig) func(addr string,
 				if err != nil {
 					n.Log(NewLogEntry(LogLevelError, "error dialing to Sentinel", map[string]interface{}{"error": err.Error()}))
 					return nil, err
+				}
+				if conf.SentinelPassword != "" {
+					if _, err := c.Do("AUTH", conf.SentinelPassword); err != nil {
+						_ = c.Close()
+						n.Log(NewLogEntry(LogLevelError, "error auth in Redis Sentinel", map[string]interface{}{"error": err.Error()}))
+						return nil, err
+					}
 				}
 				return c, nil
 			},
@@ -355,7 +364,7 @@ func newPool(s *shard, n *Node, conf RedisShardConfig) (redisConnPool, error) {
 	password := conf.Password
 	db := conf.DB
 
-	useSentinel := conf.MasterName != "" && len(conf.SentinelAddrs) > 0
+	useSentinel := conf.SentinelMasterName != "" && len(conf.SentinelAddrs) > 0
 	usingPassword := password != ""
 
 	poolFactory := makePoolFactory(s, n, conf)
@@ -365,7 +374,7 @@ func newPool(s *shard, n *Node, conf RedisShardConfig) (redisConnPool, error) {
 		if !useSentinel {
 			n.Log(NewLogEntry(LogLevelInfo, fmt.Sprintf("Redis: %s/%d, using password: %v", serverAddr, db, usingPassword)))
 		} else {
-			n.Log(NewLogEntry(LogLevelInfo, fmt.Sprintf("Redis: Sentinel for name: %s, db: %d, using password: %v", conf.MasterName, db, usingPassword)))
+			n.Log(NewLogEntry(LogLevelInfo, fmt.Sprintf("Redis: Sentinel for name: %s, db: %d, using password: %v", conf.SentinelMasterName, db, usingPassword)))
 		}
 		pool, _ := poolFactory(serverAddr, getDialOpts(conf)...)
 		return pool, nil
