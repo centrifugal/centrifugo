@@ -253,7 +253,7 @@ In order to run Centrifugo with KeyDB all you need to do is use `redis` engine o
 
 ## Nats broker
 
-Starting from Centrifugo v2.6.0 it's possible to scale with [Nats](https://nats.io/) PUB/SUB server.
+Starting from Centrifugo v2.6.0 it's possible to scale with [Nats](https://nats.io/) PUB/SUB server. Keep in mind, that Nats called a **broker** here, **not an Engine** – Nats integration only implements PUB/SUB part of Engine, so carefully read limitations below.
 
 Known limitations:
 

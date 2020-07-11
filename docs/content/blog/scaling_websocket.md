@@ -14,9 +14,9 @@ og_image_height: 1000
 
 I believe that in 2020 WebSocket is still an entertaining technology which is not so well-known and understood like HTTP.
 
-In this blog post I'd like to tell about state of WebSocket in Go language ecosystem, and a way we could write scalable WebSocket servers. Most advices here are generic enough and can be easily approximated to other programming languages. We won't talk a lot about WebSocket transport pros and cons – there will be links to other resources on this topic. So if you are interested in WebSocket and messaging technologies (especially real-time messaging) - keep on reading.
+In this blog post I'd like to tell about state of WebSocket in Go language ecosystem, and a way we could write scalable WebSocket servers. Most advices here are generic enough and can be easily approximated to other programming languages. We won't talk a lot about WebSocket transport pros and cons – I'll provide links to other resources on this topic. If you are interested in WebSocket and messaging technologies (especially real-time messaging) - keep on reading.
 
-If you don't know what WebSocket is – here is a couple of curious links to read:
+If you don't know what WebSocket is – check out the following curious links:
 
 * https://hpbn.co/websocket/ – a wonderful chapter of great book by Ilya Grigorik
 * https://lucumr.pocoo.org/2012/9/24/websockets-101/ – valuable thoughts about WebSocket from Armin Ronacher
@@ -48,7 +48,7 @@ Package [golang.org/x/net/websocket](https://godoc.org/golang.org/x/net/websocke
 
 The default choice in the community is [gorilla/websocket](https://github.com/gorilla/websocket) library. Made by Gary Burd (who also gifted us an awesome Redigo package to communicate with Redis) – it's widely used, performs well, has a very good API – so in most cases you should go with it. Some people think that library not actively maintained at moment – but this is not quite true, it implements full WebSocket RFC, so actually it can be considered done.
 
-In 2018 my ex-colleague Sergey Kamardin open-sourced [gobwas/ws](https://github.com/gobwas/ws) library. It provides a bit lower-level API than `gorilla/websocket` thus allows reducing RAM usage per connection and has nice optimizations for WebSocket upgrade process. It does not support WebSocket permessage-deflate compression (which is not always a good thing due to poor performance of flate and some browser bugs) but otherwise a good alternative you can consider using. If you have not read Sergey's famous post [A Million WebSockets and Go](https://www.freecodecamp.org/news/million-websockets-and-go-cc58418460bb/) – make a bookmark!
+In 2018 my ex-colleague Sergey Kamardin open-sourced [gobwas/ws](https://github.com/gobwas/ws) library. It provides a bit lower-level API than `gorilla/websocket` thus allows reducing RAM usage per connection and has nice optimizations for WebSocket upgrade process. It does not support WebSocket `permessage-deflate` compression but otherwise a good alternative you can consider using. If you have not read Sergey's famous post [A Million WebSockets and Go](https://www.freecodecamp.org/news/million-websockets-and-go-cc58418460bb/) – make a bookmark!
 
 One more library is [nhooyr/websocket](https://github.com/nhooyr/websocket). It's the youngest one and actively maintained. It compiles to WASM which can be a cool thing for someone. The API is a bit different from what `gorilla/websocket` offers, and one of the big advantages I see is that it solves a problem with a proper WebSocket closing handshake which is [a bit hard to do right with Gorilla WebSocket](https://github.com/gorilla/websocket/issues/448).
 
@@ -56,18 +56,18 @@ You can consider all listed libraries except one from `x/net` for your project. 
 
 ## OS tuning
 
-OK, so you have chosen a library and built a server on top of it. As soon as you put it in production the interesting things start happenning.
+OK, so you have chosen a library and built a server on top of it. As soon as you put it in production the interesting things start happening.
 
 Let's start with several OS specific key things you should do to prepare for many connections from WebSocket clients.
 
-Every connection will cost you an open file descriptor, so you should tune a maximum number of open file descriptors your process can use. A nice overview on how to do this on different systems can be found [in Riak docs](https://docs.riak.com/riak/kv/2.2.3/using/performance/open-files-limit.1.html). Wanna more connections? Make this limit higher.
+Every connection will cost you an open file descriptor, so you should tune a maximum number of open file descriptors your process can use. An errors like `too many open files` raise due to OS limit on file descriptors which is usually 256-1024 by default (see with `ulimit -n` on Unix). A nice overview on how to do this on different systems can be found [in Riak docs](https://docs.riak.com/riak/kv/2.2.3/using/performance/open-files-limit.1.html). Wanna more connections? Make this limit higher.
 
-Limit a maximum number of connections your process can serve, make it less than known file descriptor limit:
+Nice tip here is to limit a maximum number of connections your process can serve – making it less than known file descriptor limit:
 
 ```go
 // ulimit -n == 65535
-if conns.Len() >= 65500 {
-    return errors.New("connection limit reached")
+if conns.Len() >= 65500 {
+    return errors.New("connection limit reached")
 }
 conns.Add(conn)
 ```
@@ -90,20 +90,20 @@ One more thing you can do is tune your network stack for performance. Do this on
 
 Now let's speak about sending many messages. The general tips follows.
 
-**Make payload smaller**. This is obvious – fewer data means more effective work on all layers. BTW WebSocket framing overhead is minimal and adds only 2-8 bytes to your payload. You can read a detailed dedicated research in [Dissecting WebSocket's Overhead](https://crossbario.com/blog/Dissecting-Websocket-Overhead/) article.
+**Make payload smaller**. This is obvious – fewer data means more effective work on all layers. BTW WebSocket framing overhead is minimal and adds only 2-8 bytes to your payload. You can read detailed dedicated research in [Dissecting WebSocket's Overhead](https://crossbario.com/blog/Dissecting-Websocket-Overhead/) article. You can reduce an amount of data traveling over network with `permessage-deflate` WebSocket extension, so your data will be compressed. Though using `permessage-deflate` is not always a good thing for server due to [poor performance of flate](https://github.com/gorilla/websocket/issues/203), so you should be prepared for a CPU and RAM resource usage on server side. While Gorilla WebSocket has a lot of optimizations internally by reusing flate writers, overhead is still noticeable. The increase value heavily depends on your load profile.
 
-**Make less syscalls**. Every syscall will have a constant overhead, and actually in WebSocket server under load you will mostly see read and write syscalls in your CPU profiles. Obvious advice here: try to use client-server protocol that supports message batching, so you can join individual messages together.
+**Make less system calls**. Every syscall will have a constant overhead, and actually in WebSocket server under load you will mostly see read and write system calls in your CPU profiles. An advice here – try to use client-server protocol that supports message batching, so you can join individual messages together.
 
 **Use effective message serialization protocol**. Maybe use code generation for JSON to avoid extensive usage of reflect package done by Go std lib. Maybe use sth like [gogo/protobuf](https://github.com/gogo/protobuf) package which allows to speedup Protobuf marshalling and unmarshalling. Unfortunately Gogo Protobuf [is going through hard times
-](https://github.com/gogo/protobuf/issues/691) at this moment. 
+](https://github.com/gogo/protobuf/issues/691) at this moment. Try to serialize a message only once when sending to many subscribers.
 
-**Have a way to scale to several machines**. We will talk more about this very soon.
+**Have a way to scale to several machines** - more power, more possible messages. We will talk about this very soon.
 
 ## WebSocket fallback transport
 
 ![ie](https://i.imgur.com/IAOyvmg.png)
 
-Even in 2020 there are still users that can not make connection with WebSocket server. Actually the problem mostly appears with browsers. Some users still use old browsers. But they have a choice – install a newer browser. Still, there could also be users behind corporate proxies. Employees can have a trusted certificate installed on their machine so company proxy can re-encrypt even TLS traffic. Also, some browser extensions can block WebSocket traffic.
+Even in 2020 there are still users which cannot establish connection with WebSocket server. Actually the problem mostly appears with browsers. Some users still use old browsers. But they have a choice – install a newer browser. Still, there could also be users behind corporate proxies. Employees can have a trusted certificate installed on their machine so company proxy can re-encrypt even TLS traffic. Also, some browser extensions can block WebSocket traffic.
 
 One ready solution to this is [Sockjs-Go](https://github.com/igm/sockjs-go/) library. This is a mature library that provides fallback transport for WebSocket. If client does not succeed with WebSocket connection establishment then client can use some of HTTP transports for client-server communication: EventSource (Server-Sent Events), XHR-streaming, Long-Polling etc. The downside with those transports is that to achieve bidirectional communication you should use sticky sessions on your load balancer since SockJS keeps connection session state in process memory. We will talk about many instances of your WebSocket server very soon.
 
@@ -140,9 +140,9 @@ Personally when we talk about such brokers here are some options that come into 
 
 **Sure there are more exist** including libraries like [ZeroMQ](https://zeromq.org/) or [nanomsg](https://nanomsg.org/).
 
-Below I'll try to consider these solutions for the task of making scalable WebSocket server facing many user connections from Internet. A short analysis below can be a bit biased, but I believe thoughts are reasonable enough.
+Below I'll try to consider these solutions for the task of making scalable WebSocket server facing many user connections from Internet. A short analysis below can be a bit biased, but I believe thoughts are reasonable enough. I did not found enough information on the internet about scaling WebSocket beyond a single server process, so I'll try to fill the gap a little. 
 
-If I were you I won't go with RabbitMQ for this task. This is a great messaging server, but it does not like a high rate of queue bind and unbind type of load. It will work, but you will need to use a lot of server resources for not so big number of clients (having a personal topic per client is a very common thing, now imagine having millions of queues inside RabbitMQ).
+In some posts on the internet about scaling WebSocket I saw advices to use RabbitMQ for PUB/SUB stuff. If I were you I won't go with RabbitMQ for this task. This is a great messaging server, but it does not like a high rate of queue bind and unbind type of load. It will work, but you will need to use a lot of server resources for not so big number of clients (having a personal topic per client is a very common thing, now imagine having millions of queues inside RabbitMQ).
 
 Kafka and Pulsar are great solutions, but not for this task I believe. The problem is again in dynamic ephemeral nature of our topics. Kafka also likes a more stable configuration of its topics. Keeping messages on disk can be an overkill for real-time messaging task. Also your consumers on Kafka server should pull from thousands of different topics, not sure how well it performs, but my thoughts at moment - this should not perform very well. Here is [a post from Trello](https://tech.trello.com/why-we-chose-kafka/) where they moved from RabbitMQ to Kafka for similar real-time messaging task and got about 5x resource usage improvements.
 
@@ -167,9 +167,9 @@ Let's talk about one more problem that is unique for Websocket servers compared 
 
 First of all - use exponential backoff strategies on client side. I.e. reconnect with intervals like 1, 2, 4, 8, 16 seconds with some random jitter.
 
-Turn on rate limiting strategies on your WebSocket server.
+Turn on various rate limiting strategies on your WebSocket server, some of them should be turned on your backend load balancer level (like controlling TCP connection establishment rate), some are application specific (maybe limit an amount of requests from certain user).
 
-And one more interesting technique is using JWT (JSON Web Token) for authentication. I'll try to explain why this can be useful.
+One more interesting technique to survive massive reconnect is using JWT (JSON Web Token) for authentication. I'll try to explain why this can be useful.
 
 ![jwt](https://i.imgur.com/aaTEhXo.png)
 
@@ -217,6 +217,6 @@ So as soon as client reconnects it can restore its state from fast in-memory sto
 
 ## Conclusion
 
-[Centrifugo server](https://github.com/centrifugal/centrifugo/) and [Centrifuge library for Go language](https://github.com/centrifugal/centrifuge) have most of the mechanics described here including the last one – message cache for topics with limited size and retention period. Some details on how message recovery on reconnect works in Centrifugo can be found [here in docs](../server/recover.md). It also has techniques to prevent message loss due to at most once nature of Redis PUB/SUB giving at least once delivery guarantee in message history retention period and window size.
-
 Hope advices given here will be useful for a reader and will help writing a more robust and more scalable real-time application backends.
+
+[Centrifugo server](https://github.com/centrifugal/centrifugo/) and [Centrifuge library for Go language](https://github.com/centrifugal/centrifuge) have most of the mechanics described here including the last one – message cache for topics limited by size and retention period. Some details on how message recovery on reconnect works in Centrifugo can be found [here in docs](../server/recover.md). It also has techniques to prevent message loss due to at most once nature of Redis PUB/SUB giving at least once delivery guarantee inside message history retention period and window size.
