@@ -83,7 +83,6 @@ nav:
     - Proxy to backend: 'server/proxy.md'
     - Server-side subscriptions: 'server/server_subs.md'
     - Message recovery: 'server/recover.md'
-    - Signal handling: 'server/signals.md'
     - Connection expiration: 'server/connection_expiration.md'
     - Transports:
       - Transports overview: 'transports/index.md'

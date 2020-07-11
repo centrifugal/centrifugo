@@ -38,15 +38,15 @@ If your user is not currently authenticated in your application but you want to 
 
 ### exp
 
-This is an a UNIX timestamp seconds when token will expire. This is standard JWT claim - all JWT libraries for different languages provide an API to set it.
+This is a UNIX timestamp seconds when token will expire. This is standard JWT claim - all JWT libraries for different languages provide an API to set it.
 
 If `exp` claim not provided then Centrifugo won't expire any connections. When provided special algorithm will find connections with `exp` in the past and activate connection refresh mechanism. Refresh mechanism allows connection to survive and be prolonged. In case of refresh failure client connection will be eventually closed by Centrifugo and won't be accepted until new valid and actual credentials provided in connection token.
 
-You can use connection expiration mechanism in cases when you don't want users of your app be subscribed on channels after being banned/deactivated in application. Or to protect your users from token leak (providing reasonably small time of expiration).
+You can use connection expiration mechanism in cases when you don't want users of your app to be subscribed on channels after being banned/deactivated in application. Or to protect your users from a token leakage (providing a reasonably short time of expiration).
 
 Choose `exp` value wisely, you don't need small values because refresh mechanism will hit your application often with refresh requests. But setting this value too large can lead to non very fast user connection deactivation. This is a trade off.
 
-Read more about connection expiration in special chapter.
+Read more about connection expiration in a special chapter.
 
 ### info
 
@@ -62,7 +62,7 @@ This field contains a `base64` representation of your bytes. After receiving Cen
 
 New in v2.4.0
 
-Optional array of strings with server-side channels. See more details about [server-side subscriptions](server_subs.md).
+An optional array of strings with server-side channels. See more details about [server-side subscriptions](server_subs.md).
 
 ## Examples
 

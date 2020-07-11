@@ -4,74 +4,19 @@ Here we will look at how Centrifugo can be configured.
 
 ## Getting help
 
-First let's look at all available command-line options:
+Centrifugo can be configured in several ways:
 
-```bash
-centrifugo -h
+* over command-line flags, see `centrifugo -h` for available flags, command-line flags limited to most frequently used
+* over configuration file, configuration file supports all options mentioned in this doc
+* over OS environment variables, all Centrifugo options supported to be set over env in format `CENTRIFUGO_<OPTION_NAME>`
+
+The basic way to start with Centrifugo is run `centrifugo genconfig` command which will generate `config.json` configuration file with some options (in a current directory), so you can start Centrifugo:
+
+```
+centrifugo -c config.json
 ```
 
-You should see something like this as output:
-
-```
-Centrifugo – scalable real-time messaging server in language-agnostic way
-
-Usage:
-   [flags]
-   [command]
-
-Available Commands:
-  checkconfig Check configuration file
-  checktoken  Check connection JWT
-  genconfig   Generate minimal configuration file to start with
-  gentoken    Generate sample connection JWT for user
-  help        Help about any command
-  version     Centrifugo version information
-
-Flags:
-  -a, --address string             interface address to listen on
-      --admin                      enable admin web interface
-      --admin_external             enable admin web interface on external port
-      --admin_insecure             use insecure admin mode – no auth required for admin socket
-      --api_insecure               use insecure API mode
-      --client_insecure            start in insecure client mode
-  -c, --config string              path to config file (default "config.json")
-      --debug                      enable debug endpoints
-  -e, --engine string              engine to use: memory or redis (default "memory")
-      --grpc_api                   enable GRPC API server
-      --grpc_api_port int          port to bind GRPC API server to (default 10000)
-      --grpc_api_tls               enable TLS for GRPC API server, requires an X509 certificate and a key file
-      --grpc_api_tls_cert string   path to an X509 certificate file for GRPC API server
-      --grpc_api_tls_disable       disable general TLS for GRPC API server
-      --grpc_api_tls_key string    path to an X509 certificate key for GRPC API server
-      --health                     enable health check endpoint
-  -h, --help                       help for this command
-      --internal_address string    custom interface address to listen on for internal endpoints
-      --internal_port string       custom port for internal endpoints
-      --log_file string            optional log file - if not specified logs go to STDOUT
-      --log_level string           set the log level: debug, info, error, fatal or none (default "info")
-  -n, --name string                unique node name
-      --pid_file string            optional path to create PID file
-  -p, --port string                port to bind HTTP server to (default "8000")
-      --prometheus                 enable Prometheus metrics endpoint
-      --redis_db int               Redis database (Redis engine)
-      --redis_host string          Redis host (Redis engine) (default "127.0.0.1")
-      --redis_master_name string   name of Redis master Sentinel monitors (Redis engine)
-      --redis_password string      Redis auth password (Redis engine)
-      --redis_port string          Redis port (Redis engine) (default "6379")
-      --redis_sentinels string     comma-separated list of Sentinel addresses (Redis engine)
-      --redis_tls                  enable Redis TLS connection
-      --redis_tls_skip_verify      disable Redis TLS host verification
-      --redis_url string           Redis connection URL in format redis://:password@hostname:port/db (Redis engine)
-      --tls                        enable TLS, requires an X509 certificate and a key file
-      --tls_cert string            path to an X509 certificate file
-      --tls_external               enable TLS only for external endpoints
-      --tls_key string             path to an X509 certificate key
-```
-
-Not all available Centrifugo options available to be set over command-line flags – here we can see only some frequently used.
-
-!!!note
-    All command-line options of Centrifugo can be set via configuration file with the same name (without `--` prefix of course). Also all available options can be set over environment variables in format `CENTRIFUGO_<OPTION_NAME>`.
+Below while describing configuration file format we will look at the meaning of the required options. 
 
 ## Config file formats
 
@@ -116,7 +61,7 @@ I.e. the same configuration as JSON file above with one extra option to define l
 
 ### YAML config format
 
-And YAML config also supported. `config.yaml`:
+YAML config also supported. `config.yaml`:
 
 ```
 v3_use_offset: true
@@ -199,104 +144,6 @@ Some of the most important options you can configure when running Centrifugo:
 
 Note that some options can be set via command-line. Command-line options are more valuable when set than configuration file's options. See description of [viper](https://github.com/spf13/viper) – to see more details about configuration options priority.
 
-## Channel options
-
-Let's look at options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see [special chapter](channels.md) to find more information about channels). The following options will affect channel behaviour:
-
-* `publish` (boolean, default `false`) – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. By default it's `false`.
-
-* `subscribe_to_publish` (boolean, default `false`) - when `publish` option enabled client can publish into channel without being subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.
-
-* `anonymous` (boolean, default `false`) – this option enables anonymous access (with empty `sub` claim in connection token). In most situations your application works with authenticated users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID.
-
-* `presence` (boolean, default `false`) – enable/disable presence information. Presence is an information about clients currently subscribed on channel. By default this option is off so no presence information will be available for channels.
-
-* `presence_disable_for_client` (boolean, default `false`, available since v2.2.3) – allows making presence calls available only for server side API. By default presence information is available for both client and server side APIs.
-
-* `join_leave` (boolean, default `false`) – enable/disable sending join(leave) messages when client subscribes on a channel (unsubscribes from channel).
-
-* `history_size` (integer, default `0`) – history size (amount of messages) for channels. As Centrifugo keeps all history messages in memory it's very important to limit maximum amount of messages in channel history to reasonable value. `history_size` defines maximum amount of messages that Centrifugo will keep for **each** channel in namespace during history lifetime (see below). By default history size is `0` - this means that channels will have no history messages at all.
-
-* `history_lifetime` (integer, default `0`) – interval in seconds how long to keep channel history messages. As all history is storing in memory it is also very important to get rid of old history data for unused (inactive for a long time) channels. By default history lifetime is `0` – this means that channels will have no history messages at all. **So to turn on keeping history messages you should wisely configure both `history_size` and `history_lifetime` options**.
-
-* `history_recover` (boolean, default `false`) – when enabled Centrifugo will try to recover missed publications while client was disconnected for some reason (bad internet connection for example). By default this feature is off. This option must be used in conjunction with reasonably configured message history for channel i.e. `history_size` and `history_lifetime` **must be set** (because Centrifugo uses channel history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel (currently Centrifugo returns recovered publications in order and without duplicates but this is implementation detail that can be theoretically changed in future). See more details about how recovery works in [special chapter](recover.md).
-
-* `history_disable_for_client` (boolean, default `false`, available since v2.2.3) – allows making history available only for server side API. By default `false` – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if `history_disable_for_client` is on.
-
-* `server_side` (boolean, default `false`, available since v2.4.0) – when enabled then all client-side subscription requests to channels in namespace will be rejected with `PermissionDenied` error.
-
-Let's look how to set some of these options in config:
-
-```json
-{
-    "v3_use_offset": true,
-    "token_hmac_secret_key": "my-secret-key",
-    "api_key": "secret-api-key",
-    "anonymous": true,
-    "publish": true,
-    "subscribe_to_publish": true,
-    "presence": true,
-    "join_leave": true,
-    "history_size": 10,
-    "history_lifetime": 300,
-    "history_recover": true
-}
-```
-
-And the last channel specific option is `namespaces`. `namespaces` are optional and if set must be an array of namespace objects. Namespace allows to configure custom options for channels starting with namespace name. This provides a great control over channel behaviour.
-
-Namespace has a name and the same channel options (with same defaults) as described above.
-
-* `name` - unique namespace name (name must consist of letters, numbers, underscores or hyphens and be more than 2 symbols length i.e. satisfy regexp `^[-a-zA-Z0-9_]{2,}$`).
-
-If you want to use namespace options for channel - you must include namespace name into
-channel name with `:` as separator:
-
-`public:messages`
-
-`gossips:messages`
-
-Where `public` and `gossips` are namespace names from project `namespaces`.
-
-All things together here is an example of `config.json` which includes registered project with all options set and 2 additional namespaces in it:
-
-```json
-{
-    "v3_use_offset": true,
-    "token_hmac_secret_key": "very-long-secret-key",
-    "api_key": "secret-api-key",
-    "anonymous": true,
-    "publish": true,
-    "presence": true,
-    "join_leave": true,
-    "history_size": 10,
-    "history_lifetime": 30,
-    "namespaces": [
-        {
-          "name": "public",
-          "publish": true,
-          "anonymous": true,
-          "history_size": 10,
-          "history_lifetime": 300,
-          "history_recover": true
-        },
-        {
-          "name": "gossips",
-          "presence": true,
-          "join_leave": true
-        }
-    ]
-}
-```
-
-Channel `news` will use globally defined channel options.
-
-Channel `public:news` will use `public` namespace's options.
-
-Channel `gossips:news` will use `gossips` namespace's options.
-
-There is no inheritance in channel options and namespaces – so if for example you defined `presence: true` on top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. 
-
 ## Advanced configuration
 
 Centrifugo has some options for which default values make sense for most applications. In many case you don't need (and you really should not) change them. This chapter is about such options.
@@ -353,7 +200,7 @@ Enable websocket compression, see chapter about websocket transport for more det
 
 Default: 0
 
-By default Centrifugo runs on all available CPU cores. If you want to limit amount of cores Centrifugo can utilize in one moment use this option.
+By default, Centrifugo runs on all available CPU cores. If you want to limit amount of cores Centrifugo can utilize in one moment use this option.
 
 ## Advanced endpoint configuration.
 
@@ -379,7 +226,7 @@ And finally you have API endpoint to `publish` messages to channels (and execute
 http://localhost:8000/api
 ```
 
-By default all endpoints work on port `8000`. You can change it using `port` option:
+By default, all endpoints work on port `8000`. You can change it using `port` option:
 
 ```
 {
@@ -427,7 +274,7 @@ http://localhost:8000/debug/pprof/
 
 – will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See [wiki page](https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues) for more info.
 
-### Healthcheck endpoint
+### Health check endpoint
 
 New in v2.1.0
 
@@ -444,10 +291,10 @@ We strongly recommend to not expose API, admin, debug and prometheus endpoints t
 * API endpoint (`/api`) - for HTTP API requests
 * Admin web interface endpoints (`/`, `/admin/auth`, `/admin/api`) - used by web interface
 * Prometheus endpoint (`/metrics`) - used for exposing server metrics in Prometheus format 
-* Healthcheck endpoint (`/health`) - used to do healthchecks
+* Health check endpoint (`/health`) - used to do health checks
 * Debug endpoints (`/debug/pprof`) - used to inspect internal server state
 
-It's a good practice to protect those endpoints with firewall. For example you can do this in `location` section of Nginx configuration.
+It's a good practice to protect those endpoints with firewall. For example, you can do this in `location` section of Nginx configuration.
 
 Though sometimes you don't have access to per-location configuration in your proxy/load balancer software. For example when using Amazon ELB. In this case you can change ports on which your internal endpoints work.
 
@@ -484,7 +331,7 @@ To disable SockJS endpoint set `sockjs_disable` boolean option to `true`.
 
 To disable API endpoint set `api_disable` boolean option to `true`.
 
-### Customize handler endpoinds
+### Customize handler endpoints
 
 Starting from Centrifugo v2.2.5 it's possible to customize server HTTP handler endpoints. To do this Centrifugo supports several options:
 
@@ -494,3 +341,15 @@ Starting from Centrifugo v2.2.5 it's possible to customize server HTTP handler e
 * `api_handler_prefix` (default `"/api"`) - to control HTTP API URL prefix
 * `prometheus_handler_prefix` (default `"/metrics"`) - to control Prometheus URL prefix
 * `health_handler_prefix` (default `"/health"`) - to control health check URL prefix
+
+## Signal handling
+
+You can send HUP signal to Centrifugo to reload a configuration:
+
+```
+kill -HUP <PID>
+```
+
+Though at moment **this will only reload token secrets and channel options (top-level and namespaces)**.
+
+Centrifugo tries to gracefully shutdown client connections when SIGINT or SIGTERM signals received. By default, maximum graceful shutdown period is 30 seconds but can be changed using `shutdown_timeout` (integer, in seconds) configuration option.

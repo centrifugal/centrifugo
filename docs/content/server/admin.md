@@ -4,7 +4,7 @@ Centrifugo comes with builtin admin web interface.
 
 It can:
 
-* show current server general information and statistics from server nodes.
+* show general information and statistics from server nodes
 * call `publish`, `broadcast`, `unsubscribe`, `disconnect`, `history`, `presence`, `presence_stats`, `channels`, `info` server API commands. 
 
 For `publish` command Ace JSON editor helps to write JSON to send into channel.
