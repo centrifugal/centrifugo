@@ -45,9 +45,9 @@ Package [golang.org/x/net/websocket](https://godoc.org/golang.org/x/net/websocke
 
 The default choice in the community is [gorilla/websocket](https://github.com/gorilla/websocket) library. Made by Gary Burd (who also gifted us an awesome Redigo package to communicate with Redis) – it's widely used, performs well, has a very good API – so in most cases you should go with it. Some people think that library not actively maintained at moment – but this is not quite true, it implements full WebSocket RFC, so actually it can be considered done.
 
-Recently my ex-collegue Sergey Kamardin open-sourced [gobwas/ws](https://github.com/gobwas/ws) library. It provides a bit lower-level API than `gorilla/websocket` thus allows reducing RAM usage per connection and has nice optimizations for WebSocket upgrade process. It does not support WebSocket permessage-deflate compression (which is not always a good thing due to poor performance of flate and some browser bugs) but otherwise a good alternative you can consider using. If you have not read his famous post [A Million WebSockets and Go](https://www.freecodecamp.org/news/million-websockets-and-go-cc58418460bb/) – make a bookmark!
+Recently my ex-colleague Sergey Kamardin open-sourced [gobwas/ws](https://github.com/gobwas/ws) library. It provides a bit lower-level API than `gorilla/websocket` thus allows reducing RAM usage per connection and has nice optimizations for WebSocket upgrade process. It does not support WebSocket permessage-deflate compression (which is not always a good thing due to poor performance of flate and some browser bugs) but otherwise a good alternative you can consider using. If you have not read Sergey's famous post [A Million WebSockets and Go](https://www.freecodecamp.org/news/million-websockets-and-go-cc58418460bb/) – make a bookmark!
 
-And one more library is [nhooyr/websocket](https://github.com/nhooyr/websocket). It's the youngest one and actively maintained. It compiles to WASM which can be a cool thing for someone. The API is a bit different from what `gorilla/websocket` offers, and one of the big advantages I see is that it solves a problem with a proper WebSocket closing handshake which is [a bit hard to do right with Gorilla WebSocket](https://github.com/gorilla/websocket/issues/448).
+One more library is [nhooyr/websocket](https://github.com/nhooyr/websocket). It's the youngest one and actively maintained. It compiles to WASM which can be a cool thing for someone. The API is a bit different from what `gorilla/websocket` offers, and one of the big advantages I see is that it solves a problem with a proper WebSocket closing handshake which is [a bit hard to do right with Gorilla WebSocket](https://github.com/gorilla/websocket/issues/448).
 
 You can consider all listed libraries except one from `x/net` for your project. Personally I prefer Gorilla WebSocket at moment since it's feature-complete and battle tested by tons of projects around Go world.
 
@@ -57,7 +57,7 @@ OK, so you have chosen a library and built a server on top of it. As soon as you
 
 Let's start with several OS specific key things you should do to prepare for many connections from WebSocket clients.
 
-Every connection will cost you an open file descriptor so you should tune a maximum number of open file descriptors your process can use. A nice overview on how to do this on different systems can be found [in Riak docs](https://docs.riak.com/riak/kv/2.2.3/using/performance/open-files-limit.1.html). Wanna more connections? Make this limit higher.
+Every connection will cost you an open file descriptor, so you should tune a maximum number of open file descriptors your process can use. A nice overview on how to do this on different systems can be found [in Riak docs](https://docs.riak.com/riak/kv/2.2.3/using/performance/open-files-limit.1.html). Wanna more connections? Make this limit higher.
 
 Limit a maximum number of connections your process can serve, make it less than known file descriptor limit:
 
@@ -69,7 +69,7 @@ if conns.Len() >= 65500 {
 conns.Add(conn)
 ```
 
-– otherwise you have a risk to not even able to look at pprof when things go bad.
+– otherwise you have a risk to not even able to look at `pprof` when things go bad. And you always need monitoring of open file descriptors.
 
 Keep attention on *Ephemeral ports* problem which is often happens between your load balancer and your WebSocket server. The problem arises due to the fact that each TCP connection uniquely identified in the OS by the 4-part-tuple:
 
@@ -79,7 +79,7 @@ source ip | source port | destination ip | destination port
 
 On balancer/server boundary you are limited in 65536 possible variants by default. But actually due to some OS limits and sockets in TIME_WAIT state the number is even less. A very good explanation and how to deal with it can be found [in Pusher blog](https://making.pusher.com/ephemeral-port-exhaustion-and-how-to-avoid-it/).
 
-Also your possible number of connections limited by conntrack table. Netfilter framework which is part of iptables keeps information about all connections and has limited size for this information. See how to see its limits and instructions to increase [in this article](https://morganwu277.github.io/2018/05/26/Solve-production-issue-of-nf-conntrack-table-full-dropping-packet/).
+Your possible number of connections also limited by conntrack table. Netfilter framework which is part of iptables keeps information about all connections and has limited size for this information. See how to see its limits and instructions to increase [in this article](https://morganwu277.github.io/2018/05/26/Solve-production-issue-of-nf-conntrack-table-full-dropping-packet/).
 
 One more thing you can do is tune your network stack for performance. Do this only if you understand that you need it. Maybe start [with this gist](https://gist.github.com/mustafaturan/47268d8ad6d56cadda357e4c438f51ca), but don't optimize without full understanding why you are doing this. 
 
@@ -137,6 +137,8 @@ Personally when we talk about such brokers here are some options that come into 
 
 **Sure there are more exist** including libraries like [ZeroMQ](https://zeromq.org/) or [nanomsg](https://nanomsg.org/).
 
+Below I'll try to consider these solutions for the task of making scalable WebSocket server facing many user connections from Internet. A short analysis below can be a bit biased, but I believe thoughts are reasonable enough.
+
 If I were you I won't go with RabbitMQ for this task. This is a great messaging server, but it does not like a high rate of queue bind and unbind type of load. It will work, but you will need to use a lot of server resources for not so big number of clients (having a personal topic per client is a very common thing, now imagine having millions of queues inside RabbitMQ).
 
 Kafka and Pulsar are great solutions, but not for this task I believe. The problem is again in dynamic ephemeral nature of our topics. Kafka also likes a more stable configuration of its topics. Keeping messages on disk can be an overkill for real-time messaging task. Also your consumers on Kafka server should pull from thousands of different topics, not sure how well it performs, but my thoughts at moment - this should not perform very well. Here is [a post from Trello](https://tech.trello.com/why-we-chose-kafka/) where they moved from RabbitMQ to Kafka for similar real-time messaging task and got about 5x resource usage improvements.
@@ -145,7 +147,9 @@ Nats and Nats-Streaming. Sure Nats has a lot of sense here - I suppose it can be
 
 Sure Tarantool can fit to this task well too. There is an article and repo which shows how to achieve our goal with Tarantool with pretty low resource requirements for a broker. Maybe the only problem with Tarantool is not a very healthy state of its client libraries, complexity and the fact that it's heavily enterprise-oriented. You should invest enough time to benefit from it. But this can worth it actually. See [an article](https://hackernoon.com/tarantool-when-it-takes-500-lines-of-code-to-notify-a-million-users-11d340523493) on how to do a performant broker for WebSocket applications with Tarantool.
 
-My personal choice here is Redis. It's very fast (especially when using pipelining protocol feature), very **predictable**. It gives you a good understanding of operation time complexity. You can shard topics over different Redis instances running in HA setup - with Sentinel or with Redis Cluster. It allows writing LUA procedures with some advanced logic which can be uploaded over client protocol thus feels like ordinary commands. So we can also use Redis as sliding window message cache. Again - we will talk why this can be important later.
+Building PUB/SUB system on top of ZeroMQ will require you to build separate broker yourself. This could be an unnecessary complexity for your system. It's possible to implement PUB/SUB pattern with ZeroMQ and nanomsg without a central broker, but in this case messages without active subscribers on a server will be dropped on a consumer side thus all publications will travel to all server nodes. 
+
+My personal choice here is Redis. It's very fast (especially when using pipelining protocol feature), and what is more important – **predictable**. It gives you a good understanding of operation time complexity. You can shard topics over different Redis instances running in HA setup - with Sentinel or with Redis Cluster. It allows writing LUA procedures with some advanced logic which can be uploaded over client protocol thus feels like ordinary commands. So we can also use Redis as sliding window message cache. Again - we will talk why this can be important later.
 
 Anyway, whatever broker will be your choice try to follow this rules to build effective PUB/SUB system:
 
@@ -202,11 +206,11 @@ I also made a repo where I demonstrate how this technique together with Redis pi
 
 Here comes a final part of this post. Maybe the most important one.
 
-Not only mass client reconnections create a load on session backend but also a huge load can be created on your main application database. Why? Because WebSocket applications are stateful. Clients rely on a stream of messages coming from a backend to maintain its state actual. As soon as connection dropped client tries to reconnect. But it some scenarios it also wants to restore its actual state. What if client reconnected after 3 seconds? How many state updates it could miss? Nobody knows. So to make sure state is actual client tries to get it from application database. This is again a spike in load in massive reconnect scenario. In can be really painful with many active connections.
+Not only mass client re-connections could create a significant load on session backend but also a huge load on your main application database. Why? Because WebSocket applications are stateful. Clients rely on a stream of messages coming from a backend to maintain its state actual. As soon as connection dropped client tries to reconnect. But it some scenarios it also wants to restore its actual state. What if client reconnected after 3 seconds? How many state updates it could miss? Nobody knows. So to make sure state is actual client tries to get it from application database. This is again a spike in load in massive reconnect scenario. In can be really painful with many active connections.
 
-So what I think is nice to have is effective and performant sliding window cache of messages inside each channel where we can't afford to miss messages. Keep this cache in fast in-memory storage. Redis suits well for this task too. It's possible to keep message cache in Redis List or Redis Stream data structures.
+So what I think is nice to have for scenarios where we can't afford to miss messages (like in chat-like apps for example) is having effective and performant sliding window cache of messages inside each channel. Keep this cache in fast in-memory storage. Redis suits well for this task too. It's possible to keep message cache in Redis List or Redis Stream data structures.
 
-So as soon as client reconnects it can restore its state from fast in-memory storage without even quering your database. Very good! You can also create your own Websocket fallback implementation (like Long-Polling) utilizing that sliding window message cache.
+So as soon as client reconnects it can restore its state from fast in-memory storage without even querying your database. Very good! You can also create your own Websocket fallback implementation (like Long-Polling) utilizing that sliding window message cache.
 
 ## Conclusion
 
