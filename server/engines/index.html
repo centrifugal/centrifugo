@@ -1331,7 +1331,7 @@ Sentinel configuration.</p>
 <p>Use KeyDB instead of Redis only if you are really sure you need it. Nothing stops you from running several Redis instances per each core you have, configure sharding and obtain even better performance that KeyDB can provide (due to lack of synchronization between threads in Redis).</p>
 <p>In order to run Centrifugo with KeyDB all you need to do is use <code>redis</code> engine option and run KeyDB server instead of Redis.</p>
 <h2 id="nats-broker">Nats broker<a class="headerlink" href="#nats-broker" title="Permanent link">&para;</a></h2>
-<p>Starting from Centrifugo v2.6.0 it's possible to scale with <a href="https://nats.io/">Nats</a> PUB/SUB server.</p>
+<p>Starting from Centrifugo v2.6.0 it's possible to scale with <a href="https://nats.io/">Nats</a> PUB/SUB server. Keep in mind, that Nats called a <strong>broker</strong> here, <strong>not an Engine</strong> – Nats integration only implements PUB/SUB part of Engine, so carefully read limitations below.</p>
 <p>Known limitations:</p>
 <ul>
 <li><strong>Nats integration works only for unreliable at most once PUB/SUB</strong>. This means that history, presence and message recovery Centrifugo features won't be available.</li>
