@@ -221,6 +221,19 @@
   
 
       
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../../blog/" class="md-tabs__link">
+          Blog
+        </a>
+      
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -499,13 +512,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#channel-options" class="md-nav__link">
-    Channel options
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#advanced-configuration" class="md-nav__link">
     Advanced configuration
   </a>
@@ -611,8 +617,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#healthcheck-endpoint" class="md-nav__link">
-    Healthcheck endpoint
+  <a href="#health-check-endpoint" class="md-nav__link">
+    Health check endpoint
   </a>
   
 </li>
@@ -632,14 +638,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#customize-handler-endpoinds" class="md-nav__link">
-    Customize handler endpoinds
+  <a href="#customize-handler-endpoints" class="md-nav__link">
+    Customize handler endpoints
   </a>
   
 </li>
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#signal-handling" class="md-nav__link">
+    Signal handling
+  </a>
   
 </li>
       
@@ -776,18 +789,6 @@
 
 
   <li class="md-nav__item">
-    <a href="../signals/" title="Signal handling" class="md-nav__link">
-      Signal handling
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
     <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
       Connection expiration
     </a>
@@ -801,16 +802,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-13" type="checkbox" id="nav-3-13">
     
-    <label class="md-nav__link" for="nav-3-14">
+    <label class="md-nav__link" for="nav-3-13">
       Transports
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Transports" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-14">
+      <label class="md-nav__title" for="nav-3-13">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -867,16 +868,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
     
-    <label class="md-nav__link" for="nav-3-15">
+    <label class="md-nav__link" for="nav-3-14">
       Deploy
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Deploy" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-15">
+      <label class="md-nav__title" for="nav-3-14">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -957,16 +958,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox" id="nav-3-17">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16">
     
-    <label class="md-nav__link" for="nav-3-17">
+    <label class="md-nav__link" for="nav-3-16">
       Misc
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Misc" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-17">
+      <label class="md-nav__title" for="nav-3-16">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -1129,6 +1130,90 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+    
+    <label class="md-nav__link" for="nav-6">
+      Blog
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Blog" data-md-level="1">
+      <label class="md-nav__title" for="nav-6">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Blog
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../blog/" title="About this blog" class="md-nav__link">
+      About this blog
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6-2" type="checkbox" id="nav-6-2">
+    
+    <label class="md-nav__link" for="nav-6-2">
+      July 2020
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="July 2020" data-md-level="2">
+      <label class="md-nav__title" for="nav-6-2">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        July 2020
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../blog/scaling_websocket/" title="Scaling WebSocket in Go and beyond" class="md-nav__link">
+      Scaling WebSocket in Go and beyond
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -1233,13 +1318,6 @@
         <li class="md-nav__item">
   <a href="#important-options" class="md-nav__link">
     Important options
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#channel-options" class="md-nav__link">
-    Channel options
   </a>
   
 </li>
@@ -1350,8 +1428,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#healthcheck-endpoint" class="md-nav__link">
-    Healthcheck endpoint
+  <a href="#health-check-endpoint" class="md-nav__link">
+    Health check endpoint
   </a>
   
 </li>
@@ -1371,14 +1449,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#customize-handler-endpoinds" class="md-nav__link">
-    Customize handler endpoinds
+  <a href="#customize-handler-endpoints" class="md-nav__link">
+    Customize handler endpoints
   </a>
   
 </li>
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#signal-handling" class="md-nav__link">
+    Signal handling
+  </a>
   
 </li>
       
@@ -1405,71 +1490,17 @@
                 <h1 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h1>
 <p>Here we will look at how Centrifugo can be configured.</p>
 <h2 id="getting-help">Getting help<a class="headerlink" href="#getting-help" title="Permanent link">&para;</a></h2>
-<p>First let's look at all available command-line options:</p>
-<div class="highlight"><pre><span></span><code>centrifugo -h
+<p>Centrifugo can be configured in several ways:</p>
+<ul>
+<li>over command-line flags, see <code>centrifugo -h</code> for available flags, command-line flags limited to most frequently used</li>
+<li>over configuration file, configuration file supports all options mentioned in this doc</li>
+<li>over OS environment variables, all Centrifugo options supported to be set over env in format <code>CENTRIFUGO_&lt;OPTION_NAME&gt;</code></li>
+</ul>
+<p>The basic way to start with Centrifugo is run <code>centrifugo genconfig</code> command which will generate <code>config.json</code> configuration file with some options (in a current directory), so you can start Centrifugo:</p>
+<div class="highlight"><pre><span></span><code>centrifugo -c config.json
 </code></pre></div>
 
-<p>You should see something like this as output:</p>
-<div class="highlight"><pre><span></span><code>Centrifugo – scalable real-time messaging server in language-agnostic way
-
-Usage:
-   [flags]
-   [command]
-
-Available Commands:
-  checkconfig Check configuration file
-  checktoken  Check connection JWT
-  genconfig   Generate minimal configuration file to start with
-  gentoken    Generate sample connection JWT for user
-  help        Help about any command
-  version     Centrifugo version information
-
-Flags:
-  -a, --address string             interface address to listen on
-      --admin                      enable admin web interface
-      --admin_external             enable admin web interface on external port
-      --admin_insecure             use insecure admin mode – no auth required for admin socket
-      --api_insecure               use insecure API mode
-      --client_insecure            start in insecure client mode
-  -c, --config string              path to config file (default &quot;config.json&quot;)
-      --debug                      enable debug endpoints
-  -e, --engine string              engine to use: memory or redis (default &quot;memory&quot;)
-      --grpc_api                   enable GRPC API server
-      --grpc_api_port int          port to bind GRPC API server to (default 10000)
-      --grpc_api_tls               enable TLS for GRPC API server, requires an X509 certificate and a key file
-      --grpc_api_tls_cert string   path to an X509 certificate file for GRPC API server
-      --grpc_api_tls_disable       disable general TLS for GRPC API server
-      --grpc_api_tls_key string    path to an X509 certificate key for GRPC API server
-      --health                     enable health check endpoint
-  -h, --help                       help for this command
-      --internal_address string    custom interface address to listen on for internal endpoints
-      --internal_port string       custom port for internal endpoints
-      --log_file string            optional log file - if not specified logs go to STDOUT
-      --log_level string           set the log level: debug, info, error, fatal or none (default &quot;info&quot;)
-  -n, --name string                unique node name
-      --pid_file string            optional path to create PID file
-  -p, --port string                port to bind HTTP server to (default &quot;8000&quot;)
-      --prometheus                 enable Prometheus metrics endpoint
-      --redis_db int               Redis database (Redis engine)
-      --redis_host string          Redis host (Redis engine) (default &quot;127.0.0.1&quot;)
-      --redis_master_name string   name of Redis master Sentinel monitors (Redis engine)
-      --redis_password string      Redis auth password (Redis engine)
-      --redis_port string          Redis port (Redis engine) (default &quot;6379&quot;)
-      --redis_sentinels string     comma-separated list of Sentinel addresses (Redis engine)
-      --redis_tls                  enable Redis TLS connection
-      --redis_tls_skip_verify      disable Redis TLS host verification
-      --redis_url string           Redis connection URL in format redis://:password@hostname:port/db (Redis engine)
-      --tls                        enable TLS, requires an X509 certificate and a key file
-      --tls_cert string            path to an X509 certificate file
-      --tls_external               enable TLS only for external endpoints
-      --tls_key string             path to an X509 certificate key
-</code></pre></div>
-
-<p>Not all available Centrifugo options available to be set over command-line flags – here we can see only some frequently used.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>All command-line options of Centrifugo can be set via configuration file with the same name (without <code>--</code> prefix of course). Also all available options can be set over environment variables in format <code>CENTRIFUGO_&lt;OPTION_NAME&gt;</code>.</p>
-</div>
+<p>Below while describing configuration file format we will look at the meaning of the required options. </p>
 <h2 id="config-file-formats">Config file formats<a class="headerlink" href="#config-file-formats" title="Permanent link">&para;</a></h2>
 <p>Centrifugo supports different configuration file formats. </p>
 <h3 id="json-config-format">JSON config format<a class="headerlink" href="#json-config-format" title="Permanent link">&para;</a></h3>
@@ -1498,7 +1529,7 @@ log_level = &quot;debug&quot;
 
 <p>I.e. the same configuration as JSON file above with one extra option to define logging level.</p>
 <h3 id="yaml-config-format">YAML config format<a class="headerlink" href="#yaml-config-format" title="Permanent link">&para;</a></h3>
-<p>And YAML config also supported. <code>config.yaml</code>:</p>
+<p>YAML config also supported. <code>config.yaml</code>:</p>
 <div class="highlight"><pre><span></span><code>v3_use_offset: true
 token_hmac_secret_key: &quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;
 api_key: &quot;&lt;YOUR-API-KEY-HERE&gt;&quot;
@@ -1551,102 +1582,6 @@ log_level: debug
 <li><code>engine</code> – engine to use - <code>memory</code> or <code>redis</code> (by default <code>memory</code>). Read more about engines in <a href="engines">special chapter</a>.</li>
 </ul>
 <p>Note that some options can be set via command-line. Command-line options are more valuable when set than configuration file's options. See description of <a href="https://github.com/spf13/viper">viper</a> – to see more details about configuration options priority.</p>
-<h2 id="channel-options">Channel options<a class="headerlink" href="#channel-options" title="Permanent link">&para;</a></h2>
-<p>Let's look at options related to channels. Channel is an entity to which clients can subscribe to receive messages published into that channel. Channel is just a string (several symbols has special meaning in Centrifugo - see <a href="../channels/">special chapter</a> to find more information about channels). The following options will affect channel behaviour:</p>
-<ul>
-<li>
-<p><code>publish</code> (boolean, default <code>false</code>) – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. By default it's <code>false</code>.</p>
-</li>
-<li>
-<p><code>subscribe_to_publish</code> (boolean, default <code>false</code>) - when <code>publish</code> option enabled client can publish into channel without being subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.</p>
-</li>
-<li>
-<p><code>anonymous</code> (boolean, default <code>false</code>) – this option enables anonymous access (with empty <code>sub</code> claim in connection token). In most situations your application works with authenticated users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID.</p>
-</li>
-<li>
-<p><code>presence</code> (boolean, default <code>false</code>) – enable/disable presence information. Presence is an information about clients currently subscribed on channel. By default this option is off so no presence information will be available for channels.</p>
-</li>
-<li>
-<p><code>presence_disable_for_client</code> (boolean, default <code>false</code>, available since v2.2.3) – allows making presence calls available only for server side API. By default presence information is available for both client and server side APIs.</p>
-</li>
-<li>
-<p><code>join_leave</code> (boolean, default <code>false</code>) – enable/disable sending join(leave) messages when client subscribes on a channel (unsubscribes from channel).</p>
-</li>
-<li>
-<p><code>history_size</code> (integer, default <code>0</code>) – history size (amount of messages) for channels. As Centrifugo keeps all history messages in memory it's very important to limit maximum amount of messages in channel history to reasonable value. <code>history_size</code> defines maximum amount of messages that Centrifugo will keep for <strong>each</strong> channel in namespace during history lifetime (see below). By default history size is <code>0</code> - this means that channels will have no history messages at all.</p>
-</li>
-<li>
-<p><code>history_lifetime</code> (integer, default <code>0</code>) – interval in seconds how long to keep channel history messages. As all history is storing in memory it is also very important to get rid of old history data for unused (inactive for a long time) channels. By default history lifetime is <code>0</code> – this means that channels will have no history messages at all. <strong>So to turn on keeping history messages you should wisely configure both <code>history_size</code> and <code>history_lifetime</code> options</strong>.</p>
-</li>
-<li>
-<p><code>history_recover</code> (boolean, default <code>false</code>) – when enabled Centrifugo will try to recover missed publications while client was disconnected for some reason (bad internet connection for example). By default this feature is off. This option must be used in conjunction with reasonably configured message history for channel i.e. <code>history_size</code> and <code>history_lifetime</code> <strong>must be set</strong> (because Centrifugo uses channel history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel (currently Centrifugo returns recovered publications in order and without duplicates but this is implementation detail that can be theoretically changed in future). See more details about how recovery works in <a href="../recover/">special chapter</a>.</p>
-</li>
-<li>
-<p><code>history_disable_for_client</code> (boolean, default <code>false</code>, available since v2.2.3) – allows making history available only for server side API. By default <code>false</code> – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if <code>history_disable_for_client</code> is on.</p>
-</li>
-<li>
-<p><code>server_side</code> (boolean, default <code>false</code>, available since v2.4.0) – when enabled then all client-side subscription requests to channels in namespace will be rejected with <code>PermissionDenied</code> error.</p>
-</li>
-</ul>
-<p>Let's look how to set some of these options in config:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="nt">&quot;v3_use_offset&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="nt">&quot;token_hmac_secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;my-secret-key&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;anonymous&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="nt">&quot;publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="nt">&quot;subscribe_to_publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="nt">&quot;presence&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="nt">&quot;join_leave&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="nt">&quot;history_size&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
-    <span class="nt">&quot;history_lifetime&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
-    <span class="nt">&quot;history_recover&quot;</span><span class="p">:</span> <span class="kc">true</span>
-<span class="p">}</span>
-</code></pre></div>
-
-<p>And the last channel specific option is <code>namespaces</code>. <code>namespaces</code> are optional and if set must be an array of namespace objects. Namespace allows to configure custom options for channels starting with namespace name. This provides a great control over channel behaviour.</p>
-<p>Namespace has a name and the same channel options (with same defaults) as described above.</p>
-<ul>
-<li><code>name</code> - unique namespace name (name must consist of letters, numbers, underscores or hyphens and be more than 2 symbols length i.e. satisfy regexp <code>^[-a-zA-Z0-9_]{2,}$</code>).</li>
-</ul>
-<p>If you want to use namespace options for channel - you must include namespace name into
-channel name with <code>:</code> as separator:</p>
-<p><code>public:messages</code></p>
-<p><code>gossips:messages</code></p>
-<p>Where <code>public</code> and <code>gossips</code> are namespace names from project <code>namespaces</code>.</p>
-<p>All things together here is an example of <code>config.json</code> which includes registered project with all options set and 2 additional namespaces in it:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="nt">&quot;v3_use_offset&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="nt">&quot;token_hmac_secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;very-long-secret-key&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;anonymous&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="nt">&quot;publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="nt">&quot;presence&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="nt">&quot;join_leave&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-    <span class="nt">&quot;history_size&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
-    <span class="nt">&quot;history_lifetime&quot;</span><span class="p">:</span> <span class="mi">30</span><span class="p">,</span>
-    <span class="nt">&quot;namespaces&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="p">{</span>
-          <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;public&quot;</span><span class="p">,</span>
-          <span class="nt">&quot;publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-          <span class="nt">&quot;anonymous&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-          <span class="nt">&quot;history_size&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
-          <span class="nt">&quot;history_lifetime&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
-          <span class="nt">&quot;history_recover&quot;</span><span class="p">:</span> <span class="kc">true</span>
-        <span class="p">},</span>
-        <span class="p">{</span>
-          <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;gossips&quot;</span><span class="p">,</span>
-          <span class="nt">&quot;presence&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-          <span class="nt">&quot;join_leave&quot;</span><span class="p">:</span> <span class="kc">true</span>
-        <span class="p">}</span>
-    <span class="p">]</span>
-<span class="p">}</span>
-</code></pre></div>
-
-<p>Channel <code>news</code> will use globally defined channel options.</p>
-<p>Channel <code>public:news</code> will use <code>public</code> namespace's options.</p>
-<p>Channel <code>gossips:news</code> will use <code>gossips</code> namespace's options.</p>
-<p>There is no inheritance in channel options and namespaces – so if for example you defined <code>presence: true</code> on top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. </p>
 <h2 id="advanced-configuration">Advanced configuration<a class="headerlink" href="#advanced-configuration" title="Permanent link">&para;</a></h2>
 <p>Centrifugo has some options for which default values make sense for most applications. In many case you don't need (and you really should not) change them. This chapter is about such options.</p>
 <h3 id="client_channel_limit">client_channel_limit<a class="headerlink" href="#client_channel_limit" title="Permanent link">&para;</a></h3>
@@ -1675,7 +1610,7 @@ channel name with <code>:</code> as separator:</p>
 <p>Enable websocket compression, see chapter about websocket transport for more details.</p>
 <h3 id="gomaxprocs">gomaxprocs<a class="headerlink" href="#gomaxprocs" title="Permanent link">&para;</a></h3>
 <p>Default: 0</p>
-<p>By default Centrifugo runs on all available CPU cores. If you want to limit amount of cores Centrifugo can utilize in one moment use this option.</p>
+<p>By default, Centrifugo runs on all available CPU cores. If you want to limit amount of cores Centrifugo can utilize in one moment use this option.</p>
 <h2 id="advanced-endpoint-configuration">Advanced endpoint configuration.<a class="headerlink" href="#advanced-endpoint-configuration" title="Permanent link">&para;</a></h2>
 <p>After you started Centrifugo you have several endpoints available. As soon as you have not provided any extra options you have 3 endpoints by default.</p>
 <h3 id="default-endpoints">Default endpoints.<a class="headerlink" href="#default-endpoints" title="Permanent link">&para;</a></h3>
@@ -1691,7 +1626,7 @@ channel name with <code>:</code> as separator:</p>
 <div class="highlight"><pre><span></span><code>http://localhost:8000/api
 </code></pre></div>
 
-<p>By default all endpoints work on port <code>8000</code>. You can change it using <code>port</code> option:</p>
+<p>By default, all endpoints work on port <code>8000</code>. You can change it using <code>port</code> option:</p>
 <div class="highlight"><pre><span></span><code>{
     &quot;port&quot;: 9000
 }
@@ -1724,7 +1659,7 @@ channel name with <code>:</code> as separator:</p>
 </code></pre></div>
 
 <p>– will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See <a href="https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues">wiki page</a> for more info.</p>
-<h3 id="healthcheck-endpoint">Healthcheck endpoint<a class="headerlink" href="#healthcheck-endpoint" title="Permanent link">&para;</a></h3>
+<h3 id="health-check-endpoint">Health check endpoint<a class="headerlink" href="#health-check-endpoint" title="Permanent link">&para;</a></h3>
 <p>New in v2.1.0</p>
 <p>Use <code>health</code> boolean option (by default <code>false</code>) to enable healthcheck endpoint which will be available on path <code>/health</code>. Also available over command-line flag:</p>
 <div class="highlight"><pre><span></span><code>./centrifugo -c config.json --health
@@ -1736,10 +1671,10 @@ channel name with <code>:</code> as separator:</p>
 <li>API endpoint (<code>/api</code>) - for HTTP API requests</li>
 <li>Admin web interface endpoints (<code>/</code>, <code>/admin/auth</code>, <code>/admin/api</code>) - used by web interface</li>
 <li>Prometheus endpoint (<code>/metrics</code>) - used for exposing server metrics in Prometheus format </li>
-<li>Healthcheck endpoint (<code>/health</code>) - used to do healthchecks</li>
+<li>Health check endpoint (<code>/health</code>) - used to do health checks</li>
 <li>Debug endpoints (<code>/debug/pprof</code>) - used to inspect internal server state</li>
 </ul>
-<p>It's a good practice to protect those endpoints with firewall. For example you can do this in <code>location</code> section of Nginx configuration.</p>
+<p>It's a good practice to protect those endpoints with firewall. For example, you can do this in <code>location</code> section of Nginx configuration.</p>
 <p>Though sometimes you don't have access to per-location configuration in your proxy/load balancer software. For example when using Amazon ELB. In this case you can change ports on which your internal endpoints work.</p>
 <p>To run internal endpoints on custom port use <code>internal_port</code> option:</p>
 <div class="highlight"><pre><span></span><code>{
@@ -1762,7 +1697,7 @@ channel name with <code>:</code> as separator:</p>
 <p>To disable websocket endpoint set <code>websocket_disable</code> boolean option to <code>true</code>.</p>
 <p>To disable SockJS endpoint set <code>sockjs_disable</code> boolean option to <code>true</code>.</p>
 <p>To disable API endpoint set <code>api_disable</code> boolean option to <code>true</code>.</p>
-<h3 id="customize-handler-endpoinds">Customize handler endpoinds<a class="headerlink" href="#customize-handler-endpoinds" title="Permanent link">&para;</a></h3>
+<h3 id="customize-handler-endpoints">Customize handler endpoints<a class="headerlink" href="#customize-handler-endpoints" title="Permanent link">&para;</a></h3>
 <p>Starting from Centrifugo v2.2.5 it's possible to customize server HTTP handler endpoints. To do this Centrifugo supports several options:</p>
 <ul>
 <li><code>admin_handler_prefix</code> (default <code>""</code>) - to control Admin panel URL prefix</li>
@@ -1772,6 +1707,13 @@ channel name with <code>:</code> as separator:</p>
 <li><code>prometheus_handler_prefix</code> (default <code>"/metrics"</code>) - to control Prometheus URL prefix</li>
 <li><code>health_handler_prefix</code> (default <code>"/health"</code>) - to control health check URL prefix</li>
 </ul>
+<h2 id="signal-handling">Signal handling<a class="headerlink" href="#signal-handling" title="Permanent link">&para;</a></h2>
+<p>You can send HUP signal to Centrifugo to reload a configuration:</p>
+<div class="highlight"><pre><span></span><code>kill -HUP &lt;PID&gt;
+</code></pre></div>
+
+<p>Though at moment <strong>this will only reload token secrets and channel options (top-level and namespaces)</strong>.</p>
+<p>Centrifugo tries to gracefully shutdown client connections when SIGINT or SIGTERM signals received. By default, maximum graceful shutdown period is 30 seconds but can be changed using <code>shutdown_timeout</code> (integer, in seconds) configuration option.</p>
                 
               
               

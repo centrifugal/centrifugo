@@ -11,23 +11,23 @@
         <meta name="description" content="Centrifugo is a scalable real-time messaging server in language-agnostic way">
       
       
-        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/server/signals/">
+        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/blog/">
       
       
         <meta name="author" content="Centrifugal organization">
       
-      <link rel="shortcut icon" href="../../images/favicon.png">
+      <link rel="shortcut icon" href="../images/favicon.png">
       <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.1.6">
     
     
       
-        <title>Signal handling - Centrifugo</title>
+        <title>Centrifugo Dev Blog</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.4b9ffd7b.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.4b9ffd7b.min.css">
       
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.b79bcd20.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.b79bcd20.min.css">
       
       
         
@@ -45,12 +45,46 @@
     
     
     
-      <link rel="stylesheet" href="../../theme/styles/extra.css">
+      <link rel="stylesheet" href="../theme/styles/extra.css">
     
     
       
     
     
+
+<!-- Determine title -->
+
+
+
+
+
+<!-- The image needs to have an absolute URL -->
+
+
+<!-- Open graph meta tags -->
+
+<meta property="og:title" content="Centrifugo Dev Blog" />
+
+
+
+<meta property="og:type" content="website" />
+
+
+<meta property="og:url" content="https://centrifugal.github.io/centrifugo/blog/" />
+
+
+<meta property="og:image:url" content="https://centrifugal.github.io/centrifugo/images/favicon.png" />
+
+
+
+<meta property="og:image:type" content="image/png" />
+
+
+
+<meta property="og:description" content="Centrifugo is a scalable real-time messaging server in language-agnostic way">
+
+
+
   </head>
   
   
@@ -63,11 +97,6 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
-        
-        <a href="#signal-handling" class="md-skip">
-          Skip to content
-        </a>
-      
     </div>
     <div data-md-component="announce">
       
@@ -77,7 +106,7 @@
   <nav class="md-header-nav md-grid" aria-label="Header">
     <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-header-nav__button md-logo" aria-label="Centrifugo">
       
-  <img src="../../images/logo.png" alt="logo">
+  <img src="../images/logo.png" alt="logo">
 
     </a>
     <label class="md-header-nav__button md-icon" for="__drawer">
@@ -91,7 +120,7 @@
           </span>
           <span class="md-header-nav__topic md-ellipsis">
             
-              Signal handling
+              Centrifugo Dev Blog
             
           </span>
         </div>
@@ -150,6 +179,7 @@
         
       
       
+
         
           
 
@@ -162,7 +192,7 @@
         
   <li class="md-tabs__item">
     
-      <a href="../.." class="md-tabs__link">
+      <a href=".." class="md-tabs__link">
         Home
       </a>
     
@@ -174,7 +204,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../getting_started/" class="md-tabs__link">
+        <a href="../getting_started/" class="md-tabs__link">
           Getting Started
         </a>
       
@@ -187,7 +217,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../configuration/" class="md-tabs__link md-tabs__link--active">
+        <a href="../server/configuration/" class="md-tabs__link">
           Server
         </a>
       
@@ -200,7 +230,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../libraries/client/" class="md-tabs__link">
+        <a href="../libraries/client/" class="md-tabs__link">
           Libraries
         </a>
       
@@ -213,8 +243,21 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../faq/" class="md-tabs__link">
+        <a href="../faq/" class="md-tabs__link">
           FAQ
+        </a>
+      
+    </li>
+  
+
+      
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="./" class="md-tabs__link md-tabs__link--active">
+          Blog
         </a>
       
     </li>
@@ -226,6 +269,7 @@
 </nav>
         
       
+
       <main class="md-main" data-md-component="main">
         <div class="md-main__inner md-grid">
           
@@ -237,7 +281,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-nav__button md-logo" aria-label="Centrifugo">
       
-  <img src="../../images/logo.png" alt="logo">
+  <img src="../images/logo.png" alt="logo">
 
     </a>
     Centrifugo
@@ -264,7 +308,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../.." title="Home" class="md-nav__link">
+    <a href=".." title="Home" class="md-nav__link">
       Home
     </a>
   </li>
@@ -301,7 +345,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../getting_started/" title="What is Centrifugo" class="md-nav__link">
+    <a href="../getting_started/" title="What is Centrifugo" class="md-nav__link">
       What is Centrifugo
     </a>
   </li>
@@ -313,7 +357,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../install/" title="Installation" class="md-nav__link">
+    <a href="../install/" title="Installation" class="md-nav__link">
       Installation
     </a>
   </li>
@@ -325,7 +369,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../quick_start/" title="Quick start" class="md-nav__link">
+    <a href="../quick_start/" title="Quick start" class="md-nav__link">
       Quick start
     </a>
   </li>
@@ -337,7 +381,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../guide/" title="Integration Guide" class="md-nav__link">
+    <a href="../guide/" title="Integration Guide" class="md-nav__link">
       Integration Guide
     </a>
   </li>
@@ -352,12 +396,10 @@
       
       
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+  <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" checked>
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
     
     <label class="md-nav__link" for="nav-3">
       Server
@@ -381,7 +423,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../configuration/" title="Configuration" class="md-nav__link">
+    <a href="../server/configuration/" title="Configuration" class="md-nav__link">
       Configuration
     </a>
   </li>
@@ -393,7 +435,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../channels/" title="Channels" class="md-nav__link">
+    <a href="../server/channels/" title="Channels" class="md-nav__link">
       Channels
     </a>
   </li>
@@ -405,7 +447,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../authentication/" title="Authentication" class="md-nav__link">
+    <a href="../server/authentication/" title="Authentication" class="md-nav__link">
       Authentication
     </a>
   </li>
@@ -417,7 +459,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../private_channels/" title="Private channels" class="md-nav__link">
+    <a href="../server/private_channels/" title="Private channels" class="md-nav__link">
       Private channels
     </a>
   </li>
@@ -429,7 +471,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../engines/" title="Engines" class="md-nav__link">
+    <a href="../server/engines/" title="Engines" class="md-nav__link">
       Engines
     </a>
   </li>
@@ -441,7 +483,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../http_api/" title="Server HTTP API" class="md-nav__link">
+    <a href="../server/http_api/" title="Server HTTP API" class="md-nav__link">
       Server HTTP API
     </a>
   </li>
@@ -453,7 +495,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../grpc_api/" title="Server GRPC API" class="md-nav__link">
+    <a href="../server/grpc_api/" title="Server GRPC API" class="md-nav__link">
       Server GRPC API
     </a>
   </li>
@@ -465,7 +507,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../admin/" title="Admin web interface" class="md-nav__link">
+    <a href="../server/admin/" title="Admin web interface" class="md-nav__link">
       Admin web interface
     </a>
   </li>
@@ -477,7 +519,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../proxy/" title="Proxy to backend" class="md-nav__link">
+    <a href="../server/proxy/" title="Proxy to backend" class="md-nav__link">
       Proxy to backend
     </a>
   </li>
@@ -489,7 +531,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server_subs/" title="Server-side subscriptions" class="md-nav__link">
+    <a href="../server/server_subs/" title="Server-side subscriptions" class="md-nav__link">
       Server-side subscriptions
     </a>
   </li>
@@ -501,7 +543,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../recover/" title="Message recovery" class="md-nav__link">
+    <a href="../server/recover/" title="Message recovery" class="md-nav__link">
       Message recovery
     </a>
   </li>
@@ -511,30 +553,9 @@
           
           
 
-  
-
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-    
-      
-    
-    
-    <a href="./" title="Signal handling" class="md-nav__link md-nav__link--active">
-      Signal handling
-    </a>
-    
-  </li>
-
-        
-          
-          
-          
-
 
   <li class="md-nav__item">
-    <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
+    <a href="../server/connection_expiration/" title="Connection expiration" class="md-nav__link">
       Connection expiration
     </a>
   </li>
@@ -547,16 +568,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-13" type="checkbox" id="nav-3-13">
     
-    <label class="md-nav__link" for="nav-3-14">
+    <label class="md-nav__link" for="nav-3-13">
       Transports
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Transports" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-14">
+      <label class="md-nav__title" for="nav-3-13">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -571,7 +592,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/" title="Transports overview" class="md-nav__link">
+    <a href="../transports/" title="Transports overview" class="md-nav__link">
       Transports overview
     </a>
   </li>
@@ -583,7 +604,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/websocket/" title="Websocket" class="md-nav__link">
+    <a href="../transports/websocket/" title="Websocket" class="md-nav__link">
       Websocket
     </a>
   </li>
@@ -595,7 +616,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/sockjs/" title="SockJS" class="md-nav__link">
+    <a href="../transports/sockjs/" title="SockJS" class="md-nav__link">
       SockJS
     </a>
   </li>
@@ -613,16 +634,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
     
-    <label class="md-nav__link" for="nav-3-15">
+    <label class="md-nav__link" for="nav-3-14">
       Deploy
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Deploy" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-15">
+      <label class="md-nav__title" for="nav-3-14">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -637,7 +658,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
+    <a href="../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
       Nginx configuration
     </a>
   </li>
@@ -649,7 +670,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../deploy/monitoring/" title="Monitoring" class="md-nav__link">
+    <a href="../deploy/monitoring/" title="Monitoring" class="md-nav__link">
       Monitoring
     </a>
   </li>
@@ -661,7 +682,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../deploy/tuning/" title="OS tuning" class="md-nav__link">
+    <a href="../deploy/tuning/" title="OS tuning" class="md-nav__link">
       OS tuning
     </a>
   </li>
@@ -673,7 +694,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../deploy/tls/" title="TLS" class="md-nav__link">
+    <a href="../deploy/tls/" title="TLS" class="md-nav__link">
       TLS
     </a>
   </li>
@@ -690,7 +711,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../protobuf/" title="Protobuf protocol" class="md-nav__link">
+    <a href="../server/protobuf/" title="Protobuf protocol" class="md-nav__link">
       Protobuf protocol
     </a>
   </li>
@@ -703,16 +724,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox" id="nav-3-17">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16">
     
-    <label class="md-nav__link" for="nav-3-17">
+    <label class="md-nav__link" for="nav-3-16">
       Misc
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Misc" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-17">
+      <label class="md-nav__title" for="nav-3-16">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -727,7 +748,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
+    <a href="../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
       Insecure modes
     </a>
   </li>
@@ -739,7 +760,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
+    <a href="../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
       Benchmarking server
     </a>
   </li>
@@ -751,7 +772,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
+    <a href="../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
       Migrate from Centrifugo v1
     </a>
   </li>
@@ -768,7 +789,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../protocol/" title="Client protocol" class="md-nav__link">
+    <a href="../server/protocol/" title="Client protocol" class="md-nav__link">
       Client protocol
     </a>
   </li>
@@ -810,7 +831,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../libraries/client/" title="Client libraries" class="md-nav__link">
+    <a href="../libraries/client/" title="Client libraries" class="md-nav__link">
       Client libraries
     </a>
   </li>
@@ -822,7 +843,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../libraries/api/" title="API libraries" class="md-nav__link">
+    <a href="../libraries/api/" title="API libraries" class="md-nav__link">
       API libraries
     </a>
   </li>
@@ -864,9 +885,102 @@
 
 
   <li class="md-nav__item">
-    <a href="../../faq/" title="Frequently Asked Questions" class="md-nav__link">
+    <a href="../faq/" title="Frequently Asked Questions" class="md-nav__link">
       Frequently Asked Questions
     </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6" checked>
+    
+    <label class="md-nav__link" for="nav-6">
+      Blog
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Blog" data-md-level="1">
+      <label class="md-nav__title" for="nav-6">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Blog
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+    
+    <a href="./" title="About this blog" class="md-nav__link md-nav__link--active">
+      About this blog
+    </a>
+    
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6-2" type="checkbox" id="nav-6-2">
+    
+    <label class="md-nav__link" for="nav-6-2">
+      July 2020
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="July 2020" data-md-level="2">
+      <label class="md-nav__title" for="nav-6-2">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        July 2020
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="scaling_websocket/" title="Scaling WebSocket in Go and beyond" class="md-nav__link">
+      Scaling WebSocket in Go and beyond
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
   </li>
 
         
@@ -882,27 +996,13 @@
               </div>
             
             
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
-                <div class="md-sidebar__scrollwrap">
-                  <div class="md-sidebar__inner">
-                    
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-    
-  
-  
-</nav>
-                  </div>
-                </div>
-              </div>
-            
           
           <div class="md-content">
             <article class="md-content__inner md-typeset">
               
+
                 
-                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/server/signals.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/blog/index.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
@@ -910,15 +1010,16 @@
                   
                 
                 
-                <h1 id="signal-handling">Signal handling<a class="headerlink" href="#signal-handling" title="Permanent link">&para;</a></h1>
-<p>You can send HUP signal to Centrifugo to reload configuration:</p>
-<div class="highlight"><pre><span></span><code>kill -HUP &lt;PID&gt;
-</code></pre></div>
-
-<p>Though at moment this will only reload channel and namespace configuration.</p>
-<p>Also Centrifugo tries to gracefully shutdown client connections when SIGINT or SIGTERM signals received. By default maximum graceful shutdown period is 30 seconds but can be changed using <code>shutdown_timeout</code> configuration option.</p>
+                  <h1>About this blog</h1>
+                
+                <p>Welcome to Centrifugo Dev Blog ❤️</p>
+<p>Here we are talking about real-time messaging topics – not only about Centrifugo server, but also about general related questions, about Centrifuge library, best practices on building real-time messaging servers, cool applications done with WebSocket technology etc.</p>
+<p>If you have an interesting post and want it to be published here – let us know in Centrifugo community channels.</p>
+                
+                  
                 
               
+
               
                 
 
@@ -929,13 +1030,14 @@
         </div>
       </main>
       
+
         
 <footer class="md-footer">
     
     <div class="md-footer-nav">
         <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
             
-            <a href="../recover/" title="Message recovery" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <a href="../faq/" title="Frequently Asked Questions" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
                 <div class="md-footer-nav__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
                 </div>
@@ -944,19 +1046,19 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                        Message recovery
+                        Frequently Asked Questions
                     </div>
                 </div>
             </a>
             
             
-            <a href="../connection_expiration/" title="Connection expiration" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <a href="scaling_websocket/" title="Scaling WebSocket in Go and beyond" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
                 <div class="md-footer-nav__title">
                     <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                        Connection expiration
+                        Scaling WebSocket in Go and beyond
                     </div>
                 </div>
                 <div class="md-footer-nav__button md-icon">
@@ -1004,17 +1106,18 @@
     </div>
 </footer>
       
+
     </div>
     
-      <script src="../../assets/javascripts/vendor.a0c4167b.min.js"></script>
-      <script src="../../assets/javascripts/bundle.fb26dd1d.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      <script src="../assets/javascripts/vendor.a0c4167b.min.js"></script>
+      <script src="../assets/javascripts/bundle.fb26dd1d.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
       
       <script>
         app = initialize({
-          base: "../..",
+          base: "..",
           features: ["tabs"],
           search: Object.assign({
-            worker: "../../assets/javascripts/worker/search.37585f48.min.js"
+            worker: "../assets/javascripts/worker/search.37585f48.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>

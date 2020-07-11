@@ -221,6 +221,19 @@
   
 
       
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../../blog/" class="md-tabs__link">
+          Blog
+        </a>
+      
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -432,25 +445,149 @@
     Channel name rules
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#namespace-channel-boundary" class="md-nav__link">
-    namespace channel boundary (:)
+    <nav class="md-nav" aria-label="Channel name rules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#namespace-boundary" class="md-nav__link">
+    namespace boundary (:)
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#private-channel-prefix" class="md-nav__link">
     private channel prefix ($)
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#user-channel-boundary" class="md-nav__link">
     user channel boundary (#)
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#channel-options" class="md-nav__link">
+    Channel options
+  </a>
+  
+    <nav class="md-nav" aria-label="Channel options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#publish" class="md-nav__link">
+    publish
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subscribe_to_publish" class="md-nav__link">
+    subscribe_to_publish
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#anonymous" class="md-nav__link">
+    anonymous
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#presence" class="md-nav__link">
+    presence
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#presence_disable_for_client" class="md-nav__link">
+    presence_disable_for_client
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#join_leave" class="md-nav__link">
+    join_leave
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#history_size" class="md-nav__link">
+    history_size
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#history_lifetime" class="md-nav__link">
+    history_lifetime
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#history_recover" class="md-nav__link">
+    history_recover
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#history_disable_for_client" class="md-nav__link">
+    history_disable_for_client
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server_side" class="md-nav__link">
+    server_side
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#proxy_subscribe" class="md-nav__link">
+    proxy_subscribe
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#proxy_publish" class="md-nav__link">
+    proxy_publish
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#channel-options-config-example" class="md-nav__link">
+    Channel options config example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#channel-namespaces" class="md-nav__link">
+    Channel namespaces
   </a>
   
 </li>
@@ -576,18 +713,6 @@
 
 
   <li class="md-nav__item">
-    <a href="../signals/" title="Signal handling" class="md-nav__link">
-      Signal handling
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
     <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
       Connection expiration
     </a>
@@ -601,16 +726,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-13" type="checkbox" id="nav-3-13">
     
-    <label class="md-nav__link" for="nav-3-14">
+    <label class="md-nav__link" for="nav-3-13">
       Transports
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Transports" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-14">
+      <label class="md-nav__title" for="nav-3-13">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -667,16 +792,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
     
-    <label class="md-nav__link" for="nav-3-15">
+    <label class="md-nav__link" for="nav-3-14">
       Deploy
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Deploy" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-15">
+      <label class="md-nav__title" for="nav-3-14">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -757,16 +882,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox" id="nav-3-17">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16">
     
-    <label class="md-nav__link" for="nav-3-17">
+    <label class="md-nav__link" for="nav-3-16">
       Misc
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Misc" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-17">
+      <label class="md-nav__title" for="nav-3-16">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -929,6 +1054,90 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+    
+    <label class="md-nav__link" for="nav-6">
+      Blog
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Blog" data-md-level="1">
+      <label class="md-nav__title" for="nav-6">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Blog
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../blog/" title="About this blog" class="md-nav__link">
+      About this blog
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6-2" type="checkbox" id="nav-6-2">
+    
+    <label class="md-nav__link" for="nav-6-2">
+      July 2020
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="July 2020" data-md-level="2">
+      <label class="md-nav__title" for="nav-6-2">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        July 2020
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../blog/scaling_websocket/" title="Scaling WebSocket in Go and beyond" class="md-nav__link">
+      Scaling WebSocket in Go and beyond
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -959,25 +1168,149 @@
     Channel name rules
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#namespace-channel-boundary" class="md-nav__link">
-    namespace channel boundary (:)
+    <nav class="md-nav" aria-label="Channel name rules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#namespace-boundary" class="md-nav__link">
+    namespace boundary (:)
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#private-channel-prefix" class="md-nav__link">
     private channel prefix ($)
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#user-channel-boundary" class="md-nav__link">
     user channel boundary (#)
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#channel-options" class="md-nav__link">
+    Channel options
+  </a>
+  
+    <nav class="md-nav" aria-label="Channel options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#publish" class="md-nav__link">
+    publish
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subscribe_to_publish" class="md-nav__link">
+    subscribe_to_publish
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#anonymous" class="md-nav__link">
+    anonymous
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#presence" class="md-nav__link">
+    presence
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#presence_disable_for_client" class="md-nav__link">
+    presence_disable_for_client
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#join_leave" class="md-nav__link">
+    join_leave
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#history_size" class="md-nav__link">
+    history_size
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#history_lifetime" class="md-nav__link">
+    history_lifetime
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#history_recover" class="md-nav__link">
+    history_recover
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#history_disable_for_client" class="md-nav__link">
+    history_disable_for_client
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server_side" class="md-nav__link">
+    server_side
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#proxy_subscribe" class="md-nav__link">
+    proxy_subscribe
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#proxy_publish" class="md-nav__link">
+    proxy_publish
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#channel-options-config-example" class="md-nav__link">
+    Channel options config example
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#channel-namespaces" class="md-nav__link">
+    Channel namespaces
   </a>
   
 </li>
@@ -1003,10 +1336,10 @@
                 
                 
                 <h1 id="channels">Channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h1>
-<p>Channel is a route for publication messages. Clients can subscribe to a channel to receive messages published to this channel – new publications, join/leave events (if enabled for a channel namespace) etc. Channel subscriber can also ask for channel presence or channel history information (if enabled for a channel namespace).</p>
-<p>Channel is just a string - <code>news</code>, <code>comments</code> are valid channel names.</p>
+<p>Channel is a route for publication messages. Clients can be subscribed to a channel to receive messages published to this channel – new publications, join/leave events (if enabled for a channel namespace) etc. Channel subscriber can also ask for channel presence or channel history information (if enabled for a channel namespace).</p>
+<p>Channel is just a string - <code>news</code>, <code>comments</code> are valid channel names. Though this string has some predefined rules as we will see below.</p>
 <p>Channel is an ephemeral entity – <strong>you don't need to create it explicitly</strong>. Channel created automatically by Centrifugo as soon as first client subscribes to it. As soon as last subscriber leaves channel - it's automatically cleaned up.</p>
-<h3 id="channel-name-rules">Channel name rules<a class="headerlink" href="#channel-name-rules" title="Permanent link">&para;</a></h3>
+<h2 id="channel-name-rules">Channel name rules<a class="headerlink" href="#channel-name-rules" title="Permanent link">&para;</a></h2>
 <p><strong>Only ASCII symbols must be used in channel string</strong>.</p>
 <p>Channel name length limited by <code>255</code> characters by default (can be changed via configuration file option <code>channel_max_length</code>).</p>
 <p>Several symbols in channel names reserved for Centrifugo internal needs:</p>
@@ -1018,20 +1351,110 @@
 <li><code>&amp;</code> – for future Centrifugo needs</li>
 <li><code>/</code> – for future Centrifugo needs</li>
 </ul>
-<h3 id="namespace-channel-boundary">namespace channel boundary (:)<a class="headerlink" href="#namespace-channel-boundary" title="Permanent link">&para;</a></h3>
-<p><code>:</code> – is a channel namespace boundary. Namespaces used to set custom options to a group of channels. Each channel belonging to the same namespace will have the same channel options. Read more about available channel options in <a href="../configuration/">configuration chapter</a>.</p>
+<h3 id="namespace-boundary">namespace boundary (<code>:</code>)<a class="headerlink" href="#namespace-boundary" title="Permanent link">&para;</a></h3>
+<p><code>:</code> – is a channel namespace boundary. Namespaces used to set custom options to a group of channels. Each channel belonging to the same namespace will have the same channel options. Read more about available channel options below.</p>
 <p>If channel is <code>public:chat</code> - then Centrifugo will apply options to this channel from channel namespace with name <code>public</code>.</p>
-<h3 id="private-channel-prefix">private channel prefix ($)<a class="headerlink" href="#private-channel-prefix" title="Permanent link">&para;</a></h3>
+<h3 id="private-channel-prefix">private channel prefix (<code>$</code>)<a class="headerlink" href="#private-channel-prefix" title="Permanent link">&para;</a></h3>
 <p>If channel starts with <code>$</code> then it is considered <code>private</code>. Subscription on a private channel must be properly signed by your backend.</p>
 <p>Use private channels if you pass sensitive data inside channel and want to control access permissions on your backend.</p>
 <p>For example <code>$secrets</code> is a private channel, <code>$public:chat</code> - is a private channel that belongs namespace <code>public</code>.</p>
 <p>Subscription request to private channels requires additional JWT from your backend. Read <a href="../private_channels/">detailed chapter about private channels</a>.</p>
 <p>If you need a personal channel for a single user (or maybe channel for short and stable set of users) then consider using <code>user-limited</code> channel (see below) as a simpler alternative which does not require additional subscription token from your backend.</p>
-<h3 id="user-channel-boundary">user channel boundary (#)<a class="headerlink" href="#user-channel-boundary" title="Permanent link">&para;</a></h3>
+<h3 id="user-channel-boundary">user channel boundary (<code>#</code>)<a class="headerlink" href="#user-channel-boundary" title="Permanent link">&para;</a></h3>
 <p><code>#</code> – is a user channel boundary. This is a separator to create personal channels for users (we call this <code>user-limited channels</code>) without need to provide subscription token.</p>
 <p>For example if channel is <code>news#42</code> then only user with ID <code>42</code> can subscribe on this channel (Centrifugo knows user ID because clients provide it in connection credentials with connection JWT).</p>
 <p>Moreover, you can provide several user IDs in channel name separated by a comma: <code>dialog#42,43</code> – in this case only user with ID <code>42</code> and user with ID <code>43</code> will be able to subscribe on this channel.</p>
 <p>This is useful for channels with static list of allowed users, for example for single user personal messages channel, for dialog channel between certainly defined users. As soon as you need dynamic user access to channel this channel type does not suit well.</p>
+<h2 id="channel-options">Channel options<a class="headerlink" href="#channel-options" title="Permanent link">&para;</a></h2>
+<p>Let's look at configuration options related to channels. es published into that channel. The following options will affect channel behaviour.</p>
+<h3 id="publish">publish<a class="headerlink" href="#publish" title="Permanent link">&para;</a></h3>
+<p><code>publish</code> (boolean, default <code>false</code>) – allow clients to publish messages into channels directly (from client side). Your application will never receive those messages. In idiomatic case all messages must be published to Centrifugo by your application backend using Centrifugo API. But this option can be useful when you want to build something without backend-side validation and saving into database. This option can also be useful for demos and prototyping real-time ideas. By default it's <code>false</code>.</p>
+<h3 id="subscribe_to_publish">subscribe_to_publish<a class="headerlink" href="#subscribe_to_publish" title="Permanent link">&para;</a></h3>
+<p><code>subscribe_to_publish</code> (boolean, default <code>false</code>) - when <code>publish</code> option enabled client can publish into channel without being subscribed to it. This option enables automatic check that client subscribed on channel before allowing client to publish into channel.</p>
+<h3 id="anonymous">anonymous<a class="headerlink" href="#anonymous" title="Permanent link">&para;</a></h3>
+<p><code>anonymous</code> (boolean, default <code>false</code>) – this option enables anonymous access (with empty <code>sub</code> claim in connection token). In most situations your application works with authenticated users so every user has its own unique id. But if you provide real-time features for public access you may need unauthorized access to some channels. Turn on this option and use empty string as user ID.</p>
+<h3 id="presence">presence<a class="headerlink" href="#presence" title="Permanent link">&para;</a></h3>
+<p><code>presence</code> (boolean, default <code>false</code>) – enable/disable presence information. Presence is an information about clients currently subscribed on channel. By default this option is off so no presence information will be available for channels.</p>
+<h3 id="presence_disable_for_client">presence_disable_for_client<a class="headerlink" href="#presence_disable_for_client" title="Permanent link">&para;</a></h3>
+<p><code>presence_disable_for_client</code> (boolean, default <code>false</code>, available since v2.2.3) – allows making presence calls available only for server side API. By default presence information is available for both client and server side APIs.</p>
+<h3 id="join_leave">join_leave<a class="headerlink" href="#join_leave" title="Permanent link">&para;</a></h3>
+<p><code>join_leave</code> (boolean, default <code>false</code>) – enable/disable sending join(leave) messages when client subscribes on a channel (unsubscribes from channel).</p>
+<h3 id="history_size">history_size<a class="headerlink" href="#history_size" title="Permanent link">&para;</a></h3>
+<p><code>history_size</code> (integer, default <code>0</code>) – history size (amount of messages) for channels. As Centrifugo keeps all history messages in memory it's very important to limit maximum amount of messages in channel history to reasonable value. <code>history_size</code> defines maximum amount of messages that Centrifugo will keep for <strong>each</strong> channel in namespace during history lifetime (see below). By default history size is <code>0</code> - this means that channels will have no history messages at all.</p>
+<h3 id="history_lifetime">history_lifetime<a class="headerlink" href="#history_lifetime" title="Permanent link">&para;</a></h3>
+<p><code>history_lifetime</code> (integer, default <code>0</code>) – interval in seconds how long to keep channel history messages. As all history is storing in memory it is also very important to get rid of old history data for unused (inactive for a long time) channels. By default history lifetime is <code>0</code> – this means that channels will have no history messages at all. <strong>So to turn on keeping history messages you should wisely configure both <code>history_size</code> and <code>history_lifetime</code> options</strong>.</p>
+<h3 id="history_recover">history_recover<a class="headerlink" href="#history_recover" title="Permanent link">&para;</a></h3>
+<p><code>history_recover</code> (boolean, default <code>false</code>) – when enabled Centrifugo will try to recover missed publications after a client reconnects for some reason (bad internet connection for example). Also when recovery feature is on Centrifugo tries to compensate at most once delivery of PUB/SUB messages checking client position inside stream, so you get at least once delivery guarantee in history retention period and history window size. By default, this feature is off. This option must be used in conjunction with reasonably configured message history for channel i.e. <code>history_size</code> and <code>history_lifetime</code> <strong>must be set</strong> (because Centrifugo uses channel history to recover messages). Also note that not all real-time events require this feature turned on so think wisely when you need this. When this option turned on your application should be designed in a way to tolerate duplicate messages coming from channel (currently Centrifugo returns recovered publications in order and without duplicates but this is implementation detail that can be theoretically changed in future). See more details about how recovery works in <a href="../recover/">special chapter</a>.</p>
+<h3 id="history_disable_for_client">history_disable_for_client<a class="headerlink" href="#history_disable_for_client" title="Permanent link">&para;</a></h3>
+<p><code>history_disable_for_client</code> (boolean, default <code>false</code>, available since v2.2.3) – allows making history available only for a server side API. By default <code>false</code> – i.e. history calls are available for both client and server side APIs. History recovery mechanism if enabled will continue to work for clients anyway even if <code>history_disable_for_client</code> is on.</p>
+<h3 id="server_side">server_side<a class="headerlink" href="#server_side" title="Permanent link">&para;</a></h3>
+<p><code>server_side</code> (boolean, default <code>false</code>, available since v2.4.0) – when enabled then all client-side subscription requests to channels in namespace will be rejected with <code>PermissionDenied</code> error.</p>
+<h3 id="proxy_subscribe">proxy_subscribe<a class="headerlink" href="#proxy_subscribe" title="Permanent link">&para;</a></h3>
+<p><code>proxy_subscribe</code> (boolean, default <code>false</code>, available since v2.6.0) – turns on subscribe proxy, more info in <a href="../proxy/">proxy chapter</a></p>
+<h3 id="proxy_publish">proxy_publish<a class="headerlink" href="#proxy_publish" title="Permanent link">&para;</a></h3>
+<p><code>proxy_publish</code> (boolean, default <code>false</code>, available since v2.6.0) – turns on publish proxy, more info in <a href="../proxy/">proxy chapter</a></p>
+<h2 id="channel-options-config-example">Channel options config example<a class="headerlink" href="#channel-options-config-example" title="Permanent link">&para;</a></h2>
+<p>Let's look how to set some of these options in a config:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+    <span class="nt">&quot;v3_use_offset&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;token_hmac_secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;my-secret-key&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;anonymous&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;subscribe_to_publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;presence&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;join_leave&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;history_size&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="nt">&quot;history_lifetime&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
+    <span class="nt">&quot;history_recover&quot;</span><span class="p">:</span> <span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h2 id="channel-namespaces">Channel namespaces<a class="headerlink" href="#channel-namespaces" title="Permanent link">&para;</a></h2>
+<p>The last channel specific option is <code>namespaces</code>. <code>namespaces</code> are optional and if set must be an array of namespace objects. Namespace allows to configure custom options for channels starting with namespace name. This provides a great control over channel behaviour so you have a flexible way to define different channel options for different real-time features in your app.</p>
+<p>Namespace has a name, and the same channel options (with same defaults) as described above.</p>
+<ul>
+<li><code>name</code> - unique namespace name (name must consist of letters, numbers, underscores or hyphens and be more than 2 symbols length i.e. satisfy regexp <code>^[-a-zA-Z0-9_]{2,}$</code>).</li>
+</ul>
+<p>If you want to use namespace options for a channel - you must include namespace name into channel name with <code>:</code> as separator:</p>
+<p><code>public:messages</code></p>
+<p><code>gossips:messages</code></p>
+<p>Where <code>public</code> and <code>gossips</code> are namespace names from project <code>namespaces</code>.</p>
+<p>All things together here is an example of <code>config.json</code> which includes some top-level channel options set and has 2 additional channel namespaces configured:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+    <span class="nt">&quot;v3_use_offset&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;token_hmac_secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;very-long-secret-key&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;secret-api-key&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;anonymous&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;presence&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;join_leave&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;history_size&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="nt">&quot;history_lifetime&quot;</span><span class="p">:</span> <span class="mi">30</span><span class="p">,</span>
+    <span class="nt">&quot;namespaces&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;public&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+          <span class="nt">&quot;anonymous&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+          <span class="nt">&quot;history_size&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+          <span class="nt">&quot;history_lifetime&quot;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span>
+          <span class="nt">&quot;history_recover&quot;</span><span class="p">:</span> <span class="kc">true</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+          <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;gossips&quot;</span><span class="p">,</span>
+          <span class="nt">&quot;presence&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+          <span class="nt">&quot;join_leave&quot;</span><span class="p">:</span> <span class="kc">true</span>
+        <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<ul>
+<li>Channel <code>news</code> will use globally defined channel options.</li>
+<li>Channel <code>public:news</code> will use <code>public</code> namespace's options.</li>
+<li>Channel <code>gossips:news</code> will use <code>gossips</code> namespace's options.</li>
+</ul>
+<p>There is no inheritance in channel options and namespaces – so if for example you defined <code>presence: true</code> on top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. </p>
                 
               
               

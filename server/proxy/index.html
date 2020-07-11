@@ -221,6 +221,19 @@
   
 
       
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../../blog/" class="md-tabs__link">
+          Blog
+        </a>
+      
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -527,21 +540,35 @@
       
         <li class="md-nav__item">
   <a href="#connect-proxy" class="md-nav__link">
-    connect proxy
+    Connect proxy
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#refresh-proxy" class="md-nav__link">
-    refresh proxy
+    Refresh proxy
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#rpc-proxy" class="md-nav__link">
-    rpc proxy
+    RPC proxy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#subscribe-proxy" class="md-nav__link">
+    Subscribe proxy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#publish-proxy" class="md-nav__link">
+    Publish proxy
   </a>
   
 </li>
@@ -597,18 +624,6 @@
 
 
   <li class="md-nav__item">
-    <a href="../signals/" title="Signal handling" class="md-nav__link">
-      Signal handling
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
     <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
       Connection expiration
     </a>
@@ -622,16 +637,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-13" type="checkbox" id="nav-3-13">
     
-    <label class="md-nav__link" for="nav-3-14">
+    <label class="md-nav__link" for="nav-3-13">
       Transports
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Transports" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-14">
+      <label class="md-nav__title" for="nav-3-13">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -688,16 +703,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
     
-    <label class="md-nav__link" for="nav-3-15">
+    <label class="md-nav__link" for="nav-3-14">
       Deploy
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Deploy" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-15">
+      <label class="md-nav__title" for="nav-3-14">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -778,16 +793,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox" id="nav-3-17">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16">
     
-    <label class="md-nav__link" for="nav-3-17">
+    <label class="md-nav__link" for="nav-3-16">
       Misc
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Misc" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-17">
+      <label class="md-nav__title" for="nav-3-16">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -950,6 +965,90 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
+    
+    <label class="md-nav__link" for="nav-6">
+      Blog
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Blog" data-md-level="1">
+      <label class="md-nav__title" for="nav-6">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Blog
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../blog/" title="About this blog" class="md-nav__link">
+      About this blog
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6-2" type="checkbox" id="nav-6-2">
+    
+    <label class="md-nav__link" for="nav-6-2">
+      July 2020
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="July 2020" data-md-level="2">
+      <label class="md-nav__title" for="nav-6-2">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        July 2020
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../blog/scaling_websocket/" title="Scaling WebSocket in Go and beyond" class="md-nav__link">
+      Scaling WebSocket in Go and beyond
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -991,21 +1090,35 @@
       
         <li class="md-nav__item">
   <a href="#connect-proxy" class="md-nav__link">
-    connect proxy
+    Connect proxy
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#refresh-proxy" class="md-nav__link">
-    refresh proxy
+    Refresh proxy
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#rpc-proxy" class="md-nav__link">
-    rpc proxy
+    RPC proxy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#subscribe-proxy" class="md-nav__link">
+    Subscribe proxy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#publish-proxy" class="md-nav__link">
+    Publish proxy
   </a>
   
 </li>
@@ -1045,11 +1158,11 @@
                 
                 
                 <h1 id="proxy-calls-to-app-backend">Proxy calls to app backend<a class="headerlink" href="#proxy-calls-to-app-backend" title="Permanent link">&para;</a></h1>
-<p><strong>Starting from Centrifugo v2.3.0</strong> it's possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.</p>
+<p>It's possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example, you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.</p>
 <h3 id="proxy-request-structure">Proxy request structure<a class="headerlink" href="#proxy-request-structure" title="Permanent link">&para;</a></h3>
-<p>All proxy calls are <strong>HTTP POST</strong> requests that will be sent from Centrifugo to configured endpoints with configured timeout. These requests will have some headers copied from original client request (see details below) and include JSON body which varies depending on call type (for example data sent by client in RPC call etc, see more details about JSON bodies below).</p>
+<p>All proxy calls are <strong>HTTP POST</strong> requests that will be sent from Centrifugo to configured endpoints with a configured timeout. These requests will have some headers copied from original client request (see details below) and include JSON body which varies depending on call type (for example data sent by client in RPC call etc, see more details about JSON bodies below).</p>
 <h3 id="proxy-headers">Proxy headers<a class="headerlink" href="#proxy-headers" title="Permanent link">&para;</a></h3>
-<p>By default the following headers from original client request will be copied to proxied request:</p>
+<p>By default, the following headers from original client request will be copied to proxied request:</p>
 <ul>
 <li><code>Origin</code> (Centrifugo &gt;= v2.3.1)</li>
 <li><code>User-Agent</code></li>
@@ -1072,7 +1185,7 @@
 </code></pre></div>
 
 <p>Since v2.5.1 Centrifugo also forces <code>Content-Type</code> header to be <code>application/json</code> in all proxy HTTP requests since it sends body in JSON format to application backend.</p>
-<h3 id="connect-proxy">connect proxy<a class="headerlink" href="#connect-proxy" title="Permanent link">&para;</a></h3>
+<h3 id="connect-proxy">Connect proxy<a class="headerlink" href="#connect-proxy" title="Permanent link">&para;</a></h3>
 <p>With the following options in configuration file:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="err">...</span>
@@ -1144,7 +1257,7 @@
 </code></pre></div>
 
 <p>This example should help you to implement similar HTTP handler in any language/framework you are using on backend side.</p>
-<h3 id="refresh-proxy">refresh proxy<a class="headerlink" href="#refresh-proxy" title="Permanent link">&para;</a></h3>
+<h3 id="refresh-proxy">Refresh proxy<a class="headerlink" href="#refresh-proxy" title="Permanent link">&para;</a></h3>
 <p>With the following options in configuration file:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="err">...</span>
@@ -1181,7 +1294,7 @@
 <li><code>b64info</code> (optional string) is a binary connection info encoded in base64 format</li>
 </ul>
 <p><code>proxy_refresh_timeout</code> (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.</p>
-<h3 id="rpc-proxy">rpc proxy<a class="headerlink" href="#rpc-proxy" title="Permanent link">&para;</a></h3>
+<h3 id="rpc-proxy">RPC proxy<a class="headerlink" href="#rpc-proxy" title="Permanent link">&para;</a></h3>
 <p>With the following option in configuration file:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="err">...</span>
@@ -1198,7 +1311,8 @@
   <span class="nt">&quot;protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
   <span class="nt">&quot;encoding&quot;</span><span class="p">:</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
   <span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="s2">&quot;56&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;data&quot;</span><span class="p">:{</span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="s2">&quot;getCurrentYear&quot;</span><span class="p">}</span>
+  <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;getCurrentPrice&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;data&quot;</span><span class="p">:{</span><span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span><span class="nt">&quot;object_id&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">}}</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -1206,7 +1320,8 @@
 <ul>
 <li><code>client</code>, <code>transport</code>, <code>protocol</code>, <code>encoding</code> are the same as described for connect request payload</li>
 <li><code>user</code> is a connection user ID obtained during authentication process</li>
-<li><code>data</code> is an RPC data sent by client</li>
+<li><code>method</code> is an RPC method string, if client does not use named RPC call then method will be omitted (available since v2.6.0)</li>
+<li><code>data</code> is an RPC custom data sent by client</li>
 <li><code>b64data</code> will be set instead of <code>data</code> field for connections that use binary payload encoding</li>
 </ul>
 <p>Response expected:</p>
@@ -1219,6 +1334,136 @@
 <li><code>b64data</code> string can be set instead of <code>data</code> for binary response encoded in base64 format</li>
 </ul>
 <p><code>proxy_rpc_timeout</code> (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.</p>
+<p>See below on how to return a custom error.</p>
+<h3 id="subscribe-proxy">Subscribe proxy<a class="headerlink" href="#subscribe-proxy" title="Permanent link">&para;</a></h3>
+<p>Available since Centrifugo v2.6.0</p>
+<p>With the following option in configuration file:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="err">...</span>
+  <span class="nt">&quot;proxy_subscribe_endpoint&quot;</span><span class="p">:</span> <span class="s2">&quot;http://localhost:3000/centrifugo/subscribe&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;proxy_subscribe_timeout&quot;</span><span class="p">:</span>  <span class="mi">1</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>– subscribe requests sent over client connection will be proxied to <code>proxy_subscribe_endpoint</code>. This allows you to check access of client to a channel.</p>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p><strong>Subscribe proxy does not proxy <a href="../channels/#private-channel-prefix">private</a> and <a href="../channels/#user-channel-boundary">user-limited</a> channels at moment</strong>.</p>
+</div>
+<p>Unlike proxy types described above subscribe proxy must be enabled per channel namespace. This means that every namespace (including global one) has a boolean option <code>proxy_subscribe</code> that enables subscribe proxy for channels in namespace.</p>
+<p>So to enable subscribe proxy for channels without namespace define <code>proxy_subscribe</code> on a top configuration level:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="err">...</span>
+  <span class="nt">&quot;proxy_subscribe_endpoint&quot;</span><span class="p">:</span> <span class="s2">&quot;http://localhost:3000/centrifugo/subscribe&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;proxy_subscribe_timeout&quot;</span><span class="p">:</span>  <span class="mi">1</span><span class="p">,</span>
+  <span class="nt">&quot;proxy_subscribe&quot;</span><span class="p">:</span> <span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Or for channels in namespace <code>sun</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="err">...</span>
+  <span class="nt">&quot;proxy_subscribe_endpoint&quot;</span><span class="p">:</span> <span class="s2">&quot;http://localhost:3000/centrifugo/subscribe&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;proxy_subscribe_timeout&quot;</span><span class="p">:</span>  <span class="mi">1</span><span class="p">,</span>
+  <span class="nt">&quot;namespaces&quot;</span><span class="p">:</span> <span class="p">[{</span>
+    <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;sun&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;proxy_subscribe&quot;</span><span class="p">:</span> <span class="kc">true</span>
+  <span class="p">}]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Payload sent to app backend in subscribe request:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="nt">&quot;client&quot;</span><span class="p">:</span><span class="s2">&quot;9336a229-2400-4ebc-8c50-0a643d22e8a0&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="s2">&quot;websocket&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;encoding&quot;</span><span class="p">:</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="s2">&quot;56&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;chat:index&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Request fields:</p>
+<ul>
+<li><code>client</code>, <code>transport</code>, <code>protocol</code>, <code>encoding</code> are the same as described for connect request payload</li>
+<li><code>user</code> is a connection user ID obtained during authentication process</li>
+<li><code>channel</code> is a string channel client wants to publish to.</li>
+</ul>
+<p>Response expected:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;result&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+</code></pre></div>
+
+<p>Result fields:</p>
+<ul>
+<li><code>info</code> (optional JSON) is a channel info JSON</li>
+<li><code>b64info</code> (optional string) is a binary connection channel info encoded in base64 format, will be decoded to raw bytes on Centrifugo before using</li>
+</ul>
+<p>See below on how to return an error in case you don't want to allow subscribing.</p>
+<p><code>proxy_subscribe_timeout</code> (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.</p>
+<h3 id="publish-proxy">Publish proxy<a class="headerlink" href="#publish-proxy" title="Permanent link">&para;</a></h3>
+<p>Available since Centrifugo v2.6.0</p>
+<p>With the following option in configuration file:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="err">...</span>
+  <span class="nt">&quot;proxy_publish_endpoint&quot;</span><span class="p">:</span> <span class="s2">&quot;http://localhost:3000/centrifugo/publish&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;proxy_publish_timeout&quot;</span><span class="p">:</span>  <span class="mi">1</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>– publish calls sent by a client will be proxied to <code>proxy_publish_endpoint</code>.</p>
+<p>This request happens BEFORE a message actually published to a channel, so your backend can validate whether client can publish data to a channel. An important thing here is that publication to channel can fail after your backend successfully validated publish request (for example publish to Redis by Centrifugo returned an error). In this case your backend won't know about error happened but this error will propagate to client side. </p>
+<p>Like subscribe proxy publish proxy must be enabled per channel namespace. This means that every namespace (including global one) has a boolean option <code>proxy_publish</code> that enables publish proxy for channels in namespace. All other namespace options will be taken into account before making proxy request, so you also need to turn on <code>publish</code> option too.</p>
+<p>So to enable publish proxy for channels without namespace define <code>proxy_publish</code> and <code>publish</code> on a top configuration level:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="err">...</span>
+  <span class="nt">&quot;proxy_publish_endpoint&quot;</span><span class="p">:</span> <span class="s2">&quot;http://localhost:3000/centrifugo/publish&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;proxy_publish_timeout&quot;</span><span class="p">:</span>  <span class="mi">1</span><span class="p">,</span>
+  <span class="nt">&quot;publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+  <span class="nt">&quot;proxy_publish&quot;</span><span class="p">:</span> <span class="kc">true</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Or for channels in namespace <code>sun</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="err">...</span>
+  <span class="nt">&quot;proxy_publish_endpoint&quot;</span><span class="p">:</span> <span class="s2">&quot;http://localhost:3000/centrifugo/publish&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;proxy_publish_timeout&quot;</span><span class="p">:</span>  <span class="mi">1</span><span class="p">,</span>
+  <span class="nt">&quot;namespaces&quot;</span><span class="p">:</span> <span class="p">[{</span>
+    <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;sun&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;publish&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nt">&quot;proxy_publish&quot;</span><span class="p">:</span> <span class="kc">true</span>
+  <span class="p">}]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Keep in mind that this will only work if <code>publish</code> channel option is on for a channel namespace (or for global top-level namespace).</p>
+<p>Payload sent to app backend in publish request:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="nt">&quot;client&quot;</span><span class="p">:</span><span class="s2">&quot;9336a229-2400-4ebc-8c50-0a643d22e8a0&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;transport&quot;</span><span class="p">:</span><span class="s2">&quot;websocket&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;protocol&quot;</span><span class="p">:</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;encoding&quot;</span><span class="p">:</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="s2">&quot;56&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;chat:index&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;data&quot;</span><span class="p">:{</span><span class="nt">&quot;input&quot;</span><span class="p">:</span><span class="s2">&quot;hello&quot;</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Request fields:</p>
+<ul>
+<li><code>client</code>, <code>transport</code>, <code>protocol</code>, <code>encoding</code> are the same as described for connect request payload</li>
+<li><code>user</code> is a connection user ID obtained during authentication process</li>
+<li><code>data</code> is an RPC data sent by client</li>
+<li><code>b64data</code> will be set instead of <code>data</code> field for connections that use binary payload encoding</li>
+<li><code>channel</code> is a string channel client wants to publish to.</li>
+</ul>
+<p>Response expected:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;result&quot;</span><span class="p">:</span> <span class="p">{}}</span>
+</code></pre></div>
+
+<p>Result fields: no fields at moment.</p>
+<p>See below on how to return an error in case you don't want to allow publishing.</p>
+<p><code>proxy_publish_timeout</code> (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.</p>
 <h3 id="return-custom-error">Return custom error<a class="headerlink" href="#return-custom-error" title="Permanent link">&para;</a></h3>
 <p>Application backend can return JSON object that contain an error to return it to client:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
