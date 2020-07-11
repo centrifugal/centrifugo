@@ -1,17 +1,20 @@
 ---
 template: overrides/blog_base.html
-title: Scaling WebSocket in Go
-og_title: Scaling WebSocket in Go
+title: Scaling WebSocket in Go and beyond
+description: Several tips to write scalable WebSocket servers with Go language and beyond.
+og_title: Scaling WebSocket in Go and beyond
 og_image: https://i.imgur.com/QOJ1M9a.png
+og_image_width: 2000
+og_image_height: 1000
 ---
 
 # Scaling WebSocket in Go and beyond
 
 ![gopher-broker](https://i.imgur.com/QOJ1M9a.png)
 
-I believe that in 2020 WebSocket is still an entertaining technology which is still not well-known and understood like HTTP.
+I believe that in 2020 WebSocket is still an entertaining technology which is not so well-known and understood like HTTP.
 
-In this blog post I'd like to tell about state of WebSocket in Go language ecosystem, and a way we could write a scalable WebSocket servers. Most advices here are generic enough and can be easily approximated to other programming languages. We won't talk a lot about WebSocket transport pros and cons – there will be links to other resources on this topic. So if you are interested in WebSocket and messaging technologies (especially real-time messaging) - keep on reading.
+In this blog post I'd like to tell about state of WebSocket in Go language ecosystem, and a way we could write scalable WebSocket servers. Most advices here are generic enough and can be easily approximated to other programming languages. We won't talk a lot about WebSocket transport pros and cons – there will be links to other resources on this topic. So if you are interested in WebSocket and messaging technologies (especially real-time messaging) - keep on reading.
 
 If you don't know what WebSocket is – here is a couple of curious links to read:
 

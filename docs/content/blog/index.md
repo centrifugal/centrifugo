@@ -3,6 +3,8 @@ template: overrides/blog_base.html
 title: Centrifugo Dev Blog
 og_title: Centrifugo Dev Blog
 og_image: https://centrifugal.github.io/centrifugo/images/favicon.png
+og_image_width: 960
+og_image_height: 960
 ---
 
 Welcome to Centrifugo Dev Blog ❤️

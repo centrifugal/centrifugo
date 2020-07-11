@@ -28,17 +28,25 @@
 <meta property="og:url" content="{{ page.canonical_url }}" />
 
 {% if page and page.meta and page.meta.page_path and page.meta.og_image %}
-<meta property="og:image:url" content="{{ config.site_url ~ page.meta.page_path ~ page.meta.og_image }}" />
+<meta property="og:image" content="{{ config.site_url ~ page.meta.page_path ~ page.meta.og_image }}" />
 {% elif page and page.meta and page.meta.og_image %}
-<meta property="og:image:url" content="{{ page.meta.og_image }}" />
+<meta property="og:image" content="{{ page.meta.og_image }}" />
 {% else %}
-<meta property="og:image:url" content="{{ config.site_url ~ config.theme.favicon }}" />
+<meta property="og:image" content="{{ config.site_url ~ config.theme.favicon }}" />
 {% endif %}
 
 {% if page and page.meta and page.meta.og_image_type %}
 <meta property="og:image:type" content="{{ page.meta.og_image_type}}" />
 {% else %}
 <meta property="og:image:type" content="image/png" />
+{% endif %}
+
+{% if page and page.meta and page.meta.og_image_width %}
+<meta property="og:image:width" content="{{ page.meta.og_image_width}}">
+{% endif %}
+
+{% if page and page.meta and page.meta.og_image_height %}
+<meta property="og:image:height" content="{{ page.meta.og_image_height}}">
 {% endif %}
 
 {% if page and page.meta and page.meta.description %}

@@ -106,5 +106,4 @@ nav:
     - 'faq.md'
   - Blog:
     - About this blog: 'blog/index.md'
-    - July 2020:
-      - Scaling WebSocket in Go and beyond: 'blog/scaling_websocket.md'
+    - Scaling WebSocket in Go and beyond: 'blog/scaling_websocket.md'
