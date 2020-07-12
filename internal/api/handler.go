@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/internal/rule"
-
 	"github.com/centrifugal/centrifuge"
 )
 
@@ -19,15 +17,15 @@ type Config struct{}
 type Handler struct {
 	node   *centrifuge.Node
 	config Config
-	api    *apiExecutor
+	api    *Executor
 }
 
 // NewHandler creates new APIHandler.
-func NewHandler(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, c Config) *Handler {
+func NewHandler(n *centrifuge.Node, apiExecutor *Executor, c Config) *Handler {
 	return &Handler{
 		node:   n,
 		config: c,
-		api:    newAPIExecutor(n, ruleContainer, "http"),
+		api:    apiExecutor,
 	}
 }
 
@@ -281,6 +279,24 @@ func (s *Handler) handleAPICommand(ctx context.Context, enc Encoding, cmd *Comma
 			if resp.Result != nil {
 				var err error
 				replyRes, err = encoder.EncodeInfo(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case MethodTypeRPC:
+		cmd, err := decoder.DecodeRPC(params)
+		if err != nil {
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding rpc params", map[string]interface{}{"error": err.Error()}))
+			rep.Error = ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.RPC(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeRPC(resp.Result)
 				if err != nil {
 					return nil, err
 				}

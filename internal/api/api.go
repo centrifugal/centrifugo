@@ -10,23 +10,31 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
-// apiExecutor can run API methods.
-type apiExecutor struct {
+type RPCHandler func(ctx context.Context, params Raw) (Raw, error)
+
+// Executor can run API methods.
+type Executor struct {
 	node          *centrifuge.Node
 	ruleContainer *rule.ChannelRuleContainer
 	protocol      string
+	rpcExtension  map[string]RPCHandler
 }
 
-func newAPIExecutor(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, protocol string) *apiExecutor {
-	return &apiExecutor{
+func NewExecutor(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, protocol string) *Executor {
+	return &Executor{
 		node:          n,
 		ruleContainer: ruleContainer,
 		protocol:      protocol,
+		rpcExtension:  make(map[string]RPCHandler),
 	}
 }
 
+func (h Executor) SetRPCExtension(method string, handler RPCHandler) {
+	h.rpcExtension[method] = handler
+}
+
 // Publish publishes data into channel.
-func (h *apiExecutor) Publish(_ context.Context, cmd *PublishRequest) *PublishResponse {
+func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishResponse {
 	defer observe(time.Now(), h.protocol, "publish")
 
 	ch := cmd.Channel
@@ -66,7 +74,7 @@ func (h *apiExecutor) Publish(_ context.Context, cmd *PublishRequest) *PublishRe
 }
 
 // Broadcast publishes the same data into many channels.
-func (h *apiExecutor) Broadcast(_ context.Context, cmd *BroadcastRequest) *BroadcastResponse {
+func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *BroadcastResponse {
 	defer observe(time.Now(), h.protocol, "broadcast")
 
 	resp := &BroadcastResponse{}
@@ -139,7 +147,7 @@ func (h *apiExecutor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broad
 
 // Unsubscribe unsubscribes user from channel and sends unsubscribe
 // control message to other nodes so they could also unsubscribe user.
-func (h *apiExecutor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *UnsubscribeResponse {
+func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *UnsubscribeResponse {
 	defer observe(time.Now(), h.protocol, "unsubscribe")
 
 	resp := &UnsubscribeResponse{}
@@ -176,7 +184,7 @@ func (h *apiExecutor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *U
 
 // Disconnect disconnects user by its ID and sends disconnect
 // control message to other nodes so they could also disconnect user.
-func (h *apiExecutor) Disconnect(_ context.Context, cmd *DisconnectRequest) *DisconnectResponse {
+func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *DisconnectResponse {
 	defer observe(time.Now(), h.protocol, "disconnect")
 
 	resp := &DisconnectResponse{}
@@ -198,7 +206,7 @@ func (h *apiExecutor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Dis
 }
 
 // Presence returns response with presence information for channel.
-func (h *apiExecutor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceResponse {
+func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceResponse {
 	defer observe(time.Now(), h.protocol, "presence")
 
 	resp := &PresenceResponse{}
@@ -249,7 +257,7 @@ func (h *apiExecutor) Presence(_ context.Context, cmd *PresenceRequest) *Presenc
 }
 
 // PresenceStats returns response with presence stats information for channel.
-func (h *apiExecutor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *PresenceStatsResponse {
+func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *PresenceStatsResponse {
 	defer observe(time.Now(), h.protocol, "presence_stats")
 
 	resp := &PresenceStatsResponse{}
@@ -292,7 +300,7 @@ func (h *apiExecutor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest
 }
 
 // History returns response with history information for channel.
-func (h *apiExecutor) History(_ context.Context, cmd *HistoryRequest) *HistoryResponse {
+func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryResponse {
 	defer observe(time.Now(), h.protocol, "history")
 
 	resp := &HistoryResponse{}
@@ -350,7 +358,7 @@ func (h *apiExecutor) History(_ context.Context, cmd *HistoryRequest) *HistoryRe
 }
 
 // HistoryRemove removes all history information for channel.
-func (h *apiExecutor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *HistoryRemoveResponse {
+func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *HistoryRemoveResponse {
 	defer observe(time.Now(), h.protocol, "history_remove")
 
 	resp := &HistoryRemoveResponse{}
@@ -388,7 +396,7 @@ func (h *apiExecutor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest
 }
 
 // Channels returns active channels.
-func (h *apiExecutor) Channels(_ context.Context, _ *ChannelsRequest) *ChannelsResponse {
+func (h *Executor) Channels(_ context.Context, _ *ChannelsRequest) *ChannelsResponse {
 	defer observe(time.Now(), h.protocol, "channels")
 
 	resp := &ChannelsResponse{}
@@ -407,7 +415,7 @@ func (h *apiExecutor) Channels(_ context.Context, _ *ChannelsRequest) *ChannelsR
 }
 
 // Info returns information about running nodes.
-func (h *apiExecutor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
+func (h *Executor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
 	defer observe(time.Now(), h.protocol, "info")
 
 	resp := &InfoResponse{}
@@ -442,4 +450,41 @@ func (h *apiExecutor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
 		Nodes: nodes,
 	}
 	return resp
+}
+
+// RPC ...
+func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
+	defer observe(time.Now(), h.protocol, "history_remove")
+
+	resp := &RPCResponse{}
+
+	if cmd.Method == "" {
+		resp.Error = ErrorBadRequest
+		return resp
+	}
+
+	handler, ok := h.rpcExtension[cmd.Method]
+	if !ok {
+		resp.Error = ErrorMethodNotFound
+		return resp
+	}
+
+	data, err := handler(ctx, cmd.Params)
+	if err != nil {
+		resp.Error = toAPIErr(err)
+		return resp
+	}
+
+	resp.Result = &RPCResult{
+		Data: data,
+	}
+
+	return resp
+}
+
+func toAPIErr(err error) *Error {
+	if apiErr, ok := err.(*Error); ok {
+		return apiErr
+	}
+	return ErrorInternal
 }

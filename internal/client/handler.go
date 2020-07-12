@@ -17,10 +17,21 @@ type Handler struct {
 	ruleContainer *rule.ChannelRuleContainer
 	tokenVerifier jwtverify.Verifier
 	proxyConfig   proxy.Config
+	rpcExtension  map[string]centrifuge.RPCHandler
 }
 
 func NewHandler(node *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, tokenVerifier jwtverify.Verifier, proxyConfig proxy.Config) *Handler {
-	return &Handler{node: node, ruleContainer: ruleContainer, tokenVerifier: tokenVerifier, proxyConfig: proxyConfig}
+	return &Handler{
+		node:          node,
+		ruleContainer: ruleContainer,
+		tokenVerifier: tokenVerifier,
+		proxyConfig:   proxyConfig,
+		rpcExtension:  make(map[string]centrifuge.RPCHandler),
+	}
+}
+
+func (h Handler) SetRPCExtension(method string, handler centrifuge.RPCHandler) {
+	h.rpcExtension[method] = handler
 }
 
 func proxyHTTPClient(timeout time.Duration) *http.Client {
@@ -72,8 +83,11 @@ func (h *Handler) Setup() {
 		}
 		return h.OnRefresh(client, event)
 	})
-	if rpcProxyEnabled {
+	if rpcProxyEnabled || len(h.rpcExtension) > 0 {
 		h.node.OnRPC(func(client *centrifuge.Client, event centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
+			if handler, ok := h.rpcExtension[event.Method]; ok {
+				return handler(client, event)
+			}
 			return rpcProxyHandler(client.Context(), client, event)
 		})
 	}

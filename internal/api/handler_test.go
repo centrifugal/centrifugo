@@ -17,9 +17,10 @@ func TestAPIHandler(t *testing.T) {
 
 	ruleConfig := rule.DefaultRuleConfig
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	apiExecutor := NewExecutor(n, ruleContainer, "test")
 
 	mux := http.NewServeMux()
-	mux.Handle("/api", NewHandler(n, ruleContainer, Config{}))
+	mux.Handle("/api", NewHandler(n, apiExecutor, Config{}))
 	server := httptest.NewServer(mux)
 	defer server.Close()
 

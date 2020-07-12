@@ -3,8 +3,6 @@ package api
 import (
 	"context"
 
-	"github.com/centrifugal/centrifugo/internal/rule"
-
 	"github.com/centrifugal/centrifuge"
 	"google.golang.org/grpc"
 )
@@ -13,22 +11,22 @@ import (
 type GRPCAPIServiceConfig struct{}
 
 // RegisterGRPCServerAPI registers GRPC API service in provided GRPC server.
-func RegisterGRPCServerAPI(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, server *grpc.Server, config GRPCAPIServiceConfig) error {
-	RegisterCentrifugoServer(server, newGRPCAPIService(n, ruleContainer, config))
+func RegisterGRPCServerAPI(n *centrifuge.Node, apiExecutor *Executor, server *grpc.Server, config GRPCAPIServiceConfig) error {
+	RegisterCentrifugoServer(server, newGRPCAPIService(n, apiExecutor, config))
 	return nil
 }
 
 // grpcAPIService can answer on GRPC API requests.
 type grpcAPIService struct {
 	config GRPCAPIServiceConfig
-	api    *apiExecutor
+	api    *Executor
 }
 
 // newGRPCAPIService creates new Service.
-func newGRPCAPIService(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, c GRPCAPIServiceConfig) *grpcAPIService {
+func newGRPCAPIService(n *centrifuge.Node, apiExecutor *Executor, c GRPCAPIServiceConfig) *grpcAPIService {
 	return &grpcAPIService{
 		config: c,
-		api:    newAPIExecutor(n, ruleContainer, "grpc"),
+		api:    apiExecutor,
 	}
 }
 
@@ -80,4 +78,9 @@ func (s *grpcAPIService) PresenceStats(ctx context.Context, req *PresenceStatsRe
 // Info returns information about Centrifugo state.
 func (s *grpcAPIService) Info(ctx context.Context, req *InfoRequest) (*InfoResponse, error) {
 	return s.api.Info(ctx, req), nil
+}
+
+// RPC can return custom data.
+func (s *grpcAPIService) RPC(ctx context.Context, req *RPCRequest) (*RPCResponse, error) {
+	return s.api.RPC(ctx, req), nil
 }

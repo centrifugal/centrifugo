@@ -106,6 +106,7 @@ type Decoder interface {
 	DecodeHistoryRemove([]byte) (*HistoryRemoveRequest, error)
 	DecodeChannels([]byte) (*ChannelsRequest, error)
 	DecodeInfo([]byte) (*InfoRequest, error)
+	DecodeRPC([]byte) (*RPCRequest, error)
 }
 
 // JSONDecoder ...
@@ -216,6 +217,16 @@ func (d *JSONDecoder) DecodeInfo(data []byte) (*InfoRequest, error) {
 	return &p, nil
 }
 
+// DecodeRPC ...
+func (d *JSONDecoder) DecodeRPC(data []byte) (*RPCRequest, error) {
+	var p RPCRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
 // ProtobufDecoder ...
 type ProtobufDecoder struct{}
 
@@ -317,6 +328,16 @@ func (d *ProtobufDecoder) DecodeChannels(data []byte) (*ChannelsRequest, error) 
 // DecodeInfo ...
 func (d *ProtobufDecoder) DecodeInfo(data []byte) (*InfoRequest, error) {
 	var p InfoRequest
+	err := p.Unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeRPC ...
+func (d *ProtobufDecoder) DecodeRPC(data []byte) (*RPCRequest, error) {
+	var p RPCRequest
 	err := p.Unmarshal(data)
 	if err != nil {
 		return nil, err

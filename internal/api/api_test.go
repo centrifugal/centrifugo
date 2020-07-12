@@ -29,7 +29,7 @@ func TestPublishAPI(t *testing.T) {
 	ruleConfig := rule.DefaultRuleConfig
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 
-	api := newAPIExecutor(node, ruleContainer, "test")
+	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Publish(context.Background(), &PublishRequest{})
 	require.Equal(t, ErrorBadRequest, resp.Error)
 
@@ -48,7 +48,7 @@ func TestBroadcastAPI(t *testing.T) {
 	ruleConfig := rule.DefaultRuleConfig
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 
-	api := newAPIExecutor(node, ruleContainer, "test")
+	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Broadcast(context.Background(), &BroadcastRequest{})
 	require.Equal(t, ErrorBadRequest, resp.Error)
 
@@ -70,7 +70,7 @@ func TestHistoryAPI(t *testing.T) {
 	ruleConfig := rule.DefaultRuleConfig
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 
-	api := newAPIExecutor(node, ruleContainer, "test")
+	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.History(context.Background(), &HistoryRequest{})
 	require.Equal(t, ErrorBadRequest, resp.Error)
 	resp = api.History(context.Background(), &HistoryRequest{Channel: "test"})
@@ -90,7 +90,7 @@ func TestHistoryRemoveAPI(t *testing.T) {
 	ruleConfig := rule.DefaultRuleConfig
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 
-	api := newAPIExecutor(node, ruleContainer, "test")
+	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.HistoryRemove(context.Background(), &HistoryRemoveRequest{})
 	require.Equal(t, ErrorBadRequest, resp.Error)
 	resp = api.HistoryRemove(context.Background(), &HistoryRemoveRequest{Channel: "test"})
@@ -110,7 +110,7 @@ func TestPresenceAPI(t *testing.T) {
 	ruleConfig := rule.DefaultRuleConfig
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 
-	api := newAPIExecutor(node, ruleContainer, "test")
+	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Presence(context.Background(), &PresenceRequest{})
 	require.Equal(t, ErrorBadRequest, resp.Error)
 	resp = api.Presence(context.Background(), &PresenceRequest{Channel: "test"})
@@ -130,7 +130,7 @@ func TestPresenceStatsAPI(t *testing.T) {
 	ruleConfig := rule.DefaultRuleConfig
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 
-	api := newAPIExecutor(node, ruleContainer, "test")
+	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.PresenceStats(context.Background(), &PresenceStatsRequest{})
 	require.Equal(t, ErrorBadRequest, resp.Error)
 	resp = api.PresenceStats(context.Background(), &PresenceStatsRequest{Channel: "test"})
@@ -149,7 +149,7 @@ func TestDisconnectAPI(t *testing.T) {
 	ruleConfig := rule.DefaultRuleConfig
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 
-	api := newAPIExecutor(node, ruleContainer, "test")
+	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Disconnect(context.Background(), &DisconnectRequest{})
 	require.Equal(t, ErrorBadRequest, resp.Error)
 	resp = api.Disconnect(context.Background(), &DisconnectRequest{
@@ -163,7 +163,7 @@ func TestUnsubscribeAPI(t *testing.T) {
 	ruleConfig := rule.DefaultRuleConfig
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 
-	api := newAPIExecutor(node, ruleContainer, "test")
+	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Unsubscribe(context.Background(), &UnsubscribeRequest{})
 	require.Equal(t, ErrorBadRequest, resp.Error)
 	resp = api.Unsubscribe(context.Background(), &UnsubscribeRequest{
@@ -178,7 +178,7 @@ func TestChannelsAPI(t *testing.T) {
 	ruleConfig := rule.DefaultRuleConfig
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 
-	api := newAPIExecutor(node, ruleContainer, "test")
+	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Channels(context.Background(), &ChannelsRequest{})
 	require.Nil(t, resp.Error)
 }
@@ -188,7 +188,7 @@ func TestInfoAPI(t *testing.T) {
 	ruleConfig := rule.DefaultRuleConfig
 	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 
-	api := newAPIExecutor(node, ruleContainer, "test")
+	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Info(context.Background(), &InfoRequest{})
 	require.Nil(t, resp.Error)
 }

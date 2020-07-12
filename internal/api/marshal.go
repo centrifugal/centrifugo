@@ -95,6 +95,7 @@ type Encoder interface {
 	EncodeHistoryRemove(*HistoryRemoveResult) ([]byte, error)
 	EncodeChannels(*ChannelsResult) ([]byte, error)
 	EncodeInfo(*InfoResult) ([]byte, error)
+	EncodeRPC(*RPCResult) ([]byte, error)
 }
 
 // JSONEncoder ...
@@ -155,6 +156,11 @@ func (e *JSONEncoder) EncodeInfo(res *InfoResult) ([]byte, error) {
 	return json.Marshal(res)
 }
 
+// EncodeRPC ...
+func (e *JSONEncoder) EncodeRPC(res *RPCResult) ([]byte, error) {
+	return json.Marshal(res)
+}
+
 // ProtobufEncoder ...
 type ProtobufEncoder struct{}
 
@@ -210,5 +216,10 @@ func (e *ProtobufEncoder) EncodeChannels(res *ChannelsResult) ([]byte, error) {
 
 // EncodeInfo ...
 func (e *ProtobufEncoder) EncodeInfo(res *InfoResult) ([]byte, error) {
+	return res.Marshal()
+}
+
+// EncodeRPC ...
+func (e *ProtobufEncoder) EncodeRPC(res *RPCResult) ([]byte, error) {
 	return res.Marshal()
 }

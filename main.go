@@ -423,7 +423,8 @@ func main() {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 				}
 				grpcAPIServer = grpc.NewServer(grpcOpts...)
-				_ = api.RegisterGRPCServerAPI(node, ruleContainer, grpcAPIServer, api.GRPCAPIServiceConfig{})
+				apiExecutor := api.NewExecutor(node, ruleContainer, "grpc")
+				_ = api.RegisterGRPCServerAPI(node, apiExecutor, grpcAPIServer, api.GRPCAPIServiceConfig{})
 				go func() {
 					if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
 						log.Fatal().Msgf("serve GRPC: %v", err)
@@ -435,7 +436,8 @@ func main() {
 				log.Info().Msgf("serving GRPC API service on %s", grpcAPIAddr)
 			}
 
-			servers, err := runHTTPServers(node, ruleContainer)
+			httpAPIExecutor := api.NewExecutor(node, ruleContainer, "http")
+			servers, err := runHTTPServers(node, httpAPIExecutor)
 			if err != nil {
 				log.Fatal().Msgf("error running HTTP server: %v", err)
 			}
@@ -850,7 +852,7 @@ func (w *httpErrorLogWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer) ([]*http.Server, error) {
+func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor) ([]*http.Server, error) {
 	debug := viper.GetBool("debug")
 	useAdmin := viper.GetBool("admin")
 	usePrometheus := viper.GetBool("prometheus")
@@ -927,7 +929,7 @@ func runHTTPServers(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer
 		if handlerFlags == 0 {
 			continue
 		}
-		mux := Mux(n, ruleContainer, handlerFlags)
+		mux := Mux(n, apiExecutor, handlerFlags)
 
 		log.Info().Msgf("serving %s endpoints on %s", handlerFlags, addr)
 
@@ -1534,7 +1536,7 @@ func (flags HandlerFlag) String() string {
 }
 
 // Mux returns a mux including set of default handlers for Centrifugo server.
-func Mux(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, flags HandlerFlag) *http.ServeMux {
+func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag) *http.ServeMux {
 
 	mux := http.NewServeMux()
 
@@ -1569,7 +1571,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, flags Han
 
 	if flags&HandlerAPI != 0 {
 		// register HTTP API endpoint.
-		apiHandler := api.NewHandler(n, ruleContainer, api.Config{})
+		apiHandler := api.NewHandler(n, apiExecutor, api.Config{})
 		apiPrefix := strings.TrimRight(v.GetString("api_handler_prefix"), "/")
 		if apiPrefix == "" {
 			apiPrefix = "/"
@@ -1593,7 +1595,7 @@ func Mux(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, flags Han
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
 		adminPrefix := strings.TrimRight(v.GetString("admin_handler_prefix"), "/")
-		mux.Handle(adminPrefix+"/", middleware.LogRequest(admin.NewHandler(n, ruleContainer, adminHandlerConfig())))
+		mux.Handle(adminPrefix+"/", middleware.LogRequest(admin.NewHandler(n, apiExecutor, adminHandlerConfig())))
 	}
 
 	if flags&HandlerHealth != 0 {
