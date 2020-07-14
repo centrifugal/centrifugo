@@ -406,6 +406,18 @@
 
 
   <li class="md-nav__item">
+    <a href="../commands/" title="Console commands" class="md-nav__link">
+      Console commands
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../channels/" title="Channels" class="md-nav__link">
       Channels
     </a>
@@ -638,18 +650,6 @@
 
 
   <li class="md-nav__item">
-    <a href="../recover/" title="Message recovery" class="md-nav__link">
-      Message recovery
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
     <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
       Connection expiration
     </a>
@@ -666,17 +666,17 @@
       <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-13" type="checkbox" id="nav-3-13">
     
     <label class="md-nav__link" for="nav-3-13">
-      Transports
+      Client-server transports
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
-    <nav class="md-nav" aria-label="Transports" data-md-level="2">
+    <nav class="md-nav" aria-label="Client-server transports" data-md-level="2">
       <label class="md-nav__title" for="nav-3-13">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
-        Transports
+        Client-server transports
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
         
@@ -687,8 +687,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/" title="Transports overview" class="md-nav__link">
-      Transports overview
+    <a href="../../transports/" title="Overview" class="md-nav__link">
+      Overview
     </a>
   </li>
 
@@ -713,6 +713,42 @@
   <li class="md-nav__item">
     <a href="../../transports/sockjs/" title="SockJS" class="md-nav__link">
       SockJS
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../transports/protobuf/" title="Protobuf protocol" class="md-nav__link">
+      Protobuf protocol
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../transports/protocol/" title="Client protocol" class="md-nav__link">
+      Client protocol
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../transports/recovery/" title="Message recovery" class="md-nav__link">
+      Message recovery
     </a>
   </li>
 
@@ -805,30 +841,18 @@
           
 
 
-  <li class="md-nav__item">
-    <a href="../protobuf/" title="Protobuf protocol" class="md-nav__link">
-      Protobuf protocol
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
     
-    <label class="md-nav__link" for="nav-3-16">
+    <label class="md-nav__link" for="nav-3-15">
       Misc
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Misc" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-16">
+      <label class="md-nav__title" for="nav-3-15">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -845,18 +869,6 @@
   <li class="md-nav__item">
     <a href="../../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
       Insecure modes
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
-      Benchmarking server
     </a>
   </li>
 
@@ -884,8 +896,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../protocol/" title="Client protocol" class="md-nav__link">
-      Client protocol
+    <a href="../../misc/benchmark/" title="Benchmark" class="md-nav__link">
+      Benchmark
     </a>
   </li>
 
@@ -1182,7 +1194,7 @@
                 <h1 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h1>
 <p>When you are using <a href="https://github.com/centrifugal/centrifuge">centrifuge</a> library from Go language you can implement any user authentication using middleware. In Centrifugo case you need to tell server who is connecting in well-known predefined way. This chapter will describe this mechanism.</p>
 <p>When connecting to Centrifugo client must provide connection JWT token with several predefined credential claims. If you've never heard about JWT before - refer to <a href="https://jwt.io/">jwt.io</a> page.</p>
-<p>At moment **the only supported JWT algorithms are HMAC and RSA ** - i.e. HS256, HS384, HS512, RSA256, RSA384, RSA512. This can be extended later. RSA algorithm is available since v2.3.0 release.</p>
+<p>At moment <strong>the only supported JWT algorithms are HMAC and RSA</strong> - i.e. HS256, HS384, HS512, RSA256, RSA384, RSA512. This can be extended later. RSA algorithm is available since v2.3.0 release.</p>
 <p>We will use Javascript Centrifugo client here for example snippets for client side and <a href="https://github.com/jpadilla/pyjwt">PyJWT</a> Python library to generate connection token on backend side.</p>
 <p>To add HMAC secret key to Centrifugo add <code>token_hmac_secret_key</code> to configuration file:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -1202,7 +1214,7 @@
 <p>Centrifugo uses the following claims in JWT: <code>sub</code>, <code>exp</code>, <code>info</code> and <code>b64info</code>. What do they mean? Let's describe in detail.</p>
 <h3 id="sub">sub<a class="headerlink" href="#sub" title="Permanent link">&para;</a></h3>
 <p>This is a standard JWT claim which must contain an ID of current application user (<strong>as string</strong>). </p>
-<p>If your user is not currently authenticated in your application but you want to let him connect to Centrifugo anyway you can use empty string as user ID in this <code>sub</code> claim. This is called anonymous access. In this case <code>anonymous</code> option must be enabled in Centrifugo configuration for channels that client will subscribe to.</p>
+<p>If your user not currently authenticated in your application, but you want to let him connect to Centrifugo anyway – you can use empty string as user ID in this <code>sub</code> claim. This is called anonymous access. In this case <code>anonymous</code> option must be enabled in Centrifugo configuration for channels that client will subscribe to.</p>
 <h3 id="exp">exp<a class="headerlink" href="#exp" title="Permanent link">&para;</a></h3>
 <p>This is a UNIX timestamp seconds when token will expire. This is standard JWT claim - all JWT libraries for different languages provide an API to set it.</p>
 <p>If <code>exp</code> claim not provided then Centrifugo won't expire any connections. When provided special algorithm will find connections with <code>exp</code> in the past and activate connection refresh mechanism. Refresh mechanism allows connection to survive and be prolonged. In case of refresh failure client connection will be eventually closed by Centrifugo and won't be accepted until new valid and actual credentials provided in connection token.</p>

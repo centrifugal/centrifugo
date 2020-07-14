@@ -511,6 +511,18 @@
 
 
   <li class="md-nav__item">
+    <a href="../server/commands/" title="Console commands" class="md-nav__link">
+      Console commands
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../server/channels/" title="Channels" class="md-nav__link">
       Channels
     </a>
@@ -619,18 +631,6 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/recover/" title="Message recovery" class="md-nav__link">
-      Message recovery
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
     <a href="../server/connection_expiration/" title="Connection expiration" class="md-nav__link">
       Connection expiration
     </a>
@@ -647,17 +647,17 @@
       <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-13" type="checkbox" id="nav-3-13">
     
     <label class="md-nav__link" for="nav-3-13">
-      Transports
+      Client-server transports
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
-    <nav class="md-nav" aria-label="Transports" data-md-level="2">
+    <nav class="md-nav" aria-label="Client-server transports" data-md-level="2">
       <label class="md-nav__title" for="nav-3-13">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
-        Transports
+        Client-server transports
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
         
@@ -668,8 +668,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../transports/" title="Transports overview" class="md-nav__link">
-      Transports overview
+    <a href="../transports/" title="Overview" class="md-nav__link">
+      Overview
     </a>
   </li>
 
@@ -694,6 +694,42 @@
   <li class="md-nav__item">
     <a href="../transports/sockjs/" title="SockJS" class="md-nav__link">
       SockJS
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../transports/protobuf/" title="Protobuf protocol" class="md-nav__link">
+      Protobuf protocol
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../transports/protocol/" title="Client protocol" class="md-nav__link">
+      Client protocol
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../transports/recovery/" title="Message recovery" class="md-nav__link">
+      Message recovery
     </a>
   </li>
 
@@ -786,30 +822,18 @@
           
 
 
-  <li class="md-nav__item">
-    <a href="../server/protobuf/" title="Protobuf protocol" class="md-nav__link">
-      Protobuf protocol
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
     
-    <label class="md-nav__link" for="nav-3-16">
+    <label class="md-nav__link" for="nav-3-15">
       Misc
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Misc" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-16">
+      <label class="md-nav__title" for="nav-3-15">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -826,18 +850,6 @@
   <li class="md-nav__item">
     <a href="../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
       Insecure modes
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
-      Benchmarking server
     </a>
   </li>
 
@@ -865,8 +877,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/protocol/" title="Client protocol" class="md-nav__link">
-      Client protocol
+    <a href="../misc/benchmark/" title="Benchmark" class="md-nav__link">
+      Benchmark
     </a>
   </li>
 
@@ -1162,6 +1174,11 @@
 <h2 id="3-connect-to-centrifugo">3. Connect to Centrifugo<a class="headerlink" href="#3-connect-to-centrifugo" title="Permanent link">&para;</a></h2>
 <p>Now your users can start connecting to Centrifugo. You should get client library (see <a href="../libraries/client/">list of available client libraries</a>) for your application frontend. Every library has method to connect to Centrifugo. See information about Centrifugo connection endpoints <a href="https://centrifugal.github.io/centrifugo/server/configuration/#advanced-endpoint-configuration">here</a>. Every client should provide connection token (JWT) on connect. You must generate this token on your backend side using Centrifugo secret key you set to backend configuration (note that in case of RSA tokens you are generating JWT with private key). See how to generate this JWT <a href="../server/authentication/">in special chapter</a>. You pass this token from backend to your frontend app (pass it in template context or use separate request from client side to get user specific JWT from backend side). And use this token when connecting to Centrifugo (for example browser client has special method <code>setToken</code>).</p>
 <p>Since Centrifugo v2.3.0 there is a way to authenticate connections without using JWT - see <a href="../server/proxy/">chapter about proxying to backend</a>.</p>
+<p>You are connecting to Centrifugo using one of available transports. At this moment you can choose from:</p>
+<ul>
+<li>WebSocket, with JSON or binary protobuf protocol. See more info in a chapter about <a href="../transports/websocket/">WebSocket transport</a></li>
+<li>SockJS (only supports JSON protocol). See more info about <a href="../transports/sockjs/">SockJS transport</a></li>
+</ul>
 <h2 id="4-subscribe-to-channels">4. Subscribe to channels<a class="headerlink" href="#4-subscribe-to-channels" title="Permanent link">&para;</a></h2>
 <p>After connecting to Centrifugo subscribe clients to channels they are interested in. See more about channels in <a href="../server/channels/">special chapter</a>. All client libraries provide a way to handle messages coming to client from a channel after subscribing to it.</p>
 <p>Since Centrifugo v2.4.0 there is a way to subscribe connection to a list of channels on server side at the moment of connection establishment. See chapter about <a href="../server/server_subs/">server-side subscriptions</a>.</p>

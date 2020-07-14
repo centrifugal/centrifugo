@@ -11,23 +11,23 @@
         <meta name="description" content="Centrifugo is a scalable real-time messaging server in language-agnostic way">
       
       
-        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/blog/">
+        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/transports/protobuf/">
       
       
         <meta name="author" content="Centrifugal organization">
       
-      <link rel="shortcut icon" href="../images/favicon.png">
+      <link rel="shortcut icon" href="../../images/favicon.png">
       <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.1.6">
     
     
       
-        <title>Centrifugo Dev Blog</title>
+        <title>Protobuf protocol - Centrifugo</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.4b9ffd7b.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4b9ffd7b.min.css">
       
-        <link rel="stylesheet" href="../assets/stylesheets/palette.b79bcd20.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.b79bcd20.min.css">
       
       
         
@@ -45,54 +45,12 @@
     
     
     
-      <link rel="stylesheet" href="../theme/styles/extra.css">
+      <link rel="stylesheet" href="../../theme/styles/extra.css">
     
     
       
     
     
-
-<!-- Determine title -->
-
-
-
-
-
-<!-- The image needs to have an absolute URL -->
-
-
-<!-- Open graph meta tags -->
-
-<meta property="og:title" content="Centrifugo Dev Blog" />
-
-
-
-<meta property="og:type" content="website" />
-
-
-<meta property="og:url" content="https://centrifugal.github.io/centrifugo/blog/" />
-
-
-<meta property="og:image" content="https://centrifugal.github.io/centrifugo/images/favicon.png" />
-
-
-
-<meta property="og:image:type" content="image/png" />
-
-
-
-<meta property="og:image:width" content="960">
-
-
-
-<meta property="og:image:height" content="960">
-
-
-
-<meta property="og:description" content="Centrifugo is a scalable real-time messaging server in language-agnostic way">
-
-
-
   </head>
   
   
@@ -105,6 +63,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#protobuf-binary-protocol" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -114,7 +77,7 @@
   <nav class="md-header-nav md-grid" aria-label="Header">
     <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-header-nav__button md-logo" aria-label="Centrifugo">
       
-  <img src="../images/logo.png" alt="logo">
+  <img src="../../images/logo.png" alt="logo">
 
     </a>
     <label class="md-header-nav__button md-icon" for="__drawer">
@@ -128,7 +91,7 @@
           </span>
           <span class="md-header-nav__topic md-ellipsis">
             
-              Centrifugo Dev Blog
+              Protobuf protocol
             
           </span>
         </div>
@@ -187,7 +150,6 @@
         
       
       
-
         
           
 
@@ -200,7 +162,7 @@
         
   <li class="md-tabs__item">
     
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         Home
       </a>
     
@@ -212,7 +174,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../getting_started/" class="md-tabs__link">
+        <a href="../../getting_started/" class="md-tabs__link">
           Getting Started
         </a>
       
@@ -225,7 +187,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../server/configuration/" class="md-tabs__link">
+        <a href="../../server/configuration/" class="md-tabs__link md-tabs__link--active">
           Server
         </a>
       
@@ -238,7 +200,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../libraries/client/" class="md-tabs__link">
+        <a href="../../libraries/client/" class="md-tabs__link">
           Libraries
         </a>
       
@@ -251,7 +213,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../faq/" class="md-tabs__link">
+        <a href="../../faq/" class="md-tabs__link">
           FAQ
         </a>
       
@@ -264,7 +226,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="./" class="md-tabs__link md-tabs__link--active">
+        <a href="../../blog/" class="md-tabs__link">
           Blog
         </a>
       
@@ -277,7 +239,6 @@
 </nav>
         
       
-
       <main class="md-main" data-md-component="main">
         <div class="md-main__inner md-grid">
           
@@ -289,7 +250,7 @@
   <label class="md-nav__title" for="__drawer">
     <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-nav__button md-logo" aria-label="Centrifugo">
       
-  <img src="../images/logo.png" alt="logo">
+  <img src="../../images/logo.png" alt="logo">
 
     </a>
     Centrifugo
@@ -316,7 +277,7 @@
 
 
   <li class="md-nav__item">
-    <a href=".." title="Home" class="md-nav__link">
+    <a href="../.." title="Home" class="md-nav__link">
       Home
     </a>
   </li>
@@ -353,7 +314,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../getting_started/" title="What is Centrifugo" class="md-nav__link">
+    <a href="../../getting_started/" title="What is Centrifugo" class="md-nav__link">
       What is Centrifugo
     </a>
   </li>
@@ -365,7 +326,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../install/" title="Installation" class="md-nav__link">
+    <a href="../../install/" title="Installation" class="md-nav__link">
       Installation
     </a>
   </li>
@@ -377,7 +338,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../quick_start/" title="Quick start" class="md-nav__link">
+    <a href="../../quick_start/" title="Quick start" class="md-nav__link">
       Quick start
     </a>
   </li>
@@ -389,7 +350,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../guide/" title="Integration Guide" class="md-nav__link">
+    <a href="../../guide/" title="Integration Guide" class="md-nav__link">
       Integration Guide
     </a>
   </li>
@@ -404,10 +365,12 @@
       
       
 
+  
 
-  <li class="md-nav__item md-nav__item--nested">
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" checked>
     
     <label class="md-nav__link" for="nav-3">
       Server
@@ -431,7 +394,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/configuration/" title="Configuration" class="md-nav__link">
+    <a href="../../server/configuration/" title="Configuration" class="md-nav__link">
       Configuration
     </a>
   </li>
@@ -443,7 +406,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/commands/" title="Console commands" class="md-nav__link">
+    <a href="../../server/commands/" title="Console commands" class="md-nav__link">
       Console commands
     </a>
   </li>
@@ -455,7 +418,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/channels/" title="Channels" class="md-nav__link">
+    <a href="../../server/channels/" title="Channels" class="md-nav__link">
       Channels
     </a>
   </li>
@@ -467,7 +430,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/authentication/" title="Authentication" class="md-nav__link">
+    <a href="../../server/authentication/" title="Authentication" class="md-nav__link">
       Authentication
     </a>
   </li>
@@ -479,7 +442,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/private_channels/" title="Private channels" class="md-nav__link">
+    <a href="../../server/private_channels/" title="Private channels" class="md-nav__link">
       Private channels
     </a>
   </li>
@@ -491,7 +454,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/engines/" title="Engines" class="md-nav__link">
+    <a href="../../server/engines/" title="Engines" class="md-nav__link">
       Engines
     </a>
   </li>
@@ -503,7 +466,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/http_api/" title="Server HTTP API" class="md-nav__link">
+    <a href="../../server/http_api/" title="Server HTTP API" class="md-nav__link">
       Server HTTP API
     </a>
   </li>
@@ -515,7 +478,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/grpc_api/" title="Server GRPC API" class="md-nav__link">
+    <a href="../../server/grpc_api/" title="Server GRPC API" class="md-nav__link">
       Server GRPC API
     </a>
   </li>
@@ -527,7 +490,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/admin/" title="Admin web interface" class="md-nav__link">
+    <a href="../../server/admin/" title="Admin web interface" class="md-nav__link">
       Admin web interface
     </a>
   </li>
@@ -539,7 +502,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/proxy/" title="Proxy to backend" class="md-nav__link">
+    <a href="../../server/proxy/" title="Proxy to backend" class="md-nav__link">
       Proxy to backend
     </a>
   </li>
@@ -551,7 +514,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/server_subs/" title="Server-side subscriptions" class="md-nav__link">
+    <a href="../../server/server_subs/" title="Server-side subscriptions" class="md-nav__link">
       Server-side subscriptions
     </a>
   </li>
@@ -563,7 +526,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server/connection_expiration/" title="Connection expiration" class="md-nav__link">
+    <a href="../../server/connection_expiration/" title="Connection expiration" class="md-nav__link">
       Connection expiration
     </a>
   </li>
@@ -573,10 +536,12 @@
           
           
 
+  
 
-  <li class="md-nav__item md-nav__item--nested">
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-13" type="checkbox" id="nav-3-13">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-13" type="checkbox" id="nav-3-13" checked>
     
     <label class="md-nav__link" for="nav-3-13">
       Client-server transports
@@ -600,7 +565,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../transports/" title="Overview" class="md-nav__link">
+    <a href="../" title="Overview" class="md-nav__link">
       Overview
     </a>
   </li>
@@ -612,7 +577,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../transports/websocket/" title="Websocket" class="md-nav__link">
+    <a href="../websocket/" title="Websocket" class="md-nav__link">
       Websocket
     </a>
   </li>
@@ -624,7 +589,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../transports/sockjs/" title="SockJS" class="md-nav__link">
+    <a href="../sockjs/" title="SockJS" class="md-nav__link">
       SockJS
     </a>
   </li>
@@ -634,11 +599,20 @@
           
           
 
+  
 
-  <li class="md-nav__item">
-    <a href="../transports/protobuf/" title="Protobuf protocol" class="md-nav__link">
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+    <a href="./" title="Protobuf protocol" class="md-nav__link md-nav__link--active">
       Protobuf protocol
     </a>
+    
   </li>
 
         
@@ -648,7 +622,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../transports/protocol/" title="Client protocol" class="md-nav__link">
+    <a href="../protocol/" title="Client protocol" class="md-nav__link">
       Client protocol
     </a>
   </li>
@@ -660,7 +634,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../transports/recovery/" title="Message recovery" class="md-nav__link">
+    <a href="../recovery/" title="Message recovery" class="md-nav__link">
       Message recovery
     </a>
   </li>
@@ -702,7 +676,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
+    <a href="../../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
       Nginx configuration
     </a>
   </li>
@@ -714,7 +688,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../deploy/monitoring/" title="Monitoring" class="md-nav__link">
+    <a href="../../deploy/monitoring/" title="Monitoring" class="md-nav__link">
       Monitoring
     </a>
   </li>
@@ -726,7 +700,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../deploy/tuning/" title="OS tuning" class="md-nav__link">
+    <a href="../../deploy/tuning/" title="OS tuning" class="md-nav__link">
       OS tuning
     </a>
   </li>
@@ -738,7 +712,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../deploy/tls/" title="TLS" class="md-nav__link">
+    <a href="../../deploy/tls/" title="TLS" class="md-nav__link">
       TLS
     </a>
   </li>
@@ -780,7 +754,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
+    <a href="../../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
       Insecure modes
     </a>
   </li>
@@ -792,7 +766,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
+    <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
       Migrate from Centrifugo v1
     </a>
   </li>
@@ -809,7 +783,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../misc/benchmark/" title="Benchmark" class="md-nav__link">
+    <a href="../../misc/benchmark/" title="Benchmark" class="md-nav__link">
       Benchmark
     </a>
   </li>
@@ -851,7 +825,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../libraries/client/" title="Client libraries" class="md-nav__link">
+    <a href="../../libraries/client/" title="Client libraries" class="md-nav__link">
       Client libraries
     </a>
   </li>
@@ -863,7 +837,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../libraries/api/" title="API libraries" class="md-nav__link">
+    <a href="../../libraries/api/" title="API libraries" class="md-nav__link">
       API libraries
     </a>
   </li>
@@ -905,7 +879,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../faq/" title="Frequently Asked Questions" class="md-nav__link">
+    <a href="../../faq/" title="Frequently Asked Questions" class="md-nav__link">
       Frequently Asked Questions
     </a>
   </li>
@@ -920,12 +894,10 @@
       
       
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+  <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6" checked>
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6">
     
     <label class="md-nav__link" for="nav-6">
       Blog
@@ -947,18 +919,11 @@
           
           
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-    
-    
-    <a href="./" title="About this blog" class="md-nav__link md-nav__link--active">
+  <li class="md-nav__item">
+    <a href="../../blog/" title="About this blog" class="md-nav__link">
       About this blog
     </a>
-    
   </li>
 
         
@@ -968,7 +933,7 @@
 
 
   <li class="md-nav__item">
-    <a href="scaling_websocket/" title="Scaling WebSocket in Go and beyond" class="md-nav__link">
+    <a href="../../blog/scaling_websocket/" title="Scaling WebSocket in Go and beyond" class="md-nav__link">
       Scaling WebSocket in Go and beyond
     </a>
   </li>
@@ -986,13 +951,27 @@
               </div>
             
             
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content">
             <article class="md-content__inner md-typeset">
               
-
                 
-                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/blog/index.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/transports/protobuf.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
@@ -1000,16 +979,24 @@
                   
                 
                 
-                  <h1>About this blog</h1>
-                
-                <p>Welcome to Centrifugo Dev Blog ❤️</p>
-<p>Here we are talking about real-time messaging topics – not only about Centrifugo server, but also about general related questions, about Centrifuge library, best practices on building real-time messaging servers, cool applications done with WebSocket technology etc.</p>
-<p>If you have an interesting post and want it to be published here – let us know in Centrifugo community channels.</p>
-                
-                  
+                <h1 id="protobuf-binary-protocol">Protobuf binary protocol<a class="headerlink" href="#protobuf-binary-protocol" title="Permanent link">&para;</a></h1>
+<p>In most cases you will use Centrifugo with JSON protocol which is used by default. It consists of simple human-readable frames that can be easily inspected. Also it's a very simple task to publish JSON encoded data to HTTP API endpoint. You may want to use binary Protobuf client protocol if:</p>
+<ul>
+<li>you want less traffic on wire as Protobuf is very compact</li>
+<li>you want maximum performance as Protobuf encoding/decoding is very efficient</li>
+<li>you can sacrifice human-readable JSON for your application</li>
+</ul>
+<p>Binary protobuf protocol only works for raw Websocket connections (as SockJS can't deal with binary). With most clients to use binary you just need to provide query parameter <code>format</code> to Websocket URL, so final URL look like:</p>
+<div class="highlight"><pre><span></span><code>wss://centrifugo.example.com/connection/websocket?format=protobuf
+</code></pre></div>
+
+<p>After doing this Centrifugo will use binary frames to pass data between client and server. Your application specific payload can be random bytes.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You still can continue to encode your application specific data as JSON when using Protobuf protocol thus have a possibility to coexist with clients that use JSON protocol on the same Centrifugo installation inside the same channels.</p>
+</div>
                 
               
-
               
                 
 
@@ -1020,14 +1007,13 @@
         </div>
       </main>
       
-
         
 <footer class="md-footer">
     
     <div class="md-footer-nav">
         <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
             
-            <a href="../faq/" title="Frequently Asked Questions" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <a href="../sockjs/" title="SockJS" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
                 <div class="md-footer-nav__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
                 </div>
@@ -1036,19 +1022,19 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                        Frequently Asked Questions
+                        SockJS
                     </div>
                 </div>
             </a>
             
             
-            <a href="scaling_websocket/" title="Scaling WebSocket in Go and beyond" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <a href="../protocol/" title="Client protocol" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
                 <div class="md-footer-nav__title">
                     <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                        Scaling WebSocket in Go and beyond
+                        Client protocol
                     </div>
                 </div>
                 <div class="md-footer-nav__button md-icon">
@@ -1096,18 +1082,17 @@
     </div>
 </footer>
       
-
     </div>
     
-      <script src="../assets/javascripts/vendor.a0c4167b.min.js"></script>
-      <script src="../assets/javascripts/bundle.fb26dd1d.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      <script src="../../assets/javascripts/vendor.a0c4167b.min.js"></script>
+      <script src="../../assets/javascripts/bundle.fb26dd1d.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
       
       <script>
         app = initialize({
-          base: "..",
+          base: "../..",
           features: ["tabs"],
           search: Object.assign({
-            worker: "../assets/javascripts/worker/search.37585f48.min.js"
+            worker: "../../assets/javascripts/worker/search.37585f48.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>

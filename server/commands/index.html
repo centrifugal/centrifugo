@@ -11,7 +11,7 @@
         <meta name="description" content="Centrifugo is a scalable real-time messaging server in language-agnostic way">
       
       
-        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/server/recover/">
+        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/server/commands/">
       
       
         <meta name="author" content="Centrifugal organization">
@@ -21,7 +21,7 @@
     
     
       
-        <title>Message recovery - Centrifugo</title>
+        <title>Console commands - Centrifugo</title>
       
     
     
@@ -64,7 +64,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#how-message-recovery-works" class="md-skip">
+        <a href="#console-commands" class="md-skip">
           Skip to content
         </a>
       
@@ -91,7 +91,7 @@
           </span>
           <span class="md-header-nav__topic md-ellipsis">
             
-              Message recovery
+              Console commands
             
           </span>
         </div>
@@ -404,6 +404,88 @@
           
           
 
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Console commands
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
+        </span>
+      </label>
+    
+    <a href="./" title="Console commands" class="md-nav__link md-nav__link--active">
+      Console commands
+    </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#version-command" class="md-nav__link">
+    version command
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#checkconfig-command" class="md-nav__link">
+    checkconfig command
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#genconfig-command" class="md-nav__link">
+    genconfig command
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gentoken-command" class="md-nav__link">
+    gentoken command
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#checktoken-command" class="md-nav__link">
+    checktoken command
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+    
+  </li>
+
+        
+          
+          
+          
+
 
   <li class="md-nav__item">
     <a href="../channels/" title="Channels" class="md-nav__link">
@@ -512,27 +594,6 @@
           
           
 
-  
-
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-    
-      
-    
-    
-    <a href="./" title="Message recovery" class="md-nav__link md-nav__link--active">
-      Message recovery
-    </a>
-    
-  </li>
-
-        
-          
-          
-          
-
 
   <li class="md-nav__item">
     <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
@@ -551,17 +612,17 @@
       <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-13" type="checkbox" id="nav-3-13">
     
     <label class="md-nav__link" for="nav-3-13">
-      Transports
+      Client-server transports
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
-    <nav class="md-nav" aria-label="Transports" data-md-level="2">
+    <nav class="md-nav" aria-label="Client-server transports" data-md-level="2">
       <label class="md-nav__title" for="nav-3-13">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
-        Transports
+        Client-server transports
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
         
@@ -572,8 +633,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/" title="Transports overview" class="md-nav__link">
-      Transports overview
+    <a href="../../transports/" title="Overview" class="md-nav__link">
+      Overview
     </a>
   </li>
 
@@ -598,6 +659,42 @@
   <li class="md-nav__item">
     <a href="../../transports/sockjs/" title="SockJS" class="md-nav__link">
       SockJS
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../transports/protobuf/" title="Protobuf protocol" class="md-nav__link">
+      Protobuf protocol
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../transports/protocol/" title="Client protocol" class="md-nav__link">
+      Client protocol
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../transports/recovery/" title="Message recovery" class="md-nav__link">
+      Message recovery
     </a>
   </li>
 
@@ -690,30 +787,18 @@
           
 
 
-  <li class="md-nav__item">
-    <a href="../protobuf/" title="Protobuf protocol" class="md-nav__link">
-      Protobuf protocol
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
     
-    <label class="md-nav__link" for="nav-3-16">
+    <label class="md-nav__link" for="nav-3-15">
       Misc
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Misc" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-16">
+      <label class="md-nav__title" for="nav-3-15">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -730,18 +815,6 @@
   <li class="md-nav__item">
     <a href="../../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
       Insecure modes
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
-      Benchmarking server
     </a>
   </li>
 
@@ -769,8 +842,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../protocol/" title="Client protocol" class="md-nav__link">
-      Client protocol
+    <a href="../../misc/benchmark/" title="Benchmark" class="md-nav__link">
+      Benchmark
     </a>
   </li>
 
@@ -947,6 +1020,51 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#version-command" class="md-nav__link">
+    version command
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#checkconfig-command" class="md-nav__link">
+    checkconfig command
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#genconfig-command" class="md-nav__link">
+    genconfig command
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gentoken-command" class="md-nav__link">
+    gentoken command
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#checktoken-command" class="md-nav__link">
+    checktoken command
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -957,7 +1075,7 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/server/recover.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/server/commands.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
@@ -965,26 +1083,45 @@
                   
                 
                 
-                <h1 id="how-message-recovery-works">How message recovery works<a class="headerlink" href="#how-message-recovery-works" title="Permanent link">&para;</a></h1>
-<p>This description uses <code>offset</code> field available since Centrifugo v2.5.0 which replaced two <code>uint32</code> fields <code>seq</code> and <code>gen</code> in client protocol schema. This means that here we describe a case when Centrifugo config contains <code>v3_use_offset</code> option enabled:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-  <span class="err">...</span>
-  <span class="nt">&quot;v3_use_offset&quot;</span><span class="p">:</span> <span class="kc">true</span>
-<span class="p">}</span>
+                <h1 id="console-commands">Console commands<a class="headerlink" href="#console-commands" title="Permanent link">&para;</a></h1>
+<p>Here is a list of console commands that come with Centrifugo executable.</p>
+<h2 id="version-command">version command<a class="headerlink" href="#version-command" title="Permanent link">&para;</a></h2>
+<p>To show Centrifugo version and exit run:</p>
+<div class="highlight"><pre><span></span><code>centrifugo version
 </code></pre></div>
 
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>For <code>seq</code> and <code>gen</code> recovery works in similar way, but we have two <code>uint32</code> fields instead of single <code>uint64</code> <code>offset</code>.</p>
-</div>
-<p>One of the most interesting features of Centrifugo is message recovery after short network disconnects. This mechanism allows client to automatically get missed publications on successful resubscribe to channel after being disconnected for a while. In general, you would query your application backend for actual state on every client reconnect - but message recovery feature allows Centrifugo to deal with this and restore missed publications from history cache thus radically reducing load on your application backend and your main database in some scenarios.</p>
-<p>To enable recovery mechanism for channels set <code>history_recover</code> boolean configuration option to <code>true</code> on the configuration file top-level or for a channel namespace.</p>
-<p>When subscribing on channels Centrifugo will return missed <code>publications</code> to client in subscribe <code>Reply</code>, also it will return special <code>recovered</code> boolean flag to indicate whether all missed publications successfully recovered after disconnect or not.</p>
-<p>Centrifugo recovery model based on two fields in protocol: <code>offset</code> and <code>epoch</code>. All fields managed automatically by Centrifugo client libraries, but it's good to know how recovery works under the hood.</p>
-<p>Once <code>history_recover</code> option enabled every publication will have incremental (inside channel) <code>offset</code> field. This field has <code>uint64</code> type.</p>
-<p>Another field is string <code>epoch</code>. It exists to handle cases when history storage has been restarted while client was in disconnected state so publication numeration in a channel started from scratch. For example at moment Memory engine does not persist publication sequences on disk so every restart will start numeration from scratch, after each restart new <code>epoch</code> field generated, and we can understand in recovery process that client could miss messages thus returning correct <code>recovered</code> flag in subscribe <code>Reply</code>. This also applies to Redis engine – if you do not use AOF with fsync then sequences can be lost after Redis restart. When using Redis engine you need to use fully in-memory model strategy or AOF with fsync to guarantee reliability of <code>recovered</code> flag sent by Centrifugo.</p>
-<p>When server receives subscribe command with boolean flag <code>recover</code> set to <code>true</code> and <code>offset</code>, <code>epoch</code> set to values last seen by a client (see <code>SubscribeRequest</code> type in <a href="https://github.com/centrifugal/protocol/blob/master/definitions/client.proto">protocol definitions</a>) it can try to find all missed publications from history cache. Recovered publications will be passed to client in subscribe <code>Reply</code> in correct order, and your publication handler will be automatically called to process each missed message.</p>
-<p>You can also manually implement your own recovery algorithm on top of basic PUB/SUB possibilities that Centrifugo provides. As we said above you can simply ask your backend for an actual state after every client reconnect completely bypassing recovery mechanism described here.</p>
+<h2 id="checkconfig-command">checkconfig command<a class="headerlink" href="#checkconfig-command" title="Permanent link">&para;</a></h2>
+<p>Centrifugo has special command to check configuration file <code>checkconfig</code>:</p>
+<div class="highlight"><pre><span></span><code>centrifugo checkconfig --config<span class="o">=</span>config.json
+</code></pre></div>
+
+<p>If any errors found during validation – program will exit with error message and exit code 1.</p>
+<h2 id="genconfig-command">genconfig command<a class="headerlink" href="#genconfig-command" title="Permanent link">&para;</a></h2>
+<p>Another command is <code>genconfig</code>:</p>
+<div class="highlight"><pre><span></span><code>centrifugo genconfig -c config.json
+</code></pre></div>
+
+<p>It will automatically generate the minimal required configuration file.</p>
+<p>If any errors happen – program will exit with error message and exit code 1.</p>
+<h2 id="gentoken-command">gentoken command<a class="headerlink" href="#gentoken-command" title="Permanent link">&para;</a></h2>
+<p>Another command is <code>gentoken</code>:</p>
+<div class="highlight"><pre><span></span><code>centrifugo gentoken -c config.json -u 28282
+</code></pre></div>
+
+<p>It will automatically generate HMAC SHA-256 based token for user with ID <code>28282</code> (which expires in 1 week).</p>
+<p>You can change token TTL with <code>-t</code> flag (number of seconds):</p>
+<div class="highlight"><pre><span></span><code>centrifugo gentoken -c config.json -u 28282 -t 3600
+</code></pre></div>
+
+<p>This way generated token will be valid for 1 hour.</p>
+<p>If any errors happen – program will exit with error message and exit code 1.</p>
+<h2 id="checktoken-command">checktoken command<a class="headerlink" href="#checktoken-command" title="Permanent link">&para;</a></h2>
+<p>One more command is <code>checktoken</code>:</p>
+<div class="highlight"><pre><span></span><code>centrifugo checktoken -c config.json &lt;TOKEN&gt;
+</code></pre></div>
+
+<p>It will validate your connection JWT, so you can test it before using while developing application.</p>
+<p>If any errors happen or validation failed – program will exit with error message and exit code 1.</p>
                 
               
               
@@ -1003,7 +1140,7 @@
     <div class="md-footer-nav">
         <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
             
-            <a href="../server_subs/" title="Server-side subscriptions" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <a href="../configuration/" title="Configuration" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
                 <div class="md-footer-nav__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
                 </div>
@@ -1012,19 +1149,19 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                        Server-side subscriptions
+                        Configuration
                     </div>
                 </div>
             </a>
             
             
-            <a href="../connection_expiration/" title="Connection expiration" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <a href="../channels/" title="Channels" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
                 <div class="md-footer-nav__title">
                     <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                        Connection expiration
+                        Channels
                     </div>
                 </div>
                 <div class="md-footer-nav__button md-icon">

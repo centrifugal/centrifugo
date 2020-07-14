@@ -11,7 +11,7 @@
         <meta name="description" content="Centrifugo is a scalable real-time messaging server in language-agnostic way">
       
       
-        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/server/protocol/">
+        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/transports/protocol/">
       
       
         <meta name="author" content="Centrifugal organization">
@@ -187,7 +187,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../configuration/" class="md-tabs__link md-tabs__link--active">
+        <a href="../../server/configuration/" class="md-tabs__link md-tabs__link--active">
           Server
         </a>
       
@@ -394,7 +394,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../configuration/" title="Configuration" class="md-nav__link">
+    <a href="../../server/configuration/" title="Configuration" class="md-nav__link">
       Configuration
     </a>
   </li>
@@ -406,7 +406,19 @@
 
 
   <li class="md-nav__item">
-    <a href="../channels/" title="Channels" class="md-nav__link">
+    <a href="../../server/commands/" title="Console commands" class="md-nav__link">
+      Console commands
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../server/channels/" title="Channels" class="md-nav__link">
       Channels
     </a>
   </li>
@@ -418,7 +430,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../authentication/" title="Authentication" class="md-nav__link">
+    <a href="../../server/authentication/" title="Authentication" class="md-nav__link">
       Authentication
     </a>
   </li>
@@ -430,7 +442,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../private_channels/" title="Private channels" class="md-nav__link">
+    <a href="../../server/private_channels/" title="Private channels" class="md-nav__link">
       Private channels
     </a>
   </li>
@@ -442,7 +454,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../engines/" title="Engines" class="md-nav__link">
+    <a href="../../server/engines/" title="Engines" class="md-nav__link">
       Engines
     </a>
   </li>
@@ -454,7 +466,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../http_api/" title="Server HTTP API" class="md-nav__link">
+    <a href="../../server/http_api/" title="Server HTTP API" class="md-nav__link">
       Server HTTP API
     </a>
   </li>
@@ -466,7 +478,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../grpc_api/" title="Server GRPC API" class="md-nav__link">
+    <a href="../../server/grpc_api/" title="Server GRPC API" class="md-nav__link">
       Server GRPC API
     </a>
   </li>
@@ -478,7 +490,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../admin/" title="Admin web interface" class="md-nav__link">
+    <a href="../../server/admin/" title="Admin web interface" class="md-nav__link">
       Admin web interface
     </a>
   </li>
@@ -490,7 +502,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../proxy/" title="Proxy to backend" class="md-nav__link">
+    <a href="../../server/proxy/" title="Proxy to backend" class="md-nav__link">
       Proxy to backend
     </a>
   </li>
@@ -502,7 +514,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../server_subs/" title="Server-side subscriptions" class="md-nav__link">
+    <a href="../../server/server_subs/" title="Server-side subscriptions" class="md-nav__link">
       Server-side subscriptions
     </a>
   </li>
@@ -514,19 +526,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../recover/" title="Message recovery" class="md-nav__link">
-      Message recovery
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../connection_expiration/" title="Connection expiration" class="md-nav__link">
+    <a href="../../server/connection_expiration/" title="Connection expiration" class="md-nav__link">
       Connection expiration
     </a>
   </li>
@@ -536,23 +536,25 @@
           
           
 
+  
 
-  <li class="md-nav__item md-nav__item--nested">
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-13" type="checkbox" id="nav-3-13">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-13" type="checkbox" id="nav-3-13" checked>
     
     <label class="md-nav__link" for="nav-3-13">
-      Transports
+      Client-server transports
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
-    <nav class="md-nav" aria-label="Transports" data-md-level="2">
+    <nav class="md-nav" aria-label="Client-server transports" data-md-level="2">
       <label class="md-nav__title" for="nav-3-13">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
-        Transports
+        Client-server transports
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
         
@@ -563,8 +565,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/" title="Transports overview" class="md-nav__link">
-      Transports overview
+    <a href="../" title="Overview" class="md-nav__link">
+      Overview
     </a>
   </li>
 
@@ -575,7 +577,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/websocket/" title="Websocket" class="md-nav__link">
+    <a href="../websocket/" title="Websocket" class="md-nav__link">
       Websocket
     </a>
   </li>
@@ -587,92 +589,9 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/sockjs/" title="SockJS" class="md-nav__link">
+    <a href="../sockjs/" title="SockJS" class="md-nav__link">
       SockJS
     </a>
-  </li>
-
-        
-      </ul>
-    </nav>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
-    
-    <label class="md-nav__link" for="nav-3-14">
-      Deploy
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
-    </label>
-    <nav class="md-nav" aria-label="Deploy" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-14">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
-        Deploy
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
-      Nginx configuration
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../deploy/monitoring/" title="Monitoring" class="md-nav__link">
-      Monitoring
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../deploy/tuning/" title="OS tuning" class="md-nav__link">
-      OS tuning
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../deploy/tls/" title="TLS" class="md-nav__link">
-      TLS
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
   </li>
 
         
@@ -685,72 +604,6 @@
     <a href="../protobuf/" title="Protobuf protocol" class="md-nav__link">
       Protobuf protocol
     </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item md-nav__item--nested">
-    
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16">
-    
-    <label class="md-nav__link" for="nav-3-16">
-      Misc
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
-    </label>
-    <nav class="md-nav" aria-label="Misc" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-16">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
-        Misc
-      </label>
-      <ul class="md-nav__list" data-md-scrollfix>
-        
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
-      Insecure modes
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../misc/benchmark/" title="Benchmarking server" class="md-nav__link">
-      Benchmarking server
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
-      Migrate from Centrifugo v1
-    </a>
-  </li>
-
-        
-      </ul>
-    </nav>
   </li>
 
         
@@ -882,6 +735,167 @@
   
 </nav>
     
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../recovery/" title="Message recovery" class="md-nav__link">
+      Message recovery
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
+    
+    <label class="md-nav__link" for="nav-3-14">
+      Deploy
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Deploy" data-md-level="2">
+      <label class="md-nav__title" for="nav-3-14">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Deploy
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
+      Nginx configuration
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/monitoring/" title="Monitoring" class="md-nav__link">
+      Monitoring
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/tuning/" title="OS tuning" class="md-nav__link">
+      OS tuning
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../deploy/tls/" title="TLS" class="md-nav__link">
+      TLS
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
+    
+    <label class="md-nav__link" for="nav-3-15">
+      Misc
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Misc" data-md-level="2">
+      <label class="md-nav__title" for="nav-3-15">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Misc
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
+      Insecure modes
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
+      Migrate from Centrifugo v1
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../misc/benchmark/" title="Benchmark" class="md-nav__link">
+      Benchmark
+    </a>
   </li>
 
         
@@ -1161,7 +1175,7 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/server/protocol.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/transports/protocol.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
@@ -1349,13 +1363,12 @@ subscribe on channels. To do this it must send <code>subscribe</code> command to
 <p>And several fields that relate to message recovery:</p>
 <ul>
 <li>optional bool <code>recoverable</code> - means that messages can be recovered in this subscription.</li>
-<li>optional uint32 <code>seq</code> - current publication sequence inside channel</li>
-<li>optional uint32 <code>gen</code> - current publication generation inside channel</li>
+<li>optional uint64 <code>offset</code> - current publication offset inside channel</li>
 <li>optional string <code>epoch</code> - current epoch inside channel</li>
 <li>optional array <code>publications</code> - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array.</li>
 <li>optional bool <code>recovered</code> - this flag is set to <code>true</code> when server thinks that all missed publications were successfully recovered and send in subscribe reply (in <code>publications</code> array) and <code>false</code> otherwise.</li>
 </ul>
-<p>See more about meaning of recovery related fields in <a href="../recover/">special doc chapter</a>.</p>
+<p>See more about meaning of recovery related fields in <a href="../recovery/">special doc chapter</a>.</p>
 <p>After client received successful reply on <code>subscribe</code> command it will receive asynchronous reply messages published to this channel. Messages can be of several types:</p>
 <ul>
 <li><code>Publication</code> message</li>
@@ -1558,7 +1571,7 @@ allows to distinguish it from <code>Reply</code> to <code>Command</code>.  </p>
     <div class="md-footer-nav">
         <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
             
-            <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <a href="../protobuf/" title="Protobuf protocol" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
                 <div class="md-footer-nav__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
                 </div>
@@ -1567,19 +1580,19 @@ allows to distinguish it from <code>Reply</code> to <code>Command</code>.  </p>
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                        Migrate from Centrifugo v1
+                        Protobuf protocol
                     </div>
                 </div>
             </a>
             
             
-            <a href="../../libraries/client/" title="Client libraries" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <a href="../recovery/" title="Message recovery" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
                 <div class="md-footer-nav__title">
                     <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                        Client libraries
+                        Message recovery
                     </div>
                 </div>
                 <div class="md-footer-nav__button md-icon">
