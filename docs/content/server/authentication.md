@@ -4,7 +4,7 @@ When you are using [centrifuge](https://github.com/centrifugal/centrifuge) libra
 
 When connecting to Centrifugo client must provide connection JWT token with several predefined credential claims. If you've never heard about JWT before - refer to [jwt.io](https://jwt.io/) page.
 
-At moment **the only supported JWT algorithms are HMAC and RSA ** - i.e. HS256, HS384, HS512, RSA256, RSA384, RSA512. This can be extended later. RSA algorithm is available since v2.3.0 release.
+At moment **the only supported JWT algorithms are HMAC and RSA** - i.e. HS256, HS384, HS512, RSA256, RSA384, RSA512. This can be extended later. RSA algorithm is available since v2.3.0 release.
 
 We will use Javascript Centrifugo client here for example snippets for client side and [PyJWT](https://github.com/jpadilla/pyjwt) Python library to generate connection token on backend side.
 
@@ -34,7 +34,7 @@ Centrifugo uses the following claims in JWT: `sub`, `exp`, `info` and `b64info`.
 
 This is a standard JWT claim which must contain an ID of current application user (**as string**). 
 
-If your user is not currently authenticated in your application but you want to let him connect to Centrifugo anyway you can use empty string as user ID in this `sub` claim. This is called anonymous access. In this case `anonymous` option must be enabled in Centrifugo configuration for channels that client will subscribe to.
+If your user not currently authenticated in your application, but you want to let him connect to Centrifugo anyway – you can use empty string as user ID in this `sub` claim. This is called anonymous access. In this case `anonymous` option must be enabled in Centrifugo configuration for channels that client will subscribe to.
 
 ### exp
 

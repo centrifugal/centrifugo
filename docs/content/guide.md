@@ -38,6 +38,11 @@ Now your users can start connecting to Centrifugo. You should get client library
 
 Since Centrifugo v2.3.0 there is a way to authenticate connections without using JWT - see [chapter about proxying to backend](server/proxy.md).
 
+You are connecting to Centrifugo using one of available transports. At this moment you can choose from:
+
+* WebSocket, with JSON or binary protobuf protocol. See more info in a chapter about [WebSocket transport](transports/websocket.md)
+* SockJS (only supports JSON protocol). See more info about [SockJS transport](transports/sockjs.md)
+
 ## 4. Subscribe to channels
 
 After connecting to Centrifugo subscribe clients to channels they are interested in. See more about channels in [special chapter](server/channels.md). All client libraries provide a way to handle messages coming to client from a channel after subscribing to it.

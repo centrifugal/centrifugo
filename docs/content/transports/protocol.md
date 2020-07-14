@@ -222,13 +222,12 @@ In response to subscribe client receives reply like:
 And several fields that relate to message recovery:
 
 * optional bool `recoverable` - means that messages can be recovered in this subscription.
-* optional uint32 `seq` - current publication sequence inside channel
-* optional uint32 `gen` - current publication generation inside channel
+* optional uint64 `offset` - current publication offset inside channel
 * optional string `epoch` - current epoch inside channel
 * optional array `publications` - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array.
 * optional bool `recovered` - this flag is set to `true` when server thinks that all missed publications were successfully recovered and send in subscribe reply (in `publications` array) and `false` otherwise.
 
-See more about meaning of recovery related fields in [special doc chapter](recover.md).
+See more about meaning of recovery related fields in [special doc chapter](recovery.md).
 
 After client received successful reply on `subscribe` command it will receive asynchronous reply messages published to this channel. Messages can be of several types:
 

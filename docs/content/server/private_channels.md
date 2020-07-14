@@ -1,8 +1,10 @@
 # Private channels
 
-In channels chapter we mentioned private channels. This chapter has more information about private channel mechanism in Centrifugo.
+In [channels](channels.md) chapter we mentioned private channels. This chapter has more information about private channel mechanism in Centrifugo.
 
-All channels starting with `$` considered private. In this case your backend should additionally provide token for subscription request. The way how this token obtained varies depending on client implementation.
+All channels starting with `$` considered private. In this case **your backend should additionally provide token for every subscription request to such a channel**. This way you can control subscription permissions and only allow certain users to subscribe to a channel.
+
+The way how this token obtained varies depending on client implementation. 
 
 For example in Javascript client AJAX POST request automatically sent to `/centrifuge/subscribe` endpoint on every private channel subscription attempt. Other client libraries can provide a hook for your custom code that will obtain private channel subscription token from application backend.
 

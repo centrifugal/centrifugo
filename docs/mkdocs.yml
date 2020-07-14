@@ -73,6 +73,7 @@ nav:
     - Integration Guide: 'guide.md'
   - Server:
     - Configuration: 'server/configuration.md'
+    - Console commands: 'server/commands.md'
     - Channels: 'server/channels.md'
     - Authentication: 'server/authentication.md'
     - Private channels: 'server/private_channels.md'
@@ -82,23 +83,23 @@ nav:
     - Admin web interface: 'server/admin.md'
     - Proxy to backend: 'server/proxy.md'
     - Server-side subscriptions: 'server/server_subs.md'
-    - Message recovery: 'server/recover.md'
     - Connection expiration: 'server/connection_expiration.md'
-    - Transports:
-      - Transports overview: 'transports/index.md'
+    - Client-server transports:
+      - Overview: 'transports/index.md'
       - Websocket: 'transports/websocket.md'
       - SockJS: 'transports/sockjs.md'
+      - Protobuf protocol: 'transports/protobuf.md'
+      - Client protocol: 'transports/protocol.md'
+      - Message recovery: 'transports/recovery.md'
     - Deploy:
         - Nginx configuration: 'deploy/nginx.md'
         - Monitoring: 'deploy/monitoring.md'
         - OS tuning: 'deploy/tuning.md'
         - TLS: 'deploy/tls.md'
-    - Protobuf protocol: 'server/protobuf.md'
     - Misc:
         - Insecure modes: 'misc/insecure_modes.md'
-        - Benchmarking server: 'misc/benchmark.md'
         - Migrate from Centrifugo v1: 'misc/migrate.md'
-    - Client protocol: 'server/protocol.md'
+    - Benchmark: 'misc/benchmark.md'
   - Libraries:
     - Client libraries: 'libraries/client.md'
     - API libraries: 'libraries/api.md'
