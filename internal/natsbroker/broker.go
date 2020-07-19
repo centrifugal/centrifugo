@@ -4,7 +4,6 @@ package natsbroker
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 	"sync"
 	"time"
@@ -68,7 +67,7 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 	nc, err := nats.Connect(
 		url,
 		nats.ReconnectBufSize(-1),
-		nats.MaxReconnects(math.MaxInt64),
+		nats.MaxReconnects(-1),
 		nats.Timeout(b.config.DialTimeout),
 		nats.FlusherTimeout(b.config.WriteTimeout),
 	)
