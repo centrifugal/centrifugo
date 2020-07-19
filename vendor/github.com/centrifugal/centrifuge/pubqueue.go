@@ -140,7 +140,7 @@ func (q *pubQueue) Remove() (preparedPub, bool) {
 	return i, true
 }
 
-// Return the current size of the queue.
+// Size returns the current size of the queue.
 func (q *pubQueue) Size() int {
 	q.mu.RLock()
 	s := q.size

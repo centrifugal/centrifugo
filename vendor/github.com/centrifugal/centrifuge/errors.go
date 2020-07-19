@@ -38,7 +38,7 @@ var (
 		Code:    100,
 		Message: "internal server error",
 	}
-	// ErrUnauthorized says that request is unauthorized.
+	// ErrorUnauthorized says that request is unauthorized.
 	ErrorUnauthorized = &Error{
 		Code:    101,
 		Message: "unauthorized",

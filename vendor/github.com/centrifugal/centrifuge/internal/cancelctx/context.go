@@ -10,8 +10,13 @@ type customCancelContext struct {
 	ch <-chan struct{}
 }
 
+// Deadline not used.
 func (c customCancelContext) Deadline() (time.Time, bool) { return time.Time{}, false }
-func (c customCancelContext) Done() <-chan struct{}       { return c.ch }
+
+// Done returns channel that will be closed as soon as connection closed.
+func (c customCancelContext) Done() <-chan struct{} { return c.ch }
+
+// Err returns context error.
 func (c customCancelContext) Err() error {
 	select {
 	case <-c.ch:

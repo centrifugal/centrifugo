@@ -6,7 +6,7 @@ import (
 	"github.com/centrifugal/protocol"
 )
 
-// Reply is structure for protoTypeoding reply only once.
+// Reply is structure for encoding reply only once.
 type Reply struct {
 	ProtoType protocol.Type
 	Reply     *protocol.Reply

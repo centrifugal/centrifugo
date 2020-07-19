@@ -197,7 +197,7 @@ func (q *byteQueue) Remove() ([]byte, bool) {
 	return i, true
 }
 
-// Return the capacity (without allocations)
+// Cap returns the capacity (without allocations)
 func (q *byteQueue) Cap() int {
 	q.mu.RLock()
 	c := cap(q.nodes)
@@ -205,7 +205,7 @@ func (q *byteQueue) Cap() int {
 	return c
 }
 
-// Return the current length of the queue.
+// Len returns the current length of the queue.
 func (q *byteQueue) Len() int {
 	q.mu.RLock()
 	l := q.cnt
@@ -213,7 +213,7 @@ func (q *byteQueue) Len() int {
 	return l
 }
 
-// Return the current size of the queue.
+// Size returns the current size of the queue.
 func (q *byteQueue) Size() int {
 	q.mu.RLock()
 	s := q.size

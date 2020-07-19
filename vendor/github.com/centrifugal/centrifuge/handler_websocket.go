@@ -73,18 +73,22 @@ func (t *websocketTransport) addPing() {
 	t.mu.Unlock()
 }
 
+// Name returns name of transport.
 func (t *websocketTransport) Name() string {
 	return transportWebsocket
 }
 
+// Protocol returns transport protocol.
 func (t *websocketTransport) Protocol() ProtocolType {
 	return t.opts.protoType
 }
 
+// Encoding returns transport encoding.
 func (t *websocketTransport) Encoding() EncodingType {
 	return t.opts.encType
 }
 
+// Write data to transport.
 func (t *websocketTransport) Write(data []byte) error {
 	select {
 	case <-t.closeCh:
@@ -114,6 +118,7 @@ func (t *websocketTransport) Write(data []byte) error {
 	}
 }
 
+// Close closes transport.
 func (t *websocketTransport) Close(disconnect *Disconnect) error {
 	t.mu.Lock()
 	if t.closed {

@@ -1733,6 +1733,7 @@ func (s *shard) historyList(ch string, filter HistoryFilter) ([]*Publication, St
 	return publications, latestPosition, nil
 }
 
+// AddHistory adds Publication to history Stream or List.
 func (s *shard) AddHistory(ch string, pub *Publication, opts *ChannelOptions, publishOnHistoryAdd bool) (StreamPosition, error) {
 	byteMessage, err := pubToProto(pub).Marshal()
 	if err != nil {

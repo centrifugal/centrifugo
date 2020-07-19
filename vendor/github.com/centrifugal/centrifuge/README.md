@@ -213,7 +213,9 @@ This example is only the top of an iceberg. Though it should give you an insight
 
 Keep in mind that Centrifuge library is not a framework to build chat apps. It's a general purpose real-time transport for your messages with some helpful primitives. You can build many kinds of real-time apps on top of this library including chats but depending on application you may need to write business logic yourself.
 
-### Tips
+### Tips and tricks
+
+Some useful advices about library here.
 
 #### Logging
 

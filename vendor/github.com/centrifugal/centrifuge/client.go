@@ -269,6 +269,8 @@ func (c *Client) updateChannelPresence(ch string) error {
 	return c.node.addPresence(ch, c.uid, info)
 }
 
+// Context returns client Context. This context will be canceled when
+// client connection closes.
 func (c *Client) Context() context.Context {
 	return c.ctx
 }
@@ -1529,7 +1531,7 @@ func (c *Client) validateSubscribeRequest(cmd *protocol.SubscribeRequest) (Chann
 	}
 	if !found {
 		c.node.logger.log(newLogEntry(LogLevelInfo, "subscription to unknown channel", map[string]interface{}{"channel": channel, "user": c.user, "client": c.uid}))
-		return ChannelOptions{}, toClientErr(err), nil
+		return ChannelOptions{}, ErrorUnknownChannel, nil
 	}
 
 	config := c.node.config

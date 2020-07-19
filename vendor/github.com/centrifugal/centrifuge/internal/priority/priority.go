@@ -16,14 +16,17 @@ type Item struct {
 // A Queue implements heap.Interface and holds Items.
 type Queue []*Item
 
+// Len ...
 func (pq Queue) Len() int {
 	return len(pq)
 }
 
+// Less ...
 func (pq Queue) Less(i, j int) bool {
 	return pq[i].Priority < pq[j].Priority
 }
 
+// Swap ...
 func (pq Queue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
 	pq[i].index = i

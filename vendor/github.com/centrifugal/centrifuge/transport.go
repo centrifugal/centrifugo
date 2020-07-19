@@ -46,7 +46,7 @@ type TransportInfo interface {
 // handler code.
 type Transport interface {
 	TransportInfo
-	// Send sends data encoded using Centrifuge protocol to connection.
+	// Write data encoded using Centrifuge protocol to connection.
 	Write([]byte) error
 	// Close closes transport.
 	Close(*Disconnect) error

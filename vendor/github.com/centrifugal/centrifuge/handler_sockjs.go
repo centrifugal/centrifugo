@@ -30,18 +30,22 @@ func newSockjsTransport(s sockjs.Session) *sockjsTransport {
 	return t
 }
 
+// Name returns name of transport.
 func (t *sockjsTransport) Name() string {
 	return transportSockJS
 }
 
+// Protocol returns transport protocol.
 func (t *sockjsTransport) Protocol() ProtocolType {
 	return ProtocolTypeJSON
 }
 
+// Encoding returns transport encoding.
 func (t *sockjsTransport) Encoding() EncodingType {
 	return EncodingTypeJSON
 }
 
+// Write data to transport.
 func (t *sockjsTransport) Write(data []byte) error {
 	select {
 	case <-t.closeCh:
@@ -51,6 +55,7 @@ func (t *sockjsTransport) Write(data []byte) error {
 	}
 }
 
+// Close closes transport.
 func (t *sockjsTransport) Close(disconnect *Disconnect) error {
 	t.mu.Lock()
 	if t.closed {

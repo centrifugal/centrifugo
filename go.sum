@@ -24,8 +24,8 @@ github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+Ce
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
-github.com/centrifugal/centrifuge v0.10.0 h1:Eften1Akke0mgHJwHPqhG8oR/6q/SO4y/+KKdz+Qr14=
-github.com/centrifugal/centrifuge v0.10.0/go.mod h1:mkuUdBuYFqz2GincQhkwWmHuVs9VWEHhMjzMcdUk6oA=
+github.com/centrifugal/centrifuge v0.10.1-0.20200718180630-c9a7b9260f98 h1:Iewqhy1QWfGSIfjKBrUWVkvaYvuNyTiNlhAFB+pB3+w=
+github.com/centrifugal/centrifuge v0.10.1-0.20200718180630-c9a7b9260f98/go.mod h1:mkuUdBuYFqz2GincQhkwWmHuVs9VWEHhMjzMcdUk6oA=
 github.com/centrifugal/protocol v0.3.3 h1:GCNee3RFsjQu6SyKBX0Ir7ByUrp+Gw0MU/PsIc2CM2s=
 github.com/centrifugal/protocol v0.3.3/go.mod h1:2YbBCaDwQHl37ErRdMrKSj18X2yVvpkQYtSX6aVbe5A=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
