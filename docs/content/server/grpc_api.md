@@ -126,3 +126,61 @@ GO111MODULE=on go run *.go
 ```
 
 The program starts and periodically publishes the same payload into `chat:index` channel.
+
+## API key authorization
+
+You can also set `grpc_api_key` (string) in Centrifugo configuration to protect GRPC API with key. In this case you should set per RPC metadata with key `authorization` and value `apikey <KEY>`. For example in Go language:
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+	"time"
+
+	"google.golang.org/grpc"
+)
+
+type keyAuth struct {
+	key string
+}
+
+func (t keyAuth) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
+	return map[string]string{
+		"authorization": "apikey " + t.key,
+	}, nil
+}
+
+func (t keyAuth) RequireTransportSecurity() bool {
+	return false
+}
+
+func main() {
+	conn, err := grpc.Dial("localhost:10000", grpc.WithInsecure(), grpc.WithPerRPCCredentials(keyAuth{"xxx"}))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer conn.Close()
+	client := NewCentrifugoClient(conn)
+	for {
+		resp, err := client.Publish(context.Background(), &PublishRequest{
+			Channel: "chat:index",
+			Data:    []byte(`{"input": "hello from GRPC"}`),
+		})
+		if err != nil {
+			log.Printf("Transport level error: %v", err)
+		} else {
+			if resp.GetError() != nil {
+				respError := resp.GetError()
+				log.Printf("Error %d (%s)", respError.Code, respError.Message)
+			} else {
+				log.Println("Successfully published")
+			}
+		}
+		time.Sleep(time.Second)
+	}
+}
+```
+
+For other languages refer to GRPC docs.

@@ -215,6 +215,7 @@ func main() {
 			"websocket_ping_interval", "websocket_write_timeout", "websocket_message_size_limit",
 			"proxy_publish_endpoint", "proxy_publish_timeout", "proxy_subscribe_endpoint",
 			"proxy_subscribe_timeout", "proxy_subscribe", "proxy_publish", "redis_sentinel_password",
+			"grpc_api_key",
 		}
 
 		for _, env := range bindEnvs {
@@ -411,6 +412,9 @@ func main() {
 				var tlsConfig *tls.Config
 				var tlsErr error
 
+				if viper.GetString("grpc_api_key") != "" {
+					grpcOpts = append(grpcOpts, api.GRPCKeyAuth(viper.GetString("grpc_api_key")))
+				}
 				if viper.GetBool("grpc_api_tls") {
 					tlsConfig, tlsErr = tlsConfigForGRPC()
 				} else if !viper.GetBool("grpc_api_tls_disable") {
