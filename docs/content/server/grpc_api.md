@@ -62,6 +62,8 @@ Note that you need to explicitly handle Centrifugo API level error which is not 
 
 Here is a simple example on how to run Centrifugo with GRPC Go client.
 
+You need `protoc` and `protoc-gen-go` installed.
+
 First start Centrifugo itself:
 
 ```bash
@@ -128,6 +130,8 @@ GO111MODULE=on go run *.go
 The program starts and periodically publishes the same payload into `chat:index` channel.
 
 ## API key authorization
+
+Available since v2.6.1.
 
 You can also set `grpc_api_key` (string) in Centrifugo configuration to protect GRPC API with key. In this case you should set per RPC metadata with key `authorization` and value `apikey <KEY>`. For example in Go language:
 
