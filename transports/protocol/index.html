@@ -17,7 +17,7 @@
         <meta name="author" content="Centrifugal organization">
       
       <link rel="shortcut icon" href="../../images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.1.6">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.0">
     
     
       
@@ -25,9 +25,9 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.4b9ffd7b.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.b5d04df8.min.css">
       
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.b79bcd20.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.9ab2c1f8.min.css">
       
       
         
@@ -56,8 +56,10 @@
   
     
     
-    <body dir="ltr" data-md-color-primary="black" data-md-color-accent="cyan">
+    
+    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="black" data-md-color-accent="cyan">
   
+    
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
@@ -648,8 +650,8 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#client-implementation-checklist" class="md-nav__link">
-    Client implementation checklist
+  <a href="#client-implementation-feature-matrix" class="md-nav__link">
+    Client implementation feature matrix
   </a>
   
 </li>
@@ -727,6 +729,34 @@
         <li class="md-nav__item">
   <a href="#client-implementation-advices" class="md-nav__link">
     Client implementation advices
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-side-subscriptions-sss" class="md-nav__link">
+    Server side subscriptions (SSS)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#message-recovery" class="md-nav__link">
+    Message recovery
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#disconnect-code-and-reason" class="md-nav__link">
+    Disconnect code and reason
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-notes" class="md-nav__link">
+    Additional notes
   </a>
   
 </li>
@@ -1080,8 +1110,8 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#client-implementation-checklist" class="md-nav__link">
-    Client implementation checklist
+  <a href="#client-implementation-feature-matrix" class="md-nav__link">
+    Client implementation feature matrix
   </a>
   
 </li>
@@ -1163,6 +1193,34 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#server-side-subscriptions-sss" class="md-nav__link">
+    Server side subscriptions (SSS)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#message-recovery" class="md-nav__link">
+    Message recovery
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#disconnect-code-and-reason" class="md-nav__link">
+    Disconnect code and reason
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-notes" class="md-nav__link">
+    Additional notes
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1185,48 +1243,54 @@
                 
                 <h1 id="client-protocol">Client protocol<a class="headerlink" href="#client-protocol" title="Permanent link">&para;</a></h1>
 <p>This chapter describes internal client-server protocol in details to help developers build new client libraries and understand how existing client libraries work.</p>
-<p>Note that you can always look at <a href="../../libraries/client/">existing client implementations</a> in case of any questions.</p>
-<h3 id="client-implementation-checklist">Client implementation checklist<a class="headerlink" href="#client-implementation-checklist" title="Permanent link">&para;</a></h3>
+<p>Note that you can always look at <a href="../../libraries/client/">existing client implementations</a> in case of any questions. Not all clients support all available server features though.</p>
+<h3 id="client-implementation-feature-matrix">Client implementation feature matrix<a class="headerlink" href="#client-implementation-feature-matrix" title="Permanent link">&para;</a></h3>
 <p>First we will look at list of features client library should support. Depending on client implementation some features can be not implemented. If you an author of client library you can use this list as checklist.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Field and method names presented in this checklist can have different names depending on the programmer's taste and language style guide.</p>
-</div>
-<p>So, client:</p>
-<ul>
-<li>Should work both with Centrifugo and Centrifuge library based server. To work with Centrifugo client must have a method to set connection token. To work with Centrifuge lib client must provide a method to set custom headers (the only exception is browser clients where browser automatically sets headers with respect to domain rules)</li>
-<li>Should allow to use JSON payload</li>
-<li>Should allow to use binary payload (actually you can only implement Protobuf protocol as you can pass JSON over it)</li>
-<li>Must handle cases when many different Replies received in one websocket frame. In case of JSON protocol newline-delimited JSON-streaming format is used to combine several Replies into one websocket frame. In case of Protobuf protocol varint length-prefixed format is used</li>
-<li>Must survive server reload/restart and internet connection lost. In this case client must try to reconnect with exponentioal backoff strategy</li>
-<li>Must have several callback methods: <code>onConnect</code>, <code>onDisconnect</code>. Depending on implementation you can also use <code>onError</code> callback for critical errors that could not be gracefully handled. </li>
-<li>Should also have <code>onMessage</code> callback to handle async messages from server.</li>
-<li>Must have method to subscribe on channel and set several event handlers: <code>onPublish</code>, <code>onJoin</code>, <code>onLeave</code>, <code>onSubscribeSuccess</code>, <code>onSubscribeError</code>, <code>onUnsubscribe</code>. After subscribe method called it should return <code>Subscription</code> object to caller. This subscription object in turn should have some methods: <code>publish</code>, <code>unsubscribe</code>, <code>subscribe</code>, <code>history</code>, <code>presence</code>, <code>presence_stats</code>.</li>
-<li>Should have <code>publish</code> method to publish into channel without subscribing to it.</li>
-<li>Should have <code>rpc</code> method to send RPC request to server.</li>
-<li>Should have <code>send</code> method to send asynchronous message to server (without waiting response).</li>
-<li>Should handle disconnect reason. In case of Websocket it is sent by server in CLOSE Websocket frame. This is a string containing JSON object with fields: <code>reason</code> (string) and <code>reconnect</code> (bool). Client should give users access to these fields in disconnect event and automatically follow <code>reconnect</code> advice</li>
-<li>Must send periodic <code>ping</code> commands to server and thus detect broken connection. If no ping reply received from server in configured window reconnect workflow must be initiated</li>
-<li>Should fully reconnect if subscription request timed out. Timeout can be configured by client library users.</li>
-<li>Should send commands to server with timeout and handle timeout error - depending on method called timeout error handling can differ a bit. For example as said above timeout on subscription request results in full client reconnect workflow.</li>
-<li>Should support connection token refresh mechanism</li>
-<li>Should support private channel subscriptions and private subscription token refresh mechanism</li>
-<li>Should automatically recover messages after reconnect and set appropriate fields in subscribe event context. Two important fields in <code>onSubscribeSuccess</code> event context are <code>recovered</code> and <code>isResubscribe</code>. First field let user know what server thinks about subscription state - were all messages recovered or not. The second field must only be true if resubscribe was caused by temporary network connection lost. If user initiated resubscribe himself (calling <code>unsubscribe</code> method and then <code>subscribe</code> method) then recover workflow should not be used and <code>isResubscribe</code> must be <code>false</code>.</li>
+<p>Our current client feature matrix looks like this:</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> connect to server (both Centrifugo and Centrifuge-based) using JSON protocol format</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> connect to server (both Centrifugo and Centrifuge-based) using Protobuf protocol format</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> connect to server with token (JWT in Centrifugo case, any string token in Centrifuge library case)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> connect to server with custom headers (not available in a browser)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> automatic reconnect in case of dial problems (network)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> an exponential backoff for reconnect process</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> possibility to set handlers for connect and disconnect events</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> extract and expose disconnect reason</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> subscribe on a channel and provide a way to handle asynchronous Publications coming from a channel</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> handle Join and Leave messages from a channel</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> handle Unsubscribe notifications</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> publish method of Subscription</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> unsubscribe method of Subscription</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> presence method of Subscription</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> presence stats method of Subscription</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> history method of Subscription</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> send asynchronous messages to server</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> handle asynchronous messages from server</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> send RPC requests to server</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> publish to channel without being subscribed</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> subscribe to private (token-protected) channels with token</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> connection token refresh mechanism</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> private channel subscription token refresh</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> client protocol level ping/pong to find broken connection</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> automatic reconnect in case of connect or subscribe command timeouts</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> handle connection expired error</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> handle subscription expired error</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> server-side subscriptions</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> message recovery mechanism</li>
 </ul>
-<p>Below in this document we will describe protocol concepts in detail.</p>
-<p>This document describes protocol specifics for Websocket transport which supports binary and text formats to transfer data. As Centrifuge has various types of messages it serializes protocol messages using JSON or Protobuf (in case of binary websockets).</p>
+<p>Below I'll try to describe most of these points in detail.</p>
+<p>This document describes protocol specifics for Websocket transport which supports binary and text formats to transfer data. As Centrifugo and Centrifuge library for Go have various types of messages it serializes protocol messages using JSON or Protobuf formats.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>SockJS works almost the same way as JSON websocket described here but has its own extra framing on top of Centrifuge protocol messages. SockJS can only work with JSON - it's not possible to transfer binary data over it. SockJS is only needed as fallback to Websocket in web browsers.</p>
 </div>
 <h3 id="top-level-framing">Top level framing<a class="headerlink" href="#top-level-framing" title="Permanent link">&para;</a></h3>
 <p>Centrifuge protocol defined in <a href="https://github.com/centrifugal/protocol/blob/master/definitions/client.proto">Protobuf schema</a>. That schema is a source of truth and all protocol description below describes messages from that schema.</p>
-<p>Client sends <code>Command</code> to server.</p>
-<p>Server sends <code>Reply</code> to client.</p>
-<p>One request from client to server and one response from server to client can have more than one <code>Command</code> or <code>Reply</code>.</p>
-<p>When JSON format is used then many <code>Command</code> can be sent from client to server in JSON streaming line-delimited format. I.e. each individual <code>Command</code> encoded to JSON and then commands joined together using new line symbol <code>\n</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;subscribe&quot;</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span><span class="s2">&quot;channel&quot;</span><span class="o">:</span> <span class="s2">&quot;ch1&quot;</span><span class="p">}}</span>
-<span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;subscribe&quot;</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span><span class="s2">&quot;channel&quot;</span><span class="o">:</span> <span class="s2">&quot;ch2&quot;</span><span class="p">}}</span>
+<p>Client sends <code>Command</code> to server. Server sends <code>Reply</code> to client. All communication between client and server is a bidirectional exchange of <code>Command</code> and <code>Reply</code> messages.</p>
+<p>One request from client to server and one response from server to client can have more than one <code>Command</code> or <code>Reply</code>. This allows reducing number of system calls for writing and reading data.</p>
+<p>When JSON format used then many <code>Command</code> can be sent from client to server in JSON streaming line-delimited format. I.e. each individual <code>Command</code> encoded to JSON and then commands joined together using new line symbol <code>\n</code>:</p>
+<div class="highlight"><pre><span></span><code>{&quot;id&quot;: 1, &quot;method&quot;: &quot;subscribe&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;ch1&quot;}}
+{&quot;id&quot;: 2, &quot;method&quot;: &quot;subscribe&quot;, &quot;params&quot;: {&quot;channel&quot;: &quot;ch2&quot;}}
 </code></pre></div>
 
 <p>For example here is how we do this in Javascript client when JSON format used:</p>
@@ -1243,14 +1307,14 @@
 
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This doc will use JSON format for examples because it's human-readable. Everything said here for JSON is also true for Protobuf encoded case. The only difference is how several individual <code>Command</code> or server <code>Reply</code> joined into one request – see below.</p>
+<p>This doc will use JSON format for examples because it's human-readable. Everything said here for JSON is also true for Protobuf encoded case. The only difference is how several individual <code>Command</code> or server <code>Reply</code> joined into one request – see details below.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Method is made as ENUM in protobuf schema and can be sent as integer value but it's possible to send it as string in JSON case – this was made to make JSON protocol human-friendly.</p>
+<p>Method represented as a ENUM in protobuf schema and can be sent as integer value. Though it's possible to send it as string in JSON case – this was made to make JSON protocol human-friendly.</p>
 </div>
-<p>When Protobuf format is used then many <code>Command</code> can be sent from client to server in length-delimited format where each individual <code>Command</code> marshaled to bytes prepended by <code>varint</code> length. See existing client implementations for encoding example.</p>
-<p>The same rules relate to many <code>Reply</code> in one response from server to client. Line-delimited JSON and varint-length prefixed Protobuf.</p>
+<p>When Protobuf format used then many <code>Command</code> can be sent from client to server in length-delimited format where each individual <code>Command</code> marshaled to bytes prepended by <code>varint</code> length. See existing client implementations for encoding example.</p>
+<p>The same rules relate to many <code>Reply</code> in one response from server to client. Line-delimited JSON and varint-length prefixed Protobuf also used there.</p>
 <p>For example here is how we read server response and extracting individual replies in Javascript client when JSON format used:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">function</span> <span class="nx">decodeReplies</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
     <span class="kr">const</span> <span class="nx">replies</span> <span class="o">=</span> <span class="p">[];</span>
@@ -1269,27 +1333,27 @@
 </code></pre></div>
 
 <p>For Protobuf case see existing client implementations for decoding example.</p>
-<p>As you can see each <code>Command</code> has <code>id</code> field. This is an incremental integer field. This field will be echoed in server to client replies to commands so client could match a certain <code>Reply</code> to <code>Command</code> sent before. This is important because Websocket is asynchronous protocol where server and client both send messages at any moment and there is no builtin request-response pattern. Having <code>id</code> allows to match reply to command send before.</p>
+<p>As you can see each <code>Command</code> has <code>id</code> field. This is an incremental <code>uint32</code> field. This field will be echoed in a server replies to commands so client could match a certain <code>Reply</code> to <code>Command</code> sent before. This is important since Websocket is an asynchronous protocol where server and client both send messages at any moment and there is no builtin request-response matching. Having <code>id</code> allows matching a reply with a command send before.</p>
 <p>So you can expect something like this in response after sending commands to server:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;result&quot;</span><span class="o">:</span> <span class="p">{}}</span>
-<span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;result&quot;</span><span class="o">:</span> <span class="p">{}}</span>
+<div class="highlight"><pre><span></span><code>{&quot;id&quot;: 1, &quot;result&quot;: {}}
+{&quot;id&quot;: 2, &quot;result&quot;: {}}
 </code></pre></div>
 
 <p>Besides <code>id</code> <code>Reply</code> from server to client have two important fields: <code>result</code> and <code>error</code>.</p>
-<p><code>result</code> contains useful payload object which can be different depending on <code>Reply</code>.</p>
-<p><code>error</code> contains error object in case of <code>Command</code> processing resulted in some error on server. <code>error</code> is optional and if <code>Reply</code> does not have <code>error</code> then it means that <code>Command</code> processed successfuly and client can parse <code>result</code> object in an appropriate way.</p>
-<p><code>error</code> objects looks like this:</p>
+<p><code>result</code> contains useful payload object which is different for various <code>Reply</code> messages.</p>
+<p><code>error</code> contains error description if <code>Command</code> processing resulted in some error on a server. <code>error</code> is optional and if <code>Reply</code> does not have <code>error</code> then it means that <code>Command</code> processed successfully and client can parse <code>result</code> object appropriately.</p>
+<p><code>error</code> looks like this in JSON case:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;code&quot;</span><span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
-    <span class="s2">&quot;message&quot;</span><span class="o">:</span> <span class="s2">&quot;internal server error&quot;</span>
+    <span class="nt">&quot;code&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="nt">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;internal server error&quot;</span>
 <span class="p">}</span>
 </code></pre></div>
 
 <p>We will talk more about error handling below.</p>
-<p>The special type of <code>Reply</code> is asynchronous <code>Reply</code>. Those replies have no <code>id</code> field set (or <code>id</code> can be equal to zero). Async replies can come to client in any moment - not as reaction to issued <code>Command</code> but as message from server to client in arbitrary time. For example this can be message published into channel.</p>
-<p>Centrifuge library defines several command types client can issue. And well-written client must be aware of all those commands and client workflow. Communication with Centrifuge/Centrifugo server starts with <code>connect</code> command.</p>
+<p>The special type of <code>Reply</code> is <strong>asynchronous</strong> <code>Reply</code>. Such replies have no <code>id</code> field set (or <code>id</code> can be equal to zero). Async replies can come to client in any moment - not as reaction to issued <code>Command</code> but as message from server to client in arbitrary time. For example this can be a message published into channel.</p>
+<p>Centrifuge library defines several command types client can issue. A well-written client must be aware of all those commands and client workflow. Communication with Centrifuge/Centrifugo server starts with issuing <code>connect</code> command.</p>
 <h3 id="connect">Connect<a class="headerlink" href="#connect" title="Permanent link">&para;</a></h3>
-<p>First of all client must dial with server and then send <code>connect</code> <code>Command</code> to it.</p>
+<p>First of all client must dial with a server and then send <code>connect</code> <code>Command</code> to it.</p>
 <p>Default Websocket endpoint in Centrifugo is:</p>
 <div class="highlight"><pre><span></span><code>ws://centrifugo.example.com/connection/websocket
 </code></pre></div>
@@ -1298,29 +1362,29 @@
 <div class="highlight"><pre><span></span><code>wss://centrifugo.example.com/connection/websocket
 </code></pre></div>
 
-<p>After successful dial to websocket endpoint client must send <code>connect</code> command to server to authorize itself.</p>
+<p>After a successful dial to WebSocket endpoint client must send <code>connect</code> command to server to authorize itself.</p>
 <p><code>connect</code> command looks like:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;connect&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span>
-        <span class="s2">&quot;token&quot;</span><span class="o">:</span> <span class="s2">&quot;JWT&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;data&quot;</span><span class="o">:</span> <span class="p">{}</span>
+    <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;connect&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;token&quot;</span><span class="p">:</span> <span class="s2">&quot;JWT&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;data&quot;</span><span class="p">:</span> <span class="p">{}</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
-<p>Where params fields are passed to client from application backend:</p>
+<p>Where params fields:</p>
 <ul>
-<li>string <code>token</code> - connection token.</li>
-<li>JSON <code>data</code> - this is only available for Centrifuge library and not for Centrifugo server. It contains custom connect data, for example it can contain client settings. </li>
+<li>optional string <code>token</code> - connection token. Can be ommited if token-based auth not used.</li>
+<li><code>data</code> - can contain custom connect data, for example it can contain client settings.</li>
 </ul>
-<p>In response to <code>connect</code> command server sends connect reply. It looks this way:</p>
+<p>In response to <code>connect</code> command server sends a connect reply. It looks this way:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;id&quot;</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span>
-    <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{</span>
-        <span class="s2">&quot;client&quot;</span><span class="o">:</span><span class="s2">&quot;421bf374-dd01-4f82-9def-8c31697e956f&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;version&quot;</span><span class="o">:</span><span class="s2">&quot;2.0.0&quot;</span>
+    <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="nt">&quot;result&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;client&quot;</span><span class="p">:</span> <span class="s2">&quot;421bf374-dd01-4f82-9def-8c31697e956f&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;version&quot;</span><span class="p">:</span> <span class="s2">&quot;2.0.0&quot;</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1329,17 +1393,17 @@
 <ul>
 <li>string <code>client</code> - unique client connection ID server issued to this connection</li>
 <li>string <code>version</code> - server version</li>
-<li>optional bool <code>expires</code> - whether or not server will expire connection</li>
-<li>optional int32 <code>ttl</code> - time in seconds until connection will expire</li>
+<li>optional bool <code>expires</code> - whether a server will expire connection at some point</li>
+<li>optional int32 <code>ttl</code> - time in seconds until connection expires</li>
 </ul>
 <h3 id="subscribe">Subscribe<a class="headerlink" href="#subscribe" title="Permanent link">&para;</a></h3>
 <p>As soon as client successfully connected and got unique connection ID it is ready to
 subscribe on channels. To do this it must send <code>subscribe</code> command to server:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
-    <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;subscribe&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span>
-        <span class="s2">&quot;channel&quot;</span><span class="o">:</span> <span class="s2">&quot;ch1&quot;</span>
+    <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;subscribe&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;ch1&quot;</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1348,10 +1412,10 @@ subscribe on channels. To do this it must send <code>subscribe</code> command to
 <ul>
 <li>string <code>channel</code> - channel to subscribe</li>
 </ul>
-<p>In response to subscribe client receives reply like:</p>
+<p>In response to subscribe a client receives reply like:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;id&quot;</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span>
-    <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{}</span>
+    <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="nt">&quot;result&quot;</span><span class="p">:</span> <span class="p">{}</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -1360,72 +1424,73 @@ subscribe on channels. To do this it must send <code>subscribe</code> command to
 <li>optional bool <code>expires</code> - indicates whether subscription expires or not.</li>
 <li>optional uint32 <code>ttl</code> - number of seconds until subscription expire.</li>
 </ul>
-<p>And several fields that relate to message recovery:</p>
+<p>Also several fields that relate to message recovery:</p>
 <ul>
 <li>optional bool <code>recoverable</code> - means that messages can be recovered in this subscription.</li>
 <li>optional uint64 <code>offset</code> - current publication offset inside channel</li>
 <li>optional string <code>epoch</code> - current epoch inside channel</li>
 <li>optional array <code>publications</code> - this is an array of missed publications in channel. When received client must call general publication event handler for each message in this array.</li>
-<li>optional bool <code>recovered</code> - this flag is set to <code>true</code> when server thinks that all missed publications were successfully recovered and send in subscribe reply (in <code>publications</code> array) and <code>false</code> otherwise.</li>
+<li>optional bool <code>recovered</code> - this flag set to <code>true</code> when server thinks that all missed publications successfully recovered and send in subscribe reply (in <code>publications</code> array) and <code>false</code> otherwise.</li>
 </ul>
 <p>See more about meaning of recovery related fields in <a href="../recovery/">special doc chapter</a>.</p>
-<p>After client received successful reply on <code>subscribe</code> command it will receive asynchronous reply messages published to this channel. Messages can be of several types:</p>
+<p>After a client received a successful reply on <code>subscribe</code> command it will receive asynchronous reply messages published to this channel. Messages can be of several types:</p>
 <ul>
 <li><code>Publication</code> message</li>
 <li><code>Join</code> message</li>
 <li><code>Leave</code> message</li>
 <li><code>Unsub</code> message</li>
+<li><code>Message</code> message</li>
+<li><code>Sub</code> message</li>
 </ul>
 <p>See more about asynchronous messages below. </p>
 <h3 id="unsubscribe">Unsubscribe<a class="headerlink" href="#unsubscribe" title="Permanent link">&para;</a></h3>
-<p>This is simple. When client wants to unsubscribe from channel and therefore stop receiving asynchronous subscription messages from connection related to channel it must call <code>unsubscribe</code> command:</p>
+<p>When client wants to unsubscribe from a channel and therefore stop receiving asynchronous subscription messages from connection related to channel it must call <code>unsubscribe</code> command:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">3</span><span class="p">,</span>
-    <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;unsubscribe&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span>
-        <span class="s2">&quot;channel&quot;</span><span class="o">:</span> <span class="s2">&quot;ch1&quot;</span>
+    <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;unsubscribe&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span> <span class="s2">&quot;ch1&quot;</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
-<p>Actually server response does not mean a lot for client - it must immediately remove channel subscription from internal implementation data structures and ignore all messages related to channel.</p>
+<p>Actually server response does not mean a lot for a client - it must immediately remove channel subscription from internal implementation data structures and ignore all messages related to channel.</p>
 <h3 id="refresh">Refresh<a class="headerlink" href="#refresh" title="Permanent link">&para;</a></h3>
-<p>It's possible to turn on client connection expiration mechanism on server. While enabled server will keep track of connections whose time of life (defined by <code>exp</code> timestamp) is close to the end. In this case connection will be closed. Client can prevent closing connection refreshing it's connection credentials. To do this it must send <code>refresh</code> command to server. <code>refresh</code> command similar to <code>connect</code>:</p>
+<p>It's possible to turn on client connection expiration mechanism on a server. While enabled server will keep track of connections whose time of life is close to the end (connection lifetime set on connection authentication phase). In this case connection will be closed. Client can prevent closing connection refreshing its connection credentials. To do this it must send <code>refresh</code> command to server. <code>refresh</code> command is similar to <code>connect</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">4</span><span class="p">,</span>
-    <span class="s2">&quot;method&quot;</span><span class="o">:</span> <span class="s2">&quot;refresh&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;params&quot;</span><span class="o">:</span> <span class="p">{</span>
-        <span class="s2">&quot;token&quot;</span><span class="o">:</span> <span class="s2">&quot;JWT&quot;</span>
+    <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span> <span class="s2">&quot;refresh&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="nt">&quot;token&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;refreshed token&gt;&quot;</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
-<p>Just with actual <code>exp</code> and new <code>sign</code>.</p>
-<p>The tip whether or not connection must be refreshed comes in reply to <code>connect</code> command shown above - fields <code>expires</code> and <code>ttl</code>.</p>
+<p>The tip whether a connection must be refreshed by a client comes in reply to <code>connect</code> command shown above - fields <code>expires</code> and <code>ttl</code>.</p>
 <p>When client connection expire mechanism is on the value of field <code>expires</code> in connect reply is <code>true</code>. In this case client implementation should look at <code>ttl</code> value which is seconds left until connection will be considered expired. Client must send <code>refresh</code> command after this <code>ttl</code> seconds. Server gives client a configured window to refresh token after <code>ttl</code> passed and then closes connection if client have not updated its token.</p>
 <p>When connecting with already expired token an error will be returned (with code <code>109</code>). In this case client should refresh its token and reconnect with exponential backoff. </p>
 <h3 id="rpc-like-calls-publish-history-presence">RPC-like calls: publish, history, presence<a class="headerlink" href="#rpc-like-calls-publish-history-presence" title="Permanent link">&para;</a></h3>
 <p>The mechanics of these calls is simple - client sends command and expects response from server.</p>
-<p><code>publish</code> command allows to publish message into channel from client.</p>
+<p><code>publish</code> command allows to publish a message into a channel from a client.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>To publish from client <code>publish</code> option in server configuration must be set to <code>true</code></p>
 </div>
-<p><code>history</code> allows to ask server for channel history if enabled.</p>
-<p><code>presence</code> allows to ask server for channel presence information if enabled.</p>
+<p><code>history</code> allows asking a server for channel history if enabled.</p>
+<p><code>presence</code> allows asking a server for channel presence information if enabled.</p>
 <h3 id="asynchronous-server-to-client-messages">Asynchronous server-to-client messages<a class="headerlink" href="#asynchronous-server-to-client-messages" title="Permanent link">&para;</a></h3>
 <p>There are several types of asynchronous messages that can come from server to client. All of them relate to current client subscriptions.</p>
 <p>The most important message is <code>Publication</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{</span>
-        <span class="s2">&quot;channel&quot;</span><span class="o">:</span><span class="s2">&quot;ch1&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;data&quot;</span><span class="o">:</span><span class="p">{</span>
-            <span class="s2">&quot;data&quot;</span><span class="o">:</span><span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="o">:</span><span class="s2">&quot;1&quot;</span><span class="p">},</span>
-            <span class="s2">&quot;info&quot;</span><span class="o">:</span><span class="p">{</span>
-                <span class="s2">&quot;user&quot;</span><span class="o">:</span><span class="s2">&quot;2694&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;client&quot;</span><span class="o">:</span><span class="s2">&quot;5c48510e-cf49-4fa8-a9b2-490b22231e74&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;conn_info&quot;</span><span class="o">:</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="o">:</span><span class="s2">&quot;Alexander&quot;</span><span class="p">},</span>
-                <span class="s2">&quot;chan_info&quot;</span><span class="o">:</span><span class="p">{}</span>
+    <span class="nt">&quot;result&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span><span class="s2">&quot;ch1&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;data&quot;</span><span class="p">:{</span>
+            <span class="nt">&quot;data&quot;</span><span class="p">:{</span><span class="nt">&quot;input&quot;</span><span class="p">:</span><span class="s2">&quot;1&quot;</span><span class="p">},</span>
+            <span class="nt">&quot;info&quot;</span><span class="p">:{</span>
+                <span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="s2">&quot;2694&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;client&quot;</span><span class="p">:</span><span class="s2">&quot;5c48510e-cf49-4fa8-a9b2-490b22231e74&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;conn_info&quot;</span><span class="p">:{</span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="s2">&quot;Alexander&quot;</span><span class="p">},</span>
+                <span class="nt">&quot;chan_info&quot;</span><span class="p">:{}</span>
             <span class="p">}</span>
         <span class="p">}</span>
     <span class="p">}</span>
@@ -1436,15 +1501,15 @@ subscribe on channels. To do this it must send <code>subscribe</code> command to
 allows to distinguish it from <code>Reply</code> to <code>Command</code>.  </p>
 <p>Next message is <code>Join</code> message:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{</span>
-        <span class="s2">&quot;type&quot;</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span>
-        <span class="s2">&quot;channel&quot;</span><span class="o">:</span><span class="s2">&quot;ch1&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;data&quot;</span><span class="o">:</span><span class="p">{</span>
-            <span class="s2">&quot;info&quot;</span><span class="o">:</span><span class="p">{</span>
-                <span class="s2">&quot;user&quot;</span><span class="o">:</span><span class="s2">&quot;2694&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;client&quot;</span><span class="o">:</span><span class="s2">&quot;5c48510e-cf49-4fa8-a9b2-490b22231e74&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;conn_info&quot;</span><span class="o">:</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="o">:</span><span class="s2">&quot;Alexander&quot;</span><span class="p">},</span>
-                <span class="s2">&quot;chan_info&quot;</span><span class="o">:</span><span class="p">{}</span>
+    <span class="nt">&quot;result&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span><span class="s2">&quot;ch1&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;data&quot;</span><span class="p">:{</span>
+            <span class="nt">&quot;info&quot;</span><span class="p">:{</span>
+                <span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="s2">&quot;2694&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;client&quot;</span><span class="p">:</span><span class="s2">&quot;5c48510e-cf49-4fa8-a9b2-490b22231e74&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;conn_info&quot;</span><span class="p">:{</span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="s2">&quot;Alexander&quot;</span><span class="p">},</span>
+                <span class="nt">&quot;chan_info&quot;</span><span class="p">:{}</span>
             <span class="p">}</span>
         <span class="p">}</span>
     <span class="p">}</span>
@@ -1458,27 +1523,27 @@ allows to distinguish it from <code>Reply</code> to <code>Command</code>.  </p>
 </div>
 <p><code>Leave</code> messages sent when someone left (unsubscribed from) channel.</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{</span>
-        <span class="s2">&quot;type&quot;</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span>
-        <span class="s2">&quot;channel&quot;</span><span class="o">:</span><span class="s2">&quot;ch1&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;data&quot;</span><span class="o">:</span><span class="p">{</span>
-            <span class="s2">&quot;info&quot;</span><span class="o">:</span><span class="p">{</span>
-                <span class="s2">&quot;user&quot;</span><span class="o">:</span><span class="s2">&quot;2694&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;client&quot;</span><span class="o">:</span><span class="s2">&quot;5c48510e-cf49-4fa8-a9b2-490b22231e74&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;conn_info&quot;</span><span class="o">:</span><span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="o">:</span><span class="s2">&quot;Alexander&quot;</span><span class="p">},</span>
-                <span class="s2">&quot;chan_info&quot;</span><span class="o">:</span><span class="p">{}</span>
+    <span class="nt">&quot;result&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span><span class="s2">&quot;ch1&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;data&quot;</span><span class="p">:{</span>
+            <span class="nt">&quot;info&quot;</span><span class="p">:{</span>
+                <span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="s2">&quot;2694&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;client&quot;</span><span class="p">:</span><span class="s2">&quot;5c48510e-cf49-4fa8-a9b2-490b22231e74&quot;</span><span class="p">,</span>
+                <span class="nt">&quot;conn_info&quot;</span><span class="p">:{</span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="s2">&quot;Alexander&quot;</span><span class="p">},</span>
+                <span class="nt">&quot;chan_info&quot;</span><span class="p">:{}</span>
             <span class="p">}</span>
         <span class="p">}</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
 
-<p>And finally <code>Unsub</code> message that means that server unsubscribed current client from channel:</p>
+<p>Finally <code>Unsub</code> message that means that server unsubscribed current client from a channel:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;result&quot;</span><span class="o">:</span><span class="p">{</span>
-        <span class="s2">&quot;type&quot;</span><span class="o">:</span><span class="mi">3</span><span class="p">,</span>
-        <span class="s2">&quot;channel&quot;</span><span class="o">:</span><span class="s2">&quot;ch1&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;data&quot;</span><span class="o">:</span><span class="p">{}</span>
+    <span class="nt">&quot;result&quot;</span><span class="p">:{</span>
+        <span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span>
+        <span class="nt">&quot;channel&quot;</span><span class="p">:</span><span class="s2">&quot;ch1&quot;</span><span class="p">,</span>
+        <span class="nt">&quot;data&quot;</span><span class="p">:{}</span>
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
@@ -1487,8 +1552,8 @@ allows to distinguish it from <code>Reply</code> to <code>Command</code>.  </p>
 <h3 id="ping-pong">Ping Pong<a class="headerlink" href="#ping-pong" title="Permanent link">&para;</a></h3>
 <p>To maintain connection alive and detect broken connections client must periodically send <code>ping</code> commands to server and expect replies to it. Ping command looks like:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;id&quot;</span><span class="o">:</span><span class="mi">32</span><span class="p">,</span>
-    <span class="s2">&quot;method&quot;</span><span class="o">:</span><span class="s2">&quot;ping&quot;</span>
+    <span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="mi">32</span><span class="p">,</span>
+    <span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="s2">&quot;ping&quot;</span>
 <span class="p">}</span>
 </code></pre></div>
 
@@ -1496,8 +1561,8 @@ allows to distinguish it from <code>Reply</code> to <code>Command</code>.  </p>
 <h3 id="handle-disconnects">Handle disconnects<a class="headerlink" href="#handle-disconnects" title="Permanent link">&para;</a></h3>
 <p>Client should handle disconnect advices from server. In websocket case disconnect advice is sent in reason field of CLOSE Websocket frame. Reason contains string which is <code>disconnect</code> object encoded into JSON (even in case of Protobuf scenario). That objects looks like:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">&quot;reason&quot;</span><span class="o">:</span> <span class="s2">&quot;shutdown&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;reconnect&quot;</span><span class="o">:</span> <span class="kc">true</span> 
+    <span class="nt">&quot;reason&quot;</span><span class="p">:</span> <span class="s2">&quot;shutdown&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;reconnect&quot;</span><span class="p">:</span> <span class="kc">true</span> 
 <span class="p">}</span>
 </code></pre></div>
 
@@ -1513,7 +1578,7 @@ allows to distinguish it from <code>Reply</code> to <code>Command</code>.  </p>
 <h3 id="client-implementation-advices">Client implementation advices<a class="headerlink" href="#client-implementation-advices" title="Permanent link">&para;</a></h3>
 <p>Here are some advices about client public API. Examples here are in Javascript language. This is just an attempt to help in developing a client - but rules here is not obligatorily the best way to implement client.</p>
 <p>Create client instance:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">var</span> <span class="nx">centrifuge</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Centrifuge</span><span class="p">(</span><span class="s2">&quot;ws://localhost:8000/connection/websocket&quot;</span><span class="p">,</span> <span class="p">{});</span>
+<div class="highlight"><pre><span></span><code><span class="kr">const</span> <span class="nx">centrifuge</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Centrifuge</span><span class="p">(</span><span class="s2">&quot;ws://localhost:8000/connection/websocket&quot;</span><span class="p">,</span> <span class="p">{});</span>
 </code></pre></div>
 
 <p>Set connection token (in case of using Centrifugo):</p>
@@ -1553,6 +1618,20 @@ allows to distinguish it from <code>Reply</code> to <code>Command</code>.  </p>
 <p>Every time client disconnects from server it must call unsubscribe handlers for all active subscriptions and then emit disconnect event.</p>
 <p>Client must periodically (once in 25 secs, configurable) send ping messages to server. If pong has not beed received in 5 secs (configurable) then client must disconnect from server and try to reconnect with backoff strategy.</p>
 <p>Client can automatically batch several requests into one frame to server and also must be able to handle several replies received from server in one frame.</p>
+<h3 id="server-side-subscriptions-sss">Server side subscriptions (SSS)<a class="headerlink" href="#server-side-subscriptions-sss" title="Permanent link">&para;</a></h3>
+<p>It's also possible to subscribe connection to channels on server side. In this case we call this server-side subscription. Client should only handle asynchronous messages coming from a server without need to create subscriptions on client side.</p>
+<ul>
+<li>SSS should be kept separate from client-side subs</li>
+<li>SSS requires new event handlers on top-level of Client - Subscribe, Publish, Join, Leave, Unsubscribe, event handlers will be called with event context similar to client-side subs case but with <code>channel</code> field</li>
+<li>Connect Reply contains SSS set by a server on connect, on reconnect client has a chance to recover missed Publications</li>
+<li>Server side subscription can happen at any moment - <code>Sub</code> Push will be sent to client</li>
+</ul>
+<h3 id="message-recovery">Message recovery<a class="headerlink" href="#message-recovery" title="Permanent link">&para;</a></h3>
+<p>Client should automatically recover messages after being disconnected due to network problems and set appropriate fields in subscribe event context. Two important fields in <code>onSubscribeSuccess</code> event context are <code>isRecovered</code> and <code>isResubscribe</code>. First field let user know what server thinks about subscription state - were all messages recovered or not. The second field must only be true if resubscribe was caused by temporary network connection lost. If user initiated resubscribe himself (calling <code>unsubscribe</code> method and then <code>subscribe</code> method) then recover workflow should not be used and <code>isResubscribe</code> must be <code>false</code>.</p>
+<h3 id="disconnect-code-and-reason">Disconnect code and reason<a class="headerlink" href="#disconnect-code-and-reason" title="Permanent link">&para;</a></h3>
+<p>In case of Websocket it is sent by server in CLOSE Websocket frame. This is a string containing JSON object with fields: <code>reason</code> (string) and <code>reconnect</code> (bool). Client should give users access to these fields in disconnect event and automatically follow <code>reconnect</code> advice.</p>
+<h3 id="additional-notes">Additional notes<a class="headerlink" href="#additional-notes" title="Permanent link">&para;</a></h3>
+<p>Centrifugo and Centrifuge-based server do not allow one client connection to subscribe on the same channel twice. In this case client will receive <code>already subscribed</code> error in reply to subscribe command.</p>
                 
               
               
@@ -1642,15 +1721,15 @@ allows to distinguish it from <code>Reply</code> to <code>Command</code>.  </p>
       
     </div>
     
-      <script src="../../assets/javascripts/vendor.a0c4167b.min.js"></script>
-      <script src="../../assets/javascripts/bundle.fb26dd1d.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      <script src="../../assets/javascripts/vendor.92ffa368.min.js"></script>
+      <script src="../../assets/javascripts/bundle.5123e3d4.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
       
       <script>
         app = initialize({
           base: "../..",
           features: ["tabs"],
           search: Object.assign({
-            worker: "../../assets/javascripts/worker/search.37585f48.min.js"
+            worker: "../../assets/javascripts/worker/search.a68abb33.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>

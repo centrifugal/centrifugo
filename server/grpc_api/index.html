@@ -17,7 +17,7 @@
         <meta name="author" content="Centrifugal organization">
       
       <link rel="shortcut icon" href="../../images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.1.6">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.0">
     
     
       
@@ -25,9 +25,9 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.4b9ffd7b.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.b5d04df8.min.css">
       
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.b79bcd20.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.9ab2c1f8.min.css">
       
       
         
@@ -56,8 +56,10 @@
   
     
     
-    <body dir="ltr" data-md-color-primary="black" data-md-color-accent="cyan">
+    
+    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="black" data-md-color-accent="cyan">
   
+    
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
@@ -522,6 +524,13 @@
         <li class="md-nav__item">
   <a href="#example-for-go" class="md-nav__link">
     Example for Go
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-key-authorization" class="md-nav__link">
+    API key authorization
   </a>
   
 </li>
@@ -1021,6 +1030,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#api-key-authorization" class="md-nav__link">
+    API key authorization
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1087,6 +1103,7 @@
 <p>Note that you need to explicitly handle Centrifugo API level error which is not transformed automatically into GRPC protocol level error.</p>
 <h2 id="example-for-go">Example for Go<a class="headerlink" href="#example-for-go" title="Permanent link">&para;</a></h2>
 <p>Here is a simple example on how to run Centrifugo with GRPC Go client.</p>
+<p>You need <code>protoc</code> and <code>protoc-gen-go</code> installed.</p>
 <p>First start Centrifugo itself:</p>
 <div class="highlight"><pre><span></span><code>centrifugo --config config.json --grpc_api
 </code></pre></div>
@@ -1143,6 +1160,61 @@ touch main.go
 </code></pre></div>
 
 <p>The program starts and periodically publishes the same payload into <code>chat:index</code> channel.</p>
+<h2 id="api-key-authorization">API key authorization<a class="headerlink" href="#api-key-authorization" title="Permanent link">&para;</a></h2>
+<p>Available since v2.6.1.</p>
+<p>You can also set <code>grpc_api_key</code> (string) in Centrifugo configuration to protect GRPC API with key. In this case you should set per RPC metadata with key <code>authorization</code> and value <code>apikey &lt;KEY&gt;</code>. For example in Go language:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">package</span> <span class="nx">main</span>
+
+<span class="kn">import</span> <span class="p">(</span>
+    <span class="s">&quot;context&quot;</span>
+    <span class="s">&quot;log&quot;</span>
+    <span class="s">&quot;time&quot;</span>
+
+    <span class="s">&quot;google.golang.org/grpc&quot;</span>
+<span class="p">)</span>
+
+<span class="kd">type</span> <span class="nx">keyAuth</span> <span class="kd">struct</span> <span class="p">{</span>
+    <span class="nx">key</span> <span class="kt">string</span>
+<span class="p">}</span>
+
+<span class="kd">func</span> <span class="p">(</span><span class="nx">t</span> <span class="nx">keyAuth</span><span class="p">)</span> <span class="nx">GetRequestMetadata</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">uri</span> <span class="o">...</span><span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">{</span>
+        <span class="s">&quot;authorization&quot;</span><span class="p">:</span> <span class="s">&quot;apikey &quot;</span> <span class="o">+</span> <span class="nx">t</span><span class="p">.</span><span class="nx">key</span><span class="p">,</span>
+    <span class="p">},</span> <span class="kc">nil</span>
+<span class="p">}</span>
+
+<span class="kd">func</span> <span class="p">(</span><span class="nx">t</span> <span class="nx">keyAuth</span><span class="p">)</span> <span class="nx">RequireTransportSecurity</span><span class="p">()</span> <span class="kt">bool</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="kc">false</span>
+<span class="p">}</span>
+
+<span class="kd">func</span> <span class="nx">main</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">conn</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">grpc</span><span class="p">.</span><span class="nx">Dial</span><span class="p">(</span><span class="s">&quot;localhost:10000&quot;</span><span class="p">,</span> <span class="nx">grpc</span><span class="p">.</span><span class="nx">WithInsecure</span><span class="p">(),</span> <span class="nx">grpc</span><span class="p">.</span><span class="nx">WithPerRPCCredentials</span><span class="p">(</span><span class="nx">keyAuth</span><span class="p">{</span><span class="s">&quot;xxx&quot;</span><span class="p">}))</span>
+    <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nx">Fatalln</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="k">defer</span> <span class="nx">conn</span><span class="p">.</span><span class="nx">Close</span><span class="p">()</span>
+    <span class="nx">client</span> <span class="o">:=</span> <span class="nx">NewCentrifugoClient</span><span class="p">(</span><span class="nx">conn</span><span class="p">)</span>
+    <span class="k">for</span> <span class="p">{</span>
+        <span class="nx">resp</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">client</span><span class="p">.</span><span class="nx">Publish</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span> <span class="o">&amp;</span><span class="nx">PublishRequest</span><span class="p">{</span>
+            <span class="nx">Channel</span><span class="p">:</span> <span class="s">&quot;chat:index&quot;</span><span class="p">,</span>
+            <span class="nx">Data</span><span class="p">:</span>    <span class="p">[]</span><span class="nb">byte</span><span class="p">(</span><span class="s">`{&quot;input&quot;: &quot;hello from GRPC&quot;}`</span><span class="p">),</span>
+        <span class="p">})</span>
+        <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+            <span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Transport level error: %v&quot;</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="k">if</span> <span class="nx">resp</span><span class="p">.</span><span class="nx">GetError</span><span class="p">()</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+                <span class="nx">respError</span> <span class="o">:=</span> <span class="nx">resp</span><span class="p">.</span><span class="nx">GetError</span><span class="p">()</span>
+                <span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Error %d (%s)&quot;</span><span class="p">,</span> <span class="nx">respError</span><span class="p">.</span><span class="nx">Code</span><span class="p">,</span> <span class="nx">respError</span><span class="p">.</span><span class="nx">Message</span><span class="p">)</span>
+            <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+                <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;Successfully published&quot;</span><span class="p">)</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        <span class="nx">time</span><span class="p">.</span><span class="nx">Sleep</span><span class="p">(</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>For other languages refer to GRPC docs.</p>
                 
               
               
@@ -1232,15 +1304,15 @@ touch main.go
       
     </div>
     
-      <script src="../../assets/javascripts/vendor.a0c4167b.min.js"></script>
-      <script src="../../assets/javascripts/bundle.fb26dd1d.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      <script src="../../assets/javascripts/vendor.92ffa368.min.js"></script>
+      <script src="../../assets/javascripts/bundle.5123e3d4.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
       
       <script>
         app = initialize({
           base: "../..",
           features: ["tabs"],
           search: Object.assign({
-            worker: "../../assets/javascripts/worker/search.37585f48.min.js"
+            worker: "../../assets/javascripts/worker/search.a68abb33.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>
