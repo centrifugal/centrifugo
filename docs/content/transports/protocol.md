@@ -8,40 +8,37 @@ Note that you can always look at [existing client implementations](../libraries/
 
 First we will look at list of features client library should support. Depending on client implementation some features can be not implemented. If you an author of client library you can use this list as checklist.
 
-!!! note
-    Field and method names presented in this checklist can have different names depending on the programmer's taste and language style guide.
+Our current client feature matrix looks like this:
 
-Our current feature matrix looks like this:
-
-- [ ] connect to server (both Centrifugo and Centrifuge-based) using JSON protocol format
-- [ ] connect to server (both Centrifugo and Centrifuge-based) using Protobuf protocol format
-- [ ] connect to server with token (JWT in Centrifugo case, any string token in Centrifuge library case)
-- [ ] connect to server with custom headers (not available in a browser)
-- [ ] automatic reconnect in case of connect errors and network problems
-- [ ] an exponential backoff for reconnect process
-- [ ] possibility to set handlers for connect and disconnect events
-- [ ] extract and expose disconnect reason
-- [ ] subscribe on a channel and provide a way to handle asynchronous Publications coming from a channel
-- [ ] handle Join and Leave messages from a channel
-- [ ] handle Unsubscribe notifications
-- [ ] publish method of Subscription
-- [ ] unsubscribe method of Subscription
-- [ ] presence method of Subscription
-- [ ] presence stats method of Subscription
-- [ ] history method of Subscription
-- [ ] send asynchronous messages to server
-- [ ] handle asynchronous messages from server
-- [ ] send RPC requests to server
-- [ ] publish to channel without being subscribed
-- [ ] subscribe to private (token-protected) channels with token
-- [ ] connection token refresh mechanism
-- [ ] private channel subscription token refresh
-- [ ] handle connection expired error
-- [ ] handle subscription expired error
-- [ ] reconnect on connect or subscribe timeout
-- [ ] client protocol level ping/pong to find broken connection
-- [ ] server-side subscriptions
-- [ ] message recovery mechanism
+- [x] connect to server (both Centrifugo and Centrifuge-based) using JSON protocol format
+- [x] connect to server (both Centrifugo and Centrifuge-based) using Protobuf protocol format
+- [x] connect to server with token (JWT in Centrifugo case, any string token in Centrifuge library case)
+- [x] connect to server with custom headers (not available in a browser)
+- [x] automatic reconnect in case of dial problems (network)
+- [x] an exponential backoff for reconnect process
+- [x] possibility to set handlers for connect and disconnect events
+- [x] extract and expose disconnect reason
+- [x] subscribe on a channel and provide a way to handle asynchronous Publications coming from a channel
+- [x] handle Join and Leave messages from a channel
+- [x] handle Unsubscribe notifications
+- [x] publish method of Subscription
+- [x] unsubscribe method of Subscription
+- [x] presence method of Subscription
+- [x] presence stats method of Subscription
+- [x] history method of Subscription
+- [x] send asynchronous messages to server
+- [x] handle asynchronous messages from server
+- [x] send RPC requests to server
+- [x] publish to channel without being subscribed
+- [x] subscribe to private (token-protected) channels with token
+- [x] connection token refresh mechanism
+- [x] private channel subscription token refresh
+- [x] client protocol level ping/pong to find broken connection
+- [x] automatic reconnect in case of connect or subscribe command timeouts
+- [x] handle connection expired error
+- [x] handle subscription expired error
+- [x] server-side subscriptions
+- [x] message recovery mechanism
 
 Below I'll try to describe most of these points in detail.
 
@@ -500,3 +497,7 @@ Client should automatically recover messages after being disconnected due to net
 ### Disconnect code and reason
 
 In case of Websocket it is sent by server in CLOSE Websocket frame. This is a string containing JSON object with fields: `reason` (string) and `reconnect` (bool). Client should give users access to these fields in disconnect event and automatically follow `reconnect` advice.
+
+### Additional notes
+
+Centrifugo and Centrifuge-based server do not allow one client connection to subscribe on the same channel twice. In this case client will receive `already subscribed` error in reply to subscribe command.
