@@ -1,3 +1,10 @@
+v2.5.2
+======
+
+Fixes:
+
+* Backport Redis Engine epoch fix 
+
 v2.5.1
 ======
 

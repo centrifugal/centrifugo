@@ -433,7 +433,8 @@ redis.replicate_commands()
 local epoch
 if redis.call('exists', KEYS[2]) ~= 0 then
   epoch = redis.call("hget", KEYS[2], "e")
-else
+end
+if epoch == false or epoch == nil then
   epoch = redis.call('time')[1]
   redis.call("hset", KEYS[2], "e", epoch)
 end
@@ -465,7 +466,8 @@ redis.replicate_commands()
 local epoch
 if redis.call('exists', KEYS[2]) ~= 0 then
   epoch = redis.call("hget", KEYS[2], "e")
-else
+end
+if epoch == false or epoch == nil then
   epoch = redis.call('time')[1]
   redis.call("hset", KEYS[2], "e", epoch)
 end
@@ -484,22 +486,23 @@ return {offset, epoch}
 
 	// Retrieve channel history information.
 	// KEYS[1] - history list key
-	// KEYS[2] - stream meta hash key
+	// KEYS[2] - list meta hash key
 	// ARGV[1] - include publications into response
 	// ARGV[2] - publications list right bound
-	// ARGV[3] - sequence key expiration time
+	// ARGV[3] - list meta hash key expiration time
 	historySource = `
 redis.replicate_commands()
 local offset = redis.call("hget", KEYS[2], "s")
-if ARGV[3] ~= '0' and offset ~= false then
-	redis.call("expire", KEYS[2], ARGV[3])
-end
 local epoch
 if redis.call('exists', KEYS[2]) ~= 0 then
   epoch = redis.call("hget", KEYS[2], "e")
-else
+end
+if epoch == false or epoch == nil then
   epoch = redis.call('time')[1]
   redis.call("hset", KEYS[2], "e", epoch)
+end
+if ARGV[3] ~= '0' then
+	redis.call("expire", KEYS[2], ARGV[3])
 end
 local pubs = nil
 if ARGV[1] ~= "0" then
@@ -514,19 +517,20 @@ return {offset, epoch, pubs}
 	// ARGV[1] - include publications into response
 	// ARGV[2] - offset
 	// ARGV[3] - limit
-	// ARGV[4] - sequence key expiration time
+	// ARGV[4] - stream meta hash key expiration time
 	historyStreamSource = `
 redis.replicate_commands()
 local offset = redis.call("hget", KEYS[2], "s")
-if ARGV[3] ~= '0' and offset ~= false then
-	redis.call("expire", KEYS[2], ARGV[3])
-end
 local epoch
 if redis.call('exists', KEYS[2]) ~= 0 then
   epoch = redis.call("hget", KEYS[2], "e")
-else
+end
+if epoch == false or epoch == nil then
   epoch = redis.call('time')[1]
   redis.call("hset", KEYS[2], "e", epoch)
+end
+if ARGV[4] ~= '0' then
+	redis.call("expire", KEYS[2], ARGV[4])
 end
 local pubs = nil
 if ARGV[1] ~= "0" then
