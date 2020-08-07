@@ -74,6 +74,8 @@ conns.Add(conn)
 
 – otherwise you have a risk to not even able to look at `pprof` when things go bad. And you always need monitoring of open file descriptors.
 
+You can also consider using [netutil.LimitListener](https://godoc.org/golang.org/x/net/netutil#LimitListener) for this task, but don't forget to put pprof on another port with another HTTP server instance in this case.
+
 Keep attention on *Ephemeral ports* problem which is often happens between your load balancer and your WebSocket server. The problem arises due to the fact that each TCP connection uniquely identified in the OS by the 4-part-tuple:
 
 ```

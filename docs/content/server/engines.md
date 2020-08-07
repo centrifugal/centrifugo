@@ -192,6 +192,9 @@ When sharding enabled Centrifugo will spread channels and history/presence keys 
 
 Redis cluster supported since Centrifugo v2.5.0
 
+!!!danger
+    Redis Cluster integration does not support `channels` API command due to Redis cluster limitations. Other Centrifugo features should work.
+
 Running Centrifugo with Redis cluster is simple and can be achieved using `redis_cluster_addrs` option. This is an array of strings. Each element of array is a comma-separated Redis cluster seed nodes. For example:
 
 ```json
