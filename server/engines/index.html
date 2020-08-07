@@ -1305,6 +1305,10 @@ Sentinel configuration.</p>
 <p>When sharding enabled Centrifugo will spread channels and history/presence keys over configured Redis instances using consistent hashing algorithm. At moment we use Jump consistent hash algorithm (see <a href="https://arxiv.org/pdf/1406.2294.pdf">paper</a> and <a href="https://github.com/dgryski/go-jump">implementation</a>)</p>
 <h3 id="redis-cluster">Redis cluster<a class="headerlink" href="#redis-cluster" title="Permanent link">&para;</a></h3>
 <p>Redis cluster supported since Centrifugo v2.5.0</p>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Redis Cluster integration does not support <code>channels</code> API command due to Redis cluster limitations. Other Centrifugo features should work.</p>
+</div>
 <p>Running Centrifugo with Redis cluster is simple and can be achieved using <code>redis_cluster_addrs</code> option. This is an array of strings. Each element of array is a comma-separated Redis cluster seed nodes. For example:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
     <span class="err">...</span>

@@ -1231,6 +1231,7 @@
 </code></pre></div>
 
 <p>– otherwise you have a risk to not even able to look at <code>pprof</code> when things go bad. And you always need monitoring of open file descriptors.</p>
+<p>You can also consider using <a href="https://godoc.org/golang.org/x/net/netutil#LimitListener">netutil.LimitListener</a> for this task, but don't forget to put pprof on another port with another HTTP server instance in this case.</p>
 <p>Keep attention on <em>Ephemeral ports</em> problem which is often happens between your load balancer and your WebSocket server. The problem arises due to the fact that each TCP connection uniquely identified in the OS by the 4-part-tuple:</p>
 <div class="highlight"><pre><span></span><code>source ip | source port | destination ip | destination port
 </code></pre></div>
