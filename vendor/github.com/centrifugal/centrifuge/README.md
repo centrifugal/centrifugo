@@ -107,8 +107,8 @@ func main() {
 		// In our example transport will always be Websocket but it can also be SockJS.
 		transportName := c.Transport().Name()
 		// In our example clients connect with JSON protocol but it can also be Protobuf.
-		transportEncoding := c.Transport().Encoding()
-		log.Printf("client connected via %s (%s)", transportName, transportEncoding)
+		transportProto := c.Transport().Protocol()
+		log.Printf("client connected via %s (%s)", transportName, transportProto)
 	})
 
 	// Set SubscribeHandler to react on every channel subscription attempt

@@ -1,3 +1,8 @@
+v0.10.1
+=======
+
+* Fix Redis Engine errors when epoch is missing inside stream/list meta hash. See [commit](https://github.com/centrifugal/centrifuge/commit/f5375855e3df8e1679e11775455597cc91b8e0e5)
+
 v0.10.0
 =======
 
