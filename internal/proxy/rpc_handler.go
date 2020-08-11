@@ -34,10 +34,10 @@ func NewRPCHandler(c RPCHandlerConfig) *RPCHandler {
 }
 
 // Handle RPC.
-func (h *RPCHandler) Handle(node *centrifuge.Node) func(ctx context.Context, client *centrifuge.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
-	return func(ctx context.Context, client *centrifuge.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
+func (h *RPCHandler) Handle(node *centrifuge.Node) centrifuge.RPCHandler {
+	return func(client *centrifuge.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
 		started := time.Now()
-		rpcRep, err := h.config.Proxy.ProxyRPC(ctx, RPCRequest{
+		rpcRep, err := h.config.Proxy.ProxyRPC(client.Context(), RPCRequest{
 			Method:    e.Method,
 			Data:      e.Data,
 			ClientID:  client.ID(),

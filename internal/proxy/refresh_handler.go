@@ -34,10 +34,10 @@ func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 }
 
 // Handle refresh.
-func (h *RefreshHandler) Handle(node *centrifuge.Node) func(context.Context, *centrifuge.Client, centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
-	return func(ctx context.Context, client *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
+func (h *RefreshHandler) Handle(node *centrifuge.Node) centrifuge.RefreshHandler {
+	return func(client *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
 		started := time.Now()
-		refreshRep, err := h.config.Proxy.ProxyRefresh(ctx, RefreshRequest{
+		refreshRep, err := h.config.Proxy.ProxyRefresh(client.Context(), RefreshRequest{
 			ClientID:  client.ID(),
 			UserID:    client.UserID(),
 			Transport: client.Transport(),

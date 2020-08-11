@@ -55,7 +55,7 @@ func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req RPCRequest) (*RPCReply,
 	}
 
 	if req.Transport.Encoding() == centrifuge.EncodingTypeJSON {
-		rpcHTTPReq.Data = json.RawMessage(req.Data)
+		rpcHTTPReq.Data = req.Data
 	} else {
 		rpcHTTPReq.Base64Data = base64.StdEncoding.EncodeToString(req.Data)
 	}

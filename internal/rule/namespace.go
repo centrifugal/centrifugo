@@ -12,7 +12,7 @@ type ChannelNamespace struct {
 	NamespaceChannelOptions `mapstructure:",squash"`
 }
 
-// ChannelOptions represent channel specific configuration for namespace
+// NamespaceChannelOptions represent channel specific configuration for namespace
 // or global channel options if set on top level of configuration.
 type NamespaceChannelOptions struct {
 	centrifuge.ChannelOptions `mapstructure:",squash"`

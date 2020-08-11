@@ -34,7 +34,7 @@ func NewSubscribeHandler(c SubscribeHandlerConfig) *SubscribeHandler {
 }
 
 // Handle Subscribe.
-func (h *SubscribeHandler) Handle(node *centrifuge.Node) func(client *centrifuge.Client, e centrifuge.SubscribeEvent) (centrifuge.SubscribeReply, error) {
+func (h *SubscribeHandler) Handle(node *centrifuge.Node) centrifuge.SubscribeHandler {
 	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent) (centrifuge.SubscribeReply, error) {
 		started := time.Now()
 		subscribeRep, err := h.config.Proxy.ProxySubscribe(client.Context(), SubscribeRequest{

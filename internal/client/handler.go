@@ -12,6 +12,7 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
+// Handler ...
 type Handler struct {
 	node          *centrifuge.Node
 	ruleContainer *rule.ChannelRuleContainer
@@ -20,6 +21,7 @@ type Handler struct {
 	rpcExtension  map[string]centrifuge.RPCHandler
 }
 
+// NewHandler ...
 func NewHandler(node *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, tokenVerifier jwtverify.Verifier, proxyConfig proxy.Config) *Handler {
 	return &Handler{
 		node:          node,
@@ -30,6 +32,7 @@ func NewHandler(node *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer,
 	}
 }
 
+// SetRPCExtension ...
 func (h Handler) SetRPCExtension(method string, handler centrifuge.RPCHandler) {
 	h.rpcExtension[method] = handler
 }
@@ -43,8 +46,9 @@ func proxyHTTPClient(timeout time.Duration) *http.Client {
 	}
 }
 
+// Setup ...
 func (h *Handler) Setup() {
-	var connectProxyHandler func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error)
+	var connectProxyHandler centrifuge.ConnectingHandler
 	if h.proxyConfig.ConnectEndpoint != "" {
 		connectProxyHandler = proxy.NewConnectHandler(proxy.ConnectHandlerConfig{
 			Proxy: proxy.NewHTTPConnectProxy(
@@ -55,40 +59,44 @@ func (h *Handler) Setup() {
 		}).Handle(h.node)
 	}
 
-	refreshProxyHandler := proxy.NewRefreshHandler(proxy.RefreshHandlerConfig{
-		Proxy: proxy.NewHTTPRefreshProxy(
-			h.proxyConfig.RefreshEndpoint,
-			proxyHTTPClient(h.proxyConfig.RefreshTimeout),
-			proxy.WithExtraHeaders(h.proxyConfig.ExtraHTTPHeaders),
-		),
-	}).Handle(h.node)
-	refreshProxyEnabled := h.proxyConfig.RefreshEndpoint != ""
+	var refreshProxyHandler centrifuge.RefreshHandler
+	if h.proxyConfig.RefreshEndpoint != "" {
+		refreshProxyHandler = proxy.NewRefreshHandler(proxy.RefreshHandlerConfig{
+			Proxy: proxy.NewHTTPRefreshProxy(
+				h.proxyConfig.RefreshEndpoint,
+				proxyHTTPClient(h.proxyConfig.RefreshTimeout),
+				proxy.WithExtraHeaders(h.proxyConfig.ExtraHTTPHeaders),
+			),
+		}).Handle(h.node)
+	}
 
-	rpcProxyHandler := proxy.NewRPCHandler(proxy.RPCHandlerConfig{
-		Proxy: proxy.NewHTTPRPCProxy(
-			h.proxyConfig.RPCEndpoint,
-			proxyHTTPClient(h.proxyConfig.RPCTimeout),
-			proxy.WithExtraHeaders(h.proxyConfig.ExtraHTTPHeaders),
-		),
-	}).Handle(h.node)
-	rpcProxyEnabled := h.proxyConfig.RPCEndpoint != ""
+	var rpcProxyHandler centrifuge.RPCHandler
+	if h.proxyConfig.RPCEndpoint != "" {
+		rpcProxyHandler = proxy.NewRPCHandler(proxy.RPCHandlerConfig{
+			Proxy: proxy.NewHTTPRPCProxy(
+				h.proxyConfig.RPCEndpoint,
+				proxyHTTPClient(h.proxyConfig.RPCTimeout),
+				proxy.WithExtraHeaders(h.proxyConfig.ExtraHTTPHeaders),
+			),
+		}).Handle(h.node)
+	}
 
 	h.node.OnConnecting(func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
-		return h.OnClientConnecting(ctx, e, connectProxyHandler, refreshProxyEnabled)
+		return h.OnClientConnecting(ctx, e, connectProxyHandler, refreshProxyHandler != nil)
 	})
 
 	h.node.OnRefresh(func(client *centrifuge.Client, event centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
-		if refreshProxyEnabled {
-			return refreshProxyHandler(client.Context(), client, event)
+		if refreshProxyHandler != nil {
+			return refreshProxyHandler(client, event)
 		}
 		return h.OnRefresh(client, event)
 	})
-	if rpcProxyEnabled || len(h.rpcExtension) > 0 {
+	if rpcProxyHandler != nil || len(h.rpcExtension) > 0 {
 		h.node.OnRPC(func(client *centrifuge.Client, event centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
 			if handler, ok := h.rpcExtension[event.Method]; ok {
 				return handler(client, event)
 			}
-			return rpcProxyHandler(client.Context(), client, event)
+			return rpcProxyHandler(client, event)
 		})
 	}
 
@@ -141,6 +149,7 @@ func toClientErr(err error) *centrifuge.Error {
 	return centrifuge.ErrorInternal
 }
 
+// OnClientConnecting ...
 func (h *Handler) OnClientConnecting(
 	ctx context.Context,
 	e centrifuge.ConnectEvent,
@@ -206,6 +215,7 @@ func (h *Handler) OnClientConnecting(
 	}, nil
 }
 
+// OnRefresh ...
 func (h *Handler) OnRefresh(c *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
 	token, err := h.tokenVerifier.VerifyConnectToken(e.Token)
 	if err != nil {
@@ -221,6 +231,7 @@ func (h *Handler) OnRefresh(c *centrifuge.Client, e centrifuge.RefreshEvent) (ce
 	}, nil
 }
 
+// OnSubRefresh ...
 func (h *Handler) OnSubRefresh(c *centrifuge.Client, e centrifuge.SubRefreshEvent) (centrifuge.SubRefreshReply, error) {
 	token, err := h.tokenVerifier.VerifySubscribeToken(e.Token)
 	if err != nil {
@@ -239,6 +250,7 @@ func (h *Handler) OnSubRefresh(c *centrifuge.Client, e centrifuge.SubRefreshEven
 	}, nil
 }
 
+// OnSubscribe ...
 func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent, subscribeProxyHandler centrifuge.SubscribeHandler) (centrifuge.SubscribeReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
@@ -308,6 +320,7 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 	}, nil
 }
 
+// OnPublish ...
 func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, publishProxyHandler centrifuge.PublishHandler) (centrifuge.PublishReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
@@ -342,6 +355,7 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 	return centrifuge.PublishReply{}, nil
 }
 
+// OnPresence ...
 func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (centrifuge.PresenceReply, error) {
 	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(e.Channel)
 	if err != nil {
@@ -361,6 +375,7 @@ func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (
 	return centrifuge.PresenceReply{}, nil
 }
 
+// OnPresenceStats ...
 func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceStatsEvent) (centrifuge.PresenceStatsReply, error) {
 	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(e.Channel)
 	if err != nil {
@@ -380,6 +395,7 @@ func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceSta
 	return centrifuge.PresenceStatsReply{}, nil
 }
 
+// OnHistory ...
 func (h *Handler) OnHistory(c *centrifuge.Client, e centrifuge.HistoryEvent) (centrifuge.HistoryReply, error) {
 	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(e.Channel)
 	if err != nil {

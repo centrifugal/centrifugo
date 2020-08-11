@@ -16,6 +16,7 @@ type SubscribeRequest struct {
 	Token     string
 }
 
+// SubscribeResult ...
 type SubscribeResult struct {
 	Info       json.RawMessage `json:"info"`
 	Base64Info string          `json:"b64info"`

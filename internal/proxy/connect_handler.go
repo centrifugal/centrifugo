@@ -34,7 +34,7 @@ func NewConnectHandler(c ConnectHandlerConfig) *ConnectHandler {
 }
 
 // Handle returns connecting handler func.
-func (h *ConnectHandler) Handle(node *centrifuge.Node) func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHandler {
 	return func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		started := time.Now()
 		connectRep, err := h.config.Proxy.ProxyConnect(ctx, ConnectRequest{

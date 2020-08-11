@@ -10,6 +10,7 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
+// ChannelRuleConfig ...
 type ChannelRuleConfig struct {
 	// NamespaceChannelOptions embedded on top level.
 	NamespaceChannelOptions
@@ -110,11 +111,13 @@ func (c *ChannelRuleConfig) Validate() error {
 	return nil
 }
 
+// ChannelRuleContainer ...
 type ChannelRuleContainer struct {
 	mu     sync.RWMutex
 	config ChannelRuleConfig
 }
 
+// NewNamespaceRuleContainer ...
 func NewNamespaceRuleContainer(config ChannelRuleConfig) *ChannelRuleContainer {
 	return &ChannelRuleContainer{
 		config: config,
@@ -153,7 +156,7 @@ func (n *ChannelRuleContainer) namespaceName(ch string) string {
 	return ""
 }
 
-// ChannelOpts returns channel options for channel using current channel config.
+// NamespacedChannelOptions returns channel options for channel using current channel config.
 func (n *ChannelRuleContainer) NamespacedChannelOptions(ch string) (NamespaceChannelOptions, bool, error) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()

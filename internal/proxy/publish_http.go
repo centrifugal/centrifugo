@@ -57,7 +57,7 @@ func (p *HTTPPublishProxy) ProxyPublish(ctx context.Context, req PublishRequest)
 	}
 
 	if req.Transport.Encoding() == centrifuge.EncodingTypeJSON {
-		publishHTTPReq.Data = json.RawMessage(req.Data)
+		publishHTTPReq.Data = req.Data
 	} else {
 		publishHTTPReq.Base64Data = base64.StdEncoding.EncodeToString(req.Data)
 	}

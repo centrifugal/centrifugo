@@ -15,6 +15,7 @@ type PublishRequest struct {
 	Transport centrifuge.TransportInfo
 }
 
+// PublishResult ...
 type PublishResult struct{}
 
 // PublishReply ...
