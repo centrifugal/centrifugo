@@ -17,3 +17,7 @@
 .md-typeset h1 {
     margin: 0 0 0;
 }
+
+.md-tabs__item:last-child .md-tabs__link {
+    color: #a7ff7a;
+}

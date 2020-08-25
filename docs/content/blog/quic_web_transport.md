@@ -14,11 +14,13 @@ og_image_height: 750
 
 ## Overview
 
-WebTransport is a new browser API offering low-latency, bidirectional, client-server messaging. If you have not heard about it before I suggest to first read a post called [Experimenting with QuicTransport](https://web.dev/quictransport/) published recently on web.dev – it gives a nice overview to WebTransport and shows client-side code examples. Here we will concentrate on implementing server side. Some key points about WebTransport spec:
+WebTransport is a new browser API offering low-latency, bidirectional, client-server messaging. If you have not heard about it before I suggest to first read a post called [Experimenting with QuicTransport](https://web.dev/quictransport/) published recently on web.dev – it gives a nice overview to WebTransport and shows client-side code examples. Here we will concentrate on implementing server side.
 
-* WebTransport standard will give a possibility to use streaming client-server communication using modern transports such as QUIC and HTTP/3
-* It can be an alternative to WebSocket messaging, standard provides some capabilities that not possible with current WebSocket spec: possibility to reduce head-of-line blocking problem using individual streams for different data, possibility to reuse a single connection to a server in different browser tabs
-* WebTransport also defines an unreliable stream API using UDP datagrams (which is possible since QUIC is UDP-based) – which is what browsers did not have before without a rather complex [WebRTC](https://en.wikipedia.org/wiki/WebRTC) setup involving ICE, STUN etc
+Some key points about WebTransport spec:
+
+* WebTransport standard will provide a possibility to use streaming client-server communication using modern transports such as [QUIC](https://en.wikipedia.org/wiki/QUIC) and [HTTP/3](https://en.wikipedia.org/wiki/HTTP/3)
+* It can be a good alternative to [WebSocket](https://en.wikipedia.org/wiki/WebSocket) messaging, standard provides some capabilities that are not possible with current WebSocket spec: possibility to get rid of head-of-line blocking problems using individual streams for different data, the possibility to reuse a single connection to a server in different browser tabs
+* WebTransport also defines an unreliable stream API using UDP datagrams (which is possible since QUIC is UDP-based) – which is what browsers did not have before without a rather complex [WebRTC](https://en.wikipedia.org/wiki/WebRTC) setup involving ICE, STUN, etc. This is sweet for in-browser real-time games.
 
 To help you figure out things here are links to current WebTransport specs:
 
@@ -26,11 +28,13 @@ To help you figure out things here are links to current WebTransport specs:
 * [WebTransport over QUIC](https://tools.ietf.org/html/draft-vvv-webtransport-quic) – this spec describes QUIC-based transport for WebTransport
 * [WebTransport over HTTP/3](https://tools.ietf.org/html/draft-vvv-webtransport-http3) – this spec describes HTTP/3-based transport for WebTransport (actually HTTP/3 is a protocol defined on top of QUIC)
 
-At this moment Chrome only implements trial possibility to try out WebTransport standard and only implements WebTransport over QUIC. To do this developers can initialize transport with code like this:
+At moment Chrome only implements [trial possibility](https://web.dev/quictransport/#register-for-ot) to try out WebTransport standard and only implements WebTransport over QUIC. Developers can initialize transport with code like this:
 
 ```javascript
 const transport = new QuicTransport('quic-transport://localhost:4433/path');
 ```
+
+In case of HTTP/3 transport one will use URL like `'https://localhost:4433/path'` in transport constructor. All WebTransport underlying transports should support instantiation over URL – that's one of the spec requirements. 
 
 I decided that this is a cool possibility to finally play with QUIC protocol and its Go implementation [github.com/lucas-clemente/quic-go](https://github.com/lucas-clemente/quic-go).
 
@@ -41,9 +45,9 @@ I decided that this is a cool possibility to finally play with QUIC protocol and
 
 ![client example](https://i.imgur.com/Hty00aG.png)
 
-We will use linked client example to connect to a server that runs on localhost and uses [github.com/lucas-clemente/quic-go](https://github.com/lucas-clemente/quic-go) library. To make our example work we need to open client example in Chrome and actually at this moment we need to install Chrome Canary. The reason behind this is that `quic-go` library supports QUIC draft-29 while Chrome < 85 implements QuicTransport over draft-27. If you read this post at a time when Chrome stable 85 already released then most probably you don't need to install Canary release and just use your stable Chrome.
+We will use a linked client example to connect to a server that runs on localhost and uses [github.com/lucas-clemente/quic-go](https://github.com/lucas-clemente/quic-go) library. To make our example work we need to open client example in Chrome, and actually, at this moment we need to install Chrome Canary. The reason behind this is that the  `quic-go` library supports QUIC draft-29 while Chrome < 85 implements QuicTransport over draft-27. If you read this post at a time when Chrome stable 85 already released then most probably you don't need to install Canary release and just use your stable Chrome.
 
-We also need to generate self-signed certificates since WebTransport only works with TLS layer, and we should make Chrome trust our certificates. Let's prepare our client environment before writing a server and first install Chrome Canary.
+We also need to generate self-signed certificates since WebTransport only works with a TLS layer, and we should make Chrome trust our certificates. Let's prepare our client environment before writing a server and first install Chrome Canary.
 
 ## Install Chrome Canary
 
@@ -71,6 +75,8 @@ openssl rsa -passin pass:x -in server.pass.key -out server.key
 rm server.pass.key
 openssl req -new -key server.key -out server.csr
 ```
+
+Set `localhost` for Common Name when asked.
 
 The self-signed TLS certificate generated from the `server.key` private key and `server.csr` files:
 
@@ -163,15 +169,24 @@ Maybe in future we will have libraries that are specified to work with WebTransp
 First, let's define a simple skeleton for our server:
 
 ```go
+package main
+
+import (
+	"errors"
+	"log"
+
+    "github.com/lucas-clemente/quic-go"
+)
+
 // Config for WebTransportServerQuic.
 type Config struct {
-    // ListenAddr sets an address to bind server to.
-	ListenAddr     string
-    // TLSCertPath defines a path to .crt cert file.
-	TLSCertPath    string
-    // TLSKeyPath defines a path to .key cert file
-	TLSKeyPath     string
-    // AllowedOrigins represents list of allowed origins to connect from.
+	// ListenAddr sets an address to bind server to.
+	ListenAddr string
+	// TLSCertPath defines a path to .crt cert file.
+	TLSCertPath string
+	// TLSKeyPath defines a path to .key cert file
+	TLSKeyPath string
+	// AllowedOrigins represents list of allowed origins to connect from.
 	AllowedOrigins []string
 }
 
@@ -190,7 +205,7 @@ func NewWebTransportServerQuic(config Config) *WebTransportServerQuic {
 
 // Run server.
 func (s *WebTransportServerQuic) Run() error {
-    return errors.New("not implemented")
+	return errors.New("not implemented")
 }
 
 func main() {
@@ -222,25 +237,25 @@ func (s *WebTransportServerQuic) Run() error {
 		if err != nil {
 			return err
 		}
-		log.Println("session accepted", sess.RemoteAddr().String())
-        go func(sess quic.Session) {
-            defer func() {
-                _ = sess.CloseWithError(0, "bye")
-                log.Println("close session")
-            }()
-            s.handleSession(sess)
-        }(sess)
+		log.Printf("session accepted: %s", sess.RemoteAddr().String())
+		go func() {
+			defer func() {
+				_ = sess.CloseWithError(0, "bye")
+				log.Println("close session")
+			}()
+			s.handleSession(sess)
+		}()
 	}
 }
 
-func (s *WebTransportServerQuic) handleSession(sess *quic.Session) {
+func (s *WebTransportServerQuic) handleSession(sess quic.Session) {
     // Not implemented yet.    
 }
 ```
 
-An interesting thing to note is that QUIC allows closing connection with specific application level integer code and custom string reason. Just like WebSocket if you worked with it.
+An interesting thing to note is that QUIC allows closing connection with specific application-level integer code and custom string reason. Just like WebSocket if you worked with it.
 
-Also note, that we are starting our `Listener` with TLS configuration returned by `s.generateTLSConfig()` method. Let's take a closer look on how this method can be implemented.
+Also note, that we are starting our `Listener` with TLS configuration returned by `s.generateTLSConfig()` method. Let's take a closer look at how this method can be implemented.
 
 ```go
 // https://tools.ietf.org/html/draft-vvv-webtransport-quic-02#section-3.1
@@ -258,11 +273,11 @@ func (s *WebTransportServerQuic) generateTLSConfig() *tls.Config {
 }
 ```
 
-Inside `generateTLSConfig` we load x509 certs from cert files generated above. WebTransport uses ALPN (Application Layer Protocol Negotiation) to prevent handshakes with a server that does not support WebTransport spec. This is just a string `wq-vvv-01` inside `NextProtos` slice of our `*tls.Config`.
+Inside `generateTLSConfig` we load x509 certs from cert files generated above. WebTransport uses ALPN ([Application-Layer Protocol Negotiation](https://en.wikipedia.org/wiki/Application-Layer_Protocol_Negotiation) to prevent handshakes with a server that does not support WebTransport spec. This is just a string `wq-vvv-01` inside `NextProtos` slice of our `*tls.Config`.
 
 ### Connection Session handling
 
-At this moment if run a server and open a client example in Chrome and click `Connect` button – you should see that connection successfully established in event log area:
+At this moment if you run a server and open a client example in Chrome then click `Connect` button – you should see that connection successfully established in event log area:
 
 ![client example](https://i.imgur.com/PyEr9W9.png)
 
@@ -278,21 +293,21 @@ Client example provides three possible ways to communicate with a server:
 * Open a unidirectional stream
 * Open a bidirectional stream
 
-Unfortunately `quic-go` library does not support sending UDP datagrams at this moment. To do this `quic-go` should implement one more draft called [An Unreliable Datagram Extension to QUIC](https://tools.ietf.org/html/draft-pauly-quic-datagram-05). There is already [an ongoing pull request](https://github.com/lucas-clemente/quic-go/pull/2162) that implements it. This means that it's too early for us to experiment with unreliable UDP WebTransport client-server communication.
+Unfortunately, `quic-go` library does not support sending UDP datagrams at this moment. To do this `quic-go` should implement one more draft called [An Unreliable Datagram Extension to QUIC](https://tools.ietf.org/html/draft-pauly-quic-datagram-05). There is already [an ongoing pull request](https://github.com/lucas-clemente/quic-go/pull/2162) that implements it. This means that it's too early for us to experiment with unreliable UDP WebTransport client-server communication in Go. By the way, the interesting facts about UDP over QUIC are that QUIC congestion control mechanism will [still apply](https://tools.ietf.org/html/draft-ietf-quic-datagram-00#section-5.3) and QUIC datagrams [can support acknowledgements](https://tools.ietf.org/html/draft-ietf-quic-datagram-00#section-5.1).
 
-Implementing a unidirectional stream is possible with `quic-go` since library supports creating and accepting unidirectional streams, but I'll leave this for a reader (though we will need accepting one unidirectional stream for parsing client indication anyway – see below).
+Implementing a unidirectional stream is possible with `quic-go` since the library supports creating and accepting unidirectional streams, but I'll leave this for a reader (though we will need accepting one unidirectional stream for parsing client indication anyway – see below).
 
-Here we will only concentrate on implementing server for bidirectional case. We are in Centrifugo blog, and this is the most interesting type of streams for me personally.
+Here we will only concentrate on implementing a server for a bidirectional case. We are in the Centrifugo blog, and this is the most interesting type of stream for me personally.
 
 ### Parsing client indication
 
 According to [section-3.2](https://tools.ietf.org/html/draft-vvv-webtransport-quic-02#section-3.2) of Quic WebTransport spec in order to verify that the client's origin allowed connecting to the server, the user agent has to communicate the origin to the server. This is accomplished by sending a special message, called client indication, on stream 2, which is the first client-initiated unidirectional stream.
 
-Here we will implement this. In the beginning of our session handler we will listen a unidirectional stream initiated by a client.
+Here we will implement this. In the beginning of our session handler we will accept a unidirectional stream initiated by a client.
 
-At moment spec defines two keys: `Origin` and `Path`. In our case an origin value will be `https://googlechrome.github.io` and path will be `/counter`.
+At moment spec defines two client indication keys: `Origin` and `Path`. In our case an origin value will be `https://googlechrome.github.io` and path will be `/counter`.
 
-First let's define some constants and structures:
+Let's define some constants and structures:
 
 ```go
 // client indication stream can not exceed 65535 bytes in length.
@@ -319,7 +334,7 @@ type ClientIndication struct {
 Now what we should do is accept unidirectional stream inside session handler:
 
 ```go
-func (s *WebTransportServerQuic) handleSession() {
+func (s *WebTransportServerQuic) handleSession(sess quic.Session) {
     stream, err := sess.AcceptUniStream(context.Background())
     if err != nil {
         log.Println(err)
@@ -339,9 +354,9 @@ func (s *WebTransportServerQuic) handleSession() {
         return
     }
 
-    // blocks until session closed.
+    // this method blocks.
     if err := s.communicate(sess); err != nil {
-        log.Println(err.Error())
+        log.Println(err)
     }
 }
 
@@ -372,7 +387,7 @@ According to spec it will contain a client indication in the following format:
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
-The code below parses client indication out of a stream data:
+The code below parses client indication out of a stream data, we decode key-value pairs from uni stream until an end of stream (indicated by EOF):
 
 ```go
 func receiveClientIndication(stream quic.ReceiveStream) (ClientIndication, error) {
@@ -405,6 +420,7 @@ func receiveClientIndication(stream quic.ReceiveStream) (ClientIndication, error
 		n, err := reader.Read(buf)
 		if err != nil {
 			if err == io.EOF {
+                // still need to process indication value.
 				done = true
 			} else {
 				return clientIndication, err
@@ -458,7 +474,7 @@ Do you have `stringInSlice` function in every Go project? I do :)
 
 ### Communicating over bidirectional streams
 
-The final part here is accepting bidirectional stream from a client, reading it and sending responses back. Here we will just echo everything client sends to a server back to a client. You can implement whatever bidirectional communication you want actually.
+The final part here is accepting a bidirectional stream from a client, reading it, and sending responses back. Here we will just echo everything a client sends to a server back to a client. You can implement whatever bidirectional communication you want actually.
 
 Very similar to unidirectional case we can call `.AcceptStream` method of session to accept a bidirectional stream.
 
@@ -487,10 +503,10 @@ Full server code can be found [in a Gist](https://gist.github.com/FZambia/07dca3
 
 ## Conclusion
 
-WebTransport is an interesting technology that can open new possibilities in modern Web development. At this moment it's possible to play with it using QUIC transport – here we looked how one can do that. Though we still have to wait a bit until all these things will be suitable for a production usage.
+WebTransport is an interesting technology that can open new possibilities in modern Web development. At this moment it's possible to play with it using QUIC transport – here we looked at how one can do that. Though we still have to wait a bit until all these things will be suitable for production usage.
 
-Also, even when ready we will still have to think about WebTransport fallback options – since wide adoption of browsers that support some new technology and infrastructure takes time.
+Also, even when ready we will still have to think about WebTransport fallback options – since wide adoption of browsers that support some new technology and infrastructure takes time. Actually WebTransport spec authors consider fallback options in design. This was mentioned in IETF slides ([PDF, 2.6MB](https://www.ietf.org/proceedings/106/slides/slides-106-webtrans-webtrans-bof-slides-03)), but I have not found any additional information beyond that.
 
-Personally I think the most exciting thing of WebTransport is possibility to exchange UDP datagrams, which can help a lot to in-browser gaming. Unfortunately we can't test it at this moment with Go (but it's already possible using Python as server as shown [in example](https://github.com/GoogleChrome/samples/blob/gh-pages/quictransport/quic_transport_server.py)).
+Personally, I think the most exciting thing about WebTransport is the possibility to exchange UDP datagrams, which can help a lot to in-browser gaming. Unfortunately, we can't test it at this moment with Go (but it's already possible using Python as server as shown [in the example](https://github.com/GoogleChrome/samples/blob/gh-pages/quictransport/quic_transport_server.py)).
 
-WebTransport could be a nice candidate for a new Centrifugo transport – time will show.
+WebTransport could be a nice candidate for a new Centrifugo transport next to WebSocket and SockJS – time will show.

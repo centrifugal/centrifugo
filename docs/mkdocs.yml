@@ -109,3 +109,5 @@ nav:
     - About this blog: 'blog/index.md'
     - Experimenting with QUIC and WebTransport in Go: 'blog/quic_web_transport.md'
     - Scaling WebSocket in Go and beyond: 'blog/scaling_websocket.md'
+  - Centrifugo PRO:
+    - About: 'pro/index.md'

@@ -20,7 +20,7 @@ Starting from v2.6.0 Centrifugo also scales with Nats server as broker (but for 
 
 ### Message delivery model
 
-The model of message delivery of Centrifugo server is at most once. With recovery feature on it's possible to achieve at least once guarantee. After network disconnects client have an option to recover missed messages from in-memory message stream that Centrifugo maintains.
+The model of message delivery of Centrifugo server is at most once. With recovery feature enabled it's possible to achieve at least once guarantee. After network disconnects client have an option to recover missed messages from in-memory message stream that Centrifugo maintains.
 
 Without recovery feature on a message you send to Centrifugo can be theoretically lost while moving towards your clients. Centrifugo tries to do the best effort to prevent message losses on a way to online clients, but you should be aware of possible message loss. Your application should tolerate this. 
 
