@@ -236,6 +236,19 @@
   
 
       
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../pro/" class="md-tabs__link">
+          Centrifugo PRO
+        </a>
+      
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -1136,6 +1149,48 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
+    
+    <label class="md-nav__link" for="nav-7">
+      Centrifugo PRO
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Centrifugo PRO" data-md-level="1">
+      <label class="md-nav__title" for="nav-7">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Centrifugo PRO
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../pro/" title="About" class="md-nav__link">
+      About
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -1346,7 +1401,7 @@
 <p>Yes, it can. It can do this using builtin <a href="../server/engines/">Redis Engine</a>. Redis is very fast – for example it can handle hundreds of thousands requests per second. This should be OK for most applications in an internet. if you approach Redis resource limits (CPU or memory) then it's possible to use Centrifugo consistent sharding support to balance queries between different Redis instances.</p>
 <p>Starting from v2.6.0 Centrifugo also scales with Nats server as broker (but for unreliable at most once PUB/SUB only).</p>
 <h3 id="message-delivery-model">Message delivery model<a class="headerlink" href="#message-delivery-model" title="Permanent link">&para;</a></h3>
-<p>The model of message delivery of Centrifugo server is at most once. With recovery feature on it's possible to achieve at least once guarantee. After network disconnects client have an option to recover missed messages from in-memory message stream that Centrifugo maintains.</p>
+<p>The model of message delivery of Centrifugo server is at most once. With recovery feature enabled it's possible to achieve at least once guarantee. After network disconnects client have an option to recover missed messages from in-memory message stream that Centrifugo maintains.</p>
 <p>Without recovery feature on a message you send to Centrifugo can be theoretically lost while moving towards your clients. Centrifugo tries to do the best effort to prevent message losses on a way to online clients, but you should be aware of possible message loss. Your application should tolerate this. </p>
 <p>As noted Centrifugo has an option called message recovery to automatically recover messages missed due to short network disconnections. Also, it prevents message loss on a way from Redis to nodes over Redis PUB/SUB using additional offset check and periodical synchronization. At this moment Centrifugo message recovery designed for a short term disconnect period (think no more than one hour for a typical chat application). After this period (which can be configured per channel basis) Centrifugo removes messages from in-memory channel stream. In this case Centrifugo let client know that some messages can not be recovered, so you can load application state from your main database.</p>
 <p>We also recommend modeling your applications in a way that users don't notice when Centrifugo does not work at all. Use graceful degradation. For example if a user posts a new comment over AJAX call to your application backend - you should not rely only on Centrifugo to receive new comment from channel and display it - you should return new comment data in AJAX call response and render it. This way user that posts a comment will think that everything works just fine. Be careful to not draw comments twice in this case - think about idempotent identifiers for your entities.</p>
@@ -1489,8 +1544,8 @@
                         color: #00acee;
                     }
                 </style>
-                <a href="https://www.buymeacoffee.com/FZambia">
-                    Accepting donations via <strong>Buy me a coffee</strong>!
+                <a href="https://opencollective.com/centrifugal">
+                    Support Centrifugo development on <strong>Open Collective</strong>
                 </a>
             </div>
             

@@ -279,6 +279,19 @@
   
 
       
+        
+  
+  
+    <li class="md-tabs__item">
+      
+        <a href="../../pro/" class="md-tabs__link">
+          Centrifugo PRO
+        </a>
+      
+    </li>
+  
+
+      
     </ul>
   </div>
 </nav>
@@ -1116,6 +1129,48 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
+    
+    <label class="md-nav__link" for="nav-7">
+      Centrifugo PRO
+      <span class="md-nav__icon md-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
+      </span>
+    </label>
+    <nav class="md-nav" aria-label="Centrifugo PRO" data-md-level="1">
+      <label class="md-nav__title" for="nav-7">
+        <span class="md-nav__icon md-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        </span>
+        Centrifugo PRO
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../pro/" title="About" class="md-nav__link">
+      About
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -1255,11 +1310,12 @@
                 <h1 id="experimenting-with-quic-and-webtransport-in-go">Experimenting with QUIC and WebTransport in Go<a class="headerlink" href="#experimenting-with-quic-and-webtransport-in-go" title="Permanent link">&para;</a></h1>
 <p><img alt="post-cover" src="https://i.imgur.com/sH9zfhe.jpg" /></p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>WebTransport is a new browser API offering low-latency, bidirectional, client-server messaging. If you have not heard about it before I suggest to first read a post called <a href="https://web.dev/quictransport/">Experimenting with QuicTransport</a> published recently on web.dev – it gives a nice overview to WebTransport and shows client-side code examples. Here we will concentrate on implementing server side. Some key points about WebTransport spec:</p>
+<p>WebTransport is a new browser API offering low-latency, bidirectional, client-server messaging. If you have not heard about it before I suggest to first read a post called <a href="https://web.dev/quictransport/">Experimenting with QuicTransport</a> published recently on web.dev – it gives a nice overview to WebTransport and shows client-side code examples. Here we will concentrate on implementing server side.</p>
+<p>Some key points about WebTransport spec:</p>
 <ul>
-<li>WebTransport standard will give a possibility to use streaming client-server communication using modern transports such as QUIC and HTTP/3</li>
-<li>It can be an alternative to WebSocket messaging, standard provides some capabilities that not possible with current WebSocket spec: possibility to reduce head-of-line blocking problem using individual streams for different data, possibility to reuse a single connection to a server in different browser tabs</li>
-<li>WebTransport also defines an unreliable stream API using UDP datagrams (which is possible since QUIC is UDP-based) – which is what browsers did not have before without a rather complex <a href="https://en.wikipedia.org/wiki/WebRTC">WebRTC</a> setup involving ICE, STUN etc</li>
+<li>WebTransport standard will provide a possibility to use streaming client-server communication using modern transports such as <a href="https://en.wikipedia.org/wiki/QUIC">QUIC</a> and <a href="https://en.wikipedia.org/wiki/HTTP/3">HTTP/3</a></li>
+<li>It can be a good alternative to <a href="https://en.wikipedia.org/wiki/WebSocket">WebSocket</a> messaging, standard provides some capabilities that are not possible with current WebSocket spec: possibility to get rid of head-of-line blocking problems using individual streams for different data, the possibility to reuse a single connection to a server in different browser tabs</li>
+<li>WebTransport also defines an unreliable stream API using UDP datagrams (which is possible since QUIC is UDP-based) – which is what browsers did not have before without a rather complex <a href="https://en.wikipedia.org/wiki/WebRTC">WebRTC</a> setup involving ICE, STUN, etc. This is sweet for in-browser real-time games.</li>
 </ul>
 <p>To help you figure out things here are links to current WebTransport specs:</p>
 <ul>
@@ -1267,10 +1323,11 @@
 <li><a href="https://tools.ietf.org/html/draft-vvv-webtransport-quic">WebTransport over QUIC</a> – this spec describes QUIC-based transport for WebTransport</li>
 <li><a href="https://tools.ietf.org/html/draft-vvv-webtransport-http3">WebTransport over HTTP/3</a> – this spec describes HTTP/3-based transport for WebTransport (actually HTTP/3 is a protocol defined on top of QUIC)</li>
 </ul>
-<p>At this moment Chrome only implements trial possibility to try out WebTransport standard and only implements WebTransport over QUIC. To do this developers can initialize transport with code like this:</p>
+<p>At moment Chrome only implements <a href="https://web.dev/quictransport/#register-for-ot">trial possibility</a> to try out WebTransport standard and only implements WebTransport over QUIC. Developers can initialize transport with code like this:</p>
 <div class="highlight"><pre><span></span><code><span class="kr">const</span> <span class="nx">transport</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">QuicTransport</span><span class="p">(</span><span class="s1">&#39;quic-transport://localhost:4433/path&#39;</span><span class="p">);</span>
 </code></pre></div>
 
+<p>In case of HTTP/3 transport one will use URL like <code>'https://localhost:4433/path'</code> in transport constructor. All WebTransport underlying transports should support instantiation over URL – that's one of the spec requirements. </p>
 <p>I decided that this is a cool possibility to finally play with QUIC protocol and its Go implementation <a href="https://github.com/lucas-clemente/quic-go">github.com/lucas-clemente/quic-go</a>.</p>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
@@ -1278,8 +1335,8 @@
 </div>
 <p><a href="https://web.dev/quictransport/">Experimenting with QuicTransport</a> post contains links to a <a href="https://googlechrome.github.io/samples/quictransport/client.html">client example</a> and companion <a href="https://github.com/GoogleChrome/samples/blob/gh-pages/quictransport/quic_transport_server.py">Python server implementation</a>.</p>
 <p><img alt="client example" src="https://i.imgur.com/Hty00aG.png" /></p>
-<p>We will use linked client example to connect to a server that runs on localhost and uses <a href="https://github.com/lucas-clemente/quic-go">github.com/lucas-clemente/quic-go</a> library. To make our example work we need to open client example in Chrome and actually at this moment we need to install Chrome Canary. The reason behind this is that <code>quic-go</code> library supports QUIC draft-29 while Chrome &lt; 85 implements QuicTransport over draft-27. If you read this post at a time when Chrome stable 85 already released then most probably you don't need to install Canary release and just use your stable Chrome.</p>
-<p>We also need to generate self-signed certificates since WebTransport only works with TLS layer, and we should make Chrome trust our certificates. Let's prepare our client environment before writing a server and first install Chrome Canary.</p>
+<p>We will use a linked client example to connect to a server that runs on localhost and uses <a href="https://github.com/lucas-clemente/quic-go">github.com/lucas-clemente/quic-go</a> library. To make our example work we need to open client example in Chrome, and actually, at this moment we need to install Chrome Canary. The reason behind this is that the  <code>quic-go</code> library supports QUIC draft-29 while Chrome &lt; 85 implements QuicTransport over draft-27. If you read this post at a time when Chrome stable 85 already released then most probably you don't need to install Canary release and just use your stable Chrome.</p>
+<p>We also need to generate self-signed certificates since WebTransport only works with a TLS layer, and we should make Chrome trust our certificates. Let's prepare our client environment before writing a server and first install Chrome Canary.</p>
 <h2 id="install-chrome-canary">Install Chrome Canary<a class="headerlink" href="#install-chrome-canary" title="Permanent link">&para;</a></h2>
 <p>Go to <a href="https://www.google.com/intl/en/chrome/canary/">https://www.google.com/intl/en/chrome/canary/</a>, download and install Chrome Canary. We will use it to open <a href="https://googlechrome.github.io/samples/quictransport/client.html">client example</a>.</p>
 <div class="admonition note">
@@ -1300,6 +1357,7 @@ rm server.pass.key
 openssl req -new -key server.key -out server.csr
 </code></pre></div>
 
+<p>Set <code>localhost</code> for Common Name when asked.</p>
 <p>The self-signed TLS certificate generated from the <code>server.key</code> private key and <code>server.csr</code> files:</p>
 <div class="highlight"><pre><span></span><code>openssl x509 -req -sha256 -days <span class="m">365</span> -in server.csr -signkey server.key -out server.crt
 </code></pre></div>
@@ -1372,14 +1430,23 @@ server.crt server.csr server.key
 <p>Maybe in future we will have libraries that are specified to work with WebTransport over QUIC or HTTP/3, but for now we should implement server manually. As said above we will use <a href="https://github.com/lucas-clemente/quic-go">github.com/lucas-clemente/quic-go</a> library to do this.</p>
 <h3 id="server-skeleton">Server skeleton<a class="headerlink" href="#server-skeleton" title="Permanent link">&para;</a></h3>
 <p>First, let's define a simple skeleton for our server:</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Config for WebTransportServerQuic.</span>
+<div class="highlight"><pre><span></span><code><span class="kn">package</span> <span class="nx">main</span>
+
+<span class="kn">import</span> <span class="p">(</span>
+    <span class="s">&quot;errors&quot;</span>
+    <span class="s">&quot;log&quot;</span>
+
+    <span class="s">&quot;github.com/lucas-clemente/quic-go&quot;</span>
+<span class="p">)</span>
+
+<span class="c1">// Config for WebTransportServerQuic.</span>
 <span class="kd">type</span> <span class="nx">Config</span> <span class="kd">struct</span> <span class="p">{</span>
     <span class="c1">// ListenAddr sets an address to bind server to.</span>
-    <span class="nx">ListenAddr</span>     <span class="kt">string</span>
+    <span class="nx">ListenAddr</span> <span class="kt">string</span>
     <span class="c1">// TLSCertPath defines a path to .crt cert file.</span>
-    <span class="nx">TLSCertPath</span>    <span class="kt">string</span>
+    <span class="nx">TLSCertPath</span> <span class="kt">string</span>
     <span class="c1">// TLSKeyPath defines a path to .key cert file</span>
-    <span class="nx">TLSKeyPath</span>     <span class="kt">string</span>
+    <span class="nx">TLSKeyPath</span> <span class="kt">string</span>
     <span class="c1">// AllowedOrigins represents list of allowed origins to connect from.</span>
     <span class="nx">AllowedOrigins</span> <span class="p">[]</span><span class="kt">string</span>
 <span class="p">}</span>
@@ -1428,24 +1495,24 @@ server.crt server.csr server.key
         <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
             <span class="k">return</span> <span class="nx">err</span>
         <span class="p">}</span>
-        <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;session accepted&quot;</span><span class="p">,</span> <span class="nx">sess</span><span class="p">.</span><span class="nx">RemoteAddr</span><span class="p">().</span><span class="nx">String</span><span class="p">())</span>
-        <span class="k">go</span> <span class="kd">func</span><span class="p">(</span><span class="nx">sess</span> <span class="nx">quic</span><span class="p">.</span><span class="nx">Session</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;session accepted: %s&quot;</span><span class="p">,</span> <span class="nx">sess</span><span class="p">.</span><span class="nx">RemoteAddr</span><span class="p">().</span><span class="nx">String</span><span class="p">())</span>
+        <span class="k">go</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
             <span class="k">defer</span> <span class="kd">func</span><span class="p">()</span> <span class="p">{</span>
                 <span class="nx">_</span> <span class="p">=</span> <span class="nx">sess</span><span class="p">.</span><span class="nx">CloseWithError</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s">&quot;bye&quot;</span><span class="p">)</span>
                 <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="s">&quot;close session&quot;</span><span class="p">)</span>
             <span class="p">}()</span>
             <span class="nx">s</span><span class="p">.</span><span class="nx">handleSession</span><span class="p">(</span><span class="nx">sess</span><span class="p">)</span>
-        <span class="p">}(</span><span class="nx">sess</span><span class="p">)</span>
+        <span class="p">}()</span>
     <span class="p">}</span>
 <span class="p">}</span>
 
-<span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">WebTransportServerQuic</span><span class="p">)</span> <span class="nx">handleSession</span><span class="p">(</span><span class="nx">sess</span> <span class="o">*</span><span class="nx">quic</span><span class="p">.</span><span class="nx">Session</span><span class="p">)</span> <span class="p">{</span>
+<span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">WebTransportServerQuic</span><span class="p">)</span> <span class="nx">handleSession</span><span class="p">(</span><span class="nx">sess</span> <span class="nx">quic</span><span class="p">.</span><span class="nx">Session</span><span class="p">)</span> <span class="p">{</span>
     <span class="c1">// Not implemented yet.    </span>
 <span class="p">}</span>
 </code></pre></div>
 
-<p>An interesting thing to note is that QUIC allows closing connection with specific application level integer code and custom string reason. Just like WebSocket if you worked with it.</p>
-<p>Also note, that we are starting our <code>Listener</code> with TLS configuration returned by <code>s.generateTLSConfig()</code> method. Let's take a closer look on how this method can be implemented.</p>
+<p>An interesting thing to note is that QUIC allows closing connection with specific application-level integer code and custom string reason. Just like WebSocket if you worked with it.</p>
+<p>Also note, that we are starting our <code>Listener</code> with TLS configuration returned by <code>s.generateTLSConfig()</code> method. Let's take a closer look at how this method can be implemented.</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// https://tools.ietf.org/html/draft-vvv-webtransport-quic-02#section-3.1</span>
 <span class="kd">const</span> <span class="nx">alpnQuicTransport</span> <span class="p">=</span> <span class="s">&quot;wq-vvv-01&quot;</span>
 
@@ -1461,9 +1528,9 @@ server.crt server.csr server.key
 <span class="p">}</span>
 </code></pre></div>
 
-<p>Inside <code>generateTLSConfig</code> we load x509 certs from cert files generated above. WebTransport uses ALPN (Application Layer Protocol Negotiation) to prevent handshakes with a server that does not support WebTransport spec. This is just a string <code>wq-vvv-01</code> inside <code>NextProtos</code> slice of our <code>*tls.Config</code>.</p>
+<p>Inside <code>generateTLSConfig</code> we load x509 certs from cert files generated above. WebTransport uses ALPN (<a href="https://en.wikipedia.org/wiki/Application-Layer_Protocol_Negotiation">Application-Layer Protocol Negotiation</a> to prevent handshakes with a server that does not support WebTransport spec. This is just a string <code>wq-vvv-01</code> inside <code>NextProtos</code> slice of our <code>*tls.Config</code>.</p>
 <h3 id="connection-session-handling">Connection Session handling<a class="headerlink" href="#connection-session-handling" title="Permanent link">&para;</a></h3>
-<p>At this moment if run a server and open a client example in Chrome and click <code>Connect</code> button – you should see that connection successfully established in event log area:</p>
+<p>At this moment if you run a server and open a client example in Chrome then click <code>Connect</code> button – you should see that connection successfully established in event log area:</p>
 <p><img alt="client example" src="https://i.imgur.com/PyEr9W9.png" /></p>
 <p>Now if you try to send data to a server nothing will happen. That's because we have not implemented reading data from session streams. </p>
 <p>Streams in QUIC provide a lightweight, ordered byte-stream abstraction to an application. Streams can be unidirectional or bidirectional.</p>
@@ -1474,14 +1541,14 @@ server.crt server.csr server.key
 <li>Open a unidirectional stream</li>
 <li>Open a bidirectional stream</li>
 </ul>
-<p>Unfortunately <code>quic-go</code> library does not support sending UDP datagrams at this moment. To do this <code>quic-go</code> should implement one more draft called <a href="https://tools.ietf.org/html/draft-pauly-quic-datagram-05">An Unreliable Datagram Extension to QUIC</a>. There is already <a href="https://github.com/lucas-clemente/quic-go/pull/2162">an ongoing pull request</a> that implements it. This means that it's too early for us to experiment with unreliable UDP WebTransport client-server communication.</p>
-<p>Implementing a unidirectional stream is possible with <code>quic-go</code> since library supports creating and accepting unidirectional streams, but I'll leave this for a reader (though we will need accepting one unidirectional stream for parsing client indication anyway – see below).</p>
-<p>Here we will only concentrate on implementing server for bidirectional case. We are in Centrifugo blog, and this is the most interesting type of streams for me personally.</p>
+<p>Unfortunately, <code>quic-go</code> library does not support sending UDP datagrams at this moment. To do this <code>quic-go</code> should implement one more draft called <a href="https://tools.ietf.org/html/draft-pauly-quic-datagram-05">An Unreliable Datagram Extension to QUIC</a>. There is already <a href="https://github.com/lucas-clemente/quic-go/pull/2162">an ongoing pull request</a> that implements it. This means that it's too early for us to experiment with unreliable UDP WebTransport client-server communication in Go. By the way, the interesting facts about UDP over QUIC are that QUIC congestion control mechanism will <a href="https://tools.ietf.org/html/draft-ietf-quic-datagram-00#section-5.3">still apply</a> and QUIC datagrams <a href="https://tools.ietf.org/html/draft-ietf-quic-datagram-00#section-5.1">can support acknowledgements</a>.</p>
+<p>Implementing a unidirectional stream is possible with <code>quic-go</code> since the library supports creating and accepting unidirectional streams, but I'll leave this for a reader (though we will need accepting one unidirectional stream for parsing client indication anyway – see below).</p>
+<p>Here we will only concentrate on implementing a server for a bidirectional case. We are in the Centrifugo blog, and this is the most interesting type of stream for me personally.</p>
 <h3 id="parsing-client-indication">Parsing client indication<a class="headerlink" href="#parsing-client-indication" title="Permanent link">&para;</a></h3>
 <p>According to <a href="https://tools.ietf.org/html/draft-vvv-webtransport-quic-02#section-3.2">section-3.2</a> of Quic WebTransport spec in order to verify that the client's origin allowed connecting to the server, the user agent has to communicate the origin to the server. This is accomplished by sending a special message, called client indication, on stream 2, which is the first client-initiated unidirectional stream.</p>
-<p>Here we will implement this. In the beginning of our session handler we will listen a unidirectional stream initiated by a client.</p>
-<p>At moment spec defines two keys: <code>Origin</code> and <code>Path</code>. In our case an origin value will be <code>https://googlechrome.github.io</code> and path will be <code>/counter</code>.</p>
-<p>First let's define some constants and structures:</p>
+<p>Here we will implement this. In the beginning of our session handler we will accept a unidirectional stream initiated by a client.</p>
+<p>At moment spec defines two client indication keys: <code>Origin</code> and <code>Path</code>. In our case an origin value will be <code>https://googlechrome.github.io</code> and path will be <code>/counter</code>.</p>
+<p>Let's define some constants and structures:</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// client indication stream can not exceed 65535 bytes in length.</span>
 <span class="c1">// https://tools.ietf.org/html/draft-vvv-webtransport-quic-02#section-3.2</span>
 <span class="kd">const</span> <span class="nx">maxClientIndicationLength</span> <span class="p">=</span> <span class="mi">65535</span>
@@ -1504,7 +1571,7 @@ server.crt server.csr server.key
 </code></pre></div>
 
 <p>Now what we should do is accept unidirectional stream inside session handler:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">WebTransportServerQuic</span><span class="p">)</span> <span class="nx">handleSession</span><span class="p">()</span> <span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">WebTransportServerQuic</span><span class="p">)</span> <span class="nx">handleSession</span><span class="p">(</span><span class="nx">sess</span> <span class="nx">quic</span><span class="p">.</span><span class="nx">Session</span><span class="p">)</span> <span class="p">{</span>
     <span class="nx">stream</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">sess</span><span class="p">.</span><span class="nx">AcceptUniStream</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">())</span>
     <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
         <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
@@ -1524,9 +1591,9 @@ server.crt server.csr server.key
         <span class="k">return</span>
     <span class="p">}</span>
 
-    <span class="c1">// blocks until session closed.</span>
+    <span class="c1">// this method blocks.</span>
     <span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">s</span><span class="p">.</span><span class="nx">communicate</span><span class="p">(</span><span class="nx">sess</span><span class="p">);</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
-        <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nx">Error</span><span class="p">())</span>
+        <span class="nx">log</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
     <span class="p">}</span>
 <span class="p">}</span>
 
@@ -1554,7 +1621,7 @@ server.crt server.csr server.key
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 </code></pre></div>
 
-<p>The code below parses client indication out of a stream data:</p>
+<p>The code below parses client indication out of a stream data, we decode key-value pairs from uni stream until an end of stream (indicated by EOF):</p>
 <div class="highlight"><pre><span></span><code><span class="kd">func</span> <span class="nx">receiveClientIndication</span><span class="p">(</span><span class="nx">stream</span> <span class="nx">quic</span><span class="p">.</span><span class="nx">ReceiveStream</span><span class="p">)</span> <span class="p">(</span><span class="nx">ClientIndication</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nx">clientIndication</span> <span class="nx">ClientIndication</span>
 
@@ -1585,6 +1652,7 @@ server.crt server.csr server.key
         <span class="nx">n</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">reader</span><span class="p">.</span><span class="nx">Read</span><span class="p">(</span><span class="nx">buf</span><span class="p">)</span>
         <span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
             <span class="k">if</span> <span class="nx">err</span> <span class="o">==</span> <span class="nx">io</span><span class="p">.</span><span class="nx">EOF</span> <span class="p">{</span>
+                <span class="c1">// still need to process indication value.</span>
                 <span class="nx">done</span> <span class="p">=</span> <span class="kc">true</span>
             <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
                 <span class="k">return</span> <span class="nx">clientIndication</span><span class="p">,</span> <span class="nx">err</span>
@@ -1634,7 +1702,7 @@ server.crt server.csr server.key
 
 <p>Do you have <code>stringInSlice</code> function in every Go project? I do :)</p>
 <h3 id="communicating-over-bidirectional-streams">Communicating over bidirectional streams<a class="headerlink" href="#communicating-over-bidirectional-streams" title="Permanent link">&para;</a></h3>
-<p>The final part here is accepting bidirectional stream from a client, reading it and sending responses back. Here we will just echo everything client sends to a server back to a client. You can implement whatever bidirectional communication you want actually.</p>
+<p>The final part here is accepting a bidirectional stream from a client, reading it, and sending responses back. Here we will just echo everything a client sends to a server back to a client. You can implement whatever bidirectional communication you want actually.</p>
 <p>Very similar to unidirectional case we can call <code>.AcceptStream</code> method of session to accept a bidirectional stream.</p>
 <div class="highlight"><pre><span></span><code><span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">WebTransportServerQuic</span><span class="p">)</span> <span class="nx">communicate</span><span class="p">(</span><span class="nx">sess</span> <span class="nx">quic</span><span class="p">.</span><span class="nx">Session</span><span class="p">)</span> <span class="kt">error</span> <span class="p">{</span>
     <span class="k">for</span> <span class="p">{</span>
@@ -1655,10 +1723,10 @@ server.crt server.csr server.key
 <h3 id="full-server-example">Full server example<a class="headerlink" href="#full-server-example" title="Permanent link">&para;</a></h3>
 <p>Full server code can be found <a href="https://gist.github.com/FZambia/07dca3a7a75a264746101cd5657f1150">in a Gist</a>. Again – this is a toy example based on things that all work in progress.</p>
 <h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
-<p>WebTransport is an interesting technology that can open new possibilities in modern Web development. At this moment it's possible to play with it using QUIC transport – here we looked how one can do that. Though we still have to wait a bit until all these things will be suitable for a production usage.</p>
-<p>Also, even when ready we will still have to think about WebTransport fallback options – since wide adoption of browsers that support some new technology and infrastructure takes time.</p>
-<p>Personally I think the most exciting thing of WebTransport is possibility to exchange UDP datagrams, which can help a lot to in-browser gaming. Unfortunately we can't test it at this moment with Go (but it's already possible using Python as server as shown <a href="https://github.com/GoogleChrome/samples/blob/gh-pages/quictransport/quic_transport_server.py">in example</a>).</p>
-<p>WebTransport could be a nice candidate for a new Centrifugo transport – time will show.</p>
+<p>WebTransport is an interesting technology that can open new possibilities in modern Web development. At this moment it's possible to play with it using QUIC transport – here we looked at how one can do that. Though we still have to wait a bit until all these things will be suitable for production usage.</p>
+<p>Also, even when ready we will still have to think about WebTransport fallback options – since wide adoption of browsers that support some new technology and infrastructure takes time. Actually WebTransport spec authors consider fallback options in design. This was mentioned in IETF slides (<a href="https://www.ietf.org/proceedings/106/slides/slides-106-webtrans-webtrans-bof-slides-03">PDF, 2.6MB</a>), but I have not found any additional information beyond that.</p>
+<p>Personally, I think the most exciting thing about WebTransport is the possibility to exchange UDP datagrams, which can help a lot to in-browser gaming. Unfortunately, we can't test it at this moment with Go (but it's already possible using Python as server as shown <a href="https://github.com/GoogleChrome/samples/blob/gh-pages/quictransport/quic_transport_server.py">in the example</a>).</p>
+<p>WebTransport could be a nice candidate for a new Centrifugo transport next to WebSocket and SockJS – time will show.</p>
                 
                   
                 
@@ -1741,8 +1809,8 @@ server.crt server.csr server.key
                         color: #00acee;
                     }
                 </style>
-                <a href="https://www.buymeacoffee.com/FZambia">
-                    Accepting donations via <strong>Buy me a coffee</strong>!
+                <a href="https://opencollective.com/centrifugal">
+                    Support Centrifugo development on <strong>Open Collective</strong>
                 </a>
             </div>
             
