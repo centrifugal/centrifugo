@@ -16,7 +16,7 @@ import (
 // Disconnect instance won't be reflected in WebSocket/Sockjs Close frames.
 type Disconnect struct {
 	// Code is disconnect code.
-	Code int `json:"code,omitempty"`
+	Code uint32 `json:"code,omitempty"`
 	// Reason is a short description of disconnect.
 	Reason string `json:"reason"`
 	// Reconnect gives client an advice to reconnect after disconnect or not.

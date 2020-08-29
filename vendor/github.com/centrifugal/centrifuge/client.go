@@ -24,8 +24,8 @@ import (
 // then client will be disconnected with InsufficientState reason.
 const maxCheckPositionFailures int64 = 2
 
-// ChannelContext contains extra context for channel connection subscribed to.
-type ChannelContext struct {
+// channelContext contains extra context for channel connection subscribed to.
+type channelContext struct {
 	Info                  []byte
 	expireAt              int64
 	positionCheckTime     int64
@@ -78,16 +78,16 @@ const (
 
 // Client represents client connection to server.
 type Client struct {
+	events            uint64
 	mu                sync.RWMutex
 	connectMu         sync.Mutex // allows to sync connect with disconnect.
 	presenceMu        sync.Mutex // allows to sync presence routine with client closing.
 	ctx               context.Context
 	transport         Transport
 	node              *Node
-	events            uint64
 	exp               int64
 	publications      *pubQueue
-	channels          map[string]ChannelContext
+	channels          map[string]channelContext
 	messageWriter     *writer
 	pubSubSync        *recovery.PubSubSync
 	uid               string
@@ -118,7 +118,7 @@ func NewClient(ctx context.Context, n *Node, t Transport) (*Client, ClientCloseF
 		uid:          uuidObject.String(),
 		node:         n,
 		transport:    t,
-		channels:     make(map[string]ChannelContext),
+		channels:     make(map[string]channelContext),
 		pubSubSync:   recovery.NewPubSubSync(),
 		publications: newPubQueue(),
 		status:       statusConnecting,
@@ -275,7 +275,7 @@ func (c *Client) Context() context.Context {
 	return c.ctx
 }
 
-func (c *Client) checkSubscriptionExpiration(channel string, channelContext ChannelContext, delay time.Duration) bool {
+func (c *Client) checkSubscriptionExpiration(channel string, channelContext channelContext, delay time.Duration) bool {
 	now := c.node.nowTimeGetter().Unix()
 	expireAt := channelContext.expireAt
 	clientSideRefresh := channelContext.clientSideRefresh
@@ -319,7 +319,7 @@ func (c *Client) updatePresence() {
 		c.mu.Unlock()
 		return
 	}
-	channels := make(map[string]ChannelContext, len(c.channels))
+	channels := make(map[string]channelContext, len(c.channels))
 	for channel, channelContext := range c.channels {
 		channels[channel] = channelContext
 	}
@@ -358,7 +358,7 @@ func (c *Client) updatePresence() {
 	c.mu.Unlock()
 }
 
-func (c *Client) checkPosition(checkDelay time.Duration, ch string, channelContext ChannelContext) bool {
+func (c *Client) checkPosition(checkDelay time.Duration, ch string, chCtx channelContext) bool {
 	chOpts, found, err := c.node.channelOptions(ch)
 	if err != nil || !found {
 		return true
@@ -368,14 +368,14 @@ func (c *Client) checkPosition(checkDelay time.Duration, ch string, channelConte
 	}
 	nowUnix := c.node.nowTimeGetter().Unix()
 
-	isInitialCheck := channelContext.positionCheckTime == 0
-	isTimeToCheck := nowUnix-channelContext.positionCheckTime > int64(checkDelay.Seconds())
+	isInitialCheck := chCtx.positionCheckTime == 0
+	isTimeToCheck := nowUnix-chCtx.positionCheckTime > int64(checkDelay.Seconds())
 	needCheckPosition := isInitialCheck || isTimeToCheck
 
 	if !needCheckPosition {
 		return true
 	}
-	position := channelContext.streamPosition
+	position := chCtx.streamPosition
 	streamTop, err := c.node.streamTop(ch)
 	if err != nil {
 		return true
@@ -384,15 +384,15 @@ func (c *Client) checkPosition(checkDelay time.Duration, ch string, channelConte
 	isValidPosition := streamTop.Offset == position.Offset && streamTop.Epoch == position.Epoch
 	keepConnection := true
 	c.mu.Lock()
-	if channelContext, ok := c.channels[ch]; ok {
-		channelContext.positionCheckTime = nowUnix
+	if chContext, ok := c.channels[ch]; ok {
+		chContext.positionCheckTime = nowUnix
 		if !isValidPosition {
-			channelContext.positionCheckFailures++
-			keepConnection = channelContext.positionCheckFailures < maxCheckPositionFailures
+			chContext.positionCheckFailures++
+			keepConnection = chContext.positionCheckFailures < maxCheckPositionFailures
 		} else {
-			channelContext.positionCheckFailures = 0
+			chContext.positionCheckFailures = 0
 		}
-		c.channels[ch] = channelContext
+		c.channels[ch] = chContext
 	}
 	c.mu.Unlock()
 	return keepConnection
@@ -413,15 +413,23 @@ func (c *Client) Transport() TransportInfo {
 	return c.transport
 }
 
-// Channels returns a map of channels client connection currently subscribed to.
-func (c *Client) Channels() map[string]ChannelContext {
+// Channels returns a slice of channels client connection currently subscribed to.
+func (c *Client) Channels() []string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	channels := make(map[string]ChannelContext, len(c.channels))
-	for ch, ctx := range c.channels {
-		channels[ch] = ctx
+	channels := make([]string, 0, len(c.channels))
+	for ch := range c.channels {
+		channels = append(channels, ch)
 	}
 	return channels
+}
+
+// IsSubscribed returns true if client subscribed to a channel.
+func (c *Client) IsSubscribed(ch string) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	_, ok := c.channels[ch]
+	return ok
 }
 
 // Send data to client. This sends an asynchronous message – data will be
@@ -519,7 +527,7 @@ func (c *Client) close(disconnect *Disconnect) error {
 
 	c.stopTimer()
 
-	channels := make(map[string]ChannelContext, len(c.channels))
+	channels := make(map[string]channelContext, len(c.channels))
 	for channel, channelContext := range c.channels {
 		channels[channel] = channelContext
 	}
@@ -557,7 +565,7 @@ func (c *Client) close(disconnect *Disconnect) error {
 		c.node.logger.log(newLogEntry(LogLevelDebug, "closing client connection", map[string]interface{}{"client": c.uid, "user": c.user, "reason": disconnect.Reason, "reconnect": disconnect.Reconnect}))
 	}
 	if disconnect != nil {
-		serverDisconnectCount.WithLabelValues(strconv.Itoa(disconnect.Code)).Inc()
+		serverDisconnectCount.WithLabelValues(strconv.FormatUint(uint64(disconnect.Code), 10)).Inc()
 	}
 	if c.node.clientEvents.disconnectHandler != nil && c.hasEvent(EventDisconnect) && prevStatus == statusConnected {
 		c.node.clientEvents.disconnectHandler(c, DisconnectEvent{
@@ -1199,6 +1207,8 @@ func (c *Client) connectCmd(cmd *protocol.ConnectRequest, rw *replyWriter) *Disc
 			ClientID:  c.ID(),
 			Data:      cmd.Data,
 			Token:     cmd.Token,
+			Name:      cmd.Name,
+			Version:   cmd.Version,
 			Transport: c.transport,
 		})
 		if err != nil {
@@ -1632,7 +1642,7 @@ type subscribeContext struct {
 	clientInfo     *ClientInfo
 	err            *Error
 	disconnect     *Disconnect
-	channelContext ChannelContext
+	channelContext channelContext
 }
 
 // subscribeCmd handles subscribe command - clients send this when subscribe
@@ -1823,7 +1833,7 @@ func (c *Client) subscribeCmd(cmd *protocol.SubscribeRequest, rw *replyWriter, s
 		_ = rw.flush()
 	}
 
-	channelContext := ChannelContext{
+	channelContext := channelContext{
 		Info:              channelInfo,
 		serverSide:        serverSide,
 		clientSideRefresh: clientSideRefresh,

@@ -118,6 +118,8 @@ func (t *websocketTransport) Write(data []byte) error {
 	}
 }
 
+const closeFrameWait = 5 * time.Second
+
 // Close closes transport.
 func (t *websocketTransport) Close(disconnect *Disconnect) error {
 	t.mu.Lock()
@@ -133,19 +135,22 @@ func (t *websocketTransport) Close(disconnect *Disconnect) error {
 	t.mu.Unlock()
 
 	if disconnect != nil {
-		msg := websocket.FormatCloseMessage(disconnect.Code, disconnect.CloseText())
+		msg := websocket.FormatCloseMessage(int(disconnect.Code), disconnect.CloseText())
 		err := t.conn.WriteControl(websocket.CloseMessage, msg, time.Now().Add(time.Second))
 		if err != nil {
 			return t.conn.Close()
 		}
-
-		// Wait for closing handshake completion.
-		tm := timers.AcquireTimer(5 * time.Second)
 		select {
 		case <-t.graceCh:
-		case <-tm.C:
+		default:
+			// Wait for closing handshake completion.
+			tm := timers.AcquireTimer(closeFrameWait)
+			select {
+			case <-t.graceCh:
+			case <-tm.C:
+			}
+			timers.ReleaseTimer(tm)
 		}
-		timers.ReleaseTimer(tm)
 		return t.conn.Close()
 	}
 	return t.conn.Close()
@@ -161,7 +166,7 @@ const (
 // WebsocketConfig represents config for WebsocketHandler.
 type WebsocketConfig struct {
 	// CompressionLevel sets a level for websocket compression.
-	// See posiible value description at https://golang.org/pkg/compress/flate/#NewWriter
+	// See possible value description at https://golang.org/pkg/compress/flate/#NewWriter
 	CompressionLevel int
 
 	// CompressionMinSize allows to set minimal limit in bytes for
@@ -207,36 +212,36 @@ type WebsocketConfig struct {
 
 // WebsocketHandler handles websocket client connections.
 type WebsocketHandler struct {
-	node     *Node
-	upgrader *websocket.Upgrader
-	config   WebsocketConfig
+	node    *Node
+	upgrade *websocket.Upgrader
+	config  WebsocketConfig
 }
 
 var writeBufferPool = &sync.Pool{}
 
 // NewWebsocketHandler creates new WebsocketHandler.
 func NewWebsocketHandler(n *Node, c WebsocketConfig) *WebsocketHandler {
-	upgrader := &websocket.Upgrader{
+	upgrade := &websocket.Upgrader{
 		ReadBufferSize:    c.ReadBufferSize,
 		EnableCompression: c.Compression,
 	}
 	if c.UseWriteBufferPool {
-		upgrader.WriteBufferPool = writeBufferPool
+		upgrade.WriteBufferPool = writeBufferPool
 	} else {
-		upgrader.WriteBufferSize = c.WriteBufferSize
+		upgrade.WriteBufferSize = c.WriteBufferSize
 	}
 	if c.CheckOrigin != nil {
-		upgrader.CheckOrigin = c.CheckOrigin
+		upgrade.CheckOrigin = c.CheckOrigin
 	} else {
-		upgrader.CheckOrigin = func(r *http.Request) bool {
+		upgrade.CheckOrigin = func(r *http.Request) bool {
 			// Allow all connections.
 			return true
 		}
 	}
 	return &WebsocketHandler{
-		node:     n,
-		config:   c,
-		upgrader: upgrader,
+		node:    n,
+		config:  c,
+		upgrade: upgrade,
 	}
 }
 
@@ -247,7 +252,7 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	compressionLevel := s.config.CompressionLevel
 	compressionMinSize := s.config.CompressionMinSize
 
-	conn, err := s.upgrader.Upgrade(rw, r, nil)
+	conn, err := s.upgrade.Upgrade(rw, r, nil)
 	if err != nil {
 		s.node.logger.log(newLogEntry(LogLevelDebug, "websocket upgrade error", map[string]interface{}{"error": err.Error()}))
 		return
@@ -330,29 +335,27 @@ func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 			s.node.logger.log(newLogEntry(LogLevelDebug, "client connection completed", map[string]interface{}{"client": c.ID(), "transport": transportWebsocket, "duration": time.Since(started)}))
 		}(time.Now())
 
-		var (
-			handleMu sync.RWMutex
-			closed   bool
-		)
 		for {
 			_, data, err := conn.ReadMessage()
 			if err != nil {
-				close(graceCh)
-				return
+				break
 			}
-			handleMu.RLock()
+			closed := !c.Handle(data)
 			if closed {
-				handleMu.RUnlock()
-				continue
+				break
 			}
-			handleMu.RUnlock()
-			go func() {
-				// We use goroutine here for proper handling of Websocket closing handshake.
-				// See https://github.com/gorilla/websocket/issues/448.
-				handleMu.Lock()
-				closed = !c.Handle(data)
-				handleMu.Unlock()
-			}()
+		}
+
+		// https://github.com/gorilla/websocket/issues/448
+		conn.SetPingHandler(nil)
+		conn.SetPongHandler(nil)
+		conn.SetCloseHandler(nil)
+		_ = conn.SetReadDeadline(time.Now().Add(closeFrameWait))
+		for {
+			if _, _, err := conn.NextReader(); err != nil {
+				close(graceCh)
+				break
+			}
 		}
 	}()
 }

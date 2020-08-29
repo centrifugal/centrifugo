@@ -13,17 +13,17 @@ import (
 )
 
 // UnmarshalJSON helps to unmarshal comamnd method when set as string.
-func (m *MethodType) UnmarshalJSON(data []byte) error {
+func (x *MethodType) UnmarshalJSON(data []byte) error {
 	val, err := strconv.Atoi(string(data))
 	if err != nil {
 		method := strings.Trim(strings.ToUpper(string(data)), `"`)
 		if v, ok := MethodType_value[method]; ok {
-			*m = MethodType(v)
+			*x = MethodType(v)
 			return nil
 		}
 		return err
 	}
-	*m = MethodType(val)
+	*x = MethodType(val)
 	return nil
 }
 

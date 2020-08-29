@@ -13,6 +13,8 @@ services:
 
 before_install:
   - go get github.com/mattn/goveralls
+  - docker pull grokzen/redis-cluster:latest
+  - docker run -d -e "IP=0.0.0.0" -p 7000-7006:7000-7006 grokzen/redis-cluster:latest
 
 script:
   - go test -v -race -tags integration -coverprofile=cover.out $(go list ./... | grep -v /_examples/)

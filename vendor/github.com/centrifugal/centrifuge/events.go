@@ -12,6 +12,10 @@ type ConnectEvent struct {
 	Token string
 	// Data received from client as part of Connect Command.
 	Data []byte
+	// Name can contain client name if provided on connect.
+	Name string
+	// Version can contain client version if provided on connect.
+	Version string
 	// Transport contains information about transport used by client.
 	Transport TransportInfo
 }
@@ -21,8 +25,8 @@ type ConnectReply struct {
 	// Context allows to return modified context.
 	Context context.Context
 	// Credentials should be set if app wants to authenticate connection.
-	// This field still optional as auth could be provided through HTTP
-	// middleware or via JWT token.
+	// This field is optional since auth Credentials could be set through
+	// HTTP middleware.
 	Credentials *Credentials
 	// Data allows to set custom data in connect reply.
 	Data []byte

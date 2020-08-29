@@ -70,7 +70,7 @@ func (t *sockjsTransport) Close(disconnect *Disconnect) error {
 	if disconnect == nil {
 		disconnect = DisconnectNormal
 	}
-	return t.session.Close(uint32(disconnect.Code), disconnect.CloseText())
+	return t.session.Close(disconnect.Code, disconnect.CloseText())
 }
 
 // SockjsConfig represents config for SockJS handler.

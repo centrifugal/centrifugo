@@ -1,3 +1,29 @@
+v0.11.0
+=======
+
+* Refactor client channels API – see detailed changes below, [#146](https://github.com/centrifugal/centrifuge/pull/146)
+* Fix atomic alignment in struct for 32-bit builds, [commit](https://github.com/centrifugal/centrifuge/commit/cafa94fbf4173ae46d1f5329a33adec97d0620c8)
+* Field `Code` of `Disconnect` has `uint32` type now instead of `int`, [commit](https://github.com/centrifugal/centrifuge/commit/d86cea2c8b309e6d2ce1f1fa8ba6fcc7d06f7320)
+* Refactor WebSocket graceful close – do not use a new goroutine for every read, [#144](https://github.com/centrifugal/centrifuge/pull/144)
+* Support client name and version fields of `Connect` command which will be available in `ConnectEvent` struct (if set on client side), [#145](https://github.com/centrifugal/centrifuge/pull/145)
+
+```
+$ gorelease -base v0.10.1 -version v0.11.0
+github.com/centrifugal/centrifuge
+---------------------------------
+Incompatible changes:
+- (*Client).Channels: changed from func() map[string]ChannelContext to func() []string
+- ChannelContext: removed
+- Disconnect.Code: changed from int to uint32
+Compatible changes:
+- (*Client).IsSubscribed: added
+- ConnectEvent.Name: added
+- ConnectEvent.Version: added
+- ErrorTooManyRequests: added
+
+v0.11.0 is a valid semantic version for this release.
+```
+
 v0.10.1
 =======
 

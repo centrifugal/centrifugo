@@ -8,6 +8,7 @@ import (
 // Publication is a data sent to channel.
 type Publication struct {
 	// Offset is an incremental position number inside history stream.
+	// Zero value means that channel does not maintain Publication stream.
 	Offset uint64
 	// Data published to channel.
 	Data []byte

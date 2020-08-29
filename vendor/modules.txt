@@ -10,7 +10,7 @@ github.com/FZambia/viper-lite
 github.com/ajstarks/svgo
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/centrifugal/centrifuge v0.10.1
+# github.com/centrifugal/centrifuge v0.11.0
 github.com/centrifugal/centrifuge
 github.com/centrifugal/centrifuge/internal/bufpool
 github.com/centrifugal/centrifuge/internal/cancelctx
@@ -25,7 +25,7 @@ github.com/centrifugal/centrifuge/internal/priority
 github.com/centrifugal/centrifuge/internal/queue
 github.com/centrifugal/centrifuge/internal/recovery
 github.com/centrifugal/centrifuge/internal/timers
-# github.com/centrifugal/protocol v0.3.3
+# github.com/centrifugal/protocol v0.3.4
 github.com/centrifugal/protocol
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2

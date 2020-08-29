@@ -6,11 +6,11 @@ import "sync"
 type Type string
 
 const (
-	// TypeJSON means JSON protocol - i.e. data encoded in
+	// TypeJSON means JSON protocol - in this case data encoded in
 	// JSON-streaming format.
 	TypeJSON Type = "json"
-	// TypeProtobuf means protobuf protocol - i.e. data encoded
-	// as length-delimited protobuf messages.
+	// TypeProtobuf means protobuf protocol - in this case data encoded
+	// as length-delimited (varint) protobuf messages.
 	TypeProtobuf Type = "protobuf"
 )
 

@@ -335,7 +335,7 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 	}
 
 	if chOpts.SubscribeToPublish {
-		if _, ok := c.Channels()[e.Channel]; !ok {
+		if !c.IsSubscribed(e.Channel) {
 			return centrifuge.PublishReply{}, centrifuge.ErrorPermissionDenied
 		}
 	}
@@ -369,7 +369,7 @@ func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (
 	if chOpts.PresenceDisableForClient {
 		return centrifuge.PresenceReply{}, centrifuge.ErrorNotAvailable
 	}
-	if _, ok := c.Channels()[e.Channel]; !ok {
+	if !c.IsSubscribed(e.Channel) {
 		return centrifuge.PresenceReply{}, centrifuge.ErrorPermissionDenied
 	}
 	return centrifuge.PresenceReply{}, nil
@@ -389,7 +389,7 @@ func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceSta
 	if chOpts.PresenceDisableForClient {
 		return centrifuge.PresenceStatsReply{}, centrifuge.ErrorNotAvailable
 	}
-	if _, ok := c.Channels()[e.Channel]; !ok {
+	if !c.IsSubscribed(e.Channel) {
 		return centrifuge.PresenceStatsReply{}, centrifuge.ErrorPermissionDenied
 	}
 	return centrifuge.PresenceStatsReply{}, nil
@@ -409,7 +409,7 @@ func (h *Handler) OnHistory(c *centrifuge.Client, e centrifuge.HistoryEvent) (ce
 	if chOpts.HistoryDisableForClient {
 		return centrifuge.HistoryReply{}, centrifuge.ErrorNotAvailable
 	}
-	if _, ok := c.Channels()[e.Channel]; !ok {
+	if !c.IsSubscribed(e.Channel) {
 		return centrifuge.HistoryReply{}, centrifuge.ErrorPermissionDenied
 	}
 	return centrifuge.HistoryReply{}, nil

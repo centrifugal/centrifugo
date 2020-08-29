@@ -42,7 +42,7 @@ type Config struct {
 	// be disconnected with DisconnectInsufficientState.
 	ClientChannelPositionCheckDelay time.Duration
 	// ClientQueueMaxSize is a maximum size of client's message queue in bytes.
-	// After this queue size exceeded Centrifugo closes client's connection.
+	// After this queue size exceeded Centrifuge closes client's connection.
 	ClientQueueMaxSize int
 	// ClientChannelLimit sets upper limit of channels each client can subscribe to.
 	ClientChannelLimit int
