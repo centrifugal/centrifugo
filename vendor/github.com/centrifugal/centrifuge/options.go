@@ -38,7 +38,7 @@ type DisconnectOptions struct {
 	Reconnect bool
 }
 
-// DisconnectOption is a type to represent various Unsubscribe options.
+// DisconnectOption is a type to represent various Disconnect options.
 type DisconnectOption func(options *DisconnectOptions)
 
 // WithReconnect allows to set Reconnect flag to true.

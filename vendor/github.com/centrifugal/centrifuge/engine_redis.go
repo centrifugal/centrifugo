@@ -26,10 +26,8 @@ const (
 	// redisPubSubWorkerChannelSize sets buffer size of channel to which we send all
 	// messages received from Redis PUB/SUB connection to process in separate goroutine.
 	redisPubSubWorkerChannelSize = 1024
-	// redisSubscribeBatchLimit is a maximum number of channels to include in a single subscribe
-	// call. Redis documentation doesn't specify a maximum allowed but we think it probably makes
-	// sense to keep a sane limit given how many subscriptions a single Centrifugo instance might
-	// be handling.
+	// redisSubscribeBatchLimit is a maximum number of channels to include in a single
+	// batch subscribe call.
 	redisSubscribeBatchLimit = 512
 	// redisPublishBatchLimit is a maximum limit of publish requests one batched publish
 	// operation can contain.

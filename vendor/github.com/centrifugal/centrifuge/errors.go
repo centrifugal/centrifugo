@@ -65,13 +65,14 @@ var (
 		Message: "already subscribed",
 	}
 	// ErrorLimitExceeded says that some sort of limit exceeded, server logs should
-	// give more detailed information.
+	// give more detailed information. See also ErrorTooManyRequests which is more
+	// specific for rate limiting purposes.
 	ErrorLimitExceeded = &Error{
 		Code:    106,
 		Message: "limit exceeded",
 	}
 	// ErrorBadRequest says that server can not process received
-	// data because it is malformed.
+	// data because it is malformed. Retrying request does not make sense.
 	ErrorBadRequest = &Error{
 		Code:    107,
 		Message: "bad request",
@@ -81,14 +82,20 @@ var (
 		Code:    108,
 		Message: "not available",
 	}
-	// ErrorTokenExpired ...
+	// ErrorTokenExpired indicates that connection token expired.
 	ErrorTokenExpired = &Error{
 		Code:    109,
 		Message: "token expired",
 	}
-	// ErrorExpired ...
+	// ErrorExpired indicates that connection expired (no token involved).
 	ErrorExpired = &Error{
 		Code:    110,
 		Message: "expired",
+	}
+	// ErrorTooManyRequests means that server rejected request due to
+	// its rate limiting strategies.
+	ErrorTooManyRequests = &Error{
+		Code:    111,
+		Message: "too many requests",
 	}
 )

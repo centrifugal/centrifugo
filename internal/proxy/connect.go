@@ -12,6 +12,8 @@ type ConnectRequest struct {
 	ClientID  string
 	Transport centrifuge.TransportInfo
 	Data      []byte
+	Name      string
+	Version   string
 }
 
 // ConnectCredentials ...

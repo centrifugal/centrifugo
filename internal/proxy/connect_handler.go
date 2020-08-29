@@ -41,6 +41,8 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 			ClientID:  e.ClientID,
 			Transport: e.Transport,
 			Data:      e.Data,
+			Name:      e.Name,
+			Version:   e.Version,
 		})
 		duration := time.Since(started).Seconds()
 		if err != nil {

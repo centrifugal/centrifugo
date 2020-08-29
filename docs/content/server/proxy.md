@@ -69,6 +69,8 @@ Request fields:
 * `transport` is transport name (`websocket` or `sockjs` at moment)
 * `protocol` is a protocol type used by client (`json` or `protobuf` at moment)
 * `encoding` is a protocol encoding type used (`json` or `binary` at moment)
+* `name` is an optional name of client (this field will only be set if provided by a client on connect), Centrifugo >= 2.6.2
+* `version` is an optional version of client (this field will only be set if provided by a client on connect), Centrifugo >= 2.6.2
 
 Response expected:
 
@@ -394,7 +396,7 @@ Application backend can return JSON object that contain an error to return it to
 }
 ```
 
-Application can use error codes >= 1000, error codes in range 0-999 are reserved by Centrifugo internal protocol.
+Application **should use error codes >= 1000**, error codes in range 0-999 are reserved by Centrifugo internal protocol. Error code field is `uint32` internally.
 
 This **does not apply to response on refresh request** as there is no sense in returning an error (will not reach client anyway). 
 
@@ -414,6 +416,6 @@ Application backend can return JSON object that contain an custom disconnect obj
 }
 ```
 
-Application can use numbers in range 4000-4999 for custom disconnect codes. Numbers below 4000 are reserved by Centrifugo internal protocol. Keep in mind that **due to WebSocket protocol limitations and Centrifugo internal protocol needs you need to keep disconnect reason string no longer than 32 symbols**.
+Application **should use numbers in range 4000-4999 for custom disconnect codes**. Code is `uint32` internally. Numbers below 4000 are reserved by Centrifugo internal protocol. Keep in mind that **due to WebSocket protocol limitations and Centrifugo internal protocol needs you need to keep disconnect reason string no longer than 32 symbols**.
 
 This **does not apply to response on refresh request** as there is no way to control disconnect at moment - client will always be disconnected with `expired` disconnect reason.

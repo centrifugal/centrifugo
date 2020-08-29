@@ -18,6 +18,10 @@ type ConnectRequestHTTP struct {
 	Data json.RawMessage `json:"data,omitempty"`
 	// Base64Data to proxy protobuf data.
 	Base64Data string `json:"b64data,omitempty"`
+	// Name of client.
+	Name string `json:"name,omitempty"`
+	// Version of client.
+	Version string `json:"version,omitempty"`
 }
 
 // HTTPConnectProxy ...
@@ -54,10 +58,12 @@ func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req ConnectRequest)
 			Protocol:  string(req.Transport.Protocol()),
 			Encoding:  string(req.Transport.Encoding()),
 		},
+		Name:    req.Name,
+		Version: req.Version,
 	}
 
 	if req.Transport.Encoding() == centrifuge.EncodingTypeJSON {
-		connectHTTPReq.Data = json.RawMessage(req.Data)
+		connectHTTPReq.Data = req.Data
 	} else {
 		connectHTTPReq.Base64Data = base64.StdEncoding.EncodeToString(req.Data)
 	}

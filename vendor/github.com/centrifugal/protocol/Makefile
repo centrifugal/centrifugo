@@ -8,6 +8,7 @@ install:
 proto:
 	gomplate -f client.template > definitions/client.proto
 	GOGO=1 gomplate -f client.template > client.proto
+	cat client.proto
 	protoc --proto_path=vendor/:. --gogofaster_out=plugins=grpc:../protocol client.proto
 	rm client.proto
 
