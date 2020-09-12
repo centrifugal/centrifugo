@@ -2,21 +2,21 @@
 
 Here we will look at how Centrifugo can be configured.
 
-## Getting help
+## Configuration ways
 
 Centrifugo can be configured in several ways:
 
 * over command-line flags, see `centrifugo -h` for available flags, command-line flags limited to most frequently used
-* over configuration file, configuration file supports all options mentioned in this doc
-* over OS environment variables, all Centrifugo options supported to be set over env in format `CENTRIFUGO_<OPTION_NAME>`
+* over configuration file, configuration file supports all options mentioned in this documentation
+* over OS environment variables, **all Centrifugo options can be set over env in format `CENTRIFUGO_<OPTION_NAME>`**
 
-The basic way to start with Centrifugo is run `centrifugo genconfig` command which will generate `config.json` configuration file with some options (in a current directory), so you can start Centrifugo:
+The basic way to start with Centrifugo is run `centrifugo genconfig` command which will generate `config.json` configuration file with some options (in a current directory), so you can then run Centrifugo:
 
 ```
 centrifugo -c config.json
 ```
 
-Below while describing configuration file format we will look at the meaning of the required options. 
+Below while describing configuration file format we will look at the meaning of the required options.
 
 ## Config file formats
 
@@ -38,7 +38,7 @@ This is a minimal Centrifugo configuration file:
 
 The only two fields required are **token_hmac_secret_key** and **api_key**. `token_hmac_secret_key` used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](http_api.md). Keep both values in secret and never reveal to clients.
 
-The option `v3_use_offset` turns on using latest client-server protocol `offset` field (will be used by default in Centrifugo v3 so better to use it from start).
+The option `v3_use_offset` turns on using latest client-server protocol `offset` field (**will be used by default in Centrifugo v3 so better to use it from start**).
 
 ### TOML config format
 
