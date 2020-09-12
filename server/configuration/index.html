@@ -444,8 +444,8 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#getting-help" class="md-nav__link">
-    Getting help
+  <a href="#configuration-ways" class="md-nav__link">
+    Configuration ways
   </a>
   
 </li>
@@ -1256,8 +1256,8 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#getting-help" class="md-nav__link">
-    Getting help
+  <a href="#configuration-ways" class="md-nav__link">
+    Configuration ways
   </a>
   
 </li>
@@ -1470,18 +1470,18 @@
                 
                 <h1 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h1>
 <p>Here we will look at how Centrifugo can be configured.</p>
-<h2 id="getting-help">Getting help<a class="headerlink" href="#getting-help" title="Permanent link">&para;</a></h2>
+<h2 id="configuration-ways">Configuration ways<a class="headerlink" href="#configuration-ways" title="Permanent link">&para;</a></h2>
 <p>Centrifugo can be configured in several ways:</p>
 <ul>
 <li>over command-line flags, see <code>centrifugo -h</code> for available flags, command-line flags limited to most frequently used</li>
-<li>over configuration file, configuration file supports all options mentioned in this doc</li>
-<li>over OS environment variables, all Centrifugo options supported to be set over env in format <code>CENTRIFUGO_&lt;OPTION_NAME&gt;</code></li>
+<li>over configuration file, configuration file supports all options mentioned in this documentation</li>
+<li>over OS environment variables, <strong>all Centrifugo options can be set over env in format <code>CENTRIFUGO_&lt;OPTION_NAME&gt;</code></strong></li>
 </ul>
-<p>The basic way to start with Centrifugo is run <code>centrifugo genconfig</code> command which will generate <code>config.json</code> configuration file with some options (in a current directory), so you can start Centrifugo:</p>
+<p>The basic way to start with Centrifugo is run <code>centrifugo genconfig</code> command which will generate <code>config.json</code> configuration file with some options (in a current directory), so you can then run Centrifugo:</p>
 <div class="highlight"><pre><span></span><code>centrifugo -c config.json
 </code></pre></div>
 
-<p>Below while describing configuration file format we will look at the meaning of the required options. </p>
+<p>Below while describing configuration file format we will look at the meaning of the required options.</p>
 <h2 id="config-file-formats">Config file formats<a class="headerlink" href="#config-file-formats" title="Permanent link">&para;</a></h2>
 <p>Centrifugo supports different configuration file formats. </p>
 <h3 id="json-config-format">JSON config format<a class="headerlink" href="#json-config-format" title="Permanent link">&para;</a></h3>
@@ -1495,7 +1495,7 @@
 </code></pre></div>
 
 <p>The only two fields required are <strong>token_hmac_secret_key</strong> and <strong>api_key</strong>. <code>token_hmac_secret_key</code> used to check JWT signature (more about JWT in <a href="../authentication/">authentication chapter</a>). API key used for Centrifugo API endpoint authorization, see more in <a href="../http_api/">chapter about server HTTP API</a>. Keep both values in secret and never reveal to clients.</p>
-<p>The option <code>v3_use_offset</code> turns on using latest client-server protocol <code>offset</code> field (will be used by default in Centrifugo v3 so better to use it from start).</p>
+<p>The option <code>v3_use_offset</code> turns on using latest client-server protocol <code>offset</code> field (<strong>will be used by default in Centrifugo v3 so better to use it from start</strong>).</p>
 <h3 id="toml-config-format">TOML config format<a class="headerlink" href="#toml-config-format" title="Permanent link">&para;</a></h3>
 <p>Centrifugo also supports TOML format for configuration file:</p>
 <div class="highlight"><pre><span></span><code>centrifugo --config=config.toml
