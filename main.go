@@ -1082,6 +1082,7 @@ func nodeConfig(version string, chOptsFunc centrifuge.ChannelOptionsFunc) centri
 	v := viper.GetViper()
 	cfg := centrifuge.Config{}
 	cfg.Version = version
+	cfg.MetricsNamespace = "centrifugo"
 	cfg.Name = applicationName()
 	cfg.ChannelMaxLength = v.GetInt("channel_max_length")
 	cfg.ClientPresenceUpdateInterval = time.Duration(v.GetInt("client_presence_ping_interval")) * time.Second

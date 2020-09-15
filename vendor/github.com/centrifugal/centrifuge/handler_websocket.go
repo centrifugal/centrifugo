@@ -246,7 +246,7 @@ func NewWebsocketHandler(n *Node, c WebsocketConfig) *WebsocketHandler {
 }
 
 func (s *WebsocketHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	transportConnectCount.WithLabelValues(transportWebsocket).Inc()
+	incTransportConnect(transportWebsocket)
 
 	compression := s.config.Compression
 	compressionLevel := s.config.CompressionLevel

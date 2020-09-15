@@ -8,7 +8,7 @@ env:
 go:
   # Use quotes here:
   # https://github.com/travis-ci/gimme/issues/132
-  - '1.14.x'
+  - '1.15.x'
   - 'tip'
 
 addons:
@@ -34,9 +34,9 @@ deploy:
     script: misc/release/release.sh --release-notes=misc/release/notes.md
     on:
       tags: true
-      go: '1.14.x'
+      go: '1.15.x'
   - provider: script
     script: misc/scripts/travis_packagecloud.sh
     on:
       tags: true 
-      go: '1.14.x'
+      go: '1.15.x'

@@ -168,7 +168,7 @@ func newSockJSHandler(s *SockjsHandler, sockjsPrefix string, sockjsOpts sockjs.O
 
 // sockJSHandler called when new client connection comes to SockJS endpoint.
 func (s *SockjsHandler) sockJSHandler(sess sockjs.Session) {
-	transportConnectCount.WithLabelValues(transportSockJS).Inc()
+	incTransportConnect(transportSockJS)
 
 	// Separate goroutine for better GC of caller's data.
 	go func() {

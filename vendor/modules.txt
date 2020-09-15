@@ -10,7 +10,7 @@ github.com/FZambia/viper-lite
 github.com/ajstarks/svgo
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/centrifugal/centrifuge v0.11.0
+# github.com/centrifugal/centrifuge v0.11.1-0.20200914173515-3f1869a4321d
 github.com/centrifugal/centrifuge
 github.com/centrifugal/centrifuge/internal/bufpool
 github.com/centrifugal/centrifuge/internal/cancelctx
@@ -48,7 +48,7 @@ github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
 # github.com/gomodule/redigo v1.8.2
 github.com/gomodule/redigo/redis
-# github.com/google/uuid v1.1.1
+# github.com/google/uuid v1.1.2
 github.com/google/uuid
 # github.com/gorilla/securecookie v1.1.1
 github.com/gorilla/securecookie
@@ -86,7 +86,7 @@ github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promhttp
 # github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.11.1
+# github.com/prometheus/common v0.13.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
@@ -123,7 +123,7 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
-# golang.org/x/sys v0.0.0-20200806125547-5acd03effb82
+# golang.org/x/sys v0.0.0-20200915084602-288bc346aa39
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows

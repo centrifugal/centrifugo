@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -124,8 +122,6 @@ func NewClient(ctx context.Context, n *Node, t Transport) (*Client, ClientCloseF
 		status:       statusConnecting,
 	}
 
-	transportMessagesSentCounter := transportMessagesSent.WithLabelValues(t.Name())
-
 	messageWriterConf := writerConfig{
 		MaxQueueSize: n.config.ClientQueueMaxSize,
 		WriteFn: func(data []byte) error {
@@ -133,7 +129,7 @@ func NewClient(ctx context.Context, n *Node, t Transport) (*Client, ClientCloseF
 				go func() { _ = c.close(DisconnectWriteError) }()
 				return err
 			}
-			transportMessagesSentCounter.Inc()
+			incTransportMessagesSent(t.Name())
 			return nil
 		},
 		WriteManyFn: func(data ...[]byte) error {
@@ -147,7 +143,7 @@ func NewClient(ctx context.Context, n *Node, t Transport) (*Client, ClientCloseF
 				return err
 			}
 			bufpool.PutBuffer(buf)
-			transportMessagesSentCounter.Add(float64(len(data)))
+			addTransportMessagesSent(t.Name(), float64(len(data)))
 			return nil
 		},
 	}
@@ -565,7 +561,7 @@ func (c *Client) close(disconnect *Disconnect) error {
 		c.node.logger.log(newLogEntry(LogLevelDebug, "closing client connection", map[string]interface{}{"client": c.uid, "user": c.user, "reason": disconnect.Reason, "reconnect": disconnect.Reconnect}))
 	}
 	if disconnect != nil {
-		serverDisconnectCount.WithLabelValues(strconv.FormatUint(uint64(disconnect.Code), 10)).Inc()
+		incServerDisconnect(disconnect.Code)
 	}
 	if c.node.clientEvents.disconnectHandler != nil && c.hasEvent(EventDisconnect) && prevStatus == statusConnected {
 		c.node.clientEvents.disconnectHandler(c, DisconnectEvent{
@@ -721,7 +717,7 @@ func (c *Client) handleCommand(cmd *protocol.Command, writeFn func(*protocol.Rep
 		rep.ID = cmd.ID
 		if rep.Error != nil {
 			c.node.logger.log(newLogEntry(LogLevelInfo, "client command error", map[string]interface{}{"reply": fmt.Sprintf("%v", rep), "command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "error": rep.Error.Error()}))
-			replyErrorCount.WithLabelValues(strings.ToLower(protocol.MethodType_name[int32(method)]), strconv.FormatUint(uint64(rep.Error.Code), 10)).Inc()
+			incReplyError(cmd.Method, rep.Error.Code)
 		}
 		return writeFn(rep)
 	}
@@ -769,7 +765,7 @@ func (c *Client) handleCommand(cmd *protocol.Command, writeFn func(*protocol.Rep
 	default:
 		_ = rw.write(&protocol.Reply{Error: ErrorMethodNotFound.toProto()})
 	}
-	commandDurationSummary.WithLabelValues(strings.ToLower(protocol.MethodType_name[int32(method)])).Observe(time.Since(started).Seconds())
+	observeCommandDuration(method, time.Since(started))
 	return disconnect
 }
 
@@ -1628,14 +1624,6 @@ func handleErrorDisconnect(rw *replyWriter, replyError *Error, disconnect *Disco
 	return ctx
 }
 
-func incRecoverCount(recovered bool) {
-	recoveredLabel := "no"
-	if recovered {
-		recoveredLabel = "yes"
-	}
-	recoverCount.WithLabelValues(recoveredLabel).Inc()
-}
-
 type subscribeContext struct {
 	result         *protocol.SubscribeResult
 	chOpts         ChannelOptions
@@ -1768,7 +1756,7 @@ func (c *Client) subscribeCmd(cmd *protocol.SubscribeRequest, rw *replyWriter, s
 				recovered = recoveredPubs[0].Offset == nextOffset && latestEpoch == cmd.Epoch
 			}
 			res.Recovered = recovered
-			incRecoverCount(res.Recovered)
+			incRecover(res.Recovered)
 		} else {
 			streamTop, err := c.node.streamTop(channel)
 			if err != nil {
