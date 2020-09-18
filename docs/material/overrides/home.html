@@ -6,6 +6,21 @@
 
 <!-- Additional styles for landing page -->
 <style>
+    /* Application header should be static for the landing page */
+    .md-header {
+        position: initial;
+    }
+
+    /* Remove spacing, as we cannot hide it completely */
+    .md-main__inner {
+        margin: 0;
+    }
+
+    /* Hide main content for now */
+    .md-content {
+        display: none;
+    }
+
     .tx-container {
         height: 200px;
         width: 436px;
@@ -13,7 +28,7 @@
         top: 50%;
         left: 50%;
         margin-top: -100px;
-        margin-left: -213px;
+        margin-left: -218px;
     }
 
     /* Set inverted text color on hero */
