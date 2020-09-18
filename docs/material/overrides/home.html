@@ -6,22 +6,6 @@
 
 <!-- Additional styles for landing page -->
 <style>
-
-    /* Application header should be static for the landing page */
-    .md-header {
-        position: initial;
-    }
-
-    /* Remove spacing, as we cannot hide it completely */
-    .md-main__inner {
-        margin: 0;
-    }
-
-    /* Hide main content for now */
-    .md-content {
-        display: none;
-    }
-
     .tx-container {
         height: 200px;
         width: 436px;
@@ -29,7 +13,7 @@
         top: 50%;
         left: 50%;
         margin-top: -100px;
-        margin-left: -218px;
+        margin-left: -213px;
     }
 
     /* Set inverted text color on hero */
@@ -39,10 +23,12 @@
     }
 
     .tx-hero h1 {
+        font-family: Open Sans,Helvetica,Arial,"sans-serif";
         margin-bottom: 2rem;
+        margin-top: 1rem;
         color: currentColor;
-        font-weight: 900;
-        font-size: 4rem;
+        font-weight: 500;
+        font-size: 2.8rem;
     }
 
     .tx-hero__content {
@@ -126,30 +112,6 @@
     canvas#canvas {
         display: block;
         background: black;
-    }
-
-    .welcome {
-        padding-top: 40px;
-        width: 99.9%;
-        display: inline-block;
-        vertical-align: middle;
-        z-index: 2;
-        text-align: center;
-    }
-
-    .valign {
-        display: inline-block;
-        vertical-align: middle;
-        width: .1%;
-        height: 100%;
-    }
-
-    .inner {
-        width: 100%;
-        max-width: 980px;
-        padding: 0 20px;
-        margin: 0 auto;
-        position: relative;
     }
 </style>
 <canvas id="canvas">Canvas not supported.</canvas>
@@ -380,7 +342,7 @@
         <div class="tx-hero">
             <!-- Hero content -->
             <div class="tx-hero__content">
-                <h1>Centrifugo</h1>
+                <h1>CENTRIFUGO</h1>
                 <p>{{ config.site_description }}. Set up once and forever.</p>
                 <a
                         href="{{ page.next_page.url | url }}"
