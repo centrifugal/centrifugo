@@ -601,7 +601,7 @@ func (c *Client) Handle(data []byte) bool {
 
 	if len(data) == 0 {
 		c.node.logger.log(newLogEntry(LogLevelError, "empty client request received", map[string]interface{}{"client": c.ID(), "user": c.UserID()}))
-		_ = c.close(DisconnectBadRequest)
+		go func() { _ = c.close(DisconnectBadRequest) }()
 		return false
 	}
 
@@ -617,7 +617,7 @@ func (c *Client) Handle(data []byte) bool {
 				break
 			}
 			c.node.logger.log(newLogEntry(LogLevelInfo, "error decoding command", map[string]interface{}{"data": string(data), "client": c.ID(), "user": c.UserID(), "error": err.Error()}))
-			_ = c.close(DisconnectBadRequest)
+			go func() { _ = c.close(DisconnectBadRequest) }()
 			protocol.PutCommandDecoder(protoType, decoder)
 			protocol.PutReplyEncoder(protoType, encoder)
 			return false
@@ -640,7 +640,7 @@ func (c *Client) Handle(data []byte) bool {
 					}
 					protocol.PutCommandDecoder(protoType, decoder)
 					protocol.PutReplyEncoder(protoType, encoder)
-					_ = c.close(disconnect)
+					go func() { _ = c.close(disconnect) }()
 					return fmt.Errorf("flush error")
 				}
 			}
@@ -661,7 +661,7 @@ func (c *Client) Handle(data []byte) bool {
 			if disconnect != DisconnectNormal {
 				c.node.logger.log(newLogEntry(LogLevelInfo, "disconnect after handling command", map[string]interface{}{"command": fmt.Sprintf("%v", cmd), "client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
 			}
-			_ = c.close(disconnect)
+			go func() { _ = c.close(disconnect) }()
 			if encodeErr == nil {
 				protocol.PutCommandDecoder(protoType, decoder)
 				protocol.PutReplyEncoder(protoType, encoder)
@@ -669,7 +669,7 @@ func (c *Client) Handle(data []byte) bool {
 			return false
 		}
 		if encodeErr != nil {
-			_ = c.close(DisconnectServerError)
+			go func() { _ = c.close(DisconnectServerError) }()
 			return false
 		}
 	}
@@ -681,7 +681,7 @@ func (c *Client) Handle(data []byte) bool {
 			if c.node.logger.enabled(LogLevelDebug) {
 				c.node.logger.log(newLogEntry(LogLevelDebug, "disconnect after sending reply", map[string]interface{}{"client": c.ID(), "user": c.UserID(), "reason": disconnect.Reason}))
 			}
-			_ = c.close(disconnect)
+			go func() { _ = c.close(disconnect) }()
 			protocol.PutCommandDecoder(protoType, decoder)
 			protocol.PutReplyEncoder(protoType, encoder)
 			return false

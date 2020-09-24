@@ -1,3 +1,25 @@
+v0.11.2
+=======
+
+* Fix non-working websocket close with custom disconnect code: this is a regression introduced by v0.11.0.
+
+v0.11.1
+=======
+
+* Added `MetricsNamespace` field of `Config` to configure Prometheus metrics namespace used by Centrifuge library internal metrics
+* Fix `messages_sent_counter` – it now correctly counts Control, Join and Leave messages
+* Redis cluster integration now tested in CI
+
+```
+$ gorelease -base v0.11.0 -version v0.11.1
+github.com/centrifugal/centrifuge
+---------------------------------
+Compatible changes:
+- Config.MetricsNamespace: added
+
+v0.11.1 is a valid semantic version for this release.
+```
+
 v0.11.0
 =======
 
