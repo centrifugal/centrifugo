@@ -14,7 +14,7 @@ Here let's suppose you already have 2 of 3 elements: clients and backend. Now yo
 
 ## 0. Install
 
-First you need to do is download/install Centrifugo server. See [install](install.md) chapter for details.
+First you need to do is download/install Centrifugo server. See [install](server/install.md) chapter for details.
 
 ## 1. Configure Centrifugo
 
