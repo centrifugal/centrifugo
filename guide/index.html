@@ -189,7 +189,7 @@
   
     <li class="md-tabs__item">
       
-        <a href="../server/configuration/" class="md-tabs__link">
+        <a href="../server/install/" class="md-tabs__link">
           Server
         </a>
       
@@ -333,18 +333,6 @@
   <li class="md-nav__item">
     <a href="../getting_started/" title="What is Centrifugo" class="md-nav__link">
       What is Centrifugo
-    </a>
-  </li>
-
-        
-          
-          
-          
-
-
-  <li class="md-nav__item">
-    <a href="../install/" title="Installation" class="md-nav__link">
-      Installation
     </a>
   </li>
 
@@ -514,6 +502,18 @@
 
 
   <li class="md-nav__item">
+    <a href="../server/install/" title="Installation" class="md-nav__link">
+      Installation
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
     <a href="../server/configuration/" title="Configuration" class="md-nav__link">
       Configuration
     </a>
@@ -659,16 +659,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-13" type="checkbox" id="nav-3-13">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
     
-    <label class="md-nav__link" for="nav-3-13">
+    <label class="md-nav__link" for="nav-3-14">
       Client-server transports
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Client-server transports" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-13">
+      <label class="md-nav__title" for="nav-3-14">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -761,16 +761,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
     
-    <label class="md-nav__link" for="nav-3-14">
+    <label class="md-nav__link" for="nav-3-15">
       Deploy
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Deploy" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-14">
+      <label class="md-nav__title" for="nav-3-15">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -839,16 +839,16 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
+      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16">
     
-    <label class="md-nav__link" for="nav-3-15">
+    <label class="md-nav__link" for="nav-3-16">
       Misc
       <span class="md-nav__icon md-icon">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
       </span>
     </label>
     <nav class="md-nav" aria-label="Misc" data-md-level="2">
-      <label class="md-nav__title" for="nav-3-15">
+      <label class="md-nav__title" for="nav-3-16">
         <span class="md-nav__icon md-icon">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
         </span>
@@ -1230,7 +1230,7 @@
 <p>There are three parts involved into idiomatic Centrifugo usage scenario: your clients (frontend application), your application backend and Centrifugo. It's possible to use Centrifugo without any application backend involved but here we won't consider this use case. </p>
 <p>Here let's suppose you already have 2 of 3 elements: clients and backend. Now you want to add Centrifugo to receive real-time events on client side.</p>
 <h2 id="0-install">0. Install<a class="headerlink" href="#0-install" title="Permanent link">&para;</a></h2>
-<p>First you need to do is download/install Centrifugo server. See <a href="../install/">install</a> chapter for details.</p>
+<p>First you need to do is download/install Centrifugo server. See <a href="../server/install/">install</a> chapter for details.</p>
 <h2 id="1-configure-centrifugo">1. Configure Centrifugo<a class="headerlink" href="#1-configure-centrifugo" title="Permanent link">&para;</a></h2>
 <p>Create basic configuration file with <code>token_hmac_secret_key</code> (or <code>token_rsa_public_key</code>) and <code>api_key</code> set and then run Centrifugo. See <a href="../server/configuration/">this chapter</a> for details about <code>token_hmac_secret_key</code>/<code>token_rsa_public_key</code> and <a href="../server/http_api/">chapter about API</a> for API description. The simplest way to do this automatically is by using <code>genconfig</code> command:</p>
 <div class="highlight"><pre><span></span><code>./centrifugo genconfig
@@ -1294,13 +1294,13 @@
             </a>
             
             
-            <a href="../server/configuration/" title="Configuration" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <a href="../server/install/" title="Installation" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
                 <div class="md-footer-nav__title">
                     <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                        Configuration
+                        Installation
                     </div>
                 </div>
                 <div class="md-footer-nav__button md-icon">
