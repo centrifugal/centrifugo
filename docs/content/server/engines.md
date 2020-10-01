@@ -295,4 +295,4 @@ Available options:
 * `nats_dial_timeout` - timeout for dialing to Nats in seconds, default `1`.
 * `nats_write_timeout` - write (and flush) timeout on a connection to Nats in seconds, default `1`.
 
-It's theoretically possible to use Redis Engine together with Nats broker for message history, recovery and presence. If you are interested in this – please write to our community chat rooms.
+It's theoretically possible to use Redis Engine together with Nats broker for presence information. If you are interested in this – please write to our community chat rooms.

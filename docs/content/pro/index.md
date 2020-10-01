@@ -2,7 +2,11 @@
 
 Centrifugo becomes more popular and is used in many projects over the world. Since it's rather big project I need more and more time to maintain it healthy, improve client libraries and introduce new features.
 
-I am considering to create a PRO version of Centrifugo. It may include some additional features on top of open-source Centrifugo version. This version will have some model of monetization, I am still evaluating whether it's reasonable to have and will be in demand. Please contact me (see email address in [my GitHub profile](https://github.com/FZambia)) if you are interested in having additional features mentioned below and have any ideas on how to keep Centrifugo development sustainable.
+I am considering to create a PRO version of Centrifugo. It may include some additional features on top of open-source Centrifugo version. This version will have some model of monetization, I am still evaluating whether it's reasonable to have and will be in demand.
+
+An alternative to PRO version is our [Centrifugal OpenCollective](https://opencollective.com/centrifugal) organization – personally I prefer this way of becoming sustainable since it does not involve creating custom closed-source version of Centrifugo.
+
+Please contact me (see email address in [my GitHub profile](https://github.com/FZambia)) if you are interested in having additional features mentioned below and have any ideas on how to keep Centrifugo development sustainable.
 
 ## Real-time connection analytics with Clickhouse
 
