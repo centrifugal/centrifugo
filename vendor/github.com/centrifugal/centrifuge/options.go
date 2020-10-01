@@ -1,18 +1,23 @@
 package centrifuge
 
-// PublishOptions define some fields to alter behaviour of Publish operation.
-type PublishOptions struct {
-	// SkipHistory allows to prevent saving specific Publication to channel history.
-	SkipHistory bool
-}
+import "time"
 
 // PublishOption is a type to represent various Publish options.
 type PublishOption func(*PublishOptions)
 
-// SkipHistory allows to set SkipHistory to true.
+// WithHistory tells broker to save message to history stream.
+func WithHistory(size int, ttl time.Duration) PublishOption {
+	return func(opts *PublishOptions) {
+		opts.HistorySize = size
+		opts.HistoryTTL = ttl
+	}
+}
+
+// SkipHistory tells broker to skip saving message to history stream.
+// Deprecated – will be removed in Centrifuge v0.13.0.
 func SkipHistory() PublishOption {
 	return func(opts *PublishOptions) {
-		opts.SkipHistory = true
+		opts.skipHistory = true
 	}
 }
 

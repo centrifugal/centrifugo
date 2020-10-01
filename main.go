@@ -318,12 +318,15 @@ func main() {
 			}
 
 			brokerName := viper.GetString("broker")
+			if brokerName != "" && brokerName != "nats" {
+				log.Fatal().Msgf("unknown broker: %s", brokerName)
+			}
 
 			var e centrifuge.Engine
 			if engineName == "memory" {
 				e, err = memoryEngine(node)
 			} else if engineName == "redis" {
-				e, err = redisEngine(node, brokerName == "")
+				e, err = redisEngine(node)
 			} else {
 				log.Fatal().Msgf("unknown engine: %s", engineName)
 			}
@@ -342,7 +345,6 @@ func main() {
 			if engineName == "memory" && brokerName == "nats" {
 				// Presence and History won't work with Memory engine in distributed case.
 				disableHistoryPresence = true
-				node.SetHistoryManager(nil)
 				node.SetPresenceManager(nil)
 			}
 
@@ -1219,8 +1221,8 @@ func memoryEngine(n *centrifuge.Node) (centrifuge.Engine, error) {
 	return centrifuge.NewMemoryEngine(n, *c)
 }
 
-func redisEngine(n *centrifuge.Node, publishOnHistoryAdd bool) (centrifuge.Engine, error) {
-	c, err := redisEngineConfig(publishOnHistoryAdd)
+func redisEngine(n *centrifuge.Node) (centrifuge.Engine, error) {
+	c, err := redisEngineConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -1246,7 +1248,7 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
 	shardConf.WriteTimeout = time.Duration(v.GetInt("redis_write_timeout")) * time.Second
 }
 
-func redisEngineConfig(publishOnHistoryAdd bool) (*centrifuge.RedisEngineConfig, error) {
+func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
 	v := viper.GetViper()
 
 	clusterConf := v.GetStringSlice("redis_cluster_addrs")
@@ -1447,10 +1449,9 @@ func redisEngineConfig(publishOnHistoryAdd bool) (*centrifuge.RedisEngineConfig,
 	}
 
 	return &centrifuge.RedisEngineConfig{
-		PublishOnHistoryAdd: publishOnHistoryAdd,
-		UseStreams:          v.GetBool("redis_streams"),
-		HistoryMetaTTL:      historyMetaTTL,
-		Shards:              shardConfigs,
+		UseStreams:     v.GetBool("redis_streams"),
+		HistoryMetaTTL: historyMetaTTL,
+		Shards:         shardConfigs,
 	}, nil
 }
 

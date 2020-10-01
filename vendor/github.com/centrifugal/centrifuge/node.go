@@ -32,10 +32,8 @@ type Node struct {
 	config Config
 	// hub to manage client connections.
 	hub *Hub
-	// broker is responsible for PUB/SUB mechanics.
+	// broker is responsible for PUB/SUB and history streaming mechanics.
 	broker Broker
-	// historyManager is responsible for managing channel Publication history.
-	historyManager HistoryManager
 	// presenceManager is responsible for presence information management.
 	presenceManager PresenceManager
 	// nodes contains registry of known nodes.
@@ -155,18 +153,12 @@ func (n *Node) subLock(ch string) *sync.Mutex {
 // SetEngine binds Engine to node.
 func (n *Node) SetEngine(e Engine) {
 	n.broker = e.(Broker)
-	n.historyManager = e.(HistoryManager)
 	n.presenceManager = e.(PresenceManager)
 }
 
 // SetBroker allows to set Broker implementation to use.
 func (n *Node) SetBroker(b Broker) {
 	n.broker = b
-}
-
-// SetHistoryManager allows to set HistoryManager to use.
-func (n *Node) SetHistoryManager(m HistoryManager) {
-	n.historyManager = m
 }
 
 // SetPresenceManager allows to set PresenceManager to use.
@@ -225,11 +217,6 @@ func (n *Node) Shutdown(ctx context.Context) error {
 	n.mu.Unlock()
 	if closer, ok := n.broker.(Closer); ok {
 		defer func() { _ = closer.Close(ctx) }()
-	}
-	if n.historyManager != nil {
-		if closer, ok := n.historyManager.(Closer); ok {
-			defer func() { _ = closer.Close(ctx) }()
-		}
 	}
 	if n.presenceManager != nil {
 		if closer, ok := n.presenceManager.(Closer); ok {
@@ -487,9 +474,14 @@ func (n *Node) publish(ch string, data []byte, info *ClientInfo, opts ...Publish
 		return PublishResult{}, ErrorUnknownChannel
 	}
 
-	publishOpts := &PublishOptions{}
+	pubOpts := &PublishOptions{}
 	for _, opt := range opts {
-		opt(publishOpts)
+		opt(pubOpts)
+	}
+
+	if pubOpts.HistoryTTL == 0 && !pubOpts.skipHistory && (chOpts.HistoryLifetime > 0 && chOpts.HistorySize > 0) {
+		pubOpts.HistoryTTL = time.Duration(chOpts.HistoryLifetime) * time.Second
+		pubOpts.HistorySize = chOpts.HistorySize
 	}
 
 	pub := &Publication{
@@ -499,29 +491,15 @@ func (n *Node) publish(ch string, data []byte, info *ClientInfo, opts ...Publish
 
 	incMessagesSent("publication")
 
-	// If history enabled for channel we add Publication to history first and then
-	// publish to Broker.
-	if n.historyManager != nil && !publishOpts.SkipHistory && chOpts.HistorySize > 0 && chOpts.HistoryLifetime > 0 {
-		streamPos, published, err := n.historyManager.AddHistory(ch, pub, &chOpts)
-		if err != nil {
-			return PublishResult{}, err
-		}
-		if !published {
-			pub.Offset = streamPos.Offset
-			// Publication added to history, no need to handle Publish error here.
-			// In this case we rely on the fact that clients will automatically detect
-			// missed publication and restore its state from history on reconnect.
-			_ = n.broker.Publish(ch, pub, &chOpts)
-		}
-		return PublishResult{StreamPosition: streamPos}, nil
+	streamPos, err := n.broker.Publish(ch, pub, *pubOpts)
+	if err != nil {
+		return PublishResult{}, err
 	}
-	// If no history enabled - just publish to Broker. In this case we want to handle
-	// error as message will be lost forever otherwise.
-	err = n.broker.Publish(ch, pub, &chOpts)
-	return PublishResult{}, err
+	pub.Offset = streamPos.Offset
+	return PublishResult{StreamPosition: streamPos}, nil
 }
 
-// PublishResult ...
+// PublishResult returned from Publish operation.
 type PublishResult struct {
 	StreamPosition
 }
@@ -546,36 +524,16 @@ func (n *Node) Publish(channel string, data []byte, opts ...PublishOption) (Publ
 
 // publishJoin allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (n *Node) publishJoin(ch string, info *ClientInfo, opts *ChannelOptions) error {
-	if opts == nil {
-		chOpts, found, err := n.channelOptions(ch)
-		if err != nil {
-			return err
-		}
-		if !found {
-			return nil
-		}
-		opts = &chOpts
-	}
+func (n *Node) publishJoin(ch string, info *ClientInfo) error {
 	incMessagesSent("join")
-	return n.broker.PublishJoin(ch, info, opts)
+	return n.broker.PublishJoin(ch, info)
 }
 
 // publishLeave allows to publish join message into channel when someone subscribes on it
 // or leave message when someone unsubscribes from channel.
-func (n *Node) publishLeave(ch string, info *ClientInfo, opts *ChannelOptions) error {
-	if opts == nil {
-		chOpts, found, err := n.channelOptions(ch)
-		if err != nil {
-			return err
-		}
-		if !found {
-			return nil
-		}
-		opts = &chOpts
-	}
+func (n *Node) publishLeave(ch string, info *ClientInfo) error {
 	incMessagesSent("leave")
-	return n.broker.PublishLeave(ch, info, opts)
+	return n.broker.PublishLeave(ch, info)
 }
 
 // publishControl publishes message into control channel so all running
@@ -894,14 +852,11 @@ type HistoryResult struct {
 // History allows to extract Publications in channel.
 // The channel must belong to namespace where history is on.
 func (n *Node) History(ch string, opts ...HistoryOption) (HistoryResult, error) {
-	if n.historyManager == nil {
-		return HistoryResult{}, ErrorNotAvailable
-	}
 	historyOpts := &HistoryOptions{}
 	for _, opt := range opts {
 		opt(historyOpts)
 	}
-	pubs, streamTop, err := n.historyManager.History(ch, HistoryFilter{
+	pubs, streamTop, err := n.broker.History(ch, HistoryFilter{
 		Limit: historyOpts.Limit,
 		Since: historyOpts.Since,
 	})
@@ -939,10 +894,7 @@ func (n *Node) streamTop(ch string) (StreamPosition, error) {
 // RemoveHistory removes channel history.
 func (n *Node) RemoveHistory(ch string) error {
 	incActionCount("history_remove")
-	if n.historyManager == nil {
-		return ErrorNotAvailable
-	}
-	return n.historyManager.RemoveHistory(ch)
+	return n.broker.RemoveHistory(ch)
 }
 
 type nodeRegistry struct {

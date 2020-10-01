@@ -36,7 +36,7 @@ type Queue interface {
 	// be returned immediately.
 	// Will return "", false if the queue is closed.
 	// Otherwise the return value of "remove" is returned.
-	Wait() ([]byte, bool)
+	Wait() bool
 
 	// Cap returns the capacity (without allocations).
 	Cap() int
@@ -122,7 +122,7 @@ func (q *byteQueue) Close() {
 	q.cond.Broadcast()
 }
 
-// CloseRemaining will close the queue and return all entried in the queue.
+// CloseRemaining will close the queue and return all entries in the queue.
 // All goroutines in wait() will return.
 func (q *byteQueue) CloseRemaining() [][]byte {
 	q.mu.Lock()
@@ -155,24 +155,23 @@ func (q *byteQueue) Closed() bool {
 	return c
 }
 
-// Wait for a []byte to be added.
-// If there is items on the queue the first will
-// be returned immediately.
-// Will return nil, false if the queue is closed.
-// Otherwise the return value of "remove" is returned.
-func (q *byteQueue) Wait() ([]byte, bool) {
+// Wait for a message to be added.
+// If there are items on the queue will return immediately.
+// Will return false if the queue is closed.
+// Otherwise returns true.
+func (q *byteQueue) Wait() bool {
 	q.mu.Lock()
 	if q.closed {
 		q.mu.Unlock()
-		return nil, false
+		return false
 	}
 	if q.cnt != 0 {
 		q.mu.Unlock()
-		return q.Remove()
+		return true
 	}
 	q.cond.Wait()
 	q.mu.Unlock()
-	return q.Remove()
+	return true
 }
 
 // Remove will remove a []byte from the queue.

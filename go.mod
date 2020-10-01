@@ -9,7 +9,7 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/viper-lite v0.0.0-20171108064948-d5a31e6aa18b
 	github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af
-	github.com/centrifugal/centrifuge v0.11.2
+	github.com/centrifugal/centrifuge v0.12.0
 	github.com/centrifugal/protocol v0.3.4
 	github.com/cristalhq/jwt/v3 v3.0.0
 	github.com/gogo/protobuf v1.3.1
@@ -21,14 +21,15 @@ require (
 	github.com/nats-io/nats.go v1.10.0
 	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/prometheus/client_golang v1.7.1
-	github.com/prometheus/common v0.13.0 // indirect
+	github.com/prometheus/common v0.14.0 // indirect
+	github.com/prometheus/procfs v0.2.0 // indirect
 	github.com/rs/zerolog v1.18.0
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v0.0.7
 	github.com/stretchr/testify v1.5.1
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344
-	golang.org/x/sys v0.0.0-20200915084602-288bc346aa39 // indirect
+	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f // indirect
 	google.golang.org/grpc v1.28.0
 	google.golang.org/protobuf v1.25.0 // indirect
 )

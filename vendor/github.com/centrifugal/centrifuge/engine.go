@@ -84,6 +84,19 @@ type Closer interface {
 	Close(ctx context.Context) error
 }
 
+// PublishOptions define some fields to alter behaviour of Publish operation.
+type PublishOptions struct {
+	// HistoryTTL sets history ttl to expire inactive history streams.
+	// Current Engine implementations only work with seconds resolution for TTL.
+	HistoryTTL time.Duration
+	// HistorySize sets history size limit to prevent infinite stream growth.
+	HistorySize int
+
+	// skipHistory ...
+	// Deprecated – will be removed in Centrifuge v0.13.0.
+	skipHistory bool
+}
+
 // Broker is responsible for PUB/SUB mechanics.
 type Broker interface {
 	// Run called once on start when broker already set to node. At
@@ -95,49 +108,45 @@ type Broker interface {
 	// Unsubscribe node from channel to stop listening messages from it.
 	Unsubscribe(ch string) error
 
-	// Publish allows to send Publication Push into channel. Publications should
-	// be delivered to all clients subscribed on this channel at moment on
-	// any Centrifuge node (with at most once delivery guarantee).
-	Publish(ch string, pub *Publication, opts *ChannelOptions) error
+	// Publish allows to send Publication into channel. Publications should be
+	// delivered to all clients subscribed to this channel at moment on any
+	// Centrifuge node (with at most once delivery guarantee).
+	//
+	// Broker can optionally maintain publication history inside channel according
+	// to PublishOptions provided. See History method for rules that should be implemented
+	// for accessing Publications from history stream.
+	//
+	// Saving message to a history stream and publish to PUB/SUB should be an atomic
+	// operation per channel.
+	//
+	// StreamPosition returned here describes current stream top offset and epoch.
+	// For channels without history this StreamPosition should be empty.
+	Publish(ch string, pub *Publication, opts PublishOptions) (StreamPosition, error)
 	// PublishJoin publishes Join Push message into channel.
-	PublishJoin(ch string, info *ClientInfo, opts *ChannelOptions) error
+	PublishJoin(ch string, info *ClientInfo) error
 	// PublishLeave publishes Leave Push message into channel.
-	PublishLeave(ch string, info *ClientInfo, opts *ChannelOptions) error
+	PublishLeave(ch string, info *ClientInfo) error
 	// PublishControl allows to send control command data to all running nodes.
 	PublishControl(data []byte) error
+
+	// History used to extract Publications from history stream.
+	// Publications returned according to HistoryFilter which allows to set several
+	// filtering options. StreamPosition returned describes current history stream
+	// top offset and epoch.
+	History(ch string, filter HistoryFilter) ([]*Publication, StreamPosition, error)
+	// RemoveHistory removes history from channel. This is in general not
+	// needed as history expires automatically (based on history_lifetime)
+	// but sometimes can be useful for application logic.
+	RemoveHistory(ch string) error
 
 	// Channels returns slice of currently active channels (with one or more
 	// subscribers) on all running nodes. This is possible with Redis but can
 	// be much harder in other PUB/SUB system. Anyway this information can only
 	// be used for admin needs to better understand state of system. So it's not
 	// a big problem if another Broker implementation won't support this method.
+	//
+	// Deprecated. See https://github.com/centrifugal/centrifuge/issues/147.
 	Channels() ([]string, error)
-}
-
-// HistoryManager is responsible for dealing with channel history management.
-type HistoryManager interface {
-	// History used to extract Publications from storage.
-	// Publications returned according to HistoryFilter which allows
-	// to set several filtering options.
-	// StreamPosition returned describes current history stream top
-	// offset and epoch.
-	History(ch string, filter HistoryFilter) ([]*Publication, StreamPosition, error)
-	// AddHistory adds Publication to channel history. Storage should
-	// automatically maintain history size and lifetime according to
-	// channel options if needed.
-	// StreamPosition returned here describes current stream top offset
-	// and epoch.
-	// Second return value is a boolean flag which when true tells that
-	// Publication already published to PUB/SUB system so node should
-	// not additionally call Broker Publish method. This can be useful
-	// for situations when HistoryManager can atomically save Publication
-	// to history and publish it towards online subscribers (ex. over Lua
-	// in Redis via single RTT).
-	AddHistory(ch string, pub *Publication, opts *ChannelOptions) (StreamPosition, bool, error)
-	// RemoveHistory removes history from channel. This is in general not
-	// needed as history expires automatically (based on history_lifetime)
-	// but sometimes can be useful for application logic.
-	RemoveHistory(ch string) error
 }
 
 // PresenceManager is responsible for channel presence management.
@@ -162,6 +171,5 @@ type PresenceManager interface {
 // presence information.
 type Engine interface {
 	Broker
-	HistoryManager
 	PresenceManager
 }

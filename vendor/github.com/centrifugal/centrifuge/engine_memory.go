@@ -25,6 +25,12 @@ type MemoryEngine struct {
 	presenceHub  *presenceHub
 	historyHub   *historyHub
 	eventHandler BrokerEventHandler
+
+	// pubLocks synchronize access to publishing. We have to sync publish
+	// to handle publications in the order of offset to prevent InsufficientState
+	// errors.
+	// TODO: maybe replace with sharded pool of workers with buffered channels.
+	pubLocks map[int]*sync.Mutex
 }
 
 var _ Engine = (*MemoryEngine)(nil)
@@ -41,37 +47,58 @@ type MemoryEngineConfig struct {
 	HistoryMetaTTL time.Duration
 }
 
+const numPubLocks = 4096
+
 // NewMemoryEngine initializes Memory Engine.
 func NewMemoryEngine(n *Node, c MemoryEngineConfig) (*MemoryEngine, error) {
+	pubLocks := make(map[int]*sync.Mutex, numPubLocks)
+	for i := 0; i < numPubLocks; i++ {
+		pubLocks[i] = &sync.Mutex{}
+	}
 	e := &MemoryEngine{
 		node:        n,
 		presenceHub: newPresenceHub(),
 		historyHub:  newHistoryHub(c.HistoryMetaTTL),
+		pubLocks:    pubLocks,
 	}
 	return e, nil
 }
 
-// Run runs memory engine - we do not have any logic here as Memory Engine ready to work
-// just after initialization.
+// Run runs memory engine.
 func (e *MemoryEngine) Run(h BrokerEventHandler) error {
 	e.eventHandler = h
 	e.historyHub.runCleanups()
 	return nil
 }
 
-// Publish adds message into history hub and calls node ClientMsg method to handle message.
+func (e *MemoryEngine) pubLock(ch string) *sync.Mutex {
+	return e.pubLocks[index(ch, numPubLocks)]
+}
+
+// Publish adds message into history hub and calls node method to handle message.
 // We don't have any PUB/SUB here as Memory Engine is single node only.
-func (e *MemoryEngine) Publish(ch string, pub *Publication, _ *ChannelOptions) error {
-	return e.eventHandler.HandlePublication(ch, pub)
+func (e *MemoryEngine) Publish(ch string, pub *Publication, opts PublishOptions) (StreamPosition, error) {
+	mu := e.pubLock(ch)
+	mu.Lock()
+	defer mu.Unlock()
+
+	if opts.HistorySize > 0 && opts.HistoryTTL > 0 {
+		streamTop, err := e.historyHub.add(ch, pub, opts)
+		if err != nil {
+			return StreamPosition{}, err
+		}
+		return streamTop, e.eventHandler.HandlePublication(ch, pub)
+	}
+	return StreamPosition{}, e.eventHandler.HandlePublication(ch, pub)
 }
 
 // PublishJoin - see engine interface description.
-func (e *MemoryEngine) PublishJoin(ch string, info *ClientInfo, _ *ChannelOptions) error {
+func (e *MemoryEngine) PublishJoin(ch string, info *ClientInfo) error {
 	return e.eventHandler.HandleJoin(ch, info)
 }
 
 // PublishLeave - see engine interface description.
-func (e *MemoryEngine) PublishLeave(ch string, info *ClientInfo, _ *ChannelOptions) error {
+func (e *MemoryEngine) PublishLeave(ch string, info *ClientInfo) error {
 	return e.eventHandler.HandleLeave(ch, info)
 }
 
@@ -113,12 +140,6 @@ func (e *MemoryEngine) PresenceStats(ch string) (PresenceStats, error) {
 // History - see engine interface description.
 func (e *MemoryEngine) History(ch string, filter HistoryFilter) ([]*Publication, StreamPosition, error) {
 	return e.historyHub.get(ch, filter)
-}
-
-// AddHistory - see engine interface description.
-func (e *MemoryEngine) AddHistory(ch string, pub *Publication, opts *ChannelOptions) (StreamPosition, bool, error) {
-	streamTop, err := e.historyHub.add(ch, pub, opts)
-	return streamTop, false, err
 }
 
 // RemoveHistory - see engine interface description.
@@ -322,14 +343,14 @@ func (h *historyHub) expireStreams() {
 	}
 }
 
-func (h *historyHub) add(ch string, pub *Publication, opts *ChannelOptions) (StreamPosition, error) {
+func (h *historyHub) add(ch string, pub *Publication, opts PublishOptions) (StreamPosition, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	var index uint64
 	var epoch string
 
-	expireAt := time.Now().Unix() + int64(opts.HistoryLifetime)
+	expireAt := time.Now().Unix() + int64(opts.HistoryTTL.Seconds())
 	if _, ok := h.expires[ch]; !ok {
 		heap.Push(&h.expireQueue, &priority.Item{Value: ch, Priority: expireAt})
 	}

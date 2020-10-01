@@ -93,15 +93,15 @@ func isUnsupportedChannel(ch string) bool {
 }
 
 // Publish - see Broker interface description.
-func (b *NatsBroker) Publish(ch string, pub *centrifuge.Publication, _ *centrifuge.ChannelOptions) error {
+func (b *NatsBroker) Publish(ch string, pub *centrifuge.Publication, _ centrifuge.PublishOptions) (centrifuge.StreamPosition, error) {
 	if isUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
-		return centrifuge.ErrorBadRequest
+		return centrifuge.StreamPosition{}, centrifuge.ErrorBadRequest
 	}
 	protoPub := pubToProto(pub)
 	data, err := protoPub.Marshal()
 	if err != nil {
-		return err
+		return centrifuge.StreamPosition{}, err
 	}
 	push := &protocol.Push{
 		Type:    protocol.PushTypePublication,
@@ -110,13 +110,13 @@ func (b *NatsBroker) Publish(ch string, pub *centrifuge.Publication, _ *centrifu
 	}
 	byteMessage, err := push.Marshal()
 	if err != nil {
-		return err
+		return centrifuge.StreamPosition{}, err
 	}
-	return b.nc.Publish(string(b.clientChannel(ch)), byteMessage)
+	return centrifuge.StreamPosition{}, b.nc.Publish(string(b.clientChannel(ch)), byteMessage)
 }
 
 // PublishJoin - see Broker interface description.
-func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo, _ *centrifuge.ChannelOptions) error {
+func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
 	data, err := infoToProto(info).Marshal()
 	if err != nil {
 		return err
@@ -134,7 +134,7 @@ func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo, _ *cent
 }
 
 // PublishLeave - see Broker interface description.
-func (b *NatsBroker) PublishLeave(ch string, info *centrifuge.ClientInfo, _ *centrifuge.ChannelOptions) error {
+func (b *NatsBroker) PublishLeave(ch string, info *centrifuge.ClientInfo) error {
 	data, err := infoToProto(info).Marshal()
 	if err != nil {
 		return err
@@ -154,6 +154,16 @@ func (b *NatsBroker) PublishLeave(ch string, info *centrifuge.ClientInfo, _ *cen
 // PublishControl - see Broker interface description.
 func (b *NatsBroker) PublishControl(data []byte) error {
 	return b.nc.Publish(string(b.controlChannel()), data)
+}
+
+// History ...
+func (b *NatsBroker) History(_ string, _ centrifuge.HistoryFilter) ([]*centrifuge.Publication, centrifuge.StreamPosition, error) {
+	return nil, centrifuge.StreamPosition{}, centrifuge.ErrorNotAvailable
+}
+
+// RemoveHistory ...
+func (b *NatsBroker) RemoveHistory(_ string) error {
+	return centrifuge.ErrorNotAvailable
 }
 
 func (b *NatsBroker) handleClientMessage(data []byte) error {

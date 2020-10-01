@@ -149,6 +149,7 @@ func NewClient(ctx context.Context, n *Node, t Transport) (*Client, ClientCloseF
 	}
 
 	c.messageWriter = newWriter(messageWriterConf)
+	go c.messageWriter.run()
 
 	staleCloseDelay := n.config.ClientStaleCloseDelay
 	if staleCloseDelay > 0 && !c.authenticated {
@@ -920,7 +921,7 @@ func (c *Client) handleSubscribe(params protocol.Raw, rw *replyWriter) *Disconne
 	if ctx.chOpts.JoinLeave && ctx.clientInfo != nil {
 		// Flush prevents Join message to be delivered before subscribe response.
 		_ = rw.flush()
-		go func() { _ = c.node.publishJoin(cmd.Channel, ctx.clientInfo, &ctx.chOpts) }()
+		go func() { _ = c.node.publishJoin(cmd.Channel, ctx.clientInfo) }()
 	}
 	return nil
 }
@@ -1398,7 +1399,7 @@ func (c *Client) connectCmd(cmd *protocol.ConnectRequest, rw *replyWriter) *Disc
 		for channel, subCtx := range subCtxMap {
 			go func(channel string, subCtx subscribeContext) {
 				if subCtx.chOpts.JoinLeave && subCtx.clientInfo != nil {
-					_ = c.node.publishJoin(channel, subCtx.clientInfo, &subCtx.chOpts)
+					_ = c.node.publishJoin(channel, subCtx.clientInfo)
 				}
 			}(channel, subCtx)
 		}
@@ -1633,6 +1634,27 @@ type subscribeContext struct {
 	channelContext channelContext
 }
 
+func isRecovered(historyResult HistoryResult, cmdOffset uint64, cmdEpoch string) ([]*protocol.Publication, bool) {
+	latestOffset := historyResult.Offset
+	latestEpoch := historyResult.Epoch
+
+	recoveredPubs := make([]*protocol.Publication, 0, len(historyResult.Publications))
+	for _, pub := range historyResult.Publications {
+		protoPub := pubToProto(pub)
+		recoveredPubs = append(recoveredPubs, protoPub)
+	}
+
+	nextOffset := cmdOffset + 1
+	var recovered bool
+	if len(recoveredPubs) == 0 {
+		recovered = latestOffset == cmdOffset && latestEpoch == cmdEpoch
+	} else {
+		recovered = recoveredPubs[0].Offset == nextOffset && latestEpoch == cmdEpoch
+	}
+
+	return recoveredPubs, recovered
+}
+
 // subscribeCmd handles subscribe command - clients send this when subscribe
 // on channel, if channel if private then we must validate provided sign here before
 // actually subscribe client on channel. Optionally we can send missed messages to
@@ -1735,26 +1757,10 @@ func (c *Client) subscribeCmd(cmd *protocol.SubscribeRequest, rw *replyWriter, s
 				ctx.disconnect = DisconnectServerError
 				return ctx
 			}
-
 			latestOffset = historyResult.Offset
 			latestEpoch = historyResult.Epoch
-
-			recoveredPubs = make([]*protocol.Publication, 0, len(historyResult.Publications))
-			for _, pub := range historyResult.Publications {
-				protoPub := pubToProto(pub)
-				if useSeqGen {
-					protoPub.Seq, protoPub.Gen = recovery.UnpackUint64(protoPub.Offset)
-				}
-				recoveredPubs = append(recoveredPubs, protoPub)
-			}
-
-			nextOffset := cmdOffset + 1
 			var recovered bool
-			if len(recoveredPubs) == 0 {
-				recovered = latestOffset == cmdOffset && latestEpoch == cmd.Epoch
-			} else {
-				recovered = recoveredPubs[0].Offset == nextOffset && latestEpoch == cmd.Epoch
-			}
+			recoveredPubs, recovered = isRecovered(historyResult, cmdOffset, cmd.Epoch)
 			res.Recovered = recovered
 			incRecover(res.Recovered)
 		} else {
@@ -1773,10 +1779,11 @@ func (c *Client) subscribeCmd(cmd *protocol.SubscribeRequest, rw *replyWriter, s
 		}
 
 		res.Epoch = latestEpoch
-		res.Offset = latestOffset
 
 		if useSeqGen {
 			res.Seq, res.Gen = recovery.UnpackUint64(latestOffset)
+		} else {
+			res.Offset = latestOffset
 		}
 
 		c.pubSubSync.LockBuffer(channel)
@@ -1790,7 +1797,23 @@ func (c *Client) subscribeCmd(cmd *protocol.SubscribeRequest, rw *replyWriter, s
 		}
 	}
 
+	if len(recoveredPubs) > 0 {
+		if useSeqGen {
+			// recoveredPubs are in descending order.
+			latestOffset = recoveredPubs[0].Offset
+		} else {
+			latestOffset = recoveredPubs[len(recoveredPubs)-1].Offset
+		}
+	}
+
 	res.Publications = recoveredPubs
+	if useSeqGen && len(res.Publications) > 0 {
+		for i := range res.Publications {
+			res.Publications[i].Seq, res.Publications[i].Gen = recovery.UnpackUint64(res.Publications[i].Offset)
+			res.Publications[i].Offset = 0
+		}
+	}
+
 	if !serverSide {
 		// Write subscription reply only if initiated by client.
 		replyRes, err := protocol.GetResultEncoder(c.transport.Protocol().toProto()).EncodeSubscribeResult(res)
@@ -1804,15 +1827,6 @@ func (c *Client) subscribeCmd(cmd *protocol.SubscribeRequest, rw *replyWriter, s
 			return ctx
 		}
 		_ = rw.write(&protocol.Reply{Result: replyRes})
-	}
-
-	if len(recoveredPubs) > 0 {
-		if useSeqGen {
-			// recoveredPubs are in descending order.
-			latestOffset = recoveredPubs[0].Offset
-		} else {
-			latestOffset = recoveredPubs[len(recoveredPubs)-1].Offset
-		}
 	}
 
 	if !serverSide && chOpts.HistoryRecover {
@@ -1869,6 +1883,9 @@ func (c *Client) writePublicationUpdatePosition(ch string, pub *protocol.Publica
 	nextExpectedOffset := currentPositionOffset + 1
 	pubOffset := pub.Offset
 	if pubOffset != nextExpectedOffset {
+		if c.node.logger.enabled(LogLevelDebug) {
+			c.node.logger.log(newLogEntry(LogLevelDebug, "client insufficient state", map[string]interface{}{"channel": ch, "user": c.user, "client": c.uid, "offset": pubOffset, "expectedOffset": nextExpectedOffset}))
+		}
 		// Oops: sth lost, let client reconnect to recover its state.
 		go func() { _ = c.close(DisconnectInsufficientState) }()
 		c.mu.Unlock()
@@ -2043,7 +2060,7 @@ func (c *Client) unsubscribe(channel string) error {
 		}
 
 		if chOpts.JoinLeave {
-			_ = c.node.publishLeave(channel, info, &chOpts)
+			_ = c.node.publishLeave(channel, info)
 		}
 
 		if err := c.node.removeSubscription(channel, c); err != nil {
