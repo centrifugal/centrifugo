@@ -1536,7 +1536,8 @@ log_level: debug
 <p>Sets maximum length of channel name.</p>
 <h3 id="client_user_connection_limit">client_user_connection_limit<a class="headerlink" href="#client_user_connection_limit" title="Permanent link">&para;</a></h3>
 <p>Default: 0</p>
-<p>Maximum number of connections from user (with known user ID) to Centrifugo node. By default - unlimited.</p>
+<p>Maximum number of connections from user (with known user ID) to Centrifugo node. By default, unlimited.</p>
+<p>The important thing to emphasize is that <code>client_user_connection_limit</code> works only per one Centrifugo node and exists mostly to protect Centrifugo from many connections from a single user – but not for business logic limitations. This means that if you will scale nodes – say run 10 Centrifugo nodes – then a user will be able to create 10 connections (one to each node).</p>
 <h3 id="client_request_max_size">client_request_max_size<a class="headerlink" href="#client_request_max_size" title="Permanent link">&para;</a></h3>
 <p>Default: 65536</p>
 <p>Maximum allowed size of request from client in bytes.</p>
