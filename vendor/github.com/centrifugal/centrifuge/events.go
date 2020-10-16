@@ -36,9 +36,6 @@ type ConnectReply struct {
 	// i.e. send refresh commands with new connection token. If not set
 	// then server-side refresh mechanism will be used.
 	ClientSideRefresh bool
-	// Events mask to be called for connection. Zero value means all events for
-	// all client event handlers set to Node.
-	Events Event
 }
 
 // ConnectingHandler called when new client authenticates on server.
@@ -68,6 +65,9 @@ type RefreshReply struct {
 	Info []byte
 }
 
+// RefreshCallback ...
+type RefreshCallback func(RefreshReply, error)
+
 // RefreshHandler called when it's time to validate client connection and
 // update it's expiration time if it's still actual.
 //
@@ -82,12 +82,12 @@ type RefreshReply struct {
 // library uses client-side refresh mechanism. In this case library relies on
 // Refresh commands sent from client periodically to refresh connection. Refresh
 // command contains updated connection token.
-type RefreshHandler func(*Client, RefreshEvent) (RefreshReply, error)
+type RefreshHandler func(RefreshEvent, RefreshCallback)
 
 // AliveHandler called periodically while connection alive. This is a helper
 // to do periodic things which can tolerate some approximation in time. This
 // callback will run every ClientPresenceUpdateInterval and can save you a timer.
-type AliveHandler func(*Client)
+type AliveHandler func()
 
 // DisconnectEvent contains fields related to disconnect event.
 type DisconnectEvent struct {
@@ -104,7 +104,7 @@ type DisconnectEvent struct {
 // clean up non-expiring resources (in your database for example). Why? Because
 // in case of any non-graceful node shutdown (kill -9, process crash, machine lost)
 // disconnect handler will never be called (obviously) so you can have stale data.
-type DisconnectHandler func(*Client, DisconnectEvent)
+type DisconnectHandler func(DisconnectEvent)
 
 // SubscribeEvent contains fields related to subscribe event.
 type SubscribeEvent struct {
@@ -114,6 +114,8 @@ type SubscribeEvent struct {
 	// to check that subscription to a channel has valid token.
 	Token string
 }
+
+type SubscribeCallback func(SubscribeReply, error)
 
 // SubscribeReply contains fields determining the reaction on subscribe event.
 type SubscribeReply struct {
@@ -129,7 +131,7 @@ type SubscribeReply struct {
 }
 
 // SubscribeHandler called when client wants to subscribe on channel.
-type SubscribeHandler func(*Client, SubscribeEvent) (SubscribeReply, error)
+type SubscribeHandler func(SubscribeEvent, SubscribeCallback)
 
 // UnsubscribeEvent contains fields related to unsubscribe event.
 type UnsubscribeEvent struct {
@@ -138,7 +140,7 @@ type UnsubscribeEvent struct {
 }
 
 // UnsubscribeHandler called when client unsubscribed from channel.
-type UnsubscribeHandler func(*Client, UnsubscribeEvent)
+type UnsubscribeHandler func(UnsubscribeEvent)
 
 // PublishEvent contains fields related to publish event. Note that this event
 // called before actual publish to Engine so handler has an option to reject this
@@ -163,8 +165,10 @@ type PublishReply struct {
 	Result *PublishResult
 }
 
+type PublishCallback func(PublishReply, error)
+
 // PublishHandler called when client publishes into channel.
-type PublishHandler func(*Client, PublishEvent) (PublishReply, error)
+type PublishHandler func(PublishEvent, PublishCallback)
 
 // SubRefreshEvent contains fields related to subscription refresh event.
 type SubRefreshEvent struct {
@@ -189,6 +193,9 @@ type SubRefreshReply struct {
 	Info []byte
 }
 
+// SubRefreshCallback ...
+type SubRefreshCallback func(SubRefreshReply, error)
+
 // SubRefreshHandler called when it's time to validate client subscription to channel and
 // update it's state if needed.
 //
@@ -196,7 +203,7 @@ type SubRefreshReply struct {
 // library uses client-side subscription refresh mechanism. In this case library relies on
 // SubRefresh commands sent from client periodically to refresh subscription. SubRefresh
 // command contains updated subscription token.
-type SubRefreshHandler func(*Client, SubRefreshEvent) (SubRefreshReply, error)
+type SubRefreshHandler func(SubRefreshEvent, SubRefreshCallback)
 
 // RPCEvent contains fields related to rpc request.
 type RPCEvent struct {
@@ -213,8 +220,11 @@ type RPCReply struct {
 	Data []byte
 }
 
+// RPCCallback ...
+type RPCCallback func(RPCReply, error)
+
 // RPCHandler must handle incoming command from client.
-type RPCHandler func(*Client, RPCEvent) (RPCReply, error)
+type RPCHandler func(RPCEvent, RPCCallback)
 
 // MessageEvent contains fields related to message request.
 type MessageEvent struct {
@@ -223,7 +233,7 @@ type MessageEvent struct {
 }
 
 // MessageHandler must handle incoming async message from client.
-type MessageHandler func(*Client, MessageEvent)
+type MessageHandler func(MessageEvent)
 
 // PresenceEvent has channel operation called for.
 type PresenceEvent struct {
@@ -233,8 +243,10 @@ type PresenceEvent struct {
 // PresenceReply contains fields determining the reaction on presence request.
 type PresenceReply struct{}
 
+type PresenceCallback func(PresenceReply, error)
+
 // PresenceHandler called when presence request received from client.
-type PresenceHandler func(*Client, PresenceEvent) (PresenceReply, error)
+type PresenceHandler func(PresenceEvent, PresenceCallback)
 
 // PresenceStatsEvent has channel operation called for.
 type PresenceStatsEvent struct {
@@ -244,8 +256,10 @@ type PresenceStatsEvent struct {
 // PresenceStatsReply contains fields determining the reaction on presence request.
 type PresenceStatsReply struct{}
 
+type PresenceStatsCallback func(PresenceStatsReply, error)
+
 // PresenceStatsHandler must handle incoming command from client.
-type PresenceStatsHandler func(*Client, PresenceStatsEvent) (PresenceStatsReply, error)
+type PresenceStatsHandler func(PresenceStatsEvent, PresenceStatsCallback)
 
 // HistoryEvent has channel operation called for.
 type HistoryEvent struct {
@@ -255,5 +269,7 @@ type HistoryEvent struct {
 // HistoryReply contains fields determining the reaction on history request.
 type HistoryReply struct{}
 
+type HistoryCallback func(HistoryReply, error)
+
 // HistoryHandler must handle incoming command from client.
-type HistoryHandler func(*Client, HistoryEvent) (HistoryReply, error)
+type HistoryHandler func(HistoryEvent, HistoryCallback)

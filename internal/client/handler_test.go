@@ -162,11 +162,13 @@ func nodeWithMemoryEngineNoHandlers() *centrifuge.Node {
 
 func nodeWithMemoryEngine() *centrifuge.Node {
 	n := nodeWithMemoryEngineNoHandlers()
-	n.OnSubscribe(func(_ *centrifuge.Client, _ centrifuge.SubscribeEvent) (centrifuge.SubscribeReply, error) {
-		return centrifuge.SubscribeReply{}, nil
-	})
-	n.OnPublish(func(_ *centrifuge.Client, _ centrifuge.PublishEvent) (centrifuge.PublishReply, error) {
-		return centrifuge.PublishReply{}, nil
+	n.OnConnect(func(client *centrifuge.Client) {
+		client.OnSubscribe(func(_ centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
+			cb(centrifuge.SubscribeReply{}, nil)
+		})
+		client.OnPublish(func(_ centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
+			cb(centrifuge.PublishReply{}, nil)
+		})
 	})
 	return n
 }

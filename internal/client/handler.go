@@ -12,13 +12,16 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
+// RPCExtensionFunc ...
+type RPCExtensionFunc func(c *centrifuge.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error)
+
 // Handler ...
 type Handler struct {
 	node          *centrifuge.Node
 	ruleContainer *rule.ChannelRuleContainer
 	tokenVerifier jwtverify.Verifier
 	proxyConfig   proxy.Config
-	rpcExtension  map[string]centrifuge.RPCHandler
+	rpcExtension  map[string]RPCExtensionFunc
 }
 
 // NewHandler ...
@@ -28,12 +31,12 @@ func NewHandler(node *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer,
 		ruleContainer: ruleContainer,
 		tokenVerifier: tokenVerifier,
 		proxyConfig:   proxyConfig,
-		rpcExtension:  make(map[string]centrifuge.RPCHandler),
+		rpcExtension:  make(map[string]RPCExtensionFunc),
 	}
 }
 
 // SetRPCExtension ...
-func (h Handler) SetRPCExtension(method string, handler centrifuge.RPCHandler) {
+func (h Handler) SetRPCExtension(method string, handler RPCExtensionFunc) {
 	h.rpcExtension[method] = handler
 }
 
@@ -59,7 +62,7 @@ func (h *Handler) Setup() {
 		}).Handle(h.node)
 	}
 
-	var refreshProxyHandler centrifuge.RefreshHandler
+	var refreshProxyHandler proxy.RefreshHandlerFunc
 	if h.proxyConfig.RefreshEndpoint != "" {
 		refreshProxyHandler = proxy.NewRefreshHandler(proxy.RefreshHandlerConfig{
 			Proxy: proxy.NewHTTPRefreshProxy(
@@ -70,7 +73,11 @@ func (h *Handler) Setup() {
 		}).Handle(h.node)
 	}
 
-	var rpcProxyHandler centrifuge.RPCHandler
+	h.node.OnConnecting(func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+		return h.OnClientConnecting(ctx, e, connectProxyHandler, refreshProxyHandler != nil)
+	})
+
+	var rpcProxyHandler proxy.RPCHandlerFunc
 	if h.proxyConfig.RPCEndpoint != "" {
 		rpcProxyHandler = proxy.NewRPCHandler(proxy.RPCHandlerConfig{
 			Proxy: proxy.NewHTTPRPCProxy(
@@ -81,26 +88,7 @@ func (h *Handler) Setup() {
 		}).Handle(h.node)
 	}
 
-	h.node.OnConnecting(func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
-		return h.OnClientConnecting(ctx, e, connectProxyHandler, refreshProxyHandler != nil)
-	})
-
-	h.node.OnRefresh(func(client *centrifuge.Client, event centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
-		if refreshProxyHandler != nil {
-			return refreshProxyHandler(client, event)
-		}
-		return h.OnRefresh(client, event)
-	})
-	if rpcProxyHandler != nil || len(h.rpcExtension) > 0 {
-		h.node.OnRPC(func(client *centrifuge.Client, event centrifuge.RPCEvent) (centrifuge.RPCReply, error) {
-			if handler, ok := h.rpcExtension[event.Method]; ok {
-				return handler(client, event)
-			}
-			return rpcProxyHandler(client, event)
-		})
-	}
-
-	var publishProxyHandler centrifuge.PublishHandler
+	var publishProxyHandler proxy.PublishHandlerFunc
 	if h.proxyConfig.PublishEndpoint != "" {
 		publishProxyHandler = proxy.NewPublishHandler(proxy.PublishHandlerConfig{
 			Proxy: proxy.NewHTTPPublishProxy(
@@ -111,7 +99,7 @@ func (h *Handler) Setup() {
 		}).Handle(h.node)
 	}
 
-	var subscribeProxyHandler centrifuge.SubscribeHandler
+	var subscribeProxyHandler proxy.SubscribeHandlerFunc
 	if h.proxyConfig.SubscribeEndpoint != "" {
 		subscribeProxyHandler = proxy.NewSubscribeHandler(proxy.SubscribeHandlerConfig{
 			Proxy: proxy.NewHTTPSubscribeProxy(
@@ -122,23 +110,44 @@ func (h *Handler) Setup() {
 		}).Handle(h.node)
 	}
 
-	h.node.OnSubscribe(func(client *centrifuge.Client, event centrifuge.SubscribeEvent) (centrifuge.SubscribeReply, error) {
-		return h.OnSubscribe(client, event, subscribeProxyHandler)
-	})
-	h.node.OnPublish(func(client *centrifuge.Client, event centrifuge.PublishEvent) (centrifuge.PublishReply, error) {
-		return h.OnPublish(client, event, publishProxyHandler)
-	})
-	h.node.OnSubRefresh(func(client *centrifuge.Client, event centrifuge.SubRefreshEvent) (centrifuge.SubRefreshReply, error) {
-		return h.OnSubRefresh(client, event)
-	})
-	h.node.OnPresence(func(client *centrifuge.Client, event centrifuge.PresenceEvent) (centrifuge.PresenceReply, error) {
-		return h.OnPresence(client, event)
-	})
-	h.node.OnPresenceStats(func(client *centrifuge.Client, event centrifuge.PresenceStatsEvent) (centrifuge.PresenceStatsReply, error) {
-		return h.OnPresenceStats(client, event)
-	})
-	h.node.OnHistory(func(client *centrifuge.Client, event centrifuge.HistoryEvent) (centrifuge.HistoryReply, error) {
-		return h.OnHistory(client, event)
+	h.node.OnConnect(func(client *centrifuge.Client) {
+
+		client.OnRefresh(func(event centrifuge.RefreshEvent, cb centrifuge.RefreshCallback) {
+			if refreshProxyHandler != nil {
+				cb(refreshProxyHandler(client, event))
+				return
+			}
+			cb(h.OnRefresh(client, event))
+		})
+
+		if rpcProxyHandler != nil || len(h.rpcExtension) > 0 {
+			client.OnRPC(func(event centrifuge.RPCEvent, cb centrifuge.RPCCallback) {
+				if handler, ok := h.rpcExtension[event.Method]; ok {
+					cb(handler(client, event))
+					return
+				}
+				cb(rpcProxyHandler(client, event))
+			})
+		}
+
+		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
+			cb(h.OnSubscribe(client, event, subscribeProxyHandler))
+		})
+		client.OnPublish(func(event centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
+			cb(h.OnPublish(client, event, publishProxyHandler))
+		})
+		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
+			cb(h.OnSubRefresh(client, event))
+		})
+		client.OnPresence(func(event centrifuge.PresenceEvent, cb centrifuge.PresenceCallback) {
+			cb(h.OnPresence(client, event))
+		})
+		client.OnPresenceStats(func(event centrifuge.PresenceStatsEvent, cb centrifuge.PresenceStatsCallback) {
+			cb(h.OnPresenceStats(client, event))
+		})
+		client.OnHistory(func(event centrifuge.HistoryEvent, cb centrifuge.HistoryCallback) {
+			cb(h.OnHistory(client, event))
+		})
 	})
 }
 
@@ -251,7 +260,7 @@ func (h *Handler) OnSubRefresh(c *centrifuge.Client, e centrifuge.SubRefreshEven
 }
 
 // OnSubscribe ...
-func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent, subscribeProxyHandler centrifuge.SubscribeHandler) (centrifuge.SubscribeReply, error) {
+func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc) (centrifuge.SubscribeReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
 	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(e.Channel)
@@ -321,7 +330,7 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 }
 
 // OnPublish ...
-func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, publishProxyHandler centrifuge.PublishHandler) (centrifuge.PublishReply, error) {
+func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, publishProxyHandler proxy.PublishHandlerFunc) (centrifuge.PublishReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
 	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(e.Channel)

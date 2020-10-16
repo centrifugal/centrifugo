@@ -76,6 +76,7 @@ var (
 	commandDurationRPC           prometheus.Observer
 	commandDurationRefresh       prometheus.Observer
 	commandDurationSubRefresh    prometheus.Observer
+	commandDurationUnknown       prometheus.Observer
 )
 
 func observeCommandDuration(method protocol.MethodType, d time.Duration) {
@@ -110,7 +111,7 @@ func observeCommandDuration(method protocol.MethodType, d time.Duration) {
 	case protocol.MethodTypeSubRefresh:
 		observer = commandDurationSubRefresh
 	default:
-		return
+		observer = commandDurationUnknown
 	}
 	observer.Observe(d.Seconds())
 }
@@ -443,6 +444,7 @@ func initMetricsRegistry(registry prometheus.Registerer, metricsNamespace string
 	commandDurationRPC = commandDurationSummary.WithLabelValues(labelForMethod(protocol.MethodTypeRPC))
 	commandDurationRefresh = commandDurationSummary.WithLabelValues(labelForMethod(protocol.MethodTypeRefresh))
 	commandDurationSubRefresh = commandDurationSummary.WithLabelValues(labelForMethod(protocol.MethodTypeSubRefresh))
+	commandDurationUnknown = commandDurationSummary.WithLabelValues("unknown")
 
 	if err := registry.Register(messagesSentCount); err != nil {
 		return err

@@ -3,7 +3,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/centrifugal/centrifuge/badge.svg?branch=master)](https://coveralls.io/github/centrifugal/centrifuge?branch=master)
 [![GoDoc](https://godoc.org/github.com/centrifugal/centrifuge?status.svg)](https://godoc.org/github.com/centrifugal/centrifuge)
 
-**This library has no v1 release yet, API still evolves. Use with strict versioning.**
+**This library has no v1 release yet, API still evolves. Use with strict versioning.** At this moment patch version updates only have backwards compatible changes and fixes, minor version updates can have backwards-incompatible API changes. See [v1.0.0 milestone](https://github.com/centrifugal/centrifuge/milestone/1).
 
 Centrifuge library is a real-time core of [Centrifugo](https://github.com/centrifugal/centrifugo) server. It's also supposed to be a general purpose real-time messaging library for Go programming language. The library built on top of strict client-server protocol schema and exposes various real-time oriented primitives for a developer. Centrifuge solves several problems a developer may come across when building complex real-time applications – like scalability (millions of connections), proper persistent connection management and invalidation, fast reconnect with message recovery, WebSocket fallback option.
 
@@ -103,38 +103,38 @@ func main() {
 	// inside handler must be synchronized since it will be called concurrently from
 	// different goroutines (belonging to different client connections). This is also
 	// true for other event handlers.
-	node.OnConnect(func(c *centrifuge.Client) {
+	node.OnConnect(func(client *centrifuge.Client) {
 		// In our example transport will always be Websocket but it can also be SockJS.
-		transportName := c.Transport().Name()
+		transportName := client.Transport().Name()
 		// In our example clients connect with JSON protocol but it can also be Protobuf.
-		transportProto := c.Transport().Protocol()
+		transportProto := client.Transport().Protocol()
 		log.Printf("client connected via %s (%s)", transportName, transportProto)
-	})
 
-	// Set SubscribeHandler to react on every channel subscription attempt
-	// initiated by client. Here you can theoretically return an error or
-	// disconnect client from server if needed. But now we just accept
-	// all subscriptions to all channels. In real life you may use a more
-	// complex permission check here.
-	node.OnSubscribe(func(c *centrifuge.Client, e centrifuge.SubscribeEvent) (centrifuge.SubscribeReply, error) {
-		log.Printf("client subscribes on channel %s", e.Channel)
-		return centrifuge.SubscribeReply{}, nil
-	})
+		// Set SubscribeHandler to react on every channel subscription attempt
+		// initiated by client. Here you can theoretically return an error or
+		// disconnect client from server if needed. But now we just accept
+		// all subscriptions to all channels. In real life you may use a more
+		// complex permission check here.
+		client.OnSubscribe(func(e centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
+			log.Printf("client subscribes on channel %s", e.Channel)
+			cb(centrifuge.SubscribeReply{}, nil)
+		})
 
-	// By default, clients can not publish messages into channels. By setting
-	// PublishHandler we tell Centrifuge that publish from client side is possible.
-	// Now each time client calls publish method this handler will be called and
-	// you have a possibility to validate publication request before message will
-	// be published into channel and reach active subscribers. In our simple chat
-	// app we allow everyone to publish into any channel.
-	node.OnPublish(func(c *centrifuge.Client, e centrifuge.PublishEvent) (centrifuge.PublishReply, error) {
-		log.Printf("client publishes into channel %s: %s", e.Channel, string(e.Data))
-		return centrifuge.PublishReply{}, nil
-	})
+		// By default, clients can not publish messages into channels. By setting
+		// PublishHandler we tell Centrifuge that publish from client side is possible.
+		// Now each time client calls publish method this handler will be called and
+		// you have a possibility to validate publication request before message will
+		// be published into channel and reach active subscribers. In our simple chat
+		// app we allow everyone to publish into any channel.
+		client.OnPublish(func(e centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
+			log.Printf("client publishes into channel %s: %s", e.Channel, string(e.Data))
+			cb(centrifuge.PublishReply{}, nil)
+		})
 
-	// Set Disconnect handler to react on client disconnect events.
-	node.OnDisconnect(func(c *centrifuge.Client, e centrifuge.DisconnectEvent) {
-		log.Printf("client disconnected")
+		// Set Disconnect handler to react on client disconnect events.
+		client.OnDisconnect(func(e centrifuge.DisconnectEvent) {
+			log.Printf("client disconnected")
+		})
 	})
 
 	// Run node. This method does not block.

@@ -32,8 +32,11 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 	}
 }
 
+// PublishHandlerFunc ...
+type PublishHandlerFunc func(*centrifuge.Client, centrifuge.PublishEvent) (centrifuge.PublishReply, error)
+
 // Handle Publish.
-func (h *PublishHandler) Handle(node *centrifuge.Node) centrifuge.PublishHandler {
+func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 	return func(client *centrifuge.Client, e centrifuge.PublishEvent) (centrifuge.PublishReply, error) {
 		started := time.Now()
 		publishRep, err := h.config.Proxy.ProxyPublish(client.Context(), PublishRequest{
