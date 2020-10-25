@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
-	"errors"
 	"io"
 	"sync"
 	"testing"
@@ -171,11 +170,6 @@ func nodeWithMemoryEngine() *centrifuge.Node {
 		})
 	})
 	return n
-}
-
-func TestToClientErr(t *testing.T) {
-	require.Equal(t, centrifuge.ErrorInternal, toClientErr(errors.New("boom")))
-	require.Equal(t, centrifuge.ErrorUnknownChannel, toClientErr(centrifuge.ErrorUnknownChannel))
 }
 
 func TestClientHandlerSetup(t *testing.T) {

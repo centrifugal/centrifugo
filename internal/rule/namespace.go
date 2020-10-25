@@ -3,7 +3,7 @@ package rule
 // ChannelNamespace allows to create channels with different channel options.
 type ChannelNamespace struct {
 	// Name is a unique namespace name.
-	Name string `json:"name"`
+	Name string `mapstructure:"name" json:"name"`
 
 	// Options for namespace determine channel options for channels
 	// belonging to this namespace.
@@ -52,9 +52,8 @@ type NamespaceChannelOptions struct {
 
 	// Publish enables possibility for clients to publish messages into channels.
 	// Once enabled client can publish into channel and that publication will be
-	// broadcasted to all current channel subscribers. You can control publishing
-	// on server-side setting On().Publish callback to client connection.
-	Publish bool `json:"publish"`
+	// sent to all current channel subscribers.
+	Publish bool `mapstructure:"publish" json:"publish"`
 
 	// SubscribeToPublish turns on an automatic check that client subscribed
 	// on channel before allow it to publish into that channel.
@@ -65,7 +64,7 @@ type NamespaceChannelOptions struct {
 	// every user has its own unique user ID. But if you provide real-time
 	// features for public access you may need unauthenticated access to channels.
 	// Turn on this option and use empty string as user ID.
-	Anonymous bool `json:"anonymous"`
+	Anonymous bool `mapstructure:"anonymous" json:"anonymous"`
 
 	// PresenceDisableForClient prevents presence to be asked by clients.
 	// In this case it's available only over server-side presence call.
@@ -77,9 +76,9 @@ type NamespaceChannelOptions struct {
 	// clients anyway.
 	HistoryDisableForClient bool `mapstructure:"history_disable_for_client" json:"history_disable_for_client"`
 
-	// ProxySubscribe ...
+	// ProxySubscribe turns on proxying subscribe decision for channels.
 	ProxySubscribe bool `mapstructure:"proxy_subscribe" json:"proxy_subscribe"`
 
-	// ProxyPublish ...
+	// ProxyPublish turns on proxying publish decision for channels.
 	ProxyPublish bool `mapstructure:"proxy_publish" json:"proxy_publish"`
 }

@@ -12,6 +12,15 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
+func proxyHTTPClient(timeout time.Duration) *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: proxy.DefaultMaxIdleConnsPerHost,
+		},
+		Timeout: timeout,
+	}
+}
+
 // RPCExtensionFunc ...
 type RPCExtensionFunc func(c *centrifuge.Client, e centrifuge.RPCEvent) (centrifuge.RPCResult, error)
 
@@ -40,16 +49,7 @@ func (h Handler) SetRPCExtension(method string, handler RPCExtensionFunc) {
 	h.rpcExtension[method] = handler
 }
 
-func proxyHTTPClient(timeout time.Duration) *http.Client {
-	return &http.Client{
-		Transport: &http.Transport{
-			MaxIdleConnsPerHost: proxy.DefaultMaxIdleConnsPerHost,
-		},
-		Timeout: timeout,
-	}
-}
-
-// Setup ...
+// Setup event handlers.
 func (h *Handler) Setup() {
 	var connectProxyHandler centrifuge.ConnectingHandler
 	if h.proxyConfig.ConnectEndpoint != "" {
@@ -111,7 +111,6 @@ func (h *Handler) Setup() {
 	}
 
 	h.node.OnConnect(func(client *centrifuge.Client) {
-
 		client.OnRefresh(func(event centrifuge.RefreshEvent, cb centrifuge.RefreshCallback) {
 			if refreshProxyHandler != nil {
 				cb(refreshProxyHandler(client, event))
@@ -119,7 +118,6 @@ func (h *Handler) Setup() {
 			}
 			cb(h.OnRefresh(client, event))
 		})
-
 		if rpcProxyHandler != nil || len(h.rpcExtension) > 0 {
 			client.OnRPC(func(event centrifuge.RPCEvent, cb centrifuge.RPCCallback) {
 				if handler, ok := h.rpcExtension[event.Method]; ok {
@@ -129,15 +127,14 @@ func (h *Handler) Setup() {
 				cb(rpcProxyHandler(client, event))
 			})
 		}
-
 		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
 			cb(h.OnSubscribe(client, event, subscribeProxyHandler))
 		})
-		client.OnPublish(func(event centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
-			cb(h.OnPublish(client, event, publishProxyHandler))
-		})
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
 			cb(h.OnSubRefresh(client, event))
+		})
+		client.OnPublish(func(event centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
+			cb(h.OnPublish(client, event, publishProxyHandler))
 		})
 		client.OnPresence(func(event centrifuge.PresenceEvent, cb centrifuge.PresenceCallback) {
 			cb(h.OnPresence(client, event))
@@ -149,13 +146,6 @@ func (h *Handler) Setup() {
 			cb(h.OnHistory(client, event))
 		})
 	})
-}
-
-func toClientErr(err error) *centrifuge.Error {
-	if clientErr, ok := err.(*centrifuge.Error); ok {
-		return clientErr
-	}
-	return centrifuge.ErrorInternal
 }
 
 // OnClientConnecting ...
@@ -350,7 +340,7 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeResult{}, centrifuge.ErrorNotAvailable
 		}
-		return subscribeProxyHandler(c, e)
+		return subscribeProxyHandler(c, e, chOpts)
 	}
 
 	return centrifuge.SubscribeResult{
