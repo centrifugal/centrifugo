@@ -377,14 +377,14 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 		return centrifuge.PublishResult{}, centrifuge.ErrorUnknownChannel
 	}
 
+	if !chOpts.Publish && !ruleConfig.ClientInsecure {
+		return centrifuge.PublishResult{}, centrifuge.ErrorPermissionDenied
+	}
+
 	if chOpts.SubscribeToPublish {
 		if !c.IsSubscribed(e.Channel) {
 			return centrifuge.PublishResult{}, centrifuge.ErrorPermissionDenied
 		}
-	}
-
-	if !chOpts.Publish && !ruleConfig.ClientInsecure {
-		return centrifuge.PublishResult{}, centrifuge.ErrorPermissionDenied
 	}
 
 	if chOpts.ProxyPublish {
@@ -392,7 +392,7 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.PublishResult{}, centrifuge.ErrorNotAvailable
 		}
-		return publishProxyHandler(c, e)
+		return publishProxyHandler(c, e, chOpts)
 	}
 
 	return h.node.Publish(
