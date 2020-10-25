@@ -20,6 +20,7 @@ type Executor struct {
 	rpcExtension  map[string]RPCHandler
 }
 
+// NewExecutor ...
 func NewExecutor(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, protocol string) *Executor {
 	return &Executor{
 		node:          n,
@@ -29,6 +30,7 @@ func NewExecutor(n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, p
 	}
 }
 
+// SetRPCExtension ...
 func (h Executor) SetRPCExtension(method string, handler RPCHandler) {
 	h.rpcExtension[method] = handler
 }
@@ -54,7 +56,7 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 		return resp
 	}
 
-	_, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
+	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -64,7 +66,10 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 		return resp
 	}
 
-	_, err = h.node.Publish(cmd.Channel, cmd.Data)
+	_, err = h.node.Publish(
+		cmd.Channel, cmd.Data,
+		centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryLifetime)*time.Second),
+	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing message in engine", map[string]interface{}{"error": err.Error(), "channel": cmd.Channel}))
 		resp.Error = ErrorInternal
@@ -106,7 +111,7 @@ func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broadcas
 			return resp
 		}
 
-		_, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
+		chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
 		if err != nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting options for channel", map[string]interface{}{"channel": ch, "error": err.Error()}))
 			resp.Error = ErrorInternal
@@ -120,7 +125,10 @@ func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broadcas
 
 		wg.Add(1)
 		go func(i int, ch string) {
-			_, err := h.node.Publish(ch, data)
+			_, err := h.node.Publish(
+				ch, data,
+				centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryLifetime)*time.Second),
+			)
 			errs[i] = err
 			wg.Done()
 		}(i, ch)

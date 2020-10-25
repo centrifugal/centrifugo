@@ -51,10 +51,6 @@ type Config struct {
 	ClientUserConnectionLimit int
 	// ChannelMaxLength is a maximum length of channel name.
 	ChannelMaxLength int
-	// ChannelOptionsFunc should be provided to change per-channel ChannelOptions.
-	// If not set then all channels will use default ChannelOptions with all
-	// features off.
-	ChannelOptionsFunc ChannelOptionsFunc
 	// MetricsNamespace is a Prometheus metrics namespace to use for internal metrics.
 	// If not set then default namespace name `centrifuge` will be used.
 	MetricsNamespace string

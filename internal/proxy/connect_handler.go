@@ -6,6 +6,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/centrifugal/centrifugo/internal/rule"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -17,25 +19,27 @@ type ConnectHandlerConfig struct {
 
 // ConnectHandler ...
 type ConnectHandler struct {
-	config    ConnectHandlerConfig
-	summary   prometheus.Observer
-	histogram prometheus.Observer
-	errors    prometheus.Counter
+	config        ConnectHandlerConfig
+	ruleContainer *rule.ChannelRuleContainer
+	summary       prometheus.Observer
+	histogram     prometheus.Observer
+	errors        prometheus.Counter
 }
 
 // NewConnectHandler ...
-func NewConnectHandler(c ConnectHandlerConfig) *ConnectHandler {
+func NewConnectHandler(c ConnectHandlerConfig, ruleContainer *rule.ChannelRuleContainer) *ConnectHandler {
 	return &ConnectHandler{
-		config:    c,
-		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect"),
-		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect"),
-		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		config:        c,
+		ruleContainer: ruleContainer,
+		summary:       proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		histogram:     proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		errors:        proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect"),
 	}
 }
 
 // Handle returns connecting handler func.
 func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHandler {
-	return func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+	return func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectResult, error) {
 		started := time.Now()
 		connectRep, err := h.config.Proxy.ProxyConnect(ctx, ConnectRequest{
 			ClientID:  e.ClientID,
@@ -47,26 +51,26 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				return centrifuge.ConnectReply{}, centrifuge.DisconnectNormal
+				return centrifuge.ConnectResult{}, centrifuge.DisconnectNormal
 			}
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
 			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying connect", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
-			return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
+			return centrifuge.ConnectResult{}, centrifuge.ErrorInternal
 		}
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)
 		if connectRep.Disconnect != nil {
-			return centrifuge.ConnectReply{}, connectRep.Disconnect
+			return centrifuge.ConnectResult{}, connectRep.Disconnect
 		}
 		if connectRep.Error != nil {
-			return centrifuge.ConnectReply{}, connectRep.Error
+			return centrifuge.ConnectResult{}, connectRep.Error
 		}
 
 		credentials := connectRep.Result
 		if credentials == nil {
-			return centrifuge.ConnectReply{Credentials: nil}, nil
+			return centrifuge.ConnectResult{Credentials: nil}, nil
 		}
 
 		var info []byte
@@ -77,7 +81,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 				decodedInfo, err := base64.StdEncoding.DecodeString(credentials.Base64Info)
 				if err != nil {
 					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
-					return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
+					return centrifuge.ConnectResult{}, centrifuge.ErrorInternal
 				}
 				info = decodedInfo
 			}
@@ -91,22 +95,40 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 				decodedData, err := base64.StdEncoding.DecodeString(credentials.Base64Data)
 				if err != nil {
 					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
-					return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
+					return centrifuge.ConnectResult{}, centrifuge.ErrorInternal
 				}
 				data = decodedData
 			}
 		}
 
-		reply := centrifuge.ConnectReply{
+		reply := centrifuge.ConnectResult{
 			Credentials: &centrifuge.Credentials{
 				UserID:   credentials.UserID,
 				ExpireAt: credentials.ExpireAt,
 				Info:     info,
 			},
-			Channels: credentials.Channels,
 		}
 		if len(data) > 0 {
 			reply.Data = data
+		}
+		if len(credentials.Channels) > 0 {
+			subscriptions := make([]centrifuge.Subscription, 0, len(credentials.Channels))
+			for _, ch := range credentials.Channels {
+				chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
+				if err != nil {
+					return centrifuge.ConnectResult{}, err
+				}
+				if !found {
+					return centrifuge.ConnectResult{}, centrifuge.ErrorUnknownChannel
+				}
+				subscriptions = append(subscriptions, centrifuge.Subscription{
+					Channel:   ch,
+					Presence:  chOpts.Presence,
+					JoinLeave: chOpts.JoinLeave,
+					Recover:   chOpts.HistoryRecover,
+				})
+			}
+			reply.Subscriptions = subscriptions
 		}
 		return reply, nil
 	}

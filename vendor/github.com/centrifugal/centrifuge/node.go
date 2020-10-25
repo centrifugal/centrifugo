@@ -126,17 +126,6 @@ func New(c Config) (*Node, error) {
 	return n, nil
 }
 
-var defaultChannelOptions = ChannelOptions{}
-
-func (n *Node) channelOptions(ch string) (ChannelOptions, bool, error) {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	if n.config.ChannelOptionsFunc == nil {
-		return defaultChannelOptions, true, nil
-	}
-	return n.config.ChannelOptionsFunc(ch)
-}
-
 // index chooses bucket number in range [0, numBuckets).
 func index(s string, numBuckets int) int {
 	if numBuckets == 1 {
@@ -444,14 +433,7 @@ func (n *Node) handlePublication(ch string, pub *protocol.Publication) error {
 	if !hasCurrentSubscribers {
 		return nil
 	}
-	chOpts, found, err := n.channelOptions(ch)
-	if err != nil {
-		return err
-	}
-	if !found {
-		return nil
-	}
-	return n.hub.broadcastPublication(ch, pub, &chOpts)
+	return n.hub.broadcastPublication(ch, pub)
 }
 
 // handleJoin handles join messages - i.e. broadcasts it to
@@ -476,28 +458,15 @@ func (n *Node) handleLeave(ch string, leave *protocol.Leave) error {
 	return n.hub.broadcastLeave(ch, leave)
 }
 
-func (n *Node) publish(ch string, data []byte, info *ClientInfo, opts ...PublishOption) (PublishResult, error) {
-	chOpts, found, err := n.channelOptions(ch)
-	if err != nil {
-		return PublishResult{}, err
-	}
-	if !found {
-		return PublishResult{}, ErrorUnknownChannel
-	}
-
+func (n *Node) publish(ch string, data []byte, opts ...PublishOption) (PublishResult, error) {
 	pubOpts := &PublishOptions{}
 	for _, opt := range opts {
 		opt(pubOpts)
 	}
 
-	if pubOpts.HistoryTTL == 0 && !pubOpts.skipHistory && (chOpts.HistoryLifetime > 0 && chOpts.HistorySize > 0) {
-		pubOpts.HistoryTTL = time.Duration(chOpts.HistoryLifetime) * time.Second
-		pubOpts.HistorySize = chOpts.HistorySize
-	}
-
 	pub := &Publication{
 		Data: data,
-		Info: info,
+		Info: pubOpts.clientInfo,
 	}
 
 	incMessagesSent("publication")
@@ -514,22 +483,27 @@ type PublishResult struct {
 	StreamPosition
 }
 
-// Publish sends data to all clients subscribed on channel. All running nodes will
-// receive it and send to all local channel subscribers.
+// Publish sends data to all clients subscribed on channel at this moment. All running
+// nodes will receive Publication and send it to all local channel subscribers.
 //
 // Data expected to be valid marshaled JSON or any binary payload.
-// Connections that work over JSON protocol can not handle custom binary payloads.
+// Connections that work over JSON protocol can not handle binary payloads.
 // Connections that work over Protobuf protocol can work both with JSON and binary payloads.
 //
 // So the rule here: if you have channel subscribers that work using JSON
 // protocol then you can not publish binary data to these channel.
+//
+// Channels in Centrifuge are ephemeral and its settings not persisted over different
+// publish operations. So if you want to have channel with history stream behind you
+// need to provide WithHistory option on every publish. To simplify working with different
+// channels you can make some type of publish wrapper in your own code.
 //
 // The returned PublishResult contains embedded StreamPosition that describes
 // position inside stream Publication was added too. For channels without history
 // enabled (i.e. when Publications only sent to PUB/SUB system) StreamPosition will
 // be an empty struct (i.e. PublishResult.Offset will be zero).
 func (n *Node) Publish(channel string, data []byte, opts ...PublishOption) (PublishResult, error) {
-	return n.publish(channel, data, nil, opts...)
+	return n.publish(channel, data, opts...)
 }
 
 // publishJoin allows to publish join message into channel when someone subscribes on it
@@ -877,12 +851,6 @@ func (n *Node) History(ch string, opts ...HistoryOption) (HistoryResult, error) 
 		StreamPosition: streamTop,
 		Publications:   pubs,
 	}, nil
-}
-
-// fullHistory extracts full history in channel.
-func (n *Node) fullHistory(ch string) (HistoryResult, error) {
-	incActionCount("history_full")
-	return n.History(ch, WithNoLimit())
 }
 
 // recoverHistory recovers publications since last UID seen by client.

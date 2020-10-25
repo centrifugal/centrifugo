@@ -33,11 +33,11 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 }
 
 // PublishHandlerFunc ...
-type PublishHandlerFunc func(*centrifuge.Client, centrifuge.PublishEvent) (centrifuge.PublishReply, error)
+type PublishHandlerFunc func(*centrifuge.Client, centrifuge.PublishEvent) (centrifuge.PublishResult, error)
 
 // Handle Publish.
 func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.PublishEvent) (centrifuge.PublishReply, error) {
+	return func(client *centrifuge.Client, e centrifuge.PublishEvent) (centrifuge.PublishResult, error) {
 		started := time.Now()
 		publishRep, err := h.config.Proxy.ProxyPublish(client.Context(), PublishRequest{
 			ClientID:  client.ID(),
@@ -49,24 +49,24 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				return centrifuge.PublishReply{}, nil
+				return centrifuge.PublishResult{}, nil
 			}
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
 			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying publish", map[string]interface{}{"error": err.Error()}))
-			return centrifuge.PublishReply{}, centrifuge.ErrorInternal
+			return centrifuge.PublishResult{}, centrifuge.ErrorInternal
 		}
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)
 
 		if publishRep.Disconnect != nil {
-			return centrifuge.PublishReply{}, publishRep.Disconnect
+			return centrifuge.PublishResult{}, publishRep.Disconnect
 		}
 		if publishRep.Error != nil {
-			return centrifuge.PublishReply{}, publishRep.Error
+			return centrifuge.PublishResult{}, publishRep.Error
 		}
 
-		return centrifuge.PublishReply{}, nil
+		return node.Publish(e.Channel, e.Data, centrifuge.WithClientInfo(e.Info))
 	}
 }

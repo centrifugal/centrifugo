@@ -92,9 +92,7 @@ type PublishOptions struct {
 	// HistorySize sets history size limit to prevent infinite stream growth.
 	HistorySize int
 
-	// skipHistory ...
-	// Deprecated – will be removed in Centrifuge v0.13.0.
-	skipHistory bool
+	clientInfo *ClientInfo
 }
 
 // Broker is responsible for PUB/SUB mechanics.

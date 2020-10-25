@@ -5,7 +5,7 @@ import "time"
 // PublishOption is a type to represent various Publish options.
 type PublishOption func(*PublishOptions)
 
-// WithHistory tells broker to save message to history stream.
+// WithHistory tells broker to save message to history stream with provided size and ttl.
 func WithHistory(size int, ttl time.Duration) PublishOption {
 	return func(opts *PublishOptions) {
 		opts.HistorySize = size
@@ -13,11 +13,10 @@ func WithHistory(size int, ttl time.Duration) PublishOption {
 	}
 }
 
-// SkipHistory tells broker to skip saving message to history stream.
-// Deprecated – will be removed in Centrifuge v0.13.0.
-func SkipHistory() PublishOption {
+// WithClientInfo adds ClientInfo to Publication.
+func WithClientInfo(info *ClientInfo) PublishOption {
 	return func(opts *PublishOptions) {
-		opts.skipHistory = true
+		opts.clientInfo = info
 	}
 }
 

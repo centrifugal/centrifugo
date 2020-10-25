@@ -3,7 +3,6 @@ package rule
 import (
 	"testing"
 
-	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
 )
 
@@ -69,7 +68,7 @@ func TestConfigValidateMalformedReceiverInNamespace(t *testing.T) {
 		{
 			Name: "name",
 			NamespaceChannelOptions: NamespaceChannelOptions{
-				ChannelOptions: centrifuge.ChannelOptions{HistoryRecover: true},
+				HistoryRecover: true,
 			},
 		},
 	}

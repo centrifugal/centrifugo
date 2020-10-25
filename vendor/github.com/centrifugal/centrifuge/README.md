@@ -64,7 +64,10 @@ import (
 )
 
 // Authentication middleware. Centrifuge expects Credentials with current user ID.
-// Without provided Credentials client connection won't be accepted.
+// Without provided Credentials client connection won't be accepted. Another way
+// to authenticate connection is reacting to node.OnConnecting event where you may
+// authenticate connection based on custom token sent by client in first protocol
+// frame.
 func auth(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -91,9 +94,8 @@ func main() {
 	cfg := centrifuge.DefaultConfig
 
 	// Node is the core object in Centrifuge library responsible for many useful
-	// things. For example Node allows to publish messages to channels from server
-	// side with its Publish method, but in this example we will publish messages
-	// only from client side.
+	// things. For example Node allows to publish messages to channels with its
+	// Publish method – we are using it below.
 	node, err := centrifuge.New(cfg)
 	if err != nil {
 		log.Fatal(err)
@@ -101,8 +103,9 @@ func main() {
 
 	// Set ConnectHandler called when client successfully connected to Node. Your code
 	// inside handler must be synchronized since it will be called concurrently from
-	// different goroutines (belonging to different client connections). This is also
-	// true for other event handlers.
+	// different goroutines (belonging to different client connections). See information
+	// about connection life cycle in library readme. This handler should not block – so
+	// do minimal work here, set required connection event handlers and return.
 	node.OnConnect(func(client *centrifuge.Client) {
 		// In our example transport will always be Websocket but it can also be SockJS.
 		transportName := client.Transport().Name()
@@ -114,21 +117,24 @@ func main() {
 		// initiated by client. Here you can theoretically return an error or
 		// disconnect client from server if needed. But now we just accept
 		// all subscriptions to all channels. In real life you may use a more
-		// complex permission check here.
+		// complex permission check here. The reason why we use callback style
+		// inside client event handlers is that it gives a possibility to control
+		// operation concurrency to developer and still control order of events.
 		client.OnSubscribe(func(e centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
 			log.Printf("client subscribes on channel %s", e.Channel)
-			cb(centrifuge.SubscribeReply{}, nil)
+			cb(centrifuge.SubscribeResult{}, nil)
 		})
 
 		// By default, clients can not publish messages into channels. By setting
 		// PublishHandler we tell Centrifuge that publish from client side is possible.
 		// Now each time client calls publish method this handler will be called and
-		// you have a possibility to validate publication request before message will
-		// be published into channel and reach active subscribers. In our simple chat
-		// app we allow everyone to publish into any channel.
+		// you have a possibility to validate publication request and then publish message
+		// into channel. Publication will reach active subscribers with at most once
+		// delivery guarantee. In our simple chat app we allow everyone to publish into
+		// any channel but in real case you may have more validation.
 		client.OnPublish(func(e centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
 			log.Printf("client publishes into channel %s: %s", e.Channel, string(e.Data))
-			cb(centrifuge.PublishReply{}, nil)
+			cb(node.Publish(e.Channel, e.Data))
 		})
 
 		// Set Disconnect handler to react on client disconnect events.
@@ -137,7 +143,8 @@ func main() {
 		})
 	})
 
-	// Run node. This method does not block.
+	// Run node. This method does not block. See also node.Shutdown method
+	// to finish application gracefully.
 	if err := node.Run(); err != nil {
 		log.Fatal(err)
 	}
@@ -216,6 +223,22 @@ Keep in mind that Centrifuge library is not a framework to build chat apps. It's
 ### Tips and tricks
 
 Some useful advices about library here.
+
+#### Connection life cycle
+
+Let's describe some aspects related to connection life cycle and event handling in Centrifuge:
+
+* If you set middleware for transport handlers (`WebsocketHandler`, `SockjsHandler`) – then it will be called first before a client sent any command to a server and handler had a chance to start working. Just like a regular HTTP middleware. You can put `Credentials` to `Context` to authenticate connection.
+* `node.OnConnecting` called as soon as client sent `Connect` command to server. At this point no `Client` instance exists. You have incoming `Context` and `Transport` information. You still can authenticate Client at this point (based on string token sent from client side or any other way). Also, you can add extra data to context and return modified context to Centrifuge. Context cancelled as soon as client connection closes. This handler is synchronous and connection read loop can't proceed until you return `ConnectReply`. 
+* `node.OnConnect` then called (after a reply to `Connect` command already written to connection). Inside `OnConnect` closure you have a possibility to define per-connection event handlers. If particular handler not set then client will get `ErrorNotAvailable` errors requesting it. Remember that none of event handlers available in Centrifuge should block forever – do minimal work, start separate goroutines if you need blocking code.
+* Client initiated request handlers called one by one from connection reading goroutine. This includes `OnSubscribe`, `OnPublish`, `OnPresence`, `OnPresenceStats`, `OnHistory`, client-side `OnRefresh`, client-side `OnSubRefresh`.
+* Other handlers like `OnAlive`, `OnDisconnect`, server-side `OnSubRefresh`, server-side `OnRefresh` called from separate internal goroutines.
+* `OnAlive` handler must not be called after `OnDisconnect`.
+* Client initiated request handlers can be processed asynchronously in goroutines to manage operation concurrency. This is achieved using callback functions. See [concurrency](https://github.com/centrifugal/centrifuge/tree/master/_examples/concurrency) example for more details.
+
+#### Channel history stream 
+
+Centrifuge Broker interface supports saving Publication to history stream on publish. Depending on broker implementation this feature can be missing though. Builtin Memory and Redis engines support keeping Publication stream. When using default memory Engine Publication stream kept in process memory and lost as soon as process restarts. Redis engine keeps Publication stream in Redis LIST or STREAM data structures – reliability inherited from Redis configuration in this case. Centrifuge library publication stream not meant to be used as the only source of missed Publications for a client. It mostly exists to help many clients reconnect without creating a massive spike in load on your main application database. So application database still required in idiomatic use case. Centrifuge message recovery protocol feature designed to be used together with reasonably small Publication stream size all missed publications sent towards client in one protocol frame on resubscribe to channel.
 
 #### Logging
 

@@ -47,6 +47,8 @@ github.com/centrifugal/centrifuge v0.12.0 h1:RDZtNqi3UsXqfa8ZaIGUVBZWQ5JeWUtSDvz
 github.com/centrifugal/centrifuge v0.12.0/go.mod h1:jdFw/2dBFpME3OTisc5FVAC1ilqodnyMnQFjem0k0yg=
 github.com/centrifugal/centrifuge v0.12.1-0.20201016085432-3e64e26700af h1:B0AhX1NanOCmtvfOt4Lq/Tcc7RusQ5tXhEHFHiCzaHo=
 github.com/centrifugal/centrifuge v0.12.1-0.20201016085432-3e64e26700af/go.mod h1:jdFw/2dBFpME3OTisc5FVAC1ilqodnyMnQFjem0k0yg=
+github.com/centrifugal/centrifuge v0.12.1-0.20201024115043-3590b007b016 h1:xibwtCH32YxJHcfJbtr2P8wKyTUAytS0npY7TQ1orEk=
+github.com/centrifugal/centrifuge v0.12.1-0.20201024115043-3590b007b016/go.mod h1:jdFw/2dBFpME3OTisc5FVAC1ilqodnyMnQFjem0k0yg=
 github.com/centrifugal/protocol v0.3.4 h1:9q22iSp4CQOdQahfopvfmWWxDbj1Lo7ERG2j56mAxkE=
 github.com/centrifugal/protocol v0.3.4/go.mod h1:2YbBCaDwQHl37ErRdMrKSj18X2yVvpkQYtSX6aVbe5A=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=

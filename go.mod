@@ -9,7 +9,7 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/viper-lite v0.0.0-20171108064948-d5a31e6aa18b
 	github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af
-	github.com/centrifugal/centrifuge v0.12.1-0.20201016085432-3e64e26700af
+	github.com/centrifugal/centrifuge v0.12.1-0.20201024115043-3590b007b016
 	github.com/centrifugal/protocol v0.3.4
 	github.com/cristalhq/jwt/v3 v3.0.0
 	github.com/gogo/protobuf v1.3.1
