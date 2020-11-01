@@ -1505,7 +1505,8 @@
 <li>Channel <code>public:news</code> will use <code>public</code> namespace's options.</li>
 <li>Channel <code>gossips:news</code> will use <code>gossips</code> namespace's options.</li>
 </ul>
-<p>There is no inheritance in channel options and namespaces – so if for example you defined <code>presence: true</code> on top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. </p>
+<p><strong>Channel namespaces also work with private channels and user-limited channels</strong>. For example, if you have namespace called <code>dialogs</code> then private channel can be constructed as <code>$dialogs:gossips</code>, user-limited channel can be constructed as <code>dialogs:dialog#1,2</code>.</p>
+<p>There is no inheritance in channel options and namespaces – for example you defined <code>presence: true</code> on a top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. </p>
                 
               
               
