@@ -297,7 +297,7 @@ func TestClientConnectWithProxy(t *testing.T) {
 				ExpireAt: 14,
 				Info:     []byte(`{"key": "value"}`),
 			},
-			Subscriptions: []centrifuge.Subscription{{Channel: "channel1"}},
+			Subscriptions: map[string]centrifuge.SubscribeOptions{"channel1": {}},
 		}, nil
 	}
 
@@ -308,7 +308,7 @@ func TestClientConnectWithProxy(t *testing.T) {
 	require.Equal(t, "34", reply.Credentials.UserID)
 	require.Equal(t, int64(14), reply.Credentials.ExpireAt)
 	require.False(t, reply.ClientSideRefresh)
-	require.Equal(t, "channel1", reply.Subscriptions[0].Channel)
+	require.Contains(t, reply.Subscriptions, "channel1")
 }
 
 func TestClientConnectWithValidTokenRSA(t *testing.T) {
@@ -437,7 +437,7 @@ func TestClientUserPersonalChannel(t *testing.T) {
 				Token: getConnTokenHS("42", 0),
 			}, nil, false)
 			require.NoError(t, err)
-			require.Equal(t, ruleContainer.PersonalChannel("42"), reply.Subscriptions[0].Channel)
+			require.Contains(t, reply.Subscriptions, ruleContainer.PersonalChannel("42"))
 		})
 	}
 }
@@ -624,7 +624,7 @@ func TestClientSubscribePrivateChannelWithToken(t *testing.T) {
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 0),
 	}, nil)
 	require.NoError(t, err)
-	require.Zero(t, reply.ExpireAt)
+	require.Zero(t, reply.Options.ExpireAt)
 }
 
 func TestClientSubscribePrivateChannelWithTokenAnonymous(t *testing.T) {
@@ -704,7 +704,7 @@ func TestClientSideSubRefresh(t *testing.T) {
 		Token:   getSubscribeTokenHS("$test1", client.ID(), time.Now().Unix()+10),
 	}, nil)
 	require.NoError(t, err)
-	require.True(t, reply.ExpireAt > 0)
+	require.True(t, reply.Options.ExpireAt > 0)
 
 	subRefreshResult, err := h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
 		Channel: "$test2",
@@ -811,7 +811,7 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousAllowed(t *testing.T) {
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 0),
 	}, nil)
 	require.NoError(t, err)
-	require.Zero(t, reply.ExpireAt)
+	require.Zero(t, reply.Options.ExpireAt)
 }
 
 func TestClientSubscribePrivateChannelWithExpiringToken(t *testing.T) {
