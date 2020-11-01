@@ -9,7 +9,7 @@ import (
 	"github.com/centrifugal/centrifuge/internal/priority"
 )
 
-// MemoryEngine is builtin default engine which allows to run Centrifuge-based
+// MemoryEngine is builtin default Engine which allows to run Centrifuge-based
 // server without any external broker or storage. All data managed inside process
 // memory.
 //
@@ -77,16 +77,21 @@ func (e *MemoryEngine) pubLock(ch string) *sync.Mutex {
 
 // Publish adds message into history hub and calls node method to handle message.
 // We don't have any PUB/SUB here as Memory Engine is single node only.
-func (e *MemoryEngine) Publish(ch string, pub *Publication, opts PublishOptions) (StreamPosition, error) {
+func (e *MemoryEngine) Publish(ch string, data []byte, opts PublishOptions) (StreamPosition, error) {
 	mu := e.pubLock(ch)
 	mu.Lock()
 	defer mu.Unlock()
 
+	pub := &Publication{
+		Data: data,
+		Info: opts.ClientInfo,
+	}
 	if opts.HistorySize > 0 && opts.HistoryTTL > 0 {
 		streamTop, err := e.historyHub.add(ch, pub, opts)
 		if err != nil {
 			return StreamPosition{}, err
 		}
+		pub.Offset = streamTop.Offset
 		return streamTop, e.eventHandler.HandlePublication(ch, pub)
 	}
 	return StreamPosition{}, e.eventHandler.HandlePublication(ch, pub)

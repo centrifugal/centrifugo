@@ -34,11 +34,11 @@ func NewRefreshHandler(c RefreshHandlerConfig) *RefreshHandler {
 }
 
 // RefreshHandlerFunc ...
-type RefreshHandlerFunc func(*centrifuge.Client, centrifuge.RefreshEvent) (centrifuge.RefreshResult, error)
+type RefreshHandlerFunc func(*centrifuge.Client, centrifuge.RefreshEvent) (centrifuge.RefreshReply, error)
 
 // Handle refresh.
 func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshResult, error) {
+	return func(client *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
 		started := time.Now()
 		refreshRep, err := h.config.Proxy.ProxyRefresh(client.Context(), RefreshRequest{
 			ClientID:  client.ID(),
@@ -48,7 +48,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				return centrifuge.RefreshResult{}, nil
+				return centrifuge.RefreshReply{}, nil
 			}
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
@@ -59,7 +59,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 			// problems on application backend side.
 			// NOTE: this interval must be configurable maybe, but for now looks
 			// like a reasonable value.
-			return centrifuge.RefreshResult{
+			return centrifuge.RefreshReply{
 				ExpireAt: time.Now().Unix() + 60,
 			}, nil
 		}
@@ -70,13 +70,13 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 		if credentials == nil {
 			// User will be disconnected.
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "no refresh credentials found", map[string]interface{}{}))
-			return centrifuge.RefreshResult{
+			return centrifuge.RefreshReply{
 				Expired: true,
 			}, nil
 		}
 
 		if credentials.Expired {
-			return centrifuge.RefreshResult{
+			return centrifuge.RefreshReply{
 				Expired: true,
 			}, nil
 		}
@@ -89,13 +89,13 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 				decodedInfo, err := base64.StdEncoding.DecodeString(credentials.Base64Info)
 				if err != nil {
 					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
-					return centrifuge.RefreshResult{}, centrifuge.ErrorInternal
+					return centrifuge.RefreshReply{}, centrifuge.ErrorInternal
 				}
 				info = decodedInfo
 			}
 		}
 
-		return centrifuge.RefreshResult{
+		return centrifuge.RefreshReply{
 			ExpireAt: credentials.ExpireAt,
 			Info:     info,
 		}, nil

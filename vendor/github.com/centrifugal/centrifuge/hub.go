@@ -11,7 +11,7 @@ import (
 	"github.com/centrifugal/protocol"
 )
 
-// Hub manages client connections.
+// Hub manages Client connections.
 type Hub struct {
 	mu sync.RWMutex
 	// match client ID with actual client connection.

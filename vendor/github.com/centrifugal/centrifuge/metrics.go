@@ -11,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// default namespace for prometheus metrics.
+// default namespace for prometheus metrics. Can be changed over Config.
 var defaultMetricsNamespace = "centrifuge"
 
 var registryMu sync.RWMutex

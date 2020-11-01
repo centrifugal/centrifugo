@@ -10,6 +10,7 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
+// RPCHandler allows to handle custom RPC.
 type RPCHandler func(ctx context.Context, params Raw) (Raw, error)
 
 // Executor can run API methods.
@@ -253,8 +254,8 @@ func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceRe
 		apiPresence[k] = &ClientInfo{
 			User:     v.UserID,
 			Client:   v.ClientID,
-			ConnInfo: Raw(v.ConnInfo),
-			ChanInfo: Raw(v.ChanInfo),
+			ConnInfo: v.ConnInfo,
+			ChanInfo: v.ChanInfo,
 		}
 	}
 
@@ -335,7 +336,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 		return resp
 	}
 
-	history, err := h.node.History(ch, centrifuge.WithNoLimit())
+	history, err := h.node.History(ch, centrifuge.WithLimit(centrifuge.NoLimit))
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling history", map[string]interface{}{"error": err.Error()}))
 		resp.Error = ErrorInternal

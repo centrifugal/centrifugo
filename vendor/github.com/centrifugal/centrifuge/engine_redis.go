@@ -606,8 +606,8 @@ func (e *RedisEngine) Run(h BrokerEventHandler) error {
 }
 
 // Publish - see engine interface description.
-func (e *RedisEngine) Publish(ch string, pub *Publication, opts PublishOptions) (StreamPosition, error) {
-	return e.getShard(ch).Publish(ch, pub, opts)
+func (e *RedisEngine) Publish(ch string, data []byte, opts PublishOptions) (StreamPosition, error) {
+	return e.getShard(ch).Publish(ch, data, opts)
 }
 
 // PublishJoin - see engine interface description.
@@ -1341,8 +1341,12 @@ func (s *shard) runDataPipeline() {
 }
 
 // Publish adds Publication to history Stream or List if needed and sends to PUB/SUB.
-func (s *shard) Publish(ch string, pub *Publication, opts PublishOptions) (StreamPosition, error) {
-	byteMessage, err := pubToProto(pub).Marshal()
+func (s *shard) Publish(ch string, data []byte, opts PublishOptions) (StreamPosition, error) {
+	protoPub := &protocol.Publication{
+		Data: data,
+		Info: infoToProto(opts.ClientInfo),
+	}
+	byteMessage, err := protoPub.Marshal()
 	if err != nil {
 		return StreamPosition{}, err
 	}

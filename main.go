@@ -1094,8 +1094,8 @@ func nodeConfig(version string) centrifuge.Config {
 	cfg.ClientStaleCloseDelay = time.Duration(v.GetInt("client_stale_close_delay")) * time.Second
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
-	cfg.ClientUserConnectionLimit = v.GetInt("client_user_connection_limit")
 	cfg.ClientChannelPositionCheckDelay = time.Duration(v.GetInt("client_channel_position_check_delay")) * time.Second
+	cfg.UserConnectionLimit = v.GetInt("client_user_connection_limit")
 	cfg.NodeInfoMetricsAggregateInterval = time.Duration(v.GetInt("node_info_metrics_aggregate_interval")) * time.Second
 
 	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]

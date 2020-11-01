@@ -13,7 +13,7 @@ type writerConfig struct {
 	MaxMessagesInFrame int
 }
 
-// writer helps to manage per-connection message queue.
+// writer helps to manage per-connection message byte queue.
 type writer struct {
 	mu       sync.Mutex
 	config   writerConfig
@@ -45,10 +45,7 @@ func (w *writer) waitSendMessage(maxMessagesInFrame int) bool {
 
 	msg, ok := w.messages.Remove()
 	if !ok {
-		if w.messages.Closed() {
-			return false
-		}
-		return true
+		return !w.messages.Closed()
 	}
 
 	var writeErr error

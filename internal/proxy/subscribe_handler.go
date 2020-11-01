@@ -36,11 +36,11 @@ func NewSubscribeHandler(c SubscribeHandlerConfig) *SubscribeHandler {
 }
 
 // SubscribeHandlerFunc ...
-type SubscribeHandlerFunc func(*centrifuge.Client, centrifuge.SubscribeEvent, rule.NamespaceChannelOptions) (centrifuge.SubscribeResult, error)
+type SubscribeHandlerFunc func(*centrifuge.Client, centrifuge.SubscribeEvent, rule.NamespaceChannelOptions) (centrifuge.SubscribeReply, error)
 
 // Handle Subscribe.
 func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent, chOpts rule.NamespaceChannelOptions) (centrifuge.SubscribeResult, error) {
+	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent, chOpts rule.NamespaceChannelOptions) (centrifuge.SubscribeReply, error) {
 		started := time.Now()
 		subscribeRep, err := h.config.Proxy.ProxySubscribe(client.Context(), SubscribeRequest{
 			ClientID:  client.ID(),
@@ -52,22 +52,22 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				return centrifuge.SubscribeResult{}, nil
+				return centrifuge.SubscribeReply{}, nil
 			}
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
 			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying subscribe", map[string]interface{}{"error": err.Error()}))
-			return centrifuge.SubscribeResult{}, centrifuge.ErrorInternal
+			return centrifuge.SubscribeReply{}, centrifuge.ErrorInternal
 		}
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)
 
 		if subscribeRep.Disconnect != nil {
-			return centrifuge.SubscribeResult{}, subscribeRep.Disconnect
+			return centrifuge.SubscribeReply{}, subscribeRep.Disconnect
 		}
 		if subscribeRep.Error != nil {
-			return centrifuge.SubscribeResult{}, subscribeRep.Error
+			return centrifuge.SubscribeReply{}, subscribeRep.Error
 		}
 
 		var info []byte
@@ -79,19 +79,21 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 					decodedInfo, err := base64.StdEncoding.DecodeString(subscribeRep.Result.Base64Info)
 					if err != nil {
 						node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
-						return centrifuge.SubscribeResult{}, centrifuge.ErrorInternal
+						return centrifuge.SubscribeReply{}, centrifuge.ErrorInternal
 					}
 					info = decodedInfo
 				}
 			}
 		}
 
-		return centrifuge.SubscribeResult{
-			ChannelInfo:       info,
+		return centrifuge.SubscribeReply{
+			Options: centrifuge.SubscribeOptions{
+				ChannelInfo: info,
+				Presence:    chOpts.Presence,
+				JoinLeave:   chOpts.JoinLeave,
+				Recover:     chOpts.HistoryRecover,
+			},
 			ClientSideRefresh: true,
-			Presence:          chOpts.Presence,
-			JoinLeave:         chOpts.JoinLeave,
-			Recover:           chOpts.HistoryRecover,
 		}, nil
 	}
 }

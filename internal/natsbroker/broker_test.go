@@ -25,10 +25,9 @@ func NewTestNatsBrokerWithPrefix(prefix string) *NatsBroker {
 func BenchmarkNatsEnginePublish(b *testing.B) {
 	broker := newTestNatsBroker()
 	rawData := []byte(`{"bench": true}`)
-	pub := &centrifuge.Publication{Data: rawData}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := broker.Publish("channel", pub, centrifuge.PublishOptions{})
+		_, err := broker.Publish("channel", rawData, centrifuge.PublishOptions{})
 		if err != nil {
 			panic(err)
 		}
@@ -38,12 +37,11 @@ func BenchmarkNatsEnginePublish(b *testing.B) {
 func BenchmarkNatsEnginePublishParallel(b *testing.B) {
 	broker := newTestNatsBroker()
 	rawData := []byte(`{"bench": true}`)
-	pub := &centrifuge.Publication{Data: rawData}
 	b.SetParallelism(128)
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := broker.Publish("channel", pub, centrifuge.PublishOptions{})
+			_, err := broker.Publish("channel", rawData, centrifuge.PublishOptions{})
 			if err != nil {
 				panic(err)
 			}

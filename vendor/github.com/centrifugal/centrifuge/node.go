@@ -162,7 +162,7 @@ func (n *Node) Hub() *Hub {
 }
 
 // Run performs node startup actions. At moment must be called once on start
-// after engine set to Node.
+// after Engine set to Node.
 func (n *Node) Run() error {
 	eventHandler := &brokerEventHandler{n}
 	if err := n.broker.Run(eventHandler); err != nil {
@@ -463,18 +463,11 @@ func (n *Node) publish(ch string, data []byte, opts ...PublishOption) (PublishRe
 	for _, opt := range opts {
 		opt(pubOpts)
 	}
-
-	pub := &Publication{
-		Data: data,
-		Info: pubOpts.clientInfo,
-	}
-
 	incMessagesSent("publication")
-	streamPos, err := n.broker.Publish(ch, pub, *pubOpts)
+	streamPos, err := n.broker.Publish(ch, data, *pubOpts)
 	if err != nil {
 		return PublishResult{}, err
 	}
-	pub.Offset = streamPos.Offset
 	return PublishResult{StreamPosition: streamPos}, nil
 }
 
@@ -856,7 +849,7 @@ func (n *Node) History(ch string, opts ...HistoryOption) (HistoryResult, error) 
 // recoverHistory recovers publications since last UID seen by client.
 func (n *Node) recoverHistory(ch string, since StreamPosition) (HistoryResult, error) {
 	incActionCount("history_recover")
-	return n.History(ch, WithNoLimit(), Since(since))
+	return n.History(ch, WithLimit(NoLimit), Since(since))
 }
 
 // streamTop returns current stream top position for channel.

@@ -35,11 +35,11 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 }
 
 // PublishHandlerFunc ...
-type PublishHandlerFunc func(*centrifuge.Client, centrifuge.PublishEvent, rule.NamespaceChannelOptions) (centrifuge.PublishResult, error)
+type PublishHandlerFunc func(*centrifuge.Client, centrifuge.PublishEvent, rule.NamespaceChannelOptions) (centrifuge.PublishReply, error)
 
 // Handle Publish.
 func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.PublishEvent, chOpts rule.NamespaceChannelOptions) (centrifuge.PublishResult, error) {
+	return func(client *centrifuge.Client, e centrifuge.PublishEvent, chOpts rule.NamespaceChannelOptions) (centrifuge.PublishReply, error) {
 		started := time.Now()
 		publishRep, err := h.config.Proxy.ProxyPublish(client.Context(), PublishRequest{
 			ClientID:  client.ID(),
@@ -51,28 +51,29 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				return centrifuge.PublishResult{}, nil
+				return centrifuge.PublishReply{}, nil
 			}
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
 			h.errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying publish", map[string]interface{}{"error": err.Error()}))
-			return centrifuge.PublishResult{}, centrifuge.ErrorInternal
+			return centrifuge.PublishReply{}, centrifuge.ErrorInternal
 		}
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)
 
 		if publishRep.Disconnect != nil {
-			return centrifuge.PublishResult{}, publishRep.Disconnect
+			return centrifuge.PublishReply{}, publishRep.Disconnect
 		}
 		if publishRep.Error != nil {
-			return centrifuge.PublishResult{}, publishRep.Error
+			return centrifuge.PublishReply{}, publishRep.Error
 		}
 
-		return node.Publish(
+		result, err := node.Publish(
 			e.Channel, e.Data,
-			centrifuge.WithClientInfo(e.Info),
+			centrifuge.WithClientInfo(e.ClientInfo),
 			centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryLifetime)*time.Second),
 		)
+		return centrifuge.PublishReply{Result: &result}, err
 	}
 }

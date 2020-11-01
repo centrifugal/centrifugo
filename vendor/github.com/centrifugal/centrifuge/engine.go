@@ -91,8 +91,8 @@ type PublishOptions struct {
 	HistoryTTL time.Duration
 	// HistorySize sets history size limit to prevent infinite stream growth.
 	HistorySize int
-
-	clientInfo *ClientInfo
+	// ClientInfo to include into Publication. By default no ClientInfo will be appended.
+	ClientInfo *ClientInfo
 }
 
 // Broker is responsible for PUB/SUB mechanics.
@@ -106,7 +106,7 @@ type Broker interface {
 	// Unsubscribe node from channel to stop listening messages from it.
 	Unsubscribe(ch string) error
 
-	// Publish allows to send Publication into channel. Publications should be
+	// Publish allows to send data into channel. Data should be
 	// delivered to all clients subscribed to this channel at moment on any
 	// Centrifuge node (with at most once delivery guarantee).
 	//
@@ -119,7 +119,7 @@ type Broker interface {
 	//
 	// StreamPosition returned here describes current stream top offset and epoch.
 	// For channels without history this StreamPosition should be empty.
-	Publish(ch string, pub *Publication, opts PublishOptions) (StreamPosition, error)
+	Publish(ch string, data []byte, opts PublishOptions) (StreamPosition, error)
 	// PublishJoin publishes Join Push message into channel.
 	PublishJoin(ch string, info *ClientInfo) error
 	// PublishLeave publishes Leave Push message into channel.
