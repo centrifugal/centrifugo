@@ -176,4 +176,6 @@ All things together here is an example of `config.json` which includes some top-
 * Channel `public:news` will use `public` namespace's options.
 * Channel `gossips:news` will use `gossips` namespace's options.
 
-There is no inheritance in channel options and namespaces – so if for example you defined `presence: true` on top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. 
+**Channel namespaces also work with private channels and user-limited channels**. For example, if you have namespace called `dialogs` then private channel can be constructed as `$dialogs:gossips`, user-limited channel can be constructed as `dialogs:dialog#1,2`.
+
+There is no inheritance in channel options and namespaces – for example you defined `presence: true` on a top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. 
