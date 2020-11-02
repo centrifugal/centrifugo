@@ -6,8 +6,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-
-	"github.com/centrifugal/centrifuge"
 )
 
 // ChannelRuleConfig ...
@@ -133,17 +131,6 @@ func (n *ChannelRuleContainer) Reload(c ChannelRuleConfig) error {
 	defer n.mu.Unlock()
 	n.config = c
 	return nil
-}
-
-// ChannelOptions returns channel options for channel.
-func (n *ChannelRuleContainer) ChannelOptions(ch string) (centrifuge.ChannelOptions, bool, error) {
-	n.mu.RLock()
-	defer n.mu.RUnlock()
-	opts, found, err := n.config.channelOpts(n.namespaceName(ch))
-	if err != nil {
-		return centrifuge.ChannelOptions{}, false, err
-	}
-	return opts.ChannelOptions, found, nil
 }
 
 // namespaceName returns namespace name from channel if exists.

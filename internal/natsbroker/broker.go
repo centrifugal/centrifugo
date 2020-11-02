@@ -93,12 +93,15 @@ func isUnsupportedChannel(ch string) bool {
 }
 
 // Publish - see Broker interface description.
-func (b *NatsBroker) Publish(ch string, pub *centrifuge.Publication, _ centrifuge.PublishOptions) (centrifuge.StreamPosition, error) {
+func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.StreamPosition, error) {
 	if isUnsupportedChannel(ch) {
 		// Do not support wildcard subscriptions.
 		return centrifuge.StreamPosition{}, centrifuge.ErrorBadRequest
 	}
-	protoPub := pubToProto(pub)
+	protoPub := &protocol.Publication{
+		Data: data,
+		Info: infoToProto(opts.ClientInfo),
+	}
 	data, err := protoPub.Marshal()
 	if err != nil {
 		return centrifuge.StreamPosition{}, err
@@ -275,17 +278,6 @@ func infoToProto(v *centrifuge.ClientInfo) *protocol.ClientInfo {
 		info.ChanInfo = v.ChanInfo
 	}
 	return info
-}
-
-func pubToProto(pub *centrifuge.Publication) *protocol.Publication {
-	if pub == nil {
-		return nil
-	}
-	return &protocol.Publication{
-		Offset: pub.Offset,
-		Data:   pub.Data,
-		Info:   infoToProto(pub.Info),
-	}
 }
 
 func pubFromProto(pub *protocol.Publication) *centrifuge.Publication {

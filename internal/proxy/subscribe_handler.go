@@ -6,6 +6,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/centrifugal/centrifugo/internal/rule"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -33,9 +35,12 @@ func NewSubscribeHandler(c SubscribeHandlerConfig) *SubscribeHandler {
 	}
 }
 
+// SubscribeHandlerFunc ...
+type SubscribeHandlerFunc func(*centrifuge.Client, centrifuge.SubscribeEvent, rule.NamespaceChannelOptions) (centrifuge.SubscribeReply, error)
+
 // Handle Subscribe.
-func (h *SubscribeHandler) Handle(node *centrifuge.Node) centrifuge.SubscribeHandler {
-	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent) (centrifuge.SubscribeReply, error) {
+func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
+	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent, chOpts rule.NamespaceChannelOptions) (centrifuge.SubscribeReply, error) {
 		started := time.Now()
 		subscribeRep, err := h.config.Proxy.ProxySubscribe(client.Context(), SubscribeRequest{
 			ClientID:  client.ID(),
@@ -82,7 +87,12 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) centrifuge.SubscribeHan
 		}
 
 		return centrifuge.SubscribeReply{
-			ChannelInfo:       info,
+			Options: centrifuge.SubscribeOptions{
+				ChannelInfo: info,
+				Presence:    chOpts.Presence,
+				JoinLeave:   chOpts.JoinLeave,
+				Recover:     chOpts.HistoryRecover,
+			},
 			ClientSideRefresh: true,
 		}, nil
 	}

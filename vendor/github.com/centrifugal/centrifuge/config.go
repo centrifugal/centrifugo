@@ -46,15 +46,12 @@ type Config struct {
 	ClientQueueMaxSize int
 	// ClientChannelLimit sets upper limit of channels each client can subscribe to.
 	ClientChannelLimit int
-	// ClientUserConnectionLimit limits number of client connections to single Node
-	// from user with the same ID. Zero value means unlimited.
-	ClientUserConnectionLimit int
+	// UserConnectionLimit limits number of client connections to single Node
+	// from user with the same ID. Zero value means unlimited. Anonymous users
+	// can't be tracked.
+	UserConnectionLimit int
 	// ChannelMaxLength is a maximum length of channel name.
 	ChannelMaxLength int
-	// ChannelOptionsFunc should be provided to change per-channel ChannelOptions.
-	// If not set then all channels will use default ChannelOptions with all
-	// features off.
-	ChannelOptionsFunc ChannelOptionsFunc
 	// MetricsNamespace is a Prometheus metrics namespace to use for internal metrics.
 	// If not set then default namespace name `centrifuge` will be used.
 	MetricsNamespace string

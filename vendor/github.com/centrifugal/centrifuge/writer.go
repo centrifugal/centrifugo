@@ -13,7 +13,7 @@ type writerConfig struct {
 	MaxMessagesInFrame int
 }
 
-// writer helps to manage per-connection message queue.
+// writer helps to manage per-connection message byte queue.
 type writer struct {
 	mu       sync.Mutex
 	config   writerConfig
@@ -45,10 +45,7 @@ func (w *writer) waitSendMessage(maxMessagesInFrame int) bool {
 
 	msg, ok := w.messages.Remove()
 	if !ok {
-		if w.messages.Closed() {
-			return false
-		}
-		return true
+		return !w.messages.Closed()
 	}
 
 	var writeErr error
@@ -65,17 +62,17 @@ func (w *writer) waitSendMessage(maxMessagesInFrame int) bool {
 			messagesCap = maxMessagesInFrame
 		}
 
-		msgs := make([][]byte, 0, messagesCap)
-		msgs = append(msgs, msg)
+		messages := make([][]byte, 0, messagesCap)
+		messages = append(messages, msg)
 
 		for messageCount > 0 {
 			messageCount--
-			if len(msgs) >= maxMessagesInFrame {
+			if len(messages) >= maxMessagesInFrame {
 				break
 			}
 			m, ok := w.messages.Remove()
 			if ok {
-				msgs = append(msgs, m)
+				messages = append(messages, m)
 			} else {
 				if w.messages.Closed() {
 					return false
@@ -83,11 +80,11 @@ func (w *writer) waitSendMessage(maxMessagesInFrame int) bool {
 				break
 			}
 		}
-		if len(msgs) > 0 {
-			if len(msgs) == 1 {
-				writeErr = w.config.WriteFn(msgs[0])
+		if len(messages) > 0 {
+			if len(messages) == 1 {
+				writeErr = w.config.WriteFn(messages[0])
 			} else {
-				writeErr = w.config.WriteManyFn(msgs...)
+				writeErr = w.config.WriteManyFn(messages...)
 			}
 		}
 	} else {

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/centrifugal/centrifugo/internal/rule"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -32,9 +34,12 @@ func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
 	}
 }
 
+// PublishHandlerFunc ...
+type PublishHandlerFunc func(*centrifuge.Client, centrifuge.PublishEvent, rule.NamespaceChannelOptions) (centrifuge.PublishReply, error)
+
 // Handle Publish.
-func (h *PublishHandler) Handle(node *centrifuge.Node) centrifuge.PublishHandler {
-	return func(client *centrifuge.Client, e centrifuge.PublishEvent) (centrifuge.PublishReply, error) {
+func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
+	return func(client *centrifuge.Client, e centrifuge.PublishEvent, chOpts rule.NamespaceChannelOptions) (centrifuge.PublishReply, error) {
 		started := time.Now()
 		publishRep, err := h.config.Proxy.ProxyPublish(client.Context(), PublishRequest{
 			ClientID:  client.ID(),
@@ -64,6 +69,11 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) centrifuge.PublishHandler
 			return centrifuge.PublishReply{}, publishRep.Error
 		}
 
-		return centrifuge.PublishReply{}, nil
+		result, err := node.Publish(
+			e.Channel, e.Data,
+			centrifuge.WithClientInfo(e.ClientInfo),
+			centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryLifetime)*time.Second),
+		)
+		return centrifuge.PublishReply{Result: &result}, err
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// customCancelContext wraps context and cancels as soon as channel closed.
 type customCancelContext struct {
 	context.Context
 	ch <-chan struct{}

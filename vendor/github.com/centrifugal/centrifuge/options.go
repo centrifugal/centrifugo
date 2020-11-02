@@ -5,7 +5,7 @@ import "time"
 // PublishOption is a type to represent various Publish options.
 type PublishOption func(*PublishOptions)
 
-// WithHistory tells broker to save message to history stream.
+// WithHistory tells Broker to save message to history stream with provided size and ttl.
 func WithHistory(size int, ttl time.Duration) PublishOption {
 	return func(opts *PublishOptions) {
 		opts.HistorySize = size
@@ -13,12 +13,27 @@ func WithHistory(size int, ttl time.Duration) PublishOption {
 	}
 }
 
-// SkipHistory tells broker to skip saving message to history stream.
-// Deprecated – will be removed in Centrifuge v0.13.0.
-func SkipHistory() PublishOption {
+// WithClientInfo adds ClientInfo to Publication.
+func WithClientInfo(info *ClientInfo) PublishOption {
 	return func(opts *PublishOptions) {
-		opts.skipHistory = true
+		opts.ClientInfo = info
 	}
+}
+
+// SubscribeOptions define per-subscription options.
+type SubscribeOptions struct {
+	// ExpireAt defines time in future when subscription should expire,
+	// zero value means no expiration.
+	ExpireAt int64
+	// ChannelInfo defines custom channel information, zero value means no channel information.
+	ChannelInfo []byte
+	// Recover turns on recovery option for channel. Make sure you are using recovery in channels
+	// that maintain Publication history stream.
+	Recover bool
+	// Presence turns on participating in channel presence.
+	Presence bool
+	// JoinLeave enables sending Join and Leave messages for this client in channel.
+	JoinLeave bool
 }
 
 // UnsubscribeOptions define some fields to alter behaviour of Unsubscribe operation.
@@ -31,9 +46,9 @@ type UnsubscribeOptions struct {
 type UnsubscribeOption func(*UnsubscribeOptions)
 
 // WithResubscribe allows to set Resubscribe flag to true.
-func WithResubscribe() UnsubscribeOption {
+func WithResubscribe(resubscribe bool) UnsubscribeOption {
 	return func(opts *UnsubscribeOptions) {
-		opts.Resubscribe = true
+		opts.Resubscribe = resubscribe
 	}
 }
 
@@ -47,9 +62,9 @@ type DisconnectOptions struct {
 type DisconnectOption func(options *DisconnectOptions)
 
 // WithReconnect allows to set Reconnect flag to true.
-func WithReconnect() DisconnectOption {
+func WithReconnect(reconnect bool) DisconnectOption {
 	return func(opts *DisconnectOptions) {
-		opts.Reconnect = true
+		opts.Reconnect = reconnect
 	}
 }
 
@@ -68,18 +83,13 @@ type HistoryOptions struct {
 // HistoryOption is a type to represent various History options.
 type HistoryOption func(options *HistoryOptions)
 
+// NoLimit defines that limit should not be applied.
+const NoLimit = -1
+
 // WithLimit allows to set limit.
 func WithLimit(limit int) HistoryOption {
 	return func(opts *HistoryOptions) {
 		opts.Limit = limit
-	}
-}
-
-// WithNoLimit allows to not limit returned Publications amount.
-// Should be used carefully inside large history streams.
-func WithNoLimit() HistoryOption {
-	return func(opts *HistoryOptions) {
-		opts.Limit = -1
 	}
 }
 

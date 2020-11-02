@@ -24,14 +24,15 @@ type credentialsContextKeyType int
 // CredentialsContextKey allows Go code to set Credentials into context.
 var credentialsContextKey credentialsContextKeyType
 
-// SetCredentials allows to set connection Credentials to context. Credentials set
-// to context will be used by centrifuge library then to authenticate user.
+// SetCredentials allows to set connection Credentials to Context. Credentials set
+// to Context in authentication middleware will be used by Centrifuge library to
+// authenticate user.
 func SetCredentials(ctx context.Context, cred *Credentials) context.Context {
 	ctx = context.WithValue(ctx, credentialsContextKey, cred)
 	return ctx
 }
 
-// GetCredentials allows to get previously set Credentials from context.
+// GetCredentials allows to get previously set Credentials from Context.
 func GetCredentials(ctx context.Context) (*Credentials, bool) {
 	if val := ctx.Value(credentialsContextKey); val != nil {
 		cred, ok := val.(*Credentials)

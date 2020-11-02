@@ -304,7 +304,7 @@ func main() {
 			}
 			ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
 
-			nodeConfig := nodeConfig(VERSION, ruleContainer.ChannelOptions)
+			nodeConfig := nodeConfig(VERSION)
 
 			if !viper.GetBool("v3_use_offset") {
 				log.Warn().Msgf("consider migrating to offset protocol field, details: https://github.com/centrifugal/centrifugo/releases/tag/v2.5.0")
@@ -1080,7 +1080,7 @@ func proxyConfig() (proxy.Config, bool) {
 	return cfg, proxyEnabled
 }
 
-func nodeConfig(version string, chOptsFunc centrifuge.ChannelOptionsFunc) centrifuge.Config {
+func nodeConfig(version string) centrifuge.Config {
 	v := viper.GetViper()
 	cfg := centrifuge.Config{}
 	cfg.Version = version
@@ -1094,10 +1094,9 @@ func nodeConfig(version string, chOptsFunc centrifuge.ChannelOptionsFunc) centri
 	cfg.ClientStaleCloseDelay = time.Duration(v.GetInt("client_stale_close_delay")) * time.Second
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
-	cfg.ClientUserConnectionLimit = v.GetInt("client_user_connection_limit")
 	cfg.ClientChannelPositionCheckDelay = time.Duration(v.GetInt("client_channel_position_check_delay")) * time.Second
+	cfg.UserConnectionLimit = v.GetInt("client_user_connection_limit")
 	cfg.NodeInfoMetricsAggregateInterval = time.Duration(v.GetInt("node_info_metrics_aggregate_interval")) * time.Second
-	cfg.ChannelOptionsFunc = chOptsFunc
 
 	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {

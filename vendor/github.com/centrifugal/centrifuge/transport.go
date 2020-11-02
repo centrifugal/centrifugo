@@ -43,7 +43,7 @@ type TransportInfo interface {
 
 // Transport abstracts a connection transport between server and client.
 // It does not contain Read method as reading can be handled by connection
-// handler code.
+// handler code (for example by WebsocketHandler.ServeHTTP).
 type Transport interface {
 	TransportInfo
 	// Write data encoded using Centrifuge protocol to connection.

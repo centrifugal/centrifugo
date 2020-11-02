@@ -134,17 +134,24 @@ var (
 		Reason:    "insufficient state",
 		Reconnect: true,
 	}
-	// DisconnectForceReconnect sent when server forcely disconnects connection.
+	// DisconnectForceReconnect sent when server disconnects connection.
 	DisconnectForceReconnect = &Disconnect{
 		Code:      3011,
 		Reason:    "force reconnect",
 		Reconnect: true,
 	}
-	// DisconnectForceNoReconnect sent when server forcely disconnects connection
+	// DisconnectForceNoReconnect sent when server disconnects connection
 	// and asks it to not reconnect again.
 	DisconnectForceNoReconnect = &Disconnect{
 		Code:      3012,
 		Reason:    "force disconnect",
+		Reconnect: false,
+	}
+	// DisconnectConnectionLimit can be sent when client connection exceeds a
+	// configured connection limit (per user ID or due to other rule).
+	DisconnectConnectionLimit = &Disconnect{
+		Code:      3013,
+		Reason:    "connection limit",
 		Reconnect: false,
 	}
 )

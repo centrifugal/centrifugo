@@ -6,6 +6,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/centrifugal/centrifugo/internal/rule"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -17,19 +19,21 @@ type ConnectHandlerConfig struct {
 
 // ConnectHandler ...
 type ConnectHandler struct {
-	config    ConnectHandlerConfig
-	summary   prometheus.Observer
-	histogram prometheus.Observer
-	errors    prometheus.Counter
+	config        ConnectHandlerConfig
+	ruleContainer *rule.ChannelRuleContainer
+	summary       prometheus.Observer
+	histogram     prometheus.Observer
+	errors        prometheus.Counter
 }
 
 // NewConnectHandler ...
-func NewConnectHandler(c ConnectHandlerConfig) *ConnectHandler {
+func NewConnectHandler(c ConnectHandlerConfig, ruleContainer *rule.ChannelRuleContainer) *ConnectHandler {
 	return &ConnectHandler{
-		config:    c,
-		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect"),
-		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect"),
-		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		config:        c,
+		ruleContainer: ruleContainer,
+		summary:       proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		histogram:     proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "connect"),
+		errors:        proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "connect"),
 	}
 }
 
@@ -103,10 +107,27 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 				ExpireAt: credentials.ExpireAt,
 				Info:     info,
 			},
-			Channels: credentials.Channels,
 		}
 		if len(data) > 0 {
 			reply.Data = data
+		}
+		if len(credentials.Channels) > 0 {
+			subscriptions := make(map[string]centrifuge.SubscribeOptions, len(credentials.Channels))
+			for _, ch := range credentials.Channels {
+				chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
+				if err != nil {
+					return centrifuge.ConnectReply{}, err
+				}
+				if !found {
+					return centrifuge.ConnectReply{}, centrifuge.ErrorUnknownChannel
+				}
+				subscriptions[ch] = centrifuge.SubscribeOptions{
+					Presence:  chOpts.Presence,
+					JoinLeave: chOpts.JoinLeave,
+					Recover:   chOpts.HistoryRecover,
+				}
+			}
+			reply.Subscriptions = subscriptions
 		}
 		return reply, nil
 	}
