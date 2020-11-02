@@ -706,32 +706,32 @@ func TestClientSideSubRefresh(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, reply.Options.ExpireAt > 0)
 
-	subRefreshResult, err := h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
+	subRefreshReply, err := h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
 		Channel: "$test2",
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 123),
 	})
 	require.NoError(t, err)
-	require.True(t, subRefreshResult.Expired)
+	require.True(t, subRefreshReply.Expired)
 
-	subRefreshResult, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
+	subRefreshReply, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
 		Channel: "$test2",
 		Token:   "invalid",
 	})
 	require.Equal(t, centrifuge.DisconnectInvalidToken, err)
 
-	subRefreshResult, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
+	subRefreshReply, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
 		Channel: "$test2",
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 2525637058),
 	})
 	require.Equal(t, centrifuge.DisconnectInvalidToken, err)
 
-	subRefreshResult, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
+	subRefreshReply, err = h.OnSubRefresh(client, centrifuge.SubRefreshEvent{
 		Channel: "$test1",
 		Token:   getSubscribeTokenHS("$test1", client.ID(), 2525637058),
 	})
 	require.NoError(t, err)
-	require.False(t, subRefreshResult.Expired)
-	require.Equal(t, int64(2525637058), subRefreshResult.ExpireAt)
+	require.False(t, subRefreshReply.Expired)
+	require.Equal(t, int64(2525637058), subRefreshReply.ExpireAt)
 }
 
 func TestClientSubscribePrivateChannelWithTokenAnonymousNotAllowed(t *testing.T) {
