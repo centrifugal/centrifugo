@@ -34,7 +34,12 @@ type Handler struct {
 }
 
 // NewHandler ...
-func NewHandler(node *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, tokenVerifier jwtverify.Verifier, proxyConfig proxy.Config) *Handler {
+func NewHandler(
+	node *centrifuge.Node,
+	ruleContainer *rule.ChannelRuleContainer,
+	tokenVerifier jwtverify.Verifier,
+	proxyConfig proxy.Config,
+) *Handler {
 	return &Handler{
 		node:          node,
 		ruleContainer: ruleContainer,
@@ -228,6 +233,16 @@ func (h *Handler) OnClientConnecting(
 		if !found {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe unknown personal channel", map[string]interface{}{"channel": personalChannel}))
 			return centrifuge.ConnectReply{}, centrifuge.ErrorUnknownChannel
+		}
+		personalConnectionLimit := h.ruleContainer.Config().UserPersonalConnectionLimit
+		if personalConnectionLimit > 0 {
+			presenceStats, err := h.node.PresenceStats(personalChannel)
+			if err != nil {
+				return centrifuge.ConnectReply{}, centrifuge.DisconnectServerError
+			}
+			if presenceStats.NumClients >= personalConnectionLimit {
+				return centrifuge.ConnectReply{}, centrifuge.DisconnectConnectionLimit
+			}
 		}
 		subscriptions[personalChannel] = centrifuge.SubscribeOptions{
 			Presence:  chOpts.Presence,

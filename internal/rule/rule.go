@@ -34,6 +34,10 @@ type ChannelRuleConfig struct {
 	// This should match one of configured namespace names. By default no namespace
 	// used for personal channel.
 	UserPersonalChannelNamespace string
+	// UserPersonalConnectionLimit sets the max number of connections a single user
+	// can have in the same moment. This is checked using presence information of
+	// personal channel. So presence should be turned on in personal channel.
+	UserPersonalConnectionLimit int
 	// ClientInsecure turns on insecure mode for client connections - when it's
 	// turned on then no authentication required at all when connecting to Centrifugo,
 	// anonymous access and publish allowed for all channels, no connection expire
