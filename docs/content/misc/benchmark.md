@@ -34,7 +34,7 @@ Here are some numbers we achieved:
 * 28 million messages per minute (about 500k per second) **delivered** to clients
 * 200k per minute constant connect/disconnect rate to simulate real-life situation where clients connect/disconnect from server
 * 200ms delivery latency in 99 percentile
-* The size of each published message was about 100kb
+* The size of each published message was about 100 bytes
 
 And here are some numbers about final resource usage on server side (we don't actually interested in client side resource usage here):
 
