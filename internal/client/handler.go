@@ -115,7 +115,30 @@ func (h *Handler) Setup() {
 		}).Handle(h.node)
 	}
 
+	usePersonalChannel := h.ruleContainer.Config().UserSubscribeToPersonal
+	singleConnection := h.ruleContainer.Config().UserPersonalSingleConnection
+
 	h.node.OnConnect(func(client *centrifuge.Client) {
+		if usePersonalChannel && singleConnection && client.UserID() != "" {
+			personalChannel := h.ruleContainer.PersonalChannel(client.UserID())
+			presenceStats, err := h.node.PresenceStats(personalChannel)
+			if err != nil {
+				client.Disconnect(centrifuge.DisconnectServerError)
+				return
+			}
+			if presenceStats.NumClients >= 2 {
+				err = h.node.Disconnect(
+					client.UserID(),
+					centrifuge.WithDisconnect(centrifuge.DisconnectConnectionLimit),
+					centrifuge.WithClientWhitelist([]string{client.ID()}),
+				)
+				if err != nil {
+					client.Disconnect(centrifuge.DisconnectServerError)
+					return
+				}
+			}
+		}
+
 		client.OnRefresh(func(event centrifuge.RefreshEvent, cb centrifuge.RefreshCallback) {
 			if refreshProxyHandler != nil {
 				cb(refreshProxyHandler(client, event))
@@ -233,16 +256,6 @@ func (h *Handler) OnClientConnecting(
 		if !found {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe unknown personal channel", map[string]interface{}{"channel": personalChannel}))
 			return centrifuge.ConnectReply{}, centrifuge.ErrorUnknownChannel
-		}
-		personalConnectionLimit := h.ruleContainer.Config().UserPersonalConnectionLimit
-		if personalConnectionLimit > 0 {
-			presenceStats, err := h.node.PresenceStats(personalChannel)
-			if err != nil {
-				return centrifuge.ConnectReply{}, centrifuge.DisconnectServerError
-			}
-			if presenceStats.NumClients >= personalConnectionLimit {
-				return centrifuge.ConnectReply{}, centrifuge.DisconnectConnectionLimit
-			}
 		}
 		subscriptions[personalChannel] = centrifuge.SubscribeOptions{
 			Presence:  chOpts.Presence,

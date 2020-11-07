@@ -92,7 +92,7 @@ var configDefaults = map[string]interface{}{
 	"channel_user_separator":               ",",
 	"user_subscribe_to_personal":           false,
 	"user_personal_channel_namespace":      "",
-	"user_personal_connection_limit":       0,
+	"user_personal_connection_limit":       false,
 	"debug":                                false,
 	"prometheus":                           false,
 	"health":                               false,
@@ -1028,7 +1028,7 @@ func ruleConfig() rule.ChannelRuleConfig {
 	cfg.ChannelUserBoundary = v.GetString("channel_user_boundary")
 	cfg.ChannelUserSeparator = v.GetString("channel_user_separator")
 	cfg.UserSubscribeToPersonal = v.GetBool("user_subscribe_to_personal")
-	cfg.UserPersonalConnectionLimit = v.GetInt("user_personal_connection_limit")
+	cfg.UserPersonalSingleConnection = v.GetBool("user_personal_single_connection")
 	cfg.UserPersonalChannelNamespace = v.GetString("user_personal_channel_namespace")
 	cfg.ClientInsecure = v.GetBool("client_insecure")
 	cfg.ClientAnonymous = v.GetBool("client_anonymous")

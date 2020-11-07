@@ -43,6 +43,33 @@ For example, if you set this option and user with ID `87334` connects to Centrif
 
 As you can see by default generated personal channel name belongs to default namespace (i.e. no explicit namespace used). To set custom namespace name use `user_personal_channel_namespace` option (string, default `""`) – i.e. the name of namespace from configured configuration namespaces array. In this case if you set `user_personal_channel_namespace` to `personal` for example – then the automatically generated personal channel will be `personal:#87334` – user will be automatically subscribed to it on connect and you can use this channel name to publish personal notifications to online user.
 
+### Allow single connection only from a user
+
+Available since v2.8.0
+
+Usage of personal channel subscription also opens a road to enable one more feature: maintaining only a single connection for each user globally around all Centrifugo nodes. 
+
+`user_personal_single_connection` boolean option (default `false`) turns on a mode in which Centrifugo will try to maintain only a single connection for each user in the same moment. As soon as user establishes a connection other connections from the same user will be closed with connection limit reason.
+
+This feature works with a help of presence information inside personal channel. So **presence should be turned on in a personal channel**.
+
+Example config:
+
+```
+{
+  "v3_use_offset": true,
+  "user_subscribe_to_personal": true,
+  "user_personal_single_connection": true,
+  "user_personal_channel_namespace": "personal",
+  "namespaces": [
+    {
+      "name": "personal",
+      "presence": true
+    }
+  ]
+}
+```
+
 ### Mark namespace as server-side
 
-v2.4.0 also introduced new channel namespace boolean option called `server_side` (default `false`). When on then all client-side subscription requests to channels in namespace will be rejected with `PermissionDenied` error.
+v2.4.0 also introduced a new channel namespace boolean option called `server_side` (default `false`). When on then all client-side subscription requests to channels in namespace will be rejected with `PermissionDenied` error.

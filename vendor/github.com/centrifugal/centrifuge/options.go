@@ -54,17 +54,27 @@ func WithResubscribe(resubscribe bool) UnsubscribeOption {
 
 // DisconnectOptions define some fields to alter behaviour of Disconnect operation.
 type DisconnectOptions struct {
-	// Reconnect allows to set reconnect flag.
-	Reconnect bool
+	// Disconnect represents custom disconnect to use.
+	// By default DisconnectForceNoReconnect will be used.
+	Disconnect *Disconnect
+	// ClientWhitelist contains client IDs to keep.
+	ClientWhitelist []string
 }
 
 // DisconnectOption is a type to represent various Disconnect options.
 type DisconnectOption func(options *DisconnectOptions)
 
-// WithReconnect allows to set Reconnect flag to true.
-func WithReconnect(reconnect bool) DisconnectOption {
+// WithDisconnect allows to set custom Disconnect.
+func WithDisconnect(disconnect *Disconnect) DisconnectOption {
 	return func(opts *DisconnectOptions) {
-		opts.Reconnect = reconnect
+		opts.Disconnect = disconnect
+	}
+}
+
+// WithClientWhitelist allows to set ClientWhitelist.
+func WithClientWhitelist(whitelist []string) DisconnectOption {
+	return func(opts *DisconnectOptions) {
+		opts.ClientWhitelist = whitelist
 	}
 }
 

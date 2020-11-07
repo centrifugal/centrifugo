@@ -581,11 +581,10 @@ func (c *Client) sendUnsub(ch string, resubscribe bool) error {
 // and alive callback ordering/sync problems. Will be a noop if client
 // already closed. As this method runs a separate goroutine client
 // connection will be closed eventually (i.e. not immediately).
-func (c *Client) Disconnect(disconnect *Disconnect) error {
+func (c *Client) Disconnect(disconnect *Disconnect) {
 	go func() {
 		_ = c.close(disconnect)
 	}()
-	return nil
 }
 
 func (c *Client) close(disconnect *Disconnect) error {
@@ -1000,7 +999,7 @@ func (c *Client) handleRefresh(params protocol.Raw, rw *replyWriter) error {
 		}
 
 		if reply.Expired {
-			_ = c.Disconnect(DisconnectExpired)
+			c.Disconnect(DisconnectExpired)
 			return
 		}
 
@@ -1086,7 +1085,7 @@ func (c *Client) handleSubscribe(params protocol.Raw, rw *replyWriter) error {
 		ctx := c.subscribeCmd(cmd, reply, rw, false)
 
 		if ctx.disconnect != nil {
-			_ = c.Disconnect(ctx.disconnect)
+			c.Disconnect(ctx.disconnect)
 			return
 		}
 		if ctx.err != nil {

@@ -86,15 +86,23 @@ func (h *Hub) shutdown(ctx context.Context) error {
 	}
 }
 
-func (h *Hub) disconnect(user string, reconnect bool) error {
-	userConnections := h.userConnections(user)
-	advice := DisconnectForceNoReconnect
-	if reconnect {
-		advice = DisconnectForceReconnect
+func stringInSlice(str string, slice []string) bool {
+	for _, s := range slice {
+		if s == str {
+			return true
+		}
 	}
+	return false
+}
+
+func (h *Hub) disconnect(user string, disconnect *Disconnect, whitelist []string) error {
+	userConnections := h.userConnections(user)
 	for _, c := range userConnections {
+		if stringInSlice(c.ID(), whitelist) {
+			continue
+		}
 		go func(cc *Client) {
-			_ = cc.close(advice)
+			_ = cc.close(disconnect)
 		}(c)
 	}
 	return nil
