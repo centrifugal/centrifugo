@@ -49,9 +49,9 @@ Available since v2.8.0
 
 Usage of personal channel subscription also opens a road to enable one more feature: maintaining only a single connection for each user globally around all Centrifugo nodes. 
 
-`user_personal_single_connection` boolean option (default `false`) turns on a mode in which Centrifugo will try to maintain only a single connection for each user in the same moment. As soon as user establishes a connection other connections from the same user will be closed with connection limit reason.
+`user_personal_single_connection` boolean option (default `false`) turns on a mode in which Centrifugo will try to maintain only a single connection for each user in the same moment. As soon as the user establishes a connection other connections from the same user will be closed with connection limit reason (client won't try to automatically reconnect).
 
-This feature works with a help of presence information inside personal channel. So **presence should be turned on in a personal channel**.
+This feature works with a help of presence information inside a personal channel. So **presence should be turned on in a personal channel**.
 
 Example config:
 
