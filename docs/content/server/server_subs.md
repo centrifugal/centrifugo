@@ -47,7 +47,7 @@ As you can see by default generated personal channel name belongs to default nam
 
 Available since v2.8.0
 
-Usage of personal channel subscription also opens a road to enable one more feature: maintaining only a single connection for each user globally around all Centrifugo nodes. 
+Usage of personal channel subscription also opens a road to enable one more feature: maintaining only a single connection for each user globally around all Centrifugo nodes.
 
 `user_personal_single_connection` boolean option (default `false`) turns on a mode in which Centrifugo will try to maintain only a single connection for each user in the same moment. As soon as the user establishes a connection other connections from the same user will be closed with connection limit reason (client won't try to automatically reconnect).
 
@@ -69,6 +69,9 @@ Example config:
   ]
 }
 ```
+
+!!!note
+    Centrifugo can't guarantee that other user connections will be closed – since Disconnect messages distributed around Centrifugo nodes with at most once guarantee. So don't add critical business logic based on this feature to your application. Though this should work just fine most of the time if the connection between Centrifugo node and PUB/SUB broker is OK.
 
 ### Mark namespace as server-side
 

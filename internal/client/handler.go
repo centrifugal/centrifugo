@@ -119,8 +119,9 @@ func (h *Handler) Setup() {
 	singleConnection := h.ruleContainer.Config().UserPersonalSingleConnection
 
 	h.node.OnConnect(func(client *centrifuge.Client) {
-		if usePersonalChannel && singleConnection && client.UserID() != "" {
-			personalChannel := h.ruleContainer.PersonalChannel(client.UserID())
+		userID := client.UserID()
+		if usePersonalChannel && singleConnection && userID != "" {
+			personalChannel := h.ruleContainer.PersonalChannel(userID)
 			presenceStats, err := h.node.PresenceStats(personalChannel)
 			if err != nil {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling presence stats", map[string]interface{}{"error": err.Error(), "client": client.ID(), "user": client.UserID()}))
