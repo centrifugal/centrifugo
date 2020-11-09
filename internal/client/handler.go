@@ -123,6 +123,7 @@ func (h *Handler) Setup() {
 			personalChannel := h.ruleContainer.PersonalChannel(client.UserID())
 			presenceStats, err := h.node.PresenceStats(personalChannel)
 			if err != nil {
+				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling presence stats", map[string]interface{}{"error": err.Error(), "client": client.ID(), "user": client.UserID()}))
 				client.Disconnect(centrifuge.DisconnectServerError)
 				return
 			}
@@ -133,6 +134,7 @@ func (h *Handler) Setup() {
 					centrifuge.WithClientWhitelist([]string{client.ID()}),
 				)
 				if err != nil {
+					h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error sending disconnect", map[string]interface{}{"error": err.Error(), "client": client.ID(), "user": client.UserID()}))
 					client.Disconnect(centrifuge.DisconnectServerError)
 					return
 				}
@@ -146,6 +148,7 @@ func (h *Handler) Setup() {
 			}
 			cb(h.OnRefresh(client, event))
 		})
+
 		if rpcProxyHandler != nil || len(h.rpcExtension) > 0 {
 			client.OnRPC(func(event centrifuge.RPCEvent, cb centrifuge.RPCCallback) {
 				if handler, ok := h.rpcExtension[event.Method]; ok {
@@ -155,21 +158,27 @@ func (h *Handler) Setup() {
 				cb(rpcProxyHandler(client, event))
 			})
 		}
+
 		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
 			cb(h.OnSubscribe(client, event, subscribeProxyHandler))
 		})
+
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
 			cb(h.OnSubRefresh(client, event))
 		})
+
 		client.OnPublish(func(event centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
 			cb(h.OnPublish(client, event, publishProxyHandler))
 		})
+
 		client.OnPresence(func(event centrifuge.PresenceEvent, cb centrifuge.PresenceCallback) {
 			cb(h.OnPresence(client, event))
 		})
+
 		client.OnPresenceStats(func(event centrifuge.PresenceStatsEvent, cb centrifuge.PresenceStatsCallback) {
 			cb(h.OnPresenceStats(client, event))
 		})
+
 		client.OnHistory(func(event centrifuge.HistoryEvent, cb centrifuge.HistoryCallback) {
 			cb(h.OnHistory(client, event))
 		})
