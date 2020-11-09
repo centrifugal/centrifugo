@@ -55,6 +55,51 @@ func TestConfigValidateNoPersonalNamespace(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestConfigValidatePersonalSingleConnectionMissingPresence(t *testing.T) {
+	c := DefaultRuleConfig
+	c.Namespaces = []ChannelNamespace{}
+	c.UserSubscribeToPersonal = true
+	c.UserPersonalSingleConnection = true
+	err := c.Validate()
+	require.Error(t, err)
+}
+
+func TestConfigValidatePersonalSingleConnectionOK(t *testing.T) {
+	c := DefaultRuleConfig
+	c.Namespaces = []ChannelNamespace{}
+	c.UserSubscribeToPersonal = true
+	c.UserPersonalSingleConnection = true
+	c.Presence = true
+	err := c.Validate()
+	require.NoError(t, err)
+}
+
+func TestConfigValidatePersonalSingleConnectionNamespacedFail(t *testing.T) {
+	c := DefaultRuleConfig
+	c.Namespaces = []ChannelNamespace{}
+	c.UserSubscribeToPersonal = true
+	c.UserPersonalSingleConnection = true
+	c.UserPersonalChannelNamespace = "public"
+	err := c.Validate()
+	require.Error(t, err)
+}
+
+func TestConfigValidatePersonalSingleConnectionNamespacedOK(t *testing.T) {
+	c := DefaultRuleConfig
+	c.Namespaces = []ChannelNamespace{}
+	c.UserSubscribeToPersonal = true
+	c.UserPersonalSingleConnection = true
+	c.UserPersonalChannelNamespace = "public"
+	c.Namespaces = []ChannelNamespace{{
+		Name: "public",
+		NamespaceChannelOptions: NamespaceChannelOptions{
+			Presence: true,
+		},
+	}}
+	err := c.Validate()
+	require.NoError(t, err)
+}
+
 func TestConfigValidateMalformedReceiverTopLevel(t *testing.T) {
 	c := DefaultRuleConfig
 	c.HistoryRecover = true

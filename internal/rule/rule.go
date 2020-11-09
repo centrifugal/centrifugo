@@ -72,7 +72,6 @@ func stringInSlice(a string, list []string) bool {
 
 // Validate validates config and returns error if problems found
 func (c *ChannelRuleConfig) Validate() error {
-	errPrefix := "config error: "
 	pattern := "^[-a-zA-Z0-9_.]{2,}$"
 	patternRegexp, err := regexp.Compile(pattern)
 	if err != nil {
@@ -85,9 +84,13 @@ func (c *ChannelRuleConfig) Validate() error {
 
 	usePersonalChannel := c.UserSubscribeToPersonal
 	personalChannelNamespace := c.UserPersonalChannelNamespace
+	personalSingleConnection := c.UserPersonalSingleConnection
 	var validPersonalChannelNamespace bool
 	if !usePersonalChannel || personalChannelNamespace == "" {
 		validPersonalChannelNamespace = true
+		if personalSingleConnection && !c.Presence {
+			return fmt.Errorf("presence must be enabled on top level to maintain single connection")
+		}
 	}
 
 	var nss = make([]string, 0, len(c.Namespaces))
@@ -95,16 +98,19 @@ func (c *ChannelRuleConfig) Validate() error {
 		name := n.Name
 		match := patternRegexp.MatchString(name)
 		if !match {
-			return errors.New(errPrefix + "wrong namespace name – " + name)
+			return fmt.Errorf("wrong namespace name – %s", name)
 		}
 		if stringInSlice(name, nss) {
-			return errors.New(errPrefix + "namespace name must be unique")
+			return fmt.Errorf("namespace name must be unique: %s", name)
 		}
 		if n.HistoryRecover && (n.HistorySize == 0 || n.HistoryLifetime == 0) {
 			return fmt.Errorf("namespace %s: both history size and history lifetime required for history recovery", name)
 		}
 		if name == personalChannelNamespace {
 			validPersonalChannelNamespace = true
+			if personalSingleConnection && !n.Presence {
+				return fmt.Errorf("presence must be enabled for namespace %s to maintain single connection", name)
+			}
 		}
 		nss = append(nss, name)
 	}
