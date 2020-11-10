@@ -145,46 +145,28 @@ func (h *Handler) Setup() {
 		}
 
 		var semaphore chan struct{}
-		if concurrency > 0 {
+		if concurrency > 1 {
 			semaphore = make(chan struct{}, concurrency)
 		}
 
 		client.OnRefresh(func(event centrifuge.RefreshEvent, cb centrifuge.RefreshCallback) {
-			if concurrency > 0 {
-				semaphore <- struct{}{}
-				go func() {
-					defer func() { <-semaphore }()
-					cb(h.OnRefresh(client, event, refreshProxyHandler))
-				}()
-			} else {
+			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
 				cb(h.OnRefresh(client, event, refreshProxyHandler))
-			}
+			})
 		})
 
 		if rpcProxyHandler != nil || len(h.rpcExtension) > 0 {
 			client.OnRPC(func(event centrifuge.RPCEvent, cb centrifuge.RPCCallback) {
-				if concurrency > 0 {
-					semaphore <- struct{}{}
-					go func() {
-						defer func() { <-semaphore }()
-						cb(h.OnRPC(client, event, rpcProxyHandler))
-					}()
-				} else {
+				h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
 					cb(h.OnRPC(client, event, rpcProxyHandler))
-				}
+				})
 			})
 		}
 
 		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
-			if concurrency > 0 {
-				semaphore <- struct{}{}
-				go func() {
-					defer func() { <-semaphore }()
-					cb(h.OnSubscribe(client, event, subscribeProxyHandler))
-				}()
-			} else {
+			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
 				cb(h.OnSubscribe(client, event, subscribeProxyHandler))
-			}
+			})
 		})
 
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
@@ -192,53 +174,41 @@ func (h *Handler) Setup() {
 		})
 
 		client.OnPublish(func(event centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
-			if concurrency > 0 {
-				semaphore <- struct{}{}
-				go func() {
-					defer func() { <-semaphore }()
-					cb(h.OnPublish(client, event, publishProxyHandler))
-				}()
-			} else {
+			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
 				cb(h.OnPublish(client, event, publishProxyHandler))
-			}
+			})
 		})
 
 		client.OnPresence(func(event centrifuge.PresenceEvent, cb centrifuge.PresenceCallback) {
-			if concurrency > 0 {
-				semaphore <- struct{}{}
-				go func() {
-					defer func() { <-semaphore }()
-					cb(h.OnPresence(client, event))
-				}()
-			} else {
+			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
 				cb(h.OnPresence(client, event))
-			}
+			})
 		})
 
 		client.OnPresenceStats(func(event centrifuge.PresenceStatsEvent, cb centrifuge.PresenceStatsCallback) {
-			if concurrency > 0 {
-				semaphore <- struct{}{}
-				go func() {
-					defer func() { <-semaphore }()
-					cb(h.OnPresenceStats(client, event))
-				}()
-			} else {
+			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
 				cb(h.OnPresenceStats(client, event))
-			}
+			})
 		})
 
 		client.OnHistory(func(event centrifuge.HistoryEvent, cb centrifuge.HistoryCallback) {
-			if concurrency > 0 {
-				semaphore <- struct{}{}
-				go func() {
-					defer func() { <-semaphore }()
-					cb(h.OnHistory(client, event))
-				}()
-			} else {
+			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
 				cb(h.OnHistory(client, event))
-			}
+			})
 		})
 	})
+}
+
+func (h *Handler) runConcurrentlyIfNeeded(concurrency int, semaphore chan struct{}, fn func()) {
+	if concurrency > 1 {
+		semaphore <- struct{}{}
+		go func() {
+			defer func() { <-semaphore }()
+			fn()
+		}()
+	} else {
+		fn()
+	}
 }
 
 // OnClientConnecting ...
