@@ -50,4 +50,8 @@ message Unsubscribe {
 
 message Disconnect {
     string user = 1 [(gogoproto.jsontag) = "user"];
+    repeated string whitelist = 2 [(gogoproto.jsontag) = "whitelist"];
+    uint32 code = 3 [(gogoproto.jsontag) = "code"];
+    string reason = 4 [(gogoproto.jsontag) = "reason"];
+    bool reconnect = 5 [(gogoproto.jsontag) = "reconnect"];
 }

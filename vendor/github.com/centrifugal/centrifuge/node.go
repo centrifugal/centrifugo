@@ -416,7 +416,7 @@ func (n *Node) handleControl(data []byte) error {
 			n.logger.log(newLogEntry(LogLevelError, "error decoding disconnect control params", map[string]interface{}{"error": err.Error()}))
 			return err
 		}
-		return n.hub.disconnect(cmd.User, false)
+		return n.hub.disconnect(cmd.User, &Disconnect{Code: cmd.Code, Reason: cmd.Reason, Reconnect: cmd.Reconnect}, cmd.Whitelist)
 	default:
 		n.logger.log(newLogEntry(LogLevelError, "unknown control message method", map[string]interface{}{"method": method}))
 		return fmt.Errorf("control method not found: %d", method)
@@ -589,12 +589,15 @@ func (n *Node) pubUnsubscribe(user string, ch string) error {
 
 // pubDisconnect publishes disconnect control message to all nodes – so all
 // nodes could disconnect user from server.
-func (n *Node) pubDisconnect(user string, reconnect bool) error {
-	// TODO: handle reconnect flag.
-	disconnect := &controlpb.Disconnect{
-		User: user,
+func (n *Node) pubDisconnect(user string, disconnect *Disconnect, whitelist []string) error {
+	protoDisconnect := &controlpb.Disconnect{
+		User:      user,
+		Whitelist: whitelist,
+		Code:      disconnect.Code,
+		Reason:    disconnect.Reason,
+		Reconnect: disconnect.Reconnect,
 	}
-	params, _ := n.controlEncoder.EncodeDisconnect(disconnect)
+	params, _ := n.controlEncoder.EncodeDisconnect(protoDisconnect)
 	cmd := &controlpb.Command{
 		UID:    n.uid,
 		Method: controlpb.MethodTypeDisconnect,
@@ -697,12 +700,17 @@ func (n *Node) Disconnect(user string, opts ...DisconnectOption) error {
 		opt(disconnectOpts)
 	}
 	// first disconnect user from this node
-	err := n.hub.disconnect(user, disconnectOpts.Reconnect)
+	customDisconnect := disconnectOpts.Disconnect
+	if customDisconnect == nil {
+		customDisconnect = DisconnectForceNoReconnect
+	}
+
+	err := n.hub.disconnect(user, customDisconnect, disconnectOpts.ClientWhitelist)
 	if err != nil {
 		return err
 	}
 	// second send disconnect control message to other nodes
-	return n.pubDisconnect(user, disconnectOpts.Reconnect)
+	return n.pubDisconnect(user, customDisconnect, disconnectOpts.ClientWhitelist)
 }
 
 // addPresence proxies presence adding to engine.
