@@ -7,12 +7,12 @@ type ChannelNamespace struct {
 
 	// Options for namespace determine channel options for channels
 	// belonging to this namespace.
-	NamespaceChannelOptions `mapstructure:",squash"`
+	ChannelOptions `mapstructure:",squash"`
 }
 
-// NamespaceChannelOptions represent channel specific configuration for namespace
+// ChannelOptions represent channel specific configuration for namespace
 // or global channel options if set on top level of configuration.
-type NamespaceChannelOptions struct {
+type ChannelOptions struct {
 	// Presence turns on presence information for channel. Presence has
 	// information about all clients currently subscribed to a channel.
 	Presence bool `mapstructure:"presence" json:"presence"`

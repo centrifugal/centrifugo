@@ -304,7 +304,7 @@ func main() {
 			if err != nil {
 				log.Fatal().Msgf("error validating config: %v", err)
 			}
-			ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+			ruleContainer := rule.NewContainer(ruleConfig)
 
 			nodeConfig := nodeConfig(VERSION)
 
@@ -685,7 +685,7 @@ func setupLogging() *os.File {
 	return nil
 }
 
-func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, tokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server, grpcAPIServer *grpc.Server, exporter *graphite.Exporter) {
+func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Container, tokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server, grpcAPIServer *grpc.Server, exporter *graphite.Exporter) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -1004,9 +1004,9 @@ func validateConfig(f string) error {
 	return nil
 }
 
-func ruleConfig() rule.ChannelRuleConfig {
+func ruleConfig() rule.Config {
 	v := viper.GetViper()
-	cfg := rule.ChannelRuleConfig{}
+	cfg := rule.Config{}
 
 	cfg.Publish = v.GetBool("publish")
 	cfg.SubscribeToPublish = v.GetBool("subscribe_to_publish")

@@ -8,10 +8,10 @@ import (
 	"sync"
 )
 
-// ChannelRuleConfig ...
-type ChannelRuleConfig struct {
-	// NamespaceChannelOptions embedded on top level.
-	NamespaceChannelOptions
+// Config ...
+type Config struct {
+	// ChannelOptions embedded on top level.
+	ChannelOptions
 	// Namespaces – list of namespaces for custom channel options.
 	Namespaces []ChannelNamespace
 	// TokenChannelPrefix is a prefix in channel name which indicates that
@@ -51,13 +51,14 @@ type ChannelRuleConfig struct {
 	// user will have empty string for user ID, meaning user can only subscribe
 	// to anonymous channels.
 	ClientAnonymous bool
-	// ClientConcurrency when set allows processing client commands in concurrently
-	// with provided concurrency level.
+	// ClientConcurrency when set allows processing client commands concurrently
+	// with provided concurrency level. By default commands processed sequentially
+	// one after another.
 	ClientConcurrency int
 }
 
-// DefaultRuleConfig has default config options.
-var DefaultRuleConfig = ChannelRuleConfig{
+// DefaultConfig has default config options.
+var DefaultConfig = Config{
 	TokenChannelPrefix:       "$", // so private channel will look like "$gossips"
 	ChannelNamespaceBoundary: ":", // so namespace "public" can be used as "public:news"
 	ChannelUserBoundary:      "#", // so user limited channel is "user#2694" where "2696" is user ID
@@ -74,7 +75,7 @@ func stringInSlice(a string, list []string) bool {
 }
 
 // Validate validates config and returns error if problems found
-func (c *ChannelRuleConfig) Validate() error {
+func (c *Config) Validate() error {
 	pattern := "^[-a-zA-Z0-9_.]{2,}$"
 	patternRegexp, err := regexp.Compile(pattern)
 	if err != nil {
@@ -125,21 +126,21 @@ func (c *ChannelRuleConfig) Validate() error {
 	return nil
 }
 
-// ChannelRuleContainer ...
-type ChannelRuleContainer struct {
+// Container ...
+type Container struct {
 	mu     sync.RWMutex
-	config ChannelRuleConfig
+	config Config
 }
 
-// NewNamespaceRuleContainer ...
-func NewNamespaceRuleContainer(config ChannelRuleConfig) *ChannelRuleContainer {
-	return &ChannelRuleContainer{
+// NewContainer ...
+func NewContainer(config Config) *Container {
+	return &Container{
 		config: config,
 	}
 }
 
 // Reload node config.
-func (n *ChannelRuleContainer) Reload(c ChannelRuleConfig) error {
+func (n *Container) Reload(c Config) error {
 	if err := c.Validate(); err != nil {
 		return err
 	}
@@ -150,7 +151,7 @@ func (n *ChannelRuleContainer) Reload(c ChannelRuleConfig) error {
 }
 
 // namespaceName returns namespace name from channel if exists.
-func (n *ChannelRuleContainer) namespaceName(ch string) string {
+func (n *Container) namespaceName(ch string) string {
 	cTrim := strings.TrimPrefix(ch, n.config.TokenChannelPrefix)
 	if n.config.ChannelNamespaceBoundary != "" && strings.Contains(cTrim, n.config.ChannelNamespaceBoundary) {
 		parts := strings.SplitN(cTrim, n.config.ChannelNamespaceBoundary, 2)
@@ -159,28 +160,28 @@ func (n *ChannelRuleContainer) namespaceName(ch string) string {
 	return ""
 }
 
-// NamespacedChannelOptions returns channel options for channel using current channel config.
-func (n *ChannelRuleContainer) NamespacedChannelOptions(ch string) (NamespaceChannelOptions, bool, error) {
+// ChannelOptions returns channel options for channel using current channel config.
+func (n *Container) ChannelOptions(ch string) (ChannelOptions, bool, error) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 	return n.config.channelOpts(n.namespaceName(ch))
 }
 
 // channelOpts searches for channel options for specified namespace key.
-func (c *ChannelRuleConfig) channelOpts(namespaceName string) (NamespaceChannelOptions, bool, error) {
+func (c *Config) channelOpts(namespaceName string) (ChannelOptions, bool, error) {
 	if namespaceName == "" {
-		return c.NamespaceChannelOptions, true, nil
+		return c.ChannelOptions, true, nil
 	}
 	for _, n := range c.Namespaces {
 		if n.Name == namespaceName {
-			return n.NamespaceChannelOptions, true, nil
+			return n.ChannelOptions, true, nil
 		}
 	}
-	return NamespaceChannelOptions{}, false, nil
+	return ChannelOptions{}, false, nil
 }
 
 // PersonalChannel returns personal channel for user based on node configuration.
-func (n *ChannelRuleContainer) PersonalChannel(user string) string {
+func (n *Container) PersonalChannel(user string) string {
 	config := n.Config()
 	if config.UserPersonalChannelNamespace == "" {
 		return config.ChannelUserBoundary + user
@@ -189,7 +190,7 @@ func (n *ChannelRuleContainer) PersonalChannel(user string) string {
 }
 
 // Config returns a copy of node Config.
-func (n *ChannelRuleContainer) Config() ChannelRuleConfig {
+func (n *Container) Config() Config {
 	n.mu.RLock()
 	c := n.config
 	n.mu.RUnlock()
@@ -198,7 +199,7 @@ func (n *ChannelRuleContainer) Config() ChannelRuleConfig {
 
 // IsTokenChannel checks if channel requires token to subscribe. In case of
 // token-protected channel subscription request must contain a proper token.
-func (n *ChannelRuleContainer) IsTokenChannel(ch string) bool {
+func (n *Container) IsTokenChannel(ch string) bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 	if n.config.TokenChannelPrefix == "" {
@@ -208,7 +209,7 @@ func (n *ChannelRuleContainer) IsTokenChannel(ch string) bool {
 }
 
 // IsUserLimited returns whether channel is user-limited.
-func (n *ChannelRuleContainer) IsUserLimited(ch string) bool {
+func (n *Container) IsUserLimited(ch string) bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 	userBoundary := n.config.ChannelUserBoundary
@@ -221,7 +222,7 @@ func (n *ChannelRuleContainer) IsUserLimited(ch string) bool {
 // UserAllowed checks if user can subscribe on channel - as channel
 // can contain special part in the end to indicate which users allowed
 // to subscribe on it.
-func (n *ChannelRuleContainer) UserAllowed(ch string, user string) bool {
+func (n *Container) UserAllowed(ch string, user string) bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 	userBoundary := n.config.ChannelUserBoundary

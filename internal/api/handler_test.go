@@ -15,8 +15,8 @@ import (
 func TestAPIHandler(t *testing.T) {
 	n := nodeWithMemoryEngine()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	apiExecutor := NewExecutor(n, ruleContainer, "test")
 
 	mux := http.NewServeMux()

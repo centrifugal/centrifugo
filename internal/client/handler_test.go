@@ -176,9 +176,9 @@ func TestClientHandlerSetup(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.ClientInsecure = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 	h.Setup()
 
@@ -201,8 +201,8 @@ func TestClientConnectingNoCredentialsNoToken(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
 	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{
@@ -216,9 +216,9 @@ func TestClientConnectingNoCredentialsNoTokenInsecure(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.ClientInsecure = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
 	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false)
@@ -232,9 +232,9 @@ func TestClientConnectNoCredentialsNoTokenAnonymous(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.ClientAnonymous = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
 	reply, err := h.OnClientConnecting(context.Background(), centrifuge.ConnectEvent{}, nil, false)
@@ -248,8 +248,8 @@ func TestClientConnectWithMalformedToken(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -264,8 +264,8 @@ func TestClientConnectWithValidTokenHMAC(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -284,8 +284,8 @@ func TestClientConnectWithProxy(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -317,8 +317,8 @@ func TestClientConnectWithValidTokenRSA(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		RSAPublicKey: pubKey,
 	}), proxy.Config{})
@@ -337,9 +337,9 @@ func TestClientConnectWithExpiringToken(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.ClientAnonymous = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -358,9 +358,9 @@ func TestClientConnectWithExpiredToken(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.ClientAnonymous = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -375,9 +375,9 @@ func TestClientSideRefresh(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.ClientAnonymous = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -405,15 +405,15 @@ func TestClientUserPersonalChannel(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.UserSubscribeToPersonal = true
 	ruleConfig.Namespaces = []rule.ChannelNamespace{
 		{
-			Name:                    "user",
-			NamespaceChannelOptions: rule.NamespaceChannelOptions{},
+			Name:           "user",
+			ChannelOptions: rule.ChannelOptions{},
 		},
 	}
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -446,8 +446,8 @@ func TestClientSubscribeChannel(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -484,9 +484,9 @@ func TestClientSubscribeChannelServerSide(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.ServerSide = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -523,8 +523,8 @@ func TestClientSubscribeChannelUserLimited(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -561,8 +561,8 @@ func TestClientSubscribePrivateChannelWithToken(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -631,8 +631,8 @@ func TestClientSubscribePrivateChannelWithTokenAnonymous(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -670,9 +670,9 @@ func TestClientSideSubRefresh(t *testing.T) {
 	node := nodeWithMemoryEngine()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.ClientAnonymous = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -738,8 +738,8 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousNotAllowed(t *testing.T)
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -777,9 +777,9 @@ func TestClientSubscribePrivateChannelWithTokenAnonymousAllowed(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.Anonymous = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -818,9 +818,9 @@ func TestClientSubscribePrivateChannelWithExpiringToken(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.Anonymous = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -836,8 +836,8 @@ func TestClientSubscribePermissionDeniedForAnonymous(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -852,8 +852,8 @@ func TestClientPublishNotAllowed(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -875,9 +875,9 @@ func TestClientPublishAllowed(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.Publish = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -893,10 +893,10 @@ func TestClientSubscribeToPublish(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.Publish = true
 	ruleConfig.SubscribeToPublish = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -912,10 +912,10 @@ func TestClientHistory(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.HistorySize = 10
 	ruleConfig.HistoryLifetime = 300
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -936,9 +936,9 @@ func TestClientHistoryError(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.HistoryDisableForClient = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -969,9 +969,9 @@ func TestClientPresence(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.Presence = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -992,9 +992,9 @@ func TestClientPresenceError(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.PresenceDisableForClient = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
 	_, err := h.OnPresence(&centrifuge.Client{}, centrifuge.PresenceEvent{
@@ -1022,9 +1022,9 @@ func TestClientPresenceStats(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.Presence = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
 	}), proxy.Config{})
@@ -1045,9 +1045,9 @@ func TestClientPresenceStatsError(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	ruleConfig := rule.DefaultRuleConfig
+	ruleConfig := rule.DefaultConfig
 	ruleConfig.PresenceDisableForClient = true
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{}), proxy.Config{})
 
 	_, err := h.OnPresenceStats(&centrifuge.Client{}, centrifuge.PresenceStatsEvent{

@@ -20,14 +20,14 @@ type ConnectHandlerConfig struct {
 // ConnectHandler ...
 type ConnectHandler struct {
 	config        ConnectHandlerConfig
-	ruleContainer *rule.ChannelRuleContainer
+	ruleContainer *rule.Container
 	summary       prometheus.Observer
 	histogram     prometheus.Observer
 	errors        prometheus.Counter
 }
 
 // NewConnectHandler ...
-func NewConnectHandler(c ConnectHandlerConfig, ruleContainer *rule.ChannelRuleContainer) *ConnectHandler {
+func NewConnectHandler(c ConnectHandlerConfig, ruleContainer *rule.Container) *ConnectHandler {
 	return &ConnectHandler{
 		config:        c,
 		ruleContainer: ruleContainer,
@@ -114,7 +114,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 		if len(credentials.Channels) > 0 {
 			subscriptions := make(map[string]centrifuge.SubscribeOptions, len(credentials.Channels))
 			for _, ch := range credentials.Channels {
-				chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
+				chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 				if err != nil {
 					return centrifuge.ConnectReply{}, err
 				}
