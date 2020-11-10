@@ -36,11 +36,11 @@ func NewSubscribeHandler(c SubscribeHandlerConfig) *SubscribeHandler {
 }
 
 // SubscribeHandlerFunc ...
-type SubscribeHandlerFunc func(*centrifuge.Client, centrifuge.SubscribeEvent, rule.NamespaceChannelOptions) (centrifuge.SubscribeReply, error)
+type SubscribeHandlerFunc func(*centrifuge.Client, centrifuge.SubscribeEvent, rule.ChannelOptions) (centrifuge.SubscribeReply, error)
 
 // Handle Subscribe.
 func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
-	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent, chOpts rule.NamespaceChannelOptions) (centrifuge.SubscribeReply, error) {
+	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions) (centrifuge.SubscribeReply, error) {
 		started := time.Now()
 		subscribeRep, err := h.config.Proxy.ProxySubscribe(client.Context(), SubscribeRequest{
 			ClientID:  client.ID(),

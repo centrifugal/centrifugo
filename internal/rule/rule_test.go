@@ -7,23 +7,23 @@ import (
 )
 
 func TestChannelNotFound(t *testing.T) {
-	c := DefaultRuleConfig
+	c := DefaultConfig
 	_, found, err := c.channelOpts("xxx")
 	require.False(t, found)
 	require.NoError(t, err)
 }
 
 func TestConfigValidateDefault(t *testing.T) {
-	err := DefaultRuleConfig.Validate()
+	err := DefaultConfig.Validate()
 	require.NoError(t, err)
 }
 
 func TestConfigValidateInvalidNamespaceName(t *testing.T) {
-	c := DefaultRuleConfig
+	c := DefaultConfig
 	c.Namespaces = []ChannelNamespace{
 		{
-			Name:                    "invalid name",
-			NamespaceChannelOptions: NamespaceChannelOptions{},
+			Name:           "invalid name",
+			ChannelOptions: ChannelOptions{},
 		},
 	}
 	err := c.Validate()
@@ -31,15 +31,15 @@ func TestConfigValidateInvalidNamespaceName(t *testing.T) {
 }
 
 func TestConfigValidateDuplicateNamespaceName(t *testing.T) {
-	c := DefaultRuleConfig
+	c := DefaultConfig
 	c.Namespaces = []ChannelNamespace{
 		{
-			Name:                    "name",
-			NamespaceChannelOptions: NamespaceChannelOptions{},
+			Name:           "name",
+			ChannelOptions: ChannelOptions{},
 		},
 		{
-			Name:                    "name",
-			NamespaceChannelOptions: NamespaceChannelOptions{},
+			Name:           "name",
+			ChannelOptions: ChannelOptions{},
 		},
 	}
 	err := c.Validate()
@@ -47,7 +47,7 @@ func TestConfigValidateDuplicateNamespaceName(t *testing.T) {
 }
 
 func TestConfigValidateNoPersonalNamespace(t *testing.T) {
-	c := DefaultRuleConfig
+	c := DefaultConfig
 	c.Namespaces = []ChannelNamespace{}
 	c.UserSubscribeToPersonal = true
 	c.UserPersonalChannelNamespace = "name"
@@ -56,7 +56,7 @@ func TestConfigValidateNoPersonalNamespace(t *testing.T) {
 }
 
 func TestConfigValidatePersonalSingleConnectionMissingPresence(t *testing.T) {
-	c := DefaultRuleConfig
+	c := DefaultConfig
 	c.Namespaces = []ChannelNamespace{}
 	c.UserSubscribeToPersonal = true
 	c.UserPersonalSingleConnection = true
@@ -65,7 +65,7 @@ func TestConfigValidatePersonalSingleConnectionMissingPresence(t *testing.T) {
 }
 
 func TestConfigValidatePersonalSingleConnectionOK(t *testing.T) {
-	c := DefaultRuleConfig
+	c := DefaultConfig
 	c.Namespaces = []ChannelNamespace{}
 	c.UserSubscribeToPersonal = true
 	c.UserPersonalSingleConnection = true
@@ -75,7 +75,7 @@ func TestConfigValidatePersonalSingleConnectionOK(t *testing.T) {
 }
 
 func TestConfigValidatePersonalSingleConnectionNamespacedFail(t *testing.T) {
-	c := DefaultRuleConfig
+	c := DefaultConfig
 	c.Namespaces = []ChannelNamespace{}
 	c.UserSubscribeToPersonal = true
 	c.UserPersonalSingleConnection = true
@@ -85,14 +85,14 @@ func TestConfigValidatePersonalSingleConnectionNamespacedFail(t *testing.T) {
 }
 
 func TestConfigValidatePersonalSingleConnectionNamespacedOK(t *testing.T) {
-	c := DefaultRuleConfig
+	c := DefaultConfig
 	c.Namespaces = []ChannelNamespace{}
 	c.UserSubscribeToPersonal = true
 	c.UserPersonalSingleConnection = true
 	c.UserPersonalChannelNamespace = "public"
 	c.Namespaces = []ChannelNamespace{{
 		Name: "public",
-		NamespaceChannelOptions: NamespaceChannelOptions{
+		ChannelOptions: ChannelOptions{
 			Presence: true,
 		},
 	}}
@@ -101,18 +101,18 @@ func TestConfigValidatePersonalSingleConnectionNamespacedOK(t *testing.T) {
 }
 
 func TestConfigValidateMalformedReceiverTopLevel(t *testing.T) {
-	c := DefaultRuleConfig
+	c := DefaultConfig
 	c.HistoryRecover = true
 	err := c.Validate()
 	require.Error(t, err)
 }
 
 func TestConfigValidateMalformedReceiverInNamespace(t *testing.T) {
-	c := DefaultRuleConfig
+	c := DefaultConfig
 	c.Namespaces = []ChannelNamespace{
 		{
 			Name: "name",
-			NamespaceChannelOptions: NamespaceChannelOptions{
+			ChannelOptions: ChannelOptions{
 				HistoryRecover: true,
 			},
 		},
@@ -122,7 +122,7 @@ func TestConfigValidateMalformedReceiverInNamespace(t *testing.T) {
 }
 
 func TestUserAllowed(t *testing.T) {
-	rules := NewNamespaceRuleContainer(DefaultRuleConfig)
+	rules := NewContainer(DefaultConfig)
 	require.True(t, rules.UserAllowed("channel#1", "1"))
 	require.True(t, rules.UserAllowed("channel", "1"))
 	require.False(t, rules.UserAllowed("channel#1", "2"))
@@ -132,7 +132,7 @@ func TestUserAllowed(t *testing.T) {
 }
 
 func TestIsUserLimited(t *testing.T) {
-	rules := NewNamespaceRuleContainer(DefaultRuleConfig)
+	rules := NewContainer(DefaultConfig)
 	require.True(t, rules.IsUserLimited("#12"))
 	require.True(t, rules.IsUserLimited("test#12"))
 	rules.config.ChannelUserBoundary = ""

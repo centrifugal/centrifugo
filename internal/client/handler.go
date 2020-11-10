@@ -27,7 +27,7 @@ type RPCExtensionFunc func(c *centrifuge.Client, e centrifuge.RPCEvent) (centrif
 // Handler ...
 type Handler struct {
 	node          *centrifuge.Node
-	ruleContainer *rule.ChannelRuleContainer
+	ruleContainer *rule.Container
 	tokenVerifier jwtverify.Verifier
 	proxyConfig   proxy.Config
 	rpcExtension  map[string]RPCExtensionFunc
@@ -36,7 +36,7 @@ type Handler struct {
 // NewHandler ...
 func NewHandler(
 	node *centrifuge.Node,
-	ruleContainer *rule.ChannelRuleContainer,
+	ruleContainer *rule.Container,
 	tokenVerifier jwtverify.Verifier,
 	proxyConfig proxy.Config,
 ) *Handler {
@@ -115,8 +115,10 @@ func (h *Handler) Setup() {
 		}).Handle(h.node)
 	}
 
-	usePersonalChannel := h.ruleContainer.Config().UserSubscribeToPersonal
-	singleConnection := h.ruleContainer.Config().UserPersonalSingleConnection
+	ruleConfig := h.ruleContainer.Config()
+	usePersonalChannel := ruleConfig.UserSubscribeToPersonal
+	singleConnection := ruleConfig.UserPersonalSingleConnection
+	concurrency := ruleConfig.ClientConcurrency
 
 	h.node.OnConnect(func(client *centrifuge.Client) {
 		userID := client.UserID()
@@ -142,26 +144,29 @@ func (h *Handler) Setup() {
 			}
 		}
 
+		var semaphore chan struct{}
+		if concurrency > 1 {
+			semaphore = make(chan struct{}, concurrency)
+		}
+
 		client.OnRefresh(func(event centrifuge.RefreshEvent, cb centrifuge.RefreshCallback) {
-			if refreshProxyHandler != nil {
-				cb(refreshProxyHandler(client, event))
-				return
-			}
-			cb(h.OnRefresh(client, event))
+			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+				cb(h.OnRefresh(client, event, refreshProxyHandler))
+			})
 		})
 
 		if rpcProxyHandler != nil || len(h.rpcExtension) > 0 {
 			client.OnRPC(func(event centrifuge.RPCEvent, cb centrifuge.RPCCallback) {
-				if handler, ok := h.rpcExtension[event.Method]; ok {
-					cb(handler(client, event))
-					return
-				}
-				cb(rpcProxyHandler(client, event))
+				h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+					cb(h.OnRPC(client, event, rpcProxyHandler))
+				})
 			})
 		}
 
 		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
-			cb(h.OnSubscribe(client, event, subscribeProxyHandler))
+			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+				cb(h.OnSubscribe(client, event, subscribeProxyHandler))
+			})
 		})
 
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
@@ -169,21 +174,41 @@ func (h *Handler) Setup() {
 		})
 
 		client.OnPublish(func(event centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
-			cb(h.OnPublish(client, event, publishProxyHandler))
+			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+				cb(h.OnPublish(client, event, publishProxyHandler))
+			})
 		})
 
 		client.OnPresence(func(event centrifuge.PresenceEvent, cb centrifuge.PresenceCallback) {
-			cb(h.OnPresence(client, event))
+			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+				cb(h.OnPresence(client, event))
+			})
 		})
 
 		client.OnPresenceStats(func(event centrifuge.PresenceStatsEvent, cb centrifuge.PresenceStatsCallback) {
-			cb(h.OnPresenceStats(client, event))
+			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+				cb(h.OnPresenceStats(client, event))
+			})
 		})
 
 		client.OnHistory(func(event centrifuge.HistoryEvent, cb centrifuge.HistoryCallback) {
-			cb(h.OnHistory(client, event))
+			h.runConcurrentlyIfNeeded(concurrency, semaphore, func() {
+				cb(h.OnHistory(client, event))
+			})
 		})
 	})
+}
+
+func (h *Handler) runConcurrentlyIfNeeded(concurrency int, semaphore chan struct{}, fn func()) {
+	if concurrency > 1 {
+		semaphore <- struct{}{}
+		go func() {
+			defer func() { <-semaphore }()
+			fn()
+		}()
+	} else {
+		fn()
+	}
 }
 
 // OnClientConnecting ...
@@ -223,7 +248,7 @@ func (h *Handler) OnClientConnecting(
 		}
 
 		for _, ch := range token.Channels {
-			chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(ch)
+			chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "subscribe channel options error", map[string]interface{}{"error": err.Error(), "channel": ch}))
 				return centrifuge.ConnectReply{}, err
@@ -258,7 +283,7 @@ func (h *Handler) OnClientConnecting(
 	// Automatically subscribe on personal server-side channel.
 	if credentials != nil && ruleConfig.UserSubscribeToPersonal && credentials.UserID != "" {
 		personalChannel := h.ruleContainer.PersonalChannel(credentials.UserID)
-		chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(personalChannel)
+		chOpts, found, err := h.ruleContainer.ChannelOptions(personalChannel)
 		if err != nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "subscribe channel options error", map[string]interface{}{"error": err.Error(), "channel": personalChannel}))
 			return centrifuge.ConnectReply{}, err
@@ -283,7 +308,10 @@ func (h *Handler) OnClientConnecting(
 }
 
 // OnRefresh ...
-func (h *Handler) OnRefresh(c *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
+func (h *Handler) OnRefresh(c *centrifuge.Client, e centrifuge.RefreshEvent, refreshProxyHandler proxy.RefreshHandlerFunc) (centrifuge.RefreshReply, error) {
+	if refreshProxyHandler != nil {
+		return refreshProxyHandler(c, e)
+	}
 	token, err := h.tokenVerifier.VerifyConnectToken(e.Token)
 	if err != nil {
 		if err == jwtverify.ErrTokenExpired {
@@ -296,6 +324,17 @@ func (h *Handler) OnRefresh(c *centrifuge.Client, e centrifuge.RefreshEvent) (ce
 		ExpireAt: token.ExpireAt,
 		Info:     token.Info,
 	}, nil
+}
+
+// OnRPC ...
+func (h *Handler) OnRPC(c *centrifuge.Client, e centrifuge.RPCEvent, rpcProxyHandler proxy.RPCHandlerFunc) (centrifuge.RPCReply, error) {
+	if handler, ok := h.rpcExtension[e.Method]; ok {
+		return handler(c, e)
+	}
+	if rpcProxyHandler != nil {
+		return rpcProxyHandler(c, e)
+	}
+	return centrifuge.RPCReply{}, centrifuge.ErrorMethodNotFound
 }
 
 // OnSubRefresh ...
@@ -321,7 +360,7 @@ func (h *Handler) OnSubRefresh(c *centrifuge.Client, e centrifuge.SubRefreshEven
 func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc) (centrifuge.SubscribeReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
-	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(e.Channel)
+	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "subscribe channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.SubscribeReply{}, err
@@ -396,7 +435,7 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, publishProxyHandler proxy.PublishHandlerFunc) (centrifuge.PublishReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
-	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(e.Channel)
+	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "publish channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PublishReply{}, err
@@ -434,7 +473,7 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 
 // OnPresence ...
 func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (centrifuge.PresenceReply, error) {
-	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(e.Channel)
+	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "presence channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceReply{}, err
@@ -454,7 +493,7 @@ func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (
 
 // OnPresenceStats ...
 func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceStatsEvent) (centrifuge.PresenceStatsReply, error) {
-	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(e.Channel)
+	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "presence stats channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceStatsReply{}, err
@@ -474,7 +513,7 @@ func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceSta
 
 // OnHistory ...
 func (h *Handler) OnHistory(c *centrifuge.Client, e centrifuge.HistoryEvent) (centrifuge.HistoryReply, error) {
-	chOpts, found, err := h.ruleContainer.NamespacedChannelOptions(e.Channel)
+	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "history channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.HistoryReply{}, err

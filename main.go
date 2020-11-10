@@ -92,7 +92,8 @@ var configDefaults = map[string]interface{}{
 	"channel_user_separator":               ",",
 	"user_subscribe_to_personal":           false,
 	"user_personal_channel_namespace":      "",
-	"user_personal_connection_limit":       false,
+	"user_personal_single_connection":      false,
+	"client_concurrency":                   0,
 	"debug":                                false,
 	"prometheus":                           false,
 	"health":                               false,
@@ -216,7 +217,7 @@ func main() {
 			"websocket_ping_interval", "websocket_write_timeout", "websocket_message_size_limit",
 			"proxy_publish_endpoint", "proxy_publish_timeout", "proxy_subscribe_endpoint",
 			"proxy_subscribe_timeout", "proxy_subscribe", "proxy_publish", "redis_sentinel_password",
-			"grpc_api_key",
+			"grpc_api_key", "client_concurrency", "user_personal_single_connection",
 		}
 
 		for _, env := range bindEnvs {
@@ -303,7 +304,7 @@ func main() {
 			if err != nil {
 				log.Fatal().Msgf("error validating config: %v", err)
 			}
-			ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+			ruleContainer := rule.NewContainer(ruleConfig)
 
 			nodeConfig := nodeConfig(VERSION)
 
@@ -684,7 +685,7 @@ func setupLogging() *os.File {
 	return nil
 }
 
-func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.ChannelRuleContainer, tokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server, grpcAPIServer *grpc.Server, exporter *graphite.Exporter) {
+func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Container, tokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server, grpcAPIServer *grpc.Server, exporter *graphite.Exporter) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -1003,9 +1004,9 @@ func validateConfig(f string) error {
 	return nil
 }
 
-func ruleConfig() rule.ChannelRuleConfig {
+func ruleConfig() rule.Config {
 	v := viper.GetViper()
-	cfg := rule.ChannelRuleConfig{}
+	cfg := rule.Config{}
 
 	cfg.Publish = v.GetBool("publish")
 	cfg.SubscribeToPublish = v.GetBool("subscribe_to_publish")
@@ -1032,6 +1033,7 @@ func ruleConfig() rule.ChannelRuleConfig {
 	cfg.UserPersonalChannelNamespace = v.GetString("user_personal_channel_namespace")
 	cfg.ClientInsecure = v.GetBool("client_insecure")
 	cfg.ClientAnonymous = v.GetBool("client_anonymous")
+	cfg.ClientConcurrency = v.GetInt("client_concurrency")
 	return cfg
 }
 

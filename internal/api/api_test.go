@@ -26,8 +26,8 @@ func nodeWithMemoryEngine() *centrifuge.Node {
 func TestPublishAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
 
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 
 	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Publish(context.Background(), &PublishRequest{})
@@ -45,8 +45,8 @@ func TestPublishAPI(t *testing.T) {
 
 func TestBroadcastAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 
 	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Broadcast(context.Background(), &BroadcastRequest{})
@@ -67,8 +67,8 @@ func TestBroadcastAPI(t *testing.T) {
 
 func TestHistoryAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 
 	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.History(context.Background(), &HistoryRequest{})
@@ -87,8 +87,8 @@ func TestHistoryAPI(t *testing.T) {
 
 func TestHistoryRemoveAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 
 	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.HistoryRemove(context.Background(), &HistoryRemoveRequest{})
@@ -107,8 +107,8 @@ func TestHistoryRemoveAPI(t *testing.T) {
 
 func TestPresenceAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 
 	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Presence(context.Background(), &PresenceRequest{})
@@ -127,8 +127,8 @@ func TestPresenceAPI(t *testing.T) {
 
 func TestPresenceStatsAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 
 	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.PresenceStats(context.Background(), &PresenceStatsRequest{})
@@ -146,8 +146,8 @@ func TestPresenceStatsAPI(t *testing.T) {
 
 func TestDisconnectAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 
 	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Disconnect(context.Background(), &DisconnectRequest{})
@@ -160,8 +160,8 @@ func TestDisconnectAPI(t *testing.T) {
 
 func TestUnsubscribeAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 
 	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Unsubscribe(context.Background(), &UnsubscribeRequest{})
@@ -175,8 +175,8 @@ func TestUnsubscribeAPI(t *testing.T) {
 
 func TestChannelsAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 
 	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Channels(context.Background(), &ChannelsRequest{})
@@ -185,8 +185,8 @@ func TestChannelsAPI(t *testing.T) {
 
 func TestInfoAPI(t *testing.T) {
 	node := nodeWithMemoryEngine()
-	ruleConfig := rule.DefaultRuleConfig
-	ruleContainer := rule.NewNamespaceRuleContainer(ruleConfig)
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
 
 	api := NewExecutor(node, ruleContainer, "test")
 	resp := api.Info(context.Background(), &InfoRequest{})
