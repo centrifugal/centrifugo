@@ -115,8 +115,10 @@ func (h *Handler) Setup() {
 		}).Handle(h.node)
 	}
 
-	usePersonalChannel := h.ruleContainer.Config().UserSubscribeToPersonal
-	singleConnection := h.ruleContainer.Config().UserPersonalSingleConnection
+	ruleConfig := h.ruleContainer.Config()
+	usePersonalChannel := ruleConfig.UserSubscribeToPersonal
+	singleConnection := ruleConfig.UserPersonalSingleConnection
+	concurrency := ruleConfig.ClientConcurrency
 
 	h.node.OnConnect(func(client *centrifuge.Client) {
 		userID := client.UserID()
@@ -142,26 +144,47 @@ func (h *Handler) Setup() {
 			}
 		}
 
+		var semaphore chan struct{}
+		if concurrency > 0 {
+			semaphore = make(chan struct{}, concurrency)
+		}
+
 		client.OnRefresh(func(event centrifuge.RefreshEvent, cb centrifuge.RefreshCallback) {
-			if refreshProxyHandler != nil {
-				cb(refreshProxyHandler(client, event))
-				return
+			if concurrency > 0 {
+				semaphore <- struct{}{}
+				go func() {
+					defer func() { <-semaphore }()
+					cb(h.OnRefresh(client, event, refreshProxyHandler))
+				}()
+			} else {
+				cb(h.OnRefresh(client, event, refreshProxyHandler))
 			}
-			cb(h.OnRefresh(client, event))
 		})
 
 		if rpcProxyHandler != nil || len(h.rpcExtension) > 0 {
 			client.OnRPC(func(event centrifuge.RPCEvent, cb centrifuge.RPCCallback) {
-				if handler, ok := h.rpcExtension[event.Method]; ok {
-					cb(handler(client, event))
-					return
+				if concurrency > 0 {
+					semaphore <- struct{}{}
+					go func() {
+						defer func() { <-semaphore }()
+						cb(h.OnRPC(client, event, rpcProxyHandler))
+					}()
+				} else {
+					cb(h.OnRPC(client, event, rpcProxyHandler))
 				}
-				cb(rpcProxyHandler(client, event))
 			})
 		}
 
 		client.OnSubscribe(func(event centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
-			cb(h.OnSubscribe(client, event, subscribeProxyHandler))
+			if concurrency > 0 {
+				semaphore <- struct{}{}
+				go func() {
+					defer func() { <-semaphore }()
+					cb(h.OnSubscribe(client, event, subscribeProxyHandler))
+				}()
+			} else {
+				cb(h.OnSubscribe(client, event, subscribeProxyHandler))
+			}
 		})
 
 		client.OnSubRefresh(func(event centrifuge.SubRefreshEvent, cb centrifuge.SubRefreshCallback) {
@@ -169,19 +192,51 @@ func (h *Handler) Setup() {
 		})
 
 		client.OnPublish(func(event centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
-			cb(h.OnPublish(client, event, publishProxyHandler))
+			if concurrency > 0 {
+				semaphore <- struct{}{}
+				go func() {
+					defer func() { <-semaphore }()
+					cb(h.OnPublish(client, event, publishProxyHandler))
+				}()
+			} else {
+				cb(h.OnPublish(client, event, publishProxyHandler))
+			}
 		})
 
 		client.OnPresence(func(event centrifuge.PresenceEvent, cb centrifuge.PresenceCallback) {
-			cb(h.OnPresence(client, event))
+			if concurrency > 0 {
+				semaphore <- struct{}{}
+				go func() {
+					defer func() { <-semaphore }()
+					cb(h.OnPresence(client, event))
+				}()
+			} else {
+				cb(h.OnPresence(client, event))
+			}
 		})
 
 		client.OnPresenceStats(func(event centrifuge.PresenceStatsEvent, cb centrifuge.PresenceStatsCallback) {
-			cb(h.OnPresenceStats(client, event))
+			if concurrency > 0 {
+				semaphore <- struct{}{}
+				go func() {
+					defer func() { <-semaphore }()
+					cb(h.OnPresenceStats(client, event))
+				}()
+			} else {
+				cb(h.OnPresenceStats(client, event))
+			}
 		})
 
 		client.OnHistory(func(event centrifuge.HistoryEvent, cb centrifuge.HistoryCallback) {
-			cb(h.OnHistory(client, event))
+			if concurrency > 0 {
+				semaphore <- struct{}{}
+				go func() {
+					defer func() { <-semaphore }()
+					cb(h.OnHistory(client, event))
+				}()
+			} else {
+				cb(h.OnHistory(client, event))
+			}
 		})
 	})
 }
@@ -283,7 +338,10 @@ func (h *Handler) OnClientConnecting(
 }
 
 // OnRefresh ...
-func (h *Handler) OnRefresh(c *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
+func (h *Handler) OnRefresh(c *centrifuge.Client, e centrifuge.RefreshEvent, refreshProxyHandler proxy.RefreshHandlerFunc) (centrifuge.RefreshReply, error) {
+	if refreshProxyHandler != nil {
+		return refreshProxyHandler(c, e)
+	}
 	token, err := h.tokenVerifier.VerifyConnectToken(e.Token)
 	if err != nil {
 		if err == jwtverify.ErrTokenExpired {
@@ -296,6 +354,17 @@ func (h *Handler) OnRefresh(c *centrifuge.Client, e centrifuge.RefreshEvent) (ce
 		ExpireAt: token.ExpireAt,
 		Info:     token.Info,
 	}, nil
+}
+
+// OnRPC ...
+func (h *Handler) OnRPC(c *centrifuge.Client, e centrifuge.RPCEvent, rpcProxyHandler proxy.RPCHandlerFunc) (centrifuge.RPCReply, error) {
+	if handler, ok := h.rpcExtension[e.Method]; ok {
+		return handler(c, e)
+	}
+	if rpcProxyHandler != nil {
+		return rpcProxyHandler(c, e)
+	}
+	return centrifuge.RPCReply{}, centrifuge.ErrorMethodNotFound
 }
 
 // OnSubRefresh ...

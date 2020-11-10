@@ -51,6 +51,9 @@ type ChannelRuleConfig struct {
 	// user will have empty string for user ID, meaning user can only subscribe
 	// to anonymous channels.
 	ClientAnonymous bool
+	// ClientConcurrency when set allows processing client commands in concurrently
+	// with provided concurrency level.
+	ClientConcurrency int
 }
 
 // DefaultRuleConfig has default config options.

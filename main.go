@@ -92,7 +92,8 @@ var configDefaults = map[string]interface{}{
 	"channel_user_separator":               ",",
 	"user_subscribe_to_personal":           false,
 	"user_personal_channel_namespace":      "",
-	"user_personal_connection_limit":       false,
+	"user_personal_single_connection":      false,
+	"client_concurrency":                   0,
 	"debug":                                false,
 	"prometheus":                           false,
 	"health":                               false,
@@ -216,7 +217,7 @@ func main() {
 			"websocket_ping_interval", "websocket_write_timeout", "websocket_message_size_limit",
 			"proxy_publish_endpoint", "proxy_publish_timeout", "proxy_subscribe_endpoint",
 			"proxy_subscribe_timeout", "proxy_subscribe", "proxy_publish", "redis_sentinel_password",
-			"grpc_api_key",
+			"grpc_api_key", "client_concurrency", "user_personal_single_connection",
 		}
 
 		for _, env := range bindEnvs {
@@ -1032,6 +1033,7 @@ func ruleConfig() rule.ChannelRuleConfig {
 	cfg.UserPersonalChannelNamespace = v.GetString("user_personal_channel_namespace")
 	cfg.ClientInsecure = v.GetBool("client_insecure")
 	cfg.ClientAnonymous = v.GetBool("client_anonymous")
+	cfg.ClientConcurrency = v.GetInt("client_concurrency")
 	return cfg
 }
 
