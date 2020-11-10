@@ -384,18 +384,18 @@ func TestClientSideRefresh(t *testing.T) {
 
 	reply, err := h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
 		Token: getConnTokenHS("42", 123),
-	})
+	}, nil)
 	require.NoError(t, err)
 	require.True(t, reply.Expired)
 
 	_, err = h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
 		Token: "invalid",
-	})
+	}, nil)
 	require.Error(t, err)
 
 	reply, err = h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
 		Token: getConnTokenHS("42", 2525637058),
-	})
+	}, nil)
 	require.NoError(t, err)
 	require.False(t, reply.Expired)
 	require.Equal(t, int64(2525637058), reply.ExpireAt)

@@ -122,7 +122,17 @@ Maximum client message queue size in bytes to close slow reader connections. By 
 
 Default: false
 
-Enable mode when all clients can connect to Centrifugo without JWT connection token. In this case all connections without token will be treated as anonymous (i.e. with empty user ID) and only can subscribe to channels with `anonymous` option enabled.
+Enable a mode when all clients can connect to Centrifugo without JWT connection token. In this case all connections without token will be treated as anonymous (i.e. with empty user ID) and only can subscribe to channels with `anonymous` option enabled.
+
+### client_concurrency
+
+Available since Centrifugo v2.8.0
+
+Default: 0
+
+`client_concurrency` when set tells Centrifugo that commands from client must be processed concurrently.
+
+By default, concurrency disabled – so Centrifugo processes commands from client one by one. This means that if client issues two RPC requests to a server then Centrifugo will process first one, then second one. If first RPC call is slow then client will wait for the second RPC response much longer than it could (even if second RPC is very fast). If you set `client_concurrency` to some value greater than 1 then commands will be processed concurrently (in parallel) in separate goroutines (with maximum concurrency level capped by `client_concurrency` value). Thus, this option can effectively reduce latency of individual requests. Since separate goroutines involved in processing this mode adds some performance and memory overhead – though it should be pretty negligible in most cases. This option applies to all commands from client (including subscribe, publish, presence etc).
 
 ### sockjs_heartbeat_delay
 
