@@ -43,7 +43,7 @@ For example, if you set this option and user with ID `87334` connects to Centrif
 
 As you can see by default generated personal channel name belongs to default namespace (i.e. no explicit namespace used). To set custom namespace name use `user_personal_channel_namespace` option (string, default `""`) – i.e. the name of namespace from configured configuration namespaces array. In this case if you set `user_personal_channel_namespace` to `personal` for example – then the automatically generated personal channel will be `personal:#87334` – user will be automatically subscribed to it on connect and you can use this channel name to publish personal notifications to online user.
 
-### Allow single connection only from a user
+### Maintain single user connection
 
 Available since v2.8.0
 
