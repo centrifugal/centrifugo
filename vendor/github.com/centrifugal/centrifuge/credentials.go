@@ -4,24 +4,26 @@ import "context"
 
 // Credentials allows to authenticate connection when set into context.
 type Credentials struct {
-	// UserID tells library an ID of connecting user.
+	// UserID tells library an ID of current user. Leave this empty string
+	// if you need access from anonymous user.
 	UserID string
 	// ExpireAt allows to set time in future when connection must be validated.
-	// In this case OnRefresh callback must be set by application.
+	// In this case Client.OnRefresh callback must be set by application. Zero
+	// value means no expiration.
 	ExpireAt int64
-	// Info contains additional information about connection. This will be
+	// Info contains additional information about connection. This data will be
 	// included untouched into Join/Leave messages, into Presence information,
-	// also info becomes a part of published message if it was published from
-	// client directly. In some cases having additional info can be an
-	// overhead – but you are simply free to not use it.
+	// also info can become a part of published message as part of ClientInfo.
+	// In some cases having additional info can be an undesired overhead – but
+	// you are simply free to not use this field at all.
 	Info []byte
 }
 
-// credentialsContextKeyType is special type to safely use
-// context for setting and getting Credentials.
+// credentialsContextKeyType is special type to safely use context for setting
+// and getting Credentials.
 type credentialsContextKeyType int
 
-// CredentialsContextKey allows Go code to set Credentials into context.
+// credentialsContextKey allows Go code to set Credentials into context.
 var credentialsContextKey credentialsContextKeyType
 
 // SetCredentials allows to set connection Credentials to Context. Credentials set
@@ -32,7 +34,7 @@ func SetCredentials(ctx context.Context, cred *Credentials) context.Context {
 	return ctx
 }
 
-// GetCredentials allows to get previously set Credentials from Context.
+// GetCredentials allows to extract Credentials from Context (if set previously).
 func GetCredentials(ctx context.Context) (*Credentials, bool) {
 	if val := ctx.Value(credentialsContextKey); val != nil {
 		cred, ok := val.(*Credentials)

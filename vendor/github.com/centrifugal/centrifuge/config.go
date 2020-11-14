@@ -6,11 +6,11 @@ import (
 
 // Config contains Node configuration options.
 type Config struct {
-	// Version of server – will be sent to client on connection establishment
+	// Version of server – will be sent to a client on connection establishment
 	// phase in response to connect request.
 	Version string
-	// Name of this server Node - must be unique, used as human readable and
-	// meaningful node identifier. If not set then os.Hostname will be used.
+	// Name is a unique name of current server Node. Name used as human readable
+	// and meaningful node identifier. If not set then os.Hostname will be used.
 	Name string
 	// LogLevel is a log level to use. By default nothing will be logged.
 	LogLevel LogLevel
@@ -71,7 +71,6 @@ const (
 
 // DefaultConfig is Config initialized with default values for all fields.
 var DefaultConfig = Config{
-	ChannelMaxLength:                 255,
 	NodeInfoMetricsAggregateInterval: 60 * time.Second,
 	ClientPresenceUpdateInterval:     25 * time.Second,
 	ClientPresenceExpireInterval:     60 * time.Second,
@@ -79,6 +78,7 @@ var DefaultConfig = Config{
 	ClientExpiredSubCloseDelay:       25 * time.Second,
 	ClientStaleCloseDelay:            25 * time.Second,
 	ClientChannelPositionCheckDelay:  40 * time.Second,
-	ClientQueueMaxSize:               10485760, // 10MB by default
+	ClientQueueMaxSize:               10485760, // 10MB by default.
 	ClientChannelLimit:               128,
+	ChannelMaxLength:                 255,
 }

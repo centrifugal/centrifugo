@@ -62,9 +62,9 @@ const (
 // RedisEngine uses Redis to implement Engine functionality.
 // This engine allows to scale Centrifuge based server to many instances and
 // load balance client connections between them.
-// Redis engine supports additionally supports Sentinel, client-side sharding
-// and can work with Redis Cluster (or client-side shard between different
-// Redis Clusters).
+// Redis engine additionally supports Redis Sentinel, client-side consistent
+// sharding and can work with Redis Cluster (including client-side sharding
+// between different Redis Clusters to scale PUB/SUB).
 type RedisEngine struct {
 	node     *Node
 	sharding bool
@@ -113,10 +113,10 @@ type RedisEngineConfig struct {
 	// value to this option (usually much bigger than history retention period)
 	// can help. In this case unused channel stream meta data will eventually expire.
 	//
-	// TODO v1: maybe make this channel namespace option?
-	// TODO v1: since we have epoch things should also properly work without meta
+	// TODO v1: since we have epoch, things should also properly work without meta
 	// information at all (but we loose possibility of long-term recover in stream
-	// without new messages).
+	// without new messages). We can make this optional and disabled by default at
+	// least.
 	HistoryMetaTTL time.Duration
 
 	// UseStreams allows to enable usage of Redis streams instead of list data

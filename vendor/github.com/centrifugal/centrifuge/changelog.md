@@ -1,3 +1,8 @@
+v0.14.1
+=======
+
+* remove unused `history_full` metric, add `history` action metric to track all history calls.
+
 v0.14.0
 =======
 

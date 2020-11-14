@@ -76,9 +76,8 @@ type StreamPosition struct {
 	Epoch string
 }
 
-// Closer is an interface that Broker, HistoryManager and PresenceManager can
-// optionally implement if they need to close any resources on Centrifuge node
-// shutdown.
+// Closer is an interface that Broker and PresenceManager can optionally implement
+// if they need to close any resources on Centrifuge Node graceful shutdown.
 type Closer interface {
 	// Close when called should clean up used resources.
 	Close(ctx context.Context) error

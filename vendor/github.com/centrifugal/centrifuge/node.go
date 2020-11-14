@@ -318,9 +318,13 @@ func (n *Node) cleanNodeInfo() {
 	}
 }
 
-// Channels returns list of all channels currently active across on all nodes.
-// This is a snapshot of state mostly useful for understanding what's going on
-// with system.
+// Channels returns a slice of all channels currently active across all
+// Centrifuge nodes.
+// This is an instant snapshot of state, mostly useful for debugging in
+// development.
+// It does not scale well for massive deployments with large number of active
+// channels since response can be large.
+// Deprecated. See https://github.com/centrifugal/centrifuge/issues/147.
 func (n *Node) Channels() ([]string, error) {
 	return n.broker.Channels()
 }
@@ -837,6 +841,7 @@ type HistoryResult struct {
 // History allows to extract Publications in channel.
 // The channel must belong to namespace where history is on.
 func (n *Node) History(ch string, opts ...HistoryOption) (HistoryResult, error) {
+	incActionCount("history")
 	historyOpts := &HistoryOptions{}
 	for _, opt := range opts {
 		opt(historyOpts)
