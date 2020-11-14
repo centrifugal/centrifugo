@@ -585,6 +585,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#maintain-single-user-connection" class="md-nav__link">
+    Maintain single user connection
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#mark-namespace-as-server-side" class="md-nav__link">
     Mark namespace as server-side
   </a>
@@ -1112,6 +1119,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#maintain-single-user-connection" class="md-nav__link">
+    Maintain single user connection
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#mark-namespace-as-server-side" class="md-nav__link">
     Mark namespace as server-side
   </a>
@@ -1168,8 +1182,32 @@
 <p>To enable this you need to enable <code>user_subscribe_to_personal</code> boolean option (by default <code>false</code>). As soon as you do this every connection with non-empty user ID will be automatically subscribed to personal user-limited channel. Anonymous users with empty user ID won't be subscribed to any channel.</p>
 <p>For example, if you set this option and user with ID <code>87334</code> connects to Centrifugo it will be automatically subscribed to channel <code>#87334</code> and you can process personal publications on client side in the same way as shown above.</p>
 <p>As you can see by default generated personal channel name belongs to default namespace (i.e. no explicit namespace used). To set custom namespace name use <code>user_personal_channel_namespace</code> option (string, default <code>""</code>) – i.e. the name of namespace from configured configuration namespaces array. In this case if you set <code>user_personal_channel_namespace</code> to <code>personal</code> for example – then the automatically generated personal channel will be <code>personal:#87334</code> – user will be automatically subscribed to it on connect and you can use this channel name to publish personal notifications to online user.</p>
+<h3 id="maintain-single-user-connection">Maintain single user connection<a class="headerlink" href="#maintain-single-user-connection" title="Permanent link">&para;</a></h3>
+<p>Available since v2.8.0</p>
+<p>Usage of personal channel subscription also opens a road to enable one more feature: maintaining only a single connection for each user globally around all Centrifugo nodes.</p>
+<p><code>user_personal_single_connection</code> boolean option (default <code>false</code>) turns on a mode in which Centrifugo will try to maintain only a single connection for each user in the same moment. As soon as the user establishes a connection other connections from the same user will be closed with connection limit reason (client won't try to automatically reconnect).</p>
+<p>This feature works with a help of presence information inside a personal channel. So <strong>presence should be turned on in a personal channel</strong>.</p>
+<p>Example config:</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;v3_use_offset&quot;: true,
+  &quot;user_subscribe_to_personal&quot;: true,
+  &quot;user_personal_single_connection&quot;: true,
+  &quot;user_personal_channel_namespace&quot;: &quot;personal&quot;,
+  &quot;namespaces&quot;: [
+    {
+      &quot;name&quot;: &quot;personal&quot;,
+      &quot;presence&quot;: true
+    }
+  ]
+}
+</code></pre></div>
+
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Centrifugo can't guarantee that other user connections will be closed – since Disconnect messages distributed around Centrifugo nodes with at most once guarantee. So don't add critical business logic based on this feature to your application. Though this should work just fine most of the time if the connection between Centrifugo node and PUB/SUB broker is OK.</p>
+</div>
 <h3 id="mark-namespace-as-server-side">Mark namespace as server-side<a class="headerlink" href="#mark-namespace-as-server-side" title="Permanent link">&para;</a></h3>
-<p>v2.4.0 also introduced new channel namespace boolean option called <code>server_side</code> (default <code>false</code>). When on then all client-side subscription requests to channels in namespace will be rejected with <code>PermissionDenied</code> error.</p>
+<p>v2.4.0 also introduced a new channel namespace boolean option called <code>server_side</code> (default <code>false</code>). When on then all client-side subscription requests to channels in namespace will be rejected with <code>PermissionDenied</code> error.</p>
                 
               
               

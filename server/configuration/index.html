@@ -542,6 +542,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#client_concurrency" class="md-nav__link">
+    client_concurrency
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sockjs_heartbeat_delay" class="md-nav__link">
     sockjs_heartbeat_delay
   </a>
@@ -1354,6 +1361,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#client_concurrency" class="md-nav__link">
+    client_concurrency
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#sockjs_heartbeat_delay" class="md-nav__link">
     sockjs_heartbeat_delay
   </a>
@@ -1546,7 +1560,12 @@ log_level: debug
 <p>Maximum client message queue size in bytes to close slow reader connections. By default - 10mb.</p>
 <h3 id="client_anonymous">client_anonymous<a class="headerlink" href="#client_anonymous" title="Permanent link">&para;</a></h3>
 <p>Default: false</p>
-<p>Enable mode when all clients can connect to Centrifugo without JWT connection token. In this case all connections without token will be treated as anonymous (i.e. with empty user ID) and only can subscribe to channels with <code>anonymous</code> option enabled.</p>
+<p>Enable a mode when all clients can connect to Centrifugo without JWT connection token. In this case all connections without token will be treated as anonymous (i.e. with empty user ID) and only can subscribe to channels with <code>anonymous</code> option enabled.</p>
+<h3 id="client_concurrency">client_concurrency<a class="headerlink" href="#client_concurrency" title="Permanent link">&para;</a></h3>
+<p>Available since Centrifugo v2.8.0</p>
+<p>Default: 0</p>
+<p><code>client_concurrency</code> when set tells Centrifugo that commands from client must be processed concurrently.</p>
+<p>By default, concurrency disabled – Centrifugo processes commands received from a client one by one. This means that if a client issues two RPC requests to a server then Centrifugo will process the first one, then the second one. If the first RPC call is slow then the client will wait for the second RPC response much longer than it could (even if second RPC is very fast). If you set <code>client_concurrency</code> to some value greater than 1 then commands will be processed concurrently (in parallel) in separate goroutines (with maximum concurrency level capped by <code>client_concurrency</code> value). Thus, this option can effectively reduce the latency of individual requests. Since separate goroutines involved in processing this mode adds some performance and memory overhead – though it should be pretty negligible in most cases. This option applies to all commands from a client (including subscribe, publish, presence, etc).</p>
 <h3 id="sockjs_heartbeat_delay">sockjs_heartbeat_delay<a class="headerlink" href="#sockjs_heartbeat_delay" title="Permanent link">&para;</a></h3>
 <p>Default: 25</p>
 <p>Interval in seconds how often to send SockJS h-frames to client.</p>
