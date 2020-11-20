@@ -12,7 +12,7 @@ You can also find the following posts interesting:
 
 ### How to install
 
-See [installation instructions](https://centrifugal.github.io/centrifugo/install/) in Centrifugo documentation.
+See [installation instructions](https://centrifugal.github.io/centrifugo/server/install/) in Centrifugo documentation.
 
 ### Demo
 
