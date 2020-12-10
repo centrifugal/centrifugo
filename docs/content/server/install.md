@@ -65,6 +65,44 @@ docker run --ulimit nofile=65536:65536 -v /host/dir/with/config/file:/centrifugo
 
 Note that docker allows setting `nofile` limits in command-line arguments which is pretty important to handle lots of simultaneous persistent connections and not run out of open file limit (each connection requires one file descriptor). See also [OS tuning chapter](../deploy/tuning.md).
 
+## Docker-compose example
+
+Create configuration file `config.json`:
+
+```json
+{
+  "v3_use_offset": true,
+  "token_hmac_secret_key": "my_secret",
+  "api_key": "my_api_key",
+  "admin_password": "password",
+  "admin_secret": "secret",
+  "admin": true
+}
+```
+
+Create `docker-compose.yml`:
+
+```yml
+centrifugo:
+  container_name: centrifugo
+  image: centrifugo/centrifugo:latest
+  volumes:
+    - ./config.json:/centrifugo/config.json
+  command: centrifugo -c config.json
+  ports:
+    - 8000:8000
+  ulimits:
+    nofile:
+      soft: 65535
+      hard: 65535
+```
+
+Run with:
+
+```
+docker-compose up
+```
+
 ## Kubernetes Helm chart
 
 Official Kubernetes Helm chart available and [located on Github](https://github.com/centrifugal/helm-charts). Follow instructions in repository README to bootstrap Centrifugo inside your Kubernetes cluster.
