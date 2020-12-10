@@ -59,7 +59,7 @@ theme:
     prev: 'Previous'
     next: 'Next'
   features:
-    - tabs
+    - navigation.tabs
 
 extra_css:
   - theme/styles/extra.css
