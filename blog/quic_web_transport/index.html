@@ -1,6 +1,4 @@
 
-
-
 <!doctype html>
 <html lang="en" class="no-js">
   <head>
@@ -11,33 +9,36 @@
         <meta name="description" content="In this post we experiment with WebTransport standard for low latency client-server communication using QUIC and Go language">
       
       
+      
         <link rel="canonical" href="https://centrifugal.github.io/centrifugo/blog/quic_web_transport/">
       
       
         <meta name="author" content="Centrifugal organization">
       
       <link rel="shortcut icon" href="../../images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.5.0">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.1.7">
     
     
       
-        <title>Experimenting with QUIC and WebTransport in Go</title>
+        <title>Experimenting with QUIC and WebTransport in Go - Centrifugo</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.b5d04df8.min.css">
-      
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.9ab2c1f8.min.css">
-      
+      <link rel="stylesheet" href="../../assets/stylesheets/main.19753c6b.min.css">
       
         
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.196e0c26.min.css">
         
-        <meta name="theme-color" content="">
+          
+          
+          <meta name="theme-color" content="#000000">
+        
       
     
     
     
       
+        
         <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
         <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
@@ -99,9 +100,11 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="black" data-md-color-accent="cyan">
-  
     
+    
+    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="black" data-md-color-accent="cyan">
+      
+  
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
@@ -117,7 +120,9 @@
       
     </div>
     
-      <header class="md-header" data-md-component="header">
+      
+
+<header class="md-header" data-md-component="header">
   <nav class="md-header-nav md-grid" aria-label="Header">
     <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-header-nav__button md-logo" aria-label="Centrifugo">
       
@@ -150,7 +155,7 @@
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
       <label class="md-search__icon md-icon" for="__search">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
@@ -191,8 +196,6 @@
     
     <div class="md-container" data-md-component="container">
       
-        
-      
       
 
         
@@ -207,10 +210,10 @@
         
   <li class="md-tabs__item">
     
-      <a href="../.." class="md-tabs__link">
-        Home
-      </a>
     
+    <a href="../.." class="md-tabs__link">
+      Home
+    </a>
   </li>
 
       
@@ -219,10 +222,10 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../getting_started/" class="md-tabs__link">
-          Getting Started
-        </a>
       
+      <a href="../../getting_started/" class="md-tabs__link">
+        Getting Started
+      </a>
     </li>
   
 
@@ -232,10 +235,10 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../server/install/" class="md-tabs__link">
-          Server
-        </a>
       
+      <a href="../../server/install/" class="md-tabs__link">
+        Server
+      </a>
     </li>
   
 
@@ -245,10 +248,10 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../libraries/client/" class="md-tabs__link">
-          Libraries
-        </a>
       
+      <a href="../../libraries/client/" class="md-tabs__link">
+        Libraries
+      </a>
     </li>
   
 
@@ -258,10 +261,10 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../faq/" class="md-tabs__link">
-          FAQ
-        </a>
       
+      <a href="../../faq/" class="md-tabs__link">
+        FAQ
+      </a>
     </li>
   
 
@@ -271,10 +274,12 @@
   
     <li class="md-tabs__item">
       
-        <a href="../" class="md-tabs__link md-tabs__link--active">
-          Blog
-        </a>
       
+        
+      
+      <a href="../" class="md-tabs__link md-tabs__link--active">
+        Blog
+      </a>
     </li>
   
 
@@ -284,10 +289,10 @@
   
     <li class="md-tabs__item">
       
-        <a href="../../pro/" class="md-tabs__link">
-          Centrifugo PRO
-        </a>
       
+      <a href="../../pro/" class="md-tabs__link">
+        Centrifugo PRO
+      </a>
     </li>
   
 
@@ -305,7 +310,9 @@
               <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
-                    <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+                    
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-nav__button md-logo" aria-label="Centrifugo">
       
@@ -336,7 +343,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../.." title="Home" class="md-nav__link">
+    <a href="../.." class="md-nav__link">
       Home
     </a>
   </li>
@@ -349,19 +356,14 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2">
-    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2" >
     <label class="md-nav__link" for="nav-2">
       Getting Started
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
     </label>
     <nav class="md-nav" aria-label="Getting Started" data-md-level="1">
       <label class="md-nav__title" for="nav-2">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
+        <span class="md-nav__icon md-icon"></span>
         Getting Started
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -373,7 +375,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../getting_started/" title="What is Centrifugo" class="md-nav__link">
+    <a href="../../getting_started/" class="md-nav__link">
       What is Centrifugo
     </a>
   </li>
@@ -385,7 +387,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../quick_start/" title="Quick start" class="md-nav__link">
+    <a href="../../quick_start/" class="md-nav__link">
       Quick start
     </a>
   </li>
@@ -397,7 +399,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../guide/" title="Integration Guide" class="md-nav__link">
+    <a href="../../guide/" class="md-nav__link">
       Integration Guide
     </a>
   </li>
@@ -415,19 +417,14 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3">
-    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" >
     <label class="md-nav__link" for="nav-3">
       Server
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
     </label>
     <nav class="md-nav" aria-label="Server" data-md-level="1">
       <label class="md-nav__title" for="nav-3">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
+        <span class="md-nav__icon md-icon"></span>
         Server
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -439,7 +436,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/install/" title="Installation" class="md-nav__link">
+    <a href="../../server/install/" class="md-nav__link">
       Installation
     </a>
   </li>
@@ -451,7 +448,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/configuration/" title="Configuration" class="md-nav__link">
+    <a href="../../server/configuration/" class="md-nav__link">
       Configuration
     </a>
   </li>
@@ -463,7 +460,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/commands/" title="Console commands" class="md-nav__link">
+    <a href="../../server/commands/" class="md-nav__link">
       Console commands
     </a>
   </li>
@@ -475,7 +472,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/channels/" title="Channels" class="md-nav__link">
+    <a href="../../server/channels/" class="md-nav__link">
       Channels
     </a>
   </li>
@@ -487,7 +484,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/authentication/" title="Authentication" class="md-nav__link">
+    <a href="../../server/authentication/" class="md-nav__link">
       Authentication
     </a>
   </li>
@@ -499,7 +496,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/private_channels/" title="Private channels" class="md-nav__link">
+    <a href="../../server/private_channels/" class="md-nav__link">
       Private channels
     </a>
   </li>
@@ -511,7 +508,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/engines/" title="Engines" class="md-nav__link">
+    <a href="../../server/engines/" class="md-nav__link">
       Engines
     </a>
   </li>
@@ -523,7 +520,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/http_api/" title="Server HTTP API" class="md-nav__link">
+    <a href="../../server/http_api/" class="md-nav__link">
       Server HTTP API
     </a>
   </li>
@@ -535,7 +532,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/grpc_api/" title="Server GRPC API" class="md-nav__link">
+    <a href="../../server/grpc_api/" class="md-nav__link">
       Server GRPC API
     </a>
   </li>
@@ -547,7 +544,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/admin/" title="Admin web interface" class="md-nav__link">
+    <a href="../../server/admin/" class="md-nav__link">
       Admin web interface
     </a>
   </li>
@@ -559,7 +556,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/proxy/" title="Proxy to backend" class="md-nav__link">
+    <a href="../../server/proxy/" class="md-nav__link">
       Proxy to backend
     </a>
   </li>
@@ -571,7 +568,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/server_subs/" title="Server-side subscriptions" class="md-nav__link">
+    <a href="../../server/server_subs/" class="md-nav__link">
       Server-side subscriptions
     </a>
   </li>
@@ -583,7 +580,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/connection_expiration/" title="Connection expiration" class="md-nav__link">
+    <a href="../../server/connection_expiration/" class="md-nav__link">
       Connection expiration
     </a>
   </li>
@@ -596,19 +593,14 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14">
-    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-14" type="checkbox" id="nav-3-14" >
     <label class="md-nav__link" for="nav-3-14">
       Client-server transports
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
     </label>
     <nav class="md-nav" aria-label="Client-server transports" data-md-level="2">
       <label class="md-nav__title" for="nav-3-14">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
+        <span class="md-nav__icon md-icon"></span>
         Client-server transports
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -620,7 +612,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/" title="Overview" class="md-nav__link">
+    <a href="../../transports/" class="md-nav__link">
       Overview
     </a>
   </li>
@@ -632,7 +624,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/websocket/" title="Websocket" class="md-nav__link">
+    <a href="../../transports/websocket/" class="md-nav__link">
       Websocket
     </a>
   </li>
@@ -644,7 +636,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/sockjs/" title="SockJS" class="md-nav__link">
+    <a href="../../transports/sockjs/" class="md-nav__link">
       SockJS
     </a>
   </li>
@@ -656,7 +648,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/protobuf/" title="Protobuf protocol" class="md-nav__link">
+    <a href="../../transports/protobuf/" class="md-nav__link">
       Protobuf protocol
     </a>
   </li>
@@ -668,7 +660,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/protocol/" title="Client protocol" class="md-nav__link">
+    <a href="../../transports/protocol/" class="md-nav__link">
       Client protocol
     </a>
   </li>
@@ -680,7 +672,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../transports/recovery/" title="Message recovery" class="md-nav__link">
+    <a href="../../transports/recovery/" class="md-nav__link">
       Message recovery
     </a>
   </li>
@@ -698,19 +690,14 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15">
-    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15" >
     <label class="md-nav__link" for="nav-3-15">
       Deploy
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
     </label>
     <nav class="md-nav" aria-label="Deploy" data-md-level="2">
       <label class="md-nav__title" for="nav-3-15">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
+        <span class="md-nav__icon md-icon"></span>
         Deploy
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -722,7 +709,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../deploy/nginx/" title="Nginx configuration" class="md-nav__link">
+    <a href="../../deploy/nginx/" class="md-nav__link">
       Nginx configuration
     </a>
   </li>
@@ -734,7 +721,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../deploy/monitoring/" title="Monitoring" class="md-nav__link">
+    <a href="../../deploy/monitoring/" class="md-nav__link">
       Monitoring
     </a>
   </li>
@@ -746,7 +733,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../deploy/tuning/" title="OS tuning" class="md-nav__link">
+    <a href="../../deploy/tuning/" class="md-nav__link">
       OS tuning
     </a>
   </li>
@@ -758,7 +745,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../deploy/tls/" title="TLS" class="md-nav__link">
+    <a href="../../deploy/tls/" class="md-nav__link">
       TLS
     </a>
   </li>
@@ -776,19 +763,14 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16">
-    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16" >
     <label class="md-nav__link" for="nav-3-16">
       Misc
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
     </label>
     <nav class="md-nav" aria-label="Misc" data-md-level="2">
       <label class="md-nav__title" for="nav-3-16">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
+        <span class="md-nav__icon md-icon"></span>
         Misc
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -800,7 +782,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../misc/insecure_modes/" title="Insecure modes" class="md-nav__link">
+    <a href="../../misc/insecure_modes/" class="md-nav__link">
       Insecure modes
     </a>
   </li>
@@ -812,7 +794,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../misc/migrate/" title="Migrate from Centrifugo v1" class="md-nav__link">
+    <a href="../../misc/migrate/" class="md-nav__link">
       Migrate from Centrifugo v1
     </a>
   </li>
@@ -829,7 +811,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../misc/benchmark/" title="Benchmark" class="md-nav__link">
+    <a href="../../misc/benchmark/" class="md-nav__link">
       Benchmark
     </a>
   </li>
@@ -847,19 +829,14 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4">
-    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" >
     <label class="md-nav__link" for="nav-4">
       Libraries
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
     </label>
     <nav class="md-nav" aria-label="Libraries" data-md-level="1">
       <label class="md-nav__title" for="nav-4">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
+        <span class="md-nav__icon md-icon"></span>
         Libraries
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -871,7 +848,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../libraries/client/" title="Client libraries" class="md-nav__link">
+    <a href="../../libraries/client/" class="md-nav__link">
       Client libraries
     </a>
   </li>
@@ -883,7 +860,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../libraries/api/" title="API libraries" class="md-nav__link">
+    <a href="../../libraries/api/" class="md-nav__link">
       API libraries
     </a>
   </li>
@@ -901,19 +878,14 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5">
-    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5" >
     <label class="md-nav__link" for="nav-5">
       FAQ
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
     </label>
     <nav class="md-nav" aria-label="FAQ" data-md-level="1">
       <label class="md-nav__title" for="nav-5">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
+        <span class="md-nav__icon md-icon"></span>
         FAQ
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -925,7 +897,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../faq/" title="Frequently Asked Questions" class="md-nav__link">
+    <a href="../../faq/" class="md-nav__link">
       Frequently Asked Questions
     </a>
   </li>
@@ -945,19 +917,14 @@
 
   <li class="md-nav__item md-nav__item--active md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6" checked>
-    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6" checked>
     <label class="md-nav__link" for="nav-6">
       Blog
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
     </label>
     <nav class="md-nav" aria-label="Blog" data-md-level="1">
       <label class="md-nav__title" for="nav-6">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
+        <span class="md-nav__icon md-icon"></span>
         Blog
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -969,7 +936,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../" title="About this blog" class="md-nav__link">
+    <a href="../" class="md-nav__link">
       About this blog
     </a>
   </li>
@@ -991,12 +958,10 @@
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
         Experimenting with QUIC and WebTransport in Go
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
-        </span>
+        <span class="md-nav__icon md-icon"></span>
       </label>
     
-    <a href="./" title="Experimenting with QUIC and WebTransport in Go" class="md-nav__link md-nav__link--active">
+    <a href="./" class="md-nav__link md-nav__link--active">
       Experimenting with QUIC and WebTransport in Go
     </a>
     
@@ -1008,9 +973,7 @@
   
   
     <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-scrollfix>
@@ -1118,7 +1081,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../scaling_websocket/" title="Scaling WebSocket in Go and beyond" class="md-nav__link">
+    <a href="../scaling_websocket/" class="md-nav__link">
       Scaling WebSocket in Go and beyond
     </a>
   </li>
@@ -1136,19 +1099,14 @@
 
   <li class="md-nav__item md-nav__item--nested">
     
-      <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7">
-    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7" >
     <label class="md-nav__link" for="nav-7">
       Centrifugo PRO
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.42z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
     </label>
     <nav class="md-nav" aria-label="Centrifugo PRO" data-md-level="1">
       <label class="md-nav__title" for="nav-7">
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-        </span>
+        <span class="md-nav__icon md-icon"></span>
         Centrifugo PRO
       </label>
       <ul class="md-nav__list" data-md-scrollfix>
@@ -1160,7 +1118,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../pro/" title="About" class="md-nav__link">
+    <a href="../../pro/" class="md-nav__link">
       About
     </a>
   </li>
@@ -1189,9 +1147,7 @@
   
   
     <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-scrollfix>
@@ -1304,9 +1260,6 @@
                   </a>
                 
                 
-                  
-                
-                
                 <h1 id="experimenting-with-quic-and-webtransport-in-go">Experimenting with QUIC and WebTransport in Go<a class="headerlink" href="#experimenting-with-quic-and-webtransport-in-go" title="Permanent link">&para;</a></h1>
 <p><img alt="post-cover" src="https://i.imgur.com/sH9zfhe.jpg" /></p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
@@ -1326,7 +1279,6 @@
 <p>At moment Chrome only implements <a href="https://web.dev/quictransport/#register-for-ot">trial possibility</a> to try out WebTransport standard and only implements WebTransport over QUIC. Developers can initialize transport with code like this:</p>
 <div class="highlight"><pre><span></span><code><span class="kr">const</span> <span class="nx">transport</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">QuicTransport</span><span class="p">(</span><span class="s1">&#39;quic-transport://localhost:4433/path&#39;</span><span class="p">);</span>
 </code></pre></div>
-
 <p>In case of HTTP/3 transport one will use URL like <code>'https://localhost:4433/path'</code> in transport constructor. All WebTransport underlying transports should support instantiation over URL – that's one of the spec requirements. </p>
 <p>I decided that this is a cool possibility to finally play with QUIC protocol and its Go implementation <a href="https://github.com/lucas-clemente/quic-go">github.com/lucas-clemente/quic-go</a>.</p>
 <div class="admonition danger">
@@ -1349,19 +1301,16 @@
 <div class="highlight"><pre><span></span><code>$ which openssl
 /usr/bin/openssl
 </code></pre></div>
-
 <p>Then run:</p>
 <div class="highlight"><pre><span></span><code>openssl genrsa -des3 -passout pass:x -out server.pass.key <span class="m">2048</span>
 openssl rsa -passin pass:x -in server.pass.key -out server.key
 rm server.pass.key
 openssl req -new -key server.key -out server.csr
 </code></pre></div>
-
 <p>Set <code>localhost</code> for Common Name when asked.</p>
 <p>The self-signed TLS certificate generated from the <code>server.key</code> private key and <code>server.csr</code> files:</p>
 <div class="highlight"><pre><span></span><code>openssl x509 -req -sha256 -days <span class="m">365</span> -in server.csr -signkey server.key -out server.crt
 </code></pre></div>
-
 <p>After these manipulations you should have <code>server.crt</code> and <code>server.key</code> files in your working directory.</p>
 <p>To help you with process here is my console output during these steps (click to open):</p>
 <details class="example"><summary>My console output generating self-signed certificates</summary><div class="highlight"><pre><span></span><code>$ openssl genrsa -des3 -passout pass:x -out server.pass.key <span class="m">2048</span>
@@ -1409,21 +1358,18 @@ Getting Private key
 $ ls
 server.crt server.csr server.key
 </code></pre></div>
-
 </details>
 <h2 id="run-client-example">Run client example<a class="headerlink" href="#run-client-example" title="Permanent link">&para;</a></h2>
 <p>Now the last step. What we need to do is run Chrome Canary with some flags that will allow it to trust our self-signed certificates. I suppose there is an alternative way making Chrome trust your certificates, but I have not tried it.</p>
 <p>First let's find out a fingerprint of our cert:</p>
 <div class="highlight"><pre><span></span><code>openssl x509 -in server.crt -pubkey -noout <span class="p">|</span> openssl pkey -pubin -outform der <span class="p">|</span> openssl dgst -sha256 -binary <span class="p">|</span> openssl enc -base64
 </code></pre></div>
-
 <p>In my case base64 fingerprint was <code>pe2P0fQwecKFMc6kz3+Y5MuVwVwEtGXyST5vJeaOO/M=</code>, yours will be different.</p>
 <p>Then run Chrome Canary with some additional flags that will make it trust out certs (close other Chrome Canary instances before running it):</p>
 <div class="highlight"><pre><span></span><code>$ /Applications/Google<span class="se">\ </span>Chrome<span class="se">\ </span>Canary.app/Contents/MacOS/Google<span class="se">\ </span>Chrome<span class="se">\ </span>Canary <span class="se">\</span>
     --origin-to-force-quic-on<span class="o">=</span>localhost:4433 <span class="se">\</span>
     --ignore-certificate-errors-spki-list<span class="o">=</span>pe2P0fQwecKFMc6kz3+Y5MuVwVwEtGXyST5vJeaOO/M<span class="o">=</span>
 </code></pre></div>
-
 <p>This example is for MacOS, for your system see <a href="https://www.chromium.org/developers/how-tos/run-chromium-with-flags">docs on how to run Chrome/Chromium with custom flags</a>.</p>
 <p>Now you can open <a href="https://googlechrome.github.io/samples/quictransport/client.html">https://googlechrome.github.io/samples/quictransport/client.html</a> URL in started browser and click <code>Connect</code> button. What? Connection not established? OK, this is fine since we need to run our server :)</p>
 <h2 id="writing-a-quic-server">Writing a QUIC server<a class="headerlink" href="#writing-a-quic-server" title="Permanent link">&para;</a></h2>
@@ -1481,7 +1427,6 @@ server.crt server.csr server.key
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <h3 id="accept-quic-connections">Accept QUIC connections<a class="headerlink" href="#accept-quic-connections" title="Permanent link">&para;</a></h3>
 <p>Let's concentrate on implementing <code>Run</code> method. We need to accept QUIC client connections. This can be done by creating <code>quic.Listener</code> instance and using its <code>.Accept</code> method to accept incoming client sessions.</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// Run server.</span>
@@ -1510,7 +1455,6 @@ server.crt server.csr server.key
     <span class="c1">// Not implemented yet.    </span>
 <span class="p">}</span>
 </code></pre></div>
-
 <p>An interesting thing to note is that QUIC allows closing connection with specific application-level integer code and custom string reason. Just like WebSocket if you worked with it.</p>
 <p>Also note, that we are starting our <code>Listener</code> with TLS configuration returned by <code>s.generateTLSConfig()</code> method. Let's take a closer look at how this method can be implemented.</p>
 <div class="highlight"><pre><span></span><code><span class="c1">// https://tools.ietf.org/html/draft-vvv-webtransport-quic-02#section-3.1</span>
@@ -1527,7 +1471,6 @@ server.crt server.csr server.key
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <p>Inside <code>generateTLSConfig</code> we load x509 certs from cert files generated above. WebTransport uses ALPN (<a href="https://en.wikipedia.org/wiki/Application-Layer_Protocol_Negotiation">Application-Layer Protocol Negotiation</a> to prevent handshakes with a server that does not support WebTransport spec. This is just a string <code>wq-vvv-01</code> inside <code>NextProtos</code> slice of our <code>*tls.Config</code>.</p>
 <h3 id="connection-session-handling">Connection Session handling<a class="headerlink" href="#connection-session-handling" title="Permanent link">&para;</a></h3>
 <p>At this moment if you run a server and open a client example in Chrome then click <code>Connect</code> button – you should see that connection successfully established in event log area:</p>
@@ -1569,7 +1512,6 @@ server.crt server.csr server.key
     <span class="nx">Path</span> <span class="kt">string</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <p>Now what we should do is accept unidirectional stream inside session handler:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">func</span> <span class="p">(</span><span class="nx">s</span> <span class="o">*</span><span class="nx">WebTransportServerQuic</span><span class="p">)</span> <span class="nx">handleSession</span><span class="p">(</span><span class="nx">sess</span> <span class="nx">quic</span><span class="p">.</span><span class="nx">Session</span><span class="p">)</span> <span class="p">{</span>
     <span class="nx">stream</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">sess</span><span class="p">.</span><span class="nx">AcceptUniStream</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">())</span>
@@ -1609,7 +1551,6 @@ server.crt server.csr server.key
     <span class="k">return</span> <span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;not implemented yet&quot;</span><span class="p">)</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <p>As you can see to accept a unidirectional stream with data we can use <code>.AcceptUniStream</code> method of <code>quic.Session</code>. After accepting a stream we should read client indication data from it. </p>
 <p>According to spec it will contain a client indication in the following format:</p>
 <div class="highlight"><pre><span></span><code>0                   1                   2                   3
@@ -1620,7 +1561,6 @@ server.crt server.csr server.key
 |                           Value (*)                         ...
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 </code></pre></div>
-
 <p>The code below parses client indication out of a stream data, we decode key-value pairs from uni stream until an end of stream (indicated by EOF):</p>
 <div class="highlight"><pre><span></span><code><span class="kd">func</span> <span class="nx">receiveClientIndication</span><span class="p">(</span><span class="nx">stream</span> <span class="nx">quic</span><span class="p">.</span><span class="nx">ReceiveStream</span><span class="p">)</span> <span class="p">(</span><span class="nx">ClientIndication</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
     <span class="kd">var</span> <span class="nx">clientIndication</span> <span class="nx">ClientIndication</span>
@@ -1675,7 +1615,6 @@ server.crt server.csr server.key
     <span class="k">return</span> <span class="nx">clientIndication</span><span class="p">,</span> <span class="kc">nil</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <p>We also validate Origin inside <code>validateClientIndication</code> method of our server:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">var</span> <span class="nx">errBadOrigin</span> <span class="p">=</span> <span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;bad origin&quot;</span><span class="p">)</span>
 
@@ -1699,7 +1638,6 @@ server.crt server.csr server.key
     <span class="k">return</span> <span class="kc">false</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <p>Do you have <code>stringInSlice</code> function in every Go project? I do :)</p>
 <h3 id="communicating-over-bidirectional-streams">Communicating over bidirectional streams<a class="headerlink" href="#communicating-over-bidirectional-streams" title="Permanent link">&para;</a></h3>
 <p>The final part here is accepting a bidirectional stream from a client, reading it, and sending responses back. Here we will just echo everything a client sends to a server back to a client. You can implement whatever bidirectional communication you want actually.</p>
@@ -1717,7 +1655,6 @@ server.crt server.csr server.key
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <p>When you press <code>Send</code> button in client example it creates a bidirectional stream, sends data to it, then closes stream. Thus our code is sufficient. For a more complex communication that involves many concurrent streams you will have to write a more complex code that allows working with streams concurrently on server side.</p>
 <p><img alt="client example" src="https://i.imgur.com/5299Vr4.png" /></p>
 <h3 id="full-server-example">Full server example<a class="headerlink" href="#full-server-example" title="Permanent link">&para;</a></h3>
@@ -1821,15 +1758,15 @@ server.crt server.csr server.key
 
     </div>
     
-      <script src="../../assets/javascripts/vendor.92ffa368.min.js"></script>
-      <script src="../../assets/javascripts/bundle.5123e3d4.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      <script src="../../assets/javascripts/vendor.0ac82a11.min.js"></script>
+      <script src="../../assets/javascripts/bundle.f81dfb4d.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
       
       <script>
         app = initialize({
           base: "../..",
-          features: ["tabs"],
+          features: ['navigation.tabs'],
           search: Object.assign({
-            worker: "../../assets/javascripts/worker/search.a68abb33.min.js"
+            worker: "../../assets/javascripts/worker/search.4ac00218.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>
