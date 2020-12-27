@@ -1,16 +1,10 @@
 # Server HTTP API
 
-HTTP API is a way to send commands to Centrifugo.
+HTTP API is a way to send commands to Centrifugo. For example, server API allows publishing messages to channels. 
 
-Why we need API?
+Server HTTP API works on `/api` endpoint. It has very simple request format: this is a HTTP POST request with `application/json` Content-Type and with JSON command body.
 
-If you look at configuration options you see an option called `publish` defined on configuration top-level and for a channel namespace. When turned on this option allows browser clients to publish into channels directly. If client publishes a message into channel directly – your application will not receive that message (it just goes through Centrifugo towards subscribed clients). This pattern can be useful sometimes but in most cases you first need to send new event from client to backend over non-Centrifugo transport (for example via AJAX request in web application), then process it on application backend side – probably validate, save into main app database – and then `publish` into Centrifugo using HTTP API so Centrifugo broadcast message to all clients subscribed on a channel.
-
-Server API works on `/api` endpoint. It's very simple to use: you just have to send POST request with JSON command to this endpoint.
-
-In this chapter we will look at API protocol internals - for new API client library authors and just if you are curious how existing API clients work.
-
-API request is a POST HTTP request with `application/json` Content-Type and JSON payload in request body.
+In most cases though you can just use one of our [available HTTP API libraries](../libraries/api.md). In this chapter we will make an API method overview.
 
 API protected by `api_key` set in Centrifugo configuration. I.e. `api_key` must be added to config, like:
 
@@ -315,7 +309,9 @@ Date: Thu, 17 May 2018 22:08:31 GMT
 }
 ```
 
-Keep in mind that as `channels` API command returns all active channel snapshot it can be really heavy for massive deployments. At moment there is no way to paginate over channels list and we don't know a case where this could be useful and not error prone. At moment we mostly suppose that channels command will be used in development process and in not very massive Centrifugo setups (with no more than 10k channels). Also `channels` command is considered optional in engine implementations.
+**Keep in mind that since `channels` API command returns all active channels it can be really heavy for massive deployments.** At moment there is no way to paginate over channels list and we don't know a case where this could be useful and not error prone. At the moment **we mostly suppose that channels command will be used in development process and in not very massive Centrifugo setups** (with no more than 10k channels). Also `channels` command considered optional in engine implementations.
+
+A better and scalable approach could be real-time analytics approach [described here](../pro/index.md). 
 
 ### info
 

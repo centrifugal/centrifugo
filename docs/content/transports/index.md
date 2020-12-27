@@ -8,3 +8,5 @@ At moment Centrifugo supports the following client-server transports:
 Having both of these transport means that it's possible to connect to Centrifugo from everywhere.
 
 Since Centrifugo has its own protocol for client-server communication (for authentication, subscriptions, publishing messages to channels, calling RPC etc) transports above wrapped by our [client libraries](../libraries/client.md).
+
+Keep in mind that if you are planning to use non-JSON binary data between a client and server then you can only use WebSocket transport. See how to achieve binary passing with [protobuf](protobuf.md) format.
