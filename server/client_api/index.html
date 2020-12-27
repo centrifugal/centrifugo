@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/misc/insecure_modes/">
+        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/server/client_api/">
       
       
         <meta name="author" content="Centrifugal organization">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Insecure modes - Centrifugo</title>
+        <title>Client API - Centrifugo</title>
       
     
     
@@ -69,7 +69,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#insecure-modes" class="md-skip">
+        <a href="#client-api" class="md-skip">
           Skip to content
         </a>
       
@@ -98,7 +98,7 @@
           </span>
           <span class="md-header-nav__topic md-ellipsis">
             
-              Insecure modes
+              Client API
             
           </span>
         </div>
@@ -195,7 +195,7 @@
       
         
       
-      <a href="../../server/install/" class="md-tabs__link md-tabs__link--active">
+      <a href="../install/" class="md-tabs__link md-tabs__link--active">
         Server
       </a>
     </li>
@@ -394,7 +394,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/install/" class="md-nav__link">
+    <a href="../install/" class="md-nav__link">
       Installation
     </a>
   </li>
@@ -406,7 +406,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/configuration/" class="md-nav__link">
+    <a href="../configuration/" class="md-nav__link">
       Configuration
     </a>
   </li>
@@ -418,7 +418,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/commands/" class="md-nav__link">
+    <a href="../commands/" class="md-nav__link">
       Console commands
     </a>
   </li>
@@ -428,11 +428,98 @@
           
           
 
+  
 
-  <li class="md-nav__item">
-    <a href="../../server/client_api/" class="md-nav__link">
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Client API
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+    
+    <a href="./" class="md-nav__link md-nav__link--active">
       Client API
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#connect" class="md-nav__link">
+    Connect
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#disconnect" class="md-nav__link">
+    Disconnect
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connection-lifecycle-events" class="md-nav__link">
+    Connection lifecycle events
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#subscribe" class="md-nav__link">
+    Subscribe
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rpc" class="md-nav__link">
+    RPC
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#history" class="md-nav__link">
+    History
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#presence-and-presence-stats" class="md-nav__link">
+    Presence and presence stats
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-side-subscriptions" class="md-nav__link">
+    Server-side subscriptions
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+    
   </li>
 
         
@@ -442,7 +529,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/http_api/" class="md-nav__link">
+    <a href="../http_api/" class="md-nav__link">
       Server HTTP API
     </a>
   </li>
@@ -454,7 +541,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/grpc_api/" class="md-nav__link">
+    <a href="../grpc_api/" class="md-nav__link">
       Server GRPC API
     </a>
   </li>
@@ -466,7 +553,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/channels/" class="md-nav__link">
+    <a href="../channels/" class="md-nav__link">
       Channels
     </a>
   </li>
@@ -478,7 +565,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/authentication/" class="md-nav__link">
+    <a href="../authentication/" class="md-nav__link">
       Authentication
     </a>
   </li>
@@ -490,7 +577,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/private_channels/" class="md-nav__link">
+    <a href="../private_channels/" class="md-nav__link">
       Private channels
     </a>
   </li>
@@ -502,7 +589,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/engines/" class="md-nav__link">
+    <a href="../engines/" class="md-nav__link">
       Engines
     </a>
   </li>
@@ -514,7 +601,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/admin/" class="md-nav__link">
+    <a href="../admin/" class="md-nav__link">
       Admin web interface
     </a>
   </li>
@@ -526,7 +613,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/proxy/" class="md-nav__link">
+    <a href="../proxy/" class="md-nav__link">
       Proxy to backend
     </a>
   </li>
@@ -538,7 +625,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/server_subs/" class="md-nav__link">
+    <a href="../server_subs/" class="md-nav__link">
       Server-side subscriptions
     </a>
   </li>
@@ -550,7 +637,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../../server/connection_expiration/" class="md-nav__link">
+    <a href="../connection_expiration/" class="md-nav__link">
       Connection expiration
     </a>
   </li>
@@ -730,12 +817,10 @@
           
           
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+  <li class="md-nav__item md-nav__item--nested">
     
-    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox" id="nav-3-17" checked>
+    <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox" id="nav-3-17" >
     <label class="md-nav__link" for="nav-3-17">
       Misc
       <span class="md-nav__icon md-icon"></span>
@@ -752,63 +837,11 @@
           
           
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-    
-      
-    
-    
-      <label class="md-nav__link md-nav__link--active" for="__toc">
-        Insecure modes
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-    
-    <a href="./" class="md-nav__link md-nav__link--active">
+  <li class="md-nav__item">
+    <a href="../../misc/insecure_modes/" class="md-nav__link">
       Insecure modes
     </a>
-    
-      
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#insecure-client-connection" class="md-nav__link">
-    Insecure client connection
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#insecure-api-mode" class="md-nav__link">
-    Insecure API mode
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#insecure-admin-mode" class="md-nav__link">
-    Insecure admin mode
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-    
   </li>
 
         
@@ -818,7 +851,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../migrate/" class="md-nav__link">
+    <a href="../../misc/migrate/" class="md-nav__link">
       Migrate from Centrifugo v1
     </a>
   </li>
@@ -835,7 +868,7 @@
 
 
   <li class="md-nav__item">
-    <a href="../benchmark/" class="md-nav__link">
+    <a href="../../misc/benchmark/" class="md-nav__link">
       Benchmark
     </a>
   </li>
@@ -1054,22 +1087,57 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#insecure-client-connection" class="md-nav__link">
-    Insecure client connection
+  <a href="#connect" class="md-nav__link">
+    Connect
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#insecure-api-mode" class="md-nav__link">
-    Insecure API mode
+  <a href="#disconnect" class="md-nav__link">
+    Disconnect
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#insecure-admin-mode" class="md-nav__link">
-    Insecure admin mode
+  <a href="#connection-lifecycle-events" class="md-nav__link">
+    Connection lifecycle events
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#subscribe" class="md-nav__link">
+    Subscribe
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rpc" class="md-nav__link">
+    RPC
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#history" class="md-nav__link">
+    History
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#presence-and-presence-stats" class="md-nav__link">
+    Presence and presence stats
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-side-subscriptions" class="md-nav__link">
+    Server-side subscriptions
   </a>
   
 </li>
@@ -1086,20 +1154,76 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/misc/insecure_modes.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/server/client_api.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
                 
-                <h1 id="insecure-modes">Insecure modes<a class="headerlink" href="#insecure-modes" title="Permanent link">&para;</a></h1>
-<p>This chapter describes several insecure options that enable several insecure modes in Centrifugo.</p>
-<h3 id="insecure-client-connection">Insecure client connection<a class="headerlink" href="#insecure-client-connection" title="Permanent link">&para;</a></h3>
-<p>The boolean option <code>client_insecure</code> (default <code>false</code>) allows to connect to Centrifugo without JWT token. This means there is no user authentication involved. This mode can be useful to demo projects based on Centrifugo, personal projects or real-time application prototyping.</p>
-<h3 id="insecure-api-mode">Insecure API mode<a class="headerlink" href="#insecure-api-mode" title="Permanent link">&para;</a></h3>
-<p>This mode can be enabled using boolean option <code>api_insecure</code> (default <code>false</code>). When on there is no need to provide API key in HTTP requests. When using this mode everyone that has access to <code>/api</code> endpoint can send any command to server. Enabling this option can be reasonable if <code>/api</code> endpoint protected by firewall rules.</p>
-<p>The option is also useful in development to simplify sending API commands to Centrifugo using CURL for example without specifying <code>Authorization</code> header in requests.</p>
-<h3 id="insecure-admin-mode">Insecure admin mode<a class="headerlink" href="#insecure-admin-mode" title="Permanent link">&para;</a></h3>
-<p>This mode can be enabled using boolean option <code>admin_insecure</code> (default <code>false</code>). When on there is no authentication in admin web interface. Again - this is not secure but can be justified if you protected admin interface by firewall rules or you want to use basic authentication for Centrifugo admin interface.</p>
+                <h1 id="client-api">Client API<a class="headerlink" href="#client-api" title="Permanent link">&para;</a></h1>
+<p>This chapter describes client Centrifugo API – i.e. <strong>primitives to communicate with a server from an application front-end</strong> (i.e. browser or mobile device).</p>
+<p>This is a formal description – refer to each specific client implementation for concrete method names and possibilities. See <a href="../../libraries/client/">full list of Centrifugo client connectors</a>.</p>
+<p>If you are looking for a detailed information about client-server protocol internals then <a href="../../transports/protocol/">client protocol description</a> chapter can help.</p>
+<p>We use Javascript client <code>centrifuge-js</code> for examples here.</p>
+<h2 id="connect">Connect<a class="headerlink" href="#connect" title="Permanent link">&para;</a></h2>
+<p>Each Centrifugo client allows connecting to a server.</p>
+<div class="highlight"><pre><span></span><code><span class="kr">const</span> <span class="nx">centrifuge</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Centrifuge</span><span class="p">(</span><span class="s1">&#39;ws://localhost:8000/connection/websocket&#39;</span><span class="p">);</span>
+<span class="nx">centrifuge</span><span class="p">.</span><span class="nx">connect</span><span class="p">();</span>
+</code></pre></div>
+<p>In most cases you will need to pass JWT token for authentication, so the example above transforms to:</p>
+<div class="highlight"><pre><span></span><code><span class="kr">const</span> <span class="nx">centrifuge</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Centrifuge</span><span class="p">(</span><span class="s1">&#39;ws://localhost:8000/connection/websocket&#39;</span><span class="p">);</span>
+<span class="nx">centrifuge</span><span class="p">.</span><span class="nx">setToken</span><span class="p">(</span><span class="s1">&#39;&lt;USER-JWT-TOKEN&gt;&#39;</span><span class="p">)</span>
+<span class="nx">centrifuge</span><span class="p">.</span><span class="nx">connect</span><span class="p">();</span>
+</code></pre></div>
+<p>See <a href="../authentication/">authentication</a> chapter for more information on how to generate connection JWT.</p>
+<p>If you are using <a href="../proxy/#connect-proxy">connect proxy</a> then you may go without setting JWT.</p>
+<h2 id="disconnect">Disconnect<a class="headerlink" href="#disconnect" title="Permanent link">&para;</a></h2>
+<p>After connecting you can disconnect from a server at any moment.</p>
+<div class="highlight"><pre><span></span><code><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">disconnect</span><span class="p">();</span>
+</code></pre></div>
+<h2 id="connection-lifecycle-events">Connection lifecycle events<a class="headerlink" href="#connection-lifecycle-events" title="Permanent link">&para;</a></h2>
+<p>All client implementations allow setting handlers on connect and disconnect events.</p>
+<p>For example:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;connect&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">connectCtx</span><span class="p">){</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;connected&#39;</span><span class="p">,</span> <span class="nx">connectCtx</span><span class="p">)</span>
+<span class="p">});</span>
+
+<span class="nx">centrifuge</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;disconnect&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">disconnectCtx</span><span class="p">){</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s1">&#39;disconnected&#39;</span><span class="p">,</span> <span class="nx">disconnectCtx</span><span class="p">)</span>
+<span class="p">});</span>
+</code></pre></div>
+<h2 id="subscribe">Subscribe<a class="headerlink" href="#subscribe" title="Permanent link">&para;</a></h2>
+<p>Another core functionality of client API is possibility to subscribe on a channel to receive all messages published to that channel.</p>
+<div class="highlight"><pre><span></span><code><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">subscribe</span><span class="p">(</span><span class="s1">&#39;channel&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">messageCtx</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">messageCtx</span><span class="p">);</span>
+<span class="p">})</span>
+</code></pre></div>
+<p>Client can subscribe to <a href="../channels/">different channels</a>. Subscribe method returns <code>Subscription</code> object. It's also possible to react on different Subscription events: join and leave events, subscribe success and subscribe error events, unsubscribe event.</p>
+<p>In idiomatic case messages published to channels from application backend <a href="../http_api/">over Centrifugo server API</a>. Though it's not always true.</p>
+<p>Centrifugo also provides message recovery feature to restore missed publications in channels. Publications can be missed due to temporary disconnects (bad network) or server reloads. Recovery happens automatically on reconnect (due to bad network or server reloads) as soon as recovery in channel <a href="../channels/#channel-options">properly configured</a>. Client keeps last seen Publication offset and restores new publications since known offset. If recovery failed then client implementation provides flag inside subscribe event to let your application know that some publications missed – so you may need to load state from scratch from application backend. Not all Centrifugo clients implement recovery feature – refer to specific client implementation docs. More details about recovery in <a href="../../transports/recovery/">a dedicated chapter</a>.</p>
+<h2 id="rpc">RPC<a class="headerlink" href="#rpc" title="Permanent link">&para;</a></h2>
+<p>Client can send RPC to a server. RPC is a call which is not related to channels at all. It's just a way to call server method from client side over WebSocket or SockJS connection. RPC is only available when <a href="../proxy/#rpc-proxy">RPC proxy</a> configured.</p>
+<div class="highlight"><pre><span></span><code><span class="kr">const</span> <span class="nx">rpcRequest</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;key&#39;</span><span class="o">:</span> <span class="s1">&#39;value&#39;</span><span class="p">};</span>
+<span class="kr">const</span> <span class="nx">data</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">namedRPC</span><span class="p">(</span><span class="s1">&#39;example_method&#39;</span><span class="p">,</span> <span class="nx">rpcRequest</span><span class="p">);</span>
+</code></pre></div>
+<h2 id="history">History<a class="headerlink" href="#history" title="Permanent link">&para;</a></h2>
+<p>Once subscribed client can call publication history inside channel (only for channels where <a href="../channels/#channel-options">history configured</a>) to get last publications in channel:</p>
+<div class="highlight"><pre><span></span><code><span class="kr">const</span> <span class="nx">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">subscription</span><span class="p">.</span><span class="nx">history</span><span class="p">();</span>
+</code></pre></div>
+<h2 id="presence-and-presence-stats">Presence and presence stats<a class="headerlink" href="#presence-and-presence-stats" title="Permanent link">&para;</a></h2>
+<p>Once subscribed client can call presence and presence stats information inside channel (only for channels where <a href="../channels/#channel-options">presence configured</a>):</p>
+<p>For presence (full information about active subscribers in channel):</p>
+<div class="highlight"><pre><span></span><code><span class="kr">const</span> <span class="nx">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">subscription</span><span class="p">.</span><span class="nx">presence</span><span class="p">();</span>
+</code></pre></div>
+<p>For presence stats (just a number of clients and unique users in channel):</p>
+<div class="highlight"><pre><span></span><code><span class="kr">const</span> <span class="nx">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">subscription</span><span class="p">.</span><span class="nx">presenceStats</span><span class="p">();</span>
+</code></pre></div>
+<h2 id="server-side-subscriptions">Server-side subscriptions<a class="headerlink" href="#server-side-subscriptions" title="Permanent link">&para;</a></h2>
+<p>To handle publications coming from <a href="../server_subs/">server-side subscriptions</a> client API allows listening publications simply on Centrifuge client instance:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;publish&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">messageCtx</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">messageCtx</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>It's also possible to react on different server-side Subscription events: join and leave events, subscribe success, unsubscribe event. There is no subscribe error event here since subscription initiated on a server side.</p>
                 
               
               
@@ -1118,7 +1242,7 @@
     <div class="md-footer-nav">
         <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
             
-            <a href="../../deploy/tls/" title="TLS" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <a href="../commands/" title="Console commands" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
                 <div class="md-footer-nav__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
                 </div>
@@ -1127,19 +1251,19 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                        TLS
+                        Console commands
                     </div>
                 </div>
             </a>
             
             
-            <a href="../migrate/" title="Migrate from Centrifugo v1" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <a href="../http_api/" title="Server HTTP API" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
                 <div class="md-footer-nav__title">
                     <div class="md-ellipsis">
                 <span class="md-footer-nav__direction">
                   Next
                 </span>
-                        Migrate from Centrifugo v1
+                        Server HTTP API
                     </div>
                 </div>
                 <div class="md-footer-nav__button md-icon">
