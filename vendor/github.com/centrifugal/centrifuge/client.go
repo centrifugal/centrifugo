@@ -338,8 +338,12 @@ func (c *Client) updateChannelPresence(ch string, chCtx channelContext) error {
 	if !channelHasFlag(chCtx.flags, flagPresence) {
 		return nil
 	}
-	info := c.clientInfo(ch)
-	return c.node.addPresence(ch, c.uid, info)
+	return c.node.addPresence(ch, c.uid, &ClientInfo{
+		UserID:   c.user,
+		ClientID: c.uid,
+		ConnInfo: c.info,
+		ChanInfo: chCtx.Info,
+	})
 }
 
 // Context returns client Context. This context will be canceled

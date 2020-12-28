@@ -1,3 +1,8 @@
+v0.14.2
+=======
+
+* fix concurrent map access which could result into runtime crash when using presence feature in channels.
+
 v0.14.1
 =======
 
