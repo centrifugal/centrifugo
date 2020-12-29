@@ -76,7 +76,7 @@ If underlying transport is HTTP-based, and you use HTTP/2 then this will work au
 
 Sometimes it's confusing to see a difference between real-time messages and push notifications. Centrifugo is a real-time messaging server. It can not send push notifications to devices - to Apple iOS devices via APNS, Android devices via GCM or browsers over Web Push API. This is a goal for another software.
 
-But the reasonable question here is how can you know when you need to send real-time message to online client or push notification to its device for offline client. The solution is pretty simple. You can keep critical notifications for client in database. And when client reads a message you should send an ack to your backend marking that notification as read by client. Periodically you can check which notifications were sent to clients but they have not read it (no read ack received). For such notifications you can send push notification to its device using your own or another open-source solution. Look at Firebase for example.
+But the reasonable question here is how can you know when you need to send a real-time message to online client or push notification to its device for offline client. The solution is pretty simple. You can keep critical notifications for client in database. And when client reads a message you should send an ack to your backend marking that notification as read by client. Periodically you can check which notifications were sent to clients but they have not read it (no read ack received). For such notifications you can send push notification to its device using your own or another open-source solution. Look at Firebase for example.
 
 ### How can I know a message really delivered to a client?
 

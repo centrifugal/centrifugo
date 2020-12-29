@@ -14,6 +14,9 @@ This description uses `offset` field available since Centrifugo v2.5.0 which rep
 
 One of the most interesting features of Centrifugo is message recovery after short network disconnects. This mechanism allows client to automatically get missed publications on successful resubscribe to channel after being disconnected for a while. In general, you would query your application backend for actual state on every client reconnect - but message recovery feature allows Centrifugo to deal with this and restore missed publications from history cache thus radically reducing load on your application backend and your main database in some scenarios.
 
+!!! danger
+    Message recovery protocol feature designed to be used together with reasonably small Publication stream size as all missed publications sent towards client in one protocol frame on resubscribe to channel. Thus, it mostly suitable for short-time disconnects. It helps a lot to survive reconnect storm when many clients reconnect at one moment (balancer reload, network glitch) - but it's not a good idea to recover a long list of missed messages after clients being offline for a long time.
+
 To enable recovery mechanism for channels set `history_recover` boolean configuration option to `true` on the configuration file top-level or for a channel namespace.
 
 When subscribing on channels Centrifugo will return missed `publications` to client in subscribe `Reply`, also it will return special `recovered` boolean flag to indicate whether all missed publications successfully recovered after disconnect or not.
