@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cristalhq/jwt/v3"
+	"github.com/s12v/go-jwks"
 )
 
 type VerifierConfig struct {
@@ -19,25 +20,42 @@ type VerifierConfig struct {
 	// RSAPublicKey is a public key used to validate connection and subscription
 	// tokens generated using RSA. Zero value means that RSA tokens won't be allowed.
 	RSAPublicKey *rsa.PublicKey
+
+	// JWKSPublicURL is a public url used to validate connection and subscription
+	// tokens generated using rotating RSA public keys. Zero value means that RSA tokens won't be allowed.
+	JWKSPublicURL string
 }
 
 func NewTokenVerifierJWT(config VerifierConfig) *VerifierJWT {
 	verifier := &VerifierJWT{}
+
 	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey)
 	if err != nil {
 		panic(err)
 	}
 	verifier.algorithms = algorithms
+
+	if config.JWKSPublicURL != "" {
+		verifier.jwksClient = &jwksClient{jwks.NewDefaultClient(
+			jwks.NewWebSource(config.JWKSPublicURL),
+			time.Hour,
+			12*time.Hour,
+		)}
+	}
+
 	return verifier
 }
 
 type VerifierJWT struct {
 	mu         sync.RWMutex
+	jwksClient *jwksClient
 	algorithms *algorithms
 }
 
 var (
 	ErrTokenExpired         = errors.New("token expired")
+	ErrTokenInvalid         = errors.New("token invalid")
+	errPublicKeyNotFound    = errors.New("public key not found")
 	errUnsupportedAlgorithm = errors.New("unsupported JWT algorithm")
 	errDisabledAlgorithm    = errors.New("disabled JWT algorithm")
 )
@@ -56,6 +74,32 @@ type SubscribeTokenClaims struct {
 	Base64Info      string          `json:"b64info,omitempty"`
 	ExpireTokenOnly bool            `json:"eto,omitempty"`
 	jwt.StandardClaims
+}
+
+type jwksClient struct{ jwks.JWKSClient }
+
+func (j *jwksClient) verify(token *jwt.Token) error {
+	var input JWK
+	if err := json.Unmarshal(token.RawClaims(), &input); err != nil {
+		return ErrTokenInvalid
+	}
+
+	key, err := j.JWKSClient.GetEncryptionKey(input.KeyID)
+	if err != nil {
+		return fmt.Errorf("%w: %s", errPublicKeyNotFound, input.KeyID)
+	}
+
+	pubKey, ok := key.Key.(*rsa.PublicKey)
+	if !ok {
+		return fmt.Errorf("fetch public key: %v", key.Key)
+	}
+
+	verifier, err := jwt.NewVerifierRS(jwt.Algorithm(key.Algorithm), pubKey)
+	if err != nil {
+		return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, key.Algorithm)
+	}
+
+	return verifier.Verify(token.Payload(), token.Signature())
 }
 
 type algorithms struct {
@@ -138,6 +182,13 @@ func (s *algorithms) verify(token *jwt.Token) error {
 func (verifier *VerifierJWT) verifySignature(token *jwt.Token) error {
 	verifier.mu.RLock()
 	defer verifier.mu.RUnlock()
+
+	// If JSON Web Keys public url is set,
+	// read and validate token by using kid in claims.
+	if verifier.jwksClient != nil {
+		return verifier.jwksClient.verify(token)
+	}
+
 	return verifier.algorithms.verify(token)
 }
 

@@ -61,6 +61,7 @@ var configDefaults = map[string]interface{}{
 	"name":                                 "",
 	"secret":                               "",
 	"token_hmac_secret_key":                "",
+	"jwks_public_url":                      "",
 	"token_rsa_public_key":                 "",
 	"server_side":                          false,
 	"publish":                              false,
@@ -208,7 +209,7 @@ func main() {
 			"grpc_api_tls_cert", "grpc_api_tls_key", "proxy_connect_endpoint",
 			"proxy_connect_timeout", "proxy_rpc_endpoint", "proxy_rpc_timeout",
 			"proxy_refresh_endpoint", "proxy_refresh_timeout",
-			"token_rsa_public_key", "token_hmac_secret_key", "redis_sequence_ttl",
+			"jwks_public_url", "token_rsa_public_key", "token_hmac_secret_key", "redis_sequence_ttl",
 			"proxy_extra_http_headers", "server_side", "user_subscribe_to_personal",
 			"user_personal_channel_namespace", "websocket_use_write_buffer_pool",
 			"websocket_disable", "sockjs_disable", "api_disable", "redis_cluster_addrs",
@@ -1058,6 +1059,11 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 			log.Fatal().Msgf("error parsing RSA public key: %v", err)
 		}
 		cfg.RSAPublicKey = pubKey
+	}
+
+	jwksPublicURL := v.GetString("jwks_public_url")
+	if jwksPublicURL != "" {
+		cfg.JWKSPublicURL = jwksPublicURL
 	}
 
 	return cfg

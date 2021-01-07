@@ -5,6 +5,29 @@ type Verifier interface {
 	VerifySubscribeToken(token string) (SubscribeToken, error)
 }
 
+type JWK struct {
+	// KeyType The parameter identifies the cryptographic algorithm
+	// family used with the key, such as "RSA" or "EC".
+	// See https://tools.ietf.org/html/rfc7517#section-4.1
+	KeyType string `json:"kty"`
+
+	// Use parameter identifies the intended use of the public key. Available values: "sig" and "enc".
+	// See https://tools.ietf.org/html/rfc7517#section-4.2
+	Use string `json:"use"`
+
+	// Algorithm parameter identifies the algorithm intended for use with the key.
+	// See https://tools.ietf.org/html/rfc7517#section-4.4
+	Algorithm string `json:"alg"`
+
+	// KeyID parameter is used to match a specific key.
+	// This is used, for instance, to choose among a set of keys within a JWK Set during key rollover.
+	// See https://tools.ietf.org/html/rfc7517#section-4.5
+	KeyID string `json:"kid"`
+
+	N string `json:"n"`
+	E string `json:"e"`
+}
+
 type ConnectToken struct {
 	// UserID tells library an ID of connecting user.
 	UserID string
