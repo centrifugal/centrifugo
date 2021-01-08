@@ -108,6 +108,7 @@ nav:
     - 'faq.md'
   - Blog:
     - About this blog: 'blog/index.md'
+    - An introduction to Centrifuge – real-time messaging in Go: 'blog/intro_centrifuge.md'
     - Experimenting with QUIC and WebTransport in Go: 'blog/quic_web_transport.md'
     - Scaling WebSocket in Go and beyond: 'blog/scaling_websocket.md'
   - Centrifugo PRO:
