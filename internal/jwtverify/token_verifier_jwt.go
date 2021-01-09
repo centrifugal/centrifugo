@@ -17,6 +17,7 @@ type VerifierConfig struct {
 	// HMACSecretKey is a secret key used to validate connection and subscription
 	// tokens generated using HMAC. Zero value means that HMAC tokens won't be allowed.
 	HMACSecretKey string
+
 	// RSAPublicKey is a public key used to validate connection and subscription
 	// tokens generated using RSA. Zero value means that RSA tokens won't be allowed.
 	RSAPublicKey *rsa.PublicKey
@@ -55,6 +56,7 @@ type VerifierJWT struct {
 var (
 	ErrTokenExpired         = errors.New("token expired")
 	ErrTokenInvalid         = errors.New("token invalid")
+	errEmptyKeyID           = errors.New("empty key id")
 	errPublicKeyNotFound    = errors.New("public key not found")
 	errUnsupportedAlgorithm = errors.New("unsupported JWT algorithm")
 	errDisabledAlgorithm    = errors.New("disabled JWT algorithm")
@@ -64,6 +66,7 @@ type ConnectTokenClaims struct {
 	Info       json.RawMessage `json:"info,omitempty"`
 	Base64Info string          `json:"b64info,omitempty"`
 	Channels   []string        `json:"channels,omitempty"`
+	KeyID      string          `json:"kid,omitempty"`
 	jwt.StandardClaims
 }
 
@@ -78,15 +81,14 @@ type SubscribeTokenClaims struct {
 
 type jwksClient struct{ jwks.JWKSClient }
 
-func (j *jwksClient) verify(token *jwt.Token) error {
-	var input JWK
-	if err := json.Unmarshal(token.RawClaims(), &input); err != nil {
-		return ErrTokenInvalid
+func (j *jwksClient) verify(token *jwt.Token, kid string) error {
+	if kid == "" {
+		return errEmptyKeyID
 	}
 
-	key, err := j.JWKSClient.GetEncryptionKey(input.KeyID)
+	key, err := j.JWKSClient.GetEncryptionKey(kid)
 	if err != nil {
-		return fmt.Errorf("%w: %s", errPublicKeyNotFound, input.KeyID)
+		return fmt.Errorf("%w: %s", errPublicKeyNotFound, kid)
 	}
 
 	pubKey, ok := key.Key.(*rsa.PublicKey)
@@ -183,13 +185,14 @@ func (verifier *VerifierJWT) verifySignature(token *jwt.Token) error {
 	verifier.mu.RLock()
 	defer verifier.mu.RUnlock()
 
-	// If JSON Web Keys public url is set,
-	// read and validate token by using kid in claims.
-	if verifier.jwksClient != nil {
-		return verifier.jwksClient.verify(token)
-	}
-
 	return verifier.algorithms.verify(token)
+}
+
+func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token, kid string) error {
+	verifier.mu.RLock()
+	defer verifier.mu.RUnlock()
+
+	return verifier.jwksClient.verify(token, kid)
 }
 
 func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) {
@@ -198,13 +201,17 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		return ConnectToken{}, err
 	}
 
-	err = verifier.verifySignature(token)
-	if err != nil {
+	claims := &ConnectTokenClaims{}
+	if err := json.Unmarshal(token.RawClaims(), claims); err != nil {
 		return ConnectToken{}, err
 	}
 
-	claims := &ConnectTokenClaims{}
-	err = json.Unmarshal(token.RawClaims(), claims)
+	if verifier.jwksClient != nil {
+		err = verifier.verifySignatureByJWK(token, claims.KeyID)
+	} else {
+		err = verifier.verifySignature(token)
+	}
+
 	if err != nil {
 		return ConnectToken{}, err
 	}
@@ -219,9 +226,11 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		Info:     claims.Info,
 		Channels: claims.Channels,
 	}
+
 	if claims.ExpiresAt != nil {
 		ct.ExpireAt = claims.ExpiresAt.Unix()
 	}
+
 	if claims.Base64Info != "" {
 		byteInfo, err := base64.StdEncoding.DecodeString(claims.Base64Info)
 		if err != nil {
@@ -229,6 +238,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		}
 		ct.Info = byteInfo
 	}
+
 	return ct, nil
 }
 
