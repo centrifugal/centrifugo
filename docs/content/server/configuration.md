@@ -8,7 +8,7 @@ Centrifugo can be configured in several ways:
 
 * over command-line flags, see `centrifugo -h` for available flags, command-line flags limited to most frequently used
 * over configuration file, configuration file supports all options mentioned in this documentation
-* over OS environment variables, **all Centrifugo options can be set over env in format `CENTRIFUGO_<OPTION_NAME>`**
+* over OS environment variables, **all Centrifugo options can be set over env in format `CENTRIFUGO_<OPTION_NAME>`** (mostly straightforward except namespaces - [see how to set namespaces via env](channels.md#setting-namespaces-over-env))
 
 The basic way to start with Centrifugo is run `centrifugo genconfig` command which will generate `config.json` configuration file with some options (in a current directory), so you can then run Centrifugo:
 
