@@ -179,3 +179,13 @@ All things together here is an example of `config.json` which includes some top-
 **Channel namespaces also work with private channels and user-limited channels**. For example, if you have namespace called `dialogs` then private channel can be constructed as `$dialogs:gossips`, user-limited channel can be constructed as `dialogs:dialog#1,2`.
 
 There is no inheritance in channel options and namespaces – for example you defined `presence: true` on a top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. 
+
+## Setting namespaces over env
+
+While setting most options in Centrifugo over env is pretty straightforward setting namespaces is a bit special:
+
+```console
+CENTRIFUGO_NAMESPACES='[{"name": "ns1"}, {"name": "ns2"}]' ./centrifugo
+```
+
+I.e. `CENTRIFUGO_NAMESPACES` environment variable should be a valid JSON string that represents namespaces array.
