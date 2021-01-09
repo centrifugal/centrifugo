@@ -1454,7 +1454,7 @@
 <ul>
 <li>over command-line flags, see <code>centrifugo -h</code> for available flags, command-line flags limited to most frequently used</li>
 <li>over configuration file, configuration file supports all options mentioned in this documentation</li>
-<li>over OS environment variables, <strong>all Centrifugo options can be set over env in format <code>CENTRIFUGO_&lt;OPTION_NAME&gt;</code></strong></li>
+<li>over OS environment variables, <strong>all Centrifugo options can be set over env in format <code>CENTRIFUGO_&lt;OPTION_NAME&gt;</code></strong> (mostly straightforward except namespaces - <a href="../channels/#setting-namespaces-over-env">see how to set namespaces via env</a>)</li>
 </ul>
 <p>The basic way to start with Centrifugo is run <code>centrifugo genconfig</code> command which will generate <code>config.json</code> configuration file with some options (in a current directory), so you can then run Centrifugo:</p>
 <div class="highlight"><pre><span></span><code>centrifugo -c config.json

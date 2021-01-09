@@ -648,6 +648,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#setting-namespaces-over-env" class="md-nav__link">
+    Setting namespaces over env
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1334,6 +1341,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#setting-namespaces-over-env" class="md-nav__link">
+    Setting namespaces over env
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1470,6 +1484,11 @@
 </ul>
 <p><strong>Channel namespaces also work with private channels and user-limited channels</strong>. For example, if you have namespace called <code>dialogs</code> then private channel can be constructed as <code>$dialogs:gossips</code>, user-limited channel can be constructed as <code>dialogs:dialog#1,2</code>.</p>
 <p>There is no inheritance in channel options and namespaces – for example you defined <code>presence: true</code> on a top level of configuration and then defined namespace – that namespace won't have presence enabled - you must enable it for namespace explicitly. </p>
+<h2 id="setting-namespaces-over-env">Setting namespaces over env<a class="headerlink" href="#setting-namespaces-over-env" title="Permanent link">&para;</a></h2>
+<p>While setting most options in Centrifugo over env is pretty straightforward setting namespaces is a bit special:</p>
+<div class="highlight"><pre><span></span><code><span class="go">CENTRIFUGO_NAMESPACES=&#39;[{&quot;name&quot;: &quot;ns1&quot;}, {&quot;name&quot;: &quot;ns2&quot;}]&#39; ./centrifugo</span>
+</code></pre></div>
+<p>I.e. <code>CENTRIFUGO_NAMESPACES</code> environment variable should be a valid JSON string that represents namespaces array.</p>
                 
               
               
