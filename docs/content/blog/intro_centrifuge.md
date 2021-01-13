@@ -269,12 +269,14 @@ In this case, Centrifuge will maintain a windowed Publication cache for a channe
 
 Every message inside a history stream has an incremental `offset` field. Also, a stream has a field called `epoch` – this is a unique identifier of stream generation - thus client will have a possibility to distinguish situations where a stream is completely removed and there is no guarantee that no messages have been lost in between even if offset looks fine.
 
-Client protocol provides a possibility to paginate over a stream from a certain position with a limit (though this is only available with Javascript client at the moment and only available for subscription object - i.e. client must be subscribed to a channel to iterate over its history):
+Client protocol provides a possibility to paginate over a stream from a certain position with a limit:
 
 ```javascript
 const streamPosition = {'offset': 0, epoch: 'xyz'} 
 resp = await sub.history({since: streamPosition, limit: 10});
 ```
+
+Iteration over history stream is only available with Javascript client at the moment and only works for subscription object - i.e. client must be subscribed to a channel to iterate over its history. There are plans to extend this further in the future – for example allow history iteration on a client-side without being subscribed.
 
 Also, Centrifuge has an automatic message recovery feature. Automatic recovery is very useful in scenarios when tons of persistent connections start reconnecting at once. I already described why this is useful in one of my previous posts about Websocket scalability. In short – since WebSocket connections are stateful then at the moment of mass reconnect they can create a very big spike in load on your main application database. Such mass reconnects are a usual thing in practice - for example when you reload your load balancers or re-deploying the Websocket server (new code version).
 
