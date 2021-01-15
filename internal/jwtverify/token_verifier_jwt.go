@@ -22,9 +22,9 @@ type VerifierConfig struct {
 	// tokens generated using RSA. Zero value means that RSA tokens won't be allowed.
 	RSAPublicKey *rsa.PublicKey
 
-	// JWKSPublicURL is a public url used to validate connection and subscription
-	// tokens generated using rotating RSA public keys. Zero value means that RSA tokens won't be allowed.
-	JWKSPublicURL string
+	// JWKSPublicEndpoint is a public url used to validate connection and subscription
+	// tokens generated using rotating RSA public keys. Zero value means that JSON Web Key Sets extension won't be used.
+	JWKSPublicEndpoint string
 }
 
 func NewTokenVerifierJWT(config VerifierConfig) *VerifierJWT {
@@ -36,9 +36,9 @@ func NewTokenVerifierJWT(config VerifierConfig) *VerifierJWT {
 	}
 	verifier.algorithms = algorithms
 
-	if config.JWKSPublicURL != "" {
+	if config.JWKSPublicEndpoint != "" {
 		verifier.jwksClient = &jwksClient{jwks.NewDefaultClient(
-			jwks.NewWebSource(config.JWKSPublicURL),
+			jwks.NewWebSource(config.JWKSPublicEndpoint),
 			time.Hour,
 			12*time.Hour,
 		)}
@@ -55,7 +55,6 @@ type VerifierJWT struct {
 
 var (
 	ErrTokenExpired         = errors.New("token expired")
-	ErrTokenInvalid         = errors.New("token invalid")
 	errEmptyKeyID           = errors.New("empty key id")
 	errPublicKeyNotFound    = errors.New("public key not found")
 	errUnsupportedAlgorithm = errors.New("unsupported JWT algorithm")
@@ -66,7 +65,6 @@ type ConnectTokenClaims struct {
 	Info       json.RawMessage `json:"info,omitempty"`
 	Base64Info string          `json:"b64info,omitempty"`
 	Channels   []string        `json:"channels,omitempty"`
-	KeyID      string          `json:"kid,omitempty"`
 	jwt.StandardClaims
 }
 
@@ -81,14 +79,18 @@ type SubscribeTokenClaims struct {
 
 type jwksClient struct{ jwks.JWKSClient }
 
-func (j *jwksClient) verify(token *jwt.Token, kid string) error {
+func (j *jwksClient) verify(token *jwt.Token) error {
+	kid := token.Header().KeyID
 	if kid == "" {
 		return errEmptyKeyID
 	}
 
-	key, err := j.JWKSClient.GetEncryptionKey(kid)
+	key, err := j.JWKSClient.GetSignatureKey(kid)
 	if err != nil {
 		return fmt.Errorf("%w: %s", errPublicKeyNotFound, kid)
+	}
+	if key.Use != "sig" {
+		return errPublicKeyNotFound
 	}
 
 	pubKey, ok := key.Key.(*rsa.PublicKey)
@@ -188,11 +190,11 @@ func (verifier *VerifierJWT) verifySignature(token *jwt.Token) error {
 	return verifier.algorithms.verify(token)
 }
 
-func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token, kid string) error {
+func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token) error {
 	verifier.mu.RLock()
 	defer verifier.mu.RUnlock()
 
-	return verifier.jwksClient.verify(token, kid)
+	return verifier.jwksClient.verify(token)
 }
 
 func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) {
@@ -201,18 +203,18 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		return ConnectToken{}, err
 	}
 
-	claims := &ConnectTokenClaims{}
-	if err := json.Unmarshal(token.RawClaims(), claims); err != nil {
-		return ConnectToken{}, err
-	}
-
 	if verifier.jwksClient != nil {
-		err = verifier.verifySignatureByJWK(token, claims.KeyID)
+		err = verifier.verifySignatureByJWK(token)
 	} else {
 		err = verifier.verifySignature(token)
 	}
 
 	if err != nil {
+		return ConnectToken{}, err
+	}
+
+	claims := &ConnectTokenClaims{}
+	if err := json.Unmarshal(token.RawClaims(), claims); err != nil {
 		return ConnectToken{}, err
 	}
 

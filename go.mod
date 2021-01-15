@@ -11,7 +11,7 @@ require (
 	github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af
 	github.com/centrifugal/centrifuge v0.14.2
 	github.com/centrifugal/protocol v0.3.4
-	github.com/cristalhq/jwt/v3 v3.0.0
+	github.com/cristalhq/jwt/v3 v3.0.7
 	github.com/gogo/protobuf v1.3.1
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/securecookie v1.1.1
