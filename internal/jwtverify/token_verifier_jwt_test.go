@@ -105,31 +105,15 @@ func getSubscribeToken(channel string, client string, exp int64, rsaPrivateKey *
 	return string(token.Raw())
 }
 
-func getJWKServer(pubKey *rsa.PublicKey) *httptest.Server {
+func getJWKServer(pubKey *rsa.PublicKey, kty, use, kid string) *httptest.Server {
 	return httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := map[string]interface{}{
 			"keys": []map[string]string{
 				{
 					"alg": "RS256",
-					"kty": "RSA",
-					"use": "sig",
-					"kid": "ok",
-					"n":   encodeToString(pubKey.N.Bytes()),
-					"e":   encodeUint64ToString(uint64(pubKey.E)),
-				},
-				{
-					"alg": "RS256",
-					"kty": "RSA",
-					"use": "enc",
-					"kid": "invalidkeyusage",
-					"n":   encodeToString(pubKey.N.Bytes()),
-					"e":   encodeUint64ToString(uint64(pubKey.E)),
-				},
-				{
-					"alg": "HS256",
-					"kty": "HS",
-					"use": "sig",
-					"kid": "invalidalgorithm",
+					"kty": kty,
+					"use": use,
+					"kid": kid,
 					"n":   encodeToString(pubKey.N.Bytes()),
 					"e":   encodeUint64ToString(uint64(pubKey.E)),
 				},
@@ -277,27 +261,31 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 }
 
 func Test_tokenVerifierJWT_VerifyConnectTokenWithJWK(t *testing.T) {
-	privKey, pubKey := generateTestRSAKeys(t)
+	type token struct {
+		user string
+		exp  int64
+	}
 
-	ts := getJWKServer(pubKey)
-	defer ts.Close()
-
-	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"", nil, ts.URL})
+	type jwk struct {
+		kty string
+		use string
+		kid string
+	}
 
 	now := time.Now()
 
 	testCases := []struct {
-		name     string
-		verifier Verifier
-		token    string
-		want     ConnectToken
-		wantErr  bool
-		expired  bool
+		name    string
+		token   token
+		jwk     jwk
+		want    ConnectToken
+		wantErr bool
+		expired bool
 	}{
 		{
-			name:     "OK",
-			verifier: verifierJWT,
-			token:    getConnToken("user1", now.Add(24*time.Hour).Unix(), privKey, jwt.WithKeyID("ok")),
+			name:  "OK",
+			token: token{user: "user1", exp: now.Add(24 * time.Hour).Unix()},
+			jwk:   jwk{kty: "RSA", use: "sig", kid: "ok"},
 			want: ConnectToken{
 				UserID:   "user1",
 				ExpireAt: now.Add(24 * time.Hour).Unix(),
@@ -306,26 +294,26 @@ func Test_tokenVerifierJWT_VerifyConnectTokenWithJWK(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:     "ExpiredToken",
-			verifier: verifierJWT,
-			token:    getConnToken("user1", now.Add(-24*time.Hour).Unix(), privKey, jwt.WithKeyID("ok")),
-			want:     ConnectToken{},
-			wantErr:  false,
-			expired:  true,
+			name:    "ExpiredToken",
+			token:   token{user: "user2", exp: now.Add(-24 * time.Hour).Unix()},
+			jwk:     jwk{kty: "RSA", use: "sig", kid: "ok"},
+			want:    ConnectToken{},
+			wantErr: false,
+			expired: true,
 		},
 		{
-			name:     "InvalidKeyUsage",
-			verifier: verifierJWT,
-			token:    getConnToken("user1", now.Add(24*time.Hour).Unix(), privKey, jwt.WithKeyID("invalidkeyusage")),
-			want:     ConnectToken{},
-			wantErr:  true,
+			name:    "InvalidKeyUsage",
+			token:   token{user: "user3", exp: now.Add(24 * time.Hour).Unix()},
+			jwk:     jwk{kty: "RSA", use: "enc", kid: "invalidkeyusage"},
+			want:    ConnectToken{},
+			wantErr: true,
 		},
 		{
-			name:     "InvalidAlgorithm",
-			verifier: verifierJWT,
-			token:    getConnToken("user1", now.Add(24*time.Hour).Unix(), privKey, jwt.WithKeyID("invalidalgorithm")),
-			want:     ConnectToken{},
-			wantErr:  true,
+			name:    "InvalidKeyType",
+			token:   token{user: "user4", exp: now.Add(24 * time.Hour).Unix()},
+			jwk:     jwk{kty: "HS", use: "sig", kid: "invalidkeytype"},
+			want:    ConnectToken{},
+			wantErr: true,
 		},
 	}
 
@@ -333,14 +321,23 @@ func Test_tokenVerifierJWT_VerifyConnectTokenWithJWK(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := require.New(t)
 
-			got, err := tt.verifier.VerifyConnectToken(tt.token)
+			privKey, pubKey := generateTestRSAKeys(t)
+			ts := getJWKServer(pubKey, tt.jwk.kty, tt.jwk.use, tt.jwk.kid)
+
+			ts.Start()
+			defer ts.Close()
+
+			verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, ts.URL})
+			token := getConnToken(tt.token.user, tt.token.exp, privKey, jwt.WithKeyID(tt.jwk.kid))
+
+			got, err := verifier.VerifyConnectToken(token)
 			if tt.wantErr {
 				r.Error(err)
+				return
+			}
 
-				if tt.expired {
-					r.EqualError(err, ErrTokenExpired.Error())
-				}
-
+			if tt.expired {
+				r.EqualError(err, ErrTokenExpired.Error())
 				return
 			}
 
