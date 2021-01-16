@@ -22,7 +22,7 @@ This post is going to be pretty long (looks like I am a huge fan of long posts) 
 
 ## How it's all started
 
-I wrote several blog posts before about an original motivation of [Centrifugo](https://github.com/centrifugal/centrifugo) server.
+I wrote several blog posts before ([for example this one](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) – sorry, it's on Medium) about an original motivation of [Centrifugo](https://github.com/centrifugal/centrifugo) server.
 
 !!!danger
     Centrifugo server is not the same as Centrifuge library for Go. It's a full-featured project built on top of Centrifuge library. Naming can be confusing, but it's not too hard once you spend some time with ecosystem.
@@ -37,7 +37,7 @@ It was a pretty hard experience to decouple Centrifuge out of the monolithic Cen
 
 ## So what is Centrifuge?
 
-This is ... well, a framework to build real-time messaging applications with Go language. I think the most popular applications these days are chats of different forms, but I want to emphasize that Centrifuge is not a framework to build chats – it's a generic instrument that can be used to create different sorts of real-time applications – real-time charts, multiplayer games.
+This is ... well, a framework to build real-time messaging applications with Go language. If you ever heard about [socket.io](https://socket.io) – then you can think about Centrifuge as an analogue. I think the most popular applications these days are chats of different forms, but I want to emphasize that Centrifuge is not a framework to build chats – it's a generic instrument that can be used to create different sorts of real-time applications – real-time charts, multiplayer games.
 
 The obvious choice for real-time messaging transport to achieve fast and cross-platform bidirectional communication these days is WebSocket. Especially if you are targeting a browser environment. You mostly don't need to use WebSocket HTTP polyfills in 2021 (though there are still corner cases so Centrifuge supports [SockJS](https://github.com/sockjs/sockjs-client) polyfill).
 
@@ -169,9 +169,9 @@ node.Publish("example", []byte(`{"input": "hello"}`))
 !!!note
     Though Centrifuge protocol based on Protobuf schema in example above we published a JSON message into a channel. By default, we can only send JSON to connections since default protocol format is JSON. But we can switch to Protobuf-based binary protocol by connecting to `ws://localhost:8000/connection/websocket?format=protobuf` endpoint – then it's possible to send binary data to clients.
 
-## Asynchronous message passing
+## Async message passing
 
-While Centrifuge mostly shines when you need channel semantics it's also possible to send any data to connection directly – to achieve bidirectional communication, just what a native WebSocket provides.
+While Centrifuge mostly shines when you need channel semantics it's also possible to send any data to connection directly – to achieve bidirectional asynchronous communication, just what a native WebSocket provides.
 
 To send a message to a server one can use the `send` method on the client-side:
 
@@ -321,13 +321,13 @@ The important thing to be aware of when using Join/Leave messages is that this f
 
 One more thing to remember is that presence information can also be pretty expensive to request in channels with many active subscribers – since it returns information about all connections – thus payload in response can be large. To help a bit with this situation Centrifuge has a presence stats client API method. Presence stats only contain two counters: the number of active connections in the channel and amount of unique users in the channel.
 
-If you still need to somehow process presence in rooms with a massive number of active subscribers – then I think you better do it in near real-time - for example with fast OLAP like ClickHouse.
+If you still need to somehow process presence in rooms with a massive number of active subscribers – then I think you better do it in near real-time - for example with fast OLAP like [ClickHouse](https://clickhouse.tech/).
 
 ## Scalability aspects
 
-To be fair it's not too hard to implement most of the features above inside one in-memory process. Yes, it takes time – but the code is mostly straightforward. When it comes to scalability things tend to be a bit harder.
+To be fair it's not too hard to implement most of the features above inside one in-memory process. Yes, it takes time, but the code is mostly straightforward. When it comes to scalability things tend to be a bit harder.
 
-Centrifuge was designed with the idea in mind that one machine is not enough to handle all application WebSocket connections. Connections should scale over application backend instances, and it should be simple to add more application nodes when the amount of users (connections) grows.
+Centrifuge designed with the idea in mind that one machine is not enough to handle all application WebSocket connections. Connections should scale over application backend instances, and it should be simple to add more application nodes when the amount of users (connections) grows.
 
 Centrifuge abstracts scalability over the `Node` instance and two interfaces: `Broker` interface and `PresenceManager` interface.
 
@@ -349,7 +349,9 @@ type Broker interface {
 
 See [full version with comments](https://github.com/centrifugal/centrifuge/blob/v0.14.2/engine.go#L98) in source code.
 
-It's and important thing to combine PUB/SUB with history to achieve an atomicity of saving message into history stream and publishing it to PUB/SUB with generated offset.
+Every Centrifuge Node subscribes to channels via a broker. This provides a possibility to scale connections over many node instances – published messages will flow only to nodes with active channel subscribers.
+
+It's and important thing to combine PUB/SUB with history inside a Broker implementation to achieve an atomicity of saving message into history stream and publishing it to PUB/SUB with generated offset.
 
 PresenceManager is responsible for presence information management:
 
@@ -388,6 +390,20 @@ It's also possible to achieve Redis's high availability with built-in Sentinel s
 At Avito we served about 800k active connections in the messenger app with ease using a slightly adapted Centrifuge Redis Engine, so an approach proved to be working for rather big applications. We will look at some more concrete numbers below in the performance section.
 
 Both `Broker` and `PresenceManager` are pluggable, so it's possible to replace them with alternative implementations. Examples show [how to use Nats server](https://github.com/centrifugal/centrifuge/tree/master/_examples/custom_broker_nats) for at most once only PUB/SUB together with Centrifuge. Also, we have [an example of full-featured Engine for Tarantool database](https://github.com/centrifugal/centrifuge/tree/master/_examples/custom_engine_tarantool) – Tarantool Engine shows even better throughput for history and presence operations than Redis-based Engine (up to 10x for some ops).
+
+## Order and delivery properties
+
+Since Centrifuge is a messaging system I also want to describe its order and message delivery guarantees.
+
+Message ordering in channels supported. As soon as you publish messages into channels one after another of course.
+
+Message delivery model is at most once by default. This is mostly comes from PUB/SUB model – message can be dropped on Centrifuge level if subscriber is offline or simply on broker level – since Redis PUB/SUB also works with at most once guarantee.
+
+Though if you maintain history stream inside a channel then things become a bit different. In this case you can tell Centrifuge to check client position inside stream. Since every publication has a unique incremental offset Centrifuge can track that client has correct offset inside a channel stream. If Centrifuge detects any missed messages it disconnects a client with special code – thus make it reconnect and recover messages from history stream. Since a message first saved to history stream and then published to PUB/SUB inside broker these mechanisms allow achieving at least once message delivery guarantee.
+
+![What happens on publish](https://i.imgur.com/PLb9xS5.jpg)
+
+Even if stream completely expired or dropped from broker memory Centrifuge will give a client a tip that messages could be lost – so client has a chance to restore state from a main application database.
 
 ## Ecosystem
 
@@ -454,10 +470,14 @@ Also, I am not very happy with current error and disconnect handling throughout 
 
 I am adding examples to [_examples](https://github.com/centrifugal/centrifuge/tree/master/_examples) folder of Centrifuge repo. These examples completely cover Centrifuge API - including things not mentioned here.
 
+Check out the [tips & tricks](https://github.com/centrifugal/centrifuge#tips-and-tricks) section of README – it contains some additional insights about an implementation.
+
 ## Conclusion
 
-I think Centrifuge is a nice alternative to [socket.io](https://socket.io) - with a better performance, main server implementation in Go language, and it provides even more features to build real-time apps. Centrifuge ecosystem definitely needs more work, especially in client connectors area, tutorials, community, stabilizing API, etc.
+I think [Centrifuge](https://github.com/centrifugal/centrifuge) could be a nice alternative to [socket.io](https://socket.io) - with a better performance, main server implementation in Go language, and even more builtin features to build real-time apps.
 
-Centrifuge fits pretty well proprietary application development where time matters and deadlines are close, so developers tend to choose ready solution instead of writing their own.
+Centrifuge ecosystem definitely needs more work, especially in client connectors area, tutorials, community, stabilizing API, etc.
+
+Centrifuge fits pretty well proprietary application development where time matters and deadlines are close, so developers tend to choose a ready solution instead of writing their own. I believe Centrifuge can be a great time saver here.
 
 For Centrifugo server users Centrifuge package provides a way to write a more flexible server code adapted for business requirements but still use the same real-time core and have the same protocol features.
