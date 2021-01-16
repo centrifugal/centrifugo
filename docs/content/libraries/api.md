@@ -12,7 +12,7 @@ We have several official client libraries for different languages so you don't h
 
 Also there are libraries supported by community:
 
-* [laracent](https://github.com/AlexHnydiuk/laracent) for Laravel framework
+* [laravel-centrifuge](https://github.com/denis660/laravel-centrifuge) for Laravel framework
 * [crystalcent](https://github.com/devops-israel/crystalcent) for Crystal language
 * [CentrifugoBundle](https://github.com/fre5h/CentrifugoBundle) for Symfony framework
 
