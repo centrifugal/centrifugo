@@ -18,11 +18,11 @@ Maybe you've already heard about it – it's called [Centrifuge](https://github.
 
 Centrifuge can do many things for you. Here I'll try to introduce Centrifuge and its possibilities.
 
-This post is going to be pretty long (looks like I am a huge fan of long posts) – so make sure you also have a drink and let's go! 
+This post is going to be pretty long (looks like I am a huge fan of long reads) – so make sure you also have a drink (probably two) and let's go!
 
 ## How it's all started
 
-I wrote several blog posts before ([for example this one](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) – sorry, it's on Medium) about an original motivation of [Centrifugo](https://github.com/centrifugal/centrifugo) server.
+I wrote several blog posts before ([for example this one](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) – yep, it's on Medium...) about an original motivation of [Centrifugo](https://github.com/centrifugal/centrifugo) server.
 
 !!!danger
     Centrifugo server is not the same as Centrifuge library for Go. It's a full-featured project built on top of Centrifuge library. Naming can be confusing, but it's not too hard once you spend some time with ecosystem.
@@ -88,7 +88,7 @@ const centrifuge = new Centrifuge('ws://localhost:8000/connection/websocket');
 centrifuge.connect();
 ```
 
-But connection will be rejected since we also need to provide authentication details – Centrifuge expects explicitly provided connection `Credentials` to accept connection.
+Though connection will be rejected by the server since we also need to provide authentication details – Centrifuge expects explicitly provided connection `Credentials` to accept connection.
 
 ## Authentication
 
@@ -121,13 +121,13 @@ http.Handle("/connection/websocket", auth(wsHandler))
 Another authentication way is a bit more generic – developers can authenticate connection based on custom token sent from a client inside first WebSocket/SockJS frame. This is called `connect` frame in terms of Centrifuge protocol. Any string token can be set – this opens a way to use JWT, Paceto, and any other kind of authentication tokens. For example [see an authenticaton with JWT](https://github.com/centrifugal/centrifuge/tree/master/_examples/jwt_token).
 
 !!!note
-    BTW it's also possible to pass any information from client side with a first connect message from client to server and return custom information about server state to a client. But this is out of post scope.
+    BTW it's also possible to pass any information from client side with a first connect message from client to server and return custom information about server state to a client. This is out of post scope though.
 
 Nothing prevents you to [integrate Centrifuge with OAuth2](https://github.com/centrifugal/centrifuge/tree/master/_examples/chat_oauth2) or another framework session mechanism – [like Gin for example](https://github.com/centrifugal/centrifuge/tree/master/_examples/chat_oauth2).
 
 ## Channel subscriptions
 
-As soon as the client connected and successfully authenticated it can subscribe to channels. Channel (room or topic in other systems) is a lightweight and ephemeral entity in Centrifuge. Channel can have different features (we will look at some channel features below). Channels are created automatically as soon as the first subscriber joins and destroyed as soon as the last subscriber left.
+As soon as a client connected and successfully authenticated it can subscribe to channels. Channel (room or topic in other systems) is a lightweight and ephemeral entity in Centrifuge. Channel can have different features (we will look at some channel features below). Channels created automatically as soon as the first subscriber joins and destroyed as soon as the last subscriber left.
 
 The application can have many real-time features – even on one app screen. So sometimes client subscribes to several channels – each related to a specific real-time feature (for example one channel for chat updates, one channel likes notification stream, etc).
 
@@ -141,7 +141,7 @@ centrifuge.subscribe('example', function(msgCtx) {
 })
 ```
 
-And on the server-side, you need to define the subscribe event handler. If the subscribe event handler is not set then the connection won't be able to subscribe to channels at all. Subscribe handler is where a developer may want to check permissions of the current connection to read channel updates. Here is a basic example of a subscribe handler that simply allows subscriptions to channel `example` for all authenticated connections and reject subscriptions to all other channels:
+On the server-side, you need to define subscribe event handler. If subscribe event handler not set then the connection won't be able to subscribe to channels at all. Subscribe event handler is where a developer may check permissions of the current connection to read channel updates. Here is a basic example of subscribe event handler that simply allows subscriptions to channel `example` for all authenticated connections and reject subscriptions to all other channels:
 
 ```go
 node.OnConnect(func(client *centrifuge.Client) {
@@ -155,7 +155,7 @@ node.OnConnect(func(client *centrifuge.Client) {
 })
 ```
 
-You may already notice a callback style of reacting to connection related things. While not being very idiomatic for Go it's very practical actually. The reason why we use callback style inside client event handlers is that it gives a developer possibility to control operation concurrency (i.e. process sth in separate goroutines or goroutine pool) and still control the order of events. See [an example](https://github.com/centrifugal/centrifuge/tree/master/_examples/concurrency) that demonstrates concurrency control in action.
+You may notice a callback style of reacting to connection related things. While not being very idiomatic for Go it's very practical actually. The reason why we use callback style inside client event handlers is that it gives a developer possibility to control operation concurrency (i.e. process sth in separate goroutines or goroutine pool) and still control the order of events. See [an example](https://github.com/centrifugal/centrifuge/tree/master/_examples/concurrency) that demonstrates concurrency control in action.
 
 Now if some event published to a channel:
 
@@ -460,11 +460,11 @@ SockJS fallback does not support binary data - only JSON. If you want to use bin
 
 SockJS also requires sticky session support from your load balancer to emulate a stateful bidirectional connection with its HTTP fallback transports. Ideally, Centrifuge will go away from SockJS at some point, maybe when WebTransport becomes mature so users will have a choice between WebTransport or WebSocket.
 
-Websocket permessage-deflate compression supported (thanks to Gorilla WebSocket), but it can be pretty expensive in terms of CPU utilization and memory usage.
+Websocket `permessage-deflate` compression supported (thanks to Gorilla WebSocket), but it can be pretty expensive in terms of CPU utilization and memory usage – the overhead depends on usage pattern, it's pretty hard to estimate in numbers.
 
 As said above you cannot only rely on Centrifuge for state recovery – it's still required to have a way to fully load application state from the main database.
 
-Also, I am not very happy with current error and disconnect handling throughout the connector ecosystem – this can be improved though.
+Also, I am not very happy with current error and disconnect handling throughout the connector ecosystem – this can be improved though, and I have some ideas for the future.
 
 ## Examples
 
