@@ -1,0 +1,13 @@
+version = 1
+
+test_patterns = ["**/*_test.go"]
+
+exclude_patterns = ["/docs/**"]
+
+[[analyzers]]
+name = "go"
+enabled = true
+
+  [analyzers.meta]
+  import_paths = ["github.com/centrifugal/centrifugo"]
+  dependencies_vendored = true

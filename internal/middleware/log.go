@@ -29,7 +29,6 @@ func LogRequest(h http.Handler) http.Handler {
 		} else {
 			h.ServeHTTP(w, r)
 		}
-		return
 	})
 }
 
