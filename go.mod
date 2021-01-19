@@ -11,8 +11,9 @@ require (
 	github.com/ajstarks/svgo v0.0.0-20180226025133-644b8db467af
 	github.com/centrifugal/centrifuge v0.14.2
 	github.com/centrifugal/protocol v0.3.4
-	github.com/cristalhq/jwt/v3 v3.0.0
+	github.com/cristalhq/jwt/v3 v3.0.7
 	github.com/gogo/protobuf v1.3.1
+	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/securecookie v1.1.1
 	github.com/mattn/go-isatty v0.0.12
@@ -23,13 +24,16 @@ require (
 	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/common v0.14.0 // indirect
 	github.com/prometheus/procfs v0.2.0 // indirect
-	github.com/rs/zerolog v1.18.0
+	github.com/rakutentech/jwk-go v1.0.1
+	github.com/rs/zerolog v1.20.0
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v0.0.7
-	github.com/stretchr/testify v1.5.1
+	github.com/stretchr/testify v1.7.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200625001655-4c5254603344
+	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f // indirect
 	google.golang.org/grpc v1.28.0
 	google.golang.org/protobuf v1.25.0 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

@@ -1,6 +1,7 @@
 package jwtverify
 
 import (
+	"context"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/internal/jwks"
 	"github.com/cristalhq/jwt/v3"
 )
 
@@ -16,28 +18,44 @@ type VerifierConfig struct {
 	// HMACSecretKey is a secret key used to validate connection and subscription
 	// tokens generated using HMAC. Zero value means that HMAC tokens won't be allowed.
 	HMACSecretKey string
+
 	// RSAPublicKey is a public key used to validate connection and subscription
 	// tokens generated using RSA. Zero value means that RSA tokens won't be allowed.
 	RSAPublicKey *rsa.PublicKey
+
+	// JWKSPublicEndpoint is a public url used to validate connection and subscription
+	// tokens generated using rotating RSA public keys. Zero value means that JSON Web Key Sets extension won't be used.
+	JWKSPublicEndpoint string
 }
 
 func NewTokenVerifierJWT(config VerifierConfig) *VerifierJWT {
 	verifier := &VerifierJWT{}
+
 	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey)
 	if err != nil {
 		panic(err)
 	}
 	verifier.algorithms = algorithms
+
+	if config.JWKSPublicEndpoint != "" {
+		mng, err := jwks.NewManager(config.JWKSPublicEndpoint)
+		if err == nil {
+			verifier.jwksManager = &jwksManager{mng}
+		}
+	}
+
 	return verifier
 }
 
 type VerifierJWT struct {
-	mu         sync.RWMutex
-	algorithms *algorithms
+	mu          sync.RWMutex
+	jwksManager *jwksManager
+	algorithms  *algorithms
 }
 
 var (
 	ErrTokenExpired         = errors.New("token expired")
+	errPublicKeyInvalid     = errors.New("public key is invalid")
 	errUnsupportedAlgorithm = errors.New("unsupported JWT algorithm")
 	errDisabledAlgorithm    = errors.New("disabled JWT algorithm")
 )
@@ -56,6 +74,35 @@ type SubscribeTokenClaims struct {
 	Base64Info      string          `json:"b64info,omitempty"`
 	ExpireTokenOnly bool            `json:"eto,omitempty"`
 	jwt.StandardClaims
+}
+
+type jwksManager struct{ *jwks.Manager }
+
+func (j *jwksManager) verify(token *jwt.Token) error {
+	ctx := context.Background()
+	kid := token.Header().KeyID
+
+	key, err := j.Manager.FetchKey(ctx, kid)
+	if err != nil {
+		return err
+	}
+
+	spec, err := key.ParseKeySpec()
+	if err != nil {
+		return err
+	}
+
+	pubKey, ok := spec.Key.(*rsa.PublicKey)
+	if !ok {
+		return errPublicKeyInvalid
+	}
+
+	verifier, err := jwt.NewVerifierRS(jwt.Algorithm(spec.Algorithm), pubKey)
+	if err != nil {
+		return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, spec.Algorithm)
+	}
+
+	return verifier.Verify(token.Payload(), token.Signature())
 }
 
 type algorithms struct {
@@ -138,7 +185,15 @@ func (s *algorithms) verify(token *jwt.Token) error {
 func (verifier *VerifierJWT) verifySignature(token *jwt.Token) error {
 	verifier.mu.RLock()
 	defer verifier.mu.RUnlock()
+
 	return verifier.algorithms.verify(token)
+}
+
+func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token) error {
+	verifier.mu.RLock()
+	defer verifier.mu.RUnlock()
+
+	return verifier.jwksManager.verify(token)
 }
 
 func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) {
@@ -147,14 +202,18 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		return ConnectToken{}, err
 	}
 
-	err = verifier.verifySignature(token)
+	if verifier.jwksManager != nil {
+		err = verifier.verifySignatureByJWK(token)
+	} else {
+		err = verifier.verifySignature(token)
+	}
+
 	if err != nil {
 		return ConnectToken{}, err
 	}
 
 	claims := &ConnectTokenClaims{}
-	err = json.Unmarshal(token.RawClaims(), claims)
-	if err != nil {
+	if err := json.Unmarshal(token.RawClaims(), claims); err != nil {
 		return ConnectToken{}, err
 	}
 
@@ -168,9 +227,11 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		Info:     claims.Info,
 		Channels: claims.Channels,
 	}
+
 	if claims.ExpiresAt != nil {
 		ct.ExpireAt = claims.ExpiresAt.Unix()
 	}
+
 	if claims.Base64Info != "" {
 		byteInfo, err := base64.StdEncoding.DecodeString(claims.Base64Info)
 		if err != nil {
@@ -178,6 +239,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		}
 		ct.Info = byteInfo
 	}
+
 	return ct, nil
 }
 
