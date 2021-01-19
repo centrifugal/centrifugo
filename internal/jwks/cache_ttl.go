@@ -131,3 +131,9 @@ func (tc *TTLCache) Purge(_ context.Context) error {
 	tc.mu.Unlock()
 	return nil
 }
+
+// Stop cleanup process.
+func (tc *TTLCache) Stop(_ context.Context) error {
+	tc.stop <- struct{}{}
+	return nil
+}

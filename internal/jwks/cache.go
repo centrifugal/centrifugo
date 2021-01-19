@@ -18,8 +18,5 @@ var (
 type Cache interface {
 	Add(ctx context.Context, key *JWK) error
 	Get(ctx context.Context, kid string) (*JWK, error)
-	Remove(ctx context.Context, kid string) error
-	Contains(ctx context.Context, kid string) (bool, error)
 	Len(ctx context.Context) (int, error)
-	Purge(ctx context.Context) error
 }

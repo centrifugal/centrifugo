@@ -55,9 +55,7 @@ type VerifierJWT struct {
 
 var (
 	ErrTokenExpired         = errors.New("token expired")
-	errEmptyKeyID           = errors.New("empty key id")
 	errPublicKeyInvalid     = errors.New("public key is invalid")
-	errPublicKeyNotFound    = errors.New("public key not found")
 	errUnsupportedAlgorithm = errors.New("unsupported JWT algorithm")
 	errDisabledAlgorithm    = errors.New("disabled JWT algorithm")
 )
@@ -87,10 +85,6 @@ func (j *jwksManager) verify(token *jwt.Token) error {
 	key, err := j.Manager.FetchKey(ctx, kid)
 	if err != nil {
 		return err
-	}
-
-	if key.Kty != "RSA" || key.Use != "sig" {
-		return errPublicKeyNotFound
 	}
 
 	spec, err := key.ParseKeySpec()

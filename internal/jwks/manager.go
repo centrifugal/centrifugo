@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	_defaultRetries = 5
-	_defaultTimeout = 5 * time.Second
+	_defaultRetries = 2
+	_defaultTimeout = 1 * time.Second
 	_defaultTTL     = 1 * time.Hour
 )
 
@@ -153,7 +153,7 @@ func (m *Manager) fetchKey(ctx context.Context, kid string) (*JWK, error) {
 		}
 	}
 
-	if res == nil {
+	if res == nil || res.Kty != "RSA" || res.Use != "sig" {
 		return nil, ErrPublicKeyNotFound
 	}
 

@@ -33,6 +33,7 @@ func jwksHandler(keys ...testKey) http.Handler {
 
 		for _, key := range keys {
 			spec := jwk.NewSpecWithID(key.Kid, key.Key)
+			spec.Use = "sig"
 			specs.Keys = append(specs.Keys, *spec)
 		}
 
