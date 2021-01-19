@@ -1,6 +1,7 @@
 package jwtverify
 
 import (
+	"context"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
@@ -9,8 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/centrifugal/centrifugo/internal/jwks"
 	"github.com/cristalhq/jwt/v3"
-	"github.com/s12v/go-jwks"
 )
 
 type VerifierConfig struct {
@@ -37,25 +38,25 @@ func NewTokenVerifierJWT(config VerifierConfig) *VerifierJWT {
 	verifier.algorithms = algorithms
 
 	if config.JWKSPublicEndpoint != "" {
-		verifier.jwksClient = &jwksClient{jwks.NewDefaultClient(
-			jwks.NewWebSource(config.JWKSPublicEndpoint),
-			time.Hour,
-			12*time.Hour,
-		)}
+		mng, err := jwks.NewManager(config.JWKSPublicEndpoint)
+		if err == nil {
+			verifier.jwksManager = &jwksManager{mng}
+		}
 	}
 
 	return verifier
 }
 
 type VerifierJWT struct {
-	mu         sync.RWMutex
-	jwksClient *jwksClient
-	algorithms *algorithms
+	mu          sync.RWMutex
+	jwksManager *jwksManager
+	algorithms  *algorithms
 }
 
 var (
 	ErrTokenExpired         = errors.New("token expired")
 	errEmptyKeyID           = errors.New("empty key id")
+	errPublicKeyInvalid     = errors.New("public key is invalid")
 	errPublicKeyNotFound    = errors.New("public key not found")
 	errUnsupportedAlgorithm = errors.New("unsupported JWT algorithm")
 	errDisabledAlgorithm    = errors.New("disabled JWT algorithm")
@@ -77,30 +78,34 @@ type SubscribeTokenClaims struct {
 	jwt.StandardClaims
 }
 
-type jwksClient struct{ jwks.JWKSClient }
+type jwksManager struct{ *jwks.Manager }
 
-func (j *jwksClient) verify(token *jwt.Token) error {
+func (j *jwksManager) verify(token *jwt.Token) error {
+	ctx := context.Background()
 	kid := token.Header().KeyID
-	if kid == "" {
-		return errEmptyKeyID
+
+	key, err := j.Manager.FetchKey(ctx, kid)
+	if err != nil {
+		return err
 	}
 
-	key, err := j.JWKSClient.GetSignatureKey(kid)
-	if err != nil {
-		return fmt.Errorf("%w: %s", errPublicKeyNotFound, kid)
-	}
-	if key.Use != "sig" {
+	if key.Kty != "RSA" || key.Use != "sig" {
 		return errPublicKeyNotFound
 	}
 
-	pubKey, ok := key.Key.(*rsa.PublicKey)
-	if !ok {
-		return fmt.Errorf("fetch public key: %v", key.Key)
+	spec, err := key.ParseKeySpec()
+	if err != nil {
+		return err
 	}
 
-	verifier, err := jwt.NewVerifierRS(jwt.Algorithm(key.Algorithm), pubKey)
+	pubKey, ok := spec.Key.(*rsa.PublicKey)
+	if !ok {
+		return errPublicKeyInvalid
+	}
+
+	verifier, err := jwt.NewVerifierRS(jwt.Algorithm(spec.Algorithm), pubKey)
 	if err != nil {
-		return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, key.Algorithm)
+		return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, spec.Algorithm)
 	}
 
 	return verifier.Verify(token.Payload(), token.Signature())
@@ -194,7 +199,7 @@ func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token) error {
 	verifier.mu.RLock()
 	defer verifier.mu.RUnlock()
 
-	return verifier.jwksClient.verify(token)
+	return verifier.jwksManager.verify(token)
 }
 
 func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) {
@@ -203,7 +208,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		return ConnectToken{}, err
 	}
 
-	if verifier.jwksClient != nil {
+	if verifier.jwksManager != nil {
 		err = verifier.verifySignatureByJWK(token)
 	} else {
 		err = verifier.verifySignature(token)
