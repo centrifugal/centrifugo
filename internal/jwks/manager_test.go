@@ -19,12 +19,12 @@ type testKey struct {
 }
 
 func randomKeys() (*rsa.PrivateKey, *rsa.PublicKey, error) {
-	priv, err := rsa.GenerateKey(rand.Reader, 512)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 512)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return priv, &priv.PublicKey, nil
+	return privateKey, &privateKey.PublicKey, nil
 }
 
 func jwksHandler(keys ...testKey) http.Handler {
@@ -44,22 +44,58 @@ func jwksHandler(keys ...testKey) http.Handler {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
+		_, _ = w.Write(data)
 	})
 }
 
-func TestManagerInit(t *testing.T) {
-	manager, err := NewManager("https:example.com/.well-known/jwks.json")
-	require.NoError(t, err)
-	require.NotNil(t, manager)
-}
+func TestManagerFetchKey_UnmarshalError(t *testing.T) {
+	mux := http.NewServeMux()
+	path := "/.well-known/jwks.json"
+	mux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		_, _ = writer.Write([]byte(`...`))
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
 
-func TestManagerFailedFetchKey(t *testing.T) {
-	manager, err := NewManager("https:example.com/.well-known/jwks.json")
+	manager, err := NewManager(server.URL + path)
 	require.NoError(t, err)
 
 	_, err = manager.FetchKey(context.Background(), "202101")
-	require.ErrorIs(t, err, ErrConnectionFailed)
+	require.ErrorIs(t, err, errUnmarshal)
+}
+
+func TestManagerFetchKey_KeyNotFound(t *testing.T) {
+	mux := http.NewServeMux()
+	path := "/.well-known/jwks.json"
+	mux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		_, _ = writer.Write([]byte(`{"keys": []}`))
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	manager, err := NewManager(server.URL + path)
+	require.NoError(t, err)
+
+	_, err = manager.FetchKey(context.Background(), "202101")
+	require.ErrorIs(t, err, ErrPublicKeyNotFound)
+}
+
+func TestManagerFetchKey_WrongStatusCode(t *testing.T) {
+	mux := http.NewServeMux()
+	path := "/.well-known/jwks.json"
+	mux.HandleFunc(path, func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusInternalServerError)
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	manager, err := NewManager(server.URL + path)
+	require.NoError(t, err)
+
+	_, err = manager.FetchKey(context.Background(), "202101")
+	require.ErrorIs(t, err, errUnexpectedStatusCode)
 }
 
 func TestManagerInitialFetchKey(t *testing.T) {
@@ -118,8 +154,8 @@ func TestManagerCachedFetchKey(t *testing.T) {
 			ExpectedSize: 1,
 		},
 		{
-			Name:         "NoLookup",
-			Options:      []Option{WithLookup(false)},
+			Name:         "NoCacheLookup",
+			Options:      []Option{WithUseCache(false)},
 			ExpectedSize: 0,
 		},
 	}
@@ -144,7 +180,7 @@ func TestManagerCachedFetchKey(t *testing.T) {
 			r.NoError(err)
 			r.Equal(kid, key.Kid)
 
-			size, err := manager.cache.Len(ctx)
+			size, err := manager.cache.Len()
 			r.NoError(err)
 			r.Equal(tc.ExpectedSize, size)
 		})

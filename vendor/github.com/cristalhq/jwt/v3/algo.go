@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"crypto"
 	_ "crypto/sha256" // to register a hash
 	_ "crypto/sha512" // to register a hash
 )
@@ -43,3 +44,14 @@ const (
 	PS384 Algorithm = "PS384"
 	PS512 Algorithm = "PS512"
 )
+
+func hashPayload(hash crypto.Hash, payload []byte) ([]byte, error) {
+	hasher := hash.New()
+
+	_, err := hasher.Write(payload)
+	if err != nil {
+		return nil, err
+	}
+	signed := hasher.Sum(nil)
+	return signed, nil
+}

@@ -38,7 +38,7 @@ type StandardClaims struct {
 }
 
 // IsForAudience reports whether token has a given audience.
-func (sc *StandardClaims) IsForAudience(audience string) bool {
+func (sc StandardClaims) IsForAudience(audience string) bool {
 	for _, aud := range sc.Audience {
 		if constTimeEqual(aud, audience) {
 			return true
@@ -48,37 +48,37 @@ func (sc *StandardClaims) IsForAudience(audience string) bool {
 }
 
 // IsIssuer reports whether token has a given issuer.
-func (sc *StandardClaims) IsIssuer(issuer string) bool {
+func (sc StandardClaims) IsIssuer(issuer string) bool {
 	return constTimeEqual(sc.Issuer, issuer)
 }
 
 // IsSubject reports whether token has a given subject.
-func (sc *StandardClaims) IsSubject(subject string) bool {
+func (sc StandardClaims) IsSubject(subject string) bool {
 	return constTimeEqual(sc.Subject, subject)
 }
 
 // IsID reports whether token has a given id.
-func (sc *StandardClaims) IsID(id string) bool {
+func (sc StandardClaims) IsID(id string) bool {
 	return constTimeEqual(sc.ID, id)
 }
 
 // IsValidExpiresAt reports whether a token isn't expired at a given time.
-func (sc *StandardClaims) IsValidExpiresAt(now time.Time) bool {
+func (sc StandardClaims) IsValidExpiresAt(now time.Time) bool {
 	return sc.ExpiresAt == nil || sc.ExpiresAt.After(now)
 }
 
 // IsValidNotBefore reports whether a token isn't used before a given time.
-func (sc *StandardClaims) IsValidNotBefore(now time.Time) bool {
+func (sc StandardClaims) IsValidNotBefore(now time.Time) bool {
 	return sc.NotBefore == nil || sc.NotBefore.Before(now)
 }
 
 // IsValidIssuedAt reports whether a token was created before a given time.
-func (sc *StandardClaims) IsValidIssuedAt(now time.Time) bool {
+func (sc StandardClaims) IsValidIssuedAt(now time.Time) bool {
 	return sc.IssuedAt == nil || sc.IssuedAt.Before(now)
 }
 
 // IsValidAt reports whether a token is valid at a given time.
-func (sc *StandardClaims) IsValidAt(now time.Time) bool {
+func (sc StandardClaims) IsValidAt(now time.Time) bool {
 	return sc.IsValidExpiresAt(now) && sc.IsValidNotBefore(now) && sc.IsValidIssuedAt(now)
 }
 

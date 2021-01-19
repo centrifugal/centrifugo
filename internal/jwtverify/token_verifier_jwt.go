@@ -79,12 +79,15 @@ type SubscribeTokenClaims struct {
 type jwksManager struct{ *jwks.Manager }
 
 func (j *jwksManager) verify(token *jwt.Token) error {
-	ctx := context.Background()
 	kid := token.Header().KeyID
 
-	key, err := j.Manager.FetchKey(ctx, kid)
+	key, err := j.Manager.FetchKey(context.Background(), kid)
 	if err != nil {
 		return err
+	}
+
+	if key.Kty != "RSA" {
+		return errUnsupportedAlgorithm
 	}
 
 	spec, err := key.ParseKeySpec()

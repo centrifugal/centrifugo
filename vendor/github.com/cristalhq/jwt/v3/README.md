@@ -1,7 +1,7 @@
 # jwt
 
 [![Build Status][build-img]][build-url]
-[![GoDoc][doc-img]][doc-url]
+[![GoDoc][pkg-img]][pkg-url]
 [![Go Report Card][reportcard-img]][reportcard-url]
 [![Coverage][coverage-img]][coverage-url]
 
@@ -16,7 +16,7 @@ The latest version is `v3`.
 * Optimized for speed.
 * Dependency-free.
 * All sign methods supported
-  * HMAS (HS)
+  * HMAC (HS)
   * RSA (RS)
   * RSA-PSS (PS)
   * ECDSA (ES)
@@ -92,8 +92,8 @@ See [these docs][doc-url].
 
 [build-img]: https://github.com/cristalhq/jwt/workflows/build/badge.svg
 [build-url]: https://github.com/cristalhq/jwt/actions
-[doc-img]: https://godoc.org/github.com/cristalhq/jwt?status.svg
-[doc-url]: https://pkg.go.dev/github.com/cristalhq/jwt/v3
+[pkg-img]: https://pkg.go.dev/badge/cristalhq/jwt/v3
+[pkg-url]: https://pkg.go.dev/github.com/cristalhq/jwt/v3
 [reportcard-img]: https://goreportcard.com/badge/cristalhq/jwt
 [reportcard-url]: https://goreportcard.com/report/cristalhq/jwt
 [coverage-img]: https://codecov.io/gh/cristalhq/jwt/branch/master/graph/badge.svg
