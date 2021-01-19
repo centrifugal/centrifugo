@@ -1,7 +1,6 @@
 package jwks
 
 import (
-	"context"
 	"sync"
 	"time"
 )
@@ -31,10 +30,11 @@ func (i *item) expired() bool {
 
 // TTLCache is a TTL bases in-memory cache.
 type TTLCache struct {
-	mu    sync.RWMutex
-	ttl   time.Duration
-	stop  chan struct{}
-	items map[string]*item
+	mu       sync.RWMutex
+	ttl      time.Duration
+	stop     chan struct{}
+	stopOnce sync.Once
+	items    map[string]*item
 }
 
 // NewTTLCache returns a new instance of ttl cache.
@@ -78,7 +78,7 @@ func (tc *TTLCache) run() {
 }
 
 // Add item into cache.
-func (tc *TTLCache) Add(_ context.Context, key *JWK) error {
+func (tc *TTLCache) Add(key *JWK) error {
 	tc.mu.Lock()
 	item := &item{data: key}
 	item.touch(tc.ttl)
@@ -88,7 +88,7 @@ func (tc *TTLCache) Add(_ context.Context, key *JWK) error {
 }
 
 // Get item by key.
-func (tc *TTLCache) Get(_ context.Context, kid string) (*JWK, error) {
+func (tc *TTLCache) Get(kid string) (*JWK, error) {
 	tc.mu.RLock()
 	item, ok := tc.items[kid]
 	if !ok || item.expired() {
@@ -100,40 +100,25 @@ func (tc *TTLCache) Get(_ context.Context, kid string) (*JWK, error) {
 	return item.data, nil
 }
 
-// Remove item by key.
-func (tc *TTLCache) Remove(_ context.Context, kid string) error {
+// Stop stops TTL cache.
+func (tc *TTLCache) Stop() error {
+	tc.stopOnce.Do(func() {
+		close(tc.stop)
+	})
+	return nil
+}
+
+func (tc *TTLCache) remove(kid string) error {
 	tc.mu.Lock()
 	delete(tc.items, kid)
 	tc.mu.Unlock()
 	return nil
 }
 
-// Contains checks item on existence.
-func (tc *TTLCache) Contains(_ context.Context, kid string) (bool, error) {
-	tc.mu.RLock()
-	_, ok := tc.items[kid]
-	tc.mu.RUnlock()
-	return ok, nil
-}
-
 // Len returns current size of cache.
-func (tc *TTLCache) Len(_ context.Context) (int, error) {
+func (tc *TTLCache) Len() (int, error) {
 	tc.mu.RLock()
 	n := len(tc.items)
 	tc.mu.RUnlock()
 	return n, nil
-}
-
-// Purge deletes all items.
-func (tc *TTLCache) Purge(_ context.Context) error {
-	tc.mu.Lock()
-	tc.items = map[string]*item{}
-	tc.mu.Unlock()
-	return nil
-}
-
-// Stop cleanup process.
-func (tc *TTLCache) Stop(_ context.Context) error {
-	tc.stop <- struct{}{}
-	return nil
 }

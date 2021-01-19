@@ -10,7 +10,8 @@ import (
 //
 type Token struct {
 	raw       []byte
-	payload   []byte
+	dot1      int
+	dot2      int
 	signature []byte
 	header    Header
 	claims    json.RawMessage
@@ -38,8 +39,7 @@ func (t *Token) Header() Header {
 
 // RawHeader returns token's header raw bytes.
 func (t *Token) RawHeader() []byte {
-	dot := bytes.IndexByte(t.raw, '.')
-	return t.raw[:dot]
+	return t.raw[:t.dot1]
 }
 
 // RawClaims returns token's claims as a raw bytes.
@@ -49,7 +49,7 @@ func (t *Token) RawClaims() []byte {
 
 // Payload returns token's payload.
 func (t *Token) Payload() []byte {
-	return t.payload
+	return t.raw[:t.dot2]
 }
 
 // Signature returns token's signature.
@@ -58,12 +58,13 @@ func (t *Token) Signature() []byte {
 }
 
 // Header representa JWT header data.
-// See: https://tools.ietf.org/html/rfc7519#section-5
+// See: https://tools.ietf.org/html/rfc7519#section-5, https://tools.ietf.org/html/rfc7517
 //
 type Header struct {
 	Algorithm   Algorithm `json:"alg"`
 	Type        string    `json:"typ,omitempty"` // only "JWT" can be here
 	ContentType string    `json:"cty,omitempty"`
+	KeyID       string    `json:"kid,omitempty"`
 }
 
 // MarshalJSON implements the json.Marshaler interface.
@@ -79,6 +80,10 @@ func (h *Header) MarshalJSON() ([]byte, error) {
 	if h.ContentType != "" {
 		buf.WriteString(`","cty":"`)
 		buf.WriteString(h.ContentType)
+	}
+	if h.KeyID != "" {
+		buf.WriteString(`","kid":"`)
+		buf.WriteString(h.KeyID)
 	}
 	buf.WriteString(`"}`)
 

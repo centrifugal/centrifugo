@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -14,52 +15,70 @@ import (
 )
 
 const (
-	_defaultRetries = 2
-	_defaultTimeout = 1 * time.Second
-	_defaultTTL     = 1 * time.Hour
+	_defaultRetries            = 2
+	_defaultTimeout            = 1 * time.Second
+	_defaultMaxIdleConnPerHost = 255
+	_defaultTTL                = 1 * time.Hour
 )
 
 // JWK represents an unparsed JSON Web Key (JWK) in its wire format.
 type JWK = jwk.JWK
 
 var (
-	// ErrConnectionFailed raises when JWKS endpoint cannot be reached.
-	ErrConnectionFailed = errors.New("jwks: connection failed")
-	// ErrInvalidURL raises when input url has invalid format.
+	// ErrInvalidURL returned when input url has invalid format.
 	ErrInvalidURL = errors.New("jwks: invalid url value or format")
-	// ErrKeyIDNotProvided raises when input kid is not present.
+	// ErrInvalidNumRetries returned when number of retries is zero.
+	ErrInvalidNumRetries = errors.New("jwks: invalid number of retries")
+	// ErrKeyIDNotProvided returned when input kid is not present.
 	ErrKeyIDNotProvided = errors.New("jwks: kid is not provided")
-	// ErrPublicKeyNotFound raises when no public key is found.
+	// ErrPublicKeyNotFound returned when no public key is found.
 	ErrPublicKeyNotFound = errors.New("jwks: public key not found")
+
+	errUnexpectedStatusCode = errors.New("jwks: unexpected status code")
+	errUnmarshal            = errors.New("jwks: unmarshal error")
+	errConvert              = errors.New("jwks: convert error")
 )
 
 // Manager fetches and returns JWK from public source.
 type Manager struct {
-	url     *url.URL
-	cache   Cache
-	client  *http.Client
-	lookup  bool
-	retries int
-	group   singleflight.Group
+	url      string
+	cache    Cache
+	client   *http.Client
+	useCache bool
+	retries  uint
+	group    singleflight.Group
 }
 
-// NewManager returns a new instance of `Manager`.
-func NewManager(rawurl string, opts ...Option) (*Manager, error) {
-	url, err := url.Parse(rawurl)
+func defaultHTTPClient() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: _defaultMaxIdleConnPerHost,
+		},
+		Timeout: _defaultTimeout,
+	}
+}
+
+// NewManager returns a new instance of Manager.
+func NewManager(rawURL string, opts ...Option) (*Manager, error) {
+	_, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, ErrInvalidURL
 	}
 
 	mng := &Manager{
-		url:     url,
-		cache:   NewTTLCache(_defaultTTL),
-		client:  &http.Client{Timeout: _defaultTimeout},
-		lookup:  true,
-		retries: _defaultRetries,
+		url:      rawURL,
+		cache:    NewTTLCache(_defaultTTL),
+		client:   defaultHTTPClient(),
+		useCache: true,
+		retries:  _defaultRetries,
 	}
 
 	for _, opt := range opts {
 		opt(mng)
+	}
+
+	if mng.retries == 0 {
+		return nil, ErrInvalidNumRetries
 	}
 
 	return mng, nil
@@ -71,9 +90,9 @@ func (m *Manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {
 		return nil, ErrKeyIDNotProvided
 	}
 
-	// If lookup is true, first try to get key from cache.
-	if m.lookup {
-		key, err := m.cache.Get(ctx, kid)
+	// If useCache is true, first try to get key from cache.
+	if m.useCache {
+		key, err := m.cache.Get(kid)
 		if err == nil {
 			return key, nil
 		}
@@ -90,43 +109,46 @@ func (m *Manager) FetchKey(ctx context.Context, kid string) (*JWK, error) {
 	return v.(*JWK), nil
 }
 
+func (m *Manager) loadData(req *http.Request) ([]byte, error) {
+	resp, err := m.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%w: %d", errUnexpectedStatusCode, resp.StatusCode)
+	}
+	return ioutil.ReadAll(resp.Body)
+}
+
 func (m *Manager) fetchKey(ctx context.Context, kid string) (*JWK, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, m.url.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, m.url, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	var set jwk.KeySpecSet
+	var data []byte
+	var lastError error
 
-	// Make sure that you have exponential back off on this http request with retries.
 	retries := m.retries
-	for retries > 0 {
+	for {
+		if retries == 0 {
+			return nil, lastError
+		}
 		retries--
-
-		resp, err := m.client.Do(req)
+		var err error
+		data, err = m.loadData(req)
 		if err != nil {
+			lastError = err
 			continue
 		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			continue
-		}
-
-		data, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			continue
-		}
-
-		if err := json.Unmarshal(data, &set); err != nil {
-			return nil, err
-		}
-
 		break
 	}
 
-	if retries == 0 {
-		return nil, ErrConnectionFailed
+	if err := json.Unmarshal(data, &set); err != nil {
+		return nil, fmt.Errorf("%w: %v", errUnmarshal, err)
 	}
 
 	if len(set.Keys) == 0 {
@@ -137,23 +159,26 @@ func (m *Manager) fetchKey(ctx context.Context, kid string) (*JWK, error) {
 
 	// Save new set into cache.
 	for _, spec := range set.Keys {
-		jwk, err := spec.ToJWK()
+		key, err := spec.ToJWK()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %v", errConvert, err)
 		}
 
-		if m.lookup {
-			if err := m.cache.Add(ctx, jwk); err != nil {
-				return nil, err
-			}
+		if key.Use != "sig" {
+			// Not interested in other types of Use in Centrifugo.
+			continue
 		}
 
-		if jwk.Kid == kid {
-			res = jwk
+		if m.useCache {
+			_ = m.cache.Add(key)
+		}
+
+		if key.Kid == kid {
+			res = key
 		}
 	}
 
-	if res == nil || res.Kty != "RSA" || res.Use != "sig" {
+	if res == nil {
 		return nil, ErrPublicKeyNotFound
 	}
 

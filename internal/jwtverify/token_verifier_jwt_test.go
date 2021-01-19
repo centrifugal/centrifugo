@@ -120,7 +120,7 @@ func getJWKServer(pubKey *rsa.PublicKey, kty, use, kid string) *httptest.Server 
 			}}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	}))
 }
 
