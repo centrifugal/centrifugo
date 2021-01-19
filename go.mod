@@ -12,8 +12,8 @@ require (
 	github.com/centrifugal/centrifuge v0.14.2
 	github.com/centrifugal/protocol v0.3.4
 	github.com/cristalhq/jwt/v3 v3.0.7
-	github.com/danikarik/jwks v0.0.3
 	github.com/gogo/protobuf v1.3.1
+	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/securecookie v1.1.1
 	github.com/mattn/go-isatty v0.0.12
@@ -26,7 +26,6 @@ require (
 	github.com/prometheus/procfs v0.2.0 // indirect
 	github.com/rakutentech/jwk-go v1.0.1
 	github.com/rs/zerolog v1.20.0
-	github.com/s12v/go-jwks v0.2.1
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v0.0.7
 	github.com/stretchr/testify v1.7.0
