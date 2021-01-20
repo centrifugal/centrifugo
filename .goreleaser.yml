@@ -7,7 +7,7 @@ release:
   prerelease: false
 brews:
   -
-    github:
+    tap:
       owner: centrifugal
       name: homebrew-centrifugo
     folder: Formula

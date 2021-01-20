@@ -33,9 +33,10 @@ jobs:
         uses: goreleaser/goreleaser-action@v2
         with:
           version: latest
-          args: release --skip-publish --rm-dist --release-notes=misc/release/notes.md
+          args: release --rm-dist --release-notes=misc/release/notes.md
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # note custom secret here since we need access to Centrifugo Homebrew repo.
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
 #      - name: Release on Github
 #        env:
