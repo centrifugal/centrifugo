@@ -73,7 +73,7 @@ signs:
     artifacts: none
 dockers:
   -
-    binaries:
+    ids:
       - centrifugo
     goos: linux
     goarch: amd64

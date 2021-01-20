@@ -22,6 +22,7 @@ web:
 
 package:
 	./misc/scripts/package.sh $(VERSION) $(ITERATION)
+	package_cloud distro list deb
 
 packagecloud:
 	make packagecloud-deb
