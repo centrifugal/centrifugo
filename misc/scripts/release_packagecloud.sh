@@ -1,6 +1,6 @@
 #!/bin/sh
-gem install package_cloud
-gem install fpm
+sudo gem install package_cloud
+sudo gem install fpm
 sudo apt-get install -y rpm
 make package
 #make packagecloud
