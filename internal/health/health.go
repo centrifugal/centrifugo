@@ -11,7 +11,6 @@ type Config struct{}
 
 // Handler handles health endpoint.
 type Handler struct {
-	mux    *http.ServeMux
 	node   *centrifuge.Node
 	config Config
 }

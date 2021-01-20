@@ -1,0 +1,33 @@
+name: release
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  release:
+    name: Release with Go ${{ matrix.go-version }}
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install rpm
+        run: sudo apt-get install rpm
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.6
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install gox
+        run: GO111MODULE=off go get github.com/mitchellh/gox
+
+      - name: Docker login
+        run: docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+
+#      - name: Release on Github
+#        run: misc/release/release.sh --release-notes=misc/release/notes.md
+#
+#      - name: Release on Packagecloud
+#        run: misc/scripts/travis_packagecloud.sh
