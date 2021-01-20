@@ -14,7 +14,6 @@ jobs:
           version: v1.29
   test:
     name: Test with Go ${{ matrix.go-version }}
-    environment: release
     runs-on: ubuntu-latest
     # Prevent duplicate builds on internal PRs.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
@@ -33,19 +32,5 @@ jobs:
       - name: Install cover
         run: GO111MODULE=off go get golang.org/x/tools/cmd/cover
 
-      - name: Release on Github
-        uses: goreleaser/goreleaser-action@v2
-        with:
-          version: latest
-          args: build --snapshot
-        env:
-          # note custom secret here since we need access to Centrifugo Homebrew repo.
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: Release on Packagecloud
-        env:
-          PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
-        run: misc/scripts/release_packagecloud.sh
-#
-#      - name: Test
-#        run: make ci
+      - name: Test
+        run: make test

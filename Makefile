@@ -22,7 +22,6 @@ web:
 
 package:
 	./misc/scripts/package.sh $(VERSION) $(ITERATION)
-	package_cloud distro list deb
 
 packagecloud:
 	make packagecloud-deb
@@ -62,5 +61,3 @@ local-deps:
 
 build:
 	CGO_ENABLED=0 go build -mod=vendor
-
-ci: deps test
