@@ -12,8 +12,9 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.29
-  build:
+  test:
     name: Test with Go ${{ matrix.go-version }}
+    environment: release
     runs-on: ubuntu-latest
     # Prevent duplicate builds on internal PRs.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
