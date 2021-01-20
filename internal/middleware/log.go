@@ -29,7 +29,6 @@ func LogRequest(h http.Handler) http.Handler {
 		} else {
 			h.ServeHTTP(w, r)
 		}
-		return
 	})
 }
 
@@ -69,5 +68,6 @@ func (lrw *logResponseWriter) Flush() {
 
 // CloseNotify as SockJS uses http.CloseNotifier.
 func (lrw *logResponseWriter) CloseNotify() <-chan bool {
+	//nolint:staticcheck
 	return lrw.ResponseWriter.(http.CloseNotifier).CloseNotify()
 }

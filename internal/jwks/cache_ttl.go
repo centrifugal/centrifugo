@@ -64,13 +64,14 @@ func (tc *TTLCache) run() {
 		d = time.Second
 	}
 
-	ticker := time.Tick(d)
+	ticker := time.NewTicker(d)
 	go func() {
 		for {
 			select {
-			case <-ticker:
+			case <-ticker.C:
 				tc.cleanup()
 			case <-tc.stop:
+				ticker.Stop()
 				return
 			}
 		}

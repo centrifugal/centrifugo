@@ -32,7 +32,6 @@ func (r Raw) MarshalTo(data []byte) (n int, err error) {
 // Unmarshal exists to fit gogoprotobuf custom type interface.
 func (r *Raw) Unmarshal(data []byte) error {
 	if len(data) == 0 {
-		r = nil
 		return nil
 	}
 	id := Raw(make([]byte, len(data)))

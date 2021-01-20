@@ -54,9 +54,7 @@ func GetCommandDecoder(enc Encoding, data []byte) CommandDecoder {
 }
 
 // PutCommandDecoder ...
-func PutCommandDecoder(_ Encoding, _ CommandDecoder) {
-	return
-}
+func PutCommandDecoder(_ Encoding, _ CommandDecoder) {}
 
 // GetDecoder ...
 func GetDecoder(enc Encoding) Decoder {
@@ -67,9 +65,7 @@ func GetDecoder(enc Encoding) Decoder {
 }
 
 // PutDecoder ...
-func PutDecoder(_ Encoding, _ Decoder) {
-	return
-}
+func PutDecoder(_ Encoding, _ Decoder) {}
 
 // GetEncoder ...
 func GetEncoder(enc Encoding) Encoder {
@@ -80,6 +76,4 @@ func GetEncoder(enc Encoding) Encoder {
 }
 
 // PutEncoder ...
-func PutEncoder(_ Encoding, _ Encoder) {
-	return
-}
+func PutEncoder(_ Encoding, _ Encoder) {}

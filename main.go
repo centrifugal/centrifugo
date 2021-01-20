@@ -736,7 +736,7 @@ func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Co
 				}()
 			}
 
-			ctx, _ := context.WithTimeout(context.Background(), shutdownTimeout)
+			ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 
 			for _, srv := range httpServers {
 				wg.Add(1)
@@ -749,6 +749,7 @@ func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Co
 			_ = n.Shutdown(ctx)
 
 			wg.Wait()
+			cancel()
 
 			if pidFile != "" {
 				_ = os.Remove(pidFile)

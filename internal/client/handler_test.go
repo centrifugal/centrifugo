@@ -100,14 +100,6 @@ func newTestTransport() *testTransport {
 	}
 }
 
-func (t *testTransport) setProtocolType(pType centrifuge.ProtocolType) {
-	t.protoType = pType
-}
-
-func (t *testTransport) setSink(sink chan []byte) {
-	t.sink = sink
-}
-
 func (t *testTransport) Write(data []byte) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
