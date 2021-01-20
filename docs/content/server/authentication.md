@@ -64,6 +64,22 @@ New in v2.4.0
 
 An optional array of strings with server-side channels. See more details about [server-side subscriptions](server_subs.md).
 
+## JSON Web Key support
+
+Starting from v2.8.2 Centrifugo supports JSON Web Key (JWK) [spec](https://tools.ietf.org/html/rfc7517). This means that it's possible to improve JWT security by providing an endpoint to Centrifugo from where to load JWK (by looking at `kid` header of JWT).
+
+A mechanism can be enabled by providing `token_jwks_public_endpoint` string option to Centrifugo (HTTP address).
+
+As soon as `token_jwks_public_endpoint` set all tokens will be verified using JSON Web Key Set loaded from JWKS endpoint. This makes it impossible to use non-JWK based tokens to connect and subscribe to private channels.
+
+At the moment Centrifugo caches keys loaded from an endpoint for one hour.
+
+Centrifugo will load keys from JWKS endpoint by issuing GET HTTP request with 1 second timeout and one retry in case of failure (not configurable at the moment). 
+
+Only `RSA` algorithm supported.
+
+JWKS support enabled both for connection and private channel subscription tokens.
+
 ## Examples
 
 Let's look how to generate connection HS256 JWT in Python:

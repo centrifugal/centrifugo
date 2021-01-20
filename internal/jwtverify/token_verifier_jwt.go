@@ -252,7 +252,11 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		return SubscribeToken{}, err
 	}
 
-	err = verifier.verifySignature(token)
+	if verifier.jwksManager != nil {
+		err = verifier.verifySignatureByJWK(token)
+	} else {
+		err = verifier.verifySignature(token)
+	}
 	if err != nil {
 		return SubscribeToken{}, err
 	}
