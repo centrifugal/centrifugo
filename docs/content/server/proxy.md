@@ -237,9 +237,9 @@ With the following option in configuration file:
 – subscribe requests sent over client connection will be proxied to `proxy_subscribe_endpoint`. This allows you to check access of client to a channel.
 
 !!!danger
-    **Subscribe proxy does not proxy [private](channels.md#private-channel-prefix) and [user-limited](channels.md#user-channel-boundary) channels at moment**.
+    **Subscribe proxy does not proxy [private](channels.md#private-channel-prefix) and [user-limited](channels.md#user-channel-boundary) channels at the moment**. That's because those are already quite secure (user-limited channels check current user ID, private channels require subscription token). In some cases you may use subscribe proxy as a replacement for private channels actually: if you prefer to check permissions using proxy to backend mechanism – just stop using `$` prefixes in channels, properly configure subscribe proxy and validate subscriptions upon proxy from Centrifugo to your backend (issued each time user tries to subscribe on a channel for which subscribe proxy enabled).
 
-Unlike proxy types described above subscribe proxy must be enabled per channel namespace. This means that every namespace (including global one) has a boolean option `proxy_subscribe` that enables subscribe proxy for channels in namespace.
+Unlike proxy types described above subscribe proxy must be enabled per channel namespace. This means that every namespace (including global one) has a boolean option `proxy_subscribe` that enables subscribe proxy for channels in a namespace.
 
 So to enable subscribe proxy for channels without namespace define `proxy_subscribe` on a top configuration level:
 
