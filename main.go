@@ -675,7 +675,7 @@ func setupLogging() *os.File {
 	zerolog.SetGlobalLevel(logLevel)
 
 	if viper.IsSet("log_file") && viper.GetString("log_file") != "" {
-		f, err := os.OpenFile(viper.GetString("log_file"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		f, err := os.OpenFile(viper.GetString("log_file"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 		if err != nil {
 			log.Fatal().Msgf("error opening log file: %v", err)
 		}
