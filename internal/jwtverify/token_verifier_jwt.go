@@ -2,6 +2,7 @@ package jwtverify
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
@@ -23,6 +24,10 @@ type VerifierConfig struct {
 	// tokens generated using RSA. Zero value means that RSA tokens won't be allowed.
 	RSAPublicKey *rsa.PublicKey
 
+	// ECDSAPublicKey is a public key used to validate connection and subscription
+	// tokens generated using ECDSA. Zero value means that ECDSA tokens won't be allowed.
+	ECDSAPublicKey *ecdsa.PublicKey
+
 	// JWKSPublicEndpoint is a public url used to validate connection and subscription
 	// tokens generated using rotating RSA public keys. Zero value means that JSON Web Key Sets extension won't be used.
 	JWKSPublicEndpoint string
@@ -31,7 +36,7 @@ type VerifierConfig struct {
 func NewTokenVerifierJWT(config VerifierConfig) *VerifierJWT {
 	verifier := &VerifierJWT{}
 
-	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey)
+	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
 	if err != nil {
 		panic(err)
 	}
@@ -115,9 +120,12 @@ type algorithms struct {
 	RS256 jwt.Verifier
 	RS384 jwt.Verifier
 	RS512 jwt.Verifier
+	ES256 jwt.Verifier
+	ES384 jwt.Verifier
+	ES512 jwt.Verifier
 }
 
-func newAlgorithms(tokenHMACSecretKey string, pubKey *rsa.PublicKey) (*algorithms, error) {
+func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPubKey *ecdsa.PublicKey) (*algorithms, error) {
 	alg := &algorithms{}
 
 	// HMAC SHA.
@@ -140,22 +148,41 @@ func newAlgorithms(tokenHMACSecretKey string, pubKey *rsa.PublicKey) (*algorithm
 	}
 
 	// RSA.
-	if pubKey != nil {
-		verifierRS256, err := jwt.NewVerifierRS(jwt.RS256, pubKey)
+	if rsaPubKey != nil {
+		verifierRS256, err := jwt.NewVerifierRS(jwt.RS256, rsaPubKey)
 		if err != nil {
 			return nil, err
 		}
-		verifierRS384, err := jwt.NewVerifierRS(jwt.RS384, pubKey)
+		verifierRS384, err := jwt.NewVerifierRS(jwt.RS384, rsaPubKey)
 		if err != nil {
 			return nil, err
 		}
-		verifierRS512, err := jwt.NewVerifierRS(jwt.RS512, pubKey)
+		verifierRS512, err := jwt.NewVerifierRS(jwt.RS512, rsaPubKey)
 		if err != nil {
 			return nil, err
 		}
 		alg.RS256 = verifierRS256
 		alg.RS384 = verifierRS384
 		alg.RS512 = verifierRS512
+	}
+
+	// ECDSA.
+	if ecdsaPubKey != nil {
+		verifierES256, err := jwt.NewVerifierES(jwt.ES256, ecdsaPubKey)
+		if err != nil {
+			return nil, err
+		}
+		verifierES384, err := jwt.NewVerifierES(jwt.ES384, ecdsaPubKey)
+		if err != nil {
+			return nil, err
+		}
+		verifierES512, err := jwt.NewVerifierES(jwt.ES512, ecdsaPubKey)
+		if err != nil {
+			return nil, err
+		}
+		alg.ES256 = verifierES256
+		alg.ES384 = verifierES384
+		alg.ES512 = verifierES512
 	}
 
 	return alg, nil
@@ -176,6 +203,12 @@ func (s *algorithms) verify(token *jwt.Token) error {
 		verifier = s.RS384
 	case jwt.RS512:
 		verifier = s.RS512
+	case jwt.ES256:
+		verifier = s.ES256
+	case jwt.ES384:
+		verifier = s.ES384
+	case jwt.ES512:
+		verifier = s.ES512
 	default:
 		return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, string(token.Header().Algorithm))
 	}
@@ -294,7 +327,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 func (verifier *VerifierJWT) Reload(config VerifierConfig) error {
 	verifier.mu.Lock()
 	defer verifier.mu.Unlock()
-	alg, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey)
+	alg, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
 	if err != nil {
 		return err
 	}

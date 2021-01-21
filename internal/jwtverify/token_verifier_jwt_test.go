@@ -1,6 +1,8 @@
 package jwtverify
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
@@ -56,7 +58,14 @@ func generateTestRSAKeys(t *testing.T) (*rsa.PrivateKey, *rsa.PublicKey) {
 	return key, &key.PublicKey
 }
 
-func getTokenBuilder(rsaPrivateKey *rsa.PrivateKey, opts ...jwt.BuilderOption) *jwt.Builder {
+func generateTestECDSAKeys(t *testing.T) (*ecdsa.PrivateKey, *ecdsa.PublicKey) {
+	reader := rand.Reader
+	key, err := ecdsa.GenerateKey(elliptic.P256(), reader)
+	require.NoError(t, err)
+	return key, &key.PublicKey
+}
+
+func getRSATokenBuilder(rsaPrivateKey *rsa.PrivateKey, opts ...jwt.BuilderOption) *jwt.Builder {
 	var signer jwt.Signer
 	if rsaPrivateKey != nil {
 		signer, _ = jwt.NewSignerRS(jwt.RS256, rsaPrivateKey)
@@ -69,8 +78,39 @@ func getTokenBuilder(rsaPrivateKey *rsa.PrivateKey, opts ...jwt.BuilderOption) *
 	return jwt.NewBuilder(signer, opts...)
 }
 
-func getConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey, opts ...jwt.BuilderOption) string {
-	builder := getTokenBuilder(rsaPrivateKey, opts...)
+func getECDSATokenBuilder(ecdsaPrivateKey *ecdsa.PrivateKey, opts ...jwt.BuilderOption) *jwt.Builder {
+	var signer jwt.Signer
+	if ecdsaPrivateKey != nil {
+		signer, _ = jwt.NewSignerES(jwt.ES256, ecdsaPrivateKey)
+	} else {
+		// For HS we do everything in tests with key `secret`.
+		key := []byte(`secret`)
+		signer, _ = jwt.NewSignerHS(jwt.HS256, key)
+
+	}
+	return jwt.NewBuilder(signer, opts...)
+}
+
+//func getConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey, opts ...jwt.BuilderOption) string {
+//	builder := getRSATokenBuilder(rsaPrivateKey, opts...)
+//	claims := &ConnectTokenClaims{
+//		Base64Info: "e30=",
+//		StandardClaims: jwt.StandardClaims{
+//			Subject: user,
+//		},
+//	}
+//	if exp > 0 {
+//		claims.ExpiresAt = jwt.NewNumericDate(time.Unix(exp, 0))
+//	}
+//	token, err := builder.Build(claims)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return string(token.Raw())
+//}
+
+func getRSAConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey, opts ...jwt.BuilderOption) string {
+	builder := getRSATokenBuilder(rsaPrivateKey, opts...)
 	claims := &ConnectTokenClaims{
 		Base64Info: "e30=",
 		StandardClaims: jwt.StandardClaims{
@@ -87,8 +127,44 @@ func getConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey, opts ..
 	return string(token.Raw())
 }
 
-func getSubscribeToken(channel string, client string, exp int64, rsaPrivateKey *rsa.PrivateKey) string {
-	builder := getTokenBuilder(rsaPrivateKey)
+func getECDSAConnToken(user string, exp int64, ecdsaPrivateKey *ecdsa.PrivateKey, opts ...jwt.BuilderOption) string {
+	builder := getECDSATokenBuilder(ecdsaPrivateKey, opts...)
+	claims := &ConnectTokenClaims{
+		Base64Info: "e30=",
+		StandardClaims: jwt.StandardClaims{
+			Subject: user,
+		},
+	}
+	if exp > 0 {
+		claims.ExpiresAt = jwt.NewNumericDate(time.Unix(exp, 0))
+	}
+	token, err := builder.Build(claims)
+	if err != nil {
+		panic(err)
+	}
+	return string(token.Raw())
+}
+
+func getRSASubscribeToken(channel string, client string, exp int64, rsaPrivateKey *rsa.PrivateKey) string {
+	builder := getRSATokenBuilder(rsaPrivateKey)
+	claims := &SubscribeTokenClaims{
+		Base64Info:     "e30=",
+		Channel:        channel,
+		Client:         client,
+		StandardClaims: jwt.StandardClaims{},
+	}
+	if exp > 0 {
+		claims.ExpiresAt = jwt.NewNumericDate(time.Unix(exp, 0))
+	}
+	token, err := builder.Build(claims)
+	if err != nil {
+		panic(err)
+	}
+	return string(token.Raw())
+}
+
+func getECDSASubscribeToken(channel string, client string, exp int64, ecdsaPrivateKey *ecdsa.PrivateKey) string {
+	builder := getECDSATokenBuilder(ecdsaPrivateKey)
 	claims := &SubscribeTokenClaims{
 		Base64Info:     "e30=",
 		Channel:        channel,
@@ -125,14 +201,15 @@ func getJWKServer(pubKey *rsa.PublicKey, kty, use, kid string) *httptest.Server 
 }
 
 func Test_tokenVerifierJWT_Signer(t *testing.T) {
-	_, pubKey := generateTestRSAKeys(t)
-	signer, err := newAlgorithms("secret", pubKey)
+	_, rsaPubKey := generateTestRSAKeys(t)
+	_, ecdsaPubKey := generateTestECDSAKeys(t)
+	signer, err := newAlgorithms("secret", rsaPubKey, ecdsaPubKey)
 	require.NoError(t, err)
 	require.NotNil(t, signer)
 }
 
 func Test_tokenVerifierJWT_Valid(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, ""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
 	ct, err := verifier.VerifyConnectToken(jwtValid)
 	require.NoError(t, err)
 	require.Equal(t, "2694", ct.UserID)
@@ -141,40 +218,40 @@ func Test_tokenVerifierJWT_Valid(t *testing.T) {
 }
 
 func Test_tokenVerifierJWT_Expired(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, ""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
 	_, err := verifier.VerifyConnectToken(jwtExpired)
 	require.Error(t, err)
 	require.Equal(t, ErrTokenExpired, err)
 }
 
 func Test_tokenVerifierJWT_DisabledAlgorithm(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, ""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, nil,""})
 	_, err := verifier.VerifyConnectToken(jwtExpired)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, errDisabledAlgorithm), err.Error())
 }
 
 func Test_tokenVerifierJWT_InvalidSignature(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, ""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
 	_, err := verifier.VerifyConnectToken(jwtInvalidSignature)
 	require.Error(t, err)
 }
 
 func Test_tokenVerifierJWT_WithNotBefore(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, ""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
 	_, err := verifier.VerifyConnectToken(jwtNotBefore)
 	require.Error(t, err)
 }
 
 func Test_tokenVerifierJWT_StringAudience(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, ""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
 	ct, err := verifier.VerifyConnectToken(jwtStringAud)
 	require.NoError(t, err)
 	require.Equal(t, "2694", ct.UserID)
 }
 
 func Test_tokenVerifierJWT_ArrayAudience(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, ""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
 	ct, err := verifier.VerifyConnectToken(jwtArrayAud)
 	require.NoError(t, err)
 	require.Equal(t, "2694", ct.UserID)
@@ -185,9 +262,10 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 		token string
 	}
 
-	privateKey, pubKey := generateTestRSAKeys(t)
+	rsaPrivateKey, rsaPubKey := generateTestRSAKeys(t)
+	ecdsaPrivateKey, ecdsaPubKey := generateTestECDSAKeys(t)
 
-	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", pubKey, ""})
+	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey,""})
 	_time := time.Now()
 	tests := []struct {
 		name     string
@@ -201,7 +279,7 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 			name:     "Valid JWT HS",
 			verifier: verifierJWT,
 			args: args{
-				token: getConnToken("user1", _time.Add(24*time.Hour).Unix(), nil),
+				token: getRSAConnToken("user1", _time.Add(24*time.Hour).Unix(), nil),
 			},
 			want: ConnectToken{
 				UserID:   "user1",
@@ -213,7 +291,7 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 			name:     "Valid JWT RS",
 			verifier: verifierJWT,
 			args: args{
-				token: getConnToken("user1", _time.Add(24*time.Hour).Unix(), privateKey),
+				token: getRSAConnToken("user1", _time.Add(24*time.Hour).Unix(), rsaPrivateKey),
 			},
 			want: ConnectToken{
 				UserID:   "user1",
@@ -221,7 +299,21 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 				Info:     []byte("{}"),
 			},
 			wantErr: false,
-		}, {
+		},
+		{
+			name:     "Valid JWT ES",
+			verifier: verifierJWT,
+			args: args{
+				token: getECDSAConnToken("user1", _time.Add(24*time.Hour).Unix(), ecdsaPrivateKey),
+			},
+			want: ConnectToken{
+				UserID:   "user1",
+				ExpireAt: _time.Add(24 * time.Hour).Unix(),
+				Info:     []byte("{}"),
+			},
+			wantErr: false,
+		},
+		{
 			name:     "Invalid JWT",
 			verifier: verifierJWT,
 			args: args{
@@ -234,7 +326,7 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 			name:     "Expired JWT",
 			verifier: verifierJWT,
 			args: args{
-				token: getConnToken("user1", _time.Add(-24*time.Hour).Unix(), nil),
+				token: getRSAConnToken("user1", _time.Add(-24*time.Hour).Unix(), nil),
 			},
 			want:    ConnectToken{},
 			wantErr: true,
@@ -327,8 +419,8 @@ func Test_tokenVerifierJWT_VerifyConnectTokenWithJWK(t *testing.T) {
 			ts.Start()
 			defer ts.Close()
 
-			verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, ts.URL})
-			token := getConnToken(tt.token.user, tt.token.exp, privKey, jwt.WithKeyID(tt.jwk.kid))
+			verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, nil,ts.URL})
+			token := getRSAConnToken(tt.token.user, tt.token.exp, privKey, jwt.WithKeyID(tt.jwk.kid))
 
 			got, err := verifier.VerifyConnectToken(token)
 			if tt.wantErr {
@@ -352,9 +444,10 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 		token string
 	}
 
-	privateKey, pubKey := generateTestRSAKeys(t)
+	rsaPrivateKey, rsaPubKey := generateTestRSAKeys(t)
+	ecdsaPrivateKey, ecdsaPubKey := generateTestECDSAKeys(t)
 
-	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", pubKey, ""})
+	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey,""})
 	_time := time.Now()
 	tests := []struct {
 		name     string
@@ -384,7 +477,7 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 			name:     "Expired JWT",
 			verifier: verifierJWT,
 			args: args{
-				token: getSubscribeToken("channel1", "client1", _time.Add(-24*time.Hour).Unix(), nil),
+				token: getRSASubscribeToken("channel1", "client1", _time.Add(-24*time.Hour).Unix(), nil),
 			},
 			want:    SubscribeToken{},
 			wantErr: true,
@@ -393,7 +486,7 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 			name:     "Valid JWT HS",
 			verifier: verifierJWT,
 			args: args{
-				token: getSubscribeToken("channel1", "client1", _time.Add(24*time.Hour).Unix(), nil),
+				token: getRSASubscribeToken("channel1", "client1", _time.Add(24*time.Hour).Unix(), nil),
 			},
 			want: SubscribeToken{
 				Client:   "client1",
@@ -406,7 +499,21 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 			name:     "Valid JWT RS",
 			verifier: verifierJWT,
 			args: args{
-				token: getSubscribeToken("channel1", "client1", _time.Add(24*time.Hour).Unix(), privateKey),
+				token: getRSASubscribeToken("channel1", "client1", _time.Add(24*time.Hour).Unix(), rsaPrivateKey),
+			},
+			want: SubscribeToken{
+				Client:   "client1",
+				ExpireAt: _time.Add(24 * time.Hour).Unix(),
+				Info:     []byte("{}"),
+				Channel:  "channel1",
+			},
+			wantErr: false,
+		},
+		{
+			name:     "Valid JWT ES",
+			verifier: verifierJWT,
+			args: args{
+				token: getECDSASubscribeToken("channel1", "client1", _time.Add(24*time.Hour).Unix(), ecdsaPrivateKey),
 			},
 			want: SubscribeToken{
 				Client:   "client1",
@@ -437,7 +544,7 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 }
 
 func BenchmarkConnectTokenVerify_Valid(b *testing.B) {
-	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", nil, ""})
+	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := verifierJWT.VerifyConnectToken(jwtValid)
@@ -450,7 +557,7 @@ func BenchmarkConnectTokenVerify_Valid(b *testing.B) {
 }
 
 func BenchmarkConnectTokenVerify_Expired(b *testing.B) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, ""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
 	for i := 0; i < b.N; i++ {
 		_, err := verifier.VerifyConnectToken(jwtExpired)
 		if err != ErrTokenExpired {
