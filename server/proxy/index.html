@@ -1082,6 +1082,18 @@
   
   
     <li class="md-nav__item">
+      <a href="../../blog/intro_centrifuge/" class="md-nav__link">
+        An introduction to Centrifuge – real-time messaging with Go
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../blog/quic_web_transport/" class="md-nav__link">
         Experimenting with QUIC and WebTransport in Go
       </a>
@@ -1435,9 +1447,9 @@
 <p>– subscribe requests sent over client connection will be proxied to <code>proxy_subscribe_endpoint</code>. This allows you to check access of client to a channel.</p>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
-<p><strong>Subscribe proxy does not proxy <a href="../channels/#private-channel-prefix">private</a> and <a href="../channels/#user-channel-boundary">user-limited</a> channels at moment</strong>.</p>
+<p><strong>Subscribe proxy does not proxy <a href="../channels/#private-channel-prefix">private</a> and <a href="../channels/#user-channel-boundary">user-limited</a> channels at the moment</strong>. That's because those are already quite secure (user-limited channels check current user ID, private channels require subscription token). In some cases you may use subscribe proxy as a replacement for private channels actually: if you prefer to check permissions using proxy to backend mechanism – just stop using <code>$</code> prefixes in channels, properly configure subscribe proxy and validate subscriptions upon proxy from Centrifugo to your backend (issued each time user tries to subscribe on a channel for which subscribe proxy enabled).</p>
 </div>
-<p>Unlike proxy types described above subscribe proxy must be enabled per channel namespace. This means that every namespace (including global one) has a boolean option <code>proxy_subscribe</code> that enables subscribe proxy for channels in namespace.</p>
+<p>Unlike proxy types described above subscribe proxy must be enabled per channel namespace. This means that every namespace (including global one) has a boolean option <code>proxy_subscribe</code> that enables subscribe proxy for channels in a namespace.</p>
 <p>So to enable subscribe proxy for channels without namespace define <code>proxy_subscribe</code> on a top configuration level:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="err">...</span>

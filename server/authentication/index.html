@@ -599,6 +599,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#json-web-key-support" class="md-nav__link">
+    JSON Web Key support
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#examples" class="md-nav__link">
     Examples
   </a>
@@ -1108,6 +1115,18 @@
   
   
     <li class="md-nav__item">
+      <a href="../../blog/intro_centrifuge/" class="md-nav__link">
+        An introduction to Centrifuge – real-time messaging with Go
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../blog/quic_web_transport/" class="md-nav__link">
         Experimenting with QUIC and WebTransport in Go
       </a>
@@ -1250,6 +1269,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#json-web-key-support" class="md-nav__link">
+    JSON Web Key support
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#examples" class="md-nav__link">
     Examples
   </a>
@@ -1343,6 +1369,14 @@
 <h3 id="channels">channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h3>
 <p>New in v2.4.0</p>
 <p>An optional array of strings with server-side channels. See more details about <a href="../server_subs/">server-side subscriptions</a>.</p>
+<h2 id="json-web-key-support">JSON Web Key support<a class="headerlink" href="#json-web-key-support" title="Permanent link">&para;</a></h2>
+<p>Starting from v2.8.2 Centrifugo supports JSON Web Key (JWK) <a href="https://tools.ietf.org/html/rfc7517">spec</a>. This means that it's possible to improve JWT security by providing an endpoint to Centrifugo from where to load JWK (by looking at <code>kid</code> header of JWT).</p>
+<p>A mechanism can be enabled by providing <code>token_jwks_public_endpoint</code> string option to Centrifugo (HTTP address).</p>
+<p>As soon as <code>token_jwks_public_endpoint</code> set all tokens will be verified using JSON Web Key Set loaded from JWKS endpoint. This makes it impossible to use non-JWK based tokens to connect and subscribe to private channels.</p>
+<p>At the moment Centrifugo caches keys loaded from an endpoint for one hour.</p>
+<p>Centrifugo will load keys from JWKS endpoint by issuing GET HTTP request with 1 second timeout and one retry in case of failure (not configurable at the moment). </p>
+<p>Only <code>RSA</code> algorithm supported.</p>
+<p>JWKS support enabled both for connection and private channel subscription tokens.</p>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <p>Let's look how to generate connection HS256 JWT in Python:</p>
 <h3 id="simplest-token">Simplest token<a class="headerlink" href="#simplest-token" title="Permanent link">&para;</a></h3>

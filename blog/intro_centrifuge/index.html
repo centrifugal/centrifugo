@@ -1,0 +1,1835 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Introducing Centrifuge real-time messaging library for Go language">
+      
+      
+      
+        <meta name="author" content="Centrifugal organization">
+      
+      
+        <link rel="canonical" href="https://centrifugal.github.io/centrifugo/blog/intro_centrifuge/">
+      
+      <link rel="shortcut icon" href="../../images/favicon.png">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.2.5">
+    
+    
+      
+        <title>An introduction to Centrifuge – real-time messaging with Go - Centrifugo</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.15aa0b43.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.75751829.min.css">
+        
+          
+          
+          <meta name="theme-color" content="#000000">
+        
+      
+    
+    
+    
+      
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
+        <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
+      
+    
+    
+    
+      <link rel="stylesheet" href="../../theme/styles/extra.css">
+    
+    
+      
+    
+    
+
+<!-- Determine title -->
+
+
+
+
+
+<!-- The image needs to have an absolute URL -->
+
+
+<!-- Open graph meta tags -->
+
+<meta property="og:title" content="An introduction to Centrifuge – real-time messaging with Go" />
+
+
+
+<meta property="og:type" content="website" />
+
+
+<meta property="og:url" content="https://centrifugal.github.io/centrifugo/blog/intro_centrifuge/" />
+
+
+<meta property="og:image" content="https://i.imgur.com/W1PeoJL.jpg" />
+
+
+
+<meta property="og:image:type" content="image/png" />
+
+
+
+<meta property="og:image:width" content="1280">
+
+
+
+<meta property="og:image:height" content="640">
+
+
+
+<meta property="og:description" content="Introducing Centrifuge real-time messaging library for Go language">
+
+
+
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="black" data-md-color-accent="cyan">
+      
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#an-introduction-to-centrifuge-real-time-messaging-with-go" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid" aria-label="Header">
+    <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-header-nav__button md-logo" aria-label="Centrifugo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header-nav__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+    </label>
+    <div class="md-header-nav__title" data-md-component="header-title">
+      <div class="md-header-nav__ellipsis">
+        <div class="md-header-nav__topic">
+          <span class="md-ellipsis">
+            Centrifugo
+          </span>
+        </div>
+        <div class="md-header-nav__topic">
+          <span class="md-ellipsis">
+            
+              An introduction to Centrifuge – real-time messaging with Go
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      <label class="md-header-nav__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+      </label>
+      
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0116 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 019.5 16 6.5 6.5 0 013 9.5 6.5 6.5 0 019.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+      </label>
+      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" data-md-component="search-reset" tabindex="-1">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header-nav__source">
+        
+<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    centrifugal/centrifugo
+  </div>
+</a>
+      </div>
+    
+  </nav>
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+
+        
+          
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-tabs__inner md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+
+
+  <li class="md-tabs__item">
+    <a href="../.." class="md-tabs__link">
+      Home
+    </a>
+  </li>
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../getting_started/" class="md-tabs__link">
+        Getting Started
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../server/install/" class="md-tabs__link">
+        Server
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../libraries/client/" class="md-tabs__link">
+        Libraries
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../faq/" class="md-tabs__link">
+        FAQ
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../" class="md-tabs__link md-tabs__link--active">
+        Blog
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+
+
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../pro/" class="md-tabs__link">
+        Centrifugo PRO
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+        
+      
+
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="https://centrifugal.github.io/centrifugo/" title="Centrifugo" class="md-nav__button md-logo" aria-label="Centrifugo">
+      
+  <img src="../../images/logo.png" alt="logo">
+
+    </a>
+    Centrifugo
+  </label>
+  
+    <div class="md-nav__source">
+      
+<a href="https://github.com/centrifugal/centrifugo/" title="Go to repository" class="md-source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M439.55 236.05L244 40.45a28.87 28.87 0 00-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 01-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 000 40.81l195.61 195.6a28.86 28.86 0 0040.8 0l194.69-194.69a28.86 28.86 0 000-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    centrifugal/centrifugo
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2" >
+      
+      <label class="md-nav__link" for="nav-2">
+        Getting Started
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Getting Started" data-md-level="1">
+        <label class="md-nav__title" for="nav-2">
+          <span class="md-nav__icon md-icon"></span>
+          Getting Started
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        What is Centrifugo
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick_start/" class="md-nav__link">
+        Quick start
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/" class="md-nav__link">
+        Integration Guide
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3" type="checkbox" id="nav-3" >
+      
+      <label class="md-nav__link" for="nav-3">
+        Server
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Server" data-md-level="1">
+        <label class="md-nav__title" for="nav-3">
+          <span class="md-nav__icon md-icon"></span>
+          Server
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/install/" class="md-nav__link">
+        Installation
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/configuration/" class="md-nav__link">
+        Configuration
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/commands/" class="md-nav__link">
+        Console commands
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/client_api/" class="md-nav__link">
+        Client API
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/http_api/" class="md-nav__link">
+        Server HTTP API
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/grpc_api/" class="md-nav__link">
+        Server GRPC API
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/channels/" class="md-nav__link">
+        Channels
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/authentication/" class="md-nav__link">
+        Authentication
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/private_channels/" class="md-nav__link">
+        Private channels
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/engines/" class="md-nav__link">
+        Engines
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/admin/" class="md-nav__link">
+        Admin web interface
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/proxy/" class="md-nav__link">
+        Proxy to backend
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/server_subs/" class="md-nav__link">
+        Server-side subscriptions
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../server/connection_expiration/" class="md-nav__link">
+        Connection expiration
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-15" type="checkbox" id="nav-3-15" >
+      
+      <label class="md-nav__link" for="nav-3-15">
+        Client-server transports
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Client-server transports" data-md-level="2">
+        <label class="md-nav__title" for="nav-3-15">
+          <span class="md-nav__icon md-icon"></span>
+          Client-server transports
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../transports/" class="md-nav__link">
+        Overview
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../transports/websocket/" class="md-nav__link">
+        Websocket
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../transports/sockjs/" class="md-nav__link">
+        SockJS
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../transports/protobuf/" class="md-nav__link">
+        Protobuf protocol
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../transports/protocol/" class="md-nav__link">
+        Client protocol
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../transports/recovery/" class="md-nav__link">
+        Message recovery
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-16" type="checkbox" id="nav-3-16" >
+      
+      <label class="md-nav__link" for="nav-3-16">
+        Deploy
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Deploy" data-md-level="2">
+        <label class="md-nav__title" for="nav-3-16">
+          <span class="md-nav__icon md-icon"></span>
+          Deploy
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deploy/nginx/" class="md-nav__link">
+        Nginx configuration
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deploy/monitoring/" class="md-nav__link">
+        Monitoring
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deploy/tuning/" class="md-nav__link">
+        OS tuning
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deploy/tls/" class="md-nav__link">
+        TLS
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-3-17" type="checkbox" id="nav-3-17" >
+      
+      <label class="md-nav__link" for="nav-3-17">
+        Misc
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Misc" data-md-level="2">
+        <label class="md-nav__title" for="nav-3-17">
+          <span class="md-nav__icon md-icon"></span>
+          Misc
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../misc/insecure_modes/" class="md-nav__link">
+        Insecure modes
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../misc/migrate/" class="md-nav__link">
+        Migrate from Centrifugo v1
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../misc/benchmark/" class="md-nav__link">
+        Benchmark
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-4" type="checkbox" id="nav-4" >
+      
+      <label class="md-nav__link" for="nav-4">
+        Libraries
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Libraries" data-md-level="1">
+        <label class="md-nav__title" for="nav-4">
+          <span class="md-nav__icon md-icon"></span>
+          Libraries
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../libraries/client/" class="md-nav__link">
+        Client libraries
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../libraries/api/" class="md-nav__link">
+        API libraries
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-5" type="checkbox" id="nav-5" >
+      
+      <label class="md-nav__link" for="nav-5">
+        FAQ
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="FAQ" data-md-level="1">
+        <label class="md-nav__title" for="nav-5">
+          <span class="md-nav__icon md-icon"></span>
+          FAQ
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../faq/" class="md-nav__link">
+        Frequently Asked Questions
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-6" type="checkbox" id="nav-6" checked>
+      
+      <label class="md-nav__link" for="nav-6">
+        Blog
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Blog" data-md-level="1">
+        <label class="md-nav__title" for="nav-6">
+          <span class="md-nav__icon md-icon"></span>
+          Blog
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        About this blog
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          An introduction to Centrifuge – real-time messaging with Go
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        An introduction to Centrifuge – real-time messaging with Go
+      </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-its-all-started" class="md-nav__link">
+    How it's all started
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#so-what-is-centrifuge" class="md-nav__link">
+    So what is Centrifuge?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#centrifuge-node" class="md-nav__link">
+    Centrifuge Node
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#channel-subscriptions" class="md-nav__link">
+    Channel subscriptions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#async-message-passing" class="md-nav__link">
+    Async message passing
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rpc" class="md-nav__link">
+    RPC
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-side-subscriptions" class="md-nav__link">
+    Server-side subscriptions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#windowed-history-in-channel" class="md-nav__link">
+    Windowed history in channel
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#presence-and-presence-stats" class="md-nav__link">
+    Presence and presence stats
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scalability-aspects" class="md-nav__link">
+    Scalability aspects
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#order-and-delivery-properties" class="md-nav__link">
+    Order and delivery properties
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ecosystem" class="md-nav__link">
+    Ecosystem
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    Performance
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    Limitations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    Examples
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    Conclusion
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quic_web_transport/" class="md-nav__link">
+        Experimenting with QUIC and WebTransport in Go
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scaling_websocket/" class="md-nav__link">
+        Scaling WebSocket in Go and beyond
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="nav-7" type="checkbox" id="nav-7" >
+      
+      <label class="md-nav__link" for="nav-7">
+        Centrifugo PRO
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Centrifugo PRO" data-md-level="1">
+        <label class="md-nav__title" for="nav-7">
+          <span class="md-nav__icon md-icon"></span>
+          Centrifugo PRO
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pro/" class="md-nav__link">
+        About
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#how-its-all-started" class="md-nav__link">
+    How it's all started
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#so-what-is-centrifuge" class="md-nav__link">
+    So what is Centrifuge?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#centrifuge-node" class="md-nav__link">
+    Centrifuge Node
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    Authentication
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#channel-subscriptions" class="md-nav__link">
+    Channel subscriptions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#async-message-passing" class="md-nav__link">
+    Async message passing
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rpc" class="md-nav__link">
+    RPC
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-side-subscriptions" class="md-nav__link">
+    Server-side subscriptions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#windowed-history-in-channel" class="md-nav__link">
+    Windowed history in channel
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#presence-and-presence-stats" class="md-nav__link">
+    Presence and presence stats
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scalability-aspects" class="md-nav__link">
+    Scalability aspects
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#order-and-delivery-properties" class="md-nav__link">
+    Order and delivery properties
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ecosystem" class="md-nav__link">
+    Ecosystem
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    Performance
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    Limitations
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    Examples
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    Conclusion
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+
+                
+                  <a href="https://github.com/centrifugal/centrifugo/edit/master/docs/content/blog/intro_centrifuge.md" title="Edit this page" class="md-content__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
+                  </a>
+                
+                
+                <h1 id="an-introduction-to-centrifuge-real-time-messaging-with-go">An introduction to Centrifuge – real-time messaging with Go<a class="headerlink" href="#an-introduction-to-centrifuge-real-time-messaging-with-go" title="Permanent link">&para;</a></h1>
+<p><img alt="Centrifuge" src="https://i.imgur.com/W1PeoJL.jpg" /></p>
+<p>Today is 4<sup>th</sup> January – New Year holidays in progress. I am sitting inside a chair with a ticking clock on the wall and a cup of coffee on the table. The blue winter semidarkness outside the window makes the room magnificent. I spent enough time coding last year – not sure I'll find a better time to write about the open-source library I was working on and made big progress with.</p>
+<p>Maybe you've already heard about it – it's called <a href="https://github.com/centrifugal/centrifuge">Centrifuge</a>. This is a real-time messaging library for the Go language. OK, I think this is a mistake to call Centrifuge a library – <code>framework</code> suits better. As a Gopher, I don't like frameworks a lot. As soon as you start using a framework it dictates you pretty much how things should be done. I suppose that's why I still avoid describing Centrifuge with the right word. But the code is written – so I can only move on with it :)</p>
+<p>Centrifuge can do many things for you. Here I'll try to introduce Centrifuge and its possibilities.</p>
+<p>This post is going to be pretty long (looks like I am a huge fan of long reads) – so make sure you also have a drink (probably two) and let's go!</p>
+<h2 id="how-its-all-started">How it's all started<a class="headerlink" href="#how-its-all-started" title="Permanent link">&para;</a></h2>
+<p>I wrote several blog posts before (<a href="https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8">for example this one</a> – yep, it's on Medium...) about an original motivation of <a href="https://github.com/centrifugal/centrifugo">Centrifugo</a> server.</p>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Centrifugo server is not the same as Centrifuge library for Go. It's a full-featured project built on top of Centrifuge library. Naming can be confusing, but it's not too hard once you spend some time with ecosystem.</p>
+</div>
+<p>In short – Centrifugo was implemented to help traditional web frameworks dealing with many persistent connections (like WebSocket or SockJS HTTP transports). So frameworks like Django or Ruby on Rails, or frameworks from the PHP world could be used on a backend but still provide real-time messaging features like chats, multiplayer browser games, etc for users. With a little help from Centrifugo.</p>
+<p>Now there are cases when Centrifugo server used in conjunction even with a backend written in Go. While Go mostly has no problems dealing with many concurrent connections – Centrifugo provides some features beyond simple message passing between a client and a server. That makes it useful, especially since design is pretty non-obtrusive and fits well microservices world. Centrifugo is used in some well-known projects (like ManyChat, Yoola.io, Spot.im, Badoo etc).</p>
+<p>At the end of 2018, I released Centrifugo v2 based on a real-time messaging library for Go language – Centrifuge – the subject of this post.</p>
+<p>It was a pretty hard experience to decouple Centrifuge out of the monolithic Centrifugo server – I was unable to make all the things right immediately, so Centrifuge library API went through several iterations where I introduced backward-incompatible changes. All those changes targeted to make Centrifuge a more generic tool and remove opinionated or limiting parts.</p>
+<h2 id="so-what-is-centrifuge">So what is Centrifuge?<a class="headerlink" href="#so-what-is-centrifuge" title="Permanent link">&para;</a></h2>
+<p>This is ... well, a framework to build real-time messaging applications with Go language. If you ever heard about <a href="https://socket.io">socket.io</a> – then you can think about Centrifuge as an analogue. I think the most popular applications these days are chats of different forms, but I want to emphasize that Centrifuge is not a framework to build chats – it's a generic instrument that can be used to create different sorts of real-time applications – real-time charts, multiplayer games.</p>
+<p>The obvious choice for real-time messaging transport to achieve fast and cross-platform bidirectional communication these days is WebSocket. Especially if you are targeting a browser environment. You mostly don't need to use WebSocket HTTP polyfills in 2021 (though there are still corner cases so Centrifuge supports <a href="https://github.com/sockjs/sockjs-client">SockJS</a> polyfill).</p>
+<p>Centrifuge has its own custom protocol on top of plain WebSocket or SockJS frames. </p>
+<p>The reason why Centrifuge has its own protocol on top of underlying transport is that it provides several useful primitives to build real-time applications. The protocol <a href="https://github.com/centrifugal/protocol/blob/master/definitions/client.proto">described as strict Protobuf schema</a>. It's possible to pass JSON or binary Protobuf-encoded data over the wire with Centrifuge.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>GRPC is very handy these days too (and can be used in a browser with a help of additional proxies), some developers prefer using it for real-time messaging apps – especially when one-way communication needed. It can be a bit better from integration perspective but more resource-consuming on server side and a bit trickier to deploy.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Take a look at <a href="https://w3c.github.io/webtransport/">WebTransport</a> – a brand-new spec for web browsers to allow fast communication between a client and a server on top of QUIC – it may be a good alternative to WebSocket in the future. This in a draft status at the moment, but it's <a href="https://centrifugal.github.io/centrifugo/blog/quic_web_transport/">already possible to play with in Chrome</a>.</p>
+</div>
+<p>Own protocol is one of the things that prove the framework status of Centrifuge. This dictates certain limits (for example, you can't just use an alternative message encoding) and makes developers use custom client connectors on a front-end side to communicate with a Centrifuge-based server (see more about connectors in ecosystem part).</p>
+<p>But protocol solves many practical tasks – and here we are going to look at real-time features it provides for a developer.</p>
+<h2 id="centrifuge-node">Centrifuge Node<a class="headerlink" href="#centrifuge-node" title="Permanent link">&para;</a></h2>
+<p>To start working with Centrifuge you need to start Centrifuge server Node. Node is a core of Centrifuge – it has many useful methods – set event handlers, publish messages to channels, etc. We will look at some events and channels concept very soon.</p>
+<p>Also, Node abstracts away scalability aspects, so you don't need to think about how to scale WebSocket connections over different server instances and still have a way to deliver published messages to interested clients.</p>
+<p>For now, let's start a single instance of Node that will serve connections for us:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">node</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">DefaultConfig</span><span class="p">)</span>
+<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nx">Fatal</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">if</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">node</span><span class="p">.</span><span class="nx">Run</span><span class="p">();</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nx">Fatal</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>It's also required to serve a WebSocket handler – this is possible just by registering <code>centrifuge.WebsocketHandler</code> in HTTP mux:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">wsHandler</span> <span class="o">:=</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">NewWebsocketHandler</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">WebsocketConfig</span><span class="p">{})</span>
+<span class="nx">http</span><span class="p">.</span><span class="nx">Handle</span><span class="p">(</span><span class="s">&quot;/connection/websocket&quot;</span><span class="p">,</span> <span class="nx">wsHandler</span><span class="p">)</span>
+</code></pre></div>
+<p>Now it's possible to connect to a server (using Centrifuge connector for a browser called <code>centrifuge-js</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span> <span class="nx">centrifuge</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Centrifuge</span><span class="p">(</span><span class="s1">&#39;ws://localhost:8000/connection/websocket&#39;</span><span class="p">);</span>
+<span class="nx">centrifuge</span><span class="p">.</span><span class="nx">connect</span><span class="p">();</span>
+</code></pre></div>
+<p>Though connection will be rejected by the server since we also need to provide authentication details – Centrifuge expects explicitly provided connection <code>Credentials</code> to accept connection.</p>
+<h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h2>
+<p>Let's look at how we can tell Centrifuge details about connected user identity, so it could accept an incoming connection.</p>
+<p>There are two main ways to authenticate client connection in Centrifuge.</p>
+<p>The first one is over the native middleware mechanism. It's possible to wrap <code>centrifuge.WebsocketHandler</code> or <code>centrifuge.SockjsHandler</code> with middleware that checks user authentication and tells Centrifuge current user ID over <code>context.Context</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">func</span> <span class="nx">auth</span><span class="p">(</span><span class="nx">h</span> <span class="nx">http</span><span class="p">.</span><span class="nx">Handler</span><span class="p">)</span> <span class="nx">http</span><span class="p">.</span><span class="nx">Handler</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">http</span><span class="p">.</span><span class="nx">HandlerFunc</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">w</span> <span class="nx">http</span><span class="p">.</span><span class="nx">ResponseWriter</span><span class="p">,</span> <span class="nx">r</span> <span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">cred</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">Credentials</span><span class="p">{</span>
+            <span class="nx">UserID</span><span class="p">:</span> <span class="s">&quot;42&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="nx">newCtx</span> <span class="o">:=</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SetCredentials</span><span class="p">(</span><span class="nx">r</span><span class="p">.</span><span class="nx">Context</span><span class="p">(),</span> <span class="nx">cred</span><span class="p">)</span>
+        <span class="nx">r</span> <span class="p">=</span> <span class="nx">r</span><span class="p">.</span><span class="nx">WithContext</span><span class="p">(</span><span class="nx">newCtx</span><span class="p">)</span>
+        <span class="nx">h</span><span class="p">.</span><span class="nx">ServeHTTP</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span> <span class="nx">r</span><span class="p">)</span>
+    <span class="p">})</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>So WebsocketHandler can be registered this way (note that a handler now wrapped by auth middleware):</p>
+<div class="highlight"><pre><span></span><code><span class="nx">wsHandler</span> <span class="o">:=</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">NewWebsocketHandler</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">WebsocketConfig</span><span class="p">{})</span>
+<span class="nx">http</span><span class="p">.</span><span class="nx">Handle</span><span class="p">(</span><span class="s">&quot;/connection/websocket&quot;</span><span class="p">,</span> <span class="nx">auth</span><span class="p">(</span><span class="nx">wsHandler</span><span class="p">))</span>
+</code></pre></div>
+<p>Another authentication way is a bit more generic – developers can authenticate connection based on custom token sent from a client inside first WebSocket/SockJS frame. This is called <code>connect</code> frame in terms of Centrifuge protocol. Any string token can be set – this opens a way to use JWT, Paceto, and any other kind of authentication tokens. For example <a href="https://github.com/centrifugal/centrifuge/tree/master/_examples/jwt_token">see an authenticaton with JWT</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>BTW it's also possible to pass any information from client side with a first connect message from client to server and return custom information about server state to a client. This is out of post scope though.</p>
+</div>
+<p>Nothing prevents you to <a href="https://github.com/centrifugal/centrifuge/tree/master/_examples/chat_oauth2">integrate Centrifuge with OAuth2</a> or another framework session mechanism – <a href="https://github.com/centrifugal/centrifuge/tree/master/_examples/chat_oauth2">like Gin for example</a>.</p>
+<h2 id="channel-subscriptions">Channel subscriptions<a class="headerlink" href="#channel-subscriptions" title="Permanent link">&para;</a></h2>
+<p>As soon as a client connected and successfully authenticated it can subscribe to channels. Channel (room or topic in other systems) is a lightweight and ephemeral entity in Centrifuge. Channel can have different features (we will look at some channel features below). Channels created automatically as soon as the first subscriber joins and destroyed as soon as the last subscriber left.</p>
+<p>The application can have many real-time features – even on one app screen. So sometimes client subscribes to several channels – each related to a specific real-time feature (for example one channel for chat updates, one channel likes notification stream, etc).</p>
+<p>Channel is just an ASCII string. A developer is responsible to find the best channel naming convention suitable for an application. Channel naming convention is an important aspect since in many cases developers want to authorize subscription to a channel on the server side – so only authorized users could listen to specific channel updates.</p>
+<p>Let's look at a basic subscription example on the client-side:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">subscribe</span><span class="p">(</span><span class="s1">&#39;example&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">msgCtx</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">msgCtx</span><span class="p">)</span>
+<span class="p">})</span>
+</code></pre></div>
+<p>On the server-side, you need to define subscribe event handler. If subscribe event handler not set then the connection won't be able to subscribe to channels at all. Subscribe event handler is where a developer may check permissions of the current connection to read channel updates. Here is a basic example of subscribe event handler that simply allows subscriptions to channel <code>example</code> for all authenticated connections and reject subscriptions to all other channels:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">node</span><span class="p">.</span><span class="nx">OnConnect</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">client</span> <span class="o">*</span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">Client</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">client</span><span class="p">.</span><span class="nx">OnSubscribe</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">e</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeEvent</span><span class="p">,</span> <span class="nx">cb</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeCallback</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="nx">e</span><span class="p">.</span><span class="nx">Channel</span> <span class="o">!=</span> <span class="s">&quot;example&quot;</span> <span class="p">{</span>
+            <span class="nx">cb</span><span class="p">(</span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeReply</span><span class="p">{},</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">ErrorPermissionDenied</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="p">}</span>
+        <span class="nx">cb</span><span class="p">(</span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeReply</span><span class="p">{},</span> <span class="kc">nil</span><span class="p">)</span>
+    <span class="p">})</span>
+<span class="p">})</span>
+</code></pre></div>
+<p>You may notice a callback style of reacting to connection related things. While not being very idiomatic for Go it's very practical actually. The reason why we use callback style inside client event handlers is that it gives a developer possibility to control operation concurrency (i.e. process sth in separate goroutines or goroutine pool) and still control the order of events. See <a href="https://github.com/centrifugal/centrifuge/tree/master/_examples/concurrency">an example</a> that demonstrates concurrency control in action.</p>
+<p>Now if some event published to a channel:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Here is how we can publish data to a channel.</span>
+<span class="nx">node</span><span class="p">.</span><span class="nx">Publish</span><span class="p">(</span><span class="s">&quot;example&quot;</span><span class="p">,</span> <span class="p">[]</span><span class="nb">byte</span><span class="p">(</span><span class="s">`{&quot;input&quot;: &quot;hello&quot;}`</span><span class="p">))</span>
+</code></pre></div>
+<p>– data will be delivered to a subscribed client, and message will be printed to Javascript console. PUB/SUB in its usual form.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Though Centrifuge protocol based on Protobuf schema in example above we published a JSON message into a channel. By default, we can only send JSON to connections since default protocol format is JSON. But we can switch to Protobuf-based binary protocol by connecting to <code>ws://localhost:8000/connection/websocket?format=protobuf</code> endpoint – then it's possible to send binary data to clients.</p>
+</div>
+<h2 id="async-message-passing">Async message passing<a class="headerlink" href="#async-message-passing" title="Permanent link">&para;</a></h2>
+<p>While Centrifuge mostly shines when you need channel semantics it's also possible to send any data to connection directly – to achieve bidirectional asynchronous communication, just what a native WebSocket provides.</p>
+<p>To send a message to a server one can use the <code>send</code> method on the client-side:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">send</span><span class="p">({</span><span class="s2">&quot;input&quot;</span><span class="o">:</span> <span class="s2">&quot;hello&quot;</span><span class="p">});</span>
+</code></pre></div>
+<p>On the server-side data will be available inside a message handler:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">client</span><span class="p">.</span><span class="nx">OnMessage</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">e</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">MessageEvent</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;message from client: %s&quot;</span><span class="p">,</span> <span class="nx">e</span><span class="p">.</span><span class="nx">Data</span><span class="p">)</span>
+<span class="p">})</span>
+</code></pre></div>
+<p>And vice-versa, to send data to a client use <code>Send</code> method of <code>centrifuge.Client</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">client</span><span class="p">.</span><span class="nx">Send</span><span class="p">([]</span><span class="nb">byte</span><span class="p">(</span><span class="s">`{&quot;input&quot;: &quot;hello&quot;}`</span><span class="p">))</span>
+</code></pre></div>
+<p>To listen to it on the client-side:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;message&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<h2 id="rpc">RPC<a class="headerlink" href="#rpc" title="Permanent link">&para;</a></h2>
+<p>RPC is a primitive for sending a request from a client to a server and waiting for a response (in this case all communication still happens via asynchronous message passing internally, but Centrifuge takes care of matching response data to request previously sent).</p>
+<p>On client side it's as simple as:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span> <span class="nx">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">namedRPC</span><span class="p">(</span><span class="s1">&#39;my_method&#39;</span><span class="p">,</span> <span class="p">{});</span>
+</code></pre></div>
+<p>On server side RPC event handler should be set to make calls available:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">client</span><span class="p">.</span><span class="nx">OnRPC</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">e</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">RPCEvent</span><span class="p">,</span> <span class="nx">cb</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">RPCCallback</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="nx">e</span><span class="p">.</span><span class="nx">Method</span> <span class="o">==</span> <span class="s">&quot;my_method&quot;</span> <span class="p">{</span>
+        <span class="nx">cb</span><span class="p">(</span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">RPCReply</span><span class="p">{</span><span class="nx">Data</span><span class="p">:</span> <span class="p">[]</span><span class="nb">byte</span><span class="p">(</span><span class="s">`{&quot;result&quot;: &quot;42&quot;}`</span><span class="p">)},</span> <span class="kc">nil</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="p">}</span>
+    <span class="nx">cb</span><span class="p">(</span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">RPCReply</span><span class="p">{},</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">ErrorMethodNotFound</span><span class="p">)</span>
+<span class="p">})</span>
+</code></pre></div>
+<p>Note, that it's possible to pass the name of RPC and depending on it and custom request params return different results to a client – just like a regular HTTP request but over asynchronous WebSocket (or SockJS) connection.</p>
+<h2 id="server-side-subscriptions">Server-side subscriptions<a class="headerlink" href="#server-side-subscriptions" title="Permanent link">&para;</a></h2>
+<p>In many cases, a client is a source of knowledge which channels it wants to subscribe to on a specific application screen. But sometimes you want to control subscriptions to channels on a server-side. This is also possible in Centrifuge.</p>
+<p>It's possible to provide a slice of channels to subscribe connection to at the moment of connection establishment phase:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">node</span><span class="p">.</span><span class="nx">OnConnecting</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span> <span class="nx">e</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">ConnectEvent</span><span class="p">)</span> <span class="p">(</span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">ConnectReply</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">ConnectReply</span><span class="p">{</span>
+        <span class="nx">Subscriptions</span><span class="p">:</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeOptions</span><span class="p">{</span>
+            <span class="s">&quot;example&quot;</span><span class="p">:</span> <span class="p">{},</span>
+        <span class="p">},</span>
+    <span class="p">},</span> <span class="kc">nil</span>
+<span class="p">})</span>
+</code></pre></div>
+<p>Note, that <code>OnConnecting</code> does not follow callback-style – this is because it can only happen once at the start of each connection – so there is no need to control operation concurrency.</p>
+<p>In this case on the client-side you will have access to messages published to channels by listening to <code>on('publish')</code> event:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;publish&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">msgCtx</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">msgCtx</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>Also, <code>centrifuge.Client</code> has <code>Subscribe</code> and <code>Unsubscribe</code> methods so it's possible to subscribe/unsubscribe client to/from channel somewhere in the middle of its long WebSocket session.</p>
+<h2 id="windowed-history-in-channel">Windowed history in channel<a class="headerlink" href="#windowed-history-in-channel" title="Permanent link">&para;</a></h2>
+<p>Every time a message published to a channel it's possible to provide custom history options. For example:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">node</span><span class="p">.</span><span class="nx">Publish</span><span class="p">(</span>
+    <span class="s">&quot;example&quot;</span><span class="p">,</span>
+    <span class="p">[]</span><span class="nb">byte</span><span class="p">(</span><span class="s">`{&quot;input&quot;: &quot;hello&quot;}`</span><span class="p">),</span>
+    <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">WithHistory</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Minute</span><span class="p">),</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>In this case, Centrifuge will maintain a windowed Publication cache for a channel - or in other words, maintain a publication stream. This stream will have time retention (one minute in the example above) and the maximum size will be limited to the value provided during Publish (300 in the example above).</p>
+<p>Every message inside a history stream has an incremental <code>offset</code> field. Also, a stream has a field called <code>epoch</code> – this is a unique identifier of stream generation - thus client will have a possibility to distinguish situations where a stream is completely removed and there is no guarantee that no messages have been lost in between even if offset looks fine.</p>
+<p>Client protocol provides a possibility to paginate over a stream from a certain position with a limit:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span> <span class="nx">streamPosition</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;offset&#39;</span><span class="o">:</span> <span class="mf">0</span><span class="p">,</span> <span class="nx">epoch</span><span class="o">:</span> <span class="s1">&#39;xyz&#39;</span><span class="p">}</span> 
+<span class="nx">resp</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">sub</span><span class="p">.</span><span class="nx">history</span><span class="p">({</span><span class="nx">since</span><span class="o">:</span> <span class="nx">streamPosition</span><span class="p">,</span> <span class="nx">limit</span><span class="o">:</span> <span class="mf">10</span><span class="p">});</span>
+</code></pre></div>
+<p>Iteration over history stream is a new feature which is just merged into Centrifuge master branch and can only be used from Javascript client at the moment.</p>
+<p>Also, Centrifuge has an automatic message recovery feature. Automatic recovery is very useful in scenarios when tons of persistent connections start reconnecting at once. I already described why this is useful in one of my previous posts about Websocket scalability. In short – since WebSocket connections are stateful then at the moment of mass reconnect they can create a very big spike in load on your main application database. Such mass reconnects are a usual thing in practice - for example when you reload your load balancers or re-deploying the Websocket server (new code version).</p>
+<p>Of course, recovery can also be useful for regular short network disconnects - when a user travels in the subway for example. But you always need a way to load an actual state from the main application database in case of an unsuccessful recovery.</p>
+<p>To enable automatic recovery you can provide the <code>Recover</code> flag in subscribe options:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">client</span><span class="p">.</span><span class="nx">OnSubscribe</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">e</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeEvent</span><span class="p">,</span> <span class="nx">cb</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeCallback</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">cb</span><span class="p">(</span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeReply</span><span class="p">{</span>
+        <span class="nx">Options</span><span class="p">:</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeOptions</span><span class="p">{</span>
+            <span class="nx">Recover</span><span class="p">:</span>   <span class="kc">true</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">},</span> <span class="kc">nil</span><span class="p">)</span>
+<span class="p">})</span>
+</code></pre></div>
+<p>Obviously, recovery will work only for channels where history stream maintained. The limitation in recovery is that all missed publications sent to client in one protocol frame – pagination is not supported during recovery process. This means that recovery is mostly effective for not too long offline time without tons of missed messages.</p>
+<h2 id="presence-and-presence-stats">Presence and presence stats<a class="headerlink" href="#presence-and-presence-stats" title="Permanent link">&para;</a></h2>
+<p>Another cool thing Centrifuge exposes to developers is presence information for channels. Presence information contains a list of active channel subscribers. This is useful to show the online status of players in a game for example.</p>
+<p>Also, it's possible to turn on Join/Leave message feature inside channels: so each time connection subscribes to a channel all channel subscribers receive a Join message with client information (client ID, user ID). As soon as the client unsubscribes Leave message is sent to remaining channel subscribers with information who left a channel.</p>
+<p>Here is how to enable both presence and join/leave features for a subscription to channel:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">client</span><span class="p">.</span><span class="nx">OnSubscribe</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">e</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeEvent</span><span class="p">,</span> <span class="nx">cb</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeCallback</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">cb</span><span class="p">(</span><span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeReply</span><span class="p">{</span>
+        <span class="nx">Options</span><span class="p">:</span> <span class="nx">centrifuge</span><span class="p">.</span><span class="nx">SubscribeOptions</span><span class="p">{</span>
+            <span class="nx">Presence</span><span class="p">:</span>   <span class="kc">true</span><span class="p">,</span>
+            <span class="nx">JoinLeave</span><span class="p">:</span>  <span class="kc">true</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">},</span> <span class="kc">nil</span><span class="p">)</span>
+<span class="p">})</span>
+</code></pre></div>
+<p>On a client-side then it's possible to call for the presence and setting event handler for join/leave messages. </p>
+<p>The important thing to be aware of when using Join/Leave messages is that this feature can dramatically increase CPU utilization and overall traffic in channels with a big number of active subscribers – since on every client connect/disconnect event such Join or Leave message must be sent to all subscribers. The advice here – avoid using Join/Leave messages or be ready to scale (Join/Leave messages scale well when adding more Centrifuge Nodes – more about scalability below).</p>
+<p>One more thing to remember is that presence information can also be pretty expensive to request in channels with many active subscribers – since it returns information about all connections – thus payload in response can be large. To help a bit with this situation Centrifuge has a presence stats client API method. Presence stats only contain two counters: the number of active connections in the channel and amount of unique users in the channel.</p>
+<p>If you still need to somehow process presence in rooms with a massive number of active subscribers – then I think you better do it in near real-time - for example with fast OLAP like <a href="https://clickhouse.tech/">ClickHouse</a>.</p>
+<h2 id="scalability-aspects">Scalability aspects<a class="headerlink" href="#scalability-aspects" title="Permanent link">&para;</a></h2>
+<p>To be fair it's not too hard to implement most of the features above inside one in-memory process. Yes, it takes time, but the code is mostly straightforward. When it comes to scalability things tend to be a bit harder.</p>
+<p>Centrifuge designed with the idea in mind that one machine is not enough to handle all application WebSocket connections. Connections should scale over application backend instances, and it should be simple to add more application nodes when the amount of users (connections) grows.</p>
+<p>Centrifuge abstracts scalability over the <code>Node</code> instance and two interfaces: <code>Broker</code> interface and <code>PresenceManager</code> interface.</p>
+<p>A broker is responsible for PUB/SUB and streaming semantics:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span> <span class="nx">Broker</span> <span class="kd">interface</span> <span class="p">{</span>
+    <span class="nx">Run</span><span class="p">(</span><span class="nx">BrokerEventHandler</span><span class="p">)</span> <span class="kt">error</span>
+    <span class="nx">Subscribe</span><span class="p">(</span><span class="nx">ch</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span>
+    <span class="nx">Unsubscribe</span><span class="p">(</span><span class="nx">ch</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span>
+    <span class="nx">Publish</span><span class="p">(</span><span class="nx">ch</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">data</span> <span class="p">[]</span><span class="kt">byte</span><span class="p">,</span> <span class="nx">opts</span> <span class="nx">PublishOptions</span><span class="p">)</span> <span class="p">(</span><span class="nx">StreamPosition</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+    <span class="nx">PublishJoin</span><span class="p">(</span><span class="nx">ch</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">info</span> <span class="o">*</span><span class="nx">ClientInfo</span><span class="p">)</span> <span class="kt">error</span>
+    <span class="nx">PublishLeave</span><span class="p">(</span><span class="nx">ch</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">info</span> <span class="o">*</span><span class="nx">ClientInfo</span><span class="p">)</span> <span class="kt">error</span>
+    <span class="nx">PublishControl</span><span class="p">(</span><span class="nx">data</span> <span class="p">[]</span><span class="kt">byte</span><span class="p">,</span> <span class="nx">nodeID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span>
+    <span class="nx">History</span><span class="p">(</span><span class="nx">ch</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">filter</span> <span class="nx">HistoryFilter</span><span class="p">)</span> <span class="p">([]</span><span class="o">*</span><span class="nx">Publication</span><span class="p">,</span> <span class="nx">StreamPosition</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+    <span class="nx">RemoveHistory</span><span class="p">(</span><span class="nx">ch</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>See <a href="https://github.com/centrifugal/centrifuge/blob/v0.14.2/engine.go#L98">full version with comments</a> in source code.</p>
+<p>Every Centrifuge Node subscribes to channels via a broker. This provides a possibility to scale connections over many node instances – published messages will flow only to nodes with active channel subscribers.</p>
+<p>It's and important thing to combine PUB/SUB with history inside a Broker implementation to achieve an atomicity of saving message into history stream and publishing it to PUB/SUB with generated offset.</p>
+<p>PresenceManager is responsible for presence information management:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span> <span class="nx">PresenceManager</span> <span class="kd">interface</span> <span class="p">{</span>
+    <span class="nx">Presence</span><span class="p">(</span><span class="nx">ch</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="o">*</span><span class="nx">ClientInfo</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+    <span class="nx">PresenceStats</span><span class="p">(</span><span class="nx">ch</span> <span class="kt">string</span><span class="p">)</span> <span class="p">(</span><span class="nx">PresenceStats</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span>
+    <span class="nx">AddPresence</span><span class="p">(</span><span class="nx">ch</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">clientID</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">info</span> <span class="o">*</span><span class="nx">ClientInfo</span><span class="p">,</span> <span class="nx">expire</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span> <span class="kt">error</span>
+    <span class="nx">RemovePresence</span><span class="p">(</span><span class="nx">ch</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">clientID</span> <span class="kt">string</span><span class="p">)</span> <span class="kt">error</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><a href="https://github.com/centrifugal/centrifuge/blob/v0.14.2/engine.go#L150">Full code with comments</a>.</p>
+<p><code>Broker</code> and <code>PresenceManager</code> together form an <code>Engine</code> interface:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span> <span class="nx">Engine</span> <span class="kd">interface</span> <span class="p">{</span>
+    <span class="nx">Broker</span>
+    <span class="nx">PresenceManager</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>By default, Centrifuge uses <code>MemoryEngine</code> that does not use any external services but limits developers to using only one Centrifuge Node (i.e. one server instance). Memory Engine is fast and can be suitable for some scenarios - even in production (with configured backup instance) – but as soon as the number of connections grows – you may need to load balance connections to different server instances. Here comes the Redis Engine.</p>
+<p>Redis Engine utilizes Redis for Broker and PresenceManager parts.</p>
+<p>History cache saved to Redis STREAM or Redis LIST data structures. For presence, Centrifuge uses a combination of HASH and ZSET structures.</p>
+<p>Centrifuge tries to fully utilize the connection between Node and Redis by using pipelining where possible and smart batching technique. All operations done in a single RTT with the help of Lua scripts loaded automatically to Redis on engine start.</p>
+<p>Redis is pretty fast and will allow your app to scale to some limits. When Redis starts being a bottleneck it's possible to shard data over different Redis instances. Client-side consistent sharding is built-in in Centrifuge and allows scaling further.</p>
+<p>It's also possible to achieve Redis's high availability with built-in Sentinel support. Redis Cluster supported too. So Redis Engine covers many options to communicate with Redis deployed in different ways.</p>
+<p>At Avito we served about 800k active connections in the messenger app with ease using a slightly adapted Centrifuge Redis Engine, so an approach proved to be working for rather big applications. We will look at some more concrete numbers below in the performance section.</p>
+<p>Both <code>Broker</code> and <code>PresenceManager</code> are pluggable, so it's possible to replace them with alternative implementations. Examples show <a href="https://github.com/centrifugal/centrifuge/tree/master/_examples/custom_broker_nats">how to use Nats server</a> for at most once only PUB/SUB together with Centrifuge. Also, we have <a href="https://github.com/centrifugal/centrifuge/tree/master/_examples/custom_engine_tarantool">an example of full-featured Engine for Tarantool database</a> – Tarantool Engine shows even better throughput for history and presence operations than Redis-based Engine (up to 10x for some ops).</p>
+<h2 id="order-and-delivery-properties">Order and delivery properties<a class="headerlink" href="#order-and-delivery-properties" title="Permanent link">&para;</a></h2>
+<p>Since Centrifuge is a messaging system I also want to describe its order and message delivery guarantees.</p>
+<p>Message ordering in channels supported. As soon as you publish messages into channels one after another of course.</p>
+<p>Message delivery model is at most once by default. This is mostly comes from PUB/SUB model – message can be dropped on Centrifuge level if subscriber is offline or simply on broker level – since Redis PUB/SUB also works with at most once guarantee.</p>
+<p>Though if you maintain history stream inside a channel then things become a bit different. In this case you can tell Centrifuge to check client position inside stream. Since every publication has a unique incremental offset Centrifuge can track that client has correct offset inside a channel stream. If Centrifuge detects any missed messages it disconnects a client with special code – thus make it reconnect and recover messages from history stream. Since a message first saved to history stream and then published to PUB/SUB inside broker these mechanisms allow achieving at least once message delivery guarantee.</p>
+<p><img alt="What happens on publish" src="https://i.imgur.com/PLb9xS5.jpg" /></p>
+<p>Even if stream completely expired or dropped from broker memory Centrifuge will give a client a tip that messages could be lost – so client has a chance to restore state from a main application database.</p>
+<h2 id="ecosystem">Ecosystem<a class="headerlink" href="#ecosystem" title="Permanent link">&para;</a></h2>
+<p>Here I want to be fair with my readers – Centrifuge is not ideal. This is a project maintained mostly by one person at the moment with all consequences. This hits an ecosystem a lot, can make some design choices opinionated or non-optimal.</p>
+<p>I mentioned in the first post that Centrifuge built on top of the custom protocol. The protocol is based on a strict Protobuf schema, works with JSON and binary data transfer, supports many features. But – this means that to connect to the Centrifuge-based server developers have to use custom connectors that can speak with Centrifuge over its custom protocol.</p>
+<p>The difficulty here is that protocol is asynchronous. Asynchronous protocols are harder to implement than synchronous ones. Multiplexing frames allows achieving good performance and fully utilize a single connection – but it hurts simplicity.</p>
+<p>At this moment Centrifuge has client connectors for:</p>
+<ul>
+<li><a href="https://github.com/centrifugal/centrifuge-js">centrifuge-js</a> - Javascript client for a browser, NodeJS and React Native</li>
+<li><a href="https://github.com/centrifugal/centrifuge-go">centrifuge-go</a> - for Go language</li>
+<li><a href="https://github.com/centrifugal/centrifuge-mobile">centrifuge-mobile</a> - for mobile development based on centrifuge-go and <a href="https://github.com/golang/mobile">gomobile</a> project</li>
+<li><a href="https://github.com/centrifugal/centrifuge-swift">centrifuge-swift</a> - for iOS native development</li>
+<li><a href="https://github.com/centrifugal/centrifuge-java">centrifuge-java</a> - for Android native development and general Java</li>
+<li><a href="https://github.com/centrifugal/centrifuge-dart">centrifuge-dart</a> - for Dart and Flutter</li>
+</ul>
+<p>Not all clients support all protocol features. Another drawback is that all clients do not have a persistent maintainer – I mostly maintain everything myself. Connectors can have non-idiomatic and pretty dumb code since I had no previous experience with mobile development, they lack proper tests and documentation. This is unfortunate.</p>
+<p>The good thing is that all connectors feel very similar, I am quickly releasing new versions when someone sends a pull request with improvements or bug fixes. So all connectors are alive.</p>
+<p>I maintain a feature matrix in connectors to let users understand what's supported. Actually feature support is pretty nice throughout all these connectors - there are only several things missing and not so much work required to make all connectors full-featured. But I really need help here.</p>
+<p>It will be a big mistake to not mention Centrifugo as a big plus for Centrifuge library ecosystem. Centrifugo is a server deployed in many projects throughout the world. Many features of Centrifuge library and its connectors have already been tested by Centrifugo users.</p>
+<p>One more thing to mention is that Centrifuge does not have v1 release. It still evolves – I believe that the most dramatic changes have already been made and backward compatibility issues will be minimal in the next releases – but can't say for sure.</p>
+<h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
+<p>I made a test stand in Kubernetes with one million connections.</p>
+<p>I can't call this a proper benchmark – since in a benchmark your main goal is to destroy a system, in my test I just achieved some reasonable numbers on limited hardware. These numbers should give a good insight into a possible throughput, latency, and estimate hardware requirements (at least approximately).</p>
+<p>Connections landed on different server pods, 5 Redis instances have been used to scale connections between pods.</p>
+<p>The detailed test stand description <a href="https://centrifugal.github.io/centrifugo/misc/benchmark/">can be found in Centrifugo documentation</a>.</p>
+<p><img alt="Benchmark" src="../../images/benchmark.gif" /></p>
+<p>Some quick conclusions are:</p>
+<ul>
+<li>One connection costs about 30kb of RAM</li>
+<li>Redis broker CPU utilization increases linearly with more messages traveling around</li>
+<li>1 million connections with 500k <strong>delivered</strong> messages per second with 200ms delivery latency in 99 percentile can be served with hardware amount equal to one modern physical server machine. The possible amount of messages can vary a lot depending on the number of channel subscribers though.</li>
+</ul>
+<h2 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h2>
+<p>Centrifuge does not allow subscribing on the same channel twice inside a single connection. It's not simple to add due to design decisions made – though there was no single user report about this in seven years of Centrifugo/Centrifuge history.</p>
+<p>Centrifuge does not support wildcard subscriptions. Not only because I never needed this myself but also due to some design choices made – so be aware of this.</p>
+<p>SockJS fallback does not support binary data - only JSON. If you want to use binary in your application then you can only use WebSocket with Centrifuge - there is no built-in fallback transport in this case.</p>
+<p>SockJS also requires sticky session support from your load balancer to emulate a stateful bidirectional connection with its HTTP fallback transports. Ideally, Centrifuge will go away from SockJS at some point, maybe when WebTransport becomes mature so users will have a choice between WebTransport or WebSocket.</p>
+<p>Websocket <code>permessage-deflate</code> compression supported (thanks to Gorilla WebSocket), but it can be pretty expensive in terms of CPU utilization and memory usage – the overhead depends on usage pattern, it's pretty hard to estimate in numbers.</p>
+<p>As said above you cannot only rely on Centrifuge for state recovery – it's still required to have a way to fully load application state from the main database.</p>
+<p>Also, I am not very happy with current error and disconnect handling throughout the connector ecosystem – this can be improved though, and I have some ideas for the future.</p>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<p>I am adding examples to <a href="https://github.com/centrifugal/centrifuge/tree/master/_examples">_examples</a> folder of Centrifuge repo. These examples completely cover Centrifuge API - including things not mentioned here.</p>
+<p>Check out the <a href="https://github.com/centrifugal/centrifuge#tips-and-tricks">tips &amp; tricks</a> section of README – it contains some additional insights about an implementation.</p>
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p>I think <a href="https://github.com/centrifugal/centrifuge">Centrifuge</a> could be a nice alternative to <a href="https://socket.io">socket.io</a> - with a better performance, main server implementation in Go language, and even more builtin features to build real-time apps.</p>
+<p>Centrifuge ecosystem definitely needs more work, especially in client connectors area, tutorials, community, stabilizing API, etc.</p>
+<p>Centrifuge fits pretty well proprietary application development where time matters and deadlines are close, so developers tend to choose a ready solution instead of writing their own. I believe Centrifuge can be a great time saver here.</p>
+<p>For Centrifugo server users Centrifuge package provides a way to write a more flexible server code adapted for business requirements but still use the same real-time core and have the same protocol features.</p>
+                
+                  
+                
+              
+
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+
+        
+<footer class="md-footer">
+    
+    <div class="md-footer-nav">
+        <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
+            
+            <a href="../" title="About this blog" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+                <div class="md-footer-nav__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+                </div>
+                <div class="md-footer-nav__title">
+                    <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                        About this blog
+                    </div>
+                </div>
+            </a>
+            
+            
+            <a href="../quic_web_transport/" title="Experimenting with QUIC and WebTransport in Go" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
+                <div class="md-footer-nav__title">
+                    <div class="md-ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                        Experimenting with QUIC and WebTransport in Go
+                    </div>
+                </div>
+                <div class="md-footer-nav__button md-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
+                </div>
+            </a>
+            
+        </nav>
+    </div>
+    
+    <div class="md-footer-meta md-typeset">
+        <div class="md-footer-meta__inner md-grid">
+            <div class="md-footer-copyright">
+                
+                <div class="md-footer-copyright__highlight">
+                    Copyright &copy; 2020 Centrifugal
+                </div>
+                
+                <style>
+
+                    /* Preserve link color */
+                    .md-announce a,
+                    .md-announce a:focus,
+                    .md-announce a:hover {
+                        color: currentColor;
+                    }
+
+                    /* Don't wrap name of blog article */
+                    .md-announce strong {
+                        white-space: nowrap;
+                    }
+
+                    /* Twitter icon */
+                    .md-announce .twitter {
+                        margin-left: .2em;
+                        color: #00acee;
+                    }
+                </style>
+                <a href="https://opencollective.com/centrifugal">
+                    Support Centrifugo development on <strong>Open Collective</strong>
+                </a>
+            </div>
+            
+        </div>
+    </div>
+</footer>
+      
+
+    </div>
+    
+      <script src="../../assets/javascripts/vendor.93c04032.min.js"></script>
+      <script src="../../assets/javascripts/bundle.83e5331e.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
+      
+      <script>
+        app = initialize({
+          base: "../..",
+          features: ['navigation.tabs'],
+          search: Object.assign({
+            worker: "../../assets/javascripts/worker/search.8c7e0a7e.min.js"
+          }, typeof search !== "undefined" && search)
+        })
+      </script>
+      
+    
+  </body>
+</html>
