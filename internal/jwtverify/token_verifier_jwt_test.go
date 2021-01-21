@@ -91,24 +91,6 @@ func getECDSATokenBuilder(ecdsaPrivateKey *ecdsa.PrivateKey, opts ...jwt.Builder
 	return jwt.NewBuilder(signer, opts...)
 }
 
-//func getConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey, opts ...jwt.BuilderOption) string {
-//	builder := getRSATokenBuilder(rsaPrivateKey, opts...)
-//	claims := &ConnectTokenClaims{
-//		Base64Info: "e30=",
-//		StandardClaims: jwt.StandardClaims{
-//			Subject: user,
-//		},
-//	}
-//	if exp > 0 {
-//		claims.ExpiresAt = jwt.NewNumericDate(time.Unix(exp, 0))
-//	}
-//	token, err := builder.Build(claims)
-//	if err != nil {
-//		panic(err)
-//	}
-//	return string(token.Raw())
-//}
-
 func getRSAConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey, opts ...jwt.BuilderOption) string {
 	builder := getRSATokenBuilder(rsaPrivateKey, opts...)
 	claims := &ConnectTokenClaims{
@@ -209,7 +191,7 @@ func Test_tokenVerifierJWT_Signer(t *testing.T) {
 }
 
 func Test_tokenVerifierJWT_Valid(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
 	ct, err := verifier.VerifyConnectToken(jwtValid)
 	require.NoError(t, err)
 	require.Equal(t, "2694", ct.UserID)
@@ -218,40 +200,40 @@ func Test_tokenVerifierJWT_Valid(t *testing.T) {
 }
 
 func Test_tokenVerifierJWT_Expired(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
 	_, err := verifier.VerifyConnectToken(jwtExpired)
 	require.Error(t, err)
 	require.Equal(t, ErrTokenExpired, err)
 }
 
 func Test_tokenVerifierJWT_DisabledAlgorithm(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, nil,""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ""})
 	_, err := verifier.VerifyConnectToken(jwtExpired)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, errDisabledAlgorithm), err.Error())
 }
 
 func Test_tokenVerifierJWT_InvalidSignature(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
 	_, err := verifier.VerifyConnectToken(jwtInvalidSignature)
 	require.Error(t, err)
 }
 
 func Test_tokenVerifierJWT_WithNotBefore(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
 	_, err := verifier.VerifyConnectToken(jwtNotBefore)
 	require.Error(t, err)
 }
 
 func Test_tokenVerifierJWT_StringAudience(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
 	ct, err := verifier.VerifyConnectToken(jwtStringAud)
 	require.NoError(t, err)
 	require.Equal(t, "2694", ct.UserID)
 }
 
 func Test_tokenVerifierJWT_ArrayAudience(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
 	ct, err := verifier.VerifyConnectToken(jwtArrayAud)
 	require.NoError(t, err)
 	require.Equal(t, "2694", ct.UserID)
@@ -265,7 +247,7 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 	rsaPrivateKey, rsaPubKey := generateTestRSAKeys(t)
 	ecdsaPrivateKey, ecdsaPubKey := generateTestECDSAKeys(t)
 
-	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey,""})
+	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey, ""})
 	_time := time.Now()
 	tests := []struct {
 		name     string
@@ -419,7 +401,7 @@ func Test_tokenVerifierJWT_VerifyConnectTokenWithJWK(t *testing.T) {
 			ts.Start()
 			defer ts.Close()
 
-			verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, nil,ts.URL})
+			verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ts.URL})
 			token := getRSAConnToken(tt.token.user, tt.token.exp, privKey, jwt.WithKeyID(tt.jwk.kid))
 
 			got, err := verifier.VerifyConnectToken(token)
@@ -447,7 +429,7 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 	rsaPrivateKey, rsaPubKey := generateTestRSAKeys(t)
 	ecdsaPrivateKey, ecdsaPubKey := generateTestECDSAKeys(t)
 
-	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey,""})
+	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey, ""})
 	_time := time.Now()
 	tests := []struct {
 		name     string
@@ -544,7 +526,7 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 }
 
 func BenchmarkConnectTokenVerify_Valid(b *testing.B) {
-	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
+	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := verifierJWT.VerifyConnectToken(jwtValid)
@@ -557,7 +539,7 @@ func BenchmarkConnectTokenVerify_Valid(b *testing.B) {
 }
 
 func BenchmarkConnectTokenVerify_Expired(b *testing.B) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil,""})
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
 	for i := 0; i < b.N; i++ {
 		_, err := verifier.VerifyConnectToken(jwtExpired)
 		if err != ErrTokenExpired {
