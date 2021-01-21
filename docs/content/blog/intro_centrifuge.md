@@ -276,7 +276,7 @@ const streamPosition = {'offset': 0, epoch: 'xyz'}
 resp = await sub.history({since: streamPosition, limit: 10});
 ```
 
-Iteration over history stream is only available with Javascript client at the moment and only works for subscription object - i.e. client must be subscribed to a channel to iterate over its history. There are plans to extend this further in the future – for example allow history iteration on a client-side without being subscribed.
+Iteration over history stream is a new feature which is just merged into Centrifuge master branch and can only be used from Javascript client at the moment.
 
 Also, Centrifuge has an automatic message recovery feature. Automatic recovery is very useful in scenarios when tons of persistent connections start reconnecting at once. I already described why this is useful in one of my previous posts about Websocket scalability. In short – since WebSocket connections are stateful then at the moment of mass reconnect they can create a very big spike in load on your main application database. Such mass reconnects are a usual thing in practice - for example when you reload your load balancers or re-deploying the Websocket server (new code version).
 
