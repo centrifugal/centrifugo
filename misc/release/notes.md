@@ -9,6 +9,7 @@ Improvements:
 Fixes:
 
 * Use more strict file permissions for a log file created (when using `log_file` option): `0666` -> `0644`
+* Fix [issue](https://github.com/centrifugal/web/issues/36) with opening admin web UI menu on small screens
 
 Other:
 
