@@ -1,10 +1,13 @@
 # Authentication
 
-When you are using [centrifuge](https://github.com/centrifugal/centrifuge) library from Go language you can implement any user authentication using middleware. In Centrifugo case you need to tell server who is connecting in well-known predefined way. This chapter will describe this mechanism.
+When you are using [centrifuge](https://github.com/centrifugal/centrifuge) library from Go language you can implement any user authentication using middleware. In Centrifugo case you need to tell a server who is connecting in well-known predefined way. This chapter describes a mechanism of authenticating user over JSON Web Token (JWT).
 
-When connecting to Centrifugo client must provide connection JWT token with several predefined credential claims. If you've never heard about JWT before - refer to [jwt.io](https://jwt.io/) page.
+!!!note
+    If you prefer to avoid using JWT then look at [the proxy feature](proxy.md). It allows proxying connection request from Centrifugo to your backend for authentication details.
 
-At moment **the only supported JWT algorithms are HMAC and RSA** - i.e. HS256, HS384, HS512, RSA256, RSA384, RSA512. This can be extended later. RSA algorithm is available since v2.3.0 release.
+Upon connecting to Centrifugo client must provide connection JWT with several predefined credential claims. If you've never heard about JWT before - refer to [jwt.io](https://jwt.io/) page.
+
+At moment **the only supported JWT algorithms are HMAC, RSA and ECDSA** - i.e. HS256, HS384, HS512, RSA256, RSA384, RSA512, EC256, EC384, EC512. This can be extended later. RSA algorithm is available since v2.3.0 release. ECDSA algorithm is available since v2.8.2 release.
 
 We will use Javascript Centrifugo client here for example snippets for client side and [PyJWT](https://github.com/jpadilla/pyjwt) Python library to generate connection token on backend side.
 
@@ -26,9 +29,18 @@ To add RSA public key (must be PEM encoded string) add `token_rsa_public_key` op
 }
 ```
 
+To add ECDSA public key (must be PEM encoded string) add `token_ecdsa_public_key` option, ex:
+
+```json
+{
+  "token_ecdsa_public_key": "-----BEGIN PUBLIC KEY-----\nxyz23adf...",
+  ...
+}
+```
+
 ## Claims
 
-Centrifugo uses the following claims in JWT: `sub`, `exp`, `info` and `b64info`. What do they mean? Let's describe in detail.
+Centrifugo uses the following claims in a JWT: `sub`, `exp`, `info` and `b64info`. What do they mean? Let's describe in detail.
 
 ### sub
 
@@ -63,22 +75,6 @@ This field contains a `base64` representation of your bytes. After receiving Cen
 New in v2.4.0
 
 An optional array of strings with server-side channels. See more details about [server-side subscriptions](server_subs.md).
-
-## JSON Web Key support
-
-Starting from v2.8.2 Centrifugo supports JSON Web Key (JWK) [spec](https://tools.ietf.org/html/rfc7517). This means that it's possible to improve JWT security by providing an endpoint to Centrifugo from where to load JWK (by looking at `kid` header of JWT).
-
-A mechanism can be enabled by providing `token_jwks_public_endpoint` string option to Centrifugo (HTTP address).
-
-As soon as `token_jwks_public_endpoint` set all tokens will be verified using JSON Web Key Set loaded from JWKS endpoint. This makes it impossible to use non-JWK based tokens to connect and subscribe to private channels.
-
-At the moment Centrifugo caches keys loaded from an endpoint for one hour.
-
-Centrifugo will load keys from JWKS endpoint by issuing GET HTTP request with 1 second timeout and one retry in case of failure (not configurable at the moment). 
-
-Only `RSA` algorithm supported.
-
-JWKS support enabled both for connection and private channel subscription tokens.
 
 ## Examples
 
@@ -130,3 +126,19 @@ print(token)
 ### Investigating problems with JWT
 
 You can use [jwt.io](https://jwt.io/) site to investigate contents of your tokens. Also server logs usually contain some useful information.
+
+## JSON Web Key support
+
+Starting from v2.8.2 Centrifugo supports JSON Web Key (JWK) [spec](https://tools.ietf.org/html/rfc7517). This means that it's possible to improve JWT security by providing an endpoint to Centrifugo from where to load JWK (by looking at `kid` header of JWT).
+
+A mechanism can be enabled by providing `token_jwks_public_endpoint` string option to Centrifugo (HTTP address).
+
+As soon as `token_jwks_public_endpoint` set all tokens will be verified using JSON Web Key Set loaded from JWKS endpoint. This makes it impossible to use non-JWK based tokens to connect and subscribe to private channels.
+
+At the moment Centrifugo caches keys loaded from an endpoint for one hour.
+
+Centrifugo will load keys from JWKS endpoint by issuing GET HTTP request with 1 second timeout and one retry in case of failure (not configurable at the moment).
+
+Only `RSA` algorithm supported.
+
+JWKS support enabled both for connection and private channel subscription tokens.
