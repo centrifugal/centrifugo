@@ -70,4 +70,4 @@ token = jwt.encode({"client": "XXX", "channel": "$gossips"}, "secret", algorithm
 print(token)
 ```
 
-Where `"secret"` is the `token_hmac_secret_key` from Centrifugo configuration (we use HMAC tokens in this example which relies on shared secret key, for RSA tokens you need to use private key known only by your backend).
+Where `"secret"` is the `token_hmac_secret_key` from Centrifugo configuration (we use HMAC tokens in this example which relies on shared secret key, for RSA or ECDSA tokens you need to use private key known only by your backend).
