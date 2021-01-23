@@ -135,17 +135,6 @@ brew tap centrifugal/centrifugo
 brew install centrifugo
 ```
 
-## Using go get
-
-If you are Go developer then you can quickly try Centrifugo with `go get`:
-
-```bash
-go get github.com/centrifugal/centrifugo
-centrifugo
-```
-
-This will install Centrifugo to your Go bin directory.
-
 ## Build from source
 
 You need Go language installed:
@@ -154,5 +143,12 @@ You need Go language installed:
 git clone https://github.com/centrifugal/centrifugo.git
 cd centrifugo
 go build
+./centrifugo
+```
+
+Centrifugo vendors dependencies at the moment, if you want to build using vendored deps run:
+
+```
+go build -mod vendor
 ./centrifugo
 ```
