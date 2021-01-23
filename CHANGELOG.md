@@ -5,7 +5,8 @@ No backwards incompatible changes here.
 
 Improvements:
 
-* [JSON Web Key](https://tools.ietf.org/html/rfc7517) support - see [pull request](https://github.com/centrifugal/centrifugo/pull/410) and [description in docs](https://centrifugal.github.io/centrifugo/server/authentication/#json-web-key-support)
+* [JSON Web Key](https://tools.ietf.org/html/rfc7517) support - see [pull request #410](https://github.com/centrifugal/centrifugo/pull/410) and [description in docs](https://centrifugal.github.io/centrifugo/server/authentication/#json-web-key-support)
+* Support ECDSA algorithm for verifying JWT - see [pull request #420](https://github.com/centrifugal/centrifugo/pull/420) and updated [authentication docs chapter](https://centrifugal.github.io/centrifugo/server/authentication/)
 * Various documentation clarifications - did you know that you can [use subscribe proxy instead of private channels](https://centrifugal.github.io/centrifugo/server/proxy/#subscribe-proxy) for example?
 
 Fixes:
