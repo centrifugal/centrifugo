@@ -509,13 +509,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#using-go-get" class="md-nav__link">
-    Using go get
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#build-from-source" class="md-nav__link">
     Build from source
   </a>
@@ -1223,13 +1216,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#using-go-get" class="md-nav__link">
-    Using go get
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#build-from-source" class="md-nav__link">
     Build from source
   </a>
@@ -1341,17 +1327,15 @@
 <div class="highlight"><pre><span></span><code>brew tap centrifugal/centrifugo
 brew install centrifugo
 </code></pre></div>
-<h2 id="using-go-get">Using go get<a class="headerlink" href="#using-go-get" title="Permanent link">&para;</a></h2>
-<p>If you are Go developer then you can quickly try Centrifugo with <code>go get</code>:</p>
-<div class="highlight"><pre><span></span><code>go get github.com/centrifugal/centrifugo
-centrifugo
-</code></pre></div>
-<p>This will install Centrifugo to your Go bin directory.</p>
 <h2 id="build-from-source">Build from source<a class="headerlink" href="#build-from-source" title="Permanent link">&para;</a></h2>
 <p>You need Go language installed:</p>
 <div class="highlight"><pre><span></span><code>git clone https://github.com/centrifugal/centrifugo.git
 cd centrifugo
 go build
+./centrifugo
+</code></pre></div>
+<p>Centrifugo vendors dependencies at the moment, if you want to build using vendored deps run:</p>
+<div class="highlight"><pre><span></span><code>go build -mod vendor
 ./centrifugo
 </code></pre></div>
                 
