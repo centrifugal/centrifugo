@@ -599,13 +599,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#json-web-key-support" class="md-nav__link">
-    JSON Web Key support
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#examples" class="md-nav__link">
     Examples
   </a>
@@ -643,6 +636,13 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#json-web-key-support" class="md-nav__link">
+    JSON Web Key support
+  </a>
   
 </li>
       
@@ -1269,13 +1269,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#json-web-key-support" class="md-nav__link">
-    JSON Web Key support
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#examples" class="md-nav__link">
     Examples
   </a>
@@ -1316,6 +1309,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#json-web-key-support" class="md-nav__link">
+    JSON Web Key support
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1334,9 +1334,13 @@
                 
                 
                 <h1 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h1>
-<p>When you are using <a href="https://github.com/centrifugal/centrifuge">centrifuge</a> library from Go language you can implement any user authentication using middleware. In Centrifugo case you need to tell server who is connecting in well-known predefined way. This chapter will describe this mechanism.</p>
-<p>When connecting to Centrifugo client must provide connection JWT token with several predefined credential claims. If you've never heard about JWT before - refer to <a href="https://jwt.io/">jwt.io</a> page.</p>
-<p>At moment <strong>the only supported JWT algorithms are HMAC and RSA</strong> - i.e. HS256, HS384, HS512, RSA256, RSA384, RSA512. This can be extended later. RSA algorithm is available since v2.3.0 release.</p>
+<p>When you are using <a href="https://github.com/centrifugal/centrifuge">centrifuge</a> library from Go language you can implement any user authentication using middleware. In Centrifugo case you need to tell a server who is connecting in well-known predefined way. This chapter describes a mechanism of authenticating user over JSON Web Token (JWT).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you prefer to avoid using JWT then look at <a href="../proxy/">the proxy feature</a>. It allows proxying connection request from Centrifugo to your backend for authentication details.</p>
+</div>
+<p>Upon connecting to Centrifugo client must provide connection JWT with several predefined credential claims. If you've never heard about JWT before - refer to <a href="https://jwt.io/">jwt.io</a> page.</p>
+<p>At moment <strong>the only supported JWT algorithms are HMAC, RSA and ECDSA</strong> - i.e. HS256, HS384, HS512, RSA256, RSA384, RSA512, EC256, EC384, EC512. This can be extended later. RSA algorithm is available since v2.3.0 release. ECDSA algorithm is available since v2.8.2 release.</p>
 <p>We will use Javascript Centrifugo client here for example snippets for client side and <a href="https://github.com/jpadilla/pyjwt">PyJWT</a> Python library to generate connection token on backend side.</p>
 <p>To add HMAC secret key to Centrifugo add <code>token_hmac_secret_key</code> to configuration file:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -1350,8 +1354,14 @@
   <span class="err">...</span>
 <span class="p">}</span>
 </code></pre></div>
+<p>To add ECDSA public key (must be PEM encoded string) add <code>token_ecdsa_public_key</code> option, ex:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+  <span class="nt">&quot;token_ecdsa_public_key&quot;</span><span class="p">:</span> <span class="s2">&quot;-----BEGIN PUBLIC KEY-----\nxyz23adf...&quot;</span><span class="p">,</span>
+  <span class="err">...</span>
+<span class="p">}</span>
+</code></pre></div>
 <h2 id="claims">Claims<a class="headerlink" href="#claims" title="Permanent link">&para;</a></h2>
-<p>Centrifugo uses the following claims in JWT: <code>sub</code>, <code>exp</code>, <code>info</code> and <code>b64info</code>. What do they mean? Let's describe in detail.</p>
+<p>Centrifugo uses the following claims in a JWT: <code>sub</code>, <code>exp</code>, <code>info</code> and <code>b64info</code>. What do they mean? Let's describe in detail.</p>
 <h3 id="sub">sub<a class="headerlink" href="#sub" title="Permanent link">&para;</a></h3>
 <p>This is a standard JWT claim which must contain an ID of current application user (<strong>as string</strong>). </p>
 <p>If your user not currently authenticated in your application, but you want to let him connect to Centrifugo anyway – you can use empty string as user ID in this <code>sub</code> claim. This is called anonymous access. In this case <code>anonymous</code> option must be enabled in Centrifugo configuration for channels that client will subscribe to.</p>
@@ -1369,14 +1379,6 @@
 <h3 id="channels">channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h3>
 <p>New in v2.4.0</p>
 <p>An optional array of strings with server-side channels. See more details about <a href="../server_subs/">server-side subscriptions</a>.</p>
-<h2 id="json-web-key-support">JSON Web Key support<a class="headerlink" href="#json-web-key-support" title="Permanent link">&para;</a></h2>
-<p>Starting from v2.8.2 Centrifugo supports JSON Web Key (JWK) <a href="https://tools.ietf.org/html/rfc7517">spec</a>. This means that it's possible to improve JWT security by providing an endpoint to Centrifugo from where to load JWK (by looking at <code>kid</code> header of JWT).</p>
-<p>A mechanism can be enabled by providing <code>token_jwks_public_endpoint</code> string option to Centrifugo (HTTP address).</p>
-<p>As soon as <code>token_jwks_public_endpoint</code> set all tokens will be verified using JSON Web Key Set loaded from JWKS endpoint. This makes it impossible to use non-JWK based tokens to connect and subscribe to private channels.</p>
-<p>At the moment Centrifugo caches keys loaded from an endpoint for one hour.</p>
-<p>Centrifugo will load keys from JWKS endpoint by issuing GET HTTP request with 1 second timeout and one retry in case of failure (not configurable at the moment). </p>
-<p>Only <code>RSA</code> algorithm supported.</p>
-<p>JWKS support enabled both for connection and private channel subscription tokens.</p>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <p>Let's look how to generate connection HS256 JWT in Python:</p>
 <h3 id="simplest-token">Simplest token<a class="headerlink" href="#simplest-token" title="Permanent link">&para;</a></h3>
@@ -1410,6 +1412,14 @@
 </code></pre></div>
 <h3 id="investigating-problems-with-jwt">Investigating problems with JWT<a class="headerlink" href="#investigating-problems-with-jwt" title="Permanent link">&para;</a></h3>
 <p>You can use <a href="https://jwt.io/">jwt.io</a> site to investigate contents of your tokens. Also server logs usually contain some useful information.</p>
+<h2 id="json-web-key-support">JSON Web Key support<a class="headerlink" href="#json-web-key-support" title="Permanent link">&para;</a></h2>
+<p>Starting from v2.8.2 Centrifugo supports JSON Web Key (JWK) <a href="https://tools.ietf.org/html/rfc7517">spec</a>. This means that it's possible to improve JWT security by providing an endpoint to Centrifugo from where to load JWK (by looking at <code>kid</code> header of JWT).</p>
+<p>A mechanism can be enabled by providing <code>token_jwks_public_endpoint</code> string option to Centrifugo (HTTP address).</p>
+<p>As soon as <code>token_jwks_public_endpoint</code> set all tokens will be verified using JSON Web Key Set loaded from JWKS endpoint. This makes it impossible to use non-JWK based tokens to connect and subscribe to private channels.</p>
+<p>At the moment Centrifugo caches keys loaded from an endpoint for one hour.</p>
+<p>Centrifugo will load keys from JWKS endpoint by issuing GET HTTP request with 1 second timeout and one retry in case of failure (not configurable at the moment).</p>
+<p>Only <code>RSA</code> algorithm supported.</p>
+<p>JWKS support enabled both for connection and private channel subscription tokens.</p>
                 
               
               
