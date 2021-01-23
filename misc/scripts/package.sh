@@ -51,12 +51,6 @@ DESCRIPTION="Real-time messaging server"
 
 echo "Start packaging, version: $VERSION, iteration: $ITERATION"
 
-# check_gopath checks the GOPATH env variable set
-check_gopath() {
-    [ -z "$GOPATH" ] && echo "GOPATH is not set." && cleanup_exit 1
-    echo "GOPATH: $GOPATH"
-}
-
 # cleanup_exit removes all resources created during the process and exits with
 # the supplied returned code.
 cleanup_exit() {
@@ -97,8 +91,6 @@ do_build() {
     gox -os="linux" -ldflags="-X main.VERSION=$VERSION" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/{{.Dir}}"
     echo "Binary build completed successfully"
 }
-
-check_gopath
 
 do_build $VERSION
 
