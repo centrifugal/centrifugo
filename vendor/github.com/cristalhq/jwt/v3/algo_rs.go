@@ -34,7 +34,7 @@ func NewVerifierRS(alg Algorithm, key *rsa.PublicKey) (Verifier, error) {
 	return &rsAlg{
 		alg:       alg,
 		hash:      hash,
-		publickey: key,
+		publicKey: key,
 	}, nil
 }
 
@@ -54,19 +54,19 @@ func getHashRSA(alg Algorithm) (crypto.Hash, bool) {
 type rsAlg struct {
 	alg        Algorithm
 	hash       crypto.Hash
-	publickey  *rsa.PublicKey
+	publicKey  *rsa.PublicKey
 	privateKey *rsa.PrivateKey
 }
 
-func (rs rsAlg) Algorithm() Algorithm {
+func (rs *rsAlg) Algorithm() Algorithm {
 	return rs.alg
 }
 
-func (rs rsAlg) SignSize() int {
+func (rs *rsAlg) SignSize() int {
 	return rs.privateKey.Size()
 }
 
-func (rs rsAlg) Sign(payload []byte) ([]byte, error) {
+func (rs *rsAlg) Sign(payload []byte) ([]byte, error) {
 	digest, err := hashPayload(rs.hash, payload)
 	if err != nil {
 		return nil, err
@@ -79,13 +79,20 @@ func (rs rsAlg) Sign(payload []byte) ([]byte, error) {
 	return signature, nil
 }
 
-func (rs rsAlg) Verify(payload, signature []byte) error {
+func (rs *rsAlg) VerifyToken(token *Token) error {
+	if constTimeAlgEqual(token.Header().Algorithm, rs.alg) {
+		return rs.Verify(token.Payload(), token.Signature())
+	}
+	return ErrAlgorithmMismatch
+}
+
+func (rs *rsAlg) Verify(payload, signature []byte) error {
 	digest, err := hashPayload(rs.hash, payload)
 	if err != nil {
 		return err
 	}
 
-	errVerify := rsa.VerifyPKCS1v15(rs.publickey, rs.hash, digest, signature)
+	errVerify := rsa.VerifyPKCS1v15(rs.publicKey, rs.hash, digest, signature)
 	if errVerify != nil {
 		return ErrInvalidSignature
 	}

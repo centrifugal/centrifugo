@@ -36,7 +36,7 @@ func NewVerifierES(alg Algorithm, key *ecdsa.PublicKey) (Verifier, error) {
 	return &esAlg{
 		alg:       alg,
 		hash:      hash,
-		publickey: key,
+		publicKey: key,
 		signSize:  roundBytes(key.Params().BitSize) * 2,
 	}, nil
 }
@@ -57,20 +57,20 @@ func getParamsES(alg Algorithm) (crypto.Hash, bool) {
 type esAlg struct {
 	alg        Algorithm
 	hash       crypto.Hash
-	publickey  *ecdsa.PublicKey
+	publicKey  *ecdsa.PublicKey
 	privateKey *ecdsa.PrivateKey
 	signSize   int
 }
 
-func (es esAlg) Algorithm() Algorithm {
+func (es *esAlg) Algorithm() Algorithm {
 	return es.alg
 }
 
-func (es esAlg) SignSize() int {
+func (es *esAlg) SignSize() int {
 	return es.signSize
 }
 
-func (es esAlg) Sign(payload []byte) ([]byte, error) {
+func (es *esAlg) Sign(payload []byte) ([]byte, error) {
 	digest, err := hashPayload(es.hash, payload)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,14 @@ func (es esAlg) Sign(payload []byte) ([]byte, error) {
 	return signature, nil
 }
 
-func (es esAlg) Verify(payload, signature []byte) error {
+func (es *esAlg) VerifyToken(token *Token) error {
+	if constTimeAlgEqual(token.Header().Algorithm, es.alg) {
+		return es.Verify(token.Payload(), token.Signature())
+	}
+	return ErrAlgorithmMismatch
+}
+
+func (es *esAlg) Verify(payload, signature []byte) error {
 	if len(signature) != es.SignSize() {
 		return ErrInvalidSignature
 	}
@@ -104,7 +111,7 @@ func (es esAlg) Verify(payload, signature []byte) error {
 	r := big.NewInt(0).SetBytes(signature[:pivot])
 	s := big.NewInt(0).SetBytes(signature[pivot:])
 
-	if !ecdsa.Verify(es.publickey, digest, r, s) {
+	if !ecdsa.Verify(es.publicKey, digest, r, s) {
 		return ErrInvalidSignature
 	}
 	return nil
