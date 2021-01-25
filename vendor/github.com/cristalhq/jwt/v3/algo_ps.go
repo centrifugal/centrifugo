@@ -78,15 +78,15 @@ type psAlg struct {
 	opts       *rsa.PSSOptions
 }
 
-func (ps psAlg) SignSize() int {
+func (ps *psAlg) SignSize() int {
 	return ps.privateKey.Size()
 }
 
-func (ps psAlg) Algorithm() Algorithm {
+func (ps *psAlg) Algorithm() Algorithm {
 	return ps.alg
 }
 
-func (ps psAlg) Sign(payload []byte) ([]byte, error) {
+func (ps *psAlg) Sign(payload []byte) ([]byte, error) {
 	digest, err := hashPayload(ps.hash, payload)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,14 @@ func (ps psAlg) Sign(payload []byte) ([]byte, error) {
 	return signature, nil
 }
 
-func (ps psAlg) Verify(payload, signature []byte) error {
+func (ps *psAlg) VerifyToken(token *Token) error {
+	if constTimeAlgEqual(token.Header().Algorithm, ps.alg) {
+		return ps.Verify(token.Payload(), token.Signature())
+	}
+	return ErrAlgorithmMismatch
+}
+
+func (ps *psAlg) Verify(payload, signature []byte) error {
 	digest, err := hashPayload(ps.hash, payload)
 	if err != nil {
 		return err

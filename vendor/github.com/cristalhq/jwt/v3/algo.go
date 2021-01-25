@@ -55,3 +55,7 @@ func hashPayload(hash crypto.Hash, payload []byte) ([]byte, error) {
 	signed := hasher.Sum(nil)
 	return signed, nil
 }
+
+func constTimeAlgEqual(a, b Algorithm) bool {
+	return constTimeEqual(a.String(), b.String())
+}

@@ -9,25 +9,24 @@ import (
 
 // NewSignerHS returns a new HMAC-based signer.
 func NewSignerHS(alg Algorithm, key []byte) (Signer, error) {
-	if len(key) == 0 {
-		return nil, ErrInvalidKey
-	}
-	hash, ok := getHashHMAC(alg)
-	if !ok {
-		return nil, ErrUnsupportedAlg
-	}
-	return &hsAlg{
-		alg:  alg,
-		hash: hash,
-		key:  key,
-		hashPool: &sync.Pool{New: func() interface{} {
-			return hmac.New(hash.New, key)
-		}},
-	}, nil
+	return newHS(alg, key)
 }
 
 // NewVerifierHS returns a new HMAC-based verifier.
 func NewVerifierHS(alg Algorithm, key []byte) (Verifier, error) {
+	return newHS(alg, key)
+}
+
+type hmacAlgo interface {
+	// copy-pasted Signer & Verifier due to older Go versions
+	Algorithm() Algorithm
+	SignSize() int
+	Sign(payload []byte) ([]byte, error)
+	Verify(payload, signature []byte) error
+	VerifyToken(token *Token) error
+}
+
+func newHS(alg Algorithm, key []byte) (hmacAlgo, error) {
 	if len(key) == 0 {
 		return nil, ErrInvalidKey
 	}
@@ -65,19 +64,26 @@ type hsAlg struct {
 	hashPool *sync.Pool
 }
 
-func (hs hsAlg) Algorithm() Algorithm {
+func (hs *hsAlg) Algorithm() Algorithm {
 	return hs.alg
 }
 
-func (hs hsAlg) SignSize() int {
+func (hs *hsAlg) SignSize() int {
 	return hs.hash.Size()
 }
 
-func (hs hsAlg) Sign(payload []byte) ([]byte, error) {
+func (hs *hsAlg) Sign(payload []byte) ([]byte, error) {
 	return hs.sign(payload)
 }
 
-func (hs hsAlg) Verify(payload, signature []byte) error {
+func (hs *hsAlg) VerifyToken(token *Token) error {
+	if constTimeAlgEqual(token.Header().Algorithm, hs.alg) {
+		return hs.Verify(token.Payload(), token.Signature())
+	}
+	return ErrAlgorithmMismatch
+}
+
+func (hs *hsAlg) Verify(payload, signature []byte) error {
 	digest, err := hs.sign(payload)
 	if err != nil {
 		return err
@@ -88,7 +94,7 @@ func (hs hsAlg) Verify(payload, signature []byte) error {
 	return nil
 }
 
-func (hs hsAlg) sign(payload []byte) ([]byte, error) {
+func (hs *hsAlg) sign(payload []byte) ([]byte, error) {
 	hasher := hs.hashPool.Get().(hash.Hash)
 	defer func() {
 		hasher.Reset()

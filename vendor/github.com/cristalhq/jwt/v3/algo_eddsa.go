@@ -32,19 +32,26 @@ type edDSAAlg struct {
 	privateKey ed25519.PrivateKey
 }
 
-func (ed edDSAAlg) Algorithm() Algorithm {
+func (ed *edDSAAlg) Algorithm() Algorithm {
 	return ed.alg
 }
 
-func (ed edDSAAlg) SignSize() int {
+func (ed *edDSAAlg) SignSize() int {
 	return ed25519.SignatureSize
 }
 
-func (ed edDSAAlg) Sign(payload []byte) ([]byte, error) {
+func (ed *edDSAAlg) Sign(payload []byte) ([]byte, error) {
 	return ed25519.Sign(ed.privateKey, payload), nil
 }
 
-func (ed edDSAAlg) Verify(payload, signature []byte) error {
+func (ed *edDSAAlg) VerifyToken(token *Token) error {
+	if constTimeAlgEqual(token.Header().Algorithm, ed.alg) {
+		return ed.Verify(token.Payload(), token.Signature())
+	}
+	return ErrAlgorithmMismatch
+}
+
+func (ed *edDSAAlg) Verify(payload, signature []byte) error {
 	if !ed25519.Verify(ed.publicKey, payload, signature) {
 		return ErrInvalidSignature
 	}
