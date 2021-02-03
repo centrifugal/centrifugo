@@ -12,11 +12,9 @@ og_image_height: 640
 
 ![Centrifuge](https://i.imgur.com/W1PeoJL.jpg)
 
-Today is 4th January – New Year holidays in progress. I am sitting inside a chair with a ticking clock on the wall and a cup of coffee on the table. The blue winter semidarkness outside the window makes the room magnificent. I spent enough time coding last year – not sure I'll find a better time to write about the open-source library I was working on and made big progress with.
+In this post I'll try to introduce [Centrifuge](https://github.com/centrifugal/centrifuge) - the heart of Centrifugo.
 
-Maybe you've already heard about it – it's called [Centrifuge](https://github.com/centrifugal/centrifuge). This is a real-time messaging library for the Go language. OK, I think this is a mistake to call Centrifuge a library – `framework` suits better. As a Gopher, I don't like frameworks a lot. As soon as you start using a framework it dictates you pretty much how things should be done. I suppose that's why I still avoid describing Centrifuge with the right word. But the code is written – so I can only move on with it :)
-
-Centrifuge can do many things for you. Here I'll try to introduce Centrifuge and its possibilities.
+Centrifuge is a real-time messaging library for the Go language.
 
 This post is going to be pretty long (looks like I am a huge fan of long reads) – so make sure you also have a drink (probably two) and let's go!
 
