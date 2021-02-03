@@ -1369,6 +1369,7 @@
                 <h1 id="experimenting-with-quic-and-webtransport-in-go">Experimenting with QUIC and WebTransport in Go<a class="headerlink" href="#experimenting-with-quic-and-webtransport-in-go" title="Permanent link">&para;</a></h1>
 <p><img alt="post-cover" src="https://i.imgur.com/sH9zfhe.jpg" /></p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p><strong>UPDATE</strong>: WebTransport spec is still evolving. Some information here is out-of-date. For example the working group has no plan to implement both QuicTransport and HTTP3-based transports – only HTTP3 based WebTransport is going to be implemented. Maybe we will publish a follow-up of this post at some point.</p>
 <p>WebTransport is a new browser API offering low-latency, bidirectional, client-server messaging. If you have not heard about it before I suggest to first read a post called <a href="https://web.dev/quictransport/">Experimenting with QuicTransport</a> published recently on web.dev – it gives a nice overview to WebTransport and shows client-side code examples. Here we will concentrate on implementing server side.</p>
 <p>Some key points about WebTransport spec:</p>
 <ul>
