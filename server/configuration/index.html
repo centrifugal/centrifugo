@@ -1565,7 +1565,12 @@
   <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;YOUR-API-KEY-HERE&gt;&quot;</span><span class="p">,</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>The only two fields required are <strong>token_hmac_secret_key</strong> and <strong>api_key</strong>. <code>token_hmac_secret_key</code> used to check JWT signature (more about JWT in <a href="../authentication/">authentication chapter</a>). API key used for Centrifugo API endpoint authorization, see more in <a href="../http_api/">chapter about server HTTP API</a>. Keep both values in secret and never reveal to clients.</p>
+<p>The only two fields required are <strong>token_hmac_secret_key</strong> and <strong>api_key</strong>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To be fair latest Centrifugo releases introduced a new way of authenticating connections over <a href="../proxy/#connect-proxy">proxy HTTP request</a> from Centrifugo to application backend, and a way to publish messages to channels over <a href="../proxy/#publish-proxy">proxy request to backend</a>. Also there is GRPC server API that can be used instead of HTTP API – so <code>api_key</code> not used there. This means that in some setups both <code>token_hmac_secret_key</code> and <code>api_key</code> are not required at all. But here we describe the traditional way of running Centrifugo - with JWT authentication and publishing messages over server HTTP API.</p>
+</div>
+<p><code>token_hmac_secret_key</code> used to check JWT signature (more about JWT in <a href="../authentication/">authentication chapter</a>). API key used for Centrifugo API endpoint authorization, see more in <a href="../http_api/">chapter about server HTTP API</a>. Keep both values in secret and never reveal to clients.</p>
 <p>The option <code>v3_use_offset</code> turns on using latest client-server protocol <code>offset</code> field (<strong>will be used by default in Centrifugo v3 so better to use it from start</strong>).</p>
 <h3 id="toml-config-format">TOML config format<a class="headerlink" href="#toml-config-format" title="Permanent link">&para;</a></h3>
 <p>Centrifugo also supports TOML format for configuration file:</p>
