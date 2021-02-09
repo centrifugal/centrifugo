@@ -36,7 +36,12 @@ This is a minimal Centrifugo configuration file:
 }
 ```
 
-The only two fields required are **token_hmac_secret_key** and **api_key**. `token_hmac_secret_key` used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](http_api.md). Keep both values in secret and never reveal to clients.
+The only two fields required are **token_hmac_secret_key** and **api_key**.
+
+!!!note
+    To be fair latest Centrifugo releases introduced a new way of authenticating connections over [proxy HTTP request](proxy.md#connect-proxy) from Centrifugo to application backend, and a way to publish messages to channels over [proxy request to backend](proxy.md#publish-proxy). Also there is GRPC server API that can be used instead of HTTP API – so `api_key` not used there. This means that in some setups both `token_hmac_secret_key` and `api_key` are not required at all. But here we describe the traditional way of running Centrifugo - with JWT authentication and publishing messages over server HTTP API.
+
+`token_hmac_secret_key` used to check JWT signature (more about JWT in [authentication chapter](authentication.md)). API key used for Centrifugo API endpoint authorization, see more in [chapter about server HTTP API](http_api.md). Keep both values in secret and never reveal to clients.
 
 The option `v3_use_offset` turns on using latest client-server protocol `offset` field (**will be used by default in Centrifugo v3 so better to use it from start**).
 
