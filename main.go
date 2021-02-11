@@ -63,7 +63,7 @@ var configDefaults = map[string]interface{}{
 	"token_hmac_secret_key":                "",
 	"token_jwks_public_endpoint":           "",
 	"token_rsa_public_key":                 "",
-	"token_ecdsa_public_key":                 "",
+	"token_ecdsa_public_key":               "",
 	"server_side":                          false,
 	"publish":                              false,
 	"subscribe_to_publish":                 false,
@@ -267,7 +267,7 @@ func main() {
 
 			file := setupLogging()
 			if file != nil {
-				defer file.Close()
+				defer func() { _ = file.Close() }()
 			}
 
 			err = writePidFile(viper.GetString("pid_file"))
@@ -784,7 +784,8 @@ func getTLSConfig() (*tls.Config, error) {
 
 	if tlsAutocertEnabled {
 		certManager := autocert.Manager{
-			Prompt:   autocert.AcceptTOS,
+			Prompt: autocert.AcceptTOS,
+			// TODO v3: remove deprecated field.
 			ForceRSA: tlsAutocertForceRSA,
 			Email:    tlsAutocertEmail,
 		}

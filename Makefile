@@ -51,6 +51,10 @@ docs-deploy: docs-image
 docs-image:
 	docker build -t $(DOC_IMAGE) -f docs/Dockerfile docs/
 
+docs-env-create:
+    python3 -m venv .venv
+    pip install -r docs/requirements.txt
+
 deps:
 	go mod vendor
 

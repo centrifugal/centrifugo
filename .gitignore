@@ -6,6 +6,7 @@ PACKAGES
 FlameGraph
 torch.svg
 protoc-3*
+.venv
 .vscode
 .idea
 docs/site
