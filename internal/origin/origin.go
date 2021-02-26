@@ -42,7 +42,7 @@ func (a *PatternChecker) Check(r *http.Request) error {
 	return fmt.Errorf("request Origin %q is not authorized for Host %q", origin, r.Host)
 }
 
-func CheckSameOrigin(r *http.Request) error {
+func CheckSameHost(r *http.Request) error {
 	origin := r.Header.Get("Origin")
 	if origin == "" {
 		return nil
