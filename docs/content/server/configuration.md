@@ -81,19 +81,19 @@ With YAML remember to use spaces, not tabs when writing configuration file.
 
 Some of the most important options you can configure when running Centrifugo:
 
-## address
+### address
 
 Bind your Centrifugo to specific interface address (by default `""` - listen on all available interfaces).
 
-## port
+### port
 
 Port to bind Centrifugo to (by default `8000`)
 
-## engine
+### engine
 
 Engine to use - `memory` or `redis` (by default `memory`). Read more about engines in [special chapter](engines).
 
-## allowed_origins
+### allowed_origins
 
 New in Centrifugo v2.9.0.
 
