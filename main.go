@@ -1202,7 +1202,7 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 
 	if v.IsSet("allowed_origins") {
 		allowedOrigins := v.GetStringSlice("allowed_origins")
-		originChecker, err := origin.NewChecker(allowedOrigins)
+		originChecker, err := origin.NewPatternChecker(allowedOrigins)
 		if err != nil {
 			log.Fatal().Msgf("error creating origin checker: %v", err)
 		}
@@ -1236,7 +1236,7 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	}
 	if v.IsSet("allowed_origins") {
 		allowedOrigins := v.GetStringSlice("allowed_origins")
-		originChecker, err := origin.NewChecker(allowedOrigins)
+		originChecker, err := origin.NewPatternChecker(allowedOrigins)
 		if err != nil {
 			log.Fatal().Msgf("error creating origin checker: %v", err)
 		}

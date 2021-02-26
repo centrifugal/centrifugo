@@ -4,31 +4,45 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"strings"
+
+	"github.com/gobwas/glob"
 )
 
-func match(pattern, s string) (bool, error) {
-	return filepath.Match(strings.ToLower(pattern), strings.ToLower(s))
+type PatternChecker struct {
+	allowedOrigins []glob.Glob
 }
 
-type Checker struct {
-	allowedOrigins []string
-}
-
-func NewChecker(allowedOrigins []string) (*Checker, error) {
+func NewPatternChecker(allowedOrigins []string) (*PatternChecker, error) {
+	var globs []glob.Glob
 	for _, pattern := range allowedOrigins {
-		// check bad pattern error on start.
-		if _, err := match(pattern, "_"); err != nil {
+		g, err := glob.Compile(pattern)
+		if err != nil {
 			return nil, fmt.Errorf("malformed origin pattern: %w", err)
 		}
+		globs = append(globs, g)
 	}
-	return &Checker{
-		allowedOrigins: allowedOrigins,
+	return &PatternChecker{
+		allowedOrigins: globs,
 	}, nil
 }
 
-func (a *Checker) Check(r *http.Request) error {
+func (a *PatternChecker) Check(r *http.Request) error {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		return nil
+	}
+
+	for _, pattern := range a.allowedOrigins {
+		if pattern.Match(strings.ToLower(origin)) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("request Origin %q is not authorized for Host %q", origin, r.Host)
+}
+
+func CheckSameOrigin(r *http.Request) error {
 	origin := r.Header.Get("Origin")
 	if origin == "" {
 		return nil
@@ -41,16 +55,6 @@ func (a *Checker) Check(r *http.Request) error {
 
 	if strings.EqualFold(r.Host, u.Host) {
 		return nil
-	}
-
-	for _, pattern := range a.allowedOrigins {
-		matched, err := match(pattern, u.Host)
-		if err != nil {
-			return fmt.Errorf("failed to parse filepath pattern %q: %w", pattern, err)
-		}
-		if matched {
-			return nil
-		}
 	}
 
 	return fmt.Errorf("request Origin %q is not authorized for Host %q", origin, r.Host)

@@ -113,7 +113,7 @@ That's because we are running our application on `localhost:2000` while Centrifu
 {
   ...
   "allowed_origins": [
-    "localhost:2000"    
+    "http://localhost:2000"
   ]
 }
 ```
