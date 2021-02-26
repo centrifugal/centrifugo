@@ -32,6 +32,7 @@ import (
 	"github.com/centrifugal/centrifugo/internal/metrics/graphite"
 	"github.com/centrifugal/centrifugo/internal/middleware"
 	"github.com/centrifugal/centrifugo/internal/natsbroker"
+	"github.com/centrifugal/centrifugo/internal/origin"
 	"github.com/centrifugal/centrifugo/internal/proxy"
 	"github.com/centrifugal/centrifugo/internal/rule"
 	"github.com/centrifugal/centrifugo/internal/tools"
@@ -219,7 +220,7 @@ func main() {
 			"websocket_ping_interval", "websocket_write_timeout", "websocket_message_size_limit",
 			"proxy_publish_endpoint", "proxy_publish_timeout", "proxy_subscribe_endpoint",
 			"proxy_subscribe_timeout", "proxy_subscribe", "proxy_publish", "redis_sentinel_password",
-			"grpc_api_key", "client_concurrency", "user_personal_single_connection",
+			"grpc_api_key", "client_concurrency", "user_personal_single_connection", "allowed_origins",
 		}
 
 		for _, env := range bindEnvs {
@@ -1198,6 +1199,25 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	} else {
 		cfg.MessageSizeLimit = v.GetInt("client_request_max_size")
 	}
+
+	if v.IsSet("allowed_origins") {
+		allowedOrigins := v.GetStringSlice("allowed_origins")
+		originChecker, err := origin.NewChecker(allowedOrigins)
+		if err != nil {
+			log.Fatal().Msgf("error creating origin checker: %v", err)
+		}
+		cfg.CheckOrigin = func(r *http.Request) bool {
+			err := originChecker.Check(r)
+			if err != nil {
+				log.Info().Str("error", err.Error()).Msg("error checking request origin")
+				return false
+			}
+			return true
+		}
+	} else {
+		// TODO v3: replace with enforced same-origin check.
+		cfg.CheckOrigin = func(*http.Request) bool { return true }
+	}
 	return cfg
 }
 
@@ -1206,7 +1226,6 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	cfg := centrifuge.SockjsConfig{}
 	cfg.URL = v.GetString("sockjs_url")
 	cfg.HeartbeatDelay = time.Duration(v.GetInt("sockjs_heartbeat_delay")) * time.Second
-	cfg.CheckOrigin = func(*http.Request) bool { return true }
 	cfg.WebsocketCheckOrigin = func(r *http.Request) bool { return true }
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
@@ -1215,6 +1234,24 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 		cfg.WebsocketWriteTimeout = time.Duration(v.GetInt("websocket_write_timeout")) * time.Second
 	} else {
 		cfg.WebsocketWriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
+	}
+	if v.IsSet("allowed_origins") {
+		allowedOrigins := v.GetStringSlice("allowed_origins")
+		originChecker, err := origin.NewChecker(allowedOrigins)
+		if err != nil {
+			log.Fatal().Msgf("error creating origin checker: %v", err)
+		}
+		cfg.CheckOrigin = func(r *http.Request) bool {
+			err := originChecker.Check(r)
+			if err != nil {
+				log.Info().Str("error", err.Error()).Msg("error checking request origin")
+				return false
+			}
+			return true
+		}
+	} else {
+		// TODO v3: replace with enforced same-origin check.
+		cfg.CheckOrigin = func(*http.Request) bool { return true }
 	}
 	return cfg
 }

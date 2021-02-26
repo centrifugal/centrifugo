@@ -6,7 +6,7 @@ Here we will look at how Centrifugo can be configured.
 
 Centrifugo can be configured in several ways:
 
-* over command-line flags, see `centrifugo -h` for available flags, command-line flags limited to most frequently used
+* over command-line flags, see `centrifugo -h` for available flags, command-line flags limited to most frequently used. Command-line options have the highest priority when set than other ways to configure Centrifugo. See description of [viper](https://github.com/spf13/viper) library (used in Centrifugo internally) for more details about configuration ways priority.
 * over configuration file, configuration file supports all options mentioned in this documentation
 * over OS environment variables, **all Centrifugo options can be set over env in format `CENTRIFUGO_<OPTION_NAME>`** (mostly straightforward except namespaces - [see how to set namespaces via env](channels.md#setting-namespaces-over-env))
 
@@ -32,7 +32,7 @@ This is a minimal Centrifugo configuration file:
 {
   "v3_use_offset": true,
   "token_hmac_secret_key": "<YOUR-SECRET-STRING-HERE>",
-  "api_key": "<YOUR-API-KEY-HERE>",
+  "api_key": "<YOUR-API-KEY-HERE>"
 }
 ```
 
@@ -81,11 +81,58 @@ With YAML remember to use spaces, not tabs when writing configuration file.
 
 Some of the most important options you can configure when running Centrifugo:
 
-* `address` – bind your Centrifugo to specific interface address (by default `""`)
-* `port` – port to bind Centrifugo to (by default `8000`)
-* `engine` – engine to use - `memory` or `redis` (by default `memory`). Read more about engines in [special chapter](engines).
+## address
 
-Note that some options can be set via command-line. Command-line options are more valuable when set than configuration file's options. See description of [viper](https://github.com/spf13/viper) – to see more details about configuration options priority.
+Bind your Centrifugo to specific interface address (by default `""` - listen on all available interfaces).
+
+## port
+
+Port to bind Centrifugo to (by default `8000`)
+
+## engine
+
+Engine to use - `memory` or `redis` (by default `memory`). Read more about engines in [special chapter](engines).
+
+## allowed_origins
+
+New in Centrifugo v2.9.0.
+
+This option allows setting an array of allowed origin host patterns to prevent CSRF attacks. This is especially important if you are using [connect proxy](proxy.md#connect-proxy) feature.
+
+If `allowed_origins` option not set at all then no origin check will be performed by Centrifugo.
+
+If set to an empty array then only requests that follow same-origin strategy will pass the check. An example same-origin scenario is when you are connecting from `https://example.com` to Centrifugo running on the same domain `https://example.com/connection/websocket`.
+
+!!!danger
+    Centrifugo v3 will enforce same-origin strategy by default, so you better to properly configure `allowed_origins` as soon as possible.
+
+If `allowed_origins` has array items then every non same-origin connection request will be checked against each pattern in an array.
+
+For example, you are connecting to Centrifugo (which is run on `localhost:8000`) from application on `localhost:3000`. In this case you need to configure `allowed_origins` this way:
+
+```
+"allowed_origins": [
+    "localhost:3000"
+]
+```
+
+If you are connecting from `https://example.com` to Centrifugo `https://centrifugo.example.com`:
+
+```
+"allowed_origins": [
+    "example.com"
+]
+```
+
+Origin pattern can contain wildcard symbol `*` to match subdomains:
+
+```
+"allowed_origins": [
+    "*.example.com"
+]
+```
+
+– in this case requests with Origin headers like `https://foo.example.com` or `https://bar.example.com` will pass the check.
 
 ## Advanced options
 
