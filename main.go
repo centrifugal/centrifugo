@@ -1226,7 +1226,6 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	cfg := centrifuge.SockjsConfig{}
 	cfg.URL = v.GetString("sockjs_url")
 	cfg.HeartbeatDelay = time.Duration(v.GetInt("sockjs_heartbeat_delay")) * time.Second
-	cfg.WebsocketCheckOrigin = func(r *http.Request) bool { return true }
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	cfg.WebsocketUseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
@@ -1241,7 +1240,7 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 		if err != nil {
 			log.Fatal().Msgf("error creating origin checker: %v", err)
 		}
-		cfg.CheckOrigin = func(r *http.Request) bool {
+		checkFn := func(r *http.Request) bool {
 			err := originChecker.Check(r)
 			if err != nil {
 				log.Info().Str("error", err.Error()).Msg("error checking request origin")
@@ -1249,9 +1248,12 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 			}
 			return true
 		}
+		cfg.CheckOrigin = checkFn
+		cfg.WebsocketCheckOrigin = checkFn
 	} else {
 		// TODO v3: replace with enforced same-origin check.
 		cfg.CheckOrigin = func(*http.Request) bool { return true }
+		cfg.WebsocketCheckOrigin = func(r *http.Request) bool { return true }
 	}
 	return cfg
 }
