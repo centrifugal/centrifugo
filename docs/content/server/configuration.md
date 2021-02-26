@@ -97,16 +97,16 @@ Engine to use - `memory` or `redis` (string, by default `memory`). Read more abo
 
 New in Centrifugo v2.9.0.
 
-This option allows setting an array of allowed origin host patterns (array of strings) for WebSocket and SockJS endpoints to prevent [CSRF](https://en.wikipedia.org/wiki/Cross-site_request_forgery) attacks. This is especially important if you are using [connect proxy](proxy.md#connect-proxy) feature.
+This option allows setting an array of allowed origin patterns (array of strings) for WebSocket and SockJS endpoints to prevent [CSRF](https://en.wikipedia.org/wiki/Cross-site_request_forgery) attack. This is especially important if you are using [connect proxy](proxy.md#connect-proxy) feature.
 
 If `allowed_origins` option not set at all then no origin check will be performed by Centrifugo.
 
 !!!danger
     Centrifugo v3 will enforce same-origin strategy by default, so you better to properly configure `allowed_origins` as soon as possible.
 
-If `allowed_origins` defined then every connection request will be checked against each pattern in an array.
+As soon as `allowed_origins` defined every connection request will be checked against each pattern in an array.
 
-For example, you are connecting to Centrifugo (which is run on `localhost:8000`) from application on `http://localhost:3000`. In this case you need to configure `allowed_origins` this way:
+For example, you are connecting to Centrifugo from an application on `http://localhost:3000`. In this case you need to configure `allowed_origins` this way:
 
 ```
 "allowed_origins": [
@@ -114,7 +114,7 @@ For example, you are connecting to Centrifugo (which is run on `localhost:8000`)
 ]
 ```
 
-If you are connecting from `https://example.com` to Centrifugo `https://centrifugo.example.com`:
+If you are connecting from `https://example.com`:
 
 ```
 "allowed_origins": [
@@ -130,11 +130,13 @@ Origin pattern can contain wildcard symbol `*` to match subdomains:
 ]
 ```
 
-– in this case requests with Origin header like `https://foo.example.com` or `https://bar.example.com` will pass the check.
+– in this case requests with `Origin` header like `https://foo.example.com` or `https://bar.example.com` will pass the check.
+
+Connection requests without `Origin` header set are passing through without any checks (i.e. always allowed).
 
 ## Advanced options
 
-Centrifugo has some options for which default values make sense for most applications. In many case you don't need (and you really should not) change them. This chapter is about such options.
+Centrifugo has some options for which default values make sense for most applications. In many cases you don't need (and you really should not) change them. This chapter is about such options.
 
 ### client_channel_limit
 
