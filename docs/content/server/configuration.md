@@ -10,7 +10,7 @@ Centrifugo can be configured in several ways:
 * over configuration file, configuration file supports all options mentioned in this documentation
 * over OS environment variables, **all Centrifugo options can be set over env in format `CENTRIFUGO_<OPTION_NAME>`** (mostly straightforward except namespaces - [see how to set namespaces via env](channels.md#setting-namespaces-over-env))
 
-The basic way to start with Centrifugo is run `centrifugo genconfig` command which will generate `config.json` configuration file with some options (in a current directory), so you can then run Centrifugo:
+The basic way to start with Centrifugo is run `centrifugo genconfig` command which will generate `config.json` configuration file with some options (in a current directory), so it's then possible to run Centrifugo:
 
 ```
 centrifugo -c config.json
@@ -97,16 +97,16 @@ Engine to use - `memory` or `redis` (string, by default `memory`). Read more abo
 
 New in Centrifugo v2.9.0.
 
-This option allows setting an array of allowed origin patterns (array of strings) for WebSocket and SockJS endpoints to prevent [CSRF](https://en.wikipedia.org/wiki/Cross-site_request_forgery) attack. This is especially important if you are using [connect proxy](proxy.md#connect-proxy) feature.
+This option allows setting an array of allowed origin patterns (array of strings) for WebSocket and SockJS endpoints to prevent [CSRF](https://en.wikipedia.org/wiki/Cross-site_request_forgery) attack. This is especially important when using [connect proxy](proxy.md#connect-proxy) feature.
 
 If `allowed_origins` option not set at all then no origin check will be performed by Centrifugo.
 
 !!!danger
-    Centrifugo v3 will enforce same-origin strategy by default, so you better to properly configure `allowed_origins` as soon as possible.
+    Centrifugo v3 may enforce same-origin strategy by default, so it's better to properly configure `allowed_origins` as soon as possible.
 
 As soon as `allowed_origins` defined every connection request will be checked against each pattern in an array.
 
-For example, you are connecting to Centrifugo from an application on `http://localhost:3000`. In this case you need to configure `allowed_origins` this way:
+For example, when connecting to Centrifugo from an application on `http://localhost:3000`. In this case `allowed_origins` should be configured this way:
 
 ```
 "allowed_origins": [
@@ -114,7 +114,7 @@ For example, you are connecting to Centrifugo from an application on `http://loc
 ]
 ```
 
-If you are connecting from `https://example.com`:
+When connecting from `https://example.com`:
 
 ```
 "allowed_origins": [
@@ -135,8 +135,6 @@ Origin pattern can contain wildcard symbol `*` to match subdomains:
 Connection requests without `Origin` header set are passing through without any checks (i.e. always allowed).
 
 ## Advanced options
-
-Centrifugo has some options for which default values make sense for most applications. In many cases you don't need (and you really should not) change them. This chapter is about such options.
 
 ### client_channel_limit
 
@@ -202,11 +200,11 @@ Enable websocket compression, see chapter about websocket transport for more det
 
 Default: 0
 
-By default, Centrifugo runs on all available CPU cores. If you want to limit amount of cores Centrifugo can utilize in one moment use this option.
+By default, Centrifugo runs on all available CPU cores. To limit amount of cores Centrifugo can utilize in one moment use this option.
 
 ## Advanced endpoint configuration.
 
-After you started Centrifugo you have several endpoints available. As soon as you have not provided any extra options you have 3 endpoints by default.
+After Centrifugo started there are several endpoints available.
 
 ### Default endpoints.
 
@@ -222,13 +220,13 @@ Then there is SockJS endpoint - it's needed to serve client connections that use
 http://localhost:8000/connection/sockjs
 ```
 
-And finally you have API endpoint to `publish` messages to channels (and execute other available API commands):
+Finally, API endpoint to `publish` messages to channels (and execute other available API commands):
 
 ```
 http://localhost:8000/api
 ```
 
-By default, all endpoints work on port `8000`. You can change it using `port` option:
+By default, all endpoints work on port `8000`. This can be changed with `port` option:
 
 ```
 {
@@ -236,7 +234,7 @@ By default, all endpoints work on port `8000`. You can change it using `port` op
 }
 ```
 
-In production setup you will have your domain name in endpoint addresses above instead of `localhost`. Also if your Centrifugo will be behind proxy or load balancer software you most probably won't have ports in your endpoint addresses. What will always be the same as shown above are URL paths: `/connection/sockjs`, `/connection/websocket`, `/api`.
+In production setup you may have a proper domain name in endpoint addresses above instead of `localhost`. While domain name and port parts can differ depending on setup – URL paths stay the same: `/connection/sockjs`, `/connection/websocket`, `/api`.
 
 Let's look at possibilities to tweak available endpoints.
 
@@ -274,7 +272,7 @@ And endpoint:
 http://localhost:8000/debug/pprof/
 ```
 
-– will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See [wiki page](https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues) for more info.
+– will show useful information about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See [wiki page](https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues) for more info.
 
 ### Health check endpoint
 
@@ -296,7 +294,7 @@ We strongly recommend to not expose API, admin, debug and prometheus endpoints t
 * Health check endpoint (`/health`) - used to do health checks
 * Debug endpoints (`/debug/pprof`) - used to inspect internal server state
 
-It's a good practice to protect those endpoints with firewall. For example, you can do this in `location` section of Nginx configuration.
+It's a good practice to protect those endpoints with firewall. For example, it's possible to configure in `location` section of Nginx configuration.
 
 Though sometimes you don't have access to per-location configuration in your proxy/load balancer software. For example when using Amazon ELB. In this case you can change ports on which your internal endpoints work.
 
@@ -346,7 +344,7 @@ Starting from Centrifugo v2.2.5 it's possible to customize server HTTP handler e
 
 ## Signal handling
 
-You can send HUP signal to Centrifugo to reload a configuration:
+It's possible to send HUP signal to Centrifugo to reload a configuration:
 
 ```
 kill -HUP <PID>
