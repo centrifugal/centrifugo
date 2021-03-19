@@ -83,7 +83,7 @@ Some of the most important options you can configure when running Centrifugo:
 
 * `address` – bind your Centrifugo to specific interface address (by default `""`)
 * `port` – port to bind Centrifugo to (by default `8000`)
-* `engine` – engine to use - `memory` or `redis` (by default `memory`). Read more about engines in [special chapter](engines).
+* `engine` – engine to use - `memory` or `redis` (by default `memory`). Read more about engines in [special chapter](engines.md).
 
 Note that some options can be set via command-line. Command-line options are more valuable when set than configuration file's options. See description of [viper](https://github.com/spf13/viper) – to see more details about configuration options priority.
 
