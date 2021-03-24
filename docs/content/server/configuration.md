@@ -91,7 +91,7 @@ Port to bind Centrifugo to (string, by default `"8000"`).
 
 ### engine
 
-Engine to use - `memory` or `redis` (string, by default `memory`). Read more about engines in [special chapter](engines).
+Engine to use - `memory` or `redis` (string, by default `memory`). Read more about engines in [special chapter](engines.md).
 
 ### allowed_origins
 
