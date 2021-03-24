@@ -27,6 +27,7 @@ builds:
   - amd64
   - "386"
   - arm  
+  - arm64
   ignore:
     - goos: darwin
       goarch: "386"
@@ -72,14 +73,48 @@ signs:
     signature: ${artifact}.sig
     artifacts: none
 dockers:
-  -
-    ids:
+  - ids:
       - centrifugo
     goos: linux
     goarch: amd64
     goarm: ''
     image_templates:
-    - "centrifugo/centrifugo:{{ .Tag }}"
-    - "centrifugo/centrifugo:v{{ .Major }}"
-    - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}"
-    - "centrifugo/centrifugo:latest"
+    - "centrifugo/centrifugo:{{ .Tag }}-amd64"
+    - "centrifugo/centrifugo:v{{ .Major }}-amd64"
+    - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-amd64"
+    - "centrifugo/centrifugo:latest-amd64"
+    use_buildx: true
+    build_flag_templates:
+    - "--platform=linux/amd64"
+    - "--load"
+  - ids:
+      - centrifugo
+    goos: linux
+    goarch: arm64
+    goarm: ''
+    image_templates:
+    - "centrifugo/centrifugo:{{ .Tag }}-arm64"
+    - "centrifugo/centrifugo:v{{ .Major }}-arm64"
+    - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-arm64"
+    - "centrifugo/centrifugo:latest-arm64"
+    use_buildx: true
+    build_flag_templates:
+    - "--platform=linux/arm64"
+    - "--load"
+docker_manifests:
+  - name_template: centrifugo/centrifugo:{{ .Tag }}
+    image_templates:
+      - centrifugo/centrifugo:{{ .Tag }}-arm64
+      - centrifugo/centrifugo:{{ .Tag }}-amd64
+  - name_template: centrifugo/centrifugo:v{{ .Major }}
+    image_templates:
+      - centrifugo/centrifugo:{{ .Tag }}-arm64
+      - centrifugo/centrifugo:{{ .Tag }}-amd64
+  - name_template: centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}
+    image_templates:
+      - centrifugo/centrifugo:{{ .Tag }}-arm64
+      - centrifugo/centrifugo:{{ .Tag }}-amd64
+  - name_template: centrifugo/centrifugo:latest
+    image_templates:
+      - centrifugo/centrifugo:{{ .Tag }}-arm64
+      - centrifugo/centrifugo:{{ .Tag }}-amd64
