@@ -41,6 +41,10 @@ builds:
       goarch: arm
     - goos: freebsd
       goarch: arm
+    - goos: windows
+      goarch: arm64
+    - goos: freebsd
+      goarch: arm64
   main: .
   ldflags: -s -w -X main.VERSION={{.Version}}
   binary: centrifugo
@@ -77,7 +81,6 @@ dockers:
       - centrifugo
     goos: linux
     goarch: amd64
-    goarm: ''
     image_templates:
     - "centrifugo/centrifugo:{{ .Tag }}-amd64"
     - "centrifugo/centrifugo:v{{ .Major }}-amd64"
@@ -86,35 +89,34 @@ dockers:
     use_buildx: true
     build_flag_templates:
     - "--platform=linux/amd64"
-    - "--load"
+    - "--pull"
   - ids:
       - centrifugo
     goos: linux
     goarch: arm64
-    goarm: ''
     image_templates:
-    - "centrifugo/centrifugo:{{ .Tag }}-arm64"
-    - "centrifugo/centrifugo:v{{ .Major }}-arm64"
-    - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-arm64"
-    - "centrifugo/centrifugo:latest-arm64"
+    - "centrifugo/centrifugo:{{ .Tag }}-arm64v8"
+    - "centrifugo/centrifugo:v{{ .Major }}-arm64v8"
+    - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-arm64v8"
+    - "centrifugo/centrifugo:latest-arm64v8"
     use_buildx: true
     build_flag_templates:
-    - "--platform=linux/arm64"
-    - "--load"
+    - "--platform=linux/arm64/v8"
+    - "--pull"
 docker_manifests:
   - name_template: centrifugo/centrifugo:{{ .Tag }}
     image_templates:
-      - centrifugo/centrifugo:{{ .Tag }}-arm64
+      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
       - centrifugo/centrifugo:{{ .Tag }}-amd64
   - name_template: centrifugo/centrifugo:v{{ .Major }}
     image_templates:
-      - centrifugo/centrifugo:{{ .Tag }}-arm64
+      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
       - centrifugo/centrifugo:{{ .Tag }}-amd64
   - name_template: centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}
     image_templates:
-      - centrifugo/centrifugo:{{ .Tag }}-arm64
+      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
       - centrifugo/centrifugo:{{ .Tag }}-amd64
   - name_template: centrifugo/centrifugo:latest
     image_templates:
-      - centrifugo/centrifugo:{{ .Tag }}-arm64
+      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
       - centrifugo/centrifugo:{{ .Tag }}-amd64
