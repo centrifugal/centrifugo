@@ -123,6 +123,9 @@ if __name__ == '__main__':
 
 This example should help you to implement similar HTTP handler in any language/framework you are using on backend side.
 
+!!!danger
+    Make sure you properly configured [allowed_origins](configuration.md#allowed_origins) Centrifugo option or check request origin on your backend side upon receiving connect request from Centrifugo.
+
 ### Refresh proxy
 
 With the following options in configuration file:

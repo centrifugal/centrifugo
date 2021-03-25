@@ -4,7 +4,7 @@ This chapter aims to help you get started with Centrifugo. We will look at a ste
 
 As Centrifugo is language-agnostic and can be used together with any language/framework we won't be specific here about any backend or frontend technology your application can be built with. Only abstract steps which you can extrapolate to your application stack.
 
-So first of all let's look again at a simplified scheme:
+Let's look again at a simplified scheme:
 
 ![Centrifugo scheme](images/scheme.png)
 
@@ -27,6 +27,8 @@ Create basic configuration file with `token_hmac_secret_key` (or `token_rsa_publ
 – which will generate `config.json` file for you with all required fields.
 
 A generated configuration also includes `v3_use_offset` option set to `true`. This is an option that enables using actual `offset` field in client-server protocol and will be used by default in Centrifugo v3. This option available since Centrifugo v2.5.0 and described in detail [in v2.5.0 release notes](https://github.com/centrifugal/centrifugo/releases/tag/v2.5.0).
+
+Properly configure [allowed_origins](server/configuration.md#allowed_origins) option.
 
 ## 2. Configure your backend
 

@@ -38,7 +38,8 @@ var jsonConfigTemplate = `{
   "token_hmac_secret_key": "{{.TokenSecret}}",
   "admin_password": "{{.AdminPassword}}",
   "admin_secret": "{{.AdminSecret}}",
-  "api_key": "{{.APIKey}}"
+  "api_key": "{{.APIKey}}",
+  "allowed_origins": []
 }
 `
 
@@ -47,6 +48,7 @@ token_hmac_secret_key = "{{.TokenSecret}}"
 admin_password = "{{.AdminPassword}}"
 admin_secret = "{{.AdminSecret}}"
 api_key = "{{.APIKey}}"
+allowed_origins = []
 `
 
 var yamlConfigTemplate = `v3_use_offset: true
@@ -54,6 +56,7 @@ token_hmac_secret_key: {{.TokenSecret}}
 admin_password: {{.AdminPassword}}
 admin_secret: {{.AdminSecret}}
 api_key: {{.APIKey}}
+allowed_origins: []
 `
 
 // GenerateConfig generates configuration file at provided path.

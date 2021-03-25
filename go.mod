@@ -12,6 +12,7 @@ require (
 	github.com/centrifugal/centrifuge v0.14.2
 	github.com/centrifugal/protocol v0.3.4
 	github.com/cristalhq/jwt/v3 v3.0.9
+	github.com/gobwas/glob v0.2.3
 	github.com/gogo/protobuf v1.3.1
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/google/uuid v1.1.2

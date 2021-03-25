@@ -10,23 +10,44 @@ First you need to [install Centrifugo](server/install.md). Below in this example
 
 It will generate `config.json` file in the same directory with content like this:
 
-```
+```json
 {
   "v3_use_offset": true,
   "token_hmac_secret_key": "46b38493-147e-4e3f-86e0-dc5ec54f5133",
   "admin_password": "ad0dff75-3131-4a02-8d64-9279b4f1c57b",
   "admin_secret": "583bc4b7-0fa5-4c4a-8566-16d3ce4ad401",
-  "api_key": "aaaf202f-b5f8-4b34-bf88-f6c03a1ecda6"
+  "api_key": "aaaf202f-b5f8-4b34-bf88-f6c03a1ecda6",
+  "allowed_origins": []
 }
 ```
 
 Now we can start server, and let's start it with built-in admin web interface:
 
-```
+```console
 ./centrifugo --config=config.json --admin
 ```
 
-Now open http://localhost:8000 – and you should see Centrifugo admin web panel. Enter `admin_password` from configuration file to log in.
+We could also enable admin web interface by not using `--admin` flag but simply add `"admin": true` option to configuration file:
+
+```json
+{
+  "v3_use_offset": true,
+  "token_hmac_secret_key": "46b38493-147e-4e3f-86e0-dc5ec54f5133",
+  "admin": true,
+  "admin_password": "ad0dff75-3131-4a02-8d64-9279b4f1c57b",
+  "admin_secret": "583bc4b7-0fa5-4c4a-8566-16d3ce4ad401",
+  "api_key": "aaaf202f-b5f8-4b34-bf88-f6c03a1ecda6",
+  "allowed_origins": []
+}
+```
+
+And running:
+
+```console
+./centrifugo --config=config.json
+```
+
+Now open [http://localhost:8000](http://localhost:8000). You should see Centrifugo admin web panel. Enter `admin_password` from configuration file to log in.
 
 ![Admin web panel](images/quick_start_admin.png)
 
@@ -41,7 +62,7 @@ Now let's create `index.html` file with our simple app:
     </head>
     <body>
         <div id="counter">-</div>
-        <script src="https://cdn.jsdelivr.net/gh/centrifugal/centrifuge-js@2.6.2/dist/centrifuge.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/centrifugal/centrifuge-js@2.7.1/dist/centrifuge.min.js"></script>
         <script type="text/javascript">
             const container = document.getElementById('counter')
             const centrifuge = new Centrifuge("ws://localhost:8000/connection/websocket");
@@ -66,26 +87,47 @@ Now let's create `index.html` file with our simple app:
 </html>
 ```
 
-Note that we are using `centrifuge-js` 2.6.2 in this example, you better use its latest version for a moment of reading this.
+Note that we are using `centrifuge-js` 2.7.1 in this example, you better use its latest version for a moment of reading this.
 
-We create an instance of client providing it Centrifugo default WebSocket endpoint address, then we subscribe to channel `channel` and provide callback function to process real-time messages. Then we call `connect` method to create WebSocket connection. 
+We create an instance of a client providing it Centrifugo default WebSocket endpoint address, then we subscribe to a channel `channel` and provide callback function to process real-time messages. Then we call `connect` method to create WebSocket connection. 
 
-You need to open this file in a browser, for example on MacOS:
-
-```
-open index.html
-```
-
-Or just enter sth like `file:///path/to/index.html` to browser address bar. In real application you will serve your HTML files with a proper web server – but for this simple example we don't need it.
-
-Now if you look at browser developer tools or in Centrifugo logs you will notice that connection not successfully established:
+You need to serve this file with HTTP server, for example with Python 3 (in real Javascript application you will serve your HTML files with a proper web server – but for this simple example we can use a simple one):
 
 ```
-2020-05-16 01:19:59 [INF] invalid connection token error="jwt: token format is not valid" client=45a1b8f4-d6dc-4679-9927-93e41c14ad93
-2020-05-16 01:19:59 [INF] disconnect after handling command client=45a1b8f4-d6dc-4679-9927-93e41c14ad93 command="id:1 params:\"{\\\"token\\\":\\\"<TOKEN>\\\"}\" " reason="invalid token" user=
+python3 -m http.server 2000
 ```
 
-That's because client should provide valid JWT (JSON Web Token) to authenticate itself. This token **must be generated on your backend** and passed to client side. Since in our simple example we don't have application backend we can quickly generate example token for a user using `centrifugo` sub-command `gentoken`. Like this:
+If you don't have Python 3 then [this gist can be useful](https://gist.github.com/willurd/5720255).
+
+Open [http://localhost:2000/](http://localhost:2000/).
+
+Now if you look at browser developer tools or in Centrifugo logs you will notice a connection can not be successfully established:
+
+```
+2021-02-26 17:37:47 [INF] error checking request origin error="request Origin \"http://localhost:2000\" is not authorized for Host \"localhost:8000\""
+```
+
+That's because we are running our application on `localhost:2000` while Centrifugo runs on `localhost:8000`. We need to additionally configure `allowed_origins` option:
+
+```json
+{
+  ...
+  "allowed_origins": [
+    "http://localhost:2000"
+  ]
+}
+```
+
+Restart Centrifugo after fixing a configuration file.
+
+Now if you reload a browser window with an application you should see new information logs in server output:
+
+```
+2021-02-26 17:47:47 [INF] invalid connection token error="jwt: token format is not valid" client=45a1b8f4-d6dc-4679-9927-93e41c14ad93
+2021-02-26 17:47:47 [INF] disconnect after handling command client=45a1b8f4-d6dc-4679-9927-93e41c14ad93 command="id:1 params:\"{\\\"token\\\":\\\"<TOKEN>\\\"}\" " reason="invalid token" user=
+```
+
+We still can not connect. That's because client should provide a valid JWT (JSON Web Token) to authenticate itself. This token **must be generated on your backend** and passed to a client side. Since in our simple example we don't have application backend we can quickly generate example token for a user using `centrifugo` sub-command `gentoken`. Like this:
 
 ```
 ./centrifugo gentoken -u 123722
@@ -112,7 +154,7 @@ If you open developer tools and look at WebSocket frames panel you should see st
 
 ![Connected](images/quick_start_connected.png)
 
-OK, the last thing we need to do here is publish new counter value to channel and make sure our app works properly.
+OK, the last thing we need to do here is to publish new counter value to a channel and make sure our app works properly.
 
 We can do this over Centrifugo API sending HTTP request to default API endpoint `http://localhost:8000/api`, but let's do this over admin web panel first.
 
@@ -144,7 +186,7 @@ curl --header "Content-Type: application/json" \
 
 – where for `Authorization` header we set `api_key` value from Centrifugo config file generated above.
 
-We did it! We built the simplest app with Centrifugo and its Javascript client. It does not have backend, it's not very useful to be honest, but it should give you an insight on how to start working with Centrifugo server. Read more about Centrifugo server in next documentations chapters – it can do much-much more than we just showed here. [Integration guide](guide.md) describes a process of idiomatic Centrifugo integration with your application backend.
+We did it! We built the simplest browser real-time app with Centrifugo and its Javascript client. It does not have backend, it's not very useful to be honest, but it should give you an insight on how to start working with Centrifugo server. Read more about Centrifugo server in next documentations chapters – it can do much-much more than we just showed here. [Integration guide](guide.md) describes a process of idiomatic Centrifugo integration with your application backend.
 
 ### More examples
 
