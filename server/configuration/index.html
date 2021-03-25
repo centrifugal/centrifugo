@@ -521,6 +521,40 @@
     Important options
   </a>
   
+    <nav class="md-nav" aria-label="Important options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#address" class="md-nav__link">
+    address
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#port" class="md-nav__link">
+    port
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#engine" class="md-nav__link">
+    engine
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allowed_origins" class="md-nav__link">
+    allowed_origins
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1363,6 +1397,40 @@
     Important options
   </a>
   
+    <nav class="md-nav" aria-label="Important options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#address" class="md-nav__link">
+    address
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#port" class="md-nav__link">
+    port
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#engine" class="md-nav__link">
+    engine
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allowed_origins" class="md-nav__link">
+    allowed_origins
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1539,11 +1607,11 @@
 <h2 id="configuration-ways">Configuration ways<a class="headerlink" href="#configuration-ways" title="Permanent link">&para;</a></h2>
 <p>Centrifugo can be configured in several ways:</p>
 <ul>
-<li>over command-line flags, see <code>centrifugo -h</code> for available flags, command-line flags limited to most frequently used</li>
+<li>over command-line flags, see <code>centrifugo -h</code> for available flags, command-line flags limited to most frequently used. Command-line options have the highest priority when set than other ways to configure Centrifugo. See description of <a href="https://github.com/spf13/viper">viper</a> library (used in Centrifugo internally) for more details about configuration ways priority.</li>
 <li>over configuration file, configuration file supports all options mentioned in this documentation</li>
 <li>over OS environment variables, <strong>all Centrifugo options can be set over env in format <code>CENTRIFUGO_&lt;OPTION_NAME&gt;</code></strong> (mostly straightforward except namespaces - <a href="../channels/#setting-namespaces-over-env">see how to set namespaces via env</a>)</li>
 </ul>
-<p>The basic way to start with Centrifugo is run <code>centrifugo genconfig</code> command which will generate <code>config.json</code> configuration file with some options (in a current directory), so you can then run Centrifugo:</p>
+<p>The basic way to start with Centrifugo is run <code>centrifugo genconfig</code> command which will generate <code>config.json</code> configuration file with some options (in a current directory), so it's then possible to run Centrifugo:</p>
 <div class="highlight"><pre><span></span><code>centrifugo -c config.json
 </code></pre></div>
 <p>Below while describing configuration file format we will look at the meaning of the required options.</p>
@@ -1555,7 +1623,7 @@
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="nt">&quot;v3_use_offset&quot;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
   <span class="nt">&quot;token_hmac_secret_key&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;YOUR-SECRET-STRING-HERE&gt;&quot;</span><span class="p">,</span>
-  <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;YOUR-API-KEY-HERE&gt;&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;api_key&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;YOUR-API-KEY-HERE&gt;&quot;</span>
 <span class="p">}</span>
 </code></pre></div>
 <p>The only two fields required are <strong>token_hmac_secret_key</strong> and <strong>api_key</strong>.</p>
@@ -1586,14 +1654,44 @@ log_level: debug
 <p>With YAML remember to use spaces, not tabs when writing configuration file.</p>
 <h2 id="important-options">Important options<a class="headerlink" href="#important-options" title="Permanent link">&para;</a></h2>
 <p>Some of the most important options you can configure when running Centrifugo:</p>
-<ul>
-<li><code>address</code> – bind your Centrifugo to specific interface address (by default <code>""</code>)</li>
-<li><code>port</code> – port to bind Centrifugo to (by default <code>8000</code>)</li>
-<li><code>engine</code> – engine to use - <code>memory</code> or <code>redis</code> (by default <code>memory</code>). Read more about engines in <a href="../engines/">special chapter</a>.</li>
-</ul>
-<p>Note that some options can be set via command-line. Command-line options are more valuable when set than configuration file's options. See description of <a href="https://github.com/spf13/viper">viper</a> – to see more details about configuration options priority.</p>
+<h3 id="address">address<a class="headerlink" href="#address" title="Permanent link">&para;</a></h3>
+<p>Bind your Centrifugo to specific interface address (string, by default <code>""</code> - listen on all available interfaces).</p>
+<h3 id="port">port<a class="headerlink" href="#port" title="Permanent link">&para;</a></h3>
+<p>Port to bind Centrifugo to (string, by default <code>"8000"</code>).</p>
+<h3 id="engine">engine<a class="headerlink" href="#engine" title="Permanent link">&para;</a></h3>
+<p>Engine to use - <code>memory</code> or <code>redis</code> (string, by default <code>memory</code>). Read more about engines in <a href="../engines/">special chapter</a>.</p>
+<h3 id="allowed_origins">allowed_origins<a class="headerlink" href="#allowed_origins" title="Permanent link">&para;</a></h3>
+<p>New in Centrifugo v2.8.3.</p>
+<p>This option allows setting an array of allowed origin patterns (array of strings) for WebSocket and SockJS endpoints to prevent <a href="https://en.wikipedia.org/wiki/Cross-site_request_forgery">CSRF</a> attack. This is especially important when using <a href="../proxy/#connect-proxy">connect proxy</a> feature.</p>
+<p>If <code>allowed_origins</code> option not set at all then no origin check will be performed by Centrifugo.</p>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Centrifugo v3 may enforce same-origin strategy by default, so it's better to properly configure <code>allowed_origins</code> as soon as possible.</p>
+</div>
+<p>As soon as <code>allowed_origins</code> defined every connection request will be checked against each pattern in an array.</p>
+<p>For example, when connecting to Centrifugo from an application on <code>http://localhost:3000</code>. In this case <code>allowed_origins</code> should be configured this way:</p>
+<div class="highlight"><pre><span></span><code>&quot;allowed_origins&quot;: [
+    &quot;http://localhost:3000&quot;
+]
+</code></pre></div>
+<p>When connecting from <code>https://example.com</code>:</p>
+<div class="highlight"><pre><span></span><code>&quot;allowed_origins&quot;: [
+    &quot;https://example.com&quot;
+]
+</code></pre></div>
+<p>Origin pattern can contain wildcard symbol <code>*</code> to match subdomains:</p>
+<div class="highlight"><pre><span></span><code>&quot;allowed_origins&quot;: [
+    &quot;https://*.example.com&quot;
+]
+</code></pre></div>
+<p>– in this case requests with <code>Origin</code> header like <code>https://foo.example.com</code> or <code>https://bar.example.com</code> will pass the check.</p>
+<p>It's also possible to allow all origins in the following way (but this is discouraged especially when using connect proxy feature):</p>
+<div class="highlight"><pre><span></span><code>&quot;allowed_origins&quot;: [
+    &quot;*&quot;
+]
+</code></pre></div>
+<p>Connection requests without <code>Origin</code> header set are passing through without any checks (i.e. always allowed).</p>
 <h2 id="advanced-options">Advanced options<a class="headerlink" href="#advanced-options" title="Permanent link">&para;</a></h2>
-<p>Centrifugo has some options for which default values make sense for most applications. In many case you don't need (and you really should not) change them. This chapter is about such options.</p>
 <h3 id="client_channel_limit">client_channel_limit<a class="headerlink" href="#client_channel_limit" title="Permanent link">&para;</a></h3>
 <p>Default: 128</p>
 <p>Sets maximum number of different channel subscriptions single client can have.</p>
@@ -1626,9 +1724,9 @@ log_level: debug
 <p>Enable websocket compression, see chapter about websocket transport for more details.</p>
 <h3 id="gomaxprocs">gomaxprocs<a class="headerlink" href="#gomaxprocs" title="Permanent link">&para;</a></h3>
 <p>Default: 0</p>
-<p>By default, Centrifugo runs on all available CPU cores. If you want to limit amount of cores Centrifugo can utilize in one moment use this option.</p>
+<p>By default, Centrifugo runs on all available CPU cores. To limit amount of cores Centrifugo can utilize in one moment use this option.</p>
 <h2 id="advanced-endpoint-configuration">Advanced endpoint configuration.<a class="headerlink" href="#advanced-endpoint-configuration" title="Permanent link">&para;</a></h2>
-<p>After you started Centrifugo you have several endpoints available. As soon as you have not provided any extra options you have 3 endpoints by default.</p>
+<p>After Centrifugo started there are several endpoints available.</p>
 <h3 id="default-endpoints">Default endpoints.<a class="headerlink" href="#default-endpoints" title="Permanent link">&para;</a></h3>
 <p>The main endpoint is raw Websocket endpoint to serve client connections that use pure Websocket protocol:</p>
 <div class="highlight"><pre><span></span><code>ws://localhost:8000/connection/websocket
@@ -1636,15 +1734,15 @@ log_level: debug
 <p>Then there is SockJS endpoint - it's needed to serve client connections that use SockJS library:</p>
 <div class="highlight"><pre><span></span><code>http://localhost:8000/connection/sockjs
 </code></pre></div>
-<p>And finally you have API endpoint to <code>publish</code> messages to channels (and execute other available API commands):</p>
+<p>Finally, API endpoint to <code>publish</code> messages to channels (and execute other available API commands):</p>
 <div class="highlight"><pre><span></span><code>http://localhost:8000/api
 </code></pre></div>
-<p>By default, all endpoints work on port <code>8000</code>. You can change it using <code>port</code> option:</p>
+<p>By default, all endpoints work on port <code>8000</code>. This can be changed with <code>port</code> option:</p>
 <div class="highlight"><pre><span></span><code>{
     &quot;port&quot;: 9000
 }
 </code></pre></div>
-<p>In production setup you will have your domain name in endpoint addresses above instead of <code>localhost</code>. Also if your Centrifugo will be behind proxy or load balancer software you most probably won't have ports in your endpoint addresses. What will always be the same as shown above are URL paths: <code>/connection/sockjs</code>, <code>/connection/websocket</code>, <code>/api</code>.</p>
+<p>In production setup you may have a proper domain name in endpoint addresses above instead of <code>localhost</code>. While domain name and port parts can differ depending on setup – URL paths stay the same: <code>/connection/sockjs</code>, <code>/connection/websocket</code>, <code>/api</code>.</p>
 <p>Let's look at possibilities to tweak available endpoints.</p>
 <h3 id="admin-endpoints">Admin endpoints.<a class="headerlink" href="#admin-endpoints" title="Permanent link">&para;</a></h3>
 <p>First is enabling admin endpoints:</p>
@@ -1667,7 +1765,7 @@ log_level: debug
 <p>And endpoint:</p>
 <div class="highlight"><pre><span></span><code>http://localhost:8000/debug/pprof/
 </code></pre></div>
-<p>– will show you useful info about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See <a href="https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues">wiki page</a> for more info.</p>
+<p>– will show useful information about internal state of Centrifugo instance. This info is especially helpful when troubleshooting. See <a href="https://github.com/centrifugal/centrifugo/wiki/Investigating-performance-issues">wiki page</a> for more info.</p>
 <h3 id="health-check-endpoint">Health check endpoint<a class="headerlink" href="#health-check-endpoint" title="Permanent link">&para;</a></h3>
 <p>New in v2.1.0</p>
 <p>Use <code>health</code> boolean option (by default <code>false</code>) to enable healthcheck endpoint which will be available on path <code>/health</code>. Also available over command-line flag:</p>
@@ -1682,7 +1780,7 @@ log_level: debug
 <li>Health check endpoint (<code>/health</code>) - used to do health checks</li>
 <li>Debug endpoints (<code>/debug/pprof</code>) - used to inspect internal server state</li>
 </ul>
-<p>It's a good practice to protect those endpoints with firewall. For example, you can do this in <code>location</code> section of Nginx configuration.</p>
+<p>It's a good practice to protect those endpoints with firewall. For example, it's possible to configure in <code>location</code> section of Nginx configuration.</p>
 <p>Though sometimes you don't have access to per-location configuration in your proxy/load balancer software. For example when using Amazon ELB. In this case you can change ports on which your internal endpoints work.</p>
 <p>To run internal endpoints on custom port use <code>internal_port</code> option:</p>
 <div class="highlight"><pre><span></span><code>{
@@ -1713,7 +1811,7 @@ log_level: debug
 <li><code>health_handler_prefix</code> (default <code>"/health"</code>) - to control health check URL prefix</li>
 </ul>
 <h2 id="signal-handling">Signal handling<a class="headerlink" href="#signal-handling" title="Permanent link">&para;</a></h2>
-<p>You can send HUP signal to Centrifugo to reload a configuration:</p>
+<p>It's possible to send HUP signal to Centrifugo to reload a configuration:</p>
 <div class="highlight"><pre><span></span><code>kill -HUP &lt;PID&gt;
 </code></pre></div>
 <p>Though at moment <strong>this will only reload token secrets and channel options (top-level and namespaces)</strong>.</p>

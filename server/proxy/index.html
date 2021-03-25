@@ -1295,6 +1295,10 @@
 <span class="p">}</span>
 </code></pre></div>
 <p>– connection requests <strong>without JWT set</strong> will be proxied to <code>proxy_connect_endpoint</code> URL endpoint. On your backend side you can authenticate incoming connection and return client credentials to Centrifugo in response to proxied request.</p>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Make sure you properly configured <a href="../configuration/#allowed_origins">allowed_origins</a> Centrifugo option or check request origin on your backend side upon receiving connect request from Centrifugo. Otherwise your site can be vulnerable to CSRF attack.</p>
+</div>
 <p>This means you don't need to generate JWT token and pass it to client side and can rely on cookie while authenticating user. <strong>Centrifugo should work on same domain in this case so your site cookie could be passed to Centrifugo</strong>. This also means that <strong>every</strong> new connection from user will result in HTTP POST request to your application backend. While with JWT token you usually generate it once on application page reload, if client reconnects due to Centrifugo restart or internet connection loss it uses the same JWT it had before thus usually no additional requests generated during reconnect process (until JWT expired).</p>
 <p>Payload example that will be sent to app backend when client without token wants to establish connection with Centrifugo and <code>proxy_connect_endpoint</code> is set to non-empty URL string:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>

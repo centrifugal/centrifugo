@@ -1277,7 +1277,7 @@
                 <h1 id="centrifugo-integration-guide">Centrifugo integration guide<a class="headerlink" href="#centrifugo-integration-guide" title="Permanent link">&para;</a></h1>
 <p>This chapter aims to help you get started with Centrifugo. We will look at a step-by-step workflow of integrating your application with Centrifugo providing links to relevant parts of this documentation.</p>
 <p>As Centrifugo is language-agnostic and can be used together with any language/framework we won't be specific here about any backend or frontend technology your application can be built with. Only abstract steps which you can extrapolate to your application stack.</p>
-<p>So first of all let's look again at a simplified scheme:</p>
+<p>Let's look again at a simplified scheme:</p>
 <p><img alt="Centrifugo scheme" src="../images/scheme.png" /></p>
 <p>There are three parts involved into idiomatic Centrifugo usage scenario: your clients (frontend application), your application backend and Centrifugo. It's possible to use Centrifugo without any application backend involved but here we won't consider this use case. </p>
 <p>Here let's suppose you already have 2 of 3 elements: clients and backend. Now you want to add Centrifugo to receive real-time events on client side.</p>
@@ -1289,6 +1289,7 @@
 </code></pre></div>
 <p>– which will generate <code>config.json</code> file for you with all required fields.</p>
 <p>A generated configuration also includes <code>v3_use_offset</code> option set to <code>true</code>. This is an option that enables using actual <code>offset</code> field in client-server protocol and will be used by default in Centrifugo v3. This option available since Centrifugo v2.5.0 and described in detail <a href="https://github.com/centrifugal/centrifugo/releases/tag/v2.5.0">in v2.5.0 release notes</a>.</p>
+<p>Properly configure <a href="../server/configuration/#allowed_origins">allowed_origins</a> option.</p>
 <h2 id="2-configure-your-backend">2. Configure your backend<a class="headerlink" href="#2-configure-your-backend" title="Permanent link">&para;</a></h2>
 <p>In configuration file <strong>of your application backend</strong> register several variables: Centrifugo secret and Centrifugo API key you set on a previous step and Centrifugo API address. By default, API address is <code>http://localhost:8000/api</code>. You <strong>must never reveal token secret and API key to your users</strong>.</p>
 <h2 id="3-connect-to-centrifugo">3. Connect to Centrifugo<a class="headerlink" href="#3-connect-to-centrifugo" title="Permanent link">&para;</a></h2>
