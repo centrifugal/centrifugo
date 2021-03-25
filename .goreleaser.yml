@@ -88,8 +88,13 @@ dockers:
     - "centrifugo/centrifugo:latest-amd64"
     use_buildx: true
     build_flag_templates:
-    - "--platform=linux/amd64"
     - "--pull"
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.name={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--label=org.opencontainers.image.source={{.GitURL}}"
+    - "--platform=linux/amd64"
   - ids:
       - centrifugo
     goos: linux
@@ -101,8 +106,13 @@ dockers:
     - "centrifugo/centrifugo:latest-arm64v8"
     use_buildx: true
     build_flag_templates:
-    - "--platform=linux/arm64/v8"
     - "--pull"
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.name={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--label=org.opencontainers.image.source={{.GitURL}}"
+    - "--platform=linux/arm64/v8"
 docker_manifests:
   - name_template: centrifugo/centrifugo:{{ .Tag }}
     image_templates:

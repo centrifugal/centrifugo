@@ -15,7 +15,7 @@ prepare:
 	go get github.com/mitchellh/gox
 
 test:
-	go test -mod=vendor -count=1 -v $(TESTFOLDERS) -cover -race
+	go test -count=1 -v $(TESTFOLDERS) -cover -race
 
 web:
 	./misc/scripts/update_web.sh
@@ -55,7 +55,7 @@ docs-env-create:
 	python3 -m venv .venv
 
 deps:
-	go mod vendor
+	go mod tidy
 
 local-deps:
 	go mod tidy
@@ -63,4 +63,4 @@ local-deps:
 	go mod vendor
 
 build:
-	CGO_ENABLED=0 go build -mod=vendor
+	CGO_ENABLED=0 go build

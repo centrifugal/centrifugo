@@ -1,4 +1,4 @@
-// +heroku goVersion go1.14
+// +heroku goVersion go1.16
 
 module github.com/centrifugal/centrifugo
 

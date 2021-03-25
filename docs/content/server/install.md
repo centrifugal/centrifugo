@@ -145,10 +145,3 @@ cd centrifugo
 go build
 ./centrifugo
 ```
-
-Centrifugo vendors dependencies at the moment, if you want to build using vendored deps run:
-
-```
-go build -mod vendor
-./centrifugo
-```
