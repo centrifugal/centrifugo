@@ -1207,6 +1207,10 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 			log.Fatal().Msgf("error creating origin checker: %v", err)
 		}
 		cfg.CheckOrigin = func(r *http.Request) bool {
+			if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
+				// Fast path for *.
+				return true
+			}
 			err := originChecker.Check(r)
 			if err != nil {
 				log.Info().Str("error", err.Error()).Msg("error checking request origin")
@@ -1241,6 +1245,10 @@ func sockjsHandlerConfig() centrifuge.SockjsConfig {
 			log.Fatal().Msgf("error creating origin checker: %v", err)
 		}
 		checkFn := func(r *http.Request) bool {
+			if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
+				// Fast path for *.
+				return true
+			}
 			err := originChecker.Check(r)
 			if err != nil {
 				log.Info().Str("error", err.Error()).Msg("error checking request origin")

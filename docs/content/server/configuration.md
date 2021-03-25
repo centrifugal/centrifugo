@@ -95,7 +95,7 @@ Engine to use - `memory` or `redis` (string, by default `memory`). Read more abo
 
 ### allowed_origins
 
-New in Centrifugo v2.9.0.
+New in Centrifugo v2.8.3.
 
 This option allows setting an array of allowed origin patterns (array of strings) for WebSocket and SockJS endpoints to prevent [CSRF](https://en.wikipedia.org/wiki/Cross-site_request_forgery) attack. This is especially important when using [connect proxy](proxy.md#connect-proxy) feature.
 
@@ -131,6 +131,14 @@ Origin pattern can contain wildcard symbol `*` to match subdomains:
 ```
 
 – in this case requests with `Origin` header like `https://foo.example.com` or `https://bar.example.com` will pass the check.
+
+It's also possible to allow all origins in the following way (but this is discouraged especially when using connect proxy feature):
+
+```
+"allowed_origins": [
+    "*"
+]
+```
 
 Connection requests without `Origin` header set are passing through without any checks (i.e. always allowed).
 
