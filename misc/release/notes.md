@@ -1,17 +1,10 @@
+**Security warning**: take a closer look at new option `allowed_origins` **if you are using connect proxy feature**.
+
 No backwards incompatible changes here.
 
 Improvements:
 
-* [JSON Web Key](https://tools.ietf.org/html/rfc7517) support - see [pull request #410](https://github.com/centrifugal/centrifugo/pull/410) and [description in docs](https://centrifugal.github.io/centrifugo/server/authentication/#json-web-key-support)
-* Support ECDSA algorithm for verifying JWT - see [pull request #420](https://github.com/centrifugal/centrifugo/pull/420) and updated [authentication docs chapter](https://centrifugal.github.io/centrifugo/server/authentication/)
-* Various documentation clarifications - did you know that you can [use subscribe proxy instead of private channels](https://centrifugal.github.io/centrifugo/server/proxy/#subscribe-proxy) for example?
+* Possibility to set `allowed_origins` option ([#431](https://github.com/centrifugal/centrifugo/pull/431)). This option allows setting an array of allowed origin patterns (array of strings) for WebSocket and SockJS endpoints to prevent [Cross site request forgery](https://en.wikipedia.org/wiki/Cross-site_request_forgery) attack. This can be especially important when using [connect proxy](https://centrifugal.github.io/centrifugo/server/proxy/#connect-proxy) feature. If you are using JWT authentication then you should be safe. Note, that since you get an origin header as part of proxy request from Centrifugo it's possible to check allowed origins without upgrading to Centrifugo v2.8.3. See [docs](https://centrifugal.github.io/centrifugo/server/configuration/#allowed_origins) for more details about this new option
+* Multi-arch Docker build support - at the moment for `linux/amd64` and `linux/arm64`. See [#433](https://github.com/centrifugal/centrifugo/pull/433)
 
-Fixes:
-
-* Use more strict file permissions for a log file created (when using `log_file` option): `0666` -> `0644`
-* Fix [issue](https://github.com/centrifugal/web/issues/36) with opening admin web UI menu on small screens
-
-Other:
-
-* Centrifugo repo [migrated from Travis CI to GH actions](https://github.com/centrifugal/centrifugo/issues/414), `golangci-lint` now works in CI
-* Check out [a new community package](https://github.com/denis660/laravel-centrifugo) for Laravel that works with the latest version of framework
+Centrifugo v2.8.3 based on latest Go 1.16.2, Centrifugo does not vendor its dependencies anymore.
