@@ -27,7 +27,7 @@ Centrifugo was originally born to help applications with server side written in 
 
 Centrifugo runs as standalone server and takes care of handling persistent connections from your application users. Your application backend and frontend can be written in any programming language. Your clients connect to Centrifugo from a frontend and subscribe to channels. As soon as some event happens your application backend can publish a message with event into a channel using Centrifugo API. That message will be delivered to all clients currently subscribed on a channel. So actually Centrifugo is a user-facing PUB/SUB server. Here is a simplified scheme: 
 <br><br>
-![Centrifugo scheme](images/scheme.png)
+![Centrifugo scheme](images/scheme_sketch.png)
 
 ## Highlights
 

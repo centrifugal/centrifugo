@@ -6,7 +6,7 @@ As Centrifugo is language-agnostic and can be used together with any language/fr
 
 Let's look again at a simplified scheme:
 
-![Centrifugo scheme](images/scheme.png)
+![Centrifugo scheme](images/scheme_sketch.png)
 
 There are three parts involved into idiomatic Centrifugo usage scenario: your clients (frontend application), your application backend and Centrifugo. It's possible to use Centrifugo without any application backend involved but here we won't consider this use case. 
 
