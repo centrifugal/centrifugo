@@ -14,7 +14,7 @@ og_image_height: 750
 
 ## Overview
 
-**UPDATE**: WebTransport spec is still evolving. Some information here is out-of-date. For example the working group has no plan to implement both QuicTransport and HTTP3-based transports – only HTTP3 based WebTransport is going to be implemented. Maybe we will publish a follow-up of this post at some point.
+**UPDATE: WebTransport spec is still evolving. Most information here is not actual anymore. For example the working group has no plan to implement both QuicTransport and HTTP3-based transports – only HTTP3 based WebTransport is going to be implemented. Maybe we will publish a follow-up of this post at some point.**
 
 WebTransport is a new browser API offering low-latency, bidirectional, client-server messaging. If you have not heard about it before I suggest to first read a post called [Experimenting with QuicTransport](https://web.dev/quictransport/) published recently on web.dev – it gives a nice overview to WebTransport and shows client-side code examples. Here we will concentrate on implementing server side.
 
