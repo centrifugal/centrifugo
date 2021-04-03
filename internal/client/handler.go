@@ -269,7 +269,9 @@ func (h *Handler) OnClientConnecting(
 			return centrifuge.ConnectReply{}, err
 		}
 		credentials = connectReply.Credentials
-		subscriptions = connectReply.Subscriptions
+		if connectReply.Subscriptions != nil {
+			subscriptions = connectReply.Subscriptions
+		}
 		data = connectReply.Data
 	}
 
