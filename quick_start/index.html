@@ -1190,7 +1190,7 @@
     <span class="p">&lt;/</span><span class="nt">head</span><span class="p">&gt;</span>
     <span class="p">&lt;</span><span class="nt">body</span><span class="p">&gt;</span>
         <span class="p">&lt;</span><span class="nt">div</span> <span class="na">id</span><span class="o">=</span><span class="s">&quot;counter&quot;</span><span class="p">&gt;</span>-<span class="p">&lt;/</span><span class="nt">div</span><span class="p">&gt;</span>
-        <span class="p">&lt;</span><span class="nt">script</span> <span class="na">src</span><span class="o">=</span><span class="s">&quot;https://cdn.jsdelivr.net/gh/centrifugal/centrifuge-js@2.7.1/dist/centrifuge.min.js&quot;</span><span class="p">&gt;&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
+        <span class="p">&lt;</span><span class="nt">script</span> <span class="na">src</span><span class="o">=</span><span class="s">&quot;https://cdn.jsdelivr.net/gh/centrifugal/centrifuge-js@2.7.3/dist/centrifuge.min.js&quot;</span><span class="p">&gt;&lt;/</span><span class="nt">script</span><span class="p">&gt;</span>
         <span class="p">&lt;</span><span class="nt">script</span> <span class="na">type</span><span class="o">=</span><span class="s">&quot;text/javascript&quot;</span><span class="p">&gt;</span>
             <span class="kd">const</span> <span class="nx">container</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">&#39;counter&#39;</span><span class="p">)</span>
             <span class="kd">const</span> <span class="nx">centrifuge</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Centrifuge</span><span class="p">(</span><span class="s2">&quot;ws://localhost:8000/connection/websocket&quot;</span><span class="p">);</span>
@@ -1214,21 +1214,20 @@
     <span class="p">&lt;/</span><span class="nt">body</span><span class="p">&gt;</span>
 <span class="p">&lt;/</span><span class="nt">html</span><span class="p">&gt;</span>
 </code></pre></div>
-<p>Note that we are using <code>centrifuge-js</code> 2.7.1 in this example, you better use its latest version for a moment of reading this.</p>
-<p>We create an instance of a client providing it Centrifugo default WebSocket endpoint address, then we subscribe to a channel <code>channel</code> and provide callback function to process real-time messages. Then we call <code>connect</code> method to create WebSocket connection. </p>
-<p>You need to serve this file with HTTP server, for example with Python 3 (in real Javascript application you will serve your HTML files with a proper web server – but for this simple example we can use a simple one):</p>
-<div class="highlight"><pre><span></span><code>python3 -m http.server 2000
+<p>Note that we are using <code>centrifuge-js</code> 2.7.3 in this example, you better use its latest version for a moment of reading this.</p>
+<p>In this example we created an instance of a client passing Centrifugo default WebSocket endpoint address to it, then we subscribed to a channel called <code>channel</code> and provided a callback function to process real-time messages. Then we called <code>connect</code> method to create WebSocket connection. </p>
+<p>Now you need to serve this file with HTTP server. In real Javascript application you will serve your HTML files with a web server of your choice – but for this simple example we can use a simple built-in Centrifugo static file server.</p>
+<div class="highlight"><pre><span></span><code>centrifugo serve --port 3000
 </code></pre></div>
-<p>If you don't have Python 3 then <a href="https://gist.github.com/willurd/5720255">this gist can be useful</a>.</p>
-<p>Open <a href="http://localhost:2000/">http://localhost:2000/</a>.</p>
+<p>This command starts a very simple static file web server that serves current directory on port 3000. Make sure you still have Centrifugo server running. Open <a href="http://localhost:3000/">http://localhost:3000/</a>.</p>
 <p>Now if you look at browser developer tools or in Centrifugo logs you will notice a connection can not be successfully established:</p>
-<div class="highlight"><pre><span></span><code>2021-02-26 17:37:47 [INF] error checking request origin error=&quot;request Origin \&quot;http://localhost:2000\&quot; is not authorized for Host \&quot;localhost:8000\&quot;&quot;
+<div class="highlight"><pre><span></span><code>2021-02-26 17:37:47 [INF] error checking request origin error=&quot;request Origin \&quot;http://localhost:3000\&quot; is not authorized for Host \&quot;localhost:8000\&quot;&quot;
 </code></pre></div>
-<p>That's because we are running our application on <code>localhost:2000</code> while Centrifugo runs on <code>localhost:8000</code>. We need to additionally configure <code>allowed_origins</code> option:</p>
+<p>That's because we are connecting from an application on <code>localhost:3000</code> while Centrifugo runs on <code>localhost:8000</code>. We need to additionally configure <code>allowed_origins</code> option:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="err">...</span>
   <span class="nt">&quot;allowed_origins&quot;</span><span class="p">:</span> <span class="p">[</span>
-    <span class="s2">&quot;http://localhost:2000&quot;</span>
+    <span class="s2">&quot;http://localhost:3000&quot;</span>
   <span class="p">]</span>
 <span class="p">}</span>
 </code></pre></div>
