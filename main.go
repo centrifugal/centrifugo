@@ -629,6 +629,28 @@ func main() {
 	}
 	checkTokenCmd.Flags().StringVarP(&checkTokenConfigFile, "config", "c", "config.json", "path to config file")
 
+	var serveDir string
+	var servePort int
+	var serveAddr string
+
+	var serveCmd = &cobra.Command{
+		Use:   "serve",
+		Short: "Run static file server",
+		Long:  `Run static file server`,
+		Run: func(cmd *cobra.Command, args []string) {
+			address := net.JoinHostPort(serveAddr, strconv.Itoa(servePort))
+			fmt.Printf("start serving %s on %s\n", serveDir, address)
+			if err := http.ListenAndServe(address, http.FileServer(http.Dir(serveDir))); err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		},
+	}
+	serveCmd.Flags().StringVarP(&serveDir, "dir", "d", "./", "path to directory")
+	serveCmd.Flags().IntVarP(&servePort, "port", "p", 3000, "port to serve on")
+	serveCmd.Flags().StringVarP(&serveAddr, "address", "a", "", "interface to serve on (default: all interfaces)")
+
+	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(checkConfigCmd)
 	rootCmd.AddCommand(genConfigCmd)
