@@ -11,3 +11,4 @@ protoc-3*
 .idea
 docs/site
 internal/ultra
+vendor/
