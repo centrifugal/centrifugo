@@ -380,7 +380,10 @@ Response expected:
 {"result": {}}
 ```
 
-Result fields: no fields at moment.
+Result fields:
+
+* `data` (optional JSON) is an optional JSON data to send into a channel **instead** of original data sent by a client. Supported since v2.8.5
+* `b64data` (optional string) is a binary data encoded in base64 format, the meaning is the same as for data above, will be decoded to raw bytes on Centrifugo side before publishing. Supported since v2.8.5
 
 See below on how to return an error in case you don't want to allow publishing.
 
