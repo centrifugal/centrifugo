@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -16,7 +17,10 @@ type PublishRequest struct {
 }
 
 // PublishResult ...
-type PublishResult struct{}
+type PublishResult struct {
+	Data       json.RawMessage `json:"data"`
+	Base64Data string          `json:"b64data"`
+}
 
 // PublishReply ...
 type PublishReply struct {

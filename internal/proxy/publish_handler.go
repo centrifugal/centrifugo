@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"time"
 
@@ -69,8 +70,22 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 			return centrifuge.PublishReply{}, publishRep.Error
 		}
 
+		data := e.Data
+		if publishRep.Result != nil {
+			if publishRep.Result.Data != nil {
+				data = e.Data
+			} else if publishRep.Result.Base64Data != "" {
+				decodedData, err := base64.StdEncoding.DecodeString(publishRep.Result.Base64Data)
+				if err != nil {
+					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
+					return centrifuge.PublishReply{}, centrifuge.ErrorInternal
+				}
+				data = decodedData
+			}
+		}
+
 		result, err := node.Publish(
-			e.Channel, e.Data,
+			e.Channel, data,
 			centrifuge.WithClientInfo(e.ClientInfo),
 			centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryLifetime)*time.Second),
 		)
