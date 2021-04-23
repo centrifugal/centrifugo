@@ -73,7 +73,7 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		data := e.Data
 		if publishRep.Result != nil {
 			if publishRep.Result.Data != nil {
-				data = e.Data
+				data = publishRep.Result.Data
 			} else if publishRep.Result.Base64Data != "" {
 				decodedData, err := base64.StdEncoding.DecodeString(publishRep.Result.Base64Data)
 				if err != nil {
