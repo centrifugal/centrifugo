@@ -198,6 +198,12 @@ Default: 25
 
 Interval in seconds how often to send SockJS h-frames to client.
 
+### websocket_message_size_limit
+
+Default: 65536 (64KB)
+
+Maximum allowed size of message from websocket in bytes.
+
 ### websocket_compression
 
 Default: false
