@@ -163,6 +163,8 @@ var configDefaults = map[string]interface{}{
 	"proxy_rpc_timeout":                    1,
 	"proxy_refresh_endpoint":               "",
 	"proxy_refresh_timeout":                1,
+	"proxy_subscribe_timeout":              1,
+	"proxy_publish_timeout":                1,
 	"memory_history_meta_ttl":              0,
 	"redis_history_meta_ttl":               0,
 	"v3_use_offset":                        false, // TODO v3: remove.
