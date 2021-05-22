@@ -1548,7 +1548,11 @@
 <p>Response expected:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;result&quot;</span><span class="p">:</span> <span class="p">{}}</span>
 </code></pre></div>
-<p>Result fields: no fields at moment.</p>
+<p>Result fields:</p>
+<ul>
+<li><code>data</code> (optional JSON) is an optional JSON data to send into a channel <strong>instead</strong> of original data sent by a client. Supported since v2.8.5</li>
+<li><code>b64data</code> (optional string) is a binary data encoded in base64 format, the meaning is the same as for data above, will be decoded to raw bytes on Centrifugo side before publishing. Supported since v2.8.5</li>
+</ul>
 <p>See below on how to return an error in case you don't want to allow publishing.</p>
 <p><code>proxy_publish_timeout</code> (float, in seconds) config option controls timeout of HTTP POST request sent to app backend.</p>
 <h3 id="return-custom-error">Return custom error<a class="headerlink" href="#return-custom-error" title="Permanent link">&para;</a></h3>
