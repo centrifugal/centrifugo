@@ -75,7 +75,7 @@ will be retrieved on first request to Centrifugo.
 
 Also Let's Encrypt certificates will be automatically renewed.
 
-There are tho options that allow Centrifugo to support TLS client connections from older
+There are two options that allow Centrifugo to support TLS client connections from older
 browsers such as Chrome 49 on Windows XP and IE8 on XP:
 
 * `tls_autocert_force_rsa` - this is a boolean option, by default `false`. When enabled it forces
