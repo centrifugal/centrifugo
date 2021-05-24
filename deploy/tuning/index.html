@@ -20,7 +20,7 @@
     
     
       
-        <title>OS tuning - Centrifugo</title>
+        <title>Infrastructure tuning - Centrifugo</title>
       
     
     
@@ -70,7 +70,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#tuning-operating-system" class="md-skip">
+        <a href="#tuning-infrastructure-to-handle-persistent-connections" class="md-skip">
           Skip to content
         </a>
       
@@ -101,7 +101,7 @@
         <div class="md-header-nav__topic">
           <span class="md-ellipsis">
             
-              OS tuning
+              Infrastructure tuning
             
           </span>
         </div>
@@ -725,18 +725,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../nginx/" class="md-nav__link">
-        Nginx configuration
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../monitoring/" class="md-nav__link">
         Monitoring
       </a>
@@ -758,12 +746,12 @@
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          OS tuning
+          Infrastructure tuning
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
-        OS tuning
+        Infrastructure tuning
       </a>
       
         
@@ -781,14 +769,35 @@
       
         <li class="md-nav__item">
   <a href="#open-files-limit" class="md-nav__link">
-    open files limit
+    Open files limit
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#lots-of-sockets-in-time_wait-state" class="md-nav__link">
-    lots of sockets in TIME_WAIT state.
+  <a href="#ephemeral-port-exhaustion" class="md-nav__link">
+    Ephemeral port exhaustion
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sockets-in-time_wait-state" class="md-nav__link">
+    Sockets in TIME_WAIT state
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#proxy-max-connections" class="md-nav__link">
+    Proxy max connections
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conntrack-table" class="md-nav__link">
+    Conntrack table
   </a>
   
 </li>
@@ -808,6 +817,18 @@
     <li class="md-nav__item">
       <a href="../tls/" class="md-nav__link">
         TLS
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nginx/" class="md-nav__link">
+        Nginx configuration
       </a>
     </li>
   
@@ -1135,14 +1156,35 @@
       
         <li class="md-nav__item">
   <a href="#open-files-limit" class="md-nav__link">
-    open files limit
+    Open files limit
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#lots-of-sockets-in-time_wait-state" class="md-nav__link">
-    lots of sockets in TIME_WAIT state.
+  <a href="#ephemeral-port-exhaustion" class="md-nav__link">
+    Ephemeral port exhaustion
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sockets-in-time_wait-state" class="md-nav__link">
+    Sockets in TIME_WAIT state
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#proxy-max-connections" class="md-nav__link">
+    Proxy max connections
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conntrack-table" class="md-nav__link">
+    Conntrack table
   </a>
   
 </li>
@@ -1164,44 +1206,54 @@
                   </a>
                 
                 
-                <h1 id="tuning-operating-system">Tuning operating system<a class="headerlink" href="#tuning-operating-system" title="Permanent link">&para;</a></h1>
-<p>As Centrifugo/Centrifuge deals with lots of persistent connections your operating system must be
-ready for it.</p>
-<h3 id="open-files-limit">open files limit<a class="headerlink" href="#open-files-limit" title="Permanent link">&para;</a></h3>
-<p>First of all you should increase a max number of open files your processes can open.</p>
-<p>To get you current open files limit run:</p>
+                <h1 id="tuning-infrastructure-to-handle-persistent-connections">Tuning infrastructure to handle persistent connections<a class="headerlink" href="#tuning-infrastructure-to-handle-persistent-connections" title="Permanent link">&para;</a></h1>
+<p>As Centrifugo deals with lots of persistent connections your operating system and server infrastructure must be ready for it.</p>
+<h3 id="open-files-limit">Open files limit<a class="headerlink" href="#open-files-limit" title="Permanent link">&para;</a></h3>
+<p>You should increase a max number of open files Centrifugo process can open if you want to handle more connections.</p>
+<p>To get the current open files limit run:</p>
 <div class="highlight"><pre><span></span><code>ulimit -n
 </code></pre></div>
-<p>The result shows approximately how many clients your server can handle.</p>
+<p>On Linux you can check limits for a running process using:</p>
+<div class="highlight"><pre><span></span><code>cat /proc/&lt;PID&gt;/limits
+</code></pre></div>
+<p>The open file limit shows approximately how many clients your server can handle. Each connection consumes one file descriptor. On most operating systems this limit is 128-256 by default.</p>
 <p>See <a href="https://docs.riak.com/riak/kv/2.2.3/using/performance/open-files-limit.1.html">this document</a> to get more info on how to increase this number.</p>
 <p>If you install Centrifugo using RPM from repo then it automatically sets max open files limit to 65536.</p>
-<p>You may also need to increase max open files for Nginx.</p>
-<h3 id="lots-of-sockets-in-time_wait-state">lots of sockets in TIME_WAIT state.<a class="headerlink" href="#lots-of-sockets-in-time_wait-state" title="Permanent link">&para;</a></h3>
+<p>You may also need to increase max open files for Nginx (or any other proxy before Centrifugo).</p>
+<h3 id="ephemeral-port-exhaustion">Ephemeral port exhaustion<a class="headerlink" href="#ephemeral-port-exhaustion" title="Permanent link">&para;</a></h3>
+<p>Ephemeral ports exhaustion problem can happen between your load balancer and Centrifugo server. If your clients connect directly to Centrifugo without any load balancer or reverse proxy software between then you are most likely won't have this problem. But load balancing is a very common thing.</p>
+<p>The problem arises due to the fact that each TCP connection uniquely identified in the OS by the 4-part-tuple:</p>
+<div class="highlight"><pre><span></span><code>source ip | source port | destination ip | destination port
+</code></pre></div>
+<p>On load balancer/server boundary you are limited in 65536 possible variants by default. Actually due to some OS limits not all 65536 ports are available for usage (usually about 15k ports available by default).</p>
+<p>In order to eliminate a problem you can:</p>
+<ul>
+<li>Increase the ephemeral port range by tuning <code>ip_local_port_range</code> option</li>
+<li>Deploy more Centrifugo server instances to load balance across</li>
+<li>Deploy more load balancer instances</li>
+<li>Use virtual network interfaces</li>
+</ul>
+<p>See <a href="https://making.pusher.com/ephemeral-port-exhaustion-and-how-to-avoid-it/">a post in Pusher blog</a> about this problem and more detailed solution steps.</p>
+<h3 id="sockets-in-time_wait-state">Sockets in TIME_WAIT state<a class="headerlink" href="#sockets-in-time_wait-state" title="Permanent link">&para;</a></h3>
+<p>On load balancer/server boundary one more problem can arise: sockets in TIME_WAIT state.</p>
+<p>Under load when lots of connections and disconnections happen socket descriptors can stay in TIME_WAIT state. Those descriptors can not be reused for a while. So you can get various
+errors when using Centrifugo. For example something like <code>(99: Cannot assign requested address) while connecting to upstream</code> in Nginx error log and 502 on client side.</p>
 <p>Look how many socket descriptors in TIME_WAIT state.</p>
-<div class="highlight"><pre><span></span><code>netstat -an |grep TIME_WAIT | grep CENTRIFUGO_PID | wc -l
+<div class="highlight"><pre><span></span><code>netstat -an |grep TIME_WAIT | grep &lt;CENTRIFUGO_PID&gt; | wc -l
 </code></pre></div>
-<p>Under load when lots of connections and disconnection happen lots of used socket descriptors can
-stay in TIME_WAIT state. Those descriptors can not be reused for a while. So you can get various
-errors when using Centrifugo. For example something like <code>(99: Cannot assign requested address)
-while connecting to upstream</code> in Nginx error log and 502 on client side. In this case there are
-several advices that can help.</p>
 <p>Nice article about TIME_WAIT sockets: <a href="http://vincent.bernat.im/en/blog/2014-tcp-time-wait-state-linux.html">http://vincent.bernat.im/en/blog/2014-tcp-time-wait-state-linux.html</a></p>
-<p>There is a perfect article about operating system tuning for lots of connections: <a href="https://engineering.gosquared.com/optimising-nginx-node-js-and-networking-for-heavy-workloads">https://engineering.gosquared.com/optimising-nginx-node-js-and-networking-for-heavy-workloads</a>.</p>
-<p>To summarize:</p>
-<ol>
-<li>Increase ip_local_port_range</li>
-<li>If you are using Nginx set <code>keepalive</code> directive in upstream.</li>
-</ol>
-<div class="highlight"><pre><span></span><code>upstream centrifugo {
-    #sticky;
-    ip_hash;
-    server 127.0.0.1:8000;
-    keepalive 512;
-}
-</code></pre></div>
-<ol>
-<li>And finally if the problem is not gone away consider trying to enable <code>net.ipv4.tcp_tw_reuse</code></li>
-</ol>
+<p>The advices here are similar to ephemeral port exhaustion problem:</p>
+<ul>
+<li>Increase the ephemeral port range by tuning <code>ip_local_port_range</code> option</li>
+<li>Deploy more Centrifugo server instances to load balance across</li>
+<li>Deploy more load balancer instances</li>
+<li>Use virtual network interfaces</li>
+</ul>
+<h3 id="proxy-max-connections">Proxy max connections<a class="headerlink" href="#proxy-max-connections" title="Permanent link">&para;</a></h3>
+<p>Proxies like Nginx and Envoy have default limits on maximum number of connections which can be established.</p>
+<p>Make sure you have a reasonable limit for max number of incoming and outgoing connections in your proxy configuration. </p>
+<h3 id="conntrack-table">Conntrack table<a class="headerlink" href="#conntrack-table" title="Permanent link">&para;</a></h3>
+<p>More rare (since default limit is usually sufficient) your possible number of connections can be limited by conntrack table. Netfilter framework which is part of iptables keeps information about all connections and has limited size for this information. See how to see its limits and instructions to increase <a href="https://morganwu277.github.io/2018/05/26/Solve-production-issue-of-nf-conntrack-table-full-dropping-packet/">in this article</a>.</p>
                 
               
               

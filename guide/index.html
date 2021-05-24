@@ -824,18 +824,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../deploy/nginx/" class="md-nav__link">
-        Nginx configuration
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../deploy/monitoring/" class="md-nav__link">
         Monitoring
       </a>
@@ -849,7 +837,7 @@
   
     <li class="md-nav__item">
       <a href="../deploy/tuning/" class="md-nav__link">
-        OS tuning
+        Infrastructure tuning
       </a>
     </li>
   
@@ -862,6 +850,18 @@
     <li class="md-nav__item">
       <a href="../deploy/tls/" class="md-nav__link">
         TLS
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploy/nginx/" class="md-nav__link">
+        Nginx configuration
       </a>
     </li>
   
@@ -1306,7 +1306,7 @@
 <h2 id="5-publish-to-channel">5. Publish to channel<a class="headerlink" href="#5-publish-to-channel" title="Permanent link">&para;</a></h2>
 <p>So everything should work now – as soon as user opens some page of your application it must successfully connect to Centrifugo and subscribe to a channel (or channels). Now let's imagine you want to send a real-time message to users subscribed on a specific channel. This message can be a reaction on some event happened in your app: someone posted new comment, administrator just created new post, user pressed like button etc. Anyway this is an event your backend just got, and you want to immediately share it with interested users. You can do this using Centrifugo <a href="../server/http_api/">HTTP API</a>. To simplify your life <a href="../libraries/api/">we have several API libraries</a> for different languages. You can publish message into channel using one of those libraries or you can simply <a href="../server/http_api/">follow API description</a> to construct API request yourself - this is very simple. Also Centrifugo supports <a href="../server/grpc_api/">GRPC API</a>. As soon as you published message to channel it must be delivered to your client.</p>
 <h2 id="6-deploy-to-production">6. Deploy to production<a class="headerlink" href="#6-deploy-to-production" title="Permanent link">&para;</a></h2>
-<p>To put this all into production you need to deploy Centrifugo on your production server. To help you with this we have many things like Docker image, <code>rpm</code> and <code>deb</code> packages, Nginx configuration. You can find more information in Deploy section of this doc. See <a href="../deploy/tuning/">OS tuning</a> chapter for some actions you have to do to prepare your server machine for handling many persistent connections.</p>
+<p>To put this all into production you need to deploy Centrifugo on your production server. To help you with this we have many things like Docker image, <code>rpm</code> and <code>deb</code> packages, Nginx configuration. You can find more information in Deploy section of this doc. See <a href="../deploy/tuning/">Infrastructure tuning</a> chapter for some actions you have to do to prepare your server infrastructure for handling many persistent connections.</p>
 <h2 id="7-monitor-centrifugo">7. Monitor Centrifugo<a class="headerlink" href="#7-monitor-centrifugo" title="Permanent link">&para;</a></h2>
 <p>Don't forget to <a href="../deploy/monitoring/">monitor</a> your production Centrifugo setup.</p>
 <h2 id="8-scale-centrifugo">8. Scale Centrifugo<a class="headerlink" href="#8-scale-centrifugo" title="Permanent link">&para;</a></h2>

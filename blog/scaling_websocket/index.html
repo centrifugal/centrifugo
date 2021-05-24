@@ -765,18 +765,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../deploy/nginx/" class="md-nav__link">
-        Nginx configuration
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../deploy/monitoring/" class="md-nav__link">
         Monitoring
       </a>
@@ -790,7 +778,7 @@
   
     <li class="md-nav__item">
       <a href="../../deploy/tuning/" class="md-nav__link">
-        OS tuning
+        Infrastructure tuning
       </a>
     </li>
   
@@ -803,6 +791,18 @@
     <li class="md-nav__item">
       <a href="../../deploy/tls/" class="md-nav__link">
         TLS
+      </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deploy/nginx/" class="md-nav__link">
+        Nginx configuration
       </a>
     </li>
   
@@ -1342,9 +1342,9 @@
 <p>Let's start with several OS specific key things you should do to prepare for many connections from WebSocket clients.</p>
 <p>Every connection will cost you an open file descriptor, so you should tune a maximum number of open file descriptors your process can use. An errors like <code>too many open files</code> raise due to OS limit on file descriptors which is usually 256-1024 by default (see with <code>ulimit -n</code> on Unix). A nice overview on how to do this on different systems can be found <a href="https://docs.riak.com/riak/kv/2.2.3/using/performance/open-files-limit.1.html">in Riak docs</a>. Wanna more connections? Make this limit higher.</p>
 <p>Nice tip here is to limit a maximum number of connections your process can serve – making it less than known file descriptor limit:</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// ulimit -n == 65535</span>
+<div class="highlight"><pre><span></span><code><span class="c1">// ulimit -n == 65535</span>
 <span class="k">if</span> <span class="nx">conns</span><span class="p">.</span><span class="nx">Len</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">65500</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;connection limit reached&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nx">errors</span><span class="p">.</span><span class="nx">New</span><span class="p">(</span><span class="s">&quot;connection limit reached&quot;</span><span class="p">)</span>
 <span class="p">}</span>
 <span class="nx">conns</span><span class="p">.</span><span class="nx">Add</span><span class="p">(</span><span class="nx">conn</span><span class="p">)</span>
 </code></pre></div>
