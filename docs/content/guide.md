@@ -57,7 +57,7 @@ So everything should work now – as soon as user opens some page of your applic
 
 ## 6. Deploy to production
 
-To put this all into production you need to deploy Centrifugo on your production server. To help you with this we have many things like Docker image, `rpm` and `deb` packages, Nginx configuration. You can find more information in Deploy section of this doc. See [OS tuning](deploy/tuning.md) chapter for some actions you have to do to prepare your server machine for handling many persistent connections.
+To put this all into production you need to deploy Centrifugo on your production server. To help you with this we have many things like Docker image, `rpm` and `deb` packages, Nginx configuration. You can find more information in Deploy section of this doc. See [Infrastructure tuning](deploy/tuning.md) chapter for some actions you have to do to prepare your server infrastructure for handling many persistent connections.
 
 ## 7. Monitor Centrifugo
 

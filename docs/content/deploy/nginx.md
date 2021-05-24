@@ -172,7 +172,3 @@ events {
     worker_connections 40000;
 }
 ```
-
-## Upstream keepalive
-
-See [chapter about operating system tuning](tuning.md) for more details.

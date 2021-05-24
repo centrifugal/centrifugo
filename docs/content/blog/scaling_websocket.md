@@ -65,9 +65,9 @@ Every connection will cost you an open file descriptor, so you should tune a max
 Nice tip here is to limit a maximum number of connections your process can serve – making it less than known file descriptor limit:
 
 ```go
-// ulimit -n == 65535
+// ulimit -n == 65535
 if conns.Len() >= 65500 {
-    return errors.New("connection limit reached")
+    return errors.New("connection limit reached")
 }
 conns.Add(conn)
 ```

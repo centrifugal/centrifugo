@@ -93,10 +93,10 @@ nav:
       - Client protocol: 'transports/protocol.md'
       - Message recovery: 'transports/recovery.md'
     - Deploy:
-        - Nginx configuration: 'deploy/nginx.md'
         - Monitoring: 'deploy/monitoring.md'
-        - OS tuning: 'deploy/tuning.md'
+        - Infrastructure tuning: 'deploy/tuning.md'
         - TLS: 'deploy/tls.md'
+        - Nginx configuration: 'deploy/nginx.md'
     - Misc:
         - Insecure modes: 'misc/insecure_modes.md'
         - Migrate from Centrifugo v1: 'misc/migrate.md'
