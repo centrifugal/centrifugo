@@ -1105,20 +1105,19 @@
                 
                 
                 <h1 id="http-api-clients">HTTP API clients<a class="headerlink" href="#http-api-clients" title="Permanent link">&para;</a></h1>
-<p>If you look at server API docs you will find that sending API request to Centrifugo is a very simple task to do in any programming language - this is just a POST request with JSON payload in body and <code>Authorization</code> header. See more in <a href="../../server/http_api/">special chapter</a> in server section.</p>
+<p>Sending API request to Centrifugo is a very simple task to do in any programming language - this is just a POST request with JSON payload in body and <code>Authorization</code> header. See more in <a href="../../server/http_api/">special chapter</a> in server section.</p>
 <p>We have several official client libraries for different languages so you don't have to construct proper HTTP requests manually:</p>
 <ul>
 <li><a href="https://github.com/centrifugal/cent">cent</a> for Python</li>
 <li><a href="https://github.com/centrifugal/phpcent">phpcent</a> for PHP</li>
 <li><a href="https://github.com/centrifugal/gocent">gocent</a> for Go</li>
-<li><a href="https://github.com/centrifugal/rubycent">rubycent</a> for Ruby (<strong>not available for Centrifugo v2 yet</strong>)</li>
-<li><a href="https://github.com/centrifugal/jscent">jscent</a> for NodeJS (<strong>not available for Centrifugo v2 yet</strong>)</li>
 </ul>
-<p>Also there are libraries supported by community:</p>
+<p>Also there are API libraries/integrations supported by community:</p>
 <ul>
-<li><a href="https://github.com/denis660/laravel-centrifugo">laravel-centrifugo</a> for Laravel framework</li>
-<li><a href="https://github.com/devops-israel/crystalcent">crystalcent</a> for Crystal language</li>
-<li><a href="https://github.com/fre5h/CentrifugoBundle">CentrifugoBundle</a> for Symfony framework</li>
+<li><a href="https://github.com/devops-israel/crystalcent">crystalcent</a> API client for Crystal language</li>
+<li><a href="https://github.com/denis660/laravel-centrifugo">laravel-centrifugo</a> integration with Laravel framework</li>
+<li><a href="https://github.com/fre5h/CentrifugoBundle">CentrifugoBundle</a> integration with Symfony framework</li>
+<li><a href="https://github.com/synw/django-instant">Django-instant</a> integration with Django framework</li>
 </ul>
 <p>Also, keep in mind that Centrifugo <a href="../../server/grpc_api/">has GRPC API</a> so you can automatically generate client API code for your language.</p>
                 
