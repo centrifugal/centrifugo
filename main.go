@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	stdlog "log"
 	"net"
 	"net/http"
@@ -666,7 +665,7 @@ func writePidFile(pidFile string) error {
 		return nil
 	}
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
-	return ioutil.WriteFile(pidFile, pid, 0644)
+	return os.WriteFile(pidFile, pid, 0644)
 }
 
 var logLevelMatches = map[string]zerolog.Level{

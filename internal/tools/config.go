@@ -3,7 +3,6 @@ package tools
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -107,5 +106,5 @@ func GenerateConfig(f string) error {
 		uuid.New().String(),
 	})
 
-	return ioutil.WriteFile(f, output.Bytes(), 0644)
+	return os.WriteFile(f, output.Bytes(), 0644)
 }
