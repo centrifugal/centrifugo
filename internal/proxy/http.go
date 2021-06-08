@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -58,7 +58,7 @@ func (c *httpCaller) CallHTTP(ctx context.Context, header http.Header, reqData [
 	if resp.StatusCode != http.StatusOK {
 		return nil, &statusCodeError{resp.StatusCode}
 	}
-	respData, err := ioutil.ReadAll(resp.Body)
+	respData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading HTTP body: %w", err)
 	}

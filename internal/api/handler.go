@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -40,7 +39,7 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var data []byte
 	var err error
 
-	data, err = ioutil.ReadAll(r.Body)
+	data, err = io.ReadAll(r.Body)
 	if err != nil {
 		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error reading API request body", map[string]interface{}{"error": err.Error()}))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
