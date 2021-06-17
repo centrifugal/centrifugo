@@ -12,8 +12,11 @@ import (
 type ConnectionMode int
 
 const (
-	ConnectionModeSingleInstance     ConnectionMode = 0
-	ConnectionModeLeaderFollower     ConnectionMode = 1
+	// Single Tarantool (single leader).
+	ConnectionModeSingleInstance ConnectionMode = 0
+	// Tarantool with replica and automatic failover configured.
+	ConnectionModeLeaderFollower ConnectionMode = 1
+	// Tarantool with Raft.
 	ConnectionModeLeaderFollowerRaft ConnectionMode = 2
 )
 
