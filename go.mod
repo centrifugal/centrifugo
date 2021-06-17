@@ -10,9 +10,7 @@ replace (
 )
 
 require (
-	github.com/ClickHouse/clickhouse-go v1.4.5
 	github.com/FZambia/eagle v0.0.2
-	github.com/FZambia/sentinel v1.1.0
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.2.2
 	github.com/FZambia/viper-lite v0.0.0-20171108064948-d5a31e6aa18b
@@ -20,16 +18,12 @@ require (
 	github.com/centrifugal/protocol v0.5.0
 	github.com/cristalhq/jwt/v3 v3.0.14
 	github.com/gobwas/glob v0.2.3
-	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.2
-	github.com/gomodule/redigo v1.8.4
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/websocket v1.4.2
-	github.com/mailru/easyjson v0.7.7
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/mapstructure v1.4.1
-	github.com/mna/redisc v1.1.7
 	github.com/nats-io/nats-server/v2 v2.2.1 // indirect
 	github.com/nats-io/nats.go v1.11.0
 	github.com/pelletier/go-toml v1.9.0 // indirect
@@ -43,7 +37,6 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.7.0
-	github.com/valyala/bytebufferpool v1.0.0
 	github.com/vmihailenco/msgpack/v5 v5.3.2
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	golang.org/x/net v0.0.0-20210521195947-fe42d452be8f // indirect
