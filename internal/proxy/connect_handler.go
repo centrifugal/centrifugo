@@ -3,10 +3,13 @@ package proxy
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/rule"
+	"github.com/centrifugal/centrifugo/v3/internal/clientcontext"
+	"github.com/centrifugal/centrifugo/v3/internal/proxy/proxyproto"
+	"github.com/centrifugal/centrifugo/v3/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
@@ -41,13 +44,21 @@ func NewConnectHandler(c ConnectHandlerConfig, ruleContainer *rule.Container) *C
 func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHandler {
 	return func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		started := time.Now()
-		connectRep, err := h.config.Proxy.ProxyConnect(ctx, ConnectRequest{
-			ClientID:  e.ClientID,
-			Transport: e.Transport,
-			Data:      e.Data,
+		req := &proxyproto.ConnectRequest{
+			Client:    e.ClientID,
+			Protocol:  string(e.Transport.Protocol()),
+			Transport: e.Transport.Name(),
+			Encoding:  getEncoding(h.config.Proxy.UseBase64()),
 			Name:      e.Name,
 			Version:   e.Version,
-		})
+		}
+		if !h.config.Proxy.UseBase64() {
+			req.Data = e.Data
+		} else {
+			req.B64Data = base64.StdEncoding.EncodeToString(e.Data)
+		}
+
+		connectRep, err := h.config.Proxy.ProxyConnect(ctx, req)
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
@@ -62,58 +73,54 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 		h.summary.Observe(duration)
 		h.histogram.Observe(duration)
 		if connectRep.Disconnect != nil {
-			return centrifuge.ConnectReply{}, connectRep.Disconnect
+			return centrifuge.ConnectReply{}, proxyproto.DisconnectFromProto(connectRep.Disconnect)
 		}
 		if connectRep.Error != nil {
-			return centrifuge.ConnectReply{}, connectRep.Error
+			return centrifuge.ConnectReply{}, proxyproto.ErrorFromProto(connectRep.Error)
 		}
 
-		credentials := connectRep.Result
-		if credentials == nil {
+		result := connectRep.Result
+		if result == nil {
 			return centrifuge.ConnectReply{Credentials: nil}, nil
 		}
 
 		var info []byte
-		if e.Transport.Encoding() == "json" {
-			info = credentials.Info
-		} else {
-			if credentials.Base64Info != "" {
-				decodedInfo, err := base64.StdEncoding.DecodeString(credentials.Base64Info)
-				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
-					return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
-				}
-				info = decodedInfo
+		if result.B64Info != "" {
+			decodedInfo, err := base64.StdEncoding.DecodeString(result.B64Info)
+			if err != nil {
+				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
+				return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
 			}
+			info = decodedInfo
+		} else {
+			info = result.Info
 		}
 
 		var data []byte
-		if e.Transport.Encoding() == "json" {
-			data = credentials.Data
-		} else {
-			if credentials.Base64Data != "" {
-				decodedData, err := base64.StdEncoding.DecodeString(credentials.Base64Data)
-				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
-					return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
-				}
-				data = decodedData
+		if result.B64Data != "" {
+			decodedData, err := base64.StdEncoding.DecodeString(result.B64Data)
+			if err != nil {
+				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]interface{}{"client": e.ClientID, "error": err.Error()}))
+				return centrifuge.ConnectReply{}, centrifuge.ErrorInternal
 			}
+			data = decodedData
+		} else {
+			data = result.Data
 		}
 
 		reply := centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
-				UserID:   credentials.UserID,
-				ExpireAt: credentials.ExpireAt,
+				UserID:   result.User,
+				ExpireAt: result.ExpireAt,
 				Info:     info,
 			},
 		}
 		if len(data) > 0 {
 			reply.Data = data
 		}
-		if len(credentials.Channels) > 0 {
-			subscriptions := make(map[string]centrifuge.SubscribeOptions, len(credentials.Channels))
-			for _, ch := range credentials.Channels {
+		if len(result.Channels) > 0 {
+			subscriptions := make(map[string]centrifuge.SubscribeOptions, len(result.Channels))
+			for _, ch := range result.Channels {
 				chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 				if err != nil {
 					return centrifuge.ConnectReply{}, err
@@ -124,11 +131,18 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 				subscriptions[ch] = centrifuge.SubscribeOptions{
 					Presence:  chOpts.Presence,
 					JoinLeave: chOpts.JoinLeave,
-					Recover:   chOpts.HistoryRecover,
+					Recover:   chOpts.Recover,
 				}
 			}
 			reply.Subscriptions = subscriptions
 		}
+		if result.Meta != nil {
+			newCtx := clientcontext.SetContextConnectionMeta(ctx, clientcontext.ConnectionMeta{
+				Meta: json.RawMessage(result.Meta),
+			})
+			reply.Context = newCtx
+		}
+
 		return reply, nil
 	}
 }

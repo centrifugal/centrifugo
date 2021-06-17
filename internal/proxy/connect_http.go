@@ -2,44 +2,26 @@ package proxy
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
-	"net/http"
 
-	"github.com/centrifugal/centrifugo/internal/middleware"
-
-	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/centrifugo/v3/internal/proxy/proxyproto"
 )
-
-// ConnectRequestHTTP ...
-type ConnectRequestHTTP struct {
-	baseRequestHTTP
-
-	Data json.RawMessage `json:"data,omitempty"`
-	// Base64Data to proxy protobuf data.
-	Base64Data string `json:"b64data,omitempty"`
-	// Name of client.
-	Name string `json:"name,omitempty"`
-	// Version of client.
-	Version string `json:"version,omitempty"`
-}
 
 // HTTPConnectProxy ...
 type HTTPConnectProxy struct {
+	endpoint   string
 	httpCaller HTTPCaller
-	options    Options
+	config     Config
 }
 
+var _ ConnectProxy = (*HTTPConnectProxy)(nil)
+
 // NewHTTPConnectProxy ...
-func NewHTTPConnectProxy(endpoint string, httpClient *http.Client, opts ...Option) *HTTPConnectProxy {
-	options := &Options{}
-	for _, opt := range opts {
-		opt(options)
-	}
+func NewHTTPConnectProxy(endpoint string, config Config) (*HTTPConnectProxy, error) {
 	return &HTTPConnectProxy{
-		httpCaller: NewHTTPCaller(endpoint, httpClient),
-		options:    *options,
-	}
+		endpoint:   endpoint,
+		httpCaller: NewHTTPCaller(proxyHTTPClient(config.ConnectTimeout)),
+		config:     config,
+	}, nil
 }
 
 // Protocol ...
@@ -47,41 +29,20 @@ func (p *HTTPConnectProxy) Protocol() string {
 	return "http"
 }
 
+// UseBase64 ...
+func (p *HTTPConnectProxy) UseBase64() bool {
+	return p.config.BinaryEncoding
+}
+
 // ProxyConnect proxies connect control to application backend.
-func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req ConnectRequest) (*ConnectReply, error) {
-	httpRequest := middleware.HeadersFromContext(ctx)
-
-	connectHTTPReq := ConnectRequestHTTP{
-		baseRequestHTTP: baseRequestHTTP{
-			ClientID:  req.ClientID,
-			Transport: req.Transport.Name(),
-			Protocol:  string(req.Transport.Protocol()),
-			Encoding:  string(req.Transport.Encoding()),
-		},
-		Name:    req.Name,
-		Version: req.Version,
-	}
-
-	if req.Transport.Encoding() == centrifuge.EncodingTypeJSON {
-		connectHTTPReq.Data = req.Data
-	} else {
-		connectHTTPReq.Base64Data = base64.StdEncoding.EncodeToString(req.Data)
-	}
-
-	data, err := json.Marshal(connectHTTPReq)
+func (p *HTTPConnectProxy) ProxyConnect(ctx context.Context, req *proxyproto.ConnectRequest) (*proxyproto.ConnectResponse, error) {
+	data, err := p.config.HTTPConfig.Encoder.EncodeConnectRequest(req)
 	if err != nil {
 		return nil, err
 	}
-
-	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest, p.options.ExtraHeaders), data)
+	respData, err := p.httpCaller.CallHTTP(ctx, p.endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
 		return nil, err
 	}
-
-	var res ConnectReply
-	err = json.Unmarshal(respData, &res)
-	if err != nil {
-		return nil, err
-	}
-	return &res, nil
+	return p.config.HTTPConfig.Decoder.DecodeConnectResponse(respData)
 }

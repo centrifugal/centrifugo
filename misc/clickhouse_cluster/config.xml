@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<company>
+    <logger>
+        <level>debug</level>
+        <console>true</console>
+        <log remove="remove"/>
+        <errorlog remove="remove"/>
+    </logger>
+
+    <query_log>
+        <database>system</database>
+        <table>query_log</table>
+    </query_log>
+
+    <listen_host>0.0.0.0</listen_host>
+    <http_port>8123</http_port>
+    <tcp_port>9000</tcp_port>
+    <interserver_http_host>clickhouse${REPLICA}</interserver_http_host>
+    <interserver_http_port>9009</interserver_http_port>
+
+    <max_connections>4096</max_connections>
+    <keep_alive_timeout>3</keep_alive_timeout>
+    <max_concurrent_queries>100</max_concurrent_queries>
+    <uncompressed_cache_size>8589934592</uncompressed_cache_size>
+    <mark_cache_size>5368709120</mark_cache_size>
+
+    <path>/var/lib/clickhouse/</path>
+    <tmp_path>/var/lib/clickhouse/tmp/</tmp_path>
+    <user_files_path>/var/lib/clickhouse/user_files/</user_files_path>
+
+    <users_config>users.xml</users_config>
+    <default_profile>default</default_profile>
+    <default_database>default</default_database>
+    <timezone>Europe/Moscow</timezone>
+    <mlock_executable>false</mlock_executable>
+
+    <remote_servers>
+        <centrifugo_cluster>
+            <shard>
+                <internal_replication>true</internal_replication>
+                <replica>
+                    <host>clickhouse01</host>
+                    <port>9000</port>
+                </replica>
+                <replica>
+                    <host>clickhouse02</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+            <shard>
+                <internal_replication>true</internal_replication>
+                <replica>
+                    <host>clickhouse03</host>
+                    <port>9000</port>
+                </replica>
+                <replica>
+                    <host>clickhouse04</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </centrifugo_cluster>
+    </remote_servers>
+
+    <zookeeper>
+        <node index="1">
+            <host>zookeeper</host>
+            <port>2181</port>
+        </node>
+    </zookeeper>
+
+    <macros>
+        <cluster>centrifugo_cluster</cluster>
+        <shard>${SHARD}</shard>
+        <replica>clickhouse${REPLICA}</replica>
+    </macros>
+
+    <distributed_ddl>
+        <path>/clickhouse/task_queue/ddl</path>
+    </distributed_ddl>
+
+    <format_schema_path>/var/lib/clickhouse/format_schemas/</format_schema_path>
+</company>

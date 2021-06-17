@@ -6,10 +6,6 @@ For more information follow to [Centrifugo documentation site](https://centrifug
 
 ![scheme](https://raw.githubusercontent.com/centrifugal/centrifugo/master/docs/content/images/scheme_sketch.png)
 
-You can also find the following posts interesting:
-* [Four years in Centrifuge](https://medium.com/@fzambia/four-years-in-centrifuge-ce7a94e8b1a8) – this is a story and motivation of Centrifugo
-* [Building real-time messaging server in Go](https://medium.com/@fzambia/building-real-time-messaging-server-in-go-5661c0a45248) – this is a write-up about some Centrifugo internals and decisions
-
 ### How to install
 
 See [installation instructions](https://centrifugal.github.io/centrifugo/server/install/) in Centrifugo documentation.
@@ -23,11 +19,11 @@ Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (admin pas
 ### Highlights
 
 * Centrifugo is fast and capable to scale to millions of simultaneous connections
-* Simple integration with any application – works as separate service
-* Simple server API (HTTP or GRPC)
-* Client-side libraries for popular frontend environments
-* JSON and binary Protobuf Websocket client protocol based on strict schema
+* Simple integration with any application – works as separate service, provides HTTP and GRPC API
+* Client-side libraries for popular frontend environments – for both web and mobile development
+* JSON and binary Protobuf Websocket client protocol based on strict Protobuf schema
 * SockJS polyfill for web browsers without Websocket support
+* Unidirectional transport support without need in client libraries - use native APIs (SSE, Fetch, WebSocket, GRPC)
 * User authentication with JWT or over connection request proxy to configured HTTP endpoint
 * Proper connection management and expiration control
 * Various types of channels: private, user-limited
@@ -39,5 +35,8 @@ Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (admin pas
 * Automatic recovery of missed messages between client reconnects over configured retention period
 * Built-in administrative web panel
 * Cross platform – works on Linux, MacOS and Windows
-* Ready to deploy (Docker, RPM/DEB packages, automatic Let's Encrypt TLS certificates, Prometheus/Graphite monitoring)
-* MIT license
+* Ready to deploy (Docker, RPM/DEB packages, automatic TLS certificates, Prometheus instrumentation, Grafana dashboard)
+
+### License
+
+Use of Centrifugo is governed by the GNU AGPLv3 license that can be found in the [LICENSE](https://github.com/centrifugal/centrifugo/blob/master/LICENSE) file.

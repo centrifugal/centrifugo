@@ -40,6 +40,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Set the current data env
+        id: set_current_date
+        run: |
+          echo "UNIX_NOW=$( date +%s )" >> $GITHUB_ENV
+
       - name: Release on Github
         uses: goreleaser/goreleaser-action@v2
         with:
@@ -48,6 +53,7 @@ jobs:
         env:
           # note custom secret here since we need access to Centrifugo Homebrew repo.
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          UNIX_NOW: ${{ env.UNIX_NOW }}
 
       - name: Release on Packagecloud
         env:

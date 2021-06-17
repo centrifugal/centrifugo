@@ -23,17 +23,7 @@ func pathExists(path string) (bool, error) {
 	return false, err
 }
 
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
 var jsonConfigTemplate = `{
-  "v3_use_offset": true,
   "token_hmac_secret_key": "{{.TokenSecret}}",
   "admin_password": "{{.AdminPassword}}",
   "admin_secret": "{{.AdminSecret}}",
@@ -42,16 +32,14 @@ var jsonConfigTemplate = `{
 }
 `
 
-var tomlConfigTemplate = `v3_use_offset = true
-token_hmac_secret_key = "{{.TokenSecret}}"
+var tomlConfigTemplate = `token_hmac_secret_key = "{{.TokenSecret}}"
 admin_password = "{{.AdminPassword}}"
 admin_secret = "{{.AdminSecret}}"
 api_key = "{{.APIKey}}"
 allowed_origins = []
 `
 
-var yamlConfigTemplate = `v3_use_offset: true
-token_hmac_secret_key: {{.TokenSecret}}
+var yamlConfigTemplate = `token_hmac_secret_key: {{.TokenSecret}}
 admin_password: {{.AdminPassword}}
 admin_secret: {{.AdminSecret}}
 api_key: {{.APIKey}}
@@ -73,11 +61,7 @@ func GenerateConfig(f string) error {
 		ext = ext[1:]
 	}
 
-	supportedExts := []string{"json", "toml", "yaml", "yml"}
-
-	if !stringInSlice(ext, supportedExts) {
-		return errors.New("output config file must have one of supported extensions: " + strings.Join(supportedExts, ", "))
-	}
+	supportedExtensions := []string{"json", "toml", "yaml", "yml"}
 
 	var t *template.Template
 
@@ -88,6 +72,8 @@ func GenerateConfig(f string) error {
 		t, err = template.New("config").Parse(tomlConfigTemplate)
 	case "yaml", "yml":
 		t, err = template.New("config").Parse(yamlConfigTemplate)
+	default:
+		return errors.New("output config file must have one of supported extensions: " + strings.Join(supportedExtensions, ", "))
 	}
 	if err != nil {
 		return err

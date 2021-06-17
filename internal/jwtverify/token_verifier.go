@@ -1,5 +1,11 @@
 package jwtverify
 
+import (
+	"encoding/json"
+
+	"github.com/centrifugal/centrifuge"
+)
+
 type Verifier interface {
 	VerifyConnectToken(token string) (ConnectToken, error)
 	VerifySubscribeToken(token string) (SubscribeToken, error)
@@ -18,8 +24,14 @@ type ConnectToken struct {
 	// client directly. In some cases having additional info can be an
 	// overhead – but you are simply free to not use it.
 	Info []byte
-	// Channels slice contains channels to subscribe connection to on server-side.
-	Channels []string
+	// Meta is custom data to append to a connection. Can be retrieved later
+	// for connection inspection. Never sent in a client protocol and accessible
+	// from a backend-side only.
+	Meta json.RawMessage
+	// Subs is a map of channels to subscribe server-side with options. This is a
+	// more advanced version of Channels actually. If Subs map is not empty then we
+	// don't look at Channels at all.
+	Subs map[string]centrifuge.SubscribeOptions
 }
 
 type SubscribeToken struct {
@@ -29,17 +41,6 @@ type SubscribeToken struct {
 	// Channel client wants to subscribe. Will be compared with channel in
 	// subscribe command.
 	Channel string
-	// ExpireAt allows to set time in future when connection must be validated.
-	// Validation can be server-side using On().SubRefresh callback or client-side
-	// if On().SubRefresh not set.
-	ExpireAt int64
-	// Info contains additional information about connection in channel.
-	// It will be included into Join/Leave messages, into Alive information,
-	// also channel info becomes a part of published message if it was published
-	// from subscribed client directly.
-	Info []byte
-	// ExpireTokenOnly used to indicate that library must only check token
-	// expiration but not turn on Subscription expiration checks on server side.
-	// This allows to implement one-time subscription tokens.
-	ExpireTokenOnly bool
+	// Options for subscription.
+	Options centrifuge.SubscribeOptions
 }

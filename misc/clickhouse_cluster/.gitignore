@@ -1,0 +1,11 @@
+.vscode
+.idea
+zookeper/
+clickhouse01/
+clickhouse01_db/
+clickhouse02/
+clickhouse02_db/
+clickhouse03/
+clickhouse03_db/
+clickhouse04/
+clickhouse04_db/

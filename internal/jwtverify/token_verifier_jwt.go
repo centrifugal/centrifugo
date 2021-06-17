@@ -11,7 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/jwks"
+	"github.com/centrifugal/centrifugo/v3/internal/jwks"
+	"github.com/centrifugal/centrifugo/v3/internal/rule"
+
+	"github.com/centrifugal/centrifuge"
 	"github.com/cristalhq/jwt/v3"
 )
 
@@ -33,8 +36,10 @@ type VerifierConfig struct {
 	JWKSPublicEndpoint string
 }
 
-func NewTokenVerifierJWT(config VerifierConfig) *VerifierJWT {
-	verifier := &VerifierJWT{}
+func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) *VerifierJWT {
+	verifier := &VerifierJWT{
+		ruleContainer: ruleContainer,
+	}
 
 	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
 	if err != nil {
@@ -53,32 +58,79 @@ func NewTokenVerifierJWT(config VerifierConfig) *VerifierJWT {
 }
 
 type VerifierJWT struct {
-	mu          sync.RWMutex
-	jwksManager *jwksManager
-	algorithms  *algorithms
+	mu            sync.RWMutex
+	jwksManager   *jwksManager
+	algorithms    *algorithms
+	ruleContainer *rule.Container
 }
 
 var (
 	ErrTokenExpired         = errors.New("token expired")
+	ErrInvalidToken         = errors.New("invalid token")
 	errPublicKeyInvalid     = errors.New("public key is invalid")
 	errUnsupportedAlgorithm = errors.New("unsupported JWT algorithm")
 	errDisabledAlgorithm    = errors.New("disabled JWT algorithm")
 )
 
+// BoolValue allows override boolean option.
+type BoolValue struct {
+	Value bool `json:"value,omitempty"`
+}
+
+// SubscribeOptionOverride to override configured behaviour of subscriptions.
+type SubscribeOptionOverride struct {
+	// Presence turns on participating in channel presence.
+	Presence *BoolValue `json:"presence,omitempty"`
+	// JoinLeave enables sending Join and Leave messages for this client in channel.
+	JoinLeave *BoolValue `json:"join_leave,omitempty"`
+	// Position on says that client will additionally sync its position inside
+	// a stream to prevent message loss. Make sure you are enabling Position in channels
+	// that maintain Publication history stream. When Position is on  Centrifuge will
+	// include StreamPosition information to subscribe response - for a client to be able
+	// to manually track its position inside a stream.
+	Position *BoolValue `json:"position,omitempty"`
+	// Recover turns on recovery option for a channel. In this case client will try to
+	// recover missed messages automatically upon resubscribe to a channel after reconnect
+	// to a server. This option also enables client position tracking inside a stream
+	// (like Position option) to prevent occasional message loss. Make sure you are using
+	// Recover in channels that maintain Publication history stream.
+	Recover *BoolValue `json:"recover,omitempty"`
+}
+
+// SubscribeOptions define per-subscription options.
+type SubscribeOptions struct {
+	// ExpireAt defines time in future when subscription should expire,
+	// zero value means no expiration.
+	ExpireAt int64 `json:"expire_at,omitempty"`
+	// Info defines custom channel information, zero value means no channel information.
+	Info json.RawMessage `json:"info,omitempty"`
+	// Base64Info is like Info but for binary.
+	Base64Info string `json:"b64info,omitempty"`
+	// Data to send to a client with Subscribe Push.
+	Data json.RawMessage `json:"data,omitempty"`
+	// Base64Data is like Data but for binary data.
+	Base64Data string `json:"b64data,omitempty"`
+	// Override channel options can contain channel options overrides.
+	Override *SubscribeOptionOverride `json:"override,omitempty"`
+}
+
 type ConnectTokenClaims struct {
-	Info       json.RawMessage `json:"info,omitempty"`
-	Base64Info string          `json:"b64info,omitempty"`
-	Channels   []string        `json:"channels,omitempty"`
+	ExpireAt   int64                       `json:"expire_at,omitempty"`
+	Info       json.RawMessage             `json:"info,omitempty"`
+	Base64Info string                      `json:"b64info,omitempty"`
+	Data       json.RawMessage             `json:"data,omitempty"`
+	Base64Data string                      `json:"b64data,omitempty"`
+	Channels   []string                    `json:"channels,omitempty"`
+	Subs       map[string]SubscribeOptions `json:"subs,omitempty"`
+	Meta       json.RawMessage             `json:"meta,omitempty"`
 	jwt.StandardClaims
 }
 
 type SubscribeTokenClaims struct {
-	Client          string          `json:"client,omitempty"`
-	Channel         string          `json:"channel,omitempty"`
-	Info            json.RawMessage `json:"info,omitempty"`
-	Base64Info      string          `json:"b64info,omitempty"`
-	ExpireTokenOnly bool            `json:"eto,omitempty"`
 	jwt.StandardClaims
+	SubscribeOptions
+	Client  string `json:"client,omitempty"`
+	Channel string `json:"channel,omitempty"`
 }
 
 type jwksManager struct{ *jwks.Manager }
@@ -149,42 +201,53 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 
 	// RSA.
 	if rsaPubKey != nil {
-		verifierRS256, err := jwt.NewVerifierRS(jwt.RS256, rsaPubKey)
-		if err != nil {
-			return nil, err
+		if verifierRS256, err := jwt.NewVerifierRS(jwt.RS256, rsaPubKey); err != nil {
+			if err != jwt.ErrInvalidKey {
+				return nil, err
+			}
+		} else {
+			alg.RS256 = verifierRS256
 		}
-		verifierRS384, err := jwt.NewVerifierRS(jwt.RS384, rsaPubKey)
-		if err != nil {
-			return nil, err
+		if verifierRS384, err := jwt.NewVerifierRS(jwt.RS384, rsaPubKey); err != nil {
+			if err != jwt.ErrInvalidKey {
+				return nil, err
+			}
+		} else {
+			alg.RS384 = verifierRS384
 		}
-		verifierRS512, err := jwt.NewVerifierRS(jwt.RS512, rsaPubKey)
-		if err != nil {
-			return nil, err
+		if verifierRS512, err := jwt.NewVerifierRS(jwt.RS512, rsaPubKey); err != nil {
+			if err != jwt.ErrInvalidKey {
+				return nil, err
+			}
+		} else {
+			alg.RS512 = verifierRS512
 		}
-		alg.RS256 = verifierRS256
-		alg.RS384 = verifierRS384
-		alg.RS512 = verifierRS512
 	}
 
 	// ECDSA.
 	if ecdsaPubKey != nil {
-		verifierES256, err := jwt.NewVerifierES(jwt.ES256, ecdsaPubKey)
-		if err != nil {
-			return nil, err
+		if verifierES256, err := jwt.NewVerifierES(jwt.ES256, ecdsaPubKey); err != nil {
+			if err != jwt.ErrInvalidKey {
+				return nil, err
+			}
+		} else {
+			alg.ES256 = verifierES256
 		}
-		verifierES384, err := jwt.NewVerifierES(jwt.ES384, ecdsaPubKey)
-		if err != nil {
-			return nil, err
+		if verifierES384, err := jwt.NewVerifierES(jwt.ES384, ecdsaPubKey); err != nil {
+			if err != jwt.ErrInvalidKey {
+				return nil, err
+			}
+		} else {
+			alg.ES384 = verifierES384
 		}
-		verifierES512, err := jwt.NewVerifierES(jwt.ES512, ecdsaPubKey)
-		if err != nil {
-			return nil, err
+		if verifierES512, err := jwt.NewVerifierES(jwt.ES512, ecdsaPubKey); err != nil {
+			if err != jwt.ErrInvalidKey {
+				return nil, err
+			}
+		} else {
+			alg.ES512 = verifierES512
 		}
-		alg.ES256 = verifierES256
-		alg.ES384 = verifierES384
-		alg.ES512 = verifierES512
 	}
-
 	return alg, nil
 }
 
@@ -235,7 +298,7 @@ func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token) error {
 func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) {
 	token, err := jwt.Parse([]byte(t))
 	if err != nil {
-		return ConnectToken{}, err
+		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	if verifier.jwksManager != nil {
@@ -245,12 +308,12 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 	}
 
 	if err != nil {
-		return ConnectToken{}, err
+		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	claims := &ConnectTokenClaims{}
 	if err := json.Unmarshal(token.RawClaims(), claims); err != nil {
-		return ConnectToken{}, err
+		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	now := time.Now()
@@ -258,22 +321,107 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		return ConnectToken{}, ErrTokenExpired
 	}
 
-	ct := ConnectToken{
-		UserID:   claims.StandardClaims.Subject,
-		Info:     claims.Info,
-		Channels: claims.Channels,
+	subs := map[string]centrifuge.SubscribeOptions{}
+
+	if len(claims.Subs) > 0 {
+		for ch, v := range claims.Subs {
+			chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			if err != nil {
+				return ConnectToken{}, err
+			}
+			if !found {
+				return ConnectToken{}, centrifuge.ErrorUnknownChannel
+			}
+			var info []byte
+			if v.Base64Info != "" {
+				byteInfo, err := base64.StdEncoding.DecodeString(v.Base64Info)
+				if err != nil {
+					return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+				}
+				info = byteInfo
+			} else {
+				info = v.Info
+			}
+			var data []byte
+			if v.Base64Data != "" {
+				byteInfo, err := base64.StdEncoding.DecodeString(v.Base64Data)
+				if err != nil {
+					return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+				}
+				data = byteInfo
+			} else {
+				data = v.Data
+			}
+			presence := chOpts.Presence
+			if v.Override != nil && v.Override.Presence != nil {
+				presence = v.Override.Presence.Value
+			}
+			joinLeave := chOpts.JoinLeave
+			if v.Override != nil && v.Override.JoinLeave != nil {
+				joinLeave = v.Override.JoinLeave.Value
+			}
+			useRecover := chOpts.Recover
+			if v.Override != nil && v.Override.Recover != nil {
+				useRecover = v.Override.Recover.Value
+			}
+			position := chOpts.Position
+			if v.Override != nil && v.Override.Position != nil {
+				position = v.Override.Position.Value
+			}
+			subs[ch] = centrifuge.SubscribeOptions{
+				ExpireAt:    v.ExpireAt,
+				ChannelInfo: info,
+				Presence:    presence,
+				JoinLeave:   joinLeave,
+				Recover:     useRecover,
+				Position:    position,
+				Data:        data,
+			}
+		}
+	} else if len(claims.Channels) > 0 {
+		for _, ch := range claims.Channels {
+			chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			if err != nil {
+				return ConnectToken{}, err
+			}
+			if !found {
+				return ConnectToken{}, centrifuge.ErrorUnknownChannel
+			}
+			subs[ch] = centrifuge.SubscribeOptions{
+				Presence:  chOpts.Presence,
+				JoinLeave: chOpts.JoinLeave,
+				Recover:   chOpts.Recover,
+				Position:  chOpts.Position,
+			}
+		}
 	}
 
-	if claims.ExpiresAt != nil {
-		ct.ExpireAt = claims.ExpiresAt.Unix()
+	var expireAt int64
+	if claims.ExpireAt < 0 {
+		expireAt = 0
+	} else if claims.ExpireAt > 0 {
+		expireAt = claims.ExpireAt
+	} else if claims.ExpiresAt != nil {
+		expireAt = claims.ExpiresAt.Unix()
 	}
 
+	var info []byte
 	if claims.Base64Info != "" {
 		byteInfo, err := base64.StdEncoding.DecodeString(claims.Base64Info)
 		if err != nil {
 			return ConnectToken{}, err
 		}
-		ct.Info = byteInfo
+		info = byteInfo
+	} else {
+		info = claims.Info
+	}
+
+	ct := ConnectToken{
+		UserID:   claims.StandardClaims.Subject,
+		Info:     info,
+		Subs:     subs,
+		ExpireAt: expireAt,
+		Meta:     claims.Meta,
 	}
 
 	return ct, nil
@@ -282,7 +430,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, error) {
 	token, err := jwt.Parse([]byte(t))
 	if err != nil {
-		return SubscribeToken{}, err
+		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	if verifier.jwksManager != nil {
@@ -291,13 +439,13 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		err = verifier.verifySignature(token)
 	}
 	if err != nil {
-		return SubscribeToken{}, err
+		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	claims := &SubscribeTokenClaims{}
 	err = json.Unmarshal(token.RawClaims(), claims)
 	if err != nil {
-		return SubscribeToken{}, err
+		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
 	now := time.Now()
@@ -305,21 +453,71 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		return SubscribeToken{}, ErrTokenExpired
 	}
 
-	st := SubscribeToken{
-		Client:          claims.Client,
-		Info:            claims.Info,
-		Channel:         claims.Channel,
-		ExpireTokenOnly: claims.ExpireTokenOnly,
+	chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
+	if err != nil {
+		return SubscribeToken{}, err
 	}
-	if claims.ExpiresAt != nil {
-		st.ExpireAt = claims.ExpiresAt.Unix()
+	if !found {
+		return SubscribeToken{}, centrifuge.ErrorUnknownChannel
 	}
+	var info []byte
 	if claims.Base64Info != "" {
 		byteInfo, err := base64.StdEncoding.DecodeString(claims.Base64Info)
 		if err != nil {
-			return SubscribeToken{}, err
+			return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 		}
-		st.Info = byteInfo
+		info = byteInfo
+	} else {
+		info = claims.Info
+	}
+	var data []byte
+	if claims.Base64Data != "" {
+		byteInfo, err := base64.StdEncoding.DecodeString(claims.Base64Data)
+		if err != nil {
+			return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		}
+		data = byteInfo
+	} else {
+		data = claims.Data
+	}
+	presence := chOpts.Presence
+	if claims.Override != nil && claims.Override.Presence != nil {
+		presence = claims.Override.Presence.Value
+	}
+	joinLeave := chOpts.JoinLeave
+	if claims.Override != nil && claims.Override.JoinLeave != nil {
+		joinLeave = claims.Override.JoinLeave.Value
+	}
+	useRecover := chOpts.Recover
+	if claims.Override != nil && claims.Override.Recover != nil {
+		useRecover = claims.Override.Recover.Value
+	}
+	position := chOpts.Position
+	if claims.Override != nil && claims.Override.Position != nil {
+		position = claims.Override.Position.Value
+	}
+
+	var expireAt int64
+	if claims.ExpireAt < 0 {
+		expireAt = 0
+	} else if claims.ExpireAt > 0 {
+		expireAt = claims.ExpireAt
+	} else if claims.ExpiresAt != nil {
+		expireAt = claims.ExpiresAt.Unix()
+	}
+
+	st := SubscribeToken{
+		Client:  claims.Client,
+		Channel: claims.Channel,
+		Options: centrifuge.SubscribeOptions{
+			ExpireAt:    expireAt,
+			ChannelInfo: info,
+			Presence:    presence,
+			JoinLeave:   joinLeave,
+			Recover:     useRecover,
+			Position:    position,
+			Data:        data,
+		},
 	}
 	return st, nil
 }

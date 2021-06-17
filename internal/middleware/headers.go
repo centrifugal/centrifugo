@@ -7,12 +7,16 @@ import (
 
 type contextHeadersKey struct{}
 
-// HeadersFromContext returns http.Header from context.
-func HeadersFromContext(ctx context.Context) http.Header {
-	return ctx.Value(contextHeadersKey{}).(http.Header)
+// GetHeadersFromContext returns http.Header from context.
+func GetHeadersFromContext(ctx context.Context) (http.Header, bool) {
+	if val := ctx.Value(contextHeadersKey{}); val != nil {
+		values, ok := val.(http.Header)
+		return values, ok
+	}
+	return nil, false
 }
 
-func headersToContext(ctx context.Context, h http.Header) context.Context {
+func SetHeadersToContext(ctx context.Context, h http.Header) context.Context {
 	return context.WithValue(ctx, contextHeadersKey{}, h)
 }
 
@@ -23,7 +27,7 @@ func HeadersToContext(enable bool, h http.Handler) http.Handler {
 			h.ServeHTTP(w, r)
 			return
 		}
-		r = r.WithContext(headersToContext(r.Context(), r.Header))
+		r = r.WithContext(SetHeadersToContext(r.Context(), r.Header))
 		h.ServeHTTP(w, r)
 	})
 }

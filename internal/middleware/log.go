@@ -25,7 +25,7 @@ func LogRequest(h http.Handler) http.Handler {
 					addr = r.RemoteAddr
 				}
 			}
-			log.Debug().Str("method", r.Method).Int("status", lrw.Status()).Str("path", r.URL.Path).Str("addr", addr).Dur("duration", time.Since(start)).Msgf("http request")
+			log.Debug().Str("method", r.Method).Int("status", lrw.Status()).Str("path", r.URL.Path).Str("addr", addr).Str("duration", time.Since(start).String()).Msg("http request")
 		} else {
 			h.ServeHTTP(w, r)
 		}
@@ -67,6 +67,7 @@ func (lrw *logResponseWriter) Flush() {
 }
 
 // CloseNotify as SockJS uses http.CloseNotifier.
+//goland:noinspection GoDeprecation
 func (lrw *logResponseWriter) CloseNotify() <-chan bool {
 	//nolint:staticcheck
 	return lrw.ResponseWriter.(http.CloseNotifier).CloseNotify()

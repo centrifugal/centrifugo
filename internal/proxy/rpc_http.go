@@ -2,83 +2,47 @@ package proxy
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
-	"net/http"
 
-	"github.com/centrifugal/centrifuge"
-	"github.com/centrifugal/centrifugo/internal/middleware"
+	"github.com/centrifugal/centrifugo/v3/internal/proxy/proxyproto"
 )
 
 // HTTPRPCProxy ...
 type HTTPRPCProxy struct {
+	endpoint   string
 	httpCaller HTTPCaller
-	options    Options
+	config     Config
 }
 
-// RPCRequestHTTP ...
-type RPCRequestHTTP struct {
-	baseRequestHTTP
-
-	UserID string          `json:"user"`
-	Method string          `json:"method,omitempty"`
-	Data   json.RawMessage `json:"data,omitempty"`
-	// Base64Data to proxy binary data.
-	Base64Data string `json:"b64data,omitempty"`
-}
+var _ RPCProxy = (*HTTPRPCProxy)(nil)
 
 // NewHTTPRPCProxy ...
-func NewHTTPRPCProxy(endpoint string, httpClient *http.Client, opts ...Option) *HTTPRPCProxy {
-	options := &Options{}
-	for _, opt := range opts {
-		opt(options)
-	}
+func NewHTTPRPCProxy(endpoint string, config Config) (*HTTPRPCProxy, error) {
 	return &HTTPRPCProxy{
-		httpCaller: NewHTTPCaller(endpoint, httpClient),
-		options:    *options,
-	}
+		endpoint:   endpoint,
+		httpCaller: NewHTTPCaller(proxyHTTPClient(config.RPCTimeout)),
+		config:     config,
+	}, nil
 }
 
 // ProxyRPC ...
-func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req RPCRequest) (*RPCReply, error) {
-	httpRequest := middleware.HeadersFromContext(ctx)
-
-	rpcHTTPReq := RPCRequestHTTP{
-		baseRequestHTTP: baseRequestHTTP{
-			Protocol:  string(req.Transport.Protocol()),
-			Encoding:  string(req.Transport.Encoding()),
-			Transport: req.Transport.Name(),
-			ClientID:  req.ClientID,
-		},
-		UserID: req.UserID,
-		Method: req.Method,
-	}
-
-	if req.Transport.Encoding() == centrifuge.EncodingTypeJSON {
-		rpcHTTPReq.Data = req.Data
-	} else {
-		rpcHTTPReq.Base64Data = base64.StdEncoding.EncodeToString(req.Data)
-	}
-
-	data, err := json.Marshal(rpcHTTPReq)
+func (p *HTTPRPCProxy) ProxyRPC(ctx context.Context, req *proxyproto.RPCRequest) (*proxyproto.RPCResponse, error) {
+	data, err := p.config.HTTPConfig.Encoder.EncodeRPCRequest(req)
 	if err != nil {
 		return nil, err
 	}
-
-	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest, p.options.ExtraHeaders), data)
+	respData, err := p.httpCaller.CallHTTP(ctx, p.endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
 		return nil, err
 	}
-
-	var res RPCReply
-	err = json.Unmarshal(respData, &res)
-	if err != nil {
-		return nil, err
-	}
-	return &res, nil
+	return p.config.HTTPConfig.Decoder.DecodeRPCResponse(respData)
 }
 
 // Protocol ...
 func (p *HTTPRPCProxy) Protocol() string {
 	return "http"
+}
+
+// UseBase64 ...
+func (p *HTTPRPCProxy) UseBase64() bool {
+	return p.config.BinaryEncoding
 }

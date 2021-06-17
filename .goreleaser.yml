@@ -46,15 +46,14 @@ builds:
     - goos: freebsd
       goarch: arm64
   main: .
-  ldflags: -s -w -X main.VERSION={{.Version}}
+  ldflags: -s -w -X github.com/centrifugal/centrifugo/v3/internal/build.Version={{.Version}}
   binary: centrifugo
   env:
     # https://github.com/goreleaser/goreleaser/issues/225
     - CGO_ENABLED=0
 archives:
   - id: centrifugo
-    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm
-      }}v{{ .Arm }}{{ end }}'
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
     format: tar.gz
     files:
     - LICENSE*

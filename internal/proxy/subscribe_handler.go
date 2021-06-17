@@ -6,7 +6,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/rule"
+	"github.com/centrifugal/centrifugo/v3/internal/proxy/proxyproto"
+	"github.com/centrifugal/centrifugo/v3/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
@@ -42,13 +43,19 @@ type SubscribeHandlerFunc func(*centrifuge.Client, centrifuge.SubscribeEvent, ru
 func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions) (centrifuge.SubscribeReply, error) {
 		started := time.Now()
-		subscribeRep, err := h.config.Proxy.ProxySubscribe(client.Context(), SubscribeRequest{
-			ClientID:  client.ID(),
-			UserID:    client.UserID(),
-			Channel:   e.Channel,
-			Token:     e.Token,
-			Transport: client.Transport(),
-		})
+
+		req := &proxyproto.SubscribeRequest{
+			Client:    client.ID(),
+			Protocol:  string(client.Transport().Protocol()),
+			Transport: client.Transport().Name(),
+			Encoding:  getEncoding(h.config.Proxy.UseBase64()),
+
+			User:    client.UserID(),
+			Channel: e.Channel,
+			Token:   e.Token,
+		}
+
+		subscribeRep, err := h.config.Proxy.ProxySubscribe(client.Context(), req)
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
@@ -64,25 +71,23 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 		h.histogram.Observe(duration)
 
 		if subscribeRep.Disconnect != nil {
-			return centrifuge.SubscribeReply{}, subscribeRep.Disconnect
+			return centrifuge.SubscribeReply{}, proxyproto.DisconnectFromProto(subscribeRep.Disconnect)
 		}
 		if subscribeRep.Error != nil {
-			return centrifuge.SubscribeReply{}, subscribeRep.Error
+			return centrifuge.SubscribeReply{}, proxyproto.ErrorFromProto(subscribeRep.Error)
 		}
 
 		var info []byte
 		if subscribeRep.Result != nil {
-			if client.Transport().Encoding() == "json" {
-				info = subscribeRep.Result.Info
-			} else {
-				if subscribeRep.Result.Base64Info != "" {
-					decodedInfo, err := base64.StdEncoding.DecodeString(subscribeRep.Result.Base64Info)
-					if err != nil {
-						node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
-						return centrifuge.SubscribeReply{}, centrifuge.ErrorInternal
-					}
-					info = decodedInfo
+			if subscribeRep.Result.B64Info != "" {
+				decodedInfo, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Info)
+				if err != nil {
+					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
+					return centrifuge.SubscribeReply{}, centrifuge.ErrorInternal
 				}
+				info = decodedInfo
+			} else {
+				info = subscribeRep.Result.Info
 			}
 		}
 
@@ -91,7 +96,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 				ChannelInfo: info,
 				Presence:    chOpts.Presence,
 				JoinLeave:   chOpts.JoinLeave,
-				Recover:     chOpts.HistoryRecover,
+				Recover:     chOpts.Recover,
 			},
 			ClientSideRefresh: true,
 		}, nil

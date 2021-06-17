@@ -34,17 +34,20 @@ type ChannelOptions struct {
 	// persistent storage.
 	HistorySize int `mapstructure:"history_size" json:"history_size"`
 
-	// HistoryLifetime determines time in seconds until expiration happens
-	// for history cache. As Centrifuge-based server maintains a window of
-	// messages in memory (or in Redis with Redis engine), to prevent infinite
-	// memory grows it's important to remove history for inactive channels.
-	HistoryLifetime int `mapstructure:"history_lifetime" json:"history_lifetime"`
+	// HistoryTTL is a number of seconds to keep history cache. As Centrifuge-based
+	// server maintains a window of messages in memory (or in Redis with Redis engine),
+	// to prevent infinite memory grows it's important to remove history for inactive
+	// channels.
+	HistoryTTL int `mapstructure:"history_ttl" json:"history_ttl"`
 
-	// HistoryRecover enables recovery mechanism for channels. This means that
+	// Recover enables recovery mechanism for channels. This means that
 	// server will try to recover missed messages for resubscribing client.
 	// This option uses publications from history and must be used with reasonable
-	// HistorySize and HistoryLifetime configuration.
-	HistoryRecover bool `mapstructure:"history_recover" json:"history_recover"`
+	// HistorySize and HistoryTTL configuration.
+	Recover bool `mapstructure:"recover" json:"recover"`
+
+	// Position enables client positioning.
+	Position bool `mapstructure:"position" json:"position"`
 
 	// ServerSide marks all channels in namespace as server side, when on then client
 	// subscribe requests to these channels will be rejected with PermissionDenied error.
@@ -56,7 +59,7 @@ type ChannelOptions struct {
 	Publish bool `mapstructure:"publish" json:"publish"`
 
 	// SubscribeToPublish turns on an automatic check that client subscribed
-	// on channel before allow it to publish into that channel.
+	// on a channel before allow publishing.
 	SubscribeToPublish bool `mapstructure:"subscribe_to_publish" json:"subscribe_to_publish"`
 
 	// Anonymous enables anonymous access (with empty user ID) to channel.

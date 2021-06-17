@@ -53,6 +53,10 @@ func (b *NatsBroker) controlChannel() channelID {
 	return channelID(b.config.Prefix + ".control")
 }
 
+func (b *NatsBroker) nodeChannel(nodeID string) channelID {
+	return channelID(b.config.Prefix + ".node." + nodeID)
+}
+
 func (b *NatsBroker) clientChannel(ch string) channelID {
 	return channelID(b.config.Prefix + ".client." + ch)
 }
@@ -75,6 +79,10 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 		return fmt.Errorf("error connecting to %s: %w", url, err)
 	}
 	_, err = nc.Subscribe(string(b.controlChannel()), b.handleControl)
+	if err != nil {
+		return err
+	}
+	_, err = nc.Subscribe(string(b.nodeChannel(b.node.ID())), b.handleControl)
 	if err != nil {
 		return err
 	}
@@ -107,7 +115,7 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 		return centrifuge.StreamPosition{}, err
 	}
 	push := &protocol.Push{
-		Type:    protocol.PushTypePublication,
+		Type:    protocol.Push_PUBLICATION,
 		Channel: ch,
 		Data:    data,
 	}
@@ -125,7 +133,7 @@ func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
 		return err
 	}
 	push := &protocol.Push{
-		Type:    protocol.PushTypeJoin,
+		Type:    protocol.Push_JOIN,
 		Channel: ch,
 		Data:    data,
 	}
@@ -143,7 +151,7 @@ func (b *NatsBroker) PublishLeave(ch string, info *centrifuge.ClientInfo) error 
 		return err
 	}
 	push := &protocol.Push{
-		Type:    protocol.PushTypeLeave,
+		Type:    protocol.Push_LEAVE,
 		Channel: ch,
 		Data:    data,
 	}
@@ -155,8 +163,14 @@ func (b *NatsBroker) PublishLeave(ch string, info *centrifuge.ClientInfo) error 
 }
 
 // PublishControl - see Broker interface description.
-func (b *NatsBroker) PublishControl(data []byte) error {
-	return b.nc.Publish(string(b.controlChannel()), data)
+func (b *NatsBroker) PublishControl(data []byte, nodeID, _ string) error {
+	var channelID channelID
+	if nodeID == "" {
+		channelID = b.controlChannel()
+	} else {
+		channelID = b.nodeChannel(nodeID)
+	}
+	return b.nc.Publish(string(channelID), data)
 }
 
 // History ...
@@ -176,21 +190,21 @@ func (b *NatsBroker) handleClientMessage(data []byte) error {
 		return err
 	}
 	switch push.Type {
-	case protocol.PushTypePublication:
+	case protocol.Push_PUBLICATION:
 		var pub protocol.Publication
 		err := pub.Unmarshal(push.Data)
 		if err != nil {
 			return err
 		}
-		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(&pub))
-	case protocol.PushTypeJoin:
+		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(&pub), centrifuge.StreamPosition{})
+	case protocol.Push_JOIN:
 		var info protocol.ClientInfo
 		err := info.Unmarshal(push.Data)
 		if err != nil {
 			return err
 		}
 		_ = b.eventHandler.HandleJoin(push.Channel, infoFromProto(&info))
-	case protocol.PushTypeLeave:
+	case protocol.Push_LEAVE:
 		var info protocol.ClientInfo
 		err := info.Unmarshal(push.Data)
 		if err != nil {

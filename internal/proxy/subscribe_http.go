@@ -2,74 +2,47 @@ package proxy
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
 
-	"github.com/centrifugal/centrifugo/internal/middleware"
+	"github.com/centrifugal/centrifugo/v3/internal/proxy/proxyproto"
 )
-
-// SubscribeRequestHTTP ...
-type SubscribeRequestHTTP struct {
-	baseRequestHTTP
-
-	UserID  string `json:"user"`
-	Channel string `json:"channel"`
-	Token   string `json:"token,omitempty"`
-}
 
 // HTTPSubscribeProxy ...
 type HTTPSubscribeProxy struct {
+	endpoint   string
 	httpCaller HTTPCaller
-	options    Options
+	config     Config
 }
 
+var _ SubscribeProxy = (*HTTPSubscribeProxy)(nil)
+
 // NewHTTPSubscribeProxy ...
-func NewHTTPSubscribeProxy(endpoint string, httpClient *http.Client, opts ...Option) *HTTPSubscribeProxy {
-	options := &Options{}
-	for _, opt := range opts {
-		opt(options)
-	}
+func NewHTTPSubscribeProxy(endpoint string, config Config) (*HTTPSubscribeProxy, error) {
 	return &HTTPSubscribeProxy{
-		httpCaller: NewHTTPCaller(endpoint, httpClient),
-		options:    *options,
-	}
+		endpoint:   endpoint,
+		httpCaller: NewHTTPCaller(proxyHTTPClient(config.SubscribeTimeout)),
+		config:     config,
+	}, nil
 }
 
 // ProxySubscribe proxies Subscribe to application backend.
-func (p *HTTPSubscribeProxy) ProxySubscribe(ctx context.Context, req SubscribeRequest) (*SubscribeReply, error) {
-	httpRequest := middleware.HeadersFromContext(ctx)
-
-	subscribeHTTPReq := SubscribeRequestHTTP{
-		baseRequestHTTP: baseRequestHTTP{
-			Transport: req.Transport.Name(),
-			Protocol:  string(req.Transport.Protocol()),
-			Encoding:  string(req.Transport.Encoding()),
-			ClientID:  req.ClientID,
-		},
-		UserID:  req.UserID,
-		Channel: req.Channel,
-		Token:   req.Token,
-	}
-
-	data, err := json.Marshal(subscribeHTTPReq)
+func (p *HTTPSubscribeProxy) ProxySubscribe(ctx context.Context, req *proxyproto.SubscribeRequest) (*proxyproto.SubscribeResponse, error) {
+	data, err := p.config.HTTPConfig.Encoder.EncodeSubscribeRequest(req)
 	if err != nil {
 		return nil, err
 	}
-
-	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest, p.options.ExtraHeaders), data)
+	respData, err := p.httpCaller.CallHTTP(ctx, p.endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
 		return nil, err
 	}
-
-	var res SubscribeReply
-	err = json.Unmarshal(respData, &res)
-	if err != nil {
-		return nil, err
-	}
-	return &res, nil
+	return p.config.HTTPConfig.Decoder.DecodeSubscribeResponse(respData)
 }
 
 // Protocol ...
 func (p *HTTPSubscribeProxy) Protocol() string {
 	return "http"
+}
+
+// UseBase64 ...
+func (p *HTTPSubscribeProxy) UseBase64() bool {
+	return p.config.BinaryEncoding
 }

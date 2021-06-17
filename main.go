@@ -1,3 +1,17 @@
+// Copyright (c) 2015-2021 Centrifugal.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
 package main
 
 import (
@@ -10,7 +24,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
-	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -21,25 +34,35 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/admin"
-	"github.com/centrifugal/centrifugo/internal/api"
-	"github.com/centrifugal/centrifugo/internal/client"
-	"github.com/centrifugal/centrifugo/internal/health"
-	"github.com/centrifugal/centrifugo/internal/jwtutils"
-	"github.com/centrifugal/centrifugo/internal/jwtverify"
-	"github.com/centrifugal/centrifugo/internal/logutils"
-	"github.com/centrifugal/centrifugo/internal/metrics/graphite"
-	"github.com/centrifugal/centrifugo/internal/middleware"
-	"github.com/centrifugal/centrifugo/internal/natsbroker"
-	"github.com/centrifugal/centrifugo/internal/origin"
-	"github.com/centrifugal/centrifugo/internal/proxy"
-	"github.com/centrifugal/centrifugo/internal/rule"
-	"github.com/centrifugal/centrifugo/internal/tools"
-	"github.com/centrifugal/centrifugo/internal/webui"
+	"github.com/centrifugal/centrifugo/v3/internal/admin"
+	"github.com/centrifugal/centrifugo/v3/internal/api"
+	"github.com/centrifugal/centrifugo/v3/internal/build"
+	"github.com/centrifugal/centrifugo/v3/internal/cli"
+	"github.com/centrifugal/centrifugo/v3/internal/client"
+	"github.com/centrifugal/centrifugo/v3/internal/health"
+	"github.com/centrifugal/centrifugo/v3/internal/jwtutils"
+	"github.com/centrifugal/centrifugo/v3/internal/jwtverify"
+	"github.com/centrifugal/centrifugo/v3/internal/logutils"
+	"github.com/centrifugal/centrifugo/v3/internal/metrics/graphite"
+	"github.com/centrifugal/centrifugo/v3/internal/middleware"
+	"github.com/centrifugal/centrifugo/v3/internal/natsbroker"
+	"github.com/centrifugal/centrifugo/v3/internal/origin"
+	"github.com/centrifugal/centrifugo/v3/internal/proxy"
+	"github.com/centrifugal/centrifugo/v3/internal/proxy/proxyproto"
+	"github.com/centrifugal/centrifugo/v3/internal/rule"
+	"github.com/centrifugal/centrifugo/v3/internal/survey"
+	"github.com/centrifugal/centrifugo/v3/internal/tntengine"
+	"github.com/centrifugal/centrifugo/v3/internal/tools"
+	"github.com/centrifugal/centrifugo/v3/internal/unidirectional/unigrpc"
+	"github.com/centrifugal/centrifugo/v3/internal/unidirectional/unisse"
+	"github.com/centrifugal/centrifugo/v3/internal/unidirectional/unistream"
+	"github.com/centrifugal/centrifugo/v3/internal/unidirectional/uniws"
+	"github.com/centrifugal/centrifugo/v3/internal/webui"
 
 	"github.com/FZambia/viper-lite"
 	"github.com/centrifugal/centrifuge"
 	"github.com/mattn/go-isatty"
+	"github.com/mitchellh/mapstructure"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
@@ -51,200 +74,184 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// VERSION of Centrifugo server. Set on build stage.
-var VERSION string
+func bindCentrifugoConfig() {
+	viper.SetEnvPrefix("centrifugo")
 
-var configDefaults = map[string]interface{}{
-	"gomaxprocs":                           0,
-	"engine":                               "memory",
-	"broker":                               "",
-	"name":                                 "",
-	"secret":                               "",
-	"token_hmac_secret_key":                "",
-	"token_jwks_public_endpoint":           "",
-	"token_rsa_public_key":                 "",
-	"token_ecdsa_public_key":               "",
-	"server_side":                          false,
-	"publish":                              false,
-	"subscribe_to_publish":                 false,
-	"anonymous":                            false,
-	"presence":                             false,
-	"presence_disable_for_client":          false,
-	"history_size":                         0,
-	"history_lifetime":                     0,
-	"history_recover":                      false,
-	"history_disable_for_client":           false,
-	"proxy_subscribe":                      false,
-	"proxy_publish":                        false,
-	"node_info_metrics_aggregate_interval": 60,
-	"client_anonymous":                     false,
-	"client_expired_close_delay":           25,
-	"client_expired_sub_close_delay":       25,
-	"client_stale_close_delay":             25,
-	"client_channel_limit":                 128,
-	"client_queue_max_size":                10485760, // 10MB
-	"client_presence_ping_interval":        25,
-	"client_presence_expire_interval":      60,
-	"client_user_connection_limit":         0,
-	"client_channel_position_check_delay":  40,
-	"channel_max_length":                   255,
-	"channel_private_prefix":               "$",
-	"channel_namespace_boundary":           ":",
-	"channel_user_boundary":                "#",
-	"channel_user_separator":               ",",
-	"user_subscribe_to_personal":           false,
-	"user_personal_channel_namespace":      "",
-	"user_personal_single_connection":      false,
-	"client_concurrency":                   0,
-	"debug":                                false,
-	"prometheus":                           false,
-	"health":                               false,
-	"admin":                                false,
-	"admin_password":                       "",
-	"admin_secret":                         "",
-	"admin_insecure":                       false,
-	"admin_web_path":                       "",
-	"sockjs_url":                           "https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
-	"sockjs_heartbeat_delay":               25,
-	"websocket_compression":                false,
-	"websocket_compression_min_size":       0,
-	"websocket_compression_level":          1,
-	"websocket_read_buffer_size":           0,
-	"websocket_use_write_buffer_pool":      false,
-	"websocket_write_buffer_size":          0,
-	"client_ping_interval":                 25, // TODO v3: remove.
-	"websocket_ping_interval":              25,
-	"client_message_write_timeout":         1, // TODO v3: remove.
-	"websocket_write_timeout":              1,
-	"client_request_max_size":              65536, // TODO v3: remove.
-	"websocket_message_size_limit":         65536, // 64KB
-	"tls_autocert":                         false,
-	"tls_autocert_host_whitelist":          "",
-	"tls_autocert_cache_dir":               "",
-	"tls_autocert_email":                   "",
-	"tls_autocert_force_rsa":               false, // TODO v3: remove.
-	"tls_autocert_server_name":             "",
-	"tls_autocert_http":                    false,
-	"tls_autocert_http_addr":               ":80",
-	"redis_prefix":                         "centrifugo",
-	"redis_connect_timeout":                1, // TODO v3: make all timeouts float.
-	"redis_read_timeout":                   5,
-	"redis_write_timeout":                  1,
-	"redis_idle_timeout":                   0,
-	"redis_pubsub_num_workers":             0, // TODO v3: remove.
-	"redis_sequence_ttl":                   0,
-	"grpc_api":                             false,
-	"grpc_api_port":                        10000,
-	"shutdown_timeout":                     30,
-	"shutdown_termination_delay":           0,
-	"graphite":                             false,
-	"graphite_host":                        "localhost",
-	"graphite_port":                        2003,
-	"graphite_prefix":                      "centrifugo",
-	"graphite_interval":                    10,
-	"graphite_tags":                        false,
-	"nats_prefix":                          "centrifugo",
-	"nats_url":                             "",
-	"nats_dial_timeout":                    1,
-	"nats_write_timeout":                   1,
-	"websocket_disable":                    false,
-	"sockjs_disable":                       false,
-	"api_disable":                          false,
-	"admin_handler_prefix":                 "",
-	"websocket_handler_prefix":             "/connection/websocket",
-	"sockjs_handler_prefix":                "/connection/sockjs",
-	"api_handler_prefix":                   "/api",
-	"prometheus_handler_prefix":            "/metrics",
-	"health_handler_prefix":                "/health",
-	"proxy_connect_endpoint":               "",
-	"proxy_connect_timeout":                1,
-	"proxy_rpc_endpoint":                   "",
-	"proxy_rpc_timeout":                    1,
-	"proxy_refresh_endpoint":               "",
-	"proxy_refresh_timeout":                1,
-	"proxy_subscribe_timeout":              1,
-	"proxy_publish_timeout":                1,
-	"memory_history_meta_ttl":              0,
-	"redis_history_meta_ttl":               0,
-	"v3_use_offset":                        false, // TODO v3: remove.
+	var defaults = map[string]interface{}{
+		"gomaxprocs": 0,
+		"name":       "",
+		"engine":     "memory",
+		"broker":     "",
+
+		"token_hmac_secret_key":      "",
+		"token_rsa_public_key":       "",
+		"token_ecdsa_public_key":     "",
+		"token_jwks_public_endpoint": "",
+
+		"server_side":                 false,
+		"publish":                     false,
+		"subscribe_to_publish":        false,
+		"anonymous":                   false,
+		"presence":                    false,
+		"presence_disable_for_client": false,
+		"history_size":                0,
+		"history_ttl":                 0,
+		"history_disable_for_client":  false,
+		"recover":                     false,
+		"position":                    false,
+		"proxy_subscribe":             false,
+		"proxy_publish":               false,
+
+		"node_info_metrics_aggregate_interval": 60 * time.Second,
+
+		"client_anonymous":                    false,
+		"client_expired_close_delay":          25 * time.Second,
+		"client_expired_sub_close_delay":      25 * time.Second,
+		"client_stale_close_delay":            25 * time.Second,
+		"client_channel_limit":                128,
+		"client_queue_max_size":               1048576, // 1 MB
+		"client_presence_update_interval":     25 * time.Second,
+		"client_user_connection_limit":        0,
+		"client_concurrency":                  0,
+		"client_channel_position_check_delay": 40 * time.Second,
+
+		"channel_max_length":         255,
+		"channel_private_prefix":     "$",
+		"channel_namespace_boundary": ":",
+		"channel_user_boundary":      "#",
+		"channel_user_separator":     ",",
+
+		"user_subscribe_to_personal":      false,
+		"user_personal_channel_namespace": "",
+		"user_personal_single_connection": false,
+
+		"debug":      false,
+		"prometheus": false,
+		"health":     false,
+
+		"admin":          false,
+		"admin_password": "",
+		"admin_secret":   "",
+		"admin_insecure": false,
+		"admin_web_path": "",
+
+		"sockjs":                 false,
+		"sockjs_url":             "https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
+		"sockjs_heartbeat_delay": 25 * time.Second,
+
+		"websocket_compression":           false,
+		"websocket_compression_min_size":  0,
+		"websocket_compression_level":     1,
+		"websocket_read_buffer_size":      0,
+		"websocket_use_write_buffer_pool": false,
+		"websocket_write_buffer_size":     0,
+		"websocket_ping_interval":         25 * time.Second,
+		"websocket_write_timeout":         time.Second,
+		"websocket_message_size_limit":    65536, // 64KB
+
+		"uni_websocket":                       false,
+		"uni_websocket_compression":           false,
+		"uni_websocket_compression_min_size":  0,
+		"uni_websocket_compression_level":     1,
+		"uni_websocket_read_buffer_size":      0,
+		"uni_websocket_use_write_buffer_pool": false,
+		"uni_websocket_write_buffer_size":     0,
+		"uni_websocket_ping_interval":         25 * time.Second,
+		"uni_websocket_write_timeout":         time.Second,
+		"uni_websocket_message_size_limit":    65536, // 64KB
+
+		"tls_autocert":                false,
+		"tls_autocert_host_whitelist": "",
+		"tls_autocert_cache_dir":      "",
+		"tls_autocert_email":          "",
+		"tls_autocert_server_name":    "",
+		"tls_autocert_http":           false,
+		"tls_autocert_http_addr":      ":80",
+
+		"redis_prefix":           "centrifugo",
+		"redis_connect_timeout":  time.Second,
+		"redis_read_timeout":     5 * time.Second,
+		"redis_write_timeout":    time.Second,
+		"redis_idle_timeout":     0,
+		"redis_history_meta_ttl": 0,
+		"redis_presence_ttl":     60 * time.Second,
+
+		"tarantool_presence_ttl": 60 * time.Second,
+
+		"grpc_api":         false,
+		"grpc_api_address": "",
+		"grpc_api_port":    10000,
+
+		"shutdown_timeout":           30 * time.Second,
+		"shutdown_termination_delay": 0,
+
+		"graphite":          false,
+		"graphite_host":     "localhost",
+		"graphite_port":     2003,
+		"graphite_prefix":   "centrifugo",
+		"graphite_interval": 10 * time.Second,
+		"graphite_tags":     false,
+
+		"nats_prefix":        "centrifugo",
+		"nats_url":           "",
+		"nats_dial_timeout":  time.Second,
+		"nats_write_timeout": time.Second,
+
+		"websocket_disable": false,
+		"api_disable":       false,
+
+		"websocket_handler_prefix": "/connection/websocket",
+		"sockjs_handler_prefix":    "/connection/sockjs",
+
+		"uni_websocket_handler_prefix": "/uni/websocket",
+		"uni_sse_handler_prefix":       "/uni/sse",
+		"uni_stream_handler_prefix":    "/uni/stream",
+		"uni_grpc":                     false,
+		"uni_grpc_address":             "",
+		"uni_grpc_port":                11000,
+
+		"admin_handler_prefix":      "",
+		"api_handler_prefix":        "/api",
+		"prometheus_handler_prefix": "/metrics",
+		"health_handler_prefix":     "/health",
+
+		"proxy_connect_timeout":   time.Second,
+		"proxy_rpc_timeout":       time.Second,
+		"proxy_refresh_timeout":   time.Second,
+		"proxy_subscribe_timeout": time.Second,
+		"proxy_publish_timeout":   time.Second,
+
+		"memory_history_meta_ttl": 0,
+
+		"client_history_max_publication_limit":  500,
+		"client_recovery_max_publication_limit": 500,
+	}
+
+	for k, v := range defaults {
+		viper.SetDefault(k, v)
+	}
+
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
+	viper.AutomaticEnv()
 }
 
 func main() {
 	var configFile string
-
-	viper.SetEnvPrefix("centrifugo")
-
-	bindConfig := func() {
-		for k, v := range configDefaults {
-			viper.SetDefault(k, v)
-		}
-
-		bindEnvs := []string{
-			"address", "admin", "admin_external", "admin_insecure", "admin_password",
-			"admin_secret", "admin_web_path", "anonymous", "api_insecure", "api_key",
-			"channel_max_length", "channel_namespace_boundary", "channel_private_prefix",
-			"channel_user_boundary", "channel_user_separator", "client_anonymous",
-			"client_channel_limit", "client_channel_position_check_delay",
-			"client_expired_close_delay", "client_expired_sub_close_delay",
-			"client_insecure", "client_message_write_timeout", "client_ping_interval",
-			"client_presence_expire_interval", "client_presence_ping_interval",
-			"client_queue_max_size", "client_request_max_size", "client_stale_close_delay",
-			"debug", "engine", "graphite", "graphite_host", "graphite_interval",
-			"graphite_port", "graphite_prefix", "graphite_tags", "grpc_api",
-			"grpc_api_port", "health", "history_lifetime", "history_recover",
-			"history_size", "internal_address", "internal_port", "join_leave", "log_file",
-			"log_level", "name", "namespaces", "node_info_metrics_aggregate_interval",
-			"pid_file", "port", "presence", "prometheus", "publish", "redis_connect_timeout",
-			"redis_db", "redis_host", "redis_idle_timeout", "redis_master_name",
-			"redis_password", "redis_port", "redis_prefix", "redis_pubsub_num_workers",
-			"redis_read_timeout", "redis_sentinels", "redis_tls", "redis_tls_skip_verify",
-			"redis_url", "redis_write_timeout", "secret", "shutdown_termination_delay",
-			"shutdown_timeout", "sockjs_heartbeat_delay", "sockjs_url", "subscribe_to_publish",
-			"tls", "tls_autocert", "tls_autocert_cache_dir", "tls_autocert_email",
-			"tls_autocert_force_rsa", "tls_autocert_host_whitelist", "tls_autocert_http",
-			"tls_autocert_http_addr", "tls_autocert_server_name", "tls_cert", "tls_external",
-			"tls_key", "websocket_compression", "websocket_compression_level",
-			"websocket_compression_min_size", "websocket_read_buffer_size",
-			"websocket_write_buffer_size", "history_disable_for_client",
-			"presence_disable_for_client", "admin_handler_prefix", "websocket_handler_prefix",
-			"sockjs_handler_prefix", "api_handler_prefix", "prometheus_handler_prefix",
-			"health_handler_prefix", "grpc_api_tls", "grpc_api_tls_disable",
-			"grpc_api_tls_cert", "grpc_api_tls_key", "proxy_connect_endpoint",
-			"proxy_connect_timeout", "proxy_rpc_endpoint", "proxy_rpc_timeout",
-			"proxy_refresh_endpoint", "proxy_refresh_timeout",
-			"token_jwks_public_endpoint", "token_rsa_public_key", "token_ecdsa_public_key", "token_hmac_secret_key",
-			"redis_sequence_ttl", "proxy_extra_http_headers", "server_side", "user_subscribe_to_personal",
-			"user_personal_channel_namespace", "websocket_use_write_buffer_pool",
-			"websocket_disable", "sockjs_disable", "api_disable", "redis_cluster_addrs",
-			"broker", "nats_prefix", "nats_url", "nats_dial_timeout", "nats_write_timeout",
-			"v3_use_offset", "redis_history_meta_ttl", "redis_streams", "memory_history_meta_ttl",
-			"websocket_ping_interval", "websocket_write_timeout", "websocket_message_size_limit",
-			"proxy_publish_endpoint", "proxy_publish_timeout", "proxy_subscribe_endpoint",
-			"proxy_subscribe_timeout", "proxy_subscribe", "proxy_publish", "redis_sentinel_password",
-			"grpc_api_key", "client_concurrency", "user_personal_single_connection", "allowed_origins",
-		}
-
-		for _, env := range bindEnvs {
-			_ = viper.BindEnv(env)
-		}
-	}
 
 	var rootCmd = &cobra.Command{
 		Use:   "",
 		Short: "Centrifugo",
 		Long:  "Centrifugo – scalable real-time messaging server in language-agnostic way",
 		Run: func(cmd *cobra.Command, args []string) {
-			bindConfig()
+			bindCentrifugoConfig()
 
 			bindPFlags := []string{
 				"engine", "log_level", "log_file", "pid_file", "debug", "name", "admin",
 				"admin_external", "client_insecure", "admin_insecure", "api_insecure",
 				"port", "address", "tls", "tls_cert", "tls_key", "tls_external", "internal_port",
-				"internal_address", "prometheus", "health", "redis_host", "redis_port",
-				"redis_password", "redis_db", "redis_url", "redis_tls", "redis_tls_skip_verify",
-				"redis_master_name", "redis_sentinels", "redis_sentinel_password", "grpc_api",
-				"grpc_api_tls", "grpc_api_tls_disable", "grpc_api_tls_cert", "grpc_api_tls_key",
-				"grpc_api_port", "broker", "nats_url",
+				"internal_address", "prometheus", "health", "redis_address", "tarantool_address",
+				"broker", "nats_url",
 			}
 			for _, flag := range bindPFlags {
 				_ = viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -285,19 +292,14 @@ func main() {
 				}
 			}
 
-			version := VERSION
-			if version == "" {
-				version = "dev"
-			}
-
 			engineName := viper.GetString("engine")
 
-			log.Info().Str(
-				"version", version).Str(
-				"runtime", runtime.Version()).Int(
-				"pid", os.Getpid()).Str(
-				"engine", strings.Title(engineName)).Int(
-				"gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
+			log.Info().
+				Str("version", build.Version).
+				Str("runtime", runtime.Version()).
+				Int("pid", os.Getpid()).
+				Str("engine", strings.Title(engineName)).
+				Int("gomaxprocs", runtime.GOMAXPROCS(0)).Msg("starting Centrifugo")
 
 			log.Info().Str("path", absConfPath).Msg("using config file")
 
@@ -310,13 +312,7 @@ func main() {
 			}
 			ruleContainer := rule.NewContainer(ruleConfig)
 
-			nodeConfig := nodeConfig(VERSION)
-
-			if !viper.GetBool("v3_use_offset") {
-				log.Warn().Msgf("consider migrating to offset protocol field, details: https://github.com/centrifugal/centrifugo/releases/tag/v2.5.0")
-				// TODO v3: remove compatibility flags.
-				centrifuge.CompatibilityFlags |= centrifuge.UseSeqGen
-			}
+			nodeConfig := nodeConfig(build.Version)
 
 			node, err := centrifuge.New(nodeConfig)
 			if err != nil {
@@ -328,11 +324,15 @@ func main() {
 				log.Fatal().Msgf("unknown broker: %s", brokerName)
 			}
 
-			var e centrifuge.Engine
+			var broker centrifuge.Broker
+			var presenceManager centrifuge.PresenceManager
+
 			if engineName == "memory" {
-				e, err = memoryEngine(node)
+				broker, presenceManager, err = memoryEngine(node)
 			} else if engineName == "redis" {
-				e, err = redisEngine(node)
+				broker, presenceManager, err = redisEngine(node)
+			} else if engineName == "tarantool" {
+				broker, presenceManager, err = tarantoolEngine(node)
 			} else {
 				log.Fatal().Msgf("unknown engine: %s", engineName)
 			}
@@ -340,12 +340,25 @@ func main() {
 				log.Fatal().Msgf("error creating engine: %v", err)
 			}
 
-			tokenVerifier := jwtverify.NewTokenVerifierJWT(jwtVerifierConfig())
+			tokenVerifier := jwtverify.NewTokenVerifierJWT(jwtVerifierConfig(), ruleContainer)
 
+			if viper.GetBool("use_unlimited_history_by_default") {
+				// See detailed comment about this by falling through to var definition.
+				client.UseUnlimitedHistoryByDefault = true
+			}
 			clientHandler := client.NewHandler(node, ruleContainer, tokenVerifier, proxyConfig)
-			clientHandler.Setup()
+			err = clientHandler.Setup()
+			if err != nil {
+				log.Fatal().Msgf("error setting up client handler: %v", err)
+			}
 
-			node.SetEngine(e)
+			surveyCaller := survey.NewCaller(node)
+
+			httpAPIExecutor := api.NewExecutor(node, ruleContainer, surveyCaller, "http")
+			grpcAPIExecutor := api.NewExecutor(node, ruleContainer, surveyCaller, "grpc")
+
+			node.SetBroker(broker)
+			node.SetPresenceManager(presenceManager)
 
 			var disableHistoryPresence bool
 			if engineName == "memory" && brokerName == "nats" {
@@ -366,8 +379,8 @@ func main() {
 				broker, err := natsbroker.New(node, natsbroker.Config{
 					URL:          viper.GetString("nats_url"),
 					Prefix:       viper.GetString("nats_prefix"),
-					DialTimeout:  time.Duration(viper.GetInt("nats_dial_timeout")) * time.Second,
-					WriteTimeout: time.Duration(viper.GetInt("nats_write_timeout")) * time.Second,
+					DialTimeout:  GetDuration("nats_dial_timeout"),
+					WriteTimeout: GetDuration("nats_write_timeout"),
 				})
 				if err != nil {
 					log.Fatal().Msgf("Error creating broker: %v", err)
@@ -380,19 +393,19 @@ func main() {
 			}
 
 			if proxyConfig.ConnectEndpoint != "" {
-				log.Info().Str("endpoint", proxyConfig.ConnectEndpoint).Msg("proxy connect over HTTP")
+				log.Info().Str("endpoint", proxyConfig.ConnectEndpoint).Msg("connect proxy enabled")
 			}
 			if proxyConfig.RefreshEndpoint != "" {
-				log.Info().Str("endpoint", proxyConfig.RefreshEndpoint).Msg("proxy refresh over HTTP")
+				log.Info().Str("endpoint", proxyConfig.RefreshEndpoint).Msg("refresh proxy enabled")
 			}
 			if proxyConfig.RPCEndpoint != "" {
-				log.Info().Str("endpoint", proxyConfig.RPCEndpoint).Msg("proxy RPC over HTTP")
+				log.Info().Str("endpoint", proxyConfig.RPCEndpoint).Msg("RPC proxy enabled")
 			}
 			if proxyConfig.SubscribeEndpoint != "" {
-				log.Info().Str("endpoint", proxyConfig.SubscribeEndpoint).Msg("proxy subscribe over HTTP")
+				log.Info().Str("endpoint", proxyConfig.SubscribeEndpoint).Msg("subscribe proxy enabled")
 			}
 			if proxyConfig.PublishEndpoint != "" {
-				log.Info().Str("endpoint", proxyConfig.PublishEndpoint).Msg("proxy publish over HTTP")
+				log.Info().Str("endpoint", proxyConfig.PublishEndpoint).Msg("publish proxy enabled")
 			}
 
 			if viper.GetBool("client_insecure") {
@@ -411,7 +424,7 @@ func main() {
 			var grpcAPIServer *grpc.Server
 			var grpcAPIAddr string
 			if viper.GetBool("grpc_api") {
-				grpcAPIAddr = fmt.Sprintf(":%d", viper.GetInt("grpc_api_port"))
+				grpcAPIAddr = net.JoinHostPort(viper.GetString("grpc_api_address"), viper.GetString("grpc_api_port"))
 				grpcAPIConn, err := net.Listen("tcp", grpcAPIAddr)
 				if err != nil {
 					log.Fatal().Msgf("cannot listen to address %s", grpcAPIAddr)
@@ -435,11 +448,10 @@ func main() {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 				}
 				grpcAPIServer = grpc.NewServer(grpcOpts...)
-				apiExecutor := api.NewExecutor(node, ruleContainer, "grpc")
-				_ = api.RegisterGRPCServerAPI(node, apiExecutor, grpcAPIServer, api.GRPCAPIServiceConfig{})
+				_ = api.RegisterGRPCServerAPI(node, grpcAPIExecutor, grpcAPIServer, api.GRPCAPIServiceConfig{})
 				go func() {
 					if err := grpcAPIServer.Serve(grpcAPIConn); err != nil {
-						log.Fatal().Msgf("serve GRPC: %v", err)
+						log.Fatal().Msgf("serve GRPC API: %v", err)
 					}
 				}()
 			}
@@ -448,7 +460,44 @@ func main() {
 				log.Info().Msgf("serving GRPC API service on %s", grpcAPIAddr)
 			}
 
-			httpAPIExecutor := api.NewExecutor(node, ruleContainer, "http")
+			var grpcUniServer *grpc.Server
+			var grpcUniAddr string
+			if viper.GetBool("uni_grpc") {
+				grpcUniAddr = net.JoinHostPort(viper.GetString("uni_grpc_address"), viper.GetString("uni_grpc_port"))
+				grpcUniConn, err := net.Listen("tcp", grpcUniAddr)
+				if err != nil {
+					log.Fatal().Msgf("cannot listen to address %s", grpcUniAddr)
+				}
+				var grpcOpts []grpc.ServerOption
+				//goland:noinspection GoDeprecation
+				grpcOpts = append(grpcOpts, grpc.CustomCodec(&unigrpc.RawCodec{}))
+				var tlsConfig *tls.Config
+				var tlsErr error
+
+				if viper.GetBool("uni_grpc_tls") {
+					tlsConfig, tlsErr = tlsConfigForUniGRPC()
+				} else if !viper.GetBool("uni_grpc_tls_disable") {
+					tlsConfig, tlsErr = getTLSConfig()
+				}
+				if tlsErr != nil {
+					log.Fatal().Msgf("error getting TLS config: %v", tlsErr)
+				}
+				if tlsConfig != nil {
+					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
+				}
+				grpcUniServer = grpc.NewServer(grpcOpts...)
+				_ = unigrpc.RegisterService(grpcUniServer, unigrpc.NewService(node, uniGRPCHandlerConfig()))
+				go func() {
+					if err := grpcUniServer.Serve(grpcUniConn); err != nil {
+						log.Fatal().Msgf("serve uni GRPC: %v", err)
+					}
+				}()
+			}
+
+			if grpcUniServer != nil {
+				log.Info().Msgf("serving unidirectional GRPC on %s", grpcUniAddr)
+			}
+
 			servers, err := runHTTPServers(node, httpAPIExecutor)
 			if err != nil {
 				log.Fatal().Msgf("error running HTTP server: %v", err)
@@ -460,19 +509,19 @@ func main() {
 					Address:  net.JoinHostPort(viper.GetString("graphite_host"), strconv.Itoa(viper.GetInt("graphite_port"))),
 					Gatherer: prometheus.DefaultGatherer,
 					Prefix:   strings.TrimSuffix(viper.GetString("graphite_prefix"), ".") + "." + graphite.PreparePathComponent(nodeConfig.Name),
-					Interval: time.Duration(viper.GetInt("graphite_interval")) * time.Second,
+					Interval: GetDuration("graphite_interval"),
 					Tags:     viper.GetBool("graphite_tags"),
 				})
 			}
 
-			handleSignals(configFile, node, ruleContainer, tokenVerifier, servers, grpcAPIServer, exporter)
+			handleSignals(configFile, node, ruleContainer, tokenVerifier, servers, grpcAPIServer, grpcUniServer, exporter)
 		},
 	}
 
 	rootCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "path to config file")
 	rootCmd.Flags().StringP("engine", "e", "memory", "engine to use: memory or redis")
 	rootCmd.Flags().StringP("broker", "", "", "custom broker to use: ex. nats")
-	rootCmd.Flags().StringP("log_level", "", "info", "set the log level: debug, info, error, fatal or none")
+	rootCmd.Flags().StringP("log_level", "", "info", "set the log level: trace, debug, info, error, fatal or none")
 	rootCmd.Flags().StringP("log_file", "", "", "optional log file - if not specified logs go to STDOUT")
 	rootCmd.Flags().StringP("pid_file", "", "", "optional path to create PID file")
 	rootCmd.Flags().StringP("name", "n", "", "unique node name")
@@ -488,7 +537,6 @@ func main() {
 	rootCmd.Flags().BoolP("admin_insecure", "", false, "use insecure admin mode – no auth required for admin socket")
 
 	rootCmd.Flags().StringP("address", "a", "", "interface address to listen on")
-	// TODO v3: make ports integer.
 	rootCmd.Flags().StringP("port", "p", "8000", "port to bind HTTP server to")
 	rootCmd.Flags().StringP("internal_address", "", "", "custom interface address to listen on for internal endpoints")
 	rootCmd.Flags().StringP("internal_port", "", "", "custom port for internal endpoints")
@@ -498,32 +546,16 @@ func main() {
 	rootCmd.Flags().StringP("tls_key", "", "", "path to an X509 certificate key")
 	rootCmd.Flags().BoolP("tls_external", "", false, "enable TLS only for external endpoints")
 
-	rootCmd.Flags().BoolP("grpc_api", "", false, "enable GRPC API server")
-	rootCmd.Flags().IntP("grpc_api_port", "", 10000, "port to bind GRPC API server to")
-	rootCmd.Flags().BoolP("grpc_api_tls", "", false, "enable TLS for GRPC API server, requires an X509 certificate and a key file")
-	rootCmd.Flags().StringP("grpc_api_tls_cert", "", "", "path to an X509 certificate file for GRPC API server")
-	rootCmd.Flags().StringP("grpc_api_tls_key", "", "", "path to an X509 certificate key for GRPC API server")
-	rootCmd.Flags().BoolP("grpc_api_tls_disable", "", false, "disable general TLS for GRPC API server")
-
-	rootCmd.Flags().StringP("redis_host", "", "127.0.0.1", "Redis host (Redis engine)")
-	rootCmd.Flags().StringP("redis_port", "", "6379", "Redis port (Redis engine)")
-	rootCmd.Flags().StringP("redis_password", "", "", "Redis auth password (Redis engine)")
-	rootCmd.Flags().IntP("redis_db", "", 0, "Redis database (Redis engine)")
-	rootCmd.Flags().StringP("redis_url", "", "", "Redis connection URL in format redis://:password@hostname:port/db (Redis engine)")
-	rootCmd.Flags().BoolP("redis_tls", "", false, "enable Redis TLS connection")
-	rootCmd.Flags().BoolP("redis_tls_skip_verify", "", false, "disable Redis TLS host verification")
-	rootCmd.Flags().StringP("redis_master_name", "", "", "name of Redis master Sentinel monitors (Redis engine)")
-	rootCmd.Flags().StringP("redis_sentinels", "", "", "comma-separated list of Sentinel addresses (Redis engine)")
-	rootCmd.Flags().StringP("redis_sentinel_password", "", "", "Redis Sentinel auth password (Redis engine)")
-
-	rootCmd.Flags().StringP("nats_url", "", "", "Nats connection URL in format nats://user:pass@localhost:4222 (Nats broker)")
+	rootCmd.Flags().StringP("redis_address", "", "redis://127.0.0.1:6379", "Redis connection address (Redis engine)")
+	rootCmd.Flags().StringP("tarantool_address", "", "tcp://127.0.0.1:3301", "Tarantool connection address (Tarantool engine)")
+	rootCmd.Flags().StringP("nats_url", "", "nats://127.0.0.1:4222", "Nats connection URL in format nats://user:pass@localhost:4222 (Nats broker)")
 
 	var versionCmd = &cobra.Command{
 		Use:   "version",
 		Short: "Centrifugo version information",
 		Long:  `Print the version information of Centrifugo`,
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("Centrifugo v%s (Go version: %s)\n", VERSION, runtime.Version())
+			fmt.Printf("Centrifugo v%s (Go version: %s)\n", build.Version, runtime.Version())
 		},
 	}
 
@@ -534,7 +566,7 @@ func main() {
 		Short: "Check configuration file",
 		Long:  `Check Centrifugo configuration file`,
 		Run: func(cmd *cobra.Command, args []string) {
-			bindConfig()
+			bindCentrifugoConfig()
 			err := validateConfig(checkConfigFile)
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
@@ -575,14 +607,14 @@ func main() {
 		Short: "Generate sample connection JWT for user",
 		Long:  `Generate sample connection JWT for user`,
 		Run: func(cmd *cobra.Command, args []string) {
-			bindConfig()
+			bindCentrifugoConfig()
 			err := readConfig(genTokenConfigFile)
 			if err != nil && err != errConfigFileNotFound {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
 			jwtVerifierConfig := jwtVerifierConfig()
-			token, err := tools.GenerateToken(jwtVerifierConfig, genTokenUser, genTokenTTL)
+			token, err := cli.GenerateToken(jwtVerifierConfig, genTokenUser, genTokenTTL)
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
@@ -605,7 +637,7 @@ func main() {
 		Short: "Check connection JWT",
 		Long:  `Check connection JWT`,
 		Run: func(cmd *cobra.Command, args []string) {
-			bindConfig()
+			bindCentrifugoConfig()
 			err := readConfig(checkTokenConfigFile)
 			if err != nil && err != errConfigFileNotFound {
 				fmt.Printf("error: %v\n", err)
@@ -616,7 +648,7 @@ func main() {
 				fmt.Printf("error: provide token to check [centrifugo checktoken <TOKEN>]\n")
 				os.Exit(1)
 			}
-			subject, claims, err := tools.CheckToken(jwtVerifierConfig, args[0])
+			subject, claims, err := cli.CheckToken(jwtVerifierConfig, ruleConfig(), args[0])
 			if err != nil {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
@@ -670,6 +702,7 @@ func writePidFile(pidFile string) error {
 
 var logLevelMatches = map[string]zerolog.Level{
 	"NONE":  zerolog.NoLevel,
+	"TRACE": zerolog.TraceLevel,
 	"DEBUG": zerolog.DebugLevel,
 	"INFO":  zerolog.InfoLevel,
 	"WARN":  zerolog.WarnLevel,
@@ -677,8 +710,8 @@ var logLevelMatches = map[string]zerolog.Level{
 	"FATAL": zerolog.FatalLevel,
 }
 
-func detectTerminalAttached() {
-	if isatty.IsTerminal(os.Stdout.Fd()) && runtime.GOOS != "windows" {
+func configureConsoleWriter() {
+	if isTerminalAttached() {
 		log.Logger = log.Output(zerolog.ConsoleWriter{
 			Out:                 os.Stdout,
 			TimeFormat:          "2006-01-02 15:04:05",
@@ -689,8 +722,12 @@ func detectTerminalAttached() {
 	}
 }
 
+func isTerminalAttached() bool {
+	return isatty.IsTerminal(os.Stdout.Fd()) && runtime.GOOS != "windows"
+}
+
 func setupLogging() *os.File {
-	detectTerminalAttached()
+	configureConsoleWriter()
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	logLevel, ok := logLevelMatches[strings.ToUpper(viper.GetString("log_level"))]
@@ -711,7 +748,7 @@ func setupLogging() *os.File {
 	return nil
 }
 
-func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Container, tokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server, grpcAPIServer *grpc.Server, exporter *graphite.Exporter) {
+func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Container, tokenVerifier *jwtverify.VerifierJWT, httpServers []*http.Server, grpcAPIServer *grpc.Server, grpcUniServer *grpc.Server, exporter *graphite.Exporter) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 	for {
@@ -739,7 +776,7 @@ func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Co
 		case syscall.SIGINT, os.Interrupt, syscall.SIGTERM:
 			log.Info().Msg("shutting down ...")
 			pidFile := viper.GetString("pid_file")
-			shutdownTimeout := time.Duration(viper.GetInt("shutdown_timeout")) * time.Second
+			shutdownTimeout := GetDuration("shutdown_timeout")
 			go time.AfterFunc(shutdownTimeout, func() {
 				if pidFile != "" {
 					_ = os.Remove(pidFile)
@@ -761,6 +798,14 @@ func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Co
 				}()
 			}
 
+			if grpcUniServer != nil {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					grpcUniServer.GracefulStop()
+				}()
+			}
+
 			ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 
 			for _, srv := range httpServers {
@@ -779,13 +824,13 @@ func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Co
 			if pidFile != "" {
 				_ = os.Remove(pidFile)
 			}
-			time.Sleep(time.Duration(viper.GetInt("shutdown_termination_delay")) * time.Second)
+			time.Sleep(GetDuration("shutdown_termination_delay"))
 			os.Exit(0)
 		}
 	}
 }
 
-var startHTTPChallengeServerOnce sync.Once // TODO: refactor to get rid of global here.
+var startHTTPChallengeServerOnce sync.Once
 
 func getTLSConfig() (*tls.Config, error) {
 	tlsEnabled := viper.GetBool("tls")
@@ -801,7 +846,6 @@ func getTLSConfig() (*tls.Config, error) {
 	}
 	tlsAutocertCacheDir := viper.GetString("tls_autocert_cache_dir")
 	tlsAutocertEmail := viper.GetString("tls_autocert_email")
-	tlsAutocertForceRSA := viper.GetBool("tls_autocert_force_rsa")
 	tlsAutocertServerName := viper.GetString("tls_autocert_server_name")
 	tlsAutocertHTTP := viper.GetBool("tls_autocert_http")
 	tlsAutocertHTTPAddr := viper.GetString("tls_autocert_http_addr")
@@ -809,9 +853,7 @@ func getTLSConfig() (*tls.Config, error) {
 	if tlsAutocertEnabled {
 		certManager := autocert.Manager{
 			Prompt: autocert.AcceptTOS,
-			// TODO v3: remove deprecated field.
-			ForceRSA: tlsAutocertForceRSA,
-			Email:    tlsAutocertEmail,
+			Email:  tlsAutocertEmail,
 		}
 		if tlsAutocertHostWhitelist != nil {
 			certManager.HostPolicy = autocert.HostWhitelist(tlsAutocertHostWhitelist...)
@@ -879,6 +921,19 @@ func tlsConfigForGRPC() (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
+func tlsConfigForUniGRPC() (*tls.Config, error) {
+	tlsCert := viper.GetString("uni_grpc_tls_cert")
+	tlsKey := viper.GetString("uni_grpc_tls_key")
+	tlsConfig := &tls.Config{}
+	tlsConfig.Certificates = make([]tls.Certificate, 1)
+	var err error
+	tlsConfig.Certificates[0], err = tls.LoadX509KeyPair(tlsCert, tlsKey)
+	if err != nil {
+		return nil, err
+	}
+	return tlsConfig, nil
+}
+
 type httpErrorLogWriter struct {
 	zerolog.Logger
 }
@@ -924,11 +979,20 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor) ([]*http.Serv
 	if !viper.GetBool("websocket_disable") {
 		portFlags |= HandlerWebsocket
 	}
-	if !viper.GetBool("sockjs_disable") {
+	if viper.GetBool("sockjs") {
 		portFlags |= HandlerSockJS
 	}
 	if useAdmin && adminExternal {
 		portFlags |= HandlerAdmin
+	}
+	if viper.GetBool("uni_websocket") {
+		portFlags |= HandlerUniWebsocket
+	}
+	if viper.GetBool("uni_sse") {
+		portFlags |= HandlerUniSSE
+	}
+	if viper.GetBool("uni_stream") {
+		portFlags |= HandlerUniStream
 	}
 	addrToHandlerFlags[externalAddr] = portFlags
 
@@ -1043,16 +1107,15 @@ func ruleConfig() rule.Config {
 	cfg.PresenceDisableForClient = v.GetBool("presence_disable_for_client")
 	cfg.JoinLeave = v.GetBool("join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
-	cfg.HistoryLifetime = v.GetInt("history_lifetime")
-	cfg.HistoryRecover = v.GetBool("history_recover")
+	cfg.HistoryTTL = v.GetInt("history_ttl")
+	cfg.Position = v.GetBool("position")
+	cfg.Recover = v.GetBool("recover")
 	cfg.HistoryDisableForClient = v.GetBool("history_disable_for_client")
 	cfg.ServerSide = v.GetBool("server_side")
 	cfg.ProxySubscribe = v.GetBool("proxy_subscribe")
 	cfg.ProxyPublish = v.GetBool("proxy_publish")
 	cfg.Namespaces = namespacesFromConfig(v)
-
-	// TODO v3: replace option name to token_channel_prefix.
-	cfg.TokenChannelPrefix = v.GetString("channel_private_prefix")
+	cfg.ChannelPrivatePrefix = v.GetString("channel_private_prefix")
 	cfg.ChannelNamespaceBoundary = v.GetString("channel_namespace_boundary")
 	cfg.ChannelUserBoundary = v.GetString("channel_user_boundary")
 	cfg.ChannelUserSeparator = v.GetString("channel_user_separator")
@@ -1069,15 +1132,7 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	v := viper.GetViper()
 	cfg := jwtverify.VerifierConfig{}
 
-	hmacSecretKey := v.GetString("token_hmac_secret_key")
-	if hmacSecretKey != "" {
-		cfg.HMACSecretKey = hmacSecretKey
-	} else {
-		if v.GetString("secret") != "" {
-			log.Warn().Msg("secret is deprecated, use token_hmac_secret_key instead")
-		}
-		cfg.HMACSecretKey = v.GetString("secret")
-	}
+	cfg.HMACSecretKey = v.GetString("token_hmac_secret_key")
 
 	rsaPublicKey := v.GetString("token_rsa_public_key")
 	if rsaPublicKey != "" {
@@ -1102,20 +1157,43 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	return cfg
 }
 
+func GetDuration(key string) time.Duration {
+	duration := viper.GetDuration(key)
+	if duration > 0 && duration < time.Millisecond {
+		log.Fatal().Msgf("malformed duration for key '%s': %s, minimal duration resolution is 1ms – make sure correct time unit set", key, duration)
+	}
+	return duration
+}
+
 func proxyConfig() (proxy.Config, bool) {
 	v := viper.GetViper()
 	cfg := proxy.Config{}
-	cfg.ExtraHTTPHeaders = v.GetStringSlice("proxy_extra_http_headers")
+	cfg.GRPCMetadata = v.GetStringSlice("proxy_grpc_metadata")
+	cfg.HTTPHeaders = v.GetStringSlice("proxy_http_headers")
+	cfg.BinaryEncoding = v.GetBool("proxy_binary_encoding")
 	cfg.ConnectEndpoint = v.GetString("proxy_connect_endpoint")
-	cfg.ConnectTimeout = time.Duration(v.GetFloat64("proxy_connect_timeout")*1000) * time.Millisecond
+	cfg.ConnectTimeout = GetDuration("proxy_connect_timeout")
 	cfg.RefreshEndpoint = v.GetString("proxy_refresh_endpoint")
-	cfg.RefreshTimeout = time.Duration(v.GetFloat64("proxy_refresh_timeout")*1000) * time.Millisecond
+	cfg.RefreshTimeout = GetDuration("proxy_refresh_timeout")
 	cfg.RPCEndpoint = v.GetString("proxy_rpc_endpoint")
-	cfg.RPCTimeout = time.Duration(v.GetFloat64("proxy_rpc_timeout")*1000) * time.Millisecond
+	cfg.RPCTimeout = GetDuration("proxy_rpc_timeout")
 	cfg.SubscribeEndpoint = v.GetString("proxy_subscribe_endpoint")
-	cfg.SubscribeTimeout = time.Duration(v.GetFloat64("proxy_subscribe_timeout")*1000) * time.Millisecond
+	cfg.SubscribeTimeout = GetDuration("proxy_subscribe_timeout")
 	cfg.PublishEndpoint = v.GetString("proxy_publish_endpoint")
-	cfg.PublishTimeout = time.Duration(v.GetFloat64("proxy_publish_timeout")*1000) * time.Millisecond
+	cfg.PublishTimeout = GetDuration("proxy_publish_timeout")
+
+	var httpConfig proxy.HTTPConfig
+	httpConfig.Encoder = &proxyproto.JSONEncoder{}
+	httpConfig.Decoder = &proxyproto.JSONDecoder{}
+
+	grpcConfig := proxy.GRPCConfig{
+		Insecure:         v.GetBool("proxy_grpc_insecure"),
+		CertFile:         v.GetString("proxy_grpc_cert_file"),
+		CredentialsKey:   v.GetString("proxy_grpc_credentials_key"),
+		CredentialsValue: v.GetString("proxy_grpc_credentials_value"),
+	}
+	grpcConfig.Codec = &proxyproto.Codec{}
+	cfg.GRPCConfig = grpcConfig
 
 	proxyEnabled := cfg.ConnectEndpoint != "" || cfg.RefreshEndpoint != "" ||
 		cfg.RPCEndpoint != "" || cfg.SubscribeEndpoint != "" || cfg.PublishEndpoint != ""
@@ -1130,16 +1208,17 @@ func nodeConfig(version string) centrifuge.Config {
 	cfg.MetricsNamespace = "centrifugo"
 	cfg.Name = applicationName()
 	cfg.ChannelMaxLength = v.GetInt("channel_max_length")
-	cfg.ClientPresenceUpdateInterval = time.Duration(v.GetInt("client_presence_ping_interval")) * time.Second
-	cfg.ClientPresenceExpireInterval = time.Duration(v.GetInt("client_presence_expire_interval")) * time.Second
-	cfg.ClientExpiredCloseDelay = time.Duration(v.GetInt("client_expired_close_delay")) * time.Second
-	cfg.ClientExpiredSubCloseDelay = time.Duration(v.GetInt("client_expired_sub_close_delay")) * time.Second
-	cfg.ClientStaleCloseDelay = time.Duration(v.GetInt("client_stale_close_delay")) * time.Second
+	cfg.ClientPresenceUpdateInterval = GetDuration("client_presence_update_interval")
+	cfg.ClientExpiredCloseDelay = GetDuration("client_expired_close_delay")
+	cfg.ClientExpiredSubCloseDelay = GetDuration("client_expired_sub_close_delay")
+	cfg.ClientStaleCloseDelay = GetDuration("client_stale_close_delay")
 	cfg.ClientQueueMaxSize = v.GetInt("client_queue_max_size")
 	cfg.ClientChannelLimit = v.GetInt("client_channel_limit")
-	cfg.ClientChannelPositionCheckDelay = time.Duration(v.GetInt("client_channel_position_check_delay")) * time.Second
+	cfg.ClientChannelPositionCheckDelay = GetDuration("client_channel_position_check_delay")
 	cfg.UserConnectionLimit = v.GetInt("client_user_connection_limit")
-	cfg.NodeInfoMetricsAggregateInterval = time.Duration(v.GetInt("node_info_metrics_aggregate_interval")) * time.Second
+	cfg.NodeInfoMetricsAggregateInterval = GetDuration("node_info_metrics_aggregate_interval")
+	cfg.HistoryMaxPublicationLimit = v.GetInt("client_history_max_publication_limit")
+	cfg.RecoveryMaxPublicationLimit = v.GetInt("client_recovery_max_publication_limit")
 
 	level, ok := logStringToLevel[strings.ToLower(v.GetString("log_level"))]
 	if !ok {
@@ -1152,6 +1231,7 @@ func nodeConfig(version string) centrifuge.Config {
 
 // LogStringToLevel matches level string to Centrifuge LogLevel.
 var logStringToLevel = map[string]centrifuge.LogLevel{
+	"trace": centrifuge.LogLevelTrace,
 	"debug": centrifuge.LogLevelDebug,
 	"info":  centrifuge.LogLevelInfo,
 	"error": centrifuge.LogLevelError,
@@ -1187,7 +1267,13 @@ func namespacesFromConfig(v *viper.Viper) []rule.ChannelNamespace {
 	case string:
 		err = json.Unmarshal([]byte(val), &ns)
 	case []interface{}:
-		err = v.UnmarshalKey("namespaces", &ns)
+		decoderCfg := tools.DecoderConfig(&ns)
+		decoder, err := mapstructure.NewDecoder(decoderCfg)
+		if err != nil {
+			log.Fatal().Msg(err.Error())
+			return ns
+		}
+		err = decoder.Decode(v.Get("namespaces"))
 	default:
 		err = fmt.Errorf("unknown namespaces type: %T", val)
 	}
@@ -1207,33 +1293,33 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	cfg.ReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	cfg.UseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
-	if v.IsSet("websocket_ping_interval") {
-		cfg.PingInterval = time.Duration(v.GetInt("websocket_ping_interval")) * time.Second
-	} else {
-		cfg.PingInterval = time.Duration(v.GetInt("client_ping_interval")) * time.Second
-	}
-	if v.IsSet("websocket_write_timeout") {
-		cfg.WriteTimeout = time.Duration(v.GetInt("websocket_write_timeout")) * time.Second
-	} else {
-		cfg.WriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
-	}
-	if v.IsSet("websocket_message_size_limit") {
-		cfg.MessageSizeLimit = v.GetInt("websocket_message_size_limit")
-	} else {
-		cfg.MessageSizeLimit = v.GetInt("client_request_max_size")
-	}
+	cfg.PingInterval = GetDuration("websocket_ping_interval")
+	cfg.WriteTimeout = GetDuration("websocket_write_timeout")
+	cfg.MessageSizeLimit = v.GetInt("websocket_message_size_limit")
+	cfg.CheckOrigin = getCheckOrigin()
+	return cfg
+}
 
+var warnAllowedOriginsOnce sync.Once
+
+func getCheckOrigin() func(r *http.Request) bool {
+	v := viper.GetViper()
 	if v.IsSet("allowed_origins") {
 		allowedOrigins := v.GetStringSlice("allowed_origins")
 		originChecker, err := origin.NewPatternChecker(allowedOrigins)
 		if err != nil {
 			log.Fatal().Msgf("error creating origin checker: %v", err)
 		}
-		cfg.CheckOrigin = func(r *http.Request) bool {
-			if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
-				// Fast path for *.
+		if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
+			// Fast path for *.
+			warnAllowedOriginsOnce.Do(func() {
+				log.Warn().Msgf("usage of allowed_origins * is discouraged for security reasons, consider setting exact list of origins")
+			})
+			return func(r *http.Request) bool {
 				return true
 			}
+		}
+		return func(r *http.Request) bool {
 			err := originChecker.Check(r)
 			if err != nil {
 				log.Info().Str("error", err.Error()).Msg("error checking request origin")
@@ -1242,50 +1328,56 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 			return true
 		}
 	} else {
-		// TODO v3: replace with enforced same-origin check.
-		cfg.CheckOrigin = func(*http.Request) bool { return true }
+		return func(r *http.Request) bool {
+			err := origin.CheckSameHost(r)
+			if err != nil {
+				log.Info().Str("error", err.Error()).Msg("error checking request origin")
+				return false
+			}
+			return true
+		}
 	}
-	return cfg
+}
+
+func uniWebsocketHandlerConfig() uniws.Config {
+	v := viper.GetViper()
+	return uniws.Config{
+		Compression:        v.GetBool("uni_websocket_compression"),
+		CompressionLevel:   v.GetInt("uni_websocket_compression_level"),
+		CompressionMinSize: v.GetInt("uni_websocket_compression_min_size"),
+		ReadBufferSize:     v.GetInt("uni_websocket_read_buffer_size"),
+		WriteBufferSize:    v.GetInt("uni_websocket_write_buffer_size"),
+		UseWriteBufferPool: v.GetBool("uni_websocket_use_write_buffer_pool"),
+		PingInterval:       GetDuration("uni_websocket_ping_interval"),
+		WriteTimeout:       GetDuration("uni_websocket_write_timeout"),
+		MessageSizeLimit:   v.GetInt("uni_websocket_message_size_limit"),
+		CheckOrigin:        getCheckOrigin(),
+	}
+}
+
+func uniSSEHandlerConfig() unisse.Config {
+	return unisse.Config{}
+}
+
+func uniStreamHandlerConfig() unistream.Config {
+	return unistream.Config{}
+}
+
+func uniGRPCHandlerConfig() unigrpc.Config {
+	return unigrpc.Config{}
 }
 
 func sockjsHandlerConfig() centrifuge.SockjsConfig {
 	v := viper.GetViper()
 	cfg := centrifuge.SockjsConfig{}
 	cfg.URL = v.GetString("sockjs_url")
-	cfg.HeartbeatDelay = time.Duration(v.GetInt("sockjs_heartbeat_delay")) * time.Second
+	cfg.HeartbeatDelay = GetDuration("sockjs_heartbeat_delay")
 	cfg.WebsocketReadBufferSize = v.GetInt("websocket_read_buffer_size")
 	cfg.WebsocketWriteBufferSize = v.GetInt("websocket_write_buffer_size")
 	cfg.WebsocketUseWriteBufferPool = v.GetBool("websocket_use_write_buffer_pool")
-	if v.IsSet("websocket_write_timeout") {
-		cfg.WebsocketWriteTimeout = time.Duration(v.GetInt("websocket_write_timeout")) * time.Second
-	} else {
-		cfg.WebsocketWriteTimeout = time.Duration(v.GetInt("client_message_write_timeout")) * time.Second
-	}
-	if v.IsSet("allowed_origins") {
-		allowedOrigins := v.GetStringSlice("allowed_origins")
-		originChecker, err := origin.NewPatternChecker(allowedOrigins)
-		if err != nil {
-			log.Fatal().Msgf("error creating origin checker: %v", err)
-		}
-		checkFn := func(r *http.Request) bool {
-			if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
-				// Fast path for *.
-				return true
-			}
-			err := originChecker.Check(r)
-			if err != nil {
-				log.Info().Str("error", err.Error()).Msg("error checking request origin")
-				return false
-			}
-			return true
-		}
-		cfg.CheckOrigin = checkFn
-		cfg.WebsocketCheckOrigin = checkFn
-	} else {
-		// TODO v3: replace with enforced same-origin check.
-		cfg.CheckOrigin = func(*http.Request) bool { return true }
-		cfg.WebsocketCheckOrigin = func(r *http.Request) bool { return true }
-	}
+	cfg.WebsocketWriteTimeout = GetDuration("websocket_write_timeout")
+	cfg.CheckOrigin = getCheckOrigin()
+	cfg.WebsocketCheckOrigin = getCheckOrigin()
 	return cfg
 }
 
@@ -1301,246 +1393,232 @@ func adminHandlerConfig() admin.Config {
 	return cfg
 }
 
-func memoryEngine(n *centrifuge.Node) (centrifuge.Engine, error) {
-	c, err := memoryEngineConfig()
+func memoryEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, error) {
+	brokerConf, err := memoryBrokerConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return centrifuge.NewMemoryEngine(n, *c)
+	broker, err := centrifuge.NewMemoryBroker(n, *brokerConf)
+	if err != nil {
+		return nil, nil, err
+	}
+	presenceManagerConf, err := memoryPresenceManagerConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	presenceManager, err := centrifuge.NewMemoryPresenceManager(n, *presenceManagerConf)
+	if err != nil {
+		return nil, nil, err
+	}
+	return broker, presenceManager, nil
 }
 
-func redisEngine(n *centrifuge.Node) (centrifuge.Engine, error) {
-	c, err := redisEngineConfig()
-	if err != nil {
-		return nil, err
-	}
-	return centrifuge.NewRedisEngine(n, *c)
-}
-
-func memoryEngineConfig() (*centrifuge.MemoryEngineConfig, error) {
-	return &centrifuge.MemoryEngineConfig{
-		HistoryMetaTTL: time.Duration(viper.GetInt("memory_history_meta_ttl")) * time.Second,
+func memoryBrokerConfig() (*centrifuge.MemoryBrokerConfig, error) {
+	return &centrifuge.MemoryBrokerConfig{
+		HistoryMetaTTL: GetDuration("memory_history_meta_ttl"),
 	}, nil
+}
+
+func memoryPresenceManagerConfig() (*centrifuge.MemoryPresenceManagerConfig, error) {
+	return &centrifuge.MemoryPresenceManagerConfig{}, nil
 }
 
 func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
-	v := viper.GetViper()
-	shardConf.Password = v.GetString("redis_password")
-	shardConf.Prefix = v.GetString("redis_prefix")
-	shardConf.UseTLS = v.GetBool("redis_tls")
-	shardConf.TLSSkipVerify = v.GetBool("redis_tls_skip_verify")
-	shardConf.IdleTimeout = time.Duration(v.GetInt("redis_idle_timeout")) * time.Second
-	shardConf.PubSubNumWorkers = v.GetInt("redis_pubsub_num_workers")
-	shardConf.ConnectTimeout = time.Duration(v.GetInt("redis_connect_timeout")) * time.Second
-	shardConf.ReadTimeout = time.Duration(v.GetInt("redis_read_timeout")) * time.Second
-	shardConf.WriteTimeout = time.Duration(v.GetInt("redis_write_timeout")) * time.Second
+	shardConf.Password = viper.GetString("redis_password")
+	shardConf.UseTLS = viper.GetBool("redis_tls")
+	shardConf.TLSSkipVerify = viper.GetBool("redis_tls_skip_verify")
+	shardConf.IdleTimeout = GetDuration("redis_idle_timeout")
+	shardConf.ConnectTimeout = GetDuration("redis_connect_timeout")
+	shardConf.ReadTimeout = GetDuration("redis_read_timeout")
+	shardConf.WriteTimeout = GetDuration("redis_write_timeout")
 }
 
-func redisEngineConfig() (*centrifuge.RedisEngineConfig, error) {
-	v := viper.GetViper()
+func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, error) {
+	var shardConfigs []centrifuge.RedisShardConfig
 
-	clusterConf := v.GetStringSlice("redis_cluster_addrs")
+	clusterShards := viper.GetStringSlice("redis_cluster_address")
 	var useCluster bool
-	if len(clusterConf) > 0 {
+	if len(clusterShards) > 0 {
 		useCluster = true
 	}
 
-	var shardConfigs []centrifuge.RedisShardConfig
-
 	if useCluster {
-		for _, clusterAddrsStr := range clusterConf {
-			clusterAddrs := strings.Split(clusterAddrsStr, ",")
+		for _, clusterAddress := range clusterShards {
+			clusterAddresses := strings.Split(clusterAddress, ",")
+			for _, address := range clusterAddresses {
+				if _, _, err := net.SplitHostPort(address); err != nil {
+					return nil, fmt.Errorf("malformed Redis Cluster address: %s", address)
+				}
+			}
 			conf := &centrifuge.RedisShardConfig{
-				ClusterAddrs: clusterAddrs,
+				ClusterAddresses: clusterAddresses,
 			}
 			addRedisShardCommonSettings(conf)
 			shardConfigs = append(shardConfigs, *conf)
 		}
-	} else {
-		numShards := 1
+		return shardConfigs, nil
+	}
 
-		hostsConf := v.GetString("redis_host")
-		portsConf := v.GetString("redis_port")
-		urlsConf := v.GetString("redis_url")
-		masterNamesConf := v.GetString("redis_master_name")
-		sentinelsConf := v.GetString("redis_sentinels")
+	sentinelShards := viper.GetStringSlice("redis_sentinel_address")
+	var useSentinel bool
+	if len(sentinelShards) > 0 {
+		useSentinel = true
+	}
 
-		password := v.GetString("redis_password")
-		db := v.GetInt("redis_db")
-
-		sentinelPassword := v.GetString("redis_sentinel_password")
-
-		var hosts []string
-		if hostsConf != "" {
-			hosts = strings.Split(hostsConf, ",")
-			if len(hosts) > numShards {
-				numShards = len(hosts)
-			}
-		}
-
-		var ports []string
-		if portsConf != "" {
-			ports = strings.Split(portsConf, ",")
-			if len(ports) > numShards {
-				numShards = len(ports)
-			}
-		}
-
-		var urls []string
-		if urlsConf != "" {
-			urls = strings.Split(urlsConf, ",")
-			if len(urls) > numShards {
-				numShards = len(urls)
-			}
-		}
-
-		var masterNames []string
-		if masterNamesConf != "" {
-			masterNames = strings.Split(masterNamesConf, ",")
-			if len(masterNames) > numShards {
-				numShards = len(masterNames)
-			}
-		}
-
-		if masterNamesConf != "" && sentinelsConf == "" {
-			return nil, fmt.Errorf("provide at least one Sentinel address")
-		}
-
-		if masterNamesConf != "" && len(masterNames) < numShards {
-			return nil, fmt.Errorf("master name must be set for every Redis shard when Sentinel used")
-		}
-
-		var sentinelAddrs []string
-		if sentinelsConf != "" {
-			for _, addr := range strings.Split(sentinelsConf, ",") {
-				addr := strings.TrimSpace(addr)
-				if addr == "" {
-					continue
+	if useSentinel {
+		for _, sentinelAddress := range sentinelShards {
+			sentinelAddresses := strings.Split(sentinelAddress, ",")
+			for _, address := range sentinelAddresses {
+				if _, _, err := net.SplitHostPort(address); err != nil {
+					return nil, fmt.Errorf("malformed Redis Sentinel address: %s", address)
 				}
-				if _, _, err := net.SplitHostPort(addr); err != nil {
-					return nil, fmt.Errorf("malformed Sentinel address: %s", addr)
-				}
-				sentinelAddrs = append(sentinelAddrs, addr)
-			}
-		}
-
-		if len(hosts) <= 1 {
-			newHosts := make([]string, numShards)
-			for i := 0; i < numShards; i++ {
-				if len(hosts) == 0 {
-					newHosts[i] = ""
-				} else {
-					newHosts[i] = hosts[0]
-				}
-			}
-			hosts = newHosts
-		} else if len(hosts) != numShards {
-			return nil, fmt.Errorf("malformed sharding configuration: wrong number of redis hosts")
-		}
-
-		if len(ports) <= 1 {
-			newPorts := make([]string, numShards)
-			for i := 0; i < numShards; i++ {
-				if len(ports) == 0 {
-					newPorts[i] = ""
-				} else {
-					newPorts[i] = ports[0]
-				}
-			}
-			ports = newPorts
-		} else if len(ports) != numShards {
-			return nil, fmt.Errorf("malformed sharding configuration: wrong number of redis ports")
-		}
-
-		if len(urls) > 0 && len(urls) != numShards {
-			return nil, fmt.Errorf("malformed sharding configuration: wrong number of redis urls")
-		}
-
-		if len(masterNames) == 0 {
-			newMasterNames := make([]string, numShards)
-			for i := 0; i < numShards; i++ {
-				newMasterNames[i] = ""
-			}
-			masterNames = newMasterNames
-		}
-
-		passwords := make([]string, numShards)
-		sentinelPasswords := make([]string, numShards)
-		for i := 0; i < numShards; i++ {
-			passwords[i] = password
-			sentinelPasswords[i] = sentinelPassword
-		}
-
-		dbs := make([]int, numShards)
-		for i := 0; i < numShards; i++ {
-			dbs[i] = db
-		}
-
-		for i, confURL := range urls {
-			if confURL == "" {
-				continue
-			}
-			// If URL set then prefer it over other parameters.
-			u, err := url.Parse(confURL)
-			if err != nil {
-				return nil, fmt.Errorf("%v", err)
-			}
-			if u.User != nil {
-				var ok bool
-				pass, ok := u.User.Password()
-				if !ok {
-					pass = ""
-				}
-				passwords[i] = pass
-			}
-			host, port, err := net.SplitHostPort(u.Host)
-			if err != nil {
-				return nil, fmt.Errorf("%v", err)
-			}
-			path := u.Path
-			if path != "" {
-				dbNum, err := strconv.Atoi(path[1:])
-				if err != nil {
-					return nil, fmt.Errorf("malformed Redis db number: %s", path[1:])
-				}
-				dbs[i] = dbNum
-			}
-			hosts[i] = host
-			ports[i] = port
-		}
-
-		for i := 0; i < numShards; i++ {
-			port, err := strconv.Atoi(ports[i])
-			if err != nil {
-				return nil, fmt.Errorf("malformed port: %v", err)
 			}
 			conf := &centrifuge.RedisShardConfig{
-				Host:               hosts[i],
-				Port:               port,
-				DB:                 dbs[i],
-				SentinelMasterName: masterNames[i],
-				SentinelAddrs:      sentinelAddrs,
+				SentinelAddresses: sentinelAddresses,
 			}
 			addRedisShardCommonSettings(conf)
-			conf.Password = passwords[i]
-			conf.SentinelPassword = sentinelPasswords[i]
+			conf.SentinelPassword = viper.GetString("redis_sentinel_password")
+			conf.SentinelMasterName = viper.GetString("redis_sentinel_master_name")
+			if conf.SentinelMasterName == "" {
+				return nil, fmt.Errorf("master name must be set when using Redis Sentinel")
+			}
 			shardConfigs = append(shardConfigs, *conf)
+		}
+		return shardConfigs, nil
+	}
+
+	redisAddresses := viper.GetStringSlice("redis_address")
+	if len(redisAddresses) == 0 {
+		redisAddresses = []string{"127.0.0.1:6379"}
+	}
+	for _, redisAddress := range redisAddresses {
+		conf := &centrifuge.RedisShardConfig{
+			Address: redisAddress,
+		}
+		addRedisShardCommonSettings(conf)
+		shardConfigs = append(shardConfigs, *conf)
+	}
+	return shardConfigs, nil
+}
+
+func getRedisShards(n *centrifuge.Node) ([]*centrifuge.RedisShard, error) {
+	redisShardConfigs, err := getRedisShardConfigs()
+	if err != nil {
+		return nil, err
+	}
+	redisShards := make([]*centrifuge.RedisShard, 0, len(redisShardConfigs))
+
+	for _, redisConf := range redisShardConfigs {
+		redisShard, err := centrifuge.NewRedisShard(n, redisConf)
+		if err != nil {
+			return nil, err
+		}
+		redisShards = append(redisShards, redisShard)
+	}
+	return redisShards, nil
+}
+
+func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, error) {
+	redisShards, err := getRedisShards(n)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	broker, err := centrifuge.NewRedisBroker(n, centrifuge.RedisBrokerConfig{
+		Shards:         redisShards,
+		Prefix:         viper.GetString("redis_prefix"),
+		UseLists:       viper.GetBool("redis_use_lists"),
+		HistoryMetaTTL: GetDuration("redis_history_meta_ttl"),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	presenceManager, err := centrifuge.NewRedisPresenceManager(n, centrifuge.RedisPresenceManagerConfig{
+		Shards:      redisShards,
+		Prefix:      viper.GetString("redis_prefix"),
+		PresenceTTL: GetDuration("redis_presence_ttl"),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return broker, presenceManager, nil
+}
+
+func getTarantoolShardConfigs() ([]tntengine.ShardConfig, error) {
+	var shardConfigs []tntengine.ShardConfig
+
+	mode := tntengine.ConnectionModeSingleInstance
+	if viper.IsSet("tarantool_mode") {
+		switch viper.GetString("tarantool_mode") {
+		case "standalone":
+			// default.
+		case "leader-follower":
+			mode = tntengine.ConnectionModeLeaderFollower
+		case "leader-follower-raft":
+			mode = tntengine.ConnectionModeLeaderFollowerRaft
+		default:
+			return nil, fmt.Errorf("unknown Tarantool mode: %s", viper.GetString("tarantool_mode"))
 		}
 	}
 
-	var historyMetaTTL time.Duration
-	if v.IsSet("redis_history_meta_ttl") {
-		historyMetaTTL = time.Duration(v.GetInt("redis_history_meta_ttl")) * time.Second
-	} else {
-		// TODO v3: remove compatibility.
-		historyMetaTTL = time.Duration(v.GetInt("redis_sequence_ttl")) * time.Second
+	var shardAddresses [][]string
+
+	tarantoolAddresses := viper.GetStringSlice("tarantool_address")
+	for _, shardPart := range tarantoolAddresses {
+		shardAddresses = append(shardAddresses, strings.Split(shardPart, ","))
 	}
 
-	return &centrifuge.RedisEngineConfig{
-		UseStreams:     v.GetBool("redis_streams"),
-		HistoryMetaTTL: historyMetaTTL,
-		Shards:         shardConfigs,
-	}, nil
+	for _, tarantoolAddresses := range shardAddresses {
+		conf := &tntengine.ShardConfig{
+			Addresses:      tarantoolAddresses,
+			User:           viper.GetString("tarantool_user"),
+			Password:       viper.GetString("tarantool_password"),
+			ConnectionMode: mode,
+		}
+		shardConfigs = append(shardConfigs, *conf)
+	}
+	return shardConfigs, nil
+}
+
+func getTarantoolShards() ([]*tntengine.Shard, error) {
+	tarantoolShardConfigs, err := getTarantoolShardConfigs()
+	if err != nil {
+		return nil, err
+	}
+	tarantoolShards := make([]*tntengine.Shard, 0, len(tarantoolShardConfigs))
+
+	for _, tarantoolConf := range tarantoolShardConfigs {
+		tarantoolShard, err := tntengine.NewShard(tarantoolConf)
+		if err != nil {
+			return nil, err
+		}
+		tarantoolShards = append(tarantoolShards, tarantoolShard)
+	}
+	return tarantoolShards, nil
+}
+
+func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, error) {
+	tarantoolShards, err := getTarantoolShards()
+	if err != nil {
+		return nil, nil, err
+	}
+	broker, err := tntengine.NewBroker(n, tntengine.BrokerConfig{
+		Shards:         tarantoolShards,
+		HistoryMetaTTL: GetDuration("tarantool_history_meta_ttl"),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	presenceManager, err := tntengine.NewPresenceManager(n, tntengine.PresenceManagerConfig{
+		Shards:      tarantoolShards,
+		PresenceTTL: GetDuration("tarantool_presence_ttl"),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	return broker, presenceManager, nil
 }
 
 type logHandler struct {
@@ -1559,6 +1637,8 @@ func (h *logHandler) readEntries() {
 	for entry := range h.entries {
 		var l *zerolog.Event
 		switch entry.Level {
+		case centrifuge.LogLevelTrace:
+			l = log.Trace()
 		case centrifuge.LogLevelDebug:
 			l = log.Debug()
 		case centrifuge.LogLevelInfo:
@@ -1602,20 +1682,29 @@ const (
 	HandlerPrometheus
 	// HandlerHealth enables Health check endpoint.
 	HandlerHealth
+	// HandlerUniWebsocket enables unidirectional websocket endpoint.
+	HandlerUniWebsocket
+	// HandlerUniSSE enables unidirectional SSE endpoint.
+	HandlerUniSSE
+	// HandlerUniStream enables unidirectional stream endpoint.
+	HandlerUniStream
 )
 
 var handlerText = map[HandlerFlag]string{
-	HandlerWebsocket:  "websocket",
-	HandlerSockJS:     "SockJS",
-	HandlerAPI:        "API",
-	HandlerAdmin:      "admin",
-	HandlerDebug:      "debug",
-	HandlerPrometheus: "prometheus",
-	HandlerHealth:     "health",
+	HandlerWebsocket:    "websocket",
+	HandlerSockJS:       "SockJS",
+	HandlerAPI:          "API",
+	HandlerAdmin:        "admin",
+	HandlerDebug:        "debug",
+	HandlerPrometheus:   "prometheus",
+	HandlerHealth:       "health",
+	HandlerUniWebsocket: "uni_websocket",
+	HandlerUniSSE:       "uni_sse",
+	HandlerUniStream:    "uni_stream",
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniStream}
 	var endpoints []string
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -1631,9 +1720,7 @@ func (flags HandlerFlag) String() string {
 
 // Mux returns a mux including set of default handlers for Centrifugo server.
 func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag) *http.ServeMux {
-
 	mux := http.NewServeMux()
-
 	v := viper.GetViper()
 
 	if flags&HandlerDebug != 0 {
@@ -1647,7 +1734,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag) *http
 	_, proxyEnabled := proxyConfig()
 
 	if flags&HandlerWebsocket != 0 {
-		// register Websocket connection endpoint.
+		// register WebSocket connection endpoint.
 		wsPrefix := strings.TrimRight(v.GetString("websocket_handler_prefix"), "/")
 		if wsPrefix == "" {
 			wsPrefix = "/"
@@ -1661,6 +1748,33 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag) *http
 		sockjsPrefix := strings.TrimRight(v.GetString("sockjs_handler_prefix"), "/")
 		sockjsConfig.HandlerPrefix = sockjsPrefix
 		mux.Handle(sockjsPrefix+"/", middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewSockjsHandler(n, sockjsConfig))))
+	}
+
+	if flags&HandlerUniWebsocket != 0 {
+		// register unidirectional WebSocket connection endpoint.
+		wsPrefix := strings.TrimRight(v.GetString("uni_websocket_handler_prefix"), "/")
+		if wsPrefix == "" {
+			wsPrefix = "/"
+		}
+		mux.Handle(wsPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, uniws.NewHandler(n, uniWebsocketHandlerConfig()))))
+	}
+
+	if flags&HandlerUniSSE != 0 {
+		// register unidirectional SSE connection endpoint.
+		ssePrefix := strings.TrimRight(v.GetString("uni_sse_handler_prefix"), "/")
+		if ssePrefix == "" {
+			ssePrefix = "/"
+		}
+		mux.Handle(ssePrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), unisse.NewHandler(n, uniSSEHandlerConfig())))))
+	}
+
+	if flags&HandlerUniStream != 0 {
+		// register unidirectional HTTP stream connection endpoint.
+		streamPrefix := strings.TrimRight(v.GetString("uni_stream_handler_prefix"), "/")
+		if streamPrefix == "" {
+			streamPrefix = "/"
+		}
+		mux.Handle(streamPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), unistream.NewHandler(n, uniStreamHandlerConfig())))))
 	}
 
 	if flags&HandlerAPI != 0 {
@@ -1689,7 +1803,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag) *http
 	if flags&HandlerAdmin != 0 {
 		// register admin web interface API endpoints.
 		adminPrefix := strings.TrimRight(v.GetString("admin_handler_prefix"), "/")
-		mux.Handle(adminPrefix+"/", middleware.LogRequest(admin.NewHandler(n, apiExecutor, adminHandlerConfig())))
+		mux.Handle(adminPrefix+"/", admin.NewHandler(n, apiExecutor, adminHandlerConfig()))
 	}
 
 	if flags&HandlerHealth != 0 {

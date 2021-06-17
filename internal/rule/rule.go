@@ -14,9 +14,9 @@ type Config struct {
 	ChannelOptions
 	// Namespaces – list of namespaces for custom channel options.
 	Namespaces []ChannelNamespace
-	// TokenChannelPrefix is a prefix in channel name which indicates that
+	// ChannelPrivatePrefix is a prefix in channel name which indicates that
 	// channel is private.
-	TokenChannelPrefix string
+	ChannelPrivatePrefix string
 	// ChannelNamespaceBoundary is a string separator which must be put after
 	// namespace part in channel name.
 	ChannelNamespaceBoundary string
@@ -59,7 +59,7 @@ type Config struct {
 
 // DefaultConfig has default config options.
 var DefaultConfig = Config{
-	TokenChannelPrefix:       "$", // so private channel will look like "$gossips"
+	ChannelPrivatePrefix:     "$", // so private channel will look like "$gossips"
 	ChannelNamespaceBoundary: ":", // so namespace "public" can be used as "public:news"
 	ChannelUserBoundary:      "#", // so user limited channel is "user#2694" where "2696" is user ID
 	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019"
@@ -82,7 +82,7 @@ func (c *Config) Validate() error {
 		return err
 	}
 
-	if c.HistoryRecover && (c.HistorySize == 0 || c.HistoryLifetime == 0) {
+	if c.Recover && (c.HistorySize == 0 || c.HistoryTTL == 0) {
 		return errors.New("both history size and history lifetime required for history recovery")
 	}
 
@@ -107,7 +107,7 @@ func (c *Config) Validate() error {
 		if stringInSlice(name, nss) {
 			return fmt.Errorf("namespace name must be unique: %s", name)
 		}
-		if n.HistoryRecover && (n.HistorySize == 0 || n.HistoryLifetime == 0) {
+		if n.Recover && (n.HistorySize == 0 || n.HistoryTTL == 0) {
 			return fmt.Errorf("namespace %s: both history size and history lifetime required for history recovery", name)
 		}
 		if name == personalChannelNamespace {
@@ -152,7 +152,7 @@ func (n *Container) Reload(c Config) error {
 
 // namespaceName returns namespace name from channel if exists.
 func (n *Container) namespaceName(ch string) string {
-	cTrim := strings.TrimPrefix(ch, n.config.TokenChannelPrefix)
+	cTrim := strings.TrimPrefix(ch, n.config.ChannelPrivatePrefix)
 	if n.config.ChannelNamespaceBoundary != "" && strings.Contains(cTrim, n.config.ChannelNamespaceBoundary) {
 		parts := strings.SplitN(cTrim, n.config.ChannelNamespaceBoundary, 2)
 		return parts[0]
@@ -202,10 +202,10 @@ func (n *Container) Config() Config {
 func (n *Container) IsTokenChannel(ch string) bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
-	if n.config.TokenChannelPrefix == "" {
+	if n.config.ChannelPrivatePrefix == "" {
 		return false
 	}
-	return strings.HasPrefix(ch, n.config.TokenChannelPrefix)
+	return strings.HasPrefix(ch, n.config.ChannelPrivatePrefix)
 }
 
 // IsUserLimited returns whether channel is user-limited.

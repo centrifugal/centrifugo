@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/subtle"
 
+	. "github.com/centrifugal/centrifugo/v3/internal/apiproto"
+
 	"github.com/centrifugal/centrifuge"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -38,18 +40,20 @@ type GRPCAPIServiceConfig struct{}
 
 // RegisterGRPCServerAPI registers GRPC API service in provided GRPC server.
 func RegisterGRPCServerAPI(n *centrifuge.Node, apiExecutor *Executor, server *grpc.Server, config GRPCAPIServiceConfig) error {
-	RegisterCentrifugoServer(server, newGRPCAPIService(n, apiExecutor, config))
+	RegisterCentrifugoApiServer(server, newGRPCAPIService(n, apiExecutor, config))
 	return nil
 }
 
 // grpcAPIService can answer on GRPC API requests.
 type grpcAPIService struct {
+	UnimplementedCentrifugoApiServer
+
 	config GRPCAPIServiceConfig
 	api    *Executor
 }
 
 // newGRPCAPIService creates new Service.
-func newGRPCAPIService(n *centrifuge.Node, apiExecutor *Executor, c GRPCAPIServiceConfig) *grpcAPIService {
+func newGRPCAPIService(_ *centrifuge.Node, apiExecutor *Executor, c GRPCAPIServiceConfig) *grpcAPIService {
 	return &grpcAPIService{
 		config: c,
 		api:    apiExecutor,
@@ -66,9 +70,9 @@ func (s *grpcAPIService) Broadcast(ctx context.Context, req *BroadcastRequest) (
 	return s.api.Broadcast(ctx, req), nil
 }
 
-// Channels allows to retrieve list of channels.
-func (s *grpcAPIService) Channels(ctx context.Context, req *ChannelsRequest) (*ChannelsResponse, error) {
-	return s.api.Channels(ctx, req), nil
+// Subscribe user to a channel.
+func (s *grpcAPIService) Subscribe(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error) {
+	return s.api.Subscribe(ctx, req), nil
 }
 
 // Unsubscribe user from channel.

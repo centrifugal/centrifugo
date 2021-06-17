@@ -15,6 +15,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/centrifugo/v3/internal/rule"
+
 	"github.com/cristalhq/jwt/v3"
 	"github.com/stretchr/testify/require"
 )
@@ -130,7 +133,9 @@ func getECDSAConnToken(user string, exp int64, ecdsaPrivateKey *ecdsa.PrivateKey
 func getRSASubscribeToken(channel string, client string, exp int64, rsaPrivateKey *rsa.PrivateKey) string {
 	builder := getRSATokenBuilder(rsaPrivateKey)
 	claims := &SubscribeTokenClaims{
-		Base64Info:     "e30=",
+		SubscribeOptions: SubscribeOptions{
+			Base64Info: "e30=",
+		},
 		Channel:        channel,
 		Client:         client,
 		StandardClaims: jwt.StandardClaims{},
@@ -148,7 +153,9 @@ func getRSASubscribeToken(channel string, client string, exp int64, rsaPrivateKe
 func getECDSASubscribeToken(channel string, client string, exp int64, ecdsaPrivateKey *ecdsa.PrivateKey) string {
 	builder := getECDSATokenBuilder(ecdsaPrivateKey)
 	claims := &SubscribeTokenClaims{
-		Base64Info:     "e30=",
+		SubscribeOptions: SubscribeOptions{
+			Base64Info: "e30=",
+		},
 		Channel:        channel,
 		Client:         client,
 		StandardClaims: jwt.StandardClaims{},
@@ -191,7 +198,9 @@ func Test_tokenVerifierJWT_Signer(t *testing.T) {
 }
 
 func Test_tokenVerifierJWT_Valid(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""}, ruleContainer)
 	ct, err := verifier.VerifyConnectToken(jwtValid)
 	require.NoError(t, err)
 	require.Equal(t, "2694", ct.UserID)
@@ -200,40 +209,52 @@ func Test_tokenVerifierJWT_Valid(t *testing.T) {
 }
 
 func Test_tokenVerifierJWT_Expired(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""}, ruleContainer)
 	_, err := verifier.VerifyConnectToken(jwtExpired)
 	require.Error(t, err)
 	require.Equal(t, ErrTokenExpired, err)
 }
 
 func Test_tokenVerifierJWT_DisabledAlgorithm(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ""})
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+	verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ""}, ruleContainer)
 	_, err := verifier.VerifyConnectToken(jwtExpired)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, errDisabledAlgorithm), err.Error())
 }
 
 func Test_tokenVerifierJWT_InvalidSignature(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""}, ruleContainer)
 	_, err := verifier.VerifyConnectToken(jwtInvalidSignature)
 	require.Error(t, err)
 }
 
 func Test_tokenVerifierJWT_WithNotBefore(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""}, ruleContainer)
 	_, err := verifier.VerifyConnectToken(jwtNotBefore)
 	require.Error(t, err)
 }
 
 func Test_tokenVerifierJWT_StringAudience(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""}, ruleContainer)
 	ct, err := verifier.VerifyConnectToken(jwtStringAud)
 	require.NoError(t, err)
 	require.Equal(t, "2694", ct.UserID)
 }
 
 func Test_tokenVerifierJWT_ArrayAudience(t *testing.T) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""}, ruleContainer)
 	ct, err := verifier.VerifyConnectToken(jwtArrayAud)
 	require.NoError(t, err)
 	require.Equal(t, "2694", ct.UserID)
@@ -247,7 +268,10 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 	rsaPrivateKey, rsaPubKey := generateTestRSAKeys(t)
 	ecdsaPrivateKey, ecdsaPubKey := generateTestECDSAKeys(t)
 
-	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey, ""})
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+
+	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey, ""}, ruleContainer)
 	_time := time.Now()
 	tests := []struct {
 		name     string
@@ -401,7 +425,10 @@ func Test_tokenVerifierJWT_VerifyConnectTokenWithJWK(t *testing.T) {
 			ts.Start()
 			defer ts.Close()
 
-			verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ts.URL})
+			ruleConfig := rule.DefaultConfig
+			ruleContainer := rule.NewContainer(ruleConfig)
+
+			verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ts.URL}, ruleContainer)
 			token := getRSAConnToken(tt.token.user, tt.token.exp, privKey, jwt.WithKeyID(tt.jwk.kid))
 
 			got, err := verifier.VerifyConnectToken(token)
@@ -429,7 +456,10 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 	rsaPrivateKey, rsaPubKey := generateTestRSAKeys(t)
 	ecdsaPrivateKey, ecdsaPubKey := generateTestECDSAKeys(t)
 
-	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey, ""})
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+
+	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", rsaPubKey, ecdsaPubKey, ""}, ruleContainer)
 	_time := time.Now()
 	tests := []struct {
 		name     string
@@ -471,10 +501,12 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 				token: getRSASubscribeToken("channel1", "client1", _time.Add(24*time.Hour).Unix(), nil),
 			},
 			want: SubscribeToken{
-				Client:   "client1",
-				ExpireAt: _time.Add(24 * time.Hour).Unix(),
-				Info:     []byte("{}"),
-				Channel:  "channel1",
+				Client:  "client1",
+				Channel: "channel1",
+				Options: centrifuge.SubscribeOptions{
+					ExpireAt:    _time.Add(24 * time.Hour).Unix(),
+					ChannelInfo: []byte("{}"),
+				},
 			},
 			wantErr: false,
 		}, {
@@ -484,10 +516,12 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 				token: getRSASubscribeToken("channel1", "client1", _time.Add(24*time.Hour).Unix(), rsaPrivateKey),
 			},
 			want: SubscribeToken{
-				Client:   "client1",
-				ExpireAt: _time.Add(24 * time.Hour).Unix(),
-				Info:     []byte("{}"),
-				Channel:  "channel1",
+				Client:  "client1",
+				Channel: "channel1",
+				Options: centrifuge.SubscribeOptions{
+					ExpireAt:    _time.Add(24 * time.Hour).Unix(),
+					ChannelInfo: []byte("{}"),
+				},
 			},
 			wantErr: false,
 		},
@@ -498,10 +532,12 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 				token: getECDSASubscribeToken("channel1", "client1", _time.Add(24*time.Hour).Unix(), ecdsaPrivateKey),
 			},
 			want: SubscribeToken{
-				Client:   "client1",
-				ExpireAt: _time.Add(24 * time.Hour).Unix(),
-				Info:     []byte("{}"),
-				Channel:  "channel1",
+				Client:  "client1",
+				Channel: "channel1",
+				Options: centrifuge.SubscribeOptions{
+					ExpireAt:    _time.Add(24 * time.Hour).Unix(),
+					ChannelInfo: []byte("{}"),
+				},
 			},
 			wantErr: false,
 		},
@@ -526,7 +562,9 @@ func Test_tokenVerifierJWT_VerifySubscribeToken(t *testing.T) {
 }
 
 func BenchmarkConnectTokenVerify_Valid(b *testing.B) {
-	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+	verifierJWT := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""}, ruleContainer)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := verifierJWT.VerifyConnectToken(jwtValid)
@@ -539,7 +577,9 @@ func BenchmarkConnectTokenVerify_Valid(b *testing.B) {
 }
 
 func BenchmarkConnectTokenVerify_Expired(b *testing.B) {
-	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""})
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+	verifier := NewTokenVerifierJWT(VerifierConfig{"secret", nil, nil, ""}, ruleContainer)
 	for i := 0; i < b.N; i++ {
 		_, err := verifier.VerifyConnectToken(jwtExpired)
 		if err != ErrTokenExpired {
