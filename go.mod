@@ -13,7 +13,6 @@ require (
 	github.com/centrifugal/protocol v0.5.1-0.20210618073555-f718422f13c0
 	github.com/cristalhq/jwt/v3 v3.0.14
 	github.com/gobwas/glob v0.2.3
-	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/websocket v1.4.2
