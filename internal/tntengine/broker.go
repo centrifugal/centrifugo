@@ -536,9 +536,7 @@ func (b *Broker) runPubSub(s *Shard, eventHandler centrifuge.BrokerEventHandler)
 							break loop
 						}
 						channelBatch = append(channelBatch, r)
-						for _, ch := range r.channels {
-							chIDs = append(chIDs, ch)
-						}
+						chIDs = append(chIDs, r.channels...)
 					default:
 						break loop
 					}

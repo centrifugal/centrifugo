@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"time"
 
 	"github.com/centrifugal/centrifugo/v3/internal/proxy/proxyproto"
 
@@ -14,7 +13,6 @@ import (
 // GRPCConnectProxy ...
 type GRPCConnectProxy struct {
 	endpoint string
-	timeout  time.Duration
 	client   proxyproto.CentrifugoProxyClient
 	config   Config
 }

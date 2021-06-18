@@ -176,6 +176,7 @@ func (d *JSONParamsDecoder) DecodeHistoryRemove(data []byte) (*HistoryRemoveRequ
 // DecodeInfo ...
 func (d *JSONParamsDecoder) DecodeInfo(data []byte) (*InfoRequest, error) {
 	var p InfoRequest
+	//nolint:staticcheck
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err

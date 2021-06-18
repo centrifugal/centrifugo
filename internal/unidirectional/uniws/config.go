@@ -65,10 +65,7 @@ type Config struct {
 func sameHostOriginCheck() func(r *http.Request) bool {
 	return func(r *http.Request) bool {
 		err := checkSameHost(r)
-		if err != nil {
-			return false
-		}
-		return true
+		return err == nil
 	}
 }
 

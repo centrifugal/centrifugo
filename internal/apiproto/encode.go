@@ -90,16 +90,19 @@ func (e *JSONResultEncoder) EncodeBroadcast(res *BroadcastResult) ([]byte, error
 
 // EncodeSubscribe ...
 func (e *JSONResultEncoder) EncodeSubscribe(res *SubscribeResult) ([]byte, error) {
+	//nolint:staticcheck
 	return json.Marshal(res)
 }
 
 // EncodeUnsubscribe ...
 func (e *JSONResultEncoder) EncodeUnsubscribe(res *UnsubscribeResult) ([]byte, error) {
+	//nolint:staticcheck
 	return json.Marshal(res)
 }
 
 // EncodeDisconnect ...
 func (e *JSONResultEncoder) EncodeDisconnect(res *DisconnectResult) ([]byte, error) {
+	//nolint:staticcheck
 	return json.Marshal(res)
 }
 
@@ -120,6 +123,7 @@ func (e *JSONResultEncoder) EncodeHistory(res *HistoryResult) ([]byte, error) {
 
 // EncodeHistoryRemove ...
 func (e *JSONResultEncoder) EncodeHistoryRemove(res *HistoryRemoveResult) ([]byte, error) {
+	//nolint:staticcheck
 	return json.Marshal(res)
 }
 

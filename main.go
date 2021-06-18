@@ -469,6 +469,7 @@ func main() {
 					log.Fatal().Msgf("cannot listen to address %s", grpcUniAddr)
 				}
 				var grpcOpts []grpc.ServerOption
+				//nolint:staticcheck
 				//goland:noinspection GoDeprecation
 				grpcOpts = append(grpcOpts, grpc.CustomCodec(&unigrpc.RawCodec{}))
 				var tlsConfig *tls.Config
@@ -1268,9 +1269,9 @@ func namespacesFromConfig(v *viper.Viper) []rule.ChannelNamespace {
 		err = json.Unmarshal([]byte(val), &ns)
 	case []interface{}:
 		decoderCfg := tools.DecoderConfig(&ns)
-		decoder, err := mapstructure.NewDecoder(decoderCfg)
-		if err != nil {
-			log.Fatal().Msg(err.Error())
+		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
+		if newErr != nil {
+			log.Fatal().Msg(newErr.Error())
 			return ns
 		}
 		err = decoder.Decode(v.Get("namespaces"))
