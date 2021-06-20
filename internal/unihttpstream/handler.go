@@ -1,4 +1,4 @@
-package unistream
+package unihttpstream
 
 import (
 	"io/ioutil"

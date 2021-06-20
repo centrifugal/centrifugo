@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/proxy/proxyproto"
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 
 	"google.golang.org/grpc"
 )

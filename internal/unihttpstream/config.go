@@ -1,3 +1,3 @@
-package unistream
+package unihttpstream
 
 type Config struct{}

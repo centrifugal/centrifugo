@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/centrifugal/centrifugo/v3/internal/clientcontext"
-	"github.com/centrifugal/centrifugo/v3/internal/proxy/proxyproto"
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
 
 	"github.com/centrifugal/centrifuge"

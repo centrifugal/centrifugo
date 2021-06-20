@@ -1,4 +1,4 @@
-package unistream
+package unihttpstream
 
 import (
 	"net/http"
@@ -26,7 +26,7 @@ func newStreamTransport(req *http.Request) *streamTransport {
 }
 
 func (t *streamTransport) Name() string {
-	return "uni_stream"
+	return "uni_http_stream"
 }
 
 func (t *streamTransport) Protocol() centrifuge.ProtocolType {

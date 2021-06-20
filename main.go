@@ -47,15 +47,15 @@ import (
 	"github.com/centrifugal/centrifugo/v3/internal/natsbroker"
 	"github.com/centrifugal/centrifugo/v3/internal/origin"
 	"github.com/centrifugal/centrifugo/v3/internal/proxy"
-	"github.com/centrifugal/centrifugo/v3/internal/proxy/proxyproto"
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
 	"github.com/centrifugal/centrifugo/v3/internal/survey"
 	"github.com/centrifugal/centrifugo/v3/internal/tntengine"
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
-	"github.com/centrifugal/centrifugo/v3/internal/unidirectional/unigrpc"
-	"github.com/centrifugal/centrifugo/v3/internal/unidirectional/unisse"
-	"github.com/centrifugal/centrifugo/v3/internal/unidirectional/unistream"
-	"github.com/centrifugal/centrifugo/v3/internal/unidirectional/uniws"
+	"github.com/centrifugal/centrifugo/v3/internal/unigrpc"
+	"github.com/centrifugal/centrifugo/v3/internal/unihttpstream"
+	"github.com/centrifugal/centrifugo/v3/internal/unisse"
+	"github.com/centrifugal/centrifugo/v3/internal/uniws"
 	"github.com/centrifugal/centrifugo/v3/internal/webui"
 
 	"github.com/FZambia/viper-lite"
@@ -202,12 +202,12 @@ func bindCentrifugoConfig() {
 		"websocket_handler_prefix": "/connection/websocket",
 		"sockjs_handler_prefix":    "/connection/sockjs",
 
-		"uni_websocket_handler_prefix": "/uni/websocket",
-		"uni_sse_handler_prefix":       "/uni/sse",
-		"uni_stream_handler_prefix":    "/uni/stream",
-		"uni_grpc":                     false,
-		"uni_grpc_address":             "",
-		"uni_grpc_port":                11000,
+		"uni_websocket_handler_prefix":   "/connection/uni_websocket",
+		"uni_sse_handler_prefix":         "/connection/uni_sse",
+		"uni_http_stream_handler_prefix": "/connection/uni_http_stream",
+		"uni_grpc":                       false,
+		"uni_grpc_address":               "",
+		"uni_grpc_port":                  11000,
 
 		"admin_handler_prefix":      "",
 		"api_handler_prefix":        "/api",
@@ -991,8 +991,8 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor) ([]*http.Serv
 	if viper.GetBool("uni_sse") {
 		portFlags |= HandlerUniSSE
 	}
-	if viper.GetBool("uni_stream") {
-		portFlags |= HandlerUniStream
+	if viper.GetBool("uni_http_stream") {
+		portFlags |= HandlerUniHTTPStream
 	}
 	addrToHandlerFlags[externalAddr] = portFlags
 
@@ -1359,8 +1359,8 @@ func uniSSEHandlerConfig() unisse.Config {
 	return unisse.Config{}
 }
 
-func uniStreamHandlerConfig() unistream.Config {
-	return unistream.Config{}
+func uniStreamHandlerConfig() unihttpstream.Config {
+	return unihttpstream.Config{}
 }
 
 func uniGRPCHandlerConfig() unigrpc.Config {
@@ -1686,25 +1686,25 @@ const (
 	HandlerUniWebsocket
 	// HandlerUniSSE enables unidirectional SSE endpoint.
 	HandlerUniSSE
-	// HandlerUniStream enables unidirectional stream endpoint.
-	HandlerUniStream
+	// HandlerUniHTTPStream enables unidirectional stream endpoint.
+	HandlerUniHTTPStream
 )
 
 var handlerText = map[HandlerFlag]string{
-	HandlerWebsocket:    "websocket",
-	HandlerSockJS:       "SockJS",
-	HandlerAPI:          "API",
-	HandlerAdmin:        "admin",
-	HandlerDebug:        "debug",
-	HandlerPrometheus:   "prometheus",
-	HandlerHealth:       "health",
-	HandlerUniWebsocket: "uni_websocket",
-	HandlerUniSSE:       "uni_sse",
-	HandlerUniStream:    "uni_stream",
+	HandlerWebsocket:     "websocket",
+	HandlerSockJS:        "SockJS",
+	HandlerAPI:           "API",
+	HandlerAdmin:         "admin",
+	HandlerDebug:         "debug",
+	HandlerPrometheus:    "prometheus",
+	HandlerHealth:        "health",
+	HandlerUniWebsocket:  "uni_websocket",
+	HandlerUniSSE:        "uni_sse",
+	HandlerUniHTTPStream: "uni_http_stream",
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniStream}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream}
 	var endpoints []string
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -1768,13 +1768,13 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag) *http
 		mux.Handle(ssePrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), unisse.NewHandler(n, uniSSEHandlerConfig())))))
 	}
 
-	if flags&HandlerUniStream != 0 {
+	if flags&HandlerUniHTTPStream != 0 {
 		// register unidirectional HTTP stream connection endpoint.
-		streamPrefix := strings.TrimRight(v.GetString("uni_stream_handler_prefix"), "/")
+		streamPrefix := strings.TrimRight(v.GetString("uni_http_stream_handler_prefix"), "/")
 		if streamPrefix == "" {
 			streamPrefix = "/"
 		}
-		mux.Handle(streamPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), unistream.NewHandler(n, uniStreamHandlerConfig())))))
+		mux.Handle(streamPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), unihttpstream.NewHandler(n, uniStreamHandlerConfig())))))
 	}
 
 	if flags&HandlerAPI != 0 {

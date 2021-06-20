@@ -8,7 +8,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/centrifugal/centrifugo/v3/internal/proxy/proxyproto"
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 )
 
 // GRPCPublishProxy ...

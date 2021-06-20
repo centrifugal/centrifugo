@@ -3,7 +3,7 @@ package proxy
 import (
 	"context"
 
-	"github.com/centrifugal/centrifugo/v3/internal/proxy/proxyproto"
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
 )
