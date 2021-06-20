@@ -36,7 +36,4 @@ Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (admin pas
 * Built-in administrative web panel
 * Cross platform – works on Linux, MacOS and Windows
 * Ready to deploy (Docker, RPM/DEB packages, automatic TLS certificates, Prometheus instrumentation, Grafana dashboard)
-
-### License
-
-Use of Centrifugo is governed by the GNU AGPLv3 license that can be found in the [LICENSE](https://github.com/centrifugal/centrifugo/blob/master/LICENSE) file.
+* Open-source license
