@@ -32,7 +32,8 @@ type VerifierConfig struct {
 	ECDSAPublicKey *ecdsa.PublicKey
 
 	// JWKSPublicEndpoint is a public url used to validate connection and subscription
-	// tokens generated using rotating RSA public keys. Zero value means that JSON Web Key Sets extension won't be used.
+	// tokens generated using rotating RSA public keys. Zero value means that JSON Web Key Sets
+	// extension won't be used.
 	JWKSPublicEndpoint string
 }
 

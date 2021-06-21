@@ -70,10 +70,12 @@ func TestBroadcastAPI(t *testing.T) {
 	require.Nil(t, resp.Error)
 
 	resp = api.Broadcast(context.Background(), &BroadcastRequest{Channels: []string{"test:test"}, Data: []byte("test")})
-	require.Equal(t, ErrorNamespaceNotFound, resp.Error)
+	require.Nil(t, resp.Error)
+	require.Equal(t, ErrorNamespaceNotFound, resp.Result.Responses[0].Error)
 
 	resp = api.Broadcast(context.Background(), &BroadcastRequest{Channels: []string{"test", "test:test"}, Data: []byte("test")})
-	require.Equal(t, ErrorNamespaceNotFound, resp.Error)
+	require.Nil(t, resp.Error)
+	require.Equal(t, ErrorNamespaceNotFound, resp.Result.Responses[1].Error)
 }
 
 func TestHistoryAPI(t *testing.T) {

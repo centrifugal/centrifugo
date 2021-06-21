@@ -76,7 +76,6 @@ func getRSATokenBuilder(rsaPrivateKey *rsa.PrivateKey, opts ...jwt.BuilderOption
 		// For HS we do everything in tests with key `secret`.
 		key := []byte(`secret`)
 		signer, _ = jwt.NewSignerHS(jwt.HS256, key)
-
 	}
 	return jwt.NewBuilder(signer, opts...)
 }
@@ -223,7 +222,7 @@ func Test_tokenVerifierJWT_DisabledAlgorithm(t *testing.T) {
 	verifier := NewTokenVerifierJWT(VerifierConfig{"", nil, nil, ""}, ruleContainer)
 	_, err := verifier.VerifyConnectToken(jwtExpired)
 	require.Error(t, err)
-	require.True(t, errors.Is(err, errDisabledAlgorithm), err.Error())
+	require.True(t, errors.Is(err, ErrInvalidToken), err.Error())
 }
 
 func Test_tokenVerifierJWT_InvalidSignature(t *testing.T) {
@@ -291,6 +290,7 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 				UserID:   "user1",
 				ExpireAt: _time.Add(24 * time.Hour).Unix(),
 				Info:     []byte("{}"),
+				Subs:     map[string]centrifuge.SubscribeOptions{},
 			},
 			wantErr: false,
 		}, {
@@ -303,6 +303,7 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 				UserID:   "user1",
 				ExpireAt: _time.Add(24 * time.Hour).Unix(),
 				Info:     []byte("{}"),
+				Subs:     map[string]centrifuge.SubscribeOptions{},
 			},
 			wantErr: false,
 		},
@@ -316,6 +317,7 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 				UserID:   "user1",
 				ExpireAt: _time.Add(24 * time.Hour).Unix(),
 				Info:     []byte("{}"),
+				Subs:     map[string]centrifuge.SubscribeOptions{},
 			},
 			wantErr: false,
 		},
@@ -351,9 +353,7 @@ func Test_tokenVerifierJWT_VerifyConnectToken(t *testing.T) {
 			if tt.expired && err != ErrTokenExpired {
 				t.Errorf("VerifyConnectToken() should return token expired error")
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("VerifyConnectToken() got = %v, want %v", got, tt.want)
-			}
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -388,6 +388,7 @@ func Test_tokenVerifierJWT_VerifyConnectTokenWithJWK(t *testing.T) {
 				UserID:   "user1",
 				ExpireAt: now.Add(24 * time.Hour).Unix(),
 				Info:     []byte("{}"),
+				Subs:     map[string]centrifuge.SubscribeOptions{},
 			},
 			wantErr: false,
 		},
