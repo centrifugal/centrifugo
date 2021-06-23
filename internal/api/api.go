@@ -606,7 +606,8 @@ func (h *Executor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
 
 // RPC can call arbitrary methods.
 func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
-	defer observe(time.Now(), h.protocol, "rpc")
+	started := time.Now()
+	defer observe(started, h.protocol, "rpc")
 
 	resp := &RPCResponse{}
 
@@ -620,6 +621,8 @@ func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
 		resp.Error = ErrorMethodNotFound
 		return resp
 	}
+
+	defer observeRPC(started, h.protocol, cmd.Method)
 
 	data, err := handler(ctx, cmd.Params)
 	if err != nil {
