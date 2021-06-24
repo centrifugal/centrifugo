@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/gobwas/glob"
+
 	"github.com/centrifugal/centrifugo/v3/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
@@ -42,16 +44,16 @@ const (
 	MethodNotFound uint32 = 3
 )
 
-func (c *Caller) Channels(ctx context.Context, _ apiproto.Raw) (apiproto.Raw, error) {
-	channels, err := surveyChannels(ctx, c.node)
+func (c *Caller) Channels(ctx context.Context, params apiproto.Raw) (apiproto.Raw, error) {
+	channels, err := surveyChannels(ctx, c.node, params)
 	if err != nil {
 		return nil, err
 	}
 	return json.Marshal(channels)
 }
 
-func surveyChannels(ctx context.Context, node *centrifuge.Node) (map[string]int, error) {
-	results, err := node.Survey(ctx, "channels", nil)
+func surveyChannels(ctx context.Context, node *centrifuge.Node, params apiproto.Raw) (map[string]int, error) {
+	results, err := node.Survey(ctx, "channels", params)
 	if err != nil {
 		return nil, err
 	}
@@ -72,10 +74,30 @@ func surveyChannels(ctx context.Context, node *centrifuge.Node) (map[string]int,
 	return channels, nil
 }
 
-func respondChannelsSurvey(node *centrifuge.Node, _ []byte) centrifuge.SurveyReply {
+type channelsRequest struct {
+	Pattern string `json:"pattern"`
+}
+
+func respondChannelsSurvey(node *centrifuge.Node, params []byte) centrifuge.SurveyReply {
+	var req channelsRequest
+	err := json.Unmarshal(params, &req)
+	if err != nil {
+		return centrifuge.SurveyReply{Code: InvalidRequest}
+	}
+	var g glob.Glob
+	if req.Pattern != "" {
+		var err error
+		g, err = glob.Compile(req.Pattern)
+		if err != nil {
+			return centrifuge.SurveyReply{Code: InvalidRequest}
+		}
+	}
 	channels := node.Hub().Channels()
 	channelsMap := make(map[string]int, len(channels))
 	for _, ch := range channels {
+		if g != nil && !g.Match(ch) {
+			continue
+		}
 		if numSubscribers := node.Hub().NumSubscribers(ch); numSubscribers > 0 {
 			channelsMap[ch] = numSubscribers
 		}
