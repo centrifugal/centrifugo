@@ -1185,6 +1185,7 @@ func proxyConfig() (proxy.Config, bool) {
 	var httpConfig proxy.HTTPConfig
 	httpConfig.Encoder = &proxyproto.JSONEncoder{}
 	httpConfig.Decoder = &proxyproto.JSONDecoder{}
+	cfg.HTTPConfig = httpConfig
 
 	grpcConfig := proxy.GRPCConfig{
 		Insecure:         v.GetBool("proxy_grpc_insecure"),
