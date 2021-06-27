@@ -173,9 +173,8 @@ func bindCentrifugoConfig() {
 		"redis_write_timeout":    time.Second,
 		"redis_idle_timeout":     0,
 		"redis_history_meta_ttl": 0,
-		"redis_presence_ttl":     60 * time.Second,
 
-		"tarantool_presence_ttl": 60 * time.Second,
+		"presence_ttl": 60 * time.Second,
 
 		"grpc_api":         false,
 		"grpc_api_address": "",
@@ -408,13 +407,13 @@ func main() {
 			}
 
 			if viper.GetBool("client_insecure") {
-				log.Warn().Msg("INSECURE client mode enabled")
+				log.Warn().Msg("INSECURE client mode enabled, make sure you understand risks")
 			}
 			if viper.GetBool("api_insecure") {
-				log.Warn().Msg("INSECURE API mode enabled")
+				log.Warn().Msg("INSECURE API mode enabled, make sure you understand risks")
 			}
 			if viper.GetBool("admin_insecure") {
-				log.Warn().Msg("INSECURE admin mode enabled")
+				log.Warn().Msg("INSECURE admin mode enabled, make sure you understand risks")
 			}
 			if viper.GetBool("debug") {
 				log.Warn().Msg("DEBUG mode enabled, see /debug/pprof")
@@ -1538,7 +1537,7 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 	presenceManager, err := centrifuge.NewRedisPresenceManager(n, centrifuge.RedisPresenceManagerConfig{
 		Shards:      redisShards,
 		Prefix:      viper.GetString("redis_prefix"),
-		PresenceTTL: GetDuration("redis_presence_ttl"),
+		PresenceTTL: GetDuration("presence_ttl"),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1614,7 +1613,7 @@ func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.Presence
 	}
 	presenceManager, err := tntengine.NewPresenceManager(n, tntengine.PresenceManagerConfig{
 		Shards:      tarantoolShards,
-		PresenceTTL: GetDuration("tarantool_presence_ttl"),
+		PresenceTTL: GetDuration("presence_ttl"),
 	})
 	if err != nil {
 		return nil, nil, err
