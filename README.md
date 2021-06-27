@@ -20,19 +20,19 @@ Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (admin pas
 
 * Centrifugo is fast and capable to scale to millions of simultaneous connections
 * Simple integration with any application – works as separate service, provides HTTP and GRPC API
-* Client-side libraries for popular frontend environments – for both web and mobile development
-* JSON and binary Protobuf Websocket client protocol based on strict Protobuf schema
-* SockJS polyfill for web browsers without Websocket support
-* Unidirectional transport support without need in client libraries - use native APIs (SSE, Fetch, WebSocket, GRPC)
-* User authentication with JWT or over connection request proxy to configured HTTP endpoint
+* Client connectors for popular frontend environments – for both web and mobile development
+* Strict client protocol based on Protobuf schema
+* Bidirectional transport support (WebSocket and SockJS) for full-featured communication
+* Unidirectional transport support without need in client connectors - use native APIs (SSE, Fetch, WebSocket, GRPC)
+* User authentication with JWT or over connection request proxy to configured HTTP/GRPC endpoint
 * Proper connection management and expiration control
-* Various types of channels: private, user-limited
+* Various types of channels: anonymous, authenticated, private, user-limited
 * Various types of subscriptions: client-side or server-side
-* Transform RPC calls over WebSocket/SockJS to configured HTTP endpoint call
-* Presence information for channels (show all active clients in channel)
-* History information for channels (last messages published into channel)
-* Join/leave events for channels (client goes online/offline)
-* Automatic recovery of missed messages between client reconnects over configured retention period
+* Transform RPC calls over WebSocket/SockJS to configured HTTP or GRPC endpoint call
+* Presence information for channels (show all active clients in a channel)
+* History information for channels (last messages published into a channel)
+* Join/leave events for channels (client subscribed/unsubscribed)
+* Automatic recovery of missed messages between reconnects over configured retention period
 * Built-in administrative web panel
 * Cross platform – works on Linux, MacOS and Windows
 * Ready to deploy (Docker, RPM/DEB packages, automatic TLS certificates, Prometheus instrumentation, Grafana dashboard)
