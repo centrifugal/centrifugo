@@ -40,10 +40,8 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set the current data env
-        id: set_current_date
-        run: |
-          echo "UNIX_NOW=$( date +%s )" >> $GITHUB_ENV
+      - name: Build DEB and RPM packages
+        run: misc/scripts/release_package.sh
 
       - name: Release on Github
         uses: goreleaser/goreleaser-action@v2

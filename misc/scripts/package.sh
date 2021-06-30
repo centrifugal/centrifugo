@@ -89,7 +89,7 @@ make_dir_tree() {
 # do_build builds the code. The version and commit must be passed in.
 do_build() {
     echo "Start building binary"
-    gox -os="linux" -ldflags="-X github.com/centrifugal/centrifugo/v3/internal/build.Version=$VERSION" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/{{.Dir}}"
+    gox -os="linux" -ldflags="-X github.com/centrifugal/centrifugo/v3/internal/build.Version=$VERSION" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/centrifugo"
     echo "Binary build completed successfully"
 }
 
@@ -178,6 +178,11 @@ echo "Start building deb package"
 fpm -s dir -t deb $COMMON_FPM_ARGS --description "$DESCRIPTION" \
     -p PACKAGES/ \
     -a amd64 .
+
+cd PACKAGES
+for f in *.deb; do sha256sum $f >> ${f}_checksum.txt; done
+for f in *.rpm; do sha256sum $f >> ${f}_checksum.txt; done
+cd ..
 
 echo "Packaging complete!"
 

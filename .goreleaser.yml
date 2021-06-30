@@ -5,6 +5,10 @@ release:
     name: centrifugo
   name_template: '{{.Tag}}'
   prerelease: false
+  extra_files:
+    - glob: ./PACKAGES/*.deb
+    - glob: ./PACKAGES/*.rpm
+    - glob: ./PACKAGES/*.txt
 brews:
   -
     tap:
