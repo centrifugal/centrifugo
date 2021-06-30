@@ -178,6 +178,11 @@ fpm -s dir -t deb $COMMON_FPM_ARGS --description "$DESCRIPTION" \
     -p PACKAGES/ \
     -a amd64 .
 
+cd PACKAGES
+for f in *.deb; do sha256sum $f >> ${f}_checksum.txt; done
+for f in *.rpm; do sha256sum $f >> ${f}_checksum.txt; done
+cd ..
+
 echo "Packaging complete!"
 
 cleanup_exit 0
