@@ -335,11 +335,15 @@ func (h *Handler) OnRefresh(c *centrifuge.Client, e centrifuge.RefreshEvent, ref
 			return centrifuge.RefreshReply{Expired: true}, nil
 		}
 		if errors.Is(err, jwtverify.ErrInvalidToken) {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "invalid refresh token", map[string]interface{}{"error": err.Error(), "client": c.ID()}))
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "invalid refresh token", map[string]interface{}{"error": err.Error(), "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.RefreshReply{}, centrifuge.DisconnectInvalidToken
 		}
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error verifying refresh token", map[string]interface{}{"error": err.Error(), "client": c.ID()}))
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error verifying refresh token", map[string]interface{}{"error": err.Error(), "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.RefreshReply{}, err
+	}
+	if token.UserID != c.UserID() {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "refresh token has different user", map[string]interface{}{"tokenUser": token.UserID, "user": c.UserID(), "client": c.ID()}))
+		return centrifuge.RefreshReply{}, centrifuge.DisconnectInvalidToken
 	}
 	return centrifuge.RefreshReply{
 		ExpireAt: token.ExpireAt,
