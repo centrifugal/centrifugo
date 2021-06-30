@@ -388,7 +388,7 @@ func TestClientSideRefresh(t *testing.T) {
 	}, ruleContainer), proxy.Config{})
 
 	reply, err := h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
-		Token: getConnTokenHS("42", 123),
+		Token: getConnTokenHS("", 123),
 	}, nil)
 	require.NoError(t, err)
 	require.True(t, reply.Expired)
@@ -399,11 +399,28 @@ func TestClientSideRefresh(t *testing.T) {
 	require.Error(t, err)
 
 	reply, err = h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
-		Token: getConnTokenHS("42", 2525637058),
+		Token: getConnTokenHS("", 2525637058),
 	}, nil)
 	require.NoError(t, err)
 	require.False(t, reply.Expired)
 	require.Equal(t, int64(2525637058), reply.ExpireAt)
+}
+
+func TestClientSideRefreshDifferentUser(t *testing.T) {
+	node := nodeWithMemoryEngine()
+	defer func() { _ = node.Shutdown(context.Background()) }()
+
+	ruleConfig := rule.DefaultConfig
+	ruleConfig.ClientAnonymous = true
+	ruleContainer := rule.NewContainer(ruleConfig)
+	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
+		HMACSecretKey: "secret",
+	}, ruleContainer), proxy.Config{})
+
+	_, err := h.OnRefresh(&centrifuge.Client{}, centrifuge.RefreshEvent{
+		Token: getConnTokenHS("42", 2525637058),
+	}, nil)
+	require.ErrorIs(t, err, centrifuge.DisconnectInvalidToken)
 }
 
 func TestClientUserPersonalChannel(t *testing.T) {
