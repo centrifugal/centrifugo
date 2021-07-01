@@ -268,5 +268,5 @@ message Metrics {
 
 message System {
     double cpu = 1;
-    double rss = 2;
+    int64 rss = 2;
 }
