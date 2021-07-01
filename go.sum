@@ -41,8 +41,8 @@ github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kB
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
 github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
-github.com/centrifugal/centrifuge v0.17.1-0.20210618083231-6b0672bd7037 h1:YhaUiZR4wRqQmWwoKV3N1/SjcbcpxvB7/Hm6Os3rgi8=
-github.com/centrifugal/centrifuge v0.17.1-0.20210618083231-6b0672bd7037/go.mod h1:cXsDk9iSLfjCHmuTba/VVPb+MV1rcrutcy2FiUkrWI8=
+github.com/centrifugal/centrifuge v0.17.1-0.20210701143018-15c58e703bbc h1:3/V7anMpvWJi4/Wl8z5OTpNQ6krGWmqtCvEz/+2Iqgw=
+github.com/centrifugal/centrifuge v0.17.1-0.20210701143018-15c58e703bbc/go.mod h1:cXsDk9iSLfjCHmuTba/VVPb+MV1rcrutcy2FiUkrWI8=
 github.com/centrifugal/protocol v0.5.1-0.20210618073555-f718422f13c0 h1:9+sYhhzJ5Hj8N1jKFFivk4P5hZ5C0FBlsXPtK9kSv7g=
 github.com/centrifugal/protocol v0.5.1-0.20210618073555-f718422f13c0/go.mod h1:FgtRYkjc1O8YN+t4JEzBBtsWn1xKQnit84bq2rjfMk4=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
