@@ -258,7 +258,7 @@ message NodeResult {
     uint32 num_channels = 6;
     uint32 uptime = 7;
     Metrics metrics = 8;
-    System system = 9;
+    Process process = 9;
 }
 
 message Metrics {
@@ -266,7 +266,7 @@ message Metrics {
     map<string, double> items = 2;
 }
 
-message System {
+message Process {
     double cpu = 1;
     int64 rss = 2;
 }
