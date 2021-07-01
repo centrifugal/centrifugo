@@ -588,7 +588,11 @@ func (h *Executor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
 			NumClients:  nd.NumClients,
 			NumUsers:    nd.NumUsers,
 			NumChannels: nd.NumChannels,
-			Uptime:      nd.Uptime,
+			System: &System{
+				Cpu: -1,
+				Rss: -1,
+			},
+			Uptime: nd.Uptime,
 		}
 		if nd.Metrics != nil {
 			res.Metrics = &Metrics{
