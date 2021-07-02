@@ -16,7 +16,7 @@
         <link rel="canonical" href="https://centrifugal.github.io/centrifugo/server/grpc_api/">
       
       <link rel="shortcut icon" href="../../images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.2.8">
+      <meta name="generator" content="mkdocs-1.2.1, mkdocs-material-6.2.8">
     
     
       
@@ -1218,17 +1218,24 @@
 <p>Note that you need to explicitly handle Centrifugo API level error which is not transformed automatically into GRPC protocol level error.</p>
 <h2 id="example-for-go">Example for Go<a class="headerlink" href="#example-for-go" title="Permanent link">&para;</a></h2>
 <p>Here is a simple example on how to run Centrifugo with GRPC Go client.</p>
-<p>You need <code>protoc</code> and <code>protoc-gen-go</code> installed.</p>
+<p>You need <code>protoc</code>, <code>protoc-gen-go</code> and <code>protoc-gen-go-grpc</code> installed.</p>
 <p>First start Centrifugo itself:</p>
 <div class="highlight"><pre><span></span><code>centrifugo --config config.json --grpc_api
 </code></pre></div>
 <p>In another terminal tab:</p>
-<div class="highlight"><pre><span></span><code><span class="nb">cd</span> ~
-mkdir centrifugo_grpc_example
+<div class="highlight"><pre><span></span><code>mkdir centrifugo_grpc_example
 <span class="nb">cd</span> centrifugo_grpc_example/
-wget https://raw.githubusercontent.com/centrifugal/centrifugo/master/misc/proto/api.proto -O api.proto
-protoc api.proto --go_out<span class="o">=</span><span class="nv">plugins</span><span class="o">=</span>grpc,import_path<span class="o">=</span>main:./
 touch main.go
+go mod init centrifugo_example
+mkdir centrifugopb
+<span class="nb">cd</span> centrifugopb
+wget https://raw.githubusercontent.com/centrifugal/centrifugo/master/misc/proto/api.proto -O api.proto
+</code></pre></div>
+<p>Then add manually to api.proto on top:</p>
+<div class="highlight"><pre><span></span><code>option go_package = &quot;./;centrifugopb&quot;;
+</code></pre></div>
+<p>You can choose any other package name. Run <code>protoc</code> to generate code:</p>
+<div class="highlight"><pre><span></span><code>protoc -I ./ api.proto --go_out=. --go-grpc_out=.
 </code></pre></div>
 <p>Put the following code to <code>main.go</code> file (created on last step above):</p>
 <div class="highlight"><pre><span></span><code><span class="kn">package</span> <span class="nx">main</span>
@@ -1237,6 +1244,8 @@ touch main.go
     <span class="s">&quot;context&quot;</span>
     <span class="s">&quot;log&quot;</span>
     <span class="s">&quot;time&quot;</span>
+
+    <span class="s">&quot;centrifugo_example/centrifugopb&quot;</span>
 
     <span class="s">&quot;google.golang.org/grpc&quot;</span>
 <span class="p">)</span>
@@ -1247,7 +1256,7 @@ touch main.go
         <span class="nx">log</span><span class="p">.</span><span class="nx">Fatalln</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
     <span class="p">}</span>
     <span class="k">defer</span> <span class="nx">conn</span><span class="p">.</span><span class="nx">Close</span><span class="p">()</span>
-    <span class="nx">client</span> <span class="o">:=</span> <span class="nx">NewCentrifugoClient</span><span class="p">(</span><span class="nx">conn</span><span class="p">)</span>
+    <span class="nx">client</span> <span class="o">:=</span> <span class="nx">centrifugopb</span><span class="p">.</span><span class="nx">NewCentrifugoClient</span><span class="p">(</span><span class="nx">conn</span><span class="p">)</span>
     <span class="k">for</span> <span class="p">{</span>
         <span class="nx">resp</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">client</span><span class="p">.</span><span class="nx">Publish</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span> <span class="o">&amp;</span><span class="nx">PublishRequest</span><span class="p">{</span>
             <span class="nx">Channel</span><span class="p">:</span> <span class="s">&quot;chat:index&quot;</span><span class="p">,</span>
@@ -1268,7 +1277,7 @@ touch main.go
 <span class="p">}</span>
 </code></pre></div>
 <p>Then run:</p>
-<div class="highlight"><pre><span></span><code><span class="nv">GO111MODULE</span><span class="o">=</span>on go run *.go
+<div class="highlight"><pre><span></span><code>go run main.go
 </code></pre></div>
 <p>The program starts and periodically publishes the same payload into <code>chat:index</code> channel.</p>
 <h2 id="api-key-authorization">API key authorization<a class="headerlink" href="#api-key-authorization" title="Permanent link">&para;</a></h2>
@@ -1280,6 +1289,8 @@ touch main.go
     <span class="s">&quot;context&quot;</span>
     <span class="s">&quot;log&quot;</span>
     <span class="s">&quot;time&quot;</span>
+
+    <span class="s">&quot;centrifugo_example/centrifugopb&quot;</span>
 
     <span class="s">&quot;google.golang.org/grpc&quot;</span>
 <span class="p">)</span>
@@ -1304,7 +1315,7 @@ touch main.go
         <span class="nx">log</span><span class="p">.</span><span class="nx">Fatalln</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
     <span class="p">}</span>
     <span class="k">defer</span> <span class="nx">conn</span><span class="p">.</span><span class="nx">Close</span><span class="p">()</span>
-    <span class="nx">client</span> <span class="o">:=</span> <span class="nx">NewCentrifugoClient</span><span class="p">(</span><span class="nx">conn</span><span class="p">)</span>
+    <span class="nx">client</span> <span class="o">:=</span> <span class="nx">centrifugopb</span><span class="p">.</span><span class="nx">NewCentrifugoClient</span><span class="p">(</span><span class="nx">conn</span><span class="p">)</span>
     <span class="k">for</span> <span class="p">{</span>
         <span class="nx">resp</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">client</span><span class="p">.</span><span class="nx">Publish</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span> <span class="o">&amp;</span><span class="nx">PublishRequest</span><span class="p">{</span>
             <span class="nx">Channel</span><span class="p">:</span> <span class="s">&quot;chat:index&quot;</span><span class="p">,</span>
