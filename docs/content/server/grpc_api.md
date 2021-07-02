@@ -62,7 +62,7 @@ Note that you need to explicitly handle Centrifugo API level error which is not 
 
 Here is a simple example on how to run Centrifugo with GRPC Go client.
 
-You need `protoc` and `protoc-gen-go` installed.
+You need `protoc`, `protoc-gen-go` and `protoc-gen-go-grpc` installed.
 
 First start Centrifugo itself:
 
@@ -73,12 +73,25 @@ centrifugo --config config.json --grpc_api
 In another terminal tab:
 
 ```bash
-cd ~
 mkdir centrifugo_grpc_example
 cd centrifugo_grpc_example/
-wget https://raw.githubusercontent.com/centrifugal/centrifugo/master/misc/proto/api.proto -O api.proto
-protoc api.proto --go_out=plugins=grpc,import_path=main:./
 touch main.go
+go mod init centrifugo_example
+mkdir centrifugopb
+cd centrifugopb
+wget https://raw.githubusercontent.com/centrifugal/centrifugo/master/misc/proto/api.proto -O api.proto
+```
+
+Then add manually to api.proto on top:
+
+```
+option go_package = "./;centrifugopb";
+```
+
+You can choose any other package name. Run `protoc` to generate code:
+
+```
+protoc -I ./ api.proto --go_out=. --go-grpc_out=.
 ```
 
 Put the following code to `main.go` file (created on last step above):
@@ -91,6 +104,8 @@ import (
 	"log"
 	"time"
 
+	"centrifugo_example/centrifugopb"
+
 	"google.golang.org/grpc"
 )
 
@@ -100,7 +115,7 @@ func main() {
 		log.Fatalln(err)
 	}
 	defer conn.Close()
-	client := NewCentrifugoClient(conn)
+	client := centrifugopb.NewCentrifugoClient(conn)
 	for {
 		resp, err := client.Publish(context.Background(), &PublishRequest{
 			Channel: "chat:index",
@@ -124,7 +139,7 @@ func main() {
 Then run:
 
 ```bash
-GO111MODULE=on go run *.go
+go run main.go
 ```
 
 The program starts and periodically publishes the same payload into `chat:index` channel.
@@ -143,6 +158,8 @@ import (
 	"log"
 	"time"
 
+	"centrifugo_example/centrifugopb"
+	
 	"google.golang.org/grpc"
 )
 
@@ -166,7 +183,7 @@ func main() {
 		log.Fatalln(err)
 	}
 	defer conn.Close()
-	client := NewCentrifugoClient(conn)
+	client := centrifugopb.NewCentrifugoClient(conn)
 	for {
 		resp, err := client.Publish(context.Background(), &PublishRequest{
 			Channel: "chat:index",
