@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/cristalhq/jwt/v3"
+	"github.com/rs/zerolog/log"
 )
 
 type VerifierConfig struct {
@@ -181,6 +183,8 @@ type algorithms struct {
 func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPubKey *ecdsa.PublicKey) (*algorithms, error) {
 	alg := &algorithms{}
 
+	var algorithms []string
+
 	// HMAC SHA.
 	if tokenHMACSecretKey != "" {
 		verifierHS256, err := jwt.NewVerifierHS(jwt.HS256, []byte(tokenHMACSecretKey))
@@ -198,6 +202,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 		alg.HS256 = verifierHS256
 		alg.HS384 = verifierHS384
 		alg.HS512 = verifierHS512
+		algorithms = append(algorithms, []string{"HS256", "HS384", "HS512"}...)
 	}
 
 	// RSA.
@@ -208,6 +213,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			}
 		} else {
 			alg.RS256 = verifierRS256
+			algorithms = append(algorithms, "RS256")
 		}
 		if verifierRS384, err := jwt.NewVerifierRS(jwt.RS384, rsaPubKey); err != nil {
 			if err != jwt.ErrInvalidKey {
@@ -215,6 +221,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			}
 		} else {
 			alg.RS384 = verifierRS384
+			algorithms = append(algorithms, "RS384")
 		}
 		if verifierRS512, err := jwt.NewVerifierRS(jwt.RS512, rsaPubKey); err != nil {
 			if err != jwt.ErrInvalidKey {
@@ -222,6 +229,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			}
 		} else {
 			alg.RS512 = verifierRS512
+			algorithms = append(algorithms, "RS512")
 		}
 	}
 
@@ -233,6 +241,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			}
 		} else {
 			alg.ES256 = verifierES256
+			algorithms = append(algorithms, "ES256")
 		}
 		if verifierES384, err := jwt.NewVerifierES(jwt.ES384, ecdsaPubKey); err != nil {
 			if err != jwt.ErrInvalidKey {
@@ -240,6 +249,7 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			}
 		} else {
 			alg.ES384 = verifierES384
+			algorithms = append(algorithms, "ES384")
 		}
 		if verifierES512, err := jwt.NewVerifierES(jwt.ES512, ecdsaPubKey); err != nil {
 			if err != jwt.ErrInvalidKey {
@@ -247,8 +257,14 @@ func newAlgorithms(tokenHMACSecretKey string, rsaPubKey *rsa.PublicKey, ecdsaPub
 			}
 		} else {
 			alg.ES512 = verifierES512
+			algorithms = append(algorithms, "ES512")
 		}
 	}
+
+	if len(algorithms) > 0 {
+		log.Info().Str("algorithms", strings.Join(algorithms, ", ")).Msg("enabled JWT verifiers")
+	}
+
 	return alg, nil
 }
 
