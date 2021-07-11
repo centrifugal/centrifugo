@@ -270,6 +270,7 @@ type historyRequest struct {
 	Channel        string
 	Offset         uint64
 	Limit          int
+	Reverse        bool
 	IncludePubs    bool
 	HistoryMetaTTL int
 }
@@ -354,7 +355,11 @@ func (b *Broker) History(ch string, filter centrifuge.HistoryFilter) ([]*centrif
 	var includePubs = true
 	var offset uint64
 	if filter.Since != nil {
-		offset = filter.Since.Offset + 1
+		if filter.Reverse {
+			offset = filter.Since.Offset - 1
+		} else {
+			offset = filter.Since.Offset + 1
+		}
 	}
 	var limit int
 	if filter.Limit == 0 {
@@ -369,6 +374,7 @@ func (b *Broker) History(ch string, filter centrifuge.HistoryFilter) ([]*centrif
 		Channel:        ch,
 		Offset:         offset,
 		Limit:          limit,
+		Reverse:        filter.Reverse,
 		IncludePubs:    includePubs,
 		HistoryMetaTTL: historyMetaTTLSeconds,
 	}

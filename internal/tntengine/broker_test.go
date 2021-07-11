@@ -168,6 +168,121 @@ func testTarantoolClientSubscribeRecover(t *testing.T, tt recoverTest) {
 	require.Equal(t, tt.Recovered, recovered)
 }
 
+const historyIterationChannel = "test"
+
+type historyIterationTest struct {
+	NumMessages int
+	IterateBy   int
+}
+
+func (it *historyIterationTest) prepareHistoryIteration(t testing.TB, node *centrifuge.Node) centrifuge.StreamPosition {
+	numMessages := it.NumMessages
+
+	channel := historyIterationChannel
+
+	historyResult, err := node.History(channel)
+	require.NoError(t, err)
+	startPosition := historyResult.StreamPosition
+
+	for i := 1; i <= numMessages; i++ {
+		_, err := node.Publish(channel, []byte(`{}`), centrifuge.WithHistory(numMessages, time.Hour))
+		require.NoError(t, err)
+	}
+
+	historyResult, err = node.History(channel, centrifuge.WithLimit(centrifuge.NoLimit))
+	require.NoError(t, err)
+	require.Equal(t, numMessages, len(historyResult.Publications))
+	return startPosition
+}
+
+func (it *historyIterationTest) testHistoryIteration(t testing.TB, node *centrifuge.Node, startPosition centrifuge.StreamPosition) {
+	var (
+		n         int
+		offset    = startPosition.Offset
+		epoch     = startPosition.Epoch
+		iterateBy = it.IterateBy
+	)
+	for {
+		res, err := node.History(
+			historyIterationChannel,
+			centrifuge.WithSince(&centrifuge.StreamPosition{Offset: offset, Epoch: epoch}),
+			centrifuge.WithLimit(iterateBy),
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		offset += uint64(iterateBy)
+		if len(res.Publications) == 0 {
+			break
+		}
+		n += len(res.Publications)
+	}
+	if n != it.NumMessages {
+		t.Fatal("num messages mismatch")
+	}
+}
+
+func (it *historyIterationTest) testHistoryIterationReverse(t testing.TB, node *centrifuge.Node, startPosition centrifuge.StreamPosition) {
+	var (
+		n         int
+		offset    = startPosition.Offset
+		epoch     = startPosition.Epoch
+		iterateBy = it.IterateBy
+	)
+	var since *centrifuge.StreamPosition
+outer:
+	for {
+		res, err := node.History(
+			historyIterationChannel,
+			centrifuge.WithSince(since),
+			centrifuge.WithLimit(iterateBy),
+			centrifuge.WithReverse(true),
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(res.Publications) == 0 {
+			break
+		}
+		var checkOffset uint64
+	loop:
+		for _, pub := range res.Publications {
+			n += 1
+			if pub.Offset == startPosition.Offset+1 {
+				break outer
+			}
+			if checkOffset == 0 {
+				checkOffset = pub.Offset
+				continue loop
+			}
+			if pub.Offset > checkOffset {
+				t.Fatal("incorrect order")
+			}
+			checkOffset = pub.Offset
+		}
+		earliestPub := res.Publications[len(res.Publications)-1]
+		offset = earliestPub.Offset
+		since = &centrifuge.StreamPosition{Offset: offset, Epoch: epoch}
+	}
+	if n != it.NumMessages {
+		t.Fatalf("num messages mismatch, expected %d, got %d", it.NumMessages, n)
+	}
+}
+
+func TestMemoryBrokerHistoryIteration(t *testing.T) {
+	e, _ := newTestTarantoolEngine(t)
+	it := historyIterationTest{10000, 100}
+	startPosition := it.prepareHistoryIteration(t, e.node)
+	it.testHistoryIteration(t, e.node, startPosition)
+}
+
+func TestMemoryBrokerHistoryIterationReverse(t *testing.T) {
+	e, _ := newTestTarantoolEngine(t)
+	it := historyIterationTest{10000, 100}
+	startPosition := it.prepareHistoryIteration(t, e.node)
+	it.testHistoryIterationReverse(t, e.node, startPosition)
+}
+
 func BenchmarkTarantoolPublish_1Ch(b *testing.B) {
 	broker, _ := newTestTarantoolEngine(b)
 	rawData := []byte(`{"bench": true}`)
