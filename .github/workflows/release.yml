@@ -53,7 +53,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           UNIX_NOW: ${{ env.UNIX_NOW }}
 
-      - name: Release on Packagecloud
-        env:
-          PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
-        run: misc/scripts/release_packagecloud.sh
+#      - name: Release on Packagecloud
+#        env:
+#          PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
+#        run: misc/scripts/release_packagecloud.sh
