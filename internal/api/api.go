@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"sync"
 	"time"
 
@@ -480,26 +481,20 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 		}
 	}
 
-	history, err := h.node.History(ch, centrifuge.WithLimit(int(cmd.Limit)), centrifuge.WithSince(sp))
+	history, err := h.node.History(
+		ch,
+		centrifuge.WithLimit(int(cmd.Limit)),
+		centrifuge.WithSince(sp),
+		centrifuge.WithReverse(cmd.Reverse),
+	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling history", map[string]interface{}{"error": err.Error()}))
-		resp.Error = ErrorInternal
-		return resp
-	}
-
-	pubs := history.Publications
-	offset := history.Offset
-	epoch := history.Epoch
-
-	if cmd.Since != nil {
-		sinceEpoch := cmd.Since.Epoch
-		sinceOffset := cmd.Since.Offset
-		epochOK := sinceEpoch == "" || sinceEpoch == epoch
-		offsetOK := cmd.Limit <= 0 || sinceOffset == offset || (sinceOffset < offset && (len(pubs) > 0 && pubs[0].Offset == sinceOffset+1))
-		if !epochOK || !offsetOK {
+		if errors.Is(err, centrifuge.ErrorUnrecoverablePosition) {
 			resp.Error = ErrorUnrecoverablePosition
 			return resp
 		}
+		resp.Error = ErrorInternal
+		return resp
 	}
 
 	apiPubs := make([]*Publication, len(history.Publications))

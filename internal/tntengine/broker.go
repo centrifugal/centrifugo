@@ -357,6 +357,9 @@ func (b *Broker) History(ch string, filter centrifuge.HistoryFilter) ([]*centrif
 	if filter.Since != nil {
 		if filter.Reverse {
 			offset = filter.Since.Offset - 1
+			if offset == 0 {
+				includePubs = false
+			}
 		} else {
 			offset = filter.Since.Offset + 1
 		}

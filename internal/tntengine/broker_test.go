@@ -241,9 +241,6 @@ outer:
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(res.Publications) == 0 {
-			break
-		}
 		var checkOffset uint64
 	loop:
 		for _, pub := range res.Publications {
@@ -259,6 +256,9 @@ outer:
 				t.Fatal("incorrect order")
 			}
 			checkOffset = pub.Offset
+		}
+		if len(res.Publications) < iterateBy {
+			break
 		}
 		earliestPub := res.Publications[len(res.Publications)-1]
 		offset = earliestPub.Offset

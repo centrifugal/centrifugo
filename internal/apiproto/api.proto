@@ -193,6 +193,7 @@ message HistoryRequest {
     string channel = 1;
     int32 limit = 2;
     StreamPosition since = 3;
+    bool reverse = 4;
 }
 
 message HistoryResponse {
