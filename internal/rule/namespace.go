@@ -1,5 +1,7 @@
 package rule
 
+import "github.com/centrifugal/centrifugo/v3/internal/tools"
+
 // ChannelNamespace allows to create channels with different channel options.
 type ChannelNamespace struct {
 	// Name is a unique namespace name.
@@ -34,11 +36,10 @@ type ChannelOptions struct {
 	// persistent storage.
 	HistorySize int `mapstructure:"history_size" json:"history_size"`
 
-	// HistoryTTL is a number of seconds to keep history cache. As Centrifuge-based
-	// server maintains a window of messages in memory (or in Redis with Redis engine),
-	// to prevent infinite memory grows it's important to remove history for inactive
-	// channels.
-	HistoryTTL int `mapstructure:"history_ttl" json:"history_ttl"`
+	// HistoryTTL is a time to live for history cache. Server maintains a window of
+	// messages in memory (or in Redis with Redis engine), to prevent infinite memory
+	// grows it's important to remove history for inactive channels.
+	HistoryTTL tools.Duration `mapstructure:"history_ttl" json:"history_ttl"`
 
 	// Recover enables recovery mechanism for channels. This means that
 	// server will try to recover missed messages for resubscribing client.

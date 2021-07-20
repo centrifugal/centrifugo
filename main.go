@@ -167,14 +167,14 @@ func bindCentrifugoConfig() {
 		"tls_autocert_http":           false,
 		"tls_autocert_http_addr":      ":80",
 
-		"redis_prefix":           "centrifugo",
-		"redis_connect_timeout":  time.Second,
-		"redis_read_timeout":     5 * time.Second,
-		"redis_write_timeout":    time.Second,
-		"redis_idle_timeout":     0,
-		"redis_history_meta_ttl": 0,
+		"redis_prefix":          "centrifugo",
+		"redis_connect_timeout": time.Second,
+		"redis_read_timeout":    5 * time.Second,
+		"redis_write_timeout":   time.Second,
+		"redis_idle_timeout":    0,
 
-		"presence_ttl": 60 * time.Second,
+		"history_meta_ttl": 0,
+		"presence_ttl":     60 * time.Second,
 
 		"grpc_api":         false,
 		"grpc_api_address": "",
@@ -218,8 +218,6 @@ func bindCentrifugoConfig() {
 		"proxy_refresh_timeout":   time.Second,
 		"proxy_subscribe_timeout": time.Second,
 		"proxy_publish_timeout":   time.Second,
-
-		"memory_history_meta_ttl": 0,
 
 		"client_history_max_publication_limit":  500,
 		"client_recovery_max_publication_limit": 500,
@@ -1106,7 +1104,7 @@ func ruleConfig() rule.Config {
 	cfg.PresenceDisableForClient = v.GetBool("presence_disable_for_client")
 	cfg.JoinLeave = v.GetBool("join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
-	cfg.HistoryTTL = v.GetInt("history_ttl")
+	cfg.HistoryTTL = tools.Duration(GetDuration("history_ttl"))
 	cfg.Position = v.GetBool("position")
 	cfg.Recover = v.GetBool("recover")
 	cfg.HistoryDisableForClient = v.GetBool("history_disable_for_client")
@@ -1157,7 +1155,11 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 }
 
 func GetDuration(key string) time.Duration {
-	duration := viper.GetDuration(key)
+	durationString := viper.GetString(key)
+	duration, err := time.ParseDuration(durationString)
+	if err != nil {
+		log.Fatal().Msgf("malformed duration for key '%s': %v", key, err)
+	}
 	if duration > 0 && duration < time.Millisecond {
 		log.Fatal().Msgf("malformed duration for key '%s': %s, minimal duration resolution is 1ms – make sure correct time unit set", key, duration)
 	}
@@ -1415,7 +1417,7 @@ func memoryEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMan
 
 func memoryBrokerConfig() (*centrifuge.MemoryBrokerConfig, error) {
 	return &centrifuge.MemoryBrokerConfig{
-		HistoryMetaTTL: GetDuration("memory_history_meta_ttl"),
+		HistoryMetaTTL: GetDuration("history_meta_ttl"),
 	}, nil
 }
 
@@ -1528,7 +1530,7 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 		Shards:         redisShards,
 		Prefix:         viper.GetString("redis_prefix"),
 		UseLists:       viper.GetBool("redis_use_lists"),
-		HistoryMetaTTL: GetDuration("redis_history_meta_ttl"),
+		HistoryMetaTTL: GetDuration("history_meta_ttl"),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1606,7 +1608,7 @@ func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.Presence
 	}
 	broker, err := tntengine.NewBroker(n, tntengine.BrokerConfig{
 		Shards:         tarantoolShards,
-		HistoryMetaTTL: GetDuration("tarantool_history_meta_ttl"),
+		HistoryMetaTTL: GetDuration("history_meta_ttl"),
 	})
 	if err != nil {
 		return nil, nil, err

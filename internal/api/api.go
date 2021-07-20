@@ -101,7 +101,7 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 
 	result, err := h.node.Publish(
 		cmd.Channel, cmd.Data,
-		centrifuge.WithHistory(historySize, time.Duration(historyTTL)*time.Second),
+		centrifuge.WithHistory(historySize, time.Duration(historyTTL)),
 	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing message in engine", map[string]interface{}{"error": err.Error(), "channel": cmd.Channel}))
@@ -180,7 +180,7 @@ func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broadcas
 
 			result, err := h.node.Publish(
 				ch, data,
-				centrifuge.WithHistory(historySize, time.Duration(historyTTL)*time.Second),
+				centrifuge.WithHistory(historySize, time.Duration(historyTTL)),
 			)
 			resp := &PublishResponse{}
 			if err == nil {

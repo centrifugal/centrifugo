@@ -486,7 +486,7 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 	result, err := h.node.Publish(
 		e.Channel, e.Data,
 		centrifuge.WithClientInfo(e.ClientInfo),
-		centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryTTL)*time.Second),
+		centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryTTL)),
 	)
 	return centrifuge.PublishReply{Result: &result}, err
 }

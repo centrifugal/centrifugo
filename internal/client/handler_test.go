@@ -12,6 +12,7 @@ import (
 	"github.com/centrifugal/centrifugo/v3/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v3/internal/proxy"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
+	"github.com/centrifugal/centrifugo/v3/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
@@ -936,7 +937,7 @@ func TestClientHistory(t *testing.T) {
 
 	ruleConfig := rule.DefaultConfig
 	ruleConfig.HistorySize = 10
-	ruleConfig.HistoryTTL = 300
+	ruleConfig.HistoryTTL = tools.Duration(300 * time.Second)
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
@@ -978,7 +979,7 @@ func TestClientHistoryError(t *testing.T) {
 	ruleConfig = ruleContainer.Config()
 	ruleConfig.HistoryDisableForClient = false
 	ruleConfig.HistorySize = 10
-	ruleConfig.HistoryTTL = 300
+	ruleConfig.HistoryTTL = tools.Duration(300 * time.Second)
 	require.NoError(t, ruleContainer.Reload(ruleConfig))
 
 	_, err = h.OnHistory(&centrifuge.Client{}, centrifuge.HistoryEvent{

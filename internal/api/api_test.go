@@ -3,9 +3,11 @@ package api
 import (
 	"context"
 	"testing"
+	"time"
 
 	. "github.com/centrifugal/centrifugo/v3/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
+	"github.com/centrifugal/centrifugo/v3/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
@@ -91,7 +93,7 @@ func TestHistoryAPI(t *testing.T) {
 
 	config := ruleContainer.Config()
 	config.HistorySize = 1
-	config.HistoryTTL = 1
+	config.HistoryTTL = tools.Duration(1 * time.Second)
 	_ = ruleContainer.Reload(config)
 
 	resp = api.History(context.Background(), &HistoryRequest{Channel: "test"})
@@ -111,7 +113,7 @@ func TestHistoryRemoveAPI(t *testing.T) {
 
 	config := ruleContainer.Config()
 	config.HistorySize = 1
-	config.HistoryTTL = 1
+	config.HistoryTTL = tools.Duration(time.Second)
 	_ = ruleContainer.Reload(config)
 
 	resp = api.HistoryRemove(context.Background(), &HistoryRemoveRequest{Channel: "test"})
