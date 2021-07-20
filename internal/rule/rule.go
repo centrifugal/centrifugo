@@ -82,8 +82,12 @@ func (c *Config) Validate() error {
 		return err
 	}
 
+	if (c.HistorySize != 0 && c.HistoryTTL == 0) || (c.HistorySize == 0 && c.HistoryTTL != 0) {
+		return errors.New("both history size and history ttl required for history")
+	}
+
 	if c.Recover && (c.HistorySize == 0 || c.HistoryTTL == 0) {
-		return errors.New("both history size and history lifetime required for history recovery")
+		return errors.New("both history size and history ttl required for history recovery")
 	}
 
 	usePersonalChannel := c.UserSubscribeToPersonal
@@ -107,8 +111,11 @@ func (c *Config) Validate() error {
 		if stringInSlice(name, nss) {
 			return fmt.Errorf("namespace name must be unique: %s", name)
 		}
+		if (n.HistorySize != 0 && n.HistoryTTL == 0) || (n.HistorySize == 0 && n.HistoryTTL != 0) {
+			return fmt.Errorf("namespace %s: both history size and history ttl required for history", name)
+		}
 		if n.Recover && (n.HistorySize == 0 || n.HistoryTTL == 0) {
-			return fmt.Errorf("namespace %s: both history size and history lifetime required for history recovery", name)
+			return fmt.Errorf("namespace %s: both history size and history ttl required for history recovery", name)
 		}
 		if name == personalChannelNamespace {
 			validPersonalChannelNamespace = true

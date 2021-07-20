@@ -585,6 +585,7 @@ func main() {
 				fmt.Printf("error: %v\n", err)
 				os.Exit(1)
 			}
+			bindCentrifugoConfig()
 			err = validateConfig(outputConfigFile)
 			if err != nil {
 				_ = os.Remove(outputConfigFile)
@@ -1104,7 +1105,7 @@ func ruleConfig() rule.Config {
 	cfg.PresenceDisableForClient = v.GetBool("presence_disable_for_client")
 	cfg.JoinLeave = v.GetBool("join_leave")
 	cfg.HistorySize = v.GetInt("history_size")
-	cfg.HistoryTTL = tools.Duration(GetDuration("history_ttl"))
+	cfg.HistoryTTL = tools.Duration(GetDuration("history_ttl", true))
 	cfg.Position = v.GetBool("position")
 	cfg.Recover = v.GetBool("recover")
 	cfg.HistoryDisableForClient = v.GetBool("history_disable_for_client")
@@ -1154,7 +1155,7 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	return cfg
 }
 
-func GetDuration(key string) time.Duration {
+func GetDuration(key string, secondsPrecision ...bool) time.Duration {
 	durationString := viper.GetString(key)
 	duration, err := time.ParseDuration(durationString)
 	if err != nil {
@@ -1162,6 +1163,12 @@ func GetDuration(key string) time.Duration {
 	}
 	if duration > 0 && duration < time.Millisecond {
 		log.Fatal().Msgf("malformed duration for key '%s': %s, minimal duration resolution is 1ms – make sure correct time unit set", key, duration)
+	}
+	if duration > 0 && duration < time.Second && len(secondsPrecision) > 0 && secondsPrecision[0] == true {
+		log.Fatal().Msgf("malformed duration for key '%s': %s, minimal duration resolution is 1s for this key", key, duration)
+	}
+	if duration > 0 && duration%time.Second != 0 && len(secondsPrecision) > 0 && secondsPrecision[0] == true {
+		log.Fatal().Msgf("malformed duration for key '%s': %s, sub-second precision is not supported for this key", key, duration)
 	}
 	return duration
 }
@@ -1417,7 +1424,7 @@ func memoryEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMan
 
 func memoryBrokerConfig() (*centrifuge.MemoryBrokerConfig, error) {
 	return &centrifuge.MemoryBrokerConfig{
-		HistoryMetaTTL: GetDuration("history_meta_ttl"),
+		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
 	}, nil
 }
 
@@ -1530,7 +1537,7 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 		Shards:         redisShards,
 		Prefix:         viper.GetString("redis_prefix"),
 		UseLists:       viper.GetBool("redis_use_lists"),
-		HistoryMetaTTL: GetDuration("history_meta_ttl"),
+		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1539,7 +1546,7 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 	presenceManager, err := centrifuge.NewRedisPresenceManager(n, centrifuge.RedisPresenceManagerConfig{
 		Shards:      redisShards,
 		Prefix:      viper.GetString("redis_prefix"),
-		PresenceTTL: GetDuration("presence_ttl"),
+		PresenceTTL: GetDuration("presence_ttl", true),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1608,14 +1615,14 @@ func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.Presence
 	}
 	broker, err := tntengine.NewBroker(n, tntengine.BrokerConfig{
 		Shards:         tarantoolShards,
-		HistoryMetaTTL: GetDuration("history_meta_ttl"),
+		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 	presenceManager, err := tntengine.NewPresenceManager(n, tntengine.PresenceManagerConfig{
 		Shards:      tarantoolShards,
-		PresenceTTL: GetDuration("presence_ttl"),
+		PresenceTTL: GetDuration("presence_ttl", true),
 	})
 	if err != nil {
 		return nil, nil, err
