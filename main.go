@@ -1164,10 +1164,10 @@ func GetDuration(key string, secondsPrecision ...bool) time.Duration {
 	if duration > 0 && duration < time.Millisecond {
 		log.Fatal().Msgf("malformed duration for key '%s': %s, minimal duration resolution is 1ms – make sure correct time unit set", key, duration)
 	}
-	if duration > 0 && duration < time.Second && len(secondsPrecision) > 0 && secondsPrecision[0] == true {
+	if duration > 0 && duration < time.Second && len(secondsPrecision) > 0 && secondsPrecision[0] {
 		log.Fatal().Msgf("malformed duration for key '%s': %s, minimal duration resolution is 1s for this key", key, duration)
 	}
-	if duration > 0 && duration%time.Second != 0 && len(secondsPrecision) > 0 && secondsPrecision[0] == true {
+	if duration > 0 && duration%time.Second != 0 && len(secondsPrecision) > 0 && secondsPrecision[0] {
 		log.Fatal().Msgf("malformed duration for key '%s': %s, sub-second precision is not supported for this key", key, duration)
 	}
 	return duration
