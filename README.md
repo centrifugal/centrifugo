@@ -37,3 +37,9 @@ Try our [demo instance](https://centrifugo2.herokuapp.com/) on Heroku (admin pas
 * Cross platform – works on Linux, MacOS and Windows
 * Ready to deploy (Docker, RPM/DEB packages, automatic TLS certificates, Prometheus instrumentation, Grafana dashboard)
 * Open-source license
+
+### Backing
+
+This repository is hosted by [packagecloud.io](https://packagecloud.io/).
+
+<a href="https://packagecloud.io/"><img height="46" width="158" alt="Private NPM registry and Maven, RPM, DEB, PyPi and RubyGem Repository · packagecloud" src="https://packagecloud.io/images/packagecloud-badge.png" /></a>
