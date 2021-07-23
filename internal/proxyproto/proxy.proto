@@ -67,6 +67,7 @@ message RefreshRequest {
   string transport = 2;
   string protocol = 3;
   string encoding = 4;
+  bytes meta = 5;
 
   string user = 10;
 }
@@ -89,6 +90,7 @@ message SubscribeRequest {
   string transport = 2;
   string protocol = 3;
   string encoding = 4;
+  bytes meta = 5;
 
   string user = 10;
   string channel = 11;
@@ -135,6 +137,7 @@ message PublishRequest {
   string transport = 2;
   string protocol = 3;
   string encoding = 4;
+  bytes meta = 5;
 
   string user = 10;
   string channel = 11;
@@ -159,6 +162,7 @@ message RPCRequest {
   string transport = 2;
   string protocol = 3;
   string encoding = 4;
+  bytes meta = 5;
 
   string user = 10;
   string method = 11;

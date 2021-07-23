@@ -102,9 +102,6 @@ type SubscribeOptionOverride struct {
 
 // SubscribeOptions define per-subscription options.
 type SubscribeOptions struct {
-	// ExpireAt defines time in future when subscription should expire,
-	// zero value means no expiration.
-	ExpireAt int64 `json:"expire_at,omitempty"`
 	// Info defines custom channel information, zero value means no channel information.
 	Info json.RawMessage `json:"info,omitempty"`
 	// Base64Info is like Info but for binary.
@@ -118,11 +115,9 @@ type SubscribeOptions struct {
 }
 
 type ConnectTokenClaims struct {
-	ExpireAt   int64                       `json:"expire_at,omitempty"`
+	ExpireAt   *int64                      `json:"expire_at,omitempty"`
 	Info       json.RawMessage             `json:"info,omitempty"`
 	Base64Info string                      `json:"b64info,omitempty"`
-	Data       json.RawMessage             `json:"data,omitempty"`
-	Base64Data string                      `json:"b64data,omitempty"`
 	Channels   []string                    `json:"channels,omitempty"`
 	Subs       map[string]SubscribeOptions `json:"subs,omitempty"`
 	Meta       json.RawMessage             `json:"meta,omitempty"`
@@ -132,8 +127,9 @@ type ConnectTokenClaims struct {
 type SubscribeTokenClaims struct {
 	jwt.StandardClaims
 	SubscribeOptions
-	Client  string `json:"client,omitempty"`
-	Channel string `json:"channel,omitempty"`
+	Client   string `json:"client,omitempty"`
+	Channel  string `json:"channel,omitempty"`
+	ExpireAt *int64 `json:"expire_at,omitempty"`
 }
 
 type jwksManager struct{ *jwks.Manager }
@@ -386,7 +382,6 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 				position = v.Override.Position.Value
 			}
 			subs[ch] = centrifuge.SubscribeOptions{
-				ExpireAt:    v.ExpireAt,
 				ChannelInfo: info,
 				Presence:    presence,
 				JoinLeave:   joinLeave,
@@ -414,12 +409,14 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 	}
 
 	var expireAt int64
-	if claims.ExpireAt < 0 {
-		expireAt = 0
-	} else if claims.ExpireAt > 0 {
-		expireAt = claims.ExpireAt
-	} else if claims.ExpiresAt != nil {
-		expireAt = claims.ExpiresAt.Unix()
+	if claims.ExpireAt != nil {
+		if *claims.ExpireAt > 0 {
+			expireAt = *claims.ExpireAt
+		}
+	} else {
+		if claims.ExpiresAt != nil {
+			expireAt = claims.ExpiresAt.Unix()
+		}
 	}
 
 	var info []byte
@@ -515,12 +512,14 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 	}
 
 	var expireAt int64
-	if claims.ExpireAt < 0 {
-		expireAt = 0
-	} else if claims.ExpireAt > 0 {
-		expireAt = claims.ExpireAt
-	} else if claims.ExpiresAt != nil {
-		expireAt = claims.ExpiresAt.Unix()
+	if claims.ExpireAt != nil {
+		if *claims.ExpireAt > 0 {
+			expireAt = *claims.ExpireAt
+		}
+	} else {
+		if claims.ExpiresAt != nil {
+			expireAt = claims.ExpiresAt.Unix()
+		}
 	}
 
 	st := SubscribeToken{

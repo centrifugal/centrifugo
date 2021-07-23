@@ -219,8 +219,8 @@ func bindCentrifugoConfig() {
 		"proxy_subscribe_timeout": time.Second,
 		"proxy_publish_timeout":   time.Second,
 
-		"client_history_max_publication_limit":  500,
-		"client_recovery_max_publication_limit": 500,
+		"client_history_max_publication_limit":  300,
+		"client_recovery_max_publication_limit": 300,
 	}
 
 	for k, v := range defaults {

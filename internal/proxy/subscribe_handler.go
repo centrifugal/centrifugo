@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v3/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
 
@@ -54,7 +55,9 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			Channel: e.Channel,
 			Token:   e.Token,
 		}
-
+		if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
+			req.Meta = proxyproto.Raw(connMeta.Meta)
+		}
 		subscribeRep, err := h.config.Proxy.ProxySubscribe(client.Context(), req)
 		duration := time.Since(started).Seconds()
 		if err != nil {

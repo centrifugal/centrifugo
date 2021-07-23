@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v3/internal/clientcontext"
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 
 	"github.com/centrifugal/centrifuge"
@@ -49,6 +50,9 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 			Encoding:  getEncoding(h.config.Proxy.UseBase64()),
 
 			User: client.UserID(),
+		}
+		if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
+			req.Meta = proxyproto.Raw(connMeta.Meta)
 		}
 		refreshRep, err := h.config.Proxy.ProxyRefresh(client.Context(), req)
 		duration := time.Since(started).Seconds()

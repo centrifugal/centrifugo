@@ -14,8 +14,6 @@ type baseRequestHTTP struct {
 	Transport string `json:"transport"`
 	Protocol  string `json:"protocol"`
 	Encoding  string `json:"encoding"`
-	// Meta is a key-value meta information.
-	Meta map[string]string `json:"meta,omitempty"`
 }
 
 // DefaultMaxIdleConnsPerHost is a reasonable value for all HTTP clients.
