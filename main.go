@@ -71,6 +71,7 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 )
 
 func bindCentrifugoConfig() {
@@ -482,6 +483,15 @@ func main() {
 				if tlsConfig != nil {
 					grpcOpts = append(grpcOpts, grpc.Creds(credentials.NewTLS(tlsConfig)))
 				}
+				keepAliveEnforcementPolicy := keepalive.EnforcementPolicy{
+					MinTime: 5 * time.Second,
+				}
+				keepAliveServerParams := keepalive.ServerParameters{
+					Time:    25 * time.Second,
+					Timeout: 5 * time.Second,
+				}
+				grpcOpts = append(grpcOpts, grpc.KeepaliveEnforcementPolicy(keepAliveEnforcementPolicy))
+				grpcOpts = append(grpcOpts, grpc.KeepaliveParams(keepAliveServerParams))
 				grpcUniServer = grpc.NewServer(grpcOpts...)
 				_ = unigrpc.RegisterService(grpcUniServer, unigrpc.NewService(node, uniGRPCHandlerConfig()))
 				go func() {
