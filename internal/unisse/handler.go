@@ -22,13 +22,20 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	w.Header().Set("Connection", "keep-alive")
-	w.WriteHeader(http.StatusOK)
+	var req *protocol.ConnectRequest
+	connectRequestString := r.URL.Query().Get("connect")
+	if r.Method == http.MethodGet && connectRequestString != "" {
+		var err error
+		req, err = protocol.NewJSONParamsDecoder().DecodeConnect([]byte(connectRequestString))
+		if err != nil {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "malformed connect request", map[string]interface{}{"error": err.Error()}))
+			return
+		}
+	} else {
+		req = &protocol.ConnectRequest{}
+	}
 
 	transport := newEventsourceTransport(r)
-
 	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error create client", map[string]interface{}{"error": err.Error()}))
@@ -37,26 +44,23 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer func() { _ = closeFn() }()
 	defer close(transport.closedCh) // need to execute this after client closeFn.
 
-	flusher := w.(http.Flusher)
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+	w.Header().Set("Cache-Control", "private, no-cache, no-store, must-revalidate, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expire", "0")
+	w.WriteHeader(http.StatusOK)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		return
+	}
 	_, err = fmt.Fprintf(w, "\r\n")
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error write", map[string]interface{}{"error": err.Error()}))
 		return
 	}
 	flusher.Flush()
-
-	var req *protocol.ConnectRequest
-	connectRequestString := r.URL.Query().Get("connect")
-	if r.Method == http.MethodGet && connectRequestString != "" {
-		var err error
-		req, err = protocol.NewJSONParamsDecoder().DecodeConnect([]byte(connectRequestString))
-		if err != nil {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "malformed connect request", map[string]interface{}{"error": err.Error()}))
-			return
-		}
-	} else {
-		req = &protocol.ConnectRequest{}
-	}
 
 	connectRequest := centrifuge.ConnectRequest{
 		Token:   req.Token,
@@ -75,8 +79,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err = c.Connect(centrifuge.ConnectRequest{}); err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error connect client", map[string]interface{}{"error": err.Error()}))
+	if err = c.Connect(connectRequest); err != nil {
 		return
 	}
 
@@ -93,7 +96,6 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case <-tick.C:
 			_, err = w.Write([]byte("event: ping\ndata:\n\n"))
 			if err != nil {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error write", map[string]interface{}{"error": err.Error()}))
 				return
 			}
 			flusher.Flush()
@@ -104,7 +106,6 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			tick.Reset(pingInterval)
 			_, err = w.Write([]byte("data: " + string(data) + "\n\n"))
 			if err != nil {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error write", map[string]interface{}{"error": err.Error()}))
 				return
 			}
 			flusher.Flush()

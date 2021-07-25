@@ -23,23 +23,10 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 }
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
-	w.Header().Set("Connection", "keep-alive")
-	w.WriteHeader(http.StatusOK)
-
 	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
 		return
 	}
-
-	transport := newStreamTransport(r)
-
-	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
-	if err != nil {
-		log.Printf("error creating client: %v", err)
-		return
-	}
-	defer func() { _ = closeFn() }()
-	defer close(transport.closedCh) // need to execute this after client closeFn.
 
 	var req *protocol.ConnectRequest
 	if r.Method == http.MethodPost {
@@ -50,11 +37,35 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		req, err = protocol.NewJSONParamsDecoder().DecodeConnect(connectRequestData)
 		if err != nil {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "malformed connect request", map[string]interface{}{"error": err.Error()}))
+			if h.node.LogEnabled(centrifuge.LogLevelDebug) {
+				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "malformed connect request", map[string]interface{}{"error": err.Error()}))
+			}
 			return
 		}
 	} else {
-		req = &protocol.ConnectRequest{}
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	transport := newStreamTransport(r)
+	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
+	if err != nil {
+		log.Printf("error creating client: %v", err)
+		return
+	}
+	defer func() { _ = closeFn() }()
+	defer close(transport.closedCh) // need to execute this after client closeFn.
+
+	w.Header().Set("X-Accel-Buffering", "no")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Cache-Control", "private, no-cache, no-store, must-revalidate, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expire", "0")
+	w.WriteHeader(http.StatusOK)
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		return
 	}
 
 	connectRequest := centrifuge.ConnectRequest{
@@ -76,13 +87,6 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	err = c.Connect(connectRequest)
 	if err != nil {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error connect client", map[string]interface{}{"error": err.Error()}))
-		return
-	}
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "ResponseWriter does not support Flusher", map[string]interface{}{}))
 		return
 	}
 
@@ -99,7 +103,6 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case <-tick.C:
 			_, err = w.Write([]byte("null\n"))
 			if err != nil {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error write", map[string]interface{}{"error": err.Error()}))
 				return
 			}
 			flusher.Flush()
@@ -110,12 +113,10 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			tick.Reset(pingInterval)
 			_, err = w.Write(data)
 			if err != nil {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error write", map[string]interface{}{"error": err.Error()}))
 				return
 			}
 			_, err = w.Write([]byte("\n"))
 			if err != nil {
-				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error write", map[string]interface{}{"error": err.Error()}))
 				return
 			}
 			flusher.Flush()

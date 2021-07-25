@@ -54,7 +54,6 @@ func (s *Service) Consume(req *unistream.ConnectRequest, stream unistream.Centri
 
 	c, closeFn, err := centrifuge.NewClient(stream.Context(), s.node, transport)
 	if err != nil {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "client create error", map[string]interface{}{"transport": transport.Name(), "error": err.Error()}))
 		return err
 	}
 	defer func() { _ = closeFn() }()
@@ -66,7 +65,6 @@ func (s *Service) Consume(req *unistream.ConnectRequest, stream unistream.Centri
 
 	err = c.Connect(connectRequest)
 	if err != nil {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "client connect error", map[string]interface{}{"transport": transport.Name(), "error": err.Error()}))
 		return err
 	}
 
