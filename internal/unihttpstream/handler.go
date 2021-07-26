@@ -2,7 +2,6 @@ package unihttpstream
 
 import (
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 
@@ -50,11 +49,16 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	transport := newStreamTransport(r)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
 	if err != nil {
-		log.Printf("error creating client: %v", err)
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error create client", map[string]interface{}{"error": err.Error(), "transport": "uni_http_stream"}))
 		return
 	}
 	defer func() { _ = closeFn() }()
 	defer close(transport.closedCh) // need to execute this after client closeFn.
+
+	h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection established", map[string]interface{}{"transport": transport.Name(), "client": c.ID()}))
+	defer func(started time.Time) {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]interface{}{"duration": time.Since(started), "transport": transport.Name(), "client": c.ID()}))
+	}(time.Now())
 
 	w.Header().Set("X-Accel-Buffering", "no")
 	w.Header().Set("Connection", "keep-alive")
