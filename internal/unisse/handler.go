@@ -1,7 +1,6 @@
 package unisse
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -21,9 +20,13 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 	}
 }
 
+// Since SSE is a GET request we are looking for connect request in URL params.
+// This should be a properly encoded JSON object.
+const connectUrlParam = "connect"
+
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req *protocol.ConnectRequest
-	connectRequestString := r.URL.Query().Get("connect")
+	connectRequestString := r.URL.Query().Get(connectUrlParam)
 	if r.Method == http.MethodGet && connectRequestString != "" {
 		var err error
 		req, err = protocol.NewJSONParamsDecoder().DecodeConnect([]byte(connectRequestString))
@@ -62,7 +65,7 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	_, err = fmt.Fprintf(w, "\r\n")
+	_, err = w.Write([]byte("\r\n"))
 	if err != nil {
 		return
 	}
