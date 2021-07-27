@@ -67,9 +67,9 @@ message RefreshRequest {
   string transport = 2;
   string protocol = 3;
   string encoding = 4;
-  bytes meta = 5;
 
   string user = 10;
+  bytes meta = 11;
 }
 
 message RefreshResult {
@@ -90,11 +90,11 @@ message SubscribeRequest {
   string transport = 2;
   string protocol = 3;
   string encoding = 4;
-  bytes meta = 5;
 
   string user = 10;
   string channel = 11;
   string token = 12;
+  bytes meta = 13;
 }
 
 message BoolValue {
@@ -137,12 +137,12 @@ message PublishRequest {
   string transport = 2;
   string protocol = 3;
   string encoding = 4;
-  bytes meta = 5;
 
   string user = 10;
   string channel = 11;
   bytes data = 12;
   string b64data = 13;
+  bytes meta = 14;
 }
 
 message PublishResult {
@@ -162,12 +162,12 @@ message RPCRequest {
   string transport = 2;
   string protocol = 3;
   string encoding = 4;
-  bytes meta = 5;
 
   string user = 10;
   string method = 11;
   bytes data = 12;
   string b64data = 13;
+  bytes meta = 14;
 }
 
 message RPCResult {
