@@ -46,3 +46,8 @@ func (p *HTTPRPCProxy) Protocol() string {
 func (p *HTTPRPCProxy) UseBase64() bool {
 	return p.config.BinaryEncoding
 }
+
+// IncludeMeta ...
+func (p *HTTPRPCProxy) IncludeMeta() bool {
+	return p.config.IncludeConnectionMeta
+}

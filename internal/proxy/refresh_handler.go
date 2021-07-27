@@ -51,8 +51,10 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 
 			User: client.UserID(),
 		}
-		if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
-			req.Meta = proxyproto.Raw(connMeta.Meta)
+		if h.config.Proxy.IncludeMeta() {
+			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
+				req.Meta = proxyproto.Raw(connMeta.Meta)
+			}
 		}
 		refreshRep, err := h.config.Proxy.ProxyRefresh(client.Context(), req)
 		duration := time.Since(started).Seconds()

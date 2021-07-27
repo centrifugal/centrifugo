@@ -53,8 +53,10 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 			User:   client.UserID(),
 			Method: e.Method,
 		}
-		if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
-			req.Meta = proxyproto.Raw(connMeta.Meta)
+		if h.config.Proxy.IncludeMeta() {
+			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
+				req.Meta = proxyproto.Raw(connMeta.Meta)
+			}
 		}
 		if !h.config.Proxy.UseBase64() {
 			req.Data = e.Data

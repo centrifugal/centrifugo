@@ -16,9 +16,13 @@ type Config struct {
 	// GRPCMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by
 	// default. If HTTP proxy is used then these keys become outgoing request HTTP headers.
 	GRPCMetadata []string
+
 	// BinaryEncoding makes proxy send data as base64 string (assuming it contains custom
 	// non-JSON payload).
 	BinaryEncoding bool
+
+	// IncludeConnectionMeta to each proxy request (except connect where it's obtained).
+	IncludeConnectionMeta bool
 
 	// ConnectEndpoint - HTTP address or GRPC service url.
 	ConnectEndpoint string

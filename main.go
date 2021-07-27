@@ -1199,6 +1199,7 @@ func proxyConfig() (proxy.Config, bool) {
 	cfg.SubscribeTimeout = GetDuration("proxy_subscribe_timeout")
 	cfg.PublishEndpoint = v.GetString("proxy_publish_endpoint")
 	cfg.PublishTimeout = GetDuration("proxy_publish_timeout")
+	cfg.IncludeConnectionMeta = v.GetBool("proxy_include_connection_meta")
 
 	var httpConfig proxy.HTTPConfig
 	httpConfig.Encoder = &proxyproto.JSONEncoder{}

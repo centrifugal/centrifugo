@@ -53,3 +53,8 @@ func (p *HTTPRefreshProxy) Protocol() string {
 func (p *HTTPRefreshProxy) UseBase64() bool {
 	return p.config.BinaryEncoding
 }
+
+// IncludeMeta ...
+func (p *HTTPRefreshProxy) IncludeMeta() bool {
+	return p.config.IncludeConnectionMeta
+}

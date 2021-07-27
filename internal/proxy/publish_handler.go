@@ -53,8 +53,10 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 			User:    client.UserID(),
 			Channel: e.Channel,
 		}
-		if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
-			req.Meta = proxyproto.Raw(connMeta.Meta)
+		if h.config.Proxy.IncludeMeta() {
+			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
+				req.Meta = proxyproto.Raw(connMeta.Meta)
+			}
 		}
 		if !h.config.Proxy.UseBase64() {
 			req.Data = e.Data

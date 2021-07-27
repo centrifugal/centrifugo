@@ -46,3 +46,8 @@ func (p *HTTPSubscribeProxy) Protocol() string {
 func (p *HTTPSubscribeProxy) UseBase64() bool {
 	return p.config.BinaryEncoding
 }
+
+// IncludeMeta ...
+func (p *HTTPSubscribeProxy) IncludeMeta() bool {
+	return p.config.IncludeConnectionMeta
+}

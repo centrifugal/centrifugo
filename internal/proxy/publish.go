@@ -38,4 +38,6 @@ type PublishProxy interface {
 	Protocol() string
 	// UseBase64 for bytes in requests from Centrifugo to application backend.
 	UseBase64() bool
+	// IncludeMeta ...
+	IncludeMeta() bool
 }

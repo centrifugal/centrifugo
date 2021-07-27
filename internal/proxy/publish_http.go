@@ -59,3 +59,8 @@ func (p *HTTPPublishProxy) Protocol() string {
 func (p *HTTPPublishProxy) UseBase64() bool {
 	return p.config.BinaryEncoding
 }
+
+// IncludeMeta ...
+func (p *HTTPPublishProxy) IncludeMeta() bool {
+	return p.config.IncludeConnectionMeta
+}

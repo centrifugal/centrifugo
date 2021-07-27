@@ -61,3 +61,8 @@ func (p *GRPCRPCProxy) Protocol() string {
 func (p *GRPCRPCProxy) UseBase64() bool {
 	return p.config.BinaryEncoding
 }
+
+// IncludeMeta ...
+func (p *GRPCRPCProxy) IncludeMeta() bool {
+	return p.config.IncludeConnectionMeta
+}

@@ -61,3 +61,8 @@ func (p *GRPCSubscribeProxy) Protocol() string {
 func (p *GRPCSubscribeProxy) UseBase64() bool {
 	return p.config.BinaryEncoding
 }
+
+// IncludeMeta ...
+func (p *GRPCSubscribeProxy) IncludeMeta() bool {
+	return p.config.IncludeConnectionMeta
+}
