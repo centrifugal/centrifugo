@@ -88,7 +88,7 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 		return resp
 	}
 	if !found {
-		resp.Error = ErrorNamespaceNotFound
+		resp.Error = ErrorUnknownChannel
 		return resp
 	}
 
@@ -167,7 +167,7 @@ func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broadcas
 			}
 			if !found {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "can't find namespace for channel", map[string]interface{}{"channel": ch}))
-				responses[i] = &PublishResponse{Error: ErrorNamespaceNotFound}
+				responses[i] = &PublishResponse{Error: ErrorUnknownChannel}
 				return
 			}
 
@@ -228,7 +228,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		return resp
 	}
 	if !found {
-		resp.Error = ErrorNamespaceNotFound
+		resp.Error = ErrorUnknownChannel
 		return resp
 	}
 
@@ -299,7 +299,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 			return resp
 		}
 		if !found {
-			resp.Error = ErrorNamespaceNotFound
+			resp.Error = ErrorUnknownChannel
 			return resp
 		}
 	}
@@ -370,7 +370,7 @@ func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceRe
 		return resp
 	}
 	if !found {
-		resp.Error = ErrorNamespaceNotFound
+		resp.Error = ErrorUnknownChannel
 		return resp
 	}
 
@@ -421,7 +421,7 @@ func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *
 		return resp
 	}
 	if !found {
-		resp.Error = ErrorNamespaceNotFound
+		resp.Error = ErrorUnknownChannel
 		return resp
 	}
 
@@ -464,7 +464,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 		return resp
 	}
 	if !found {
-		resp.Error = ErrorNamespaceNotFound
+		resp.Error = ErrorUnknownChannel
 		return resp
 	}
 
@@ -542,7 +542,7 @@ func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *
 		return resp
 	}
 	if !found {
-		resp.Error = ErrorNamespaceNotFound
+		resp.Error = ErrorUnknownChannel
 		return resp
 	}
 

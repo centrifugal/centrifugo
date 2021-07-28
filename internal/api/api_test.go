@@ -53,7 +53,7 @@ func TestPublishAPI(t *testing.T) {
 	require.Nil(t, resp.Error)
 
 	resp = api.Publish(context.Background(), &PublishRequest{Channel: "test:test", Data: []byte("test")})
-	require.Equal(t, ErrorNamespaceNotFound, resp.Error)
+	require.Equal(t, ErrorUnknownChannel, resp.Error)
 }
 
 func TestBroadcastAPI(t *testing.T) {
@@ -73,11 +73,11 @@ func TestBroadcastAPI(t *testing.T) {
 
 	resp = api.Broadcast(context.Background(), &BroadcastRequest{Channels: []string{"test:test"}, Data: []byte("test")})
 	require.Nil(t, resp.Error)
-	require.Equal(t, ErrorNamespaceNotFound, resp.Result.Responses[0].Error)
+	require.Equal(t, ErrorUnknownChannel, resp.Result.Responses[0].Error)
 
 	resp = api.Broadcast(context.Background(), &BroadcastRequest{Channels: []string{"test", "test:test"}, Data: []byte("test")})
 	require.Nil(t, resp.Error)
-	require.Equal(t, ErrorNamespaceNotFound, resp.Result.Responses[1].Error)
+	require.Equal(t, ErrorUnknownChannel, resp.Result.Responses[1].Error)
 }
 
 func TestHistoryAPI(t *testing.T) {
