@@ -60,8 +60,12 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]interface{}{"duration": time.Since(started), "transport": transport.Name(), "client": c.ID()}))
 	}(time.Now())
 
+	if r.ProtoMajor == 1 {
+		// An endpoint MUST NOT generate an HTTP/2 message containing connection-specific header fields.
+		// Source: RFC7540.
+		w.Header().Set("Connection", "keep-alive")
+	}
 	w.Header().Set("X-Accel-Buffering", "no")
-	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Cache-Control", "private, no-cache, no-store, must-revalidate, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expire", "0")
