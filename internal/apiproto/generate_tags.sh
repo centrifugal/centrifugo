@@ -16,3 +16,4 @@ gomodifytags -file api.pb.go -field Version -struct NodeResult -all -w -remove-o
 gomodifytags -file api.pb.go -field NumClients -struct NodeResult -all -w -remove-options json=omitempty >/dev/null
 gomodifytags -file api.pb.go -field NumUsers -struct NodeResult -all -w -remove-options json=omitempty >/dev/null
 gomodifytags -file api.pb.go -field NumChannels -struct NodeResult -all -w -remove-options json=omitempty >/dev/null
+gomodifytags -file api.pb.go -field NumSubs -struct NodeResult -all -w -remove-options json=omitempty >/dev/null

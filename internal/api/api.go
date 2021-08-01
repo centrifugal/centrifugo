@@ -582,6 +582,7 @@ func (h *Executor) Info(_ context.Context, _ *InfoRequest) *InfoResponse {
 			Name:        nd.Name,
 			NumClients:  nd.NumClients,
 			NumUsers:    nd.NumUsers,
+			NumSubs:     nd.NumSubs,
 			NumChannels: nd.NumChannels,
 			Uptime:      nd.Uptime,
 			Process:     nil,

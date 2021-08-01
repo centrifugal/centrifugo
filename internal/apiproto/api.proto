@@ -260,6 +260,7 @@ message NodeResult {
     uint32 uptime = 7;
     Metrics metrics = 8;
     Process process = 9;
+    uint32 num_subs = 10;
 }
 
 message Metrics {
