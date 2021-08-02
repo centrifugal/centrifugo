@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.16.4]
+        go-version: [1.16.6]
     steps:
       - name: Install rpm
         run: sudo apt-get install rpm

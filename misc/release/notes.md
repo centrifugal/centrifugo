@@ -2,10 +2,10 @@ No backwards incompatible changes here.
 
 Improvements:
 
-* Possibility to modify data in publish proxy – see [#439](https://github.com/centrifugal/centrifugo/issues/439) and [updated docs for publish proxy](https://centrifugal.github.io/centrifugo/server/proxy/#publish-proxy)
+* RPM and DEB packages now additionally added to release assets
 
 Fixes:
 
-* Use default timeouts for subscribe and publish proxy (1 second). Previously these proxy had no default timeout at all.
+* Fixes accidentally pushed Docker latest tag from Centrifugo v3 PRO beta.
 
-Centrifugo v2.8.5 based on Go 1.16.4
+Centrifugo v2.8.6 based on latest Go 1.16.6
