@@ -36,10 +36,11 @@ func (s *Service) Consume(req *unistream.ConnectRequest, stream unistream.Centri
 	transport := newGRPCTransport(stream, streamDataCh)
 
 	connectRequest := centrifuge.ConnectRequest{
-		Token:   req.Token,
-		Data:    req.Data,
-		Name:    req.Name,
-		Version: req.Version,
+		Token:    req.Token,
+		Data:     req.Data,
+		Name:     req.Name,
+		Version:  req.Version,
+		Channels: req.Channels,
 	}
 	if req.Subs != nil {
 		subs := make(map[string]centrifuge.SubscribeRequest)

@@ -204,9 +204,9 @@ func (n *Container) Config() Config {
 	return c
 }
 
-// IsTokenChannel checks if channel requires token to subscribe. In case of
+// IsPrivateChannel checks if channel requires token to subscribe. In case of
 // token-protected channel subscription request must contain a proper token.
-func (n *Container) IsTokenChannel(ch string) bool {
+func (n *Container) IsPrivateChannel(ch string) bool {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 	if n.config.ChannelPrivatePrefix == "" {

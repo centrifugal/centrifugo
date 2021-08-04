@@ -51,6 +51,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 			Encoding:  getEncoding(h.config.Proxy.UseBase64()),
 			Name:      e.Name,
 			Version:   e.Version,
+			Channels:  e.Channels,
 		}
 		if !h.config.Proxy.UseBase64() {
 			req.Data = e.Data

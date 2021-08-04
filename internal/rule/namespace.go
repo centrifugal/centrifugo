@@ -50,9 +50,13 @@ type ChannelOptions struct {
 	// Position enables client positioning.
 	Position bool `mapstructure:"position" json:"position"`
 
-	// ServerSide marks all channels in namespace as server side, when on then client
-	// subscribe requests to these channels will be rejected with PermissionDenied error.
-	ServerSide bool `mapstructure:"server_side" json:"server_side"`
+	// Protected when on will prevent a client to subscribe to arbitrary channels in a
+	// namespace. In this case Centrifugo will only allow client to subscribe on user-limited
+	// channels, on channels returned by proxy response or channels listed inside JWT.
+	// Client-side subscriptions to arbitrary channels will be rejected with PermissionDenied
+	// error. Server-side channels belonging to protected namespace passed by client itself during
+	// connect will be ignored.
+	Protected bool `mapstructure:"protected" json:"protected"`
 
 	// Publish enables possibility for clients to publish messages into channels.
 	// Once enabled client can publish into channel and that publication will be

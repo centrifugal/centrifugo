@@ -76,10 +76,11 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	flusher.Flush()
 
 	connectRequest := centrifuge.ConnectRequest{
-		Token:   req.Token,
-		Data:    req.Data,
-		Name:    req.Name,
-		Version: req.Version,
+		Token:    req.Token,
+		Data:     req.Data,
+		Name:     req.Name,
+		Version:  req.Version,
+		Channels: req.Channels,
 	}
 	if req.Subs != nil {
 		subs := make(map[string]centrifuge.SubscribeRequest)

@@ -1119,7 +1119,7 @@ func ruleConfig() rule.Config {
 	cfg.Position = v.GetBool("position")
 	cfg.Recover = v.GetBool("recover")
 	cfg.HistoryDisableForClient = v.GetBool("history_disable_for_client")
-	cfg.ServerSide = v.GetBool("server_side")
+	cfg.Protected = v.GetBool("protected")
 	cfg.ProxySubscribe = v.GetBool("proxy_subscribe")
 	cfg.ProxyPublish = v.GetBool("proxy_publish")
 	cfg.Namespaces = namespacesFromConfig(v)

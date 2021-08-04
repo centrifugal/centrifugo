@@ -14,6 +14,7 @@ message ConnectRequest {
   string name = 3;
   string version = 4;
   map<string, SubscribeRequest> subs = 5;
+  repeated string channels = 6;
 }
 
 message SubscribeRequest {
