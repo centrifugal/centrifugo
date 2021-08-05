@@ -503,12 +503,12 @@ func TestClientSubscribeChannel(t *testing.T) {
 	require.Equal(t, centrifuge.ErrorUnknownChannel, err)
 }
 
-func TestClientSubscribeChannelServerSide(t *testing.T) {
+func TestClientSubscribeChannelProtected(t *testing.T) {
 	node := nodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	ruleConfig := rule.DefaultConfig
-	ruleConfig.ServerSide = true
+	ruleConfig.Protected = true
 	ruleContainer := rule.NewContainer(ruleConfig)
 	h := NewHandler(node, ruleContainer, jwtverify.NewTokenVerifierJWT(jwtverify.VerifierConfig{
 		HMACSecretKey: "secret",
