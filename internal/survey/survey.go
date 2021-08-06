@@ -52,12 +52,16 @@ func (c *Caller) Channels(ctx context.Context, params apiproto.Raw) (apiproto.Ra
 	return json.Marshal(channels)
 }
 
-func surveyChannels(ctx context.Context, node *centrifuge.Node, params apiproto.Raw) (map[string]int, error) {
+type ChannelInfo struct {
+	NumClients int `json:"num_clients"`
+}
+
+func surveyChannels(ctx context.Context, node *centrifuge.Node, params apiproto.Raw) (map[string]ChannelInfo, error) {
 	results, err := node.Survey(ctx, "channels", params)
 	if err != nil {
 		return nil, err
 	}
-	channels := map[string]int{}
+	channels := map[string]ChannelInfo{}
 	for nodeID, result := range results {
 		if result.Code > 0 {
 			return nil, fmt.Errorf("non-zero code from node %s: %d", nodeID, result.Code)
@@ -68,7 +72,13 @@ func surveyChannels(ctx context.Context, node *centrifuge.Node, params apiproto.
 			return nil, fmt.Errorf("error unmarshaling data from node %s: %v", nodeID, err)
 		}
 		for ch, numSubscribers := range nodeChannels {
-			channels[ch] += numSubscribers
+			info, ok := channels[ch]
+			if !ok {
+				channels[ch] = ChannelInfo{NumClients: numSubscribers}
+			} else {
+				info.NumClients += numSubscribers
+				channels[ch] = info
+			}
 		}
 	}
 	return channels, nil
