@@ -351,6 +351,34 @@ func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Discon
 	return resp
 }
 
+// Refresh user connection by its ID.
+func (h *Executor) Refresh(_ context.Context, cmd *RefreshRequest) *RefreshResponse {
+	defer observe(time.Now(), h.protocol, "refresh")
+
+	resp := &RefreshResponse{}
+
+	user := cmd.User
+	if user == "" {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "user required for refresh"))
+		resp.Error = ErrorBadRequest
+		return resp
+	}
+
+	err := h.node.Refresh(
+		user,
+		centrifuge.WithRefreshClient(cmd.Client),
+		centrifuge.WithRefreshExpired(cmd.Expired),
+		centrifuge.WithRefreshExpireAt(cmd.ExpireAt),
+		centrifuge.WithRefreshInfo(cmd.Info),
+	)
+	if err != nil {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error refreshing user", map[string]interface{}{"user": cmd.User, "error": err.Error()}))
+		resp.Error = ErrorInternal
+		return resp
+	}
+	return resp
+}
+
 // Presence returns response with presence information for channel.
 func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceResponse {
 	defer observe(time.Now(), h.protocol, "presence")

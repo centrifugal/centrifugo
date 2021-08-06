@@ -36,21 +36,21 @@ func (s *Service) Consume(req *unistream.ConnectRequest, stream unistream.Centri
 	transport := newGRPCTransport(stream, streamDataCh)
 
 	connectRequest := centrifuge.ConnectRequest{
-		Token:    req.Token,
-		Data:     req.Data,
-		Name:     req.Name,
-		Version:  req.Version,
-		Channels: req.Channels,
+		Token:   req.Token,
+		Data:    req.Data,
+		Name:    req.Name,
+		Version: req.Version,
 	}
 	if req.Subs != nil {
-		subs := make(map[string]centrifuge.SubscribeRequest)
-		for k, v := range connectRequest.Subs {
+		subs := make(map[string]centrifuge.SubscribeRequest, len(req.Subs))
+		for k, v := range req.Subs {
 			subs[k] = centrifuge.SubscribeRequest{
 				Recover: v.Recover,
 				Offset:  v.Offset,
 				Epoch:   v.Epoch,
 			}
 		}
+		connectRequest.Subs = subs
 	}
 
 	c, closeFn, err := centrifuge.NewClient(stream.Context(), s.node, transport)
@@ -64,10 +64,7 @@ func (s *Service) Consume(req *unistream.ConnectRequest, stream unistream.Centri
 		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]interface{}{"duration": time.Since(started), "transport": transport.Name(), "client": c.ID()}))
 	}(time.Now())
 
-	err = c.Connect(connectRequest)
-	if err != nil {
-		return err
-	}
+	c.Connect(connectRequest)
 
 	for {
 		select {

@@ -66,6 +66,7 @@ type ResultEncoder interface {
 	EncodeHistoryRemove(*HistoryRemoveResult) ([]byte, error)
 	EncodeInfo(*InfoResult) ([]byte, error)
 	EncodeRPC(*RPCResult) ([]byte, error)
+	EncodeRefresh(result *RefreshResult) ([]byte, error)
 }
 
 var _ ResultEncoder = (*JSONResultEncoder)(nil)
@@ -134,5 +135,10 @@ func (e *JSONResultEncoder) EncodeInfo(res *InfoResult) ([]byte, error) {
 
 // EncodeRPC ...
 func (e *JSONResultEncoder) EncodeRPC(res *RPCResult) ([]byte, error) {
+	return json.Marshal(res)
+}
+
+// EncodeRefresh ...
+func (e *JSONResultEncoder) EncodeRefresh(res *RefreshResult) ([]byte, error) {
 	return json.Marshal(res)
 }

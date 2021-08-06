@@ -71,6 +71,7 @@ type ParamsDecoder interface {
 	DecodeHistoryRemove([]byte) (*HistoryRemoveRequest, error)
 	DecodeInfo([]byte) (*InfoRequest, error)
 	DecodeRPC([]byte) (*RPCRequest, error)
+	DecodeRefresh([]byte) (*RefreshRequest, error)
 }
 
 var _ ParamsDecoder = (*JSONParamsDecoder)(nil)
@@ -187,6 +188,16 @@ func (d *JSONParamsDecoder) DecodeInfo(data []byte) (*InfoRequest, error) {
 // DecodeRPC ...
 func (d *JSONParamsDecoder) DecodeRPC(data []byte) (*RPCRequest, error) {
 	var p RPCRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeRefresh ...
+func (d *JSONParamsDecoder) DecodeRefresh(data []byte) (*RefreshRequest, error) {
+	var p RefreshRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err

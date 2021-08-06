@@ -114,3 +114,8 @@ func (s *grpcAPIService) Info(ctx context.Context, req *InfoRequest) (*InfoRespo
 func (s *grpcAPIService) RPC(ctx context.Context, req *RPCRequest) (*RPCResponse, error) {
 	return s.api.RPC(ctx, req), nil
 }
+
+// Refresh user connection.
+func (s *grpcAPIService) Refresh(ctx context.Context, req *RefreshRequest) (*RefreshResponse, error) {
+	return s.api.Refresh(ctx, req), nil
+}

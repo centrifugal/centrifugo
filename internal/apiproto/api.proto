@@ -16,6 +16,7 @@ service CentrifugoApi {
     rpc HistoryRemove (HistoryRemoveRequest) returns (HistoryRemoveResponse) {}
     rpc Info (InfoRequest) returns (InfoResponse) {}
     rpc RPC (RPCRequest) returns (RPCResponse) {}
+    rpc Refresh (RefreshRequest) returns (RefreshResponse) {}
 }
 
 message Command {
@@ -32,6 +33,7 @@ message Command {
         INFO = 9;
         RPC = 10;
         SUBSCRIBE = 11;
+        REFRESH = 12;
     }
     uint32 id = 1;
     MethodType method = 2;
@@ -249,6 +251,21 @@ message RPCResponse {
 message RPCResult {
     bytes data = 1;
 }
+
+message RefreshRequest {
+    string user = 1;
+    string client = 2;
+    bool expired = 3;
+    int64 expire_at = 4;
+    bytes info = 5;
+}
+
+message RefreshResponse {
+    Error error = 1;
+    RefreshResult result = 2;
+}
+
+message RefreshResult {}
 
 message NodeResult {
     string uid = 1;

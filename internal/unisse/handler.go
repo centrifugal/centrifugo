@@ -76,26 +76,24 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	flusher.Flush()
 
 	connectRequest := centrifuge.ConnectRequest{
-		Token:    req.Token,
-		Data:     req.Data,
-		Name:     req.Name,
-		Version:  req.Version,
-		Channels: req.Channels,
+		Token:   req.Token,
+		Data:    req.Data,
+		Name:    req.Name,
+		Version: req.Version,
 	}
 	if req.Subs != nil {
-		subs := make(map[string]centrifuge.SubscribeRequest)
-		for k, v := range connectRequest.Subs {
+		subs := make(map[string]centrifuge.SubscribeRequest, len(req.Subs))
+		for k, v := range req.Subs {
 			subs[k] = centrifuge.SubscribeRequest{
 				Recover: v.Recover,
 				Offset:  v.Offset,
 				Epoch:   v.Epoch,
 			}
 		}
+		connectRequest.Subs = subs
 	}
 
-	if err = c.Connect(connectRequest); err != nil {
-		return
-	}
+	c.Connect(connectRequest)
 
 	pingInterval := 25 * time.Second
 	tick := time.NewTicker(pingInterval)

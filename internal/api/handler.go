@@ -299,6 +299,24 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 				}
 			}
 		}
+	case Command_REFRESH:
+		cmd, err := decoder.DecodeRefresh(params)
+		if err != nil {
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding refresh params", map[string]interface{}{"error": err.Error()}))
+			rep.Error = ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.Refresh(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeRefresh(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
 	default:
 		rep.Error = ErrorMethodNotFound
 	}

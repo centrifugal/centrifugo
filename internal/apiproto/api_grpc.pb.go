@@ -29,6 +29,7 @@ type CentrifugoApiClient interface {
 	HistoryRemove(ctx context.Context, in *HistoryRemoveRequest, opts ...grpc.CallOption) (*HistoryRemoveResponse, error)
 	Info(ctx context.Context, in *InfoRequest, opts ...grpc.CallOption) (*InfoResponse, error)
 	RPC(ctx context.Context, in *RPCRequest, opts ...grpc.CallOption) (*RPCResponse, error)
+	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
 }
 
 type centrifugoApiClient struct {
@@ -138,6 +139,15 @@ func (c *centrifugoApiClient) RPC(ctx context.Context, in *RPCRequest, opts ...g
 	return out, nil
 }
 
+func (c *centrifugoApiClient) Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error) {
+	out := new(RefreshResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/Refresh", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CentrifugoApiServer is the server API for CentrifugoApi service.
 // All implementations must embed UnimplementedCentrifugoApiServer
 // for forward compatibility
@@ -153,6 +163,7 @@ type CentrifugoApiServer interface {
 	HistoryRemove(context.Context, *HistoryRemoveRequest) (*HistoryRemoveResponse, error)
 	Info(context.Context, *InfoRequest) (*InfoResponse, error)
 	RPC(context.Context, *RPCRequest) (*RPCResponse, error)
+	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
 	mustEmbedUnimplementedCentrifugoApiServer()
 }
 
@@ -192,6 +203,9 @@ func (UnimplementedCentrifugoApiServer) Info(context.Context, *InfoRequest) (*In
 }
 func (UnimplementedCentrifugoApiServer) RPC(context.Context, *RPCRequest) (*RPCResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RPC not implemented")
+}
+func (UnimplementedCentrifugoApiServer) Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Refresh not implemented")
 }
 func (UnimplementedCentrifugoApiServer) mustEmbedUnimplementedCentrifugoApiServer() {}
 
@@ -404,6 +418,24 @@ func _CentrifugoApi_RPC_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CentrifugoApi_Refresh_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).Refresh(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/Refresh",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).Refresh(ctx, req.(*RefreshRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CentrifugoApi_ServiceDesc is the grpc.ServiceDesc for CentrifugoApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -454,6 +486,10 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RPC",
 			Handler:    _CentrifugoApi_RPC_Handler,
+		},
+		{
+			MethodName: "Refresh",
+			Handler:    _CentrifugoApi_Refresh_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
