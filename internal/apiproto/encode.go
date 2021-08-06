@@ -140,5 +140,6 @@ func (e *JSONResultEncoder) EncodeRPC(res *RPCResult) ([]byte, error) {
 
 // EncodeRefresh ...
 func (e *JSONResultEncoder) EncodeRefresh(res *RefreshResult) ([]byte, error) {
+	//nolint:staticcheck
 	return json.Marshal(res)
 }
