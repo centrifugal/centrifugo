@@ -1347,7 +1347,7 @@ func getCheckOrigin() func(r *http.Request) bool {
 	return func(r *http.Request) bool {
 		err := originChecker.Check(r)
 		if err != nil {
-			log.Info().Str("error", err.Error()).Msg("error checking request origin")
+			log.Info().Str("error", err.Error()).Strs("allowed_origins", allowedOrigins).Msg("error checking request origin")
 			return false
 		}
 		return true
