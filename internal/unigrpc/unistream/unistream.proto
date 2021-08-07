@@ -33,6 +33,7 @@ message Push {
     SUBSCRIBE = 5;
     CONNECT = 6;
     DISCONNECT = 7;
+    REFRESH = 8;
   }
   PushType type = 1;
   string channel = 2;
@@ -83,12 +84,19 @@ message Connect {
   string version = 2;
   bytes data = 3;
   map<string, SubscribeResult> subs = 4;
+  bool expires = 5;
+  uint32 ttl = 6;
 }
 
 message Disconnect {
   uint32 code = 1;
   string reason = 2;
   bool reconnect = 3;
+}
+
+message Refresh {
+  bool expires = 1;
+  uint32 ttl = 2;
 }
 
 message SubscribeResult {
