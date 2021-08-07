@@ -1324,38 +1324,33 @@ var warnAllowedOriginsOnce sync.Once
 
 func getCheckOrigin() func(r *http.Request) bool {
 	v := viper.GetViper()
-	if v.IsSet("allowed_origins") {
-		allowedOrigins := v.GetStringSlice("allowed_origins")
-		originChecker, err := origin.NewPatternChecker(allowedOrigins)
+	if !v.IsSet("allowed_origins") {
+		log.Fatal().Msg("allowed_origins not set")
+	}
+	allowedOrigins := v.GetStringSlice("allowed_origins")
+	if len(allowedOrigins) == 0 {
+		log.Fatal().Msg("allowed_origins can't be empty")
+	}
+	originChecker, err := origin.NewPatternChecker(allowedOrigins)
+	if err != nil {
+		log.Fatal().Msgf("error creating origin checker: %v", err)
+	}
+	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
+		// Fast path for *.
+		warnAllowedOriginsOnce.Do(func() {
+			log.Warn().Msgf("usage of allowed_origins * is discouraged for security reasons, consider setting exact list of origins")
+		})
+		return func(r *http.Request) bool {
+			return true
+		}
+	}
+	return func(r *http.Request) bool {
+		err := originChecker.Check(r)
 		if err != nil {
-			log.Fatal().Msgf("error creating origin checker: %v", err)
+			log.Info().Str("error", err.Error()).Msg("error checking request origin")
+			return false
 		}
-		if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
-			// Fast path for *.
-			warnAllowedOriginsOnce.Do(func() {
-				log.Warn().Msgf("usage of allowed_origins * is discouraged for security reasons, consider setting exact list of origins")
-			})
-			return func(r *http.Request) bool {
-				return true
-			}
-		}
-		return func(r *http.Request) bool {
-			err := originChecker.Check(r)
-			if err != nil {
-				log.Info().Str("error", err.Error()).Msg("error checking request origin")
-				return false
-			}
-			return true
-		}
-	} else {
-		return func(r *http.Request) bool {
-			err := origin.CheckSameHost(r)
-			if err != nil {
-				log.Info().Str("error", err.Error()).Msg("error checking request origin")
-				return false
-			}
-			return true
-		}
+		return true
 	}
 }
 
