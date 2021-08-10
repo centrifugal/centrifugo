@@ -17,6 +17,11 @@ service CentrifugoApi {
     rpc Info (InfoRequest) returns (InfoResponse) {}
     rpc RPC (RPCRequest) returns (RPCResponse) {}
     rpc Refresh (RefreshRequest) returns (RefreshResponse) {}
+    rpc Channels (ChannelsRequest) returns (ChannelsResponse) {}
+    rpc UserConnections (UserConnectionsRequest) returns (UserConnectionsResponse) {}
+    rpc UpdateUserStatus (UpdateUserStatusRequest) returns (UpdateUserStatusResponse) {}
+    rpc GetUserStatus (GetUserStatusRequest) returns (GetUserStatusResponse) {}
+    rpc DeleteUserStatus (DeleteUserStatusRequest) returns (DeleteUserStatusResponse) {}
 }
 
 message Command {
@@ -34,6 +39,10 @@ message Command {
         RPC = 10;
         SUBSCRIBE = 11;
         REFRESH = 12;
+        USER_CONNECTIONS = 14;
+        UPDATE_USER_STATUS = 15;
+        GET_USER_STATUS = 16;
+        DELETE_USER_STATUS = 17;
     }
     uint32 id = 1;
     MethodType method = 2;
@@ -288,4 +297,84 @@ message Metrics {
 message Process {
     double cpu = 1;
     int64 rss = 2;
+}
+
+message ChannelsRequest {
+    string pattern = 1;
+}
+
+message ChannelsResponse {
+    Error error = 1;
+    ChannelsResult result = 2;
+}
+
+message ChannelsResult {
+    map<string, ChannelInfo> channels = 1;
+}
+
+message ChannelInfo {
+    uint32 num_clients = 1;
+}
+
+message UserConnectionsRequest {
+    string user = 1;
+}
+
+message UserConnectionsResponse {
+    Error error = 1;
+    UserConnectionsResult result = 2;
+}
+
+message UserConnectionsResult {
+    map<string, UserConnectionInfo> connections = 1;
+}
+
+message UserConnectionInfo {
+    string app_name = 1;
+    string app_version = 2;
+    string transport = 3;
+    string protocol = 4;
+    bytes meta = 5;
+}
+
+message UpdateUserStatusRequest {
+    repeated string users = 1;
+}
+
+message UpdateUserStatusResponse {
+    Error error = 1;
+    UpdateUserStatusResult result = 2;
+}
+
+message UpdateUserStatusResult {}
+
+message GetUserStatusRequest {
+    repeated string users = 1;
+}
+
+message GetUserStatusResponse {
+    Error error = 1;
+    GetUserStatusResult result = 2;
+}
+
+message GetUserStatusResult {
+    repeated UserStatus statuses = 1;
+}
+
+message UserStatus {
+    string user = 1;
+    int64 active = 2;
+    int64 online = 3;
+}
+
+message DeleteUserStatusRequest {
+    repeated string users = 1;
+}
+
+message DeleteUserStatusResponse {
+    Error error = 1;
+    DeleteUserStatusResult result = 2;
+}
+
+message DeleteUserStatusResult {
 }

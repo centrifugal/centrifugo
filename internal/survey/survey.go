@@ -2,14 +2,13 @@ package survey
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-
-	"github.com/gobwas/glob"
 
 	"github.com/centrifugal/centrifugo/v3/internal/apiproto"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/gobwas/glob"
+	"google.golang.org/protobuf/proto"
 )
 
 // Handler can handle survey.
@@ -44,39 +43,32 @@ const (
 	MethodNotFound uint32 = 3
 )
 
-func (c *Caller) Channels(ctx context.Context, params apiproto.Raw) (apiproto.Raw, error) {
-	channels, err := surveyChannels(ctx, c.node, params)
+func (c *Caller) Channels(ctx context.Context, cmd *apiproto.ChannelsRequest) (map[string]*apiproto.ChannelInfo, error) {
+	return surveyChannels(ctx, c.node, cmd)
+}
+
+func surveyChannels(ctx context.Context, node *centrifuge.Node, cmd *apiproto.ChannelsRequest) (map[string]*apiproto.ChannelInfo, error) {
+	req, _ := proto.Marshal(cmd)
+	results, err := node.Survey(ctx, "channels", req)
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(channels)
-}
-
-type ChannelInfo struct {
-	NumClients int `json:"num_clients"`
-}
-
-func surveyChannels(ctx context.Context, node *centrifuge.Node, params apiproto.Raw) (map[string]ChannelInfo, error) {
-	results, err := node.Survey(ctx, "channels", params)
-	if err != nil {
-		return nil, err
-	}
-	channels := map[string]ChannelInfo{}
+	channels := map[string]*apiproto.ChannelInfo{}
 	for nodeID, result := range results {
 		if result.Code > 0 {
 			return nil, fmt.Errorf("non-zero code from node %s: %d", nodeID, result.Code)
 		}
-		var nodeChannels map[string]int
-		err := json.Unmarshal(result.Data, &nodeChannels)
+		var nodeChannels apiproto.ChannelsResult
+		err := proto.Unmarshal(result.Data, &nodeChannels)
 		if err != nil {
 			return nil, fmt.Errorf("error unmarshaling data from node %s: %v", nodeID, err)
 		}
-		for ch, numSubscribers := range nodeChannels {
+		for ch, chInfo := range nodeChannels.Channels {
 			info, ok := channels[ch]
 			if !ok {
-				channels[ch] = ChannelInfo{NumClients: numSubscribers}
+				channels[ch] = &apiproto.ChannelInfo{NumClients: chInfo.NumClients}
 			} else {
-				info.NumClients += numSubscribers
+				info.NumClients += chInfo.NumClients
 				channels[ch] = info
 			}
 		}
@@ -84,13 +76,9 @@ func surveyChannels(ctx context.Context, node *centrifuge.Node, params apiproto.
 	return channels, nil
 }
 
-type channelsRequest struct {
-	Pattern string `json:"pattern"`
-}
-
 func respondChannelsSurvey(node *centrifuge.Node, params []byte) centrifuge.SurveyReply {
-	var req channelsRequest
-	err := json.Unmarshal(params, &req)
+	var req apiproto.ChannelsRequest
+	err := proto.Unmarshal(params, &req)
 	if err != nil {
 		return centrifuge.SurveyReply{Code: InvalidRequest}
 	}
@@ -103,16 +91,18 @@ func respondChannelsSurvey(node *centrifuge.Node, params []byte) centrifuge.Surv
 		}
 	}
 	channels := node.Hub().Channels()
-	channelsMap := make(map[string]int, len(channels))
+	channelsMap := make(map[string]*apiproto.ChannelInfo, len(channels))
 	for _, ch := range channels {
 		if g != nil && !g.Match(ch) {
 			continue
 		}
 		if numSubscribers := node.Hub().NumSubscribers(ch); numSubscribers > 0 {
-			channelsMap[ch] = numSubscribers
+			channelsMap[ch] = &apiproto.ChannelInfo{
+				NumClients: uint32(numSubscribers),
+			}
 		}
 	}
-	data, err := json.Marshal(channelsMap)
+	data, err := proto.Marshal(&apiproto.ChannelsResult{Channels: channelsMap})
 	if err != nil {
 		return centrifuge.SurveyReply{Code: InternalError}
 	}

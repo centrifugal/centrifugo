@@ -72,6 +72,11 @@ type ParamsDecoder interface {
 	DecodeInfo([]byte) (*InfoRequest, error)
 	DecodeRPC([]byte) (*RPCRequest, error)
 	DecodeRefresh([]byte) (*RefreshRequest, error)
+	DecodeChannels([]byte) (*ChannelsRequest, error)
+	DecodeUserConnections([]byte) (*UserConnectionsRequest, error)
+	DecodeUpdateUserStatus([]byte) (*UpdateUserStatusRequest, error)
+	DecodeGetUserStatus([]byte) (*GetUserStatusRequest, error)
+	DecodeDeleteUserStatus([]byte) (*DeleteUserStatusRequest, error)
 }
 
 var _ ParamsDecoder = (*JSONParamsDecoder)(nil)
@@ -198,6 +203,56 @@ func (d *JSONParamsDecoder) DecodeRPC(data []byte) (*RPCRequest, error) {
 // DecodeRefresh ...
 func (d *JSONParamsDecoder) DecodeRefresh(data []byte) (*RefreshRequest, error) {
 	var p RefreshRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeChannels ...
+func (d *JSONParamsDecoder) DecodeChannels(data []byte) (*ChannelsRequest, error) {
+	var p ChannelsRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeUserConnections ...
+func (d *JSONParamsDecoder) DecodeUserConnections(data []byte) (*UserConnectionsRequest, error) {
+	var p UserConnectionsRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeUpdateActiveStatus ...
+func (d *JSONParamsDecoder) DecodeUpdateUserStatus(data []byte) (*UpdateUserStatusRequest, error) {
+	var p UpdateUserStatusRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeGetUserStatus ...
+func (d *JSONParamsDecoder) DecodeGetUserStatus(data []byte) (*GetUserStatusRequest, error) {
+	var p GetUserStatusRequest
+	err := json.Unmarshal(data, &p)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+// DecodeDeleteUserStatus ...
+func (d *JSONParamsDecoder) DecodeDeleteUserStatus(data []byte) (*DeleteUserStatusRequest, error) {
+	var p DeleteUserStatusRequest
 	err := json.Unmarshal(data, &p)
 	if err != nil {
 		return nil, err

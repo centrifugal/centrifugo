@@ -317,6 +317,96 @@ func (s *Handler) handleAPICommand(ctx context.Context, cmd *Command) (*Reply, e
 				}
 			}
 		}
+	case Command_CHANNELS:
+		cmd, err := decoder.DecodeChannels(params)
+		if err != nil {
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding channels params", map[string]interface{}{"error": err.Error()}))
+			rep.Error = ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.Channels(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeChannels(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case Command_USER_CONNECTIONS:
+		cmd, err := decoder.DecodeUserConnections(params)
+		if err != nil {
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding user_connections params", map[string]interface{}{"error": err.Error()}))
+			rep.Error = ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.UserConnections(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeUserConnections(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case Command_UPDATE_USER_STATUS:
+		cmd, err := decoder.DecodeUpdateUserStatus(params)
+		if err != nil {
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding update_active_status params", map[string]interface{}{"error": err.Error()}))
+			rep.Error = ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.UpdateActiveStatus(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeUpdateUserStatus(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case Command_GET_USER_STATUS:
+		cmd, err := decoder.DecodeGetUserStatus(params)
+		if err != nil {
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding get_user_status params", map[string]interface{}{"error": err.Error()}))
+			rep.Error = ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.GetUserStatus(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeGetUserStatus(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	case Command_DELETE_USER_STATUS:
+		cmd, err := decoder.DecodeDeleteUserStatus(params)
+		if err != nil {
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding delete_user_status params", map[string]interface{}{"error": err.Error()}))
+			rep.Error = ErrorBadRequest
+			return rep, nil
+		}
+		resp := s.api.DeleteUserStatus(ctx, cmd)
+		if resp.Error != nil {
+			rep.Error = resp.Error
+		} else {
+			if resp.Result != nil {
+				replyRes, err = encoder.EncodeDeleteUserStatus(resp.Result)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
 	default:
 		rep.Error = ErrorMethodNotFound
 	}

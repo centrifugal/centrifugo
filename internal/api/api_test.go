@@ -28,11 +28,11 @@ func nodeWithMemoryEngine() *centrifuge.Node {
 
 type testSurveyCaller struct{}
 
-func (t testSurveyCaller) UserConnections(_ context.Context, _ Raw) (Raw, error) {
+func (t testSurveyCaller) Channels(_ context.Context, _ *ChannelsRequest) (map[string]*ChannelInfo, error) {
 	return nil, nil
 }
 
-func (t testSurveyCaller) Channels(_ context.Context, _ Raw) (Raw, error) {
+func (t testSurveyCaller) UserConnections(_ context.Context, _ *UserConnectionsRequest) (map[string]*UserConnectionInfo, error) {
 	return nil, nil
 }
 

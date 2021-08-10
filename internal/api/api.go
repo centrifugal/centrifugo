@@ -27,7 +27,7 @@ type Executor struct {
 
 // SurveyCaller can do surveys.
 type SurveyCaller interface {
-	Channels(ctx context.Context, params Raw) (Raw, error)
+	Channels(ctx context.Context, cmd *ChannelsRequest) (map[string]*ChannelInfo, error)
 }
 
 // NewExecutor ...
@@ -39,9 +39,6 @@ func NewExecutor(n *centrifuge.Node, ruleContainer *rule.Container, surveyCaller
 		surveyCaller:  surveyCaller,
 		rpcExtension:  make(map[string]RPCHandler),
 	}
-	e.SetRPCExtension("getChannels", func(ctx context.Context, params Raw) (Raw, error) {
-		return surveyCaller.Channels(ctx, params)
-	})
 	return e
 }
 
@@ -660,6 +657,63 @@ func (h *Executor) RPC(ctx context.Context, cmd *RPCRequest) *RPCResponse {
 		Data: data,
 	}
 
+	return resp
+}
+
+// Channels in the system.
+func (h *Executor) Channels(ctx context.Context, cmd *ChannelsRequest) *ChannelsResponse {
+	started := time.Now()
+	defer observe(started, h.protocol, "channels")
+
+	resp := &ChannelsResponse{}
+
+	channels, err := h.surveyCaller.Channels(ctx, cmd)
+	if err != nil {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error calling channels", map[string]interface{}{"error": err.Error()}))
+		resp.Error = toAPIErr(err)
+		return resp
+	}
+
+	resp.Result = &ChannelsResult{
+		Channels: channels,
+	}
+
+	return resp
+}
+
+// UserConnections returns all active connections of a user.
+func (h *Executor) UserConnections(_ context.Context, _ *UserConnectionsRequest) *UserConnectionsResponse {
+	started := time.Now()
+	defer observe(started, h.protocol, "user_connections")
+	resp := &UserConnectionsResponse{}
+	resp.Error = ErrorNotAvailable
+	return resp
+}
+
+// UpdateActiveStatus ...
+func (h *Executor) UpdateActiveStatus(_ context.Context, _ *UpdateUserStatusRequest) *UpdateUserStatusResponse {
+	started := time.Now()
+	defer observe(started, h.protocol, "update_user_status")
+	resp := &UpdateUserStatusResponse{}
+	resp.Error = ErrorNotAvailable
+	return resp
+}
+
+// GetUserStatus ...
+func (h *Executor) GetUserStatus(_ context.Context, _ *GetUserStatusRequest) *GetUserStatusResponse {
+	started := time.Now()
+	defer observe(started, h.protocol, "get_user_status")
+	resp := &GetUserStatusResponse{}
+	resp.Error = ErrorNotAvailable
+	return resp
+}
+
+// DeleteUserStatus ...
+func (h *Executor) DeleteUserStatus(_ context.Context, _ *DeleteUserStatusRequest) *DeleteUserStatusResponse {
+	started := time.Now()
+	defer observe(started, h.protocol, "delete_user_status")
+	resp := &DeleteUserStatusResponse{}
+	resp.Error = ErrorNotAvailable
 	return resp
 }
 
