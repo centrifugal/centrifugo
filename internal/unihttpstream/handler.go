@@ -1,7 +1,7 @@
 package unihttpstream
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -29,8 +29,14 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var req *protocol.ConnectRequest
 	if r.Method == http.MethodPost {
-		connectRequestData, err := ioutil.ReadAll(r.Body)
+		maxBytesSize := int64(h.config.MaxRequestBodySize)
+		r.Body = http.MaxBytesReader(w, r.Body, maxBytesSize)
+		connectRequestData, err := io.ReadAll(r.Body)
 		if err != nil {
+			if len(connectRequestData) >= int(maxBytesSize) {
+				w.WriteHeader(http.StatusRequestEntityTooLarge)
+				return
+			}
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error reading body", map[string]interface{}{"error": err.Error()}))
 			return
 		}

@@ -160,6 +160,10 @@ func bindCentrifugoConfig() {
 		"uni_websocket_write_timeout":         time.Second,
 		"uni_websocket_message_size_limit":    65536, // 64KB
 
+		"uni_http_stream_max_request_body_size": 65536, // 64KB
+
+		"uni_sse_max_request_body_size": 65536, // 64KB
+
 		"tls_autocert":                false,
 		"tls_autocert_host_whitelist": "",
 		"tls_autocert_cache_dir":      "",
@@ -202,12 +206,13 @@ func bindCentrifugoConfig() {
 		"websocket_handler_prefix": "/connection/websocket",
 		"sockjs_handler_prefix":    "/connection/sockjs",
 
-		"uni_websocket_handler_prefix":   "/connection/uni_websocket",
-		"uni_sse_handler_prefix":         "/connection/uni_sse",
-		"uni_http_stream_handler_prefix": "/connection/uni_http_stream",
-		"uni_grpc":                       false,
-		"uni_grpc_address":               "",
-		"uni_grpc_port":                  11000,
+		"uni_websocket_handler_prefix":      "/connection/uni_websocket",
+		"uni_sse_handler_prefix":            "/connection/uni_sse",
+		"uni_http_stream_handler_prefix":    "/connection/uni_http_stream",
+		"uni_grpc":                          false,
+		"uni_grpc_address":                  "",
+		"uni_grpc_port":                     11000,
+		"uni_grpc_max_receive_message_size": 65536,
 
 		"admin_handler_prefix":      "",
 		"api_handler_prefix":        "/api",
@@ -468,7 +473,7 @@ func main() {
 				var grpcOpts []grpc.ServerOption
 				//nolint:staticcheck
 				//goland:noinspection GoDeprecation
-				grpcOpts = append(grpcOpts, grpc.CustomCodec(&unigrpc.RawCodec{}))
+				grpcOpts = append(grpcOpts, grpc.CustomCodec(&unigrpc.RawCodec{}), grpc.MaxRecvMsgSize(viper.GetInt("uni_grpc_max_receive_message_size")))
 				var tlsConfig *tls.Config
 				var tlsErr error
 
@@ -1371,11 +1376,15 @@ func uniWebsocketHandlerConfig() uniws.Config {
 }
 
 func uniSSEHandlerConfig() unisse.Config {
-	return unisse.Config{}
+	return unisse.Config{
+		MaxRequestBodySize: viper.GetInt("uni_sse_max_request_body_size"),
+	}
 }
 
 func uniStreamHandlerConfig() unihttpstream.Config {
-	return unihttpstream.Config{}
+	return unihttpstream.Config{
+		MaxRequestBodySize: viper.GetInt("uni_http_stream_max_request_body_size"),
+	}
 }
 
 func uniGRPCHandlerConfig() unigrpc.Config {

@@ -1,6 +1,7 @@
 package unisse
 
 import (
+	"io"
 	"net/http"
 	"time"
 
@@ -22,16 +23,39 @@ func NewHandler(n *centrifuge.Node, c Config) *Handler {
 
 // Since SSE is a GET request we are looking for connect request in URL params.
 // This should be a properly encoded JSON object.
-const connectUrlParam = "connect"
+const connectUrlParam = "cf_connect"
 
 func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req *protocol.ConnectRequest
-	connectRequestString := r.URL.Query().Get(connectUrlParam)
-	if r.Method == http.MethodGet && connectRequestString != "" {
-		var err error
-		req, err = protocol.NewJSONParamsDecoder().DecodeConnect([]byte(connectRequestString))
+	if r.Method == http.MethodGet {
+		connectRequestString := r.URL.Query().Get(connectUrlParam)
+		if connectRequestString != "" {
+			var err error
+			req, err = protocol.NewJSONParamsDecoder().DecodeConnect([]byte(connectRequestString))
+			if err != nil {
+				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "malformed connect request", map[string]interface{}{"error": err.Error()}))
+				return
+			}
+		} else {
+			req = &protocol.ConnectRequest{}
+		}
+	} else if r.Method == http.MethodPost {
+		maxBytesSize := int64(h.config.MaxRequestBodySize)
+		r.Body = http.MaxBytesReader(w, r.Body, maxBytesSize)
+		connectRequestData, err := io.ReadAll(r.Body)
 		if err != nil {
-			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "malformed connect request", map[string]interface{}{"error": err.Error()}))
+			if len(connectRequestData) >= int(maxBytesSize) {
+				w.WriteHeader(http.StatusRequestEntityTooLarge)
+				return
+			}
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error reading body", map[string]interface{}{"error": err.Error()}))
+			return
+		}
+		req, err = protocol.NewJSONParamsDecoder().DecodeConnect(connectRequestData)
+		if err != nil {
+			if h.node.LogEnabled(centrifuge.LogLevelDebug) {
+				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "malformed connect request", map[string]interface{}{"error": err.Error()}))
+			}
 			return
 		}
 	} else {
