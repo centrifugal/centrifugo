@@ -88,7 +88,7 @@ func bindCentrifugoConfig() {
 		"token_ecdsa_public_key":     "",
 		"token_jwks_public_endpoint": "",
 
-		"server_side":                 false,
+		"protected":                   false,
 		"publish":                     false,
 		"subscribe_to_publish":        false,
 		"anonymous":                   false,
