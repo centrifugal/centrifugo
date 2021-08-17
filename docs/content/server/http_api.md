@@ -267,13 +267,11 @@ Date: Thu, 17 May 2018 22:14:10 GMT
             {
                 "data": {
                     "text": "hello"
-                },
-                "uid": "BWcn14OTBrqUhTXyjNg0fg"
+                }
             }, {
                 "data": {
                     "text": "hi!"
-                },
-                "uid": "Ascn14OTBrq14OXyjNg0hg"
+                }
             }
         ]
     }
