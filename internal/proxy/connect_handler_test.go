@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"sync"
 	"testing"
+
+	"github.com/centrifugal/centrifugo/v3/internal/tools"
 
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 
@@ -56,96 +56,19 @@ func newConnHandlerTestDepsConfig(proxyEndpoint string) connHandlerTestDepsConfi
 		connectProxy:        connectProxy,
 		connectProxyHandler: connectProxyHandler,
 		connectEvent: centrifuge.ConnectEvent{
-			Transport: newTestTransport(),
+			Transport: tools.NewTestTransport(),
 		},
 	}
-}
-
-type testTransport struct {
-	mu         sync.Mutex
-	sink       chan []byte
-	closed     bool
-	closeCh    chan struct{}
-	disconnect *centrifuge.Disconnect
-	protoType  centrifuge.ProtocolType
-}
-
-func newTestTransport() *testTransport {
-	return &testTransport{
-		protoType: centrifuge.ProtocolTypeJSON,
-		closeCh:   make(chan struct{}),
-	}
-}
-
-func (t *testTransport) Write(message []byte) error {
-	return t.WriteMany(message)
-}
-
-func (t *testTransport) WriteMany(messages ...[]byte) error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	if t.closed {
-		return io.EOF
-	}
-	for _, buf := range messages {
-		dataCopy := make([]byte, len(buf))
-		copy(dataCopy, buf)
-		if t.sink != nil {
-			t.sink <- dataCopy
-		}
-	}
-	return nil
-}
-
-func (t *testTransport) Name() string {
-	return "test_transport"
-}
-
-func (t *testTransport) Protocol() centrifuge.ProtocolType {
-	return t.protoType
-}
-
-func (t *testTransport) Unidirectional() bool {
-	return false
-}
-
-func (t *testTransport) DisabledPushFlags() uint64 {
-	return centrifuge.PushFlagDisconnect
-}
-
-func (t *testTransport) Close(disconnect *centrifuge.Disconnect) error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	if t.closed {
-		return nil
-	}
-	t.disconnect = disconnect
-	t.closed = true
-	close(t.closeCh)
-	return nil
-}
-
-func nodeWithMemoryEngine() *centrifuge.Node {
-	c := centrifuge.DefaultConfig
-	n, err := centrifuge.New(c)
-	if err != nil {
-		panic(err)
-	}
-	err = n.Run()
-	if err != nil {
-		panic(err)
-	}
-	return n
 }
 
 type proxyHandler struct{}
 
 func (h *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(`{}`))
+	_, _ = w.Write([]byte(`{}`))
 }
 
 func TestHandleWithoutResult(t *testing.T) {
-	node := nodeWithMemoryEngine()
+	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	mux := http.NewServeMux()
@@ -161,7 +84,7 @@ func TestHandleWithoutResult(t *testing.T) {
 }
 
 func TestHandleWithResult(t *testing.T) {
-	node := nodeWithMemoryEngine()
+	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	custData := "test"
@@ -169,7 +92,7 @@ func TestHandleWithResult(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(fmt.Sprintf(`{"result": {"user": "56", "expire_at": 1565436268, "b64data": "%s"}}`, custDataB64)))
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"user": "56", "expire_at": 1565436268, "b64data": "%s"}}`, custDataB64)))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -192,12 +115,12 @@ func TestHandleWithResult(t *testing.T) {
 }
 
 func TestHandleWithInvalidCustomData(t *testing.T) {
-	node := nodeWithMemoryEngine()
+	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(`{"result": {"user": "56", "expire_at": 1565436268, "b64data": "invalid data"}}`))
+		_, _ = w.Write([]byte(`{"result": {"user": "56", "expire_at": 1565436268, "b64data": "invalid data"}}`))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -211,7 +134,7 @@ func TestHandleWithInvalidCustomData(t *testing.T) {
 }
 
 func TestHandleWithContextCancel(t *testing.T) {
-	node := nodeWithMemoryEngine()
+	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	mux := http.NewServeMux()
@@ -231,7 +154,7 @@ func TestHandleWithContextCancel(t *testing.T) {
 }
 
 func TestHandleWithoutProxyServerStart(t *testing.T) {
-	node := nodeWithMemoryEngine()
+	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	testDepsCfg := newConnHandlerTestDepsConfig("/proxy")
@@ -242,12 +165,12 @@ func TestHandleWithoutProxyServerStart(t *testing.T) {
 }
 
 func TestHandleWithProxyServerCustomDisconnect(t *testing.T) {
-	node := nodeWithMemoryEngine()
+	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(`{"disconnect": {"code": 4000, "reconnect": false, "reason": "custom disconnect"}}`))
+		_, _ = w.Write([]byte(`{"disconnect": {"code": 4000, "reconnect": false, "reason": "custom disconnect"}}`))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -267,12 +190,12 @@ func TestHandleWithProxyServerCustomDisconnect(t *testing.T) {
 }
 
 func TestHandleWithProxyServerCustomError(t *testing.T) {
-	node := nodeWithMemoryEngine()
+	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(`{"error": {"code": 1000, "message": "custom error"}}`))
+		_, _ = w.Write([]byte(`{"error": {"code": 1000, "message": "custom error"}}`))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -291,12 +214,12 @@ func TestHandleWithProxyServerCustomError(t *testing.T) {
 }
 
 func TestHandleWithSubscription(t *testing.T) {
-	node := nodeWithMemoryEngine()
+	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(`{"result": {"user": "56", "channels": ["test_ch"]}}`))
+		_, _ = w.Write([]byte(`{"result": {"user": "56", "channels": ["test_ch"]}}`))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -313,12 +236,12 @@ func TestHandleWithSubscription(t *testing.T) {
 }
 
 func TestHandleWithSubscriptionError(t *testing.T) {
-	node := nodeWithMemoryEngine()
+	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(`{"result": {"user": "56", "channels": ["test_ch:test"]}}`))
+		_, _ = w.Write([]byte(`{"result": {"user": "56", "channels": ["test_ch:test"]}}`))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
