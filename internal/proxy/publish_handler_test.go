@@ -19,8 +19,6 @@ import (
 )
 
 type publishHandlerTestDepsConfig struct {
-	proxyCfg            Config
-	connectProxy        *HTTPConnectProxy
 	publishProxyHandler *PublishHandler
 	transport           *tools.TestTransport
 }
@@ -47,7 +45,6 @@ func newPublishHandlerTestDepsConfig(proxyEndpoint string) publishHandlerTestDep
 	})
 
 	return publishHandlerTestDepsConfig{
-		proxyCfg:            proxyCfg,
 		publishProxyHandler: publishProxyHandler,
 		transport:           tools.NewTestTransport(),
 	}

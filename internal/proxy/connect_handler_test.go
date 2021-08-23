@@ -20,8 +20,6 @@ import (
 )
 
 type connHandlerTestDepsConfig struct {
-	proxyCfg            Config
-	connectProxy        *HTTPConnectProxy
 	connectProxyHandler *ConnectHandler
 	connectEvent        centrifuge.ConnectEvent
 }
@@ -47,8 +45,6 @@ func newConnHandlerTestDepsConfig(proxyEndpoint string) connHandlerTestDepsConfi
 	}, rule.NewContainer(rule.DefaultConfig))
 
 	return connHandlerTestDepsConfig{
-		proxyCfg:            proxyCfg,
-		connectProxy:        connectProxy,
 		connectProxyHandler: connectProxyHandler,
 		connectEvent: centrifuge.ConnectEvent{
 			Transport: tools.NewTestTransport(),
