@@ -82,6 +82,11 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			return centrifuge.SubscribeReply{}, proxyproto.ErrorFromProto(subscribeRep.Error)
 		}
 
+		presence := chOpts.Presence
+		joinLeave := chOpts.JoinLeave
+		useRecover := chOpts.Recover
+		position := chOpts.Position
+
 		var info []byte
 		if subscribeRep.Result != nil {
 			if subscribeRep.Result.B64Info != "" {
@@ -94,14 +99,30 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			} else {
 				info = subscribeRep.Result.Info
 			}
+
+			result := subscribeRep.Result
+
+			if result.Override != nil && result.Override.Presence != nil {
+				presence = result.Override.Presence.Value
+			}
+			if result.Override != nil && result.Override.JoinLeave != nil {
+				joinLeave = result.Override.JoinLeave.Value
+			}
+			if result.Override != nil && result.Override.Recover != nil {
+				useRecover = result.Override.Recover.Value
+			}
+			if result.Override != nil && result.Override.Position != nil {
+				position = result.Override.Position.Value
+			}
 		}
 
 		return centrifuge.SubscribeReply{
 			Options: centrifuge.SubscribeOptions{
 				ChannelInfo: info,
-				Presence:    chOpts.Presence,
-				JoinLeave:   chOpts.JoinLeave,
-				Recover:     chOpts.Recover,
+				Presence:    presence,
+				JoinLeave:   joinLeave,
+				Recover:     useRecover,
+				Position:    position,
 			},
 			ClientSideRefresh: true,
 		}, nil

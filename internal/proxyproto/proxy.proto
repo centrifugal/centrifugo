@@ -113,11 +113,6 @@ message SubscribeOptionOverride {
   BoolValue position = 4;
 }
 
-message PublishOptionOverride {
-  Int32Value history_size = 1;
-  Int32Value history_ttl = 2;
-}
-
 message SubscribeResult {
   int64 expire_at = 1;
   bytes info = 2;
@@ -149,7 +144,7 @@ message PublishRequest {
 message PublishResult {
   bytes data = 1;
   string b64data = 2;
-  PublishOptionOverride override = 3;
+  bool skip_history = 3;
 }
 
 message PublishResponse {

@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifuge"
-	"github.com/stretchr/testify/require"
-
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
+
+	"github.com/centrifugal/centrifuge"
+	"github.com/stretchr/testify/require"
 )
 
 type refreshHandlerTestDepsConfig struct {
@@ -53,15 +53,15 @@ func TestHandleRefreshWithCredentials(t *testing.T) {
 	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	custData := "test"
-	custDataB64 := base64.StdEncoding.EncodeToString([]byte(custData))
+	customData := "test"
+	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 	expireAt := 1565436268
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/refresh", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"expire_at": %d, "b64info": "%s"}}`,
 			expireAt,
-			custDataB64,
+			customDataB64,
 		)))
 	})
 	server := httptest.NewServer(mux)
@@ -78,7 +78,7 @@ func TestHandleRefreshWithCredentials(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(expireAt), refreshReply.ExpireAt)
 	require.False(t, refreshReply.Expired)
-	require.Equal(t, custData, string(refreshReply.Info))
+	require.Equal(t, customData, string(refreshReply.Info))
 }
 
 func TestHandleRefreshWithEmptyCredentials(t *testing.T) {

@@ -495,6 +495,11 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 			return centrifuge.SubscribeReply{}, centrifuge.ErrorNotAvailable
 		}
 		return subscribeProxyHandler(c, e, chOpts)
+	} else {
+		options.Position = chOpts.Position
+		options.Recover = chOpts.Recover
+		options.Presence = chOpts.Presence
+		options.JoinLeave = chOpts.JoinLeave
 	}
 
 	if chOpts.Protected && !isPrivateChannel && !isUserLimited {

@@ -9,14 +9,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v3/internal/rule"
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
 
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
-
-	"github.com/centrifugal/centrifugo/v3/internal/rule"
-	"github.com/stretchr/testify/require"
-
 	"github.com/centrifugal/centrifuge"
+	"github.com/stretchr/testify/require"
 )
 
 type connHandlerTestDepsConfig struct {
@@ -54,7 +52,7 @@ func newConnHandlerTestDepsConfig(proxyEndpoint string) connHandlerTestDepsConfi
 
 type proxyHandler struct{}
 
-func (h *proxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *proxyHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte(`{}`))
 }
 
@@ -78,12 +76,12 @@ func TestHandleWithResult(t *testing.T) {
 	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	custData := "test"
-	custDataB64 := base64.StdEncoding.EncodeToString([]byte(custData))
+	customData := "test"
+	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"user": "56", "expire_at": 1565436268, "b64data": "%s"}}`, custDataB64)))
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"user": "56", "expire_at": 1565436268, "b64data": "%s"}}`, customDataB64)))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -96,7 +94,7 @@ func TestHandleWithResult(t *testing.T) {
 			UserID:   "56",
 			ExpireAt: 1565436268,
 		},
-		Data: []byte(custData),
+		Data: []byte(customData),
 	}
 
 	connReply, err := connHandler(context.Background(), testDepsCfg.connectEvent)
@@ -175,7 +173,7 @@ func TestHandleWithProxyServerCustomDisconnect(t *testing.T) {
 		Reason:    "custom disconnect",
 		Reconnect: false,
 	}
-
+	require.NotNil(t, err)
 	require.Equal(t, err.Error(), expectedErr.Error())
 	require.Equal(t, connReply, centrifuge.ConnectReply{})
 }
@@ -199,7 +197,7 @@ func TestHandleWithProxyServerCustomError(t *testing.T) {
 		Code:    1000,
 		Message: "custom error",
 	}
-
+	require.NotNil(t, err)
 	require.Equal(t, err.Error(), expectedErr.Error())
 	require.Equal(t, connReply, centrifuge.ConnectReply{})
 }

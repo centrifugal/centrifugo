@@ -86,6 +86,9 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 			return centrifuge.PublishReply{}, proxyproto.ErrorFromProto(publishRep.Error)
 		}
 
+		historySize := chOpts.HistorySize
+		historyTTL := chOpts.HistoryTTL
+
 		data := e.Data
 		if publishRep.Result != nil {
 			if publishRep.Result.Data != nil {
@@ -98,12 +101,17 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 				}
 				data = decodedData
 			}
+
+			if publishRep.Result.SkipHistory {
+				historySize = 0
+				historyTTL = 0
+			}
 		}
 
 		result, err := node.Publish(
 			e.Channel, data,
 			centrifuge.WithClientInfo(e.ClientInfo),
-			centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryTTL)),
+			centrifuge.WithHistory(historySize, time.Duration(historyTTL)),
 		)
 		return centrifuge.PublishReply{Result: &result}, err
 	}
