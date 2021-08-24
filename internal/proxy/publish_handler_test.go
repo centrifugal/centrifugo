@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -59,7 +60,7 @@ func TestHandlePublishWithResult(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/publish", func(w http.ResponseWriter, req *http.Request) {
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"user": "56", "expire_at": 1565436268, "b64data": "%s"}}`, custDataB64)))
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64data": "%s"}}`, custDataB64)))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -73,13 +74,14 @@ func TestHandlePublishWithResult(t *testing.T) {
 
 	publishEvent := centrifuge.PublishEvent{}
 	chOpts := rule.ChannelOptions{
-		HistoryTTL:  1,
+		HistoryTTL:  tools.Duration(1 * time.Nanosecond),
 		HistorySize: 1,
 	}
 
 	publishReply, err := publishHandler(client, publishEvent, chOpts)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), publishReply.Result.Offset)
+	require.NotEmpty(t, publishReply.Result.Epoch)
 }
 
 func TestHandlePublishWithContextCancel(t *testing.T) {
@@ -187,7 +189,7 @@ func TestHandlePublishWithInvalidCustomData(t *testing.T) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/publish", func(w http.ResponseWriter, req *http.Request) {
-		_, _ = w.Write([]byte(`{"result": {"user": "56", "expire_at": 1565436268, "b64data": "invalid data"}}`))
+		_, _ = w.Write([]byte(`{"result": {"b64data": "invalid data"}}`))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
