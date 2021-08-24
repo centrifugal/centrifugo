@@ -9,11 +9,11 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.2.2
 	github.com/FZambia/viper-lite v0.0.0-20171108064948-d5a31e6aa18b
-	github.com/centrifugal/centrifuge v0.17.1-0.20210820081141-7ea1c46e396d
-	github.com/centrifugal/protocol v0.5.1-0.20210806171840-92c9258495e6
+	github.com/centrifugal/centrifuge v0.17.2-0.20210823192531-98f6388edbb1
+	github.com/centrifugal/protocol v0.7.0
 	github.com/cristalhq/jwt/v3 v3.1.0
 	github.com/gobwas/glob v0.2.3
-	github.com/google/uuid v1.2.0
+	github.com/google/uuid v1.3.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/websocket v1.4.2
 	github.com/mattn/go-isatty v0.0.12
@@ -37,7 +37,7 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/genproto v0.0.0-20210406143921-e86de6bf7a46 // indirect
 	google.golang.org/grpc v1.37.0
-	google.golang.org/protobuf v1.26.0
+	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

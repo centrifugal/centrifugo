@@ -110,7 +110,7 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 		Data: data,
 		Info: infoToProto(opts.ClientInfo),
 	}
-	data, err := protoPub.Marshal()
+	data, err := protoPub.MarshalVT()
 	if err != nil {
 		return centrifuge.StreamPosition{}, err
 	}
@@ -119,7 +119,7 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 		Channel: ch,
 		Data:    data,
 	}
-	byteMessage, err := push.Marshal()
+	byteMessage, err := push.MarshalVT()
 	if err != nil {
 		return centrifuge.StreamPosition{}, err
 	}
@@ -128,7 +128,7 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 
 // PublishJoin - see Broker interface description.
 func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
-	data, err := infoToProto(info).Marshal()
+	data, err := infoToProto(info).MarshalVT()
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
 		Channel: ch,
 		Data:    data,
 	}
-	byteMessage, err := push.Marshal()
+	byteMessage, err := push.MarshalVT()
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (b *NatsBroker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
 
 // PublishLeave - see Broker interface description.
 func (b *NatsBroker) PublishLeave(ch string, info *centrifuge.ClientInfo) error {
-	data, err := infoToProto(info).Marshal()
+	data, err := infoToProto(info).MarshalVT()
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,7 @@ func (b *NatsBroker) PublishLeave(ch string, info *centrifuge.ClientInfo) error 
 		Channel: ch,
 		Data:    data,
 	}
-	byteMessage, err := push.Marshal()
+	byteMessage, err := push.MarshalVT()
 	if err != nil {
 		return err
 	}
@@ -185,28 +185,28 @@ func (b *NatsBroker) RemoveHistory(_ string) error {
 
 func (b *NatsBroker) handleClientMessage(data []byte) error {
 	var push protocol.Push
-	err := push.Unmarshal(data)
+	err := push.UnmarshalVT(data)
 	if err != nil {
 		return err
 	}
 	switch push.Type {
 	case protocol.Push_PUBLICATION:
 		var pub protocol.Publication
-		err := pub.Unmarshal(push.Data)
+		err := pub.UnmarshalVT(push.Data)
 		if err != nil {
 			return err
 		}
 		_ = b.eventHandler.HandlePublication(push.Channel, pubFromProto(&pub), centrifuge.StreamPosition{})
 	case protocol.Push_JOIN:
 		var info protocol.ClientInfo
-		err := info.Unmarshal(push.Data)
+		err := info.UnmarshalVT(push.Data)
 		if err != nil {
 			return err
 		}
 		_ = b.eventHandler.HandleJoin(push.Channel, infoFromProto(&info))
 	case protocol.Push_LEAVE:
 		var info protocol.ClientInfo
-		err := info.Unmarshal(push.Data)
+		err := info.UnmarshalVT(push.Data)
 		if err != nil {
 			return err
 		}
