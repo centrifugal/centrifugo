@@ -1212,7 +1212,6 @@ func proxyConfig() (proxy.Config, bool) {
 	cfg.HTTPConfig = httpConfig
 
 	grpcConfig := proxy.GRPCConfig{
-		Insecure:         v.GetBool("proxy_grpc_insecure"),
 		CertFile:         v.GetString("proxy_grpc_cert_file"),
 		CredentialsKey:   v.GetString("proxy_grpc_credentials_key"),
 		CredentialsValue: v.GetString("proxy_grpc_credentials_value"),

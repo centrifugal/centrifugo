@@ -57,7 +57,6 @@ type Config struct {
 }
 
 type GRPCConfig struct {
-	Insecure         bool
 	CertFile         string
 	CredentialsKey   string
 	CredentialsValue string

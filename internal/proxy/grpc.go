@@ -29,9 +29,6 @@ func (t rpcCredentials) RequireTransportSecurity() bool {
 
 func getDialOpts(c Config) ([]grpc.DialOption, error) {
 	var dialOpts []grpc.DialOption
-	if c.GRPCConfig.Insecure {
-		dialOpts = append(dialOpts, grpc.WithInsecure())
-	}
 	if c.GRPCConfig.CredentialsKey != "" {
 		dialOpts = append(dialOpts, grpc.WithPerRPCCredentials(&rpcCredentials{
 			key:   c.GRPCConfig.CredentialsKey,
@@ -44,6 +41,8 @@ func getDialOpts(c Config) ([]grpc.DialOption, error) {
 			return nil, fmt.Errorf("failed to create TLS credentials %v", err)
 		}
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(cred))
+	} else {
+		dialOpts = append(dialOpts, grpc.WithInsecure())
 	}
 	dialOpts = append(dialOpts, grpc.WithBlock())
 	return dialOpts, nil
