@@ -286,6 +286,15 @@ func main() {
 				log.Fatal().Msgf("error writing PID: %v", err)
 			}
 
+			if viper.IsSet("v3_use_offset") {
+				log.Fatal().Msg("v3_use_offset option is set which was removed in Centrifugo v3. " +
+					"Make sure to adapt your configuration file to fit Centrifugo v3 changes. See " +
+					"https://centrifugal.dev/docs/getting-started/migration_v3. If you had no intention to " +
+					"update Centrifugo to v3 then this error may be caused by using `latest` tag for " +
+					"Centrifugo Docker image in your deployment pipeline – pin to the specific Centrifugo " +
+					"image tag in this case (at least to centrifugo/centrifugo:v2).")
+			}
+
 			if os.Getenv("GOMAXPROCS") == "" {
 				if viper.IsSet("gomaxprocs") && viper.GetInt("gomaxprocs") > 0 {
 					runtime.GOMAXPROCS(viper.GetInt("gomaxprocs"))
