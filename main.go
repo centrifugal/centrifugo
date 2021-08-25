@@ -288,7 +288,7 @@ func main() {
 
 			if viper.IsSet("v3_use_offset") {
 				log.Fatal().Msg("v3_use_offset option is set which was removed in Centrifugo v3. " +
-					"Make sure to adapt your configuration file to fit Centrifugo v3 changes. See " +
+					"Make sure to adapt your configuration file to fit Centrifugo v3 changes. Refer to the " +
 					"https://centrifugal.dev/docs/getting-started/migration_v3. If you had no intention to " +
 					"update Centrifugo to v3 then this error may be caused by using `latest` tag for " +
 					"Centrifugo Docker image in your deployment pipeline – pin to the specific Centrifugo " +
@@ -1342,7 +1342,7 @@ func getCheckOrigin() func(r *http.Request) bool {
 	}
 	allowedOrigins := v.GetStringSlice("allowed_origins")
 	if len(allowedOrigins) == 0 {
-		log.Fatal().Msg("allowed_origins can't be empty")
+		log.Fatal().Msg("allowed_origins can't be empty, refer to the https://centrifugal.dev/docs/server/configuration#allowed_origins")
 	}
 	originChecker, err := origin.NewPatternChecker(allowedOrigins)
 	if err != nil {

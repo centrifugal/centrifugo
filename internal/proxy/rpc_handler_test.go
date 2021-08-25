@@ -9,11 +9,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
-	"github.com/stretchr/testify/require"
 
 	"github.com/centrifugal/centrifuge"
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+	"github.com/stretchr/testify/require"
 )
 
 type rpcHandlerTestDepsConfig struct {
@@ -55,13 +55,13 @@ func TestHandleRPCWithResult(t *testing.T) {
 
 	clientData := `{"field":"some data"}`
 	mux := http.NewServeMux()
-	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/rpc", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"data": %s}}`, clientData)))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	testDepsCfg := newRPCHandlerTestDepsConfig(server.URL + "/proxy")
+	testDepsCfg := newRPCHandlerTestDepsConfig(server.URL + "/rpc")
 	rpcHandler := testDepsCfg.rpcProxyHandler.Handle(node)
 
 	client, closeFn, err := centrifuge.NewClient(context.Background(), node, testDepsCfg.transport)
@@ -79,13 +79,13 @@ func TestHandleRPCWithContextCancel(t *testing.T) {
 
 	clientData := `{"field":"some data"}`
 	mux := http.NewServeMux()
-	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/rpc", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"data": %s}}`, clientData)))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	testDepsCfg := newRPCHandlerTestDepsConfig(server.URL + "/proxy")
+	testDepsCfg := newRPCHandlerTestDepsConfig(server.URL + "/rpc")
 	rpcHandler := testDepsCfg.rpcProxyHandler.Handle(node)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -103,7 +103,7 @@ func TestHandleRPCWithoutProxyServerStart(t *testing.T) {
 	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
-	testDepsCfg := newRPCHandlerTestDepsConfig("/proxy")
+	testDepsCfg := newRPCHandlerTestDepsConfig("/rpc")
 	rpcHandler := testDepsCfg.rpcProxyHandler.Handle(node)
 
 	client, closeFn, err := centrifuge.NewClient(context.Background(), node, testDepsCfg.transport)
@@ -120,13 +120,13 @@ func TestHandleRPCWithProxyServerCustomDisconnect(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/rpc", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"disconnect": {"code": 4000, "reconnect": false, "reason": "custom disconnect"}}`))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	testDepsCfg := newRPCHandlerTestDepsConfig(server.URL + "/proxy")
+	testDepsCfg := newRPCHandlerTestDepsConfig(server.URL + "/rpc")
 	rpcHandler := testDepsCfg.rpcProxyHandler.Handle(node)
 
 	client, closeFn, err := centrifuge.NewClient(context.Background(), node, testDepsCfg.transport)
@@ -149,13 +149,13 @@ func TestHandleRPCWithProxyServerCustomError(t *testing.T) {
 	defer func() { _ = node.Shutdown(context.Background()) }()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/rpc", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"error": {"code": 1000, "message": "custom error"}}`))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	testDepsCfg := newRPCHandlerTestDepsConfig(server.URL + "/proxy")
+	testDepsCfg := newRPCHandlerTestDepsConfig(server.URL + "/rpc")
 	rpcHandler := testDepsCfg.rpcProxyHandler.Handle(node)
 
 	client, closeFn, err := centrifuge.NewClient(context.Background(), node, testDepsCfg.transport)
@@ -180,13 +180,13 @@ func TestHandleRPCWithValidCustomData(t *testing.T) {
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/rpc", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64data": "%s"}}`, customDataB64)))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	testDepsCfg := newRPCHandlerTestDepsConfig(server.URL + "/proxy")
+	testDepsCfg := newRPCHandlerTestDepsConfig(server.URL + "/rpc")
 	rpcHandler := testDepsCfg.rpcProxyHandler.Handle(node)
 
 	client, closeFn, err := centrifuge.NewClient(context.Background(), node, testDepsCfg.transport)
@@ -202,13 +202,13 @@ func TestHandleRPCWithInvalidCustomData(t *testing.T) {
 	node := tools.NodeWithMemoryEngineNoHandlers()
 	defer func() { _ = node.Shutdown(context.Background()) }()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/rpc", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"result": {"b64data": "invalid data"}}`))
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	testDepsCfg := newRPCHandlerTestDepsConfig(server.URL + "/proxy")
+	testDepsCfg := newRPCHandlerTestDepsConfig(server.URL + "/rpc")
 	rpcHandler := testDepsCfg.rpcProxyHandler.Handle(node)
 
 	client, closeFn, err := centrifuge.NewClient(context.Background(), node, testDepsCfg.transport)
