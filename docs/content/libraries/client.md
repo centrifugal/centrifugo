@@ -1,5 +1,9 @@
 # Client libraries
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 These libraries allow your users to connect to Centrifugo from application frontend.
 
 * [centrifuge-js](https://github.com/centrifugal/centrifuge-js) – for browser, NodeJS and React Native

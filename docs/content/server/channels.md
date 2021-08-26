@@ -1,5 +1,9 @@
 # Channels
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 Channel is a route for publication messages. Clients can be subscribed to a channel to receive messages published to this channel – new publications, join/leave events (if enabled for a channel namespace) etc. Channel subscriber can also ask for channel presence or channel history information (if enabled for a channel namespace).
 
 Channel is just a string - `news`, `comments` are valid channel names. Though this string has some predefined rules as we will see below.

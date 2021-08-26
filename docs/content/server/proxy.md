@@ -1,5 +1,9 @@
 # Proxy calls to app backend
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 It's possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example, you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.
 
 ### Proxy request structure

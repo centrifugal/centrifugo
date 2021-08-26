@@ -1,5 +1,9 @@
 # HTTP API clients
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 Sending an API request to Centrifugo is a simple task to do in any programming language - this is just a POST request with JSON payload in body and `Authorization` header. See more in [special chapter](../server/http_api.md) in server section.
 
 We have several official client libraries for different languages, so you don't have to construct proper HTTP requests manually:

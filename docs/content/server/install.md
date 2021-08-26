@@ -1,5 +1,9 @@
 # Server overview and installation
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 Centrifugo server written in Go language. It's an open-source software, the source code is available [on Github](https://github.com/centrifugal/centrifugo).
 
 Centrifugo is built around [Centrifuge](https://github.com/centrifugal/centrifuge) library for Go language. That library defines custom protocol and message types which must be sent over various transports (Websocket, SockJS). Server clients use that protocol internally and provide simple API to features - making persistent connection, subscribing on channels, calling RPC commands and more.

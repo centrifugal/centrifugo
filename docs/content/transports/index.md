@@ -1,3 +1,7 @@
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 This section describes client-server transports that Centrifugo supports and its specifics. Client-server transports used to connect to Centrifugo from a frontend of your application.
 
 At moment Centrifugo supports the following client-server transports:

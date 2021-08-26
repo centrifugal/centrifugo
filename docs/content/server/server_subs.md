@@ -1,5 +1,9 @@
 # Server-side subscriptions
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 Starting from v2.4.0 Centrifugo supports server-side subscriptions.
 
 ### Overview

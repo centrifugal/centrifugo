@@ -1,5 +1,9 @@
 # Monitoring
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 Centrifugo supports reporting metrics in Prometheus format and can automatically export metrics to Graphite.
 
 ### Prometheus

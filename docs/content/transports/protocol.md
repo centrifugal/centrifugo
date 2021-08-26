@@ -1,5 +1,9 @@
 # Client protocol
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 This chapter describes internal client-server protocol in details to help developers build new client libraries and understand how existing client libraries work.
 
 Note that you can always look at [existing client implementations](../libraries/client.md) in case of any questions. Not all clients support all available server features though.

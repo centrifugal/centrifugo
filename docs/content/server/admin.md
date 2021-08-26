@@ -1,5 +1,9 @@
 # Admin web interface
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 Centrifugo comes with builtin admin web interface.
 
 It can:

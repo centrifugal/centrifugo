@@ -1,5 +1,9 @@
 # Centrifugo PRO
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 Centrifugo becomes more popular and is used in many projects over the world. Since it's rather big project I need more and more time to maintain it healthy, improve client libraries and introduce new features.
 
 I am considering to create a PRO version of Centrifugo. It may include some additional features on top of open-source Centrifugo version. This version will have some model of monetization, I am still evaluating whether it's reasonable to have and will be in demand.

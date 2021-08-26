@@ -1,5 +1,9 @@
 # Benchmark
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 In order to get an understanding about possible hardware requirements for reasonably massive Centrifugo setup we made a test stand inside Kubernetes.
 
 Our goal was to run server based on Centrifuge library (the core of Centrifugo server) with one million WebSocket connections and send many messages to connected clients. While sending many messages we have been looking at delivery time latency. In fact we will see that about 30 million messages per minute (500k messages per second) will be delivered to connected clients and latency won't be larger than 200ms in 99 percentile.
