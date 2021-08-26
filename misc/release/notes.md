@@ -1,23 +1,21 @@
 Centrifugo is a scalable real-time messaging server in a language-agnostic way.
 
-This is a release of Centrifugo v3 which brings many enhancements, performance improvements and cleanups.
+Centrifugo v3 release is targeting to improve Centrifugo adoption for basic real-time application cases, improves server performance and extends existing features with new functionality. It comes with unidirectional real-time transports, protocol speedups, super-fast engine implementation based on Tarantool, new documentation site ([centrifugal.dev](https://centrifugal.dev)), GRPC proxy, API extensions and PRO version which provides unique possibilities for business adopters.
 
-Centrifugo v3 comes with a brand-new documentation site: [https://centrifugal.dev](https://centrifugal.dev).
-
-[Centrifugo v3 introductory blog post](https://centrifugal.dev/blog/2021/08/29/hello-centrifugo-v3) describes the most notable aspects of v3.
+[Centrifugo v3 introductory blog post](https://centrifugal.dev/blog/2021/08/31/hello-centrifugo-v3) describes the most notable aspects of v3.
 
 The release has backward incompatible changes. [Centrifugo v3 migration guide](https://centrifugal.dev/docs/getting-started/migration_v3) aims to help with v2 to v3 migration. Migration guide contains a best-effort configuration converter to adapt the existing configuration file for v3.
 
 Release summary:
 
 * License changed from MIT to Apache 2.0.
-* Support for unidirectional transports (Eventsource, GRPC, HTTP-streaming, WebSocket). [Docs](https://centrifugal.dev/docs/transports/overview) and [introductory blog post](https://centrifugal.dev/blog/2021/08/29/hello-centrifugo-v3) provide more information.
+* Support for unidirectional transports (Eventsource, GRPC, HTTP-streaming, WebSocket). [Docs](https://centrifugal.dev/docs/transports/overview) and [introductory blog post](https://centrifugal.dev/blog/2021/08/31/hello-centrifugo-v3) provide more information.
 * Better performance:
     * Drastically improved JSON client protocol performance, addresses [#460](https://github.com/centrifugal/centrifugo/issues/460)
     * Sharded in-memory connections hub to reduce lock contention
     * Less memory allocations during message broadcast
     * 5% overall additional performance boost due to using Go 1.17
-    * More details in the [introductory blog post](https://centrifugal.dev/blog/2021/08/29/hello-centrifugo-v3)
+    * More details in the [introductory blog post](https://centrifugal.dev/blog/2021/08/31/hello-centrifugo-v3)
 * Enhanced client history API (iteration support, [docs](https://centrifugal.dev/docs/server/history_and_recovery)), breaking change in client history call behavior – history now does not return all existing publications in a channel by default. [Migration guide](https://centrifugal.dev/docs/getting-started/migration_v3) covers this.
 * Configuration options cleanups and changes (breaking changes described in details in [migration guide](https://centrifugal.dev/docs/getting-started/migration_v3)).
     * Channel options changes
