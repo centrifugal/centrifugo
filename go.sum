@@ -41,10 +41,10 @@ github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kB
 github.com/casbin/casbin/v2 v2.1.2/go.mod h1:YcPU1XXisHhLzuxH9coDNf2FbKpjGlbCg3n9yuLkIJQ=
 github.com/cenkalti/backoff v2.2.1+incompatible/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQJJJ3NXXM=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
-github.com/centrifugal/centrifuge v0.17.2-0.20210823192531-98f6388edbb1 h1:nyT7Rov6MQIzluZs2gAzFv/+5Mcn/r6GeyKmyqcA7gs=
-github.com/centrifugal/centrifuge v0.17.2-0.20210823192531-98f6388edbb1/go.mod h1:QNpN8uDmBFAqdSkzoc2mxXTA9nC5ip5sAoKnUqsZtsg=
-github.com/centrifugal/protocol v0.7.0 h1:Goi4dFbts4iQWtUGl6dhFMNJnFbrH5lA8l/620TARd0=
-github.com/centrifugal/protocol v0.7.0/go.mod h1:qoeBHrRCi5mJ5XZfrKHnedz9UWpYbDLXr8iZUO3pTtc=
+github.com/centrifugal/centrifuge v0.18.1 h1:EhoX1qhZ6K1V8/m+tAlf51kQs3MRUVeLX7tCRbGEArM=
+github.com/centrifugal/centrifuge v0.18.1/go.mod h1:VDGuLrz8LWROHSaPOq0SxHX2rzJng7nLk40hV4UgOGU=
+github.com/centrifugal/protocol v0.7.1 h1:gZzR2fk7C5+zUWa8ay5NvdXblvrZj5li1eLQSij6hAw=
+github.com/centrifugal/protocol v0.7.1/go.mod h1:qoeBHrRCi5mJ5XZfrKHnedz9UWpYbDLXr8iZUO3pTtc=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/cespare/xxhash/v2 v2.1.1 h1:6MnRN8NT7+YBpUIWxHtefFZOKTAPgGjpQSxqLNn0+qY=
