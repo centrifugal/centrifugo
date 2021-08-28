@@ -16,3 +16,4 @@ misc/clickhouse_cluster/zookeeper
 vendor/
 *.orig
 tmp/
+.rocks/
