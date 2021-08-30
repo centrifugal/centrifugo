@@ -41,6 +41,7 @@ jobs:
           cd misc/tnt
           tarantoolctl rocks install https://raw.githubusercontent.com/centrifugal/tarantool-centrifuge/main/centrifuge-scm-1.rockspec
           cd -
+          lsof -i :3301
 
       - name: Start Tarantool
         run: docker run -d -p 3301:3301 -v $(pwd)/misc/tnt:/opt/tarantool tarantool/tarantool:${{ matrix.tarantool-version }} tarantool /opt/tarantool/init.lua
