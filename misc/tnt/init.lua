@@ -50,7 +50,3 @@ centrifuge = require "centrifuge"
 
 centrifuge.init_spaces({})
 centrifuge.start()
-
-if not fiber.self().storage.console then
-    pcall(function() require'console'.start() os.exit() end)
-end
