@@ -17,6 +17,9 @@ prepare:
 test:
 	go test -count=1 -v $(TESTFOLDERS) -cover -race
 
+test-integration:
+	go test -count=1 -v $(TESTFOLDERS) -cover -race --tags=integration
+
 web:
 	./misc/scripts/update_web.sh
 
