@@ -29,7 +29,7 @@ require "strict".on()
 local log = require("log")
 fiber = require "fiber"
 
-local address = os.getenv("TARANTOOL_ADDRESS") or "127.0.0.1"
+local address = os.getenv("TARANTOOL_ADDRESS") or "0.0.0.0"
 local port = os.getenv("TARANTOOL_PORT") or 3301
 local workdir = os.getenv("TARANTOOL_WORKDIR") or "/tmp/standalone_" .. port
 
