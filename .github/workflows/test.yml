@@ -35,7 +35,7 @@ jobs:
         run: GO111MODULE=off go get golang.org/x/tools/cmd/cover
 
       - name: Install rocks
-        run: docker run -it --rm -v $(pwd)/misc/tnt:/opt/tarantool tarantool/tarantool:${{ matrix.tarantool-version }} tarantoolctl rocks install https://raw.githubusercontent.com/centrifugal/tarantool-centrifuge/main/centrifuge-scm-1.rockspec
+        run: docker run --rm -v $(pwd)/misc/tnt:/opt/tarantool tarantool/tarantool:${{ matrix.tarantool-version }} tarantoolctl rocks install https://raw.githubusercontent.com/centrifugal/tarantool-centrifuge/main/centrifuge-scm-1.rockspec
 
       - name: Start Tarantool
         run: docker run -d -p 3301:3301 -v $(pwd)/misc/tnt:/opt/tarantool tarantool/tarantool:${{ matrix.tarantool-version }} tarantool /opt/tarantool/init.lua
