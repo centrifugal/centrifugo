@@ -1,0 +1,178 @@
+syntax = "proto3";
+
+package centrifugal.centrifugo.proxy;
+
+option go_package = "./;proxyproto";
+
+service CentrifugoProxy {
+  rpc Connect(ConnectRequest) returns (ConnectResponse);
+  rpc Refresh(RefreshRequest) returns (RefreshResponse);
+  rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
+  rpc Publish(PublishRequest) returns (PublishResponse);
+  rpc RPC(RPCRequest) returns (RPCResponse);
+}
+
+message Disconnect {
+  uint32 code = 1;
+  string reason = 2;
+  bool reconnect = 3;
+}
+
+message Error {
+  uint32 code = 1;
+  string message = 2;
+}
+
+message ConnectRequest {
+  string client = 1;
+  string transport = 2;
+  string protocol = 3;
+  string encoding = 4;
+
+  bytes data = 10;
+  string b64data = 11;
+  string name = 12;
+  string version = 13;
+  repeated string channels = 14;
+}
+
+message SubscribeOptions {
+  int64 expire_at = 1;
+  bytes info = 2;
+  string b64info = 3;
+  bytes data = 4;
+  string b64data = 5;
+  SubscribeOptionOverride override = 6;
+}
+
+message ConnectResult {
+  string user = 1;
+  int64 expire_at = 2;
+  bytes info = 3;
+  string b64info = 4;
+  bytes data = 5;
+  string b64data = 6;
+  repeated string channels = 7;
+  map<string, SubscribeOptions> subs = 8;
+  bytes meta = 9;
+}
+
+message ConnectResponse {
+  ConnectResult result = 1;
+  Error error = 2;
+  Disconnect disconnect = 3;
+}
+
+message RefreshRequest {
+  string client = 1;
+  string transport = 2;
+  string protocol = 3;
+  string encoding = 4;
+
+  string user = 10;
+  bytes meta = 11;
+}
+
+message RefreshResult {
+  bool expired = 1;
+  int64 expire_at = 2;
+  bytes info = 3;
+  string b64info = 4;
+}
+
+message RefreshResponse {
+  RefreshResult result = 1;
+  Error error = 2;
+  Disconnect disconnect = 3;
+}
+
+message SubscribeRequest {
+  string client = 1;
+  string transport = 2;
+  string protocol = 3;
+  string encoding = 4;
+
+  string user = 10;
+  string channel = 11;
+  string token = 12;
+  bytes meta = 13;
+}
+
+message BoolValue {
+  bool value = 1;
+}
+
+message Int32Value {
+  int32 value = 1;
+}
+
+message SubscribeOptionOverride {
+  BoolValue presence = 1;
+  BoolValue join_leave = 2;
+  BoolValue recover = 3;
+  BoolValue position = 4;
+}
+
+message SubscribeResult {
+  int64 expire_at = 1;
+  bytes info = 2;
+  string b64info = 3;
+  bytes data = 4;
+  string b64data = 5;
+  SubscribeOptionOverride override = 6;
+}
+
+message SubscribeResponse {
+  SubscribeResult result = 1;
+  Error error = 2;
+  Disconnect disconnect = 3;
+}
+
+message PublishRequest {
+  string client = 1;
+  string transport = 2;
+  string protocol = 3;
+  string encoding = 4;
+
+  string user = 10;
+  string channel = 11;
+  bytes data = 12;
+  string b64data = 13;
+  bytes meta = 14;
+}
+
+message PublishResult {
+  bytes data = 1;
+  string b64data = 2;
+  bool skip_history = 3;
+}
+
+message PublishResponse {
+  PublishResult result = 1;
+  Error error = 2;
+  Disconnect disconnect = 3;
+}
+
+message RPCRequest {
+  string client = 1;
+  string transport = 2;
+  string protocol = 3;
+  string encoding = 4;
+
+  string user = 10;
+  string method = 11;
+  bytes data = 12;
+  string b64data = 13;
+  bytes meta = 14;
+}
+
+message RPCResult {
+  bytes data = 1;
+  string b64data = 2;
+}
+
+message RPCResponse {
+  RPCResult result = 1;
+  Error error = 2;
+  Disconnect disconnect = 3;
+}

@@ -21,6 +21,7 @@ fi
 
 VERSION=$1
 ITERATION=$2
+UNIX_NOW=$( date +%s )
 
 INSTALL_DIR=/usr/bin
 LOG_DIR=/var/log/centrifugo
@@ -49,7 +50,7 @@ MAINTAINER="frvzmb@gmail.com"
 VENDOR=centrifugo
 DESCRIPTION="Real-time messaging server"
 
-echo "Start packaging, version: $VERSION, iteration: $ITERATION"
+echo "Start packaging, version: $VERSION, iteration: $ITERATION, release time: $UNIX_NOW"
 
 # cleanup_exit removes all resources created during the process and exits with
 # the supplied returned code.
@@ -88,7 +89,7 @@ make_dir_tree() {
 # do_build builds the code. The version and commit must be passed in.
 do_build() {
     echo "Start building binary"
-    gox -os="linux" -ldflags="-X main.VERSION=$VERSION" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/centrifugo"
+    gox -os="linux" -ldflags="-X github.com/centrifugal/centrifugo/v3/internal/build.Version=$VERSION" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/centrifugo"
     echo "Binary build completed successfully"
 }
 

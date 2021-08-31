@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 type baseRequestHTTP struct {
@@ -20,7 +21,7 @@ const DefaultMaxIdleConnsPerHost = 255
 
 // HTTPCaller is responsible for calling HTTP.
 type HTTPCaller interface {
-	CallHTTP(context.Context, http.Header, []byte) ([]byte, error)
+	CallHTTP(context.Context, string, http.Header, []byte) ([]byte, error)
 }
 
 type httpCaller struct {
@@ -29,10 +30,18 @@ type httpCaller struct {
 }
 
 // NewHTTPCaller creates new HTTPCaller.
-func NewHTTPCaller(endpoint string, httpClient *http.Client) HTTPCaller {
+func NewHTTPCaller(httpClient *http.Client) HTTPCaller {
 	return &httpCaller{
-		Endpoint:   endpoint,
 		HTTPClient: httpClient,
+	}
+}
+
+func proxyHTTPClient(timeout time.Duration) *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: DefaultMaxIdleConnsPerHost,
+		},
+		Timeout: timeout,
 	}
 }
 
@@ -44,8 +53,8 @@ func (e *statusCodeError) Error() string {
 	return fmt.Sprintf("unexpected HTTP status code: %d", e.Code)
 }
 
-func (c *httpCaller) CallHTTP(ctx context.Context, header http.Header, reqData []byte) ([]byte, error) {
-	req, err := http.NewRequest("POST", c.Endpoint, bytes.NewReader(reqData))
+func (c *httpCaller) CallHTTP(ctx context.Context, endpoint string, header http.Header, reqData []byte) ([]byte, error) {
+	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(reqData))
 	if err != nil {
 		return nil, fmt.Errorf("error constructing HTTP request: %w", err)
 	}
@@ -54,7 +63,7 @@ func (c *httpCaller) CallHTTP(ctx context.Context, header http.Header, reqData [
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request error: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return nil, &statusCodeError{resp.StatusCode}
 	}
@@ -72,24 +81,12 @@ func getProxyHeader(allHeader http.Header, extraHeaders []string) http.Header {
 	return proxyHeader
 }
 
-var defaultProxyHeaders = []string{
-	"Origin",
-	"User-Agent",
-	"Cookie",
-	"Authorization",
-	"X-Forwarded-For",
-	"X-Real-Ip",
-	"X-Request-Id",
-}
-
 func copyHeader(dst, src http.Header, extraHeaders []string) {
 	for k, vv := range src {
-		if !stringInSlice(k, defaultProxyHeaders) && !stringInSlice(k, extraHeaders) {
+		if !stringInSlice(k, extraHeaders) {
 			continue
 		}
-		for _, v := range vv {
-			dst.Add(k, v)
-		}
+		dst[k] = vv
 	}
 }
 

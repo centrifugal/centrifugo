@@ -20,7 +20,7 @@ func TestHealthHandler(t *testing.T) {
 	res, err := http.Get(ts.URL)
 	require.NoError(t, err)
 	require.Equal(t, res.StatusCode, http.StatusOK)
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
 

@@ -1,5 +1,7 @@
 package rule
 
+import "github.com/centrifugal/centrifugo/v3/internal/tools"
+
 // ChannelNamespace allows to create channels with different channel options.
 type ChannelNamespace struct {
 	// Name is a unique namespace name.
@@ -34,21 +36,27 @@ type ChannelOptions struct {
 	// persistent storage.
 	HistorySize int `mapstructure:"history_size" json:"history_size"`
 
-	// HistoryLifetime determines time in seconds until expiration happens
-	// for history cache. As Centrifuge-based server maintains a window of
-	// messages in memory (or in Redis with Redis engine), to prevent infinite
-	// memory grows it's important to remove history for inactive channels.
-	HistoryLifetime int `mapstructure:"history_lifetime" json:"history_lifetime"`
+	// HistoryTTL is a time to live for history cache. Server maintains a window of
+	// messages in memory (or in Redis with Redis engine), to prevent infinite memory
+	// grows it's important to remove history for inactive channels.
+	HistoryTTL tools.Duration `mapstructure:"history_ttl" json:"history_ttl"`
 
-	// HistoryRecover enables recovery mechanism for channels. This means that
+	// Recover enables recovery mechanism for channels. This means that
 	// server will try to recover missed messages for resubscribing client.
 	// This option uses publications from history and must be used with reasonable
-	// HistorySize and HistoryLifetime configuration.
-	HistoryRecover bool `mapstructure:"history_recover" json:"history_recover"`
+	// HistorySize and HistoryTTL configuration.
+	Recover bool `mapstructure:"recover" json:"recover"`
 
-	// ServerSide marks all channels in namespace as server side, when on then client
-	// subscribe requests to these channels will be rejected with PermissionDenied error.
-	ServerSide bool `mapstructure:"server_side" json:"server_side"`
+	// Position enables client positioning.
+	Position bool `mapstructure:"position" json:"position"`
+
+	// Protected when on will prevent a client to subscribe to arbitrary channels in a
+	// namespace. In this case Centrifugo will only allow client to subscribe on user-limited
+	// channels, on channels returned by proxy response or channels listed inside JWT.
+	// Client-side subscriptions to arbitrary channels will be rejected with PermissionDenied
+	// error. Server-side channels belonging to protected namespace passed by client itself during
+	// connect will be ignored.
+	Protected bool `mapstructure:"protected" json:"protected"`
 
 	// Publish enables possibility for clients to publish messages into channels.
 	// Once enabled client can publish into channel and that publication will be
@@ -56,7 +64,7 @@ type ChannelOptions struct {
 	Publish bool `mapstructure:"publish" json:"publish"`
 
 	// SubscribeToPublish turns on an automatic check that client subscribed
-	// on channel before allow it to publish into that channel.
+	// on a channel before allow publishing.
 	SubscribeToPublish bool `mapstructure:"subscribe_to_publish" json:"subscribe_to_publish"`
 
 	// Anonymous enables anonymous access (with empty user ID) to channel.

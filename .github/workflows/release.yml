@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.16.6]
+        go-version: [1.17]
     steps:
       - name: Install rpm
         run: sudo apt-get install rpm
@@ -51,6 +51,7 @@ jobs:
         env:
           # note custom secret here since we need access to Centrifugo Homebrew repo.
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          UNIX_NOW: ${{ env.UNIX_NOW }}
 
       - name: Release on Packagecloud
         env:

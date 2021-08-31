@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/subtle"
 
+	. "github.com/centrifugal/centrifugo/v3/internal/apiproto"
+
 	"github.com/centrifugal/centrifuge"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -38,18 +40,20 @@ type GRPCAPIServiceConfig struct{}
 
 // RegisterGRPCServerAPI registers GRPC API service in provided GRPC server.
 func RegisterGRPCServerAPI(n *centrifuge.Node, apiExecutor *Executor, server *grpc.Server, config GRPCAPIServiceConfig) error {
-	RegisterCentrifugoServer(server, newGRPCAPIService(n, apiExecutor, config))
+	RegisterCentrifugoApiServer(server, newGRPCAPIService(n, apiExecutor, config))
 	return nil
 }
 
 // grpcAPIService can answer on GRPC API requests.
 type grpcAPIService struct {
+	UnimplementedCentrifugoApiServer
+
 	config GRPCAPIServiceConfig
 	api    *Executor
 }
 
 // newGRPCAPIService creates new Service.
-func newGRPCAPIService(n *centrifuge.Node, apiExecutor *Executor, c GRPCAPIServiceConfig) *grpcAPIService {
+func newGRPCAPIService(_ *centrifuge.Node, apiExecutor *Executor, c GRPCAPIServiceConfig) *grpcAPIService {
 	return &grpcAPIService{
 		config: c,
 		api:    apiExecutor,
@@ -66,9 +70,9 @@ func (s *grpcAPIService) Broadcast(ctx context.Context, req *BroadcastRequest) (
 	return s.api.Broadcast(ctx, req), nil
 }
 
-// Channels allows to retrieve list of channels.
-func (s *grpcAPIService) Channels(ctx context.Context, req *ChannelsRequest) (*ChannelsResponse, error) {
-	return s.api.Channels(ctx, req), nil
+// Subscribe user to a channel.
+func (s *grpcAPIService) Subscribe(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error) {
+	return s.api.Subscribe(ctx, req), nil
 }
 
 // Unsubscribe user from channel.
@@ -109,4 +113,34 @@ func (s *grpcAPIService) Info(ctx context.Context, req *InfoRequest) (*InfoRespo
 // RPC can return custom data.
 func (s *grpcAPIService) RPC(ctx context.Context, req *RPCRequest) (*RPCResponse, error) {
 	return s.api.RPC(ctx, req), nil
+}
+
+// Refresh user connection.
+func (s *grpcAPIService) Refresh(ctx context.Context, req *RefreshRequest) (*RefreshResponse, error) {
+	return s.api.Refresh(ctx, req), nil
+}
+
+// Channels in the system.
+func (s *grpcAPIService) Channels(ctx context.Context, req *ChannelsRequest) (*ChannelsResponse, error) {
+	return s.api.Channels(ctx, req), nil
+}
+
+// UserConnections of the user.
+func (s *grpcAPIService) UserConnections(ctx context.Context, req *UserConnectionsRequest) (*UserConnectionsResponse, error) {
+	return s.api.UserConnections(ctx, req), nil
+}
+
+// UpdateUserStatus of users.
+func (s *grpcAPIService) UpdateUserStatus(ctx context.Context, req *UpdateUserStatusRequest) (*UpdateUserStatusResponse, error) {
+	return s.api.UpdateActiveStatus(ctx, req), nil
+}
+
+// GetUserStatus of users.
+func (s *grpcAPIService) GetUserStatus(ctx context.Context, req *GetUserStatusRequest) (*GetUserStatusResponse, error) {
+	return s.api.GetUserStatus(ctx, req), nil
+}
+
+// DeleteUserStatus of users.
+func (s *grpcAPIService) DeleteUserStatus(ctx context.Context, req *DeleteUserStatusRequest) (*DeleteUserStatusResponse, error) {
+	return s.api.DeleteUserStatus(ctx, req), nil
 }

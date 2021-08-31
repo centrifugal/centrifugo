@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+
 	"github.com/centrifugal/centrifuge"
 )
 
@@ -31,7 +33,11 @@ type PublishReply struct {
 
 // PublishProxy allows to send Publish requests.
 type PublishProxy interface {
-	ProxyPublish(context.Context, PublishRequest) (*PublishReply, error)
+	ProxyPublish(context.Context, *proxyproto.PublishRequest) (*proxyproto.PublishResponse, error)
 	// Protocol for metrics and logging.
 	Protocol() string
+	// UseBase64 for bytes in requests from Centrifugo to application backend.
+	UseBase64() bool
+	// IncludeMeta ...
+	IncludeMeta() bool
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+
 	"github.com/centrifugal/centrifuge"
 )
 
@@ -31,7 +33,11 @@ type RPCReply struct {
 
 // RPCProxy allows to proxy RPC requests to application backend.
 type RPCProxy interface {
-	ProxyRPC(context.Context, RPCRequest) (*RPCReply, error)
+	ProxyRPC(context.Context, *proxyproto.RPCRequest) (*proxyproto.RPCResponse, error)
 	// Protocol for metrics and logging.
 	Protocol() string
+	// UseBase64 for bytes in requests from Centrifugo to application backend.
+	UseBase64() bool
+	// IncludeMeta ...
+	IncludeMeta() bool
 }

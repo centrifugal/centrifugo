@@ -1,0 +1,380 @@
+syntax = "proto3";
+
+package centrifugal.centrifugo.api;
+
+option go_package = "./;apiproto";
+
+service CentrifugoApi {
+    rpc Publish (PublishRequest) returns (PublishResponse) {}
+    rpc Broadcast (BroadcastRequest) returns (BroadcastResponse) {}
+    rpc Subscribe (SubscribeRequest) returns (SubscribeResponse) {}
+    rpc Unsubscribe (UnsubscribeRequest) returns (UnsubscribeResponse) {}
+    rpc Disconnect (DisconnectRequest) returns (DisconnectResponse) {}
+    rpc Presence (PresenceRequest) returns (PresenceResponse) {}
+    rpc PresenceStats (PresenceStatsRequest) returns (PresenceStatsResponse) {}
+    rpc History (HistoryRequest) returns (HistoryResponse) {}
+    rpc HistoryRemove (HistoryRemoveRequest) returns (HistoryRemoveResponse) {}
+    rpc Info (InfoRequest) returns (InfoResponse) {}
+    rpc RPC (RPCRequest) returns (RPCResponse) {}
+    rpc Refresh (RefreshRequest) returns (RefreshResponse) {}
+    rpc Channels (ChannelsRequest) returns (ChannelsResponse) {}
+    rpc UserConnections (UserConnectionsRequest) returns (UserConnectionsResponse) {}
+    rpc UpdateUserStatus (UpdateUserStatusRequest) returns (UpdateUserStatusResponse) {}
+    rpc GetUserStatus (GetUserStatusRequest) returns (GetUserStatusResponse) {}
+    rpc DeleteUserStatus (DeleteUserStatusRequest) returns (DeleteUserStatusResponse) {}
+}
+
+message Command {
+    enum MethodType {
+        PUBLISH = 0;
+        BROADCAST = 1;
+        UNSUBSCRIBE = 2;
+        DISCONNECT = 3;
+        PRESENCE = 4;
+        PRESENCE_STATS = 5;
+        HISTORY = 6;
+        HISTORY_REMOVE = 7;
+        CHANNELS = 8;
+        INFO = 9;
+        RPC = 10;
+        SUBSCRIBE = 11;
+        REFRESH = 12;
+        USER_CONNECTIONS = 14;
+        UPDATE_USER_STATUS = 15;
+        GET_USER_STATUS = 16;
+        DELETE_USER_STATUS = 17;
+    }
+    uint32 id = 1;
+    MethodType method = 2;
+    bytes params = 3;
+}
+
+message Error {
+    uint32 code = 1;
+    string message = 2;
+}
+
+message Reply {
+    uint32 id = 1;
+    Error error = 2;
+    bytes result = 3;
+}
+
+message BoolValue {
+    bool value = 1;
+}
+
+message Int32Value {
+    int32 value = 1;
+}
+
+message SubscribeOptionOverride {
+    BoolValue presence = 1;
+    BoolValue join_leave = 2;
+    BoolValue recover = 3;
+    BoolValue position = 4;
+}
+
+message PublishRequest {
+    string channel = 1;
+    bytes data = 2;
+    string b64data = 3;
+    bool skip_history = 4;
+}
+
+message PublishResponse {
+    Error error = 1;
+    PublishResult result = 2;
+}
+
+message PublishResult {
+    uint64 offset = 1;
+    string epoch = 2;
+}
+
+message BroadcastRequest {
+    repeated string channels = 1;
+    bytes data = 2;
+    string b64data = 3;
+    bool skip_history = 4;
+}
+
+message BroadcastResponse {
+    Error error = 1;
+    BroadcastResult result = 2;
+}
+
+message BroadcastResult {
+    repeated PublishResponse responses = 1;
+}
+
+message SubscribeRequest {
+    string channel = 1;
+    string user = 2;
+    int64 expire_at = 3;
+    bytes info = 4;
+    string b64info = 5;
+    string client = 6;
+    bytes data = 7;
+    string b64data = 8;
+    StreamPosition recover_since = 9;
+    SubscribeOptionOverride override = 10;
+}
+
+message SubscribeResponse {
+    Error error = 1;
+    SubscribeResult result = 2;
+}
+
+message SubscribeResult {}
+
+message UnsubscribeRequest {
+    string channel = 1;
+    string user = 2;
+    string client = 3;
+}
+
+message UnsubscribeResponse {
+    Error error = 1;
+    UnsubscribeResult result = 2;
+}
+
+message UnsubscribeResult {}
+
+message Disconnect {
+    uint32 code = 1;
+    string reason = 2;
+    bool reconnect = 3;
+}
+
+message DisconnectRequest {
+    string user = 1;
+    Disconnect disconnect = 2;
+    string client = 3;
+    repeated string whitelist = 4;
+}
+
+message DisconnectResponse {
+    Error error = 1;
+    DisconnectResult result = 2;
+}
+
+message DisconnectResult {}
+
+message PresenceRequest {
+    string channel = 1;
+}
+
+message PresenceResponse {
+    Error error = 1;
+    PresenceResult result = 2;
+}
+
+message ClientInfo {
+    string user = 1;
+    string client = 2;
+    bytes conn_info = 3;
+    bytes chan_info = 4;
+}
+
+message PresenceResult {
+    map<string, ClientInfo> presence = 1;
+}
+
+message PresenceStatsRequest {
+    string channel = 1;
+}
+
+message PresenceStatsResponse {
+    Error error = 1;
+    PresenceStatsResult result = 2;
+}
+
+message PresenceStatsResult {
+    uint32 num_clients = 1;
+    uint32 num_users = 2;
+}
+
+message StreamPosition {
+    uint64 offset = 1;
+    string epoch = 2;
+}
+
+message HistoryRequest {
+    string channel = 1;
+    int32 limit = 2;
+    StreamPosition since = 3;
+    bool reverse = 4;
+}
+
+message HistoryResponse {
+    Error error = 1;
+    HistoryResult result = 2;
+}
+
+message Publication {
+    // Removed: string uid = 1;
+    bytes data = 2;
+    ClientInfo info = 3;
+    uint64 offset = 4;
+}
+
+message HistoryResult {
+    repeated Publication publications = 1;
+    string epoch = 2;
+    uint64 offset = 3;
+}
+
+message HistoryRemoveRequest {
+    string channel = 1;
+}
+
+message HistoryRemoveResponse {
+    Error error = 1;
+    HistoryRemoveResult result = 2;
+}
+
+message HistoryRemoveResult {}
+
+message InfoRequest {}
+
+message InfoResponse {
+    Error error = 1;
+    InfoResult result = 2;
+}
+
+message InfoResult {
+    repeated NodeResult nodes = 1;
+}
+
+message RPCRequest {
+    string method = 1;
+    bytes params = 2;
+}
+
+message RPCResponse {
+    Error error = 1;
+    RPCResult result = 2;
+}
+
+message RPCResult {
+    bytes data = 1;
+}
+
+message RefreshRequest {
+    string user = 1;
+    string client = 2;
+    bool expired = 3;
+    int64 expire_at = 4;
+    bytes info = 5;
+}
+
+message RefreshResponse {
+    Error error = 1;
+    RefreshResult result = 2;
+}
+
+message RefreshResult {}
+
+message NodeResult {
+    string uid = 1;
+    string name = 2;
+    string version = 3;
+    uint32 num_clients = 4;
+    uint32 num_users = 5;
+    uint32 num_channels = 6;
+    uint32 uptime = 7;
+    Metrics metrics = 8;
+    Process process = 9;
+    uint32 num_subs = 10;
+}
+
+message Metrics {
+    double interval = 1;
+    map<string, double> items = 2;
+}
+
+message Process {
+    double cpu = 1;
+    int64 rss = 2;
+}
+
+message ChannelsRequest {
+    string pattern = 1;
+}
+
+message ChannelsResponse {
+    Error error = 1;
+    ChannelsResult result = 2;
+}
+
+message ChannelsResult {
+    map<string, ChannelInfo> channels = 1;
+}
+
+message ChannelInfo {
+    uint32 num_clients = 1;
+}
+
+message UserConnectionsRequest {
+    string user = 1;
+}
+
+message UserConnectionsResponse {
+    Error error = 1;
+    UserConnectionsResult result = 2;
+}
+
+message UserConnectionsResult {
+    map<string, UserConnectionInfo> connections = 1;
+}
+
+message UserConnectionInfo {
+    string app_name = 1;
+    string app_version = 2;
+    string transport = 3;
+    string protocol = 4;
+    bytes meta = 5;
+}
+
+message UpdateUserStatusRequest {
+    repeated string users = 1;
+}
+
+message UpdateUserStatusResponse {
+    Error error = 1;
+    UpdateUserStatusResult result = 2;
+}
+
+message UpdateUserStatusResult {}
+
+message GetUserStatusRequest {
+    repeated string users = 1;
+}
+
+message GetUserStatusResponse {
+    Error error = 1;
+    GetUserStatusResult result = 2;
+}
+
+message GetUserStatusResult {
+    repeated UserStatus statuses = 1;
+}
+
+message UserStatus {
+    string user = 1;
+    int64 active = 2;
+    int64 online = 3;
+}
+
+message DeleteUserStatusRequest {
+    repeated string users = 1;
+}
+
+message DeleteUserStatusResponse {
+    Error error = 1;
+    DeleteUserStatusResult result = 2;
+}
+
+message DeleteUserStatusResult {
+}

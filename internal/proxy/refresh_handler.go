@@ -6,6 +6,9 @@ import (
 	"errors"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v3/internal/clientcontext"
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -40,11 +43,20 @@ type RefreshHandlerFunc func(*centrifuge.Client, centrifuge.RefreshEvent) (centr
 func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 	return func(client *centrifuge.Client, e centrifuge.RefreshEvent) (centrifuge.RefreshReply, error) {
 		started := time.Now()
-		refreshRep, err := h.config.Proxy.ProxyRefresh(client.Context(), RefreshRequest{
-			ClientID:  client.ID(),
-			UserID:    client.UserID(),
-			Transport: client.Transport(),
-		})
+		req := &proxyproto.RefreshRequest{
+			Client:    client.ID(),
+			Protocol:  string(client.Transport().Protocol()),
+			Transport: client.Transport().Name(),
+			Encoding:  getEncoding(h.config.Proxy.UseBase64()),
+
+			User: client.UserID(),
+		}
+		if h.config.Proxy.IncludeMeta() {
+			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
+				req.Meta = proxyproto.Raw(connMeta.Meta)
+			}
+		}
+		refreshRep, err := h.config.Proxy.ProxyRefresh(client.Context(), req)
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
@@ -82,17 +94,15 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 		}
 
 		var info []byte
-		if client.Transport().Encoding() == "json" {
-			info = credentials.Info
-		} else {
-			if credentials.Base64Info != "" {
-				decodedInfo, err := base64.StdEncoding.DecodeString(credentials.Base64Info)
-				if err != nil {
-					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
-					return centrifuge.RefreshReply{}, centrifuge.ErrorInternal
-				}
-				info = decodedInfo
+		if credentials.B64Info != "" {
+			decodedInfo, err := base64.StdEncoding.DecodeString(credentials.B64Info)
+			if err != nil {
+				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 info", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
+				return centrifuge.RefreshReply{}, centrifuge.ErrorInternal
 			}
+			info = decodedInfo
+		} else {
+			info = credentials.Info
 		}
 
 		return centrifuge.RefreshReply{

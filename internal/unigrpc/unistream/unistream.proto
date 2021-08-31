@@ -1,0 +1,114 @@
+syntax = "proto3";
+
+package centrifugal.centrifugo.unistream;
+
+option go_package = "./;unistream";
+
+service CentrifugoUniStream {
+  rpc Consume(ConnectRequest) returns (stream Push);
+}
+
+message ConnectRequest {
+  // Numeration is in sync with Centrifuge client protocol.
+  string token = 1;
+  bytes data = 2;
+  map<string, SubscribeRequest> subs = 3;
+  string name = 4;
+  string version = 5;
+}
+
+message SubscribeRequest {
+  // Numeration is in sync with Centrifuge client protocol.
+  bool recover = 3;
+  string epoch = 6;
+  uint64 offset = 7;
+}
+
+message Push {
+  enum PushType {
+    PUBLICATION = 0;
+    JOIN = 1;
+    LEAVE = 2;
+    UNSUBSCRIBE = 3;
+    MESSAGE = 4;
+    SUBSCRIBE = 5;
+    CONNECT = 6;
+    DISCONNECT = 7;
+    REFRESH = 8;
+  }
+  PushType type = 1;
+  string channel = 2;
+  bytes data = 3;
+}
+
+message ClientInfo {
+  string user = 1;
+  string client = 2;
+  bytes conn_info = 3;
+  bytes chan_info = 4;
+}
+
+message Publication {
+  // 1-3 skipped here for backwards compatibility.
+  bytes data = 4;
+  ClientInfo info = 5;
+  uint64 offset = 6;
+}
+
+message Join {
+  ClientInfo info = 1;
+}
+
+message Leave {
+  ClientInfo info = 1;
+}
+
+message Unsubscribe {
+  bool resubscribe =1;
+}
+
+message Subscribe {
+  bool recoverable = 1;
+  // 2-3 skipped here for backwards compatibility.
+  string epoch = 4;
+  uint64 offset = 5;
+  bool positioned = 6;
+  bytes data = 7;
+}
+
+message Message {
+  bytes data = 1;
+}
+
+message Connect {
+  string client = 1;
+  string version = 2;
+  bytes data = 3;
+  map<string, SubscribeResult> subs = 4;
+  bool expires = 5;
+  uint32 ttl = 6;
+}
+
+message Disconnect {
+  uint32 code = 1;
+  string reason = 2;
+  bool reconnect = 3;
+}
+
+message Refresh {
+  bool expires = 1;
+  uint32 ttl = 2;
+}
+
+message SubscribeResult {
+  bool expires = 1;
+  uint32 ttl = 2;
+  bool recoverable = 3;
+  // 4-5 skipped here for backwards compatibility.
+  string epoch = 6;
+  repeated Publication publications = 7;
+  bool recovered = 8;
+  uint64 offset = 9;
+  bool positioned = 10;
+  bytes data = 11;
+}

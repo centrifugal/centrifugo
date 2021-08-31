@@ -2,10 +2,8 @@ package proxy
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
 
-	"github.com/centrifugal/centrifugo/internal/middleware"
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 )
 
 // RefreshRequestHTTP ...
@@ -17,55 +15,46 @@ type RefreshRequestHTTP struct {
 
 // HTTPRefreshProxy ...
 type HTTPRefreshProxy struct {
+	endpoint   string
 	httpCaller HTTPCaller
-	options    Options
+	config     Config
 }
 
+var _ RefreshProxy = (*HTTPRefreshProxy)(nil)
+
 // NewHTTPRefreshProxy ...
-func NewHTTPRefreshProxy(endpoint string, httpClient *http.Client, opts ...Option) *HTTPRefreshProxy {
-	options := &Options{}
-	for _, opt := range opts {
-		opt(options)
-	}
+func NewHTTPRefreshProxy(endpoint string, config Config) (*HTTPRefreshProxy, error) {
 	return &HTTPRefreshProxy{
-		httpCaller: NewHTTPCaller(endpoint, httpClient),
-		options:    *options,
-	}
+		endpoint:   endpoint,
+		httpCaller: NewHTTPCaller(proxyHTTPClient(config.RefreshTimeout)),
+		config:     config,
+	}, nil
 }
 
 // ProxyRefresh proxies refresh to application backend.
-func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req RefreshRequest) (*RefreshReply, error) {
-	httpRequest := middleware.HeadersFromContext(ctx)
-
-	refreshHTTPReq := RefreshRequestHTTP{
-		baseRequestHTTP: baseRequestHTTP{
-			Transport: req.Transport.Name(),
-			Protocol:  string(req.Transport.Protocol()),
-			Encoding:  string(req.Transport.Encoding()),
-			ClientID:  req.ClientID,
-		},
-		UserID: req.UserID,
-	}
-
-	data, err := json.Marshal(refreshHTTPReq)
+func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.RefreshRequest) (*proxyproto.RefreshResponse, error) {
+	data, err := p.config.HTTPConfig.Encoder.EncodeRefreshRequest(req)
 	if err != nil {
 		return nil, err
 	}
-
-	respData, err := p.httpCaller.CallHTTP(ctx, getProxyHeader(httpRequest, p.options.ExtraHeaders), data)
+	respData, err := p.httpCaller.CallHTTP(ctx, p.endpoint, httpRequestHeaders(ctx, p.config), data)
 	if err != nil {
 		return nil, err
 	}
-
-	var res RefreshReply
-	err = json.Unmarshal(respData, &res)
-	if err != nil {
-		return nil, err
-	}
-	return &res, nil
+	return p.config.HTTPConfig.Decoder.DecodeRefreshResponse(respData)
 }
 
 // Protocol ...
 func (p *HTTPRefreshProxy) Protocol() string {
 	return "http"
+}
+
+// UseBase64 ...
+func (p *HTTPRefreshProxy) UseBase64() bool {
+	return p.config.BinaryEncoding
+}
+
+// IncludeMeta ...
+func (p *HTTPRefreshProxy) IncludeMeta() bool {
+	return p.config.IncludeConnectionMeta
 }

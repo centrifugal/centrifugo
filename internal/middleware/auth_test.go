@@ -22,7 +22,7 @@ func TestAPIKeyAuthEmptyKey(t *testing.T) {
 	require.Equal(t, res.StatusCode, http.StatusUnauthorized)
 }
 
-func TestAPIKeyAuthMissingAuthkey(t *testing.T) {
+func TestAPIKeyAuthMissingAuthKey(t *testing.T) {
 	ts := httptest.NewServer(APIKeyAuth("test", testHandler()))
 	defer ts.Close()
 

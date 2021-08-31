@@ -10,7 +10,7 @@ const (
 	colorRed = iota + 31
 	colorGreen
 	colorYellow
-	_
+	colorBlue
 	colorMagenta
 	_
 
@@ -26,6 +26,7 @@ func wrap(s string) string {
 	return fmt.Sprintf("[%s]", s)
 }
 
+var traceLabel = wrap(colorize("TRC", colorBlue))
 var debugLabel = wrap(colorize("DBG", colorMagenta))
 var infoLabel = wrap(colorize("INF", colorGreen))
 var warnLabel = wrap(colorize("WRN", colorYellow))
@@ -38,6 +39,8 @@ func ConsoleFormatLevel() zerolog.Formatter {
 	return func(i interface{}) string {
 		if ll, ok := i.(string); ok {
 			switch ll {
+			case "trace":
+				return traceLabel
 			case "debug":
 				return debugLabel
 			case "info":

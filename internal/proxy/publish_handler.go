@@ -6,7 +6,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/centrifugal/centrifugo/internal/rule"
+	"github.com/centrifugal/centrifugo/v3/internal/clientcontext"
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+	"github.com/centrifugal/centrifugo/v3/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/prometheus/client_golang/prometheus"
@@ -42,13 +44,27 @@ type PublishHandlerFunc func(*centrifuge.Client, centrifuge.PublishEvent, rule.C
 func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 	return func(client *centrifuge.Client, e centrifuge.PublishEvent, chOpts rule.ChannelOptions) (centrifuge.PublishReply, error) {
 		started := time.Now()
-		publishRep, err := h.config.Proxy.ProxyPublish(client.Context(), PublishRequest{
-			ClientID:  client.ID(),
-			UserID:    client.UserID(),
-			Channel:   e.Channel,
-			Data:      e.Data,
-			Transport: client.Transport(),
-		})
+		req := &proxyproto.PublishRequest{
+			Client:    client.ID(),
+			Protocol:  string(client.Transport().Protocol()),
+			Transport: client.Transport().Name(),
+			Encoding:  getEncoding(h.config.Proxy.UseBase64()),
+
+			User:    client.UserID(),
+			Channel: e.Channel,
+		}
+		if h.config.Proxy.IncludeMeta() {
+			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
+				req.Meta = proxyproto.Raw(connMeta.Meta)
+			}
+		}
+		if !h.config.Proxy.UseBase64() {
+			req.Data = e.Data
+		} else {
+			req.B64Data = base64.StdEncoding.EncodeToString(e.Data)
+		}
+
+		publishRep, err := h.config.Proxy.ProxyPublish(client.Context(), req)
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
@@ -64,30 +80,38 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		h.histogram.Observe(duration)
 
 		if publishRep.Disconnect != nil {
-			return centrifuge.PublishReply{}, publishRep.Disconnect
+			return centrifuge.PublishReply{}, proxyproto.DisconnectFromProto(publishRep.Disconnect)
 		}
 		if publishRep.Error != nil {
-			return centrifuge.PublishReply{}, publishRep.Error
+			return centrifuge.PublishReply{}, proxyproto.ErrorFromProto(publishRep.Error)
 		}
+
+		historySize := chOpts.HistorySize
+		historyTTL := chOpts.HistoryTTL
 
 		data := e.Data
 		if publishRep.Result != nil {
 			if publishRep.Result.Data != nil {
 				data = publishRep.Result.Data
-			} else if publishRep.Result.Base64Data != "" {
-				decodedData, err := base64.StdEncoding.DecodeString(publishRep.Result.Base64Data)
+			} else if publishRep.Result.B64Data != "" {
+				decodedData, err := base64.StdEncoding.DecodeString(publishRep.Result.B64Data)
 				if err != nil {
 					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
 					return centrifuge.PublishReply{}, centrifuge.ErrorInternal
 				}
 				data = decodedData
 			}
+
+			if publishRep.Result.SkipHistory {
+				historySize = 0
+				historyTTL = 0
+			}
 		}
 
 		result, err := node.Publish(
 			e.Channel, data,
 			centrifuge.WithClientInfo(e.ClientInfo),
-			centrifuge.WithHistory(chOpts.HistorySize, time.Duration(chOpts.HistoryLifetime)*time.Second),
+			centrifuge.WithHistory(historySize, time.Duration(historyTTL)),
 		)
 		return centrifuge.PublishReply{Result: &result}, err
 	}

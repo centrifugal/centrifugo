@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/centrifugal/centrifugo/internal/api"
-	"github.com/centrifugal/centrifugo/internal/middleware"
+	"github.com/centrifugal/centrifugo/v3/internal/api"
+	"github.com/centrifugal/centrifugo/v3/internal/middleware"
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/gorilla/securecookie"
@@ -71,7 +71,6 @@ func (s *Handler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(rw, r)
 }
 
-// adminSecureTokenAuth ...
 func (s *Handler) adminSecureTokenAuth(h http.Handler) http.Handler {
 
 	secret := s.config.Secret
@@ -89,20 +88,29 @@ func (s *Handler) adminSecureTokenAuth(h http.Handler) http.Handler {
 			return
 		}
 
+		var token string
+
 		authorization := r.Header.Get("Authorization")
+		if authorization != "" {
+			parts := strings.Fields(authorization)
+			if len(parts) != 2 {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			authMethod := strings.ToLower(parts[0])
+			if authMethod != "token" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			token = parts[1]
+		} else {
+			token = r.URL.Query().Get("token")
+		}
 
-		parts := strings.Fields(authorization)
-		if len(parts) != 2 {
+		if token == "" || !checkSecureAdminToken(secret, token) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		authMethod := strings.ToLower(parts[0])
-
-		if authMethod != "token" || !checkSecureAdminToken(secret, parts[1]) {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
 		h.ServeHTTP(w, r)
 	})
 }
