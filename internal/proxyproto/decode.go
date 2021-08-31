@@ -1,6 +1,6 @@
 package proxyproto
 
-import "github.com/segmentio/encoding/json"
+import "encoding/json"
 
 type ResponseDecoder interface {
 	DecodeConnectResponse(data []byte) (*ConnectResponse, error)

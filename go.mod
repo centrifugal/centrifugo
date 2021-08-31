@@ -25,7 +25,6 @@ require (
 	github.com/prometheus/common v0.20.0 // indirect
 	github.com/rakutentech/jwk-go v1.0.1
 	github.com/rs/zerolog v1.21.0
-	github.com/segmentio/encoding v0.2.19
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
