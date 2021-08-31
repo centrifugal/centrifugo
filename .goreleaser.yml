@@ -4,24 +4,24 @@ release:
     owner: centrifugal
     name: centrifugo
   name_template: '{{.Tag}}'
-  prerelease: true
+  prerelease: false
   draft: true
   extra_files:
     - glob: ./PACKAGES/*.deb
     - glob: ./PACKAGES/*.rpm
     - glob: ./PACKAGES/*.txt
-#brews:
-#  -
-#    tap:
-#      owner: centrifugal
-#      name: homebrew-centrifugo
-#    folder: Formula
-#    description: "Real-time messaging server"
-#    commit_author:
-#      name: Alexander Emelin
-#      email: frvzmb@gmail.com
-#    install: bin.install "centrifugo"
-#    homepage: "https://github.com/centrifugal/centrifugo"
+brews:
+  -
+    tap:
+      owner: centrifugal
+      name: homebrew-centrifugo
+    folder: Formula
+    description: "Scalable real-time messaging server in a language-agnostic way"
+    commit_author:
+      name: Alexander Emelin
+      email: frvzmb@gmail.com
+    install: bin.install "centrifugo"
+    homepage: "https://github.com/centrifugal/centrifugo"
 builds:
 - goos:
   - linux
@@ -80,57 +80,57 @@ signs:
     - $artifact
     signature: ${artifact}.sig
     artifacts: none
-#dockers:
-#  - ids:
-#      - centrifugo
-#    goos: linux
-#    goarch: amd64
-#    image_templates:
-#    - "centrifugo/centrifugo:{{ .Tag }}-amd64"
-#    - "centrifugo/centrifugo:v{{ .Major }}-amd64"
-#    - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-amd64"
-#    - "centrifugo/centrifugo:latest-amd64"
-#    use_buildx: true
-#    build_flag_templates:
-#    - "--pull"
-#    - "--label=org.opencontainers.image.created={{.Date}}"
-#    - "--label=org.opencontainers.image.name={{.ProjectName}}"
-#    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-#    - "--label=org.opencontainers.image.version={{.Version}}"
-#    - "--label=org.opencontainers.image.source={{.GitURL}}"
-#    - "--platform=linux/amd64"
-#  - ids:
-#      - centrifugo
-#    goos: linux
-#    goarch: arm64
-#    image_templates:
-#    - "centrifugo/centrifugo:{{ .Tag }}-arm64v8"
-#    - "centrifugo/centrifugo:v{{ .Major }}-arm64v8"
-#    - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-arm64v8"
-#    - "centrifugo/centrifugo:latest-arm64v8"
-#    use_buildx: true
-#    build_flag_templates:
-#    - "--pull"
-#    - "--label=org.opencontainers.image.created={{.Date}}"
-#    - "--label=org.opencontainers.image.name={{.ProjectName}}"
-#    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-#    - "--label=org.opencontainers.image.version={{.Version}}"
-#    - "--label=org.opencontainers.image.source={{.GitURL}}"
-#    - "--platform=linux/arm64/v8"
-#docker_manifests:
-#  - name_template: centrifugo/centrifugo:{{ .Tag }}
-#    image_templates:
-#      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
-#      - centrifugo/centrifugo:{{ .Tag }}-amd64
-#  - name_template: centrifugo/centrifugo:v{{ .Major }}
-#    image_templates:
-#      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
-#      - centrifugo/centrifugo:{{ .Tag }}-amd64
-#  - name_template: centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}
-#    image_templates:
-#      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
-#      - centrifugo/centrifugo:{{ .Tag }}-amd64
-#  - name_template: centrifugo/centrifugo:latest
-#    image_templates:
-#      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
-#      - centrifugo/centrifugo:{{ .Tag }}-amd64
+dockers:
+  - ids:
+      - centrifugo
+    goos: linux
+    goarch: amd64
+    image_templates:
+    - "centrifugo/centrifugo:{{ .Tag }}-amd64"
+    - "centrifugo/centrifugo:v{{ .Major }}-amd64"
+    - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-amd64"
+    - "centrifugo/centrifugo:latest-amd64"
+    use_buildx: true
+    build_flag_templates:
+    - "--pull"
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.name={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--label=org.opencontainers.image.source={{.GitURL}}"
+    - "--platform=linux/amd64"
+  - ids:
+      - centrifugo
+    goos: linux
+    goarch: arm64
+    image_templates:
+    - "centrifugo/centrifugo:{{ .Tag }}-arm64v8"
+    - "centrifugo/centrifugo:v{{ .Major }}-arm64v8"
+    - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-arm64v8"
+    - "centrifugo/centrifugo:latest-arm64v8"
+    use_buildx: true
+    build_flag_templates:
+    - "--pull"
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.name={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--label=org.opencontainers.image.source={{.GitURL}}"
+    - "--platform=linux/arm64/v8"
+docker_manifests:
+  - name_template: centrifugo/centrifugo:{{ .Tag }}
+    image_templates:
+      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
+      - centrifugo/centrifugo:{{ .Tag }}-amd64
+  - name_template: centrifugo/centrifugo:v{{ .Major }}
+    image_templates:
+      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
+      - centrifugo/centrifugo:{{ .Tag }}-amd64
+  - name_template: centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}
+    image_templates:
+      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
+      - centrifugo/centrifugo:{{ .Tag }}-amd64
+  - name_template: centrifugo/centrifugo:latest
+    image_templates:
+      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
+      - centrifugo/centrifugo:{{ .Tag }}-amd64
