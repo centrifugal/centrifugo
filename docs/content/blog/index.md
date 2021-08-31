@@ -7,6 +7,10 @@ og_image_width: 960
 og_image_height: 960
 ---
 
+!!!danger
+
+    This blog has been transferred to the [centrifugal.dev/blog](https://centrifugal.dev/blog).
+
 Welcome to Centrifugo Dev Blog ❤️
 
 Here we are talking about real-time messaging topics – not only about Centrifugo server, but also about general related questions, about Centrifuge library, best practices on building real-time messaging servers, cool applications done with WebSocket technology etc.

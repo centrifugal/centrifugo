@@ -1,5 +1,9 @@
 # Insecure modes
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 This chapter describes several insecure options that enable several insecure modes in Centrifugo.
 
 ### Insecure client connection

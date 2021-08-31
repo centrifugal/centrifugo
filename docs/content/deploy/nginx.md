@@ -1,5 +1,9 @@
 # Nginx configuration
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 Although it's possible to  use Centrifugo without any reverse proxy before it,
 it's still a good idea to keep Centrifugo behind mature reverse proxy to deal with
 edge cases when handling HTTP/Websocket connections from the wild. Also you probably

@@ -1,5 +1,9 @@
 # Client API
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 This chapter describes client Centrifugo API – i.e. **primitives to communicate with a server from an application front-end** (i.e. browser or mobile device).
 
 This is a formal description – refer to each specific client implementation for concrete method names and possibilities. See [full list of Centrifugo client connectors](../libraries/client.md).

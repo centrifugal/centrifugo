@@ -1,5 +1,9 @@
 # Server HTTP API
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 HTTP API is a way to send commands to Centrifugo. For example, server API allows publishing messages to channels. 
 
 Server HTTP API works on `/api` endpoint. It has very simple request format: this is a HTTP POST request with `application/json` Content-Type and with JSON command body.

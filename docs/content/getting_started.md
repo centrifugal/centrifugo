@@ -1,5 +1,9 @@
 # What is Centrifugo
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 Centrifugo is a scalable real-time messaging server in language-agnostic way.
 
 The term `language-agnostic` in this definition means that it does not matter which programming language your application uses on a frontend or backend sides – Centrifugo works in conjunction with any. 

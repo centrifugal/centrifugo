@@ -1,5 +1,9 @@
 # How message recovery works
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 This description uses `offset` field available since Centrifugo v2.5.0 which replaced two `uint32` fields `seq` and `gen` in client protocol schema. This means that here we describe a case when Centrifugo config contains `v3_use_offset` option enabled:
 
 ```json

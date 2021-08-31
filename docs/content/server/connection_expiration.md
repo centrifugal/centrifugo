@@ -1,5 +1,9 @@
 # Connection expiration
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 In authentication chapter we mentioned `exp` claim in connection token that allows to expire client connection at some point of time. In this chapter we will look at details on what happens when Centrifugo detects that connection is going to expire.
 
 So first you should do is enable client expiration mechanism in Centrifugo providing connection token with expiration:

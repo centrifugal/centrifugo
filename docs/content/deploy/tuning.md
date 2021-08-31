@@ -1,5 +1,9 @@
 # Tuning infrastructure to handle persistent connections
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 As Centrifugo deals with lots of persistent connections your operating system and server infrastructure must be ready for it.
 
 ### Open files limit

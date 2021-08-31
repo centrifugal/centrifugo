@@ -1,5 +1,9 @@
 # Authentication
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 When you are using [centrifuge](https://github.com/centrifugal/centrifuge) library from Go language you can implement any user authentication using middleware. In Centrifugo case you need to tell a server who is connecting in well-known predefined way. This chapter describes a mechanism of authenticating user over JSON Web Token (JWT).
 
 !!!note

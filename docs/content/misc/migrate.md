@@ -1,5 +1,9 @@
 # Migration notes from Centrifugo v1
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 In version 2 of Centrifugo many things changed in backwards incompatible way comparing to version 1. This document aims to help Centrifugo v1 users to migrate their projects to version 2 (if they want to).
 
 ### New client protocol and client libraries

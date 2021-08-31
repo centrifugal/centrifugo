@@ -1,5 +1,9 @@
 # Private channels
 
+!!!danger
+
+    This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the [centrifugal.dev](https://centrifugal.dev) for v3 docs.
+
 In [channels](channels.md) chapter we mentioned private channels. This chapter has more information about private channel mechanism in Centrifugo.
 
 All channels starting with `$` considered private. In this case **your backend should additionally provide token for every subscription request to such a channel**. This way you can control subscription permissions and only allow certain users to subscribe to a channel.
