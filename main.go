@@ -253,7 +253,9 @@ func main() {
 				"admin_external", "client_insecure", "admin_insecure", "api_insecure",
 				"port", "address", "tls", "tls_cert", "tls_key", "tls_external", "internal_port",
 				"internal_address", "prometheus", "health", "redis_address", "tarantool_address",
-				"broker", "nats_url",
+				"broker", "nats_url", "grpc_api", "grpc_api_tls", "grpc_api_tls_disable",
+				"grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port", "sockjs", "uni_grpc",
+				"uni_grpc_port", "uni_websocket", "uni_sse", "uni_http_stream",
 			}
 			for _, flag := range bindPFlags {
 				_ = viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -552,6 +554,10 @@ func main() {
 	rootCmd.Flags().BoolP("admin_external", "", false, "enable admin web interface on external port")
 	rootCmd.Flags().BoolP("prometheus", "", false, "enable Prometheus metrics endpoint")
 	rootCmd.Flags().BoolP("health", "", false, "enable health check endpoint")
+	rootCmd.Flags().BoolP("sockjs", "", false, "enable SockJS endpoint")
+	rootCmd.Flags().BoolP("uni_websocket", "", false, "enable unidirectional websocket endpoint")
+	rootCmd.Flags().BoolP("uni_sse", "", false, "enable unidirectional SSE (EventSource) endpoint")
+	rootCmd.Flags().BoolP("uni_http_stream", "", false, "enable unidirectional HTTP-streaming endpoint")
 
 	rootCmd.Flags().BoolP("client_insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolP("api_insecure", "", false, "use insecure API mode")
@@ -566,6 +572,16 @@ func main() {
 	rootCmd.Flags().StringP("tls_cert", "", "", "path to an X509 certificate file")
 	rootCmd.Flags().StringP("tls_key", "", "", "path to an X509 certificate key")
 	rootCmd.Flags().BoolP("tls_external", "", false, "enable TLS only for external endpoints")
+
+	rootCmd.Flags().BoolP("grpc_api", "", false, "enable GRPC API server")
+	rootCmd.Flags().IntP("grpc_api_port", "", 10000, "port to bind GRPC API server to")
+	rootCmd.Flags().BoolP("grpc_api_tls", "", false, "enable TLS for GRPC API server, requires an X509 certificate and a key file")
+	rootCmd.Flags().StringP("grpc_api_tls_cert", "", "", "path to an X509 certificate file for GRPC API server")
+	rootCmd.Flags().StringP("grpc_api_tls_key", "", "", "path to an X509 certificate key for GRPC API server")
+	rootCmd.Flags().BoolP("grpc_api_tls_disable", "", false, "disable general TLS for GRPC API server")
+
+	rootCmd.Flags().BoolP("uni_grpc", "", false, "enable unidirectional GRPC endpoint")
+	rootCmd.Flags().IntP("uni_grpc_port", "", 11000, "port to bind unidirectional GRPC server to")
 
 	rootCmd.Flags().StringP("redis_address", "", "redis://127.0.0.1:6379", "Redis connection address (Redis engine)")
 	rootCmd.Flags().StringP("tarantool_address", "", "tcp://127.0.0.1:3301", "Tarantool connection address (Tarantool engine)")
