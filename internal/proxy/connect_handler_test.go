@@ -123,14 +123,14 @@ func teardownConnHandleGRPCTestCase(c grpcConnHandleTestCase) {
 	c.server.Stop()
 }
 
-type httpConnTestCase struct {
+type httpConnHandleTestCase struct {
 	cfg    connHandlerHTTPTestDepsConfig
 	node   *centrifuge.Node
 	server *httptest.Server
 	mux    *http.ServeMux
 }
 
-func newConnHandleHTTPTestCase(endpoint string) httpConnTestCase {
+func newConnHandleHTTPTestCase(endpoint string) httpConnHandleTestCase {
 	node := tools.NodeWithMemoryEngineNoHandlers()
 
 	mux := http.NewServeMux()
@@ -138,7 +138,7 @@ func newConnHandleHTTPTestCase(endpoint string) httpConnTestCase {
 
 	httpTestDepsCfg := newConnHandlerHTTPTestDepsConfig(server.URL + endpoint)
 
-	return httpConnTestCase{
+	return httpConnHandleTestCase{
 		cfg:    httpTestDepsCfg,
 		node:   node,
 		server: server,
@@ -146,7 +146,7 @@ func newConnHandleHTTPTestCase(endpoint string) httpConnTestCase {
 	}
 }
 
-func teardownConnHandleHTTPTestCase(c httpConnTestCase) {
+func teardownConnHandleHTTPTestCase(c httpConnHandleTestCase) {
 	defer func() { _ = c.node.Shutdown(context.Background()) }()
 	c.server.Close()
 }
@@ -156,7 +156,7 @@ type connHandleTestCase struct {
 	protocol            string
 }
 
-func newConnHandleTestCases(httpTestCase httpConnTestCase, grpcTestCase grpcConnHandleTestCase) []connHandleTestCase {
+func newConnHandleTestCases(httpTestCase httpConnHandleTestCase, grpcTestCase grpcConnHandleTestCase) []connHandleTestCase {
 	return []connHandleTestCase{
 		{
 			connectProxyHandler: grpcTestCase.cfg.connectProxyHandler,
@@ -169,7 +169,7 @@ func newConnHandleTestCases(httpTestCase httpConnTestCase, grpcTestCase grpcConn
 	}
 }
 
-func invokeTestConnectHandler(ctx context.Context, httpTestCase httpConnTestCase, grpcTestCase grpcConnHandleTestCase, currentCase connHandleTestCase) (reply centrifuge.ConnectReply, err error) {
+func invokeTestConnectHandler(ctx context.Context, httpTestCase httpConnHandleTestCase, grpcTestCase grpcConnHandleTestCase, currentCase connHandleTestCase) (reply centrifuge.ConnectReply, err error) {
 	var connHandler centrifuge.ConnectingHandler
 
 	if currentCase.protocol == "http" {
