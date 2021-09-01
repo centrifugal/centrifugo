@@ -79,11 +79,11 @@ func TestPatternCheck(t *testing.T) {
 
 			a, err := NewPatternChecker(tc.originPatterns)
 			require.NoError(t, err)
-			err = a.Check(r)
+			ok := a.Check(r)
 			if tc.success {
-				require.NoError(t, err)
+				require.True(t, ok)
 			} else {
-				require.Error(t, err)
+				require.False(t, ok)
 			}
 		})
 	}

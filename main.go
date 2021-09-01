@@ -1353,12 +1353,17 @@ var warnAllowedOriginsOnce sync.Once
 
 func getCheckOrigin() func(r *http.Request) bool {
 	v := viper.GetViper()
-	if !v.IsSet("allowed_origins") {
-		log.Fatal().Msg("allowed_origins not set")
-	}
 	allowedOrigins := v.GetStringSlice("allowed_origins")
 	if len(allowedOrigins) == 0 {
-		log.Fatal().Msg("allowed_origins can't be empty, refer to the https://centrifugal.dev/docs/server/configuration#allowed_origins")
+		return func(r *http.Request) bool {
+			// Only allow connections without Origin in this case.
+			originHeader := r.Header.Get("Origin")
+			if originHeader == "" {
+				return true
+			}
+			log.Info().Str("origin", originHeader).Msg("request Origin is not authorized due to empty allowed_origins")
+			return false
+		}
 	}
 	originChecker, err := origin.NewPatternChecker(allowedOrigins)
 	if err != nil {
@@ -1367,16 +1372,16 @@ func getCheckOrigin() func(r *http.Request) bool {
 	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
 		// Fast path for *.
 		warnAllowedOriginsOnce.Do(func() {
-			log.Warn().Msgf("usage of allowed_origins * is discouraged for security reasons, consider setting exact list of origins")
+			log.Warn().Msg("usage of allowed_origins * is discouraged for security reasons, consider setting exact list of origins")
 		})
 		return func(r *http.Request) bool {
 			return true
 		}
 	}
 	return func(r *http.Request) bool {
-		err := originChecker.Check(r)
-		if err != nil {
-			log.Info().Str("error", err.Error()).Strs("allowed_origins", allowedOrigins).Msg("error checking request origin")
+		ok := originChecker.Check(r)
+		if !ok {
+			log.Info().Str("origin", r.Header.Get("Origin")).Strs("allowed_origins", allowedOrigins).Msg("request Origin is not authorized")
 			return false
 		}
 		return true

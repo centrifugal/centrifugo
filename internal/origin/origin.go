@@ -26,17 +26,17 @@ func NewPatternChecker(allowedOrigins []string) (*PatternChecker, error) {
 	}, nil
 }
 
-func (a *PatternChecker) Check(r *http.Request) error {
+func (a *PatternChecker) Check(r *http.Request) bool {
 	origin := r.Header.Get("Origin")
 	if origin == "" {
-		return nil
+		return true
 	}
 
 	for _, pattern := range a.allowedOrigins {
 		if pattern.Match(strings.ToLower(origin)) {
-			return nil
+			return true
 		}
 	}
 
-	return fmt.Errorf("request Origin %s is not authorized", origin)
+	return false
 }
