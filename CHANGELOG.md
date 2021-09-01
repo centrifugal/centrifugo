@@ -21,7 +21,7 @@ Release summary:
 * Configuration options cleanups and changes (breaking changes described in details in [migration guide](https://centrifugal.dev/docs/getting-started/migration_v3)).
   * Channel options changes
   * Time intervals now set as human-readable durations
-  * Allowed origins are now required to be set
+  * Client transport endpoint requests with Origin header set should now explicitly match patterns in `allowed_origins`
   * Improved Redis Engine configuration
   * SockJS disabled by default
   * Some options renamed, and some removed
