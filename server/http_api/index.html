@@ -1275,6 +1275,10 @@
                 
                 
                 <h1 id="server-http-api">Server HTTP API<a class="headerlink" href="#server-http-api" title="Permanent link">&para;</a></h1>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
+</div>
 <p>HTTP API is a way to send commands to Centrifugo. For example, server API allows publishing messages to channels. </p>
 <p>Server HTTP API works on <code>/api</code> endpoint. It has very simple request format: this is a HTTP POST request with <code>application/json</code> Content-Type and with JSON command body.</p>
 <p>In most cases though you can just use one of our <a href="../../libraries/api/">available HTTP API libraries</a>. In this chapter we will make an API method overview.</p>
@@ -1479,13 +1483,11 @@ Date: Thu, <span class="m">17</span> May <span class="m">2018</span> <span class
             <span class="o">{</span>
                 <span class="s2">&quot;data&quot;</span>: <span class="o">{</span>
                     <span class="s2">&quot;text&quot;</span>: <span class="s2">&quot;hello&quot;</span>
-                <span class="o">}</span>,
-                <span class="s2">&quot;uid&quot;</span>: <span class="s2">&quot;BWcn14OTBrqUhTXyjNg0fg&quot;</span>
+                <span class="o">}</span>
             <span class="o">}</span>, <span class="o">{</span>
                 <span class="s2">&quot;data&quot;</span>: <span class="o">{</span>
                     <span class="s2">&quot;text&quot;</span>: <span class="s2">&quot;hi!&quot;</span>
-                <span class="o">}</span>,
-                <span class="s2">&quot;uid&quot;</span>: <span class="s2">&quot;Ascn14OTBrq14OXyjNg0hg&quot;</span>
+                <span class="o">}</span>
             <span class="o">}</span>
         <span class="o">]</span>
     <span class="o">}</span>

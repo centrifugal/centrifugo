@@ -1107,6 +1107,10 @@
                 
                 
                 <h1 id="sockjs">SockJS<a class="headerlink" href="#sockjs" title="Permanent link">&para;</a></h1>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
+</div>
 <p>SockJS is a polyfill browser library which provides HTTP-based fallback transports in case when it's not possible to establish Websocket connection. This can happen in old client browsers or because of some proxy behind client and server that cuts of Websocket traffic. You can find more information on <a href="https://github.com/sockjs/sockjs-client">SockJS project Github page</a>.</p>
 <p>If you have a requirement to work everywhere SockJS is the solution. SockJS will automatically choose best fallback transport if Websocket connection failed for some reason. Some of the fallback transports are:</p>
 <ul>

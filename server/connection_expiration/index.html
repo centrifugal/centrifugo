@@ -1105,6 +1105,10 @@
                 
                 
                 <h1 id="connection-expiration">Connection expiration<a class="headerlink" href="#connection-expiration" title="Permanent link">&para;</a></h1>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
+</div>
 <p>In authentication chapter we mentioned <code>exp</code> claim in connection token that allows to expire client connection at some point of time. In this chapter we will look at details on what happens when Centrifugo detects that connection is going to expire.</p>
 <p>So first you should do is enable client expiration mechanism in Centrifugo providing connection token with expiration:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">jwt</span>

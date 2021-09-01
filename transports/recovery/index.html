@@ -1107,6 +1107,10 @@
                 
                 
                 <h1 id="how-message-recovery-works">How message recovery works<a class="headerlink" href="#how-message-recovery-works" title="Permanent link">&para;</a></h1>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
+</div>
 <p>This description uses <code>offset</code> field available since Centrifugo v2.5.0 which replaced two <code>uint32</code> fields <code>seq</code> and <code>gen</code> in client protocol schema. This means that here we describe a case when Centrifugo config contains <code>v3_use_offset</code> option enabled:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
   <span class="err">...</span>

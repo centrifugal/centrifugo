@@ -1453,6 +1453,10 @@
                 
                 
                 <h1 id="channels">Channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h1>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
+</div>
 <p>Channel is a route for publication messages. Clients can be subscribed to a channel to receive messages published to this channel – new publications, join/leave events (if enabled for a channel namespace) etc. Channel subscriber can also ask for channel presence or channel history information (if enabled for a channel namespace).</p>
 <p>Channel is just a string - <code>news</code>, <code>comments</code> are valid channel names. Though this string has some predefined rules as we will see below.</p>
 <p>Channel is an ephemeral entity – <strong>you don't need to create it explicitly</strong>. Channel created automatically by Centrifugo as soon as first client subscribes to it. As soon as last subscriber leaves channel - it's automatically cleaned up.</p>

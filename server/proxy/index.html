@@ -1261,6 +1261,10 @@
                 
                 
                 <h1 id="proxy-calls-to-app-backend">Proxy calls to app backend<a class="headerlink" href="#proxy-calls-to-app-backend" title="Permanent link">&para;</a></h1>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
+</div>
 <p>It's possible to proxy some client connection events over HTTP to application backend and react to them in a way you need. For example, you can authenticate connection via request from Centrifugo to your app backend, refresh client sessions and answer to RPC calls sent by client over WebSocket or SockJS connections.</p>
 <h3 id="proxy-request-structure">Proxy request structure<a class="headerlink" href="#proxy-request-structure" title="Permanent link">&para;</a></h3>
 <p>All proxy calls are <strong>HTTP POST</strong> requests that will be sent from Centrifugo to configured endpoints with a configured timeout. These requests will have some headers copied from original client request (see details below) and include JSON body which varies depending on call type (for example data sent by client in RPC call etc, see more details about JSON bodies below).</p>

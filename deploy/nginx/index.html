@@ -1193,6 +1193,10 @@
                 
                 
                 <h1 id="nginx-configuration">Nginx configuration<a class="headerlink" href="#nginx-configuration" title="Permanent link">&para;</a></h1>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
+</div>
 <p>Although it's possible to  use Centrifugo without any reverse proxy before it,
 it's still a good idea to keep Centrifugo behind mature reverse proxy to deal with
 edge cases when handling HTTP/Websocket connections from the wild. Also you probably
@@ -1229,7 +1233,8 @@ server {
 
     listen 80;
 
-    #listen 443 ssl;
+    #listen 443;
+    #ssl on;
     #ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
     #ssl_ciphers AES128-SHA:AES256-SHA:RC4-SHA:DES-CBC3-SHA:RC4-MD5;
     #ssl_certificate /etc/nginx/ssl/wildcard.example.com.crt;

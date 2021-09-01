@@ -1259,6 +1259,10 @@
                 
                 
                 <h1 id="private-channels">Private channels<a class="headerlink" href="#private-channels" title="Permanent link">&para;</a></h1>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
+</div>
 <p>In <a href="../channels/">channels</a> chapter we mentioned private channels. This chapter has more information about private channel mechanism in Centrifugo.</p>
 <p>All channels starting with <code>$</code> considered private. In this case <strong>your backend should additionally provide token for every subscription request to such a channel</strong>. This way you can control subscription permissions and only allow certain users to subscribe to a channel.</p>
 <p>The way how this token obtained varies depending on client implementation. </p>

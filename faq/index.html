@@ -1443,6 +1443,10 @@
                 
                 
                 <h1 id="frequently-asked-questions">Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permanent link">&para;</a></h1>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
+</div>
 <p>Answers on various questions here.</p>
 <h3 id="how-many-connections-can-one-centrifugo-instance-handle">How many connections can one Centrifugo instance handle?<a class="headerlink" href="#how-many-connections-can-one-centrifugo-instance-handle" title="Permanent link">&para;</a></h3>
 <p>This depends on many factors. Hardware, message rate, size of messages, Centrifugo features enabled, client distribution over channels, websocket compression on/off etc. So no certain answer on this question exists. Common sense, tests and monitoring can help here. Generally we suggest to not put more than 50-100k clients on one node - but you should measure for your personal use case.</p>

@@ -1205,6 +1205,10 @@
                 
                 
                 <h1 id="server-side-subscriptions">Server-side subscriptions<a class="headerlink" href="#server-side-subscriptions" title="Permanent link">&para;</a></h1>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
+</div>
 <p>Starting from v2.4.0 Centrifugo supports server-side subscriptions.</p>
 <h3 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h3>
 <p>Before v2.4.0 only client could initiate subscription to channel calling <code>Subscribe</code> method. While this is actually the most flexible approach as client side usually knows well which channels it needs to consume in concrete moment – in some situations all you need is to subscribe your connections to several channels on server side at the moment of connection establishement. So client effectively starts receiving publications from those channels without explicitly call <code>Subscribe</code> method.</p>

@@ -1149,6 +1149,10 @@
                 
                 
                 <h1 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h1>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>This is a documentation for Centrifugo v2. The latest Centrifugo version is v3. Go to the <a href="https://centrifugal.dev">centrifugal.dev</a> for v3 docs.</p>
+</div>
 <p>Here we will build a very simple browser application with Centrifugo. It works in a way that users connect to Centrifugo over WebSocket, subscribe to channel and start receiving all messages published to that channel. In our case we will send a counter value to all channel subscribers to update it in all open browser tabs in real-time.</p>
 <p>First you need to <a href="../server/install/">install Centrifugo</a>. Below in this example we will use binary file release for simplicity. We can generate minimal required configuration file with the following command:</p>
 <div class="highlight"><pre><span></span><code>./centrifugo genconfig
