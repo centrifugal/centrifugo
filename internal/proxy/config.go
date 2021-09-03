@@ -63,7 +63,7 @@ type GRPCConfig struct {
 	CredentialsKey   string
 	CredentialsValue string
 	Codec            encoding.Codec
-	TestDialer       func(context.Context, string) (net.Conn, error)
+	testDialer       func(context.Context, string) (net.Conn, error)
 }
 
 type HTTPConfig struct {
