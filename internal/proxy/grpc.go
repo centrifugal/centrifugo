@@ -44,6 +44,11 @@ func getDialOpts(c Config) ([]grpc.DialOption, error) {
 	} else {
 		dialOpts = append(dialOpts, grpc.WithInsecure())
 	}
+
+	if c.GRPCConfig.testDialer != nil {
+		dialOpts = append(dialOpts, grpc.WithContextDialer(c.GRPCConfig.testDialer))
+	}
+
 	dialOpts = append(dialOpts, grpc.WithBlock())
 	return dialOpts, nil
 }

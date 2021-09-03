@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"context"
+	"net"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
@@ -61,6 +63,7 @@ type GRPCConfig struct {
 	CredentialsKey   string
 	CredentialsValue string
 	Codec            encoding.Codec
+	testDialer       func(context.Context, string) (net.Conn, error)
 }
 
 type HTTPConfig struct {
