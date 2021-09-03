@@ -154,18 +154,13 @@ func teardownConnHandleHTTPTestCase(c httpConnHandleTestCase) {
 type connHandleTestCase struct {
 	connectProxyHandler *ConnectHandler
 	protocol            string
+	node                *centrifuge.Node
+	connectEvent        centrifuge.ConnectEvent
 }
 
-func (c connHandleTestCase) invokeHandle(ctx context.Context, httpTestCase httpConnHandleTestCase, grpcTestCase grpcConnHandleTestCase, currentCase connHandleTestCase) (reply centrifuge.ConnectReply, err error) {
-	var connHandler centrifuge.ConnectingHandler
-
-	if currentCase.protocol == "http" {
-		connHandler = currentCase.connectProxyHandler.Handle(httpTestCase.node)
-		reply, err = connHandler(ctx, httpTestCase.cfg.connectEvent)
-	} else if currentCase.protocol == "grpc" {
-		connHandler = currentCase.connectProxyHandler.Handle(grpcTestCase.node)
-		reply, err = connHandler(ctx, grpcTestCase.cfg.connectEvent)
-	}
+func (c connHandleTestCase) invokeHandle(ctx context.Context) (reply centrifuge.ConnectReply, err error) {
+	connHandler := c.connectProxyHandler.Handle(c.node)
+	reply, err = connHandler(ctx, c.connectEvent)
 
 	return reply, err
 }
@@ -174,10 +169,14 @@ func newConnHandleTestCases(httpTestCase httpConnHandleTestCase, grpcTestCase gr
 	return []connHandleTestCase{
 		{
 			connectProxyHandler: grpcTestCase.cfg.connectProxyHandler,
+			connectEvent:        grpcTestCase.cfg.connectEvent,
+			node:                grpcTestCase.node,
 			protocol:            "grpc",
 		},
 		{
 			connectProxyHandler: httpTestCase.cfg.connectProxyHandler,
+			connectEvent:        httpTestCase.cfg.connectEvent,
+			node:                httpTestCase.node,
 			protocol:            "http",
 		},
 	}
@@ -195,7 +194,7 @@ func TestHandleConnectWithEmptyReply(t *testing.T) {
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
-		reply, err := c.invokeHandle(context.Background(), httpTestCase, grpcTestCase, c)
+		reply, err := c.invokeHandle(context.Background())
 		require.NoError(t, err, c.protocol)
 		require.Equal(t, centrifuge.ConnectReply{}, reply, c.protocol)
 	}
@@ -229,7 +228,7 @@ func TestHandleConnectWithResult(t *testing.T) {
 			Data: []byte(customData),
 		}
 
-		reply, err := c.invokeHandle(context.Background(), httpTestCase, grpcTestCase, c)
+		reply, err := c.invokeHandle(context.Background())
 		require.NoError(t, err, c.protocol)
 		require.Equal(t, expectedReply, reply, c.protocol)
 	}
@@ -252,7 +251,7 @@ func TestHandleConnectWithInvalidCustomData(t *testing.T) {
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
-		reply, err := c.invokeHandle(context.Background(), httpTestCase, grpcTestCase, c)
+		reply, err := c.invokeHandle(context.Background())
 		require.ErrorIs(t, centrifuge.ErrorInternal, err, c.protocol)
 		require.Equal(t, centrifuge.ConnectReply{}, reply, c.protocol)
 	}
@@ -272,7 +271,7 @@ func TestHandleConnectWithContextCancel(t *testing.T) {
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
-		reply, err := c.invokeHandle(ctx, httpTestCase, grpcTestCase, c)
+		reply, err := c.invokeHandle(ctx)
 		require.ErrorIs(t, centrifuge.DisconnectNormal, err, c.protocol)
 		require.Equal(t, centrifuge.ConnectReply{}, reply, c.protocol)
 	}
@@ -287,7 +286,7 @@ func TestHandleConnectWithoutProxyServerStart(t *testing.T) {
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
-		reply, err := c.invokeHandle(context.Background(), httpTestCase, grpcTestCase, c)
+		reply, err := c.invokeHandle(context.Background())
 		require.ErrorIs(t, centrifuge.ErrorInternal, err, c.protocol)
 		require.Equal(t, centrifuge.ConnectReply{}, reply, c.protocol)
 	}
@@ -311,7 +310,7 @@ func TestHandleConnectWithProxyServerCustomDisconnect(t *testing.T) {
 			Reconnect: false,
 		}
 
-		reply, err := c.invokeHandle(context.Background(), httpTestCase, grpcTestCase, c)
+		reply, err := c.invokeHandle(context.Background())
 		require.NotNil(t, err, c.protocol)
 		require.Equal(t, expectedErr.Error(), err.Error(), c.protocol)
 		require.Equal(t, centrifuge.ConnectReply{}, reply, c.protocol)
@@ -335,7 +334,7 @@ func TestHandleConnectWithProxyServerCustomError(t *testing.T) {
 			Message: "custom error",
 		}
 
-		reply, err := c.invokeHandle(context.Background(), httpTestCase, grpcTestCase, c)
+		reply, err := c.invokeHandle(context.Background())
 		require.NotNil(t, err, c.protocol)
 		require.Equal(t, expectedErr.Error(), err.Error(), c.protocol)
 		require.Equal(t, centrifuge.ConnectReply{}, reply, c.protocol)
@@ -358,7 +357,7 @@ func TestHandleConnectWithSubscription(t *testing.T) {
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
-		reply, err := c.invokeHandle(context.Background(), httpTestCase, grpcTestCase, c)
+		reply, err := c.invokeHandle(context.Background())
 		require.NoError(t, err, c.protocol)
 		require.NotNil(t, reply.Subscriptions, c.protocol)
 		require.Len(t, reply.Subscriptions, 1, c.protocol)
@@ -383,7 +382,7 @@ func TestHandleConnectWithSubscriptionError(t *testing.T) {
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
-		reply, err := c.invokeHandle(context.Background(), httpTestCase, grpcTestCase, c)
+		reply, err := c.invokeHandle(context.Background())
 		require.ErrorIs(t, centrifuge.ErrorUnknownChannel, err, c.protocol)
 		require.Equal(t, centrifuge.ConnectReply{}, reply, c.protocol)
 	}
