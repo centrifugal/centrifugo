@@ -1,9 +1,7 @@
 package proxy
 
 import (
-	"context"
 	"encoding/base64"
-	"errors"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v3/internal/clientcontext"
@@ -67,8 +65,11 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 		publishRep, err := h.config.Proxy.ProxyPublish(client.Context(), req)
 		duration := time.Since(started).Seconds()
 		if err != nil {
-			if errors.Is(err, context.Canceled) {
+			select {
+			case <-client.Context().Done():
+				// Client connection already closed.
 				return centrifuge.PublishReply{}, nil
+			default:
 			}
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)
