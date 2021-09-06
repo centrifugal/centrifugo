@@ -92,7 +92,6 @@ type grpcPublishHandleTestCase struct {
 	cfg             publishHandlerGRPCTestDepsConfig
 	node            *centrifuge.Node
 	server          *grpc.Server
-	ctx             context.Context
 	client          *centrifuge.Client
 	clientCloseFunc centrifuge.ClientCloseFunc
 	channelOpts     rule.ChannelOptions
@@ -139,7 +138,6 @@ type httpPublishHandleTestCase struct {
 	node            *centrifuge.Node
 	server          *httptest.Server
 	mux             *http.ServeMux
-	ctx             context.Context
 	client          *centrifuge.Client
 	clientCloseFunc centrifuge.ClientCloseFunc
 	channelOpts     rule.ChannelOptions
