@@ -152,7 +152,7 @@ func TestHandleSubscribeWithContextCancel(t *testing.T) {
 
 	cancel()
 	subscribeReply, err := subscribeHandler(client, centrifuge.SubscribeEvent{}, rule.ChannelOptions{})
-	require.NoError(t, err)
+	require.ErrorIs(t, centrifuge.DisconnectNormal, err)
 	require.Equal(t, centrifuge.SubscribeReply{}, subscribeReply)
 }
 

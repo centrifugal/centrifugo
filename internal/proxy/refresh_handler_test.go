@@ -150,7 +150,7 @@ func TestHandleRefreshWithContextCancel(t *testing.T) {
 
 	cancel()
 	refreshReply, err := refreshHandler(client, centrifuge.RefreshEvent{})
-	require.NoError(t, err)
+	require.ErrorIs(t, centrifuge.DisconnectNormal, err)
 	require.Equal(t, centrifuge.RefreshReply{}, refreshReply)
 }
 

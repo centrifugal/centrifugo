@@ -68,7 +68,7 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 			select {
 			case <-client.Context().Done():
 				// Client connection already closed.
-				return centrifuge.PublishReply{}, nil
+				return centrifuge.PublishReply{}, centrifuge.DisconnectNormal
 			default:
 			}
 			h.summary.Observe(duration)
