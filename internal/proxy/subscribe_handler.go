@@ -1,9 +1,7 @@
 package proxy
 
 import (
-	"context"
 	"encoding/base64"
-	"errors"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v3/internal/clientcontext"
@@ -63,8 +61,11 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 		subscribeRep, err := h.config.Proxy.ProxySubscribe(client.Context(), req)
 		duration := time.Since(started).Seconds()
 		if err != nil {
-			if errors.Is(err, context.Canceled) {
-				return centrifuge.SubscribeReply{}, nil
+			select {
+			case <-client.Context().Done():
+				// Client connection already closed.
+				return centrifuge.SubscribeReply{}, centrifuge.DisconnectNormal
+			default:
 			}
 			h.summary.Observe(duration)
 			h.histogram.Observe(duration)

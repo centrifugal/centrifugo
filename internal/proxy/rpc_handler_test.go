@@ -95,7 +95,7 @@ func TestHandleRPCWithContextCancel(t *testing.T) {
 
 	cancel()
 	reply, err := rpcHandler(client, testDepsCfg.rpcCEvent)
-	require.NoError(t, err)
+	require.ErrorIs(t, centrifuge.DisconnectNormal, err)
 	require.Equal(t, centrifuge.RPCReply{}, reply)
 }
 

@@ -80,7 +80,38 @@ func (p proxyGRPCTestServer) Subscribe(ctx context.Context, request *proxyproto.
 }
 
 func (p proxyGRPCTestServer) Publish(ctx context.Context, request *proxyproto.PublishRequest) (*proxyproto.PublishResponse, error) {
-	panic("it will be implemented later")
+	switch p.flag {
+	case "result":
+		return &proxyproto.PublishResponse{
+			Result: &proxyproto.PublishResult{
+				B64Data: p.opts.B64Data,
+			},
+		}, nil
+	case "skip history":
+		return &proxyproto.PublishResponse{
+			Result: &proxyproto.PublishResult{
+				B64Data:     p.opts.B64Data,
+				SkipHistory: true,
+			},
+		}, nil
+	case "custom disconnect":
+		return &proxyproto.PublishResponse{
+			Disconnect: &proxyproto.Disconnect{
+				Code:      4000,
+				Reason:    "custom disconnect",
+				Reconnect: false,
+			},
+		}, nil
+	case "custom error":
+		return &proxyproto.PublishResponse{
+			Error: &proxyproto.Error{
+				Code:    1000,
+				Message: "custom error",
+			},
+		}, nil
+	default:
+		return &proxyproto.PublishResponse{}, nil
+	}
 }
 
 func (p proxyGRPCTestServer) RPC(ctx context.Context, request *proxyproto.RPCRequest) (*proxyproto.RPCResponse, error) {
