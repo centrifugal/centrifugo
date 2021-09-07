@@ -7,13 +7,8 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
-
-	"google.golang.org/grpc"
-
-	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
@@ -22,55 +17,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type refreshHandlerHTTPTestDepsConfig struct {
+type grpcRefreshHandleTestCase struct {
+	*tools.CommonGRPCProxyTestCase
 	refreshProxyHandler *RefreshHandler
-	transport           *tools.TestTransport
 }
 
-func newRefreshHandlerHTTPTestDepsConfig(proxyEndpoint string) refreshHandlerHTTPTestDepsConfig {
-	proxyCfg := Config{
-		HTTPConfig: HTTPConfig{
-			Encoder: &proxyproto.JSONEncoder{},
-			Decoder: &proxyproto.JSONDecoder{},
-		},
-		RefreshEndpoint: proxyEndpoint,
-	}
+func newRefreshHandlerGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer) grpcRefreshHandleTestCase {
+	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	connectProxy, err := NewHTTPRefreshProxy(
-		proxyEndpoint,
-		proxyCfg,
-	)
-	if err != nil {
-		log.Fatalln("could not create http refresh proxy: ", err)
-	}
-
-	refreshProxyHandler := NewRefreshHandler(RefreshHandlerConfig{
-		Proxy: connectProxy,
-	})
-
-	return refreshHandlerHTTPTestDepsConfig{
-		refreshProxyHandler: refreshProxyHandler,
-		transport:           tools.NewTestTransport(),
-	}
-}
-
-type refreshHandlerGRPCTestDepsConfig struct {
-	refreshProxyHandler *RefreshHandler
-	transport           *tools.TestTransport
-}
-
-func newRefreshHandlerGRPCTestDepsConfig(listener *bufconn.Listener) refreshHandlerGRPCTestDepsConfig {
 	proxyCfg := Config{
 		RefreshTimeout: 5 * time.Second,
 		GRPCConfig: GRPCConfig{
 			testDialer: func(ctx context.Context, s string) (net.Conn, error) {
-				return listener.Dial()
+				return commonProxyTestCase.Listener.Dial()
 			},
 		},
 	}
 
 	refreshProxy, err := NewGRPCRefreshProxy(
-		listener.Addr().String(),
+		commonProxyTestCase.Listener.Addr().String(),
 		proxyCfg,
 	)
 	if err != nil {
@@ -81,91 +46,38 @@ func newRefreshHandlerGRPCTestDepsConfig(listener *bufconn.Listener) refreshHand
 		Proxy: refreshProxy,
 	})
 
-	return refreshHandlerGRPCTestDepsConfig{
-		refreshProxyHandler: refreshProxyHandler,
-		transport:           tools.NewTestTransport(),
-	}
-}
-
-type grpcRefreshHandleTestCase struct {
-	cfg             refreshHandlerGRPCTestDepsConfig
-	node            *centrifuge.Node
-	server          *grpc.Server
-	client          *centrifuge.Client
-	clientCloseFunc centrifuge.ClientCloseFunc
-}
-
-func newRefreshHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer) grpcRefreshHandleTestCase {
-	node := tools.NodeWithMemoryEngineNoHandlers()
-
-	listener := bufconn.Listen(1024)
-	server := grpc.NewServer()
-	proxyproto.RegisterCentrifugoProxyServer(server, proxyGRPCServer)
-
-	go func() {
-		if err := server.Serve(listener); err != nil {
-			log.Fatalf("GRPC server exited with error: %v", err)
-		}
-	}()
-
-	grpcTestDepsCfg := newRefreshHandlerGRPCTestDepsConfig(listener)
-
-	client, closeFn, err := centrifuge.NewClient(ctx, node, grpcTestDepsCfg.transport)
-	if err != nil {
-		log.Fatalf("could not create centrifuge client: %v", err)
-	}
-
-	return grpcRefreshHandleTestCase{
-		cfg:             grpcTestDepsCfg,
-		node:            node,
-		server:          server,
-		client:          client,
-		clientCloseFunc: closeFn,
-	}
-}
-
-func teardownRefreshHandleGRPCTestCase(c grpcRefreshHandleTestCase) {
-	defer func() { _ = c.node.Shutdown(context.Background()) }()
-	defer func() { _ = c.clientCloseFunc() }()
-	c.server.Stop()
+	return grpcRefreshHandleTestCase{commonProxyTestCase, refreshProxyHandler}
 }
 
 type httpRefreshHandleTestCase struct {
-	cfg             refreshHandlerHTTPTestDepsConfig
-	node            *centrifuge.Node
-	server          *httptest.Server
-	mux             *http.ServeMux
-	client          *centrifuge.Client
-	clientCloseFunc centrifuge.ClientCloseFunc
+	*tools.CommonHTTPProxyTestCase
+	refreshProxyHandler *RefreshHandler
 }
 
-func newRefreshHandleHTTPTestCase(ctx context.Context, endpoint string) httpRefreshHandleTestCase {
-	node := tools.NodeWithMemoryEngineNoHandlers()
+func newRefreshHandlerHTTPTestCase(ctx context.Context, endpoint string) httpRefreshHandleTestCase {
+	commonProxyTestCase := tools.NewCommonHTTPProxyTestCase(ctx)
 
-	mux := http.NewServeMux()
-	server := httptest.NewServer(mux)
+	proxyCfg := Config{
+		HTTPConfig: HTTPConfig{
+			Encoder: &proxyproto.JSONEncoder{},
+			Decoder: &proxyproto.JSONDecoder{},
+		},
+		RefreshEndpoint: endpoint,
+	}
 
-	httpTestDepsCfg := newRefreshHandlerHTTPTestDepsConfig(server.URL + endpoint)
-
-	client, closeFn, err := centrifuge.NewClient(ctx, node, httpTestDepsCfg.transport)
+	refreshProxy, err := NewHTTPRefreshProxy(
+		commonProxyTestCase.Server.URL+endpoint,
+		proxyCfg,
+	)
 	if err != nil {
-		log.Fatalf("could not create centrifuge client: %v", err)
+		log.Fatalln("could not create http refresh proxy: ", err)
 	}
 
-	return httpRefreshHandleTestCase{
-		cfg:             httpTestDepsCfg,
-		node:            node,
-		server:          server,
-		mux:             mux,
-		client:          client,
-		clientCloseFunc: closeFn,
-	}
-}
+	refreshProxyHandler := NewRefreshHandler(RefreshHandlerConfig{
+		Proxy: refreshProxy,
+	})
 
-func teardownRefreshHandleHTTPTestCase(c httpRefreshHandleTestCase) {
-	defer func() { _ = c.node.Shutdown(context.Background()) }()
-	defer func() { _ = c.clientCloseFunc() }()
-	c.server.Close()
+	return httpRefreshHandleTestCase{commonProxyTestCase, refreshProxyHandler}
 }
 
 type refreshHandleTestCase struct {
@@ -182,18 +94,18 @@ func (c refreshHandleTestCase) invokeHandle() (reply centrifuge.RefreshReply, er
 	return reply, err
 }
 
-func newRefreshHandleTestCases(httpTestCase httpRefreshHandleTestCase, grpcTestCase grpcRefreshHandleTestCase) []refreshHandleTestCase {
+func newRefreshHandlerTestCases(httpTestCase httpRefreshHandleTestCase, grpcTestCase grpcRefreshHandleTestCase) []refreshHandleTestCase {
 	return []refreshHandleTestCase{
 		{
-			refreshProxyHandler: grpcTestCase.cfg.refreshProxyHandler,
-			node:                grpcTestCase.node,
-			client:              grpcTestCase.client,
+			refreshProxyHandler: grpcTestCase.refreshProxyHandler,
+			node:                grpcTestCase.Node,
+			client:              grpcTestCase.Client,
 			protocol:            "grpc",
 		},
 		{
-			refreshProxyHandler: httpTestCase.cfg.refreshProxyHandler,
-			node:                httpTestCase.node,
-			client:              httpTestCase.client,
+			refreshProxyHandler: httpTestCase.refreshProxyHandler,
+			node:                httpTestCase.Node,
+			client:              httpTestCase.Client,
 			protocol:            "http",
 		},
 	}
@@ -208,19 +120,19 @@ func TestHandleRefreshWithCredentials(t *testing.T) {
 		ExpireAt: int64(expireAt),
 	}
 
-	grpcTestCase := newRefreshHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("with credentials", opts))
-	defer teardownRefreshHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newRefreshHandlerGRPCTestCase(context.Background(), newProxyGRPCTestServer("with credentials", opts))
+	defer grpcTestCase.Teardown()
 
-	httpTestCase := newRefreshHandleHTTPTestCase(context.Background(), "/refresh")
-	httpTestCase.mux.HandleFunc("/refresh", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newRefreshHandlerHTTPTestCase(context.Background(), "/refresh")
+	httpTestCase.Mux.HandleFunc("/refresh", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"expire_at": %d, "b64info": "%s"}}`,
 			expireAt,
 			customDataB64,
 		)))
 	})
-	defer teardownRefreshHandleHTTPTestCase(httpTestCase)
+	defer httpTestCase.Teardown()
 
-	cases := newRefreshHandleTestCases(httpTestCase, grpcTestCase)
+	cases := newRefreshHandlerTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
 		require.NoError(t, err, c.protocol)
@@ -232,16 +144,16 @@ func TestHandleRefreshWithCredentials(t *testing.T) {
 
 func TestHandleRefreshWithEmptyCredentials(t *testing.T) {
 	opts := proxyGRPCTestServerOptions{}
-	grpcTestCase := newRefreshHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("", opts))
-	defer teardownRefreshHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newRefreshHandlerGRPCTestCase(context.Background(), newProxyGRPCTestServer("", opts))
+	defer grpcTestCase.Teardown()
 
-	httpTestCase := newRefreshHandleHTTPTestCase(context.Background(), "/refresh")
-	httpTestCase.mux.HandleFunc("/refresh", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newRefreshHandlerHTTPTestCase(context.Background(), "/refresh")
+	httpTestCase.Mux.HandleFunc("/refresh", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{}`))
 	})
-	defer teardownRefreshHandleHTTPTestCase(httpTestCase)
+	defer httpTestCase.Teardown()
 
-	cases := newRefreshHandleTestCases(httpTestCase, grpcTestCase)
+	cases := newRefreshHandlerTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
 		require.NoError(t, err, c.protocol)
@@ -253,16 +165,16 @@ func TestHandleRefreshWithEmptyCredentials(t *testing.T) {
 
 func TestHandleRefreshWithExpired(t *testing.T) {
 	opts := proxyGRPCTestServerOptions{}
-	grpcTestCase := newRefreshHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("expired", opts))
-	defer teardownRefreshHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newRefreshHandlerGRPCTestCase(context.Background(), newProxyGRPCTestServer("expired", opts))
+	defer grpcTestCase.Teardown()
 
-	httpTestCase := newRefreshHandleHTTPTestCase(context.Background(), "/refresh")
-	httpTestCase.mux.HandleFunc("/refresh", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newRefreshHandlerHTTPTestCase(context.Background(), "/refresh")
+	httpTestCase.Mux.HandleFunc("/refresh", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"result": {"expired": true}}`))
 	})
-	defer teardownRefreshHandleHTTPTestCase(httpTestCase)
+	defer httpTestCase.Teardown()
 
-	cases := newRefreshHandleTestCases(httpTestCase, grpcTestCase)
+	cases := newRefreshHandlerTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
 		require.NoError(t, err, c.protocol)
@@ -276,16 +188,16 @@ func TestHandleRefreshWithContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	grpcTestCase := newRefreshHandleGRPCTestCase(ctx, proxyGRPCTestServer{})
-	defer teardownRefreshHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newRefreshHandlerGRPCTestCase(ctx, proxyGRPCTestServer{})
+	defer grpcTestCase.Teardown()
 
-	httpTestCase := newRefreshHandleHTTPTestCase(ctx, "/refresh")
-	httpTestCase.mux.HandleFunc("/refresh", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newRefreshHandlerHTTPTestCase(ctx, "/refresh")
+	httpTestCase.Mux.HandleFunc("/refresh", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{}`))
 	})
-	defer teardownRefreshHandleHTTPTestCase(httpTestCase)
+	defer httpTestCase.Teardown()
 
-	cases := newRefreshHandleTestCases(httpTestCase, grpcTestCase)
+	cases := newRefreshHandlerTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
 		require.ErrorIs(t, centrifuge.DisconnectNormal, err, c.protocol)
@@ -294,17 +206,17 @@ func TestHandleRefreshWithContextCancel(t *testing.T) {
 }
 
 func TestHandleRefreshWithoutProxyServerStart(t *testing.T) {
-	grpcTestCase := newRefreshHandleGRPCTestCase(context.Background(), proxyGRPCTestServer{})
-	teardownRefreshHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newRefreshHandlerGRPCTestCase(context.Background(), proxyGRPCTestServer{})
+	grpcTestCase.Teardown()
 
-	httpTestCase := newRefreshHandleHTTPTestCase(context.Background(), "/refresh")
-	teardownRefreshHandleHTTPTestCase(httpTestCase)
+	httpTestCase := newRefreshHandlerHTTPTestCase(context.Background(), "/refresh")
+	httpTestCase.Teardown()
 
 	expectedReply := centrifuge.RefreshReply{
 		ExpireAt: time.Now().Unix() + 60,
 	}
 
-	cases := newRefreshHandleTestCases(httpTestCase, grpcTestCase)
+	cases := newRefreshHandlerTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
 		require.NoError(t, err, c.protocol)
@@ -316,16 +228,16 @@ func TestHandleRefreshWithInvalidCustomData(t *testing.T) {
 	opts := proxyGRPCTestServerOptions{
 		B64Data: "invalid data",
 	}
-	grpcTestCase := newRefreshHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("with credentials", opts))
-	defer teardownRefreshHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newRefreshHandlerGRPCTestCase(context.Background(), newProxyGRPCTestServer("with credentials", opts))
+	defer grpcTestCase.Teardown()
 
-	httpTestCase := newRefreshHandleHTTPTestCase(context.Background(), "/refresh")
-	httpTestCase.mux.HandleFunc("/refresh", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newRefreshHandlerHTTPTestCase(context.Background(), "/refresh")
+	httpTestCase.Mux.HandleFunc("/refresh", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"result": {"b64info": "invalid data"}}`))
 	})
-	defer teardownRefreshHandleHTTPTestCase(httpTestCase)
+	defer httpTestCase.Teardown()
 
-	cases := newRefreshHandleTestCases(httpTestCase, grpcTestCase)
+	cases := newRefreshHandlerTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
 		require.ErrorIs(t, centrifuge.ErrorInternal, err, c.protocol)

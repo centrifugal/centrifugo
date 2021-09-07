@@ -1,8 +1,18 @@
 package tools
 
 import (
+	"context"
 	"io"
+	"log"
+	"net/http"
+	"net/http/httptest"
 	"sync"
+
+	"google.golang.org/grpc/test/bufconn"
+
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+
+	"google.golang.org/grpc"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -106,4 +116,79 @@ func NodeWithMemoryEngine() *centrifuge.Node {
 		})
 	})
 	return n
+}
+
+type CommonHTTPProxyTestCase struct {
+	Node            *centrifuge.Node
+	Client          *centrifuge.Client
+	ClientCloseFunc centrifuge.ClientCloseFunc
+	Server          *httptest.Server
+	Mux             *http.ServeMux
+}
+
+func NewCommonHTTPProxyTestCase(ctx context.Context) *CommonHTTPProxyTestCase {
+	node := NodeWithMemoryEngineNoHandlers()
+
+	mux := http.NewServeMux()
+	server := httptest.NewServer(mux)
+
+	client, closeFn, err := centrifuge.NewClient(ctx, node, NewTestTransport())
+	if err != nil {
+		log.Fatalf("could not create centrifuge client: %v", err)
+	}
+
+	return &CommonHTTPProxyTestCase{
+		Node:            node,
+		Client:          client,
+		ClientCloseFunc: closeFn,
+		Server:          server,
+		Mux:             mux,
+	}
+}
+
+func (c *CommonHTTPProxyTestCase) Teardown() {
+	defer func() { _ = c.Node.Shutdown(context.Background()) }()
+	defer func() { _ = c.ClientCloseFunc() }()
+	c.Server.Close()
+}
+
+type CommonGRPCProxyTestCase struct {
+	Node            *centrifuge.Node
+	Client          *centrifuge.Client
+	ClientCloseFunc centrifuge.ClientCloseFunc
+	Server          *grpc.Server
+	Listener        *bufconn.Listener
+}
+
+func NewCommonGRPCProxyTestCase(ctx context.Context, srv proxyproto.CentrifugoProxyServer) *CommonGRPCProxyTestCase {
+	node := NodeWithMemoryEngineNoHandlers()
+
+	client, closeFn, err := centrifuge.NewClient(ctx, node, NewTestTransport())
+	if err != nil {
+		log.Fatalf("could not create centrifuge client: %v", err)
+	}
+
+	listener := bufconn.Listen(1024)
+	server := grpc.NewServer()
+	proxyproto.RegisterCentrifugoProxyServer(server, srv)
+
+	go func() {
+		if err := server.Serve(listener); err != nil {
+			log.Fatalf("GRPC server exited with error: %v", err)
+		}
+	}()
+
+	return &CommonGRPCProxyTestCase{
+		Node:            node,
+		Client:          client,
+		ClientCloseFunc: closeFn,
+		Server:          server,
+		Listener:        listener,
+	}
+}
+
+func (c *CommonGRPCProxyTestCase) Teardown() {
+	defer func() { _ = c.Node.Shutdown(context.Background()) }()
+	defer func() { _ = c.ClientCloseFunc() }()
+	c.Server.Stop()
 }

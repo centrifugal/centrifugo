@@ -7,12 +7,8 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
@@ -22,56 +18,25 @@ import (
 	"github.com/centrifugal/centrifuge"
 )
 
-type connHandlerHTTPTestDepsConfig struct {
+type grpcConnHandleTestCase struct {
+	*tools.CommonGRPCProxyTestCase
 	connectProxyHandler *ConnectHandler
-	connectEvent        centrifuge.ConnectEvent
 }
 
-func newConnHandlerHTTPTestDepsConfig(proxyEndpoint string) connHandlerHTTPTestDepsConfig {
-	proxyCfg := Config{
-		HTTPConfig: HTTPConfig{
-			Encoder: &proxyproto.JSONEncoder{},
-			Decoder: &proxyproto.JSONDecoder{},
-		},
-	}
+func newConnHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer) grpcConnHandleTestCase {
+	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	connectProxy, err := NewHTTPConnectProxy(
-		proxyEndpoint,
-		proxyCfg,
-	)
-	if err != nil {
-		log.Fatalln("could not create http connect proxy: ", err)
-	}
-
-	connectProxyHandler := NewConnectHandler(ConnectHandlerConfig{
-		Proxy: connectProxy,
-	}, rule.NewContainer(rule.DefaultConfig))
-
-	return connHandlerHTTPTestDepsConfig{
-		connectProxyHandler: connectProxyHandler,
-		connectEvent: centrifuge.ConnectEvent{
-			Transport: tools.NewTestTransport(),
-		},
-	}
-}
-
-type connHandlerGRPCTestDepsConfig struct {
-	connectProxyHandler *ConnectHandler
-	connectEvent        centrifuge.ConnectEvent
-}
-
-func newConnHandlerGRPCTestDepsConfig(listener *bufconn.Listener) connHandlerGRPCTestDepsConfig {
 	proxyCfg := Config{
 		ConnectTimeout: 5 * time.Second,
 		GRPCConfig: GRPCConfig{
 			testDialer: func(ctx context.Context, s string) (net.Conn, error) {
-				return listener.Dial()
+				return commonProxyTestCase.Listener.Dial()
 			},
 		},
 	}
 
 	connectProxy, err := NewGRPCConnectProxy(
-		listener.Addr().String(),
+		commonProxyTestCase.Listener.Addr().String(),
 		proxyCfg,
 	)
 	if err != nil {
@@ -82,85 +47,53 @@ func newConnHandlerGRPCTestDepsConfig(listener *bufconn.Listener) connHandlerGRP
 		Proxy: connectProxy,
 	}, rule.NewContainer(rule.DefaultConfig))
 
-	return connHandlerGRPCTestDepsConfig{
-		connectProxyHandler: connectProxyHandler,
-		connectEvent: centrifuge.ConnectEvent{
-			Transport: tools.NewTestTransport(),
-		},
-	}
-}
-
-type grpcConnHandleTestCase struct {
-	cfg    connHandlerGRPCTestDepsConfig
-	node   *centrifuge.Node
-	server *grpc.Server
-}
-
-func newConnHandleGRPCTestCase(proxyGRPCServer proxyGRPCTestServer) grpcConnHandleTestCase {
-	node := tools.NodeWithMemoryEngineNoHandlers()
-
-	listener := bufconn.Listen(1024)
-	server := grpc.NewServer()
-	proxyproto.RegisterCentrifugoProxyServer(server, proxyGRPCServer)
-
-	go func() {
-		if err := server.Serve(listener); err != nil {
-			log.Fatalf("GRPC server exited with error: %v", err)
-		}
-	}()
-
-	grpcTestDepsCfg := newConnHandlerGRPCTestDepsConfig(listener)
-
-	return grpcConnHandleTestCase{
-		cfg:    grpcTestDepsCfg,
-		node:   node,
-		server: server,
-	}
-}
-
-func teardownConnHandleGRPCTestCase(c grpcConnHandleTestCase) {
-	defer func() { _ = c.node.Shutdown(context.Background()) }()
-	c.server.Stop()
+	return grpcConnHandleTestCase{commonProxyTestCase, connectProxyHandler}
 }
 
 type httpConnHandleTestCase struct {
-	cfg    connHandlerHTTPTestDepsConfig
-	node   *centrifuge.Node
-	server *httptest.Server
-	mux    *http.ServeMux
+	*tools.CommonHTTPProxyTestCase
+	connectProxyHandler *ConnectHandler
 }
 
-func newConnHandleHTTPTestCase(endpoint string) httpConnHandleTestCase {
-	node := tools.NodeWithMemoryEngineNoHandlers()
+func newConnHandleHTTPTestCase(ctx context.Context, endpoint string) httpConnHandleTestCase {
+	commonProxyTestCase := tools.NewCommonHTTPProxyTestCase(ctx)
 
-	mux := http.NewServeMux()
-	server := httptest.NewServer(mux)
-
-	httpTestDepsCfg := newConnHandlerHTTPTestDepsConfig(server.URL + endpoint)
-
-	return httpConnHandleTestCase{
-		cfg:    httpTestDepsCfg,
-		node:   node,
-		server: server,
-		mux:    mux,
+	proxyCfg := Config{
+		HTTPConfig: HTTPConfig{
+			Encoder: &proxyproto.JSONEncoder{},
+			Decoder: &proxyproto.JSONDecoder{},
+		},
+		ConnectEndpoint: endpoint,
 	}
-}
 
-func teardownConnHandleHTTPTestCase(c httpConnHandleTestCase) {
-	defer func() { _ = c.node.Shutdown(context.Background()) }()
-	c.server.Close()
+	connectProxy, err := NewHTTPConnectProxy(
+		commonProxyTestCase.Server.URL+endpoint,
+		proxyCfg,
+	)
+	if err != nil {
+		log.Fatalln("could not create http connect proxy: ", err)
+	}
+
+	connectProxyHandler := NewConnectHandler(ConnectHandlerConfig{
+		Proxy: connectProxy,
+	}, rule.NewContainer(rule.DefaultConfig))
+
+	return httpConnHandleTestCase{commonProxyTestCase, connectProxyHandler}
 }
 
 type connHandleTestCase struct {
 	connectProxyHandler *ConnectHandler
 	protocol            string
 	node                *centrifuge.Node
-	connectEvent        centrifuge.ConnectEvent
 }
 
 func (c connHandleTestCase) invokeHandle(ctx context.Context) (reply centrifuge.ConnectReply, err error) {
+	connectEvent := centrifuge.ConnectEvent{
+		Transport: tools.NewTestTransport(),
+	}
+
 	connHandler := c.connectProxyHandler.Handle(c.node)
-	reply, err = connHandler(ctx, c.connectEvent)
+	reply, err = connHandler(ctx, connectEvent)
 
 	return reply, err
 }
@@ -168,29 +101,27 @@ func (c connHandleTestCase) invokeHandle(ctx context.Context) (reply centrifuge.
 func newConnHandleTestCases(httpTestCase httpConnHandleTestCase, grpcTestCase grpcConnHandleTestCase) []connHandleTestCase {
 	return []connHandleTestCase{
 		{
-			connectProxyHandler: grpcTestCase.cfg.connectProxyHandler,
-			connectEvent:        grpcTestCase.cfg.connectEvent,
-			node:                grpcTestCase.node,
+			connectProxyHandler: grpcTestCase.connectProxyHandler,
+			node:                grpcTestCase.Node,
 			protocol:            "grpc",
 		},
 		{
-			connectProxyHandler: httpTestCase.cfg.connectProxyHandler,
-			connectEvent:        httpTestCase.cfg.connectEvent,
-			node:                httpTestCase.node,
+			connectProxyHandler: httpTestCase.connectProxyHandler,
+			node:                httpTestCase.Node,
 			protocol:            "http",
 		},
 	}
 }
 
 func TestHandleConnectWithEmptyReply(t *testing.T) {
-	grpcTestCase := newConnHandleGRPCTestCase(newProxyGRPCTestServer("", proxyGRPCTestServerOptions{}))
-	defer teardownConnHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newConnHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("", proxyGRPCTestServerOptions{}))
+	defer grpcTestCase.Teardown()
 
-	httpTestCase := newConnHandleHTTPTestCase("/proxy")
-	httpTestCase.mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newConnHandleHTTPTestCase(context.Background(), "/proxy")
+	httpTestCase.Mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{}`))
 	})
-	defer teardownConnHandleHTTPTestCase(httpTestCase)
+	defer httpTestCase.Teardown()
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
@@ -209,14 +140,14 @@ func TestHandleConnectWithResult(t *testing.T) {
 		ExpireAt: 1565436268,
 		B64Data:  customDataB64,
 	}
-	grpcTestCase := newConnHandleGRPCTestCase(newProxyGRPCTestServer("result", opts))
-	defer teardownConnHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newConnHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("result", opts))
+	defer grpcTestCase.Teardown()
 
-	httpTestCase := newConnHandleHTTPTestCase("/proxy")
-	httpTestCase.mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newConnHandleHTTPTestCase(context.Background(), "/proxy")
+	httpTestCase.Mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"user": "56", "expire_at": 1565436268, "b64data": "%s"}}`, customDataB64)))
 	})
-	defer teardownConnHandleHTTPTestCase(httpTestCase)
+	defer httpTestCase.Teardown()
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
@@ -240,14 +171,14 @@ func TestHandleConnectWithInvalidCustomData(t *testing.T) {
 		ExpireAt: 1565436268,
 		B64Data:  "invalid data",
 	}
-	grpcTestCase := newConnHandleGRPCTestCase(newProxyGRPCTestServer("result", opts))
-	defer teardownConnHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newConnHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("result", opts))
+	defer grpcTestCase.Teardown()
 
-	httpTestCase := newConnHandleHTTPTestCase("/proxy")
-	httpTestCase.mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newConnHandleHTTPTestCase(context.Background(), "/proxy")
+	httpTestCase.Mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"result": {"user": "56", "expire_at": 1565436268, "b64data": "invalid data"}}`))
 	})
-	defer teardownConnHandleHTTPTestCase(httpTestCase)
+	defer httpTestCase.Teardown()
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
@@ -258,16 +189,16 @@ func TestHandleConnectWithInvalidCustomData(t *testing.T) {
 }
 
 func TestHandleConnectWithContextCancel(t *testing.T) {
-	grpcTestCase := newConnHandleGRPCTestCase(proxyGRPCTestServer{})
-	defer teardownConnHandleGRPCTestCase(grpcTestCase)
-
-	httpTestCase := newConnHandleHTTPTestCase("/proxy")
-	httpTestCase.mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
-		_, _ = w.Write([]byte(`{}`))
-	})
-
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
+
+	grpcTestCase := newConnHandleGRPCTestCase(ctx, proxyGRPCTestServer{})
+	defer grpcTestCase.Teardown()
+
+	httpTestCase := newConnHandleHTTPTestCase(ctx, "/proxy")
+	httpTestCase.Mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+		_, _ = w.Write([]byte(`{}`))
+	})
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
@@ -278,11 +209,11 @@ func TestHandleConnectWithContextCancel(t *testing.T) {
 }
 
 func TestHandleConnectWithoutProxyServerStart(t *testing.T) {
-	grpcTestCase := newConnHandleGRPCTestCase(proxyGRPCTestServer{})
-	teardownConnHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newConnHandleGRPCTestCase(context.Background(), proxyGRPCTestServer{})
+	grpcTestCase.Teardown()
 
-	httpTestCase := newConnHandleHTTPTestCase("/proxy")
-	teardownConnHandleHTTPTestCase(httpTestCase)
+	httpTestCase := newConnHandleHTTPTestCase(context.Background(), "/proxy")
+	httpTestCase.Teardown()
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
@@ -293,14 +224,14 @@ func TestHandleConnectWithoutProxyServerStart(t *testing.T) {
 }
 
 func TestHandleConnectWithProxyServerCustomDisconnect(t *testing.T) {
-	grpcTestCase := newConnHandleGRPCTestCase(newProxyGRPCTestServer("custom disconnect", proxyGRPCTestServerOptions{}))
-	defer teardownConnHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newConnHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("custom disconnect", proxyGRPCTestServerOptions{}))
+	defer grpcTestCase.Teardown()
 
-	httpTestCase := newConnHandleHTTPTestCase("/proxy")
-	httpTestCase.mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newConnHandleHTTPTestCase(context.Background(), "/proxy")
+	httpTestCase.Mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"disconnect": {"code": 4000, "reconnect": false, "reason": "custom disconnect"}}`))
 	})
-	defer teardownConnHandleHTTPTestCase(httpTestCase)
+	defer httpTestCase.Teardown()
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
@@ -318,14 +249,14 @@ func TestHandleConnectWithProxyServerCustomDisconnect(t *testing.T) {
 }
 
 func TestHandleConnectWithProxyServerCustomError(t *testing.T) {
-	grpcTestCase := newConnHandleGRPCTestCase(newProxyGRPCTestServer("custom error", proxyGRPCTestServerOptions{}))
-	defer teardownConnHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newConnHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("custom error", proxyGRPCTestServerOptions{}))
+	defer grpcTestCase.Teardown()
 
-	httpTestCase := newConnHandleHTTPTestCase("/proxy")
-	httpTestCase.mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newConnHandleHTTPTestCase(context.Background(), "/proxy")
+	httpTestCase.Mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"error": {"code": 1000, "message": "custom error"}}`))
 	})
-	defer teardownConnHandleHTTPTestCase(httpTestCase)
+	defer httpTestCase.Teardown()
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
@@ -346,14 +277,14 @@ func TestHandleConnectWithSubscription(t *testing.T) {
 		User:     "56",
 		Channels: []string{"test_ch"},
 	}
-	grpcTestCase := newConnHandleGRPCTestCase(newProxyGRPCTestServer("subscription", opts))
-	defer teardownConnHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newConnHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("subscription", opts))
+	defer grpcTestCase.Teardown()
 
-	httpTestCase := newConnHandleHTTPTestCase("/proxy")
-	httpTestCase.mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newConnHandleHTTPTestCase(context.Background(), "/proxy")
+	httpTestCase.Mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"result": {"user": "56", "channels": ["test_ch"]}}`))
 	})
-	defer teardownConnHandleHTTPTestCase(httpTestCase)
+	defer httpTestCase.Teardown()
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
@@ -371,14 +302,14 @@ func TestHandleConnectWithSubscriptionError(t *testing.T) {
 		User:     "56",
 		Channels: []string{"test_ch:test"},
 	}
-	grpcTestCase := newConnHandleGRPCTestCase(newProxyGRPCTestServer("subscription error", opts))
-	defer teardownConnHandleGRPCTestCase(grpcTestCase)
+	grpcTestCase := newConnHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("subscription error", opts))
+	defer grpcTestCase.Teardown()
 
-	httpTestCase := newConnHandleHTTPTestCase("/proxy")
-	httpTestCase.mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newConnHandleHTTPTestCase(context.Background(), "/proxy")
+	httpTestCase.Mux.HandleFunc("/proxy", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"result": {"user": "56", "channels": ["test_ch:test"]}}`))
 	})
-	defer teardownConnHandleHTTPTestCase(httpTestCase)
+	defer httpTestCase.Teardown()
 
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
