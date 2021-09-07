@@ -72,7 +72,23 @@ func (p proxyGRPCTestServer) Connect(ctx context.Context, request *proxyproto.Co
 }
 
 func (p proxyGRPCTestServer) Refresh(ctx context.Context, request *proxyproto.RefreshRequest) (*proxyproto.RefreshResponse, error) {
-	panic("it will be implemented later")
+	switch p.flag {
+	case "with credentials":
+		return &proxyproto.RefreshResponse{
+			Result: &proxyproto.RefreshResult{
+				B64Info:  p.opts.B64Data,
+				ExpireAt: p.opts.ExpireAt,
+			},
+		}, nil
+	case "expired":
+		return &proxyproto.RefreshResponse{
+			Result: &proxyproto.RefreshResult{
+				Expired: true,
+			},
+		}, nil
+	default:
+		return &proxyproto.RefreshResponse{}, nil
+	}
 }
 
 func (p proxyGRPCTestServer) Subscribe(ctx context.Context, request *proxyproto.SubscribeRequest) (*proxyproto.SubscribeResponse, error) {
