@@ -17,6 +17,7 @@ type proxyGRPCTestServerOptions struct {
 	ExpireAt int64
 	B64Data  string
 	Channels []string
+	Data     []byte
 }
 
 func newProxyGRPCTestServer(flag string, opts proxyGRPCTestServerOptions) proxyGRPCTestServer {
@@ -131,5 +132,35 @@ func (p proxyGRPCTestServer) Publish(ctx context.Context, request *proxyproto.Pu
 }
 
 func (p proxyGRPCTestServer) RPC(ctx context.Context, request *proxyproto.RPCRequest) (*proxyproto.RPCResponse, error) {
-	panic("it will be implemented later")
+	switch p.flag {
+	case "result":
+		return &proxyproto.RPCResponse{
+			Result: &proxyproto.RPCResult{
+				Data: p.opts.Data,
+			},
+		}, nil
+	case "custom disconnect":
+		return &proxyproto.RPCResponse{
+			Disconnect: &proxyproto.Disconnect{
+				Code:      4000,
+				Reason:    "custom disconnect",
+				Reconnect: false,
+			},
+		}, nil
+	case "custom error":
+		return &proxyproto.RPCResponse{
+			Error: &proxyproto.Error{
+				Code:    1000,
+				Message: "custom error",
+			},
+		}, nil
+	case "custom data":
+		return &proxyproto.RPCResponse{
+			Result: &proxyproto.RPCResult{
+				B64Data: p.opts.B64Data,
+			},
+		}, nil
+	default:
+		return &proxyproto.RPCResponse{}, nil
+	}
 }
