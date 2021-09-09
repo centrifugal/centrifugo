@@ -5,9 +5,10 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
-	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
@@ -17,22 +18,59 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type subscribeHandlerTestDepsConfig struct {
+type grpcSubscribeHandleTestCase struct {
+	*tools.CommonGRPCProxyTestCase
 	subscribeProxyHandler *SubscribeHandler
-	transport             *tools.TestTransport
+	channelOpts           rule.ChannelOptions
 }
 
-func newSubscribeHandlerTestDepsConfig(proxyEndpoint string) subscribeHandlerTestDepsConfig {
+func newSubscribeHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer, opts rule.ChannelOptions) grpcSubscribeHandleTestCase {
+	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
+
+	proxyCfg := Config{
+		SubscribeTimeout: 5 * time.Second,
+		GRPCConfig: GRPCConfig{
+			testDialer: func(ctx context.Context, s string) (net.Conn, error) {
+				return commonProxyTestCase.Listener.Dial()
+			},
+		},
+	}
+
+	subscribeProxy, err := NewGRPCSubscribeProxy(
+		commonProxyTestCase.Listener.Addr().String(),
+		proxyCfg,
+	)
+	if err != nil {
+		log.Fatalln("could not create grpc subscribe proxy: ", err)
+	}
+
+	subscribeProxyHandler := NewSubscribeHandler(SubscribeHandlerConfig{
+		Proxy: subscribeProxy,
+	})
+
+	return grpcSubscribeHandleTestCase{commonProxyTestCase, subscribeProxyHandler, opts}
+}
+
+type httpSubscribeHandleTestCase struct {
+	*tools.CommonHTTPProxyTestCase
+	subscribeProxyHandler *SubscribeHandler
+	channelOpts           rule.ChannelOptions
+}
+
+func newSubscribeHandleHTTPTestCase(ctx context.Context, endpoint string, opts rule.ChannelOptions) httpSubscribeHandleTestCase {
+	commonProxyTestCase := tools.NewCommonHTTPProxyTestCase(ctx)
+
 	proxyCfg := Config{
 		HTTPConfig: HTTPConfig{
 			Encoder: &proxyproto.JSONEncoder{},
 			Decoder: &proxyproto.JSONDecoder{},
 		},
-		SubscribeEndpoint: proxyEndpoint,
+		SubscribeEndpoint: endpoint,
+		SubscribeTimeout:  5 * time.Second,
 	}
 
-	connectProxy, err := NewHTTPSubscribeProxy(
-		proxyEndpoint,
+	subscribeProxy, err := NewHTTPSubscribeProxy(
+		commonProxyTestCase.Server.URL+endpoint,
 		proxyCfg,
 	)
 	if err != nil {
@@ -40,43 +78,68 @@ func newSubscribeHandlerTestDepsConfig(proxyEndpoint string) subscribeHandlerTes
 	}
 
 	subscribeProxyHandler := NewSubscribeHandler(SubscribeHandlerConfig{
-		Proxy: connectProxy,
+		Proxy: subscribeProxy,
 	})
 
-	return subscribeHandlerTestDepsConfig{
-		subscribeProxyHandler: subscribeProxyHandler,
-		transport:             tools.NewTestTransport(),
+	return httpSubscribeHandleTestCase{commonProxyTestCase, subscribeProxyHandler, opts}
+}
+
+type subscribeHandleTestCase struct {
+	subscribeProxyHandler *SubscribeHandler
+	protocol              string
+	node                  *centrifuge.Node
+	client                *centrifuge.Client
+	channelOpts           rule.ChannelOptions
+}
+
+func (c subscribeHandleTestCase) invokeHandle() (reply centrifuge.SubscribeReply, err error) {
+	subscribeHandler := c.subscribeProxyHandler.Handle(c.node)
+	reply, err = subscribeHandler(c.client, centrifuge.SubscribeEvent{}, c.channelOpts)
+
+	return reply, err
+}
+
+func newSubscribeHandleTestCases(httpTestCase httpSubscribeHandleTestCase, grpcTestCase grpcSubscribeHandleTestCase) []subscribeHandleTestCase {
+	return []subscribeHandleTestCase{
+		{
+			subscribeProxyHandler: grpcTestCase.subscribeProxyHandler,
+			node:                  grpcTestCase.Node,
+			client:                grpcTestCase.Client,
+			channelOpts:           grpcTestCase.channelOpts,
+			protocol:              "grpc",
+		},
+		{
+			subscribeProxyHandler: httpTestCase.subscribeProxyHandler,
+			node:                  httpTestCase.Node,
+			client:                httpTestCase.Client,
+			channelOpts:           httpTestCase.channelOpts,
+			protocol:              "http",
+		},
 	}
 }
 
 func TestHandleSubscribeWithResult(t *testing.T) {
-	node := tools.NodeWithMemoryEngineNoHandlers()
-	defer func() { _ = node.Shutdown(context.Background()) }()
-
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64info": "%s"}}`, customDataB64)))
-	})
-	server := httptest.NewServer(mux)
-	defer server.Close()
-
-	testDepsCfg := newSubscribeHandlerTestDepsConfig(server.URL + "/subscribe")
-	subscribeHandler := testDepsCfg.subscribeProxyHandler.Handle(node)
-
-	client, closeFn, err := centrifuge.NewClient(context.Background(), node, testDepsCfg.transport)
-	require.NoError(t, err)
-	defer func() { _ = closeFn() }()
-
 	chOpts := rule.ChannelOptions{
 		Presence:  true,
 		JoinLeave: true,
 		Recover:   true,
 		Position:  true,
 	}
-	subscribeReply, err := subscribeHandler(client, centrifuge.SubscribeEvent{}, chOpts)
+	opts := proxyGRPCTestServerOptions{
+		B64Data: customDataB64,
+	}
+
+	grpcTestCase := newSubscribeHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("result", opts), chOpts)
+	defer grpcTestCase.Teardown()
+
+	httpTestCase := newSubscribeHandleHTTPTestCase(context.Background(), "/subscribe", chOpts)
+	httpTestCase.Mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64info": "%s"}}`, customDataB64)))
+	})
+	defer httpTestCase.Teardown()
+
 	expectedSubscribeOpts := centrifuge.SubscribeOptions{
 		ChannelInfo: []byte(customData),
 		Presence:    true,
@@ -84,40 +147,38 @@ func TestHandleSubscribeWithResult(t *testing.T) {
 		Recover:     true,
 		Position:    true,
 	}
-	require.NoError(t, err)
-	require.Equal(t, expectedSubscribeOpts, subscribeReply.Options)
-	require.True(t, subscribeReply.ClientSideRefresh)
-	require.NoError(t, err)
+
+	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
+	for _, c := range cases {
+		reply, err := c.invokeHandle()
+		require.NoError(t, err, c.protocol)
+		require.Equal(t, expectedSubscribeOpts, reply.Options, c.protocol)
+		require.True(t, reply.ClientSideRefresh, c.protocol)
+	}
 }
 
 func TestHandleSubscribeWithOverride(t *testing.T) {
-	node := tools.NodeWithMemoryEngineNoHandlers()
-	defer func() { _ = node.Shutdown(context.Background()) }()
-
 	customData := "test"
 	customDataB64 := base64.StdEncoding.EncodeToString([]byte(customData))
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64info": "%s", "override": {"join_leave": {"value": false}, "presence": {"value": true}, "position": {"value": true}, "recover": {"value": true}}}}`, customDataB64)))
-	})
-	server := httptest.NewServer(mux)
-	defer server.Close()
-
-	testDepsCfg := newSubscribeHandlerTestDepsConfig(server.URL + "/subscribe")
-	subscribeHandler := testDepsCfg.subscribeProxyHandler.Handle(node)
-
-	client, closeFn, err := centrifuge.NewClient(context.Background(), node, testDepsCfg.transport)
-	require.NoError(t, err)
-	defer func() { _ = closeFn() }()
-
 	chOpts := rule.ChannelOptions{
 		Presence:  false,
 		JoinLeave: true,
 		Recover:   false,
 		Position:  false,
 	}
-	subscribeReply, err := subscribeHandler(client, centrifuge.SubscribeEvent{}, chOpts)
+	opts := proxyGRPCTestServerOptions{
+		B64Data: customDataB64,
+	}
+
+	grpcTestCase := newSubscribeHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("override", opts), chOpts)
+	defer grpcTestCase.Teardown()
+
+	httpTestCase := newSubscribeHandleHTTPTestCase(context.Background(), "/subscribe", chOpts)
+	httpTestCase.Mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64info": "%s", "override": {"join_leave": {"value": false}, "presence": {"value": true}, "position": {"value": true}, "recover": {"value": true}}}}`, customDataB64)))
+	})
+	defer httpTestCase.Teardown()
+
 	expectedSubscribeOpts := centrifuge.SubscribeOptions{
 		ChannelInfo: []byte(customData),
 		Presence:    true,
@@ -125,128 +186,121 @@ func TestHandleSubscribeWithOverride(t *testing.T) {
 		Position:    true,
 		Recover:     true,
 	}
-	require.NoError(t, err)
-	require.Equal(t, expectedSubscribeOpts, subscribeReply.Options)
-	require.True(t, subscribeReply.ClientSideRefresh)
-	require.NoError(t, err)
+
+	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
+	for _, c := range cases {
+		reply, err := c.invokeHandle()
+		require.NoError(t, err, c.protocol)
+		require.Equal(t, expectedSubscribeOpts, reply.Options, c.protocol)
+		require.True(t, reply.ClientSideRefresh, c.protocol)
+	}
 }
 
 func TestHandleSubscribeWithContextCancel(t *testing.T) {
-	node := tools.NodeWithMemoryEngineNoHandlers()
-	defer func() { _ = node.Shutdown(context.Background()) }()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
+	grpcTestCase := newSubscribeHandleGRPCTestCase(ctx, proxyGRPCTestServer{}, rule.ChannelOptions{})
+	defer grpcTestCase.Teardown()
+
+	httpTestCase := newSubscribeHandleHTTPTestCase(ctx, "/subscribe", rule.ChannelOptions{})
+	httpTestCase.Mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{}`))
 	})
-	server := httptest.NewServer(mux)
-	defer server.Close()
+	defer httpTestCase.Teardown()
 
-	testDepsCfg := newSubscribeHandlerTestDepsConfig(server.URL + "/subscribe")
-	subscribeHandler := testDepsCfg.subscribeProxyHandler.Handle(node)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	client, closeFn, err := centrifuge.NewClient(ctx, node, testDepsCfg.transport)
-	require.NoError(t, err)
-	defer func() { _ = closeFn() }()
-
-	cancel()
-	subscribeReply, err := subscribeHandler(client, centrifuge.SubscribeEvent{}, rule.ChannelOptions{})
-	require.ErrorIs(t, centrifuge.DisconnectNormal, err)
-	require.Equal(t, centrifuge.SubscribeReply{}, subscribeReply)
+	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
+	for _, c := range cases {
+		reply, err := c.invokeHandle()
+		require.ErrorIs(t, centrifuge.DisconnectNormal, err, c.protocol)
+		require.Equal(t, centrifuge.SubscribeReply{}, reply, c.protocol)
+	}
 }
 
 func TestHandleSubscribeWithoutProxyServerStart(t *testing.T) {
-	node := tools.NodeWithMemoryEngineNoHandlers()
-	defer func() { _ = node.Shutdown(context.Background()) }()
+	grpcTestCase := newSubscribeHandleGRPCTestCase(context.Background(), proxyGRPCTestServer{}, rule.ChannelOptions{})
+	grpcTestCase.Teardown()
 
-	testDepsCfg := newSubscribeHandlerTestDepsConfig("/subscribe")
-	subscribeHandler := testDepsCfg.subscribeProxyHandler.Handle(node)
+	httpTestCase := newSubscribeHandleHTTPTestCase(context.Background(), "/subscribe", rule.ChannelOptions{})
+	httpTestCase.Teardown()
 
-	client, closeFn, err := centrifuge.NewClient(context.Background(), node, testDepsCfg.transport)
-	require.NoError(t, err)
-	defer func() { _ = closeFn() }()
-
-	subscribeReply, err := subscribeHandler(client, centrifuge.SubscribeEvent{}, rule.ChannelOptions{})
-	require.ErrorIs(t, centrifuge.ErrorInternal, err)
-	require.Equal(t, centrifuge.SubscribeReply{}, subscribeReply)
+	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
+	for _, c := range cases {
+		reply, err := c.invokeHandle()
+		require.ErrorIs(t, centrifuge.ErrorInternal, err, c.protocol)
+		require.Equal(t, centrifuge.SubscribeReply{}, reply, c.protocol)
+	}
 }
 
 func TestHandleSubscribeWithProxyServerCustomDisconnect(t *testing.T) {
-	node := tools.NodeWithMemoryEngineNoHandlers()
-	defer func() { _ = node.Shutdown(context.Background()) }()
+	chOpts := rule.ChannelOptions{}
+	grpcTestCase := newSubscribeHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("custom disconnect", proxyGRPCTestServerOptions{}), chOpts)
+	defer grpcTestCase.Teardown()
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newSubscribeHandleHTTPTestCase(context.Background(), "/subscribe", chOpts)
+	httpTestCase.Mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"disconnect": {"code": 4000, "reconnect": false, "reason": "custom disconnect"}}`))
 	})
-	server := httptest.NewServer(mux)
-	defer server.Close()
+	defer httpTestCase.Teardown()
 
-	testDepsCfg := newSubscribeHandlerTestDepsConfig(server.URL + "/subscribe")
-	subscribeHandler := testDepsCfg.subscribeProxyHandler.Handle(node)
-
-	client, closeFn, err := centrifuge.NewClient(context.Background(), node, testDepsCfg.transport)
-	require.NoError(t, err)
-	defer func() { _ = closeFn() }()
-
-	subscribeReply, err := subscribeHandler(client, centrifuge.SubscribeEvent{}, rule.ChannelOptions{})
 	expectedErr := centrifuge.Disconnect{
 		Code:      4000,
 		Reason:    "custom disconnect",
 		Reconnect: false,
 	}
-	require.NotNil(t, err)
-	require.Equal(t, expectedErr.Error(), err.Error())
-	require.Equal(t, centrifuge.SubscribeReply{}, subscribeReply)
+
+	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
+	for _, c := range cases {
+		reply, err := c.invokeHandle()
+		require.NotNil(t, err, c.protocol)
+		require.Equal(t, expectedErr.Error(), err.Error(), c.protocol)
+		require.Equal(t, centrifuge.SubscribeReply{}, reply, c.protocol)
+	}
 }
 
 func TestHandleSubscribeWithProxyServerCustomError(t *testing.T) {
-	node := tools.NodeWithMemoryEngineNoHandlers()
-	defer func() { _ = node.Shutdown(context.Background()) }()
+	chOpts := rule.ChannelOptions{}
+	grpcTestCase := newSubscribeHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("custom error", proxyGRPCTestServerOptions{}), chOpts)
+	defer grpcTestCase.Teardown()
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
+	httpTestCase := newSubscribeHandleHTTPTestCase(context.Background(), "/subscribe", chOpts)
+	httpTestCase.Mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"error": {"code": 1000, "message": "custom error"}}`))
 	})
-	server := httptest.NewServer(mux)
-	defer server.Close()
+	defer httpTestCase.Teardown()
 
-	testDepsCfg := newSubscribeHandlerTestDepsConfig(server.URL + "/subscribe")
-	subscribeHandler := testDepsCfg.subscribeProxyHandler.Handle(node)
-
-	client, closeFn, err := centrifuge.NewClient(context.Background(), node, testDepsCfg.transport)
-	require.NoError(t, err)
-	defer func() { _ = closeFn() }()
-
-	subscribeReply, err := subscribeHandler(client, centrifuge.SubscribeEvent{}, rule.ChannelOptions{})
 	expectedErr := centrifuge.Error{
 		Code:    1000,
 		Message: "custom error",
 	}
-	require.NotNil(t, err)
-	require.Equal(t, expectedErr.Error(), err.Error())
-	require.Equal(t, centrifuge.SubscribeReply{}, subscribeReply)
+
+	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
+	for _, c := range cases {
+		reply, err := c.invokeHandle()
+		require.NotNil(t, err, c.protocol)
+		require.Equal(t, expectedErr.Error(), err.Error(), c.protocol)
+		require.Equal(t, centrifuge.SubscribeReply{}, reply, c.protocol)
+	}
 }
 
 func TestHandleSubscribeWithInvalidCustomData(t *testing.T) {
-	node := tools.NodeWithMemoryEngineNoHandlers()
-	defer func() { _ = node.Shutdown(context.Background()) }()
-	mux := http.NewServeMux()
-	mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
+	chOpts := rule.ChannelOptions{}
+	opts := proxyGRPCTestServerOptions{
+		B64Data: "invalid data",
+	}
+	grpcTestCase := newSubscribeHandleGRPCTestCase(context.Background(), newProxyGRPCTestServer("result", opts), chOpts)
+	defer grpcTestCase.Teardown()
+
+	httpTestCase := newSubscribeHandleHTTPTestCase(context.Background(), "/subscribe", chOpts)
+	httpTestCase.Mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
 		_, _ = w.Write([]byte(`{"result": {"b64info": "invalid data"}}`))
 	})
-	server := httptest.NewServer(mux)
-	defer server.Close()
+	defer httpTestCase.Teardown()
 
-	testDepsCfg := newSubscribeHandlerTestDepsConfig(server.URL + "/subscribe")
-	subscribeHandler := testDepsCfg.subscribeProxyHandler.Handle(node)
-
-	client, closeFn, err := centrifuge.NewClient(context.Background(), node, testDepsCfg.transport)
-	require.NoError(t, err)
-	defer func() { _ = closeFn() }()
-
-	subscribeReply, err := subscribeHandler(client, centrifuge.SubscribeEvent{}, rule.ChannelOptions{})
-	require.ErrorIs(t, centrifuge.ErrorInternal, err)
-	require.Equal(t, centrifuge.SubscribeReply{}, subscribeReply)
+	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
+	for _, c := range cases {
+		reply, err := c.invokeHandle()
+		require.ErrorIs(t, centrifuge.ErrorInternal, err, c.protocol)
+		require.Equal(t, centrifuge.SubscribeReply{}, reply, c.protocol)
+	}
 }
