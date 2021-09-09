@@ -54,18 +54,11 @@ func (p proxyGRPCTestServer) Connect(ctx context.Context, request *proxyproto.Co
 		}, nil
 	case "custom disconnect":
 		return &proxyproto.ConnectResponse{
-			Disconnect: &proxyproto.Disconnect{
-				Code:      4000,
-				Reason:    "custom disconnect",
-				Reconnect: false,
-			},
+			Disconnect: p.newDisconnect(),
 		}, nil
 	case "custom error":
 		return &proxyproto.ConnectResponse{
-			Error: &proxyproto.Error{
-				Code:    1000,
-				Message: "custom error",
-			},
+			Error: p.newCustomError(),
 		}, nil
 	default:
 		return &proxyproto.ConnectResponse{}, nil
@@ -93,7 +86,36 @@ func (p proxyGRPCTestServer) Refresh(ctx context.Context, request *proxyproto.Re
 }
 
 func (p proxyGRPCTestServer) Subscribe(ctx context.Context, request *proxyproto.SubscribeRequest) (*proxyproto.SubscribeResponse, error) {
-	panic("it will be implemented later")
+	switch p.flag {
+	case "result":
+		return &proxyproto.SubscribeResponse{
+			Result: &proxyproto.SubscribeResult{
+				B64Info: p.opts.B64Data,
+			},
+		}, nil
+	case "override":
+		return &proxyproto.SubscribeResponse{
+			Result: &proxyproto.SubscribeResult{
+				B64Info: p.opts.B64Data,
+				Override: &proxyproto.SubscribeOptionOverride{
+					Presence:  &proxyproto.BoolValue{Value: true},
+					JoinLeave: &proxyproto.BoolValue{Value: false},
+					Position:  &proxyproto.BoolValue{Value: true},
+					Recover:   &proxyproto.BoolValue{Value: true},
+				},
+			},
+		}, nil
+	case "custom disconnect":
+		return &proxyproto.SubscribeResponse{
+			Disconnect: p.newDisconnect(),
+		}, nil
+	case "custom error":
+		return &proxyproto.SubscribeResponse{
+			Error: p.newCustomError(),
+		}, nil
+	default:
+		return &proxyproto.SubscribeResponse{}, nil
+	}
 }
 
 func (p proxyGRPCTestServer) Publish(ctx context.Context, request *proxyproto.PublishRequest) (*proxyproto.PublishResponse, error) {
@@ -113,18 +135,11 @@ func (p proxyGRPCTestServer) Publish(ctx context.Context, request *proxyproto.Pu
 		}, nil
 	case "custom disconnect":
 		return &proxyproto.PublishResponse{
-			Disconnect: &proxyproto.Disconnect{
-				Code:      4000,
-				Reason:    "custom disconnect",
-				Reconnect: false,
-			},
+			Disconnect: p.newDisconnect(),
 		}, nil
 	case "custom error":
 		return &proxyproto.PublishResponse{
-			Error: &proxyproto.Error{
-				Code:    1000,
-				Message: "custom error",
-			},
+			Error: p.newCustomError(),
 		}, nil
 	default:
 		return &proxyproto.PublishResponse{}, nil
@@ -141,18 +156,11 @@ func (p proxyGRPCTestServer) RPC(ctx context.Context, request *proxyproto.RPCReq
 		}, nil
 	case "custom disconnect":
 		return &proxyproto.RPCResponse{
-			Disconnect: &proxyproto.Disconnect{
-				Code:      4000,
-				Reason:    "custom disconnect",
-				Reconnect: false,
-			},
+			Disconnect: p.newDisconnect(),
 		}, nil
 	case "custom error":
 		return &proxyproto.RPCResponse{
-			Error: &proxyproto.Error{
-				Code:    1000,
-				Message: "custom error",
-			},
+			Error: p.newCustomError(),
 		}, nil
 	case "custom data":
 		return &proxyproto.RPCResponse{
@@ -162,5 +170,20 @@ func (p proxyGRPCTestServer) RPC(ctx context.Context, request *proxyproto.RPCReq
 		}, nil
 	default:
 		return &proxyproto.RPCResponse{}, nil
+	}
+}
+
+func (p proxyGRPCTestServer) newDisconnect() *proxyproto.Disconnect {
+	return &proxyproto.Disconnect{
+		Code:      4000,
+		Reason:    "custom disconnect",
+		Reconnect: false,
+	}
+}
+
+func (p proxyGRPCTestServer) newCustomError() *proxyproto.Error {
+	return &proxyproto.Error{
+		Code:    1000,
+		Message: "custom error",
 	}
 }
