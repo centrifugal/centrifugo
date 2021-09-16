@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/encoding"
 )
 
-// Config for proxy.
+// Config is a configuration for default proxy.
 type Config struct {
 	// HTTPHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.
 	// If GRPC proxy is used then request HTTP headers set to outgoing request metadata.
