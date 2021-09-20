@@ -1,81 +1,50 @@
 package client
 
 import (
-	"strings"
-
 	"github.com/centrifugal/centrifugo/v3/internal/proxy"
 )
 
-func isGRPC(endpoint string) bool {
-	return strings.HasPrefix(endpoint, "grpc://")
+// ProxyMap is a structure which contains all configured and already initialized
+// proxies which can be used from inside client event handlers.
+type ProxyMap struct {
+	ConnectProxy     proxy.ConnectProxy
+	RefreshProxy     proxy.RefreshProxy
+	RpcProxies       map[string]proxy.RPCProxy
+	PublishProxies   map[string]proxy.PublishProxy
+	SubscribeProxies map[string]proxy.SubscribeProxy
 }
 
-func (h *Handler) getConnectProxy() (proxy.ConnectProxy, error) {
-	endpoint := h.proxyConfig.ConnectEndpoint
-	if isGRPC(endpoint) {
-		return proxy.NewGRPCConnectProxy(
-			endpoint,
-			h.proxyConfig,
-		)
+func GetConnectProxy(p proxy.Proxy) (proxy.ConnectProxy, error) {
+	if p.Type == "grpc" {
+		return proxy.NewGRPCConnectProxy(p)
 	}
-	return proxy.NewHTTPConnectProxy(
-		endpoint,
-		h.proxyConfig,
-	)
+	return proxy.NewHTTPConnectProxy(p)
 }
 
-func (h *Handler) getRefreshProxy() (proxy.RefreshProxy, error) {
-	endpoint := h.proxyConfig.RefreshEndpoint
-	if isGRPC(endpoint) {
-		return proxy.NewGRPCRefreshProxy(
-			endpoint,
-			h.proxyConfig,
-		)
+func GetRefreshProxy(p proxy.Proxy) (proxy.RefreshProxy, error) {
+	if p.Type == "grpc" {
+		return proxy.NewGRPCRefreshProxy(p)
 	}
-	return proxy.NewHTTPRefreshProxy(
-		endpoint,
-		h.proxyConfig,
-	)
+	return proxy.NewHTTPRefreshProxy(p)
 }
 
-func (h *Handler) getRPCProxy() (proxy.RPCProxy, error) {
-	endpoint := h.proxyConfig.RPCEndpoint
-	if isGRPC(endpoint) {
-		return proxy.NewGRPCRPCProxy(
-			endpoint,
-			h.proxyConfig,
-		)
+func GetRpcProxy(p proxy.Proxy) (proxy.RPCProxy, error) {
+	if p.Type == "grpc" {
+		return proxy.NewGRPCRPCProxy(p)
 	}
-	return proxy.NewHTTPRPCProxy(
-		endpoint,
-		h.proxyConfig,
-	)
+	return proxy.NewHTTPRPCProxy(p)
 }
 
-func (h *Handler) getPublishProxy() (proxy.PublishProxy, error) {
-	endpoint := h.proxyConfig.PublishEndpoint
-	if isGRPC(endpoint) {
-		return proxy.NewGRPCPublishProxy(
-			endpoint,
-			h.proxyConfig,
-		)
+func GetPublishProxy(p proxy.Proxy) (proxy.PublishProxy, error) {
+	if p.Type == "grpc" {
+		return proxy.NewGRPCPublishProxy(p)
 	}
-	return proxy.NewHTTPPublishProxy(
-		endpoint,
-		h.proxyConfig,
-	)
+	return proxy.NewHTTPPublishProxy(p)
 }
 
-func (h *Handler) getSubscribeProxy() (proxy.SubscribeProxy, error) {
-	endpoint := h.proxyConfig.SubscribeEndpoint
-	if isGRPC(endpoint) {
-		return proxy.NewGRPCSubscribeProxy(
-			endpoint,
-			h.proxyConfig,
-		)
+func GetSubscribeProxy(p proxy.Proxy) (proxy.SubscribeProxy, error) {
+	if p.Type == "grpc" {
+		return proxy.NewGRPCSubscribeProxy(p)
 	}
-	return proxy.NewHTTPSubscribeProxy(
-		endpoint,
-		h.proxyConfig,
-	)
+	return proxy.NewHTTPSubscribeProxy(p)
 }

@@ -5,12 +5,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"testing"
 	"time"
-
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
@@ -28,25 +25,15 @@ type grpcPublishHandleTestCase struct {
 func newPublishHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer, opts rule.ChannelOptions) grpcPublishHandleTestCase {
 	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	proxyCfg := Config{
-		PublishTimeout: 5 * time.Second,
-		GRPCConfig: GRPCConfig{
-			testDialer: func(ctx context.Context, s string) (net.Conn, error) {
-				return commonProxyTestCase.Listener.Dial()
-			},
-		},
-	}
-
-	publishProxy, err := NewGRPCPublishProxy(
-		commonProxyTestCase.Listener.Addr().String(),
-		proxyCfg,
-	)
+	publishProxy, err := NewGRPCPublishProxy(getTestGrpcProxy(commonProxyTestCase))
 	if err != nil {
 		log.Fatalln("could not create grpc publish proxy: ", err)
 	}
 
 	publishProxyHandler := NewPublishHandler(PublishHandlerConfig{
-		Proxy: publishProxy,
+		Proxies: map[string]PublishProxy{
+			"": publishProxy,
+		},
 	})
 
 	return grpcPublishHandleTestCase{commonProxyTestCase, publishProxyHandler, opts}
@@ -61,24 +48,15 @@ type httpPublishHandleTestCase struct {
 func newPublishHandleHTTPTestCase(ctx context.Context, endpoint string, opts rule.ChannelOptions) httpPublishHandleTestCase {
 	commonProxyTestCase := tools.NewCommonHTTPProxyTestCase(ctx)
 
-	proxyCfg := Config{
-		HTTPConfig: HTTPConfig{
-			Encoder: &proxyproto.JSONEncoder{},
-			Decoder: &proxyproto.JSONDecoder{},
-		},
-		PublishEndpoint: endpoint,
-	}
-
-	publishProxy, err := NewHTTPPublishProxy(
-		commonProxyTestCase.Server.URL+endpoint,
-		proxyCfg,
-	)
+	publishProxy, err := NewHTTPPublishProxy(getTestHttpProxy(commonProxyTestCase, endpoint))
 	if err != nil {
 		log.Fatalln("could not create http publish proxy: ", err)
 	}
 
 	publishProxyHandler := NewPublishHandler(PublishHandlerConfig{
-		Proxy: publishProxy,
+		Proxies: map[string]PublishProxy{
+			"": publishProxy,
+		},
 	})
 
 	return httpPublishHandleTestCase{commonProxyTestCase, publishProxyHandler, opts}

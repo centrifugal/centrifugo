@@ -13,23 +13,21 @@ import (
 
 // GRPCRefreshProxy ...
 type GRPCRefreshProxy struct {
-	endpoint string
-	timeout  time.Duration
-	client   proxyproto.CentrifugoProxyClient
-	config   Config
+	proxy  Proxy
+	client proxyproto.CentrifugoProxyClient
 }
 
 var _ RefreshProxy = (*GRPCRefreshProxy)(nil)
 
 // NewGRPCRefreshProxy ...
-func NewGRPCRefreshProxy(endpoint string, config Config) (*GRPCRefreshProxy, error) {
-	u, err := url.Parse(endpoint)
+func NewGRPCRefreshProxy(p Proxy) (*GRPCRefreshProxy, error) {
+	u, err := url.Parse(p.Endpoint)
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), config.RefreshTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(p.Timeout))
 	defer cancel()
-	dialOpts, err := getDialOpts(config)
+	dialOpts, err := getDialOpts(p)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GRPC dial options: %v", err)
 	}
@@ -38,18 +36,16 @@ func NewGRPCRefreshProxy(endpoint string, config Config) (*GRPCRefreshProxy, err
 		return nil, fmt.Errorf("error connecting to GRPC proxy server: %v", err)
 	}
 	return &GRPCRefreshProxy{
-		endpoint: endpoint,
-		timeout:  config.RefreshTimeout,
-		client:   proxyproto.NewCentrifugoProxyClient(conn),
-		config:   config,
+		proxy:  p,
+		client: proxyproto.NewCentrifugoProxyClient(conn),
 	}, nil
 }
 
 // ProxyRefresh proxies refresh to application backend.
 func (p *GRPCRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.RefreshRequest) (*proxyproto.RefreshResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, p.config.RefreshTimeout)
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.proxy.Timeout))
 	defer cancel()
-	return p.client.Refresh(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(p.config.GRPCConfig.Codec))
+	return p.client.Refresh(grpcRequestContext(ctx, p.proxy), req, grpc.ForceCodec(grpcCodec))
 }
 
 // Protocol ...
@@ -59,10 +55,10 @@ func (p *GRPCRefreshProxy) Protocol() string {
 
 // UseBase64 ...
 func (p *GRPCRefreshProxy) UseBase64() bool {
-	return p.config.BinaryEncoding
+	return p.proxy.BinaryEncoding
 }
 
 // IncludeMeta ...
 func (p *GRPCRefreshProxy) IncludeMeta() bool {
-	return p.config.IncludeConnectionMeta
+	return p.proxy.IncludeConnectionMeta
 }

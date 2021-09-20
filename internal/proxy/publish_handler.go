@@ -14,25 +14,48 @@ import (
 
 // PublishHandlerConfig ...
 type PublishHandlerConfig struct {
-	Proxy PublishProxy
+	Proxies           map[string]PublishProxy
+	GranularProxyMode bool
 }
 
 // PublishHandler ...
 type PublishHandler struct {
-	config    PublishHandlerConfig
-	summary   prometheus.Observer
-	histogram prometheus.Observer
-	errors    prometheus.Counter
+	config            PublishHandlerConfig
+	summary           prometheus.Observer
+	histogram         prometheus.Observer
+	errors            prometheus.Counter
+	granularSummary   map[string]prometheus.Observer
+	granularHistogram map[string]prometheus.Observer
+	granularErrors    map[string]prometheus.Counter
 }
 
 // NewPublishHandler ...
 func NewPublishHandler(c PublishHandlerConfig) *PublishHandler {
-	return &PublishHandler{
-		config:    c,
-		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "publish"),
-		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "publish"),
-		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "publish"),
+	h := &PublishHandler{
+		config: c,
 	}
+	if h.config.GranularProxyMode {
+		summary := map[string]prometheus.Observer{}
+		histogram := map[string]prometheus.Observer{}
+		errors := map[string]prometheus.Counter{}
+		for k := range c.Proxies {
+			name := k
+			if name == "" {
+				name = "__default__"
+			}
+			summary[name] = granularProxyCallDurationSummary.WithLabelValues("publish", name)
+			histogram[name] = granularProxyCallDurationHistogram.WithLabelValues("publish", name)
+			errors[name] = granularProxyCallErrorCount.WithLabelValues("publish", name)
+		}
+		h.granularSummary = summary
+		h.granularHistogram = histogram
+		h.granularErrors = errors
+	} else {
+		h.summary = proxyCallDurationSummary.WithLabelValues(h.config.Proxies[""].Protocol(), "publish")
+		h.histogram = proxyCallDurationHistogram.WithLabelValues(h.config.Proxies[""].Protocol(), "publish")
+		h.errors = proxyCallErrorCount.WithLabelValues(h.config.Proxies[""].Protocol(), "publish")
+	}
+	return h
 }
 
 // PublishHandlerFunc ...
@@ -42,27 +65,50 @@ type PublishHandlerFunc func(*centrifuge.Client, centrifuge.PublishEvent, rule.C
 func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 	return func(client *centrifuge.Client, e centrifuge.PublishEvent, chOpts rule.ChannelOptions) (centrifuge.PublishReply, error) {
 		started := time.Now()
+
+		var p PublishProxy
+		var summary prometheus.Observer
+		var histogram prometheus.Observer
+		var errors prometheus.Counter
+
+		if h.config.GranularProxyMode {
+			proxyName := chOpts.PublishProxyName
+			if proxyName == "" {
+				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish proxy not configured for a channel", map[string]interface{}{"channel": e.Channel}))
+				return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
+			}
+			p = h.config.Proxies[proxyName]
+			summary = h.granularSummary[proxyName]
+			histogram = h.granularHistogram[proxyName]
+			errors = h.granularErrors[proxyName]
+		} else {
+			p = h.config.Proxies[""]
+			summary = h.summary
+			histogram = h.histogram
+			errors = h.errors
+		}
+
 		req := &proxyproto.PublishRequest{
 			Client:    client.ID(),
 			Protocol:  string(client.Transport().Protocol()),
 			Transport: client.Transport().Name(),
-			Encoding:  getEncoding(h.config.Proxy.UseBase64()),
+			Encoding:  getEncoding(p.UseBase64()),
 
 			User:    client.UserID(),
 			Channel: e.Channel,
 		}
-		if h.config.Proxy.IncludeMeta() {
+		if p.IncludeMeta() {
 			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
 				req.Meta = proxyproto.Raw(connMeta.Meta)
 			}
 		}
-		if !h.config.Proxy.UseBase64() {
+		if !p.UseBase64() {
 			req.Data = e.Data
 		} else {
 			req.B64Data = base64.StdEncoding.EncodeToString(e.Data)
 		}
 
-		publishRep, err := h.config.Proxy.ProxyPublish(client.Context(), req)
+		publishRep, err := p.ProxyPublish(client.Context(), req)
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			select {
@@ -71,14 +117,14 @@ func (h *PublishHandler) Handle(node *centrifuge.Node) PublishHandlerFunc {
 				return centrifuge.PublishReply{}, centrifuge.DisconnectNormal
 			default:
 			}
-			h.summary.Observe(duration)
-			h.histogram.Observe(duration)
-			h.errors.Inc()
+			summary.Observe(duration)
+			histogram.Observe(duration)
+			errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying publish", map[string]interface{}{"error": err.Error()}))
 			return centrifuge.PublishReply{}, centrifuge.ErrorInternal
 		}
-		h.summary.Observe(duration)
-		h.histogram.Observe(duration)
+		summary.Observe(duration)
+		histogram.Observe(duration)
 
 		if publishRep.Disconnect != nil {
 			return centrifuge.PublishReply{}, proxyproto.DisconnectFromProto(publishRep.Disconnect)

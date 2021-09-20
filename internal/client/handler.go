@@ -24,11 +24,12 @@ type RPCExtensionFunc func(c *centrifuge.Client, e centrifuge.RPCEvent) (centrif
 
 // Handler ...
 type Handler struct {
-	node          *centrifuge.Node
-	ruleContainer *rule.Container
-	tokenVerifier jwtverify.Verifier
-	proxyConfig   proxy.Config
-	rpcExtension  map[string]RPCExtensionFunc
+	node              *centrifuge.Node
+	ruleContainer     *rule.Container
+	tokenVerifier     jwtverify.Verifier
+	proxyMap          *ProxyMap
+	rpcExtension      map[string]RPCExtensionFunc
+	granularProxyMode bool
 }
 
 // NewHandler ...
@@ -36,14 +37,16 @@ func NewHandler(
 	node *centrifuge.Node,
 	ruleContainer *rule.Container,
 	tokenVerifier jwtverify.Verifier,
-	proxyConfig proxy.Config,
+	proxyMap *ProxyMap,
+	granularProxyMode bool,
 ) *Handler {
 	return &Handler{
-		node:          node,
-		ruleContainer: ruleContainer,
-		tokenVerifier: tokenVerifier,
-		proxyConfig:   proxyConfig,
-		rpcExtension:  make(map[string]RPCExtensionFunc),
+		node:              node,
+		ruleContainer:     ruleContainer,
+		tokenVerifier:     tokenVerifier,
+		proxyMap:          proxyMap,
+		granularProxyMode: granularProxyMode,
+		rpcExtension:      make(map[string]RPCExtensionFunc),
 	}
 }
 
@@ -55,24 +58,16 @@ func (h *Handler) SetRPCExtension(method string, handler RPCExtensionFunc) {
 // Setup event handlers.
 func (h *Handler) Setup() error {
 	var connectProxyHandler centrifuge.ConnectingHandler
-	if h.proxyConfig.ConnectEndpoint != "" {
-		connectProxy, err := h.getConnectProxy()
-		if err != nil {
-			return err
-		}
+	if h.proxyMap.ConnectProxy != nil {
 		connectProxyHandler = proxy.NewConnectHandler(proxy.ConnectHandlerConfig{
-			Proxy: connectProxy,
+			Proxy: h.proxyMap.ConnectProxy,
 		}, h.ruleContainer).Handle(h.node)
 	}
 
 	var refreshProxyHandler proxy.RefreshHandlerFunc
-	if h.proxyConfig.RefreshEndpoint != "" {
-		refreshProxy, err := h.getRefreshProxy()
-		if err != nil {
-			return err
-		}
+	if h.proxyMap.RefreshProxy != nil {
 		refreshProxyHandler = proxy.NewRefreshHandler(proxy.RefreshHandlerConfig{
-			Proxy: refreshProxy,
+			Proxy: h.proxyMap.RefreshProxy,
 		}).Handle(h.node)
 	}
 
@@ -85,35 +80,26 @@ func (h *Handler) Setup() error {
 	})
 
 	var rpcProxyHandler proxy.RPCHandlerFunc
-	if h.proxyConfig.RPCEndpoint != "" {
-		rpcProxy, err := h.getRPCProxy()
-		if err != nil {
-			return err
-		}
+	if len(h.proxyMap.RpcProxies) > 0 {
 		rpcProxyHandler = proxy.NewRPCHandler(proxy.RPCHandlerConfig{
-			Proxy: rpcProxy,
+			Proxies:           h.proxyMap.RpcProxies,
+			GranularProxyMode: h.granularProxyMode,
 		}).Handle(h.node)
 	}
 
 	var publishProxyHandler proxy.PublishHandlerFunc
-	if h.proxyConfig.PublishEndpoint != "" {
-		publishProxy, err := h.getPublishProxy()
-		if err != nil {
-			return err
-		}
+	if len(h.proxyMap.PublishProxies) > 0 {
 		publishProxyHandler = proxy.NewPublishHandler(proxy.PublishHandlerConfig{
-			Proxy: publishProxy,
+			Proxies:           h.proxyMap.PublishProxies,
+			GranularProxyMode: h.granularProxyMode,
 		}).Handle(h.node)
 	}
 
 	var subscribeProxyHandler proxy.SubscribeHandlerFunc
-	if h.proxyConfig.SubscribeEndpoint != "" {
-		subscribeProxy, err := h.getSubscribeProxy()
-		if err != nil {
-			return err
-		}
+	if len(h.proxyMap.SubscribeProxies) > 0 {
 		subscribeProxyHandler = proxy.NewSubscribeHandler(proxy.SubscribeHandlerConfig{
-			Proxy: subscribeProxy,
+			Proxies:           h.proxyMap.SubscribeProxies,
+			GranularProxyMode: h.granularProxyMode,
 		}).Handle(h.node)
 	}
 
@@ -410,7 +396,7 @@ func (h *Handler) OnRPC(c *centrifuge.Client, e centrifuge.RPCEvent, rpcProxyHan
 		return handler(c, e)
 	}
 	if rpcProxyHandler != nil {
-		return rpcProxyHandler(c, e)
+		return rpcProxyHandler(c, e, h.ruleContainer)
 	}
 	return centrifuge.RPCReply{}, centrifuge.ErrorMethodNotFound
 }

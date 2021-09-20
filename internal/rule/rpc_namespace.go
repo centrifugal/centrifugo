@@ -2,7 +2,7 @@ package rule
 
 // RpcNamespace allows to create rules for different rpc.
 type RpcNamespace struct {
-	// Name is a unique namespace name.
+	// Name is a unique rpc namespace name.
 	Name string `mapstructure:"name" json:"name"`
 
 	// Options for rpc namespace.

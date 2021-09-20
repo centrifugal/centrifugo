@@ -6,11 +6,14 @@ import (
 	"net/http"
 
 	"github.com/centrifugal/centrifugo/v3/internal/middleware"
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 )
+
+var grpcCodec = proxyproto.Codec{}
 
 type rpcCredentials struct {
 	key   string
@@ -27,16 +30,16 @@ func (t rpcCredentials) RequireTransportSecurity() bool {
 	return false
 }
 
-func getDialOpts(c Config) ([]grpc.DialOption, error) {
+func getDialOpts(p Proxy) ([]grpc.DialOption, error) {
 	var dialOpts []grpc.DialOption
-	if c.GRPCConfig.CredentialsKey != "" {
+	if p.GrpcCredentialsKey != "" {
 		dialOpts = append(dialOpts, grpc.WithPerRPCCredentials(&rpcCredentials{
-			key:   c.GRPCConfig.CredentialsKey,
-			value: c.GRPCConfig.CredentialsValue,
+			key:   p.GrpcCredentialsKey,
+			value: p.GrpcCredentialsValue,
 		}))
 	}
-	if c.GRPCConfig.CertFile != "" {
-		cred, err := credentials.NewClientTLSFromFile(c.GRPCConfig.CertFile, "")
+	if p.GrpcCertFile != "" {
+		cred, err := credentials.NewClientTLSFromFile(p.GrpcCertFile, "")
 		if err != nil {
 			return nil, fmt.Errorf("failed to create TLS credentials %v", err)
 		}
@@ -45,21 +48,21 @@ func getDialOpts(c Config) ([]grpc.DialOption, error) {
 		dialOpts = append(dialOpts, grpc.WithInsecure())
 	}
 
-	if c.GRPCConfig.testDialer != nil {
-		dialOpts = append(dialOpts, grpc.WithContextDialer(c.GRPCConfig.testDialer))
+	if p.testGrpcDialer != nil {
+		dialOpts = append(dialOpts, grpc.WithContextDialer(p.testGrpcDialer))
 	}
 
 	dialOpts = append(dialOpts, grpc.WithBlock())
 	return dialOpts, nil
 }
 
-func grpcRequestContext(ctx context.Context, config Config) context.Context {
-	md := requestMetadata(ctx, config.HTTPHeaders, config.GRPCMetadata)
+func grpcRequestContext(ctx context.Context, proxy Proxy) context.Context {
+	md := requestMetadata(ctx, proxy.HttpHeaders, proxy.GrpcMetadata)
 	return metadata.NewOutgoingContext(ctx, md)
 }
 
-func httpRequestHeaders(ctx context.Context, config Config) http.Header {
-	return requestHeaders(ctx, config.HTTPHeaders, config.GRPCMetadata)
+func httpRequestHeaders(ctx context.Context, proxy Proxy) http.Header {
+	return requestHeaders(ctx, proxy.HttpHeaders, proxy.GrpcMetadata)
 }
 
 func requestMetadata(ctx context.Context, allowedHeaders []string, allowedMetaKeys []string) metadata.MD {

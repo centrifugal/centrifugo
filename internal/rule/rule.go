@@ -14,6 +14,15 @@ type Config struct {
 	ChannelOptions
 	// Namespaces – list of namespaces for custom channel options.
 	Namespaces []ChannelNamespace
+	// RpcOptions embedded on top level.
+	RpcOptions
+	// RpcNamespaces - list of rpc namespace for custom rpc options.
+	RpcNamespaces []RpcNamespace
+	// RpcNamespaceBoundary is a string separator which must be put after
+	// rpc namespace part in rpc method.
+	RpcNamespaceBoundary string
+	// ChannelUserBoundary is a string separator which must be set before
+	// allowed users part in channel name.
 	// ChannelPrivatePrefix is a prefix in channel name which indicates that
 	// channel is private.
 	ChannelPrivatePrefix string
@@ -59,10 +68,11 @@ type Config struct {
 
 // DefaultConfig has default config options.
 var DefaultConfig = Config{
-	ChannelPrivatePrefix:     "$", // so private channel will look like "$gossips"
-	ChannelNamespaceBoundary: ":", // so namespace "public" can be used as "public:news"
-	ChannelUserBoundary:      "#", // so user limited channel is "user#2694" where "2696" is user ID
-	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019"
+	ChannelPrivatePrefix:     "$", // so private channel will look like "$gossips".
+	ChannelNamespaceBoundary: ":", // so namespace "public" can be used as "public:news".
+	ChannelUserBoundary:      "#", // so user limited channel is "user#2694" where "2696" is user ID.
+	ChannelUserSeparator:     ",", // so several users limited channel is "dialog#2694,3019".
+	RpcNamespaceBoundary:     ":", // so rpc namespace "chat" can be used as "chat:get_user_info".
 }
 
 func stringInSlice(a string, list []string) bool {
@@ -260,4 +270,33 @@ func (n *Container) UserAllowed(ch string, user string) bool {
 		}
 	}
 	return false
+}
+
+// rpcNamespaceName returns rpc namespace name from channel if exists.
+func (n *Container) rpcNamespaceName(method string) string {
+	if n.config.RpcNamespaceBoundary != "" && strings.Contains(method, n.config.RpcNamespaceBoundary) {
+		parts := strings.SplitN(method, n.config.RpcNamespaceBoundary, 2)
+		return parts[0]
+	}
+	return ""
+}
+
+// RpcOptions returns rpc options for method using current config.
+func (n *Container) RpcOptions(method string) (RpcOptions, bool, error) {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	return n.config.rpcOpts(n.rpcNamespaceName(method))
+}
+
+// rpcOpts searches for channel options for specified namespace key.
+func (c *Config) rpcOpts(namespaceName string) (RpcOptions, bool, error) {
+	if namespaceName == "" {
+		return c.RpcOptions, true, nil
+	}
+	for _, n := range c.RpcNamespaces {
+		if n.Name == namespaceName {
+			return n.RpcOptions, true, nil
+		}
+	}
+	return RpcOptions{}, false, nil
 }
