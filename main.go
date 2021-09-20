@@ -1222,11 +1222,9 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	p.HttpHeaders = v.GetStringSlice("proxy_http_headers")
 	p.BinaryEncoding = v.GetBool("proxy_binary_encoding")
 	p.IncludeConnectionMeta = v.GetBool("proxy_include_connection_meta")
-	p.GrpcSettings = &proxy.GrpcSettings{
-		CertFile:         v.GetString("proxy_grpc_cert_file"),
-		CredentialsKey:   v.GetString("proxy_grpc_credentials_key"),
-		CredentialsValue: v.GetString("proxy_grpc_credentials_value"),
-	}
+	p.GrpcCertFile = v.GetString("proxy_grpc_cert_file")
+	p.GrpcCredentialsKey = v.GetString("proxy_grpc_credentials_key")
+	p.GrpcCredentialsValue = v.GetString("proxy_grpc_credentials_value")
 
 	connectEndpoint := v.GetString("proxy_connect_endpoint")
 	connectTimeout := GetDuration("proxy_connect_timeout")
