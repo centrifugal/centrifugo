@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"encoding/base64"
-	"fmt"
 	"time"
 
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
@@ -88,8 +87,6 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "rpc proxy not configured for a method", map[string]interface{}{"method": e.Method}))
 				return centrifuge.RPCReply{}, centrifuge.ErrorNotAvailable
 			}
-			println(proxyName)
-			fmt.Printf("%#v\n", h.config.Proxies)
 			p = h.config.Proxies[proxyName]
 			summary = h.granularSummary[proxyName]
 			histogram = h.granularHistogram[proxyName]
