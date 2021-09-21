@@ -475,7 +475,7 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 			return centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied
 		}
 		options = token.Options
-	} else if chOpts.ProxySubscribe && !h.ruleContainer.IsUserLimited(e.Channel) {
+	} else if (chOpts.ProxySubscribe || chOpts.SubscribeProxyName != "") && !h.ruleContainer.IsUserLimited(e.Channel) {
 		if subscribeProxyHandler == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeReply{}, centrifuge.ErrorNotAvailable
@@ -523,7 +523,7 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 		}
 	}
 
-	if chOpts.ProxyPublish {
+	if chOpts.ProxyPublish || chOpts.PublishProxyName != "" {
 		if publishProxyHandler == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
