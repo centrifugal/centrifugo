@@ -1454,33 +1454,27 @@ func granularProxiesFromConfig(v *viper.Viper) []proxy.Proxy {
 		err = fmt.Errorf("unknown proxies type: %T", val)
 	}
 	if err != nil {
-		log.Error().Err(err).Msg("malformed proxies")
-		os.Exit(1)
+		log.Fatal().Err(err).Msg("malformed proxies")
 	}
 	names := map[string]struct{}{}
 	for _, p := range proxies {
 		if !proxyNameRe.Match([]byte(p.Name)) {
-			log.Error().Msgf("invalid proxy name: %s, must match %s regular expression", p.Name, proxyNamePattern)
-			os.Exit(1)
+			log.Fatal().Msgf("invalid proxy name: %s, must match %s regular expression", p.Name, proxyNamePattern)
 		}
 		if _, ok := names[p.Name]; ok {
-			log.Error().Msgf("duplicate proxy name: %s", p.Name)
-			os.Exit(1)
+			log.Fatal().Msgf("duplicate proxy name: %s", p.Name)
 		}
 		if p.Timeout == 0 {
 			p.Timeout = tools.Duration(time.Second)
 		}
 		if p.Endpoint == "" {
-			log.Error().Msgf("no endpoint set for proxy %s", p.Name)
-			os.Exit(1)
+			log.Fatal().Msgf("no endpoint set for proxy %s", p.Name)
 		}
 		if p.Type == "" {
-			log.Error().Msgf("no type set for proxy %s", p.Name)
-			os.Exit(1)
+			log.Fatal().Msgf("no type set for proxy %s", p.Name)
 		}
 		if p.Type != "grpc" && p.Type != "http" {
-			log.Error().Msgf("unsupported type in proxy %s: %s", p.Name, p.Type)
-			os.Exit(1)
+			log.Fatal().Msgf("unsupported type for proxy %s: %s (valid options are http or grpc)", p.Name, p.Type)
 		}
 		names[p.Name] = struct{}{}
 	}
