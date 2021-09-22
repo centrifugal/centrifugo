@@ -22,6 +22,16 @@ var UseUnlimitedHistoryByDefault bool
 // RPCExtensionFunc ...
 type RPCExtensionFunc func(c *centrifuge.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error)
 
+// ProxyMap is a structure which contains all configured and already initialized
+// proxies which can be used from inside client event handlers.
+type ProxyMap struct {
+	ConnectProxy     proxy.ConnectProxy
+	RefreshProxy     proxy.RefreshProxy
+	RpcProxies       map[string]proxy.RPCProxy
+	PublishProxies   map[string]proxy.PublishProxy
+	SubscribeProxies map[string]proxy.SubscribeProxy
+}
+
 // Handler ...
 type Handler struct {
 	node              *centrifuge.Node

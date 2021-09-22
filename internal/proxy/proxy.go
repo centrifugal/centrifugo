@@ -7,13 +7,6 @@ import (
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
 )
 
-func getEncoding(useBase64 bool) string {
-	if useBase64 {
-		return "binary"
-	}
-	return "json"
-}
-
 // Proxy model.
 type Proxy struct {
 	// Name is a unique name of proxy to reference.
@@ -25,10 +18,10 @@ type Proxy struct {
 	// Timeout for proxy request.
 	Timeout tools.Duration `mapstructure:"timeout" json:"timeout,omitempty"`
 
-	// HTTPHeaders is a list of HTTP headers to proxy. No headers used by proxy by default.
+	// HTTPHeaders is a list of HTTP headers to  No headers used by proxy by default.
 	// If GRPC proxy is used then request HTTP headers set to outgoing request metadata.
 	HttpHeaders []string `mapstructure:"http_headers" json:"http_headers,omitempty"`
-	// GRPCMetadata is a list of GRPC metadata keys to proxy. No meta keys used by proxy by
+	// GRPCMetadata is a list of GRPC metadata keys to  No meta keys used by proxy by
 	// default. If HTTP proxy is used then these keys become outgoing request HTTP headers.
 	GrpcMetadata []string `mapstructure:"grpc_metadata" json:"grpc_metadata,omitempty"`
 
@@ -46,4 +39,46 @@ type Proxy struct {
 	GrpcCredentialsValue string `mapstructure:"grpc_credentials_value" json:"grpc_credentials_value,omitempty"`
 
 	testGrpcDialer func(context.Context, string) (net.Conn, error)
+}
+
+func getEncoding(useBase64 bool) string {
+	if useBase64 {
+		return "binary"
+	}
+	return "json"
+}
+
+func GetConnectProxy(p Proxy) (ConnectProxy, error) {
+	if p.Type == "grpc" {
+		return NewGRPCConnectProxy(p)
+	}
+	return NewHTTPConnectProxy(p)
+}
+
+func GetRefreshProxy(p Proxy) (RefreshProxy, error) {
+	if p.Type == "grpc" {
+		return NewGRPCRefreshProxy(p)
+	}
+	return NewHTTPRefreshProxy(p)
+}
+
+func GetRpcProxy(p Proxy) (RPCProxy, error) {
+	if p.Type == "grpc" {
+		return NewGRPCRPCProxy(p)
+	}
+	return NewHTTPRPCProxy(p)
+}
+
+func GetPublishProxy(p Proxy) (PublishProxy, error) {
+	if p.Type == "grpc" {
+		return NewGRPCPublishProxy(p)
+	}
+	return NewHTTPPublishProxy(p)
+}
+
+func GetSubscribeProxy(p Proxy) (SubscribeProxy, error) {
+	if p.Type == "grpc" {
+		return NewGRPCSubscribeProxy(p)
+	}
+	return NewHTTPSubscribeProxy(p)
 }

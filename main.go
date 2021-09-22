@@ -1241,7 +1241,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		p.Endpoint = connectEndpoint
 		p.Timeout = tools.Duration(connectTimeout)
 		var err error
-		proxyMap.ConnectProxy, err = client.GetConnectProxy(p)
+		proxyMap.ConnectProxy, err = proxy.GetConnectProxy(p)
 		if err != nil {
 			log.Fatal().Msgf("error creating connect proxy: %v", err)
 		}
@@ -1252,7 +1252,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 		p.Endpoint = refreshEndpoint
 		p.Timeout = tools.Duration(refreshTimeout)
 		var err error
-		proxyMap.RefreshProxy, err = client.GetRefreshProxy(p)
+		proxyMap.RefreshProxy, err = proxy.GetRefreshProxy(p)
 		if err != nil {
 			log.Fatal().Msgf("error creating refresh proxy: %v", err)
 		}
@@ -1262,7 +1262,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	if subscribeEndpoint != "" {
 		p.Endpoint = subscribeEndpoint
 		p.Timeout = tools.Duration(subscribeTimeout)
-		sp, err := client.GetSubscribeProxy(p)
+		sp, err := proxy.GetSubscribeProxy(p)
 		if err != nil {
 			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
 		}
@@ -1273,7 +1273,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	if publishEndpoint != "" {
 		p.Endpoint = publishEndpoint
 		p.Timeout = tools.Duration(publishTimeout)
-		pp, err := client.GetPublishProxy(p)
+		pp, err := proxy.GetPublishProxy(p)
 		if err != nil {
 			log.Fatal().Msgf("error creating publish proxy: %v", err)
 		}
@@ -1284,7 +1284,7 @@ func proxyMapConfig() (*client.ProxyMap, bool) {
 	if rpcEndpoint != "" {
 		p.Endpoint = rpcEndpoint
 		p.Timeout = tools.Duration(rpcTimeout)
-		rp, err := client.GetRpcProxy(p)
+		rp, err := proxy.GetRpcProxy(p)
 		if err != nil {
 			log.Fatal().Msgf("error creating rpc proxy: %v", err)
 		}
@@ -1319,7 +1319,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("connect proxy not found: %s", connectProxyName)
 		}
 		var err error
-		proxyMap.ConnectProxy, err = client.GetConnectProxy(p)
+		proxyMap.ConnectProxy, err = proxy.GetConnectProxy(p)
 		if err != nil {
 			log.Fatal().Msgf("error creating connect proxy: %v", err)
 		}
@@ -1332,7 +1332,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			log.Fatal().Msgf("refresh proxy not found: %s", refreshProxyName)
 		}
 		var err error
-		proxyMap.RefreshProxy, err = client.GetRefreshProxy(p)
+		proxyMap.RefreshProxy, err = proxy.GetRefreshProxy(p)
 		if err != nil {
 			log.Fatal().Msgf("error creating refresh proxy: %v", err)
 		}
@@ -1344,7 +1344,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		if !ok {
 			log.Fatal().Msgf("subscribe proxy not found: %s", subscribeProxyName)
 		}
-		sp, err := client.GetSubscribeProxy(p)
+		sp, err := proxy.GetSubscribeProxy(p)
 		if err != nil {
 			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
 		}
@@ -1358,7 +1358,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		if !ok {
 			log.Fatal().Msgf("publish proxy not found: %s", publishProxyName)
 		}
-		pp, err := client.GetPublishProxy(p)
+		pp, err := proxy.GetPublishProxy(p)
 		if err != nil {
 			log.Fatal().Msgf("error creating publish proxy: %v", err)
 		}
@@ -1375,7 +1375,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			if !ok {
 				log.Fatal().Msgf("subscribe proxy not found: %s", subscribeProxyName)
 			}
-			sp, err := client.GetSubscribeProxy(p)
+			sp, err := proxy.GetSubscribeProxy(p)
 			if err != nil {
 				log.Fatal().Msgf("error creating subscribe proxy: %v", err)
 			}
@@ -1388,7 +1388,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			if !ok {
 				log.Fatal().Msgf("publish proxy not found: %s", publishProxyName)
 			}
-			pp, err := client.GetPublishProxy(p)
+			pp, err := proxy.GetPublishProxy(p)
 			if err != nil {
 				log.Fatal().Msgf("error creating publish proxy: %v", err)
 			}
@@ -1403,7 +1403,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 		if !ok {
 			log.Fatal().Msgf("rpc proxy not found: %s", rpcProxyName)
 		}
-		rp, err := client.GetRpcProxy(p)
+		rp, err := proxy.GetRpcProxy(p)
 		if err != nil {
 			log.Fatal().Msgf("error creating rpc proxy: %v", err)
 		}
@@ -1418,7 +1418,7 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 			if !ok {
 				log.Fatal().Msgf("rpc proxy not found: %s", rpcProxyName)
 			}
-			rp, err := client.GetRpcProxy(p)
+			rp, err := proxy.GetRpcProxy(p)
 			if err != nil {
 				log.Fatal().Msgf("error creating rpc proxy: %v", err)
 			}
