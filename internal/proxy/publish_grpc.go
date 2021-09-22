@@ -3,12 +3,11 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"time"
 
-	"google.golang.org/grpc"
-
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
+
+	"google.golang.org/grpc"
 )
 
 // GRPCPublishProxy ...
@@ -21,9 +20,9 @@ var _ PublishProxy = (*GRPCPublishProxy)(nil)
 
 // NewGRPCPublishProxy ...
 func NewGRPCPublishProxy(p Proxy) (*GRPCPublishProxy, error) {
-	u, err := url.Parse(p.Endpoint)
+	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting grpc host: %v", err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(p.Timeout))
 	defer cancel()
@@ -31,7 +30,7 @@ func NewGRPCPublishProxy(p Proxy) (*GRPCPublishProxy, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating GRPC dial options: %v", err)
 	}
-	conn, err := grpc.DialContext(ctx, u.Host, dialOpts...)
+	conn, err := grpc.DialContext(ctx, host, dialOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to GRPC proxy server: %v", err)
 	}

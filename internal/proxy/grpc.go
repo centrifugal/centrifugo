@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/centrifugal/centrifugo/v3/internal/middleware"
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
@@ -28,6 +30,20 @@ func (t rpcCredentials) GetRequestMetadata(_ context.Context, _ ...string) (map[
 
 func (t rpcCredentials) RequireTransportSecurity() bool {
 	return false
+}
+
+func getGrpcHost(endpoint string) (string, error) {
+	var host string
+	if strings.HasPrefix(endpoint, "grpc://") {
+		u, err := url.Parse(endpoint)
+		if err != nil {
+			return "", err
+		}
+		host = u.Host
+	} else {
+		host = endpoint
+	}
+	return host, nil
 }
 
 func getDialOpts(p Proxy) ([]grpc.DialOption, error) {

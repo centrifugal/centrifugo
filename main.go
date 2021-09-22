@@ -26,6 +26,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -332,7 +333,6 @@ func main() {
 				proxyMap, proxyEnabled = granularProxyMapConfig(ruleConfig)
 			} else {
 				proxyMap, proxyEnabled = proxyMapConfig()
-				fmt.Printf("%#v\n", proxyMap)
 			}
 
 			nodeConfig := nodeConfig(build.Version)
@@ -1430,6 +1430,9 @@ func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
 	return proxyMap, proxyEnabled
 }
 
+var proxyNamePattern = "^[-a-zA-Z0-9_.]{2,}$"
+var proxyNameRe = regexp.MustCompile(proxyNamePattern)
+
 func granularProxiesFromConfig(v *viper.Viper) []proxy.Proxy {
 	var proxies []proxy.Proxy
 	if !v.IsSet("proxies") {
@@ -1453,6 +1456,33 @@ func granularProxiesFromConfig(v *viper.Viper) []proxy.Proxy {
 	if err != nil {
 		log.Error().Err(err).Msg("malformed proxies")
 		os.Exit(1)
+	}
+	names := map[string]struct{}{}
+	for _, p := range proxies {
+		if !proxyNameRe.Match([]byte(p.Name)) {
+			log.Error().Msgf("invalid proxy name: %s, must match %s regular expression", p.Name, proxyNamePattern)
+			os.Exit(1)
+		}
+		if _, ok := names[p.Name]; ok {
+			log.Error().Msgf("duplicate proxy name: %s", p.Name)
+			os.Exit(1)
+		}
+		if p.Timeout == 0 {
+			p.Timeout = tools.Duration(time.Second)
+		}
+		if p.Endpoint == "" {
+			log.Error().Msgf("no endpoint set for proxy %s", p.Name)
+			os.Exit(1)
+		}
+		if p.Type == "" {
+			log.Error().Msgf("no type set for proxy %s", p.Name)
+			os.Exit(1)
+		}
+		if p.Type != "grpc" && p.Type != "http" {
+			log.Error().Msgf("unsupported type in proxy %s: %s", p.Name, p.Type)
+			os.Exit(1)
+		}
+		names[p.Name] = struct{}{}
 	}
 	return proxies
 }

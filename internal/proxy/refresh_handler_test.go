@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
+
+	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
 )
 

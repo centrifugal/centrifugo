@@ -84,18 +84,28 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
+var namePattern = "^[-a-zA-Z0-9_.]{2,}$"
+var nameRe = regexp.MustCompile(namePattern)
+
 func ValidateNamespace(ns ChannelNamespace) error {
-	pattern := "^[-a-zA-Z0-9_.]{2,}$"
-	patternRegexp, err := regexp.Compile(pattern)
-	if err != nil {
-		return err
-	}
 	name := ns.Name
-	match := patternRegexp.MatchString(name)
+	match := nameRe.MatchString(name)
 	if !match {
-		return fmt.Errorf("invalid namespace name – %s", name)
+		return fmt.Errorf("invalid namespace name – %s (must match %s regular expression)", name, namePattern)
 	}
 	if err := ValidateChannelOptions(ns.ChannelOptions); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ValidateRpcNamespace(ns RpcNamespace) error {
+	name := ns.Name
+	match := nameRe.MatchString(name)
+	if !match {
+		return fmt.Errorf("invalid rpc namespace name – %s (must match %s regular expression)", name, namePattern)
+	}
+	if err := ValidateRpcOptions(ns.RpcOptions); err != nil {
 		return err
 	}
 	return nil
@@ -111,9 +121,16 @@ func ValidateChannelOptions(c ChannelOptions) error {
 	return nil
 }
 
+func ValidateRpcOptions(_ RpcOptions) error {
+	return nil
+}
+
 // Validate validates config and returns error if problems found
 func (c *Config) Validate() error {
 	if err := ValidateChannelOptions(c.ChannelOptions); err != nil {
+		return err
+	}
+	if err := ValidateRpcOptions(c.RpcOptions); err != nil {
 		return err
 	}
 
@@ -128,7 +145,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	var nss = make([]string, 0, len(c.Namespaces))
+	nss := make([]string, 0, len(c.Namespaces))
 	for _, n := range c.Namespaces {
 		if stringInSlice(n.Name, nss) {
 			return fmt.Errorf("namespace name must be unique: %s", n.Name)
@@ -147,6 +164,17 @@ func (c *Config) Validate() error {
 
 	if !validPersonalChannelNamespace {
 		return fmt.Errorf("namespace for user personal channel not found: %s", personalChannelNamespace)
+	}
+
+	rpcNss := make([]string, 0, len(c.RpcNamespaces))
+	for _, n := range c.RpcNamespaces {
+		if stringInSlice(n.Name, rpcNss) {
+			return fmt.Errorf("rpc namespace name must be unique: %s", n.Name)
+		}
+		if err := ValidateRpcNamespace(n); err != nil {
+			return fmt.Errorf("rpc namespace %s: %v", n.Name, err)
+		}
+		rpcNss = append(rpcNss, n.Name)
 	}
 
 	return nil
