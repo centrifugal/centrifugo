@@ -195,10 +195,18 @@ func bindCentrifugoConfig() {
 		"graphite_interval": 10 * time.Second,
 		"graphite_tags":     false,
 
-		"nats_prefix":        "centrifugo",
-		"nats_url":           "",
-		"nats_dial_timeout":  time.Second,
-		"nats_write_timeout": time.Second,
+		"nats_prefix":                     "centrifugo",
+		"nats_url":                        "",
+		"nats_dial_timeout":               time.Second,
+		"nats_write_timeout":              time.Second,
+		"nats_embedded":                   false,
+		"nats_embedded_config_file":       "",
+		"nats_embedded_host":              "",
+		"nats_embedded_port":              0,
+		"nats_embedded_cluster_host":      "",
+		"nats_embedded_cluster_port":      0,
+		"nats_embedded_cluster_routes":    "",
+		"nats_embedded_cluster_advertise": "",
 
 		"websocket_disable": false,
 		"api_disable":       false,
@@ -390,10 +398,19 @@ func main() {
 
 			if brokerName == "nats" {
 				broker, err := natsbroker.New(node, natsbroker.Config{
-					URL:          viper.GetString("nats_url"),
-					Prefix:       viper.GetString("nats_prefix"),
-					DialTimeout:  GetDuration("nats_dial_timeout"),
-					WriteTimeout: GetDuration("nats_write_timeout"),
+					URL:                          viper.GetString("nats_url"),
+					Prefix:                       viper.GetString("nats_prefix"),
+					DialTimeout:                  GetDuration("nats_dial_timeout"),
+					WriteTimeout:                 GetDuration("nats_write_timeout"),
+					Embedded:                     viper.GetBool("nats_embedded"),
+					EmbeddedConfigFile:           viper.GetString("nats_embedded_config_file"),
+					EmbeddedNatsHost:             viper.GetString("nats_embedded_host"),
+					EmbeddedNatsPort:             viper.GetInt("nats_embedded_port"),
+					EmbeddedNatsClusterName:      viper.GetString("nats_embedded_cluster_name"),
+					EmbeddedNatsClusterHost:      viper.GetString("nats_embedded_cluster_host"),
+					EmbeddedNatsClusterPort:      viper.GetInt("nats_embedded_cluster_port"),
+					EmbeddedNatsClusterRoutes:    viper.GetStringSlice("nats_embedded_cluster_routes"),
+					EmbeddedNatsClusterAdvertise: viper.GetString("nats_embedded_cluster_advertise"),
 				})
 				if err != nil {
 					log.Fatal().Msgf("Error creating broker: %v", err)

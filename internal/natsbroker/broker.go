@@ -3,6 +3,7 @@ package natsbroker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -10,20 +11,30 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
+	"github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
 )
 
 type (
-	// channelID is unique channel identifier in Nats.
+	// channelID is a unique channel identifier in Nats.
 	channelID string
 )
 
 // Config of NatsBroker.
 type Config struct {
-	URL          string
-	Prefix       string
-	DialTimeout  time.Duration
-	WriteTimeout time.Duration
+	URL                          string
+	Prefix                       string
+	DialTimeout                  time.Duration
+	WriteTimeout                 time.Duration
+	Embedded                     bool
+	EmbeddedConfigFile           string
+	EmbeddedNatsHost             string
+	EmbeddedNatsPort             int
+	EmbeddedNatsClusterName      string
+	EmbeddedNatsClusterHost      string
+	EmbeddedNatsClusterPort      int
+	EmbeddedNatsClusterRoutes    []string
+	EmbeddedNatsClusterAdvertise string
 }
 
 // NatsBroker is a broker on top of Nats messaging system.
@@ -64,21 +75,90 @@ func (b *NatsBroker) clientChannel(ch string) channelID {
 // Run runs engine after node initialized.
 func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 	b.eventHandler = h
-	url := b.config.URL
-	if url == "" {
-		url = nats.DefaultURL
+
+	var nc *nats.Conn
+	var natsURL string
+
+	if b.config.Embedded {
+		var opts *server.Options
+		if b.config.EmbeddedConfigFile != "" {
+			var err error
+			opts, err = server.ProcessConfigFile(b.config.EmbeddedConfigFile)
+			if err != nil {
+				return fmt.Errorf("error reading Nats config file: %v", err)
+			}
+		} else {
+			opts = &server.Options{}
+		}
+		if b.config.EmbeddedNatsHost != "" {
+			opts.Host = b.config.EmbeddedNatsHost
+		}
+		if b.config.EmbeddedNatsPort != 0 {
+			opts.Port = b.config.EmbeddedNatsPort
+		}
+		if b.config.EmbeddedNatsClusterHost != "" {
+			opts.Cluster.Host = b.config.EmbeddedNatsClusterHost
+		}
+		if b.config.EmbeddedNatsClusterPort != 0 {
+			opts.Cluster.Port = b.config.EmbeddedNatsClusterPort
+		}
+		if len(b.config.EmbeddedNatsClusterRoutes) > 0 {
+			opts.Routes = server.RoutesFromStr(strings.Join(b.config.EmbeddedNatsClusterRoutes, ","))
+		}
+		if b.config.EmbeddedNatsClusterAdvertise != "" {
+			opts.Cluster.Advertise = b.config.EmbeddedNatsClusterAdvertise
+		}
+		if b.config.EmbeddedNatsClusterName != "" {
+			opts.Cluster.Name = b.config.EmbeddedNatsClusterName
+		}
+
+		natsServer, err := server.NewServer(opts)
+		if err != nil {
+			return fmt.Errorf("failed to initialize embedded NATS server: %v", err)
+		}
+		natsServer.SetLoggerV2(&LogAdapter{b.node}, false, false, false)
+
+		go func() {
+			natsServer.Start()
+		}()
+
+		if !natsServer.ReadyForConnections(10 * time.Second) {
+			return errors.New("unable to start embedded NATS server")
+		}
+
+		natsURL = natsServer.ClientURL()
+		nc, err = nats.Connect(
+			natsURL,
+			nats.ReconnectBufSize(-1),
+			nats.MaxReconnects(-1),
+			nats.Timeout(b.config.DialTimeout),
+			nats.FlusherTimeout(b.config.WriteTimeout),
+		)
+		if err != nil {
+			return fmt.Errorf("error connecting to %s: %w", natsURL, err)
+		}
+	} else {
+		url := b.config.URL
+		if url == "" {
+			url = nats.DefaultURL
+		}
+		natsURL = url
+		var err error
+		nc, err = nats.Connect(
+			natsURL,
+			nats.ReconnectBufSize(-1),
+			nats.MaxReconnects(-1),
+			nats.Timeout(b.config.DialTimeout),
+			nats.FlusherTimeout(b.config.WriteTimeout),
+		)
+		if err != nil {
+			return fmt.Errorf("error connecting to %s: %w", url, err)
+		}
 	}
-	nc, err := nats.Connect(
-		url,
-		nats.ReconnectBufSize(-1),
-		nats.MaxReconnects(-1),
-		nats.Timeout(b.config.DialTimeout),
-		nats.FlusherTimeout(b.config.WriteTimeout),
-	)
-	if err != nil {
-		return fmt.Errorf("error connecting to %s: %w", url, err)
+	if nc == nil {
+		return errors.New("nil Nats connection")
 	}
-	_, err = nc.Subscribe(string(b.controlChannel()), b.handleControl)
+	_, err := nc.Subscribe(string(b.controlChannel()), b.handleControl)
 	if err != nil {
 		return err
 	}
@@ -87,7 +167,7 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 		return err
 	}
 	b.nc = nc
-	b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, fmt.Sprintf("Nats Broker connected to: %s", url)))
+	b.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, fmt.Sprintf("Nats Broker connected to: %s", natsURL)))
 	return nil
 }
 

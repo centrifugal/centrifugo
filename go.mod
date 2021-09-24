@@ -16,10 +16,12 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/websocket v1.4.2
+	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/mattn/go-isatty v0.0.12
+	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/mitchellh/mapstructure v1.4.1
-	github.com/nats-io/nats-server/v2 v2.2.1 // indirect
-	github.com/nats-io/nats.go v1.11.0
+	github.com/nats-io/nats-server/v2 v2.6.1
+	github.com/nats-io/nats.go v1.12.3
 	github.com/pelletier/go-toml v1.9.0 // indirect
 	github.com/prometheus/client_golang v1.10.0
 	github.com/prometheus/common v0.20.0 // indirect
@@ -31,9 +33,11 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/vmihailenco/msgpack/v5 v5.3.2
-	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/net v0.0.0-20210521195947-fe42d452be8f // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sys v0.0.0-20210923061019-b8560ed6a9b7 // indirect
+	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	google.golang.org/genproto v0.0.0-20210406143921-e86de6bf7a46 // indirect
 	google.golang.org/grpc v1.37.0
 	google.golang.org/protobuf v1.27.1
