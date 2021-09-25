@@ -22,12 +22,13 @@ type (
 
 // Config of NatsBroker.
 type Config struct {
-	URL                          string
-	Prefix                       string
-	DialTimeout                  time.Duration
-	WriteTimeout                 time.Duration
-	Embedded                     bool
-	EmbeddedConfigFile           string
+	URL          string
+	Prefix       string
+	DialTimeout  time.Duration
+	WriteTimeout time.Duration
+
+	EmbeddedNats                 bool
+	EmbeddedNatsConfigFile       string
 	EmbeddedNatsHost             string
 	EmbeddedNatsPort             int
 	EmbeddedNatsClusterName      string
@@ -79,11 +80,11 @@ func (b *NatsBroker) Run(h centrifuge.BrokerEventHandler) error {
 	var nc *nats.Conn
 	var natsURL string
 
-	if b.config.Embedded {
+	if b.config.EmbeddedNats {
 		var opts *server.Options
-		if b.config.EmbeddedConfigFile != "" {
+		if b.config.EmbeddedNatsConfigFile != "" {
 			var err error
-			opts, err = server.ProcessConfigFile(b.config.EmbeddedConfigFile)
+			opts, err = server.ProcessConfigFile(b.config.EmbeddedNatsConfigFile)
 			if err != nil {
 				return fmt.Errorf("error reading Nats config file: %v", err)
 			}
