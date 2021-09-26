@@ -1,6 +1,7 @@
 package natsbroker
 
 import (
+	"math/rand"
 	"strconv"
 	"testing"
 
@@ -13,7 +14,12 @@ func newTestNatsBroker() *NatsBroker {
 
 func NewTestNatsBrokerWithPrefix(prefix string) *NatsBroker {
 	n, _ := centrifuge.New(centrifuge.Config{})
-	b, _ := New(n, Config{Prefix: prefix})
+	b, _ := New(n, Config{
+		Prefix: prefix,
+		// Comment embedded opts and run separate Nats server to bench with external Nats server.
+		EmbeddedNats:     true,
+		EmbeddedNatsPort: rand.Intn(40000) + 1024, // use random unprivileged port for Nats server.,
+	})
 	n.SetBroker(b)
 	err := n.Run()
 	if err != nil {
