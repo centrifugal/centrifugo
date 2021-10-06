@@ -2,8 +2,5 @@ No backwards incompatible changes here.
 
 Fixes:
 
-* Fix proxy behavior for disconnected clients, should be now consistent between HTTP and GRPC proxy types.
-* Fix `bufio: buffer full` error when unmarshalling large client protocol JSON messages.
-* Fix `unexpected end of JSON input` errors in Javascript client with Centrifugo v3.0.0 when publishing formatted JSON (with new lines).
-
-This release uses Go 1.17.1. We also added more tests for proxy package, thanks to [@silischev](https://github.com/silischev).
+* Fix SockJS data escaping on EventSource fallback. See [igm/sockjs-go#100](https://github.com/igm/sockjs-go/issues/100) for more information. In short – this bug could prevent a message with `%` symbol inside be properly parsed by a SockJS Javascript client – thus not processed by a frontend at all.
+* Fix panic on concurrent subscribe to the same channels with recovery feature on. More details in [centrifugal/centrifuge#207](https://github.com/centrifugal/centrifuge/pull/207)
