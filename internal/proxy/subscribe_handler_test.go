@@ -136,12 +136,13 @@ func TestHandleSubscribeWithResult(t *testing.T) {
 
 	httpTestCase := newSubscribeHandleHTTPTestCase(context.Background(), "/subscribe", chOpts)
 	httpTestCase.Mux.HandleFunc("/subscribe", func(w http.ResponseWriter, req *http.Request) {
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64info": "%s"}}`, customDataB64)))
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"result": {"b64info": "%s", "b64data": "%s"}}`, customDataB64, customDataB64)))
 	})
 	defer httpTestCase.Teardown()
 
 	expectedSubscribeOpts := centrifuge.SubscribeOptions{
 		ChannelInfo: []byte(customData),
+		Data:        []byte(customData),
 		Presence:    true,
 		JoinLeave:   true,
 		Recover:     true,

@@ -91,6 +91,7 @@ func (p proxyGRPCTestServer) Subscribe(ctx context.Context, request *proxyproto.
 		return &proxyproto.SubscribeResponse{
 			Result: &proxyproto.SubscribeResult{
 				B64Info: p.opts.B64Data,
+				B64Data: p.opts.B64Data,
 			},
 		}, nil
 	case "override":
