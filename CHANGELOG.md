@@ -1,3 +1,14 @@
+v3.0.3
+======
+
+No backwards incompatible changes here.
+
+Fixes:
+
+* Fix passing `data` from subscribe proxy result towards client connection.
+
+This release is built with Go 1.17.2.
+
 v3.0.2
 ======
 
