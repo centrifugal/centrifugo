@@ -2,6 +2,5 @@ No backwards incompatible changes here.
 
 Fixes:
 
-* Fix passing `data` from subscribe proxy result towards client connection.
-
-This release is built with Go 1.17.2.
+* Fix deadlock during PUB/SUB sync in channels with recovery. Addresses [this report](https://github.com/centrifugal/centrifugo/issues/486).
+* Fix `redis_db` option: was ignored previously – [#487](https://github.com/centrifugal/centrifugo/issues/487).
