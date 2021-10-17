@@ -1,3 +1,34 @@
+v3.0.4
+======
+
+No backwards incompatible changes here.
+
+Fixes:
+
+* Fix deadlock during PUB/SUB sync in channels with recovery. Addresses [this report](https://github.com/centrifugal/centrifugo/issues/486).
+* Fix `redis_db` option: was ignored previously – [#487](https://github.com/centrifugal/centrifugo/issues/487).
+
+v3.0.3
+======
+
+No backwards incompatible changes here.
+
+Fixes:
+
+* Fix passing `data` from subscribe proxy result towards client connection.
+
+This release is built with Go 1.17.2.
+
+v3.0.2
+======
+
+No backwards incompatible changes here.
+
+Fixes:
+
+* Fix SockJS data escaping on EventSource fallback. See [igm/sockjs-go#100](https://github.com/igm/sockjs-go/issues/100) for more information. In short – this bug could prevent a message with `%` symbol inside be properly parsed by a SockJS Javascript client – thus not processed by a frontend at all.
+* Fix panic on concurrent subscribe to the same channels with recovery feature on. More details in [centrifugal/centrifuge#207](https://github.com/centrifugal/centrifuge/pull/207)
+
 v3.0.1
 ======
 

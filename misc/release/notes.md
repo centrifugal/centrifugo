@@ -2,8 +2,5 @@ No backwards incompatible changes here.
 
 Fixes:
 
-* Fix proxy behavior for disconnected clients, should be now consistent between HTTP and GRPC proxy types.
-* Fix `bufio: buffer full` error when unmarshalling large client protocol JSON messages.
-* Fix `unexpected end of JSON input` errors in Javascript client with Centrifugo v3.0.0 when publishing formatted JSON (with new lines).
-
-This release uses Go 1.17.1. We also added more tests for proxy package, thanks to [@silischev](https://github.com/silischev).
+* Fix deadlock during PUB/SUB sync in channels with recovery. Addresses [this report](https://github.com/centrifugal/centrifugo/issues/486).
+* Fix `redis_db` option: was ignored previously – [#487](https://github.com/centrifugal/centrifugo/issues/487).

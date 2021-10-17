@@ -1736,6 +1736,7 @@ func memoryPresenceManagerConfig() (*centrifuge.MemoryPresenceManagerConfig, err
 }
 
 func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
+	shardConf.DB = viper.GetInt("redis_db")
 	shardConf.Password = viper.GetString("redis_password")
 	shardConf.UseTLS = viper.GetBool("redis_tls")
 	shardConf.TLSSkipVerify = viper.GetBool("redis_tls_skip_verify")

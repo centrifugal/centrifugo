@@ -134,6 +134,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 		position := chOpts.Position
 
 		var info []byte
+		var data []byte
 		if subscribeRep.Result != nil {
 			if subscribeRep.Result.B64Info != "" {
 				decodedInfo, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Info)
@@ -144,6 +145,16 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 				info = decodedInfo
 			} else {
 				info = subscribeRep.Result.Info
+			}
+			if subscribeRep.Result.B64Data != "" {
+				decodedData, err := base64.StdEncoding.DecodeString(subscribeRep.Result.B64Data)
+				if err != nil {
+					node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding base64 data", map[string]interface{}{"client": client.ID(), "error": err.Error()}))
+					return centrifuge.SubscribeReply{}, centrifuge.ErrorInternal
+				}
+				data = decodedData
+			} else {
+				data = subscribeRep.Result.Data
 			}
 
 			result := subscribeRep.Result
@@ -169,6 +180,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 				JoinLeave:   joinLeave,
 				Recover:     useRecover,
 				Position:    position,
+				Data:        data,
 			},
 			ClientSideRefresh: true,
 		}, nil

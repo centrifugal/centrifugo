@@ -324,8 +324,8 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	claims := &ConnectTokenClaims{}
-	if err := json.Unmarshal(token.RawClaims(), claims); err != nil {
+	claims, err := claimsDecoder.DecodeConnectClaims(token.RawClaims())
+	if err != nil {
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
@@ -456,8 +456,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	claims := &SubscribeTokenClaims{}
-	err = json.Unmarshal(token.RawClaims(), claims)
+	claims, err := claimsDecoder.DecodeSubscribeClaims(token.RawClaims())
 	if err != nil {
 		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
