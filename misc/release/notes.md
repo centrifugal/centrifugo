@@ -2,5 +2,4 @@ No backwards incompatible changes here.
 
 Fixes:
 
-* Fix deadlock during PUB/SUB sync in channels with recovery. Addresses [this report](https://github.com/centrifugal/centrifugo/issues/486).
-* Fix `redis_db` option: was ignored previously – [#487](https://github.com/centrifugal/centrifugo/issues/487).
+* Fix subscription cleanup on client close. Addresses one more problem found in [this report](https://github.com/centrifugal/centrifugo/issues/486).
