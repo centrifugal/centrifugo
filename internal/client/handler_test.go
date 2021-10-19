@@ -14,7 +14,7 @@ import (
 
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/protocol"
-	"github.com/cristalhq/jwt/v3"
+	"github.com/cristalhq/jwt/v4"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,7 +43,7 @@ func getConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey) string 
 	builder := getTokenBuilder(rsaPrivateKey)
 	claims := &jwtverify.ConnectTokenClaims{
 		Base64Info: "e30=",
-		StandardClaims: jwt.StandardClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			Subject: user,
 		},
 	}
@@ -54,7 +54,7 @@ func getConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey) string 
 	if err != nil {
 		panic(err)
 	}
-	return string(token.Raw())
+	return token.String()
 }
 
 func getSubscribeToken(channel string, client string, exp int64, rsaPrivateKey *rsa.PrivateKey) string {
@@ -63,9 +63,9 @@ func getSubscribeToken(channel string, client string, exp int64, rsaPrivateKey *
 		SubscribeOptions: jwtverify.SubscribeOptions{
 			Base64Info: "e30=",
 		},
-		Channel:        channel,
-		Client:         client,
-		StandardClaims: jwt.StandardClaims{},
+		Channel:          channel,
+		Client:           client,
+		RegisteredClaims: jwt.RegisteredClaims{},
 	}
 	if exp > 0 {
 		claims.ExpiresAt = jwt.NewNumericDate(time.Unix(exp, 0))
@@ -74,7 +74,7 @@ func getSubscribeToken(channel string, client string, exp int64, rsaPrivateKey *
 	if err != nil {
 		panic(err)
 	}
-	return string(token.Raw())
+	return token.String()
 }
 
 func getConnTokenHS(user string, exp int64) string {

@@ -18,7 +18,7 @@ import (
 	"github.com/centrifugal/centrifuge"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
 
-	"github.com/cristalhq/jwt/v3"
+	"github.com/cristalhq/jwt/v4"
 	"github.com/stretchr/testify/require"
 )
 
@@ -97,7 +97,7 @@ func getRSAConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey, opts
 	builder := getRSATokenBuilder(rsaPrivateKey, opts...)
 	claims := &ConnectTokenClaims{
 		Base64Info: "e30=",
-		StandardClaims: jwt.StandardClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			Subject: user,
 		},
 	}
@@ -108,14 +108,14 @@ func getRSAConnToken(user string, exp int64, rsaPrivateKey *rsa.PrivateKey, opts
 	if err != nil {
 		panic(err)
 	}
-	return string(token.Raw())
+	return token.String()
 }
 
 func getECDSAConnToken(user string, exp int64, ecdsaPrivateKey *ecdsa.PrivateKey, opts ...jwt.BuilderOption) string {
 	builder := getECDSATokenBuilder(ecdsaPrivateKey, opts...)
 	claims := &ConnectTokenClaims{
 		Base64Info: "e30=",
-		StandardClaims: jwt.StandardClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			Subject: user,
 		},
 	}
@@ -126,7 +126,7 @@ func getECDSAConnToken(user string, exp int64, ecdsaPrivateKey *ecdsa.PrivateKey
 	if err != nil {
 		panic(err)
 	}
-	return string(token.Raw())
+	return token.String()
 }
 
 func getRSASubscribeToken(channel string, client string, exp int64, rsaPrivateKey *rsa.PrivateKey) string {
@@ -135,9 +135,9 @@ func getRSASubscribeToken(channel string, client string, exp int64, rsaPrivateKe
 		SubscribeOptions: SubscribeOptions{
 			Base64Info: "e30=",
 		},
-		Channel:        channel,
-		Client:         client,
-		StandardClaims: jwt.StandardClaims{},
+		Channel:          channel,
+		Client:           client,
+		RegisteredClaims: jwt.RegisteredClaims{},
 	}
 	if exp > 0 {
 		claims.ExpiresAt = jwt.NewNumericDate(time.Unix(exp, 0))
@@ -146,7 +146,7 @@ func getRSASubscribeToken(channel string, client string, exp int64, rsaPrivateKe
 	if err != nil {
 		panic(err)
 	}
-	return string(token.Raw())
+	return token.String()
 }
 
 func getECDSASubscribeToken(channel string, client string, exp int64, ecdsaPrivateKey *ecdsa.PrivateKey) string {
@@ -155,9 +155,9 @@ func getECDSASubscribeToken(channel string, client string, exp int64, ecdsaPriva
 		SubscribeOptions: SubscribeOptions{
 			Base64Info: "e30=",
 		},
-		Channel:        channel,
-		Client:         client,
-		StandardClaims: jwt.StandardClaims{},
+		Channel:          channel,
+		Client:           client,
+		RegisteredClaims: jwt.RegisteredClaims{},
 	}
 	if exp > 0 {
 		claims.ExpiresAt = jwt.NewNumericDate(time.Unix(exp, 0))
@@ -166,7 +166,7 @@ func getECDSASubscribeToken(channel string, client string, exp int64, ecdsaPriva
 	if err != nil {
 		panic(err)
 	}
-	return string(token.Raw())
+	return token.String()
 }
 
 func getJWKServer(pubKey *rsa.PublicKey, kty, use, kid string) *httptest.Server {

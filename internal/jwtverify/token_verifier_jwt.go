@@ -16,7 +16,7 @@ import (
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
 
 	"github.com/centrifugal/centrifuge"
-	"github.com/cristalhq/jwt/v3"
+	"github.com/cristalhq/jwt/v4"
 	"github.com/rs/zerolog/log"
 )
 
@@ -121,11 +121,11 @@ type ConnectTokenClaims struct {
 	Channels   []string                    `json:"channels,omitempty"`
 	Subs       map[string]SubscribeOptions `json:"subs,omitempty"`
 	Meta       json.RawMessage             `json:"meta,omitempty"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 type SubscribeTokenClaims struct {
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 	SubscribeOptions
 	Client   string `json:"client,omitempty"`
 	Channel  string `json:"channel,omitempty"`
@@ -161,7 +161,7 @@ func (j *jwksManager) verify(token *jwt.Token) error {
 		return fmt.Errorf("%w: %s", errUnsupportedAlgorithm, spec.Algorithm)
 	}
 
-	return verifier.Verify(token.Payload(), token.Signature())
+	return verifier.Verify(token)
 }
 
 type algorithms struct {
@@ -291,7 +291,7 @@ func (s *algorithms) verify(token *jwt.Token) error {
 	if verifier == nil {
 		return fmt.Errorf("%w: %s", errDisabledAlgorithm, string(token.Header().Algorithm))
 	}
-	return verifier.Verify(token.Payload(), token.Signature())
+	return verifier.Verify(token)
 }
 
 func (verifier *VerifierJWT) verifySignature(token *jwt.Token) error {
@@ -309,7 +309,7 @@ func (verifier *VerifierJWT) verifySignatureByJWK(token *jwt.Token) error {
 }
 
 func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) {
-	token, err := jwt.Parse([]byte(t))
+	token, err := jwt.ParseNoVerify([]byte(t)) // Will be verified later.
 	if err != nil {
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
@@ -324,7 +324,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	claims, err := claimsDecoder.DecodeConnectClaims(token.RawClaims())
+	claims, err := claimsDecoder.DecodeConnectClaims(token.Claims())
 	if err != nil {
 		return ConnectToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
@@ -431,7 +431,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 	}
 
 	ct := ConnectToken{
-		UserID:   claims.StandardClaims.Subject,
+		UserID:   claims.RegisteredClaims.Subject,
 		Info:     info,
 		Subs:     subs,
 		ExpireAt: expireAt,
@@ -442,7 +442,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 }
 
 func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, error) {
-	token, err := jwt.Parse([]byte(t))
+	token, err := jwt.ParseNoVerify([]byte(t)) // Will be verified later.
 	if err != nil {
 		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
@@ -456,7 +456,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
 
-	claims, err := claimsDecoder.DecodeSubscribeClaims(token.RawClaims())
+	claims, err := claimsDecoder.DecodeSubscribeClaims(token.Claims())
 	if err != nil {
 		return SubscribeToken{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
