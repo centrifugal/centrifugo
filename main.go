@@ -325,7 +325,7 @@ func main() {
 			}
 			ruleContainer := rule.NewContainer(ruleConfig)
 
-			granularProxyMode := viper.GetBool("use_granular_proxies")
+			granularProxyMode := viper.GetBool("granular_proxy_mode")
 			var proxyMap *client.ProxyMap
 			var proxyEnabled bool
 			if granularProxyMode {
