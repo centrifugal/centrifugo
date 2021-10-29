@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"net"
+	"strings"
 
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
 )
@@ -11,8 +12,6 @@ import (
 type Proxy struct {
 	// Name is a unique name of proxy to reference.
 	Name string `mapstructure:"name" json:"name"`
-	// Type of proxy: http or grpc.
-	Type string `mapstructure:"type" json:"type"`
 	// Endpoint - HTTP address or GRPC service endpoint.
 	Endpoint string `mapstructure:"endpoint" json:"endpoint"`
 	// Timeout for proxy request.
@@ -48,37 +47,41 @@ func getEncoding(useBase64 bool) string {
 	return "json"
 }
 
+func isHttpEndpoint(endpoint string) bool {
+	return strings.HasPrefix(endpoint, "http://") || strings.HasPrefix(endpoint, "https://")
+}
+
 func GetConnectProxy(p Proxy) (ConnectProxy, error) {
-	if p.Type == "grpc" {
-		return NewGRPCConnectProxy(p)
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPConnectProxy(p)
 	}
-	return NewHTTPConnectProxy(p)
+	return NewGRPCConnectProxy(p)
 }
 
 func GetRefreshProxy(p Proxy) (RefreshProxy, error) {
-	if p.Type == "grpc" {
-		return NewGRPCRefreshProxy(p)
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPRefreshProxy(p)
 	}
-	return NewHTTPRefreshProxy(p)
+	return NewGRPCRefreshProxy(p)
 }
 
 func GetRpcProxy(p Proxy) (RPCProxy, error) {
-	if p.Type == "grpc" {
-		return NewGRPCRPCProxy(p)
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPRPCProxy(p)
 	}
-	return NewHTTPRPCProxy(p)
+	return NewGRPCRPCProxy(p)
 }
 
 func GetPublishProxy(p Proxy) (PublishProxy, error) {
-	if p.Type == "grpc" {
-		return NewGRPCPublishProxy(p)
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPPublishProxy(p)
 	}
-	return NewHTTPPublishProxy(p)
+	return NewGRPCPublishProxy(p)
 }
 
 func GetSubscribeProxy(p Proxy) (SubscribeProxy, error) {
-	if p.Type == "grpc" {
-		return NewGRPCSubscribeProxy(p)
+	if isHttpEndpoint(p.Endpoint) {
+		return NewHTTPSubscribeProxy(p)
 	}
-	return NewHTTPSubscribeProxy(p)
+	return NewGRPCSubscribeProxy(p)
 }

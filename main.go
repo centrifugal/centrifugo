@@ -329,8 +329,8 @@ func main() {
 			var proxyMap *client.ProxyMap
 			var proxyEnabled bool
 			if granularProxyMode {
-				log.Info().Msg("using granular proxy configuration")
 				proxyMap, proxyEnabled = granularProxyMapConfig(ruleConfig)
+				log.Info().Msg("using granular proxy configuration")
 			} else {
 				proxyMap, proxyEnabled = proxyMapConfig()
 			}
@@ -1469,12 +1469,6 @@ func granularProxiesFromConfig(v *viper.Viper) []proxy.Proxy {
 		}
 		if p.Endpoint == "" {
 			log.Fatal().Msgf("no endpoint set for proxy %s", p.Name)
-		}
-		if p.Type == "" {
-			log.Fatal().Msgf("no type set for proxy %s", p.Name)
-		}
-		if p.Type != "grpc" && p.Type != "http" {
-			log.Fatal().Msgf("unsupported type for proxy %s: %s (valid options are http or grpc)", p.Name, p.Type)
 		}
 		names[p.Name] = struct{}{}
 	}

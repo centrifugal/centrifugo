@@ -24,7 +24,6 @@ type grpcConnHandleTestCase struct {
 
 func getTestGrpcProxy(commonProxyTestCase *tools.CommonGRPCProxyTestCase) Proxy {
 	return Proxy{
-		Type:     "grpc",
 		Endpoint: commonProxyTestCase.Listener.Addr().String(),
 		Timeout:  tools.Duration(5 * time.Second),
 		testGrpcDialer: func(ctx context.Context, s string) (net.Conn, error) {
@@ -35,7 +34,6 @@ func getTestGrpcProxy(commonProxyTestCase *tools.CommonGRPCProxyTestCase) Proxy 
 
 func getTestHttpProxy(commonProxyTestCase *tools.CommonHTTPProxyTestCase, endpoint string) Proxy {
 	return Proxy{
-		Type:     "http",
 		Endpoint: commonProxyTestCase.Server.URL + endpoint,
 		Timeout:  tools.Duration(5 * time.Second),
 	}
