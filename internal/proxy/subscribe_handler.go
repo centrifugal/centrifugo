@@ -72,7 +72,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 		var errors prometheus.Counter
 
 		if h.config.GranularProxyMode {
-			proxyName := chOpts.PublishProxyName
+			proxyName := chOpts.SubscribeProxyName
 			if proxyName == "" {
 				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not configured for a channel", map[string]interface{}{"channel": e.Channel}))
 				return centrifuge.SubscribeReply{}, centrifuge.ErrorNotAvailable
