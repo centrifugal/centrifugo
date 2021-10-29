@@ -26,6 +26,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -47,7 +48,6 @@ import (
 	"github.com/centrifugal/centrifugo/v3/internal/natsbroker"
 	"github.com/centrifugal/centrifugo/v3/internal/origin"
 	"github.com/centrifugal/centrifugo/v3/internal/proxy"
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
 	"github.com/centrifugal/centrifugo/v3/internal/survey"
 	"github.com/centrifugal/centrifugo/v3/internal/tntengine"
@@ -120,6 +120,8 @@ func bindCentrifugoConfig() {
 		"channel_namespace_boundary": ":",
 		"channel_user_boundary":      "#",
 		"channel_user_separator":     ",",
+
+		"rpc_namespace_boundary": ":",
 
 		"user_subscribe_to_personal":      false,
 		"user_personal_channel_namespace": "",
@@ -316,14 +318,22 @@ func main() {
 
 			log.Info().Str("path", absConfPath).Msg("using config file")
 
-			proxyConfig, _ := proxyConfig()
-
 			ruleConfig := ruleConfig()
 			err = ruleConfig.Validate()
 			if err != nil {
 				log.Fatal().Msgf("error validating config: %v", err)
 			}
 			ruleContainer := rule.NewContainer(ruleConfig)
+
+			granularProxyMode := viper.GetBool("granular_proxy_mode")
+			var proxyMap *client.ProxyMap
+			var proxyEnabled bool
+			if granularProxyMode {
+				proxyMap, proxyEnabled = granularProxyMapConfig(ruleConfig)
+				log.Info().Msg("using granular proxy configuration")
+			} else {
+				proxyMap, proxyEnabled = proxyMapConfig()
+			}
 
 			nodeConfig := nodeConfig(build.Version)
 
@@ -359,7 +369,7 @@ func main() {
 				// See detailed comment about this by falling through to var definition.
 				client.UseUnlimitedHistoryByDefault = true
 			}
-			clientHandler := client.NewHandler(node, ruleContainer, tokenVerifier, proxyConfig)
+			clientHandler := client.NewHandler(node, ruleContainer, tokenVerifier, proxyMap, granularProxyMode)
 			err = clientHandler.Setup()
 			if err != nil {
 				log.Fatal().Msgf("error setting up client handler: %v", err)
@@ -403,22 +413,6 @@ func main() {
 
 			if err = node.Run(); err != nil {
 				log.Fatal().Msgf("error running node: %v", err)
-			}
-
-			if proxyConfig.ConnectEndpoint != "" {
-				log.Info().Str("endpoint", proxyConfig.ConnectEndpoint).Msg("connect proxy enabled")
-			}
-			if proxyConfig.RefreshEndpoint != "" {
-				log.Info().Str("endpoint", proxyConfig.RefreshEndpoint).Msg("refresh proxy enabled")
-			}
-			if proxyConfig.RPCEndpoint != "" {
-				log.Info().Str("endpoint", proxyConfig.RPCEndpoint).Msg("RPC proxy enabled")
-			}
-			if proxyConfig.SubscribeEndpoint != "" {
-				log.Info().Str("endpoint", proxyConfig.SubscribeEndpoint).Msg("subscribe proxy enabled")
-			}
-			if proxyConfig.PublishEndpoint != "" {
-				log.Info().Str("endpoint", proxyConfig.PublishEndpoint).Msg("publish proxy enabled")
 			}
 
 			if viper.GetBool("client_insecure") {
@@ -521,7 +515,7 @@ func main() {
 				log.Info().Msgf("serving unidirectional GRPC on %s", grpcUniAddr)
 			}
 
-			servers, err := runHTTPServers(node, httpAPIExecutor)
+			servers, err := runHTTPServers(node, httpAPIExecutor, proxyEnabled)
 			if err != nil {
 				log.Fatal().Msgf("error running HTTP server: %v", err)
 			}
@@ -981,7 +975,7 @@ func (w *httpErrorLogWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor) ([]*http.Server, error) {
+func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled bool) ([]*http.Server, error) {
 	debug := viper.GetBool("debug")
 	useAdmin := viper.GetBool("admin")
 	usePrometheus := viper.GetBool("prometheus")
@@ -1067,7 +1061,7 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor) ([]*http.Serv
 		if handlerFlags == 0 {
 			continue
 		}
-		mux := Mux(n, apiExecutor, handlerFlags)
+		mux := Mux(n, apiExecutor, handlerFlags, proxyEnabled)
 
 		log.Info().Msgf("serving %s endpoints on %s", handlerFlags, addr)
 
@@ -1163,6 +1157,9 @@ func ruleConfig() rule.Config {
 	cfg.ClientInsecure = v.GetBool("client_insecure")
 	cfg.ClientAnonymous = v.GetBool("client_anonymous")
 	cfg.ClientConcurrency = v.GetInt("client_concurrency")
+	cfg.RpcNamespaceBoundary = v.GetString("rpc_namespace_boundary")
+	cfg.RpcProxyName = v.GetString("rpc_proxy_name")
+	cfg.RpcNamespaces = rpcNamespacesFromConfig(v)
 	return cfg
 }
 
@@ -1213,41 +1210,269 @@ func GetDuration(key string, secondsPrecision ...bool) time.Duration {
 	return duration
 }
 
-func proxyConfig() (proxy.Config, bool) {
+func proxyMapConfig() (*client.ProxyMap, bool) {
 	v := viper.GetViper()
-	cfg := proxy.Config{}
-	cfg.GRPCMetadata = v.GetStringSlice("proxy_grpc_metadata")
-	cfg.HTTPHeaders = v.GetStringSlice("proxy_http_headers")
-	cfg.BinaryEncoding = v.GetBool("proxy_binary_encoding")
-	cfg.ConnectEndpoint = v.GetString("proxy_connect_endpoint")
-	cfg.ConnectTimeout = GetDuration("proxy_connect_timeout")
-	cfg.RefreshEndpoint = v.GetString("proxy_refresh_endpoint")
-	cfg.RefreshTimeout = GetDuration("proxy_refresh_timeout")
-	cfg.RPCEndpoint = v.GetString("proxy_rpc_endpoint")
-	cfg.RPCTimeout = GetDuration("proxy_rpc_timeout")
-	cfg.SubscribeEndpoint = v.GetString("proxy_subscribe_endpoint")
-	cfg.SubscribeTimeout = GetDuration("proxy_subscribe_timeout")
-	cfg.PublishEndpoint = v.GetString("proxy_publish_endpoint")
-	cfg.PublishTimeout = GetDuration("proxy_publish_timeout")
-	cfg.IncludeConnectionMeta = v.GetBool("proxy_include_connection_meta")
-
-	var httpConfig proxy.HTTPConfig
-	httpConfig.Encoder = &proxyproto.JSONEncoder{}
-	httpConfig.Decoder = &proxyproto.JSONDecoder{}
-	cfg.HTTPConfig = httpConfig
-
-	grpcConfig := proxy.GRPCConfig{
-		CertFile:         v.GetString("proxy_grpc_cert_file"),
-		CredentialsKey:   v.GetString("proxy_grpc_credentials_key"),
-		CredentialsValue: v.GetString("proxy_grpc_credentials_value"),
+	proxyMap := &client.ProxyMap{
+		SubscribeProxies: map[string]proxy.SubscribeProxy{},
+		PublishProxies:   map[string]proxy.PublishProxy{},
+		RpcProxies:       map[string]proxy.RPCProxy{},
 	}
-	grpcConfig.Codec = &proxyproto.Codec{}
-	cfg.GRPCConfig = grpcConfig
+	p := proxy.Proxy{}
+	p.GrpcMetadata = v.GetStringSlice("proxy_grpc_metadata")
+	p.HttpHeaders = v.GetStringSlice("proxy_http_headers")
+	p.BinaryEncoding = v.GetBool("proxy_binary_encoding")
+	p.IncludeConnectionMeta = v.GetBool("proxy_include_connection_meta")
+	p.GrpcCertFile = v.GetString("proxy_grpc_cert_file")
+	p.GrpcCredentialsKey = v.GetString("proxy_grpc_credentials_key")
+	p.GrpcCredentialsValue = v.GetString("proxy_grpc_credentials_value")
 
-	proxyEnabled := cfg.ConnectEndpoint != "" || cfg.RefreshEndpoint != "" ||
-		cfg.RPCEndpoint != "" || cfg.SubscribeEndpoint != "" || cfg.PublishEndpoint != ""
+	connectEndpoint := v.GetString("proxy_connect_endpoint")
+	connectTimeout := GetDuration("proxy_connect_timeout")
+	refreshEndpoint := v.GetString("proxy_refresh_endpoint")
+	refreshTimeout := GetDuration("proxy_refresh_timeout")
+	rpcEndpoint := v.GetString("proxy_rpc_endpoint")
+	rpcTimeout := GetDuration("proxy_rpc_timeout")
+	subscribeEndpoint := v.GetString("proxy_subscribe_endpoint")
+	subscribeTimeout := GetDuration("proxy_subscribe_timeout")
+	publishEndpoint := v.GetString("proxy_publish_endpoint")
+	publishTimeout := GetDuration("proxy_publish_timeout")
 
-	return cfg, proxyEnabled
+	if connectEndpoint != "" {
+		p.Endpoint = connectEndpoint
+		p.Timeout = tools.Duration(connectTimeout)
+		var err error
+		proxyMap.ConnectProxy, err = proxy.GetConnectProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating connect proxy: %v", err)
+		}
+		log.Info().Str("endpoint", connectEndpoint).Msg("connect proxy enabled")
+	}
+
+	if refreshEndpoint != "" {
+		p.Endpoint = refreshEndpoint
+		p.Timeout = tools.Duration(refreshTimeout)
+		var err error
+		proxyMap.RefreshProxy, err = proxy.GetRefreshProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating refresh proxy: %v", err)
+		}
+		log.Info().Str("endpoint", refreshEndpoint).Msg("refresh proxy enabled")
+	}
+
+	if subscribeEndpoint != "" {
+		p.Endpoint = subscribeEndpoint
+		p.Timeout = tools.Duration(subscribeTimeout)
+		sp, err := proxy.GetSubscribeProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
+		}
+		proxyMap.SubscribeProxies[""] = sp
+		log.Info().Str("endpoint", subscribeEndpoint).Msg("subscribe proxy enabled")
+	}
+
+	if publishEndpoint != "" {
+		p.Endpoint = publishEndpoint
+		p.Timeout = tools.Duration(publishTimeout)
+		pp, err := proxy.GetPublishProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating publish proxy: %v", err)
+		}
+		proxyMap.PublishProxies[""] = pp
+		log.Info().Str("endpoint", publishEndpoint).Msg("publish proxy enabled")
+	}
+
+	if rpcEndpoint != "" {
+		p.Endpoint = rpcEndpoint
+		p.Timeout = tools.Duration(rpcTimeout)
+		rp, err := proxy.GetRpcProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating rpc proxy: %v", err)
+		}
+		proxyMap.RpcProxies[""] = rp
+		log.Info().Str("endpoint", rpcEndpoint).Msg("RPC proxy enabled")
+	}
+
+	proxyEnabled := connectEndpoint != "" || refreshEndpoint != "" ||
+		rpcEndpoint != "" || subscribeEndpoint != "" || publishEndpoint != ""
+
+	return proxyMap, proxyEnabled
+}
+
+func granularProxyMapConfig(ruleConfig rule.Config) (*client.ProxyMap, bool) {
+	proxyMap := &client.ProxyMap{
+		RpcProxies:       map[string]proxy.RPCProxy{},
+		PublishProxies:   map[string]proxy.PublishProxy{},
+		SubscribeProxies: map[string]proxy.SubscribeProxy{},
+	}
+	proxyList := granularProxiesFromConfig(viper.GetViper())
+	proxies := make(map[string]proxy.Proxy)
+	for _, p := range proxyList {
+		proxies[p.Name] = p
+	}
+
+	var proxyEnabled bool
+
+	connectProxyName := viper.GetString("connect_proxy_name")
+	if connectProxyName != "" {
+		p, ok := proxies[connectProxyName]
+		if !ok {
+			log.Fatal().Msgf("connect proxy not found: %s", connectProxyName)
+		}
+		var err error
+		proxyMap.ConnectProxy, err = proxy.GetConnectProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating connect proxy: %v", err)
+		}
+		proxyEnabled = true
+	}
+	refreshProxyName := viper.GetString("refresh_proxy_name")
+	if refreshProxyName != "" {
+		p, ok := proxies[refreshProxyName]
+		if !ok {
+			log.Fatal().Msgf("refresh proxy not found: %s", refreshProxyName)
+		}
+		var err error
+		proxyMap.RefreshProxy, err = proxy.GetRefreshProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating refresh proxy: %v", err)
+		}
+		proxyEnabled = true
+	}
+	subscribeProxyName := ruleConfig.SubscribeProxyName
+	if subscribeProxyName != "" {
+		p, ok := proxies[subscribeProxyName]
+		if !ok {
+			log.Fatal().Msgf("subscribe proxy not found: %s", subscribeProxyName)
+		}
+		sp, err := proxy.GetSubscribeProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating subscribe proxy: %v", err)
+		}
+		proxyMap.SubscribeProxies[subscribeProxyName] = sp
+		proxyEnabled = true
+	}
+
+	publishProxyName := ruleConfig.PublishProxyName
+	if publishProxyName != "" {
+		p, ok := proxies[publishProxyName]
+		if !ok {
+			log.Fatal().Msgf("publish proxy not found: %s", publishProxyName)
+		}
+		pp, err := proxy.GetPublishProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating publish proxy: %v", err)
+		}
+		proxyMap.PublishProxies[publishProxyName] = pp
+		proxyEnabled = true
+	}
+
+	for _, ns := range ruleConfig.Namespaces {
+		subscribeProxyName := ns.SubscribeProxyName
+		publishProxyName := ns.PublishProxyName
+
+		if subscribeProxyName != "" {
+			p, ok := proxies[subscribeProxyName]
+			if !ok {
+				log.Fatal().Msgf("subscribe proxy not found: %s", subscribeProxyName)
+			}
+			sp, err := proxy.GetSubscribeProxy(p)
+			if err != nil {
+				log.Fatal().Msgf("error creating subscribe proxy: %v", err)
+			}
+			proxyMap.SubscribeProxies[subscribeProxyName] = sp
+			proxyEnabled = true
+		}
+
+		if publishProxyName != "" {
+			p, ok := proxies[publishProxyName]
+			if !ok {
+				log.Fatal().Msgf("publish proxy not found: %s", publishProxyName)
+			}
+			pp, err := proxy.GetPublishProxy(p)
+			if err != nil {
+				log.Fatal().Msgf("error creating publish proxy: %v", err)
+			}
+			proxyMap.PublishProxies[publishProxyName] = pp
+			proxyEnabled = true
+		}
+	}
+
+	rpcProxyName := ruleConfig.RpcProxyName
+	if rpcProxyName != "" {
+		p, ok := proxies[rpcProxyName]
+		if !ok {
+			log.Fatal().Msgf("rpc proxy not found: %s", rpcProxyName)
+		}
+		rp, err := proxy.GetRpcProxy(p)
+		if err != nil {
+			log.Fatal().Msgf("error creating rpc proxy: %v", err)
+		}
+		proxyMap.RpcProxies[rpcProxyName] = rp
+		proxyEnabled = true
+	}
+
+	for _, ns := range ruleConfig.RpcNamespaces {
+		rpcProxyName := ns.RpcProxyName
+		if rpcProxyName != "" {
+			p, ok := proxies[rpcProxyName]
+			if !ok {
+				log.Fatal().Msgf("rpc proxy not found: %s", rpcProxyName)
+			}
+			rp, err := proxy.GetRpcProxy(p)
+			if err != nil {
+				log.Fatal().Msgf("error creating rpc proxy: %v", err)
+			}
+			proxyMap.RpcProxies[rpcProxyName] = rp
+			proxyEnabled = true
+		}
+	}
+
+	return proxyMap, proxyEnabled
+}
+
+var proxyNamePattern = "^[-a-zA-Z0-9_.]{2,}$"
+var proxyNameRe = regexp.MustCompile(proxyNamePattern)
+
+func granularProxiesFromConfig(v *viper.Viper) []proxy.Proxy {
+	var proxies []proxy.Proxy
+	if !v.IsSet("proxies") {
+		return proxies
+	}
+	var err error
+	switch val := v.Get("proxies").(type) {
+	case string:
+		err = json.Unmarshal([]byte(val), &proxies)
+	case []interface{}:
+		decoderCfg := tools.DecoderConfig(&proxies)
+		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
+		if newErr != nil {
+			log.Fatal().Msg(newErr.Error())
+			return proxies
+		}
+		err = decoder.Decode(v.Get("proxies"))
+	default:
+		err = fmt.Errorf("unknown proxies type: %T", val)
+	}
+	if err != nil {
+		log.Fatal().Err(err).Msg("malformed proxies")
+	}
+	names := map[string]struct{}{}
+	for _, p := range proxies {
+		if !proxyNameRe.Match([]byte(p.Name)) {
+			log.Fatal().Msgf("invalid proxy name: %s, must match %s regular expression", p.Name, proxyNamePattern)
+		}
+		if _, ok := names[p.Name]; ok {
+			log.Fatal().Msgf("duplicate proxy name: %s", p.Name)
+		}
+		if p.Timeout == 0 {
+			p.Timeout = tools.Duration(time.Second)
+		}
+		if p.Endpoint == "" {
+			log.Fatal().Msgf("no endpoint set for proxy %s", p.Name)
+		}
+		names[p.Name] = struct{}{}
+	}
+	return proxies
 }
 
 func nodeConfig(version string) centrifuge.Config {
@@ -1328,6 +1553,34 @@ func namespacesFromConfig(v *viper.Viper) []rule.ChannelNamespace {
 	}
 	if err != nil {
 		log.Error().Err(err).Msg("malformed namespaces")
+		os.Exit(1)
+	}
+	return ns
+}
+
+// rpcNamespacesFromConfig allows to unmarshal rpc namespaces.
+func rpcNamespacesFromConfig(v *viper.Viper) []rule.RpcNamespace {
+	var ns []rule.RpcNamespace
+	if !v.IsSet("rpc_namespaces") {
+		return ns
+	}
+	var err error
+	switch val := v.Get("rpc_namespaces").(type) {
+	case string:
+		err = json.Unmarshal([]byte(val), &ns)
+	case []interface{}:
+		decoderCfg := tools.DecoderConfig(&ns)
+		decoder, newErr := mapstructure.NewDecoder(decoderCfg)
+		if newErr != nil {
+			log.Fatal().Msg(newErr.Error())
+			return ns
+		}
+		err = decoder.Decode(v.Get("rpc_namespaces"))
+	default:
+		err = fmt.Errorf("unknown rpc_namespaces type: %T", val)
+	}
+	if err != nil {
+		log.Error().Err(err).Msg("malformed rpc_namespaces")
 		os.Exit(1)
 	}
 	return ns
@@ -1773,7 +2026,7 @@ func (flags HandlerFlag) String() string {
 }
 
 // Mux returns a mux including set of default handlers for Centrifugo server.
-func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag) *http.ServeMux {
+func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxyEnabled bool) *http.ServeMux {
 	mux := http.NewServeMux()
 	v := viper.GetViper()
 
@@ -1784,8 +2037,6 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag) *http
 		mux.Handle("/debug/pprof/symbol", middleware.LogRequest(http.HandlerFunc(pprof.Symbol)))
 		mux.Handle("/debug/pprof/trace", middleware.LogRequest(http.HandlerFunc(pprof.Trace)))
 	}
-
-	_, proxyEnabled := proxyConfig()
 
 	if flags&HandlerWebsocket != 0 {
 		// register WebSocket connection endpoint.

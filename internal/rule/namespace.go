@@ -89,4 +89,10 @@ type ChannelOptions struct {
 
 	// ProxyPublish turns on proxying publish decision for channels.
 	ProxyPublish bool `mapstructure:"proxy_publish" json:"proxy_publish"`
+
+	// SubscribeProxyName of proxy to use for subscribe operations in namespace.
+	SubscribeProxyName string `mapstructure:"subscribe_proxy_name" json:"subscribe_proxy_name"`
+
+	// PublishProxyName of proxy to use for publish operations in namespace.
+	PublishProxyName string `mapstructure:"publish_proxy_name" json:"publish_proxy_name"`
 }

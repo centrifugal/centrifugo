@@ -5,12 +5,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"testing"
-	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
 
@@ -27,25 +24,15 @@ type grpcSubscribeHandleTestCase struct {
 func newSubscribeHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer, opts rule.ChannelOptions) grpcSubscribeHandleTestCase {
 	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	proxyCfg := Config{
-		SubscribeTimeout: 5 * time.Second,
-		GRPCConfig: GRPCConfig{
-			testDialer: func(ctx context.Context, s string) (net.Conn, error) {
-				return commonProxyTestCase.Listener.Dial()
-			},
-		},
-	}
-
-	subscribeProxy, err := NewGRPCSubscribeProxy(
-		commonProxyTestCase.Listener.Addr().String(),
-		proxyCfg,
-	)
+	subscribeProxy, err := NewGRPCSubscribeProxy(getTestGrpcProxy(commonProxyTestCase))
 	if err != nil {
 		log.Fatalln("could not create grpc subscribe proxy: ", err)
 	}
 
 	subscribeProxyHandler := NewSubscribeHandler(SubscribeHandlerConfig{
-		Proxy: subscribeProxy,
+		Proxies: map[string]SubscribeProxy{
+			"": subscribeProxy,
+		},
 	})
 
 	return grpcSubscribeHandleTestCase{commonProxyTestCase, subscribeProxyHandler, opts}
@@ -60,25 +47,15 @@ type httpSubscribeHandleTestCase struct {
 func newSubscribeHandleHTTPTestCase(ctx context.Context, endpoint string, opts rule.ChannelOptions) httpSubscribeHandleTestCase {
 	commonProxyTestCase := tools.NewCommonHTTPProxyTestCase(ctx)
 
-	proxyCfg := Config{
-		HTTPConfig: HTTPConfig{
-			Encoder: &proxyproto.JSONEncoder{},
-			Decoder: &proxyproto.JSONDecoder{},
-		},
-		SubscribeEndpoint: endpoint,
-		SubscribeTimeout:  5 * time.Second,
-	}
-
-	subscribeProxy, err := NewHTTPSubscribeProxy(
-		commonProxyTestCase.Server.URL+endpoint,
-		proxyCfg,
-	)
+	subscribeProxy, err := NewHTTPSubscribeProxy(getTestHttpProxy(commonProxyTestCase, endpoint))
 	if err != nil {
 		log.Fatalln("could not create http subscribe proxy: ", err)
 	}
 
 	subscribeProxyHandler := NewSubscribeHandler(SubscribeHandlerConfig{
-		Proxy: subscribeProxy,
+		Proxies: map[string]SubscribeProxy{
+			"": subscribeProxy,
+		},
 	})
 
 	return httpSubscribeHandleTestCase{commonProxyTestCase, subscribeProxyHandler, opts}

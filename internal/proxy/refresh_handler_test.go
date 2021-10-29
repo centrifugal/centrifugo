@@ -5,12 +5,10 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
 
 	"github.com/centrifugal/centrifuge"
@@ -25,19 +23,7 @@ type grpcRefreshHandleTestCase struct {
 func newRefreshHandlerGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer) grpcRefreshHandleTestCase {
 	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	proxyCfg := Config{
-		RefreshTimeout: 5 * time.Second,
-		GRPCConfig: GRPCConfig{
-			testDialer: func(ctx context.Context, s string) (net.Conn, error) {
-				return commonProxyTestCase.Listener.Dial()
-			},
-		},
-	}
-
-	refreshProxy, err := NewGRPCRefreshProxy(
-		commonProxyTestCase.Listener.Addr().String(),
-		proxyCfg,
-	)
+	refreshProxy, err := NewGRPCRefreshProxy(getTestGrpcProxy(commonProxyTestCase))
 	if err != nil {
 		log.Fatalln("could not create grpc refresh proxy: ", err)
 	}
@@ -57,18 +43,7 @@ type httpRefreshHandleTestCase struct {
 func newRefreshHandlerHTTPTestCase(ctx context.Context, endpoint string) httpRefreshHandleTestCase {
 	commonProxyTestCase := tools.NewCommonHTTPProxyTestCase(ctx)
 
-	proxyCfg := Config{
-		HTTPConfig: HTTPConfig{
-			Encoder: &proxyproto.JSONEncoder{},
-			Decoder: &proxyproto.JSONDecoder{},
-		},
-		RefreshEndpoint: endpoint,
-	}
-
-	refreshProxy, err := NewHTTPRefreshProxy(
-		commonProxyTestCase.Server.URL+endpoint,
-		proxyCfg,
-	)
+	refreshProxy, err := NewHTTPRefreshProxy(getTestHttpProxy(commonProxyTestCase, endpoint))
 	if err != nil {
 		log.Fatalln("could not create http refresh proxy: ", err)
 	}

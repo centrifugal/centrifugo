@@ -10,12 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
-	"github.com/stretchr/testify/require"
 
 	"github.com/centrifugal/centrifuge"
+	"github.com/stretchr/testify/require"
 )
 
 type grpcConnHandleTestCase struct {
@@ -23,26 +22,30 @@ type grpcConnHandleTestCase struct {
 	connectProxyHandler *ConnectHandler
 }
 
+func getTestGrpcProxy(commonProxyTestCase *tools.CommonGRPCProxyTestCase) Proxy {
+	return Proxy{
+		Endpoint: commonProxyTestCase.Listener.Addr().String(),
+		Timeout:  tools.Duration(5 * time.Second),
+		testGrpcDialer: func(ctx context.Context, s string) (net.Conn, error) {
+			return commonProxyTestCase.Listener.Dial()
+		},
+	}
+}
+
+func getTestHttpProxy(commonProxyTestCase *tools.CommonHTTPProxyTestCase, endpoint string) Proxy {
+	return Proxy{
+		Endpoint: commonProxyTestCase.Server.URL + endpoint,
+		Timeout:  tools.Duration(5 * time.Second),
+	}
+}
+
 func newConnHandleGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer) grpcConnHandleTestCase {
 	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	proxyCfg := Config{
-		ConnectTimeout: 5 * time.Second,
-		GRPCConfig: GRPCConfig{
-			testDialer: func(ctx context.Context, s string) (net.Conn, error) {
-				return commonProxyTestCase.Listener.Dial()
-			},
-		},
-	}
-
-	connectProxy, err := NewGRPCConnectProxy(
-		commonProxyTestCase.Listener.Addr().String(),
-		proxyCfg,
-	)
+	connectProxy, err := NewGRPCConnectProxy(getTestGrpcProxy(commonProxyTestCase))
 	if err != nil {
 		log.Fatalln("could not create grpc connect proxy: ", err)
 	}
-
 	connectProxyHandler := NewConnectHandler(ConnectHandlerConfig{
 		Proxy: connectProxy,
 	}, rule.NewContainer(rule.DefaultConfig))
@@ -58,18 +61,7 @@ type httpConnHandleTestCase struct {
 func newConnHandleHTTPTestCase(ctx context.Context, endpoint string) httpConnHandleTestCase {
 	commonProxyTestCase := tools.NewCommonHTTPProxyTestCase(ctx)
 
-	proxyCfg := Config{
-		HTTPConfig: HTTPConfig{
-			Encoder: &proxyproto.JSONEncoder{},
-			Decoder: &proxyproto.JSONDecoder{},
-		},
-		ConnectEndpoint: endpoint,
-	}
-
-	connectProxy, err := NewHTTPConnectProxy(
-		commonProxyTestCase.Server.URL+endpoint,
-		proxyCfg,
-	)
+	connectProxy, err := NewHTTPConnectProxy(getTestHttpProxy(commonProxyTestCase, endpoint))
 	if err != nil {
 		log.Fatalln("could not create http connect proxy: ", err)
 	}
