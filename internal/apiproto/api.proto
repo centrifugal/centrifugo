@@ -343,6 +343,8 @@ message UserConnectionInfo {
     string transport = 3;
     string protocol = 4;
     bytes meta = 5;
+    string token_uid = 6;
+    int64 token_issued_at = 7;
 }
 
 message UpdateUserStatusRequest {
