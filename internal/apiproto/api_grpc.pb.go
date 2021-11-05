@@ -35,6 +35,10 @@ type CentrifugoApiClient interface {
 	UpdateUserStatus(ctx context.Context, in *UpdateUserStatusRequest, opts ...grpc.CallOption) (*UpdateUserStatusResponse, error)
 	GetUserStatus(ctx context.Context, in *GetUserStatusRequest, opts ...grpc.CallOption) (*GetUserStatusResponse, error)
 	DeleteUserStatus(ctx context.Context, in *DeleteUserStatusRequest, opts ...grpc.CallOption) (*DeleteUserStatusResponse, error)
+	BlockUser(ctx context.Context, in *BlockUserRequest, opts ...grpc.CallOption) (*BlockUserResponse, error)
+	UnblockUser(ctx context.Context, in *UnblockUserRequest, opts ...grpc.CallOption) (*UnblockUserResponse, error)
+	RevokeToken(ctx context.Context, in *RevokeTokenRequest, opts ...grpc.CallOption) (*RevokeTokenResponse, error)
+	InvalidateUserTokens(ctx context.Context, in *InvalidateUserTokensRequest, opts ...grpc.CallOption) (*InvalidateUserTokensResponse, error)
 }
 
 type centrifugoApiClient struct {
@@ -198,6 +202,42 @@ func (c *centrifugoApiClient) DeleteUserStatus(ctx context.Context, in *DeleteUs
 	return out, nil
 }
 
+func (c *centrifugoApiClient) BlockUser(ctx context.Context, in *BlockUserRequest, opts ...grpc.CallOption) (*BlockUserResponse, error) {
+	out := new(BlockUserResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/BlockUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) UnblockUser(ctx context.Context, in *UnblockUserRequest, opts ...grpc.CallOption) (*UnblockUserResponse, error) {
+	out := new(UnblockUserResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/UnblockUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) RevokeToken(ctx context.Context, in *RevokeTokenRequest, opts ...grpc.CallOption) (*RevokeTokenResponse, error) {
+	out := new(RevokeTokenResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/RevokeToken", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *centrifugoApiClient) InvalidateUserTokens(ctx context.Context, in *InvalidateUserTokensRequest, opts ...grpc.CallOption) (*InvalidateUserTokensResponse, error) {
+	out := new(InvalidateUserTokensResponse)
+	err := c.cc.Invoke(ctx, "/centrifugal.centrifugo.api.CentrifugoApi/InvalidateUserTokens", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CentrifugoApiServer is the server API for CentrifugoApi service.
 // All implementations must embed UnimplementedCentrifugoApiServer
 // for forward compatibility
@@ -219,6 +259,10 @@ type CentrifugoApiServer interface {
 	UpdateUserStatus(context.Context, *UpdateUserStatusRequest) (*UpdateUserStatusResponse, error)
 	GetUserStatus(context.Context, *GetUserStatusRequest) (*GetUserStatusResponse, error)
 	DeleteUserStatus(context.Context, *DeleteUserStatusRequest) (*DeleteUserStatusResponse, error)
+	BlockUser(context.Context, *BlockUserRequest) (*BlockUserResponse, error)
+	UnblockUser(context.Context, *UnblockUserRequest) (*UnblockUserResponse, error)
+	RevokeToken(context.Context, *RevokeTokenRequest) (*RevokeTokenResponse, error)
+	InvalidateUserTokens(context.Context, *InvalidateUserTokensRequest) (*InvalidateUserTokensResponse, error)
 	mustEmbedUnimplementedCentrifugoApiServer()
 }
 
@@ -276,6 +320,18 @@ func (UnimplementedCentrifugoApiServer) GetUserStatus(context.Context, *GetUserS
 }
 func (UnimplementedCentrifugoApiServer) DeleteUserStatus(context.Context, *DeleteUserStatusRequest) (*DeleteUserStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUserStatus not implemented")
+}
+func (UnimplementedCentrifugoApiServer) BlockUser(context.Context, *BlockUserRequest) (*BlockUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BlockUser not implemented")
+}
+func (UnimplementedCentrifugoApiServer) UnblockUser(context.Context, *UnblockUserRequest) (*UnblockUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnblockUser not implemented")
+}
+func (UnimplementedCentrifugoApiServer) RevokeToken(context.Context, *RevokeTokenRequest) (*RevokeTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RevokeToken not implemented")
+}
+func (UnimplementedCentrifugoApiServer) InvalidateUserTokens(context.Context, *InvalidateUserTokensRequest) (*InvalidateUserTokensResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InvalidateUserTokens not implemented")
 }
 func (UnimplementedCentrifugoApiServer) mustEmbedUnimplementedCentrifugoApiServer() {}
 
@@ -596,6 +652,78 @@ func _CentrifugoApi_DeleteUserStatus_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CentrifugoApi_BlockUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BlockUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).BlockUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/BlockUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).BlockUser(ctx, req.(*BlockUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_UnblockUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnblockUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).UnblockUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/UnblockUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).UnblockUser(ctx, req.(*UnblockUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_RevokeToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).RevokeToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/RevokeToken",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).RevokeToken(ctx, req.(*RevokeTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CentrifugoApi_InvalidateUserTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InvalidateUserTokensRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CentrifugoApiServer).InvalidateUserTokens(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/centrifugal.centrifugo.api.CentrifugoApi/InvalidateUserTokens",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CentrifugoApiServer).InvalidateUserTokens(ctx, req.(*InvalidateUserTokensRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CentrifugoApi_ServiceDesc is the grpc.ServiceDesc for CentrifugoApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -670,6 +798,22 @@ var CentrifugoApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteUserStatus",
 			Handler:    _CentrifugoApi_DeleteUserStatus_Handler,
+		},
+		{
+			MethodName: "BlockUser",
+			Handler:    _CentrifugoApi_BlockUser_Handler,
+		},
+		{
+			MethodName: "UnblockUser",
+			Handler:    _CentrifugoApi_UnblockUser_Handler,
+		},
+		{
+			MethodName: "RevokeToken",
+			Handler:    _CentrifugoApi_RevokeToken_Handler,
+		},
+		{
+			MethodName: "InvalidateUserTokens",
+			Handler:    _CentrifugoApi_InvalidateUserTokens_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

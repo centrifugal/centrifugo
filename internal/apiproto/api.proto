@@ -22,6 +22,10 @@ service CentrifugoApi {
     rpc UpdateUserStatus (UpdateUserStatusRequest) returns (UpdateUserStatusResponse) {}
     rpc GetUserStatus (GetUserStatusRequest) returns (GetUserStatusResponse) {}
     rpc DeleteUserStatus (DeleteUserStatusRequest) returns (DeleteUserStatusResponse) {}
+    rpc BlockUser (BlockUserRequest) returns (BlockUserResponse) {}
+    rpc UnblockUser (UnblockUserRequest) returns (UnblockUserResponse) {}
+    rpc RevokeToken (RevokeTokenRequest) returns (RevokeTokenResponse) {}
+    rpc InvalidateUserTokens (InvalidateUserTokensRequest) returns (InvalidateUserTokensResponse) {}
 }
 
 message Command {
@@ -43,6 +47,10 @@ message Command {
         UPDATE_USER_STATUS = 15;
         GET_USER_STATUS = 16;
         DELETE_USER_STATUS = 17;
+        BLOCK_USER = 18;
+        UNBLOCK_USER = 19;
+        REVOKE_TOKEN = 20;
+        INVALIDATE_USER_TOKENS = 21;
     }
     uint32 id = 1;
     MethodType method = 2;
@@ -377,4 +385,52 @@ message DeleteUserStatusResponse {
 }
 
 message DeleteUserStatusResult {
+}
+
+message BlockUserRequest {
+    int64 expire_at = 1;
+    string user = 2;
+}
+
+message BlockUserResult {}
+
+message BlockUserResponse {
+    Error error = 1;
+    BlockUserResult result = 2;
+}
+
+message UnblockUserRequest {
+    string user = 1;
+}
+
+message UnblockUserResult {}
+
+message UnblockUserResponse {
+    Error error = 1;
+    UnblockUserResult result = 2;
+}
+
+message RevokeTokenRequest {
+    int64 expire_at = 1;
+    string uid = 2;
+}
+
+message RevokeTokenResult {}
+
+message RevokeTokenResponse {
+    Error error = 1;
+    RevokeTokenResult result = 2;
+}
+
+message InvalidateUserTokensRequest {
+    int64 expire_at = 1;
+    string user = 2;
+    int64 issued_before = 3;
+}
+
+message InvalidateUserTokensResult {}
+
+message InvalidateUserTokensResponse {
+    Error error = 1;
+    InvalidateUserTokensResult result = 2;
 }
