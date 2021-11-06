@@ -1,5 +1,7 @@
 No backwards incompatible changes here.
 
-Fixes:
+Improvements:
 
-* Fix subscription cleanup on client close. Addresses one more problem found in [this report](https://github.com/centrifugal/centrifugo/issues/486).
+* Introducing a [granular proxy mode](https://centrifugal.dev/docs/server/proxy#granular-proxy-mode). Some background can be found in [#477](https://github.com/centrifugal/centrifugo/issues/477).
+
+This release is built with Go 1.17.3.
