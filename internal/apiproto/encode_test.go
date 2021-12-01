@@ -8,7 +8,7 @@ import (
 var testEncodedData []byte
 
 func BenchmarkJSONEncode(b *testing.B) {
-	reply := &Reply{Id: 1, Result: []byte(`{"answer": 42}`)}
+	reply := &Reply{Id: 1, Result: []byte(`{"answer":42}`)}
 	for i := 0; i < b.N; i++ {
 		encoder := GetReplyEncoder()
 		err := encoder.Encode(reply)
