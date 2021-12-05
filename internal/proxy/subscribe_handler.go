@@ -98,6 +98,11 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			Channel: e.Channel,
 			Token:   e.Token,
 		}
+		if !p.UseBase64() {
+			req.Data = e.Data
+		} else {
+			req.B64Data = base64.StdEncoding.EncodeToString(e.Data)
+		}
 		if p.IncludeMeta() {
 			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
 				req.Meta = proxyproto.Raw(connMeta.Meta)
