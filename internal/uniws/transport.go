@@ -80,6 +80,11 @@ func (t *websocketTransport) Protocol() centrifuge.ProtocolType {
 	return centrifuge.ProtocolTypeJSON
 }
 
+// ProtocolVersion returns transport protocol version.
+func (t *websocketTransport) ProtocolVersion() centrifuge.ProtocolVersion {
+	return centrifuge.ProtocolVersion1
+}
+
 // Unidirectional returns whether transport is unidirectional.
 func (t *websocketTransport) Unidirectional() bool {
 	return true

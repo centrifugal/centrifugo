@@ -33,6 +33,11 @@ func (t *streamTransport) Protocol() centrifuge.ProtocolType {
 	return centrifuge.ProtocolTypeJSON
 }
 
+// ProtocolVersion returns transport protocol version.
+func (t *streamTransport) ProtocolVersion() centrifuge.ProtocolVersion {
+	return centrifuge.ProtocolVersion1
+}
+
 // Unidirectional returns whether transport is unidirectional.
 func (t *streamTransport) Unidirectional() bool {
 	return true

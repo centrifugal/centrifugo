@@ -114,7 +114,6 @@ type pubRequest struct {
 	MsgType        string
 	Channel        string
 	Data           string
-	Info           string
 	HistoryTTL     int
 	HistorySize    int
 	HistoryMetaTTL int
@@ -146,17 +145,26 @@ func (m *pubResponse) DecodeMsgpack(d *msgpack.Decoder) error {
 // Publish - see centrifuge.Broker interface description.
 func (b *Broker) Publish(ch string, data []byte, opts centrifuge.PublishOptions) (centrifuge.StreamPosition, error) {
 	s := consistentShard(ch, b.shards)
+
+	protoPub := &protocol.Publication{
+		Data: data,
+		Info: infoToProto(opts.ClientInfo),
+		Meta: opts.Meta,
+	}
+	byteMessage, err := protoPub.MarshalVT()
+	if err != nil {
+		return centrifuge.StreamPosition{}, err
+	}
 	pr := &pubRequest{
 		MsgType:        "p",
 		Channel:        ch,
-		Data:           string(data),
-		Info:           b.clientInfoString(opts.ClientInfo),
+		Data:           string(byteMessage),
 		HistoryTTL:     int(opts.HistoryTTL.Seconds()),
 		HistorySize:    opts.HistorySize,
 		HistoryMetaTTL: int(b.config.HistoryMetaTTL.Seconds()),
 	}
 	var resp pubResponse
-	err := s.ExecTyped(tarantool.Call("centrifuge.publish", pr), &resp)
+	err = s.ExecTyped(tarantool.Call("centrifuge.publish", pr), &resp)
 	if err != nil {
 		return centrifuge.StreamPosition{}, err
 	}
@@ -169,7 +177,7 @@ func (b *Broker) PublishJoin(ch string, info *centrifuge.ClientInfo) error {
 	pr := pubRequest{
 		MsgType: "j",
 		Channel: ch,
-		Info:    b.clientInfoString(info),
+		Data:    b.clientInfoString(info),
 	}
 	_, err := s.Exec(tarantool.Call("centrifuge.publish", pr))
 	return err
@@ -181,7 +189,7 @@ func (b *Broker) PublishLeave(ch string, info *centrifuge.ClientInfo) error {
 	pr := pubRequest{
 		MsgType: "l",
 		Channel: ch,
-		Info:    b.clientInfoString(info),
+		Data:    b.clientInfoString(info),
 	}
 	_, err := s.Exec(tarantool.Call("centrifuge.publish", pr))
 	return err
@@ -306,12 +314,11 @@ func (m *historyResponse) DecodeMsgpack(d *msgpack.Decoder) error {
 	pubs := make([]*centrifuge.Publication, 0, l)
 
 	for i := 0; i < l; i++ {
-		var pub centrifuge.Publication
 		var l int
 		if l, err = d.DecodeArrayLen(); err != nil {
 			return err
 		}
-		if l != 6 {
+		if l != 5 {
 			return fmt.Errorf("malformed array len: %d", l)
 		}
 		if _, err = d.DecodeUint64(); err != nil {
@@ -320,34 +327,39 @@ func (m *historyResponse) DecodeMsgpack(d *msgpack.Decoder) error {
 		if _, err = d.DecodeString(); err != nil {
 			return err
 		}
-		if pub.Offset, err = d.DecodeUint64(); err != nil {
+		offset, err := d.DecodeUint64()
+		if err != nil {
 			return err
 		}
 		if _, err = d.DecodeFloat64(); err != nil {
 			return err
 		}
-		if data, err := d.DecodeString(); err != nil {
+		data, err := d.DecodeString()
+		if err != nil {
 			return err
-		} else {
-			if len(data) > 0 {
-				pub.Data = []byte(data)
-			}
 		}
-		if info, err := d.DecodeString(); err != nil {
+		var p protocol.Publication
+		if err = p.UnmarshalVT([]byte(data)); err != nil {
 			return err
-		} else {
-			if len(info) > 0 {
-				var i protocol.ClientInfo
-				if err = i.UnmarshalVT([]byte(info)); err != nil {
-					return err
-				}
-				pub.Info = infoFromProto(&i)
-			}
 		}
-		pubs = append(pubs, &pub)
+		pub := pubFromProto(&p)
+		pub.Offset = offset
+		pubs = append(pubs, pub)
 	}
 	m.Pubs = pubs
 	return nil
+}
+
+func pubFromProto(pub *protocol.Publication) *centrifuge.Publication {
+	if pub == nil {
+		return nil
+	}
+	return &centrifuge.Publication{
+		Offset: pub.GetOffset(),
+		Data:   pub.Data,
+		Info:   infoFromProto(pub.GetInfo()),
+		Meta:   pub.GetMeta(),
+	}
 }
 
 // History - see centrifuge.Broker interface description.
@@ -434,7 +446,6 @@ type pubSubMessage struct {
 	Offset  uint64
 	Epoch   string
 	Data    []byte
-	Info    []byte
 }
 
 func (m *pubSubMessage) DecodeMsgpack(d *msgpack.Decoder) error {
@@ -443,7 +454,7 @@ func (m *pubSubMessage) DecodeMsgpack(d *msgpack.Decoder) error {
 	if l, err = d.DecodeArrayLen(); err != nil {
 		return err
 	}
-	if l != 6 {
+	if l != 5 {
 		return fmt.Errorf("wrong array len: %d", l)
 	}
 	if m.Type, err = d.DecodeString(); err != nil {
@@ -462,11 +473,6 @@ func (m *pubSubMessage) DecodeMsgpack(d *msgpack.Decoder) error {
 		return err
 	} else {
 		m.Data = []byte(data)
-	}
-	if info, err := d.DecodeString(); err != nil {
-		return err
-	} else {
-		m.Info = []byte(info)
 	}
 	return nil
 }
@@ -712,27 +718,22 @@ func (b *Broker) waitPubSubMessages(conn *tarantool.Connection, connID string, c
 func (b *Broker) handleMessage(eventHandler centrifuge.BrokerEventHandler, msg pubSubMessage) error {
 	switch msg.Type {
 	case "p":
-		pub := &centrifuge.Publication{
-			Offset: msg.Offset,
-			Data:   msg.Data,
+		var pub protocol.Publication
+		err := pub.UnmarshalVT(msg.Data)
+		if err == nil {
+			publication := pubFromProto(&pub)
+			publication.Offset = msg.Offset
+			_ = eventHandler.HandlePublication(msg.Channel, publication, centrifuge.StreamPosition{Offset: msg.Offset, Epoch: msg.Epoch})
 		}
-		if len(msg.Info) > 0 {
-			var info protocol.ClientInfo
-			err := info.UnmarshalVT(msg.Info)
-			if err == nil {
-				pub.Info = infoFromProto(&info)
-			}
-		}
-		_ = eventHandler.HandlePublication(msg.Channel, pub, centrifuge.StreamPosition{Offset: msg.Offset, Epoch: msg.Epoch})
 	case "j":
 		var info protocol.ClientInfo
-		err := info.UnmarshalVT(msg.Info)
+		err := info.UnmarshalVT(msg.Data)
 		if err == nil {
 			_ = eventHandler.HandleJoin(msg.Channel, infoFromProto(&info))
 		}
 	case "l":
 		var info protocol.ClientInfo
-		err := info.UnmarshalVT(msg.Info)
+		err := info.UnmarshalVT(msg.Data)
 		if err == nil {
 			_ = eventHandler.HandleLeave(msg.Channel, infoFromProto(&info))
 		}
