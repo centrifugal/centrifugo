@@ -274,7 +274,7 @@ func main() {
 			if err != nil {
 				switch err.(type) {
 				case viper.ConfigParseError:
-					log.Fatal().Msgf("error parsing configuration: %s\n", err)
+					log.Fatal().Msg(tools.ErrorMessageFromConfigError(err, absConfPath))
 				default:
 					configFound = false
 				}
@@ -600,7 +600,7 @@ func main() {
 			bindCentrifugoConfig()
 			err := validateConfig(checkConfigFile)
 			if err != nil {
-				fmt.Printf("error: %v\n", err)
+				fmt.Printf("%s\n", tools.ErrorMessageFromConfigError(err, checkConfigFile))
 				os.Exit(1)
 			}
 		},
@@ -792,7 +792,7 @@ func handleSignals(configFile string, n *centrifuge.Node, ruleContainer *rule.Co
 			log.Info().Msg("reloading configuration")
 			err := validateConfig(configFile)
 			if err != nil {
-				log.Error().Msgf("error parsing configuration: %s", err)
+				log.Error().Msg(tools.ErrorMessageFromConfigError(err, configFile))
 				continue
 			}
 			ruleConfig := ruleConfig()

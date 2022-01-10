@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// StripPassword from URL address.
 func StripPassword(address string) string {
 	u, err := url.Parse(address)
 	if err != nil {
@@ -17,6 +18,8 @@ func StripPassword(address string) string {
 	return u.String()
 }
 
+// GetLogAddresses returns a string with addresses (concatenated with comma)
+// with password stripped from each address.
 func GetLogAddresses(addresses []string) string {
 	cleanedAddresses := make([]string, 0, len(addresses))
 	for _, a := range addresses {
