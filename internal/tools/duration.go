@@ -27,7 +27,7 @@ func DecoderConfig(output interface{}) *mapstructure.DecoderConfig {
 
 type Duration time.Duration
 
-// StringToTimeDurationHookFunc returns a DecodeHookFunc that converts
+// StringToDurationHookFunc returns a DecodeHookFunc that converts
 // strings to time.Duration.
 func StringToDurationHookFunc() mapstructure.DecodeHookFunc {
 	return func(
