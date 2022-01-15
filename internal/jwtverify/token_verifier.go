@@ -14,7 +14,7 @@ type Verifier interface {
 type ConnectToken struct {
 	// UserID tells library an ID of connecting user.
 	UserID string
-	// ExpireAt allows to set time in future when connection must be validated.
+	// ExpireAt allows setting time in future when connection must be validated.
 	// Validation can be server-side using On().Refresh callback or client-side
 	// if On().Refresh not set.
 	ExpireAt int64
@@ -28,9 +28,7 @@ type ConnectToken struct {
 	// for connection inspection. Never sent in a client protocol and accessible
 	// from a backend-side only.
 	Meta json.RawMessage
-	// Subs is a map of channels to subscribe server-side with options. This is a
-	// more advanced version of Channels actually. If Subs map is not empty then we
-	// don't look at Channels at all.
+	// Subs is a map of channels to subscribe server-side with options.
 	Subs map[string]centrifuge.SubscribeOptions
 }
 
