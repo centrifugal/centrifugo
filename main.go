@@ -87,6 +87,8 @@ func bindCentrifugoConfig() {
 		"token_rsa_public_key":       "",
 		"token_ecdsa_public_key":     "",
 		"token_jwks_public_endpoint": "",
+		"token_audience":             "",
+		"token_issuer":               "",
 
 		"protected":                   false,
 		"publish":                     false,
@@ -1188,6 +1190,8 @@ func jwtVerifierConfig() jwtverify.VerifierConfig {
 	}
 
 	cfg.JWKSPublicEndpoint = v.GetString("token_jwks_public_endpoint")
+	cfg.Audience = v.GetString("token_audience")
+	cfg.Issuer = v.GetString("token_issuer")
 
 	return cfg
 }
