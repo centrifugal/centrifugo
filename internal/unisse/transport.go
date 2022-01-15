@@ -14,19 +14,23 @@ type eventsourceTransport struct {
 	disconnectCh chan *centrifuge.Disconnect
 	closedCh     chan struct{}
 	closed       bool
+	protoVersion centrifuge.ProtocolVersion
 }
 
-func newEventsourceTransport(req *http.Request) *eventsourceTransport {
+func newEventsourceTransport(req *http.Request, protoVersion centrifuge.ProtocolVersion) *eventsourceTransport {
 	return &eventsourceTransport{
 		messages:     make(chan []byte),
 		disconnectCh: make(chan *centrifuge.Disconnect),
 		closedCh:     make(chan struct{}),
 		req:          req,
+		protoVersion: protoVersion,
 	}
 }
 
+const transportName = "uni_sse"
+
 func (t *eventsourceTransport) Name() string {
-	return "uni_sse"
+	return transportName
 }
 
 func (t *eventsourceTransport) Protocol() centrifuge.ProtocolType {
@@ -35,7 +39,7 @@ func (t *eventsourceTransport) Protocol() centrifuge.ProtocolType {
 
 // ProtocolVersion returns transport protocol version.
 func (t *eventsourceTransport) ProtocolVersion() centrifuge.ProtocolVersion {
-	return centrifuge.ProtocolVersion1
+	return t.protoVersion
 }
 
 // Unidirectional returns whether transport is unidirectional.

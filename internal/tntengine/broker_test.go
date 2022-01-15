@@ -1,3 +1,4 @@
+//go:build integration
 // +build integration
 
 package tntengine
@@ -269,14 +270,14 @@ outer:
 	}
 }
 
-func TestMemoryBrokerHistoryIteration(t *testing.T) {
+func TestTarantoolBrokerHistoryIteration(t *testing.T) {
 	e, _ := newTestTarantoolEngine(t)
 	it := historyIterationTest{100, 10}
 	startPosition := it.prepareHistoryIteration(t, e.node)
 	it.testHistoryIteration(t, e.node, startPosition)
 }
 
-func TestMemoryBrokerHistoryIterationReverse(t *testing.T) {
+func TestTarantoolBrokerHistoryIterationReverse(t *testing.T) {
 	e, _ := newTestTarantoolEngine(t)
 	it := historyIterationTest{100, 10}
 	startPosition := it.prepareHistoryIteration(t, e.node)

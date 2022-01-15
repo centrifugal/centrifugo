@@ -14,19 +14,23 @@ type streamTransport struct {
 	disconnectCh chan *centrifuge.Disconnect
 	closedCh     chan struct{}
 	closed       bool
+	protoVersion centrifuge.ProtocolVersion
 }
 
-func newStreamTransport(req *http.Request) *streamTransport {
+func newStreamTransport(req *http.Request, protoVersion centrifuge.ProtocolVersion) *streamTransport {
 	return &streamTransport{
 		messages:     make(chan []byte),
 		disconnectCh: make(chan *centrifuge.Disconnect),
 		closedCh:     make(chan struct{}),
 		req:          req,
+		protoVersion: protoVersion,
 	}
 }
 
+const transportName = "uni_http_stream"
+
 func (t *streamTransport) Name() string {
-	return "uni_http_stream"
+	return transportName
 }
 
 func (t *streamTransport) Protocol() centrifuge.ProtocolType {
@@ -35,7 +39,7 @@ func (t *streamTransport) Protocol() centrifuge.ProtocolType {
 
 // ProtocolVersion returns transport protocol version.
 func (t *streamTransport) ProtocolVersion() centrifuge.ProtocolVersion {
-	return centrifuge.ProtocolVersion1
+	return t.protoVersion
 }
 
 // Unidirectional returns whether transport is unidirectional.
