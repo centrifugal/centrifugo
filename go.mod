@@ -9,8 +9,8 @@ require (
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
 	github.com/FZambia/tarantool v0.2.2
 	github.com/FZambia/viper-lite v0.0.0-20171108064948-d5a31e6aa18b
-	github.com/centrifugal/centrifuge v0.19.1-0.20211222084839-4182c5564dcc
-	github.com/centrifugal/protocol v0.7.7-0.20211220095654-956aec57883a
+	github.com/centrifugal/centrifuge v0.19.1-0.20220114213726-95a567cbeae9
+	github.com/centrifugal/protocol v0.8.0
 	github.com/cristalhq/jwt/v3 v3.1.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.3.0
