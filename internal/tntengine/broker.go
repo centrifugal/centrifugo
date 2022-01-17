@@ -498,13 +498,9 @@ func (b *Broker) runPubSub(s *Shard, eventHandler centrifuge.BrokerEventHandler)
 	defer func() { _ = conn.Close() }()
 
 	// Register poller with unique ID.
-	result, err := conn.Exec(tarantool.Call("centrifuge.get_messages", pollRequest{ConnID: connID, UsePolling: b.config.UsePolling, Timeout: 0}))
+	_, err = conn.Exec(tarantool.Call("centrifuge.get_messages", pollRequest{ConnID: connID, UsePolling: b.config.UsePolling, Timeout: 0}))
 	if err != nil {
 		logError(err.Error())
-		return
-	}
-	if result.Error != "" {
-		logError(result.Error)
 		return
 	}
 
@@ -762,13 +758,9 @@ func (b *Broker) runControlPubSub(s *Shard, eventHandler centrifuge.BrokerEventH
 	defer func() { _ = conn.Close() }()
 
 	// Register poller with unique ID.
-	result, err := conn.Exec(tarantool.Call("centrifuge.get_messages", pollRequest{ConnID: connID, UsePolling: b.config.UsePolling, Timeout: 0}))
+	_, err = conn.Exec(tarantool.Call("centrifuge.get_messages", pollRequest{ConnID: connID, UsePolling: b.config.UsePolling, Timeout: 0}))
 	if err != nil {
 		logError(err.Error())
-		return
-	}
-	if result.Error != "" {
-		logError(result.Error)
 		return
 	}
 
@@ -809,13 +801,9 @@ func (b *Broker) runControlPubSub(s *Shard, eventHandler centrifuge.BrokerEventH
 	}
 
 	controlChannel := b.controlChannel()
-	result, err = conn.Exec(tarantool.Call("centrifuge.subscribe", subscribeRequest{ConnID: connID, Channels: []string{controlChannel, b.nodeChannel}}))
-	if err != nil || result.Error != "" {
-		if err != nil {
-			logError(err.Error())
-		} else {
-			logError(result.Error)
-		}
+	_, err = conn.Exec(tarantool.Call("centrifuge.subscribe", subscribeRequest{ConnID: connID, Channels: []string{controlChannel, b.nodeChannel}}))
+	if err != nil {
+		logError(err.Error())
 		return
 	}
 

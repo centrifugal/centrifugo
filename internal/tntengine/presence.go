@@ -58,14 +58,14 @@ type presenceRequest struct {
 
 func (m *PresenceManager) Presence(ch string) (map[string]*centrifuge.ClientInfo, error) {
 	s := consistentShard(ch, m.shards)
-	res, err := s.Exec(tarantool.Call("centrifuge.presence", presenceRequest{Channel: ch}))
+	result, err := s.Exec(tarantool.Call("centrifuge.presence", presenceRequest{Channel: ch}))
 	if err != nil {
 		return nil, err
 	}
-	if len(res.Data) == 0 {
+	if len(result) == 0 {
 		return nil, errors.New("malformed presence result")
 	}
-	presenceInterfaceSlice, ok := res.Data[0].([]interface{})
+	presenceInterfaceSlice, ok := result[0].([]interface{})
 	if !ok {
 		return nil, errors.New("malformed presence format: map expected")
 	}
