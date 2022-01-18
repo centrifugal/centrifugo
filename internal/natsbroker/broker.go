@@ -109,6 +109,7 @@ func (b *NatsBroker) Publish(ch string, data []byte, opts centrifuge.PublishOpti
 	protoPub := &protocol.Publication{
 		Data: data,
 		Info: infoToProto(opts.ClientInfo),
+		Meta: opts.Meta,
 	}
 	data, err := protoPub.MarshalVT()
 	if err != nil {

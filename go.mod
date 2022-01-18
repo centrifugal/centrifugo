@@ -7,10 +7,10 @@ go 1.13
 require (
 	github.com/FZambia/eagle v0.0.2
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
-	github.com/FZambia/tarantool v0.2.2
+	github.com/FZambia/tarantool v0.3.0
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
-	github.com/centrifugal/centrifuge v0.19.0
-	github.com/centrifugal/protocol v0.7.6
+	github.com/centrifugal/centrifuge v0.19.1-0.20220114213726-95a567cbeae9
+	github.com/centrifugal/protocol v0.8.0
 	github.com/cristalhq/jwt/v3 v3.1.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.3.0
@@ -26,7 +26,7 @@ require (
 	github.com/rs/zerolog v1.21.0
 	github.com/spf13/cobra v0.0.7
 	github.com/stretchr/testify v1.7.0
-	github.com/vmihailenco/msgpack/v5 v5.3.2
+	github.com/vmihailenco/msgpack/v5 v5.3.5
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	golang.org/x/net v0.0.0-20210521195947-fe42d452be8f // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c

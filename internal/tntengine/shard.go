@@ -61,7 +61,7 @@ func NewShard(c ShardConfig) (*Shard, error) {
 	return shard, nil
 }
 
-func (s *Shard) Exec(request *tarantool.Request) (*tarantool.Response, error) {
+func (s *Shard) Exec(request *tarantool.Request) ([]interface{}, error) {
 	conn, err := s.mc.LeaderConn()
 	if err != nil {
 		return nil, err
