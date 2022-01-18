@@ -218,20 +218,22 @@ func (n *Container) namespaceName(ch string) string {
 func (n *Container) ChannelOptions(ch string) (string, ChannelOptions, bool, error) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
-	return n.config.channelOpts(n.namespaceName(ch))
+	nsName := n.namespaceName(ch)
+	chOpts, ok, err := n.config.channelOpts(nsName)
+	return nsName, chOpts, ok, err
 }
 
 // channelOpts searches for channel options for specified namespace key.
-func (c *Config) channelOpts(namespaceName string) (string, ChannelOptions, bool, error) {
+func (c *Config) channelOpts(namespaceName string) (ChannelOptions, bool, error) {
 	if namespaceName == "" {
-		return namespaceName, c.ChannelOptions, true, nil
+		return c.ChannelOptions, true, nil
 	}
 	for _, n := range c.Namespaces {
 		if n.Name == namespaceName {
-			return namespaceName, n.ChannelOptions, true, nil
+			return n.ChannelOptions, true, nil
 		}
 	}
-	return namespaceName, ChannelOptions{}, false, nil
+	return ChannelOptions{}, false, nil
 }
 
 // PersonalChannel returns personal channel for user based on node configuration.
