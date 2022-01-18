@@ -25,6 +25,7 @@ type websocketTransportOptions struct {
 	pingInterval       time.Duration
 	writeTimeout       time.Duration
 	compressionMinSize int
+	protoVersion       centrifuge.ProtocolVersion
 }
 
 func newWebsocketTransport(conn *websocket.Conn, opts websocketTransportOptions, graceCh chan struct{}) *websocketTransport {
@@ -70,14 +71,21 @@ func (t *websocketTransport) addPing() {
 	t.mu.Unlock()
 }
 
+const transportName = "uni_websocket"
+
 // Name returns name of transport.
 func (t *websocketTransport) Name() string {
-	return "uni_websocket"
+	return transportName
 }
 
 // Protocol returns transport protocol.
 func (t *websocketTransport) Protocol() centrifuge.ProtocolType {
 	return centrifuge.ProtocolTypeJSON
+}
+
+// ProtocolVersion returns transport protocol version.
+func (t *websocketTransport) ProtocolVersion() centrifuge.ProtocolVersion {
+	return t.opts.protoVersion
 }
 
 // Unidirectional returns whether transport is unidirectional.

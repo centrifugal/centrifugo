@@ -8,13 +8,11 @@ import (
 	"net/http/httptest"
 	"sync"
 
-	"google.golang.org/grpc/test/bufconn"
-
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 
-	"google.golang.org/grpc"
-
 	"github.com/centrifugal/centrifuge"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/test/bufconn"
 )
 
 // TestTransport - test transport
@@ -65,6 +63,11 @@ func (t *TestTransport) Name() string {
 // Protocol - ...
 func (t *TestTransport) Protocol() centrifuge.ProtocolType {
 	return t.protoType
+}
+
+// ProtocolVersion returns transport protocol version.
+func (t *TestTransport) ProtocolVersion() centrifuge.ProtocolVersion {
+	return centrifuge.ProtocolVersion1
 }
 
 // Unidirectional - ...

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/FZambia/tarantool"
-
 	"github.com/centrifugal/centrifuge"
+	"github.com/centrifugal/protocol"
 	"github.com/vmihailenco/msgpack/v5"
 )
 
@@ -56,16 +56,16 @@ type presenceRequest struct {
 	Channel string
 }
 
-func (m PresenceManager) Presence(ch string) (map[string]*centrifuge.ClientInfo, error) {
+func (m *PresenceManager) Presence(ch string) (map[string]*centrifuge.ClientInfo, error) {
 	s := consistentShard(ch, m.shards)
-	res, err := s.Exec(tarantool.Call("centrifuge.presence", presenceRequest{Channel: ch}))
+	result, err := s.Exec(tarantool.Call("centrifuge.presence", presenceRequest{Channel: ch}))
 	if err != nil {
 		return nil, err
 	}
-	if len(res.Data) == 0 {
+	if len(result) == 0 {
 		return nil, errors.New("malformed presence result")
 	}
-	presenceInterfaceSlice, ok := res.Data[0].([]interface{})
+	presenceInterfaceSlice, ok := result[0].([]interface{})
 	if !ok {
 		return nil, errors.New("malformed presence format: map expected")
 	}
@@ -75,33 +75,21 @@ func (m PresenceManager) Presence(ch string) (map[string]*centrifuge.ClientInfo,
 		if !ok {
 			return nil, errors.New("malformed presence format: tuple expected")
 		}
-		clientID, ok := presenceRow[1].(string)
+		var ci protocol.ClientInfo
+		ciData, ok := presenceRow[3].(string)
 		if !ok {
-			return nil, errors.New("malformed presence format: string client id expected")
+			return nil, errors.New("malformed presence format: data expected")
 		}
-		userID, ok := presenceRow[2].(string)
-		if !ok {
-			return nil, errors.New("malformed presence format: string user id expected")
+		err := ci.UnmarshalVT([]byte(ciData))
+		if err != nil {
+			return nil, fmt.Errorf("unmarshal ClientInfo: %w", err)
 		}
-		connInfo, ok := presenceRow[3].(string)
-		if !ok {
-			return nil, errors.New("malformed presence format: string conn info expected")
+		presence[ci.Client] = &centrifuge.ClientInfo{
+			ClientID: ci.Client,
+			UserID:   ci.User,
+			ConnInfo: ci.ConnInfo,
+			ChanInfo: ci.ChanInfo,
 		}
-		chanInfo, ok := presenceRow[4].(string)
-		if !ok {
-			return nil, errors.New("malformed presence format: string chan info expected")
-		}
-		ci := &centrifuge.ClientInfo{
-			ClientID: clientID,
-			UserID:   userID,
-		}
-		if len(connInfo) > 0 {
-			ci.ConnInfo = []byte(connInfo)
-		}
-		if len(chanInfo) > 0 {
-			ci.ChanInfo = []byte(chanInfo)
-		}
-		presence[clientID] = ci
 	}
 	return presence, nil
 }
@@ -133,7 +121,7 @@ func (m *presenceStatsResponse) DecodeMsgpack(d *msgpack.Decoder) error {
 	return nil
 }
 
-func (m PresenceManager) PresenceStats(ch string) (centrifuge.PresenceStats, error) {
+func (m *PresenceManager) PresenceStats(ch string) (centrifuge.PresenceStats, error) {
 	s := consistentShard(ch, m.shards)
 	var resp presenceStatsResponse
 	err := s.ExecTyped(tarantool.Call("centrifuge.presence_stats", presenceStatsRequest{Channel: ch}), &resp)
@@ -148,11 +136,10 @@ type addPresenceRequest struct {
 	TTL      int
 	ClientID string
 	UserID   string
-	ConnInfo string
-	ChanInfo string
+	Data     string
 }
 
-func (m PresenceManager) AddPresence(ch string, clientID string, info *centrifuge.ClientInfo) error {
+func (m *PresenceManager) AddPresence(ch string, clientID string, info *centrifuge.ClientInfo) error {
 	s := consistentShard(ch, m.shards)
 	ttl := DefaultPresenceTTL
 	if m.config.PresenceTTL > 0 {
@@ -163,10 +150,21 @@ func (m PresenceManager) AddPresence(ch string, clientID string, info *centrifug
 		TTL:      int(ttl.Seconds()),
 		ClientID: clientID,
 		UserID:   info.UserID,
-		ConnInfo: string(info.ConnInfo),
-		ChanInfo: string(info.ChanInfo),
+		Data:     m.clientInfoString(info),
 	}))
 	return err
+}
+
+func (m *PresenceManager) clientInfoString(clientInfo *centrifuge.ClientInfo) string {
+	var info string
+	if clientInfo != nil {
+		byteMessage, err := infoToProto(clientInfo).MarshalVT()
+		if err != nil {
+			return info
+		}
+		info = string(byteMessage)
+	}
+	return info
 }
 
 type removePresenceRequest struct {
@@ -174,7 +172,7 @@ type removePresenceRequest struct {
 	ClientID string
 }
 
-func (m PresenceManager) RemovePresence(ch string, clientID string) error {
+func (m *PresenceManager) RemovePresence(ch string, clientID string) error {
 	s := consistentShard(ch, m.shards)
 	_, err := s.Exec(tarantool.Call("centrifuge.remove_presence", removePresenceRequest{Channel: ch, ClientID: clientID}))
 	return err
