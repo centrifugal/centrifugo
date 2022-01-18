@@ -358,7 +358,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 
 	if len(claims.Subs) > 0 {
 		for ch, v := range claims.Subs {
-			chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			_, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				return ConnectToken{}, err
 			}
@@ -412,7 +412,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		}
 	} else if len(claims.Channels) > 0 {
 		for _, ch := range claims.Channels {
-			chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			_, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				return ConnectToken{}, err
 			}
@@ -494,7 +494,7 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		return SubscribeToken{}, ErrInvalidToken
 	}
 
-	chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
+	_, chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
 	if err != nil {
 		return SubscribeToken{}, err
 	}

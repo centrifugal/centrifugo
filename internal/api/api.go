@@ -79,7 +79,7 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 		return resp
 	}
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -156,7 +156,7 @@ func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broadcas
 				return
 			}
 
-			chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+			_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting options for channel", map[string]interface{}{"channel": ch, "error": err.Error()}))
 				responses[i] = &PublishResponse{Error: ErrorInternal}
@@ -219,7 +219,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		return resp
 	}
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(channel)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(channel)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -290,7 +290,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 	}
 
 	if channel != "" {
-		_, found, err := h.ruleContainer.ChannelOptions(channel)
+		_, _, found, err := h.ruleContainer.ChannelOptions(channel)
 		if err != nil {
 			resp.Error = ErrorInternal
 			return resp
@@ -389,7 +389,7 @@ func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceRe
 		return resp
 	}
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -440,7 +440,7 @@ func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *
 		return resp
 	}
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -483,7 +483,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 		return resp
 	}
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -561,7 +561,7 @@ func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *
 		return resp
 	}
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp

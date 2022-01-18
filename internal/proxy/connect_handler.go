@@ -124,7 +124,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 		if len(result.Channels) > 0 {
 			subscriptions := make(map[string]centrifuge.SubscribeOptions, len(result.Channels))
 			for _, ch := range result.Channels {
-				chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+				_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 				if err != nil {
 					return centrifuge.ConnectReply{}, err
 				}

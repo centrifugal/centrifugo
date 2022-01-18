@@ -296,7 +296,7 @@ func (h *Handler) OnClientConnecting(
 	// Automatically subscribe on personal server-side channel.
 	if credentials != nil && ruleConfig.UserSubscribeToPersonal && credentials.UserID != "" {
 		personalChannel := h.ruleContainer.PersonalChannel(credentials.UserID)
-		chOpts, found, err := h.ruleContainer.ChannelOptions(personalChannel)
+		_, chOpts, found, err := h.ruleContainer.ChannelOptions(personalChannel)
 		if err != nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "subscribe channel options error", map[string]interface{}{"error": err.Error(), "channel": personalChannel}))
 			return centrifuge.ConnectReply{}, err
@@ -317,7 +317,7 @@ func (h *Handler) OnClientConnecting(
 		// Subscribe only on allowed user-limited channels, ignore private channels,
 		// ignore channels from protected namespaces.
 		for _, ch := range e.Channels {
-			chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+			_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "channel options error", map[string]interface{}{"error": err.Error(), "channel": ch}))
 				return centrifuge.ConnectReply{}, err
@@ -438,7 +438,7 @@ func (h *Handler) OnSubRefresh(c *centrifuge.Client, e centrifuge.SubRefreshEven
 func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc) (centrifuge.SubscribeReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "subscribe channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.SubscribeReply{}, err
@@ -513,7 +513,7 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, publishProxyHandler proxy.PublishHandlerFunc) (centrifuge.PublishReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "publish channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PublishReply{}, err
@@ -554,7 +554,7 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 
 // OnPresence ...
 func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (centrifuge.PresenceReply, error) {
-	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "presence channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceReply{}, err
@@ -574,7 +574,7 @@ func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (
 
 // OnPresenceStats ...
 func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceStatsEvent) (centrifuge.PresenceStatsReply, error) {
-	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "presence stats channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceStatsReply{}, err
@@ -594,7 +594,7 @@ func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceSta
 
 // OnHistory ...
 func (h *Handler) OnHistory(c *centrifuge.Client, e centrifuge.HistoryEvent) (centrifuge.HistoryReply, error) {
-	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "history channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.HistoryReply{}, err
