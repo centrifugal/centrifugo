@@ -1735,6 +1735,7 @@ func memoryPresenceManagerConfig() (*centrifuge.MemoryPresenceManagerConfig, err
 
 func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
 	shardConf.DB = viper.GetInt("redis_db")
+	shardConf.User = viper.GetString("redis_user")
 	shardConf.Password = viper.GetString("redis_password")
 	shardConf.UseTLS = viper.GetBool("redis_tls")
 	shardConf.TLSSkipVerify = viper.GetBool("redis_tls_skip_verify")
@@ -1788,6 +1789,7 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, error) {
 				SentinelAddresses: sentinelAddresses,
 			}
 			addRedisShardCommonSettings(conf)
+			conf.SentinelUser = viper.GetString("redis_sentinel_user")
 			conf.SentinelPassword = viper.GetString("redis_sentinel_password")
 			conf.SentinelMasterName = viper.GetString("redis_sentinel_master_name")
 			if conf.SentinelMasterName == "" {
