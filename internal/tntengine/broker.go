@@ -149,7 +149,7 @@ func (b *Broker) Publish(ch string, data []byte, opts centrifuge.PublishOptions)
 	protoPub := &protocol.Publication{
 		Data: data,
 		Info: infoToProto(opts.ClientInfo),
-		Meta: opts.Meta,
+		Tags: opts.Tags,
 	}
 	byteMessage, err := protoPub.MarshalVT()
 	if err != nil {
@@ -358,7 +358,7 @@ func pubFromProto(pub *protocol.Publication) *centrifuge.Publication {
 		Offset: pub.GetOffset(),
 		Data:   pub.Data,
 		Info:   infoFromProto(pub.GetInfo()),
-		Meta:   pub.GetMeta(),
+		Tags:   pub.GetTags(),
 	}
 }
 
