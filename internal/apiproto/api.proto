@@ -88,6 +88,7 @@ message PublishRequest {
     bytes data = 2;
     string b64data = 3;
     bool skip_history = 4;
+    map<string, string> tags = 5;
 }
 
 message PublishResponse {
@@ -105,6 +106,7 @@ message BroadcastRequest {
     bytes data = 2;
     string b64data = 3;
     bool skip_history = 4;
+    map<string, string> tags = 5;
 }
 
 message BroadcastResponse {
