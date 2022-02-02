@@ -3,6 +3,7 @@ package unisse
 import (
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -50,6 +51,13 @@ func (t *eventsourceTransport) Unidirectional() bool {
 // DisabledPushFlags ...
 func (t *eventsourceTransport) DisabledPushFlags() uint64 {
 	return 0
+}
+
+// ApplicationLevelPing ...
+func (t *eventsourceTransport) ApplicationLevelPing() centrifuge.ApplicationLevelPing {
+	return centrifuge.ApplicationLevelPing{
+		PingInterval: 25 * time.Second,
+	}
 }
 
 func (t *eventsourceTransport) Write(message []byte) error {

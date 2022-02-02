@@ -3,6 +3,7 @@ package unihttpstream
 import (
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/centrifugal/centrifuge"
 )
@@ -50,6 +51,13 @@ func (t *streamTransport) Unidirectional() bool {
 // DisabledPushFlags ...
 func (t *streamTransport) DisabledPushFlags() uint64 {
 	return 0
+}
+
+// ApplicationLevelPing ...
+func (t *streamTransport) ApplicationLevelPing() centrifuge.ApplicationLevelPing {
+	return centrifuge.ApplicationLevelPing{
+		PingInterval: 25 * time.Second,
+	}
 }
 
 func (t *streamTransport) Write(message []byte) error {

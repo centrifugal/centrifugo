@@ -80,6 +80,13 @@ func (t *TestTransport) DisabledPushFlags() uint64 {
 	return centrifuge.PushFlagDisconnect
 }
 
+// ApplicationLevelPing ...
+func (t *TestTransport) ApplicationLevelPing() centrifuge.ApplicationLevelPing {
+	return centrifuge.ApplicationLevelPing{
+		PingInterval: 0,
+	}
+}
+
 // Close - ...
 func (t *TestTransport) Close(disconnect *centrifuge.Disconnect) error {
 	t.mu.Lock()

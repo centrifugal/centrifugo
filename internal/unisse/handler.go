@@ -141,32 +141,52 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	c.Connect(connectRequest)
 
-	pingInterval := 25 * time.Second
-	tick := time.NewTicker(pingInterval)
-	defer tick.Stop()
+	if protoVersion == centrifuge.ProtocolVersion1 {
+		pingInterval := 25 * time.Second
+		tick := time.NewTicker(pingInterval)
+		defer tick.Stop()
 
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-transport.disconnectCh:
-			return
-		case <-tick.C:
-			_, err = w.Write([]byte("event: ping\ndata:\n\n"))
-			if err != nil {
+		for {
+			select {
+			case <-r.Context().Done():
 				return
-			}
-			flusher.Flush()
-		case data, ok := <-transport.messages:
-			if !ok {
+			case <-transport.disconnectCh:
 				return
+			case <-tick.C:
+				_, err = w.Write([]byte("event: ping\ndata:\n\n"))
+				if err != nil {
+					return
+				}
+				flusher.Flush()
+			case data, ok := <-transport.messages:
+				if !ok {
+					return
+				}
+				tick.Reset(pingInterval)
+				_, err = w.Write([]byte("data: " + string(data) + "\n\n"))
+				if err != nil {
+					return
+				}
+				flusher.Flush()
 			}
-			tick.Reset(pingInterval)
-			_, err = w.Write([]byte("data: " + string(data) + "\n\n"))
-			if err != nil {
+		}
+	} else {
+		for {
+			select {
+			case <-r.Context().Done():
 				return
+			case <-transport.disconnectCh:
+				return
+			case data, ok := <-transport.messages:
+				if !ok {
+					return
+				}
+				_, err = w.Write([]byte("data: " + string(data) + "\n\n"))
+				if err != nil {
+					return
+				}
+				flusher.Flush()
 			}
-			flusher.Flush()
 		}
 	}
 }
