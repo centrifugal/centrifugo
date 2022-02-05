@@ -70,7 +70,7 @@ message Publication {
   bytes data = 4;
   ClientInfo info = 5;
   uint64 offset = 6;
-  map<string, string> meta = 7;
+  map<string, string> tags = 7;
 }
 
 message Join {
