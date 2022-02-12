@@ -80,9 +80,9 @@ func (t *TestTransport) DisabledPushFlags() uint64 {
 	return centrifuge.PushFlagDisconnect
 }
 
-// ApplicationLevelPing ...
-func (t *TestTransport) ApplicationLevelPing() centrifuge.ApplicationLevelPing {
-	return centrifuge.ApplicationLevelPing{
+// AppLevelPing ...
+func (t *TestTransport) AppLevelPing() centrifuge.AppLevelPing {
+	return centrifuge.AppLevelPing{
 		PingInterval: 0,
 	}
 }

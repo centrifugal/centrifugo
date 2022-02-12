@@ -52,9 +52,9 @@ func (t *grpcTransport) DisabledPushFlags() uint64 {
 	return 0
 }
 
-// ApplicationLevelPing ...
-func (t *grpcTransport) ApplicationLevelPing() centrifuge.ApplicationLevelPing {
-	return centrifuge.ApplicationLevelPing{
+// AppLevelPing ...
+func (t *grpcTransport) AppLevelPing() centrifuge.AppLevelPing {
+	return centrifuge.AppLevelPing{
 		PingInterval: 0,
 	}
 }

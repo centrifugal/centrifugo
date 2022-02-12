@@ -53,9 +53,9 @@ func (t *eventsourceTransport) DisabledPushFlags() uint64 {
 	return 0
 }
 
-// ApplicationLevelPing ...
-func (t *eventsourceTransport) ApplicationLevelPing() centrifuge.ApplicationLevelPing {
-	return centrifuge.ApplicationLevelPing{
+// AppLevelPing ...
+func (t *eventsourceTransport) AppLevelPing() centrifuge.AppLevelPing {
+	return centrifuge.AppLevelPing{
 		PingInterval: 25 * time.Second,
 	}
 }
