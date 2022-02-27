@@ -129,6 +129,7 @@ message SubscribeRequest {
     string b64data = 8;
     StreamPosition recover_since = 9;
     SubscribeOptionOverride override = 10;
+    string session = 11;
 }
 
 message SubscribeResponse {
@@ -142,6 +143,7 @@ message UnsubscribeRequest {
     string channel = 1;
     string user = 2;
     string client = 3;
+    string session = 4;
 }
 
 message UnsubscribeResponse {
@@ -162,6 +164,7 @@ message DisconnectRequest {
     Disconnect disconnect = 2;
     string client = 3;
     repeated string whitelist = 4;
+    string session = 5;
 }
 
 message DisconnectResponse {
@@ -277,6 +280,7 @@ message RefreshRequest {
     bool expired = 3;
     int64 expire_at = 4;
     bytes info = 5;
+    string session = 6;
 }
 
 message RefreshResponse {

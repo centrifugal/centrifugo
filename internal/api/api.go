@@ -259,6 +259,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 	err = h.node.Subscribe(user, channel,
 		centrifuge.WithSubscribeData(cmd.Data),
 		centrifuge.WithSubscribeClient(cmd.Client),
+		centrifuge.WithSubscribeSession(cmd.Session),
 		centrifuge.WithChannelInfo(cmd.Info),
 		centrifuge.WithExpireAt(cmd.ExpireAt),
 		centrifuge.WithJoinLeave(joinLeave),
@@ -303,7 +304,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 		}
 	}
 
-	err := h.node.Unsubscribe(user, channel, centrifuge.WithUnsubscribeClient(cmd.Client))
+	err := h.node.Unsubscribe(user, channel, centrifuge.WithUnsubscribeClient(cmd.Client), centrifuge.WithUnsubscribeSession(cmd.Session))
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error unsubscribing user from a channel", map[string]interface{}{"channel": channel, "user": user, "error": err.Error()}))
 		resp.Error = ErrorInternal
@@ -341,6 +342,7 @@ func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Discon
 		user,
 		centrifuge.WithDisconnect(disconnect),
 		centrifuge.WithDisconnectClient(cmd.Client),
+		centrifuge.WithDisconnectSession(cmd.Session),
 		centrifuge.WithDisconnectClientWhitelist(cmd.Whitelist))
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error disconnecting user", map[string]interface{}{"user": cmd.User, "error": err.Error()}))
@@ -366,6 +368,7 @@ func (h *Executor) Refresh(_ context.Context, cmd *RefreshRequest) *RefreshRespo
 	err := h.node.Refresh(
 		user,
 		centrifuge.WithRefreshClient(cmd.Client),
+		centrifuge.WithRefreshSession(cmd.Session),
 		centrifuge.WithRefreshExpired(cmd.Expired),
 		centrifuge.WithRefreshExpireAt(cmd.ExpireAt),
 		centrifuge.WithRefreshInfo(cmd.Info),
