@@ -425,7 +425,7 @@ func (h *Handler) OnSubRefresh(c *centrifuge.Client, e centrifuge.SubRefreshEven
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error verifying subscription refresh token", map[string]interface{}{"error": err.Error(), "client": c.ID(), "user": c.UserID()}))
 		return centrifuge.SubRefreshReply{}, err
 	}
-	if c.ID() != token.Client || e.Channel != token.Channel {
+	if e.Channel != token.Channel || (token.Client != "" && c.ID() != token.Client) {
 		return centrifuge.SubRefreshReply{}, centrifuge.DisconnectInvalidToken
 	}
 	return centrifuge.SubRefreshReply{
@@ -481,7 +481,7 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error verifying subscription token", map[string]interface{}{"error": err.Error(), "client": c.ID(), "user": c.UserID()}))
 			return centrifuge.SubscribeReply{}, err
 		}
-		if c.ID() != token.Client || e.Channel != token.Channel {
+		if e.Channel != token.Channel || (token.Client != "" && c.ID() != token.Client) {
 			return centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied
 		}
 		options = token.Options

@@ -59,6 +59,11 @@ func (t *grpcTransport) AppLevelPing() centrifuge.AppLevelPing {
 	}
 }
 
+// Emulation ...
+func (t *grpcTransport) Emulation() bool {
+	return false
+}
+
 func (t *grpcTransport) Write(message []byte) error {
 	return t.WriteMany(message)
 }

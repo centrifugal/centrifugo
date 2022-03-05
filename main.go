@@ -2053,6 +2053,10 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		mux.Handle(wsPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig()))))
 	}
 
+	mux.Handle("/connection/http_stream", middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), centrifuge.NewHTTPStreamingHandler(n, centrifuge.HTTPStreamingConfig{})))))
+	mux.Handle("/connection/sse", middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), centrifuge.NewSSEHandler(n, centrifuge.SSEConfig{})))))
+	mux.Handle("/emulation", middleware.LogRequest(middleware.CORS(getCheckOrigin(), centrifuge.NewEmulationHandler(n, centrifuge.EmulationConfig{}))))
+
 	if flags&HandlerSockJS != 0 {
 		// register SockJS connection endpoints.
 		sockjsConfig := sockjsHandlerConfig()
