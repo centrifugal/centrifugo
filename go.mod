@@ -15,7 +15,7 @@ require (
 	github.com/FZambia/tarantool v0.3.0
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
 	github.com/centrifugal/centrifuge v0.21.0
-	github.com/centrifugal/protocol v0.8.5-0.20220220055605-c8279a478a1d
+	github.com/centrifugal/protocol v0.8.5-0.20220306171102-96fa05b7c932
 	github.com/cristalhq/jwt/v3 v3.1.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/uuid v1.3.0

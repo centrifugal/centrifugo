@@ -1,0 +1,158 @@
+{
+  "token_hmac_secret_key": "secret",
+  "admin_password": "password",
+  "admin_secret": "8a61bf3d-1a1a-410f-8185-b6582c530e851",
+  "admin_web_path": "/Users/fz/projects/centrifugal/web/dist",
+  "api_key": "key",
+  "publish": true,
+  "presence": true,
+  "client_insecure": false,
+  "allowed_origins": ["*"],
+  "history_ttl": "120s",
+  "history_size": 100,
+  "history_meta_ttl": "720h",
+  "granular_proxy_mode": true,
+
+  "proxy_grpc_cert_file": "",
+  "proxy_grpc_credentials_key": "",
+  "proxy_grpc_credentials_value": "",
+
+  "proxy_connect_endpoint": "",
+  "proxy_subscribe_endpoint": "",
+  "proxy_rpc_endpoint": "http://localhost:3000/centrifugo/rpc",
+  "proxy_refresh_endpoint": "",
+  "proxy_publish_endpoint": "",
+
+  "connect_proxy_name": "connect",
+  "refresh_proxy_name": "",
+
+  "rpc_proxy_name": "rpc",
+
+  "namespaces": [
+    {
+      "name": "chat",
+      "publish": true,
+      "proxy_publish": false,
+      "publish_proxy_name": "publish_chat",
+      "proxy_subscribe": false,
+      "subscribe_proxy_name": "subscribe_chat",
+      "presence": true,
+      "position": true,
+      "history_size": 3,
+      "history_ttl": "30s",
+      "join_leave": true
+    },
+    {
+      "name": "user",
+      "publish": true,
+      "proxy_publish": false,
+      "publish_proxy_name": "publish_user",
+      "proxy_subscribe": false,
+      "subscribe_proxy_name": "subscribe_user"
+    }
+  ],
+  "rpc_namespaces": [
+    {
+      "name": "s1",
+      "rpc_proxy_name": "rpc1"
+    },
+    {
+      "name": "s2",
+      "rpc_proxy_name": "rpc2"
+    }
+  ],
+  "proxies": [
+    {
+      "name": "connect",
+      "type": "http",
+      "endpoint": "http://localhost:3000/centrifugo/connect",
+      "timeout": "2s"
+    },
+    {
+      "name": "subscribe_chat",
+      "type": "http",
+      "endpoint": "http://localhost:3000/centrifugo/subscribe",
+      "timeout": "2s"
+    },
+    {
+      "name": "publish_chat",
+      "type": "http",
+      "endpoint": "http://localhost:3000/centrifugo/publish",
+      "timeout": "2s"
+    },
+    {
+      "name": "subscribe_user",
+      "type": "http",
+      "endpoint": "http://localhost:3000/centrifugo/subscribe",
+      "timeout": "2s"
+    },
+    {
+      "name": "publish_user",
+      "type": "http",
+      "endpoint": "http://localhost:3000/centrifugo/publish",
+      "timeout": "2s"
+    },
+    {
+      "name": "rpc",
+      "type": "http",
+      "endpoint": "http://localhost:3000/centrifugo/rpc",
+      "timeout": "2s"
+    },
+    {
+      "name": "rpc1",
+      "type": "http",
+      "endpoint": "http://localhost:3000/centrifugo/rpc1",
+      "timeout": "2s"
+    },
+    {
+      "name": "rpc2",
+      "type": "http",
+      "endpoint": "http://localhost:3000/centrifugo/rpc2",
+      "timeout": "2s"
+    },
+    {
+      "name": "refresh",
+      "type": "http",
+      "endpoint": "http://localhost:3000/centrifugo/refresh",
+      "timeout": "2s"
+    }
+  ],
+  "admin_insecure": false,
+  "sockjs": true,
+  "uni_sse": true,
+  "uni_http_stream": true,
+  "uni_grpc": true,
+  "uni_websocket": true,
+  "user_subscribe_to_personal": true,
+  "clickhouse_analytics": {
+    "enabled": false,
+    "dsn": [
+      "tcp://127.0.0.1:9000",
+      "tcp://127.0.0.1:9001",
+      "tcp://127.0.0.1:9002",
+      "tcp://127.0.0.1:9003"
+    ],
+    "cluster": "centrifugo_cluster",
+    "database": "centrifugo",
+    "export_connections": true,
+    "export_subscriptions": true,
+    "export_operations": true,
+    "export_http_headers": ["Origin"]
+  },
+  "redis_throttling": {
+    "enabled": true,
+    "address": "localhost:6379",
+    "buckets": {
+      "publish": {
+        "enabled": true,
+        "interval": "1s",
+        "rate": 1,
+        "capacity": 1
+      }
+    }
+  },
+  "redis_active_status": {
+    "enabled": true,
+    "address": "localhost:6379"
+  }
+}
