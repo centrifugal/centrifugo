@@ -5,12 +5,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"testing"
-	"time"
-
-	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
 
@@ -26,25 +22,15 @@ type grpcRPCHandleTestCase struct {
 func newRPCHandlerGRPCTestCase(ctx context.Context, proxyGRPCServer proxyGRPCTestServer) grpcRPCHandleTestCase {
 	commonProxyTestCase := tools.NewCommonGRPCProxyTestCase(ctx, proxyGRPCServer)
 
-	proxyCfg := Config{
-		RPCTimeout: 5 * time.Second,
-		GRPCConfig: GRPCConfig{
-			testDialer: func(ctx context.Context, s string) (net.Conn, error) {
-				return commonProxyTestCase.Listener.Dial()
-			},
-		},
-	}
-
-	rpcProxy, err := NewGRPCRPCProxy(
-		commonProxyTestCase.Listener.Addr().String(),
-		proxyCfg,
-	)
+	rpcProxy, err := NewGRPCRPCProxy(getTestGrpcProxy(commonProxyTestCase))
 	if err != nil {
 		log.Fatalln("could not create grpc rpc proxy: ", err)
 	}
 
 	rpcProxyHandler := NewRPCHandler(RPCHandlerConfig{
-		Proxy: rpcProxy,
+		Proxies: map[string]RPCProxy{
+			"": rpcProxy,
+		},
 	})
 
 	return grpcRPCHandleTestCase{commonProxyTestCase, rpcProxyHandler}
@@ -55,27 +41,18 @@ type httpRPCHandleTestCase struct {
 	rpcProxyHandler *RPCHandler
 }
 
-func newRPCHandlerHTTPTestCase(ctx context.Context, proxyEndpoint string) httpRPCHandleTestCase {
+func newRPCHandlerHTTPTestCase(ctx context.Context, endpoint string) httpRPCHandleTestCase {
 	commonProxyTestCase := tools.NewCommonHTTPProxyTestCase(ctx)
 
-	proxyCfg := Config{
-		HTTPConfig: HTTPConfig{
-			Encoder: &proxyproto.JSONEncoder{},
-			Decoder: &proxyproto.JSONDecoder{},
-		},
-		RPCEndpoint: proxyEndpoint,
-	}
-
-	rpcProxy, err := NewHTTPRPCProxy(
-		commonProxyTestCase.Server.URL+proxyEndpoint,
-		proxyCfg,
-	)
+	rpcProxy, err := NewHTTPRPCProxy(getTestHttpProxy(commonProxyTestCase, endpoint))
 	if err != nil {
 		log.Fatalln("could not create http rpc proxy: ", err)
 	}
 
 	rpcProxyHandler := NewRPCHandler(RPCHandlerConfig{
-		Proxy: rpcProxy,
+		Proxies: map[string]RPCProxy{
+			"": rpcProxy,
+		},
 	})
 
 	return httpRPCHandleTestCase{commonProxyTestCase, rpcProxyHandler}
@@ -90,7 +67,7 @@ type rpcHandleTestCase struct {
 
 func (c rpcHandleTestCase) invokeHandle() (reply centrifuge.RPCReply, err error) {
 	rpcHandler := c.rpcProxyHandler.Handle(c.node)
-	reply, err = rpcHandler(c.client, centrifuge.RPCEvent{})
+	reply, err = rpcHandler(c.client, centrifuge.RPCEvent{}, nil)
 
 	return reply, err
 }

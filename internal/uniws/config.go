@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/centrifugal/centrifuge"
 )
 
 // Defaults.
@@ -17,6 +19,9 @@ const (
 
 // Config represents config for Handler.
 type Config struct {
+	// ProtocolVersion used by default. If not set then we use centrifuge.ProtocolVersion1.
+	ProtocolVersion centrifuge.ProtocolVersion
+
 	// CompressionLevel sets a level for websocket compression.
 	// See possible value description at https://golang.org/pkg/compress/flate/#NewWriter
 	CompressionLevel int

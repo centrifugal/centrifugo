@@ -12,11 +12,11 @@ import (
 type ConnectionMode int
 
 const (
-	// Single Tarantool (single leader).
+	// ConnectionModeSingleInstance means single Tarantool (single leader).
 	ConnectionModeSingleInstance ConnectionMode = 0
-	// Tarantool with replica and automatic failover configured.
+	// ConnectionModeLeaderFollower means Tarantool with replica and automatic failover configured.
 	ConnectionModeLeaderFollower ConnectionMode = 1
-	// Tarantool with Raft.
+	// ConnectionModeLeaderFollowerRaft means Tarantool with Raft.
 	ConnectionModeLeaderFollowerRaft ConnectionMode = 2
 )
 
@@ -143,14 +143,14 @@ func (c *MultiConnection) IsLeader(conn *tarantool.Connection) (bool, error) {
 	if c.opts.ConnectionMode == ConnectionModeLeaderFollowerRaft {
 		leaderCheck = "return box.info.election.state == 'leader'"
 	}
-	resp, err := conn.ExecContext(ctx, tarantool.Eval(leaderCheck, []interface{}{}))
+	result, err := conn.ExecContext(ctx, tarantool.Eval(leaderCheck, []interface{}{}))
 	if err != nil {
 		return false, err
 	}
-	if len(resp.Data) < 1 {
+	if len(result) < 1 {
 		return false, errors.New("unexpected leader check result")
 	}
-	isLeader, ok := resp.Data[0].(bool)
+	isLeader, ok := result[0].(bool)
 	if !ok {
 		return false, errors.New("malformed leader check result")
 	}

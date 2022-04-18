@@ -22,13 +22,24 @@ var UseUnlimitedHistoryByDefault bool
 // RPCExtensionFunc ...
 type RPCExtensionFunc func(c *centrifuge.Client, e centrifuge.RPCEvent) (centrifuge.RPCReply, error)
 
+// ProxyMap is a structure which contains all configured and already initialized
+// proxies which can be used from inside client event handlers.
+type ProxyMap struct {
+	ConnectProxy     proxy.ConnectProxy
+	RefreshProxy     proxy.RefreshProxy
+	RpcProxies       map[string]proxy.RPCProxy
+	PublishProxies   map[string]proxy.PublishProxy
+	SubscribeProxies map[string]proxy.SubscribeProxy
+}
+
 // Handler ...
 type Handler struct {
-	node          *centrifuge.Node
-	ruleContainer *rule.Container
-	tokenVerifier jwtverify.Verifier
-	proxyConfig   proxy.Config
-	rpcExtension  map[string]RPCExtensionFunc
+	node              *centrifuge.Node
+	ruleContainer     *rule.Container
+	tokenVerifier     jwtverify.Verifier
+	proxyMap          *ProxyMap
+	rpcExtension      map[string]RPCExtensionFunc
+	granularProxyMode bool
 }
 
 // NewHandler ...
@@ -36,14 +47,16 @@ func NewHandler(
 	node *centrifuge.Node,
 	ruleContainer *rule.Container,
 	tokenVerifier jwtverify.Verifier,
-	proxyConfig proxy.Config,
+	proxyMap *ProxyMap,
+	granularProxyMode bool,
 ) *Handler {
 	return &Handler{
-		node:          node,
-		ruleContainer: ruleContainer,
-		tokenVerifier: tokenVerifier,
-		proxyConfig:   proxyConfig,
-		rpcExtension:  make(map[string]RPCExtensionFunc),
+		node:              node,
+		ruleContainer:     ruleContainer,
+		tokenVerifier:     tokenVerifier,
+		proxyMap:          proxyMap,
+		granularProxyMode: granularProxyMode,
+		rpcExtension:      make(map[string]RPCExtensionFunc),
 	}
 }
 
@@ -55,24 +68,16 @@ func (h *Handler) SetRPCExtension(method string, handler RPCExtensionFunc) {
 // Setup event handlers.
 func (h *Handler) Setup() error {
 	var connectProxyHandler centrifuge.ConnectingHandler
-	if h.proxyConfig.ConnectEndpoint != "" {
-		connectProxy, err := h.getConnectProxy()
-		if err != nil {
-			return err
-		}
+	if h.proxyMap.ConnectProxy != nil {
 		connectProxyHandler = proxy.NewConnectHandler(proxy.ConnectHandlerConfig{
-			Proxy: connectProxy,
+			Proxy: h.proxyMap.ConnectProxy,
 		}, h.ruleContainer).Handle(h.node)
 	}
 
 	var refreshProxyHandler proxy.RefreshHandlerFunc
-	if h.proxyConfig.RefreshEndpoint != "" {
-		refreshProxy, err := h.getRefreshProxy()
-		if err != nil {
-			return err
-		}
+	if h.proxyMap.RefreshProxy != nil {
 		refreshProxyHandler = proxy.NewRefreshHandler(proxy.RefreshHandlerConfig{
-			Proxy: refreshProxy,
+			Proxy: h.proxyMap.RefreshProxy,
 		}).Handle(h.node)
 	}
 
@@ -85,35 +90,26 @@ func (h *Handler) Setup() error {
 	})
 
 	var rpcProxyHandler proxy.RPCHandlerFunc
-	if h.proxyConfig.RPCEndpoint != "" {
-		rpcProxy, err := h.getRPCProxy()
-		if err != nil {
-			return err
-		}
+	if len(h.proxyMap.RpcProxies) > 0 {
 		rpcProxyHandler = proxy.NewRPCHandler(proxy.RPCHandlerConfig{
-			Proxy: rpcProxy,
+			Proxies:           h.proxyMap.RpcProxies,
+			GranularProxyMode: h.granularProxyMode,
 		}).Handle(h.node)
 	}
 
 	var publishProxyHandler proxy.PublishHandlerFunc
-	if h.proxyConfig.PublishEndpoint != "" {
-		publishProxy, err := h.getPublishProxy()
-		if err != nil {
-			return err
-		}
+	if len(h.proxyMap.PublishProxies) > 0 {
 		publishProxyHandler = proxy.NewPublishHandler(proxy.PublishHandlerConfig{
-			Proxy: publishProxy,
+			Proxies:           h.proxyMap.PublishProxies,
+			GranularProxyMode: h.granularProxyMode,
 		}).Handle(h.node)
 	}
 
 	var subscribeProxyHandler proxy.SubscribeHandlerFunc
-	if h.proxyConfig.SubscribeEndpoint != "" {
-		subscribeProxy, err := h.getSubscribeProxy()
-		if err != nil {
-			return err
-		}
+	if len(h.proxyMap.SubscribeProxies) > 0 {
 		subscribeProxyHandler = proxy.NewSubscribeHandler(proxy.SubscribeHandlerConfig{
-			Proxy: subscribeProxy,
+			Proxies:           h.proxyMap.SubscribeProxies,
+			GranularProxyMode: h.granularProxyMode,
 		}).Handle(h.node)
 	}
 
@@ -300,7 +296,7 @@ func (h *Handler) OnClientConnecting(
 	// Automatically subscribe on personal server-side channel.
 	if credentials != nil && ruleConfig.UserSubscribeToPersonal && credentials.UserID != "" {
 		personalChannel := h.ruleContainer.PersonalChannel(credentials.UserID)
-		chOpts, found, err := h.ruleContainer.ChannelOptions(personalChannel)
+		_, chOpts, found, err := h.ruleContainer.ChannelOptions(personalChannel)
 		if err != nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "subscribe channel options error", map[string]interface{}{"error": err.Error(), "channel": personalChannel}))
 			return centrifuge.ConnectReply{}, err
@@ -321,7 +317,7 @@ func (h *Handler) OnClientConnecting(
 		// Subscribe only on allowed user-limited channels, ignore private channels,
 		// ignore channels from protected namespaces.
 		for _, ch := range e.Channels {
-			chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+			_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "channel options error", map[string]interface{}{"error": err.Error(), "channel": ch}))
 				return centrifuge.ConnectReply{}, err
@@ -410,7 +406,7 @@ func (h *Handler) OnRPC(c *centrifuge.Client, e centrifuge.RPCEvent, rpcProxyHan
 		return handler(c, e)
 	}
 	if rpcProxyHandler != nil {
-		return rpcProxyHandler(c, e)
+		return rpcProxyHandler(c, e, h.ruleContainer)
 	}
 	return centrifuge.RPCReply{}, centrifuge.ErrorMethodNotFound
 }
@@ -442,7 +438,7 @@ func (h *Handler) OnSubRefresh(c *centrifuge.Client, e centrifuge.SubRefreshEven
 func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent, subscribeProxyHandler proxy.SubscribeHandlerFunc) (centrifuge.SubscribeReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "subscribe channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.SubscribeReply{}, err
@@ -489,7 +485,7 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 			return centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied
 		}
 		options = token.Options
-	} else if chOpts.ProxySubscribe && !h.ruleContainer.IsUserLimited(e.Channel) {
+	} else if (chOpts.ProxySubscribe || chOpts.SubscribeProxyName != "") && !h.ruleContainer.IsUserLimited(e.Channel) {
 		if subscribeProxyHandler == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.SubscribeReply{}, centrifuge.ErrorNotAvailable
@@ -517,7 +513,7 @@ func (h *Handler) OnSubscribe(c *centrifuge.Client, e centrifuge.SubscribeEvent,
 func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, publishProxyHandler proxy.PublishHandlerFunc) (centrifuge.PublishReply, error) {
 	ruleConfig := h.ruleContainer.Config()
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "publish channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PublishReply{}, err
@@ -537,7 +533,7 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 		}
 	}
 
-	if chOpts.ProxyPublish {
+	if chOpts.ProxyPublish || chOpts.PublishProxyName != "" {
 		if publishProxyHandler == nil {
 			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "publish proxy not enabled", map[string]interface{}{"channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 			return centrifuge.PublishReply{}, centrifuge.ErrorNotAvailable
@@ -558,7 +554,7 @@ func (h *Handler) OnPublish(c *centrifuge.Client, e centrifuge.PublishEvent, pub
 
 // OnPresence ...
 func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (centrifuge.PresenceReply, error) {
-	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "presence channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceReply{}, err
@@ -578,7 +574,7 @@ func (h *Handler) OnPresence(c *centrifuge.Client, e centrifuge.PresenceEvent) (
 
 // OnPresenceStats ...
 func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceStatsEvent) (centrifuge.PresenceStatsReply, error) {
-	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "presence stats channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.PresenceStatsReply{}, err
@@ -598,7 +594,7 @@ func (h *Handler) OnPresenceStats(c *centrifuge.Client, e centrifuge.PresenceSta
 
 // OnHistory ...
 func (h *Handler) OnHistory(c *centrifuge.Client, e centrifuge.HistoryEvent) (centrifuge.HistoryReply, error) {
-	chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(e.Channel)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "history channel options error", map[string]interface{}{"error": err.Error(), "channel": e.Channel, "user": c.UserID(), "client": c.ID()}))
 		return centrifuge.HistoryReply{}, err

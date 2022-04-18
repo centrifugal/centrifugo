@@ -15,6 +15,9 @@ type Handler struct {
 }
 
 func NewHandler(n *centrifuge.Node, c Config) *Handler {
+	if c.ProtocolVersion == 0 {
+		c.ProtocolVersion = centrifuge.ProtocolVersion1
+	}
 	return &Handler{
 		node:   n,
 		config: c,
@@ -63,7 +66,24 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transport := newEventsourceTransport(r)
+	protoVersion := h.config.ProtocolVersion
+	if r.URL.RawQuery != "" {
+		query := r.URL.Query()
+		if queryProtocolVersion := query.Get("cf_protocol_version"); queryProtocolVersion != "" {
+			switch queryProtocolVersion {
+			case "v1":
+				protoVersion = centrifuge.ProtocolVersion1
+			case "v2":
+				protoVersion = centrifuge.ProtocolVersion2
+			default:
+				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "unknown protocol version", map[string]interface{}{"transport": transportName, "version": queryProtocolVersion}))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+		}
+	}
+
+	transport := newEventsourceTransport(r, protoVersion)
 	c, closeFn, err := centrifuge.NewClient(r.Context(), h.node, transport)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error create client", map[string]interface{}{"error": err.Error(), "transport": "uni_sse"}))
@@ -72,10 +92,12 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer func() { _ = closeFn() }()
 	defer close(transport.closedCh) // need to execute this after client closeFn.
 
-	h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection established", map[string]interface{}{"transport": transport.Name(), "client": c.ID()}))
-	defer func(started time.Time) {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]interface{}{"duration": time.Since(started), "transport": transport.Name(), "client": c.ID()}))
-	}(time.Now())
+	if h.node.LogEnabled(centrifuge.LogLevelDebug) {
+		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection established", map[string]interface{}{"transport": transport.Name(), "client": c.ID()}))
+		defer func(started time.Time) {
+			h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "client connection completed", map[string]interface{}{"duration": time.Since(started), "transport": transport.Name(), "client": c.ID()}))
+		}(time.Now())
+	}
 
 	if r.ProtoMajor == 1 {
 		// An endpoint MUST NOT generate an HTTP/2 message containing connection-specific header fields.
@@ -119,32 +141,52 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	c.Connect(connectRequest)
 
-	pingInterval := 25 * time.Second
-	tick := time.NewTicker(pingInterval)
-	defer tick.Stop()
+	if protoVersion == centrifuge.ProtocolVersion1 {
+		pingInterval := 25 * time.Second
+		tick := time.NewTicker(pingInterval)
+		defer tick.Stop()
 
-	for {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-transport.disconnectCh:
-			return
-		case <-tick.C:
-			_, err = w.Write([]byte("event: ping\ndata:\n\n"))
-			if err != nil {
+		for {
+			select {
+			case <-r.Context().Done():
 				return
-			}
-			flusher.Flush()
-		case data, ok := <-transport.messages:
-			if !ok {
+			case <-transport.disconnectCh:
 				return
+			case <-tick.C:
+				_, err = w.Write([]byte("event: ping\ndata:\n\n"))
+				if err != nil {
+					return
+				}
+				flusher.Flush()
+			case data, ok := <-transport.messages:
+				if !ok {
+					return
+				}
+				tick.Reset(pingInterval)
+				_, err = w.Write([]byte("data: " + string(data) + "\n\n"))
+				if err != nil {
+					return
+				}
+				flusher.Flush()
 			}
-			tick.Reset(pingInterval)
-			_, err = w.Write([]byte("data: " + string(data) + "\n\n"))
-			if err != nil {
+		}
+	} else {
+		for {
+			select {
+			case <-r.Context().Done():
 				return
+			case <-transport.disconnectCh:
+				return
+			case data, ok := <-transport.messages:
+				if !ok {
+					return
+				}
+				_, err = w.Write([]byte("data: " + string(data) + "\n\n"))
+				if err != nil {
+					return
+				}
+				flusher.Flush()
 			}
-			flusher.Flush()
 		}
 	}
 }

@@ -37,11 +37,21 @@ type VerifierConfig struct {
 	// tokens generated using rotating RSA public keys. Zero value means that JSON Web Key Sets
 	// extension won't be used.
 	JWKSPublicEndpoint string
+
+	// Audience when set will enable audience token check. See
+	// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3.
+	Audience string
+
+	// Issuer when set will enable a check that token issuer matches configured string.
+	// See https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.1.
+	Issuer string
 }
 
 func NewTokenVerifierJWT(config VerifierConfig, ruleContainer *rule.Container) *VerifierJWT {
 	verifier := &VerifierJWT{
 		ruleContainer: ruleContainer,
+		issuer:        config.Issuer,
+		audience:      config.Audience,
 	}
 
 	algorithms, err := newAlgorithms(config.HMACSecretKey, config.RSAPublicKey, config.ECDSAPublicKey)
@@ -65,6 +75,8 @@ type VerifierJWT struct {
 	jwksManager   *jwksManager
 	algorithms    *algorithms
 	ruleContainer *rule.Container
+	audience      string
+	issuer        string
 }
 
 var (
@@ -334,11 +346,19 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		return ConnectToken{}, ErrTokenExpired
 	}
 
+	if verifier.audience != "" && !claims.IsForAudience(verifier.audience) {
+		return ConnectToken{}, ErrInvalidToken
+	}
+
+	if verifier.issuer != "" && !claims.IsIssuer(verifier.issuer) {
+		return ConnectToken{}, ErrInvalidToken
+	}
+
 	subs := map[string]centrifuge.SubscribeOptions{}
 
 	if len(claims.Subs) > 0 {
 		for ch, v := range claims.Subs {
-			chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			_, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				return ConnectToken{}, err
 			}
@@ -392,7 +412,7 @@ func (verifier *VerifierJWT) VerifyConnectToken(t string) (ConnectToken, error) 
 		}
 	} else if len(claims.Channels) > 0 {
 		for _, ch := range claims.Channels {
-			chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
+			_, chOpts, found, err := verifier.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				return ConnectToken{}, err
 			}
@@ -466,7 +486,15 @@ func (verifier *VerifierJWT) VerifySubscribeToken(t string) (SubscribeToken, err
 		return SubscribeToken{}, ErrTokenExpired
 	}
 
-	chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
+	if verifier.audience != "" && !claims.IsForAudience(verifier.audience) {
+		return SubscribeToken{}, ErrInvalidToken
+	}
+
+	if verifier.issuer != "" && !claims.IsIssuer(verifier.issuer) {
+		return SubscribeToken{}, ErrInvalidToken
+	}
+
+	_, chOpts, found, err := verifier.ruleContainer.ChannelOptions(claims.Channel)
 	if err != nil {
 		return SubscribeToken{}, err
 	}
@@ -545,5 +573,7 @@ func (verifier *VerifierJWT) Reload(config VerifierConfig) error {
 		return err
 	}
 	verifier.algorithms = alg
+	verifier.audience = config.Audience
+	verifier.issuer = config.Issuer
 	return nil
 }

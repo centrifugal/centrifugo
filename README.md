@@ -45,3 +45,7 @@ Try our [demo instance](https://centrifugo3.herokuapp.com/) on Heroku (admin pas
 This repository is hosted by [packagecloud.io](https://packagecloud.io/).
 
 <a href="https://packagecloud.io/"><img height="46" width="158" alt="Private NPM registry and Maven, RPM, DEB, PyPi and RubyGem Repository · packagecloud" src="https://packagecloud.io/images/packagecloud-badge.png" /></a>
+
+Also thanks to [JetBrains](https://www.jetbrains.com/) for supporting OSS (most of the code here written in Goland):
+
+<a href="https://www.jetbrains.com/"><img height="140" src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains logo"></a>

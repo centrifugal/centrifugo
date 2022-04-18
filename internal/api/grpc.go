@@ -124,23 +124,3 @@ func (s *grpcAPIService) Refresh(ctx context.Context, req *RefreshRequest) (*Ref
 func (s *grpcAPIService) Channels(ctx context.Context, req *ChannelsRequest) (*ChannelsResponse, error) {
 	return s.api.Channels(ctx, req), nil
 }
-
-// UserConnections of the user.
-func (s *grpcAPIService) UserConnections(ctx context.Context, req *UserConnectionsRequest) (*UserConnectionsResponse, error) {
-	return s.api.UserConnections(ctx, req), nil
-}
-
-// UpdateUserStatus of users.
-func (s *grpcAPIService) UpdateUserStatus(ctx context.Context, req *UpdateUserStatusRequest) (*UpdateUserStatusResponse, error) {
-	return s.api.UpdateActiveStatus(ctx, req), nil
-}
-
-// GetUserStatus of users.
-func (s *grpcAPIService) GetUserStatus(ctx context.Context, req *GetUserStatusRequest) (*GetUserStatusResponse, error) {
-	return s.api.GetUserStatus(ctx, req), nil
-}
-
-// DeleteUserStatus of users.
-func (s *grpcAPIService) DeleteUserStatus(ctx context.Context, req *DeleteUserStatusRequest) (*DeleteUserStatusResponse, error) {
-	return s.api.DeleteUserStatus(ctx, req), nil
-}

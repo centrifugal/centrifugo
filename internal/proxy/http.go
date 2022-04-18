@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 )
 
 type baseRequestHTTP struct {
@@ -15,6 +17,9 @@ type baseRequestHTTP struct {
 	Protocol  string `json:"protocol"`
 	Encoding  string `json:"encoding"`
 }
+
+var httpEncoder = &proxyproto.JSONEncoder{}
+var httpDecoder = &proxyproto.JSONDecoder{}
 
 // DefaultMaxIdleConnsPerHost is a reasonable value for all HTTP clients.
 const DefaultMaxIdleConnsPerHost = 255

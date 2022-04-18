@@ -3,7 +3,7 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"net/url"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 
@@ -12,33 +12,31 @@ import (
 
 // GRPCConnectProxy ...
 type GRPCConnectProxy struct {
-	endpoint string
-	client   proxyproto.CentrifugoProxyClient
-	config   Config
+	proxy  Proxy
+	client proxyproto.CentrifugoProxyClient
 }
 
 var _ ConnectProxy = (*GRPCConnectProxy)(nil)
 
 // NewGRPCConnectProxy ...
-func NewGRPCConnectProxy(endpoint string, config Config) (*GRPCConnectProxy, error) {
-	u, err := url.Parse(endpoint)
+func NewGRPCConnectProxy(p Proxy) (*GRPCConnectProxy, error) {
+	host, err := getGrpcHost(p.Endpoint)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting grpc host: %v", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), config.ConnectTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(p.Timeout))
 	defer cancel()
-	dialOpts, err := getDialOpts(config)
+	dialOpts, err := getDialOpts(p)
 	if err != nil {
 		return nil, fmt.Errorf("error creating GRPC dial options: %v", err)
 	}
-	conn, err := grpc.DialContext(ctx, u.Host, dialOpts...)
+	conn, err := grpc.DialContext(ctx, host, dialOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to GRPC proxy server: %v", err)
 	}
 	return &GRPCConnectProxy{
-		endpoint: endpoint,
-		client:   proxyproto.NewCentrifugoProxyClient(conn),
-		config:   config,
+		proxy:  p,
+		client: proxyproto.NewCentrifugoProxyClient(conn),
 	}, nil
 }
 
@@ -49,12 +47,12 @@ func (p *GRPCConnectProxy) Protocol() string {
 
 // UseBase64 ...
 func (p *GRPCConnectProxy) UseBase64() bool {
-	return p.config.BinaryEncoding
+	return p.proxy.BinaryEncoding
 }
 
 // ProxyConnect proxies connect control to application backend.
 func (p *GRPCConnectProxy) ProxyConnect(ctx context.Context, req *proxyproto.ConnectRequest) (*proxyproto.ConnectResponse, error) {
-	ctx, cancel := context.WithTimeout(ctx, p.config.ConnectTimeout)
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.proxy.Timeout))
 	defer cancel()
-	return p.client.Connect(grpcRequestContext(ctx, p.config), req, grpc.ForceCodec(p.config.GRPCConfig.Codec))
+	return p.client.Connect(grpcRequestContext(ctx, p.proxy), req, grpc.ForceCodec(grpcCodec))
 }

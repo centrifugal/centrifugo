@@ -96,6 +96,8 @@ message SubscribeRequest {
   string channel = 11;
   string token = 12;
   bytes meta = 13;
+  bytes data = 14;
+  string b64data = 15;
 }
 
 message BoolValue {

@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 )
@@ -15,33 +16,31 @@ type RefreshRequestHTTP struct {
 
 // HTTPRefreshProxy ...
 type HTTPRefreshProxy struct {
-	endpoint   string
+	proxy      Proxy
 	httpCaller HTTPCaller
-	config     Config
 }
 
 var _ RefreshProxy = (*HTTPRefreshProxy)(nil)
 
 // NewHTTPRefreshProxy ...
-func NewHTTPRefreshProxy(endpoint string, config Config) (*HTTPRefreshProxy, error) {
+func NewHTTPRefreshProxy(p Proxy) (*HTTPRefreshProxy, error) {
 	return &HTTPRefreshProxy{
-		endpoint:   endpoint,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(config.RefreshTimeout)),
-		config:     config,
+		proxy:      p,
+		httpCaller: NewHTTPCaller(proxyHTTPClient(time.Duration(p.Timeout))),
 	}, nil
 }
 
 // ProxyRefresh proxies refresh to application backend.
 func (p *HTTPRefreshProxy) ProxyRefresh(ctx context.Context, req *proxyproto.RefreshRequest) (*proxyproto.RefreshResponse, error) {
-	data, err := p.config.HTTPConfig.Encoder.EncodeRefreshRequest(req)
+	data, err := httpEncoder.EncodeRefreshRequest(req)
 	if err != nil {
 		return nil, err
 	}
-	respData, err := p.httpCaller.CallHTTP(ctx, p.endpoint, httpRequestHeaders(ctx, p.config), data)
+	respData, err := p.httpCaller.CallHTTP(ctx, p.proxy.Endpoint, httpRequestHeaders(ctx, p.proxy), data)
 	if err != nil {
 		return nil, err
 	}
-	return p.config.HTTPConfig.Decoder.DecodeRefreshResponse(respData)
+	return httpDecoder.DecodeRefreshResponse(respData)
 }
 
 // Protocol ...
@@ -51,10 +50,10 @@ func (p *HTTPRefreshProxy) Protocol() string {
 
 // UseBase64 ...
 func (p *HTTPRefreshProxy) UseBase64() bool {
-	return p.config.BinaryEncoding
+	return p.proxy.BinaryEncoding
 }
 
 // IncludeMeta ...
 func (p *HTTPRefreshProxy) IncludeMeta() bool {
-	return p.config.IncludeConnectionMeta
+	return p.proxy.IncludeConnectionMeta
 }

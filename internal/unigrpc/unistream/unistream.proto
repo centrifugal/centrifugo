@@ -24,6 +24,8 @@ message SubscribeRequest {
   uint64 offset = 7;
 }
 
+// ProtocolVersion1 uses type, channel and data fields.
+// ProtocolVersion2 uses channel and one of the possible concrete push messages.
 message Push {
   enum PushType {
     PUBLICATION = 0;
@@ -36,9 +38,24 @@ message Push {
     DISCONNECT = 7;
     REFRESH = 8;
   }
+  // Type is used in ProtocolVersion1 only.
   PushType type = 1;
   string channel = 2;
+
+  // Data is used in ProtocolVersion1 only.
   bytes data = 3;
+
+  // ProtocolVersion2 server can push one of the following fields to the client. We are
+  // not using oneof here due to JSON interoperability concerns.
+  Publication pub = 4;
+  Join join = 5;
+  Leave leave = 6;
+  Unsubscribe unsubscribe = 7;
+  Message message = 8;
+  Subscribe subscribe = 9;
+  Connect connect = 10;
+  Disconnect disconnect = 11;
+  Refresh refresh = 12;
 }
 
 message ClientInfo {
@@ -53,6 +70,7 @@ message Publication {
   bytes data = 4;
   ClientInfo info = 5;
   uint64 offset = 6;
+  map<string, string> tags = 7;
 }
 
 message Join {

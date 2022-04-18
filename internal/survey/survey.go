@@ -49,7 +49,7 @@ func (c *Caller) Channels(ctx context.Context, cmd *apiproto.ChannelsRequest) (m
 
 func surveyChannels(ctx context.Context, node *centrifuge.Node, cmd *apiproto.ChannelsRequest) (map[string]*apiproto.ChannelInfo, error) {
 	req, _ := proto.Marshal(cmd)
-	results, err := node.Survey(ctx, "channels", req)
+	results, err := node.Survey(ctx, "channels", req, "")
 	if err != nil {
 		return nil, err
 	}

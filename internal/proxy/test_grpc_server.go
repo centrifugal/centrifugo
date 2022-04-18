@@ -27,7 +27,7 @@ func newProxyGRPCTestServer(flag string, opts proxyGRPCTestServerOptions) proxyG
 	}
 }
 
-func (p proxyGRPCTestServer) Connect(ctx context.Context, request *proxyproto.ConnectRequest) (*proxyproto.ConnectResponse, error) {
+func (p proxyGRPCTestServer) Connect(_ context.Context, _ *proxyproto.ConnectRequest) (*proxyproto.ConnectResponse, error) {
 	switch p.flag {
 	case "result":
 		return &proxyproto.ConnectResponse{
@@ -65,7 +65,7 @@ func (p proxyGRPCTestServer) Connect(ctx context.Context, request *proxyproto.Co
 	}
 }
 
-func (p proxyGRPCTestServer) Refresh(ctx context.Context, request *proxyproto.RefreshRequest) (*proxyproto.RefreshResponse, error) {
+func (p proxyGRPCTestServer) Refresh(_ context.Context, _ *proxyproto.RefreshRequest) (*proxyproto.RefreshResponse, error) {
 	switch p.flag {
 	case "with credentials":
 		return &proxyproto.RefreshResponse{
@@ -85,7 +85,7 @@ func (p proxyGRPCTestServer) Refresh(ctx context.Context, request *proxyproto.Re
 	}
 }
 
-func (p proxyGRPCTestServer) Subscribe(ctx context.Context, request *proxyproto.SubscribeRequest) (*proxyproto.SubscribeResponse, error) {
+func (p proxyGRPCTestServer) Subscribe(_ context.Context, _ *proxyproto.SubscribeRequest) (*proxyproto.SubscribeResponse, error) {
 	switch p.flag {
 	case "result":
 		return &proxyproto.SubscribeResponse{
@@ -119,7 +119,7 @@ func (p proxyGRPCTestServer) Subscribe(ctx context.Context, request *proxyproto.
 	}
 }
 
-func (p proxyGRPCTestServer) Publish(ctx context.Context, request *proxyproto.PublishRequest) (*proxyproto.PublishResponse, error) {
+func (p proxyGRPCTestServer) Publish(_ context.Context, _ *proxyproto.PublishRequest) (*proxyproto.PublishResponse, error) {
 	switch p.flag {
 	case "result":
 		return &proxyproto.PublishResponse{
@@ -147,7 +147,7 @@ func (p proxyGRPCTestServer) Publish(ctx context.Context, request *proxyproto.Pu
 	}
 }
 
-func (p proxyGRPCTestServer) RPC(ctx context.Context, request *proxyproto.RPCRequest) (*proxyproto.RPCResponse, error) {
+func (p proxyGRPCTestServer) RPC(_ context.Context, _ *proxyproto.RPCRequest) (*proxyproto.RPCResponse, error) {
 	switch p.flag {
 	case "result":
 		return &proxyproto.RPCResponse{

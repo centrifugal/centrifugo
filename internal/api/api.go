@@ -79,7 +79,7 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 		return resp
 	}
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -99,6 +99,7 @@ func (h *Executor) Publish(_ context.Context, cmd *PublishRequest) *PublishRespo
 	result, err := h.node.Publish(
 		cmd.Channel, cmd.Data,
 		centrifuge.WithHistory(historySize, time.Duration(historyTTL)),
+		centrifuge.WithTags(cmd.GetTags()),
 	)
 	if err != nil {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error publishing message in engine", map[string]interface{}{"error": err.Error(), "channel": cmd.Channel}))
@@ -156,7 +157,7 @@ func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broadcas
 				return
 			}
 
-			chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+			_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 			if err != nil {
 				h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error getting options for channel", map[string]interface{}{"channel": ch, "error": err.Error()}))
 				responses[i] = &PublishResponse{Error: ErrorInternal}
@@ -178,6 +179,7 @@ func (h *Executor) Broadcast(_ context.Context, cmd *BroadcastRequest) *Broadcas
 			result, err := h.node.Publish(
 				ch, data,
 				centrifuge.WithHistory(historySize, time.Duration(historyTTL)),
+				centrifuge.WithTags(cmd.GetTags()),
 			)
 			resp := &PublishResponse{}
 			if err == nil {
@@ -219,7 +221,7 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 		return resp
 	}
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(channel)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(channel)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -290,7 +292,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 	}
 
 	if channel != "" {
-		_, found, err := h.ruleContainer.ChannelOptions(channel)
+		_, _, found, err := h.ruleContainer.ChannelOptions(channel)
 		if err != nil {
 			resp.Error = ErrorInternal
 			return resp
@@ -389,7 +391,7 @@ func (h *Executor) Presence(_ context.Context, cmd *PresenceRequest) *PresenceRe
 		return resp
 	}
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -440,7 +442,7 @@ func (h *Executor) PresenceStats(_ context.Context, cmd *PresenceStatsRequest) *
 		return resp
 	}
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -483,7 +485,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 		return resp
 	}
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -561,7 +563,7 @@ func (h *Executor) HistoryRemove(_ context.Context, cmd *HistoryRemoveRequest) *
 		return resp
 	}
 
-	chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
+	_, chOpts, found, err := h.ruleContainer.ChannelOptions(ch)
 	if err != nil {
 		resp.Error = ErrorInternal
 		return resp
@@ -678,42 +680,6 @@ func (h *Executor) Channels(ctx context.Context, cmd *ChannelsRequest) *Channels
 		Channels: channels,
 	}
 
-	return resp
-}
-
-// UserConnections returns all active connections of a user.
-func (h *Executor) UserConnections(_ context.Context, _ *UserConnectionsRequest) *UserConnectionsResponse {
-	started := time.Now()
-	defer observe(started, h.protocol, "user_connections")
-	resp := &UserConnectionsResponse{}
-	resp.Error = ErrorNotAvailable
-	return resp
-}
-
-// UpdateActiveStatus ...
-func (h *Executor) UpdateActiveStatus(_ context.Context, _ *UpdateUserStatusRequest) *UpdateUserStatusResponse {
-	started := time.Now()
-	defer observe(started, h.protocol, "update_user_status")
-	resp := &UpdateUserStatusResponse{}
-	resp.Error = ErrorNotAvailable
-	return resp
-}
-
-// GetUserStatus ...
-func (h *Executor) GetUserStatus(_ context.Context, _ *GetUserStatusRequest) *GetUserStatusResponse {
-	started := time.Now()
-	defer observe(started, h.protocol, "get_user_status")
-	resp := &GetUserStatusResponse{}
-	resp.Error = ErrorNotAvailable
-	return resp
-}
-
-// DeleteUserStatus ...
-func (h *Executor) DeleteUserStatus(_ context.Context, _ *DeleteUserStatusRequest) *DeleteUserStatusResponse {
-	started := time.Now()
-	defer observe(started, h.protocol, "delete_user_status")
-	resp := &DeleteUserStatusResponse{}
-	resp.Error = ErrorNotAvailable
 	return resp
 }
 

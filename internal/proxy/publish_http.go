@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 )
@@ -21,33 +22,31 @@ type PublishRequestHTTP struct {
 
 // HTTPPublishProxy ...
 type HTTPPublishProxy struct {
-	endpoint   string
+	proxy      Proxy
 	httpCaller HTTPCaller
-	config     Config
 }
 
 var _ PublishProxy = (*HTTPPublishProxy)(nil)
 
 // NewHTTPPublishProxy ...
-func NewHTTPPublishProxy(endpoint string, config Config) (*HTTPPublishProxy, error) {
+func NewHTTPPublishProxy(p Proxy) (*HTTPPublishProxy, error) {
 	return &HTTPPublishProxy{
-		endpoint:   endpoint,
-		httpCaller: NewHTTPCaller(proxyHTTPClient(config.PublishTimeout)),
-		config:     config,
+		httpCaller: NewHTTPCaller(proxyHTTPClient(time.Duration(p.Timeout))),
+		proxy:      p,
 	}, nil
 }
 
 // ProxyPublish proxies Publish to application backend.
 func (p *HTTPPublishProxy) ProxyPublish(ctx context.Context, req *proxyproto.PublishRequest) (*proxyproto.PublishResponse, error) {
-	data, err := p.config.HTTPConfig.Encoder.EncodePublishRequest(req)
+	data, err := httpEncoder.EncodePublishRequest(req)
 	if err != nil {
 		return nil, err
 	}
-	respData, err := p.httpCaller.CallHTTP(ctx, p.endpoint, httpRequestHeaders(ctx, p.config), data)
+	respData, err := p.httpCaller.CallHTTP(ctx, p.proxy.Endpoint, httpRequestHeaders(ctx, p.proxy), data)
 	if err != nil {
 		return nil, err
 	}
-	return p.config.HTTPConfig.Decoder.DecodePublishResponse(respData)
+	return httpDecoder.DecodePublishResponse(respData)
 }
 
 // Protocol ...
@@ -57,10 +56,10 @@ func (p *HTTPPublishProxy) Protocol() string {
 
 // UseBase64 ...
 func (p *HTTPPublishProxy) UseBase64() bool {
-	return p.config.BinaryEncoding
+	return p.proxy.BinaryEncoding
 }
 
 // IncludeMeta ...
 func (p *HTTPPublishProxy) IncludeMeta() bool {
-	return p.config.IncludeConnectionMeta
+	return p.proxy.IncludeConnectionMeta
 }

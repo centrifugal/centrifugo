@@ -14,25 +14,48 @@ import (
 
 // SubscribeHandlerConfig ...
 type SubscribeHandlerConfig struct {
-	Proxy SubscribeProxy
+	Proxies           map[string]SubscribeProxy
+	GranularProxyMode bool
 }
 
 // SubscribeHandler ...
 type SubscribeHandler struct {
-	config    SubscribeHandlerConfig
-	summary   prometheus.Observer
-	histogram prometheus.Observer
-	errors    prometheus.Counter
+	config            SubscribeHandlerConfig
+	summary           prometheus.Observer
+	histogram         prometheus.Observer
+	errors            prometheus.Counter
+	granularSummary   map[string]prometheus.Observer
+	granularHistogram map[string]prometheus.Observer
+	granularErrors    map[string]prometheus.Counter
 }
 
 // NewSubscribeHandler ...
 func NewSubscribeHandler(c SubscribeHandlerConfig) *SubscribeHandler {
-	return &SubscribeHandler{
-		config:    c,
-		summary:   proxyCallDurationSummary.WithLabelValues(c.Proxy.Protocol(), "subscribe"),
-		histogram: proxyCallDurationHistogram.WithLabelValues(c.Proxy.Protocol(), "subscribe"),
-		errors:    proxyCallErrorCount.WithLabelValues(c.Proxy.Protocol(), "subscribe"),
+	h := &SubscribeHandler{
+		config: c,
 	}
+	if h.config.GranularProxyMode {
+		summary := map[string]prometheus.Observer{}
+		histogram := map[string]prometheus.Observer{}
+		errors := map[string]prometheus.Counter{}
+		for k := range c.Proxies {
+			name := k
+			if name == "" {
+				name = "__default__"
+			}
+			summary[name] = granularProxyCallDurationSummary.WithLabelValues("subscribe", name)
+			histogram[name] = granularProxyCallDurationHistogram.WithLabelValues("subscribe", name)
+			errors[name] = granularProxyCallErrorCount.WithLabelValues("subscribe", name)
+		}
+		h.granularSummary = summary
+		h.granularHistogram = histogram
+		h.granularErrors = errors
+	} else {
+		h.summary = proxyCallDurationSummary.WithLabelValues(h.config.Proxies[""].Protocol(), "subscribe")
+		h.histogram = proxyCallDurationHistogram.WithLabelValues(h.config.Proxies[""].Protocol(), "subscribe")
+		h.errors = proxyCallErrorCount.WithLabelValues(h.config.Proxies[""].Protocol(), "subscribe")
+	}
+	return h
 }
 
 // SubscribeHandlerFunc ...
@@ -43,22 +66,49 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 	return func(client *centrifuge.Client, e centrifuge.SubscribeEvent, chOpts rule.ChannelOptions) (centrifuge.SubscribeReply, error) {
 		started := time.Now()
 
+		var p SubscribeProxy
+		var summary prometheus.Observer
+		var histogram prometheus.Observer
+		var errors prometheus.Counter
+
+		if h.config.GranularProxyMode {
+			proxyName := chOpts.SubscribeProxyName
+			if proxyName == "" {
+				node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelInfo, "subscribe proxy not configured for a channel", map[string]interface{}{"channel": e.Channel}))
+				return centrifuge.SubscribeReply{}, centrifuge.ErrorNotAvailable
+			}
+			p = h.config.Proxies[proxyName]
+			summary = h.granularSummary[proxyName]
+			histogram = h.granularHistogram[proxyName]
+			errors = h.granularErrors[proxyName]
+		} else {
+			p = h.config.Proxies[""]
+			summary = h.summary
+			histogram = h.histogram
+			errors = h.errors
+		}
+
 		req := &proxyproto.SubscribeRequest{
 			Client:    client.ID(),
 			Protocol:  string(client.Transport().Protocol()),
 			Transport: client.Transport().Name(),
-			Encoding:  getEncoding(h.config.Proxy.UseBase64()),
+			Encoding:  getEncoding(p.UseBase64()),
 
 			User:    client.UserID(),
 			Channel: e.Channel,
 			Token:   e.Token,
 		}
-		if h.config.Proxy.IncludeMeta() {
+		if !p.UseBase64() {
+			req.Data = e.Data
+		} else {
+			req.B64Data = base64.StdEncoding.EncodeToString(e.Data)
+		}
+		if p.IncludeMeta() {
 			if connMeta, ok := clientcontext.GetContextConnectionMeta(client.Context()); ok {
 				req.Meta = proxyproto.Raw(connMeta.Meta)
 			}
 		}
-		subscribeRep, err := h.config.Proxy.ProxySubscribe(client.Context(), req)
+		subscribeRep, err := p.ProxySubscribe(client.Context(), req)
 		duration := time.Since(started).Seconds()
 		if err != nil {
 			select {
@@ -67,14 +117,14 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 				return centrifuge.SubscribeReply{}, centrifuge.DisconnectNormal
 			default:
 			}
-			h.summary.Observe(duration)
-			h.histogram.Observe(duration)
-			h.errors.Inc()
+			summary.Observe(duration)
+			histogram.Observe(duration)
+			errors.Inc()
 			node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error proxying subscribe", map[string]interface{}{"error": err.Error()}))
 			return centrifuge.SubscribeReply{}, centrifuge.ErrorInternal
 		}
-		h.summary.Observe(duration)
-		h.histogram.Observe(duration)
+		summary.Observe(duration)
+		histogram.Observe(duration)
 
 		if subscribeRep.Disconnect != nil {
 			return centrifuge.SubscribeReply{}, proxyproto.DisconnectFromProto(subscribeRep.Disconnect)

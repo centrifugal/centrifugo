@@ -25,6 +25,7 @@ type websocketTransportOptions struct {
 	pingInterval       time.Duration
 	writeTimeout       time.Duration
 	compressionMinSize int
+	protoVersion       centrifuge.ProtocolVersion
 }
 
 func newWebsocketTransport(conn *websocket.Conn, opts websocketTransportOptions, graceCh chan struct{}) *websocketTransport {
@@ -45,13 +46,15 @@ func (t *websocketTransport) ping() {
 	case <-t.closeCh:
 		return
 	default:
-		err := t.writeData([]byte(""))
-		if err != nil {
-			_ = t.Close(centrifuge.DisconnectWriteError)
-			return
+		if t.ProtocolVersion() == centrifuge.ProtocolVersion1 {
+			err := t.writeData([]byte(""))
+			if err != nil {
+				_ = t.Close(centrifuge.DisconnectWriteError)
+				return
+			}
 		}
 		deadline := time.Now().Add(t.opts.pingInterval / 2)
-		err = t.conn.WriteControl(websocket.PingMessage, nil, deadline)
+		err := t.conn.WriteControl(websocket.PingMessage, nil, deadline)
 		if err != nil {
 			_ = t.Close(centrifuge.DisconnectWriteError)
 			return
@@ -70,14 +73,21 @@ func (t *websocketTransport) addPing() {
 	t.mu.Unlock()
 }
 
+const transportName = "uni_websocket"
+
 // Name returns name of transport.
 func (t *websocketTransport) Name() string {
-	return "uni_websocket"
+	return transportName
 }
 
 // Protocol returns transport protocol.
 func (t *websocketTransport) Protocol() centrifuge.ProtocolType {
 	return centrifuge.ProtocolTypeJSON
+}
+
+// ProtocolVersion returns transport protocol version.
+func (t *websocketTransport) ProtocolVersion() centrifuge.ProtocolVersion {
+	return t.opts.protoVersion
 }
 
 // Unidirectional returns whether transport is unidirectional.
@@ -88,6 +98,13 @@ func (t *websocketTransport) Unidirectional() bool {
 // DisabledPushFlags ...
 func (t *websocketTransport) DisabledPushFlags() uint64 {
 	return 0
+}
+
+// AppLevelPing ...
+func (t *websocketTransport) AppLevelPing() centrifuge.AppLevelPing {
+	return centrifuge.AppLevelPing{
+		PingInterval: 25 * time.Second,
+	}
 }
 
 func (t *websocketTransport) writeData(data []byte) error {

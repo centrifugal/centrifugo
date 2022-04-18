@@ -68,10 +68,6 @@ type ResultEncoder interface {
 	EncodeRPC(*RPCResult) ([]byte, error)
 	EncodeRefresh(*RefreshResult) ([]byte, error)
 	EncodeChannels(*ChannelsResult) ([]byte, error)
-	EncodeUserConnections(*UserConnectionsResult) ([]byte, error)
-	EncodeUpdateUserStatus(*UpdateUserStatusResult) ([]byte, error)
-	EncodeGetUserStatus(*GetUserStatusResult) ([]byte, error)
-	EncodeDeleteUserStatus(*DeleteUserStatusResult) ([]byte, error)
 }
 
 var _ ResultEncoder = (*JSONResultEncoder)(nil)
@@ -151,30 +147,6 @@ func (e *JSONResultEncoder) EncodeRefresh(res *RefreshResult) ([]byte, error) {
 
 // EncodeChannels ...
 func (e *JSONResultEncoder) EncodeChannels(res *ChannelsResult) ([]byte, error) {
-	//nolint:staticcheck
-	return json.Marshal(res)
-}
-
-// EncodeUserConnections ...
-func (e *JSONResultEncoder) EncodeUserConnections(res *UserConnectionsResult) ([]byte, error) {
-	//nolint:staticcheck
-	return json.Marshal(res)
-}
-
-// EncodeUpdateActiveStatus ...
-func (e *JSONResultEncoder) EncodeUpdateUserStatus(res *UpdateUserStatusResult) ([]byte, error) {
-	//nolint:staticcheck
-	return json.Marshal(res)
-}
-
-// EncodeGetUserStatus ...
-func (e *JSONResultEncoder) EncodeGetUserStatus(res *GetUserStatusResult) ([]byte, error) {
-	//nolint:staticcheck
-	return json.Marshal(res)
-}
-
-// EncodeDeleteUserStatus ...
-func (e *JSONResultEncoder) EncodeDeleteUserStatus(res *DeleteUserStatusResult) ([]byte, error) {
 	//nolint:staticcheck
 	return json.Marshal(res)
 }
