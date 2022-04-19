@@ -7,7 +7,7 @@ import (
 
 	"github.com/centrifugal/centrifugo/v3/internal/jwtverify"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
-	"github.com/cristalhq/jwt/v3"
+	"github.com/cristalhq/jwt/v4"
 )
 
 // GenerateToken generates sample JWT for user.
@@ -17,7 +17,7 @@ func GenerateToken(config jwtverify.VerifierConfig, user string, ttlSeconds int6
 	}
 	signer, _ := jwt.NewSignerHS(jwt.HS256, []byte(config.HMACSecretKey))
 	builder := jwt.NewBuilder(signer)
-	token, err := builder.Build(jwt.StandardClaims{
+	token, err := builder.Build(jwt.RegisteredClaims{
 		Subject:   user,
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(ttlSeconds) * time.Second)),
 	})
@@ -35,21 +35,21 @@ func verify(config jwtverify.VerifierConfig, ruleConfig rule.Config, token strin
 
 // CheckToken checks JWT for user.
 func CheckToken(config jwtverify.VerifierConfig, ruleConfig rule.Config, t string) (string, []byte, error) {
-	token, err := jwt.Parse([]byte(t))
+	token, err := jwt.ParseNoVerify([]byte(t)) // Will be verified later.
 	if err != nil {
 		return "", nil, err
 	}
 
-	claims := &jwt.StandardClaims{}
-	err = json.Unmarshal(token.RawClaims(), claims)
+	claims := &jwt.RegisteredClaims{}
+	err = json.Unmarshal(token.Claims(), claims)
 	if err != nil {
 		return "", nil, err
 	}
 
 	ct, err := verify(config, ruleConfig, t)
 	if err != nil {
-		return "", nil, fmt.Errorf("token with algorithm %s and claims %s has error: %v", token.Header().Algorithm, string(token.RawClaims()), err)
+		return "", nil, fmt.Errorf("token with algorithm %s and claims %s has error: %v", token.Header().Algorithm, string(token.Claims()), err)
 	}
 
-	return ct.UserID, token.RawClaims(), nil
+	return ct.UserID, token.Claims(), nil
 }
