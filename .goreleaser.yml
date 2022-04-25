@@ -4,7 +4,8 @@ release:
     owner: centrifugal
     name: centrifugo
   name_template: '{{.Tag}}'
-  prerelease: false
+  draft: true
+  disable: true
   extra_files:
     - glob: ./PACKAGES/*.deb
     - glob: ./PACKAGES/*.rpm
@@ -89,7 +90,6 @@ dockers:
     - "centrifugo/centrifugo:{{ .Tag }}-amd64"
     - "centrifugo/centrifugo:v{{ .Major }}-amd64"
     - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-amd64"
-    - "centrifugo/centrifugo:latest-amd64"
     use_buildx: true
     build_flag_templates:
     - "--pull"
@@ -107,7 +107,6 @@ dockers:
     - "centrifugo/centrifugo:{{ .Tag }}-arm64v8"
     - "centrifugo/centrifugo:v{{ .Major }}-arm64v8"
     - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-arm64v8"
-    - "centrifugo/centrifugo:latest-arm64v8"
     use_buildx: true
     build_flag_templates:
     - "--pull"
@@ -127,10 +126,6 @@ docker_manifests:
       - centrifugo/centrifugo:{{ .Tag }}-arm64v8
       - centrifugo/centrifugo:{{ .Tag }}-amd64
   - name_template: centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}
-    image_templates:
-      - centrifugo/centrifugo:{{ .Tag }}-arm64v8
-      - centrifugo/centrifugo:{{ .Tag }}-amd64
-  - name_template: centrifugo/centrifugo:latest
     image_templates:
       - centrifugo/centrifugo:{{ .Tag }}-arm64v8
       - centrifugo/centrifugo:{{ .Tag }}-amd64
