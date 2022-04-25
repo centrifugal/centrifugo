@@ -10,18 +10,18 @@ release:
     - glob: ./PACKAGES/*.deb
     - glob: ./PACKAGES/*.rpm
     - glob: ./PACKAGES/*.txt
-brews:
-  -
-    tap:
-      owner: centrifugal
-      name: homebrew-centrifugo
-    folder: Formula
-    description: "Real-time messaging server"
-    commit_author:
-      name: Alexander Emelin
-      email: frvzmb@gmail.com
-    install: bin.install "centrifugo"
-    homepage: "https://github.com/centrifugal/centrifugo"
+#brews:
+#  -
+#    tap:
+#      owner: centrifugal
+#      name: homebrew-centrifugo
+#    folder: Formula
+#    description: "Real-time messaging server"
+#    commit_author:
+#      name: Alexander Emelin
+#      email: frvzmb@gmail.com
+#    install: bin.install "centrifugo"
+#    homepage: "https://github.com/centrifugal/centrifugo"
 builds:
 - goos:
   - linux
