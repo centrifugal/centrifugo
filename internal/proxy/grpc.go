@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 
+	"google.golang.org/grpc/credentials/insecure"
+
 	"github.com/centrifugal/centrifugo/v3/internal/middleware"
 	"github.com/centrifugal/centrifugo/v3/internal/proxyproto"
 
@@ -61,7 +63,7 @@ func getDialOpts(p Proxy) ([]grpc.DialOption, error) {
 		}
 		dialOpts = append(dialOpts, grpc.WithTransportCredentials(cred))
 	} else {
-		dialOpts = append(dialOpts, grpc.WithInsecure())
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
 	if p.testGrpcDialer != nil {
