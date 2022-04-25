@@ -46,7 +46,7 @@ jobs:
       - name: Release on Github
         uses: goreleaser/goreleaser-action@v2
         with:
-          version: latest
+          version: v0.184.0
           args: release --rm-dist --release-notes=misc/release/notes.md
         env:
           # note custom secret here since we need access to Centrifugo Homebrew repo.
