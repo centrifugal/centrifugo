@@ -1,3 +1,10 @@
+v2.8.7
+======
+
+No backwards incompatible changes here.
+
+* Backport panic fix on PUB/SUB sync
+
 v2.8.6
 ======
 
