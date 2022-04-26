@@ -4,7 +4,6 @@ release:
     owner: centrifugal
     name: centrifugo
   name_template: '{{.Tag}}'
-  prerelease: false
   draft: true
   extra_files:
     - glob: ./PACKAGES/*.deb
@@ -90,7 +89,7 @@ dockers:
     - "centrifugo/centrifugo:v{{ .Major }}-amd64"
     - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-amd64"
     - "centrifugo/centrifugo:latest-amd64"
-    use_buildx: true
+    use: buildx
     build_flag_templates:
     - "--pull"
     - "--label=org.opencontainers.image.created={{.Date}}"
@@ -108,7 +107,7 @@ dockers:
     - "centrifugo/centrifugo:v{{ .Major }}-arm64v8"
     - "centrifugo/centrifugo:v{{ .Major }}.{{ .Minor }}-arm64v8"
     - "centrifugo/centrifugo:latest-arm64v8"
-    use_buildx: true
+    use: buildx
     build_flag_templates:
     - "--pull"
     - "--label=org.opencontainers.image.created={{.Date}}"
