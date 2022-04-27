@@ -1621,6 +1621,18 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	return cfg
 }
 
+func httpStreamHandlerConfig() centrifuge.HTTPStreamConfig {
+	return centrifuge.HTTPStreamConfig{}
+}
+
+func sseHandlerConfig() centrifuge.SSEConfig {
+	return centrifuge.SSEConfig{}
+}
+
+func emulationHandlerConfig() centrifuge.EmulationConfig {
+	return centrifuge.EmulationConfig{}
+}
+
 var warnAllowedOriginsOnce sync.Once
 
 func getCheckOrigin() func(r *http.Request) bool {
@@ -1971,6 +1983,8 @@ func (h *logHandler) readEntries() {
 			l = log.Debug()
 		case centrifuge.LogLevelInfo:
 			l = log.Info()
+		case centrifuge.LogLevelWarn:
+			l = log.Warn()
 		case centrifuge.LogLevelError:
 			l = log.Error()
 		default:
@@ -2083,7 +2097,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		if streamPrefix == "" {
 			streamPrefix = "/"
 		}
-		mux.Handle(streamPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), centrifuge.NewHTTPStreamHandler(n, centrifuge.HTTPStreamConfig{})))))
+		mux.Handle(streamPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), centrifuge.NewHTTPStreamHandler(n, httpStreamHandlerConfig())))))
 	}
 	if flags&HandlerSSE != 0 {
 		// register bidirectional SSE connection endpoint.
@@ -2091,7 +2105,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		if ssePrefix == "" {
 			ssePrefix = "/"
 		}
-		mux.Handle(ssePrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), centrifuge.NewSSEHandler(n, centrifuge.SSEConfig{})))))
+		mux.Handle(ssePrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), centrifuge.NewSSEHandler(n, sseHandlerConfig())))))
 	}
 	if flags&HandlerEmulation != 0 {
 		// register bidirectional SSE connection endpoint.
@@ -2099,7 +2113,7 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 		if emulationPrefix == "" {
 			emulationPrefix = "/"
 		}
-		mux.Handle(emulationPrefix, middleware.LogRequest(middleware.CORS(getCheckOrigin(), centrifuge.NewEmulationHandler(n, centrifuge.EmulationConfig{}))))
+		mux.Handle(emulationPrefix, middleware.LogRequest(middleware.CORS(getCheckOrigin(), centrifuge.NewEmulationHandler(n, emulationHandlerConfig()))))
 	}
 
 	if flags&HandlerSockJS != 0 {
