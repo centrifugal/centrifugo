@@ -87,6 +87,11 @@ func (t *TestTransport) AppLevelPing() centrifuge.AppLevelPing {
 	}
 }
 
+// Emulation ...
+func (t *TestTransport) Emulation() bool {
+	return false
+}
+
 // Close - ...
 func (t *TestTransport) Close(disconnect *centrifuge.Disconnect) error {
 	t.mu.Lock()

@@ -107,6 +107,11 @@ func (t *websocketTransport) AppLevelPing() centrifuge.AppLevelPing {
 	}
 }
 
+// Emulation ...
+func (t *websocketTransport) Emulation() bool {
+	return false
+}
+
 func (t *websocketTransport) writeData(data []byte) error {
 	if t.opts.compressionMinSize > 0 {
 		t.conn.EnableWriteCompression(len(data) > t.opts.compressionMinSize)

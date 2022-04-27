@@ -207,8 +207,10 @@ func bindCentrifugoConfig() {
 		"websocket_disable": false,
 		"api_disable":       false,
 
-		"websocket_handler_prefix": "/connection/websocket",
-		"sockjs_handler_prefix":    "/connection/sockjs",
+		"websocket_handler_prefix":   "/connection/websocket",
+		"sockjs_handler_prefix":      "/connection/sockjs",
+		"http_stream_handler_prefix": "/connection/http_stream",
+		"sse_handler_prefix":         "/connection/sse",
 
 		"uni_websocket_handler_prefix":      "/connection/uni_websocket",
 		"uni_sse_handler_prefix":            "/connection/uni_sse",
@@ -217,6 +219,8 @@ func bindCentrifugoConfig() {
 		"uni_grpc_address":                  "",
 		"uni_grpc_port":                     11000,
 		"uni_grpc_max_receive_message_size": 65536,
+
+		"emulation_handler_prefix": "/emulation",
 
 		"admin_handler_prefix":      "",
 		"api_handler_prefix":        "/api",
@@ -259,7 +263,7 @@ func main() {
 				"internal_address", "prometheus", "health", "redis_address", "tarantool_address",
 				"broker", "nats_url", "grpc_api", "grpc_api_tls", "grpc_api_tls_disable",
 				"grpc_api_tls_cert", "grpc_api_tls_key", "grpc_api_port", "sockjs", "uni_grpc",
-				"uni_grpc_port", "uni_websocket", "uni_sse", "uni_http_stream",
+				"uni_grpc_port", "uni_websocket", "uni_sse", "uni_http_stream", "sse", "http_stream",
 			}
 			for _, flag := range bindPFlags {
 				_ = viper.BindPFlag(flag, cmd.Flags().Lookup(flag))
@@ -554,6 +558,8 @@ func main() {
 	rootCmd.Flags().BoolP("uni_websocket", "", false, "enable unidirectional websocket endpoint")
 	rootCmd.Flags().BoolP("uni_sse", "", false, "enable unidirectional SSE (EventSource) endpoint")
 	rootCmd.Flags().BoolP("uni_http_stream", "", false, "enable unidirectional HTTP-streaming endpoint")
+	rootCmd.Flags().BoolP("sse", "", false, "enable bidirectional SSE (EventSource) endpoint (with emulation layer)")
+	rootCmd.Flags().BoolP("http_stream", "", false, "enable bidirectional HTTP-streaming endpoint (with emulation layer)")
 
 	rootCmd.Flags().BoolP("client_insecure", "", false, "start in insecure client mode")
 	rootCmd.Flags().BoolP("api_insecure", "", false, "use insecure API mode")
@@ -1015,6 +1021,15 @@ func runHTTPServers(n *centrifuge.Node, apiExecutor *api.Executor, proxyEnabled 
 	}
 	if viper.GetBool("sockjs") {
 		portFlags |= HandlerSockJS
+	}
+	if viper.GetBool("sse") {
+		portFlags |= HandlerSSE
+	}
+	if viper.GetBool("http_stream") {
+		portFlags |= HandlerHTTPStream
+	}
+	if viper.GetBool("sse") || viper.GetBool("http_stream") {
+		portFlags |= HandlerEmulation
 	}
 	if useAdmin && adminExternal {
 		portFlags |= HandlerAdmin
@@ -1606,6 +1621,18 @@ func websocketHandlerConfig() centrifuge.WebsocketConfig {
 	return cfg
 }
 
+func httpStreamHandlerConfig() centrifuge.HTTPStreamConfig {
+	return centrifuge.HTTPStreamConfig{}
+}
+
+func sseHandlerConfig() centrifuge.SSEConfig {
+	return centrifuge.SSEConfig{}
+}
+
+func emulationHandlerConfig() centrifuge.EmulationConfig {
+	return centrifuge.EmulationConfig{}
+}
+
 var warnAllowedOriginsOnce sync.Once
 
 func getCheckOrigin() func(r *http.Request) bool {
@@ -1956,6 +1983,8 @@ func (h *logHandler) readEntries() {
 			l = log.Debug()
 		case centrifuge.LogLevelInfo:
 			l = log.Info()
+		case centrifuge.LogLevelWarn:
+			l = log.Warn()
 		case centrifuge.LogLevelError:
 			l = log.Error()
 		default:
@@ -1999,8 +2028,14 @@ const (
 	HandlerUniWebsocket
 	// HandlerUniSSE enables unidirectional SSE endpoint.
 	HandlerUniSSE
-	// HandlerUniHTTPStream enables unidirectional stream endpoint.
+	// HandlerUniHTTPStream enables unidirectional HTTP stream endpoint.
 	HandlerUniHTTPStream
+	// HandlerSSE enables bidirectional SSE endpoint (with emulation layer).
+	HandlerSSE
+	// HandlerHTTPStream enables bidirectional HTTP stream endpoint (with emulation layer).
+	HandlerHTTPStream
+	// HandlerEmulation handles client-to-server requests in an emulation layer.
+	HandlerEmulation
 )
 
 var handlerText = map[HandlerFlag]string{
@@ -2014,10 +2049,13 @@ var handlerText = map[HandlerFlag]string{
 	HandlerUniWebsocket:  "uni_websocket",
 	HandlerUniSSE:        "uni_sse",
 	HandlerUniHTTPStream: "uni_http_stream",
+	HandlerSSE:           "sse",
+	HandlerHTTPStream:    "http_stream",
+	HandlerEmulation:     "emulation",
 }
 
 func (flags HandlerFlag) String() string {
-	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream}
+	flagsOrdered := []HandlerFlag{HandlerWebsocket, HandlerSockJS, HandlerHTTPStream, HandlerSSE, HandlerEmulation, HandlerAPI, HandlerAdmin, HandlerPrometheus, HandlerDebug, HandlerHealth, HandlerUniWebsocket, HandlerUniSSE, HandlerUniHTTPStream}
 	var endpoints []string
 	for _, flag := range flagsOrdered {
 		text, ok := handlerText[flag]
@@ -2051,6 +2089,31 @@ func Mux(n *centrifuge.Node, apiExecutor *api.Executor, flags HandlerFlag, proxy
 			wsPrefix = "/"
 		}
 		mux.Handle(wsPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, centrifuge.NewWebsocketHandler(n, websocketHandlerConfig()))))
+	}
+
+	if flags&HandlerHTTPStream != 0 {
+		// register bidirectional HTTP stream connection endpoint.
+		streamPrefix := strings.TrimRight(v.GetString("http_stream_handler_prefix"), "/")
+		if streamPrefix == "" {
+			streamPrefix = "/"
+		}
+		mux.Handle(streamPrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), centrifuge.NewHTTPStreamHandler(n, httpStreamHandlerConfig())))))
+	}
+	if flags&HandlerSSE != 0 {
+		// register bidirectional SSE connection endpoint.
+		ssePrefix := strings.TrimRight(v.GetString("sse_handler_prefix"), "/")
+		if ssePrefix == "" {
+			ssePrefix = "/"
+		}
+		mux.Handle(ssePrefix, middleware.LogRequest(middleware.HeadersToContext(proxyEnabled, middleware.CORS(getCheckOrigin(), centrifuge.NewSSEHandler(n, sseHandlerConfig())))))
+	}
+	if flags&HandlerEmulation != 0 {
+		// register bidirectional SSE connection endpoint.
+		emulationPrefix := strings.TrimRight(v.GetString("emulation_handler_prefix"), "/")
+		if emulationPrefix == "" {
+			emulationPrefix = "/"
+		}
+		mux.Handle(emulationPrefix, middleware.LogRequest(middleware.CORS(getCheckOrigin(), centrifuge.NewEmulationHandler(n, emulationHandlerConfig()))))
 	}
 
 	if flags&HandlerSockJS != 0 {

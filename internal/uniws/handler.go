@@ -12,9 +12,9 @@ import (
 )
 
 // Handler handles WebSocket client connections. Usually WebSocket protocol
-// is a bidirectional connection between a client an a server for low-latency
-// communication. Here we utilize only one its direction - mostly to give
-// a user one more choice of unidirectional transport.
+// is a bidirectional connection between a client and a server for low-latency
+// communication. Here we utilize only one direction - giving users an additional
+// option for unidirectional transport.
 type Handler struct {
 	node    *centrifuge.Node
 	upgrade *websocket.Upgrader

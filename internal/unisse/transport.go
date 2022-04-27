@@ -60,6 +60,11 @@ func (t *eventsourceTransport) AppLevelPing() centrifuge.AppLevelPing {
 	}
 }
 
+// Emulation ...
+func (t *eventsourceTransport) Emulation() bool {
+	return false
+}
+
 func (t *eventsourceTransport) Write(message []byte) error {
 	return t.WriteMany(message)
 }

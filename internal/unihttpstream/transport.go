@@ -60,6 +60,11 @@ func (t *streamTransport) AppLevelPing() centrifuge.AppLevelPing {
 	}
 }
 
+// Emulation ...
+func (t *streamTransport) Emulation() bool {
+	return false
+}
+
 func (t *streamTransport) Write(message []byte) error {
 	return t.WriteMany(message)
 }
