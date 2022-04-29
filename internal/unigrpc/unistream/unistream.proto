@@ -82,7 +82,8 @@ message Leave {
 }
 
 message Unsubscribe {
-  bool resubscribe =1;
+  // Field 1 removed (bool resubscribe).
+  uint32 code = 2;
 }
 
 message Subscribe {
@@ -105,6 +106,10 @@ message Connect {
   map<string, SubscribeResult> subs = 4;
   bool expires = 5;
   uint32 ttl = 6;
+  uint32 ping = 7;
+  bool pong = 8;
+  string session = 9;
+  string node = 10;
 }
 
 message Disconnect {
@@ -129,4 +134,5 @@ message SubscribeResult {
   uint64 offset = 9;
   bool positioned = 10;
   bytes data = 11;
+  bool was_recovering = 12;
 }
