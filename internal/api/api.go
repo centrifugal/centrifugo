@@ -209,12 +209,6 @@ func (h *Executor) Subscribe(_ context.Context, cmd *SubscribeRequest) *Subscrib
 	user := cmd.User
 	channel := cmd.Channel
 
-	if user == "" {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "user required for subscribe", map[string]interface{}{"channel": channel, "user": user}))
-		resp.Error = ErrorBadRequest
-		return resp
-	}
-
 	if channel == "" {
 		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "channel required for subscribe", map[string]interface{}{"channel": channel, "user": user}))
 		resp.Error = ErrorBadRequest
@@ -286,12 +280,6 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 	user := cmd.User
 	channel := cmd.Channel
 
-	if user == "" {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "user required for unsubscribe", map[string]interface{}{"channel": channel, "user": user}))
-		resp.Error = ErrorBadRequest
-		return resp
-	}
-
 	if channel != "" {
 		_, _, found, err := h.ruleContainer.ChannelOptions(channel)
 		if err != nil {
@@ -321,11 +309,6 @@ func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Discon
 	resp := &DisconnectResponse{}
 
 	user := cmd.User
-	if user == "" {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "user required for disconnect"))
-		resp.Error = ErrorBadRequest
-		return resp
-	}
 
 	var disconnect *centrifuge.Disconnect
 	if cmd.Disconnect == nil {
@@ -357,13 +340,7 @@ func (h *Executor) Refresh(_ context.Context, cmd *RefreshRequest) *RefreshRespo
 	defer observe(time.Now(), h.protocol, "refresh")
 
 	resp := &RefreshResponse{}
-
 	user := cmd.User
-	if user == "" {
-		h.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "user required for refresh"))
-		resp.Error = ErrorBadRequest
-		return resp
-	}
 
 	err := h.node.Refresh(
 		user,
