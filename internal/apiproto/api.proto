@@ -230,6 +230,7 @@ message Publication {
     bytes data = 2;
     ClientInfo info = 3;
     uint64 offset = 4;
+    map<string, string> tags = 5;
 }
 
 message HistoryResult {

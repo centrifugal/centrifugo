@@ -510,6 +510,7 @@ func (h *Executor) History(_ context.Context, cmd *HistoryRequest) *HistoryRespo
 		apiPub := &Publication{
 			Data:   Raw(pub.Data),
 			Offset: pub.Offset,
+			Tags:   pub.Tags,
 		}
 		if pub.Info != nil {
 			apiPub.Info = &ClientInfo{
