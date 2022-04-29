@@ -5,11 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/centrifugal/centrifuge"
 	. "github.com/centrifugal/centrifugo/v3/internal/apiproto"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
 	"github.com/centrifugal/centrifugo/v3/internal/tools"
-
-	"github.com/centrifugal/centrifuge"
 	"github.com/stretchr/testify/require"
 )
 
@@ -165,9 +164,7 @@ func TestDisconnectAPI(t *testing.T) {
 	ruleContainer := rule.NewContainer(ruleConfig)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
-	resp := api.Disconnect(context.Background(), &DisconnectRequest{})
-	require.Equal(t, ErrorBadRequest, resp.Error)
-	resp = api.Disconnect(context.Background(), &DisconnectRequest{
+	resp := api.Disconnect(context.Background(), &DisconnectRequest{
 		User: "test",
 	})
 	require.Nil(t, resp.Error)
@@ -179,9 +176,32 @@ func TestUnsubscribeAPI(t *testing.T) {
 	ruleContainer := rule.NewContainer(ruleConfig)
 
 	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
-	resp := api.Unsubscribe(context.Background(), &UnsubscribeRequest{})
-	require.Equal(t, ErrorBadRequest, resp.Error)
-	resp = api.Unsubscribe(context.Background(), &UnsubscribeRequest{
+	resp := api.Unsubscribe(context.Background(), &UnsubscribeRequest{
+		User:    "test",
+		Channel: "test",
+	})
+	require.Nil(t, resp.Error)
+}
+
+func TestRefreshAPI(t *testing.T) {
+	node := nodeWithMemoryEngine()
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+
+	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
+	resp := api.Refresh(context.Background(), &RefreshRequest{
+		User: "test",
+	})
+	require.Nil(t, resp.Error)
+}
+
+func TestSubscribeAPI(t *testing.T) {
+	node := nodeWithMemoryEngine()
+	ruleConfig := rule.DefaultConfig
+	ruleContainer := rule.NewContainer(ruleConfig)
+
+	api := NewExecutor(node, ruleContainer, &testSurveyCaller{}, "test")
+	resp := api.Subscribe(context.Background(), &SubscribeRequest{
 		User:    "test",
 		Channel: "test",
 	})
