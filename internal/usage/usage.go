@@ -279,7 +279,7 @@ func getHistogramMetric(val int, bounds []int, metricPrefix string) string {
 	return metricPrefix + "le_inf"
 }
 
-func (s *Sender) sendUsageStats() error {
+func (s *Sender) prepareMetrics() MetricDataArray {
 	now := time.Now().Unix()
 
 	// createPoint creates a datapoint, i.e. a MetricData structure, and makes sure the id is set.
@@ -463,7 +463,11 @@ func (s *Sender) sendUsageStats() error {
 		"stats.num_rpc_namespaces.",
 	)
 	metrics = append(metrics, createPoint(numRpcNamespacesMetric))
+	return metrics
+}
 
+func (s *Sender) sendUsageStats() error {
+	metrics := s.prepareMetrics()
 	data, err := json.Marshal(metrics)
 	if err != nil {
 		return err
