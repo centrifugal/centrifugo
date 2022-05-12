@@ -52,8 +52,12 @@ jobs:
           # note custom secret here since we need access to Centrifugo Homebrew repo.
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           UNIX_NOW: ${{ env.UNIX_NOW }}
+          STATS_ENDPOINT: ${{ secrets.STATS_ENDPOINT }}
+          STATS_TOKEN: ${{ secrets.STATS_TOKEN }}
 
       - name: Release on Packagecloud
         env:
           PACKAGECLOUD_TOKEN: ${{ secrets.PACKAGECLOUD_TOKEN }}
+          STATS_ENDPOINT: ${{ secrets.STATS_ENDPOINT }}
+          STATS_TOKEN: ${{ secrets.STATS_TOKEN }}
         run: misc/scripts/release_packagecloud.sh

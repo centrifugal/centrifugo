@@ -34,6 +34,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/centrifugal/centrifugo/v3/internal/notify"
+
 	"github.com/centrifugal/centrifugo/v3/internal/admin"
 	"github.com/centrifugal/centrifugo/v3/internal/api"
 	"github.com/centrifugal/centrifugo/v3/internal/build"
@@ -56,6 +58,7 @@ import (
 	"github.com/centrifugal/centrifugo/v3/internal/unihttpstream"
 	"github.com/centrifugal/centrifugo/v3/internal/unisse"
 	"github.com/centrifugal/centrifugo/v3/internal/uniws"
+	"github.com/centrifugal/centrifugo/v3/internal/usage"
 	"github.com/centrifugal/centrifugo/v3/internal/webui"
 
 	"github.com/FZambia/viper-lite"
@@ -235,6 +238,8 @@ func bindCentrifugoConfig() {
 
 		"client_history_max_publication_limit":  300,
 		"client_recovery_max_publication_limit": 300,
+
+		"anonymous_stats_disable": false,
 	}
 
 	for k, v := range defaults {
@@ -536,6 +541,43 @@ func main() {
 					Tags:     viper.GetBool("graphite_tags"),
 				})
 			}
+
+			var statsSender *usage.Sender
+			if !viper.GetBool("anonymous_stats_disable") {
+				statsSender = usage.NewSender(node, ruleContainer, usage.Features{
+					Edition: "OSS",
+					Version: build.Version,
+					Engine:  engineName,
+
+					Websocket:     !viper.GetBool("websocket_disable"),
+					HTTPStream:    viper.GetBool("http_stream"),
+					SSE:           viper.GetBool("sse"),
+					SockJS:        viper.GetBool("sockjs"),
+					UniWebsocket:  viper.GetBool("uni_websocket"),
+					UniHTTPStream: viper.GetBool("uni_http_stream"),
+					UniSSE:        viper.GetBool("uni_sse"),
+					UniGRPC:       viper.GetBool("uni_grpc"),
+
+					GrpcAPI: viper.GetBool("grpc_api"),
+
+					ConnectProxy:   proxyMap.ConnectProxy != nil,
+					RefreshProxy:   proxyMap.RefreshProxy != nil,
+					SubscribeProxy: len(proxyMap.SubscribeProxies) > 0,
+					PublishProxy:   len(proxyMap.PublishProxies) > 0,
+					RPCProxy:       len(proxyMap.RpcProxies) > 0,
+
+					Clickhouse:        false,
+					UserStatus:        false,
+					Throttling:        false,
+					UserBlocking:      false,
+					TokenRevoking:     false,
+					TokenInvalidation: false,
+					Singleflight:      false,
+				})
+				go statsSender.Start(context.Background())
+			}
+
+			notify.RegisterHandlers(node, statsSender)
 
 			handleSignals(configFile, node, ruleContainer, tokenVerifier, servers, grpcAPIServer, grpcUniServer, exporter)
 		},
