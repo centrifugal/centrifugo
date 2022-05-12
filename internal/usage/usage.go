@@ -45,7 +45,8 @@ func init() {
 	//metricsPrefix = "test."
 }
 
-// Sender can send anonymous usage stats.
+// Sender can send anonymous usage stats. Centrifugo does not collect any sensitive info.
+// Only impersonal counters to estimate installation size distribution and feature use.
 type Sender struct {
 	mu             sync.RWMutex
 	node           *centrifuge.Node
@@ -57,13 +58,15 @@ type Sender struct {
 	lastSentAt     int64
 }
 
+// Features is a helper struct to build metrics.
 type Features struct {
 	// Build info.
 	Version string
 	Edition string
 
-	// Engine used.
+	// Engine or broker used.
 	Engine string
+	Broker string
 
 	// Transports.
 	Websocket     bool
@@ -84,6 +87,10 @@ type Features struct {
 
 	// Uses GRPC server API.
 	GrpcAPI bool
+	// Admin interface enabled.
+	Admin bool
+	// Uses automatic personal channel subscribe.
+	SubscribeToPersonal bool
 
 	// PRO features.
 	Clickhouse        bool
@@ -139,13 +146,13 @@ func (s *Sender) Start(ctx context.Context) {
 			return
 		case <-time.After(tickInterval):
 			if s.isDev() {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "updating max values", map[string]interface{}{}))
+				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: updating max values", map[string]interface{}{}))
 			}
 			_ = s.updateMaxValues()
 
 			if time.Now().Before(firstTimeSend) {
 				if s.isDev() {
-					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "too early to send first time", map[string]interface{}{}))
+					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: too early to send first time", map[string]interface{}{}))
 				}
 				continue
 			}
@@ -159,18 +166,18 @@ func (s *Sender) Start(ctx context.Context) {
 
 			if lastSentAt > 0 && time.Now().Unix() <= lastSentAt+int64(sendInterval.Seconds()) {
 				if s.isDev() {
-					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "too early to send", map[string]interface{}{}))
+					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: too early to send", map[string]interface{}{}))
 				}
 				continue
 			}
 
 			if s.isDev() {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "sending usage stats", map[string]interface{}{}))
+				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: sending usage stats", map[string]interface{}{}))
 			}
 			err := s.sendUsageStats()
 			if err != nil {
 				if s.isDev() {
-					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error sending usage stats", map[string]interface{}{"error": err.Error()}))
+					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error sending", map[string]interface{}{"error": err.Error()}))
 				}
 				continue
 			}
@@ -182,35 +189,38 @@ func (s *Sender) Start(ctx context.Context) {
 	}
 }
 
-type LastSentAtEnvelope struct {
+type lastSentAtEnvelope struct {
 	LastSentAt int64 `json:"lastSentAt"`
 }
 
 func (s *Sender) broadcastLastSentAt() {
 	s.mu.RLock()
-	envelope := LastSentAtEnvelope{
+	envelope := lastSentAtEnvelope{
 		LastSentAt: s.lastSentAt,
 	}
 	data, _ := json.Marshal(envelope)
 	s.mu.RUnlock()
 	err := s.node.Notify(LastSentUpdateNotificationOp, data, "")
 	if err != nil {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error broadcasting stats lastSentAt", map[string]interface{}{"error": err.Error()}))
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error broadcasting stats lastSentAt", map[string]interface{}{"error": err.Error()}))
 	}
 }
 
+// UpdateLastSentAt sets the lastSentAt received from other node only
+// if received value greater than local one (so that we can avoid sending
+// duplicated stats).
 func (s *Sender) UpdateLastSentAt(data []byte) {
-	var envelope LastSentAtEnvelope
+	var envelope lastSentAtEnvelope
 	err := json.Unmarshal(data, &envelope)
 	if err != nil {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "error decoding LastSentAtEnvelope", map[string]interface{}{"error": err.Error()}))
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error decoding lastSentAtEnvelope", map[string]interface{}{"error": err.Error()}))
 		return
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if envelope.LastSentAt > s.lastSentAt {
 		if s.isDev() {
-			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "updating stats last sent", map[string]interface{}{}))
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: updating last sent to value from another node", map[string]interface{}{}))
 		}
 		s.lastSentAt = envelope.LastSentAt
 	}
@@ -219,7 +229,7 @@ func (s *Sender) UpdateLastSentAt(data []byte) {
 func (s *Sender) updateMaxValues() error {
 	info, err := s.node.Info()
 	if err != nil {
-		return fmt.Errorf("error getting info: %w", err)
+		return fmt.Errorf("usage stats: error getting info: %w", err)
 	}
 
 	numNodes := len(info.Nodes)
@@ -292,7 +302,11 @@ func (s *Sender) sendUsageStats() error {
 	metrics = append(metrics, createPoint("stats.version."+strings.Replace(s.features.Version, ".", "_", -1)))
 	metrics = append(metrics, createPoint("stats.edition."+strings.ToLower(s.features.Edition)))
 	metrics = append(metrics, createPoint("stats.arch."+runtime.GOOS+"_"+runtime.GOARCH))
-	metrics = append(metrics, createPoint("stats.engine."+s.features.Engine))
+	if s.features.Broker == "" {
+		metrics = append(metrics, createPoint("stats.engine."+s.features.Engine))
+	} else {
+		metrics = append(metrics, createPoint("stats.broker."+s.features.Broker))
+	}
 
 	if s.features.Websocket {
 		metrics = append(metrics, createPoint("stats.transports_enabled.websocket"))
@@ -335,6 +349,12 @@ func (s *Sender) sendUsageStats() error {
 	}
 	if s.features.GrpcAPI {
 		metrics = append(metrics, createPoint("stats.features_enabled.grpc_api"))
+	}
+	if s.features.SubscribeToPersonal {
+		metrics = append(metrics, createPoint("stats.features_enabled.user_subscribe_to_personal"))
+	}
+	if s.features.Admin {
+		metrics = append(metrics, createPoint("stats.features_enabled.admin_ui"))
 	}
 	if s.features.Clickhouse {
 		metrics = append(metrics, createPoint("stats.features_enabled.clickhouse"))
@@ -396,16 +416,12 @@ func (s *Sender) sendUsageStats() error {
 		metrics = append(metrics, createPoint("stats.features_enabled.join_leave"))
 	}
 
-	numNamespaces := s.rules.NumNamespaces()
-	numRpcNamespaces := s.rules.NumRpcNamespaces()
-
 	s.mu.RLock()
 	numNodesMetric := getHistogramMetric(
 		s.maxNumNodes,
 		[]int{1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000},
 		"stats.num_nodes.",
 	)
-	metrics = append(metrics, createPoint(numNodesMetric))
 
 	numClientsMetric := getHistogramMetric(
 		s.maxNumClients,
@@ -416,7 +432,6 @@ func (s *Sender) sendUsageStats() error {
 		},
 		"stats.num_clients.",
 	)
-	metrics = append(metrics, createPoint(numClientsMetric))
 
 	numChannelsMetric := getHistogramMetric(
 		s.maxNumChannels,
@@ -427,9 +442,13 @@ func (s *Sender) sendUsageStats() error {
 		},
 		"stats.num_channels.",
 	)
-	metrics = append(metrics, createPoint(numChannelsMetric))
 	s.mu.RUnlock()
 
+	metrics = append(metrics, createPoint(numNodesMetric))
+	metrics = append(metrics, createPoint(numClientsMetric))
+	metrics = append(metrics, createPoint(numChannelsMetric))
+
+	numNamespaces := s.rules.NumNamespaces()
 	numNamespacesMetric := getHistogramMetric(
 		numNamespaces,
 		[]int{0, 1, 2, 5, 10, 50, 100, 500, 1000},
@@ -437,6 +456,7 @@ func (s *Sender) sendUsageStats() error {
 	)
 	metrics = append(metrics, createPoint(numNamespacesMetric))
 
+	numRpcNamespaces := s.rules.NumRpcNamespaces()
 	numRpcNamespacesMetric := getHistogramMetric(
 		numRpcNamespaces,
 		[]int{0, 1, 2, 5, 10, 50, 100, 500, 1000},
@@ -450,9 +470,9 @@ func (s *Sender) sendUsageStats() error {
 	}
 
 	if s.isDev() {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "sending usage stats", map[string]interface{}{"payload": string(data)}))
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: sending usage stats", map[string]interface{}{"payload": string(data)}))
 	} else {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelTrace, "sending usage stats", map[string]interface{}{"payload": string(data)}))
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelTrace, "usage stats: sending usage stats", map[string]interface{}{"payload": string(data)}))
 	}
 
 	client := &http.Client{
@@ -479,7 +499,7 @@ func (s *Sender) sendUsageStats() error {
 		req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(data))
 		if err != nil {
 			if s.isDev() {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "can't create stats request", map[string]interface{}{"error": err.Error()}))
+				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: can't create send request", map[string]interface{}{"error": err.Error()}))
 			}
 			continue
 		}
@@ -489,7 +509,7 @@ func (s *Sender) sendUsageStats() error {
 		resp, err := client.Do(req)
 		if err != nil {
 			if s.isDev() {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "error sending stats request", map[string]interface{}{"error": err.Error()}))
+				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: error sending request", map[string]interface{}{"error": err.Error()}))
 			}
 			continue
 		}
@@ -498,7 +518,7 @@ func (s *Sender) sendUsageStats() error {
 
 		if resp.StatusCode != http.StatusOK {
 			if s.isDev() {
-				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "unexpected stats response status code", map[string]interface{}{"status": resp.StatusCode}))
+				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: unexpected response status code", map[string]interface{}{"status": resp.StatusCode}))
 			}
 		}
 	}

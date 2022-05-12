@@ -548,6 +548,7 @@ func main() {
 					Edition: "OSS",
 					Version: build.Version,
 					Engine:  engineName,
+					Broker:  brokerName,
 
 					Websocket:     !viper.GetBool("websocket_disable"),
 					HTTPStream:    viper.GetBool("http_stream"),
@@ -558,7 +559,9 @@ func main() {
 					UniSSE:        viper.GetBool("uni_sse"),
 					UniGRPC:       viper.GetBool("uni_grpc"),
 
-					GrpcAPI: viper.GetBool("grpc_api"),
+					GrpcAPI:             viper.GetBool("grpc_api"),
+					SubscribeToPersonal: viper.GetBool("user_subscribe_to_personal"),
+					Admin:               viper.GetBool("admin"),
 
 					ConnectProxy:   proxyMap.ConnectProxy != nil,
 					RefreshProxy:   proxyMap.RefreshProxy != nil,
