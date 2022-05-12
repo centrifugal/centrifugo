@@ -183,6 +183,7 @@ func (s *Sender) Start(ctx context.Context) {
 			}
 			s.mu.Lock()
 			s.lastSentAt = time.Now().Unix()
+			s.resetMaxValues()
 			s.mu.Unlock()
 			s.broadcastLastSentAt()
 		}
@@ -223,6 +224,7 @@ func (s *Sender) UpdateLastSentAt(data []byte) {
 			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: updating last sent to value from another node", map[string]interface{}{}))
 		}
 		s.lastSentAt = envelope.LastSentAt
+		s.resetMaxValues()
 	}
 }
 
@@ -279,12 +281,19 @@ func getHistogramMetric(val int, bounds []int, metricPrefix string) string {
 	return metricPrefix + "le_inf"
 }
 
-func (s *Sender) prepareMetrics() MetricDataArray {
+// Lock must be held outside.
+func (s *Sender) resetMaxValues() {
+	s.maxNumNodes = 0
+	s.maxNumClients = 0
+	s.maxNumChannels = 0
+}
+
+func (s *Sender) prepareMetrics() []*metric {
 	now := time.Now().Unix()
 
-	// createPoint creates a datapoint, i.e. a MetricData structure, and makes sure the id is set.
-	createPoint := func(name string) *MetricData {
-		md := MetricData{
+	// createPoint creates a datapoint, i.e. a metric structure, and makes sure the id is set.
+	createPoint := func(name string) *metric {
+		md := metric{
 			Name:     metricsPrefix + name,
 			Metric:   metricsPrefix + name,
 			Interval: int(sendInterval.Seconds()),
@@ -296,7 +305,7 @@ func (s *Sender) prepareMetrics() MetricDataArray {
 		return &md
 	}
 
-	metrics := MetricDataArray{}
+	var metrics []*metric
 
 	metrics = append(metrics, createPoint("stats.reports.total"))
 	metrics = append(metrics, createPoint("stats.version."+strings.Replace(s.features.Version, ".", "_", -1)))
@@ -357,7 +366,7 @@ func (s *Sender) prepareMetrics() MetricDataArray {
 		metrics = append(metrics, createPoint("stats.features_enabled.admin_ui"))
 	}
 	if s.features.Clickhouse {
-		metrics = append(metrics, createPoint("stats.features_enabled.clickhouse"))
+		metrics = append(metrics, createPoint("stats.features_enabled.clickhouse_analytics"))
 	}
 	if s.features.UserStatus {
 		metrics = append(metrics, createPoint("stats.features_enabled.user_status"))

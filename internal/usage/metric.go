@@ -7,8 +7,8 @@ import (
 	"sort"
 )
 
-// MetricData contains all metric metadata (some as fields, some as tags) and a datapoint
-type MetricData struct {
+// metric represents stats point.
+type metric struct {
 	Id       string   `json:"id"`
 	OrgId    int      `json:"org_id"`
 	Name     string   `json:"name"`
@@ -21,7 +21,7 @@ type MetricData struct {
 	Tags     []string `json:"tags"`
 }
 
-func (m *MetricData) SetId() {
+func (m *metric) SetId() {
 	sort.Strings(m.Tags)
 
 	buffer := bytes.NewBufferString(m.Metric)
@@ -38,5 +38,3 @@ func (m *MetricData) SetId() {
 	}
 	m.Id = fmt.Sprintf("%d.%x", m.OrgId, md5.Sum(buffer.Bytes()))
 }
-
-type MetricDataArray []*MetricData
