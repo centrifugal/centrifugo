@@ -130,7 +130,7 @@ func (s *Sender) isDev() bool {
 func (s *Sender) Start(ctx context.Context) {
 	firstTimeSend := time.Now().Add(initialDelay)
 	if s.isDev() {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "schedule next send", map[string]interface{}{"delay": fmt.Sprintf("%s", initialDelay)}))
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "schedule next send", map[string]interface{}{"delay": initialDelay.String()}))
 	}
 
 	// Wait half of a delay to randomize hourly ticks on different nodes.
