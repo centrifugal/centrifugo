@@ -34,8 +34,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/centrifugal/centrifugo/v3/internal/notify"
-
 	"github.com/centrifugal/centrifugo/v3/internal/admin"
 	"github.com/centrifugal/centrifugo/v3/internal/api"
 	"github.com/centrifugal/centrifugo/v3/internal/build"
@@ -48,6 +46,7 @@ import (
 	"github.com/centrifugal/centrifugo/v3/internal/metrics/graphite"
 	"github.com/centrifugal/centrifugo/v3/internal/middleware"
 	"github.com/centrifugal/centrifugo/v3/internal/natsbroker"
+	"github.com/centrifugal/centrifugo/v3/internal/notify"
 	"github.com/centrifugal/centrifugo/v3/internal/origin"
 	"github.com/centrifugal/centrifugo/v3/internal/proxy"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
@@ -250,6 +249,8 @@ func bindCentrifugoConfig() {
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 }
+
+const edition = "oss"
 
 func main() {
 	var configFile string
@@ -545,7 +546,7 @@ func main() {
 			var statsSender *usage.Sender
 			if !viper.GetBool("anonymous_stats_disable") {
 				statsSender = usage.NewSender(node, ruleContainer, usage.Features{
-					Edition: "OSS",
+					Edition: edition,
 					Version: build.Version,
 					Engine:  engineName,
 					Broker:  brokerName,
