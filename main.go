@@ -570,13 +570,13 @@ func main() {
 					PublishProxy:   len(proxyMap.PublishProxies) > 0,
 					RPCProxy:       len(proxyMap.RpcProxies) > 0,
 
-					Clickhouse:        false,
-					UserStatus:        false,
-					Throttling:        false,
-					UserBlocking:      false,
-					TokenRevoking:     false,
-					TokenInvalidation: false,
-					Singleflight:      false,
+					ClickhouseAnalytics: false,
+					UserStatus:          false,
+					Throttling:          false,
+					UserBlocking:        false,
+					TokenRevoking:       false,
+					TokenInvalidation:   false,
+					Singleflight:        false,
 				})
 				go statsSender.Start(context.Background())
 			}

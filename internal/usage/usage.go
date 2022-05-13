@@ -93,13 +93,13 @@ type Features struct {
 	SubscribeToPersonal bool
 
 	// PRO features.
-	Clickhouse        bool
-	UserStatus        bool
-	Throttling        bool
-	UserBlocking      bool
-	TokenRevoking     bool
-	TokenInvalidation bool
-	Singleflight      bool
+	ClickhouseAnalytics bool
+	UserStatus          bool
+	Throttling          bool
+	UserBlocking        bool
+	TokenRevoking       bool
+	TokenInvalidation   bool
+	Singleflight        bool
 }
 
 // NewSender creates usage stats sender.
@@ -365,7 +365,7 @@ func (s *Sender) prepareMetrics() []*metric {
 	if s.features.Admin {
 		metrics = append(metrics, createPoint("stats.features_enabled.admin_ui"))
 	}
-	if s.features.Clickhouse {
+	if s.features.ClickhouseAnalytics {
 		metrics = append(metrics, createPoint("stats.features_enabled.clickhouse_analytics"))
 	}
 	if s.features.UserStatus {
@@ -494,11 +494,17 @@ func (s *Sender) sendUsageStats() error {
 
 	statsEndpoints := build.UsageStatsEndpoint
 	if statsEndpoints == "" {
+		if s.isDev() {
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: skip sending due to empty endpoint", map[string]interface{}{}))
+		}
 		return nil
 	}
 
 	statsToken := build.UsageStatsToken
 	if statsToken == "" {
+		if s.isDev() {
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: skip sending due to empty token", map[string]interface{}{}))
+		}
 		return nil
 	}
 
