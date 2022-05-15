@@ -130,14 +130,18 @@ func (s *Sender) isDev() bool {
 func (s *Sender) Start(ctx context.Context) {
 	firstTimeSend := time.Now().Add(initialDelay)
 	if s.isDev() {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "schedule next send", map[string]interface{}{"delay": initialDelay.String()}))
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: schedule next send", map[string]interface{}{"delay": initialDelay.String()}))
 	}
 
-	// Wait half of a delay to randomize hourly ticks on different nodes.
+	// Wait 1/4 of a delay to randomize hourly ticks on different nodes.
 	select {
 	case <-ctx.Done():
 		return
-	case <-time.After(initialDelay / 2):
+	case <-time.After(initialDelay / 4):
+	}
+
+	if s.isDev() {
+		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: start periodic ticks", map[string]interface{}{}))
 	}
 
 	for {
