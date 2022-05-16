@@ -64,7 +64,7 @@ func (h *ConnectHandler) Handle(node *centrifuge.Node) centrifuge.ConnectingHand
 			select {
 			case <-ctx.Done():
 				// Client connection already closed.
-				return centrifuge.ConnectReply{}, centrifuge.DisconnectNormal
+				return centrifuge.ConnectReply{}, centrifuge.DisconnectConnectionClosed
 			default:
 			}
 			h.summary.Observe(duration)

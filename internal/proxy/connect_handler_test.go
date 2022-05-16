@@ -195,7 +195,7 @@ func TestHandleConnectWithContextCancel(t *testing.T) {
 	cases := newConnHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle(ctx)
-		require.ErrorIs(t, centrifuge.DisconnectNormal, err, c.protocol)
+		require.ErrorIs(t, centrifuge.DisconnectConnectionClosed, err, c.protocol)
 		require.Equal(t, centrifuge.ConnectReply{}, reply, c.protocol)
 	}
 }

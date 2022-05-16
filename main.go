@@ -112,7 +112,7 @@ func bindCentrifugoConfig() {
 		"client_stale_close_delay":            25 * time.Second,
 		"client_channel_limit":                128,
 		"client_queue_max_size":               1048576, // 1 MB
-		"client_presence_update_interval":     25 * time.Second,
+		"client_presence_update_interval":     27 * time.Second,
 		"client_user_connection_limit":        0,
 		"client_concurrency":                  0,
 		"client_channel_position_check_delay": 40 * time.Second,

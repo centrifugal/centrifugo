@@ -114,7 +114,7 @@ func (h *SubscribeHandler) Handle(node *centrifuge.Node) SubscribeHandlerFunc {
 			select {
 			case <-client.Context().Done():
 				// Client connection already closed.
-				return centrifuge.SubscribeReply{}, centrifuge.DisconnectNormal
+				return centrifuge.SubscribeReply{}, centrifuge.DisconnectConnectionClosed
 			default:
 			}
 			summary.Observe(duration)

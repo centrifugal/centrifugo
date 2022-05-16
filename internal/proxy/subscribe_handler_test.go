@@ -190,7 +190,7 @@ func TestHandleSubscribeWithContextCancel(t *testing.T) {
 	cases := newSubscribeHandleTestCases(httpTestCase, grpcTestCase)
 	for _, c := range cases {
 		reply, err := c.invokeHandle()
-		require.ErrorIs(t, centrifuge.DisconnectNormal, err, c.protocol)
+		require.ErrorIs(t, centrifuge.DisconnectConnectionClosed, err, c.protocol)
 		require.Equal(t, centrifuge.SubscribeReply{}, reply, c.protocol)
 	}
 }

@@ -123,7 +123,7 @@ func (h *RPCHandler) Handle(node *centrifuge.Node) RPCHandlerFunc {
 			select {
 			case <-client.Context().Done():
 				// Client connection already closed.
-				return centrifuge.RPCReply{}, centrifuge.DisconnectNormal
+				return centrifuge.RPCReply{}, centrifuge.DisconnectConnectionClosed
 			default:
 			}
 			summary.Observe(duration)

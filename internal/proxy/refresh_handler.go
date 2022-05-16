@@ -60,7 +60,7 @@ func (h *RefreshHandler) Handle(node *centrifuge.Node) RefreshHandlerFunc {
 			select {
 			case <-client.Context().Done():
 				// Client connection already closed.
-				return centrifuge.RefreshReply{}, centrifuge.DisconnectNormal
+				return centrifuge.RefreshReply{}, centrifuge.DisconnectConnectionClosed
 			default:
 			}
 			h.summary.Observe(duration)
