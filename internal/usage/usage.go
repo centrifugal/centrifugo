@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -514,6 +515,8 @@ func (s *Sender) sendUsageStats() error {
 
 	endpoints := strings.Split(statsEndpoints, ",")
 
+	var success bool
+
 	for _, endpoint := range endpoints {
 		if endpoint == "" {
 			continue
@@ -544,6 +547,12 @@ func (s *Sender) sendUsageStats() error {
 				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: unexpected response status code", map[string]interface{}{"status": resp.StatusCode}))
 			}
 		}
+		// At least one of the endpoints received data.
+		success = true
+	}
+
+	if !success {
+		return errors.New("all endpoints failed")
 	}
 
 	return nil
