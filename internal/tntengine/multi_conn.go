@@ -160,7 +160,9 @@ func (c *MultiConnection) IsLeader(conn *tarantool.Connection) (bool, error) {
 func (c *MultiConnection) checkLeaderOnce() bool {
 	for addr, conn := range c.conns {
 		if len(c.conns) == 1 {
+			c.leaderMu.Lock()
 			c.leaderAddr = addr
+			c.leaderMu.Unlock()
 			return true
 		}
 		isLeader, err := c.IsLeader(conn)
