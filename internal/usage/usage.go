@@ -562,8 +562,9 @@ func (s *Sender) sendUsageStats() error {
 			if s.isDev() {
 				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: unexpected response status code", map[string]interface{}{"status": resp.StatusCode}))
 			}
+			continue
 		}
-		// At least one of the endpoints received data.
+		// If at least one of the endpoints received data it means success for us.
 		success = true
 	}
 
