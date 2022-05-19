@@ -9,15 +9,15 @@ import (
 	"github.com/FZambia/tarantool"
 )
 
-type ConnectionMode int
+type ConnectionMode string
 
 const (
 	// ConnectionModeSingleInstance means single Tarantool (single leader).
-	ConnectionModeSingleInstance ConnectionMode = 0
+	ConnectionModeSingleInstance ConnectionMode = "standalone"
 	// ConnectionModeLeaderFollower means Tarantool with replica and automatic failover configured.
-	ConnectionModeLeaderFollower ConnectionMode = 1
+	ConnectionModeLeaderFollower ConnectionMode = "leader_follower"
 	// ConnectionModeLeaderFollowerRaft means Tarantool with Raft.
-	ConnectionModeLeaderFollowerRaft ConnectionMode = 2
+	ConnectionModeLeaderFollowerRaft ConnectionMode = "leader_follower_raft"
 )
 
 type MultiConnection struct {

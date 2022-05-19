@@ -65,9 +65,11 @@ type Features struct {
 	Version string
 	Edition string
 
-	// Engine or broker used.
-	Engine string
-	Broker string
+	// Engine or broker usage.
+	Engine     string
+	EngineMode string
+	Broker     string
+	BrokerMode string
 
 	// Transports.
 	Websocket     bool
@@ -296,11 +298,11 @@ func (s *Sender) resetMaxValues() {
 func (s *Sender) prepareMetrics() []*metric {
 	now := time.Now().Unix()
 
-	// createPoint creates a datapoint, i.e. a metric structure, and makes sure the id is set.
 	createPoint := func(name string) *metric {
+		finalName := metricsPrefix + "stats." + name
 		md := metric{
-			Name:     metricsPrefix + name,
-			Metric:   metricsPrefix + name,
+			Name:     finalName,
+			Metric:   finalName,
 			Interval: int(sendInterval.Seconds()),
 			Value:    1,
 			Time:     now,
@@ -310,86 +312,97 @@ func (s *Sender) prepareMetrics() []*metric {
 		return &md
 	}
 
+	version := strings.Replace(s.features.Version, ".", "_", -1)
+	edition := strings.ToLower(s.features.Edition)
+	engineMode := s.features.EngineMode
+	if engineMode == "" {
+		engineMode = "default"
+	}
+	brokerMode := s.features.BrokerMode
+	if brokerMode == "" {
+		brokerMode = "default"
+	}
+
 	var metrics []*metric
 
-	metrics = append(metrics, createPoint("stats.reports.total"))
-	metrics = append(metrics, createPoint("stats.version."+strings.Replace(s.features.Version, ".", "_", -1)))
-	metrics = append(metrics, createPoint("stats.edition."+strings.ToLower(s.features.Edition)))
-	metrics = append(metrics, createPoint("stats.arch."+runtime.GOOS+"_"+runtime.GOARCH))
+	metrics = append(metrics, createPoint("total"))
+	metrics = append(metrics, createPoint("version."+version+".edition."+edition))
+	metrics = append(metrics, createPoint("arch."+runtime.GOARCH+".os."+runtime.GOOS))
+
 	if s.features.Broker == "" {
-		metrics = append(metrics, createPoint("stats.engine."+s.features.Engine))
+		metrics = append(metrics, createPoint("engine."+s.features.Engine+".mode."+engineMode))
 	} else {
-		metrics = append(metrics, createPoint("stats.broker."+s.features.Broker))
+		metrics = append(metrics, createPoint("broker."+s.features.Broker+".mode."+brokerMode))
 	}
 
 	if s.features.Websocket {
-		metrics = append(metrics, createPoint("stats.transports_enabled.websocket"))
+		metrics = append(metrics, createPoint("transports_enabled.websocket"))
 	}
 	if s.features.HTTPStream {
-		metrics = append(metrics, createPoint("stats.transports_enabled.http_stream"))
+		metrics = append(metrics, createPoint("transports_enabled.http_stream"))
 	}
 	if s.features.SSE {
-		metrics = append(metrics, createPoint("stats.transports_enabled.sse"))
+		metrics = append(metrics, createPoint("transports_enabled.sse"))
 	}
 	if s.features.SockJS {
-		metrics = append(metrics, createPoint("stats.transports_enabled.sockjs"))
+		metrics = append(metrics, createPoint("transports_enabled.sockjs"))
 	}
 	if s.features.UniWebsocket {
-		metrics = append(metrics, createPoint("stats.transports_enabled.uni_websocket"))
+		metrics = append(metrics, createPoint("transports_enabled.uni_websocket"))
 	}
 	if s.features.UniHTTPStream {
-		metrics = append(metrics, createPoint("stats.transports_enabled.uni_http_stream"))
+		metrics = append(metrics, createPoint("transports_enabled.uni_http_stream"))
 	}
 	if s.features.UniSSE {
-		metrics = append(metrics, createPoint("stats.transports_enabled.uni_sse"))
+		metrics = append(metrics, createPoint("transports_enabled.uni_sse"))
 	}
 	if s.features.UniGRPC {
-		metrics = append(metrics, createPoint("stats.transports_enabled.uni_grpc"))
+		metrics = append(metrics, createPoint("transports_enabled.uni_grpc"))
 	}
 	if s.features.ConnectProxy {
-		metrics = append(metrics, createPoint("stats.proxies_enabled.connect"))
+		metrics = append(metrics, createPoint("proxies_enabled.connect"))
 	}
 	if s.features.RefreshProxy {
-		metrics = append(metrics, createPoint("stats.proxies_enabled.refresh"))
+		metrics = append(metrics, createPoint("proxies_enabled.refresh"))
 	}
 	if s.features.SubscribeProxy {
-		metrics = append(metrics, createPoint("stats.proxies_enabled.subscribe"))
+		metrics = append(metrics, createPoint("proxies_enabled.subscribe"))
 	}
 	if s.features.PublishProxy {
-		metrics = append(metrics, createPoint("stats.proxies_enabled.publish"))
+		metrics = append(metrics, createPoint("proxies_enabled.publish"))
 	}
 	if s.features.RPCProxy {
-		metrics = append(metrics, createPoint("stats.proxies_enabled.rpc"))
+		metrics = append(metrics, createPoint("proxies_enabled.rpc"))
 	}
 	if s.features.GrpcAPI {
-		metrics = append(metrics, createPoint("stats.features_enabled.grpc_api"))
+		metrics = append(metrics, createPoint("features_enabled.grpc_api"))
 	}
 	if s.features.SubscribeToPersonal {
-		metrics = append(metrics, createPoint("stats.features_enabled.user_subscribe_to_personal"))
+		metrics = append(metrics, createPoint("features_enabled.user_subscribe_to_personal"))
 	}
 	if s.features.Admin {
-		metrics = append(metrics, createPoint("stats.features_enabled.admin_ui"))
+		metrics = append(metrics, createPoint("features_enabled.admin_ui"))
 	}
 	if s.features.ClickhouseAnalytics {
-		metrics = append(metrics, createPoint("stats.features_enabled.clickhouse_analytics"))
+		metrics = append(metrics, createPoint("features_enabled.clickhouse_analytics"))
 	}
 	if s.features.UserStatus {
-		metrics = append(metrics, createPoint("stats.features_enabled.user_status"))
+		metrics = append(metrics, createPoint("features_enabled.user_status"))
 	}
 	if s.features.Throttling {
-		metrics = append(metrics, createPoint("stats.features_enabled.throttling"))
+		metrics = append(metrics, createPoint("features_enabled.throttling"))
 	}
 	if s.features.UserBlocking {
-		metrics = append(metrics, createPoint("stats.features_enabled.user_blocking"))
+		metrics = append(metrics, createPoint("features_enabled.user_blocking"))
 	}
 	if s.features.TokenRevoking {
-		metrics = append(metrics, createPoint("stats.features_enabled.token_revoking"))
+		metrics = append(metrics, createPoint("features_enabled.token_revoking"))
 	}
 	if s.features.TokenInvalidation {
-		metrics = append(metrics, createPoint("stats.features_enabled.user_token_invalidation"))
+		metrics = append(metrics, createPoint("features_enabled.user_token_invalidation"))
 	}
 	if s.features.Singleflight {
-		metrics = append(metrics, createPoint("stats.features_enabled.singleflight"))
+		metrics = append(metrics, createPoint("features_enabled.singleflight"))
 	}
 
 	var usesHistory bool
@@ -421,20 +434,20 @@ func (s *Sender) prepareMetrics() []*metric {
 	}
 
 	if usesHistory {
-		metrics = append(metrics, createPoint("stats.features_enabled.history"))
+		metrics = append(metrics, createPoint("features_enabled.history"))
 	}
 	if usesPresence {
-		metrics = append(metrics, createPoint("stats.features_enabled.presence"))
+		metrics = append(metrics, createPoint("features_enabled.presence"))
 	}
 	if usesJoinLeave {
-		metrics = append(metrics, createPoint("stats.features_enabled.join_leave"))
+		metrics = append(metrics, createPoint("features_enabled.join_leave"))
 	}
 
 	s.mu.RLock()
 	numNodesMetric := getHistogramMetric(
 		s.maxNumNodes,
 		[]int{1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000},
-		"stats.num_nodes.",
+		"num_nodes.",
 	)
 
 	numClientsMetric := getHistogramMetric(
@@ -444,7 +457,7 @@ func (s *Sender) prepareMetrics() []*metric {
 			500000, 1000000, 5000000, 10000000, 50000000,
 			100000000,
 		},
-		"stats.num_clients.",
+		"num_clients.",
 	)
 
 	numChannelsMetric := getHistogramMetric(
@@ -454,19 +467,22 @@ func (s *Sender) prepareMetrics() []*metric {
 			500000, 1000000, 5000000, 10000000, 50000000,
 			100000000,
 		},
-		"stats.num_channels.",
+		"num_channels.",
 	)
 	s.mu.RUnlock()
 
 	metrics = append(metrics, createPoint(numNodesMetric))
 	metrics = append(metrics, createPoint(numClientsMetric))
 	metrics = append(metrics, createPoint(numChannelsMetric))
+	metrics = append(metrics, createPoint("by_edition."+edition+"."+numNodesMetric))
+	metrics = append(metrics, createPoint("by_edition."+edition+"."+numClientsMetric))
+	metrics = append(metrics, createPoint("by_edition."+edition+"."+numChannelsMetric))
 
 	numNamespaces := s.rules.NumNamespaces()
 	numNamespacesMetric := getHistogramMetric(
 		numNamespaces,
 		[]int{0, 1, 2, 5, 10, 50, 100, 500, 1000},
-		"stats.num_namespaces.",
+		"num_namespaces.",
 	)
 	metrics = append(metrics, createPoint(numNamespacesMetric))
 
@@ -474,7 +490,7 @@ func (s *Sender) prepareMetrics() []*metric {
 	numRpcNamespacesMetric := getHistogramMetric(
 		numRpcNamespaces,
 		[]int{0, 1, 2, 5, 10, 50, 100, 500, 1000},
-		"stats.num_rpc_namespaces.",
+		"num_rpc_namespaces.",
 	)
 	metrics = append(metrics, createPoint(numRpcNamespacesMetric))
 	return metrics
