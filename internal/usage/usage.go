@@ -155,7 +155,13 @@ func (s *Sender) Start(ctx context.Context) {
 			if s.isDev() {
 				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: updating max values", map[string]interface{}{}))
 			}
-			_ = s.updateMaxValues()
+			err := s.updateMaxValues()
+			if err != nil {
+				if s.isDev() {
+					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error updating max values", map[string]interface{}{"error": err.Error()}))
+				}
+				continue
+			}
 
 			if time.Now().Before(firstTimeSend) {
 				if s.isDev() {
@@ -181,7 +187,7 @@ func (s *Sender) Start(ctx context.Context) {
 			if s.isDev() {
 				s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: sending usage stats", map[string]interface{}{}))
 			}
-			err := s.sendUsageStats()
+			err = s.sendUsageStats(s.prepareMetrics(), build.UsageStatsEndpoint, build.UsageStatsToken)
 			if err != nil {
 				if s.isDev() {
 					s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error sending", map[string]interface{}{"error": err.Error()}))
@@ -208,9 +214,11 @@ func (s *Sender) broadcastLastSentAt() {
 	}
 	data, _ := json.Marshal(envelope)
 	s.mu.RUnlock()
-	err := s.node.Notify(LastSentUpdateNotificationOp, data, "")
-	if err != nil {
-		s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error broadcasting stats lastSentAt", map[string]interface{}{"error": err.Error()}))
+	if err := s.node.Notify(LastSentUpdateNotificationOp, data, ""); err != nil {
+		// Issue a single retry.
+		if err = s.node.Notify(LastSentUpdateNotificationOp, data, ""); err != nil {
+			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelError, "usage stats: error broadcasting stats lastSentAt", map[string]interface{}{"error": err.Error()}))
+		}
 	}
 }
 
@@ -496,8 +504,7 @@ func (s *Sender) prepareMetrics() []*metric {
 	return metrics
 }
 
-func (s *Sender) sendUsageStats() error {
-	metrics := s.prepareMetrics()
+func (s *Sender) sendUsageStats(metrics []*metric, statsEndpoint, statsToken string) error {
 	data, err := json.Marshal(metrics)
 	if err != nil {
 		return err
@@ -513,15 +520,13 @@ func (s *Sender) sendUsageStats() error {
 		Timeout: 60 * time.Second,
 	}
 
-	statsEndpoints := build.UsageStatsEndpoint
-	if statsEndpoints == "" {
+	if statsEndpoint == "" {
 		if s.isDev() {
 			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: skip sending due to empty endpoint", map[string]interface{}{}))
 		}
 		return nil
 	}
 
-	statsToken := build.UsageStatsToken
 	if statsToken == "" {
 		if s.isDev() {
 			s.node.Log(centrifuge.NewLogEntry(centrifuge.LogLevelDebug, "usage stats: skip sending due to empty token", map[string]interface{}{}))
@@ -529,7 +534,7 @@ func (s *Sender) sendUsageStats() error {
 		return nil
 	}
 
-	endpoints := strings.Split(statsEndpoints, ",")
+	endpoints := strings.Split(statsEndpoint, ",")
 
 	var success bool
 
