@@ -7,7 +7,7 @@ go 1.17
 require (
 	github.com/FZambia/eagle v0.0.2
 	github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b
-	github.com/FZambia/tarantool v0.3.0
+	github.com/FZambia/tarantool v0.3.1
 	github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e
 	github.com/centrifugal/centrifuge v0.22.3-0.20220426210517-488893bdbf3f
 	github.com/centrifugal/protocol v0.8.6
