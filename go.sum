@@ -56,6 +56,8 @@ github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+Ce
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
+github.com/centrifugal/centrifuge v0.22.3-0.20220528054326-4cb1c3bf6088 h1:rJg56Z4+ghmrmpTEpw14GATr2qL6FuTow2FORT186EA=
+github.com/centrifugal/centrifuge v0.22.3-0.20220528054326-4cb1c3bf6088/go.mod h1:EdNk7F2Mep5uBuLRuzNrCutyqLDPofx63cd7FnDm6SY=
 github.com/centrifugal/protocol v0.8.7 h1:re4e1SDGd3eKpQT/xbrY7BE2KBuXurH5WKqDKg6ihOs=
 github.com/centrifugal/protocol v0.8.7/go.mod h1:xLAQaeaSDQ++cPN5ChSd4GR1TCuItVu1FCx/c9kOcM0=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=

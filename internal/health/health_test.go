@@ -30,8 +30,7 @@ func TestHealthHandler(t *testing.T) {
 }
 
 func nodeWithMemoryEngine() *centrifuge.Node {
-	c := centrifuge.DefaultConfig
-	n, err := centrifuge.New(c)
+	n, err := centrifuge.New(centrifuge.Config{})
 	if err != nil {
 		panic(err)
 	}
