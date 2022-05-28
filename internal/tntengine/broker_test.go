@@ -16,7 +16,7 @@ import (
 )
 
 func newTestTarantoolEngine(tb testing.TB) (*Broker, *PresenceManager) {
-	n, _ := centrifuge.New(centrifuge.DefaultConfig)
+	n, _ := centrifuge.New(centrifuge.Config{})
 	var shards []*Shard
 	for _, port := range []string{"3301"} {
 		shard, err := NewShard(ShardConfig{Addresses: []string{"127.0.0.1:" + port}})
@@ -84,7 +84,7 @@ func TestTarantoolClientSubscribeRecover(t *testing.T) {
 }
 
 func nodeWithTarantoolBroker(tb testing.TB) *centrifuge.Node {
-	c := centrifuge.DefaultConfig
+	c := centrifuge.Config{}
 	return nodeWithTarantoolBrokerWithConfig(tb, c)
 }
 
