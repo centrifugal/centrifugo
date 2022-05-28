@@ -5,7 +5,7 @@ No backwards incompatible changes here.
 
 ### Improvements
 
-* Centrifugo now periodically sends anonymous usage statistics (once in 24 hours). The information Centrifugo sends is absolutely impersonal, does not include any sensitive information, ip addresses, hostnames, etc. Only counters to estimate installation size distribution and feature use. See implementation in [#516](https://github.com/centrifugal/centrifugo/pull/516). We asking you to not disable stats sending without a proper reason – if you depend on Centrifugo then sure you are interested in further project improvements. Usage stats will help us understand Centrifugo use cases better, improve features which are widely used. See [docs](https://centrifugal.dev/docs/next/server/configuration#anonymous-usage-stats) for more details.
+* Centrifugo now periodically sends anonymous usage information (once in 24 hours). That information is impersonal and does not include sensitive data, passwords, IP addresses, hostnames, etc. Only counters to estimate version and installation size distribution, and feature usage. See implementation in [#516](https://github.com/centrifugal/centrifugo/pull/516). Please do not disable usage stats sending without reason. If you depend on Centrifugo – sure you are interested in further project improvements. Usage stats help us understand Centrifugo use cases better, concentrate on widely-used features, and be confident we are moving in the right direction. Developing in the dark is hard, and decisions may be non-optimal. See [docs](https://centrifugal.dev/docs/next/server/configuration#anonymous-usage-stats) for more details.
 
 ### Misc
 
