@@ -238,7 +238,7 @@ func bindCentrifugoConfig() {
 		"client_history_max_publication_limit":  300,
 		"client_recovery_max_publication_limit": 300,
 
-		"anonymous_stats_disable": false,
+		"usage_stats_disable": false,
 	}
 
 	for k, v := range defaults {
@@ -546,7 +546,7 @@ func main() {
 			}
 
 			var statsSender *usage.Sender
-			if !viper.GetBool("anonymous_stats_disable") {
+			if !viper.GetBool("usage_stats_disable") {
 				statsSender = usage.NewSender(node, ruleContainer, usage.Features{
 					Edition:    edition,
 					Version:    build.Version,
