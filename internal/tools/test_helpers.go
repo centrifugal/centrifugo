@@ -93,13 +93,13 @@ func (t *TestTransport) Emulation() bool {
 }
 
 // Close - ...
-func (t *TestTransport) Close(disconnect *centrifuge.Disconnect) error {
+func (t *TestTransport) Close(disconnect centrifuge.Disconnect) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if t.closed {
 		return nil
 	}
-	t.disconnect = disconnect
+	t.disconnect = &disconnect
 	t.closed = true
 	close(t.closeCh)
 	return nil
@@ -107,8 +107,7 @@ func (t *TestTransport) Close(disconnect *centrifuge.Disconnect) error {
 
 // NodeWithMemoryEngineNoHandlers - builder for centrifuge node with memory engine
 func NodeWithMemoryEngineNoHandlers() *centrifuge.Node {
-	c := centrifuge.DefaultConfig
-	n, err := centrifuge.New(c)
+	n, err := centrifuge.New(centrifuge.Config{})
 	if err != nil {
 		panic(err)
 	}

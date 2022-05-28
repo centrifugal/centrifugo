@@ -132,7 +132,7 @@ func (h *Handler) Setup() error {
 			if presenceStats.NumClients >= 2 {
 				err = h.node.Disconnect(
 					client.UserID(),
-					centrifuge.WithDisconnect(centrifuge.DisconnectConnectionLimit),
+					centrifuge.WithCustomDisconnect(centrifuge.DisconnectConnectionLimit),
 					centrifuge.WithDisconnectClientWhitelist([]string{client.ID()}),
 				)
 				if err != nil {

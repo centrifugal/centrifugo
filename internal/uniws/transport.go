@@ -162,7 +162,7 @@ func (t *websocketTransport) WriteMany(messages ...[]byte) error {
 const closeFrameWait = 5 * time.Second
 
 // Close closes transport.
-func (t *websocketTransport) Close(_ *centrifuge.Disconnect) error {
+func (t *websocketTransport) Close(_ centrifuge.Disconnect) error {
 	t.mu.Lock()
 	if t.closed {
 		t.mu.Unlock()

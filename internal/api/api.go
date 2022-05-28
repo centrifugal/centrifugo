@@ -302,7 +302,7 @@ func (h *Executor) Unsubscribe(_ context.Context, cmd *UnsubscribeRequest) *Unsu
 }
 
 // Disconnect disconnects user by its ID and sends disconnect
-// control message to other nodes so they could also disconnect user.
+// control message to other nodes, so they could also disconnect user.
 func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *DisconnectResponse {
 	defer observe(time.Now(), h.protocol, "disconnect")
 
@@ -310,11 +310,9 @@ func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Discon
 
 	user := cmd.User
 
-	var disconnect *centrifuge.Disconnect
-	if cmd.Disconnect == nil {
-		disconnect = centrifuge.DisconnectForceNoReconnect
-	} else {
-		disconnect = &centrifuge.Disconnect{
+	disconnect := centrifuge.DisconnectForceNoReconnect
+	if cmd.Disconnect != nil {
+		disconnect = centrifuge.Disconnect{
 			Code:      cmd.Disconnect.Code,
 			Reason:    cmd.Disconnect.Reason,
 			Reconnect: cmd.Disconnect.Reconnect,
@@ -323,7 +321,7 @@ func (h *Executor) Disconnect(_ context.Context, cmd *DisconnectRequest) *Discon
 
 	err := h.node.Disconnect(
 		user,
-		centrifuge.WithDisconnect(disconnect),
+		centrifuge.WithCustomDisconnect(disconnect),
 		centrifuge.WithDisconnectClient(cmd.Client),
 		centrifuge.WithDisconnectSession(cmd.Session),
 		centrifuge.WithDisconnectClientWhitelist(cmd.Whitelist))

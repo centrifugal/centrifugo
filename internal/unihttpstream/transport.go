@@ -85,7 +85,7 @@ func (t *streamTransport) WriteMany(messages ...[]byte) error {
 	return nil
 }
 
-func (t *streamTransport) Close(_ *centrifuge.Disconnect) error {
+func (t *streamTransport) Close(_ centrifuge.Disconnect) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if t.closed {
