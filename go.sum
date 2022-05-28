@@ -39,8 +39,8 @@ github.com/FZambia/sentinel v1.1.0 h1:qrCBfxc8SvJihYNjBWgwUI93ZCvFe/PJIPTHKmlp8a
 github.com/FZambia/sentinel v1.1.0/go.mod h1:ytL1Am/RLlAoAXG6Kj5LNuw/TRRQrv2rt2FT26vP5gI=
 github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b h1:D3CXZ/tXFtPMSN5FlhHVezJJp9eqDPR3m27OVptqZYE=
 github.com/FZambia/statik v0.1.2-0.20180217151304-b9f012bb2a1b/go.mod h1:EqC55Pa/sH33dUeH/rkKY8EHRfnm2JyV+ORPzURdGm0=
-github.com/FZambia/tarantool v0.3.0 h1:goYsS/o5Huc4GQnLzyANsr9b1cpL73A8fPwpxIR8dAg=
-github.com/FZambia/tarantool v0.3.0/go.mod h1:YHnvW/H6TPJP04s3RtbBFqvxTvqfYnPBd+TVM1GWdsw=
+github.com/FZambia/tarantool v0.3.1 h1:M6FiJrUBu1TvE8aySwSu47He7aYrJvufr+VPzP8FPWo=
+github.com/FZambia/tarantool v0.3.1/go.mod h1:YHnvW/H6TPJP04s3RtbBFqvxTvqfYnPBd+TVM1GWdsw=
 github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e h1:COyWHWCYUotWRo+Z1Lk8B9NDceEybV61C9diY7YVj8g=
 github.com/FZambia/viper-lite v0.0.0-20220110144934-1899f66c7d0e/go.mod h1:hx7D3T4iFXiy0QWL4m3yNfzz5CQCtbV5yNdE4UlWo0s=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=

@@ -89,7 +89,24 @@ make_dir_tree() {
 # do_build builds the code. The version and commit must be passed in.
 do_build() {
     echo "Start building binary"
-    gox -os="linux" -ldflags="-X github.com/centrifugal/centrifugo/v3/internal/build.Version=$VERSION" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/centrifugo"
+
+    if [ -z "$STATS_ENDPOINT" ]
+    then
+        echo "STATS_ENDPOINT not defined"
+        cleanup_exit 1
+    else
+        echo "STATS_ENDPOINT found"
+    fi
+
+    if [ -z "$STATS_TOKEN" ]
+    then
+        echo "STATS_TOKEN not defined"
+        cleanup_exit 1
+    else
+        echo "STATS_TOKEN found"
+    fi
+
+    gox -os="linux" -ldflags="-X github.com/centrifugal/centrifugo/v3/internal/build.Version=$VERSION -X github.com/centrifugal/centrifugo/v3/internal/build.UsageStatsEndpoint=$STATS_ENDPOINT -X github.com/centrifugal/centrifugo/v3/internal/build.UsageStatsToken=$STATS_TOKEN" -arch="amd64" -output="$TMP_BINARIES_DIR/{{.OS}}-{{.Arch}}/centrifugo"
     echo "Binary build completed successfully"
 }
 

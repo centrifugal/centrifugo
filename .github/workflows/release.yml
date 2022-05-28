@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.17.9]
+        go-version: [1.17.10]
     steps:
       - name: Install rpm
         run: sudo apt-get install rpm
@@ -42,6 +42,9 @@ jobs:
 
       - name: Build DEB and RPM packages
         run: misc/scripts/release_package.sh
+        env:
+          STATS_ENDPOINT: ${{ secrets.STATS_ENDPOINT }}
+          STATS_TOKEN: ${{ secrets.STATS_TOKEN }}
 
       - name: Release on Github
         uses: goreleaser/goreleaser-action@v2
@@ -51,7 +54,8 @@ jobs:
         env:
           # note custom secret here since we need access to Centrifugo Homebrew repo.
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          UNIX_NOW: ${{ env.UNIX_NOW }}
+          STATS_ENDPOINT: ${{ secrets.STATS_ENDPOINT }}
+          STATS_TOKEN: ${{ secrets.STATS_TOKEN }}
 
       - name: Release on Packagecloud
         env:

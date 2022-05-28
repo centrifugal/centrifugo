@@ -46,6 +46,7 @@ import (
 	"github.com/centrifugal/centrifugo/v3/internal/metrics/graphite"
 	"github.com/centrifugal/centrifugo/v3/internal/middleware"
 	"github.com/centrifugal/centrifugo/v3/internal/natsbroker"
+	"github.com/centrifugal/centrifugo/v3/internal/notify"
 	"github.com/centrifugal/centrifugo/v3/internal/origin"
 	"github.com/centrifugal/centrifugo/v3/internal/proxy"
 	"github.com/centrifugal/centrifugo/v3/internal/rule"
@@ -56,6 +57,7 @@ import (
 	"github.com/centrifugal/centrifugo/v3/internal/unihttpstream"
 	"github.com/centrifugal/centrifugo/v3/internal/unisse"
 	"github.com/centrifugal/centrifugo/v3/internal/uniws"
+	"github.com/centrifugal/centrifugo/v3/internal/usage"
 	"github.com/centrifugal/centrifugo/v3/internal/webui"
 
 	"github.com/FZambia/viper-lite"
@@ -235,6 +237,8 @@ func bindCentrifugoConfig() {
 
 		"client_history_max_publication_limit":  300,
 		"client_recovery_max_publication_limit": 300,
+
+		"anonymous_stats_disable": false,
 	}
 
 	for k, v := range defaults {
@@ -245,6 +249,8 @@ func bindCentrifugoConfig() {
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv()
 }
+
+const edition = "oss"
 
 func main() {
 	var configFile string
@@ -356,12 +362,14 @@ func main() {
 			var broker centrifuge.Broker
 			var presenceManager centrifuge.PresenceManager
 
+			var engineMode string
+
 			if engineName == "memory" {
-				broker, presenceManager, err = memoryEngine(node)
+				broker, presenceManager, engineMode, err = memoryEngine(node)
 			} else if engineName == "redis" {
-				broker, presenceManager, err = redisEngine(node)
+				broker, presenceManager, engineMode, err = redisEngine(node)
 			} else if engineName == "tarantool" {
-				broker, presenceManager, err = tarantoolEngine(node)
+				broker, presenceManager, engineMode, err = tarantoolEngine(node)
 			} else {
 				log.Fatal().Msgf("unknown engine: %s", engineName)
 			}
@@ -536,6 +544,48 @@ func main() {
 					Tags:     viper.GetBool("graphite_tags"),
 				})
 			}
+
+			var statsSender *usage.Sender
+			if !viper.GetBool("anonymous_stats_disable") {
+				statsSender = usage.NewSender(node, ruleContainer, usage.Features{
+					Edition:    edition,
+					Version:    build.Version,
+					Engine:     engineName,
+					EngineMode: engineMode,
+					Broker:     brokerName,
+					BrokerMode: "",
+
+					Websocket:     !viper.GetBool("websocket_disable"),
+					HTTPStream:    viper.GetBool("http_stream"),
+					SSE:           viper.GetBool("sse"),
+					SockJS:        viper.GetBool("sockjs"),
+					UniWebsocket:  viper.GetBool("uni_websocket"),
+					UniHTTPStream: viper.GetBool("uni_http_stream"),
+					UniSSE:        viper.GetBool("uni_sse"),
+					UniGRPC:       viper.GetBool("uni_grpc"),
+
+					GrpcAPI:             viper.GetBool("grpc_api"),
+					SubscribeToPersonal: viper.GetBool("user_subscribe_to_personal"),
+					Admin:               viper.GetBool("admin"),
+
+					ConnectProxy:   proxyMap.ConnectProxy != nil,
+					RefreshProxy:   proxyMap.RefreshProxy != nil,
+					SubscribeProxy: len(proxyMap.SubscribeProxies) > 0,
+					PublishProxy:   len(proxyMap.PublishProxies) > 0,
+					RPCProxy:       len(proxyMap.RpcProxies) > 0,
+
+					ClickhouseAnalytics: false,
+					UserStatus:          false,
+					Throttling:          false,
+					UserBlocking:        false,
+					TokenRevoking:       false,
+					TokenInvalidation:   false,
+					Singleflight:        false,
+				})
+				go statsSender.Start(context.Background())
+			}
+
+			notify.RegisterHandlers(node, statsSender)
 
 			handleSignals(configFile, node, ruleContainer, tokenVerifier, servers, grpcAPIServer, grpcUniServer, exporter)
 		},
@@ -1730,24 +1780,24 @@ func adminHandlerConfig() admin.Config {
 	return cfg
 }
 
-func memoryEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, error) {
+func memoryEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, string, error) {
 	brokerConf, err := memoryBrokerConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	broker, err := centrifuge.NewMemoryBroker(n, *brokerConf)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	presenceManagerConf, err := memoryPresenceManagerConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	presenceManager, err := centrifuge.NewMemoryPresenceManager(n, *presenceManagerConf)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
-	return broker, presenceManager, nil
+	return broker, presenceManager, "", nil
 }
 
 func memoryBrokerConfig() (*centrifuge.MemoryBrokerConfig, error) {
@@ -1772,7 +1822,7 @@ func addRedisShardCommonSettings(shardConf *centrifuge.RedisShardConfig) {
 	shardConf.WriteTimeout = GetDuration("redis_write_timeout")
 }
 
-func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, error) {
+func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, string, error) {
 	var shardConfigs []centrifuge.RedisShardConfig
 
 	clusterShards := viper.GetStringSlice("redis_cluster_address")
@@ -1786,7 +1836,7 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, error) {
 			clusterAddresses := strings.Split(clusterAddress, ",")
 			for _, address := range clusterAddresses {
 				if _, _, err := net.SplitHostPort(address); err != nil {
-					return nil, fmt.Errorf("malformed Redis Cluster address: %s", address)
+					return nil, "", fmt.Errorf("malformed Redis Cluster address: %s", address)
 				}
 			}
 			conf := &centrifuge.RedisShardConfig{
@@ -1795,7 +1845,7 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, error) {
 			addRedisShardCommonSettings(conf)
 			shardConfigs = append(shardConfigs, *conf)
 		}
-		return shardConfigs, nil
+		return shardConfigs, "cluster", nil
 	}
 
 	sentinelShards := viper.GetStringSlice("redis_sentinel_address")
@@ -1809,7 +1859,7 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, error) {
 			sentinelAddresses := strings.Split(sentinelAddress, ",")
 			for _, address := range sentinelAddresses {
 				if _, _, err := net.SplitHostPort(address); err != nil {
-					return nil, fmt.Errorf("malformed Redis Sentinel address: %s", address)
+					return nil, "", fmt.Errorf("malformed Redis Sentinel address: %s", address)
 				}
 			}
 			conf := &centrifuge.RedisShardConfig{
@@ -1820,11 +1870,11 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, error) {
 			conf.SentinelPassword = viper.GetString("redis_sentinel_password")
 			conf.SentinelMasterName = viper.GetString("redis_sentinel_master_name")
 			if conf.SentinelMasterName == "" {
-				return nil, fmt.Errorf("master name must be set when using Redis Sentinel")
+				return nil, "", fmt.Errorf("master name must be set when using Redis Sentinel")
 			}
 			shardConfigs = append(shardConfigs, *conf)
 		}
-		return shardConfigs, nil
+		return shardConfigs, "sentinel", nil
 	}
 
 	redisAddresses := viper.GetStringSlice("redis_address")
@@ -1838,30 +1888,36 @@ func getRedisShardConfigs() ([]centrifuge.RedisShardConfig, error) {
 		addRedisShardCommonSettings(conf)
 		shardConfigs = append(shardConfigs, *conf)
 	}
-	return shardConfigs, nil
+
+	return shardConfigs, "standalone", nil
 }
 
-func getRedisShards(n *centrifuge.Node) ([]*centrifuge.RedisShard, error) {
-	redisShardConfigs, err := getRedisShardConfigs()
+func getRedisShards(n *centrifuge.Node) ([]*centrifuge.RedisShard, string, error) {
+	redisShardConfigs, mode, err := getRedisShardConfigs()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	redisShards := make([]*centrifuge.RedisShard, 0, len(redisShardConfigs))
 
 	for _, redisConf := range redisShardConfigs {
 		redisShard, err := centrifuge.NewRedisShard(n, redisConf)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		redisShards = append(redisShards, redisShard)
 	}
-	return redisShards, nil
+
+	if len(redisShards) > 1 {
+		mode += "_sharded"
+	}
+
+	return redisShards, mode, nil
 }
 
-func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, error) {
-	redisShards, err := getRedisShards(n)
+func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, string, error) {
+	redisShards, mode, err := getRedisShards(n)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 
 	broker, err := centrifuge.NewRedisBroker(n, centrifuge.RedisBrokerConfig{
@@ -1871,7 +1927,7 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 
 	presenceManager, err := centrifuge.NewRedisPresenceManager(n, centrifuge.RedisPresenceManagerConfig{
@@ -1880,13 +1936,13 @@ func redisEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceMana
 		PresenceTTL: GetDuration("presence_ttl", true),
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 
-	return broker, presenceManager, nil
+	return broker, presenceManager, mode, nil
 }
 
-func getTarantoolShardConfigs() ([]tntengine.ShardConfig, error) {
+func getTarantoolShardConfigs() ([]tntengine.ShardConfig, string, error) {
 	var shardConfigs []tntengine.ShardConfig
 
 	mode := tntengine.ConnectionModeSingleInstance
@@ -1899,7 +1955,7 @@ func getTarantoolShardConfigs() ([]tntengine.ShardConfig, error) {
 		case "leader-follower-raft":
 			mode = tntengine.ConnectionModeLeaderFollowerRaft
 		default:
-			return nil, fmt.Errorf("unknown Tarantool mode: %s", viper.GetString("tarantool_mode"))
+			return nil, "", fmt.Errorf("unknown Tarantool mode: %s", viper.GetString("tarantool_mode"))
 		}
 	}
 
@@ -1919,46 +1975,51 @@ func getTarantoolShardConfigs() ([]tntengine.ShardConfig, error) {
 		}
 		shardConfigs = append(shardConfigs, *conf)
 	}
-	return shardConfigs, nil
+	return shardConfigs, string(mode), nil
 }
 
-func getTarantoolShards() ([]*tntengine.Shard, error) {
-	tarantoolShardConfigs, err := getTarantoolShardConfigs()
+func getTarantoolShards() ([]*tntengine.Shard, string, error) {
+	tarantoolShardConfigs, mode, err := getTarantoolShardConfigs()
 	if err != nil {
-		return nil, err
+		return nil, mode, err
 	}
 	tarantoolShards := make([]*tntengine.Shard, 0, len(tarantoolShardConfigs))
 
 	for _, tarantoolConf := range tarantoolShardConfigs {
 		tarantoolShard, err := tntengine.NewShard(tarantoolConf)
 		if err != nil {
-			return nil, err
+			return nil, mode, err
 		}
 		tarantoolShards = append(tarantoolShards, tarantoolShard)
 	}
-	return tarantoolShards, nil
+
+	if len(tarantoolShards) > 1 {
+		mode += "_sharded"
+	}
+
+	return tarantoolShards, mode, nil
 }
 
-func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, error) {
-	tarantoolShards, err := getTarantoolShards()
+func tarantoolEngine(n *centrifuge.Node) (centrifuge.Broker, centrifuge.PresenceManager, string, error) {
+	tarantoolShards, mode, err := getTarantoolShards()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	broker, err := tntengine.NewBroker(n, tntengine.BrokerConfig{
 		Shards:         tarantoolShards,
 		HistoryMetaTTL: GetDuration("history_meta_ttl", true),
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	presenceManager, err := tntengine.NewPresenceManager(n, tntengine.PresenceManagerConfig{
 		Shards:      tarantoolShards,
 		PresenceTTL: GetDuration("presence_ttl", true),
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
-	return broker, presenceManager, nil
+	return broker, presenceManager, mode, nil
 }
 
 type logHandler struct {

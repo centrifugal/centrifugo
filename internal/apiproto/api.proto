@@ -435,6 +435,7 @@ message InvalidateUserTokensRequest {
     int64 expire_at = 1;
     string user = 2;
     int64 issued_before = 3;
+    string channel = 4;
 }
 
 message InvalidateUserTokensResult {}

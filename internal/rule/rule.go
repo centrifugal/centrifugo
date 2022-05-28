@@ -223,6 +223,13 @@ func (n *Container) ChannelOptions(ch string) (string, ChannelOptions, bool, err
 	return nsName, chOpts, ok, err
 }
 
+// NumNamespaces returns number of configured namespaces.
+func (n *Container) NumNamespaces() int {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	return len(n.config.Namespaces)
+}
+
 // channelOpts searches for channel options for specified namespace key.
 func (c *Config) channelOpts(namespaceName string) (ChannelOptions, bool, error) {
 	if namespaceName == "" {
@@ -316,6 +323,13 @@ func (n *Container) RpcOptions(method string) (RpcOptions, bool, error) {
 	n.mu.RLock()
 	defer n.mu.RUnlock()
 	return n.config.rpcOpts(n.rpcNamespaceName(method))
+}
+
+// NumRpcNamespaces returns number of configured rpc namespaces.
+func (n *Container) NumRpcNamespaces() int {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	return len(n.config.RpcNamespaces)
 }
 
 // rpcOpts searches for channel options for specified namespace key.

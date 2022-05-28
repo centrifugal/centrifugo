@@ -50,7 +50,7 @@ builds:
     - goos: freebsd
       goarch: arm64
   main: .
-  ldflags: -s -w -X github.com/centrifugal/centrifugo/v3/internal/build.Version={{.Version}}
+  ldflags: -s -w -X github.com/centrifugal/centrifugo/v3/internal/build.Version={{.Version}} -X github.com/centrifugal/centrifugo/v3/internal/build.UsageStatsEndpoint={{ .Env.STATS_ENDPOINT }} -X github.com/centrifugal/centrifugo/v3/internal/build.UsageStatsToken={{ .Env.STATS_TOKEN }}
   binary: centrifugo
   env:
     # https://github.com/goreleaser/goreleaser/issues/225
