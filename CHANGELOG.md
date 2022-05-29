@@ -1,3 +1,16 @@
+v3.2.1
+======
+
+No backwards incompatible changes here.
+
+### Improvements
+
+* Centrifugo now periodically sends anonymous usage information (once in 24 hours). That information is impersonal and does not include sensitive data, passwords, IP addresses, hostnames, etc. Only counters to estimate version and installation size distribution, and feature usage. See implementation in [#516](https://github.com/centrifugal/centrifugo/pull/516). Please do not disable usage stats sending without reason. If you depend on Centrifugo – sure you are interested in further project improvements. Usage stats help us understand Centrifugo use cases better, concentrate on widely-used features, and be confident we are moving in the right direction. Developing in the dark is hard, and decisions may be non-optimal. See [docs](https://centrifugal.dev/docs/next/server/configuration#anonymous-usage-stats) for more details.
+
+### Misc
+
+* This release is built with Go 1.17.10.
+
 v3.2.0
 ======
 
