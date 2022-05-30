@@ -9,6 +9,7 @@ No backwards incompatible changes here.
 
 ### Misc
 
+* We continue working on Centrifugo v4, look at our [v4 roadmap](https://github.com/centrifugal/centrifugo/issues/500) where the latest updates are shared. BTW Centrifugo v3 already has code to work over new protocol which we aim to make default in v4. It's already possible to try out our own bidirectional emulation layer with HTTP-streaming and Eventsource transports. Don't hesitate reaching out if you depend on Centrifugo and want to understand more what's coming in next major release. We are actively collecting feedback at the moment.
 * This release is built with Go 1.17.10.
 
 v3.2.0
